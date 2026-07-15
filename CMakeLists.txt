@@ -414,7 +414,7 @@ add_custom_command(
 
 # Copy FFNx release to FF7 1998 game path if installed
 cmake_host_system_information(RESULT FF7_1998_GAME_PATH QUERY WINDOWS_REGISTRY "HKLM/SOFTWARE/Square Soft, Inc./Final Fantasy VII" VALUE "AppPath" ERROR_VARIABLE FF7_KEY_QUERY_RES)
-if("${FF7_KEY_QUERY_RES}" STREQUAL "")
+if(FALSE) # FFNx-gate fork: auto-deploy to FF7 1998 disabled (was clobbering FF7/SYW)
   cmake_path(CONVERT "${FF7_1998_GAME_PATH}" TO_CMAKE_PATH_LIST FF7_1998_GAME_PATH)
   # Ensure FFNx.toml exists so the copy on build does not error on fresh installs
   if(NOT EXISTS "${FF7_1998_GAME_PATH}/FFNx.toml")
@@ -445,7 +445,7 @@ endif()
 
 # Copy FFNx release to FF8 2000 game path if installed
 cmake_host_system_information(RESULT FF8_2000_GAME_PATH QUERY WINDOWS_REGISTRY "HKLM/SOFTWARE/Square Soft, Inc/FINAL FANTASY VIII/1.00" VALUE "AppPath" ERROR_VARIABLE FF8_KEY_QUERY_RES)
-if("${FF8_KEY_QUERY_RES}" STREQUAL "")
+if(FALSE) # FFNx-gate fork: auto-deploy to FF8 2000 disabled
   cmake_path(CONVERT "${FF8_2000_GAME_PATH}" TO_CMAKE_PATH_LIST FF8_2000_GAME_PATH)
   # Ensure FFNx.toml exists so the copy on build does not error on fresh installs
   if(NOT EXISTS "${FF8_2000_GAME_PATH}/FFNx.toml")
@@ -488,7 +488,7 @@ execute_process(
   ERROR_VARIABLE FF7_STEAM_ERROR
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-if(NOT "${FF7_STEAM_GAME_PATH}" STREQUAL "")
+if(FALSE) # FFNx-gate fork: auto-deploy to FF7 Steam disabled
   cmake_path(CONVERT "${FF7_STEAM_GAME_PATH}" TO_CMAKE_PATH_LIST FF7_STEAM_GAME_PATH)
   # Ensure FFNx.toml exists so the copy on build does not error on fresh installs
   if(NOT EXISTS "${FF7_STEAM_GAME_PATH}/FFNx.toml")
@@ -531,7 +531,7 @@ execute_process(
   ERROR_VARIABLE FF8_STEAM_ERROR
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-if(NOT "${FF8_STEAM_GAME_PATH}" STREQUAL "")
+if(FALSE) # FFNx-gate fork: FF8 auto-deploy disabled (mangles toml if game is running); deploy manually
   cmake_path(CONVERT "${FF8_STEAM_GAME_PATH}" TO_CMAKE_PATH_LIST FF8_STEAM_GAME_PATH)
   # Ensure FFNx.toml exists so the copy on build does not error on fresh installs
   if(NOT EXISTS "${FF8_STEAM_GAME_PATH}/FFNx.toml")
@@ -574,7 +574,7 @@ execute_process(
   ERROR_VARIABLE FF7_STEAM_RERELEASE_ERROR
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-if(NOT "${FF7_STEAM_RERELEASE_GAME_PATH}" STREQUAL "")
+if(FALSE) # FFNx-gate fork: auto-deploy to FF7 Rerelease disabled
   cmake_path(CONVERT "${FF7_STEAM_RERELEASE_GAME_PATH}" TO_CMAKE_PATH_LIST FF7_STEAM_RERELEASE_GAME_PATH)
   set(FF7_STEAM_RERELEASE_GAME_PATH "${FF7_STEAM_RERELEASE_GAME_PATH}/ff7/workingdir")
   # Ensure FFNx.toml exists so the copy on build does not error on fresh installs
