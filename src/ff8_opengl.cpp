@@ -1581,6 +1581,106 @@ int __cdecl ff8_gf_setup_hook(int a1)
 	return r;
 }
 
+// ===== Ifrit GF creature: output-pose interpolation (60fps POC) =====
+// The Ifrit creature pose is built each frame by sub_B2F590 into the matrix table unk_27977A4,
+// walking a rotation-vector stream via dword_2797450 (FF8_IFRIT_ANIMPTR). That stream advances
+// every frame (4x too fast). We run the anim VM 1-in-4 and rewind the stream pointer on the held
+// frames so the creature plays at correct 15fps speed. (Smooth interpolation is the next step.)
+#define FF8_IFRIT_STATE   (*(uint32_t *)0x27973EC)      // ptr to the active GF sequence state
+
+static uint32_t (__cdecl *ff8_ifrit_seq_orig)()  = nullptr;
+static void     (__cdecl *ff8_ifrit_neg_orig)()  = nullptr;
+static int      (__cdecl *ff8_ifrit_int_orig)()  = nullptr;
+static void     (__cdecl *ff8_ifrit_pos_orig)()  = nullptr;
+static void     (__cdecl *ff8_ifrit_draw_orig)() = nullptr;
+static int      (__cdecl *ff8_ifrit_func1_orig)(int) = nullptr;
+static int      (__cdecl *ff8_ifrit_build_orig)() = nullptr;
+static uint32_t ff8_ifrit_seq_ri, ff8_ifrit_neg_ri, ff8_ifrit_int_ri, ff8_ifrit_pos_ri, ff8_ifrit_draw_ri, ff8_ifrit_func1_ri, ff8_ifrit_build_ri;
+
+static uint32_t ff8_ifrit_counter = 0;
+static int  ff8_ifrit_phase = 0;
+static bool ff8_ifrit_active = false;
+// The creature advance is the block Neg()+Integrator()+Pos() inside GF_Ifrit_seqBDlink; the
+// draw (BuildMatricesAndDraw) always runs and redraws the held pose. Gating all three advance
+// functions together 1-in-4 = correct 15fps speed (per the frame-counter trace).
+
+void __cdecl ff8_ifrit_neg_hook()
+{
+	static int dbgn = 0;
+	bool skip = (ff8_ifrit_active && ff8_ifrit_phase != 0);
+	if (dbgn < 24) { ffnx_info("IFRIT neg#%d act=%d ph=%d %s\n", dbgn++, ff8_ifrit_active ? 1 : 0, ff8_ifrit_phase, skip ? "SKIP" : "RUN"); }
+	if (skip) return; // advance only on phase 0
+	unreplace_function(ff8_ifrit_neg_ri); ff8_ifrit_neg_orig(); rereplace_function(ff8_ifrit_neg_ri);
+}
+int __cdecl ff8_ifrit_int_hook()
+{
+	static int dbgi = 0;
+	bool skip = (ff8_ifrit_active && ff8_ifrit_phase != 0);
+	if (dbgi < 24) { ffnx_info("IFRIT integ#%d act=%d ph=%d %s\n", dbgi++, ff8_ifrit_active ? 1 : 0, ff8_ifrit_phase, skip ? "SKIP" : "RUN"); }
+	if (skip) return 0;
+	unreplace_function(ff8_ifrit_int_ri); int r = ff8_ifrit_int_orig(); rereplace_function(ff8_ifrit_int_ri); return r;
+}
+void __cdecl ff8_ifrit_pos_hook()
+{
+	static int dbgp = 0;
+	bool skip = (ff8_ifrit_active && ff8_ifrit_phase != 0);
+	if (dbgp < 24) { ffnx_info("IFRIT pos#%d act=%d ph=%d %s\n", dbgp++, ff8_ifrit_active ? 1 : 0, ff8_ifrit_phase, skip ? "SKIP" : "RUN"); }
+	if (skip) return;
+	unreplace_function(ff8_ifrit_pos_ri); ff8_ifrit_pos_orig(); rereplace_function(ff8_ifrit_pos_ri);
+}
+void __cdecl ff8_ifrit_draw_hook()
+{
+	// draw always runs (redraws the held pose every 60fps tick); no pointer rewrite - dword_2797450 is scratch.
+	unreplace_function(ff8_ifrit_draw_ri); ff8_ifrit_draw_orig(); rereplace_function(ff8_ifrit_draw_ri);
+}
+// Gate the master tick counter state+50 (the pose frame index): let it advance on phase 0,
+// and on the 3 held ticks force it back to the phase-0 value (orig re-increments it at its
+// top, so we pre-set held-1). Reset per summon via the func1 hook below.
+static uint16_t ff8_ifrit_held50 = 0;
+static bool ff8_ifrit_held_init = false;
+
+uint32_t __cdecl ff8_ifrit_seq_hook()
+{
+	uint32_t s = FF8_IFRIT_STATE;
+	bool svalid = (s >= 0x10000u && s < 0x7F000000u);
+	ff8_ifrit_phase = (ff8_ifrit_counter++) & 3;
+	static int dbgs = 0;
+	if (dbgs < 24) { ffnx_info("IFRIT seq#%d ph=%d t50=%d held=%d\n", dbgs++, ff8_ifrit_phase, svalid ? (int)*(uint16_t *)(s + 50) : -1, ff8_ifrit_held50); }
+	ff8_ifrit_active = true;
+	if (svalid && ff8_ifrit_held_init && ff8_ifrit_phase != 0)
+		*(uint16_t *)(s + 50) = ff8_ifrit_held50 - 1; // orig's ++ -> held50 (re-use phase-0 frame)
+	unreplace_function(ff8_ifrit_seq_ri); uint32_t r = ff8_ifrit_seq_orig(); rereplace_function(ff8_ifrit_seq_ri);
+	if (svalid && (ff8_ifrit_phase == 0 || !ff8_ifrit_held_init))
+	{
+		ff8_ifrit_held50 = *(uint16_t *)(s + 50); // capture the freshly-advanced frame index
+		ff8_ifrit_held_init = true;
+	}
+	ff8_ifrit_active = false;
+	return r;
+}
+// GF_Ifrit_func1 (0xB257E0) runs once at summon setup -> reset the phase/frame gate.
+int __cdecl ff8_ifrit_func1_hook(int a1)
+{
+	ff8_ifrit_counter = 0;
+	ff8_ifrit_held_init = false;
+	unreplace_function(ff8_ifrit_func1_ri); int r = ff8_ifrit_func1_orig(a1); rereplace_function(ff8_ifrit_func1_ri);
+	return r;
+}
+// GF_Ifrit_BuildPoseMatrices (0xB2F590): rebuilds a bone's matrix in unk_27977A4 (what the draw
+// reads). Skip on held frames -> the pose matrices retain the phase-0 values -> creature holds
+// at 15fps regardless of what drives its inputs.
+int __cdecl ff8_ifrit_build_hook()
+{
+	static int dbgb = 0;
+	bool skip = (ff8_ifrit_active && ff8_ifrit_phase != 0);
+	if (dbgb < 24) { ffnx_info("IFRIT build#%d act=%d ph=%d %s\n", dbgb++, ff8_ifrit_active ? 1 : 0, ff8_ifrit_phase, skip ? "SKIP" : "RUN"); }
+	if (skip) return 0;
+	unreplace_function(ff8_ifrit_build_ri); int r = ff8_ifrit_build_orig(); rereplace_function(ff8_ifrit_build_ri);
+	return r;
+}
+
+// ===== General battle-model animation gate (characters, enemies, GF bodies) =====
+// Every battle entity's animation is advanced once per battle tick by
 // Each spell/GF keeps its effect state in a cluster of pools AROUND its root task
 // queue - and that root is exactly the pointer handed to the tick (effect_ctx =
 // C3_28_GF_data_pointer). So we snapshot a window around effect_ctx, which tracks
@@ -1909,6 +2009,26 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		// ff8_setup_replidx_G = replace_function(0x50B2A0, (void *)ff8_gf_setup_hook);
 		(void)ff8_setup_replidx_G; (void)ff8_gf_setup_hook;
 		ff8_damagenum_replidx = replace_function(0x5068B0, (void *)ff8_DamageNumbers_Spawn_hook);
+
+		// Ifrit creature: advance the anim VM 1-in-4 + interpolate the drawn pose.
+		// Ifrit summon: gate the pose-matrix system 1-in-4 (this correctly slows the fire/energy
+		// EFFECTS around Ifrit) + the state+50 sequence counter. The creature BODY still advances 4x
+		// via a separate driver (TBD). Hooks: seq (state+50), neg/int/pos (skeletal advance),
+		// build (BuildPoseMatrices -> holds unk_27977A4 pose on held frames), func1 (per-summon reset).
+		ff8_ifrit_seq_orig  = (uint32_t(__cdecl *)())0xB25DF0;
+		ff8_ifrit_neg_orig  = (void(__cdecl *)())0xB2FCF0;
+		ff8_ifrit_int_orig  = (int(__cdecl *)())0xB26110;
+		ff8_ifrit_pos_orig  = (void(__cdecl *)())0xB30110;
+		ff8_ifrit_draw_orig = (void(__cdecl *)())0xB2ABE0;
+		ff8_ifrit_build_orig = (int(__cdecl *)())0xB2F590;
+		ff8_ifrit_func1_orig = (int(__cdecl *)(int))0xB257E0;
+		ff8_ifrit_seq_ri  = replace_function(0xB25DF0, (void *)ff8_ifrit_seq_hook);
+		ff8_ifrit_neg_ri  = replace_function(0xB2FCF0, (void *)ff8_ifrit_neg_hook);
+		ff8_ifrit_int_ri  = replace_function(0xB26110, (void *)ff8_ifrit_int_hook);
+		ff8_ifrit_pos_ri  = replace_function(0xB30110, (void *)ff8_ifrit_pos_hook);
+		ff8_ifrit_build_ri = replace_function(0xB2F590, (void *)ff8_ifrit_build_hook);
+		ff8_ifrit_func1_ri = replace_function(0xB257E0, (void *)ff8_ifrit_func1_hook);
+		(void)ff8_ifrit_draw_hook; (void)ff8_ifrit_draw_orig; (void)ff8_ifrit_draw_ri;
 		ffnx_info("60fps: gate installed (magic + Ifrit effect + battle-model anim 1-in-4)\n");
 	}
 
