@@ -1455,6 +1455,230 @@ int ff8_limit_fps()
 	return 0;
 }
 
+// ---------------------------------------------------------------------------
+// 60fps battle magic/GF effect frame-hold
+// ---------------------------------------------------------------------------
+// At ff8_fps_limiter == 60FPS the whole battle loop iterates 4x, so spell/GF effects
+// (which advance one step per loop iteration) play 4x too fast. A single call inside
+// the battle per-frame update ticks the ENTIRE active effect task tree:
+// BdLink_GF_battle_input_and_texture_upload @0x50093A -> ExecuteTaskQueue(C3_28...).
+//
+// The effect DRAWS itself inside that same tick (InitEffectSequenceFromData rebuilds
+// its geometry into the battle render list every frame), so simply skipping the tick
+// 3-in-4 also skips the draw -> flicker. Instead we run the tick EVERY frame (so it
+// always draws) but on 3 of 4 frames we snapshot the effect state pools right before
+// the tick and restore them right after: only the effect ran in between, so restoring
+// undoes just its ADVANCE while keeping its DRAW (which lives in a separate render
+// list). Result: drawn at 60fps (no flicker), advancing at ~15fps (correct speed).
+// (Addresses are FF8 1.2 US English specific.)
+//
+static int (__cdecl *ff8_battle_effect_tick_orig)(void *effect_ctx) = nullptr;
+
+// True only while a HELD-frame effect tick is running (i.e. a re-draw that must not
+// repeat side effects). BdPlaySE and BdPlaySy both funnel into PlayWorldSound, so we
+// no-op that one function while holding -> effect SFX fires once, not 4x.
+static bool ff8_fx_holding = false;
+static uint32_t ff8_playworldsound_replidx = 0;
+
+int __cdecl ff8_PlayWorldSound_hook(int number, int attr, unsigned int pos, unsigned int vol)
+{
+	if (ff8_fx_holding)
+		return 0; // held-frame re-draw: don't re-trigger the sound
+	unreplace_function(ff8_playworldsound_replidx);
+	int r = ((int(__cdecl *)(int, int, unsigned int, unsigned int))0x46B2A0)(number, attr, pos, vol);
+	rereplace_function(ff8_playworldsound_replidx);
+	return r;
+}
+
+// Damage/heal number popup (BattleFx_DamageNumbers_Spawn @ 0x5068B0). The effect tree
+// re-triggers it on the 3 held frames -> the number shows 4x. It only spawns a display
+// task (no gameplay), so suppressing it while holding is safe -> number shows once.
+static uint32_t ff8_damagenum_replidx = 0;
+
+void __cdecl ff8_DamageNumbers_Spawn_hook(void *a1)
+{
+	if (ff8_fx_holding)
+		return; // held-frame re-draw: don't re-spawn the number
+	unreplace_function(ff8_damagenum_replidx);
+	((void(__cdecl *)(void *))0x5068B0)(a1);
+	rereplace_function(ff8_damagenum_replidx);
+}
+
+// The battle effect-queue root pointer (C3_28_GF_data_pointer). This is exactly the
+// pointer handed to the gated tick, so effect_ctx == this value.
+#define FF8_C3_28_GF_PTR (*(void **)0x1D96AAC)
+
+// WHITELIST: we only frame-hold effects registered by a magic-cast action handler. The
+// battle action dispatcher (sub_50A790) picks a handler by command type; regular magic
+// takes the "default" branch -> sub_50A9A0 (unk3 != 0, the full cast w/ target move) or
+// sub_50B190 (unk3 == 0). Both set C3_28 = MAGIC_EFFECT_LOGIC_CALLBACK(...). Other things
+// that ride the same effect tick - notably the Draw/Stock swirl - reach memory outside
+// their pool window, so the snapshot/restore corrupts it (a delayed crash the __try guard
+// can't catch). Holding ONLY the cast effect avoids them. ff8_fx_holdable_ctx = its queue.
+static void *ff8_fx_holdable_ctx = nullptr;
+static uint32_t ff8_setup_replidx_A = 0; // sub_50A9A0
+static uint32_t ff8_setup_replidx_B = 0; // sub_50B190
+
+// Battle command type (BattleTask68Data.commandTypeWIthGunblade). Verified in-game:
+// Magic cast = 0x02 (safe to hold), Draw/Stock = 0x06 (routes through the same magic
+// handler but corrupts external state when held -> delayed crash). Only hold cmd 0x02.
+#define FF8_CMD_MAGIC 0x02
+
+static void ff8_capture_holdable(void *before)
+{
+	void *after = FF8_C3_28_GF_PTR;
+	if (!after || after == before)
+		return;
+	uint8_t *t = *(uint8_t **)0x1D99A50; // BATTLE_TASK_68_DATA_ADDR
+	if ((uint32_t)t <= 0x10000 || (uint32_t)t >= 0x7F000000)
+		return;
+	if (t[1] != FF8_CMD_MAGIC)
+		return; // Draw (0x06) etc. -> not held, runs at normal speed, never crashes
+	ff8_fx_holdable_ctx = after; // a genuine magic-cast effect queue was just registered
+	ffnx_info("60fps: HOLDABLE %p (magic, eff=%02X)\n", after, t[6]);
+}
+
+int __cdecl ff8_magic_setup_hook_A(int a1)
+{
+	void *before = FF8_C3_28_GF_PTR;
+	unreplace_function(ff8_setup_replidx_A);
+	int r = ((int(__cdecl *)(int))0x50A9A0)(a1);
+	rereplace_function(ff8_setup_replidx_A);
+	ff8_capture_holdable(before);
+	return r;
+}
+
+int __cdecl ff8_magic_setup_hook_B(int a1)
+{
+	void *before = FF8_C3_28_GF_PTR;
+	unreplace_function(ff8_setup_replidx_B);
+	int r = ((int(__cdecl *)(int))0x50B190)(a1);
+	rereplace_function(ff8_setup_replidx_B);
+	ff8_capture_holdable(before);
+	return r;
+}
+
+// GF summon cinematic handler (sub_50B2A0, dispatcher cmd 0x26/0xF4/0xFE). Case 3 sets
+// C3_28 = MAGIC_EFFECT_LOGIC_CALLBACK(...) just like magic. DIAGNOSTIC: capture its queue
+// as holdable unconditionally (only GF summons reach here) and log the command byte so we
+// can see which part of the summon the C3_28 hold actually slows down.
+static uint32_t ff8_setup_replidx_G = 0; // sub_50B2A0
+
+int __cdecl ff8_gf_setup_hook(int a1)
+{
+	void *before = FF8_C3_28_GF_PTR;
+	unreplace_function(ff8_setup_replidx_G);
+	int r = ((int(__cdecl *)(int))0x50B2A0)(a1);
+	rereplace_function(ff8_setup_replidx_G);
+	void *after = FF8_C3_28_GF_PTR;
+	if (after && after != before)
+	{
+		ff8_fx_holdable_ctx = after;
+		uint8_t *t = *(uint8_t **)0x1D99A50;
+		uint8_t cmd = ((uint32_t)t > 0x10000 && (uint32_t)t < 0x7F000000) ? t[1] : 0xFF;
+		ffnx_info("60fps: HOLDABLE(GF) %p cmd=%02X\n", after, cmd);
+	}
+	return r;
+}
+
+// Each spell/GF keeps its effect state in a cluster of pools AROUND its root task
+// queue - and that root is exactly the pointer handed to the tick (effect_ctx =
+// C3_28_GF_data_pointer). So we snapshot a window around effect_ctx, which tracks
+// whichever effect is active instead of relying on per-spell hardcoded addresses.
+// (Window is a first guess; widen if a large effect still speeds up. The battle render
+// list lives far from these pools, so it survives the restore -> no flicker.)
+#define FF8_FX_SNAP_BEFORE 0x2000u
+#define FF8_FX_SNAP_SIZE   0x8000u
+static uint8_t ff8_fx_snapshot[FF8_FX_SNAP_SIZE];
+
+// Effects whose snapshot/hold faulted once -> never held again (they run at normal
+// speed). Small fixed set: at most a handful of distinct effect roots per battle.
+static void *ff8_fx_blacklist[16] = {0};
+static int ff8_fx_blacklist_n = 0;
+static bool ff8_fx_is_blacklisted(void *c)
+{
+	for (int i = 0; i < ff8_fx_blacklist_n; i++)
+		if (ff8_fx_blacklist[i] == c) return true;
+	return false;
+}
+static void ff8_fx_blacklist_add(void *c)
+{
+	if (ff8_fx_is_blacklisted(c)) return;
+	if (ff8_fx_blacklist_n < 16) ff8_fx_blacklist[ff8_fx_blacklist_n++] = c;
+}
+
+// Verify every page in [base, base+size) is committed and readable/writable. Walks
+// region-by-region so a window that merely straddles an FFNx-fragmented .data boundary
+// still passes (a single-region check wrongly rejected those and skipped the spell).
+static bool ff8_fx_window_committed(uint8_t *base, size_t size)
+{
+	uint8_t *p = base;
+	uint8_t *end = base + size;
+	while (p < end)
+	{
+		MEMORY_BASIC_INFORMATION mbi;
+		if (VirtualQuery(p, &mbi, sizeof(mbi)) == 0) return false;
+		if (mbi.State != MEM_COMMIT) return false;
+		if ((mbi.Protect & (PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READWRITE)) == 0) return false;
+		p = (uint8_t *)mbi.BaseAddress + mbi.RegionSize;
+	}
+	return true;
+}
+
+// Held-frame body isolated so the gate itself stays free of objects needing unwinding
+// (a requirement for the __try guard around it).
+static void ff8_fx_hold_once(void *effect_ctx, uint8_t *base)
+{
+	memcpy(ff8_fx_snapshot, base, FF8_FX_SNAP_SIZE);
+	ff8_fx_holding = true;              // suppress SFX during the held-frame re-draw
+	ff8_battle_effect_tick_orig(effect_ctx);
+	ff8_fx_holding = false;
+	memcpy(base, ff8_fx_snapshot, FF8_FX_SNAP_SIZE);
+}
+
+int __cdecl ff8_battle_effect_tick_gate(void *effect_ctx)
+{
+	static uint32_t frame = 0;
+	if ((frame++ & 3) == 0)
+	{
+		// Real frame: advance + draw (+ SFX) normally.
+		int r = ff8_battle_effect_tick_orig(effect_ctx);
+		if (r == 0 && effect_ctx == ff8_fx_holdable_ctx)
+			ff8_fx_holdable_ctx = nullptr; // this cast effect just ended
+		return r;
+	}
+
+	// Held frame: snapshot the effect's pool window -> tick (it draws this frame) ->
+	// restore (undo the advance). Effect drawn every frame, advances 1-in-4.
+	uint8_t *base = (uint8_t *)effect_ctx - FF8_FX_SNAP_BEFORE;
+
+	// Only hold the whitelisted magic-cast effect. Anything else (Draw/Stock swirl,
+	// limit/item effects, ...) runs a normal tick - not held, but never crashes. Also
+	// skip if already blacklisted or the window isn't fully committed R/W.
+	if (effect_ctx != ff8_fx_holdable_ctx
+		|| ff8_fx_is_blacklisted(effect_ctx)
+		|| !ff8_fx_window_committed(base, FF8_FX_SNAP_SIZE))
+	{
+		static void *last_skip = (void *)1;
+		if (effect_ctx != last_skip) { last_skip = effect_ctx; ffnx_info("60fps: gate SKIP effect_ctx=%p holdable=%p\n", effect_ctx, ff8_fx_holdable_ctx); }
+		return ff8_battle_effect_tick_orig(effect_ctx);
+	}
+
+	// Guard the hold: if the effect reaches outside its window and faults, catch it,
+	// blacklist the effect so it runs normally from now on, and never crash the game.
+	__try
+	{
+		ff8_fx_hold_once(effect_ctx, base);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		ff8_fx_holding = false;
+		ff8_fx_blacklist_add(effect_ctx);
+		ffnx_info("60fps: effect_ctx=%p faulted while held -> blacklisted (runs normal)\n", effect_ctx);
+	}
+	return 1; // effect still running (don't let the caller clear its pointer)
+}
+
 void* ff8_engine_set_wide_viewport(int x, int y, int w, int h)
 {
 	*ff8_externals.current_viewport_x_dword_1A7764C = wide_viewport_x;
@@ -1669,6 +1893,23 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		game_object->countspersecond = (double)game_object->_countspersecond;
 
 		replace_function(ff8_externals.fps_limiter, ff8_limit_fps);
+	}
+
+	// --- 60fps battle magic/GF effect gate (independent of the fps-limiter block) ---
+	// Diagnostic first, so the runtime values are visible even if the guard fails.
+	ffnx_info("[GATE-DIAG] ff8_fps_limiter=%d FF8_US_VERSION=%d\n", (int)ff8_fps_limiter, FF8_US_VERSION ? 1 : 0);
+	if (ff8_fps_limiter >= FPS_LIMITER_60FPS && FF8_US_VERSION)
+	{
+		ff8_battle_effect_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x50093A, 0);
+		replace_call(0x50093A, (void *)ff8_battle_effect_tick_gate);
+		ff8_playworldsound_replidx = replace_function(0x46B2A0, (void *)ff8_PlayWorldSound_hook);
+		ff8_setup_replidx_A = replace_function(0x50A9A0, (void *)ff8_magic_setup_hook_A);
+		ff8_setup_replidx_B = replace_function(0x50B190, (void *)ff8_magic_setup_hook_B);
+		// GF frame-hold disabled while testing Ifrit output-pose interpolation (they'd conflict).
+		// ff8_setup_replidx_G = replace_function(0x50B2A0, (void *)ff8_gf_setup_hook);
+		(void)ff8_setup_replidx_G; (void)ff8_gf_setup_hook;
+		ff8_damagenum_replidx = replace_function(0x5068B0, (void *)ff8_DamageNumbers_Spawn_hook);
+		ffnx_info("60fps: gate installed (magic + Ifrit effect + battle-model anim 1-in-4)\n");
 	}
 
 	// Gamepad
