@@ -1747,6 +1747,36 @@ int __cdecl ff8_animseq_upd_hook(void *slot_data_struct)
 	return r;
 }
 
+// BS_UpdateCameraSequence (0x509610) advances the battle CAMERA VM (computeAnimationSequence with
+// CameraSeq_DispatchActionOpcode - the camera's choreography script: swoops, pans, the battle-intro
+// camera). It is advance-only; updateBattleCamera (0x504060) still APPLIES the camera position to the
+// render globals every frame. So gate the advance 1-in-4 -> correct-speed camera. Caller ignores ret.
+static int (__cdecl *ff8_camseq_orig)() = nullptr;
+static uint32_t ff8_camseq_ri = 0;
+int __cdecl ff8_camseq_hook()
+{
+	if (ff8_anim_frame_phase != 0)
+		return 0; // hold the camera VM on 3-of-4 ticks
+	unreplace_function(ff8_camseq_ri);
+	int r = ff8_camseq_orig();
+	rereplace_function(ff8_camseq_ri);
+	return r;
+}
+
+// computeTimerStatus (0x483470) decrements the per-entity STATUS-effect timers (regen/doom/petrify/
+// shell/protect/reflect) once per battle tick -> 4x too fast at 60fps. Pure logic, no render; gate
+// 1-in-4. (NOTE: the ATB gauge fill + timed-battle countdown live elsewhere - still to be gated.)
+static void (__cdecl *ff8_timerstatus_orig)() = nullptr;
+static uint32_t ff8_timerstatus_ri = 0;
+void __cdecl ff8_timerstatus_hook()
+{
+	if (ff8_anim_frame_phase != 0)
+		return; // hold status timers on 3-of-4 ticks
+	unreplace_function(ff8_timerstatus_ri);
+	ff8_timerstatus_orig();
+	rereplace_function(ff8_timerstatus_ri);
+}
+
 // Battle_TickAtbGaugesAndGfCountdown / computeAtbAndEscape (0x4842B0) is THE per-tick battle-pace
 // driver: it fills every entity's ATB gauge (cur_atb += rate * K_MISC.atb_speed_multiplier *
 // (SPD+30)/100; rate 10/15/5 for normal/haste/slow; opens the command window when full), decrements
@@ -2130,6 +2160,18 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		// ATB gauge + GF-summon countdown ("round attack and atb"): gate the per-tick fill 1-in-4.
 		ff8_atbtick_orig = (char(__cdecl *)())0x4842B0;
 		ff8_atbtick_ri = replace_function(0x4842B0, (void *)ff8_atbtick_hook);
+		// Battle CAMERA speed: ProcessCameraAnimation (0x5035E0) is the real per-frame camera driver
+		// (interpolates keyframes + advances camera_struct->CurrentAnimationTime += 16 at 0x503A7C).
+		// At 60fps it runs 4x -> camera plays 4x fast (incl. the battle-intro swoop). The earlier VM
+		// gate (BS_UpdateCameraSequence) did nothing because the VM only SELECTS the animation, this
+		// task plays it. Fix by data patch: advance += 4 instead of 16, so at 4x ticks the camera
+		// nets native speed AND stays smooth (60fps interpolation, no gate/stepping). imm8 @0x503A80.
+		patch_code_byte(0x503A80, 0x04);
+		// NOTE (2026-07-15): status-timer gate (0x483470) still DISABLED pending crash isolation
+		// (build 21e81503 crashed 0xC0000005 in AF3DN on Zantetsuken/Odin - camera-VM gate or status
+		// timer). Camera now handled by the +=4 data patch above instead of the (ineffective) VM gate.
+		// ff8_timerstatus_orig = (void(__cdecl *)())0x483470;
+		// ff8_timerstatus_ri = replace_function(0x483470, (void *)ff8_timerstatus_hook);
 		ffnx_info("60fps: gate installed (magic + Ifrit effect + battle-model anim 1-in-4)\n");
 	}
 
