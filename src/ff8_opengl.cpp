@@ -1681,6 +1681,47 @@ int __cdecl ff8_ifrit_build_hook()
 
 // ===== General battle-model animation gate (characters, enemies, GF bodies) =====
 // Every battle entity's animation is advanced once per battle tick by
+// AnimSeq_UpdateEntityPerFrame (0x504290), called from the per-entity update/RENDER task
+// pre_pre_linkedToAnimationSequence (0x502AB0). That caller ALSO renders the entity, so we
+// must gate ONLY the animation advance (not the render) or models would flicker. At 60fps the
+// battle ticks 4x -> animations advance 4x. Gate: advance only 1-in-4 ticks; the entity still
+// renders every tick from its held pose -> correct 15fps speed, no flicker. The sole caller
+// ignores the return value, so returning early is safe. Per-tick phase is bumped at the top of
+// the battle frame-update BdLink_GF (0x500900).
+static int ff8_anim_frame_phase = 0;
+static int (__cdecl *ff8_bdlink_orig)() = nullptr;
+static uint32_t ff8_bdlink_ri = 0;
+static int (__cdecl *ff8_readanim_orig)(void *, void *) = nullptr;
+static uint32_t ff8_readanim_ri = 0;
+
+int __cdecl ff8_bdlink_hook()
+{
+	ff8_anim_frame_phase = (ff8_anim_frame_phase + 1) & 3;
+	unreplace_function(ff8_bdlink_ri);
+	int r = ff8_bdlink_orig();
+	rereplace_function(ff8_bdlink_ri);
+	return r;
+}
+// Battle_ReadAnimation (0x508F90) reads one frame's DELTA into the skeleton (accumulative),
+// advances current_frame, and calls ProcessFieldEntitiesTransformation(header) to rebuild the
+// render transform/geometry. On held ticks we must NOT read the delta or advance the frame, but
+// we MUST still rebuild the transform (else the double-buffered geometry starves -> 1-in-2
+// flicker). So on held ticks call ProcessFieldEntitiesTransformation only, and return "frame
+// processed, not complete" (0) so the animation keeps going. Net: pose advances 1-in-4, geometry
+// rebuilds every tick.
+int __cdecl ff8_readanim_hook(void *header, void *anim_cmd)
+{
+	if (ff8_anim_frame_phase != 0)
+	{
+		((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+		return 0; // READ_ANIMATION_RETURN_FINISHED_FRAME (continue, not end-of-animation)
+	}
+	unreplace_function(ff8_readanim_ri);
+	int r = ff8_readanim_orig(header, anim_cmd);
+	rereplace_function(ff8_readanim_ri);
+	return r;
+}
+
 // Each spell/GF keeps its effect state in a cluster of pools AROUND its root task
 // queue - and that root is exactly the pointer handed to the tick (effect_ctx =
 // C3_28_GF_data_pointer). So we snapshot a window around effect_ctx, which tracks
@@ -2029,6 +2070,15 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		ff8_ifrit_build_ri = replace_function(0xB2F590, (void *)ff8_ifrit_build_hook);
 		ff8_ifrit_func1_ri = replace_function(0xB257E0, (void *)ff8_ifrit_func1_hook);
 		(void)ff8_ifrit_draw_hook; (void)ff8_ifrit_draw_orig; (void)ff8_ifrit_draw_ri;
+
+		// General battle-model animation gate: on 3-of-4 ticks, hold Battle_ReadAnimation
+		// (0x508F90) - skip the delta read + frame advance but still rebuild the geometry via
+		// ProcessFieldEntitiesTransformation - so the pose advances 1-in-4 (correct 15fps) with NO
+		// double-buffer flicker and correct transforms/cursor. Phase from BdLink_GF (0x500900).
+		ff8_bdlink_orig = (int(__cdecl *)())0x500900;
+		ff8_bdlink_ri = replace_function(0x500900, (void *)ff8_bdlink_hook);
+		ff8_readanim_orig = (int(__cdecl *)(void *, void *))0x508F90;
+		ff8_readanim_ri = replace_function(0x508F90, (void *)ff8_readanim_hook);
 		ffnx_info("60fps: gate installed (magic + Ifrit effect + battle-model anim 1-in-4)\n");
 	}
 
