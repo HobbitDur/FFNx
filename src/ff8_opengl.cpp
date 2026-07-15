@@ -1747,6 +1747,25 @@ int __cdecl ff8_animseq_upd_hook(void *slot_data_struct)
 	return r;
 }
 
+// Battle_TickAtbGaugesAndGfCountdown / computeAtbAndEscape (0x4842B0) is THE per-tick battle-pace
+// driver: it fills every entity's ATB gauge (cur_atb += rate * K_MISC.atb_speed_multiplier *
+// (SPD+30)/100; rate 10/15/5 for normal/haste/slow; opens the command window when full), decrements
+// the GF-summon countdown (gf_atb -= 2/tick), and runs the escape check. Called once per battle tick
+// from isBattle_HUDdisplay (which itself must keep running for INPUT). At 60fps it runs 4x -> ATB +
+// round timers fill 4x too fast. Gate 1-in-4: this whole subsystem ran at 15fps natively, so holding
+// it 3-of-4 restores native pacing. Return value ignored by the caller.
+static char (__cdecl *ff8_atbtick_orig)() = nullptr;
+static uint32_t ff8_atbtick_ri = 0;
+char __cdecl ff8_atbtick_hook()
+{
+	if (ff8_anim_frame_phase != 0)
+		return 0; // hold ATB gauge + GF countdown + escape check on 3-of-4 ticks
+	unreplace_function(ff8_atbtick_ri);
+	char r = ff8_atbtick_orig();
+	rereplace_function(ff8_atbtick_ri);
+	return r;
+}
+
 // Each spell/GF keeps its effect state in a cluster of pools AROUND its root task
 // queue - and that root is exactly the pointer handed to the tick (effect_ctx =
 // C3_28_GF_data_pointer). So we snapshot a window around effect_ctx, which tracks
@@ -2108,6 +2127,9 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		// attacks don't rush/teleport; held ticks still trigger the leaf geometry rebuild.
 		ff8_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
 		ff8_animseq_upd_ri = replace_function(0x504290, (void *)ff8_animseq_upd_hook);
+		// ATB gauge + GF-summon countdown ("round attack and atb"): gate the per-tick fill 1-in-4.
+		ff8_atbtick_orig = (char(__cdecl *)())0x4842B0;
+		ff8_atbtick_ri = replace_function(0x4842B0, (void *)ff8_atbtick_hook);
 		ffnx_info("60fps: gate installed (magic + Ifrit effect + battle-model anim 1-in-4)\n");
 	}
 
