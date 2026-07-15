@@ -1722,6 +1722,31 @@ int __cdecl ff8_readanim_hook(void *header, void *anim_cmd)
 	return r;
 }
 
+// AnimSeq_UpdateEntityPerFrame / pre_linkedToAnimationSequence (0x504290) is the per-entity AnimSeq
+// VM driver: it advances the CHOREOGRAPHY (run-up movement -> based_position, animation transitions,
+// the delayBeforeNextAnimation frame-delay, sound/effect triggers, counterTimePassedSinceStartAnimSeq)
+// AND advances the skeletal frame (via AdvanceAnimationBy1AndCheckCompletion 0x5094F0 ->
+// Battle_ReadAnimation). The leaf gate above already holds the SKELETAL pose 1-in-4, but the VM
+// choreography still runs 4x -> the attack run-up "teleports". So on held ticks skip the VM entirely,
+// but still call AdvanceAnimationBy1AndCheckCompletion so the leaf gate fires its geometry rebuild
+// (no flicker). The per-entity transform + world position are rebuilt every tick by the caller
+// pre_pre_linkedToAnimationSequence (0x502AB0, lines 60/75-124), so holding based_position 1-in-4
+// yields correct-speed movement. The sole caller (0x502AB0 line 72) ignores the return value.
+static int (__cdecl *ff8_animseq_upd_orig)(void *) = nullptr;
+static uint32_t ff8_animseq_upd_ri = 0;
+int __cdecl ff8_animseq_upd_hook(void *slot_data_struct)
+{
+	if (ff8_anim_frame_phase != 0)
+	{
+		((int(__cdecl *)(void *))0x5094F0)(slot_data_struct); // AdvanceAnimationBy1AndCheckCompletion -> leaf gate rebuilds geometry + holds pose
+		return 0;
+	}
+	unreplace_function(ff8_animseq_upd_ri);
+	int r = ff8_animseq_upd_orig(slot_data_struct);
+	rereplace_function(ff8_animseq_upd_ri);
+	return r;
+}
+
 // Each spell/GF keeps its effect state in a cluster of pools AROUND its root task
 // queue - and that root is exactly the pointer handed to the tick (effect_ctx =
 // C3_28_GF_data_pointer). So we snapshot a window around effect_ctx, which tracks
@@ -2079,6 +2104,10 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		ff8_bdlink_ri = replace_function(0x500900, (void *)ff8_bdlink_hook);
 		ff8_readanim_orig = (int(__cdecl *)(void *, void *))0x508F90;
 		ff8_readanim_ri = replace_function(0x508F90, (void *)ff8_readanim_hook);
+		// Also gate the AnimSeq VM (choreography: run-up movement, transitions, delays) 1-in-4 so
+		// attacks don't rush/teleport; held ticks still trigger the leaf geometry rebuild.
+		ff8_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
+		ff8_animseq_upd_ri = replace_function(0x504290, (void *)ff8_animseq_upd_hook);
 		ffnx_info("60fps: gate installed (magic + Ifrit effect + battle-model anim 1-in-4)\n");
 	}
 
