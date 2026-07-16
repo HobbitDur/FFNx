@@ -1525,7 +1525,7 @@ int ff8_limit_fps()
 }
 
 // ---------------------------------------------------------------------------
-// 30fps battle mode (menu/input focused) - active when ff8_fps_limiter == 2
+// High-frame-rate battle mode - active at ff8_fps_limiter >= FPS_LIMITER_30FPS
 // ---------------------------------------------------------------------------
 // Vanilla PC locks the whole battle module at 15fps and catches up by running the
 // battle-UI tick pair (isBattle_HUDupdate 0x4A8E30 + isBattle_HUDdisplay 0x4A84E0)
@@ -1533,40 +1533,53 @@ int ff8_limit_fps()
 // poll per frame -> 15 Hz input sampling (lost/merged presses in Boost, Zell Duel
 // and menu navigation). See wiki: Battle UI Timing and Input Sampling.
 //
-// With ff8_fps_limiter == FPS_LIMITER_30FPS the module loop runs at 30fps (input
-// polled at 30 Hz - matching PSX menu pacing) but every battle subsystem then runs
-// 2x too fast. This block restores native speeds by gating 1-in-2, porting the
-// approach of the ff8-true-60fps-battle branch (which gates 1-in-4 at 60fps):
+// Raising the limiter runs the module loop faster (ff8_limit_fps: limiter 2 -> 30fps,
+// limiter 3 -> 60fps), which is what fixes the menu/input rate - but it also makes
+// every battle subsystem run proportionally too fast. This block gates them back to
+// native speed.
 //
-//   - UI tick pair: skip 2 of the 3 hidden catch-up ticks -> 2 ticks/frame
-//     = 60 ticks/s (native). This alone keeps ATB, Zell Duel countdown, Boost
-//     tick, cursor blink and text speed at native pace, while the pad ring
-//     advances on ticks that actually saw a fresh 30 Hz input poll.
-//   - fresh-input latch divisor (CONST_BattleUI_TicksPerFrame @0xB8A3E4): 4 -> 2
-//     so the ctx+33 "fresh input" cadence becomes 30/s (vanilla PC: 15/s).
+// ONE knob drives all of it: ff8_bgate_n, the number of host frames per real
+// (15fps-equivalent) battle tick. 30fps -> 2, 60fps -> 4. It is derived from the
+// configured limiter at install time (ff8_bgate_install_hooks), and every rate-
+// dependent quantity below is expressed as a function of it rather than hardcoded,
+// so switching between 30 and 60 is a config change, not a code change:
+//
+//   - UI tick pair: vanilla runs 4/frame; native rate needs 4/n per frame, so keep
+//     the last (4/n - 1) hidden catch-up ticks plus the visible one (n=2 -> 2 ticks
+//     per frame; n=4 -> 1). This single gate keeps ATB, Zell Duel countdown, Boost
+//     tick, cursor blink and text speed at native pace, while the pad ring advances
+//     on ticks that actually saw a fresh input poll.
+//   - fresh-input latch divisor (CONST_BattleUI_TicksPerFrame @0xB8A3E4): 4 -> 4/n,
+//     so the ctx+33 "fresh input" cadence matches the host frame rate.
 //   - game time (Savemap_TickGameTimeAndCountdown): called 4x per loop iteration
-//     = 120/s at 30fps; gate 1-in-2 in battle -> native 60/s.
-//   - battle model animation + AnimSeq choreography VM: advance 1-in-2, geometry
+//     unconditionally -> gate 1-in-n while in battle to hold native 60 ticks/s.
+//   - battle model animation + AnimSeq choreography VM: advance 1-in-n, geometry
 //     still rebuilt every tick (no double-buffer flicker).
-//   - battle camera: keyframe time step 16 -> 8 per tick (imm8 @0x503A80).
-//   - magic/GF spell effects: frame-hold 1-in-2 via state snapshot/restore
-//     (effect draws every frame, advances every other), SFX/damage-number
-//     re-triggers suppressed on held frames, whitelist = magic cast (cmd 0x02),
-//     per-effect blacklist + SEH guard.
+//   - battle camera: keyframe time step 16 -> 16/n per tick (imm8 @0x503A80).
+//   - magic/GF spell effects: frame-hold 1-in-n via state snapshot/restore (effect
+//     draws every frame, advances every n), SFX/damage-number re-triggers suppressed
+//     on held frames, whitelist = magic cast (cmd 0x02), blacklist + SEH guard.
+//   - Cure and the Ifrit summon get finer treatment - see their own blocks below.
+//
 // (All addresses are FF8 2000 US/EN 1.2 specific, same as the 60fps branch.)
 //
-static int ff8_b30_phase = 0; // 0 = advance frame, 1 = held frame (bumped in BdLink hook)
+// Host frames per real battle tick: 2 at 30fps, 4 at 60fps. Set in
+// ff8_bgate_install_hooks() from ff8_fps_limiter; 2 is only a placeholder default.
+// Must divide 4 (the vanilla UI ticks/frame) exactly, which both values do.
+static int ff8_bgate_n = 2;
+
+static int ff8_bgate_phase = 0; // 0 = advance frame, otherwise held (bumped in BdLink hook)
 
 // --- battle frame phase: bumped once per battle logic frame (BdLink_GF 0x500900) ---
-static int (__cdecl *ff8_b30_bdlink_orig)() = nullptr;
-static uint32_t ff8_b30_bdlink_ri = 0;
+static int (__cdecl *ff8_bgate_bdlink_orig)() = nullptr;
+static uint32_t ff8_bgate_bdlink_ri = 0;
 
-int __cdecl ff8_b30_bdlink_hook()
+int __cdecl ff8_bgate_bdlink_hook()
 {
-	ff8_b30_phase = (ff8_b30_phase + 1) & 1;
-	unreplace_function(ff8_b30_bdlink_ri);
-	int r = ff8_b30_bdlink_orig();
-	rereplace_function(ff8_b30_bdlink_ri);
+	ff8_bgate_phase = (ff8_bgate_phase + 1) % ff8_bgate_n;
+	unreplace_function(ff8_bgate_bdlink_ri);
+	int r = ff8_bgate_bdlink_orig();
+	rereplace_function(ff8_bgate_bdlink_ri);
 	return r;
 }
 
@@ -1576,61 +1589,64 @@ int __cdecl ff8_b30_bdlink_hook()
 // enabled (the visible tick). Skip hidden ticks #0 and #1, keep #2 + visible.
 // The pair is called from the main loop only, always update-then-display, so the
 // skip decision made in the update hook is consumed by the display hook.
-#define FF8_B30_MENU_RENDERING_ENABLED (*(uint32_t *)0x1D6D4AC)
+#define FF8_BGATE_MENU_RENDERING_ENABLED (*(uint32_t *)0x1D6D4AC)
 
-static int (__cdecl *ff8_b30_hudupdate_orig)() = nullptr;
-static int (__cdecl *ff8_b30_huddisplay_orig)() = nullptr;
-static uint32_t ff8_b30_hudupdate_ri = 0, ff8_b30_huddisplay_ri = 0;
-static bool ff8_b30_tick_skip = false;
-static int ff8_b30_hidden_idx = 0;
+static int (__cdecl *ff8_bgate_hudupdate_orig)() = nullptr;
+static int (__cdecl *ff8_bgate_huddisplay_orig)() = nullptr;
+static uint32_t ff8_bgate_hudupdate_ri = 0, ff8_bgate_huddisplay_ri = 0;
+static bool ff8_bgate_tick_skip = false;
+static int ff8_bgate_hidden_idx = 0;
 
-int __cdecl ff8_b30_hudupdate_hook()
+int __cdecl ff8_bgate_hudupdate_hook()
 {
-	if (FF8_B30_MENU_RENDERING_ENABLED == 0)
+	if (FF8_BGATE_MENU_RENDERING_ENABLED == 0)
 	{
-		// hidden catch-up tick: keep only every 3rd (#2 of 0,1,2)
-		ff8_b30_tick_skip = ((ff8_b30_hidden_idx++ % 3) != 2);
+		// Hidden catch-up tick. Native pace needs 4/n ticks per rendered frame, and the visible
+		// tick already provides one, so keep the LAST (4/n - 1) of the 3 hidden ticks and drop
+		// the rest (n=2 -> keep #2 only; n=4 -> keep none, the visible tick alone is enough).
+		ff8_bgate_tick_skip = (ff8_bgate_hidden_idx++ < 3 - (4 / ff8_bgate_n - 1));
 	}
 	else
 	{
 		// visible tick: always runs, and resyncs the hidden counter
-		ff8_b30_hidden_idx = 0;
-		ff8_b30_tick_skip = false;
+		ff8_bgate_hidden_idx = 0;
+		ff8_bgate_tick_skip = false;
 	}
-	if (ff8_b30_tick_skip)
+	if (ff8_bgate_tick_skip)
 		return 0;
-	unreplace_function(ff8_b30_hudupdate_ri);
-	int r = ff8_b30_hudupdate_orig();
-	rereplace_function(ff8_b30_hudupdate_ri);
+	unreplace_function(ff8_bgate_hudupdate_ri);
+	int r = ff8_bgate_hudupdate_orig();
+	rereplace_function(ff8_bgate_hudupdate_ri);
 	return r;
 }
 
-int __cdecl ff8_b30_huddisplay_hook()
+int __cdecl ff8_bgate_huddisplay_hook()
 {
-	if (ff8_b30_tick_skip)
+	if (ff8_bgate_tick_skip)
 		return 0;
-	unreplace_function(ff8_b30_huddisplay_ri);
-	int r = ff8_b30_huddisplay_orig();
-	rereplace_function(ff8_b30_huddisplay_ri);
+	unreplace_function(ff8_bgate_huddisplay_ri);
+	int r = ff8_bgate_huddisplay_orig();
+	rereplace_function(ff8_bgate_huddisplay_ri);
 	return r;
 }
 
-// --- game time: 4 calls per loop iteration = 120/s at 30fps -> gate to 60/s in battle ---
-static int (__cdecl *ff8_b30_savemap_tick_orig)() = nullptr;
-static uint32_t ff8_b30_savemap_tick_ri = 0;
+// --- game time: called 4x per loop iteration unconditionally, so it scales with the host
+// frame rate (120/s at 30fps, 240/s at 60fps) -> keep 1-in-n while in battle = native 60/s ---
+static int (__cdecl *ff8_bgate_savemap_tick_orig)() = nullptr;
+static uint32_t ff8_bgate_savemap_tick_ri = 0;
 
-int __cdecl ff8_b30_savemap_tick_hook()
+int __cdecl ff8_bgate_savemap_tick_hook()
 {
 	struct game_mode *mode = getmode_cached();
 	if (mode->driver_mode == MODE_BATTLE)
 	{
 		static uint32_t n = 0;
-		if (n++ & 1)
+		if ((n++ % ff8_bgate_n) != 0)
 			return 0; // held: keep game time / battle countdown at native 60 ticks/s
 	}
-	unreplace_function(ff8_b30_savemap_tick_ri);
-	int r = ff8_b30_savemap_tick_orig();
-	rereplace_function(ff8_b30_savemap_tick_ri);
+	unreplace_function(ff8_bgate_savemap_tick_ri);
+	int r = ff8_bgate_savemap_tick_orig();
+	rereplace_function(ff8_bgate_savemap_tick_ri);
 	return r;
 }
 
@@ -1640,19 +1656,19 @@ int __cdecl ff8_b30_savemap_tick_hook()
 // ProcessFieldEntitiesTransformation (0x508C90) to rebuild the render transform.
 // On held ticks skip the delta read/advance but still rebuild the transform
 // (else the double-buffered geometry starves -> flicker).
-static int (__cdecl *ff8_b30_readanim_orig)(void *, void *) = nullptr;
-static uint32_t ff8_b30_readanim_ri = 0;
+static int (__cdecl *ff8_bgate_readanim_orig)(void *, void *) = nullptr;
+static uint32_t ff8_bgate_readanim_ri = 0;
 
-int __cdecl ff8_b30_readanim_hook(void *header, void *anim_cmd)
+int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 {
-	if (ff8_b30_phase != 0)
+	if (ff8_bgate_phase != 0)
 	{
 		((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
 		return 0; // "frame processed, not complete" -> animation continues
 	}
-	unreplace_function(ff8_b30_readanim_ri);
-	int r = ff8_b30_readanim_orig(header, anim_cmd);
-	rereplace_function(ff8_b30_readanim_ri);
+	unreplace_function(ff8_bgate_readanim_ri);
+	int r = ff8_bgate_readanim_orig(header, anim_cmd);
+	rereplace_function(ff8_bgate_readanim_ri);
 	return r;
 }
 
@@ -1661,19 +1677,19 @@ int __cdecl ff8_b30_readanim_hook(void *header, void *anim_cmd)
 // frame. On held ticks skip the VM but still call
 // AdvanceAnimationBy1AndCheckCompletion (0x5094F0) so the leaf gate above fires
 // its geometry rebuild. The sole caller ignores the return value.
-static int (__cdecl *ff8_b30_animseq_upd_orig)(void *) = nullptr;
-static uint32_t ff8_b30_animseq_upd_ri = 0;
+static int (__cdecl *ff8_bgate_animseq_upd_orig)(void *) = nullptr;
+static uint32_t ff8_bgate_animseq_upd_ri = 0;
 
-int __cdecl ff8_b30_animseq_upd_hook(void *slot_data_struct)
+int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 {
-	if (ff8_b30_phase != 0)
+	if (ff8_bgate_phase != 0)
 	{
 		((int(__cdecl *)(void *))0x5094F0)(slot_data_struct);
 		return 0;
 	}
-	unreplace_function(ff8_b30_animseq_upd_ri);
-	int r = ff8_b30_animseq_upd_orig(slot_data_struct);
-	rereplace_function(ff8_b30_animseq_upd_ri);
+	unreplace_function(ff8_bgate_animseq_upd_ri);
+	int r = ff8_bgate_animseq_upd_orig(slot_data_struct);
+	rereplace_function(ff8_bgate_animseq_upd_ri);
 	return r;
 }
 
@@ -1683,75 +1699,75 @@ int __cdecl ff8_b30_animseq_upd_hook(void *slot_data_struct)
 // held frames we snapshot the effect's state pool window, run the tick (it draws),
 // then restore (undo the advance). Whitelisted to magic-cast effects (cmd 0x02);
 // anything else (Draw/Stock swirl, limits, items) runs untouched.
-static int (__cdecl *ff8_b30_effect_tick_orig)(void *effect_ctx) = nullptr;
+static int (__cdecl *ff8_bgate_effect_tick_orig)(void *effect_ctx) = nullptr;
 
-static bool ff8_b30_fx_holding = false;
-static uint32_t ff8_b30_playworldsound_ri = 0;
+static bool ff8_bgate_fx_holding = false;
+static uint32_t ff8_bgate_playworldsound_ri = 0;
 
-int __cdecl ff8_b30_PlayWorldSound_hook(int number, int attr, unsigned int pos, unsigned int vol)
+int __cdecl ff8_bgate_PlayWorldSound_hook(int number, int attr, unsigned int pos, unsigned int vol)
 {
-	if (ff8_b30_fx_holding)
+	if (ff8_bgate_fx_holding)
 		return 0; // held-frame re-draw: don't re-trigger the sound
-	unreplace_function(ff8_b30_playworldsound_ri);
+	unreplace_function(ff8_bgate_playworldsound_ri);
 	int r = ((int(__cdecl *)(int, int, unsigned int, unsigned int))0x46B2A0)(number, attr, pos, vol);
-	rereplace_function(ff8_b30_playworldsound_ri);
+	rereplace_function(ff8_bgate_playworldsound_ri);
 	return r;
 }
 
-static uint32_t ff8_b30_damagenum_ri = 0;
+static uint32_t ff8_bgate_damagenum_ri = 0;
 
-void __cdecl ff8_b30_DamageNumbers_Spawn_hook(void *a1)
+void __cdecl ff8_bgate_DamageNumbers_Spawn_hook(void *a1)
 {
-	if (ff8_b30_fx_holding)
+	if (ff8_bgate_fx_holding)
 		return; // held-frame re-draw: don't re-spawn the damage number
-	unreplace_function(ff8_b30_damagenum_ri);
+	unreplace_function(ff8_bgate_damagenum_ri);
 	((void(__cdecl *)(void *))0x5068B0)(a1);
-	rereplace_function(ff8_b30_damagenum_ri);
+	rereplace_function(ff8_bgate_damagenum_ri);
 }
 
-#define FF8_B30_C3_28_GF_PTR (*(void **)0x1D96AAC)
-#define FF8_B30_CMD_MAGIC 0x02
+#define FF8_BGATE_C3_28_GF_PTR (*(void **)0x1D96AAC)
+#define FF8_BGATE_CMD_MAGIC 0x02
 
-static void *ff8_b30_fx_holdable_ctx = nullptr;
-static uint32_t ff8_b30_setup_ri_A = 0; // sub_50A9A0
-static uint32_t ff8_b30_setup_ri_B = 0; // sub_50B190
+static void *ff8_bgate_fx_holdable_ctx = nullptr;
+static uint32_t ff8_bgate_setup_ri_A = 0; // sub_50A9A0
+static uint32_t ff8_bgate_setup_ri_B = 0; // sub_50B190
 
-static void ff8_b30_capture_holdable(void *before)
+static void ff8_bgate_capture_holdable(void *before)
 {
-	void *after = FF8_B30_C3_28_GF_PTR;
+	void *after = FF8_BGATE_C3_28_GF_PTR;
 	if (!after || after == before)
 		return;
 	uint8_t *t = *(uint8_t **)0x1D99A50; // BATTLE_TASK_68_DATA_ADDR
 	if ((uint32_t)t <= 0x10000 || (uint32_t)t >= 0x7F000000)
 		return;
-	if (t[1] != FF8_B30_CMD_MAGIC)
+	if (t[1] != FF8_BGATE_CMD_MAGIC)
 		return; // Draw (0x06) etc.: not held, runs at normal speed, never crashes
-	ff8_b30_fx_holdable_ctx = after;
+	ff8_bgate_fx_holdable_ctx = after;
 	ffnx_info("30fps: HOLDABLE %p (magic, eff=%02X)\n", after, t[6]);
 }
 
-int __cdecl ff8_b30_magic_setup_hook_A(int a1)
+int __cdecl ff8_bgate_magic_setup_hook_A(int a1)
 {
-	void *before = FF8_B30_C3_28_GF_PTR;
-	unreplace_function(ff8_b30_setup_ri_A);
+	void *before = FF8_BGATE_C3_28_GF_PTR;
+	unreplace_function(ff8_bgate_setup_ri_A);
 	int r = ((int(__cdecl *)(int))0x50A9A0)(a1);
-	rereplace_function(ff8_b30_setup_ri_A);
-	ff8_b30_capture_holdable(before);
+	rereplace_function(ff8_bgate_setup_ri_A);
+	ff8_bgate_capture_holdable(before);
 	return r;
 }
 
-int __cdecl ff8_b30_magic_setup_hook_B(int a1)
+int __cdecl ff8_bgate_magic_setup_hook_B(int a1)
 {
-	void *before = FF8_B30_C3_28_GF_PTR;
-	unreplace_function(ff8_b30_setup_ri_B);
+	void *before = FF8_BGATE_C3_28_GF_PTR;
+	unreplace_function(ff8_bgate_setup_ri_B);
 	int r = ((int(__cdecl *)(int))0x50B190)(a1);
-	rereplace_function(ff8_b30_setup_ri_B);
-	ff8_b30_capture_holdable(before);
+	rereplace_function(ff8_bgate_setup_ri_B);
+	ff8_bgate_capture_holdable(before);
 	return r;
 }
 
-#define FF8_B30_FX_SNAP_BEFORE 0x2000u
-#define FF8_B30_FX_SNAP_SIZE   0x8000u
+#define FF8_BGATE_FX_SNAP_BEFORE 0x2000u
+#define FF8_BGATE_FX_SNAP_SIZE   0x8000u
 
 // Cure needs a MUCH bigger, differently-positioned window than the generic guess: its total
 // live footprint (root pool/queue, particleQueue1+pool, emitter queue+pool, particleQueue2
@@ -1763,28 +1779,28 @@ int __cdecl ff8_b30_magic_setup_hook_B(int a1)
 // cross-rate desync in the busy_lock completion chain (ring -> emitter -> director) softlocks
 // the end of the animation. Measured + fixed on the 60fps branch (commit 9d39671f); the same
 // latent bug existed here, so the window is ported as-is (addresses are rate-independent).
-#define FF8_B30_CURE_SNAP_BASE ((uint8_t *)0x277AEC0)
-#define FF8_B30_CURE_SNAP_SIZE 0x19000u // rounded up from the measured 0x18FB8
+#define FF8_BGATE_CURE_SNAP_BASE ((uint8_t *)0x277AEC0)
+#define FF8_BGATE_CURE_SNAP_SIZE 0x19000u // rounded up from the measured 0x18FB8
 
-static uint8_t ff8_b30_fx_snapshot[FF8_B30_CURE_SNAP_SIZE > FF8_B30_FX_SNAP_SIZE ? FF8_B30_CURE_SNAP_SIZE : FF8_B30_FX_SNAP_SIZE];
+static uint8_t ff8_bgate_fx_snapshot[FF8_BGATE_CURE_SNAP_SIZE > FF8_BGATE_FX_SNAP_SIZE ? FF8_BGATE_CURE_SNAP_SIZE : FF8_BGATE_FX_SNAP_SIZE];
 
-static void *ff8_b30_fx_blacklist[16] = {0};
-static int ff8_b30_fx_blacklist_n = 0;
+static void *ff8_bgate_fx_blacklist[16] = {0};
+static int ff8_bgate_fx_blacklist_n = 0;
 
-static bool ff8_b30_fx_is_blacklisted(void *c)
+static bool ff8_bgate_fx_is_blacklisted(void *c)
 {
-	for (int i = 0; i < ff8_b30_fx_blacklist_n; i++)
-		if (ff8_b30_fx_blacklist[i] == c) return true;
+	for (int i = 0; i < ff8_bgate_fx_blacklist_n; i++)
+		if (ff8_bgate_fx_blacklist[i] == c) return true;
 	return false;
 }
 
-static void ff8_b30_fx_blacklist_add(void *c)
+static void ff8_bgate_fx_blacklist_add(void *c)
 {
-	if (ff8_b30_fx_is_blacklisted(c)) return;
-	if (ff8_b30_fx_blacklist_n < 16) ff8_b30_fx_blacklist[ff8_b30_fx_blacklist_n++] = c;
+	if (ff8_bgate_fx_is_blacklisted(c)) return;
+	if (ff8_bgate_fx_blacklist_n < 16) ff8_bgate_fx_blacklist[ff8_bgate_fx_blacklist_n++] = c;
 }
 
-static bool ff8_b30_fx_window_committed(uint8_t *base, size_t size)
+static bool ff8_bgate_fx_window_committed(uint8_t *base, size_t size)
 {
 	uint8_t *p = base;
 	uint8_t *end = base + size;
@@ -1801,21 +1817,18 @@ static bool ff8_b30_fx_window_committed(uint8_t *base, size_t size)
 
 // Held-frame body isolated so the gate stays free of objects needing unwinding
 // (required for the __try guard around it).
-static void ff8_b30_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
+static void ff8_bgate_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
 {
-	memcpy(ff8_b30_fx_snapshot, base, size);
-	ff8_b30_fx_holding = true; // suppress SFX/damage numbers during the re-draw
-	ff8_b30_effect_tick_orig(effect_ctx);
-	ff8_b30_fx_holding = false;
-	memcpy(base, ff8_b30_fx_snapshot, size);
+	memcpy(ff8_bgate_fx_snapshot, base, size);
+	ff8_bgate_fx_holding = true; // suppress SFX/damage numbers during the re-draw
+	ff8_bgate_effect_tick_orig(effect_ctx);
+	ff8_bgate_fx_holding = false;
+	memcpy(base, ff8_bgate_fx_snapshot, size);
 }
 
 // ===== CURE: smooth motion via closed-form position interpolation (port of 60fps 9d39671f) =====
 //
-// Number of host frames per real (15fps-equivalent) battle tick in this build. The 60fps branch
-// runs at 4; everything below is written against this constant so the same reasoning holds here
-// at 2 - the interpolation fractions are (held_phase / FF8_B30_HOLD_N), not hardcoded quarters.
-#define FF8_B30_HOLD_N 2
+// (ff8_bgate_n - host frames per real battle tick - is declared at the top of this block.)
 
 // MAG_001_CURE_Ring_Tick (0x8D6D80) recomputes the ring's draw position from scratch every call
 // as a pure function of persistent state: step = substep + 4*frame_counter; pos = center;
@@ -1827,40 +1840,40 @@ static void ff8_b30_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
 //
 // The curve has no curvature in step-space, so advancing `step` by a fixed amount per held host
 // frame lands exactly ON the same closed form the game itself computes - not an approximate lerp.
-// The step counter advances 4 per real tick, and we have FF8_B30_HOLD_N host frames to cover it,
-// so each held frame is worth (4 / FF8_B30_HOLD_N) steps: at 60fps (N=4) that's the 60fps
+// The step counter advances 4 per real tick, and we have ff8_bgate_n host frames to cover it,
+// so each held frame is worth (4 / ff8_bgate_n) steps: at 60fps (N=4) that's the 60fps
 // branch's +1 per frame; here (N=2) it's +2, i.e. the exact midpoint of the ring's own substep
 // sequence. Discrete state (frame_counter, state_phase, spawns, the heal) is untouched - only
 // the DRAWN pose is smoothed, via a standalone redraw that bypasses Ring_Tick on held frames.
-#define FF8_B30_CURE_ROOT_CTX ((void *)0x277AFC0)              // MAG001_CURE_rootQueue = Cure's effect_ctx
-#define FF8_B30_CURE_RING_QUEUE_HEAD (*(uint8_t **)0x277BF70)  // MAG001_CURE_particleQueue1.head
-#define FF8_B30_CURE_RING_TICK_ADDR ((void *)0x8D6D80)
-#define FF8_B30_CURE_GLOW_SPRITE ((int)0x1642504)              // MAG001_CURE_glowSprite
-#define FF8_B30_CURE_OVERLAY_CTX ((void *)0x278C7E8)           // MAG001_CURE_overlayCtx
+#define FF8_BGATE_CURE_ROOT_CTX ((void *)0x277AFC0)              // MAG001_CURE_rootQueue = Cure's effect_ctx
+#define FF8_BGATE_CURE_RING_QUEUE_HEAD (*(uint8_t **)0x277BF70)  // MAG001_CURE_particleQueue1.head
+#define FF8_BGATE_CURE_RING_TICK_ADDR ((void *)0x8D6D80)
+#define FF8_BGATE_CURE_GLOW_SPRITE ((int)0x1642504)              // MAG001_CURE_glowSprite
+#define FF8_BGATE_CURE_OVERLAY_CTX ((void *)0x278C7E8)           // MAG001_CURE_overlayCtx
 
 // TaskNodeCureParticle field offsets (bytes). The struct/pool is shared by ring, sparkles and
 // motes alike, so these are used for all three.
-#define B30_RING_OFS_NEXT            4
-#define B30_RING_OFS_TASK_FUNC       8
-#define B30_RING_OFS_POS_X          28
-#define B30_RING_OFS_POS_Y          30
-#define B30_RING_OFS_POS_Z          32
-#define B30_RING_OFS_FRAME_COUNTER  36
-#define B30_RING_OFS_STATUS_FLAGS   38
-#define B30_RING_OFS_SPIN_ANGLE     66
-#define B30_RING_OFS_VEL_X          88
-#define B30_RING_OFS_VEL_Y          90
-#define B30_RING_OFS_VEL_Z          92
-#define B30_RING_OFS_CENTER_X       96
-#define B30_RING_OFS_CENTER_Y       98
-#define B30_RING_OFS_CENTER_Z      100
-#define B30_RING_OFS_RING_RADIUS   104
+#define BGATE_RING_OFS_NEXT            4
+#define BGATE_RING_OFS_TASK_FUNC       8
+#define BGATE_RING_OFS_POS_X          28
+#define BGATE_RING_OFS_POS_Y          30
+#define BGATE_RING_OFS_POS_Z          32
+#define BGATE_RING_OFS_FRAME_COUNTER  36
+#define BGATE_RING_OFS_STATUS_FLAGS   38
+#define BGATE_RING_OFS_SPIN_ANGLE     66
+#define BGATE_RING_OFS_VEL_X          88
+#define BGATE_RING_OFS_VEL_Y          90
+#define BGATE_RING_OFS_VEL_Z          92
+#define BGATE_RING_OFS_CENTER_X       96
+#define BGATE_RING_OFS_CENTER_Y       98
+#define BGATE_RING_OFS_CENTER_Z      100
+#define BGATE_RING_OFS_RING_RADIUS   104
 
-static inline int16_t ff8_b30_cure_rd16(uint8_t *n, int ofs) { return *(int16_t *)(n + ofs); }
-static inline void ff8_b30_cure_wr16(uint8_t *n, int ofs, int16_t v) { *(int16_t *)(n + ofs) = v; }
+static inline int16_t ff8_bgate_cure_rd16(uint8_t *n, int ofs) { return *(int16_t *)(n + ofs); }
+static inline void ff8_bgate_cure_wr16(uint8_t *n, int ofs, int16_t v) { *(int16_t *)(n + ofs) = v; }
 
-// held_phase is 1..FF8_B30_HOLD_N-1 (here: always 1, the single held host frame).
-static void ff8_b30_cure_interpolate_rings(int held_phase)
+// held_phase is 1..ff8_bgate_n-1 (here: always 1, the single held host frame).
+static void ff8_bgate_cure_interpolate_rings(int held_phase)
 {
 	typedef void (__cdecl *DrawSprite_t)(void *);
 	typedef void (__cdecl *DrawAdditiveGlow_t)(void *, int, uint32_t *);
@@ -1873,25 +1886,25 @@ static void ff8_b30_cure_interpolate_rings(int held_phase)
 	static const DrawTargetModelWithOverlay_t DrawTargetModelWithOverlay = (DrawTargetModelWithOverlay_t)0x8D7110;
 	static const ComputeTrig_t computeSin = (ComputeTrig_t)0x56D130;
 	static const ComputeTrig_t computeCosine = (ComputeTrig_t)0x56D100;
-	uint8_t *overlayCtx = (uint8_t *)FF8_B30_CURE_OVERLAY_CTX;
+	uint8_t *overlayCtx = (uint8_t *)FF8_BGATE_CURE_OVERLAY_CTX;
 
-	for (uint8_t *n = FF8_B30_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + B30_RING_OFS_NEXT))
+	for (uint8_t *n = FF8_BGATE_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + BGATE_RING_OFS_NEXT))
 	{
-		if (*(void **)(n + B30_RING_OFS_TASK_FUNC) != FF8_B30_CURE_RING_TICK_ADDR)
+		if (*(void **)(n + BGATE_RING_OFS_TASK_FUNC) != FF8_BGATE_CURE_RING_TICK_ADDR)
 			continue; // this pool also holds sparkle/mote nodes - only interpolate the ring itself
 
-		int32_t frame_counter = ff8_b30_cure_rd16(n, B30_RING_OFS_FRAME_COUNTER);
-		int32_t vel_y = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_Y);
-		int32_t center_x = ff8_b30_cure_rd16(n, B30_RING_OFS_CENTER_X);
-		int32_t center_y = ff8_b30_cure_rd16(n, B30_RING_OFS_CENTER_Y);
-		int32_t center_z = ff8_b30_cure_rd16(n, B30_RING_OFS_CENTER_Z);
-		int32_t radius = ff8_b30_cure_rd16(n, B30_RING_OFS_RING_RADIUS);
-		uint8_t status_flags = *(n + B30_RING_OFS_STATUS_FLAGS);
+		int32_t frame_counter = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_FRAME_COUNTER);
+		int32_t vel_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_Y);
+		int32_t center_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_CENTER_X);
+		int32_t center_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_CENTER_Y);
+		int32_t center_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_CENTER_Z);
+		int32_t radius = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_RING_RADIUS);
+		uint8_t status_flags = *(n + BGATE_RING_OFS_STATUS_FLAGS);
 
 		// Exact continuation of the game's own step counter: each held host frame is worth
-		// (4 / FF8_B30_HOLD_N) steps, so the values land on steps the engine's own substep
+		// (4 / ff8_bgate_n) steps, so the values land on steps the engine's own substep
 		// loop also evaluates - seamless with whatever the next real tick computes.
-		int32_t step = 4 * frame_counter + (4 / FF8_B30_HOLD_N) * held_phase;
+		int32_t step = 4 * frame_counter + (4 / ff8_bgate_n) * held_phase;
 		int16_t new_pos_y = (int16_t)(center_y + step * vel_y);
 		int16_t angle = (int16_t)((step << 7) & 0xFFF);
 		int16_t new_pos_x = (int16_t)(center_x + (radius * computeSin((int32_t)angle)) / 4096);
@@ -1899,15 +1912,15 @@ static void ff8_b30_cure_interpolate_rings(int held_phase)
 
 		// Save the true (last real-tick) values, substitute the interpolated pose for this
 		// redraw only, then restore - nothing else must ever observe the smoothed values as state.
-		int16_t save_x = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_X);
-		int16_t save_y = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Y);
-		int16_t save_z = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Z);
-		int16_t save_spin = ff8_b30_cure_rd16(n, B30_RING_OFS_SPIN_ANGLE);
+		int16_t save_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_X);
+		int16_t save_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Y);
+		int16_t save_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Z);
+		int16_t save_spin = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_SPIN_ANGLE);
 
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, new_pos_x);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, new_pos_y);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, new_pos_z);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_SPIN_ANGLE, angle);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, new_pos_x);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, new_pos_y);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, new_pos_z);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_SPIN_ANGLE, angle);
 
 		// Sprite variant / fade / wash-active are discrete state decisions - use the REAL
 		// (un-extrapolated) frame_counter for those, matching Ring_Tick's own thresholds exactly.
@@ -1920,7 +1933,7 @@ static void ff8_b30_cure_interpolate_rings(int held_phase)
 			uint8_t rgb = (uint8_t)(60 - 3 * frame_counter);
 			uint32_t glow_rgb = rgb | (rgb << 8) | (rgb << 16);
 			DrawSprite(n);
-			DrawAdditiveGlow(n, FF8_B30_CURE_GLOW_SPRITE, &glow_rgb);
+			DrawAdditiveGlow(n, FF8_BGATE_CURE_GLOW_SPRITE, &glow_rgb);
 		}
 		// The target is set BATTLE_ENTITY_ENTITY_FLAG_INVISIBLE for Cure's whole duration (see
 		// Ring_State0_Init) and only this call draws it - without it on held frames the
@@ -1928,30 +1941,30 @@ static void ff8_b30_cure_interpolate_rings(int held_phase)
 		if (status_flags & 8)
 		{
 			*(int16_t *)(overlayCtx + 182) = new_pos_y; // overlayCtx->step_vec_y
-			SetOverlayTexturePage(overlayCtx, (int16_t *)(n + B30_RING_OFS_POS_X), 512, 384, 320, 241, 128, 128);
+			SetOverlayTexturePage(overlayCtx, (int16_t *)(n + BGATE_RING_OFS_POS_X), 512, 384, 320, 241, 128, 128);
 			DrawTargetModelWithOverlay(overlayCtx);
 		}
 
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, save_x);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, save_y);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, save_z);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_SPIN_ANGLE, save_spin);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, save_x);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, save_y);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, save_z);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_SPIN_ANGLE, save_spin);
 	}
 }
 
 // Skip the ring's own tick entirely during a held-frame replay (no advance, no spawn, no draw -
-// ff8_b30_cure_interpolate_rings() supplies the visual instead), so no rand()-driven spawn or
+// ff8_bgate_cure_interpolate_rings() supplies the visual instead), so no rand()-driven spawn or
 // heal side effect ever repeats. The rest of Cure's tree still goes through the generic hold.
-static int (__cdecl *ff8_b30_cure_ring_tick_orig)(void *) = nullptr;
-static uint32_t ff8_b30_cure_ring_tick_ri = 0;
+static int (__cdecl *ff8_bgate_cure_ring_tick_orig)(void *) = nullptr;
+static uint32_t ff8_bgate_cure_ring_tick_ri = 0;
 
-int __cdecl ff8_b30_cure_ring_tick_hook(void *ring)
+int __cdecl ff8_bgate_cure_ring_tick_hook(void *ring)
 {
-	if (ff8_b30_fx_holding)
+	if (ff8_bgate_fx_holding)
 		return 0;
-	unreplace_function(ff8_b30_cure_ring_tick_ri);
-	int r = ff8_b30_cure_ring_tick_orig(ring);
-	rereplace_function(ff8_b30_cure_ring_tick_ri);
+	unreplace_function(ff8_bgate_cure_ring_tick_ri);
+	int r = ff8_bgate_cure_ring_tick_orig(ring);
+	rereplace_function(ff8_bgate_cure_ring_tick_ri);
 	return r;
 }
 
@@ -1961,117 +1974,117 @@ int __cdecl ff8_b30_cure_ring_tick_hook(void *ring)
 // `pos += vel` every real tick - no acceleration, and no built-in x4 substep counter (a single
 // per-tick increment). Both die on the same real tick they finish, so a dead node is never seen
 // stale by the walk below. Held-frame position is therefore a plain linear interpolation:
-// pos_after_last_real_tick + vel * held_phase / FF8_B30_HOLD_N (here: half a step). Integer
+// pos_after_last_real_tick + vel * held_phase / ff8_bgate_n (here: half a step). Integer
 // division rounds by at most 1 unit - invisible on a fast-moving, tiny billboard.
 //
 // Glints deliberately left untouched (as on the 60fps branch): Effect_Glint_Tick draws its GPU
 // packets inline, with no separable draw call to reuse. They are correctly paced (in-window
 // thanks to the Cure snapshot fix above), just not smoothed.
-#define FF8_B30_CURE_SPARKLE_TICK_ADDR ((void *)0x8D80B0)
-#define FF8_B30_CURE_MOTE_TICK_ADDR    ((void *)0x8D7F60)
+#define FF8_BGATE_CURE_SPARKLE_TICK_ADDR ((void *)0x8D80B0)
+#define FF8_BGATE_CURE_MOTE_TICK_ADDR    ((void *)0x8D7F60)
 
-static void ff8_b30_cure_interpolate_sparkles_motes(int held_phase)
+static void ff8_bgate_cure_interpolate_sparkles_motes(int held_phase)
 {
 	typedef void (__cdecl *DrawSprite_t)(void *);
 	static const DrawSprite_t DrawSprite = (DrawSprite_t)0x8D6F20;
 
-	for (uint8_t *n = FF8_B30_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + B30_RING_OFS_NEXT))
+	for (uint8_t *n = FF8_BGATE_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + BGATE_RING_OFS_NEXT))
 	{
-		void *task_func = *(void **)(n + B30_RING_OFS_TASK_FUNC);
-		if (task_func != FF8_B30_CURE_SPARKLE_TICK_ADDR && task_func != FF8_B30_CURE_MOTE_TICK_ADDR)
+		void *task_func = *(void **)(n + BGATE_RING_OFS_TASK_FUNC);
+		if (task_func != FF8_BGATE_CURE_SPARKLE_TICK_ADDR && task_func != FF8_BGATE_CURE_MOTE_TICK_ADDR)
 			continue;
 
-		int32_t vel_x = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_X);
-		int32_t vel_y = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_Y);
-		int32_t vel_z = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_Z);
-		int16_t save_x = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_X);
-		int16_t save_y = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Y);
-		int16_t save_z = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Z);
+		int32_t vel_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_X);
+		int32_t vel_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_Y);
+		int32_t vel_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_Z);
+		int16_t save_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_X);
+		int16_t save_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Y);
+		int16_t save_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Z);
 
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, (int16_t)(save_x + (vel_x * held_phase) / FF8_B30_HOLD_N));
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, (int16_t)(save_y + (vel_y * held_phase) / FF8_B30_HOLD_N));
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, (int16_t)(save_z + (vel_z * held_phase) / FF8_B30_HOLD_N));
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, (int16_t)(save_x + (vel_x * held_phase) / ff8_bgate_n));
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, (int16_t)(save_y + (vel_y * held_phase) / ff8_bgate_n));
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, (int16_t)(save_z + (vel_z * held_phase) / ff8_bgate_n));
 
 		DrawSprite(n);
 
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, save_x);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, save_y);
-		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, save_z);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, save_x);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, save_y);
+		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, save_z);
 	}
 }
 
 // Same carve-out as the ring: skip entirely during a held-frame replay.
-static int (__cdecl *ff8_b30_cure_sparkle_tick_orig)(void *) = nullptr;
-static uint32_t ff8_b30_cure_sparkle_tick_ri = 0;
+static int (__cdecl *ff8_bgate_cure_sparkle_tick_orig)(void *) = nullptr;
+static uint32_t ff8_bgate_cure_sparkle_tick_ri = 0;
 
-int __cdecl ff8_b30_cure_sparkle_tick_hook(void *sparkle)
+int __cdecl ff8_bgate_cure_sparkle_tick_hook(void *sparkle)
 {
-	if (ff8_b30_fx_holding)
+	if (ff8_bgate_fx_holding)
 		return 0;
-	unreplace_function(ff8_b30_cure_sparkle_tick_ri);
-	int r = ff8_b30_cure_sparkle_tick_orig(sparkle);
-	rereplace_function(ff8_b30_cure_sparkle_tick_ri);
+	unreplace_function(ff8_bgate_cure_sparkle_tick_ri);
+	int r = ff8_bgate_cure_sparkle_tick_orig(sparkle);
+	rereplace_function(ff8_bgate_cure_sparkle_tick_ri);
 	return r;
 }
 
-static int (__cdecl *ff8_b30_cure_mote_tick_orig)(void *) = nullptr;
-static uint32_t ff8_b30_cure_mote_tick_ri = 0;
+static int (__cdecl *ff8_bgate_cure_mote_tick_orig)(void *) = nullptr;
+static uint32_t ff8_bgate_cure_mote_tick_ri = 0;
 
-int __cdecl ff8_b30_cure_mote_tick_hook(void *mote)
+int __cdecl ff8_bgate_cure_mote_tick_hook(void *mote)
 {
-	if (ff8_b30_fx_holding)
+	if (ff8_bgate_fx_holding)
 		return 0;
-	unreplace_function(ff8_b30_cure_mote_tick_ri);
-	int r = ff8_b30_cure_mote_tick_orig(mote);
-	rereplace_function(ff8_b30_cure_mote_tick_ri);
+	unreplace_function(ff8_bgate_cure_mote_tick_ri);
+	int r = ff8_bgate_cure_mote_tick_orig(mote);
+	rereplace_function(ff8_bgate_cure_mote_tick_ri);
 	return r;
 }
 
-static int ff8_b30_cure_held_phase = 0; // 0 right after a real tick; cycles 1..FF8_B30_HOLD_N-1
+static int ff8_bgate_cure_held_phase = 0; // 0 right after a real tick; cycles 1..ff8_bgate_n-1
 
-int __cdecl ff8_b30_effect_tick_gate(void *effect_ctx)
+int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
 {
 	static uint32_t frame = 0;
-	if ((frame++ & 1) == 0)
+	if ((frame++ % ff8_bgate_n) == 0)
 	{
-		if (effect_ctx == FF8_B30_CURE_ROOT_CTX)
-			ff8_b30_cure_held_phase = 0; // resync at the start of every real-tick window
+		if (effect_ctx == FF8_BGATE_CURE_ROOT_CTX)
+			ff8_bgate_cure_held_phase = 0; // resync at the start of every real-tick window
 		// Real frame: advance + draw (+ SFX) normally.
-		int r = ff8_b30_effect_tick_orig(effect_ctx);
-		if (r == 0 && effect_ctx == ff8_b30_fx_holdable_ctx)
-			ff8_b30_fx_holdable_ctx = nullptr; // this cast effect just ended
+		int r = ff8_bgate_effect_tick_orig(effect_ctx);
+		if (r == 0 && effect_ctx == ff8_bgate_fx_holdable_ctx)
+			ff8_bgate_fx_holdable_ctx = nullptr; // this cast effect just ended
 		return r;
 	}
 
-	// Cure needs its own much bigger, differently-positioned window (see FF8_B30_CURE_SNAP_BASE):
+	// Cure needs its own much bigger, differently-positioned window (see FF8_BGATE_CURE_SNAP_BASE):
 	// its effect_ctx (rootQueue) sits near the LOW end of its real footprint, not centered on it
 	// like the generic effect_ctx-0x2000 guess assumes.
-	uint8_t *base = (effect_ctx == FF8_B30_CURE_ROOT_CTX) ? FF8_B30_CURE_SNAP_BASE : (uint8_t *)effect_ctx - FF8_B30_FX_SNAP_BEFORE;
-	size_t size = (effect_ctx == FF8_B30_CURE_ROOT_CTX) ? FF8_B30_CURE_SNAP_SIZE : FF8_B30_FX_SNAP_SIZE;
+	uint8_t *base = (effect_ctx == FF8_BGATE_CURE_ROOT_CTX) ? FF8_BGATE_CURE_SNAP_BASE : (uint8_t *)effect_ctx - FF8_BGATE_FX_SNAP_BEFORE;
+	size_t size = (effect_ctx == FF8_BGATE_CURE_ROOT_CTX) ? FF8_BGATE_CURE_SNAP_SIZE : FF8_BGATE_FX_SNAP_SIZE;
 
-	if (effect_ctx != ff8_b30_fx_holdable_ctx
-		|| ff8_b30_fx_is_blacklisted(effect_ctx)
-		|| !ff8_b30_fx_window_committed(base, size))
+	if (effect_ctx != ff8_bgate_fx_holdable_ctx
+		|| ff8_bgate_fx_is_blacklisted(effect_ctx)
+		|| !ff8_bgate_fx_window_committed(base, size))
 	{
-		return ff8_b30_effect_tick_orig(effect_ctx);
+		return ff8_bgate_effect_tick_orig(effect_ctx);
 	}
 
 	__try
 	{
-		ff8_b30_fx_hold_once(effect_ctx, base, size);
+		ff8_bgate_fx_hold_once(effect_ctx, base, size);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		ff8_b30_fx_holding = false;
-		ff8_b30_fx_blacklist_add(effect_ctx);
+		ff8_bgate_fx_holding = false;
+		ff8_bgate_fx_blacklist_add(effect_ctx);
 		ffnx_info("30fps: effect_ctx=%p faulted while held -> blacklisted (runs normal)\n", effect_ctx);
 	}
 
-	if (effect_ctx == FF8_B30_CURE_ROOT_CTX)
+	if (effect_ctx == FF8_BGATE_CURE_ROOT_CTX)
 	{
-		ff8_b30_cure_held_phase = (ff8_b30_cure_held_phase % (FF8_B30_HOLD_N - 1)) + 1;
-		ff8_b30_cure_interpolate_rings(ff8_b30_cure_held_phase);
-		ff8_b30_cure_interpolate_sparkles_motes(ff8_b30_cure_held_phase);
+		ff8_bgate_cure_held_phase = (ff8_bgate_cure_held_phase % (ff8_bgate_n - 1)) + 1;
+		ff8_bgate_cure_interpolate_rings(ff8_bgate_cure_held_phase);
+		ff8_bgate_cure_interpolate_sparkles_motes(ff8_bgate_cure_held_phase);
 	}
 	return 1; // effect still running (don't let the caller clear its pointer)
 }
@@ -2086,96 +2099,96 @@ int __cdecl ff8_b30_effect_tick_gate(void *effect_ctx)
 // NOTE (inherited from the 60fps branch): this correctly slows the fire/energy EFFECTS around
 // Ifrit, but the creature BODY is driven by a separate driver that is still ungated there, so
 // it stays 2x fast here too. That POC is unfinished upstream; ported as-is for parity.
-#define FF8_B30_IFRIT_STATE (*(uint32_t *)0x27973EC) // ptr to the active GF sequence state
+#define FF8_BGATE_IFRIT_STATE (*(uint32_t *)0x27973EC) // ptr to the active GF sequence state
 
-static uint32_t (__cdecl *ff8_b30_ifrit_seq_orig)() = nullptr;
-static void     (__cdecl *ff8_b30_ifrit_neg_orig)() = nullptr;
-static int      (__cdecl *ff8_b30_ifrit_int_orig)() = nullptr;
-static void     (__cdecl *ff8_b30_ifrit_pos_orig)() = nullptr;
-static int      (__cdecl *ff8_b30_ifrit_build_orig)() = nullptr;
-static int      (__cdecl *ff8_b30_ifrit_func1_orig)(int) = nullptr;
-static uint32_t ff8_b30_ifrit_seq_ri, ff8_b30_ifrit_neg_ri, ff8_b30_ifrit_int_ri;
-static uint32_t ff8_b30_ifrit_pos_ri, ff8_b30_ifrit_build_ri, ff8_b30_ifrit_func1_ri;
+static uint32_t (__cdecl *ff8_bgate_ifrit_seq_orig)() = nullptr;
+static void     (__cdecl *ff8_bgate_ifrit_neg_orig)() = nullptr;
+static int      (__cdecl *ff8_bgate_ifrit_int_orig)() = nullptr;
+static void     (__cdecl *ff8_bgate_ifrit_pos_orig)() = nullptr;
+static int      (__cdecl *ff8_bgate_ifrit_build_orig)() = nullptr;
+static int      (__cdecl *ff8_bgate_ifrit_func1_orig)(int) = nullptr;
+static uint32_t ff8_bgate_ifrit_seq_ri, ff8_bgate_ifrit_neg_ri, ff8_bgate_ifrit_int_ri;
+static uint32_t ff8_bgate_ifrit_pos_ri, ff8_bgate_ifrit_build_ri, ff8_bgate_ifrit_func1_ri;
 
-static uint32_t ff8_b30_ifrit_counter = 0;
-static int ff8_b30_ifrit_phase = 0;
-static bool ff8_b30_ifrit_active = false;
-static uint16_t ff8_b30_ifrit_held50 = 0;
-static bool ff8_b30_ifrit_held_init = false;
+static uint32_t ff8_bgate_ifrit_counter = 0;
+static int ff8_bgate_ifrit_phase = 0;
+static bool ff8_bgate_ifrit_active = false;
+static uint16_t ff8_bgate_ifrit_held50 = 0;
+static bool ff8_bgate_ifrit_held_init = false;
 
 // The creature advance is the block Neg()+Integrator()+Pos() inside the Ifrit sequence driver;
 // the draw always runs and redraws the held pose. Gating all three together 1-in-2 = native speed.
-void __cdecl ff8_b30_ifrit_neg_hook()
+void __cdecl ff8_bgate_ifrit_neg_hook()
 {
-	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
 		return; // advance only on phase 0
-	unreplace_function(ff8_b30_ifrit_neg_ri);
-	ff8_b30_ifrit_neg_orig();
-	rereplace_function(ff8_b30_ifrit_neg_ri);
+	unreplace_function(ff8_bgate_ifrit_neg_ri);
+	ff8_bgate_ifrit_neg_orig();
+	rereplace_function(ff8_bgate_ifrit_neg_ri);
 }
 
-int __cdecl ff8_b30_ifrit_int_hook()
+int __cdecl ff8_bgate_ifrit_int_hook()
 {
-	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
 		return 0;
-	unreplace_function(ff8_b30_ifrit_int_ri);
-	int r = ff8_b30_ifrit_int_orig();
-	rereplace_function(ff8_b30_ifrit_int_ri);
+	unreplace_function(ff8_bgate_ifrit_int_ri);
+	int r = ff8_bgate_ifrit_int_orig();
+	rereplace_function(ff8_bgate_ifrit_int_ri);
 	return r;
 }
 
-void __cdecl ff8_b30_ifrit_pos_hook()
+void __cdecl ff8_bgate_ifrit_pos_hook()
 {
-	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
 		return;
-	unreplace_function(ff8_b30_ifrit_pos_ri);
-	ff8_b30_ifrit_pos_orig();
-	rereplace_function(ff8_b30_ifrit_pos_ri);
+	unreplace_function(ff8_bgate_ifrit_pos_ri);
+	ff8_bgate_ifrit_pos_orig();
+	rereplace_function(ff8_bgate_ifrit_pos_ri);
 }
 
 // BuildPoseMatrices: skip on held frames -> the pose matrices retain the phase-0 values, so the
 // creature holds at native speed regardless of what drives its inputs.
-int __cdecl ff8_b30_ifrit_build_hook()
+int __cdecl ff8_bgate_ifrit_build_hook()
 {
-	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
 		return 0;
-	unreplace_function(ff8_b30_ifrit_build_ri);
-	int r = ff8_b30_ifrit_build_orig();
-	rereplace_function(ff8_b30_ifrit_build_ri);
+	unreplace_function(ff8_bgate_ifrit_build_ri);
+	int r = ff8_bgate_ifrit_build_orig();
+	rereplace_function(ff8_bgate_ifrit_build_ri);
 	return r;
 }
 
 // Gate the master tick counter state+50 (the pose frame index): let it advance on phase 0, and
 // on held ticks force it back to the phase-0 value (the original re-increments it at its top,
 // so pre-set held-1). Reset per summon via the func1 hook below.
-uint32_t __cdecl ff8_b30_ifrit_seq_hook()
+uint32_t __cdecl ff8_bgate_ifrit_seq_hook()
 {
-	uint32_t s = FF8_B30_IFRIT_STATE;
+	uint32_t s = FF8_BGATE_IFRIT_STATE;
 	bool svalid = (s >= 0x10000u && s < 0x7F000000u);
-	ff8_b30_ifrit_phase = (ff8_b30_ifrit_counter++) & 1;
-	ff8_b30_ifrit_active = true;
-	if (svalid && ff8_b30_ifrit_held_init && ff8_b30_ifrit_phase != 0)
-		*(uint16_t *)(s + 50) = ff8_b30_ifrit_held50 - 1; // orig's ++ -> held50 (re-use phase-0 frame)
-	unreplace_function(ff8_b30_ifrit_seq_ri);
-	uint32_t r = ff8_b30_ifrit_seq_orig();
-	rereplace_function(ff8_b30_ifrit_seq_ri);
-	if (svalid && (ff8_b30_ifrit_phase == 0 || !ff8_b30_ifrit_held_init))
+	ff8_bgate_ifrit_phase = (ff8_bgate_ifrit_counter++) % ff8_bgate_n;
+	ff8_bgate_ifrit_active = true;
+	if (svalid && ff8_bgate_ifrit_held_init && ff8_bgate_ifrit_phase != 0)
+		*(uint16_t *)(s + 50) = ff8_bgate_ifrit_held50 - 1; // orig's ++ -> held50 (re-use phase-0 frame)
+	unreplace_function(ff8_bgate_ifrit_seq_ri);
+	uint32_t r = ff8_bgate_ifrit_seq_orig();
+	rereplace_function(ff8_bgate_ifrit_seq_ri);
+	if (svalid && (ff8_bgate_ifrit_phase == 0 || !ff8_bgate_ifrit_held_init))
 	{
-		ff8_b30_ifrit_held50 = *(uint16_t *)(s + 50); // capture the freshly-advanced frame index
-		ff8_b30_ifrit_held_init = true;
+		ff8_bgate_ifrit_held50 = *(uint16_t *)(s + 50); // capture the freshly-advanced frame index
+		ff8_bgate_ifrit_held_init = true;
 	}
-	ff8_b30_ifrit_active = false;
+	ff8_bgate_ifrit_active = false;
 	return r;
 }
 
 // GF_Ifrit_func1 (0xB257E0) runs once at summon setup -> reset the phase/frame gate.
-int __cdecl ff8_b30_ifrit_func1_hook(int a1)
+int __cdecl ff8_bgate_ifrit_func1_hook(int a1)
 {
-	ff8_b30_ifrit_counter = 0;
-	ff8_b30_ifrit_held_init = false;
-	unreplace_function(ff8_b30_ifrit_func1_ri);
-	int r = ff8_b30_ifrit_func1_orig(a1);
-	rereplace_function(ff8_b30_ifrit_func1_ri);
+	ff8_bgate_ifrit_counter = 0;
+	ff8_bgate_ifrit_held_init = false;
+	unreplace_function(ff8_bgate_ifrit_func1_ri);
+	int r = ff8_bgate_ifrit_func1_orig(a1);
+	rereplace_function(ff8_bgate_ifrit_func1_ri);
 	return r;
 }
 
@@ -2184,85 +2197,92 @@ int __cdecl ff8_b30_ifrit_func1_hook(int a1)
 // fast at 30fps. Kept DISABLED for now, mirroring the 60fps branch: an earlier
 // 60fps build crashed (0xC0000005 on Zantetsuken/Odin) with either this gate or
 // the since-replaced camera-VM gate active; not yet isolated. Enable to test.
-static void (__cdecl *ff8_b30_timerstatus_orig)() = nullptr;
-static uint32_t ff8_b30_timerstatus_ri = 0;
+static void (__cdecl *ff8_bgate_timerstatus_orig)() = nullptr;
+static uint32_t ff8_bgate_timerstatus_ri = 0;
 
-void __cdecl ff8_b30_timerstatus_hook()
+void __cdecl ff8_bgate_timerstatus_hook()
 {
-	if (ff8_b30_phase != 0)
+	if (ff8_bgate_phase != 0)
 		return;
-	unreplace_function(ff8_b30_timerstatus_ri);
-	ff8_b30_timerstatus_orig();
-	rereplace_function(ff8_b30_timerstatus_ri);
+	unreplace_function(ff8_bgate_timerstatus_ri);
+	ff8_bgate_timerstatus_orig();
+	rereplace_function(ff8_bgate_timerstatus_ri);
 }
 
-static void ff8_b30_install_hooks()
+static void ff8_bgate_install_hooks()
 {
+	// The one knob: host frames per real battle tick. ff8_limit_fps() drives the battle module
+	// at 30fps for limiter 2 and 60fps for limiter 3, against a native 15fps tick.
+	ff8_bgate_n = (ff8_fps_limiter >= FPS_LIMITER_60FPS) ? 4 : 2;
+
 	// Battle frame phase driver
-	ff8_b30_bdlink_orig = (int(__cdecl *)())0x500900;
-	ff8_b30_bdlink_ri = replace_function(0x500900, (void *)ff8_b30_bdlink_hook);
+	ff8_bgate_bdlink_orig = (int(__cdecl *)())0x500900;
+	ff8_bgate_bdlink_ri = replace_function(0x500900, (void *)ff8_bgate_bdlink_hook);
 
-	// UI tick reduction: 4 -> 2 ticks per rendered frame (native 60 ticks/s)
-	ff8_b30_hudupdate_orig = (int(__cdecl *)())0x4A8E30;
-	ff8_b30_huddisplay_orig = (int(__cdecl *)())0x4A84E0;
-	ff8_b30_hudupdate_ri = replace_function(0x4A8E30, (void *)ff8_b30_hudupdate_hook);
-	ff8_b30_huddisplay_ri = replace_function(0x4A84E0, (void *)ff8_b30_huddisplay_hook);
+	// UI tick reduction: vanilla 4/frame -> 4/n per frame (native 60 ticks/s either way)
+	ff8_bgate_hudupdate_orig = (int(__cdecl *)())0x4A8E30;
+	ff8_bgate_huddisplay_orig = (int(__cdecl *)())0x4A84E0;
+	ff8_bgate_hudupdate_ri = replace_function(0x4A8E30, (void *)ff8_bgate_hudupdate_hook);
+	ff8_bgate_huddisplay_ri = replace_function(0x4A84E0, (void *)ff8_bgate_huddisplay_hook);
 
-	// Fresh-input latch divisor: 4 -> 2 UI ticks (ctx+33 cadence 15/s -> 30/s,
-	// restores Boost phase pacing proportionally to the 30fps input rate)
-	patch_code_dword(0xB8A3E4, 2); // CONST_BattleUI_TicksPerFrame
+	// Fresh-input latch divisor: 4 -> 4/n UI ticks, so the ctx+33 "fresh input" cadence tracks
+	// the host frame rate (30fps -> 30/s, 60fps -> 60/s; vanilla PC was 15/s). This is also what
+	// restores GF Boost's phase pacing, which keys off that latch rather than the tick counter.
+	patch_code_dword(0xB8A3E4, 4 / ff8_bgate_n); // CONST_BattleUI_TicksPerFrame
 
 	// Game time / battle countdown at native 60 ticks/s
-	ff8_b30_savemap_tick_orig = (int(__cdecl *)())0x4701B0;
-	ff8_b30_savemap_tick_ri = replace_function(0x4701B0, (void *)ff8_b30_savemap_tick_hook);
+	ff8_bgate_savemap_tick_orig = (int(__cdecl *)())0x4701B0;
+	ff8_bgate_savemap_tick_ri = replace_function(0x4701B0, (void *)ff8_bgate_savemap_tick_hook);
 
-	// Battle model animation + choreography VM 1-in-2 (geometry rebuilt every tick)
-	ff8_b30_readanim_orig = (int(__cdecl *)(void *, void *))0x508F90;
-	ff8_b30_readanim_ri = replace_function(0x508F90, (void *)ff8_b30_readanim_hook);
-	ff8_b30_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
-	ff8_b30_animseq_upd_ri = replace_function(0x504290, (void *)ff8_b30_animseq_upd_hook);
+	// Battle model animation + choreography VM 1-in-n (geometry rebuilt every tick)
+	ff8_bgate_readanim_orig = (int(__cdecl *)(void *, void *))0x508F90;
+	ff8_bgate_readanim_ri = replace_function(0x508F90, (void *)ff8_bgate_readanim_hook);
+	ff8_bgate_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
+	ff8_bgate_animseq_upd_ri = replace_function(0x504290, (void *)ff8_bgate_animseq_upd_hook);
 
-	// Battle camera: keyframe player advances CurrentAnimationTime += 16 per tick
-	// (imm8 @0x503A80); at 2x tick rate use += 8 -> native speed, smooth 30fps.
-	patch_code_byte(0x503A80, 0x08);
+	// Battle camera: the keyframe player advances CurrentAnimationTime += 16 per tick (imm8
+	// @0x503A80) and is not gated, so scale the step to 16/n -> native speed AND smooth at the
+	// host rate (no stepping), rather than holding it 1-in-n.
+	patch_code_byte(0x503A80, (unsigned char)(16 / ff8_bgate_n));
 
 	// Magic/GF effect frame-hold
-	ff8_b30_effect_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x50093A, 0);
-	replace_call(0x50093A, (void *)ff8_b30_effect_tick_gate);
-	ff8_b30_playworldsound_ri = replace_function(0x46B2A0, (void *)ff8_b30_PlayWorldSound_hook);
-	ff8_b30_setup_ri_A = replace_function(0x50A9A0, (void *)ff8_b30_magic_setup_hook_A);
-	ff8_b30_setup_ri_B = replace_function(0x50B190, (void *)ff8_b30_magic_setup_hook_B);
-	ff8_b30_damagenum_ri = replace_function(0x5068B0, (void *)ff8_b30_DamageNumbers_Spawn_hook);
+	ff8_bgate_effect_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x50093A, 0);
+	replace_call(0x50093A, (void *)ff8_bgate_effect_tick_gate);
+	ff8_bgate_playworldsound_ri = replace_function(0x46B2A0, (void *)ff8_bgate_PlayWorldSound_hook);
+	ff8_bgate_setup_ri_A = replace_function(0x50A9A0, (void *)ff8_bgate_magic_setup_hook_A);
+	ff8_bgate_setup_ri_B = replace_function(0x50B190, (void *)ff8_bgate_magic_setup_hook_B);
+	ff8_bgate_damagenum_ri = replace_function(0x5068B0, (void *)ff8_bgate_DamageNumbers_Spawn_hook);
 
 	// Cure: skip the ring/sparkle/mote ticks on held frames so the interpolation helpers can
-	// supply a smooth, closed-form redraw instead (see ff8_b30_cure_interpolate_rings).
-	ff8_b30_cure_ring_tick_orig = (int(__cdecl *)(void *))0x8D6D80;
-	ff8_b30_cure_ring_tick_ri = replace_function(0x8D6D80, (void *)ff8_b30_cure_ring_tick_hook);
-	ff8_b30_cure_sparkle_tick_orig = (int(__cdecl *)(void *))0x8D80B0;
-	ff8_b30_cure_sparkle_tick_ri = replace_function(0x8D80B0, (void *)ff8_b30_cure_sparkle_tick_hook);
-	ff8_b30_cure_mote_tick_orig = (int(__cdecl *)(void *))0x8D7F60;
-	ff8_b30_cure_mote_tick_ri = replace_function(0x8D7F60, (void *)ff8_b30_cure_mote_tick_hook);
+	// supply a smooth, closed-form redraw instead (see ff8_bgate_cure_interpolate_rings).
+	ff8_bgate_cure_ring_tick_orig = (int(__cdecl *)(void *))0x8D6D80;
+	ff8_bgate_cure_ring_tick_ri = replace_function(0x8D6D80, (void *)ff8_bgate_cure_ring_tick_hook);
+	ff8_bgate_cure_sparkle_tick_orig = (int(__cdecl *)(void *))0x8D80B0;
+	ff8_bgate_cure_sparkle_tick_ri = replace_function(0x8D80B0, (void *)ff8_bgate_cure_sparkle_tick_hook);
+	ff8_bgate_cure_mote_tick_orig = (int(__cdecl *)(void *))0x8D7F60;
+	ff8_bgate_cure_mote_tick_ri = replace_function(0x8D7F60, (void *)ff8_bgate_cure_mote_tick_hook);
 
-	// GF Ifrit summon: gate the procedural effect advance 1-in-2 (draw still runs every tick).
-	ff8_b30_ifrit_seq_orig = (uint32_t(__cdecl *)())0xB25DF0;
-	ff8_b30_ifrit_neg_orig = (void(__cdecl *)())0xB2FCF0;
-	ff8_b30_ifrit_int_orig = (int(__cdecl *)())0xB26110;
-	ff8_b30_ifrit_pos_orig = (void(__cdecl *)())0xB30110;
-	ff8_b30_ifrit_build_orig = (int(__cdecl *)())0xB2F590;
-	ff8_b30_ifrit_func1_orig = (int(__cdecl *)(int))0xB257E0;
-	ff8_b30_ifrit_seq_ri = replace_function(0xB25DF0, (void *)ff8_b30_ifrit_seq_hook);
-	ff8_b30_ifrit_neg_ri = replace_function(0xB2FCF0, (void *)ff8_b30_ifrit_neg_hook);
-	ff8_b30_ifrit_int_ri = replace_function(0xB26110, (void *)ff8_b30_ifrit_int_hook);
-	ff8_b30_ifrit_pos_ri = replace_function(0xB30110, (void *)ff8_b30_ifrit_pos_hook);
-	ff8_b30_ifrit_build_ri = replace_function(0xB2F590, (void *)ff8_b30_ifrit_build_hook);
-	ff8_b30_ifrit_func1_ri = replace_function(0xB257E0, (void *)ff8_b30_ifrit_func1_hook);
+	// GF Ifrit summon: gate the procedural effect advance 1-in-n (draw still runs every tick).
+	ff8_bgate_ifrit_seq_orig = (uint32_t(__cdecl *)())0xB25DF0;
+	ff8_bgate_ifrit_neg_orig = (void(__cdecl *)())0xB2FCF0;
+	ff8_bgate_ifrit_int_orig = (int(__cdecl *)())0xB26110;
+	ff8_bgate_ifrit_pos_orig = (void(__cdecl *)())0xB30110;
+	ff8_bgate_ifrit_build_orig = (int(__cdecl *)())0xB2F590;
+	ff8_bgate_ifrit_func1_orig = (int(__cdecl *)(int))0xB257E0;
+	ff8_bgate_ifrit_seq_ri = replace_function(0xB25DF0, (void *)ff8_bgate_ifrit_seq_hook);
+	ff8_bgate_ifrit_neg_ri = replace_function(0xB2FCF0, (void *)ff8_bgate_ifrit_neg_hook);
+	ff8_bgate_ifrit_int_ri = replace_function(0xB26110, (void *)ff8_bgate_ifrit_int_hook);
+	ff8_bgate_ifrit_pos_ri = replace_function(0xB30110, (void *)ff8_bgate_ifrit_pos_hook);
+	ff8_bgate_ifrit_build_ri = replace_function(0xB2F590, (void *)ff8_bgate_ifrit_build_hook);
+	ff8_bgate_ifrit_func1_ri = replace_function(0xB257E0, (void *)ff8_bgate_ifrit_func1_hook);
 
 	// Status-effect timers: disabled pending crash isolation (see comment above)
-	// ff8_b30_timerstatus_orig = (void(__cdecl *)())0x483470;
-	// ff8_b30_timerstatus_ri = replace_function(0x483470, (void *)ff8_b30_timerstatus_hook);
-	(void)&ff8_b30_timerstatus_hook; (void)ff8_b30_timerstatus_orig; (void)ff8_b30_timerstatus_ri;
+	// ff8_bgate_timerstatus_orig = (void(__cdecl *)())0x483470;
+	// ff8_bgate_timerstatus_ri = replace_function(0x483470, (void *)ff8_bgate_timerstatus_hook);
+	(void)&ff8_bgate_timerstatus_hook; (void)ff8_bgate_timerstatus_orig; (void)ff8_bgate_timerstatus_ri;
 
-	ffnx_info("30fps battle: gates installed (UI ticks 2/frame, anim+camera+effects+Ifrit 1-in-2, Cure interpolated, input 30Hz)\n");
+	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera step %d; anim+effects+Ifrit 1-in-%d, Cure interpolated)\n",
+		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n, 16 / ff8_bgate_n, ff8_bgate_n);
 }
 
 void* ff8_engine_set_wide_viewport(int x, int y, int w, int h)
@@ -2481,11 +2501,12 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		replace_function(ff8_externals.fps_limiter, ff8_limit_fps);
 	}
 
-	// 30fps battle mode: gate battle subsystems 1-in-2 so only the menu/input
-	// rate doubles (see the ff8_b30_* block above). US/EN 1.2 addresses only.
-	if (ff8_fps_limiter == FPS_LIMITER_30FPS && FF8_US_VERSION)
+	// High-frame-rate battle mode: gate the battle subsystems back to native speed so only the
+	// menu/input rate rises with the limiter (see the ff8_bgate_* block above). Handles both
+	// 30fps (limiter 2, n=2) and 60fps (limiter 3, n=4). US/EN 1.2 addresses only.
+	if (ff8_fps_limiter >= FPS_LIMITER_30FPS && FF8_US_VERSION)
 	{
-		ff8_b30_install_hooks();
+		ff8_bgate_install_hooks();
 	}
 
 	// Gamepad
