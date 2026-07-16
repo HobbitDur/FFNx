@@ -1524,6 +1524,375 @@ int ff8_limit_fps()
 	return 0;
 }
 
+// ---------------------------------------------------------------------------
+// 30fps battle mode (menu/input focused) - active when ff8_fps_limiter == 2
+// ---------------------------------------------------------------------------
+// Vanilla PC locks the whole battle module at 15fps and catches up by running the
+// battle-UI tick pair (isBattle_HUDupdate 0x4A8E30 + isBattle_HUDdisplay 0x4A84E0)
+// 4x per rendered frame (3 hidden + 1 visible = 60 ticks/s), with ONE DirectInput
+// poll per frame -> 15 Hz input sampling (lost/merged presses in Boost, Zell Duel
+// and menu navigation). See wiki: Battle UI Timing and Input Sampling.
+//
+// With ff8_fps_limiter == FPS_LIMITER_30FPS the module loop runs at 30fps (input
+// polled at 30 Hz - matching PSX menu pacing) but every battle subsystem then runs
+// 2x too fast. This block restores native speeds by gating 1-in-2, porting the
+// approach of the ff8-true-60fps-battle branch (which gates 1-in-4 at 60fps):
+//
+//   - UI tick pair: skip 2 of the 3 hidden catch-up ticks -> 2 ticks/frame
+//     = 60 ticks/s (native). This alone keeps ATB, Zell Duel countdown, Boost
+//     tick, cursor blink and text speed at native pace, while the pad ring
+//     advances on ticks that actually saw a fresh 30 Hz input poll.
+//   - fresh-input latch divisor (CONST_BattleUI_TicksPerFrame @0xB8A3E4): 4 -> 2
+//     so the ctx+33 "fresh input" cadence becomes 30/s (vanilla PC: 15/s).
+//   - game time (Savemap_TickGameTimeAndCountdown): called 4x per loop iteration
+//     = 120/s at 30fps; gate 1-in-2 in battle -> native 60/s.
+//   - battle model animation + AnimSeq choreography VM: advance 1-in-2, geometry
+//     still rebuilt every tick (no double-buffer flicker).
+//   - battle camera: keyframe time step 16 -> 8 per tick (imm8 @0x503A80).
+//   - magic/GF spell effects: frame-hold 1-in-2 via state snapshot/restore
+//     (effect draws every frame, advances every other), SFX/damage-number
+//     re-triggers suppressed on held frames, whitelist = magic cast (cmd 0x02),
+//     per-effect blacklist + SEH guard.
+// (All addresses are FF8 2000 US/EN 1.2 specific, same as the 60fps branch.)
+//
+static int ff8_b30_phase = 0; // 0 = advance frame, 1 = held frame (bumped in BdLink hook)
+
+// --- battle frame phase: bumped once per battle logic frame (BdLink_GF 0x500900) ---
+static int (__cdecl *ff8_b30_bdlink_orig)() = nullptr;
+static uint32_t ff8_b30_bdlink_ri = 0;
+
+int __cdecl ff8_b30_bdlink_hook()
+{
+	ff8_b30_phase = (ff8_b30_phase + 1) & 1;
+	unreplace_function(ff8_b30_bdlink_ri);
+	int r = ff8_b30_bdlink_orig();
+	rereplace_function(ff8_b30_bdlink_ri);
+	return r;
+}
+
+// --- UI tick reduction: 4 ticks/frame -> 2 ticks/frame (= native 60 ticks/s) ---
+// battle_cardgame_main_loop calls the pair 3x with menu rendering DISABLED
+// (menu_rendering_enabled @0x1D6D4AC == 0, the hidden catch-up ticks) then 1x
+// enabled (the visible tick). Skip hidden ticks #0 and #1, keep #2 + visible.
+// The pair is called from the main loop only, always update-then-display, so the
+// skip decision made in the update hook is consumed by the display hook.
+#define FF8_B30_MENU_RENDERING_ENABLED (*(uint32_t *)0x1D6D4AC)
+
+static int (__cdecl *ff8_b30_hudupdate_orig)() = nullptr;
+static int (__cdecl *ff8_b30_huddisplay_orig)() = nullptr;
+static uint32_t ff8_b30_hudupdate_ri = 0, ff8_b30_huddisplay_ri = 0;
+static bool ff8_b30_tick_skip = false;
+static int ff8_b30_hidden_idx = 0;
+
+int __cdecl ff8_b30_hudupdate_hook()
+{
+	if (FF8_B30_MENU_RENDERING_ENABLED == 0)
+	{
+		// hidden catch-up tick: keep only every 3rd (#2 of 0,1,2)
+		ff8_b30_tick_skip = ((ff8_b30_hidden_idx++ % 3) != 2);
+	}
+	else
+	{
+		// visible tick: always runs, and resyncs the hidden counter
+		ff8_b30_hidden_idx = 0;
+		ff8_b30_tick_skip = false;
+	}
+	if (ff8_b30_tick_skip)
+		return 0;
+	unreplace_function(ff8_b30_hudupdate_ri);
+	int r = ff8_b30_hudupdate_orig();
+	rereplace_function(ff8_b30_hudupdate_ri);
+	return r;
+}
+
+int __cdecl ff8_b30_huddisplay_hook()
+{
+	if (ff8_b30_tick_skip)
+		return 0;
+	unreplace_function(ff8_b30_huddisplay_ri);
+	int r = ff8_b30_huddisplay_orig();
+	rereplace_function(ff8_b30_huddisplay_ri);
+	return r;
+}
+
+// --- game time: 4 calls per loop iteration = 120/s at 30fps -> gate to 60/s in battle ---
+static int (__cdecl *ff8_b30_savemap_tick_orig)() = nullptr;
+static uint32_t ff8_b30_savemap_tick_ri = 0;
+
+int __cdecl ff8_b30_savemap_tick_hook()
+{
+	struct game_mode *mode = getmode_cached();
+	if (mode->driver_mode == MODE_BATTLE)
+	{
+		static uint32_t n = 0;
+		if (n++ & 1)
+			return 0; // held: keep game time / battle countdown at native 60 ticks/s
+	}
+	unreplace_function(ff8_b30_savemap_tick_ri);
+	int r = ff8_b30_savemap_tick_orig();
+	rereplace_function(ff8_b30_savemap_tick_ri);
+	return r;
+}
+
+// --- battle model animation: advance pose 1-in-2, rebuild geometry every tick ---
+// Battle_ReadAnimation (0x508F90) reads one frame's DELTA into the skeleton
+// (accumulative), advances current_frame, and calls
+// ProcessFieldEntitiesTransformation (0x508C90) to rebuild the render transform.
+// On held ticks skip the delta read/advance but still rebuild the transform
+// (else the double-buffered geometry starves -> flicker).
+static int (__cdecl *ff8_b30_readanim_orig)(void *, void *) = nullptr;
+static uint32_t ff8_b30_readanim_ri = 0;
+
+int __cdecl ff8_b30_readanim_hook(void *header, void *anim_cmd)
+{
+	if (ff8_b30_phase != 0)
+	{
+		((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+		return 0; // "frame processed, not complete" -> animation continues
+	}
+	unreplace_function(ff8_b30_readanim_ri);
+	int r = ff8_b30_readanim_orig(header, anim_cmd);
+	rereplace_function(ff8_b30_readanim_ri);
+	return r;
+}
+
+// AnimSeq_UpdateEntityPerFrame (0x504290) advances the CHOREOGRAPHY (run-up
+// movement, animation transitions, frame delays, sound triggers) and the skeletal
+// frame. On held ticks skip the VM but still call
+// AdvanceAnimationBy1AndCheckCompletion (0x5094F0) so the leaf gate above fires
+// its geometry rebuild. The sole caller ignores the return value.
+static int (__cdecl *ff8_b30_animseq_upd_orig)(void *) = nullptr;
+static uint32_t ff8_b30_animseq_upd_ri = 0;
+
+int __cdecl ff8_b30_animseq_upd_hook(void *slot_data_struct)
+{
+	if (ff8_b30_phase != 0)
+	{
+		((int(__cdecl *)(void *))0x5094F0)(slot_data_struct);
+		return 0;
+	}
+	unreplace_function(ff8_b30_animseq_upd_ri);
+	int r = ff8_b30_animseq_upd_orig(slot_data_struct);
+	rereplace_function(ff8_b30_animseq_upd_ri);
+	return r;
+}
+
+// --- magic/GF effect frame-hold (port of the 60fps branch machinery, 1-in-2) ---
+// The battle effect tick (call @0x50093A -> ExecuteTaskQueue(C3_28_GF_data_pointer))
+// advances AND draws the active spell effect. Skipping it outright flickers, so on
+// held frames we snapshot the effect's state pool window, run the tick (it draws),
+// then restore (undo the advance). Whitelisted to magic-cast effects (cmd 0x02);
+// anything else (Draw/Stock swirl, limits, items) runs untouched.
+static int (__cdecl *ff8_b30_effect_tick_orig)(void *effect_ctx) = nullptr;
+
+static bool ff8_b30_fx_holding = false;
+static uint32_t ff8_b30_playworldsound_ri = 0;
+
+int __cdecl ff8_b30_PlayWorldSound_hook(int number, int attr, unsigned int pos, unsigned int vol)
+{
+	if (ff8_b30_fx_holding)
+		return 0; // held-frame re-draw: don't re-trigger the sound
+	unreplace_function(ff8_b30_playworldsound_ri);
+	int r = ((int(__cdecl *)(int, int, unsigned int, unsigned int))0x46B2A0)(number, attr, pos, vol);
+	rereplace_function(ff8_b30_playworldsound_ri);
+	return r;
+}
+
+static uint32_t ff8_b30_damagenum_ri = 0;
+
+void __cdecl ff8_b30_DamageNumbers_Spawn_hook(void *a1)
+{
+	if (ff8_b30_fx_holding)
+		return; // held-frame re-draw: don't re-spawn the damage number
+	unreplace_function(ff8_b30_damagenum_ri);
+	((void(__cdecl *)(void *))0x5068B0)(a1);
+	rereplace_function(ff8_b30_damagenum_ri);
+}
+
+#define FF8_B30_C3_28_GF_PTR (*(void **)0x1D96AAC)
+#define FF8_B30_CMD_MAGIC 0x02
+
+static void *ff8_b30_fx_holdable_ctx = nullptr;
+static uint32_t ff8_b30_setup_ri_A = 0; // sub_50A9A0
+static uint32_t ff8_b30_setup_ri_B = 0; // sub_50B190
+
+static void ff8_b30_capture_holdable(void *before)
+{
+	void *after = FF8_B30_C3_28_GF_PTR;
+	if (!after || after == before)
+		return;
+	uint8_t *t = *(uint8_t **)0x1D99A50; // BATTLE_TASK_68_DATA_ADDR
+	if ((uint32_t)t <= 0x10000 || (uint32_t)t >= 0x7F000000)
+		return;
+	if (t[1] != FF8_B30_CMD_MAGIC)
+		return; // Draw (0x06) etc.: not held, runs at normal speed, never crashes
+	ff8_b30_fx_holdable_ctx = after;
+	ffnx_info("30fps: HOLDABLE %p (magic, eff=%02X)\n", after, t[6]);
+}
+
+int __cdecl ff8_b30_magic_setup_hook_A(int a1)
+{
+	void *before = FF8_B30_C3_28_GF_PTR;
+	unreplace_function(ff8_b30_setup_ri_A);
+	int r = ((int(__cdecl *)(int))0x50A9A0)(a1);
+	rereplace_function(ff8_b30_setup_ri_A);
+	ff8_b30_capture_holdable(before);
+	return r;
+}
+
+int __cdecl ff8_b30_magic_setup_hook_B(int a1)
+{
+	void *before = FF8_B30_C3_28_GF_PTR;
+	unreplace_function(ff8_b30_setup_ri_B);
+	int r = ((int(__cdecl *)(int))0x50B190)(a1);
+	rereplace_function(ff8_b30_setup_ri_B);
+	ff8_b30_capture_holdable(before);
+	return r;
+}
+
+#define FF8_B30_FX_SNAP_BEFORE 0x2000u
+#define FF8_B30_FX_SNAP_SIZE   0x8000u
+static uint8_t ff8_b30_fx_snapshot[FF8_B30_FX_SNAP_SIZE];
+
+static void *ff8_b30_fx_blacklist[16] = {0};
+static int ff8_b30_fx_blacklist_n = 0;
+
+static bool ff8_b30_fx_is_blacklisted(void *c)
+{
+	for (int i = 0; i < ff8_b30_fx_blacklist_n; i++)
+		if (ff8_b30_fx_blacklist[i] == c) return true;
+	return false;
+}
+
+static void ff8_b30_fx_blacklist_add(void *c)
+{
+	if (ff8_b30_fx_is_blacklisted(c)) return;
+	if (ff8_b30_fx_blacklist_n < 16) ff8_b30_fx_blacklist[ff8_b30_fx_blacklist_n++] = c;
+}
+
+static bool ff8_b30_fx_window_committed(uint8_t *base, size_t size)
+{
+	uint8_t *p = base;
+	uint8_t *end = base + size;
+	while (p < end)
+	{
+		MEMORY_BASIC_INFORMATION mbi;
+		if (VirtualQuery(p, &mbi, sizeof(mbi)) == 0) return false;
+		if (mbi.State != MEM_COMMIT) return false;
+		if ((mbi.Protect & (PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READWRITE)) == 0) return false;
+		p = (uint8_t *)mbi.BaseAddress + mbi.RegionSize;
+	}
+	return true;
+}
+
+// Held-frame body isolated so the gate stays free of objects needing unwinding
+// (required for the __try guard around it).
+static void ff8_b30_fx_hold_once(void *effect_ctx, uint8_t *base)
+{
+	memcpy(ff8_b30_fx_snapshot, base, FF8_B30_FX_SNAP_SIZE);
+	ff8_b30_fx_holding = true; // suppress SFX/damage numbers during the re-draw
+	ff8_b30_effect_tick_orig(effect_ctx);
+	ff8_b30_fx_holding = false;
+	memcpy(base, ff8_b30_fx_snapshot, FF8_B30_FX_SNAP_SIZE);
+}
+
+int __cdecl ff8_b30_effect_tick_gate(void *effect_ctx)
+{
+	static uint32_t frame = 0;
+	if ((frame++ & 1) == 0)
+	{
+		// Real frame: advance + draw (+ SFX) normally.
+		int r = ff8_b30_effect_tick_orig(effect_ctx);
+		if (r == 0 && effect_ctx == ff8_b30_fx_holdable_ctx)
+			ff8_b30_fx_holdable_ctx = nullptr; // this cast effect just ended
+		return r;
+	}
+
+	uint8_t *base = (uint8_t *)effect_ctx - FF8_B30_FX_SNAP_BEFORE;
+
+	if (effect_ctx != ff8_b30_fx_holdable_ctx
+		|| ff8_b30_fx_is_blacklisted(effect_ctx)
+		|| !ff8_b30_fx_window_committed(base, FF8_B30_FX_SNAP_SIZE))
+	{
+		return ff8_b30_effect_tick_orig(effect_ctx);
+	}
+
+	__try
+	{
+		ff8_b30_fx_hold_once(effect_ctx, base);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		ff8_b30_fx_holding = false;
+		ff8_b30_fx_blacklist_add(effect_ctx);
+		ffnx_info("30fps: effect_ctx=%p faulted while held -> blacklisted (runs normal)\n", effect_ctx);
+	}
+	return 1; // effect still running (don't let the caller clear its pointer)
+}
+
+// --- status-effect timers (regen/doom/petrify/shell/protect/reflect) ---
+// computeTimerStatus (0x483470) decrements them once per battle frame -> 2x too
+// fast at 30fps. Kept DISABLED for now, mirroring the 60fps branch: an earlier
+// 60fps build crashed (0xC0000005 on Zantetsuken/Odin) with either this gate or
+// the since-replaced camera-VM gate active; not yet isolated. Enable to test.
+static void (__cdecl *ff8_b30_timerstatus_orig)() = nullptr;
+static uint32_t ff8_b30_timerstatus_ri = 0;
+
+void __cdecl ff8_b30_timerstatus_hook()
+{
+	if (ff8_b30_phase != 0)
+		return;
+	unreplace_function(ff8_b30_timerstatus_ri);
+	ff8_b30_timerstatus_orig();
+	rereplace_function(ff8_b30_timerstatus_ri);
+}
+
+static void ff8_b30_install_hooks()
+{
+	// Battle frame phase driver
+	ff8_b30_bdlink_orig = (int(__cdecl *)())0x500900;
+	ff8_b30_bdlink_ri = replace_function(0x500900, (void *)ff8_b30_bdlink_hook);
+
+	// UI tick reduction: 4 -> 2 ticks per rendered frame (native 60 ticks/s)
+	ff8_b30_hudupdate_orig = (int(__cdecl *)())0x4A8E30;
+	ff8_b30_huddisplay_orig = (int(__cdecl *)())0x4A84E0;
+	ff8_b30_hudupdate_ri = replace_function(0x4A8E30, (void *)ff8_b30_hudupdate_hook);
+	ff8_b30_huddisplay_ri = replace_function(0x4A84E0, (void *)ff8_b30_huddisplay_hook);
+
+	// Fresh-input latch divisor: 4 -> 2 UI ticks (ctx+33 cadence 15/s -> 30/s,
+	// restores Boost phase pacing proportionally to the 30fps input rate)
+	patch_code_dword(0xB8A3E4, 2); // CONST_BattleUI_TicksPerFrame
+
+	// Game time / battle countdown at native 60 ticks/s
+	ff8_b30_savemap_tick_orig = (int(__cdecl *)())0x4701B0;
+	ff8_b30_savemap_tick_ri = replace_function(0x4701B0, (void *)ff8_b30_savemap_tick_hook);
+
+	// Battle model animation + choreography VM 1-in-2 (geometry rebuilt every tick)
+	ff8_b30_readanim_orig = (int(__cdecl *)(void *, void *))0x508F90;
+	ff8_b30_readanim_ri = replace_function(0x508F90, (void *)ff8_b30_readanim_hook);
+	ff8_b30_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
+	ff8_b30_animseq_upd_ri = replace_function(0x504290, (void *)ff8_b30_animseq_upd_hook);
+
+	// Battle camera: keyframe player advances CurrentAnimationTime += 16 per tick
+	// (imm8 @0x503A80); at 2x tick rate use += 8 -> native speed, smooth 30fps.
+	patch_code_byte(0x503A80, 0x08);
+
+	// Magic/GF effect frame-hold
+	ff8_b30_effect_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x50093A, 0);
+	replace_call(0x50093A, (void *)ff8_b30_effect_tick_gate);
+	ff8_b30_playworldsound_ri = replace_function(0x46B2A0, (void *)ff8_b30_PlayWorldSound_hook);
+	ff8_b30_setup_ri_A = replace_function(0x50A9A0, (void *)ff8_b30_magic_setup_hook_A);
+	ff8_b30_setup_ri_B = replace_function(0x50B190, (void *)ff8_b30_magic_setup_hook_B);
+	ff8_b30_damagenum_ri = replace_function(0x5068B0, (void *)ff8_b30_DamageNumbers_Spawn_hook);
+
+	// Status-effect timers: disabled pending crash isolation (see comment above)
+	// ff8_b30_timerstatus_orig = (void(__cdecl *)())0x483470;
+	// ff8_b30_timerstatus_ri = replace_function(0x483470, (void *)ff8_b30_timerstatus_hook);
+	(void)ff8_b30_timerstatus_hook; (void)ff8_b30_timerstatus_orig; (void)ff8_b30_timerstatus_ri;
+
+	ffnx_info("30fps battle: gates installed (UI ticks 2/frame, anim+camera+effects 1-in-2, input 30Hz)\n");
+}
+
 void* ff8_engine_set_wide_viewport(int x, int y, int w, int h)
 {
 	*ff8_externals.current_viewport_x_dword_1A7764C = wide_viewport_x;
@@ -1738,6 +2107,13 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		game_object->countspersecond = (double)game_object->_countspersecond;
 
 		replace_function(ff8_externals.fps_limiter, ff8_limit_fps);
+	}
+
+	// 30fps battle mode: gate battle subsystems 1-in-2 so only the menu/input
+	// rate doubles (see the ff8_b30_* block above). US/EN 1.2 addresses only.
+	if (ff8_fps_limiter == FPS_LIMITER_30FPS && FF8_US_VERSION)
+	{
+		ff8_b30_install_hooks();
 	}
 
 	// Gamepad
