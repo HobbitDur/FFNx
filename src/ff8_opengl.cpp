@@ -1795,93 +1795,69 @@ int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 // AdvanceAnimationBy1AndCheckCompletion (0x5094F0) so the leaf gate above fires
 // its geometry rebuild. The sole caller ignores the return value.
 //
-// Movement extrapolation: the VM moves based_position only on real frames (15/s),
-// while the skeletal pose now animates at host rate - a stepped world position next
-// to smooth limbs reads as "lag" during attack run-ups. On held frames, nudge the
-// rendered position forward by last_real_delta * phase / n; the true value is
-// restored before the next VM step so the movement math never sees the nudge.
-// Self-validating: the nudge is only undone if the position still holds the exact
-// value we wrote - teleports (sequence warps, opcode 95 resets, battle re-init)
-// overwrite it and then win over any stale saved state.
-struct ff8_bgate_move_cache_t
-{
-	void *slot;
-	int16_t true_pos[3]; // real position saved while a nudge is applied
-	int16_t written[3];  // the nudged values we wrote (validity check)
-	int16_t delta[3];    // movement of the last real frame
-	bool has_delta;
-	bool nudged;
-};
-static ff8_bgate_move_cache_t ff8_bgate_move_cache[16];
+// Loop-boundary stall: under SLOW an animation consumes its stream in 2T-1 calls -
+// an ODD number - and entity animations start on real frames (the VM only runs
+// there), so the COMPLETE return always surfaces on a HELD frame. Vanilla handles a
+// completion in the same tick it appears (requeue the looping run/idle cycle, bake
+// transforms, continue the sequence); with the VM gated, the entity instead froze
+// for one host frame at every animation loop - a visible hitch each run cycle.
+// Fix: when a completion surfaces on a held frame, run the VM once for this entity
+// right now - exactly what vanilla would do - EDGE-TRIGGERED per completion, so a
+// sequence that stays in a completed-animation wait state (B9 delays etc.) still
+// ticks its VM only on real frames and its timing is untouched.
+struct ff8_bgate_done_cache_t { void *slot; bool was_complete; };
+static ff8_bgate_done_cache_t ff8_bgate_done_cache[16];
 
-static ff8_bgate_move_cache_t *ff8_bgate_move_cache_get(void *slot)
+static ff8_bgate_done_cache_t *ff8_bgate_done_cache_get(void *slot)
 {
 	int free_slot = -1;
 	for (int i = 0; i < 16; i++)
 	{
-		if (ff8_bgate_move_cache[i].slot == slot) return &ff8_bgate_move_cache[i];
-		if (!ff8_bgate_move_cache[i].slot && free_slot < 0) free_slot = i;
+		if (ff8_bgate_done_cache[i].slot == slot) return &ff8_bgate_done_cache[i];
+		if (!ff8_bgate_done_cache[i].slot && free_slot < 0) free_slot = i;
 	}
 	if (free_slot < 0) return nullptr;
-	memset(&ff8_bgate_move_cache[free_slot], 0, sizeof(ff8_bgate_move_cache_t));
-	ff8_bgate_move_cache[free_slot].slot = slot;
-	return &ff8_bgate_move_cache[free_slot];
+	ff8_bgate_done_cache[free_slot].slot = slot;
+	ff8_bgate_done_cache[free_slot].was_complete = false;
+	return &ff8_bgate_done_cache[free_slot];
 }
 
-// FF8BattleEntitySlotData.based_position_{z,y,x} - contiguous int16 triplet at +0x1C
-#define FF8_BGATE_BASED_POS(slot) ((int16_t *)((uint8_t *)(slot) + 0x1C))
+// FF8BattleEntitySlotData.anim_cmd is at +0x6C; current_frame/total_frames at +6/+7
+#define FF8_BGATE_ANIM_COMPLETE(slot) \
+	(*((uint8_t *)(slot) + 0x6C + 6) >= *((uint8_t *)(slot) + 0x6C + 7))
 
 static int (__cdecl *ff8_bgate_animseq_upd_orig)(void *) = nullptr;
 static uint32_t ff8_bgate_animseq_upd_ri = 0;
 
 int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 {
-	int16_t *pos = FF8_BGATE_BASED_POS(slot_data_struct);
-	ff8_bgate_move_cache_t *mc = ff8_bgate_move_cache_get(slot_data_struct);
+	ff8_bgate_done_cache_t *dc = ff8_bgate_done_cache_get(slot_data_struct);
 
 	if (ff8_bgate_phase != 0)
 	{
-		((int(__cdecl *)(void *))0x5094F0)(slot_data_struct); // skeletal step + geometry rebuild
-		if (mc && mc->has_delta)
+		int complete = ((int(__cdecl *)(void *))0x5094F0)(slot_data_struct);
+		if (complete && dc && !dc->was_complete)
 		{
-			if (!mc->nudged)
-			{
-				for (int i = 0; i < 3; i++) mc->true_pos[i] = pos[i];
-				mc->nudged = true;
-			}
-			for (int i = 0; i < 3; i++)
-			{
-				pos[i] = (int16_t)(mc->true_pos[i] + (mc->delta[i] * ff8_bgate_phase) / ff8_bgate_n);
-				mc->written[i] = pos[i];
-			}
+			// fresh completion on a held frame: handle it now instead of stalling a frame
+			dc->was_complete = true;
+			unreplace_function(ff8_bgate_animseq_upd_ri);
+			ff8_bgate_animseq_upd_orig(slot_data_struct);
+			rereplace_function(ff8_bgate_animseq_upd_ri);
+			// if the VM requeued a new animation, the state below re-arms automatically
+			dc->was_complete = FF8_BGATE_ANIM_COMPLETE(slot_data_struct);
+		}
+		else if (dc)
+		{
+			dc->was_complete = (complete != 0);
 		}
 		return 0;
 	}
 
-	// real frame: undo the nudge (only if nothing else rewrote the position), run the VM,
-	// then record this frame's movement for the next held-frame nudge
-	if (mc && mc->nudged)
-	{
-		if (pos[0] == mc->written[0] && pos[1] == mc->written[1] && pos[2] == mc->written[2])
-			for (int i = 0; i < 3; i++) pos[i] = mc->true_pos[i];
-		mc->nudged = false;
-	}
-	int16_t prev[3] = { pos[0], pos[1], pos[2] };
 	unreplace_function(ff8_bgate_animseq_upd_ri);
 	int r = ff8_bgate_animseq_upd_orig(slot_data_struct);
 	rereplace_function(ff8_bgate_animseq_upd_ri);
-	if (mc)
-	{
-		bool moved = false, sane = true;
-		for (int i = 0; i < 3; i++)
-		{
-			int d = pos[i] - prev[i];
-			if (d) moved = true;
-			if (d > 1024 || d < -1024) sane = false; // teleport-sized jump: never extrapolate those
-			mc->delta[i] = (int16_t)d;
-		}
-		mc->has_delta = moved && sane;
-	}
+	if (dc)
+		dc->was_complete = FF8_BGATE_ANIM_COMPLETE(slot_data_struct);
 	return r;
 }
 
