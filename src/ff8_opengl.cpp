@@ -1892,7 +1892,9 @@ static void ff8_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
 #define FF8_CURE_GLOW_SPRITE ((int)0x1642504)              // MAG001_CURE_glowSprite
 #define FF8_CURE_OVERLAY_CTX ((void *)0x278C7E8)           // MAG001_CURE_overlayCtx
 
-// TaskNodeCureParticle field offsets (bytes), confirmed against the IDB this session.
+// TaskNodeCureParticle field offsets (bytes), confirmed against the IDB this session. Named
+// RING_OFS_* from when only the ring used them, but the struct (and pool) is shared by the ring,
+// sparkles and motes alike, so these are reused as-is for all three below.
 #define RING_OFS_NEXT            4
 #define RING_OFS_TASK_FUNC       8
 #define RING_OFS_POS_X          28
@@ -1901,7 +1903,9 @@ static void ff8_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
 #define RING_OFS_FRAME_COUNTER  36
 #define RING_OFS_STATUS_FLAGS   38
 #define RING_OFS_SPIN_ANGLE     66
+#define RING_OFS_VEL_X          88
 #define RING_OFS_VEL_Y          90
+#define RING_OFS_VEL_Z          92
 #define RING_OFS_CENTER_X       96
 #define RING_OFS_CENTER_Y       98
 #define RING_OFS_CENTER_Z      100
@@ -2012,6 +2016,79 @@ int __cdecl ff8_cure_ring_tick_hook(void *ring)
 	return r;
 }
 
+// ===== CURE: sparkles and motes, same idea, one degree simpler =====
+//
+// MAG_001_CURE_Sparkle_Tick / _Mote_Tick pick a random CONSTANT velocity once at spawn
+// (Sparkle/Mote_State0_RandomVelocity) and then just do `pos += vel` every real tick
+// (Sparkle/Mote_State1_Integrate) - no acceleration, no substep loop (unlike the ring, this is
+// a single per-tick increment, not 4 sub-steps already baked in). Both die on the SAME real tick
+// they finish (status_flags bit0 set -> immediate busy_lock check -> return 2), exactly like the
+// ring, so a dead node is never seen stale by the interpolation walk below.
+//
+// Because there's no built-in x4 step counter to continue here, the held-frame position is a
+// genuine (if trivial) LINEAR INTERPOLATION: pos_held = pos_after_last_real_tick +
+// (vel * held_phase) / 4, i.e. 1/4, 2/4, 3/4 of the way to where the NEXT real tick will land
+// (pos + vel). This is not bit-exact the way the ring's step-continuation was (integer division
+// rounds), but for a linear, non-accelerating trajectory it is visually indistinguishable from
+// exact - the only difference is +/-1 unit of rounding on a fast-moving, tiny billboard.
+#define FF8_CURE_SPARKLE_TICK_ADDR ((void *)0x8D80B0)
+#define FF8_CURE_MOTE_TICK_ADDR    ((void *)0x8D7F60)
+
+static void ff8_cure_interpolate_sparkles_motes(int held_phase)
+{
+	typedef void (__cdecl *DrawSprite_t)(void *);
+	static const DrawSprite_t DrawSprite = (DrawSprite_t)0x8D6F20;
+
+	for (uint8_t *n = FF8_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + RING_OFS_NEXT))
+	{
+		void *task_func = *(void **)(n + RING_OFS_TASK_FUNC);
+		if (task_func != FF8_CURE_SPARKLE_TICK_ADDR && task_func != FF8_CURE_MOTE_TICK_ADDR)
+			continue;
+
+		int32_t vel_x = ff8_cure_rd16(n, RING_OFS_VEL_X);
+		int32_t vel_y = ff8_cure_rd16(n, RING_OFS_VEL_Y);
+		int32_t vel_z = ff8_cure_rd16(n, RING_OFS_VEL_Z);
+		int16_t save_x = ff8_cure_rd16(n, RING_OFS_POS_X);
+		int16_t save_y = ff8_cure_rd16(n, RING_OFS_POS_Y);
+		int16_t save_z = ff8_cure_rd16(n, RING_OFS_POS_Z);
+
+		ff8_cure_wr16(n, RING_OFS_POS_X, (int16_t)(save_x + (vel_x * held_phase) / 4));
+		ff8_cure_wr16(n, RING_OFS_POS_Y, (int16_t)(save_y + (vel_y * held_phase) / 4));
+		ff8_cure_wr16(n, RING_OFS_POS_Z, (int16_t)(save_z + (vel_z * held_phase) / 4));
+
+		DrawSprite(n);
+
+		ff8_cure_wr16(n, RING_OFS_POS_X, save_x);
+		ff8_cure_wr16(n, RING_OFS_POS_Y, save_y);
+		ff8_cure_wr16(n, RING_OFS_POS_Z, save_z);
+	}
+}
+
+// Same carve-out as the ring: skip entirely during a held-frame replay, so no rand()/state
+// double-advance, then let ff8_cure_interpolate_sparkles_motes() supply the visual.
+static int (__cdecl *ff8_cure_sparkle_tick_orig)(void *) = nullptr;
+static uint32_t ff8_cure_sparkle_tick_ri = 0;
+int __cdecl ff8_cure_sparkle_tick_hook(void *sparkle)
+{
+	if (ff8_fx_holding)
+		return 0;
+	unreplace_function(ff8_cure_sparkle_tick_ri);
+	int r = ff8_cure_sparkle_tick_orig(sparkle);
+	rereplace_function(ff8_cure_sparkle_tick_ri);
+	return r;
+}
+static int (__cdecl *ff8_cure_mote_tick_orig)(void *) = nullptr;
+static uint32_t ff8_cure_mote_tick_ri = 0;
+int __cdecl ff8_cure_mote_tick_hook(void *mote)
+{
+	if (ff8_fx_holding)
+		return 0;
+	unreplace_function(ff8_cure_mote_tick_ri);
+	int r = ff8_cure_mote_tick_orig(mote);
+	rereplace_function(ff8_cure_mote_tick_ri);
+	return r;
+}
+
 static int ff8_cure_held_phase = 0; // 0 right after a real tick; cycles 1,2,3 across the 3 held frames
 
 int __cdecl ff8_battle_effect_tick_gate(void *effect_ctx)
@@ -2065,6 +2142,7 @@ int __cdecl ff8_battle_effect_tick_gate(void *effect_ctx)
 	{
 		ff8_cure_held_phase = (ff8_cure_held_phase % 3) + 1; // 1,2,3
 		ff8_cure_interpolate_rings(ff8_cure_held_phase);
+		ff8_cure_interpolate_sparkles_motes(ff8_cure_held_phase);
 	}
 	return 1; // effect still running (don't let the caller clear its pointer)
 }
@@ -2324,6 +2402,12 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		// ff8_cure_interpolate_rings() can supply a smooth, closed-form redraw instead.
 		ff8_cure_ring_tick_orig = (int(__cdecl *)(void *))0x8D6D80;
 		ff8_cure_ring_tick_ri = replace_function(0x8D6D80, (void *)ff8_cure_ring_tick_hook);
+		// Same carve-out for sparkles and motes (linear velocity, no built-in x4 step counter -
+		// see ff8_cure_interpolate_sparkles_motes).
+		ff8_cure_sparkle_tick_orig = (int(__cdecl *)(void *))0x8D80B0;
+		ff8_cure_sparkle_tick_ri = replace_function(0x8D80B0, (void *)ff8_cure_sparkle_tick_hook);
+		ff8_cure_mote_tick_orig = (int(__cdecl *)(void *))0x8D7F60;
+		ff8_cure_mote_tick_ri = replace_function(0x8D7F60, (void *)ff8_cure_mote_tick_hook);
 
 		// General battle-model animation gate: on 3-of-4 ticks, hold Battle_ReadAnimation
 		// (0x508F90) - skip the delta read + frame advance but still rebuild the geometry via
