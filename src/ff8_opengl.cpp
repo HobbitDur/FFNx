@@ -1804,7 +1804,22 @@ char __cdecl ff8_atbtick_hook()
 // list lives far from these pools, so it survives the restore -> no flicker.)
 #define FF8_FX_SNAP_BEFORE 0x2000u
 #define FF8_FX_SNAP_SIZE   0x8000u
-static uint8_t ff8_fx_snapshot[FF8_FX_SNAP_SIZE];
+
+// Cure specifically needs a MUCH bigger, differently-positioned window: its total live
+// footprint (root pool/queue, particleQueue1+pool, emitter queue+pool, particleQueue2 (glints)
+// + pool, the overlay context, the camera-matrix snapshot) spans 0x277AEC0..0x2793E78 -
+// 0x18FB8 (~100KB) - more than 3x the generic 0x8000 window, and NOT centered on effect_ctx
+// (rootQueue sits near the LOW end of the range, not the middle). Measured directly against the
+// IDB this session: with the generic window, the entire emitter (queue+pool - i.e. the heal-
+// timing state machine itself), particleQueue2 (glints), and the overlay context are OUTSIDE it
+// and therefore never get reverted - they run fully ungated (4x speed) while the director (and
+// most, but not all, of particleQueue1 - its 300-node pool's tail also exceeds the generic
+// window) stays correctly paced at 1x. That speed mismatch is the prime suspect for the in-game
+// softlock at the end of the animation (first real test of Cure under this 60fps gate at all).
+#define FF8_CURE_SNAP_BASE ((uint8_t *)0x277AEC0)
+#define FF8_CURE_SNAP_SIZE 0x19000u // rounded up from the measured 0x18FB8
+
+static uint8_t ff8_fx_snapshot[FF8_CURE_SNAP_SIZE > FF8_FX_SNAP_SIZE ? FF8_CURE_SNAP_SIZE : FF8_FX_SNAP_SIZE];
 
 // Effects whose snapshot/hold faulted once -> never held again (they run at normal
 // speed). Small fixed set: at most a handful of distinct effect roots per battle.
@@ -1842,20 +1857,170 @@ static bool ff8_fx_window_committed(uint8_t *base, size_t size)
 
 // Held-frame body isolated so the gate itself stays free of objects needing unwinding
 // (a requirement for the __try guard around it).
-static void ff8_fx_hold_once(void *effect_ctx, uint8_t *base)
+static void ff8_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
 {
-	memcpy(ff8_fx_snapshot, base, FF8_FX_SNAP_SIZE);
+	memcpy(ff8_fx_snapshot, base, size);
 	ff8_fx_holding = true;              // suppress SFX during the held-frame re-draw
 	ff8_battle_effect_tick_orig(effect_ctx);
 	ff8_fx_holding = false;
-	memcpy(base, ff8_fx_snapshot, FF8_FX_SNAP_SIZE);
+	memcpy(base, ff8_fx_snapshot, size);
 }
+
+// ===== CURE: smooth 60fps helix via exact closed-form position interpolation =====
+//
+// MAG_001_CURE_Ring_Tick (0x8D6D80) recomputes the ring's draw position from scratch every
+// call, as a pure function of persistent state: step = substep + 4*frame_counter;
+// pos = center; pos.y += step*vel_y; angle = (step<<7)&0xFFF; pos.x/z += radius*sin/cos(angle)/4096.
+// It runs that formula for substep = 0..3 internally, once per real (15fps-equivalent) tick -
+// but only the LAST substep's position survives to be drawn; the other 3 exist only to place
+// spawned sparkles evenly. So the ring's own on-screen motion is a smooth, uniform (no
+// acceleration) helix that the original engine only ever samples once every 4 steps - which is
+// exactly why it looks choppy under the generic 1-in-4 hold (which just repeats that one sample).
+//
+// Because the curve is uniform, continuing `step` by +1 for each of the 3 held host-frames
+// reproduces EXACTLY what the next real tick's own first 3 substeps will compute - this is not an
+// approximation, it's the same closed form the game already uses, just sampled 4x more often.
+// Discrete state (frame_counter, state_phase, spawns, the heal itself) is completely untouched;
+// only the ring's DRAWN pose is smoothed, via a standalone redraw that bypasses Ring_Tick entirely
+// on held frames (see ff8_cure_ring_tick_hook below) - so no rand()-driven spawn or heal-application
+// side effect ever repeats, unlike the generic hold's snapshot/execute/restore of the whole tree
+// (sparkles/motes/glints/director/emitter still go through that generic path unchanged - only the
+// ring is carved out here).
+#define FF8_CURE_ROOT_CTX ((void *)0x277AFC0)              // MAG001_CURE_rootQueue = Cure's effect_ctx
+#define FF8_CURE_RING_QUEUE_HEAD (*(uint8_t **)0x277BF70)  // MAG001_CURE_particleQueue1.head
+#define FF8_CURE_RING_TICK_ADDR ((void *)0x8D6D80)
+#define FF8_CURE_GLOW_SPRITE ((int)0x1642504)              // MAG001_CURE_glowSprite
+#define FF8_CURE_OVERLAY_CTX ((void *)0x278C7E8)           // MAG001_CURE_overlayCtx
+
+// TaskNodeCureParticle field offsets (bytes), confirmed against the IDB this session.
+#define RING_OFS_NEXT            4
+#define RING_OFS_TASK_FUNC       8
+#define RING_OFS_POS_X          28
+#define RING_OFS_POS_Y          30
+#define RING_OFS_POS_Z          32
+#define RING_OFS_FRAME_COUNTER  36
+#define RING_OFS_STATUS_FLAGS   38
+#define RING_OFS_SPIN_ANGLE     66
+#define RING_OFS_VEL_Y          90
+#define RING_OFS_CENTER_X       96
+#define RING_OFS_CENTER_Y       98
+#define RING_OFS_CENTER_Z      100
+#define RING_OFS_RING_RADIUS   104
+
+static inline int16_t ff8_cure_rd16(uint8_t *n, int ofs) { return *(int16_t *)(n + ofs); }
+static inline void ff8_cure_wr16(uint8_t *n, int ofs, int16_t v) { *(int16_t *)(n + ofs) = v; }
+
+// held_phase is 1, 2 or 3 (the 3 held host-frames between one real tick and the next).
+static void ff8_cure_interpolate_rings(int held_phase)
+{
+	typedef void (__cdecl *DrawSprite_t)(void *);
+	typedef void (__cdecl *DrawAdditiveGlow_t)(void *, int, uint32_t *);
+	typedef void *(__cdecl *SetOverlayTexturePage_t)(void *, int16_t *, int16_t, int16_t, int, int16_t, int16_t, int16_t);
+	typedef char (__cdecl *DrawTargetModelWithOverlay_t)(void *);
+	typedef int32_t (__cdecl *ComputeTrig_t)(int32_t);
+	static const DrawSprite_t DrawSprite = (DrawSprite_t)0x8D6F20;
+	static const DrawAdditiveGlow_t DrawAdditiveGlow = (DrawAdditiveGlow_t)0x8D6F90;
+	static const SetOverlayTexturePage_t SetOverlayTexturePage = (SetOverlayTexturePage_t)0x8D7050;
+	static const DrawTargetModelWithOverlay_t DrawTargetModelWithOverlay = (DrawTargetModelWithOverlay_t)0x8D7110;
+	static const ComputeTrig_t computeSin = (ComputeTrig_t)0x56D130;
+	static const ComputeTrig_t computeCosine = (ComputeTrig_t)0x56D100;
+	uint8_t *overlayCtx = (uint8_t *)FF8_CURE_OVERLAY_CTX;
+
+	for (uint8_t *n = FF8_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + RING_OFS_NEXT))
+	{
+		if (*(void **)(n + RING_OFS_TASK_FUNC) != FF8_CURE_RING_TICK_ADDR)
+			continue; // this pool also holds sparkle/mote nodes - only interpolate the ring itself
+
+		int32_t frame_counter = ff8_cure_rd16(n, RING_OFS_FRAME_COUNTER);
+		int32_t vel_y = ff8_cure_rd16(n, RING_OFS_VEL_Y);
+		int32_t center_x = ff8_cure_rd16(n, RING_OFS_CENTER_X);
+		int32_t center_y = ff8_cure_rd16(n, RING_OFS_CENTER_Y);
+		int32_t center_z = ff8_cure_rd16(n, RING_OFS_CENTER_Z);
+		int32_t radius = ff8_cure_rd16(n, RING_OFS_RING_RADIUS);
+		uint8_t status_flags = *(n + RING_OFS_STATUS_FLAGS);
+
+		// Exact continuation of the game's own step counter (see the comment block above):
+		// the real tick just shown used steps [4*fc .. 4*fc+3]; these 3 held frames continue
+		// with 4*fc+4, 4*fc+5, 4*fc+6, which are precisely what the NEXT real tick's own first
+		// 3 substeps will independently (re)compute - so the sequence is seamless either way.
+		int32_t step = 4 * frame_counter + held_phase;
+		int16_t new_pos_y = (int16_t)(center_y + step * vel_y);
+		int16_t angle = (int16_t)((step << 7) & 0xFFF);
+		int16_t new_pos_x = (int16_t)(center_x + (radius * computeSin((int32_t)angle)) / 4096);
+		int16_t new_pos_z = (int16_t)(center_z + (radius * computeCosine((int32_t)angle)) / 4096);
+
+		// Save the true (last real-tick) values, substitute the interpolated pose for this
+		// redraw only, then restore - nothing else must ever observe the smoothed values as state.
+		int16_t save_x = ff8_cure_rd16(n, RING_OFS_POS_X);
+		int16_t save_y = ff8_cure_rd16(n, RING_OFS_POS_Y);
+		int16_t save_z = ff8_cure_rd16(n, RING_OFS_POS_Z);
+		int16_t save_spin = ff8_cure_rd16(n, RING_OFS_SPIN_ANGLE);
+
+		ff8_cure_wr16(n, RING_OFS_POS_X, new_pos_x);
+		ff8_cure_wr16(n, RING_OFS_POS_Y, new_pos_y);
+		ff8_cure_wr16(n, RING_OFS_POS_Z, new_pos_z);
+		ff8_cure_wr16(n, RING_OFS_SPIN_ANGLE, angle);
+
+		// Sprite variant / fade / wash-active are discrete state decisions - use the REAL
+		// (un-extrapolated) frame_counter for those, matching Ring_Tick's own thresholds exactly.
+		if (frame_counter >= 20)
+		{
+			DrawSprite(n);
+		}
+		else
+		{
+			uint8_t rgb = (uint8_t)(60 - 3 * frame_counter);
+			uint32_t glow_rgb = rgb | (rgb << 8) | (rgb << 16);
+			DrawSprite(n);
+			DrawAdditiveGlow(n, FF8_CURE_GLOW_SPRITE, &glow_rgb);
+		}
+		// RE-ENABLED 2026-07-16: was disabled over a (wrong) suspicion that this call was too
+		// heavy for the held-frame cadence. That hypothesis is now falsified - a build WITHOUT
+		// this block still softlocked at the same point, which instead traced to the generic
+		// hold's snapshot window covering barely a third of Cure's actual footprint (see
+		// FF8_CURE_SNAP_BASE above). Removing this block only cost us a real regression: the
+		// target is set BATTLE_ENTITY_ENTITY_FLAG_INVISIBLE for Cure's whole duration (see
+		// Ring_State0_Init) and only this call draws it, so without it on 3-of-4 host frames
+		// the character visibly flickered at 15Hz.
+		if (status_flags & 8)
+		{
+			*(int16_t *)(overlayCtx + 182) = new_pos_y; // overlayCtx->step_vec_y
+			SetOverlayTexturePage(overlayCtx, (int16_t *)(n + RING_OFS_POS_X), 512, 384, 320, 241, 128, 128);
+			DrawTargetModelWithOverlay(overlayCtx);
+		}
+
+		ff8_cure_wr16(n, RING_OFS_POS_X, save_x);
+		ff8_cure_wr16(n, RING_OFS_POS_Y, save_y);
+		ff8_cure_wr16(n, RING_OFS_POS_Z, save_z);
+		ff8_cure_wr16(n, RING_OFS_SPIN_ANGLE, save_spin);
+	}
+}
+
+// Skip the ring's own tick entirely during a held-frame replay (no advance, no spawn, no draw -
+// ff8_cure_interpolate_rings() supplies the visual for this node instead). Everything else in
+// Cure's tree (director/emitter/sparkles/motes/glints) is untouched and keeps going through the
+// generic snapshot/execute/restore hold exactly as before, so nothing else regresses.
+static int (__cdecl *ff8_cure_ring_tick_orig)(void *) = nullptr;
+static uint32_t ff8_cure_ring_tick_ri = 0;
+int __cdecl ff8_cure_ring_tick_hook(void *ring)
+{
+	if (ff8_fx_holding)
+		return 0;
+	unreplace_function(ff8_cure_ring_tick_ri);
+	int r = ff8_cure_ring_tick_orig(ring);
+	rereplace_function(ff8_cure_ring_tick_ri);
+	return r;
+}
+
+static int ff8_cure_held_phase = 0; // 0 right after a real tick; cycles 1,2,3 across the 3 held frames
 
 int __cdecl ff8_battle_effect_tick_gate(void *effect_ctx)
 {
 	static uint32_t frame = 0;
 	if ((frame++ & 3) == 0)
 	{
+		if (effect_ctx == FF8_CURE_ROOT_CTX)
+			ff8_cure_held_phase = 0; // resync at the start of every real-tick window
 		// Real frame: advance + draw (+ SFX) normally.
 		int r = ff8_battle_effect_tick_orig(effect_ctx);
 		if (r == 0 && effect_ctx == ff8_fx_holdable_ctx)
@@ -1865,14 +2030,18 @@ int __cdecl ff8_battle_effect_tick_gate(void *effect_ctx)
 
 	// Held frame: snapshot the effect's pool window -> tick (it draws this frame) ->
 	// restore (undo the advance). Effect drawn every frame, advances 1-in-4.
-	uint8_t *base = (uint8_t *)effect_ctx - FF8_FX_SNAP_BEFORE;
+	// Cure needs its own much bigger, differently-positioned window (see FF8_CURE_SNAP_BASE
+	// above) - its effect_ctx (rootQueue) sits near the LOW end of its real footprint, not
+	// centered on it like the generic effect_ctx-0x2000 guess assumes.
+	uint8_t *base = (effect_ctx == FF8_CURE_ROOT_CTX) ? FF8_CURE_SNAP_BASE : (uint8_t *)effect_ctx - FF8_FX_SNAP_BEFORE;
+	size_t size = (effect_ctx == FF8_CURE_ROOT_CTX) ? FF8_CURE_SNAP_SIZE : FF8_FX_SNAP_SIZE;
 
 	// Only hold the whitelisted magic-cast effect. Anything else (Draw/Stock swirl,
 	// limit/item effects, ...) runs a normal tick - not held, but never crashes. Also
 	// skip if already blacklisted or the window isn't fully committed R/W.
 	if (effect_ctx != ff8_fx_holdable_ctx
 		|| ff8_fx_is_blacklisted(effect_ctx)
-		|| !ff8_fx_window_committed(base, FF8_FX_SNAP_SIZE))
+		|| !ff8_fx_window_committed(base, size))
 	{
 		static void *last_skip = (void *)1;
 		if (effect_ctx != last_skip) { last_skip = effect_ctx; ffnx_info("60fps: gate SKIP effect_ctx=%p holdable=%p\n", effect_ctx, ff8_fx_holdable_ctx); }
@@ -1883,13 +2052,19 @@ int __cdecl ff8_battle_effect_tick_gate(void *effect_ctx)
 	// blacklist the effect so it runs normally from now on, and never crash the game.
 	__try
 	{
-		ff8_fx_hold_once(effect_ctx, base);
+		ff8_fx_hold_once(effect_ctx, base, size);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		ff8_fx_holding = false;
 		ff8_fx_blacklist_add(effect_ctx);
 		ffnx_info("60fps: effect_ctx=%p faulted while held -> blacklisted (runs normal)\n", effect_ctx);
+	}
+
+	if (effect_ctx == FF8_CURE_ROOT_CTX)
+	{
+		ff8_cure_held_phase = (ff8_cure_held_phase % 3) + 1; // 1,2,3
+		ff8_cure_interpolate_rings(ff8_cure_held_phase);
 	}
 	return 1; // effect still running (don't let the caller clear its pointer)
 }
@@ -2144,6 +2319,11 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		ff8_ifrit_build_ri = replace_function(0xB2F590, (void *)ff8_ifrit_build_hook);
 		ff8_ifrit_func1_ri = replace_function(0xB257E0, (void *)ff8_ifrit_func1_hook);
 		(void)ff8_ifrit_draw_hook; (void)ff8_ifrit_draw_orig; (void)ff8_ifrit_draw_ri;
+
+		// Cure: skip the ring's own tick on held frames (see ff8_cure_ring_tick_hook) so
+		// ff8_cure_interpolate_rings() can supply a smooth, closed-form redraw instead.
+		ff8_cure_ring_tick_orig = (int(__cdecl *)(void *))0x8D6D80;
+		ff8_cure_ring_tick_ri = replace_function(0x8D6D80, (void *)ff8_cure_ring_tick_hook);
 
 		// General battle-model animation gate: on 3-of-4 ticks, hold Battle_ReadAnimation
 		// (0x508F90) - skip the delta read + frame advance but still rebuild the geometry via
