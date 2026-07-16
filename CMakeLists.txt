@@ -19,7 +19,7 @@
 #    GNU General Public License for more details.                             #
 #*****************************************************************************#
 
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 3.25) # FFNx-30fps fork: lowered from 4.2 for local VS2022 (CMake 3.31) builds
 cmake_policy(SET CMP0091 NEW)
 
 if(NOT DEFINED CMAKE_BUILD_TYPE)
