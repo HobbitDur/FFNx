@@ -1752,7 +1752,21 @@ int __cdecl ff8_b30_magic_setup_hook_B(int a1)
 
 #define FF8_B30_FX_SNAP_BEFORE 0x2000u
 #define FF8_B30_FX_SNAP_SIZE   0x8000u
-static uint8_t ff8_b30_fx_snapshot[FF8_B30_FX_SNAP_SIZE];
+
+// Cure needs a MUCH bigger, differently-positioned window than the generic guess: its total
+// live footprint (root pool/queue, particleQueue1+pool, emitter queue+pool, particleQueue2
+// (glints)+pool, overlay context, camera-matrix snapshot) spans 0x277AEC0..0x2793E78 (~100KB),
+// more than 3x the generic 0x8000 window - and effect_ctx (rootQueue) sits near the LOW end of
+// that range, not centered in it. With the generic window the entire emitter (the heal-timing
+// state machine), the glint pool and the overlay context fall OUTSIDE it, so they never get
+// reverted and run ungated at full host rate while the director stays correctly paced. That
+// cross-rate desync in the busy_lock completion chain (ring -> emitter -> director) softlocks
+// the end of the animation. Measured + fixed on the 60fps branch (commit 9d39671f); the same
+// latent bug existed here, so the window is ported as-is (addresses are rate-independent).
+#define FF8_B30_CURE_SNAP_BASE ((uint8_t *)0x277AEC0)
+#define FF8_B30_CURE_SNAP_SIZE 0x19000u // rounded up from the measured 0x18FB8
+
+static uint8_t ff8_b30_fx_snapshot[FF8_B30_CURE_SNAP_SIZE > FF8_B30_FX_SNAP_SIZE ? FF8_B30_CURE_SNAP_SIZE : FF8_B30_FX_SNAP_SIZE];
 
 static void *ff8_b30_fx_blacklist[16] = {0};
 static int ff8_b30_fx_blacklist_n = 0;
@@ -1787,20 +1801,241 @@ static bool ff8_b30_fx_window_committed(uint8_t *base, size_t size)
 
 // Held-frame body isolated so the gate stays free of objects needing unwinding
 // (required for the __try guard around it).
-static void ff8_b30_fx_hold_once(void *effect_ctx, uint8_t *base)
+static void ff8_b30_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
 {
-	memcpy(ff8_b30_fx_snapshot, base, FF8_B30_FX_SNAP_SIZE);
+	memcpy(ff8_b30_fx_snapshot, base, size);
 	ff8_b30_fx_holding = true; // suppress SFX/damage numbers during the re-draw
 	ff8_b30_effect_tick_orig(effect_ctx);
 	ff8_b30_fx_holding = false;
-	memcpy(base, ff8_b30_fx_snapshot, FF8_B30_FX_SNAP_SIZE);
+	memcpy(base, ff8_b30_fx_snapshot, size);
 }
+
+// ===== CURE: smooth motion via closed-form position interpolation (port of 60fps 9d39671f) =====
+//
+// Number of host frames per real (15fps-equivalent) battle tick in this build. The 60fps branch
+// runs at 4; everything below is written against this constant so the same reasoning holds here
+// at 2 - the interpolation fractions are (held_phase / FF8_B30_HOLD_N), not hardcoded quarters.
+#define FF8_B30_HOLD_N 2
+
+// MAG_001_CURE_Ring_Tick (0x8D6D80) recomputes the ring's draw position from scratch every call
+// as a pure function of persistent state: step = substep + 4*frame_counter; pos = center;
+// pos.y += step*vel_y; angle = (step<<7)&0xFFF; pos.x/z += radius*sin/cos(angle)/4096.
+// It evaluates that formula for substep = 0..3 per real tick, but only the LAST substep's
+// position survives to be drawn (the other 3 exist only to place spawned sparkles evenly). So
+// the ring's real motion is a uniform helix that the engine only samples once every 4 steps -
+// which is why it visibly steps under a plain frame-hold that just repeats that one sample.
+//
+// The curve has no curvature in step-space, so advancing `step` by a fixed amount per held host
+// frame lands exactly ON the same closed form the game itself computes - not an approximate lerp.
+// The step counter advances 4 per real tick, and we have FF8_B30_HOLD_N host frames to cover it,
+// so each held frame is worth (4 / FF8_B30_HOLD_N) steps: at 60fps (N=4) that's the 60fps
+// branch's +1 per frame; here (N=2) it's +2, i.e. the exact midpoint of the ring's own substep
+// sequence. Discrete state (frame_counter, state_phase, spawns, the heal) is untouched - only
+// the DRAWN pose is smoothed, via a standalone redraw that bypasses Ring_Tick on held frames.
+#define FF8_B30_CURE_ROOT_CTX ((void *)0x277AFC0)              // MAG001_CURE_rootQueue = Cure's effect_ctx
+#define FF8_B30_CURE_RING_QUEUE_HEAD (*(uint8_t **)0x277BF70)  // MAG001_CURE_particleQueue1.head
+#define FF8_B30_CURE_RING_TICK_ADDR ((void *)0x8D6D80)
+#define FF8_B30_CURE_GLOW_SPRITE ((int)0x1642504)              // MAG001_CURE_glowSprite
+#define FF8_B30_CURE_OVERLAY_CTX ((void *)0x278C7E8)           // MAG001_CURE_overlayCtx
+
+// TaskNodeCureParticle field offsets (bytes). The struct/pool is shared by ring, sparkles and
+// motes alike, so these are used for all three.
+#define B30_RING_OFS_NEXT            4
+#define B30_RING_OFS_TASK_FUNC       8
+#define B30_RING_OFS_POS_X          28
+#define B30_RING_OFS_POS_Y          30
+#define B30_RING_OFS_POS_Z          32
+#define B30_RING_OFS_FRAME_COUNTER  36
+#define B30_RING_OFS_STATUS_FLAGS   38
+#define B30_RING_OFS_SPIN_ANGLE     66
+#define B30_RING_OFS_VEL_X          88
+#define B30_RING_OFS_VEL_Y          90
+#define B30_RING_OFS_VEL_Z          92
+#define B30_RING_OFS_CENTER_X       96
+#define B30_RING_OFS_CENTER_Y       98
+#define B30_RING_OFS_CENTER_Z      100
+#define B30_RING_OFS_RING_RADIUS   104
+
+static inline int16_t ff8_b30_cure_rd16(uint8_t *n, int ofs) { return *(int16_t *)(n + ofs); }
+static inline void ff8_b30_cure_wr16(uint8_t *n, int ofs, int16_t v) { *(int16_t *)(n + ofs) = v; }
+
+// held_phase is 1..FF8_B30_HOLD_N-1 (here: always 1, the single held host frame).
+static void ff8_b30_cure_interpolate_rings(int held_phase)
+{
+	typedef void (__cdecl *DrawSprite_t)(void *);
+	typedef void (__cdecl *DrawAdditiveGlow_t)(void *, int, uint32_t *);
+	typedef void *(__cdecl *SetOverlayTexturePage_t)(void *, int16_t *, int16_t, int16_t, int, int16_t, int16_t, int16_t);
+	typedef char (__cdecl *DrawTargetModelWithOverlay_t)(void *);
+	typedef int32_t (__cdecl *ComputeTrig_t)(int32_t);
+	static const DrawSprite_t DrawSprite = (DrawSprite_t)0x8D6F20;
+	static const DrawAdditiveGlow_t DrawAdditiveGlow = (DrawAdditiveGlow_t)0x8D6F90;
+	static const SetOverlayTexturePage_t SetOverlayTexturePage = (SetOverlayTexturePage_t)0x8D7050;
+	static const DrawTargetModelWithOverlay_t DrawTargetModelWithOverlay = (DrawTargetModelWithOverlay_t)0x8D7110;
+	static const ComputeTrig_t computeSin = (ComputeTrig_t)0x56D130;
+	static const ComputeTrig_t computeCosine = (ComputeTrig_t)0x56D100;
+	uint8_t *overlayCtx = (uint8_t *)FF8_B30_CURE_OVERLAY_CTX;
+
+	for (uint8_t *n = FF8_B30_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + B30_RING_OFS_NEXT))
+	{
+		if (*(void **)(n + B30_RING_OFS_TASK_FUNC) != FF8_B30_CURE_RING_TICK_ADDR)
+			continue; // this pool also holds sparkle/mote nodes - only interpolate the ring itself
+
+		int32_t frame_counter = ff8_b30_cure_rd16(n, B30_RING_OFS_FRAME_COUNTER);
+		int32_t vel_y = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_Y);
+		int32_t center_x = ff8_b30_cure_rd16(n, B30_RING_OFS_CENTER_X);
+		int32_t center_y = ff8_b30_cure_rd16(n, B30_RING_OFS_CENTER_Y);
+		int32_t center_z = ff8_b30_cure_rd16(n, B30_RING_OFS_CENTER_Z);
+		int32_t radius = ff8_b30_cure_rd16(n, B30_RING_OFS_RING_RADIUS);
+		uint8_t status_flags = *(n + B30_RING_OFS_STATUS_FLAGS);
+
+		// Exact continuation of the game's own step counter: each held host frame is worth
+		// (4 / FF8_B30_HOLD_N) steps, so the values land on steps the engine's own substep
+		// loop also evaluates - seamless with whatever the next real tick computes.
+		int32_t step = 4 * frame_counter + (4 / FF8_B30_HOLD_N) * held_phase;
+		int16_t new_pos_y = (int16_t)(center_y + step * vel_y);
+		int16_t angle = (int16_t)((step << 7) & 0xFFF);
+		int16_t new_pos_x = (int16_t)(center_x + (radius * computeSin((int32_t)angle)) / 4096);
+		int16_t new_pos_z = (int16_t)(center_z + (radius * computeCosine((int32_t)angle)) / 4096);
+
+		// Save the true (last real-tick) values, substitute the interpolated pose for this
+		// redraw only, then restore - nothing else must ever observe the smoothed values as state.
+		int16_t save_x = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_X);
+		int16_t save_y = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Y);
+		int16_t save_z = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Z);
+		int16_t save_spin = ff8_b30_cure_rd16(n, B30_RING_OFS_SPIN_ANGLE);
+
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, new_pos_x);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, new_pos_y);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, new_pos_z);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_SPIN_ANGLE, angle);
+
+		// Sprite variant / fade / wash-active are discrete state decisions - use the REAL
+		// (un-extrapolated) frame_counter for those, matching Ring_Tick's own thresholds exactly.
+		if (frame_counter >= 20)
+		{
+			DrawSprite(n);
+		}
+		else
+		{
+			uint8_t rgb = (uint8_t)(60 - 3 * frame_counter);
+			uint32_t glow_rgb = rgb | (rgb << 8) | (rgb << 16);
+			DrawSprite(n);
+			DrawAdditiveGlow(n, FF8_B30_CURE_GLOW_SPRITE, &glow_rgb);
+		}
+		// The target is set BATTLE_ENTITY_ENTITY_FLAG_INVISIBLE for Cure's whole duration (see
+		// Ring_State0_Init) and only this call draws it - without it on held frames the
+		// character visibly flickers at the real-tick rate (regression seen on the 60fps branch).
+		if (status_flags & 8)
+		{
+			*(int16_t *)(overlayCtx + 182) = new_pos_y; // overlayCtx->step_vec_y
+			SetOverlayTexturePage(overlayCtx, (int16_t *)(n + B30_RING_OFS_POS_X), 512, 384, 320, 241, 128, 128);
+			DrawTargetModelWithOverlay(overlayCtx);
+		}
+
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, save_x);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, save_y);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, save_z);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_SPIN_ANGLE, save_spin);
+	}
+}
+
+// Skip the ring's own tick entirely during a held-frame replay (no advance, no spawn, no draw -
+// ff8_b30_cure_interpolate_rings() supplies the visual instead), so no rand()-driven spawn or
+// heal side effect ever repeats. The rest of Cure's tree still goes through the generic hold.
+static int (__cdecl *ff8_b30_cure_ring_tick_orig)(void *) = nullptr;
+static uint32_t ff8_b30_cure_ring_tick_ri = 0;
+
+int __cdecl ff8_b30_cure_ring_tick_hook(void *ring)
+{
+	if (ff8_b30_fx_holding)
+		return 0;
+	unreplace_function(ff8_b30_cure_ring_tick_ri);
+	int r = ff8_b30_cure_ring_tick_orig(ring);
+	rereplace_function(ff8_b30_cure_ring_tick_ri);
+	return r;
+}
+
+// ===== CURE: sparkles and motes, same idea, one degree simpler (port of 60fps e0a1c0cd) =====
+//
+// Sparkle_Tick / Mote_Tick pick a random CONSTANT velocity once at spawn and then just do
+// `pos += vel` every real tick - no acceleration, and no built-in x4 substep counter (a single
+// per-tick increment). Both die on the same real tick they finish, so a dead node is never seen
+// stale by the walk below. Held-frame position is therefore a plain linear interpolation:
+// pos_after_last_real_tick + vel * held_phase / FF8_B30_HOLD_N (here: half a step). Integer
+// division rounds by at most 1 unit - invisible on a fast-moving, tiny billboard.
+//
+// Glints deliberately left untouched (as on the 60fps branch): Effect_Glint_Tick draws its GPU
+// packets inline, with no separable draw call to reuse. They are correctly paced (in-window
+// thanks to the Cure snapshot fix above), just not smoothed.
+#define FF8_B30_CURE_SPARKLE_TICK_ADDR ((void *)0x8D80B0)
+#define FF8_B30_CURE_MOTE_TICK_ADDR    ((void *)0x8D7F60)
+
+static void ff8_b30_cure_interpolate_sparkles_motes(int held_phase)
+{
+	typedef void (__cdecl *DrawSprite_t)(void *);
+	static const DrawSprite_t DrawSprite = (DrawSprite_t)0x8D6F20;
+
+	for (uint8_t *n = FF8_B30_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + B30_RING_OFS_NEXT))
+	{
+		void *task_func = *(void **)(n + B30_RING_OFS_TASK_FUNC);
+		if (task_func != FF8_B30_CURE_SPARKLE_TICK_ADDR && task_func != FF8_B30_CURE_MOTE_TICK_ADDR)
+			continue;
+
+		int32_t vel_x = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_X);
+		int32_t vel_y = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_Y);
+		int32_t vel_z = ff8_b30_cure_rd16(n, B30_RING_OFS_VEL_Z);
+		int16_t save_x = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_X);
+		int16_t save_y = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Y);
+		int16_t save_z = ff8_b30_cure_rd16(n, B30_RING_OFS_POS_Z);
+
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, (int16_t)(save_x + (vel_x * held_phase) / FF8_B30_HOLD_N));
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, (int16_t)(save_y + (vel_y * held_phase) / FF8_B30_HOLD_N));
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, (int16_t)(save_z + (vel_z * held_phase) / FF8_B30_HOLD_N));
+
+		DrawSprite(n);
+
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_X, save_x);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Y, save_y);
+		ff8_b30_cure_wr16(n, B30_RING_OFS_POS_Z, save_z);
+	}
+}
+
+// Same carve-out as the ring: skip entirely during a held-frame replay.
+static int (__cdecl *ff8_b30_cure_sparkle_tick_orig)(void *) = nullptr;
+static uint32_t ff8_b30_cure_sparkle_tick_ri = 0;
+
+int __cdecl ff8_b30_cure_sparkle_tick_hook(void *sparkle)
+{
+	if (ff8_b30_fx_holding)
+		return 0;
+	unreplace_function(ff8_b30_cure_sparkle_tick_ri);
+	int r = ff8_b30_cure_sparkle_tick_orig(sparkle);
+	rereplace_function(ff8_b30_cure_sparkle_tick_ri);
+	return r;
+}
+
+static int (__cdecl *ff8_b30_cure_mote_tick_orig)(void *) = nullptr;
+static uint32_t ff8_b30_cure_mote_tick_ri = 0;
+
+int __cdecl ff8_b30_cure_mote_tick_hook(void *mote)
+{
+	if (ff8_b30_fx_holding)
+		return 0;
+	unreplace_function(ff8_b30_cure_mote_tick_ri);
+	int r = ff8_b30_cure_mote_tick_orig(mote);
+	rereplace_function(ff8_b30_cure_mote_tick_ri);
+	return r;
+}
+
+static int ff8_b30_cure_held_phase = 0; // 0 right after a real tick; cycles 1..FF8_B30_HOLD_N-1
 
 int __cdecl ff8_b30_effect_tick_gate(void *effect_ctx)
 {
 	static uint32_t frame = 0;
 	if ((frame++ & 1) == 0)
 	{
+		if (effect_ctx == FF8_B30_CURE_ROOT_CTX)
+			ff8_b30_cure_held_phase = 0; // resync at the start of every real-tick window
 		// Real frame: advance + draw (+ SFX) normally.
 		int r = ff8_b30_effect_tick_orig(effect_ctx);
 		if (r == 0 && effect_ctx == ff8_b30_fx_holdable_ctx)
@@ -1808,18 +2043,22 @@ int __cdecl ff8_b30_effect_tick_gate(void *effect_ctx)
 		return r;
 	}
 
-	uint8_t *base = (uint8_t *)effect_ctx - FF8_B30_FX_SNAP_BEFORE;
+	// Cure needs its own much bigger, differently-positioned window (see FF8_B30_CURE_SNAP_BASE):
+	// its effect_ctx (rootQueue) sits near the LOW end of its real footprint, not centered on it
+	// like the generic effect_ctx-0x2000 guess assumes.
+	uint8_t *base = (effect_ctx == FF8_B30_CURE_ROOT_CTX) ? FF8_B30_CURE_SNAP_BASE : (uint8_t *)effect_ctx - FF8_B30_FX_SNAP_BEFORE;
+	size_t size = (effect_ctx == FF8_B30_CURE_ROOT_CTX) ? FF8_B30_CURE_SNAP_SIZE : FF8_B30_FX_SNAP_SIZE;
 
 	if (effect_ctx != ff8_b30_fx_holdable_ctx
 		|| ff8_b30_fx_is_blacklisted(effect_ctx)
-		|| !ff8_b30_fx_window_committed(base, FF8_B30_FX_SNAP_SIZE))
+		|| !ff8_b30_fx_window_committed(base, size))
 	{
 		return ff8_b30_effect_tick_orig(effect_ctx);
 	}
 
 	__try
 	{
-		ff8_b30_fx_hold_once(effect_ctx, base);
+		ff8_b30_fx_hold_once(effect_ctx, base, size);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
@@ -1827,7 +2066,117 @@ int __cdecl ff8_b30_effect_tick_gate(void *effect_ctx)
 		ff8_b30_fx_blacklist_add(effect_ctx);
 		ffnx_info("30fps: effect_ctx=%p faulted while held -> blacklisted (runs normal)\n", effect_ctx);
 	}
+
+	if (effect_ctx == FF8_B30_CURE_ROOT_CTX)
+	{
+		ff8_b30_cure_held_phase = (ff8_b30_cure_held_phase % (FF8_B30_HOLD_N - 1)) + 1;
+		ff8_b30_cure_interpolate_rings(ff8_b30_cure_held_phase);
+		ff8_b30_cure_interpolate_sparkles_motes(ff8_b30_cure_held_phase);
+	}
 	return 1; // effect still running (don't let the caller clear its pointer)
+}
+
+// ===== GF Ifrit summon effect (port of 60fps 03445b2b, gated 1-in-2) =====
+// The Ifrit creature pose is built each frame by GF_Ifrit_BuildPoseMatrices (0xB2F590) into the
+// matrix table the draw reads, driven by a rotation-vector stream and the sequence counter at
+// state+50. All of it advances once per battle tick -> 2x too fast at 30fps. Gate the ADVANCE
+// (neg/integrator/pos + BuildPoseMatrices + the state+50 counter) 1-in-2 while the draw keeps
+// running every tick, so the held pose is redrawn rather than skipped (no flicker).
+//
+// NOTE (inherited from the 60fps branch): this correctly slows the fire/energy EFFECTS around
+// Ifrit, but the creature BODY is driven by a separate driver that is still ungated there, so
+// it stays 2x fast here too. That POC is unfinished upstream; ported as-is for parity.
+#define FF8_B30_IFRIT_STATE (*(uint32_t *)0x27973EC) // ptr to the active GF sequence state
+
+static uint32_t (__cdecl *ff8_b30_ifrit_seq_orig)() = nullptr;
+static void     (__cdecl *ff8_b30_ifrit_neg_orig)() = nullptr;
+static int      (__cdecl *ff8_b30_ifrit_int_orig)() = nullptr;
+static void     (__cdecl *ff8_b30_ifrit_pos_orig)() = nullptr;
+static int      (__cdecl *ff8_b30_ifrit_build_orig)() = nullptr;
+static int      (__cdecl *ff8_b30_ifrit_func1_orig)(int) = nullptr;
+static uint32_t ff8_b30_ifrit_seq_ri, ff8_b30_ifrit_neg_ri, ff8_b30_ifrit_int_ri;
+static uint32_t ff8_b30_ifrit_pos_ri, ff8_b30_ifrit_build_ri, ff8_b30_ifrit_func1_ri;
+
+static uint32_t ff8_b30_ifrit_counter = 0;
+static int ff8_b30_ifrit_phase = 0;
+static bool ff8_b30_ifrit_active = false;
+static uint16_t ff8_b30_ifrit_held50 = 0;
+static bool ff8_b30_ifrit_held_init = false;
+
+// The creature advance is the block Neg()+Integrator()+Pos() inside the Ifrit sequence driver;
+// the draw always runs and redraws the held pose. Gating all three together 1-in-2 = native speed.
+void __cdecl ff8_b30_ifrit_neg_hook()
+{
+	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+		return; // advance only on phase 0
+	unreplace_function(ff8_b30_ifrit_neg_ri);
+	ff8_b30_ifrit_neg_orig();
+	rereplace_function(ff8_b30_ifrit_neg_ri);
+}
+
+int __cdecl ff8_b30_ifrit_int_hook()
+{
+	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+		return 0;
+	unreplace_function(ff8_b30_ifrit_int_ri);
+	int r = ff8_b30_ifrit_int_orig();
+	rereplace_function(ff8_b30_ifrit_int_ri);
+	return r;
+}
+
+void __cdecl ff8_b30_ifrit_pos_hook()
+{
+	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+		return;
+	unreplace_function(ff8_b30_ifrit_pos_ri);
+	ff8_b30_ifrit_pos_orig();
+	rereplace_function(ff8_b30_ifrit_pos_ri);
+}
+
+// BuildPoseMatrices: skip on held frames -> the pose matrices retain the phase-0 values, so the
+// creature holds at native speed regardless of what drives its inputs.
+int __cdecl ff8_b30_ifrit_build_hook()
+{
+	if (ff8_b30_ifrit_active && ff8_b30_ifrit_phase != 0)
+		return 0;
+	unreplace_function(ff8_b30_ifrit_build_ri);
+	int r = ff8_b30_ifrit_build_orig();
+	rereplace_function(ff8_b30_ifrit_build_ri);
+	return r;
+}
+
+// Gate the master tick counter state+50 (the pose frame index): let it advance on phase 0, and
+// on held ticks force it back to the phase-0 value (the original re-increments it at its top,
+// so pre-set held-1). Reset per summon via the func1 hook below.
+uint32_t __cdecl ff8_b30_ifrit_seq_hook()
+{
+	uint32_t s = FF8_B30_IFRIT_STATE;
+	bool svalid = (s >= 0x10000u && s < 0x7F000000u);
+	ff8_b30_ifrit_phase = (ff8_b30_ifrit_counter++) & 1;
+	ff8_b30_ifrit_active = true;
+	if (svalid && ff8_b30_ifrit_held_init && ff8_b30_ifrit_phase != 0)
+		*(uint16_t *)(s + 50) = ff8_b30_ifrit_held50 - 1; // orig's ++ -> held50 (re-use phase-0 frame)
+	unreplace_function(ff8_b30_ifrit_seq_ri);
+	uint32_t r = ff8_b30_ifrit_seq_orig();
+	rereplace_function(ff8_b30_ifrit_seq_ri);
+	if (svalid && (ff8_b30_ifrit_phase == 0 || !ff8_b30_ifrit_held_init))
+	{
+		ff8_b30_ifrit_held50 = *(uint16_t *)(s + 50); // capture the freshly-advanced frame index
+		ff8_b30_ifrit_held_init = true;
+	}
+	ff8_b30_ifrit_active = false;
+	return r;
+}
+
+// GF_Ifrit_func1 (0xB257E0) runs once at summon setup -> reset the phase/frame gate.
+int __cdecl ff8_b30_ifrit_func1_hook(int a1)
+{
+	ff8_b30_ifrit_counter = 0;
+	ff8_b30_ifrit_held_init = false;
+	unreplace_function(ff8_b30_ifrit_func1_ri);
+	int r = ff8_b30_ifrit_func1_orig(a1);
+	rereplace_function(ff8_b30_ifrit_func1_ri);
+	return r;
 }
 
 // --- status-effect timers (regen/doom/petrify/shell/protect/reflect) ---
@@ -1885,12 +2234,35 @@ static void ff8_b30_install_hooks()
 	ff8_b30_setup_ri_B = replace_function(0x50B190, (void *)ff8_b30_magic_setup_hook_B);
 	ff8_b30_damagenum_ri = replace_function(0x5068B0, (void *)ff8_b30_DamageNumbers_Spawn_hook);
 
+	// Cure: skip the ring/sparkle/mote ticks on held frames so the interpolation helpers can
+	// supply a smooth, closed-form redraw instead (see ff8_b30_cure_interpolate_rings).
+	ff8_b30_cure_ring_tick_orig = (int(__cdecl *)(void *))0x8D6D80;
+	ff8_b30_cure_ring_tick_ri = replace_function(0x8D6D80, (void *)ff8_b30_cure_ring_tick_hook);
+	ff8_b30_cure_sparkle_tick_orig = (int(__cdecl *)(void *))0x8D80B0;
+	ff8_b30_cure_sparkle_tick_ri = replace_function(0x8D80B0, (void *)ff8_b30_cure_sparkle_tick_hook);
+	ff8_b30_cure_mote_tick_orig = (int(__cdecl *)(void *))0x8D7F60;
+	ff8_b30_cure_mote_tick_ri = replace_function(0x8D7F60, (void *)ff8_b30_cure_mote_tick_hook);
+
+	// GF Ifrit summon: gate the procedural effect advance 1-in-2 (draw still runs every tick).
+	ff8_b30_ifrit_seq_orig = (uint32_t(__cdecl *)())0xB25DF0;
+	ff8_b30_ifrit_neg_orig = (void(__cdecl *)())0xB2FCF0;
+	ff8_b30_ifrit_int_orig = (int(__cdecl *)())0xB26110;
+	ff8_b30_ifrit_pos_orig = (void(__cdecl *)())0xB30110;
+	ff8_b30_ifrit_build_orig = (int(__cdecl *)())0xB2F590;
+	ff8_b30_ifrit_func1_orig = (int(__cdecl *)(int))0xB257E0;
+	ff8_b30_ifrit_seq_ri = replace_function(0xB25DF0, (void *)ff8_b30_ifrit_seq_hook);
+	ff8_b30_ifrit_neg_ri = replace_function(0xB2FCF0, (void *)ff8_b30_ifrit_neg_hook);
+	ff8_b30_ifrit_int_ri = replace_function(0xB26110, (void *)ff8_b30_ifrit_int_hook);
+	ff8_b30_ifrit_pos_ri = replace_function(0xB30110, (void *)ff8_b30_ifrit_pos_hook);
+	ff8_b30_ifrit_build_ri = replace_function(0xB2F590, (void *)ff8_b30_ifrit_build_hook);
+	ff8_b30_ifrit_func1_ri = replace_function(0xB257E0, (void *)ff8_b30_ifrit_func1_hook);
+
 	// Status-effect timers: disabled pending crash isolation (see comment above)
 	// ff8_b30_timerstatus_orig = (void(__cdecl *)())0x483470;
 	// ff8_b30_timerstatus_ri = replace_function(0x483470, (void *)ff8_b30_timerstatus_hook);
 	(void)&ff8_b30_timerstatus_hook; (void)ff8_b30_timerstatus_orig; (void)ff8_b30_timerstatus_ri;
 
-	ffnx_info("30fps battle: gates installed (UI ticks 2/frame, anim+camera+effects 1-in-2, input 30Hz)\n");
+	ffnx_info("30fps battle: gates installed (UI ticks 2/frame, anim+camera+effects+Ifrit 1-in-2, Cure interpolated, input 30Hz)\n");
 }
 
 void* ff8_engine_set_wide_viewport(int x, int y, int w, int h)
