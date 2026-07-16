@@ -1861,6 +1861,33 @@ int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 	return r;
 }
 
+// --- run-up movement task (AnimSeq opcode 9E): native duration, host-rate smooth ---
+// moveEntityToTargetSmoothly (0x50F750) is a time-parameterized lerp: one counter++ per
+// task tick, position = origin + (counter/movement_param) * (target - origin), done when
+// counter reaches movement_param. AnimSeq task queues tick every HOST frame, so at n x
+// call rate the lerp finished in 1/n of the intended wall time: the entity arrived early
+// and stood waiting for the (correctly native-paced) choreography - one visible hitch at
+// the end of each run segment, both toward the target and back. Scaling movement_param
+// by n at task creation restores the intended duration with n x finer steps; the curve
+// is a pure ratio (counter << 12) / movement_param, so it passes through exactly the
+// same positions the native pacing would, plus genuine in-between ones every host frame.
+static void *(__cdecl *ff8_bgate_anim9e_orig)(void *, void *, int) = nullptr;
+static uint32_t ff8_bgate_anim9e_ri = 0;
+
+void *__cdecl ff8_bgate_anim9e_hook(void *active_entity, void *param_entity, int movement_param)
+{
+	unreplace_function(ff8_bgate_anim9e_ri);
+	void *task = ff8_bgate_anim9e_orig(active_entity, param_entity, movement_param);
+	rereplace_function(ff8_bgate_anim9e_ri);
+	if (task)
+	{
+		uint16_t *param = (uint16_t *)((uint8_t *)task + 0x14); // TaskNodeAnimSeq_9E.movement_param
+		if (*param > 0)
+			*param = (uint16_t)(*param * ff8_bgate_n);
+	}
+	return task;
+}
+
 // --- magic/GF effect frame-hold (port of the 60fps branch machinery, 1-in-2) ---
 // The battle effect tick (call @0x50093A -> ExecuteTaskQueue(C3_28_GF_data_pointer))
 // advances AND draws the active spell effect. Skipping it outright flickers, so on
@@ -2412,6 +2439,9 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_readanim_ri = replace_function(0x508F90, (void *)ff8_bgate_readanim_hook);
 	ff8_bgate_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
 	ff8_bgate_animseq_upd_ri = replace_function(0x504290, (void *)ff8_bgate_animseq_upd_hook);
+	// run-up movement task duration x n (ticks at host rate -> native wall time, smooth)
+	ff8_bgate_anim9e_orig = (void *(__cdecl *)(void *, void *, int))0x50F720;
+	ff8_bgate_anim9e_ri = replace_function(0x50F720, (void *)ff8_bgate_anim9e_hook);
 
 	// Battle camera: the keyframe player advances CurrentAnimationTime += 16 per tick (imm8
 	// @0x503A80) and is not gated, so scale the step to 16/n -> native speed AND smooth at the
