@@ -1763,6 +1763,17 @@ int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 	// paces it, so interfering here would only desync the replay from the real frames.
 	if (!ff8_bgate_fx_holding)
 	{
+		// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the
+		// double-buffered geometry. Vanilla never shows that - its VM runs every tick and
+		// requeues the loop in the same call - but with the VM gated to real frames a
+		// completion surfacing on a held frame leaves the entity's geometry stale for one
+		// frame -> 1-frame flicker once per animation loop (SLOW loops are 2T-1 calls, odd,
+		// so the completion parity keeps landing on held frames). Rebuild before returning.
+		if (*((uint8_t *)anim_cmd + 6) >= *((uint8_t *)anim_cmd + 7))
+		{
+			((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+			return 1; // READ_ANIMATION_RETURN_ANIMATION_COMPLETE (same as the early-out)
+		}
 		int div = ff8_bgate_anim_policy_get(anim_cmd);
 		// frame 0 is the absolute base pose read right after the bones were zeroed - never
 		// hold it, or the model shows a T-pose for a frame.
