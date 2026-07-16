@@ -1888,7 +1888,7 @@ static void ff8_b30_install_hooks()
 	// Status-effect timers: disabled pending crash isolation (see comment above)
 	// ff8_b30_timerstatus_orig = (void(__cdecl *)())0x483470;
 	// ff8_b30_timerstatus_ri = replace_function(0x483470, (void *)ff8_b30_timerstatus_hook);
-	(void)ff8_b30_timerstatus_hook; (void)ff8_b30_timerstatus_orig; (void)ff8_b30_timerstatus_ri;
+	(void)&ff8_b30_timerstatus_hook; (void)ff8_b30_timerstatus_orig; (void)ff8_b30_timerstatus_ri;
 
 	ffnx_info("30fps battle: gates installed (UI ticks 2/frame, anim+camera+effects 1-in-2, input 30Hz)\n");
 }
