@@ -19,6 +19,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
+#include <intrin.h>
 #include "globals.h"
 #include "common.h"
 #include "ff8.h"
@@ -1563,10 +1564,16 @@ int ff8_limit_fps()
 //   - battle model animation + AnimSeq choreography VM: advance 1-in-n, geometry
 //     still rebuilt every tick (no double-buffer flicker).
 //   - battle camera: keyframe time step 16 -> 16/n per tick (imm8 @0x503A80).
-//   - magic/GF spell effects: frame-hold 1-in-n via state snapshot/restore (effect
-//     draws every frame, advances every n), SFX/damage-number re-triggers suppressed
-//     on held frames, whitelist = magic cast (cmd 0x02), blacklist + SEH guard.
-//   - Cure and the Ifrit summon get finer treatment - see their own blocks below.
+//   - magic/GF/limit/Draw effects: the effect tree ticks only on real frames (native
+//     pace, nothing rewound or run twice); its draws are read from the SSIGPU arena and
+//     redrawn on held frames, extrapolated per vertex from the last two ticks (identity
+//     pairing + median vertex welding) - smooth for every effect, no per-spell code.
+//   - entity animations: engine-native SLOW half-step reading forced at animation start;
+//     animations still read 1-in-n (real Slow, stage models) get extrapolated poses.
+//   - hit-effect task queue: same record/replay as effects; camera shake held.
+//   - AnimSeq-spawned tasks (84/9F/99/B1/96 skipped, AD/AE/81/A6 counters native).
+//   - status timers + Gilgamesh/Angelo countdown + end fade: real frames only.
+//   - all per-battle state is reset at the start of each battle.
 //
 // (All addresses are FF8 2000 US/EN 1.2 specific, same as the 60fps branch.)
 //
@@ -1584,7 +1591,12 @@ static uint32_t ff8_bgate_frame_no = 0; // host battle frames (bumped in the BdL
 // Held-frame draw mode, cycled with F9 during battle (test builds): 0 = plain replay of tick N
 // (no interpolation), 1 = vertices extrapolated, 2 = vertices + vertex colors extrapolated
 static int ff8_bgate_fx_mode = 2;
-static bool ff8_bgate_fx_log_stats = true; // one FFNx.log line per held frame while an effect runs
+static bool ff8_bgate_fx_log_stats = false; // true = one FFNx.log line per held frame (verbose)
+// Per-effect totals, logged once when the effect finishes (one line per spell/GF cast)
+struct ff8_bgate_fx_sum_t
+{
+	uint32_t ticks, held, interp_held, prims, match, far_, nosig, unparsed, welded, orphans, maxcol;
+};
 
 // TEMPORARY run-lag diagnostics: per-frame trace of party slots + AnimSeq events.
 // Remove once the end-of-run hitch is understood.
@@ -1627,6 +1639,34 @@ static int (__cdecl *ff8_bgate_bdlink_orig)() = nullptr;
 static uint32_t ff8_bgate_bdlink_ri = 0;
 
 static void ff8_bgate_battle_reset();
+static void ff8_bgate_move_restore_all();
+static void ff8_bgate_cam_restore();
+
+// TEMP diagnostics (camera stuck after an effect): one line whenever the battle camera
+// controller state changes. CURRENT_CAMERA_ANIMATION 0x1D97728, CAMERA_FLAG_RELATED
+// 0x1D97704, cameraRelated_pointerAnimColl_flag/_2 0x1D97718/0x1D9771A,
+// battle_to_update_flags 0x1D96A9C (bit 0x10 = magic effect owns the camera),
+// C3_28_GF_data_pointer 0x1D96AAC (effect running).
+static void ff8_bgate_camera_state_log()
+{
+	static uint32_t last[7] = {0xFFFFFFFF, 0, 0, 0, 0, 0, 0};
+	static int32_t last_eye[3] = {0, 0, 0};
+	uint32_t now[7] = {
+		(uint32_t)*(uint16_t *)0x1D97728, (uint32_t)*(uint16_t *)0x1D97704,
+		(uint32_t)*(uint8_t *)0x1D97718, (uint32_t)*(uint8_t *)0x1D9771A,
+		*(uint32_t *)0x1D96A9C & 0x1F, (uint32_t)(*(uint32_t *)0x1D96AAC != 0),
+		(uint32_t)*(uint16_t *)0x1D9771E }; // Battle_Camera_ReturnViewBlend
+	int32_t eye[3] = { *(int16_t *)0xB8B7F0, *(int32_t *)0xB8B7F4, *(int16_t *)0xB8B7F2 };
+	bool moved = abs(eye[0] - last_eye[0]) + abs(eye[1] - last_eye[1]) + abs(eye[2] - last_eye[2]) > 1500;
+	if (memcmp(now, last, sizeof(now)) == 0 && !moved) return;
+	memcpy(last, now, sizeof(now));
+	memcpy(last_eye, eye, sizeof(eye));
+	ffnx_info("30fps cam: f=%u ph=%d cur_anim=%04X cam_flag=%04X shot=%u coll2=%u upd_flags=%02X effect=%u retblend=%u eye=%d,%d,%d ret=%d,%d,%d%s\n",
+		ff8_bgate_frame_no, ff8_bgate_phase, now[0], now[1], now[2], now[3], now[4], now[5], now[6],
+		eye[0], eye[1], eye[2],
+		(int)*(int16_t *)0xB8B800, (int)*(int32_t *)0xB8B804, (int)*(int16_t *)0xB8B802,
+		moved ? " (moved)" : "");
+}
 
 int __cdecl ff8_bgate_bdlink_hook()
 {
@@ -1651,9 +1691,19 @@ int __cdecl ff8_bgate_bdlink_hook()
 #if FF8_BGATE_DIAG
 	ff8_bgate_diag_frame++;
 #endif
+	if (ff8_bgate_phase == 0)
+	{
+		ff8_bgate_move_restore_all();
+		ff8_bgate_cam_restore();
+	}
 	unreplace_function(ff8_bgate_bdlink_ri);
 	int r = ff8_bgate_bdlink_orig();
 	rereplace_function(ff8_bgate_bdlink_ri);
+	ff8_bgate_camera_state_log();
+	// NOTE: FADE_OUT_END_BATTLE_DURATION (0x1D27B0C) is decremented once per battleLoop
+	// iteration (2x at 30fps), but compensating it alone desynced it from the VISUAL fade-out
+	// (still host-rate): the screen went black, came back, then the battle unloaded. Left at
+	// 2x until the visual fade driver is paced together with it.
 #if FF8_BGATE_DIAG
 	{
 		// final camera position after updateBattleCamera ran (world XZ packed s16 pair + Y),
@@ -1934,6 +1984,141 @@ static int ff8_bgate_readanim_guarded(void *header, void *anim_cmd)
 	}
 }
 
+static inline int ff8_bgate_scale_round(int v, int num, int den);
+
+// --- held-frame pose extrapolation for animations read 1-in-div (real Slow status,
+// stage models, any anim_cmd with a hold divisor) ---
+// A pose is the skeleton section of the model (ComFileSectionSkeleton, reached through
+// BattleAnimHeader->comFileData->[0]): root position int16 x/y/z at +8/+10/+12, then
+// nbBones (+0) bones of 48 bytes from +16 with rotX/Y/Z at +4/+6/+8 (4096 = full turn)
+// and, when per_bone_scale_flag (+1) is set, scaleX/Y/Z at +10/+12/+14.
+// ProcessFieldEntitiesTransformation (0x508C90) turns that pose into the bone matrices.
+// After every real read the pose is recorded (prev/cur); a held frame writes
+// cur + (cur - prev) * k/div into the skeleton (rotations the short way round), builds
+// the matrices from it, then puts cur back - the stream reader works in deltas on top of
+// the skeleton, so the next real read must find the exact real pose again.
+#define FF8_BGATE_POSE_BONES 64
+#define FF8_BGATE_POSE_SLOTS 64
+struct ff8_bgate_pose_t
+{
+	int16_t root[3];
+	int16_t v[FF8_BGATE_POSE_BONES][6]; // rot x/y/z, scale x/y/z
+};
+struct ff8_bgate_pose_hist_t
+{
+	void *cmd;
+	uint8_t anim_id, frame; // anim id / current frame at the time of the cur capture
+	uint32_t cur_at, prev_at; // host frame numbers of the captures
+	bool prev_ok;
+	int nb;
+	bool scaled;
+	ff8_bgate_pose_t prev, cur;
+};
+static ff8_bgate_pose_hist_t ff8_bgate_pose_hist[FF8_BGATE_POSE_SLOTS];
+
+static uint8_t *ff8_bgate_skeleton(void *header)
+{
+	uint8_t *com = *(uint8_t **)((uint8_t *)header + 4); // BattleAnimHeader.comFileData
+	return com ? *(uint8_t **)com : nullptr;            // -> comFileSkeletonSection1
+}
+
+static void ff8_bgate_pose_read(const uint8_t *sk, int nb, bool scaled, ff8_bgate_pose_t &p)
+{
+	memcpy(p.root, sk + 8, 6);
+	for (int b = 0; b < nb; b++)
+	{
+		const uint8_t *bone = sk + 16 + 48 * b;
+		memcpy(p.v[b], bone + 4, scaled ? 12 : 6);
+	}
+}
+
+static void ff8_bgate_pose_write(uint8_t *sk, int nb, bool scaled, const ff8_bgate_pose_t &p)
+{
+	memcpy(sk + 8, p.root, 6);
+	for (int b = 0; b < nb; b++)
+	{
+		uint8_t *bone = sk + 16 + 48 * b;
+		memcpy(bone + 4, p.v[b], scaled ? 12 : 6);
+	}
+}
+
+static ff8_bgate_pose_hist_t *ff8_bgate_pose_slot(void *cmd, bool create)
+{
+	ff8_bgate_pose_hist_t *free_slot = nullptr;
+	for (int i = 0; i < FF8_BGATE_POSE_SLOTS; i++)
+	{
+		if (ff8_bgate_pose_hist[i].cmd == cmd) return &ff8_bgate_pose_hist[i];
+		if (!ff8_bgate_pose_hist[i].cmd && !free_slot) free_slot = &ff8_bgate_pose_hist[i];
+	}
+	if (!create || !free_slot) return nullptr;
+	memset(free_slot, 0, sizeof(*free_slot));
+	free_slot->cmd = cmd;
+	return free_slot;
+}
+
+// after a REAL read of a held (div > 1) animation
+static void ff8_bgate_pose_capture(void *header, void *anim_cmd)
+{
+	uint8_t *sk = ff8_bgate_skeleton(header);
+	if (!sk || sk[0] == 0 || sk[0] > FF8_BGATE_POSE_BONES) return;
+	ff8_bgate_pose_hist_t *h = ff8_bgate_pose_slot(anim_cmd, true);
+	if (!h) return;
+	uint8_t id = ((uint8_t *)anim_cmd)[0], frame = ((uint8_t *)anim_cmd)[6];
+	int nb = sk[0];
+	bool scaled = (sk[1] & 1) != 0;
+	// a new animation, a restart or a different model: nothing to extrapolate from yet
+	bool continues = h->cur_at != 0 && h->anim_id == id && frame > h->frame && h->nb == nb && h->scaled == scaled;
+	if (continues)
+	{
+		h->prev = h->cur;
+		h->prev_at = h->cur_at;
+	}
+	h->prev_ok = continues;
+	h->nb = nb;
+	h->scaled = scaled;
+	h->anim_id = id;
+	h->frame = frame;
+	h->cur_at = ff8_bgate_frame_no;
+	ff8_bgate_pose_read(sk, nb, scaled, h->cur);
+}
+
+static inline int16_t ff8_bgate_extrap_angle(int16_t c, int16_t p, int k, int div)
+{
+	int d = ((c - p + 2048) & 4095) - 2048; // shortest way round
+	return (int16_t)(c + ff8_bgate_scale_round(d, k, div));
+}
+
+// on a HELD frame (k = position inside the hold window, 1..div-1): build the bone
+// matrices from the extrapolated pose, then restore the real one
+static void ff8_bgate_pose_held(void *header, void *anim_cmd, int k, int div)
+{
+	uint8_t *sk = ff8_bgate_skeleton(header);
+	ff8_bgate_pose_hist_t *h = sk ? ff8_bgate_pose_slot(anim_cmd, false) : nullptr;
+	bool ok = h && h->prev_ok && h->nb == sk[0] && h->scaled == ((sk[1] & 1) != 0)
+		&& h->anim_id == ((uint8_t *)anim_cmd)[0]
+		&& ff8_bgate_frame_no - h->cur_at < (uint32_t)div        // cur is this window's read
+		&& h->cur_at - h->prev_at == (uint32_t)div;             // prev is the one before it
+	if (!ok)
+	{
+		((void(__cdecl *)(void *))0x508C90)(header); // no history: plain hold
+		return;
+	}
+	static ff8_bgate_pose_t x;
+	for (int a = 0; a < 3; a++)
+		x.root[a] = (int16_t)(h->cur.root[a] + ff8_bgate_scale_round(h->cur.root[a] - h->prev.root[a], k, div));
+	for (int b = 0; b < h->nb; b++)
+	{
+		for (int a = 0; a < 3; a++)
+			x.v[b][a] = ff8_bgate_extrap_angle(h->cur.v[b][a], h->prev.v[b][a], k, div);
+		if (h->scaled)
+			for (int a = 3; a < 6; a++)
+				x.v[b][a] = (int16_t)(h->cur.v[b][a] + ff8_bgate_scale_round(h->cur.v[b][a] - h->prev.v[b][a], k, div));
+	}
+	ff8_bgate_pose_write(sk, h->nb, h->scaled, x);
+	((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+	ff8_bgate_pose_write(sk, h->nb, h->scaled, h->cur);
+}
+
 int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 {
 	// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the
@@ -1954,12 +2139,15 @@ int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 	// hold it, or the model shows a T-pose for a frame.
 	if (div > 1 && *((uint8_t *)anim_cmd + 6) != 0 && (ff8_bgate_phase % div) != 0)
 	{
-		((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+		// held: show the in-between pose instead of repeating the last one
+		ff8_bgate_pose_held(header, anim_cmd, ff8_bgate_phase % div, div);
 		return 0; // "frame processed, not complete" -> animation continues
 	}
 	unreplace_function(ff8_bgate_readanim_ri);
 	int r = ff8_bgate_readanim_guarded(header, anim_cmd);
 	rereplace_function(ff8_bgate_readanim_ri);
+	if (div > 1)
+		ff8_bgate_pose_capture(header, anim_cmd);
 	return r;
 }
 
@@ -2002,6 +2190,122 @@ static ff8_bgate_done_cache_t *ff8_bgate_done_cache_get(void *slot)
 
 static int (__cdecl *ff8_bgate_animseq_upd_orig)(void *) = nullptr;
 static uint32_t ff8_bgate_animseq_upd_ri = 0;
+
+// --- held-frame extrapolation of SCRIPT-DRIVEN entity movement ---
+// Choreography scripts that move an entity themselves (flying approaches, jumps, lunges:
+// E5 0D/0E/0F write the state position offset from frame-count formulas) change it only
+// when the VM runs - on real frames - so the body moved in 15 steps/s next to 30fps limbs
+// ("teleporting" Bite Bugs). On held frames the rendered position is nudged forward by
+// half the last real step, and the true value is put back at the start of the next real
+// frame, before any logic reads it.
+// Two lessons from the 16/07 attempt (which extrapolated based_position blindly):
+//  - root motion is folded into based_position once per animation loop - a one-off spike
+//    that is NOT movement: only STEADY motion is extrapolated (the last two real steps must
+//    agree), so a lone handover spike never qualifies;
+//  - some movement already runs every host frame (9E run-up task): if the position changed
+//    since the last real update, something else is animating it smoothly - hands off.
+// Positions handled: FF8BattleEntitySlotData.based_position (+0x1C, int16 z/y/x) and the
+// state controller's position offset (*(slot+0x74) + 0x24, int16 x3).
+#define FF8_BGATE_MOVE_SLOTS 16
+struct ff8_bgate_move_t
+{
+	void *slot;
+	bool have, have_d;
+	int16_t last[6];     // positions at the end of the last real update
+	int16_t d1[6], d2[6]; // last two real steps
+	bool nudged;
+	int16_t written[6];  // values we wrote on the held frame (validity check on restore)
+};
+static ff8_bgate_move_t ff8_bgate_move[FF8_BGATE_MOVE_SLOTS];
+
+static int16_t *ff8_bgate_move_pos(void *slot, int i)
+{
+	uint8_t *s = (uint8_t *)slot;
+	if (i < 3)
+		return (int16_t *)(s + 0x1C) + i;
+	uint8_t *st = *(uint8_t **)(s + 0x74);
+	return st ? (int16_t *)(st + 0x24) + (i - 3) : nullptr;
+}
+
+static ff8_bgate_move_t *ff8_bgate_move_get(void *slot)
+{
+	ff8_bgate_move_t *free_slot = nullptr;
+	for (int i = 0; i < FF8_BGATE_MOVE_SLOTS; i++)
+	{
+		if (ff8_bgate_move[i].slot == slot) return &ff8_bgate_move[i];
+		if (!ff8_bgate_move[i].slot && !free_slot) free_slot = &ff8_bgate_move[i];
+	}
+	if (!free_slot) return nullptr;
+	memset(free_slot, 0, sizeof(*free_slot));
+	free_slot->slot = slot;
+	return free_slot;
+}
+
+// start of a real frame (BdLink hook, before any battle logic): put the true positions back
+static void ff8_bgate_move_restore_all()
+{
+	for (int m = 0; m < FF8_BGATE_MOVE_SLOTS; m++)
+	{
+		ff8_bgate_move_t &mv = ff8_bgate_move[m];
+		if (!mv.slot || !mv.nudged) continue;
+		mv.nudged = false;
+		for (int i = 0; i < 6; i++)
+		{
+			int16_t *p = ff8_bgate_move_pos(mv.slot, i);
+			if (p && *p == mv.written[i]) // untouched since we wrote it: restore
+				*p = mv.last[i];
+		}
+	}
+}
+
+// end of a real update: record this native step
+static void ff8_bgate_move_record(void *slot)
+{
+	ff8_bgate_move_t *mv = ff8_bgate_move_get(slot);
+	if (!mv) return;
+	for (int i = 0; i < 6; i++)
+	{
+		int16_t *p = ff8_bgate_move_pos(slot, i);
+		int16_t v = p ? *p : 0;
+		if (mv->have)
+		{
+			mv->d2[i] = mv->d1[i];
+			mv->d1[i] = (int16_t)(v - mv->last[i]);
+		}
+		mv->last[i] = v;
+	}
+	mv->have_d = mv->have;
+	mv->have = true;
+}
+
+// held frame: nudge steady movement half a step forward
+static void ff8_bgate_move_nudge(void *slot)
+{
+	ff8_bgate_move_t *mv = ff8_bgate_move_get(slot);
+	if (!mv || !mv->have_d || mv->nudged) return;
+	for (int i = 0; i < 6; i++)
+	{
+		int16_t *p = ff8_bgate_move_pos(slot, i);
+		if (p && *p != mv->last[i])
+			return; // moved since the real update (9E task, teleport...): not ours to smooth
+	}
+	bool any = false;
+	for (int i = 0; i < 6; i++)
+	{
+		int16_t *p = ff8_bgate_move_pos(slot, i);
+		int d1 = mv->d1[i], d2 = mv->d2[i];
+		int tol = abs(d1) / 2; if (tol < 4) tol = 4;
+		bool steady = d1 != 0 && abs(d1) < 1024 && abs(d1 - d2) <= tol;
+		mv->written[i] = p ? *p : 0;
+		if (p && steady)
+		{
+			*p = (int16_t)(mv->last[i] + ff8_bgate_scale_round(d1, ff8_bgate_phase, ff8_bgate_n));
+			mv->written[i] = *p;
+			any = true;
+		}
+	}
+	mv->nudged = any;
+}
 
 int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 {
@@ -2069,6 +2373,7 @@ int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 		{
 			dc->was_complete = (complete != 0);
 		}
+		ff8_bgate_move_nudge(slot_data_struct);
 		return 0;
 	}
 
@@ -2077,6 +2382,7 @@ int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 	rereplace_function(ff8_bgate_animseq_upd_ri);
 	if (dc)
 		dc->was_complete = FF8_BGATE_ANIM_COMPLETE(slot_data_struct);
+	ff8_bgate_move_record(slot_data_struct);
 	return r;
 }
 
@@ -2177,31 +2483,91 @@ static int32_t ff8_bgate_extrap_i32(int32_t prev2, int32_t prev1, int num, int d
 static int (__cdecl *ff8_bgate_updatecam_orig)() = nullptr;
 static uint32_t ff8_bgate_updatecam_ri = 0;
 
+// --- battle camera script VM at native rate ---
+// updateBattleCamera runs every host frame and steps the camera script VM
+// BS_UpdateCameraSequence (0x509610; section-6 camera scripts: which shot plays, when it
+// ends) on each call -> 2x fast. That script ending too early broke the camera return
+// after cinematic enemy abilities (Bite Bug effect 234): Magic_EffectEnd_ResetCamera...
+// (0x50AED0) only arms the return to the saved view (CAMERA_WOBBLING_FACTOR = 4096 ->
+// dword_B8B800 view restored) while the script's anim collection is still active
+// (cameraRelated_pointerAnimColl_flag); it had already finished, so the camera stayed
+// wherever the effect left it ("locked on the target"). Real frames only; the VM returns
+// its new setting pointer, so held frames return the current one unchanged.
+static void *(__cdecl *ff8_bgate_camseq_orig)() = nullptr;
+static uint32_t ff8_bgate_camseq_ri = 0;
+
+void *__cdecl ff8_bgate_camseq_hook()
+{
+	if (ff8_bgate_phase != 0)
+		return *(void **)0x1D99A34; // CURRENT_CAMERA_SETTING_ADDR
+	unreplace_function(ff8_bgate_camseq_ri);
+	void *r = ff8_bgate_camseq_orig();
+	rereplace_function(ff8_bgate_camseq_ri);
+	return r;
+}
+
+// Held-frame extrapolation must never OVERRIDE a camera the engine set on purpose. The
+// return-to-view after an effect is a ONE-SHOT snap (Magic_EffectEnd_ResetCameraAndEntityFlags
+// arms Battle_Camera_ReturnViewBlend = 4096, updateBattleCamera copies the return view once);
+// when it landed on a held frame, the extrapolation from the effect's last shots replaced it,
+// and since the engine never rewrites a settled camera the view stayed "locked on the target"
+// (Bite Bug effect 234, victory fanfare). So: if the original call changed the camera on a
+// held frame, keep its value and restart the history there. And the extrapolated value is
+// display-only: the true value is restored at the start of the next real frame (BdLink hook),
+// so it can never linger in the camera globals.
+static int32_t ff8_bgate_cam_true[4], ff8_bgate_cam_written[4];
+static bool ff8_bgate_cam_nudged = false;
+
+static void ff8_bgate_cam_restore()
+{
+	if (!ff8_bgate_cam_nudged) return;
+	ff8_bgate_cam_nudged = false;
+	int32_t *g[4] = { (int32_t *)0xB8B7F0, (int32_t *)0xB8B7F4, (int32_t *)0xB8B7F8, (int32_t *)0xB8B7FC };
+	for (int i = 0; i < 4; i++)
+		if (*g[i] == ff8_bgate_cam_written[i]) // untouched since we wrote it
+			*g[i] = ff8_bgate_cam_true[i];
+}
+
 int __cdecl ff8_bgate_updatecam_hook()
 {
+	int32_t *wxz = (int32_t *)0xB8B7F0, *wy = (int32_t *)0xB8B7F4;
+	int32_t *lxz = (int32_t *)0xB8B7F8, *ly = (int32_t *)0xB8B7FC;
+	int32_t before[4] = { *wxz, *wy, *lxz, *ly };
+
 	unreplace_function(ff8_bgate_updatecam_ri);
 	int r = ff8_bgate_updatecam_orig();
 	rereplace_function(ff8_bgate_updatecam_ri);
 
-	int32_t *wxz = (int32_t *)0xB8B7F0, *wy = (int32_t *)0xB8B7F4;
-	int32_t *lxz = (int32_t *)0xB8B7F8, *ly = (int32_t *)0xB8B7FC;
-
+	int32_t after[4] = { *wxz, *wy, *lxz, *ly };
 	if (ff8_bgate_phase == 0)
 	{
 		// real frame: snapshot the freshly-computed, fully-vanilla output
 		ff8_bgate_cam_prev2 = ff8_bgate_cam_prev1;
-		ff8_bgate_cam_prev1.wxz = *wxz;
-		ff8_bgate_cam_prev1.wy = *wy;
-		ff8_bgate_cam_prev1.lxz = *lxz;
-		ff8_bgate_cam_prev1.ly = *ly;
+		ff8_bgate_cam_prev1.wxz = after[0];
+		ff8_bgate_cam_prev1.wy = after[1];
+		ff8_bgate_cam_prev1.lxz = after[2];
+		ff8_bgate_cam_prev1.ly = after[3];
 		ff8_bgate_cam_prev1.valid = true;
+	}
+	else if (memcmp(before, after, sizeof(before)) != 0)
+	{
+		// the engine moved the camera itself on this held frame (return snap, blend, cut):
+		// that value wins, and extrapolation restarts from it
+		ff8_bgate_cam_prev1.wxz = after[0]; ff8_bgate_cam_prev1.wy = after[1];
+		ff8_bgate_cam_prev1.lxz = after[2]; ff8_bgate_cam_prev1.ly = after[3];
+		ff8_bgate_cam_prev1.valid = true;
+		ff8_bgate_cam_prev2 = ff8_bgate_cam_prev1;
 	}
 	else if (ff8_bgate_cam_prev1.valid && ff8_bgate_cam_prev2.valid)
 	{
+		memcpy(ff8_bgate_cam_true, after, sizeof(after));
 		*wxz = ff8_bgate_extrap_s16pair(ff8_bgate_cam_prev2.wxz, ff8_bgate_cam_prev1.wxz, ff8_bgate_phase, ff8_bgate_n);
 		*wy = ff8_bgate_extrap_i32(ff8_bgate_cam_prev2.wy, ff8_bgate_cam_prev1.wy, ff8_bgate_phase, ff8_bgate_n);
 		*lxz = ff8_bgate_extrap_s16pair(ff8_bgate_cam_prev2.lxz, ff8_bgate_cam_prev1.lxz, ff8_bgate_phase, ff8_bgate_n);
 		*ly = ff8_bgate_extrap_i32(ff8_bgate_cam_prev2.ly, ff8_bgate_cam_prev1.ly, ff8_bgate_phase, ff8_bgate_n);
+		ff8_bgate_cam_written[0] = *wxz; ff8_bgate_cam_written[1] = *wy;
+		ff8_bgate_cam_written[2] = *lxz; ff8_bgate_cam_written[3] = *ly;
+		ff8_bgate_cam_nudged = true;
 	}
 	return r;
 }
@@ -2287,10 +2653,6 @@ struct ff8_bgate_exec_node // struc_34_ssgi_execution
 #pragma pack(pop)
 static_assert(sizeof(ff8_bgate_exec_node) == 24, "SSIGPU execution node is 24 bytes");
 
-static bool ff8_bgate_fx_replay_ok = false;
-static uint32_t ff8_bgate_fx_rec_begin = 0; // arena cursor before the real tick
-static uint32_t ff8_bgate_fx_rec_ot = 0;
-static uint32_t ff8_bgate_fx_rec_rlist = 0;
 static int16_t ff8_bgate_fx_node_bucket[FF8_BGATE_FX_MAX_PRIMS];
 
 // One real tick's worth of effect draws, copied
@@ -2320,9 +2682,38 @@ struct ff8_bgate_fx_snap
 	bool valid;
 	uint32_t arena[FF8_BGATE_FX_ARENA_WORDS];
 };
-static ff8_bgate_fx_snap ff8_bgate_fx_snaps[2];
-static int ff8_bgate_fx_cur = 0; // snaps[cur] = tick N, snaps[cur ^ 1] = tick N-1
-static uint32_t ff8_bgate_fx_out[FF8_BGATE_FX_ARENA_WORDS]; // held-frame packets (live until the frame is drawn)
+// One recorder per gated task queue that draws. Two exist: the magic/GF effect tree
+// (C3_28_GF_data_pointer, call @0x50093A) and the hit-effect queue (call @0x500923:
+// impact sparks, hit camera shakes, footstep dust, Renzokuken parts, MAG_332..343...),
+// which vanilla also ticks once per host frame. The recorder code below works on the
+// CURRENT recorder (ff8_bgate_R), selected by each gate before it records or replays.
+struct ff8_bgate_rec_t
+{
+	const char *name;
+	ff8_bgate_fx_snap snaps[2];
+	int cur;              // snaps[cur] = tick N, snaps[cur ^ 1] = tick N-1
+	bool replay_ok;
+	uint32_t rec_begin;   // arena cursor before the real tick
+	uint32_t rec_ot, rec_rlist;
+	void *blacklist[16];
+	int blacklist_n;
+	int last_r;           // queue return value of the last real tick (reported on held frames)
+	ff8_bgate_fx_sum_t sum;
+	uint32_t out[FF8_BGATE_FX_ARENA_WORDS]; // held-frame packets (live until the frame is drawn)
+};
+static ff8_bgate_rec_t ff8_bgate_rec_fx = { "effect" };
+static ff8_bgate_rec_t ff8_bgate_rec_eq = { "hit-effect queue" };
+static ff8_bgate_rec_t *ff8_bgate_R = &ff8_bgate_rec_fx;
+#define ff8_bgate_fx_snaps (ff8_bgate_R->snaps)
+#define ff8_bgate_fx_cur (ff8_bgate_R->cur)
+#define ff8_bgate_fx_out (ff8_bgate_R->out)
+#define ff8_bgate_fx_replay_ok (ff8_bgate_R->replay_ok)
+#define ff8_bgate_fx_rec_begin (ff8_bgate_R->rec_begin)
+#define ff8_bgate_fx_rec_ot (ff8_bgate_R->rec_ot)
+#define ff8_bgate_fx_rec_rlist (ff8_bgate_R->rec_rlist)
+#define ff8_bgate_fx_sum (ff8_bgate_R->sum)
+#define ff8_bgate_fx_replay_blacklist (ff8_bgate_R->blacklist)
+#define ff8_bgate_fx_replay_blacklist_n (ff8_bgate_R->blacklist_n)
 
 // Walks a PSX GPU packet (tag word + GP0 commands) and lists the word indexes holding
 // screen vertices (int16 x | int16 y << 16) and vertex colors (0x00BBGGRR). The signature
@@ -2584,8 +2975,6 @@ static void ff8_bgate_fx_capture(void *effect_ctx)
 
 // Blacklist of effect_ctx whose replay faulted once - never replayed again (that effect
 // steps at native 15fps with no held-frame redraw, everything else keeps replaying).
-static void *ff8_bgate_fx_replay_blacklist[16] = {0};
-static int ff8_bgate_fx_replay_blacklist_n = 0;
 
 static bool ff8_bgate_fx_replay_is_blacklisted(void *ctx)
 {
@@ -2812,6 +3201,16 @@ static void ff8_bgate_fx_replay_unsafe()
 		dst[0] = (dst[0] & 0xFF000000) | (old_head & 0xFFFFFF);
 		FF8_BGATE_EXEC_CUR += sizeof(ff8_bgate_exec_node);
 	}
+	ff8_bgate_fx_sum.held++;
+	if (interp) ff8_bgate_fx_sum.interp_held++;
+	ff8_bgate_fx_sum.prims += cur.n;
+	ff8_bgate_fx_sum.match += st_match;
+	ff8_bgate_fx_sum.far_ += st_far;
+	ff8_bgate_fx_sum.nosig += st_nosig;
+	ff8_bgate_fx_sum.unparsed += st_unparsed;
+	ff8_bgate_fx_sum.welded += st_welded;
+	ff8_bgate_fx_sum.orphans += cur.orphans;
+	if ((uint32_t)st_maxcol > ff8_bgate_fx_sum.maxcol) ff8_bgate_fx_sum.maxcol = st_maxcol;
 	if (ff8_bgate_fx_log_stats)
 		ffnx_info("30fps fx: f=%u ctx=%p mode=%d interp=%d prims=%d prev=%d match=%d nosig=%d far=%d unparsed=%d(last cmd %02X) orphans=%d welded=%d maxcol=%d words=%u\n",
 			ff8_bgate_frame_no, cur.ctx, ff8_bgate_fx_mode, (int)interp, cur.n, prev.n, st_match, st_nosig, st_far,
@@ -2833,28 +3232,31 @@ static void ff8_bgate_fx_replay(void *effect_ctx)
 	}
 }
 
-static void ff8_bgate_vq_log(int pre, int post)
+// One line per finished effect: which effect (MAGIC_EFFECT_INDEX @0x1D99A68 = effect id - 1,
+// same numbering as Fujin), how many held frames were interpolated and how well pairing
+// went. match% low or unparsed/orphans > 0 point at an effect worth a closer look.
+static void ff8_bgate_fx_summary(const char *why)
 {
-	if (pre <= 0 && post <= 0)
-		return;
-	char buf[512]; int o = 0;
-	int n = post < 32 ? post : 32;
-	for (int i = 0; i < n && o < 440; i++)
+	if (ff8_bgate_fx_sum.ticks == 0 || ff8_bgate_fx_sum.prims == 0)
 	{
-		uint8_t *c = (uint8_t *)(0x1D98220 + 16 * i);
-		int16_t *r = (int16_t *)(c + 4);
-		o += sprintf(buf + o, " %s%d:(%d,%d %dx%d)%08X", i == pre ? "| " : "", c[0], r[0], r[1], r[2], r[3], *(uint32_t *)(c + 12));
+		// nothing was ever redrawn (empty queue polled, one-tick effect): not worth a line
+		memset(&ff8_bgate_fx_sum, 0, sizeof(ff8_bgate_fx_sum));
+		return;
 	}
-	buf[o] = 0;
-	ffnx_info("30fps vram: f=%u ph=%d queued_before_fx=%d by_fx=%d%s\n", ff8_bgate_frame_no, ff8_bgate_phase, pre, post - pre, buf);
+	uint32_t pr = ff8_bgate_fx_sum.prims ? ff8_bgate_fx_sum.prims : 1;
+	ffnx_info("30fps fx summary (%s %s): effect_id=%d ticks=%u held=%u interpolated=%u | prims=%u paired=%u%% rejected=%u%% new=%u%% unparsed=%u orphans=%u welded_vtx=%u maxcol=%u mode=%d\n",
+		ff8_bgate_R->name, why, ff8_bgate_R == &ff8_bgate_rec_fx ? *(int *)0x1D99A68 + 1 : -1, ff8_bgate_fx_sum.ticks, ff8_bgate_fx_sum.held, ff8_bgate_fx_sum.interp_held,
+		ff8_bgate_fx_sum.prims, (ff8_bgate_fx_sum.match * 100) / pr, (ff8_bgate_fx_sum.far_ * 100) / pr,
+		(ff8_bgate_fx_sum.nosig * 100) / pr, ff8_bgate_fx_sum.unparsed, ff8_bgate_fx_sum.orphans,
+		ff8_bgate_fx_sum.welded, ff8_bgate_fx_sum.maxcol, ff8_bgate_fx_mode);
+	memset(&ff8_bgate_fx_sum, 0, sizeof(ff8_bgate_fx_sum));
 }
 
-int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
+// Shared gate body for a recorded queue (ff8_bgate_R already selected): real frame =
+// tick at native rate and capture its draws; held frame = no tick, replay the draws
+// extrapolated. held_ret is what the caller sees on held frames.
+static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_ret)
 {
-	// TEMP diagnostics (Leviathan texture flashes): battle VRAM command queue (32 x 16B cmds,
-	// flushed once per frame by Battle_FlushVramCommandQueue after this tick). Logs uploads
-	// queued BEFORE the effect tick this frame (ungated per-frame queues) and BY the tick.
-	int ff8_bgate_vq_pre = *(int *)0x1D98420;
 	if (ff8_bgate_phase == 0)
 	{
 		// real frame: advance + draw at native rate; the draws it makes are the arena nodes
@@ -2863,31 +3265,173 @@ int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
 		ff8_bgate_fx_rec_ot = FF8_BGATE_CUR_OT();
 		ff8_bgate_fx_rec_rlist = FF8_BGATE_RLIST_CUR;
 		ff8_bgate_fx_replay_ok = true;
-		int r = ff8_bgate_effect_tick_orig(effect_ctx);
-		ff8_bgate_vq_log(ff8_bgate_vq_pre, *(int *)0x1D98420);
+		int r = orig(ctx);
+		ff8_bgate_R->last_r = r;
+		ff8_bgate_fx_sum.ticks++;
 		if (r == 0)
 		{
-			// effect finished - never ghost-draw past the end, never pair with the next one
+			// queue empty = effect finished: never ghost-draw past the end, never pair
+			// with the next one
+			ff8_bgate_fx_summary("finished");
 			ff8_bgate_fx_replay_ok = false;
 			ff8_bgate_fx_snaps[0].valid = ff8_bgate_fx_snaps[1].valid = false;
 		}
 		else if (ff8_bgate_fx_replay_ok)
-			ff8_bgate_fx_capture(effect_ctx);
+			ff8_bgate_fx_capture(ctx);
 		return r;
 	}
-	ff8_bgate_vq_log(ff8_bgate_vq_pre, ff8_bgate_vq_pre);
 	// held frame: no advance; draw the in-between pose of the last real frame's primitives
 	if (ff8_bgate_fx_replay_ok)
-		ff8_bgate_fx_replay(effect_ctx);
-	return 1; // still running (don't let the caller clear the effect pointer)
+		ff8_bgate_fx_replay(ctx);
+	return held_ret;
 }
-// --- status-effect timers (regen/doom/petrify/shell/protect/reflect) ---
-// computeTimerStatus (0x483470) decrements them once per battle frame -> 2x too
-// fast at 30fps. Kept DISABLED for now, mirroring the 60fps branch: an earlier
-// 60fps build crashed (0xC0000005 on Zantetsuken/Odin) with either this gate or
-// the since-replaced camera-VM gate active; not yet isolated. Enable to test.
+
+int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
+{
+	ff8_bgate_R = &ff8_bgate_rec_fx;
+	// 1 on held frames: still running (don't let the caller clear the effect pointer)
+	int r = ff8_bgate_gate_tick(effect_ctx, ff8_bgate_effect_tick_orig, 1);
+	return r;
+}
+
+// Hit-effect queue (ExecuteTaskQueue(dword_1D96AA0) @0x500923, TASK_QUEUE 0x209FAA8): fed by
+// CreateCameraShakeTask, DispatchEffectCommand, CreateEffectTask* (weapon/monster impact
+// effects), the 99/B1 footstep particles, Renzokuken (MAG_141/159/160/161), MAG_332..343.
+// Vanilla ticked it once per host frame -> all of that ran 2x at 30fps. Same treatment as
+// the magic effect tree: native ticks, extrapolated draws on held frames.
+static int (__cdecl *ff8_bgate_eq_tick_orig)(void *) = nullptr;
+
+int __cdecl ff8_bgate_eq_tick_gate(void *queue)
+{
+	ff8_bgate_R = &ff8_bgate_rec_eq;
+	int r = ff8_bgate_gate_tick(queue, ff8_bgate_eq_tick_orig, ff8_bgate_rec_eq.last_r);
+	ff8_bgate_R = &ff8_bgate_rec_fx;
+	return r;
+}
+
+// --- camera shake offsets: hold the last real frame's values on held frames ---
+// someUnknownBSCameraOperations (0x5033E0, from BdLink) adds the shake offsets
+// (0x1D97710/12/14, int16 x/y/z) to the view translation and then ZEROES them - every
+// producer (AnimSeq 96, hit shakes, magic effects) rewrites them each tick. With the
+// producers gated to real frames the shake vanished on held frames (half amplitude,
+// 30Hz flicker). If nothing wrote them this held frame, re-apply the last real values.
+static int (__cdecl *ff8_bgate_camops_orig)() = nullptr;
+static uint32_t ff8_bgate_camops_ri = 0;
+static int16_t ff8_bgate_shake_last[3] = {0, 0, 0};
+
+int __cdecl ff8_bgate_camops_hook()
+{
+	int16_t *s = (int16_t *)0x1D97710;
+	if (ff8_bgate_phase == 0)
+		memcpy(ff8_bgate_shake_last, s, sizeof(ff8_bgate_shake_last));
+	else if (s[0] == 0 && s[1] == 0 && s[2] == 0)
+		memcpy(s, ff8_bgate_shake_last, sizeof(ff8_bgate_shake_last));
+	unreplace_function(ff8_bgate_camops_ri);
+	int r = ff8_bgate_camops_orig();
+	rereplace_function(ff8_bgate_camops_ri);
+	return r;
+}
+
+// --- AnimSeq-spawned tasks (TASK_QUEUE_ANIM_SEQ 0x1D986B8, ticked every host frame by
+// ExecuteTaskQueue(dword_1D96A8C) @0x500917). Tick fns are DWORD __cdecl f(node*),
+// 0 = keep running, 2 = remove. Node task data starts at +0x0C. ---
+#define FF8_BGATE_TASK_HOOK(name, addr) \
+	static DWORD (__cdecl *ff8_bgate_##name##_orig)(uint8_t *) = (DWORD (__cdecl *)(uint8_t *))(addr); \
+	static uint32_t ff8_bgate_##name##_ri = 0; \
+	static DWORD ff8_bgate_##name##_call(uint8_t *node) \
+	{ \
+		unreplace_function(ff8_bgate_##name##_ri); \
+		DWORD r = ff8_bgate_##name##_orig(node); \
+		rereplace_function(ff8_bgate_##name##_ri); \
+		return r; \
+	}
+
+// Pure counters with persistent effects: skipping held frames = native pace.
+//   84 sine wobble of a stage group (0x501F90), 9F texture toggle timeline (0x5057D0),
+//   99/B1 footstep dust + step sounds (0x50F830), 96 camera shake (0x50F6C0 - its offset
+//   is held by the camera hook above).
+FF8_BGATE_TASK_HOOK(t84, 0x501F90)
+FF8_BGATE_TASK_HOOK(t9f, 0x5057D0)
+FF8_BGATE_TASK_HOOK(tstep, 0x50F830)
+FF8_BGATE_TASK_HOOK(t96, 0x50F6C0)
+DWORD __cdecl ff8_bgate_t84_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t84_call(n); }
+DWORD __cdecl ff8_bgate_t9f_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t9f_call(n); }
+DWORD __cdecl ff8_bgate_tstep_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_tstep_call(n); }
+DWORD __cdecl ff8_bgate_t96_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t96_call(n); }
+
+// AD/AE drag target to attacker bone (0x50F500): snaps the target to the bone EVERY tick
+// (so it keeps following the smoothly animated attacker) - only its frames-left dword
+// (+0x18) must count at native rate: restore it after held-frame ticks, and never let a
+// held tick be the one that ends the task.
+FF8_BGATE_TASK_HOOK(tdrag, 0x50F500)
+DWORD __cdecl ff8_bgate_tdrag_hook(uint8_t *n)
+{
+	if (ff8_bgate_phase == 0)
+		return ff8_bgate_tdrag_call(n);
+	int32_t left = *(int32_t *)(n + 0x18);
+	if (left == 1)
+		return 0; // this tick would finish it: leave that to the next real frame
+	DWORD r = ff8_bgate_tdrag_call(n);
+	*(int32_t *)(n + 0x18) = left;
+	return r;
+}
+
+// 81 restore model part (0x50F0E0): draws the fading part INSIDE the tick, so it must run
+// every frame; its fade/lifetime counter (+0x13, 15 ticks) only advances on real frames.
+FF8_BGATE_TASK_HOOK(t81, 0x50F0E0)
+DWORD __cdecl ff8_bgate_t81_hook(uint8_t *n)
+{
+	if (ff8_bgate_phase == 0)
+		return ff8_bgate_t81_call(n);
+	uint8_t state = n[0x12], counter = n[0x13];
+	ff8_bgate_t81_call(n);
+	n[0x13] = (state == 0) ? 0 : counter; // first tick: init only, count from the next real one
+	return 0;
+}
+
+// A6 detached model part with physics (0x50F2E0): also draws inside the tick. Its whole
+// simulation state is the node (+0x0C..+0x2B: state, 15-tick counter, velocities, spin)
+// plus the global DETACHED_PART_SAVED_MATRIX (0x1D99BF8, 32 B incl. position) from which
+// the bone matrices are rebuilt every tick - so a held tick is run and then fully undone.
+FF8_BGATE_TASK_HOOK(ta6, 0x50F2E0)
+DWORD __cdecl ff8_bgate_ta6_hook(uint8_t *n)
+{
+	if (ff8_bgate_phase == 0)
+		return ff8_bgate_ta6_call(n);
+	uint8_t node_save[0x20], mtx_save[0x20];
+	memcpy(node_save, n + 0x0C, sizeof(node_save));
+	memcpy(mtx_save, (void *)0x1D99BF8, sizeof(mtx_save));
+	ff8_bgate_ta6_call(n);
+	memcpy(n + 0x0C, node_save, sizeof(node_save));
+	memcpy((void *)0x1D99BF8, mtx_save, sizeof(mtx_save));
+	return 0;
+}
+
+// --- status-effect timers + Gilgamesh/Angelo countdown: native rate ---
+// FFBattleDirector_battleLoop (0x47CCB0) calls computeTimerStatus (0x483470) and
+// summonGilgaAngelStartFight (0x482F80) once per LOOP ITERATION = once per host frame:
+//  - computeTimerStatus: *timer -= speed (1/2/3 by Slow/normal/Haste) for every status
+//    timer (regen/poison/doom/petrify/stop/sleep/shell/protect/reflect...), fires the
+//    Regen heal each 60/speed, handles expiry -> every timed status lasted HALF as long;
+//  - summonGilgaAngelStartFight: --DEAD_TIMER_TO_SUMMON_GILGA, and every frame it sits
+//    at 0 rolls Gilgamesh (12/255) and the Angelo auto-actions -> twice as frequent.
+// Both are pure per-tick counters with no cross-frame handshake, so running them on
+// real frames only reproduces vanilla exactly. (The old 60fps build disabled the timer
+// gate after an Odin crash that was never isolated; the camera-VM gate active in the
+// same build - since replaced by the safe camera task gate - is the likelier culprit.)
 static void (__cdecl *ff8_bgate_timerstatus_orig)() = nullptr;
 static uint32_t ff8_bgate_timerstatus_ri = 0;
+static void (__cdecl *ff8_bgate_gilga_orig)() = nullptr;
+static uint32_t ff8_bgate_gilga_ri = 0;
+
+void __cdecl ff8_bgate_gilga_hook()
+{
+	if (ff8_bgate_phase != 0)
+		return;
+	unreplace_function(ff8_bgate_gilga_ri);
+	ff8_bgate_gilga_orig();
+	rereplace_function(ff8_bgate_gilga_ri);
+}
 
 void __cdecl ff8_bgate_timerstatus_hook()
 {
@@ -2904,12 +3448,23 @@ void __cdecl ff8_bgate_timerstatus_hook()
 // variables were halved for an animation that was no longer SLOW (see the C3 var hook).
 static void ff8_bgate_battle_reset()
 {
+	for (ff8_bgate_rec_t *rec : { &ff8_bgate_rec_fx, &ff8_bgate_rec_eq })
+	{
+		ff8_bgate_R = rec;
+		ff8_bgate_fx_summary("battle ended");
+		rec->snaps[0].valid = rec->snaps[1].valid = false;
+		rec->replay_ok = false;
+		rec->blacklist_n = 0;
+		rec->last_r = 0;
+	}
+	ff8_bgate_R = &ff8_bgate_rec_fx;
+	memset(ff8_bgate_shake_last, 0, sizeof(ff8_bgate_shake_last));
 	memset(ff8_bgate_anim_policy, 0, sizeof(ff8_bgate_anim_policy));
 	memset(ff8_bgate_done_cache, 0, sizeof(ff8_bgate_done_cache));
+	memset(ff8_bgate_pose_hist, 0, sizeof(ff8_bgate_pose_hist));
+	memset(ff8_bgate_move, 0, sizeof(ff8_bgate_move));
 	ff8_bgate_cam_prev1.valid = ff8_bgate_cam_prev2.valid = false;
-	ff8_bgate_fx_snaps[0].valid = ff8_bgate_fx_snaps[1].valid = false;
-	ff8_bgate_fx_replay_ok = false;
-	ff8_bgate_fx_replay_blacklist_n = 0;
+	ff8_bgate_cam_nudged = false;
 	ff8_bgate_inside_queue_anim = false;
 	ff8_bgate_tick_skip = false;
 	ff8_bgate_hidden_idx = 0;
@@ -2988,6 +3543,8 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_camanim_ri = replace_function(0x5035E0, (void *)ff8_bgate_camanim_hook);
 	// Camera smoothness recovered separately: extrapolate the render-facing output only
 	// (see ff8_bgate_updatecam_hook above) - never re-touches the risky keyframe state.
+	ff8_bgate_camseq_orig = (void *(__cdecl *)())0x509610;
+	ff8_bgate_camseq_ri = replace_function(0x509610, (void *)ff8_bgate_camseq_hook);
 	ff8_bgate_updatecam_orig = (int(__cdecl *)())0x504060;
 	ff8_bgate_updatecam_ri = replace_function(0x504060, (void *)ff8_bgate_updatecam_hook);
 
@@ -2997,11 +3554,26 @@ static void ff8_bgate_install_hooks()
 	// knowledge, whitelists or SFX suppression: nothing runs twice, nothing is rewound.
 	ff8_bgate_effect_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x50093A, 0);
 	replace_call(0x50093A, (void *)ff8_bgate_effect_tick_gate);
+	// hit-effect queue: same record/replay pacing
+	ff8_bgate_eq_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x500923, 0);
+	replace_call(0x500923, (void *)ff8_bgate_eq_tick_gate);
+	// camera shake offsets held on held frames
+	ff8_bgate_camops_orig = (int(__cdecl *)())0x5033E0;
+	ff8_bgate_camops_ri = replace_function(0x5033E0, (void *)ff8_bgate_camops_hook);
+	// AnimSeq-spawned tasks at native pace
+	ff8_bgate_t84_ri = replace_function(0x501F90, (void *)ff8_bgate_t84_hook);
+	ff8_bgate_t9f_ri = replace_function(0x5057D0, (void *)ff8_bgate_t9f_hook);
+	ff8_bgate_tstep_ri = replace_function(0x50F830, (void *)ff8_bgate_tstep_hook);
+	ff8_bgate_t96_ri = replace_function(0x50F6C0, (void *)ff8_bgate_t96_hook);
+	ff8_bgate_tdrag_ri = replace_function(0x50F500, (void *)ff8_bgate_tdrag_hook);
+	ff8_bgate_t81_ri = replace_function(0x50F0E0, (void *)ff8_bgate_t81_hook);
+	ff8_bgate_ta6_ri = replace_function(0x50F2E0, (void *)ff8_bgate_ta6_hook);
 
-	// Status-effect timers: disabled pending crash isolation (see comment above)
-	// ff8_bgate_timerstatus_orig = (void(__cdecl *)())0x483470;
-	// ff8_bgate_timerstatus_ri = replace_function(0x483470, (void *)ff8_bgate_timerstatus_hook);
-	(void)&ff8_bgate_timerstatus_hook; (void)ff8_bgate_timerstatus_orig; (void)ff8_bgate_timerstatus_ri;
+	// Status-effect timers + Gilgamesh/Angelo countdown at native rate
+	ff8_bgate_timerstatus_orig = (void(__cdecl *)())0x483470;
+	ff8_bgate_timerstatus_ri = replace_function(0x483470, (void *)ff8_bgate_timerstatus_hook);
+	ff8_bgate_gilga_orig = (void(__cdecl *)())0x482F80;
+	ff8_bgate_gilga_ri = replace_function(0x482F80, (void *)ff8_bgate_gilga_hook);
 
 	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera gated+extrapolated; entity anims SLOW-interpolated, effects native-tick + draw replay)\n",
 		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n);
@@ -3231,6 +3803,18 @@ void ff8_init_hooks(struct game_obj *_game_object)
 		ff8_bgate_active = true;
 		ff8_bgate_install_hooks();
 	}
+#if !FF8_BGATE_DIAG
+	else if (FF8_US_VERSION)
+	{
+		// REFERENCE mode (vanilla 15fps battle): nothing is gated (n = 1 -> every frame is a
+		// real frame), only the BdLink hook runs, for its diagnostics log (camera state) - to
+		// compare the 30fps build against the original timing.
+		ff8_bgate_n = 1;
+		ff8_bgate_bdlink_orig = (int(__cdecl *)())0x500900;
+		ff8_bgate_bdlink_ri = replace_function(0x500900, (void *)ff8_bgate_bdlink_hook);
+		ffnx_info("battle 30fps: REFERENCE mode (limiter < 30fps): no gating, diagnostics only\n");
+	}
+#endif
 #if FF8_BGATE_DIAG
 	else if (FF8_US_VERSION)
 	{
