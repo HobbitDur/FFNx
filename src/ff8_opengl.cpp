@@ -1473,6 +1473,10 @@ void ff8_menu_shop_update_gil_and_items(int gil)
 	}
 }
 
+// Armed on any frame spent outside battle; the first battle frame after it resets every
+// piece of per-battle 30fps state (see ff8_bgate_battle_reset).
+static bool ff8_bgate_left_battle = true;
+
 int ff8_limit_fps()
 {
 	static time_t last_gametime;
@@ -1485,6 +1489,9 @@ int ff8_limit_fps()
 	// For cross music play (vanilla music only)
 	qpc_get_time(&gametime);
 	*ff8_externals.time_volume_change_related_1A78BE0 = (1000.0 / game_object->countspersecond) * qpc_diff_time(&gametime, &last_gametime, nullptr);
+
+	if (mode->driver_mode != MODE_BATTLE)
+		ff8_bgate_left_battle = true;
 
 	if (ff8_fps_limiter < FPS_LIMITER_60FPS)
 	{
@@ -1568,23 +1575,110 @@ int ff8_limit_fps()
 // Must divide 4 (the vanilla UI ticks/frame) exactly, which both values do.
 static int ff8_bgate_n = 2;
 
-static int ff8_bgate_phase = 0; // 0 = advance frame, otherwise held (bumped in BdLink hook)
+// false = diagnostics-only mode (vanilla behavior, no gating) - used to capture reference
+// traces at ff8_fps_limiter < 2 for comparing against the gated build
+static bool ff8_bgate_active = false;
 
-// True while a held-frame effect replay is running (set by the effect gate below); several
-// hooks must never interfere inside that window. Declared here because the animation hooks
-// (earlier in the file than the effect machinery) test it too.
-static bool ff8_bgate_fx_holding = false;
+static int ff8_bgate_phase = 0; // 0 = advance frame, otherwise held (bumped in BdLink hook)
+static uint32_t ff8_bgate_frame_no = 0; // host battle frames (bumped in the BdLink hook)
+// Held-frame draw mode, cycled with F9 during battle (test builds): 0 = plain replay of tick N
+// (no interpolation), 1 = vertices extrapolated, 2 = vertices + vertex colors extrapolated
+static int ff8_bgate_fx_mode = 2;
+static bool ff8_bgate_fx_log_stats = true; // one FFNx.log line per held frame while an effect runs
+
+// TEMPORARY run-lag diagnostics: per-frame trace of party slots + AnimSeq events.
+// Remove once the end-of-run hitch is understood.
+#define FF8_BGATE_DIAG 0
+static uint32_t ff8_bgate_diag_frame = 0;
+#define FF8_BGATE_SLOT_BASE 0x1D97494u
+#define FF8_BGATE_SLOT_IDX(slot) ((int)(((uint32_t)(slot) - FF8_BGATE_SLOT_BASE) / 156))
+
+#if FF8_BGATE_DIAG
+// render probe: log every actual BS_RenderBattleEntity execution for party entities,
+// with the render-list cursor before/after (to catch list overflow = dropped geometry).
+// A frame with no R-line for an entity = the render was skipped upstream (caller
+// visibility conditions / task ordering).
+static char (__cdecl *ff8_bgate_diag_render_orig)(void *) = nullptr;
+static uint32_t ff8_bgate_diag_render_ri = 0;
+
+char __cdecl ff8_bgate_diag_render_hook(void *slot)
+{
+	uint32_t cur_before = *(uint32_t *)0x1D8E054; // battle_texture_data_ptr (list cursor)
+	unreplace_function(ff8_bgate_diag_render_ri);
+	char r = ff8_bgate_diag_render_orig(slot);
+	rereplace_function(ff8_bgate_diag_render_ri);
+	if ((uint32_t)slot < FF8_BGATE_SLOT_BASE) // party entities live below the monster array
+	{
+		uint8_t *s = (uint8_t *)slot;
+		ffnx_info("D f=%u R e=%p list=+%X vis=%08X mpal=%08X spal=%08X com=%08X\n",
+			ff8_bgate_diag_frame, slot,
+			*(uint32_t *)0x1D8E054 - cur_before,
+			*(uint32_t *)(s + 0x7C),  // some_flag_data: per-object visibility bitmask
+			*(uint32_t *)(s + 0x28),  // model_palette (RGB + ABE bit; fades)
+			*(uint32_t *)(s + 0x2C),  // shadow_palette (0x32000000 = shadow skipped)
+			*(uint32_t *)(s + 0x64)); // anim_header.comFileData (model swap detection)
+	}
+	return r;
+}
+#endif
 
 // --- battle frame phase: bumped once per battle logic frame (BdLink_GF 0x500900) ---
 static int (__cdecl *ff8_bgate_bdlink_orig)() = nullptr;
 static uint32_t ff8_bgate_bdlink_ri = 0;
 
+static void ff8_bgate_battle_reset();
+
 int __cdecl ff8_bgate_bdlink_hook()
 {
+	if (ff8_bgate_left_battle)
+	{
+		ff8_bgate_left_battle = false;
+		ff8_bgate_battle_reset();
+	}
 	ff8_bgate_phase = (ff8_bgate_phase + 1) % ff8_bgate_n;
+	ff8_bgate_frame_no++;
+	{
+		static bool f9_down = false;
+		bool down = (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
+		if (down && !f9_down)
+		{
+			ff8_bgate_fx_mode = (ff8_bgate_fx_mode + 1) % 3;
+			ffnx_info("30fps fx: F9 -> held-frame mode %d (%s)\n", ff8_bgate_fx_mode,
+				ff8_bgate_fx_mode == 0 ? "plain replay" : ff8_bgate_fx_mode == 1 ? "vertices" : "vertices + colors");
+		}
+		f9_down = down;
+	}
+#if FF8_BGATE_DIAG
+	ff8_bgate_diag_frame++;
+#endif
 	unreplace_function(ff8_bgate_bdlink_ri);
 	int r = ff8_bgate_bdlink_orig();
 	rereplace_function(ff8_bgate_bdlink_ri);
+#if FF8_BGATE_DIAG
+	{
+		// final camera position after updateBattleCamera ran (world XZ packed s16 pair + Y),
+		// plus the task functions currently queued on the camera task queue
+		int16_t *wxz = (int16_t *)0xB8B7F0;
+		int32_t wy = *(int32_t *)0xB8B7F4;
+		char tasks[128]; tasks[0] = 0;
+		uint32_t node = *(uint32_t *)0x1D97768; // BD_LINK_TASK_HEADER_CAMERA.head
+		int guard = 0;
+		while (node > 0x10000 && node < 0x7F000000 && guard++ < 8)
+		{
+			char one[24];
+			sprintf(one, " %08X", *(uint32_t *)(node + 8)); // TaskNodeHeader.task_func
+			strcat(tasks, one);
+			node = *(uint32_t *)(node + 4); // next
+		}
+		// C3_28_GF_data_pointer: non-zero while a magic/GF effect is running. Squall's cast
+		// sequence waits on it (C3 28). If it never clears, the effect never completed.
+		uint32_t c328 = *(uint32_t *)0x1D96AAC;
+		uint32_t qhead = 0;
+		if (c328 > 0x10000 && c328 < 0x7F000000) qhead = *(uint32_t *)c328; // queue head
+		ffnx_info("D f=%u CAMPOS x=%d z=%d y=%d c328=%08X qhead=%08X tasks:%s\n",
+			ff8_bgate_diag_frame, (int)wxz[0], (int)wxz[1], wy, c328, qhead, tasks);
+	}
+#endif
 	return r;
 }
 
@@ -1681,17 +1775,27 @@ int __cdecl ff8_bgate_savemap_tick_hook()
 // Entries are (re)written at every entity animation start; anim_cmd addresses are stable
 // (entity slot data / weapon headers). Unknown anim_cmds (stage models, effect models -
 // they never start via Battle_QueueAnimation) default to div = n, the plain pose-hold.
-static struct { void *cmd; int div; } ff8_bgate_anim_policy[32];
+static struct { void *cmd; int div; bool forced; } ff8_bgate_anim_policy[32];
 
-static void ff8_bgate_anim_policy_set(void *cmd, int div)
+static void ff8_bgate_anim_policy_set(void *cmd, int div, bool forced)
 {
 	int free_slot = -1;
 	for (int i = 0; i < 32; i++)
 	{
-		if (ff8_bgate_anim_policy[i].cmd == cmd) { ff8_bgate_anim_policy[i].div = div; return; }
+		if (ff8_bgate_anim_policy[i].cmd == cmd)
+		{
+			ff8_bgate_anim_policy[i].div = div;
+			ff8_bgate_anim_policy[i].forced = forced;
+			return;
+		}
 		if (!ff8_bgate_anim_policy[i].cmd && free_slot < 0) free_slot = i;
 	}
-	if (free_slot >= 0) { ff8_bgate_anim_policy[free_slot].cmd = cmd; ff8_bgate_anim_policy[free_slot].div = div; }
+	if (free_slot >= 0)
+	{
+		ff8_bgate_anim_policy[free_slot].cmd = cmd;
+		ff8_bgate_anim_policy[free_slot].div = div;
+		ff8_bgate_anim_policy[free_slot].forced = forced;
+	}
 }
 
 static int ff8_bgate_anim_policy_get(void *cmd)
@@ -1699,6 +1803,51 @@ static int ff8_bgate_anim_policy_get(void *cmd)
 	for (int i = 0; i < 32; i++)
 		if (ff8_bgate_anim_policy[i].cmd == cmd) return ff8_bgate_anim_policy[i].div;
 	return ff8_bgate_n; // unknown anim_cmd: hold 1-in-n (previous behavior)
+}
+
+// true if WE set SLOW on this anim_cmd (vanilla would not have doubled its total_frames)
+static bool ff8_bgate_anim_policy_forced(void *cmd)
+{
+	for (int i = 0; i < 32; i++)
+		if (ff8_bgate_anim_policy[i].cmd == cmd) return ff8_bgate_anim_policy[i].forced;
+	return false;
+}
+
+// --- AnimSeq C3 special vars 0x09/0x0A: report frame counts in NATIVE units ---
+// Choreography sequences read the current animation's frame counts through
+// AnimSeq_ReadSpecialVar_C3 (0x5044B0): var 0x0A = anim_cmd->total_frames, var 0x09 =
+// anim_cmd->current_frame. A common construct is a counted wait-loop that holds a pose
+// for exactly the animation's length: "C3 0A E5 7F" (counter = total frames) then
+// "A0 xx ... C3 7F C5 FF E5 7F E7 xx" (decrement once per VM run, loop while > 0).
+// The VM runs at native rate, but forced SLOW doubles total_frames (2T-1) - so those
+// loops spun ~2x too long: +3 VM ticks of frozen pose at the end of every attack
+// run-up and walk-back (measured against a vanilla 15fps reference trace; the
+// diagnostic showed the interpreter parked on the E7 loop with delay 0). Rescale both
+// vars back to native frame units when WE forced the SLOW flag; a real Slow status
+// keeps the doubled values, exactly as vanilla reports them.
+// CRITICAL - the signature must be int/int, NOT uint16_t: IDA types this function as
+// returning WORD, but it actually returns SIGN-EXTENDED 32-bit values in EAX (movsx at
+// 0x5044D0 / 0x5044ED / 0x50455E ...), and the interpreter consumes the full EAX
+// (its c3Handler is int(*)(int)). A uint16_t-typed wrapper truncates and zero-extends,
+// turning every negative variable into a huge positive one - e.g. Squall's settle
+// sequence computes position.y = -1756 + (C3_02 + 1756) * frame / total with
+// C3_02 = -1700, which became 63836 and flung the model off-screen for 3 of 4 frames
+// (culled by RenderGeometry -> the model vanished). Sign extension is load-bearing here.
+#define FF8_BGATE_ACTIVE_ANIM_CMD (*(uint8_t **)0x1D981F8)
+
+static int (__cdecl *ff8_bgate_c3var_orig)(int) = nullptr;
+static uint32_t ff8_bgate_c3var_ri = 0;
+
+int __cdecl ff8_bgate_c3var_hook(int var)
+{
+	unreplace_function(ff8_bgate_c3var_ri);
+	int r = ff8_bgate_c3var_orig(var);
+	rereplace_function(ff8_bgate_c3var_ri);
+	// 09/0A are zero-extended byte loads (xor eax,eax; mov al,[..]) - always positive,
+	// so the rescale is safe on the full-width value.
+	if ((var == 0x09 || var == 0x0A) && ff8_bgate_anim_policy_forced(FF8_BGATE_ACTIVE_ANIM_CMD))
+		r = (r + 1) / 2; // total: 2T-1 -> T; current: call index -> data frame index
+	return r;
 }
 
 // Battle_QueueAnimation (0x509520) is the ONLY entity/weapon animation starter (AnimSeq VM
@@ -1711,6 +1860,10 @@ static uint32_t ff8_bgate_queueanim_ri = 0;
 
 int __cdecl ff8_bgate_queueanim_hook(void *entity_slot, int opcode)
 {
+#if FF8_BGATE_DIAG
+	ffnx_info("D f=%u p=%d s=%d e=%p QUEUE anim=%02X\n",
+		ff8_bgate_diag_frame, ff8_bgate_phase, FF8_BGATE_SLOT_IDX(entity_slot), entity_slot, opcode & 0xFFFF);
+#endif
 	ff8_bgate_inside_queue_anim = true;
 	unreplace_function(ff8_bgate_queueanim_ri);
 	int r = ff8_bgate_queueanim_orig(entity_slot, opcode);
@@ -1739,13 +1892,16 @@ int __cdecl ff8_bgate_preread_hook(void *anim_header, void *anim_cmd, int animID
 		if (div >= 1)
 		{
 			*flags = (*flags | FF8_BGATE_ANIM_FLAG_SLOW) & (uint8_t)~FF8_BGATE_ANIM_FLAG_FAST;
-			ff8_bgate_anim_policy_set(anim_cmd, div);
+			// "forced" = vanilla would NOT have SLOW here (m2 > 1), so total_frames gets a
+			// doubling the sequence scripts don't expect - the C3 var hook compensates.
+			// Real Slow status (m2 == 1) is doubled in vanilla too: not forced.
+			ff8_bgate_anim_policy_set(anim_cmd, div, m2 > 1);
 		}
 		else
 		{
 			// SLOW would undershoot even unheld (Haste at n=2): plain reading at 15n/div f/s
 			*flags &= (uint8_t)~(FF8_BGATE_ANIM_FLAG_SLOW | FF8_BGATE_ANIM_FLAG_FAST);
-			ff8_bgate_anim_policy_set(anim_cmd, (2 * ff8_bgate_n) / m2);
+			ff8_bgate_anim_policy_set(anim_cmd, (2 * ff8_bgate_n) / m2, false);
 		}
 	}
 	unreplace_function(ff8_bgate_preread_ri);
@@ -1757,34 +1913,52 @@ int __cdecl ff8_bgate_preread_hook(void *anim_header, void *anim_cmd, int animID
 static int (__cdecl *ff8_bgate_readanim_orig)(void *, void *) = nullptr;
 static uint32_t ff8_bgate_readanim_ri = 0;
 
+// Safety net: a fault while decoding an animation bitstream (stream read past its end)
+// finishes that animation instead of taking the game down - the engine then does what it
+// does at any normal completion (requeue/next animation). Logged with everything needed to
+// find the cause. anim_cmd: +0 anim id, +1 flags, +6 current frame, +7 total frames.
+static int ff8_bgate_readanim_guarded(void *header, void *anim_cmd)
+{
+	__try
+	{
+		return ff8_bgate_readanim_orig(header, anim_cmd);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		uint8_t *c = (uint8_t *)anim_cmd;
+		ffnx_info("battle 30fps: animation read FAULTED (header=%p anim_cmd=%p anim=%u flags=%02X frame=%u/%u policy div=%d forced=%d) -> animation finished early\n",
+			header, anim_cmd, (unsigned)c[0], (unsigned)c[1], (unsigned)c[6], (unsigned)c[7],
+			ff8_bgate_anim_policy_get(anim_cmd), (int)ff8_bgate_anim_policy_forced(anim_cmd));
+		c[6] = c[7]; // complete
+		return 1;    // READ_ANIMATION_RETURN_ANIMATION_COMPLETE
+	}
+}
+
 int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 {
-	// Inside a held effect replay the whole tree is snapshot/restored - the effect gate
-	// paces it, so interfering here would only desync the replay from the real frames.
-	if (!ff8_bgate_fx_holding)
+	// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the
+	// double-buffered geometry. Vanilla never shows that - its VM runs every tick and
+	// requeues the loop in the same call - but with the VM gated to real frames a
+	// completion surfacing on a held frame leaves the entity's geometry stale for one
+	// frame -> 1-frame flicker once per animation loop (SLOW loops are 2T-1 calls, odd,
+	// so the completion parity keeps landing on held frames). Rebuild before returning.
+	// (Effect-model reads run only inside the real-frame effect tick now, where phase
+	// is 0 - both branches below pass them straight through, so no special-casing.)
+	if (*((uint8_t *)anim_cmd + 6) >= *((uint8_t *)anim_cmd + 7))
 	{
-		// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the
-		// double-buffered geometry. Vanilla never shows that - its VM runs every tick and
-		// requeues the loop in the same call - but with the VM gated to real frames a
-		// completion surfacing on a held frame leaves the entity's geometry stale for one
-		// frame -> 1-frame flicker once per animation loop (SLOW loops are 2T-1 calls, odd,
-		// so the completion parity keeps landing on held frames). Rebuild before returning.
-		if (*((uint8_t *)anim_cmd + 6) >= *((uint8_t *)anim_cmd + 7))
-		{
-			((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
-			return 1; // READ_ANIMATION_RETURN_ANIMATION_COMPLETE (same as the early-out)
-		}
-		int div = ff8_bgate_anim_policy_get(anim_cmd);
-		// frame 0 is the absolute base pose read right after the bones were zeroed - never
-		// hold it, or the model shows a T-pose for a frame.
-		if (div > 1 && *((uint8_t *)anim_cmd + 6) != 0 && (ff8_bgate_phase % div) != 0)
-		{
-			((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
-			return 0; // "frame processed, not complete" -> animation continues
-		}
+		((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+		return 1; // READ_ANIMATION_RETURN_ANIMATION_COMPLETE (same as the early-out)
+	}
+	int div = ff8_bgate_anim_policy_get(anim_cmd);
+	// frame 0 is the absolute base pose read right after the bones were zeroed - never
+	// hold it, or the model shows a T-pose for a frame.
+	if (div > 1 && *((uint8_t *)anim_cmd + 6) != 0 && (ff8_bgate_phase % div) != 0)
+	{
+		((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+		return 0; // "frame processed, not complete" -> animation continues
 	}
 	unreplace_function(ff8_bgate_readanim_ri);
-	int r = ff8_bgate_readanim_orig(header, anim_cmd);
+	int r = ff8_bgate_readanim_guarded(header, anim_cmd);
 	rereplace_function(ff8_bgate_readanim_ri);
 	return r;
 }
@@ -1832,6 +2006,51 @@ static uint32_t ff8_bgate_animseq_upd_ri = 0;
 int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 {
 	ff8_bgate_done_cache_t *dc = ff8_bgate_done_cache_get(slot_data_struct);
+
+#if FF8_BGATE_DIAG
+	// diagnostics-only mode: log and pass straight through (pure vanilla flow)
+	if (!ff8_bgate_active)
+	{
+		uint8_t *sv = (uint8_t *)slot_data_struct;
+		uint8_t *stv = (uint8_t *)*(uint32_t *)(sv + 0x74);
+		ffnx_info("V f=%u e=%p com=%u anim=%02X cf=%u/%u pos=%d,%d,%d\n",
+			ff8_bgate_diag_frame, slot_data_struct, sv[4], sv[0x6C], sv[0x72], sv[0x73],
+			(int)*(int16_t *)(stv + 0x24), (int)*(int16_t *)(stv + 0x26),
+			(int)*(int16_t *)(stv + 0x28));
+		unreplace_function(ff8_bgate_animseq_upd_ri);
+		int rv = ff8_bgate_animseq_upd_orig(slot_data_struct);
+		rereplace_function(ff8_bgate_animseq_upd_ri);
+		return rv;
+	}
+#endif
+#if FF8_BGATE_DIAG
+	{
+		int idx = FF8_BGATE_SLOT_IDX(slot_data_struct);
+		{ // log every entity - party slots turned out to live outside the 0x1D97494 array
+			uint8_t *s = (uint8_t *)slot_data_struct;
+			int rx = 0, rz = 0, b0 = 0;
+			uint32_t comdata = *(uint32_t *)(s + 0x64); // anim_header.comFileData
+			if (comdata > 0x10000 && comdata < 0x7F000000)
+			{
+				uint32_t skel = *(uint32_t *)comdata; // comFileSkeletonSection1
+				if (skel > 0x10000 && skel < 0x7F000000)
+				{
+					rx = *(int16_t *)(skel + 8);   // root_pos_x
+					rz = *(int16_t *)(skel + 12);  // root_pos_z
+					b0 = *(int16_t *)(skel + 0x14); // bone0 rotX (pose probe)
+				}
+			}
+			uint8_t *st = (uint8_t *)*(uint32_t *)(s + 0x74); // battle_state_controler_pointer
+			ffnx_info("D f=%u p=%d e=%p com=%u anim=%02X cf=%u/%u root=%d,%d seq=%u pc=%u dly=%u flg=%04X pos=%d,%d,%d\n",
+				ff8_bgate_diag_frame, ff8_bgate_phase, slot_data_struct, s[4],
+				s[0x6C], s[0x72], s[0x73], rx, rz,
+				st[0], (unsigned)*(uint16_t *)(st + 0x2E), st[1],
+				(unsigned)*(uint16_t *)(st + 0x2C),
+				(int)*(int16_t *)(st + 0x24), (int)*(int16_t *)(st + 0x26),
+				(int)*(int16_t *)(st + 0x28)); // state->position (E5 0D/0E/0F offsets)
+		}
+	}
+#endif
 
 	if (ff8_bgate_phase != 0)
 	{
@@ -1882,511 +2101,786 @@ void *__cdecl ff8_bgate_anim9e_hook(void *active_entity, void *param_entity, int
 	if (task)
 	{
 		uint16_t *param = (uint16_t *)((uint8_t *)task + 0x14); // TaskNodeAnimSeq_9E.movement_param
+#if FF8_BGATE_DIAG
+		ffnx_info("D f=%u p=%d 9E s=%d->s=%d param=%u (scaled to %u)\n",
+			ff8_bgate_diag_frame, ff8_bgate_phase, FF8_BGATE_SLOT_IDX(active_entity),
+			FF8_BGATE_SLOT_IDX(param_entity), (unsigned)*param, (unsigned)(*param * ff8_bgate_n));
+#endif
 		if (*param > 0)
 			*param = (uint16_t)(*param * ff8_bgate_n);
 	}
 	return task;
 }
 
-// --- magic/GF effect frame-hold (port of the 60fps branch machinery, 1-in-2) ---
+// --- battle camera: gate the keyframe player to real frames (see install-site comment
+// for why the step-halving patch this replaced caused a hard engine hang) ---
+static int (__cdecl *ff8_bgate_camanim_orig)(void *) = nullptr;
+static uint32_t ff8_bgate_camanim_ri = 0;
+
+int __cdecl ff8_bgate_camanim_hook(void *task)
+{
+	if (ff8_bgate_phase != 0)
+		return 0; // held frame: camera_struct stays put, no advance (see updateBattleCamera hook below for the render-facing interpolation this enables safely)
+	unreplace_function(ff8_bgate_camanim_ri);
+	int r = ff8_bgate_camanim_orig(task);
+	rereplace_function(ff8_bgate_camanim_ri);
+	return r;
+}
+
+// --- battle camera: extrapolate the RENDER-FACING position on held frames ---
+// The keyframe player's internal catch-up loop is where the hang lived (see above) -
+// its internal state (camera_struct: currentTime, keyframe pointers, segment tables)
+// is never touched on held frames. But the four globals updateBattleCamera (0x504060)
+// writes every call - Battle_Camera_world_XZ_s16/Y and Battle_Camera_LookAt_XZ_s16/Y,
+// the actual values the renderer reads for this frame's view - are a completely
+// separate, simple output: just four numbers. This hook lets the original function run
+// untouched (proven safe, produces the correct real-frame values, including the task
+// no-op on held frames), then on held frames OVERWRITES those four globals with a
+// linear extrapolation from the last two REAL frames' outputs:
+//   extrapolated = prev1 + (prev1 - prev2) * phase / n
+// prev1/prev2 are consecutive REAL camera outputs, so their delta is exactly one real
+// tick's worth of camera movement regardless of n; scaling by phase/n places each held
+// frame at its correct fractional position between them - same closed-form technique
+// used for the Cure ring, just applied to the camera's already-computed output instead
+// of re-deriving position from keyframe data. Nothing here can hang: it is pure
+// arithmetic on saved snapshots, no loops, no engine state mutated except the two
+// render-facing globals themselves.
+//
+// A large delta between the last two real frames (camera cut / stage transition) is
+// clamped rather than extrapolated - overshooting a cut would fling the view somewhere
+// absurd for one frame; holding the pre-cut position for that one frame is the safe
+// fallback and self-corrects next real tick.
+#define FF8_BGATE_CAM_JUMP_CLAMP 4096
+
+struct ff8_bgate_cam_snap_t { int32_t wxz, wy, lxz, ly; bool valid; };
+static ff8_bgate_cam_snap_t ff8_bgate_cam_prev1 = {0, 0, 0, 0, false};
+static ff8_bgate_cam_snap_t ff8_bgate_cam_prev2 = {0, 0, 0, 0, false};
+
+static int32_t ff8_bgate_extrap_s16pair(int32_t prev2, int32_t prev1, int num, int den)
+{
+	int16_t p2x = (int16_t)(prev2 & 0xFFFF), p2z = (int16_t)(prev2 >> 16);
+	int16_t p1x = (int16_t)(prev1 & 0xFFFF), p1z = (int16_t)(prev1 >> 16);
+	if (abs(p1x - p2x) > FF8_BGATE_CAM_JUMP_CLAMP || abs(p1z - p2z) > FF8_BGATE_CAM_JUMP_CLAMP)
+		return prev1;
+	int16_t rx = (int16_t)(p1x + ((p1x - p2x) * num) / den);
+	int16_t rz = (int16_t)(p1z + ((p1z - p2z) * num) / den);
+	return (uint16_t)rx | ((uint32_t)(uint16_t)rz << 16);
+}
+
+static int32_t ff8_bgate_extrap_i32(int32_t prev2, int32_t prev1, int num, int den)
+{
+	if (abs(prev1 - prev2) > FF8_BGATE_CAM_JUMP_CLAMP)
+		return prev1;
+	return prev1 + ((prev1 - prev2) * num) / den;
+}
+
+static int (__cdecl *ff8_bgate_updatecam_orig)() = nullptr;
+static uint32_t ff8_bgate_updatecam_ri = 0;
+
+int __cdecl ff8_bgate_updatecam_hook()
+{
+	unreplace_function(ff8_bgate_updatecam_ri);
+	int r = ff8_bgate_updatecam_orig();
+	rereplace_function(ff8_bgate_updatecam_ri);
+
+	int32_t *wxz = (int32_t *)0xB8B7F0, *wy = (int32_t *)0xB8B7F4;
+	int32_t *lxz = (int32_t *)0xB8B7F8, *ly = (int32_t *)0xB8B7FC;
+
+	if (ff8_bgate_phase == 0)
+	{
+		// real frame: snapshot the freshly-computed, fully-vanilla output
+		ff8_bgate_cam_prev2 = ff8_bgate_cam_prev1;
+		ff8_bgate_cam_prev1.wxz = *wxz;
+		ff8_bgate_cam_prev1.wy = *wy;
+		ff8_bgate_cam_prev1.lxz = *lxz;
+		ff8_bgate_cam_prev1.ly = *ly;
+		ff8_bgate_cam_prev1.valid = true;
+	}
+	else if (ff8_bgate_cam_prev1.valid && ff8_bgate_cam_prev2.valid)
+	{
+		*wxz = ff8_bgate_extrap_s16pair(ff8_bgate_cam_prev2.wxz, ff8_bgate_cam_prev1.wxz, ff8_bgate_phase, ff8_bgate_n);
+		*wy = ff8_bgate_extrap_i32(ff8_bgate_cam_prev2.wy, ff8_bgate_cam_prev1.wy, ff8_bgate_phase, ff8_bgate_n);
+		*lxz = ff8_bgate_extrap_s16pair(ff8_bgate_cam_prev2.lxz, ff8_bgate_cam_prev1.lxz, ff8_bgate_phase, ff8_bgate_n);
+		*ly = ff8_bgate_extrap_i32(ff8_bgate_cam_prev2.ly, ff8_bgate_cam_prev1.ly, ff8_bgate_phase, ff8_bgate_n);
+	}
+	return r;
+}
+
+// --- magic/GF effect pacing: native-rate tick + OT-insert record/replay ---
 // The battle effect tick (call @0x50093A -> ExecuteTaskQueue(C3_28_GF_data_pointer))
-// advances AND draws the active spell effect. Skipping it outright flickers, so on
-// held frames we snapshot the effect's state pool window, run the tick (it draws),
-// then restore (undo the advance). Whitelisted to magic-cast effects (cmd 0x02);
-// anything else (Draw/Stock swirl, limits, items) runs untouched.
+// both ADVANCES and DRAWS the active magic/GF effect tree. Two failed designs first:
+// skipping the tick on held frames = 15fps flicker (no draw); snapshot/restore around
+// a held tick = SOFTLOCKS, because effect state is spread over regions that cannot be
+// enumerated (per-effect BSS block, a packet scratch growing 71520 bytes/state, and a
+// SHARED GROWING PARTICLE HEAP at ~0x020Fxxxx whose list header has no pool bounds -
+// measured live on Esuna: its emitter's live-particle counts sat inside the restore
+// window while the particles died outside it, so the counts never reached zero and the
+// busy_lock completion chain hung the battle forever).
+//
+// This design never rewinds anything. The tick runs ONLY on real frames (phase 0), so
+// every effect - magic, Draw/Stock, limits, GF summons - advances at native 15fps by
+// construction. For the draw: all GPU packets enter the frame via the SSIGPU ordering
+// table through exactly two primitives, SSIGPU_InsertPrimDepthKeys (0x45C870) and
+// SSIGPU_InsertPrimAutoDepth (0x45C7A0). During the real tick we RECORD every insert
+// (bucket, packet, depth keys); on held frames we RE-ISSUE the same inserts against the
+// current frame's OT (rebased: the OT lives at g_Battle_FrameRenderListBase+68 and
+// flips per frame). This is safe because:
+//  - the insert allocates its linkage node from the per-frame ssigpu execution arena
+//    and only refreshes the packet tag's link bits - re-inserting a packet is a
+//    first-class engine operation;
+//  - effect packet memory is double-buffered per TICK (activeVram/vramEven/vramOdd),
+//    and at n=2 the frame-flat buffer parity of real frames is untouched on held
+//    frames, so recorded packet pointers stay valid until the next real tick. (n=4
+//    would need packet copies for flat-buffer packets - not handled yet.)
+// No held tick also means no re-triggered SFX or damage numbers (the old suppression
+// hooks are gone), and no per-effect whitelists: everything is paced uniformly.
+#define FF8_BGATE_CUR_OT() (*(uint32_t *)0x1D8E04C + 68) // g_Battle_FrameRenderListBase + 68
+
 static int (__cdecl *ff8_bgate_effect_tick_orig)(void *effect_ctx) = nullptr;
 
-// (ff8_bgate_fx_holding is declared at the top of this block - the animation hooks use it too.)
-static uint32_t ff8_bgate_playworldsound_ri = 0;
+// Held-frame interpolation of the effect draws (all magic, GF summons, limits, Draw...).
+// Every effect part - particle, sprite, prim model, mesh, GF creature - reaches the screen
+// as a PSX GPU packet whose vertices are already projected to screen space. So instead of
+// per-spell work, the held frame is built from the last TWO real ticks: each primitive of
+// tick N is paired with its counterpart in tick N-1 and its vertices (and vertex colors)
+// are moved forward by (N - (N-1)) * phase / n. At n=2 that is exactly half a native step,
+// i.e. the in-between pose, and it matches the camera, which is extrapolated the same way.
+// Texture coordinates are never touched: flipbook sprite art keeps its native 15fps
+// cadence, only the motion is smoothed. Anything that cannot be paired safely (new particle,
+// changed primitive type/texture page, jump larger than FF8_BGATE_FX_MAX_STEP) is redrawn
+// exactly as tick N drew it - the previous hold behaviour, never worse.
+//
+// Packets are COPIED at the end of each real tick (1) so the tick N-1 content survives
+// the effects' own double-buffered packet arenas, and (2) so the held-frame inserts link
+// our copies into the OT instead of re-linking game memory the effect may already be
+// recycling (the cause of the Cure replay fault the blacklist below was guarding against).
+// Recording: every primitive reaches the frame as a 24-byte node in the SSIGPU execution
+// arena, linked into an ordering-table bucket. FOUR engine functions create nodes -
+// 0x45C740 (plain), 0x45C7A0 (GTE auto depth), 0x45C870 (explicit depth keys) and 0x45C8E0
+// (msk=1: the executor's alternate viewport mode) - and 0x45C860 edits the last node's msk
+// afterwards. Hooking two of them missed draws (Leviathan flashed at 15Hz: part of it was
+// drawn on real frames only) and replaying through one of them lost msk. So the tick's draws
+// are read straight from the arena instead: the nodes created during the effect tick are
+// exactly [cursor before, cursor after), each one with its final keys and msk, and its
+// bucket is found by walking the OT (effect nodes sit on top of their bucket's chain, since
+// nothing else inserts during the tick). No hooks at all on the shared insert primitives.
+#define FF8_BGATE_EXEC_START 0x1C48828u                // ssigpu_execution_start
+#define FF8_BGATE_EXEC_CUR (*(uint32_t *)0x1CA8828)     // ssigpu_execution_cur
+#define FF8_BGATE_EXEC_LIMIT 0x60000u                   // arena size, as checked by the inserts
+#define FF8_BGATE_OT_BUCKETS 4386
+#define FF8_BGATE_RLIST_CUR (*(uint32_t *)0x1D8E054)    // battle model render-list cursor (diagnostics)
+#define FF8_BGATE_FX_MAX_PRIMS 4096
+#define FF8_BGATE_FX_ARENA_WORDS (256 * 1024)  // 1 MB of packet copies per tick
+#define FF8_BGATE_FX_MAX_VERTS 64              // vertices tracked per packet
+#define FF8_BGATE_FX_MAX_STEP 48               // px per native step; beyond = cut, don't extrapolate
+#define FF8_BGATE_FX_MAX_STEP_INORDER 128      // same, for an exact-UV counterpart (meshes: unambiguous)
 
-int __cdecl ff8_bgate_PlayWorldSound_hook(int number, int attr, unsigned int pos, unsigned int vol)
+#pragma pack(push, 1)
+struct ff8_bgate_exec_node // struc_34_ssgi_execution
 {
-	if (ff8_bgate_fx_holding)
-		return 0; // held-frame re-draw: don't re-trigger the sound
-	unreplace_function(ff8_bgate_playworldsound_ri);
-	int r = ((int(__cdecl *)(int, int, unsigned int, unsigned int))0x46B2A0)(number, attr, pos, vol);
-	rereplace_function(ff8_bgate_playworldsound_ri);
-	return r;
+	uint32_t *pkt;   // +0x00 packet (tag low 24 bits = previous bucket head, low part)
+	int32_t k[4];    // +0x04 depth keys
+	uint16_t msk;    // +0x14 bit0 = alternate viewport mode
+	uint8_t link_hi; // +0x16 previous bucket head, high byte
+	uint8_t pad;
+};
+#pragma pack(pop)
+static_assert(sizeof(ff8_bgate_exec_node) == 24, "SSIGPU execution node is 24 bytes");
+
+static bool ff8_bgate_fx_replay_ok = false;
+static uint32_t ff8_bgate_fx_rec_begin = 0; // arena cursor before the real tick
+static uint32_t ff8_bgate_fx_rec_ot = 0;
+static uint32_t ff8_bgate_fx_rec_rlist = 0;
+static int16_t ff8_bgate_fx_node_bucket[FF8_BGATE_FX_MAX_PRIMS];
+
+// One real tick's worth of effect draws, copied
+struct ff8_bgate_fx_prim
+{
+	int32_t k[4];
+	uint16_t bucket; // index in the battle OT
+	uint16_t msk;
+	uint32_t off;    // word offset of the packet copy in the arena
+	uint32_t words;  // packet size in words, tag included
+	uint32_t sig, sig_uv; // identities (0/0 + !parsed when the packet could not be parsed)
+	int32_t next_uv, next_w; // hash chains (see ff8_bgate_fx_snap)
+	bool parsed;
+};
+#define FF8_BGATE_FX_HASH 4096 // chain heads per identity table (power of two)
+struct ff8_bgate_fx_snap
+{
+	ff8_bgate_fx_prim prim[FF8_BGATE_FX_MAX_PRIMS];
+	int32_t head_uv[FF8_BGATE_FX_HASH]; // strong identity -> first primitive with it
+	int32_t head_w[FF8_BGATE_FX_HASH];  // weak identity -> first primitive with it
+	int n;
+	int orphans;          // nodes whose bucket could not be found (not replayed)
+	uint32_t rlist_delta; // bytes the effect tick pushed to the battle model render list
+	uint32_t used;
+	void *ctx;
+	uint32_t frame;
+	bool valid;
+	uint32_t arena[FF8_BGATE_FX_ARENA_WORDS];
+};
+static ff8_bgate_fx_snap ff8_bgate_fx_snaps[2];
+static int ff8_bgate_fx_cur = 0; // snaps[cur] = tick N, snaps[cur ^ 1] = tick N-1
+static uint32_t ff8_bgate_fx_out[FF8_BGATE_FX_ARENA_WORDS]; // held-frame packets (live until the frame is drawn)
+
+// Walks a PSX GPU packet (tag word + GP0 commands) and lists the word indexes holding
+// screen vertices (int16 x | int16 y << 16) and vertex colors (0x00BBGGRR). The signature
+// hashes everything that identifies "the same primitive" across ticks: size, command
+// codes and texture page/CLUT - but not UVs (flipbook frames advance on the same sprite)
+// nor positions/colors (those are what moves). Returns false on commands it does not know
+// (VRAM transfers, fills...): such a packet is redrawn as-is.
+struct ff8_bgate_pkt_info
+{
+	uint16_t xy[FF8_BGATE_FX_MAX_VERTS];
+	uint16_t col[FF8_BGATE_FX_MAX_VERTS];
+	int nxy, ncol;
+	uint32_t sig;      // weak identity: packet shape + texture page/CLUT
+	uint32_t sig_uv;   // strong identity: weak + every UV word (a mesh triangle keeps its UVs)
+	uint32_t last_cmd; // command being decoded when parsing stopped (diagnostics)
+};
+
+static bool ff8_bgate_pkt_parse(const uint32_t *p, uint32_t words, ff8_bgate_pkt_info &pi)
+{
+	pi.nxy = pi.ncol = 0;
+	pi.last_cmd = 0;
+	uint32_t sig = 2166136261u ^ words;
+	uint32_t uv = 2166136261u;
+	#define FF8_BGATE_UV(v) (uv = (uv ^ (uint32_t)(v)) * 16777619u)
+	#define FF8_BGATE_SIG(v) (sig = (sig ^ (uint32_t)(v)) * 16777619u)
+	#define FF8_BGATE_XY(w) do { if (pi.nxy >= FF8_BGATE_FX_MAX_VERTS) return false; pi.xy[pi.nxy++] = (uint16_t)(w); } while (0)
+	#define FF8_BGATE_COL(w) do { if (pi.ncol >= FF8_BGATE_FX_MAX_VERTS) return false; pi.col[pi.ncol++] = (uint16_t)(w); } while (0)
+	uint32_t w = 1;
+	while (w < words)
+	{
+		uint32_t cmd = p[w] >> 24;
+		pi.last_cmd = cmd;
+		FF8_BGATE_SIG(cmd);
+		if (cmd >= 0x20 && cmd < 0x40) // polygon: color, then per vertex [color] xy [uv]
+		{
+			int nv = (cmd & 0x08) ? 4 : 3;
+			bool tex = (cmd & 0x04) != 0, gouraud = (cmd & 0x10) != 0;
+			uint32_t need = 1 + nv + (tex ? nv : 0) + (gouraud ? nv - 1 : 0);
+			if (w + need > words) return false;
+			FF8_BGATE_COL(w++);
+			for (int v = 0; v < nv; v++)
+			{
+				if (v > 0 && gouraud) FF8_BGATE_COL(w++);
+				FF8_BGATE_XY(w++);
+				if (tex)
+				{
+					if (v < 2) FF8_BGATE_SIG(p[w] >> 16); // v0: CLUT, v1: texture page
+					FF8_BGATE_UV(p[w]);
+					w++;
+				}
+			}
+		}
+		else if (cmd >= 0x40 && cmd < 0x60) // line / polyline
+		{
+			bool poly = (cmd & 0x08) != 0, gouraud = (cmd & 0x10) != 0;
+			if (w + 2 > words) return false;
+			FF8_BGATE_COL(w++);
+			FF8_BGATE_XY(w++);
+			if (!poly)
+			{
+				if (gouraud) { if (w >= words) return false; FF8_BGATE_COL(w++); }
+				if (w >= words) return false;
+				FF8_BGATE_XY(w++);
+			}
+			else
+			{
+				while (w < words && (p[w] & 0xF000F000) != 0x50005000)
+				{
+					if (gouraud) FF8_BGATE_COL(w++);
+					if (w >= words) return false;
+					FF8_BGATE_XY(w++);
+				}
+				w++; // terminator
+			}
+		}
+		else if (cmd >= 0x60 && cmd < 0x80) // rectangle / sprite: color, xy, [uv+clut], [w,h]
+		{
+			bool tex = (cmd & 0x04) != 0, var = (cmd & 0x18) == 0;
+			uint32_t need = 2 + (tex ? 1 : 0) + (var ? 1 : 0);
+			if (w + need > words) return false;
+			FF8_BGATE_COL(w++);
+			FF8_BGATE_XY(w++);
+			if (tex) { FF8_BGATE_SIG(p[w] >> 16); FF8_BGATE_UV(p[w]); w++; }
+			if (var) { FF8_BGATE_SIG(p[w]); w++; }
+		}
+		else if (cmd >= 0xE1 && cmd <= 0xE6) // draw mode / texture window / area / offset / mask
+		{
+			FF8_BGATE_SIG(p[w]);
+			w++;
+		}
+		else if (cmd == 0x00 && p[w] == 0) // NOP padding
+			w++;
+		else
+			return false;
+	}
+	pi.sig = sig;
+	pi.sig_uv = (uv == 2166136261u) ? 0 : (sig ^ uv) * 16777619u; // 0 = untextured: no strong identity
+	return true;
+	#undef FF8_BGATE_SIG
+	#undef FF8_BGATE_XY
+	#undef FF8_BGATE_COL
+	#undef FF8_BGATE_UV
 }
 
-static uint32_t ff8_bgate_damagenum_ri = 0;
-
-void __cdecl ff8_bgate_DamageNumbers_Spawn_hook(void *a1)
+// Largest per-vertex screen step between the two versions of a primitive
+static int ff8_bgate_pkt_step(const uint32_t *a, const uint32_t *b, const ff8_bgate_pkt_info &pi)
 {
-	if (ff8_bgate_fx_holding)
-		return; // held-frame re-draw: don't re-spawn the damage number
-	unreplace_function(ff8_bgate_damagenum_ri);
-	((void(__cdecl *)(void *))0x5068B0)(a1);
-	rereplace_function(ff8_bgate_damagenum_ri);
+	int d = 0;
+	for (int i = 0; i < pi.nxy; i++)
+	{
+		uint32_t va = a[pi.xy[i]], vb = b[pi.xy[i]];
+		int dx = abs((int)(int16_t)(va & 0xFFFF) - (int)(int16_t)(vb & 0xFFFF));
+		int dy = abs((int)(int16_t)(va >> 16) - (int)(int16_t)(vb >> 16));
+		if (dx > d) d = dx;
+		if (dy > d) d = dy;
+	}
+	return d;
 }
 
-#define FF8_BGATE_C3_28_GF_PTR (*(void **)0x1D96AAC)
-#define FF8_BGATE_CMD_MAGIC 0x02
-
-static void *ff8_bgate_fx_holdable_ctx = nullptr;
-static uint32_t ff8_bgate_setup_ri_A = 0; // sub_50A9A0
-static uint32_t ff8_bgate_setup_ri_B = 0; // sub_50B190
-
-static void ff8_bgate_capture_holdable(void *before)
+// round(v * num / den), symmetric around 0
+static inline int ff8_bgate_scale_round(int v, int num, int den)
 {
-	void *after = FF8_BGATE_C3_28_GF_PTR;
-	if (!after || after == before)
+	int t = v * num;
+	return (t >= 0) ? (t + den / 2) / den : -((-t + den / 2) / den);
+}
+
+// dst (a copy of cur) := cur + (cur - prev) * num / den, on vertices and vertex colors
+static int ff8_bgate_pkt_extrapolate(uint32_t *dst, const uint32_t *cur, const uint32_t *prev, const ff8_bgate_pkt_info &pi, int num, int den, bool colors)
+{
+	int max_dc = 0;
+	for (int i = 0; i < pi.nxy; i++)
+	{
+		uint32_t c = cur[pi.xy[i]], p = prev[pi.xy[i]];
+		int cx = (int16_t)(c & 0xFFFF), cy = (int16_t)(c >> 16);
+		int px = (int16_t)(p & 0xFFFF), py = (int16_t)(p >> 16);
+		int x = cx + ff8_bgate_scale_round(cx - px, num, den);
+		int y = cy + ff8_bgate_scale_round(cy - py, num, den);
+		if (x < -32768) x = -32768; if (x > 32767) x = 32767;
+		if (y < -32768) y = -32768; if (y > 32767) y = 32767;
+		dst[pi.xy[i]] = (uint32_t)(uint16_t)x | ((uint32_t)(uint16_t)y << 16);
+	}
+	if (!colors)
+		return 0;
+	for (int i = 0; i < pi.ncol; i++)
+	{
+		uint32_t c = cur[pi.col[i]], p = prev[pi.col[i]];
+		uint32_t out = c & 0xFF000000; // command byte (first color word) stays
+		for (int s = 0; s < 24; s += 8)
+		{
+			int cc = (c >> s) & 0xFF, pc = (p >> s) & 0xFF;
+			int v = cc + ff8_bgate_scale_round(cc - pc, num, den);
+			if (v < 0) v = 0; if (v > 255) v = 255;
+			if (abs(v - cc) > max_dc) max_dc = abs(v - cc);
+			out |= (uint32_t)v << s;
+		}
+		dst[pi.col[i]] = out;
+	}
+	return max_dc;
+}
+
+// Indexes the tick's primitives by identity, so the next held frame can find each one's
+// previous-tick counterpart without depending on the (culling-sensitive) emission order
+static void ff8_bgate_fx_index(ff8_bgate_fx_snap &s)
+{
+	static ff8_bgate_pkt_info pi;
+	for (int h = 0; h < FF8_BGATE_FX_HASH; h++)
+		s.head_uv[h] = s.head_w[h] = -1;
+	for (int i = s.n - 1; i >= 0; i--) // backwards so chains come out in emission order
+	{
+		ff8_bgate_fx_prim &e = s.prim[i];
+		e.parsed = ff8_bgate_pkt_parse(&s.arena[e.off], e.words, pi) && pi.nxy > 0;
+		e.sig = e.parsed ? pi.sig : 0;
+		e.sig_uv = e.parsed ? pi.sig_uv : 0;
+		e.next_uv = e.next_w = -1;
+		if (!e.parsed)
+			continue;
+		uint32_t hu = e.sig_uv & (FF8_BGATE_FX_HASH - 1), hw = e.sig & (FF8_BGATE_FX_HASH - 1);
+		if (e.sig_uv != 0) { e.next_uv = s.head_uv[hu]; s.head_uv[hu] = i; }
+		e.next_w = s.head_w[hw]; s.head_w[hw] = i;
+	}
+}
+
+// End of a real tick: copy every node the effect created, while the packets are fresh
+static void ff8_bgate_fx_capture_unsafe(ff8_bgate_fx_snap &s)
+{
+	uint32_t begin = ff8_bgate_fx_rec_begin, end = FF8_BGATE_EXEC_CUR;
+	if (end < begin || (end - begin) % sizeof(ff8_bgate_exec_node) != 0)
+		return; // arena was flushed during the tick - nothing trustworthy to replay
+	int n = (int)((end - begin) / sizeof(ff8_bgate_exec_node));
+	if (n > FF8_BGATE_FX_MAX_PRIMS)
+	{
+		ffnx_info("30fps fx: %d draws in one effect tick (> %d), held-frame redraw skipped\n", n, FF8_BGATE_FX_MAX_PRIMS);
 		return;
-	uint8_t *t = *(uint8_t **)0x1D99A50; // BATTLE_TASK_68_DATA_ADDR
-	if ((uint32_t)t <= 0x10000 || (uint32_t)t >= 0x7F000000)
-		return;
-	if (t[1] != FF8_BGATE_CMD_MAGIC)
-		return; // Draw (0x06) etc.: not held, runs at normal speed, never crashes
-	ff8_bgate_fx_holdable_ctx = after;
-	ffnx_info("30fps: HOLDABLE %p (magic, eff=%02X)\n", after, t[6]);
+	}
+	for (int i = 0; i < n; i++)
+		ff8_bgate_fx_node_bucket[i] = -1;
+
+	// bucket of each node: walk every bucket's chain while it stays inside the tick's nodes
+	uint32_t *ot = (uint32_t *)ff8_bgate_fx_rec_ot;
+	for (int b = 0; b < FF8_BGATE_OT_BUCKETS; b++)
+	{
+		uint32_t v = ot[b];
+		while (v >= begin && v < end && (v - begin) % sizeof(ff8_bgate_exec_node) == 0)
+		{
+			int i = (int)((v - begin) / sizeof(ff8_bgate_exec_node));
+			if (ff8_bgate_fx_node_bucket[i] >= 0)
+				break;
+			ff8_bgate_fx_node_bucket[i] = (int16_t)b;
+			const ff8_bgate_exec_node *node = (const ff8_bgate_exec_node *)v;
+			v = (node->pkt[0] & 0xFFFFFF) | ((uint32_t)node->link_hi << 24);
+		}
+	}
+
+	for (int i = 0; i < n; i++)
+	{
+		const ff8_bgate_exec_node *node = (const ff8_bgate_exec_node *)(begin + i * sizeof(ff8_bgate_exec_node));
+		if (ff8_bgate_fx_node_bucket[i] < 0)
+		{
+			s.orphans++;
+			continue;
+		}
+		uint32_t words = (node->pkt[0] >> 24) + 1;
+		if (s.used + words > FF8_BGATE_FX_ARENA_WORDS)
+			return;
+		ff8_bgate_fx_prim &d = s.prim[s.n++];
+		memcpy(d.k, node->k, sizeof(d.k));
+		d.bucket = (uint16_t)ff8_bgate_fx_node_bucket[i];
+		d.msk = node->msk;
+		d.off = s.used;
+		d.words = words;
+		memcpy(&s.arena[s.used], node->pkt, words * 4);
+		s.used += words;
+	}
+	ff8_bgate_fx_index(s);
+	s.valid = true;
 }
 
-int __cdecl ff8_bgate_magic_setup_hook_A(int a1)
+static void ff8_bgate_fx_capture(void *effect_ctx)
 {
-	void *before = FF8_BGATE_C3_28_GF_PTR;
-	unreplace_function(ff8_bgate_setup_ri_A);
-	int r = ((int(__cdecl *)(int))0x50A9A0)(a1);
-	rereplace_function(ff8_bgate_setup_ri_A);
-	ff8_bgate_capture_holdable(before);
-	return r;
+	ff8_bgate_fx_cur ^= 1;
+	ff8_bgate_fx_snap &s = ff8_bgate_fx_snaps[ff8_bgate_fx_cur];
+	s.n = 0;
+	s.orphans = 0;
+	s.rlist_delta = FF8_BGATE_RLIST_CUR - ff8_bgate_fx_rec_rlist;
+	s.used = 0;
+	s.ctx = effect_ctx;
+	s.frame = ff8_bgate_frame_no;
+	s.valid = false;
+	__try
+	{
+		ff8_bgate_fx_capture_unsafe(s);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		s.valid = false;
+		ffnx_info("30fps: effect_ctx=%p packet copy faulted, held frame skipped\n", effect_ctx);
+	}
 }
 
-int __cdecl ff8_bgate_magic_setup_hook_B(int a1)
+// Blacklist of effect_ctx whose replay faulted once - never replayed again (that effect
+// steps at native 15fps with no held-frame redraw, everything else keeps replaying).
+static void *ff8_bgate_fx_replay_blacklist[16] = {0};
+static int ff8_bgate_fx_replay_blacklist_n = 0;
+
+static bool ff8_bgate_fx_replay_is_blacklisted(void *ctx)
 {
-	void *before = FF8_BGATE_C3_28_GF_PTR;
-	unreplace_function(ff8_bgate_setup_ri_B);
-	int r = ((int(__cdecl *)(int))0x50B190)(a1);
-	rereplace_function(ff8_bgate_setup_ri_B);
-	ff8_bgate_capture_holdable(before);
-	return r;
-}
-
-#define FF8_BGATE_FX_SNAP_BEFORE 0x2000u
-#define FF8_BGATE_FX_SNAP_SIZE   0x8000u
-
-// Cure needs a MUCH bigger, differently-positioned window than the generic guess: its total
-// live footprint (root pool/queue, particleQueue1+pool, emitter queue+pool, particleQueue2
-// (glints)+pool, overlay context, camera-matrix snapshot) spans 0x277AEC0..0x2793E78 (~100KB),
-// more than 3x the generic 0x8000 window - and effect_ctx (rootQueue) sits near the LOW end of
-// that range, not centered in it. With the generic window the entire emitter (the heal-timing
-// state machine), the glint pool and the overlay context fall OUTSIDE it, so they never get
-// reverted and run ungated at full host rate while the director stays correctly paced. That
-// cross-rate desync in the busy_lock completion chain (ring -> emitter -> director) softlocks
-// the end of the animation. Measured + fixed on the 60fps branch (commit 9d39671f); the same
-// latent bug existed here, so the window is ported as-is (addresses are rate-independent).
-#define FF8_BGATE_CURE_SNAP_BASE ((uint8_t *)0x277AEC0)
-#define FF8_BGATE_CURE_SNAP_SIZE 0x19000u // rounded up from the measured 0x18FB8
-
-static uint8_t ff8_bgate_fx_snapshot[FF8_BGATE_CURE_SNAP_SIZE > FF8_BGATE_FX_SNAP_SIZE ? FF8_BGATE_CURE_SNAP_SIZE : FF8_BGATE_FX_SNAP_SIZE];
-
-static void *ff8_bgate_fx_blacklist[16] = {0};
-static int ff8_bgate_fx_blacklist_n = 0;
-
-static bool ff8_bgate_fx_is_blacklisted(void *c)
-{
-	for (int i = 0; i < ff8_bgate_fx_blacklist_n; i++)
-		if (ff8_bgate_fx_blacklist[i] == c) return true;
+	for (int i = 0; i < ff8_bgate_fx_replay_blacklist_n; i++)
+		if (ff8_bgate_fx_replay_blacklist[i] == ctx) return true;
 	return false;
 }
 
-static void ff8_bgate_fx_blacklist_add(void *c)
+static void ff8_bgate_fx_replay_blacklist_add(void *ctx)
 {
-	if (ff8_bgate_fx_is_blacklisted(c)) return;
-	if (ff8_bgate_fx_blacklist_n < 16) ff8_bgate_fx_blacklist[ff8_bgate_fx_blacklist_n++] = c;
+	if (ff8_bgate_fx_replay_is_blacklisted(ctx)) return;
+	if (ff8_bgate_fx_replay_blacklist_n < 16) ff8_bgate_fx_replay_blacklist[ff8_bgate_fx_replay_blacklist_n++] = ctx;
 }
 
-static bool ff8_bgate_fx_window_committed(uint8_t *base, size_t size)
+// Vertex weld table for one held frame: screen position of a tick-N vertex -> summed
+// displacement of every paired primitive that has a vertex there. Generation-stamped so it
+// never needs clearing (a stale entry from an older frame reads as empty).
+#define FF8_BGATE_WELD_SLOTS 65536 // power of two, > 4 x FF8_BGATE_FX_MAX_PRIMS
+#define FF8_BGATE_WELD_SAMPLES 8
+struct ff8_bgate_weld_slot { uint32_t key, gen; int32_t n; int16_t dx[FF8_BGATE_WELD_SAMPLES], dy[FF8_BGATE_WELD_SAMPLES]; };
+static ff8_bgate_weld_slot ff8_bgate_weld[FF8_BGATE_WELD_SLOTS];
+static uint32_t ff8_bgate_fx_used[FF8_BGATE_FX_MAX_PRIMS]; // prev primitive already paired (== weld gen)
+static uint32_t ff8_bgate_weld_gen = 0;
+
+static ff8_bgate_weld_slot *ff8_bgate_weld_find(uint32_t key, bool create)
 {
-	uint8_t *p = base;
-	uint8_t *end = base + size;
-	while (p < end)
+	uint32_t h = (key * 2654435761u) >> 16;
+	for (int probe = 0; probe < 64; probe++)
 	{
-		MEMORY_BASIC_INFORMATION mbi;
-		if (VirtualQuery(p, &mbi, sizeof(mbi)) == 0) return false;
-		if (mbi.State != MEM_COMMIT) return false;
-		if ((mbi.Protect & (PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READWRITE)) == 0) return false;
-		p = (uint8_t *)mbi.BaseAddress + mbi.RegionSize;
+		ff8_bgate_weld_slot &s = ff8_bgate_weld[(h + probe) & (FF8_BGATE_WELD_SLOTS - 1)];
+		if (s.gen != ff8_bgate_weld_gen)
+		{
+			if (!create) return nullptr;
+			s.gen = ff8_bgate_weld_gen; s.key = key; s.n = 0;
+			return &s;
+		}
+		if (s.key == key) return &s;
+	}
+	return nullptr; // table saturated around this key: vertex simply is not welded
+}
+
+static void ff8_bgate_weld_add(uint32_t key, int dx, int dy)
+{
+	ff8_bgate_weld_slot *s = ff8_bgate_weld_find(key, true);
+	if (!s || s->n >= FF8_BGATE_WELD_SAMPLES) return;
+	s->dx[s->n] = (int16_t)dx;
+	s->dy[s->n] = (int16_t)dy;
+	s->n++;
+}
+
+static int ff8_bgate_median(int16_t *v, int n)
+{
+	for (int i = 1; i < n; i++) // n <= 8: insertion sort
+	{
+		int16_t x = v[i];
+		int j = i - 1;
+		while (j >= 0 && v[j] > x) { v[j + 1] = v[j]; j--; }
+		v[j + 1] = x;
+	}
+	return v[(n - 1) / 2]; // lower median: an even split leans to the smaller-index sample
+}
+
+// One displacement per vertex position, voted by every paired primitive touching it: the
+// component-wise median, so a minority of wrong pairs (repeated texture tiles give several
+// triangles identical UVs) is outvoted instead of tearing the mesh. Two disagreeing votes
+// keep the smaller movement - the conservative choice when there is no majority.
+static bool ff8_bgate_weld_get(uint32_t key, int &dx, int &dy)
+{
+	ff8_bgate_weld_slot *s = ff8_bgate_weld_find(key, false);
+	if (!s || s->n == 0) return false;
+	if (s->n == 2)
+	{
+		int a = abs(s->dx[0]) + abs(s->dy[0]), b = abs(s->dx[1]) + abs(s->dy[1]);
+		int k = (a <= b) ? 0 : 1;
+		dx = s->dx[k]; dy = s->dy[k];
+		return true;
+	}
+	int16_t tx[FF8_BGATE_WELD_SAMPLES], ty[FF8_BGATE_WELD_SAMPLES];
+	memcpy(tx, s->dx, s->n * sizeof(int16_t));
+	memcpy(ty, s->dy, s->n * sizeof(int16_t));
+	dx = ff8_bgate_median(tx, s->n);
+	dy = ff8_bgate_median(ty, s->n);
+	return true;
+}
+
+// A primitive and its true counterpart one native tick earlier have nearly the same shape;
+// a wrong pair (a neighbouring tile with the same UVs, a different particle) usually does
+// not. Rejects pairs whose edges changed length by more than 1.5x (edges under 4px ignored).
+static bool ff8_bgate_pkt_same_shape(const uint32_t *a, const uint32_t *b, const ff8_bgate_pkt_info &pi)
+{
+	if (pi.nxy < 3)
+		return true; // sprites/lines: position only, nothing to compare
+	for (int i = 0; i < pi.nxy; i++)
+	{
+		int j = (i + 1) % pi.nxy;
+		uint32_t a0 = a[pi.xy[i]], a1 = a[pi.xy[j]], b0 = b[pi.xy[i]], b1 = b[pi.xy[j]];
+		int ax = (int16_t)(a1 & 0xFFFF) - (int16_t)(a0 & 0xFFFF), ay = (int16_t)(a1 >> 16) - (int16_t)(a0 >> 16);
+		int bx = (int16_t)(b1 & 0xFFFF) - (int16_t)(b0 & 0xFFFF), by = (int16_t)(b1 >> 16) - (int16_t)(b0 >> 16);
+		long long la = (long long)ax * ax + (long long)ay * ay, lb = (long long)bx * bx + (long long)by * by;
+		if (la < 16 && lb < 16)
+			continue;
+		// (1.5)^2 = 2.25 -> 4 * la > 9 * lb, both ways
+		if (4 * la > 9 * lb || 4 * lb > 9 * la)
+			return false;
 	}
 	return true;
 }
 
-// Held-frame body isolated so the gate stays free of objects needing unwinding
-// (required for the __try guard around it).
-static void ff8_bgate_fx_hold_once(void *effect_ctx, uint8_t *base, size_t size)
+// Held frame: insert an extrapolated copy of every primitive of tick N into this frame's OT
+static void ff8_bgate_fx_replay_unsafe()
 {
-	memcpy(ff8_bgate_fx_snapshot, base, size);
-	ff8_bgate_fx_holding = true; // suppress SFX/damage numbers during the re-draw
-	ff8_bgate_effect_tick_orig(effect_ctx);
-	ff8_bgate_fx_holding = false;
-	memcpy(base, ff8_bgate_fx_snapshot, size);
+	const ff8_bgate_fx_snap &cur = ff8_bgate_fx_snaps[ff8_bgate_fx_cur];
+	const ff8_bgate_fx_snap &prev = ff8_bgate_fx_snaps[ff8_bgate_fx_cur ^ 1];
+	// only interpolate against the directly preceding real tick of the same effect
+	bool interp = ff8_bgate_fx_mode > 0 && prev.valid && prev.ctx == cur.ctx && cur.frame - prev.frame == (uint32_t)ff8_bgate_n;
+	int st_match = 0, st_nosig = 0, st_far = 0, st_unparsed = 0, st_maxcol = 0, st_welded = 0;
+	uint32_t st_badcmd = 0;
+	uint32_t cur_ot = FF8_BGATE_CUR_OT();
+	uint32_t out_used = 0;
+	static ff8_bgate_pkt_info ci;
+
+	// Pass 1: pair primitives, extrapolate colors of the paired ones, and collect one screen
+	// displacement per VERTEX POSITION (welding). Pass 2 applies those displacements to every
+	// primitive touching the position, paired or not - so triangles sharing a corner always
+	// move that corner identically and meshes never crack open along their edges (per-primitive
+	// decisions left gaps wherever a neighbour was rejected: Leviathan showed its triangles).
+	ff8_bgate_weld_gen++;
+	for (int i = 0; i < cur.n; i++)
+	{
+		const ff8_bgate_fx_prim &e = cur.prim[i];
+		const uint32_t *src = &cur.arena[e.off];
+		uint32_t *dst = &ff8_bgate_fx_out[out_used];
+		memcpy(dst, src, e.words * 4);
+		out_used += e.words;
+
+		bool parsed = interp && ff8_bgate_pkt_parse(src, e.words, ci);
+		if (interp && !parsed) { st_unparsed++; st_badcmd = ci.last_cmd; }
+		if (parsed && (ci.nxy > 0 || ci.ncol > 0))
+		{
+			// counterpart = the closest not-yet-used primitive of tick N-1 with the same
+			// STRONG identity (same UVs: a mesh triangle, or a particle on the same sprite
+			// frame); failing that, the same WEAK identity within FF8_BGATE_FX_MAX_STEP
+			// (flipbook sprites whose UVs advanced). Independent of emission order, which
+			// shifts whenever a few triangles get culled or particles spawn/die.
+			int best = -1, best_d = 0x7FFFFFFF, limit = FF8_BGATE_FX_MAX_STEP_INORDER;
+			for (int c = ci.sig_uv ? prev.head_uv[ci.sig_uv & (FF8_BGATE_FX_HASH - 1)] : -1; c >= 0; c = prev.prim[c].next_uv)
+			{
+				const ff8_bgate_fx_prim &q = prev.prim[c];
+				if (q.sig_uv != ci.sig_uv || q.words != e.words || ff8_bgate_fx_used[c] == ff8_bgate_weld_gen) continue;
+				int d = ff8_bgate_pkt_step(src, &prev.arena[q.off], ci);
+				if (d < best_d) { best = c; best_d = d; }
+			}
+			if (best < 0 || best_d > FF8_BGATE_FX_MAX_STEP_INORDER)
+			{
+				best = -1; best_d = 0x7FFFFFFF; limit = FF8_BGATE_FX_MAX_STEP;
+				for (int c = prev.head_w[ci.sig & (FF8_BGATE_FX_HASH - 1)]; c >= 0; c = prev.prim[c].next_w)
+				{
+					const ff8_bgate_fx_prim &q = prev.prim[c];
+					if (q.sig != ci.sig || q.words != e.words || ff8_bgate_fx_used[c] == ff8_bgate_weld_gen) continue;
+					int d = ff8_bgate_pkt_step(src, &prev.arena[q.off], ci);
+					if (d < best_d) { best = c; best_d = d; }
+				}
+			}
+			if (best >= 0)
+			{
+				const uint32_t *qp = &prev.arena[prev.prim[best].off];
+				if (best_d <= limit && ff8_bgate_pkt_same_shape(src, qp, ci))
+				{
+					ff8_bgate_fx_used[best] = ff8_bgate_weld_gen;
+					int dc = ff8_bgate_pkt_extrapolate(dst, src, qp, ci, ff8_bgate_phase, ff8_bgate_n, ff8_bgate_fx_mode >= 2);
+					if (dc > st_maxcol) st_maxcol = dc;
+					for (int v = 0; v < ci.nxy; v++)
+					{
+						uint32_t c = src[ci.xy[v]], p = qp[ci.xy[v]];
+						ff8_bgate_weld_add(c,
+							ff8_bgate_scale_round((int)(int16_t)(c & 0xFFFF) - (int)(int16_t)(p & 0xFFFF), ff8_bgate_phase, ff8_bgate_n),
+							ff8_bgate_scale_round((int)(int16_t)(c >> 16) - (int)(int16_t)(p >> 16), ff8_bgate_phase, ff8_bgate_n));
+					}
+					st_match++;
+				}
+				else st_far++;
+			}
+			else st_nosig++;
+		}
+	}
+
+	// Pass 2: welded vertex positions, then link every primitive into this frame's OT
+	out_used = 0;
+	for (int i = 0; i < cur.n; i++)
+	{
+		const ff8_bgate_fx_prim &e = cur.prim[i];
+		const uint32_t *src = &cur.arena[e.off];
+		uint32_t *dst = &ff8_bgate_fx_out[out_used];
+		out_used += e.words;
+
+		if (interp && ff8_bgate_pkt_parse(src, e.words, ci))
+		{
+			for (int v = 0; v < ci.nxy; v++)
+			{
+				uint32_t c = src[ci.xy[v]];
+				int dx, dy;
+				if (!ff8_bgate_weld_get(c, dx, dy))
+					continue; // no paired primitive touches this position: stays as tick N drew it
+				// the voted displacement overrides each primitive's own, so shared corners agree
+				int x = (int)(int16_t)(c & 0xFFFF) + dx, y = (int)(int16_t)(c >> 16) + dy;
+				if (x < -32768) x = -32768; if (x > 32767) x = 32767;
+				if (y < -32768) y = -32768; if (y > 32767) y = 32767;
+				dst[ci.xy[v]] = (uint32_t)(uint16_t)x | ((uint32_t)(uint16_t)y << 16);
+				st_welded++;
+			}
+		}
+
+		// link it exactly like the engine's inserts do (SSIGPU_InsertPrimDepthKeys + msk)
+		if (FF8_BGATE_EXEC_CUR - FF8_BGATE_EXEC_START >= FF8_BGATE_EXEC_LIMIT)
+			break; // draw list full - same limit the engine applies
+		ff8_bgate_exec_node *node = (ff8_bgate_exec_node *)FF8_BGATE_EXEC_CUR;
+		uint32_t *bucket = (uint32_t *)cur_ot + e.bucket;
+		uint32_t old_head = *bucket;
+		node->pkt = dst;
+		memcpy(node->k, e.k, sizeof(node->k));
+		node->msk = e.msk;
+		node->link_hi = (uint8_t)(old_head >> 24);
+		*bucket = (uint32_t)node;
+		dst[0] = (dst[0] & 0xFF000000) | (old_head & 0xFFFFFF);
+		FF8_BGATE_EXEC_CUR += sizeof(ff8_bgate_exec_node);
+	}
+	if (ff8_bgate_fx_log_stats)
+		ffnx_info("30fps fx: f=%u ctx=%p mode=%d interp=%d prims=%d prev=%d match=%d nosig=%d far=%d unparsed=%d(last cmd %02X) orphans=%d welded=%d maxcol=%d words=%u\n",
+			ff8_bgate_frame_no, cur.ctx, ff8_bgate_fx_mode, (int)interp, cur.n, prev.n, st_match, st_nosig, st_far,
+			st_unparsed, st_badcmd, cur.orphans, st_welded, st_maxcol, out_used);
 }
 
-// ===== CURE: smooth motion via closed-form position interpolation (port of 60fps 9d39671f) =====
-//
-// (ff8_bgate_n - host frames per real battle tick - is declared at the top of this block.)
-
-// MAG_001_CURE_Ring_Tick (0x8D6D80) recomputes the ring's draw position from scratch every call
-// as a pure function of persistent state: step = substep + 4*frame_counter; pos = center;
-// pos.y += step*vel_y; angle = (step<<7)&0xFFF; pos.x/z += radius*sin/cos(angle)/4096.
-// It evaluates that formula for substep = 0..3 per real tick, but only the LAST substep's
-// position survives to be drawn (the other 3 exist only to place spawned sparkles evenly). So
-// the ring's real motion is a uniform helix that the engine only samples once every 4 steps -
-// which is why it visibly steps under a plain frame-hold that just repeats that one sample.
-//
-// The curve has no curvature in step-space, so advancing `step` by a fixed amount per held host
-// frame lands exactly ON the same closed form the game itself computes - not an approximate lerp.
-// The step counter advances 4 per real tick, and we have ff8_bgate_n host frames to cover it,
-// so each held frame is worth (4 / ff8_bgate_n) steps: at 60fps (N=4) that's the 60fps
-// branch's +1 per frame; here (N=2) it's +2, i.e. the exact midpoint of the ring's own substep
-// sequence. Discrete state (frame_counter, state_phase, spawns, the heal) is untouched - only
-// the DRAWN pose is smoothed, via a standalone redraw that bypasses Ring_Tick on held frames.
-#define FF8_BGATE_CURE_ROOT_CTX ((void *)0x277AFC0)              // MAG001_CURE_rootQueue = Cure's effect_ctx
-#define FF8_BGATE_CURE_RING_QUEUE_HEAD (*(uint8_t **)0x277BF70)  // MAG001_CURE_particleQueue1.head
-#define FF8_BGATE_CURE_RING_TICK_ADDR ((void *)0x8D6D80)
-#define FF8_BGATE_CURE_GLOW_SPRITE ((int)0x1642504)              // MAG001_CURE_glowSprite
-#define FF8_BGATE_CURE_OVERLAY_CTX ((void *)0x278C7E8)           // MAG001_CURE_overlayCtx
-
-// TaskNodeCureParticle field offsets (bytes). The struct/pool is shared by ring, sparkles and
-// motes alike, so these are used for all three.
-#define BGATE_RING_OFS_NEXT            4
-#define BGATE_RING_OFS_TASK_FUNC       8
-#define BGATE_RING_OFS_POS_X          28
-#define BGATE_RING_OFS_POS_Y          30
-#define BGATE_RING_OFS_POS_Z          32
-#define BGATE_RING_OFS_FRAME_COUNTER  36
-#define BGATE_RING_OFS_STATUS_FLAGS   38
-#define BGATE_RING_OFS_SPIN_ANGLE     66
-#define BGATE_RING_OFS_VEL_X          88
-#define BGATE_RING_OFS_VEL_Y          90
-#define BGATE_RING_OFS_VEL_Z          92
-#define BGATE_RING_OFS_CENTER_X       96
-#define BGATE_RING_OFS_CENTER_Y       98
-#define BGATE_RING_OFS_CENTER_Z      100
-#define BGATE_RING_OFS_RING_RADIUS   104
-
-static inline int16_t ff8_bgate_cure_rd16(uint8_t *n, int ofs) { return *(int16_t *)(n + ofs); }
-static inline void ff8_bgate_cure_wr16(uint8_t *n, int ofs, int16_t v) { *(int16_t *)(n + ofs) = v; }
-
-// held_phase is 1..ff8_bgate_n-1 (here: always 1, the single held host frame).
-static void ff8_bgate_cure_interpolate_rings(int held_phase)
+static void ff8_bgate_fx_replay(void *effect_ctx)
 {
-	typedef void (__cdecl *DrawSprite_t)(void *);
-	typedef void (__cdecl *DrawAdditiveGlow_t)(void *, int, uint32_t *);
-	typedef void *(__cdecl *SetOverlayTexturePage_t)(void *, int16_t *, int16_t, int16_t, int, int16_t, int16_t, int16_t);
-	typedef char (__cdecl *DrawTargetModelWithOverlay_t)(void *);
-	typedef int32_t (__cdecl *ComputeTrig_t)(int32_t);
-	static const DrawSprite_t DrawSprite = (DrawSprite_t)0x8D6F20;
-	static const DrawAdditiveGlow_t DrawAdditiveGlow = (DrawAdditiveGlow_t)0x8D6F90;
-	static const SetOverlayTexturePage_t SetOverlayTexturePage = (SetOverlayTexturePage_t)0x8D7050;
-	static const DrawTargetModelWithOverlay_t DrawTargetModelWithOverlay = (DrawTargetModelWithOverlay_t)0x8D7110;
-	static const ComputeTrig_t computeSin = (ComputeTrig_t)0x56D130;
-	static const ComputeTrig_t computeCosine = (ComputeTrig_t)0x56D100;
-	uint8_t *overlayCtx = (uint8_t *)FF8_BGATE_CURE_OVERLAY_CTX;
-
-	for (uint8_t *n = FF8_BGATE_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + BGATE_RING_OFS_NEXT))
+	if (ff8_bgate_fx_replay_is_blacklisted(effect_ctx) || !ff8_bgate_fx_snaps[ff8_bgate_fx_cur].valid)
+		return;
+	__try
 	{
-		if (*(void **)(n + BGATE_RING_OFS_TASK_FUNC) != FF8_BGATE_CURE_RING_TICK_ADDR)
-			continue; // this pool also holds sparkle/mote nodes - only interpolate the ring itself
-
-		int32_t frame_counter = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_FRAME_COUNTER);
-		int32_t vel_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_Y);
-		int32_t center_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_CENTER_X);
-		int32_t center_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_CENTER_Y);
-		int32_t center_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_CENTER_Z);
-		int32_t radius = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_RING_RADIUS);
-		uint8_t status_flags = *(n + BGATE_RING_OFS_STATUS_FLAGS);
-
-		// Exact continuation of the game's own step counter: each held host frame is worth
-		// (4 / ff8_bgate_n) steps, so the values land on steps the engine's own substep
-		// loop also evaluates - seamless with whatever the next real tick computes.
-		int32_t step = 4 * frame_counter + (4 / ff8_bgate_n) * held_phase;
-		int16_t new_pos_y = (int16_t)(center_y + step * vel_y);
-		int16_t angle = (int16_t)((step << 7) & 0xFFF);
-		int16_t new_pos_x = (int16_t)(center_x + (radius * computeSin((int32_t)angle)) / 4096);
-		int16_t new_pos_z = (int16_t)(center_z + (radius * computeCosine((int32_t)angle)) / 4096);
-
-		// Save the true (last real-tick) values, substitute the interpolated pose for this
-		// redraw only, then restore - nothing else must ever observe the smoothed values as state.
-		int16_t save_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_X);
-		int16_t save_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Y);
-		int16_t save_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Z);
-		int16_t save_spin = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_SPIN_ANGLE);
-
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, new_pos_x);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, new_pos_y);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, new_pos_z);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_SPIN_ANGLE, angle);
-
-		// Sprite variant / fade / wash-active are discrete state decisions - use the REAL
-		// (un-extrapolated) frame_counter for those, matching Ring_Tick's own thresholds exactly.
-		if (frame_counter >= 20)
-		{
-			DrawSprite(n);
-		}
-		else
-		{
-			uint8_t rgb = (uint8_t)(60 - 3 * frame_counter);
-			uint32_t glow_rgb = rgb | (rgb << 8) | (rgb << 16);
-			DrawSprite(n);
-			DrawAdditiveGlow(n, FF8_BGATE_CURE_GLOW_SPRITE, &glow_rgb);
-		}
-		// The target is set BATTLE_ENTITY_ENTITY_FLAG_INVISIBLE for Cure's whole duration (see
-		// Ring_State0_Init) and only this call draws it - without it on held frames the
-		// character visibly flickers at the real-tick rate (regression seen on the 60fps branch).
-		if (status_flags & 8)
-		{
-			*(int16_t *)(overlayCtx + 182) = new_pos_y; // overlayCtx->step_vec_y
-			SetOverlayTexturePage(overlayCtx, (int16_t *)(n + BGATE_RING_OFS_POS_X), 512, 384, 320, 241, 128, 128);
-			DrawTargetModelWithOverlay(overlayCtx);
-		}
-
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, save_x);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, save_y);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, save_z);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_SPIN_ANGLE, save_spin);
+		ff8_bgate_fx_replay_unsafe();
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		ff8_bgate_fx_replay_blacklist_add(effect_ctx);
+		ffnx_info("30fps: effect_ctx=%p faulted during held-frame replay -> blacklisted (native 15fps, no redraw)\n", effect_ctx);
 	}
 }
 
-// Skip the ring's own tick entirely during a held-frame replay (no advance, no spawn, no draw -
-// ff8_bgate_cure_interpolate_rings() supplies the visual instead), so no rand()-driven spawn or
-// heal side effect ever repeats. The rest of Cure's tree still goes through the generic hold.
-static int (__cdecl *ff8_bgate_cure_ring_tick_orig)(void *) = nullptr;
-static uint32_t ff8_bgate_cure_ring_tick_ri = 0;
-
-int __cdecl ff8_bgate_cure_ring_tick_hook(void *ring)
+static void ff8_bgate_vq_log(int pre, int post)
 {
-	if (ff8_bgate_fx_holding)
-		return 0;
-	unreplace_function(ff8_bgate_cure_ring_tick_ri);
-	int r = ff8_bgate_cure_ring_tick_orig(ring);
-	rereplace_function(ff8_bgate_cure_ring_tick_ri);
-	return r;
-}
-
-// ===== CURE: sparkles and motes, same idea, one degree simpler (port of 60fps e0a1c0cd) =====
-//
-// Sparkle_Tick / Mote_Tick pick a random CONSTANT velocity once at spawn and then just do
-// `pos += vel` every real tick - no acceleration, and no built-in x4 substep counter (a single
-// per-tick increment). Both die on the same real tick they finish, so a dead node is never seen
-// stale by the walk below. Held-frame position is therefore a plain linear interpolation:
-// pos_after_last_real_tick + vel * held_phase / ff8_bgate_n (here: half a step). Integer
-// division rounds by at most 1 unit - invisible on a fast-moving, tiny billboard.
-//
-// Glints deliberately left untouched (as on the 60fps branch): Effect_Glint_Tick draws its GPU
-// packets inline, with no separable draw call to reuse. They are correctly paced (in-window
-// thanks to the Cure snapshot fix above), just not smoothed.
-#define FF8_BGATE_CURE_SPARKLE_TICK_ADDR ((void *)0x8D80B0)
-#define FF8_BGATE_CURE_MOTE_TICK_ADDR    ((void *)0x8D7F60)
-
-static void ff8_bgate_cure_interpolate_sparkles_motes(int held_phase)
-{
-	typedef void (__cdecl *DrawSprite_t)(void *);
-	static const DrawSprite_t DrawSprite = (DrawSprite_t)0x8D6F20;
-
-	for (uint8_t *n = FF8_BGATE_CURE_RING_QUEUE_HEAD; n; n = *(uint8_t **)(n + BGATE_RING_OFS_NEXT))
+	if (pre <= 0 && post <= 0)
+		return;
+	char buf[512]; int o = 0;
+	int n = post < 32 ? post : 32;
+	for (int i = 0; i < n && o < 440; i++)
 	{
-		void *task_func = *(void **)(n + BGATE_RING_OFS_TASK_FUNC);
-		if (task_func != FF8_BGATE_CURE_SPARKLE_TICK_ADDR && task_func != FF8_BGATE_CURE_MOTE_TICK_ADDR)
-			continue;
-
-		int32_t vel_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_X);
-		int32_t vel_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_Y);
-		int32_t vel_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_VEL_Z);
-		int16_t save_x = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_X);
-		int16_t save_y = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Y);
-		int16_t save_z = ff8_bgate_cure_rd16(n, BGATE_RING_OFS_POS_Z);
-
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, (int16_t)(save_x + (vel_x * held_phase) / ff8_bgate_n));
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, (int16_t)(save_y + (vel_y * held_phase) / ff8_bgate_n));
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, (int16_t)(save_z + (vel_z * held_phase) / ff8_bgate_n));
-
-		DrawSprite(n);
-
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_X, save_x);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Y, save_y);
-		ff8_bgate_cure_wr16(n, BGATE_RING_OFS_POS_Z, save_z);
+		uint8_t *c = (uint8_t *)(0x1D98220 + 16 * i);
+		int16_t *r = (int16_t *)(c + 4);
+		o += sprintf(buf + o, " %s%d:(%d,%d %dx%d)%08X", i == pre ? "| " : "", c[0], r[0], r[1], r[2], r[3], *(uint32_t *)(c + 12));
 	}
-}
-
-// Same carve-out as the ring: skip entirely during a held-frame replay.
-static int (__cdecl *ff8_bgate_cure_sparkle_tick_orig)(void *) = nullptr;
-static uint32_t ff8_bgate_cure_sparkle_tick_ri = 0;
-
-int __cdecl ff8_bgate_cure_sparkle_tick_hook(void *sparkle)
-{
-	if (ff8_bgate_fx_holding)
-		return 0;
-	unreplace_function(ff8_bgate_cure_sparkle_tick_ri);
-	int r = ff8_bgate_cure_sparkle_tick_orig(sparkle);
-	rereplace_function(ff8_bgate_cure_sparkle_tick_ri);
-	return r;
-}
-
-static int (__cdecl *ff8_bgate_cure_mote_tick_orig)(void *) = nullptr;
-static uint32_t ff8_bgate_cure_mote_tick_ri = 0;
-
-int __cdecl ff8_bgate_cure_mote_tick_hook(void *mote)
-{
-	if (ff8_bgate_fx_holding)
-		return 0;
-	unreplace_function(ff8_bgate_cure_mote_tick_ri);
-	int r = ff8_bgate_cure_mote_tick_orig(mote);
-	rereplace_function(ff8_bgate_cure_mote_tick_ri);
-	return r;
+	buf[o] = 0;
+	ffnx_info("30fps vram: f=%u ph=%d queued_before_fx=%d by_fx=%d%s\n", ff8_bgate_frame_no, ff8_bgate_phase, pre, post - pre, buf);
 }
 
 int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
 {
-	// Real/held decision uses the SHARED battle-frame phase (bumped once per frame in the
-	// BdLink hook, which runs before this call site) instead of a private counter. This
-	// keeps effect real-frames aligned with the readanim pass-frames - with independent
-	// counters an unlucky offset could hold an effect-model animation on every real effect
-	// frame and advance it only inside restored replays, i.e. freeze it.
+	// TEMP diagnostics (Leviathan texture flashes): battle VRAM command queue (32 x 16B cmds,
+	// flushed once per frame by Battle_FlushVramCommandQueue after this tick). Logs uploads
+	// queued BEFORE the effect tick this frame (ungated per-frame queues) and BY the tick.
+	int ff8_bgate_vq_pre = *(int *)0x1D98420;
 	if (ff8_bgate_phase == 0)
 	{
-		// Real frame: advance + draw (+ SFX) normally.
+		// real frame: advance + draw at native rate; the draws it makes are the arena nodes
+		// created between these two cursor reads (see the recording note above)
+		ff8_bgate_fx_rec_begin = FF8_BGATE_EXEC_CUR;
+		ff8_bgate_fx_rec_ot = FF8_BGATE_CUR_OT();
+		ff8_bgate_fx_rec_rlist = FF8_BGATE_RLIST_CUR;
+		ff8_bgate_fx_replay_ok = true;
 		int r = ff8_bgate_effect_tick_orig(effect_ctx);
-		if (r == 0 && effect_ctx == ff8_bgate_fx_holdable_ctx)
-			ff8_bgate_fx_holdable_ctx = nullptr; // this cast effect just ended
+		ff8_bgate_vq_log(ff8_bgate_vq_pre, *(int *)0x1D98420);
+		if (r == 0)
+		{
+			// effect finished - never ghost-draw past the end, never pair with the next one
+			ff8_bgate_fx_replay_ok = false;
+			ff8_bgate_fx_snaps[0].valid = ff8_bgate_fx_snaps[1].valid = false;
+		}
+		else if (ff8_bgate_fx_replay_ok)
+			ff8_bgate_fx_capture(effect_ctx);
 		return r;
 	}
-
-	// Cure needs its own much bigger, differently-positioned window (see FF8_BGATE_CURE_SNAP_BASE):
-	// its effect_ctx (rootQueue) sits near the LOW end of its real footprint, not centered on it
-	// like the generic effect_ctx-0x2000 guess assumes.
-	uint8_t *base = (effect_ctx == FF8_BGATE_CURE_ROOT_CTX) ? FF8_BGATE_CURE_SNAP_BASE : (uint8_t *)effect_ctx - FF8_BGATE_FX_SNAP_BEFORE;
-	size_t size = (effect_ctx == FF8_BGATE_CURE_ROOT_CTX) ? FF8_BGATE_CURE_SNAP_SIZE : FF8_BGATE_FX_SNAP_SIZE;
-
-	if (effect_ctx != ff8_bgate_fx_holdable_ctx
-		|| ff8_bgate_fx_is_blacklisted(effect_ctx)
-		|| !ff8_bgate_fx_window_committed(base, size))
-	{
-		return ff8_bgate_effect_tick_orig(effect_ctx);
-	}
-
-	__try
-	{
-		ff8_bgate_fx_hold_once(effect_ctx, base, size);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		ff8_bgate_fx_holding = false;
-		ff8_bgate_fx_blacklist_add(effect_ctx);
-		ffnx_info("30fps: effect_ctx=%p faulted while held -> blacklisted (runs normal)\n", effect_ctx);
-	}
-
-	if (effect_ctx == FF8_BGATE_CURE_ROOT_CTX)
-	{
-		// held_phase = the shared phase (1..n-1 on held frames), no private cycling needed
-		ff8_bgate_cure_interpolate_rings(ff8_bgate_phase);
-		ff8_bgate_cure_interpolate_sparkles_motes(ff8_bgate_phase);
-	}
-	return 1; // effect still running (don't let the caller clear its pointer)
+	ff8_bgate_vq_log(ff8_bgate_vq_pre, ff8_bgate_vq_pre);
+	// held frame: no advance; draw the in-between pose of the last real frame's primitives
+	if (ff8_bgate_fx_replay_ok)
+		ff8_bgate_fx_replay(effect_ctx);
+	return 1; // still running (don't let the caller clear the effect pointer)
 }
-
-// ===== GF Ifrit summon effect (port of 60fps 03445b2b, gated 1-in-2) =====
-// The Ifrit creature pose is built each frame by GF_Ifrit_BuildPoseMatrices (0xB2F590) into the
-// matrix table the draw reads, driven by a rotation-vector stream and the sequence counter at
-// state+50. All of it advances once per battle tick -> 2x too fast at 30fps. Gate the ADVANCE
-// (neg/integrator/pos + BuildPoseMatrices + the state+50 counter) 1-in-2 while the draw keeps
-// running every tick, so the held pose is redrawn rather than skipped (no flicker).
-//
-// NOTE (inherited from the 60fps branch): this correctly slows the fire/energy EFFECTS around
-// Ifrit, but the creature BODY is driven by a separate driver that is still ungated there, so
-// it stays 2x fast here too. That POC is unfinished upstream; ported as-is for parity.
-#define FF8_BGATE_IFRIT_STATE (*(uint32_t *)0x27973EC) // ptr to the active GF sequence state
-
-static uint32_t (__cdecl *ff8_bgate_ifrit_seq_orig)() = nullptr;
-static void     (__cdecl *ff8_bgate_ifrit_neg_orig)() = nullptr;
-static int      (__cdecl *ff8_bgate_ifrit_int_orig)() = nullptr;
-static void     (__cdecl *ff8_bgate_ifrit_pos_orig)() = nullptr;
-static int      (__cdecl *ff8_bgate_ifrit_build_orig)() = nullptr;
-static int      (__cdecl *ff8_bgate_ifrit_func1_orig)(int) = nullptr;
-static uint32_t ff8_bgate_ifrit_seq_ri, ff8_bgate_ifrit_neg_ri, ff8_bgate_ifrit_int_ri;
-static uint32_t ff8_bgate_ifrit_pos_ri, ff8_bgate_ifrit_build_ri, ff8_bgate_ifrit_func1_ri;
-
-static uint32_t ff8_bgate_ifrit_counter = 0;
-static int ff8_bgate_ifrit_phase = 0;
-static bool ff8_bgate_ifrit_active = false;
-static uint16_t ff8_bgate_ifrit_held50 = 0;
-static bool ff8_bgate_ifrit_held_init = false;
-
-// The creature advance is the block Neg()+Integrator()+Pos() inside the Ifrit sequence driver;
-// the draw always runs and redraws the held pose. Gating all three together 1-in-2 = native speed.
-void __cdecl ff8_bgate_ifrit_neg_hook()
-{
-	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
-		return; // advance only on phase 0
-	unreplace_function(ff8_bgate_ifrit_neg_ri);
-	ff8_bgate_ifrit_neg_orig();
-	rereplace_function(ff8_bgate_ifrit_neg_ri);
-}
-
-int __cdecl ff8_bgate_ifrit_int_hook()
-{
-	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
-		return 0;
-	unreplace_function(ff8_bgate_ifrit_int_ri);
-	int r = ff8_bgate_ifrit_int_orig();
-	rereplace_function(ff8_bgate_ifrit_int_ri);
-	return r;
-}
-
-void __cdecl ff8_bgate_ifrit_pos_hook()
-{
-	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
-		return;
-	unreplace_function(ff8_bgate_ifrit_pos_ri);
-	ff8_bgate_ifrit_pos_orig();
-	rereplace_function(ff8_bgate_ifrit_pos_ri);
-}
-
-// BuildPoseMatrices: skip on held frames -> the pose matrices retain the phase-0 values, so the
-// creature holds at native speed regardless of what drives its inputs.
-int __cdecl ff8_bgate_ifrit_build_hook()
-{
-	if (ff8_bgate_ifrit_active && ff8_bgate_ifrit_phase != 0)
-		return 0;
-	unreplace_function(ff8_bgate_ifrit_build_ri);
-	int r = ff8_bgate_ifrit_build_orig();
-	rereplace_function(ff8_bgate_ifrit_build_ri);
-	return r;
-}
-
-// Gate the master tick counter state+50 (the pose frame index): let it advance on phase 0, and
-// on held ticks force it back to the phase-0 value (the original re-increments it at its top,
-// so pre-set held-1). Reset per summon via the func1 hook below.
-uint32_t __cdecl ff8_bgate_ifrit_seq_hook()
-{
-	uint32_t s = FF8_BGATE_IFRIT_STATE;
-	bool svalid = (s >= 0x10000u && s < 0x7F000000u);
-	ff8_bgate_ifrit_phase = (ff8_bgate_ifrit_counter++) % ff8_bgate_n;
-	ff8_bgate_ifrit_active = true;
-	if (svalid && ff8_bgate_ifrit_held_init && ff8_bgate_ifrit_phase != 0)
-		*(uint16_t *)(s + 50) = ff8_bgate_ifrit_held50 - 1; // orig's ++ -> held50 (re-use phase-0 frame)
-	unreplace_function(ff8_bgate_ifrit_seq_ri);
-	uint32_t r = ff8_bgate_ifrit_seq_orig();
-	rereplace_function(ff8_bgate_ifrit_seq_ri);
-	if (svalid && (ff8_bgate_ifrit_phase == 0 || !ff8_bgate_ifrit_held_init))
-	{
-		ff8_bgate_ifrit_held50 = *(uint16_t *)(s + 50); // capture the freshly-advanced frame index
-		ff8_bgate_ifrit_held_init = true;
-	}
-	ff8_bgate_ifrit_active = false;
-	return r;
-}
-
-// GF_Ifrit_func1 (0xB257E0) runs once at summon setup -> reset the phase/frame gate.
-int __cdecl ff8_bgate_ifrit_func1_hook(int a1)
-{
-	ff8_bgate_ifrit_counter = 0;
-	ff8_bgate_ifrit_held_init = false;
-	unreplace_function(ff8_bgate_ifrit_func1_ri);
-	int r = ff8_bgate_ifrit_func1_orig(a1);
-	rereplace_function(ff8_bgate_ifrit_func1_ri);
-	return r;
-}
-
 // --- status-effect timers (regen/doom/petrify/shell/protect/reflect) ---
 // computeTimerStatus (0x483470) decrements them once per battle frame -> 2x too
 // fast at 30fps. Kept DISABLED for now, mirroring the 60fps branch: an earlier
@@ -2402,6 +2896,25 @@ void __cdecl ff8_bgate_timerstatus_hook()
 	unreplace_function(ff8_bgate_timerstatus_ri);
 	ff8_bgate_timerstatus_orig();
 	rereplace_function(ff8_bgate_timerstatus_ri);
+}
+
+// Per-battle state is keyed by addresses (anim_cmd, entity slot, effect ctx) that the next
+// battle reuses for DIFFERENT models and effects. Carrying it over crashed the second battle
+// of a session: an anim_cmd kept battle 1's "SLOW forced by us" policy, so its frame-count
+// variables were halved for an animation that was no longer SLOW (see the C3 var hook).
+static void ff8_bgate_battle_reset()
+{
+	memset(ff8_bgate_anim_policy, 0, sizeof(ff8_bgate_anim_policy));
+	memset(ff8_bgate_done_cache, 0, sizeof(ff8_bgate_done_cache));
+	ff8_bgate_cam_prev1.valid = ff8_bgate_cam_prev2.valid = false;
+	ff8_bgate_fx_snaps[0].valid = ff8_bgate_fx_snaps[1].valid = false;
+	ff8_bgate_fx_replay_ok = false;
+	ff8_bgate_fx_replay_blacklist_n = 0;
+	ff8_bgate_inside_queue_anim = false;
+	ff8_bgate_tick_skip = false;
+	ff8_bgate_hidden_idx = 0;
+	ff8_bgate_phase = 0;
+	ffnx_info("battle 30fps: new battle, per-battle state reset\n");
 }
 
 static void ff8_bgate_install_hooks()
@@ -2435,6 +2948,9 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_queueanim_ri = replace_function(0x509520, (void *)ff8_bgate_queueanim_hook);
 	ff8_bgate_preread_orig = (int(__cdecl *)(void *, void *, int))0x509440;
 	ff8_bgate_preread_ri = replace_function(0x509440, (void *)ff8_bgate_preread_hook);
+	// choreography-visible frame counts back to native units under forced SLOW
+	ff8_bgate_c3var_orig = (int(__cdecl *)(int))0x5044B0;
+	ff8_bgate_c3var_ri = replace_function(0x5044B0, (void *)ff8_bgate_c3var_hook);
 	ff8_bgate_readanim_orig = (int(__cdecl *)(void *, void *))0x508F90;
 	ff8_bgate_readanim_ri = replace_function(0x508F90, (void *)ff8_bgate_readanim_hook);
 	ff8_bgate_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
@@ -2442,50 +2958,53 @@ static void ff8_bgate_install_hooks()
 	// run-up movement task duration x n (ticks at host rate -> native wall time, smooth)
 	ff8_bgate_anim9e_orig = (void *(__cdecl *)(void *, void *, int))0x50F720;
 	ff8_bgate_anim9e_ri = replace_function(0x50F720, (void *)ff8_bgate_anim9e_hook);
+#if FF8_BGATE_DIAG
+	ff8_bgate_diag_render_orig = (char(__cdecl *)(void *))0x502D40;
+	ff8_bgate_diag_render_ri = replace_function(0x502D40, (void *)ff8_bgate_diag_render_hook);
+#endif
 
-	// Battle camera: the keyframe player advances CurrentAnimationTime += 16 per tick (imm8
-	// @0x503A80) and is not gated, so scale the step to 16/n -> native speed AND smooth at the
-	// host rate (no stepping), rather than holding it 1-in-n.
-	patch_code_byte(0x503A80, (unsigned char)(16 / ff8_bgate_n));
+	// Battle camera: gate the whole keyframe player (0x5035E0) to real frames instead of
+	// halving its internal time step (imm8 @0x503A80, formerly patched to 16/n).
+	//
+	// *** DO NOT re-attempt the step-halving patch *** - it caused a genuine engine hang,
+	// reproduced twice, hard (window "Not Responding", no exception, no log after the
+	// point of entry - confirmed by exhaustive per-line flushed tracing that BdLink_GF
+	// itself never returns). ProcessCameraAnimation contains a catch-up loop: "while
+	// current_time >= this segment's total_time: advance to the next keyframe segment"
+	// (0x5035E9-0x503613). That loop assumes the vanilla step (16); halving it can make
+	// current_time never clear a segment whose total_time is <= the halved step, so the
+	// loop spins forever re-reading keyframes - a true infinite loop, invisible to SEH
+	// (no bad memory access). Triggered reliably by Cure, which calls
+	// Battle_PlayCameraAnimation(&MAG_Cure_cameraAnimation) at cast start - that track
+	// apparently has a short segment. Any other camera track could hit the same trap.
+	//
+	// Gating the task instead is unconditionally safe: on real frames the function runs
+	// completely unmodified (same step, same segment math as vanilla), so it can only
+	// ever do what vanilla already proves safe; on held frames it doesn't run at all and
+	// the camera holds its last real position. Costs camera smoothness (steps at native
+	// 15fps like models did before the SLOW-interpolation work) in exchange for zero
+	// hang risk - the correct trade until camera data can be proven trap-free.
+	ff8_bgate_camanim_orig = (int(__cdecl *)(void *))0x5035E0;
+	ff8_bgate_camanim_ri = replace_function(0x5035E0, (void *)ff8_bgate_camanim_hook);
+	// Camera smoothness recovered separately: extrapolate the render-facing output only
+	// (see ff8_bgate_updatecam_hook above) - never re-touches the risky keyframe state.
+	ff8_bgate_updatecam_orig = (int(__cdecl *)())0x504060;
+	ff8_bgate_updatecam_ri = replace_function(0x504060, (void *)ff8_bgate_updatecam_hook);
 
-	// Magic/GF effect frame-hold
+	// Magic/GF effect pacing: native-rate tick + OT-insert record/replay. This paces the
+	// WHOLE effect tree (magic, Draw/Stock, limits, GF summons - Ifrit's dedicated gates
+	// are gone, the tick gating covers its entire subsystem) and needs no per-effect
+	// knowledge, whitelists or SFX suppression: nothing runs twice, nothing is rewound.
 	ff8_bgate_effect_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x50093A, 0);
 	replace_call(0x50093A, (void *)ff8_bgate_effect_tick_gate);
-	ff8_bgate_playworldsound_ri = replace_function(0x46B2A0, (void *)ff8_bgate_PlayWorldSound_hook);
-	ff8_bgate_setup_ri_A = replace_function(0x50A9A0, (void *)ff8_bgate_magic_setup_hook_A);
-	ff8_bgate_setup_ri_B = replace_function(0x50B190, (void *)ff8_bgate_magic_setup_hook_B);
-	ff8_bgate_damagenum_ri = replace_function(0x5068B0, (void *)ff8_bgate_DamageNumbers_Spawn_hook);
-
-	// Cure: skip the ring/sparkle/mote ticks on held frames so the interpolation helpers can
-	// supply a smooth, closed-form redraw instead (see ff8_bgate_cure_interpolate_rings).
-	ff8_bgate_cure_ring_tick_orig = (int(__cdecl *)(void *))0x8D6D80;
-	ff8_bgate_cure_ring_tick_ri = replace_function(0x8D6D80, (void *)ff8_bgate_cure_ring_tick_hook);
-	ff8_bgate_cure_sparkle_tick_orig = (int(__cdecl *)(void *))0x8D80B0;
-	ff8_bgate_cure_sparkle_tick_ri = replace_function(0x8D80B0, (void *)ff8_bgate_cure_sparkle_tick_hook);
-	ff8_bgate_cure_mote_tick_orig = (int(__cdecl *)(void *))0x8D7F60;
-	ff8_bgate_cure_mote_tick_ri = replace_function(0x8D7F60, (void *)ff8_bgate_cure_mote_tick_hook);
-
-	// GF Ifrit summon: gate the procedural effect advance 1-in-n (draw still runs every tick).
-	ff8_bgate_ifrit_seq_orig = (uint32_t(__cdecl *)())0xB25DF0;
-	ff8_bgate_ifrit_neg_orig = (void(__cdecl *)())0xB2FCF0;
-	ff8_bgate_ifrit_int_orig = (int(__cdecl *)())0xB26110;
-	ff8_bgate_ifrit_pos_orig = (void(__cdecl *)())0xB30110;
-	ff8_bgate_ifrit_build_orig = (int(__cdecl *)())0xB2F590;
-	ff8_bgate_ifrit_func1_orig = (int(__cdecl *)(int))0xB257E0;
-	ff8_bgate_ifrit_seq_ri = replace_function(0xB25DF0, (void *)ff8_bgate_ifrit_seq_hook);
-	ff8_bgate_ifrit_neg_ri = replace_function(0xB2FCF0, (void *)ff8_bgate_ifrit_neg_hook);
-	ff8_bgate_ifrit_int_ri = replace_function(0xB26110, (void *)ff8_bgate_ifrit_int_hook);
-	ff8_bgate_ifrit_pos_ri = replace_function(0xB30110, (void *)ff8_bgate_ifrit_pos_hook);
-	ff8_bgate_ifrit_build_ri = replace_function(0xB2F590, (void *)ff8_bgate_ifrit_build_hook);
-	ff8_bgate_ifrit_func1_ri = replace_function(0xB257E0, (void *)ff8_bgate_ifrit_func1_hook);
 
 	// Status-effect timers: disabled pending crash isolation (see comment above)
 	// ff8_bgate_timerstatus_orig = (void(__cdecl *)())0x483470;
 	// ff8_bgate_timerstatus_ri = replace_function(0x483470, (void *)ff8_bgate_timerstatus_hook);
 	(void)&ff8_bgate_timerstatus_hook; (void)ff8_bgate_timerstatus_orig; (void)ff8_bgate_timerstatus_ri;
 
-	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera step %d; entity anims SLOW-interpolated, stage/effects 1-in-%d, Cure interpolated)\n",
-		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n, 16 / ff8_bgate_n, ff8_bgate_n);
+	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera gated+extrapolated; entity anims SLOW-interpolated, effects native-tick + draw replay)\n",
+		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n);
 }
 
 void* ff8_engine_set_wide_viewport(int x, int y, int w, int h)
@@ -2709,8 +3228,25 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// 30fps (limiter 2, n=2) and 60fps (limiter 3, n=4). US/EN 1.2 addresses only.
 	if (ff8_fps_limiter >= FPS_LIMITER_30FPS && FF8_US_VERSION)
 	{
+		ff8_bgate_active = true;
 		ff8_bgate_install_hooks();
 	}
+#if FF8_BGATE_DIAG
+	else if (FF8_US_VERSION)
+	{
+		// diagnostics-only mode: vanilla behavior at 15fps, animation trace only - for
+		// capturing a reference trace to compare choreography timing against the gated build
+		ff8_bgate_bdlink_orig = (int(__cdecl *)())0x500900;
+		ff8_bgate_bdlink_ri = replace_function(0x500900, (void *)ff8_bgate_bdlink_hook);
+		ff8_bgate_queueanim_orig = (int(__cdecl *)(void *, int))0x509520;
+		ff8_bgate_queueanim_ri = replace_function(0x509520, (void *)ff8_bgate_queueanim_hook);
+		ff8_bgate_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
+		ff8_bgate_animseq_upd_ri = replace_function(0x504290, (void *)ff8_bgate_animseq_upd_hook);
+		ff8_bgate_diag_render_orig = (char(__cdecl *)(void *))0x502D40;
+		ff8_bgate_diag_render_ri = replace_function(0x502D40, (void *)ff8_bgate_diag_render_hook);
+		ffnx_info("battle DIAG-only mode: vanilla flow, animation trace enabled\n");
+	}
+#endif
 
 	// Gamepad
 	replace_function(ff8_externals.dinput_init_gamepad, ff8_init_gamepad);
