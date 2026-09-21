@@ -70,11 +70,14 @@
 #define KERNEL_AFTER_ABIL_SEC      18
 // How far past an instruction's first byte its absolute operand may sit.
 #define OPERAND_SCAN_WINDOW        8
-// The junction menu builds its candidate lists into two fixed buffers sitting
-// right before the GF summary table: room for 20 command entries (19 vanilla)
-// and 48 equippable-passive ones (44 vanilla: stat %, character and party).
-#define MENU_COMMAND_CANDIDATES    20
-#define MENU_PASSIVE_CANDIDATES    48
+// The junction menu builds its candidate lists into two fixed buffers that sit
+// immediately before the GF summary table - room for 20 command entries and 48
+// equippable-passive ones, against 19 and 44 in vanilla. Both move FFNx-side so
+// the groups they list can use the whole id space.
+#define VANILLA_COMMAND_CANDIDATES 20
+#define CANDIDATE_ENTRY_SIZE       2      // {u8 ability id, u8 group}
+// A learned menu ability is one bit of a single dword (RebuildLearnedMenuAbilityMask).
+#define MAX_MENU_ABILITIES         32
 // Groups whose first id the standalone checks below care about.
 #define GROUP_COMMAND              1
 #define GROUP_STAT_PERCENT         2
@@ -108,12 +111,19 @@ static struct
 	uint32_t fn_draw_list_row;      // Menu_DrawAbilityListRow
 	uint32_t fn_validate_passives;  // Menu_ValidateCharaPassiveAbilities
 	uint32_t fn_chara_ability_lists;// Menu_BuildCharaAbilityMaskAndLists
+	uint32_t fn_junction_ability_page; // the junction menu's ability page
+
+	uint32_t command_candidates;    // {id, group}[20] the junction menu builds
+	uint32_t passive_candidates;    // {id, group}[48], right behind it
 } ability_ext;
 
 // ---- state --------------------------------------------------------------
 static uint8_t ff8_ability_table[MAX_ABILITY_COUNT][ABILITY_ENTRY_SIZE];
 static int ff8_ability_count = VANILLA_ABILITY_COUNT;
 static uint8_t ff8_group_first[ABILITY_GROUP_COUNT];
+// The two candidate lists, FFNx-side and wide enough for the whole id space.
+static uint8_t ff8_command_candidates[MAX_ABILITY_COUNT][CANDIDATE_ENTRY_SIZE];
+static uint8_t ff8_passive_candidates[MAX_ABILITY_COUNT][CANDIDATE_ENTRY_SIZE];
 static bool ff8_ability_armed = false;
 static bool ff8_ability_supported = false;
 
@@ -184,6 +194,27 @@ static const group_bound_site group_bound_sites[] = {
 // One past the last ability, inside RebuildLearnedMenuAbilityMask.
 #define SITE_ABILITY_COUNT_CMP  0x045
 
+// Every operand pointing into one of the two candidate lists. Some address the
+// list itself, some its second byte, so each is moved by whatever it pointed at.
+struct candidate_site { uint32_t *owner; uint32_t offset; bool passive; const char *what; };
+
+static const candidate_site candidate_sites[] = {
+	{ &ability_ext.fn_junction_menu,         0x04E5, false, "junction menu command list" },
+	{ &ability_ext.fn_junction_menu,         0x2185, false, "junction menu command list" },
+	{ &ability_ext.fn_junction_menu,         0x2515, false, "junction menu command list" },
+	{ &ability_ext.fn_junction_menu,         0x2706, false, "junction menu command list" },
+	{ &ability_ext.fn_junction_menu,         0x28D8, false, "junction menu command list" },
+	{ &ability_ext.fn_chara_ability_lists,   0x0078, false, "command list build" },
+	{ &ability_ext.fn_junction_ability_page, 0x009F, false, "ability page command list" },
+	{ &ability_ext.fn_junction_menu,         0x04BF, true,  "junction menu passive list" },
+	{ &ability_ext.fn_junction_menu,         0x21E3, true,  "junction menu passive list" },
+	{ &ability_ext.fn_junction_menu,         0x24F3, true,  "junction menu passive list" },
+	{ &ability_ext.fn_junction_menu,         0x26E4, true,  "junction menu passive list" },
+	{ &ability_ext.fn_junction_menu,         0x28CD, true,  "junction menu passive list" },
+	{ &ability_ext.fn_chara_ability_lists,   0x00D4, true,  "passive list build" },
+	{ &ability_ext.fn_junction_ability_page, 0x0080, true,  "ability page passive list" },
+};
+
 // The two reads of an entry's AP field through the group table; their operand
 // is the kernel buffer + 4, not a pointer into the array.
 static const ability_site ap_base_sites[] = {
@@ -209,6 +240,23 @@ static uint32_t find_operand(uint32_t insn, uint32_t lo, uint32_t hi)
 static uint32_t ability_array_end()
 {
 	return ability_ext.k_ability + VANILLA_ABILITY_COUNT * ABILITY_ENTRY_SIZE;
+}
+
+// Where a vanilla candidate list starts, and where it moves to.
+static void candidate_range(bool passive, uint32_t *from, uint32_t *to)
+{
+	*from = passive ? ability_ext.passive_candidates : ability_ext.command_candidates;
+	*to = (uint32_t)(passive ? &ff8_passive_candidates[0][0] : &ff8_command_candidates[0][0]);
+}
+
+// One past the last byte an operand into that list may hold. The command list
+// ends where the passive one starts; the passive one runs to the GF summary
+// table, which no operand of either list ever reaches.
+static uint32_t candidate_end(bool passive)
+{
+	return passive
+		? ability_ext.passive_candidates + MAX_ABILITY_COUNT * CANDIDATE_ENTRY_SIZE
+		: ability_ext.passive_candidates;
 }
 
 static uint32_t ability_table_base()
@@ -249,6 +297,16 @@ static void ff8_kernel_ability_find_externals()
 	ability_ext.fn_chara_ability_lists = list ? list + 0x335A0 : 0;
 	ability_ext.fn_gf_summary = list ? list + 0x360B0 : 0;
 	ability_ext.fn_draw_list_row = list ? list + 0x3BCF0 : 0;
+
+	ability_ext.fn_junction_ability_page = list ? list + 0x359D0 : 0;
+
+	// Both lists are named by a "mov reg, offset list+1" inside the function that
+	// fills them, so read the bases from there rather than hardcoding them.
+	if (ability_ext.fn_chara_ability_lists)
+	{
+		ability_ext.command_candidates = *(uint32_t *)(ability_ext.fn_chara_ability_lists + 0x78 + 1) - 1;
+		ability_ext.passive_candidates = *(uint32_t *)(ability_ext.fn_chara_ability_lists + 0xD4 + 1) - 1;
+	}
 
 	// Deltas from the character stat computation.
 	ability_ext.fn_gf_battle_stats = ff8_externals.compute_char_stats_sub_495960 - 0x1E0;
@@ -330,6 +388,28 @@ static bool ff8_kernel_ability_validate()
 		}
 	}
 
+	// The command list holds 20 entries and the passive one starts right behind it.
+	if (ability_ext.passive_candidates - ability_ext.command_candidates
+			!= VANILLA_COMMAND_CANDIDATES * CANDIDATE_ENTRY_SIZE)
+	{
+		ffnx_warning("AddMoreAbility: the junction menu candidate lists sit at 0x%X and 0x%X, which is not the vanilla layout.\n",
+			ability_ext.command_candidates, ability_ext.passive_candidates);
+		ok = false;
+	}
+
+	for (const candidate_site &site : candidate_sites)
+	{
+		uint32_t from, to;
+
+		candidate_range(site.passive, &from, &to);
+
+		if (!find_operand(*site.owner + site.offset, from, candidate_end(site.passive)))
+		{
+			ffnx_warning("AddMoreAbility: %s at 0x%X does not point into that list.\n", site.what, *site.owner + site.offset);
+			ok = false;
+		}
+	}
+
 	// The group table must still describe the vanilla layout.
 	for (int group = 0; group < ABILITY_GROUP_COUNT; ++group)
 	{
@@ -396,6 +476,20 @@ void ff8_kernel_ability_arm()
 		if (operand) patch_code_dword(operand, (DWORD)(table + 4 - ABILITY_BLOCK_OFFSET));
 	}
 
+	// Both candidate lists move to buffers wide enough for the whole id space, so
+	// the groups they list are no longer capped by what fits in front of the GF
+	// summary table behind them.
+	for (const candidate_site &site : candidate_sites)
+	{
+		uint32_t from, to;
+
+		candidate_range(site.passive, &from, &to);
+
+		uint32_t operand = find_operand(*site.owner + site.offset, from, candidate_end(site.passive));
+
+		if (operand) patch_code_dword(operand, (DWORD)(to + (*(uint32_t *)operand - from)));
+	}
+
 	// Every group table row follows its group.
 	for (int group = 0; group < ABILITY_GROUP_COUNT; ++group)
 	{
@@ -449,17 +543,13 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 		return false;
 	}
 
-	// Past those buffers the menu writes over the GF summary table behind them.
-	// Relocating them is a separate job; until then, refuse the file rather than
-	// corrupt the junction menu on whichever character happens to have the
-	// abilities available.
-	int commands = first[GROUP_STAT_PERCENT] - first[GROUP_COMMAND];
-	int passives = first[GROUP_GF] - first[GROUP_STAT_PERCENT];
+	// A learned menu ability is one bit of a single dword.
+	int menu_abilities = total - first[GROUP_MENU];
 
-	if (commands > MENU_COMMAND_CANDIDATES || passives > MENU_PASSIVE_CANDIDATES)
+	if (menu_abilities > MAX_MENU_ABILITIES)
 	{
-		ffnx_warning("AddMoreAbility: %d command and %d equippable-passive abilities, but the junction menu's candidate lists hold %d and %d - ignoring the extension.\n",
-			commands, passives, MENU_COMMAND_CANDIDATES, MENU_PASSIVE_CANDIDATES);
+		ffnx_warning("AddMoreAbility: %d menu abilities, but only %d of them can be remembered as learned - ignoring the extension.\n",
+			menu_abilities, MAX_MENU_ABILITIES);
 		return false;
 	}
 
