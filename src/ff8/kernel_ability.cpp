@@ -112,6 +112,8 @@ static struct
 	uint32_t fn_validate_passives;  // Menu_ValidateCharaPassiveAbilities
 	uint32_t fn_chara_ability_lists;// Menu_BuildCharaAbilityMaskAndLists
 	uint32_t fn_junction_ability_page; // the junction menu's ability page
+	uint32_t fn_ability_entry_ptr;  // id -> entry pointer, called by the refine menu
+	uint32_t fn_call_shop_list;     // the Call Shop menu's ability list
 
 	uint32_t command_candidates;    // {id, group}[20] the junction menu builds
 	uint32_t passive_candidates;    // {id, group}[48], right behind it
@@ -150,7 +152,10 @@ static const ability_site array_sites[] = {
 	{ &ability_ext.fn_reset_parse_chara, 0x0D0, "junction flags byte 2" },
 	{ &ability_ext.fn_reset_parse_chara, 0x0D7, "junction flags byte 0" },
 	{ &ability_ext.fn_reset_parse_chara, 0x0DE, "junction flags byte 1" },
+	{ &ability_ext.fn_reset_parse_chara, 0x11F, "character ability flags" },
 	{ &ability_ext.fn_reset_parse_chara, 0x223, "character ability flags" },
+	{ &ability_ext.fn_ability_entry_ptr, 0x004, "ability id to entry pointer" },
+	{ &ability_ext.fn_call_shop_list,    0x208, "call shop ability availability" },
 	{ &ability_ext.fn_stat_percent_bonus, 0x02D, "stat percent stat id" },
 	{ &ability_ext.fn_stat_percent_bonus, 0x03A, "stat percent value" },
 	{ &ability_ext.fn_add_ap, 0x064, "AP required" },
@@ -300,6 +305,11 @@ static void ff8_kernel_ability_find_externals()
 	ability_ext.fn_draw_list_row = list ? list + 0x3BCF0 : 0;
 
 	ability_ext.fn_junction_ability_page = list ? list + 0x359D0 : 0;
+	// Two reads IDA renders as a bare number rather than as the array symbol, so
+	// they are easy to miss: a twelve-byte "id -> entry pointer" helper the refine
+	// menu calls, and the Call Shop menu's own availability check.
+	ability_ext.fn_ability_entry_ptr = list ? list + 0x3AAB0 : 0;
+	ability_ext.fn_call_shop_list = list ? list + 0x3AC30 : 0;
 
 	// Both lists are named by a "mov reg, offset list+1" inside the function that
 	// fills them, so read the bases from there rather than hardcoding them.
