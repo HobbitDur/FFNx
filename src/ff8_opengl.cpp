@@ -1642,7 +1642,7 @@ static bool ff8_bgate_fx_log_stats = false; // true = one FFNx.log line per held
 // Per-effect totals, logged once when the effect finishes (one line per spell/GF cast)
 struct ff8_bgate_fx_sum_t
 {
-	uint32_t ticks, held, interp_held, prims, match, far_, nosig, unparsed, welded, orphans, maxcol, vram_xfer, badcmd;
+	uint32_t ticks, held, interp_held, prims, match, far_, nosig, unparsed, welded, orphans, maxcol, vram_xfer, badcmd, ambiguous;
 	uint32_t tpages[8], tpage_hits[8]; int ntpages; // diagnostics: texture pages used by replayed prims
 	uint32_t vq_types[4];                          // VRAM queue commands the effect queued, by type
 };
@@ -1725,6 +1725,8 @@ static void ff8_bgate_camera_state_log()
 // on held frames nobody armed the request and the ghost vanished every other frame (the 15Hz
 // "flash"). The request made during the last real frame is re-armed on the held frames.
 static int ff8_bgate_feedback_req = 0;      // request armed during the current/last real frame
+static bool ff8_bgate_feedback_rearm = true;
+static bool ff8_bgate_scrub_on = true;      // TEMP diagnostics: F6 (see ff8_bgate_scrub_stack)
 static uint32_t ff8_bgate_feedback_held = 0; // stats
 
 int __cdecl ff8_bgate_feedback_request_hook(int mode)
@@ -1735,7 +1737,7 @@ int __cdecl ff8_bgate_feedback_request_hook(int mode)
 }
 
 // TEMP diagnostics: F8 = save the next 60 presented frames as PNG (renderer.cpp burst capture)
-extern int ffnx_cap_left, ffnx_cap_seq;
+extern int ffnx_cap_left, ffnx_cap_seq, ffnx_cap_div;
 extern char ffnx_cap_label[96], ffnx_cap_dir[260];
 static int ff8_bgate_cap_burst = 0;
 
@@ -1751,8 +1753,13 @@ int __cdecl ff8_bgate_bdlink_hook()
 	_snprintf_s(ffnx_cap_label, sizeof(ffnx_cap_label), _TRUNCATE, "f%u_%s", ff8_bgate_frame_no, ff8_bgate_phase == 0 ? "REAL" : "held");
 	{
 		static bool f8_down = false;
+		// F8 = 60 full-resolution frames, F7 = 900 quarter-resolution frames (30 s, a whole summon)
+		static bool f7_down = false;
+		bool d7 = (GetAsyncKeyState(VK_F7) & 0x8000) != 0;
+		bool long_burst = d7 && !f7_down;
+		f7_down = d7;
 		bool d8 = (GetAsyncKeyState(VK_F8) & 0x8000) != 0;
-		if (d8 && !f8_down && ffnx_cap_left == 0)
+		if (((d8 && !f8_down) || long_burst) && ffnx_cap_left == 0)
 		{
 			_snprintf_s(ffnx_cap_dir, sizeof(ffnx_cap_dir), _TRUNCATE, "%s/capture30/burst%02d", basedir, ff8_bgate_cap_burst++);
 			char cmd[300];
@@ -1760,16 +1767,19 @@ int __cdecl ff8_bgate_bdlink_hook()
 			CreateDirectoryA(cmd, NULL);
 			CreateDirectoryA(ffnx_cap_dir, NULL);
 			ffnx_cap_seq = 0;
-			ffnx_cap_left = 60;
-			ffnx_info("capture: F8 -> 60 frames to %s (n=%d bypass=%d mode=%d effect_id=%d)\n", ffnx_cap_dir, ff8_bgate_n, (int)ff8_bgate_fx_bypass, ff8_bgate_fx_mode, *(int *)0x1D99A68 + 1);
+			ffnx_cap_left = long_burst ? 900 : 60;
+			ffnx_cap_div = long_burst ? 4 : 1;
+			ffnx_info("capture: F7/F8 -> %d frames (1/%d res) to %s (n=%d bypass=%d mode=%d effect_id=%d)\n", ffnx_cap_left, ffnx_cap_div, ffnx_cap_dir, ff8_bgate_n, (int)ff8_bgate_fx_bypass, ff8_bgate_fx_mode, *(int *)0x1D99A68 + 1);
 		}
+		else if (long_burst && ffnx_cap_left > 1 && ffnx_cap_div > 1)
+			ffnx_cap_left = 1; // F7 again = stop the long burst
 		f8_down = d8;
 		static bool f6_down = false;
 		bool d6 = (GetAsyncKeyState(VK_F6) & 0x8000) != 0;
 		if (d6 && !f6_down)
 		{
-			ff8_bgate_vq_replay_all = !ff8_bgate_vq_replay_all;
-			ffnx_info("30fps fx: F6 -> held-frame VRAM command replay %s\n", ff8_bgate_vq_replay_all ? "ON (all types)" : "off");
+			ff8_bgate_scrub_on = !ff8_bgate_scrub_on;
+			ffnx_info("30fps fx: F6 -> stack scrub before effect ticks %s\n", ff8_bgate_scrub_on ? "ON" : "OFF");
 		}
 		f6_down = d6;
 		static bool f5_down = false;
@@ -1801,7 +1811,7 @@ int __cdecl ff8_bgate_bdlink_hook()
 		ff8_bgate_cam_restore();
 		ff8_bgate_feedback_req = 0; // re-armed by the effect if it still wants it this tick
 	}
-	else if (ff8_bgate_feedback_req && !ff8_bgate_fx_bypass)
+	else if (ff8_bgate_feedback_req && !ff8_bgate_fx_bypass && ff8_bgate_feedback_rearm)
 	{
 		*(int *)0x1CFF6F4 = ff8_bgate_feedback_req;
 		ff8_bgate_feedback_held++;
@@ -3016,6 +3026,7 @@ static inline int ff8_bgate_scale_round(int v, int num, int den)
 	return (t >= 0) ? (t + den / 2) / den : -((-t + den / 2) / den);
 }
 
+#define FF8_BGATE_FX_MAX_COLOR_STEP 12
 // dst (a copy of cur) := cur + (cur - prev) * num / den, on vertices and vertex colors
 static int ff8_bgate_pkt_extrapolate(uint32_t *dst, const uint32_t *cur, const uint32_t *prev, const ff8_bgate_pkt_info &pi, int num, int den, bool colors)
 {
@@ -3040,7 +3051,12 @@ static int ff8_bgate_pkt_extrapolate(uint32_t *dst, const uint32_t *cur, const u
 		for (int s = 0; s < 24; s += 8)
 		{
 			int cc = (c >> s) & 0xFF, pc = (p >> s) & 0xFF;
-			int v = cc + ff8_bgate_scale_round(cc - pc, num, den);
+			int step = ff8_bgate_scale_round(cc - pc, num, den);
+			// capped: a fade keeps its slope, a sudden brightness jump (flash onset) is not
+			// amplified - overshooting additive primitives saturate to white for one frame
+			if (step > FF8_BGATE_FX_MAX_COLOR_STEP) step = FF8_BGATE_FX_MAX_COLOR_STEP;
+			if (step < -FF8_BGATE_FX_MAX_COLOR_STEP) step = -FF8_BGATE_FX_MAX_COLOR_STEP;
+			int v = cc + step;
 			if (v < 0) v = 0; if (v > 255) v = 255;
 			if (abs(v - cc) > max_dc) max_dc = abs(v - cc);
 			out |= (uint32_t)v << s;
@@ -3339,6 +3355,8 @@ static bool ff8_bgate_pkt_same_shape(const uint32_t *a, const uint32_t *b, const
 }
 
 // Held frame: insert an extrapolated copy of every primitive of tick N into this frame's OT
+static bool ff8_bgate_fx_dump_armed = true; // TEMP diagnostics: dump once per game run
+
 static void ff8_bgate_fx_replay_unsafe()
 {
 	const ff8_bgate_fx_snap &cur = ff8_bgate_fx_snaps[ff8_bgate_fx_cur];
@@ -3357,6 +3375,9 @@ static void ff8_bgate_fx_replay_unsafe()
 	// move that corner identically and meshes never crack open along their edges (per-primitive
 	// decisions left gaps wherever a neighbour was rejected: Leviathan showed its triangles).
 	ff8_bgate_weld_gen++;
+	// TEMP diagnostics: per-primitive dump (Eden 206 screen collapse, ticks 61..64)
+	bool dump = ff8_bgate_R == &ff8_bgate_rec_fx && *(int *)0x1D99A68 + 1 == 206 && false && ff8_bgate_fx_dump_armed;
+	static int dump_pair[2048], dump_d[2048]; static uint8_t dump_kind[2048];
 	for (int i = 0; i < cur.n; i++)
 	{
 		const ff8_bgate_fx_prim &e = cur.prim[i];
@@ -3364,6 +3385,7 @@ static void ff8_bgate_fx_replay_unsafe()
 		uint32_t *dst = &ff8_bgate_fx_out[out_used];
 		memcpy(dst, src, e.words * 4);
 		out_used += e.words;
+		if (i < 2048) { dump_pair[i] = -1; dump_d[i] = -1; dump_kind[i] = 0; }
 
 		bool parsed = interp && ff8_bgate_pkt_parse(src, e.words, ci);
 		if (interp && !parsed) { st_unparsed++; st_badcmd = ci.last_cmd; ff8_bgate_fx_sum.badcmd = ci.last_cmd; }
@@ -3385,19 +3407,33 @@ static void ff8_bgate_fx_replay_unsafe()
 			if (best < 0 || best_d > FF8_BGATE_FX_MAX_STEP_INORDER)
 			{
 				best = -1; best_d = 0x7FFFFFFF; limit = FF8_BGATE_FX_MAX_STEP;
+				int second_d = 0x7FFFFFFF;
 				for (int c = prev.head_w[ci.sig & (FF8_BGATE_FX_HASH - 1)]; c >= 0; c = prev.prim[c].next_w)
 				{
 					const ff8_bgate_fx_prim &q = prev.prim[c];
 					if (q.sig != ci.sig || q.words != e.words || ff8_bgate_fx_used[c] == ff8_bgate_weld_gen) continue;
 					int d = ff8_bgate_pkt_step(src, &prev.arena[q.off], ci);
-					if (d < best_d) { best = c; best_d = d; }
+					if (d < best_d) { second_d = best_d; best = c; best_d = d; }
+					else if (d < second_d) second_d = d;
+				}
+				// The weak identity is shared by every primitive of a batch (all rows of a
+				// screen-warp, all particles of a cloud): "the nearest one" is only meaningful
+				// when it is clearly nearer than the runner-up. Eden's TV-collapse draws the
+				// screen as ~300 one-pixel rows whose UVs change every tick; each row paired
+				// with whatever row sat at its new height and the held frame was torn apart.
+				if (best >= 0 && second_d != 0x7FFFFFFF && best_d * 2 + 2 > second_d)
+				{
+					best = -1;
+					ff8_bgate_fx_sum.ambiguous++;
 				}
 			}
+			if (best >= 0 && i < 2048) { dump_pair[i] = best; dump_d[i] = best_d; dump_kind[i] = (limit == FF8_BGATE_FX_MAX_STEP_INORDER) ? 1 : 2; }
 			if (best >= 0)
 			{
 				const uint32_t *qp = &prev.arena[prev.prim[best].off];
 				if (best_d <= limit && ff8_bgate_pkt_same_shape(src, qp, ci))
 				{
+					if (i < 2048) dump_kind[i] |= 0x10; // accepted
 					ff8_bgate_fx_used[best] = ff8_bgate_weld_gen;
 					int dc = ff8_bgate_pkt_extrapolate(dst, src, qp, ci, ff8_bgate_phase, ff8_bgate_n, ff8_bgate_fx_mode >= 2);
 					if (dc > st_maxcol) st_maxcol = dc;
@@ -3476,6 +3512,23 @@ static void ff8_bgate_fx_replay_unsafe()
 			}
 		}
 
+		if (dump && i < 2048)
+		{
+			char l[500]; int o = 0;
+			o += _snprintf_s(l + o, sizeof(l) - o, _TRUNCATE, "30fps dump: t=%u i=%d bucket=%u words=%u pair=%d d=%d kind=%02X |", ff8_bgate_fx_sum.ticks, i, e.bucket, e.words, dump_pair[i], dump_d[i], dump_kind[i]);
+			for (uint32_t k = 1; k < e.words && k < 10 && o > 0 && o < 400; k++)
+				o += _snprintf_s(l + o, sizeof(l) - o, _TRUNCATE, " %08X", src[k]);
+			if (o > 0 && o < 400) o += _snprintf_s(l + o, sizeof(l) - o, _TRUNCATE, " | out");
+			for (uint32_t k = 1; k < e.words && k < 10 && o > 0 && o < 480; k++)
+				if (dst[k] != src[k]) o += _snprintf_s(l + o, sizeof(l) - o, _TRUNCATE, " [%u]=%08X", k, dst[k]);
+			if (dump_pair[i] >= 0 && o > 0 && o < 440)
+			{
+				const uint32_t *qp = &prev.arena[prev.prim[dump_pair[i]].off];
+				o += _snprintf_s(l + o, sizeof(l) - o, _TRUNCATE, " | prev %08X %08X %08X", qp[1], e.words > 2 ? qp[2] : 0, e.words > 3 ? qp[3] : 0);
+			}
+			ffnx_info("%s\n", l);
+		}
+
 		// link it exactly like the engine's inserts do (SSIGPU_InsertPrimDepthKeys + msk)
 		if (FF8_BGATE_EXEC_CUR - FF8_BGATE_EXEC_START >= FF8_BGATE_EXEC_LIMIT)
 			break; // draw list full - same limit the engine applies
@@ -3490,6 +3543,7 @@ static void ff8_bgate_fx_replay_unsafe()
 		dst[0] = (dst[0] & 0xFF000000) | (old_head & 0xFFFFFF);
 		FF8_BGATE_EXEC_CUR += sizeof(ff8_bgate_exec_node);
 	}
+	if (dump && ff8_bgate_fx_sum.ticks == 300) ff8_bgate_fx_dump_armed = false;
 	ff8_bgate_fx_sum.held++;
 	if (interp) ff8_bgate_fx_sum.interp_held++;
 	ff8_bgate_fx_sum.prims += cur.n;
@@ -3564,10 +3618,10 @@ static void ff8_bgate_fx_summary(const char *why)
 		return;
 	}
 	uint32_t pr = ff8_bgate_fx_sum.prims ? ff8_bgate_fx_sum.prims : 1;
-	ffnx_info("30fps fx summary (%s %s): effect_id=%d ticks=%u held=%u interpolated=%u | prims=%u paired=%u%% rejected=%u%% new=%u%% unparsed=%u(cmd %02X) vram_xfer_skipped=%u orphans=%u welded_vtx=%u maxcol=%u mode=%d%s\n",
+	ffnx_info("30fps fx summary (%s %s): effect_id=%d ticks=%u held=%u interpolated=%u | prims=%u paired=%u%% rejected=%u%% new=%u%% unparsed=%u(cmd %02X) vram_xfer_skipped=%u ambiguous=%u orphans=%u welded_vtx=%u maxcol=%u mode=%d%s\n",
 		ff8_bgate_R->name, why, ff8_bgate_R == &ff8_bgate_rec_fx ? *(int *)0x1D99A68 + 1 : -1, ff8_bgate_fx_sum.ticks, ff8_bgate_fx_sum.held, ff8_bgate_fx_sum.interp_held,
 		ff8_bgate_fx_sum.prims, (ff8_bgate_fx_sum.match * 100) / pr, (ff8_bgate_fx_sum.far_ * 100) / pr,
-		(ff8_bgate_fx_sum.nosig * 100) / pr, ff8_bgate_fx_sum.unparsed, ff8_bgate_fx_sum.badcmd, ff8_bgate_fx_sum.vram_xfer, ff8_bgate_fx_sum.orphans,
+		(ff8_bgate_fx_sum.nosig * 100) / pr, ff8_bgate_fx_sum.unparsed, ff8_bgate_fx_sum.badcmd, ff8_bgate_fx_sum.vram_xfer, ff8_bgate_fx_sum.ambiguous, ff8_bgate_fx_sum.orphans,
 		ff8_bgate_fx_sum.welded, ff8_bgate_fx_sum.maxcol, ff8_bgate_fx_mode, ff8_bgate_fx_tpages_str());
 	memset(&ff8_bgate_fx_sum, 0, sizeof(ff8_bgate_fx_sum));
 }
@@ -3684,6 +3738,18 @@ static void ff8_bgate_diff_frame(bool real)
 // Shared gate body for a recorded queue (ff8_bgate_R already selected): real frame =
 // tick at native rate and capture its draws; held frame = no tick, replay the draws
 // extrapolated. held_ret is what the caller sees on held frames.
+// The stack area the tick is about to run in is cleared first. Effect code reads at least one
+// local it never initialised (Eden 206, crater scene: for ONE tick two ground triangles were
+// culled and the sky showed through - only with this hook in the call chain, and any extra
+// logging call before the tick made it vanish). In vanilla that slot holds whatever the
+// previous engine call left there; behind this hook it held leftovers of the recorder's own
+// work. Zeroes make it deterministic.
+static __declspec(noinline) void ff8_bgate_scrub_stack()
+{
+	volatile char area[0x8000];
+	SecureZeroMemory((void *)area, sizeof(area));
+}
+
 static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_ret)
 {
 	if (ff8_bgate_fx_bypass)
@@ -3703,6 +3769,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 		ff8_bgate_fx_rec_rlist = FF8_BGATE_RLIST_CUR;
 		ff8_bgate_fx_replay_ok = true;
 		int vq_before = FF8_BGATE_VQ_COUNT;
+		if (ff8_bgate_scrub_on) ff8_bgate_scrub_stack();
 		int r = orig(ctx);
 		ff8_bgate_vq_record(vq_before, FF8_BGATE_VQ_COUNT);
 		for (int i = vq_before; i < FF8_BGATE_VQ_COUNT && i < 32; i++)
@@ -3727,8 +3794,6 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			_snprintf_s(ffnx_cap_label, sizeof(ffnx_cap_label), _TRUNCATE, "f%u_REAL_fx%d_t%u", ff8_bgate_frame_no, *(int *)0x1D99A68 + 1, ff8_bgate_fx_sum.ticks);
 		// long effects (Eden runs ~1250 ticks): report progress so the diagnostics do not
 		// depend on the effect reaching its end
-		if (ff8_bgate_fx_sum.ticks == 40)
-			ff8_bgate_vq_trace = 12; // ~6 real frames of tracing
 		if (ff8_bgate_vq_trace)
 		{
 			ffnx_info("30fps frame: f=%u ph=%d parity=%u arena=%08X rlist=%08X nodes=%d\n",

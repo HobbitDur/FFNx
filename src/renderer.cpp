@@ -51,13 +51,28 @@ int ffnx_cap_left = 0;
 int ffnx_cap_seq = 0;
 char ffnx_cap_label[96] = "";
 char ffnx_cap_dir[260] = "";
+int ffnx_cap_div = 1; // 1 = full resolution, 4 = every 4th pixel (long bursts)
 
 void RendererCallbacks::screenShot(const char* _filePath, uint32_t _width, uint32_t _height, uint32_t _pitch, bgfx::TextureFormat::Enum _format, const void* _data, uint32_t _size, bool _yflip)
 {
     bx::FileWriter writer;
     if (bx::open(&writer, _filePath, false))
     {
-        bimg::imageWritePng(&writer, _width, _height, _pitch, _data, bimg::TextureFormat::BGRA8, _yflip);
+        int div = ffnx_cap_div;
+        if (div > 1)
+        {
+            static std::vector<uint32_t> cap_sub;
+            uint32_t w = _width / div, h = _height / div;
+            cap_sub.resize(w * h);
+            for (uint32_t y = 0; y < h; y++)
+            {
+                const uint32_t* row = (const uint32_t*)((const uint8_t*)_data + (size_t)(y * div) * _pitch);
+                for (uint32_t x = 0; x < w; x++) cap_sub[y * w + x] = row[x * div];
+            }
+            bimg::imageWritePng(&writer, w, h, w * 4, cap_sub.data(), bimg::TextureFormat::BGRA8, _yflip);
+        }
+        else
+            bimg::imageWritePng(&writer, _width, _height, _pitch, _data, bimg::TextureFormat::BGRA8, _yflip);
         bx::close(&writer);
     }
     else ffnx_error("capture: cannot write %s\n", _filePath);
