@@ -45,6 +45,24 @@ CMRC_DECLARE(FFNx);
 Renderer newRenderer;
 RendererCallbacks bgfxCallbacks;
 
+// TEMP diagnostics (FF8 30fps battle): burst capture of consecutive presented frames.
+// ff8_opengl.cpp arms ffnx_cap_left and keeps ffnx_cap_label up to date (frame no / phase / tick).
+int ffnx_cap_left = 0;
+int ffnx_cap_seq = 0;
+char ffnx_cap_label[96] = "";
+char ffnx_cap_dir[260] = "";
+
+void RendererCallbacks::screenShot(const char* _filePath, uint32_t _width, uint32_t _height, uint32_t _pitch, bgfx::TextureFormat::Enum _format, const void* _data, uint32_t _size, bool _yflip)
+{
+    bx::FileWriter writer;
+    if (bx::open(&writer, _filePath, false))
+    {
+        bimg::imageWritePng(&writer, _width, _height, _pitch, _data, bimg::TextureFormat::BGRA8, _yflip);
+        bx::close(&writer);
+    }
+    else ffnx_error("capture: cannot write %s\n", _filePath);
+}
+
 // BGFX CALLBACKS
 void RendererCallbacks::fatal(const char* _filePath, uint16_t _line, bgfx::Fatal::Enum _code, const char* _str)
 {
@@ -1557,6 +1575,14 @@ void Renderer::show()
                 vectorSizeOf(indexBufferData)
             )
         );
+    }
+
+    if (ffnx_cap_left > 0)
+    {
+        char path[400];
+        _snprintf_s(path, sizeof(path), _TRUNCATE, "%s/%03d_%s.png", ffnx_cap_dir, ffnx_cap_seq++, ffnx_cap_label);
+        bgfx::requestScreenShot(BGFX_INVALID_HANDLE, path);
+        if (--ffnx_cap_left == 0) ffnx_info("capture: burst finished, %d frames in %s\n", ffnx_cap_seq, ffnx_cap_dir);
     }
 
     bgfx::frame(doCaptureFrame ? BGFX_FRAME_DEBUG_CAPTURE : BGFX_FRAME_NONE);

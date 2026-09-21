@@ -1717,6 +1717,28 @@ static void ff8_bgate_camera_state_log()
 		moved ? " (moved)" : "");
 }
 
+// SCREEN FEEDBACK (Eden's / Ultima's... "ghost" of the whole screen, HUD included): an effect
+// tick calls Battle_RequestScreenFeedback (0x47CF50, arg 0/1) which arms a one-frame request
+// (0x1CFF6F4 = arg + 1). After the battle loop, battle_main_loop (0x47D1B3) consumes it: the
+// screen rendered so far is captured into a texture and drawn back at 1/3 opacity (enlarged by
+// 16px when the request is 2), then the request is cleared. Effects tick on real frames only, so
+// on held frames nobody armed the request and the ghost vanished every other frame (the 15Hz
+// "flash"). The request made during the last real frame is re-armed on the held frames.
+static int ff8_bgate_feedback_req = 0;      // request armed during the current/last real frame
+static uint32_t ff8_bgate_feedback_held = 0; // stats
+
+int __cdecl ff8_bgate_feedback_request_hook(int mode)
+{
+	*(int *)0x1CFF6F4 = mode + 1;
+	ff8_bgate_feedback_req = mode + 1;
+	return mode + 1;
+}
+
+// TEMP diagnostics: F8 = save the next 60 presented frames as PNG (renderer.cpp burst capture)
+extern int ffnx_cap_left, ffnx_cap_seq;
+extern char ffnx_cap_label[96], ffnx_cap_dir[260];
+static int ff8_bgate_cap_burst = 0;
+
 int __cdecl ff8_bgate_bdlink_hook()
 {
 	if (ff8_bgate_left_battle)
@@ -1726,7 +1748,22 @@ int __cdecl ff8_bgate_bdlink_hook()
 	}
 	ff8_bgate_phase = (ff8_bgate_phase + 1) % ff8_bgate_n;
 	ff8_bgate_frame_no++;
+	_snprintf_s(ffnx_cap_label, sizeof(ffnx_cap_label), _TRUNCATE, "f%u_%s", ff8_bgate_frame_no, ff8_bgate_phase == 0 ? "REAL" : "held");
 	{
+		static bool f8_down = false;
+		bool d8 = (GetAsyncKeyState(VK_F8) & 0x8000) != 0;
+		if (d8 && !f8_down && ffnx_cap_left == 0)
+		{
+			_snprintf_s(ffnx_cap_dir, sizeof(ffnx_cap_dir), _TRUNCATE, "%s/capture30/burst%02d", basedir, ff8_bgate_cap_burst++);
+			char cmd[300];
+			_snprintf_s(cmd, sizeof(cmd), _TRUNCATE, "%s/capture30", basedir);
+			CreateDirectoryA(cmd, NULL);
+			CreateDirectoryA(ffnx_cap_dir, NULL);
+			ffnx_cap_seq = 0;
+			ffnx_cap_left = 60;
+			ffnx_info("capture: F8 -> 60 frames to %s (n=%d bypass=%d mode=%d effect_id=%d)\n", ffnx_cap_dir, ff8_bgate_n, (int)ff8_bgate_fx_bypass, ff8_bgate_fx_mode, *(int *)0x1D99A68 + 1);
+		}
+		f8_down = d8;
 		static bool f6_down = false;
 		bool d6 = (GetAsyncKeyState(VK_F6) & 0x8000) != 0;
 		if (d6 && !f6_down)
@@ -1762,6 +1799,12 @@ int __cdecl ff8_bgate_bdlink_hook()
 	{
 		ff8_bgate_move_restore_all();
 		ff8_bgate_cam_restore();
+		ff8_bgate_feedback_req = 0; // re-armed by the effect if it still wants it this tick
+	}
+	else if (ff8_bgate_feedback_req && !ff8_bgate_fx_bypass)
+	{
+		*(int *)0x1CFF6F4 = ff8_bgate_feedback_req;
+		ff8_bgate_feedback_held++;
 	}
 	unreplace_function(ff8_bgate_bdlink_ri);
 	int r = ff8_bgate_bdlink_orig();
@@ -3680,6 +3723,8 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 		if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8_bgate_diff_frame(true);
 		ff8_bgate_R->last_r = r;
 		ff8_bgate_fx_sum.ticks++;
+		if (ff8_bgate_R == &ff8_bgate_rec_fx)
+			_snprintf_s(ffnx_cap_label, sizeof(ffnx_cap_label), _TRUNCATE, "f%u_REAL_fx%d_t%u", ff8_bgate_frame_no, *(int *)0x1D99A68 + 1, ff8_bgate_fx_sum.ticks);
 		// long effects (Eden runs ~1250 ticks): report progress so the diagnostics do not
 		// depend on the effect reaching its end
 		if (ff8_bgate_fx_sum.ticks == 40)
@@ -3716,6 +3761,8 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 	// (no VRAM command is re-queued: Eden's type-3 copies turned out to be small texture
 	// animations inside the texture area, not screen snapshots, and repeating its type-0
 	// streaming uploads would only re-upload the same rows)
+	if (ff8_bgate_R == &ff8_bgate_rec_fx)
+		_snprintf_s(ffnx_cap_label, sizeof(ffnx_cap_label), _TRUNCATE, "f%u_held_fx%d_t%u", ff8_bgate_frame_no, *(int *)0x1D99A68 + 1, ff8_bgate_fx_sum.ticks);
 	if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8_bgate_diff_frame(false);
 	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_otclear && ff8_bgate_fx_replay_ok)
 		((void (__cdecl *)(void *, int))0x45D530)((void *)FF8_BGATE_CUR_OT(), 4096); // SSIGPU_ClearOrderingTable, as the effect's tick does
@@ -3896,6 +3943,7 @@ static void ff8_bgate_battle_reset()
 		rec->last_r = 0;
 	}
 	ff8_bgate_R = &ff8_bgate_rec_fx;
+	ff8_bgate_feedback_req = 0;
 	ff8_bgate_fx_otclear = false;
 	memset(ff8_bgate_shake_last, 0, sizeof(ff8_bgate_shake_last));
 	memset(ff8_bgate_anim_policy, 0, sizeof(ff8_bgate_anim_policy));
@@ -3990,6 +4038,8 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_camseq_ri = replace_function(0x509610, (void *)ff8_bgate_camseq_hook);
 	ff8_bgate_updatecam_orig = (int(__cdecl *)())0x504060;
 	ff8_bgate_updatecam_ri = replace_function(0x504060, (void *)ff8_bgate_updatecam_hook);
+	// screen feedback request (see ff8_bgate_feedback_request_hook); the 11-byte original is fully replaced
+	replace_function(0x47CF50, (void *)ff8_bgate_feedback_request_hook);
 	// effect packets re-read at display time (packet aliasing, see ff8_bgate_fx_recapture_*)
 	ff8_bgate_display_orig = (int(__cdecl *)(unsigned int))0x45D610;
 	ff8_bgate_display_ri = replace_function(0x45D610, (void *)ff8_bgate_display_hook);
