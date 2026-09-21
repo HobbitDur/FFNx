@@ -310,7 +310,7 @@ static void ff8_kernel_ability_find_externals()
 	}
 
 	// Deltas from the character stat computation.
-	ability_ext.fn_gf_battle_stats = ff8_externals.compute_char_stats_sub_495960 - 0x1E0;
+	ability_ext.fn_gf_battle_stats = ff8_externals.compute_char_stats_sub_495960 + 0x420;
 	ability_ext.fn_add_ap = ff8_externals.compute_char_stats_sub_495960 + 0x16B0;
 
 	// The group table's address is the operand of the lea that indexes it,
