@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 // AddMoreMagic: support kernel.bin files whose Magic section (section 1)
 // holds more than the vanilla 57 spells, unlocking spell ids 57-63 and
 // 96-255 (64-95 stay reserved for GFs - 16 used today, 16 free for a future
@@ -23,3 +25,7 @@
 // versions are skipped. Call once from ff8_init_hooks(). Completely inert
 // while the loaded kernel.bin is vanilla-sized.
 void ff8_kernel_magic_init();
+
+// Address of getMagicText() on this build, or 0 when unresolved. Shared so
+// AddMoreAbility can anchor the neighbouring ability text getters on it.
+uint32_t ff8_kernel_magic_name_getter();

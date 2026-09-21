@@ -15,6 +15,7 @@
 /****************************************************************************/
 
 #include "kernel_magic.h"
+#include "kernel_ability.h"
 
 #include "../ff8.h"
 #include "../patch.h"
@@ -620,7 +621,12 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 	bool valid = size > (int)sizeof(uint32_t) * (KERNEL_SECTION_COUNT + 1) && header[0] == KERNEL_SECTION_COUNT;
 	int entries = valid ? (int)((offsets[KERNEL_MAGIC_SECTION + 1] - offsets[KERNEL_MAGIC_SECTION]) / MAGIC_ENTRY_SIZE) : VANILLA_MAGIC_COUNT;
 
-	if (!valid || entries <= VANILLA_MAGIC_COUNT || entries > MAX_MAGIC_ID)
+	bool magic_grown = valid && entries > VANILLA_MAGIC_COUNT && entries <= MAX_MAGIC_ID;
+	// AddMoreAbility shares this hook: a grown ability block needs the same
+	// vanilla-layout image, even when the magic section is untouched.
+	bool ability_grown = valid && ff8_kernel_ability_read(ff8_kernel_stash, offsets, size);
+
+	if (!magic_grown && !ability_grown)
 	{
 		// Vanilla (or unexpected) kernel.bin: behave exactly like the
 		// original call. Nothing is armed, nothing else is patched.
@@ -648,7 +654,7 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 
 		out_header[1 + i] = dst;
 
-		if (i != KERNEL_MAGIC_SECTION && src_size != copy_size)
+		if (i != KERNEL_MAGIC_SECTION && !ff8_kernel_ability_section_may_grow(i) && src_size != copy_size)
 		{
 			++non_vanilla_sections;
 			if (trace_all) ffnx_trace("AddMoreMagic: kernel.bin data section %d has size %u, expected %u.\n", i, src_size, copy_size);
@@ -671,13 +677,20 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 	uint32_t text_src_size = (uint32_t)size - offsets[KERNEL_FIRST_TEXT_SEC];
 	memcpy(dest + vanilla_data_offsets[KERNEL_FIRST_TEXT_SEC], ff8_kernel_stash + offsets[KERNEL_FIRST_TEXT_SEC], text_src_size < text_dest_size ? text_src_size : text_dest_size);
 
-	// FFNx-side full magic table.
-	memcpy(ff8_magic_table, ff8_kernel_stash + offsets[KERNEL_MAGIC_SECTION], entries * MAGIC_ENTRY_SIZE);
-	ff8_magic_count = entries;
+	if (magic_grown)
+	{
+		// FFNx-side full magic table.
+		memcpy(ff8_magic_table, ff8_kernel_stash + offsets[KERNEL_MAGIC_SECTION], entries * MAGIC_ENTRY_SIZE);
+		ff8_magic_count = entries;
 
-	if (trace_all) ffnx_trace("AddMoreMagic: extended kernel.bin detected (%d magic entries, +%u bytes data growth).\n", entries, data_growth);
+		if (trace_all) ffnx_trace("AddMoreMagic: extended kernel.bin detected (%d magic entries, +%u bytes data growth).\n", entries, data_growth);
 
-	ff8_kernel_magic_arm();
+		ff8_kernel_magic_arm();
+	}
+	else if (entries != VANILLA_MAGIC_COUNT)
+	{
+		ffnx_warning("AddMoreMagic: kernel.bin has %d magic entries (max %d), ignoring the magic extension.\n", entries, MAX_MAGIC_ID);
+	}
 
 	return VANILLA_KERNEL_SIZE;
 }
@@ -932,6 +945,12 @@ static void ff8_kernel_magic_find_externals()
 	// The call BattleAction_ExecuteCommand makes to run a queued command; it is
 	// the same one battle_sub_48D200 is read from.
 	magic_ext.command_action_call = ff8_externals.sub_485610 + 0x323;
+}
+
+// getMagicText(): AddMoreAbility anchors the ability text getters on it.
+uint32_t ff8_kernel_magic_name_getter()
+{
+	return magic_ext.fn_name_getter;
 }
 
 void ff8_kernel_magic_init()

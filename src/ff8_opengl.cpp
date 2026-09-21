@@ -38,6 +38,7 @@
 #include "ff8/vram.h"
 #include "ff8/save_data.h"
 #include "ff8/kernel_magic.h"
+#include "ff8/kernel_ability.h"
 #include "ff8/battle/monsters.h"
 #include "ff8/remaster.h"
 #include "metadata.h"
@@ -2490,6 +2491,11 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// AddMoreMagic: extended kernel.bin magic section (ids 57-63 and 96-255; 64-95 reserved for GFs)
 	// #####################
 	ff8_kernel_magic_init();
+
+	// #####################
+	// AddMoreAbility: extended kernel.bin GF ability section (up to 128 abilities in total)
+	// #####################
+	ff8_kernel_ability_init();
 
 	// #####################
 	// Unlock unused battle monster models c0m144-c0m199
