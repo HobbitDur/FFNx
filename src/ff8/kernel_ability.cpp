@@ -125,6 +125,7 @@ static uint8_t ff8_group_first[ABILITY_GROUP_COUNT];
 static uint8_t ff8_command_candidates[MAX_ABILITY_COUNT][CANDIDATE_ENTRY_SIZE];
 static uint8_t ff8_passive_candidates[MAX_ABILITY_COUNT][CANDIDATE_ENTRY_SIZE];
 static bool ff8_ability_armed = false;
+static bool ff8_ability_checked = false;
 static bool ff8_ability_supported = false;
 
 // ---- instruction sites --------------------------------------------------
@@ -513,8 +514,6 @@ bool ff8_kernel_ability_section_may_grow(int section)
 
 bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int size)
 {
-	if (!ff8_ability_supported) return false;
-
 	uint8_t first[ABILITY_GROUP_COUNT];
 	int total = 0;
 
@@ -533,7 +532,24 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 		total += entries;
 	}
 
+	// A stock kernel.bin leaves here, before anything is resolved, checked or
+	// patched: on vanilla this feature costs one comparison and nothing else.
 	if (total == VANILLA_ABILITY_COUNT && !memcmp(first, vanilla_group_first, sizeof(first))) return false;
+
+	// First extended file seen: only now is it worth resolving the addresses and
+	// checking every site, so a build this does not support stays quiet for anyone
+	// who never mods abilities.
+	if (!ff8_ability_checked)
+	{
+		ff8_ability_checked = true;
+		ff8_kernel_ability_find_externals();
+		ff8_ability_supported = ff8_kernel_ability_validate();
+
+		if (!ff8_ability_supported)
+			ffnx_warning("AddMoreAbility: this build is not supported, extension disabled.\n");
+	}
+
+	if (!ff8_ability_supported) return false;
 
 	// computeGFBattleStats only walks learned bits 64..127; GF abilities below
 	// that would silently stop working.
@@ -572,12 +588,8 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 
 void ff8_kernel_ability_init()
 {
+	// Nothing is resolved or patched here. The feature wakes up in
+	// ff8_kernel_ability_read(), and only for a kernel.bin whose ability sections
+	// are not the vanilla 116; AddMoreMagic's load hook is what calls it.
 	memcpy(ff8_group_first, vanilla_group_first, sizeof(ff8_group_first));
-
-	ff8_kernel_ability_find_externals();
-
-	ff8_ability_supported = ff8_kernel_ability_validate();
-
-	if (!ff8_ability_supported && trace_all)
-		ffnx_trace("AddMoreAbility: unsupported game version, extension disabled.\n");
 }
