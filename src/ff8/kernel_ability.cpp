@@ -201,7 +201,7 @@ static void ff8_kernel_ability_find_externals()
 	ability_ext.k_ability = ability_ext.kernel_buffer + ABILITY_BLOCK_OFFSET;
 
 	// Call chains.
-	ability_ext.fn_menu_mask = get_relative_call(uint32_t(ff8_externals.sub_4F81F0), 0x3CA6);
+	ability_ext.fn_menu_mask = get_relative_call(uint32_t(ff8_externals.menu_use_items_sub_4F81F0), 0x3CA6);
 	ability_ext.fn_build_list = ability_ext.fn_menu_mask ? get_relative_call(ability_ext.fn_menu_mask, 0x24) : 0;
 	ability_ext.fn_reset_parse_chara = get_relative_call(ff8_externals.sub_48B7E0, 0x94);
 	ability_ext.fn_stat_percent_bonus = ability_ext.fn_reset_parse_chara ? get_relative_call(ability_ext.fn_reset_parse_chara, 0x34C) : 0;
