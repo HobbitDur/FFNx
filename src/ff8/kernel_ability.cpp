@@ -29,51 +29,55 @@
 #include <string.h>
 
 // -------------------------------------------------------------------------
-// AddMoreAbility - lets kernel.bin hold more than the vanilla 9 GF abilities.
+// AddMoreAbility - lets kernel.bin hold more abilities than the vanilla 116.
 //
 // Kernel sections 12..18 (junction, command, stat %, character, party, GF and
 // menu abilities) are contiguous 8-byte entries, and the exe reads them as ONE
 // array based at the junction ability section: getAbilityName(id) indexes
 // K_JUNCTION_ABILITY[id] for every id 0..115 and only uses the group to pick
-// which text section the name offset belongs to. The group boundaries
-// (20/39/58/78/83/92) are inlined constants, and a table at the end of .rdata
-// holds {section offset, first id, entry size} per group.
+// which text section the name offset belongs to. Which group an id belongs to
+// is decided by an inlined chain of constants (20/39/58/78/83/92) repeated in
+// five functions, by a few standalone range checks, and by a table holding
+// {section offset, first id, entry size} per group.
 //
-// Growing the GF ability section therefore does two things: it shifts the menu
-// ability ids, and it pushes every kernel section behind the ability block.
-// Rather than relocate those sections (110 operands read them by absolute
-// address), we keep the array FFNx-side and repoint the 26 operands that read
-// it - the same trick AddMoreMagic uses for the magic table - then patch the
-// handful of constants that describe where the GF group ends.
+// Growing any of those sections shifts the ids of every group behind it and
+// pushes every kernel section behind the ability block. Rather than relocate
+// those sections (110 operands address them absolutely), we keep the array
+// FFNx-side and repoint the 26 operands that read it - the same trick
+// AddMoreMagic uses for the magic table - then rewrite every constant that
+// says where a group starts, from the section sizes the file itself carries.
 //
-// Modder contract: kernel.bin section 17 lists the vanilla 9 GF abilities
-// first, then the new ones; every other data section keeps its vanilla size;
-// names and descriptions of the new entries go in the GF ability text section
-// (section 47). Total ability entries must stay <= 128, the width of the
-// savemap's per-GF learned mask.
+// Modder contract: each ability section lists its vanilla entries first, then
+// the new ones; the total must stay <= 128, the width of the savemap's per-GF
+// learned mask; the GF ability group must still start at id 64 or above; and a
+// new entry's name and description go in its own group's text section.
+// Everything that stores an ability id has to be renumbered to match - above
+// all the 21-slot learn lists in section 3.
 // -------------------------------------------------------------------------
 
 #define ABILITY_ENTRY_SIZE         8
 // The savemap's per-GF learned-ability bitfield is 16 bytes wide.
 #define MAX_ABILITY_COUNT          128
 #define VANILLA_ABILITY_COUNT      116
-#define VANILLA_GF_ABILITY_COUNT   9
-#define VANILLA_FIRST_GF_ID        83
-#define VANILLA_FIRST_MENU_ID      92
+#define ABILITY_GROUP_COUNT        7
+// computeGFBattleStats only walks learned bits 64..127, so the GF ability group
+// may move up but never below that.
+#define GF_EFFECT_FIRST_BIT        64
 // Ability block start, relative to the kernel.bin buffer.
 #define ABILITY_BLOCK_OFFSET       0x40E0
 // Data sections, 0-based as the kernel.bin header lists them.
-#define KERNEL_JUNCTION_ABIL_SEC   11
-#define KERNEL_GF_ABIL_SEC         16
-#define KERNEL_MENU_ABIL_SEC       17
+#define KERNEL_FIRST_ABIL_SEC      11
 #define KERNEL_AFTER_ABIL_SEC      18
 // How far past an instruction's first byte its absolute operand may sit.
 #define OPERAND_SCAN_WINDOW        8
+// Groups whose first id the standalone checks below care about.
+#define GROUP_COMMAND              1
+#define GROUP_STAT_PERCENT         2
+#define GROUP_GF                   5
+#define GROUP_MENU                 6
 
-// Vanilla offsets of the ability sections and of the section right behind them.
-static const uint32_t vanilla_ability_offsets[] = {
-	0x40E0, 0x4180, 0x4218, 0x42B0, 0x4350, 0x4378, 0x43C0, 0x4480,
-};
+// Vanilla first id of each group.
+static const uint8_t vanilla_group_first[ABILITY_GROUP_COUNT] = { 0, 20, 39, 58, 78, 83, 92 };
 
 // Every address this file needs, resolved from anchors ff8_externals already
 // holds, or from an anchor this file resolves first.
@@ -97,13 +101,14 @@ static struct
 	uint32_t fn_junction_menu;      // StatusJunctionMenuHandler
 	uint32_t fn_gf_summary;         // Menu_BuildGFJunctionSummary
 	uint32_t fn_draw_list_row;      // Menu_DrawAbilityListRow
+	uint32_t fn_validate_passives;  // Menu_ValidateCharaPassiveAbilities
+	uint32_t fn_chara_ability_lists;// Menu_BuildCharaAbilityMaskAndLists
 } ability_ext;
 
 // ---- state --------------------------------------------------------------
 static uint8_t ff8_ability_table[MAX_ABILITY_COUNT][ABILITY_ENTRY_SIZE];
 static int ff8_ability_count = VANILLA_ABILITY_COUNT;
-static int ff8_gf_ability_count = VANILLA_GF_ABILITY_COUNT;
-static int ff8_first_menu_id = VANILLA_FIRST_MENU_ID;
+static uint8_t ff8_group_first[ABILITY_GROUP_COUNT];
 static bool ff8_ability_armed = false;
 static bool ff8_ability_supported = false;
 
@@ -116,13 +121,13 @@ struct ability_site { uint32_t *owner; uint32_t offset; const char *what; };
 static const ability_site array_sites[] = {
 	{ &ability_ext.fn_get_name, 0x009, "getAbilityName junction" },
 	{ &ability_ext.fn_get_name, 0x035, "getAbilityName command" },
-	{ &ability_ext.fn_get_name, 0x061, "getAbilityName stat%" },
+	{ &ability_ext.fn_get_name, 0x061, "getAbilityName stat percent" },
 	{ &ability_ext.fn_get_name, 0x08D, "getAbilityName character" },
 	{ &ability_ext.fn_get_name, 0x0B9, "getAbilityName party" },
 	{ &ability_ext.fn_get_name, 0x0E3, "getAbilityName GF/menu" },
 	{ &ability_ext.fn_get_desc, 0x009, "getAbilityDescription junction" },
 	{ &ability_ext.fn_get_desc, 0x035, "getAbilityDescription command" },
-	{ &ability_ext.fn_get_desc, 0x061, "getAbilityDescription stat%" },
+	{ &ability_ext.fn_get_desc, 0x061, "getAbilityDescription stat percent" },
 	{ &ability_ext.fn_get_desc, 0x08D, "getAbilityDescription character" },
 	{ &ability_ext.fn_get_desc, 0x0B9, "getAbilityDescription party" },
 	{ &ability_ext.fn_get_desc, 0x0E3, "getAbilityDescription GF/menu" },
@@ -142,21 +147,37 @@ static const ability_site array_sites[] = {
 	{ &ability_ext.fn_gf_battle_stats, 0x050, "effect loop start (id 64)" },
 };
 
-// The GF group's two range bounds in computeGFBattleStats, patched to the new
-// boundaries rather than shifted like the sites above.
+// The GF group's two range bounds in computeGFBattleStats: pointers at the
+// stat_to_increase byte of the first GF and of the first menu ability.
 #define SITE_GF_RANGE_LOW   0x075
 #define SITE_GF_RANGE_HIGH  0x07C
 
-// The inlined "first menu ability" constant, and the ability count one past it.
-static const ability_site boundary_sites[] = {
-	{ &ability_ext.fn_get_name, 0x0E0, "getAbilityName" },
-	{ &ability_ext.fn_get_desc, 0x0E0, "getAbilityDescription" },
-	{ &ability_ext.fn_learned_popup, 0x0A6, "learned popup icon" },
-	{ &ability_ext.fn_group_from_id, 0x03A, "getAbilityGroupFromId" },
-	{ &ability_ext.fn_build_list, 0x266, "BuildGFAbilityList" },
-	{ &ability_ext.fn_menu_mask, 0x040, "menu ability mask" },
+// The inlined group chain: six "is the id past the start of group N" compares,
+// in id order, repeated in five functions. The immediate sits at insn + 2.
+struct chain_sites { uint32_t *owner; uint32_t offset[ABILITY_GROUP_COUNT - 1]; const char *what; };
+
+static const chain_sites group_chains[] = {
+	{ &ability_ext.fn_get_name,      { 0x004, 0x030, 0x05C, 0x088, 0x0B4, 0x0E0 }, "getAbilityName" },
+	{ &ability_ext.fn_get_desc,      { 0x004, 0x030, 0x05C, 0x088, 0x0B4, 0x0E0 }, "getAbilityDescription" },
+	{ &ability_ext.fn_group_from_id, { 0x004, 0x00C, 0x017, 0x022, 0x02D, 0x03A }, "getAbilityGroupFromId" },
+	{ &ability_ext.fn_build_list,    { 0x21F, 0x234, 0x240, 0x24C, 0x258, 0x266 }, "BuildGFAbilityList" },
+	{ &ability_ext.fn_learned_popup, { 0x059, 0x068, 0x077, 0x086, 0x095, 0x0A6 }, "learned popup icon" },
 };
-#define SITE_ABILITY_COUNT_CMP  0x045   // inside fn_menu_mask: cmp id, 116
+
+// Standalone constants: one group's first id, checked on its own.
+struct group_bound_site { uint32_t *owner; uint32_t offset; int group; const char *what; };
+
+static const group_bound_site group_bound_sites[] = {
+	{ &ability_ext.fn_menu_mask,           0x040, GROUP_MENU,         "menu ability mask start" },
+	{ &ability_ext.fn_validate_passives,   0x04F, GROUP_STAT_PERCENT, "equippable passives start" },
+	{ &ability_ext.fn_validate_passives,   0x054, GROUP_GF,           "equippable passives end" },
+	{ &ability_ext.fn_chara_ability_lists, 0x0B8, GROUP_STAT_PERCENT, "passive candidate list start" },
+	{ &ability_ext.fn_chara_ability_lists, 0x114, GROUP_GF,           "passive candidate list end" },
+	{ &ability_ext.fn_gf_summary,          0x074, GROUP_COMMAND,      "junction ability check" },
+};
+
+// One past the last ability, inside RebuildLearnedMenuAbilityMask.
+#define SITE_ABILITY_COUNT_CMP  0x045
 
 // The two reads of an entry's AP field through the group table; their operand
 // is the kernel buffer + 4, not a pointer into the array.
@@ -191,9 +212,9 @@ static uint32_t ability_table_base()
 }
 
 // ---- init ---------------------------------------------------------------
-// Resolve every address this file patches. Anchors marked "delta" are measured
-// on the US 1.2 build and only sanity-checked on the others - a wrong one makes
-// the validation pass below fail, which disables the feature instead of
+// Resolve every address this file patches. The ones marked as deltas are
+// measured on the US 1.2 build; a delta that does not hold on some other build
+// makes the validation pass below fail, which disables the feature instead of
 // patching the wrong instruction.
 static void ff8_kernel_ability_find_externals()
 {
@@ -212,19 +233,26 @@ static void ff8_kernel_ability_find_externals()
 	ability_ext.fn_get_name = magic_name_getter ? magic_name_getter - 0x260 : 0;
 	ability_ext.fn_get_desc = magic_name_getter ? magic_name_getter - 0x130 : 0;
 
-	// Deltas.
-	ability_ext.fn_group_from_id = ability_ext.fn_build_list ? ability_ext.fn_build_list - 0x50 : 0;
-	ability_ext.fn_learned_popup = ability_ext.fn_build_list ? ability_ext.fn_build_list - 0x6890 : 0;
-	ability_ext.fn_draw_learn_status = ability_ext.fn_build_list ? ability_ext.fn_build_list + 0x27A60 : 0;
+	// Deltas from BuildGFAbilityList.
+	uint32_t list = ability_ext.fn_build_list;
+
+	ability_ext.fn_group_from_id = list ? list - 0x50 : 0;
+	ability_ext.fn_learned_popup = list ? list - 0x6890 : 0;
+	ability_ext.fn_draw_learn_status = list ? list + 0x27A60 : 0;
+	ability_ext.fn_validate_passives = list ? list + 0x2DAF0 : 0;
+	ability_ext.fn_junction_menu = list ? list + 0x2DE40 : 0;
+	ability_ext.fn_chara_ability_lists = list ? list + 0x335A0 : 0;
+	ability_ext.fn_gf_summary = list ? list + 0x360B0 : 0;
+	ability_ext.fn_draw_list_row = list ? list + 0x3BCF0 : 0;
+
+	// Deltas from the character stat computation.
 	ability_ext.fn_gf_battle_stats = ff8_externals.compute_char_stats_sub_495960 - 0x1E0;
 	ability_ext.fn_add_ap = ff8_externals.compute_char_stats_sub_495960 + 0x16B0;
-	ability_ext.fn_junction_menu = ability_ext.fn_build_list ? ability_ext.fn_build_list + 0x2DE40 : 0;
-	ability_ext.fn_gf_summary = ability_ext.fn_build_list ? ability_ext.fn_build_list + 0x360B0 : 0;
-	ability_ext.fn_draw_list_row = ability_ext.fn_build_list ? ability_ext.fn_build_list + 0x3BCF0 : 0;
 
 	// The group table's address is the operand of the lea that indexes it,
-	// inside BuildGFAbilityList.
-	ability_ext.group_table = ability_ext.fn_build_list ? *(uint32_t *)(ability_ext.fn_build_list + 0x28A) - 2 : 0;
+	// inside BuildGFAbilityList; that operand points at the row's first-id
+	// byte, two into the row.
+	ability_ext.group_table = list ? *(uint32_t *)(list + 0x28A) - 2 : 0;
 }
 
 // Check every site before touching any of them: a bad anchor must disable the
@@ -258,11 +286,26 @@ static bool ff8_kernel_ability_validate()
 		}
 	}
 
-	for (const ability_site &site : boundary_sites)
+	// Each chain must still read as the vanilla 20/39/58/78/83/92.
+	for (const chain_sites &chain : group_chains)
 	{
-		if (*(uint8_t *)(*site.owner + site.offset + 2) != VANILLA_FIRST_MENU_ID)
+		for (int group = 1; group < ABILITY_GROUP_COUNT; ++group)
 		{
-			ffnx_warning("AddMoreAbility: %s boundary at 0x%X is not %d.\n", site.what, *site.owner + site.offset, VANILLA_FIRST_MENU_ID);
+			uint32_t site = *chain.owner + chain.offset[group - 1];
+
+			if (*(uint8_t *)(site + 2) != vanilla_group_first[group])
+			{
+				ffnx_warning("AddMoreAbility: %s boundary %d at 0x%X is not %d.\n", chain.what, group, site, vanilla_group_first[group]);
+				ok = false;
+			}
+		}
+	}
+
+	for (const group_bound_site &site : group_bound_sites)
+	{
+		if (*(uint8_t *)(*site.owner + site.offset + 2) != vanilla_group_first[site.group])
+		{
+			ffnx_warning("AddMoreAbility: %s at 0x%X is not %d.\n", site.what, *site.owner + site.offset, vanilla_group_first[site.group]);
 			ok = false;
 		}
 	}
@@ -283,11 +326,12 @@ static bool ff8_kernel_ability_validate()
 	}
 
 	// The group table must still describe the vanilla layout.
-	for (int group = 0; group < 7; ++group)
+	for (int group = 0; group < ABILITY_GROUP_COUNT; ++group)
 	{
 		const uint8_t *row = (const uint8_t *)(ability_ext.group_table + 4 * group);
+		uint16_t vanilla_offset = (uint16_t)(ABILITY_BLOCK_OFFSET + ABILITY_ENTRY_SIZE * vanilla_group_first[group]);
 
-		if (*(const uint16_t *)row != vanilla_ability_offsets[group] || row[3] != ABILITY_ENTRY_SIZE)
+		if (*(const uint16_t *)row != vanilla_offset || row[2] != vanilla_group_first[group] || row[3] != ABILITY_ENTRY_SIZE)
 		{
 			ffnx_warning("AddMoreAbility: ability group table row %d at 0x%X is not vanilla.\n", group, ability_ext.group_table + 4 * group);
 			ok = false;
@@ -315,19 +359,26 @@ void ff8_kernel_ability_arm()
 		if (operand) patch_code_dword(operand, (DWORD)(table + (*(uint32_t *)operand - k_ability)));
 	}
 
-	// The GF group's bounds are ids, not a fixed delta: low stays at the first
-	// GF id, high follows the new first menu id. Both point at the entry's
-	// stat_to_increase byte (+6).
+	// The GF group's bounds are ids, not a fixed delta: both point at the
+	// stat_to_increase byte (+6) of a group's first entry.
 	uint32_t low = find_operand(ability_ext.fn_gf_battle_stats + SITE_GF_RANGE_LOW, k_ability, ability_array_end());
 	uint32_t high = find_operand(ability_ext.fn_gf_battle_stats + SITE_GF_RANGE_HIGH, k_ability, ability_array_end());
 
-	if (low) patch_code_dword(low, (DWORD)(table + VANILLA_FIRST_GF_ID * ABILITY_ENTRY_SIZE + 6));
-	if (high) patch_code_dword(high, (DWORD)(table + ff8_first_menu_id * ABILITY_ENTRY_SIZE + 6));
+	if (low) patch_code_dword(low, (DWORD)(table + ff8_group_first[GROUP_GF] * ABILITY_ENTRY_SIZE + 6));
+	if (high) patch_code_dword(high, (DWORD)(table + ff8_group_first[GROUP_MENU] * ABILITY_ENTRY_SIZE + 6));
 
-	// The inlined GF/menu boundary, and the total ability count.
-	for (const ability_site &site : boundary_sites)
-		patch_code_byte(*site.owner + site.offset + 2, (unsigned char)ff8_first_menu_id);
+	// Where each group now starts: the inlined chains first, then the
+	// standalone checks.
+	for (const chain_sites &chain : group_chains)
+		for (int group = 1; group < ABILITY_GROUP_COUNT; ++group)
+			patch_code_byte(*chain.owner + chain.offset[group - 1] + 2, ff8_group_first[group]);
 
+	for (const group_bound_site &site : group_bound_sites)
+		patch_code_byte(*site.owner + site.offset + 2, ff8_group_first[site.group]);
+
+	// One past the last ability. At 128 this writes 0x80, which the cmp sign
+	// extends to 0xFFFFFF80 - harmless, because the test is unsigned and no
+	// ability id can reach 128 anyway, so every id still passes it.
 	patch_code_byte(ability_ext.fn_menu_mask + SITE_ABILITY_COUNT_CMP + 2, (unsigned char)ff8_ability_count);
 
 	// The AP reads go through the group table: base + row offset + size * (id -
@@ -340,54 +391,70 @@ void ff8_kernel_ability_arm()
 		if (operand) patch_code_dword(operand, (DWORD)(table + 4 - ABILITY_BLOCK_OFFSET));
 	}
 
-	// Menu abilities moved: their row of the group table follows.
-	patch_code_word(ability_ext.group_table + 4 * 6, (WORD)(ABILITY_BLOCK_OFFSET + ABILITY_ENTRY_SIZE * ff8_first_menu_id));
-	patch_code_byte(ability_ext.group_table + 4 * 6 + 2, (unsigned char)ff8_first_menu_id);
+	// Every group table row follows its group.
+	for (int group = 0; group < ABILITY_GROUP_COUNT; ++group)
+	{
+		patch_code_word(ability_ext.group_table + 4 * group, (WORD)(ABILITY_BLOCK_OFFSET + ABILITY_ENTRY_SIZE * ff8_group_first[group]));
+		patch_code_byte(ability_ext.group_table + 4 * group + 2, ff8_group_first[group]);
+	}
 
-	if (trace_all) ffnx_trace("AddMoreAbility: armed with %d GF abilities (ids %d-%d), menu abilities %d-%d, %d abilities total.\n",
-		ff8_gf_ability_count, VANILLA_FIRST_GF_ID, ff8_first_menu_id - 1, ff8_first_menu_id, ff8_ability_count - 1, ff8_ability_count);
+	if (trace_all) ffnx_trace("AddMoreAbility: armed with %d abilities - junction %d, command %d, stat%% %d, character %d, party %d, GF %d, menu %d.\n",
+		ff8_ability_count,
+		ff8_group_first[1] - ff8_group_first[0], ff8_group_first[2] - ff8_group_first[1],
+		ff8_group_first[3] - ff8_group_first[2], ff8_group_first[4] - ff8_group_first[3],
+		ff8_group_first[5] - ff8_group_first[4], ff8_group_first[6] - ff8_group_first[5],
+		ff8_ability_count - ff8_group_first[6]);
 }
 
 // ---- kernel.bin load ----------------------------------------------------
 bool ff8_kernel_ability_section_may_grow(int section)
 {
-	return section == KERNEL_GF_ABIL_SEC;
+	return section >= KERNEL_FIRST_ABIL_SEC && section < KERNEL_AFTER_ABIL_SEC;
 }
 
 bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int size)
 {
 	if (!ff8_ability_supported) return false;
 
-	int gf_entries = (int)((offsets[KERNEL_MENU_ABIL_SEC] - offsets[KERNEL_GF_ABIL_SEC]) / ABILITY_ENTRY_SIZE);
-	int total = (int)((offsets[KERNEL_AFTER_ABIL_SEC] - offsets[KERNEL_JUNCTION_ABIL_SEC]) / ABILITY_ENTRY_SIZE);
+	uint8_t first[ABILITY_GROUP_COUNT];
+	int total = 0;
 
-	if (gf_entries == VANILLA_GF_ABILITY_COUNT && total == VANILLA_ABILITY_COUNT) return false;
-
-	if (total > MAX_ABILITY_COUNT)
+	for (int group = 0; group < ABILITY_GROUP_COUNT; ++group)
 	{
-		ffnx_warning("AddMoreAbility: kernel.bin has %d ability entries, the savemap holds %d - ignoring the extension.\n", total, MAX_ABILITY_COUNT);
+		int section = KERNEL_FIRST_ABIL_SEC + group;
+		int entries = (int)((offsets[section + 1] - offsets[section]) / ABILITY_ENTRY_SIZE);
+
+		if (entries < 0 || total + entries > MAX_ABILITY_COUNT)
+		{
+			ffnx_warning("AddMoreAbility: kernel.bin ability sections hold more than the %d ids the savemap can learn - ignoring the extension.\n", MAX_ABILITY_COUNT);
+			return false;
+		}
+
+		first[group] = (uint8_t)total;
+		total += entries;
+	}
+
+	if (total == VANILLA_ABILITY_COUNT && !memcmp(first, vanilla_group_first, sizeof(first))) return false;
+
+	// computeGFBattleStats only walks learned bits 64..127; GF abilities below
+	// that would silently stop working.
+	if (first[GROUP_GF] < GF_EFFECT_FIRST_BIT)
+	{
+		ffnx_warning("AddMoreAbility: the GF ability group starts at id %d, but its effects are only read from id %d up - ignoring the extension.\n", first[GROUP_GF], GF_EFFECT_FIRST_BIT);
 		return false;
 	}
 
-	if (total - VANILLA_ABILITY_COUNT != gf_entries - VANILLA_GF_ABILITY_COUNT)
+	if (ff8_ability_armed && (total != ff8_ability_count || memcmp(first, ff8_group_first, sizeof(first))))
 	{
-		ffnx_warning("AddMoreAbility: only the GF ability section may grow, but the ability block grew by %d entries and the GF section by %d - ignoring the extension.\n",
-			total - VANILLA_ABILITY_COUNT, gf_entries - VANILLA_GF_ABILITY_COUNT);
-		return false;
-	}
-
-	if (ff8_ability_armed && (total != ff8_ability_count || gf_entries != ff8_gf_ability_count))
-	{
-		ffnx_warning("AddMoreAbility: kernel.bin changed size after the patches were applied - ignoring the new one.\n");
+		ffnx_warning("AddMoreAbility: kernel.bin ability layout changed after the patches were applied - ignoring the new one.\n");
 		return true;
 	}
 
-	memcpy(ff8_ability_table, stash + offsets[KERNEL_JUNCTION_ABIL_SEC], total * ABILITY_ENTRY_SIZE);
+	memcpy(ff8_ability_table, stash + offsets[KERNEL_FIRST_ABIL_SEC], total * ABILITY_ENTRY_SIZE);
+	memcpy(ff8_group_first, first, sizeof(first));
 	ff8_ability_count = total;
-	ff8_gf_ability_count = gf_entries;
-	ff8_first_menu_id = VANILLA_FIRST_MENU_ID + (gf_entries - VANILLA_GF_ABILITY_COUNT);
 
-	if (trace_all) ffnx_trace("AddMoreAbility: extended kernel.bin detected (%d GF abilities, %d abilities total).\n", gf_entries, total);
+	if (trace_all) ffnx_trace("AddMoreAbility: extended kernel.bin detected (%d abilities, %d more than vanilla).\n", total, total - VANILLA_ABILITY_COUNT);
 
 	ff8_kernel_ability_arm();
 
@@ -396,6 +463,8 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 
 void ff8_kernel_ability_init()
 {
+	memcpy(ff8_group_first, vanilla_group_first, sizeof(ff8_group_first));
+
 	ff8_kernel_ability_find_externals();
 
 	ff8_ability_supported = ff8_kernel_ability_validate();

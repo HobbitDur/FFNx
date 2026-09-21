@@ -664,7 +664,7 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 	}
 
 	if (non_vanilla_sections > 0)
-		ffnx_warning("AddMoreMagic: kernel.bin has %d data section(s) with a non-vanilla size - only the magic section may grow; game will likely misbehave!\n", non_vanilla_sections);
+		ffnx_warning("AddMoreMagic: kernel.bin has %d data section(s) with a non-vanilla size - only the magic and ability sections may grow; game will likely misbehave!\n", non_vanilla_sections);
 
 	// Text sections (31..55): point the header at the stash so they can grow
 	// freely. Also fill dest's vanilla-sized text area with real bytes - some
