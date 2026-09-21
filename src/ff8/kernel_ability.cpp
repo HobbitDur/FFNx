@@ -70,6 +70,11 @@
 #define KERNEL_AFTER_ABIL_SEC      18
 // How far past an instruction's first byte its absolute operand may sit.
 #define OPERAND_SCAN_WINDOW        8
+// The junction menu builds its candidate lists into two fixed buffers sitting
+// right before the GF summary table: room for 20 command entries (19 vanilla)
+// and 48 equippable-passive ones (44 vanilla: stat %, character and party).
+#define MENU_COMMAND_CANDIDATES    20
+#define MENU_PASSIVE_CANDIDATES    48
 // Groups whose first id the standalone checks below care about.
 #define GROUP_COMMAND              1
 #define GROUP_STAT_PERCENT         2
@@ -441,6 +446,20 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 	if (first[GROUP_GF] < GF_EFFECT_FIRST_BIT)
 	{
 		ffnx_warning("AddMoreAbility: the GF ability group starts at id %d, but its effects are only read from id %d up - ignoring the extension.\n", first[GROUP_GF], GF_EFFECT_FIRST_BIT);
+		return false;
+	}
+
+	// Past those buffers the menu writes over the GF summary table behind them.
+	// Relocating them is a separate job; until then, refuse the file rather than
+	// corrupt the junction menu on whichever character happens to have the
+	// abilities available.
+	int commands = first[GROUP_STAT_PERCENT] - first[GROUP_COMMAND];
+	int passives = first[GROUP_GF] - first[GROUP_STAT_PERCENT];
+
+	if (commands > MENU_COMMAND_CANDIDATES || passives > MENU_PASSIVE_CANDIDATES)
+	{
+		ffnx_warning("AddMoreAbility: %d command and %d equippable-passive abilities, but the junction menu's candidate lists hold %d and %d - ignoring the extension.\n",
+			commands, passives, MENU_COMMAND_CANDIDATES, MENU_PASSIVE_CANDIDATES);
 		return false;
 	}
 
