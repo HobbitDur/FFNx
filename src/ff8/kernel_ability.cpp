@@ -47,6 +47,11 @@
 // AddMoreMagic uses for the magic table - then rewrite every constant that
 // says where a group starts, from the section sizes the file itself carries.
 //
+// Supported on every retail 1.2 build: the addresses were measured on the US, DE, ES,
+// FR, IT, JP and JP_NV databases, which differ only in where the functions sit (three
+// layouts) and in the learned popup's compare chain. Every other site is at the same
+// offset inside its function on all of them.
+//
 // Modder contract: each ability section lists its vanilla entries first, then
 // the new ones; the total must stay <= 128, the width of the savemap's per-GF
 // learned mask; the GF ability group must still start at id 64 or above; and a
@@ -86,6 +91,62 @@
 
 // Vanilla first id of each group.
 static const uint8_t vanilla_group_first[ABILITY_GROUP_COUNT] = { 0, 20, 39, 58, 78, 83, 92 };
+
+// Where these functions sit relative to BuildGFAbilityList, measured on every retail
+// database. The seven builds fall into three layouts: US, the other Latin ones (DE, ES,
+// FR, IT - identical to US except that the 0x4E7-0x4E8 cluster sits 0x40 higher), and
+// the two Japanese ones. Everything INSIDE a function is at the same offset on all of
+// them, the learned popup's compare chain excepted, so that chain is layout data too.
+enum ability_layout { ABILITY_LAYOUT_US, ABILITY_LAYOUT_LATIN, ABILITY_LAYOUT_JP };
+
+struct ability_layout_offsets
+{
+	int32_t group_from_id;
+	int32_t learned_popup;
+	int32_t draw_learn_status;
+	int32_t validate_passives;
+	int32_t junction_menu;
+	int32_t chara_ability_lists;
+	int32_t junction_ability_page;
+	int32_t gf_summary;
+	int32_t ability_entry_ptr;
+	int32_t call_shop_list;
+	int32_t draw_list_row;
+	uint32_t popup_chain[ABILITY_GROUP_COUNT - 1];
+};
+
+static const ability_layout_offsets ability_layouts[] = {
+	// US
+	{ -0x50, -0x6890, 0x27A60, 0x2DAF0, 0x2DE40, 0x335A0, 0x359D0, 0x360B0,
+	  0x3AAB0, 0x3AC30, 0x3BCF0, { 0x059, 0x068, 0x077, 0x086, 0x095, 0x0A6 } },
+	// DE, ES, FR, IT
+	{ -0x50, -0x6890, 0x27A60, 0x2DAF0, 0x2DE40, 0x335A0, 0x359D0, 0x360B0,
+	  0x3AAF0, 0x3AC70, 0x3BD30, { 0x059, 0x068, 0x077, 0x086, 0x095, 0x0A6 } },
+	// JP, JP_NV
+	{ -0x50, -0x6950, 0x278E0, 0x2D890, 0x2DBE0, 0x33340, 0x35700, 0x35DE0,
+	  0x3A6F0, 0x3A870, 0x3B900, { 0x041, 0x04E, 0x05D, 0x06C, 0x07B, 0x08C } },
+};
+
+static const ability_layout_offsets &layout_of(int build)
+{
+	switch (build)
+	{
+	case VERSION_FF8_12_JP:
+	case VERSION_FF8_12_JP_NV:
+		return ability_layouts[ABILITY_LAYOUT_JP];
+	case VERSION_FF8_12_DE:
+	case VERSION_FF8_12_DE_NV:
+	case VERSION_FF8_12_SP:
+	case VERSION_FF8_12_SP_NV:
+	case VERSION_FF8_12_FR:
+	case VERSION_FF8_12_FR_NV:
+	case VERSION_FF8_12_IT:
+	case VERSION_FF8_12_IT_NV:
+		return ability_layouts[ABILITY_LAYOUT_LATIN];
+	default:
+		return ability_layouts[ABILITY_LAYOUT_US];
+	}
+}
 
 // Every address this file needs, resolved from anchors ff8_externals already
 // holds, or from an anchor this file resolves first.
@@ -177,12 +238,14 @@ static const ability_site array_sites[] = {
 // in id order, repeated in five functions. The immediate sits at insn + 2.
 struct chain_sites { uint32_t *owner; uint32_t offset[ABILITY_GROUP_COUNT - 1]; const char *what; };
 
-static const chain_sites group_chains[] = {
+// The popup's row is filled from the layout in find_externals; the other four are the
+// same everywhere.
+static chain_sites group_chains[] = {
 	{ &ability_ext.fn_get_name,      { 0x004, 0x030, 0x05C, 0x088, 0x0B4, 0x0E0 }, "getAbilityName" },
 	{ &ability_ext.fn_get_desc,      { 0x004, 0x030, 0x05C, 0x088, 0x0B4, 0x0E0 }, "getAbilityDescription" },
 	{ &ability_ext.fn_group_from_id, { 0x004, 0x00C, 0x017, 0x022, 0x02D, 0x03A }, "getAbilityGroupFromId" },
 	{ &ability_ext.fn_build_list,    { 0x21F, 0x234, 0x240, 0x24C, 0x258, 0x266 }, "BuildGFAbilityList" },
-	{ &ability_ext.fn_learned_popup, { 0x059, 0x068, 0x077, 0x086, 0x095, 0x0A6 }, "learned popup icon" },
+	{ &ability_ext.fn_learned_popup, { 0, 0, 0, 0, 0, 0 }, "learned popup icon" },
 };
 
 // Standalone constants: one group's first id, checked on its own.
@@ -292,24 +355,29 @@ static void ff8_kernel_ability_find_externals()
 	ability_ext.fn_get_name = magic_name_getter ? magic_name_getter - 0x260 : 0;
 	ability_ext.fn_get_desc = magic_name_getter ? magic_name_getter - 0x130 : 0;
 
-	// Deltas from BuildGFAbilityList.
+	// Deltas from BuildGFAbilityList, per the build's layout.
 	uint32_t list = ability_ext.fn_build_list;
+	const ability_layout_offsets &layout = layout_of(version);
 
-	ability_ext.fn_group_from_id = list ? list - 0x50 : 0;
-	ability_ext.fn_learned_popup = list ? list - 0x6890 : 0;
-	ability_ext.fn_draw_learn_status = list ? list + 0x27A60 : 0;
-	ability_ext.fn_validate_passives = list ? list + 0x2DAF0 : 0;
-	ability_ext.fn_junction_menu = list ? list + 0x2DE40 : 0;
-	ability_ext.fn_chara_ability_lists = list ? list + 0x335A0 : 0;
-	ability_ext.fn_gf_summary = list ? list + 0x360B0 : 0;
-	ability_ext.fn_draw_list_row = list ? list + 0x3BCF0 : 0;
+	ability_ext.fn_group_from_id = list ? list + layout.group_from_id : 0;
+	ability_ext.fn_learned_popup = list ? list + layout.learned_popup : 0;
+	ability_ext.fn_draw_learn_status = list ? list + layout.draw_learn_status : 0;
+	ability_ext.fn_validate_passives = list ? list + layout.validate_passives : 0;
+	ability_ext.fn_junction_menu = list ? list + layout.junction_menu : 0;
+	ability_ext.fn_chara_ability_lists = list ? list + layout.chara_ability_lists : 0;
+	ability_ext.fn_gf_summary = list ? list + layout.gf_summary : 0;
+	ability_ext.fn_draw_list_row = list ? list + layout.draw_list_row : 0;
 
-	ability_ext.fn_junction_ability_page = list ? list + 0x359D0 : 0;
+	for (auto &chain : group_chains)
+		if (chain.owner == &ability_ext.fn_learned_popup)
+			memcpy(chain.offset, layout.popup_chain, sizeof(chain.offset));
+
+	ability_ext.fn_junction_ability_page = list ? list + layout.junction_ability_page : 0;
 	// Two reads IDA renders as a bare number rather than as the array symbol, so
 	// they are easy to miss: a twelve-byte "id -> entry pointer" helper the refine
 	// menu calls, and the Call Shop menu's own availability check.
-	ability_ext.fn_ability_entry_ptr = list ? list + 0x3AAB0 : 0;
-	ability_ext.fn_call_shop_list = list ? list + 0x3AC30 : 0;
+	ability_ext.fn_ability_entry_ptr = list ? list + layout.ability_entry_ptr : 0;
+	ability_ext.fn_call_shop_list = list ? list + layout.call_shop_list : 0;
 
 	// Both lists are named by a "mov reg, offset list+1" inside the function that
 	// fills them, so read the bases from there rather than hardcoding them.
@@ -557,6 +625,10 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 
 		if (!ff8_ability_supported)
 			ffnx_warning("AddMoreAbility: this build is not supported, extension disabled.\n");
+		else if (trace_all)
+			ffnx_trace("AddMoreAbility: resolved against the %s layout.\n",
+				&layout_of(version) == &ability_layouts[ABILITY_LAYOUT_JP] ? "JP"
+				: &layout_of(version) == &ability_layouts[ABILITY_LAYOUT_LATIN] ? "DE/ES/FR/IT" : "US");
 	}
 
 	if (!ff8_ability_supported) return false;
