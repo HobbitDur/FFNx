@@ -572,13 +572,6 @@ void ff8_kernel_ability_arm()
 		patch_code_word(ability_ext.group_table + 4 * group, (WORD)(ABILITY_BLOCK_OFFSET + ABILITY_ENTRY_SIZE * ff8_group_first[group]));
 		patch_code_byte(ability_ext.group_table + 4 * group + 2, ff8_group_first[group]);
 	}
-
-	if (trace_all) ffnx_trace("AddMoreAbility: armed with %d abilities - junction %d, command %d, stat%% %d, character %d, party %d, GF %d, menu %d.\n",
-		ff8_ability_count,
-		ff8_group_first[1] - ff8_group_first[0], ff8_group_first[2] - ff8_group_first[1],
-		ff8_group_first[3] - ff8_group_first[2], ff8_group_first[4] - ff8_group_first[3],
-		ff8_group_first[5] - ff8_group_first[4], ff8_group_first[6] - ff8_group_first[5],
-		ff8_ability_count - ff8_group_first[6]);
 }
 
 // ---- kernel.bin load ----------------------------------------------------
@@ -622,10 +615,6 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 
 		if (!ff8_ability_supported)
 			ffnx_warning("AddMoreAbility: this build is not supported, extension disabled.\n");
-		else if (trace_all)
-			ffnx_trace("AddMoreAbility: resolved against the %s layout.\n",
-				&layout_of(version) == &ability_layouts[ABILITY_LAYOUT_JP] ? "JP"
-				: &layout_of(version) == &ability_layouts[ABILITY_LAYOUT_LATIN] ? "DE/ES/FR/IT" : "US");
 	}
 
 	if (!ff8_ability_supported) return false;
@@ -657,8 +646,6 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 	memcpy(ff8_ability_table, stash + offsets[KERNEL_FIRST_ABIL_SEC], total * ABILITY_ENTRY_SIZE);
 	memcpy(ff8_group_first, first, sizeof(first));
 	ff8_ability_count = total;
-
-	if (trace_all) ffnx_trace("AddMoreAbility: extended kernel.bin detected (%d abilities, %d more than vanilla).\n", total, total - VANILLA_ABILITY_COUNT);
 
 	ff8_kernel_ability_arm();
 

@@ -303,11 +303,7 @@ static void relocate_drawn_once_bitfield()
 	// even when the field stays where the game put it.
 	ff8_drawn_once = magic_ext.sg_drawn_once;
 
-	if (ff8_magic_count <= EXTENDED_MAGIC_FIRST)
-	{
-		if (trace_all) ffnx_trace("AddMoreMagic: no magic id >= %d, drawn-once left at vanilla 0x%08X.\n", EXTENDED_MAGIC_FIRST, magic_ext.sg_drawn_once);
-		return;
-	}
+	if (ff8_magic_count <= EXTENDED_MAGIC_FIRST) return;
 
 	ff8_drawn_once = ff8_externals.field_vars_stack_1CFE9B8 + 753;
 
@@ -516,10 +512,7 @@ static int __cdecl ff8_compute_command_action(int attacker_slot, int command, in
 
 	int stand_in = ff8_stand_in_magic_id(inventory, monster);
 	if (!stand_in)
-	{
-		if (trace_all) ffnx_trace("AddMoreMagic: no free magic id to stand in for %d, drawing it as vanilla would.\n", spell_id);
 		return ff8_call_command_action(attacker_slot, command, id, variant, target_slot, target_mask, linked);
-	}
 
 	// The entry carries the name and the draw resistance, so the call behaves
 	// exactly as it would for a vanilla spell.
@@ -602,8 +595,6 @@ static void ff8_kernel_magic_arm()
 	replace_function(magic_ext.fn_validate_magic, (void *)ff8_char_validate_magic);
 
 	relocate_drawn_once_bitfield();
-
-	if (trace_all) ffnx_trace("AddMoreMagic: armed with %d magic entries (ids 57-63 free below GFs; extended magic %d-%d; ids 64-95 reserved for GFs; mmagic.bin must cover %d entries / %d bytes).\n", ff8_magic_count, EXTENDED_MAGIC_FIRST, ff8_magic_count - 1, ff8_magic_count, ff8_magic_count * 4);
 }
 
 // ---- kernel.bin load interception ---------------------------------------
@@ -637,7 +628,6 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 	}
 
 	// Grown kernel.bin: build the vanilla-layout image the exe expects.
-	uint32_t data_growth = (entries - VANILLA_MAGIC_COUNT) * MAGIC_ENTRY_SIZE;
 	uint32_t *out_header = (uint32_t *)dest;
 	int non_vanilla_sections = 0;
 
@@ -655,10 +645,7 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 		out_header[1 + i] = dst;
 
 		if (i != KERNEL_MAGIC_SECTION && !ff8_kernel_ability_section_may_grow(i) && src_size != copy_size)
-		{
 			++non_vanilla_sections;
-			if (trace_all) ffnx_trace("AddMoreMagic: kernel.bin data section %d has size %u, expected %u.\n", i, src_size, copy_size);
-		}
 
 		memcpy(dest + dst, ff8_kernel_stash + src, copy_size);
 	}
@@ -682,8 +669,6 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 		// FFNx-side full magic table.
 		memcpy(ff8_magic_table, ff8_kernel_stash + offsets[KERNEL_MAGIC_SECTION], entries * MAGIC_ENTRY_SIZE);
 		ff8_magic_count = entries;
-
-		if (trace_all) ffnx_trace("AddMoreMagic: extended kernel.bin detected (%d magic entries, +%u bytes data growth).\n", entries, data_growth);
 
 		ff8_kernel_magic_arm();
 	}
@@ -957,11 +942,7 @@ void ff8_kernel_magic_init()
 {
 	ff8_kernel_magic_find_externals();
 
-	if (!magic_ext.kernel_read_call)
-	{
-		if (trace_all) ffnx_trace("AddMoreMagic: unsupported game version, extension disabled.\n");
-		return;
-	}
+	if (!magic_ext.kernel_read_call) return;
 
 	// Sanity: the call we replace must be the kernel.bin read through sm_pc_read.
 	// The rel32 is read here rather than with get_relative_call, which would count
