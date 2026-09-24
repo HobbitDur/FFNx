@@ -86,6 +86,8 @@
 // Groups whose first id the standalone checks below care about.
 #define GROUP_COMMAND              1
 #define GROUP_STAT_PERCENT         2
+#define GROUP_CHARACTER            3
+#define GROUP_PARTY                4
 #define GROUP_GF                   5
 #define GROUP_MENU                 6
 
@@ -175,6 +177,9 @@ static struct
 	uint32_t fn_junction_ability_page; // the junction menu's ability page
 	uint32_t fn_ability_entry_ptr;  // id -> entry pointer, called by the refine menu
 	uint32_t fn_call_shop_list;     // the Call Shop menu's ability list
+	uint32_t fn_validate_commands;  // drops equipped command abilities outside the command group
+	uint32_t fn_draw_seal_row;      // junction menu ability row, greyed out by map seals
+	uint32_t fn_draw_seal_list;     // junction window command list, greyed out by map seals
 
 	uint32_t command_candidates;    // {id, group}[20] the junction menu builds
 	uint32_t passive_candidates;    // {id, group}[48], right behind it
@@ -248,17 +253,60 @@ static chain_sites group_chains[] = {
 	{ &ability_ext.fn_learned_popup, { 0, 0, 0, 0, 0, 0 }, "learned popup icon" },
 };
 
-// Standalone constants: one group's first id, checked on its own.
-struct group_bound_site { uint32_t *owner; uint32_t offset; int group; const char *what; };
+// Standalone constants: an id checked on its own, written as a group's first id
+// plus a distance into that group (Magic, GF, Draw, Item are the first command
+// abilities). The immediate sits at insn + 2. An optional site only greys out a
+// menu entry, so a build where it does not match skips it instead of disabling
+// the whole extension.
+struct group_bound_site { uint32_t *owner; uint32_t offset; int group; int delta; bool optional; const char *what; };
 
 static const group_bound_site group_bound_sites[] = {
-	{ &ability_ext.fn_menu_mask,           0x040, GROUP_MENU,         "menu ability mask start" },
-	{ &ability_ext.fn_validate_passives,   0x04F, GROUP_STAT_PERCENT, "equippable passives start" },
-	{ &ability_ext.fn_validate_passives,   0x054, GROUP_GF,           "equippable passives end" },
-	{ &ability_ext.fn_chara_ability_lists, 0x0B8, GROUP_STAT_PERCENT, "passive candidate list start" },
-	{ &ability_ext.fn_chara_ability_lists, 0x114, GROUP_GF,           "passive candidate list end" },
-	{ &ability_ext.fn_gf_summary,          0x074, GROUP_COMMAND,      "junction ability check" },
+	{ &ability_ext.fn_menu_mask,           0x040, GROUP_MENU,         0, false, "menu ability mask start" },
+	{ &ability_ext.fn_validate_passives,   0x04F, GROUP_STAT_PERCENT, 0, false, "equippable passives start" },
+	{ &ability_ext.fn_validate_passives,   0x054, GROUP_GF,           0, false, "equippable passives end" },
+	{ &ability_ext.fn_chara_ability_lists, 0x0B8, GROUP_STAT_PERCENT, 0, false, "passive candidate list start" },
+	{ &ability_ext.fn_chara_ability_lists, 0x114, GROUP_GF,           0, false, "passive candidate list end" },
+	{ &ability_ext.fn_gf_summary,          0x074, GROUP_COMMAND,      0, false, "junction ability check" },
+	// The battle character setup: equipped abilities become flags and commands.
+	{ &ability_ext.fn_reset_parse_chara,   0x0C2, GROUP_CHARACTER,    0, false, "character abilities start" },
+	{ &ability_ext.fn_reset_parse_chara,   0x0C7, GROUP_PARTY,        0, false, "character abilities end" },
+	{ &ability_ext.fn_reset_parse_chara,   0x115, GROUP_PARTY,        0, false, "party abilities start" },
+	{ &ability_ext.fn_reset_parse_chara,   0x11A, GROUP_GF,           0, false, "party abilities end" },
+	{ &ability_ext.fn_reset_parse_chara,   0x20B, GROUP_COMMAND,      0, false, "command abilities start" },
+	{ &ability_ext.fn_reset_parse_chara,   0x214, GROUP_STAT_PERCENT, 0, false, "command abilities end" },
+	{ &ability_ext.fn_stat_percent_bonus,  0x021, GROUP_STAT_PERCENT, 0, false, "stat percent abilities start" },
+	{ &ability_ext.fn_stat_percent_bonus,  0x026, GROUP_CHARACTER,    0, false, "stat percent abilities end" },
+	// Unequips any command ability outside the group, so a stale bound erases one.
+	{ &ability_ext.fn_validate_commands,   0x040, GROUP_COMMAND,      0, false, "equipped commands start" },
+	{ &ability_ext.fn_validate_commands,   0x045, GROUP_STAT_PERCENT, 0, false, "equipped commands end" },
+	// Map seals grey out Magic, GF, Draw, Item (two ids) and every other command.
+	{ &ability_ext.fn_draw_seal_row,       0x0D7, GROUP_COMMAND,      4, true,  "seal row item" },
+	{ &ability_ext.fn_draw_seal_row,       0x0DC, GROUP_COMMAND,      3, true,  "seal row item" },
+	{ &ability_ext.fn_draw_seal_row,       0x0F4, GROUP_COMMAND,      0, true,  "seal row magic" },
+	{ &ability_ext.fn_draw_seal_row,       0x10C, GROUP_COMMAND,      1, true,  "seal row GF" },
+	{ &ability_ext.fn_draw_seal_row,       0x124, GROUP_COMMAND,      2, true,  "seal row draw" },
+	{ &ability_ext.fn_draw_seal_row,       0x13C, GROUP_COMMAND,      0, true,  "seal row commands start" },
+	{ &ability_ext.fn_draw_seal_row,       0x141, GROUP_STAT_PERCENT, 0, true,  "seal row commands end" },
+	{ &ability_ext.fn_draw_seal_row,       0x146, GROUP_COMMAND,      0, true,  "seal row not magic" },
+	{ &ability_ext.fn_draw_seal_row,       0x14B, GROUP_COMMAND,      1, true,  "seal row not GF" },
+	{ &ability_ext.fn_draw_seal_row,       0x150, GROUP_COMMAND,      2, true,  "seal row not draw" },
+	{ &ability_ext.fn_draw_seal_row,       0x155, GROUP_COMMAND,      4, true,  "seal row not item" },
+	{ &ability_ext.fn_draw_seal_row,       0x15A, GROUP_COMMAND,      3, true,  "seal row not item" },
+	{ &ability_ext.fn_draw_seal_list,      0x098, GROUP_COMMAND,      0, true,  "seal list magic" },
+	{ &ability_ext.fn_draw_seal_list,      0x0B0, GROUP_COMMAND,      1, true,  "seal list GF" },
+	{ &ability_ext.fn_draw_seal_list,      0x0C8, GROUP_COMMAND,      2, true,  "seal list draw" },
+	{ &ability_ext.fn_draw_seal_list,      0x0E0, GROUP_COMMAND,      4, true,  "seal list item" },
+	{ &ability_ext.fn_draw_seal_list,      0x0E5, GROUP_COMMAND,      3, true,  "seal list item" },
+	{ &ability_ext.fn_draw_seal_list,      0x0FD, GROUP_COMMAND,      0, true,  "seal list not magic" },
+	{ &ability_ext.fn_draw_seal_list,      0x102, GROUP_COMMAND,      1, true,  "seal list not GF" },
+	{ &ability_ext.fn_draw_seal_list,      0x107, GROUP_COMMAND,      2, true,  "seal list not draw" },
+	{ &ability_ext.fn_draw_seal_list,      0x10C, GROUP_COMMAND,      4, true,  "seal list not item" },
+	{ &ability_ext.fn_draw_seal_list,      0x111, GROUP_COMMAND,      3, true,  "seal list not item" },
 };
+
+// Optional sites whose function did not hold the expected constants.
+static bool ff8_seal_row_ok = true;
+static bool ff8_seal_list_ok = true;
 
 // One past the last ability, inside RebuildLearnedMenuAbilityMask.
 #define SITE_ABILITY_COUNT_CMP  0x045
@@ -383,7 +431,14 @@ static void ff8_kernel_ability_find_externals()
 	{
 		ability_ext.command_candidates = *(uint32_t *)(ability_ext.fn_chara_ability_lists + 0x78 + 1) - 1;
 		ability_ext.passive_candidates = *(uint32_t *)(ability_ext.fn_chara_ability_lists + 0xD4 + 1) - 1;
+
+		// Only reached through a callback and a draw call nothing else resolves;
+		// measured on US, and optional in case another build places them apart.
+		ability_ext.fn_draw_seal_row = ability_ext.fn_chara_ability_lists + 0x2550;
+		ability_ext.fn_draw_seal_list = ability_ext.fn_chara_ability_lists + 0x26E0;
 	}
+
+	ability_ext.fn_validate_commands = ability_ext.fn_junction_menu ? get_relative_call(ability_ext.fn_junction_menu, 0x17C) : 0;
 
 	// Deltas from the character stat computation.
 	ability_ext.fn_gf_battle_stats = ff8_externals.compute_char_stats_sub_495960 + 0x420;
@@ -442,11 +497,21 @@ static bool ff8_kernel_ability_validate()
 
 	for (const group_bound_site &site : group_bound_sites)
 	{
-		if (*(uint8_t *)(*site.owner + site.offset + 2) != vanilla_group_first[site.group])
+		int expected = vanilla_group_first[site.group] + site.delta;
+
+		if (*site.owner && *(uint8_t *)(*site.owner + site.offset + 2) == expected) continue;
+
+		if (site.optional)
 		{
-			ffnx_warning("AddMoreAbility: %s at 0x%X is not %d.\n", site.what, *site.owner + site.offset, vanilla_group_first[site.group]);
-			ok = false;
+			bool &owner_ok = site.owner == &ability_ext.fn_draw_seal_row ? ff8_seal_row_ok : ff8_seal_list_ok;
+
+			if (owner_ok) ffnx_warning("AddMoreAbility: %s at 0x%X is not %d - map seals may grey out the wrong command there.\n", site.what, *site.owner + site.offset, expected);
+			owner_ok = false;
+			continue;
 		}
+
+		ffnx_warning("AddMoreAbility: %s at 0x%X is not %d.\n", site.what, *site.owner + site.offset, expected);
+		ok = false;
 	}
 
 	if (*(uint8_t *)(ability_ext.fn_menu_mask + SITE_ABILITY_COUNT_CMP + 2) != VANILLA_ABILITY_COUNT)
@@ -535,7 +600,12 @@ void ff8_kernel_ability_arm()
 			patch_code_byte(*chain.owner + chain.offset[group - 1] + 2, ff8_group_first[group]);
 
 	for (const group_bound_site &site : group_bound_sites)
-		patch_code_byte(*site.owner + site.offset + 2, ff8_group_first[site.group]);
+	{
+		if (site.owner == &ability_ext.fn_draw_seal_row && !ff8_seal_row_ok) continue;
+		if (site.owner == &ability_ext.fn_draw_seal_list && !ff8_seal_list_ok) continue;
+
+		patch_code_byte(*site.owner + site.offset + 2, ff8_group_first[site.group] + site.delta);
+	}
 
 	// One past the last ability. At 128 this writes 0x80, which the cmp sign
 	// extends to 0xFFFFFF80 - harmless, because the test is unsigned and no
@@ -624,6 +694,14 @@ bool ff8_kernel_ability_read(const char *stash, const uint32_t *offsets, int siz
 	if (first[GROUP_GF] < GF_EFFECT_FIRST_BIT)
 	{
 		ffnx_warning("AddMoreAbility: the GF ability group starts at id %d, but its effects are only read from id %d up - ignoring the extension.\n", first[GROUP_GF], GF_EFFECT_FIRST_BIT);
+		return false;
+	}
+
+	// The party range check compares against the GF group's first id as a signed
+	// byte immediate, so it has to stay below 128.
+	if (first[GROUP_GF] >= MAX_ABILITY_COUNT)
+	{
+		ffnx_warning("AddMoreAbility: the GF ability group starts at id %d, past the last id the exe can compare against - ignoring the extension.\n", first[GROUP_GF]);
 		return false;
 	}
 
