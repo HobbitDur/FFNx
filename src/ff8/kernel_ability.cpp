@@ -269,14 +269,12 @@ struct candidate_site { uint32_t *owner; uint32_t offset; bool passive; const ch
 
 static const candidate_site candidate_sites[] = {
 	{ &ability_ext.fn_junction_menu,         0x04E5, false, "junction menu command list" },
-	{ &ability_ext.fn_junction_menu,         0x2185, false, "junction menu command list" },
 	{ &ability_ext.fn_junction_menu,         0x2515, false, "junction menu command list" },
 	{ &ability_ext.fn_junction_menu,         0x2706, false, "junction menu command list" },
 	{ &ability_ext.fn_junction_menu,         0x28D8, false, "junction menu command list" },
 	{ &ability_ext.fn_chara_ability_lists,   0x0078, false, "command list build" },
 	{ &ability_ext.fn_junction_ability_page, 0x009F, false, "ability page command list" },
 	{ &ability_ext.fn_junction_menu,         0x04BF, true,  "junction menu passive list" },
-	{ &ability_ext.fn_junction_menu,         0x21E3, true,  "junction menu passive list" },
 	{ &ability_ext.fn_junction_menu,         0x24F3, true,  "junction menu passive list" },
 	{ &ability_ext.fn_junction_menu,         0x26E4, true,  "junction menu passive list" },
 	{ &ability_ext.fn_junction_menu,         0x28CD, true,  "junction menu passive list" },
@@ -392,9 +390,8 @@ static void ff8_kernel_ability_find_externals()
 	ability_ext.fn_add_ap = ff8_externals.compute_char_stats_sub_495960 + 0x16B0;
 
 	// The group table's address is the operand of the lea that indexes it,
-	// inside BuildGFAbilityList; that operand points at the row's first-id
-	// byte, two into the row.
-	ability_ext.group_table = list ? *(uint32_t *)(list + 0x28A) - 2 : 0;
+	// inside BuildGFAbilityList; that operand is the table itself.
+	ability_ext.group_table = list ? *(uint32_t *)(list + 0x28A) : 0;
 }
 
 // Check every site before touching any of them: a bad anchor must disable the
