@@ -29,3 +29,11 @@ void ff8_kernel_magic_init();
 // Address of getMagicText() on this build, or 0 when unresolved. Shared so
 // AddMoreAbility can anchor the neighbouring ability text getters on it.
 uint32_t ff8_kernel_magic_name_getter();
+
+// Address of manageMonsterSpellVisibility() on this build, or 0 when
+// unresolved. AddMoreCommand anchors three battle helpers on it.
+uint32_t ff8_kernel_magic_spell_visibility_fn();
+
+// Hooks the call BattleAction_ExecuteCommand makes to computeCommandAction,
+// once. Both AddMoreMagic and AddMoreCommand run their commands through it.
+void ff8_kernel_magic_hook_dispatcher();

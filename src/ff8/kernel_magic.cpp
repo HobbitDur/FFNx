@@ -16,6 +16,7 @@
 
 #include "kernel_magic.h"
 #include "kernel_ability.h"
+#include "kernel_command.h"
 
 #include "../ff8.h"
 #include "../patch.h"
@@ -502,9 +503,13 @@ static int __cdecl ff8_compute_command_action(int attacker_slot, int command, in
 	uint8_t draw_variant = (uint8_t)variant;
 	uint8_t target = (uint8_t)target_slot;
 
+	// A battle command AddMoreCommand added has no case in the dispatcher.
+	if (ff8_kernel_command_owns(command_id))
+		return ff8_kernel_command_execute(attacker_slot, command, id, variant, target_slot, target_mask, linked);
+
 	// Everything vanilla still gets right goes straight to the dispatcher, with the
 	// arguments exactly as they arrived.
-	if (command_id != COMMAND_DRAW || draw_variant != DRAW_VARIANT_STOCK || spell_id < GF_FIRST_ID || ff8_is_gf_id(spell_id) || spell_id >= MAX_MAGIC_ID)
+	if (!ff8_magic_armed || command_id != COMMAND_DRAW || draw_variant != DRAW_VARIANT_STOCK || spell_id < GF_FIRST_ID || ff8_is_gf_id(spell_id) || spell_id >= MAX_MAGIC_ID)
 		return ff8_call_command_action(attacker_slot, command, id, variant, target_slot, target_mask, linked);
 
 	ff8_field_magic_slot *inventory = (ff8_externals.char_comp_stats_1CFF000.data() + attacker_slot)->magic;
@@ -554,6 +559,16 @@ static int __cdecl ff8_compute_command_action(int attacker_slot, int command, in
 	return ret;
 }
 
+void ff8_kernel_magic_hook_dispatcher()
+{
+	static bool hooked = false;
+
+	if (hooked) return;
+	hooked = true;
+
+	replace_call(magic_ext.command_action_call, (void *)ff8_compute_command_action);
+}
+
 // ---- patch application (once, on first grown-kernel load) ---------------
 static void ff8_kernel_magic_arm()
 {
@@ -586,7 +601,7 @@ static void ff8_kernel_magic_arm()
 		ffnx_warning("AddMoreMagic: repointed %u of %d magic table reads - some magic reads may still use the vanilla table!\n", rewritten, K_MAGIC_SITE_COUNT);
 
 	// Take over the functions that would misread an extended id.
-	replace_call(magic_ext.command_action_call, (void *)ff8_compute_command_action);
+	ff8_kernel_magic_hook_dispatcher();
 	replace_function(magic_ext.manage_monster_spell_visibility_sub_48C7A0, (void *)ff8_manage_monster_spell_visibility);
 	replace_function(magic_ext.fn_name_getter, (void *)ff8_get_magic_name);
 	replace_function(magic_ext.fn_desc_getter, (void *)ff8_get_magic_description);
@@ -616,8 +631,10 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 	// AddMoreAbility shares this hook: a grown ability block needs the same
 	// vanilla-layout image, even when the magic section is untouched.
 	bool ability_grown = valid && ff8_kernel_ability_read(ff8_kernel_stash, offsets, size);
+	// So does AddMoreCommand, for the battle command and command data sections.
+	bool command_grown = valid && ff8_kernel_command_read(ff8_kernel_stash, offsets, size);
 
-	if (!magic_grown && !ability_grown)
+	if (!magic_grown && !ability_grown && !command_grown)
 	{
 		// Vanilla (or unexpected) kernel.bin: behave exactly like the
 		// original call. Nothing is armed, nothing else is patched.
@@ -644,14 +661,14 @@ static int __cdecl ff8_kernel_load_hook(const char *filename, char *dest)
 
 		out_header[1 + i] = dst;
 
-		if (i != KERNEL_MAGIC_SECTION && !ff8_kernel_ability_section_may_grow(i) && src_size != copy_size)
+		if (i != KERNEL_MAGIC_SECTION && !ff8_kernel_ability_section_may_grow(i) && !ff8_kernel_command_section_may_grow(i) && src_size != copy_size)
 			++non_vanilla_sections;
 
 		memcpy(dest + dst, ff8_kernel_stash + src, copy_size);
 	}
 
 	if (non_vanilla_sections > 0)
-		ffnx_warning("AddMoreMagic: kernel.bin has %d data section(s) with a non-vanilla size - only the magic and ability sections may grow; game will likely misbehave!\n", non_vanilla_sections);
+		ffnx_warning("AddMoreMagic: kernel.bin has %d data section(s) with a non-vanilla size - only the magic, ability, battle command and command data sections may grow; game will likely misbehave!\n", non_vanilla_sections);
 
 	// Text sections (31..55): point the header at the stash so they can grow
 	// freely. Also fill dest's vanilla-sized text area with real bytes - some
@@ -936,6 +953,12 @@ static void ff8_kernel_magic_find_externals()
 uint32_t ff8_kernel_magic_name_getter()
 {
 	return magic_ext.fn_name_getter;
+}
+
+// manageMonsterSpellVisibility(): AddMoreCommand anchors three battle helpers on it.
+uint32_t ff8_kernel_magic_spell_visibility_fn()
+{
+	return magic_ext.manage_monster_spell_visibility_sub_48C7A0;
 }
 
 void ff8_kernel_magic_init()
