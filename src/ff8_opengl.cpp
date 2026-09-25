@@ -2854,6 +2854,9 @@ static void ff8_bgate_cam_lookahead(ff8_bgate_cam_next_t &nx)
 	*(int16_t *)0x1D9771C = ret_roll;
 }
 
+// held frame of a natively ported effect that drives the camera: its exact in-between camera
+static bool ff8_bgate_fx_held_camera(int16_t world[3], int16_t lookat[3]);
+
 int __cdecl ff8_bgate_updatecam_hook()
 {
 	int32_t *wxz = (int32_t *)0xB8B7F0, *wy = (int32_t *)0xB8B7F4;
@@ -2887,6 +2890,16 @@ int __cdecl ff8_bgate_updatecam_hook()
 		ff8_bgate_cam_prev1.lxz = after[2]; ff8_bgate_cam_prev1.ly = after[3];
 		ff8_bgate_cam_prev1.valid = true;
 		ff8_bgate_cam_prev2 = ff8_bgate_cam_prev1;
+	}
+	else if (int16_t fw[3], fl[3]; ff8_bgate_fx_held_camera(fw, fl))
+	{
+		// a ported effect writes the camera: it knows the next tick's camera exactly
+		memcpy(ff8_bgate_cam_true, after, sizeof(after));
+		int16_t *w16 = (int16_t *)0xB8B7F0, *l16 = (int16_t *)0xB8B7F8;
+		for (int i = 0; i < 3; i++) { w16[i] = fw[i]; l16[i] = fl[i]; }
+		ff8_bgate_cam_written[0] = *wxz; ff8_bgate_cam_written[1] = *wy;
+		ff8_bgate_cam_written[2] = *lxz; ff8_bgate_cam_written[3] = *ly;
+		ff8_bgate_cam_nudged = true;
 	}
 	else if (nx.valid && memcmp(after, nx.cs + 20, sizeof(after)) == 0)
 	{
@@ -6101,6 +6114,16 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 	if (ff8_bgate_fx_replay_ok && ff8_bgate_fx_mode != 3)
 		ff8_bgate_fx_replay(ctx);
 	return held_ret;
+}
+
+static bool ff8_bgate_fx_held_camera(int16_t world[3], int16_t lookat[3])
+{
+	if (ff8_bgate_phase == 0 || !ff8_bgate_fxv_live || !ff8_bgate_gfc_enabled || ff8_bgate_fx_mode < 2 || !ff8_bgate_fx_replay_ok)
+		return false;
+	int eid = *(int *)0x1D99A68 + 1;
+	if (!ff8fx::held_ready(eid)) return false;
+	__try { return ff8fx::held_camera(eid, ff8_bgate_phase, ff8_bgate_n, world, lookat); }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
 
 int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)

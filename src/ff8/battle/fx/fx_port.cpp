@@ -86,6 +86,21 @@ namespace ff8fx
 		if (g_nheld < 64) g_held[g_nheld++] = { effect_id, ready, draw };
 	}
 
+	static struct { int effect_id; HeldCameraFn fn; } g_cam[64];
+	static int g_ncam = 0;
+
+	void register_module_camera(int effect_id, HeldCameraFn fn)
+	{
+		if (g_ncam < 64) g_cam[g_ncam++] = { effect_id, fn };
+	}
+
+	bool held_camera(int effect_id, int num, int den, int16_t world[3], int16_t lookat[3])
+	{
+		for (int i = 0; i < g_ncam; i++)
+			if (g_cam[i].effect_id == effect_id) return g_cam[i].fn(num, den, world, lookat);
+		return false;
+	}
+
 	bool held_ready(int effect_id)
 	{
 		for (int i = 0; i < g_nheld; i++)
@@ -113,5 +128,7 @@ namespace ff8fx
 		done = true;
 		register_mag116_quezacotl();
 		register_mag199_cactuar();
+		register_mag140_phoenix();
+		register_module_camera(140, mag140_held_camera);
 	}
 }

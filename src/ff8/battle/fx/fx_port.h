@@ -161,6 +161,12 @@ namespace ff8fx
 	void register_module_held(int effect_id, bool (*ready)(), void (*draw)(int num, int den));
 	bool held_ready(int effect_id);
 	void held_draw(int effect_id, int num, int den);
+	// held-frame camera of an effect that writes the battle camera itself (eye / look-at words
+	// at 0xB8B7F0 / 0xB8B7F8): the module predicts the next tick's camera and returns the
+	// in-between one; false = it does not drive the camera now
+	typedef bool (*HeldCameraFn)(int num, int den, int16_t world[3], int16_t lookat[3]);
+	void register_module_camera(int effect_id, HeldCameraFn fn);
+	bool held_camera(int effect_id, int num, int den, int16_t world[3], int16_t lookat[3]);
 
 	// Held frames: pose of a standard battle model (BattleAnimHeader + its BattleAnimCmd, the
 	// Battle_ReadAnimation pair) at tick + num/den: the engine reader runs one frame ahead on
@@ -228,4 +234,6 @@ namespace ff8fx
 	// module register functions
 	void register_mag116_quezacotl();
 	void register_mag199_cactuar();
+	void register_mag140_phoenix();
+	bool mag140_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 }

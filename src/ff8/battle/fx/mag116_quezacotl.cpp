@@ -1927,6 +1927,133 @@ namespace q116
 		EffectCamera() = effect_camera;
 	}
 
+	// ---- held-frame camera: the creature's camera code for the next tick, run on the real
+	// globals and put back (all it calls is pure math), then the in-between camera ----
+	static bool CreatureCameraNext(int16_t w[3], int16_t l[3])
+	{
+		uint8_t *nd = ModelBuffer();
+		auto W16 = [nd](int o) -> int16_t & { return *(int16_t *)(nd + o); };
+		auto D32 = [nd](int o) -> int32_t & { return *(int32_t *)(nd + o); };
+		int16_t c = W16(0x0C);
+		bool cut = false;
+		static uint8_t cam_save[0x10], node_save[0x10], fr_save[sizeof(g_fr)];
+		memcpy(cam_save, (void *)CAM_EYE, 0x10);
+		memcpy(node_save, nd + 0x18, 0x10);
+		memcpy(fr_save, g_fr, sizeof(g_fr));
+		bool paused = Pause() != 0;
+		uint32_t v5 = (uint32_t)((int32_t)c - 257);
+		if (v5 < 0x14 && !paused)
+		{
+			F16(0x18) = G16(CAM_EYE);
+			F16(0x1A) = G16(CAM_EYE + 2);
+			F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(BASE_Y));
+			int32_t s = ComputeSin((int32_t)((v5 << 12) / 40));
+			cx::RotMatrixY(s >> 7, FP(0x44));
+			cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_EYE);
+			G16(CAM_EYE + 4) += G16(BASE_Y);
+		}
+		uint32_t v7 = (uint32_t)((int32_t)c - 86);
+		if (v7 < 0x4C && v7 != 0 && !paused)
+		{
+			int32_t v10 = (int32_t)((v7 << 12) / 76);
+			W16(0x1A) -= 17;
+			W16(0x22) -= 5;
+			W16(0x24) -= G16(BASE_Y3);
+			int32_t s = ComputeSin(v10 >> 1);
+			cx::RotMatrixY(s / 90, FP(0x44));
+			cx::MatVec(FP(0x44), nd + 0x20, nd + 0x20);
+			W16(0x24) += G16(BASE_Y3);
+			if (v7 == 31) cut = true;
+			else if (v7 > 31 && v7 <= 40)
+			{
+				F16(0x18) = G16(CAM_EYE);
+				F16(0x1A) = G16(CAM_EYE + 2);
+				F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(BASE_Y3));
+				cx::RotMatrixY(0x40, FP(0x44));
+				cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_EYE);
+				G16(CAM_EYE + 4) += (int16_t)G32(BASE_Y3);
+				F16(0x18) = G16(CAM_AT);
+				F16(0x1A) = G16(CAM_AT + 2);
+				F16(0x1C) = (int16_t)(G32(CAM_AT + 4) - G32(BASE_Y3));
+				cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_AT);
+				G16(CAM_AT + 4) += G16(BASE_Y3);
+			}
+			else if (v10 < 0x800)
+			{
+				G32(CAM_AT) = D32(0x18);
+				G32(CAM_AT + 4) = D32(0x1C);
+				G32(CAM_EYE) = D32(0x20);
+				G32(CAM_EYE + 4) = D32(0x24);
+			}
+			else
+			{
+				int32_t v12 = 2 * v10 - 0x1000;
+				F16(0x2C) = (int16_t)(G32(BASE_Y3) - 0xA14);
+				F16(0x20) = (int16_t)0xFD69; F16(0x22) = (int16_t)0xF544; F16(0x24) = (int16_t)(G32(BASE_Y3) + 0x6F7);
+				F16(0x28) = 0x547; F16(0x2A) = (int16_t)0xF9F4;
+				cx::Blend(nd + 0x18, FP(0x20), 0x1000 - v12, v12, (void *)CAM_AT);
+				cx::Blend(nd + 0x20, FP(0x28), 0x1000 - v12, v12, (void *)CAM_EYE);
+			}
+		}
+		if ((uint32_t)((int32_t)c - 207) < 0x14)
+		{
+			// the look-at follows a vertex of the posed creature: kept as drawn (it would need
+			// the next pose); the eye cut at 207 is a cut
+			if (c == 207) cut = true;
+		}
+		{
+			uint32_t t = (uint32_t)((int32_t)c - 257);
+			if (t < 0x2E && t >= 0x14 && !paused)
+			{
+				int16_t d = t < 0x26 ? -64 : 0x180;
+				G16(CAM_EYE + 2) += d;
+				G16(CAM_AT + 2) += d;
+			}
+		}
+		{
+			uint32_t t = (uint32_t)((int32_t)c - 319);
+			if (t < 0x24 && !paused)
+			{
+				int16_t d = (int16_t)(0x80 - (t << 7) / 36);
+				G16(CAM_EYE) += d;
+				G16(CAM_EYE + 2) -= d;
+				G16(CAM_EYE + 4) -= d;
+			}
+		}
+		switch ((uint16_t)c)
+		{
+		case 0: case 0x4C: case 0xF6: case 0xE2: case 0x100: case 0x114: case 0x12E: case 0x13E: cut = true; break;
+		default: break;
+		}
+		const int16_t *e = (const int16_t *)CAM_EYE, *a = (const int16_t *)CAM_AT;
+		const int16_t *e0 = (const int16_t *)cam_save, *a0 = (const int16_t *)(cam_save + 8);
+		for (int i = 0; i < 3; i++)
+		{
+			// a jump the timeline makes on its own (e.g. back to the saved camera at 127) is a cut too
+			if (abs((int32_t)e[i] - e0[i]) > 1500 || abs((int32_t)a[i] - a0[i]) > 1500) cut = true;
+			w[i] = e[i];
+			l[i] = a[i];
+		}
+		memcpy((void *)CAM_EYE, cam_save, 0x10);
+		memcpy(nd + 0x18, node_save, 0x10);
+		memcpy(g_fr, fr_save, sizeof(g_fr));
+		return !cut;
+	}
+
+	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
+	{
+		if (g_cm.tick != g_real_tick || g_ported_tick != g_real_tick || !QueueCreature().second.head) return false;
+		int16_t w[3], l[3];
+		const int16_t *e0 = (const int16_t *)CAM_EYE, *a0 = (const int16_t *)CAM_AT;
+		bool move = CreatureCameraNext(w, l);
+		for (int i = 0; i < 3; i++)
+		{
+			world[i] = move ? (int16_t)lerp_i(e0[i], w[i], num, den) : e0[i];
+			lookat[i] = move ? (int16_t)lerp_i(a0[i], l[i], num, den) : a0[i];
+		}
+		return true;
+	}
+
 	static bool HeldReady() { return g_ported_tick == g_real_tick; }
 
 	// mirrors the master's queue order and GTE setup; packets go to a private buffer so the
@@ -2003,5 +2130,6 @@ namespace q116
 		register_port(q116::ORIG_FlashTask, (void *)q116::FlashTask, "Q116 FlashTask", 116, true);
 		register_port(q116::ORIG_ArcTask, (void *)q116::ArcTask, "Q116 ArcTask", 116, true);
 		register_module_held(116, q116::HeldReady, q116::HeldFrame);
+		register_module_camera(116, q116::HeldCamera);
 	}
 }
