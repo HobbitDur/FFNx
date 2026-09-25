@@ -459,6 +459,10 @@ namespace q116
 				while (v < 0) // side branch: its path is the next -v-1 entries
 				{
 					SpawnBranch(b->script, b->width);
+					// SpawnBranch (0x6C76E0) is called at the same stack depth as BranchDraw and its
+					// prologue saves EBX (= 2 here) exactly where BranchDraw's direction local lives
+					g_dir_branch[0] = 2;
+					g_dir_branch[1] = 0;
 					b->script += -1 - v;
 					v = *b->script++;
 				}
