@@ -2111,9 +2111,18 @@ int __cdecl ff8_bgate_queueanim_hook(void *entity_slot, int opcode)
 static int (__cdecl *ff8_bgate_preread_orig)(void *, void *, int) = nullptr;
 static uint32_t ff8_bgate_preread_ri = 0;
 
+// TRUE 30 FPS models (default): the animation logic stays exactly vanilla - every entity and
+// weapon animation keeps the flags the engine gave it (Slow/Haste included) and is read once
+// per logic tick, so frame counts, completions, sequence waits and the C3 frame variables are
+// the vanilla ones. Held frames show the exact midpoint between the pose of this tick and the
+// pose the next read will produce (ff8_bgate_pose_lookahead). 0 = the older forced-SLOW mode.
+#define FF8_BGATE_ANIM_LOOKAHEAD 1
+
 int __cdecl ff8_bgate_preread_hook(void *anim_header, void *anim_cmd, int animID)
 {
-	if (ff8_bgate_inside_queue_anim)
+	if (ff8_bgate_inside_queue_anim && FF8_BGATE_ANIM_LOOKAHEAD)
+		ff8_bgate_anim_policy_set(anim_cmd, ff8_bgate_n, false);
+	else if (ff8_bgate_inside_queue_anim)
 	{
 		uint8_t *flags = (uint8_t *)anim_cmd + 1;
 		// speed multiplier x2: 2 = normal, 4 = Haste, 1 = Slow (the engine set at most one bit)
@@ -2302,6 +2311,58 @@ static void ff8_bgate_pose_held(void *header, void *anim_cmd, int k, int div)
 	ff8_bgate_pose_write(sk, h->nb, h->scaled, h->cur);
 }
 
+// Held frame of an animation read once per logic tick: run the engine's own reader one frame
+// ahead on the real state, keep the pose it produces, put the animation command and the
+// whole skeleton section (pose + bone matrices) back, then build the bone matrices from the
+// exact midpoint pose (angles the short way round) and restore the real pose values. The
+// reader is a pure function of the animation command and the skeleton (its bit cursor lives
+// in a scratch block rebuilt from the command on every call), so the next real read finds
+// exactly the vanilla state. A completed animation has no next frame in its own stream (the
+// sequence script decides what plays next): it holds its last pose for that half tick, as
+// vanilla shows it until the next tick.
+static uint8_t ff8_bgate_la_skel_save[16 + 48 * FF8_BGATE_POSE_BONES];
+
+static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int div)
+{
+	uint8_t *sk = ff8_bgate_skeleton(header);
+	uint8_t *cmd = (uint8_t *)anim_cmd;
+	if (!sk || sk[0] == 0 || sk[0] > FF8_BGATE_POSE_BONES || cmd[6] >= cmd[7])
+	{
+		((void(__cdecl *)(void *))0x508C90)(header); // plain hold
+		return;
+	}
+	int nb = sk[0];
+	bool scaled = (sk[1] & 1) != 0;
+	uint32_t size = 16 + 48 * nb;
+	uint8_t cmd_save[8];
+	memcpy(cmd_save, cmd, 8);
+	memcpy(ff8_bgate_la_skel_save, sk, size);
+	static ff8_bgate_pose_t cur, next, mid;
+	ff8_bgate_pose_read(sk, nb, scaled, cur);
+	unreplace_function(ff8_bgate_readanim_ri);
+	ff8_bgate_readanim_guarded(header, anim_cmd);
+	rereplace_function(ff8_bgate_readanim_ri);
+	ff8_bgate_pose_read(sk, nb, scaled, next);
+	memcpy(sk, ff8_bgate_la_skel_save, size);
+	memcpy(cmd, cmd_save, 8);
+	for (int a = 0; a < 3; a++)
+		mid.root[a] = (int16_t)(cur.root[a] + ff8_bgate_scale_round(next.root[a] - cur.root[a], k, div));
+	for (int b = 0; b < nb; b++)
+	{
+		for (int a = 0; a < 3; a++)
+		{
+			int d = ((next.v[b][a] - cur.v[b][a] + 2048) & 4095) - 2048; // shortest way round
+			mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(d, k, div));
+		}
+		if (scaled)
+			for (int a = 3; a < 6; a++)
+				mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(next.v[b][a] - cur.v[b][a], k, div));
+	}
+	ff8_bgate_pose_write(sk, nb, scaled, mid);
+	((void(__cdecl *)(void *))0x508C90)(header); // BattleModel_BuildBoneMatricesFromPose
+	ff8_bgate_pose_write(sk, nb, scaled, cur);
+}
+
 int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 {
 	// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the
@@ -2323,13 +2384,14 @@ int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 	if (div > 1 && *((uint8_t *)anim_cmd + 6) != 0 && (ff8_bgate_phase % div) != 0)
 	{
 		// held: show the in-between pose instead of repeating the last one
-		ff8_bgate_pose_held(header, anim_cmd, ff8_bgate_phase % div, div);
+		if (FF8_BGATE_ANIM_LOOKAHEAD) ff8_bgate_pose_lookahead(header, anim_cmd, ff8_bgate_phase % div, div);
+		else ff8_bgate_pose_held(header, anim_cmd, ff8_bgate_phase % div, div);
 		return 0; // "frame processed, not complete" -> animation continues
 	}
 	unreplace_function(ff8_bgate_readanim_ri);
 	int r = ff8_bgate_readanim_guarded(header, anim_cmd);
 	rereplace_function(ff8_bgate_readanim_ri);
-	if (div > 1)
+	if (div > 1 && !FF8_BGATE_ANIM_LOOKAHEAD)
 		ff8_bgate_pose_capture(header, anim_cmd);
 	return r;
 }
@@ -2542,7 +2604,9 @@ int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 	if (ff8_bgate_phase != 0)
 	{
 		int complete = ((int(__cdecl *)(void *))0x5094F0)(slot_data_struct);
-		if (complete && dc && !dc->was_complete)
+		// (forced-SLOW mode only: with vanilla-rate reads a completion only appears on a logic tick,
+		// and vanilla handles it on the next one)
+		if (complete && dc && !dc->was_complete && !FF8_BGATE_ANIM_LOOKAHEAD)
 		{
 			// fresh completion on a held frame: handle it now instead of stalling a frame
 			dc->was_complete = true;
@@ -6243,8 +6307,9 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_gilga_orig = (void(__cdecl *)())0x482F80;
 	ff8_bgate_gilga_ri = replace_function(0x482F80, (void *)ff8_bgate_gilga_hook);
 
-	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera gated+extrapolated; entity anims SLOW-interpolated, effects native-tick + draw replay)\n",
-		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n);
+	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera gated+extrapolated; entity anims %s, effects native-tick + draw replay)\n",
+		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n,
+		FF8_BGATE_ANIM_LOOKAHEAD ? "vanilla-rate + look-ahead midpoint poses" : "SLOW-interpolated");
 }
 
 void* ff8_engine_set_wide_viewport(int x, int y, int w, int h)
