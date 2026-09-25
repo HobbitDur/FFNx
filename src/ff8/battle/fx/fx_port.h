@@ -235,5 +235,7 @@ namespace ff8fx
 	void register_mag116_quezacotl();
 	void register_mag199_cactuar();
 	void register_mag140_phoenix();
+	void register_mag278_carbuncle();
+	bool mag278_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	bool mag140_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 }

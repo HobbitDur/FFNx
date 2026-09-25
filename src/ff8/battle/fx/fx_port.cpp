@@ -130,5 +130,6 @@ namespace ff8fx
 		register_mag199_cactuar();
 		register_mag140_phoenix();
 		register_module_camera(140, mag140_held_camera);
+		register_mag278_carbuncle();
 	}
 }
