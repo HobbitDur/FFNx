@@ -53,6 +53,59 @@ char ffnx_cap_label[96] = "";
 char ffnx_cap_dir[260] = "";
 int ffnx_cap_div = 1; // 1 = full resolution, 4 = every 4th pixel (long bursts)
 
+// TEMP diagnostics (FF8 30fps battle): per-frame ring of the battle camera state, recorded HERE
+// (outside the battle call chain, so the stack layout of the hooks is untouched) and written to
+// capture30/ring.txt when F4 is pressed. Used to look at a frame AFTER it went wrong.
+struct ffnx_ring_entry { char label[64]; uint8_t cam[0xB0]; uint8_t world[0x20]; uint8_t rlist[0x20]; };
+static ffnx_ring_entry* ffnx_ring = nullptr;
+static uint32_t ffnx_ring_pos = 0;
+#define FFNX_RING_SIZE 4096
+
+static void ffnx_ring_frame()
+{
+    if (!ff8 || ffnx_cap_label[0] == 0) return;
+    if (!ffnx_ring) ffnx_ring = (ffnx_ring_entry*)calloc(FFNX_RING_SIZE, sizeof(ffnx_ring_entry));
+    if (!ffnx_ring) return;
+    static char last[64] = "";
+    if (strcmp(last, ffnx_cap_label) != 0) // one entry per battle frame
+    {
+        strncpy(last, ffnx_cap_label, sizeof(last) - 1);
+        ffnx_ring_entry& e = ffnx_ring[ffnx_ring_pos++ % FFNX_RING_SIZE];
+        strncpy(e.label, ffnx_cap_label, sizeof(e.label) - 1);
+        memcpy(e.cam, (void*)0x1D97700, sizeof(e.cam));
+        memcpy(e.world, (void*)0xB8B7F0, sizeof(e.world));
+        memcpy(e.rlist, (void*)0x1D8E030, sizeof(e.rlist));
+    }
+    static bool f4_down = false;
+    bool d4 = (GetAsyncKeyState(VK_F4) & 0x8000) != 0;
+    if (d4 && !f4_down)
+    {
+        char path[400];
+        _snprintf_s(path, sizeof(path), _TRUNCATE, "%s/capture30", basedir);
+        CreateDirectoryA(path, NULL);
+        _snprintf_s(path, sizeof(path), _TRUNCATE, "%s/capture30/ring.txt", basedir);
+        FILE* f = fopen(path, "w");
+        if (f)
+        {
+            uint32_t n = ffnx_ring_pos < FFNX_RING_SIZE ? ffnx_ring_pos : FFNX_RING_SIZE;
+            for (uint32_t i = 0; i < n; i++)
+            {
+                const ffnx_ring_entry& e = ffnx_ring[(ffnx_ring_pos - n + i) % FFNX_RING_SIZE];
+                fprintf(f, "%s cam=", e.label);
+                for (size_t k = 0; k < sizeof(e.cam); k++) fprintf(f, "%02X", e.cam[k]);
+                fprintf(f, " world=");
+                for (size_t k = 0; k < sizeof(e.world); k++) fprintf(f, "%02X", e.world[k]);
+                fprintf(f, " rlist=");
+                for (size_t k = 0; k < sizeof(e.rlist); k++) fprintf(f, "%02X", e.rlist[k]);
+                fprintf(f, "\n");
+            }
+            fclose(f);
+            ffnx_info("ring: %u frames written to %s\n", n, path);
+        }
+    }
+    f4_down = d4;
+}
+
 void RendererCallbacks::screenShot(const char* _filePath, uint32_t _width, uint32_t _height, uint32_t _pitch, bgfx::TextureFormat::Enum _format, const void* _data, uint32_t _size, bool _yflip)
 {
     bx::FileWriter writer;
@@ -1591,6 +1644,8 @@ void Renderer::show()
             )
         );
     }
+
+    ffnx_ring_frame();
 
     if (ffnx_cap_left > 0)
     {
