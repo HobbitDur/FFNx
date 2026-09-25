@@ -227,4 +227,5 @@ namespace ff8fx
 
 	// module register functions
 	void register_mag116_quezacotl();
+	void register_mag199_cactuar();
 }

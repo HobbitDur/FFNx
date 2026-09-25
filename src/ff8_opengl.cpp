@@ -5060,6 +5060,8 @@ struct ff8_bgate_la_region { uint32_t addr, size; };
 // from the engine's backup at the end): part of the state a tick reads
 struct ff8_bgate_la_module { int effect_id; uint32_t data_lo, data_hi, extra, extra_size; bool lookahead; const char *name; const ff8_bgate_la_region *streams; int nstreams; };
 static const ff8_bgate_la_region ff8_bgate_la_streams_q116[] = { { 0x1298C68, 0x109FC }, { 0x12A9664, 0x4D9C } };
+// Cactuar: pool/table pointer cells 0xCF3564..0xCF3593 (written at the creature's first tick)
+static const ff8_bgate_la_region ff8_bgate_la_streams_c199[] = { { 0xCF3564, 0x30 } };
 static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// timeline-A (own pause flag, creature spawned by the master at counter 2)
 	{ 116, 0x25216D8, 0x25217D0, 0, 0, true, "Quezacotl", ff8_bgate_la_streams_q116, 2 },
@@ -5071,7 +5073,7 @@ static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	{ 69,  0x2556628, 0x2556F98, 0, 0, false, "Griever" },
 	// timeline-B (draw-only mode on battle_to_update_flags bit0, creature spawned by the timeline)
 	{ 185, 0x22BC128, 0x22BD108, 0, 0, false, "Shiva" },
-	{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar" }, // + its private rand seed
+	{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", ff8_bgate_la_streams_c199, 1 }, // + its private rand seed
 	{ 187, 0x24FD458, 0x24FE910, 0, 0, false, "Odin" },
 	{ 326, 0x24F0BD0, 0x24F2308, 0, 0, false, "Odin (reverse)" },
 	{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain" },

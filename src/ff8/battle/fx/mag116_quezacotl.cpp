@@ -1192,6 +1192,741 @@ namespace q116
 
 	static uint8_t g_held_packets[0x60000];
 
+	// ------------------------------------------------------------------
+	// Creature timeline (0x6C3940): one node at modelBuffer + 0 (0x8D0 bytes), 355 ticks.
+	// Node: +0x0C u16 tick, +0x10 voice slot, +0x14 materialisation accumulator,
+	//   +0x18..+0x27 saved camera (look-at XZ/Y, eye XZ/Y), +0x28 creature model
+	//   (+0x68 model matrix, +0x88 BattleAnimHeader, +0x94 BattleAnimCmd), +0x34/+0x36/+0x38,
+	//   +0x44/+0x46/+0x48, +0x7C/+0x80/+0x84, +0x8C arc bone table, +0xC4 model sections,
+	//   +0xD4 prim-model player layout.
+	// Timeline: tick 1-76 intro prim model, 77-100 ring, 86-256 the creature materialises
+	// (anims 0/1/2 at 86/118/238) while the camera sweeps (86-161) and arcs crawl over it;
+	// bolts at 86-100 / 157-176 / 232-266, 207-226 camera on the creature's head, 257-276
+	// orbit, 277-302 ascent, 303-318 debris, 319-354 final prim model; streams are loaded at
+	// fixed ticks (the timeline waits for each load), damage at 345, end at 355.
+	// Locals live in a persistent frame (g_fr, same offsets as the original stack frame):
+	// a few fields are never written before being copied (the 4th word of the 8-byte bolt
+	// records), so like the original they keep what the previous tick left there.
+	// ------------------------------------------------------------------
+	namespace cx
+	{
+		inline void Sub508500() { fn<void (__cdecl *)()>(0x508500)(); }
+		inline void RotMatrixY(int32_t angle, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(angle, m); }
+		inline void BindModel(void *m, void *sections, void *data) { fn<void (__cdecl *)(void *, void *, void *)>(0x6EC060)(m, sections, data); }
+		inline void SetAnim(void *m, int id) { fn<void (__cdecl *)(void *, int)>(0x6574D0)(m, id); }
+		inline void AdvanceAnim(void *m) { fn<void (__cdecl *)(void *)>(0x6FBDB0)(m); }
+		inline void DrawMaterialise(void *m, int32_t a2, const void *a3, int32_t a4, int32_t a5, int32_t a6, const void *a7)
+		{ fn<void (__cdecl *)(void *, int32_t, const void *, int32_t, int32_t, int32_t, const void *)>(0x6C6770)(m, a2, a3, a4, a5, a6, a7); }
+		inline void MatVec(const void *m, const void *v, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C4F0)(m, v, out); }
+		inline uint32_t DrawModel(void *m, void *buf, uint32_t cursor, uint32_t a4) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(0x6A79B0)(m, buf, cursor, a4); }
+		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(0x7016B0)(src, layout, n); }
+		inline void Sub6C6500(int a) { fn<void (__cdecl *)(int)>(0x6C6500)(a); }
+		inline void Sub6C6530(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x6C6530)(p); }
+		inline void Sub6C65A0(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x6C65A0)(p); }
+		inline void VertexPos(void *m, int a, int b, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(0x6C6440)(m, a, b, out); }
+		inline void RotMatrixXY(int a, int b, void *out) { fn<void (__cdecl *)(int, int, void *)>(0x6C64C0)(a, b, out); }
+		inline void SpawnArcO(uint32_t bones, uint32_t strips, uint32_t faces, int a4, int a5, int a6) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, int, int, int)>(0x6C87B0)(bones, strips, faces, a4, a5, a6); }
+		inline void SpawnBoltO(void *vel, void *pos, void *target, int shape, int unk, int t, int dt, int width, int kind, int budget)
+		{ fn<void (__cdecl *)(void *, void *, void *, int, int, int, int, int, int, int)>(0x6C7D10)(vel, pos, target, shape, unk, t, dt, width, kind, budget); }
+		inline void Sub6C76C0(uint32_t p, int a) { fn<void (__cdecl *)(uint32_t, int)>(0x6C76C0)(p, a); }
+		inline void Sub6C7CC0() { fn<void (__cdecl *)()>(0x6C7CC0)(); }
+		inline void Sub6C7690() { fn<void (__cdecl *)()>(0x6C7690)(); }
+		inline void Blend(void *a, void *b, int wa, int wb, void *out) { fn<void (__cdecl *)(void *, void *, int, int, void *)>(0x56CB90)(a, b, wa, wb, out); }
+		inline int LoadBusy() { return fn<int (__cdecl *)()>(0x534270)(); }
+		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(0x5341D0)(id, dst, n); }
+		inline void LoadPump() { fn<void (__cdecl *)()>(0x534210)(); }
+		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
+		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(0x501330)(se, a, b); }
+		inline void PlayStream(int a, int b, int c) { fn<void (__cdecl *)(int, int, int)>(0x5018C0)(a, b, c); }
+		inline void ApplyResult(uint32_t targets, int n) { fn<void (__cdecl *)(uint32_t, int)>(0x506BA0)(targets, n); }
+		inline uint8_t *SummonData() { return fn<uint8_t *(__cdecl *)()>(0x571B70)(); }
+		inline void Sub508630(void *a, void *b) { fn<void (__cdecl *)(void *, void *)>(0x508630)(a, b); }
+		inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
+		inline void Sub6C5300() { fn<void (__cdecl *)()>(0x6C5300)(); }
+		inline void Sub6C5350() { fn<void (__cdecl *)()>(0x6C5350)(); }
+		inline void BuildBoneMatrices(void *header) { fn<void (__cdecl *)(void *)>(0x508C90)(header); }
+	}
+
+	static const uint32_t CB_PrimDraw = 0x6C6060;   // record -> prim model, relative to the camera
+	static const uint32_t CB_PrimMatrix = 0x6C53A0; // record -> prim model, relative to a given matrix
+	inline int16_t &G16(uint32_t a) { return var<int16_t>(a); }
+	inline int32_t &G32(uint32_t a) { return var<int32_t>(a); }
+	static const uint32_t CAM_EYE = 0xB8B7F0, CAM_AT = 0xB8B7F8; // XZ (2 x s16) then Y (s32)
+	static const uint32_t BASE_Y = 0x2521770, BASE_Y2 = 0x2521774, BASE_Y3 = 0x2521778;
+
+	static uint8_t g_fr[0x90]; // the original's stack frame, esp-relative offsets
+	inline int16_t &F16(int o) { return *(int16_t *)(g_fr + o); }
+	inline int32_t &F32(int o) { return *(int32_t *)(g_fr + o); }
+	inline uint8_t *FP(int o) { return g_fr + o; }
+
+	// ---- held-frame memo of what the real tick drew ----
+	struct CreaturePlay { prim::Layout *l; uint32_t cb; bool compose; uint8_t arg[0x2C]; };
+	struct CreatureMemo
+	{
+		uint32_t tick;
+		bool model;  int32_t v3, v4, acc; // materialisation draw (0x6C6770)
+		bool orbit;                        // plain model draw (0x6A79B0)
+		bool pose_ok; uint32_t pose_size;  // skeleton at the start of the tick: the pose drawn this tick
+		uint8_t pose[16 + 48 * 64];
+		int nplays; CreaturePlay plays[4];
+	};
+	static CreatureMemo g_cm;
+
+	static uint8_t *CreatureSkeleton(uint32_t *size)
+	{
+		uint8_t *com = *(uint8_t **)(ModelBuffer() + 0x88 + 4); // BattleAnimHeader.comFileData
+		uint8_t *sk = com ? *(uint8_t **)com : nullptr;
+		if (!sk || sk[0] == 0 || sk[0] > 64) return nullptr;
+		*size = 16 + 48 * (uint32_t)sk[0];
+		return sk;
+	}
+
+	static int Play(prim::Layout *l, uint32_t cb, void *arg, uint32_t arg_size, bool compose = false)
+	{
+		if (g_cm.nplays < 4)
+		{
+			CreaturePlay &p = g_cm.plays[g_cm.nplays++];
+			p.l = l;
+			p.cb = cb;
+			p.compose = compose;
+			memcpy(p.arg, arg, arg_size);
+		}
+		return prim::play(l, (prim::Callback)cb, (int)arg, Pause());
+	}
+
+	static uint32_t __cdecl CreatureTask(TaskNode *n)
+	{
+		uint8_t *nd = (uint8_t *)n;
+		auto W16 = [nd](int o) -> int16_t & { return *(int16_t *)(nd + o); };
+		auto D32 = [nd](int o) -> int32_t & { return *(int32_t *)(nd + o); };
+		uint8_t *model = nd + 0x28;
+		prim::Layout *L = (prim::Layout *)(nd + 0xD4);
+		uint8_t *MB = ModelBuffer();
+
+		// held memo: the skeleton as the tick starts is the pose this tick draws
+		g_cm.tick = g_real_tick;
+		g_cm.model = g_cm.orbit = false;
+		g_cm.nplays = 0;
+		{
+			uint32_t size = 0;
+			uint8_t *sk = CreatureSkeleton(&size);
+			g_cm.pose_ok = sk && size <= sizeof(g_cm.pose);
+			if (g_cm.pose_ok) { memcpy(g_cm.pose, sk, size); g_cm.pose_size = size; }
+		}
+
+		int16_t c = W16(0x0C);
+		// screen flash: full until 351, then fading out
+		if (c <= 351)
+		{
+			if ((int32_t)ScreenFlash() < 2400) ScreenFlash() = 2400;
+		}
+		else
+		{
+			int32_t v = ((355 - (int32_t)c) * 2400) >> 2;
+			if (v > (int32_t)ScreenFlash()) ScreenFlash() = (uint32_t)v;
+		}
+
+		// 86..256: the creature materialises
+		uint32_t v3 = (uint32_t)((int32_t)c - 86);
+		if (v3 < 0xAB)
+		{
+			int32_t v4;
+			if (v3 == 0)
+			{
+				cx::Sub508500();
+				cx::RotMatrixY(0, nd + 0x68);
+				D32(0x80) = 0; W16(0x46) = 0; D32(0x7C) = 0; W16(0x44) = 0;
+				D32(0x84) = G32(BASE_Y3);
+				W16(0x48) = G16(BASE_Y3);
+				W16(0x36) = 0; W16(0x38) = 0; W16(0x34) = 0;
+				cx::BindModel(model, nd + 0xC4, MB + 0x3169C);
+				cx::SetAnim(model, 0);
+				D32(0x14) = 0;
+				v4 = (int32_t)(-3500 * (int32_t)v3) / 50;
+			}
+			else if (v3 == 0x20) { cx::SetAnim(model, 1); v4 = (int32_t)(-3500 * (int32_t)v3) / 50; }
+			else if (v3 == 0x98) { cx::SetAnim(model, 2); v4 = -4096; }
+			else v4 = v3 < 0x32 ? (int32_t)(-3500 * (int32_t)v3) / 50 : -4096;
+			F16(0x18) = 0x1C0; F16(0x1A) = 0x180; F16(0x1C) = 0x80; F16(0x1E) = 0x80;
+			g_fr[0x10] = g_fr[0x11] = g_fr[0x12] = 0x80; g_fr[0x13] = 0;
+			if (!Pause()) cx::AdvanceAnim(model);
+			g_cm.model = true; g_cm.v3 = (int32_t)v3; g_cm.v4 = v4; g_cm.acc = D32(0x14);
+			cx::DrawMaterialise(model, v4, FP(0x18), 0x3F54, D32(0x14) >> 6, D32(0x14) >> 5, FP(0x10));
+			if (!Pause()) D32(0x14) += (int32_t)v3;
+		}
+
+		// 257..276: orbit around the creature
+		uint32_t v5 = (uint32_t)((int32_t)W16(0x0C) - 257);
+		if (v5 < 0x14)
+		{
+			if (!Pause())
+			{
+				F16(0x18) = G16(CAM_EYE);
+				F16(0x1A) = G16(CAM_EYE + 2);
+				F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(BASE_Y));
+				int32_t s = ComputeSin((int32_t)((v5 << 12) / 40));
+				cx::RotMatrixY(s >> 7, FP(0x44));
+				cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_EYE);
+				G16(0x1D977A2) += 8; // roll
+				G16(CAM_EYE + 4) += G16(BASE_Y);
+				cx::AdvanceAnim(model);
+			}
+			g_cm.orbit = true;
+			var<uint32_t>(0x1D8E054) = cx::DrawModel(model, MB + 0x8D0, var<uint32_t>(0x1D8E054), var<uint32_t>(0x1D969A8));
+		}
+
+		// 1..76: intro prim model
+		if ((uint32_t)((int32_t)W16(0x0C) - 1) < 0x4C)
+		{
+			if (W16(0x0C) == 1)
+			{
+				cx::Decode(0x1298C68, L, 0x7D4);
+				cx::Sub6C6500(0);
+			}
+			F32(0x40) = (int32_t)(MB + 0x8D0);
+			F32(0x38) = 0; F16(0x3C) = 0; F16(0x34) = 0; F16(0x30) = 0; F16(0x32) = -5000;
+			Play(L, CB_PrimDraw, FP(0x30), 0x14);
+		}
+
+		// 77..100: ring, turned half round, in front of the camera
+		if ((uint32_t)((int32_t)W16(0x0C) - 77) < 0x18)
+		{
+			if (W16(0x0C) == 77)
+			{
+				cx::Decode(0x12A9664, L, 0x7FC);
+				cx::Sub6C6500(1);
+			}
+			F32(0x8C) = (int32_t)(MB + 0x8D0);
+			F32(0x84) = 0; F16(0x88) = 0;
+			F32(0x78) = 500; F32(0x7C) = 0; F32(0x80) = G32(BASE_Y3);
+			cx::RotMatrixY(-2048, FP(0x64));
+			uint8_t local[0x2C];
+			memcpy(local, FP(0x64), sizeof(local));
+			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
+			Play(L, CB_PrimMatrix, FP(0x64), 0x2C, true);
+			if (g_cm.nplays) memcpy(g_cm.plays[g_cm.nplays - 1].arg, local, sizeof(local));
+		}
+
+		// 86..161: camera sweep, arcs, first bolts
+		uint32_t v7 = (uint32_t)((int32_t)W16(0x0C) - 86);
+		if (v7 < 0x4C)
+		{
+			if (v7 == 0)
+			{
+				for (uint32_t i = 0x3C25C; i < 0x3C27C; i += 2)
+				{
+					int16_t s = (int16_t)ComputeSin((int32_t)(v7 << 11) / 15);
+					v7++;
+					*(int16_t *)(ModelBuffer() + i) = s;
+				}
+				InitTaskQueuePool(&QueueCreature().first, ModelBuffer() + 0x3BA5C, 0x80, 0x10);
+				InitTaskQueuePool(&QueueBolts().second, ModelBuffer() + 0x3C27C, 0x3C, 0x20);
+				InitTaskQueuePool(&QueueBolts().first, ModelBuffer() + 0x3F200, 0x20, 0x80);
+				cx::Sub6C7CC0();
+				cx::Sub6C7690();
+				D32(0x18) = G32(CAM_AT);
+				D32(0x1C) = G32(CAM_AT + 4);
+				D32(0x20) = G32(CAM_EYE);
+				D32(0x24) = G32(CAM_EYE + 4);
+			}
+			else if (!Pause())
+			{
+				int32_t v10 = (int32_t)((v7 << 12) / 76);
+				W16(0x1A) -= 17;
+				W16(0x22) -= 5;
+				W16(0x24) -= G16(BASE_Y3);
+				int32_t s = ComputeSin(v10 >> 1);
+				cx::RotMatrixY(s / 90, FP(0x44));
+				cx::MatVec(FP(0x44), nd + 0x20, nd + 0x20);
+				W16(0x24) += G16(BASE_Y3);
+				if (v7 == 31)
+				{
+					G16(CAM_AT) = (int16_t)0xEBF9; G16(CAM_AT + 2) = (int16_t)0xF9BA; G16(CAM_EYE) = 0x5FB;
+					G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y3) + 0x606);
+					G16(CAM_EYE + 2) = (int16_t)0xF665;
+					G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) - 0x206);
+				}
+				else if (v7 > 31 && v7 <= 40)
+				{
+					F16(0x18) = G16(CAM_EYE);
+					F16(0x1A) = G16(CAM_EYE + 2);
+					F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(BASE_Y3));
+					cx::RotMatrixY(0x40, FP(0x44));
+					cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_EYE);
+					G16(CAM_EYE + 4) += (int16_t)G32(BASE_Y3);
+					F16(0x18) = G16(CAM_AT);
+					F16(0x1A) = G16(CAM_AT + 2);
+					F16(0x1C) = (int16_t)(G32(CAM_AT + 4) - G32(BASE_Y3));
+					cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_AT);
+					G16(CAM_AT + 4) += G16(BASE_Y3);
+				}
+				else if (v10 < 0x800)
+				{
+					G32(CAM_AT) = D32(0x18);
+					G32(CAM_AT + 4) = D32(0x1C);
+					G32(CAM_EYE) = D32(0x20);
+					G32(CAM_EYE + 4) = D32(0x24);
+				}
+				else
+				{
+					int32_t v12 = 2 * v10 - 0x1000;
+					F16(0x2C) = (int16_t)(G32(BASE_Y3) - 0xA14);
+					F32(0x10) = 0x1000 - v12;
+					F16(0x20) = (int16_t)0xFD69; F16(0x22) = (int16_t)0xF544; F16(0x24) = (int16_t)(G32(BASE_Y3) + 0x6F7);
+					F16(0x28) = 0x547; F16(0x2A) = (int16_t)0xF9F4;
+					cx::Blend(nd + 0x18, FP(0x20), 0x1000 - v12, v12, (void *)CAM_AT);
+					cx::Blend(nd + 0x20, FP(0x28), F32(0x10), v12, (void *)CAM_EYE);
+				}
+				cx::SpawnArcO((uint32_t)D32(0x8C), 0x12AE7F0 + 8 * (v7 % 10), 0x12AE840, 12, 7, 0x100);
+				if (v7 < 15 && (v7 & 1) == 0)
+				{
+					int32_t r = Rand();
+					F16(0x12) = 0;
+					F16(0x10) = (int16_t)((int16_t)((r & 0x3FF) + W16(0x44)) - 0x200);
+					r = Rand();
+					F16(0x14) = (int16_t)((int16_t)((r & 0x3FF) + W16(0x48)) - 0x200);
+					r = Rand();
+					F16(0x28) = (int16_t)((r & 0x7FF) - 0x400);
+					r = Rand();
+					F16(0x2A) = (int16_t)(-0x800 - (r & 0x3FF));
+					r = Rand();
+					F16(0x2C) = (int16_t)((r & 0x7FF) + F32(0x14) - 0x400);
+					r = Rand();
+					F16(0x20) = (int16_t)((r & 0x7F) - 0x40);
+					r = Rand();
+					F16(0x22) = (int16_t)(-0x40 - (r & 0x3F));
+					r = Rand();
+					F16(0x24) = (int16_t)((r & 0x7F) - 0x40);
+					cx::SpawnBoltO(FP(0x20), FP(0x10), FP(0x28), 0, 0, 0, 0x100, 0xFA, 0, 3);
+				}
+			}
+		}
+
+		// 101..164: prim model at the base height
+		if ((uint32_t)((int32_t)W16(0x0C) - 101) < 0x40)
+		{
+			if (W16(0x0C) == 101) cx::Decode(0x1298C68, L, 0x158);
+			F32(0x40) = (int32_t)(MB + 0x8D0);
+			F16(0x34) = G16(BASE_Y3);
+			F32(0x38) = 0; F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
+			Play(L, CB_PrimDraw, FP(0x30), 0x14);
+		}
+
+		// 157..176, every other tick: bolt from a random vertex of the creature
+		{
+			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 157);
+			if (t < 0x14 && (t & 1) == 0 && !Pause())
+			{
+				int32_t r = Rand();
+				int32_t vtx = *(int16_t *)(0x12AFE40 + 2 * ((uint32_t)(r * 11) >> 15));
+				cx::VertexPos(model, 0, vtx, FP(0x18));
+				r = Rand();
+				F16(0x28) = (int16_t)((r & 0x7FF) + F32(0x18) - 0x400);
+				r = Rand();
+				F16(0x2A) = (int16_t)(*(int32_t *)FP(0x1A) - (r & 0x3FF) - 0x400);
+				r = Rand();
+				F16(0x2C) = (int16_t)((r & 0x7FF) + F32(0x1C) - 0x400);
+				r = Rand();
+				F16(0x20) = (int16_t)((r & 0x7F) - 0x40);
+				r = Rand();
+				F16(0x22) = (int16_t)(-0x40 - (r & 0x3F));
+				r = Rand();
+				F16(0x24) = (int16_t)((r & 0x7F) - 0x40);
+				cx::SpawnBoltO(FP(0x20), FP(0x18), FP(0x28), 0, 0, 0, 0x100, 0xFA, 0, 3);
+			}
+		}
+
+		// 207..226: camera on the creature's head, arcs
+		{
+			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 207);
+			if (t < 0x14)
+			{
+				if (t == 0)
+				{
+					G16(CAM_EYE) = 0x2A5;
+					G16(CAM_EYE + 2) = (int16_t)0xF20D;
+					G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) - 200);
+				}
+				cx::VertexPos(ModelBuffer() + 0x28, 0, 0x32, (void *)CAM_AT);
+				if (!Pause())
+					cx::SpawnArcO((uint32_t)D32(0x8C), 0x12AF800 + 8 * (t % 5), 0x12AF828, 12, 7, 0x100);
+			}
+		}
+
+		// 212..226: prim model at the look-at point, facing the camera
+		if ((uint32_t)((int32_t)W16(0x0C) - 212) < 0xF)
+		{
+			if (W16(0x0C) == 212) cx::Decode(0x12A1164, L, 0x1A0);
+			F32(0x7C) = G16(CAM_AT + 2);
+			F32(0x78) = G16(CAM_AT);
+			F32(0x8C) = (int32_t)(MB + 0x8D0);
+			int32_t yaw = -(int32_t)W16(0x36);
+			F32(0x84) = 0; F16(0x88) = 0;
+			F32(0x80) = G16(CAM_AT + 4);
+			cx::RotMatrixXY(-0x80, yaw, FP(0x64));
+			uint8_t local[0x2C];
+			memcpy(local, FP(0x64), sizeof(local));
+			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
+			Play(L, CB_PrimMatrix, FP(0x64), 0x2C, true);
+			if (g_cm.nplays) memcpy(g_cm.plays[g_cm.nplays - 1].arg, local, sizeof(local));
+		}
+
+		// 227..246: prim model at the head vertex
+		if ((uint32_t)((int32_t)W16(0x0C) - 227) < 0x14)
+		{
+			if (W16(0x0C) == 227) cx::Decode(0x12A9664, L, 0x1D8);
+			F32(0x8C) = (int32_t)(MB + 0x8D0);
+			F32(0x84) = 0; F16(0x88) = 0;
+			cx::VertexPos(model, 0, 0x32, FP(0x28));
+			F32(0x7C) = F16(0x2A);
+			F32(0x78) = F16(0x28);
+			F32(0x80) = F16(0x2C);
+			cx::RotMatrixXY(-0x80, -(int32_t)W16(0x36), FP(0x64));
+			uint8_t local[0x2C];
+			memcpy(local, FP(0x64), sizeof(local));
+			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
+			Play(L, CB_PrimMatrix, FP(0x64), 0x2C, true);
+			if (g_cm.nplays) memcpy(g_cm.plays[g_cm.nplays - 1].arg, local, sizeof(local));
+		}
+
+		// 247..256: screen-space prim model (waits for the load at 247)
+		{
+			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 237);
+			if (t < 0x14 && t >= 0xA)
+			{
+				if (t == 0xA)
+				{
+					if (cx::LoadBusy()) return 0;
+					cx::Decode(0x129BA94, L, 0x128);
+				}
+				F16(0x74) = 0x1000; F16(0x6C) = 0x1000; F16(0x64) = 0x1000;
+				F32(0x8C) = (int32_t)(MB + 0x8D0);
+				F32(0x84) = 0; F16(0x88) = 0;
+				F16(0x72) = 0; F16(0x70) = 0; F16(0x6E) = 0; F16(0x6A) = 0; F16(0x68) = 0; F16(0x66) = 0;
+				F32(0x78) = 0; F32(0x7C) = 2000; F32(0x80) = 4000;
+				Play(L, CB_PrimMatrix, FP(0x64), 0x2C);
+			}
+		}
+
+		// 257..302: branches, orbit prim model, then the ascent (second player at 0x129F4E8)
+		{
+			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 257);
+			if (t < 0x2E)
+			{
+				if (t == 0) cx::Sub508500();
+				if (!Pause())
+				{
+					for (int k = 0; k < 4; k++)
+					{
+						int32_t r = Rand();
+						cx::Sub6C76C0(0x12AFE58, (r * (int32_t)*(int16_t *)0x12AFE58) >> 15);
+					}
+				}
+				if (t == 0) cx::Decode(0x1299718, L, 0xB4);
+				F32(0x40) = (int32_t)(MB + 0x8D0);
+				F16(0x32) = G16(BASE_Y2);
+				F16(0x34) = G16(BASE_Y);
+				F32(0x38) = -128; F16(0x3C) = 1; F16(0x3E) = (int16_t)t; F16(0x30) = 0;
+				Play(L, CB_PrimDraw, FP(0x30), 0x14);
+				if (t >= 0x14)
+				{
+					if (t == 0x14) cx::Decode(0x129CD84, (void *)0x129F4E8, 0x4BC);
+					uint32_t p = Pause();
+					if (!p)
+					{
+						int16_t d = t < 0x26 ? -64 : 0x180;
+						G16(CAM_EYE + 2) += d;
+						G16(CAM_AT + 2) += d;
+					}
+					F32(0x38) = 0; F16(0x3C) = 0;
+					F32(0x8C) = (int32_t)(MB + 0x8D0);
+					F32(0x40) = (int32_t)(MB + 0x8D0);
+					F16(0x30) = 0;
+					F16(0x34) = G16(BASE_Y);
+					F16(0x32) = (int16_t)(G32(BASE_Y2) - 3000);
+					Play((prim::Layout *)0x129F4E8, CB_PrimDraw, FP(0x30), 0x14);
+				}
+			}
+		}
+
+		// 303..318: debris chunks, 2 per tick
+		{
+			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 303);
+			if (t < 0x10)
+			{
+				if (t == 0)
+				{
+					cx::Decode(0x12A9664, L, 0x124);
+					InitTaskQueuePool(&QueueDebris().first, (void *)0x12A53E0, 0x2C, 0x20);
+				}
+				for (int k = 0; k < 2; k++)
+				{
+					uint8_t *d = (uint8_t *)AddTaskToQueue(&QueueDebris().first, ORIG_DebrisTask);
+					if (!d) continue;
+					*(int16_t *)(d + 0x0C) = 0;
+					*(int16_t *)(d + 0x10) = (int16_t)((cx::SharedRand() & 0xFFF) - 0x800);
+					int32_t r = cx::SharedRand();
+					*(int16_t *)(d + 0x12) = 0;
+					*(int16_t *)(d + 0x14) = (int16_t)((r & 0xFFF) + G32(BASE_Y) - 0x800);
+					*(int16_t *)(d + 0x18) = (int16_t)((cx::SharedRand() & 0x3F) - 0x20);
+					*(int16_t *)(d + 0x1C) = (int16_t)((cx::SharedRand() & 0x3F) - 0x20);
+					*(int16_t *)(d + 0x1A) = (int16_t)(-0x80 - (cx::SharedRand() & 0x7F));
+					*(int16_t *)(d + 0x20) = (int16_t)cx::SharedRand();
+					*(int16_t *)(d + 0x22) = (int16_t)cx::SharedRand();
+					*(int16_t *)(d + 0x24) = (int16_t)cx::SharedRand();
+					d[0x28] = (uint8_t)cx::SharedRand();
+					d[0x29] = (uint8_t)cx::SharedRand();
+					d[0x2A] = (uint8_t)cx::SharedRand();
+				}
+				F16(0x34) = G16(BASE_Y);
+				F32(0x40) = (int32_t)(MB + 0x8D0);
+				F32(0x8C) = (int32_t)(MB + 0x8D0);
+				F32(0x38) = -256; F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
+				Play(L, CB_PrimDraw, FP(0x30), 0x14);
+			}
+		}
+
+		// 319..354: final prim model, camera drifts back
+		{
+			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 319);
+			if (t < 0x24)
+			{
+				if (t == 0) cx::Decode((uint32_t)(ModelBuffer() + 0x28E9C), L, 0x354);
+				F16(0x34) = G16(BASE_Y);
+				F32(0x40) = (int32_t)(ModelBuffer() + 0x8D0);
+				F32(0x8C) = (int32_t)(ModelBuffer() + 0x8D0);
+				F32(0x38) = -1024;
+				F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
+				Play(L, CB_PrimDraw, FP(0x30), 0x14);
+				if (!Pause())
+				{
+					int16_t d = (int16_t)(0x80 - (t << 7) / 36);
+					G16(CAM_EYE) += d;
+					G16(CAM_EYE + 2) -= d;
+					G16(CAM_EYE + 4) -= d;
+				}
+			}
+		}
+
+		// one-shot sound cues
+		switch ((uint16_t)W16(0x0C))
+		{
+		case 0x49: case 0x4F: case 0xF8: case 0xFA: case 0xFD: case 0x102: case 0x13D: cx::Sub6C6530(0x12AE7E0); break;
+		case 0x4E: cx::Sub6C65A0(0x12AE7E4); break;
+		case 0x50: case 0xE3: case 0x101: case 0x103: case 0x13C: case 0x13E: cx::Sub6C6530(0x12AE7E4); break;
+		case 0x51: case 0xE4: case 0x13B: case 0x13F: cx::Sub6C6530(0x12AE7E8); break;
+		case 0xE5: cx::Sub6C6530(0x12AE7EC); break;
+		default: break;
+		}
+
+		// stream loads: the timeline waits (repeats the tick) while a load is still busy
+		{
+			uint32_t D = (uint32_t)(ModelBuffer() + 0x28E9C);
+			int32_t cc = W16(0x0C);
+			switch (cc)
+			{
+			case 0x00: if (cx::LoadBusy()) return 0; cx::Load(0x1F9, D, 1); cx::Load(0x1FA, (uint32_t)(ModelBuffer() + 0x28E9C), 1); cx::Load(0x1FB, (uint32_t)(ModelBuffer() + 0x28E9C), 2); break;
+			case 0x1E: if (cx::LoadBusy()) return 0; cx::Load(0x1FC, D, 2); cx::Load(0x1FD, (uint32_t)(ModelBuffer() + 0x28E9C), 1); cx::Load(0x1FE, (uint32_t)(ModelBuffer() + 0x28E9C), 3); break;
+			case 0x3C: if (cx::LoadBusy()) return 0; cx::Load(0x1FF, D, 1); cx::Load(0x200, (uint32_t)(ModelBuffer() + 0x3169C), 5); break;
+			case 0x4C: if (cx::LoadBusy()) return 0; cx::Load(0x201, 0x1298C68, 5); break;
+			case 0x55: if (cx::LoadBusy()) return 0; cx::Load(0x202, D, 0); cx::Load(0x203, 0x12A1164, 5); break;
+			case 0xA1:
+				if (cx::LoadBusy()) return 0;
+				cx::Load(0x204, D, 0); cx::Load(0x205, 0x12A9664, 5);
+				cx::Load(0x206, (uint32_t)(ModelBuffer() + 0x28E9C), 1);
+				cx::Load(0x207, (uint32_t)(ModelBuffer() + 0x28E9C), 1);
+				cx::Load(0x208, (uint32_t)(ModelBuffer() + 0x28E9C), 3);
+				break;
+			case 0xD3: if (cx::LoadBusy()) return 0; cx::Load(0x209, 0x1298C68, 5); cx::Load(0x20A, (uint32_t)(ModelBuffer() + 0x28E9C), 1); break;
+			case 0x100: if (cx::LoadBusy()) return 0; cx::Load(0x20B, D, 1); cx::Load(0x20C, (uint32_t)(ModelBuffer() + 0x28E9C), 3); break;
+			case 0x114:
+				if (cx::LoadBusy()) return 0;
+				G32(0x25216FC) = 0; G32(0x25216F8) = 0;
+				*(int32_t *)(ModelBuffer() + 0x28E50) = 0;
+				cx::Load(0x20D, 0x12A9664, 5); cx::Load(0x20E, (uint32_t)(ModelBuffer() + 0x28E9C), 2);
+				break;
+			case 0x12E:
+				if (cx::LoadBusy()) return 0;
+				G32(0x252172C) = 0; G32(0x2521728) = 0; G32(0x252171C) = 0; G32(0x2521718) = 0; G32(0x252170C) = 0; G32(0x2521708) = 0;
+				cx::Load(0x20F, D, 0x10);
+				break;
+			case 0x13E: if (cx::LoadBusy()) return 0; break;
+			default: break;
+			}
+		}
+		cx::LoadPump();
+		if (W16(0x0C) == 351) cx::ReleaseVoice((uint32_t)D32(0x10));
+
+		// 232..266: bolts from the head to the ground
+		{
+			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 232);
+			if (t < 0x23)
+			{
+				if (t == 0) InitTaskQueuePool(&QueueDebris().second, (void *)0x12A53E0, 0x14, 0x40);
+				cx::VertexPos(model, 0, 0x32, FP(0x18));
+				int32_t r = Rand();
+				F16(0x2A) = 0;
+				F16(0x28) = (int16_t)((r & 0x7FF) - 0x3FF);
+				r = Rand();
+				F16(0x2C) = (int16_t)((r & 0x3FF) + G32(BASE_Y) - 0x200);
+				r = Rand();
+				F16(0x20) = (int16_t)((r & 0xFF) - 0x80);
+				r = Rand();
+				F16(0x22) = (int16_t)(-0x40 - (r & 0x7F));
+				r = Rand();
+				F16(0x24) = (int16_t)(-0x40 - (r & 0x3F));
+				cx::SpawnBoltO(FP(0x20), FP(0x18), FP(0x28), 0, 0, 0, 0x100, 0xFA, 1, 2);
+			}
+		}
+
+		// camera cuts and sound cues
+		switch ((uint16_t)W16(0x0C))
+		{
+		case 0:
+			cx::Sub6C5300();
+			cx::PlaySE(0x12AE4F0, 1, 0x80);
+			G16(0x1D977A2) = 0;
+			G16(0x1D8E038) = 0x120;
+			G16(CAM_AT) = 0; G16(CAM_AT + 2) = (int16_t)0xEBE2; G16(CAM_AT + 4) = (int16_t)0xFD2D;
+			G16(CAM_EYE) = 0; G16(CAM_EYE + 2) = (int16_t)0xF10D; G16(CAM_EYE + 4) = (int16_t)0xF841;
+			break;
+		case 0x41: cx::PlaySE(0x12AE4F4, 1, 0x80); break;
+		case 0x45: cx::Sub6C5350(); cx::PlayStream(0x80, 1, 0x7F); break;
+		case 0x4C:
+			G16(CAM_AT) = 0; G16(CAM_AT + 4) = (int16_t)G32(BASE_Y3); G16(CAM_AT + 2) = (int16_t)0xFD74;
+			G16(CAM_EYE) = (int16_t)0xF8EF; G16(CAM_EYE + 2) = (int16_t)0xFE9C; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) + 0x8E4);
+			break;
+		case 0x7E: cx::Sub6C5300(); break;
+		case 0xD1: cx::PlaySE(0x12AE4F8, 1, 0x80); break;
+		case 0xD4: cx::Sub6C5350(); break;
+		case 0xF6:
+			G16(CAM_AT) = (int16_t)0xFB92; G16(CAM_AT + 2) = (int16_t)0xFD39; G16(CAM_EYE) = 0x10D9;
+			G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y) - 0x108);
+			G16(CAM_EYE + 2) = (int16_t)0xFC8B; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) + 0xCA4);
+			break;
+		case 0xE2:
+			G16(CAM_AT) = (int16_t)0xFFAD; G16(CAM_AT + 2) = (int16_t)0xF9BC; G16(CAM_EYE) = 0xB29; G16(CAM_EYE + 2) = (int16_t)0xFDD7;
+			G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y3) - 0x832);
+			G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) + 0xA08);
+			cx::PlayStream(0x80, 1, 0x7F);
+			break;
+		case 0x100:
+			G16(CAM_AT + 4) = (int16_t)G32(BASE_Y);
+			G16(CAM_AT) = 0; G16(CAM_AT + 2) = 0; G16(CAM_EYE) = (int16_t)0xF060; G16(CAM_EYE + 2) = (int16_t)0xF060;
+			G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) + 0xFA0);
+			break;
+		case 0x114:
+			G32(BASE_Y2) = -4096;
+			G16(0x1D977A2) = G16(0x1D9771C);
+			G16(CAM_AT) = (int16_t)0xFFEF; G16(CAM_AT + 2) = (int16_t)0xEAF5; G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y) + 0x130);
+			G16(CAM_EYE) = (int16_t)0xFE52; G16(CAM_EYE + 2) = (int16_t)0xEFA4; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) + 0x498);
+			break;
+		case 0x115: cx::PlaySE(0x12AE4FC, 1, 0x80); break;
+		case 0x12E:
+			G32(BASE_Y2) = 0;
+			G16(CAM_AT) = 0; G16(CAM_AT + 2) = (int16_t)0xFAF5; G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y3) - 0x93A);
+			G16(CAM_EYE) = 0; G16(CAM_EYE + 2) = (int16_t)0xF6B6; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) + 0xDE3);
+			break;
+		case 0x13E:
+			G16(CAM_AT) = 0; G16(CAM_AT + 4) = (int16_t)G32(BASE_Y); G16(CAM_AT + 2) = 0;
+			G16(CAM_EYE) = 0x1000; G16(CAM_EYE + 2) = (int16_t)0xF000; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) - 0x1000);
+			cx::PlayStream(0x80, 1, 0x7F);
+			break;
+		default: break;
+		}
+
+		if (W16(0x0C) == 345)
+		{
+			uint8_t *ctx = *(uint8_t **)(*(uint8_t **)0x25216E0 + 4);
+			cx::ApplyResult(*(uint32_t *)(ctx + 8), ctx[0x10]);
+		}
+		if (W16(0x0C) >= 355)
+		{
+			memcpy((void *)0x1298C68, cx::SummonData(), 0x427F * 4);
+			memcpy((void *)0x12A9664, cx::SummonData() + 0x109FC, 0x1367 * 4);
+			cx::Sub508630(ModelBuffer() + 0x2E50, &DoneFlag());
+			cx::Sub6C6500(1);
+			return TASK_END;
+		}
+		W16(0x0C) = (int16_t)(W16(0x0C) + 1);
+		return 0;
+	}
+
+	// ---- held frame of the creature: what the real tick drew, in between ----
+	static void PoseBlend(uint8_t *sk, const uint8_t *from, int num, int den)
+	{
+		// sk holds the pose after the tick (the one the next tick draws), from the pose drawn
+		// this tick: write the midpoint (angles the short way round) into sk's pose fields
+		int nb = sk[0];
+		bool scaled = (sk[1] & 1) != 0;
+		for (int a = 0; a < 3; a++)
+		{
+			int16_t *p = (int16_t *)(sk + 8) + a;
+			int16_t f = ((const int16_t *)(from + 8))[a];
+			*p = (int16_t)(f + ((int32_t)*p - f) * num / den);
+		}
+		for (int b = 0; b < nb; b++)
+		{
+			int16_t *p = (int16_t *)(sk + 16 + 48 * b + 4);
+			const int16_t *f = (const int16_t *)(from + 16 + 48 * b + 4);
+			for (int a = 0; a < 3; a++)
+			{
+				int32_t d = (((int32_t)p[a] - f[a] + 2048) & 4095) - 2048;
+				p[a] = (int16_t)(f[a] + d * num / den);
+			}
+			if (scaled)
+				for (int a = 3; a < 6; a++) p[a] = (int16_t)(f[a] + ((int32_t)p[a] - f[a]) * num / den);
+		}
+	}
+
+	static void CreatureHeld(int num, int den)
+	{
+		if (g_cm.tick != g_real_tick || !QueueCreature().second.head) return;
+		uint8_t *nd = ModelBuffer();
+		uint8_t *model = nd + 0x28;
+		Mat4x3 bolt_frame = BoltFrame(), effect_camera = EffectCamera();
+		EffectCameraMatrix(&Camera(), &EffectCamera());
+		uint32_t size = 0;
+		uint8_t *sk = (g_cm.model || g_cm.orbit) ? CreatureSkeleton(&size) : nullptr;
+		static uint8_t sk_save[16 + 48 * 64];
+		if (sk)
+		{
+			memcpy(sk_save, sk, size);
+			// the pose drawn this tick is the one the tick started with (the draw uses the
+			// matrices built before the anim read); no memo (tick 86 binds the model): as is
+			if (g_cm.pose_ok && size == g_cm.pose_size)
+			{
+				PoseBlend(sk, g_cm.pose, num, den);
+				cx::BuildBoneMatrices(nd + 0x88);
+			}
+			if (g_cm.model)
+			{
+				// next tick draws with the accumulator + v3 and the next opacity step
+				int32_t v3n = g_cm.v3 + 1;
+				bool next = !Pause() && v3n < 0xAB;
+				int32_t v4n = v3n < 0x32 ? (int32_t)(-3500 * v3n) / 50 : -4096;
+				int32_t v4 = next ? lerp_i(g_cm.v4, v4n, num, den) : g_cm.v4;
+				int32_t acc = next ? lerp_i(g_cm.acc, g_cm.acc + g_cm.v3, num, den) : g_cm.acc;
+				static const int16_t a3[4] = { 0x1C0, 0x180, 0x80, 0x80 };
+				static const uint8_t a7[4] = { 0x80, 0x80, 0x80, 0 };
+				cx::DrawMaterialise(model, v4, a3, 0x3F54, acc >> 6, acc >> 5, a7);
+			}
+			if (g_cm.orbit)
+				var<uint32_t>(0x1D8E054) = cx::DrawModel(model, nd + 0x8D0, var<uint32_t>(0x1D8E054), var<uint32_t>(0x1D969A8));
+			memcpy(sk, sk_save, size);
+		}
+		for (int i = 0; i < g_cm.nplays; i++)
+		{
+			CreaturePlay &p = g_cm.plays[i];
+			static uint8_t arg[0x2C];
+			memcpy(arg, p.arg, sizeof(arg));
+			if (p.compose) ComposeAffineTransform(&Camera(), (Mat4x3 *)arg, (Mat4x3 *)arg);
+			prim::play_held(p.l, (prim::Callback)p.cb, (int)arg, num, den);
+		}
+		BoltFrame() = bolt_frame;
+		EffectCamera() = effect_camera;
+	}
+
 	static bool HeldReady() { return g_ported_tick == g_real_tick; }
 
 	// mirrors the master's queue order and GTE setup; packets go to a private buffer so the
@@ -1201,6 +1936,7 @@ namespace q116
 		uint32_t cursor = PacketCursor(), frame_cursor = var<uint32_t>(0x1D8E054);
 		PacketCursor() = (uint32_t)g_held_packets;
 		var<uint32_t>(0x1D8E054) = (uint32_t)g_held_packets + 0x40000;
+		CreatureHeld(num, den);
 		if (QueueCreature().first.head)
 		{
 			// arcs read the bones in the composed (world) form the master gives them during the
@@ -1260,6 +1996,7 @@ namespace q116
 	void register_mag116_quezacotl()
 	{
 		register_port(q116::ORIG_SequenceTask, (void *)q116::SequenceTask, "Q116 SequenceTask", 116);
+		register_port(q116::ORIG_CreatureTask, (void *)q116::CreatureTask, "Q116 CreatureTask", 116, true);
 		register_port(q116::ORIG_DebrisTask, (void *)q116::DebrisTask, "Q116 DebrisTask", 116, true);
 		register_port(q116::ORIG_BranchTask, (void *)q116::BranchTask, "Q116 BranchTask", 116, true);
 		register_port(q116::ORIG_BoltTask, (void *)q116::BoltTask, "Q116 BoltTask", 116, true);

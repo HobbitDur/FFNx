@@ -112,5 +112,6 @@ namespace ff8fx
 		if (done) return;
 		done = true;
 		register_mag116_quezacotl();
+		register_mag199_cactuar();
 	}
 }
