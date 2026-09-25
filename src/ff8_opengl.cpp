@@ -2363,6 +2363,14 @@ static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int di
 	ff8_bgate_pose_write(sk, nb, scaled, cur);
 }
 
+namespace ff8fx
+{
+	void pose_midpoint(void *anim_header, void *anim_cmd, int num, int den)
+	{
+		ff8_bgate_pose_lookahead(anim_header, anim_cmd, num, den);
+	}
+}
+
 int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 {
 	// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the
@@ -6417,6 +6425,8 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_etq_ri = replace_function(0x508420, (void *)ff8_bgate_etq_hook);
 	// native effect ports (src/ff8/battle/fx), verified against the original code while they run
 	ff8fx::register_all();
+	// the native prim-model player is compared against the original on every call (all effects)
+	ff8fx::prim::install_verify();
 
 	// effect packets re-read at display time (packet aliasing, see ff8_bgate_fx_recapture_*)
 	ff8_bgate_display_orig = (int(__cdecl *)(unsigned int))0x45D610;

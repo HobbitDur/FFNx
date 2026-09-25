@@ -162,6 +162,13 @@ namespace ff8fx
 	bool held_ready(int effect_id);
 	void held_draw(int effect_id, int num, int den);
 
+	// Held frames: pose of a standard battle model (BattleAnimHeader + its BattleAnimCmd, the
+	// Battle_ReadAnimation pair) at tick + num/den: the engine reader runs one frame ahead on
+	// copies, the bone matrices are built from the exact midpoint pose (angles the short way
+	// round), the real pose values are put back. The model is then drawn with its usual draw
+	// function. A completed animation holds its pose. (Implemented in ff8_opengl.cpp.)
+	void pose_midpoint(void *anim_header, void *anim_cmd, int num, int den);
+
 	// per-node memo of the state a task drew on the current real tick (for the in-between
 	// state of tasks that draw then update). Entries from older ticks count as free slots.
 	template<typename T, int N = 1024>
@@ -194,6 +201,29 @@ namespace ff8fx
 	// a + (b - a) * num / den, on the integer types the game uses (angles wrap as int16)
 	inline int32_t lerp_i(int32_t a, int32_t b, int num, int den) { return a + (b - a) * num / den; }
 	inline int16_t lerp_angle(int16_t a, int16_t b, int num, int den) { return (int16_t)(a + (int16_t)(b - a) * num / den); }
+
+	// Shared effect prim-model player (MAG_011_sub_701970, ~300 callers): see fx_primplayer.cpp
+	namespace prim
+	{
+		struct Layout { uint8_t *data; int32_t frame; uint8_t state[4]; }; // state: per-object integrators
+		struct Record // 44 bytes, handed to the callback for every object
+		{
+			uint16_t index, flags_lo; uint32_t flags;
+			int16_t pos[3], pad0; int16_t rot[3], pad1; int16_t scale[3], pad2;
+			uint8_t rgb[4];
+			int16_t a;      // channel A value >> 16
+			int16_t b;      // channel B value >> 16
+			int16_t b0, b1; // channel B words
+		};
+		typedef void(__cdecl *Callback)(Layout *l, Record *r, int arg);
+		// exact twin of 0x701970: returns the frames left (0 = finished, nothing drawn)
+		int play(Layout *l, Callback cb, int arg, int paused);
+		// held frame: calls cb with the exact in-between records of what play drew on this real tick
+		// (nothing when it drew nothing); never changes the player's state
+		void play_held(Layout *l, Callback cb, int arg, int num, int den);
+		// live self-check of the native player against every original call in the game
+		void install_verify();
+	}
 
 	// module register functions
 	void register_mag116_quezacotl();
