@@ -6122,8 +6122,19 @@ static bool ff8_bgate_fx_held_camera(int16_t world[3], int16_t lookat[3])
 		return false;
 	int eid = *(int *)0x1D99A68 + 1;
 	if (!ff8fx::held_ready(eid)) return false;
-	__try { return ff8fx::held_camera(eid, ff8_bgate_phase, ff8_bgate_n, world, lookat); }
-	__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+	// predictors may run the module's own camera math through the GTE and the scratch stack:
+	// both are put back so the frame and the next real tick see exactly vanilla state
+	static uint8_t gte_data[0x90], gte_ctrl[0xD0];
+	memcpy(gte_data, (void *)0x1CA8A10, sizeof(gte_data));
+	memcpy(gte_ctrl, (void *)0x1CA9230, sizeof(gte_ctrl));
+	uint32_t pool = *(uint32_t *)0x1D999C4;
+	bool ok = false;
+	__try { ok = ff8fx::held_camera(eid, ff8_bgate_phase, ff8_bgate_n, world, lookat); }
+	__except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
+	*(uint32_t *)0x1D999C4 = pool;
+	memcpy((void *)0x1CA8A10, gte_data, sizeof(gte_data));
+	memcpy((void *)0x1CA9230, gte_ctrl, sizeof(gte_ctrl));
+	return ok;
 }
 
 int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
