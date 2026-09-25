@@ -2765,8 +2765,20 @@ void *__cdecl ff8_bgate_camseq_hook()
 static int32_t ff8_bgate_cam_true[4], ff8_bgate_cam_written[4];
 static bool ff8_bgate_cam_nudged = false;
 
+// field of view (word_1D8E038) and roll (g_BattleCam_Roll 0x1D977A2) are written by the
+// keyframe player itself: their held-frame midpoints are restored the same way
+static int16_t ff8_bgate_cam_fovroll_true[2], ff8_bgate_cam_fovroll_written[2];
+static bool ff8_bgate_cam_fovroll_nudged = false;
+
 static void ff8_bgate_cam_restore()
 {
+	if (ff8_bgate_cam_fovroll_nudged)
+	{
+		ff8_bgate_cam_fovroll_nudged = false;
+		int16_t *fr[2] = { (int16_t *)0x1D8E038, (int16_t *)0x1D977A2 };
+		for (int i = 0; i < 2; i++)
+			if (*fr[i] == ff8_bgate_cam_fovroll_written[i]) *fr[i] = ff8_bgate_cam_fovroll_true[i];
+	}
 	if (!ff8_bgate_cam_nudged) return;
 	ff8_bgate_cam_nudged = false;
 	int32_t *g[4] = { (int32_t *)0xB8B7F0, (int32_t *)0xB8B7F4, (int32_t *)0xB8B7F8, (int32_t *)0xB8B7FC };
@@ -2775,11 +2787,74 @@ static void ff8_bgate_cam_restore()
 			*g[i] = ff8_bgate_cam_true[i];
 }
 
+// TRUE 30 FPS camera shots: the keyframe player (ProcessCameraAnimation 0x5035E0) is run one
+// tick ahead with the vanilla time step on a saved copy of its whole state - the camera struct
+// (BattleStageCameraMainData, 1316 bytes, task node +0x0C), field of view, roll and the
+// shot mask - and everything is put back; the held frame then shows the exact midpoint of the
+// camera (eye, target, fov, roll) between this tick and the next. A shot that ends on the next
+// tick has no next camera of its own (the camera script picks what follows): that half tick
+// holds. Cameras written directly by effects keep the extrapolation below.
+#define FF8_BGATE_CAM_LOOKAHEAD 1
+struct ff8_bgate_cam_next_t { bool valid; uint8_t *cs; int16_t v[8]; int16_t fov, roll; };
+
+static void ff8_bgate_cam_lookahead(ff8_bgate_cam_next_t &nx)
+{
+	nx.valid = false;
+	uint8_t *node = *(uint8_t **)0x1D97768; // BD_LINK_TASK_HEADER_CAMERA.head
+	for (; node; node = *(uint8_t **)(node + 4))
+		if (*(uint32_t *)(node + 8) == 0x5035E0) break;
+	if (!node) return;
+	uint8_t *cs = *(uint8_t **)(node + 0x0C);
+	if (!cs || cs != *(uint8_t **)0x1D97798) return; // the struct the output reads (cameraStructPointer)
+	static uint8_t cs_save[1316];
+	memcpy(cs_save, cs, sizeof(cs_save));
+	int16_t fov = *(int16_t *)0x1D8E038, roll = *(int16_t *)0x1D977A2;
+	uint16_t shots = *(uint16_t *)0x1D97718;
+	uint32_t pool = *(uint32_t *)0x1D999C4;
+	// a segment switch can capture the return view (BS_Camera_CaptureReturnView 0x503300):
+	// Battle_Camera_ReturnView_* (0xB8B800, 16 bytes), its fov (0x1D977A0) and roll (0x1D9771C)
+	uint8_t ret_view[16];
+	memcpy(ret_view, (void *)0xB8B800, sizeof(ret_view));
+	int16_t ret_fov = *(int16_t *)0x1D977A0, ret_roll = *(int16_t *)0x1D9771C;
+	uint32_t r = 2;
+	__try
+	{
+		unreplace_function(ff8_bgate_camanim_ri);
+		r = (uint32_t)ff8_bgate_camanim_orig(node);
+		rereplace_function(ff8_bgate_camanim_ri);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		rereplace_function(ff8_bgate_camanim_ri);
+		r = 2;
+	}
+	if (r != 2)
+	{
+		memcpy(nx.v, cs + 20, sizeof(nx.v)); // CurrentCameraPos Z/X/Y, pad, CurrentLookAt Z/X/Y, pad
+		nx.fov = *(int16_t *)0x1D8E038;
+		nx.roll = *(int16_t *)0x1D977A2;
+		nx.cs = cs;
+		nx.valid = true;
+	}
+	memcpy(cs, cs_save, sizeof(cs_save));
+	*(int16_t *)0x1D8E038 = fov;
+	*(int16_t *)0x1D977A2 = roll;
+	*(uint16_t *)0x1D97718 = shots;
+	*(uint32_t *)0x1D999C4 = pool;
+	memcpy((void *)0xB8B800, ret_view, sizeof(ret_view));
+	*(int16_t *)0x1D977A0 = ret_fov;
+	*(int16_t *)0x1D9771C = ret_roll;
+}
+
 int __cdecl ff8_bgate_updatecam_hook()
 {
 	int32_t *wxz = (int32_t *)0xB8B7F0, *wy = (int32_t *)0xB8B7F4;
 	int32_t *lxz = (int32_t *)0xB8B7F8, *ly = (int32_t *)0xB8B7FC;
 	int32_t before[4] = { *wxz, *wy, *lxz, *ly };
+	static ff8_bgate_cam_next_t nx;
+	nx.valid = false;
+	if (ff8_bgate_phase != 0 && FF8_BGATE_CAM_LOOKAHEAD)
+		ff8_bgate_cam_lookahead(nx);
 
 	unreplace_function(ff8_bgate_updatecam_ri);
 	int r = ff8_bgate_updatecam_orig();
@@ -2804,6 +2879,29 @@ int __cdecl ff8_bgate_updatecam_hook()
 		ff8_bgate_cam_prev1.lxz = after[2]; ff8_bgate_cam_prev1.ly = after[3];
 		ff8_bgate_cam_prev1.valid = true;
 		ff8_bgate_cam_prev2 = ff8_bgate_cam_prev1;
+	}
+	else if (nx.valid && memcmp(after, nx.cs + 20, sizeof(after)) == 0)
+	{
+		// a camera shot is playing (the output is the keyframe player's): exact midpoint
+		memcpy(ff8_bgate_cam_true, after, sizeof(after));
+		int16_t cur[8], mid[8];
+		memcpy(cur, nx.cs + 20, sizeof(cur));
+		for (int i = 0; i < 8; i++)
+			mid[i] = (int16_t)(cur[i] + ff8_bgate_scale_round(nx.v[i] - cur[i], ff8_bgate_phase, ff8_bgate_n));
+		mid[3] = cur[3];
+		mid[7] = cur[7];
+		memcpy(wxz, mid, 16); // world XZ, world Y(+pad), look-at XZ, look-at Y(+pad): consecutive globals
+		ff8_bgate_cam_written[0] = *wxz; ff8_bgate_cam_written[1] = *wy;
+		ff8_bgate_cam_written[2] = *lxz; ff8_bgate_cam_written[3] = *ly;
+		ff8_bgate_cam_nudged = true;
+		int16_t *fov = (int16_t *)0x1D8E038, *roll = (int16_t *)0x1D977A2;
+		ff8_bgate_cam_fovroll_true[0] = *fov;
+		ff8_bgate_cam_fovroll_true[1] = *roll;
+		*fov = (int16_t)(*fov + ff8_bgate_scale_round(nx.fov - *fov, ff8_bgate_phase, ff8_bgate_n));
+		*roll = (int16_t)(*roll + ff8_bgate_scale_round(nx.roll - *roll, ff8_bgate_phase, ff8_bgate_n));
+		ff8_bgate_cam_fovroll_written[0] = *fov;
+		ff8_bgate_cam_fovroll_written[1] = *roll;
+		ff8_bgate_cam_fovroll_nudged = true;
 	}
 	else if (ff8_bgate_cam_prev1.valid && ff8_bgate_cam_prev2.valid)
 	{
@@ -6063,7 +6161,19 @@ FF8_BGATE_TASK_HOOK(t84, 0x501F90)
 FF8_BGATE_TASK_HOOK(t9f, 0x5057D0)
 FF8_BGATE_TASK_HOOK(tstep, 0x50F830)
 FF8_BGATE_TASK_HOOK(t96, 0x50F6C0)
-DWORD __cdecl ff8_bgate_t84_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t84_call(n); }
+// 84 is a pure time ratio (sin((4096 - counter*4096/duration) / 4) into the 4 battle entity
+// records +6, then counter++): the held frame writes the same formula at counter - 1 +
+// phase/n, the next real tick writes the vanilla value again.
+DWORD __cdecl ff8_bgate_t84_hook(uint8_t *n)
+{
+	if (!ff8_bgate_phase) return ff8_bgate_t84_call(n);
+	int32_t c = *(int16_t *)(n + 0x0C), d = *(int16_t *)(n + 0x0E);
+	if (d <= 0) return 0;
+	int32_t q = (((c - 1) * ff8_bgate_n + ff8_bgate_phase) << 12) / (d * ff8_bgate_n);
+	int16_t v = (int16_t)((int32_t(__cdecl *)(int32_t))0x56D130)((0x1000 - q) / 4);
+	for (uint32_t a = 0x1D98992; a < 0x1D98A42; a += 0x2C) *(int16_t *)a = v;
+	return 0;
+}
 DWORD __cdecl ff8_bgate_t9f_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t9f_call(n); }
 DWORD __cdecl ff8_bgate_tstep_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_tstep_call(n); }
 DWORD __cdecl ff8_bgate_t96_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t96_call(n); }
@@ -6102,11 +6212,43 @@ DWORD __cdecl ff8_bgate_t81_hook(uint8_t *n)
 // simulation state is the node (+0x0C..+0x2B: state, 15-tick counter, velocities, spin)
 // plus the global DETACHED_PART_SAVED_MATRIX (0x1D99BF8, 32 B incl. position) from which
 // the bone matrices are rebuilt every tick - so a held tick is run and then fully undone.
+// TRUE 30 FPS: the task draws, THEN integrates (rotate the saved matrix by the spin +0x20,
+// position += velocity +0x14/16/18, drag, gravity). The real tick's pre-update state is kept;
+// a held frame draws from it with half the spin and half the velocity applied (physics skipped
+// through battle_to_update_flags bit 0 for that one call), then the real state is put back.
 FF8_BGATE_TASK_HOOK(ta6, 0x50F2E0)
+static struct { uint8_t *node; uint8_t state[0x20], mtx[0x20]; bool valid; } ff8_bgate_a6_memo;
 DWORD __cdecl ff8_bgate_ta6_hook(uint8_t *n)
 {
 	if (ff8_bgate_phase == 0)
+	{
+		ff8_bgate_a6_memo.node = n;
+		memcpy(ff8_bgate_a6_memo.state, n + 0x0C, 0x20);
+		memcpy(ff8_bgate_a6_memo.mtx, (void *)0x1D99BF8, 0x20);
+		ff8_bgate_a6_memo.valid = n[0x12] != 0; // initialised (the first tick copies the bone matrix)
 		return ff8_bgate_ta6_call(n);
+	}
+	if (ff8_bgate_a6_memo.valid && ff8_bgate_a6_memo.node == n && n[0x12] != 0)
+	{
+		uint8_t node_cur[0x20], mtx_cur[0x20];
+		memcpy(node_cur, n + 0x0C, sizeof(node_cur));
+		memcpy(mtx_cur, (void *)0x1D99BF8, sizeof(mtx_cur));
+		const uint8_t *s = ff8_bgate_a6_memo.state; // node +0x0C..
+		memcpy((void *)0x1D99BF8, ff8_bgate_a6_memo.mtx, 0x20);
+		int16_t spin = *(const int16_t *)(s + 0x14);
+		((void (__cdecl *)(int32_t, void *))0x56CFB0)(spin * ff8_bgate_phase / ff8_bgate_n, (void *)0x1D99BF8); // ApplyXRotation
+		int32_t *pos = (int32_t *)0x1D99C0C;
+		for (int i = 0; i < 3; i++)
+			pos[i] += *(const int16_t *)(s + 0x08 + 2 * i) * ff8_bgate_phase / ff8_bgate_n;
+		memcpy(n + 0x0C, s, 0x20); // the counter (fade) and state the real tick drew with
+		uint32_t flags = *(uint32_t *)0x1D96A9C;
+		*(uint32_t *)0x1D96A9C = flags | 1;
+		ff8_bgate_ta6_call(n);
+		*(uint32_t *)0x1D96A9C = flags;
+		memcpy(n + 0x0C, node_cur, sizeof(node_cur));
+		memcpy((void *)0x1D99BF8, mtx_cur, sizeof(mtx_cur));
+		return 0;
+	}
 	uint8_t node_save[0x20], mtx_save[0x20];
 	memcpy(node_save, n + 0x0C, sizeof(node_save));
 	memcpy(mtx_save, (void *)0x1D99BF8, sizeof(mtx_save));
