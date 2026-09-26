@@ -5089,6 +5089,8 @@ static const ff8_bgate_la_region ff8_bgate_la_streams_g327[] = { { 0xE808D0, 0x1
 // Odin reverse: loads 0x2E3/0x2E8 into exe data + the ripple texture right after (0xEECC2C..0xEF4C30),
 // pool/scratch pointer cells, summon data (loads 0x2E5/0x2E7), the camera script's saved camera
 static const ff8_bgate_la_region ff8_bgate_la_streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FD250, 0x110 } };
+// GF cinematic engine (Ifrit): mesh depth scale, fog words, camera-related word
+static const ff8_bgate_la_region ff8_bgate_la_streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 } };
 static const ff8_bgate_la_region ff8_bgate_la_streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
 static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// timeline-A (own pause flag, creature spawned by the master at counter 2)
@@ -5109,6 +5111,8 @@ static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	{ 328, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Masamune)", ff8_bgate_la_streams_g327, 3 },
 	{ 329, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalibur)", ff8_bgate_la_streams_g327, 3 },
 	{ 330, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalipoor)", ff8_bgate_la_streams_g327, 3 },
+	// GF cinematic engine family (engine state block 0x2796E00..0x2798C40)
+	{ 201, 0x2796E00, 0x2798C40, 0, 0, false, "Ifrit", ff8_bgate_la_streams_gfc, 4 },
 };
 #define FF8_BGATE_LA_MODULES ((int)(sizeof(ff8_bgate_la_modules) / sizeof(ff8_bgate_la_modules[0])))
 
@@ -5241,7 +5245,8 @@ static void ff8_bgate_la_attach_tasks(ff8_bgate_fx_snap &s)
 // Snapshot of everything an effect tick may modify (regions, module globals, task pools of
 // the queues seen so far, ordering table, CRT seed); shared by the look-ahead and the verifier.
 static uint8_t ff8_bgate_snap_extra[16];
-#define FF8_BGATE_SNAP_STREAMS_MAX 0x20000
+// sum of a module's stream regions (Gilgamesh: sword files 0x10C50 + summon data 0x40000 + cells)
+#define FF8_BGATE_SNAP_STREAMS_MAX 0x80000
 static uint8_t ff8_bgate_snap_streams[FF8_BGATE_SNAP_STREAMS_MAX];
 static uint32_t ff8_bgate_snap_seed = 0;
 // Field_Alloc scratch (bump stack growing up from GLOBAL_MEMORY_POOL 0x1D999C4): effects
@@ -5251,6 +5256,13 @@ static uint8_t ff8_bgate_snap_scratch[0x1000];
 static uint32_t ff8_bgate_snap_scratch_addr = 0;
 
 static uint32_t *ff8_bgate_crt_seed() { return (uint32_t *)(((uint8_t *(__cdecl *)())0x560578)() + 0x14); }
+
+static uint32_t ff8_bgate_streams_bytes(const ff8_bgate_la_module &g)
+{
+	uint32_t n = 0;
+	for (int i = 0; i < g.nstreams; i++) n += g.streams[i].size;
+	return n;
+}
 
 static void ff8_bgate_snap_take(const ff8_bgate_la_module &g)
 {
@@ -5444,6 +5456,19 @@ static ff8_bgate_fxv_site ff8_bgate_fxv_sites[] = {
 	// battle-stage model swaps (Griever: attacker model 36/37 at tick 50, swap at 110)
 	{ 0x512AA0, 2, "loadBS_36Or37", (void *)ff8_bgate_fxv_stub<11> },
 	{ 0x512AC0, 2, "BS_SwapModel_512AC0", (void *)ff8_bgate_fxv_stub<12> },
+	// GF cinematic engine (Ifrit family): sound/music, CLUT upload and battle calls it makes directly
+	{ 0x46B3A0, 0, "Sound_46B3A0", (void *)ff8_bgate_fxv_stub<13> },
+	{ 0x46B3E0, 0, "Sound_46B3E0", (void *)ff8_bgate_fxv_stub<14> },
+	{ 0x46B450, 0, "Sound_46B450", (void *)ff8_bgate_fxv_stub<15> },
+	{ 0x46BBC0, 0, "Sound_46BBC0", (void *)ff8_bgate_fxv_stub<16> },
+	{ 0x47E3C0, 0, "Music_47E3C0", (void *)ff8_bgate_fxv_stub<17> },
+	{ 0xB666F0, 0, "GfCinematic_ClutUpload", (void *)ff8_bgate_fxv_stub<18> },
+	{ 0x4A8480, 0, "Battle_4A8480", (void *)ff8_bgate_fxv_stub<19> },
+	{ 0x501E40, 0, "Battle_501E40", (void *)ff8_bgate_fxv_stub<20> },
+	{ 0x501F30, 0, "Battle_501F30", (void *)ff8_bgate_fxv_stub<21> },
+	{ 0x504270, 0, "Battle_504270", (void *)ff8_bgate_fxv_stub<22> },
+	{ 0x5099A0, 0, "Battle_5099A0", (void *)ff8_bgate_fxv_stub<23> },
+	{ 0x50A730, 0, "Battle_50A730", (void *)ff8_bgate_fxv_stub<24> },
 };
 #define FXV_SITES ((int)(sizeof(ff8_bgate_fxv_sites) / sizeof(ff8_bgate_fxv_sites[0])))
 
@@ -5606,7 +5631,9 @@ static bool ff8_bgate_fxv_enabled = true; // verify ported modules (else: origin
 static bool ff8_bgate_fxv_wanted()
 {
 	return ff8_bgate_fxv_enabled && ff8_bgate_la_cur >= 0 && ff8_bgate_fxv_faults < 3
-		&& ff8fx::module_ported(ff8_bgate_la_modules[ff8_bgate_la_cur].effect_id);
+		&& ff8fx::module_ported(ff8_bgate_la_modules[ff8_bgate_la_cur].effect_id)
+		&& ff8_bgate_streams_bytes(ff8_bgate_la_modules[ff8_bgate_la_cur]) <= FF8_BGATE_SNAP_STREAMS_MAX
+		&& ff8_bgate_la_modules[ff8_bgate_la_cur].data_hi - ff8_bgate_la_modules[ff8_bgate_la_cur].data_lo <= FF8_BGATE_LA_DATA_MAX;
 }
 
 static void ff8_bgate_fxv_pools_save_post()

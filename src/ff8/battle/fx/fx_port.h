@@ -245,6 +245,7 @@ namespace ff8fx
 	void register_mag191_doomtrain();
 	void register_mag327_gilgamesh();
 	void register_mag326_odin_reverse();
+	void register_gfc_ifrit();
 	// shared camera-script task 0x63E9C0 (Doomtrain's code file, queued by several GFs)
 	bool camscript_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	bool mag278_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
