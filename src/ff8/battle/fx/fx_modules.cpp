@@ -56,6 +56,11 @@ namespace ff8fx::mod
 	static const Region streams_t003[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t102[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t105[] = { { 0x130E55C, 0x3040 }, { 0x21DFED0, 0x20 } };
+	// Blizzard/Blizzara: shadow-camera scratch; Blizzaga: + the static UV model list and the
+	// sparkle matrix translation it rewrites in exe data
+	static const Region streams_i144[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_i103[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_i104[] = { { 0x1315774, 0x1900 }, { 0x13197C4, 0xC }, { 0x21DFED0, 0x20 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
 	// BdTransSummonStream), TransformCameraByShadowRotation scratch
@@ -104,6 +109,9 @@ namespace ff8fx::mod
 		{ 3,   0x2557000, 0x2557098, 0, 0, false, "Thunder", streams_t003, 1 },
 		{ 102, 0x2543F18, 0x2544E10, 0, 0, false, "Thundara", streams_t102, 1 },
 		{ 105, 0x2543CF0, 0x2543DF0, 0, 0, false, "Thundaga", streams_t105, 2 },
+		{ 144, 0x24BB960, 0x24BECC4, 0, 0, false, "Blizzard", streams_i144, 1 },
+		{ 103, 0x2543E90, 0x2543F18, 0, 0, false, "Blizzara", streams_i103, 1 },
+		{ 104, 0x2543DF0, 0x2543E90, 0, 0, false, "Blizzaga", streams_i104, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
