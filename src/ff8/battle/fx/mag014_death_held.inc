@@ -23,7 +23,9 @@
 //                   draw a_746C10); placement, fade and colours hold.
 //   Actor systems - as Drain: each drawn actor from a copy whose view positions are half way to the
 //                   next tick's (the next motion step on a second copy); ending / morphing actors
-//                   hold.
+//                   hold. The morph (0x8BBA50) writes its destination vertex blocks in the loaded
+//                   actor data, which every actor system of the cast shares: each system's replay
+//                   puts back the blocks it drew with, the held frame then the current ones.
 //   Sparks        - positions half way along the next tick's motion (velocity loses a quarter,
 //                   position += velocity / 16), scale and fade half way to the next tick's table
 //                   values; a spark group on its last tick holds.
@@ -40,9 +42,50 @@ namespace death
 {
 	static const uint32_t SCRATCH_LO = 0x2793B58, SCRATCH_HI = 0x2793E78; // module scratch stack + camera copy
 	static const uint32_t BSS_LO = 0x273AE80, BSS_HI = 0x27428A0;
-	static const uint32_t GTE_D = 0x1CA8A10, GTE_D_N = 0x70, GTE_C = 0x1CA9230, GTE_C_N = 0xD0;
+	static const uint32_t GTE_D = magc::GTE_DATA, GTE_D_N = magc::GTE_DATA_SIZE, GTE_C = magc::GTE_CTRL, GTE_C_N = magc::GTE_CTRL_SIZE;
 	static const uint32_t ACTOR_BYTES = 0x2A0, SPARK_BYTES = 0x118;
 	static const int MAX_ACTORS = 160;
+
+	// the morph destination vertex blocks of an actor system (state +0x22C table, 16 entries): a
+	// kind-5 model's step (0x8BBA50) rewrites them in the actor data, which every actor system of
+	// the cast shares, so a later system's update overwrites what an earlier one drew with
+	struct VertexBlocks
+	{
+		uint32_t n;
+		uint32_t addr[16], len[16];
+		uint8_t bytes[0x4000];
+		void save(uint32_t sys)
+		{
+			n = 0;
+			const uint32_t tab = U32(sys, 0x22C);
+			if (!tab) return;
+			uint32_t used = 0;
+			for (int k = 0; k < 16; k++)
+			{
+				const uint32_t blk = U32(tab, k * 4);
+				if (!blk) continue;
+				const uint32_t bytes_n = U32(blk, 4) * 8; // vertex count +4, 8-byte vertices from +8
+				if (bytes_n == 0 || used + bytes_n > sizeof(bytes)) continue;
+				addr[n] = blk + 8;
+				len[n] = bytes_n;
+				memcpy(bytes + used, (const void *)(blk + 8), bytes_n);
+				used += bytes_n;
+				n++;
+			}
+		}
+		void restore() const
+		{
+			uint32_t used = 0;
+			for (uint32_t i = 0; i < n; i++)
+			{
+				memcpy((void *)addr[i], bytes + used, len[i]);
+				used += len[i];
+			}
+		}
+	};
+	static const int MAX_SYSTEMS = 8;
+	static VertexBlocks g_sys_verts[MAX_SYSTEMS]; // per noted actor system: the blocks it drew with
+	static int g_nsys_verts = 0;
 
 	struct Note
 	{
@@ -52,6 +95,7 @@ namespace death
 		uint8_t gte[GTE_D_N + GTE_C_N];
 		uint8_t scratch[SCRATCH_HI - SCRATCH_LO];
 		uint8_t falloc[0x400];
+		int verts;            // actor system: its g_sys_verts entry (-1 none)
 	};
 	static Note g_notes[96];
 	static int g_nnotes = 0;
@@ -65,12 +109,14 @@ namespace death
 		{
 			g_note_tick = g_real_tick;
 			g_nnotes = 0;
+			g_nsys_verts = 0;
 			g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
 		}
 		if (g_nnotes >= 96) return nullptr;
 		Note &n = g_notes[g_nnotes++];
 		n.kind = kind;
 		n.addr = addr;
+		n.verts = -1;
 		memcpy(n.gte, (const void *)GTE_D, GTE_D_N);
 		memcpy(n.gte + GTE_D_N, (const void *)GTE_C, GTE_C_N);
 		memcpy(n.scratch, (const void *)SCRATCH_LO, sizeof(n.scratch));
@@ -79,7 +125,15 @@ namespace death
 	}
 
 	static void held_note_reaper(uint32_t node) { held_note(0, node); }
-	static void held_note_system(uint32_t sys) { held_note(1, sys); }
+	static void held_note_system(uint32_t sys)
+	{
+		Note *n = held_note(1, sys);
+		if (n && g_nsys_verts < MAX_SYSTEMS)
+		{
+			n->verts = g_nsys_verts;
+			g_sys_verts[g_nsys_verts++].save(sys);
+		}
+	}
 	static void held_note_spark(uint32_t node)
 	{
 		Note *n = held_note(2, node);
@@ -190,6 +244,7 @@ namespace death
 		for (int i = 0; i < nl; i++)
 			Predict(list[i], P(copies[i]), P(nxt), num, den);
 		Restore(n);
+		if (n.verts >= 0) g_sys_verts[n.verts].restore();
 		for (int i = 0; i < nl; i++)
 		{
 			const uint32_t c = P(copies[i]);
@@ -268,6 +323,9 @@ namespace death
 		memcpy(gte, (const void *)GTE_D, GTE_D_N);
 		memcpy(gte + GTE_D_N, (const void *)GTE_C, GTE_C_N);
 		memcpy(falloc, (const void *)fa, sizeof(falloc));
+		static VertexBlocks verts_now[MAX_SYSTEMS]; // the blocks as the real tick left them
+		for (int i = 0; i < g_nnotes; i++)
+			if (g_notes[i].verts >= 0) verts_now[g_notes[i].verts].save(g_notes[i].addr);
 		memcpy(shadow, (const void *)0x1D999C8, sizeof(shadow));
 		const uint32_t shadow_words[2] = { MEM<uint32_t>(0xB8B9E4), MEM<uint32_t>(0xB8B9EC) };
 		const uint32_t geom[2] = { MEM<uint32_t>(0x1D99C18), MEM<uint32_t>(0x1D99C1C) };
@@ -292,6 +350,8 @@ namespace death
 		MEM<uint32_t>(0xB8B9E4) = shadow_words[0];
 		MEM<uint32_t>(0xB8B9EC) = shadow_words[1];
 		memcpy((void *)0x1D999C8, shadow, sizeof(shadow));
+		for (int i = g_nnotes - 1; i >= 0; i--)
+			if (g_notes[i].verts >= 0) verts_now[g_notes[i].verts].restore();
 		memcpy((void *)fa, falloc, sizeof(falloc));
 		memcpy((void *)GTE_D, gte, GTE_D_N);
 		memcpy((void *)GTE_C, gte + GTE_D_N, GTE_C_N);

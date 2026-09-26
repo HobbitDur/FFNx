@@ -25,6 +25,9 @@
 // end test of 0x7419C0 without its spawn, 0x740910, 0x741120) runs on a second copy. An actor ending
 // on the next tick, a morphing model (definition kind 5: its step rewrites the shared vertex block)
 // and an actor not in its motion phase hold; rotation, flipbook frame, model and colours hold.
+// The morph (0x854E20) writes its destination vertex blocks in the loaded actor data, which every
+// actor system of the cast shares: each system's replay puts back the blocks it drew with (a later
+// system's update may have rewritten them), and the held frame then puts back the current ones.
 // Screen flashes (0x851900): redrawn with their colour held. The packets go to a private buffer
 // (module cursor 0x269DA20); the module globals, the module scratch stack, the Field_Alloc scratch
 // and the GTE registers are put back.
@@ -37,9 +40,47 @@ namespace drain
 {
 	static const uint32_t SCRATCH_LO = 0x2793B58, SCRATCH_HI = 0x2793E78; // module scratch stack + camera copy
 	static const uint32_t BSS_LO = 0x269D958, BSS_HI = 0x269E764;
-	static const uint32_t GTE_D = 0x1CA8A10, GTE_D_N = 0x70, GTE_C = 0x1CA9230, GTE_C_N = 0xD0;
+	static const uint32_t GTE_D = magc::GTE_DATA, GTE_D_N = magc::GTE_DATA_SIZE, GTE_C = magc::GTE_CTRL, GTE_C_N = magc::GTE_CTRL_SIZE;
 	static const uint32_t ACTOR_BYTES = 0x2A0;
 	static const int MAX_ACTORS = 160;
+
+	// the morph destination vertex blocks of an actor system (state +0x22C table, 16 entries): a
+	// kind-5 model's step (0x854E20) rewrites them in the actor data, which every actor system of
+	// the cast shares, so a later system's update overwrites what an earlier one drew with
+	struct VertexBlocks
+	{
+		uint32_t n;
+		uint32_t addr[16], len[16];
+		uint8_t bytes[0x4000];
+		void save(uint32_t sys)
+		{
+			n = 0;
+			const uint32_t tab = U32(sys, 0x22C);
+			if (!tab) return;
+			uint32_t used = 0;
+			for (int k = 0; k < 16; k++)
+			{
+				const uint32_t blk = U32(tab, k * 4);
+				if (!blk) continue;
+				const uint32_t bytes_n = U32(blk, 4) * 8; // vertex count +4, 8-byte vertices from +8
+				if (bytes_n == 0 || used + bytes_n > sizeof(bytes)) continue;
+				addr[n] = blk + 8;
+				len[n] = bytes_n;
+				memcpy(bytes + used, (const void *)(blk + 8), bytes_n);
+				used += bytes_n;
+				n++;
+			}
+		}
+		void restore() const
+		{
+			uint32_t used = 0;
+			for (uint32_t i = 0; i < n; i++)
+			{
+				memcpy((void *)addr[i], bytes + used, len[i]);
+				used += len[i];
+			}
+		}
+	};
 
 	struct SysNote
 	{
@@ -47,6 +88,7 @@ namespace drain
 		uint8_t gte[GTE_D_N + GTE_C_N];
 		uint8_t scratch[SCRATCH_HI - SCRATCH_LO];
 		uint8_t falloc[0x400];
+		VertexBlocks verts; // the vertex blocks its models were drawn with
 	};
 	static SysNote g_sys[8];
 	static int g_nsys = 0;
@@ -84,6 +126,7 @@ namespace drain
 		memcpy(n.gte + GTE_D_N, (const void *)GTE_C, GTE_C_N);
 		memcpy(n.scratch, (const void *)SCRATCH_LO, sizeof(n.scratch));
 		memcpy(n.falloc, (const void *)MEM<uint32_t>(0x1D999C4), sizeof(n.falloc));
+		n.verts.save(sys);
 	}
 
 	static bool HeldReady() { return held_ready() && g_sys_tick == g_real_tick; }
@@ -137,6 +180,8 @@ namespace drain
 		memcpy(gte, (const void *)GTE_D, GTE_D_N);
 		memcpy(gte + GTE_D_N, (const void *)GTE_C, GTE_C_N);
 		memcpy(falloc, (const void *)fa, sizeof(falloc));
+		static VertexBlocks verts_now[8]; // the blocks as the real tick left them
+		for (int s = 0; s < g_nsys; s++) verts_now[s].save(g_sys[s].sys);
 		// the buffer gets the real tick's packets: the replayed draws write the same packets at the
 		// same offsets over them (the halves a draw does not write are the real tick's)
 		const uint32_t used = MEM<uint32_t>(PACKET_CURSOR) - g_pkt_start;
@@ -166,6 +211,7 @@ namespace drain
 			memcpy((void *)GTE_C, n.gte + GTE_D_N, GTE_C_N);
 			memcpy((void *)SCRATCH_LO, n.scratch, sizeof(n.scratch));
 			memcpy((void *)fa, n.falloc, sizeof(n.falloc));
+			n.verts.restore();
 			for (int i = 0; i < nl; i++)
 			{
 				const uint32_t c = P(copies[i]);
@@ -193,6 +239,7 @@ namespace drain
 			}
 		}
 		memcpy((void *)fa, falloc, sizeof(falloc));
+		for (int s = g_nsys - 1; s >= 0; s--) verts_now[s].restore();
 		memcpy((void *)GTE_D, gte, GTE_D_N);
 		memcpy((void *)GTE_C, gte + GTE_D_N, GTE_C_N);
 		memcpy((void *)SCRATCH_LO, scratch, sizeof(scratch));

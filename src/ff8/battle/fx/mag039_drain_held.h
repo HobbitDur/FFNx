@@ -16,6 +16,7 @@
 // 30 fps part of mag039_drain.cpp (declarations for its FX_HELD statements)
 #pragma once
 #include "act_engine_held.h"
+#include "mag_common.h" // GTE register windows of the held frames (magc::GTE_DATA / GTE_CTRL)
 
 namespace ff8fx
 {
