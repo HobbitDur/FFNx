@@ -114,8 +114,17 @@ namespace ff8fx
 			if (g_held[i].effect_id == effect_id) { g_held[i].draw(num, den); return; }
 	}
 
+	// effect ids served by one module's ports (Gilgamesh: 327 Zantetsuken, 328 Masamune,
+	// 329 Excalibur, 330 Excalipoor share one module)
+	static int canonical_effect(int effect_id)
+	{
+		if (effect_id >= 328 && effect_id <= 330) return 327;
+		return effect_id;
+	}
+
 	bool module_ported(int effect_id)
 	{
+		effect_id = canonical_effect(effect_id);
 		for (int i = 0; i < g_nports; i++)
 			if (g_ports[i].effect_id == effect_id) return true;
 		return false;
@@ -142,5 +151,7 @@ namespace ff8fx
 		register_module_camera(185, camscript_held_camera);
 		register_module_camera(199, camscript_held_camera);
 		register_module_camera(187, camscript_held_camera);
+		register_mag327_gilgamesh();
+		for (int id = 327; id <= 330; id++) register_module_camera(id, camscript_held_camera);
 	}
 }
