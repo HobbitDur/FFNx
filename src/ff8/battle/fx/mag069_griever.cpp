@@ -30,7 +30,7 @@
 // Module globals: 0x2556628..0x2556F98 (gf_study/gf_global_ranges.md).
 //
 // Engine helpers and the module's pure helpers are called through their original addresses
-// (namespace w). Ported natively (they have to run draw-only on held frames): the shattering
+// (namespace w). Ported natively: the shattering
 // rasteriser 0x6FF6E0 (+0x6FF770, 0x700030, 0x6FF880, the shard allocator 0x6FFFE0 and the
 // module LCG 0x6FFFC0), the shard draw 0x6FF2F0, the spark draw 0x7001E0 and the fade 0x700150.
 
@@ -178,6 +178,17 @@ namespace g069
 	static_assert(sizeof(TimelineNode) == 0x8F0, "timeline node is 0x8F0 bytes");
 
 	static const int SHARD_COUNT = 0x16C, SPARK_COUNT = 0x80;
+}
+}
+
+#ifdef FF8_FX_HELD
+#include "mag069_griever_held.h"
+#endif
+
+namespace ff8fx
+{
+namespace g069
+{
 
 	// 0x6FFFC0: module LCG, 15 bits
 	static int32_t Lcg()
@@ -214,7 +225,7 @@ namespace g069
 	// Shattering rasteriser (0x6FF6E0 -> 0x6FF770 -> 0x700030 / 0x6FF880). Draws a battle
 	// model in its bone space (no root matrix) with flat textured polygons; every face whose
 	// distance from the attacker (table built at spawn) is below the threshold is turned into
-	// a shard instead (marked -1, never drawn again). held = draw-only (no spawn, no LCG).
+	// a shard instead (marked -1, never drawn again).
 	// Work block (Field_Alloc 0x70, same offsets as the original):
 	//   +0x00 face cursor  +0x04 vertex scratch  +0x08 s16 triangles  +0x0A s16 quads
 	//   +0x0C..0x12 s16 clip x0, y0, x1, y1 (0, 0, 320, 216)  +0x14 u16 threshold
@@ -291,7 +302,7 @@ namespace g069
 	}
 
 	// 0x6FF880: the faces of one object
-	static uint32_t Faces(uint8_t *sc, uint32_t ot, int32_t shift, uint32_t cursor, bool held)
+	static uint32_t Faces(uint8_t *sc, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *f = *(uint8_t **)sc;
 		const uint8_t *verts = *(uint8_t **)(sc + 4);
@@ -314,7 +325,7 @@ namespace g069
 				CopyVertex(sc, 0x40, verts, U16(f, 4));
 				if (d < (int32_t)thr)
 				{
-					uint8_t *s = held ? nullptr : ShardAlloc();
+					uint8_t *s = ShardAlloc();
 					if (s)
 					{
 						int16_t x = (int16_t)(((int32_t)S16(sc, 0x48) + S16(sc, 0x38) + S16(sc, 0x28)) / 3);
@@ -387,7 +398,7 @@ namespace g069
 				CopyVertex(sc, 0x50, verts, U16(f, 6));
 				if (d < (int32_t)thr)
 				{
-					uint8_t *s = held ? nullptr : ShardAlloc();
+					uint8_t *s = ShardAlloc();
 					if (s)
 					{
 						int16_t x = (int16_t)(((int32_t)S16(sc, 0x48) + S16(sc, 0x38) + S16(sc, 0x58) + S16(sc, 0x28)) / 4);
@@ -449,7 +460,7 @@ namespace g069
 	}
 
 	// 0x6FF770: every object of the model (vertex groups per bone, then its faces)
-	static uint32_t Objects(uint8_t *com, uint8_t *sc, uint32_t ot, int32_t shift, uint32_t cursor, bool held)
+	static uint32_t Objects(uint8_t *com, uint8_t *sc, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *bones = *(uint8_t **)com + 0x10;
 		const uint32_t *offs = (const uint32_t *)(*(uint8_t **)(com + 4) + 4);
@@ -480,15 +491,14 @@ namespace g069
 			S16(sc, 0xA) = *(int16_t *)obj;
 			obj += 6;
 			*(uint8_t **)sc = obj;
-			cursor = Faces(sc, ot, shift, cursor, held);
+			cursor = Faces(sc, ot, shift, cursor);
 		} while (--count);
 		return cursor;
 	}
 
-	// 0x6FF6E0: returns the face-distance cursor after the model. held: the in-between pose
-	// (the caller saves / restores the skeleton), no shards
+	// 0x6FF6E0: returns the face-distance cursor after the model
 	static uint8_t *ShatterDraw(uint8_t *model, uint8_t *dist, int32_t thr, int32_t mask, uint8_t *scratch,
-		uint32_t ot, int32_t shift, bool held = false, int num = 0, int den = 1)
+		uint32_t ot, int32_t shift)
 	{
 		uint8_t *sc = (uint8_t *)FieldAlloc(0x70);
 		U16(sc, 0x14) = (uint16_t)thr;
@@ -496,14 +506,13 @@ namespace g069
 		U16(sc, 0x16) = (uint16_t)mask;
 		uint8_t *hdr = model + 0x14; // BattleAnimHeader (entry + 0x18)
 		*(uint8_t **)(sc + 0x1C) = ModelBuffer() + MB_SPIN;
-		if (held) pose_midpoint(hdr, hdr + 0xC, num, den);
-		else BuildBoneMatricesFromPose(hdr);
+		BuildBoneMatricesFromPose(hdr);
 		*(uint8_t **)(sc + 4) = scratch;
 		S16(sc, 0xC) = 0;
 		S16(sc, 0xE) = 0;
 		S16(sc, 0x10) = 0x140;
 		S16(sc, 0x12) = 0xD8;
-		FrameCursor() = Objects(*(uint8_t **)(hdr + 4), sc, ot, shift, FrameCursor(), held);
+		FrameCursor() = Objects(*(uint8_t **)(hdr + 4), sc, ot, shift, FrameCursor());
 		uint8_t *r = *(uint8_t **)(sc + 0x18);
 		FieldFree(0x70);
 		return r;
@@ -647,34 +656,13 @@ namespace g069
 	}
 
 	// ------------------------------------------------------------------
-	// held-frame memo of what the real tick drew
-	// ------------------------------------------------------------------
-	struct TimelineMemo
-	{
-		uint32_t tick;
-		TimelineNode *node;
-		int32_t c;          // counter the tick ran with
-		bool advanced;      // the counter moved on (no stall on the load / pause test)
-		bool prim; PrimCtx ctx;
-		bool attacker;      // 0x6FECF0 drew the attacker
-		bool models; int32_t thr;
-		bool sparks;        // sparks drawn (c < 48); updated after the draw when c < 47
-		bool fade; int32_t fade_t;
-	};
-	static TimelineMemo g_tm;
-	static uint8_t g_shard_prev[SHARD_COUNT * 0x3C], g_shard_held[SHARD_COUNT * 0x3C];
-	static uint8_t g_spark_prev[SPARK_COUNT * 0x10], g_spark_held[SPARK_COUNT * 0x10];
-
-	// real tick on which the ported master last ran
-	static uint32_t g_ported_tick = 0xFFFFFFFF;
-
-	// ------------------------------------------------------------------
 	// Master (0x6FE0D0). Node 0x10: +0x0C u16 counter, +0x0E u8 arena parity, +0x0F u8 spawned.
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		g_ported_tick = g_real_tick;
+		// 30 fps layer: see mag069_griever_held.inc
+		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
 			PacketCursor() = (uint32_t)(ModelBuffer() + MB_ARENA_A);
@@ -733,12 +721,8 @@ namespace g069
 		uint8_t *MB = ModelBuffer();
 		int32_t c = node->counter;
 
-		TimelineMemo &M = g_tm;
-		M.tick = g_real_tick;
-		M.node = node;
-		M.c = c;
-		M.advanced = false;
-		M.prim = M.attacker = M.models = M.sparks = M.fade = false;
+		// 30 fps layer: see mag069_griever_held.inc
+		FX_HELD(held_note_timeline(node, c);)
 
 		// 0..91: intro prim model at the attacker's feet
 		if ((uint32_t)c < 0x5C)
@@ -754,8 +738,7 @@ namespace g069
 			ctx.bias = -128;
 			ctx.scratch = (uint32_t)(MB + MB_SCRATCH);
 			ctx.scroll = (int16_t)(c << 4);
-			M.prim = true;
-			M.ctx = ctx;
+			FX_HELD(held_note_prim(ctx);)
 			prim::play((prim::Layout *)node->prim, (prim::Callback)CB_PrimObject, (int)&ctx, 0);
 		}
 
@@ -772,7 +755,7 @@ namespace g069
 			else if (d == 0x1E) *(uint16_t *)Attacker() &= 0xFFFB;
 			if (draw)
 			{
-				M.attacker = true;
+				FX_HELD(held_note_attacker();)
 				w::AttackerDraw(Attacker(), 0, var<uint32_t>(0x1D98B3C));
 				*Attacker() |= 4;
 			}
@@ -786,8 +769,7 @@ namespace g069
 				int32_t q = (int32_t)((v * 28000u) / 50u);
 				if (q > 6000) q = 6000;
 				int32_t thr = (q * q) >> 12;
-				M.models = true;
-				M.thr = thr;
+				FX_HELD(held_note_models(thr);)
 				uint8_t *r = ShatterDraw(MODEL_1, MB + MB_FACE_DIST, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x4068, 0x10);
 				ShatterDraw(MODEL_2, r, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x44, 0);
 				*MODEL_1_FLAGS &= 0xFD;
@@ -803,11 +785,10 @@ namespace g069
 		// sparks (drawn while the tick is below 48), then every shard
 		if (node->counter < 0x30)
 		{
-			M.sparks = true;
-			memcpy(g_spark_prev, MB + MB_SPARKS, sizeof(g_spark_prev));
+			FX_HELD(held_note_sparks();)
 			SparksDraw(MB + MB_SPARKS);
 		}
-		memcpy(g_shard_prev, MB + MB_SHARDS, sizeof(g_shard_prev));
+		FX_HELD(held_note_shards();)
 		ShardsDraw(MB + MB_SHARDS);
 
 		// 94..125: white fade into the module arena
@@ -815,8 +796,7 @@ namespace g069
 			uint32_t t = (uint32_t)((int32_t)node->counter - 0x5E);
 			if (t < 0x20)
 			{
-				M.fade = true;
-				M.fade_t = (int32_t)t;
+				FX_HELD(held_note_fade((int32_t)t);)
 				PacketCursor() = w::Tile(0xFF, 0xFF, 0xFF, FadeLevel((int32_t)t), PacketCursor());
 			}
 		}
@@ -883,153 +863,20 @@ namespace g069
 
 		if (node->counter >= 0x7E) return TASK_END;
 		node->counter = (int16_t)(node->counter + 1);
-		M.advanced = true;
+		FX_HELD(held_note_advanced();)
 		return 0;
-	}
-
-	// ------------------------------------------------------------------
-	// Held frames (30 fps). Everything the real tick drew, half way to the next tick:
-	//   prim model   exact in-between records (prim::play_held), uv scroll + 8
-	//   attacker     0x6FECF0 on the in-between pose (pose_midpoint)
-	//   models       the shattering rasteriser draw-only on the in-between pose, with the
-	//                tick's threshold (faces shatter in 15 Hz batches)
-	//   sparks       drawn position lerped to the updated one, frame of the drawn life
-	//   shards       drawn position and corners lerped to the updated ones (spin between)
-	//   fade         level lerped to the next tick's
-	// Objects the tick's update removed (shards / sparks at the end of their life) are not
-	// drawn; objects spawned after the draw appear on the next tick. Vertex scratch goes to
-	// private buffers, skeletons are put back byte for byte.
-	// ------------------------------------------------------------------
-	static uint8_t g_held_packets[0x80000];
-	static uint8_t g_held_verts[0x10000];       // model / prim vertex scratch (vanilla: MB + 0x6000)
-	static uint8_t g_held_attacker_verts[0x40000]; // attacker vertex scratch (vanilla: *0x1D98B3C)
-	static uint8_t g_skel_save[16 + 48 * 256];
-
-	struct SkelGuard
-	{
-		uint8_t *sk = nullptr;
-		uint32_t size = 0;
-		explicit SkelGuard(uint8_t *anim_header)
-		{
-			uint8_t *com = *(uint8_t **)(anim_header + 4);
-			uint8_t *s = com ? *(uint8_t **)com : nullptr;
-			uint32_t n = s ? 16 + 48 * (uint32_t)s[0] : 0;
-			if (s && n <= sizeof(g_skel_save)) { sk = s; size = n; memcpy(g_skel_save, sk, size); }
-		}
-		~SkelGuard() { if (sk) memcpy(sk, g_skel_save, size); }
-		bool ok() const { return sk != nullptr; }
-	};
-
-	static inline int16_t lerp16(int16_t a, int16_t b, int num, int den) { return (int16_t)(a + (int16_t)(b - a) * num / den); }
-
-	static void TimelineHeld(TimelineNode *node, int num, int den)
-	{
-		const TimelineMemo &M = g_tm;
-		uint8_t *MB = ModelBuffer();
-		int32_t c = M.c;
-		bool step = M.advanced && node->counter == c + 1;
-
-		if (M.prim)
-		{
-			PrimCtx ctx = M.ctx;
-			ctx.scratch = (uint32_t)g_held_verts;
-			if (step && c + 1 < 0x5C) ctx.scroll = (int16_t)(ctx.scroll + 16 * num / den);
-			prim::play_held((prim::Layout *)node->prim, (prim::Callback)CB_PrimObject, (int)&ctx, num, den);
-		}
-
-		if (M.attacker)
-		{
-			uint8_t *a = Attacker();
-			SkelGuard guard(a + 0x60);
-			if (guard.ok())
-			{
-				pose_midpoint(a + 0x60, a + 0x6C, num, den);
-				w::AttackerDraw(a, 0, (uint32_t)g_held_attacker_verts);
-			}
-		}
-
-		if (M.models)
-		{
-			uint8_t *r;
-			{
-				SkelGuard guard(MODEL_1 + 0x14);
-				r = MB + MB_FACE_DIST;
-				if (guard.ok())
-					r = ShatterDraw(MODEL_1, r, M.thr, 0x3F, g_held_verts, RenderList() + 0x4068, 0x10, true, num, den);
-			}
-			{
-				SkelGuard guard(MODEL_2 + 0x14);
-				if (guard.ok() && r != MB + MB_FACE_DIST)
-					ShatterDraw(MODEL_2, r, M.thr, 0x3F, g_held_verts, RenderList() + 0x44, 0, true, num, den);
-			}
-		}
-
-		if (M.sparks)
-		{
-			// updated this tick (life - 1, pos + 4 vel) when c < 47, untouched at 47
-			bool moved = c < 0x2F;
-			const uint8_t *cur = MB + MB_SPARKS;
-			for (int i = 0; i < SPARK_COUNT; i++)
-			{
-				const Spark &p = *(const Spark *)(g_spark_prev + 0x10 * i);
-				const Spark &q = *(const Spark *)(cur + 0x10 * i);
-				Spark &h = *(Spark *)(g_spark_held + 0x10 * i);
-				h = p;
-				bool same = p.life != 0 && q.life != 0 && q.seq == p.seq &&
-					(moved ? q.life == (uint8_t)(p.life - 1) : q.life == p.life);
-				if (!same) { h.life = 0; continue; }
-				for (int k = 0; k < 3; k++) h.pos[k] = lerp16(p.pos[k], q.pos[k], num, den);
-			}
-			SparksDraw(g_spark_held);
-		}
-
-		{
-			const uint8_t *cur = MB + MB_SHARDS;
-			for (int i = 0; i < SHARD_COUNT; i++)
-			{
-				const Shard &p = *(const Shard *)(g_shard_prev + 0x3C * i);
-				const Shard &q = *(const Shard *)(cur + 0x3C * i);
-				Shard &h = *(Shard *)(g_shard_held + 0x3C * i);
-				h = p;
-				if (p.type == 0 || q.type != p.type || q.life != (int16_t)(p.life - 1)) { h.type = 0; continue; }
-				for (int k = 0; k < 3; k++) h.pos[k] = lerp16(p.pos[k], q.pos[k], num, den);
-				for (int j = 0; j < 4; j++)
-					for (int k = 0; k < 3; k++) h.v[j][k] = lerp16(p.v[j][k], q.v[j][k], num, den);
-			}
-			ShardsDraw(g_shard_held);
-		}
-
-		if (M.fade)
-		{
-			int32_t lv = FadeLevel(M.fade_t);
-			if (step && M.fade_t + 1 < 0x20) lv = lerp_i(lv, FadeLevel(M.fade_t + 1), num, den);
-			PacketCursor() = w::Tile(0xFF, 0xFF, 0xFF, lv, PacketCursor());
-		}
-	}
-
-	static bool HeldReady() { return g_ported_tick == g_real_tick; }
-
-	// mirrors the master: effect camera matrix from the (held) camera, then the timeline;
-	// packets go to a private buffer so the real tick's arenas are untouched
-	static void HeldFrame(int num, int den)
-	{
-		if (g_tm.tick != g_real_tick || !QueueTimeline().head || (TimelineNode *)QueueTimeline().head != g_tm.node) return;
-		uint32_t cursor = PacketCursor(), frame_cursor = FrameCursor();
-		Mat4x3 effect_camera = EffectCamera();
-		PacketCursor() = (uint32_t)g_held_packets;
-		FrameCursor() = (uint32_t)g_held_packets + 0x40000;
-		EffectCameraMatrix(&Camera(), &EffectCamera());
-		TimelineHeld(g_tm.node, num, den);
-		EffectCamera() = effect_camera;
-		PacketCursor() = cursor;
-		FrameCursor() = frame_cursor;
 	}
 }
 
 	void register_mag069_griever()
 	{
 		register_port(g069::ORIG_SequenceTask, (void *)g069::SequenceTask, "G069 SequenceTask", 69);
-		register_port(g069::ORIG_TimelineTask, (void *)g069::TimelineTask, "G069 TimelineTask", 69, true);
-		register_module_held(69, g069::HeldReady, g069::HeldFrame);
+		register_port(g069::ORIG_TimelineTask, (void *)g069::TimelineTask, "G069 TimelineTask", 69);
+		// 30 fps layer: see mag069_griever_held.inc
+		FX_HELD(register_mag069_held();)
 	}
 }
+
+#ifdef FF8_FX_HELD
+#include "mag069_griever_held.inc"
+#endif

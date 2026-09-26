@@ -38,7 +38,7 @@
 //     E6     = 0x2200FC0           Gilgamesh, final pose (mb)
 //   The timeline also queues the shared camera-script task MAG_066_sub_63E9C0 (Doomtrain file)
 //   into Q1; it is not part of this module and is not ported here. The module never writes the
-//   battle camera itself (no held-frame camera).
+//   battle camera itself.
 // Every task tests battle_to_update_flags_dword_1D96A9C & 0x201 (draw-only when set), except the
 // master and the end task 0x596B30. The timeline returns at once on bit 0, and with bit 0x200
 // only while a file load is pending (then it runs its events).
@@ -199,10 +199,6 @@ namespace g327
 	static const uint32_t ORIG_Exca_StreakTask = 0x591B80;
 	static const uint32_t ORIG_Exca_PillarTask = 0x591F50;
 
-	// real tick on which the ported master last ran (held frames need its memos)
-	static uint32_t g_ported_tick = 0xFFFFFFFF;
-	static bool g_tick_paused = false; // the 0x201 flags were set on that tick (nothing advanced)
-
 #pragma pack(push, 1)
 	// every Q1/Q2 node is 0x24 bytes; field use differs per task
 	struct Node24
@@ -237,6 +233,18 @@ namespace g327
 	static_assert(sizeof(RecA) == 0x20, "pool A record is 0x20 bytes");
 	static_assert(sizeof(RecB) == 0x18, "pool B record is 0x18 bytes");
 
+}
+}
+
+#ifdef FF8_FX_HELD
+#include "mag327_gilgamesh_held.h"
+#endif
+
+namespace ff8fx
+{
+namespace g327
+{
+
 	static const int POOL_N = 200;
 	inline RecA *RA(int i) { return (RecA *)(PoolA() + 0x20 * i); }
 	inline RecB *RB(int i) { return (RecB *)(PoolB() + 0x18 * i); }
@@ -248,8 +256,6 @@ namespace g327
 			if (*(uint32_t *)(pool + stride * i) == 0) return i;
 		return -1;
 	}
-
-	static int16_t Lerp16(int16_t a, int16_t b, int num, int den) { return (int16_t)lerp_i(a, b, num, den); }
 
 	// au_re_BdLinkTask_17 0x592970 (Q1) / _18 0x592990 (Q2) (no null check, as the original)
 	static Node24 *LinkQ1(uint32_t task_fn)
@@ -298,26 +304,10 @@ namespace g327
 		nrm[3] = (int16_t)-(d >> 12);
 	}
 
-	// ---- held-frame memos ----
-	static NodeMemo<Node24, 256> g_node_memo;
-	static void MemoNode(const Node24 *n) { if (Node24 *m = g_node_memo.put(n)) *m = *n; }
-	static bool NodeMoved(const Node24 *m, const Node24 *n) { return !g_tick_paused && n->c == (int16_t)(m->c + 1); }
-
-	// pool records as drawn on the current real tick (before their update)
-	struct RecMemoA { uint32_t tick; const void *owner; RecA r; };
-	struct RecMemoB { uint32_t tick; const void *owner; RecB r; };
-	static RecMemoA g_memo_a[POOL_N];
-	static RecMemoB g_memo_b[POOL_N];
-	static void MemoA(int i, const void *owner) { g_memo_a[i].tick = g_real_tick; g_memo_a[i].owner = owner; g_memo_a[i].r = *RA(i); }
-	static void MemoB(int i, const void *owner) { g_memo_b[i].tick = g_real_tick; g_memo_b[i].owner = owner; g_memo_b[i].r = *RB(i); }
-	// the record moved on on the last tick (alive, same owner bits, next frame)
-	static bool AdvancedA(const RecMemoA &m, const RecA *r) { return !g_tick_paused && r->mask == m.r.mask && r->age != m.r.age; }
-	static bool AdvancedB(const RecMemoB &m, const RecB *r) { return !g_tick_paused && r->mask == m.r.mask && r->age != m.r.age; }
-
-	// held draws give the model renderers a private vertex scratch
-	static uint8_t g_vertex_scratch[0x20000];
-	static bool g_held = false;
-	static uint32_t ModelScratch() { return g_held ? (uint32_t)g_vertex_scratch : VertexScratch(); }
+	// vertex scratch of the model renderers: the engine's (0xCD03A0, and 0x1D98B3C for the target /
+	// party renderers) unless another one is set here
+	static uint32_t g_vertex_scratch_override = 0;
+	static uint32_t ModelScratch() { return g_vertex_scratch_override ? g_vertex_scratch_override : VertexScratch(); }
 
 	// ------------------------------------------------------------------
 	// Generic prim model draw (Effect_RenderPrimModel 0x572200, header on the scratch stack): the
@@ -388,22 +378,13 @@ namespace g327
 		a.hC = v;
 	}
 
-	// in-between value of a fade that is linear in the counter, when both ticks fade
-	static int32_t FadeLerp(bool (*f)(int32_t, int32_t *), int32_t c, bool moved, int num, int den, bool *fade)
-	{
-		int32_t v0 = 0, v1 = 0;
-		*fade = f(c, &v0);
-		if (moved && *fade && f(c + 1, &v1)) return lerp_i(v0, v1, num, den);
-		return v0;
-	}
-
 	// ------------------------------------------------------------------
 	// Master (0x596B70): node from pool 0x21FF468, +0x0C counter (increments even when paused)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
-		g_ported_tick = g_real_tick;
-		g_tick_paused = Paused();
+		// 30 fps layer: see mag327_gilgamesh_held.inc
+		FX_HELD(held_note_master();)
 		int a = ExecuteTaskQueue(&Q1());
 		int b = ExecuteTaskQueue(&Q2());
 		((Node24 *)tn)->c++;
@@ -760,7 +741,7 @@ namespace g327
 	// ------------------------------------------------------------------
 	// 0x592A00 / 0x592A50: Battle_RequestScreenFeedback every tick (0x592A50: from its second
 	// tick) for +0x0E ticks. The request is issued before the pause test: a per-frame draw-side
-	// request, re-issued on held frames.
+	// request.
 	static uint32_t __cdecl FeedbackTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -834,7 +815,7 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		int32_t v = FadeTileLevel(n->c);
 		Tile(v, v, v, 0);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x18 ? TASK_END : 0;
@@ -929,7 +910,7 @@ namespace g327
 	static uint32_t ScreenPrimTick(Node24 *n, uint32_t orig)
 	{
 		ScreenPrimDraw(n, ScreenPrimModel(n, orig), n->s1C);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t c = n->c;
 		if (c < 6)
@@ -1075,7 +1056,7 @@ namespace g327
 		}
 		if (c <= 0x28)
 		{
-			MemoNode(n);
+			FX_HELD(MemoNode(n);)
 			CutMatrix(n, CutAngle0(c, n->a18), CutAngle1(c, n->a18), A[2], n->s20, (Mat4x3 *)(0x2200B94 + 60 * slot), A);
 		}
 		if (Paused()) return 0;
@@ -1093,7 +1074,7 @@ namespace g327
 			Cursor() = DrawShadow(ent, RenderList() + 0x4064, 0x10, Cursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(ent + 0x40), (Mat4x3 *)(h + 0x198));
 		ComposeAffineTransform(&Camera(), moved, (Mat4x3 *)(h + 0x1B8));
-		*(uint32_t *)(h + 4) = g_held ? (uint32_t)g_vertex_scratch : var<uint32_t>(0x1D98B3C);
+		*(uint32_t *)(h + 4) = g_vertex_scratch_override ? g_vertex_scratch_override : var<uint32_t>(0x1D98B3C);
 		*(uint32_t *)(h + 0x20) = *(uint32_t *)(ent + 0x28);
 		*(uint32_t *)(h + 0x10) = *(uint32_t *)(ent + 0x7C);
 		Cursor() = SliceRender(*(void **)(ent + 0x64), h, OT(), 2, Cursor());
@@ -1156,7 +1137,7 @@ namespace g327
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D8);
 			SliceDraw(h, n, ent, (const Mat4x3 *)(0x2200B94 + 60 * (int32_t)n->e), n->c, -1);
 			FieldFree(0x1D8);
-			MemoNode(n);
+			FX_HELD(MemoNode(n);)
 		}
 		if (Paused()) return 0;
 		n->c++;
@@ -1172,7 +1153,7 @@ namespace g327
 	{
 		memcpy(h + 0x198, &Camera(), sizeof(Mat4x3));
 		ComposeAffineTransform(&Camera(), m, (Mat4x3 *)(h + 0x1B8));
-		*(uint32_t *)(h + 4) = g_held ? (uint32_t)g_vertex_scratch : var<uint32_t>(0x1D98B3C);
+		*(uint32_t *)(h + 4) = g_vertex_scratch_override ? g_vertex_scratch_override : var<uint32_t>(0x1D98B3C);
 		*(uint32_t *)(h + 0x10) = 0xFFFFFFFF;
 		for (int i = 0; i < 4; i++)
 		{
@@ -1232,7 +1213,7 @@ namespace g327
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D8);
 			PartyClipDraw(h, n->s20);
 			FieldFree(0x1D8);
-			MemoNode(n);
+			FX_HELD(MemoNode(n);)
 		}
 		if (Paused()) return 0;
 		int16_t v = n->s22;
@@ -1336,7 +1317,7 @@ namespace g327
 		int32_t f = 0;
 		bool fade = b ? MasaFadeB(n->c, &f) : MasaFadeA(n->c, &f);
 		MasaPrimDraw(n, b, n->s1C, fade, f);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1400,7 +1381,7 @@ namespace g327
 		{
 			RecA *r = (RecA *)(pool + 0x20 * i);
 			if (!(mask & r->mask)) continue;
-			MemoA(i, n);
+			FX_HELD(MemoA(i, n);)
 			LitSpriteMAC(h, s, &r->x, r->size, r->age, 3, true, r->w1C);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1479,7 +1460,7 @@ namespace g327
 		{
 			RecB *r = (RecB *)(pool + 0x18 * i);
 			if (!(mask & r->mask)) continue;
-			MemoB(i, n);
+			FX_HELD(MemoB(i, n);)
 			LitSpriteMAC(h, s, &r->x, r->size, r->age, 3, false, 0);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1603,7 +1584,7 @@ namespace g327
 		{
 			RecB *r = (RecB *)(pool + 0x18 * i);
 			if (!(mask & r->mask)) continue;
-			MemoB(i, n);
+			FX_HELD(MemoB(i, n);)
 			LitSpriteMAC(h, s, &r->x, r->size, r->age, 3, false, 0);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1670,7 +1651,7 @@ namespace g327
 		{
 			RecB *r = (RecB *)(pool + 0x18 * i);
 			if (!(r->mask & mask)) continue;
-			MemoB(i, n);
+			FX_HELD(MemoB(i, n);)
 			LitSprite(h, &r->x, r->size, r->age);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1781,7 +1762,7 @@ namespace g327
 		{
 			RecA *r = (RecA *)(pool + 0x20 * i);
 			if (!(mask & r->mask)) continue;
-			MemoA(i, n);
+			FX_HELD(MemoA(i, n);)
 			ExcaStreakOne(h, s, &r->w18, &r->x, r->size);
 			if (r->age >= 6) r->size = StreakSize(r->age, r->w0E);
 			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
@@ -1830,7 +1811,7 @@ namespace g327
 		int32_t f = 0;
 		bool fade = MasaFadeB(n->c, &f);
 		ExcaPillarDraw(n, n->a18, n->s1C, n->s20, fade, f);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1858,7 +1839,7 @@ namespace g327
 	{
 		Node24 *n = (Node24 *)tn;
 		RingDraw(n);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x44 ? TASK_END : 0;
@@ -1878,7 +1859,7 @@ namespace g327
 	static uint32_t RingSpinTick(Node24 *n, bool b)
 	{
 		RingSpinDraw(n, b, n->a18);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->c++;
@@ -1972,7 +1953,7 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		FlareDraw(n, n->s20, FlareDepth(c), FlareColour(c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s22;
 		n->s20 = (int16_t)(n->s20 + v);
@@ -2001,7 +1982,7 @@ namespace g327
 		int32_t f = 0;
 		bool fade = RiserFade(n->c, &f);
 		RiserDraw(n, n->p12, n->s1C, fade, f);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t s = n->s1C, v = n->s22;
 		n->p12 = (int16_t)(n->p12 + v);
@@ -2058,7 +2039,7 @@ namespace g327
 		{
 			RecB *p = (RecB *)(pool + 0x18 * i);
 			if (!(p->mask & 1)) continue;
-			MemoB(i, n);
+			FX_HELD(MemoB(i, n);)
 			LitSprite(h, &p->x, p->size, p->age);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0) p->mask = 0;
@@ -2123,7 +2104,7 @@ namespace g327
 		{
 			RecA *p = (RecA *)(pool + 0x20 * i);
 			if (!(p->mask & 0x10)) continue;
-			MemoA(i, n);
+			FX_HELD(MemoA(i, n);)
 			LitSprite(h, &p->x, p->size, p->age);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2187,7 +2168,7 @@ namespace g327
 		int32_t f = 0;
 		bool fade = RisingRingFade(n->c, &f);
 		RisingRingDraw(n, n->a18, n->s20, fade, f);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s22;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
@@ -2255,7 +2236,7 @@ namespace g327
 		{
 			RecA *p = (RecA *)(pool + 0x20 * i);
 			if (!(p->mask & 1)) continue;
-			MemoA(i, n);
+			FX_HELD(MemoA(i, n);)
 			GteLoadV0(&p->x);
 			GteRTPS();
 			int16_t age = p->age;
@@ -2318,7 +2299,7 @@ namespace g327
 		int32_t f = 0;
 		bool fade = SpinnerFade(n->c, &f);
 		SpinnerDraw(n, n->a18, n->s1C, fade, f);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
@@ -2434,9 +2415,6 @@ namespace g327
 		Cursor() = (uint32_t)pk2;
 	}
 
-	struct TrailMemo { uint32_t tick; bool drawn; uint8_t sa[0x100], sb[0x100]; };
-	static TrailMemo g_trail = { 0xFFFFFFFF };
-
 	static uint32_t __cdecl TrailTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2450,13 +2428,11 @@ namespace g327
 		*(uint32_t *)(e + 0xC) = *(const uint32_t *)(s + 0x28);
 		*(uint32_t *)(e + 0x10) = *(const uint32_t *)(s + 0x2C);
 		int32_t cnt = TrailGather((const uint8_t *)TRAIL_RING, idx, (uint8_t *)TRAIL_PTS_A, (uint8_t *)TRAIL_PTS_B);
-		g_trail.tick = g_real_tick;
-		g_trail.drawn = cnt > 1;
+		FX_HELD(held_note_trail(cnt);)
 		if (cnt > 1)
 		{
 			TrailSplines(cnt, (const uint8_t *)TRAIL_PTS_A, (const uint8_t *)TRAIL_PTS_B, (uint8_t *)TRAIL_SPL_A, (uint8_t *)TRAIL_SPL_B);
-			memcpy(g_trail.sa, (const void *)TRAIL_SPL_A, 0x100);
-			memcpy(g_trail.sb, (const void *)TRAIL_SPL_B, 0x100);
+			FX_HELD(held_note_trail_splines();)
 			TrailDraw((const uint8_t *)TRAIL_SPL_A, (const uint8_t *)TRAIL_SPL_B, s);
 		}
 		FieldFree(0x40);
@@ -2474,23 +2450,13 @@ namespace g327
 	//   (h+0x24 = 8), pushed by size/4, drifting out slowly.
 	// Both end when none is left.
 	// ------------------------------------------------------------------
-	struct TipMemo { int16_t x, z; };
-	static NodeMemo<TipMemo, 64> g_tip_memo;
-
-	static void SwordTipFrame(uint8_t *s, const Node24 *n, int16_t *tip_x, int16_t *tip_z, bool use_tip)
+	static void SwordTipFrame(uint8_t *s, const Node24 *n)
 	{
 		*(int16_t *)(s + 0) = 0;
 		*(int16_t *)(s + 2) = 0;
 		*(int16_t *)(s + 4) = 0;
 		ComposeZYXRotationMatrix((const int16_t *)s, (Mat4x3 *)(s + 8));
-		if (!use_tip) GetEffectSpawnPosition(Sword(n->s1E), 1, 0x1000, (int16_t *)s);
-		else
-		{
-			*(int16_t *)(s + 0) = *tip_x;
-			*(int16_t *)(s + 4) = *tip_z;
-		}
-		*tip_x = *(int16_t *)(s + 0);
-		*tip_z = *(int16_t *)(s + 4);
+		GetEffectSpawnPosition(Sword(n->s1E), 1, 0x1000, (int16_t *)s);
 		*(int32_t *)(s + 0x1C) = *(const int16_t *)(s + 0);
 		*(int32_t *)(s + 0x20) = 0;
 		*(int32_t *)(s + 0x24) = *(const int16_t *)(s + 4);
@@ -2562,16 +2528,15 @@ namespace g327
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t count = 0;
 		*(uint32_t *)h = 0xCC8E64;
-		TipMemo tip = { 0, 0 };
-		SwordTipFrame(s, n, &tip.x, &tip.z, false);
+		SwordTipFrame(s, n);
 		*(int16_t *)(s + 2) = 0;
-		if (TipMemo *m = g_tip_memo.put(n)) *m = tip;
+		FX_HELD(held_note_tip(n, s);)
 		int32_t mask = n->s1C;
 		for (int i = 0; i < POOL_N; i++)
 		{
 			RecA *p = (RecA *)(pool + 0x20 * i);
 			if (!(mask & p->mask)) continue;
-			MemoA(i, n);
+			FX_HELD(MemoA(i, n);)
 			ShardDrawOne(h, s, p->w18, p->w1C, &p->x, p->size);
 			if (p->age >= 8) p->size = (int16_t)(shl32(mul32(0x10 - p->age, p->w0E), 9) >> 12);
 			Cursor() = RenderPrimModel(h, OT(), 2, Cursor());
@@ -2599,11 +2564,11 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	static void SwordPuffSetup(uint8_t *h, uint8_t *s, const Node24 *n, TipMemo *tip, bool use_tip)
+	static void SwordPuffSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
 		*(uint32_t *)h = 0xCC6C34;
 		*(uint16_t *)(h + 0x24) = 8;
-		SwordTipFrame(s, n, &tip->x, &tip->z, use_tip);
+		SwordTipFrame(s, n);
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -2647,15 +2612,14 @@ namespace g327
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t count = 0;
-		TipMemo tip = { 0, 0 };
-		SwordPuffSetup(h, s, n, &tip, false);
-		if (TipMemo *m = g_tip_memo.put(n)) *m = tip;
+		SwordPuffSetup(h, s, n);
+		FX_HELD(held_note_tip(n, s);)
 		int32_t mask = n->s1C;
 		for (int i = 0; i < POOL_N; i++)
 		{
 			RecB *p = (RecB *)(pool + 0x18 * i);
 			if (!(mask & p->mask)) continue;
-			MemoB(i, n);
+			FX_HELD(MemoB(i, n);)
 			LitSpriteMAC(h, s, &p->x, p->size, p->age, 2, false, 0);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2717,67 +2681,12 @@ namespace g327
 		*(int32_t *)(M + 0x14) = tx;
 	}
 
-	// ---- held-frame memo of every model block: the head, skeleton and reader command as drawn ----
-	enum { DK_NORMAL4, DK_NORMAL3, DK_CLIP, DK_MATERIAL };
-	static const uint32_t SKEL_MAX = 16 + 48 * 256;
-	struct ModelMemo
-	{
-		uint32_t tick;
-		const void *owner;    // task node that drew it
-		bool midpoint;        // advanced after the draw: the next tick draws the pose just read
-		int kind;
-		int32_t threshold;    // materialise pass
-		uint32_t skel_size;
-		uint8_t head[0x9C];
-		uint8_t skel[SKEL_MAX];
-	};
-	static ModelMemo g_model[11];
-
-	static int ModelSlot(const uint8_t *E)
-	{
-		uint32_t a = (uint32_t)E;
-		if (a >= 0x21FF4F0 && a < 0x21FF760 && (a - 0x21FF4F0) % 0x9C == 0) return (int)((a - 0x21FF4F0) / 0x9C);
-		if (E == GIL1) return 4;
-		if (E == GIL2) return 5;
-		if (a >= 0x21FF800 && a < 0x21FFA70 && (a - 0x21FF800) % 0x9C == 0) return 6 + (int)((a - 0x21FF800) / 0x9C);
-		if (E == GIL3) return 10;
-		return -1;
-	}
-
-	static uint8_t *Skeleton(uint8_t *E)
-	{
-		uint8_t *com = *(uint8_t **)(E + 0x64); // BattleAnimHeader.comFileData
-		return com ? *(uint8_t **)com : nullptr;
-	}
-
-	static void ModelMemoTake(uint8_t *E, const void *owner, int kind, int32_t threshold)
-	{
-		if (g_held) return;
-		int k = ModelSlot(E);
-		if (k < 0) return;
-		ModelMemo &m = g_model[k];
-		m.tick = 0xFFFFFFFF;
-		uint8_t *sk = Skeleton(E);
-		if (!sk) return;
-		uint32_t size = 16 + 48 * (uint32_t)sk[0];
-		if (size > SKEL_MAX) return;
-		m.skel_size = size;
-		memcpy(m.skel, sk, size);
-		memcpy(m.head, E, sizeof(m.head));
-		m.owner = owner;
-		m.kind = kind;
-		m.threshold = threshold;
-		m.midpoint = false;
-		m.tick = g_real_tick;
-	}
-
 	// GF_327Gilgamesh_AdvanceModelAnimLoop 0x595E00
 	static void AdvanceModel(uint8_t *E)
 	{
 		if (ReadAnimation(E + 0x60, E + 0x6C) == 1 && !(E[0] & 1))
 			PreReadAnimation(E + 0x60, E + 0x6C, E[0x6C]);
-		int k = ModelSlot(E);
-		if (k >= 0 && g_model[k].tick == g_real_tick) g_model[k].midpoint = true;
+		FX_HELD(held_note_advanced(E);)
 	}
 
 	// MAG_327_sub_595E40 (shift 4) / MAG_327_sub_5968D0 (shift 3)
@@ -2870,7 +2779,7 @@ namespace g327
 		for (int i = 0; i < 4; i++)
 		{
 			ClipDraw(h, Sword(i), &Frame());
-			ModelMemoTake(Sword(i), n, DK_CLIP, 0);
+			FX_HELD(ModelMemoTake(Sword(i), n, DK_CLIP, 0);)
 		}
 		FieldFree(0x1A8);
 		if (Paused()) return 0;
@@ -2908,7 +2817,7 @@ namespace g327
 					*(uint32_t *)(E + 0x28) = var<uint32_t>(0x21FF518);
 				}
 				DrawModel(E, &Frame(), 4);
-				ModelMemoTake(E, n, DK_NORMAL4, 0);
+				FX_HELD(ModelMemoTake(E, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
@@ -2951,7 +2860,7 @@ namespace g327
 			*(int32_t *)(h + 0x44) = c - 25;
 			MaterialDraw(h, GIL1);
 			FieldFree(0xB0);
-			ModelMemoTake(GIL1, n, DK_MATERIAL, c - 25);
+			FX_HELD(ModelMemoTake(GIL1, n, DK_MATERIAL, c - 25);)
 		}
 		else if (c - 45 < 60)
 		{
@@ -2969,7 +2878,7 @@ namespace g327
 		if (!(GIL1[0] & 4))
 		{
 			DrawModel(GIL1, &Frame(), 4);
-			ModelMemoTake(GIL1, n, DK_NORMAL4, 0);
+			FX_HELD(ModelMemoTake(GIL1, n, DK_NORMAL4, 0);)
 		}
 		if (Paused()) return 0;
 		if (!(GIL1[0] & 8)) AdvanceModel(GIL1);
@@ -3007,7 +2916,7 @@ namespace g327
 		if (!(GIL2[0] & 4))
 		{
 			DrawModel(GIL2, &Frame(), 3);
-			ModelMemoTake(GIL2, n, DK_NORMAL3, 0);
+			FX_HELD(ModelMemoTake(GIL2, n, DK_NORMAL3, 0);)
 			for (int j = 0; j < 4; j++)
 			{
 				uint8_t *A = Arm(j);
@@ -3016,7 +2925,7 @@ namespace g327
 				*(int32_t *)(A + 0x5C) += 0x50;
 				*(uint32_t *)(A + 0x28) = var<uint32_t>(0x2200F28);
 				DrawModel(A, &Frame(), 4);
-				ModelMemoTake(A, n, DK_NORMAL4, 0);
+				FX_HELD(ModelMemoTake(A, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
@@ -3058,7 +2967,7 @@ namespace g327
 		if (!(GIL3[0] & 4))
 		{
 			DrawModel(GIL3, &Frame(), 4);
-			ModelMemoTake(GIL3, n, DK_NORMAL4, 0);
+			FX_HELD(ModelMemoTake(GIL3, n, DK_NORMAL4, 0);)
 			for (int i = 0; i < 4; i++)
 			{
 				uint8_t *E = Sword(i);
@@ -3066,7 +2975,7 @@ namespace g327
 				memcpy(E + 0x40, (const void *)0x2201000, sizeof(Mat4x3));
 				*(uint32_t *)(E + 0x28) = var<uint32_t>(0x2200FE8);
 				DrawModel(E, &Frame(), 4);
-				ModelMemoTake(E, n, DK_NORMAL4, 0);
+				FX_HELD(ModelMemoTake(E, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
@@ -3078,555 +2987,10 @@ namespace g327
 		n->c++;
 		return n->c >= 0x32 ? TASK_END : 0;
 	}
-
-	// ------------------------------------------------------------------
-	// Held frames (30 fps). Everything is drawn half way between the state drawn on the last real
-	// tick (memos) and the state the next tick will draw; flipbook frames, spawns, the flare's
-	// flicker and the materialise threshold keep their 15 Hz steps. The frame matrix 0x21FF488 is
-	// rebuilt from the held-frame camera while the timeline (its owner) is alive and put back after
-	// (the original renderers read it by address), like the screen-sprite matrix 0x2201060 and the
-	// clip renderer's frame pointer 0x21FF3C0. Model and entity skeletons touched by a draw are put
-	// back; model renderers get a private vertex scratch.
-	// ------------------------------------------------------------------
-	static const Node24 *HeldMemo(const Node24 *n, bool *mv)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (m) *mv = NodeMoved(m, n);
-		return m;
-	}
-
-	static void FadeTileHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		int32_t v = FadeTileLevel(m->c);
-		if (mv) v = lerp_i(v, FadeTileLevel(m->c + 1), num, den);
-		Tile(v, v, v, 0);
-	}
-
-	static void ScreenPrimHeld(const Node24 *n, uint32_t orig, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		int16_t s = (mv && m->c < 6) ? Lerp16(m->s1C, n->s1C, num, den) : m->s1C;
-		ScreenPrimDraw(m, ScreenPrimModel(m, orig), s);
-	}
-
-	static int32_t SliceFadeW(int32_t c) { return 0x1000 - ComputeSin(shl32(c - 0x18, 10) / 16); }
-
-	static uint8_t g_ent_head[0x30];
-	static uint8_t g_skel_save[4][SKEL_MAX];
-
-	static uint8_t *EntitySkeleton(uint8_t *anim_header, uint32_t *size)
-	{
-		uint8_t *com = *(uint8_t **)(anim_header + 4);
-		uint8_t *sk = com ? *(uint8_t **)com : nullptr;
-		if (!sk) return nullptr;
-		*size = 16 + 48 * (uint32_t)sk[0];
-		return *size <= SKEL_MAX ? sk : nullptr;
-	}
-
-	static void SliceHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		int32_t slot = m->e;
-		uint8_t *ent = Entity((uint32_t)slot);
-		// the cut half's matrix half way (its cut task's memo), else the one drawn
-		Mat4x3 moved = *(const Mat4x3 *)(0x2200B94 + 60 * slot);
-		for (TaskNode *t = Q1().head; t; t = t->next)
-		{
-			const Node24 *cut = (const Node24 *)t;
-			if ((uint32_t)t->func != ORIG_Zan_CutTask || cut->e != m->e) continue;
-			bool cmv = false;
-			const Node24 *cm = HeldMemo(cut, &cmv);
-			if (cm && cmv && cm->c < 0x28)
-			{
-				int16_t A[4];
-				int16_t a0 = Lerp16(CutAngle0(cm->c, cm->a18), CutAngle0(cm->c + 1, cm->a18), num, den);
-				int16_t a1 = Lerp16(CutAngle1(cm->c, cm->a18), CutAngle1(cm->c + 1, cm->a18), num, den);
-				CutMatrix(cm, a0, a1, *(const int16_t *)(0x2200B80 + 60 * slot), lerp_i(cm->s20, cut->s20, num, den), &moved, A);
-			}
-			break;
-		}
-		int32_t w = -1;
-		if (m->c >= 0x18)
-		{
-			w = SliceFadeW(m->c);
-			if (mv && m->c + 1 < 0x28) w = lerp_i(w, SliceFadeW(m->c + 1), num, den);
-		}
-		// the draw recolours the target and rebuilds its local bone matrices: put both back
-		uint32_t size = 0;
-		uint8_t *sk = EntitySkeleton(ent + 0x60, &size);
-		if (!sk) return;
-		memcpy(g_ent_head, ent, sizeof(g_ent_head));
-		memcpy(g_skel_save[0], sk, size);
-		uint8_t *h = (uint8_t *)FieldAlloc(0x1D8);
-		SliceDraw(h, m, ent, &moved, m->c, w);
-		FieldFree(0x1D8);
-		memcpy(sk, g_skel_save[0], size);
-		memcpy(ent, g_ent_head, sizeof(g_ent_head));
-	}
-
-	static void PartyClipHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		int32_t z = mv ? lerp_i(m->s20, n->s20, num, den) : m->s20;
-		uint8_t *sk[4];
-		uint32_t size[4];
-		for (int i = 0; i < 4; i++)
-		{
-			sk[i] = EntitySkeleton((uint8_t *)(0x1D98991 + 0x2C * i + 0x13), &size[i]);
-			if (sk[i]) memcpy(g_skel_save[i], sk[i], size[i]);
-		}
-		uint8_t *h = (uint8_t *)FieldAlloc(0x1D8);
-		PartyClipDraw(h, z);
-		FieldFree(0x1D8);
-		for (int i = 0; i < 4; i++)
-			if (sk[i]) memcpy(sk[i], g_skel_save[i], size[i]);
-	}
-
-	static void MasaPrimHeld(const Node24 *n, bool b, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		bool fade = false;
-		int32_t f = FadeLerp(b ? MasaFadeB : MasaFadeA, m->c, mv, num, den, &fade);
-		MasaPrimDraw(m, b, mv ? Lerp16(m->s1C, n->s1C, num, den) : m->s1C, fade, f);
-	}
-
-	static void ExcaPillarHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		bool fade = false;
-		int32_t f = FadeLerp(MasaFadeB, m->c, mv, num, den, &fade);
-		int16_t s1C = mv ? Lerp16(m->s1C, n->s1C, num, den) : m->s1C;
-		int16_t s20 = mv ? Lerp16(m->s20, n->s20, num, den) : m->s20;
-		ExcaPillarDraw(m, m->a18, s1C, s20, fade, f);
-	}
-
-	static void RingHeld(const Node24 *n)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (m) RingDraw(m);
-	}
-
-	static void RingSpinHeld(const Node24 *n, bool b, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		RingSpinDraw(m, b, mv ? lerp_angle(m->a18, n->a18, num, den) : m->a18);
-	}
-
-	static void FlareHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		int32_t spread = m->s20, depth = FlareDepth(m->c);
-		if (mv)
-		{
-			spread = lerp_i(m->s20, n->s20, num, den);
-			depth = lerp_i(depth, FlareDepth(m->c + 1), num, den);
-		}
-		FlareDraw(m, spread, depth, FlareColour(m->c));
-	}
-
-	static void RiserHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		bool fade = false;
-		int32_t f = FadeLerp(RiserFade, m->c, mv, num, den, &fade);
-		RiserDraw(m, mv ? Lerp16(m->p12, n->p12, num, den) : m->p12, mv ? Lerp16(m->s1C, n->s1C, num, den) : m->s1C, fade, f);
-	}
-
-	static void RisingRingHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		bool fade = false;
-		int32_t f = FadeLerp(RisingRingFade, m->c, mv, num, den, &fade);
-		RisingRingDraw(m, mv ? lerp_angle(m->a18, n->a18, num, den) : m->a18, mv ? Lerp16(m->s20, n->s20, num, den) : m->s20, fade, f);
-	}
-
-	static void SpinnerHeld(const Node24 *n, int num, int den)
-	{
-		bool mv = false;
-		const Node24 *m = HeldMemo(n, &mv);
-		if (!m) return;
-		bool fade = false;
-		int32_t f = FadeLerp(SpinnerFade, m->c, mv, num, den, &fade);
-		SpinnerDraw(m, mv ? lerp_angle(m->a18, n->a18, num, den) : m->a18, mv ? Lerp16(m->s1C, n->s1C, num, den) : m->s1C, fade, f);
-	}
-
-	// ---- pool records: the memo record half way to the record now (when it moved on), frame kept ----
-	static RecA HeldRecA(const RecMemoA &mm, int i, int num, int den)
-	{
-		RecA t = mm.r;
-		const RecA *cur = RA(i);
-		if (AdvancedA(mm, cur))
-		{
-			t.x = Lerp16(mm.r.x, cur->x, num, den);
-			t.y = Lerp16(mm.r.y, cur->y, num, den);
-			t.z = Lerp16(mm.r.z, cur->z, num, den);
-			t.size = Lerp16(mm.r.size, cur->size, num, den);
-			t.w18 = lerp_angle(mm.r.w18, cur->w18, num, den);
-			t.w1C = lerp_angle(mm.r.w1C, cur->w1C, num, den);
-		}
-		return t;
-	}
-
-	static RecB HeldRecB(const RecMemoB &mm, int i, int num, int den)
-	{
-		RecB t = mm.r;
-		const RecB *cur = RB(i);
-		if (AdvancedB(mm, cur))
-		{
-			t.x = Lerp16(mm.r.x, cur->x, num, den);
-			t.y = Lerp16(mm.r.y, cur->y, num, den);
-			t.z = Lerp16(mm.r.z, cur->z, num, den);
-			t.size = Lerp16(mm.r.size, cur->size, num, den);
-		}
-		return t;
-	}
-
-	enum { LIT_MAC3, LIT_MAC3_ANGLE, LIT_MAC2, LIT_PLAIN };
-
-	static void LitPoolHeldA(const void *owner, uint8_t *h, uint8_t *s, int kind, int num, int den)
-	{
-		for (int i = 0; i < POOL_N; i++)
-		{
-			const RecMemoA &mm = g_memo_a[i];
-			if (mm.tick != g_real_tick || mm.owner != owner) continue;
-			RecA t = HeldRecA(mm, i, num, den);
-			if (kind == LIT_PLAIN) LitSprite(h, &t.x, t.size, t.age);
-			else LitSpriteMAC(h, s, &t.x, t.size, t.age, kind == LIT_MAC2 ? 2 : 3, kind == LIT_MAC3_ANGLE, t.w1C);
-		}
-	}
-
-	static void LitPoolHeldB(const void *owner, uint8_t *h, uint8_t *s, int kind, int num, int den)
-	{
-		for (int i = 0; i < POOL_N; i++)
-		{
-			const RecMemoB &mm = g_memo_b[i];
-			if (mm.tick != g_real_tick || mm.owner != owner) continue;
-			RecB t = HeldRecB(mm, i, num, den);
-			if (kind == LIT_PLAIN) LitSprite(h, &t.x, t.size, t.age);
-			else LitSpriteMAC(h, s, &t.x, t.size, t.age, kind == LIT_MAC2 ? 2 : 3, false, 0);
-		}
-	}
-
-	static void MasaSparkHeld(const Node24 *n, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		MasaSparkSetup(h, s, n);
-		LitPoolHeldA(n, h, s, LIT_MAC3_ANGLE, num, den);
-		FieldFree(0xB4);
-		FieldFree(0x48);
-	}
-
-	static void MasaDustHeld(const Node24 *n, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		MasaDustSetup(h, s, n);
-		LitPoolHeldB(n, h, s, LIT_MAC3, num, den);
-		FieldFree(0xB4);
-		FieldFree(0x48);
-	}
-
-	static void ExcaBurstHeld(const Node24 *n, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		ExcaBurstSetup(h, s, n);
-		LitPoolHeldB(n, h, s, LIT_MAC3, num, den);
-		FieldFree(0xB4);
-		FieldFree(0x48);
-	}
-
-	static void ExcaSmokeHeld(const Node24 *n, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		ExcaSmokeSetup(h, s, n);
-		LitPoolHeldB(n, h, s, LIT_PLAIN, num, den);
-		FieldFree(0xB4);
-		FieldFree(0x48);
-	}
-
-	static void ExcaStreakHeld(const Node24 *n, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x88);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		ExcaStreakSetup(h, s, n);
-		for (int i = 0; i < POOL_N; i++)
-		{
-			const RecMemoA &mm = g_memo_a[i];
-			if (mm.tick != g_real_tick || mm.owner != n) continue;
-			RecA t = HeldRecA(mm, i, num, den);
-			ExcaStreakOne(h, s, &mm.r.w18, &t.x, t.size);
-			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
-		}
-		FieldFree(0xB4);
-		FieldFree(0x88);
-	}
-
-	static void PuffHeld(const Node24 *n, bool a, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		PuffSetup(h, s);
-		if (a) LitPoolHeldA(n, h, s, LIT_PLAIN, num, den);
-		else LitPoolHeldB(n, h, s, LIT_PLAIN, num, den);
-		FieldFree(0xB4);
-		FieldFree(0x48);
-	}
-
-	static void DotHeld(const Node24 *n, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x58);
-		GteSetRotMatrix(&Frame());
-		GteSetTransVector(&Frame());
-		uint32_t pk = Cursor();
-		*(uint32_t *)(s + 0x48) = OT();
-		*(uint32_t *)(s + 0x4C) = 4;
-		for (int i = 0; i < POOL_N; i++)
-		{
-			const RecMemoA &mm = g_memo_a[i];
-			if (mm.tick != g_real_tick || mm.owner != n) continue;
-			RecA t = HeldRecA(mm, i, num, den);
-			GteLoadV0(&t.x);
-			GteRTPS();
-			*(uint32_t *)pk = 0x2000000;
-			*(uint32_t *)(pk + 4) = *(const uint32_t *)(0xCD0428 + 4 * mm.r.age);
-			pk = DotEmit(s, pk);
-		}
-		Cursor() = pk;
-		FieldFree(0x58);
-	}
-
-	static void SwordShardHeld(const Node24 *n, int num, int den)
-	{
-		const TipMemo *tm = g_tip_memo.get(n);
-		if (!tm) return;
-		uint8_t *s = (uint8_t *)FieldAlloc(0x68);
-		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)(h + 8) = 0;
-		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = 0xCC8E64;
-		TipMemo tip = *tm;
-		SwordTipFrame(s, n, &tip.x, &tip.z, true);
-		*(int16_t *)(s + 2) = 0;
-		for (int i = 0; i < POOL_N; i++)
-		{
-			const RecMemoA &mm = g_memo_a[i];
-			if (mm.tick != g_real_tick || mm.owner != n) continue;
-			RecA t = HeldRecA(mm, i, num, den);
-			ShardDrawOne(h, s, t.w18, t.w1C, &t.x, t.size);
-			Cursor() = RenderPrimModel(h, OT(), 2, Cursor());
-		}
-		FieldFree(0x58);
-		FieldFree(0x68);
-	}
-
-	static void SwordPuffHeld(const Node24 *n, int num, int den)
-	{
-		const TipMemo *tm = g_tip_memo.get(n);
-		if (!tm) return;
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		TipMemo tip = *tm;
-		SwordPuffSetup(h, s, n, &tip, true);
-		LitPoolHeldB(n, h, s, LIT_MAC2, num, den);
-		FieldFree(0xB4);
-		FieldFree(0x48);
-	}
-
-	// ---- trail: the next tick's history is predicted exactly (the sword's base and tip now go into
-	// slot c % 10), both splined on private buffers, the samples drawn half way ----
-	static uint8_t g_trail_ring[0xC8], g_trail_pa[0x50], g_trail_pb[0x50];
-	static uint8_t g_trail_na[0x100], g_trail_nb[0x100], g_trail_ma[0x100], g_trail_mb[0x100];
-
-	static void TrailHeld(const Node24 *n, int num, int den)
-	{
-		if (g_trail.tick != g_real_tick || !g_trail.drawn) return;
-		uint8_t *s = (uint8_t *)FieldAlloc(0x40);
-		const uint8_t *sa = g_trail.sa, *sb = g_trail.sb;
-		if (!g_tick_paused)
-		{
-			memcpy(g_trail_ring, (const void *)TRAIL_RING, sizeof(g_trail_ring));
-			TrailPoints(s);
-			int32_t idx = (int32_t)n->c % 10;
-			uint8_t *e = g_trail_ring + 0x14 * idx;
-			*(uint32_t *)e = 1;
-			memcpy(e + 4, s + 0x20, 8);
-			memcpy(e + 0xC, s + 0x28, 8);
-			int32_t cnt = TrailGather(g_trail_ring, idx, g_trail_pa, g_trail_pb);
-			if (cnt > 1)
-			{
-				TrailSplines(cnt, g_trail_pa, g_trail_pb, g_trail_na, g_trail_nb);
-				const int16_t *a0 = (const int16_t *)g_trail.sa, *a1 = (const int16_t *)g_trail_na;
-				const int16_t *b0 = (const int16_t *)g_trail.sb, *b1 = (const int16_t *)g_trail_nb;
-				int16_t *ma = (int16_t *)g_trail_ma, *mb = (int16_t *)g_trail_mb;
-				for (int k = 0; k < 0x80; k++)
-				{
-					ma[k] = Lerp16(a0[k], a1[k], num, den);
-					mb[k] = Lerp16(b0[k], b1[k], num, den);
-				}
-				sa = g_trail_ma;
-				sb = g_trail_mb;
-			}
-		}
-		TrailDraw(sa, sb, s);
-		FieldFree(0x40);
-	}
-
-	// ---- models: the drawn head, skeleton and command put back, the midpoint pose, the same draw ----
-	static uint8_t g_head_cur[0x9C];
-	static uint8_t g_skel_cur[SKEL_MAX];
-
-	static void ModelHeld(uint8_t *E, const void *owner, int num, int den)
-	{
-		int k = ModelSlot(E);
-		if (k < 0) return;
-		ModelMemo &m = g_model[k];
-		if (m.tick != g_real_tick || m.owner != owner) return;
-		uint8_t *sk = Skeleton(E);
-		if (!sk || 16 + 48 * (uint32_t)sk[0] != m.skel_size) return;
-		memcpy(g_head_cur, E, sizeof(g_head_cur));
-		memcpy(g_skel_cur, sk, m.skel_size);
-		memcpy(E, m.head, sizeof(m.head));
-		memcpy(sk, m.skel, m.skel_size);
-		if (m.midpoint && !g_tick_paused) pose_midpoint(E + 0x60, E + 0x6C, num, den);
-		switch (m.kind)
-		{
-		case DK_NORMAL4: DrawModel(E, &Frame(), 4); break;
-		case DK_NORMAL3: DrawModel(E, &Frame(), 3); break;
-		case DK_CLIP:
-		{
-			uint8_t *h = (uint8_t *)FieldAlloc(0x1A8);
-			ClipSetup(h);
-			ClipDraw(h, E, &Frame());
-			FieldFree(0x1A8);
-			break;
-		}
-		case DK_MATERIAL:
-			if (m.threshold > 0)
-			{
-				uint8_t *h = (uint8_t *)FieldAlloc(0xB0);
-				*(uint32_t *)(h + 0x2C) = MB() + 0x22000;
-				*(int32_t *)(h + 0x44) = m.threshold;
-				MaterialDraw(h, E);
-				FieldFree(0xB0);
-			}
-			break;
-		}
-		memcpy(E, g_head_cur, sizeof(g_head_cur));
-		memcpy(sk, g_skel_cur, m.skel_size);
-	}
-
-	static void HeldTask(const Node24 *n, uint32_t f, int num, int den)
-	{
-		switch (f)
-		{
-		case ORIG_FeedbackTask: RequestScreenFeedback(0, 0xFF, 0xFF, 0xFF, 0x3F); break;
-		case ORIG_Feedback2Task:
-		{
-			int32_t c = g_tick_paused ? n->c : n->c - 1; // the counter the last tick issued with
-			if (c > 0) RequestScreenFeedback(0, 0xFF, 0xFF, 0xFF, 0x3F);
-			break;
-		}
-		case ORIG_FadeTileTask: FadeTileHeld(n, num, den); break;
-		case ORIG_Zan_ScreenPrimTask:
-		case ORIG_Masa_ScreenPrimTask:
-		case ORIG_Exca_ScreenPrimTask: ScreenPrimHeld(n, f, num, den); break;
-		case ORIG_Zan_SliceTask: SliceHeld(n, num, den); break;
-		case ORIG_Zan_PartyClipTask: PartyClipHeld(n, num, den); break;
-		case ORIG_Masa_PrimATask: MasaPrimHeld(n, false, num, den); break;
-		case ORIG_Masa_PrimBTask: MasaPrimHeld(n, true, num, den); break;
-		case ORIG_Masa_SparkTask: MasaSparkHeld(n, num, den); break;
-		case ORIG_Masa_DustTask: MasaDustHeld(n, num, den); break;
-		case ORIG_Exca_BurstTask: ExcaBurstHeld(n, num, den); break;
-		case ORIG_Exca_SmokeTask: ExcaSmokeHeld(n, num, den); break;
-		case ORIG_Exca_StreakTask: ExcaStreakHeld(n, num, den); break;
-		case ORIG_Exca_PillarTask: ExcaPillarHeld(n, num, den); break;
-		case ORIG_RingTask: RingHeld(n); break;
-		case ORIG_RingSpinTask: RingSpinHeld(n, false, num, den); break;
-		case ORIG_RingSpin2Task: RingSpinHeld(n, true, num, den); break;
-		case ORIG_FlareTask: FlareHeld(n, num, den); break;
-		case ORIG_RiserTask: RiserHeld(n, num, den); break;
-		case ORIG_PuffTask: PuffHeld(n, false, num, den); break;
-		case ORIG_SparkTask: PuffHeld(n, true, num, den); break;
-		case ORIG_RisingRingTask: RisingRingHeld(n, num, den); break;
-		case ORIG_DotTask: DotHeld(n, num, den); break;
-		case ORIG_SpinnerTask: SpinnerHeld(n, num, den); break;
-		case ORIG_TrailTask: TrailHeld(n, num, den); break;
-		case ORIG_SwordShardTask: SwordShardHeld(n, num, den); break;
-		case ORIG_SwordPuffTask: SwordPuffHeld(n, num, den); break;
-		case ORIG_SwordClipTask:
-		case ORIG_SwordDrawTask:
-			for (int i = 0; i < 4; i++) ModelHeld(Sword(i), n, num, den);
-			break;
-		case ORIG_Gil1Task:
-		case ORIG_Gil1DrawTask: ModelHeld(GIL1, n, num, den); break;
-		case ORIG_Gil2DrawTask:
-			ModelHeld(GIL2, n, num, den);
-			for (int j = 0; j < 4; j++) ModelHeld(Arm(j), n, num, den);
-			break;
-		case ORIG_Gil3DrawTask:
-			ModelHeld(GIL3, n, num, den);
-			for (int i = 0; i < 4; i++) ModelHeld(Sword(i), n, num, den);
-			break;
-		default: break;
-		}
-	}
-
-	static uint8_t g_held_packets[0x100000];
-
-	static bool HeldReady() { return g_ported_tick == g_real_tick; }
-
-	// the master's queue order (Q1 then Q2); packets go to a private buffer (the module draws
-	// through the engine cursor battle_texture_data_ptr_1D8E054, redirected and put back)
-	static void HeldFrame(int num, int den)
-	{
-		uint32_t cursor = Cursor();
-		Cursor() = (uint32_t)g_held_packets;
-		g_held = true;
-		Mat4x3 frame = Frame();
-		uint8_t screen_mat[0x20];
-		memcpy(screen_mat, (const void *)0x2201060, sizeof(screen_mat));
-		uint32_t frame_ptr = var<uint32_t>(0x21FF3C0);
-		bool timeline = false;
-		for (TaskNode *t = Q1().head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_TimelineTask) timeline = true;
-		if (timeline) ComposeAffineTransform(&Camera(), &RootMatrix(), &Frame());
-		for (TaskNode *t = Q1().head; t; t = t->next) HeldTask((const Node24 *)t, (uint32_t)t->func, num, den);
-		for (TaskNode *t = Q2().head; t; t = t->next) HeldTask((const Node24 *)t, (uint32_t)t->func, num, den);
-		var<uint32_t>(0x21FF3C0) = frame_ptr;
-		memcpy((void *)0x2201060, screen_mat, sizeof(screen_mat));
-		Frame() = frame;
-		g_held = false;
-		Cursor() = cursor;
-	}
 }
 
 	// One set of ports serves the four ids 327-330 (the tasks are shared, the variant is data):
-	// the ports are registered under 327, the held-frame functions under each id.
+	// the ports are registered under 327.
 	void register_mag327_gilgamesh()
 	{
 		using namespace g327;
@@ -3636,48 +3000,53 @@ namespace g327
 		register_port(ORIG_Feedback2Task, (void *)Feedback2Task, "G327 Feedback2Task", 327);
 		register_port(ORIG_FlashInTask, (void *)FlashInTask, "G327 FlashInTask", 327);
 		register_port(ORIG_FlashOutTask, (void *)FlashOutTask, "G327 FlashOutTask", 327);
-		register_port(ORIG_FadeTileTask, (void *)FadeTileTask, "G327 FadeTileTask", 327, true);
-		register_port(ORIG_RingTask, (void *)RingTask, "G327 RingTask", 327, true);
-		register_port(ORIG_RingSpinTask, (void *)RingSpinTask, "G327 RingSpinTask", 327, true);
-		register_port(ORIG_RingSpin2Task, (void *)RingSpin2Task, "G327 RingSpin2Task", 327, true);
-		register_port(ORIG_FlareTask, (void *)FlareTask, "G327 FlareTask", 327, true);
-		register_port(ORIG_RiserTask, (void *)RiserTask, "G327 RiserTask", 327, true);
-		register_port(ORIG_PuffTask, (void *)PuffTask, "G327 PuffTask", 327, true);
-		register_port(ORIG_SparkTask, (void *)SparkTask, "G327 SparkTask", 327, true);
+		register_port(ORIG_FadeTileTask, (void *)FadeTileTask, "G327 FadeTileTask", 327);
+		register_port(ORIG_RingTask, (void *)RingTask, "G327 RingTask", 327);
+		register_port(ORIG_RingSpinTask, (void *)RingSpinTask, "G327 RingSpinTask", 327);
+		register_port(ORIG_RingSpin2Task, (void *)RingSpin2Task, "G327 RingSpin2Task", 327);
+		register_port(ORIG_FlareTask, (void *)FlareTask, "G327 FlareTask", 327);
+		register_port(ORIG_RiserTask, (void *)RiserTask, "G327 RiserTask", 327);
+		register_port(ORIG_PuffTask, (void *)PuffTask, "G327 PuffTask", 327);
+		register_port(ORIG_SparkTask, (void *)SparkTask, "G327 SparkTask", 327);
 		register_port(ORIG_RisingRingSpawnerTask, (void *)RisingRingSpawnerTask, "G327 RisingRingSpawnerTask", 327);
-		register_port(ORIG_RisingRingTask, (void *)RisingRingTask, "G327 RisingRingTask", 327, true);
-		register_port(ORIG_DotTask, (void *)DotTask, "G327 DotTask", 327, true);
-		register_port(ORIG_SpinnerTask, (void *)SpinnerTask, "G327 SpinnerTask", 327, true);
-		register_port(ORIG_TrailTask, (void *)TrailTask, "G327 TrailTask", 327, true);
-		register_port(ORIG_SwordShardTask, (void *)SwordShardTask, "G327 SwordShardTask", 327, true);
-		register_port(ORIG_SwordPuffTask, (void *)SwordPuffTask, "G327 SwordPuffTask", 327, true);
-		register_port(ORIG_SwordClipTask, (void *)SwordClipTask, "G327 SwordClipTask", 327, true);
-		register_port(ORIG_SwordDrawTask, (void *)SwordDrawTask, "G327 SwordDrawTask", 327, true);
-		register_port(ORIG_Gil1Task, (void *)Gil1Task, "G327 Gil1Task", 327, true);
-		register_port(ORIG_Gil1DrawTask, (void *)Gil1DrawTask, "G327 Gil1DrawTask", 327, true);
+		register_port(ORIG_RisingRingTask, (void *)RisingRingTask, "G327 RisingRingTask", 327);
+		register_port(ORIG_DotTask, (void *)DotTask, "G327 DotTask", 327);
+		register_port(ORIG_SpinnerTask, (void *)SpinnerTask, "G327 SpinnerTask", 327);
+		register_port(ORIG_TrailTask, (void *)TrailTask, "G327 TrailTask", 327);
+		register_port(ORIG_SwordShardTask, (void *)SwordShardTask, "G327 SwordShardTask", 327);
+		register_port(ORIG_SwordPuffTask, (void *)SwordPuffTask, "G327 SwordPuffTask", 327);
+		register_port(ORIG_SwordClipTask, (void *)SwordClipTask, "G327 SwordClipTask", 327);
+		register_port(ORIG_SwordDrawTask, (void *)SwordDrawTask, "G327 SwordDrawTask", 327);
+		register_port(ORIG_Gil1Task, (void *)Gil1Task, "G327 Gil1Task", 327);
+		register_port(ORIG_Gil1DrawTask, (void *)Gil1DrawTask, "G327 Gil1DrawTask", 327);
 		register_port(ORIG_Gil2Task, (void *)Gil2Task, "G327 Gil2Task", 327);
-		register_port(ORIG_Gil2DrawTask, (void *)Gil2DrawTask, "G327 Gil2DrawTask", 327, true);
+		register_port(ORIG_Gil2DrawTask, (void *)Gil2DrawTask, "G327 Gil2DrawTask", 327);
 		register_port(ORIG_Gil3Task, (void *)Gil3Task, "G327 Gil3Task", 327);
-		register_port(ORIG_Gil3DrawTask, (void *)Gil3DrawTask, "G327 Gil3DrawTask", 327, true);
+		register_port(ORIG_Gil3DrawTask, (void *)Gil3DrawTask, "G327 Gil3DrawTask", 327);
 		register_port(ORIG_EndTask, (void *)EndTask, "G327 EndTask", 327);
 		register_port(ORIG_Zan_Task, (void *)ZanTask, "G327 ZanTask", 327);
-		register_port(ORIG_Zan_ScreenPrimTask, (void *)ZanScreenPrimTask, "G327 ZanScreenPrimTask", 327, true);
+		register_port(ORIG_Zan_ScreenPrimTask, (void *)ZanScreenPrimTask, "G327 ZanScreenPrimTask", 327);
 		register_port(ORIG_Zan_CutTask, (void *)ZanCutTask, "G327 ZanCutTask", 327);
-		register_port(ORIG_Zan_SliceTask, (void *)ZanSliceTask, "G327 ZanSliceTask", 327, true);
-		register_port(ORIG_Zan_PartyClipTask, (void *)ZanPartyClipTask, "G327 ZanPartyClipTask", 327, true);
+		register_port(ORIG_Zan_SliceTask, (void *)ZanSliceTask, "G327 ZanSliceTask", 327);
+		register_port(ORIG_Zan_PartyClipTask, (void *)ZanPartyClipTask, "G327 ZanPartyClipTask", 327);
 		register_port(ORIG_Masa_Task, (void *)MasaTask, "G327 MasaTask", 327);
-		register_port(ORIG_Masa_ScreenPrimTask, (void *)MasaScreenPrimTask, "G327 MasaScreenPrimTask", 327, true);
-		register_port(ORIG_Masa_PrimATask, (void *)MasaPrimATask, "G327 MasaPrimATask", 327, true);
-		register_port(ORIG_Masa_PrimBTask, (void *)MasaPrimBTask, "G327 MasaPrimBTask", 327, true);
-		register_port(ORIG_Masa_SparkTask, (void *)MasaSparkTask, "G327 MasaSparkTask", 327, true);
-		register_port(ORIG_Masa_DustTask, (void *)MasaDustTask, "G327 MasaDustTask", 327, true);
+		register_port(ORIG_Masa_ScreenPrimTask, (void *)MasaScreenPrimTask, "G327 MasaScreenPrimTask", 327);
+		register_port(ORIG_Masa_PrimATask, (void *)MasaPrimATask, "G327 MasaPrimATask", 327);
+		register_port(ORIG_Masa_PrimBTask, (void *)MasaPrimBTask, "G327 MasaPrimBTask", 327);
+		register_port(ORIG_Masa_SparkTask, (void *)MasaSparkTask, "G327 MasaSparkTask", 327);
+		register_port(ORIG_Masa_DustTask, (void *)MasaDustTask, "G327 MasaDustTask", 327);
 		register_port(ORIG_Exca_Task, (void *)ExcaTask, "G327 ExcaTask", 327);
 		register_port(ORIG_Poor_Task, (void *)PoorTask, "G327 PoorTask", 327);
-		register_port(ORIG_Exca_ScreenPrimTask, (void *)ExcaScreenPrimTask, "G327 ExcaScreenPrimTask", 327, true);
-		register_port(ORIG_Exca_BurstTask, (void *)ExcaBurstTask, "G327 ExcaBurstTask", 327, true);
-		register_port(ORIG_Exca_SmokeTask, (void *)ExcaSmokeTask, "G327 ExcaSmokeTask", 327, true);
-		register_port(ORIG_Exca_StreakTask, (void *)ExcaStreakTask, "G327 ExcaStreakTask", 327, true);
-		register_port(ORIG_Exca_PillarTask, (void *)ExcaPillarTask, "G327 ExcaPillarTask", 327, true);
-		for (int id = 327; id <= 330; id++) register_module_held(id, HeldReady, HeldFrame);
+		register_port(ORIG_Exca_ScreenPrimTask, (void *)ExcaScreenPrimTask, "G327 ExcaScreenPrimTask", 327);
+		register_port(ORIG_Exca_BurstTask, (void *)ExcaBurstTask, "G327 ExcaBurstTask", 327);
+		register_port(ORIG_Exca_SmokeTask, (void *)ExcaSmokeTask, "G327 ExcaSmokeTask", 327);
+		register_port(ORIG_Exca_StreakTask, (void *)ExcaStreakTask, "G327 ExcaStreakTask", 327);
+		register_port(ORIG_Exca_PillarTask, (void *)ExcaPillarTask, "G327 ExcaPillarTask", 327);
+		// 30 fps layer: see mag327_gilgamesh_held.inc
+		FX_HELD(register_mag327_held();)
 	}
 }
+
+#ifdef FF8_FX_HELD
+#include "mag327_gilgamesh_held.inc"
+#endif

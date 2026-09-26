@@ -25,7 +25,7 @@
 //     module data addresses and stored code pointers; callees compared by their own content);
 //   * module data and code addresses it uses go through the module descriptor: G(G_xxx) /
 //     F(F_xxx) = the address of the canonical global / function xxx in the CURRENT module
-//     (g_mod, set by the module's master task and by the held-frame draw);
+//     (g_mod, set by the module's master task);
 //   * functions unique to a module are ported in that module's file (s_XXXXXX Siren,
 //     m_XXXXXX MiniMog) with raw addresses.
 // Every port has the original cdecl shape with 32-bit words for arguments and return value, so
@@ -497,43 +497,16 @@ namespace act
 
 	// registers the engine ports of a module (all its addresses served by an engine port) in the
 	// dispatch table and in the task registry (register_port)
-	// held_tasks: 0-terminated list of this module's original task addresses whose drawing is
-	// redrawn by the module's held frame (registered held = true)
-	void register_module(int effect_id, const uint32_t *held_tasks = nullptr);
+	void register_module(int effect_id);
 	// the module's own ports (s_/m_ functions) go through this, so they are dispatchable too
-	void register_module_port(int effect_id, uint32_t orig, void *port, const char *name, bool held = false);
+	void register_module_port(int effect_id, uint32_t orig, void *port, const char *name);
 
 	// ------------------------------------------------------------------------------------
-	// modes
+	// prim-model player
 	// ------------------------------------------------------------------------------------
-	// real tick on which a ported master last ran (held frames need their memos)
-	extern uint32_t g_ported_tick;
-	// camera steppers a_73AE10 (kind 1) / a_73B4B0 (kind 2) note the real tick they ran on
-	extern uint32_t g_cam_tick;
-	extern int g_cam_kind;
-	// held-frame camera of the engine's camera script (register_module_camera)
-	bool held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
-	// held frame (30 fps) of a module: in-between redraw of the prim-model plays of this real tick
-	// and of the creature actor(s) (task function creature_task in creature_queue, drawn with
-	// a_746C10(node, draw_arg, cursor)); module globals [bss_lo, bss_hi) are saved/restored.
-	// more: further creature kinds (0-terminated list, e.g. ChocoBocle's two creatures);
-	// adjust: called for every creature node after its midpoint pose, before the draw, to move
-	// its placement words (node +0x30..+0x5F, put back after the draw) to the in-between state
-	struct HeldCreature { uint32_t queue, task, draw_arg; };
-	struct HeldDesc
-	{
-		const Mod *mod;
-		uint32_t creature_queue, creature_task, draw_arg, bss_lo, bss_hi;
-		const HeldCreature *more = nullptr;
-		void (*adjust)(uint32_t node, int num, int den) = nullptr;
-	};
-	void held_frame(const HeldDesc &d, int num, int den);
-	bool held_ready();
 	// prim-model player twin (replaces calls of MAG_011_sub_701970(layout, cb, arg, paused)): runs
-	// ff8fx::prim::play with the port of cb and remembers the play for the held frame (arg = the
-	// 0x5C-byte parameter block of the family's prim-model draw)
+	// ff8fx::prim::play with the port of cb (arg = the 0x5C-byte parameter block of the family's
+	// prim-model draw)
 	uint32_t prim_play(uint32_t layout, uint32_t cb, uint32_t arg, uint32_t paused);
-	// held frame: in-between redraw of every prim play of the current module on this real tick
-	void held_draw_prim_plays(int num, int den);
 }
 }

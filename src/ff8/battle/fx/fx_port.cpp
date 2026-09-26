@@ -14,10 +14,13 @@
 /****************************************************************************/
 
 #include "fx_port.h"
+#ifdef FF8_FX_HELD
+#include "fx_held.h"
+#endif
 
 namespace ff8fx
 {
-	struct Port { uint32_t orig; void *port; const char *name; int effect_id; bool held; };
+	struct Port { uint32_t orig; void *port; const char *name; int effect_id; };
 
 	static const int PORTS_MAX = 8192;
 	static Port g_ports[PORTS_MAX];
@@ -28,15 +31,10 @@ namespace ff8fx
 	static bool g_index_ready = false;
 
 	bool g_active = false;
-	uint32_t g_real_tick = 0;
-
-	struct ModuleHeld { int effect_id; bool (*ready)(); void (*draw)(int, int); };
-	static ModuleHeld g_held[64];
-	static int g_nheld = 0;
 
 	static inline uint32_t slot_of(uint32_t orig) { return (orig * 2654435761u) >> 18; }
 
-	void register_port(uint32_t orig, void *port, const char *name, int effect_id, bool held)
+	void register_port(uint32_t orig, void *port, const char *name, int effect_id)
 	{
 		if (!g_index_ready)
 		{
@@ -44,7 +42,7 @@ namespace ff8fx
 			g_index_ready = true;
 		}
 		if (g_nports >= PORTS_MAX) return;
-		g_ports[g_nports] = { orig, port, name, effect_id, held };
+		g_ports[g_nports] = { orig, port, name, effect_id };
 		uint32_t h = slot_of(orig);
 		while (g_index[h & (INDEX_SIZE - 1)] >= 0) h++;
 		g_index[h & (INDEX_SIZE - 1)] = (int16_t)g_nports;
@@ -75,45 +73,6 @@ namespace ff8fx
 		return p ? p->name : nullptr;
 	}
 
-	bool held_redraws(uint32_t orig)
-	{
-		const Port *p = find(orig);
-		return p && p->held;
-	}
-
-	void register_module_held(int effect_id, bool (*ready)(), void (*draw)(int, int))
-	{
-		if (g_nheld < 64) g_held[g_nheld++] = { effect_id, ready, draw };
-	}
-
-	static struct { int effect_id; HeldCameraFn fn; } g_cam[64];
-	static int g_ncam = 0;
-
-	void register_module_camera(int effect_id, HeldCameraFn fn)
-	{
-		if (g_ncam < 64) g_cam[g_ncam++] = { effect_id, fn };
-	}
-
-	bool held_camera(int effect_id, int num, int den, int16_t world[3], int16_t lookat[3])
-	{
-		for (int i = 0; i < g_ncam; i++)
-			if (g_cam[i].effect_id == effect_id) return g_cam[i].fn(num, den, world, lookat);
-		return false;
-	}
-
-	bool held_ready(int effect_id)
-	{
-		for (int i = 0; i < g_nheld; i++)
-			if (g_held[i].effect_id == effect_id) return g_held[i].ready();
-		return false;
-	}
-
-	void held_draw(int effect_id, int num, int den)
-	{
-		for (int i = 0; i < g_nheld; i++)
-			if (g_held[i].effect_id == effect_id) { g_held[i].draw(num, den); return; }
-	}
-
 	// effect ids served by one module's ports (Gilgamesh: 327 Zantetsuken, 328 Masamune,
 	// 329 Excalibur, 330 Excalipoor share one module)
 	static int canonical_effect(int effect_id)
@@ -132,29 +91,27 @@ namespace ff8fx
 
 	void register_all()
 	{
-		static bool done = false;
+		static bool done = false; // install() and a host may both ask
 		if (done) return;
 		done = true;
-		register_mag116_quezacotl();
-		register_mag199_cactuar();
-		register_mag140_phoenix();
-		register_module_camera(140, mag140_held_camera);
-		register_mag278_carbuncle();
-		register_mag325_diablos();
-		register_mag185_shiva();
-		register_mag338_moomba();
-		register_mag291_pandemona();
-		register_mag187_odin();
 		register_mag069_griever();
-		register_mag191_doomtrain();
-		// modules whose camera is the shared camera script
-		register_module_camera(185, camscript_held_camera);
-		register_module_camera(199, camscript_held_camera);
-		register_module_camera(187, camscript_held_camera);
-		register_mag327_gilgamesh();
-		for (int id = 327; id <= 330; id++) register_module_camera(id, camscript_held_camera);
+		register_mag116_quezacotl();
+		register_mag140_phoenix();
+		register_mag185_shiva();
+		register_mag187_odin();
+		register_mag199_cactuar();
+		register_mag278_carbuncle();
+		register_mag291_pandemona();
+		register_mag325_diablos();
 		register_mag326_odin_reverse();
-		register_module_camera(326, camscript_held_camera);
+		register_mag338_moomba();
+		register_mag095_siren();
+		register_mag096_minimog();
+		register_mag090_tonberry();
+		register_mag097_boko();
+		register_mag002_fire();
+		register_mag142_fira();
+		register_mag143_firaga();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
@@ -162,9 +119,9 @@ namespace ff8fx
 		register_gfc_alexander();
 		register_gfc_brothers();
 		register_gfc_eden();
-		register_mag095_siren();
-		register_mag096_minimog();
-		register_mag090_tonberry();
-		register_mag097_boko();
+		register_mag191_doomtrain();
+		register_mag327_gilgamesh();
+		// 30 fps layer: see fx_held.cpp
+		FX_HELD(register_all_held();)
 	}
 }

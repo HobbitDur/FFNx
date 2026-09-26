@@ -15,7 +15,7 @@
 // GF cinematic engine (Ifrit 201, Leviathan 006, Bahamut 202, Cerberus 203, Alexander 204,
 // Brothers 205, Eden 206): native port, bit-exact against the Ifrit clone (see gfc_engine.h).
 // Parts, in order: core (tick, context, channel schedulers, integrator + bone handlers, draw
-// dispatcher, InitBones, held frames: prediction and in-between draw, clone tables), VM opcodes
+// dispatcher, InitBones, clone tables), VM opcodes
 // (vm_a .. vm_d), mesh draw handlers + DrawMeshObject (draw_mesh), primitive renderers
 // (draw_prim), sprites + particle system (draw_sprite). Every port names its original Ifrit
 // address; listings: gf_study/tools/ff8dis.py.
@@ -27,19 +27,17 @@
 // ============================================================================================
 // ============================================================================================
 // core: context binding, the task tick, the VM channel schedulers, the integrator and its bone
-// handlers, the draw dispatcher, InitBones; held frames (prediction + in-between draw).
+// handlers, the draw dispatcher, InitBones.
 // ============================================================================================
 
 namespace ff8fx
 {
 namespace gfc
 {
-	bool g_predict = false;
 #ifdef GFC_DEBUG_HOOK
 	void (*g_dbg_hook)(int kind, uint32_t id) = nullptr;
 	void (*g_dbg_taint)(void *dst, const void *src, int n) = nullptr;
 #endif
-	Held g_held = { false, 0, 1, 0 };
 	Clone *g_clone = nullptr;
 	Generic g_generic;
 
@@ -482,415 +480,6 @@ namespace part_core
 		return 0;
 	}
 
-	// ============================================================================================
-	// held frames: state of the real tick, prediction of the next one, in-between draw
-	// ============================================================================================
-	static uint32_t g_ported_tick = 0xFFFFFFFF;
-	// Workspace + RuntimeSlot of the last real tick, copied at its end: held frames and the
-	// prediction run on this private copy (the live scratch-stack block may be reused by other
-	// battle code between two ticks; vanilla's next tick gets it back at the same address)
-	alignas(16) static uint8_t g_scratch_copy[0x180];
-	static uint8_t *g_scratch = nullptr;
-
-	// --- journal of out-of-snapshot writes while predicting ---
-	struct JournalEntry { uint8_t *p; int n; uint32_t off; };
-	static JournalEntry g_jr[4096];
-	static uint8_t g_jr_bytes[0x40000];
-	static int g_njr = 0;
-	static uint32_t g_jr_used = 0;
-	static bool g_jr_overflow = false;
-	static bool g_cam_written = false;
-
-	void guard_record(const void *p, int n)
-	{
-		if ((uint32_t)p < 0xB8B800 && (uint32_t)p + n > 0xB8B7F0) g_cam_written = true;
-		if (g_njr >= 4096 || g_jr_used + n > sizeof(g_jr_bytes) || n <= 0) { g_jr_overflow = true; return; }
-		g_jr[g_njr] = { (uint8_t *)p, n, g_jr_used };
-		memcpy(g_jr_bytes + g_jr_used, p, n);
-		g_jr_used += n;
-		g_njr++;
-	}
-
-	static void journal_restore()
-	{
-		for (int i = g_njr - 1; i >= 0; i--) memcpy(g_jr[i].p, g_jr_bytes + g_jr[i].off, g_jr[i].n);
-		g_njr = 0;
-		g_jr_used = 0;
-	}
-
-	// --- saved regions ---
-	struct Region { uint8_t *p; uint32_t n; uint8_t *copy; uint32_t cap; };
-	static void region_save(Region &r, void *p, uint32_t n)
-	{
-		if (n > r.cap)
-		{
-			delete[] r.copy;
-			r.cap = (n + 0xFFF) & ~0xFFFu;
-			r.copy = new uint8_t[r.cap];
-		}
-		r.p = (uint8_t *)p;
-		r.n = n;
-		if (n) memcpy(r.copy, p, n);
-	}
-	static void region_restore(const Region &r) { if (r.n) memcpy(r.p, r.copy, r.n); }
-
-	static Region g_r_state, g_r_bones, g_r_arena, g_r_scratch, g_r_gte, g_r_free;
-
-	// engine renderers called by the draw (BuildBoneMatricesFromPose, RenderGeometry...) take
-	// temporaries from the battle scratch stack (Field_Alloc 0x5082B0, pointer 0x1D999C4):
-	// the free area above the pointer is saved and restored around held draws / predictions
-	static const uint32_t FREE_SCRATCH = 0x8000;
-	static void SaveFreeScratch() { region_save(g_r_free, (void *)MEM<uint32_t>(0x1D999C4), FREE_SCRATCH); }
-
-	static uint32_t *CrtSeed() { return (uint32_t *)(x::f<uint8_t *(__cdecl *)()>(0x560578)() + 0x14); }
-
-	// bones that may be live: SceneHeader+0x38 is only the initial allocation count, SpawnBone
-	// (VM 0x032 ...) takes the first bone whose stream word is 0 without bound, so bones past it
-	// are used by the clone scripts: the highest index on the order / draw lists, plus room for the
-	// bones a (predicted) tick can spawn
-	static uint32_t ActiveBones(const uint8_t *scene)
-	{
-		uint32_t n = U16(scene, 0x38);
-		uint32_t hi = 0;
-		for (int k = 0; k < 256 && ORDER()[k] != 0xFF; k++) if ((ORDER()[k] & 0x7Fu) + 1 > hi) hi = (ORDER()[k] & 0x7Fu) + 1;
-		for (int k = 0; k < 0xD0 && DRAWORDER()[k] != 0xFF; k++) if (DRAWORDER()[k] + 1u > hi) hi = DRAWORDER()[k] + 1u;
-		hi += 8;
-		if (hi > n) n = hi;
-		return n > 128 ? 128 : n;
-	}
-	static uint32_t BoneCount() { return ActiveBones(SCENE()); }
-
-	// the globals a context bind sets, without allocating (the scratch block of the real tick)
-	static void BindHeld()
-	{
-		uint8_t *a = g_scratch;
-		uint8_t *rt = a + 0x100;
-		PTR(rt, 0) = a;
-		PTR(rt, 4) = rt;
-		const uint32_t *pb = (const uint32_t *)C().ptr_block;
-		WS() = a;
-		RT() = rt;
-		CTX() = (uint8_t *)pb[0];
-		PTR3() = (uint8_t *)pb[1];
-		SCENE() = (uint8_t *)pb[2];
-		RCTX() = (uint8_t *)pb[3];
-		SEQ() = (uint8_t *)pb[4];
-	}
-
-	static void SaveEngine(bool arena)
-	{
-		region_save(g_r_state, (void *)STATE_LO, STATE_HI - STATE_LO);
-		region_save(g_r_scratch, g_scratch, 0x180);
-		const uint32_t *pb = (const uint32_t *)C().ptr_block;
-		uint8_t *ctx = (uint8_t *)pb[0], *scene = (uint8_t *)pb[2];
-		// all 128 bone slots (32 KB): scripts initialise / spawn / end bones past the live range
-		(void)scene;
-		region_save(g_r_bones, PTR(ctx, 0x90), 128 * 0x100);
-		if (arena)
-		{
-			uint32_t lo = U32(ctx, 0x70), hi = U32(ctx, 0x74);
-			region_save(g_r_arena, (void *)lo, hi > lo && hi - lo < 0x400000 ? hi - lo : 0);
-		}
-	}
-	static void RestoreEngine(bool arena)
-	{
-		if (arena) region_restore(g_r_arena);
-		region_restore(g_r_bones);
-		region_restore(g_r_scratch);
-		region_restore(g_r_state);
-	}
-
-	// --- the predicted next tick ---
-	struct PredBone { uint16_t id16; uint8_t alive, draw; int16_t ang[3], pos[3]; uint32_t colour; };
-	struct Pred
-	{
-		uint32_t tick;
-		bool ok;
-		bool paused;
-		uint32_t nb;
-		PredBone b[128];
-		Mat4x3 node[64];
-		uint16_t keys[64];
-		uint8_t lights[5 * 0x50];
-		Mat4x3 bb[4];
-		bool cam;
-		int16_t eye[3], at[3];
-	};
-	static Pred g_pred = { 0xFFFFFFFF, false };
-
-	static void CaptureBones(PredBone *out, uint32_t nb)
-	{
-		uint8_t *bones = PTR(CTX(), 0x90);
-		for (uint32_t i = 0; i < nb; i++)
-		{
-			uint8_t *b = bones + 0x100 * i;
-			PredBone &p = out[i];
-			p.id16 = U16(b, 0x12);
-			p.alive = 0;
-			p.draw = U8(b, 0x1C);
-			for (int k = 0; k < 3; k++) { p.ang[k] = S16(b, 0x8C + 2 * k); p.pos[k] = S16(b, 0x94 + 2 * k); }
-			p.colour = U32(b, 0xCC);
-		}
-		for (int k = 0; k < 256 && ORDER()[k] != 0xFF; k++)
-		{
-			uint32_t i = ORDER()[k] & 0x7F;
-			if (i < nb) out[i].alive = 1;
-		}
-	}
-
-	// runs the VM part of the next tick (preamble + Neg/Integrator/Pos) on the real state with
-	// every out-of-state side effect disabled, captures the result and puts everything back
-	static void Predict(Clone &c)
-	{
-		if (g_pred.tick == g_real_tick) return;
-		g_pred.tick = g_real_tick;
-		g_pred.ok = false;
-		if (!g_scratch) return;
-		region_save(g_r_gte, (void *)0x1CA8A00, 0xA00);
-		SaveFreeScratch();
-		uint32_t seed = *CrtSeed();
-		uint8_t *saved_globals[8] = { RT(), WS(), CTX(), SCENE(), RCTX(), SEQ(), CUR(), STREAM() };
-		uint8_t *saved_ptr3 = PTR3();
-		int16_t cam0[8];
-		memcpy(cam0, (void *)0xB8B7F0, 16);
-		int16_t projh = PROJH();
-		BindHeld();
-		SaveEngine(true);
-		g_predict = true;
-		g_njr = 0; g_jr_used = 0; g_jr_overflow = false; g_cam_written = false;
-		guard((void *)0xB8B7F0, 0x20);  // camera words + saved copy (op 0x39 sub-op 4)
-		guard((void *)0x1D8E038, 2);
-		guard((void *)0x1D9771C, 2);
-		guard((void *)0x1D977A0, 4);
-		g_cam_written = false;
-
-		// the next tick's preamble (0xB25DF0), without the debug pad / OT clear
-		S16(CTX(), 0x32) = (int16_t)(S16(CTX(), 0x32) + 1);
-		U8(RT(), 0x41) = U8(CTX(), 0x32) & 1;
-		x::Rand();
-		if (U16(CTX(), 0) & 0x400)
-		{
-			U32(RCTX(), 0x2C) = FRAMERL() + 0xC;
-			U16(RCTX(), 0x24) = 0;
-		}
-		U8(CTX(), 0x35) = (UPDFLAGS() & 1) ? 0xFF : 0;
-		U8(RT(), 0x40) = U8(RT(), 0x41);
-		U32(RT(), 0x38) = FRAMERL() + 0x44;
-		{
-			const uint32_t *v = (const uint32_t *)0x1D97778;
-			uint32_t *m0 = (uint32_t *)NODEMAT(), *ma = (uint32_t *)CAMALT();
-			for (int k = 0; k < 8; k++) { m0[k] = v[k]; ma[k] = v[k]; }
-			m0[4] &= 0xFFFF;
-			ma[4] &= 0xFFFF;
-		}
-		U8(CTX(), 0xD2) = 0;
-		g_pred.paused = U8(CTX(), 0x35) != 0;
-		if (!g_pred.paused)
-		{
-			AnimChannelsNeg();
-			AnimIntegrator();
-			AnimChannelsPos();
-		}
-		g_pred.nb = BoneCount();
-		CaptureBones(g_pred.b, g_pred.nb);
-		memcpy(g_pred.node, NODEMAT(), sizeof(g_pred.node));
-		memcpy(g_pred.keys, NODEKEYS(), sizeof(g_pred.keys));
-		memcpy(g_pred.lights, LIGHTS(), sizeof(g_pred.lights));
-		memcpy(g_pred.bb, BBMAT(), sizeof(g_pred.bb));
-		g_pred.cam = g_cam_written;
-		memcpy(g_pred.eye, (void *)0xB8B7F0, 6);
-		memcpy(g_pred.at, (void *)0xB8B7F8, 6);
-		g_pred.ok = !g_jr_overflow;
-
-		g_predict = false;
-		journal_restore();
-		RestoreEngine(true);
-		memcpy((void *)0xB8B7F0, cam0, 16);
-		PROJH() = projh;
-		RT() = saved_globals[0]; WS() = saved_globals[1]; CTX() = saved_globals[2]; SCENE() = saved_globals[3];
-		RCTX() = saved_globals[4]; SEQ() = saved_globals[5]; CUR() = saved_globals[6]; STREAM() = saved_globals[7];
-		PTR3() = saved_ptr3;
-		*CrtSeed() = seed;
-		region_restore(g_r_free);
-		region_restore(g_r_gte);
-	}
-
-	// in-between value, holding on large jumps (teleports, re-spawns)
-	static inline int16_t mix16(int16_t a, int16_t b, int num, int den, int32_t cut)
-	{
-		int32_t d = (int16_t)(b - a);
-		if (d > cut || d < -cut) return a;
-		return (int16_t)(a + d * num / den);
-	}
-	static inline int32_t mix32(int32_t a, int32_t b, int num, int den, int32_t cut)
-	{
-		int64_t d = (int64_t)b - a;
-		if (d > cut || d < -cut) return a;
-		return (int32_t)(a + d * num / den);
-	}
-
-	static const int32_t CUT_POS = 0x2000;   // outPos / translation jump treated as a cut
-	static const int32_t CUT_ANGLE = 0x7FFF; // outAngle (int16 wrap is the shortest way)
-	static const int32_t CUT_MAT = 0x7FFF;
-
-	static void MixMatrix(Mat4x3 &m, const Mat4x3 &n, int num, int den)
-	{
-		for (int r = 0; r < 3; r++)
-			for (int c = 0; c < 3; c++) m.m[r][c] = mix16(m.m[r][c], n.m[r][c], num, den, CUT_MAT);
-		m.pad = mix16(m.pad, n.pad, num, den, 0x7FFF);
-		for (int k = 0; k < 3; k++) m.t[k] = mix32(m.t[k], n.t[k], num, den, 0x100000);
-	}
-
-	// writes the in-between state into the (saved) engine state
-	static void ApplyInBetween(int num, int den)
-	{
-		uint32_t nb = BoneCount();
-		if (nb > g_pred.nb) nb = g_pred.nb;
-		uint8_t *bones = PTR(CTX(), 0x90);
-		static uint8_t alive[128];
-		memset(alive, 0, sizeof(alive));
-		for (int k = 0; k < 256 && ORDER()[k] != 0xFF; k++) alive[ORDER()[k] & 0x7F] = 1;
-		for (uint32_t i = 0; i < nb; i++)
-		{
-			uint8_t *b = bones + 0x100 * i;
-			const PredBone &p = g_pred.b[i];
-			if (!alive[i] || !p.alive || p.id16 != U16(b, 0x12) || p.draw != U8(b, 0x1C)) continue;
-			for (int k = 0; k < 3; k++)
-			{
-				S16(b, 0x8C + 2 * k) = mix16(S16(b, 0x8C + 2 * k), p.ang[k], num, den, CUT_ANGLE);
-				S16(b, 0x94 + 2 * k) = mix16(S16(b, 0x94 + 2 * k), p.pos[k], num, den, CUT_POS);
-			}
-			uint32_t c0 = U32(b, 0xCC), c1 = p.colour;
-			if ((c0 & 0xFF000000) == (c1 & 0xFF000000))
-			{
-				uint32_t c = c0 & 0xFF000000;
-				for (int s = 0; s < 24; s += 8)
-				{
-					int32_t a = (c0 >> s) & 0xFF, bb = (c1 >> s) & 0xFF;
-					c |= (uint32_t)((a + (bb - a) * num / den) & 0xFF) << s;
-				}
-				U32(b, 0xCC) = c;
-			}
-		}
-		// matrix nodes: same key on both ticks (slot 0 = camera matrix, always)
-		for (int k = 0; k < 64; k++)
-			if (k == 0 || (NODEKEYS()[k] != 0 && NODEKEYS()[k] == g_pred.keys[k]))
-				MixMatrix(NODEMAT()[k], g_pred.node[k], num, den);
-		// light sets (5 slots fit before the billboard matrices) and billboard matrices
-		for (int s = 0; s < 5; s++)
-		{
-			uint8_t *l = LIGHTS() + 0x50 * s;
-			const uint8_t *n = g_pred.lights + 0x50 * s;
-			for (int o = 0; o < 0x40; o += 2) S16(l, o) = mix16(S16(l, o), AT<int16_t>(n, o), num, den, 0x7FFF);
-			for (int o = 0x40; o < 0x4C; o += 4) S32(l, o) = mix32(S32(l, o), AT<int32_t>(n, o), num, den, 0x7FFFFFFF);
-		}
-		for (int k = 0; k < 4; k++) MixMatrix(BBMAT()[k], g_pred.bb[k], num, den);
-	}
-
-	bool HeldReady(Clone &c)
-	{
-		(void)c;
-		return g_ported_tick == g_real_tick && g_scratch != nullptr;
-	}
-
-	// private packet memory of the held draw: main cursor ctx+0x7C, alternate pool ctx+0xD8 and
-	// the battle frame arena cursor (for engine renderers that use it directly)
-	static uint8_t g_held_packets[0x100000];
-
-	void HeldFrame(Clone &c, int num, int den)
-	{
-		if (!HeldReady(c) || den <= 0) return;
-		g_clone = &c;
-		Predict(c);
-		uint8_t *saved_globals[8] = { RT(), WS(), CTX(), SCENE(), RCTX(), SEQ(), CUR(), STREAM() };
-		uint8_t *saved_ptr3 = PTR3();
-		uint32_t pktcur = PKTCUR();
-		// the mesh renderer leaves its depth scale here and a later mesh may read it: keep the
-		// real tick's value for the next real tick
-		float depth_scale = FLT_1877DA8();
-		BindHeld();
-		// the arena holds the state blocks of the clone-specific draw handlers (ribbons, starfield,
-		// melt columns, ...): saved with the engine so that nothing a held draw writes persists
-		SaveEngine(true);
-		uint32_t seed = *CrtSeed();
-		// particle pools of draw handler 6 (live in the scene data, written by type 4 even when frozen)
-		static Region pools[32];
-		int npools = 0;
-		for (int k = 0; DRAWORDER()[k] != 0xFF && npools < 32; k++)
-		{
-			uint8_t *b = PTR(CTX(), 0x90) + 0x100 * (uint32_t)DRAWORDER()[k];
-			if (U8(b, 0x1C) == 6 && PTR(b, 0xB8))
-				region_save(pools[npools++], PTR(b, 0xB8), 16 + 80 * (uint32_t)U16(PTR(b, 0xB8), 0));
-		}
-		// skeletons of the embedded battle models (draw handler 3 and the clone's other model
-		// handlers, Clone::model_draw): the held draw rebuilds their bone matrices at the
-		// in-between pose
-		static Region skels[8];
-		int nskels = 0;
-		for (int k = 0; DRAWORDER()[k] != 0xFF && nskels < 8; k++)
-		{
-			uint8_t *b = PTR(CTX(), 0x90) + 0x100 * (uint32_t)DRAWORDER()[k];
-			uint8_t d = U8(b, 0x1C);
-			bool model = d == 3;
-			for (int m = 0; m < 4; m++) model |= c.model_draw[m] != 0 && c.model_draw[m] == d;
-			uint8_t *blk = model ? PTR(b, 0xBC) : nullptr;
-			uint8_t *sk = blk && PTR(blk, 0x14) ? PTR(PTR(blk, 0x14), 0) : nullptr;
-			if (sk) region_save(skels[nskels++], sk, 0x10 + 0x30 * (uint32_t)U8(sk, 0));
-		}
-		SaveFreeScratch();
-		if (g_pred.ok && !g_pred.paused) ApplyInBetween(num, den);
-
-		// the tick's draw preamble, packets into a private buffer
-		if (U16(CTX(), 0) & 0x400)
-		{
-			U32(RCTX(), 0x2C) = FRAMERL() + 0xC;
-			U16(RCTX(), 0x24) = 0;
-		}
-		U32(RT(), 0x38) = FRAMERL() + 0x44;
-		U32(CTX(), 0x7C) = (uint32_t)g_held_packets;
-		U32(CTX(), 0xD8) = (uint32_t)g_held_packets + 0xA0000;
-		PKTCUR() = (uint32_t)g_held_packets + 0xE0000;
-		U16(RCTX(), 4) = 0;
-		U16(RT(), 0x46) = 0;
-		g_held = { true, num, den, U8(RT(), 0x45) };
-		U8(RT(), 0x45) = 0xFF;
-		BuildMatricesAndDraw();
-		x::ParseCamera2(PROJH());
-		g_held.active = false;
-
-		for (int i = 0; i < npools; i++) region_restore(pools[i]);
-		for (int i = nskels - 1; i >= 0; i--) region_restore(skels[i]);
-		region_restore(g_r_free);
-		RestoreEngine(true);
-		*CrtSeed() = seed;
-		FLT_1877DA8() = depth_scale;
-		PKTCUR() = pktcur;
-		RT() = saved_globals[0]; WS() = saved_globals[1]; CTX() = saved_globals[2]; SCENE() = saved_globals[3];
-		RCTX() = saved_globals[4]; SEQ() = saved_globals[5]; CUR() = saved_globals[6]; STREAM() = saved_globals[7];
-		PTR3() = saved_ptr3;
-	}
-
-	bool HeldCamera(Clone &c, int num, int den, int16_t world[3], int16_t lookat[3])
-	{
-		if (!HeldReady(c) || den <= 0) return false;
-		g_clone = &c;
-		Predict(c);
-		if (!g_pred.ok || g_pred.paused || !g_pred.cam) return false;
-		const int16_t *e0 = CAMEYE(), *a0 = CAMAT();
-		bool cut = false;
-		for (int k = 0; k < 3; k++)
-		{
-			int32_t de = (int32_t)g_pred.eye[k] - e0[k], da = (int32_t)g_pred.at[k] - a0[k];
-			if (de > 1500 || de < -1500 || da > 1500 || da < -1500) cut = true;
-		}
-		for (int k = 0; k < 3; k++)
-		{
-			world[k] = cut ? e0[k] : (int16_t)lerp_i(e0[k], g_pred.eye[k], num, den);
-			lookat[k] = cut ? a0[k] : (int16_t)lerp_i(a0[k], g_pred.at[k], num, den);
-		}
-		return true;
-	}
-
 	// ----------------------------------------------------------------------------------------
 	// 0xB25DF0 GF_<x>_SequenceTick (Ifrit "GF_Ifrit_seqBDlink"): the only task of the effect
 	// queue. Returns 2 (end) once SequenceState+0xA bit 15 is clear.
@@ -898,7 +487,8 @@ namespace part_core
 	uint32_t SequenceTick(Clone &c)
 	{
 		g_clone = &c;
-		g_ported_tick = g_real_tick;
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(held_note_tick();)
 		BindContext();
 		S16(CTX(), 0x32) = (int16_t)(S16(CTX(), 0x32) + 1);
 		U8(RT(), 0x41) = U8(CTX(), 0x32) & 1;
@@ -935,8 +525,8 @@ namespace part_core
 		BuildMatricesAndDraw();
 		x::ParseCamera2(PROJH());
 		PKTCUR() = U32(CTX(), 0x7C);
-		memcpy(g_scratch_copy, WS(), sizeof(g_scratch_copy));
-		g_scratch = g_scratch_copy;
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(held_note_scratch();)
 		ReleaseContext();
 		return (~(uint32_t)U16(SEQ(), 0xA) >> 14) & 2;
 	}
@@ -1054,10 +644,11 @@ namespace part_vm_a
 	// ------------------------------------------------------------------------------------
 	// globals used by this part
 	// ------------------------------------------------------------------------------------
-	// engine block (inside the snapshot)
+	// engine block
 	inline uint8_t &LoadBusy() { return MEM<uint8_t>(0x2798219); }   // file load in flight (0xFF), cleared by the load callback
 	inline uint8_t &LoadDone() { return MEM<uint8_t>(0x2798218); }   // a8def.tim loader idle / load-completed flag
-	// battle globals (OUTSIDE the snapshot: every write is guard()ed)
+	// battle globals (outside the engine state block; 30 fps layer: every write is preceded by
+	// FX_HELD(guard(...)), see gfc_engine_held.h)
 	inline uint8_t &Byte1D96DC4() { return MEM<uint8_t>(0x1D96DC4); }
 	inline uint32_t &Ptr1D99A88() { return MEM<uint32_t>(0x1D99A88); } // MAGIC_TEXTURE_BUFFER_PTR (read only here)
 	inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(0xB8B7F0 + 4 * i); } // battle camera block 0xB8B7F0..0xB8B80F as dwords
@@ -1071,13 +662,6 @@ namespace part_vm_a
 	// Module-relative: load-completion callback handed to pre_LoadBattleFile by op 0x006 = C().load_cb.
 	// The loader stores it and calls it later from outside the VM, so the ORIGINAL address is passed
 	// (every clone has its own copy).
-
-	// guard only when the address lies outside the engine state block
-	static inline void guard_ext(const void *p, int n)
-	{
-		uint32_t a = (uint32_t)p;
-		if (a < STATE_LO || a + (uint32_t)n > STATE_HI) guard(p, n);
-	}
 
 	// ------------------------------------------------------------------------------------
 	// helpers
@@ -1124,7 +708,7 @@ namespace part_vm_a
 		{
 			if (!(U8(keep, 0) & 4))
 			{
-				guard(ent, 2);
+				FX_HELD(guard(ent, 2);)
 				U16(ent, 0) &= 0xFFFB;
 			}
 			keep += 2;
@@ -1139,7 +723,7 @@ namespace part_vm_a
 		if (count <= 0) return;
 		do
 		{
-			guard(ent, 2);
+			FX_HELD(guard(ent, 2);)
 			U16(ent, 0) |= 4;
 			ent += 0x9C;
 		} while (--count);
@@ -1319,7 +903,7 @@ namespace part_vm_a
 	static void __cdecl op_0B8_Nop8() { STREAM() += 8; }
 
 	// ------------------------------------------------------------------------------------
-	// sound / stream / music (external, skipped while predicting by the x:: wrappers)
+	// sound / stream / music (external)
 	// ------------------------------------------------------------------------------------
 
 	// 0xB25BB0 (VM 0x02B PlaySE): BdPlaySE(ctx+0xC4 table [op>>9], s16 w0, 0x80)
@@ -1346,7 +930,7 @@ namespace part_vm_a
 		uint8_t *ready = CTX() + 0xA3;
 		if (U8(RT(), 0x4B) & 0x80)
 		{
-			guard(&Byte1D96DC4(), 1);
+			FX_HELD(guard(&Byte1D96DC4(), 1);)
 			Byte1D96DC4() = 0;
 		}
 		x::TransSummonStream(src, ready);
@@ -1466,7 +1050,7 @@ namespace part_vm_a
 		if (store) // 0xB2BA6B
 		{
 			id += U8(ctx, 0xA2);
-			guard_ext(&RESFILE()[id], 4);
+			FX_HELD(guard_ext(&RESFILE()[id], 4);)
 			RESFILE()[id] = (uint8_t *)dst;
 			id += (uint32_t)(int32_t)S16(ctx, 0xA0);
 		}
@@ -1888,11 +1472,11 @@ namespace part_vm_a
 	static void __cdecl op_047_CameraShakeFromOutPos()
 	{
 		uint8_t *b = CUR();
-		guard(&CamShake()[0], 2);
+		FX_HELD(guard(&CamShake()[0], 2);)
 		CamShake()[0] = U16(b, 0x94);
-		guard(&CamShake()[1], 2);
+		FX_HELD(guard(&CamShake()[1], 2);)
 		CamShake()[1] = U16(b, 0x96);
-		guard(&CamShake()[2], 2);
+		FX_HELD(guard(&CamShake()[2], 2);)
 		CamShake()[2] = U16(b, 0x98);
 		STREAM() += 2;
 	}
@@ -1936,20 +1520,20 @@ namespace part_vm_a
 		case 3: // 0xB2B826
 		{
 			uint32_t e0 = CamWord32(0), e1 = CamWord32(1), a0 = CamWord32(2);
-			guard(&CamWord32(4), 4);
+			FX_HELD(guard(&CamWord32(4), 4);)
 			CamWord32(4) = e0;             // 0xB8B800
 			uint32_t a1 = CamWord32(3);
-			guard(&CamWord32(5), 4);
+			FX_HELD(guard(&CamWord32(5), 4);)
 			CamWord32(5) = e1;             // 0xB8B804
 			uint16_t h = (uint16_t)PROJH();
-			guard(&CamWord32(7), 4);
+			FX_HELD(guard(&CamWord32(7), 4);)
 			CamWord32(7) = a1;             // 0xB8B80C
-			guard(&CamWord32(6), 4);
+			FX_HELD(guard(&CamWord32(6), 4);)
 			CamWord32(6) = a0;             // 0xB8B808
 			uint16_t w = Word1D977A2();
-			guard(&Word1D977A0(), 2);
+			FX_HELD(guard(&Word1D977A0(), 2);)
 			Word1D977A0() = h;
-			guard(&Word1D9771C(), 2);
+			FX_HELD(guard(&Word1D9771C(), 2);)
 			Word1D9771C() = w;
 			break;
 		}
@@ -1967,18 +1551,18 @@ namespace part_vm_a
 			if (!(U8(SEQ(), 9) & 0x20))
 			{
 				uint8_t *b = CUR();
-				guard(&CamWord32(0), 4);
+				FX_HELD(guard(&CamWord32(0), 4);)
 				CamWord32(0) = U32(b, 0x94);   // eye x, y
-				guard(CAMEYE() + 2, 2);
+				FX_HELD(guard(CAMEYE() + 2, 2);)
 				CAMEYE()[2] = S16(b, 0x98);    // eye z
-				guard(&PROJH(), 2);
+				FX_HELD(guard(&PROJH(), 2);)
 				PROJH() = S16(b, 0x8C);
-				guard(&Word1D977A2(), 2);
+				FX_HELD(guard(&Word1D977A2(), 2);)
 				Word1D977A2() = U16(b, 0x8E);
 				uint8_t *t = blob::GetBone(S16(STREAM(), 2));
-				guard(&CamWord32(2), 4);
+				FX_HELD(guard(&CamWord32(2), 4);)
 				CamWord32(2) = U32(t, 0x94);   // look-at x, y
-				guard(CAMAT() + 2, 2);
+				FX_HELD(guard(CAMAT() + 2, 2);)
 				CAMAT()[2] = S16(t, 0x98);     // look-at z
 			}
 			break;
@@ -2015,12 +1599,9 @@ namespace part_vm_a
 		U8(cmd, 1) = 0;
 		U32(b, 0x78) = 0x808080;
 		// pre_Battle_ReadAnimation (+ Battle_ReadAnimation) write the skeleton pose, which lives in
-		// the .00 file data (outside the snapshot): header byte +1, root +8..+0xC, bone i
-		// (0x30 B at +0x10) words +4..+0xE. Journal the whole skeleton while predicting.
-		{
-			uint8_t *skel = PTR(sec, 0);
-			guard(skel, 0x10 + U8(skel, 0) * 0x30);
-		}
+		// the .00 file data: header byte +1, root +8..+0xC, bone i (0x30 B at +0x10) words +4..+0xE.
+		// 30 fps layer: see gfc_engine_held.h
+		FX_HELD(guard(PTR(sec, 0), 0x10 + U8(PTR(sec, 0), 0) * 0x30);)
 		x::PreReadAnimation(hdr, cmd, U8(b, 9));
 		return b;
 	}
@@ -2104,7 +1685,8 @@ namespace part_vm_b
 	static inline int32_t neg32(int32_t v) { return (int32_t)(0u - (uint32_t)v); }
 
 	// battle-model instance of the current bone's slot: *(SceneHeader + 0x60 + 4 * bone+0x1B)
-	// (FF8BattleEntitySlotData; outside the engine snapshot -> every write needs guard())
+	// (FF8BattleEntitySlotData; outside the engine state block. 30 fps layer: every write outside
+	// the block is preceded by FX_HELD(guard(...)), see gfc_engine_held.h)
 	static inline uint8_t *Entity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
 	// bone handler of the current bone: call [BoneHandlerTable + 4 * bone+0x18]
@@ -2115,18 +1697,12 @@ namespace part_vm_b
 	// VM yield: rt->vmWaitRequest (rt+0x3E) = bone+0xC8 (channel wait speed), cursor unchanged
 	static inline void Yield() { U16(RT(), 0x3E) = U16(CUR(), 0xC8); }
 
-	// a write at bone+off (off from script data) may leave the bone; announce it then
-	static inline void guard_bone(uint8_t *bone, int32_t off, int n)
-	{
-		if (off < 0 || off + n > 0x100) guard(bone + off, n);
-	}
-
 	// ------------------------------------------------------------------------------------
 	// 0xB2BC60 (VM 0x02D SetCameraFlag): byte 0x1D97705 |= 0x80. No operand.
 	static void __cdecl op_02D_SetCameraFlag()
 	{
 		uint8_t *s = STREAM();
-		guard((void *)0x1D97705, 1);
+		FX_HELD(guard((void *)0x1D97705, 1);)
 		MEM<uint8_t>(0x1D97705) |= 0x80;
 		STREAM() = s + 2;
 	}
@@ -2143,20 +1719,20 @@ namespace part_vm_b
 		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
 		if (sub == 0)
 		{
-			guard(e, 2);
+			FX_HELD(guard(e, 2);)
 			U16(e, 0) |= (uint16_t)w;
 		}
 		else if (sub == 1)
 		{
 			if ((w & sw) == 0)
 			{
-				guard(e, 2);
+				FX_HELD(guard(e, 2);)
 				U16(e, 0) &= (uint16_t)~w;
 			}
 		}
 		else if (sub == 8)
 		{
-			guard(e, 2);
+			FX_HELD(guard(e, 2);)
 			U16(e, 0) &= (uint16_t)~w;
 		}
 		STREAM() += 4;
@@ -2186,7 +1762,7 @@ namespace part_vm_b
 		uint8_t *p = (uint8_t *)0x1D98991;
 		for (int i = 0; i < 4; i++, p += 0x2C)
 		{
-			guard(p, 1);
+			FX_HELD(guard(p, 1);)
 			if (clr) *p &= 0xFD;
 			else *p |= 2;
 		}
@@ -2202,12 +1778,12 @@ namespace part_vm_b
 		uint32_t k = (uint32_t)U16(RT(), 0x4A) >> 9;
 		if (k == 1)
 		{
-			guard_bone(bone, off, 2);
+			FX_HELD(guard_bone(bone, off, 2);)
 			U16(bone, off) = U16(s, 4);
 		}
 		else
 		{
-			guard_bone(bone, off, 1);
+			FX_HELD(guard_bone(bone, off, 1);)
 			U8(bone, off) = U8(s, 4);
 		}
 		STREAM() += 6;
@@ -2278,9 +1854,9 @@ namespace part_vm_b
 		else
 		{
 			uint8_t *p = PTR(CTX(), 0xC0);
-			guard(p + 0xB, 1);
+			FX_HELD(guard(p + 0xB, 1);)
 			U8(p, 0xB) = (uint8_t)(U8(STREAM(), 2) + 1);
-			guard(p + 9, 1);
+			FX_HELD(guard(p + 9, 1);)
 			U8(p, 9) = U8(STREAM(), 4);
 			STREAM() += 6;
 		}
@@ -2292,7 +1868,7 @@ namespace part_vm_b
 	{
 		uint8_t *e = Entity();
 		int32_t w = S16(STREAM(), 2);
-		guard(e + 0x7C, 4);
+		FX_HELD(guard(e + 0x7C, 4);)
 		if (U8(RT(), 0x4B) & 0x80) U32(e, 0x7C) &= ~(uint32_t)w;
 		else U32(e, 0x7C) |= (uint32_t)w;
 		STREAM() += 4;
@@ -2731,25 +2307,25 @@ namespace part_vm_b
 	static void __cdecl op_048_OverrideEntityTransform()
 	{
 		uint8_t *e = Entity();
-		guard(e + 1, 1);
+		FX_HELD(guard(e + 1, 1);)
 		U8(e, 1) |= 0x10;
 		uint32_t k = ((uint32_t)U16(RT(), 0x4A) >> 9) & 0xF;
 		if (k == 0)
 		{
 			uint8_t *p = CUR() + 0x94;
-			guard(e + 0x1C, 6);
+			FX_HELD(guard(e + 0x1C, 6);)
 			U32(e, 0x1C) = U32(p, 0);
 			U16(e, 0x20) = U16(p, 4);
 			if (U8(RT(), 0x4B) & 0x80)
 			{
-				guard(e + 0x24, 2);
+				FX_HELD(guard(e + 0x24, 2);)
 				U16(e, 0x24) = U16(p, 2);
 			}
 		}
 		else if (k == 1)
 		{
 			uint8_t *p = CUR() + 0x8C;
-			guard(e + 0xC, 6);
+			FX_HELD(guard(e + 0xC, 6);)
 			U32(e, 0xC) = U32(p, 0);
 			U16(e, 0x10) = U16(p, 4);
 		}
@@ -2764,7 +2340,7 @@ namespace part_vm_b
 		uint8_t *bone = CUR();
 		if (i > 0)
 		{
-			guard_bone(bone, 0x50 + 4 * i, 4);
+			FX_HELD(guard_bone(bone, 0x50 + 4 * i, 4);)
 			S32(bone, 0x50 + 4 * i) = neg32(S32(bone, 0x50 + 4 * i));
 			if (i < 6)
 			{
@@ -2788,7 +2364,7 @@ namespace part_vm_b
 		uint8_t *bone = CUR();
 		if (i < 0)
 		{
-			guard_bone(bone, 0x50 + 4 * i, 4);
+			FX_HELD(guard_bone(bone, 0x50 + 4 * i, 4);)
 			S32(bone, 0x50 + 4 * i) = neg32(S32(bone, 0x50 + 4 * i));
 			if (i < 6)
 			{
@@ -2810,7 +2386,7 @@ namespace part_vm_b
 	{
 		int32_t i = S16(STREAM(), 2);
 		uint8_t *bone = CUR();
-		guard_bone(bone, 0x50 + 4 * i, 4);
+		FX_HELD(guard_bone(bone, 0x50 + 4 * i, 4);)
 		S32(bone, 0x50 + 4 * i) = neg32(S32(bone, 0x50 + 4 * i));
 		CallBoneHandler();
 		h_B2C440();
@@ -3185,15 +2761,15 @@ namespace part_vm_c
 	// --- engine-block globals used here (shared by all clones, inside STATE_LO..STATE_HI) ---
 	inline uint8_t &LOADBUSY() { return MEM<uint8_t>(0x2798219); }   // byte_2798219: file load busy (set 0xFF by 0xB2BA10)
 	static const uint32_t CLUTBUF = 0x279822C;                         // engine CLUT/palette buffer (u16 entries)
-	// --- battle globals (outside the snapshot) ---
+	// --- battle globals (outside the engine state block) ---
 	inline uint32_t &MODELPALETTE() { return MEM<uint32_t>(0xB8B7D8); } // CURRENT_BS_MODEL_PALETTE base colour (read only)
 	static const uint32_t FADELAYERS = 0x1D9898C;                      // stru_1D9898C: 4 colour/fade layers of 0x2C bytes
 
-	// sub_5088A0 renders a battle entity model into the render list: OT insertion + packets,
-	// outside the snapshot -> skipped while predicting (returns the cursor unchanged).
+	// sub_5088A0 renders a battle entity model into the render list: OT insertion + packets
 	static uint32_t xl_Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
-		if (g_predict) return cursor;
+		// 30 fps layer: see gfc_engine_held.h
+		FX_HELD(if (held_predicting()) return cursor;)
 		return x::Render_5088A0(a, ot, mode, cursor);
 	}
 
@@ -3693,12 +3269,12 @@ namespace part_vm_c
 		uint8_t *e = PTR(scene, slot * 4 + 0x60);
 		if (clear)
 		{
-			guard(e, 2);
+			FX_HELD(guard(e, 2);)
 			U16(e, 0) &= 0xFFDF;
 			STREAM() += 2;
 			return;
 		}
-		guard(e, 1);
+		FX_HELD(guard(e, 1);)
 		U8(e, 0) |= 0x20;
 		uint32_t r = xl_Render_5088A0(e, U32(RT(), 0x4C), 4, U32(CTX(), 0x7C));
 		U32(CTX(), 0x7C) = r;
@@ -3819,7 +3395,7 @@ namespace part_vm_c
 	// bank: ws+0xF0 = src, ws+0xF8 = CLUTBUF + (w0 >> 8) * 0x200; ws+0xFC = first colour w1:
 	// ws+0xF0/0xF8 += (w1 & 0xFF) * 2. op >> 12: 0 = 256 colours tinted by own outAngle (6 bytes),
 	// 2 = w2 colours by own outAngle (8 bytes), 1 = w2 colours by outAngle of bone ref w3 (10 bytes).
-	// B666F0 tints + uploads (skipped while predicting).
+	// B666F0 tints + uploads.
 	static void __cdecl op_04B_TintPaletteUpload()
 	{
 		int32_t w0 = S16(STREAM(), 2);
@@ -3873,7 +3449,7 @@ namespace part_vm_c
 		uint32_t slot = U8(CUR(), 0x1B);
 		uint8_t *e = PTR(SCENE(), slot * 4 + 0x60);
 		uint32_t c = U32(WS(), 0xFC);
-		guard(e + 0x28, 4);
+		FX_HELD(guard(e + 0x28, 4);)
 		U32(e, 0x28) = c;
 		STREAM() += 2;
 	}
@@ -3894,9 +3470,9 @@ namespace part_vm_c
 		uint32_t p = FADELAYERS + 0x2C; // 0x1D989B8
 		for (int i = 4; i != 0; i--)
 		{
-			guard((void *)(p - 0x26), 2);
+			FX_HELD(guard((void *)(p - 0x26), 2);)
 			MEM<uint16_t>(p - 0x26) = (uint16_t)k;
-			guard((void *)p, 4);
+			FX_HELD(guard((void *)p, 4);)
 			MEM<uint32_t>(p) = c;
 			p += 0x2C;
 		}
@@ -4110,14 +3686,6 @@ namespace part_vm_d
 	// aux / billboard-slot matrix table (32-byte FF8_PSX_Matrix4x3 each) at 0x2798B68 (ops 0x104/0x105)
 	inline uint8_t *AUXMAT(int32_t slot) { return (uint8_t *)(0x2798B68u + (uint32_t)shl32(slot, 5)); }
 
-	// guard a write that should land inside the engine block but whose index comes from data
-	// (light slot, aux slot): only an out-of-range index reaches memory outside the snapshot
-	static inline void guard_outside_block(const void *p, int n)
-	{
-		uint32_t a = (uint32_t)p;
-		if (a < STATE_LO || a + (uint32_t)n > STATE_HI) guard(p, n);
-	}
-
 	// --------------------------------------------------------------------------------------
 	// local wrappers
 	// --------------------------------------------------------------------------------------
@@ -4129,16 +3697,8 @@ namespace part_vm_d
 	{
 		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
 	}
-	// GTE far colour (control regs 21..23) and DQA/DQB (27, 28) + the fog near/far globals
-	// written by 0x45DDA0 / 0x56CCC0 / 0x56CCA0: persistent render state outside the snapshot
-	static void guard_fog_state()
-	{
-		if (!g_predict) return;
-		guard((void *)0x1CA92D0, 12);   // GTE ctrl RFC/GFC/BFC (0x1CA927C + 21*4)
-		guard((void *)0x1CA92E8, 8);    // GTE ctrl DQA/DQB (0x1CA927C + 27*4)
-		guard((void *)0x209AB64, 4);    // fog near (sub_56CCC0)
-		guard((void *)0xC78BF0, 4);     // fog far (sub_56CCA0)
-	}
+	// 30 fps layer: writes outside the engine state block (light / aux slot indices from data,
+	// fog state) are preceded by FX_HELD(guard_...), see gfc_engine_held.h
 
 	static void __cdecl op_000_EndChannel();
 
@@ -4338,7 +3898,7 @@ namespace part_vm_d
 	{
 		uint8_t *aux = AUXMAT(S16(STREAM(), 2));
 		uint8_t *r = WS() + 0x20;
-		guard_outside_block(aux, 32);
+		FX_HELD(guard_outside_block(aux, 32);)
 		x::RotMatrixFromAngles(CUR() + 0x8C, r);
 		x::MulMatrix3(CAMALT(), r, aux);
 		x::SetRotMatrix(CAMALT());
@@ -4486,8 +4046,7 @@ namespace part_vm_d
 			x::ScaleMatrix(w, w + 0x20);
 			base = w;
 		}
-		// writes the model skeleton (outside the snapshot): the header wrapper skips it while
-		// predicting, B66B80 then reads the matrices of the last real build
+		// writes the model skeleton
 		x::BuildBoneMatricesFromPose(hdr);
 		uint8_t *jm = xl_B66B80(hdr, joint, scale, base);
 		switch ((uint32_t)U16(RT(), 0x4A) >> 12)
@@ -4604,7 +4163,7 @@ namespace part_vm_d
 		int32_t slot = S16(s, 2);
 		uint8_t *L = (uint8_t *)(0x27977A4u + (uint32_t)mul32(slot, 0x50));
 		uint8_t *m = WS() + 0x20;
-		guard_outside_block(L, 0x4C);
+		FX_HELD(guard_outside_block(L, 0x4C);)
 		int32_t id = S16(s, 4);
 		if (id != -1)
 		{
@@ -4687,7 +4246,7 @@ namespace part_vm_d
 	// outPosX, DQA/DQB recomputed with outPosY (0x56CCC0). Length 2.
 	static void __cdecl op_0C6_SetFogColorAndNear()
 	{
-		guard_fog_state();
+		FX_HELD(guard_fog_state();)
 		uint8_t *c = CUR();
 		int32_t b = S16(c, 0x90), g = S16(c, 0x8E), r = S16(c, 0x8C);
 		x::GteSetBackColor3(r, g, b);
@@ -4700,7 +4259,7 @@ namespace part_vm_d
 	// 0xB2F870 (VM 0x11B SetFogColorAndFar): as 0x0C6 but fog FAR = outPosX (0x56CCA0). Length 2.
 	static void __cdecl op_11B_SetFogColorAndFar()
 	{
-		guard_fog_state();
+		FX_HELD(guard_fog_state();)
 		uint8_t *c = CUR();
 		int32_t b = S16(c, 0x90), g = S16(c, 0x8E), r = S16(c, 0x8C);
 		x::GteSetBackColor3(r, g, b);
@@ -4980,11 +4539,11 @@ namespace part_draw_mesh
 	// 0xB266C0 (Draw 21 ScrollTextureUpload): scrolls a texture vertically inside its VRAM
 	// rectangle: bone+0xB8 -> {s16 alt texture id, s16 vram x, s16 vram y}; bone+0x96 = scroll
 	// offset (masked by height-1). Two VRAM uploads (the wrapped halves). Draws no primitive.
-	// Held frames: returns at once (no VRAM upload).
 	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_21_ScrollTextureUpload()
 	{
-		if (g_held.active) return;
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(if (held_active()) return;)
 		uint8_t *arg = PTR(CUR(), 0xB8);                  // esi
 		blob::ReadAltTexture(S16(arg, 0));                // sets ws+0xF0..0xFC
 		U32(WS(), 0x64) = U32(WS(), 0xFC);                // texel data
@@ -5249,7 +4808,7 @@ namespace part_draw_mesh
 		{
 			// scaled (0xB2791D). fild/fdivr [4096.0f]/fstp float: a correctly rounded single for
 			// any x87 precision control (double rounding is innocuous for a division 53 >= 2*24+2)
-			guard(&FLT_1877DA8(), 4);
+			FX_HELD(guard(&FLT_1877DA8(), 4);)
 			FLT_1877DA8() = (float)(DEPTH_SCALE_NUM / (double)S32(w, 0xC0));
 			uint32_t *depth = DEPTHARR();                     // ebx
 			uint8_t *mesh = PTR(w, 0x68);
@@ -5262,7 +4821,7 @@ namespace part_draw_mesh
 			uint8_t *ir0 = PTR(w, 0x88);                      // [ebp-0xc]
 			int32_t bias = S32(w, 0x94);                      // [ebp-0x18]
 			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);    // [ebp-0x20]
-			guard(depth, (n > 0 ? n : 1) * 4);
+			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
 				int32_t vx = S16(v, 0);
@@ -5312,7 +4871,7 @@ namespace part_draw_mesh
 			int32_t bias = S32(w, 0x94);                      // [ebp-0x18]
 			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);    // [ebp-0x20]
 			uint32_t *depth = DEPTHARR();                     // [ebp-0x1c]
-			guard(depth, (n > 0 ? n : 1) * 4);
+			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
 				int32_t loc8 = S32(v, 0);
@@ -5353,7 +4912,7 @@ namespace part_draw_mesh
 		else
 		{
 			// plain (0xB27BCD)
-			guard(&FLT_1877DA8(), 4);
+			FX_HELD(guard(&FLT_1877DA8(), 4);)
 			U32(&FLT_1877DA8(), 0) = 0x3F800000u;            // 1.0f
 			uint8_t *ir0 = PTR(w, 0x88);                      // [ebp-0xc]
 			uint8_t *mesh = PTR(w, 0x68);
@@ -5363,7 +4922,7 @@ namespace part_draw_mesh
 			int32_t bias = S32(w, 0x94);                      // [ebp-0x18]
 			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);    // [ebp-0x20]
 			uint32_t *depth = DEPTHARR();                     // [ebp-0x1c]
-			guard(depth, (n > 0 ? n : 1) * 4);
+			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
 				int32_t loc8 = S32(v, 0);
@@ -5616,8 +5175,6 @@ namespace part_draw_mesh
 	// (flags & 2 ? rebuild pose : ReadAnimation, restart the anim when it returns 1, counter++);
 	// then the bones' world matrices from ws+0xE0. Frozen: rebuild the current pose + world
 	// matrices. Counter 0 -> 1 at the end. Returns 0.
-	// Held frames (rt+0x45 forced to 0xFF): when the real tick would have advanced the
-	// animation, the bone matrices come from the exact in-between pose (pose_midpoint).
 	// ------------------------------------------------------------------------------------
 	int32_t h_B26AD0(uint8_t *blk)
 	{
@@ -5647,11 +5204,9 @@ namespace part_draw_mesh
 		}
 		if (frozen)
 		{
-			uint16_t fl = U16(blk, 2);
-			if (g_held.active && g_held.real_skip == 0 && !(fl & 1) && U16(blk, 0) != 0 && !(fl & 2))
-				pose_midpoint(hdr, cmd, g_held.num, g_held.den);
-			else
-				x::BuildBoneMatricesFromPose(hdr);
+			// 30 fps layer: see gfc_engine_held.inc
+			FX_HELD(if (!held_model_pose(blk, hdr, cmd)))
+			x::BuildBoneMatricesFromPose(hdr);
 			x::ComputeBonesWorldMatrices(hdr, WS() + 0xE0);
 		}
 		if (U16(blk, 0) == 0) U16(blk, 0) = 1;
@@ -5721,7 +5276,6 @@ namespace part_draw_mesh
 // colours through the GTE (NCCS 0x4601B0, RGBC in data reg 6, result RGB2 reg 22) and inserts
 // the packet with SSIGPU_InsertPrimDepthKeys(ot + key, packet, z0, z1, z2, z3 or 0), where
 // zN = (int)(u16 SZ3 of vertex N * FLT_1877DA8).
-// No held-frame specific behaviour (pure draw code).
 
 
 namespace ff8fx
@@ -6965,8 +6519,6 @@ namespace part_draw_sprite
 	// bone+0xB8: run its script (unless waiting), integrate vel += acc, pos += (vel) << 4,
 	// position type, colour fade, frame list; then draw its sprite at the type position in
 	// the parent frame, scaled by +0x10 >> 4. Frozen (rt+0x45): position type + draw only.
-	// Held frames (g_held, frozen path forced): the particle is drawn at pos + the next
-	// integration step's position delta * num/den, on a local copy (the pool is not written).
 	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_06_ParticleSystem()
 	{
@@ -6983,15 +6535,12 @@ namespace part_draw_sprite
 		S32(WS(), 0x20) = U16(pool, 0);
 		S32(WS(), 0x34) = U16(pool, 8);
 		if (S32(WS(), 0x20) <= 0) return;
-		const bool held_adv = g_held.active && g_held.real_skip == 0 && g_held.den > 0;
 		do
 		{
 			S32(WS(), 0x40) = 0;
 			uint8_t *scr = PTR(p, 4);
 			if (scr == nullptr) goto next;
 			{
-				uint8_t *q = p;     // record the draw reads (a local copy on held frames)
-				uint8_t loc[0x50];
 				STREAM() = scr;
 				if (U8(RT(), 0x45) == 0)
 				{
@@ -7070,26 +6619,11 @@ namespace part_draw_sprite
 				else
 				{
 					if (U32(p, 0x30) == 0) goto next;
-					if (held_adv)
-					{
-						// held refinement: position = pos + next tick's integration delta
-						// ((vel + acc) << 4, the deterministic part) * num / den
-						memcpy(loc, p, 0x50);
-						for (int k = 0; k < 4; k++)
-						{
-							int32_t s = S16(p, 0x28 + 2 * k) + S16(p, 0x20 + 2 * k);
-							int32_t d = (int32_t)((int64_t)shl32(s, 4) * g_held.num / g_held.den);
-							S32(loc, 0x10 + 4 * k) = add32(S32(p, 0x10 + 4 * k), d);
-						}
-						q = loc;
-						PTR(WS(), 0x44) = loc;
-						C().ptype[S8(q, 0x37)]();
-						PTR(WS(), 0x44) = p;
-					}
-					else
-						C().ptype[S8(p, 0x37)]();
+					// 30 fps layer: see gfc_engine_held.inc
+					FX_HELD(if (held_active()) { held_particle_draw(p); goto next; })
+					C().ptype[S8(p, 0x37)]();
 				}
-				if (U32(q, 0x30) == 0) goto next;
+				if (U32(p, 0x30) == 0) goto next;
 				// --- draw ---
 				{
 					uint8_t *m = PTR(WS(), 0x30);
@@ -7098,7 +6632,7 @@ namespace part_draw_sprite
 					x::GteLoadV0(WS() + 0xA0);
 					x::GteMVMVA_RotV0Tr();
 					x::Gte_45E580();
-					int32_t sc = S32(q, 0x10) >> 4;
+					int32_t sc = S32(p, 0x10) >> 4;
 					S32(WS(), 0xA8) = sc;
 					S32(WS(), 0xA0) = sc;
 					S32(WS(), 0xB0) = 0;
@@ -7106,10 +6640,10 @@ namespace part_draw_sprite
 					S32(WS(), 0xA4) = 0;
 					x::SetRotMatrix(WS() + 0xA0);
 					if (S32(WS(), 0x40) != 0) x::Matrix_56C2C0(BBMAT() + 1);
-					U32(WS(), 0x90) = U32(q, 0x30);
-					U32(WS(), 0x94) = U16(q, 0x40);
-					U32(WS(), 0x98) = U32(q, 0x38);
-					S32(WS(), 0x9C) = S16(q, 0x48);
+					U32(WS(), 0x90) = U32(p, 0x30);
+					U32(WS(), 0x94) = U16(p, 0x40);
+					U32(WS(), 0x98) = U32(p, 0x38);
+					S32(WS(), 0x9C) = S16(p, 0x48);
 					EmitSpriteQuads();
 				}
 			}
@@ -7198,8 +6732,6 @@ namespace part_shared_ribbon
 	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
 	// software GTE data register 19 (SZ3) of the emulated GTE (data file 0x1CA8A10 + 19*4)
 	static inline uint16_t &GTE_SZ3_W() { return MEM<uint16_t>(0x1CA8A5C); }
-	// software GTE data register 0 (VXY0, packed) - read / restored only for held frames
-	static inline uint32_t &GTE_VXY0() { return MEM<uint32_t>(0x1CA8A10); }
 
 	// ------------------------------------------------------------------------------------
 	// 0xB1AF60 TurnToward(cur, target, rate): 12-bit angle `cur` turned toward `target` by at
@@ -7509,12 +7041,6 @@ namespace part_shared_ribbon
 	// ring entry idx (signed: vanilla idiv, a negative index reads before the ring)
 	static inline uint8_t *RingEntry(uint8_t *ring, int32_t idx) { return ring + mul32(idx, 72) + 0x20; }
 
-	// held frames: VXY0 the real tick had when it reached SetupParentXform (see B1ADD0), per node
-	static NodeMemo<uint32_t, 64> g_v0memo;
-	// held frames: the arena scratch above ctx+0x74 this handler writes (projections + colour table)
-	static uint8_t *g_hsave = nullptr;
-	static uint32_t g_hsave_cap = 0;
-
 	// ------------------------------------------------------------------------------------
 	// 0xB1A130 (Draw 37 RibbonTrail) - Bahamut 0xB1A130 / Cerberus 0xB0D690 / Alexander
 	// 0xB01290 / Eden 0xAE8E20.
@@ -7528,17 +7054,6 @@ namespace part_shared_ribbon
 	//     steered toward the target, the node's outPos (+0x94..) and accumPos (+0x5C..) are set
 	//     to it and bone+0x4A bit0 = (distance to target <= target bone+0x8E).
 	// Then (always) the draw: colour ramp, head projection, 8 gouraud quads per segment.
-	//
-	// Held frames (g_held, rt+0x45 forced to 0xFF): the frozen path runs, so the ring, the node
-	// position and bone+0x4A never advance: the ribbon drawn is the real tick's history
-	// (colour bone and parent matrix are the in-between values). Two held-only additions:
-	//   * VXY0 before SetupParentXform is set to the value the real tick had there (vanilla
-	//     leaves V0.xy of the previous GTE user in the translation; in a held draw that is
-	//     another handler's frozen-path value, which would shift the whole ribbon);
-	//   * the arena scratch above ctx+0x74 (outside the saved arena) written by the draw is
-	//     restored before returning.
-	// The first-draw path cannot run on a held frame (a node's first draw is on the tick that
-	// created it); if it did, everything it writes (arena, ctx+0x74, bone) is in the saved set.
 	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_37_RibbonTrail()
 	{
@@ -7732,36 +7247,11 @@ namespace part_shared_ribbon
 		S32(WS(), 0xF4) = U16(edi, 0xC);
 		S32(WS(), 0xF8) = U16(edi, 2);
 
-		// held: save the scratch above the arena top this draw writes (projection buffers
-		// [top, top+0xC6) and the colour table at top+0x100)
-		uint8_t *hs_p = nullptr;
-		uint32_t hs_n = 0;
-		if (g_held.active)
-		{
-			uint32_t f0 = U16(edi, 0xA), f4 = U16(edi, 0xC), f8 = U16(edi, 2);
-			uint32_t ents = f0 + (f4 > f0 ? f4 - f0 : 0) + (f8 > f4 ? f8 - f4 : 0) + f8;
-			hs_p = PTR(CTX(), 0x74);
-			hs_n = 0x100 + ents * 8;
-			if (hs_n > g_hsave_cap)
-			{
-				delete[] g_hsave;
-				g_hsave_cap = (hs_n + 0xFFF) & ~0xFFFu;
-				g_hsave = new uint8_t[g_hsave_cap];
-			}
-			memcpy(g_hsave, hs_p, hs_n);
-		}
-
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(held_ribbon_save(edi);)
 		Ribbon_B1B220_BuildColourRamp(colA, colB, PTR(WS(), 0x84), arg4);
-		if (!g_held.active)
-		{
-			uint32_t *m = g_v0memo.put(CUR());
-			if (m) *m = GTE_VXY0();
-		}
-		else
-		{
-			const uint32_t *m = g_v0memo.get(CUR());
-			if (m) GTE_VXY0() = *m;
-		}
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(held_ribbon_v0();)
 		Ribbon_B1ADD0_SetupParentXform();
 
 		// head entry projection into the arena scratch at ctx+0x74 (sxy, OTZ dword)
@@ -7842,8 +7332,8 @@ namespace part_shared_ribbon
 			S32(WS(), 0x7C) = add32(S32(WS(), 0x7C), 1);
 		}
 		PTR(CTX(), 0x7C) = pkt;
-
-		if (hs_n) memcpy(hs_p, g_hsave, hs_n);
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(held_ribbon_restore();)
 	}
 }
 	// installs the ports into a clone's tables (called after init_clone)
@@ -7866,25 +7356,26 @@ namespace part_shared_misc
 	// ------------------------------------------------------------------------------------
 	// local wrappers / constants
 	// ------------------------------------------------------------------------------------
+	// (packet / OT / battle side effects below: 30 fps layer, see gfc_engine_held.h)
 	// 0x45C7A0 SSIGPU_InsertPrimAutoDepth(ot, prim): links a packet (and bumps the depth-key
-	// cursor 0x1CA8828). Packet/OT side effect: nothing while predicting.
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { if (!g_predict) x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	// 0x45C9F0 SetDrawStp(p, pbw): GP0 0xE6 mask-bit packet (1 word + tag). Nothing while predicting.
-	static inline void xl_SetDrawStp(void *p, int32_t pbw) { if (!g_predict) x::f<void (__cdecl *)(void *, int32_t)>(0x45C9F0)(p, pbw); }
+	// cursor 0x1CA8828).
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
+	// 0x45C9F0 SetDrawStp(p, pbw): GP0 0xE6 mask-bit packet (1 word + tag).
+	static inline void xl_SetDrawStp(void *p, int32_t pbw) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, int32_t)>(0x45C9F0)(p, pbw); }
 	// 0x45C060 SetDrawMove(p, rect, x, y): GP0 0x80 VRAM-to-VRAM copy of rect to (x, y) (5 words +
-	// tag; an empty rect only clears the tag length). Nothing while predicting.
-	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { if (!g_predict) x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(0x45C060)(p, rect, xx, yy); }
+	// tag; an empty rect only clears the tag length).
+	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(0x45C060)(p, rect, xx, yy); }
 	// 0x505C00 QueueChainTransformation(entity, id): spawns a battle anim-seq task on the entity
-	// chain (battle entity + task state). Nothing while predicting.
-	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { if (!g_predict) x::f<void (__cdecl *)(void *, int32_t)>(0x505C00)(entity, id); }
+	// chain (battle entity + task state).
+	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, int32_t)>(0x505C00)(entity, id); }
 	// 0x501FF0 compare_com_127: lowest-address entity of the circular chain entity+0x8C (pure read)
 	static inline uint8_t *xl_ChainMinEntity(void *entity) { return x::f<uint8_t *(__cdecl *)(void *)>(0x501FF0)(entity); }
 	// 0xB65D10 (shared blob) OffscreenStageRender(desc, pos, angles): renders the battle stage
 	// model into the desc's private OT/packet block and EXECUTES that OT immediately (GPU work,
-	// battle model pose rebuild 0x1D989D0). Nothing while predicting; returns 0.
+	// battle model pose rebuild 0x1D989D0).
 	static inline int32_t xl_OffscreenStageRender(void *desc, const void *pos, const void *angles)
 	{
-		if (g_predict) return 0;
+		FX_HELD(if (held_predicting()) return 0;)
 		return x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(0xB65D10)(desc, pos, angles);
 	}
 
@@ -7927,11 +7418,11 @@ namespace part_shared_misc
 	// y}; the row buffer (w*h*2 bytes) is allocated once in the arena (bone+0xBC); every row is
 	// rotated right by outPosX & (w-1) texels, then ONE upload of the whole rect (rect from the
 	// SceneHeader+0x43 ring). Draws no primitive.
-	// Held frames: returns at once (no VRAM upload, no rect ring slot, no arena allocation).
 	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_16_ScrollTextureU()
 	{
-		if (g_held.active) return;
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(if (held_active()) return;)
 		uint8_t *arg = PTR(CUR(), 0xB8);                         // edi
 		blob::ReadAltTexture(S16(arg, 0));                       // sets ws+0xF0..0xFC
 		U32(WS(), 0x64) = U32(WS(), 0xFC);                       // texel data
@@ -8012,8 +7503,6 @@ namespace part_shared_misc
 	// framebuffer (display env 0x1D969C8 + 92 * parity, rect {x, y, 0x40, 0xE0} at ws+0xF8,
 	// x += 0x40 per strip as a DWORD add) to VRAM (ws+0xF0 + 0x40 * i, ws+0xF4), SetDrawStp(1).
 	// Packets from ctx+0x7C. Returns 0.
-	// Predict (VM 0x096): the packet/OT calls are skipped by their wrappers (the cursor and the
-	// ws fields it writes are restored anyway).
 	// ------------------------------------------------------------------------------------
 	static int32_t CaptureScreenStrips()
 	{
@@ -8049,11 +7538,6 @@ namespace part_shared_misc
 		return 0;
 	}
 
-	// the bone whose draw 26 did the capture on the last real draw (its first call): the held
-	// frames that follow draw nothing for it (vanilla drew no strips on that tick)
-	static const void *g_cap_bone = nullptr;
-	static uint32_t g_cap_tick = 0xFFFFFFFF;
-
 	// ------------------------------------------------------------------------------------
 	// 0xB0E930 (Draw 26 ScreenCaptureStrips, Cerberus; = Eden 0xAEA0C0): bone+0xB8 -> {s16 vram x,
 	// s16 vram y} -> ws+0x90/0x94. First call (bone+0xC4 == 0): bone+0xC4 = -1, ws+0xF0/F4 =
@@ -8062,9 +7546,6 @@ namespace part_shared_misc
 	// colour) 64 x 224 at (outPosX + 64 * i, outPosY) into rt+0x4C+8 (alt viewport), then a
 	// draw-mode packet (tpage 0, window {0, 0, 256, 256}); ws+0xF0/F4 = vram x/y. The tpage word
 	// computed into ws+0x80 (0xB0EA0B) is a dead store: SetDrawMode gets tpage 0.
-	// Held frames: never the one-shot capture (bone+0xC4 == 0 -> nothing), and nothing on the
-	// held frames that follow the real tick whose draw was the capture (vanilla drew no strips
-	// on that tick); otherwise the strips are redrawn (pure packets, in-between outPos/colour).
 	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_26_ScreenCaptureStrips()
 	{
@@ -8072,23 +7553,18 @@ namespace part_shared_misc
 		S32(WS(), 0x90) = S16(arg, 0);
 		S32(WS(), 0x94) = S16(arg, 2);
 		uint8_t *b = CUR();                                                  // ecx
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(if (held_capture_skip(b)) return;)
 		if (U32(b, 0xC4) == 0)
 		{
-			if (g_held.active) return;
 			U32(b, 0xC4) = 0xFFFFFFFF;
 			U32(WS(), 0xF0) = U32(WS(), 0x90);
 			U32(WS(), 0xF4) = U32(WS(), 0x94);
 			CaptureScreenStrips();
-			g_cap_bone = b;
-			g_cap_tick = g_real_tick;
+			// 30 fps layer: see gfc_engine_held.inc
+			FX_HELD(held_note_capture(b);)
 			return;
 		}
-		if (g_held.active)
-		{
-			if (g_cap_bone == b && g_cap_tick == g_real_tick) return;
-		}
-		else if (g_cap_bone == b)
-			g_cap_bone = nullptr;
 		uint32_t c = U32(b, 0xCC);                                           // esi
 		uint32_t t = (uint32_t)((int32_t)c >> 8);
 		if (((t ^ c) & 0xFF) != 0) return;                                   // R != G
@@ -8138,27 +7614,6 @@ namespace part_shared_misc
 		U32(WS(), 0xF4) = U32(WS(), 0x94);
 	}
 
-	// per-block memo of the stars drawn by the last real draw of Draw 39 (held frames redraw
-	// exactly those)
-	struct StarMemo { const uint8_t *blk; uint32_t tick; uint8_t bits[0x1000]; };
-	static StarMemo g_star[4];
-	static uint8_t g_held_scr[0x8000 * 8];   // held frames: screen coordinates (vanilla: ctx+0x74)
-
-	static StarMemo *star_memo_put(const uint8_t *blk)
-	{
-		for (StarMemo &m : g_star)
-			if (m.blk == blk) { m.tick = g_real_tick; memset(m.bits, 0, sizeof(m.bits)); return &m; }
-		for (StarMemo &m : g_star)
-			if (m.tick != g_real_tick || m.blk == nullptr) { m.blk = blk; m.tick = g_real_tick; memset(m.bits, 0, sizeof(m.bits)); return &m; }
-		return nullptr;
-	}
-	static const StarMemo *star_memo_get(const uint8_t *blk)
-	{
-		for (const StarMemo &m : g_star)
-			if (m.blk == blk && m.tick == g_real_tick) return &m;
-		return nullptr;
-	}
-
 	// ------------------------------------------------------------------------------------
 	// 0xB1E3F0 (Draw 39 Starfield, Bahamut; = Eden 0xAECD20). bone+0xB8 -> {s16 n, s16 range x,
 	// y, z, s16 colour jitter, s16 twinkle probability (/256)}. First call (bone+0xBC == 0):
@@ -8170,16 +7625,13 @@ namespace part_shared_misc
 	// bone+0xC0 ? rt+0x4C + (bone+0xC0 & 0x3FFC) : rt+0x4C + (OTZ & ~3); twinkling stars count
 	// their on/off timers down and redraw a timer with rand(0..0x40) at expiry (a star whose off
 	// timer expires turns on but is not drawn that tick).
-	// Held frames: bone+0xBC == 0 -> nothing (no allocation, no rand); else no ++counter, no timer,
-	// no rand: the stars the real tick drew (memo) are re-projected with the in-between parent
-	// matrix / outPos (screen coordinates in a private buffer) and redrawn.
 	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_39_Starfield()
 	{
-		const bool held = g_held.active;
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(if (held_active()) { dh_39_StarfieldHeld(); return; })
 		if (U32(CUR(), 0xBC) == 0)
 		{
-			if (held) return;
 			uint8_t *prm = PTR(CUR(), 0xB8);                                 // edi
 			int32_t n = S16(prm, 0);                                         // ebx, [ebp-8]
 			uint8_t *blk = blob::ArenaAlloc(add32(shl32(n, 4), 4));
@@ -8226,7 +7678,7 @@ namespace part_shared_misc
 		uint8_t *blk = PTR(CUR(), 0xBC);                                     // ebx, [ebp-0x1C]
 		uint8_t *stars = blk + 4;                                            // edi
 		PTR(WS(), 0x60) = stars;
-		if (!held) U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);               // not gated in vanilla
+		U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);                          // not gated by boneSkipFlag
 		uint32_t otw = U16(CUR(), 0xC0);
 		if (otw == 0)
 			U32(WS(), 0x64) = 0;
@@ -8234,8 +7686,7 @@ namespace part_shared_misc
 			U32(WS(), 0x64) = (otw & 0x3FFC) + U32(RT(), 0x4C);
 		h_B27000();
 		int32_t n = S16(blk, 2);
-		uint8_t *scr0 = held ? g_held_scr : PTR(CTX(), 0x74);               // esi
-		if (held && n > 0x8000) n = 0x8000;
+		uint8_t *scr0 = PTR(CTX(), 0x74);                                    // esi
 		if (n > 0)
 		{
 			uint8_t *s = scr0;
@@ -8251,26 +7702,19 @@ namespace part_shared_misc
 				s += 8;
 			} while (--k != 0);
 		}
-		uint8_t *sc = held ? g_held_scr : PTR(CTX(), 0x74);                 // [ebp-4]
+		uint8_t *sc = PTR(CTX(), 0x74);                                      // [ebp-4]
 		uint8_t *pkt = PTR(CTX(), 0x7C);                                     // edi
 		uint8_t *e = PTR(WS(), 0x60);                                        // esi
 		n = S16(blk, 2);
-		if (held && n > 0x8000) n = 0x8000;
-		StarMemo *mp = held ? nullptr : star_memo_put(blk);
-		const StarMemo *mg = held ? star_memo_get(blk) : nullptr;
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(held_star_begin(blk);)
 		if (n > 0)
 		{
 			e += 0xC;
 			for (int32_t i = 0; i < n; i++)
 			{
 				bool draw;
-				if (held)
-				{
-					// the real tick's decision (fallback without memo: the timer state)
-					if (mg) draw = ((mg->bits[i >> 3] >> (i & 7)) & 1) != 0;
-					else draw = !(U8(e, -6) & 1) || U8(e, 0) != 0;
-				}
-				else if (U8(e, -6) & 1)
+				if (U8(e, -6) & 1)
 				{
 					uint8_t al = U8(e, 0);
 					if (al == 0)
@@ -8309,7 +7753,8 @@ namespace part_shared_misc
 					if (ot == 0) ot = (uint32_t)((int32_t)S16(sc, 4) & ~3) + U32(RT(), 0x4C);
 					xl_InsertPrimAutoDepth(ot, pkt);
 					pkt += 0xC;
-					if (mp && i < 0x8000) mp->bits[i >> 3] |= (uint8_t)(1u << (i & 7));
+					// 30 fps layer: see gfc_engine_held.inc
+					FX_HELD(held_star_drawn(i);)
 				}
 				sc += 8;
 				e += 0x10;
@@ -8448,7 +7893,6 @@ namespace part_shared_misc
 	//   8: ApplyActionResultToTargets(records, count);
 	//   other: ApplyActionResultToTarget(first record whose slot == bone+0x1B), if any.
 	// cursor += 2. (Ifrit's 0x022 tests (op & 0xF000) == 0x8000 only.)
-	// Predict: the battle calls are no-ops (x:: wrappers).
 	// ------------------------------------------------------------------------------------
 	static void __cdecl op_022_ApplyActionResultList()
 	{
@@ -8519,7 +7963,6 @@ namespace part_shared_misc
 	// 0x60[bone+0x1B]. sub = op >> 9: 0 -> QueueChainTransformation(entity, s16 w1), cursor += 4;
 	// 2 -> entity+0x72 != entity+0x73 ? cursor += 4 : cursor += s16 w1 (relative jump); other ->
 	// nothing (cursor unchanged, vanilla).
-	// Predict: QueueChainTransformation is a no-op.
 	// ------------------------------------------------------------------------------------
 	static void __cdecl op_042_EntityChainAnim()
 	{
@@ -8653,8 +8096,6 @@ namespace part_shared_misc
 	// the allocation}, bone+0xC4 = 0x5BEC, ArenaAlloc(0x5BEC), then blob 0xB65D10(desc, outPos,
 	// outAngle) renders the battle stage into it and executes that OT. cursor += 10.
 	// (Ifrit's 0x090 is `cursor += 10`.)
-	// Predict: the descriptor words written above the arena top are guarded (ArenaAlloc journals
-	// the block only when it is called, after these writes); the render is a no-op.
 	// ------------------------------------------------------------------------------------
 	static void __cdecl op_090_OffscreenStageRender()
 	{
@@ -8668,7 +8109,7 @@ namespace part_shared_misc
 		U16(WS(), 0xD4) = U16(STREAM(), 6);
 		U16(WS(), 0xD6) = U16(STREAM(), 8);
 		uint8_t *d = PTR(CTX(), 0x74);                       // esi
-		guard(d, 0x18);
+		FX_HELD(guard(d, 0x18);)
 		U32(d, 0) = 0;
 		U32(d, 4) = 0;
 		U32(d, 0) = U32(CTX(), 0x74) + 0xEC;
@@ -8687,7 +8128,6 @@ namespace part_shared_misc
 	// ------------------------------------------------------------------------------------
 	// 0xB16F60 (VM 0x096 CaptureScreenStrips, Cerberus; = Eden 0xAF2760): ws+0xF0/F4 = s16 w1/w2
 	// (VRAM destination), CaptureScreenStrips (0xB0EB60). cursor += 6.
-	// Predict: the capture's packet/OT calls are no-ops (wrappers).
 	// ------------------------------------------------------------------------------------
 	static void __cdecl op_096_CaptureScreenStrips()
 	{
@@ -8788,3 +8228,7 @@ namespace part_shared_misc
 }
 }
 // ==== END clone-shared handler parts ====
+
+#ifdef FF8_FX_HELD
+#include "gfc_engine_held.inc"
+#endif

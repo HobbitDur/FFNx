@@ -40,7 +40,7 @@
 //     0x24F0D50 (second faded model 382..).
 //   The timeline also queues the shared camera-script task MAG_066_sub_63E9C0 (Doomtrain file);
 //   it is not part of this module and is not ported here. The module never writes the battle
-//   camera itself (no held-frame camera).
+//   camera itself.
 // Every task tests battle_to_update_flags_dword_1D96A9C & 0x201 (draw-only when set), except the
 // master, the end task 0x62CEA0 and the blade's done test.
 // Module-private renderers (pure functions of a scratch header: grid 0x62B1C0, clipped model
@@ -195,10 +195,6 @@ namespace o326
 	static const uint32_t ORIG_SlashCTask = 0x632350;
 	static const uint32_t ORIG_SlashDTask = 0x632500;
 
-	// real tick on which the ported master last ran (held frames need its memos)
-	static uint32_t g_ported_tick = 0xFFFFFFFF;
-	static bool g_tick_paused = false; // the 0x201 flags were set on that tick (nothing advanced)
-
 	// every sub-queue node is 0x24 bytes (pool 0x24F1330); field use differs per task
 #pragma pack(push, 1)
 	struct Node24
@@ -227,6 +223,17 @@ namespace o326
 	static_assert(sizeof(Node24) == 0x24, "sub-queue node is 0x24 bytes");
 	static_assert(sizeof(Rec) == 0x18, "sprite record is 0x18 bytes");
 
+}
+}
+
+#ifdef FF8_FX_HELD
+#include "mag326_odin_reverse_held.h"
+#endif
+
+namespace ff8fx
+{
+namespace o326
+{
 	inline Rec *RecOf(uint8_t *pool, int i) { return (Rec *)(pool + 0x18 * i); }
 
 	// first free record (dword 0) of a pool, -1 when none
@@ -253,37 +260,13 @@ namespace o326
 		return (c << 8) | (uint32_t)v;
 	}
 
-	// ---- held-frame memos ----
-	static NodeMemo<Node24, 128> g_node_memo;
-	static void MemoNode(const Node24 *n) { if (Node24 *m = g_node_memo.put(n)) *m = *n; }
-	static bool NodeMoved(const Node24 *m, const Node24 *n) { return n->c == (int16_t)(m->c + 1); }
-
-	// sprite records as drawn (per pool, record, draw ordinal: pool C mask 2 is drawn twice a tick)
-	struct PoolMemo { uint32_t tick; const void *owner; Rec r; bool died; };
-	static PoolMemo g_pool_memo[3][150][2];
-	static PoolMemo *MemoRecord(int pool, int i, const void *owner, const Rec *r)
-	{
-		PoolMemo *m = g_pool_memo[pool][i];
-		int k = 0;
-		if (m[0].tick == g_real_tick)
-		{
-			if (m[1].tick == g_real_tick) return nullptr;
-			k = 1;
-		}
-		m[k].tick = g_real_tick;
-		m[k].owner = owner;
-		m[k].r = *r;
-		m[k].died = false;
-		return &m[k];
-	}
-
 	// ------------------------------------------------------------------
 	// Master (0x6326B0): node from pool 0x24F0EB8, +0x0C counter (increments even when paused)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
-		g_ported_tick = g_real_tick;
-		g_tick_paused = Paused();
+		// 30 fps layer: see mag326_odin_reverse_held.inc
+		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		((Node24 *)tn)->c++;
 		return left ? 0 : TASK_END;
@@ -629,7 +612,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x100, 0x20, c, c * 2, GridAFade(c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x36 ? TASK_END : 0;
@@ -640,7 +623,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x200, 0x10, c * 2, c * 2, GridBFade(c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x36 ? TASK_END : 0;
@@ -652,7 +635,7 @@ namespace o326
 		int32_t c = n->c;
 		int32_t u = GridCU(c);
 		GridDraw(n, 0x100, 0x20, u, -u, GridCFade(c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x3C ? TASK_END : 0;
@@ -663,7 +646,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x200, 0x10, c * 2, shl32(-c, 1), 0x40);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1E ? TASK_END : 0;
@@ -685,7 +668,7 @@ namespace o326
 		Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 	}
 
-	// update rules of the records (deterministic part, used to predict the next drawn state)
+	// update rules of the records
 	enum Integrator { INT_NONE, INT_FALL, INT_DRAG4, INT_GROW5_DRAG8, INT_XZ_DRAG8, INT_GROW6_DRAG8, INT_BLOOD };
 	static void Integrate(int kind, Rec *r)
 	{
@@ -801,7 +784,7 @@ namespace o326
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 1)) continue;
 			DebrisDrawOne(h, &r->x, r->size);
-			PoolMemo *pm = MemoRecord(0, i, n, r);
+			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->y = (int16_t)(r->y + r->vy);
 			r->vy = (int16_t)(r->vy + (int16_t)(r->vy >> 5));
@@ -811,7 +794,7 @@ namespace o326
 				continue;
 			}
 			r->alive = 0;
-			if (pm) pm->died = true;
+			FX_HELD(MemoDied(pm);)
 			int j = FreeRecord(PoolB());
 			if (j < 0) continue;
 			Rec *b = RecOf(PoolB(), j);
@@ -829,13 +812,13 @@ namespace o326
 			Rec *r = RecOf(PoolB(), i);
 			if (!(r->alive & 1)) continue;
 			SplashDrawOne(h, s, r);
-			PoolMemo *pm = MemoRecord(1, i, n, r);
+			FX_HELD(PoolMemo *pm = MemoRecord(1, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				if (pm) pm->died = true;
+				FX_HELD(MemoDied(pm);)
 			}
 			else count++;
 		}
@@ -940,7 +923,7 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		GlowDraw(&Frame(), n, n->c);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1A ? TASK_END : 0;
@@ -985,7 +968,7 @@ namespace o326
 			return 0;
 		}
 		StreakDraw(n, n->p10);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->p10 = (int16_t)(n->p10 + n->s1E);
 		n->c++;
@@ -1023,7 +1006,7 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		WallDraw(n, n->s20, n->p14);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->p14 = (int16_t)(n->p14 + n->s22);
 		n->s20 = (int16_t)(n->s20 + (int16_t)((int32_t)n->s1E / 4));
@@ -1063,7 +1046,7 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		ShockDraw(n, n->s1C);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1145,49 +1128,6 @@ namespace o326
 	}
 
 	static uint32_t Scratch() { return var<uint32_t>(0xE196B0); }
-
-	// held-frame memo of a model: the drawn skeleton (pose values + local matrices), the reader
-	// command, the model matrix and the colour it was drawn with
-	static const uint32_t SKEL_MAX = 16 + 48 * 256;
-	struct ModelMemo
-	{
-		uint32_t tick;
-		bool midpoint;   // the next draw shows the pose one frame ahead of this one
-		bool hold_mat;   // the next tick cuts the model matrix
-		int32_t next_dz; // the next tick moves t.z by this before drawing (creature 144..152)
-		Mat4x3 mat;
-		uint32_t color;
-		uint32_t skel_size;
-		uint8_t cmd[8];
-		uint8_t skel[SKEL_MAX];
-	};
-	static ModelMemo g_creature = { 0xFFFFFFFF };
-	static ModelMemo g_fade_a = { 0xFFFFFFFF };
-	static ModelMemo g_fade_b = { 0xFFFFFFFF };
-
-	static uint8_t *Skeleton(uint8_t *E)
-	{
-		uint8_t *com = *(uint8_t **)(E + 0x64); // BattleAnimHeader.comFileData
-		return com ? *(uint8_t **)com : nullptr;
-	}
-
-	static void MemoTake(ModelMemo &m, uint8_t *E)
-	{
-		uint8_t *sk = Skeleton(E);
-		m.tick = 0xFFFFFFFF;
-		if (!sk) return;
-		uint32_t size = 16 + 48 * (uint32_t)sk[0];
-		if (size > SKEL_MAX) return;
-		m.skel_size = size;
-		memcpy(m.skel, sk, size);
-		memcpy(m.cmd, E + 0x6C, 8);
-		m.mat = *(const Mat4x3 *)(E + 0x40);
-		m.color = *(uint32_t *)(E + 0x28);
-		m.midpoint = false;
-		m.hold_mat = true;
-		m.next_dz = 0;
-		m.tick = g_real_tick;
-	}
 
 	// ------------------------------------------------------------------
 	// Spawners called by the creature
@@ -1453,8 +1393,8 @@ namespace o326
 	static int32_t SliceBFadeW(int32_t c) { return 0x1000 - ComputeSin(shl32(c - 0x2E, 10) / 6); }
 
 	// phase B (200..253): the halves at +-0x320, tilted by +-a about z; from c' = 46 the colour
-	// fades (colour written to E+0x28 unless out is given)
-	static void SliceBDraw(uint8_t *E, int32_t c, int16_t a, const Mat4x3 *frame, uint32_t scratch, bool real, uint32_t held_color)
+	// fades (recolor; otherwise the colour E+0x28 = color)
+	static void SliceBDraw(uint8_t *E, int32_t c, int16_t a, const Mat4x3 *frame, uint32_t scratch, bool recolor, uint32_t color)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x1D0);
 		SliceSetup(h, E);
@@ -1468,7 +1408,7 @@ namespace o326
 		ang[2] = (int16_t)-a;
 		ComposeZYXRotationMatrix(ang, &mc);
 		GteMatrixMultiply(&mc, &ma);
-		if (real)
+		if (recolor)
 		{
 			if (c >= 0x2E)
 			{
@@ -1477,7 +1417,7 @@ namespace o326
 				E[0x2B] = 2;
 			}
 		}
-		else *(uint32_t *)(E + 0x28) = held_color;
+		else *(uint32_t *)(E + 0x28) = color;
 		CreatureSliceDraw(h, E, &mb, &ma, frame, scratch);
 		FieldFree(0x1D0);
 	}
@@ -1502,18 +1442,11 @@ namespace o326
 	//   254-255 nothing drawn
 	// Node: +0x10 spawn position (132-142), +0x20 cut angle.
 	// ------------------------------------------------------------------
-	struct SliceMemo { uint32_t tick; bool phase_b; int32_t cc; int16_t angle; uint32_t color; };
-	static SliceMemo g_slice = { 0xFFFFFFFF };
-
-	// reader steps between the draw at tick c and the one at c + 1 (see the table above)
-	static bool AdvanceAfterDraw(int32_t c) { return (c >= 0 && c < 12) || (c >= 65 && c < 120) || (c >= 132 && c < 174); }
-	static bool AdvanceBeforeDraw(int32_t c) { return c >= 12 && c < 53; }
-	static bool SetAnimBeforeDraw(int32_t c) { return c == 0 || c == 12 || c == 40 || c == 65 || c == 108 || c == 120 || c == 143; }
-
 	static void Draw(uint8_t *E)
 	{
 		DrawModel(E, &Frame(), Scratch());
-		MemoTake(g_creature, E);
+		// 30 fps layer: see mag326_odin_reverse_held.inc
+		FX_HELD(held_note_creature(E);)
 	}
 
 	static uint32_t __cdecl CreatureTask(TaskNode *tn)
@@ -1534,7 +1467,7 @@ namespace o326
 			LinkTask(ORIG_BladeTask);
 			var<uint32_t>(0x24F12E4) = 7;
 		}
-		g_slice.tick = 0xFFFFFFFF;
+		FX_HELD(held_note_slice_clear();)
 		int32_t c = n->c;
 		if (c < 12)
 		{
@@ -1628,11 +1561,7 @@ namespace o326
 			else if (c < 1) goto draw;
 			SliceADraw(E, c * 8 - 8, &Frame(), Scratch());
 			n->s20 = 0x80;
-			g_slice.tick = g_real_tick;
-			g_slice.phase_b = false;
-			g_slice.cc = c;
-			g_slice.angle = 0x80;
-			g_slice.color = *(uint32_t *)(E + 0x28);
+			FX_HELD(held_note_slice(false, c, 0x80, E);)
 			goto end;
 		}
 		if ((c -= 0x1A) < 0x36) // 200..253
@@ -1653,11 +1582,7 @@ namespace o326
 				else CasterFlags(true);
 			}
 			SliceBDraw(E, c, n->s20, &Frame(), Scratch(), true, 0);
-			g_slice.tick = g_real_tick;
-			g_slice.phase_b = true;
-			g_slice.cc = c;
-			g_slice.angle = n->s20;
-			g_slice.color = *(uint32_t *)(E + 0x28);
+			FX_HELD(held_note_slice(true, c, n->s20, E);)
 		}
 		goto end;
 
@@ -1674,15 +1599,7 @@ namespace o326
 	end:
 		if (Paused()) return 0;
 		n->c++;
-		if (g_creature.tick == g_real_tick)
-		{
-			int32_t drawn = n->c - 1, nc = n->c;
-			int steps = (AdvanceAfterDraw(drawn) ? 1 : 0) + (AdvanceBeforeDraw(nc) ? 1 : 0);
-			g_creature.midpoint = steps == 1 && !SetAnimBeforeDraw(nc) && nc <= 174;
-			// the model matrix the next draw uses: the current one moved by next_dz, except on its cuts
-			g_creature.hold_mat = nc == 12 || nc == 143 || nc >= 174;
-			g_creature.next_dz = nc >= 144 && nc <= 152 ? -0x1C2 : 0;
-		}
+		FX_HELD(held_note_creature_next(n);)
 		if (n->c < 0x100) return 0;
 		DoneFlags() |= 1;
 		return TASK_END;
@@ -1748,16 +1665,13 @@ namespace o326
 		return otz;
 	}
 
-	struct FlashMemo { int32_t level, otz; };
-	static NodeMemo<FlashMemo, 8> g_flash_memo;
-
 	static uint32_t __cdecl FlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		int32_t otz = FlashDepth();
 		int32_t level = FlashLevel(n->c, n->e, n->s1C);
 		if (level >= 0) ScreenTile(level, level, level, otz);
-		if (FlashMemo *m = g_flash_memo.put(n)) { m->level = level; m->otz = otz; }
+		FX_HELD(held_note_flash(n, level, otz);)
 		if (Paused()) return 0;
 		n->c++;
 		return level < 0 ? TASK_END : 0;
@@ -1826,7 +1740,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		MorphDraw(n, MorphArg(c), c >= 6, mul32(c - 6, 682), Scratch());
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xC ? TASK_END : 0;
@@ -1864,13 +1778,13 @@ namespace o326
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 2)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			PoolMemo *pm = MemoRecord(0, i, n, r);
+			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				if (pm) pm->died = true;
+				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_DRAG4, r);
@@ -1950,7 +1864,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		RingDraw(&Frame(), n, n->s1C, n->s20, c >= 6, RingAFade(c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s22;
 		n->s20 = (int16_t)(n->s20 + v);
@@ -1964,7 +1878,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		RingDraw(&Frame(), n, n->s1C, n->s20, c >= 4, RingBFade(c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1992,13 +1906,13 @@ namespace o326
 			Rec *r = RecOf(PoolB(), i);
 			if (!(r->alive & 2)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			PoolMemo *pm = MemoRecord(1, i, n, r);
+			FX_HELD(PoolMemo *pm = MemoRecord(1, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				if (pm) pm->died = true;
+				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_XZ_DRAG8, r);
@@ -2060,26 +1974,19 @@ namespace o326
 		ComposeAffineTransform(&Frame(), (const Mat4x3 *)(s + 8), (Mat4x3 *)(s + 8));
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
-		// held frames draw around the translation of this tick
-		if (Node24 *m = g_node_memo.put(n))
-		{
-			*m = *n;
-			m->p10 = (int16_t)*(int32_t *)(s + 0x1C);
-			m->p12 = (int16_t)*(int32_t *)(s + 0x20);
-			m->p14 = (int16_t)*(int32_t *)(s + 0x24);
-		}
+		FX_HELD(held_note_mist(n, s);)
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 4)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			PoolMemo *pm = MemoRecord(0, i, n, r);
+			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				if (pm) pm->died = true;
+				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_GROW5_DRAG8, r);
@@ -2180,13 +2087,13 @@ namespace o326
 			Rec *r = RecOf(PoolC(), i);
 			if (!(r->alive & mask)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			PoolMemo *pm = MemoRecord(2, i, owner, r);
+			FX_HELD(PoolMemo *pm = MemoRecord(2, i, owner, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				if (pm) pm->died = true;
+				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(kind, r);
@@ -2363,17 +2270,11 @@ namespace o326
 		FieldFree(0x58);
 	}
 
-	struct BladeMemo { uint32_t tick; int16_t c; Mat4x3 e, bone; };
-	static BladeMemo g_blade = { 0xFFFFFFFF };
-
 	static uint32_t __cdecl BladeTask(TaskNode *tn)
 	{
 		if (!(var<uint8_t>(0x24F12E4) & 4)) return TASK_END;
 		Node24 *n = (Node24 *)tn;
-		g_blade.tick = g_real_tick;
-		g_blade.c = n->c;
-		g_blade.e = CreatureMat();
-		g_blade.bone = BoneCopy();
+		FX_HELD(held_note_blade(n);)
 		BladeDraw(&Frame(), &CreatureMat(), &BoneCopy(), BladeP0(), BladeP1(), n->c > 0);
 		if (Paused()) return 0;
 		uint8_t *sk = **(uint8_t ***)(0x24F12CC);
@@ -2440,9 +2341,6 @@ namespace o326
 		Cursor() = pk2; // (vanilla: the cursor ends 0x24 bytes past the last packet)
 	}
 
-	struct TrailMemo { bool drawn; uint8_t a[0x100], b[0x100]; };
-	static NodeMemo<TrailMemo, 8> g_trail_memo;
-
 	static uint32_t __cdecl TrailTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2478,18 +2376,12 @@ namespace o326
 			var<uint32_t>(HIST_B + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
-		TrailMemo *m = g_trail_memo.put(n);
-		if (m) m->drawn = false;
+		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
 			SplineRails(cnt, 32, 31);
 			TrailDraw(&Frame(), SPLINE_A, SPLINE_B, s);
-			if (m)
-			{
-				m->drawn = true;
-				memcpy(m->a, (const void *)SPLINE_A, 0x100);
-				memcpy(m->b, (const void *)SPLINE_B, 0x100);
-			}
+			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
 		if (Paused()) return 0;
@@ -2526,9 +2418,6 @@ namespace o326
 			if (--j < 0) j = 5;
 		}
 	}
-
-	struct GhostMemo { uint32_t tick; Node24 n; int32_t k; Mat4x3 mat; };
-	static GhostMemo g_ghost = { 0xFFFFFFFF };
 
 	static uint32_t __cdecl GhostTask(TaskNode *tn)
 	{
@@ -2568,10 +2457,7 @@ namespace o326
 		rec[0] = 1;
 		memcpy(rec + 1, &Model2Mat(), 0x20);
 		Mat4x3 save = Model2Mat();
-		g_ghost.tick = g_real_tick;
-		g_ghost.n = *n;
-		g_ghost.k = k;
-		g_ghost.mat = save;
+		FX_HELD(held_note_ghost(n, k, save);)
 		GhostEchoes(E, k, &Frame(), Scratch());
 		Model2Mat() = save;
 		var<uint32_t>(0x24F0F10) = 0x808080;
@@ -2620,7 +2506,7 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		SwordDraw(&Frame(), &Model2Mat(), n->c > 0);
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1E ? TASK_END : 0;
@@ -2634,7 +2520,7 @@ namespace o326
 	// ------------------------------------------------------------------
 	static int32_t FadeW(int32_t c) { return 0x1000 - ComputeSin(shl32(c - 0x13, 10) / 8); }
 
-	static uint32_t FadeTask(Node24 *n, uint8_t *E, uint32_t mat, uint32_t data, uint32_t buf_ptr, ModelMemo &memo)
+	static uint32_t FadeTask(Node24 *n, uint8_t *E, uint32_t mat, uint32_t data, uint32_t buf_ptr)
 	{
 		if (n->c == 0)
 		{
@@ -2658,17 +2544,15 @@ namespace o326
 			DepthCue(w, 0x80, 0x80, 0x80, E + 0x28);
 		}
 		DrawModel(E, &Frame(), Scratch());
-		MemoTake(memo, E);
-		MemoNode(n);
+		FX_HELD(held_note_fade(n, E);)
 		if (Paused()) return 0;
 		n->c++;
-		memo.midpoint = c >= 1; // the next tick advances one frame (the pose right after SetAnim is held)
-		memo.hold_mat = true;   // the matrix never moves
+		FX_HELD(held_note_fade_next(E, c);)
 		return n->c >= 0x1B ? TASK_END : 0;
 	}
 
-	static uint32_t __cdecl FadeATask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model2(), 0x24F0F28, 0x24F2140, 0, g_fade_a); }
-	static uint32_t __cdecl FadeBTask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model3(), 0x24F0D90, 0x24F22A8, 0x24F22E4, g_fade_b); }
+	static uint32_t __cdecl FadeATask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model2(), 0x24F0F28, 0x24F2140, 0); }
+	static uint32_t __cdecl FadeBTask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model3(), 0x24F0D90, 0x24F22A8, 0x24F22E4); }
 
 	// ------------------------------------------------------------------
 	// Screen tint (0x62CD40, timeline tick 382), 27 ticks: full-screen tile (0x70, 0x80, 0xF0) at
@@ -2689,17 +2573,13 @@ namespace o326
 		}
 	}
 
-	struct TintMemo { uint8_t rgb[4]; };
-	static NodeMemo<TintMemo, 8> g_tint_memo;
-
 	static uint32_t __cdecl TintTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t L[4];
 		TintColor(n->c, L);
 		ScreenTile(L[0], L[1], L[2], 0x1000);
-		if (TintMemo *m = g_tint_memo.put(n)) memcpy(m->rgb, L, 4);
-		MemoNode(n);
+		FX_HELD(held_note_tint(n, L);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1B ? TASK_END : 0;
@@ -2789,7 +2669,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		BurstDraw(n, c, false, shl32(c, 4), BurstFade(false, c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xC ? TASK_END : 0;
@@ -2800,7 +2680,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		BurstDraw(n, c, true, shl32(c, 4), BurstFade(true, c));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xB ? TASK_END : 0;
@@ -2869,12 +2749,12 @@ namespace o326
 			Rec *r = RecOf(pool, i);
 			if (!(mask & r->alive)) continue;
 			LitSprite(h, &r->x, r->size, r->age, true);
-			PoolMemo *pm = MemoRecord(2, i, n, r);
+			FX_HELD(PoolMemo *pm = MemoRecord(2, i, n, r);)
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				if (pm) pm->died = true;
+				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			r->age++;
@@ -2937,7 +2817,7 @@ namespace o326
 			return 0;
 		}
 		SlashDraw(n, n->s1C, SlashFade(n->c, n->s20, n->p16));
-		MemoNode(n);
+		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t cc = n->c;
 		if (cc < shrink)
@@ -2954,588 +2834,53 @@ namespace o326
 	static uint32_t __cdecl SlashBTask(TaskNode *tn) { return SlashTask((Node24 *)tn, 4, 2, 7); }
 	static uint32_t __cdecl SlashCTask(TaskNode *tn) { return SlashTask((Node24 *)tn, 6, 3, -1); }
 	static uint32_t __cdecl SlashDTask(TaskNode *tn) { return SlashTask((Node24 *)tn, 6, 3, 7); }
-
-	// ------------------------------------------------------------------
-	// Held frames (30 fps). Everything is drawn half way between the state drawn on the last
-	// real tick and the state the next tick will draw; spawns, flipbook frames, per-frame table
-	// values and random choices keep their 15 Hz batches. The frame matrix is rebuilt from the
-	// held-frame camera while the timeline (its owner) is alive, into a local (never into
-	// 0x24F2268). Module globals written by the draws (blade end points, bone copy, model
-	// matrices / colours / skeletons, the morph vertices) are either computed into private
-	// copies or put back; model draws use a private vertex scratch.
-	// ------------------------------------------------------------------
-	static uint8_t g_scratch[0x20000];   // RenderGeometry / clipped renderer vertex scratch
-	static uint8_t g_morph_verts[0x400]; // 126 x 8
-	static uint8_t g_skel_cur[SKEL_MAX];
-
-	static int16_t Lerp16(int32_t a, int32_t b, int num, int den) { return (int16_t)lerp_i(a, b, num, den); }
-
-	static uint32_t LerpColor(uint32_t a, uint32_t b, int num, int den)
-	{
-		uint32_t r = a & 0xFF000000;
-		for (int k = 0; k < 24; k += 8)
-			r |= (uint32_t)(lerp_i((a >> k) & 0xFF, (b >> k) & 0xFF, num, den) & 0xFF) << k;
-		return r;
-	}
-
-	static void LerpMatrix(Mat4x3 *out, const Mat4x3 &a, const Mat4x3 &b, int num, int den)
-	{
-		*out = a;
-		for (int i = 0; i < 3; i++)
-		{
-			for (int j = 0; j < 3; j++) out->m[i][j] = Lerp16(a.m[i][j], b.m[i][j], num, den);
-			out->t[i] = lerp_i(a.t[i], b.t[i], num, den);
-		}
-	}
-
-	// the creature matrix the next real tick draws with (t.z moves before the draw at 144..152)
-	static Mat4x3 CreatureMatNext()
-	{
-		Mat4x3 m = CreatureMat();
-		if (g_creature.tick == g_real_tick) m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)g_creature.next_dz);
-		return m;
-	}
-
-	// draws model E with the memo's skeleton (at the midpoint pose if asked), the given matrix and
-	// colour and the private scratch; puts the skeleton, the reader command, matrix and colour back
-	static void ModelHeld(const ModelMemo &m, uint8_t *E, const Mat4x3 *frame, const Mat4x3 &mat, uint32_t color, bool midpoint, int num, int den)
-	{
-		if (m.tick != g_real_tick) return;
-		uint8_t *sk = Skeleton(E);
-		if (!sk || 16 + 48 * (uint32_t)sk[0] != m.skel_size) return;
-		uint8_t cmd_cur[8];
-		Mat4x3 mat_cur = *(Mat4x3 *)(E + 0x40);
-		uint32_t color_cur = *(uint32_t *)(E + 0x28);
-		memcpy(g_skel_cur, sk, m.skel_size);
-		memcpy(cmd_cur, E + 0x6C, 8);
-		// the drawn pose (its values and its local matrices) and the command that read it
-		memcpy(sk, m.skel, m.skel_size);
-		memcpy(E + 0x6C, m.cmd, 8);
-		if (midpoint) pose_midpoint(E + 0x60, E + 0x6C, num, den);
-		*(Mat4x3 *)(E + 0x40) = mat;
-		*(uint32_t *)(E + 0x28) = color;
-		DrawModel(E, frame, (uint32_t)g_scratch);
-		*(uint32_t *)(E + 0x28) = color_cur;
-		*(Mat4x3 *)(E + 0x40) = mat_cur;
-		memcpy(E + 0x6C, cmd_cur, 8);
-		memcpy(sk, g_skel_cur, m.skel_size);
-	}
-
-	// ---- grids ----
-	static void GridHeld(const Node24 *n, int kind, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		int32_t c = m->c;
-		bool mv = NodeMoved(m, n) && !g_tick_paused;
-		switch (kind)
-		{
-		case 0: // A
-		case 1: // B
-		{
-			bool b = kind == 1;
-			int32_t f = b ? GridBFade(c) : GridAFade(c);
-			int32_t u = b ? c * 2 : c, v = c * 2;
-			if (mv)
-			{
-				f = lerp_i(f, b ? GridBFade(c + 1) : GridAFade(c + 1), num, den);
-				u = lerp_i(u, b ? (c + 1) * 2 : c + 1, num, den);
-				v = lerp_i(v, (c + 1) * 2, num, den);
-			}
-			GridDraw(m, b ? 0x200 : 0x100, b ? 0x10 : 0x20, u, v, f);
-			break;
-		}
-		case 2: // C: the grey level steps (15 Hz), the scroll moves
-		{
-			int32_t u = GridCU(c);
-			if (mv) u = lerp_i(u, GridCU(c + 1), num, den);
-			GridDraw(m, 0x100, 0x20, u, -u, GridCFade(c));
-			break;
-		}
-		default: // D
-		{
-			int32_t u = c * 2;
-			if (mv) u = lerp_i(u, (c + 1) * 2, num, den);
-			GridDraw(m, 0x200, 0x10, u, -u, 0x40);
-			break;
-		}
-		}
-	}
-
-	// ---- lit sprite pools: memo record integrated to the next draw, half way; frame kept ----
-	enum PoolDraw { DRAW_DEBRIS, DRAW_LIT, DRAW_LIT_MAC };
-	static void PoolHeld(int pool, const void *owner, uint8_t *h, int kind, int steps, int how, int num, int den)
-	{
-		for (int i = 0; i < 150; i++)
-		{
-			for (int k = 0; k < 2; k++)
-			{
-				const PoolMemo &mm = g_pool_memo[pool][i][k];
-				if (mm.tick != g_real_tick || mm.owner != owner) continue;
-				Rec t = mm.r;
-				if (!mm.died && !g_tick_paused)
-					for (int s = 0; s < steps; s++) Integrate(kind, &t);
-				int16_t pos[4] = { Lerp16(mm.r.x, t.x, num, den), Lerp16(mm.r.y, t.y, num, den), Lerp16(mm.r.z, t.z, num, den), mm.r.w0E };
-				int16_t size = Lerp16(mm.r.size, t.size, num, den);
-				if (how == DRAW_DEBRIS) DebrisDrawOne(h, pos, size);
-				else LitSprite(h, pos, size, mm.r.age, how == DRAW_LIT_MAC);
-			}
-		}
-	}
-
-	static void DebrisHeld(const void *owner, int num, int den)
-	{
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		uint8_t *s = (uint8_t *)FieldAlloc(0x68);
-		DebrisSetupA(h, s);
-		PoolHeld(0, owner, h, INT_FALL, 1, DRAW_DEBRIS, num, den);
-		DebrisSetupB(h, s);
-		for (int i = 0; i < 150; i++)
-		{
-			const PoolMemo &mm = g_pool_memo[1][i][0];
-			if (mm.tick != g_real_tick || mm.owner != owner) continue;
-			SplashDrawOne(h, s, &mm.r); // standing splashes: the frame drawn
-		}
-		FieldFree(0x68);
-		FieldFree(0xB4);
-	}
-
-	static void LitPoolHeld(const Mat4x3 *frame, const Node24 *n, int pool, uint32_t seq, int32_t ty, int kind, int num, int den)
-	{
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = seq;
-		*(int16_t *)(h + 0x24) = 0;
-		LitSetup(frame, s, 0, ty, 0x28);
-		PoolHeld(pool, n, h, kind, 1, DRAW_LIT, num, den);
-		FieldFree(0x48);
-		FieldFree(0xB4);
-	}
-
-	static void MistHeld(const Mat4x3 *frame, const Node24 *n, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE108E8;
-		*(uint32_t *)(h + 0x1C) = 0x404040;
-		*(int16_t *)(h + 0x24) = 4;
-		LitSetup(frame, s, m->p10, m->p12, m->p14); // the bone position of the last tick
-		PoolHeld(0, n, h, INT_GROW5_DRAG8, 1, DRAW_LIT, num, den);
-		FieldFree(0x48);
-		FieldFree(0xB4);
-	}
-
-	static void SparkHeld(const Mat4x3 *frame, const Node24 *n, bool two, int drivers, int num, int den)
-	{
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
-		if (two) SparkSetup(frame, h, s, 0xE10E04, 0x202020);
-		else SparkSetup(frame, h, s, 0xE108E8, 0x404040);
-		PoolHeld(2, n, h, two ? INT_GROW6_DRAG8 : INT_GROW5_DRAG8, two ? drivers : 1, DRAW_LIT, num, den);
-		FieldFree(0x50);
-		FieldFree(0xB4);
-	}
-
-	static void BloodHeld(const Mat4x3 *frame, const Node24 *n, int num, int den)
-	{
-		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		BloodSetup(frame, h, s);
-		PoolHeld(2, n, h, INT_BLOOD, 1, DRAW_LIT_MAC, num, den);
-		FieldFree(0xB4);
-		FieldFree(0x48);
-	}
-
-	// ---- node-driven models ----
-	static void GlowHeld(const Mat4x3 *frame, const Node24 *n)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (m) GlowDraw(frame, m, m->c); // the scroll steps whole units: the one drawn
-	}
-
-	static void StreakHeld(const Node24 *n, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		int32_t x = m->p10;
-		if (NodeMoved(m, n) && !g_tick_paused) x = lerp_i(m->p10, n->p10, num, den);
-		StreakDraw(m, x);
-	}
-
-	static void WallHeld(const Node24 *n, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		int32_t s20 = m->s20, z = m->p14;
-		if (NodeMoved(m, n) && !g_tick_paused)
-		{
-			s20 = lerp_i(m->s20, n->s20, num, den);
-			z = lerp_i(m->p14, n->p14, num, den);
-		}
-		WallDraw(m, s20, z);
-	}
-
-	static void ShockHeld(const Node24 *n, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		int32_t sx = m->s1C;
-		if (NodeMoved(m, n) && !g_tick_paused) sx = lerp_i(m->s1C, n->s1C, num, den);
-		ShockDraw(m, sx);
-	}
-
-	static void RingHeld(const Mat4x3 *frame, const Node24 *n, bool b, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		bool mv = NodeMoved(m, n) && !g_tick_paused;
-		int32_t c = m->c;
-		int32_t sx = m->s1C, sy = m->s20;
-		int32_t start = b ? 4 : 6;
-		int32_t f = b ? RingBFade(c) : RingAFade(c);
-		if (mv)
-		{
-			sx = lerp_i(m->s1C, n->s1C, num, den);
-			sy = lerp_i(m->s20, n->s20, num, den);
-			if (c >= start) f = lerp_i(f, b ? RingBFade(c + 1) : RingAFade(c + 1), num, den);
-		}
-		RingDraw(frame, m, sx, sy, c >= start, f);
-	}
-
-	static void FlashHeld(const Node24 *n, int num, int den)
-	{
-		const FlashMemo *m = g_flash_memo.get(n);
-		if (!m || m->level < 0) return;
-		int32_t level = m->level;
-		if (!g_tick_paused)
-		{
-			int32_t next = FlashLevel(n->c, n->e, n->s1C);
-			if (next >= 0) level = lerp_i(m->level, next, num, den);
-		}
-		ScreenTile(level, level, level, m->otz);
-	}
-
-	static void MorphHeld(const Node24 *n, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		int32_t c = m->c;
-		int32_t arg = MorphArg(c), f = mul32(c - 6, 682);
-		if (NodeMoved(m, n) && !g_tick_paused)
-		{
-			arg = lerp_i(arg, MorphArg(c + 1), num, den);
-			if (c >= 6) f = lerp_i(f, mul32(c - 5, 682), num, den);
-		}
-		MorphDraw(m, arg, c >= 6, f, (uint32_t)g_morph_verts);
-	}
-
-	static void TintHeld(const Node24 *n, int num, int den)
-	{
-		const TintMemo *m = g_tint_memo.get(n);
-		const Node24 *mn = g_node_memo.get(n);
-		if (!m || !mn) return;
-		uint8_t rgb[4];
-		memcpy(rgb, m->rgb, 4);
-		if (NodeMoved(mn, n) && !g_tick_paused)
-		{
-			uint8_t next[4];
-			TintColor(mn->c + 1, next);
-			for (int k = 0; k < 3; k++) rgb[k] = (uint8_t)lerp_i(m->rgb[k], next[k], num, den);
-		}
-		ScreenTile(rgb[0], rgb[1], rgb[2], 0x1000);
-	}
-
-	static void BurstHeld(const Node24 *n, bool b, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		int32_t c = m->c;
-		int32_t scroll = shl32(c, 4), fade = BurstFade(b, c);
-		if (NodeMoved(m, n) && !g_tick_paused)
-		{
-			scroll = lerp_i(scroll, shl32(c + 1, 4), num, den);
-			if (c >= (b ? 7 : 6)) fade = lerp_i(fade, BurstFade(b, c + 1), num, den);
-		}
-		BurstDraw(m, c, b, scroll, fade);
-	}
-
-	static void SlashHeld(const Node24 *n, int num, int den)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		int32_t c = m->c;
-		int32_t scale = m->s1C, f = SlashFade(c, m->s20, m->p16);
-		if (NodeMoved(m, n) && !g_tick_paused)
-		{
-			scale = lerp_i(m->s1C, n->s1C, num, den);
-			f = lerp_i(f, SlashFade(c + 1, m->s20, m->p16), num, den);
-		}
-		SlashDraw(m, scale, f);
-	}
-
-	// ---- the creature ----
-	static void SliceHeld(const Mat4x3 *frame, int num, int den)
-	{
-		const SliceMemo &s = g_slice;
-		uint8_t *E = Creature();
-		uint8_t *sk = Skeleton(E);
-		uint32_t size = sk ? 16 + 48 * (uint32_t)sk[0] : 0;
-		if (!sk || size > SKEL_MAX) return;
-		bool mv = !g_tick_paused;
-		uint32_t color_cur = *(uint32_t *)(E + 0x28);
-		memcpy(g_skel_cur, sk, size);
-		if (!s.phase_b)
-		{
-			// halves drifting apart: 8c' - 8 -> 8c' (the switch to phase B at 200 is a cut)
-			int32_t d = s.cc * 8 - 8;
-			if (mv && s.cc + 1 < 0x1A) d = lerp_i(d, s.cc * 8, num, den);
-			*(uint32_t *)(E + 0x28) = s.color;
-			SliceADraw(E, d, frame, (uint32_t)g_scratch);
-		}
-		else
-		{
-			int16_t a = s.angle;
-			uint32_t col = s.color;
-			int32_t nc = s.cc + 1;
-			if (mv && nc < 0x36)
-			{
-				if (nc >= 0x1E) a = lerp_angle(a, (int16_t)(a + 0x12), num, den);
-				if (nc >= 0x2E)
-				{
-					uint32_t next = 0;
-					DepthCue(SliceBFadeW(nc), 0x80, 0x80, 0x80, &next);
-					col = LerpColor(col, next, num, den);
-				}
-			}
-			SliceBDraw(E, s.cc, a, frame, (uint32_t)g_scratch, false, col);
-		}
-		*(uint32_t *)(E + 0x28) = color_cur;
-		memcpy(sk, g_skel_cur, size);
-	}
-
-	static void CreatureHeld(const Mat4x3 *frame, int num, int den)
-	{
-		if (g_slice.tick == g_real_tick)
-		{
-			SliceHeld(frame, num, den);
-			return;
-		}
-		const ModelMemo &m = g_creature;
-		if (m.tick != g_real_tick) return;
-		uint8_t *E = Creature();
-		bool mv = !g_tick_paused;
-		Mat4x3 mat = m.mat;
-		if (mv && !m.hold_mat)
-		{
-			Mat4x3 next = CreatureMatNext();
-			for (int k = 0; k < 3; k++) mat.t[k] = lerp_i(m.mat.t[k], next.t[k], num, den);
-		}
-		// the colour the next draw uses is already in place (the fade-in task runs after the creature)
-		uint32_t color = mv ? LerpColor(m.color, *(uint32_t *)(E + 0x28), num, den) : m.color;
-		ModelHeld(m, E, frame, mat, color, m.midpoint && mv, num, den);
-	}
-
-	static void BladeHeld(const Mat4x3 *frame, int num, int den)
-	{
-		if (g_blade.tick != g_real_tick) return;
-		Mat4x3 e = g_blade.e, bone = g_blade.bone;
-		if (!g_tick_paused)
-		{
-			LerpMatrix(&e, g_blade.e, CreatureMatNext(), num, den);
-			LerpMatrix(&bone, g_blade.bone, BoneCopy(), num, den);
-		}
-		int16_t p0[4], p1[4];
-		memcpy(p0, BladeP0(), 8);
-		memcpy(p1, BladeP1(), 8);
-		BladeDraw(frame, &e, &bone, p0, p1, g_blade.c > 0);
-	}
-
-	static void TrailHeld(const Mat4x3 *frame, const Node24 *n)
-	{
-		const TrailMemo *m = g_trail_memo.get(n);
-		if (!m || !m->drawn) return; // the trail grows in 15 Hz steps: the one drawn, from the held camera
-		uint8_t *s = (uint8_t *)FieldAlloc(0x40);
-		TrailDraw(frame, (uint32_t)m->a, (uint32_t)m->b, s);
-		FieldFree(0x40);
-	}
-
-	// ---- model 2: ghost trail and its sword ----
-	static bool g_m2_valid = false;
-	static Mat4x3 g_m2_held;
-
-	// the ghost's in-between matrix (turned half way, moved half the velocity); the echoes stay
-	// where they were recorded
-	static void GhostPrepare(int num, int den)
-	{
-		g_m2_valid = false;
-		if (g_ghost.tick != g_real_tick) return;
-		const Node24 &n = g_ghost.n;
-		Mat4x3 m = g_ghost.mat;
-		if (!g_tick_paused)
-		{
-			GhostPose(&m, lerp_angle(n.a18, (int16_t)(n.a18 + n.s1A), num, den));
-			m.t[0] = (int32_t)((uint32_t)g_ghost.mat.t[0] + (uint32_t)lerp_i(0, n.p10, num, den));
-			m.t[1] = (int32_t)((uint32_t)g_ghost.mat.t[1] + (uint32_t)lerp_i(0, n.p12, num, den));
-			m.t[2] = (int32_t)((uint32_t)g_ghost.mat.t[2] + (uint32_t)lerp_i(0, n.p14, num, den));
-		}
-		g_m2_held = m;
-		g_m2_valid = true;
-	}
-
-	static void GhostHeld(const Mat4x3 *frame)
-	{
-		if (!g_m2_valid) return;
-		uint8_t *E = Model2();
-		uint8_t *sk = Skeleton(E);
-		uint32_t size = sk ? 16 + 48 * (uint32_t)sk[0] : 0;
-		if (!sk || size > SKEL_MAX) return;
-		Mat4x3 mat_cur = Model2Mat();
-		uint32_t color_cur = var<uint32_t>(0x24F0F10);
-		memcpy(g_skel_cur, sk, size);
-		Model2Mat() = g_m2_held;
-		DrawModel(E, frame, (uint32_t)g_scratch);
-		GhostEchoes(E, g_ghost.k, frame, (uint32_t)g_scratch);
-		var<uint32_t>(0x24F0F10) = color_cur;
-		Model2Mat() = mat_cur;
-		memcpy(sk, g_skel_cur, size);
-	}
-
-	static void SwordHeld(const Mat4x3 *frame, const Node24 *n)
-	{
-		const Node24 *m = g_node_memo.get(n);
-		if (!m) return;
-		Mat4x3 mat_cur = Model2Mat(), bone_cur = BoneCopy();
-		if (g_m2_valid) Model2Mat() = g_m2_held;
-		SwordDraw(frame, &Model2Mat(), m->c > 0);
-		BoneCopy() = bone_cur;
-		Model2Mat() = mat_cur;
-	}
-
-	// ---- the fading models ----
-	static void FadeHeld(const Mat4x3 *frame, const Node24 *n, uint8_t *E, const ModelMemo &memo, int num, int den)
-	{
-		const Node24 *mn = g_node_memo.get(n);
-		if (!mn || memo.tick != g_real_tick) return;
-		bool mv = NodeMoved(mn, n) && !g_tick_paused;
-		uint32_t color = memo.color;
-		if (mv && mn->c + 1 >= 0x13)
-		{
-			uint32_t next = 0;
-			DepthCue(FadeW(mn->c + 1), 0x80, 0x80, 0x80, &next);
-			color = LerpColor(memo.color, next, num, den);
-		}
-		ModelHeld(memo, E, frame, memo.mat, color, memo.midpoint && mv, num, den);
-	}
-
-	static uint8_t g_held_packets[0x80000];
-
-	static bool HeldReady() { return g_ported_tick == g_real_tick; }
-
-	// the master's queue order; packets go to a private buffer (the module draws through the
-	// engine cursor battle_texture_data_ptr_1D8E054, redirected and put back)
-	static void HeldFrame(int num, int den)
-	{
-		uint32_t cursor = Cursor();
-		Cursor() = (uint32_t)g_held_packets;
-		bool timeline = false;
-		int drivers = 0;
-		for (TaskNode *t = SubQueue().head; t; t = t->next)
-		{
-			if ((uint32_t)t->func == ORIG_TimelineTask) timeline = true;
-			if ((uint32_t)t->func == ORIG_Spark2Task) drivers++;
-		}
-		if (drivers < 1) drivers = 1;
-		Mat4x3 frame;
-		if (timeline) ComposeAffineTransform(&Camera(), &RootMatrix(), &frame);
-		else frame = Frame();
-		GhostPrepare(num, den);
-		for (TaskNode *t = SubQueue().head; t; t = t->next)
-		{
-			const Node24 *n = (const Node24 *)t;
-			switch ((uint32_t)t->func)
-			{
-			case ORIG_GridATask: GridHeld(n, 0, num, den); break;
-			case ORIG_GridBTask: GridHeld(n, 1, num, den); break;
-			case ORIG_GridCTask: GridHeld(n, 2, num, den); break;
-			case ORIG_GridDTask: GridHeld(n, 3, num, den); break;
-			case ORIG_DebrisTask: DebrisHeld(n, num, den); break;
-			case ORIG_GlowTask: GlowHeld(&frame, n); break;
-			case ORIG_StreakTask: StreakHeld(n, num, den); break;
-			case ORIG_WallTask: WallHeld(n, num, den); break;
-			case ORIG_ShockTask: ShockHeld(n, num, den); break;
-			case ORIG_GhostTask: GhostHeld(&frame); break;
-			case ORIG_SwordTask: SwordHeld(&frame, n); break;
-			case ORIG_FadeATask: FadeHeld(&frame, n, Model2(), g_fade_a, num, den); break;
-			case ORIG_FadeBTask: FadeHeld(&frame, n, Model3(), g_fade_b, num, den); break;
-			case ORIG_TintTask: TintHeld(n, num, den); break;
-			case ORIG_CreatureTask: CreatureHeld(&frame, num, den); break;
-			case ORIG_SmokeTask: LitPoolHeld(&frame, n, 0, 0xE10FB0, 0, INT_DRAG4, num, den); break;
-			case ORIG_RingATask: RingHeld(&frame, n, false, num, den); break;
-			case ORIG_RingBTask: RingHeld(&frame, n, true, num, den); break;
-			case ORIG_DustTask: LitPoolHeld(&frame, n, 1, 0xE108E8, -40, INT_XZ_DRAG8, num, den); break;
-			case ORIG_MistTask: MistHeld(&frame, n, num, den); break;
-			case ORIG_FlashTask: FlashHeld(n, num, den); break;
-			case ORIG_MorphTask: MorphHeld(n, num, den); break;
-			case ORIG_SparkTask: SparkHeld(&frame, n, false, 1, num, den); break;
-			case ORIG_Spark2Task: SparkHeld(&frame, n, true, drivers, num, den); break;
-			case ORIG_BladeTask: BladeHeld(&frame, num, den); break;
-			case ORIG_TrailTask: TrailHeld(&frame, n); break;
-			case ORIG_BurstATask: BurstHeld(n, false, num, den); break;
-			case ORIG_BurstBTask: BurstHeld(n, true, num, den); break;
-			case ORIG_BloodTask: BloodHeld(&frame, n, num, den); break;
-			case ORIG_SlashATask:
-			case ORIG_SlashBTask:
-			case ORIG_SlashCTask:
-			case ORIG_SlashDTask: SlashHeld(n, num, den); break;
-			default: break;
-			}
-		}
-		Cursor() = cursor;
-	}
 }
 
 	void register_mag326_odin_reverse()
 	{
 		register_port(o326::ORIG_SequenceTick, (void *)o326::SequenceTick, "O326 SequenceTick", 326);
 		register_port(o326::ORIG_TimelineTask, (void *)o326::TimelineTask, "O326 TimelineTask", 326);
-		register_port(o326::ORIG_GridATask, (void *)o326::GridATask, "O326 GridATask", 326, true);
-		register_port(o326::ORIG_GridBTask, (void *)o326::GridBTask, "O326 GridBTask", 326, true);
-		register_port(o326::ORIG_DebrisTask, (void *)o326::DebrisTask, "O326 DebrisTask", 326, true);
+		register_port(o326::ORIG_GridATask, (void *)o326::GridATask, "O326 GridATask", 326);
+		register_port(o326::ORIG_GridBTask, (void *)o326::GridBTask, "O326 GridBTask", 326);
+		register_port(o326::ORIG_DebrisTask, (void *)o326::DebrisTask, "O326 DebrisTask", 326);
 		register_port(o326::ORIG_WarpTask, (void *)o326::WarpTask, "O326 WarpTask", 326);
-		register_port(o326::ORIG_GlowTask, (void *)o326::GlowTask, "O326 GlowTask", 326, true);
-		register_port(o326::ORIG_StreakTask, (void *)o326::StreakTask, "O326 StreakTask", 326, true);
-		register_port(o326::ORIG_GridCTask, (void *)o326::GridCTask, "O326 GridCTask", 326, true);
-		register_port(o326::ORIG_GridDTask, (void *)o326::GridDTask, "O326 GridDTask", 326, true);
-		register_port(o326::ORIG_WallTask, (void *)o326::WallTask, "O326 WallTask", 326, true);
-		register_port(o326::ORIG_ShockTask, (void *)o326::ShockTask, "O326 ShockTask", 326, true);
-		register_port(o326::ORIG_GhostTask, (void *)o326::GhostTask, "O326 GhostTask", 326, true);
-		register_port(o326::ORIG_SwordTask, (void *)o326::SwordTask, "O326 SwordTask", 326, true);
-		register_port(o326::ORIG_FadeATask, (void *)o326::FadeATask, "O326 FadeATask", 326, true);
-		register_port(o326::ORIG_FadeBTask, (void *)o326::FadeBTask, "O326 FadeBTask", 326, true);
-		register_port(o326::ORIG_TintTask, (void *)o326::TintTask, "O326 TintTask", 326, true);
+		register_port(o326::ORIG_GlowTask, (void *)o326::GlowTask, "O326 GlowTask", 326);
+		register_port(o326::ORIG_StreakTask, (void *)o326::StreakTask, "O326 StreakTask", 326);
+		register_port(o326::ORIG_GridCTask, (void *)o326::GridCTask, "O326 GridCTask", 326);
+		register_port(o326::ORIG_GridDTask, (void *)o326::GridDTask, "O326 GridDTask", 326);
+		register_port(o326::ORIG_WallTask, (void *)o326::WallTask, "O326 WallTask", 326);
+		register_port(o326::ORIG_ShockTask, (void *)o326::ShockTask, "O326 ShockTask", 326);
+		register_port(o326::ORIG_GhostTask, (void *)o326::GhostTask, "O326 GhostTask", 326);
+		register_port(o326::ORIG_SwordTask, (void *)o326::SwordTask, "O326 SwordTask", 326);
+		register_port(o326::ORIG_FadeATask, (void *)o326::FadeATask, "O326 FadeATask", 326);
+		register_port(o326::ORIG_FadeBTask, (void *)o326::FadeBTask, "O326 FadeBTask", 326);
+		register_port(o326::ORIG_TintTask, (void *)o326::TintTask, "O326 TintTask", 326);
 		register_port(o326::ORIG_EndTask, (void *)o326::EndTask, "O326 EndTask", 326);
-		register_port(o326::ORIG_CreatureTask, (void *)o326::CreatureTask, "O326 CreatureTask", 326, true);
-		register_port(o326::ORIG_SmokeTask, (void *)o326::SmokeTask, "O326 SmokeTask", 326, true);
-		register_port(o326::ORIG_RingATask, (void *)o326::RingATask, "O326 RingATask", 326, true);
-		register_port(o326::ORIG_RingBTask, (void *)o326::RingBTask, "O326 RingBTask", 326, true);
-		register_port(o326::ORIG_DustTask, (void *)o326::DustTask, "O326 DustTask", 326, true);
-		register_port(o326::ORIG_MistTask, (void *)o326::MistTask, "O326 MistTask", 326, true);
+		register_port(o326::ORIG_CreatureTask, (void *)o326::CreatureTask, "O326 CreatureTask", 326);
+		register_port(o326::ORIG_SmokeTask, (void *)o326::SmokeTask, "O326 SmokeTask", 326);
+		register_port(o326::ORIG_RingATask, (void *)o326::RingATask, "O326 RingATask", 326);
+		register_port(o326::ORIG_RingBTask, (void *)o326::RingBTask, "O326 RingBTask", 326);
+		register_port(o326::ORIG_DustTask, (void *)o326::DustTask, "O326 DustTask", 326);
+		register_port(o326::ORIG_MistTask, (void *)o326::MistTask, "O326 MistTask", 326);
 		register_port(o326::ORIG_FadeInTask, (void *)o326::FadeInTask, "O326 FadeInTask", 326);
-		register_port(o326::ORIG_FlashTask, (void *)o326::FlashTask, "O326 FlashTask", 326, true);
-		register_port(o326::ORIG_MorphTask, (void *)o326::MorphTask, "O326 MorphTask", 326, true);
-		register_port(o326::ORIG_SparkTask, (void *)o326::SparkTask, "O326 SparkTask", 326, true);
-		register_port(o326::ORIG_Spark2Task, (void *)o326::Spark2Task, "O326 Spark2Task", 326, true);
-		register_port(o326::ORIG_BladeTask, (void *)o326::BladeTask, "O326 BladeTask", 326, true);
-		register_port(o326::ORIG_TrailTask, (void *)o326::TrailTask, "O326 TrailTask", 326, true);
-		register_port(o326::ORIG_BurstATask, (void *)o326::BurstATask, "O326 BurstATask", 326, true);
-		register_port(o326::ORIG_BurstBTask, (void *)o326::BurstBTask, "O326 BurstBTask", 326, true);
-		register_port(o326::ORIG_BloodTask, (void *)o326::BloodTask, "O326 BloodTask", 326, true);
-		register_port(o326::ORIG_SlashATask, (void *)o326::SlashATask, "O326 SlashATask", 326, true);
-		register_port(o326::ORIG_SlashBTask, (void *)o326::SlashBTask, "O326 SlashBTask", 326, true);
-		register_port(o326::ORIG_SlashCTask, (void *)o326::SlashCTask, "O326 SlashCTask", 326, true);
-		register_port(o326::ORIG_SlashDTask, (void *)o326::SlashDTask, "O326 SlashDTask", 326, true);
-		register_module_held(326, o326::HeldReady, o326::HeldFrame);
+		register_port(o326::ORIG_FlashTask, (void *)o326::FlashTask, "O326 FlashTask", 326);
+		register_port(o326::ORIG_MorphTask, (void *)o326::MorphTask, "O326 MorphTask", 326);
+		register_port(o326::ORIG_SparkTask, (void *)o326::SparkTask, "O326 SparkTask", 326);
+		register_port(o326::ORIG_Spark2Task, (void *)o326::Spark2Task, "O326 Spark2Task", 326);
+		register_port(o326::ORIG_BladeTask, (void *)o326::BladeTask, "O326 BladeTask", 326);
+		register_port(o326::ORIG_TrailTask, (void *)o326::TrailTask, "O326 TrailTask", 326);
+		register_port(o326::ORIG_BurstATask, (void *)o326::BurstATask, "O326 BurstATask", 326);
+		register_port(o326::ORIG_BurstBTask, (void *)o326::BurstBTask, "O326 BurstBTask", 326);
+		register_port(o326::ORIG_BloodTask, (void *)o326::BloodTask, "O326 BloodTask", 326);
+		register_port(o326::ORIG_SlashATask, (void *)o326::SlashATask, "O326 SlashATask", 326);
+		register_port(o326::ORIG_SlashBTask, (void *)o326::SlashBTask, "O326 SlashBTask", 326);
+		register_port(o326::ORIG_SlashCTask, (void *)o326::SlashCTask, "O326 SlashCTask", 326);
+		register_port(o326::ORIG_SlashDTask, (void *)o326::SlashDTask, "O326 SlashDTask", 326);
+		// 30 fps layer: see mag326_odin_reverse_held.inc
+		FX_HELD(register_mag326_held();)
 	}
 }
+
+#ifdef FF8_FX_HELD
+#include "mag326_odin_reverse_held.inc"
+#endif

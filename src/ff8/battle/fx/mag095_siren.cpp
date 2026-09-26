@@ -25,11 +25,12 @@
 // systems, 8 the end task. The camera script task (s_73A9E0) drives the battle camera through
 // the engine's keyed moves (a_73AB20/a_73AE10) and channel script (a_73B3B0/a_73B4B0).
 // Module globals: 0x257F8A0..0x258FCF4 (+ camera copy 0x2793E58, 0x20 bytes).
-// Held frames (30 fps): the creature actor and the prim-model emitters (s_73C1A0, s_73EE50,
-// s_73EF60, 0x73F110/0x73F370/0x73F500, s_73F250, s_73F6A0) are redrawn in between by
-// act::held_frame; every other task stays on the generic packet path. Camera: act::held_camera.
 
 #include "act_engine.h"
+
+#ifdef FF8_FX_HELD
+#include "mag095_siren_held.h"
+#endif
 
 namespace ff8fx
 {
@@ -5466,29 +5467,18 @@ namespace siren
 		{ 0x7473D0, (void *)s_7473D0, "095 sub_7473D0" },
 		{ 0, nullptr, nullptr }
 	};
-	// tasks whose drawing the held frame redraws: the creature actor and the prim-model emitters
-	static const uint32_t HELD_TASKS[] = { 0x746B60, 0x73C1A0, 0x73EE50, 0x73EF60, 0x73F110, 0x73F370, 0x73F500, 0x73F250, 0x73F6A0, 0 };
-	static bool is_held(uint32_t a) { for (const uint32_t *h = HELD_TASKS; *h; h++) if (*h == a) return true; return false; }
-	// module globals 0x257F8A0..0x258FCF4 (task pools, arenas, script/camera state, key tables)
-	static const HeldDesc HELD = { &MOD_095, 0x258EC40, 0x746B60, 0x258BFB0, 0x257F8A0, 0x258FCF4 };
-	static bool HeldReady() { return held_ready(); }
-	static void HeldFrame(int num, int den) { held_frame(HELD, num, den); }
-	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
-	{
-		const Mod *m = g_mod;
-		g_mod = &MOD_095;
-		bool r = held_camera(num, den, world, lookat);
-		g_mod = m;
-		return r;
-	}
 }
 }
 	void register_mag095_siren()
 	{
-		act::register_module(95, act::siren::HELD_TASKS);
+		act::register_module(95);
 		for (const act::siren::ModPort *p = act::siren::PORTS; p->addr; p++)
-			act::register_module_port(95, p->addr, p->port, p->name, act::siren::is_held(p->addr));
-		register_module_held(95, act::siren::HeldReady, act::siren::HeldFrame);
-		register_module_camera(95, act::siren::HeldCamera);
+			act::register_module_port(95, p->addr, p->port, p->name);
+		// 30 fps layer: see mag095_siren_held.inc
+		FX_HELD(register_mag095_held();)
 	}
 }
+
+#ifdef FF8_FX_HELD
+#include "mag095_siren_held.inc"
+#endif

@@ -15,23 +15,33 @@
 
 // Native re-implementation of FF8's battle effect code (the "aoy" magic/GF modules).
 //
-// Every ported function is a C++ twin of an original FF8_EN.exe function. Ports are
-// written bit-exact against the original first: the differential harness in
-// ff8_opengl.cpp (ff8_bgate_fxv_*) runs the original tick and the ported tick from the
-// same memory snapshot and compares every byte of state, every emitted GPU packet and
-// every external engine call. Only once a module matches on every tick does it get its
-// 30 fps form: the 15 Hz logic stays exactly vanilla (update), and the draw takes an
-// interpolation factor so held frames show the true in-between state.
+// Every ported function is a C++ twin of an original FF8_EN.exe function, bit-exact: same
+// integer widths and wrap-around, same order of random draws, engine calls and memory
+// writes. With the ports enabled the game behaves exactly like vanilla.
 //
-// Ported task functions are dispatched by the task queue executor (ExecuteTaskQueue
-// 0x508420 is replaced by FFNx): a node keeps its ORIGINAL function address, the executor
-// looks the address up here while ports are active. Ported code calls engine functions it
-// has not ported yet through their original addresses (namespace eng).
+// Ported task functions are dispatched by FFNx's replacement of the task queue executor
+// (ExecuteTaskQueue 0x508420, fx_dispatch.cpp): a node keeps its ORIGINAL function address
+// and the executor looks the address up here. Ported code calls engine functions it has not
+// ported through their original addresses (namespace eng).
+//
+// fx_verify.cpp can run every tick of a ported effect twice from one memory snapshot (the
+// original code, then the ports) and compare all state: any difference keeps the original
+// result and is logged, so the game always continues on vanilla behaviour.
+//
+// FX_HELD(...) marks the few statements a frame-interpolation layer needs on real ticks
+// (memos of what was drawn). It expands to nothing unless FF8_FX_HELD is defined (the
+// True30FPS branch), so this code is the plain vanilla logic.
 
 #pragma once
 
 #include <stdint.h>
 #include <string.h>
+
+#ifdef FF8_FX_HELD
+#define FX_HELD(...) __VA_ARGS__
+#else
+#define FX_HELD(...)
+#endif
 
 namespace ff8fx
 {
@@ -142,71 +152,14 @@ namespace ff8fx
 	inline int32_t shl32(int32_t a, int n) { return (int32_t)((uint32_t)a << n); }
 
 	// --- port registry ---
-	// held = on held frames (the extra 30 fps frames between two logic ticks) the module's
-	// held-frame function redraws this task's in-between state itself, so the generic packet
-	// replay must skip the packets the task drew on the last real tick
-	void register_port(uint32_t orig, void *port, const char *name, int effect_id, bool held = false);
+	void register_port(uint32_t orig, void *port, const char *name, int effect_id);
 	void *lookup(uint32_t orig);        // ported twin, or nullptr (only while ports are active)
 	bool module_ported(int effect_id);  // at least one port registered for this effect
 	const char *port_name(uint32_t orig);
-	bool held_redraws(uint32_t orig);   // this task is redrawn by its module on held frames
-	extern bool g_active;               // set by the harness while the ported side runs
+	extern bool g_active;               // ports dispatched (fx_dispatch.cpp / fx_verify.cpp)
 	void register_all();                // every module's register function (fx_port.cpp)
-
-	// --- held frames (30 fps) ---
-	// g_real_tick counts the effect's real (logic) ticks; the gate increments it before each.
-	// A module's ready() says its ports ran on the last real tick (their memos are current);
-	// draw(num, den) then draws the state at tick + num/den.
-	extern uint32_t g_real_tick;
-	void register_module_held(int effect_id, bool (*ready)(), void (*draw)(int num, int den));
-	bool held_ready(int effect_id);
-	void held_draw(int effect_id, int num, int den);
-	// held-frame camera of an effect that writes the battle camera itself (eye / look-at words
-	// at 0xB8B7F0 / 0xB8B7F8): the module predicts the next tick's camera and returns the
-	// in-between one; false = it does not drive the camera now
-	typedef bool (*HeldCameraFn)(int num, int den, int16_t world[3], int16_t lookat[3]);
-	void register_module_camera(int effect_id, HeldCameraFn fn);
-	bool held_camera(int effect_id, int num, int den, int16_t world[3], int16_t lookat[3]);
-
-	// Held frames: pose of a standard battle model (BattleAnimHeader + its BattleAnimCmd, the
-	// Battle_ReadAnimation pair) at tick + num/den: the engine reader runs one frame ahead on
-	// copies, the bone matrices are built from the exact midpoint pose (angles the short way
-	// round), the real pose values are put back. The model is then drawn with its usual draw
-	// function. A completed animation holds its pose. (Implemented in ff8_opengl.cpp.)
-	void pose_midpoint(void *anim_header, void *anim_cmd, int num, int den);
-
-	// per-node memo of the state a task drew on the current real tick (for the in-between
-	// state of tasks that draw then update). Entries from older ticks count as free slots.
-	template<typename T, int N = 1024>
-	struct NodeMemo
-	{
-		struct Slot { const void *node; uint32_t tick; T v; };
-		Slot s[N];
-		static uint32_t hash(const void *p) { return ((uint32_t)p * 2654435761u) >> 10; }
-		T *put(const void *node)
-		{
-			for (uint32_t h = hash(node), i = 0; i < N; i++)
-			{
-				Slot &x = s[(h + i) & (N - 1)];
-				if (x.tick != g_real_tick || x.node == node) { x.node = node; x.tick = g_real_tick; return &x.v; }
-			}
-			return nullptr;
-		}
-		const T *get(const void *node) const
-		{
-			for (uint32_t h = hash(node), i = 0; i < N; i++)
-			{
-				const Slot &x = s[(h + i) & (N - 1)];
-				if (x.tick != g_real_tick) return nullptr;
-				if (x.node == node) return &x.v;
-			}
-			return nullptr;
-		}
-	};
-
-	// a + (b - a) * num / den, on the integer types the game uses (angles wrap as int16)
-	inline int32_t lerp_i(int32_t a, int32_t b, int num, int den) { return a + (b - a) * num / den; }
-	inline int16_t lerp_angle(int16_t a, int16_t b, int num, int den) { return (int16_t)(a + (int16_t)(b - a) * num / den); }
+	void install();                     // FFNx hook installation (fx_dispatch.cpp)
+	extern void (*g_queue_seen)(TaskQueue *q); // verifier callback: a queue runs
 
 	// Shared effect prim-model player (MAG_011_sub_701970, ~300 callers): see fx_primplayer.cpp
 	namespace prim
@@ -224,27 +177,29 @@ namespace ff8fx
 		typedef void(__cdecl *Callback)(Layout *l, Record *r, int arg);
 		// exact twin of 0x701970: returns the frames left (0 = finished, nothing drawn)
 		int play(Layout *l, Callback cb, int arg, int paused);
-		// held frame: calls cb with the exact in-between records of what play drew on this real tick
-		// (nothing when it drew nothing); never changes the player's state
-		void play_held(Layout *l, Callback cb, int arg, int num, int den);
 		// live self-check of the native player against every original call in the game
 		void install_verify();
 	}
 
-	// module register functions
-	void register_mag116_quezacotl();
-	void register_mag199_cactuar();
-	void register_mag140_phoenix();
-	void register_mag278_carbuncle();
-	void register_mag325_diablos();
-	void register_mag185_shiva();
-	void register_mag338_moomba();
-	void register_mag291_pandemona();
-	void register_mag187_odin();
+	// module register functions (one per ported effect module)
 	void register_mag069_griever();
-	void register_mag191_doomtrain();
-	void register_mag327_gilgamesh();
+	void register_mag116_quezacotl();
+	void register_mag140_phoenix();
+	void register_mag185_shiva();
+	void register_mag187_odin();
+	void register_mag199_cactuar();
+	void register_mag278_carbuncle();
+	void register_mag291_pandemona();
+	void register_mag325_diablos();
 	void register_mag326_odin_reverse();
+	void register_mag338_moomba();
+	void register_mag095_siren();
+	void register_mag096_minimog();
+	void register_mag090_tonberry();
+	void register_mag097_boko();
+	void register_mag002_fire();
+	void register_mag142_fira();
+	void register_mag143_firaga();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
@@ -252,12 +207,6 @@ namespace ff8fx
 	void register_gfc_alexander();
 	void register_gfc_brothers();
 	void register_gfc_eden();
-	void register_mag095_siren();
-	void register_mag096_minimog();
-	void register_mag090_tonberry();
-	void register_mag097_boko();
-	// shared camera-script task 0x63E9C0 (Doomtrain's code file, queued by several GFs)
-	bool camscript_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
-	bool mag278_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
-	bool mag140_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
+	void register_mag191_doomtrain();
+	void register_mag327_gilgamesh();
 }

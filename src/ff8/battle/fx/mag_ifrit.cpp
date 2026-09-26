@@ -23,6 +23,10 @@
 
 #include "gfc_engine.h"
 
+#ifdef FF8_FX_HELD
+#include "mag_ifrit_held.h"
+#endif
+
 namespace ff8fx
 {
 namespace gfc
@@ -63,10 +67,6 @@ namespace ifrit
 	{
 		return SequenceTick(g_ifrit);
 	}
-
-	static bool Ready() { return HeldReady(g_ifrit); }
-	static void Frame(int num, int den) { HeldFrame(g_ifrit, num, den); }
-	static bool Camera(int num, int den, int16_t world[3], int16_t lookat[3]) { return HeldCamera(g_ifrit, num, den, world, lookat); }
 }
 }
 
@@ -75,8 +75,12 @@ namespace ifrit
 		using namespace gfc;
 		ifrit::describe(ifrit::g_ifrit);
 		init_clone(ifrit::g_ifrit, nullptr, 0);
-		register_port(0xB25DF0, (void *)ifrit::SequenceTask, "GFC201 Ifrit SequenceTick", 201, true);
-		register_module_held(201, ifrit::Ready, ifrit::Frame);
-		register_module_camera(201, ifrit::Camera);
+		register_port(0xB25DF0, (void *)ifrit::SequenceTask, "GFC201 Ifrit SequenceTick", 201);
+		// 30 fps layer: see mag_ifrit_held.inc
+		FX_HELD(register_gfc_ifrit_held();)
 	}
 }
+
+#ifdef FF8_FX_HELD
+#include "mag_ifrit_held.inc"
+#endif

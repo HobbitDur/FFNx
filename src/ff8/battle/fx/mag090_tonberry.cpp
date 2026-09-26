@@ -28,12 +28,12 @@
 // summon stream 0x5018C0. Camera: the engine's keyed moves (a_73AB20 / a_73AE10) and tracks.
 // Module globals: 0x259EEA8..0x25A4E00 (+ camera copy 0x2793E58, 0x20 bytes; module data
 // 0x15474EC..0x1547A1C).
-// Held frames (30 fps): the creature actor (position advanced by velocity/16 * num/den, midpoint
-// pose) and the two prim-model tasks 0x763EB0 / 0x767B40 (all their packets come from the prim-model
-// callback, redrawn by prim::play_held) are redrawn in between by act::held_frame; every other task
-// stays on the generic packet path. Camera: act::held_camera.
 
 #include "act_engine.h"
+
+#ifdef FF8_FX_HELD
+#include "mag090_tonberry_held.h"
+#endif
 
 namespace ff8fx
 {
@@ -169,7 +169,8 @@ namespace act
 	uint32_t __cdecl t_7624D0(uint32_t a1)
 	{
 		set_mod_by_code(U32(a1, 8));      // node +8 = original task function address -> current module
-		g_ported_tick = g_real_tick;
+		// 30 fps layer: see act_engine_held.inc
+		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
@@ -2725,42 +2726,18 @@ namespace tonberry
 		{ 0x768370, (void *)t_768370, "090 MAG_090_sub_768370" },
 		{ 0, nullptr, nullptr }
 	};
-	// tasks whose drawing the held frame redraws: the creature actor (0x7674E0) and the two
-	// prim-model tasks (0x763EB0, 0x767B40 - every packet they emit comes from the prim-model
-	// draw callback 0x764260, so prim::play_held redraws all of it)
-	static const uint32_t HELD_TASKS[] = { 0x7674E0, 0x763EB0, 0x767B40, 0 };
-	static bool is_held(uint32_t a) { for (const uint32_t *h = HELD_TASKS; *h; h++) if (*h == a) return true; return false; }
-	// the creature walks: every tick 0x7674E0 adds velocity/16 (s16 +0x124/+0x126/+0x128) to its
-	// position (+0x4C/+0x4E/+0x50) before drawing; the held frame adds the same step scaled by
-	// num/den (the velocity of the next tick is taken to be the current one)
-	static void Adjust(uint32_t node, int num, int den)
-	{
-		for (int i = 0; i < 3; i++)
-		{
-			const int32_t step = (int32_t)S16(node, 0x124 + 2 * i) / 16;
-			S16(node, 0x4C + 2 * i) = (int16_t)(S16(node, 0x4C + 2 * i) + step * num / den);
-		}
-	}
-	// module globals 0x259EEA8..0x25A4E00 (task pools, packet pools, arenas, script/camera state)
-	static const HeldDesc HELD = { &MOD_090, 0x25A3F90, 0x7674E0, 0x25A2D00, 0x259EEA8, 0x25A4E00, nullptr, Adjust };
-	static bool HeldReady() { return held_ready(); }
-	static void HeldFrame(int num, int den) { held_frame(HELD, num, den); }
-	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
-	{
-		const Mod *m = g_mod;
-		g_mod = &MOD_090;
-		bool r = held_camera(num, den, world, lookat);
-		g_mod = m;
-		return r;
-	}
 }
 }
 	void register_mag090_tonberry()
 	{
-		act::register_module(90, act::tonberry::HELD_TASKS);
+		act::register_module(90);
 		for (const act::tonberry::ModPort *p = act::tonberry::PORTS; p->addr; p++)
-			act::register_module_port(90, p->addr, p->port, p->name, act::tonberry::is_held(p->addr));
-		register_module_held(90, act::tonberry::HeldReady, act::tonberry::HeldFrame);
-		register_module_camera(90, act::tonberry::HeldCamera);
+			act::register_module_port(90, p->addr, p->port, p->name);
+		// 30 fps layer: see mag090_tonberry_held.inc
+		FX_HELD(register_mag090_held();)
 	}
 }
+
+#ifdef FF8_FX_HELD
+#include "mag090_tonberry_held.inc"
+#endif

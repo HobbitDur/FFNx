@@ -223,6 +223,13 @@ if(PATCH_COLLECT_DUPLICATES)
     PRIVATE PATCH_COLLECT_DUPLICATES
   )
 endif()
+# True30FPS: compile the 30 fps layer of the native battle effect code. Every effect module
+# of src/ff8/battle/fx is vanilla code with FX_HELD(...) seams; with FF8_FX_HELD defined the
+# seams expand and each module includes its held-frame part (X_held.h / X_held.inc).
+# Without it the effect code is the plain vanilla logic (VanillaDecompiledForFutur30FPS).
+target_compile_definitions(${RELEASE_NAME}
+  PRIVATE FF8_FX_HELD
+)
 target_compile_features(${RELEASE_NAME}
   PRIVATE cxx_std_20
 )

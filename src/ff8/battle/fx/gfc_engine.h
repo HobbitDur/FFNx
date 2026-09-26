@@ -89,27 +89,8 @@ namespace gfc
 	inline int16_t *CAMEYE() { return (int16_t *)0xB8B7F0; }
 	inline int16_t *CAMAT() { return (int16_t *)0xB8B7F8; }
 
-	// engine state block snapshot bounds (ctx, scene, rctx, seqstate, tables, lists, nodes...)
+	// engine state block bounds (ctx, scene, rctx, seqstate, tables, lists, nodes...)
 	static const uint32_t STATE_LO = 0x2796E00, STATE_HI = 0x2798C18;
-
-	// ------------------------------------------------------------------------------------
-	// modes
-	// ------------------------------------------------------------------------------------
-	// g_predict: the VM runs one tick ahead on saved state for a held frame; every engine call
-	// with a side effect outside the snapshot (sound, music, streams, file loads, VRAM uploads,
-	// battle damage, camera animation, battle entity/model writes) is skipped by its wrapper.
-	extern bool g_predict;
-	// g_held: a held-frame (30 fps) draw is running; num/den = position between the last real
-	// tick (0) and the next one (den). The dispatcher forces rt->boneSkipFlag while it is set.
-	// real_skip = the value rt->boneSkipFlag had on the real tick (before the held draw forced it).
-	struct Held { bool active; int num, den; uint8_t real_skip; };
-	extern Held g_held;
-	// Writes the VM does OUTSIDE the snapshot set (engine block STATE_LO..STATE_HI, the bone
-	// array, the arena [ctx+0x70, ctx+0x74), the RT/WS scratch block) must be announced with
-	// guard(addr, size) right before the write: while predicting, the original bytes are
-	// journaled and put back when the prediction ends. (No effect on real ticks.)
-	void guard_record(const void *p, int n);
-	inline void guard(const void *p, int n) { if (g_predict) guard_record(p, n); }
 
 	// ------------------------------------------------------------------------------------
 	// clone descriptor
@@ -141,8 +122,6 @@ namespace gfc
 		                        // 0x2798219), passed to pre_LoadBattleFile by VM op 0x006
 		bool lit_dispatcher;    // BuildMatricesAndDraw loads the light sets (Ifrit, Leviathan)
 		int bone_count;         // BoneHandlerTable entries (Ifrit 18 = 13 handlers + data bytes; Eden 32)
-		uint8_t model_draw[4];  // draw handler ids besides 3 whose bone+0xBC block is an embedded
-		                        // battle model block (+0x14 -> skeleton), saved around held draws
 		// port tables (filled by init_clone). The five handler tables are sub-ranges of one
 		// memory block (bone_table .. draw_table) exactly like the original, so an index past
 		// one sub-table reads the next one as vanilla does; entries that are not code keep the
@@ -177,7 +156,17 @@ namespace gfc
 	void init_clone(Clone &c, const Exception *ex, int nex);
 	// the clones initialised so far (init_clone records them), by effect id; nullptr if none
 	Clone *find_clone(int effect_id);
+}
+}
 
+#ifdef FF8_FX_HELD
+#include "gfc_engine_held.h"
+#endif
+
+namespace ff8fx
+{
+namespace gfc
+{
 	// dispatch helpers (identical to the original indirect calls)
 #ifdef GFC_DEBUG_HOOK
 	// offline harness only: taint tracking of vanilla stack-garbage words (src == nullptr: dst
@@ -205,14 +194,9 @@ namespace gfc
 	void AnimChannelsPos();              // 0xB30110
 	void AnimIntegrator();               // 0xB26110
 	void BuildMatricesAndDraw();         // 0xB2ABE0 (lit variant) / Eden variant
-	// held frames
-	bool HeldReady(Clone &c);
-	void HeldFrame(Clone &c, int num, int den);
-	bool HeldCamera(Clone &c, int num, int den, int16_t world[3], int16_t lookat[3]);
 
 	// ------------------------------------------------------------------------------------
-	// engine (non-module) functions, called at their original addresses. x:: wrappers with a
-	// side effect outside the engine state are skipped while g_predict is set.
+	// engine (non-module) functions, called at their original addresses
 	// ------------------------------------------------------------------------------------
 	namespace x
 	{
@@ -265,44 +249,42 @@ namespace gfc
 		inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { f<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(0x45C870)(ot, prim, a, b, c, d); }
 		inline void InsertPrimAltViewport(uint32_t ot, void *prim) { f<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(ot, prim); }
 		inline void ClearOT(uint32_t ot, int32_t n) { f<void (__cdecl *)(uint32_t, int32_t)>(0x45D530)(ot, n); }
-		// --- battle models (the embedded GF model) ---
-		// (these write the model's skeleton / pose buffers, outside the snapshot: skipped while
-		// predicting - the embedded model is not part of the prediction, its held pose comes from
-		// pose_midpoint)
-		inline void BuildBoneMatricesFromPose(void *hdr) { if (!g_predict) f<void (__cdecl *)(void *)>(0x508C90)(hdr); }
-		inline int32_t ReadAnimation(void *hdr, void *cmd) { return g_predict ? 0 : f<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
-		inline int32_t PreReadAnimation(void *hdr, void *cmd, int32_t anim) { return g_predict ? 0 : f<int32_t (__cdecl *)(void *, void *, int32_t)>(0x509440)(hdr, cmd, anim); }
-		inline void ComputeBonesWorldMatrices(void *hdr, void *root) { if (!g_predict) f<void (__cdecl *)(void *, void *)>(0x5095B0)(hdr, root); }
-		inline uint32_t RenderGeometry(void *a, void *b, uint32_t ot, int32_t mode, uint32_t cursor) { return g_predict ? cursor : f<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(a, b, ot, mode, cursor); }
-		inline uint32_t Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor) { return g_predict ? cursor : f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(a, ot, mode, cursor); }
+		// --- battle models (the embedded GF model; write the model's skeleton / pose buffers) ---
+		// (30 fps layer: see gfc_engine_held.h)
+		inline void BuildBoneMatricesFromPose(void *hdr) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *)>(0x508C90)(hdr); }
+		inline int32_t ReadAnimation(void *hdr, void *cmd) { FX_HELD(if (held_predicting()) return 0;) return f<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
+		inline int32_t PreReadAnimation(void *hdr, void *cmd, int32_t anim) { FX_HELD(if (held_predicting()) return 0;) return f<int32_t (__cdecl *)(void *, void *, int32_t)>(0x509440)(hdr, cmd, anim); }
+		inline void ComputeBonesWorldMatrices(void *hdr, void *root) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, void *)>(0x5095B0)(hdr, root); }
+		inline uint32_t RenderGeometry(void *a, void *b, uint32_t ot, int32_t mode, uint32_t cursor) { FX_HELD(if (held_predicting()) return cursor;) return f<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(a, b, ot, mode, cursor); }
+		inline uint32_t Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor) { FX_HELD(if (held_predicting()) return cursor;) return f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(a, ot, mode, cursor); }
 		// --- CRT rand (per-thread _holdrand) ---
 		inline int32_t Rand() { return f<int32_t (__cdecl *)()>(0x55CBD2)(); }
 		// --- scratch stack ---
 		inline void *FieldAlloc(int32_t n) { return f<void *(__cdecl *)(int32_t)>(0x5082B0)(n); }
 		inline void FieldFree(int32_t n) { f<void (__cdecl *)(int32_t)>(0x5082D0)(n); }
 
-		// --- side effects outside the engine state (skipped while predicting) ---
-		inline void PlaySE(void *snd, int32_t a, int32_t b) { if (!g_predict) f<void (__cdecl *)(void *, int32_t, int32_t)>(0x501330)(snd, a, b); }        // BdPlaySE
-		inline void TransSummonStream(void *a, void *b) { if (!g_predict) f<void (__cdecl *)(void *, void *)>(0x501860)(a, b); }                  // BdTransSummonStream
-		inline void PlaySummonStream(int32_t a, int32_t b, int32_t c) { if (!g_predict) f<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x5018C0)(a, b, c); } // BdPlaySummonStream
-		inline void Snd_46B3A0(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x46B3A0)(a); }
-		inline void Snd_46B3E0(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x46B3E0)(a); }
-		inline void Snd_46B450(int32_t a, int32_t b) { if (!g_predict) f<void (__cdecl *)(int32_t, int32_t)>(0x46B450)(a, b); }
-		inline void MusicSetVolumeTrans(int32_t a, int32_t b, int32_t c) { if (!g_predict) f<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x46BBC0)(a, b, c); }
-		inline void Music_47E3C0(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x47E3C0)(a); }
-		inline void PreLoadBattleFile(int32_t id, void *dst, int32_t a, uint32_t cb) { if (!g_predict) f<void (__cdecl *)(int32_t, void *, int32_t, uint32_t)>(0x48D0A0)(id, dst, a, cb); }
-		inline void Snd_4A2940(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x4A2940)(a); }
-		inline uint32_t ClaimVoiceSlot(const void *snd, int32_t a, int32_t b) { return g_predict ? 0 : f<uint32_t (__cdecl *)(const void *, int32_t, int32_t)>(0x4A29A0)(snd, a, b); }
-		inline void Battle_4A8480(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x4A8480)(a); }
-		inline void Battle_501E40(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x501E40)(a); }
-		inline void Battle_501F30(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x501F30)(a); }
-		inline void Camera_504270(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x504270)(a); }
-		inline void QueueVramUpload(const void *rect, const void *data) { if (!g_predict) f<void (__cdecl *)(const void *, const void *)>(0x505DF0)(rect, data); } // Battle_QueueVramUpload_Type0_RectData
-		inline void ApplyActionResultToTarget(int32_t a) { if (!g_predict) f<void (__cdecl *)(int32_t)>(0x506690)(a); }
-		inline void ApplyActionResultToTargets(int32_t a, int32_t b) { if (!g_predict) f<void (__cdecl *)(int32_t, int32_t)>(0x506BA0)(a, b); }
-		inline void Battle_508630(void *a, void *b) { if (!g_predict) f<void (__cdecl *)(void *, void *)>(0x508630)(a, b); }
-		inline void PlayCameraAnimation(void *a) { if (!g_predict) f<void (__cdecl *)(void *)>(0x5099A0)(a); }  // Battle_PlayCameraAnimation
-		inline void CameraArmReturn() { if (!g_predict) f<void (__cdecl *)()>(0x50A730)(); }                    // BS_Camera_ArmReturnAfterEffect
+		// --- side effects outside the engine state (30 fps layer: see gfc_engine_held.h) ---
+		inline void PlaySE(void *snd, int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, int32_t, int32_t)>(0x501330)(snd, a, b); }        // BdPlaySE
+		inline void TransSummonStream(void *a, void *b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, void *)>(0x501860)(a, b); }                  // BdTransSummonStream
+		inline void PlaySummonStream(int32_t a, int32_t b, int32_t c) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x5018C0)(a, b, c); } // BdPlaySummonStream
+		inline void Snd_46B3A0(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x46B3A0)(a); }
+		inline void Snd_46B3E0(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x46B3E0)(a); }
+		inline void Snd_46B450(int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t)>(0x46B450)(a, b); }
+		inline void MusicSetVolumeTrans(int32_t a, int32_t b, int32_t c) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x46BBC0)(a, b, c); }
+		inline void Music_47E3C0(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x47E3C0)(a); }
+		inline void PreLoadBattleFile(int32_t id, void *dst, int32_t a, uint32_t cb) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, void *, int32_t, uint32_t)>(0x48D0A0)(id, dst, a, cb); }
+		inline void Snd_4A2940(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x4A2940)(a); }
+		inline uint32_t ClaimVoiceSlot(const void *snd, int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return 0;) return f<uint32_t (__cdecl *)(const void *, int32_t, int32_t)>(0x4A29A0)(snd, a, b); }
+		inline void Battle_4A8480(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x4A8480)(a); }
+		inline void Battle_501E40(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x501E40)(a); }
+		inline void Battle_501F30(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x501F30)(a); }
+		inline void Camera_504270(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x504270)(a); }
+		inline void QueueVramUpload(const void *rect, const void *data) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(const void *, const void *)>(0x505DF0)(rect, data); } // Battle_QueueVramUpload_Type0_RectData
+		inline void ApplyActionResultToTarget(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(0x506690)(a); }
+		inline void ApplyActionResultToTargets(int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t)>(0x506BA0)(a, b); }
+		inline void Battle_508630(void *a, void *b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, void *)>(0x508630)(a, b); }
+		inline void PlayCameraAnimation(void *a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *)>(0x5099A0)(a); }  // Battle_PlayCameraAnimation
+		inline void CameraArmReturn() { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)()>(0x50A730)(); }                    // BS_Camera_ArmReturnAfterEffect
 	}
 
 	// 0x56C270 / 0x56C220 build their product in a stack temporary and copy 5 dwords of it to
@@ -332,10 +314,11 @@ namespace gfc
 		inline Mat4x3 *GetParentMatrix(int32_t ref) { return f<Mat4x3 *(__cdecl *)(int32_t)>(0xB65520)(ref); } // also sets GTE H
 		inline Mat4x3 *RotMatrixOrder(const void *angles, int32_t order) { return f<Mat4x3 *(__cdecl *)(const void *, int32_t)>(0xB65590)(angles, order); } // into ws+0xE0
 		inline void CopyMatrix(void *dst, const void *src) { f<void (__cdecl *)(void *, const void *)>(0xB656A0)(dst, src); }
-		// bump ctx+0x74 (returns the old top); predicting: the memory handed out is journaled
+		// bump ctx+0x74 (returns the old top)
 		inline uint8_t *ArenaAlloc(int32_t n)
 		{
-			if (g_predict) guard(PTR(CTX(), 0x74), (n + 3) & ~3);
+			// 30 fps layer: see gfc_engine_held.h
+			FX_HELD(guard(PTR(CTX(), 0x74), (n + 3) & ~3);)
 			return f<uint8_t *(__cdecl *)(int32_t)>(0xB656E0)(n);
 		}
 		inline void ArenaFree_B65710() { f<int32_t (__cdecl *)()>(0xB65710)(); }
@@ -345,22 +328,20 @@ namespace gfc
 		inline uint8_t *ObjectPtrWs(int32_t id) { return f<uint8_t *(__cdecl *)(int32_t)>(0xB66230)(id); } // same, ws+0xFC = table base
 		inline void SetSpriteAnim(int32_t id) { f<int32_t (__cdecl *)(int32_t)>(0xB66270)(id); }
 		inline uint8_t *VramRectRing() { return f<uint8_t *(__cdecl *)()>(0xB663A0)(); }               // SceneHeader+0x43 ring of 16 RECTs
-		// VRAM side effects (skipped while predicting; the ws fields they set are restored anyway)
+		// VRAM side effects
 		// GF_AlternativeTexture_UNK: per-tick budget ctx+0xD2 (< 12 uploads), returns 1 when over
-		// budget. Predicting: the budget logic without the upload.
+		// budget.
 		inline int32_t AltTextureUpload(const void *rect, const void *data)
 		{
-			if (!g_predict) return f<int32_t (__cdecl *)(const void *, const void *)>(0xB663C0)(rect, data);
-			uint8_t &n = U8(CTX(), 0xD2);
-			if (n >= 12) return 1;
-			n++;
-			return 0;
+			// 30 fps layer: see gfc_engine_held.h
+			FX_HELD(if (held_predicting()) return held_alt_texture_budget();)
+			return f<int32_t (__cdecl *)(const void *, const void *)>(0xB663C0)(rect, data);
 		}
 		inline void ReadAltTexture(int32_t id) { f<int32_t (__cdecl *)(int32_t)>(0xB664A0)(id); }       // only sets ws+0xF0..0xFC
 		inline void ReadClut_B66560(int32_t id) { f<int32_t (__cdecl *)(int32_t)>(0xB66560)(id); }      // only sets ws+0xF0/0xFC
 		inline void TexInfo_B665C0(int32_t id) { f<int32_t (__cdecl *)(int32_t)>(0xB665C0)(id); }       // only sets ws+0xF8/0xFC
 		inline int32_t ClutWord_B66640(int32_t id) { return f<int32_t (__cdecl *)(int32_t)>(0xB66640)(id); }
-		inline void ClutTint_B666F0(int32_t r, int32_t g, int32_t b) { if (!g_predict) f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(0xB666F0)(r, g, b); } // tints + uploads a CLUT
+		inline void ClutTint_B666F0(int32_t r, int32_t g, int32_t b) { FX_HELD(if (held_predicting()) return;) f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(0xB666F0)(r, g, b); } // tints + uploads a CLUT
 		inline void Blob_B66A90() { f<int32_t (__cdecl *)()>(0xB66A90)(); }
 		inline int32_t Blob_B66B30(int32_t a, int32_t b, int32_t c, int32_t d) { return f<int32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0xB66B30)(a, b, c, d); }
 		inline void Blob_B66B80(void *a, int32_t b, int32_t c, void *d) { f<int32_t (__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(a, b, c, d); }

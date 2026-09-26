@@ -22,11 +22,12 @@
 // prim-model sparkles (m_733FC0) and the particle actors (a_7348A0 / a_7353B0). Screen/entity
 // fades and the music volume (0x46BB40) are driven by the director's states.
 // Module globals: 0x257B740..0x257F8A0 (+ camera copy 0x2793E58, 0x20 bytes).
-// Held frames (30 fps): the creature actor and the prim-model sparkles (m_733FC0) are redrawn in
-// between by act::held_frame; every other task stays on the generic packet path. Camera:
-// act::held_camera.
 
 #include "act_engine.h"
+
+#ifdef FF8_FX_HELD
+#include "mag096_minimog_held.h"
+#endif
 
 namespace ff8fx
 {
@@ -128,7 +129,8 @@ namespace act
 	uint32_t __cdecl m_731F70(uint32_t a1)
 	{
 		set_mod_by_code(U32(a1, 8));      // node +8 = original task function address -> current module
-		g_ported_tick = g_real_tick;
+		// 30 fps layer: see act_engine_held.inc
+		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
@@ -955,29 +957,18 @@ namespace minimog
 		{ 0x739BB0, (void *)m_739BB0, "096 sub_739BB0" },
 		{ 0, nullptr, nullptr }
 	};
-	// tasks whose drawing the held frame redraws: the creature actor and the prim-model emitters
-	static const uint32_t HELD_TASKS[] = { 0x739610, 0x733FC0, 0 };
-	static bool is_held(uint32_t a) { for (const uint32_t *h = HELD_TASKS; *h; h++) if (*h == a) return true; return false; }
-	// module globals 0x257B740..0x257F8A0 (task pools, arenas, script/camera state, key tables)
-	static const HeldDesc HELD = { &MOD_096, 0x257F678, 0x739610, 0x257E3E8, 0x257B740, 0x257F8A0 };
-	static bool HeldReady() { return held_ready(); }
-	static void HeldFrame(int num, int den) { held_frame(HELD, num, den); }
-	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
-	{
-		const Mod *m = g_mod;
-		g_mod = &MOD_096;
-		bool r = held_camera(num, den, world, lookat);
-		g_mod = m;
-		return r;
-	}
 }
 }
 	void register_mag096_minimog()
 	{
-		act::register_module(96, act::minimog::HELD_TASKS);
+		act::register_module(96);
 		for (const act::minimog::ModPort *p = act::minimog::PORTS; p->addr; p++)
-			act::register_module_port(96, p->addr, p->port, p->name, act::minimog::is_held(p->addr));
-		register_module_held(96, act::minimog::HeldReady, act::minimog::HeldFrame);
-		register_module_camera(96, act::minimog::HeldCamera);
+			act::register_module_port(96, p->addr, p->port, p->name);
+		// 30 fps layer: see mag096_minimog_held.inc
+		FX_HELD(register_mag096_held();)
 	}
 }
+
+#ifdef FF8_FX_HELD
+#include "mag096_minimog_held.inc"
+#endif
