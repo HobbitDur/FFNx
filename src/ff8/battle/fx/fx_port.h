@@ -242,6 +242,10 @@ namespace ff8fx
 	void register_mag148_meltdown();
 	void register_mag039_drain();
 	void register_mag014_death();
+	void register_mag036_confuse();
+	void register_mag124_flare();
+	void register_mag145_sleep();
+	void register_mag146_tornado();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

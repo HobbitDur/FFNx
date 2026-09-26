@@ -73,6 +73,13 @@ namespace ff8fx::mod
 	static const Region streams_m148[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_p034[] = { { 0x2793E58, 0x20 } };
 	static const Region streams_d039[] = { { 0x2793DA4, 0xD4 }, { 0x15D1F18, 0x140 } };
+	// Confuse (actor library copy): the two morph vertex arrays it rewrites in exe data + scratch;
+	// Flare/Sleep: shadow-camera scratch; Tornado: funnel matrix translation and capture OT link in
+	// exe data, scratch, RenderGeometry temporary (entities, camera and stage flag are engine regions)
+	static const Region streams_c036[] = { { 0x15D9E0C, 0x590 }, { 0x15DBAE4, 0x590 }, { 0x2793DA4, 0xD4 } };
+	static const Region streams_f124[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_s145[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_t146[] = { { 0xDD674C, 0xC }, { 0xDD6780, 4 }, { 0x21DFED0, 0x20 }, { 0x1D99C18, 8 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -133,6 +140,10 @@ namespace ff8fx::mod
 		{ 34,  0x26BA9E0, 0x26C0380, 0, 0, false, "Pain", streams_p034, 1 },
 		{ 39,  0x269D958, 0x269E764, 0, 0, false, "Drain", streams_d039, 2 },
 		{ 14,  0x273AE80, 0x27428A0, 0, 0, false, "Death", streams_d014, 4 },
+		{ 36,  0x26A8DB8, 0x26A9BC4, 0, 0, false, "Confuse", streams_c036, 3 },
+		{ 124, 0x25213D0, 0x2521448, 0, 0, false, "Flare", streams_f124, 1 },
+		{ 145, 0x24AA630, 0x24BB960, 0x1D99C18, 8, false, "Sleep", streams_s145, 1 },
+		{ 146, 0x2491BC0, 0x24AA62C, 0, 0, false, "Tornado", streams_t146, 4 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

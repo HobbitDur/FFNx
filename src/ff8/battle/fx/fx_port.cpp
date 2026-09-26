@@ -126,6 +126,10 @@ namespace ff8fx
 		register_mag148_meltdown();
 		register_mag039_drain();
 		register_mag014_death();
+		register_mag036_confuse();
+		register_mag124_flare();
+		register_mag145_sleep();
+		register_mag146_tornado();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
