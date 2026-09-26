@@ -193,4 +193,20 @@ namespace ff8fx
 	void register_mag325_diablos();
 	void register_mag326_odin_reverse();
 	void register_mag338_moomba();
+	void register_mag095_siren();
+	void register_mag096_minimog();
+	void register_mag090_tonberry();
+	void register_mag097_boko();
+	void register_mag002_fire();
+	void register_mag142_fira();
+	void register_mag143_firaga();
+	void register_gfc_ifrit();
+	void register_gfc_leviathan();
+	void register_gfc_bahamut();
+	void register_gfc_cerberus();
+	void register_gfc_alexander();
+	void register_gfc_brothers();
+	void register_gfc_eden();
+	void register_mag191_doomtrain();
+	void register_mag327_gilgamesh();
 }

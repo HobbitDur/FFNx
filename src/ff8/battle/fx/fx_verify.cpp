@@ -439,6 +439,25 @@ namespace
 		return o;
 	}
 
+	// Words the original fills with stack garbage and nothing ever reads: the port cannot know
+	// them, so the port run takes the original's value before the comparison.
+	// GTE control register 4 high half (R33 pad): ComposeAffineTransform (0x56C2F0) leaves the
+	// pad word of its result matrix uninitialised and GteSetRotMatrix copies it here.
+	void adopt_unread_garbage()
+	{
+		static const uint32_t words[] = { 0x1CA928E };
+		for (uint32_t a : words)
+			for (int i = 0; i < g_nent; i++)
+			{
+				const Entry &e = g_ent[i];
+				if (a >= e.addr && a + 2 <= e.addr + e.size)
+				{
+					*(uint16_t *)a = *(const uint16_t *)(reference(e) + (a - e.addr));
+					break;
+				}
+			}
+	}
+
 	const char *compare(int ra, int rb)
 	{
 		static char msg[1024];
@@ -451,6 +470,7 @@ namespace
 			return msg;
 		}
 		if (g_incomplete) { _snprintf_s(msg, sizeof(msg), _TRUNCATE, "port run touched untracked memory: %s", g_incomplete_msg); return msg; }
+		adopt_unread_garbage();
 		return describe_memory_diff(msg, sizeof(msg)) > 0 ? msg : nullptr;
 	}
 

@@ -99,5 +99,21 @@ namespace ff8fx
 		register_mag325_diablos();
 		register_mag326_odin_reverse();
 		register_mag338_moomba();
+		register_mag095_siren();
+		register_mag096_minimog();
+		register_mag090_tonberry();
+		register_mag097_boko();
+		register_mag002_fire();
+		register_mag142_fira();
+		register_mag143_firaga();
+		register_gfc_ifrit();
+		register_gfc_leviathan();
+		register_gfc_bahamut();
+		register_gfc_cerberus();
+		register_gfc_alexander();
+		register_gfc_brothers();
+		register_gfc_eden();
+		register_mag191_doomtrain();
+		register_mag327_gilgamesh();
 	}
 }

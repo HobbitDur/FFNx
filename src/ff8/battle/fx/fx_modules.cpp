@@ -41,6 +41,17 @@ namespace ff8fx::mod
 	// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
 	// static cells the modules write, Siren's load destinations outside the 1 MB buffer
 	static const Region streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
+	// Tonberry / Boko: module data, shared scratch + camera copy, RenderGeometry temporaries,
+	// TransformCameraByShadowRotation scratch, Boko load destinations outside the 1 MB buffer
+	static const Region streams_a090[] = { { 0x15474EC, 0x530 }, { 0x2793DA4, 0xD4 }, { 0x2795960, 0x218 }, { 0x1D99C18, 8 } };
+	static const Region streams_a097[] = { { 0x152B94C, 0xD4 }, { 0x168356C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
+	static const Region streams_a098[] = { { 0x152B2C4, 0xF4 }, { 0x167484C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
+	static const Region streams_a099[] = { { 0x152AABC, 0x174 }, { 0x1665B28, 0x8120 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 }, { 0x2795113, 0x68 } };
+	static const Region streams_a100[] = { { 0x1529B8C, 0x134 }, { 0x1656E04, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
+	// Fire: per-target free flags (exe data) + shadow-camera scratch; Fira/Firaga: scratch
+	static const Region streams_f002[] = { { 0xDEE360, 0x1C }, { 0x21DFED0, 0x20 } };
+	static const Region streams_f142[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_f143[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
 	// BdTransSummonStream), TransformCameraByShadowRotation scratch
@@ -77,6 +88,15 @@ namespace ff8fx::mod
 		// actor state-machine family (the heal-spell effect library)
 		{ 95,  0x257F8A0, 0x258FCF4, 0, 0, false, "Siren", streams_a095, 6 },
 		{ 96,  0x257B740, 0x257F8A0, 0, 0, false, "MiniMog", streams_a096, 5 },
+		{ 90,  0x259EEA8, 0x25A4E00, 0, 0, false, "Tonberry", streams_a090, 4 },
+		{ 97,  0x2575268, 0x257B740, 0, 0, false, "Boko ChocoFire", streams_a097, 6 },
+		{ 98,  0x256E358, 0x2575268, 0, 0, false, "Boko ChocoFlare", streams_a098, 6 },
+		{ 99,  0x2565A30, 0x256E358, 0, 0, false, "Boko ChocoMeteor", streams_a099, 7 },
+		{ 100, 0x255EAC8, 0x2565A30, 0, 0, false, "Boko ChocoBocle", streams_a100, 6 },
+		// spells
+		{ 2,   0x24CA818, 0x24DFD70, 0, 0, false, "Fire", streams_f002, 2 },
+		{ 142, 0x24BFB48, 0x24C10B4, 0, 0, false, "Fira", streams_f142, 1 },
+		{ 143, 0x24BECC8, 0x24BFB40, 0, 0, false, "Firaga", streams_f143, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -140,6 +160,11 @@ namespace ff8fx::mod
 		// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
 		{ 0x46BB40, 0, "Music_SetVolumeImmediate" },
 		{ 0x505CE0, 0, "QueueChainTransformationConditional" },
+		// Tonberry's stream, Boko's TIM uploads
+		{ 0x501460, 0, "BdPlayStream" },
+		{ 0x505E30, 0, "Battle_QueueTIMUpload_GetEOF" },
+		// spells: positional sound (3rd argument points into the caller's stack: 2 compared)
+		{ 0x5013A0, 2, "BdPlaySE3D" },
 	};
 	const int ext_site_count = (int)(sizeof(ext_sites) / sizeof(ext_sites[0]));
 
