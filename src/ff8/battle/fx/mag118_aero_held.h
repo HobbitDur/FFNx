@@ -13,22 +13,17 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// 30 fps part of mag104_blizzaga.cpp (declarations for its FX_HELD statements)
+// 30 fps part of mag118_aero.cpp (declarations for its FX_HELD statements)
 #pragma once
 #include "fx_held.h"
 
 namespace ff8fx
 {
-namespace blizzaga104
+namespace aero118
 {
 	static void held_note_root();
-	static void held_note_draw(uint32_t fn, const void *node);
-	static void held_note_frozen(const FreezeNode *f, int16_t level);
-	static void held_note_frame(uint32_t cursor);
-	static void held_note_block(const FreezeNode *f, int kind, const Mat4x3 *m);
-	static void held_note_part(uint32_t fn, const FreezeNode *f);
-	static void held_note_trail(uint32_t fn, const void *node);
-	static bool held_drawing();
+	static void held_note_play(uint8_t *layout, const PrimArg *arg);
+	static void held_note_leaf(const LeafNode *f);
 }
-	static void register_mag104_held();
+	static void register_mag118_held();
 }

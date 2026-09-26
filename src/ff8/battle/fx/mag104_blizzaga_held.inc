@@ -21,7 +21,9 @@
 //   Frozen target  - the target model redrawn with the freeze band half way to the next
 //                    tick's band (its pose is the engine's); the band range it measures goes to
 //                    a scratch copy; the shadow draw (0x5088A0) is not repeated; the frame packet
-//                    cursor and the engine's projected-vertex buffer (0x1D98B3C) are private.
+//                    cursor and the engine's projected-vertex buffer (0x1D98B3C) are private; the
+//                    private packet buffer starts as a copy of the real draw's frame packets
+//                    (the halfword after each packet's last UV is never written by the draw).
 //   Block growing  - vertices from the morph step half way to the next tick's (28..29);
 //                    the fixed shape (30..32) holds.
 //   Block shards   - as Blizzara: the next tick's shard update on copies, shards live on both
@@ -49,7 +51,8 @@ namespace blizzaga104
 	static const uint32_t HELD_Frozen = ORIG_FreezeTask + 3, HELD_Block = ORIG_FreezeTask + 4;
 	static const uint32_t HELD_Ring = ORIG_FreezeTask + 1, HELD_Flash = ORIG_FreezeTask + 2;
 
-	struct FreezeRec { int rec; const FreezeNode *f; int16_t level, hi; int kind; Mat4x3 m; };
+	struct FreezeRec { int rec; const FreezeNode *f; int16_t level, hi; int kind; Mat4x3 m; uint32_t frame; };
+	static FreezeRec *g_frozen_rec = nullptr; // frozen draw being recorded (its frame cursor after the shadow)
 	static FreezeRec g_freeze[16];
 	static int g_nfreeze = 0;
 	struct TrailRec { int rec; uint8_t node[sizeof(RibbonNode)]; };
@@ -67,6 +70,7 @@ namespace blizzaga104
 		g_draws.begin();
 		g_nfreeze = 0;
 		g_ntrails = 0;
+		g_frozen_rec = nullptr;
 	}
 
 	// whole nodes of the logged draws (the draw log keeps 0x24 bytes, these nodes are larger)
@@ -94,9 +98,21 @@ namespace blizzaga104
 	static void held_note_frozen(const FreezeNode *f, int16_t level)
 	{
 		FreezeRec *r = NoteFreeze(HELD_Frozen, f);
+		g_frozen_rec = r;
 		if (!r) return;
+		r->frame = 0;
 		r->level = level;
 		r->hi = f->band_hi;
+	}
+
+	// the real frozen draw's model packets start here (after the target's shadow): a held redraw
+	// starts from a copy of those bytes, so the halfwords its packets do not write (the pad after
+	// the last UV) are the real tick's
+	static void held_note_frame(uint32_t cursor)
+	{
+		if (g_held_drawing || !g_frozen_rec) return;
+		g_frozen_rec->frame = cursor;
+		g_frozen_rec = nullptr;
 	}
 
 	static void held_note_block(const FreezeNode *f, int kind, const Mat4x3 *m)
@@ -152,6 +168,11 @@ namespace blizzaga104
 		uint32_t work = var<uint32_t>(0x1D98B3C);
 		uint32_t frame = FrameCursor();
 		var<uint32_t>(0x1D98B3C) = (uint32_t)g_held_work;
+		if (r.frame && frame > r.frame)
+		{
+			uint32_t used = frame - r.frame;
+			memcpy(g_held_frame_packets, (const void *)r.frame, used < sizeof(g_held_frame_packets) ? used : sizeof(g_held_frame_packets));
+		}
 		FrameCursor() = (uint32_t)g_held_frame_packets;
 		g_held_drawing = true;
 		DrawFrozenEntity(f->entity, level, hi, &lo_out, &hi_out, uv);

@@ -13,22 +13,18 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// 30 fps part of mag104_blizzaga.cpp (declarations for its FX_HELD statements)
+// 30 fps part of mag111_aura.cpp (declarations for its FX_HELD statements)
 #pragma once
 #include "fx_held.h"
 
 namespace ff8fx
 {
-namespace blizzaga104
+namespace aura111
 {
 	static void held_note_root();
-	static void held_note_draw(uint32_t fn, const void *node);
-	static void held_note_frozen(const FreezeNode *f, int16_t level);
-	static void held_note_frame(uint32_t cursor);
-	static void held_note_block(const FreezeNode *f, int kind, const Mat4x3 *m);
-	static void held_note_part(uint32_t fn, const FreezeNode *f);
-	static void held_note_trail(uint32_t fn, const void *node);
-	static bool held_drawing();
+	static void held_note_play(const TargetNode *t, const Mat4x3 *local);
+	static void held_note_glow(const int16_t *pos, int32_t e);
+	static void held_note_flame(const FlameNode *f);
 }
-	static void register_mag104_held();
+	static void register_mag111_held();
 }
