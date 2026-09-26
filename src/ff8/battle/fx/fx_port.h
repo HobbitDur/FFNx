@@ -231,6 +231,9 @@ namespace ff8fx
 	void register_mag003_thunder();
 	void register_mag102_thundara();
 	void register_mag105_thundaga();
+	void register_mag144_blizzard();
+	void register_mag103_blizzara();
+	void register_mag104_blizzaga();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
