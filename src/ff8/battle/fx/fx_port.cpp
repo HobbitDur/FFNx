@@ -118,6 +118,10 @@ namespace ff8fx
 		register_mag144_blizzard();
 		register_mag103_blizzara();
 		register_mag104_blizzaga();
+		register_mag022_bio();
+		register_mag038_quake();
+		register_mag149_ultima();
+		register_mag175_holy();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
