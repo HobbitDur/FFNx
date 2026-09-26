@@ -14,6 +14,9 @@
 /****************************************************************************/
 
 #include "fx_port.h"
+#ifdef FF8_FX_HELD
+#include "fx_held.h"
+#endif
 
 namespace ff8fx
 {
@@ -88,6 +91,9 @@ namespace ff8fx
 
 	void register_all()
 	{
+		static bool done = false; // install() and a host may both ask
+		if (done) return;
+		done = true;
 		register_mag069_griever();
 		register_mag116_quezacotl();
 		register_mag140_phoenix();
@@ -118,5 +124,7 @@ namespace ff8fx
 		register_gfc_eden();
 		register_mag191_doomtrain();
 		register_mag327_gilgamesh();
+		// 30 fps layer: see fx_held.cpp
+		FX_HELD(register_all_held();)
 	}
 }

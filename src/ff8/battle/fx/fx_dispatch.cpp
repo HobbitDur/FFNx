@@ -31,21 +31,28 @@
 
 namespace ff8fx
 {
-	void verify_install();                     // fx_verify.cpp
+	void verify_install(bool hook_tick);       // fx_verify.cpp
 	void (*g_queue_seen)(TaskQueue *q) = nullptr; // set by the verifier: queues run during a verified tick
+	const ExecObserver *g_exec_observer = nullptr;
+	static bool g_installed = false;
 
 	// 0x508420, instruction for instruction
 	static int __cdecl ExecuteTaskQueue(TaskQueue *q)
 	{
 		if (g_queue_seen) g_queue_seen(q);
+		const ExecObserver *obs = g_exec_observer;
+		if (obs && obs->queue_start) obs->queue_start(q);
 		TaskNode *prev = nullptr;
-		int kept = 0;
-		for (TaskNode *cur = q->head; cur; cur = cur->next)
+		int kept = 0, index = 0;
+		for (TaskNode *cur = q->head; cur; cur = cur->next, index++)
 		{
+			uint32_t cookie = 0;
+			if (obs && obs->task_before && !obs->task_before(q, cur, index, &cookie)) break;
 			TaskFn fn = (TaskFn)cur->func;
 			if (g_active)
 				if (void *port = lookup((uint32_t)fn)) fn = (TaskFn)port;
 			uint32_t r = fn(cur);
+			if (obs && obs->task_after) obs->task_after(q, cur, r, cookie);
 			if (r & 2)
 			{
 				cur->flags = 0;
@@ -64,7 +71,8 @@ namespace ff8fx
 
 	void install()
 	{
-		if (!FF8_US_VERSION || !ff8_battle_fx_native) return;
+		if (g_installed || !FF8_US_VERSION || !ff8_battle_fx_native) return;
+		g_installed = true;
 		register_all();
 		replace_function(0x508420, (void *)ExecuteTaskQueue);
 		g_active = true;
@@ -72,7 +80,24 @@ namespace ff8fx
 		if (ff8_battle_fx_verify)
 		{
 			prim::install_verify();
-			verify_install();
+			verify_install(true);
+		}
+	}
+
+	void install_hosted()
+	{
+		if (g_installed || !FF8_US_VERSION) return;
+		g_installed = true;
+		register_all();
+		// the executor is installed even with the ports off: the host may observe it
+		replace_function(0x508420, (void *)ExecuteTaskQueue);
+		g_active = false;
+		if (!ff8_battle_fx_native) return;
+		ffnx_info("FF8 battle fx: native effect code on (hosted)%s\n", ff8_battle_fx_verify ? ", verified against the original" : "");
+		if (ff8_battle_fx_verify)
+		{
+			prim::install_verify();
+			verify_install(false);
 		}
 	}
 }

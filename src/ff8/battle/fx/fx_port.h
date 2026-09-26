@@ -157,9 +157,37 @@ namespace ff8fx
 	bool module_ported(int effect_id);  // at least one port registered for this effect
 	const char *port_name(uint32_t orig);
 	extern bool g_active;               // ports dispatched (fx_dispatch.cpp / fx_verify.cpp)
-	void register_all();                // every module's register function (fx_port.cpp)
-	void install();                     // FFNx hook installation (fx_dispatch.cpp)
+	void register_all();                // every module's register function (fx_port.cpp), once
+	void install();                     // FFNx hook installation (fx_dispatch.cpp), once
 	extern void (*g_queue_seen)(TaskQueue *q); // verifier callback: a queue runs
+
+	// --- hosting by another FFNx layer (fx_dispatch.cpp / fx_verify.cpp) ---
+	// A layer that owns the effect tick call (0x50093A) itself calls install_hosted() instead
+	// of letting install() run: the executor replacement (0x508420) and the ports are
+	// installed, the verifier's external call sites too when verification is on, but the
+	// tick call is not hooked and the ports stay off (g_active false) outside verify_tick().
+	// install() does nothing afterwards.
+	void install_hosted();
+	// One effect tick (queue = C3_28_GF_data_pointer, orig = the original tick call target)
+	// exactly as the verifier's own 0x50093A hook runs it: verified against the original when
+	// the running effect's module is ported and fits the snapshot (ff8_battle_fx_verify), the
+	// ports alone when verification is off, else the original code.
+	int verify_tick(void *queue, int (__cdecl *orig)(void *));
+	// Optional observer of the verifier's runs (nullptr = none)
+	enum VerifyEvent { VERIFY_ORIGINAL_RUN, VERIFY_PORT_RUN, VERIFY_KEPT_ORIGINAL, VERIFY_KEPT_PORT };
+	extern void (*g_verify_event)(VerifyEvent e);
+
+	// Optional observer of the task queue executor (nullptr = none). queue_start: a queue is
+	// about to run (after g_queue_seen). task_before: before a node's function, index = nodes
+	// run so far in this call; returning false stops the queue there (as if the list ended).
+	// task_after: after it, with its return value and the cookie task_before stored.
+	struct ExecObserver
+	{
+		void (*queue_start)(TaskQueue *q);
+		bool (*task_before)(TaskQueue *q, TaskNode *n, int index, uint32_t *cookie);
+		void (*task_after)(TaskQueue *q, TaskNode *n, uint32_t ret, uint32_t cookie);
+	};
+	extern const ExecObserver *g_exec_observer;
 
 	// Shared effect prim-model player (MAG_011_sub_701970, ~300 callers): see fx_primplayer.cpp
 	namespace prim

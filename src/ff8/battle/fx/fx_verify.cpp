@@ -36,11 +36,14 @@
 // first difference is logged (at most MISMATCH_LOG_MAX lines per summon). B runs under SEH;
 // after FAULTS_MAX faults in one summon only the original code runs for the rest of it.
 // The hit-effect queue (0x500923) is not verified (no ports there).
+// A host layer that owns the tick call itself (fx_port.h: install_hosted) calls verify_tick()
+// for the ticks it wants handled this way instead of the hook.
 
 #include "fx_port.h"
 #include "fx_modules.h"
 #include "../../../patch.h"
 #include "../../../log.h"
+#include "../../../cfg.h"
 
 #include <windows.h>
 #include <stdio.h>
@@ -53,7 +56,8 @@ namespace
 	const uint32_t MISMATCH_LOG_MAX = 60;
 	const uint32_t FAULTS_MAX = 3;
 
-	int (__cdecl *g_tick_orig)(TaskQueue *) = nullptr;
+	int (__cdecl *g_tick_orig)(TaskQueue *) = nullptr; // the original tick call target
+	bool g_installed = false;
 
 	// ------------------------------------------------------------------ tracked memory
 	// Every range a tick may modify, snapshotted once (g_snap), saved after the original run
@@ -532,7 +536,12 @@ namespace
 	}
 
 	// ------------------------------------------------------------------ one verified tick
-	int verify_tick(TaskQueue *q, const mod::Module &m)
+	void verify_event(VerifyEvent e)
+	{
+		if (g_verify_event) g_verify_event(e);
+	}
+
+	int verified_tick(TaskQueue *q, const mod::Module &m)
 	{
 		g_s.verified++;
 		uint32_t tick = g_s.ticks + 1;
@@ -544,6 +553,7 @@ namespace
 		}
 
 		// --- A: original code, external calls recorded ---
+		verify_event(VERIFY_ORIGINAL_RUN);
 		g_ncalls = 0; g_calls_overflow = false;
 		g_wlog_used = 0; g_wlog_overflow = false;
 		g_phase = PH_A;
@@ -580,6 +590,7 @@ namespace
 
 		// --- B: ports, external calls replayed ---
 		restore_snapshot();
+		verify_event(VERIFY_PORT_RUN);
 		g_phase = PH_B;
 		g_replay_i = 0;
 		g_call_msg[0] = 0;
@@ -614,6 +625,7 @@ namespace
 		if (!diff)
 		{
 			g_s.matched++;
+			verify_event(VERIFY_KEPT_PORT);
 			return rb;
 		}
 		g_s.mismatched++;
@@ -630,6 +642,7 @@ namespace
 				m.name, tick, diff, ra, rb, cw_a0, cw_a1, cw_b1, calls[0] ? calls : " none");
 		}
 		put_back_A();
+		verify_event(VERIFY_KEPT_ORIGINAL);
 		return ra;
 	}
 
@@ -650,16 +663,20 @@ namespace
 			r = run_original_only(q);
 			g_s.original_only++;
 		}
-		else r = verify_tick(q, *m);
+		else r = verified_tick(q, *m);
 		g_s.ticks++;
 		if (r == 0) summon_end(); // queue empty: the effect is over
 		return r;
 	}
 }
 
-	void verify_install()
+	void (*g_verify_event)(VerifyEvent e) = nullptr;
+
+	// hook_tick = false: a host owns the tick call (install_hosted) and calls verify_tick itself
+	void verify_install(bool hook_tick)
 	{
-		if (g_tick_orig) return;
+		if (g_installed) return;
+		g_installed = true;
 		void *stubs[SITES_MAX];
 		fill_stubs(stubs, std::make_integer_sequence<int, SITES_MAX>{});
 		g_nsites = 0;
@@ -672,8 +689,27 @@ namespace
 			ffnx_error("FF8 battle fx: the verifier has room for %d external sites, %d listed\n", SITES_MAX - 2, mod::ext_site_count);
 		for (int i = 0; i < g_nsites; i++) g_sites[i].stub = stubs[i];
 
-		g_tick_orig = (int (__cdecl *)(TaskQueue *))get_relative_call(0x50093A, 0);
-		replace_call(0x50093A, (void *)effect_tick);
+		if (hook_tick)
+		{
+			g_tick_orig = (int (__cdecl *)(TaskQueue *))get_relative_call(0x50093A, 0);
+			replace_call(0x50093A, (void *)effect_tick);
+		}
 		ffnx_info("FF8 battle fx: differential verifier installed (%d modules, %d external sites)\n", mod::module_count, mod::ext_site_count);
+	}
+
+	int verify_tick(void *queue, int (__cdecl *orig)(void *))
+	{
+		if (!ff8_battle_fx_native) return orig(queue);
+		if (!g_installed)
+		{
+			// verification off: the ports alone
+			bool act = g_active;
+			g_active = true;
+			int r = orig(queue);
+			g_active = act;
+			return r;
+		}
+		g_tick_orig = (int (__cdecl *)(TaskQueue *))orig;
+		return effect_tick((TaskQueue *)queue);
 	}
 }
