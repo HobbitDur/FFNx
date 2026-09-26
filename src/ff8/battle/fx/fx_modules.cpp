@@ -61,6 +61,12 @@ namespace ff8fx::mod
 	static const Region streams_i144[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_i103[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_i104[] = { { 0x1315774, 0x1900 }, { 0x13197C4, 0xC }, { 0x21DFED0, 0x20 } };
+	// Bio: acid CLUT and the mesh vertex blocks it rewrites in exe data; Holy: draw-environment
+	// restore packets in exe data; Quake/Ultima/both: shadow-camera scratch
+	static const Region streams_b022[] = { { 0x16146FC, 0x100 }, { 0x1615CEC, 0x2D8 }, { 0x1617E44, 0x150 }, { 0x1619890, 0xE98 }, { 0x161F758, 0x810 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_q038[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_u149[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_h175[] = { { 0x21DFED0, 0x20 }, { 0xD592C0, 0x30 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
 	// BdTransSummonStream), TransformCameraByShadowRotation scratch
@@ -112,6 +118,10 @@ namespace ff8fx::mod
 		{ 144, 0x24BB960, 0x24BECC4, 0, 0, false, "Blizzard", streams_i144, 1 },
 		{ 103, 0x2543E90, 0x2543F18, 0, 0, false, "Blizzara", streams_i103, 1 },
 		{ 104, 0x2543DF0, 0x2543E90, 0, 0, false, "Blizzaga", streams_i104, 3 },
+		{ 22,  0x27044E0, 0x2714F24, 0, 0, false, "Bio", streams_b022, 6 },
+		{ 38,  0x278C8E0, 0x2792E60, 0, 0, false, "Quake", streams_q038, 1 },
+		{ 149, 0x2461E88, 0x2464BA8, 0, 0, false, "Ultima", streams_u149, 1 },
+		{ 175, 0x2374578, 0x2394208, 0x1D99C18, 4, false, "Holy", streams_h175, 2 }, // + RenderGeometry temporary
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -123,7 +133,8 @@ namespace ff8fx::mod
 		{ 0x1D97700, 0xB0, "camera state" },      // camera shake, roll, blend, BD_LINK_TASK_HEADER_CAMERA, view matrix
 		{ 0x1D8E038, 0x20, "render list globals" }, // word_1D8E038 .. battle_texture_data_ptr_1D8E054 (frame packet cursor)
 		{ 0x1CA8A10, 0x70, "GTE data registers" },
-		{ 0x1CA9230, 0xD0, "GTE control registers" },
+		{ 0x1CA9210, 0xF0, "GTE control registers" },            // + the float light-matrix mirror below them
+		{ 0x209D078, 0x2A40, "hit-effect queue pool + header" },  // effects spawn screen fades into it
 		{ 0x1D9898C, 0xDC, "battle entity array" },  // screen flash, currentBsId visibility bits
 		{ 0x1D972C0, 0x440, "BattleEntitySlotData" }, // entity_flags hide bits, Carbuncle's party lift, Odin/Doomtrain target edits
 		{ 0x1D99AB0, 0x20, "effect light/position" }, // shared effect light/position struct (Moomba)
