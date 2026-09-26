@@ -20,6 +20,7 @@
 /****************************************************************************/
 
 #include "ff8/battle/fx/fx_held.h"
+#include "ff8/battle/fx/fx_modules.h"
 #include <intrin.h>
 #include "globals.h"
 #include "common.h"
@@ -3097,14 +3098,12 @@ static ff8_bgate_rec_t *ff8_bgate_R = &ff8_bgate_rec_fx;
 #define ff8_bgate_fx_replay_blacklist (ff8_bgate_R->blacklist)
 #define ff8_bgate_fx_replay_blacklist_n (ff8_bgate_R->blacklist_n)
 
-// Per-task draw ranges for the look-ahead pairing (see ff8_bgate_la_* below): while
-// recording, ExecuteTaskQueue 0x508420 is replaced by this instruction-for-instruction
-// re-implementation that also notes which SSIGPU nodes each task created and which queues
-// ran (their pools are part of the look-ahead snapshot).
+// Per-task draw ranges for the look-ahead pairing (see ff8_bgate_la_* below): the native
+// task queue executor (the ExecuteTaskQueue 0x508420 replacement of src/ff8/battle/fx,
+// fx_dispatch.cpp) calls the observer below, which notes while recording which SSIGPU nodes
+// each task created and which queues ran (their pools are part of the look-ahead snapshot).
 struct ff8_bgate_task_node { uint16_t flags; uint16_t seq; ff8_bgate_task_node *next; int (__cdecl *func)(ff8_bgate_task_node *); };
 struct ff8_bgate_task_queue { ff8_bgate_task_node *head, *tail; uint8_t *pool; uint16_t node_size, capacity; };
-static int (__cdecl *ff8_bgate_etq_orig)(void *) = nullptr;
-static uint32_t ff8_bgate_etq_ri = 0;
 static bool ff8_bgate_etq_rec = false;
 static ff8_bgate_task_rng ff8_bgate_etq_log[FF8_BGATE_TASK_LOG];
 static int ff8_bgate_etq_log_n = 0;
@@ -3116,62 +3115,47 @@ static bool ff8_bgate_la_active = false;       // held frame being built from th
 static bool ff8_bgate_la_in_lookahead = false; // look-ahead pass running (new queues get saved on first sight)
 static void ff8_bgate_la_pool_save(ff8_bgate_task_queue *q);
 
-static int __cdecl ff8_bgate_etq_hook(void *qv)
+static void ff8_bgate_etq_queue_start(ff8fx::TaskQueue *qv)
 {
-	ff8_bgate_task_queue *q = (ff8_bgate_task_queue *)qv;
+	if (!ff8_bgate_etq_rec) return;
 	int k = 0;
-	if (ff8_bgate_etq_rec)
-		while (k < ff8_bgate_etq_queues_n && ff8_bgate_etq_queues[k] != qv) k++;
-	if (ff8_bgate_etq_rec && k == ff8_bgate_etq_queues_n)
+	while (k < ff8_bgate_etq_queues_n && ff8_bgate_etq_queues[k] != qv) k++;
+	if (k == ff8_bgate_etq_queues_n)
 	{
 		if (k < 32) ff8_bgate_etq_queues[ff8_bgate_etq_queues_n++] = qv;
-		if (ff8_bgate_la_in_lookahead) ff8_bgate_la_pool_save(q); // first seen inside the look-ahead: save before it runs
+		if (ff8_bgate_la_in_lookahead) ff8_bgate_la_pool_save((ff8_bgate_task_queue *)qv); // first seen inside the look-ahead: save before it runs
 	}
-	ff8_bgate_task_node *prev = nullptr, *cur = q->head;
-	int kept = 0, guard = 0;
-	for (; cur; cur = cur->next)
-	{
-		if (++guard > 65536)
-		{
-			ffnx_info("30fps la: task list of queue %p cycles (lookahead=%d) - aborted\n", qv, (int)ff8_bgate_la_in_lookahead);
-			ff8_bgate_etq_cycle = true;
-			break;
-		}
-		uint32_t before = FF8_BGATE_EXEC_CUR;
-		int (__cdecl *fn)(ff8_bgate_task_node *) = cur->func;
-		if (ff8fx::g_active)
-		{
-			void *port = ff8fx::lookup((uint32_t)fn); // native twin of this task function
-			if (port) fn = (int (__cdecl *)(ff8_bgate_task_node *))port;
-		}
-		int r = fn(cur);
-		uint32_t after = FF8_BGATE_EXEC_CUR;
-		if (ff8_bgate_etq_rec && after > before && before >= ff8_bgate_fx_rec_begin)
-		{
-			if (ff8_bgate_etq_log_n < FF8_BGATE_TASK_LOG)
-			{
-				ff8_bgate_task_rng &e = ff8_bgate_etq_log[ff8_bgate_etq_log_n++];
-				e.node = cur;
-				e.a = (uint16_t)((before - ff8_bgate_fx_rec_begin) / sizeof(ff8_bgate_exec_node));
-				e.b = (uint16_t)((after - ff8_bgate_fx_rec_begin) / sizeof(ff8_bgate_exec_node));
-			}
-			else ff8_bgate_etq_log_overflow = true;
-		}
-		if (r & 2)
-		{
-			cur->flags = 0;
-			if (prev) prev->next = cur->next;
-			else q->head = cur->next;
-		}
-		else
-		{
-			prev = cur;
-			kept++;
-		}
-	}
-	q->tail = prev;
-	return kept;
 }
+
+static bool ff8_bgate_etq_task_before(ff8fx::TaskQueue *q, ff8fx::TaskNode *, int index, uint32_t *cookie)
+{
+	if (index >= 65536)
+	{
+		ffnx_info("30fps la: task list of queue %p cycles (lookahead=%d) - aborted\n", q, (int)ff8_bgate_la_in_lookahead);
+		ff8_bgate_etq_cycle = true;
+		return false;
+	}
+	*cookie = FF8_BGATE_EXEC_CUR;
+	return true;
+}
+
+static void ff8_bgate_etq_task_after(ff8fx::TaskQueue *, ff8fx::TaskNode *n, uint32_t, uint32_t before)
+{
+	uint32_t after = FF8_BGATE_EXEC_CUR;
+	if (ff8_bgate_etq_rec && after > before && before >= ff8_bgate_fx_rec_begin)
+	{
+		if (ff8_bgate_etq_log_n < FF8_BGATE_TASK_LOG)
+		{
+			ff8_bgate_task_rng &e = ff8_bgate_etq_log[ff8_bgate_etq_log_n++];
+			e.node = n;
+			e.a = (uint16_t)((before - ff8_bgate_fx_rec_begin) / sizeof(ff8_bgate_exec_node));
+			e.b = (uint16_t)((after - ff8_bgate_fx_rec_begin) / sizeof(ff8_bgate_exec_node));
+		}
+		else ff8_bgate_etq_log_overflow = true;
+	}
+}
+
+static const ff8fx::ExecObserver ff8_bgate_etq_observer = { ff8_bgate_etq_queue_start, ff8_bgate_etq_task_before, ff8_bgate_etq_task_after };
 
 
 // Walks a PSX GPU packet (tag word + GP0 commands) and lists the word indexes holding
@@ -5065,106 +5049,11 @@ static bool ff8_bgate_tla_held_frame(void *queue, int (__cdecl *orig)(void *))
 // triangles pair the same way - so no separate pose half-step is needed. When the look-ahead
 // is unavailable (fault, overflow) the held frame falls back to the pause-mode paths
 // (ff8_bgate_tla_* / ff8_bgate_tlb_*) and then to the generic replay.
-// data_lo..data_hi = the module's own globals (FF8 was compiled per source file, so they are
-// contiguous; ranges from gf_study/gf_global_ranges.md); extra = one more cell the module
-// steps every tick outside that range (0 = none); lookahead = held frames use the look-ahead.
-struct ff8_bgate_la_region { uint32_t addr, size; };
-// streams = the module's .data buffers that its streamed files are loaded into (and restored
-// from the engine's backup at the end): part of the state a tick reads
-struct ff8_bgate_la_module { int effect_id; uint32_t data_lo, data_hi, extra, extra_size; bool lookahead; const char *name; const ff8_bgate_la_region *streams; int nstreams; };
-static const ff8_bgate_la_region ff8_bgate_la_streams_q116[] = { { 0x1298C68, 0x109FC }, { 0x12A9664, 0x4D9C } };
-// Cactuar: pool/table pointer cells 0xCF3564..0xCF3593 (written at the creature's first tick)
-static const ff8_bgate_la_region ff8_bgate_la_streams_c199[] = { { 0xCF3564, 0x30 } };
-// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
-// BdTransSummonStream), TransformCameraByShadowRotation scratch
-// Pandemona: texture load state machine cell (outside the module range)
-static const ff8_bgate_la_region ff8_bgate_la_streams_p291[] = { { 0x13BBBE8, 4 } };
-// Odin: ripple-texture destination in exe data, pool/scratch pointer cells, summon data (loads 0x227/0x229/0x22A)
-static const ff8_bgate_la_region ff8_bgate_la_streams_o187[] = { { 0xFA94A8, 0x4000 }, { 0xE41E50, 0xC }, { 0xE41E98, 4 }, { 0x209FAB8, 0x40000 } };
-// Doomtrain: pool pointer cells, summon data (loads 0x22E..0x231), shadow-camera scratch
-static const ff8_bgate_la_region ff8_bgate_la_streams_d191[] = { { 0xE3C8C0, 0x18 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
-// Gilgamesh: the 16 sword model files in .data (their skeletons are rebuilt), summon data
-// (loads 0x2EE/0x2F0/0x2F1), pool pointer cells
-static const ff8_bgate_la_region ff8_bgate_la_streams_g327[] = { { 0xE808D0, 0x10C50 }, { 0x209FAB8, 0x40000 }, { 0xCD0398, 0xC } };
-// Odin reverse: loads 0x2E3/0x2E8 into exe data + the ripple texture right after (0xEECC2C..0xEF4C30),
-// pool/scratch pointer cells, summon data (loads 0x2E5/0x2E7), the camera script's saved camera
-static const ff8_bgate_la_region ff8_bgate_la_streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FD250, 0x110 } };
-// GF cinematic engine (Ifrit): mesh depth scale, fog words, camera-related word
-static const ff8_bgate_la_region ff8_bgate_la_streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 } };
-// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
-// static cells the modules write, Siren's load destinations outside the 1 MB buffer
-static const ff8_bgate_la_region ff8_bgate_la_streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
-static const ff8_bgate_la_region ff8_bgate_la_streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
-// Tonberry / Boko (actor family): module data, shared scratch + camera copy, RenderGeometry
-// temporaries, TransformCameraByShadowRotation scratch, Boko load destinations outside the 1 MB buffer
-static const ff8_bgate_la_region ff8_bgate_la_streams_a090[] = { { 0x15474EC, 0x530 }, { 0x2793DA4, 0xD4 }, { 0x2795960, 0x218 }, { 0x1D99C18, 8 } };
-static const ff8_bgate_la_region ff8_bgate_la_streams_a097[] = { { 0x152B94C, 0xD4 }, { 0x168356C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
-static const ff8_bgate_la_region ff8_bgate_la_streams_a098[] = { { 0x152B2C4, 0xF4 }, { 0x167484C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
-static const ff8_bgate_la_region ff8_bgate_la_streams_a099[] = { { 0x152AABC, 0x174 }, { 0x1665B28, 0x8120 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 }, { 0x2795113, 0x68 } };
-static const ff8_bgate_la_region ff8_bgate_la_streams_a100[] = { { 0x1529B8C, 0x134 }, { 0x1656E04, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
-static const ff8_bgate_la_region ff8_bgate_la_streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
-static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
-	// timeline-A (own pause flag, creature spawned by the master at counter 2)
-	{ 116, 0x25216D8, 0x25217D0, 0, 0, true, "Quezacotl", ff8_bgate_la_streams_q116, 2 },
-	{ 325, 0x250517C, 0x2505230, 0, 0, false, "Diablos" },
-	{ 278, 0x2508110, 0x25081FC, 0, 0, false, "Carbuncle" },
-	{ 291, 0x2556258, 0x25562F8, 0, 0, false, "Pandemona", ff8_bgate_la_streams_p291, 1 },
-	{ 140, 0x2517AA0, 0x2517B50, 0, 0, false, "Phoenix" },
-	{ 338, 0x25561C8, 0x2556254, 0, 0, false, "Moomba" },
-	{ 69,  0x2556628, 0x2556F98, 0, 0, false, "Griever" },
-	// timeline-B (draw-only mode on battle_to_update_flags bit0, creature spawned by the timeline)
-	{ 185, 0x22BC128, 0x22BD108, 0, 0, false, "Shiva", ff8_bgate_la_streams_s185, 3 },
-	{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", ff8_bgate_la_streams_c199, 1 }, // + its private rand seed
-	{ 187, 0x24FD458, 0x24FE910, 0, 0, false, "Odin", ff8_bgate_la_streams_o187, 4 },
-	{ 326, 0x24F0BD0, 0x24F2308, 0, 0, false, "Odin (reverse)", ff8_bgate_la_streams_o326, 5 },
-	{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain", ff8_bgate_la_streams_d191, 3 },
-	{ 327, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Zantetsuken)", ff8_bgate_la_streams_g327, 3 },
-	{ 328, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Masamune)", ff8_bgate_la_streams_g327, 3 },
-	{ 329, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalibur)", ff8_bgate_la_streams_g327, 3 },
-	{ 330, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalipoor)", ff8_bgate_la_streams_g327, 3 },
-	// GF cinematic engine family (engine state block 0x2796E00..0x2798C40)
-	{ 201, 0x2796E00, 0x2798C40, 0, 0, false, "Ifrit", ff8_bgate_la_streams_gfc, 4 },
-	// the six other compilations: same engine block, plus each clone's queue/file pointer statics below it
-	{ 6,   0x2796EF8, 0x2798C40, 0, 0, false, "Leviathan", ff8_bgate_la_streams_gfc, 4 },
-	{ 202, 0x2796DE0, 0x2798C40, 0, 0, false, "Bahamut", ff8_bgate_la_streams_gfc, 4 },
-	{ 203, 0x2796DA8, 0x2798C40, 0, 0, false, "Cerberus", ff8_bgate_la_streams_gfc, 4 },
-	{ 204, 0x2796D70, 0x2798C40, 0, 0, false, "Alexander", ff8_bgate_la_streams_gfc, 4 },
-	{ 205, 0x2796D30, 0x2798C40, 0, 0, false, "Brothers", ff8_bgate_la_streams_gfc, 4 },
-	{ 206, 0x2796CF8, 0x2798C40, 0, 0, false, "Eden", ff8_bgate_la_streams_gfc, 4 },
-	// actor state-machine family (the heal-spell effect library)
-	{ 95,  0x257F8A0, 0x258FCF4, 0, 0, false, "Siren", ff8_bgate_la_streams_a095, 6 },
-	{ 96,  0x257B740, 0x257F8A0, 0, 0, false, "MiniMog", ff8_bgate_la_streams_a096, 5 },
-	{ 90,  0x259EEA8, 0x25A4E00, 0, 0, false, "Tonberry", ff8_bgate_la_streams_a090, 4 },
-	{ 97,  0x2575268, 0x257B740, 0, 0, false, "Boko ChocoFire", ff8_bgate_la_streams_a097, 6 },
-	{ 98,  0x256E358, 0x2575268, 0, 0, false, "Boko ChocoFlare", ff8_bgate_la_streams_a098, 6 },
-	{ 99,  0x2565A30, 0x256E358, 0, 0, false, "Boko ChocoMeteor", ff8_bgate_la_streams_a099, 7 },
-	{ 100, 0x255EAC8, 0x2565A30, 0, 0, false, "Boko ChocoBocle", ff8_bgate_la_streams_a100, 6 },
-};
-#define FF8_BGATE_LA_MODULES ((int)(sizeof(ff8_bgate_la_modules) / sizeof(ff8_bgate_la_modules[0])))
-
-// engine state every timeline effect may touch in one tick (saved before the look-ahead,
-// restored after it, whatever happened)
-static const ff8_bgate_la_region ff8_bgate_la_regions[] = {
-	{ 0x20DFAB8, 0x100000 }, // MAGIC_TEXTURE_BUFFER_BASE: creature, particle pools, packet arenas
-	{ 0x21DFAB8, 4 },        // its fill cursor (zeroed with it by Magic_ClearMemoryForTex)
-	{ 0x1D99A88, 4 },        // MAGIC_TEXTURE_BUFFER_PTR
-	{ 0xB8B7F0, 0x20 },      // Battle_Camera_world/LookAt + ReturnView
-	{ 0x1D97700, 0xB0 },     // camera shake, roll, blend, BD_LINK_TASK_HEADER_CAMERA, view matrix
-	{ 0x1D8E038, 0x20 },     // word_1D8E038 .. battle_texture_data_ptr_1D8E054 (frame packet cursor)
-	{ 0x1CA8A10, 0x70 },     // GTE data registers
-	{ 0x1CA9230, 0xD0 },     // GTE control registers
-	{ 0x1D9898C, 0xDC },     // battle entity array (screen flash, currentBsId visibility bits)
-	{ 0x1D972C0, 0x440 },    // BattleEntitySlotData (entity_flags hide bits, Carbuncle's party lift, Odin/Doomtrain target edits)
-	{ 0x1D99AB0, 0x20 },     // shared effect light/position struct (Moomba)
-	{ 0x1DCD6E0, 0x10 },     // streamed-file loader globals (dword_1DCD6E4/E8/EC)
-	{ 0x1D999C4, 4 },        // Field_Alloc bump pointer
-	{ 0x2557098, 4 },        // shared effect LCG seed (MAG_106_sub_7059E0)
-	{ 0x1CFF6F4, 4 },        // g_Battle_ScreenFeedbackRequest
-	{ 0x1D98220, 0x204 },    // VRAM upload queue + count
-	{ 0x1CA8828, 4 },        // ssigpu_execution_cur
-};
-#define FF8_BGATE_LA_REGIONS ((int)(sizeof(ff8_bgate_la_regions) / sizeof(ff8_bgate_la_regions[0])))
-#define FF8_BGATE_LA_DATA_MAX 0x20000 // Siren module bss is 0x10454 bytes
+// The module table (ff8fx::mod::modules: module globals data_lo..data_hi, extra cell, streams,
+// lookahead = held frames use the look-ahead) and the engine regions every effect tick may
+// touch (ff8fx::mod::engine_regions, saved before the look-ahead and restored after it,
+// whatever happened) are shared with the verifier: src/ff8/battle/fx/fx_modules.cpp.
+#define FF8_BGATE_LA_DATA_MAX (ff8fx::mod::DATA_MAX) // Siren module bss is 0x10454 bytes
 #define FF8_BGATE_LA_POOLS_MAX 0x80000
 static uint8_t ff8_bgate_la_save_regions[0x100000 + 0x1000];
 static uint8_t ff8_bgate_la_save_data[FF8_BGATE_LA_DATA_MAX];
@@ -5205,8 +5094,8 @@ static uint32_t ff8_bgate_la_ticks = 0, ff8_bgate_la_runs = 0, ff8_bgate_la_faul
 static int ff8_bgate_la_module_of_effect()
 {
 	int id = *(int *)0x1D99A68 + 1;
-	for (int m = 0; m < FF8_BGATE_LA_MODULES; m++)
-		if (ff8_bgate_la_modules[m].effect_id == id) return m;
+	for (int m = 0; m < ff8fx::mod::module_count; m++)
+		if (ff8fx::mod::modules[m].effect_id == id) return m;
 	return -1;
 }
 
@@ -5233,7 +5122,7 @@ static bool ff8_bgate_la_real_tick_begin(void *queue)
 		ff8_bgate_la_reset();
 		ff8_bgate_la_cur = m;
 		ff8_bgate_la_queue = queue;
-		ffnx_info("30fps la: %s look-ahead summon, queue=%p\n", ff8_bgate_la_modules[m].name, queue);
+		ffnx_info("30fps la: %s look-ahead summon, queue=%p\n", ff8fx::mod::modules[m].name, queue);
 	}
 	ff8_bgate_la_ticks++;
 	ff8_bgate_etq_log_n = 0;
@@ -5247,8 +5136,8 @@ static void ff8_bgate_la_finish()
 {
 	if (ff8_bgate_la_cur < 0) return;
 	ffnx_info("30fps la: %s finished, real ticks=%u look-aheads=%u faults=%u held frames=%u (fallback %u) queues=%d\n",
-		ff8_bgate_la_modules[ff8_bgate_la_cur].name, ff8_bgate_la_ticks, ff8_bgate_la_runs, ff8_bgate_la_faults, ff8_bgate_la_held, ff8_bgate_la_fallback, ff8_bgate_etq_queues_n);
-	ff8_bgate_fxv_summary(ff8_bgate_la_modules[ff8_bgate_la_cur].name);
+		ff8fx::mod::modules[ff8_bgate_la_cur].name, ff8_bgate_la_ticks, ff8_bgate_la_runs, ff8_bgate_la_faults, ff8_bgate_la_held, ff8_bgate_la_fallback, ff8_bgate_etq_queues_n);
+	ff8_bgate_fxv_summary(ff8fx::mod::modules[ff8_bgate_la_cur].name);
 	ff8_bgate_la_reset();
 }
 
@@ -5272,7 +5161,7 @@ static void ff8_bgate_la_attach_tasks(ff8_bgate_fx_snap &s)
 // the queues seen so far, ordering table, CRT seed); shared by the look-ahead and the verifier.
 static uint8_t ff8_bgate_snap_extra[16];
 // sum of a module's stream regions (Gilgamesh: sword files 0x10C50 + summon data 0x40000 + cells)
-#define FF8_BGATE_SNAP_STREAMS_MAX 0x80000
+#define FF8_BGATE_SNAP_STREAMS_MAX (ff8fx::mod::STREAMS_MAX)
 static uint8_t ff8_bgate_snap_streams[FF8_BGATE_SNAP_STREAMS_MAX];
 static uint32_t ff8_bgate_snap_seed = 0;
 // Field_Alloc scratch (bump stack growing up from GLOBAL_MEMORY_POOL 0x1D999C4): effects
@@ -5283,17 +5172,10 @@ static uint32_t ff8_bgate_snap_scratch_addr = 0;
 
 static uint32_t *ff8_bgate_crt_seed() { return (uint32_t *)(((uint8_t *(__cdecl *)())0x560578)() + 0x14); }
 
-static uint32_t ff8_bgate_streams_bytes(const ff8_bgate_la_module &g)
-{
-	uint32_t n = 0;
-	for (int i = 0; i < g.nstreams; i++) n += g.streams[i].size;
-	return n;
-}
-
-static void ff8_bgate_snap_take(const ff8_bgate_la_module &g)
+static void ff8_bgate_snap_take(const ff8fx::mod::Module &g)
 {
 	uint32_t o = 0;
-	for (int i = 0; i < FF8_BGATE_LA_REGIONS; i++) { memcpy(ff8_bgate_la_save_regions + o, (void *)ff8_bgate_la_regions[i].addr, ff8_bgate_la_regions[i].size); o += ff8_bgate_la_regions[i].size; }
+	for (int i = 0; i < ff8fx::mod::engine_region_count; i++) { memcpy(ff8_bgate_la_save_regions + o, (void *)ff8fx::mod::engine_regions[i].addr, ff8fx::mod::engine_regions[i].size); o += ff8fx::mod::engine_regions[i].size; }
 	memcpy(ff8_bgate_la_save_data, (void *)g.data_lo, g.data_hi - g.data_lo);
 	if (g.extra) memcpy(ff8_bgate_snap_extra, (void *)g.extra, g.extra_size);
 	for (int i = 0, so = 0; i < g.nstreams; so += g.streams[i].size, i++)
@@ -5308,7 +5190,7 @@ static void ff8_bgate_snap_take(const ff8_bgate_la_module &g)
 	memcpy(ff8_bgate_snap_scratch, (void *)ff8_bgate_snap_scratch_addr, sizeof(ff8_bgate_snap_scratch));
 }
 
-static void ff8_bgate_snap_restore(const ff8_bgate_la_module &g)
+static void ff8_bgate_snap_restore(const ff8fx::mod::Module &g)
 {
 	memcpy((void *)FF8_BGATE_OT_SPAN_BASE(), ff8_bgate_la_save_ot, sizeof(ff8_bgate_la_save_ot));
 	for (int i = ff8_bgate_la_npools - 1; i >= 0; i--)
@@ -5322,7 +5204,7 @@ static void ff8_bgate_snap_restore(const ff8_bgate_la_module &g)
 	for (int i = 0, so = 0; i < g.nstreams; so += g.streams[i].size, i++)
 		memcpy((void *)g.streams[i].addr, ff8_bgate_snap_streams + so, g.streams[i].size);
 	uint32_t o = 0;
-	for (int i = 0; i < FF8_BGATE_LA_REGIONS; i++) { memcpy((void *)ff8_bgate_la_regions[i].addr, ff8_bgate_la_save_regions + o, ff8_bgate_la_regions[i].size); o += ff8_bgate_la_regions[i].size; }
+	for (int i = 0; i < ff8fx::mod::engine_region_count; i++) { memcpy((void *)ff8fx::mod::engine_regions[i].addr, ff8_bgate_la_save_regions + o, ff8fx::mod::engine_regions[i].size); o += ff8fx::mod::engine_regions[i].size; }
 	*ff8_bgate_crt_seed() = ff8_bgate_snap_seed;
 	memcpy((void *)ff8_bgate_snap_scratch_addr, ff8_bgate_snap_scratch, sizeof(ff8_bgate_snap_scratch));
 }
@@ -5374,8 +5256,8 @@ static void ff8_bgate_la_lookahead(void *queue, int (__cdecl *orig)(void *))
 	ff8_bgate_fx_snap &la = ff8_bgate_rec_fx.la;
 	la.valid = false;
 	if (m < 0 || queue != ff8_bgate_la_queue || ff8_bgate_la_faults >= 3 || ff8_bgate_fx_mode < 2) return;
-	const ff8_bgate_la_module &g = ff8_bgate_la_modules[m];
-	if (!g.lookahead || g.data_hi - g.data_lo > FF8_BGATE_LA_DATA_MAX) return;
+	const ff8fx::mod::Module &g = ff8fx::mod::modules[m];
+	if (!g.lookahead || !ff8fx::mod::fits(g)) return;
 
 	// --- snapshot ---
 	ff8_bgate_snap_take(g);
@@ -5436,618 +5318,58 @@ static bool ff8_bgate_la_held_frame(void *queue)
 	return true;
 }
 
-// --- differential verification of the native effect ports (ff8fx, src/ff8/battle/fx) ---
-// For an effect with ported functions, every real tick runs twice from the same snapshot:
-//   A = the original code, with every external engine call RECORDED (arguments, return
-//       value, and the bytes it wrote inside the snapshot regions),
-//   B = the same tick with the ports dispatched, external calls REPLAYED from A (not
-//       executed again: sounds, loads, damage happen exactly once).
-// Then everything is compared: return value, every snapshot region byte (magic buffer,
-// module globals, camera, GTE, entity arrays...), task pools, ordering table, each emitted
-// GPU primitive (bucket, depth keys, packet words) and the external call sequence. On a
-// match B's result stays (it is identical); on any difference the post-A state is put back,
-// so the game always continues on vanilla behaviour, and the first difference is logged
-// with the task that produced it.
-enum { FXV_EXT_OFF = 0, FXV_EXT_RECORD, FXV_EXT_REPLAY };
-struct ff8_bgate_fxv_site { uint32_t addr; int arity; const char *name; void *stub; uint8_t saved[5]; bool patched; };
-struct ff8_bgate_fxv_call { int site; uint32_t args[6]; uint32_t ret; uint32_t w_off, w_len; uint16_t cw_after; };
-#define FXV_CALLS_MAX 256
-#define FXV_WLOG_SIZE 0x100000
-static int ff8_bgate_fxv_ext_mode = FXV_EXT_OFF, ff8_bgate_fxv_depth = 0;
-static ff8_bgate_fxv_call ff8_bgate_fxv_calls[FXV_CALLS_MAX];
-static int ff8_bgate_fxv_ncalls = 0, ff8_bgate_fxv_replay_i = 0;
-static uint8_t ff8_bgate_fxv_wlog[FXV_WLOG_SIZE];
-static uint32_t ff8_bgate_fxv_wlog_used = 0;
-static bool ff8_bgate_fxv_wlog_overflow = false;
-static char ff8_bgate_fxv_call_msg[256];
-static int ff8_bgate_fxv_ext_call(int site, uint32_t *args);
-template<int I> static uint32_t __cdecl ff8_bgate_fxv_stub(uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
-{
-	uint32_t a[6] = { a0, a1, a2, a3, a4, a5 };
-	return (uint32_t)ff8_bgate_fxv_ext_call(I, a);
-}
-// arity 0 = not verified yet: only the call itself is compared, not its arguments
-static ff8_bgate_fxv_site ff8_bgate_fxv_sites[] = {
-	{ 0x501330, 3, "BdPlaySE", (void *)ff8_bgate_fxv_stub<0> },
-	{ 0x5018C0, 3, "BdPlaySummonStream", (void *)ff8_bgate_fxv_stub<1> },
-	{ 0x501860, 2, "BdTransSummonStream", (void *)ff8_bgate_fxv_stub<2> },
-	{ 0x4A29A0, 3, "BdSound_ClaimVoiceSlot", (void *)ff8_bgate_fxv_stub<3> },
-	{ 0x4A2940, 1, "BdSound_ReleaseVoiceSlot", (void *)ff8_bgate_fxv_stub<4> },
-	{ 0x48D0A0, 4, "pre_LoadBattleFile", (void *)ff8_bgate_fxv_stub<5> },
-	{ 0x508480, 0, "BattleFile_CharacterLoad", (void *)ff8_bgate_fxv_stub<6> },
-	{ 0x506BA0, 2, "ApplyActionResultToTargets", (void *)ff8_bgate_fxv_stub<7> },
-	{ 0x506690, 0, "ApplyActionResultToTarget", (void *)ff8_bgate_fxv_stub<8> },
-	{ 0x505C00, 0, "QueueChainTransformation", (void *)ff8_bgate_fxv_stub<9> },
-	{ 0x506C10, 1, "AddTaskToQueueAnimSeq", (void *)ff8_bgate_fxv_stub<10> },
-	// battle-stage model swaps (Griever: attacker model 36/37 at tick 50, swap at 110)
-	{ 0x512AA0, 2, "loadBS_36Or37", (void *)ff8_bgate_fxv_stub<11> },
-	{ 0x512AC0, 2, "BS_SwapModel_512AC0", (void *)ff8_bgate_fxv_stub<12> },
-	// GF cinematic engine (Ifrit family): sound/music, CLUT upload and battle calls it makes directly
-	{ 0x46B3A0, 0, "Sound_46B3A0", (void *)ff8_bgate_fxv_stub<13> },
-	{ 0x46B3E0, 0, "Sound_46B3E0", (void *)ff8_bgate_fxv_stub<14> },
-	{ 0x46B450, 0, "Sound_46B450", (void *)ff8_bgate_fxv_stub<15> },
-	{ 0x46BBC0, 0, "Sound_46BBC0", (void *)ff8_bgate_fxv_stub<16> },
-	{ 0x47E3C0, 0, "Music_47E3C0", (void *)ff8_bgate_fxv_stub<17> },
-	{ 0xB666F0, 0, "GfCinematic_ClutUpload", (void *)ff8_bgate_fxv_stub<18> },
-	{ 0x4A8480, 0, "Battle_4A8480", (void *)ff8_bgate_fxv_stub<19> },
-	{ 0x501E40, 0, "Battle_501E40", (void *)ff8_bgate_fxv_stub<20> },
-	{ 0x501F30, 0, "Battle_501F30", (void *)ff8_bgate_fxv_stub<21> },
-	{ 0x504270, 0, "Battle_504270", (void *)ff8_bgate_fxv_stub<22> },
-	{ 0x5099A0, 0, "Battle_5099A0", (void *)ff8_bgate_fxv_stub<23> },
-	{ 0x50A730, 0, "Battle_50A730", (void *)ff8_bgate_fxv_stub<24> },
-	// cinematic clones: off-screen model/stage renders (pose battle models, execute an OT),
-	// blit queue, streaming volume, screen feedback request (Eden draw 58)
-	{ 0xB65810, 0, "GfCinematic_RenderPartyModelsOffscreen", (void *)ff8_bgate_fxv_stub<25> },
-	{ 0xB65D10, 0, "GfCinematic_RenderBattleStageOffscreen", (void *)ff8_bgate_fxv_stub<26> },
-	{ 0xB65F30, 0, "GfCinematic_RenderBattleModelOffscreen", (void *)ff8_bgate_fxv_stub<27> },
-	{ 0x505EB0, 0, "QueueBlitCommand", (void *)ff8_bgate_fxv_stub<28> },
-	{ 0x46BD40, 0, "SdStreamingVolumeTranslation", (void *)ff8_bgate_fxv_stub<29> },
-	{ 0x47CF50, 0, "Battle_RequestScreenFeedback", (void *)ff8_bgate_fxv_stub<30> },
-	// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
-	{ 0x46BB40, 0, "Music_SetVolumeImmediate", (void *)ff8_bgate_fxv_stub<31> },
-	{ 0x505CE0, 0, "QueueChainTransformationConditional", (void *)ff8_bgate_fxv_stub<32> },
-	// Tonberry's stream, Boko's TIM uploads
-	{ 0x501460, 0, "BdPlayStream", (void *)ff8_bgate_fxv_stub<33> },
-	{ 0x505E30, 0, "Battle_QueueTIMUpload_GetEOF", (void *)ff8_bgate_fxv_stub<34> },
-};
-#define FXV_SITES ((int)(sizeof(ff8_bgate_fxv_sites) / sizeof(ff8_bgate_fxv_sites[0])))
-
-static void ff8_bgate_fxv_patch(ff8_bgate_fxv_site &s, bool on)
-{
-	if (s.patched == on) return;
-	uint8_t *code = (uint8_t *)s.addr;
-	DWORD old;
-	if (!VirtualProtect(code, 5, PAGE_EXECUTE_READWRITE, &old)) return;
-	if (on)
-	{
-		memcpy(s.saved, code, 5);
-		code[0] = 0xE9;
-		*(int32_t *)(code + 1) = (int32_t)((uint8_t *)s.stub - (code + 5));
-	}
-	else memcpy(code, s.saved, 5);
-	VirtualProtect(code, 5, old, &old);
-	FlushInstructionCache(GetCurrentProcess(), code, 5);
-	s.patched = on;
-}
-
-static void ff8_bgate_fxv_patch_all(bool on)
-{
-	for (int i = 0; i < FXV_SITES; i++) ff8_bgate_fxv_patch(ff8_bgate_fxv_sites[i], on);
-}
-
-// the regions every run is compared on: la regions + the module's globals (+ extra cell)
-static ff8_bgate_la_region ff8_bgate_fxv_reg[FF8_BGATE_LA_REGIONS + 12];
-static int ff8_bgate_fxv_nreg = 0;
-static uint32_t ff8_bgate_fxv_reg_bytes = 0;
-static uint8_t ff8_bgate_fxv_scan[0x100000 + 0x1000 + FF8_BGATE_LA_DATA_MAX + FF8_BGATE_SNAP_STREAMS_MAX + 64];
-
-static void ff8_bgate_fxv_set_regions(const ff8_bgate_la_module &g)
-{
-	ff8_bgate_fxv_nreg = 0;
-	for (int i = 0; i < FF8_BGATE_LA_REGIONS; i++) ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = ff8_bgate_la_regions[i];
-	ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = { g.data_lo, g.data_hi - g.data_lo };
-	if (g.extra) ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = { g.extra, g.extra_size };
-	for (int i = 0; i < g.nstreams && i < 10; i++) ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = g.streams[i];
-	ff8_bgate_fxv_reg_bytes = 0;
-	for (int i = 0; i < ff8_bgate_fxv_nreg; i++) ff8_bgate_fxv_reg_bytes += ff8_bgate_fxv_reg[i].size;
-}
-
-static void ff8_bgate_fxv_regions_copy(uint8_t *dst)
-{
-	uint32_t o = 0;
-	for (int i = 0; i < ff8_bgate_fxv_nreg; i++) { memcpy(dst + o, (void *)ff8_bgate_fxv_reg[i].addr, ff8_bgate_fxv_reg[i].size); o += ff8_bgate_fxv_reg[i].size; }
-}
-
-static void ff8_bgate_fxv_regions_put(const uint8_t *src)
-{
-	uint32_t o = 0;
-	for (int i = 0; i < ff8_bgate_fxv_nreg; i++) { memcpy((void *)ff8_bgate_fxv_reg[i].addr, src + o, ff8_bgate_fxv_reg[i].size); o += ff8_bgate_fxv_reg[i].size; }
-}
-
-// bytes of the regions that differ from the pre-call copy -> write log (addr, len, bytes)
-static uint32_t ff8_bgate_fxv_diff_to_wlog()
-{
-	uint32_t start = ff8_bgate_fxv_wlog_used, o = 0;
-	for (int r = 0; r < ff8_bgate_fxv_nreg; r++)
-	{
-		const uint8_t *cur = (const uint8_t *)ff8_bgate_fxv_reg[r].addr, *pre = ff8_bgate_fxv_scan + o;
-		uint32_t size = ff8_bgate_fxv_reg[r].size;
-		for (uint32_t i = 0; i < size;)
-		{
-			uint32_t blk = size - i < 64 ? size - i : 64;
-			if (memcmp(cur + i, pre + i, blk) == 0) { i += blk; continue; }
-			uint32_t a = i;
-			while (a < size && cur[a] == pre[a]) a++;
-			uint32_t b = a;
-			while (b < size && (cur[b] != pre[b] || (b + 1 < size && cur[b + 1] != pre[b + 1]))) b++;
-			if (ff8_bgate_fxv_wlog_used + 8 + (b - a) > FXV_WLOG_SIZE) { ff8_bgate_fxv_wlog_overflow = true; return ff8_bgate_fxv_wlog_used - start; }
-			*(uint32_t *)(ff8_bgate_fxv_wlog + ff8_bgate_fxv_wlog_used) = ff8_bgate_fxv_reg[r].addr + a;
-			*(uint32_t *)(ff8_bgate_fxv_wlog + ff8_bgate_fxv_wlog_used + 4) = b - a;
-			memcpy(ff8_bgate_fxv_wlog + ff8_bgate_fxv_wlog_used + 8, cur + a, b - a);
-			ff8_bgate_fxv_wlog_used += 8 + (b - a);
-			i = b;
-		}
-		o += size;
-	}
-	return ff8_bgate_fxv_wlog_used - start;
-}
-
-static uint32_t ff8_bgate_fxv_call_through(int site, const uint32_t *a)
-{
-	ff8_bgate_fxv_site &s = ff8_bgate_fxv_sites[site];
-	ff8_bgate_fxv_patch(s, false);
-	uint32_t r = ((uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t))s.addr)(a[0], a[1], a[2], a[3], a[4], a[5]);
-	ff8_bgate_fxv_patch(s, true);
-	return r;
-}
-
-static int ff8_bgate_fxv_ext_call(int site, uint32_t *args)
-{
-	const ff8_bgate_fxv_site &s = ff8_bgate_fxv_sites[site];
-	if (ff8_bgate_fxv_ext_mode == FXV_EXT_RECORD)
-	{
-		if (ff8_bgate_fxv_depth > 0 || ff8_bgate_fxv_ncalls >= FXV_CALLS_MAX)
-			return (int)ff8_bgate_fxv_call_through(site, args); // nested inside a recorded call: part of it
-		ff8_bgate_fxv_depth++;
-		ff8_bgate_fxv_regions_copy(ff8_bgate_fxv_scan);
-		uint32_t r = ff8_bgate_fxv_call_through(site, args);
-		ff8_bgate_fxv_call &c = ff8_bgate_fxv_calls[ff8_bgate_fxv_ncalls++];
-		c.site = site;
-		memcpy(c.args, args, sizeof(c.args));
-		c.ret = r;
-		c.w_off = ff8_bgate_fxv_wlog_used;
-		c.w_len = ff8_bgate_fxv_diff_to_wlog();
-		uint16_t cw;
-		__asm fnstcw cw
-		c.cw_after = cw;
-		ff8_bgate_fxv_depth--;
-		return (int)r;
-	}
-	if (ff8_bgate_fxv_ext_mode == FXV_EXT_REPLAY)
-	{
-		if (ff8_bgate_fxv_replay_i >= ff8_bgate_fxv_ncalls)
-		{
-			if (!ff8_bgate_fxv_call_msg[0])
-				_snprintf_s(ff8_bgate_fxv_call_msg, sizeof(ff8_bgate_fxv_call_msg), _TRUNCATE, "extra call %s(%08X, %08X, %08X) #%d", s.name, args[0], args[1], args[2], ff8_bgate_fxv_replay_i);
-			ff8_bgate_fxv_replay_i++;
-			return 0;
-		}
-		const ff8_bgate_fxv_call &c = ff8_bgate_fxv_calls[ff8_bgate_fxv_replay_i++];
-		bool same = c.site == site;
-		for (int i = 0; same && i < s.arity; i++) same = c.args[i] == args[i];
-		if (!same && !ff8_bgate_fxv_call_msg[0])
-			_snprintf_s(ff8_bgate_fxv_call_msg, sizeof(ff8_bgate_fxv_call_msg), _TRUNCATE, "call #%d: original %s(%08X, %08X, %08X), port %s(%08X, %08X, %08X)",
-				ff8_bgate_fxv_replay_i - 1, ff8_bgate_fxv_sites[c.site].name, c.args[0], c.args[1], c.args[2], s.name, args[0], args[1], args[2]);
-		{
-			uint16_t cw = c.cw_after; // the FPU mode the real call left
-			__asm fldcw cw
-		}
-		for (uint32_t o = c.w_off; o < c.w_off + c.w_len;)
-		{
-			uint32_t addr = *(uint32_t *)(ff8_bgate_fxv_wlog + o), len = *(uint32_t *)(ff8_bgate_fxv_wlog + o + 4);
-			memcpy((void *)addr, ff8_bgate_fxv_wlog + o + 8, len);
-			o += 8 + len;
-		}
-		return (int)c.ret;
-	}
-	return (int)ff8_bgate_fxv_call_through(site, args);
-}
-
-// post-A state (kept to compare B with, and put back on a mismatch)
-static uint8_t ff8_bgate_fxv_post_regions[sizeof(ff8_bgate_fxv_scan)];
-static uint8_t ff8_bgate_fxv_post_pools[FF8_BGATE_LA_POOLS_MAX];
-static ff8_bgate_task_queue ff8_bgate_fxv_post_pool_hdr[32];
-static uint32_t ff8_bgate_fxv_post_ot[FF8_BGATE_OT_SPAN_WORDS];
-static uint8_t ff8_bgate_fxv_post_exec[FF8_BGATE_FX_MAX_PRIMS * sizeof(ff8_bgate_exec_node)];
-static uint32_t ff8_bgate_fxv_post_exec_len = 0, ff8_bgate_fxv_post_seed = 0;
-static ff8_bgate_fx_snap ff8_bgate_fxv_a, ff8_bgate_fxv_b;
+// --- native effect ports (ff8fx, src/ff8/battle/fx) ---
+// A real tick of an effect whose module is ported and fits the verifier's snapshot runs through
+// the verifier of the native effect code (fx_verify.cpp: the original code and the ports from one
+// snapshot, compared, the original's result kept on any difference and logged as
+// "FF8 battle fx: ... MISMATCH"). The executor observer above logs each task's draw range in
+// both runs; the log of the run whose result is kept stays (held frames skip the primitives of
+// the tasks their module redraws).
 static ff8_bgate_task_rng ff8_bgate_fxv_log_a[FF8_BGATE_TASK_LOG];
 static int ff8_bgate_fxv_log_a_n = 0;
-// statistics for the running summon
-static uint32_t ff8_bgate_fxv_held_frames = 0;
-static uint32_t ff8_bgate_fxv_ticks = 0, ff8_bgate_fxv_match = 0, ff8_bgate_fxv_mismatch = 0, ff8_bgate_fxv_faults = 0, ff8_bgate_fxv_first_bad = 0, ff8_bgate_fxv_logged = 0;
-static bool ff8_bgate_fxv_enabled = true; // verify ported modules (else: original code only)
+static uint32_t ff8_bgate_fxv_held_frames = 0; // native held frames of the running summon
+
+static void ff8_bgate_fxv_event(ff8fx::VerifyEvent e)
+{
+	switch (e)
+	{
+	case ff8fx::VERIFY_ORIGINAL_RUN:
+		ff8_bgate_etq_log_n = 0;
+		ff8_bgate_etq_log_overflow = false;
+		break;
+	case ff8fx::VERIFY_PORT_RUN: // keep the original run's log, start the port run's
+		ff8_bgate_fxv_log_a_n = ff8_bgate_etq_log_n;
+		memcpy(ff8_bgate_fxv_log_a, ff8_bgate_etq_log, sizeof(ff8_bgate_task_rng) * ff8_bgate_etq_log_n);
+		ff8_bgate_etq_log_n = 0;
+		break;
+	case ff8fx::VERIFY_KEPT_ORIGINAL: // the original's state was put back: its log too
+		ff8_bgate_etq_log_n = ff8_bgate_fxv_log_a_n;
+		memcpy(ff8_bgate_etq_log, ff8_bgate_fxv_log_a, sizeof(ff8_bgate_task_rng) * ff8_bgate_fxv_log_a_n);
+		break;
+	case ff8fx::VERIFY_KEPT_PORT:
+		break;
+	}
+}
 
 static bool ff8_bgate_fxv_wanted()
 {
-	return ff8_bgate_fxv_enabled && ff8_bgate_la_cur >= 0 && ff8_bgate_fxv_faults < 3
-		&& ff8fx::module_ported(ff8_bgate_la_modules[ff8_bgate_la_cur].effect_id)
-		&& ff8_bgate_streams_bytes(ff8_bgate_la_modules[ff8_bgate_la_cur]) <= FF8_BGATE_SNAP_STREAMS_MAX
-		&& ff8_bgate_la_modules[ff8_bgate_la_cur].data_hi - ff8_bgate_la_modules[ff8_bgate_la_cur].data_lo <= FF8_BGATE_LA_DATA_MAX;
+	if (ff8_bgate_la_cur < 0 || !ff8_battle_fx_native) return false;
+	const ff8fx::mod::Module &g = ff8fx::mod::modules[ff8_bgate_la_cur];
+	return ff8fx::module_ported(g.effect_id) && ff8fx::mod::fits(g);
 }
 
-static void ff8_bgate_fxv_pools_save_post()
-{
-	uint32_t o = 0;
-	for (int i = 0; i < ff8_bgate_la_npools && i < 32; i++)
-	{
-		ff8_bgate_la_pool &p = ff8_bgate_la_pools[i];
-		ff8_bgate_fxv_post_pool_hdr[i] = *p.q;
-		if (p.size) { memcpy(ff8_bgate_fxv_post_pools + o, p.q->pool, p.size); o += p.size; }
-	}
-}
-
-static void ff8_bgate_fxv_pools_put_post()
-{
-	uint32_t o = 0;
-	for (int i = 0; i < ff8_bgate_la_npools && i < 32; i++)
-	{
-		ff8_bgate_la_pool &p = ff8_bgate_la_pools[i];
-		*p.q = ff8_bgate_fxv_post_pool_hdr[i];
-		if (p.size) { memcpy(p.q->pool, ff8_bgate_fxv_post_pools + o, p.size); o += p.size; }
-	}
-}
-
-static const char *ff8_bgate_fxv_task_name(const ff8_bgate_fx_snap &s, int prim, char *buf, size_t n)
-{
-	int t = prim >= 0 && prim < s.n ? s.task_of[prim] : -1;
-	if (t < 0) { _snprintf_s(buf, n, _TRUNCATE, "no task"); return buf; }
-	uint32_t fn = (uint32_t)((ff8_bgate_task_node *)s.tasks[t].node)->func;
-	const char *pn = ff8fx::port_name(fn);
-	_snprintf_s(buf, n, _TRUNCATE, "task %08X node %p%s%s", fn, s.tasks[t].node, pn ? " = " : "", pn ? pn : "");
-	return buf;
-}
-
-// first differing byte of the snapshot regions (port run vs post-original), 0 if none
-static int ff8_bgate_fxv_mem_diff(char *out, size_t n)
-{
-	uint32_t o = 0;
-	for (int r = 0; r < ff8_bgate_fxv_nreg; r++)
-	{
-		const uint8_t *cur = (const uint8_t *)ff8_bgate_fxv_reg[r].addr, *post = ff8_bgate_fxv_post_regions + o;
-		uint32_t size = ff8_bgate_fxv_reg[r].size;
-		if (memcmp(cur, post, size) != 0)
-		{
-			uint32_t i = 0, ndiff = 0;
-			while (cur[i] == post[i]) i++;
-			for (uint32_t k = i; k < size; k++) if (cur[k] != post[k]) ndiff++;
-			uint32_t w0 = i & ~3u;
-			return _snprintf_s(out, n, _TRUNCATE, "memory %08X (region %08X+%X): original %08X, port %08X, %u bytes differ in the region",
-				ff8_bgate_fxv_reg[r].addr + i, ff8_bgate_fxv_reg[r].addr, i,
-				w0 + 4 <= size ? *(const uint32_t *)(post + w0) : post[i], w0 + 4 <= size ? *(const uint32_t *)(cur + w0) : cur[i], ndiff);
-		}
-		o += size;
-	}
-	return 0;
-}
-
-// first differing field of a task node (port run vs post-original), 0 if identical / not found
-static int ff8_bgate_fxv_node_diff(const void *node, char *out, size_t n)
-{
-	uint32_t o = 0;
-	for (int i = 0; i < ff8_bgate_la_npools && i < 32; i++)
-	{
-		ff8_bgate_la_pool &p = ff8_bgate_la_pools[i];
-		const uint8_t *pool = (const uint8_t *)p.q->pool;
-		if (p.size && (const uint8_t *)node >= pool && (const uint8_t *)node < pool + p.size)
-		{
-			uint32_t off = (uint32_t)((const uint8_t *)node - pool), size = (uint32_t)p.q->node_size;
-			const uint8_t *cur = pool + off, *post = ff8_bgate_fxv_post_pools + o + off;
-			for (uint32_t k = 0; k < size; k++)
-				if (cur[k] != post[k])
-				{
-					uint32_t w = k & ~3u;
-					return _snprintf_s(out, n, _TRUNCATE, "node +%X: original %08X, port %08X", w, *(const uint32_t *)(post + w), *(const uint32_t *)(cur + w));
-				}
-			return _snprintf_s(out, n, _TRUNCATE, "node identical");
-		}
-		o += p.size;
-	}
-	return 0;
-}
-
-// compare the current (B) state with post-A; returns a description of the first difference or null
-static const char *ff8_bgate_fxv_compare(int ra, int rb)
-{
-	static char msg[1024];
-	if (ra != rb) { _snprintf_s(msg, sizeof(msg), _TRUNCATE, "queue return: original %d, port %d", ra, rb); return msg; }
-	if (ff8_bgate_fxv_call_msg[0]) { _snprintf_s(msg, sizeof(msg), _TRUNCATE, "external %s", ff8_bgate_fxv_call_msg); return msg; }
-	if (ff8_bgate_fxv_replay_i != ff8_bgate_fxv_ncalls)
-	{
-		_snprintf_s(msg, sizeof(msg), _TRUNCATE, "external calls: original made %d, port %d (next expected %s)", ff8_bgate_fxv_ncalls, ff8_bgate_fxv_replay_i,
-			ff8_bgate_fxv_replay_i < ff8_bgate_fxv_ncalls ? ff8_bgate_fxv_sites[ff8_bgate_fxv_calls[ff8_bgate_fxv_replay_i].site].name : "-");
-		return msg;
-	}
-	// primitives first: their task attribution is the most useful clue
-	const ff8_bgate_fx_snap &A = ff8_bgate_fxv_a, &B = ff8_bgate_fxv_b;
-	char tn[160];
-	if (A.valid != B.valid || A.n != B.n)
-	{
-		int o = _snprintf_s(msg, sizeof(msg), _TRUNCATE, "primitive count: original %d, port %d (valid %d/%d, tasks %d/%d, orphans %d/%d)",
-			A.n, B.n, (int)A.valid, (int)B.valid, A.ntasks, B.ntasks, A.orphans, B.orphans);
-		for (int ta = 0; ta < A.ntasks && o > 0; ta++)
-		{
-			int tb = 0;
-			while (tb < B.ntasks && B.tasks[tb].node != A.tasks[ta].node) tb++;
-			int na = A.tasks[ta].b - A.tasks[ta].a, nb = tb < B.ntasks ? B.tasks[tb].b - B.tasks[tb].a : -1;
-			if (na != nb)
-			{
-				uint32_t fn = (uint32_t)((ff8_bgate_task_node *)A.tasks[ta].node)->func;
-				const char *pn = ff8fx::port_name(fn);
-				_snprintf_s(msg + o, sizeof(msg) - o, _TRUNCATE, "; first differing task %08X%s%s node %p drew %d, port %d", fn, pn ? " = " : "", pn ? pn : "", A.tasks[ta].node, na, nb);
-				break;
-			}
-		}
-		return msg;
-	}
-	for (int i = 0; i < A.n; i++)
-	{
-		const ff8_bgate_fx_prim &a = A.prim[i], &b = B.prim[i];
-		if (a.words != b.words || a.bucket != b.bucket || a.msk != b.msk || memcmp(a.k, b.k, sizeof(a.k)) != 0)
-		{
-			_snprintf_s(msg, sizeof(msg), _TRUNCATE, "primitive %d header: words %u/%u bucket %u/%u msk %X/%X k0 %d/%d (%s)", i, a.words, b.words, a.bucket, b.bucket, a.msk, b.msk, a.k[0], b.k[0],
-				ff8_bgate_fxv_task_name(A, i, tn, sizeof(tn)));
-			return msg;
-		}
-		for (uint32_t w = 1; w < a.words; w++)
-			if (A.arena[a.off + w] != B.arena[b.off + w])
-			{
-				int o = _snprintf_s(msg, sizeof(msg), _TRUNCATE, "primitive %d word %u: original %08X, port %08X (%s)", i, w, A.arena[a.off + w], B.arena[b.off + w],
-					ff8_bgate_fxv_task_name(A, i, tn, sizeof(tn)));
-				int ndiff = 0;
-				for (int j = i; j < A.n; j++)
-					if (A.prim[j].words != B.prim[j].words || memcmp(&A.arena[A.prim[j].off + 1], &B.arena[B.prim[j].off + 1], (A.prim[j].words - 1) * 4) != 0) ndiff++;
-				if (o > 0) o += _snprintf_s(msg + o, sizeof(msg) - o, _TRUNCATE, " [%d primitives differ]", ndiff);
-				int t = A.task_of[i];
-				if (o > 0 && t >= 0) { o += _snprintf_s(msg + o, sizeof(msg) - o, _TRUNCATE, " | "); if (o > 0) o += ff8_bgate_fxv_node_diff(A.tasks[t].node, msg + o, sizeof(msg) - o); }
-				if (o > 0) { o += _snprintf_s(msg + o, sizeof(msg) - o, _TRUNCATE, " | "); if (o > 0) ff8_bgate_fxv_mem_diff(msg + o, sizeof(msg) - o); }
-				return msg;
-			}
-	}
-	// memory regions
-	uint32_t o = 0;
-	for (int r = 0; r < ff8_bgate_fxv_nreg; r++)
-	{
-		const uint8_t *cur = (const uint8_t *)ff8_bgate_fxv_reg[r].addr, *post = ff8_bgate_fxv_post_regions + o;
-		uint32_t size = ff8_bgate_fxv_reg[r].size;
-		if (memcmp(cur, post, size) != 0)
-		{
-			uint32_t i = 0, ndiff = 0;
-			while (cur[i] == post[i]) i++;
-			for (uint32_t k = i; k < size; k++) if (cur[k] != post[k]) ndiff++;
-			uint32_t w0 = i & ~3u;
-			_snprintf_s(msg, sizeof(msg), _TRUNCATE, "memory %08X (region %08X+%X): original %08X, port %08X, %u bytes differ in the region",
-				ff8_bgate_fxv_reg[r].addr + i, ff8_bgate_fxv_reg[r].addr, i,
-				w0 + 4 <= size ? *(const uint32_t *)(post + w0) : post[i], w0 + 4 <= size ? *(const uint32_t *)(cur + w0) : cur[i], ndiff);
-			return msg;
-		}
-		o += size;
-	}
-	// task pools
-	o = 0;
-	for (int i = 0; i < ff8_bgate_la_npools && i < 32; i++)
-	{
-		ff8_bgate_la_pool &p = ff8_bgate_la_pools[i];
-		if (memcmp(p.q, &ff8_bgate_fxv_post_pool_hdr[i], sizeof(ff8_bgate_task_queue)) != 0)
-		{
-			_snprintf_s(msg, sizeof(msg), _TRUNCATE, "task queue %p header: original head %p tail %p, port head %p tail %p", p.q,
-				ff8_bgate_fxv_post_pool_hdr[i].head, ff8_bgate_fxv_post_pool_hdr[i].tail, p.q->head, p.q->tail);
-			return msg;
-		}
-		if (p.size && memcmp(p.q->pool, ff8_bgate_fxv_post_pools + o, p.size) != 0)
-		{
-			const uint8_t *cur = (const uint8_t *)p.q->pool, *post = ff8_bgate_fxv_post_pools + o;
-			uint32_t k = 0;
-			while (cur[k] == post[k]) k++;
-			_snprintf_s(msg, sizeof(msg), _TRUNCATE, "task pool of queue %p: node %u (+%X) byte %02X original, %02X port", p.q,
-				k / (uint32_t)p.q->node_size, k % (uint32_t)p.q->node_size, post[k], cur[k]);
-			return msg;
-		}
-		o += p.size;
-	}
-	uint32_t *ot = (uint32_t *)FF8_BGATE_OT_SPAN_BASE();
-	for (int b = 0; b < FF8_BGATE_OT_SPAN_WORDS; b++)
-		if (ot[b] != ff8_bgate_fxv_post_ot[b])
-		{
-			_snprintf_s(msg, sizeof(msg), _TRUNCATE, "ordering table bucket %d: original %08X, port %08X", b - 17, ff8_bgate_fxv_post_ot[b], ot[b]);
-			return msg;
-		}
-	uint32_t *seed = (uint32_t *)(((uint8_t *(__cdecl *)())0x560578)() + 0x14);
-	if (*seed != ff8_bgate_fxv_post_seed) { _snprintf_s(msg, sizeof(msg), _TRUNCATE, "CRT rand seed: original %08X, port %08X", ff8_bgate_fxv_post_seed, *seed); return msg; }
-	return nullptr;
-}
-
-static void ff8_bgate_fxv_put_back_A()
-{
-	// A's packets back where they were (the frame arena is outside the regions), then all state
-	const ff8_bgate_fx_snap &A = ff8_bgate_fxv_a;
-	for (int i = 0; i < A.n; i++)
-		memcpy((void *)A.prim[i].src_pkt, &A.arena[A.prim[i].off], A.prim[i].words * 4);
-	memcpy((void *)ff8_bgate_fx_rec_begin, ff8_bgate_fxv_post_exec, ff8_bgate_fxv_post_exec_len);
-	ff8_bgate_fxv_pools_put_post();
-	ff8_bgate_fxv_regions_put(ff8_bgate_fxv_post_regions);
-	memcpy((void *)FF8_BGATE_OT_SPAN_BASE(), ff8_bgate_fxv_post_ot, sizeof(ff8_bgate_fxv_post_ot));
-	*(uint32_t *)(((uint8_t *(__cdecl *)())0x560578)() + 0x14) = ff8_bgate_fxv_post_seed;
-}
-
-static void ff8_bgate_fxv_capture(ff8_bgate_fx_snap &s, void *queue)
-{
-	s.n = 0; s.orphans = 0; s.used = 0; s.rlist_delta = 0;
-	s.ctx = queue; s.frame = ff8_bgate_frame_no; s.valid = false;
-	__try { ff8_bgate_fx_capture_unsafe(s); }
-	__except (EXCEPTION_EXECUTE_HANDLER) { s.valid = false; }
-	if (s.valid) ff8_bgate_la_attach_tasks(s);
-}
-
-// Original code reads some locals it never initialised (padding of vectors, unused 4th
-// words...). Both runs must see the same stack bytes, or those reads make them diverge
-// without any port being wrong: the stack below the harness is zeroed before each run.
-__declspec(noinline) static void ff8_bgate_fxv_scrub_stack()
-{
-	volatile uint8_t buf[0x10000];
-	SecureZeroMemory((void *)buf, sizeof(buf));
-}
-
-static inline uint16_t ff8_bgate_x87_cw()
-{
-	uint16_t cw;
-	__asm fnstcw cw
-	return cw;
-}
-static inline void ff8_bgate_x87_set_cw(uint16_t cw)
-{
-	__asm fldcw cw
-}
-
-// One real tick of a ported effect: original (A) and ports (B) from the same snapshot.
+// One real tick of a ported effect (task recording is on: ff8_bgate_la_real_tick_begin)
 static int ff8_bgate_fxv_tick(void *queue, int (__cdecl *orig)(void *))
 {
-	const ff8_bgate_la_module &g = ff8_bgate_la_modules[ff8_bgate_la_cur];
-	ff8_bgate_fxv_ticks++;
-	uint8_t loader_state[8] = {};
-	if (*(uint8_t **)0x1DCD6EC) memcpy(loader_state, *(uint8_t **)0x1DCD6EC, 5);
 	ff8_bgate_fxv_live = true;
-	ff8_bgate_fxv_set_regions(g);
-	ff8_bgate_snap_take(g);
-	uint32_t *seed = (uint32_t *)(((uint8_t *(__cdecl *)())0x560578)() + 0x14);
-
-	// --- A: original, external calls recorded ---
-	ff8_bgate_fxv_ncalls = 0;
-	ff8_bgate_fxv_wlog_used = 0;
-	ff8_bgate_fxv_wlog_overflow = false;
-	ff8_bgate_etq_log_n = 0;
-	ff8_bgate_etq_log_overflow = false;
-	ff8_bgate_etq_rec = true;
-	ff8_bgate_la_in_lookahead = true; // queues first seen now get their pool saved before they run
-	ff8_bgate_fxv_ext_mode = FXV_EXT_RECORD;
-	ff8_bgate_fxv_patch_all(true);
-	ff8_bgate_fxv_scrub_stack();
-	uint16_t cw_a0 = ff8_bgate_x87_cw();
-	int ra = orig(queue);
-	uint16_t cw_a1 = ff8_bgate_x87_cw();
-	ff8_bgate_fxv_patch_all(false);
-	ff8_bgate_fxv_ext_mode = FXV_EXT_OFF;
-	ff8_bgate_la_in_lookahead = false;
-	ff8_bgate_fxv_capture(ff8_bgate_fxv_a, queue);
-	ff8_bgate_fxv_regions_copy(ff8_bgate_fxv_post_regions);
-	ff8_bgate_fxv_pools_save_post();
-	memcpy(ff8_bgate_fxv_post_ot, (void *)FF8_BGATE_OT_SPAN_BASE(), sizeof(ff8_bgate_fxv_post_ot));
-	ff8_bgate_fxv_post_exec_len = FF8_BGATE_EXEC_CUR - ff8_bgate_fx_rec_begin;
-	if (ff8_bgate_fxv_post_exec_len > sizeof(ff8_bgate_fxv_post_exec)) ff8_bgate_fxv_post_exec_len = sizeof(ff8_bgate_fxv_post_exec);
-	memcpy(ff8_bgate_fxv_post_exec, (void *)ff8_bgate_fx_rec_begin, ff8_bgate_fxv_post_exec_len);
-	ff8_bgate_fxv_post_seed = *seed;
-	ff8_bgate_fxv_log_a_n = ff8_bgate_etq_log_n;
-	memcpy(ff8_bgate_fxv_log_a, ff8_bgate_etq_log, sizeof(ff8_bgate_task_rng) * ff8_bgate_etq_log_n);
-	if (ff8_bgate_fxv_wlog_overflow || ff8_bgate_etq_log_overflow)
-	{
-		// cannot replay/compare this tick faithfully: keep A as it is
-		ff8_bgate_etq_rec = false;
-		return ra;
-	}
-
-	// --- B: ports, external calls replayed ---
-	ff8_bgate_snap_restore(g);
-	ff8_bgate_etq_log_n = 0;
-	ff8_bgate_fxv_replay_i = 0;
-	ff8_bgate_fxv_call_msg[0] = 0;
-	ff8_bgate_fxv_ext_mode = FXV_EXT_REPLAY;
-	ff8_bgate_fxv_patch_all(true);
-	ff8fx::g_active = true;
-	int rb = 0;
-	bool ok = true;
-	uint32_t pool = *(uint32_t *)0x1D999C4;
-	ff8_bgate_fxv_scrub_stack();
-	// the FPU control word is part of the state: the GTE emulation rounds with x87 maths, and
-	// the original run's real engine calls (sound, loader) can change it mid-tick
-	ff8_bgate_x87_set_cw(cw_a0);
-	__try { rb = orig(queue); }
-	__except (ff8_bgate_gfc_fault_filter(GetExceptionInformation())) { ok = false; }
-	*(uint32_t *)0x1D999C4 = pool;
-	ff8fx::g_active = false;
-	uint16_t cw_b1 = ff8_bgate_x87_cw();
-	ff8_bgate_x87_set_cw(cw_a1); // leave the FPU as the original run left it
-	ff8_bgate_fxv_patch_all(false);
-	ff8_bgate_fxv_ext_mode = FXV_EXT_OFF;
-	ff8_bgate_etq_rec = false;
-	ff8_bgate_fxv_capture(ff8_bgate_fxv_b, queue);
-
-	const char *diff = ok ? ff8_bgate_fxv_compare(ra, rb) : "port FAULTED";
-	if (false && ff8_bgate_fxv_ticks > 340 && g.effect_id == 116)
-	{
-		char calls[200]; int co = 0; calls[0] = 0;
-		for (int i = 0; i < ff8_bgate_fxv_ncalls && co >= 0 && co < 180; i++)
-			co += _snprintf_s(calls + co, sizeof(calls) - co, _TRUNCATE, " %s", ff8_bgate_fxv_sites[ff8_bgate_fxv_calls[i].site].name);
-		ffnx_info("30fps fxv: t=%u ra=%d rb=%d %s done=%02X loadstate=%d creature=%p calls:%s\n", ff8_bgate_fxv_ticks, ra, rb, diff ? "MISMATCH" : "match",
-			*(uint8_t *)0x25217A8, *(int32_t *)0x1D999C8, *(void **)0x2521738, calls);
-	}
-	if (!ok)
-	{
-		ff8_bgate_fxv_faults++;
-		ffnx_info("30fps fxv: %s tick %u: port fault %08X at %08X (fault %u)\n", g.name, ff8_bgate_fxv_ticks, ff8_bgate_gfc_fault_code, ff8_bgate_gfc_fault_addr, ff8_bgate_fxv_faults);
-	}
-	if (!diff)
-	{
-		ff8_bgate_fxv_match++;
-		return rb;
-	}
-	ff8_bgate_fxv_mismatch++;
-	if (!ff8_bgate_fxv_first_bad) ff8_bgate_fxv_first_bad = ff8_bgate_fxv_ticks;
-	if (ff8_bgate_fxv_logged < 60)
-	{
-		ff8_bgate_fxv_logged++;
-		char calls[200]; int co = 0; calls[0] = 0;
-		for (int i = 0; i < ff8_bgate_fxv_ncalls && co >= 0 && co < 180; i++)
-			co += _snprintf_s(calls + co, sizeof(calls) - co, _TRUNCATE, " %s", ff8_bgate_fxv_sites[ff8_bgate_fxv_calls[i].site].name);
-		ffnx_info("30fps fxv: %s tick %u MISMATCH: %s | ra=%d rb=%d loader=%02X %02X %02X %02X %02X x87 cw A %04X->%04X B end %04X calls:%s\n", g.name, ff8_bgate_fxv_ticks, diff, ra, rb,
-			loader_state[0], loader_state[1], loader_state[2], loader_state[3], loader_state[4], cw_a0, cw_a1, cw_b1, calls);
-		if (g.effect_id == 116) // TEMP: first differing lightning-branch segment (pool of 512 x 28 bytes at model buffer + 0x40200)
-		{
-			const uint8_t *mb = *(const uint8_t **)0x25217AC;
-			uint32_t o = 0;
-			for (int r = 0; r < ff8_bgate_fxv_nreg; r++)
-			{
-				if (ff8_bgate_fxv_reg[r].addr == (uint32_t)0x20DFAB8)
-				{
-					const uint8_t *post = ff8_bgate_fxv_post_regions + o + ((uint32_t)mb + 0x40200 - 0x20DFAB8);
-					const uint8_t *cur = mb + 0x40200;
-					for (int s = 0; s < 512; s++)
-						if (memcmp(post + 28 * s, cur + 28 * s, 16) != 0)
-						{
-							const int16_t *a = (const int16_t *)(post + 28 * s), *b = (const int16_t *)(cur + 28 * s);
-							const int16_t *v = (const int16_t *)(0x1298C70 + 8 * (int32_t)a[0]);
-							ffnx_info("30fps fxv:   segment %d vertex %d (%d,%d,%d): original sxy %d,%d otz %d edge %d,%d | port sxy %d,%d otz %d edge %d,%d\n",
-								s, a[0], v[0], v[1], v[2], a[2], a[3], a[4], a[6], a[7], b[2], b[3], b[4], b[6], b[7]);
-							break;
-						}
-					break;
-				}
-				o += ff8_bgate_fxv_reg[r].size;
-			}
-		}
-	}
-	ff8_bgate_fxv_put_back_A();
-	ff8_bgate_etq_log_n = ff8_bgate_fxv_log_a_n;
-	memcpy(ff8_bgate_etq_log, ff8_bgate_fxv_log_a, sizeof(ff8_bgate_task_rng) * ff8_bgate_fxv_log_a_n);
-	return ra;
+	return ff8fx::verify_tick(queue, orig);
 }
 
 static void ff8_bgate_fxv_summary(const char *name)
 {
-	if (!ff8_bgate_fxv_ticks) return;
-	ffnx_info("30fps fxv: %s verified ticks=%u match=%u mismatch=%u (first at tick %u) port faults=%u native held frames=%u\n",
-		name, ff8_bgate_fxv_ticks, ff8_bgate_fxv_match, ff8_bgate_fxv_mismatch, ff8_bgate_fxv_first_bad, ff8_bgate_fxv_faults, ff8_bgate_fxv_held_frames);
+	if (!ff8_bgate_fxv_held_frames) return;
+	ffnx_info("30fps held: %s native held frames=%u\n", name, ff8_bgate_fxv_held_frames);
 	ff8_bgate_fxv_held_frames = 0;
-	ff8_bgate_fxv_ticks = ff8_bgate_fxv_match = ff8_bgate_fxv_mismatch = ff8_bgate_fxv_faults = ff8_bgate_fxv_first_bad = ff8_bgate_fxv_logged = 0;
 }
 
 // Shared gate body for a recorded queue (ff8_bgate_R already selected): real frame =
@@ -6541,13 +5863,14 @@ static void ff8_bgate_install_hooks()
 	replace_function(0x47CF50, (void *)ff8_bgate_feedback_request_hook);
 	// cinematic-engine GF summons: held-frame 3D redraw (see ff8_bgate_gfc_*)
 	ff8_bgate_gfc_install();
-	// timeline GF summons: task-tagged draws for the look-ahead pairing (see ff8_bgate_la_*)
-	ff8_bgate_etq_orig = (int (__cdecl *)(void *))0x508420;
-	ff8_bgate_etq_ri = replace_function(0x508420, (void *)ff8_bgate_etq_hook);
-	// native effect ports (src/ff8/battle/fx), verified against the original code while they run
-	ff8fx::register_all();
-	// the native prim-model player is compared against the original on every call (all effects)
-	ff8fx::prim::install_verify();
+	// native effect code (src/ff8/battle/fx), hosted by the gate: its task queue executor
+	// replaces 0x508420 (observed: task-tagged draws for the look-ahead pairing, see
+	// ff8_bgate_la_*), the ports run only inside the verifier on real ticks (ff8_bgate_fxv_tick)
+	// and, with ff8_battle_fx_verify, the native prim-model player is compared against the
+	// original on every call (all effects)
+	ff8fx::g_exec_observer = &ff8_bgate_etq_observer;
+	ff8fx::g_verify_event = ff8_bgate_fxv_event;
+	ff8fx::install_hosted();
 
 	// effect packets re-read at display time (packet aliasing, see ff8_bgate_fx_recapture_*)
 	ff8_bgate_display_orig = (int(__cdecl *)(unsigned int))0x45D610;
@@ -7077,7 +6400,7 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// #####################
 	// native battle effect code
 	// #####################
-	if (!ff8_bgate_active) ff8fx::install(); // the 30 fps gate runs the ports itself
+	ff8fx::install(); // nothing to do when the 30 fps gate installed it (ff8fx::install_hosted)
 }
 
 struct ff8_gfx_driver *ff8_load_driver(void* _game_object)
