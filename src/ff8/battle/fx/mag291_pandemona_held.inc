@@ -572,14 +572,14 @@ namespace p291
 		bool cut = true;
 		if (c1 == g_cm.c + 1)
 		{
-			static uint8_t cam_save[0x20], node_save[0x1030], ent_save[ENT_SIZE], gte_d[0x70], gte_c[0xD0];
+			static uint8_t cam_save[0x20], node_save[0x1030], ent_save[ENT_SIZE], gte_d[0x70], gte_c[0xF0];
 			int16_t shake = ShakeY(), roll = Roll(), w38 = W1D8E038();
 			uint32_t alloc = var<uint32_t>(0x1D999C4);
 			memcpy(cam_save, (void *)0xB8B7F0, sizeof(cam_save));
 			memcpy(node_save, nd, sizeof(node_save));
 			memcpy(ent_save, (void *)ENT_BASE, ENT_SIZE);
 			memcpy(gte_d, (void *)0x1CA8A10, sizeof(gte_d));
-			memcpy(gte_c, (void *)0x1CA9230, sizeof(gte_c));
+			memcpy(gte_c, (void *)0x1CA9210, sizeof(gte_c));
 			int16_t hand[3];
 			bool hand_ok = NextHand(nd, hand);
 			PredictNext(nd, c1, hand_ok ? hand : nullptr, false);
@@ -589,7 +589,7 @@ namespace p291
 			memcpy(nd, node_save, sizeof(node_save));
 			memcpy((void *)ENT_BASE, ent_save, ENT_SIZE);
 			memcpy((void *)0x1CA8A10, gte_d, sizeof(gte_d));
-			memcpy((void *)0x1CA9230, gte_c, sizeof(gte_c));
+			memcpy((void *)0x1CA9210, gte_c, sizeof(gte_c));
 			var<uint32_t>(0x1D999C4) = alloc;
 			ShakeY() = shake;
 			Roll() = roll;

@@ -40,7 +40,7 @@ namespace ff8fx
 {
 namespace thundaga105
 {
-	static const uint32_t GTE_DATA = 0x1CA8A10, GTE_DATA_SIZE = 0x70, GTE_CTRL = 0x1CA9230, GTE_CTRL_SIZE = 0xD0;
+	static const uint32_t GTE_DATA = 0x1CA8A10, GTE_DATA_SIZE = 0x70, GTE_CTRL = 0x1CA9210, GTE_CTRL_SIZE = 0xF0;
 	static const uint32_t NODE_MAX = 0x3C, SCRATCH = 0x400;
 	enum : uint32_t { REC_DEBRIS = 1, REC_BOLT = 2, REC_CAPTURE = 3 };
 

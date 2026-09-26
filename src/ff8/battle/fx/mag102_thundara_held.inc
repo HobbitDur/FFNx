@@ -32,7 +32,7 @@ namespace ff8fx
 {
 namespace thundara102
 {
-	static const uint32_t GTE_DATA = 0x1CA8A10, GTE_DATA_SIZE = 0x70, GTE_CTRL = 0x1CA9230, GTE_CTRL_SIZE = 0xD0;
+	static const uint32_t GTE_DATA = 0x1CA8A10, GTE_DATA_SIZE = 0x70, GTE_CTRL = 0x1CA9210, GTE_CTRL_SIZE = 0xF0;
 	static const uint32_t NODE_MAX = 0x2C, SCRATCH = 0x200;
 
 	struct Rec

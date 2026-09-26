@@ -52,7 +52,7 @@ namespace
 	// GTE register files (data 0x1CA8A10, control 0x1CA9230 with the float mirrors): a replayed
 	// draw starts from the GTE state its real draw started from (registers a draw does not set,
 	// e.g. older FIFO entries, stay the real tick's)
-	const uint32_t GTE_DATA = 0x1CA8A10, GTE_DATA_SIZE = 0x70, GTE_CTRL = 0x1CA9230, GTE_CTRL_SIZE = 0xD0;
+	const uint32_t GTE_DATA = 0x1CA8A10, GTE_DATA_SIZE = 0x70, GTE_CTRL = 0x1CA9210, GTE_CTRL_SIZE = 0xF0;
 
 	struct DrawRec
 	{
