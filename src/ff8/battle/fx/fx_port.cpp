@@ -162,5 +162,7 @@ namespace ff8fx
 		register_gfc_alexander();
 		register_gfc_brothers();
 		register_gfc_eden();
+		register_mag095_siren();
+		register_mag096_minimog();
 	}
 }

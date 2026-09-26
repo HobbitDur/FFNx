@@ -5091,6 +5091,10 @@ static const ff8_bgate_la_region ff8_bgate_la_streams_g327[] = { { 0xE808D0, 0x1
 static const ff8_bgate_la_region ff8_bgate_la_streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FD250, 0x110 } };
 // GF cinematic engine (Ifrit): mesh depth scale, fog words, camera-related word
 static const ff8_bgate_la_region ff8_bgate_la_streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 } };
+// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
+// static cells the modules write, Siren's load destinations outside the 1 MB buffer
+static const ff8_bgate_la_region ff8_bgate_la_streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
+static const ff8_bgate_la_region ff8_bgate_la_streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 static const ff8_bgate_la_region ff8_bgate_la_streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
 static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// timeline-A (own pause flag, creature spawned by the master at counter 2)
@@ -5120,6 +5124,9 @@ static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	{ 204, 0x2796D70, 0x2798C40, 0, 0, false, "Alexander", ff8_bgate_la_streams_gfc, 4 },
 	{ 205, 0x2796D30, 0x2798C40, 0, 0, false, "Brothers", ff8_bgate_la_streams_gfc, 4 },
 	{ 206, 0x2796CF8, 0x2798C40, 0, 0, false, "Eden", ff8_bgate_la_streams_gfc, 4 },
+	// actor state-machine family (the heal-spell effect library)
+	{ 95,  0x257F8A0, 0x258FCF4, 0, 0, false, "Siren", ff8_bgate_la_streams_a095, 6 },
+	{ 96,  0x257B740, 0x257F8A0, 0, 0, false, "MiniMog", ff8_bgate_la_streams_a096, 5 },
 };
 #define FF8_BGATE_LA_MODULES ((int)(sizeof(ff8_bgate_la_modules) / sizeof(ff8_bgate_la_modules[0])))
 
@@ -5145,7 +5152,7 @@ static const ff8_bgate_la_region ff8_bgate_la_regions[] = {
 	{ 0x1CA8828, 4 },        // ssigpu_execution_cur
 };
 #define FF8_BGATE_LA_REGIONS ((int)(sizeof(ff8_bgate_la_regions) / sizeof(ff8_bgate_la_regions[0])))
-#define FF8_BGATE_LA_DATA_MAX 0x8000
+#define FF8_BGATE_LA_DATA_MAX 0x20000 // Siren module bss is 0x10454 bytes
 #define FF8_BGATE_LA_POOLS_MAX 0x80000
 static uint8_t ff8_bgate_la_save_regions[0x100000 + 0x1000];
 static uint8_t ff8_bgate_la_save_data[FF8_BGATE_LA_DATA_MAX];
@@ -5484,6 +5491,9 @@ static ff8_bgate_fxv_site ff8_bgate_fxv_sites[] = {
 	{ 0x505EB0, 0, "QueueBlitCommand", (void *)ff8_bgate_fxv_stub<28> },
 	{ 0x46BD40, 0, "SdStreamingVolumeTranslation", (void *)ff8_bgate_fxv_stub<29> },
 	{ 0x47CF50, 0, "Battle_RequestScreenFeedback", (void *)ff8_bgate_fxv_stub<30> },
+	// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
+	{ 0x46BB40, 0, "Music_SetVolumeImmediate", (void *)ff8_bgate_fxv_stub<31> },
+	{ 0x505CE0, 0, "QueueChainTransformationConditional", (void *)ff8_bgate_fxv_stub<32> },
 };
 #define FXV_SITES ((int)(sizeof(ff8_bgate_fxv_sites) / sizeof(ff8_bgate_fxv_sites[0])))
 
