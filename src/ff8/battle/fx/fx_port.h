@@ -254,6 +254,8 @@ namespace ff8fx
 	void register_gfc_eden();
 	void register_mag095_siren();
 	void register_mag096_minimog();
+	void register_mag090_tonberry();
+	void register_mag097_boko();
 	// shared camera-script task 0x63E9C0 (Doomtrain's code file, queued by several GFs)
 	bool camscript_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	bool mag278_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);

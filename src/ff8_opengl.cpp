@@ -5095,6 +5095,13 @@ static const ff8_bgate_la_region ff8_bgate_la_streams_gfc[] = { { 0x1877DA8, 4 }
 // static cells the modules write, Siren's load destinations outside the 1 MB buffer
 static const ff8_bgate_la_region ff8_bgate_la_streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
 static const ff8_bgate_la_region ff8_bgate_la_streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
+// Tonberry / Boko (actor family): module data, shared scratch + camera copy, RenderGeometry
+// temporaries, TransformCameraByShadowRotation scratch, Boko load destinations outside the 1 MB buffer
+static const ff8_bgate_la_region ff8_bgate_la_streams_a090[] = { { 0x15474EC, 0x530 }, { 0x2793DA4, 0xD4 }, { 0x2795960, 0x218 }, { 0x1D99C18, 8 } };
+static const ff8_bgate_la_region ff8_bgate_la_streams_a097[] = { { 0x152B94C, 0xD4 }, { 0x168356C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
+static const ff8_bgate_la_region ff8_bgate_la_streams_a098[] = { { 0x152B2C4, 0xF4 }, { 0x167484C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
+static const ff8_bgate_la_region ff8_bgate_la_streams_a099[] = { { 0x152AABC, 0x174 }, { 0x1665B28, 0x8120 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 }, { 0x2795113, 0x68 } };
+static const ff8_bgate_la_region ff8_bgate_la_streams_a100[] = { { 0x1529B8C, 0x134 }, { 0x1656E04, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
 static const ff8_bgate_la_region ff8_bgate_la_streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
 static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// timeline-A (own pause flag, creature spawned by the master at counter 2)
@@ -5127,6 +5134,11 @@ static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// actor state-machine family (the heal-spell effect library)
 	{ 95,  0x257F8A0, 0x258FCF4, 0, 0, false, "Siren", ff8_bgate_la_streams_a095, 6 },
 	{ 96,  0x257B740, 0x257F8A0, 0, 0, false, "MiniMog", ff8_bgate_la_streams_a096, 5 },
+	{ 90,  0x259EEA8, 0x25A4E00, 0, 0, false, "Tonberry", ff8_bgate_la_streams_a090, 4 },
+	{ 97,  0x2575268, 0x257B740, 0, 0, false, "Boko ChocoFire", ff8_bgate_la_streams_a097, 6 },
+	{ 98,  0x256E358, 0x2575268, 0, 0, false, "Boko ChocoFlare", ff8_bgate_la_streams_a098, 6 },
+	{ 99,  0x2565A30, 0x256E358, 0, 0, false, "Boko ChocoMeteor", ff8_bgate_la_streams_a099, 7 },
+	{ 100, 0x255EAC8, 0x2565A30, 0, 0, false, "Boko ChocoBocle", ff8_bgate_la_streams_a100, 6 },
 };
 #define FF8_BGATE_LA_MODULES ((int)(sizeof(ff8_bgate_la_modules) / sizeof(ff8_bgate_la_modules[0])))
 
@@ -5494,6 +5506,9 @@ static ff8_bgate_fxv_site ff8_bgate_fxv_sites[] = {
 	// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
 	{ 0x46BB40, 0, "Music_SetVolumeImmediate", (void *)ff8_bgate_fxv_stub<31> },
 	{ 0x505CE0, 0, "QueueChainTransformationConditional", (void *)ff8_bgate_fxv_stub<32> },
+	// Tonberry's stream, Boko's TIM uploads
+	{ 0x501460, 0, "BdPlayStream", (void *)ff8_bgate_fxv_stub<33> },
+	{ 0x505E30, 0, "Battle_QueueTIMUpload_GetEOF", (void *)ff8_bgate_fxv_stub<34> },
 };
 #define FXV_SITES ((int)(sizeof(ff8_bgate_fxv_sites) / sizeof(ff8_bgate_fxv_sites[0])))
 
@@ -5521,7 +5536,7 @@ static void ff8_bgate_fxv_patch_all(bool on)
 }
 
 // the regions every run is compared on: la regions + the module's globals (+ extra cell)
-static ff8_bgate_la_region ff8_bgate_fxv_reg[FF8_BGATE_LA_REGIONS + 8];
+static ff8_bgate_la_region ff8_bgate_fxv_reg[FF8_BGATE_LA_REGIONS + 12];
 static int ff8_bgate_fxv_nreg = 0;
 static uint32_t ff8_bgate_fxv_reg_bytes = 0;
 static uint8_t ff8_bgate_fxv_scan[0x100000 + 0x1000 + FF8_BGATE_LA_DATA_MAX + FF8_BGATE_SNAP_STREAMS_MAX + 64];
@@ -5532,7 +5547,7 @@ static void ff8_bgate_fxv_set_regions(const ff8_bgate_la_module &g)
 	for (int i = 0; i < FF8_BGATE_LA_REGIONS; i++) ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = ff8_bgate_la_regions[i];
 	ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = { g.data_lo, g.data_hi - g.data_lo };
 	if (g.extra) ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = { g.extra, g.extra_size };
-	for (int i = 0; i < g.nstreams && i < 6; i++) ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = g.streams[i];
+	for (int i = 0; i < g.nstreams && i < 10; i++) ff8_bgate_fxv_reg[ff8_bgate_fxv_nreg++] = g.streams[i];
 	ff8_bgate_fxv_reg_bytes = 0;
 	for (int i = 0; i < ff8_bgate_fxv_nreg; i++) ff8_bgate_fxv_reg_bytes += ff8_bgate_fxv_reg[i].size;
 }

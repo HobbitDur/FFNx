@@ -164,5 +164,7 @@ namespace ff8fx
 		register_gfc_eden();
 		register_mag095_siren();
 		register_mag096_minimog();
+		register_mag090_tonberry();
+		register_mag097_boko();
 	}
 }

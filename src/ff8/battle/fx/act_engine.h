@@ -515,8 +515,18 @@ namespace act
 	bool held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	// held frame (30 fps) of a module: in-between redraw of the prim-model plays of this real tick
 	// and of the creature actor(s) (task function creature_task in creature_queue, drawn with
-	// a_746C10(node, draw_arg, cursor)); module globals [bss_lo, bss_hi) are saved/restored
-	struct HeldDesc { const Mod *mod; uint32_t creature_queue, creature_task, draw_arg, bss_lo, bss_hi; };
+	// a_746C10(node, draw_arg, cursor)); module globals [bss_lo, bss_hi) are saved/restored.
+	// more: further creature kinds (0-terminated list, e.g. ChocoBocle's two creatures);
+	// adjust: called for every creature node after its midpoint pose, before the draw, to move
+	// its placement words (node +0x30..+0x5F, put back after the draw) to the in-between state
+	struct HeldCreature { uint32_t queue, task, draw_arg; };
+	struct HeldDesc
+	{
+		const Mod *mod;
+		uint32_t creature_queue, creature_task, draw_arg, bss_lo, bss_hi;
+		const HeldCreature *more = nullptr;
+		void (*adjust)(uint32_t node, int num, int den) = nullptr;
+	};
 	void held_frame(const HeldDesc &d, int num, int den);
 	bool held_ready();
 	// prim-model player twin (replaces calls of MAG_011_sub_701970(layout, cb, arg, paused)): runs

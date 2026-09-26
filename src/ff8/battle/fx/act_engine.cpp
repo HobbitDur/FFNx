@@ -547,7 +547,6 @@ namespace act
 		{ 0x721B70, (void *)a_732120, "098 MAG_098_sub_721B70" },
 		{ 0x721BB0, (void *)a_732160, "098 MAG_098_sub_721BB0" },
 		{ 0x728020, (void *)a_7334C0, "098 sub_728020" },
-		{ 0x728050, (void *)a_7334C0, "098 sub_728050" },
 		{ 0x729730, (void *)a_7335D0, "098 sub_729730" },
 		{ 0x728B40, (void *)a_733AC0, "098 sub_728B40" },
 		{ 0x728BA0, (void *)a_733AC0, "098 sub_728BA0" },
@@ -1182,16 +1181,25 @@ namespace act
 
 		held_draw_prim_plays(num, den);
 
-		for (uint32_t node = MEM<uint32_t>(d.creature_queue); node; node = U32(node, 4))
+		auto draw_creatures = [&](uint32_t queue, uint32_t task, uint32_t draw_arg)
 		{
-			if (U32(node, 8) != d.creature_task) continue;
-			if (U8(node, 0x26) & 4) continue; // hidden: the real tick did not draw it either
-			static uint8_t mdl[0x40];
-			memcpy(mdl, (const void *)(node + 0x60), sizeof(mdl)); // bbox +0x64..0x6E, matrix +0x70..0x8F
-			pose_midpoint((void *)(node + 0x90), (void *)(node + 0x9C), num, den);
-			MEM<uint32_t>(0x1D8E054) = a_746C10(node, d.draw_arg, MEM<uint32_t>(0x1D8E054));
-			memcpy((void *)(node + 0x60), mdl, sizeof(mdl));
-		}
+			for (uint32_t node = MEM<uint32_t>(queue); node; node = U32(node, 4))
+			{
+				if (U32(node, 8) != task) continue;
+				if (U8(node, 0x26) & 4) continue; // hidden: the real tick did not draw it either
+				static uint8_t mdl[0x40], place[0x30];
+				memcpy(mdl, (const void *)(node + 0x60), sizeof(mdl)); // bbox +0x64..0x6E, matrix +0x70..0x8F
+				memcpy(place, (const void *)(node + 0x30), sizeof(place)); // placement (position +0x4C..0x50)
+				pose_midpoint((void *)(node + 0x90), (void *)(node + 0x9C), num, den);
+				if (d.adjust) d.adjust(node, num, den);
+				MEM<uint32_t>(0x1D8E054) = a_746C10(node, draw_arg, MEM<uint32_t>(0x1D8E054));
+				memcpy((void *)(node + 0x30), place, sizeof(place));
+				memcpy((void *)(node + 0x60), mdl, sizeof(mdl));
+			}
+		};
+		draw_creatures(d.creature_queue, d.creature_task, d.draw_arg);
+		for (const HeldCreature *c = d.more; c && c->queue; c++)
+			draw_creatures(c->queue, c->task, c->draw_arg);
 
 		MEM<uint32_t>(0x1D8E054) = cursor;
 		memcpy((void *)0x1D999C8, shadow, sizeof(shadow));
@@ -1784,11 +1792,11 @@ namespace act
 		}
 		uint32_t cur = a4;
 		if (U32(U32(a1, 0x20), 0) != 0)
-			cur = callo(F(F_735720), a1, a2, a3, cur);
+			cur = callp(F(F_735720), a1, a2, a3, cur);
 		else
 			U32(a1, 0x20) = U32(a1, 0x20) + 4;
 		if (U32(U32(a1, 0x20), 0) != 0)
-			cur = callo(F(F_735930), a1, a2, a3, cur);
+			cur = callp(F(F_735930), a1, a2, a3, cur);
 		else
 			U32(a1, 0x20) = U32(a1, 0x20) + 4;
 		if (U32(U32(a1, 0x20), 0) != 0)
@@ -1800,19 +1808,19 @@ namespace act
 		else
 			U32(a1, 0x20) = U32(a1, 0x20) + 4;
 		if (U32(U32(a1, 0x20), 0) != 0)
-			cur = callo(F(F_736090), a1, a2, a3, cur);
+			cur = callp(F(F_736090), a1, a2, a3, cur);
 		else
 			U32(a1, 0x20) = U32(a1, 0x20) + 4;
 		if (U32(U32(a1, 0x20), 0) != 0)
-			cur = callo(F(F_7362C0), a1, a2, a3, cur);
+			cur = callp(F(F_7362C0), a1, a2, a3, cur);
 		else
 			U32(a1, 0x20) = U32(a1, 0x20) + 4;
 		if (U32(U32(a1, 0x20), 0) != 0)
-			cur = callo(F(F_736580), a1, a2, a3, cur);
+			cur = callp(F(F_736580), a1, a2, a3, cur);
 		else
 			U32(a1, 0x20) = U32(a1, 0x20) + 4;
 		if (U32(U32(a1, 0x20), 0) != 0)
-			return callo(F(F_7367E0), a1, a2, a3, cur);
+			return callp(F(F_7367E0), a1, a2, a3, cur);
 		U32(a1, 0x20) = U32(a1, 0x20) + 4;
 		return cur;
 	}
@@ -2020,9 +2028,9 @@ namespace act
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callo(F(F_7424C0), a1);
+			callp(F(F_7424C0), a1);
 		else if (mode == 4)
-			callo(F(F_742610), a1);
+			callp(F(F_742610), a1);
 		a_737F50(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -3598,12 +3606,12 @@ namespace act
 		a_73FC20();
 		st = MEM<uint32_t>(G(G_258FB78));
 		if (U16(st, 0x24) == 4)
-			callo(F(F_73FB40), node);
+			callp(F(F_73FB40), node);
 		a_73FFB0();   // (the original pushes node; the callee takes no argument)
 		st = MEM<uint32_t>(G(G_258FB78));
 		if (U16(st, 0x24) == 1)
 		{
-			callo(F(F_73FDC0), node);   // 0-arg function, node pushed like the original
+			callp(F(F_73FDC0), node);   // 0-arg function, node pushed like the original
 			st = MEM<uint32_t>(G(G_258FB78));
 		}
 		if (U16(st, 0x24) == 3)
@@ -4412,7 +4420,7 @@ namespace act
 			uint32_t dir = U32(G(G_258FB78), 0);
 			U32(node, 0x170) = U32(U32(dir, 0x22C) + tex * 4, 0); // texture entry of this frame
 			if (mode == 5)
-				callo(F(F_7418B0), node, desc);
+				callp(F(F_7418B0), node, desc);
 		}
 
 		// 0x74116F
@@ -4854,7 +4862,7 @@ namespace act
 			case 1: a_742FF0(a1); break;             // 0x742E38 (listing: not ported yet; part e4 ports it)
 			case 2:
 			case 3: a_7424C0(a1); break;             // 0x742E4F
-			case 4: callo(F(F_742610), a1); break;   // 0x742E66
+			case 4: callp(F(F_742610), a1); break;   // 0x742E66
 			default: break;
 		}
 		U16(a1, 0x64) = (uint16_t)(int16_t)S8(desc, 0x12);
