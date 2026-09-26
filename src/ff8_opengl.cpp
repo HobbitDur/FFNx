@@ -5433,6 +5433,9 @@ static ff8_bgate_fxv_site ff8_bgate_fxv_sites[] = {
 	{ 0x506690, 0, "ApplyActionResultToTarget", (void *)ff8_bgate_fxv_stub<8> },
 	{ 0x505C00, 0, "QueueChainTransformation", (void *)ff8_bgate_fxv_stub<9> },
 	{ 0x506C10, 1, "AddTaskToQueueAnimSeq", (void *)ff8_bgate_fxv_stub<10> },
+	// battle-stage model swaps (Griever: attacker model 36/37 at tick 50, swap at 110)
+	{ 0x512AA0, 2, "loadBS_36Or37", (void *)ff8_bgate_fxv_stub<11> },
+	{ 0x512AC0, 2, "BS_SwapModel_512AC0", (void *)ff8_bgate_fxv_stub<12> },
 };
 #define FXV_SITES ((int)(sizeof(ff8_bgate_fxv_sites) / sizeof(ff8_bgate_fxv_sites[0])))
 

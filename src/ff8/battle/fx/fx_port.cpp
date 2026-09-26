@@ -136,5 +136,6 @@ namespace ff8fx
 		register_mag338_moomba();
 		register_mag291_pandemona();
 		register_mag187_odin();
+		register_mag069_griever();
 	}
 }
