@@ -240,6 +240,7 @@ namespace ff8fx
 	void register_mag185_shiva();
 	void register_mag338_moomba();
 	void register_mag291_pandemona();
+	void register_mag187_odin();
 	bool mag278_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	bool mag140_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 }
