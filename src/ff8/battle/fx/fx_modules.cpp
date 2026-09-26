@@ -80,6 +80,11 @@ namespace ff8fx::mod
 	static const Region streams_f124[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_s145[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t146[] = { { 0xDD674C, 0xC }, { 0xDD6780, 4 }, { 0x21DFED0, 0x20 }, { 0x1D99C18, 8 } };
+	// Demi: the mote matrix it rewrites in exe data (also read by the silhouette pull), scratch and
+	// entity-shadow temporaries; Dispel/Aura: shadow-camera scratch
+	static const Region streams_d107[] = { { 0x12F9978, 0x20 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_d109[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_a111[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -144,6 +149,10 @@ namespace ff8fx::mod
 		{ 124, 0x25213D0, 0x2521448, 0, 0, false, "Flare", streams_f124, 1 },
 		{ 145, 0x24AA630, 0x24BB960, 0x1D99C18, 8, false, "Sleep", streams_s145, 1 },
 		{ 146, 0x2491BC0, 0x24AA62C, 0, 0, false, "Tornado", streams_t146, 4 },
+		{ 107, 0x2521B30, 0x2521BB8, 0, 0, false, "Demi", streams_d107, 4 },
+		{ 109, 0x2521A68, 0x2521AC0, 0, 0, false, "Dispel", streams_d109, 1 },
+		{ 111, 0x2521970, 0x25219C8, 0, 0, false, "Aura", streams_a111, 1 },
+		{ 118, 0x25215D8, 0x2521650, 0, 0, false, "Aero", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

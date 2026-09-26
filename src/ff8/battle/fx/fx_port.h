@@ -246,6 +246,10 @@ namespace ff8fx
 	void register_mag124_flare();
 	void register_mag145_sleep();
 	void register_mag146_tornado();
+	void register_mag107_demi();
+	void register_mag109_dispel();
+	void register_mag111_aura();
+	void register_mag118_aero();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

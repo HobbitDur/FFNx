@@ -525,6 +525,8 @@ namespace blizzaga104
 		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(if (!held_drawing()))
 		FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4040, 0x10, FrameCursor());
+		// 30 fps layer: see mag104_blizzaga_held.inc
+		FX_HELD(held_note_frame(FrameCursor());)
 		uint8_t *anim = entity + 0x60;
 		ComputeBonesWorldMatrices(anim, h);
 		*(uint32_t *)(h + 0x24) = var<uint32_t>(0x1D98B3C);

@@ -130,6 +130,10 @@ namespace ff8fx
 		register_mag124_flare();
 		register_mag145_sleep();
 		register_mag146_tornado();
+		register_mag107_demi();
+		register_mag109_dispel();
+		register_mag111_aura();
+		register_mag118_aero();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
