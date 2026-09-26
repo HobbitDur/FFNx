@@ -134,5 +134,6 @@ namespace ff8fx
 		register_mag325_diablos();
 		register_mag185_shiva();
 		register_mag338_moomba();
+		register_mag291_pandemona();
 	}
 }

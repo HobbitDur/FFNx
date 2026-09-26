@@ -5077,13 +5077,15 @@ static const ff8_bgate_la_region ff8_bgate_la_streams_q116[] = { { 0x1298C68, 0x
 static const ff8_bgate_la_region ff8_bgate_la_streams_c199[] = { { 0xCF3564, 0x30 } };
 // Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
 // BdTransSummonStream), TransformCameraByShadowRotation scratch
+// Pandemona: texture load state machine cell (outside the module range)
+static const ff8_bgate_la_region ff8_bgate_la_streams_p291[] = { { 0x13BBBE8, 4 } };
 static const ff8_bgate_la_region ff8_bgate_la_streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
 static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// timeline-A (own pause flag, creature spawned by the master at counter 2)
 	{ 116, 0x25216D8, 0x25217D0, 0, 0, true, "Quezacotl", ff8_bgate_la_streams_q116, 2 },
 	{ 325, 0x250517C, 0x2505230, 0, 0, false, "Diablos" },
 	{ 278, 0x2508110, 0x25081FC, 0, 0, false, "Carbuncle" },
-	{ 291, 0x2556258, 0x25562F8, 0, 0, false, "Pandemona" },
+	{ 291, 0x2556258, 0x25562F8, 0, 0, false, "Pandemona", ff8_bgate_la_streams_p291, 1 },
 	{ 140, 0x2517AA0, 0x2517B50, 0, 0, false, "Phoenix" },
 	{ 338, 0x25561C8, 0x2556254, 0, 0, false, "Moomba" },
 	{ 69,  0x2556628, 0x2556F98, 0, 0, false, "Griever" },
