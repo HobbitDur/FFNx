@@ -182,4 +182,15 @@ namespace ff8fx
 	}
 
 	// module register functions (one per ported effect module)
+	void register_mag069_griever();
+	void register_mag116_quezacotl();
+	void register_mag140_phoenix();
+	void register_mag185_shiva();
+	void register_mag187_odin();
+	void register_mag199_cactuar();
+	void register_mag278_carbuncle();
+	void register_mag291_pandemona();
+	void register_mag325_diablos();
+	void register_mag326_odin_reverse();
+	void register_mag338_moomba();
 }

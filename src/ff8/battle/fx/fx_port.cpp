@@ -88,5 +88,16 @@ namespace ff8fx
 
 	void register_all()
 	{
+		register_mag069_griever();
+		register_mag116_quezacotl();
+		register_mag140_phoenix();
+		register_mag185_shiva();
+		register_mag187_odin();
+		register_mag199_cactuar();
+		register_mag278_carbuncle();
+		register_mag291_pandemona();
+		register_mag325_diablos();
+		register_mag326_odin_reverse();
+		register_mag338_moomba();
 	}
 }
