@@ -5086,6 +5086,9 @@ static const ff8_bgate_la_region ff8_bgate_la_streams_d191[] = { { 0xE3C8C0, 0x1
 // Gilgamesh: the 16 sword model files in .data (their skeletons are rebuilt), summon data
 // (loads 0x2EE/0x2F0/0x2F1), pool pointer cells
 static const ff8_bgate_la_region ff8_bgate_la_streams_g327[] = { { 0xE808D0, 0x10C50 }, { 0x209FAB8, 0x40000 }, { 0xCD0398, 0xC } };
+// Odin reverse: loads 0x2E3/0x2E8 into exe data + the ripple texture right after (0xEECC2C..0xEF4C30),
+// pool/scratch pointer cells, summon data (loads 0x2E5/0x2E7), the camera script's saved camera
+static const ff8_bgate_la_region ff8_bgate_la_streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FD250, 0x110 } };
 static const ff8_bgate_la_region ff8_bgate_la_streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
 static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// timeline-A (own pause flag, creature spawned by the master at counter 2)
@@ -5100,7 +5103,7 @@ static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	{ 185, 0x22BC128, 0x22BD108, 0, 0, false, "Shiva", ff8_bgate_la_streams_s185, 3 },
 	{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", ff8_bgate_la_streams_c199, 1 }, // + its private rand seed
 	{ 187, 0x24FD458, 0x24FE910, 0, 0, false, "Odin", ff8_bgate_la_streams_o187, 4 },
-	{ 326, 0x24F0BD0, 0x24F2308, 0, 0, false, "Odin (reverse)" },
+	{ 326, 0x24F0BD0, 0x24F2308, 0, 0, false, "Odin (reverse)", ff8_bgate_la_streams_o326, 5 },
 	{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain", ff8_bgate_la_streams_d191, 3 },
 	{ 327, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Zantetsuken)", ff8_bgate_la_streams_g327, 3 },
 	{ 328, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Masamune)", ff8_bgate_la_streams_g327, 3 },

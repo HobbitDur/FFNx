@@ -153,5 +153,7 @@ namespace ff8fx
 		register_module_camera(187, camscript_held_camera);
 		register_mag327_gilgamesh();
 		for (int id = 327; id <= 330; id++) register_module_camera(id, camscript_held_camera);
+		register_mag326_odin_reverse();
+		register_module_camera(326, camscript_held_camera);
 	}
 }
