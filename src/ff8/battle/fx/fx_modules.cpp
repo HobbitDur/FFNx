@@ -67,6 +67,13 @@ namespace ff8fx::mod
 	static const Region streams_q038[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_u149[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_h175[] = { { 0x21DFED0, 0x20 }, { 0xD592C0, 0x30 } };
+	// Meltdown: entity-shadow temporaries, RenderGeometry temporaries; Pain: camera copy;
+	// Drain/Death (actor library copies): scratch stack + camera copy, actor data they rewrite in exe
+	// data, Death's reaper model container
+	static const Region streams_m148[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_p034[] = { { 0x2793E58, 0x20 } };
+	static const Region streams_d039[] = { { 0x2793DA4, 0xD4 }, { 0x15D1F18, 0x140 } };
+	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
 	// BdTransSummonStream), TransformCameraByShadowRotation scratch
@@ -122,6 +129,10 @@ namespace ff8fx::mod
 		{ 38,  0x278C8E0, 0x2792E60, 0, 0, false, "Quake", streams_q038, 1 },
 		{ 149, 0x2461E88, 0x2464BA8, 0, 0, false, "Ultima", streams_u149, 1 },
 		{ 175, 0x2374578, 0x2394208, 0x1D99C18, 4, false, "Holy", streams_h175, 2 }, // + RenderGeometry temporary
+		{ 148, 0x2464BA8, 0x2476660, 0, 0, false, "Meltdown", streams_m148, 4 },
+		{ 34,  0x26BA9E0, 0x26C0380, 0, 0, false, "Pain", streams_p034, 1 },
+		{ 39,  0x269D958, 0x269E764, 0, 0, false, "Drain", streams_d039, 2 },
+		{ 14,  0x273AE80, 0x27428A0, 0, 0, false, "Death", streams_d014, 4 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

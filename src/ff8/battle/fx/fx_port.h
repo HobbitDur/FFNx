@@ -238,6 +238,10 @@ namespace ff8fx
 	void register_mag038_quake();
 	void register_mag149_ultima();
 	void register_mag175_holy();
+	void register_mag034_pain();
+	void register_mag148_meltdown();
+	void register_mag039_drain();
+	void register_mag014_death();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
