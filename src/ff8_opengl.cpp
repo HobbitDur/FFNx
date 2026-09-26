@@ -40,6 +40,7 @@
 #include "metadata.h"
 #include "achievement.h"
 #include "widescreen.h"
+#include "ff8/battle/fx/fx_port.h"
 
 unsigned char texture_reload_fix1[] = {0x5B, 0x5F, 0x5E, 0x5D, 0x81, 0xC4, 0x10, 0x01, 0x00, 0x00};
 unsigned char texture_reload_fix2[] = {0x5F, 0x5E, 0x5D, 0x5B, 0x81, 0xC4, 0x8C, 0x00, 0x00, 0x00};
@@ -1976,6 +1977,10 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	replace_call(ff8_externals.sub_530C30 + 0x46A, ff8_field_3d_models_push_rects);
 	replace_call(uint32_t(ff8_externals.field_push_mch_vertices_rect_sub_533A90) + 0x4D, ff8_field_calc_triangle_condition);
 
+	// #####################
+	// native battle effect code
+	// #####################
+	ff8fx::install();
 }
 
 struct ff8_gfx_driver *ff8_load_driver(void* _game_object)

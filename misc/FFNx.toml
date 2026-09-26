@@ -783,6 +783,18 @@ ff8_use_gamepad_icons = false
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ff8_always_capture_input = false
 
+# Native battle effects
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Runs FFNx's native C++ re-implementation of the battle effect code (GF summons, spells)
+# instead of the game's own code. The result is identical to the original game.
+ff8_battle_fx_native = true
+
+# Checks every tick of a native battle effect against the original code and keeps the
+# original result on any difference (logged as "FF8 battle fx: ... MISMATCH").
+# Costs some CPU time during effects.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ff8_battle_fx_verify = true
+
 # FPS Limiter
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This flag will overwrite the internal FPS limiter of the game.
