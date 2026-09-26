@@ -137,5 +137,10 @@ namespace ff8fx
 		register_mag291_pandemona();
 		register_mag187_odin();
 		register_mag069_griever();
+		register_mag191_doomtrain();
+		// modules whose camera is the shared camera script
+		register_module_camera(185, camscript_held_camera);
+		register_module_camera(199, camscript_held_camera);
+		register_module_camera(187, camscript_held_camera);
 	}
 }

@@ -242,6 +242,9 @@ namespace ff8fx
 	void register_mag291_pandemona();
 	void register_mag187_odin();
 	void register_mag069_griever();
+	void register_mag191_doomtrain();
+	// shared camera-script task 0x63E9C0 (Doomtrain's code file, queued by several GFs)
+	bool camscript_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	bool mag278_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	bool mag140_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 }

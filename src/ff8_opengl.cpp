@@ -5081,6 +5081,8 @@ static const ff8_bgate_la_region ff8_bgate_la_streams_c199[] = { { 0xCF3564, 0x3
 static const ff8_bgate_la_region ff8_bgate_la_streams_p291[] = { { 0x13BBBE8, 4 } };
 // Odin: ripple-texture destination in exe data, pool/scratch pointer cells, summon data (loads 0x227/0x229/0x22A)
 static const ff8_bgate_la_region ff8_bgate_la_streams_o187[] = { { 0xFA94A8, 0x4000 }, { 0xE41E50, 0xC }, { 0xE41E98, 4 }, { 0x209FAB8, 0x40000 } };
+// Doomtrain: pool pointer cells, summon data (loads 0x22E..0x231), shadow-camera scratch
+static const ff8_bgate_la_region ff8_bgate_la_streams_d191[] = { { 0xE3C8C0, 0x18 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
 static const ff8_bgate_la_region ff8_bgate_la_streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
 static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	// timeline-A (own pause flag, creature spawned by the master at counter 2)
@@ -5096,7 +5098,7 @@ static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", ff8_bgate_la_streams_c199, 1 }, // + its private rand seed
 	{ 187, 0x24FD458, 0x24FE910, 0, 0, false, "Odin", ff8_bgate_la_streams_o187, 4 },
 	{ 326, 0x24F0BD0, 0x24F2308, 0, 0, false, "Odin (reverse)" },
-	{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain" },
+	{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain", ff8_bgate_la_streams_d191, 3 },
 	{ 327, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Zantetsuken)" },
 	{ 328, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Masamune)" },
 	{ 329, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalibur)" },
