@@ -156,5 +156,11 @@ namespace ff8fx
 		register_mag326_odin_reverse();
 		register_module_camera(326, camscript_held_camera);
 		register_gfc_ifrit();
+		register_gfc_leviathan();
+		register_gfc_bahamut();
+		register_gfc_cerberus();
+		register_gfc_alexander();
+		register_gfc_brothers();
+		register_gfc_eden();
 	}
 }

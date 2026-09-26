@@ -35,6 +35,10 @@ namespace ff8fx
 namespace gfc
 {
 	bool g_predict = false;
+#ifdef GFC_DEBUG_HOOK
+	void (*g_dbg_hook)(int kind, uint32_t id) = nullptr;
+	void (*g_dbg_taint)(void *dst, const void *src, int n) = nullptr;
+#endif
 	Held g_held = { false, 0, 1, 0 };
 	Clone *g_clone = nullptr;
 	Generic g_generic;
@@ -262,6 +266,9 @@ namespace part_core
 				S16(CUR(), 0x8E) = (int16_t)(S32(CUR(), 0x54) >> 16);
 				S16(CUR(), 0x90) = (int16_t)(S32(CUR(), 0x58) >> 16);
 				C().bone[U8(CUR(), 0x18)]();
+#ifdef GFC_DEBUG_HOOK
+				if (g_dbg_hook) g_dbg_hook(2, U8(CUR(), 0x18));
+#endif
 			}
 			rt = RT();
 			U8(rt, 0x44) = (uint8_t)(U8(rt, 0x44) + 1);
@@ -322,10 +329,16 @@ namespace part_core
 				U32(WS(), 4) = U32(CTX(), 0x7C);
 				U32(CTX(), 0x7C) = U32(CTX(), 0xD8);
 				C().draw[U8(CUR(), 0x1C)]();
+#ifdef GFC_DEBUG_HOOK
+				if (g_dbg_hook) g_dbg_hook(1, U8(CUR(), 0x1C));
+#endif
 				U32(CTX(), 0xD8) = U32(CTX(), 0x7C);
 				U32(CTX(), 0x7C) = U32(WS(), 4);
 			}
 			else C().draw[U8(CUR(), 0x1C)]();
+#ifdef GFC_DEBUG_HOOK
+			if (g_dbg_hook) g_dbg_hook(1, U8(CUR(), 0x1C));
+#endif
 			U32(WS(), 0) = U32(WS(), 0) + 1;
 			id = DRAWORDER()[U32(WS(), 0)];
 			if (id == 0xFF) break;
@@ -531,11 +544,21 @@ namespace part_core
 
 	static uint32_t *CrtSeed() { return (uint32_t *)(x::f<uint8_t *(__cdecl *)()>(0x560578)() + 0x14); }
 
-	static uint32_t BoneCount()
+	// bones that may be live: SceneHeader+0x38 is only the initial allocation count, SpawnBone
+	// (VM 0x032 ...) takes the first bone whose stream word is 0 without bound, so bones past it
+	// are used by the clone scripts: the highest index on the order / draw lists, plus room for the
+	// bones a (predicted) tick can spawn
+	static uint32_t ActiveBones(const uint8_t *scene)
 	{
-		uint32_t n = U16(SCENE(), 0x38);
+		uint32_t n = U16(scene, 0x38);
+		uint32_t hi = 0;
+		for (int k = 0; k < 256 && ORDER()[k] != 0xFF; k++) if ((ORDER()[k] & 0x7Fu) + 1 > hi) hi = (ORDER()[k] & 0x7Fu) + 1;
+		for (int k = 0; k < 0xD0 && DRAWORDER()[k] != 0xFF; k++) if (DRAWORDER()[k] + 1u > hi) hi = DRAWORDER()[k] + 1u;
+		hi += 8;
+		if (hi > n) n = hi;
 		return n > 128 ? 128 : n;
 	}
+	static uint32_t BoneCount() { return ActiveBones(SCENE()); }
 
 	// the globals a context bind sets, without allocating (the scratch block of the real tick)
 	static void BindHeld()
@@ -560,9 +583,9 @@ namespace part_core
 		region_save(g_r_scratch, g_scratch, 0x180);
 		const uint32_t *pb = (const uint32_t *)C().ptr_block;
 		uint8_t *ctx = (uint8_t *)pb[0], *scene = (uint8_t *)pb[2];
-		uint32_t nb = U16(scene, 0x38);
-		if (nb > 128) nb = 128;
-		region_save(g_r_bones, PTR(ctx, 0x90), nb * 0x100);
+		// all 128 bone slots (32 KB): scripts initialise / spawn / end bones past the live range
+		(void)scene;
+		region_save(g_r_bones, PTR(ctx, 0x90), 128 * 0x100);
 		if (arena)
 		{
 			uint32_t lo = U32(ctx, 0x70), hi = U32(ctx, 0x74);
@@ -786,7 +809,10 @@ namespace part_core
 		// real tick's value for the next real tick
 		float depth_scale = FLT_1877DA8();
 		BindHeld();
-		SaveEngine(false);
+		// the arena holds the state blocks of the clone-specific draw handlers (ribbons, starfield,
+		// melt columns, ...): saved with the engine so that nothing a held draw writes persists
+		SaveEngine(true);
+		uint32_t seed = *CrtSeed();
 		// particle pools of draw handler 6 (live in the scene data, written by type 4 even when frozen)
 		static Region pools[32];
 		int npools = 0;
@@ -796,14 +822,18 @@ namespace part_core
 			if (U8(b, 0x1C) == 6 && PTR(b, 0xB8))
 				region_save(pools[npools++], PTR(b, 0xB8), 16 + 80 * (uint32_t)U16(PTR(b, 0xB8), 0));
 		}
-		// skeletons of the embedded battle models (draw handler 3): the held draw rebuilds their
-		// bone matrices at the in-between pose
+		// skeletons of the embedded battle models (draw handler 3 and the clone's other model
+		// handlers, Clone::model_draw): the held draw rebuilds their bone matrices at the
+		// in-between pose
 		static Region skels[8];
 		int nskels = 0;
 		for (int k = 0; DRAWORDER()[k] != 0xFF && nskels < 8; k++)
 		{
 			uint8_t *b = PTR(CTX(), 0x90) + 0x100 * (uint32_t)DRAWORDER()[k];
-			uint8_t *blk = U8(b, 0x1C) == 3 ? PTR(b, 0xBC) : nullptr;
+			uint8_t d = U8(b, 0x1C);
+			bool model = d == 3;
+			for (int m = 0; m < 4; m++) model |= c.model_draw[m] != 0 && c.model_draw[m] == d;
+			uint8_t *blk = model ? PTR(b, 0xBC) : nullptr;
 			uint8_t *sk = blk && PTR(blk, 0x14) ? PTR(PTR(blk, 0x14), 0) : nullptr;
 			if (sk) region_save(skels[nskels++], sk, 0x10 + 0x30 * (uint32_t)U8(sk, 0));
 		}
@@ -831,7 +861,8 @@ namespace part_core
 		for (int i = 0; i < npools; i++) region_restore(pools[i]);
 		for (int i = nskels - 1; i >= 0; i--) region_restore(skels[i]);
 		region_restore(g_r_free);
-		RestoreEngine(false);
+		RestoreEngine(true);
+		*CrtSeed() = seed;
 		FLT_1877DA8() = depth_scale;
 		PKTCUR() = pktcur;
 		RT() = saved_globals[0]; WS() = saved_globals[1]; CTX() = saved_globals[2]; SCENE() = saved_globals[3];
@@ -955,9 +986,20 @@ namespace part_core
 		return gen ? gen : (VoidFn)orig;
 	}
 
+	static Clone *g_clones[16];
+	static int g_nclones = 0;
+
+	Clone *find_clone(int effect_id)
+	{
+		for (int i = 0; i < g_nclones; i++)
+			if (g_clones[i]->effect_id == effect_id) return g_clones[i];
+		return nullptr;
+	}
+
 	void init_clone(Clone &c, const Exception *ex, int nex)
 	{
 		fill_generic();
+		if (!find_clone(c.effect_id) && g_nclones < 16) g_clones[g_nclones++] = &c;
 		// opcodes past the table's 0x147 entries read whatever follows it, as vanilla does
 		for (int i = 0; i < 0x200; i++)
 			c.vm[i] = port_of(*(const uint32_t *)(c.vm_table + 4 * i), i < 0x147 ? g_generic.vm[i] : nullptr, 0, i, ex, nex);
@@ -3226,6 +3268,7 @@ namespace part_vm_c
 		{
 			uint8_t *src = CUR() + 0xB0;
 			uint8_t *dst = bone + 0xB0;
+			GFC_TAINT(dst, src, 8);
 			for (int i = 2; i != 0; i--)
 			{
 				U32(dst, 0) = U32(src, 0);
@@ -4257,6 +4300,7 @@ namespace part_vm_d
 		CUR() = saved;
 		int32_t dofs = S16(STREAM(), 6);
 		uint8_t *dst = (dofs == 0) ? (uint8_t *)blob::NodeForCurBone() : saved + dofs;
+		GFC_TAINT(dst, src, 0x20);
 		blob::CopyMatrix(dst, src);
 		STREAM() += 8;
 	}
@@ -4463,6 +4507,9 @@ namespace part_vm_d
 		{
 			uint8_t *node = (nodeofs == 0) ? (uint8_t *)blob::NodeForCurBone() : CUR() + nodeofs;
 			blob::CopyMatrix(node, jm);
+			// node+0x12 = pad of B66B80's result: the uninitialised stack temporary of
+			// ComposeAffineTransform 0x56C2F0 (vanilla stack garbage, depends on the caller chain)
+			GFC_TAINT(node + 0x12, nullptr, 2);
 			S32(node, 0x14) = S32(WS(), 0xF0);
 			S32(node, 0x18) = S32(WS(), 0xF4);
 			S32(node, 0x1C) = S32(WS(), 0xF8);
@@ -5611,6 +5658,12 @@ namespace part_draw_mesh
 		return 0;
 	}
 
+	// exported for the clone-specific handlers (byte clones of these helpers exist in the clones)
+	void h_B27000() { part_draw_mesh::SetupParentXform(); }
+	void h_B27130() { part_draw_mesh::SetupParentXformScaledAtOrigin(); }
+	void h_B27360(const void *pos, const void *angles, int32_t scale, int32_t order) { part_draw_mesh::SetupBillboardXform(pos, angles, scale, order); }
+	void h_B27440(const int16_t *clipArg) { part_draw_mesh::DrawMeshObject(clipArg); }
+
 	void fill_draw_mesh(Generic &g)
 	{
 		g.draw[1] = part_draw_mesh::dh_01_MeshAtBonePos;
@@ -6230,6 +6283,8 @@ namespace part_draw_prim
 		PTR(ws, 0x60) = pkt;
 	}
 }
+
+	void h_B29450(int32_t c) { part_draw_prim::LightColourSetup(c); }
 
 	void fill_draw_prim(Generic &g)
 	{
@@ -7104,3 +7159,1632 @@ namespace part_draw_sprite
 	}
 }
 }
+
+// ==== BEGIN clone-shared handler parts (generated by integrate.py) ====
+// ============================================================================================
+// part shared_ribbon
+// ============================================================================================
+namespace ff8fx
+{
+namespace gfc
+{
+namespace part_shared_ribbon
+{
+	// ------------------------------------------------------------------------------------
+	// engine functions not wrapped by gfc_engine.h (pure GTE / math, no side effect outside
+	// the GTE register file and the given buffers)
+	// ------------------------------------------------------------------------------------
+	// 0x56BEC0 integer square root
+	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
+	// 0x56C850 RotTrans: LoadV0(v); MVMVA(R*V0+TR); IR1..3 -> out (3 x s16); FLAG -> *flag
+	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(v, out, flag); }
+	// 0x56C880 TransformWorldCoordinateToProjectedSpace (RotTransPers): LoadV0(v); RTPS;
+	// SXY2 -> *sxy; *p = interpolation value; *flag = FLAG; returns OTZ (SZ3 / 4)
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
+	// 0x45E150 set_dword_1CA8A30: GTE IR0 = v
+	static inline void xl_GteSetIR0(int32_t v) { x::f<void (__cdecl *)(int32_t)>(0x45E150)(v); }
+	// 0x45E0E0: IR1..3 = 3 x u8 (zero-extended) from src
+	static inline void xl_GteLoadRGB(const void *src) { x::f<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
+	// 0x45E9D0 GPF: MAC/IR = IR0 * IR
+	static inline void xl_GteGPF() { x::f<void (__cdecl *)()>(0x45E9D0)(); }
+	// 0x45E410: IR1..3 low bytes -> 3 x u8 at dst
+	static inline void xl_GteStoreRGB(void *dst) { x::f<void (__cdecl *)(void *)>(0x45E410)(dst); }
+	// blob 0xB66E50 look-at matrix (a -> b) into out; RETURNS 0 or -1 (-1 when the second
+	// angle lies in (0x400, 0xC00), i.e. the direction points "backwards"); the header wrapper
+	// blob::LookAt_B66E50 drops the return value, which this handler uses.
+	static inline int32_t xl_LookAt_B66E50(const void *a, const void *b, void *out) { return x::f<int32_t (__cdecl *)(const void *, const void *, void *)>(0xB66E50)(a, b, out); }
+
+	// engine block: 8 zero dwords at 0x27971E4 (the origin passed to the look-at)
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
+	// software GTE data register 19 (SZ3) of the emulated GTE (data file 0x1CA8A10 + 19*4)
+	static inline uint16_t &GTE_SZ3_W() { return MEM<uint16_t>(0x1CA8A5C); }
+	// software GTE data register 0 (VXY0, packed) - read / restored only for held frames
+	static inline uint32_t &GTE_VXY0() { return MEM<uint32_t>(0x1CA8A10); }
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1AF60 TurnToward(cur, target, rate): 12-bit angle `cur` turned toward `target` by at
+	// most `rate` the short way round; returns the new angle & 0xFFF (snaps onto target when
+	// the step would overshoot).
+	// ------------------------------------------------------------------------------------
+	static int32_t Ribbon_B1AF60_TurnToward(int32_t a, int32_t t, int32_t rate)
+	{
+		int32_t eax = a & 0xFFF;
+		int32_t ecx = t & 0xFFF;
+		int32_t edx = ecx;
+		if (eax > ecx) edx = ecx + 0x1000;
+		edx = edx - eax;
+		if (edx < 0x800)
+		{
+			eax = add32(eax, rate) & 0xFFF;
+			if (eax > ecx) ecx += 0x1000;
+			edx = ecx - eax;
+			if (edx < 0x800) return eax & 0xFFF;
+			eax = ecx;
+			return eax & 0xFFF;
+		}
+		eax = sub32(eax, rate) & 0xFFF;
+		if (eax > ecx) ecx += 0x1000;
+		edx = ecx - eax;
+		if (edx < 0x800) eax = ecx;
+		return eax & 0xFFF;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1AE60 SteerToward(target, prev, new) (homing mode): new.yaw (+6) = prev.yaw turned
+	// toward the XZ angle prev->target by the node's turn rate (bone+0x8E), new.pitch (+0xE)
+	// likewise with the YZ angle; ws+0xE0 = direction (sin yaw, sin pitch, cos yaw) (s16),
+	// ws+0xF0 = prev + direction. Returns the last sign-extended sine (unused by the caller).
+	// ------------------------------------------------------------------------------------
+	static int32_t Ribbon_B1AE60_SteerToward(const uint8_t *target, const uint8_t *prev, uint8_t *nw)
+	{
+		int32_t py = S16(prev, 2);                        // [ebp+0xC]
+		int32_t pz = S16(prev, 4);                        // edi
+		int32_t ty = S16(target, 2);                      // [ebp+8]
+		int32_t tx = S16(target, 0);                      // edx
+		int32_t px = S16(prev, 0);                        // ecx, [ebp-4]
+		int32_t tz = S16(target, 4);                      // ebx
+		int32_t yaw = blob::Blob_B66B30(px, pz, tx, tz);
+		U16(nw, 6) = (uint16_t)Ribbon_B1AF60_TurnToward(S16(prev, 6), yaw, S16(CUR(), 0x8E));
+		int32_t pitch = blob::Blob_B66B30(py, pz, ty, tz);
+		int32_t np = Ribbon_B1AF60_TurnToward(S16(prev, 0xE), pitch, S16(CUR(), 0x8E));
+		U16(nw, 0xE) = (uint16_t)np;
+		uint8_t *w = WS();
+		uint8_t *o = w + 0xF0;                            // esi
+		uint8_t *d = w + 0xE0;                            // ebx
+		int32_t s = x::Sin((int16_t)np);                  // movsx eax, ax
+		s = shl32(s, 12) >> 12;
+		U16(d, 2) = (uint16_t)s;
+		U16(o, 2) = (uint16_t)add32(py, s);
+		int32_t ny = S16(nw, 6);                          // [ebp+0x10]
+		int32_t c = x::Cos(ny);
+		c = shl32(c, 12) >> 12;
+		pz = add32(pz, c);
+		U16(d, 4) = (uint16_t)c;
+		U16(o, 4) = (uint16_t)pz;
+		s = x::Sin(ny);
+		s = shl32(s, 12) >> 12;
+		U16(d, 0) = (uint16_t)s;
+		U16(o, 0) = (uint16_t)add32(px, s);
+		return s;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1AFE0 FollowDelta(pos, prev, new) (follow mode): ws+0xF0 = pos (3 x s16), ws+0xE0 =
+	// pos - prev (s16); returns isqrt(|pos - prev|^2). The third argument is not read.
+	// ------------------------------------------------------------------------------------
+	static int32_t Ribbon_B1AFE0_FollowDelta(const uint8_t *pos, const uint8_t *prev)
+	{
+		int32_t pz = S16(prev, 4);                        // [ebp-4]
+		int32_t py = S16(prev, 2);                        // [ebp+0xC]
+		int32_t px = S16(prev, 0);                        // ebx, [ebp-8]
+		uint8_t *w = WS();
+		uint8_t *o = w + 0xF0;
+		uint8_t *d = w + 0xE0;
+		int32_t ax = S16(pos, 0), cx = S16(pos, 2), dx = S16(pos, 4);
+		U16(o, 0) = (uint16_t)ax;
+		U16(o, 2) = (uint16_t)cx;
+		U16(o, 4) = (uint16_t)dx;
+		U16(d, 0) = (uint16_t)sub32(ax, px);
+		U16(d, 2) = (uint16_t)sub32(cx, py);
+		U16(d, 4) = (uint16_t)sub32(dx, pz);
+		int32_t ez = sub32(dx, pz), ey = sub32(cx, py), ex = sub32(ax, px);
+		int32_t sq = add32(add32(mul32(ez, ez), mul32(ey, ey)), mul32(ex, ex));
+		return xl_ISqrt(sq);
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1B080 BuildCrossSection(w, depth, pts, flip): the 9 points of a ring entry, each
+	// RotTrans'ed (current GTE R/TR) from a local offset held in ws+0xF0: (0,0,-d), (+-w1,0,-d),
+	// (+-3*w1/8,0,-d), (0,+-w1,-d), (0,+-3*w1/8,-d), with w1 = flip ? -w : w. The entry's pad
+	// words +6 / +0xE (yaw / pitch) are saved and put back. GTE FLAG -> ws+0xFC.
+	// ------------------------------------------------------------------------------------
+	static void Ribbon_B1B080_BuildCrossSection(int32_t w, int32_t dep, uint8_t *pts, int32_t flip)
+	{
+		uint8_t *v = WS() + 0xF0;                         // esi
+		int32_t ebx = w;
+		uint16_t save6 = U16(pts, 6);                     // [ebp-4]
+		uint16_t saveE = U16(pts, 0xE);                   // [ebp-8]
+		if (flip != 0) ebx = sub32(0, ebx);               // not / inc
+		int32_t wfl = ebx;                                // [ebp+8]
+		int32_t nd = sub32(0, dep);                       // [ebp+0x10]
+		U16(v, 0) = 0;
+		U16(v, 2) = 0;
+		U16(v, 4) = (uint16_t)nd;
+		xl_RotTrans(v, pts, WS() + 0xFC);
+		U16(v, 0) = (uint16_t)ebx;
+		U16(v, 2) = 0;
+		U16(v, 4) = (uint16_t)nd;
+		xl_RotTrans(v, pts + 8, WS() + 0xFC);
+		int32_t nw = sub32(0, ebx);                       // [ebp+0x14]
+		U16(v, 0) = (uint16_t)nw;
+		xl_RotTrans(v, pts + 0x10, WS() + 0xFC);
+		int32_t t = shl32(mul32(ebx, 3), 9);
+		t = add32(t, (t >> 31) & 0xFFF);                  // cdq; and edx, 0xFFF; add
+		ebx = t >> 12;                                    // 3*w1/8 (toward zero)
+		U16(v, 0) = (uint16_t)ebx;
+		xl_RotTrans(v, pts + 0x18, WS() + 0xFC);
+		int32_t n38 = sub32(0, ebx);                      // [ebp+0xC]
+		U16(v, 0) = (uint16_t)n38;
+		xl_RotTrans(v, pts + 0x20, WS() + 0xFC);
+		U16(v, 0) = 0;
+		U16(v, 2) = (uint16_t)wfl;
+		U16(v, 4) = (uint16_t)nd;
+		xl_RotTrans(v, pts + 0x28, WS() + 0xFC);
+		U16(v, 2) = (uint16_t)nw;
+		xl_RotTrans(v, pts + 0x30, WS() + 0xFC);
+		U16(v, 2) = (uint16_t)ebx;
+		xl_RotTrans(v, pts + 0x38, WS() + 0xFC);
+		U16(v, 2) = (uint16_t)n38;
+		xl_RotTrans(v, pts + 0x40, WS() + 0xFC);
+		U16(pts, 6) = save6;
+		U16(pts, 0xE) = saveE;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1B220 BuildColourRamp(a, b, out, unused): per ribbon segment two colour words
+	// {inner, outer}: ws+0xE0 = (a & 0x2FFFFFF) | 0x38000000, ws+0xE4 = same of b;
+	// fade-in ws+0xF0 entries (GPF, IR0 = 0 .. step 0x1000/f0), full colour up to ws+0xF4,
+	// fade-out up to ws+0xF8 (IR0 0x1000 down), then ws+0xF8 entries of 0x3A000000 (black).
+	// Code byte 0x3A on every scaled word. GTE RGBC (data reg 6) = 0x3A000000.
+	// ------------------------------------------------------------------------------------
+	static void Ribbon_B1B220_BuildColourRamp(uint32_t a, uint32_t b, uint8_t *out, int32_t unused)
+	{
+		(void)unused;
+		x::GteWriteData((int32_t)0x3A000000, 6);
+		uint8_t *pa = WS() + 0xE0;                        // [ebp-4]
+		U32(pa, 0) = (a & 0x2FFFFFFu) | 0x38000000u;
+		uint8_t *pb = WS() + 0xE4;                        // [ebp-8]
+		U32(pb, 0) = (b & 0x2FFFFFFu) | 0x38000000u;
+		uint8_t *esi = out;
+		uint8_t *w = WS();                                // edi
+		int32_t n = S32(w, 0xF0);
+		if (n != 0)
+		{
+			int32_t step = 0x1000 / n;                    // [ebp+0x10]
+			int32_t ir0 = 0;                              // ebx
+			if (n > 0)
+			{
+				uint8_t *edi = esi + 4;
+				for (int32_t cnt = n; cnt != 0; cnt--)
+				{
+					xl_GteSetIR0(ir0);
+					xl_GteLoadRGB(pa);
+					xl_GteGPF();
+					xl_GteStoreRGB(esi);
+					U8(edi, -1) = 0x3A;
+					xl_GteSetIR0(ir0);
+					xl_GteLoadRGB(pb);
+					xl_GteGPF();
+					xl_GteStoreRGB(edi);
+					U8(edi, 3) = 0x3A;
+					esi += 8;
+					edi += 8;
+					ir0 = add32(ir0, step);
+				}
+				w = WS();
+			}
+		}
+		{
+			int32_t m = sub32(S32(w, 0xF4), S32(w, 0xF0));
+			uint32_t e4 = U32(w, 0xE4);
+			uint32_t e0 = U32(w, 0xE0);
+			if (m > 0)
+			{
+				for (; m != 0; m--)
+				{
+					U32(esi, 0) = e0;
+					U32(esi, 4) = e4;
+					esi += 8;
+				}
+				w = WS();
+			}
+		}
+		n = sub32(S32(w, 0xF8), S32(w, 0xF4));
+		if (n != 0)
+		{
+			int32_t step = 0x1000 / n;
+			int32_t ir0 = 0x1000;
+			if (n > 0)
+			{
+				uint8_t *edi = esi + 4;
+				for (int32_t cnt = n; cnt != 0; cnt--)
+				{
+					xl_GteSetIR0(ir0);
+					xl_GteLoadRGB(pa);
+					xl_GteGPF();
+					xl_GteStoreRGB(esi);
+					U8(edi, -1) = 0x3A;
+					xl_GteSetIR0(ir0);
+					xl_GteLoadRGB(pb);
+					xl_GteGPF();
+					xl_GteStoreRGB(edi);
+					U8(edi, 3) = 0x3A;
+					esi += 8;
+					edi += 8;
+					ir0 = sub32(ir0, step);
+				}
+				w = WS();
+			}
+		}
+		int32_t z = S32(w, 0xF8);
+		for (int32_t cnt = z; cnt > 0; cnt--)
+		{
+			U32(esi, 0) = 0x3A000000u;
+			U32(esi, 4) = 0x3A000000u;
+			esi += 8;
+		}
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1ADD0 SetupParentXformKeepV0: GTE R/TR = parent matrix (bone+0x9C); VZ0 = 0 (written
+	// twice), VXY0 is NOT written (vanilla quirk: it keeps whatever the last GTE user loaded;
+	// on an advancing tick the last cross-section point of B1B080 = (0, -3*w1/8)); TR =
+	// R * V0 + TR. Returns 0. (Not a byte clone of Ifrit's SetupParentXform 0xB27000, which
+	// loads V0 = bone outPos.)
+	// ------------------------------------------------------------------------------------
+	static int32_t Ribbon_B1ADD0_SetupParentXform()
+	{
+		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));
+		x::GteSetRotMatrix(m);
+		x::GteSetTransVector(m);
+		x::GteWriteData(0, 1);
+		x::GteWriteData(0, 1);
+		x::GteMVMVA_RotV0Tr();
+		x::Gte_45E580();
+		return 0;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1AE20 InsertQuad(depthSum, prim): OT slot = (((sum / 4) >> 2) & ~3) + rt+0x4C
+	// (sum = four u16 depths), SSIGPU_InsertPrimDepthKeys(slot, prim, 0, 0, 0, 0).
+	// ------------------------------------------------------------------------------------
+	static void Ribbon_B1AE20_InsertQuad(int32_t sum, void *prim)
+	{
+		int32_t e = add32(sum, (sum >> 31) & 3) >> 2;
+		e = e >> 2;
+		e = (int32_t)((uint32_t)e & 0xFFFFFFFCu);
+		e = add32(e, S32(RT(), 0x4C));
+		x::InsertPrimDepthKeys((uint32_t)e, prim, 0, 0, 0, 0);
+	}
+
+	// one ribbon quad (0x2C-byte gouraud packet with a tpage word): outer band (form A: black
+	// inner edge, colour-table outer words) between point pairs (a, b) of the previous (pp)
+	// and current (cc) entry projections; listing order of the writes kept
+	static uint8_t *QuadOuter(uint8_t *pkt, const uint8_t *col, const uint8_t *pp, const uint8_t *cc, int a, int b)
+	{
+		U8(pkt, 3) = 0xA;
+		U32(pkt, 8) = 0;
+		U32(pkt, 4) = U32(WS(), 0x64);
+		U32(pkt, 0xC) = U32(WS(), 0x60);
+		U32(pkt, 0x1C) = 0;
+		U32(pkt, 0x14) = U32(col, 4);
+		U32(pkt, 0x24) = U32(col, 0xC);
+		U32(pkt, 0x10) = U32(pp, a);
+		U32(pkt, 0x18) = U32(pp, b);
+		U32(pkt, 0x20) = U32(cc, a);
+		U32(pkt, 0x28) = U32(cc, b);
+		int32_t sum = (int32_t)U16(pp, a + 4) + (int32_t)U16(cc, a + 4) + (int32_t)U16(pp, b + 4) + (int32_t)U16(cc, b + 4);
+		Ribbon_B1AE20_InsertQuad(sum, pkt);
+		return pkt + 0x2C;
+	}
+	// inner band (form B): point a to the centre point 0, colour-table words on all four
+	static uint8_t *QuadInner(uint8_t *pkt, const uint8_t *col, const uint8_t *pp, const uint8_t *cc, int a)
+	{
+		U8(pkt, 3) = 0xA;
+		U32(pkt, 8) = 0;
+		U32(pkt, 4) = U32(WS(), 0x64);
+		U32(pkt, 0xC) = U32(col, 4);
+		U32(pkt, 0x14) = U32(col, 0);
+		U32(pkt, 0x1C) = U32(col, 0xC);
+		U32(pkt, 0x24) = U32(col, 8);
+		U32(pkt, 0x10) = U32(pp, a);
+		U32(pkt, 0x18) = U32(pp, 0);
+		U32(pkt, 0x20) = U32(cc, a);
+		U32(pkt, 0x28) = U32(cc, 0);
+		int32_t sum = (int32_t)U16(pp, a + 4) + (int32_t)U16(pp, 4) + (int32_t)U16(cc, 4) + (int32_t)U16(cc, a + 4);
+		Ribbon_B1AE20_InsertQuad(sum, pkt);
+		return pkt + 0x2C;
+	}
+
+	// ring entry idx (signed: vanilla idiv, a negative index reads before the ring)
+	static inline uint8_t *RingEntry(uint8_t *ring, int32_t idx) { return ring + mul32(idx, 72) + 0x20; }
+
+	// held frames: VXY0 the real tick had when it reached SetupParentXform (see B1ADD0), per node
+	static NodeMemo<uint32_t, 64> g_v0memo;
+	// held frames: the arena scratch above ctx+0x74 this handler writes (projections + colour table)
+	static uint8_t *g_hsave = nullptr;
+	static uint32_t g_hsave_cap = 0;
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1A130 (Draw 37 RibbonTrail) - Bahamut 0xB1A130 / Cerberus 0xB0D690 / Alexander
+	// 0xB01290 / Eden 0xAE8E20.
+	// First call (bone+0xBC == 0): allocate the ring (72*n + 32 bytes, arena) and seed entries
+	// 0 and 1 at the node position aimed at the target (not gated by boneSkipFlag).
+	// Later calls: bind target (ws+0x98) / colour (ws+0x9C) bones; unless frozen (rt+0x45):
+	//   outAngleX (bone+0x8C) < 0: tail retire (++T[7]; -2 = hold); returns without drawing once
+	//     the tail reaches the capacity;
+	//   else ++head, ++length (capped at n-1), new cross-section at the head: follow mode (flags
+	//     bit0) = section around the previous point moved to the node position; homing mode =
+	//     steered toward the target, the node's outPos (+0x94..) and accumPos (+0x5C..) are set
+	//     to it and bone+0x4A bit0 = (distance to target <= target bone+0x8E).
+	// Then (always) the draw: colour ramp, head projection, 8 gouraud quads per segment.
+	//
+	// Held frames (g_held, rt+0x45 forced to 0xFF): the frozen path runs, so the ring, the node
+	// position and bone+0x4A never advance: the ribbon drawn is the real tick's history
+	// (colour bone and parent matrix are the in-between values). Two held-only additions:
+	//   * VXY0 before SetupParentXform is set to the value the real tick had there (vanilla
+	//     leaves V0.xy of the previous GTE user in the translation; in a held draw that is
+	//     another handler's frozen-path value, which would shift the whole ribbon);
+	//   * the arena scratch above ctx+0x74 (outside the saved arena) written by the draw is
+	//     restored before returning.
+	// The first-draw path cannot run on a held frame (a node's first draw is on the tick that
+	// created it); if it did, everything it writes (arena, ctx+0x74, bone) is in the saved set.
+	// ------------------------------------------------------------------------------------
+	static void __cdecl dh_37_RibbonTrail()
+	{
+		uint8_t *cur = CUR();
+		uint8_t *ring = PTR(cur, 0xBC);                   // esi
+		uint8_t *edi;
+		if (ring == nullptr)
+		{
+			// ---- first draw: allocate + seed ----
+			uint8_t *prm = PTR(cur, 0xB8);                // ebx
+			uint32_t cap = U16(prm, 8);                   // si (esi was 0)
+			uint8_t *blk = blob::ArenaAlloc((int32_t)(cap * 9 * 8 + 0x20));
+			PTR(CUR(), 0xBC) = blk;
+			edi = PTR(CUR(), 0xBC);
+			U16(edi, 2) = (uint16_t)cap;
+			U16(edi, 0) = 1;
+			U16(edi, 4) = 1;
+			U16(edi, 8) = U16(prm, 0xE);
+			U16(edi, 0xA) = U16(prm, 0xA);
+			U16(edi, 0xC) = U16(prm, 0xC);
+			U16(edi, 0xE) = 0;
+			U16(edi, 0x10) = U16(prm, 0x10);
+			uint16_t tref = U16(prm, 0);
+			U16(edi, 6) = tref;
+			PTR(WS(), 0x98) = blob::GetBone(tref);
+			uint8_t *e0 = edi + 0x20;                     // esi
+			uint8_t *c = CUR();
+			int32_t x0 = S16(c, 0x94);                    // eax
+			int32_t y0 = S16(c, 0x96);                    // ecx, [ebp-8]
+			int32_t z0 = S16(c, 0x98);                    // edx, [ebp-4]
+			U16(e0, 0) = (uint16_t)x0;
+			U16(e0, 2) = (uint16_t)y0;
+			U16(e0, 4) = (uint16_t)z0;
+			int32_t ty, tz;                               // eax / ecx at 0xB1A282
+			if (U8(edi, 0x10) & 1)
+			{
+				uint8_t *b = CUR();
+				int32_t dx = S32(b, 0x74) >> 16;
+				int32_t dz = S32(b, 0x7C) >> 16;
+				int32_t yaw = blob::Blob_B66B30(x0, z0, add32(dx, x0), add32(dz, z0)) & 0xFFF;
+				U16(e0, 0x4E) = (uint16_t)yaw;
+				U16(e0, 6) = (uint16_t)yaw;
+				b = CUR();
+				ty = add32(S32(b, 0x78) >> 16, y0);
+				tz = S32(b, 0x7C) >> 16;
+			}
+			else
+			{
+				int32_t yaw = blob::Blob_B66B30(x0, z0, add32(S16(prm, 2), x0), add32(S16(prm, 6), z0)) & 0xFFF;
+				U16(e0, 0x4E) = (uint16_t)yaw;
+				U16(e0, 6) = (uint16_t)yaw;
+				ty = add32(S16(prm, 4), y0);
+				tz = S16(prm, 6);
+			}
+			tz = add32(tz, z0);
+			int32_t pr = blob::Blob_B66B30(y0, z0, ty, tz);
+			U16(e0, 0x56) = (uint16_t)(pr & 0xFFF);
+			U16(e0, 0xE) = (uint16_t)(pr & 0xFFF);
+			int32_t r = x::Sin(pr);
+			U16(WS(), 0xD2) = (uint16_t)(shl32(r, 12) >> 12);
+			int32_t yw = S16(e0, 6);                      // ebx
+			r = x::Cos(yw);
+			U16(WS(), 0xD4) = (uint16_t)(shl32(r, 12) >> 12);
+			r = x::Sin(yw);
+			U16(WS(), 0xD0) = (uint16_t)(shl32(r, 12) >> 12);
+			uint8_t *w = WS();
+			int32_t flip = xl_LookAt_B66E50(ZEROVEC(), w + 0xD0, w + 0xA0);   // ebx
+			x::SetRotMatrix(WS() + 0xA0);
+			int32_t sx = S16(e0, 0), sy = S16(e0, 2), sz = S16(e0, 4);
+			x::GteWriteCtrl(sx, 5);
+			x::GteWriteCtrl(sy, 6);
+			x::GteWriteCtrl(sz, 7);
+			Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), 0, e0, flip);
+			int32_t dep = (U8(edi, 0x10) & 1) ? 0 : S16(CUR(), 0x8C);
+			uint8_t *e1 = e0 + 0x48;                      // [ebp-8]
+			Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), dep, e1, flip);
+			PTR(WS(), 0x68) = e0;
+			PTR(WS(), 0x6C) = e1;
+			S32(WS(), 0x80) = U16(edi, 0);
+			S32(WS(), 0x78) = U16(edi, 4);
+			PTR(WS(), 0x9C) = blob::GetBone(U16(edi, 8));
+		}
+		else
+		{
+			PTR(WS(), 0x98) = blob::GetBone(U16(ring, 6));
+			PTR(WS(), 0x9C) = blob::GetBone(U16(ring, 8));
+			if (U8(RT(), 0x45) == 0)
+			{
+				int16_t ax = S16(CUR(), 0x8C);
+				if (ax < 0)
+				{
+					// ---- tail retire (-2 = hold the tail) ----
+					if (ax != -2)
+					{
+						U16(ring, 0xE) = (uint16_t)(U16(ring, 0xE) + 1);
+						if (U16(ring, 0xE) >= U16(ring, 2)) return;   // 0xB1A450 -> 0xB1ADBC
+					}
+					int32_t rr = (int32_t)U16(ring, 0) % (int32_t)U16(ring, 2);
+					PTR(WS(), 0x6C) = RingEntry(PTR(CUR(), 0xBC), rr);
+				}
+				else
+				{
+					// ---- advance: new head cross-section ----
+					U16(ring, 0) = (uint16_t)(U16(ring, 0) + 1);
+					int32_t len = (int32_t)U16(ring, 4) + 1;
+					if (len < (int32_t)U16(ring, 2)) U16(ring, 4) = (uint16_t)len;
+					edi = PTR(CUR(), 0xBC);
+					int32_t head = U16(edi, 0);               // ecx
+					S32(WS(), 0x80) = head;
+					int32_t cap = U16(edi, 2);                // esi
+					PTR(WS(), 0x6C) = RingEntry(edi, head % cap);
+					PTR(WS(), 0x68) = RingEntry(edi, sub32(head, 1) % cap);   // head 0 (u16 wrap) -> entry -1
+					S32(WS(), 0x78) = U16(edi, 4);
+					uint8_t *w = WS();
+					uint8_t *tgt = PTR(w, 0x98);              // ebx
+					uint8_t *prev = PTR(w, 0x68);             // ecx, [ebp-4]
+					uint8_t *nw = PTR(w, 0x6C);               // esi
+					if (U8(edi, 0x10) & 1)
+						S32(WS(), 0x94) = Ribbon_B1AFE0_FollowDelta(CUR() + 0x94, prev);
+					else
+						Ribbon_B1AE60_SteerToward(tgt + 0x94, prev, nw);
+					w = WS();
+					int32_t flip = xl_LookAt_B66E50(ZEROVEC(), w + 0xE0, w + 0xA0);   // [ebp-8]
+					x::SetRotMatrix(WS() + 0xA0);
+					int32_t py = S16(prev, 2), pz = S16(prev, 4), px = S16(prev, 0);
+					x::GteWriteCtrl(px, 5);
+					x::GteWriteCtrl(py, 6);
+					x::GteWriteCtrl(pz, 7);
+					if (U8(edi, 0x10) & 1)
+					{
+						// follow mode: section around the previous point, moved to the node
+						Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), S32(WS(), 0x94), nw, flip);
+						uint8_t *b = CUR();
+						int32_t dx = sub32(S16(b, 0x94), S16(nw, 0));
+						int32_t dy = sub32(S16(b, 0x96), S16(nw, 2));
+						int32_t dz = sub32(S16(b, 0x98), S16(nw, 4));
+						uint8_t *p = nw + 4;
+						for (int n = 9; n != 0; n--)
+						{
+							U16(p, -4) = (uint16_t)(U16(p, -4) + (uint16_t)dx);
+							U16(p, -2) = (uint16_t)(U16(p, -2) + (uint16_t)dy);
+							U16(p, 0) = (uint16_t)(U16(p, 0) + (uint16_t)dz);
+							p += 8;
+						}
+					}
+					else
+					{
+						// homing mode: the node moves with the head; arrived flag
+						Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), S16(CUR(), 0x8C), nw, flip);
+						int32_t nx = S16(nw, 0);
+						U16(CUR(), 0x94) = (uint16_t)nx;
+						S32(CUR(), 0x5C) = shl32(nx, 16);
+						int32_t ny = S16(nw, 2);
+						U16(CUR(), 0x96) = (uint16_t)ny;
+						S32(CUR(), 0x60) = shl32(ny, 16);
+						int32_t nz = S16(nw, 4);
+						U16(CUR(), 0x98) = (uint16_t)nz;
+						S32(CUR(), 0x64) = shl32(nz, 16);
+						int32_t ex = sub32(S16(tgt, 0x94), nx);
+						int32_t ey = sub32(S16(tgt, 0x96), ny);
+						int32_t ez = sub32(S16(tgt, 0x98), nz);
+						int32_t sq = add32(add32(mul32(ez, ez), mul32(ex, ex)), mul32(ey, ey));
+						int32_t dist = xl_ISqrt(sq);
+						int32_t rad = S16(tgt, 0x8E);
+						if (dist > rad) U16(CUR(), 0x4A) = (uint16_t)(U16(CUR(), 0x4A) & 0xFFFE);
+						else U8(CUR(), 0x4A) = (uint8_t)(U8(CUR(), 0x4A) | 1);
+					}
+				}
+			}
+		}
+
+		// ---- 0xB1A6ED: draw (reads only the ring) ----
+		uint8_t *c = CUR();
+		edi = PTR(c, 0xBC);                                // [ebp-0x10]
+		uint8_t *const rng = edi;
+		int32_t v90;
+		if (U8(edi, 0x10) & 1) v90 = shl32(S16(c, 0x8E), 4);
+		else v90 = shl32(S16(PTR(WS(), 0x98), 0x8C), 4);
+		S32(WS(), 0x90) = v90;
+		uint8_t *w = WS();
+		int32_t arg4 = S32(w, 0x90);                      // [ebp-0xC]
+		uint8_t *cb = PTR(w, 0x9C);
+		uint32_t colA = (uint32_t)(int32_t)S16(cb, 0x98) | 0x200u;
+		colA = (colA << 8) | (uint32_t)(int32_t)S16(cb, 0x96);
+		colA = (colA << 8) | (uint32_t)(int32_t)S16(cb, 0x94);
+		uint32_t colB = (uint32_t)(int32_t)S16(cb, 0x90) | 0x200u;
+		colB = (colB << 8) | (uint32_t)(int32_t)S16(cb, 0x8E);
+		colB = (colB << 8) | (uint32_t)(int32_t)S16(cb, 0x8C);
+		PTR(w, 0x84) = PTR(CTX(), 0x74) + 0x100;
+		S32(WS(), 0xF0) = U16(edi, 0xA);
+		S32(WS(), 0xF4) = U16(edi, 0xC);
+		S32(WS(), 0xF8) = U16(edi, 2);
+
+		// held: save the scratch above the arena top this draw writes (projection buffers
+		// [top, top+0xC6) and the colour table at top+0x100)
+		uint8_t *hs_p = nullptr;
+		uint32_t hs_n = 0;
+		if (g_held.active)
+		{
+			uint32_t f0 = U16(edi, 0xA), f4 = U16(edi, 0xC), f8 = U16(edi, 2);
+			uint32_t ents = f0 + (f4 > f0 ? f4 - f0 : 0) + (f8 > f4 ? f8 - f4 : 0) + f8;
+			hs_p = PTR(CTX(), 0x74);
+			hs_n = 0x100 + ents * 8;
+			if (hs_n > g_hsave_cap)
+			{
+				delete[] g_hsave;
+				g_hsave_cap = (hs_n + 0xFFF) & ~0xFFFu;
+				g_hsave = new uint8_t[g_hsave_cap];
+			}
+			memcpy(g_hsave, hs_p, hs_n);
+		}
+
+		Ribbon_B1B220_BuildColourRamp(colA, colB, PTR(WS(), 0x84), arg4);
+		if (!g_held.active)
+		{
+			uint32_t *m = g_v0memo.put(CUR());
+			if (m) *m = GTE_VXY0();
+		}
+		else
+		{
+			const uint32_t *m = g_v0memo.get(CUR());
+			if (m) GTE_VXY0() = *m;
+		}
+		Ribbon_B1ADD0_SetupParentXform();
+
+		// head entry projection into the arena scratch at ctx+0x74 (sxy, OTZ dword)
+		uint8_t *pkt = PTR(CTX(), 0x7C);                  // esi
+		{
+			int32_t rr = (int32_t)U16(edi, 0) % (int32_t)U16(edi, 2);
+			PTR(WS(), 0x6C) = RingEntry(PTR(CUR(), 0xBC), rr);
+			uint8_t *pt = PTR(WS(), 0x6C);                // [ebp-4]
+			uint8_t *out = PTR(CTX(), 0x74);              // ebx
+			for (int n = 9; n != 0; n--)
+			{
+				uint8_t *fl = WS() + 0xFC;
+				S32(out, 4) = xl_RotTransPers(pt, out, fl, fl);
+				out += 8;
+				pt += 8;
+			}
+		}
+		S32(WS(), 0x7C) = 0;
+		S32(WS(), 0x60) = (int32_t)((U32(CUR(), 0xCC) & 0x2000000u) | 0x38000000u);
+		S32(WS(), 0x64) = (int32_t)((uint32_t)(int32_t)S16(CUR(), 0x92) | 0xE1000000u);
+		S32(WS(), 0x88) = U16(edi, 4);
+		uint8_t *col = PTR(WS(), 0x84);                   // [ebp-4]
+		{
+			uint32_t tail = U16(edi, 0xE);
+			if (tail >= 1)
+			{
+				S32(WS(), 0x88) = sub32(S32(WS(), 0x88), (int32_t)tail);
+				col = col + tail * 8;
+			}
+		}
+		S32(WS(), 0x7C) = add32(S32(WS(), 0x7C), 1);
+		while (S32(WS(), 0x7C) <= S32(WS(), 0x88))
+		{
+			int32_t k = S32(WS(), 0x7C);
+			int32_t rr = sub32((int32_t)U16(rng, 0), k) % (int32_t)U16(rng, 2);
+			PTR(WS(), 0x68) = RingEntry(PTR(CUR(), 0xBC), rr);
+			uint8_t *ws = WS();
+			int32_t odd = S32(ws, 0x7C) & 1;
+			uint8_t *src = PTR(ws, 0x68);                 // ebx
+			uint8_t *base = PTR(CTX(), 0x74);
+			uint8_t *dst = base + (odd << 7);             // edi
+			if (odd == 0)
+			{
+				PTR(ws, 0x70) = base;
+				PTR(WS(), 0x74) = PTR(WS(), 0x70) + 0x80;
+			}
+			else
+			{
+				PTR(ws, 0x74) = base;
+				PTR(WS(), 0x70) = PTR(WS(), 0x74) + 0x80;
+			}
+			src += 2;
+			for (int n = 9; n != 0; n--)
+			{
+				uint32_t z = U16(src, 2);
+				uint32_t xx = U16(src, -2);
+				uint32_t y = U16(src, 0);
+				x::GteWriteData((int32_t)((y << 16) | xx), 0);
+				x::GteWriteData((int32_t)z, 1);
+				x::GteRTPS();
+				x::GteReadSXY2(dst);
+				U16(dst, 4) = GTE_SZ3_W();
+				dst += 8;
+				src += 8;
+			}
+			ws = WS();
+			const uint8_t *cc = PTR(ws, 0x70);            // current entry (edi)
+			const uint8_t *pp = PTR(ws, 0x74);            // previous entry (ebx)
+			pkt = QuadOuter(pkt, col, pp, cc, 0x08, 0x18);
+			pkt = QuadOuter(pkt, col, pp, cc, 0x10, 0x20);
+			pkt = QuadInner(pkt, col, pp, cc, 0x18);
+			pkt = QuadInner(pkt, col, pp, cc, 0x20);
+			pkt = QuadOuter(pkt, col, pp, cc, 0x28, 0x38);
+			pkt = QuadOuter(pkt, col, pp, cc, 0x30, 0x40);
+			pkt = QuadInner(pkt, col, pp, cc, 0x38);
+			pkt = QuadInner(pkt, col, pp, cc, 0x40);
+			col += 8;
+			S32(WS(), 0x7C) = add32(S32(WS(), 0x7C), 1);
+		}
+		PTR(CTX(), 0x7C) = pkt;
+
+		if (hs_n) memcpy(hs_p, g_hsave, hs_n);
+	}
+}
+	// installs the ports into a clone's tables (called after init_clone)
+	void apply_shared_ribbon(Clone &c)
+	{
+		c.draw[37] = part_shared_ribbon::dh_37_RibbonTrail;
+	}
+}
+}
+
+// ============================================================================================
+// part shared_misc
+// ============================================================================================
+namespace ff8fx
+{
+namespace gfc
+{
+namespace part_shared_misc
+{
+	// ------------------------------------------------------------------------------------
+	// local wrappers / constants
+	// ------------------------------------------------------------------------------------
+	// 0x45C7A0 SSIGPU_InsertPrimAutoDepth(ot, prim): links a packet (and bumps the depth-key
+	// cursor 0x1CA8828). Packet/OT side effect: nothing while predicting.
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { if (!g_predict) x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
+	// 0x45C9F0 SetDrawStp(p, pbw): GP0 0xE6 mask-bit packet (1 word + tag). Nothing while predicting.
+	static inline void xl_SetDrawStp(void *p, int32_t pbw) { if (!g_predict) x::f<void (__cdecl *)(void *, int32_t)>(0x45C9F0)(p, pbw); }
+	// 0x45C060 SetDrawMove(p, rect, x, y): GP0 0x80 VRAM-to-VRAM copy of rect to (x, y) (5 words +
+	// tag; an empty rect only clears the tag length). Nothing while predicting.
+	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { if (!g_predict) x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(0x45C060)(p, rect, xx, yy); }
+	// 0x505C00 QueueChainTransformation(entity, id): spawns a battle anim-seq task on the entity
+	// chain (battle entity + task state). Nothing while predicting.
+	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { if (!g_predict) x::f<void (__cdecl *)(void *, int32_t)>(0x505C00)(entity, id); }
+	// 0x501FF0 compare_com_127: lowest-address entity of the circular chain entity+0x8C (pure read)
+	static inline uint8_t *xl_ChainMinEntity(void *entity) { return x::f<uint8_t *(__cdecl *)(void *)>(0x501FF0)(entity); }
+	// 0xB65D10 (shared blob) OffscreenStageRender(desc, pos, angles): renders the battle stage
+	// model into the desc's private OT/packet block and EXECUTES that OT immediately (GPU work,
+	// battle model pose rebuild 0x1D989D0). Nothing while predicting; returns 0.
+	static inline int32_t xl_OffscreenStageRender(void *desc, const void *pos, const void *angles)
+	{
+		if (g_predict) return 0;
+		return x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(0xB65D10)(desc, pos, angles);
+	}
+
+	// battle display globals (shared engine data): u8 display parity, display/draw env array
+	// (92 bytes per buffer)
+	static const uint32_t DISP_PARITY_1D96A80 = 0x1D96A80;
+	static const uint32_t DISP_ENV_1D969C8 = 0x1D969C8;
+	// battle entity array base (0x9C bytes per entity), used by VM 0x0CF to turn an entity
+	// pointer into a slot
+	static const uint32_t BATTLE_ENTITIES_1D972C0 = 0x1D972C0;
+
+	// fild qword [u16 zero-extended DEPTHARR[off >> 3]]; fmul dword [0x1877DA8]; call __ftol
+	static inline int32_t DepthKey(uint32_t off)
+	{
+		uint32_t v = DEPTHARR()[off >> 3] & 0xFFFF;
+		return (int32_t)(int64_t)((double)v * (double)FLT_1877DA8());
+	}
+
+	// NCLIP of three screen vertices (GTE SXY0..2 = data regs 12..14), MAC0 (reg 24)
+	static inline int32_t Nclip(uint32_t s0, uint32_t s1, uint32_t s2)
+	{
+		int32_t mac0;
+		x::GteWriteData((int32_t)s0, 12);
+		x::GteWriteData((int32_t)s1, 13);
+		x::GteWriteData((int32_t)s2, 14);
+		x::GteNCLIP();
+		x::GteReadData(&mac0, 24);
+		return mac0;
+	}
+
+	// cdq; and edx, 2^n - 1; add eax, edx; sar eax, n  (signed division rounding toward zero)
+	static inline int32_t SDivPow2(int32_t v, int n)
+	{
+		return add32(v, (int32_t)((uint32_t)(v >> 31) & ((1u << n) - 1))) >> n;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB58FA0 (Draw 16 ScrollTextureU, Leviathan; = Bahamut 0xB198C0): horizontal scroll of a
+	// texture inside its VRAM rectangle. bone+0xB8 -> {s16 alt texture id, s16 vram x, s16 vram
+	// y}; the row buffer (w*h*2 bytes) is allocated once in the arena (bone+0xBC); every row is
+	// rotated right by outPosX & (w-1) texels, then ONE upload of the whole rect (rect from the
+	// SceneHeader+0x43 ring). Draws no primitive.
+	// Held frames: returns at once (no VRAM upload, no rect ring slot, no arena allocation).
+	// ------------------------------------------------------------------------------------
+	static void __cdecl dh_16_ScrollTextureU()
+	{
+		if (g_held.active) return;
+		uint8_t *arg = PTR(CUR(), 0xB8);                         // edi
+		blob::ReadAltTexture(S16(arg, 0));                       // sets ws+0xF0..0xFC
+		U32(WS(), 0x64) = U32(WS(), 0xFC);                       // texel data
+		uint8_t *tex = PTR(WS(), 0xF0);                          // esi
+		if (U32(CUR(), 0xBC) == 0)
+		{
+			int32_t n = shl32(mul32(S16(tex, 6), S16(tex, 4)), 1);
+			uint8_t *b = blob::ArenaAlloc(n);
+			PTR(CUR(), 0xBC) = b;
+		}
+		U32(WS(), 0x60) = U32(CUR(), 0xBC);
+		{
+			uint8_t *w = WS();
+			U32(w, 0x80) = U32(w, 0x60);                         // upload source
+		}
+		PTR(WS(), 0x68) = blob::VramRectRing();
+		uint8_t *rect = PTR(WS(), 0x68);                         // eax
+		U16(rect, 0) = U16(arg, 2);
+		U16(rect, 2) = U16(arg, 4);
+		uint16_t wv = U16(tex, 4);
+		U16(rect, 4) = wv;
+		S32(WS(), 0x78) = (int16_t)wv;                           // width
+		int32_t wd = S32(WS(), 0x78);                            // ecx
+		uint16_t hv = U16(tex, 6);
+		U16(rect, 6) = hv;
+		S32(WS(), 0x7C) = (int16_t)hv;                           // rows left
+		int32_t mask = sub32(wd, 1);                             // eax
+		int32_t stride = add32(wd, wd);                          // ecx
+		S32(WS(), 0x6C) = mask;
+		S32(WS(), 0x70) = (int32_t)S16(CUR(), 0x94) & mask;      // scroll
+		S32(WS(), 0x84) = stride;
+		uint8_t *w = WS();
+		if (S32(w, 0x7C) > 0)
+		{
+			do
+			{
+				int32_t sc = S32(w, 0x70);                       // edi
+				uint8_t *src = PTR(w, 0x64);                     // ecx
+				uint8_t *dst = (uint8_t *)(U32(w, 0x60) + (uint32_t)sc * 2u);
+				int32_t k = sub32(S32(w, 0x78), sc);
+				if (k > 0)
+				{
+					do
+					{
+						U16(dst, 0) = U16(src, 0);
+						src += 2;
+						dst += 2;
+					} while (--k != 0);
+					w = WS();
+				}
+				k = S32(w, 0x70);
+				dst = PTR(w, 0x60);
+				if (k > 0)
+				{
+					do
+					{
+						U16(dst, 0) = U16(src, 0);
+						src += 2;
+						dst += 2;
+					} while (--k != 0);
+					w = WS();
+				}
+				int32_t st = S32(w, 0x84);
+				U32(w, 0x60) = U32(w, 0x60) + (uint32_t)st;
+				w = WS();
+				U32(w, 0x64) = U32(w, 0x64) + (uint32_t)st;
+				w = WS();
+				S32(w, 0x7C) = sub32(S32(w, 0x7C), 1);
+				w = WS();
+			} while (S32(w, 0x7C) > 0);
+		}
+		x::QueueVramUpload(PTR(w, 0x68), PTR(w, 0x80));
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB0EB60 (helper of Draw 26 and VM 0x096, Cerberus; = Eden): screen capture. Links into
+	// the OT bucket rt+0x4C+4: SetDrawStp(0), five DR_MOVE packets copying the displayed
+	// framebuffer (display env 0x1D969C8 + 92 * parity, rect {x, y, 0x40, 0xE0} at ws+0xF8,
+	// x += 0x40 per strip as a DWORD add) to VRAM (ws+0xF0 + 0x40 * i, ws+0xF4), SetDrawStp(1).
+	// Packets from ctx+0x7C. Returns 0.
+	// Predict (VM 0x096): the packet/OT calls are skipped by their wrappers (the cursor and the
+	// ws fields it writes are restored anyway).
+	// ------------------------------------------------------------------------------------
+	static int32_t CaptureScreenStrips()
+	{
+		uint32_t par = MEM<uint8_t>(DISP_PARITY_1D96A80);
+		uint8_t *pkt = PTR(CTX(), 0x7C);                                     // esi
+		uint32_t idx = par * 3u;
+		idx <<= 3;
+		idx -= par;                                                          // par * 23
+		uint8_t *env = (uint8_t *)(DISP_ENV_1D969C8 + idx * 4u);             // edi
+		xl_SetDrawStp(pkt, 0);
+		xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + 4, pkt);
+		uint8_t *w = WS();
+		U16(w, 0xF8) = U16(env, 0);
+		pkt += 0xC;
+		U16(w, 0xFA) = U16(env, 2);
+		U32(WS(), 0xFC) = 0xE00040;                                          // w 0x40, h 0xE0
+		w = WS();
+		int32_t yy = S32(w, 0xF4);                                           // [ebp-4]
+		int32_t xx = S32(w, 0xF0);                                           // edi
+		for (int k = 5; k != 0; k--)
+		{
+			xl_SetDrawMove(pkt, WS() + 0xF8, xx, yy);
+			xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + 4, pkt);
+			w = WS();
+			xx = add32(xx, 0x40);
+			pkt += 0x18;
+			U32(w, 0xF8) = U32(w, 0xF8) + 0x40;                              // dword add (x, carry into y)
+		}
+		xl_SetDrawStp(pkt, 1);
+		xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + 4, pkt);
+		pkt += 0xC;
+		PTR(CTX(), 0x7C) = pkt;
+		return 0;
+	}
+
+	// the bone whose draw 26 did the capture on the last real draw (its first call): the held
+	// frames that follow draw nothing for it (vanilla drew no strips on that tick)
+	static const void *g_cap_bone = nullptr;
+	static uint32_t g_cap_tick = 0xFFFFFFFF;
+
+	// ------------------------------------------------------------------------------------
+	// 0xB0E930 (Draw 26 ScreenCaptureStrips, Cerberus; = Eden 0xAEA0C0): bone+0xB8 -> {s16 vram x,
+	// s16 vram y} -> ws+0x90/0x94. First call (bone+0xC4 == 0): bone+0xC4 = -1, ws+0xF0/F4 =
+	// vram x/y, CaptureScreenStrips (5 DR_MOVE framebuffer -> VRAM). Later calls, only when the
+	// colour bone+0xCC has R == G == B: five semi-transparent flat quads (POLY_F4, code 0x2A |
+	// colour) 64 x 224 at (outPosX + 64 * i, outPosY) into rt+0x4C+8 (alt viewport), then a
+	// draw-mode packet (tpage 0, window {0, 0, 256, 256}); ws+0xF0/F4 = vram x/y. The tpage word
+	// computed into ws+0x80 (0xB0EA0B) is a dead store: SetDrawMode gets tpage 0.
+	// Held frames: never the one-shot capture (bone+0xC4 == 0 -> nothing), and nothing on the
+	// held frames that follow the real tick whose draw was the capture (vanilla drew no strips
+	// on that tick); otherwise the strips are redrawn (pure packets, in-between outPos/colour).
+	// ------------------------------------------------------------------------------------
+	static void __cdecl dh_26_ScreenCaptureStrips()
+	{
+		uint8_t *arg = PTR(CUR(), 0xB8);
+		S32(WS(), 0x90) = S16(arg, 0);
+		S32(WS(), 0x94) = S16(arg, 2);
+		uint8_t *b = CUR();                                                  // ecx
+		if (U32(b, 0xC4) == 0)
+		{
+			if (g_held.active) return;
+			U32(b, 0xC4) = 0xFFFFFFFF;
+			U32(WS(), 0xF0) = U32(WS(), 0x90);
+			U32(WS(), 0xF4) = U32(WS(), 0x94);
+			CaptureScreenStrips();
+			g_cap_bone = b;
+			g_cap_tick = g_real_tick;
+			return;
+		}
+		if (g_held.active)
+		{
+			if (g_cap_bone == b && g_cap_tick == g_real_tick) return;
+		}
+		else if (g_cap_bone == b)
+			g_cap_bone = nullptr;
+		uint32_t c = U32(b, 0xCC);                                           // esi
+		uint32_t t = (uint32_t)((int32_t)c >> 8);
+		if (((t ^ c) & 0xFF) != 0) return;                                   // R != G
+		if (((t ^ c) & 0xFF00) != 0) return;                                 // G != B
+		int32_t tp = S16(b, 0x92);                                           // ecx
+		uint8_t *pkt = PTR(CTX(), 0x7C);                                     // esi
+		uint8_t *w = WS();
+		int32_t di = 0;
+		int32_t v = (S32(w, 0x90) >> 2) & 0xF0;
+		v |= S32(w, 0x94) & 0x100;
+		v >>= 4;
+		v |= tp;
+		v |= 0x100;                                                          // or dh, 1
+		S32(w, 0x80) = v;                                                    // dead store
+		U32(WS(), 0x84) = U32(CUR(), 0xCC) | 0x2A000000;
+		S32(WS(), 0x60) = S16(CUR(), 0x94);
+		S32(WS(), 0x64) = S16(CUR(), 0x96);
+		for (int k = 5; k != 0; k--)
+		{
+			U8(pkt, 3) = 5;
+			U32(pkt, 4) = U32(WS(), 0x84);
+			uint16_t x0 = (uint16_t)(U16(WS(), 0x60) + (uint16_t)di);
+			U16(pkt, 0x10) = x0;
+			U16(pkt, 8) = x0;
+			uint16_t x1 = (uint16_t)((uint16_t)(U16(WS(), 0x60) + (uint16_t)di) + 0x40);
+			U16(pkt, 0x14) = x1;
+			U16(pkt, 0xC) = x1;
+			uint16_t y0 = U16(WS(), 0x64);
+			U16(pkt, 0xE) = y0;
+			U16(pkt, 0xA) = y0;
+			uint16_t y1 = (uint16_t)(U16(WS(), 0x64) + 0xE0);
+			U16(pkt, 0x16) = y1;
+			U16(pkt, 0x12) = y1;
+			x::InsertPrimAltViewport(U32(RT(), 0x4C) + 8, pkt);
+			di += 0x40;
+			pkt += 0x18;
+		}
+		int16_t rect[4];
+		rect[1] = 0;          // [ebp-6]
+		rect[0] = 0;          // [ebp-8]
+		rect[3] = 0x100;      // [ebp-2]
+		rect[2] = 0x100;      // [ebp-4]
+		x::SetDrawMode(pkt, 0, 0, 0, rect);
+		x::InsertPrimAltViewport(U32(RT(), 0x4C) + 8, pkt);
+		PTR(CTX(), 0x7C) = pkt + 0xC;
+		U32(WS(), 0xF0) = U32(WS(), 0x90);
+		U32(WS(), 0xF4) = U32(WS(), 0x94);
+	}
+
+	// per-block memo of the stars drawn by the last real draw of Draw 39 (held frames redraw
+	// exactly those)
+	struct StarMemo { const uint8_t *blk; uint32_t tick; uint8_t bits[0x1000]; };
+	static StarMemo g_star[4];
+	static uint8_t g_held_scr[0x8000 * 8];   // held frames: screen coordinates (vanilla: ctx+0x74)
+
+	static StarMemo *star_memo_put(const uint8_t *blk)
+	{
+		for (StarMemo &m : g_star)
+			if (m.blk == blk) { m.tick = g_real_tick; memset(m.bits, 0, sizeof(m.bits)); return &m; }
+		for (StarMemo &m : g_star)
+			if (m.tick != g_real_tick || m.blk == nullptr) { m.blk = blk; m.tick = g_real_tick; memset(m.bits, 0, sizeof(m.bits)); return &m; }
+		return nullptr;
+	}
+	static const StarMemo *star_memo_get(const uint8_t *blk)
+	{
+		for (const StarMemo &m : g_star)
+			if (m.blk == blk && m.tick == g_real_tick) return &m;
+		return nullptr;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB1E3F0 (Draw 39 Starfield, Bahamut; = Eden 0xAECD20). bone+0xB8 -> {s16 n, s16 range x,
+	// y, z, s16 colour jitter, s16 twinkle probability (/256)}. First call (bone+0xBC == 0):
+	// arena block {u16 counter, u16 n, n x 16-byte stars {s16 x, y, z, u16 flags (bit0 = twinkles),
+	// u32 packet colour word (0x68 | colour + jitter), u8 on timer, u8 off timer, pad}}, seeded with
+	// CRT rand (blob rand wrappers, 8 or 9 draws per star). Every call (NOT gated by boneSkipFlag):
+	// ++counter, stars projected through SetupParentXform (screen xy + OTZ/4 into the free arena at
+	// ctx+0x74), then one TILE_1-style dot packet (len 2: colour, xy) per visible star into
+	// bone+0xC0 ? rt+0x4C + (bone+0xC0 & 0x3FFC) : rt+0x4C + (OTZ & ~3); twinkling stars count
+	// their on/off timers down and redraw a timer with rand(0..0x40) at expiry (a star whose off
+	// timer expires turns on but is not drawn that tick).
+	// Held frames: bone+0xBC == 0 -> nothing (no allocation, no rand); else no ++counter, no timer,
+	// no rand: the stars the real tick drew (memo) are re-projected with the in-between parent
+	// matrix / outPos (screen coordinates in a private buffer) and redrawn.
+	// ------------------------------------------------------------------------------------
+	static void __cdecl dh_39_Starfield()
+	{
+		const bool held = g_held.active;
+		if (U32(CUR(), 0xBC) == 0)
+		{
+			if (held) return;
+			uint8_t *prm = PTR(CUR(), 0xB8);                                 // edi
+			int32_t n = S16(prm, 0);                                         // ebx, [ebp-8]
+			uint8_t *blk = blob::ArenaAlloc(add32(shl32(n, 4), 4));
+			PTR(CUR(), 0xBC) = blk;
+			uint8_t *s = PTR(CUR(), 0xBC);                                   // esi
+			U16(s, 2) = (uint16_t)n;
+			int32_t jit = S16(prm, 8);                                       // ebx
+			uint32_t col = U32(CUR(), 0xCC);
+			s += 4;
+			int32_t c0 = (int32_t)(col & 0xFF);                              // [ebp-0x14]
+			int32_t c2 = (int32_t)((col >> 16) & 0xFF);                      // [ebp-0x1C]
+			int32_t c1 = (int32_t)((col >> 8) & 0xFF);                       // [ebp-0x18]
+			int32_t rx = S16(prm, 2);                                        // [ebp-4]
+			int32_t ry = S16(prm, 4);                                        // [ebp-0xC]
+			int32_t rz = S16(prm, 6);                                        // [ebp-0x10]
+			S32(WS(), 0xF0) = S16(prm, 0xA);
+			if (n > 0)
+			{
+				int32_t k = n;
+				do
+				{
+					U16(s, 6) = 0;
+					U16(s, 0xC) = 0;
+					U16(s, 0) = (uint16_t)blob::Rand73(rx);
+					U16(s, 2) = (uint16_t)blob::Rand73(ry);
+					U16(s, 4) = (uint16_t)blob::Rand73(rz);
+					int32_t a = add32(blob::Rand73(jit), c0);                // edi
+					int32_t g = shl32(add32(blob::Rand73(jit), c1), 8);
+					a |= g;
+					int32_t bl = shl32(add32(blob::Rand73(jit), c2), 16);
+					U32(s, 8) = (uint32_t)(bl | a | 0x68000000);
+					int32_t r = blob::Rand74(0x100);
+					if (r < S32(WS(), 0xF0))
+					{
+						U8(s, 6) |= 1;
+						int32_t tt = blob::Rand73(0x40);
+						if (tt > 0) U8(s, 0xC) = (uint8_t)tt;
+						else U8(s, 0xD) = (uint8_t)~(uint8_t)tt;
+					}
+					s += 0x10;
+				} while (--k != 0);
+			}
+		}
+		uint8_t *blk = PTR(CUR(), 0xBC);                                     // ebx, [ebp-0x1C]
+		uint8_t *stars = blk + 4;                                            // edi
+		PTR(WS(), 0x60) = stars;
+		if (!held) U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);               // not gated in vanilla
+		uint32_t otw = U16(CUR(), 0xC0);
+		if (otw == 0)
+			U32(WS(), 0x64) = 0;
+		else
+			U32(WS(), 0x64) = (otw & 0x3FFC) + U32(RT(), 0x4C);
+		h_B27000();
+		int32_t n = S16(blk, 2);
+		uint8_t *scr0 = held ? g_held_scr : PTR(CTX(), 0x74);               // esi
+		if (held && n > 0x8000) n = 0x8000;
+		if (n > 0)
+		{
+			uint8_t *s = scr0;
+			uint8_t *v = stars;
+			int32_t k = n;
+			do
+			{
+				x::GteLoadV0(v);
+				x::GteRTPS();
+				x::GteReadSXY2(s);
+				x::GteReadOTZdiv4(s + 4);
+				v += 0x10;
+				s += 8;
+			} while (--k != 0);
+		}
+		uint8_t *sc = held ? g_held_scr : PTR(CTX(), 0x74);                 // [ebp-4]
+		uint8_t *pkt = PTR(CTX(), 0x7C);                                     // edi
+		uint8_t *e = PTR(WS(), 0x60);                                        // esi
+		n = S16(blk, 2);
+		if (held && n > 0x8000) n = 0x8000;
+		StarMemo *mp = held ? nullptr : star_memo_put(blk);
+		const StarMemo *mg = held ? star_memo_get(blk) : nullptr;
+		if (n > 0)
+		{
+			e += 0xC;
+			for (int32_t i = 0; i < n; i++)
+			{
+				bool draw;
+				if (held)
+				{
+					// the real tick's decision (fallback without memo: the timer state)
+					if (mg) draw = ((mg->bits[i >> 3] >> (i & 7)) & 1) != 0;
+					else draw = !(U8(e, -6) & 1) || U8(e, 0) != 0;
+				}
+				else if (U8(e, -6) & 1)
+				{
+					uint8_t al = U8(e, 0);
+					if (al == 0)
+					{
+						al = (uint8_t)(U8(e, 1) - 1);
+						U8(e, 1) = al;
+						if (al == 0)
+						{
+							int32_t r = blob::Rand74(0x40);
+							U8(e, 1) = 0;
+							U8(e, 0) = (uint8_t)r;
+						}
+						draw = false;
+					}
+					else
+					{
+						al--;
+						U8(e, 0) = al;
+						if (al == 0)
+						{
+							int32_t r = blob::Rand74(0x40);
+							U8(e, 0) = 0;
+							U8(e, 1) = (uint8_t)r;
+						}
+						draw = true;
+					}
+				}
+				else
+					draw = true;
+				if (draw)
+				{
+					U8(pkt, 3) = 2;
+					U32(pkt, 4) = U32(e, -4);
+					U32(pkt, 8) = U32(sc, 0);
+					uint32_t ot = U32(WS(), 0x64);
+					if (ot == 0) ot = (uint32_t)((int32_t)S16(sc, 4) & ~3) + U32(RT(), 0x4C);
+					xl_InsertPrimAutoDepth(ot, pkt);
+					pkt += 0xC;
+					if (mp && i < 0x8000) mp->bits[i >> 3] |= (uint8_t)(1u << (i & 7));
+				}
+				sc += 8;
+				e += 0x10;
+			}
+		}
+		PTR(CTX(), 0x7C) = pkt;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB105B0 (prim renderer 16, Cerberus; = Eden 0xAEC030): flat quad with a draw-mode word,
+	// colour tinted by the material colour (LightColourSetup(ws+0x84) + NCCS). Record 0xC: +0 u32
+	// colour, +4/+6/+8/+0xA u16 vertex offsets 0..3. Packet 0x20 (len 7): +4 ws+0x50 draw mode,
+	// +8 0, +0xC RGB (code 0x28 | ws+0x8C), +0x10/+0x14/+0x18/+0x1C SXY 0..3. Culled by NCLIP
+	// (v0, v1, v2) unless ws+0x90 & 0x10, skipped when any vertex has a clip bit (0x46 << 16).
+	// ------------------------------------------------------------------------------------
+	static void __cdecl pr_16_TintedF4()
+	{
+		h_B29450((int32_t)U32(WS(), 0x84));
+		uint8_t *ws = WS();                                  // [ebp-0x14]
+		int32_t count = S32(ws, 0x70);                       // [ebp-0x1C]
+		uint8_t *rec = PTR(ws, 0x6C);                        // [ebp-0x10]
+		uint8_t *pkt = PTR(ws, 0x60);                        // esi
+		uint32_t ot = U32(ws, 0x5C);                         // [ebp-0x28]
+		uint32_t nocull = U32(ws, 0x90) & 0x10;              // [ebp-0x20]
+		U32(ws, 0xF0) = 0;
+		do
+		{
+			uint8_t *vb = PTR(ws, 0x7C);
+			uint32_t o0 = U16(rec, 4);
+			uint32_t o2 = U16(rec, 8);
+			uint32_t o1 = U16(rec, 6);
+			uint32_t o3 = U16(rec, 0xA);
+			int32_t z0 = DepthKey(o0);
+			int32_t z1 = DepthKey(o1);
+			int32_t z2 = DepthKey(o2);
+			int32_t z3 = DepthKey(o3);
+			uint8_t *p2 = vb + o2;
+			uint8_t *p3 = vb + o3;
+			uint32_t s2 = U32(p2, 0);
+			uint32_t s1 = U32(vb + o1, 0);
+			uint8_t *p0 = vb + o0;
+			uint8_t *p1 = vb + o1;
+			uint32_t s3 = U32(p3, 0);
+			uint32_t s0 = U32(p0, 0);
+			U32(pkt, 0x1C) = s3;
+			U32(pkt, 0x14) = s1;
+			U32(pkt, 0x10) = s0;
+			U32(pkt, 0x18) = s2;
+			if (nocull == 0 && Nclip(s0, s1, s2) < 0) goto next;
+			{
+				uint32_t a0 = U32(p0, 4), a1 = U32(p1, 4), a2 = U32(p2, 4), a3 = U32(p3, 4);
+				if (((a3 | a2 | a1 | a0) >> 16) & 0x46) goto next;
+				uint32_t slot = (((a3 + a2 + a1 + a0) >> 2) & 0x3FFC) + ot;
+				U8(pkt, 3) = 7;
+				U32(pkt, 8) = 0;
+				x::GteWriteData((int32_t)(U32(ws, 0x8C) | U32(rec, 0) | 0x28000000), 6);
+				x::Gte_4601B0();
+				uint32_t mode = U32(ws, 0x50);
+				x::GteReadData2(0x16, pkt + 0xC);
+				U32(pkt, 4) = mode;
+				x::InsertPrimDepthKeys(slot, pkt, z0, z1, z2, z3);
+				pkt += 0x20;
+			}
+		next:
+			rec += 0xC;
+		} while (--count > 0);
+		PTR(ws, 0x60) = pkt;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB11340 (prim renderer 29, Cerberus; = Alexander 0xB053E0): Gouraud textured triangle
+	// with the record's raw colours (no GTE lighting). Record 0x1C: +0/+4/+8 u32 colour 0..2,
+	// +0xC/+0xE/+0x10 u16 UV 0..2, +0x12/+0x14/+0x16 u16 vertex offsets, +0x18 u16 CLUT, +0x1A u16
+	// tpage. Packet 0x28 (len 9): +4/+0x10/+0x1C colour (code 0x34 on colour 0), +8/+0x14/+0x20
+	// SXY, +0xC/+0x18/+0x24 UV (no ws+0x98 offset), +0xE CLUT + ws+0x54, +0x1A tpage | ws+0x50
+	// (+0x26 not written). Skipped when the three vertices share a clip bit (u16 +6 AND), culled
+	// by NCLIP always; OT slot = ot + ((z0 + z1 + z2) / 3 & 0x3FFC) from the vertex +4 words.
+	// ------------------------------------------------------------------------------------
+	static void __cdecl pr_29_GT3()
+	{
+		uint8_t *ws = WS();                                  // [ebp-0x10]
+		int32_t count = S32(ws, 0x70);                       // [ebp-0x18]
+		uint8_t *pkt = PTR(ws, 0x60);                        // esi
+		uint32_t ot = U32(ws, 0x5C);                         // [ebp-0x30]
+		uint8_t *rec = PTR(ws, 0x6C);                        // edi
+		do
+		{
+			uint8_t *vb = PTR(ws, 0x7C);
+			uint32_t o0 = U16(rec, 0x12);
+			uint32_t o1 = U16(rec, 0x14);
+			uint32_t o2 = U16(rec, 0x16);
+			int32_t z0 = DepthKey(o0);
+			int32_t z1 = DepthKey(o1);
+			int32_t z2 = DepthKey(o2);
+			uint8_t *p2 = vb + o2;
+			uint8_t *p0 = vb + o0;
+			uint8_t *p1 = vb + o1;
+			if (U16(p0, 6) & (uint16_t)(U16(p2, 6) & U16(p1, 6))) goto next;
+			{
+				uint32_t s0 = U32(p0, 0);
+				uint32_t s1 = U32(p1, 0);
+				uint32_t s2 = U32(p2, 0);
+				U32(pkt, 8) = s0;
+				U32(pkt, 0x14) = s1;
+				U32(pkt, 0x20) = s2;
+				if (Nclip(s0, s1, s2) < 0) goto next;
+				int32_t sum = (int32_t)(U16(p2, 4) + U16(p1, 4) + U16(p0, 4));
+				int32_t hi = (int32_t)(((int64_t)sum * (int64_t)0x55555556) >> 32);
+				U8(pkt, 3) = 9;
+				int32_t sgn = sum >> 31;
+				uint32_t tp = U32(ws, 0x50) | U16(rec, 0x1A);
+				int32_t clut_add = S32(ws, 0x54);
+				U16(pkt, 0x1A) = (uint16_t)tp;
+				U16(pkt, 0xE) = (uint16_t)add32(U16(rec, 0x18), clut_add);
+				U16(pkt, 0xC) = U16(rec, 0xC);
+				U16(pkt, 0x18) = U16(rec, 0xE);
+				U16(pkt, 0x24) = U16(rec, 0x10);
+				U32(pkt, 0x10) = U32(rec, 4);
+				U32(pkt, 0x1C) = U32(rec, 8);
+				uint32_t key = (uint32_t)sub32(hi, sgn) & 0x3FFC;
+				U32(pkt, 4) = U32(rec, 0) | 0x34000000;
+				x::InsertPrimDepthKeys(ot + key, pkt, z0, z1, z2, 0);
+				pkt += 0x28;
+			}
+		next:
+			rec += 0x1C;
+		} while (--count > 0);
+		PTR(ws, 0x60) = pkt;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xAFA6E0 (VM 0x022 ApplyActionResultList, Brothers; = Eden 0xAEF450). Action = ctx+0xCC
+	// {+8 result records (0x18 bytes, +0 u8 slot), +0x10 s8 count}. sub = op >> 12:
+	//   1: SceneHeader+0x17A s8 m != 0 -> for i = m..1: ApplyActionResultToTarget(first record
+	//      whose slot == SceneHeader+0x173+i) (m < 0: nothing); m == 0 -> as "other";
+	//   8: ApplyActionResultToTargets(records, count);
+	//   other: ApplyActionResultToTarget(first record whose slot == bone+0x1B), if any.
+	// cursor += 2. (Ifrit's 0x022 tests (op & 0xF000) == 0x8000 only.)
+	// Predict: the battle calls are no-ops (x:: wrappers).
+	// ------------------------------------------------------------------------------------
+	static void __cdecl op_022_ApplyActionResultList()
+	{
+		uint8_t *act = PTR(CTX(), 0xCC);                     // ebx
+		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
+		uint8_t *rec = PTR(act, 8);                          // ecx
+		int32_t n = S8(act, 0x10);                           // esi
+		if (sub == 1)
+		{
+			uint8_t *sc = SCENE();
+			int32_t m = S8(sc, 0x17A);                       // edi
+			if (m != 0)
+			{
+				if (m > 0)
+				{
+					uint8_t *list = sc + 0x173;              // [ebp-4]
+					do
+					{
+						uint32_t slot = U8(list, m);         // [ebp-8]
+						uint8_t *r = PTR(act, 8);
+						int32_t k = n;
+						if (k > 0)
+						{
+							do
+							{
+								if (slot == U8(r, 0))
+								{
+									x::ApplyActionResultToTarget((int32_t)r);
+									break;
+								}
+								r += 0x18;
+								k--;
+							} while (k > 0);
+						}
+						m--;
+					} while (m > 0);
+				}
+				STREAM() += 2;
+				return;
+			}
+		}
+		else if (sub == 8)
+		{
+			x::ApplyActionResultToTargets((int32_t)rec, n);
+			STREAM() += 2;
+			return;
+		}
+		uint32_t slot = U8(CUR(), 0x1B);
+		if (n > 0)
+		{
+			do
+			{
+				if (slot == U8(rec, 0))
+				{
+					x::ApplyActionResultToTarget((int32_t)rec);
+					STREAM() += 2;
+					return;
+				}
+				rec += 0x18;
+				n--;
+			} while (n > 0);
+		}
+		STREAM() += 2;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB24BB0 (VM 0x042 EntityChainAnim, Bahamut; = Brothers 0xAFEF60). Entity = SceneHeader+
+	// 0x60[bone+0x1B]. sub = op >> 9: 0 -> QueueChainTransformation(entity, s16 w1), cursor += 4;
+	// 2 -> entity+0x72 != entity+0x73 ? cursor += 4 : cursor += s16 w1 (relative jump); other ->
+	// nothing (cursor unchanged, vanilla).
+	// Predict: QueueChainTransformation is a no-op.
+	// ------------------------------------------------------------------------------------
+	static void __cdecl op_042_EntityChainAnim()
+	{
+		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 9;
+		if (sub == 0)
+		{
+			int32_t id = S16(STREAM(), 2);
+			uint32_t slot = U8(CUR(), 0x1B);
+			uint8_t *e = PTR(SCENE(), 0x60 + (int32_t)slot * 4);
+			xl_QueueChainTransformation(e, id);
+			STREAM() += 4;
+		}
+		else if (sub == 2)
+		{
+			uint32_t slot = U8(CUR(), 0x1B);
+			uint8_t *e = PTR(SCENE(), 0x60 + (int32_t)slot * 4);
+			uint8_t a = U8(e, 0x72);
+			uint8_t b = U8(e, 0x73);
+			uint8_t *s = STREAM();
+			if (a != b)
+				STREAM() = s + 4;
+			else
+				STREAM() = s + S16(s, 2);
+		}
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB64090 (VM 0x05C AccumFromMeshVertex, Leviathan; = Brothers 0xAFEBF0 = Eden 0xAF3660):
+	// target bone b = bone ref w1 (CUR is switched to it, the caller's bone kept in ws+0x60).
+	//   op bit 15 set: M = RotMatrixOrder(p->outAngle, w3) (p = bone of b's parent id bone+0x9C)
+	//     scaled by b->outAngle << 4, translation = b->outPos through (M, p->outPos); v = vertex
+	//     w2 of b's mesh (bone+0xD8, vertices at +U32(+0x14), 8 bytes) through M -> ws+0xF0 (MAC),
+	//     ws+0xFC (FLAG); accum = ws+0xF0..0xF8 << 16; cursor += 8.
+	//   else: morph block bone+0xBC {s16 weight bone, s16 object A, s16 object B}: vertex w2 of A
+	//     and B, lerp by weight bone outPos / 256 per axis, scaled by b->outAngle (4.12, << 4),
+	//     plus parent(b)->outPos; accum = that << 16; cursor += 6.
+	// Then CUR = the caller's bone, its accumPos (+0x5C/60/64) = accum, and its bone handler
+	// (bone+0x18) runs.
+	// ------------------------------------------------------------------------------------
+	static void __cdecl op_05C_AccumFromMeshVertex()
+	{
+		PTR(WS(), 0x60) = CUR();
+		uint8_t *b = blob::GetBone(S16(STREAM(), 2));
+		CUR() = b;
+		int32_t ax, ay, az;                                  // ecx, edx, eax
+		uint8_t *next;                                       // edi
+		if (U8(RT(), 0x4B) & 0x80)
+		{
+			uint8_t *p = blob::GetBone(U16(b, 0x9C));        // edi
+			uint8_t *m = (uint8_t *)blob::RotMatrixOrder(p + 0x8C, S16(STREAM(), 6));   // esi
+			S32(WS(), 0x80) = shl32(S16(CUR(), 0x8C), 4);
+			S32(WS(), 0x84) = shl32(S16(CUR(), 0x8E), 4);
+			S32(WS(), 0x88) = shl32(S16(CUR(), 0x90), 4);
+			x::ScaleMatrix(m, WS() + 0x80);
+			uint8_t *t = m + 0x14;                           // ebx
+			S32(t, 0) = S16(p, 0x94);
+			S32(m, 0x18) = S16(p, 0x96);
+			S32(m, 0x1C) = S16(p, 0x98);
+			x::SetRotMatrix(m);
+			x::SetTransVector(m);
+			x::TransformToCamera(CUR() + 0x94, t, WS() + 0x80);
+			x::SetTransVector(m);
+			uint8_t *mesh = PTR(CUR(), 0xD8);
+			uint8_t *w = WS();
+			int32_t vi = S16(STREAM(), 4);
+			uint8_t *v = (uint8_t *)(uint32_t)add32(add32((int32_t)U32(mesh, 0x14), shl32(vi, 3)), (int32_t)(uint32_t)mesh);
+			x::TransformToCamera(v, w + 0xF0, w + 0xFC);
+			w = WS();
+			next = STREAM();
+			ax = shl32(S32(w, 0xF0), 16);
+			ay = shl32(S32(w, 0xF4), 16);
+			az = shl32(S32(w, 0xF8), 16);
+			next += 8;
+		}
+		else
+		{
+			uint8_t *blk = PTR(b, 0xBC);                     // esi
+			uint8_t *wb = blob::GetBone(S16(blk, 0));        // edi
+			uint8_t *oa = blob::ObjectPtr(S16(blk, 2));      // ebx
+			uint8_t *ob = blob::ObjectPtr(S16(blk, 4));      // eax
+			uint8_t *vb = ob + U32(ob, 0x14);                // esi
+			int32_t off = shl32(S16(STREAM(), 4), 3);        // edx
+			uint8_t *va = oa + U32(oa, 0x14);                // ecx
+			vb += off;
+			int32_t a = S16(va + off, 0);                    // ebx
+			int32_t bv = S16(vb, 0);
+			va += off;
+			S32(WS(), 0xE0) = add32(SDivPow2(mul32(bv - a, S16(wb, 0x94)), 8), a);
+			a = S16(va, 2);
+			bv = S16(vb, 2);
+			S32(WS(), 0xE4) = add32(SDivPow2(mul32(bv - a, S16(wb, 0x96)), 8), a);
+			a = S16(va, 4);
+			bv = S16(vb, 4);
+			S32(WS(), 0xE8) = add32(SDivPow2(mul32(bv - a, S16(wb, 0x98)), 8), a);
+			{
+				uint8_t *w = WS();
+				S32(w, 0xE0) = SDivPow2(shl32(mul32(S16(CUR(), 0x8C), S32(w, 0xE0)), 4), 12);
+			}
+			{
+				uint8_t *w = WS();
+				S32(w, 0xE4) = SDivPow2(shl32(mul32(S16(CUR(), 0x8E), S32(w, 0xE4)), 4), 12);
+			}
+			{
+				uint8_t *w = WS();
+				S32(w, 0xE8) = SDivPow2(shl32(mul32(S16(CUR(), 0x90), S32(w, 0xE8)), 4), 12);
+			}
+			uint8_t *par = blob::GetBone(U16(CUR(), 0x9C));
+			uint8_t *w = WS();
+			ax = add32(S16(par, 0x94), S32(w, 0xE0));
+			ay = add32(S16(par, 0x96), S32(w, 0xE4));
+			az = add32(S16(par, 0x98), S32(w, 0xE8));
+			next = STREAM();
+			ax = shl32(ax, 16);
+			ay = shl32(ay, 16);
+			az = shl32(az, 16);
+			next += 6;
+		}
+		STREAM() = next;
+		uint8_t *sv = PTR(WS(), 0x60);
+		CUR() = sv;
+		S32(sv, 0x5C) = ax;
+		S32(CUR(), 0x60) = ay;
+		S32(CUR(), 0x64) = az;
+		C().bone[U8(CUR(), 0x18)]();
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB23AF0 (VM 0x090 OffscreenStageRender, Bahamut; = Brothers 0xAFDA00). Unless RenderCtx+0x30
+	// (u16) != 0: ws+0xD0..0xD6 = w1..w4 (off-screen rect), render descriptor at the arena top
+	// {+0 OT = top + 0xEC, +4 0, +8 packets = top + 0x10EC, +0xC size 0x5BEC, +0x14 arena top after
+	// the allocation}, bone+0xC4 = 0x5BEC, ArenaAlloc(0x5BEC), then blob 0xB65D10(desc, outPos,
+	// outAngle) renders the battle stage into it and executes that OT. cursor += 10.
+	// (Ifrit's 0x090 is `cursor += 10`.)
+	// Predict: the descriptor words written above the arena top are guarded (ArenaAlloc journals
+	// the block only when it is called, after these writes); the render is a no-op.
+	// ------------------------------------------------------------------------------------
+	static void __cdecl op_090_OffscreenStageRender()
+	{
+		if (U16(RCTX(), 0x30) != 0)
+		{
+			STREAM() += 0xA;
+			return;
+		}
+		U16(WS(), 0xD0) = U16(STREAM(), 2);
+		U16(WS(), 0xD2) = U16(STREAM(), 4);
+		U16(WS(), 0xD4) = U16(STREAM(), 6);
+		U16(WS(), 0xD6) = U16(STREAM(), 8);
+		uint8_t *d = PTR(CTX(), 0x74);                       // esi
+		guard(d, 0x18);
+		U32(d, 0) = 0;
+		U32(d, 4) = 0;
+		U32(d, 0) = U32(CTX(), 0x74) + 0xEC;
+		uint32_t sz = 0x5BEC;
+		uint32_t pk = U32(CTX(), 0x74);
+		U32(d, 0xC) = sz;
+		U32(d, 8) = pk + 0x10EC;
+		U32(CUR(), 0xC4) = sz;
+		blob::ArenaAlloc(S32(d, 0xC));
+		U32(d, 0x14) = U32(CTX(), 0x74);
+		uint8_t *b = CUR();
+		xl_OffscreenStageRender(d, b + 0x94, b + 0x8C);
+		STREAM() += 0xA;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xB16F60 (VM 0x096 CaptureScreenStrips, Cerberus; = Eden 0xAF2760): ws+0xF0/F4 = s16 w1/w2
+	// (VRAM destination), CaptureScreenStrips (0xB0EB60). cursor += 6.
+	// Predict: the capture's packet/OT calls are no-ops (wrappers).
+	// ------------------------------------------------------------------------------------
+	static void __cdecl op_096_CaptureScreenStrips()
+	{
+		S32(WS(), 0xF0) = S16(STREAM(), 2);
+		S32(WS(), 0xF4) = S16(STREAM(), 4);
+		CaptureScreenStrips();
+		STREAM() += 6;
+	}
+
+	// ------------------------------------------------------------------------------------
+	// 0xAFCBE0 (VM 0x0CF TargetListFromChain, Brothers; = Eden 0xAF1830). Entity e =
+	// SceneHeader+0x60[bone+0x1B]; if e+0x8C (chain link) == 0: SceneHeader+0x17A = 0, cursor += 2.
+	// sub = op >> 12: 0 -> SceneHeader+0x174 = bone slot, +0x17A = 1; 1 -> +0x17A = +0x41 (s8
+	// count m), +0x173+i = +0x47+i for i = m..1; other -> nothing (cursor unchanged, vanilla).
+	// Then the bone's slot = SceneHeader+0x48 = (lowest entity of e's chain - 0x1D972C0) / 0x9C
+	// (magic 0xA41A41A5 sequence), SceneHeader+0x41 = 1, cursor += 2.
+	// ------------------------------------------------------------------------------------
+	static void __cdecl op_0CF_TargetListFromChain()
+	{
+		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
+		uint8_t *e;
+		if (sub == 0)
+		{
+			uint8_t slot = U8(CUR(), 0x1B);
+			uint8_t *sc = SCENE();                           // edx
+			e = PTR(sc, 0x60 + (int32_t)slot * 4);           // ecx
+			if (U32(e, 0x8C) == 0)
+			{
+				U8(sc, 0x17A) = 0;
+				STREAM() += 2;
+				return;
+			}
+			U8(sc, 0x174) = slot;
+			U8(SCENE(), 0x17A) = 1;
+		}
+		else if (sub == 1)
+		{
+			uint32_t slot = U8(CUR(), 0x1B);
+			uint8_t *sc = SCENE();                           // eax
+			e = PTR(sc, 0x60 + (int32_t)slot * 4);           // esi
+			if (U32(e, 0x8C) == 0)
+			{
+				U8(sc, 0x17A) = 0;
+				STREAM() += 2;
+				return;
+			}
+			U8(sc, 0x17A) = U8(sc, 0x41);
+			sc = SCENE();
+			int32_t k = S8(sc, 0x17A);
+			if (k > 0)
+			{
+				for (;;)
+				{
+					U8(sc, k + 0x173) = U8(sc, k + 0x47);
+					k--;
+					if (k <= 0) break;
+					sc = SCENE();
+				}
+			}
+		}
+		else
+			return;
+		uint8_t *r = xl_ChainMinEntity(e);
+		uint32_t d = (uint32_t)r - BATTLE_ENTITIES_1D972C0;                 // ecx
+		uint32_t hi = (uint32_t)(((uint64_t)d * 0xA41A41A5ull) >> 32);      // edx
+		uint32_t q = (((d - hi) >> 1) + hi) >> 7;
+		U8(CUR(), 0x1B) = (uint8_t)q;
+		U8(SCENE(), 0x48) = (uint8_t)q;
+		U8(SCENE(), 0x41) = 1;
+		STREAM() += 2;
+	}
+}
+
+	// installs the ports into a clone's tables (called after init_clone): only the slots whose
+	// original code is real (not a `ret` stub); VM 0x022 / 0x090 also exist in Ifrit's form in
+	// every clone, so they are replaced only in the clones that carry this variant
+	void apply_shared_misc(Clone &c)
+	{
+		auto live = [](uint32_t slot) -> bool
+		{
+			uint32_t orig = *(const uint32_t *)slot;
+			return orig >= 0x401000 && orig < 0xC00000 && *(const uint8_t *)orig != 0xC3;
+		};
+		if (live(c.draw_table + 4 * 16)) c.draw[16] = part_shared_misc::dh_16_ScrollTextureU;         // Leviathan 0xB58FA0, Bahamut 0xB198C0
+		if (live(c.draw_table + 4 * 26)) c.draw[26] = part_shared_misc::dh_26_ScreenCaptureStrips;    // Cerberus 0xB0E930, Eden 0xAEA0C0
+		if (live(c.draw_table + 4 * 39)) c.draw[39] = part_shared_misc::dh_39_Starfield;              // Bahamut 0xB1E3F0, Eden 0xAECD20
+		if (live(c.prim_table + 4 * 16)) c.prim[16] = part_shared_misc::pr_16_TintedF4;               // Cerberus 0xB105B0, Eden 0xAEC030
+		if (live(c.prim_table + 4 * 29)) c.prim[29] = part_shared_misc::pr_29_GT3;                    // Cerberus 0xB11340, Alexander 0xB053E0
+		if (live(c.vm_table + 4 * 0x042)) c.vm[0x042] = part_shared_misc::op_042_EntityChainAnim;     // Bahamut 0xB24BB0, Brothers 0xAFEF60
+		if (live(c.vm_table + 4 * 0x05C)) c.vm[0x05C] = part_shared_misc::op_05C_AccumFromMeshVertex; // Leviathan 0xB64090, Brothers 0xAFEBF0, Eden 0xAF3660
+		if (live(c.vm_table + 4 * 0x096)) c.vm[0x096] = part_shared_misc::op_096_CaptureScreenStrips; // Cerberus 0xB16F60, Eden 0xAF2760
+		if (live(c.vm_table + 4 * 0x0CF)) c.vm[0x0CF] = part_shared_misc::op_0CF_TargetListFromChain; // Brothers 0xAFCBE0, Eden 0xAF1830
+		if ((c.effect_id == 205 || c.effect_id == 206) && live(c.vm_table + 4 * 0x022))
+			c.vm[0x022] = part_shared_misc::op_022_ApplyActionResultList;                           // Brothers 0xAFA6E0, Eden 0xAEF450
+		if ((c.effect_id == 202 || c.effect_id == 205) && live(c.vm_table + 4 * 0x090))
+			c.vm[0x090] = part_shared_misc::op_090_OffscreenStageRender;                            // Bahamut 0xB23AF0, Brothers 0xAFDA00
+	}
+}
+}
+// ==== END clone-shared handler parts ====

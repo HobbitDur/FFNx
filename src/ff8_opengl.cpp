@@ -5113,6 +5113,13 @@ static const ff8_bgate_la_module ff8_bgate_la_modules[] = {
 	{ 330, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalipoor)", ff8_bgate_la_streams_g327, 3 },
 	// GF cinematic engine family (engine state block 0x2796E00..0x2798C40)
 	{ 201, 0x2796E00, 0x2798C40, 0, 0, false, "Ifrit", ff8_bgate_la_streams_gfc, 4 },
+	// the six other compilations: same engine block, plus each clone's queue/file pointer statics below it
+	{ 6,   0x2796EF8, 0x2798C40, 0, 0, false, "Leviathan", ff8_bgate_la_streams_gfc, 4 },
+	{ 202, 0x2796DE0, 0x2798C40, 0, 0, false, "Bahamut", ff8_bgate_la_streams_gfc, 4 },
+	{ 203, 0x2796DA8, 0x2798C40, 0, 0, false, "Cerberus", ff8_bgate_la_streams_gfc, 4 },
+	{ 204, 0x2796D70, 0x2798C40, 0, 0, false, "Alexander", ff8_bgate_la_streams_gfc, 4 },
+	{ 205, 0x2796D30, 0x2798C40, 0, 0, false, "Brothers", ff8_bgate_la_streams_gfc, 4 },
+	{ 206, 0x2796CF8, 0x2798C40, 0, 0, false, "Eden", ff8_bgate_la_streams_gfc, 4 },
 };
 #define FF8_BGATE_LA_MODULES ((int)(sizeof(ff8_bgate_la_modules) / sizeof(ff8_bgate_la_modules[0])))
 
@@ -5469,6 +5476,14 @@ static ff8_bgate_fxv_site ff8_bgate_fxv_sites[] = {
 	{ 0x504270, 0, "Battle_504270", (void *)ff8_bgate_fxv_stub<22> },
 	{ 0x5099A0, 0, "Battle_5099A0", (void *)ff8_bgate_fxv_stub<23> },
 	{ 0x50A730, 0, "Battle_50A730", (void *)ff8_bgate_fxv_stub<24> },
+	// cinematic clones: off-screen model/stage renders (pose battle models, execute an OT),
+	// blit queue, streaming volume, screen feedback request (Eden draw 58)
+	{ 0xB65810, 0, "GfCinematic_RenderPartyModelsOffscreen", (void *)ff8_bgate_fxv_stub<25> },
+	{ 0xB65D10, 0, "GfCinematic_RenderBattleStageOffscreen", (void *)ff8_bgate_fxv_stub<26> },
+	{ 0xB65F30, 0, "GfCinematic_RenderBattleModelOffscreen", (void *)ff8_bgate_fxv_stub<27> },
+	{ 0x505EB0, 0, "QueueBlitCommand", (void *)ff8_bgate_fxv_stub<28> },
+	{ 0x46BD40, 0, "SdStreamingVolumeTranslation", (void *)ff8_bgate_fxv_stub<29> },
+	{ 0x47CF50, 0, "Battle_RequestScreenFeedback", (void *)ff8_bgate_fxv_stub<30> },
 };
 #define FXV_SITES ((int)(sizeof(ff8_bgate_fxv_sites) / sizeof(ff8_bgate_fxv_sites[0])))
 

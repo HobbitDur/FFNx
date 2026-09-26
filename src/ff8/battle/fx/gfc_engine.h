@@ -141,6 +141,8 @@ namespace gfc
 		                        // 0x2798219), passed to pre_LoadBattleFile by VM op 0x006
 		bool lit_dispatcher;    // BuildMatricesAndDraw loads the light sets (Ifrit, Leviathan)
 		int bone_count;         // BoneHandlerTable entries (Ifrit 18 = 13 handlers + data bytes; Eden 32)
+		uint8_t model_draw[4];  // draw handler ids besides 3 whose bone+0xBC block is an embedded
+		                        // battle model block (+0x14 -> skeleton), saved around held draws
 		// port tables (filled by init_clone). The five handler tables are sub-ranges of one
 		// memory block (bone_table .. draw_table) exactly like the original, so an index past
 		// one sub-table reads the next one as vanilla does; entries that are not code keep the
@@ -173,9 +175,25 @@ namespace gfc
 	// builds the port tables of c from its original tables: stub (C3) -> no-op, index listed in
 	// exceptions or without generic port -> original address, else generic port
 	void init_clone(Clone &c, const Exception *ex, int nex);
+	// the clones initialised so far (init_clone records them), by effect id; nullptr if none
+	Clone *find_clone(int effect_id);
 
 	// dispatch helpers (identical to the original indirect calls)
+#ifdef GFC_DEBUG_HOOK
+	// offline harness only: taint tracking of vanilla stack-garbage words (src == nullptr: dst
+	// receives an uninitialised stack word in vanilla; else dst is a copy of src)
+	extern void (*g_dbg_taint)(void *dst, const void *src, int n);
+#define GFC_TAINT(d, s, n) do { if (g_dbg_taint) g_dbg_taint((void *)(d), (const void *)(s), (n)); } while (0)
+#else
+#define GFC_TAINT(d, s, n) do { } while (0)
+#endif
+#ifdef GFC_DEBUG_HOOK
+	// offline harness only: called after every VM opcode / draw handler of a real tick
+	extern void (*g_dbg_hook)(int kind, uint32_t id);
+	inline void call_vm(uint32_t op) { C().vm[op & 0x1FF](); if (g_dbg_hook) g_dbg_hook(0, op & 0x1FF); }
+#else
 	inline void call_vm(uint32_t op) { C().vm[op & 0x1FF](); }
+#endif
 
 	// ------------------------------------------------------------------------------------
 	// engine entry points (gfc_engine.cpp)
@@ -361,6 +379,11 @@ namespace gfc
 	int32_t h_B2D460();                // vm_b: recompute bone+0x1A integrator flags
 	int32_t h_B2F8F0();                // core: InitBones
 	int32_t h_B2FC20();                // core: target/scene setup
+	void h_B27000();                   // draw_mesh: SetupParentXform (GTE R/TR = parent, TR = parent * outPos)
+	void h_B27130();                   // draw_mesh: SetupParentXformScaledAtOrigin
+	void h_B27360(const void *pos, const void *angles, int32_t scale, int32_t order); // draw_mesh: SetupBillboardXform
+	void h_B27440(const int16_t *clipArg); // draw_mesh: DrawMeshObject (the generic mesh renderer of CUR())
+	void h_B29450(int32_t c);          // draw_prim: light/colour setup of the tinted prim renderers
 
 	void fill_core(Generic &g);
 	void fill_vm_a(Generic &g);
@@ -370,5 +393,10 @@ namespace gfc
 	void fill_draw_mesh(Generic &g);
 	void fill_draw_prim(Generic &g);
 	void fill_draw_sprite(Generic &g);
+
+	// clone-specific handler sets shared by several clones (gfc_engine.cpp): install the ports into
+	// a clone's tables after init_clone
+	void apply_shared_ribbon(Clone &c);   // draw 37 ribbon trail (Bahamut, Cerberus, Alexander, Eden)
+	void apply_shared_misc(Clone &c);     // draw 16/26/39, prim 16/29, VM 0x022/0x042/0x05C/0x090/0x096/0x0CF
 }
 }
