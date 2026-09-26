@@ -238,6 +238,7 @@ namespace ff8fx
 	void register_mag278_carbuncle();
 	void register_mag325_diablos();
 	void register_mag185_shiva();
+	void register_mag338_moomba();
 	bool mag278_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 	bool mag140_held_camera(int num, int den, int16_t world[3], int16_t lookat[3]);
 }

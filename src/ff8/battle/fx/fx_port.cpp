@@ -133,5 +133,6 @@ namespace ff8fx
 		register_mag278_carbuncle();
 		register_mag325_diablos();
 		register_mag185_shiva();
+		register_mag338_moomba();
 	}
 }
