@@ -812,6 +812,17 @@ ff8_always_capture_input = false
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ff8_fps_limiter = 1
 
+# Battle at 60 FPS with the original battle speed
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Runs battles at 60 FPS like the PlayStation version ran its battle menu: the menu, cursor
+# and ATB gauges update every frame and the controller is read every frame,
+# so fast inputs (GF Boost, Renzokuken, Zell's Duel, quick menu navigation) are no longer lost.
+# The battle itself keeps its original speed and look: models, camera and effects still move
+# 15 times per second, and ATB, status timers and game time run at their original speed.
+# Requires ff8_fps_limiter >= 1. FF8 2000 / Steam English 1.2 only (ignored on other versions).
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ff8_battle_ui_60hz = false
+
 ## GAME INSTALLATION OPTIONS
 
 #[APP PATH]
