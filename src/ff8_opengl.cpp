@@ -2858,6 +2858,11 @@ static void ff8_bgate_cam_lookahead(ff8_bgate_cam_next_t &nx)
 // held frame of a natively ported effect that drives the camera: its exact in-between camera
 static bool ff8_bgate_fx_held_camera(int16_t world[3], int16_t lookat[3]);
 
+// Per-frame camera diagnostics during an effect (with ff8_battle_fx_held_check): which path set
+// the camera, the eye before/after the engine's update and the final one, the shake offsets.
+static struct { const char *path; int32_t pre[4], eng[4], fin[4]; bool valid; } ff8_bgate_camdbg = {};
+static uint32_t ff8_bgate_camdbg_lines = 0;
+
 int __cdecl ff8_bgate_updatecam_hook()
 {
 	int32_t *wxz = (int32_t *)0xB8B7F0, *wy = (int32_t *)0xB8B7F4;
@@ -2873,6 +2878,10 @@ int __cdecl ff8_bgate_updatecam_hook()
 	rereplace_function(ff8_bgate_updatecam_ri);
 
 	int32_t after[4] = { *wxz, *wy, *lxz, *ly };
+	memcpy(ff8_bgate_camdbg.pre, before, sizeof(before));
+	memcpy(ff8_bgate_camdbg.eng, after, sizeof(after));
+	ff8_bgate_camdbg.path = ff8_bgate_phase == 0 ? "real" : "none";
+	ff8_bgate_camdbg.valid = true;
 	if (ff8_bgate_phase == 0)
 	{
 		// real frame: snapshot the freshly-computed, fully-vanilla output
@@ -2887,6 +2896,7 @@ int __cdecl ff8_bgate_updatecam_hook()
 	{
 		// the engine moved the camera itself on this held frame (return snap, blend, cut):
 		// that value wins, and extrapolation restarts from it
+		ff8_bgate_camdbg.path = "engine";
 		ff8_bgate_cam_prev1.wxz = after[0]; ff8_bgate_cam_prev1.wy = after[1];
 		ff8_bgate_cam_prev1.lxz = after[2]; ff8_bgate_cam_prev1.ly = after[3];
 		ff8_bgate_cam_prev1.valid = true;
@@ -2895,6 +2905,7 @@ int __cdecl ff8_bgate_updatecam_hook()
 	else if (int16_t fw[3], fl[3]; ff8_bgate_fx_held_camera(fw, fl))
 	{
 		// a ported effect writes the camera: it knows the next tick's camera exactly
+		ff8_bgate_camdbg.path = "native";
 		memcpy(ff8_bgate_cam_true, after, sizeof(after));
 		int16_t *w16 = (int16_t *)0xB8B7F0, *l16 = (int16_t *)0xB8B7F8;
 		for (int i = 0; i < 3; i++) { w16[i] = fw[i]; l16[i] = fl[i]; }
@@ -2905,6 +2916,7 @@ int __cdecl ff8_bgate_updatecam_hook()
 	else if (nx.valid && memcmp(after, nx.cs + 20, sizeof(after)) == 0)
 	{
 		// a camera shot is playing (the output is the keyframe player's): exact midpoint
+		ff8_bgate_camdbg.path = "shot";
 		memcpy(ff8_bgate_cam_true, after, sizeof(after));
 		int16_t cur[8], mid[8];
 		memcpy(cur, nx.cs + 20, sizeof(cur));
@@ -2927,6 +2939,7 @@ int __cdecl ff8_bgate_updatecam_hook()
 	}
 	else if (ff8_bgate_cam_prev1.valid && ff8_bgate_cam_prev2.valid)
 	{
+		ff8_bgate_camdbg.path = "extrap";
 		memcpy(ff8_bgate_cam_true, after, sizeof(after));
 		*wxz = ff8_bgate_extrap_s16pair(ff8_bgate_cam_prev2.wxz, ff8_bgate_cam_prev1.wxz, ff8_bgate_phase, ff8_bgate_n);
 		*wy = ff8_bgate_extrap_i32(ff8_bgate_cam_prev2.wy, ff8_bgate_cam_prev1.wy, ff8_bgate_phase, ff8_bgate_n);
@@ -5672,6 +5685,17 @@ static int16_t ff8_bgate_shake_last[3] = {0, 0, 0};
 int __cdecl ff8_bgate_camops_hook()
 {
 	int16_t *s = (int16_t *)0x1D97710;
+	if (ff8_battle_fx_held_check && ff8_bgate_fxv_live && ff8_bgate_camdbg.valid && ff8_bgate_camdbg_lines < 1500)
+	{
+		const int16_t *e = (const int16_t *)0xB8B7F0, *pr = (const int16_t *)ff8_bgate_camdbg.pre, *en = (const int16_t *)ff8_bgate_camdbg.eng;
+		ff8_bgate_camdbg_lines++;
+		ffnx_info("30fps camdbg: f=%u ph=%d path=%s pre=%d,%d,%d/%d,%d,%d eng=%d,%d,%d/%d,%d,%d final=%d,%d,%d/%d,%d,%d shake=%d,%d,%d%s\n",
+			ff8_bgate_frame_no, ff8_bgate_phase, ff8_bgate_camdbg.path,
+			pr[0], pr[1], pr[2], pr[4], pr[5], pr[6], en[0], en[1], en[2], en[4], en[5], en[6],
+			e[0], e[1], e[2], e[4], e[5], e[6], s[0], s[1], s[2],
+			(ff8_bgate_phase != 0 && s[0] == 0 && s[1] == 0 && s[2] == 0) ? " (held: last real shake re-applied)" : "");
+	}
+	ff8_bgate_camdbg.valid = false;
 	if (ff8_bgate_phase == 0)
 		memcpy(ff8_bgate_shake_last, s, sizeof(ff8_bgate_shake_last));
 	else if (s[0] == 0 && s[1] == 0 && s[2] == 0)
