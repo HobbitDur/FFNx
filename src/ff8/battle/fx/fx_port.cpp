@@ -143,6 +143,7 @@ namespace ff8fx
 		register_mag108_berserk();
 		register_mag122_silence();
 		register_mag121_blind();
+		register_mag147_regen();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
