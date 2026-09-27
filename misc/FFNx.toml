@@ -795,6 +795,12 @@ ff8_battle_fx_native = true
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ff8_battle_fx_verify = true
 
+# Checks that every 30 fps in-between frame of a native battle effect leaves the effect's state
+# exactly as the real frame left it (logged as "30fps held check: ... LEAK"). Diagnostics only:
+# it changes nothing in the game. Costs some CPU time during effects.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ff8_battle_fx_held_check = false
+
 # FPS Limiter
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This flag will overwrite the internal FPS limiter of the game.

@@ -5365,11 +5365,74 @@ static int ff8_bgate_fxv_tick(void *queue, int (__cdecl *orig)(void *))
 	return ff8fx::verify_tick(queue, orig);
 }
 
+// Held-frame leak check (ff8_battle_fx_held_check, diagnostics only): a native held frame must
+// leave the running effect's state (module globals, extra cell, streams, magic buffer) exactly
+// as the real tick left it. The areas are copied before the held draw and compared after it;
+// the first differing byte of each area is logged. Nothing is restored: the game runs as usual.
+static const uint32_t FF8_BGATE_HC_MAX = 0x180000;
+static uint8_t *ff8_bgate_hc_buf = nullptr;
+struct ff8_bgate_hc_area { uint32_t addr, size; const char *name; };
+static ff8_bgate_hc_area ff8_bgate_hc_list[16];
+static int ff8_bgate_hc_n = 0;
+static uint32_t ff8_bgate_hc_checked = 0, ff8_bgate_hc_leaks = 0, ff8_bgate_hc_logged = 0;
+
+static void ff8_bgate_hc_before(int m)
+{
+	ff8_bgate_hc_n = 0;
+	if (!ff8_battle_fx_held_check || m < 0) return;
+	if (!ff8_bgate_hc_buf) ff8_bgate_hc_buf = (uint8_t *)malloc(FF8_BGATE_HC_MAX);
+	if (!ff8_bgate_hc_buf) return;
+	const ff8fx::mod::Module &g = ff8fx::mod::modules[m];
+	ff8_bgate_hc_list[ff8_bgate_hc_n++] = { g.data_lo, g.data_hi - g.data_lo, "module globals" };
+	if (g.extra) ff8_bgate_hc_list[ff8_bgate_hc_n++] = { g.extra, g.extra_size, "module extra" };
+	for (int i = 0; i < g.nstreams && ff8_bgate_hc_n < 15; i++)
+		ff8_bgate_hc_list[ff8_bgate_hc_n++] = { g.streams[i].addr, g.streams[i].size, "stream" };
+	ff8_bgate_hc_list[ff8_bgate_hc_n++] = { 0x20DFAB8, 0x100000, "magic buffer" };
+	uint32_t off = 0;
+	for (int i = 0; i < ff8_bgate_hc_n; i++)
+	{
+		if (off + ff8_bgate_hc_list[i].size > FF8_BGATE_HC_MAX) { ff8_bgate_hc_n = i; break; }
+		memcpy(ff8_bgate_hc_buf + off, (void *)ff8_bgate_hc_list[i].addr, ff8_bgate_hc_list[i].size);
+		off += ff8_bgate_hc_list[i].size;
+	}
+}
+
+static void ff8_bgate_hc_after(int m, uint32_t tick)
+{
+	if (!ff8_bgate_hc_n) return;
+	ff8_bgate_hc_checked++;
+	bool leaked = false;
+	uint32_t off = 0;
+	for (int i = 0; i < ff8_bgate_hc_n; i++)
+	{
+		const ff8_bgate_hc_area &a = ff8_bgate_hc_list[i];
+		const uint8_t *was = ff8_bgate_hc_buf + off, *now = (const uint8_t *)a.addr;
+		off += a.size;
+		if (!memcmp(was, now, a.size)) continue;
+		leaked = true;
+		uint32_t first = 0, n = 0;
+		for (uint32_t k = 0; k < a.size; k++)
+			if (was[k] != now[k]) { if (!n) first = k; n++; }
+		if (ff8_bgate_hc_logged < 16)
+		{
+			ff8_bgate_hc_logged++;
+			ffnx_error("30fps held check: %s tick %u LEAK in %s %08X+%X: %u bytes differ, first at %08X (was %02X now %02X)\n",
+				ff8fx::mod::modules[m].name, tick, a.name, a.addr, a.size, n, a.addr + first, was[first], now[first]);
+		}
+	}
+	if (leaked) ff8_bgate_hc_leaks++;
+	ff8_bgate_hc_n = 0;
+}
+
 static void ff8_bgate_fxv_summary(const char *name)
 {
 	if (!ff8_bgate_fxv_held_frames) return;
-	ffnx_info("30fps held: %s native held frames=%u\n", name, ff8_bgate_fxv_held_frames);
+	if (ff8_battle_fx_held_check)
+		ffnx_info("30fps held: %s native held frames=%u, checked=%u, frames with a leak=%u\n", name, ff8_bgate_fxv_held_frames, ff8_bgate_hc_checked, ff8_bgate_hc_leaks);
+	else
+		ffnx_info("30fps held: %s native held frames=%u\n", name, ff8_bgate_fxv_held_frames);
 	ff8_bgate_fxv_held_frames = 0;
+	ff8_bgate_hc_checked = ff8_bgate_hc_leaks = ff8_bgate_hc_logged = 0;
 }
 
 // Shared gate body for a recorded queue (ff8_bgate_R already selected): real frame =
@@ -5498,6 +5561,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			memcpy(gte_data, (void *)0x1CA8A10, sizeof(gte_data));
 			memcpy(gte_ctrl, (void *)0x1CA9210, sizeof(gte_ctrl));
 			uint32_t pool = *(uint32_t *)0x1D999C4;
+			ff8_bgate_hc_before(ff8_bgate_la_cur);
 			__try { ff8fx::held_draw(eid, ff8_bgate_phase, ff8_bgate_n); }
 			__except (ff8_bgate_gfc_fault_filter(GetExceptionInformation()))
 			{
@@ -5507,6 +5571,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			memcpy((void *)0x1CA8A10, gte_data, sizeof(gte_data));
 			memcpy((void *)0x1CA9210, gte_ctrl, sizeof(gte_ctrl));
 			ff8_bgate_fxv_held_frames++;
+			ff8_bgate_hc_after(ff8_bgate_la_cur, ff8_bgate_fx_sum.ticks);
 			return held_ret;
 		}
 	}

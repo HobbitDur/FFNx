@@ -173,6 +173,7 @@ extern bool ff8_use_gamepad_icons;
 extern bool ff8_always_capture_input;
 extern bool ff8_battle_fx_native;
 extern bool ff8_battle_fx_verify;
+extern bool ff8_battle_fx_held_check;
 extern long ff8_fps_limiter;
 extern std::string app_path;
 extern std::string data_drive;
