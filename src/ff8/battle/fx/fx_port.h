@@ -250,6 +250,10 @@ namespace ff8fx
 	void register_mag109_dispel();
 	void register_mag111_aura();
 	void register_mag118_aero();
+	void register_mag123_slow();
+	void register_mag119_stop();
+	void register_mag125_haste();
+	void register_mag115_float();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
