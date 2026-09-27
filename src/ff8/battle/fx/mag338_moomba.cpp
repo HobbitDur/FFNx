@@ -636,8 +636,8 @@ namespace m338
 			case 0: SpawnPrim(0x1376680, 0x137420C, cn->h1); Chain(); break;
 			case 3: SpawnPrim(0x1376688, 0x1372E60, cn->h1); Chain(); break;
 			case 6: SpawnPrim(0x1376690, 0x137420C, cn->h1); Chain(); break;
-			case 11: case 18: SpawnSparksAt(0x1376670); Chain(); break;
-			case 14: case 21: SpawnSparksAt(0x1376668); Chain(); break;
+			case 11: case 17: SpawnSparksAt(0x1376670); Chain(); break;
+			case 14: case 20: SpawnSparksAt(0x1376668); Chain(); break;
 			case 27: Chain(); SpawnBurst(0x1376660); break;
 			case 30: SpawnBurst(0x1376658); break;
 			case 33: SpawnBurst(0x1376660); break;

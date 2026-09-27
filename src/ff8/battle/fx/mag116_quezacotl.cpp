@@ -23,7 +23,6 @@
 // Module globals: 0x25216D8..0x25217D0 (gf_study/gf_global_ranges.md).
 
 #include "fx_port.h"
-#include "../../../log.h"
 
 #ifdef FF8_FX_HELD
 #include "mag116_quezacotl_held.h"
@@ -345,28 +344,6 @@ namespace q116
 		s->sy = (int16_t)(y - oy);
 	}
 
-	// TEMP verification: run the original edge routine (ORIG) on copies next to the port and
-	// log the inputs of the first disagreements (the tick harness only sees the final packets)
-	static int g_edge_logs = 0;
-	template<typename Seg, int BIAS, uint32_t ORIG>
-	static void SegEdgesV(Seg *s, const Seg *n, const int16_t *prev_dir, int16_t *dir)
-	{
-		if (ORIG == 0 || g_edge_logs >= 24) { SegEdges<Seg, BIAS>(s, n, prev_dir, dir); return; }
-		Seg in = *s, so = *s;
-		int16_t pin[2] = { prev_dir ? prev_dir[0] : (int16_t)0, prev_dir ? prev_dir[1] : (int16_t)0 };
-		int16_t dor[2] = { dir ? dir[0] : (int16_t)0, dir ? dir[1] : (int16_t)0 }, por[2] = { pin[0], pin[1] };
-		const int16_t *pa = prev_dir ? (prev_dir == dir ? dor : por) : nullptr;
-		fn<void (__cdecl *)(Seg *, const Seg *, const int16_t *, int16_t *)>(ORIG)(&so, n, pa, dir ? dor : nullptr);
-		SegEdges<Seg, BIAS>(s, n, prev_dir, dir);
-		if (memcmp(&so, s, sizeof(Seg)) != 0 || (dir && (dor[0] != dir[0] || dor[1] != dir[1])))
-		{
-			g_edge_logs++;
-			ffnx_info("fx q116 edges %08X: in s=(%d,%d otz %d w %d) n=(%d,%d otz %d w %d) prev=%s(%d,%d) | original (%d,%d)(%d,%d) otz %d dir (%d,%d) | port (%d,%d)(%d,%d) otz %d dir (%d,%d)\n",
-				ORIG, in.sx, in.sy, in.otz, in.width, n ? n->sx : 0, n ? n->sy : 0, n ? n->otz : 0, n ? n->width : 0, prev_dir ? "" : "none", pin[0], pin[1],
-				so.sx, so.sy, so.sx2, so.sy2, so.otz, dor[0], dor[1], s->sx, s->sy, s->sx2, s->sy2, s->otz, dir ? dir[0] : 0, dir ? dir[1] : 0);
-		}
-	}
-
 	// Edges of the whole chain, then one GP0 0x3E quad (gouraud, textured, semi-transparent)
 	// per segment pair, grey level = brightness / 16. Shared tail of 0x6C79A0 and 0x6C84C0.
 	// VANILLA UNINITIALISED READ: the draw functions keep the joint direction in a stack local
@@ -376,18 +353,18 @@ namespace q116
 	// same stack depth). The ports carry that value explicitly, one slot per draw function.
 	static int16_t g_dir_branch[2], g_dir_bolt[2], g_dir_arc[2];
 
-	template<typename Seg, int BIAS, uint32_t ORIG = 0>
+	template<typename Seg, int BIAS>
 	static void DrawRibbon(Seg *head, int count, int16_t *carry)
 	{
 		int16_t dir[2] = { carry[0], carry[1] };
-		SegEdgesV<Seg, BIAS, ORIG>(head, head->next, nullptr, dir);
+		SegEdges<Seg, BIAS>(head, head->next, nullptr, dir);
 		Seg *s = head->next;
 		for (int i = count - 2; i > 0; i--)
 		{
-			SegEdgesV<Seg, BIAS, ORIG>(s, s->next, dir, dir);
+			SegEdges<Seg, BIAS>(s, s->next, dir, dir);
 			s = s->next;
 		}
-		SegEdgesV<Seg, BIAS, ORIG>(s, nullptr, dir, nullptr);
+		SegEdges<Seg, BIAS>(s, nullptr, dir, nullptr);
 
 		Seg *a = head;
 		for (int i = count - 1; i > 0; i--)
@@ -433,7 +410,7 @@ namespace q116
 			GteReadSXY2(&s->sx);
 			GteReadOTZ(&s->otz);
 		}
-		DrawRibbon<BoltSeg, 0x400, 0x6C7B30>(head, count, g_dir_branch);
+		DrawRibbon<BoltSeg, 0x400>(head, count, g_dir_branch);
 	}
 
 	static void BranchFreeAll(BranchNode *b)
@@ -938,10 +915,10 @@ namespace q116
 			pts[k].otz = (int16_t)(sz3 >> 2);
 		}
 		int16_t dir[2] = { carry[0], carry[1] };
-		SegEdgesV<ArcSeg, 0x400, 0x6C8DE0>(&pts[0], &pts[1], nullptr, dir);
+		SegEdges<ArcSeg, 0x400>(&pts[0], &pts[1], nullptr, dir);
 		for (int k = 1; k < 15; k++)
-			SegEdgesV<ArcSeg, 0x400, 0x6C8DE0>(&pts[k], &pts[k + 1], dir, dir);
-		SegEdgesV<ArcSeg, 0x400, 0x6C8DE0>(&pts[15], nullptr, dir, nullptr);
+			SegEdges<ArcSeg, 0x400>(&pts[k], &pts[k + 1], dir, dir);
+		SegEdges<ArcSeg, 0x400>(&pts[15], nullptr, dir, nullptr);
 		carry[0] = dir[0];
 		carry[1] = dir[1];
 		for (int k = 0; k < 15; k++)
