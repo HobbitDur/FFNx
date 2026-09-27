@@ -16,6 +16,7 @@
 // 30 fps part of mag116_quezacotl.cpp (declarations for its FX_HELD statements)
 #pragma once
 #include "fx_held.h"
+#include <cstdlib> // abs
 
 namespace ff8fx
 {

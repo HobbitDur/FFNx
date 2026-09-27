@@ -5577,13 +5577,24 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			memcpy(gte_data, (void *)0x1CA8A10, sizeof(gte_data));
 			memcpy(gte_ctrl, (void *)0x1CA9210, sizeof(gte_ctrl));
 			uint32_t pool = *(uint32_t *)0x1D999C4;
+			// scratch the held draw may write that a later real tick reads: the Field_Alloc window
+			// above the pointer, the temporaries after it, the shadow scratch and 0x1D99C18
+			static uint8_t fa_scr[ff8fx::mod::FIELD_ALLOC_SCRATCH], fa_tmp[0x84], t_c18[8], t_ed0[0x20];
+			bool fa_ok = pool && !IsBadReadPtr((void *)pool, sizeof(fa_scr));
+			if (fa_ok) memcpy(fa_scr, (void *)pool, sizeof(fa_scr));
+			memcpy(fa_tmp, (void *)0x1D999C4, sizeof(fa_tmp));
+			memcpy(t_c18, (void *)0x1D99C18, sizeof(t_c18));
+			memcpy(t_ed0, (void *)0x21DFED0, sizeof(t_ed0));
 			ff8_bgate_hc_before(ff8_bgate_la_cur);
 			__try { ff8fx::held_draw(eid, ff8_bgate_phase, ff8_bgate_n); }
 			__except (ff8_bgate_gfc_fault_filter(GetExceptionInformation()))
 			{
 				ffnx_info("30fps held: effect %d native held draw FAULT %08X at %08X\n", eid, ff8_bgate_gfc_fault_code, ff8_bgate_gfc_fault_addr);
 			}
-			*(uint32_t *)0x1D999C4 = pool;
+			memcpy((void *)0x1D999C4, fa_tmp, sizeof(fa_tmp)); // pointer + temporaries
+			if (fa_ok) memcpy((void *)pool, fa_scr, sizeof(fa_scr));
+			memcpy((void *)0x1D99C18, t_c18, sizeof(t_c18));
+			memcpy((void *)0x21DFED0, t_ed0, sizeof(t_ed0));
 			memcpy((void *)0x1CA8A10, gte_data, sizeof(gte_data));
 			memcpy((void *)0x1CA9210, gte_ctrl, sizeof(gte_ctrl));
 			ff8_bgate_fxv_held_frames++;
