@@ -151,6 +151,7 @@ namespace ff8fx
 		register_mag035_life();
 		register_mag027_fulllife();
 		register_mag028_curaga();
+		register_mag106_reflect();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
