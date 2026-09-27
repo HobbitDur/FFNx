@@ -98,6 +98,7 @@ namespace ff8fx::mod
 	static const Region streams_c001[] = { { 0x2792E74, 4 }, { 0x2793E58, 0x20 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c004[] = { { 0x163FFD8, 0x25E }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c021[] = { { 0x1627978, 0x27E }, { 0x21DFED0, 0x20 } };
+	static const Region streams_c040[] = { { 0x15CDDF4, 0x180 }, { 0x15CE1DC, 0x500 }, { 0x1D2A278, 1 }, { 0x1D2B330, 0xA4 }, { 0x1D2B558, 0x32 }, { 0x2795BD0, 4 }, { 0x279CC68, 0x2C } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -187,6 +188,7 @@ namespace ff8fx::mod
 		{ 1, 0x277AEC0, 0x278C8E0, 0, 0, false, "Cure", streams_c001, 3 },
 		{ 4, 0x276FB00, 0x277AEA8, 0, 0, false, "Double", streams_c004, 2 },
 		{ 21, 0x2714F28, 0x2721580, 0, 0, false, "Triple", streams_c021, 2 },
+		{ 40, 0x269A160, 0x269D93C, 0, 0, false, "Scan", streams_c040, 7 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -256,6 +258,22 @@ namespace ff8fx::mod
 		{ 0x505E30, 0, "Battle_QueueTIMUpload_GetEOF" },
 		// spells: positional sound (3rd argument points into the caller's stack: 2 compared)
 		{ 0x5013A0, 2, "BdPlaySE3D" },
+		// Scan: pad input (the target viewer and the text pager poll the pad), text layers,
+		// scan text, entity names
+		{ 0x49ED30, 2, "read_pad_held_raw" },
+		{ 0x4A2D60, 1, "remap_pad_input" },
+		{ 0x49F0A0, 3, "ReadAnalog_49F0A0" },
+		{ 0x4A0410, 1, "Text_SetLayerText" },
+		{ 0x4A0700, 0, "Text_4A0700" },
+		{ 0x4A07A0, 0, "setTextPosition" },
+		{ 0x4A0640, 0, "Text_4A0640" },
+		{ 0x4A0680, 0, "Text_4A0680" },
+		{ 0x49FBC0, 0, "Text_49FBC0" },
+		{ 0xB68390, 1, "manageScanText_Dup" },
+		{ 0xB68810, 0, "ScanText_B68810" },
+		{ 0xB687C0, 0, "ScanText_B687C0" },
+		{ 0x47EAF0, 1, "CharacterName_47EAF0" },
+		{ 0x495100, 1, "MonsterName_495100" },
 	};
 	const int ext_site_count = (int)(sizeof(ext_sites) / sizeof(ext_sites[0]));
 
