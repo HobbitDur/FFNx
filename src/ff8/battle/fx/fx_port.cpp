@@ -156,6 +156,7 @@ namespace ff8fx
 		register_mag001_cure();
 		register_mag004_double();
 		register_mag021_triple();
+		register_mag040_scan();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
