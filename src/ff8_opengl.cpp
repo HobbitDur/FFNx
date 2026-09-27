@@ -3662,7 +3662,12 @@ static int ff8_bgate_la_pair(const ff8_bgate_fx_snap &cur, const ff8_bgate_fx_sn
 
 static bool ff8_bgate_fx_dump_armed = true; // TEMP diagnostics: dump once per game run
 
+// Old approximate held frames (generic 2D interpolation, look-ahead, timeline creature
+// half-steps, cinematic op replay): superseded by the native held frames, off.
+#define FF8_BGATE_GENERIC_INTERP 0
+#define FF8_BGATE_LEGACY_HELD 0
 static bool ff8_bgate_fx_skip_held = false; // replay without the tasks redrawn natively
+static uint32_t ff8_bgate_fx_unclaimed_prims = 0; // old-frame prims no native held task claims (not drawn)
 
 static void ff8_bgate_fx_replay_unsafe()
 {
@@ -3672,7 +3677,10 @@ static void ff8_bgate_fx_replay_unsafe()
 	// look-ahead mode: interpolate toward the exact next tick (per-task pairing)
 	bool la_mode = ff8_bgate_la_active && la.valid && la.ctx == cur.ctx && la.frame == cur.frame;
 	// only interpolate against the directly preceding real tick of the same effect
-	bool interp = la_mode || ((ff8_bgate_fx_mode == 1 || ff8_bgate_fx_mode == 2) && prev.valid && prev.ctx == cur.ctx && cur.frame - prev.frame == (uint32_t)ff8_bgate_n);
+	// Exact rule: the generic 2D interpolation (moving the last tick's primitives by guesswork) is
+	// off. A held frame of an effect without a native held frame repeats the last real frame as is,
+	// which is what vanilla shows at 15 fps. (FF8_BGATE_GENERIC_INTERP re-enables it for study.)
+	bool interp = FF8_BGATE_GENERIC_INTERP && (la_mode || ((ff8_bgate_fx_mode == 1 || ff8_bgate_fx_mode == 2) && prev.valid && prev.ctx == cur.ctx && cur.frame - prev.frame == (uint32_t)ff8_bgate_n));
 	int st_match = 0, st_nosig = 0, st_far = 0, st_unparsed = 0, st_maxcol = 0, st_welded = 0;
 	uint32_t st_badcmd = 0;
 	uint32_t cur_ot = FF8_BGATE_CUR_OT();
@@ -3825,9 +3833,16 @@ static void ff8_bgate_fx_replay_unsafe()
 			}
 		}
 
-		if (ff8_bgate_fx_skip_held && cur.ntasks > 0 && cur.task_of[i] >= 0
-			&& ff8fx::held_redraws((uint32_t)((ff8_bgate_task_node *)cur.tasks[cur.task_of[i]].node)->func))
-			continue; // drawn in between by the native port (ff8fx held frame)
+		// native held frame: the port redraws the whole effect in between; nothing of the last real
+		// frame is replayed (the generic 2D warp under the native draw showed the old frame again,
+		// ghosted and warped). Primitives no held task claims are counted, not drawn.
+		if (ff8_bgate_fx_skip_held)
+		{
+			if (!(cur.ntasks > 0 && cur.task_of[i] >= 0
+				&& ff8fx::held_redraws((uint32_t)((ff8_bgate_task_node *)cur.tasks[cur.task_of[i]].node)->func)))
+				ff8_bgate_fx_unclaimed_prims++;
+			continue;
+		}
 
 		if (ff8_bgate_fx_mode == 4 || ff8_bgate_fx_mode == 5)
 		{
@@ -5428,11 +5443,12 @@ static void ff8_bgate_fxv_summary(const char *name)
 {
 	if (!ff8_bgate_fxv_held_frames) return;
 	if (ff8_battle_fx_held_check)
-		ffnx_info("30fps held: %s native held frames=%u, checked=%u, frames with a leak=%u\n", name, ff8_bgate_fxv_held_frames, ff8_bgate_hc_checked, ff8_bgate_hc_leaks);
+		ffnx_info("30fps held: %s native held frames=%u, checked=%u, frames with a leak=%u, old-frame prims not claimed by a held task=%u\n", name, ff8_bgate_fxv_held_frames, ff8_bgate_hc_checked, ff8_bgate_hc_leaks, ff8_bgate_fx_unclaimed_prims);
 	else
 		ffnx_info("30fps held: %s native held frames=%u\n", name, ff8_bgate_fxv_held_frames);
 	ff8_bgate_fxv_held_frames = 0;
 	ff8_bgate_hc_checked = ff8_bgate_hc_leaks = ff8_bgate_hc_logged = 0;
+	ff8_bgate_fx_unclaimed_prims = 0;
 }
 
 // Shared gate body for a recorded queue (ff8_bgate_R already selected): real frame =
@@ -5575,13 +5591,13 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			return held_ret;
 		}
 	}
-	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && !ff8_bgate_fxv_live && ff8_bgate_la_held_frame(ctx))
+	if (FF8_BGATE_LEGACY_HELD && ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && !ff8_bgate_fxv_live && ff8_bgate_la_held_frame(ctx))
 		return held_ret;
-	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && !ff8_bgate_fxv_live && ff8_bgate_tla_held_frame(ctx, orig))
+	if (FF8_BGATE_LEGACY_HELD && ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && !ff8_bgate_fxv_live && ff8_bgate_tla_held_frame(ctx, orig))
 		return held_ret;
-	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && !ff8_bgate_fxv_live && ff8_bgate_tlb_held_frame(ctx, orig))
+	if (FF8_BGATE_LEGACY_HELD && ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && !ff8_bgate_fxv_live && ff8_bgate_tlb_held_frame(ctx, orig))
 		return held_ret;
-	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && ff8_bgate_gfc_held_frame(ctx, orig))
+	if (FF8_BGATE_LEGACY_HELD && ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && ff8_bgate_gfc_held_frame(ctx, orig))
 		return held_ret;
 	if (ff8_bgate_fx_replay_ok && ff8_bgate_fx_mode != 3)
 		ff8_bgate_fx_replay(ctx);
