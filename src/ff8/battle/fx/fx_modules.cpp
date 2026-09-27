@@ -85,6 +85,8 @@ namespace ff8fx::mod
 	static const Region streams_d107[] = { { 0x12F9978, 0x20 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d109[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_a111[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_b117[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_b108[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -157,6 +159,11 @@ namespace ff8fx::mod
 		{ 119, 0x2521590, 0x25215D8, 0, 0, false, "Stop", nullptr, 0 },
 		{ 125, 0x2521368, 0x25213D0, 0, 0, false, "Haste", nullptr, 0 },
 		{ 115, 0x25217D0, 0x2521818, 0, 0, false, "Float", nullptr, 0 },
+		{ 114, 0x2521818, 0x252186C, 0, 0, false, "Zombie", nullptr, 0 },
+		{ 117, 0x2521650, 0x25216D8, 0, 0, false, "Break", streams_b117, 1 },
+		{ 108, 0x2521AC0, 0x2521B30, 0, 0, false, "Berserk", streams_b108, 1 },
+		{ 122, 0x25214B0, 0x25214F8, 0, 0, false, "Silence", nullptr, 0 },
+		{ 121, 0x25214F8, 0x2521540, 0, 0, false, "Blind", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

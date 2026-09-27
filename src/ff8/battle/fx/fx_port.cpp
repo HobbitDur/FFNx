@@ -138,6 +138,11 @@ namespace ff8fx
 		register_mag119_stop();
 		register_mag125_haste();
 		register_mag115_float();
+		register_mag114_zombie();
+		register_mag117_break();
+		register_mag108_berserk();
+		register_mag122_silence();
+		register_mag121_blind();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
