@@ -148,6 +148,7 @@ bool ff8_fix_uv_coords_precision;
 bool ff8_external_music_force_original_filenames;
 bool ff8_use_gamepad_icons;
 bool ff8_always_capture_input;
+bool ff8_battle_fx_dump;
 bool ff8_battle_fx_native;
 bool ff8_battle_fx_verify;
 bool ff8_battle_fx_held_check;
@@ -322,6 +323,7 @@ void read_cfg()
 	ff8_external_music_force_original_filenames = config["ff8_external_music_force_original_filenames"].value_or(false);
 	ff8_use_gamepad_icons = config["ff8_use_gamepad_icons"].value_or(false);
 	ff8_always_capture_input = config["ff8_always_capture_input"].value_or(false);
+	ff8_battle_fx_dump = config["ff8_battle_fx_dump"].value_or(false);
 	ff8_battle_fx_native = config["ff8_battle_fx_native"].value_or(true);
 	ff8_battle_fx_verify = config["ff8_battle_fx_verify"].value_or(true);
 	ff8_battle_fx_held_check = config["ff8_battle_fx_held_check"].value_or(false);

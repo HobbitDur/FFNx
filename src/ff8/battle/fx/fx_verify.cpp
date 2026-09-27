@@ -46,6 +46,7 @@
 #include "../../../cfg.h"
 
 #include <windows.h>
+#include <dbghelp.h>
 #include <stdio.h>
 #include <utility>
 
@@ -494,13 +495,88 @@ namespace
 	}
 
 	// ------------------------------------------------------------------ summon statistics
+	// ------------------------------------------------------------------ mismatch diagnostics
+	// Every differing tracked range (not only the first): name, address, first offset, bytes
+	// differing, and 16 bytes of original vs port at the first difference.
+	void log_all_diffs(const char *mname, uint32_t tick)
+	{
+		int shown = 0;
+		for (int r = 0; r < g_nent && shown < 8; r++)
+		{
+			const Entry &e = g_ent[r];
+			const uint8_t *cur = (const uint8_t *)e.addr, *ref = reference(e);
+			if (memcmp(cur, ref, e.size) == 0) continue;
+			uint32_t i = 0, n = 0;
+			while (cur[i] == ref[i]) i++;
+			for (uint32_t k = i; k < e.size; k++) if (cur[k] != ref[k]) n++;
+			char a[64], b[64];
+			int ao = 0, bo = 0;
+			for (uint32_t k = i & ~3u; k < (i & ~3u) + 16 && k < e.size; k++)
+			{
+				ao += _snprintf_s(a + ao, sizeof(a) - ao, _TRUNCATE, "%02X", ref[k]);
+				bo += _snprintf_s(b + bo, sizeof(b) - bo, _TRUNCATE, "%02X", cur[k]);
+			}
+			ffnx_error("FF8 battle fx: %s tick %u   differs: %s %08X+%X at +%X (%08X), %u bytes | original %s | port %s\n",
+				mname, tick, e.name, e.addr, e.size, i, e.addr + i, n, a, b);
+			shown++;
+		}
+	}
+
+	const int FULL_DUMPS_MAX = 3;
+	int g_full_dumps = 0;
+
+	// ffnx_fx_dumps\<module>_e<id>_t<tick>.bin: "FXD1", entry count, then per entry
+	// {addr, size, phase, kind, name[32]}, then per entry: before-tick bytes, after-original
+	// bytes, after-port bytes. Called with the port's result in memory.
+	void write_state_dump(const mod::Module &m, int effect_id, uint32_t tick, TaskQueue *q)
+	{
+		CreateDirectoryA("ffnx_fx_dumps", nullptr);
+		char base[MAX_PATH], path[MAX_PATH];
+		_snprintf_s(base, sizeof(base), _TRUNCATE, "ffnx_fx_dumps\\%s_e%d_t%u", m.name, effect_id, tick);
+		for (char *c = base + 14; *c; c++) if (*c == ' ' || *c == '(' || *c == ')') *c = '_';
+		_snprintf_s(path, sizeof(path), _TRUNCATE, "%s.bin", base);
+		FILE *f = nullptr;
+		if (fopen_s(&f, path, "wb") == 0 && f)
+		{
+			uint32_t hdr[4] = { 0x31445846, (uint32_t)g_nent, (uint32_t)(uintptr_t)q, tick };
+			fwrite(hdr, sizeof(hdr), 1, f);
+			for (int i = 0; i < g_nent; i++)
+			{
+				const Entry &e = g_ent[i];
+				uint32_t w[4] = { e.addr, e.size, (uint32_t)e.phase, (uint32_t)e.kind };
+				char nm[32] = {};
+				strncpy_s(nm, e.name ? e.name : "", _TRUNCATE);
+				fwrite(w, sizeof(w), 1, f);
+				fwrite(nm, sizeof(nm), 1, f);
+			}
+			for (int i = 0; i < g_nent; i++) fwrite(g_snap + g_ent[i].off, g_ent[i].size, 1, f);
+			for (int i = 0; i < g_nent; i++) fwrite(reference(g_ent[i]), g_ent[i].size, 1, f);
+			for (int i = 0; i < g_nent; i++) fwrite((const void *)g_ent[i].addr, g_ent[i].size, 1, f);
+			fclose(f);
+			ffnx_error("FF8 battle fx: %s tick %u: state written to %s\n", m.name, tick, path);
+		}
+		if (g_full_dumps >= FULL_DUMPS_MAX) return;
+		g_full_dumps++;
+		// full process memory with the tracked ranges put back to their state BEFORE the tick
+		restore_snapshot();
+		_snprintf_s(path, sizeof(path), _TRUNCATE, "%s.dmp", base);
+		HANDLE h = CreateFileA(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+		if (h != INVALID_HANDLE_VALUE)
+		{
+			BOOL ok = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), h,
+				(MINIDUMP_TYPE)(MiniDumpWithFullMemory | MiniDumpWithFullMemoryInfo), nullptr, nullptr, nullptr);
+			CloseHandle(h);
+			ffnx_error("FF8 battle fx: %s tick %u: pre-tick memory dump %s%s\n", m.name, tick, path, ok ? "" : " FAILED");
+		}
+	}
+
 	struct Summon
 	{
 		const mod::Module *m;
 		TaskQueue *q;
 		int effect_id;
-		uint32_t ticks, verified, matched, mismatched, first_bad, skipped, faults, logged, original_only;
-		bool refused;
+		uint32_t ticks, verified, matched, mismatched, first_bad, skipped, faults, logged, original_only, detailed;
+		bool refused, dumped;
 	};
 	Summon g_s = {};
 
@@ -640,7 +716,9 @@ namespace
 				co += _snprintf_s(calls + co, sizeof(calls) - co, _TRUNCATE, " %s", g_sites[g_calls[i].site].name);
 			ffnx_error("FF8 battle fx: %s tick %u MISMATCH: %s | return %d/%d, x87 cw A %04X->%04X B end %04X, calls:%s\n",
 				m.name, tick, diff, ra, rb, cw_a0, cw_a1, cw_b1, calls[0] ? calls : " none");
+			if (g_s.detailed < 3) { g_s.detailed++; log_all_diffs(m.name, tick); }
 		}
+		if (ok && ff8_battle_fx_dump && !g_s.dumped) { g_s.dumped = true; write_state_dump(m, g_s.effect_id, tick, q); }
 		put_back_A();
 		verify_event(VERIFY_KEPT_ORIGINAL);
 		return ra;
