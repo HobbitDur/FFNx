@@ -259,6 +259,7 @@ namespace ff8fx
 	void register_mag108_berserk();
 	void register_mag122_silence();
 	void register_mag121_blind();
+	void register_mag147_regen();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
