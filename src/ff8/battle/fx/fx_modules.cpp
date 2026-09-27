@@ -153,6 +153,10 @@ namespace ff8fx::mod
 		{ 109, 0x2521A68, 0x2521AC0, 0, 0, false, "Dispel", streams_d109, 1 },
 		{ 111, 0x2521970, 0x25219C8, 0, 0, false, "Aura", streams_a111, 1 },
 		{ 118, 0x25215D8, 0x2521650, 0, 0, false, "Aero", nullptr, 0 },
+		{ 123, 0x2521448, 0x25214B0, 0, 0, false, "Slow", nullptr, 0 },
+		{ 119, 0x2521590, 0x25215D8, 0, 0, false, "Stop", nullptr, 0 },
+		{ 125, 0x2521368, 0x25213D0, 0, 0, false, "Haste", nullptr, 0 },
+		{ 115, 0x25217D0, 0x2521818, 0, 0, false, "Float", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
