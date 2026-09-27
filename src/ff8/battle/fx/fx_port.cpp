@@ -159,6 +159,7 @@ namespace ff8fx
 		register_mag040_scan();
 		register_mag222_water();
 		register_mag223_meteor();
+		register_mag120_petrify_stare();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
