@@ -160,6 +160,7 @@ namespace ff8fx
 		register_mag222_water();
 		register_mag223_meteor();
 		register_mag120_petrify_stare();
+		register_mag152_ultrasonic_waves();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
