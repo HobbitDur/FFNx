@@ -23,19 +23,19 @@ namespace ff8fx::mod
 	// Quezacotl: its streamed files
 	static const Region streams_q116[] = { { 0x1298C68, 0x109FC }, { 0x12A9664, 0x4D9C } };
 	// Cactuar: pool/table pointer cells 0xCF3564..0xCF3593 (written at the creature's first tick)
-	static const Region streams_c199[] = { { 0xCF3564, 0x30 } };
+	static const Region streams_c199[] = { { 0xCF3564, 0x30 }, { 0x24FBDA4, 0x162B } }; // + shared camera script cells
 	// Pandemona: texture load state machine cell (outside the module range)
 	static const Region streams_p291[] = { { 0x13BBBE8, 4 } };
 	// Odin: ripple-texture destination in exe data, pool/scratch pointer cells, summon data (loads 0x227/0x229/0x22A)
-	static const Region streams_o187[] = { { 0xFA94A8, 0x4000 }, { 0xE41E50, 0xC }, { 0xE41E98, 4 }, { 0x209FAB8, 0x40000 } };
+	static const Region streams_o187[] = { { 0xFA94A8, 0x4000 }, { 0xE41E50, 0xC }, { 0xE41E98, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } };
 	// Doomtrain: pool pointer cells, summon data (loads 0x22E..0x231), shadow-camera scratch
-	static const Region streams_d191[] = { { 0xE3C8C0, 0x18 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_d191[] = { { 0xE3C8C0, 0x18 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 }, { 0x1D99C18, 8 } };
 	// Gilgamesh: the 16 sword model files in .data (their skeletons are rebuilt), summon data
 	// (loads 0x2EE/0x2F0/0x2F1), pool pointer cells
-	static const Region streams_g327[] = { { 0xE808D0, 0x10C50 }, { 0x209FAB8, 0x40000 }, { 0xCD0398, 0xC } };
+	static const Region streams_g327[] = { { 0xE808D0, 0x10C50 }, { 0x209FAB8, 0x40000 }, { 0xCD0398, 0xC }, { 0x24FBDA4, 0x162B } };
 	// Odin reverse: loads 0x2E3/0x2E8 into exe data + the ripple texture right after (0xEECC2C..0xEF4C30),
 	// pool/scratch pointer cells, summon data (loads 0x2E5/0x2E7), the camera script's saved camera
-	static const Region streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FD250, 0x110 } };
+	static const Region streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } };
 	// GF cinematic engine (Ifrit family): mesh depth scale, fog words, camera-related word
 	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x2C0 } }; // + tail of the per-vertex depth array 0x2798C18
 	// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
@@ -103,27 +103,30 @@ namespace ff8fx::mod
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
 	// BdTransSummonStream), TransformCameraByShadowRotation scratch
-	static const Region streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 }, { 0x24FBDA4, 0x162B }, { 0x1D99C18, 8 } };
+	static const Region streams_p140[] = { { 0x11B539C, 0xB17 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_c278[] = { { 0x10B6FB4, 0x5A9 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_m338[] = { { 0x136BB50, 0x549 }, { 0x1D99C18, 8 } };
 
 	const Module modules[] = {
 		// timeline-A (own pause flag, creature spawned by the master at counter 2)
 		{ 116, 0x25216D8, 0x25217D0, 0, 0, true, "Quezacotl", streams_q116, 2 },
 		{ 325, 0x250517C, 0x2505230, 0, 0, false, "Diablos" },
-		{ 278, 0x2508110, 0x25081FC, 0, 0, false, "Carbuncle" },
+		{ 278, 0x2508110, 0x25081FC, 0, 0, false, "Carbuncle", streams_c278, 3 },
 		{ 291, 0x2556258, 0x25562F8, 0, 0, false, "Pandemona", streams_p291, 1 },
-		{ 140, 0x2517AA0, 0x2517B50, 0, 0, false, "Phoenix" },
-		{ 338, 0x25561C8, 0x2556254, 0, 0, false, "Moomba" },
+		{ 140, 0x2517AA0, 0x2517B50, 0, 0, false, "Phoenix", streams_p140, 3 },
+		{ 338, 0x25561C8, 0x2556254, 0, 0, false, "Moomba", streams_m338, 2 },
 		{ 69,  0x2556628, 0x2556F98, 0, 0, false, "Griever" },
 		// timeline-B (draw-only mode on battle_to_update_flags bit0, creature spawned by the timeline)
-		{ 185, 0x22BC128, 0x22BD108, 0, 0, false, "Shiva", streams_s185, 3 },
-		{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", streams_c199, 1 }, // + its private rand seed
-		{ 187, 0x24FD458, 0x24FE910, 0, 0, false, "Odin", streams_o187, 4 },
+		{ 185, 0x22BC128, 0x22BD108, 0, 0, false, "Shiva", streams_s185, 5 },
+		{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", streams_c199, 2 }, // + its private rand seed
+		{ 187, 0x24FD458, 0x24FE910, 0, 0, false, "Odin", streams_o187, 5 },
 		{ 326, 0x24F0BD0, 0x24F2308, 0, 0, false, "Odin (reverse)", streams_o326, 5 },
-		{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain", streams_d191, 3 },
-		{ 327, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Zantetsuken)", streams_g327, 3 },
-		{ 328, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Masamune)", streams_g327, 3 },
-		{ 329, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalibur)", streams_g327, 3 },
-		{ 330, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalipoor)", streams_g327, 3 },
+		{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain", streams_d191, 4 },
+		{ 327, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Zantetsuken)", streams_g327, 4 },
+		{ 328, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Masamune)", streams_g327, 4 },
+		{ 329, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalibur)", streams_g327, 4 },
+		{ 330, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalipoor)", streams_g327, 4 },
 		// GF cinematic engine family (engine state block 0x2796E00..0x2798C40)
 		{ 201, 0x2796E00, 0x2798C40, 0, 0, false, "Ifrit", streams_gfc, 5 },
 		// the six other compilations: same engine block, plus each clone's queue/file pointer statics below it
@@ -258,6 +261,11 @@ namespace ff8fx::mod
 		// Tonberry's stream, Boko's TIM uploads
 		{ 0x501460, 0, "BdPlayStream" },
 		{ 0x505E30, 0, "Battle_QueueTIMUpload_GetEOF" },
+		// cinematic GFs, Water, Meteor, Odin: VRAM uploads; texture restore; misc engine calls
+		{ 0x505DF0, 0, "Battle_QueueVramUpload" },
+		{ 0x508630, 0, "Battle_RestoreDefaultEffectTexture" },
+		{ 0x4A2900, 0, "Engine_4A2900" },
+		{ 0x403D99, 0, "OutputDebugString_1" },
 		// Meteor: VRAM readback request (VM 0x035)
 		{ 0x505E70, 0, "Battle_QueueVramReadback_Type2" },
 		// spells: positional sound (3rd argument points into the caller's stack: 2 compared)

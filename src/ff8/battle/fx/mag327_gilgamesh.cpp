@@ -1965,7 +1965,7 @@ namespace g327
 	// ------------------------------------------------------------------
 	// Risers (0x593600, tick 44, four on a circle), 30 ticks: prim 0xCC78EC, frame-relative,
 	// rotated +0x18 about y, uniform scale +0x1C growing by 1/64 per tick, rising by +0x22
-	// (accelerating by 1/6), fading in over 6 ticks
+	// (accelerating by 1/12), fading in over 6 ticks
 	// ------------------------------------------------------------------
 	static bool RiserFade(int32_t c, int32_t *v) { if (c >= 6) return false; *v = 0x1000 - shl32(mul32(c, 341), 1); return true; }
 
@@ -1988,7 +1988,7 @@ namespace g327
 		n->p12 = (int16_t)(n->p12 + v);
 		n->s1C = (int16_t)((int16_t)(s >> 6) + s);
 		n->c++;
-		n->s22 = (int16_t)((int32_t)v / 6 + v);
+		n->s22 = (int16_t)((int32_t)v / 12 + v);
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
@@ -2129,7 +2129,7 @@ namespace g327
 	// ------------------------------------------------------------------
 	// Rising rings: spawner 0x593C70 (tick 123, 30 ticks, one ring on ticks 1, 9, 17) and ring
 	// 0x593D20 (30 ticks): prim 0xCCCB1C frame-relative, spinning (+0x1A = 0x32), height scale +0x20
-	// growing (speed +0x22 accelerating by 1/6), fading out from 18
+	// growing (speed +0x22 accelerating by 1/12), fading out from 18
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl RisingRingSpawnerTask(TaskNode *tn)
 	{
@@ -2174,7 +2174,7 @@ namespace g327
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->s20 = (int16_t)(n->s20 + v);
 		n->c++;
-		n->s22 = (int16_t)((int32_t)v / 6 + v);
+		n->s22 = (int16_t)((int32_t)v / 12 + v);
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
@@ -2270,7 +2270,7 @@ namespace g327
 	// ------------------------------------------------------------------
 	// Spinners (0x594210, tick 121, three from the table 0xCD0468) after their delay, 14 ticks:
 	// prim 0xCC7A94 frame-relative, spinning (+0x1A), scale (+0x1C, +0x20, +0x1C) with +0x1C
-	// growing (speed decaying by 1/6), fading in over 4 ticks and out from 6
+	// growing (speed decaying by 1/12), fading in over 4 ticks and out from 6
 	// ------------------------------------------------------------------
 	static bool SpinnerFade(int32_t c, int32_t *v)
 	{
@@ -2305,7 +2305,7 @@ namespace g327
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->s1C = (int16_t)(n->s1C + v);
 		n->c++;
-		n->s1E = (int16_t)(v - (int16_t)((int32_t)v / 6));
+		n->s1E = (int16_t)(v - (int16_t)((int32_t)v / 12));
 		return n->c >= 0xE ? TASK_END : 0;
 	}
 

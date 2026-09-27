@@ -79,7 +79,7 @@ namespace
 	// engine regions ~0x101400 + module globals 0x20000 + streams 0x80000 + OT span 0x44CC +
 	// SSIGPU arena 0x60000 + frame packet window 0x40000 + scratch 0x1000 + pools 0x80000
 	const uint32_t BUF_SIZE = 0x300000;
-	const uint32_t POOL_MAX = 0x10000;          // one task queue's node storage
+	const uint32_t POOL_MAX = 0x20000;          // one task queue's node storage
 	const uint32_t POOLS_TOTAL_MAX = 0x80000;   // all of them
 	const uint32_t FRAME_WINDOW_MAX = 0x40000;  // free part of the frame packet arena (0x1C000 / 0x24000)
 	Entry g_ent[ENTRIES_MAX];
@@ -450,7 +450,9 @@ namespace
 	// pad word of its result matrix uninitialised and GteSetRotMatrix copies it here.
 	void adopt_unread_garbage()
 	{
-		static const uint32_t words[] = { 0x1CA928E };
+		static const uint32_t words[] = { 0x1CA928E, // GTE control register pad (R33)
+			0x1CA8A16, 0x1CA8A1E, 0x1CA8A26,    // GTE data VZ0..VZ2 upper halves (never read)
+			0xB8B7F6, 0xB8B7FE };               // battle camera eye / look-at pad words (never read)
 		for (uint32_t a : words)
 			for (int i = 0; i < g_nent; i++)
 			{

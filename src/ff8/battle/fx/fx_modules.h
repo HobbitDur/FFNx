@@ -58,7 +58,7 @@ namespace ff8fx::mod
 
 	// snapshot limits (Siren's module globals are 0x10454 bytes; Gilgamesh's streams are the
 	// sword files 0x10C50 + summon data 0x40000 + cells): a module above them is refused
-	const uint32_t DATA_MAX = 0x20000;
+	const uint32_t DATA_MAX = 0x40000;
 	const uint32_t STREAMS_MAX = 0x80000;
 
 	const Module *find_module(int effect_id); // nullptr when the effect has no entry
