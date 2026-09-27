@@ -292,6 +292,13 @@ namespace q116
 		uint8_t *nd = ModelBuffer();
 		uint8_t *model = nd + 0x28;
 		Mat4x3 bolt_frame = BoltFrame(), effect_camera = EffectCamera();
+		// the creature node, its model header (+0x88) and the model work buffer (+0x8D0: bone
+		// matrices from BuildBoneMatrices, DrawModel/DrawMaterialise scratch) up to the bolt
+		// vertex pool: the held redraw writes them, and the next real tick draws with the
+		// matrices the previous tick built, so they must be exactly what the real tick left
+		static const uint32_t CREATURE_AREA = 0x3C9FC;
+		static uint8_t area_save[CREATURE_AREA];
+		memcpy(area_save, nd, CREATURE_AREA);
 		EffectCameraMatrix(&Camera(), &EffectCamera());
 		uint32_t size = 0;
 		uint8_t *sk = (g_cm.model || g_cm.orbit) ? CreatureSkeleton(&size) : nullptr;
@@ -332,6 +339,7 @@ namespace q116
 		}
 		BoltFrame() = bolt_frame;
 		EffectCamera() = effect_camera;
+		memcpy(nd, area_save, CREATURE_AREA);
 	}
 
 	// ---- held-frame camera: the creature's camera code for the next tick, run on the real
