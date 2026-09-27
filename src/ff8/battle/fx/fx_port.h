@@ -273,6 +273,7 @@ namespace ff8fx
 	void register_mag004_double();
 	void register_mag021_triple();
 	void register_mag040_scan();
+	void register_mag222_water();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

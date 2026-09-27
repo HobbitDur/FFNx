@@ -37,7 +37,7 @@ namespace ff8fx::mod
 	// pool/scratch pointer cells, summon data (loads 0x2E5/0x2E7), the camera script's saved camera
 	static const Region streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FD250, 0x110 } };
 	// GF cinematic engine (Ifrit family): mesh depth scale, fog words, camera-related word
-	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 } };
+	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x2C0 } }; // + tail of the per-vertex depth array 0x2798C18
 	// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
 	// static cells the modules write, Siren's load destinations outside the 1 MB buffer
 	static const Region streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
@@ -125,14 +125,14 @@ namespace ff8fx::mod
 		{ 329, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalibur)", streams_g327, 3 },
 		{ 330, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalipoor)", streams_g327, 3 },
 		// GF cinematic engine family (engine state block 0x2796E00..0x2798C40)
-		{ 201, 0x2796E00, 0x2798C40, 0, 0, false, "Ifrit", streams_gfc, 4 },
+		{ 201, 0x2796E00, 0x2798C40, 0, 0, false, "Ifrit", streams_gfc, 5 },
 		// the six other compilations: same engine block, plus each clone's queue/file pointer statics below it
-		{ 6,   0x2796EF8, 0x2798C40, 0, 0, false, "Leviathan", streams_gfc, 4 },
-		{ 202, 0x2796DE0, 0x2798C40, 0, 0, false, "Bahamut", streams_gfc, 4 },
-		{ 203, 0x2796DA8, 0x2798C40, 0, 0, false, "Cerberus", streams_gfc, 4 },
-		{ 204, 0x2796D70, 0x2798C40, 0, 0, false, "Alexander", streams_gfc, 4 },
-		{ 205, 0x2796D30, 0x2798C40, 0, 0, false, "Brothers", streams_gfc, 4 },
-		{ 206, 0x2796CF8, 0x2798C40, 0, 0, false, "Eden", streams_gfc, 4 },
+		{ 6,   0x2796EF8, 0x2798C40, 0, 0, false, "Leviathan", streams_gfc, 5 },
+		{ 202, 0x2796DE0, 0x2798C40, 0, 0, false, "Bahamut", streams_gfc, 5 },
+		{ 203, 0x2796DA8, 0x2798C40, 0, 0, false, "Cerberus", streams_gfc, 5 },
+		{ 204, 0x2796D70, 0x2798C40, 0, 0, false, "Alexander", streams_gfc, 5 },
+		{ 205, 0x2796D30, 0x2798C40, 0, 0, false, "Brothers", streams_gfc, 5 },
+		{ 206, 0x2796CF8, 0x2798C40, 0, 0, false, "Eden", streams_gfc, 5 },
 		// actor state-machine family (the heal-spell effect library)
 		{ 95,  0x257F8A0, 0x258FCF4, 0, 0, false, "Siren", streams_a095, 6 },
 		{ 96,  0x257B740, 0x257F8A0, 0, 0, false, "MiniMog", streams_a096, 5 },
@@ -189,6 +189,7 @@ namespace ff8fx::mod
 		{ 4, 0x276FB00, 0x277AEA8, 0, 0, false, "Double", streams_c004, 2 },
 		{ 21, 0x2714F28, 0x2721580, 0, 0, false, "Triple", streams_c021, 2 },
 		{ 40, 0x269A160, 0x269D93C, 0, 0, false, "Scan", streams_c040, 7 },
+		{ 222, 0x2796BA8, 0x2798C40, 0, 0, false, "Water", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

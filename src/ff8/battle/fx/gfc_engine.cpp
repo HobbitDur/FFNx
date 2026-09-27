@@ -8220,7 +8220,7 @@ namespace part_shared_misc
 		if (live(c.vm_table + 4 * 0x05C)) c.vm[0x05C] = part_shared_misc::op_05C_AccumFromMeshVertex; // Leviathan 0xB64090, Brothers 0xAFEBF0, Eden 0xAF3660
 		if (live(c.vm_table + 4 * 0x096)) c.vm[0x096] = part_shared_misc::op_096_CaptureScreenStrips; // Cerberus 0xB16F60, Eden 0xAF2760
 		if (live(c.vm_table + 4 * 0x0CF)) c.vm[0x0CF] = part_shared_misc::op_0CF_TargetListFromChain; // Brothers 0xAFCBE0, Eden 0xAF1830
-		if ((c.effect_id == 205 || c.effect_id == 206) && live(c.vm_table + 4 * 0x022))
+		if ((c.effect_id == 205 || c.effect_id == 206 || c.effect_id == 222) && live(c.vm_table + 4 * 0x022))
 			c.vm[0x022] = part_shared_misc::op_022_ApplyActionResultList;                           // Brothers 0xAFA6E0, Eden 0xAEF450
 		if ((c.effect_id == 202 || c.effect_id == 205) && live(c.vm_table + 4 * 0x090))
 			c.vm[0x090] = part_shared_misc::op_090_OffscreenStageRender;                            // Bahamut 0xB23AF0, Brothers 0xAFDA00
