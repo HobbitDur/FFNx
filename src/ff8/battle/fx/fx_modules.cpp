@@ -194,6 +194,7 @@ namespace ff8fx::mod
 		{ 40, 0x269A160, 0x269D93C, 0, 0, false, "Scan", streams_c040, 7 },
 		{ 222, 0x2796BA8, 0x2798C40, 0, 0, false, "Water", streams_gfc, 5 },
 		{ 223, 0x2796B70, 0x2798C40, 0, 0, false, "Meteor", streams_gfc, 5 },
+		{ 120, 0x2521540, 0x2521590, 0, 0, false, "Petrify Stare", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
