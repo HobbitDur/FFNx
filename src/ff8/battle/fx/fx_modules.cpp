@@ -178,6 +178,7 @@ namespace ff8fx::mod
 		{ 35, 0x26AC780, 0x26BA9C8, 0, 0, false, "Life", streams_l035, 2 },
 		{ 27, 0x26D8308, 0x26D904C, 0, 0, false, "Full-life", streams_f027, 3 },
 		{ 28, 0x26D74F8, 0x26D8304, 0, 0, false, "Curaga", streams_c028, 3 },
+		{ 106, 0x2521BB8, 0x2543CF0, 0, 0, false, "Reflect", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
