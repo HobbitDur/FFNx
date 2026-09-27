@@ -263,6 +263,8 @@ namespace ff8fx
 	void register_mag024_esuna();
 	void register_mag032_protect();
 	void register_mag033_shell();
+	void register_fx_glint();
+	void register_mag035_life();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
