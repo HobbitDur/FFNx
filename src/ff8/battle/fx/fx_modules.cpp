@@ -97,6 +97,7 @@ namespace ff8fx::mod
 	static const Region streams_c025[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_c001[] = { { 0x2792E74, 4 }, { 0x2793E58, 0x20 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c004[] = { { 0x163FFD8, 0x25E }, { 0x21DFED0, 0x20 } };
+	static const Region streams_c021[] = { { 0x1627978, 0x27E }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -185,6 +186,7 @@ namespace ff8fx::mod
 		{ 25, 0x26E5908, 0x2700470, 0, 0, false, "Cura", streams_c025, 1 },
 		{ 1, 0x277AEC0, 0x278C8E0, 0, 0, false, "Cure", streams_c001, 3 },
 		{ 4, 0x276FB00, 0x277AEA8, 0, 0, false, "Double", streams_c004, 2 },
+		{ 21, 0x2714F28, 0x2721580, 0, 0, false, "Triple", streams_c021, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
