@@ -190,6 +190,7 @@ namespace ff8fx::mod
 		{ 21, 0x2714F28, 0x2721580, 0, 0, false, "Triple", streams_c021, 2 },
 		{ 40, 0x269A160, 0x269D93C, 0, 0, false, "Scan", streams_c040, 7 },
 		{ 222, 0x2796BA8, 0x2798C40, 0, 0, false, "Water", streams_gfc, 5 },
+		{ 223, 0x2796B70, 0x2798C40, 0, 0, false, "Meteor", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -257,6 +258,8 @@ namespace ff8fx::mod
 		// Tonberry's stream, Boko's TIM uploads
 		{ 0x501460, 0, "BdPlayStream" },
 		{ 0x505E30, 0, "Battle_QueueTIMUpload_GetEOF" },
+		// Meteor: VRAM readback request (VM 0x035)
+		{ 0x505E70, 0, "Battle_QueueVramReadback_Type2" },
 		// spells: positional sound (3rd argument points into the caller's stack: 2 compared)
 		{ 0x5013A0, 2, "BdPlaySE3D" },
 		// Scan: pad input (the target viewer and the text pager poll the pad), text layers,
