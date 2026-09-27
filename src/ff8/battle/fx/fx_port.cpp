@@ -145,6 +145,7 @@ namespace ff8fx
 		register_mag121_blind();
 		register_mag147_regen();
 		register_mag024_esuna();
+		register_mag032_protect();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
