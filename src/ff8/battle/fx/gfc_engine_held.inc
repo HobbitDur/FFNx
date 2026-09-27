@@ -85,6 +85,28 @@ namespace gfc
 	static const uint32_t FREE_SCRATCH = 0x8000;
 	static void SaveFreeScratch() { region_save(g_r_free, (void *)MEM<uint32_t>(0x1D999C4), FREE_SCRATCH); }
 
+	// the draw's scratch memory outside the saved engine state: transformed vertices above the
+	// arena top (ctx+0x74: DrawMeshObject, RenderGeometry, particles) and the per-vertex depth
+	// array dword_2798C18 (past STATE_HI). Vanilla rewrites both before reading them; a held draw
+	// must still leave them as the real tick left them. (The arena lives in the magic buffer in
+	// FF8_EN.exe's .data 0xB6D000..0x279F000; before the script sets it, ctx+0x74 still holds the
+	// PSX address of the .01 file and nothing uses it.)
+	static const uint32_t ARENA_SCRATCH = 0x8000, DEPTH_SCRATCH = 0x4000;
+	static const uint32_t DATA_LO = 0xB6D000, DATA_HI = 0x279F000;
+	static Region g_r_vscr, g_r_depth;
+	static void SaveDrawScratch()
+	{
+		uint32_t top = U32(CTX(), 0x74);
+		uint32_t n = top >= DATA_LO && top < DATA_HI ? DATA_HI - top : 0;
+		region_save(g_r_vscr, (void *)top, n < ARENA_SCRATCH ? n : ARENA_SCRATCH);
+		region_save(g_r_depth, DEPTHARR(), DEPTH_SCRATCH);
+	}
+	static void RestoreDrawScratch()
+	{
+		region_restore(g_r_depth);
+		region_restore(g_r_vscr);
+	}
+
 	static uint32_t *CrtSeed() { return (uint32_t *)(x::f<uint8_t *(__cdecl *)()>(0x560578)() + 0x14); }
 
 	// bones that may be live: SceneHeader+0x38 is only the initial allocation count, SpawnBone
@@ -400,6 +422,7 @@ namespace gfc
 			if (sk) region_save(skels[nskels++], sk, 0x10 + 0x30 * (uint32_t)U8(sk, 0));
 		}
 		SaveFreeScratch();
+		SaveDrawScratch();
 		if (g_pred.ok && !g_pred.paused) ApplyInBetween(num, den);
 
 		// the tick's draw preamble, packets into a private buffer
@@ -423,6 +446,7 @@ namespace gfc
 		for (int i = 0; i < npools; i++) region_restore(pools[i]);
 		for (int i = nskels - 1; i >= 0; i--) region_restore(skels[i]);
 		region_restore(g_r_free);
+		RestoreDrawScratch();
 		RestoreEngine(true);
 		*CrtSeed() = seed;
 		FLT_1877DA8() = depth_scale;
