@@ -43,9 +43,12 @@ namespace ff8fx::prim
 	}
 
 	static inline int16_t lerp16(int16_t a, int16_t b, int num, int den) { return (int16_t)(a + ((int32_t)b - a) * num / den); }
+	// rotation channels are integrators (value += velocity each frame) of unwrapped angles: the
+	// step is the 16-bit difference, whatever its size (a spin of half a turn or more per frame
+	// taken "the short way round" would turn the wrong way)
 	static inline int16_t lerp_ang(int16_t a, int16_t b, int num, int den)
 	{
-		int32_t d = (((int32_t)b - a + 2048) & 4095) - 2048; // 12-bit angles, the short way round
+		int32_t d = (int16_t)(uint16_t)((uint16_t)b - (uint16_t)a);
 		return (int16_t)(a + d * num / den);
 	}
 
