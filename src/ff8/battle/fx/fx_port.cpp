@@ -163,6 +163,10 @@ namespace ff8fx
 		register_mag152_ultrasonic_waves();
 		register_mag127_petrify_stare();
 		register_mag029_wind_blast();
+		register_mag235_breath();
+		register_mag231_disease_breath();
+		register_mag233_earthquake();
+		register_mag026_clash();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
