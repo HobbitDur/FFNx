@@ -205,6 +205,72 @@ namespace gfc
 		return none;
 	}
 
+	// embedded battle models (draw 3 / held_model_draws) as the next tick's VM finds them.
+	// Vanilla's VM rebuilds a model's bone matrices before it reads them: op 0x089
+	// StepEmbeddedModelAnim (block flag 2 set: the VM, not the draw, steps the animation) reads
+	// the next frame (ReadAnimation, restart on completion), op 0x05B AttachToModelJoint rebuilds
+	// the pose matrices and composes a joint into a bone's node. Both engine calls are skipped
+	// while predicting (they write the model's skeleton, outside the snapshot), so the prediction
+	// found the matrices the real tick's draw left, already composed with the parent
+	// (ComputeBonesWorldMatrices works in place): the attached bones' predicted nodes were
+	// composed twice (Bahamut: the bones on the Mega Flare model's joints, far off screen).
+	// Here, before the predicted VM, with the skeleton and the animation command journaled, the
+	// model's local bone matrices are rebuilt from its pose; a model whose next tick steps it is
+	// stepped up front (so the attached bones see the next pose: the model's bone comes first in
+	// the VM order). "Steps" = the predicted VM advanced the block's frame counter (the first pass
+	// assumes every model with flag 2 does; one that did not is predicted again without the step).
+	// The held draw shows such a model at the in-between pose (held_model_pose).
+	struct ModelStep { uint8_t *blk; uint16_t cnt; bool pre, stepped; };
+	static ModelStep g_msteps[8];
+	static int g_nmsteps = -1;
+	static uint8_t *ModelSkeleton(uint8_t *hdr) { uint8_t *com = PTR(hdr, 4); return com ? PTR(com, 0) : nullptr; }
+	static void ModelStepsCollect(const Clone &c)
+	{
+		g_nmsteps = 0;
+		const uint8_t *model_draw = model_draws_of(c);
+		for (int k = 0; DRAWORDER()[k] != 0xFF && g_nmsteps < 8; k++)
+		{
+			uint8_t *b = PTR(CTX(), 0x90) + 0x100 * (uint32_t)DRAWORDER()[k];
+			uint8_t d = U8(b, 0x1C);
+			bool model = d == 3;
+			for (int m = 0; m < 4; m++) model |= model_draw[m] != 0 && model_draw[m] == d;
+			uint8_t *blk = model ? PTR(b, 0xBC) : nullptr;
+			if (!blk || !ModelSkeleton(blk + 0x10)) continue;
+			uint16_t fl = U16(blk, 2);
+			g_msteps[g_nmsteps++] = { blk, U16(blk, 0), !(fl & 1) && U16(blk, 0) != 0 && (fl & 2) != 0, false };
+		}
+	}
+	// (predicting, engine state saved) skeletons as the next tick's VM finds them
+	static void ModelsPrepare()
+	{
+		for (int i = 0; i < g_nmsteps; i++)
+		{
+			uint8_t *blk = g_msteps[i].blk, *hdr = blk + 0x10, *cmd = blk + 0x20;
+			uint8_t *sk = ModelSkeleton(hdr);
+			guard(sk, 0x10 + 0x30 * (uint32_t)U8(sk, 0));
+			guard(cmd, 8);
+			g_predict = false;
+			if (g_msteps[i].pre)
+			{
+				// 0xB26AD0, not frozen, flag 2 cleared by op 0x089
+				if (x::ReadAnimation(hdr, cmd) == 1) x::PreReadAnimation(hdr, cmd, U8(blk, 9));
+			}
+			else
+				x::BuildBoneMatricesFromPose(hdr);
+			g_predict = true;
+		}
+	}
+	static void ModelStepsEnd()
+	{
+		for (int i = 0; i < g_nmsteps; i++) g_msteps[i].stepped = U16(g_msteps[i].blk, 0) != g_msteps[i].cnt;
+	}
+	static bool ModelStepped(const uint8_t *blk)
+	{
+		if (!g_pred.ok || g_pred.paused) return false;
+		for (int i = 0; i < g_nmsteps; i++) if (g_msteps[i].blk == blk) return g_msteps[i].stepped;
+		return false;
+	}
+
 	static void CaptureBones(PredBone *out, uint32_t nb)
 	{
 		uint8_t *bones = PTR(CTX(), 0x90);
@@ -227,12 +293,8 @@ namespace gfc
 
 	// runs the VM part of the next tick (preamble + Neg/Integrator/Pos) on the real state with
 	// every out-of-state side effect disabled, captures the result and puts everything back
-	static void Predict(Clone &c)
+	static void PredictPass(Clone &c)
 	{
-		if (g_pred.tick == g_real_tick) return;
-		g_pred.tick = g_real_tick;
-		g_pred.ok = false;
-		if (!g_scratch) return;
 		region_save(g_r_gte, (void *)0x1CA8A00, 0xA00);
 		SaveFreeScratch();
 		uint32_t seed = *CrtSeed();
@@ -285,12 +347,15 @@ namespace gfc
 		}
 		U8(CTX(), 0xD2) = 0;
 		g_pred.paused = U8(CTX(), 0x35) != 0;
+		if (g_nmsteps < 0) ModelStepsCollect(c);
+		if (!g_pred.paused) ModelsPrepare();
 		if (!g_pred.paused)
 		{
 			AnimChannelsNeg();
 			AnimIntegrator();
 			AnimChannelsPos();
 		}
+		ModelStepsEnd();
 		g_pred.nb = BoneCount();
 		CaptureBones(g_pred.b, g_pred.nb);
 		memcpy(g_pred.node, NODEMAT(), sizeof(g_pred.node));
@@ -314,6 +379,21 @@ namespace gfc
 		*CrtSeed() = seed;
 		region_restore(g_r_free);
 		region_restore(g_r_gte);
+	}
+
+	static void Predict(Clone &c)
+	{
+		if (g_pred.tick == g_real_tick) return;
+		g_pred.tick = g_real_tick;
+		g_pred.ok = false;
+		if (!g_scratch) return;
+		g_nmsteps = -1;
+		PredictPass(c);
+		// a model stepped up front that the VM did not step: predict again without that step
+		bool again = false;
+		for (int i = 0; i < g_nmsteps; i++)
+			if (g_msteps[i].pre && !g_msteps[i].stepped) { g_msteps[i].pre = false; again = true; }
+		if (again) PredictPass(c);
 	}
 
 	// in-between value, holding on large jumps (teleports, re-spawns)
@@ -625,15 +705,20 @@ namespace gfc
 	}
 
 	// ------------------------------------------------------------------------------------
-	// 0xB26AD0 StepEmbeddedModelAnim: held frames (rt+0x45 forced to 0xFF): when the real tick
-	// would have advanced the animation, the bone matrices come from the exact in-between pose
-	// (pose_midpoint) instead of BuildBoneMatricesFromPose.
+	// 0xB26AD0 StepEmbeddedModelAnim: held frames (rt+0x45 forced to 0xFF): when the animation
+	// advances between the real tick and the next one, the bone matrices come from the exact
+	// in-between pose (pose_midpoint) instead of BuildBoneMatricesFromPose. Block flag 2 clear:
+	// the draw steps it (the real tick was not frozen); flag 2 set: the VM steps it (op 0x089,
+	// the draw only rebuilds the pose), when the prediction saw the next tick step it
+	// (ModelStepped; Bahamut's Mega Flare model: held still before).
 	// ------------------------------------------------------------------------------------
 	bool held_model_pose(uint8_t *blk, uint8_t *hdr, uint8_t *cmd)
 	{
 		uint16_t fl = U16(blk, 2);
-		if (!(g_held.active && g_held.real_skip == 0 && !(fl & 1) && U16(blk, 0) != 0 && !(fl & 2)))
-			return false;
+		if (!g_held.active || (fl & 1) || U16(blk, 0) == 0) return false;
+		// flag 2: the draw only rebuilds the pose; the VM (op 0x089) steps it: in-between when
+		// the next tick's VM steps it (the prediction saw its frame counter advance)
+		if ((fl & 2) ? !ModelStepped(blk) : g_held.real_skip != 0) return false;
 		pose_midpoint(hdr, cmd, g_held.num, g_held.den);
 		return true;
 	}
@@ -643,11 +728,48 @@ namespace gfc
 	// is drawn at pos + the next integration step's position delta * num/den and with the
 	// in-between of its colour and the next tick's colour fade step (+0x3C deltas, clamped
 	// 0..255), on a local copy (the pool is not written). When the particle's script runs on
-	// the next tick (wait counter +2 at 0) it may set a new colour / fade (ops 11 / 12, before
-	// the fade step): the colour then stays the real tick's (it changes on that tick). The
-	// frame (flipbook) stays the real tick's. Called for a live particle whose frame (+0x30) is
-	// set, in place of the frozen path's position type + draw.
+	// the next tick (wait counter +2 at 0) it may set a new colour / fade / velocity (ops 11,
+	// 12, 4...) before the integration and the fade step: that script step is run on a second
+	// copy (held_particle_script) and, when it is deterministic (no rand draw) and the particle
+	// lives on, the next tick's colour and (when the script left the position alone) velocity
+	// come from it; otherwise the colour stays the real tick's (it changes on that tick) and a
+	// scripted position jump happens on the real frame. The frame (flipbook) stays the real
+	// tick's. Called for a live particle whose frame (+0x30) is set, in place of the frozen
+	// path's position type + draw.
 	// ------------------------------------------------------------------------------------
+	// held: the next tick's script step of particle p on the copy nx (vanilla loop of 0xB29F20:
+	// ops until one yields); everything else it writes (stream cursor, the tick's Workspace /
+	// RuntimeSlot, the owner bone's +0xB6, the CRT seed) is put back. True when the step drew no
+	// random number and did not end the particle.
+	static bool held_particle_script(uint8_t *p, uint8_t *nx)
+	{
+		memcpy(nx, p, 0x50);
+		uint8_t *scr = PTR(p, 4);
+		if (scr == nullptr) return false;
+		static uint8_t ws_save[0x180];
+		memcpy(ws_save, WS(), 0x180);             // Workspace + RuntimeSlot (contiguous copy)
+		uint8_t *stream = STREAM();
+		uint16_t b6 = U16(CUR(), 0xB6);
+		uint32_t seed = *CrtSeed();
+		PTR(WS(), 0x44) = nx;
+		STREAM() = scr;
+		int32_t op = S16(scr, 0);
+		S16(RT(), 0x4A) = (int16_t)op;
+		C().pop[op & 0xFF]();
+		for (int n = 0; U16(RT(), 0x3E) == 0 && n < 256; n++)
+		{
+			op = S16(STREAM(), 0);
+			S16(RT(), 0x4A) = (int16_t)op;
+			C().pop[op & 0xFF]();
+		}
+		bool ok = U16(RT(), 0x3E) != 0 && *CrtSeed() == seed && STREAM() != nullptr && U16(nx, 0) != 0;
+		*CrtSeed() = seed;
+		U16(CUR(), 0xB6) = b6;
+		STREAM() = stream;
+		memcpy(WS(), ws_save, 0x180);
+		return ok;
+	}
+
 	void held_particle_draw(uint8_t *p)
 	{
 		const bool held_adv = g_held.real_skip == 0 && g_held.den > 0;
@@ -655,18 +777,26 @@ namespace gfc
 		uint8_t loc[0x50];
 		if (held_adv)
 		{
+			// the next tick's script step, when it runs (wait counter at 0)
+			uint8_t nx[0x50];
+			bool script = U16(p, 2) == 0;
+			bool sim = script && held_particle_script(p, nx);
+			// the record the integration starts from: nx when the script only changed the
+			// velocity / acceleration / colour (a scripted position is a jump on the real frame)
+			const uint8_t *src = sim && memcmp(nx + 0x10, p + 0x10, 0x10) == 0 ? nx : p;
 			// position = pos + next tick's integration delta ((vel + acc) << 4, the
 			// deterministic part) * num / den
 			memcpy(loc, p, 0x50);
 			for (int k = 0; k < 4; k++)
 			{
-				int32_t s = S16(p, 0x28 + 2 * k) + S16(p, 0x20 + 2 * k);
+				int32_t s = S16(src, 0x28 + 2 * k) + S16(src, 0x20 + 2 * k);
 				int32_t d = (int32_t)((int64_t)shl32(s, 4) * g_held.num / g_held.den);
 				S32(loc, 0x10 + 4 * k) = add32(S32(p, 0x10 + 4 * k), d);
 			}
-			for (int k = 0; k < 3 && U16(p, 2) != 0; k++)
+			const uint8_t *cs = script ? (sim ? nx : nullptr) : p;
+			for (int k = 0; k < 3 && cs != nullptr; k++)
 			{
-				int32_t c0 = U8(p, 0x38 + k), c1 = S8(p, 0x3C + k) + c0;
+				int32_t c0 = U8(p, 0x38 + k), c1 = S8(cs, 0x3C + k) + U8(cs, 0x38 + k);
 				if (c1 >= 0x100) c1 = 0xFF;
 				else if (c1 <= 0) c1 = 0;
 				U8(loc, 0x38 + k) = (uint8_t)(c0 + (c1 - c0) * g_held.num / g_held.den);
@@ -841,11 +971,19 @@ namespace gfc
 		}
 		else
 		{
-			// grown ribbon: VXY0 is what the growth step left, as on the next tick. Section
+			// grown ribbon: VXY0 (it ends up in the parent translation) at the in-between of
+			// the real tick's value and what the growth step left (as on the next tick). Section
 			// colours: the ramp is indexed by the age of the section (it grows by one per tick)
 			// and built from the colour bone: section j (age j on the next tick, age j - 1 on the
 			// real tick) is the in-between of the real tick's ramp entry j - 1 and the next tick's
 			// entry j, each ramp built from that tick's colour bone values
+			if (const uint32_t *m = g_v0memo.get(CUR()))
+			{
+				uint32_t v1 = GTE_VXY0();
+				int16_t x0 = (int16_t)(*m & 0xFFFF), y0 = (int16_t)(*m >> 16), x1 = (int16_t)(v1 & 0xFFFF), y1 = (int16_t)(v1 >> 16);
+				int16_t x = (int16_t)lerp_i(x0, x1, g_held.num, g_held.den), y = (int16_t)lerp_i(y0, y1, g_held.num, g_held.den);
+				GTE_VXY0() = (uint32_t)(uint16_t)x | ((uint32_t)(uint16_t)y << 16);
+			}
 			uint8_t *ramp = PTR(WS(), 0x84);
 			uint32_t f0 = (uint32_t)S32(WS(), 0xF0), f4 = (uint32_t)S32(WS(), 0xF4), f8 = (uint32_t)S32(WS(), 0xF8);
 			int32_t ents = (int32_t)(f0 + (f4 > f0 ? f4 - f0 : 0) + (f8 > f4 ? f8 - f4 : 0) + f8);
