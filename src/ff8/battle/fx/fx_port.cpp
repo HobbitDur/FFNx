@@ -174,6 +174,7 @@ namespace ff8fx
 		register_mag154_ultra_waves();
 		register_mag180_suicide();
 		register_mag169_gastric_juice();
+		register_mag126_electric_discharge();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
