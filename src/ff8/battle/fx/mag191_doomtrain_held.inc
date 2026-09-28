@@ -23,7 +23,17 @@ namespace d191
 {
 	// real tick on which the ported master last ran (held frames need its memos)
 	static uint32_t g_ported_tick = 0xFFFFFFFF;
-	static void held_note_master() { g_ported_tick = g_real_tick; }
+	// GTE projection distance H (control register 26) as the tick's tasks start: the sky resets
+	// it to the camera's (0x1D8E038) after its draw, so the tasks queued before the sky draw
+	// with the H the previous tick left (on the sky's first tick it changes for them); held
+	// frames start from the tick's start H blended toward the one the next tick starts with
+	static int32_t g_h_start;
+	static int32_t &GteH() { return var<int32_t>(0x1CA927C + 4 * 26); }
+	static void held_note_master()
+	{
+		g_ported_tick = g_real_tick;
+		g_h_start = GteH();
+	}
 
 	static int16_t L16(int16_t a, int16_t b, int num, int den) { return (int16_t)lerp_i(a, b, num, den); }
 
@@ -181,9 +191,9 @@ namespace d191
 	}
 
 	// the glow fade drawn on the real tick (the flicker keeps its 15 Hz steps)
-	struct GlowMemo { int32_t fade; };
+	struct GlowMemo { int32_t fade; int16_t c; };
 	static NodeMemo<GlowMemo, 64> g_glow_memo;
-	static void held_note_glow(const Node24 *n, int32_t fade) { if (GlowMemo *m = g_glow_memo.put(n)) m->fade = fade; }
+	static void held_note_glow(const Node24 *n, int32_t fade) { if (GlowMemo *m = g_glow_memo.put(n)) { m->fade = fade; m->c = n->c; } }
 
 	// ======================================================================
 	// Held frames (30 fps). Everything is drawn half way between the state drawn on the last
@@ -239,6 +249,33 @@ namespace d191
 		}
 	}
 
+	// bones that turn by a few units only (the train's bounce: +-1..5 per tick, which the int16
+	// pose values cannot split): their local matrices (built from the two ticks' poses) blended
+	// element-wise instead of rebuilt from the rounded half pose; bigger turns (wheels) keep the
+	// matrix of the blended angles
+	static void BoneBlend(uint8_t *sk, const uint8_t *s0, const uint8_t *s1, int num, int den)
+	{
+		for (uint32_t i = 0; i < sk[0]; i++)
+		{
+			uint32_t o = 0x10 + 48 * i;
+			const int16_t *a0 = (const int16_t *)(s0 + o + 4), *a1 = (const int16_t *)(s1 + o + 4);
+			bool small = true;
+			for (int k = 0; k < 3 && small; k++)
+			{
+				int d = ((a1[k] - a0[k] + 2048) & 4095) - 2048;
+				if (d > 64 || d < -64) small = false;
+			}
+			if (!small) continue;
+			Mat4x3 *m = (Mat4x3 *)(sk + o + 0x10);
+			const Mat4x3 *m0 = (const Mat4x3 *)(s0 + o + 0x10), *m1 = (const Mat4x3 *)(s1 + o + 0x10);
+			for (int r = 0; r < 3; r++)
+			{
+				for (int c = 0; c < 3; c++) m->m[r][c] = L16(m0->m[r][c], m1->m[r][c], num, den);
+				m->t[r] = lerp_i(m0->t[r], m1->t[r], num, den);
+			}
+		}
+	}
+
 	// the train: the drawn pose, advanced half a frame through the private reader (run on a
 	// copy of the command; a finished animation or a phase change holds the pose), its distance
 	// half way; the held chimney matrix from the same pose
@@ -257,29 +294,167 @@ namespace d191
 		memcpy(sk, m.skel, size);
 		Mat4x3 model = m.model;
 		int32_t dz;
+		bool blended = false;
 		if (!P1() && CreatureStep(n->c, &dz))
 		{
-			uint8_t cmd[8];
+			uint8_t cmd[8], hdr[0xC];
 			memcpy(cmd, m.cmd, 8);
-			if (ReaderRead(E + 0x60, cmd) != 1)
+			memcpy(hdr, E + 0x60, sizeof(hdr));
+			// AdvanceLoop on copies: the next frame; a looping animation that finished restarts
+			if (ReaderRead(E + 0x60, cmd) == 1 && !(E[0] & 1)) ReaderSetAnim(E + 0x60, cmd, (int32_t)cmd[0]);
+			memcpy(E + 0x60, hdr, sizeof(hdr));
 			{
+				ReaderBuildBones(E + 0x60);
 				memcpy(g_skel_next, sk, size);
 				memcpy(sk, m.skel, size);
 				PoseBlend(sk, g_skel_next, num, den);
 				ReaderBuildBones(E + 0x60);
+				BoneBlend(sk, m.skel, g_skel_next, num, den);
+				blended = true;
 				model.t[2] = lerp_i(m.model.t[2], m.model.t[2] + dz, num, den);
 			}
-			else memcpy(sk, m.skel, size);
 		}
 		CreatureMat() = model;
 		DrawModel(E, frame);
+		// DrawModel rebuilt the local matrices from the (rounded) pose values: the chimney bone
+		// is taken from the blended one
+		if (blended) BoneBlend(sk, m.skel, g_skel_next, num, den);
 		ComposeAffineTransform(&model, (const Mat4x3 *)(sk + 0x50), &g_held_bone);
 		CreatureMat() = model_cur;
 		memcpy(E + 0x6C, cmd_cur, 8);
 		memcpy(sk, g_skel_cur, size);
 	}
 
-	// lit records of an owner as drawn, moved half way when they moved on
+	// GPU polygon packets (GP0 0x20..0x3F) written by one draw at a (up to ae) and the same
+	// draw with the next tick's flipbook frame at b (up to be): each polygon of a is paired with
+	// the nearest polygon of b with the same command and length (nearest pairs first: a
+	// flipbook frame may list its quads in another order, or keep them in place and cycle their
+	// texture windows); with the same texture words its vertex colours and positions are moved
+	// to the in-between, else (a discrete frame step) and without a partner it keeps a's picture
+	struct PolyRef { uint32_t *w; uint32_t len, nv; uint8_t code; bool gouraud, tex; };
+	static int PolyList(uint8_t *p, const uint8_t *e, PolyRef *out, int max)
+	{
+		int n = 0;
+		while (p + 8 <= e && n < max)
+		{
+			uint32_t len = p[3];
+			if (!len) break;
+			uint8_t code = p[7];
+			if ((code & 0xE0) == 0x20)
+			{
+				PolyRef r = { (uint32_t *)(p + 4), len, (code & 8) ? 4u : 3u, code, (code & 0x10) != 0, (code & 4) != 0 };
+				if (len == 1 + r.nv * (r.tex ? 2 : 1) + (r.gouraud ? r.nv - 1 : 0)) out[n++] = r;
+			}
+			p += 4 + 4 * len;
+		}
+		return n;
+	}
+	// word index of vertex v's position / colour (-1: flat, no own colour)
+	static uint32_t PosIdx(const PolyRef &r, uint32_t v) { return 1 + v * (r.tex ? 2 : 1) + (r.gouraud ? v : 0); }
+	static int ColIdx(const PolyRef &r, uint32_t v) { return v == 0 ? 0 : (r.gouraud ? (int)PosIdx(r, v) - 1 : -1); }
+	static bool SameKind(const PolyRef &a, const PolyRef &b) { return a.code == b.code && a.len == b.len; }
+	static bool SameTexture(const PolyRef &a, const PolyRef &b)
+	{
+		if (a.tex)
+			for (uint32_t v = 0; v < a.nv; v++)
+			{
+				// uv (+ clut on vertex 0, texpage on vertex 1; the high half of the others is
+				// not read by the GPU)
+				uint32_t i = PosIdx(a, v) + 1, mask = v < 2 ? 0xFFFFFFFFu : 0xFFFFu;
+				if ((a.w[i] ^ b.w[i]) & mask) return false;
+			}
+		return true;
+	}
+	static void LerpPolyPackets(uint8_t *a, uint8_t *ae, const uint8_t *b, const uint8_t *be, int num, int den)
+	{
+		static PolyRef pa[32], pb[32];
+		int na = PolyList(a, ae, pa, 32), nb = PolyList((uint8_t *)b, be, pb, 32);
+		static uint64_t cand[32 * 32];
+		int nc = 0;
+		for (int i = 0; i < na; i++)
+			for (int j = 0; j < nb; j++)
+			{
+				if (!SameKind(pa[i], pb[j])) continue;
+				uint32_t d = 0;
+				for (uint32_t v = 0; v < pa[i].nv; v++)
+				{
+					const int16_t *x = (const int16_t *)&pa[i].w[PosIdx(pa[i], v)], *y = (const int16_t *)&pb[j].w[PosIdx(pb[j], v)];
+					int dx = x[0] - y[0], dy = x[1] - y[1];
+					d += (uint32_t)(dx < 0 ? -dx : dx) + (uint32_t)(dy < 0 ? -dy : dy);
+				}
+				cand[nc++] = ((uint64_t)d << 16) | (uint64_t)(i << 8) | (uint64_t)j;
+			}
+		for (int k = 1; k < nc; k++) // insertion sort (a few polygons per sprite)
+		{
+			uint64_t c = cand[k];
+			int q = k - 1;
+			for (; q >= 0 && cand[q] > c; q--) cand[q + 1] = cand[q];
+			cand[q + 1] = c;
+		}
+		uint64_t useda = 0, usedb = 0;
+		for (int k = 0; k < nc; k++)
+		{
+			int i = (int)((cand[k] >> 8) & 0xFF), j = (int)(cand[k] & 0xFF);
+			if ((useda >> i & 1) || (usedb >> j & 1)) continue;
+			useda |= 1ull << i;
+			usedb |= 1ull << j;
+			const PolyRef &x = pa[i], &y = pb[j];
+			if (!SameTexture(x, y)) continue;
+			for (uint32_t v = 0; v < x.nv; v++)
+			{
+				int ci = ColIdx(x, v);
+				if (ci >= 0)
+				{
+					uint8_t *ca = (uint8_t *)&x.w[ci];
+					const uint8_t *cb = (const uint8_t *)&y.w[ci];
+					for (int c = 0; c < 3; c++) ca[c] = (uint8_t)lerp_i(ca[c], cb[c], num, den);
+				}
+				int16_t *p0 = (int16_t *)&x.w[PosIdx(x, v)];
+				const int16_t *p1 = (const int16_t *)&y.w[PosIdx(y, v)];
+				p0[0] = (int16_t)lerp_i(p0[0], p1[0], num, den);
+				p0[1] = (int16_t)lerp_i(p0[1], p1[1], num, den);
+			}
+		}
+	}
+
+	// OT() (g_Battle_FrameRenderListBase + 0x44) pointed at a private bucket while alive
+	static uint32_t g_ot_next[64];
+	struct OTSwap
+	{
+		uint32_t saved;
+		OTSwap() : saved(var<uint32_t>(0x1D8E04C)) { var<uint32_t>(0x1D8E04C) = (uint32_t)&g_ot_next[32] - 0x44; }
+		~OTSwap() { var<uint32_t>(0x1D8E04C) = saved; }
+	};
+	static uint8_t g_seq_next[0x1000];
+
+	// a flipbook sprite drawn with the frame of the tick (draw(frame) into the frame's packets),
+	// then, when the record moves on to next_frame (>= 0), drawn again with that frame into a
+	// private bucket / buffer (header, OT node pool and cursor put back) and its packets blended
+	template<class D> static void SeqLerp(uint8_t *h, int16_t frame, int32_t next_frame, int num, int den, D draw)
+	{
+		uint32_t c0 = Cursor();
+		draw(frame);
+		uint32_t c1 = Cursor();
+		if (!num || next_frame < 0) return;
+		static uint8_t hs[0xB4];
+		if (h) memcpy(hs, h, sizeof(hs));
+		uint32_t exec = var<uint32_t>(0x1CA8828); // ssigpu_execution_cur: the node this draw adds is dropped
+		uint32_t n1;
+		{
+			memset(g_ot_next, 0, sizeof(g_ot_next));
+			OTSwap ot;
+			Cursor() = (uint32_t)g_seq_next;
+			draw((int16_t)next_frame); // hf191 private draw
+			n1 = Cursor();
+			Cursor() = c1;
+		}
+		var<uint32_t>(0x1CA8828) = exec;
+		if (h) memcpy(h, hs, sizeof(hs));
+		if (n1 - (uint32_t)g_seq_next <= sizeof(g_seq_next))
+			LerpPolyPackets((uint8_t *)c0, (uint8_t *)c1, g_seq_next, (const uint8_t *)n1, num, den);
+	}
+
+	// lit records of an owner as drawn, moved half way when they moved on (flipbook frame blended)
 	template<int N> static void HeldLit(const PoolMemo<N> &pm, uint32_t cell, const void *owner, uint8_t *h, bool ir, bool lerp, int num, int den)
 	{
 		for (int i = 0; i < N; i++)
@@ -291,12 +466,13 @@ namespace d191
 				int16_t pos[4];
 				memcpy(pos, m->r.pos, 8);
 				int16_t size = m->r.size;
-				if (lerp && Advanced(m->r, cur))
+				bool adv = Advanced(m->r, cur);
+				if (lerp && adv)
 				{
 					for (int j = 0; j < 3; j++) pos[j] = L16(m->r.pos[j], cur->pos[j], num, den);
 					size = L16(m->r.size, cur->size, num, den);
 				}
-				LitSprite(h, pos, size, m->r.age, ir);
+				SeqLerp(h, m->r.age, adv ? cur->age : -1, num, den, [&](int16_t f) { LitSprite(h, pos, size, f, ir); });
 			}
 	}
 
@@ -311,12 +487,15 @@ namespace d191
 				int16_t pos[4];
 				memcpy(pos, m->r.pos, 8);
 				int16_t size = m->r.size;
-				if (lerp && Advanced(m->r, cur))
+				bool adv = Advanced(m->r, cur);
+				if (lerp && adv)
 				{
 					for (int j = 0; j < 3; j++) pos[j] = L16(m->r.pos[j], cur->pos[j], num, den);
 					size = L16(m->r.size, cur->size, num, den);
 				}
-				OffsetSprite(h, mac, nv, pos, size, age2 ? (int16_t)(m->r.age << 1) : m->r.age, shift);
+				int16_t f0 = age2 ? (int16_t)(m->r.age << 1) : m->r.age;
+				int32_t f1 = adv ? (age2 ? (int16_t)(cur->age << 1) : cur->age) : -1;
+				SeqLerp(h, f0, f1, num, den, [&](int16_t f) { OffsetSprite(h, mac, nv, pos, size, f, shift); });
 			}
 	}
 
@@ -349,7 +528,7 @@ namespace d191
 		FieldFree(0xB4);
 	}
 
-	static void WheelTrailHeld(const Mat4x3 *frame, const Node24 *n)
+	static void WheelTrailHeld(const Mat4x3 *frame, const Node24 *n, int num, int den)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
@@ -366,7 +545,10 @@ namespace d191
 				const RecMemo *b = g_memo_b.get(i, 0, n);
 				if (!b) b = g_memo_b.get(i, 1, n);
 				if (!b) continue;
-				WheelTrailPair(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), &a->r, &b->r, a->r.age, b->r.age);
+				const Rec *ca = R(POOL_A, i), *cb = R(POOL_B, i);
+				int32_t next = Advanced(a->r, ca) && Advanced(b->r, cb) ? ca->age : -1;
+				int16_t db = (int16_t)(b->r.age - a->r.age);
+				SeqLerp(h, a->r.age, next, num, den, [&](int16_t f) { WheelTrailPair(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), &a->r, &b->r, f, (int16_t)(f + db)); });
 			}
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -419,26 +601,75 @@ namespace d191
 		case ORIG_RigRockTask: RigRockDraw(W, m, mv ? lerp_angle(m->f18, n->f18, num, den) : m->f18); break;
 		case ORIG_RigFlashTask:
 		{
-			int32_t f = RigFlashFade(m->c);
-			if (mv && m->c >= 2) f = lerp_i(f, RigFlashFade(n->c), num, den);
-			RigFlashDraw(W, m, m->c, true, f);
+			// fade 0x800 on tick 0, none on tick 1 (= fade 0), then -682 per tick: blended as
+			// one fade value (the fade form with 0 draws as the plain form)
+			if (!mv) { RigFlashDraw(W, m, m->c, true, RigFlashFade(m->c)); break; }
+			auto fd = [](int32_t c) { return c == 0 ? 0x800 : (c == 1 ? 0 : RigFlashFade(c)); };
+			RigFlashDraw(W, m, 2, true, lerp_i(fd(m->c), fd(n->c), num, den));
 			break;
 		}
-		case ORIG_RigSpriteTask: RigSpriteDraw(W, m, m->c); break;
+		case ORIG_RigSpriteTask: SeqLerp(nullptr, m->c, mv ? n->c : -1, num, den, [&](int16_t f) { RigSpriteDraw(W, m, f); }); break;
 		}
 	}
 
+	// the sky's colour as SkyDraw computes it: table colour (+0x1E) depth-cued by the phase (+0x20)
+	static uint32_t SkyColor(int16_t idx, int16_t phase)
+	{
+		uint32_t c = ((const uint32_t *)0xE3C8DC)[idx & 0x1F], out;
+		GteSetFarColor(0, 0, 0);
+		GteLoadRGBC(&c);
+		GteSetIR0((ComputeSin(phase) + 0x1000) / 2);
+		GteDPCS();
+		GteStoreRGB2(&out);
+		return out;
+	}
+
+	// SkyDraw of the in-between state: the rotation matrix, the morph weight and the colour are
+	// blended between the two ticks' own values (the sphere wraps the eye, so its huge vertices
+	// turn the 1-LSB rounding of a matrix built from rounded half angles into pixels of jitter;
+	// the colour table index +0x1E steps every tick: its colours are blended, not its index)
 	static void SkyHeld(const Node24 *n, int num, int den)
 	{
 		const Node24 *m = g_node_memo.get(n);
 		if (!m) return;
 		bool mv = NodeMoved(m, n);
-		int16_t ax = mv ? lerp_angle(m->f10, n->f10, num, den) : m->f10;
-		int16_t az = mv ? lerp_angle(m->f14, n->f14, num, den) : m->f14;
-		int16_t ph = mv ? lerp_angle(m->f20, n->f20, num, den) : m->f20;
-		int32_t f = SkyFade(m->c);
-		if (mv) f = lerp_i(f, SkyFade(n->c), num, den);
-		SkyDraw(m->f18, ax, az, m->f1A, m->f1C, m->f1E, ph, f);
+		if (!mv) { SkyDraw(m->f18, m->f10, m->f14, m->f1A, m->f1C, m->f1E, m->f20, SkyFade(m->c)); return; }
+		int16_t a0[3] = { m->f18, m->f10, m->f14 }, a1[3] = { n->f18, n->f10, n->f14 };
+		Mat4x3 r0, r1, mm;
+		RotMatrixXYZ(a0, &r0);
+		RotMatrixXYZ(a1, &r1);
+		mm = r0;
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++) mm.m[i][j] = L16(r0.m[i][j], r1.m[i][j], num, den);
+		int32_t v[3] = { m->f1C, m->f1C, m->f1C };
+		mm.t[0] = 0;
+		mm.t[1] = 0;
+		mm.t[2] = 0x120;
+		Scale3DMatrix(&mm, v);
+		uint32_t c0 = SkyColor(m->f1E, m->f20), c1 = SkyColor(n->f1E, n->f20);
+		GteSetRotMatrix(&mm);
+		GteSetTransVector(&mm);
+		uint8_t *h = (uint8_t *)FieldAlloc(0x6C);
+		*(uint32_t *)h = 0xE3496C;
+		*(uint32_t *)(h + 8) = 0;
+		*(uint32_t *)(h + 0x1C) = (m->f1A ? 3 : 0xC) | 0x20C0;
+		*(uint32_t *)(h + 0x20) = LerpColor(c0, c1, num, den);
+		*(int32_t *)(h + 0xC) = lerp_i(SkyFade(m->c), SkyFade(n->c), num, den);
+		int32_t t = lerp_i((ComputeSin((int32_t)m->f20 >> 2) + 0x1000) / 2, (ComputeSin((int32_t)n->f20 >> 2) + 0x1000) / 2, num, den);
+		int32_t count = var<int32_t>(0xE34970);
+		int16_t *out = (int16_t *)(MB() + 0x37000);
+		const int16_t *a = (const int16_t *)0xE34974, *b = (const int16_t *)0xE3702C;
+		for (int32_t i = 0; i < count; i++, a += 4, b += 4, out += 4)
+		{
+			out[0] = (int16_t)((mul32(b[0] - a[0], t) >> 12) + a[0]);
+			out[1] = (int16_t)((mul32(b[1] - a[1], t) >> 12) + a[1]);
+			out[2] = (int16_t)((mul32(b[2] - a[2], t) >> 12) + a[2]);
+		}
+		*(uint32_t *)(h + 4) = MB() + 0x37000;
+		ProjectionH(0x120);
+		Cursor() = SkyRender(h, var<uint32_t>(0x1D8E04C) + 0x4078, 6, Cursor());
+		ProjectionH(CamH());
+		FieldFree(0x6C);
 	}
 
 	static void PuffWallHeld(const Mat4x3 *frame, const Node24 *n, int num, int den)
@@ -487,9 +718,12 @@ namespace d191
 		if (m->c < 5)
 		{
 			int16_t sz = m->f1C;
-			TransformCameraByShadowRotation(&m->f10, sz, -((int32_t)sz >> 3));
-			*(int16_t *)(h + 4) = m->c;
-			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
+			SeqLerp(h, m->c, NodeMoved(m, n) && n->c < 5 ? n->c : -1, num, den, [&](int16_t f)
+			{
+				TransformCameraByShadowRotation(&m->f10, sz, -((int32_t)sz >> 3));
+				*(int16_t *)(h + 4) = f;
+				Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
+			});
 		}
 		*(uint32_t *)h = 0xE34548;
 		ExplosionFrame(s, m, frame);
@@ -503,9 +737,15 @@ namespace d191
 				const Rec *cur = R(POOL_E, i);
 				int16_t pos[4];
 				memcpy(pos, r->r.pos, 8);
-				if (Advanced(r->r, cur))
-					for (int j = 0; j < 3; j++) pos[j] = L16(r->r.pos[j], cur->pos[j], num, den);
-				ShardDraw(h, s, pos, r->r.size, r->r.vel, r->r.age);
+				int16_t vel[3] = { r->r.vel[0], r->r.vel[1], r->r.vel[2] };
+				bool adv = Advanced(r->r, cur);
+				if (adv)
+					for (int j = 0; j < 3; j++)
+					{
+						pos[j] = L16(r->r.pos[j], cur->pos[j], num, den);
+						vel[j] = L16(r->r.vel[j], cur->vel[j], num, den); // orientation (the halving rounds per axis)
+					}
+				SeqLerp(h, r->r.age, adv ? cur->age : -1, num, den, [&](int16_t f) { ShardDraw(h, s, pos, r->r.size, vel, f); });
 			}
 		FieldFree(0x98);
 		FieldFree(0xB4);
@@ -533,6 +773,8 @@ namespace d191
 	{
 		uint32_t cursor = Cursor();
 		Cursor() = (uint32_t)g_held_packets;
+		int32_t h_now = GteH();
+		if (h_now != g_h_start) ProjectionH(lerp_i(g_h_start, h_now, num, den));
 		uint8_t *morph = (uint8_t *)(MB() + 0x37000);
 		memcpy(g_morph_save, morph, MORPH_SAVE);
 		bool timeline = false;
@@ -561,7 +803,7 @@ namespace d191
 			case ORIG_SteamPairTask: PuffHeld(&frame, n, 0xE33E40, false, 8, false, 0, nullptr, 0, 0, 0, false, num, den); break;
 			case ORIG_RainTask: RainHeld(n, num, den); break;
 			case ORIG_CreatureTask: CreatureHeld(&frame, n, num, den); break;
-			case ORIG_WheelTrailTask: WheelTrailHeld(&frame, n); break;
+			case ORIG_WheelTrailTask: WheelTrailHeld(&frame, n, num, den); break;
 			case ORIG_PuffLineTask: PuffHeld(&frame, n, 0xE33E40, false, 8, false, 0, nullptr, 0, 0, 0, true, num, den); break;
 			case ORIG_PuffWallTask: PuffWallHeld(&frame, n, num, den); break;
 			case ORIG_FlareTask:
@@ -574,7 +816,18 @@ namespace d191
 				break;
 			}
 			case ORIG_GlowTask:
-				if (const GlowMemo *g = g_glow_memo.get(n)) GlowDraw(&frame, &g_held_bone, n, g->fade);
+				if (const GlowMemo *g = g_glow_memo.get(n))
+				{
+					// the flicker's phase / speed are already stepped: GlowFade() is the fade the
+					// next tick draws
+					int32_t fd = g->fade;
+					if (n->c == (int16_t)(g->c + 1) && n->c < n->e)
+					{
+						int32_t f1 = GlowFade();
+						fd = lerp_i(fd, f1 < 0 ? 0 : f1, num, den);
+					}
+					GlowDraw(&frame, &g_held_bone, n, fd);
+				}
 				break;
 			case ORIG_ChimneyTask: PuffHeld(&frame, n, 0xE342A4, false, 8, false, 0, &g_held_bone, -0xB4, -0x456, -0x2454, true, num, den); break;
 			case ORIG_SteamTrailTask: SteamHeld(&frame, n, POOL_C, true, true, 0xC, 4, true, 0xE342A4, num, den); break;
@@ -590,6 +843,7 @@ namespace d191
 			}
 		}
 		memcpy(morph, g_morph_save, MORPH_SAVE);
+		if (GteH() != h_now) ProjectionH(h_now);
 		Cursor() = cursor;
 	}
 }
