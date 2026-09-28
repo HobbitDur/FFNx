@@ -168,6 +168,7 @@ namespace ff8fx
 		register_mag233_earthquake();
 		register_mag026_clash();
 		register_mag010_ray_bomb();
+		register_mag011_storm_breath();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
