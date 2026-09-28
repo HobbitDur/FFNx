@@ -18,6 +18,8 @@
 // FX_HELD(...) statements of gfc_engine.cpp (included at its end, declarations in
 // gfc_engine_held.h)
 
+#include <math.h>
+#include <vector>
 namespace ff8fx
 {
 namespace gfc
@@ -29,6 +31,8 @@ namespace gfc
 	Held g_held = { false, 0, 1, 0 };
 
 	static uint32_t g_ported_tick = 0xFFFFFFFF;
+	// battle camera shake offsets (0x1D97710, 3 x s16) as the last real tick left them
+	static int16_t g_shake[3] = {};
 	// Workspace + RuntimeSlot of the last real tick, copied at its end: held frames and the
 	// prediction run on this private copy (the live scratch-stack block may be reused by other
 	// battle code between two ticks; vanilla's next tick gets it back at the same address)
@@ -247,6 +251,19 @@ namespace gfc
 		guard((void *)0x1D977A0, 4);
 		g_cam_written = false;
 
+		// the view the next tick copies into the node matrices: the battle camera module builds it
+		// (BS_Camera_BuildViewMatrixApplyShake 0x5033E0) from the camera this tick wrote and the
+		// shake offsets 0x1D97710 this tick's VM wrote (op 0x047; the build adds and clears them),
+		// before that tick; here it is built early from the same inputs (the shake as the real
+		// tick left it, held_note_scratch: a held frame's own view build may have consumed it; the
+		// camera block 0x1D97700..+0xC0 is put back below; the build's scratch / GTE use are inside
+		// the saved regions). Predicting with the view still in 0x1D97778 (the one this tick drew
+		// with, or the held frame's) bakes the wrong camera into every node slot: the held
+		// geometry then lags the camera step.
+		static uint8_t camblk[0xC0];
+		memcpy(camblk, (void *)0x1D97700, sizeof(camblk));
+		memcpy((void *)0x1D97710, g_shake, sizeof(g_shake));
+		((void (__cdecl *)())0x5033E0)();
 		// the next tick's preamble (0xB25DF0), without the debug pad / OT clear
 		S16(CTX(), 0x32) = (int16_t)(S16(CTX(), 0x32) + 1);
 		U8(RT(), 0x41) = U8(CTX(), 0x32) & 1;
@@ -289,6 +306,7 @@ namespace gfc
 		journal_restore();
 		RestoreEngine(true);
 		memcpy((void *)0xB8B7F0, cam0, 16);
+		memcpy((void *)0x1D97700, camblk, sizeof(camblk));
 		PROJH() = projh;
 		RT() = saved_globals[0]; WS() = saved_globals[1]; CTX() = saved_globals[2]; SCENE() = saved_globals[3];
 		RCTX() = saved_globals[4]; SEQ() = saved_globals[5]; CUR() = saved_globals[6]; STREAM() = saved_globals[7];
@@ -316,13 +334,109 @@ namespace gfc
 	static const int32_t CUT_ANGLE = 0x7FFF; // outAngle (int16 wrap is the shortest way)
 	static const int32_t CUT_MAT = 0x7FFF;
 
+	// rotation part of a matrix node at the in-between: the node matrices are rotations with a
+	// per-axis scale (column scale, M = R * S, or row scale, M = S * R); blending the 3x3
+	// elements shrinks the object on a large rotation step (Eden's spinning fans turn 180 degrees
+	// per tick: the element-wise in-between is a flat line). The rotation is turned by
+	// num/den of the step's angle about its axis (shortest way; a half turn keeps the axis the
+	// data gives) and the scales are blended. False (element-wise blend) when either matrix is
+	// not a scaled rotation (shear / mirror / degenerate).
+	static bool MixRotation(Mat4x3 &m, const Mat4x3 &n, int num, int den)
+	{
+		for (int form = 0; form < 2; form++)   // 0: column scale, 1: row scale
+		{
+			double A[3][3], B[3][3], sa[3], sb[3];
+			bool ok = true;
+			for (int i = 0; i < 3 && ok; i++)
+			{
+				double qa = 0, qb = 0;
+				for (int j = 0; j < 3; j++)
+				{
+					double a = (form ? m.m[i][j] : m.m[j][i]) / 4096.0, b = (form ? n.m[i][j] : n.m[j][i]) / 4096.0;
+					qa += a * a; qb += b * b;
+				}
+				sa[i] = sqrt(qa); sb[i] = sqrt(qb);
+				if (sa[i] < 1.0 / 64 || sb[i] < 1.0 / 64) ok = false;
+			}
+			if (!ok) return false;
+			for (int r = 0; r < 3; r++)
+				for (int c = 0; c < 3; c++)
+				{
+					int k = form ? r : c;
+					A[r][c] = m.m[r][c] / 4096.0 / sa[k];
+					B[r][c] = n.m[r][c] / 4096.0 / sb[k];
+				}
+			// orthonormal, proper rotations (tolerance for the 4.12 rounding)
+			auto ortho = [](const double R[3][3]) {
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++)
+					{
+						double d = R[0][i] * R[0][j] + R[1][i] * R[1][j] + R[2][i] * R[2][j];
+						if (fabs(d - (i == j ? 1.0 : 0.0)) > 0.02) return false;
+					}
+				double det = R[0][0] * (R[1][1] * R[2][2] - R[1][2] * R[2][1]) - R[0][1] * (R[1][0] * R[2][2] - R[1][2] * R[2][0])
+					+ R[0][2] * (R[1][0] * R[2][1] - R[1][1] * R[2][0]);
+				return det > 0;
+			};
+			if (!ortho(A) || !ortho(B)) continue;
+			// step Q = B * A^T, angle / axis
+			double Q[3][3];
+			for (int r = 0; r < 3; r++)
+				for (int c = 0; c < 3; c++) Q[r][c] = B[r][0] * A[c][0] + B[r][1] * A[c][1] + B[r][2] * A[c][2];
+			double cs = (Q[0][0] + Q[1][1] + Q[2][2] - 1) / 2;
+			if (cs > 1) cs = 1;
+			if (cs < -1) cs = -1;
+			double th = acos(cs), ax[3];
+			if (th < 1e-6) return false;    // no rotation: the element-wise blend is exact
+			double sn = sin(th);
+			if (sn > 1e-3)
+			{
+				ax[0] = (Q[2][1] - Q[1][2]) / (2 * sn);
+				ax[1] = (Q[0][2] - Q[2][0]) / (2 * sn);
+				ax[2] = (Q[1][0] - Q[0][1]) / (2 * sn);
+			}
+			else
+			{
+				// half turn: Q = 2 a a^T - I; the largest diagonal gives the axis
+				int k = 0;
+				for (int i = 1; i < 3; i++) if (Q[i][i] > Q[k][k]) k = i;
+				double ak = sqrt((Q[k][k] + 1) / 2);
+				for (int i = 0; i < 3; i++) ax[i] = i == k ? ak : Q[k][i] / (2 * ak);
+			}
+			double al = sqrt(ax[0] * ax[0] + ax[1] * ax[1] + ax[2] * ax[2]);
+			if (al < 1e-9) return false;
+			for (int i = 0; i < 3; i++) ax[i] /= al;
+			double ph = th * num / den, c = cos(ph), s = sin(ph), t = 1 - c;
+			double P[3][3] = {
+				{ t * ax[0] * ax[0] + c, t * ax[0] * ax[1] - s * ax[2], t * ax[0] * ax[2] + s * ax[1] },
+				{ t * ax[0] * ax[1] + s * ax[2], t * ax[1] * ax[1] + c, t * ax[1] * ax[2] - s * ax[0] },
+				{ t * ax[0] * ax[2] - s * ax[1], t * ax[1] * ax[2] + s * ax[0], t * ax[2] * ax[2] + c } };
+			for (int r = 0; r < 3; r++)
+				for (int cc = 0; cc < 3; cc++)
+				{
+					double v = P[r][0] * A[0][cc] + P[r][1] * A[1][cc] + P[r][2] * A[2][cc];
+					int k = form ? r : cc;
+					v *= sa[k] + (sb[k] - sa[k]) * num / den;
+					double q = floor(v * 4096 + 0.5);
+					m.m[r][cc] = (int16_t)(q > 32767 ? 32767 : q < -32768 ? -32768 : q);
+				}
+			return true;
+		}
+		return false;
+	}
+
 	static void MixMatrix(Mat4x3 &m, const Mat4x3 &n, int num, int den)
 	{
-		for (int r = 0; r < 3; r++)
-			for (int c = 0; c < 3; c++) m.m[r][c] = mix16(m.m[r][c], n.m[r][c], num, den, CUT_MAT);
+		if (num >= den) { m = n; return; }
+		if (num > 0 && !MixRotation(m, n, num, den))
+			for (int r = 0; r < 3; r++)
+				for (int c = 0; c < 3; c++) m.m[r][c] = mix16(m.m[r][c], n.m[r][c], num, den, CUT_MAT);
 		m.pad = mix16(m.pad, n.pad, num, den, 0x7FFF);
 		for (int k = 0; k < 3; k++) m.t[k] = mix32(m.t[k], n.t[k], num, den, 0x100000);
 	}
+
+	// bones interpolated by the current held draw (held_bone_ends)
+	static uint8_t g_mixed[128];
 
 	// writes the in-between state into the (saved) engine state
 	static void ApplyInBetween(int num, int den)
@@ -338,6 +452,7 @@ namespace gfc
 			uint8_t *b = bones + 0x100 * i;
 			const PredBone &p = g_pred.b[i];
 			if (!alive[i] || !p.alive || p.id16 != U16(b, 0x12) || p.draw != U8(b, 0x1C)) continue;
+			g_mixed[i] = 1;
 			for (int k = 0; k < 3; k++)
 			{
 				S16(b, 0x8C + 2 * k) = mix16(S16(b, 0x8C + 2 * k), p.ang[k], num, den, CUT_ANGLE);
@@ -368,6 +483,22 @@ namespace gfc
 			for (int o = 0x40; o < 0x4C; o += 4) S32(l, o) = mix32(S32(l, o), AT<int32_t>(n, o), num, den, 0x7FFFFFFF);
 		}
 		for (int k = 0; k < 4; k++) MixMatrix(BBMAT()[k], g_pred.bb[k], num, den);
+	}
+
+	bool held_bone_ends(const uint8_t *b, int16_t ang0[3], int16_t pos0[3], int16_t ang1[3], int16_t pos1[3])
+	{
+		if (!g_held.active || g_r_bones.p == nullptr) return false;
+		uint32_t off = (uint32_t)(b - g_r_bones.p);
+		if (b < g_r_bones.p || off >= g_r_bones.n || (off & 0xFF) != 0) return false;
+		uint32_t i = off >> 8;
+		if (i >= 128 || !g_mixed[i]) return false;
+		const uint8_t *r = g_r_bones.copy + off;
+		for (int k = 0; k < 3; k++)
+		{
+			ang0[k] = AT<int16_t>(r, 0x8C + 2 * k); pos0[k] = AT<int16_t>(r, 0x94 + 2 * k);
+			ang1[k] = g_pred.b[i].ang[k]; pos1[k] = g_pred.b[i].pos[k];
+		}
+		return true;
 	}
 
 	bool HeldReady(Clone &c)
@@ -423,6 +554,7 @@ namespace gfc
 		}
 		SaveFreeScratch();
 		SaveDrawScratch();
+		memset(g_mixed, 0, sizeof(g_mixed));
 		if (g_pred.ok && !g_pred.paused) ApplyInBetween(num, den);
 
 		// the tick's draw preamble, packets into a private buffer
@@ -489,6 +621,7 @@ namespace gfc
 	{
 		memcpy(g_scratch_copy, WS(), sizeof(g_scratch_copy));
 		g_scratch = g_scratch_copy;
+		memcpy(g_shake, (void *)0x1D97710, sizeof(g_shake));
 	}
 
 	// ------------------------------------------------------------------------------------
@@ -507,9 +640,13 @@ namespace gfc
 
 	// ------------------------------------------------------------------------------------
 	// 0xB29F20 (Draw 6) particle system, held frames (g_held, frozen path forced): the particle
-	// is drawn at pos + the next integration step's position delta * num/den, on a local copy
-	// (the pool is not written). Called for a live particle whose frame (+0x30) is set, in place
-	// of the frozen path's position type + draw.
+	// is drawn at pos + the next integration step's position delta * num/den and with the
+	// in-between of its colour and the next tick's colour fade step (+0x3C deltas, clamped
+	// 0..255), on a local copy (the pool is not written). When the particle's script runs on
+	// the next tick (wait counter +2 at 0) it may set a new colour / fade (ops 11 / 12, before
+	// the fade step): the colour then stays the real tick's (it changes on that tick). The
+	// frame (flipbook) stays the real tick's. Called for a live particle whose frame (+0x30) is
+	// set, in place of the frozen path's position type + draw.
 	// ------------------------------------------------------------------------------------
 	void held_particle_draw(uint8_t *p)
 	{
@@ -526,6 +663,13 @@ namespace gfc
 				int32_t s = S16(p, 0x28 + 2 * k) + S16(p, 0x20 + 2 * k);
 				int32_t d = (int32_t)((int64_t)shl32(s, 4) * g_held.num / g_held.den);
 				S32(loc, 0x10 + 4 * k) = add32(S32(p, 0x10 + 4 * k), d);
+			}
+			for (int k = 0; k < 3 && U16(p, 2) != 0; k++)
+			{
+				int32_t c0 = U8(p, 0x38 + k), c1 = S8(p, 0x3C + k) + c0;
+				if (c1 >= 0x100) c1 = 0xFF;
+				else if (c1 <= 0) c1 = 0;
+				U8(loc, 0x38 + k) = (uint8_t)(c0 + (c1 - c0) * g_held.num / g_held.den);
 			}
 			q = loc;
 			PTR(WS(), 0x44) = loc;
@@ -562,8 +706,15 @@ namespace gfc
 	// ------------------------------------------------------------------------------------
 	// 0xB1A130 (Draw 37 RibbonTrail), held frames (g_held, rt+0x45 forced to 0xFF): the frozen
 	// path runs, so the ring, the node position and bone+0x4A never advance: the ribbon drawn is
-	// the real tick's history (colour bone and parent matrix are the in-between values). Two
-	// held-only additions:
+	// the real tick's history (colour bone and parent matrix are the in-between values).
+	// When the real tick would have grown the ribbon (not frozen on the real tick, outAngleX >=
+	// 0), the held draw does the next tick's growth step on the saved ring (vanilla advance
+	// code, held_ribbon_advance: head + 1, new cross-section, homing node position) and puts the
+	// new head section num/den of its way from the previous head (the head segment grows from
+	// nothing), and every segment's colour at the in-between of its ramp entry and the next
+	// one's (the ramp is indexed by the age of the segment, which grows by one per tick). A full
+	// ring loses its oldest (faded-out) segment with the growth. Tail retire (outAngleX < 0)
+	// stays a discrete step of the real tick. Held-only additions besides:
 	//   * VXY0 before SetupParentXform is set to the value the real tick had there (vanilla
 	//     leaves V0.xy of the previous GTE user in the translation; in a held draw that is
 	//     another handler's frozen-path value, which would shift the whole ribbon);
@@ -582,13 +733,86 @@ namespace gfc
 	static uint8_t *g_hs_p = nullptr;
 	static uint32_t g_hs_n = 0;
 
+	// the held draw grew the ribbon (held_ribbon_v0 then blends the colour ramp)
+	static bool g_rib_adv = false;
+
+	// held: the next tick's growth step (0xB1A46E..0xB1A6E8 of the vanilla handler) on the saved
+	// ring, then the new head section at num/den of its way from the previous head
+	static void held_ribbon_advance(uint8_t *ring)
+	{
+		using namespace part_shared_ribbon;
+		if (g_held.real_skip != 0 || g_held.den <= 0 || g_held.num <= 0) return;
+		if (S16(CUR(), 0x8C) < 0) return;
+		U16(ring, 0) = (uint16_t)(U16(ring, 0) + 1);
+		int32_t len = (int32_t)U16(ring, 4) + 1;
+		if (len < (int32_t)U16(ring, 2)) U16(ring, 4) = (uint16_t)len;
+		int32_t head = U16(ring, 0);
+		int32_t cap = U16(ring, 2);
+		S32(WS(), 0x80) = head;
+		PTR(WS(), 0x6C) = RingEntry(ring, head % cap);
+		PTR(WS(), 0x68) = RingEntry(ring, sub32(head, 1) % cap);
+		S32(WS(), 0x78) = U16(ring, 4);
+		uint8_t *tgt = PTR(WS(), 0x98);
+		uint8_t *prev = PTR(WS(), 0x68);
+		uint8_t *nw = PTR(WS(), 0x6C);
+		if (U8(ring, 0x10) & 1)
+			S32(WS(), 0x94) = Ribbon_B1AFE0_FollowDelta(CUR() + 0x94, prev);
+		else
+			Ribbon_B1AE60_SteerToward(tgt + 0x94, prev, nw);
+		int32_t flip = xl_LookAt_B66E50(ZEROVEC(), WS() + 0xE0, WS() + 0xA0);
+		x::SetRotMatrix(WS() + 0xA0);
+		x::GteWriteCtrl(S16(prev, 0), 5);
+		x::GteWriteCtrl(S16(prev, 2), 6);
+		x::GteWriteCtrl(S16(prev, 4), 7);
+		if (U8(ring, 0x10) & 1)
+		{
+			Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), S32(WS(), 0x94), nw, flip);
+			uint8_t *b = CUR();
+			int32_t dx = sub32(S16(b, 0x94), S16(nw, 0));
+			int32_t dy = sub32(S16(b, 0x96), S16(nw, 2));
+			int32_t dz = sub32(S16(b, 0x98), S16(nw, 4));
+			for (int n = 0; n < 9; n++)
+			{
+				U16(nw, 8 * n) = (uint16_t)(U16(nw, 8 * n) + (uint16_t)dx);
+				U16(nw, 8 * n + 2) = (uint16_t)(U16(nw, 8 * n + 2) + (uint16_t)dy);
+				U16(nw, 8 * n + 4) = (uint16_t)(U16(nw, 8 * n + 4) + (uint16_t)dz);
+			}
+		}
+		else
+			Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), S16(CUR(), 0x8C), nw, flip);
+		// in-between head section (the pad words +6 / +0xE keep the new section's yaw / pitch)
+		for (int n = 0; n < 9; n++)
+			for (int k = 0; k < 3; k++)
+			{
+				int32_t a = S16(prev, 8 * n + 2 * k), d = S16(nw, 8 * n + 2 * k) - a;
+				S16(nw, 8 * n + 2 * k) = (int16_t)(a + d * g_held.num / g_held.den);
+			}
+		if (!(U8(ring, 0x10) & 1))
+		{
+			// homing: the node follows its head (vanilla writes outPos / accumPos from it)
+			for (int k = 0; k < 3; k++)
+			{
+				U16(CUR(), 0x94 + 2 * k) = U16(nw, 2 * k);
+				S32(CUR(), 0x5C + 4 * k) = shl32(S16(nw, 2 * k), 16);
+			}
+		}
+		// ws+0xF0.. (colour ramp lengths, set by the draw before this hook) were used by the
+		// cross-section as its vector
+		S32(WS(), 0xF0) = U16(ring, 0xA);
+		S32(WS(), 0xF4) = U16(ring, 0xC);
+		S32(WS(), 0xF8) = U16(ring, 2);
+		g_rib_adv = true;
+	}
+
 	// held: save the scratch above the arena top this draw writes (projection buffers
 	// [top, top+0xC6) and the colour table at top+0x100)
 	void held_ribbon_save(uint8_t *edi)
 	{
 		g_hs_p = nullptr;
 		g_hs_n = 0;
+		g_rib_adv = false;
 		if (!g_held.active) return;
+		held_ribbon_advance(edi);
 		uint32_t f0 = U16(edi, 0xA), f4 = U16(edi, 0xC), f8 = U16(edi, 2);
 		uint32_t ents = f0 + (f4 > f0 ? f4 - f0 : 0) + (f8 > f4 ? f8 - f4 : 0) + f8;
 		g_hs_p = PTR(CTX(), 0x74);
@@ -610,10 +834,46 @@ namespace gfc
 			uint32_t *m = g_v0memo.put(CUR());
 			if (m) *m = GTE_VXY0();
 		}
-		else
+		else if (!g_rib_adv)
 		{
 			const uint32_t *m = g_v0memo.get(CUR());
 			if (m) GTE_VXY0() = *m;
+		}
+		else
+		{
+			// grown ribbon: VXY0 is what the growth step left, as on the next tick. Section
+			// colours: the ramp is indexed by the age of the section (it grows by one per tick)
+			// and built from the colour bone: section j (age j on the next tick, age j - 1 on the
+			// real tick) is the in-between of the real tick's ramp entry j - 1 and the next tick's
+			// entry j, each ramp built from that tick's colour bone values
+			uint8_t *ramp = PTR(WS(), 0x84);
+			uint32_t f0 = (uint32_t)S32(WS(), 0xF0), f4 = (uint32_t)S32(WS(), 0xF4), f8 = (uint32_t)S32(WS(), 0xF8);
+			int32_t ents = (int32_t)(f0 + (f4 > f0 ? f4 - f0 : 0) + (f8 > f4 ? f8 - f4 : 0) + f8);
+			uint8_t *cb = PTR(WS(), 0x9C);
+			int16_t a0[3], p0[3], a1[3], p1[3];
+			if (!held_bone_ends(cb, a0, p0, a1, p1))
+				for (int k = 0; k < 3; k++) { a0[k] = a1[k] = S16(cb, 0x8C + 2 * k); p0[k] = p1[k] = S16(cb, 0x94 + 2 * k); }
+			auto colw = [](const int16_t *v) {
+				uint32_t c = (uint32_t)(int32_t)v[2] | 0x200u;
+				c = (c << 8) | (uint32_t)(int32_t)v[1];
+				return (c << 8) | (uint32_t)(int32_t)v[0];
+			};
+			static std::vector<uint8_t> r0, r1;
+			r0.assign((size_t)ents * 8 + 8, 0);
+			r1.assign((size_t)ents * 8 + 8, 0);
+			part_shared_ribbon::Ribbon_B1B220_BuildColourRamp(colw(p0), colw(a0), r0.data(), 0);
+			part_shared_ribbon::Ribbon_B1B220_BuildColourRamp(colw(p1), colw(a1), r1.data(), 0);
+			for (int32_t j = ents - 1; j >= 0; j--)
+				for (int w = 0; w < 2; w++)
+				{
+					uint32_t c0 = U32(r0.data(), 8 * (j > 0 ? j - 1 : 0) + 4 * w), c1 = U32(r1.data(), 8 * j + 4 * w), c = U32(ramp, 8 * j + 4 * w) & 0xFF000000u;
+					for (int s = 0; s < 24; s += 8)
+					{
+						int32_t x0 = (c0 >> s) & 0xFF, x1 = (c1 >> s) & 0xFF;
+						c |= (uint32_t)((x0 + (x1 - x0) * g_held.num / g_held.den) & 0xFF) << s;
+					}
+					U32(ramp, 8 * j + 4 * w) = c;
+				}
 		}
 	}
 

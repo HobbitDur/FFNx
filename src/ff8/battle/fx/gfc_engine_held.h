@@ -91,6 +91,11 @@ namespace gfc
 	// draw handler ids besides 3 whose bone+0xBC block is an embedded battle model block
 	// (+0x14 -> skeleton), saved around held draws (Leviathan: 20, 24)
 	void held_model_draws(Clone &c, uint8_t d0, uint8_t d1 = 0, uint8_t d2 = 0, uint8_t d3 = 0);
+	// held draw: outAngle / outPos of bone b on the real tick (ang0/pos0) and on the predicted
+	// next tick (ang1/pos1), for a bone interpolated on this held frame (false otherwise: the bone
+	// holds the real tick's values). For draw handlers whose discrete inputs (table indices...)
+	// need the two ends rather than the in-between value.
+	bool held_bone_ends(const uint8_t *b, int16_t ang0[3], int16_t pos0[3], int16_t ang1[3], int16_t pos1[3]);
 
 	// ------------------------------------------------------------------------------------
 	// FX_HELD statements of gfc_engine.cpp (gfc_engine_held.inc)
