@@ -62,36 +62,114 @@ namespace p140
 		g_creature.root = Root(cn);
 	}
 
-	struct EmberMemo { int16_t pos[3], angle, age; };
-	static NodeMemo<EmberMemo, 16> g_ember_memo;
+	// particles as drawn on the real tick, in draw order (queue snapshot): the ones that end on
+	// this tick (age 15 -> 16 = TASK_END) are no longer in the queue but keep their last picture
+	// on the held frame; the others are drawn between this picture and the next tick's
+	template <typename T, int N> struct DrawList
+	{
+		uint32_t tick = 0xFFFFFFFF;
+		int n = 0;
+		T v[N];
+		T *add()
+		{
+			if (tick != g_real_tick) { tick = g_real_tick; n = 0; }
+			return n < N ? &v[n++] : nullptr;
+		}
+		int count() const { return tick == g_real_tick ? n : 0; }
+	};
+
+	struct EmberMemo { const EmberNode *node; int16_t pos[3], angle, age; };
+	static DrawList<EmberMemo, 16> g_embers;
 
 	// ember as drawn, before the tick's update
 	static void held_note_ember(EmberNode *p)
 	{
-		if (EmberMemo *m = g_ember_memo.put(p))
+		if (EmberMemo *m = g_embers.add())
 		{
+			m->node = p;
 			memcpy(m->pos, p->pos, sizeof(m->pos));
 			m->angle = p->angle;
 			m->age = p->age;
 		}
 	}
 
-	struct SparkMemo { int16_t pos[4], age; };
-	static NodeMemo<SparkMemo, 128> g_spark_memo;
+	struct SparkMemo { const SparkNode *node; int16_t pos[4], age; };
+	static DrawList<SparkMemo, 128> g_sparks;
 
 	// spark as drawn, before the tick's update
 	static void held_note_spark(SparkNode *p)
 	{
-		if (SparkMemo *m = g_spark_memo.put(p))
+		if (SparkMemo *m = g_sparks.add())
 		{
+			m->node = p;
 			memcpy(m->pos, p->pos, 8);
 			m->age = p->age;
 		}
 	}
 
+	// GPU polygon packets (GP0 0x20..0x3F) written by one draw at a (up to ae) and the same
+	// draw with the next tick's parameters at b (up to be): the vertex colours and positions of
+	// a are moved to the in-between of each pair with the same command and texture words
+	// (a different command / texture = a discrete step: that packet keeps a's picture)
+	static void LerpPolyPackets(uint8_t *a, uint8_t *ae, const uint8_t *b, const uint8_t *be, int num, int den)
+	{
+		while (a + 8 <= ae && b + 8 <= be)
+		{
+			uint32_t la = a[3], lb = b[3];
+			if (!la || la != lb) return;
+			uint8_t code = a[7];
+			uint32_t *wa = (uint32_t *)(a + 4);
+			const uint32_t *wb = (const uint32_t *)(b + 4);
+			if (code == b[7] && (code & 0xE0) == 0x20)
+			{
+				bool gouraud = (code & 0x10) != 0, tex = (code & 4) != 0;
+				uint32_t nv = (code & 8) ? 4 : 3;
+				if (la == 1 + nv * (tex ? 2 : 1) + (gouraud ? nv - 1 : 0))
+				{
+					bool same = true;
+					for (uint32_t v = 0, i = 1; v < nv; v++)
+					{
+						if (v && gouraud) i++;
+						i++;
+						if (tex)
+						{
+							// uv (+ clut on vertex 0, texpage on vertex 1; the high half of the
+							// others is not read by the GPU)
+							uint32_t mask = v < 2 ? 0xFFFFFFFFu : 0xFFFFu;
+							if ((wa[i] ^ wb[i]) & mask) same = false;
+							i++;
+						}
+					}
+					if (same)
+					{
+						for (uint32_t v = 0, i = 1; v < nv; v++)
+						{
+							uint32_t ci = v == 0 ? 0 : (gouraud ? i++ : 0xFFFFFFFF);
+							if (ci != 0xFFFFFFFF)
+							{
+								uint8_t *ca = (uint8_t *)&wa[ci];
+								const uint8_t *cb = (const uint8_t *)&wb[ci];
+								for (int k = 0; k < 3; k++) ca[k] = (uint8_t)lerp_i(ca[k], cb[k], num, den);
+							}
+							int16_t *pa = (int16_t *)&wa[i];
+							const int16_t *pb = (const int16_t *)&wb[i];
+							pa[0] = (int16_t)lerp_i(pa[0], pb[0], num, den);
+							pa[1] = (int16_t)lerp_i(pa[1], pb[1], num, den);
+							i += tex ? 2 : 1;
+						}
+					}
+				}
+			}
+			a += 4 + 4 * la;
+			b += 4 + 4 * lb;
+		}
+	}
+
 	// FireTrail (vanilla file) at v4 + dv * num / den: the path positions and the fade in
 	// between (the flipbook frames and the texture scroll keep their 15 Hz steps); the camera
-	// cuts of v4 20 and 40 are real-tick writes only
+	// cuts of v4 20 and 40 are real-tick writes only. The flipbooks are the ones the real tick
+	// drew (a flipbook entering the path on the next tick appears there; one leaving the path
+	// end keeps its last position)
 	static void FireTrailHeld(uint32_t v4, int32_t dv, int num, int den)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x98);
@@ -100,10 +178,11 @@ namespace p140
 		*(int32_t *)(h + 0x90) = 0;
 		*(int32_t *)(h + 0x94) = Base();
 		int32_t span = 96 * den;
-		int32_t v = (int32_t)(86 * v4) * den + 86 * dv * num;
-		for (int i = 0; i < 26; i++, v -= 43 * den)
+		int32_t vn = (int32_t)(86 * v4);
+		for (int i = 0; i < 26; i++, vn -= 43)
 		{
-			if (v < 0 || v >= 0x20A0 * den) continue;
+			if (vn < 0 || vn >= 0x20A0) continue; // not drawn on the real tick
+			int32_t v = vn + 86 * dv < 0x20A0 ? vn * den + 86 * dv * num : vn * den;
 			int32_t idx = v / span;
 			int32_t f = shl32(v - idx * span, 12) / span;
 			const uint8_t *path = (const uint8_t *)(0x11D04BC + 8 * idx);
@@ -258,23 +337,57 @@ namespace p140
 		}
 	}
 
-	static void EmberHeld(EmberNode *p, int num, int den)
+	// ember of the real tick: in between with the next tick's draw (position, spin, depth-cue
+	// fade); the one ending on this tick keeps its last picture
+	static void EmberHeld(const EmberMemo &m, int num, int den)
 	{
-		const EmberMemo *m = g_ember_memo.get(p);
-		if (!m) return;
+		const EmberNode *p = m.node;
+		if (m.age >= 15 || p->age != m.age + 1) { EmberDraw(m.pos, m.angle, (int32_t)m.age << 8); return; }
 		int16_t pos[3];
-		for (int k = 0; k < 3; k++) pos[k] = (int16_t)lerp_i(m->pos[k], p->pos[k], num, den);
-		EmberDraw(pos, lerp_angle(m->angle, p->angle, num, den), lerp_i((int32_t)m->age << 8, (int32_t)p->age << 8, num, den));
+		for (int k = 0; k < 3; k++) pos[k] = (int16_t)lerp_i(m.pos[k], p->pos[k], num, den);
+		EmberDraw(pos, lerp_angle(m.angle, p->angle, num, den), lerp_i((int32_t)m.age << 8, (int32_t)p->age << 8, num, den));
 	}
 
-	static void SparkHeld(SparkNode *p, int num, int den)
+	// spark of the real tick: flipbook 0x11D495C frame = age, a colour fade (the frames share
+	// the texture); drawn in between with the next tick's draw: position, and the colours / shape
+	// of frame age + 1 (SparkDraw of the vanilla file for the two frames at the held position,
+	// the second one into a private buffer and bucket); the one ending on this tick keeps its
+	// last picture
+	static uint8_t g_seq_next[0x400];
+	static uint32_t g_ot_next[64];
+
+	// RenderOT() (g_Battle_FrameRenderListBase + 68) pointed at a private bucket while alive
+	struct OTSwap
 	{
-		const SparkMemo *m = g_spark_memo.get(p);
-		if (!m) return;
+		uint32_t saved;
+		explicit OTSwap(uint32_t bucket) : saved(var<uint32_t>(0x1D8E04C)) { var<uint32_t>(0x1D8E04C) = bucket - 68; }
+		~OTSwap() { var<uint32_t>(0x1D8E04C) = saved; }
+	};
+
+	static void SparkHeld(const SparkMemo &m, int num, int den)
+	{
+		const SparkNode *p = m.node;
+		if (m.age >= 15 || p->age != m.age + 1) { SparkDraw(m.pos, m.age); return; }
 		int16_t pos[4];
-		for (int k = 0; k < 3; k++) pos[k] = (int16_t)lerp_i(m->pos[k], p->pos[k], num, den);
-		pos[3] = m->age;
-		SparkDraw(pos, m->age); // flipbook frame keeps its 15 Hz step
+		for (int k = 0; k < 3; k++) pos[k] = (int16_t)lerp_i(m.pos[k], p->pos[k], num, den);
+		pos[3] = m.pos[3];
+		uint32_t c0 = PacketCursor();
+		SparkDraw(pos, m.age);
+		uint32_t c1 = PacketCursor();
+		if (!num) return;
+		uint32_t n1;
+		{
+			uint32_t exec = var<uint32_t>(0x1CA8828); // ssigpu_execution_cur: the node this draw adds is dropped
+			memset(g_ot_next, 0, sizeof(g_ot_next));
+			OTSwap ot((uint32_t)&g_ot_next[32]);
+			PacketCursor() = (uint32_t)g_seq_next;
+			SparkDraw(pos, (int16_t)(m.age + 1));
+			n1 = PacketCursor();
+			PacketCursor() = c1;
+			var<uint32_t>(0x1CA8828) = exec;
+		}
+		if (n1 - (uint32_t)g_seq_next <= sizeof(g_seq_next))
+			LerpPolyPackets((uint8_t *)c0, (uint8_t *)c1, g_seq_next, (const uint8_t *)n1, num, den);
 	}
 
 	static uint8_t g_held_packets[0x60000];
@@ -291,24 +404,38 @@ namespace p140
 	// mirrors the master's queue order; packets go to a private buffer (the module cursor and
 	// the frame arena the model draw uses are redirected and put back); the effect-camera
 	// matrix is rebuilt from the held-frame camera and put back
+	// the model / morph work buffer (ModelBuffer + 0x878 up to the first packet arena at +0x3758):
+	// the held draws use it as the real draws do, and it is put back afterwards
+	static uint8_t g_work_save[0x3758 - 0x878];
+
 	static void HeldFrame(int num, int den)
 	{
+		// the particles of the tick are drawn also after the master ended on it (last picture)
 		MasterNode *master = Master();
-		if (!master || !master->spawned) return;
+		bool creature = master && master->spawned;
+		if (!creature && !g_sparks.count() && !g_embers.count()) return;
 		uint32_t cursor = PacketCursor(), frame_cursor = FrameCursor();
 		Mat4x3 effect_camera = EffectCamera();
+		uint8_t *work = ModelBuffer() + 0x878;
+		memcpy(g_work_save, work, sizeof(g_work_save));
 		PacketCursor() = (uint32_t)g_held_packets;
 		FrameCursor() = (uint32_t)g_held_packets + 0x40000;
 		EffectCameraMatrix(&Camera(), &EffectCamera());
-		for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_CreatureTask) CreatureHeld((CreatureNode *)t, num, den);
-		for (TaskNode *t = QueueParticles().second.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_SparkTask) SparkHeld((SparkNode *)t, num, den);
-		for (TaskNode *t = QueueParticles().first.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_EmberTask) EmberHeld((EmberNode *)t, num, den);
+		if (creature)
+			for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
+				if ((uint32_t)t->func == ORIG_CreatureTask) CreatureHeld((CreatureNode *)t, num, den);
+		for (int i = 0, n = g_sparks.count(); i < n; i++)
+		{
+			SparkHeld(g_sparks.v[i], num, den);
+		}
+		for (int i = 0, n = g_embers.count(); i < n; i++)
+		{
+			EmberHeld(g_embers.v[i], num, den);
+		}
 		EffectCamera() = effect_camera;
 		PacketCursor() = cursor;
 		FrameCursor() = frame_cursor;
+		memcpy(work, g_work_save, sizeof(g_work_save));
 	}
 
 	// ------------------------------------------------------------------
