@@ -172,6 +172,7 @@ namespace ff8fx
 		register_mag155_sand_storm();
 		register_mag168_sleeping_gas();
 		register_mag154_ultra_waves();
+		register_mag180_suicide();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
