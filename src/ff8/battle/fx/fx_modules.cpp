@@ -99,6 +99,7 @@ namespace ff8fx::mod
 	static const Region streams_c004[] = { { 0x163FFD8, 0x25E }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c021[] = { { 0x1627978, 0x27E }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c040[] = { { 0x15CDDF4, 0x180 }, { 0x15CE1DC, 0x500 }, { 0x1D2A278, 1 }, { 0x1D2B330, 0xA4 }, { 0x1D2B558, 0x32 }, { 0x2795BD0, 4 }, { 0x279CC68, 0x2C } };
+	static const Region streams_e029[] = { { 0x17D27DC, 0x98 }, { 0x17D56AC, 0x890 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -196,6 +197,8 @@ namespace ff8fx::mod
 		{ 223, 0x2796B70, 0x2798C40, 0, 0, false, "Meteor", streams_gfc, 5 },
 		{ 120, 0x2521540, 0x2521590, 0, 0, false, "Petrify Stare", nullptr, 0 },
 		{ 152, 0x244BE70, 0x244D670, 0, 0, false, "Ultrasonic Waves", nullptr, 0 },
+		{ 127, 0x2521270, 0x25212C0, 0, 0, false, "Petrify Stare (Cockatrice)", nullptr, 0 },
+		{ 29, 0x26D6A40, 0x26D74F4, 0, 0, false, "Wind Blast", streams_e029, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
