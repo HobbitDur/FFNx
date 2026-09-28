@@ -1501,7 +1501,7 @@ namespace d191
 	// model id 15 from the model buffer): +0x40 model matrix 0x24FC2D0 (pure scale diagonal
 	// 0x24FC2D0/D8/E0, z translation 0x24FC2EC = distance of the train), +0x60 header, +0x6C
 	// reader command. Skeleton word +2 (pointer 0x24FC0C0, original value kept in +0x1C) = model
-	// scale: /4, /5 from 69. Phases: 0..34 far (z 25000), 35..68 approach, 69..168 anim 1 at
+	// scale: /4, /10 in 69..168 (0x642028: imul 0x66666667, sar 2). Phases: 0..34 far (z 25000), 35..68 approach, 69..168 anim 1 at
 	// z 0 (the wheel trail), 169..188 anim 0 rushing past (targets moved away), 189..210, 211..241
 	// (targets restored), 242..281 (explosions, knock-back, camera shake), 282..285 still drawn.
 	// After every tick: 0x24FBE58 = model matrix o bone 1 (chimney) for the smoke / light tasks.
@@ -1644,7 +1644,7 @@ namespace d191
 		{
 			CreatureZ() = 0;
 			SetDiag(0x1000);
-			*sp = (int16_t)(n->f1C / 5);
+			*sp = (int16_t)(n->f1C / 10);
 			if (P1()) goto after_advance;
 			if (k == 0)
 			{
