@@ -37,7 +37,7 @@ namespace ff8fx::mod
 	// pool/scratch pointer cells, summon data (loads 0x2E5/0x2E7), the camera script's saved camera
 	static const Region streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } };
 	// GF cinematic engine (Ifrit family): mesh depth scale, fog words, camera-related word
-	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x2C0 } }; // + tail of the per-vertex depth array 0x2798C18
+	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C } }; // + tail of the per-vertex depth array 0x2798C18 (Breath reaches 0x2798F9A)
 	// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
 	// static cells the modules write, Siren's load destinations outside the 1 MB buffer
 	static const Region streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
@@ -199,6 +199,7 @@ namespace ff8fx::mod
 		{ 152, 0x244BE70, 0x244D670, 0, 0, false, "Ultrasonic Waves", nullptr, 0 },
 		{ 127, 0x2521270, 0x25212C0, 0, 0, false, "Petrify Stare (Cockatrice)", nullptr, 0 },
 		{ 29, 0x26D6A40, 0x26D74F4, 0, 0, false, "Wind Blast", streams_e029, 3 },
+		{ 235, 0x27969B0, 0x2798C40, 0, 0, false, "Breath", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -257,6 +258,7 @@ namespace ff8fx::mod
 		{ 0xB65810, 0, "GfCinematic_RenderPartyModelsOffscreen" },
 		{ 0xB65D10, 0, "GfCinematic_RenderBattleStageOffscreen" },
 		{ 0xB65F30, 0, "GfCinematic_RenderBattleModelOffscreen" },
+		{ 0xB65B00, 0, "GfCinematic_RenderStageGroundOffscreen" },
 		{ 0x505EB0, 0, "QueueBlitCommand" },
 		{ 0x46BD40, 0, "SdStreamingVolumeTranslation" },
 		{ 0x47CF50, 0, "Battle_RequestScreenFeedback" },
