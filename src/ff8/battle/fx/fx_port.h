@@ -278,6 +278,7 @@ namespace ff8fx
 	void register_mag120_petrify_stare();
 	void register_mag152_ultrasonic_waves();
 	void register_mag127_petrify_stare();
+	void register_mag029_wind_blast();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
