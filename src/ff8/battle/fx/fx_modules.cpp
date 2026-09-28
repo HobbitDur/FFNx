@@ -201,6 +201,7 @@ namespace ff8fx::mod
 		{ 29, 0x26D6A40, 0x26D74F4, 0, 0, false, "Wind Blast", streams_e029, 3 },
 		{ 235, 0x27969B0, 0x2798C40, 0, 0, false, "Breath", streams_gfc, 5 },
 		{ 231, 0x2796A90, 0x2798C40, 0, 0, false, "Disease Breath", streams_gfc, 5 },
+		{ 233, 0x2796A20, 0x2798C40, 0, 0, false, "Earthquake", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

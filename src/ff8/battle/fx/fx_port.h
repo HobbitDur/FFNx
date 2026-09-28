@@ -281,6 +281,7 @@ namespace ff8fx
 	void register_mag029_wind_blast();
 	void register_mag235_breath();
 	void register_mag231_disease_breath();
+	void register_mag233_earthquake();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
