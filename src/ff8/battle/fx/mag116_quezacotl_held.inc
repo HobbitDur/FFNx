@@ -193,8 +193,7 @@ namespace q116
 		uint32_t tick;
 		bool model;  int32_t v3, v4, acc; // materialisation draw (0x6C6770)
 		bool orbit;                        // plain model draw (0x6A79B0)
-		bool pose_ok; uint32_t pose_size;  // skeleton at the start of the tick: the pose drawn this tick
-		uint8_t pose[16 + 48 * 64];
+		int16_t c;                         // the tick's counter
 		int nplays; CreaturePlay plays[4];
 	};
 	static CreatureMemo g_cm;
@@ -208,18 +207,13 @@ namespace q116
 		return sk;
 	}
 
-	// creature: the skeleton as the tick starts is the pose this tick draws
+	// creature: the tick's counter (the node is at the start of the model buffer)
 	static void held_creature_begin()
 	{
 		g_cm.tick = g_real_tick;
 		g_cm.model = g_cm.orbit = false;
 		g_cm.nplays = 0;
-		{
-			uint32_t size = 0;
-			uint8_t *sk = CreatureSkeleton(&size);
-			g_cm.pose_ok = sk && size <= sizeof(g_cm.pose);
-			if (g_cm.pose_ok) { memcpy(g_cm.pose, sk, size); g_cm.pose_size = size; }
-		}
+		g_cm.c = *(int16_t *)(ModelBuffer() + 0x0C);
 	}
 
 	// materialisation draw (0x6C6770) of this tick: its opacity step and accumulator
@@ -286,18 +280,80 @@ namespace q116
 		}
 	}
 
+	// the creature node, its model header (+0x88) and the model work buffer (+0x8D0: bone
+	// matrices from BuildBoneMatrices, DrawModel/DrawMaterialise scratch) up to the bolt
+	// vertex pool: the held redraw writes them, and the next real tick draws with the
+	// matrices the previous tick built, so they must be exactly what the real tick left
+	static const uint32_t CREATURE_AREA = 0x3C9FC;
+	static uint8_t g_area_save[CREATURE_AREA];
+
+	// ---- the next tick's creature pose and head vertex, computed once per real tick ----
+	// A real tick draws the pose its own anim read produced (AdvanceAnim runs before the
+	// draw): the held frame after tick N draws half way from that pose to the one tick N+1
+	// reads. The head vertex (0x32) is where the camera looks at 207..226 and where the prim
+	// models of 212..246 are placed: tick N+1 recomputes it from its new pose.
+	static uint32_t g_next_key = 0xFFFFFFFF;
+	static bool g_next_pose_ok = false, g_next_head_ok = false;
+	static uint8_t g_next_pose[16 + 48 * 64];
+	static int16_t g_next_head[3];
+
+	// the next tick's anim read as its creature code does it (anim switches, then AdvanceAnim)
+	static bool NextAnimRead(uint8_t *model, int16_t c)
+	{
+		if (Pause()) return false;
+		uint32_t v3 = (uint32_t)((int32_t)c - 86), v5 = (uint32_t)((int32_t)c - 257);
+		if (!((v3 < 0xAB && v3 != 0) || v5 < 0x14)) return false;
+		if (v3 == 0x20) cx::SetAnim(model, 1);
+		else if (v3 == 0x98) cx::SetAnim(model, 2);
+		cx::AdvanceAnim(model);
+		return true;
+	}
+
+	// run on the real state (after the tick: node counter = the next tick's) and put back
+	static void ComputeNext()
+	{
+		if (g_next_key == g_real_tick) return;
+		g_next_key = g_real_tick;
+		g_next_pose_ok = g_next_head_ok = false;
+		if (!QueueCreature().second.head) return;
+		uint8_t *nd = ModelBuffer();
+		uint8_t *model = nd + 0x28;
+		int16_t c = *(int16_t *)(nd + 0x0C);
+		if ((int32_t)c <= 86) return; // the model is bound at 86
+		uint32_t size = 0;
+		uint8_t *sk = CreatureSkeleton(&size);
+		if (!sk || size > sizeof(g_next_pose)) return;
+		static uint8_t sk_save[16 + 48 * 64];
+		memcpy(g_area_save, nd, CREATURE_AREA);
+		memcpy(sk_save, sk, size);
+		g_next_pose_ok = NextAnimRead(model, c);
+		memcpy(g_next_pose, sk, size);
+		int16_t v[8] = {};
+		cx::BuildBoneMatrices(nd + 0x88);
+		cx::VertexPos(model, 0, 0x32, v);
+		memcpy(g_next_head, v, sizeof(g_next_head));
+		g_next_head_ok = true;
+		memcpy(sk, sk_save, size);
+		memcpy(nd, g_area_save, CREATURE_AREA);
+	}
+
+	// the skeleton's pose half way to the next tick's (sk holds the current pose)
+	static void PoseToNext(uint8_t *sk, uint32_t size, int num, int den)
+	{
+		static uint8_t from[16 + 48 * 64];
+		if (!g_next_pose_ok || size > sizeof(from)) return;
+		memcpy(from, sk, size);
+		memcpy(sk, g_next_pose, size);
+		PoseBlend(sk, from, num, den);
+	}
+
 	static void CreatureHeld(int num, int den)
 	{
 		if (g_cm.tick != g_real_tick || !QueueCreature().second.head) return;
 		uint8_t *nd = ModelBuffer();
 		uint8_t *model = nd + 0x28;
-		Mat4x3 bolt_frame = BoltFrame(), effect_camera = EffectCamera();
-		// the creature node, its model header (+0x88) and the model work buffer (+0x8D0: bone
-		// matrices from BuildBoneMatrices, DrawModel/DrawMaterialise scratch) up to the bolt
-		// vertex pool: the held redraw writes them, and the next real tick draws with the
-		// matrices the previous tick built, so they must be exactly what the real tick left
-		static const uint32_t CREATURE_AREA = 0x3C9FC;
-		static uint8_t area_save[CREATURE_AREA];
+		Mat4x3 effect_camera = EffectCamera();
+		uint8_t *area_save = g_area_save;
 		memcpy(area_save, nd, CREATURE_AREA);
 		EffectCameraMatrix(&Camera(), &EffectCamera());
 		uint32_t size = 0;
@@ -306,13 +362,9 @@ namespace q116
 		if (sk)
 		{
 			memcpy(sk_save, sk, size);
-			// the pose drawn this tick is the one the tick started with (the draw uses the
-			// matrices built before the anim read); no memo (tick 86 binds the model): as is
-			if (g_cm.pose_ok && size == g_cm.pose_size)
-			{
-				PoseBlend(sk, g_cm.pose, num, den);
-				cx::BuildBoneMatrices(nd + 0x88);
-			}
+			// the pose drawn this tick is the one its anim read produced: half way to the next
+			PoseToNext(sk, size, num, den);
+			cx::BuildBoneMatrices(nd + 0x88);
 			if (g_cm.model)
 			{
 				// next tick draws with the accumulator + v3 and the next opacity step
@@ -334,10 +386,29 @@ namespace q116
 			CreaturePlay &p = g_cm.plays[i];
 			static uint8_t arg[0x2C];
 			memcpy(arg, p.arg, sizeof(arg));
+			// 212..246: placed at the head vertex, which the next tick recomputes from its pose
+			if (p.compose && g_next_head_ok && (uint32_t)((int32_t)g_cm.c - 212) < 0x23)
+				for (int k = 0; k < 3; k++)
+				{
+					int32_t *t = (int32_t *)(arg + 0x14) + k;
+					*t = lerp_i(*t, g_next_head[k], num, den);
+				}
 			if (p.compose) ComposeAffineTransform(&Camera(), (Mat4x3 *)arg, (Mat4x3 *)arg);
 			prim::play_held(p.l, (prim::Callback)p.cb, (int)arg, num, den);
 		}
-		BoltFrame() = bolt_frame;
+		// the tick's one-tick screen flashes (full-screen translucent tiles 0x6C6530 / 0x6C65A0,
+		// the table at the end of the creature task): on screen for the whole tick, held too
+		switch ((uint16_t)g_cm.c)
+		{
+		case 0x49: case 0x4F: case 0xF8: case 0xFA: case 0xFD: case 0x102: case 0x13D: cx::Sub6C6530(0x12AE7E0); break;
+		case 0x4E: cx::Sub6C65A0(0x12AE7E4); break;
+		case 0x50: case 0xE3: case 0x101: case 0x103: case 0x13C: case 0x13E: cx::Sub6C6530(0x12AE7E4); break;
+		case 0x51: case 0xE4: case 0x13B: case 0x13F: cx::Sub6C6530(0x12AE7E8); break;
+		case 0xE5: cx::Sub6C6530(0x12AE7EC); break;
+		default: break;
+		}
+		// BoltFrame (written by the object-0 play of 257..302) stays for the branches and flashes
+		// the held frame draws next, as in the real tick; HeldFrame puts it back
 		EffectCamera() = effect_camera;
 		memcpy(nd, area_save, CREATURE_AREA);
 	}
@@ -412,9 +483,10 @@ namespace q116
 		}
 		if ((uint32_t)((int32_t)c - 207) < 0x14)
 		{
-			// the look-at follows a vertex of the posed creature: kept as drawn (it would need
-			// the next pose); the eye cut at 207 is a cut
+			// the look-at follows the head vertex of the posed creature: the next tick's (from its
+			// pose, ComputeNext); the eye cut at 207 is a cut
 			if (c == 207) cut = true;
+			else if (g_next_head_ok) memcpy((void *)CAM_AT, g_next_head, sizeof(g_next_head));
 		}
 		{
 			uint32_t t = (uint32_t)((int32_t)c - 257);
@@ -458,6 +530,7 @@ namespace q116
 	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
 	{
 		if (g_cm.tick != g_real_tick || g_ported_tick != g_real_tick || !QueueCreature().second.head) return false;
+		ComputeNext();
 		int16_t w[3], l[3];
 		const int16_t *e0 = (const int16_t *)CAM_EYE, *a0 = (const int16_t *)CAM_AT;
 		bool move = CreatureCameraNext(w, l);
@@ -478,6 +551,8 @@ namespace q116
 		uint32_t cursor = PacketCursor(), frame_cursor = var<uint32_t>(0x1D8E054);
 		PacketCursor() = (uint32_t)g_held_packets;
 		var<uint32_t>(0x1D8E054) = (uint32_t)g_held_packets + 0x40000;
+		Mat4x3 bolt_frame = BoltFrame();
+		if (g_cm.tick == g_real_tick) ComputeNext();
 		CreatureHeld(num, den);
 		if (QueueCreature().first.head)
 		{
@@ -490,10 +565,19 @@ namespace q116
 			if (skel && skel_size <= sizeof(skel_save))
 			{
 				memcpy(skel_save, skel, skel_size);
+				// the arcs follow the bones: the held pose (half way to the next tick's)
+				bool posed = g_next_pose_ok && g_cm.tick == g_real_tick;
+				if (posed)
+				{
+					memcpy(g_area_save, ModelBuffer(), CREATURE_AREA);
+					PoseToNext(skel, skel_size, num, den);
+					cx::BuildBoneMatrices(ModelBuffer() + 0x88);
+				}
 				ComputeBonesWorldMatrices(ModelBuffer() + 0x88, ModelBuffer() + 0x68);
 				for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
 					if ((uint32_t)t->func == ORIG_ArcTask) ArcHeld((ArcNode *)t, num, den);
 				memcpy(skel, skel_save, skel_size);
+				if (posed) memcpy(ModelBuffer(), g_area_save, CREATURE_AREA);
 			}
 		}
 		GteSetRotMatrix(&Camera());
@@ -508,6 +592,7 @@ namespace q116
 			if ((uint32_t)t->func == ORIG_FlashTask) FlashHeld((FlashNode *)t, num, den);
 		for (TaskNode *t = QueueDebris().first.head; t; t = t->next)
 			if ((uint32_t)t->func == ORIG_DebrisTask) DebrisHeld((DebrisNode *)t, num, den);
+		BoltFrame() = bolt_frame;
 		PacketCursor() = cursor;
 		var<uint32_t>(0x1D8E054) = frame_cursor;
 	}

@@ -49,6 +49,39 @@ namespace ff8fx::prim
 		return (int16_t)(a + d * num / den);
 	}
 
+	// the callbacks draw nothing for an object with a zero scale (all three components)
+	static inline bool hidden(const Record &r) { return (r.scale[0] | r.scale[1] | r.scale[2]) == 0; }
+
+	// channel B is the vertex morph of the object's prim model in every callback: b0 / b1 = the
+	// two keyframe meshes, b = weight 0..0x1000 (b0 == b1, b == 0: mesh b0; b == 0x1000: mesh b1).
+	// Mesh numbers are never blended: the in-between is taken along the morph. A new segment
+	// starts where the last one ended ((k, k+1, w) then (k+1, k+2, 0) = mesh k+1): the held frame
+	// finishes the current segment ((k, k+1, (w + 0x1000) / 2)).
+	static bool single_mesh(const Record &r, int16_t &mesh)
+	{
+		if (r.b0 == r.b1 || r.b == 0) { mesh = r.b0; return true; }
+		if (r.b == 0x1000) { mesh = r.b1; return true; }
+		return false;
+	}
+
+	static void lerp_morph(Record &r, const Record &n, int num, int den)
+	{
+		int32_t w0 = r.b, w1;
+		int16_t f;
+		if (n.b0 == r.b0 && n.b1 == r.b1) w1 = n.b;
+		else if (r.b0 != r.b1 && single_mesh(n, f) && (f == r.b1 || f == r.b0)) w1 = f == r.b1 ? 0x1000 : 0;
+		else if (n.b0 != n.b1 && single_mesh(r, f) && (f == n.b0 || f == n.b1))
+		{
+			// the next segment starts from the mesh drawn now
+			w0 = f == n.b0 ? 0 : 0x1000;
+			w1 = n.b;
+			r.b0 = n.b0;
+			r.b1 = n.b1;
+		}
+		else return; // unrelated meshes: the switch happens on the real frame
+		r.b = (int16_t)(w0 + (w1 - w0) * num / den);
+	}
+
 	void play_held(Layout *l, Callback cb, int arg, int num, int den)
 	{
 		const Drawn *d = g_drawn.get(l);
@@ -63,7 +96,9 @@ namespace ff8fx::prim
 		for (int i = 0; i < count; i++)
 		{
 			Record r = g_cur[i];
-			if (moving)
+			// an object that appears or disappears on the next tick does so on the real frame
+			// (blending from / to its hidden record would draw it half-scaled half way to the origin)
+			if (moving && !hidden(r) && !hidden(g_next[i]))
 			{
 				const Record &n = g_next[i];
 				for (int c = 0; c < 3; c++)
@@ -74,9 +109,7 @@ namespace ff8fx::prim
 					r.rgb[c] = (uint8_t)(r.rgb[c] + ((int32_t)n.rgb[c] - r.rgb[c]) * num / den);
 				}
 				r.a = lerp16(r.a, n.a, num, den);
-				r.b = lerp16(r.b, n.b, num, den);
-				r.b0 = lerp16(r.b0, n.b0, num, den);
-				r.b1 = lerp16(r.b1, n.b1, num, den);
+				lerp_morph(r, n, num, den);
 			}
 			cb(l, &r, arg);
 		}
