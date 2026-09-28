@@ -786,11 +786,11 @@ namespace d325
 					if (!Pause())
 					{
 						InitTaskQueuePool(&QueueParticles(), ModelBuffer() + 0x3505C, 0xE8, 0x10);
-						x::SpawnRising(-500, -0x222C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4AFAC));
-						x::SpawnRising(-200, -0x222C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4BBC4));
-						x::SpawnRising(0, -0x222C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4B558));
-						x::SpawnRising(200, -0x222C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4BBC4));
-						x::SpawnRising(500, -0x222C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4AFAC));
+						x::SpawnRising(-500, -0x212C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4AFAC));
+						x::SpawnRising(-200, -0x212C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4BBC4));
+						x::SpawnRising(0, -0x212C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4B558));
+						x::SpawnRising(200, -0x212C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4BBC4));
+						x::SpawnRising(500, -0x212C, FarZ(), -0x80, (uint32_t)(ModelBuffer() + 0x4AFAC));
 						for (int k = 0; k < 9; k++) t->flip[k] = (uint32_t)(ModelBuffer() + 0x3903C + 0x1FF0 * k);
 					}
 					model = t->flip[e % 9];
@@ -1366,7 +1366,7 @@ namespace d325
 					BurstNode *b = (BurstNode *)AddTaskToQueue(&QueueParticles(), ORIG_BurstTask);
 					if (!b) continue;
 					int32_t r = x::Rand();
-					uint32_t nb = **(uint8_t **)(e1 + 0x64);
+					uint32_t nb = ***(uint8_t ***)(e1 + 0x64); // bone count: comFileData -> skeleton -> byte 0
 					x::SpawnPosition(e1, (r * (int32_t)nb) >> 15, 0, b->pos);
 					b->shade = -0x100;
 					b->scale = (x::Rand() & 0x7FF) + 0x800;
