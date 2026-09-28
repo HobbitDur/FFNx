@@ -113,11 +113,59 @@ namespace part_eden_c
 
 	// ------------------------------------------------------------------------------------
 	// 0xAED040 (Draw 53 PixelParticleEmitter), held frames: no allocation, no spawn (no rand),
-	// the pool is not written; every particle alive for the next tick (life bit7 clear) is drawn
-	// at pos + ((s16)(vel + acc) << 4) * num/den (the exact in-between of the deterministic
-	// integration) with the real tick's colour (index life + 1). Particles that died on the real
-	// tick are not redrawn; the next tick's spawns first appear on that tick.
+	// the pool is not written. Every particle the real tick drew is drawn, in the same (slot)
+	// order:
+	//  * alive for the next tick (life bit7 clear): at pos + ((s16)(vel + acc) << 4) * num/den
+	//    (the exact in-between of the deterministic integration), colour = the in-between of
+	//    the real tick's table entry (life + 1) and the next tick's (life);
+	//  * died on the real tick (drawn with life 0, now 0xFF): its last picture (position and
+	//    colour of the real tick) - it disappears on the next real tick. The pool cannot tell
+	//    "died on this tick" from "died earlier / never used" (both 0xFF): a per-pool memo of
+	//    the lives after the previous tick (taken by the held frames of that tick) does (life 0
+	//    then = drawn with life 0 on this tick); a pool re-allocated at the same address by a
+	//    new emitter (bone or write index not continuing) starts a fresh memo.
+	// The next tick's spawns first appear on that tick (discrete, rand-driven).
 	// ------------------------------------------------------------------------------------
+	struct Alive53 { const uint8_t *pool; const uint8_t *bone; uint16_t widx; uint32_t tick; std::vector<uint8_t> prev, cur; };
+	static Alive53 g_alive53[8];
+
+	// memo of pool: prev = lives after tick g_real_tick - 1 (or empty), cur = after this tick
+	static Alive53 *alive53_memo(const uint8_t *pool, uint8_t *parts, int32_t n)
+	{
+		Alive53 *m = nullptr;
+		for (Alive53 &x : g_alive53) if (x.pool == pool) { m = &x; break; }
+		if (!m)
+		{
+			for (Alive53 &x : g_alive53) if (!x.pool || x.tick + 2 < g_real_tick) { m = &x; break; }
+			if (!m) return nullptr;
+			m->pool = pool; m->tick = 0xFFFFFFFF; m->prev.clear(); m->cur.clear();
+		}
+		if (m->tick != g_real_tick)
+		{
+			uint16_t widx = U16(pool, 2);
+			bool same = m->tick + 1 == g_real_tick && m->bone == CUR() && (uint16_t)(widx - m->widx) < 0x8000u && m->cur.size() == (size_t)n;
+			if (same) m->prev.swap(m->cur);
+			else m->prev.clear();
+			m->cur.resize((size_t)n);
+			for (int32_t i = 0; i < n; i++) m->cur[i] = U8(parts + 0x1C * i, 0x18);
+			m->tick = g_real_tick;
+			m->bone = CUR();
+			m->widx = widx;
+		}
+		return m;
+	}
+
+	static uint32_t lerp_rgb(uint32_t c0, uint32_t c1, int num, int den)
+	{
+		uint32_t c = c0 & 0xFF000000u;
+		for (int s = 0; s < 24; s += 8)
+		{
+			int32_t x0 = (c0 >> s) & 0xFF, x1 = (c1 >> s) & 0xFF;
+			c |= (uint32_t)((x0 + (x1 - x0) * num / den) & 0xFF) << s;
+		}
+		return c;
+	}
+
 	static void dh_53_PixelParticleEmitterHeld()
 	{
 		if (U32(CUR(), 0xBC) == 0) return;
@@ -153,14 +201,19 @@ namespace part_eden_c
 		uint8_t *p = PTR(WS(), 0xE0);                                            // esi
 		int32_t n = U16(desc, 4);                                                // [ebp-0x10]
 		uint8_t *pkt = PTR(CTX(), 0x7C);                                         // ebx / [ebp-0xc]
+		const Alive53 *memo = n > 0 ? alive53_memo(pool, p, n) : nullptr;
 		if (n > 0)
 		{
+			int32_t slot = 0;
 			do
 			{
-				if (!(U8(p, 0x18) & 0x80))
+				const bool alive = !(U8(p, 0x18) & 0x80);
+				const bool dying = !alive && U8(p, 0x18) == 0xFF && memo && (size_t)slot < memo->prev.size() && memo->prev[slot] == 0;
+				if (alive || dying)
 				{
 					int32_t px, py, pz;       // position used for the draw
-					int32_t cidx;             // colour index
+					uint32_t col;             // colour
+					if (alive)
 					{
 						// in-between of the next tick's integration, on locals
 						int32_t d[3];
@@ -170,7 +223,15 @@ namespace part_eden_c
 							d[k] = g_held.den > 0 ? (int32_t)((int64_t)shl32(v, 4) * g_held.num / g_held.den) : 0;
 						}
 						px = add32(S32(p, 0), d[0]); py = add32(S32(p, 4), d[1]); pz = add32(S32(p, 8), d[2]);
-						cidx = (int8_t)(uint8_t)(U8(p, 0x18) + 1);
+						int32_t c0 = (int8_t)(uint8_t)(U8(p, 0x18) + 1), c1 = S8(p, 0x18);
+						col = g_held.den > 0 ? lerp_rgb(U32(PTR(WS(), 0xE4), c0 * 4), U32(PTR(WS(), 0xE4), c1 * 4), g_held.num, g_held.den)
+							: U32(PTR(WS(), 0xE4), c0 * 4);
+					}
+					else
+					{
+						// died on the real tick: drawn as the real tick drew it (life 0)
+						px = S32(p, 0); py = S32(p, 4); pz = S32(p, 8);
+						col = U32(PTR(WS(), 0xE4), 0);
 					}
 					uint8_t *v = WS() + 0xF0;                                   // [ebp-4]
 					if (U16(desc, 2) == 0)
@@ -191,7 +252,7 @@ namespace part_eden_c
 					}
 					// (other modes: ws+0xF0 is not written, the stale scratch is projected - vanilla)
 					U8(pkt, 3) = 2;
-					U32(pkt, 4) = U32(PTR(WS(), 0xE4), cidx * 4) | 0x6A000000;
+					U32(pkt, 4) = col | 0x6A000000;
 					int32_t z = xl_TransformToScreen(WS() + 0xF0, pkt + 8, WS() + 0xFC, WS() + 0xFC);
 					uint32_t ot = U32(WS(), 0x64);
 					if (ot == 0) ot = U32(RT(), 0x4C) + ((uint32_t)z & ~3u);    // `and al, 0xfc`
@@ -199,6 +260,7 @@ namespace part_eden_c
 					pkt += 0xC;
 				}
 				p += 0x1C;
+				slot++;
 			} while (--n != 0);
 		}
 		PTR(CTX(), 0x7C) = pkt;
@@ -249,11 +311,243 @@ namespace part_eden_c
 	}
 
 	// ------------------------------------------------------------------------------------
-	// 0xAE52C0 (Draw 56 LineRingTunnel), held frames: no allocation; the work area above the
-	// arena top is saved and restored; an in-between outAngleY of 0 (the divisor; the real tick's
-	// is non-zero) skips the draw.
+	// 0xAE52C0 (Draw 56 LineRingTunnel), held frames: the draw of the vanilla handler after its
+	// ws+0x70/0x74 setup (dh_56_Held, called from held_skip56, which then ends the vanilla
+	// handler); no allocation; the work area above the arena top is saved and restored; an
+	// in-between outAngleY of 0 (the divisor; the real tick's is non-zero) skips the draw.
+	// Geometry, per-row fade and scroll come from the in-between bone. The colour table index
+	// (row + column - outPosY / outAngleY + outPosX) turns the colour pattern round the ring by
+	// one column per outPosX step: every line end is drawn with the in-between of its colour at
+	// the real tick's outPosX and at the next tick's (held_bone_ends), i.e. the pattern half a
+	// column round. The reveal (hidden where row + column > outPosX) stays discrete (the
+	// in-between outPosX, i.e. the real tick's set until the next tick adds its column).
 	// ------------------------------------------------------------------------------------
-	static bool held_skip56() { return g_held.active && S32(WS(), 0x70) == 0; }
+	// colour of table entry idx, blended toward entry idx + dl (the next tick's) by num/den
+	static uint32_t col56(const uint8_t *ctab, int32_t idx, int32_t dl)
+	{
+		uint32_t c0 = U32(ctab, 4 * idx);
+		if (dl == 0 || g_held.den <= 0) return c0;
+		uint32_t c1 = U32(ctab, 4 * ((idx + dl) & (S32(WS(), 0xF0))));
+		uint32_t c = c0 & 0xFF000000u;
+		for (int s = 0; s < 24; s += 8)
+		{
+			int32_t x0 = (c0 >> s) & 0xFF, x1 = (c1 >> s) & 0xFF;
+			c |= (uint32_t)((x0 + (x1 - x0) * g_held.num / g_held.den) & 0xFF) << s;
+		}
+		return c;
+	}
+
+	static void held_scratch56_save(uint8_t *desc);
+
+	static void dh_56_Held()
+	{
+		uint8_t *desc = PTR(WS(), 0x80);                                            // edi, [ebp-0x14]
+		uint8_t *pool = PTR(WS(), 0x84);                                            // [ebp-0x18]
+		PTR(WS(), 0x64) = PTR(CTX(), 0x74);
+		PTR(WS(), 0x60) = PTR(WS(), 0x64);
+		held_scratch56_save(desc);
+		int32_t mask = (int32_t)U16(desc, 8);                                      // ebx
+		int32_t lx = S16(CUR(), 0x94);                                              // [ebp-4]
+		// colour ends: table index with the real tick's outPosX (lx0) and the next tick's (lx1)
+		int16_t a0[3], p0[3], a1[3], p1[3];
+		int32_t lx0 = lx, dl = 0;
+		if (held_bone_ends(CUR(), a0, p0, a1, p1)) { lx0 = p0[0]; dl = p1[0] - p0[0]; }
+		int32_t q = S32(WS(), 0x74) / S32(WS(), 0x70);                               // [ebp-8]
+		uint8_t *s = PTR(WS(), 0x60);                                               // esi
+		mask = sub32(mask, 1);
+		// colour index bytes, (rows + 1) x 17
+		{
+			int32_t r = 0;                                                         // [ebp-0xc]
+			do
+			{
+				int32_t c = r;                                                     // ecx
+				for (int k = 0; k < 17; k++)
+				{
+					if (c > lx)
+						*s = 0x80;
+					else
+						*s = (uint8_t)(((uint8_t)c - (uint8_t)q + (uint8_t)lx0) & (uint8_t)mask);
+					s++;
+					c++;
+				}
+				r++;
+			} while (r <= (int32_t)U16(desc, 6));
+		}
+		s = (uint8_t *)(((uint32_t)s + 4) & ~3u);
+		PTR(WS(), 0x68) = s;
+		int32_t step, accel;                                                        // [ebp-4], [ebp-8]
+		{
+			uint8_t *w = WS();
+			int32_t sp = S32(w, 0x70);                                             // ebx
+			int32_t rem = S32(w, 0x74) % sp;
+			int32_t half = mul32((int32_t)U16(desc, 6), sp) / 2;
+			step = rem;
+			U16(w, 0xD2) = (uint16_t)sub32(rem, half);
+			accel = shl32(rem, 12) / S32(WS(), 0x70);
+		}
+		if (U16(desc, 2) == 0)
+		{
+			int32_t r0 = shl32(S16(CUR(), 0x8C), 12);
+			S32(WS(), 0xF8) = r0;
+			int32_t d = sub32(shl32(S16(CUR(), 0x90), 12), r0) / (int32_t)U16(desc, 6);
+			int32_t f = mul32(accel, d);
+			accel = 0;
+			step = d;
+			S32(WS(), 0xF8) = add32(S32(WS(), 0xF8), f >> 12);
+		}
+		if (U16(desc, 2) == 1)
+		{
+			S32(WS(), 0xF8) = shl32(S16(CUR(), 0x8C), 12);
+			step = shl32(S16(CUR(), 0x90), 4);
+			accel = shl32(S16(CUR(), 0x98), 4);
+		}
+		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));                         // ebx
+		x::GteSetRotMatrix(m);
+		x::GteSetTransVector(m);
+		x::GteLoadV0(ZEROVEC());
+		x::GteMVMVA_RotV0Tr();
+		x::Gte_45E580();
+		S32(WS(), 0xC4) = 0x1000;
+		// project the rows
+		{
+			int32_t r = 0;                                                         // [ebp-0xc]
+			do
+			{
+				for (int k = 0; k < 5; k++) U32(WS(), 0xE0 + 4 * k) = U32(m, 4 * k);
+				S32(WS(), 0xC8) = S32(WS(), 0xF8) >> 8;
+				S32(WS(), 0xC0) = S32(WS(), 0xC8);
+				x::ScaleMatrix(WS() + 0xE0, WS() + 0xC0);
+				x::SetRotMatrix(WS() + 0xE0);
+				for (int c = 0; c < 17; c++)
+				{
+					U16(WS(), 0xD0) = U16(pool, 8 + 2 * c);
+					U16(WS(), 0xD4) = U16(pool, 0x2A + 2 * c);
+					int32_t z = xl_TransformToScreen(WS() + 0xD0, s, WS() + 0xFC, WS() + 0xFC);
+					U16(s, 4) = (uint16_t)z;
+					s += 8;
+				}
+				step = add32(step, accel);
+				S32(WS(), 0xF8) = add32(S32(WS(), 0xF8), step);
+				U16(WS(), 0xD2) = (uint16_t)(U16(WS(), 0xD2) + U16(WS(), 0x70));
+				r++;
+			} while (r <= (int32_t)U16(desc, 6));
+		}
+		// per-row fade
+		PTR(WS(), 0x6C) = s;
+		{
+			int32_t rows = U16(desc, 6);                                           // [ebp-0x1c]
+			int32_t sp = S32(WS(), 0x70);
+			int32_t rem = S32(WS(), 0x74) % sp;                                    // ebx
+			int32_t inv = 0x10000 / sp;
+			int32_t a = sub32(shl32(rows, 6), mul32(rem, inv) >> 10);
+			if (rows >= 0)
+			{
+				int32_t cnt = rows + 1;
+				do
+				{
+					if (a < 0) a = 0;
+					S32(s, 0) = a;
+					s += 4;
+					a = sub32(a, 0x40);
+				} while (--cnt != 0);
+			}
+		}
+		// lines
+		uint8_t *pkt = PTR(CTX(), 0x7C);                                           // esi
+		S32(WS(), 0xF0) = sub32((int32_t)U16(desc, 8), 1);
+		uint8_t *ci = PTR(WS(), 0x64);                                              // [ebp-8]
+		uint8_t *pv = PTR(WS(), 0x68);                                              // edi
+		uint8_t *ctab = PTR(pool, 0);                                               // [ebp-0x10]
+		if (U16(desc, 6) != 0)
+		{
+			// horizontal (along each ring), rows 0..rows-1
+			int32_t r = 0;
+			do
+			{
+				int32_t a = S32(PTR(WS(), 0x6C), 4 * r);                           // [ebp-4]
+				for (int c = 0; c < 16; c++)
+				{
+					int32_t idx = S8(ci, 0);                                       // ebx
+					if (idx >= 0)
+					{
+						uint32_t col = col56(ctab, idx, dl);
+						if (a < 0x100) col = xl_ScaleColour_B66A20(col, a);
+						idx++;
+						U32(pkt, 0xC) = col | 0x52000000;
+						col = col56(ctab, S32(WS(), 0xF0) & idx, dl);
+						if (a < 0x100) col = xl_ScaleColour_B66A20(col, a);
+						U32(pkt, 0x14) = col;
+						U32(pkt, 4) = 0xE1000220;
+						U8(pkt, 3) = 6;
+						U32(pkt, 8) = 0;
+						U32(pkt, 0x10) = U32(pv, 0);
+						U32(pkt, 0x18) = U32(pv, 8);
+						int32_t d1 = U16(pv, 0xC), d0 = U16(pv, 4);
+						uint32_t ot = ((uint32_t)(add32(d1, d0) / 2) & ~3u) + U32(RT(), 0x4C);
+						x::InsertPrimDepthKeys(ot, pkt, d0, d1, 0, 0);
+						pkt += 0x1C;
+					}
+					pv += 8;
+					ci++;
+				}
+				pv += 8;
+				ci++;
+				r++;
+			} while (r < (int32_t)U16(desc, 6));
+		}
+		S32(WS(), 0xF4) = 0x88;
+		ci = PTR(WS(), 0x64);
+		pv = PTR(WS(), 0x68);
+		ctab = PTR(pool, 0);
+		if (U16(desc, 6) != 0)
+		{
+			// vertical (between rows r and r+1), rows 0..rows-1
+			int32_t r = 0;
+			do
+			{
+				uint8_t *ar = PTR(WS(), 0x6C) + 4 * r;                             // [ebp-0x1c]
+				for (int c = 0; c < 16; c++)
+				{
+					int32_t idx = S8(ci, 0);                                       // ebx
+					if (idx >= 0)
+					{
+						uint32_t col = col56(ctab, idx, dl);
+						int32_t a = S32(ar, 0);
+						if (a < 0x100) col = xl_ScaleColour_B66A20(col, a);
+						U32(pkt, 0xC) = col | 0x52000000;
+						idx++;
+						col = col56(ctab, S32(WS(), 0xF0) & idx, dl);
+						a = S32(ar, 4);
+						if (a < 0x100) col = xl_ScaleColour_B66A20(col, a);
+						U32(pkt, 0x14) = col;
+						U32(pkt, 4) = 0xE1000220;
+						U8(pkt, 3) = 6;
+						U32(pkt, 8) = 0;
+						U32(pkt, 0x10) = U32(pv, 0);
+						U32(pkt, 0x18) = U32(pv, S32(WS(), 0xF4));
+						int32_t d1 = U16(pv, 0xC), d0 = U16(pv, 4);           // 0xAE595D: same-row keys (vanilla)
+						uint32_t ot = ((uint32_t)(add32(d1, d0) / 2) & ~3u) + U32(RT(), 0x4C);
+						x::InsertPrimDepthKeys(ot, pkt, d0, d1, 0, 0);
+						pkt += 0x1C;
+					}
+					ci++;
+					pv += 8;
+				}
+				pv += 8;
+				ci++;
+				r++;
+			} while (r < (int32_t)U16(desc, 6));
+		}
+		PTR(CTX(), 0x7C) = pkt;
+		held_scratch_restore();
+	}
+
+	static bool held_skip56()
+	{
+		if (!g_held.active) return false;
+		if (S32(WS(), 0x70) != 0) dh_56_Held();
+		return true;
+	}
 
 	static void held_scratch56_save(uint8_t *desc)
 	{
