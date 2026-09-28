@@ -104,6 +104,7 @@ namespace ff8fx::mod
 	static const Region streams_r010[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_s011[] = { { 0x1365728, 0x9A0 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_s155[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_g168[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -210,6 +211,7 @@ namespace ff8fx::mod
 		{ 10, 0x24C91D8, 0x24CA810, 0, 0, false, "Ray-Bomb", streams_r010, 1 },
 		{ 11, 0x2556140, 0x25561C8, 0, 0, false, "Storm Breath", streams_s011, 2 },
 		{ 155, 0x23F07F0, 0x2404234, 0, 0, false, "Sand Storm", streams_s155, 1 },
+		{ 168, 0x23B3C10, 0x23BD350, 0, 0, false, "Sleeping Gas", streams_g168, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

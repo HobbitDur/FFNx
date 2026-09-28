@@ -170,6 +170,7 @@ namespace ff8fx
 		register_mag010_ray_bomb();
 		register_mag011_storm_breath();
 		register_mag155_sand_storm();
+		register_mag168_sleeping_gas();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
