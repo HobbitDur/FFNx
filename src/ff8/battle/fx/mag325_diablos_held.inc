@@ -26,12 +26,12 @@ namespace d325
 	// Held-frame memo of what the real timeline tick drew
 	// ------------------------------------------------------------------
 	static const uint32_t SKEL_MAX = 16 + 48 * 256;
-	struct PoseMemo { bool ok; uint32_t size; uint8_t pose[SKEL_MAX]; };
 	struct TimelineMemo
 	{
 		uint32_t tick;
 		const void *node;
 		int16_t c;                  // counter the tick ran with
+		Mat4x3 effcam;              // effect camera 0x2505210 the tick's prim players drew with
 		bool play_a; PrimCtx ctx_a;
 		bool grow; uint32_t grow_e;
 		bool morph; uint32_t morph_e;
@@ -42,15 +42,13 @@ namespace d325
 		bool well; uint32_t well_e;
 		bool tile; int32_t tile_e;
 		int e1_draw;                // 0 none, 1 stylised (-0x2000, mode 2), 2 stylised (-0x22BC, mode 0), 3 standard
-		bool e1_blend;              // E1 was drawn on the previous real tick too (the drawn pose is the memo)
 		Mat4x3 e1_root; uint32_t e1_colour;
-		bool e2_draw, e2_blend;
-		PoseMemo p1, p2;
+		bool e2_draw;
 		int pmode;                  // particle system drawn: 2 bolts, 3 puffs
-		uint8_t pool[MB_CHAINS_END - MB_PARTICLES];
+		uint8_t pool[MB_ARENA_A - MB_PARTICLES];
+		uint8_t bolt_vars[8];       // bolt parameters 0x2505200..0x2505207 as drawn (depth bias 0x2505206)
 	};
 	static TimelineMemo g_tm = { 0xFFFFFFFF };
-	static uint32_t g_e1_drawn_tick = 0xFFFFFFF0, g_e2_drawn_tick = 0xFFFFFFF0;
 
 	static uint8_t *Skeleton(uint8_t *e, uint32_t *size)
 	{
@@ -59,14 +57,6 @@ namespace d325
 		if (!sk || sk[0] == 0) return nullptr;
 		*size = 16 + 48 * (uint32_t)sk[0];
 		return *size <= SKEL_MAX ? sk : nullptr;
-	}
-
-	static void PoseSave(uint8_t *e, PoseMemo &m)
-	{
-		uint32_t size = 0;
-		uint8_t *sk = Skeleton(e, &size);
-		m.ok = sk != nullptr;
-		if (m.ok) { memcpy(m.pose, sk, size); m.size = size; }
 	}
 
 	// ------------------------------------------------------------------
@@ -84,15 +74,12 @@ namespace d325
 		M.tick = g_real_tick;
 		M.node = t;
 		M.c = t->counter;
+		M.effcam = EffectCamera();
 		M.play_a = M.grow = M.morph = M.play_c = M.restart_c = M.play_b = M.sink = M.well = M.tile = false;
 		M.nflip = 0;
 		M.e1_draw = 0;
 		M.e2_draw = false;
 		M.pmode = 0;
-		// the pose each model draws this tick is the one the tick starts with (its draw builds the
-		// world matrices from the bone matrices of the previous draw, before this tick's anim read)
-		PoseSave(E1(t), M.p1);
-		PoseSave(E2(t), M.p2);
 	}
 
 	static void held_note_play_a(const PrimCtx &ctx)
@@ -164,8 +151,6 @@ namespace d325
 		M.e1_draw = kind;
 		if (kind)
 		{
-			M.e1_blend = g_e1_drawn_tick + 1 == g_real_tick;
-			g_e1_drawn_tick = g_real_tick;
 			M.e1_root = Root(e1);
 			M.e1_colour = *(uint32_t *)(e1 + 0x28);
 		}
@@ -173,10 +158,7 @@ namespace d325
 
 	static void held_note_e2()
 	{
-		TimelineMemo &M = g_tm;
-		M.e2_draw = true;
-		M.e2_blend = g_e2_drawn_tick + 1 == g_real_tick;
-		g_e2_drawn_tick = g_real_tick;
+		g_tm.e2_draw = true;
 	}
 
 	// particle pool as drawn: 2 = bolts (after their advance), 3 = puffs (before their moves)
@@ -184,7 +166,11 @@ namespace d325
 	{
 		TimelineMemo &M = g_tm;
 		M.pmode = mode;
-		if (mode == 2) memcpy(M.pool, ModelBuffer() + MB_PARTICLES, sizeof(M.pool));
+		if (mode == 2)
+		{
+			memcpy(M.pool, ModelBuffer() + MB_PARTICLES, sizeof(M.pool));
+			memcpy(M.bolt_vars, (void *)0x2505200, sizeof(M.bolt_vars));
+		}
 		else memcpy(M.pool, ModelBuffer() + MB_PARTICLES, MB_PUFFS_END - MB_PARTICLES);
 	}
 
@@ -207,49 +193,54 @@ namespace d325
 	// Held frames (30 fps). Exact vanilla shapes: everything that moves is drawn between the
 	// state drawn on the last real tick and the state of the next one; what jumps (cuts, stage
 	// changes, flipbook frames, particle growth / spawns) keeps its 15 Hz steps. Nothing here
-	// changes game state: no RNG, no spawn, no camera write; the model-buffer scratch and the
-	// particle pools the held draw rewrites are put back.
+	// changes game state: no spawn, no camera write; what the look-ahead reads run on (skeletons,
+	// anim commands, particle pools, module variables incl. the bolt RNG) and the model-buffer
+	// scratch / morph output the held draw rewrites are put back.
 	// ------------------------------------------------------------------
-	static void PoseBlend(uint8_t *sk, const uint8_t *from, int num, int den)
+	// Battle models (E1 Diablos, E2): the draws (0x6574F0 stylised, 0x6A79B0) transform the bone
+	// matrices of the skeleton (model space, rebuilt from the pose at the end of each draw); after
+	// the real tick they are the ones that tick drew with. The next tick's are its AdvanceAnim
+	// (the anim read, run ahead on the real skeleton and command, put back) and the matrices built
+	// from that pose. A held frame draws with the matrices in between (then the real skeleton,
+	// pose and matrices, is put back).
+	static uint8_t g_skel_save[SKEL_MAX], g_skel_next[SKEL_MAX];
+
+	// bone matrices (model space, built from the pose: +0x10 of each 48-byte bone, 3x3 s16 then
+	// translation s32 x3) between the current ones and the next tick's: the vertices land on the
+	// N -> N+1 chord midpoint
+	static void MatMid(uint8_t *sk, const uint8_t *next, int num, int den)
 	{
-		// sk holds the pose after the tick (the one the next tick draws), from the pose drawn
-		// this tick: write the midpoint (angles the short way round) into sk's pose fields
 		int nb = sk[0];
-		bool scaled = (sk[1] & 1) != 0;
-		for (int a = 0; a < 3; a++)
-		{
-			int16_t *p = (int16_t *)(sk + 8) + a;
-			int16_t f = ((const int16_t *)(from + 8))[a];
-			*p = (int16_t)(f + ((int32_t)*p - f) * num / den);
-		}
 		for (int b = 0; b < nb; b++)
 		{
-			int16_t *p = (int16_t *)(sk + 16 + 48 * b + 4);
-			const int16_t *f = (const int16_t *)(from + 16 + 48 * b + 4);
-			for (int a = 0; a < 3; a++)
-			{
-				int32_t d = (((int32_t)p[a] - f[a] + 2048) & 4095) - 2048;
-				p[a] = (int16_t)(f[a] + d * num / den);
-			}
-			if (scaled)
-				for (int a = 3; a < 6; a++) p[a] = (int16_t)(f[a] + ((int32_t)p[a] - f[a]) * num / den);
+			int16_t *m = (int16_t *)(sk + 16 + 48 * b + 0x10);
+			const int16_t *q = (const int16_t *)(next + 16 + 48 * b + 0x10);
+			for (int i = 0; i < 9; i++) m[i] = (int16_t)lerp_i(m[i], q[i], num, den);
+			int32_t *t = (int32_t *)(sk + 16 + 48 * b + 0x24);
+			const int32_t *u = (const int32_t *)(next + 16 + 48 * b + 0x24);
+			for (int i = 0; i < 3; i++) t[i] = lerp_i(t[i], u[i], num, den);
 		}
 	}
 
-	static uint8_t g_skel_save[SKEL_MAX];
-
-	// a model drawn between its memo pose and its current pose; draw() is the tick's draw call
+	// a model drawn at its in-between pose (advance: the next tick reads the next pose of the same
+	// animation); draw() is the tick's draw call
 	template<typename Draw>
-	static void ModelHeld(uint8_t *e, const PoseMemo &pm, bool blend, int num, int den, Draw draw)
+	static void ModelHeld(uint8_t *e, bool advance, int num, int den, Draw draw)
 	{
 		uint32_t size = 0;
 		uint8_t *sk = Skeleton(e, &size);
 		if (!sk) return;
 		memcpy(g_skel_save, sk, size);
-		if (blend && pm.ok && pm.size == size)
+		if (advance)
 		{
-			PoseBlend(sk, pm.pose, num, den);
+			uint8_t cmd[8];
+			memcpy(cmd, e + 0x6C, sizeof(cmd));
+			x::AdvanceAnim(e);
 			BuildBoneMatricesFromPose(e + 0x60);
+			memcpy(g_skel_next, sk, size);
+			memcpy(sk, g_skel_save, size);
+			memcpy(e + 0x6C, cmd, sizeof(cmd));
+			MatMid(sk, g_skel_next, num, den);
 		}
 		draw();
 		memcpy(sk, g_skel_save, size);
@@ -264,68 +255,163 @@ namespace d325
 
 	static uint8_t g_layout_save[0x1E8];
 
-	static void BoltsHeld(int num, int den)
+	// Bolts: the chains as drawn, each vertex between its drawn state and the one the next tick
+	// draws (the next tick's BoltAdvance run ahead on the real pools and module variables, put
+	// back): position, brightness, chain fade; vertices / chains the next tick adds appear on the
+	// real frame, chains it frees keep their last picture
+	static uint8_t g_bolt_next[MB_ARENA_A - MB_PARTICLES];
+	static uint8_t g_mvars_save[0x2505230 - 0x250517C];
+
+	static void BoltsHeld(int32_t c, int32_t cn, int num, int den)
 	{
-		// the chains as drawn, drifted towards the next tick: vertices by their velocity,
-		// brightness by one decay step, chain fade by one step (growth keeps the 15 Hz batches)
 		uint8_t *base = ModelBuffer() + MB_PARTICLES;
-		memcpy(base, g_tm.pool, sizeof(g_tm.pool));
-		if (!Pause())
+		bool adv = cn == c + 1 && !Pause() && Mode() == 2;
+		if (adv)
 		{
-			uint8_t *ch = ModelBuffer() + MB_CHAINS;
-			for (int k = 0; k < 64; k++, ch += 0x30)
+			memcpy(g_mvars_save, (void *)0x250517C, sizeof(g_mvars_save));
+			x::BoltAdvance();
+			memcpy(g_bolt_next, base, sizeof(g_bolt_next));
+			memcpy((void *)0x250517C, g_mvars_save, sizeof(g_mvars_save));
+		}
+		memcpy(base, g_tm.pool, sizeof(g_tm.pool));
+		if (adv)
+			for (int k = 0; k < 64; k++)
 			{
+				const uint32_t o = MB_CHAINS - MB_PARTICLES + 0x30 * k;
+				uint8_t *ch = base + o;
+				const uint8_t *nch = g_bolt_next + o;
 				uint8_t *v = *(uint8_t **)ch;
-				if (!v) continue;
-				int16_t &fade = *(int16_t *)(ch + 0x2E);
-				int32_t fn = fade - 0x100;
-				if (fn < 0) fn = 0;
-				fade = (int16_t)lerp_i(fade, fn, num, den);
+				if (!v || *(uint8_t *const *)nch != v) continue;
+				*(int16_t *)(ch + 0x2E) = (int16_t)lerp_i(*(int16_t *)(ch + 0x2E), *(const int16_t *)(nch + 0x2E), num, den);
 				for (int guard = 0; v && guard < 0x200; guard++)
 				{
-					if (v < base || v >= ModelBuffer() + MB_CHAINS) break;
-					int16_t *pos = (int16_t *)v, *vel = (int16_t *)(v + 8);
-					for (int a = 0; a < 3; a++) pos[a] = (int16_t)(pos[a] + vel[a] * num / den);
-					int16_t &in = *(int16_t *)(v + 0x10);
-					int32_t i1 = (int16_t)(in + *(int16_t *)(v + 0x12));
-					if (i1 < 0) i1 = 0;
-					in = (int16_t)lerp_i(in, i1, num, den);
+					if (v < base || v + 0x18 > base + (MB_CHAINS - MB_PARTICLES)) break;
+					const uint8_t *nv = g_bolt_next + (v - base);
+					if (*(const int16_t *)(nv + 6) != -1)
+					{
+						int16_t *pos = (int16_t *)v;
+						const int16_t *npos = (const int16_t *)nv;
+						for (int a = 0; a < 3; a++) pos[a] = (int16_t)lerp_i(pos[a], npos[a], num, den);
+						*(int16_t *)(v + 0x10) = (int16_t)lerp_i(*(int16_t *)(v + 0x10), *(const int16_t *)(nv + 0x10), num, den);
+					}
 					v = *(uint8_t **)(v + 0x14);
 				}
 			}
-		}
+		// drawn with the parameters the tick drew with (a later section of the tick may set new ones)
+		uint8_t vars[8];
+		memcpy(vars, (void *)0x2505200, sizeof(vars));
+		memcpy((void *)0x2505200, g_tm.bolt_vars, sizeof(vars));
 		x::BoltDraw();
+		memcpy((void *)0x2505200, vars, sizeof(vars));
 	}
 
-	static void PuffsHeld(int32_t c, int num, int den)
+	// colours of the packets [a, ae) between their own and those of the same packets drawn with
+	// the next tick's flipbook frames ([b, be), a private draw): the texture frame (uv) stays.
+	// same_xy: only packets whose vertices are the same in both (the frames share the geometry)
+	static void LerpPacketColours(uint8_t *a, uint8_t *ae, const uint8_t *b, const uint8_t *be, int num, int den, bool same_xy)
 	{
-		// puffs as drawn, moved towards their state after this tick's moves; the pool resets
-		// (0, 30, 90, 202, 469) and stage switches keep the drawn state
-		static uint8_t cur[MB_PUFFS_END - MB_PARTICLES];
-		uint8_t *pool = ModelBuffer() + MB_PARTICLES;
-		memcpy(cur, pool, sizeof(cur));
-		bool move = Mode() == 3 && c != 0 && c != 0x1E && c != 0x5A && c != 0xCA && c != 0x1D5;
-		memcpy(pool, g_tm.pool, sizeof(cur));
-		if (move)
-			for (int i = 0; i < 0xA0; i++)
+		while (a + 8 <= ae && b + 8 <= be)
+		{
+			uint32_t la = a[3];
+			if (!la || la != b[3] || a[7] != b[7]) return;
+			uint8_t code = a[7];
+			if ((code & 0xE0) == 0x20)
 			{
-				uint8_t *p = pool + 0x10 * i;
-				const uint8_t *q = cur + 0x10 * i;
-				if (!p[0xF] || *(const uint32_t *)q != *(const uint32_t *)p) continue;
-				int16_t *pp = (int16_t *)(p + 4);
-				const int16_t *qp = (const int16_t *)(q + 4);
-				bool jump = false;
-				for (int a = 0; a < 3; a++)
+				bool gouraud = (code & 0x10) != 0, tex = (code & 4) != 0;
+				uint32_t nv = (code & 8) ? 4 : 3;
+				uint32_t *wa = (uint32_t *)(a + 4);
+				const uint32_t *wb = (const uint32_t *)(b + 4);
+				bool ok = true;
+				if (same_xy)
+					for (uint32_t v = 0, i = 0; v < nv; v++)
+					{
+						i += v == 0 || gouraud ? 1 : 0;
+						if (wa[i] != wb[i]) ok = false;
+						i += 1 + (tex ? 1 : 0);
+					}
+				for (uint32_t v = 0, i = 0; ok && v < nv; v++)
 				{
-					int32_t d = (int32_t)qp[a] - pp[a];
-					if (d > 0x1000 || d < -0x1000) jump = true;
+					if (v == 0 || gouraud)
+					{
+						uint8_t *ca = (uint8_t *)&wa[i];
+						const uint8_t *cb = (const uint8_t *)&wb[i];
+						for (int k = 0; k < 3; k++) ca[k] = (uint8_t)lerp_i(ca[k], cb[k], num, den);
+					}
+					i += (v == 0 || gouraud ? 1 : 0) + 1 + (tex ? 1 : 0);
 				}
-				if (jump) continue;
-				for (int a = 0; a < 3; a++) pp[a] = (int16_t)lerp_i(pp[a], qp[a], num, den);
-				if (q[0xB] <= p[0xB]) p[0xB] = (uint8_t)lerp_i(p[0xB], q[0xB], num, den);
 			}
-		x::PuffDraw();
+			a += 4 + 4 * la;
+			b += 4 + 4 * la;
+		}
 	}
+
+	// Puffs: as drawn, moved towards the state the next tick draws (the tick's moves come after
+	// its draw: the pool after the tick); the flipbook frame (their life) switches on the real
+	// frame, the frame colours are blended with the next frame's (a private draw); the pool resets
+	// (0, 30, 90, 202, 469) and stage switches keep the drawn state
+	// draw() into a private packet buffer and bucket (RenderOT 0x1D8E04C pointed at a private
+	// table, the execution nodes the draw adds are dropped, the cursors put back); returns the
+	// end of the packets it wrote into g_priv_pk (0 = overflow)
+	static uint8_t g_priv_pk[0x20000];
+	static uint32_t g_priv_ot[0x4000];
+
+	template<typename Draw>
+	static uint32_t PrivateDraw(Draw draw)
+	{
+		uint32_t exec = var<uint32_t>(0x1CA8828), ot = var<uint32_t>(0x1D8E04C), pc = PacketCursor(), fc = FrameCursor();
+		var<uint32_t>(0x1D8E04C) = (uint32_t)g_priv_ot;
+		PacketCursor() = (uint32_t)g_priv_pk;
+		draw(); // hf325 private draw
+		uint32_t end = PacketCursor();
+		PacketCursor() = pc;
+		FrameCursor() = fc;
+		var<uint32_t>(0x1D8E04C) = ot;
+		var<uint32_t>(0x1CA8828) = exec;
+		return end - (uint32_t)g_priv_pk <= sizeof(g_priv_pk) ? end : 0;
+	}
+
+	static uint8_t g_puff_cur[MB_PUFFS_END - MB_PARTICLES];
+	static uint8_t g_puff_life[0xA0];
+
+	static void PuffsHeld(int32_t c, int32_t cn, int num, int den)
+	{
+		uint8_t *pool = ModelBuffer() + MB_PARTICLES;
+		memcpy(g_puff_cur, pool, sizeof(g_puff_cur));
+		bool move = cn == c + 1 && !Pause() && Mode() == 3 && c != 0 && c != 0x1E && c != 0x5A && c != 0xCA && c != 0x1D5;
+		memcpy(pool, g_tm.pool, sizeof(g_puff_cur));
+		bool blend = false;
+		for (int i = 0; i < 0xA0; i++)
+		{
+			uint8_t *p = pool + 0x10 * i;
+			const uint8_t *q = g_puff_cur + 0x10 * i;
+			g_puff_life[i] = p[0xF];
+			if (!move || !p[0xF] || !q[0xF] || *(const uint32_t *)q != *(const uint32_t *)p) continue;
+			int16_t *pp = (int16_t *)(p + 4);
+			const int16_t *qp = (const int16_t *)(q + 4);
+			bool jump = false;
+			for (int a = 0; a < 3; a++)
+			{
+				int32_t d = (int32_t)qp[a] - pp[a];
+				if (d > 0x1000 || d < -0x1000) jump = true;
+			}
+			if (jump) continue;
+			for (int a = 0; a < 3; a++) pp[a] = (int16_t)lerp_i(pp[a], qp[a], num, den);
+			if (q[0xB] <= p[0xB]) p[0xB] = (uint8_t)lerp_i(p[0xB], q[0xB], num, den);
+			g_puff_life[i] = q[0xF];
+			blend = true;
+		}
+		uint32_t c0 = PacketCursor();
+		x::PuffDraw();
+		uint32_t c1 = PacketCursor();
+		if (!num || !blend) return;
+		// the same puffs with the next tick's life (flipbook frame), privately
+		for (int i = 0; i < 0xA0; i++) { uint8_t l = pool[0x10 * i + 0xF]; pool[0x10 * i + 0xF] = g_puff_life[i]; g_puff_life[i] = l; }
+		uint32_t n1 = PrivateDraw([]() { x::PuffDraw(); });
+		for (int i = 0; i < 0xA0; i++) pool[0x10 * i + 0xF] = g_puff_life[i];
+		if (n1) LerpPacketColours((uint8_t *)c0, (uint8_t *)c1, g_priv_pk, (const uint8_t *)n1, num, den, false);
+	}
+
+	static uint8_t g_morph_save[0x4EF8C - 0x4C244];
 
 	static void TimelineHeld(TimelineNode *t, int num, int den)
 	{
@@ -333,6 +419,14 @@ namespace d325
 		if (M.tick != g_real_tick || M.node != t) return;
 		int32_t c = M.c, cn = t->counter;
 		uint8_t *e1 = E1(t), *e2 = E2(t);
+		// the timeline runs before the master builds the effect camera for the particles: its prim
+		// players draw with the one built on the previous tick; the next tick's is the current one
+		{
+			Mat4x3 &ec = EffectCamera();
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++) ec.m[i][j] = (int16_t)lerp_i(M.effcam.m[i][j], ec.m[i][j], num, den);
+			for (int i = 0; i < 3; i++) ec.t[i] = lerp_i(M.effcam.t[i], ec.t[i], num, den);
+		}
 
 		if (M.play_a)
 		{
@@ -351,9 +445,32 @@ namespace d325
 		{
 			int32_t tt = (int32_t)((M.morph_e << 12) / 12u);
 			tt = Toward(tt, (int32_t)(((M.morph_e + 1) << 12) / 12u), c, cn, 0x5B, 0x67, num, den);
+			// the morphed model is built into ModelBuffer + 0x4C244 (the next tick rebuilds it): put back
+			memcpy(g_morph_save, ModelBuffer() + 0x4C244, sizeof(g_morph_save));
 			x::MorphPair(0, -0x2000, (int16_t)FarZ(), (uint32_t)(ModelBuffer() + 0x4C244), t->flip, 2, tt, t->morph_b, 2, tt);
+			memcpy(ModelBuffer() + 0x4C244, g_morph_save, sizeof(g_morph_save));
 		}
-		for (int i = 0; i < M.nflip; i++) x::DrawPrimAt(M.flip[i].x, M.flip[i].y, M.flip[i].z, M.flip[i].model);
+		for (int i = 0; i < M.nflip; i++)
+		{
+			// prim-model flipbooks (a model per tick): the model switches on the real frame; when
+			// the next tick's model has the same geometry, the colours are blended with its own
+			uint32_t c0 = PacketCursor();
+			x::DrawPrimAt(M.flip[i].x, M.flip[i].y, M.flip[i].z, M.flip[i].model);
+			uint32_t c1 = PacketCursor();
+			uint32_t next = 0;
+			if (cn == c + 1 && num)
+			{
+				uint32_t e = (uint32_t)(c - 0x67), e2 = (uint32_t)(c - 0xEE);
+				if (M.flip[i].x == 0 && e + 1 < 0x64) next = e + 1 < 0x46 ? t->flip[(e + 1) % 9] : t->flip[0];
+				else if (M.flip[i].x == 0x5A && e2 + 1 < 0x3C) next = t->flip[(e2 + 1) % 13];
+			}
+			if (next && next != M.flip[i].model)
+			{
+				const auto &f = M.flip[i];
+				uint32_t n1 = PrivateDraw([&]() { x::DrawPrimAt(f.x, f.y, f.z, next); });
+				if (n1) LerpPacketColours((uint8_t *)c0, (uint8_t *)c1, g_priv_pk, (const uint8_t *)n1, num, den, true);
+			}
+		}
 		if (M.play_c)
 		{
 			PrimCtx ctx = M.ctx_c;
@@ -421,7 +538,9 @@ namespace d325
 			const uint8_t *c0 = (const uint8_t *)&M.e1_colour, *c1 = (const uint8_t *)&colour;
 			for (int k = 0; k < 3; k++) col[k] = (uint8_t)lerp_i(c0[k], c1[k], num, den);
 			int kind = M.e1_draw;
-			ModelHeld(e1, M.p1, M.e1_blend, num, den, [&]() {
+			// the next tick's anim switches (SetAnim before its AdvanceAnim) hold the pose
+			bool adv = cn == c + 1 && !Pause() && cn != 0xAD && cn != 0xC9 && cn != 0xEE && cn != 0xF6 && cn != 0x148 && cn != 0x1C8;
+			ModelHeld(e1, adv, num, den, [&]() {
 				if (kind == 1) x::DrawStylised(e1, -0x2000, 0x80, 2, ModelBuffer() + MB_MORPH);
 				else if (kind == 2) x::DrawStylised(e1, -0x22BC, 0x80, 0, ModelBuffer() + MB_MORPH);
 				else FrameCursor() = x::DrawModel(e1, ModelBuffer() + MB_MORPH, FrameCursor(), ModelDrawMode());
@@ -430,12 +549,12 @@ namespace d325
 			*(uint32_t *)(e1 + 0x28) = colour;
 		}
 		if (M.e2_draw)
-			ModelHeld(e2, M.p2, M.e2_blend, num, den, [&]() {
+			ModelHeld(e2, cn == c + 1 && !Pause() && cn != 0x148, num, den, [&]() {
 				FrameCursor() = x::DrawModel(e2, ModelBuffer() + MB_MORPH, FrameCursor(), ModelDrawMode());
 			});
 
-		if (M.pmode == 2) BoltsHeld(num, den);
-		else if (M.pmode == 3) PuffsHeld(c, num, den);
+		if (M.pmode == 2) BoltsHeld(c, cn, num, den);
+		else if (M.pmode == 3) PuffsHeld(c, cn, num, den);
 	}
 
 	static void RisingHeld(RisingNode *p, int num, int den)
@@ -458,7 +577,7 @@ namespace d325
 
 	static uint8_t g_held_packets[0x80000]; // module arena 0x20000, then the frame arena (model draws)
 	static uint8_t g_scratch_save[MB_STREAM_STATE - MB_MORPH];
-	static uint8_t g_pool_save[MB_CHAINS_END - MB_PARTICLES];
+	static uint8_t g_pool_save[MB_ARENA_A - MB_PARTICLES];
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick; }
 
