@@ -101,6 +101,7 @@ namespace ff8fx::mod
 	static const Region streams_c040[] = { { 0x15CDDF4, 0x180 }, { 0x15CE1DC, 0x500 }, { 0x1D2A278, 1 }, { 0x1D2B330, 0xA4 }, { 0x1D2B558, 0x32 }, { 0x2795BD0, 4 }, { 0x279CC68, 0x2C } };
 	static const Region streams_e029[] = { { 0x17D27DC, 0x98 }, { 0x17D56AC, 0x890 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_c026[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_r010[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -204,6 +205,7 @@ namespace ff8fx::mod
 		{ 231, 0x2796A90, 0x2798C40, 0, 0, false, "Disease Breath", streams_gfc, 5 },
 		{ 233, 0x2796A20, 0x2798C40, 0, 0, false, "Earthquake", streams_gfc, 5 },
 		{ 26, 0x26D9050, 0x26E58F0, 0, 0, false, "Clash", streams_c026, 1 },
+		{ 10, 0x24C91D8, 0x24CA810, 0, 0, false, "Ray-Bomb", streams_r010, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
