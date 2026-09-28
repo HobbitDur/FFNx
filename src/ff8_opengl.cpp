@@ -2350,11 +2350,23 @@ static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int di
 		mid.root[a] = (int16_t)(cur.root[a] + ff8_bgate_scale_round(next.root[a] - cur.root[a], k, div));
 	for (int b = 0; b < nb; b++)
 	{
+		// a bone rotation Ry(-y) Rx(-x) Rz(z) is also written (2048 - x, y + 2048, z + 2048): the
+		// animation data switches between the two near x = +-1024, and blending the numbers across
+		// such a switch turns the bone half way round; blend toward the spelling of the next pose
+		// nearer the current one (each angle the shortest way round)
+		int d[3], e[3], sd = 0, se = 0;
 		for (int a = 0; a < 3; a++)
 		{
-			int d = ((next.v[b][a] - cur.v[b][a] + 2048) & 4095) - 2048; // shortest way round
-			mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(d, k, div));
+			d[a] = ((next.v[b][a] - cur.v[b][a] + 2048) & 4095) - 2048;
+			sd += d[a] < 0 ? -d[a] : d[a];
 		}
+		e[0] = ((2048 - next.v[b][0] - cur.v[b][0] + 2048) & 4095) - 2048;
+		e[1] = ((next.v[b][1] - cur.v[b][1]) & 4095) - 2048;
+		e[2] = ((next.v[b][2] - cur.v[b][2]) & 4095) - 2048;
+		for (int a = 0; a < 3; a++) se += e[a] < 0 ? -e[a] : e[a];
+		const int *dd = se < sd ? e : d;
+		for (int a = 0; a < 3; a++)
+			mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(dd[a], k, div));
 		if (scaled)
 			for (int a = 3; a < 6; a++)
 				mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(next.v[b][a] - cur.v[b][a], k, div));
