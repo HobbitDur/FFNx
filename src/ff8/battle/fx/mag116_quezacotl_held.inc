@@ -26,7 +26,35 @@ namespace q116
 	// real tick on which the ported master last ran (held frames need its memos)
 	static uint32_t g_ported_tick = 0xFFFFFFFF;
 
-	static void held_note_master() { g_ported_tick = g_real_tick; }
+	// The nodes of the queues whose tasks end on a tick after drawing on it (arcs, flashes,
+	// debris: draw, update, TASK_END), as the tick starts. A task that ends on tick N has drawn
+	// its last picture on N, which vanilla keeps on screen for the whole tick: the held frame
+	// after N draws that picture again (from these copies and the memos of the tick).
+	template<typename N, int CAP> struct QueueSnap { int n; TaskNode *node[CAP]; N copy[CAP]; };
+	static QueueSnap<ArcNode, 16> g_snap_arc;       // pool 0x10 x 0x80 (creature parts)
+	static QueueSnap<FlashNode, 64> g_snap_flash;   // pool 0x40 x 0x14
+	static QueueSnap<DebrisNode, 32> g_snap_debris; // pool 0x20 x 0x2C
+
+	template<typename N, int CAP> static void SnapQueue(QueueSnap<N, CAP> &q, TaskNode *head, uint32_t func)
+	{
+		q.n = 0;
+		for (TaskNode *t = head; t && q.n < CAP; t = t->next)
+			if ((uint32_t)t->func == func) { q.node[q.n] = t; memcpy(&q.copy[q.n], t, sizeof(N)); q.n++; }
+	}
+
+	static bool Queued(const TaskNode *head, const TaskNode *n)
+	{
+		for (const TaskNode *t = head; t; t = t->next) if (t == n) return true;
+		return false;
+	}
+
+	static void held_note_master()
+	{
+		g_ported_tick = g_real_tick;
+		SnapQueue(g_snap_arc, QueueCreature().first.head, ORIG_ArcTask);
+		SnapQueue(g_snap_flash, QueueDebris().second.head, ORIG_FlashTask);
+		SnapQueue(g_snap_debris, QueueDebris().first.head, ORIG_DebrisTask);
+	}
 
 	struct DebrisMemo { int16_t pos[3], rot[3]; };
 	static NodeMemo<DebrisMemo, 256> g_debris_memo;
@@ -58,9 +86,82 @@ namespace q116
 	}
 
 	// the three random values of inner point i (1..14) of the arc being drawn
+	struct ArcNext { int32_t rnd[14][3]; };
+
 	static void held_note_arc_jitter(int i, const int32_t *rv)
 	{
 		memcpy(g_arc_cur->rnd[i - 1], rv, sizeof(g_arc_cur->rnd[i - 1]));
+	}
+
+	// ---- the next tick's arc jitter ----
+	// The arcs take their jitter from the module generator (0x6C7CF0, seed 0x25217A0) right after
+	// the creature task, the only other user before them in the master's order. Its draws on the
+	// next tick come from its timeline: 8 at the bolt spawns of 88..100 (even), 7 at 157..175
+	// (odd), 5 at 232..266, plus SpawnBolt's 3 (shape) when it gets a vertex and a task node.
+	// Then every queued arc takes 42 values (14 inner points x 3) in queue order (new arcs are
+	// appended behind). Not predicted (held frames replay the tick's jitter): the branch spawns of
+	// 257..302 (no arcs then) and 247 / 256, where the tick may stop on a busy stream load first.
+	static uint32_t g_arcnext_key = 0xFFFFFFFF;
+	static bool g_arc_next_ok = false;
+	static NodeMemo<ArcNext, 256> g_arc_next;
+
+	static bool PoolHasFree(const TaskQueue &q)
+	{
+		const uint8_t *p = (const uint8_t *)q.pool;
+		for (int i = 0; p && i < q.capacity; i++, p += q.node_size) if (!(*p & 1)) return true;
+		return false;
+	}
+
+	static bool VertFree()
+	{
+		if (VertFreeHint()) return true;
+		const BoltVert *v = VertPool();
+		for (int i = 0; i < 256; i++, v++) if (v->width == -1) return true;
+		return false;
+	}
+
+	// the creature task's generator draws on the next tick (false: not predictable)
+	static bool CreatureRands(int *k)
+	{
+		*k = 0;
+		if (!QueueCreature().second.head) return true; // the creature task has ended
+		int16_t c = *(int16_t *)(ModelBuffer() + 0x0C); // the next tick's counter
+		bool paused = Pause() != 0;
+		uint32_t v7 = (uint32_t)((int32_t)c - 86), tb = (uint32_t)((int32_t)c - 157);
+		uint32_t tc = (uint32_t)((int32_t)c - 232), td = (uint32_t)((int32_t)c - 257);
+		if (td < 0x2E || c == 247 || c == 256) return false;
+		int n = 0;
+		bool spawn = false;
+		if (!paused && v7 != 0 && v7 < 15 && (v7 & 1) == 0) { n += 8; spawn = true; }
+		if (!paused && tb < 0x14 && (tb & 1) == 0) { n += 7; spawn = true; }
+		if (tc < 0x23) { n += 5; spawn = true; }
+		if (spawn && VertFree() && PoolHasFree(QueueBolts().second)) n += 3;
+		*k = n;
+		return true;
+	}
+
+	static void ComputeArcNext()
+	{
+		if (g_arcnext_key == g_real_tick) return;
+		g_arcnext_key = g_real_tick;
+		g_arc_next_ok = false;
+		int k;
+		if (!CreatureRands(&k)) return;
+		uint32_t seed = var<uint32_t>(0x25217A0);
+		for (int i = 0; i < k; i++) seed = (seed * 125 + 14) & 0x7FFF;
+		for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
+		{
+			if ((uint32_t)t->func != ORIG_ArcTask) continue;
+			ArcNext *a = g_arc_next.put(t);
+			if (!a) return; // memo full: no prediction
+			for (int i = 0; i < 14; i++)
+				for (int c = 0; c < 3; c++)
+				{
+					seed = (seed * 125 + 14) & 0x7FFF;
+					a->rnd[i][c] = (int32_t)seed - 0x4000;
+				}
+		}
+		g_arc_next_ok = true;
 	}
 
 	// ------------------------------------------------------------------
@@ -150,38 +251,69 @@ namespace q116
 	}
 
 	// impact flash: a flipbook, redrawn on its current frame with the held-frame camera
-	static void FlashHeld(FlashNode *f, int, int)
+	static void FlashDrawFrame(int16_t *pos, int16_t frame)
 	{
-		if (f->age <= 0) return;
-		TransformCameraByShadowRotation(f->pos, 0x800, -0x200);
+		TransformCameraByShadowRotation(pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(void **)h = SEQ_ImpactFlash;
-		*(int16_t *)(h + 4) = (int16_t)(f->age - 1);
+		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
+	}
+
+	static void FlashHeld(FlashNode *f, int, int)
+	{
+		if (f->age <= 0) return;
+		FlashDrawFrame(f->pos, (int16_t)(f->age - 1));
+	}
+
+	// arc drawn half way: the curve at the in-between progress; each inner point's jitter half
+	// way from the real tick's to the next tick's (nx, each with its own tick's amplitude), or the
+	// real tick's replayed when the next one is not known (the module generator is not touched)
+	static void ArcDrawMemo(ArcNode *arc, const ArcMemo *m, const ArcNext *nx, int num, int den)
+	{
+		const int16_t *profile = (const int16_t *)(ModelBuffer() + 0x3C25C);
+		int32_t len0 = 0, len1 = 0;
+		if (nx)
+		{
+			ArcCurve(arc, m->progress, &len0);
+			FieldFree(0x100);
+			ArcCurve(arc, arc->progress, &len1);
+			FieldFree(0x100);
+		}
+		int32_t length;
+		ArcSeg *pts = ArcCurve(arc, (int16_t)lerp_i(m->progress, arc->progress, num, den), &length);
+		for (int k = 0; k < 16; k++) pts[k].color = (int16_t)lerp_i(m->color[k], arc->pts[k].color, num, den);
+		for (int i = 1; i < 15; i++)
+		{
+			const int32_t *rv = m->rnd[i - 1];
+			int16_t d[3];
+			if (nx)
+			{
+				int32_t a0 = mul32(profile[i], len0) >> 12, a1 = mul32(profile[i], len1) >> 12;
+				for (int c = 0; c < 3; c++)
+					d[c] = (int16_t)lerp_i((int16_t)(mul32(rv[c], a0) >> 18), (int16_t)(mul32(nx->rnd[i - 1][c], a1) >> 18), num, den);
+			}
+			else
+			{
+				int32_t amp = mul32(profile[i], length) >> 12;
+				for (int c = 0; c < 3; c++) d[c] = (int16_t)(mul32(rv[c], amp) >> 18);
+			}
+			pts[i].sx += d[0];
+			pts[i].sy += d[1];
+			pts[i].otz += d[2];
+		}
+		int16_t held_dir[2] = { g_dir_arc[0], g_dir_arc[1] };
+		ArcDraw(pts, held_dir);
+		FieldFree(0x100);
 	}
 
 	static void ArcHeld(ArcNode *arc, int num, int den)
 	{
 		const ArcMemo *m = g_arc_memo.get(arc);
 		if (!m) return;
-		int32_t length;
-		ArcSeg *pts = ArcCurve(arc, (int16_t)lerp_i(m->progress, arc->progress, num, den), &length);
-		for (int k = 0; k < 16; k++) pts[k].color = (int16_t)lerp_i(m->color[k], arc->pts[k].color, num, den);
-		// the jitter of the real tick, replayed (the module generator is not touched)
-		const int16_t *profile = (const int16_t *)(ModelBuffer() + 0x3C25C);
-		for (int i = 1; i < 15; i++)
-		{
-			int32_t amp = mul32(profile[i], length) >> 12;
-			const int32_t *rv = m->rnd[i - 1];
-			pts[i].sx += (int16_t)(mul32(rv[0], amp) >> 18);
-			pts[i].sy += (int16_t)(mul32(rv[1], amp) >> 18);
-			pts[i].otz += (int16_t)(mul32(rv[2], amp) >> 18);
-		}
-		int16_t held_dir[2] = { g_dir_arc[0], g_dir_arc[1] };
-		ArcDraw(pts, held_dir);
-		FieldFree(0x100);
+		ArcDrawMemo(arc, m, g_arc_next_ok ? g_arc_next.get(arc) : nullptr, num, den);
 	}
 
 	static uint8_t g_held_packets[0x60000];
@@ -553,8 +685,9 @@ namespace q116
 		var<uint32_t>(0x1D8E054) = (uint32_t)g_held_packets + 0x40000;
 		Mat4x3 bolt_frame = BoltFrame();
 		if (g_cm.tick == g_real_tick) ComputeNext();
+		ComputeArcNext();
 		CreatureHeld(num, den);
-		if (QueueCreature().first.head)
+		if (QueueCreature().first.head || g_snap_arc.n)
 		{
 			// arcs read the bones in the composed (world) form the master gives them during the
 			// tick: compose, draw, then put the skeleton bytes back exactly
@@ -576,6 +709,14 @@ namespace q116
 				ComputeBonesWorldMatrices(ModelBuffer() + 0x88, ModelBuffer() + 0x68);
 				for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
 					if ((uint32_t)t->func == ORIG_ArcTask) ArcHeld((ArcNode *)t, num, den);
+				// arcs that ended on the tick: their last picture
+				for (int i = 0; i < g_snap_arc.n; i++)
+				{
+					if (Queued(QueueCreature().first.head, g_snap_arc.node[i])) continue;
+					const ArcMemo *m = g_arc_memo.get(g_snap_arc.node[i]);
+					if (!m) continue;
+					ArcDrawMemo(&g_snap_arc.copy[i], m, nullptr, 0, 1);
+				}
 				memcpy(skel, skel_save, skel_size);
 				if (posed) memcpy(ModelBuffer(), g_area_save, CREATURE_AREA);
 			}
@@ -590,8 +731,23 @@ namespace q116
 			if ((uint32_t)t->func == ORIG_BranchTask) BranchHeld((BranchNode *)t, num, den);
 		for (TaskNode *t = QueueDebris().second.head; t; t = t->next)
 			if ((uint32_t)t->func == ORIG_FlashTask) FlashHeld((FlashNode *)t, num, den);
+		for (int i = 0; i < g_snap_flash.n; i++) // flashes that ended on the tick: their last frame
+		{
+			if (Queued(QueueDebris().second.head, g_snap_flash.node[i])) continue;
+			FlashDrawFrame(g_snap_flash.copy[i].pos, g_snap_flash.copy[i].age);
+		}
 		for (TaskNode *t = QueueDebris().first.head; t; t = t->next)
 			if ((uint32_t)t->func == ORIG_DebrisTask) DebrisHeld((DebrisNode *)t, num, den);
+		for (int i = 0; i < g_snap_debris.n; i++) // debris that ended on the tick: as drawn
+		{
+			if (Queued(QueueDebris().first.head, g_snap_debris.node[i])) continue;
+			const DebrisMemo *m = g_debris_memo.get(g_snap_debris.node[i]);
+			if (!m) continue;
+			int16_t pos[3], rot[3];
+			memcpy(pos, m->pos, sizeof(pos));
+			memcpy(rot, m->rot, sizeof(rot));
+			DebrisDraw(pos, rot);
+		}
 		BoltFrame() = bolt_frame;
 		PacketCursor() = cursor;
 		var<uint32_t>(0x1D8E054) = frame_cursor;
