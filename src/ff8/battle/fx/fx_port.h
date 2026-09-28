@@ -287,6 +287,7 @@ namespace ff8fx
 	void register_mag011_storm_breath();
 	void register_mag155_sand_storm();
 	void register_mag168_sleeping_gas();
+	void register_mag154_ultra_waves();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
