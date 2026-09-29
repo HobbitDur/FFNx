@@ -17,6 +17,10 @@
 // passes (Pass.held / Pass.interp), the held-frame drawing and camera (included at the end of
 // mag291_pandemona.cpp)
 
+#ifndef FXA_TAG
+#define FXA_TAG(f, n) ((void)0) // (harness tag hook)
+#endif
+
 namespace ff8fx
 {
 namespace p291
@@ -49,12 +53,29 @@ namespace p291
 	struct TrailMemo { int16_t spin, scale; };
 	static NodeMemo<TrailMemo, 16> g_trail_memo;
 
+	// the flipbook queue as the tick starts (each node's state is what the tick draws): a node
+	// that ends on the tick (its last frame drawn) keeps that picture in the held frame
+	struct FlipMemo { TaskNode *node; uint8_t data[0x1C]; };
+	static FlipMemo g_flip[0x40];
+	static int g_nflip = 0;
+	static uint32_t g_flip_tick = 0xFFFFFFFF;
+
 	// ------------------------------------------------------------------
 	// Memo writes of the real tick (the FX_HELD statements of mag291_pandemona.cpp)
 	// ------------------------------------------------------------------
 	static void held_note_master()
 	{
 		g_ported_tick = g_real_tick;
+		g_nflip = 0;
+		g_flip_tick = g_real_tick;
+		uint8_t *pool = MB() + 0x1AA4;
+		for (TaskNode *t = QFlip().head; t && g_nflip < 0x40; t = t->next)
+		{
+			if ((uint8_t *)t < pool || (uint8_t *)t >= pool + 0x1C * 0x40) break; // not set up yet
+			g_flip[g_nflip].node = t;
+			memcpy(g_flip[g_nflip].data, t, 0x1C);
+			g_nflip++;
+		}
 	}
 
 	// timeline: the skeleton as the tick starts is the pose this tick draws (the draw comes
@@ -149,10 +170,15 @@ namespace p291
 		{
 			ParK::Tb &a = r.tb[k];
 			const ParK::Tb &b = r1.tb[k];
-			if (!a.vis || !b.vis || a.flags != b.flags) continue;
-			a.fade = lerp_i(a.fade, b.fade, p.num, p.den);
+			if (!a.vis || !b.vis) continue;
+			// the shape moves on across the fade-in end / fade-out start (0xF0 <-> 0x30): the
+			// solid set is the faded one at fade 0, drawn faded in between
 			a.ang = lerp_i(a.ang, b.ang, p.num, p.den);
 			a.scale = lerp_angle((int16_t)a.scale, (int16_t)b.scale, p.num, p.den);
+			int32_t f0 = a.flags == 0xF0 ? a.fade : 0, f1 = b.flags == 0xF0 ? b.fade : 0;
+			if (a.flags != b.flags && p.num < p.den) a.flags = 0xF0;
+			else if (a.flags != b.flags) a.flags = b.flags;
+			a.fade = lerp_i(f0, f1, p.num, p.den);
 		}
 	}
 
@@ -168,35 +194,45 @@ namespace p291
 		return (t && (uint32_t)t->func == ORIG_TimelineTask) ? (uint8_t *)t : nullptr;
 	}
 
+	static inline int RoundScale(int v, int num, int den) { int t = v * num; return t >= 0 ? (t + den / 2) / den : -((-t + den / 2) / den); }
+
 	static void PoseBlend(uint8_t *sk, const uint8_t *from, int num, int den)
 	{
 		// sk holds the pose after the tick (the one the next tick draws), from the pose drawn
-		// this tick: write the midpoint (angles the short way round) into sk's pose fields
+		// this tick: write the midpoint into sk's pose fields, as pose_midpoint does for the
+		// battle models (ff8_opengl.cpp): a bone rotation Ry(-y) Rx(-x) Rz(z) is also written
+		// (2048 - x, y + 2048, z + 2048) and the animation data switches between the two near
+		// x = +-1024, so blend toward the spelling of the next pose nearer the drawn one (each
+		// angle the shortest way round)
 		int nb = sk[0];
 		bool scaled = (sk[1] & 1) != 0;
 		for (int a = 0; a < 3; a++)
 		{
 			int16_t *q = (int16_t *)(sk + 8) + a;
 			int16_t f = ((const int16_t *)(from + 8))[a];
-			*q = (int16_t)(f + ((int32_t)*q - f) * num / den);
+			*q = (int16_t)(f + RoundScale((int32_t)*q - f, num, den));
 		}
 		for (int b = 0; b < nb; b++)
 		{
 			int16_t *q = (int16_t *)(sk + 16 + 48 * b + 4);
 			const int16_t *f = (const int16_t *)(from + 16 + 48 * b + 4);
-			for (int a = 0; a < 3; a++)
-			{
-				int32_t d = (((int32_t)q[a] - f[a] + 2048) & 4095) - 2048;
-				q[a] = (int16_t)(f[a] + d * num / den);
-			}
+			int d[3], e[3], sd = 0, se = 0;
+			for (int a = 0; a < 3; a++) { d[a] = (((int32_t)q[a] - f[a] + 2048) & 4095) - 2048; sd += d[a] < 0 ? -d[a] : d[a]; }
+			e[0] = ((2048 - q[0] - f[0] + 2048) & 4095) - 2048;
+			e[1] = (((int32_t)q[1] - f[1]) & 4095) - 2048;
+			e[2] = (((int32_t)q[2] - f[2]) & 4095) - 2048;
+			for (int a = 0; a < 3; a++) se += e[a] < 0 ? -e[a] : e[a];
+			const int *dd = se < sd ? e : d;
+			for (int a = 0; a < 3; a++) q[a] = (int16_t)(f[a] + RoundScale(dd[a], num, den));
 			if (scaled)
-				for (int a = 3; a < 6; a++) q[a] = (int16_t)(f[a] + ((int32_t)q[a] - f[a]) * num / den);
+				for (int a = 3; a < 6; a++) q[a] = (int16_t)(f[a] + RoundScale((int32_t)q[a] - f[a], num, den));
 		}
 	}
 
 	static const uint32_t ENT_BASE = 0x1D972C0, ENT_SIZE = 0x440; // BattleEntitySlotData[7]
 	static uint8_t g_node_save[0x1030], g_ent_save[ENT_SIZE], g_skel_save[16 + 48 * 64];
 	static uint8_t g_hfr[0xB0];
+	static uint8_t g_vtx_save[0x4000]; // projected vertices of the target draws (2048 x 8 bytes)
 
 	// Next tick's particles and targets (c1 = the next tick), run on the real node / entities
 	// (pure math: no generator, no spawn, no event) and put back by the caller. parts = also
@@ -331,6 +367,44 @@ namespace p291
 
 	static int Targets() { int n = Count(); return n > 10 ? 10 : n; }
 
+	// the targets' skeletons: drawing a target (w::EntDraw -> BS_ComputeBonesWorldMatrices) or
+	// the camera prediction (GetDefaultEffectPosition, 440..479) rebuild its bone world matrices
+	// (skeleton + 0x20 + 0x30 * bone) from the in-between state, and the next real tick reads
+	// them before any draw (w::Pivot of a target landing): saved before, put back after
+	struct SkelSave { uint8_t *sk; uint32_t size; uint8_t data[16 + 48 * 64]; };
+	static SkelSave g_tskel[16];
+	static int g_ntskel = 0;
+	static void SaveSkel(uint8_t *e)
+	{
+		uint8_t *com = At<uint8_t *>(e, 0x64); // entity + 0x60 BattleAnimHeader.comFileData
+		uint8_t *sk = com ? *(uint8_t **)com : nullptr;
+		if (!sk || sk[0] == 0 || sk[0] > 64 || g_ntskel >= 16) return;
+		for (int k = 0; k < g_ntskel; k++) if (g_tskel[k].sk == sk) return;
+		SkelSave &v = g_tskel[g_ntskel++];
+		v.sk = sk;
+		v.size = 16 + 48 * (uint32_t)sk[0];
+		memcpy(v.data, sk, v.size);
+	}
+	static void SaveTargetSkeletons(uint8_t *nd)
+	{
+		g_ntskel = 0;
+		for (int i = 0; i < Targets(); i++)
+		{
+			uint8_t *ent = Ent(nd, i), *e = ent;
+			if (!ent) continue;
+			do
+			{
+				SaveSkel(e);
+				e = At<uint8_t *>(e, 0x8C);
+			} while (e && e != ent);
+		}
+	}
+	static void RestoreTargetSkeletons()
+	{
+		for (int k = 0; k < g_ntskel; k++) memcpy(g_tskel[k].sk, g_tskel[k].data, g_tskel[k].size);
+		g_ntskel = 0;
+	}
+
 	// the timeline's draws of tick c (memo) at c + num / den, in the tick's order, on the real
 	// node / entities / skeleton moved to the in-between state and put back byte for byte
 	static void CreatureHeld(int num, int den)
@@ -345,6 +419,7 @@ namespace p291
 
 		memcpy(g_node_save, nd, sizeof(g_node_save));
 		memcpy(g_ent_save, (void *)ENT_BASE, ENT_SIZE);
+		SaveTargetSkeletons(nd);
 		uint32_t size = 0;
 		uint8_t *sk = CreatureSkeleton(nd, &size);
 		if (sk) memcpy(g_skel_save, sk, size);
@@ -442,13 +517,23 @@ namespace p291
 		}
 		if ((v = (uint32_t)(c - 0x179)) < 0x28) DrawK(p, (int32_t)v);
 		w::PartDraw(nd);
-		if (c >= 0xE0) DrawTargets(p);
+		if (c >= 0xE0)
+		{
+			// the target draws project their vertices into the battle-model scratch at the model
+			// loader's limit (0x1D98B3C); a tick where the module no longer draws a target (455:
+			// landed) would keep the held frame's vertices there: put back after the draw
+			uint8_t *vs = var<uint8_t *>(0x1D98B3C);
+			if (vs) memcpy(g_vtx_save, vs, sizeof(g_vtx_save));
+			DrawTargets(p);
+			if (vs) memcpy(vs, g_vtx_save, sizeof(g_vtx_save));
+		}
 		if (CreatureDrawn(c))
 			FrameCursor() = w::DrawCreature(E(nd), 0x2000, (uint32_t)(MB() + 0x31D4), FrameCursor(), var<uint32_t>(0x1D969A8));
 
 		if (sk) memcpy(sk, g_skel_save, size);
 		memcpy(nd, g_node_save, sizeof(g_node_save));
 		memcpy((void *)ENT_BASE, g_ent_save, ENT_SIZE);
+		RestoreTargetSkeletons();
 	}
 
 	// held target position of a record (falling / landed target prims)
@@ -470,13 +555,78 @@ namespace p291
 		prim::play_held((prim::Layout *)(nd + 0x10), (prim::Callback)CB_Prim, (int)ctx, num, den);
 	}
 
+	// draw() into a private packet buffer and bucket (RenderOT 0x1D8E04C pointed at a private
+	// table, the execution nodes the draw adds are dropped, the cursors put back); returns the
+	// end of the packets it wrote into g_priv_pk (0 = overflow)
+	static uint8_t g_priv_pk[0x8000];
+	static uint32_t g_priv_ot[0x4000];
+	template<typename Draw>
+	static uint32_t PrivateDraw(Draw draw)
+	{
+		uint32_t exec = var<uint32_t>(0x1CA8828), ot = var<uint32_t>(0x1D8E04C), pc = PacketCursor(), fc = FrameCursor();
+		var<uint32_t>(0x1D8E04C) = (uint32_t)g_priv_ot;
+		PacketCursor() = (uint32_t)g_priv_pk;
+		draw(); // held private draw
+		uint32_t end = PacketCursor();
+		PacketCursor() = pc;
+		FrameCursor() = fc;
+		var<uint32_t>(0x1D8E04C) = ot;
+		var<uint32_t>(0x1CA8828) = exec;
+		return end - (uint32_t)g_priv_pk <= sizeof(g_priv_pk) ? end : 0;
+	}
+
+	// colours of the packets [a, ae) between their own and those of the same packets [b, be)
+	// drawn with the next tick's flipbook frame (a private draw): the texture frame (uv) stays
+	static void LerpPacketColours(uint8_t *a, uint8_t *ae, const uint8_t *b, const uint8_t *be, int num, int den)
+	{
+		while (a + 8 <= ae && b + 8 <= be)
+		{
+			uint32_t la = a[3];
+			if (!la || la != b[3] || a[7] != b[7]) return;
+			uint8_t code = a[7];
+			if ((code & 0xE0) == 0x20)
+			{
+				bool gouraud = (code & 0x10) != 0, tex = (code & 4) != 0;
+				uint32_t nv = (code & 8) ? 4 : 3;
+				uint32_t *wa = (uint32_t *)(a + 4);
+				const uint32_t *wb = (const uint32_t *)(b + 4);
+				for (uint32_t v = 0, i = 0; v < nv; v++)
+				{
+					if (v == 0 || gouraud)
+					{
+						uint8_t *ca = (uint8_t *)&wa[i];
+						const uint8_t *cb = (const uint8_t *)&wb[i];
+						for (int k = 0; k < 3; k++) ca[k] = (uint8_t)lerp_i(ca[k], cb[k], num, den);
+					}
+					i += (v == 0 || gouraud ? 1 : 0) + 1 + (tex ? 1 : 0);
+				}
+			}
+			a += 4 + 4 * la;
+			b += 4 + 4 * la;
+		}
+	}
+
+	// a flipbook sprite drawn with frame f, its colours blended with frame f + 1's (the frame
+	// the next tick draws; the texture frame switches on the real frame)
+	template<typename Draw>
+	static void FlipDraw(Draw draw, int16_t f, bool next, int num, int den)
+	{
+		uint32_t c0 = PacketCursor();
+		draw(f);
+		uint32_t c1 = PacketCursor();
+		if (!next || !num || f + 1 >= 0xC) return;
+		uint32_t n1 = PrivateDraw([&]() { draw((int16_t)(f + 1)); });
+		if (n1) LerpPacketColours((uint8_t *)c0, (uint8_t *)c1, g_priv_pk, (const uint8_t *)n1, num, den);
+	}
+
 	// swirl: drawn at (angle - step, frame - 1) this tick; the angle turns on in between
 	static void SwirlHeld(uint8_t *nd, int num, int den)
 	{
 		int16_t f = At<int16_t>(nd, 0xC), a = At<int16_t>(nd, 0x10), d = At<int16_t>(nd, 0x12);
 		if (Pause()) { SwirlDraw(nd, a, f); return; }
 		if (f <= 0) return;
-		SwirlDraw(nd, (int16_t)(a - d + d * num / den), (int16_t)(f - 1));
+		int16_t ah = (int16_t)(a - d + d * num / den);
+		FlipDraw([&](int16_t fr) { SwirlDraw(nd, ah, fr); }, (int16_t)(f - 1), true, num, den);
 	}
 
 	static void RiseHeld(uint8_t *nd, int num, int den)
@@ -491,7 +641,50 @@ namespace p291
 			int32_t vk = shl32((int8_t)nd[0x14 + k], 4);
 			h[k] = (int16_t)(pos[k] - vk + vk * num / den);
 		}
-		RiseDraw(nd, h, (int16_t)(f - 1));
+		FlipDraw([&](int16_t fr) { RiseDraw(nd, h, fr); }, (int16_t)(f - 1), true, num, den);
+	}
+
+	// a flipbook node that ended on the tick: its last picture (the memo is the state it drew)
+	static void FlipDeadHeld(const FlipMemo &m)
+	{
+		static uint8_t copy[0x1C];
+		memcpy(copy, m.data, sizeof(copy));
+		uint32_t fn = (uint32_t)((TaskNode *)copy)->func;
+		FXA_TAG(fn, m.node);
+		if (fn == ORIG_SwirlFlipTask) SwirlDraw(copy, At<int16_t>(copy, 0x10), At<int16_t>(copy, 0xC));
+		else if (fn == ORIG_RiseFlipTask) RiseDraw(copy, &At<int16_t>(copy, 0xC), At<int16_t>(copy, 0x12));
+	}
+
+	static bool FlipAlive(TaskNode *n)
+	{
+		for (TaskNode *t = QFlip().head; t; t = t->next) if (t == n) return true;
+		return false;
+	}
+
+	// the flipbook queue in the tick's draw order: the live nodes, and the ones that ended on the
+	// tick where they were
+	static void FlipsHeld(int num, int den)
+	{
+		bool memo = g_flip_tick == g_real_tick && !Pause();
+		int mi = 0;
+		for (TaskNode *t = QFlip().head; t; t = t->next)
+		{
+			if (memo)
+			{
+				int k = 0;
+				while (k < g_nflip && g_flip[k].node != t) k++;
+				if (k < g_nflip)
+				{
+					for (; mi < k; mi++) if (!FlipAlive(g_flip[mi].node)) FlipDeadHeld(g_flip[mi]);
+					mi = k + 1;
+				}
+			}
+			FXA_TAG(t->func, t);
+			if ((uint32_t)t->func == ORIG_SwirlFlipTask) SwirlHeld((uint8_t *)t, num, den);
+			else if ((uint32_t)t->func == ORIG_RiseFlipTask) RiseHeld((uint8_t *)t, num, den);
+		}
+		if (memo)
+			for (; mi < g_nflip; mi++) if (!FlipAlive(g_flip[mi].node)) FlipDeadHeld(g_flip[mi]);
 	}
 
 	// trail: spin/scale between the drawn and the current values, brightness half way to the
@@ -537,11 +730,7 @@ namespace p291
 		PacketCursor() = (uint32_t)g_held_packets;
 		FrameCursor() = (uint32_t)g_held_packets + 0x40000;
 		CreatureHeld(num, den);
-		for (TaskNode *t = QFlip().head; t; t = t->next)
-		{
-			if ((uint32_t)t->func == ORIG_SwirlFlipTask) SwirlHeld((uint8_t *)t, num, den);
-			else if ((uint32_t)t->func == ORIG_RiseFlipTask) RiseHeld((uint8_t *)t, num, den);
-		}
+		FlipsHeld(num, den);
 		for (TaskNode *t = QTrail().head; t; t = t->next)
 			if ((uint32_t)t->func == ORIG_TrailTask) TrailHeld((uint8_t *)t, num, den);
 		for (TaskNode *t = QFall().head; t; t = t->next)
@@ -580,6 +769,7 @@ namespace p291
 			memcpy(ent_save, (void *)ENT_BASE, ENT_SIZE);
 			memcpy(gte_d, (void *)0x1CA8A10, sizeof(gte_d));
 			memcpy(gte_c, (void *)0x1CA9210, sizeof(gte_c));
+			SaveTargetSkeletons(nd); // GetDefaultEffectPosition (440..479) rebuilds target 0's bone matrices
 			int16_t hand[3];
 			bool hand_ok = NextHand(nd, hand);
 			PredictNext(nd, c1, hand_ok ? hand : nullptr, false);
@@ -590,6 +780,7 @@ namespace p291
 			memcpy((void *)ENT_BASE, ent_save, ENT_SIZE);
 			memcpy((void *)0x1CA8A10, gte_d, sizeof(gte_d));
 			memcpy((void *)0x1CA9210, gte_c, sizeof(gte_c));
+			RestoreTargetSkeletons();
 			var<uint32_t>(0x1D999C4) = alloc;
 			ShakeY() = shake;
 			Roll() = roll;
