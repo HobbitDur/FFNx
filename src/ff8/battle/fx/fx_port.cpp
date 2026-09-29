@@ -184,6 +184,7 @@ namespace ff8fx
 		register_mag190_chain_gun();
 		register_mag048_magma_breath();
 		register_mag008_doom();
+		register_mag012_blade_shot();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
