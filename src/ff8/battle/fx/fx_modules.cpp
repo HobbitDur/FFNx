@@ -114,6 +114,7 @@ namespace ff8fx::mod
 	static const Region streams_d232[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 }, { 0x1D99C18, 8 } }; // streams_gfc with the depth-array tail up to 0x27990B6
 	static const Region streams_f234[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 }, { 0x1D99C18, 8 } }; // streams_gfc with the widened depth tail + 0x5106E0 packet cursor
 	static const Region streams_l030[] = { { 0x17CC72C, 0x60A0 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_d041[] = { { 0x15CAAB0, 0x2FE }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -230,6 +231,7 @@ namespace ff8fx::mod
 		{ 232, 0x2796A58, 0x2798C40, 0, 0, false, "Breath of Death", streams_d232, 6 },
 		{ 234, 0x27969E8, 0x2798C40, 0, 0, false, "Fart", streams_f234, 6 },
 		{ 30, 0x26D40B8, 0x26D6A3C, 0, 0, false, "Counter Laser-Eye", streams_l030, 3 },
+		{ 41, 0x267B858, 0x2698AB8, 0, 0, false, "Dribble", streams_d041, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
