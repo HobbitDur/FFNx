@@ -59,7 +59,9 @@ namespace ff8fx::prim
 	// two keyframe meshes, b = weight 0..0x1000 (b0 == b1, b == 0: mesh b0; b == 0x1000: mesh b1).
 	// Mesh numbers are never blended: the in-between is taken along the morph. A new segment
 	// starts where the last one ended ((k, k+1, w) then (k+1, k+2, 0) = mesh k+1): the held frame
-	// finishes the current segment ((k, k+1, (w + 0x1000) / 2)).
+	// finishes the current segment ((k, k+1, (w + 0x1000) / 2)). Consecutive segments ((k, k+1, w)
+	// then (k+1, k+2, w') with w' > 0) are one morph running through mesh k+1: the in-between is
+	// taken along that path (up to mesh k+1 on the first segment, then on the next one).
 	static bool single_mesh(const Record &r, int16_t &mesh)
 	{
 		if (r.b0 == r.b1 || r.b == 0) { mesh = r.b0; return true; }
@@ -80,6 +82,18 @@ namespace ff8fx::prim
 			w1 = n.b;
 			r.b0 = n.b0;
 			r.b1 = n.b1;
+		}
+		else if (r.b0 != r.b1 && n.b0 != n.b1 && n.b0 == r.b1)
+		{
+			int32_t u = w0 + (0x1000 + n.b - w0) * num / den; // along the path, 0..0x2000
+			if (u > 0x1000)
+			{
+				r.b0 = n.b0;
+				r.b1 = n.b1;
+				u -= 0x1000;
+			}
+			r.b = (int16_t)u;
+			return;
 		}
 		else return; // unrelated meshes: the switch happens on the real frame
 		r.b = (int16_t)(w0 + (w1 - w0) * num / den);
