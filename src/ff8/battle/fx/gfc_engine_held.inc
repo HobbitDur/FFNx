@@ -900,9 +900,10 @@ namespace gfc
 	// 0xB1A130 (Draw 37 RibbonTrail), held frames (g_held, rt+0x45 forced to 0xFF): the frozen
 	// path runs, so the ring, the node position and bone+0x4A never advance: the ribbon drawn is
 	// the real tick's history (colour bone and parent matrix are the in-between values).
-	// When the real tick would have grown the ribbon (not frozen on the real tick, outAngleX >=
-	// 0), the held draw does the next tick's growth step on the saved ring (vanilla advance
-	// code, held_ribbon_advance: head + 1, new cross-section, homing node position) and puts the
+	// When the next tick grows the ribbon (not frozen on the real tick, the NEXT tick's
+	// outAngleX >= 0), the held draw does that growth step on the saved ring (vanilla advance
+	// code, held_ribbon_advance: head + 1, new cross-section, homing node position; built from
+	// the next tick's node values and target position, as that tick builds it) and puts the
 	// new head section num/den of its way from the previous head (the head segment grows from
 	// nothing), and every segment's colour at the in-between of its ramp entry and the next
 	// one's (the ramp is indexed by the age of the segment, which grows by one per tick). A full
@@ -946,7 +947,17 @@ namespace gfc
 	{
 		using namespace part_shared_ribbon;
 		if (g_held.real_skip != 0 || g_held.den <= 0 || g_held.num <= 0) return;
-		if (S16(CUR(), 0x8C) < 0) return;
+		// the growth step is the NEXT tick's: it runs with that tick's node values (outAngle
+		// +0x8C.. = retire flag / turn rate / width, outPos +0x94.. = follow-mode head) and the
+		// target's next outPos (homing), not the in-between ones (the new head section is then
+		// put at num/den of its way: building it from in-between values put it at (num/den)^2)
+		uint8_t *cur = CUR();
+		uint8_t cur_save[14];   // +0x8C..+0x99 (outAngle, outPos)
+		memcpy(cur_save, cur + 0x8C, sizeof(cur_save));
+		int16_t a0[3], p0[3], a1[3], p1[3];
+		if (held_bone_ends(cur, a0, p0, a1, p1))
+			for (int k = 0; k < 3; k++) { S16(cur, 0x8C + 2 * k) = a1[k]; S16(cur, 0x94 + 2 * k) = p1[k]; }
+		if (S16(cur, 0x8C) < 0) { memcpy(cur + 0x8C, cur_save, sizeof(cur_save)); return; }
 		U16(ring, 0) = (uint16_t)(U16(ring, 0) + 1);
 		int32_t len = (int32_t)U16(ring, 4) + 1;
 		if (len < (int32_t)U16(ring, 2)) U16(ring, 4) = (uint16_t)len;
@@ -962,7 +973,12 @@ namespace gfc
 		if (U8(ring, 0x10) & 1)
 			S32(WS(), 0x94) = Ribbon_B1AFE0_FollowDelta(CUR() + 0x94, prev);
 		else
-			Ribbon_B1AE60_SteerToward(tgt + 0x94, prev, nw);
+		{
+			int16_t tpos[3];
+			if (!held_bone_ends(tgt, a0, p0, a1, tpos))
+				for (int k = 0; k < 3; k++) tpos[k] = S16(tgt, 0x94 + 2 * k);
+			Ribbon_B1AE60_SteerToward((const uint8_t *)tpos, prev, nw);
+		}
 		int32_t flip = xl_LookAt_B66E50(ZEROVEC(), WS() + 0xE0, WS() + 0xA0);
 		x::SetRotMatrix(WS() + 0xA0);
 		x::GteWriteCtrl(S16(prev, 0), 5);
@@ -991,6 +1007,7 @@ namespace gfc
 				int32_t a = S16(prev, 8 * n + 2 * k), d = S16(nw, 8 * n + 2 * k) - a;
 				S16(nw, 8 * n + 2 * k) = (int16_t)(a + d * g_held.num / g_held.den);
 			}
+		memcpy(cur + 0x8C, cur_save, sizeof(cur_save));   // back to the in-between values (the draw)
 		if (!(U8(ring, 0x10) & 1))
 		{
 			// homing: the node follows its head (vanilla writes outPos / accumPos from it)

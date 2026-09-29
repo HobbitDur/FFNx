@@ -21,6 +21,16 @@
 //   Draw 36 ScreenLensDisc: pure function of the node pose (outPos, outAngle, colour) and the
 //     param block: drawn at the in-between pose. Nothing to skip, nothing persistent.
 //   Prim 29: pure draw code.
+// Engine handlers (gfc_engine_held.inc), measured held-frame classes that stay by design:
+//   Draw 5 sprites / Draw 6 particles: the sprite frame (bone+0xD0 / particle+0x30, stepped
+//     every tick; the frames carry the size and colour of the growing / fading flashes) is a
+//     flipbook: it switches on the real frame (positions are in-between).
+//   Draw 37 ribbons: the parent translation takes VXY0 from the previous GTE user (vanilla
+//     quirk, see B1ADD0); for a ribbon that does not grow that is the last sprite frame corner
+//     of the particle system drawn before it (flipbook, above), so a retiring ribbon moves
+//     with that frame on the real frame.
+//   Draw 3 model: pose angles are integers; a 1-unit step per tick has no half step (the
+//     midpoint rounds to the next pose, pose_midpoint).
 
 namespace ff8fx
 {
