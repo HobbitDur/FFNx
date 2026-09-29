@@ -5688,16 +5688,67 @@ int __cdecl ff8_bgate_eq_tick_gate(void *queue)
 // someUnknownBSCameraOperations (0x5033E0, from BdLink) adds the shake offsets
 // (0x1D97710/12/14, int16 x/y/z) to the view translation and then ZEROES them - every
 // producer (AnimSeq 96, hit shakes, magic effects) rewrites them each tick. With the
-// producers gated to real frames the shake vanished on held frames (half amplitude,
-// 30Hz flicker). If nothing wrote them this held frame, re-apply the last real values.
+// producers gated to real frames the shake vanished on held frames. A held frame shows the
+// in-between offsets (last real + (next - last) * phase / n) for every component whose next
+// value is known: producers that can compute the next tick's value report it during the held
+// frame (AnimSeq 96 below, the cinematic engine's prediction through ff8fx::held_shake_next);
+// a component with no known next value re-applies the last real one.
 static int (__cdecl *ff8_bgate_camops_orig)() = nullptr;
 static uint32_t ff8_bgate_camops_ri = 0;
 static int16_t ff8_bgate_shake_last[3] = {0, 0, 0};
+static int16_t ff8_bgate_shake_next[3] = {0, 0, 0};
+static unsigned ff8_bgate_shake_next_mask = 0;          // bit c = next value of component c known
+static uint32_t ff8_bgate_shake_next_frame = 0xFFFFFFFF; // host frame the prediction belongs to
+static uint32_t ff8_bgate_t96_end_frame = 0xFFFFFFFF;    // real frame on which an AnimSeq 96 shake ended
+
+static void ff8_bgate_shake_report(int c, int16_t v)
+{
+	if (ff8_bgate_shake_next_frame != ff8_bgate_frame_no)
+	{
+		ff8_bgate_shake_next_frame = ff8_bgate_frame_no;
+		ff8_bgate_shake_next_mask = 0;
+	}
+	ff8_bgate_shake_next[c] = v;
+	ff8_bgate_shake_next_mask |= 1u << c;
+}
+
+namespace ff8fx
+{
+	// the next real tick's shake offsets as an effect's prediction computed them: written
+	// components carry their value, the others are left to the producers that ran before the
+	// effect in the frame (AnimSeq tasks), or 0 (the view build clears the offsets every frame)
+	void held_shake_next(const int16_t next[3], unsigned written)
+	{
+		if (ff8_bgate_phase == 0) return;
+		for (int c = 0; c < 3; c++)
+		{
+			if (written & (1u << c)) ff8_bgate_shake_report(c, next[c]);
+			else if (ff8_bgate_shake_next_frame != ff8_bgate_frame_no || !(ff8_bgate_shake_next_mask & (1u << c)))
+				ff8_bgate_shake_report(c, 0);
+		}
+	}
+}
 
 int __cdecl ff8_bgate_camops_hook()
 {
 	int16_t *s = (int16_t *)0x1D97710;
-	if (ff8_battle_fx_held_check && ff8_bgate_fxv_live && ff8_bgate_camdbg.valid && ff8_bgate_camdbg_lines < 1500)
+	const bool camdbg_valid = ff8_bgate_camdbg.valid;
+	ff8_bgate_camdbg.valid = false;
+	if (ff8_bgate_phase == 0)
+		memcpy(ff8_bgate_shake_last, s, sizeof(ff8_bgate_shake_last));
+	else if (s[0] == 0 && s[1] == 0 && s[2] == 0)
+	{
+		// an AnimSeq 96 shake that ended on the last real tick leaves Y at 0 on the next one
+		if (ff8_bgate_t96_end_frame == ff8_bgate_frame_no - ff8_bgate_phase
+			&& !(ff8_bgate_shake_next_frame == ff8_bgate_frame_no && (ff8_bgate_shake_next_mask & 2)))
+			ff8_bgate_shake_report(1, 0);
+		const unsigned known = ff8_bgate_shake_next_frame == ff8_bgate_frame_no ? ff8_bgate_shake_next_mask : 0;
+		for (int c = 0; c < 3; c++)
+			s[c] = (known & (1u << c))
+				? (int16_t)(ff8_bgate_shake_last[c] + (ff8_bgate_shake_next[c] - ff8_bgate_shake_last[c]) * ff8_bgate_phase / ff8_bgate_n)
+				: ff8_bgate_shake_last[c];
+	}
+	if (ff8_battle_fx_held_check && ff8_bgate_fxv_live && camdbg_valid && ff8_bgate_camdbg_lines < 1500)
 	{
 		const int16_t *e = (const int16_t *)0xB8B7F0, *pr = (const int16_t *)ff8_bgate_camdbg.pre, *en = (const int16_t *)ff8_bgate_camdbg.eng;
 		ff8_bgate_camdbg_lines++;
@@ -5705,13 +5756,8 @@ int __cdecl ff8_bgate_camops_hook()
 			ff8_bgate_frame_no, ff8_bgate_phase, ff8_bgate_camdbg.path,
 			pr[0], pr[1], pr[2], pr[4], pr[5], pr[6], en[0], en[1], en[2], en[4], en[5], en[6],
 			e[0], e[1], e[2], e[4], e[5], e[6], s[0], s[1], s[2],
-			(ff8_bgate_phase != 0 && s[0] == 0 && s[1] == 0 && s[2] == 0) ? " (held: last real shake re-applied)" : "");
+			(ff8_bgate_phase == 0) ? "" : (ff8_bgate_shake_next_frame == ff8_bgate_frame_no && ff8_bgate_shake_next_mask) ? " (held: in-between shake)" : " (held: last real shake re-applied)");
 	}
-	ff8_bgate_camdbg.valid = false;
-	if (ff8_bgate_phase == 0)
-		memcpy(ff8_bgate_shake_last, s, sizeof(ff8_bgate_shake_last));
-	else if (s[0] == 0 && s[1] == 0 && s[2] == 0)
-		memcpy(s, ff8_bgate_shake_last, sizeof(ff8_bgate_shake_last));
 	unreplace_function(ff8_bgate_camops_ri);
 	int r = ff8_bgate_camops_orig();
 	rereplace_function(ff8_bgate_camops_ri);
@@ -5755,7 +5801,26 @@ DWORD __cdecl ff8_bgate_t84_hook(uint8_t *n)
 }
 DWORD __cdecl ff8_bgate_t9f_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t9f_call(n); }
 DWORD __cdecl ff8_bgate_tstep_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_tstep_call(n); }
-DWORD __cdecl ff8_bgate_t96_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t96_call(n); }
+// 96 (0x50F6C0): Y shake = start + (end - start) * i / duration, negated on odd i, i++; ends
+// (returns 2) once i reaches the duration. Held frame: report the value the next real tick
+// writes (the node's i is already the next index).
+DWORD __cdecl ff8_bgate_t96_hook(uint8_t *n)
+{
+	if (!ff8_bgate_phase)
+	{
+		DWORD r = ff8_bgate_t96_call(n);
+		if (r == 2) ff8_bgate_t96_end_frame = ff8_bgate_frame_no;
+		return r;
+	}
+	const int16_t start = *(int16_t *)(n + 0x0C), end = *(int16_t *)(n + 0x0E);
+	const int16_t dur = *(int16_t *)(n + 0x10), i = *(int16_t *)(n + 0x12);
+	if (dur != 0)
+	{
+		int16_t v = (int16_t)(((((int32_t)i << 12) / dur) * (end - start) >> 12) + start);
+		ff8_bgate_shake_report(1, (i & 1) ? (int16_t)-v : v);
+	}
+	return 0;
+}
 
 // AD/AE drag target to attacker bone (0x50F500): snaps the target to the bone EVERY tick
 // (so it keeps following the smoothly animated attacker) - only its frames-left dword

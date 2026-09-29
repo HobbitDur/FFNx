@@ -193,6 +193,8 @@ namespace gfc
 		Mat4x3 bb[4];
 		bool cam;
 		int16_t eye[3], at[3];
+		int16_t shake[3];         // shake offsets the next tick's VM leaves (0 = not written)
+		unsigned shake_written;   // bit k = component k written by the VM (op 0x047)
 	};
 	static Pred g_pred = { 0xFFFFFFFF, false };
 
@@ -336,6 +338,10 @@ namespace gfc
 		memcpy(camblk, (void *)0x1D97700, sizeof(camblk));
 		memcpy((void *)0x1D97710, g_shake, sizeof(g_shake));
 		((void (__cdecl *)())0x5033E0)();
+		// shake offsets the next tick's VM writes (op 0x047): a marker that no s16 outPos
+		// word takes, read back after the pass (held_shake_next)
+		static const uint16_t SHAKE_MARK = 0x8000;
+		for (int k = 0; k < 3; k++) ((uint16_t *)0x1D97710)[k] = SHAKE_MARK;
 		// the next tick's preamble (0xB25DF0), without the debug pad / OT clear
 		S16(CTX(), 0x32) = (int16_t)(S16(CTX(), 0x32) + 1);
 		U8(RT(), 0x41) = U8(CTX(), 0x32) & 1;
@@ -376,6 +382,15 @@ namespace gfc
 		memcpy(g_pred.eye, (void *)0xB8B7F0, 6);
 		memcpy(g_pred.at, (void *)0xB8B7F8, 6);
 		g_pred.ok = !g_jr_overflow;
+		{
+			const uint16_t *sh = (const uint16_t *)0x1D97710;
+			g_pred.shake_written = 0;
+			for (int k = 0; k < 3; k++)
+			{
+				g_pred.shake[k] = sh[k] == SHAKE_MARK ? 0 : (int16_t)sh[k];
+				if (sh[k] != SHAKE_MARK) g_pred.shake_written |= 1u << k;
+			}
+		}
 
 		g_predict = false;
 		journal_restore();
@@ -609,6 +624,8 @@ namespace gfc
 		if (!HeldReady(c) || den <= 0) return;
 		g_clone = &c;
 		Predict(c);
+		// the frame's camera shake: in-between of this tick's and the next tick's offsets
+		if (g_pred.ok) ff8fx::held_shake_next(g_pred.shake, g_pred.shake_written);
 		uint8_t *saved_globals[8] = { RT(), WS(), CTX(), SCENE(), RCTX(), SEQ(), CUR(), STREAM() };
 		uint8_t *saved_ptr3 = PTR3();
 		uint32_t pktcur = PKTCUR();

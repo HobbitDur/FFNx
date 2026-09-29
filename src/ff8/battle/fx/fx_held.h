@@ -45,6 +45,10 @@ namespace ff8fx
 	typedef bool (*HeldCameraFn)(int num, int den, int16_t world[3], int16_t lookat[3]);
 	void register_module_camera(int effect_id, HeldCameraFn fn);
 	bool held_camera(int effect_id, int num, int den, int16_t world[3], int16_t lookat[3]);
+	// held frame: the battle camera shake offsets (0x1D97710, x/y/z) the next real tick leaves,
+	// as an effect's prediction computed them (bit c of written = component c written by the
+	// effect); the frame's view is built with the in-between offsets (ff8_opengl.cpp)
+	void held_shake_next(const int16_t next[3], unsigned written);
 	// registrations that belong to no single module (fx_held.cpp); called at the end of
 	// register_all() (each module registers its own held part from its register function)
 	void register_all_held();
