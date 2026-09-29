@@ -179,6 +179,7 @@ namespace ff8fx
 		register_mag013_dark_mist();
 		register_mag232_breath_of_death();
 		register_mag234_fart();
+		register_mag030_counter_laser_eye();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
