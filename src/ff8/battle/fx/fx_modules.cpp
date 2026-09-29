@@ -117,6 +117,7 @@ namespace ff8fx::mod
 	static const Region streams_d041[] = { { 0x15CAAB0, 0x2FE }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c190[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_m048[] = { { 0x15AE4FC, 0x9790 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_m008[] = { { 0x1636C94, 0x5BC }, { 0x1818B78, 0x12BC }, { 0x181CB14, 0x488 }, { 0x19EB018, 0x530C }, { 0x2793DA4, 0xD4 }, { 0x2795110, 0x68 }, { 0x1D99C18, 8 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -236,6 +237,7 @@ namespace ff8fx::mod
 		{ 41, 0x267B858, 0x2698AB8, 0, 0, false, "Dribble", streams_d041, 3 },
 		{ 190, 0x2281B18, 0x2293F44, 0, 0, false, "Chain Gun", streams_c190, 1 },
 		{ 48, 0x26480F0, 0x26495EC, 0, 0, false, "Magma Breath", streams_m048, 3 },
+		{ 8, 0x2758500, 0x275FB80, 0, 0, false, "Doom", streams_m008, 7 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
