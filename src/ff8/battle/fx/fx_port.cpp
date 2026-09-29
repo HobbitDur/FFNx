@@ -177,6 +177,7 @@ namespace ff8fx
 		register_mag126_electric_discharge();
 		register_mag153_sticky_web();
 		register_mag013_dark_mist();
+		register_mag232_breath_of_death();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();

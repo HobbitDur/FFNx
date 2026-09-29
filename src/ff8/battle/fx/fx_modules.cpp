@@ -111,6 +111,7 @@ namespace ff8fx::mod
 	static const Region streams_a126[] = { { 0x124227C, 4 } };
 	static const Region streams_w153[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_m013[] = { { 0x163257C, 0x169C }, { 0x21DFED0, 0x20 }, { 0x1D9770C, 2 } };
+	static const Region streams_d232[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 }, { 0x1D99C18, 8 } }; // streams_gfc with the depth-array tail up to 0x27990B6
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -224,6 +225,7 @@ namespace ff8fx::mod
 		{ 126, 0x25212C0, 0x2521368, 0, 0, false, "Electric Discharge", streams_a126, 1 },
 		{ 153, 0x243A4D8, 0x244BE70, 0, 0, false, "Sticky Web", streams_w153, 1 },
 		{ 13, 0x27428A8, 0x274EFE4, 0, 0, false, "Dark Mist", streams_m013, 3 },
+		{ 232, 0x2796A58, 0x2798C40, 0, 0, false, "Breath of Death", streams_d232, 6 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
