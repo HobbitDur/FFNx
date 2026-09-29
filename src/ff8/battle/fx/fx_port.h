@@ -299,6 +299,7 @@ namespace ff8fx
 	void register_mag041_dribble();
 	void register_mag190_chain_gun();
 	void register_mag048_magma_breath();
+	void register_mag008_doom();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
