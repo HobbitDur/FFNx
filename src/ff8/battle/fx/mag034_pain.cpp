@@ -53,6 +53,7 @@ namespace pain
 	static const uint32_t Q_EMITTER = 0x26C0118;       // emitter queue (0x58-byte nodes)
 	static const uint32_t Q_PLAYER = 0x26C0100;        // prim-model player queue (0x89C-byte nodes)
 	static const uint32_t BLEND_BUFFER = 0x26C0298;    // vertex frames blended by MAG_017_sub_701390
+	static uint32_t g_block40 = 0;                     // stack residue of the players' block +0x40 (PlayerPlay)
 
 	static const uint32_t ORIG_Master = 0x865720;
 	static const uint32_t ORIG_Emitter = 0x8658A0;
@@ -131,6 +132,8 @@ namespace pain
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
+		// the emitter pass leaves a non-1 word at the players' block +0x40 stack slot (see PlayerPlay)
+		g_block40 = 0;
 		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
 		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PLAYER));
 		const uint8_t status = U8(node, 0x26);
@@ -206,22 +209,33 @@ namespace pain
 
 	// 0x865A80 / 0x865E60: player state 1 - plays the model (shared player 0x701970, callback
 	// 0x865AE0) with a parameter block on the stack: +0x20 position words (node +0x1C..+0x23),
-	// +0x40 glow flag (written only when node +0x82 == 1: the other words the callback reads are
-	// never-written stack; taken as 0 here, see the note on the frame below), +0x48 blend buffer.
-	// When the model has ended: finished, next state.
+	// +0x40 glow flag (written only when node +0x82 == 1, else the stack's residue: see the note
+	// on the frame below), +0x48 blend buffer. When the model has ended: finished, next state.
+	//
+	// Block +0x40 of the model player (+0x82 == 0) is never written: 0x865E60 reads what the
+	// last function run at that stack depth left in [esp+0x44]. Both state functions (0x865A80 /
+	// 0x865E60: sub esp 0x5C, push esi, block = esp+4) and both task bodies (0x8659D0 / 0x865DB0:
+	// sub esp 0xC, push esi, push node, call state) have identical frames, the executor 0x508420
+	// calls every task of the queue at the same esp without touching the stack in between, and
+	// AddTaskToQueue 0x508360 appends: the glow player (spawned first by 0x865930) plays right
+	// before its model player and leaves 1 there (the player 0x701970 it calls lives below that
+	// frame). A glow player is released on the tick of its last play (which still writes the 1),
+	// and it ends before its model player, so every model play reads 1: the model is drawn by the
+	// glow renderer too (original run with the game's executor: every model player packet is the
+	// glow renderer's). Before the player queue, the emitter pass leaves a non-1 word there
+	// (MAG_001_CURE_Emitter_ComputeModelBounds 0x8DC870 pushes the executor's edi into that slot).
 	static uint32_t __cdecl PlayerPlay(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		// stack frame 0x5C: the callback reads +0x20..+0x27, +0x40 and +0x48 (not +0x00..+0x1F);
-		// +0x40 is not written by the original for the second player (+0x82 == 0): it reads the
-		// stack's leftover there, which is 0 in the verified runs (stack cleared before each task)
+		// +0x40 of the second player (+0x82 == 0) is the stack residue (g_block40, see the note above)
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
 		U32(L, 0x48) = BLEND_BUFFER;
 		U32(L, 0x20) = U32(node, 0x1C);
 		U32(L, 0x24) = U32(node, 0x20);
-		if (U16(node, 0x82) == 1)
-			U32(L, 0x40) = 1;
+		U32(L, 0x40) = U16(node, 0x82) == 1 ? 1 : g_block40;
+		g_block40 = U32(L, 0x40);
 		if (prim_play(node + 0x94, ORIG_DrawCallback, L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
