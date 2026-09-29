@@ -31,6 +31,11 @@ namespace gfc
 	Held g_held = { false, 0, 1, 0 };
 
 	static uint32_t g_ported_tick = 0xFFFFFFFF;
+	// Draw 37 ribbons (held_ribbon_v0 / held_ribbon_restore): real tick: VXY0 at the end of the
+	// last ribbon draw; held frame: the value the last ribbon drawn will leave there on the next
+	// tick (ok = known)
+	static uint32_t g_rib_last_v0 = 0, g_rib_next_v0 = 0;
+	static bool g_rib_last_ok = false, g_rib_next_ok = false;
 	// battle camera shake offsets (0x1D97710, 3 x s16) as the last real tick left them
 	static int16_t g_shake[3] = {};
 	// Workspace + RuntimeSlot of the last real tick, copied at its end: held frames and the
@@ -170,7 +175,11 @@ namespace gfc
 	}
 
 	// --- the predicted next tick ---
-	struct PredBone { uint16_t id16; uint8_t alive, draw; int16_t ang[3], pos[3]; uint32_t colour; };
+	// sprite: frame list cursor (bone+0xD0) of a draw 5 (animated sprite) bone. Only the draw
+	// steps it; the VM writes it when it (re)starts the sprite animation (SetSpriteAnim), i.e. on
+	// a bone spawned again in the same slot. SpawnBoneWithId (0x135) gives every such bone the
+	// same id (Cerberus: 0x3E7), so id16 does not tell a re-spawn: a new cursor does.
+	struct PredBone { uint16_t id16; uint8_t alive, draw; int16_t ang[3], pos[3]; uint32_t colour, sprite; };
 	struct Pred
 	{
 		uint32_t tick;
@@ -283,6 +292,7 @@ namespace gfc
 			p.draw = U8(b, 0x1C);
 			for (int k = 0; k < 3; k++) { p.ang[k] = S16(b, 0x8C + 2 * k); p.pos[k] = S16(b, 0x94 + 2 * k); }
 			p.colour = U32(b, 0xCC);
+			p.sprite = p.draw == 5 ? U32(b, 0xD0) : 0;
 		}
 		for (int k = 0; k < 256 && ORDER()[k] != 0xFF; k++)
 		{
@@ -532,6 +542,9 @@ namespace gfc
 			uint8_t *b = bones + 0x100 * i;
 			const PredBone &p = g_pred.b[i];
 			if (!alive[i] || !p.alive || p.id16 != U16(b, 0x12) || p.draw != U8(b, 0x1C)) continue;
+			// a sprite bone spawned again in this slot on the next tick: another sprite (the
+			// real tick's one ends there), not a move
+			if (p.draw == 5 && p.sprite != U32(b, 0xD0)) continue;
 			g_mixed[i] = 1;
 			for (int k = 0; k < 3; k++)
 			{
@@ -650,6 +663,7 @@ namespace gfc
 		U16(RCTX(), 4) = 0;
 		U16(RT(), 0x46) = 0;
 		g_held = { true, num, den, U8(RT(), 0x45) };
+		g_rib_next_ok = false;
 		U8(RT(), 0x45) = 0xFF;
 		BuildMatricesAndDraw();
 		x::ParseCamera2(PROJH());
@@ -693,7 +707,7 @@ namespace gfc
 	// SequenceTick (0xB25DF0)
 	// ------------------------------------------------------------------------------------
 	// the ports ran on this real tick
-	void held_note_tick() { g_ported_tick = g_real_tick; }
+	void held_note_tick() { g_ported_tick = g_real_tick; g_rib_last_ok = false; }
 
 	// Workspace + RuntimeSlot of the tick, copied at its end (held frames and the prediction
 	// run on this copy)
@@ -843,11 +857,19 @@ namespace gfc
 	// new head section num/den of its way from the previous head (the head segment grows from
 	// nothing), and every segment's colour at the in-between of its ramp entry and the next
 	// one's (the ramp is indexed by the age of the segment, which grows by one per tick). A full
-	// ring loses its oldest (faded-out) segment with the growth. Tail retire (outAngleX < 0)
-	// stays a discrete step of the real tick. Held-only additions besides:
+	// ring loses its oldest (faded-out) segment with the growth. Tail retire (outAngleX < 0):
+	// the oldest segment goes on the real frame (discrete), while the colours, which slide one
+	// ramp entry per retire step, are the in-between of the real tick's entry and the next
+	// tick's (held_ribbon_blend_ramp). Held-only additions besides:
 	//   * VXY0 before SetupParentXform is set to the value the real tick had there (vanilla
 	//     leaves V0.xy of the previous GTE user in the translation; in a held draw that is
 	//     another handler's frozen-path value, which would shift the whole ribbon);
+	//   * chained ribbons: when that previous GTE user was the ribbon drawn just before (its last
+	//     loaded point: point 8 of its oldest drawn section), the translation moves with that
+	//     ribbon's tail every tick it retires (Cerberus: three ribbons chained, each one moving by
+	//     its predecessor's retiring tail); the held draw then takes VXY0 at the in-between of
+	//     the real tick's value and the one the next tick will have (the predecessor's last point
+	//     with its next tick's ring counters, held_ribbon_restore);
 	//   * the arena scratch above ctx+0x74 (outside the saved arena) written by the draw is
 	//     restored before returning.
 	// The first-draw path cannot run on a held frame (a node's first draw is on the tick that
@@ -855,8 +877,11 @@ namespace gfc
 	// ------------------------------------------------------------------------------------
 	// software GTE data register 0 (VXY0, packed)
 	static inline uint32_t &GTE_VXY0() { return MEM<uint32_t>(0x1CA8A10); }
-	// VXY0 the real tick had when it reached SetupParentXform (see B1ADD0), per node
-	static NodeMemo<uint32_t, 64> g_v0memo;
+	// VXY0 the real tick had when it reached SetupParentXform (see B1ADD0), per node; chain: it
+	// was the last point loaded by the ribbon drawn just before
+	struct V0Memo { uint32_t v0; bool chain; };
+	static NodeMemo<V0Memo, 64> g_v0memo;
+	// (g_rib_last_v0 / g_rib_next_v0: top of the file)
 	// the arena scratch above ctx+0x74 this handler writes (projections + colour table)
 	static uint8_t *g_hsave = nullptr;
 	static uint32_t g_hsave_cap = 0;
@@ -956,18 +981,88 @@ namespace gfc
 		memcpy(g_hsave, g_hs_p, g_hs_n);
 	}
 
+	// held: the next tick's tail step of the ribbon of CUR() (vanilla retire branch: outAngleX < 0
+	// retires one tail section per tick, -2 holds the tail): 1 = one more section retired, 0 =
+	// tail held, -1 = no retire step known (grows, frozen real tick, the retire ends the draw)
+	static int held_ribbon_next_retire(const uint8_t *ring)
+	{
+		if (ring == nullptr || g_held.real_skip != 0) return -1;
+		int16_t a0[3], p0[3], a1[3], p1[3];
+		int32_t ax = held_bone_ends(CUR(), a0, p0, a1, p1) ? a1[0] : S16(CUR(), 0x8C);
+		if (ax >= 0) return -1;
+		int step = ax != -2 ? 1 : 0;
+		if ((int32_t)U16(ring, 0xE) + step >= (int32_t)U16(ring, 2)) return -1;
+		return step;
+	}
+
+	// held: the colour ramp ws+0x84 (built by the draw from the in-between colour bone) replaced
+	// by the in-between of the real tick's ramp entry j + a and the next tick's entry j + b, each
+	// built from that tick's colour bone values: (a, b) = (-1, 0) for a grown ribbon (the ramp is
+	// indexed by the age of the section), (0, 1) for a retiring one (the ramp offset is the tail)
+	static void held_ribbon_blend_ramp(int dir)
+	{
+		uint8_t *ramp = PTR(WS(), 0x84);
+		uint32_t f0 = (uint32_t)S32(WS(), 0xF0), f4 = (uint32_t)S32(WS(), 0xF4), f8 = (uint32_t)S32(WS(), 0xF8);
+		int32_t ents = (int32_t)(f0 + (f4 > f0 ? f4 - f0 : 0) + (f8 > f4 ? f8 - f4 : 0) + f8);
+		if (ents <= 0) return;
+		uint8_t *cb = PTR(WS(), 0x9C);
+		int16_t a0[3], p0[3], a1[3], p1[3];
+		if (!held_bone_ends(cb, a0, p0, a1, p1))
+			for (int k = 0; k < 3; k++) { a0[k] = a1[k] = S16(cb, 0x8C + 2 * k); p0[k] = p1[k] = S16(cb, 0x94 + 2 * k); }
+		auto colw = [](const int16_t *v) {
+			uint32_t c = (uint32_t)(int32_t)v[2] | 0x200u;
+			c = (c << 8) | (uint32_t)(int32_t)v[1];
+			return (c << 8) | (uint32_t)(int32_t)v[0];
+		};
+		static std::vector<uint8_t> r0, r1;
+		r0.assign((size_t)ents * 8 + 8, 0);
+		r1.assign((size_t)ents * 8 + 8, 0);
+		part_shared_ribbon::Ribbon_B1B220_BuildColourRamp(colw(p0), colw(a0), r0.data(), 0);
+		part_shared_ribbon::Ribbon_B1B220_BuildColourRamp(colw(p1), colw(a1), r1.data(), 0);
+		const int32_t da = dir < 0 ? -1 : 0, db = dir < 0 ? 0 : 1;
+		for (int32_t j = ents - 1; j >= 0; j--)
+		{
+			int32_t j0 = j + da, j1 = j + db;
+			if (j0 < 0) j0 = 0;
+			if (j1 > ents - 1) j1 = ents - 1;
+			for (int w = 0; w < 2; w++)
+			{
+				uint32_t c0 = U32(r0.data(), 8 * j0 + 4 * w), c1 = U32(r1.data(), 8 * j1 + 4 * w), c = U32(ramp, 8 * j + 4 * w) & 0xFF000000u;
+				for (int s = 0; s < 24; s += 8)
+				{
+					int32_t x0 = (c0 >> s) & 0xFF, x1 = (c1 >> s) & 0xFF;
+					c |= (uint32_t)((x0 + (x1 - x0) * g_held.num / g_held.den) & 0xFF) << s;
+				}
+				U32(ramp, 8 * j + 4 * w) = c;
+			}
+		}
+	}
+
 	// real tick: memo of VXY0 before SetupParentXform; held: VXY0 of the real tick put back
 	void held_ribbon_v0()
 	{
 		if (!g_held.active)
 		{
-			uint32_t *m = g_v0memo.put(CUR());
-			if (m) *m = GTE_VXY0();
+			V0Memo *m = g_v0memo.put(CUR());
+			if (m) *m = { GTE_VXY0(), g_rib_last_ok && GTE_VXY0() == g_rib_last_v0 };
 		}
 		else if (!g_rib_adv)
 		{
-			const uint32_t *m = g_v0memo.get(CUR());
-			if (m) GTE_VXY0() = *m;
+			const V0Memo *m = g_v0memo.get(CUR());
+			if (m)
+			{
+				uint32_t v = m->v0;
+				// chained to the ribbon drawn before: in-between of the real tick's value and the
+				// one that ribbon leaves on the next tick
+				if (m->chain && g_rib_next_ok)
+				{
+					int16_t x0 = (int16_t)(v & 0xFFFF), y0 = (int16_t)(v >> 16);
+					int16_t x1 = (int16_t)(g_rib_next_v0 & 0xFFFF), y1 = (int16_t)(g_rib_next_v0 >> 16);
+					int16_t x = (int16_t)lerp_i(x0, x1, g_held.num, g_held.den), y = (int16_t)lerp_i(y0, y1, g_held.num, g_held.den);
+					v = (uint32_t)(uint16_t)x | ((uint32_t)(uint16_t)y << 16);
+				}
+				GTE_VXY0() = v;
+			}
 		}
 		else
 		{
@@ -977,47 +1072,52 @@ namespace gfc
 			// and built from the colour bone: section j (age j on the next tick, age j - 1 on the
 			// real tick) is the in-between of the real tick's ramp entry j - 1 and the next tick's
 			// entry j, each ramp built from that tick's colour bone values
-			if (const uint32_t *m = g_v0memo.get(CUR()))
+			if (const V0Memo *m = g_v0memo.get(CUR()))
 			{
 				uint32_t v1 = GTE_VXY0();
-				int16_t x0 = (int16_t)(*m & 0xFFFF), y0 = (int16_t)(*m >> 16), x1 = (int16_t)(v1 & 0xFFFF), y1 = (int16_t)(v1 >> 16);
+				int16_t x0 = (int16_t)(m->v0 & 0xFFFF), y0 = (int16_t)(m->v0 >> 16), x1 = (int16_t)(v1 & 0xFFFF), y1 = (int16_t)(v1 >> 16);
 				int16_t x = (int16_t)lerp_i(x0, x1, g_held.num, g_held.den), y = (int16_t)lerp_i(y0, y1, g_held.num, g_held.den);
 				GTE_VXY0() = (uint32_t)(uint16_t)x | ((uint32_t)(uint16_t)y << 16);
 			}
-			uint8_t *ramp = PTR(WS(), 0x84);
-			uint32_t f0 = (uint32_t)S32(WS(), 0xF0), f4 = (uint32_t)S32(WS(), 0xF4), f8 = (uint32_t)S32(WS(), 0xF8);
-			int32_t ents = (int32_t)(f0 + (f4 > f0 ? f4 - f0 : 0) + (f8 > f4 ? f8 - f4 : 0) + f8);
-			uint8_t *cb = PTR(WS(), 0x9C);
-			int16_t a0[3], p0[3], a1[3], p1[3];
-			if (!held_bone_ends(cb, a0, p0, a1, p1))
-				for (int k = 0; k < 3; k++) { a0[k] = a1[k] = S16(cb, 0x8C + 2 * k); p0[k] = p1[k] = S16(cb, 0x94 + 2 * k); }
-			auto colw = [](const int16_t *v) {
-				uint32_t c = (uint32_t)(int32_t)v[2] | 0x200u;
-				c = (c << 8) | (uint32_t)(int32_t)v[1];
-				return (c << 8) | (uint32_t)(int32_t)v[0];
-			};
-			static std::vector<uint8_t> r0, r1;
-			r0.assign((size_t)ents * 8 + 8, 0);
-			r1.assign((size_t)ents * 8 + 8, 0);
-			part_shared_ribbon::Ribbon_B1B220_BuildColourRamp(colw(p0), colw(a0), r0.data(), 0);
-			part_shared_ribbon::Ribbon_B1B220_BuildColourRamp(colw(p1), colw(a1), r1.data(), 0);
-			for (int32_t j = ents - 1; j >= 0; j--)
-				for (int w = 0; w < 2; w++)
-				{
-					uint32_t c0 = U32(r0.data(), 8 * (j > 0 ? j - 1 : 0) + 4 * w), c1 = U32(r1.data(), 8 * j + 4 * w), c = U32(ramp, 8 * j + 4 * w) & 0xFF000000u;
-					for (int s = 0; s < 24; s += 8)
-					{
-						int32_t x0 = (c0 >> s) & 0xFF, x1 = (c1 >> s) & 0xFF;
-						c |= (uint32_t)((x0 + (x1 - x0) * g_held.num / g_held.den) & 0xFF) << s;
-					}
-					U32(ramp, 8 * j + 4 * w) = c;
-				}
+			held_ribbon_blend_ramp(-1);
 		}
+		// retiring on the next tick: the ramp offset (bone+0xBC +0xE, tail) grows by one, so
+		// entry j on the real tick is entry j + 1 on the next one (the colours slide along the
+		// ribbon while its tail retires)
+		if (g_held.active && !g_rib_adv && held_ribbon_next_retire(PTR(CUR(), 0xBC)) == 1) held_ribbon_blend_ramp(1);
 	}
 
 	void held_ribbon_restore()
 	{
 		if (g_hs_n) memcpy(g_hs_p, g_hsave, g_hs_n);
+		if (!g_held.active)
+		{
+			// the last point this draw loaded (the next ribbon's VXY0 when it is chained)
+			g_rib_last_v0 = GTE_VXY0();
+			g_rib_last_ok = true;
+			return;
+		}
+		// held: the last point the next tick's draw of this ribbon will load: point 8 of its
+		// oldest drawn section (the head section when none is drawn), with the next tick's ring
+		// counters: a grown held ribbon already has them (its draw loaded that point); a retiring
+		// one (next outAngleX < 0) loses one more tail section (-2: holds the tail); otherwise
+		// (it grows on the next tick only, frozen real tick, end of the retire) unknown
+		g_rib_next_ok = false;
+		if (g_rib_adv)
+		{
+			g_rib_next_v0 = GTE_VXY0();
+			g_rib_next_ok = true;
+			return;
+		}
+		uint8_t *ring = PTR(CUR(), 0xBC);
+		int step = held_ribbon_next_retire(ring);
+		if (step < 0) return;
+		int32_t cap = U16(ring, 2), tail = (int32_t)U16(ring, 0xE) + step;
+		int32_t k = (int32_t)U16(ring, 4) - tail;
+		int32_t e = (k >= 1 ? sub32((int32_t)U16(ring, 0), k) : (int32_t)U16(ring, 0)) % cap;
+		const uint8_t *en = part_shared_ribbon::RingEntry(ring, e);
+		g_rib_next_v0 = (uint32_t)U16(en, 0x40) | ((uint32_t)U16(en, 0x42) << 16);
+		g_rib_next_ok = true;
 	}
 
 	// ------------------------------------------------------------------------------------
