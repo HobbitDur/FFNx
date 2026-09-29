@@ -182,6 +182,7 @@ namespace ff8fx
 		register_mag030_counter_laser_eye();
 		register_mag041_dribble();
 		register_mag190_chain_gun();
+		register_mag048_magma_breath();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
