@@ -27,10 +27,27 @@ namespace act
 namespace minimog
 {
 	// tasks whose drawing the held frame redraws: the creature actor and the prim-model emitters
-	static const uint32_t HELD_TASKS[] = { 0x739610, 0x733FC0, 0 };
+	static const uint32_t HELD_TASKS[] = { 0x739610, 0x733FC0, 0x734840, 0x7327B0, 0 };
 	static bool is_held(uint32_t a) { for (const uint32_t *h = HELD_TASKS; *h; h++) if (*h == a) return true; return false; }
 	// module globals 0x257B740..0x257F8A0 (task pools, arenas, script/camera state, key tables)
-	static const HeldDesc HELD = { &MOD_096, 0x257F678, 0x739610, 0x257E3E8, 0x257B740, 0x257F8A0 };
+	// the actor systems of the two prim-model tasks 0x734840 (a_73A380 copy, state 1 = a_7395E0)
+	static const HeldActorSys ACTOR_SYS[] = { { 0x734840 }, { 0 } };
+	// the director 0x7327B0 (queue 0x257B828) emits a draw-mode packet (0xE1000020) into OT bucket
+	// base + 0x4484 on every tick it runs: emitted on held frames too
+	static void DirectorDrawMode(int, int)
+	{
+		for (uint32_t node = MEM<uint32_t>(0x257B828); node; node = U32(node, 4))
+		{
+			if (U32(node, 8) != 0x7327B0 || U16(node, 0x24) == 0) continue;
+			const uint32_t pkt = MEM<uint32_t>(0x1D8E054);
+			U32(pkt, 0) = 2;
+			U32(pkt, 4) = 0xE1000020;
+			U32(pkt, 8) = 0;
+			x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(0x1D8E04C) + 0x4484, pkt);
+			MEM<uint32_t>(0x1D8E054) = pkt + 0xC;
+		}
+	}
+	static const HeldDesc HELD = { &MOD_096, 0x257F678, 0x739610, 0x257E3E8, 0x257B740, 0x257F8A0, nullptr, nullptr, ACTOR_SYS, nullptr, DirectorDrawMode };
 	static bool HeldReady() { return held_ready(); }
 	static void HeldFrame(int num, int den) { held_frame(HELD, num, den); }
 	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
