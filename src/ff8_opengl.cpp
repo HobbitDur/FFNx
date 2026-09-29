@@ -2190,7 +2190,9 @@ static inline int ff8_bgate_scale_round(int v, int num, int den);
 // cur + (cur - prev) * k/div into the skeleton (rotations the short way round), builds
 // the matrices from it, then puts cur back - the stream reader works in deltas on top of
 // the skeleton, so the next real read must find the exact real pose again.
-#define FF8_BGATE_POSE_BONES 64
+// the skeleton's bone count is a byte: cover all of them (Shiva has 69; a model over the old
+// limit of 64 silently held its pose on every held frame)
+#define FF8_BGATE_POSE_BONES 256
 #define FF8_BGATE_POSE_SLOTS 64
 struct ff8_bgate_pose_t
 {
