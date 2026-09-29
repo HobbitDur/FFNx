@@ -226,12 +226,16 @@ namespace gfc
 	// (ComputeBonesWorldMatrices works in place): the attached bones' predicted nodes were
 	// composed twice (Bahamut: the bones on the Mega Flare model's joints, far off screen).
 	// Here, before the predicted VM, with the skeleton and the animation command journaled, the
-	// model's local bone matrices are rebuilt from its pose; a model whose next tick steps it is
-	// stepped up front (so the attached bones see the next pose: the model's bone comes first in
-	// the VM order). "Steps" = the predicted VM advanced the block's frame counter (the first pass
-	// assumes every model with flag 2 does; one that did not is predicted again without the step).
-	// The held draw shows such a model at the in-between pose (held_model_pose).
+	// model's local bone matrices are rebuilt from its pose; a model the next tick's VM steps
+	// (op 0x089) is stepped where the VM steps it (PredOp089: the pose step + the local matrices
+	// of the new pose, as op 0x05B rebuilds them), so the bones attached to it see the pose the
+	// real tick gives them at their place in the VM order: the next pose after the model's bone
+	// (Bahamut), the current one before it (Brothers: bone 0x3A reads the draw-3 model's joint
+	// before bone 0x0D steps it - stepped up front, the attached bone ran one frame ahead).
+	// "Steps" = the predicted VM advanced the block's frame counter. The held draw shows such a
+	// model at the in-between pose (held_model_pose).
 	struct ModelStep { uint8_t *blk; uint16_t cnt; bool pre, stepped; };
+	// (the up-front step, pre, is no longer used: ModelStepsCollect leaves it false)
 	static ModelStep g_msteps[8];
 	static int g_nmsteps = -1;
 	static uint8_t *ModelSkeleton(uint8_t *hdr) { uint8_t *com = PTR(hdr, 4); return com ? PTR(com, 0) : nullptr; }
@@ -248,7 +252,8 @@ namespace gfc
 			uint8_t *blk = model ? PTR(b, 0xBC) : nullptr;
 			if (!blk || !ModelSkeleton(blk + 0x10)) continue;
 			uint16_t fl = U16(blk, 2);
-			g_msteps[g_nmsteps++] = { blk, U16(blk, 0), !(fl & 1) && U16(blk, 0) != 0 && (fl & 2) != 0, false };
+			(void)fl;
+			g_msteps[g_nmsteps++] = { blk, U16(blk, 0), false, false };
 		}
 	}
 	// (predicting, engine state saved) skeletons as the next tick's VM finds them
@@ -270,6 +275,30 @@ namespace gfc
 				x::BuildBoneMatricesFromPose(hdr);
 			g_predict = true;
 		}
+	}
+	// (predicting) the clone's op 0x089 StepEmbeddedModelAnim, swapped in by PredictPass: for a
+	// collected (journaled) model the step h_B26AD0 makes on it (block flag 2 cleared, not frozen:
+	// ReadAnimation / PreReadAnimation) with the engine calls enabled, then the local bone
+	// matrices of the new pose; then the op itself (engine calls skipped: parent xform, flags,
+	// frame counter)
+	static VoidFn g_pred_op089 = nullptr;
+	static void __cdecl PredOp089()
+	{
+		uint8_t *blk = PTR(CUR(), 0xBC);
+		for (int i = 0; blk && i < g_nmsteps; i++)
+		{
+			if (g_msteps[i].blk != blk) continue;
+			if (U8(RT(), 0x45) == 0 && !(U16(blk, 2) & 1) && U16(blk, 0) != 0)
+			{
+				uint8_t *hdr = blk + 0x10, *cmd = blk + 0x20;
+				g_predict = false;
+				if (x::ReadAnimation(hdr, cmd) == 1) x::PreReadAnimation(hdr, cmd, U8(blk, 9));
+				x::BuildBoneMatricesFromPose(hdr);
+				g_predict = true;
+			}
+			break;
+		}
+		g_pred_op089();
 	}
 	static void ModelStepsEnd()
 	{
@@ -367,9 +396,12 @@ namespace gfc
 		if (!g_pred.paused) ModelsPrepare();
 		if (!g_pred.paused)
 		{
+			g_pred_op089 = c.vm[0x089];
+			c.vm[0x089] = PredOp089;
 			AnimChannelsNeg();
 			AnimIntegrator();
 			AnimChannelsPos();
+			c.vm[0x089] = g_pred_op089;
 		}
 		ModelStepsEnd();
 		g_pred.nb = BoneCount();
