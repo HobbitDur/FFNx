@@ -30,31 +30,26 @@ namespace part_brothers
 	// ------------------------------------------------------------------------------------
 	// 0xAF5810 (Draw 3 AnimatedModelWithShadow), held frames: the embedded model is posed as in
 	// h_B26AD0 (pose_midpoint when the real tick advanced it). The shadow: when the model was
-	// advanced (same test as h_B26AD0's in-between path) the bone matrices are built from the
-	// in-between pose (pose_midpoint) + world matrices from ws+0x80 and 0xB67040 is called with
-	// root = 0 (it then neither rebuilds from the real pose nor rebuilds after), so the shadow
-	// follows the in-between model; otherwise the vanilla call. The skeleton writes are undone by
-	// HeldFrame (draw 3 model blocks are saved).
+	// advanced (h_B26AD0's own in-between test, held_model_pose: block flag 2 clear = the draw
+	// steps it, flag 2 set = the VM steps it (op 0x089) and the prediction saw it step) the bone
+	// matrices are built from the in-between pose (pose_midpoint) + world matrices from ws+0x80
+	// and 0xB67040 is called with root = 0 (it then neither rebuilds from the real pose nor
+	// rebuilds after), so the shadow follows the in-between model; otherwise the vanilla call.
+	// The skeleton writes are undone by HeldFrame (draw 3 model blocks are saved).
 	// ------------------------------------------------------------------------------------
 	static bool g_mid03 = false;
 
-	// h_B26AD0's in-between test (rt+0x45 is forced, its frozen path runs), before it runs
+	// the block's frame counter before h_B26AD0 runs (its frozen path turns 0 into 1)
 	static void held_note_mid03()
 	{
-		g_mid03 = false;
-		if (g_held.active)
-		{
-			uint8_t *b = PTR(CUR(), 0xBC);
-			uint16_t fl = U16(b, 2);
-			g_mid03 = g_held.real_skip == 0 && !(fl & 1) && U16(b, 0) != 0 && !(fl & 2);
-		}
+		g_mid03 = g_held.active && U16(PTR(CUR(), 0xBC), 0) != 0;
 	}
 
 	// the shadow of the in-between model; false = the vanilla call
 	static bool held_shadow03(uint8_t *hdr, uint8_t *blk, int32_t otspec, int32_t y)
 	{
-		if (!g_mid03) return false;
-		pose_midpoint(hdr, blk + 0x20, g_held.num, g_held.den);
+		// held_model_pose: the same test as h_B26AD0's in-between path + the in-between pose
+		if (!g_mid03 || !held_model_pose(blk, hdr, blk + 0x20)) return false;
 		x::ComputeBonesWorldMatrices(hdr, WS() + 0x80);
 		xl_ModelShadow_B67040(hdr, nullptr, otspec, y, 0x80);
 		return true;
