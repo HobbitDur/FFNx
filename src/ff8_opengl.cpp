@@ -1807,10 +1807,12 @@ int __cdecl ff8_bgate_bdlink_hook()
 #if FF8_BGATE_DIAG
 	ff8_bgate_diag_frame++;
 #endif
+	// the in-between camera written at the end of the last frame (for its view) is taken back
+	// on EVERY frame: the frame's tasks always see the true camera words
+	ff8_bgate_cam_restore();
 	if (ff8_bgate_phase == 0)
 	{
 		ff8_bgate_move_restore_all();
-		ff8_bgate_cam_restore();
 		ff8_bgate_feedback_req = 0; // re-armed by the effect if it still wants it this tick
 	}
 	else if (ff8_bgate_feedback_req && !ff8_bgate_fx_bypass && ff8_bgate_feedback_rearm)
@@ -2703,52 +2705,12 @@ int __cdecl ff8_bgate_camanim_hook(void *task)
 	return r;
 }
 
-// --- battle camera: extrapolate the RENDER-FACING position on held frames ---
-// The keyframe player's internal catch-up loop is where the hang lived (see above) -
-// its internal state (camera_struct: currentTime, keyframe pointers, segment tables)
-// is never touched on held frames. But the four globals updateBattleCamera (0x504060)
-// writes every call - Battle_Camera_world_XZ_s16/Y and Battle_Camera_LookAt_XZ_s16/Y,
-// the actual values the renderer reads for this frame's view - are a completely
-// separate, simple output: just four numbers. This hook lets the original function run
-// untouched (proven safe, produces the correct real-frame values, including the task
-// no-op on held frames), then on held frames OVERWRITES those four globals with a
-// linear extrapolation from the last two REAL frames' outputs:
-//   extrapolated = prev1 + (prev1 - prev2) * phase / n
-// prev1/prev2 are consecutive REAL camera outputs, so their delta is exactly one real
-// tick's worth of camera movement regardless of n; scaling by phase/n places each held
-// frame at its correct fractional position between them - same closed-form technique
-// used for the Cure ring, just applied to the camera's already-computed output instead
-// of re-deriving position from keyframe data. Nothing here can hang: it is pure
-// arithmetic on saved snapshots, no loops, no engine state mutated except the two
-// render-facing globals themselves.
-//
-// A large delta between the last two real frames (camera cut / stage transition) is
-// clamped rather than extrapolated - overshooting a cut would fling the view somewhere
-// absurd for one frame; holding the pre-cut position for that one frame is the safe
-// fallback and self-corrects next real tick.
-#define FF8_BGATE_CAM_JUMP_CLAMP 4096
-
-struct ff8_bgate_cam_snap_t { int32_t wxz, wy, lxz, ly; bool valid; };
-static ff8_bgate_cam_snap_t ff8_bgate_cam_prev1 = {0, 0, 0, 0, false};
-static ff8_bgate_cam_snap_t ff8_bgate_cam_prev2 = {0, 0, 0, 0, false};
-
-static int32_t ff8_bgate_extrap_s16pair(int32_t prev2, int32_t prev1, int num, int den)
-{
-	int16_t p2x = (int16_t)(prev2 & 0xFFFF), p2z = (int16_t)(prev2 >> 16);
-	int16_t p1x = (int16_t)(prev1 & 0xFFFF), p1z = (int16_t)(prev1 >> 16);
-	if (abs(p1x - p2x) > FF8_BGATE_CAM_JUMP_CLAMP || abs(p1z - p2z) > FF8_BGATE_CAM_JUMP_CLAMP)
-		return prev1;
-	int16_t rx = (int16_t)(p1x + ((p1x - p2x) * num) / den);
-	int16_t rz = (int16_t)(p1z + ((p1z - p2z) * num) / den);
-	return (uint16_t)rx | ((uint32_t)(uint16_t)rz << 16);
-}
-
-static int32_t ff8_bgate_extrap_i32(int32_t prev2, int32_t prev1, int num, int den)
-{
-	if (abs(prev1 - prev2) > FF8_BGATE_CAM_JUMP_CLAMP)
-		return prev1;
-	return prev1 + ((prev1 - prev2) * num) / den;
-}
+// --- battle camera: the RENDER-FACING camera of held frames ---
+// The keyframe player's internal catch-up loop is where the hang lived (see above) - its
+// internal state is never touched on held frames. The four globals updateBattleCamera (0x504060)
+// writes - Battle_Camera_world_XZ_s16/Y and Battle_Camera_LookAt_XZ_s16/Y - are a separate, simple
+// output the view matrix is built from: the hook below lets the original run untouched, then
+// writes the in-between camera into them for the view build only (see ff8_bgate_updatecam_hook).
 
 static int (__cdecl *ff8_bgate_updatecam_orig)() = nullptr;
 static uint32_t ff8_bgate_updatecam_ri = 0;
@@ -2817,7 +2779,11 @@ static void ff8_bgate_cam_restore()
 // camera (eye, target, fov, roll) between this tick and the next. A shot that ends on the next
 // tick has no next camera of its own (the camera script picks what follows): that half tick
 // holds. Cameras written directly by effects keep the extrapolation below.
-#define FF8_BGATE_CAM_LOOKAHEAD 1
+// (FF8_BGATE_CAM_LOOKAHEAD 1 = the former design: the held frame's camera predicted one tick
+// ahead - keyframe player run ahead on a saved copy, ported effects' held_camera, extrapolation -
+// and written at the end of the HELD frame. That was half a tick off: see the hook below.)
+#define FF8_BGATE_CAM_LOOKAHEAD 0
+#if FF8_BGATE_CAM_LOOKAHEAD
 struct ff8_bgate_cam_next_t { bool valid; uint8_t *cs; int16_t v[8]; int16_t fov, roll; };
 
 static void ff8_bgate_cam_lookahead(ff8_bgate_cam_next_t &nx)
@@ -2869,100 +2835,108 @@ static void ff8_bgate_cam_lookahead(ff8_bgate_cam_next_t &nx)
 	*(int16_t *)0x1D9771C = ret_roll;
 }
 
+#endif
+
+#if FF8_BGATE_CAM_LOOKAHEAD
 // held frame of a natively ported effect that drives the camera: its exact in-between camera
 static bool ff8_bgate_fx_held_camera(int16_t world[3], int16_t lookat[3]);
+#endif
 
 // Per-frame camera diagnostics during an effect (with ff8_battle_fx_held_check): which path set
 // the camera, the eye before/after the engine's update and the final one, the shake offsets.
 static struct { const char *path; int32_t pre[4], eng[4], fin[4]; bool valid; } ff8_bgate_camdbg = {};
 static uint32_t ff8_bgate_camdbg_lines = 0;
 
+// WHEN each camera reaches the screen (EXE order of one battle frame, BdLink 0x500900):
+//   0x500905..0x500971  every task queue draws - entities (BS_RenderBattleEntity 0x502D40), the
+//                       stage (BS_Task_UpdateAndRenderStage 0x50DFF0 -> BS_RenderRelated 0x500FD0),
+//                       the effect tick 0x50093A (and on held frames its redraw) - all GTE-transform
+//                       with the view matrix 0x1D97778 AS IT IS when the frame starts
+//   0x500988            updateBattleCamera: keyframe player / effect-written words -> 0xB8B7F0..FC
+//   0x500992            BS_Camera_BuildViewMatrixApplyShake: 0xB8B7F0 + roll + shake -> 0x1D97778
+//   0x5005A0 (jmp)      OT drawn; 0x5006E4 field of view 0x1D8E038 -> GTE H for the NEXT frame
+// So the camera words (and fov, roll, shake) left at the end of frame F are what frame F+1 draws
+// with: vanilla draws tick N's geometry with the camera of tick N-1. The held frame after real
+// tick N shows the geometry of N + phase/n, so it must draw with the camera of N-1 + phase/n,
+// and the next real frame with the camera of tick N exactly (vanilla). Both are known when the
+// frame ends - the last two real ticks' cameras - no prediction: at the end of the frame of
+// phase p the words are set to lerp(C[N-1], C[N], (p+1)/n) (the last frame before a real one
+// leaves the true C[N] untouched) and the true words are put back when the next frame starts.
+// A cut (an eye / look-at component jumping more than 1500 in one tick, as the harness's
+// FXA_LCCUT and the ported effects' own cut rule) keeps C[N-1] for the held frames: the cut
+// shows on the real frame, as in vanilla. If the engine itself moves the camera on a held frame
+// (return snap, blend), its value is kept and the history restarts there.
+#define FF8_BGATE_CAM_CUT 1500
+struct ff8_bgate_cam_real_t { int32_t w[4]; int16_t fov, roll; bool valid; };
+static ff8_bgate_cam_real_t ff8_bgate_cam_r0 = {}, ff8_bgate_cam_r1 = {}; // r1 = C[N] (last real frame), r0 = C[N-1]
+
+static void ff8_bgate_cam_read(ff8_bgate_cam_real_t &c)
+{
+	memcpy(c.w, (void *)0xB8B7F0, sizeof(c.w));
+	c.fov = *(int16_t *)0x1D8E038;
+	c.roll = *(int16_t *)0x1D977A2;
+	c.valid = true;
+}
+
+// eye 0xB8B7F0 and look-at 0xB8B7F8 are SVECTORs (s16 x, y, z + pad): the view build reads them
+// with movsx word (matrixMultiplyVector 0x56C4F0, BS_Camera_LookAt 0x50CCF0). The pads (+6) hold
+// whatever the writer left (Siren's A/B shows different pad bytes for the original and the port):
+// never interpolated, the true pads stay
+static const int ff8_bgate_cam_comp[6] = { 0, 1, 2, 4, 5, 6 }; // s16 indices of eye x/y/z, look-at x/y/z
+
 int __cdecl ff8_bgate_updatecam_hook()
 {
-	int32_t *wxz = (int32_t *)0xB8B7F0, *wy = (int32_t *)0xB8B7F4;
-	int32_t *lxz = (int32_t *)0xB8B7F8, *ly = (int32_t *)0xB8B7FC;
-	int32_t before[4] = { *wxz, *wy, *lxz, *ly };
-	static ff8_bgate_cam_next_t nx;
-	nx.valid = false;
-	if (ff8_bgate_phase != 0 && FF8_BGATE_CAM_LOOKAHEAD)
-		ff8_bgate_cam_lookahead(nx);
+	int32_t *g = (int32_t *)0xB8B7F0; // eye SVECTOR, look-at SVECTOR (as 4 dwords)
+	int32_t before[4] = { g[0], g[1], g[2], g[3] };
 
 	unreplace_function(ff8_bgate_updatecam_ri);
 	int r = ff8_bgate_updatecam_orig();
 	rereplace_function(ff8_bgate_updatecam_ri);
 
-	int32_t after[4] = { *wxz, *wy, *lxz, *ly };
+	int32_t after[4] = { g[0], g[1], g[2], g[3] };
 	memcpy(ff8_bgate_camdbg.pre, before, sizeof(before));
 	memcpy(ff8_bgate_camdbg.eng, after, sizeof(after));
-	ff8_bgate_camdbg.path = ff8_bgate_phase == 0 ? "real" : "none";
 	ff8_bgate_camdbg.valid = true;
 	if (ff8_bgate_phase == 0)
 	{
-		// real frame: snapshot the freshly-computed, fully-vanilla output
-		ff8_bgate_cam_prev2 = ff8_bgate_cam_prev1;
-		ff8_bgate_cam_prev1.wxz = after[0];
-		ff8_bgate_cam_prev1.wy = after[1];
-		ff8_bgate_cam_prev1.lxz = after[2];
-		ff8_bgate_cam_prev1.ly = after[3];
-		ff8_bgate_cam_prev1.valid = true;
+		// real frame: the fully-vanilla camera of this tick
+		ff8_bgate_camdbg.path = "real";
+		ff8_bgate_cam_r0 = ff8_bgate_cam_r1;
+		ff8_bgate_cam_read(ff8_bgate_cam_r1);
 	}
 	else if (memcmp(before, after, sizeof(before)) != 0)
 	{
-		// the engine moved the camera itself on this held frame (return snap, blend, cut):
-		// that value wins, and extrapolation restarts from it
+		// the engine moved the camera itself on this held frame: that value wins from now on
 		ff8_bgate_camdbg.path = "engine";
-		ff8_bgate_cam_prev1.wxz = after[0]; ff8_bgate_cam_prev1.wy = after[1];
-		ff8_bgate_cam_prev1.lxz = after[2]; ff8_bgate_cam_prev1.ly = after[3];
-		ff8_bgate_cam_prev1.valid = true;
-		ff8_bgate_cam_prev2 = ff8_bgate_cam_prev1;
+		ff8_bgate_cam_read(ff8_bgate_cam_r1);
+		ff8_bgate_cam_r0 = ff8_bgate_cam_r1;
 	}
-	else if (int16_t fw[3], fl[3]; ff8_bgate_fx_held_camera(fw, fl))
-	{
-		// a ported effect writes the camera: it knows the next tick's camera exactly
-		ff8_bgate_camdbg.path = "native";
-		memcpy(ff8_bgate_cam_true, after, sizeof(after));
-		int16_t *w16 = (int16_t *)0xB8B7F0, *l16 = (int16_t *)0xB8B7F8;
-		for (int i = 0; i < 3; i++) { w16[i] = fw[i]; l16[i] = fl[i]; }
-		ff8_bgate_cam_written[0] = *wxz; ff8_bgate_cam_written[1] = *wy;
-		ff8_bgate_cam_written[2] = *lxz; ff8_bgate_cam_written[3] = *ly;
-		ff8_bgate_cam_nudged = true;
-	}
-	else if (nx.valid && memcmp(after, nx.cs + 20, sizeof(after)) == 0)
-	{
-		// a camera shot is playing (the output is the keyframe player's): exact midpoint
-		ff8_bgate_camdbg.path = "shot";
-		memcpy(ff8_bgate_cam_true, after, sizeof(after));
-		int16_t cur[8], mid[8];
-		memcpy(cur, nx.cs + 20, sizeof(cur));
-		for (int i = 0; i < 8; i++)
-			mid[i] = (int16_t)(cur[i] + ff8_bgate_scale_round(nx.v[i] - cur[i], ff8_bgate_phase, ff8_bgate_n));
-		mid[3] = cur[3];
-		mid[7] = cur[7];
-		memcpy(wxz, mid, 16); // world XZ, world Y(+pad), look-at XZ, look-at Y(+pad): consecutive globals
-		ff8_bgate_cam_written[0] = *wxz; ff8_bgate_cam_written[1] = *wy;
-		ff8_bgate_cam_written[2] = *lxz; ff8_bgate_cam_written[3] = *ly;
-		ff8_bgate_cam_nudged = true;
-		int16_t *fov = (int16_t *)0x1D8E038, *roll = (int16_t *)0x1D977A2;
-		ff8_bgate_cam_fovroll_true[0] = *fov;
-		ff8_bgate_cam_fovroll_true[1] = *roll;
-		*fov = (int16_t)(*fov + ff8_bgate_scale_round(nx.fov - *fov, ff8_bgate_phase, ff8_bgate_n));
-		*roll = (int16_t)(*roll + ff8_bgate_scale_round(nx.roll - *roll, ff8_bgate_phase, ff8_bgate_n));
-		ff8_bgate_cam_fovroll_written[0] = *fov;
-		ff8_bgate_cam_fovroll_written[1] = *roll;
-		ff8_bgate_cam_fovroll_nudged = true;
-	}
-	else if (ff8_bgate_cam_prev1.valid && ff8_bgate_cam_prev2.valid)
-	{
-		ff8_bgate_camdbg.path = "extrap";
-		memcpy(ff8_bgate_cam_true, after, sizeof(after));
-		*wxz = ff8_bgate_extrap_s16pair(ff8_bgate_cam_prev2.wxz, ff8_bgate_cam_prev1.wxz, ff8_bgate_phase, ff8_bgate_n);
-		*wy = ff8_bgate_extrap_i32(ff8_bgate_cam_prev2.wy, ff8_bgate_cam_prev1.wy, ff8_bgate_phase, ff8_bgate_n);
-		*lxz = ff8_bgate_extrap_s16pair(ff8_bgate_cam_prev2.lxz, ff8_bgate_cam_prev1.lxz, ff8_bgate_phase, ff8_bgate_n);
-		*ly = ff8_bgate_extrap_i32(ff8_bgate_cam_prev2.ly, ff8_bgate_cam_prev1.ly, ff8_bgate_phase, ff8_bgate_n);
-		ff8_bgate_cam_written[0] = *wxz; ff8_bgate_cam_written[1] = *wy;
-		ff8_bgate_cam_written[2] = *lxz; ff8_bgate_cam_written[3] = *ly;
-		ff8_bgate_cam_nudged = true;
-	}
+	else
+		ff8_bgate_camdbg.path = "held";
+
+	// the view built next (0x500992) and the fov loaded at the loop top are the NEXT frame's
+	const int num = ff8_bgate_phase + 1, den = ff8_bgate_n;
+	if (num >= den || !ff8_bgate_cam_r0.valid || !ff8_bgate_cam_r1.valid) return r;
+	const int16_t *a = (const int16_t *)ff8_bgate_cam_r0.w, *b = (const int16_t *)ff8_bgate_cam_r1.w;
+	int16_t *g16 = (int16_t *)0xB8B7F0;
+	bool cut = false;
+	for (int k : ff8_bgate_cam_comp)
+		if (abs((int32_t)b[k] - a[k]) > FF8_BGATE_CAM_CUT) cut = true;
+	if (cut) ff8_bgate_camdbg.path = ff8_bgate_phase == 0 ? "real(cut)" : "held(cut)";
+	memcpy(ff8_bgate_cam_true, after, sizeof(after));
+	for (int k : ff8_bgate_cam_comp)
+		g16[k] = cut ? a[k] : (int16_t)(a[k] + ff8_bgate_scale_round((int32_t)b[k] - a[k], num, den));
+	memcpy(ff8_bgate_cam_written, g, sizeof(ff8_bgate_cam_written));
+	ff8_bgate_cam_nudged = true;
+	int16_t *fov = (int16_t *)0x1D8E038, *roll = (int16_t *)0x1D977A2;
+	ff8_bgate_cam_fovroll_true[0] = *fov;
+	ff8_bgate_cam_fovroll_true[1] = *roll;
+	const ff8_bgate_cam_real_t &c0 = ff8_bgate_cam_r0, &c1 = ff8_bgate_cam_r1;
+	*fov = cut ? c0.fov : (int16_t)(c0.fov + ff8_bgate_scale_round(c1.fov - c0.fov, num, den));
+	*roll = cut ? c0.roll : (int16_t)(c0.roll + ff8_bgate_scale_round(c1.roll - c0.roll, num, den));
+	ff8_bgate_cam_fovroll_written[0] = *fov;
+	ff8_bgate_cam_fovroll_written[1] = *roll;
+	ff8_bgate_cam_fovroll_nudged = true;
 	return r;
 }
 
@@ -5698,6 +5672,7 @@ int __cdecl ff8_bgate_eq_tick_gate(void *queue)
 static int (__cdecl *ff8_bgate_camops_orig)() = nullptr;
 static uint32_t ff8_bgate_camops_ri = 0;
 static int16_t ff8_bgate_shake_last[3] = {0, 0, 0};
+static int16_t ff8_bgate_shake_prev[3] = {0, 0, 0}; // the offsets of the real tick before
 static int16_t ff8_bgate_shake_next[3] = {0, 0, 0};
 static unsigned ff8_bgate_shake_next_mask = 0;          // bit c = next value of component c known
 static uint32_t ff8_bgate_shake_next_frame = 0xFFFFFFFF; // host frame the prediction belongs to
@@ -5736,20 +5711,18 @@ int __cdecl ff8_bgate_camops_hook()
 	int16_t *s = (int16_t *)0x1D97710;
 	const bool camdbg_valid = ff8_bgate_camdbg.valid;
 	ff8_bgate_camdbg.valid = false;
+	// the view built now is the NEXT frame's (see ff8_bgate_updatecam_hook): the offsets follow the
+	// camera words - the frame of phase p leaves lerp(S[N-1], S[N], (p+1)/n), S[N] = the offsets
+	// the producers wrote during the last real tick (the view build zeroes them every frame); an
+	// offset a producer wrote on a held frame itself is kept
 	if (ff8_bgate_phase == 0)
-		memcpy(ff8_bgate_shake_last, s, sizeof(ff8_bgate_shake_last));
-	else if (s[0] == 0 && s[1] == 0 && s[2] == 0)
 	{
-		// an AnimSeq 96 shake that ended on the last real tick leaves Y at 0 on the next one
-		if (ff8_bgate_t96_end_frame == ff8_bgate_frame_no - ff8_bgate_phase
-			&& !(ff8_bgate_shake_next_frame == ff8_bgate_frame_no && (ff8_bgate_shake_next_mask & 2)))
-			ff8_bgate_shake_report(1, 0);
-		const unsigned known = ff8_bgate_shake_next_frame == ff8_bgate_frame_no ? ff8_bgate_shake_next_mask : 0;
-		for (int c = 0; c < 3; c++)
-			s[c] = (known & (1u << c))
-				? (int16_t)(ff8_bgate_shake_last[c] + (ff8_bgate_shake_next[c] - ff8_bgate_shake_last[c]) * ff8_bgate_phase / ff8_bgate_n)
-				: ff8_bgate_shake_last[c];
+		memcpy(ff8_bgate_shake_prev, ff8_bgate_shake_last, sizeof(ff8_bgate_shake_prev));
+		memcpy(ff8_bgate_shake_last, s, sizeof(ff8_bgate_shake_last));
 	}
+	if (ff8_bgate_phase == 0 || (s[0] == 0 && s[1] == 0 && s[2] == 0))
+		for (int c = 0; c < 3; c++)
+			s[c] = (int16_t)(ff8_bgate_shake_prev[c] + ff8_bgate_scale_round(ff8_bgate_shake_last[c] - ff8_bgate_shake_prev[c], ff8_bgate_phase + 1, ff8_bgate_n));
 	if (ff8_battle_fx_held_check && ff8_bgate_fxv_live && camdbg_valid && ff8_bgate_camdbg_lines < 1500)
 	{
 		const int16_t *e = (const int16_t *)0xB8B7F0, *pr = (const int16_t *)ff8_bgate_camdbg.pre, *en = (const int16_t *)ff8_bgate_camdbg.eng;
@@ -5758,7 +5731,7 @@ int __cdecl ff8_bgate_camops_hook()
 			ff8_bgate_frame_no, ff8_bgate_phase, ff8_bgate_camdbg.path,
 			pr[0], pr[1], pr[2], pr[4], pr[5], pr[6], en[0], en[1], en[2], en[4], en[5], en[6],
 			e[0], e[1], e[2], e[4], e[5], e[6], s[0], s[1], s[2],
-			(ff8_bgate_phase == 0) ? "" : (ff8_bgate_shake_next_frame == ff8_bgate_frame_no && ff8_bgate_shake_next_mask) ? " (held: in-between shake)" : " (held: last real shake re-applied)");
+			(ff8_bgate_phase == 0) ? "" : " (held)");
 	}
 	unreplace_function(ff8_bgate_camops_ri);
 	int r = ff8_bgate_camops_orig();
@@ -5966,7 +5939,8 @@ static void ff8_bgate_battle_reset()
 	memset(ff8_bgate_done_cache, 0, sizeof(ff8_bgate_done_cache));
 	memset(ff8_bgate_pose_hist, 0, sizeof(ff8_bgate_pose_hist));
 	memset(ff8_bgate_move, 0, sizeof(ff8_bgate_move));
-	ff8_bgate_cam_prev1.valid = ff8_bgate_cam_prev2.valid = false;
+	ff8_bgate_cam_r0.valid = ff8_bgate_cam_r1.valid = false;
+	memset(ff8_bgate_shake_prev, 0, sizeof(ff8_bgate_shake_prev));
 	ff8_bgate_cam_nudged = false;
 	ff8_bgate_inside_queue_anim = false;
 	ff8_bgate_tick_skip = false;
