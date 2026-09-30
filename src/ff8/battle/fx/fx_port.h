@@ -302,6 +302,7 @@ namespace ff8fx
 	void register_mag008_doom();
 	void register_mag012_blade_shot();
 	void register_mag015_draw();
+	void register_mag037_drink_magic();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
