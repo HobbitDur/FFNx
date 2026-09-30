@@ -60,12 +60,19 @@ namespace g327
 	static uint8_t g_vertex_scratch[0x20000];
 	static bool g_held = false;
 
-	// in-between value of a fade that is linear in the counter, when both ticks fade
+	// in-between value of a fade that is linear in the counter; a fade that ends on the next tick
+	// blends toward 0 (every fade of the module draws unfaded at v = 0: the fade-outs start from
+	// it, the risers' fade-in (5 -> 6) and the spinners' (3 -> 4) end next to it), and a fade that
+	// starts on the next tick starts at 0 (nothing to blend)
 	static int32_t FadeLerp(bool (*f)(int32_t, int32_t *), int32_t c, bool moved, int num, int den, bool *fade)
 	{
 		int32_t v0 = 0, v1 = 0;
 		*fade = f(c, &v0);
-		if (moved && *fade && f(c + 1, &v1)) return lerp_i(v0, v1, num, den);
+		if (moved && *fade)
+		{
+			if (!f(c + 1, &v1)) v1 = 0;
+			return lerp_i(v0, v1, num, den);
+		}
 		return v0;
 	}
 
@@ -97,6 +104,22 @@ namespace g327
 			m->x = *(const int16_t *)(s + 0);
 			m->z = *(const int16_t *)(s + 4);
 		}
+	}
+
+	// the tip the next tick's SwordTipFrame reads: the sword's bone matrices and model matrix
+	// already hold the next pose (AdvanceModel read it after the draw); GetEffectSpawnPosition
+	// writes the bone-length word 0x1D9770C (put back) and the GTE (set again by the caller)
+	static TipMemo HeldTip(const Node24 *n, const TipMemo &tm, int num, int den)
+	{
+		if (g_tick_paused) return tm;
+		int16_t p[4] = {};
+		const int16_t w = var<int16_t>(0x1D9770C);
+		GetEffectSpawnPosition(Sword(n->s1E), 1, 0x1000, p);
+		var<int16_t>(0x1D9770C) = w;
+		TipMemo t;
+		t.x = Lerp16(tm.x, p[0], num, den);
+		t.z = Lerp16(tm.z, p[2], num, den);
+		return t;
 	}
 
 	// SwordTipFrame at a remembered tip (the sword's bones have moved on since)
@@ -510,7 +533,15 @@ namespace g327
 			GteLoadV0(&t.x);
 			GteRTPS();
 			*(uint32_t *)pk = 0x2000000;
-			*(uint32_t *)(pk + 4) = *(const uint32_t *)(0xCD0428 + 4 * mm.r.age);
+			uint32_t col = *(const uint32_t *)(0xCD0428 + 4 * mm.r.age);
+			if (AdvancedA(mm, RA(i))) // the colour ramp by age, half way to the next tick's entry
+			{
+				uint32_t c1 = *(const uint32_t *)(0xCD0428 + 4 * RA(i)->age);
+				uint32_t b = col & 0xFF000000u;
+				for (int k = 0; k < 24; k += 8) b |= (uint32_t)lerp_i((col >> k) & 0xFF, (c1 >> k) & 0xFF, num, den) << k;
+				col = b;
+			}
+			*(uint32_t *)(pk + 4) = col;
 			pk = DotEmit(s, pk);
 		}
 		Cursor() = pk;
@@ -526,7 +557,7 @@ namespace g327
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		*(uint32_t *)h = 0xCC8E64;
-		SwordTipFrameAt(s, *tm);
+		SwordTipFrameAt(s, HeldTip(n, *tm, num, den));
 		*(int16_t *)(s + 2) = 0;
 		for (int i = 0; i < POOL_N; i++)
 		{
@@ -546,7 +577,7 @@ namespace g327
 		if (!tm) return;
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		SwordPuffSetupAt(h, s, *tm);
+		SwordPuffSetupAt(h, s, HeldTip(n, *tm, num, den));
 		LitPoolHeldB(n, h, s, LIT_MAC2, num, den);
 		FieldFree(0xB4);
 		FieldFree(0x48);
@@ -565,7 +596,9 @@ namespace g327
 		if (!g_tick_paused)
 		{
 			memcpy(g_trail_ring, (const void *)TRAIL_RING, sizeof(g_trail_ring));
+			const int16_t w = var<int16_t>(0x1D9770C);
 			TrailPoints(s);
+			var<int16_t>(0x1D9770C) = w;
 			int32_t idx = (int32_t)n->c % 10;
 			uint8_t *e = g_trail_ring + 0x14 * idx;
 			*(uint32_t *)e = 1;
