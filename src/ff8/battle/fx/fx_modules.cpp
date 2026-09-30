@@ -121,6 +121,7 @@ namespace ff8fx::mod
 	static const Region streams_b012[] = { { 0x1362E44, 0x188 }, { 0x1363734, 0x188 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d015[] = { { 0x17FC68C, 0x5944 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d037[] = { { 0x15D62F4, 0x8A0 }, { 0x17C8420, 0x4300 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_d019[] = { { 0x17F37BC, 0x4750 }, { 0x2793DA4, 0xD4 }, { 0x2795110, 0x68 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -244,6 +245,7 @@ namespace ff8fx::mod
 		{ 12, 0x2545188, 0x2556140, 0, 0, false, "Blade Shot", streams_b012, 3 },
 		{ 15, 0x2732BF8, 0x273AE7C, 0, 0, false, "Draw", streams_d015, 3 },
 		{ 37, 0x26A05C8, 0x26A8DB4, 0, 0, false, "Drink Magic", streams_d037, 4 },
+		{ 19, 0x2726900, 0x2730498, 0, 0, false, "Raldo Throw", streams_d019, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

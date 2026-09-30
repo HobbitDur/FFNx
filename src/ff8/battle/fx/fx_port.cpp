@@ -187,6 +187,7 @@ namespace ff8fx
 		register_mag012_blade_shot();
 		register_mag015_draw();
 		register_mag037_drink_magic();
+		register_mag019_raldo_throw();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
