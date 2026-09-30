@@ -402,7 +402,7 @@ namespace disch126
 	// ------------------------------------------------------------------
 	// Crawler draw (0x6BB320)
 	// ------------------------------------------------------------------
-	static void CrawlerDraw(uint8_t *model, Point *tail, int32_t count, uint32_t dir0)
+	static uint32_t CrawlerDraw(uint8_t *model, Point *tail, int32_t count, uint32_t dir0)
 	{
 		Point *p = tail;
 		do
@@ -415,7 +415,7 @@ namespace disch126
 			CrawlerPointProject(p, w);
 			p = p->next;
 		} while (p);
-		CrawlerRibbon(tail, count, dir0);
+		return CrawlerRibbon(tail, count, dir0);
 	}
 
 	// ------------------------------------------------------------------
@@ -861,7 +861,14 @@ namespace disch126
 	// fork call (0x6BAFA0) saved there, else what the stack held when the task started (slot).
 	// edi starts as the executor's (the queue node before this one, 0 for the first) and takes the
 	// script pointer's high half at a fork.
+	// The crawler tasks run one after the other at the same stack depth (0x508420 on QCrawlers), so a
+	// crawler's task-start value is what the PREVIOUS crawler left in that slot: its draw's final
+	// direction (0x6BB520 out-dir), or its own last slot value when it did not draw (checked with the
+	// game's executor: every entry word of 0x6BB150 [esp-0x2C] equals the previous crawler's word at
+	// 0x6BB510 [esp+0x18]). The port carries it (g_crawl_slot); only the first crawler of the queue
+	// reads the stack word that code outside the queue left there.
 	// ------------------------------------------------------------------
+	static uint32_t g_crawl_slot;
 	static __declspec(noinline) uint32_t CrawlerTaskBody(CrawlerNode *c, uint32_t slot)
 	{
 		const uint32_t slot0 = slot;
@@ -923,7 +930,8 @@ namespace disch126
 		}
 		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_crawler(c, slot, slot0);)
-		if (c->count >= 2) CrawlerDraw(c->model, c->tail, c->count, slot);
+		g_crawl_slot = slot;
+		if (c->count >= 2) g_crawl_slot = CrawlerDraw(c->model, c->tail, c->count, slot);
 		{
 			Point *q = c->tail;
 			while (q->fade <= 0x10 && q->next->fade <= 0x10)
@@ -938,6 +946,7 @@ namespace disch126
 		}
 		return 0;
 	kill:
+		g_crawl_slot = slot;
 		{
 			Point *q = c->tail;
 			var<Point *>(TexBase() + CRAWL_FREE) = q;
@@ -951,8 +960,10 @@ namespace disch126
 	}
 	static uint32_t __cdecl CrawlerTask(TaskNode *n)
 	{
-		// the original's stack slot, read before this function writes below its frame
-		return CrawlerTaskBody((CrawlerNode *)n, *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2C));
+		// the original's stack slot: the first crawler of the queue reads the stack word (read before this
+		// function writes below its frame), the others what the previous crawler left there (g_crawl_slot)
+		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2C);
+		return CrawlerTaskBody((CrawlerNode *)n, QCrawlers()->head == n ? stack_word : g_crawl_slot);
 	}
 
 	// ------------------------------------------------------------------
