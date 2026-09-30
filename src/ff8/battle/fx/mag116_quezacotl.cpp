@@ -351,6 +351,11 @@ namespace q116
 	// returns before writing it, and the next joint reads what the stack slot held: the final
 	// direction of the previous chain drawn by the same function (consecutive tasks run at the
 	// same stack depth). The ports carry that value explicitly, one slot per draw function.
+	// Branches (slot = task entry esp - 0x24): the branch task's own growth writes it too - a
+	// side-branch spawn 2, 0 (SpawnBranch's saved EBX), every segment allocation the return
+	// address 0x006C78B8 of its call - so a growing branch reads 0x78B8, 0x006C, not the last
+	// direction. Before the first branch task of a tick the slot holds what code outside the
+	// effect left there (the harness: 0); the carry keeps the previous tick's value.
 	static int16_t g_dir_branch[2], g_dir_bolt[2], g_dir_arc[2];
 
 	template<typename Seg, int BIAS>
@@ -449,7 +454,12 @@ namespace q116
 				}
 				int32_t w = b->width;
 				int16_t intensity = b->intensity, decay = b->decay;
-				BoltSeg *s = SegAlloc(v, (int16_t)(w + ((Rand() * w) >> 15)), intensity, decay);
+				int16_t width = (int16_t)(w + ((Rand() * w) >> 15));
+				// the call to SegAlloc (0x6C78B3) pushes its return address 0x006C78B8 exactly where
+				// BranchDraw's direction local lives (task entry esp - 0x24): what a later draw reads
+				g_dir_branch[0] = (int16_t)0x78B8;
+				g_dir_branch[1] = 0x006C;
+				BoltSeg *s = SegAlloc(v, width, intensity, decay);
 				if (!s) { BranchFreeAll(b); return TASK_END; }
 				b->tail->next = s;
 				b->count++;
