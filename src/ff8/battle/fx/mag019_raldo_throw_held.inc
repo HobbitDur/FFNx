@@ -168,7 +168,7 @@ namespace raldo
 		g_note_tick = g_real_tick;
 		g_nsys = g_nball = g_ndebris = g_nev = 0;
 		g_frame_start = MEM<uint32_t>(FRAME_CURSOR);
-		g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
+		g_pkt_start = 0; // (the master picks the tick's packet arena by parity after this note: taken at the first draw)
 		g_ntint = 0;
 		for (uint32_t node = MEM<uint32_t>(Q_STAGE); node && g_ntint < MAX_TINTS; node = U32(node, 4))
 		{
@@ -182,6 +182,7 @@ namespace raldo
 	static void held_note_system(uint32_t sys)
 	{
 		if (g_note_tick != g_real_tick || g_nsys >= MAX_SYS || g_nev >= MAX_EV) return;
+		if (!g_pkt_start) g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
 		SysNote &n = g_sys[g_nsys];
 		n.sys = sys;
 		n.st.save();
@@ -193,6 +194,7 @@ namespace raldo
 	static void held_note_ball(uint32_t node)
 	{
 		if (g_note_tick != g_real_tick || g_nball >= MAX_BALL || g_nev >= MAX_EV) return;
+		if (!g_pkt_start) g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
 		BallNote &n = g_ball[g_nball];
 		n.node = node;
 		memcpy(n.blk, (const void *)BLK, BLK_BYTES);
@@ -204,6 +206,7 @@ namespace raldo
 	static void held_note_debris(uint32_t node)
 	{
 		if (g_note_tick != g_real_tick || g_ndebris >= MAX_DEBRIS || g_nev >= MAX_EV) return;
+		if (!g_pkt_start) g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
 		DebrisNote &n = g_debris[g_ndebris];
 		n.node = node;
 		memcpy(n.bytes, (const void *)node, NODE_BYTES);
