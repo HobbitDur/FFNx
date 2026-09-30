@@ -1390,7 +1390,8 @@ namespace o326
 		GteStoreRGB2(out);
 	}
 
-	static int32_t SliceBFadeW(int32_t c) { return 0x1000 - ComputeSin(shl32(c - 0x2E, 10) / 6); }
+	// 0x62D4CA: (c - 0x2E) << 10 divided by 12 (0x2AAAAAAB multiply, then sar edx 1 + sign fix)
+	static int32_t SliceBFadeW(int32_t c) { return 0x1000 - ComputeSin(shl32(c - 0x2E, 10) / 12); }
 
 	// phase B (200..253): the halves at +-0x320, tilted by +-a about z; from c' = 46 the colour
 	// fades (recolor; otherwise the colour E+0x28 = color)
