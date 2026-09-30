@@ -190,6 +190,7 @@ namespace ff8fx
 		register_mag019_raldo_throw();
 		register_mag020_norg_pod_opening();
 		register_mag023_psycho_blast();
+		register_mag031_heartbreak();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
