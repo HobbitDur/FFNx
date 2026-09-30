@@ -48,12 +48,64 @@ namespace q116
 		return false;
 	}
 
+	template<typename N, int CAP> static int SnapIndex(const QueueSnap<N, CAP> &q, const TaskNode *n)
+	{
+		for (int i = 0; i < q.n; i++) if (q.node[i] == n) return i;
+		return -1;
+	}
+
+	// The bolt (0x6C7EA0) and branch (0x6C7800) tasks as the tick starts, with their chains. A tick
+	// grows a chain, fades it, draws it, then frees its dark root links (the bolt task ends when
+	// fewer than two are left, and a freed link may be reused by a later task of the same tick):
+	// the chain tick N drew = the root links of these copies that are gone now + the chain left.
+	template<typename Node, typename V, int NCAP, int VCAP> struct ChainSnap
+	{
+		int n, nv;
+		Node *node[NCAP]; Node copy[NCAP]; int first[NCAP], cnt[NCAP];
+		V *vp[VCAP]; V v[VCAP];
+		void take(TaskNode *head, uint32_t func)
+		{
+			n = nv = 0;
+			for (TaskNode *t = head; t && n < NCAP; t = t->next)
+			{
+				if ((uint32_t)t->func != func) continue;
+				Node *b = (Node *)t;
+				node[n] = b; copy[n] = *b; first[n] = nv; cnt[n] = 0;
+				for (V *x = b->head; x && nv < VCAP; x = x->next) { vp[nv] = x; v[nv] = *x; nv++; cnt[n]++; }
+				n++;
+			}
+		}
+		int index(const TaskNode *t) const { for (int i = 0; i < n; i++) if ((const TaskNode *)node[i] == t) return i; return -1; }
+		int find(int i, const V *x) const { for (int k = 0; k < cnt[i]; k++) if (vp[first[i] + k] == x) return k; return -1; }
+	};
+	static ChainSnap<BoltNode, BoltVert, 32, 256> g_snap_bolt;      // pool 0x20 nodes, 256 vertices
+	static ChainSnap<BranchNode, BoltSeg, 128, 512> g_snap_branch; // pool 0x80 nodes, 512 segments
+
+	// the branch node pool as the tick starts: a task spawned on the tick that also ended on it
+	// before drawing (path too short) is gone from the queue, not from the pool
+	static uint8_t g_pool0_branch[0x80 * 0x20];
+	static const void *g_pool0_at = nullptr;
+
+	// The ribbon joint direction each draw function carries from chain to chain (the vanilla
+	// uninitialised stack slot, g_dir_*), as the tick starts: the held frame chains it through the
+	// tick's chains in the tick's order, so a chain whose first point is behind the camera gets
+	// the value the real tick gave it (the port's own carries are not touched)
+	static int16_t g_carry0_bolt[2], g_carry0_branch[2], g_carry0_arc[2];
+
 	static void held_note_master()
 	{
 		g_ported_tick = g_real_tick;
 		SnapQueue(g_snap_arc, QueueCreature().first.head, ORIG_ArcTask);
 		SnapQueue(g_snap_flash, QueueDebris().second.head, ORIG_FlashTask);
 		SnapQueue(g_snap_debris, QueueDebris().first.head, ORIG_DebrisTask);
+		g_snap_bolt.take(QueueBolts().second.head, ORIG_BoltTask);
+		g_snap_branch.take(QueueBolts().first.head, ORIG_BranchTask);
+		const TaskQueue &bq = QueueBolts().first;
+		g_pool0_at = bq.pool && bq.node_size == 0x20 && bq.capacity == 0x80 ? bq.pool : nullptr;
+		if (g_pool0_at) memcpy(g_pool0_branch, g_pool0_at, sizeof(g_pool0_branch));
+		memcpy(g_carry0_bolt, g_dir_bolt, sizeof(g_carry0_bolt));
+		memcpy(g_carry0_branch, g_dir_branch, sizeof(g_carry0_branch));
+		memcpy(g_carry0_arc, g_dir_arc, sizeof(g_carry0_arc));
 	}
 
 	struct DebrisMemo { int16_t pos[3], rot[3]; };
@@ -186,68 +238,343 @@ namespace q116
 	// applies one fade step first. Drawn on copies (the real vertices keep their state).
 	static BoltVert g_held_verts[256];
 
-	static void BoltHeld(BoltNode *b, int num, int den)
+	// one tick's fade of a bolt vertex (0x6C7EA0)
+	static void BoltFade(BoltVert &v)
 	{
-		if (b->count < 2) return;
-		int k = 0;
-		for (BoltVert *v = b->head; v && k < 256; v = v->next, k++)
-		{
-			BoltVert &h = g_held_verts[k];
-			h = *v;
-			h.next = nullptr;
-			if (k) g_held_verts[k - 1].next = &h;
-			for (int c = 0; c < 3; c++)
-				h.pos[c] = (int16_t)(v->pos[c] - v->vel[c] + v->vel[c] * num / den);
-			int32_t i0 = v->intensity, i1 = i0;
-			if (i0 > 0)
-			{
-				i1 = (int16_t)(i0 + v->decay);
-				if (i1 <= 0) i1 = 0;
-			}
-			h.intensity = (int16_t)lerp_i(i0, i1, num, den);
-			GteLoadV0(h.pos);
-			GteRTPS();
-			GteReadSXY2(&h.sx);
-			GteReadOTZ(&h.otz);
-		}
-		int count = b->count < k ? b->count : k;
-		static int16_t held_dir[2];
-		held_dir[0] = g_dir_bolt[0];
-		held_dir[1] = g_dir_bolt[1];
-		if (count >= 2) DrawRibbon<BoltVert, 0x200>(g_held_verts, count, held_dir);
+		if (v.intensity <= 0) return;
+		v.intensity += v.decay;
+		if (v.intensity <= 0) { v.intensity = 0; return; }
+		if (v.hold != 0 && v.decay <= 0) { v.hold--; return; }
+		if (v.decay > -0x180) v.decay -= 0x140;
 	}
 
-	// Branch: the path grows in 15 Hz batches (vanilla shapes); held frames draw the current
-	// chain with each segment's brightness half way to the next fade step.
+	// held link k: src as drawn on tick N (brightness, fade step, drift) at pos, drifted part of the
+	// way to the next tick and half way to the next tick's first fade step
+	static void BoltPut(int k, const BoltVert &src, const int16_t *pos, int num, int den)
+	{
+		BoltVert &h = g_held_verts[k];
+		h = src;
+		h.next = nullptr;
+		if (k) g_held_verts[k - 1].next = &h;
+		for (int c = 0; c < 3; c++) h.pos[c] = (int16_t)(pos[c] + src.vel[c] * num / den);
+		int32_t i0 = src.intensity, i1 = i0;
+		if (i0 > 0)
+		{
+			i1 = (int16_t)(i0 + src.decay);
+			if (i1 <= 0) i1 = 0;
+		}
+		h.intensity = (int16_t)lerp_i(i0, i1, num, den);
+		GteLoadV0(h.pos);
+		GteRTPS();
+		GteReadSXY2(&h.sx);
+		GteReadOTZ(&h.otz);
+	}
+
+	static bool SameBolt(const BoltNode *a, const BoltNode *b)
+	{
+		return !memcmp(a->target, b->target, sizeof(a->target)) && a->dt == b->dt && a->kind == b->kind && a->width == b->width;
+	}
+
+	// the chain one bolt task drew on tick N, held: si = its tick-start copy (-1: spawned on the
+	// tick), b = the task now (null: it ended on the tick, after drawing)
+	static void BoltChainHeld(const BoltNode *b, int si, int num, int den, int16_t *carry)
+	{
+		const auto &sn = g_snap_bolt;
+		int k = 0, gone = 0;
+		if (si >= 0)
+		{
+			gone = b ? sn.find(si, b->head) : sn.cnt[si];
+			if (gone < 0) gone = 0;
+		}
+		for (int j = 0; j < gone && k < 256; j++, k++) // root links freed after the draw
+		{
+			BoltVert f = sn.v[sn.first[si] + j];
+			int16_t pos[3];
+			memcpy(pos, f.pos, sizeof(pos)); // tick start = where the tick drew it
+			BoltFade(f);
+			BoltPut(k, f, pos, num, den);
+		}
+		if (b)
+			for (const BoltVert *v = b->head; v && k < 256; v = v->next, k++)
+			{
+				int16_t pos[3];
+				for (int c = 0; c < 3; c++) pos[c] = (int16_t)(v->pos[c] - v->vel[c]);
+				BoltPut(k, *v, pos, num, den);
+			}
+		if (k >= 2) DrawRibbon<BoltVert, 0x200>(g_held_verts, k, carry);
+	}
+
+	// every bolt the tick drew, in its order: the tasks it started with, then the ones spawned on it
+	static void BoltsHeld(int num, int den)
+	{
+		int16_t carry[2] = { g_carry0_bolt[0], g_carry0_bolt[1] };
+		TaskNode *head = QueueBolts().second.head;
+		for (int i = 0; i < g_snap_bolt.n; i++)
+		{
+			BoltNode *b = g_snap_bolt.node[i];
+			bool same = (uint32_t)b->hdr.func == ORIG_BoltTask && SameBolt(b, &g_snap_bolt.copy[i]);
+			bool alive = same && Queued(head, &b->hdr);
+			if (!alive && same && b->count >= 2) continue; // (a bolt ends after drawing, root retracted to one vertex)
+			BoltChainHeld(alive ? b : nullptr, i, num, den, carry);
+		}
+		for (TaskNode *t = head; t; t = t->next)
+		{
+			if ((uint32_t)t->func != ORIG_BoltTask) continue;
+			int i = g_snap_bolt.index(t);
+			if (i >= 0 && SameBolt((BoltNode *)t, &g_snap_bolt.copy[i])) continue;
+			BoltChainHeld((BoltNode *)t, -1, num, den, carry); // (one vertex: not run yet, not drawn)
+		}
+	}
+
+	// Branch: the path grows in 15 Hz batches (vanilla shapes); held frames draw the chain tick N
+	// drew with each segment's brightness half way to the next fade step.
 	static BoltSeg g_held_segs[512];
 
-	static void BranchHeld(BranchNode *b, int num, int den)
+	static void SegFade(BoltSeg &x)
 	{
-		if (b->count < 2) return;
-		int k = 0;
-		for (BoltSeg *s = b->head; s && k < 512; s = s->next, k++)
+		if (x.intensity > 0)
 		{
-			BoltSeg &h = g_held_segs[k];
-			h = *s;
-			h.next = nullptr;
-			if (k) g_held_segs[k - 1].next = &h;
-			int32_t i0 = s->intensity, i1 = i0;
-			if (i0 > 0)
-			{
-				i1 = (int16_t)(i0 + s->decay);
-				if (i1 <= 0) i1 = 0;
-			}
-			h.intensity = (int16_t)lerp_i(i0, i1, num, den);
-			GteLoadV0(BOLT_VERTICES + 8 * (int32_t)h.vertex);
-			GteRTPS();
-			GteReadSXY2(&h.sx);
-			GteReadOTZ(&h.otz);
+			x.intensity += x.decay;
+			if (x.intensity <= 0) x.intensity = 0;
 		}
-		static int16_t held_dir[2];
-		held_dir[0] = g_dir_branch[0];
-		held_dir[1] = g_dir_branch[1];
-		int count = b->count < k ? b->count : k;
-		if (count >= 2) DrawRibbon<BoltSeg, 0x400>(g_held_segs, count, held_dir);
+	}
+
+	static void BranchPut(int k, const BoltSeg &src, int num, int den)
+	{
+		BoltSeg &h = g_held_segs[k];
+		h = src;
+		h.next = nullptr;
+		if (k) g_held_segs[k - 1].next = &h;
+		int32_t i0 = src.intensity, i1 = i0;
+		if (i0 > 0)
+		{
+			i1 = (int16_t)(i0 + src.decay);
+			if (i1 <= 0) i1 = 0;
+		}
+		h.intensity = (int16_t)lerp_i(i0, i1, num, den);
+		GteLoadV0(BOLT_VERTICES + 8 * (int32_t)h.vertex);
+		GteRTPS();
+		GteReadSXY2(&h.sx);
+		GteReadOTZ(&h.otz);
+	}
+
+	// the growth of a branch task on a tick (0x6C7800) replayed on its path script: the side-branch
+	// spawns (their scripts; each one leaves 2, 0 in the draw's joint slot) and the script / count
+	// after it. False: the task ends before drawing (path end at 3 segments or fewer).
+	struct BranchGrowth { int spawns; const int16_t *spawned[16]; const int16_t *script; int count; };
+
+	static bool BranchGrow(const int16_t *script, int count, BranchGrowth &g)
+	{
+		g.spawns = 0;
+		for (int iter = 4; iter; iter--)
+		{
+			if (!script) continue;
+			int16_t v = *script++;
+			while (v < 0)
+			{
+				if (g.spawns < 16) g.spawned[g.spawns] = script;
+				g.spawns++;
+				script += -1 - v;
+				v = *script++;
+			}
+			const int16_t *peek = script;
+			int16_t c = *peek;
+			if (c < 0) { peek -= c; c = *peek; }
+			if (c == 0x7FFF)
+			{
+				if (count <= 3) { g.script = script; g.count = count; return false; }
+				script = nullptr;
+			}
+			count++;
+		}
+		g.script = script;
+		g.count = count;
+		return true;
+	}
+
+	static bool SameBranch(const BranchNode *a, const BranchNode *b)
+	{
+		return a->width == b->width && a->intensity == b->intensity && a->decay == b->decay;
+	}
+
+	// a branch spawned on the tick (by a branch task's growth, or by the creature): its first
+	// script, found as the one whose growth from one segment gives the task's script and count now
+	static const int16_t *BranchStart(const BranchNode *b, const int16_t *const *spawned, int nsp)
+	{
+		BranchGrowth g;
+		for (int i = 0; i < nsp; i++)
+			if (spawned[i][0] == b->head->vertex && BranchGrow(spawned[i] + 1, 1, g) && g.script == b->script && g.count == b->count)
+				return spawned[i] + 1;
+		if (b->script)
+			for (const int16_t *s0 = b->script; s0 > b->script - 2048; s0--)
+				if (s0[-1] == b->head->vertex && BranchGrow(s0, 1, g) && g.script == b->script && g.count == b->count)
+					return s0;
+		return nullptr;
+	}
+
+	// the chain one branch task drew on tick N, held (si / b as BoltChainHeld)
+	static void BranchChainHeld(const BranchNode *b, int si, int num, int den, int16_t *carry)
+	{
+		const auto &sn = g_snap_branch;
+		int k = 0, gone = 0;
+		if (si >= 0)
+		{
+			gone = b ? sn.find(si, b->head) : sn.cnt[si];
+			if (gone < 0) gone = 0;
+		}
+		for (int j = 0; j < gone && k < 512; j++, k++) // root segments freed after the draw
+		{
+			BoltSeg f = sn.v[sn.first[si] + j];
+			SegFade(f);
+			BranchPut(k, f, num, den);
+		}
+		if (b)
+			for (const BoltSeg *x = b->head; x && k < 512; x = x->next, k++) BranchPut(k, *x, num, den);
+		if (k >= 2) DrawRibbon<BoltSeg, 0x400>(g_held_segs, k, carry);
+	}
+
+	// A task spawned on the tick that ended on it before drawing (path end at 3 segments or fewer, or
+	// no free segment: the chain is freed, the node keeps the script read so far and its count): its
+	// first script (a spawn of the tick, or a path the creature starts branches on: 0x6C76C0 on the
+	// table 0x12AFE58 = count, then the s16 offset of each path) is the one whose growth stops there
+	static bool BranchGrowTo(const int16_t *script, const BranchNode *b, BranchGrowth &g)
+	{
+		g.spawns = 0;
+		int count = 1;
+		for (int iter = 4; iter; iter--)
+		{
+			if (!script) return false;
+			int16_t v = *script++;
+			while (v < 0)
+			{
+				if (g.spawns < 16) g.spawned[g.spawns] = script;
+				g.spawns++;
+				script += -1 - v;
+				v = *script++;
+			}
+			if (script == b->script && count == b->count) return true;
+			const int16_t *peek = script;
+			int16_t c = *peek;
+			if (c < 0) { peek -= c; c = *peek; }
+			if (c == 0x7FFF)
+			{
+				if (count <= 3) return false;
+				script = nullptr;
+			}
+			count++;
+		}
+		return false;
+	}
+
+	static const int16_t *BranchStartEnded(const BranchNode *b, const int16_t *const *spawned, int nsp)
+	{
+		BranchGrowth g;
+		for (int i = 0; i < nsp; i++)
+			if (BranchGrowTo(spawned[i] + 1, b, g)) return spawned[i] + 1;
+		const int16_t *tb = (const int16_t *)0x12AFE58;
+		if (tb[0] > 0 && tb[0] <= 64)
+			for (int k = 0; k < tb[0]; k++)
+				if (BranchGrowTo(tb + tb[k + 1] + 1, b, g)) return tb + tb[k + 1] + 1;
+		return nullptr;
+	}
+
+	// every branch the tick drew, in its order, with the side-branch spawns between the draws (each
+	// one leaves 2, 0 in the draw's joint slot): the tasks it started with, then the ones spawned on
+	// it in queue order (the creature's, lowest free node first, then the side branches in spawn
+	// order), including those that ended before drawing
+	static void BranchesHeld(int num, int den)
+	{
+		int16_t carry[2] = { g_carry0_branch[0], g_carry0_branch[1] };
+		TaskNode *head = QueueBolts().first.head;
+		static const int16_t *spawned[256];
+		int nsp = 0;
+		for (int i = 0; i < g_snap_branch.n; i++)
+		{
+			BranchNode *b = g_snap_branch.node[i];
+			const BranchNode &c0 = g_snap_branch.copy[i];
+			BranchGrowth g;
+			bool draws = BranchGrow(c0.script, c0.count, g);
+			for (int k = 0; k < g.spawns && k < 16 && nsp < 256; k++) spawned[nsp++] = g.spawned[k];
+			if (g.spawns) { carry[0] = 2; carry[1] = 0; }
+			if (!draws) continue;
+			bool same = (uint32_t)b->hdr.func == ORIG_BranchTask && SameBranch(b, &c0);
+			bool alive = same && Queued(head, &b->hdr);
+			// ended on the tick: after drawing, its root retracted to one segment (the path was done:
+			// no growth); before drawing when no segment was free (the chain is freed, the node keeps
+			// its count, or a spawn of the tick took the node back)
+			if (!alive && (same ? b->count >= 2 : c0.script != nullptr)) continue;
+			BranchChainHeld(alive ? b : nullptr, i, num, den, carry);
+		}
+		// the tasks spawned on the tick, their first scripts and spawns
+		struct NewTask { BranchNode *b; const int16_t *s0; bool alive, child, queued; };
+		static NewTask nt[128];
+		int nn = 0;
+		for (TaskNode *t = head; t && nn < 128; t = t->next)
+		{
+			if ((uint32_t)t->func != ORIG_BranchTask) continue;
+			BranchNode *b = (BranchNode *)t;
+			int i = g_snap_branch.index(t);
+			if (i >= 0 && SameBranch(b, &g_snap_branch.copy[i])) continue;
+			if (b->count < 2 || !b->head) continue; // not run on the tick
+			nt[nn++] = { b, nullptr, true, false, false };
+		}
+		const TaskQueue &bq = QueueBolts().first;
+		if (g_pool0_at && bq.pool == g_pool0_at)
+			for (int k = 0; k < 0x80 && nn < 128; k++)
+			{
+				BranchNode *b = (BranchNode *)((uint8_t *)bq.pool + 0x20 * k);
+				if ((b->hdr.flags & 1) || (uint32_t)b->hdr.func != ORIG_BranchTask || !b->script) continue;
+				if (!memcmp(b, g_pool0_branch + 0x20 * k, 0x20) || g_snap_branch.index(&b->hdr) >= 0) continue;
+				nt[nn++] = { b, nullptr, false, false, false };
+			}
+		// first scripts: a task's spawns give its side branches theirs (a few passes)
+		for (int pass = 0, found = 1; pass < 4 && found; pass++)
+		{
+			found = 0;
+			for (int i = 0; i < nn; i++)
+			{
+				if (nt[i].s0) continue;
+				nt[i].s0 = nt[i].alive ? BranchStart(nt[i].b, spawned, nsp) : BranchStartEnded(nt[i].b, spawned, nsp);
+				if (!nt[i].s0) continue;
+				found = 1;
+				BranchGrowth g;
+				if (nt[i].alive) BranchGrow(nt[i].s0, 1, g); else BranchGrowTo(nt[i].s0, nt[i].b, g);
+				for (int k = 0; k < g.spawns && k < 16 && nsp < 256; k++) spawned[nsp++] = g.spawned[k];
+			}
+		}
+		for (int i = 0; i < nn; i++)
+			for (int k = 0; k < nsp && !nt[i].child; k++) nt[i].child = nt[i].s0 == spawned[k] + 1;
+		// queue order: the creature's (node order), then the side branches as their spawns come
+		static NewTask *fifo[128];
+		int nf = 0;
+		for (int i = 0; i < nn; i++) // (nodes are listed in queue order, then pool order: sort by node)
+			if (!nt[i].child) { int k = nf++; while (k && fifo[k - 1]->b > nt[i].b) { fifo[k] = fifo[k - 1]; k--; } fifo[k] = &nt[i]; }
+		auto queue_children = [&](const BranchGrowth &g)
+		{
+			for (int k = 0; k < g.spawns && k < 16; k++)
+				for (int i = 0; i < nn; i++)
+					if (nt[i].child && !nt[i].queued && nt[i].s0 == g.spawned[k] + 1 && nf < 128) { nt[i].queued = true; fifo[nf++] = &nt[i]; break; }
+		};
+		for (int i = 0; i < g_snap_branch.n; i++)
+		{
+			BranchGrowth g;
+			BranchGrow(g_snap_branch.copy[i].script, g_snap_branch.copy[i].count, g);
+			queue_children(g);
+		}
+		for (int f = 0; f < nf; f++)
+		{
+			NewTask &n = *fifo[f];
+			if (n.s0)
+			{
+				BranchGrowth g;
+				if (n.alive) BranchGrow(n.s0, 1, g); else BranchGrowTo(n.s0, n.b, g);
+				queue_children(g);
+				if (g.spawns) { carry[0] = 2; carry[1] = 0; }
+			}
+			if (n.alive) BranchChainHeld(n.b, -1, num, den, carry);
+		}
+		for (int i = 0; i < nn; i++) // (a side branch whose spawn was not found)
+			if (nt[i].child && !nt[i].queued && nt[i].alive) BranchChainHeld(nt[i].b, -1, num, den, carry);
 	}
 
 	// impact flash: a flipbook, redrawn on its current frame with the held-frame camera
@@ -271,7 +598,7 @@ namespace q116
 	// arc drawn half way: the curve at the in-between progress; each inner point's jitter half
 	// way from the real tick's to the next tick's (nx, each with its own tick's amplitude), or the
 	// real tick's replayed when the next one is not known (the module generator is not touched)
-	static void ArcDrawMemo(ArcNode *arc, const ArcMemo *m, const ArcNext *nx, int num, int den)
+	static void ArcDrawMemo(ArcNode *arc, const ArcMemo *m, const ArcNext *nx, int num, int den, int16_t *carry)
 	{
 		const int16_t *profile = (const int16_t *)(ModelBuffer() + 0x3C25C);
 		int32_t len0 = 0, len1 = 0;
@@ -304,16 +631,15 @@ namespace q116
 			pts[i].sy += d[1];
 			pts[i].otz += d[2];
 		}
-		int16_t held_dir[2] = { g_dir_arc[0], g_dir_arc[1] };
-		ArcDraw(pts, held_dir);
+		ArcDraw(pts, carry);
 		FieldFree(0x100);
 	}
 
-	static void ArcHeld(ArcNode *arc, int num, int den)
+	static void ArcHeld(ArcNode *arc, int num, int den, int16_t *carry)
 	{
 		const ArcMemo *m = g_arc_memo.get(arc);
 		if (!m) return;
-		ArcDrawMemo(arc, m, g_arc_next_ok ? g_arc_next.get(arc) : nullptr, num, den);
+		ArcDrawMemo(arc, m, g_arc_next_ok ? g_arc_next.get(arc) : nullptr, num, den, carry);
 	}
 
 	static uint8_t g_held_packets[0x60000];
@@ -402,11 +728,18 @@ namespace q116
 		{
 			int16_t *p = (int16_t *)(sk + 16 + 48 * b + 4);
 			const int16_t *f = (const int16_t *)(from + 16 + 48 * b + 4);
-			for (int a = 0; a < 3; a++)
-			{
-				int32_t d = (((int32_t)p[a] - f[a] + 2048) & 4095) - 2048;
-				p[a] = (int16_t)(f[a] + d * num / den);
-			}
+			// the engine's bone rotation Ry(-y) Rx(-x) Rz(z) is the same with (2048 - x, y + 2048,
+			// z + 2048): the anim data switches spelling near x = +-1024 (a bone would spin half round
+			// on the held frame); blend toward whichever spelling of the next pose is nearer (as the
+			// gate's pose look-ahead)
+			int32_t d[3], e[3], sd = 0, se = 0;
+			for (int a = 0; a < 3; a++) { d[a] = (((int32_t)p[a] - f[a] + 2048) & 4095) - 2048; sd += abs(d[a]); }
+			e[0] = ((2048 - (int32_t)p[0] - f[0] + 2048) & 4095) - 2048;
+			e[1] = (((int32_t)p[1] + 2048 - f[1] + 2048) & 4095) - 2048;
+			e[2] = (((int32_t)p[2] + 2048 - f[2] + 2048) & 4095) - 2048;
+			for (int a = 0; a < 3; a++) se += abs(e[a]);
+			const int32_t *dd = (se < sd && num < den) ? e : d;
+			for (int a = 0; a < 3; a++) p[a] = (int16_t)(f[a] + dd[a] * num / den);
 			if (scaled)
 				for (int a = 3; a < 6; a++) p[a] = (int16_t)(f[a] + ((int32_t)p[a] - f[a]) * num / den);
 		}
@@ -707,47 +1040,52 @@ namespace q116
 					cx::BuildBoneMatrices(ModelBuffer() + 0x88);
 				}
 				ComputeBonesWorldMatrices(ModelBuffer() + 0x88, ModelBuffer() + 0x68);
-				for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
-					if ((uint32_t)t->func == ORIG_ArcTask) ArcHeld((ArcNode *)t, num, den);
-				// arcs that ended on the tick: their last picture
+				// the tick's arcs in its order: those it started with (the ones that ended on it: their
+				// last picture), then the ones the creature spawned on it
+				int16_t carry[2] = { g_carry0_arc[0], g_carry0_arc[1] };
 				for (int i = 0; i < g_snap_arc.n; i++)
 				{
-					if (Queued(QueueCreature().first.head, g_snap_arc.node[i])) continue;
-					const ArcMemo *m = g_arc_memo.get(g_snap_arc.node[i]);
-					if (!m) continue;
-					ArcDrawMemo(&g_snap_arc.copy[i], m, nullptr, 0, 1);
+					TaskNode *t = g_snap_arc.node[i];
+					if (Queued(QueueCreature().first.head, t) && (uint32_t)t->func == ORIG_ArcTask) ArcHeld((ArcNode *)t, num, den, carry);
+					else if (const ArcMemo *m = g_arc_memo.get(t)) ArcDrawMemo(&g_snap_arc.copy[i], m, nullptr, 0, 1, carry);
 				}
+				for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
+					if ((uint32_t)t->func == ORIG_ArcTask && SnapIndex(g_snap_arc, t) < 0) ArcHeld((ArcNode *)t, num, den, carry);
 				memcpy(skel, skel_save, skel_size);
 				if (posed) memcpy(ModelBuffer(), g_area_save, CREATURE_AREA);
 			}
 		}
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
-		for (TaskNode *t = QueueBolts().second.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_BoltTask) BoltHeld((BoltNode *)t, num, den);
+		BoltsHeld(num, den);
 		GteSetRotMatrix(&BoltFrame());
 		GteSetTransVector(&BoltFrame());
-		for (TaskNode *t = QueueBolts().first.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_BranchTask) BranchHeld((BranchNode *)t, num, den);
-		for (TaskNode *t = QueueDebris().second.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_FlashTask) FlashHeld((FlashNode *)t, num, den);
-		for (int i = 0; i < g_snap_flash.n; i++) // flashes that ended on the tick: their last frame
+		BranchesHeld(num, den);
+		// flashes and debris in the tick's order: those it started with (the ones that ended on it:
+		// their last picture), then the ones spawned on it
+		TaskNode *fq = QueueDebris().second.head, *dq = QueueDebris().first.head;
+		for (int i = 0; i < g_snap_flash.n; i++)
 		{
-			if (Queued(QueueDebris().second.head, g_snap_flash.node[i])) continue;
-			FlashDrawFrame(g_snap_flash.copy[i].pos, g_snap_flash.copy[i].age);
+			TaskNode *t = g_snap_flash.node[i];
+			if (Queued(fq, t) && (uint32_t)t->func == ORIG_FlashTask) FlashHeld((FlashNode *)t, num, den);
+			else FlashDrawFrame(g_snap_flash.copy[i].pos, g_snap_flash.copy[i].age);
 		}
-		for (TaskNode *t = QueueDebris().first.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_DebrisTask) DebrisHeld((DebrisNode *)t, num, den);
-		for (int i = 0; i < g_snap_debris.n; i++) // debris that ended on the tick: as drawn
+		for (TaskNode *t = fq; t; t = t->next)
+			if ((uint32_t)t->func == ORIG_FlashTask && SnapIndex(g_snap_flash, t) < 0) FlashHeld((FlashNode *)t, num, den);
+		for (int i = 0; i < g_snap_debris.n; i++)
 		{
-			if (Queued(QueueDebris().first.head, g_snap_debris.node[i])) continue;
-			const DebrisMemo *m = g_debris_memo.get(g_snap_debris.node[i]);
-			if (!m) continue;
-			int16_t pos[3], rot[3];
-			memcpy(pos, m->pos, sizeof(pos));
-			memcpy(rot, m->rot, sizeof(rot));
-			DebrisDraw(pos, rot);
+			TaskNode *t = g_snap_debris.node[i];
+			if (Queued(dq, t) && (uint32_t)t->func == ORIG_DebrisTask) DebrisHeld((DebrisNode *)t, num, den);
+			else if (const DebrisMemo *m = g_debris_memo.get(t))
+			{
+				int16_t pos[3], rot[3];
+				memcpy(pos, m->pos, sizeof(pos));
+				memcpy(rot, m->rot, sizeof(rot));
+				DebrisDraw(pos, rot);
+			}
 		}
+		for (TaskNode *t = dq; t; t = t->next)
+			if ((uint32_t)t->func == ORIG_DebrisTask && SnapIndex(g_snap_debris, t) < 0) DebrisHeld((DebrisNode *)t, num, den);
 		BoltFrame() = bolt_frame;
 		PacketCursor() = cursor;
 		var<uint32_t>(0x1D8E054) = frame_cursor;
