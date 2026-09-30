@@ -361,11 +361,17 @@ namespace q116
 	// the growth of a branch task on a tick (0x6C7800) replayed on its path script: the side-branch
 	// spawns (their scripts; each one leaves 2, 0 in the draw's joint slot) and the script / count
 	// after it. False: the task ends before drawing (path end at 3 segments or fewer).
-	struct BranchGrowth { int spawns; const int16_t *spawned[16]; const int16_t *script; int count; };
+	// joint slot (BranchDraw's direction local, task entry esp - 0x24) as the tick's growth leaves it:
+	// each spawn (SpawnBranch 0x6C76E0 saves EBX = 2 there) writes 2, 0; each SegAlloc call (0x6C78B3)
+	// its return address 0x006C78B8; slot_set = false: the growth wrote nothing
+	struct BranchGrowth { int spawns; const int16_t *spawned[16]; const int16_t *script; int count; bool slot_set; int16_t slot[2]; };
+	static void GrowSlot(BranchGrowth &g, bool alloc) { g.slot_set = true; g.slot[0] = alloc ? (int16_t)0x78B8 : 2; g.slot[1] = alloc ? 0x006C : 0; }
+	static void CarryGrowth(int16_t *carry, const BranchGrowth &g) { if (g.slot_set) { carry[0] = g.slot[0]; carry[1] = g.slot[1]; } }
 
 	static bool BranchGrow(const int16_t *script, int count, BranchGrowth &g)
 	{
 		g.spawns = 0;
+		g.slot_set = false;
 		for (int iter = 4; iter; iter--)
 		{
 			if (!script) continue;
@@ -374,6 +380,7 @@ namespace q116
 			{
 				if (g.spawns < 16) g.spawned[g.spawns] = script;
 				g.spawns++;
+				GrowSlot(g, false);
 				script += -1 - v;
 				v = *script++;
 			}
@@ -385,6 +392,7 @@ namespace q116
 				if (count <= 3) { g.script = script; g.count = count; return false; }
 				script = nullptr;
 			}
+			GrowSlot(g, true);
 			count++;
 		}
 		g.script = script;
@@ -440,6 +448,7 @@ namespace q116
 	static bool BranchGrowTo(const int16_t *script, const BranchNode *b, BranchGrowth &g)
 	{
 		g.spawns = 0;
+		g.slot_set = false;
 		int count = 1;
 		for (int iter = 4; iter; iter--)
 		{
@@ -449,18 +458,25 @@ namespace q116
 			{
 				if (g.spawns < 16) g.spawned[g.spawns] = script;
 				g.spawns++;
+				GrowSlot(g, false);
 				script += -1 - v;
 				v = *script++;
 			}
-			if (script == b->script && count == b->count) return true;
 			const int16_t *peek = script;
 			int16_t c = *peek;
 			if (c < 0) { peek -= c; c = *peek; }
+			if (script == b->script && count == b->count)
+			{
+				// ended here: at a path end of 3 segments or fewer (no call), else on a failed SegAlloc
+				if (!(c == 0x7FFF && count <= 3)) GrowSlot(g, true);
+				return true;
+			}
 			if (c == 0x7FFF)
 			{
 				if (count <= 3) return false;
 				script = nullptr;
 			}
+			GrowSlot(g, true);
 			count++;
 		}
 		return false;
@@ -478,8 +494,8 @@ namespace q116
 		return nullptr;
 	}
 
-	// every branch the tick drew, in its order, with the side-branch spawns between the draws (each
-	// one leaves 2, 0 in the draw's joint slot): the tasks it started with, then the ones spawned on
+	// every branch the tick drew, in its order, with the growth between the draws (a side-branch
+	// spawn leaves 2, 0 in the draw's joint slot, a segment allocation 0x006C78B8): the tasks it started with, then the ones spawned on
 	// it in queue order (the creature's, lowest free node first, then the side branches in spawn
 	// order), including those that ended before drawing
 	static void BranchesHeld(int num, int den)
@@ -495,7 +511,7 @@ namespace q116
 			BranchGrowth g;
 			bool draws = BranchGrow(c0.script, c0.count, g);
 			for (int k = 0; k < g.spawns && k < 16 && nsp < 256; k++) spawned[nsp++] = g.spawned[k];
-			if (g.spawns) { carry[0] = 2; carry[1] = 0; }
+			CarryGrowth(carry, g);
 			if (!draws) continue;
 			bool same = (uint32_t)b->hdr.func == ORIG_BranchTask && SameBranch(b, &c0);
 			bool alive = same && Queued(head, &b->hdr);
@@ -569,7 +585,7 @@ namespace q116
 				BranchGrowth g;
 				if (n.alive) BranchGrow(n.s0, 1, g); else BranchGrowTo(n.s0, n.b, g);
 				queue_children(g);
-				if (g.spawns) { carry[0] = 2; carry[1] = 0; }
+				CarryGrowth(carry, g);
 			}
 			if (n.alive) BranchChainHeld(n.b, -1, num, den, carry);
 		}
