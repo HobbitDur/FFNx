@@ -309,6 +309,7 @@ namespace ff8fx
 	void register_mag031_heartbreak();
 	void register_mag042_shoot();
 	void register_mag043_melting_bubble();
+	void register_mag044_junk();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
