@@ -307,6 +307,7 @@ namespace ff8fx
 	void register_mag020_norg_pod_opening();
 	void register_mag023_psycho_blast();
 	void register_mag031_heartbreak();
+	void register_mag042_shoot();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
