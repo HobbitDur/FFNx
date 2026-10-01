@@ -194,6 +194,7 @@ namespace ff8fx
 		register_mag042_shoot();
 		register_mag043_melting_bubble();
 		register_mag044_junk();
+		register_mag045_stare();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
