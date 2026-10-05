@@ -21,6 +21,7 @@
 // (Siren 095 and MiniMog 096 run to their end, every tick, every byte, every engine call).
 
 #include "act_engine.h"
+#include "../../../log.h"
 
 #ifdef FF8_FX_HELD
 #include "act_engine_held.h"
@@ -991,10 +992,13 @@ namespace act
 
 	// original address -> port (open addressing; engine ports of every registered module plus the
 	// modules' own ports)
-	static const int DISPATCH_SIZE = 4096; // power of two
+	// (all modules register about 4800 addresses; keep the table under half full so probes stay short)
+	static const int DISPATCH_BITS = 14;
+	static const int DISPATCH_SIZE = 1 << DISPATCH_BITS;
 	static uint32_t g_disp_key[DISPATCH_SIZE];
 	static void *g_disp_val[DISPATCH_SIZE];
-	static inline uint32_t disp_slot(uint32_t a) { return (a * 2654435761u) >> 20; }
+	static int g_disp_count;
+	static inline uint32_t disp_slot(uint32_t a) { return (a * 2654435761u) >> (32 - DISPATCH_BITS); }
 
 	void *port_of(uint32_t orig)
 	{
@@ -1013,6 +1017,11 @@ namespace act
 			uint32_t &k = g_disp_key[h & (DISPATCH_SIZE - 1)];
 			if (k == 0 || k == orig)
 			{
+				if (k == 0 && ++g_disp_count >= DISPATCH_SIZE - 1)
+				{
+					ffnx_error("%s: act dispatch table full (%d), raise DISPATCH_BITS\n", __func__, g_disp_count);
+					return;
+				}
 				k = orig;
 				g_disp_val[h & (DISPATCH_SIZE - 1)] = port;
 				return;
