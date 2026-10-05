@@ -311,6 +311,7 @@ namespace ff8fx
 	void register_mag043_melting_bubble();
 	void register_mag044_junk();
 	void register_mag045_stare();
+	void register_mag046_sigh();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

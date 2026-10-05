@@ -129,6 +129,7 @@ namespace ff8fx::mod
 	static const Region streams_b043[] = { { 0x2793DA4, 0xD4 } };
 	static const Region streams_j044[] = { { 0x21DFED0, 0x20 }, { 0x1D97712, 2 }, { 0x1DCD6E4, 0xC } };
 	static const Region streams_s045[] = { { 0x2793E58, 0x20 } }; // (stage group words 0x1D98992.. are inside the tracked battle entity array)
+	static const Region streams_s046[] = { { 0x15C0FE8, 0x1370 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -260,6 +261,7 @@ namespace ff8fx::mod
 		{ 43, 0x2655778, 0x265622C, 0, 0, false, "Melting Bubble", streams_b043, 1 },
 		{ 44, 0x2545100, 0x2545184, 0, 0, false, "Junk", streams_j044, 3 },
 		{ 45, 0x26543B0, 0x2655778, 0, 0, false, "Stare", streams_s045, 1 },
+		{ 46, 0x264EC60, 0x26527B4, 0, 0, false, "Sigh", streams_s046, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
