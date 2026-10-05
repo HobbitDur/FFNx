@@ -197,6 +197,7 @@ namespace ff8fx
 		register_mag045_stare();
 		register_mag046_sigh();
 		register_mag047_curse();
+		register_mag049_resonance();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
