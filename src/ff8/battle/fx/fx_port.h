@@ -315,6 +315,7 @@ namespace ff8fx
 	void register_mag047_curse();
 	void register_mag049_resonance();
 	void register_mag054_everyones_grudge();
+	void register_mag055_aqua_breath();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

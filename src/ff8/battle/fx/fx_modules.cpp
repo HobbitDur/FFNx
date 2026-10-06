@@ -133,6 +133,7 @@ namespace ff8fx::mod
 	static const Region streams_c047[] = { { 0x15B824C, 0x24 }, { 0x17B97A4, 0x1980 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_r049[] = { { 0x2793E58, 0x20 } };
 	static const Region streams_g054[] = { { 0x2793DA4, 0xD4 }, { 0x17AA304, 0x4C }, { 0x17AAF00, 0x80 }, { 0x17AB058, 0x80 } };
+	static const Region streams_a055[] = { { 0x15A4170, 0x9C0 }, { 0x2793E58, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -268,6 +269,7 @@ namespace ff8fx::mod
 		{ 47, 0x264B3C8, 0x264EC60, 0, 0, false, "Curse", streams_c047, 3 },
 		{ 49, 0x26464D8, 0x26480F0, 0, 0, false, "Resonance", streams_r049, 1 },
 		{ 54, 0x2616420, 0x2617164, 0, 0, false, "Everyone's Grudge", streams_g054, 4 },
+		{ 55, 0x2610FA8, 0x2616420, 0, 0, false, "Aqua Breath", streams_a055, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
