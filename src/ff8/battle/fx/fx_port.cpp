@@ -201,6 +201,7 @@ namespace ff8fx
 		register_mag054_everyones_grudge();
 		register_mag055_aqua_breath();
 		register_mag060_raijin_attack();
+		register_mag063_helix_attack();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
