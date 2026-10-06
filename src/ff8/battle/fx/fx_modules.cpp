@@ -135,6 +135,7 @@ namespace ff8fx::mod
 	static const Region streams_g054[] = { { 0x2793DA4, 0xD4 }, { 0x17AA304, 0x4C }, { 0x17AAF00, 0x80 }, { 0x17AB058, 0x80 } };
 	static const Region streams_a055[] = { { 0x15A4170, 0x9C0 }, { 0x2793E58, 0x20 } };
 	static const Region streams_r060[] = { { 0x1797CC0, 0x9034 }, { 0x2793DA4, 0xD4 } };
+	static const Region streams_h063[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -272,6 +273,7 @@ namespace ff8fx::mod
 		{ 54, 0x2616420, 0x2617164, 0, 0, false, "Everyone's Grudge", streams_g054, 4 },
 		{ 55, 0x2610FA8, 0x2616420, 0, 0, false, "Aqua Breath", streams_a055, 2 },
 		{ 60, 0x2604078, 0x260705C, 0, 0, false, "Raijin attack 294", streams_r060, 2 },
+		{ 63, 0x25450A0, 0x2545100, 0, 0, false, "Helix attack 361", streams_h063, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

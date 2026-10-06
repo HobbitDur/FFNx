@@ -317,6 +317,7 @@ namespace ff8fx
 	void register_mag054_everyones_grudge();
 	void register_mag055_aqua_breath();
 	void register_mag060_raijin_attack();
+	void register_mag063_helix_attack();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
