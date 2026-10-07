@@ -203,6 +203,7 @@ namespace ff8fx
 		register_mag060_raijin_attack();
 		register_mag063_helix_attack();
 		register_mag064_griever_tail();
+		register_mag065_great_attractor();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
