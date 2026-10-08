@@ -138,6 +138,7 @@ namespace ff8fx::mod
 	static const Region streams_h063[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t064[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_a065[] = { { 0x133ABC8, 0x158 } };
+	static const Region streams_g066[] = { { 0xDEA3D4, 8 }, { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 }, { 0x1D99C18, 8 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -278,6 +279,7 @@ namespace ff8fx::mod
 		{ 63, 0x25450A0, 0x2545100, 0, 0, false, "Helix attack 361", streams_h063, 1 },
 		{ 64, 0x2545018, 0x25450A0, 0, 0, false, "Ultimecia attack 353", streams_t064, 1 },
 		{ 65, 0x2544F60, 0x2545018, 0, 0, false, "Great Attractor", streams_a065, 1 },
+		{ 66, 0x24C66B0, 0x24C91D0, 0, 0, false, "Griever death (Ultimecia)", streams_g066, 4 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -341,6 +343,10 @@ namespace ff8fx::mod
 		{ 0xB65B00, 0, "GfCinematic_RenderStageGroundOffscreen" },
 		{ 0x505EB0, 0, "QueueBlitCommand" },
 		{ 0x46BD40, 0, "SdStreamingVolumeTranslation" },
+		// Griever death (66): music stop, sound volume fade, battle text
+		{ 0x46B800, 1, "Music_StopChannelOrAll" },
+		{ 0x46BEC0, 2, "Sfx_SetAllChannelsVolumeTrans" },
+		{ 0x4876F0, 3, "printMonsterRelatedText" },
 		{ 0x47CF50, 0, "Battle_RequestScreenFeedback" },
 		// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
 		{ 0x46BB40, 0, "Music_SetVolumeImmediate" },
