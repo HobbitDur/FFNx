@@ -139,6 +139,7 @@ namespace ff8fx::mod
 	static const Region streams_t064[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_a065[] = { { 0x133ABC8, 0x158 } };
 	static const Region streams_g066[] = { { 0xDEA3D4, 8 }, { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 }, { 0x1D99C18, 8 } };
+	static const Region streams_s068[] = { { 0x1591C4C, 0x180 }, { 0x1592034, 0x500 }, { 0x1D2A278, 1 }, { 0x1D2B330, 0xA4 }, { 0x1D2B558, 0x32 }, { 0x2795BD0, 4 }, { 0x279CC30, 0x30 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -280,6 +281,7 @@ namespace ff8fx::mod
 		{ 64, 0x2545018, 0x25450A0, 0, 0, false, "Ultimecia attack 353", streams_t064, 1 },
 		{ 65, 0x2544F60, 0x2545018, 0, 0, false, "Great Attractor", streams_a065, 1 },
 		{ 66, 0x24C66B0, 0x24C91D0, 0, 0, false, "Griever death (Ultimecia)", streams_g066, 4 },
+		{ 68, 0x25FCDD8, 0x26005B4, 0, 0, false, "Scan (enemy)", streams_s068, 7 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -376,6 +378,9 @@ namespace ff8fx::mod
 		{ 0x49FBC0, 0, "Text_49FBC0" },
 		{ 0xB68390, 1, "manageScanText_Dup" },
 		{ 0xB68810, 0, "ScanText_B68810" },
+		// enemy Scan (68): its own copies of the scan text functions
+		{ 0xB67EF0, 1, "manageScanText" },
+		{ 0xB68370, 0, "ScanText_GetLine" },
 		{ 0xB687C0, 0, "ScanText_B687C0" },
 		{ 0x47EAF0, 1, "CharacterName_47EAF0" },
 		{ 0x495100, 1, "MonsterName_495100" },
