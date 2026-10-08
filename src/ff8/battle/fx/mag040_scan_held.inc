@@ -246,7 +246,8 @@ namespace scan040
 		{
 			int16_t radius = 8;
 			int16_t p[2];
-			if (a.h.phase == 1 && ReticleNext((int16_t)(a.h.counter + 1), p))
+			// phase 0 (its first draw) or 1: the next tick draws at path[counter + 1]
+			if ((a.h.phase == 0 || a.h.phase == 1) && ReticleNext((int16_t)(a.h.counter + 1), p))
 			{
 				m.h.pos[0] = lerp16(a.h.pos[0], p[0], num, den);
 				m.h.pos[1] = lerp16(a.h.pos[1], p[1], num, den);
