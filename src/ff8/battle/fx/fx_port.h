@@ -320,6 +320,7 @@ namespace ff8fx
 	void register_mag063_helix_attack();
 	void register_mag064_griever_tail();
 	void register_mag065_great_attractor();
+	void register_mag066_griever_ultimecia_death();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
