@@ -207,6 +207,7 @@ namespace ff8fx
 		register_mag066_griever_ultimecia_death();
 		register_mag068_scan();
 		register_mag075_hells_judgement();
+		register_mag070_shockwave_pulsar();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
