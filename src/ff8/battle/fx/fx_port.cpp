@@ -209,6 +209,7 @@ namespace ff8fx
 		register_mag075_hells_judgement();
 		register_mag070_shockwave_pulsar();
 		register_mag076_ultimecia_final_form_spawn();
+		register_mag078_mighty_guard();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
