@@ -142,6 +142,7 @@ namespace ff8fx::mod
 	static const Region streams_s068[] = { { 0x1591C4C, 0x180 }, { 0x1592034, 0x500 }, { 0x1D2A278, 1 }, { 0x1D2B330, 0xA4 }, { 0x1D2B558, 0x32 }, { 0x2795BD0, 4 }, { 0x279CC30, 0x30 } };
 	static const Region streams_g075[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x518 } };
 	static const Region streams_p070[] = { { 0x1D99C18, 8 } };
+	static const Region streams_u076[] = { { 0x1D96E9C, 0x19 }, { 0xB8B9A8, 4 }, { 0x24FBDA4, 0x162B } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -286,6 +287,7 @@ namespace ff8fx::mod
 		{ 68, 0x25FCDD8, 0x26005B4, 0, 0, false, "Scan (enemy)", streams_s068, 7 },
 		{ 75, 0x2796E88, 0x2798C40, 0, 0, false, "Hell's Judgement", streams_g075, 5 },
 		{ 70, 0x2544E78, 0x2544F60, 0, 0, false, "Shockwave Pulsar", streams_p070, 1 },
+		{ 76, 0x24C3270, 0x24C66AC, 0, 0, false, "Ultimecia final form (attack 355)", streams_u076, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -353,6 +355,10 @@ namespace ff8fx::mod
 		{ 0x46B800, 1, "Music_StopChannelOrAll" },
 		{ 0x46BEC0, 2, "Sfx_SetAllChannelsVolumeTrans" },
 		{ 0x4876F0, 3, "printMonsterRelatedText" },
+		// Ultimecia final form (76): victory fanfare queue, music channel volume, streamed music
+		{ 0x501A20, 2, "BS_R0win_QueueVictoryFanfare" },
+		{ 0x501B10, 2, "BS_Music_SetChannelVolumeCommand" },
+		{ 0x46CBB0, 1, "Music_WavStream_Play" },
 		{ 0x47CF50, 0, "Battle_RequestScreenFeedback" },
 		// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
 		{ 0x46BB40, 0, "Music_SetVolumeImmediate" },
