@@ -210,6 +210,7 @@ namespace ff8fx
 		register_mag070_shockwave_pulsar();
 		register_mag076_ultimecia_final_form_spawn();
 		register_mag078_mighty_guard();
+		register_mag077_final_form_death();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();

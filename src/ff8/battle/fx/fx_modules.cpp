@@ -144,6 +144,7 @@ namespace ff8fx::mod
 	static const Region streams_p070[] = { { 0x1D99C18, 8 } };
 	static const Region streams_u076[] = { { 0x1D96E9C, 0x19 }, { 0xB8B9A8, 4 }, { 0x24FBDA4, 0x162B } };
 	static const Region streams_m078[] = { { 0x2793DA4, 0xD4 }, { 0x176E194, 0x94 }, { 0x1771814, 0x80 }, { 0x177196C, 0x80 }, { 0x1771AC4, 0x80 }, { 0x1771C1C, 0x80 }, { 0x1771D74, 0x80 }, { 0x1771ECC, 0x80 } };
+	static const Region streams_f077[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -290,6 +291,7 @@ namespace ff8fx::mod
 		{ 70, 0x2544E78, 0x2544F60, 0, 0, false, "Shockwave Pulsar", streams_p070, 1 },
 		{ 76, 0x24C3270, 0x24C66AC, 0, 0, false, "Ultimecia final form (attack 355)", streams_u076, 3 },
 		{ 78, 0x25EB530, 0x25EC514, 0, 0, false, "Mighty Guard", streams_m078, 8 },
+		{ 77, 0x2796E50, 0x2798C40, 0, 0, false, "Ultimecia final form death (attack 356)", streams_f077, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -361,6 +363,10 @@ namespace ff8fx::mod
 		{ 0x501A20, 2, "BS_R0win_QueueVictoryFanfare" },
 		{ 0x501B10, 2, "BS_Music_SetChannelVolumeCommand" },
 		{ 0x46CBB0, 1, "Music_WavStream_Play" },
+		// Ultimecia final form death (77): entity status flag, animation re-evaluation, summon link
+		{ 0x509CD0, 2, "pre_updateEntityStatusFlag" },
+		{ 0x509C80, 1, "updateEntityAnimation" },
+		{ 0x47DF60, 0, "linkedToSummonGF" },
 		{ 0x47CF50, 0, "Battle_RequestScreenFeedback" },
 		// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
 		{ 0x46BB40, 0, "Music_SetVolumeImmediate" },
