@@ -328,6 +328,7 @@ namespace ff8fx
 	void register_mag078_mighty_guard();
 	void register_mag077_final_form_death();
 	void register_mag079_ultimecia_final_death();
+	void register_mag080_ultimecia_junction();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
