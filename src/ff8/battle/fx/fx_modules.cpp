@@ -302,6 +302,7 @@ namespace ff8fx::mod
 		{ 81, 0x25D21E0, 0x25D4938, 0, 0, false, "Ultimecia attack 335", streams_u081, 4 },
 		{ 82, 0x25CFA88, 0x25D21E0, 0, 0, false, "Ultimecia attack 337", streams_u082, 4 },
 		{ 83, 0x25C9F70, 0x25CFA88, 0, 0, false, "Ultimecia attack 336", streams_u083, 7 },
+		{ 101, 0x2544E10, 0x2544E78, 0, 0, false, "Trauma attack 290", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
