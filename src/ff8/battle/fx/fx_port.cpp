@@ -216,6 +216,7 @@ namespace ff8fx
 		register_mag081_ultimecia_unk4();
 		register_mag082_ultimecia_blow_away();
 		register_mag083_ultimecia_absorb();
+		register_mag101_trauma_grab();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
