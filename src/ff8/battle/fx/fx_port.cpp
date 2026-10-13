@@ -223,6 +223,7 @@ namespace ff8fx
 		register_mag130_eerie_sound_wave();
 		register_mag131_bad_breath();
 		register_mag132_dissolving_acid();
+		register_mag133_hypnotize();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
