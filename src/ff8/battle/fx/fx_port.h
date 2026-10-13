@@ -333,6 +333,7 @@ namespace ff8fx
 	void register_mag082_ultimecia_blow_away();
 	void register_mag083_ultimecia_absorb();
 	void register_mag101_trauma_grab();
+	void register_mag113_bad_breath();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
