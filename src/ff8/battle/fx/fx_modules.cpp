@@ -148,6 +148,7 @@ namespace ff8fx::mod
 	static const Region streams_u079[] = { { 0x2793DA4, 0xD4 }, { 0x1581F34, 0x44 }, { 0x1762E40, 0xB214 }, { 0x19F1018, 0x5034 }, { 0x1D99AB0, 0x12 } };
 	static const Region streams_u080[] = { { 0x2793DA4, 0xD4 }, { 0x1749C64, 0xAEB8 }, { 0x175AC20, 0x3BD4 } };
 	static const Region streams_u081[] = { { 0x2793DA4, 0xD4 }, { 0x1744A1C, 0x1644 }, { 0x17492B4, 0x890 }, { 0x2795110, 0x68 } };
+	static const Region streams_u082[] = { { 0x2793DA4, 0xD4 }, { 0x1741028, 0x93C }, { 0x174417C, 0x890 }, { 0x2795110, 0x68 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -298,6 +299,7 @@ namespace ff8fx::mod
 		{ 79, 0x25DF338, 0x25EB530, 0, 0, false, "Ultimecia final form death (attack 351)", streams_u079, 5 },
 		{ 80, 0x25D4938, 0x25DF338, 0, 0, false, "Ultimecia junctions to Griever (attack 352)", streams_u080, 3 },
 		{ 81, 0x25D21E0, 0x25D4938, 0, 0, false, "Ultimecia attack 335", streams_u081, 4 },
+		{ 82, 0x25CFA88, 0x25D21E0, 0, 0, false, "Ultimecia attack 337", streams_u082, 4 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
