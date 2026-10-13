@@ -214,6 +214,7 @@ namespace ff8fx
 		register_mag079_ultimecia_final_death();
 		register_mag080_ultimecia_junction();
 		register_mag081_ultimecia_unk4();
+		register_mag082_ultimecia_blow_away();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
