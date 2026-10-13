@@ -309,6 +309,7 @@ namespace ff8fx::mod
 		{ 113, 0x2521870, 0x25218E0, 0, 0, false, "Bad Breath", streams_b113, 3 },
 		{ 128, 0x25211E0, 0x2521270, 0, 0, false, "Gastric Juice (attack 77)", streams_g128, 3 },
 		{ 129, 0x2521110, 0x25211E0, 0, 0, false, "Breath (attack 102)", streams_b129, 5 },
+		{ 130, 0x25210A8, 0x2521110, 0, 0, false, "Eerie Sound Wave (attack 185)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
