@@ -155,6 +155,7 @@ namespace ff8fx::mod
 	static const Region streams_b129[] = { { 0x12272E4, 0x580 }, { 0x1228F0C, 0x2C0 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_b131[] = { { 0x1219258, 0x540 }, { 0x121A6D8, 0x540 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d132[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_h133[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -314,6 +315,7 @@ namespace ff8fx::mod
 		{ 130, 0x25210A8, 0x2521110, 0, 0, false, "Eerie Sound Wave (attack 185)", nullptr, 0 },
 		{ 131, 0x2520FF0, 0x25210A8, 0, 0, false, "Bad Breath (attack 184)", streams_b131, 5 },
 		{ 132, 0x2520F60, 0x2520FF0, 0, 0, false, "Dissolving Acid (attack 183)", streams_d132, 3 },
+		{ 133, 0x2520EE8, 0x2520F60, 0, 0, false, "Hypnotize (attack 76)", streams_h133, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
