@@ -218,6 +218,7 @@ namespace ff8fx
 		register_mag083_ultimecia_absorb();
 		register_mag101_trauma_grab();
 		register_mag113_bad_breath();
+		register_mag128_gastric_juice();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
