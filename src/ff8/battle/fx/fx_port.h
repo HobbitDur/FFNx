@@ -331,6 +331,7 @@ namespace ff8fx
 	void register_mag080_ultimecia_junction();
 	void register_mag081_ultimecia_unk4();
 	void register_mag082_ultimecia_blow_away();
+	void register_mag083_ultimecia_absorb();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
