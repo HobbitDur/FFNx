@@ -150,6 +150,7 @@ namespace ff8fx::mod
 	static const Region streams_u081[] = { { 0x2793DA4, 0xD4 }, { 0x1744A1C, 0x1644 }, { 0x17492B4, 0x890 }, { 0x2795110, 0x68 } };
 	static const Region streams_u082[] = { { 0x2793DA4, 0xD4 }, { 0x1741028, 0x93C }, { 0x174417C, 0x890 }, { 0x2795110, 0x68 } };
 	static const Region streams_u083[] = { { 0x2793DA4, 0xD4 }, { 0x172C818, 0xCC }, { 0x172D278, 0x2A4 }, { 0x1737B58, 0x10A0 }, { 0x15786F4, 0x518 }, { 0x209FAB8, 0x7D00 }, { 0x1D99C18, 8 } };
+	static const Region streams_b113[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -303,6 +304,7 @@ namespace ff8fx::mod
 		{ 82, 0x25CFA88, 0x25D21E0, 0, 0, false, "Ultimecia attack 337", streams_u082, 4 },
 		{ 83, 0x25C9F70, 0x25CFA88, 0, 0, false, "Ultimecia attack 336", streams_u083, 7 },
 		{ 101, 0x2544E10, 0x2544E78, 0, 0, false, "Trauma attack 290", nullptr, 0 },
+		{ 113, 0x2521870, 0x25218E0, 0, 0, false, "Bad Breath", streams_b113, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
