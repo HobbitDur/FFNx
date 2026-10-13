@@ -152,6 +152,7 @@ namespace ff8fx::mod
 	static const Region streams_u083[] = { { 0x2793DA4, 0xD4 }, { 0x172C818, 0xCC }, { 0x172D278, 0x2A4 }, { 0x1737B58, 0x10A0 }, { 0x15786F4, 0x518 }, { 0x209FAB8, 0x7D00 }, { 0x1D99C18, 8 } };
 	static const Region streams_b113[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_g128[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_b129[] = { { 0x12272E4, 0x580 }, { 0x1228F0C, 0x2C0 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -307,6 +308,7 @@ namespace ff8fx::mod
 		{ 101, 0x2544E10, 0x2544E78, 0, 0, false, "Trauma attack 290", nullptr, 0 },
 		{ 113, 0x2521870, 0x25218E0, 0, 0, false, "Bad Breath", streams_b113, 3 },
 		{ 128, 0x25211E0, 0x2521270, 0, 0, false, "Gastric Juice (attack 77)", streams_g128, 3 },
+		{ 129, 0x2521110, 0x25211E0, 0, 0, false, "Breath (attack 102)", streams_b129, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
