@@ -225,6 +225,7 @@ namespace ff8fx
 		register_mag132_dissolving_acid();
 		register_mag133_hypnotize();
 		register_mag134_beam_laser();
+		register_mag135_reflect_beam();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();

@@ -157,6 +157,7 @@ namespace ff8fx::mod
 	static const Region streams_d132[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_h133[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_b134[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_r135[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -318,6 +319,7 @@ namespace ff8fx::mod
 		{ 132, 0x2520F60, 0x2520FF0, 0, 0, false, "Dissolving Acid (attack 183)", streams_d132, 3 },
 		{ 133, 0x2520EE8, 0x2520F60, 0, 0, false, "Hypnotize (attack 76)", streams_h133, 3 },
 		{ 134, 0x2520E68, 0x2520EE8, 0, 0, false, "Beam Laser (attack 176)", streams_b134, 3 },
+		{ 135, 0x2520DD0, 0x2520E68, 0, 0, false, "Reflect Beam (attack 177)", streams_r135, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
