@@ -343,6 +343,7 @@ namespace ff8fx
 	void register_mag134_beam_laser();
 	void register_mag135_reflect_beam();
 	void register_mag136_oil_shot();
+	void register_mag137_oil_blast();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
