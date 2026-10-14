@@ -231,6 +231,7 @@ namespace ff8fx
 		register_mag138_saliva();
 		register_mag179_bomb_glow();
 		register_mag276_xatm092_death();
+		register_mag277_funguar_laser();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
