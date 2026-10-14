@@ -234,6 +234,7 @@ namespace ff8fx
 		register_mag277_funguar_laser();
 		register_mag315_fake_president_death();
 		register_mag289_brrawghh();
+		register_mag239_ochu_dance();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();

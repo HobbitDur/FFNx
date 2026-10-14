@@ -336,6 +336,7 @@ namespace ff8fx::mod
 		{ 277, 0x2508200, 0x2508278, 0, 0, false, "Funguar laser (attack 115)", streams_f277, 3 },
 		{ 315, 0x2239530, 0x223B660, 0, 0, false, "Fake President death (attack 151)", streams_p315, 4 },
 		{ 289, 0x2507BD0, 0x2507C3C, 0, 0, false, "Brrawghh! (attack 131)", streams_g289, 6 },
+		{ 239, 0x27968D0, 0x2798C40, 0, 0, false, "Ochu Dance (attack 192)", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

@@ -379,6 +379,8 @@ namespace breath
 		U32(blk, 0x44) = U32(CTX(), 0x74) + 4 * (int32_t)S16(dist, 0);
 		SyncEntityModelCopy(PTR(CUR(), 0xBC));
 		uint8_t *hdr = blk + 0x10;                                          // edi
+		// 30 fps layer: see mag235_breath_held.inc
+		FX_HELD(if (!held_entity_pose(hdr, ent)))
 		x::BuildBoneMatricesFromPose(hdr);
 		xl_EntityBounds_5086F0(ent);
 		x::ComposeAffine(NODEMAT(), ent + 0x40, WS() + 0xE0);
@@ -429,6 +431,12 @@ namespace breath
 		return SequenceTick(g_c);
 	}
 }
+
+	// draw 32 EntityGlow, also taken by Ochu Dance (mag239_ochu_dance.cpp: its 0xA16E80 is a byte clone of 0xA3F700)
+	void apply_breath_glow(Clone &c)
+	{
+		c.draw[32] = breath::dh_32_EntityGlow;
+	}
 }
 
 	void register_mag235_breath()
