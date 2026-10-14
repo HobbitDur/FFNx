@@ -20,8 +20,10 @@
 //
 // Draw 32 (EntityGlow) runs as vanilla on a held frame: the glow colours follow the in-between
 // node values (radius / intensity / phase = outAngle, base colour = the reference node's outPos),
-// the model is drawn at the in-between camera node in the entity's current (real) pose; the
-// per-vertex distances are fixed at the first draw. Its writes outside every saved set - the
+// the model is drawn at the in-between camera node in the entity's in-between pose (pose_midpoint on
+// the draw's copy of the animation header and the entity's animation command: the pose the next
+// tick's battle-loop animation step leads to, held when it does not advance); the per-vertex
+// distances are fixed at the first draw. Its writes outside every saved set - the
 // battle entity record (flag +0 on a first draw, bounds +0x34..+0x3F / +0x92 by 0x5086F0) and the
 // entity skeleton (pose + world matrices) - are saved before the held draw and put back after it
 // (the copy block, distance block and scratch are in the arena / bone array: HeldFrame).
@@ -67,6 +69,15 @@ namespace breath
 			if (g_hs.sk) memcpy(g_hs.sk, g_held_skel, g_hs.sk_n);
 		}
 		g_hs_on = false;
+	}
+
+	// 0xA3FBD0: on a held frame the bone matrices of the entity copy (hdr = copy block + 0x10, a copy of
+	// the entity's BattleAnimHeader) come from the in-between pose instead of BuildBoneMatricesFromPose
+	static bool held_entity_pose(uint8_t *hdr, uint8_t *ent)
+	{
+		if (!g_held.active) return false;
+		pose_midpoint(hdr, ent + 0x6C, g_held.num, g_held.den);
+		return true;
 	}
 
 	static bool Ready() { return HeldReady(g_c); }

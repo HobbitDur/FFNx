@@ -25,6 +25,7 @@ namespace breath
 {
 	static void held_entity_begin(uint8_t *ent);
 	static void held_entity_end();
+	static bool held_entity_pose(uint8_t *hdr, uint8_t *ent);
 }
 }
 	static void register_mag235_breath_held();
