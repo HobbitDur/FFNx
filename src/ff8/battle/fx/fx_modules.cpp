@@ -165,6 +165,7 @@ namespace ff8fx::mod
 	static const Region streams_x276[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_f277[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_p315[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_g289[] = { { 0x106EDE4, 0x528 }, { 0x106FAF4, 0x528 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -334,6 +335,7 @@ namespace ff8fx::mod
 		{ 276, 0x2508278, 0x2508348, 0, 0, false, "X-ATM092 break-down (attack 145)", streams_x276, 1 },
 		{ 277, 0x2508200, 0x2508278, 0, 0, false, "Funguar laser (attack 115)", streams_f277, 3 },
 		{ 315, 0x2239530, 0x223B660, 0, 0, false, "Fake President death (attack 151)", streams_p315, 4 },
+		{ 289, 0x2507BD0, 0x2507C3C, 0, 0, false, "Brrawghh! (attack 131)", streams_g289, 6 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
