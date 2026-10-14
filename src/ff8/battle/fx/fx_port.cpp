@@ -229,6 +229,7 @@ namespace ff8fx
 		register_mag136_oil_shot();
 		register_mag137_oil_blast();
 		register_mag138_saliva();
+		register_mag179_bomb_glow();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
