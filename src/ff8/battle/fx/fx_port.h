@@ -355,6 +355,7 @@ namespace ff8fx
 	void register_mag281_shotgun();
 	void register_mag304_boomerang_sword();
 	void register_mag311_gravija();
+	void register_mag258_mad_cow_special();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

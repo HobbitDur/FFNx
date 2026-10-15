@@ -239,6 +239,7 @@ namespace ff8fx
 		register_mag281_shotgun();
 		register_mag304_boomerang_sword();
 		register_mag311_gravija();
+		register_mag258_mad_cow_special();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
