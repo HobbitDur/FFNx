@@ -352,6 +352,7 @@ namespace ff8fx
 	void register_mag289_brrawghh();
 	void register_mag239_ochu_dance();
 	void register_mag240_ochu_earthquake();
+	void register_mag281_shotgun();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
