@@ -241,6 +241,7 @@ namespace ff8fx
 		register_mag311_gravija();
 		register_mag258_mad_cow_special();
 		register_mag256_sand_shake();
+		register_mag176_sand_storm_adamantoise();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
