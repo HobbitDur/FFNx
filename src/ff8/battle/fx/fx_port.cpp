@@ -237,6 +237,7 @@ namespace ff8fx
 		register_mag239_ochu_dance();
 		register_mag240_ochu_earthquake();
 		register_mag281_shotgun();
+		register_mag304_boomerang_sword();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
