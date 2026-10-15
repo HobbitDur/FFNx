@@ -243,6 +243,7 @@ namespace ff8fx
 		register_mag256_sand_shake();
 		register_mag176_sand_storm_adamantoise();
 		register_mag226_white_wind();
+		register_mag139_sonic_wave();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
