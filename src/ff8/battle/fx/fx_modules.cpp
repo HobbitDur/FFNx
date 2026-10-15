@@ -169,6 +169,7 @@ namespace ff8fx::mod
 	static const Region streams_s281[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_b304[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_g311[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_s176[] = { { 0xD4516C, 0xC }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -346,6 +347,7 @@ namespace ff8fx::mod
 		{ 311, 0x25055E0, 0x2507428, 0, 0, false, "Gravija (attack 257)", streams_g311, 4 },
 		{ 258, 0x27964D0, 0x2798C40, 0, 0, false, "Mad Cow Special (attack 213, Sacred / Minotaur)", streams_gfc, 5 },
 		{ 256, 0x2796540, 0x2798C40, 0, 0, false, "Sand Shake (attack 174, Abyss Worm)", streams_gfc, 5 },
+		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
