@@ -348,6 +348,7 @@ namespace ff8fx::mod
 		{ 258, 0x27964D0, 0x2798C40, 0, 0, false, "Mad Cow Special (attack 213, Sacred / Minotaur)", streams_gfc, 5 },
 		{ 256, 0x2796540, 0x2798C40, 0, 0, false, "Sand Shake (attack 174, Abyss Worm)", streams_gfc, 5 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
+		{ 226, 0x2508770, 0x25087F0, 0, 0, false, "White Wind (attack 276, Adamantoise)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
