@@ -345,6 +345,7 @@ namespace ff8fx::mod
 		{ 304, 0x2507558, 0x25075D0, 0, 0, false, "Boomerang Sword (attack 159)", streams_b304, 4 },
 		{ 311, 0x25055E0, 0x2507428, 0, 0, false, "Gravija (attack 257)", streams_g311, 4 },
 		{ 258, 0x27964D0, 0x2798C40, 0, 0, false, "Mad Cow Special (attack 213, Sacred / Minotaur)", streams_gfc, 5 },
+		{ 256, 0x2796540, 0x2798C40, 0, 0, false, "Sand Shake (attack 174, Abyss Worm)", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
