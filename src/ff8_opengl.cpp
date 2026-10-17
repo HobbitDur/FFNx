@@ -43,6 +43,7 @@
 #include "ff8/kernel_ability.h"
 #include "ff8/battle/monsters.h"
 #include "ff8/remaster.h"
+#include "ff8/menu/volume.h"
 #include "metadata.h"
 #include "achievement.h"
 #include "widescreen.h"
@@ -359,6 +360,7 @@ static void patch_ff8_remastered_battle_effect_layout()
 		{ 0x81F4E9, 0x262B1E8, 0x400000, ff8_battle_effect_layout_patch_mode::effect_arena },
 		{ 0x84C247, 0x2690BE8, 0x400000, ff8_battle_effect_layout_patch_mode::effect_arena },
 		{ 0x88CA49, 0x26F6BA0, 0x400000, ff8_battle_effect_layout_patch_mode::effect_arena },
+		{ 0x89DBF7, 0x270E560, 0x400000, ff8_battle_effect_layout_patch_mode::effect_arena },
 		{ 0x8C00A7, 0x274C3E0, 0x420000, ff8_battle_effect_layout_patch_mode::effect_arena },
 		{ 0x8C00B1, 0x27437C0, 0x400000, ff8_battle_effect_layout_patch_mode::effect_arena },
 		{ 0x8D6ABF, 0x278C79C, 0x403004, ff8_battle_effect_layout_patch_mode::effect_arena },
@@ -2435,7 +2437,7 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	extended_memory = (uint8_t *)driver_malloc(0x2000000); // 32 MB
 
 	if (extended_memory) {
-		uint32_t memory_offsets = JP_VERSION ? 0xD6DD60 : 0xB6D060;
+		uint32_t memory_offsets = get_absolute_value(ff8_externals.sub_47CCB0, 0xBB) - 4; // sub_47CCB0 reads the table's second entry
 		uint32_t battle_model_memory_offset = ff8_remastered_edition ? 0x800000 : 0x80000;
 		uint32_t battle_character_memory_offset = ff8_remastered_edition ? 0xC00000 : 0x100000;
 		patch_code_dword(memory_offsets + 0xC, uint32_t(extended_memory) + 0x1000000);
@@ -2497,6 +2499,11 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// #####################
 	replace_call(ff8_externals.sub_530C30 + 0x46A, ff8_field_3d_models_push_rects);
 	replace_call(uint32_t(ff8_externals.field_push_mch_vertices_rect_sub_533A90) + 0x4D, ff8_field_calc_triangle_condition);
+
+	// #####################
+	// Config menu: Sound volumes
+	// #####################
+	ff8_menu_volume_init();
 
 	// #####################
 	// AddMoreMagic: extended kernel.bin magic section (ids 57-63 and 96-255; 64-95 reserved for GFs)
