@@ -28,11 +28,15 @@
 //              Sequence frames, colours and scales hold (15 Hz steps).
 //   Aura / rings - the prim-model layouts through prim::play_held (every object's exact in-between
 //              record); the anchor matrix is rebuilt with the live camera, the rings' spin angles
-//              half way to the next tick's (held when the layout ended). The layout bytes of the
+//              half way to the next tick's (held when the layout ended), its position half way to
+//              the next tick's: the emitter's anchor (aura) / midpoint (rings), which follow the
+//              target's bones (NextAnchorOf). The layout bytes of the
 //              real play are put under the replay (a finished player's node may be reused within
 //              the tick by a new player decoding its layout), then the live bytes back.
-//   Target overlay - the target's model at its in-between pose (pose_midpoint), the rising light
-//              / lift offset half way to the next tick's; the light position (camera yaw) holds.
+//   Target overlay - the target's model at its in-between pose (pose_midpoint of its body and of
+//              its weapon, which animates with it), the rising light / lift offset half way to the
+//              next tick's; the light position's emitter anchor part half way to the next tick's
+//              anchor (NextAnchorOf), its camera yaw part holds.
 //              Its flat packets go to a private frame-arena buffer holding the real tick's bytes.
 // The shared battle light words (light task) are not drawn by the module: nothing to redraw.
 // No Cura task has a draw-only mode.
@@ -69,6 +73,7 @@ namespace cura
 	{
 		alignas(4) uint8_t st[OVL_HI - OVL_LO]; // light block + overlay state as drawn
 		int16_t y, y_next;
+		int16_t ax, az;                         // the emitter's anchor x / z the light position was built from
 		bool moves;
 	};
 
@@ -225,6 +230,9 @@ namespace cura
 		memcpy(o.st, (const void *)OVL_LO, sizeof(o.st));
 		o.y = S16(node, 0x1E);
 		o.y_next = (int16_t)(U16(node, 0x1E) + U16(node, 0x42));
+		const uint32_t e = U32(node, 0x14);
+		o.ax = e ? S16(e, 0x30) : 0;
+		o.az = e ? S16(e, 0x34) : 0;
 		// the next tick rises it and draws it unless it ends there (counter + 1 >= 18)
 		o.moves = S8(node, 0x29) == 1 && (int16_t)(U16(node, 0x24) + 1) < 0x12;
 	}
@@ -254,8 +262,44 @@ namespace cura
 		return (int16_t)((a + d * num / den) & 0xFFF);
 	}
 
+	// the emitter's anchor (+0x30) and midpoint (+0x38) on the next tick: the aura players and the
+	// overlay take the anchor (Effect_CopyAnchorXZFromSource 0x8DC6E0), the ring players the midpoint
+	// (Effect_CopyMidpointFromSource 0x8DC700) on every tick, from their line's emitter (node +0x14),
+	// which the emitter task updates first on every tick from the target's bones
+	// (MAG_001_CURE_Emitter_UpdatePos 0x8DC610 / _ComputeModelBounds 0x8DC870). Here the same functions
+	// run on a copy of the emitter with the target at its next pose (pose_midpoint at 1), then the real
+	// pose is rebuilt and the word GetEffectSpawnPosition writes (0x1D9770C) put back; once per emitter
+	// and held frame (before the replay: the GTE registers and scratch are the replay's).
+	static const uint32_t EMITTER_NODE = 0x58;
+	struct NextAnchor { uint32_t emitter; bool ok; alignas(4) uint8_t next[EMITTER_NODE]; };
+	static NextAnchor g_next[8];
+	static int g_nnext = 0;
+	static const NextAnchor *NextAnchorOf(uint32_t node)
+	{
+		const uint32_t e = U32(node, 0x14);
+		if (!e) return nullptr;
+		for (int i = 0; i < g_nnext; i++) if (g_next[i].emitter == e) return g_next[i].ok ? &g_next[i] : nullptr;
+		if (g_nnext >= (int)(sizeof(g_next) / sizeof(g_next[0]))) return nullptr;
+		NextAnchor &na = g_next[g_nnext++];
+		na.emitter = e;
+		memcpy(na.next, (const void *)e, EMITTER_NODE);
+		const uint32_t entity = 0x1D972C0 + 0x9C * (uint32_t)U8(e, 0x2D);
+		na.ok = U32(entity, 0x64) != 0;
+		if (na.ok)
+		{
+			const uint16_t w70c = MEM<uint16_t>(0x1D9770C);
+			pose_midpoint((void *)(entity + 0x60), (void *)(entity + 0x6C), 1, 1);
+			x::MAG_001_CURE_Emitter_UpdatePos(P(na.next));
+			x::MAG_001_CURE_Emitter_ComputeModelBounds(P(na.next));
+			x::BattleModel_BuildBoneMatricesFromPose(entity + 0x60);
+			MEM<uint16_t>(0x1D9770C) = w70c;
+		}
+		return na.ok ? &na : nullptr;
+	}
+
 	// a prim-model play of the real tick in between: its anchor matrix rebuilt (live camera, ring
-	// angles half way), then prim::play_held on the layout as the real play left it
+	// angles half way, position half way to the next tick's anchor / midpoint), then prim::play_held
+	// on the layout as the real play left it
 	static void PlayHeld(const Rec &r, int num, int den)
 	{
 		alignas(4) static uint8_t fr[FR_SIZE];
@@ -275,9 +319,17 @@ namespace cura
 		}
 		else
 			x::MAG_022_sub_8DD770(m);
-		S32(m, 0x14) = S16(n, 0x1C);
-		S32(m, 0x18) = S16(n, 0x1E);
-		S32(m, 0x1C) = S16(n, 0x20);
+		int16_t pos[3] = { S16(n, 0x1C), S16(n, 0x1E), S16(n, 0x20) };
+		const NextAnchor *na = r.moves ? NextAnchorOf(n) : nullptr;
+		if (na)
+		{
+			// the next tick's position: the emitter's midpoint (ring) / anchor (aura) there
+			const uint32_t src = P(na->next) + (U32(n, 8) == ORIG_Ring ? 0x38 : 0x30);
+			for (int k = 0; k < 3; k++) pos[k] = magc::lerp16(pos[k], S16(src, 2 * k), num, den);
+		}
+		S32(m, 0x14) = pos[0];
+		S32(m, 0x18) = pos[1];
+		S32(m, 0x1C) = pos[2];
 		x::scale3DMatrix(m, n + 0x30);
 		x::ComposeAffineTransform(0x1D97778, m, m);
 		U32(f, FR_BLOCK) = m;
@@ -304,25 +356,38 @@ namespace cura
 			const int16_t y = magc::lerp16(o.y, o.y_next, num, den);
 			S16(st, 0xB6) = y;
 			S16(st, 0xDE) = y;
+			// the light position x / z = camera yaw part (held) + the emitter's anchor x / z (half way)
+			if (const NextAnchor *na = NextAnchorOf(P(r.copy)))
+			{
+				S16(st, 0xDC) = (int16_t)(S16(st, 0xDC) + magc::lerp16(0, (int16_t)(S16(P(na->next), 0x30) - o.ax), num, den));
+				S16(st, 0xE0) = (int16_t)(S16(st, 0xE0) + magc::lerp16(0, (int16_t)(S16(P(na->next), 0x34) - o.az), num, den));
+			}
 		}
 		Replay(r);
 		const uint32_t entity = U32(st, 8);
 		OverlayMatrices(st, entity);
 		const uint32_t anim = entity + 0x60;
+		const uint32_t second = U32(entity, 0x78);
 		// (animation slot 0xFF: the overlay steps the animation itself - not on a held frame: the
-		// pose holds)
+		// pose holds); the weapon (a party member's second model, entity +0x78) animates with the
+		// body (AdvanceAnimationBy1 0x5094F0): its in-between pose too
 		if (U16(st, 0xDA) != 0xFF)
+		{
 			pose_midpoint((void *)anim, (void *)(entity + 0x6C), num, den);
+			if (second != 0) pose_midpoint((void *)second, (void *)(second + 0xC), num, den);
+		}
 		x::ComposeAffineTransform(0x1D97778, st + 0x14, st + 0x34);
 		if ((U8(entity, 0) & 0x20) == 0)
 			U32(U32(st, 0xC), 0) = x::sub_5088A0(entity, MEM<uint32_t>(0x1D8E04C) + 0x4040, 0x10, U32(U32(st, 0xC), 0));
 		OverlayLight(st);
 		RenderModel(U32(entity, 0x64), RenderOT44(), st);
-		const uint32_t second = U32(entity, 0x78);
 		if (second != 0)
 			RenderModel(U32(second, 4), RenderOT44(), st);
 		if (U16(st, 0xDA) != 0xFF)
+		{
 			x::BattleModel_BuildBoneMatricesFromPose(anim);
+			if (second != 0) x::BattleModel_BuildBoneMatricesFromPose(second);
+		}
 	}
 
 	static void HeldFrame(int num, int den)
@@ -344,6 +409,11 @@ namespace cura
 		const uint32_t frame_cursor = MEM<uint32_t>(FRAME_CURSOR);
 		if (g_fa_n) memcpy(g_held_frame, g_fa_bytes, g_fa_n);
 		MEM<uint32_t>(FRAME_CURSOR) = P(g_held_frame);
+		// the next tick's emitter anchors of the plays and the overlay that move (before the replay)
+		g_nnext = 0;
+		for (int i = 0; i < g_nrec; i++)
+			if ((g_recs[i].kind == REC_PLAY && g_recs[i].moves) || (g_recs[i].kind == REC_OVERLAY && g_ovl[g_recs[i].seq].moves))
+				NextAnchorOf(P(g_recs[i].copy));
 		{
 			magc::HeldScope scope(MEM<uint32_t>(PACKET_CURSOR), g_held_packets, sizeof(g_held_packets), g_packets);
 			g_replaying = true;

@@ -25,16 +25,19 @@
 //             radius * (sin, cos)(step * 0x80)): drawn at step 4 * counter + 3 + 4 * num / den, the
 //             exact point of the helix the next tick's sub-steps pass through; the ground glow's
 //             grey ramp (0x3C - 3 * counter) half way to the next tick's. The overlay (the target
-//             redrawn with the projected light) at the target's in-between pose (pose_midpoint),
-//             projected from the in-between ring position; its shadow (sub_5088A0, a pure draw) is
+//             redrawn with the projected light) at the target's in-between pose (pose_midpoint of
+//             its body and of its weapon, which animates with it), projected from the in-between
+//             ring position; its shadow (sub_5088A0, a pure draw) is
 //             drawn again. When the next tick ends the ring (hidden), its position and glow hold.
 //   Mote / sparkle - position half way along its constant velocity; the last drawn frame (the
 //             next tick hides it) holds. Flipbook frames hold.
 //   Glints  - glint::held_draw (fx_glint_held.inc) at the place of the glint queue: size, colours
-//             and spin half way.
+//             and spin half way; their position half way to the next tick's: the line anchor and
+//             bounds height the emitter takes from the target's bones, computed by the effect
+//             library's own functions on a copy of the emitter with the target at its next pose.
 // The overlay's outputs (frame arena packets, vertex buffer, context) go to private copies and are
-// put back; the target's bone matrices are rebuilt from its real pose afterwards. No Cure task
-// has a draw-only mode; Cure does not write the battle camera.
+// put back; the target's (body and weapon) bone matrices are rebuilt from its real pose afterwards. No Cure
+// task has a draw-only mode; Cure does not write the battle camera.
 
 namespace ff8fx
 {
@@ -145,14 +148,66 @@ namespace cure001
 		uint8_t *entity = c->entity;
 		UpdateMatrices(c, entity);
 		const bool posed = c->slot != 0xFF; // (0xFF: the overlay advances the animation: pose held)
+		uint8_t *weapon = *(uint8_t *const *)(entity + 0x78);
+		// the weapon (a party member's, entity +0x78) animates with the body (AdvanceAnimationBy1 0x5094F0):
+		// its in-between pose too
 		if (posed) pose_midpoint(entity + 0x60, entity + 0x6C, num, den);
+		if (posed && weapon) pose_midpoint(weapon, weapon + 0xC, num, den);
 		ComposeAffineTransform(&Camera(), &c->world, &c->view);
 		if (!(entity[0] & 0x20)) *c->frame_cursor = DrawShadow(entity, RenderOT(0x4040), 0x10, *c->frame_cursor);
 		BuildProjectorMatrix(c);
 		RenderModel(*(const uint8_t *const *)(entity + 0x64), RenderOT(0x44), 4, c);
-		const uint8_t *weapon = *(const uint8_t *const *)(entity + 0x78);
 		if (weapon) RenderModel(*(const uint8_t *const *)(weapon + 4), RenderOT(0x44), 4, c);
 		if (posed) BuildBoneMatricesFromPose(entity + 0x60);
+		if (posed && weapon) BuildBoneMatricesFromPose(weapon);
+	}
+
+	// the glints' position on the next tick (glint::held_draw's next_pos): the glint task takes it from
+	// its line's emitter (Effect_CopyMidpointFromSource 0x8DC700 and Effect_GetTargetBoundsCenterWorldY
+	// 0x8DCB80), which the emitter task updates first on every tick from the target's bones
+	// (MAG_001_CURE_Emitter_UpdatePos 0x8DC610 / _ComputeModelBounds 0x8DC870). Here the same functions
+	// run on a copy of the emitter with the target at its next pose (pose_midpoint at 1), then the real
+	// pose is rebuilt and the word GetEffectSpawnPosition writes (0x1D9770C) put back; once per emitter
+	// and held frame.
+	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC700)(n, out); } // Effect_CopyMidpointFromSource
+	inline int32_t BoundsCenterY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCB80)(n); }                  // Effect_GetTargetBoundsCenterWorldY
+	struct NextAnchor { const EmitterNode *emitter; bool ok; EmitterNode next; };
+	static NextAnchor g_next[8];
+	static int g_nnext = 0;
+	static bool NextGlintPos(const void *node, int16_t pos[3])
+	{
+		const EmitterNode *e = *(const EmitterNode *const *)((const uint8_t *)node + 0x14);
+		if (!e) return false;
+		NextAnchor *na = nullptr;
+		for (int i = 0; i < g_nnext; i++) if (g_next[i].emitter == e) na = &g_next[i];
+		if (!na)
+		{
+			if (g_nnext >= (int)(sizeof(g_next) / sizeof(g_next[0]))) return false;
+			na = &g_next[g_nnext++];
+			na->emitter = e;
+			na->next = *e;
+			uint8_t *entity = Entity(e->h.slot);
+			na->ok = *(const uint32_t *)(entity + 0x64) != 0;
+			if (na->ok)
+			{
+				const uint16_t w70c = var<uint16_t>(0x1D9770C);
+				pose_midpoint(entity + 0x60, entity + 0x6C, 1, 1);
+				EmitterUpdatePos(&na->next);
+				ComputeModelBounds(&na->next);
+				BuildBoneMatricesFromPose(entity + 0x60);
+				var<uint16_t>(0x1D9770C) = w70c;
+			}
+		}
+		if (!na->ok) return false;
+		uint8_t g[0x5C];
+		memcpy(g, node, sizeof(g));
+		*(const EmitterNode **)(g + 0x14) = &na->next;
+		int16_t mid[4];
+		CopyMidpointFromSource(g, mid);
+		pos[0] = mid[0];
+		pos[1] = (int16_t)BoundsCenterY(g);
+		pos[2] = mid[2];
+		return true;
 	}
 
 	static void RingHeld(const Rec &r, int num, int den)
@@ -207,7 +262,8 @@ namespace cure001
 			else ParticleHeld(r, num, den);
 		}
 		// the glint queue runs after the particle queue
-		glint::held_draw(g_root, num, den);
+		g_nnext = 0;
+		glint::held_draw(g_root, num, den, NextGlintPos);
 	}
 }
 

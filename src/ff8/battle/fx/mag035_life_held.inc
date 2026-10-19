@@ -28,7 +28,9 @@
 // random spawns, and the anchors (target bones).
 // The glints (Effect_Glint_Tick, drawn after all sprites: the master runs the glint queue last) are
 // redrawn by the shared glint file's held part (glint::held_draw, the glints whose root is Life's
-// master) into the same packet cursor.
+// master) into the same packet cursor, their position half way to the next tick's: the line anchor
+// and bounds height their emitter takes from the target's bones, computed by the effect library's own
+// functions on a copy of the emitter with the target at its next pose (NextGlintPos).
 // A real tick records every sprite draw in order with the GTE registers and the Field_Alloc scratch
 // it started from (the draw header keeps the scratch bytes the code does not write); the held frame
 // replays the log into a private copy of the module arena (magc::HeldScope). No Life task writes
@@ -82,6 +84,53 @@ namespace life
 	}
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick; }
+
+	// the glints' position on the next tick (glint::held_draw's next_pos): the glint task takes it from
+	// its line's emitter (node +0x14: Life's emitter 0x864BC0, whose glints they are) through
+	// Effect_CopyMidpointFromSource 0x8DC700 and Effect_GetTargetBoundsCenterWorldY 0x8DCB80; the emitter
+	// task updates it first on every tick from the target's bones (MAG_001_CURE_Emitter_UpdatePos 0x8DC610
+	// / _ComputeModelBounds 0x8DC870). Here the same functions run on a copy of the emitter with the target
+	// at its next pose (pose_midpoint at 1), then the real pose is rebuilt and the word
+	// GetEffectSpawnPosition writes (0x1D9770C) put back; once per emitter and held frame.
+	static const uint32_t EMITTER_NODE = 0x64;
+	struct NextAnchor { uint32_t emitter; bool ok; alignas(4) uint8_t next[EMITTER_NODE]; };
+	static NextAnchor g_next[8];
+	static int g_nnext = 0;
+	static bool NextGlintPos(const void *node, int16_t pos[3])
+	{
+		const uint32_t e = U32(P(node), 0x14);
+		if (!e) return false;
+		NextAnchor *na = nullptr;
+		for (int i = 0; i < g_nnext; i++) if (g_next[i].emitter == e) na = &g_next[i];
+		if (!na)
+		{
+			if (g_nnext >= (int)(sizeof(g_next) / sizeof(g_next[0]))) return false;
+			na = &g_next[g_nnext++];
+			na->emitter = e;
+			memcpy(na->next, (const void *)e, EMITTER_NODE);
+			const uint32_t entity = 0x1D972C0 + 0x9C * (uint32_t)U8(e, 0x2D);
+			na->ok = U32(entity, 0x64) != 0;
+			if (na->ok)
+			{
+				const uint16_t w70c = MEM<uint16_t>(0x1D9770C);
+				pose_midpoint((void *)(entity + 0x60), (void *)(entity + 0x6C), 1, 1);
+				x::MAG_001_CURE_Emitter_UpdatePos(P(na->next));
+				x::MAG_001_CURE_Emitter_ComputeModelBounds(P(na->next));
+				x::BattleModel_BuildBoneMatricesFromPose(entity + 0x60);
+				MEM<uint16_t>(0x1D9770C) = w70c;
+			}
+		}
+		if (!na->ok) return false;
+		alignas(4) uint8_t g[0x5C];
+		memcpy(g, node, sizeof(g));
+		U32(P(g), 0x14) = P(na->next);
+		alignas(4) int16_t mid[4];
+		fn<void (__cdecl *)(uint32_t, uint32_t)>(0x8DC700)(P(g), P(mid));               // Effect_CopyMidpointFromSource
+		pos[0] = mid[0];
+		pos[1] = (int16_t)fn<int32_t (__cdecl *)(uint32_t)>(0x8DCB80)(P(g));             // Effect_GetTargetBoundsCenterWorldY
+		pos[2] = mid[2];
+		return true;
+	}
 
 	static void HeldFrame(int num, int den)
 	{
@@ -138,7 +187,8 @@ namespace life
 				}
 			}
 			// the glint queue runs after the sprite queue (shared glint task: this effect's glints)
-			glint::held_draw((const void *)g_master, num, den);
+			g_nnext = 0;
+			glint::held_draw((const void *)g_master, num, den, NextGlintPos);
 		}
 		g_mod = saved_mod;
 	}
