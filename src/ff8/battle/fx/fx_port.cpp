@@ -257,6 +257,7 @@ namespace ff8fx
 		register_mag294_antidote();
 		register_mag295_echo_screen();
 		register_mag296_holy_water();
+		register_mag067_remedy();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();

@@ -179,6 +179,7 @@ namespace ff8fx::mod
 	static const Region streams_i052[] = { { 0x17AB0E8, 0xD4 }, { 0x17B1DE4, 0x14A8 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_i005[] = { { 0x2792E74, 4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_i007[] = { { 0x163B1E0, 0x578 }, { 0x163C6BC, 0x48 }, { 0x163C78C, 0x48 }, { 0x2793DA4, 0xD4 } };
+	static const Region streams_i067[] = { { 0x2793DA4, 0xD4 }, { 0x178F3F4, 0x9C }, { 0x17948B8, 0x738 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -372,6 +373,7 @@ namespace ff8fx::mod
 		{ 294, 0x2507A48, 0x2507A94, 0, 0, false, "Antidote (item)", nullptr, 0 },
 		{ 295, 0x25079D8, 0x2507A48, 0, 0, false, "Echo Screen (item)", nullptr, 0 },
 		{ 296, 0x2507988, 0x25079D4, 0, 0, false, "Holy Water (item)", nullptr, 0 },
+		{ 67, 0x26005D0, 0x2601314, 0, 0, false, "Remedy (items Remedy / Remedy+)", streams_i067, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
