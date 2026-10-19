@@ -173,6 +173,9 @@ namespace ff8fx::mod
 	static const Region streams_s139[] = { { 0x11D7900, 0x12F0 } };
 	static const Region streams_i050[] = { { 0x2792E74, 4 }, { 0x2793E58, 0x20 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_i051[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_i053[] = { { 0x15A78B8, 0x168 }, { 0x15A7DE0, 0x48 }, { 0x15A7EB0, 0x48 }, { 0x2793DA4, 0xD4 } };
+	static const Region streams_i058[] = { { 0x159B100, 0x280 }, { 0x159BA38, 0x20 }, { 0x159BA98, 0x48 }, { 0x159BB68, 0x280 }, { 0x159C4A0, 0x20 }, { 0x2793DA4, 0xD4 } };
+	static const Region streams_i059[] = { { 0x1597B40, 0x280 }, { 0x1598478, 0x20 }, { 0x15984D8, 0x48 }, { 0x15985A8, 0x280 }, { 0x1598EE0, 0x20 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -355,6 +358,9 @@ namespace ff8fx::mod
 		{ 139, 0x2517B50, 0x2520C48, 0, 0, false, "Sonic Wave (attack 182)", streams_s139, 1 },
 		{ 50, 0x2634AB8, 0x26464D8, 0, 0, false, "Potion (items Potion / Potion+)", streams_i050, 3 },
 		{ 51, 0x2619F50, 0x2634AB8, 0, 0, false, "Hi-Potion (items Hi-Potion / Hi-Potion+)", streams_i051, 1 },
+		{ 53, 0x2617168, 0x261814C, 0, 0, false, "Mega-Potion (item)", streams_i053, 4 },
+		{ 58, 0x260A328, 0x260B30C, 0, 0, false, "Elixir (item)", streams_i058, 6 },
+		{ 59, 0x2607060, 0x2608044, 0, 0, false, "Megalixir (item)", streams_i059, 6 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
