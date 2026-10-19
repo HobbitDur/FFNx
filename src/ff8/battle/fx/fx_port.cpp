@@ -249,6 +249,7 @@ namespace ff8fx
 		register_mag053_megapotion();
 		register_mag058_elixir();
 		register_mag059_megalixir();
+		register_mag052_xpotion();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
