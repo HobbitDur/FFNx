@@ -371,6 +371,7 @@ namespace ff8fx::mod
 		{ 293, 0x2507A98, 0x2507AE4, 0, 0, false, "Eye Drops (item)", nullptr, 0 },
 		{ 294, 0x2507A48, 0x2507A94, 0, 0, false, "Antidote (item)", nullptr, 0 },
 		{ 295, 0x25079D8, 0x2507A48, 0, 0, false, "Echo Screen (item)", nullptr, 0 },
+		{ 296, 0x2507988, 0x25079D4, 0, 0, false, "Holy Water (item)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

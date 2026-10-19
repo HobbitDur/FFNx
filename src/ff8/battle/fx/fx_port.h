@@ -372,6 +372,7 @@ namespace ff8fx
 	void register_mag293_eye_drops();
 	void register_mag294_antidote();
 	void register_mag295_echo_screen();
+	void register_mag296_holy_water();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
