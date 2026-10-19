@@ -368,6 +368,7 @@ namespace ff8fx::mod
 		{ 5, 0x27618A0, 0x276FAE8, 0, 0, false, "Phoenix Down (item)", streams_i005, 2 },
 		{ 7, 0x275FB80, 0x2760B64, 0, 0, false, "Mega Phoenix (item)", streams_i007, 4 },
 		{ 292, 0x2507AE8, 0x2507B34, 0, 0, false, "Soft (item)", nullptr, 0 },
+		{ 293, 0x2507A98, 0x2507AE4, 0, 0, false, "Eye Drops (item)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
