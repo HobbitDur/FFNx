@@ -22,7 +22,8 @@
 // draws each again from the same GTE state at its in-between state: the next tick's growth / fade
 // step (the task's own pure Step on a copy) half way - size, colours (per-tick byte steps) and the
 // Y angle's spin; the position (the line anchor's midpoint and the target's bounds centre height,
-// engine-driven) and the other angles hold. A glint whose next tick hides it (end of its fade)
+// engine-driven) half way to the next tick's when the module gives it (held_draw with next_pos),
+// else it holds; the other angles hold. A glint whose next tick hides it (end of its fade)
 // holds its last state. At fraction 0 the draws are exactly the real tick's.
 
 namespace ff8fx
@@ -57,7 +58,9 @@ namespace glint
 	// byte colour half way along its per-tick step (the step wraps as a byte)
 	static inline uint8_t LerpByte(uint8_t a, uint8_t b, int num, int den) { return (uint8_t)(a + (int8_t)(uint8_t)(b - a) * num / den); }
 
-	void held_draw(const void *root, int num, int den)
+	void held_draw(const void *root, int num, int den) { held_draw(root, num, den, nullptr); }
+
+	void held_draw(const void *root, int num, int den, NextPosFn next_pos)
 	{
 		if (g_log_tick != g_real_tick) return;
 		for (int i = 0; i < g_nrec; i++)
@@ -79,6 +82,9 @@ namespace glint
 					m.rgb_b[k] = LerpByte(a.rgb_b[k], b.rgb_b[k], num, den);
 				}
 				m.rot[1] = (int16_t)((uint16_t)(a.rot[1] + a.spin * num / den) & 0xFFF);
+				int16_t np[3];
+				if (next_pos && next_pos(r.node, np))
+					for (int k = 0; k < 3; k++) m.h.pos[k] = lerp16(a.h.pos[k], np[k], num, den);
 			}
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);

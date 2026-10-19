@@ -36,6 +36,11 @@ namespace glint
 	// writes into the cursor it used then (redirect that cursor first, e.g. HeldScope). Nothing is
 	// drawn when no glint drew on this real tick. No state is changed (the cursor advances).
 	void held_draw(const void *root, int num, int den);
+	// the same, and a glint's position too: `next_pos` (nullptr: the position holds) gives the position the glint `node`
+	// (as recorded) takes on the next tick (its line anchor / bounds height follow the target's animation); the held
+	// position is num/den of the way there. It returns false to hold.
+	typedef bool (*NextPosFn)(const void *node, int16_t pos[3]);
+	void held_draw(const void *root, int num, int den, NextPosFn next_pos);
 }
 	void register_fx_glint_held();
 }
