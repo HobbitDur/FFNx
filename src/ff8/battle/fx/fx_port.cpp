@@ -255,6 +255,7 @@ namespace ff8fx
 		register_mag292_soft();
 		register_mag293_eye_drops();
 		register_mag294_antidote();
+		register_mag295_echo_screen();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
