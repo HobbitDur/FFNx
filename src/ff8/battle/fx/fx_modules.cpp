@@ -374,6 +374,8 @@ namespace ff8fx::mod
 		{ 295, 0x25079D8, 0x2507A48, 0, 0, false, "Echo Screen (item)", nullptr, 0 },
 		{ 296, 0x2507988, 0x25079D4, 0, 0, false, "Holy Water (item)", nullptr, 0 },
 		{ 67, 0x26005D0, 0x2601314, 0, 0, false, "Remedy (items Remedy / Remedy+)", streams_i067, 3 },
+		{ 309, 0x2507480, 0x25074CC, 0, 0, false, "Hero (items Hero-trial / Hero)", nullptr, 0 },
+		{ 310, 0x2507430, 0x250747C, 0, 0, false, "Holy War (items Holy War-trial / Holy War)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
