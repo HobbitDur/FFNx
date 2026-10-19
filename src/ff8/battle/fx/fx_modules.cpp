@@ -172,6 +172,7 @@ namespace ff8fx::mod
 	static const Region streams_s176[] = { { 0xD4516C, 0xC }, { 0x21DFED0, 0x20 } };
 	static const Region streams_s139[] = { { 0x11D7900, 0x12F0 } };
 	static const Region streams_i050[] = { { 0x2792E74, 4 }, { 0x2793E58, 0x20 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_i051[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -353,6 +354,7 @@ namespace ff8fx::mod
 		{ 226, 0x2508770, 0x25087F0, 0, 0, false, "White Wind (attack 276, Adamantoise)", nullptr, 0 },
 		{ 139, 0x2517B50, 0x2520C48, 0, 0, false, "Sonic Wave (attack 182)", streams_s139, 1 },
 		{ 50, 0x2634AB8, 0x26464D8, 0, 0, false, "Potion (items Potion / Potion+)", streams_i050, 3 },
+		{ 51, 0x2619F50, 0x2634AB8, 0, 0, false, "Hi-Potion (items Hi-Potion / Hi-Potion+)", streams_i051, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
