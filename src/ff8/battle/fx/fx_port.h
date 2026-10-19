@@ -363,6 +363,7 @@ namespace ff8fx
 	void register_mag050_potion();
 	void register_mag051_hipotion();
 	void register_mag053_megapotion();
+	void register_mag058_elixir();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
