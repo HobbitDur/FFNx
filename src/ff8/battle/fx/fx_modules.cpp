@@ -177,6 +177,7 @@ namespace ff8fx::mod
 	static const Region streams_i058[] = { { 0x159B100, 0x280 }, { 0x159BA38, 0x20 }, { 0x159BA98, 0x48 }, { 0x159BB68, 0x280 }, { 0x159C4A0, 0x20 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_i059[] = { { 0x1597B40, 0x280 }, { 0x1598478, 0x20 }, { 0x15984D8, 0x48 }, { 0x15985A8, 0x280 }, { 0x1598EE0, 0x20 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_i052[] = { { 0x17AB0E8, 0xD4 }, { 0x17B1DE4, 0x14A8 }, { 0x2793DA4, 0xD4 } };
+	static const Region streams_i005[] = { { 0x2792E74, 4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -363,6 +364,7 @@ namespace ff8fx::mod
 		{ 58, 0x260A328, 0x260B30C, 0, 0, false, "Elixir (item)", streams_i058, 6 },
 		{ 59, 0x2607060, 0x2608044, 0, 0, false, "Megalixir (item)", streams_i059, 6 },
 		{ 52, 0x26193D0, 0x2619F4C, 0, 0, false, "X-Potion (item)", streams_i052, 3 },
+		{ 5, 0x27618A0, 0x276FAE8, 0, 0, false, "Phoenix Down (item)", streams_i005, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
