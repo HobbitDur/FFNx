@@ -252,6 +252,12 @@ namespace ff8fx
 		register_mag052_xpotion();
 		register_mag005_phoenix_down();
 		register_mag007_mega_phoenix();
+		register_mag292_soft();
+		register_mag293_eye_drops();
+		register_mag294_antidote();
+		register_mag295_echo_screen();
+		register_mag296_holy_water();
+		register_mag067_remedy();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
