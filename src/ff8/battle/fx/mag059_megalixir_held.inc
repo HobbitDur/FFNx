@@ -16,25 +16,26 @@
 // 30 fps part of mag059_megalixir.cpp: the held-frame drawing of the actor systems (included at the end of
 // mag059_megalixir.cpp)
 //
-// Held frames (30 fps): Megalixir is drawn by its actor systems (task 0x7F2D50, one per target) only;
-// every particle actor (sprite sequences 0x7F4FE0, prim models 0x7F3900) is updated THEN drawn in the same
-// tick. The real tick notes, per actor system that drew, the GTE state, the module scratch stack, the
-// Field_Alloc scratch and the morph vertex blocks its draws started from. The held frame redraws each
-// noted system's actors, in the same order (sprite sequences, then models), from copies whose draw
-// matrix (+0xAC: rotation / scale), view positions (+0xC0..+0xC8) and per-copy positions (+0x19C..)
-// are half way to the next tick's: the next tick's motion step (0x741050, the end test of 0x7F61E0
-// without its follow-up spawn, 0x740910, 0x741120) runs on a second copy; at fraction 1 the whole
-// next actor. An actor ending on the next tick (not drawn at fraction 1, as on the next tick) and an
-// actor not in its motion phase hold; an actor whose sequence (+0x170) changes on the next tick holds
-// until fraction 1. Flipbook frame, model and colours hold; a morphing model (definition kind 5)
-// moves like the others but keeps the mesh it was drawn with (its step's morph 0x7418B0 rewrites the
-// destination vertex block of its next keyframe in the actor data: the blocks are put back before the
-// draws, so the mesh keyframe switches on the real tick); particles spawned on the next tick are not
-// drawn (random growth stays at 15 Hz).
+// Held frames (30 fps): Megalixir's particles are drawn by its actor systems (task 0x7F2D50): every
+// particle actor (sprite sequences 0x7F4FE0, prim models 0x7F3900) is updated THEN drawn in the same
+// tick. The real tick notes, per actor system that drew, the GTE state, the module scratch stack,
+// the Field_Alloc scratch and the morph vertex blocks its draws started from. The held frame
+// redraws each noted system's actors, in the same order (sprite sequences, then models), from
+// copies whose draw matrix (+0xAC: rotation / scale), view positions (+0xC0..+0xC8) and per-copy
+// positions (+0x19C..) are half way to the next tick's: the next tick's update pass (0x7F5060) runs
+// on copies of the system's particles and actors, in list order (NextTick: the particles' placement,
+// the actors' motion step; no emission, no spawn), so a model placed relative to a particle (+0x1BC)
+// that rides a moving actor (placement kind 3) moves with the next tick's particle; at fraction 1
+// the whole next actor. An actor ending on the next tick (not drawn at fraction 1, as on
+// the next tick) and an actor not in its motion phase hold; an actor whose sequence (+0x170)
+// changes on the next tick holds until fraction 1. Flipbook frame, model and colours hold; a
+// morphing model (definition kind 5) moves like the others but keeps the mesh it was drawn with
+// (its step's morph 0x7F60D0 rewrites the destination vertex block of its next keyframe in the
+// loaded actor data, which every actor system of the cast shares: the blocks each system drew
+// with are put back before its draws, so the mesh keyframe switches on the real tick); particles
+// spawned on the next tick are not drawn (random growth stays at 15 Hz).
 // The actors are placed by key positions the director set-up (0x7F2DE0) takes ONCE from the caster
-// and the target entities: nothing the module draws follows the battle models afterwards (the
-// emitter's bone follow only feeds the model bounds / the action result), so no part is anchored to
-// an animating model.
+// and the target entities: nothing the module draws follows the battle models afterwards.
 // The packets go to private buffers (module cursor 0x2607064, frame arena 0x1D8E054) that start
 // with the real tick's packets from the cursors of the tick's first draw (the master picks the module
 // arena by tick parity before its queues run); the module globals, the module scratch stack, the
@@ -109,16 +110,85 @@ namespace megalixir
 	static uint32_t g_pkt_start = 0, g_fa_start = 0; // the cursors at the tick's first draw
 	static uint8_t g_held_packets[0x40000], g_held_fa[0x20000];
 
+	// the battle camera words a view is built from (0x5033E0): eye 0xB8B7F0, look-at 0xB8B7F8, roll
+	// 0x1D977A2, shake 0x1D97710
+	struct CamWords
+	{
+		int16_t w[10];
+		void io(bool set)
+		{
+			static const uint32_t a[10] = { 0xB8B7F0, 0xB8B7F2, 0xB8B7F4, 0xB8B7F8, 0xB8B7FA, 0xB8B7FC, 0x1D977A2, 0x1D97710, 0x1D97712, 0x1D97714 };
+			for (int i = 0; i < 10; i++)
+			{
+				if (set) MEM<int16_t>(a[i]) = w[i];
+				else w[i] = MEM<int16_t>(a[i]);
+			}
+		}
+	};
+	static const uint32_t CAM_COPY = 0x2793E58; // the module's camera snapshot (*G_257F9B0, the master copies 0x1D97778)
+	// the words after each real tick (noted at its held frames: HeldReady): the view of the next tick
+	// is built from them
+	static CamWords g_cw_held, g_cw_prev;
+	static uint32_t g_cw_held_tick = 0xFFFFFFFF, g_cw_prev_tick = 0xFFFFFFFF;
+	static uint8_t g_cam_tick[0x20];             // the view this real tick drew with
+	static void note_cam_words()
+	{
+		if (g_cw_held_tick == g_real_tick) return;
+		g_cw_prev = g_cw_held;
+		g_cw_prev_tick = g_cw_held_tick;
+		g_cw_held.io(false);
+		g_cw_held_tick = g_real_tick;
+	}
+
+	static void held_begin_tick()
+	{
+		if (g_sys_tick == g_real_tick) return;
+		memcpy(g_cam_tick, (const void *)CAM_COPY, sizeof(g_cam_tick));
+		g_sys_tick = g_real_tick;
+		g_nsys = 0;
+		g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
+		g_fa_start = MEM<uint32_t>(FA_CURSOR);
+	}
+
+	// the view the next tick draws with (the actors' view positions / draw matrices are built with
+	// it): the battle builds a tick's view (0x5033E0) from the camera words the tick before left, so
+	// with a live camera (this tick's view = the one built from the words after the previous tick)
+	// the next view is the one built from the words now; otherwise (a fixed view) it is this tick's. The
+	// camera block, the words, the GTE registers and the Field_Alloc scratch are put back.
+	static bool NextView(uint8_t out[0x20])
+	{
+		if (g_cw_prev_tick + 1 != g_real_tick) return false; // (the words after the previous tick: noted at its held frame)
+		static uint8_t cam[0xB0], words[0x20], gte[GTE_D_N + GTE_C_N], falloc[0x400];
+		const uint32_t fa = MEM<uint32_t>(0x1D999C4);
+		memcpy(cam, (const void *)0x1D97700, sizeof(cam));
+		memcpy(words, (const void *)0xB8B7F0, sizeof(words));
+		memcpy(gte, (const void *)GTE_D, GTE_D_N);
+		memcpy(gte + GTE_D_N, (const void *)GTE_C, GTE_C_N);
+		if (fa) memcpy(falloc, (const void *)fa, sizeof(falloc));
+		CamWords now;
+		now.io(false);
+		g_cw_prev.io(true);
+		fn<void (__cdecl *)()>(0x5033E0)(); // BS_Camera_BuildViewMatrixApplyShake
+		const bool live = memcmp((const void *)0x1D97778, g_cam_tick, sizeof(g_cam_tick)) == 0;
+		if (live)
+		{
+			now.io(true);
+			fn<void (__cdecl *)()>(0x5033E0)();
+			memcpy(out, (const void *)0x1D97778, 0x20);
+		}
+		memcpy((void *)0x1D97700, cam, sizeof(cam));
+		memcpy((void *)0xB8B7F0, words, sizeof(words));
+		memcpy((void *)GTE_D, gte, GTE_D_N);
+		memcpy((void *)GTE_C, gte + GTE_D_N, GTE_C_N);
+		MEM<uint32_t>(0x1D999C4) = fa;
+		if (fa) memcpy((void *)fa, falloc, sizeof(falloc));
+		return live;
+	}
+
 	// real tick: an actor system is about to draw (after its update pass)
 	static void held_note_system(uint32_t sys)
 	{
-		if (g_sys_tick != g_real_tick)
-		{
-			g_sys_tick = g_real_tick;
-			g_nsys = 0;
-			g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
-			g_fa_start = MEM<uint32_t>(FA_CURSOR);
-		}
+		held_begin_tick();
 		if (g_nsys >= MAX_SYSTEMS) return;
 		SysNote &n = g_sys[g_nsys++];
 		n.sys = sys;
@@ -129,7 +199,11 @@ namespace megalixir
 		n.verts.save(sys);
 	}
 
-	static bool HeldReady() { return held_ready() && g_sys_tick == g_real_tick; }
+	static bool HeldReady()
+	{
+		note_cam_words(); // (every held frame, drawn or not)
+		return held_ready() && g_sys_tick == g_real_tick;
+	}
 
 	// definition of an actor (state +0x224 table, index +0x1D6)
 	static uint32_t DefOf(uint32_t act)
@@ -137,29 +211,110 @@ namespace megalixir
 		return U32(U32(MEM<uint32_t>(ACTOR_STATE), 0x224), S8(act, 0x1D6) * 4);
 	}
 
-	// the actor's copy `cur` half way to the next tick's `nxt` (the next tick's motion step of
-	// 0x7F50A0 run on it): draw matrix, view positions, sub-positions; at fraction 1 the whole next
-	// actor. Holds (cur = the drawn actor): not in its motion phase, ends on the next tick, sequence
-	// change before fraction 1. A morphing model's step (kind 5: 0x741120 -> morph) rewrites the
+	// the next tick's update pass (0x7F5060: list order; particles = type 0, actors = type 1) run on
+	// copies: a particle moves by its placement kind (+0x68: 3 = rides its owner actor +0x5C, 0x7424C0;
+	// 4 = key-position path 0x7F6E30; its emission 0x7F63B0 and life count 0x741B60: not run), an actor
+	// by its motion step (0x7F50A0: 0x741050, the end test of 0x7F61E0 without its follow-up spawn,
+	// 0x740910, 0x741120). A particle's owner and an actor's parent particle (+0x1BC: placement
+	// relative to it) are their next-tick copies when the pass updates them first (earlier in the
+	// list), as on the next tick. A morphing model's step (kind 5: 0x741120 -> morph) rewrites the
 	// shared vertex blocks: SystemHeld puts the drawn ones back after the predictions
 	enum { P_HOLD, P_NEXT, P_ENDS };
-	static int Predict(uint32_t act, uint32_t cur, uint32_t nxt, int num, int den)
+	static const uint32_t PART_BYTES = 0x6C;
+	static const int MAX_PARTS = 128;
+	struct NextPass
 	{
-		memcpy((void *)cur, (const void *)act, ACTOR_BYTES);
+		uint32_t part[MAX_PARTS], act[MAX_ACTORS];
+		int np, na, cls[MAX_ACTORS];
+		alignas(4) uint8_t pc[MAX_PARTS][PART_BYTES];
+		alignas(4) uint8_t ac[MAX_ACTORS][ACTOR_BYTES];
+		uint32_t part_copy(uint32_t real) const { for (int i = 0; i < np; i++) if (part[i] == real) return P(pc[i]); return 0; }
+		int act_index(uint32_t real) const { for (int i = 0; i < na; i++) if (act[i] == real) return i; return -1; }
+	};
+	static NextPass g_next;
+
+	// the motion step of actor `act` on its copy `nxt`
+	static int StepActor(uint32_t act, uint32_t nxt)
+	{
 		memcpy((void *)nxt, (const void *)act, ACTOR_BYTES);
 		const uint32_t def = DefOf(act);
 		if (S16(act, 0x1CC) != 0) return P_HOLD;
+		const uint32_t parent = U32(nxt, 0x1BC);
+		const uint32_t pc = parent ? g_next.part_copy(parent) : 0;
+		if (pc) U32(nxt, 0x1BC) = pc;
+		int r = P_NEXT;
 		a_741050(nxt, def);
 		// end test of 0x7F61E0 (its follow-up spawn: not called)
 		const int32_t kind = S8(def, 0x1E);
+		bool ends = false;
 		if (kind == 1 || kind == 2)
 		{
 			U16(nxt, 0x1C8) = (uint16_t)(U16(nxt, 0x1C8) - 1);
-			if (S16(nxt, 0x1C8) < 0) return P_ENDS;
+			ends = S16(nxt, 0x1C8) < 0;
 		}
-		if ((kind == 0 || kind == 2) && U8(nxt, 0x1D2) == 1) return P_ENDS;
-		a_740910(nxt, def);
-		a_741120(nxt, def);
+		if (!ends && (kind == 0 || kind == 2) && U8(nxt, 0x1D2) == 1) ends = true;
+		if (ends)
+			r = P_ENDS;
+		else
+		{
+			a_740910(nxt, def);
+			a_741120(nxt, def);
+			U16(nxt, 0x1CA) = (uint16_t)(U16(nxt, 0x1CA) + 1); // frame count of the step
+		}
+		U32(nxt, 0x1BC) = parent;
+		return r;
+	}
+
+	// the placement step of particle `part` on its copy `nxt` (as 0x7F6330 without its emission / life count)
+	static void StepParticle(uint32_t part, uint32_t nxt)
+	{
+		memcpy((void *)nxt, (const void *)part, PART_BYTES);
+		if (U16(part, 0x62) == 0) return; // (not initialised yet: none after a real tick)
+		const int32_t mode = S8(nxt, 0x68);
+		if (mode == 3)
+		{
+			const uint32_t owner = U32(nxt, 0x5C);
+			const int oi = owner ? g_next.act_index(owner) : -1;
+			if (oi >= 0) U32(nxt, 0x5C) = P(g_next.ac[oi]);
+			a_7424C0(nxt);
+			U32(nxt, 0x5C) = owner;
+		}
+		else if (mode == 4)
+			ml_7F6E30(nxt);
+		U16(nxt, 0x60) = (uint16_t)(U16(nxt, 0x60) + 1);
+	}
+
+	static void NextTick(uint32_t sys)
+	{
+		g_next.np = g_next.na = 0;
+		for (uint32_t node = U32(sys, 0x2C); node; node = U32(node, 4))
+		{
+			const int32_t type = S16(node, 8);
+			if (type == 0 && g_next.np < MAX_PARTS)
+			{
+				const int i = g_next.np++;
+				g_next.part[i] = node;
+				StepParticle(node, P(g_next.pc[i]));
+			}
+			else if (type == 1 && g_next.na < MAX_ACTORS)
+			{
+				const int i = g_next.na++;
+				g_next.act[i] = node;
+				g_next.cls[i] = StepActor(node, P(g_next.ac[i]));
+			}
+		}
+	}
+
+	// the drawn actor's copy `cur` half way to its next-tick copy: draw matrix, view positions,
+	// sub-positions; at fraction 1 the whole next actor. Holds (cur = the drawn actor): not in its
+	// motion phase, ends on the next tick, sequence change before fraction 1
+	static int Predict(uint32_t act, uint32_t cur, int num, int den)
+	{
+		memcpy((void *)cur, (const void *)act, ACTOR_BYTES);
+		const int ai = g_next.act_index(act);
+		if (ai < 0) return P_HOLD;
+		if (g_next.cls[ai] != P_NEXT) return g_next.cls[ai];
+		const uint32_t nxt = P(g_next.ac[ai]);
 		if (U32(nxt, 0x170) != U32(act, 0x170) && num < den) return P_HOLD;
 		for (int k = 0; k < 9; k++) // rotation / scale of the draw matrix +0xAC
 			S16(cur, 0xAC + 2 * k) = (int16_t)lerp_i(S16(cur, 0xAC + 2 * k), S16(nxt, 0xAC + 2 * k), num, den);
@@ -173,17 +328,13 @@ namespace megalixir
 				S16(cur, o) = (int16_t)lerp_i(S16(cur, o), S16(nxt, o), num, den);
 			}
 		if (num >= den && S8(nxt, 0x1D8) == S8(cur, 0x1D8) && U32(nxt, 0x170) != 0)
-		{
 			memcpy((void *)cur, (const void *)nxt, ACTOR_BYTES);
-			U16(cur, 0x1CA) = (uint16_t)(U16(cur, 0x1CA) + 1); // frame count of the step (0x7F50A0)
-		}
 		return P_NEXT;
 	}
 
-	static void SystemHeld(const SysNote &n, int num, int den)
+	static void SystemHeld(const SysNote &n, const uint8_t *next_view, int num, int den)
 	{
 		alignas(4) static uint8_t copies[MAX_ACTORS][ACTOR_BYTES];
-		alignas(4) static uint8_t nxt[ACTOR_BYTES];
 		MEM<uint32_t>(ACTOR_STATE) = n.sys;
 		// the drawn actors: sprite sequences (definition kinds 0..2) and models (4 / 5)
 		uint32_t list[MAX_ACTORS];
@@ -195,9 +346,11 @@ namespace megalixir
 			if (kind > 5 || kind == 3) continue;
 			list[nl++] = act;
 		}
+		if (next_view) memcpy((void *)CAM_COPY, next_view, 0x20); // (the system's scratch, camera snapshot included, is put back below)
+		NextTick(n.sys);
 		int cls[MAX_ACTORS];
 		for (int i = 0; i < nl; i++)
-			cls[i] = Predict(list[i], P(copies[i]), P(nxt), num, den);
+			cls[i] = Predict(list[i], P(copies[i]), num, den);
 		// the draws start from the real tick's GTE state, scratch, Field_Alloc scratch and morph
 		// vertex blocks (the predictions above ran the morphs of the next keyframes)
 		memcpy((void *)GTE_D, n.gte, GTE_D_N);
@@ -263,8 +416,10 @@ namespace megalixir
 		}
 		MEM<uint32_t>(PACKET_CURSOR) = P(g_held_packets);
 		MEM<uint32_t>(FA_CURSOR) = P(g_held_fa);
+		uint8_t view[0x20];
+		const bool next_view = g_nsys > 0 && NextView(view);
 		for (int s = 0; s < g_nsys; s++)
-			SystemHeld(g_sys[s], num, den);
+			SystemHeld(g_sys[s], next_view ? view : nullptr, num, den);
 		MEM<uint32_t>(PACKET_CURSOR) = pc;
 		MEM<uint32_t>(FA_CURSOR) = fc;
 		for (int s = g_nsys - 1; s >= 0; s--)
