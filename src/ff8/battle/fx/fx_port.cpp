@@ -246,6 +246,7 @@ namespace ff8fx
 		register_mag139_sonic_wave();
 		register_mag050_potion();
 		register_mag051_hipotion();
+		register_mag053_megapotion();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
