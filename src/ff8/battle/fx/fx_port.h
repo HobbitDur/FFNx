@@ -370,6 +370,7 @@ namespace ff8fx
 	void register_mag007_mega_phoenix();
 	void register_mag292_soft();
 	void register_mag293_eye_drops();
+	void register_mag294_antidote();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

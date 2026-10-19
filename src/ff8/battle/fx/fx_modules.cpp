@@ -369,6 +369,7 @@ namespace ff8fx::mod
 		{ 7, 0x275FB80, 0x2760B64, 0, 0, false, "Mega Phoenix (item)", streams_i007, 4 },
 		{ 292, 0x2507AE8, 0x2507B34, 0, 0, false, "Soft (item)", nullptr, 0 },
 		{ 293, 0x2507A98, 0x2507AE4, 0, 0, false, "Eye Drops (item)", nullptr, 0 },
+		{ 294, 0x2507A48, 0x2507A94, 0, 0, false, "Antidote (item)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
