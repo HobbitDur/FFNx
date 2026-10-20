@@ -379,6 +379,7 @@ namespace ff8fx
 	void register_mag160_renzokuken();
 	void register_mag163_rough_divide();
 	void register_mag162_fated_circle();
+	void register_mag164_blasting_zone();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
