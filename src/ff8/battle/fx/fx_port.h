@@ -377,6 +377,7 @@ namespace ff8fx
 	void register_mag309_hero();
 	void register_mag310_holy_war();
 	void register_mag160_renzokuken();
+	void register_mag163_rough_divide();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

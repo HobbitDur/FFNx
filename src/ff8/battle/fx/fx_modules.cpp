@@ -379,6 +379,7 @@ namespace ff8fx::mod
 		{ 309, 0x2507480, 0x25074CC, 0, 0, false, "Hero (items Hero-trial / Hero)", nullptr, 0 },
 		{ 310, 0x2507430, 0x250747C, 0, 0, false, "Holy War (items Holy War-trial / Holy War)", nullptr, 0 },
 		{ 160, 0x23D34A8, 0x23D5644, 0, 0, false, "Renzokuken (Squall)", streams_r160, 1 },
+		{ 163, 0x23CA120, 0x23CE588, 0, 0, false, "Rough Divide (Squall's Renzokuken finisher)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
