@@ -188,6 +188,8 @@ namespace ff8fx::mod
 	static const Region streams_p140[] = { { 0x11B539C, 0xB17 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c278[] = { { 0x10B6FB4, 0x5A9 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_m338[] = { { 0x136BB50, 0x549 }, { 0x1D99C18, 8 } };
+	// Renzokuken: the block BS_BindEntityModelFromComData fills with the caster's animation set pointers
+	static const Region streams_r160[] = { { 0x24FEBC8, 0x20 } };
 
 	const Module modules[] = {
 		// timeline-A (own pause flag, creature spawned by the master at counter 2)
@@ -376,6 +378,7 @@ namespace ff8fx::mod
 		{ 67, 0x26005D0, 0x2601314, 0, 0, false, "Remedy (items Remedy / Remedy+)", streams_i067, 3 },
 		{ 309, 0x2507480, 0x25074CC, 0, 0, false, "Hero (items Hero-trial / Hero)", nullptr, 0 },
 		{ 310, 0x2507430, 0x250747C, 0, 0, false, "Holy War (items Holy War-trial / Holy War)", nullptr, 0 },
+		{ 160, 0x23D34A8, 0x23D5644, 0, 0, false, "Renzokuken (Squall)", streams_r160, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -391,6 +394,8 @@ namespace ff8fx::mod
 		{ 0x209D078, 0x2A40, "hit-effect queue pool + header" },  // effects spawn screen fades into it
 		{ 0x1D9898C, 0xDC, "battle entity array" },  // screen flash, currentBsId visibility bits
 		{ 0x1D972C0, 0x440, "BattleEntitySlotData" }, // entity_flags hide bits, Carbuncle's party lift, Odin/Doomtrain target edits
+		{ 0x1D96ED0, 0x1C0, "battle state controllers" }, // entity +0x74 blocks (7 x 0x40): Renzokuken's animation-set bind
+		{ 0x1D971F0, 0xD0, "weapon animation slots" },    // entity +0x78 headers (3 x 0x44): Renzokuken's animation-set bind
 		{ 0x1D99AB0, 0x20, "effect light/position" }, // shared effect light/position struct (Moomba)
 		{ 0x1DCD6E0, 0x10, "streamed-file loader" },  // dword_1DCD6E4/E8/EC
 		{ 0x1D999C4, 4, "Field_Alloc pointer" },
@@ -415,6 +420,8 @@ namespace ff8fx::mod
 		{ 0x506690, 0, "ApplyActionResultToTarget" },
 		{ 0x505C00, 0, "QueueChainTransformation" },
 		{ 0x506C10, 1, "AddTaskToQueueAnimSeq" },
+		// Renzokuken (160): the caster gets the module's animation set (weapon slot, state controller, bind block)
+		{ 0x5022C0, 3, "BS_BindEntityModelFromComData" },
 		// battle-stage model swaps (Griever: attacker model 36/37 at tick 50, swap at 110)
 		{ 0x512AA0, 2, "loadBS_36Or37" },
 		{ 0x512AC0, 2, "BS_SwapModel_512AC0" },
