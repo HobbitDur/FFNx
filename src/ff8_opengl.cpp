@@ -5628,10 +5628,16 @@ static bool ff8_bgate_fx_held_camera(int16_t world[3], int16_t lookat[3])
 	memcpy(gte_data, (void *)0x1CA8A10, sizeof(gte_data));
 	memcpy(gte_ctrl, (void *)0x1CA9210, sizeof(gte_ctrl));
 	uint32_t pool = *(uint32_t *)0x1D999C4;
+	// (the camera-script prediction 0x63E9C0 / CsRun works in a Field_Alloc block: the scratch above the pointer is put back
+	// too, as around the native held draw: the next real tick's draw headers read the fields they do not set)
+	static uint8_t fa_scr[ff8fx::mod::FIELD_ALLOC_SCRATCH];
+	const bool fa_ok = pool && !IsBadReadPtr((void *)pool, sizeof(fa_scr));
+	if (fa_ok) memcpy(fa_scr, (void *)pool, sizeof(fa_scr));
 	bool ok = false;
 	__try { ok = ff8fx::held_camera(eid, ff8_bgate_phase, ff8_bgate_n, world, lookat); }
 	__except (EXCEPTION_EXECUTE_HANDLER) { ok = false; }
 	*(uint32_t *)0x1D999C4 = pool;
+	if (fa_ok) memcpy((void *)pool, fa_scr, sizeof(fa_scr));
 	memcpy((void *)0x1CA8A10, gte_data, sizeof(gte_data));
 	memcpy((void *)0x1CA9210, gte_ctrl, sizeof(gte_ctrl));
 	return ok;
