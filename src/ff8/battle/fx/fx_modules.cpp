@@ -181,6 +181,7 @@ namespace ff8fx::mod
 	static const Region streams_i007[] = { { 0x163B1E0, 0x578 }, { 0x163C6BC, 0x48 }, { 0x163C78C, 0x48 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_i067[] = { { 0x2793DA4, 0xD4 }, { 0x178F3F4, 0x9C }, { 0x17948B8, 0x738 } };
 	static const Region streams_f162[] = { { 0x21DFED0, 0x20 }, { 0xDA2654, 0x1110 } };
+	static const Region streams_b164[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -382,6 +383,7 @@ namespace ff8fx::mod
 		{ 160, 0x23D34A8, 0x23D5644, 0, 0, false, "Renzokuken (Squall)", streams_r160, 1 },
 		{ 163, 0x23CA120, 0x23CE588, 0, 0, false, "Rough Divide (Squall's Renzokuken finisher)", nullptr, 0 },
 		{ 162, 0x23CE588, 0x23D0D8C, 0, 0, false, "Fated Circle (Squall's Renzokuken finisher)", streams_f162, 2 },
+		{ 164, 0x23C6950, 0x23CA120, 0, 0, false, "Blasting Zone (Squall's Renzokuken finisher)", streams_b164, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
