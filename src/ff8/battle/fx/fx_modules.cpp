@@ -189,6 +189,7 @@ namespace ff8fx::mod
 	static const Region streams_r016[] = { { 0x17F7F1C, 0xA4 }, { 0x17FBC94, 0x9E8 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_r061[] = { { 0x1795000, 0x90 }, { 0x1797578, 0x738 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_m273[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_d062[] = { { 0x2793E58, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -401,6 +402,7 @@ namespace ff8fx::mod
 		{ 272, 0x2508540, 0x25085A8, 0, 0, false, "LV Down (command ability)", nullptr, 0 },
 		{ 271, 0x25085A8, 0x2508610, 0, 0, false, "LV Up (command ability)", nullptr, 0 },
 		{ 273, 0x25084E8, 0x2508540, 0, 0, false, "Mad Rush (command ability)", streams_m273, 3 },
+		{ 62, 0x2601318, 0x2601920, 0, 0, false, "Devour (command ability)", streams_d062, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
