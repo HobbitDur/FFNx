@@ -385,6 +385,7 @@ namespace ff8fx
 	void register_mag182_card();
 	void register_mag057_treatment();
 	void register_mag056_absorb();
+	void register_mag016_recover();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
