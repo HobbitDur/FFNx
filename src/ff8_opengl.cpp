@@ -1611,6 +1611,8 @@ int ff8_limit_fps()
 //   - hit-effect task queue: same record/replay as effects; camera shake held.
 //   - AnimSeq-spawned tasks (84/9F/99/B1/96 skipped, AD/AE/81/A6 counters native).
 //   - status timers + Gilgamesh/Angelo countdown + end fade: real frames only.
+//   - entity task visuals (status pulse/spin/bob/sprites, A8 fades), Renzokuken trigger clock and
+//     the magic cast safety timeout: native pace.
 //   - all per-battle state is reset at the start of each battle.
 //
 // (All addresses are FF8 2000 US/EN 1.2 specific, same as the 60fps branch.)
@@ -1963,6 +1965,33 @@ void __cdecl ff8_bgate_boost_hook()
 	ff8_bgate_boost_orig();
 	rereplace_function(ff8_bgate_boost_ri);
 	if (ctx) ctx[33] = saved;
+}
+
+// --- Renzokuken / gunblade trigger clock at native pace ---
+// Renzokuken_UpdateTrigger (0x4BA6C0, BattleUI window 6 callback, once per UI tick) runs the trigger
+// clock as Renzokuken_ClockMajor (0x1D76798) += 4 on each fresh-input latch (BattleUI ctx+33) plus
+// Renzokuken_ClockSub (0x1D7679A) +1 per UI tick in between (0..3). The latch fires once per rendered
+// frame, 30/s here: the bar ran 2x fast and the clock skipped values (the auto-crit test v6 == 25 could
+// be missed). As for GF Boost, only 1 latch in n counts: 60 UI ticks/s with a latch every 4 ticks, the
+// vanilla clock tick for tick.
+static unsigned char (__cdecl *ff8_bgate_renzo_orig)() = nullptr;
+static uint32_t ff8_bgate_renzo_ri = 0;
+
+unsigned char __cdecl ff8_bgate_renzo_hook()
+{
+	uint8_t *ctx = *(uint8_t **)0x1D6D490; // BattleUI_CtxPtr
+	uint8_t saved = ctx ? ctx[33] : 0;
+	if (ctx && ctx[33])
+	{
+		static uint32_t latches = 0;
+		if ((latches++ % ff8_bgate_n) != 0)
+			ctx[33] = 0; // this latch does not move the clock
+	}
+	unreplace_function(ff8_bgate_renzo_ri);
+	unsigned char r = ff8_bgate_renzo_orig();
+	rereplace_function(ff8_bgate_renzo_ri);
+	if (ctx) ctx[33] = saved;
+	return r;
 }
 
 // --- game time: called 4x per loop iteration unconditionally, so it scales with the host
@@ -5918,6 +5947,307 @@ void __cdecl ff8_bgate_timerstatus_hook()
 	rereplace_function(ff8_bgate_timerstatus_ri);
 }
 
+// --- entity task visuals at native pace ---
+// The per-entity task (pre_pre_linkedToAnimationSequence 0x502AB0) runs every host frame - only its
+// AnimSeq VM is gated (ff8_bgate_animseq_upd_hook) - and its visuals count calls, not time: the status
+// colour pulse, Confuse spin and Float bob (BattleEntity_UpdateStatusVisuals 0x50A0A0), the status
+// sprites over the head (0x5711C0) and the A8 fades (BattleEntity_UpdateVisibilityFade 0x50C110) all
+// ran 2x fast. Their counters now advance on real frames only. A held frame draws the half-way state of
+// what is continuous (colour, angle, height, fade, drop) and the real frame's state of what is discrete
+// (sprite frames, the random flicker, the step that ends a fade).
+#define FF8_BGATE_VIS_SLOTS 16
+struct ff8_bgate_vis_t
+{
+	void *slot;
+	uint32_t fade_frame, ovl_frame;  // real frame (ff8_bgate_frame_no) of the records below
+	uint8_t fade_mode, fade_counter; // A8 fade mode, and the counter its step read on that frame
+	bool fade_wrote;                 // a held frame wrote fade_written over fade_pos (mode 9 drop)
+	int16_t fade_pos[2], fade_written[2];
+	uint32_t ovl_valid;             // bit i: ovl_in[i] / ovl_out[i] recorded on that frame
+	uint8_t ovl_in[32], ovl_out[32]; // status sprite frame drawn / stored, by status bit
+};
+static ff8_bgate_vis_t ff8_bgate_vis[FF8_BGATE_VIS_SLOTS];
+
+static ff8_bgate_vis_t *ff8_bgate_vis_get(void *slot)
+{
+	ff8_bgate_vis_t *free_slot = nullptr;
+	for (int i = 0; i < FF8_BGATE_VIS_SLOTS; i++)
+	{
+		if (ff8_bgate_vis[i].slot == slot) return &ff8_bgate_vis[i];
+		if (!ff8_bgate_vis[i].slot && !free_slot) free_slot = &ff8_bgate_vis[i];
+	}
+	if (!free_slot) return nullptr;
+	*free_slot = {};
+	free_slot->slot = slot;
+	return free_slot;
+}
+
+// the real frame a held frame belongs to
+static inline uint32_t ff8_bgate_real_frame_no() { return ff8_bgate_frame_no - ff8_bgate_phase; }
+
+// FF8BattleEntitySlotData.pointer_unk2 (+0x88): 32 per-status visual counters, indexed by status bit
+#define FF8_BGATE_VIS_COUNTERS(slot) (*(uint8_t **)((uint8_t *)(slot) + 0x88))
+
+// BattleEntity_UpdateStatusPalettePulse (0x50A1C0): model_palette pulses with the sine of counter[k]++
+// (k = 10/17/18/25 by status, 32 steps per cycle). Held frame: the colour of the next real frame, then
+// the one of the real frame (counter - 1), the frame shows their mix at phase/n; the counter is put back.
+static int (__cdecl *ff8_bgate_pulse_orig)(uint8_t *) = nullptr;
+static uint32_t ff8_bgate_pulse_ri = 0;
+
+static int ff8_bgate_pulse_call(uint8_t *slot)
+{
+	unreplace_function(ff8_bgate_pulse_ri);
+	int r = ff8_bgate_pulse_orig(slot);
+	rereplace_function(ff8_bgate_pulse_ri);
+	return r;
+}
+
+int __cdecl ff8_bgate_pulse_hook(uint8_t *slot)
+{
+	uint8_t *cnt = FF8_BGATE_VIS_COUNTERS(slot);
+	if (ff8_bgate_phase == 0 || !cnt)
+		return ff8_bgate_pulse_call(slot);
+	uint8_t saved[32];
+	for (int i = 0; i < 32; i++) saved[i] = cnt[i];
+	int r = ff8_bgate_pulse_call(slot); // the next real frame's colour
+	int k = -1;
+	for (int i = 0; i < 32 && k < 0; i++)
+		if (cnt[i] != saved[i]) k = i;
+	if (k >= 0)
+	{
+		const uint8_t next[3] = { slot[0x28], slot[0x29], slot[0x2A] }; // model_palette rgb
+		for (int i = 0; i < 32; i++) cnt[i] = saved[i];
+		cnt[k] = (uint8_t)(saved[k] - 1);
+		ff8_bgate_pulse_call(slot); // the real frame's colour
+		for (int c = 0; c < 3; c++)
+			slot[0x28 + c] = (uint8_t)(slot[0x28 + c] + ff8_bgate_scale_round(next[c] - slot[0x28 + c], ff8_bgate_phase, ff8_bgate_n));
+	}
+	for (int i = 0; i < 32; i++) cnt[i] = saved[i];
+	return r;
+}
+
+// BattleEntity_ApplyTurnBackOrConfuseSpin (0x50A370): Confuse turns the model by counter[11]++ * 0x100
+// (16 steps per turn, multiplied into current_z_scale before the render). Held frame: the real frame's
+// angle (counter - 1) plus phase/n of a step; the counter is put back.
+static void (__cdecl *ff8_bgate_spin_orig)(uint8_t *) = nullptr;
+static uint32_t ff8_bgate_spin_ri = 0;
+
+void __cdecl ff8_bgate_spin_hook(uint8_t *slot)
+{
+	uint8_t *cnt = FF8_BGATE_VIS_COUNTERS(slot);
+	const bool held = ff8_bgate_phase != 0 && cnt;
+	const uint8_t c = cnt ? cnt[11] : 0;
+	if (held)
+		cnt[11] = (uint8_t)(c - 1);
+	unreplace_function(ff8_bgate_spin_ri);
+	ff8_bgate_spin_orig(slot);
+	rereplace_function(ff8_bgate_spin_ri);
+	if (held)
+	{
+		if (cnt[11] == c) // the Confuse spin ran
+			((void *(__cdecl *)(int32_t, void *))0x56D020)(0x100 * ff8_bgate_phase / ff8_bgate_n, slot + 0x40); // ApplyYRotation
+		cnt[11] = c;
+	}
+}
+
+// BattleEntity_UpdateFloatBob (0x50A5F0): Float height shadow_z_maybe (+0x22) = (-100 * ((sin(counter[9]++
+// * 0x100) + 0x1000) / 2) >> 12) - 200, 16 steps per cycle. Held frame: the same formula at the real
+// frame's counter + phase/n; the counter is put back.
+static void (__cdecl *ff8_bgate_bob_orig)(uint8_t *) = nullptr;
+static uint32_t ff8_bgate_bob_ri = 0;
+
+void __cdecl ff8_bgate_bob_hook(uint8_t *slot)
+{
+	uint8_t *cnt = FF8_BGATE_VIS_COUNTERS(slot);
+	const uint8_t c = cnt ? cnt[9] : 0;
+	unreplace_function(ff8_bgate_bob_ri);
+	ff8_bgate_bob_orig(slot);
+	rereplace_function(ff8_bgate_bob_ri);
+	if (ff8_bgate_phase != 0 && cnt && cnt[9] != c) // held frame, and the bob ran
+	{
+		const int32_t a = (((int32_t)(uint8_t)(c - 1) * ff8_bgate_n + ff8_bgate_phase) << 8) / ff8_bgate_n;
+		const int32_t s = (int32_t)((uint32_t (__cdecl *)(int32_t))0x56D130)(a); // computeSin
+		*(int16_t *)(slot + 0x22) = (int16_t)(((-100 * ((s + 0x1000) / 2)) >> 12) - 200);
+		cnt[9] = c;
+	}
+}
+
+// sub_5711C0: the status sprite over the head (status bits 5-8 and 12). counter[i] = this(slot, i,
+// counter[i]) draws sprite frame counter[i] and returns the next one (+1 per call, 0 at the end).
+// Held frame: the real frame's sprite frame is drawn again and the counter keeps its value.
+static int (__cdecl *ff8_bgate_ovl_orig)(uint8_t *, int, int) = nullptr;
+static uint32_t ff8_bgate_ovl_ri = 0;
+
+static int ff8_bgate_ovl_call(uint8_t *slot, int i, int frame)
+{
+	unreplace_function(ff8_bgate_ovl_ri);
+	int r = ff8_bgate_ovl_orig(slot, i, frame);
+	rereplace_function(ff8_bgate_ovl_ri);
+	return r;
+}
+
+int __cdecl ff8_bgate_ovl_hook(uint8_t *slot, int i, int frame)
+{
+	ff8_bgate_vis_t *v = (i >= 0 && i < 32) ? ff8_bgate_vis_get(slot) : nullptr;
+	if (ff8_bgate_phase == 0)
+	{
+		int r = ff8_bgate_ovl_call(slot, i, frame);
+		if (v)
+		{
+			if (v->ovl_frame != ff8_bgate_frame_no)
+			{
+				v->ovl_frame = ff8_bgate_frame_no;
+				v->ovl_valid = 0;
+			}
+			v->ovl_in[i] = (uint8_t)frame;
+			v->ovl_out[i] = (uint8_t)r;
+			v->ovl_valid |= 1u << i;
+		}
+		return r;
+	}
+	if (v && v->ovl_frame == ff8_bgate_real_frame_no() && (v->ovl_valid & (1u << i)) && v->ovl_out[i] == (uint8_t)frame)
+		ff8_bgate_ovl_call(slot, i, v->ovl_in[i]);
+	else
+		ff8_bgate_ovl_call(slot, i, frame); // changed since the real frame: draw what it holds now
+	return frame;
+}
+
+// BattleEntity_UpdateVisibilityFade (0x50C110): the A8 fades. Each step function counts its own calls
+// (a8_fade_counter +6: 15 steps, the fade-ins count 2 per call) and rebuilds the colours (model and
+// shadow palette, fade level +7) - mode 9 the drop position - from that counter. Held frame: the step
+// runs on the live state for the next real frame's counter and for the counter the real frame read,
+// the frame shows the mix of the two at phase/n, and the rest of the state is put back. The step that
+// ends a fade keeps the real frame's look (the switch happens on the real frame), mode 8 (random white
+// flicker) holds the real frame's flash, mode 5 never releases the model here (only its fade runs).
+struct ff8_bgate_fade_t { uint8_t head[8]; int16_t pos[2]; uint8_t pal[8]; };
+
+static void ff8_bgate_fade_read(const uint8_t *s, ff8_bgate_fade_t &f)
+{
+	for (int i = 0; i < 8; i++) f.head[i] = s[i]; // flags, combat flags, com_id, mode, counter, fade level
+	f.pos[0] = *(const int16_t *)(s + 0x1E); // based_position_y / x (mode 9)
+	f.pos[1] = *(const int16_t *)(s + 0x20);
+	for (int i = 0; i < 8; i++) f.pal[i] = s[0x28 + i]; // model_palette, shadow_palette
+}
+
+static void ff8_bgate_fade_write(uint8_t *s, const ff8_bgate_fade_t &f)
+{
+	for (int i = 0; i < 8; i++) s[i] = f.head[i];
+	*(int16_t *)(s + 0x1E) = f.pos[0];
+	*(int16_t *)(s + 0x20) = f.pos[1];
+	for (int i = 0; i < 8; i++) s[0x28 + i] = f.pal[i];
+}
+
+static uint32_t ff8_bgate_fade_step(uint8_t mode)
+{
+	switch (mode)
+	{
+	case 1: case 2: return 0x50C230;         // A8Fade_Mode1_2_FadeInSine
+	case 3: case 5: case 6: return 0x50C410; // A8Fade_Mode3_6_FadeOutCosine (also the fade of mode 5)
+	case 4: case 7: return 0x50C560;         // A8Fade_Mode4_7_FadeOutToColor
+	case 9: return 0x50C6D0;                 // A8Fade_Mode9_DelayedDrop
+	case 10: case 12: return 0x50C330;       // A8Fade_Mode10_12_FadeInLinear
+	case 11: case 13: return 0x50C4D0;       // A8Fade_Mode11_13_FadeOutLinear
+	}
+	return 0;
+}
+
+static int (__cdecl *ff8_bgate_fade_orig)(uint8_t *) = nullptr;
+static uint32_t ff8_bgate_fade_ri = 0;
+
+int __cdecl ff8_bgate_fade_hook(uint8_t *slot)
+{
+	ff8_bgate_vis_t *v = ff8_bgate_vis_get(slot);
+	const uint8_t mode = slot[5], counter = slot[6];
+	if (v && v->fade_wrote)
+	{
+		// the position a held frame drew goes back to the true one, unless something else moved it since
+		int16_t *pos = (int16_t *)(slot + 0x1E);
+		if (pos[0] == v->fade_written[0] && pos[1] == v->fade_written[1])
+		{
+			pos[0] = v->fade_pos[0];
+			pos[1] = v->fade_pos[1];
+		}
+		v->fade_wrote = false;
+	}
+	if (ff8_bgate_phase == 0)
+	{
+		if (v)
+		{
+			v->fade_frame = ff8_bgate_frame_no;
+			v->fade_mode = mode;
+			v->fade_counter = (mode == 5 && counter == 0) ? 1 : counter; // mode 5 counts its first call before the fade step
+		}
+		unreplace_function(ff8_bgate_fade_ri);
+		int r = ff8_bgate_fade_orig(slot);
+		rereplace_function(ff8_bgate_fade_ri);
+		return r;
+	}
+	const bool rec = v && v->fade_frame == ff8_bgate_real_frame_no() && v->fade_mode == mode;
+	if (mode == 8)
+	{
+		// counter = frames to the next flash (re-rolled at 0), the flash shows while it is below 2
+		if (rec && v->fade_counter < 2)
+		{
+			((void (__cdecl *)(int, int, int))0x45DDA0)(0xFF, 0xFF, 0xFF); // GTE far colour
+			((void *(__cdecl *)(void *, int, void *))0x56CA00)(slot + 0x28, (v->fade_counter + 1) << 11, slot + 0x28); // model_palette toward it
+			slot[0x2B] = 0;
+		}
+		return 0;
+	}
+	typedef void (__cdecl *step_t)(uint8_t *);
+	const step_t step = (step_t)ff8_bgate_fade_step(mode);
+	if (!step)
+		return 0;
+	ff8_bgate_fade_t s, a, b;
+	ff8_bgate_fade_read(slot, s);
+	if (mode == 5 && counter == 0)
+		slot[6] = 1; // the next real frame's mode 5 counts its first call before the fade step
+	step(slot); // the next real frame's step
+	ff8_bgate_fade_read(slot, b);
+	ff8_bgate_fade_write(slot, s);
+	const bool ends = b.head[5] != mode;
+	bool have_a = false;
+	if (rec)
+	{
+		slot[6] = v->fade_counter;
+		step(slot); // the real frame's step
+		ff8_bgate_fade_read(slot, a);
+		ff8_bgate_fade_write(slot, s);
+		have_a = a.head[5] == mode; // else that step ended the fade and this one restarted after it
+	}
+	if (!have_a)
+	{
+		if (ends)
+			return 0;
+		a = b; // the fade started after the real frame's step: show its first step
+	}
+	ff8_bgate_fade_t o = s;
+	o.head[7] = a.head[7];
+	for (int i = 0; i < 2; i++) o.pos[i] = a.pos[i];
+	for (int i = 0; i < 8; i++) o.pal[i] = a.pal[i];
+	if (!ends)
+	{
+		o.head[7] = (uint8_t)(a.head[7] + ff8_bgate_scale_round(b.head[7] - a.head[7], ff8_bgate_phase, ff8_bgate_n));
+		for (int i = 0; i < 2; i++)
+			o.pos[i] = (int16_t)(a.pos[i] + ff8_bgate_scale_round(b.pos[i] - a.pos[i], ff8_bgate_phase, ff8_bgate_n));
+		for (int i = 0; i < 8; i++)
+			if (i != 3 && i != 7) // the transparency bytes stay the real frame's
+				o.pal[i] = (uint8_t)(a.pal[i] + ff8_bgate_scale_round(b.pal[i] - a.pal[i], ff8_bgate_phase, ff8_bgate_n));
+	}
+	if (v && (o.pos[0] != s.pos[0] || o.pos[1] != s.pos[1]))
+	{
+		// mode 9 drop: the drawn position is put back on the next call (held or real)
+		for (int i = 0; i < 2; i++)
+		{
+			v->fade_pos[i] = s.pos[i];
+			v->fade_written[i] = o.pos[i];
+		}
+		v->fade_wrote = true;
+	}
+	ff8_bgate_fade_write(slot, o);
+	return 0;
+}
+
 // Per-battle state is keyed by addresses (anim_cmd, entity slot, effect ctx) that the next
 // battle reuses for DIFFERENT models and effects. Carrying it over crashed the second battle
 // of a session: an anim_cmd kept battle 1's "SLOW forced by us" policy, so its frame-count
@@ -5945,6 +6275,7 @@ static void ff8_bgate_battle_reset()
 	memset(ff8_bgate_done_cache, 0, sizeof(ff8_bgate_done_cache));
 	memset(ff8_bgate_pose_hist, 0, sizeof(ff8_bgate_pose_hist));
 	memset(ff8_bgate_move, 0, sizeof(ff8_bgate_move));
+	for (ff8_bgate_vis_t &v : ff8_bgate_vis) v = {};
 	ff8_bgate_cam_r0.valid = ff8_bgate_cam_r1.valid = false;
 	memset(ff8_bgate_shake_prev, 0, sizeof(ff8_bgate_shake_prev));
 	ff8_bgate_cam_nudged = false;
@@ -5979,6 +6310,10 @@ static void ff8_bgate_install_hooks()
 	// GF Boost phases/window at native pacing (1 latch in n counts)
 	ff8_bgate_boost_orig = (void(__cdecl *)())0x56DD70;
 	ff8_bgate_boost_ri = replace_function(0x56DD70, (void *)ff8_bgate_boost_hook);
+
+	// Renzokuken / gunblade trigger clock at native pace (1 latch in n counts)
+	ff8_bgate_renzo_orig = (unsigned char(__cdecl *)())0x4BA6C0;
+	ff8_bgate_renzo_ri = replace_function(0x4BA6C0, (void *)ff8_bgate_renzo_hook);
 
 	// Game time / battle countdown at native 60 ticks/s
 	ff8_bgate_savemap_tick_orig = (int(__cdecl *)())0x4701B0;
@@ -6077,6 +6412,23 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_timerstatus_ri = replace_function(0x483470, (void *)ff8_bgate_timerstatus_hook);
 	ff8_bgate_gilga_orig = (void(__cdecl *)())0x482F80;
 	ff8_bgate_gilga_ri = replace_function(0x482F80, (void *)ff8_bgate_gilga_hook);
+
+	// Entity task visuals at native pace: status pulse / Confuse spin / Float bob, status sprites, A8 fades
+	ff8_bgate_pulse_orig = (int(__cdecl *)(uint8_t *))0x50A1C0;
+	ff8_bgate_pulse_ri = replace_function(0x50A1C0, (void *)ff8_bgate_pulse_hook);
+	ff8_bgate_spin_orig = (void(__cdecl *)(uint8_t *))0x50A370;
+	ff8_bgate_spin_ri = replace_function(0x50A370, (void *)ff8_bgate_spin_hook);
+	ff8_bgate_bob_orig = (void(__cdecl *)(uint8_t *))0x50A5F0;
+	ff8_bgate_bob_ri = replace_function(0x50A5F0, (void *)ff8_bgate_bob_hook);
+	ff8_bgate_ovl_orig = (int(__cdecl *)(uint8_t *, int, int))0x5711C0;
+	ff8_bgate_ovl_ri = replace_function(0x5711C0, (void *)ff8_bgate_ovl_hook);
+	ff8_bgate_fade_orig = (int(__cdecl *)(uint8_t *))0x50C110;
+	ff8_bgate_fade_ri = replace_function(0x50C110, (void *)ff8_bgate_fade_hook);
+
+	// Magic cast safety timeout: BattleActionSequence_Tick_MagicCast (battle-stage queue, ticked every host
+	// frame) stops all sounds once "++MAGIC_EFFECT_TIMEOUT_CTR < 0x384" fails (cmp ax, imm16 @0x50ACB4):
+	// 0x384 * n host frames = the native 60 s
+	patch_code_word(0x50ACB4, (WORD)(0x384 * ff8_bgate_n));
 
 	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera gated+extrapolated; entity anims %s, effects native-tick + draw replay)\n",
 		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n,
