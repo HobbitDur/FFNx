@@ -35,6 +35,8 @@
 
 ## FF8
 
+- Core: Add extended item definitions and 24 inventory pages for the verified English executable, with persistent save-tail inventory storage (see [item documentation](docs/ff8/items.md))
+
 - Core: Extend the battle actor sound table through c0m199 ( https://github.com/julianxhokaxhiu/FFNx/pull/999 )
 - Core: Show "Has nothing" instead of "[Card]" when a monster has an empty Draw list
 - Core: Add monster-AI `target` opcode values 228-248 to target two battle slots at once ( https://github.com/julianxhokaxhiu/FFNx/pull/961 )
