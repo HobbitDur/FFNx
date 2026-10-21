@@ -386,6 +386,7 @@ namespace ff8fx::mod
 		{ 162, 0x23CE588, 0x23D0D8C, 0, 0, false, "Fated Circle (Squall's Renzokuken finisher)", streams_f162, 2 },
 		{ 164, 0x23C6950, 0x23CA120, 0, 0, false, "Blasting Zone (Squall's Renzokuken finisher)", streams_b164, 2 },
 		{ 165, 0x23C3278, 0x23C6950, 0, 0, false, "Lion Heart (Squall's Renzokuken finisher)", streams_l165, 2 },
+		{ 183, 0x22F33C8, 0x2304220, 0, 0, false, "Defend (command ability)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
