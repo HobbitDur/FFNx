@@ -395,6 +395,7 @@ namespace ff8fx
 	void register_mag074_lvdeath_quistis();
 	void register_mag073_mighty_guard_quistis();
 	void register_mag072_aqua_breath_quistis();
+	void register_mag297_white_wind_quistis();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

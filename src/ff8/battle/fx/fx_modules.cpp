@@ -411,6 +411,7 @@ namespace ff8fx::mod
 		{ 74, 0x25EC518, 0x25F3F58, 0, 0, false, "LV?Death (Quistis blue magic)", streams_q074, 4 },
 		{ 73, 0x25F3F60, 0x25F4F68, 0, 0, false, "Mighty Guard (Quistis blue magic)", streams_q073, 8 },
 		{ 72, 0x25F4F68, 0x25FA400, 0, 0, false, "Aqua Breath (Quistis blue magic)", streams_q072, 2 },
+		{ 297, 0x2507908, 0x2507988, 0, 0, false, "White Wind (Quistis blue magic)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
