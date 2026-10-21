@@ -388,6 +388,7 @@ namespace ff8fx
 	void register_mag016_recover();
 	void register_mag061_revive();
 	void register_mag272_lv_down();
+	void register_mag271_lv_up();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
