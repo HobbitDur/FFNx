@@ -283,6 +283,7 @@ namespace ff8fx
 		register_mag230_fire_breath_quistis();
 		register_mag229_homing_laser_quistis();
 		register_mag306_degenerator_quistis();
+		register_mag307_ray_bomb_quistis();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
