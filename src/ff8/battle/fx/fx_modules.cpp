@@ -397,6 +397,7 @@ namespace ff8fx::mod
 		{ 56, 0x260E338, 0x260F144, 0, 0, false, "Absorb (command ability)", streams_a056, 2 },
 		{ 16, 0x27304A0, 0x2732BF0, 0, 0, false, "Recover (command ability)", streams_r016, 3 },
 		{ 61, 0x2601920, 0x2604070, 0, 0, false, "Revive (command ability)", streams_r061, 3 },
+		{ 272, 0x2508540, 0x25085A8, 0, 0, false, "LV Down (command ability)", nullptr, 0 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
