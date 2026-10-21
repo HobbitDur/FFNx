@@ -280,6 +280,7 @@ namespace ff8fx
 		register_mag073_mighty_guard_quistis();
 		register_mag072_aqua_breath_quistis();
 		register_mag297_white_wind_quistis();
+		register_mag230_fire_breath_quistis();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
