@@ -278,6 +278,7 @@ namespace ff8fx
 		register_mag184_ultra_waves_quistis();
 		register_mag074_lvdeath_quistis();
 		register_mag073_mighty_guard_quistis();
+		register_mag072_aqua_breath_quistis();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
