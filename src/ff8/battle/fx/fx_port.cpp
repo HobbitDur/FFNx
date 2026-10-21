@@ -267,6 +267,7 @@ namespace ff8fx
 		register_mag165_lion_heart();
 		register_mag183_defend();
 		register_mag182_card();
+		register_mag057_treatment();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
