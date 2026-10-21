@@ -413,6 +413,7 @@ namespace ff8fx::mod
 		{ 72, 0x25F4F68, 0x25FA400, 0, 0, false, "Aqua Breath (Quistis blue magic)", streams_q072, 2 },
 		{ 297, 0x2507908, 0x2507988, 0, 0, false, "White Wind (Quistis blue magic)", nullptr, 0 },
 		{ 230, 0x2796AC8, 0x2798C40, 0, 0, false, "Fire Breath (Quistis blue magic)", streams_gfc, 5 },
+		{ 229, 0x2796B00, 0x2798C40, 0, 0, false, "Homing Laser (Quistis blue magic)", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
