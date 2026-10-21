@@ -191,6 +191,8 @@ namespace ff8fx::mod
 	static const Region streams_m273[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d062[] = { { 0x2793E58, 0x20 } };
 	static const Region streams_q184[] = { { 0x1D99C18, 8 }, { 0xD34868, 0x30 } };
+	static const Region streams_q074[] = { {0x2793DA4,0xD4}, {0x1D99C18,8}, {0x158235C,0x548}, {0x1771F5C,0x6FD0} };
+	static const Region streams_q073[] = { {0x2793DA4,0xD4}, {0x178557C,0x94}, {0x1788BFC,0x80}, {0x1788D54,0x80}, {0x1788EAC,0x80}, {0x1789004,0x80}, {0x178915C,0x80}, {0x17892B4,0x80} };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -405,6 +407,8 @@ namespace ff8fx::mod
 		{ 273, 0x25084E8, 0x2508540, 0, 0, false, "Mad Rush (command ability)", streams_m273, 3 },
 		{ 62, 0x2601318, 0x2601920, 0, 0, false, "Devour (command ability)", streams_d062, 1 },
 		{ 184, 0x22BD108, 0x22F33C8, 0, 0, false, "Ultra Waves (Quistis blue magic)", streams_q184, 2 },
+		{ 74, 0x25EC518, 0x25F3F58, 0, 0, false, "LV?Death (Quistis blue magic)", streams_q074, 4 },
+		{ 73, 0x25F3F60, 0x25F4F68, 0, 0, false, "Mighty Guard (Quistis blue magic)", streams_q073, 8 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
