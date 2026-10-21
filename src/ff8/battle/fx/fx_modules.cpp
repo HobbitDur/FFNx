@@ -185,6 +185,7 @@ namespace ff8fx::mod
 	static const Region streams_l165[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c182[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t057[] = { { 0x2793DA4, 0xD4 }, { 0x17A3DD0, 0xA0 }, { 0x17A9A64, 0x890 } };
+	static const Region streams_a056[] = { { 0x2793DA4, 0xD4 }, { 0x159F510, 0x140 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -391,6 +392,7 @@ namespace ff8fx::mod
 		{ 183, 0x22F33C8, 0x2304220, 0, 0, false, "Defend (command ability)", nullptr, 0 },
 		{ 182, 0x2304220, 0x23065D4, 0, 0, false, "Card (command ability)", streams_c182, 1 },
 		{ 57, 0x260D5F0, 0x260E334, 0, 0, false, "Treatment (command ability)", streams_t057, 3 },
+		{ 56, 0x260E338, 0x260F144, 0, 0, false, "Absorb (command ability)", streams_a056, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
