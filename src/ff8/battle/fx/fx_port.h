@@ -398,6 +398,9 @@ namespace ff8fx
 	void register_mag297_white_wind_quistis();
 	void register_mag230_fire_breath_quistis();
 	void register_mag229_homing_laser_quistis();
+	void register_mag306_degenerator_quistis();
+	void register_mag307_ray_bomb_quistis();
+	void register_mag305_gatling_gun_quistis();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
