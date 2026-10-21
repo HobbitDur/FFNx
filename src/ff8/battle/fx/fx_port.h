@@ -381,6 +381,10 @@ namespace ff8fx
 	void register_mag162_fated_circle();
 	void register_mag164_blasting_zone();
 	void register_mag165_lion_heart();
+	void register_mag183_defend();
+	void register_mag182_card();
+	void register_mag057_treatment();
+	void register_mag056_absorb();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
