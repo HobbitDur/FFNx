@@ -271,6 +271,9 @@ namespace ff8fx
 		register_mag056_absorb();
 		register_mag016_recover();
 		register_mag061_revive();
+		register_mag272_lv_down();
+		register_mag271_lv_up();
+		register_mag273_mad_rush();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
