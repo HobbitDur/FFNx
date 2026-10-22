@@ -410,6 +410,7 @@ namespace ff8fx
 	void register_mag280_full_cure();
 	void register_mag288_rapture();
 	void register_mag274_duel();
+	void register_mag189_wall();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
