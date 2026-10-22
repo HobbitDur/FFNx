@@ -408,6 +408,7 @@ namespace ff8fx
 	void register_mag275_electrocute_quistis();
 	void register_mag260_shockwave_pulsar_quistis();
 	void register_mag280_full_cure();
+	void register_mag288_rapture();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
