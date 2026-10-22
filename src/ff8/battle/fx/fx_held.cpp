@@ -26,7 +26,7 @@ namespace ff8fx
 
 	// ------------------------------------------------------------------ module held frames
 	struct ModuleHeld { int effect_id; bool (*ready)(); void (*draw)(int, int); };
-	static const int MODULES_MAX = 128;
+	static const int MODULES_MAX = 512; // (212 held parts register: 128 dropped every module registered after the 128th)
 	static ModuleHeld g_held[MODULES_MAX];
 	static int g_nheld = 0;
 
@@ -66,11 +66,11 @@ namespace ff8fx
 
 	// ------------------------------------------------------------------ held tasks
 	// open-addressed set of task function addresses (the replay asks for every primitive)
-	static const int HELD_TASKS_SIZE = 2048; // power of two, > 2 x the marked tasks
+	static const int HELD_TASKS_SIZE = 4096; // power of two, > 2 x the marked tasks (967 marked)
 	static uint32_t g_held_tasks[HELD_TASKS_SIZE];
 	static int g_nheld_tasks = 0;
 
-	static inline uint32_t task_slot(uint32_t orig) { return (orig * 2654435761u) >> 21; }
+	static inline uint32_t task_slot(uint32_t orig) { return (orig * 2654435761u) >> 20; }
 
 	void mark_held(uint32_t orig)
 	{

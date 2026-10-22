@@ -24,7 +24,16 @@ namespace act
 {
 namespace theend
 {
+	// the kinds of draw the real tick notes (in execution order)
+	enum { HK_PLAY = 1, HK_SHADOW, HK_MODEL, HK_GROUND, HK_GLOW, HK_BARS, HK_SYSTEM, HK_TINT };
+	// a draw of `node` (kind HK_*) is about to happen
+	static void held_note_draw(int kind, uint32_t node);
+	// an actor system (state block `sys`) is about to draw (after its update pass)
 	static void held_note_system(uint32_t sys);
+	// the master is about to run the screen-tint queue `queue` (its tints that draw on this tick)
+	static void held_note_tints(uint32_t queue);
+	// the master ran its queues (the end of the module's draws on this tick)
+	static void held_note_end();
 }
 }
 	static void register_mag085_held();
