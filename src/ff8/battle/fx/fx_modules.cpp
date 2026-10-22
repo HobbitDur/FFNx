@@ -197,6 +197,7 @@ namespace ff8fx::mod
 	static const Region streams_q306[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_q307[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_q305[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_q071[] = { { 0x1789344, 0x60A0 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -420,6 +421,7 @@ namespace ff8fx::mod
 		{ 306, 0x2242590, 0x224564C, 0, 0, false, "Degenerator (Quistis blue magic)", streams_q306, 4 },
 		{ 307, 0x2240EE8, 0x2242590, 0, 0, false, "Ray-Bomb (Quistis blue magic)", streams_q307, 1 },
 		{ 305, 0x2245650, 0x2257794, 0, 0, false, "Gatling Gun (Quistis blue magic)", streams_q305, 1 },
+		{ 71, 0x25FA408, 0x25FCDD8, 0, 0, false, "Laser Eye (Quistis blue magic)", streams_q071, 3 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
