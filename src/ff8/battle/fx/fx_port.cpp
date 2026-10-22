@@ -299,6 +299,7 @@ namespace ff8fx
 		register_mag112_meteor_barret();
 		register_mag212_burning_rave();
 		register_mag093_angelo_recover();
+		register_mag094_angelo_reverse();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
