@@ -293,6 +293,7 @@ namespace ff8fx
 		register_mag260_shockwave_pulsar_quistis();
 		register_mag280_full_cure();
 		register_mag288_rapture();
+		register_mag274_duel();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
