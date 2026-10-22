@@ -417,6 +417,7 @@ namespace ff8fx
 	void register_mag093_angelo_recover();
 	void register_mag094_angelo_reverse();
 	void register_mag215_my_final_heaven();
+	void register_mag091_angelo_rush();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();

@@ -301,6 +301,7 @@ namespace ff8fx
 		register_mag093_angelo_recover();
 		register_mag094_angelo_reverse();
 		register_mag215_my_final_heaven();
+		register_mag091_angelo_rush();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
