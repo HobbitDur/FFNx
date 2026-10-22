@@ -238,7 +238,7 @@ namespace
 	enum { OBS_NONE = 0, OBS_ADD_TASK, OBS_INIT_POOL };
 	struct Site { uint32_t addr; int arity; const char *name; int observe; void *stub; uint8_t saved[5]; bool patched; };
 	struct Call { int site; uint32_t args[6]; uint32_t ret; uint32_t w_off, w_len; uint16_t cw_after; };
-	const int SITES_MAX = 64;
+	const int SITES_MAX = 128; // (70 ext sites registered)
 	const int CALLS_MAX = 256;
 	const uint32_t WLOG_SIZE = 0x100000;
 	Site g_sites[SITES_MAX];
