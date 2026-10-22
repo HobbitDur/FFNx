@@ -214,6 +214,7 @@ namespace ff8fx::mod
 	static const Region streams_r094[] = { { 0x153409C, 0x670 }, { 0x16AAD80, 0x90 }, { 0x16AD238, 0x738 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_z215[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_r091[] = { { 0x15438A0, 0x670 }, { 0x16CB3FC, 0x90 }, { 0x16CBFAC, 0x330 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x2795110, 0x68 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_z216[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -454,6 +455,7 @@ namespace ff8fx::mod
 		{ 94, 0x258FCF8, 0x2592548, 0, 0, false, "Angelo Reverse (Rinoa Angelo command)", streams_r094, 8 },
 		{ 215, 0x2508938, 0x25089AC, 0, 0, false, "My Final Heaven (Zell finisher)", streams_z215, 4 },
 		{ 91, 0x2598F28, 0x259EEA8, 0, 0, false, "Angelo Rush (Rinoa Angelo command)", streams_r091, 9 },
+		{ 216, 0x2508870, 0x2508930, 0, 0, false, "Different Beat (Zell finisher)", streams_z216, 4 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
