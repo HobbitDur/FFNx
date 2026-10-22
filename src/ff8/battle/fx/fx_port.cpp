@@ -290,6 +290,7 @@ namespace ff8fx
 		register_mag300_bad_breath_quistis();
 		register_mag299_micro_missiles_quistis();
 		register_mag275_electrocute_quistis();
+		register_mag260_shockwave_pulsar_quistis();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
