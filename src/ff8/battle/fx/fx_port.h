@@ -404,6 +404,7 @@ namespace ff8fx
 	void register_mag071_laser_eye_quistis();
 	void register_mag317_acid_quistis();
 	void register_mag300_bad_breath_quistis();
+	void register_mag299_micro_missiles_quistis();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
