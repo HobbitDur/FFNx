@@ -295,6 +295,7 @@ namespace ff8fx
 		register_mag288_rapture();
 		register_mag274_duel();
 		register_mag189_wall();
+		register_mag085_the_end();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
