@@ -210,6 +210,7 @@ namespace ff8fx::mod
 	static const Region streams_s085[] = { { 0x2793DA4, 0xD4 } };
 	static const Region streams_z112[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_z212[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_r093[] = { { 0x1538B58, 0x670 }, { 0x16B62B8, 0x90 }, { 0x16B7E90, 0x5E0 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -446,6 +447,7 @@ namespace ff8fx::mod
 		{ 85, 0x25BC390, 0x25C2350, 0, 0, false, "The End (Selphie slot)", streams_s085, 1 },
 		{ 112, 0x25218E0, 0x2521970, 0, 0, false, "Meteor Barret (Zell finisher)", streams_z112, 3 },
 		{ 212, 0x25101F8, 0x25102C0, 0, 0, false, "Burning Rave (Zell finisher)", streams_z212, 4 },
+		{ 93, 0x2592548, 0x2594D98, 0, 0, false, "Angelo Recover (Rinoa Angelo command)", streams_r093, 8 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

@@ -414,6 +414,7 @@ namespace ff8fx
 	void register_mag085_the_end();
 	void register_mag112_meteor_barret();
 	void register_mag212_burning_rave();
+	void register_mag093_angelo_recover();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
