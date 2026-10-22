@@ -402,13 +402,13 @@ namespace disch126
 	// ------------------------------------------------------------------
 	// Crawler draw (0x6BB320)
 	// ------------------------------------------------------------------
-	static uint32_t CrawlerDraw(uint8_t *model, Point *tail, int32_t count, uint32_t dir0)
+	static uint32_t CrawlerDraw(uint8_t *model, Point *tail, int32_t count, uint32_t dir0, uint16_t pad)
 	{
 		Point *p = tail;
 		do
 		{
-			// the 4th word is never written (only loaded into the GTE V0 pad)
-			int16_t w[4] = { 0, 0, 0, 0 };
+			// the 4th word is never written: the stack word under it (pad, see CrawlerTask) goes into the GTE V0 pad
+			int16_t w[4] = { 0, 0, 0, (int16_t)pad };
 			CrawlerPointWorld(model, p, w);
 			// 30 fps layer: see mag126_electric_discharge_held.inc
 			FX_HELD(held_note_crawler_point(w);)
@@ -855,6 +855,11 @@ namespace disch126
 
 	// ------------------------------------------------------------------
 	// Crawler (0x6BB150)
+	// UNINIT 0x6BB3A1 (GTE_LoadV0 of the point vector, 4th word never written): the V0 pad word = the
+	// high half of the task's stack dword [entry esp - 0x30], last written by the task's last call on this
+	// tick: 0x6BB070 (its return address 0x006BB220: 0x006B), a fork 0x6BAFA0 (its saved ebp = the
+	// executor's queue address: 0x0252), else carried from the previous crawler like the word below
+	// (g_crawl_pad).
 	// UNINIT 0x6BB3D5 / 0x6BB405: the draw's direction local (0x6BB320 [esp+0x18]) is the task's
 	// stack slot [entry esp - 0x2C], never written by the draw itself. It holds the first argument
 	// of the task's last 0x6BB070 call (edi: the bone word, high half = edi's), else the ebx (2) a
@@ -865,12 +870,16 @@ namespace disch126
 	// crawler's task-start value is what the PREVIOUS crawler left in that slot: its draw's final
 	// direction (0x6BB520 out-dir), or its own last slot value when it did not draw (checked with the
 	// game's executor: every entry word of 0x6BB150 [esp-0x2C] equals the previous crawler's word at
-	// 0x6BB510 [esp+0x18]). The port carries it (g_crawl_slot); only the first crawler of the queue
-	// reads the stack word that code outside the queue left there.
+	// 0x6BB510 [esp+0x18]). The port carries it (g_crawl_slot); only the first crawler the queue
+	// run calls reads the stack word that code outside the queue left there (g_crawl_first: NOT the queue
+	// head, see CrawlerTask).
 	// ------------------------------------------------------------------
 	static uint32_t g_crawl_slot;
-	static __declspec(noinline) uint32_t CrawlerTaskBody(CrawlerNode *c, uint32_t slot)
+	static uint16_t g_crawl_pad;
+	static const uint16_t ALLOC_RET_HI = 0x006B; // high half of 0x006BB220, the original's return address after its 0x6BB070 call
+	static __declspec(noinline) uint32_t CrawlerTaskBody(CrawlerNode *c, uint32_t slot, uint16_t pad)
 	{
+		uint16_t vpad = pad; // the draw's V0 pad word (the task's stack dword [entry - 0x30] high half, see CrawlerTask)
 		const uint32_t slot0 = slot;
 		uint32_t edi = 0;
 		for (TaskNode *q = QCrawlers()->head; q && q != &c->hdr; q = q->next) edi = (uint32_t)q;
@@ -885,6 +894,7 @@ namespace disch126
 				// a fork: a new crawler runs the words that follow, this one skips them
 				SpawnCrawlerScript(c->model, c->script, c->steps, c->width);
 				slot = 2;
+				vpad = (uint16_t)((uint32_t)QCrawlers() >> 16); // (the fork call's saved ebp: the executor's, the queue address)
 				c->script += -1 - bone;
 				edi = (uint32_t)c->script;
 				bone = *c->script++;
@@ -906,6 +916,7 @@ namespace disch126
 			{
 				const int32_t width = c->width;
 				Point *pt = AllocCrawlerPoint(bone, vertex, (mul32(Rand(), width) >> 15) + width, drift, c->fade, c->step);
+				vpad = ALLOC_RET_HI;
 				slot = (edi & 0xFFFF0000u) | (uint16_t)bone;
 				if (!pt) goto kill;
 				c->head->next = pt;
@@ -931,7 +942,8 @@ namespace disch126
 		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_crawler(c, slot, slot0);)
 		g_crawl_slot = slot;
-		if (c->count >= 2) g_crawl_slot = CrawlerDraw(c->model, c->tail, c->count, slot);
+		g_crawl_pad = vpad;
+		if (c->count >= 2) g_crawl_slot = CrawlerDraw(c->model, c->tail, c->count, slot, vpad);
 		{
 			Point *q = c->tail;
 			while (q->fade <= 0x10 && q->next->fade <= 0x10)
@@ -947,6 +959,7 @@ namespace disch126
 		return 0;
 	kill:
 		g_crawl_slot = slot;
+		g_crawl_pad = vpad;
 		{
 			Point *q = c->tail;
 			var<Point *>(TexBase() + CRAWL_FREE) = q;
@@ -958,12 +971,18 @@ namespace disch126
 		}
 		return TASK_END;
 	}
+	static bool g_crawl_first; // the root's crawler queue run starts (set right before ExecuteTaskQueue(QCrawlers()))
 	static uint32_t __cdecl CrawlerTask(TaskNode *n)
 	{
-		// the original's stack slot: the first crawler of the queue reads the stack word (read before this
-		// function writes below its frame), the others what the previous crawler left there (g_crawl_slot)
+		// the original's stack slot: the first crawler the queue run calls reads the stack word (read before
+		// this function writes below its frame), every later one what the previous crawler left there
+		// (g_crawl_slot), also when the crawlers before it ended on this tick (the executor unlinks an ended
+		// node: the next one is then the queue head, yet its slot holds the carry)
 		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2C);
-		return CrawlerTaskBody((CrawlerNode *)n, QCrawlers()->head == n ? stack_word : g_crawl_slot);
+		const uint16_t stack_pad = *(const uint16_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2E);
+		const bool first = g_crawl_first;
+		g_crawl_first = false;
+		return CrawlerTaskBody((CrawlerNode *)n, first ? stack_word : g_crawl_slot, first ? stack_pad : g_crawl_pad);
 	}
 
 	// ------------------------------------------------------------------
@@ -1111,6 +1130,7 @@ namespace disch126
 			GteSetTransVector(&Camera());
 			e2 = ExecuteTaskQueue(QArcs());
 			ComputeBonesWorldMatrices(Caster() + 0x60, Caster() + 0x40);
+			g_crawl_first = true;
 			e3 = ExecuteTaskQueue(QCrawlers());
 			BuildBoneMatricesFromPose(Caster() + 0x60);
 			e4 = ExecuteTaskQueue(QSparks());
