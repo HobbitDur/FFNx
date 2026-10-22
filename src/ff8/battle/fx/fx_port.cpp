@@ -303,6 +303,7 @@ namespace ff8fx
 		register_mag215_my_final_heaven();
 		register_mag091_angelo_rush();
 		register_mag216_different_beat();
+		register_mag092_angelo_search();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
