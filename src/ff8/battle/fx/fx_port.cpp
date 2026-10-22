@@ -286,6 +286,7 @@ namespace ff8fx
 		register_mag307_ray_bomb_quistis();
 		register_mag305_gatling_gun_quistis();
 		register_mag071_laser_eye_quistis();
+		register_mag317_acid_quistis();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
