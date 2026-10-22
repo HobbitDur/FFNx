@@ -647,9 +647,12 @@ namespace theend
 		static const uint32_t queues[8] = { 0x25C19E8, 0x25BC478, 0x25C21B8, 0x25C1748, 0x25BC580, 0x25BC898, 0x25C0F40, 0x25C19D8 };
 		for (int i = 0; i < 8; i++)
 		{
+			// 30 fps layer: see mag085_the_end_held.inc
+			FX_HELD(if (i == 7) held_note_tints(queues[i]);)
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
+		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1021,7 +1024,10 @@ namespace theend
 		S32(a1, 0x54) = 0x1000;
 		S32(a1, 0x50) = 0x1000;
 		U16(a1, 0x88) = 0x400;
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		a_73C280(a1);
+		FX_HELD(held_note_draw(HK_SHADOW, a1);)
 		te_785620();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -1931,7 +1937,10 @@ namespace theend
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0; // void
 		}
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_SHADOW, a1);)
 		te_785620();
+		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		if (a_73C280(a1) == 0)
 		{
 			U8(a1, 0x26) |= 1;
@@ -2031,6 +2040,8 @@ namespace theend
 		U16(a1, 0x62) = U16(a1, 0x2C6);
 		if (a_73B7E0(6) == 0)
 		{
+			// 30 fps layer: see mag085_the_end_held.inc
+			FX_HELD(held_note_draw(HK_PLAY, a1);)
 			if (a_73C280(a1) != 0)
 				return 0; // void
 		}
@@ -2350,6 +2361,8 @@ namespace theend
 	{
 		if (U8(a1, 0x26) & 4)
 			return 0; // void
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::UnpackRotationMatrix(0x1D97778, M);
@@ -2485,6 +2498,8 @@ namespace theend
 		S32(a1, 0x58) = 0x1000;
 		S32(a1, 0x54) = 0x1000;
 		S32(a1, 0x50) = 0x1000;
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		a_73C280(a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -2502,6 +2517,8 @@ namespace theend
 			U8(node, 0x29) = (uint8_t)(st + 1);
 			return node;   // eax = node
 		}
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_PLAY, node);)
 		const uint32_t r = a_73C280(node);
 		if (r == 0)
 		{
@@ -3492,6 +3509,8 @@ namespace theend
 	{
 		if (U8(a1, 0x26) & 4)
 			return 0; // void
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_GROUND, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::MAG_022_sub_8DD770(M);
@@ -3851,6 +3870,8 @@ namespace theend
 	// right, at the OT entry +0x14 (alternate viewport), in the frame arena 0x1D8E054
 	uint32_t __cdecl te_78D2E0(uint32_t a1)
 	{
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_GLOW, a1);)
 		const uint32_t pk = MEM<uint32_t>(0x1D8E054);
 		U8(pk, 0x24) = 0;
 		U8(pk, 0xC) = 0;
@@ -3936,6 +3957,8 @@ namespace theend
 	// 0xD8 - a2..0xD8, at the OT entry +0x14 (alternate viewport), in the frame arena 0x1D8E054
 	uint32_t __cdecl te_78D4D0(uint32_t a1, uint32_t a2)
 	{
+		// 30 fps layer: see mag085_the_end_held.inc
+		FX_HELD(held_note_draw(HK_BARS, a1);)
 		(void)a1;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x14;
 		uint32_t pk = MEM<uint32_t>(0x1D8E054);
