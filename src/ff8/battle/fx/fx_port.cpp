@@ -310,6 +310,7 @@ namespace ff8fx
 		register_mag192_scatter_shot();
 		register_mag194_flame_shot();
 		register_mag086_angelo_cannon();
+		register_mag195_canister_shot();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
