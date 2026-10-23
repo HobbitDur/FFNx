@@ -304,6 +304,7 @@ namespace ff8fx
 		register_mag091_angelo_rush();
 		register_mag216_different_beat();
 		register_mag092_angelo_search();
+		register_mag088_invincible_moon();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
