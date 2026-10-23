@@ -225,6 +225,7 @@ namespace ff8fx::mod
 	static const Region streams_i195[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_i193[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_i197[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_r087[] = { { 0x155B1FC, 0x670 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -476,6 +477,7 @@ namespace ff8fx::mod
 		{ 195, 0x226A970, 0x227146C, 0, 0, false, "Canister Shot (Irvine limit break)", streams_i195, 4 },
 		{ 193, 0x2276778, 0x227B334, 0, 0, false, "Dark Shot (Irvine limit break)", streams_i193, 4 },
 		{ 197, 0x2260468, 0x2265DB0, 0, 0, false, "Armor Shot (Irvine limit break)", streams_i197, 4 },
+		{ 87, 0x25ACEB0, 0x25B4CC4, 0, 0, false, "Angelo Strike (Rinoa Combine limit break)", streams_r087, 6 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
