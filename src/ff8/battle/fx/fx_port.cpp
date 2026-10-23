@@ -306,6 +306,7 @@ namespace ff8fx
 		register_mag092_angelo_search();
 		register_mag088_invincible_moon();
 		register_mag188_normal_shot();
+		register_mag196_quick_shot();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
