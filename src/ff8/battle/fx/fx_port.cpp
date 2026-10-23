@@ -314,6 +314,7 @@ namespace ff8fx
 		register_mag193_dark_shot();
 		register_mag197_armor_shot();
 		register_mag087_angelo_strike();
+		register_mag198_hyper_shot();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();

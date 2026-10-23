@@ -430,6 +430,7 @@ namespace ff8fx
 	void register_mag193_dark_shot();
 	void register_mag197_armor_shot();
 	void register_mag087_angelo_strike();
+	void register_mag198_hyper_shot();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
