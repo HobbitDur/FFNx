@@ -22,17 +22,17 @@ namespace ff8fx
 {
 	struct Port { uint32_t orig; void *port; const char *name; int effect_id; };
 
-	static const int PORTS_MAX = 8192;
+	static const int PORTS_MAX = 16384; // (8192 overflowed: registrations past it were dropped silently)
 	static Port g_ports[PORTS_MAX];
 	static int g_nports = 0;
 	// open-addressed index orig -> port slot (the executor looks every task up)
-	static const int INDEX_SIZE = 16384; // power of two, > 2 x PORTS_MAX
+	static const int INDEX_SIZE = 32768; // power of two, > 2 x PORTS_MAX
 	static int16_t g_index[INDEX_SIZE];
 	static bool g_index_ready = false;
 
 	bool g_active = false;
 
-	static inline uint32_t slot_of(uint32_t orig) { return (orig * 2654435761u) >> 18; }
+	static inline uint32_t slot_of(uint32_t orig) { return (orig * 2654435761u) >> 17; } // (15 bits: INDEX_SIZE)
 
 	void register_port(uint32_t orig, void *port, const char *name, int effect_id)
 	{
@@ -307,6 +307,8 @@ namespace ff8fx
 		register_mag088_invincible_moon();
 		register_mag188_normal_shot();
 		register_mag196_quick_shot();
+		register_mag192_scatter_shot();
+		register_mag194_flame_shot();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
