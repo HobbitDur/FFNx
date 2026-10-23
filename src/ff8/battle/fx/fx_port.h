@@ -423,6 +423,7 @@ namespace ff8fx
 	void register_mag088_invincible_moon();
 	void register_mag188_normal_shot();
 	void register_mag196_quick_shot();
+	void register_mag192_scatter_shot();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
