@@ -31,8 +31,11 @@
 //                 tick: held below 1, not drawn at 1.
 //   Plays       - the moon play 0x76A180 and the howl play 0x772C50 (a_73C280 copy 0x76A250, object callback 0x76A380): fixed
 //                 placements; prim::play_held (objects half way to their next keyframe records); the moon play's texture scroll
-//                 (+0x8E, 7 bits, -2 a tick) half way. Released, finished (cue 5) or paused (the module pause words, set while
-//                 Angelo waits for sync point 3) on the next tick: held below 1 (paused: the same frame at 1).
+//                 (+0x8E, 7 bits, -2 a tick) half way. Released or finished (cue 5) on the next tick: held below 1, not drawn at 1.
+//                 The plays' pause word (0x25A6BBC, set / cleared by Angelo's state 8 through a_73BB60 while he waits for sync
+//                 point 3) needs no prediction: a paused play still draws the frame its player reached (it only stops
+//                 advancing), so the next tick draws the advanced frame paused or not; a play paused on this tick holds
+//                 (prim::play_held: not moving).
 //   Rings       - the dust rings 0x772060 / 0x772990 (prim sequence drawn by 0x7720C0): position half way to the next step (their
 //                 state 1 on a copy); the sequence frame switches on the real frame; the sequence's end hides it at 1.
 //   Moon models - the moon and its glows 0x771660 (drawn by 0x7716C0): x drift half way; hidden at cue 4.
@@ -276,6 +279,7 @@ namespace moon88
 		return (cur != req ? req : cur) >= (int16_t)k;
 	}
 
+	// (only the flash's script step depends on them: the plays draw the frame reached, paused or not)
 	// the module pause words (0x25ACD34 flash / 0x25A6BBC plays, a_73BB60) on the next tick: while Angelo waits for director
 	// sync point 3 (his state 8, 0x773320) they are set (a_73BB60(1)) every tick and cleared (a_73BB60(0)) when the sync point
 	// is granted: a_73B640(3) after the next tick's director bookkeeping (requested -> current, next -> requested); else as now
@@ -552,8 +556,8 @@ namespace moon88
 	}
 
 	// a noted play at num / den: fixed placement; the next tick plays it (state 1) unless its task was released or the moon play
-	// finishes at cue 5 (0x76C6B0); paused on the next tick: the same frame; the moon play's texture scroll +0x8E (7 bits, the
-	// task's -2 after the play: the live node holds the next tick's) half way
+	// finishes at cue 5 (0x76C6B0) (paused or not: see the file comment); the moon play's texture scroll +0x8E (7 bits, the task's
+	// -2 after the play, also while paused: the live node holds the next tick's) half way
 	static void ItemHeld(const Rec &r, int num, int den)
 	{
 		const uint32_t cur = P(r.snap), nx = P(g_nx), mid = P(g_mid);
@@ -562,14 +566,13 @@ namespace moon88
 		const bool moon = U32(cur, 8) == ORIG_MoonPlay;
 		const bool draws = still_runs(cur, nx) && S8(nx, 0x29) == 1 && !(moon && phase_next(5));
 		if (num >= den && !draws) return;
-		const bool paused = pause_next() != 0;
-		if (draws && !paused && moon)
+		if (draws && moon)
 		{
 			const int32_t s = U16(cur, 0x8E) & 0x7F, n = U16(nx, 0x8E) & 0x7F;
 			const int32_t d = ((n - s + 0x40) & 0x7F) - 0x40;
 			U16(mid, 0x8E) = (uint16_t)((s + d * num / den) & 0x7F);
 		}
-		PlayHeld(r.node, mid, draws && !paused ? num : 0, den);
+		PlayHeld(r.node, mid, draws ? num : 0, den);
 	}
 
 	// a ring particle (0x772060 / 0x772990, draw 0x7720C0) at num / den: position half way to its next step (its state 1
