@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <numeric>
 #include <string_view>
 
 namespace
@@ -395,46 +396,93 @@ unsigned __cdecl reload_direct(char *name, void *destination)
 	return FF8_ITEM_ID_COUNT * 4;
 }
 
+live_item battle_item(int id, int amount)
+{
+	const auto &record = battle_records[id];
+	uint8_t flags = static_cast<uint8_t>(record.attack_flags_and_selectability);
+	return { uint8_t(id), uint8_t(amount), record.battle_flag, static_cast<uint8_t>(record.target_info),
+		static_cast<uint8_t>(((flags & 0x80) ? 1 : 0) | ((flags & 0x20) ? 0 : 2)) };
+}
+
+// Where a carried item sorts in the battle list: the 32 original items in their saved
+// battle order, then the added ones in ID order.
+int battle_row_key(int id)
+{
+	if (id >= vanilla_battle_count) return 32 + id - first_added_item;
+	int order = ff8_externals.savemap->items.battle_order[id - 1];
+	return order < 32 ? order : 31;
+}
+
+// The list window draws rows in place and counts its pages up to the last used row, so
+// carried items stay packed at the top: no blank row, no empty page. Actions name their
+// item by ID; only the window's per-row picks move with the rows.
+void pack_battle_items()
+{
+	std::array<uint8_t, battle_slots> rows;
+	std::iota(rows.begin(), rows.end(), uint8_t(0));
+	auto used = std::stable_partition(rows.begin(), rows.end(), [](uint8_t row) { return live_items[row].id != 0; });
+	std::stable_sort(rows.begin(), used, [](uint8_t a, uint8_t b) { return battle_row_key(live_items[a].id) < battle_row_key(live_items[b].id); });
+	const auto items = live_items;
+	const auto pending = list_pending;
+	live_items.fill({});
+	list_pending.fill(0);
+	for (int row = 0; row < used - rows.begin(); ++row)
+	{
+		live_items[row] = items[rows[row]];
+		list_pending[row] = pending[rows[row]];
+	}
+}
+
 void *__cdecl build_battle_items()
 {
 	live_items.fill({});
-	bool used[32]{};
+	size_t count = 0;
 	for (const auto &item : inventory)
 	{
-		if (!item.item_id || !item.item_quantity) continue;
-		int slot = -1;
-		if (item.item_id < vanilla_battle_count)
-		{
-			int order = ff8_externals.savemap->items.battle_order[item.item_id - 1];
-			if (order >= 32 || used[order])
-				for (order = 0; order < 32 && used[order]; ++order) {}
-			if (order == 32) continue;
-			used[order] = true;
-			slot = order;
-		}
-		else if (item.item_id >= first_added_item && item.item_id - first_added_item < battle_record_count - vanilla_battle_count &&
-			!battle_record_placeholder(item.item_id))
-			slot = 32 + item.item_id - first_added_item;
-		if (slot < 0) continue;
-		const auto &record = battle_records[item.item_id];
-		uint8_t flags = static_cast<uint8_t>(record.attack_flags_and_selectability);
-		live_items[slot] = { item.item_id, item.item_quantity, record.battle_flag,
-			static_cast<uint8_t>(record.target_info), static_cast<uint8_t>(((flags & 0x80) ? 1 : 0) | ((flags & 0x20) ? 0 : 2)) };
+		if (!item.item_id || !item.item_quantity || count == live_items.size()) continue;
+		if (item.item_id >= vanilla_battle_count && (item.item_id < first_added_item ||
+			item.item_id - first_added_item >= battle_record_count - vanilla_battle_count || battle_record_placeholder(item.item_id)))
+			continue;
+		live_items[count++] = battle_item(item.item_id, item.item_quantity);
 	}
+	pack_battle_items();
 	return live_items.data() + live_items.size();
 }
 
 void *__cdecl update_battle_items()
 {
 	for (auto &item : live_items)
-	{
-		const auto &record = battle_records[item.id];
-		uint8_t flags = static_cast<uint8_t>(record.attack_flags_and_selectability);
-		item.battle_flag = record.battle_flag;
-		item.target_info = static_cast<uint8_t>(record.target_info);
-		item.selectable = static_cast<uint8_t>(((flags & 0x80) ? 1 : 0) | ((flags & 0x20) ? 0 : 2));
-	}
+		item = battle_item(item.id, item.amount);
 	return live_items.data() + live_items.size();
+}
+
+// The native version empties the row of a used-up item in place and gives a refunded one
+// the first empty row. Same results, with the list packed again after either.
+int __cdecl change_battle_item_amount(int id, int remove)
+{
+	if (!id) return 0;
+	auto item = std::find_if(live_items.begin(), live_items.end(), [id](const live_item &row) { return row.id == id; });
+	if (remove)
+	{
+		if (item == live_items.end() || !item->amount) return 1;
+		if (!--item->amount)
+		{
+			*item = {};
+			pack_battle_items();
+		}
+		return 0;
+	}
+	if (item != live_items.end())
+	{
+		if (static_cast<int8_t>(item->amount) >= 100) return 1;
+		++item->amount;
+		return 0;
+	}
+	item = std::find_if(live_items.begin(), live_items.end(), [](const live_item &row) { return row.id == 0; });
+	if (item == live_items.end()) return 1;
+	*item = battle_item(id, 1);
+	pack_battle_items();
+	return 0;
 }
 
 int __cdecl random_battle_item(int previous)
@@ -502,6 +550,7 @@ void arm()
 	menu_hook = replace_function(fn[fn_item_menu], reinterpret_cast<void *>(item_menu));
 	replace_function(fn[fn_build_battle_items], reinterpret_cast<void *>(build_battle_items));
 	replace_function(fn[fn_update_battle_items], reinterpret_cast<void *>(update_battle_items));
+	replace_function(fn[fn_change_battle_item_amount], reinterpret_cast<void *>(change_battle_item_amount));
 	replace_function(fn[fn_random_battle_item], reinterpret_cast<void *>(random_battle_item));
 	replace_function(fn[fn_reserve_battle_order], reinterpret_cast<void *>(reserve_battle_order));
 	redirect(save_image_calls, reinterpret_cast<void *>(save_image));
