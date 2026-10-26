@@ -434,6 +434,7 @@ namespace ff8fx
 	void register_mag200_no_mercy();
 	void register_mag089_wishing_star();
 	void register_mag261_desperado();
+	void register_mag263_massive_anchor();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
