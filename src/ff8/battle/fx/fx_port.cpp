@@ -317,6 +317,8 @@ namespace ff8fx
 		register_mag198_hyper_shot();
 		register_mag200_no_mercy();
 		register_mag089_wishing_star();
+		register_mag261_desperado();
+		register_mag263_massive_anchor();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
