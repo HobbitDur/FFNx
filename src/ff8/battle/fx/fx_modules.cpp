@@ -228,6 +228,7 @@ namespace ff8fx::mod
 	static const Region streams_r087[] = { { 0x155B1FC, 0x670 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_i198[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_s200[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } }; // the shared camera-script cells, the shadow-rotation scratch
+	static const Region streams_r089[] = { { 0x1491414, 0x670 }, { 0x14AF490, 0x80 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } }; // Angelo pose block, star groups, RenderGeometry last packet, shadow scratch
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -482,6 +483,7 @@ namespace ff8fx::mod
 		{ 87, 0x25ACEB0, 0x25B4CC4, 0, 0, false, "Angelo Strike (Rinoa Combine limit break)", streams_r087, 6 },
 		{ 198, 0x225A908, 0x2260464, 0, 0, false, "Hyper Shot (Irvine limit break)", streams_i198, 4 },
 		{ 200, 0x24F7A68, 0x24FBD68, 0, 0, false, "No Mercy (Seifer limit break)", streams_s200, 2 },
+		{ 89, 0x2556584, 0x2556624, 0, 0, false, "Wishing Star (Rinoa Combine limit break)", streams_r089, 6 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
