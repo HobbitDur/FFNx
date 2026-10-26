@@ -36,8 +36,7 @@ the log says what, and items 199-255 are ignored.
 - The item menu, Sort, rearrange, shops (32 sell pages), refine and field scripts all use the
   255 slots. The last page has two rows.
 - The battle Item list holds the 32 original battle items, in their saved order, followed by the
-  added ones in ID order. It only lists the items you carry, with no blank rows, so it has
-  only the pages it needs.
+  added ones in ID order.
 
 ## Saves
 
