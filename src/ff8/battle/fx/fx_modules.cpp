@@ -486,6 +486,7 @@ namespace ff8fx::mod
 		{ 89, 0x2556584, 0x2556624, 0, 0, false, "Wishing Star (Rinoa Combine limit break)", streams_r089, 6 },
 		{ 261, 0x2796158, 0x2798C40, 0, 0, false, "Desperado (Laguna limit break)", streams_gfc, 5 },
 		{ 263, 0x2795DA0, 0x2798C40, 0, 0, false, "Massive Anchor (Ward limit break)", streams_gfc, 5 },
+		{ 262, 0x2795DD8, 0x2798C40, 0, 0, false, "Blood Pain (Kiros limit break)", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
