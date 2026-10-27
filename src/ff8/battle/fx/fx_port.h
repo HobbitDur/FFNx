@@ -444,6 +444,7 @@ namespace ff8fx
 	void register_mag141_renzokuken_5hits();
 	void register_mag259_renzokuken_6hits();
 	void register_mag332_renzokuken_7hits();
+	void register_mag333_renzokuken_8hits();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
