@@ -439,6 +439,8 @@ namespace ff8fx
 	void register_mag017_elvoret_entrance();
 	void register_mag110_biggs_wedge_death();
 	void register_mag018_elvoret_death();
+	void register_mag161_renzokuken_elvoret();
+	void register_mag159_renzokuken_xatm();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
