@@ -230,6 +230,7 @@ namespace ff8fx::mod
 	static const Region streams_s200[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } }; // the shared camera-script cells, the shadow-rotation scratch
 	static const Region streams_r089[] = { { 0x1491414, 0x670 }, { 0x14AF490, 0x80 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } }; // Angelo pose block, star groups, RenderGeometry last packet, shadow scratch
 	static const Region streams_e017[] = { { 0xB8B9A8, 4 }, { 0x21DFED0, 0x20 } }; // the battle ambient colour, the shadow-rotation scratch
+	static const Region streams_b110[] = { { 0x12E0658, 0x9A0 }, { 0x21DFED0, 0x20 } }; // the stream model vertex table (rewritten every tick), the shadow-rotation scratch
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -489,6 +490,7 @@ namespace ff8fx::mod
 		{ 263, 0x2795DA0, 0x2798C40, 0, 0, false, "Massive Anchor (Ward limit break)", streams_gfc, 5 },
 		{ 262, 0x2795DD8, 0x2798C40, 0, 0, false, "Blood Pain (Kiros limit break)", streams_gfc, 5 },
 		{ 17, 0x2556FA0, 0x2557000, 0, 0, false, "Elvoret entrance (Elvoret c0m091 AI init: attackAnimation 17)", streams_e017, 2 },
+		{ 110, 0x25219C8, 0x2521A64, 0, 0, false, "Biggs & Wedge 1st death (Biggs c0m074 / Wedge c0m073 death script: attackAnimation 110)", streams_b110, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -605,6 +607,8 @@ namespace ff8fx::mod
 		{ 0x495100, 1, "MonsterName_495100" },
 		// Elvoret entrance (17): the caster's entity sound
 		{ 0x5015A0, 4, "BdPlayActorSE" },
+		// Biggs & Wedge 1st death (110): the targets' battle text
+		{ 0x487750, 2, "printMonsterRelatedText0" },
 	};
 	const int ext_site_count = (int)(sizeof(ext_sites) / sizeof(ext_sites[0]));
 
