@@ -491,6 +491,7 @@ namespace ff8fx::mod
 		{ 262, 0x2795DD8, 0x2798C40, 0, 0, false, "Blood Pain (Kiros limit break)", streams_gfc, 5 },
 		{ 17, 0x2556FA0, 0x2557000, 0, 0, false, "Elvoret entrance (Elvoret c0m091 AI init: attackAnimation 17)", streams_e017, 2 },
 		{ 110, 0x25219C8, 0x2521A64, 0, 0, false, "Biggs & Wedge 1st death (Biggs c0m074 / Wedge c0m073 death script: attackAnimation 110)", streams_b110, 2 },
+		{ 18, 0x2796EC0, 0x2798C40, 0, 0, false, "Elvoret death (Elvoret c0m091 death script: attackAnimation 18)", streams_gfc, 5 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 

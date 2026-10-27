@@ -438,6 +438,7 @@ namespace ff8fx
 	void register_mag262_blood_pain();
 	void register_mag017_elvoret_entrance();
 	void register_mag110_biggs_wedge_death();
+	void register_mag018_elvoret_death();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
