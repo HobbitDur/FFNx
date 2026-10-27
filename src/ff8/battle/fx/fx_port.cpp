@@ -325,6 +325,7 @@ namespace ff8fx
 		register_mag018_elvoret_death();
 		register_mag161_renzokuken_elvoret();
 		register_mag159_renzokuken_xatm();
+		register_mag141_renzokuken_5hits();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
