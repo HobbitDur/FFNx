@@ -231,6 +231,7 @@ namespace ff8fx::mod
 	static const Region streams_r089[] = { { 0x1491414, 0x670 }, { 0x14AF490, 0x80 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } }; // Angelo pose block, star groups, RenderGeometry last packet, shadow scratch
 	static const Region streams_e017[] = { { 0xB8B9A8, 4 }, { 0x21DFED0, 0x20 } }; // the battle ambient colour, the shadow-rotation scratch
 	static const Region streams_b110[] = { { 0x12E0658, 0x9A0 }, { 0x21DFED0, 0x20 } }; // the stream model vertex table (rewritten every tick), the shadow-rotation scratch
+	static const Region streams_r161[] = { { 0x24FEB98, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs Elvoret: the caster and boss bind blocks, the camera shake word
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -492,6 +493,7 @@ namespace ff8fx::mod
 		{ 17, 0x2556FA0, 0x2557000, 0, 0, false, "Elvoret entrance (Elvoret c0m091 AI init: attackAnimation 17)", streams_e017, 2 },
 		{ 110, 0x25219C8, 0x2521A64, 0, 0, false, "Biggs & Wedge 1st death (Biggs c0m074 / Wedge c0m073 death script: attackAnimation 110)", streams_b110, 2 },
 		{ 18, 0x2796EC0, 0x2798C40, 0, 0, false, "Elvoret death (Elvoret c0m091 death script: attackAnimation 18)", streams_gfc, 5 },
+		{ 161, 0x23D0D90, 0x23D34A4, 0, 0, false, "Renzokuken vs Elvoret / Elnoyle (Squall; target c0m091 / c0m131)", streams_r161, 2 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
@@ -610,6 +612,8 @@ namespace ff8fx::mod
 		{ 0x5015A0, 4, "BdPlayActorSE" },
 		// Biggs & Wedge 1st death (110): the targets' battle text
 		{ 0x487750, 2, "printMonsterRelatedText0" },
+		// Renzokuken (160 / 161 / 159): the hit sparks' AnimSeq task on the caster (finisher)
+		{ 0x571840, 2, "AddTaskToQueueAnimSeq_99_B0_B1_B4_A5" },
 	};
 	const int ext_site_count = (int)(sizeof(ext_sites) / sizeof(ext_sites[0]));
 
