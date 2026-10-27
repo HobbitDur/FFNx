@@ -320,6 +320,9 @@ namespace ff8fx
 		register_mag261_desperado();
 		register_mag263_massive_anchor();
 		register_mag262_blood_pain();
+		register_mag017_elvoret_entrance();
+		register_mag110_biggs_wedge_death();
+		register_mag018_elvoret_death();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
