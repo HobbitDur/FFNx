@@ -206,6 +206,36 @@ namespace desperado261
 		g_op05B();
 	}
 
+	// held-frame entity (fx_held.h HeldEntity, drawn by the frame gate): the target draw 38 carries. On a real tick
+	// draw 38 puts the attached entity at its bone (+0x0C..+0x10, +0x1C..+0x20): noted with its components before and
+	// after. Discrete: the hang's first draw (bone+0xC4 == 0: the entity jumps to the node) and a step beyond the
+	// engine's cut (outPos 0x2000, angle 0x400: the put back at the end). Listed: the entities draw 38 placed on the
+	// tick just run.
+	struct EntTick { uint8_t *ent; bool first; int16_t pre[6], post[6]; };
+	static EntTick g_et[4];
+	static int g_net = 0;
+	static uint32_t g_et_tick = 0xFFFFFFFFu;
+
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (!HeldReady(g_c) || g_et_tick != g_real_tick) return 0;
+		int n = 0;
+		for (int i = 0; i < g_net && n < max; i++)
+		{
+			HeldEntity &h = out[n++];
+			held_entity_init(h, g_et[i].ent);
+			bool cut = g_et[i].first;
+			for (int c = 0; c < 6; c++)
+			{
+				int32_t d = (int32_t)g_et[i].post[c] - g_et[i].pre[c];
+				if (c >= 3) d = ((d + 0x800) & 0xFFF) - 0x800;
+				if (d > (c < 3 ? 0x2000 : 0x400) || d < -(c < 3 ? 0x2000 : 0x400)) cut = true;
+			}
+			if (cut) for (int c = 0; c < 6; c++) held_entity_jump(h, c);
+		}
+		return n;
+	}
+
 	// draw 38 AttachBattleEntity (Brothers' port, which saves and restores the entity around a
 	// held draw) reads joint 0xF1 of the attached entity's skeleton (blob 0xB66B80): on a held frame
 	// the skeleton is put at the entity's in-between pose first (pose_midpoint num / den), and put
@@ -214,7 +244,24 @@ namespace desperado261
 	static uint8_t g_skel38[0x10 + 0x30 * 256];
 	static void __cdecl dh_38_AttachBattleEntityHeld()
 	{
-		if (!held_active()) { g_d38(); return; }
+		if (!held_active())
+		{
+			// real tick: the entity's components before / after the draw (HeldEntities)
+			uint8_t *e0 = SlotEntity();
+			if (g_et_tick != g_real_tick) { g_et_tick = g_real_tick; g_net = 0; }
+			EntTick *r = nullptr;
+			for (int i = 0; i < g_net; i++) if (g_et[i].ent == e0) r = &g_et[i];
+			if (!r && g_net < 4)
+			{
+				r = &g_et[g_net++];
+				r->ent = e0;
+				r->first = U32(CUR(), 0xC4) == 0;
+				for (int c = 0; c < 6; c++) r->pre[c] = *held_entity_field(e0, c);
+			}
+			g_d38();
+			if (r) for (int c = 0; c < 6; c++) r->post[c] = *held_entity_field(e0, c);
+			return;
+		}
 		uint8_t *ent = SlotEntity();
 		uint8_t *sk = PTR(PTR(ent + 0x60, 4), 0);
 		const uint32_t n = sk ? 0x10 + 0x30 * (uint32_t)U8(sk, 0) : 0;
@@ -239,5 +286,6 @@ namespace desperado261
 		mark_held(0x959F40);
 		register_module_held(261, desperado261::Ready, desperado261::Frame);
 		register_module_camera(261, desperado261::Camera);
+		register_module_entity(261, desperado261::HeldEntities);
 	}
 }

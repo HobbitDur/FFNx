@@ -417,6 +417,65 @@ namespace raijin
 		return true;
 	}
 
+	// held-frame entities (fx_held.h HeldEntity, drawn by the frame gate): each strike task (model queue, 0x7EB8C0)
+	// moves its target (+0x2D): state 0 from tick 6 turns it and pushes it back 0x200 in one tick (discrete), state 2
+	// slides it back by the curve 0x1597820 (continuous) and restores its +0x0C / +0x10 words when the layout ends
+	// (discrete; the strike ends with it). The strikes and their states seen by the previous held frame are kept: a
+	// strike that left state 0 / 2 (or ended) on the tick just run made that discrete change. Listed: every strike's
+	// target, and the target of a strike that ended on this tick.
+	struct StrikeSeen { uint32_t node; uint8_t *ent; int8_t state; };
+	static StrikeSeen g_seen[8], g_seen_new[8], g_seen_cur[8];
+	static int g_nseen = 0, g_nseen_cur = 0;
+	static uint32_t g_seen_tick = 0xFFFFFFFFu, g_seen_cur_tick = 0xFFFFFFFFu;
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (!HeldReady()) return 0;
+		if (g_seen_cur_tick != g_real_tick && g_seen_cur_tick != 0xFFFFFFFFu)
+		{
+			// a new tick: the list the previous tick's held frames saw becomes the previous one
+			memcpy(g_seen, g_seen_cur, sizeof(g_seen));
+			g_nseen = g_nseen_cur;
+			g_seen_tick = g_seen_cur_tick;
+		}
+		const bool have_prev = g_seen_tick + 1 == g_real_tick;
+		int n = 0, nn = 0;
+		auto entry = [&](uint8_t *ent) -> HeldEntity * {
+			for (int i = 0; i < n; i++) if (out[i].ent == ent) return &out[i];
+			if (n >= max) return nullptr;
+			held_entity_init(out[n], ent);
+			return &out[n++];
+		};
+		const TaskQueue *q = (const TaskQueue *)Q_MODELS;
+		int guard_n = 0;
+		for (const TaskNode *t = q->head; t && guard_n < 64; t = t->next, guard_n++)
+		{
+			const uint32_t node = (uint32_t)t;
+			if (!live(node, ORIG_Strike)) continue;
+			uint8_t *ent = (uint8_t *)ENT(U8(node, 0x2D));
+			const int8_t st = S8(node, 0x29);
+			HeldEntity *h = entry(ent);
+			for (int i = 0; h && have_prev && i < g_nseen; i++)
+				if (g_seen[i].node == node && g_seen[i].state == 0 && st >= 1)
+					for (int c = 0; c < 5; c++) if (c != 3) held_entity_jump(*h, c);
+			if (nn < 8) g_seen_new[nn++] = { node, ent, st };
+		}
+		// strikes seen before that ended (or left state 2) on this tick: their target's words were restored
+		for (int i = 0; have_prev && i < g_nseen; i++)
+		{
+			bool alive2 = false;
+			for (int k = 0; k < nn; k++) if (g_seen_new[k].node == g_seen[i].node && g_seen_new[k].state == 2) alive2 = true;
+			if (g_seen[i].state == 2 && !alive2)
+			{
+				HeldEntity *h = entry(g_seen[i].ent);
+				if (h) for (int c = 3; c < 6; c++) held_entity_jump(*h, c);
+			}
+		}
+		memcpy(g_seen_cur, g_seen_new, sizeof(g_seen_cur));
+		g_nseen_cur = nn;
+		g_seen_cur_tick = g_real_tick;
+		return n;
+	}
+
 	// the parameter block of 0x7EBAC0 for the node n (L: 0x5C bytes)
 	static void PlayBlock(uint32_t n, uint32_t L)
 	{
@@ -583,5 +642,6 @@ namespace raijin
 		mark_held(act::raijin::ORIG_Impact);
 		mark_held(act::raijin::ORIG_Debris);
 		register_module_held(60, act::raijin::HeldReady, act::raijin::HeldFrame);
+		register_module_entity(60, act::raijin::HeldEntities);
 	}
 }

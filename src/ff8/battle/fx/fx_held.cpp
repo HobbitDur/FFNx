@@ -64,6 +64,26 @@ namespace ff8fx
 		return false;
 	}
 
+	// ------------------------------------------------------------------ held-frame entities
+	static struct { int effect_id; HeldEntityFn fn; } g_ent[MODULES_MAX];
+	static int g_nent = 0;
+
+	void register_module_entity(int effect_id, HeldEntityFn fn)
+	{
+		if (g_nent < MODULES_MAX) g_ent[g_nent++] = { effect_id, fn };
+	}
+
+	int held_entities(int effect_id, HeldEntity *out, int max)
+	{
+		for (int i = 0; i < g_nent; i++)
+			if (g_ent[i].effect_id == effect_id)
+			{
+				const int n = g_ent[i].fn(out, max);
+				return n < 0 ? 0 : (n > max ? max : n);
+			}
+		return 0;
+	}
+
 	// ------------------------------------------------------------------ held tasks
 	// open-addressed set of task function addresses (the replay asks for every primitive)
 	static const int HELD_TASKS_SIZE = 4096; // power of two, > 2 x the marked tasks (967 marked)

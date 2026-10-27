@@ -75,6 +75,46 @@ namespace grab101
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
 
+	// held-frame entity (fx_held.h HeldEntity, drawn by the frame gate): the grabbed target. Discrete: the tick the
+	// root starts (target put at the caster, the grab's first tick at once: its counter is 1 now). While the grab's
+	// counter is < 0x26 it writes the target's render matrix itself (rotation diag(-1, 1, -1), translation = its
+	// position): direct (drawn as written, the translation lerp of this tick's and the next tick's; held on the last
+	// one). The glide back (0x26..0x35) and the final put back are continuous. Listed while the module runs.
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (max < 1 || !HeldReady() || !Target()) return 0;
+		HeldEntity &h = out[0];
+		held_entity_init(h, Target());
+		const RootNode *r = (const RootNode *)0x2544E58;   // the root pool (1 node, queue 0x2544E48)
+		if (!r->started) return 1;
+		const GrabNode *g = (const GrabNode *)QGrab()->pool;
+		if (!g) return 1;
+		const bool live = (g->hdr.flags & 1) != 0;
+		const int32_t c = g->counter, c0 = c - 1;          // (the grab steps its counter every tick)
+		if (c0 == 0) { held_entity_jump(h, 0); held_entity_jump(h, 1); held_entity_jump(h, 2); }
+		if (c0 < 0x26)
+		{
+			static const int16_t R[9] = { -0x1000, 0, 0, 0, 0x1000, 0, 0, 0, -0x1000 };
+			held_entity_direct_rot(h, R);
+			int16_t p[3];
+			const bool w1 = live && c < 0x26;
+			if (w1)
+			{
+				const uint8_t *hdr = **(uint8_t *const *const *)(Target() + 0x64);
+				p[0] = (int16_t)(*(const int16_t *)(hdr + 0x34) + *(const int16_t *)(Caster() + 0x1C));
+				p[1] = 0x4B0;
+				p[2] = (int16_t)(*(const int16_t *)(Caster() + 0x20) - 0x190);
+			}
+			for (int k = 0; k < 3; k++)
+			{
+				const int32_t w = *held_entity_field(Target(), k);   // what this tick wrote: its position
+				if (w1) held_entity_direct(h, 9 + k, w, p[k]);
+				else held_entity_direct_hold(h, 9 + k, w);
+			}
+		}
+		return 1;
+	}
+
 	static void HeldFrame(int num, int den)
 	{
 		// arena A (magic buffer + 0x450) follows the blend buffer (+ 0x2D0) directly
@@ -99,5 +139,6 @@ namespace grab101
 	{
 		mark_held(grab101::ORIG_GrabTask);
 		register_module_held(101, grab101::HeldReady, grab101::HeldFrame);
+		register_module_entity(101, grab101::HeldEntities);
 	}
 }

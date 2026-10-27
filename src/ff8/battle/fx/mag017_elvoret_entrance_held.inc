@@ -109,6 +109,15 @@ namespace elvoret017
 		ParticleDraw(&m);
 	}
 
+	// held-frame entity (fx_held.h HeldEntity, drawn by the frame gate): Elvoret, whose +0x1E the main task raises
+	// by 0x40 a tick (counters 0..0x54): continuous, listed while the module runs
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (max < 1 || !HeldReady() || !Caster()) return 0;
+		held_entity_init(out[0], Caster());
+		return 1;
+	}
+
 	static void HeldFrame(int num, int den)
 	{
 		HeldScope scope(PacketCursor(), g_held_packets, sizeof(g_held_packets), g_packets);
@@ -140,5 +149,6 @@ namespace elvoret017
 		mark_held(elvoret017::ORIG_ParticleTask);
 		mark_held(elvoret017::ORIG_MainTask);
 		register_module_held(17, elvoret017::HeldReady, elvoret017::HeldFrame);
+		register_module_entity(17, elvoret017::HeldEntities);
 	}
 }

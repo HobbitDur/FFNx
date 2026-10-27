@@ -1694,6 +1694,7 @@ static uint32_t ff8_bgate_bdlink_ri = 0;
 static void ff8_bgate_battle_reset();
 static void ff8_bgate_move_restore_all();
 static void ff8_bgate_cam_restore();
+static void ff8_bgate_ent_frame_start();
 
 // TEMP diagnostics (camera stuck after an effect): one line whenever the battle camera
 // controller state changes. CURRENT_CAMERA_ANIMATION 0x1D97728, CAMERA_FLAG_RELATED
@@ -1812,6 +1813,7 @@ int __cdecl ff8_bgate_bdlink_hook()
 	// the in-between camera written at the end of the last frame (for its view) is taken back
 	// on EVERY frame: the frame's tasks always see the true camera words
 	ff8_bgate_cam_restore();
+	ff8_bgate_ent_frame_start();
 	if (ff8_bgate_phase == 0)
 	{
 		ff8_bgate_move_restore_all();
@@ -2490,6 +2492,186 @@ static ff8_bgate_done_cache_t *ff8_bgate_done_cache_get(void *slot)
 static int (__cdecl *ff8_bgate_animseq_upd_orig)(void *) = nullptr;
 static uint32_t ff8_bgate_animseq_upd_ri = 0;
 
+// --- held frames: battle entities moved by a natively ported effect (fx_held.h HeldEntity) ---
+// When does an entity move reach the screen? One battle frame (BdLink 0x500900): the effect tick
+// (0x50093A) writes the entity's fields, then the entity queue (0x500971) runs each entity's task
+// (0x502AB0): RENDER first (BS_RenderBattleEntity 0x502D40, with the +0x40 matrix the END of the
+// previous frame built), then the animation update, then the matrix rebuild from the fields (rotation
+// +0x0C, position +0x1C + height +0x22, state offset *(+0x74)+0x24, root bone offset, scales). So the
+// real frame of tick N draws the fields of tick N-1 (the rebuild of the frame before it), except a
+// translation the effect writes into the matrix itself (+0x54..+0x5C), which that frame draws.
+// Real frames stay exactly vanilla: nothing here writes an entity field or matrix that a real frame
+// renders or any battle logic reads. A held frame of phase p (between the real frame of tick N, which
+// draws N-1, and the next one, which draws N) draws, for each entity the running effect lists, the
+// matrix the engine would build from lerp(fields N-1, fields N, p/n) (angles the short way round,
+// positions never wrap; a component the effect marks as a discrete change of tick N holds N-1): built
+// on a private copy of the entity by the same engine calls as the rebuild, swapped in around this
+// entity's render call only and taken out right after it. The effect's own direct translation is
+// drawn lerp(written on tick N, written by tick N + 1, p/n) (the effect predicts it; discrete: held), a
+// rotation it writes itself as written.
+// "Fields N-1" = what the queue's rebuild used in the frame before the last real frame, "fields N" =
+// the live ones, which must still be what the last real frame's queue left (else something moved the
+// entity on this held frame: hands off, its own matrix is drawn). An entity in a multi-part chain
+// (+0x8C) is not handled (its parts copy the chain's matrix). A listed entity is the effect's: the
+// steady-motion extrapolation (ff8_bgate_move_nudge, which writes fields on held frames) leaves it
+// alone. Nothing listed / no registered prediction: nothing here runs.
+#define FF8_BGATE_ENT_MAX 8
+#define FF8_BGATE_ENT_SLOTS 7       // FF8BattleEntitySlotData array 0x1D972C0 (party 0..2, monsters 3..6)
+static ff8fx::HeldEntity ff8_bgate_ent_req[FF8_BGATE_ENT_MAX];
+static int ff8_bgate_nent_req = 0;  // entities the effect listed on this held frame
+static int16_t ff8_bgate_ent_last[FF8_BGATE_ENT_SLOTS][9];  // fields the last queue's rebuild used
+static int16_t ff8_bgate_ent_prev[FF8_BGATE_ENT_SLOTS][9];  // ... the queue before the last real frame (tick N-1)
+static int16_t ff8_bgate_ent_real[FF8_BGATE_ENT_SLOTS][9];  // ... the last real frame's queue (tick N)
+static bool ff8_bgate_ent_last_ok = false, ff8_bgate_ent_prev_ok = false, ff8_bgate_ent_real_ok = false;
+static uint8_t ff8_bgate_ent_live[0x20];                    // the entity's own matrix while swapped out
+static uint8_t *ff8_bgate_ent_swapped = nullptr;
+static uint32_t ff8_bgate_ent_frames = 0, ff8_bgate_ent_handsoff = 0; // stats
+
+static int ff8_bgate_ent_index(const void *slot)
+{
+	const uint32_t o = (uint32_t)slot - 0x1D972C0u;
+	return (o % 0x9C) == 0 && o / 0x9C < FF8_BGATE_ENT_SLOTS ? (int)(o / 0x9C) : -1;
+}
+
+static void ff8_bgate_ent_read(uint8_t *e, int16_t v[9])
+{
+	for (int c = 0; c < 9; c++)
+	{
+		const int16_t *p = ff8fx::held_entity_field(e, c);
+		v[c] = p ? *p : 0;
+	}
+}
+
+// start of every battle frame (BdLink hook): a held frame lists its entities anew; a real frame makes
+// the last queue's fields the "previous tick" ones of its held frames
+static void ff8_bgate_ent_frame_start()
+{
+	ff8_bgate_nent_req = 0;
+	if (ff8_bgate_phase == 0)
+	{
+		memcpy(ff8_bgate_ent_prev, ff8_bgate_ent_last, sizeof(ff8_bgate_ent_prev));
+		ff8_bgate_ent_prev_ok = ff8_bgate_ent_last_ok;
+		ff8_bgate_ent_real_ok = false;
+	}
+}
+
+// effect gate, held frame, right after the module's held draw (same saved GTE / scratch state)
+static void ff8_bgate_ent_collect(int eid)
+{
+	ff8_bgate_nent_req = ff8fx::held_entities(eid, ff8_bgate_ent_req, FF8_BGATE_ENT_MAX);
+}
+
+// the effect listed this entity on this held frame (the extrapolation keeps off it)
+static bool ff8_bgate_ent_claimed(const void *slot)
+{
+	for (int i = 0; i < ff8_bgate_nent_req; i++)
+		if (ff8_bgate_ent_req[i].ent == slot) return true;
+	return false;
+}
+
+// after the entity queue (every frame): the fields its rebuilds used (read only)
+static void ff8_bgate_ent_after_queue()
+{
+	for (int s = 0; s < FF8_BGATE_ENT_SLOTS; s++) ff8_bgate_ent_read((uint8_t *)(0x1D972C0 + 0x9C * s), ff8_bgate_ent_last[s]);
+	ff8_bgate_ent_last_ok = true;
+	if (ff8_bgate_phase == 0)
+	{
+		memcpy(ff8_bgate_ent_real, ff8_bgate_ent_last, sizeof(ff8_bgate_ent_real));
+		ff8_bgate_ent_real_ok = true;
+	}
+}
+
+// lerp(a, b, phase / n) with the gate's rounding (as ff8_bgate_scale_round: half away from zero)
+static int32_t ff8_bgate_ent_lerp(int c, int32_t a, int32_t b)
+{
+	if (c < 9) { a = (int16_t)a; b = (int16_t)b; }              // s16 fields (positions never wrap round)
+	int64_t d = (int64_t)b - a;
+	if (c >= 3 && c < 6) d = ((d + 0x800) & 0xFFF) - 0x800;     // angle, the short way round
+	const int64_t t = d * ff8_bgate_phase;
+	const int64_t s = t >= 0 ? (t + ff8_bgate_n / 2) / ff8_bgate_n : -((-t + ff8_bgate_n / 2) / ff8_bgate_n);
+	return c < 9 ? (int32_t)(int16_t)(a + s) : (int32_t)(a + s);
+}
+
+// the entity task's matrix rebuild (0x502BE6..0x502CDD) on the entity copy t: rotation from +0x0C,
+// translation from +0x1C (+0x22 on y) and the state offset through it, the root bone's offset kept
+// through the scales (+0x30 vector, the size scales x +0x9A); engine calls, private scratch
+static void ff8_bgate_ent_rebuild(uint8_t *t)
+{
+	alignas(4) uint8_t w[0x28];
+	alignas(4) int32_t tmp[4], sc[3];
+	uint8_t *m = t + 0x40;
+	((void *(__cdecl *)(void *, void *))0x56CE30)(t + 0xC, m);                 // ComposeZYXRotationMatrix
+	*(int32_t *)(t + 0x54) = *(const int16_t *)(t + 0x1C);
+	*(int32_t *)(t + 0x58) = *(const int16_t *)(t + 0x22) + *(const int16_t *)(t + 0x1E);
+	*(int32_t *)(t + 0x5C) = *(const int16_t *)(t + 0x20);
+	((void (__cdecl *)(void *))0x509B30)(m);                                   // GTE rotation / translation = m
+	((void (__cdecl *)(void *, void *, void *))0x56C820)(*(uint8_t **)(t + 0x74) + 0x24, t + 0x54, tmp); // TransformCoordinateToCameraSpace
+	uint8_t *root = **(uint8_t ***)(t + 0x64) + 0x34;                          // skeleton bone 0 + 0x24
+	((void (__cdecl *)(void *, void *, void *))0x56C600)(m, root, w + 8);      // TransformVectorBy3x3Matrix
+	if (*(void **)(t + 0x30)) ((void (__cdecl *)(void *, void *))0x56BEF0)(m, *(void **)(t + 0x30)); // scale3DMatrix
+	const int32_t ms = *(const int16_t *)(t + 0x9A);
+	sc[0] = (*(const int16_t *)(t + 0x94) * ms) >> 12;
+	sc[1] = (*(const int16_t *)(t + 0x96) * ms) >> 12;
+	sc[2] = (*(const int16_t *)(t + 0x98) * ms) >> 12;
+	((void (__cdecl *)(void *, void *))0x56BEF0)(m, sc);
+	((void (__cdecl *)(void *, void *, void *))0x56C600)(m, root, w + 0x18);
+	*(int32_t *)(t + 0x54) += *(const int32_t *)(w + 8) - *(const int32_t *)(w + 0x18);
+	*(int32_t *)(t + 0x5C) += *(const int32_t *)(w + 0x10) - *(const int32_t *)(w + 0x20);
+}
+
+// the held frame's matrix of a listed entity (false: it draws its own); out = 0x20 bytes
+static bool ff8_bgate_ent_display(uint8_t *slot, uint8_t *out)
+{
+	if (ff8_bgate_phase == 0 || !ff8_bgate_ent_prev_ok || !ff8_bgate_ent_real_ok) return false;
+	const int s = ff8_bgate_ent_index(slot);
+	if (s < 0 || *(void **)(slot + 0x8C) || !*(void **)(slot + 0x74) || !*(void **)(slot + 0x64)) return false;
+	const ff8fx::HeldEntity *h = nullptr;
+	for (int i = 0; i < ff8_bgate_nent_req; i++)
+		if (ff8_bgate_ent_req[i].ent == slot) h = &ff8_bgate_ent_req[i];
+	if (!h) return false;
+	int16_t now[9];
+	ff8_bgate_ent_read(slot, now);
+	if (memcmp(now, ff8_bgate_ent_real[s], sizeof(now))) { ff8_bgate_ent_handsoff++; return false; } // moved on this held frame
+	alignas(4) static uint8_t t[0x9C], st[0x30];
+	memcpy(t, slot, sizeof(t));
+	memcpy(st, *(uint8_t **)(slot + 0x74), sizeof(st));
+	*(uint8_t **)(t + 0x74) = st;
+	for (int c = 0; c < 9; c++)
+		*ff8fx::held_entity_field(t, c) = (int16_t)((h->jump >> c & 1) ? ff8_bgate_ent_prev[s][c] : ff8_bgate_ent_lerp(c, ff8_bgate_ent_prev[s][c], now[c]));
+	static uint8_t gte_data[0x90], gte_ctrl[0xF0];
+	memcpy(gte_data, (void *)0x1CA8A10, sizeof(gte_data));
+	memcpy(gte_ctrl, (void *)0x1CA9210, sizeof(gte_ctrl));
+	ff8_bgate_ent_rebuild(t);
+	memcpy((void *)0x1CA8A10, gte_data, sizeof(gte_data));
+	memcpy((void *)0x1CA9210, gte_ctrl, sizeof(gte_ctrl));
+	memcpy(out, t + 0x40, 0x20);
+	for (int c = 9; c < 12; c++)
+	{
+		if (h->jump >> c & 1) *(int32_t *)(out + 0x14 + 4 * (c - 9)) = h->from[c];
+		else if (h->move >> c & 1) *(int32_t *)(out + 0x14 + 4 * (c - 9)) = ff8_bgate_ent_lerp(c, h->from[c], h->next[c]);
+	}
+	if ((h->move | h->jump) & ff8fx::HE_DROT) memcpy(out, h->drot, sizeof(h->drot)); // the effect's own rotation matrix
+	return true;
+}
+
+// around BS_RenderBattleEntity (called by the entity task): held frames only, this render only
+static void ff8_bgate_ent_render_begin(uint8_t *slot)
+{
+	alignas(4) uint8_t m[0x20];
+	if (ff8_bgate_ent_swapped || !ff8_bgate_ent_display(slot, m)) return;
+	memcpy(ff8_bgate_ent_live, slot + 0x40, sizeof(ff8_bgate_ent_live));
+	memcpy(slot + 0x40, m, sizeof(m));
+	ff8_bgate_ent_swapped = slot;
+	ff8_bgate_ent_frames++;
+}
+
+static void ff8_bgate_ent_render_end(uint8_t *slot)
+{
+	if (ff8_bgate_ent_swapped != slot) return;
+	memcpy(slot + 0x40, ff8_bgate_ent_live, sizeof(ff8_bgate_ent_live));
+	ff8_bgate_ent_swapped = nullptr;
+}
+
 // --- held-frame extrapolation of SCRIPT-DRIVEN entity movement ---
 // Choreography scripts that move an entity themselves (flying approaches, jumps, lunges:
 // E5 0D/0E/0F write the state position offset from frame-count formulas) change it only
@@ -2580,6 +2762,7 @@ static void ff8_bgate_move_record(void *slot)
 // held frame: nudge steady movement half a step forward
 static void ff8_bgate_move_nudge(void *slot)
 {
+	if (ff8_bgate_ent_claimed(slot)) return; // the running effect drives this entity (ff8_bgate_ent_*)
 	ff8_bgate_move_t *mv = ff8_bgate_move_get(slot);
 	if (!mv || !mv->have_d || mv->nudged) return;
 	for (int i = 0; i < 6; i++)
@@ -2684,6 +2867,26 @@ int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 	if (dc)
 		dc->was_complete = FF8_BGATE_ANIM_COMPLETE(slot_data_struct);
 	ff8_bgate_move_record(slot_data_struct);
+	return r;
+}
+
+// entity queue call (0x500971 ExecuteTaskQueue(g_BattleEntityTaskQueue)) and the entity task's
+// render call (0x502B95 BS_RenderBattleEntity): see ff8_bgate_ent_* above
+static int (__cdecl *ff8_bgate_entq_orig)(void *) = nullptr;
+static char (__cdecl *ff8_bgate_entrender_orig)(void *) = nullptr;
+
+int __cdecl ff8_bgate_entq_hook(void *queue)
+{
+	int r = ff8_bgate_entq_orig(queue);
+	ff8_bgate_ent_after_queue();
+	return r;
+}
+
+char __cdecl ff8_bgate_entrender_hook(void *slot)
+{
+	ff8_bgate_ent_render_begin((uint8_t *)slot);
+	char r = ff8_bgate_entrender_orig(slot);
+	ff8_bgate_ent_render_end((uint8_t *)slot);
 	return r;
 }
 
@@ -5621,6 +5824,9 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			{
 				ffnx_info("30fps held: effect %d native held draw FAULT %08X at %08X\n", eid, ff8_bgate_gfc_fault_code, ff8_bgate_gfc_fault_addr);
 			}
+			// the entities the effect moves: their next real tick's state (ff8_bgate_ent_*)
+			__try { ff8_bgate_ent_collect(eid); }
+			__except (EXCEPTION_EXECUTE_HANDLER) { ff8_bgate_nent_req = 0; }
 			memcpy((void *)0x1D999C4, fa_tmp, sizeof(fa_tmp)); // pointer + temporaries
 			if (fa_ok) memcpy((void *)pool, fa_scr, sizeof(fa_scr));
 			memcpy((void *)0x1D99C18, t_c18, sizeof(t_c18));
@@ -6275,6 +6481,9 @@ static void ff8_bgate_battle_reset()
 	memset(ff8_bgate_done_cache, 0, sizeof(ff8_bgate_done_cache));
 	memset(ff8_bgate_pose_hist, 0, sizeof(ff8_bgate_pose_hist));
 	memset(ff8_bgate_move, 0, sizeof(ff8_bgate_move));
+	ff8_bgate_nent_req = 0;
+	ff8_bgate_ent_last_ok = ff8_bgate_ent_prev_ok = ff8_bgate_ent_real_ok = false;
+	ff8_bgate_ent_swapped = nullptr;
 	for (ff8_bgate_vis_t &v : ff8_bgate_vis) v = {};
 	ff8_bgate_cam_r0.valid = ff8_bgate_cam_r1.valid = false;
 	memset(ff8_bgate_shake_prev, 0, sizeof(ff8_bgate_shake_prev));
@@ -6392,6 +6601,12 @@ static void ff8_bgate_install_hooks()
 	// knowledge, whitelists or SFX suppression: nothing runs twice, nothing is rewound.
 	ff8_bgate_effect_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x50093A, 0);
 	replace_call(0x50093A, (void *)ff8_bgate_effect_tick_gate);
+	// battle entities moved by a ported effect: the fields each entity queue's rebuild used (after the
+	// queue), the in-between matrix around a listed entity's render on held frames (ff8_bgate_ent_*)
+	ff8_bgate_entq_orig = (int(__cdecl *)(void *))get_relative_call(0x500971, 0);
+	replace_call(0x500971, (void *)ff8_bgate_entq_hook);
+	ff8_bgate_entrender_orig = (char(__cdecl *)(void *))get_relative_call(0x502B95, 0);
+	replace_call(0x502B95, (void *)ff8_bgate_entrender_hook);
 	// hit-effect queue: same record/replay pacing
 	ff8_bgate_eq_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x500923, 0);
 	replace_call(0x500923, (void *)ff8_bgate_eq_tick_gate);

@@ -135,6 +135,62 @@ namespace sandstorm176
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
 
+	// held-frame entities (fx_held.h HeldEntity, drawn by the frame gate): each lift task (0x5D14B0, effect queue)
+	// writes its target's entity on every tick after its delay: the spin-up and the drop are continuous; discrete
+	// changes of the tick just run: the drop's start (counter 0x2C: x / z back to the saved ones) and the end (the lift
+	// ends and puts the saved entity back). The lifts the previous held frame saw are kept (their counter on this tick:
+	// a draw-only tick does not step it); a lift seen before and gone now ended on this tick. Listed: every lift's
+	// target and the target of a lift that ended on this tick.
+	struct LiftSeen { uint32_t node; uint8_t *ent; int16_t c; };
+	static LiftSeen g_seen[8], g_seen_new[8], g_seen_cur[8];
+	static int g_nseen = 0, g_nseen_cur = 0;
+	static uint32_t g_seen_tick = 0xFFFFFFFFu, g_seen_cur_tick = 0xFFFFFFFFu;
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (!HeldReady()) return 0;
+		if (g_seen_cur_tick != g_real_tick && g_seen_cur_tick != 0xFFFFFFFFu)
+		{
+			// a new tick: the list the previous tick's held frames saw becomes the previous one
+			memcpy(g_seen, g_seen_cur, sizeof(g_seen));
+			g_nseen = g_nseen_cur;
+			g_seen_tick = g_seen_cur_tick;
+		}
+		const bool have_prev = g_seen_tick + 1 == g_real_tick;
+		int n = 0, nn = 0;
+		auto entry = [&](uint8_t *ent) -> HeldEntity * {
+			for (int i = 0; i < n; i++) if (out[i].ent == ent) return &out[i];
+			if (n >= max) return nullptr;
+			held_entity_init(out[n], ent);
+			return &out[n++];
+		};
+		const TaskQueue *q = (const TaskQueue *)Q_FX;
+		int guard_n = 0;
+		for (const TaskNode *t = q->head; t && guard_n < 128; t = t->next, guard_n++)
+		{
+			const uint32_t l = (uint32_t)t;
+			if (!(t->flags & 1) || (uint32_t)t->func != ORIG_Lift) continue;
+			uint8_t *ent = (uint8_t *)Entity(S16(l, 0xE));
+			HeldEntity *h = entry(ent);
+			for (int i = 0; h && have_prev && i < g_nseen; i++)
+				if (g_seen[i].node == l && g_seen[i].c == 0x2C && S16(l, 0x1E) <= 0) { held_entity_jump(*h, 0); held_entity_jump(*h, 2); }
+			if (nn < 8) g_seen_new[nn++] = { l, ent, S16(l, 0xC) };
+		}
+		for (int i = 0; have_prev && i < g_nseen; i++)
+		{
+			bool alive = false;
+			for (int k = 0; k < nn; k++) if (g_seen_new[k].node == g_seen[i].node) alive = true;
+			if (!alive)
+			{
+				HeldEntity *h = entry(g_seen[i].ent);
+				if (h) for (int c = 0; c < 6; c++) held_entity_jump(*h, c);
+			}
+		}
+		memcpy(g_seen_cur, g_seen_new, sizeof(g_seen_cur));
+		g_nseen_cur = nn;
+		g_seen_cur_tick = g_real_tick;
+		return n;
+	}
+
 	// ---- the funnel's next rings: 0x5D0F30 without its random jitter
 	static void FunnelPredict(uint32_t rings, const int16_t head[3], const FunnelParams &P)
 	{
@@ -230,5 +286,6 @@ namespace sandstorm176
 		mark_held(sandstorm176::ORIG_Sand);
 		mark_held(sandstorm176::ORIG_Landing);
 		register_module_held(176, sandstorm176::HeldReady, sandstorm176::HeldFrame);
+		register_module_entity(176, sandstorm176::HeldEntities);
 	}
 }

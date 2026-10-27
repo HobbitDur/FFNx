@@ -639,6 +639,43 @@ namespace ga065
 
 	inline int32_t AbsI(int32_t v) { return v < 0 ? -v : v; }
 
+	// held-frame entities (fx_held.h HeldEntity, drawn by the frame gate): the caster and the targets. The master's
+	// sink / swing / pull steps of the caster's +0x20 are continuous; discrete changes of the tick just run (its
+	// master counter c0): 0x20 (everyone put back, the targets 0x2710 further), 0x156 (everyone pulled half way to the
+	// centre; the caster's render translation written with it: held), 0x21E (everything back). c0 = the counter the
+	// previous held frame saw (a stream wait does not step it), else the counter - 1.
+	static uint32_t g_ent_tick = 0xFFFFFFFFu, g_ent_prev_tick = 0xFFFFFFFFu;
+	static int32_t g_ent_c = -1, g_ent_prev_c = -1;
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (max < 1 || !HeldReady() || !Caster()) return 0;
+		const MasterNode *m = (const MasterNode *)QMaster()->head;
+		if (!m || !(m->hdr.flags & 1)) return 0;
+		const int32_t c = m->counter;
+		if (g_ent_tick != g_real_tick) { g_ent_prev_tick = g_ent_tick; g_ent_prev_c = g_ent_c; g_ent_tick = g_real_tick; g_ent_c = c; }
+		const int32_t c0 = g_ent_prev_tick + 1 == g_real_tick ? g_ent_prev_c : c - 1;
+		const bool place = c0 == 0x20 || c0 == 0x156 || c0 == 0x21E;
+		int n = 0;
+		HeldEntity &hc = out[n++];
+		held_entity_init(hc, Caster());
+		if (place) { held_entity_jump(hc, 0); held_entity_jump(hc, 1); held_entity_jump(hc, 2); }
+		if (c0 == 0x156)
+		{
+			// the translation it wrote (the position before this tick's -0xAA step)
+			held_entity_direct_hold(hc, 9, *held_entity_field(Caster(), 0));
+			held_entity_direct_hold(hc, 10, *held_entity_field(Caster(), 1));
+			held_entity_direct_hold(hc, 11, (int16_t)(*held_entity_field(Caster(), 2) + (Pause() == 0 ? 0xAA : 0)));
+		}
+		for (int32_t i = 0; i < m->ntargets && i < 3 && n < max; i++)
+		{
+			if (!m->targets[i].entity || m->targets[i].entity == Caster()) continue;
+			HeldEntity &h = out[n++];
+			held_entity_init(h, m->targets[i].entity);
+			if (place) { held_entity_jump(h, 0); held_entity_jump(h, 1); held_entity_jump(h, 2); }
+		}
+		return n;
+	}
+
 	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
 	{
 		if (g_ported_tick != g_real_tick) return false;
@@ -690,5 +727,6 @@ namespace ga065
 		mark_held(ga065::ORIG_LayoutTask);
 		register_module_held(65, ga065::HeldReady, ga065::HeldFrame);
 		register_module_camera(65, ga065::HeldCamera);
+		register_module_entity(65, ga065::HeldEntities);
 	}
 }

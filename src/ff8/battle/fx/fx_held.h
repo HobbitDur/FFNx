@@ -49,6 +49,62 @@ namespace ff8fx
 	// as an effect's prediction computed them (bit c of written = component c written by the
 	// effect); the frame's view is built with the in-between offsets (ff8_opengl.cpp)
 	void held_shake_next(const int16_t next[3], unsigned written);
+	// held frame: battle entities (FF8BattleEntitySlotData) the effect moves itself. A real frame draws
+	// an entity with the fields of the tick BEFORE it (the engine renders, then rebuilds its matrix); the
+	// held frames between the real frames of ticks N and N+1 draw the matrix of lerp(fields N-1, fields N)
+	// (the gate keeps both, ff8_opengl.cpp ff8_bgate_ent_*; real frames are never touched). The module
+	// lists the entities it drives and says which changes are not motion. Components:
+	//   0..2  based position +0x1C / +0x1E / +0x20      3..5  angles +0x0C / +0x0E / +0x10 (short way)
+	//   6..8  state offset *(+0x74) + 0x24 / 0x26 / 0x28
+	//   9..11 render translation +0x54 / +0x58 / +0x5C, ONLY for an effect that writes it into the matrix
+	//         itself on the real tick ("direct": that frame draws it): from = what tick N wrote, next =
+	//         what tick N+1 writes (the effect predicts it)
+	// jump bit c (0..8): the change of component c made by tick N (between the frames of N-1 and N) is
+	// discrete (teleport, put back, start / end placement): the held frames keep drawing tick N-1's value.
+	// jump bit c (9..11): the direct translation holds from; move bit c (9..11): lerp(from, next).
+	// bit 12 (HE_DROT): the effect writes the matrix rotation itself (drot, the 3x3 s16 of +0x40..+0x51)
+	// on tick N and N+1 (or only N): the held frames draw drot.
+	// A listed entity belongs to the effect on this frame: the gate's steady-motion extrapolation
+	// (ff8_bgate_move_nudge) leaves it alone.
+	struct HeldEntity { uint8_t *ent; uint16_t move, jump; int32_t from[12], next[12]; int16_t drot[9]; };
+	enum : uint16_t { HE_POS = 0x007, HE_ANG = 0x038, HE_OFS = 0x1C0, HE_TRANS = 0xE00, HE_DROT = 0x1000, HE_ALL = 0x1FFF };
+	// fills out[0..max) and returns the count (0 = the effect drives no entity now)
+	typedef int (*HeldEntityFn)(HeldEntity *out, int max);
+	void register_module_entity(int effect_id, HeldEntityFn fn);
+	int held_entities(int effect_id, HeldEntity *out, int max);
+	// module helpers: field c of an entity (nullptr: no state block); an entry for ent (nothing marked);
+	// a discrete change of tick N; a direct translation (9..11) continuous or held
+	inline int16_t *held_entity_field(uint8_t *ent, int c)
+	{
+		if (c < 3) return (int16_t *)(ent + 0x1C) + c;
+		if (c < 6) return (int16_t *)(ent + 0x0C) + (c - 3);
+		uint8_t *st = *(uint8_t **)(ent + 0x74);
+		return st ? (int16_t *)(st + 0x24) + (c - 6) : nullptr;
+	}
+	inline void held_entity_init(HeldEntity &h, uint8_t *ent)
+	{
+		h.ent = ent;
+		h.move = h.jump = 0;
+		for (int c = 0; c < 12; c++) h.from[c] = h.next[c] = 0;
+		for (int k = 0; k < 9; k++) h.drot[k] = 0;
+	}
+	inline void held_entity_jump(HeldEntity &h, int c) { h.jump |= (uint16_t)(1u << c); h.move &= (uint16_t)~(1u << c); }
+	inline void held_entity_direct(HeldEntity &h, int c, int32_t from, int32_t next)
+	{
+		h.from[c] = from;
+		h.next[c] = next;
+		h.move |= (uint16_t)(1u << c);
+	}
+	inline void held_entity_direct_hold(HeldEntity &h, int c, int32_t from)
+	{
+		h.from[c] = h.next[c] = from;
+		held_entity_jump(h, c);
+	}
+	inline void held_entity_direct_rot(HeldEntity &h, const int16_t r[9])
+	{
+		for (int k = 0; k < 9; k++) h.drot[k] = r[k];
+		h.jump |= HE_DROT;
+	}
 	// registrations that belong to no single module (fx_held.cpp); called at the end of
 	// register_all() (each module registers its own held part from its register function)
 	void register_all_held();

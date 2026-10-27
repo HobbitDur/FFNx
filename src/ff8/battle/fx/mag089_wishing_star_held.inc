@@ -780,6 +780,77 @@ namespace ws089
 		}
 	}
 
+	// ------------------------------------------------------------------
+	// held-frame entity (fx_held.h HeldEntity, drawn by the frame gate): Rinoa
+	// ------------------------------------------------------------------
+	// The director writes her +0x1E (y) / +0x20 (z) as functions of its counter (the rise c < 0x32, the turn 0x1E..0x21,
+	// the landing 0xA2..0xB0), each with the render translation +0x58 / +0x5C (the "direct" components 10 / 11: the real
+	// frame draws them; kept in the director +0x8C / +0x90). Discrete changes of the tick just run (its director counter
+	// c0): c0 == 0 (DirectorInit puts her at the centre, +0x0E = 0), 0x16 (the rise restarts its curve: z), 0xA2 (the
+	// landing's placement: y, z), 0xE3 (put back: x, y, z), the counter reaching 0x10F (angles put back). Direct
+	// translation: lerp(this tick's, the next tick's) when both write it (a restart / placement of the next tick holds),
+	// held when only this tick writes it.
+	static bool RinoaZ(const DirectorNode *d, int32_t c, int16_t *z)
+	{
+		bool w = false;
+		if ((uint32_t)c < 0x16)
+		{
+			const uint32_t q = mulhi_u((uint32_t)c << 12, 0xBA2E8BA3) >> 4;
+			*z = (int16_t)(d->centre[2] - (int16_t)sdiv_pow2((int32_t)(q * 5000), 12) + 0x1770);
+			w = true;
+		}
+		if ((uint32_t)(c - 0x16) < 0x1C)
+		{
+			const uint32_t q = ((uint32_t)(c - 0x16) << 12) / 28;
+			*z = (int16_t)(d->centre[2] - (int16_t)sdiv_pow2((int32_t)(q * 12000), 12) + 0x1770);
+			w = true;
+		}
+		const uint32_t lt = (uint32_t)(c - 0xA2);
+		if (lt < 0xF)
+		{
+			const int32_t g = (int32_t)(mulhi_u(lt << 12, 0x88888889) >> 3);
+			*z = (int16_t)(d->centre[2] - (int16_t)sdiv_pow2(g * 13500, 12) + 0x3A98);
+			w = true;
+		}
+		return w;
+	}
+	static bool RinoaY(const DirectorNode *d, int32_t c, int16_t *y)
+	{
+		bool w = false;
+		if ((uint32_t)(c - 0x1E) <= 3) { *y = (int16_t)mul32(c - 0x1E + 1, -275); w = true; }
+		if (c == 0xA2) { *y = d->centre[1]; w = true; }
+		return w;
+	}
+	// a direct translation component: tick N wrote from (w0), tick N + 1 writes v (w1; cut = a discrete start)
+	static void RinoaDirect(HeldEntity &h, int c, bool w0, int32_t from, bool w1, int32_t v, bool cut)
+	{
+		if (w0 && w1 && !cut) held_entity_direct(h, c, from, v);
+		else if (w0) held_entity_direct_hold(h, c, from);
+	}
+
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (max < 1 || g_ported_tick != g_real_tick || !Caster()) return 0;
+		HeldEntity &h = out[0];
+		held_entity_init(h, Caster());
+		const DirectorNode *d = g_dir;                     // the director that ran this tick (it may have ended)
+		if (!d || g_dir_c < 0) return 1;
+		const int32_t c0 = g_dir_c;                        // its counter on this tick
+		if (c0 == 0) { held_entity_jump(h, 0); held_entity_jump(h, 1); held_entity_jump(h, 2); held_entity_jump(h, 4); }
+		if (c0 == 0x16) held_entity_jump(h, 2);
+		if (c0 == 0xA2) { held_entity_jump(h, 1); held_entity_jump(h, 2); }
+		if (c0 == 0xE3) { held_entity_jump(h, 0); held_entity_jump(h, 1); held_entity_jump(h, 2); }
+		if (c0 + 1 >= 0x10F) { held_entity_jump(h, 3); held_entity_jump(h, 4); held_entity_jump(h, 5); }
+		const DirectorNode *dn = (const DirectorNode *)QA()->head;
+		const int32_t c = dn == d && (d->hdr.flags & 1) ? d->counter : -1;   // the next tick's counter (-1: it ended)
+		int16_t y0 = 0, z0 = 0, y1 = 0, z1 = 0;
+		const bool wy0 = RinoaY(d, c0, &y0), wz0 = RinoaZ(d, c0, &z0);
+		const bool wy1 = c >= 0 && RinoaY(d, c, &y1), wz1 = c >= 0 && RinoaZ(d, c, &z1);
+		RinoaDirect(h, 10, wy0, *(const int32_t *)((const uint8_t *)d + 0x8C), wy1, y1, c == 0xA2);
+		RinoaDirect(h, 11, wz0, *(const int32_t *)((const uint8_t *)d + 0x90), wz1, z1, c == 0x16 || c == 0xA2);
+		return 1;
+	}
+
 	static bool HeldCamera(int num, int den, int16_t world[3], int16_t lookat[3])
 	{
 		if (g_ported_tick != g_real_tick) return false;
@@ -839,5 +910,6 @@ namespace ws089
 		mark_held(ws089::ORIG_LastDiveTask);
 		register_module_held(89, ws089::HeldReady, ws089::HeldFrame);
 		register_module_camera(89, ws089::HeldCamera);
+		register_module_entity(89, ws089::HeldEntities);
 	}
 }

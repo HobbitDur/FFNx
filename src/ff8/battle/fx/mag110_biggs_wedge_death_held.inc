@@ -284,6 +284,27 @@ namespace bw110
 		RingDraw(&c, &sn);
 	}
 
+	// held-frame entities (fx_held.h HeldEntity, drawn by the frame gate): Biggs / Wedge, blown away by their actor
+	// tasks (position += velocity, angle +0x0C += 0xA0: continuous). Listed while the module runs: every target of the
+	// stream (its node stays readable after it ends) and every actor's entity.
+	static int HeldEntities(HeldEntity *out, int max)
+	{
+		if (!HeldReady()) return 0;
+		const RootNode *r = (const RootNode *)0x25219D8;   // the root pool (1 node, queue 0x2521A40)
+		if (!r->started) return 0;
+		int n = 0;
+		auto list = [&](uint8_t *e) {
+			if (!e || n >= max) return;
+			for (int k = 0; k < n; k++) if (out[k].ent == e) return;
+			held_entity_init(out[n++], e);
+		};
+		const StreamNode *s = (const StreamNode *)QStream()->pool;
+		if (s) for (int i = 0; i < s->count && i < 3; i++) list(s->ent[i]);
+		const ActorNode *pool = (const ActorNode *)QActors()->pool;
+		for (int k = 0; pool && k < 2; k++) if (pool[k].hdr.flags & 1) list(pool[k].ent);
+		return n;
+	}
+
 	static void HeldFrame(int num, int den)
 	{
 		HeldScope scope(PacketCursor(), g_held_arena, ARENA, g_packets);
@@ -314,5 +335,6 @@ namespace bw110
 		mark_held(bw110::ORIG_RingTask);
 		mark_held(bw110::ORIG_SparkTask);
 		register_module_held(110, bw110::HeldReady, bw110::HeldFrame);
+		register_module_entity(110, bw110::HeldEntities);
 	}
 }
