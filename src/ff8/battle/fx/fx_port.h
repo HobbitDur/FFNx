@@ -436,6 +436,7 @@ namespace ff8fx
 	void register_mag261_desperado();
 	void register_mag263_massive_anchor();
 	void register_mag262_blood_pain();
+	void register_mag017_elvoret_entrance();
 	void register_gfc_ifrit();
 	void register_gfc_leviathan();
 	void register_gfc_bahamut();
