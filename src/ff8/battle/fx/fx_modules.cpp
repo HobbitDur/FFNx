@@ -235,6 +235,7 @@ namespace ff8fx::mod
 	static const Region streams_r159[] = { { 0x24FEBF8, 0x30 } }; // Renzokuken vs X-ATM092: the caster and boss bind blocks
 	static const Region streams_r141[] = { { 0x24FEC28, 0x20 } }; // Renzokuken 5 hits: the caster bind block
 	static const Region streams_r259[] = { { 0x24FEB68, 0x20 } }; // Renzokuken 6 hits: the caster bind block
+	static const Region streams_r332[] = { { 0x24FEB38, 0x20 } }; // Renzokuken 7 hits: the caster bind block
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -500,6 +501,7 @@ namespace ff8fx::mod
 		{ 159, 0x23D5648, 0x23D7B04, 0, 0, false, "Renzokuken vs X-ATM092 (Squall; target c0m092)", streams_r159, 1 },
 		{ 141, 0x24C10B8, 0x24C3270, 0, 0, false, "Renzokuken 5 hits (Squall; crisis level 1 / 2)", streams_r141, 1 },
 		{ 259, 0x2257798, 0x225994C, 0, 0, false, "Renzokuken 6 hits (Squall; crisis level 2 / 3)", streams_r259, 1 },
+		{ 332, 0x21FC2C0, 0x21FF2A4, 0, 0, false, "Renzokuken 7 hits (Squall; crisis level 3 / 4)", streams_r332, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
