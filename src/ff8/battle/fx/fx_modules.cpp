@@ -232,6 +232,7 @@ namespace ff8fx::mod
 	static const Region streams_e017[] = { { 0xB8B9A8, 4 }, { 0x21DFED0, 0x20 } }; // the battle ambient colour, the shadow-rotation scratch
 	static const Region streams_b110[] = { { 0x12E0658, 0x9A0 }, { 0x21DFED0, 0x20 } }; // the stream model vertex table (rewritten every tick), the shadow-rotation scratch
 	static const Region streams_r161[] = { { 0x24FEB98, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs Elvoret: the caster and boss bind blocks, the camera shake word
+	static const Region streams_r159[] = { { 0x24FEBF8, 0x30 } }; // Renzokuken vs X-ATM092: the caster and boss bind blocks
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -494,6 +495,7 @@ namespace ff8fx::mod
 		{ 110, 0x25219C8, 0x2521A64, 0, 0, false, "Biggs & Wedge 1st death (Biggs c0m074 / Wedge c0m073 death script: attackAnimation 110)", streams_b110, 2 },
 		{ 18, 0x2796EC0, 0x2798C40, 0, 0, false, "Elvoret death (Elvoret c0m091 death script: attackAnimation 18)", streams_gfc, 5 },
 		{ 161, 0x23D0D90, 0x23D34A4, 0, 0, false, "Renzokuken vs Elvoret / Elnoyle (Squall; target c0m091 / c0m131)", streams_r161, 2 },
+		{ 159, 0x23D5648, 0x23D7B04, 0, 0, false, "Renzokuken vs X-ATM092 (Squall; target c0m092)", streams_r159, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
