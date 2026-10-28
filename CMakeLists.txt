@@ -44,15 +44,15 @@ else()
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /NODEFAULTLIB:LIBCMTD")
 endif()
 
-set(BGFX_SHADERC_OPENGL_FLAGS --profile 120)
+set(BGFX_SHADERC_OPENGL_FLAGS --profile 330)
 set(BGFX_SHADERC_DIRECT3D_FLAGS --platform windows -p s_5_0)
 set(BGFX_SHADERC_VULKAN_FLAGS --platform windows --profile spirv)
 
 if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES MinSizeRel)
-  list(APPEND BGFX_SHADERC_DIRECT3D_FLAGS -O3)
+  list(APPEND BGFX_SHADERC_DIRECT3D_FLAGS -O 3)
 else()
-  list(APPEND BGFX_SHADERC_DIRECT3D_FLAGS --debug -O0)
-  list(APPEND BGFX_SHADERC_VULKAN_FLAGS --debug -O0)
+  list(APPEND BGFX_SHADERC_DIRECT3D_FLAGS --debug -O 0)
+  list(APPEND BGFX_SHADERC_VULKAN_FLAGS --debug)
 endif()
 
 option(FORCEHEAP "Force all allocation to our heap" OFF)
@@ -88,7 +88,7 @@ find_package(mimalloc CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(SOLOUD REQUIRED)
 find_package(OPENPSF REQUIRED)
-find_package(STEAMWORKSSDK CONFIG REQUIRED)
+include("${CMAKE_SOURCE_DIR}/.cmake/steamworks.cmake")
 find_package(xxHash CONFIG REQUIRED)
 find_package(LZ4 REQUIRED)
 find_package(CMakeRC CONFIG REQUIRED)
@@ -137,7 +137,7 @@ target_compile_features(${CHOCO_RELEASE_NAME}
 target_link_options(${CHOCO_RELEASE_NAME} PRIVATE /PDBALTPATH:${CHOCO_RELEASE_NAME}.pdb PRIVATE /DEF:${CMAKE_SOURCE_DIR}/misc/${CHOCO_RELEASE_NAME}.def)
 
 # Include all the source code files
-file(GLOB_RECURSE source_files "${CMAKE_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE source_files CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 configure_file(misc/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
 
@@ -149,6 +149,7 @@ cmrc_add_resource_library(
 )
 
 add_library(${RELEASE_NAME} SHARED ${source_files} ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
+ffnx_setup_steamworks(${RELEASE_NAME})
 add_dependencies(${RELEASE_NAME} ${CHOCO_RELEASE_NAME})
 target_include_directories(
   ${RELEASE_NAME}
@@ -188,7 +189,6 @@ target_link_libraries(
   imgui::imgui
   pugixml::pugixml
   tomlplusplus::tomlplusplus
-  STEAMWORKSSDK::STEAMWORKSSDK
   xxHash::xxhash
   lz4::lz4
   Vorbis::vorbisfile
@@ -242,52 +242,30 @@ target_link_options(
 
 # SHADER COMPILATION
 set(FFNX_SHADERS "FFNx" "FFNx.lighting" "FFNx.shadowmap" "FFNx.field.shadow" "FFNx.overlay" "FFNx.post" "FFNx.post.ntscj" "FFNx.blit" "FFNx.yuvmovie" "FFNx.yuvmovie.truecolor")
-foreach(FFNX_SHADER IN LISTS FFNX_SHADERS)
-  foreach(BGFX_VARYING flat smooth)
-    add_custom_command(
-      TARGET ${RELEASE_NAME}
-      POST_BUILD
-      COMMAND echo Building ${FFNX_SHADER}.${BGFX_VARYING} vert/frag shaders...
-      # ensure bin directory exists
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/shaders
-      # OpenGL
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.frag -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.gl.frag --type f --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_OPENGL_FLAGS}
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.vert -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.gl.vert --type v --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_OPENGL_FLAGS}
-      # Vulkan
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.frag -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.vk.frag --type f --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_VULKAN_FLAGS}
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.vert -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.vk.vert --type v --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_VULKAN_FLAGS}
-      # Direct3D 11
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.frag -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.d3d11.frag --type f --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_DIRECT3D_FLAGS}
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.vert -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.d3d11.vert --type v --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_DIRECT3D_FLAGS}
-      # Direct3D 12
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.frag -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.d3d12.frag --type f --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_DIRECT3D_FLAGS}
-      COMMAND
-        ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease -i ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include -f ${CMAKE_SOURCE_DIR}/misc/${FFNX_SHADER}.vert -o
-        ${CMAKE_BINARY_DIR}/bin/shaders/${FFNX_SHADER}.${BGFX_VARYING}.d3d12.vert --type v --varyingdef
-        ${CMAKE_SOURCE_DIR}/misc/${RELEASE_NAME}.varying.${BGFX_VARYING}.def.sc ${BGFX_SHADERC_DIRECT3D_FLAGS})
-  endforeach()
-endforeach()
+# The 3D vertex shaders also get a skinned variant (smooth shaded only), built from the same source with
+# SMOOTH_SKINNING defined, so ordinary draws carry no bone data
+set(FFNX_SKINNED_SHADERS "FFNx" "FFNx.lighting" "FFNx.shadowmap")
+set(SHADERC_EXECUTABLE "${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/bgfx/shadercRelease")
+set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/bin/shaders")
+set(SHADER_LOG "${SHADER_OUTPUT_DIR}/shaderc.log")
+add_custom_command(
+  TARGET ${RELEASE_NAME}
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_OUTPUT_DIR}"
+  COMMAND ${CMAKE_COMMAND}
+    "-DSHADERC=${SHADERC_EXECUTABLE}"
+    "-DSHADER_INCLUDE_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/include"
+    "-DSHADER_SOURCE_DIR=${CMAKE_SOURCE_DIR}/misc"
+    "-DSHADER_OUTPUT_DIR=${SHADER_OUTPUT_DIR}"
+    "-DSHADER_LOG=${SHADER_LOG}"
+    "-DFFNX_SHADERS=${FFNX_SHADERS}"
+    "-DFFNX_SKINNED_SHADERS=${FFNX_SKINNED_SHADERS}"
+    "-DBGFX_SHADERC_OPENGL_FLAGS=${BGFX_SHADERC_OPENGL_FLAGS}"
+    "-DBGFX_SHADERC_VULKAN_FLAGS=${BGFX_SHADERC_VULKAN_FLAGS}"
+    "-DBGFX_SHADERC_DIRECT3D_FLAGS=${BGFX_SHADERC_DIRECT3D_FLAGS}"
+    -P ${CMAKE_SOURCE_DIR}/.cmake/compile_shaders.cmake
+  VERBATIM
+)
 
 # List .gitkeep files to remove them on INSTALL
 FILE(GLOB_RECURSE HEXT_GIT_KEEP_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/misc/ ${CMAKE_CURRENT_SOURCE_DIR}/misc/hext/ff8/**/.gitkeep)
@@ -316,10 +294,6 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E rename
           ${CMAKE_BINARY_DIR}/bin/${CHOCO_RELEASE_NAME}.dll
           ${CMAKE_BINARY_DIR}/bin/AF4DN.P
-  # steam_api.dll
-  COMMAND ${CMAKE_COMMAND} -E copy
-          ${CMAKE_BINARY_DIR}/vcpkg_installed/x86-windows-static/tools/steamworkssdk/steam_api.dll
-          ${CMAKE_BINARY_DIR}/bin
   # .pdb
   COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${RELEASE_NAME}.pdb
@@ -328,6 +302,10 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_SOURCE_DIR}/misc/${RELEASE_NAME}.toml
           ${CMAKE_BINARY_DIR}/bin
+  # multibyte .toml
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${CMAKE_CURRENT_SOURCE_DIR}/misc/${RELEASE_NAME}.multibyte.toml
+          ${CMAKE_BINARY_DIR}/bin/data/${RELEASE_NAME}.multibyte.toml
   # FF7.reg
   COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_SOURCE_DIR}/misc/FF7.reg
@@ -558,46 +536,105 @@ if(FALSE) # FFNx-gate fork: FF8 auto-deploy disabled (mangles toml if game is ru
   )
 endif()
 
-# Copy FFNx release to FF7 Rerelease Steam game path if installed
+# Copy FFNx release to FF7 2026 Rerelease Steam/GOG game path if installed
 execute_process(
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/FindSteamGamePath 3837340
-  OUTPUT_VARIABLE FF7_STEAM_RERELEASE_GAME_PATH
+  OUTPUT_VARIABLE FF7_2026_RERELEASE_GAME_PATH
   ERROR_VARIABLE FF7_STEAM_RERELEASE_ERROR
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+if("${FF7_2026_RERELEASE_GAME_PATH}" STREQUAL "")
+  execute_process(
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/FindGOGGamePath 1698970154
+    OUTPUT_VARIABLE FF7_2026_RERELEASE_GAME_PATH
+    ERROR_VARIABLE FF7_STEAM_RERELEASE_ERROR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
 if(FALSE) # FFNx-gate fork: auto-deploy to FF7 Rerelease disabled
-  cmake_path(CONVERT "${FF7_STEAM_RERELEASE_GAME_PATH}" TO_CMAKE_PATH_LIST FF7_STEAM_RERELEASE_GAME_PATH)
-  set(FF7_STEAM_RERELEASE_GAME_PATH "${FF7_STEAM_RERELEASE_GAME_PATH}/ff7/workingdir")
+  cmake_path(CONVERT "${FF7_2026_RERELEASE_GAME_PATH}" TO_CMAKE_PATH_LIST FF7_2026_RERELEASE_GAME_PATH)
+  set(FF7_2026_RERELEASE_GAME_PATH "${FF7_2026_RERELEASE_GAME_PATH}/ff7/workingdir")
   # Ensure FFNx.toml exists so the copy on build does not error on fresh installs
-  if(NOT EXISTS "${FF7_STEAM_RERELEASE_GAME_PATH}/FFNx.toml")
+  if(NOT EXISTS "${FF7_2026_RERELEASE_GAME_PATH}/FFNx.toml")
     # Copy file if it doesn't exist
-    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/misc/FFNx.toml" DESTINATION "${FF7_STEAM_RERELEASE_GAME_PATH}/")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/misc/FFNx.toml" DESTINATION "${FF7_2026_RERELEASE_GAME_PATH}/")
   endif()
   add_custom_command(
     TARGET ${RELEASE_NAME}
     POST_BUILD
-    COMMAND echo Copying ${RELEASE_NAME} ${_DLL_VERSION} release to ${FF7_STEAM_RERELEASE_GAME_PATH}...
+    COMMAND echo Copying ${RELEASE_NAME} ${_DLL_VERSION} release to ${FF7_2026_RERELEASE_GAME_PATH}...
     # Preserve the current FFNx.toml
     COMMAND ${CMAKE_COMMAND} -E rename
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/FFNx.toml
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/FFNx.toml.bak
+            ${FF7_2026_RERELEASE_GAME_PATH}/FFNx.toml
+            ${FF7_2026_RERELEASE_GAME_PATH}/FFNx.toml.bak
     # Copy all dist files
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_BINARY_DIR}/bin
-            ${FF7_STEAM_RERELEASE_GAME_PATH}
+            ${FF7_2026_RERELEASE_GAME_PATH}
     # Delete previous AF3DN.P
     COMMAND ${CMAKE_COMMAND} -E remove
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/AF3DN.P
+            ${FF7_2026_RERELEASE_GAME_PATH}/AF3DN.P
     # Rename FFNx.dll to AF3DN.P
     COMMAND ${CMAKE_COMMAND} -E rename
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/FFNx.dll
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/AF3DN.P
+            ${FF7_2026_RERELEASE_GAME_PATH}/FFNx.dll
+            ${FF7_2026_RERELEASE_GAME_PATH}/AF3DN.P
     # Delete the new copied FFNx.toml
     COMMAND ${CMAKE_COMMAND} -E remove
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/FFNx.toml
+            ${FF7_2026_RERELEASE_GAME_PATH}/FFNx.toml
     # Bring back the existing FFNx.toml
     COMMAND ${CMAKE_COMMAND} -E rename
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/FFNx.toml.bak
-            ${FF7_STEAM_RERELEASE_GAME_PATH}/FFNx.toml
+            ${FF7_2026_RERELEASE_GAME_PATH}/FFNx.toml.bak
+            ${FF7_2026_RERELEASE_GAME_PATH}/FFNx.toml
+  )
+endif()
+
+# Copy FFNx release to FF8 Remastered Steam/GOG game path if installed
+execute_process(
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/FindSteamGamePath 1026680
+  OUTPUT_VARIABLE FF8_REMASTERED_GAME_PATH
+  ERROR_VARIABLE FF8_REMASTERED_ERROR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if("${FF8_REMASTERED_GAME_PATH}" STREQUAL "")
+  execute_process(
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/FindGOGGamePath 1086370078
+    OUTPUT_VARIABLE FF8_REMASTERED_GAME_PATH
+    ERROR_VARIABLE FF8_REMASTERED_ERROR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
+if(FALSE) # FFNx-gate fork: auto-deploy to FF8 Remastered disabled
+  cmake_path(CONVERT "${FF8_REMASTERED_GAME_PATH}" TO_CMAKE_PATH_LIST FF8_REMASTERED_GAME_PATH)
+  # Ensure FFNx.toml exists so the copy on build does not error on fresh installs
+  if(NOT EXISTS "${FF8_REMASTERED_GAME_PATH}/FFNx.toml")
+    # Copy file if it doesn't exist
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/misc/FFNx.toml" DESTINATION "${FF8_REMASTERED_GAME_PATH}/")
+  endif()
+  add_custom_command(
+    TARGET ${RELEASE_NAME}
+    POST_BUILD
+    COMMAND echo Copying ${RELEASE_NAME} ${_DLL_VERSION} release to ${FF8_REMASTERED_GAME_PATH}...
+    # Preserve the current FFNx.toml
+    COMMAND ${CMAKE_COMMAND} -E rename
+            ${FF8_REMASTERED_GAME_PATH}/FFNx.toml
+            ${FF8_REMASTERED_GAME_PATH}/FFNx.toml.bak
+    # Copy all dist files
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_BINARY_DIR}/bin
+            ${FF8_REMASTERED_GAME_PATH}
+    # Delete previous eax.dll
+    COMMAND ${CMAKE_COMMAND} -E remove
+            ${FF8_REMASTERED_GAME_PATH}/eax.dll
+    # Rename FFNx.dll to eax.dll
+    COMMAND ${CMAKE_COMMAND} -E rename
+            ${FF8_REMASTERED_GAME_PATH}/FFNx.dll
+            ${FF8_REMASTERED_GAME_PATH}/eax.dll
+    # Delete the new copied FFNx.toml
+    COMMAND ${CMAKE_COMMAND} -E remove
+            ${FF8_REMASTERED_GAME_PATH}/FFNx.toml
+    # Bring back the existing FFNx.toml
+    COMMAND ${CMAKE_COMMAND} -E rename
+            ${FF8_REMASTERED_GAME_PATH}/FFNx.toml.bak
+            ${FF8_REMASTERED_GAME_PATH}/FFNx.toml
   )
 endif()

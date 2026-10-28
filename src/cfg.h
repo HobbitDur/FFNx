@@ -42,16 +42,13 @@
 #define GAME_LIGHTING_PER_VERTEX 1
 #define GAME_LIGHTING_PER_PIXEL 2
 
-#define HWVA_NONE 0
-#define HWVA_AUTO 1
-#define HWVA_VULKAN 2
-#define HWVA_OPENCL 3
-#define HWVA_DXVA2 4
-#define HWVA_D3D11VA 5
-#define HWVA_D3D12VA 6
-#define HWVA_CUDA 7
-#define HWVA_AMF 8
-#define HWVA_QSV 9
+#define GAME_LANGUAGE_AUTO 0
+#define GAME_LANGUAGE_EN 1
+#define GAME_LANGUAGE_FR 2
+#define GAME_LANGUAGE_DE 3
+#define GAME_LANGUAGE_SP 4
+#define GAME_LANGUAGE_IT 5
+#define GAME_LANGUAGE_JP 6
 
 extern std::string mod_path;
 extern std::vector<std::string> mod_ext;
@@ -81,6 +78,7 @@ extern long external_voice_music_fade_volume;
 extern bool enable_voice_auto_text;
 extern bool save_textures;
 extern bool save_textures_legacy;
+extern bool save_gpu_textures;
 extern bool save_exe_data;
 extern bool trace_all;
 extern bool trace_renderer;
@@ -150,6 +148,7 @@ extern std::vector<std::string> disable_animated_textures_on_field;
 extern long ff7_fps_limiter;
 extern bool ff7_footsteps;
 extern bool ff7_field_center;
+extern bool ff7_field_autosize_text_box;
 extern bool use_sdl_gamepad;
 extern bool ff7_japanese_text;
 extern bool enable_analogue_controls;
@@ -168,7 +167,6 @@ extern long external_audio_number_of_channels;
 extern long external_audio_sample_rate;
 extern bool ff8_worldmap_internal_highres_textures;
 extern bool ff8_fix_uv_coords_precision;
-extern bool ff8_external_music_force_original_filenames;
 extern bool ff8_use_gamepad_icons;
 extern bool ff8_always_capture_input;
 extern bool ff8_battle_fx_dump;
@@ -187,6 +185,8 @@ extern long ffmpeg_video_volume;
 extern bool ff7_advanced_blinking;
 extern long display_index;
 extern long ff8_high_res_font;
-extern long hardware_video_decoding;
+extern std::vector<std::string> ff8_disable_remastered_hd_textures;
+extern long game_language;
 
 void read_cfg();
+bool is_remastered_hd_textures_disabled(const std::string &module);

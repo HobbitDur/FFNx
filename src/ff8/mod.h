@@ -25,6 +25,12 @@
 #include <map>
 #include <vector>
 #include <unordered_map>
+#include <windows.h>
+
+#ifdef small
+#undef small
+#endif
+
 #include <bimg/bimg.h>
 #include <bx/allocator.h>
 
@@ -34,7 +40,7 @@
 class TextureImage {
 public:
 	TextureImage();
-	bool createImage(const char *filename, int originalTexturePixelWidth, int originalTextureHeight, int internalLodScale = 1);
+	bool createImage(const char *filename, int originalTexturePixelWidth, int originalTextureHeight, int internalLodScale = 1, int8_t *rgbaModifier = nullptr);
 	void destroyImage();
 	inline uint8_t scale() const {
 		return _scale;
@@ -51,6 +57,7 @@ public:
 	static int computeMaxScale();
 private:
 	void setLod(uint8_t lod);
+	void alterColors(int8_t *rgbaModifier);
 	uint8_t computeLod(int originalTexturePixelWidth, int imageWidth, int numMips, int internalScale = 1, const char *filename = "") const;
 	uint8_t computeScale(int originalTexturePixelWidth, int originalTextureHeight, const char *filename = "") const;
 	bimg::ImageContainer *_image;
@@ -80,6 +87,8 @@ public:
 		uint32_t *targetRgba, int targetW, int targetH, uint8_t targetScale, Tim::Bpp targetBpp,
 		int16_t paletteVramX, int16_t paletteVramY
 	) const=0;
+	bool findExternalTexture(char *outFilename, uint8_t palette_index, bool hasPal, const char *extension = nullptr, char *foundExtension = nullptr) const;
+	static bool findExternalTextureRemastered(const char *name, char *filename, uint8_t palette_index, bool hasPal, const char *extension = nullptr, char *found_extension = nullptr);
 	static bool findExternalTexture(const char *name, char *outFilename, uint8_t palette_index, bool hasPal, const char *extension = nullptr, char *foundExtension = nullptr);
 protected:
 	static void drawImage(
@@ -103,13 +112,13 @@ private:
 
 class TextureModStandard : public ModdedTexture {
 public:
-	TextureModStandard(const TexturePacker::IdentifiedTexture &originalTexture) : ModdedTexture(originalTexture), _currentPalette(-1) {}
+	TextureModStandard(const TexturePacker::IdentifiedTexture &originalTexture) : ModdedTexture(originalTexture), _currentPalette(-1), _currentAnimationFrame(-1) {}
 	TextureModStandard(const TextureModStandard &other) = delete;
 	~TextureModStandard();
 	inline bool canCopyRect() const override {
 		return true;
 	}
-	bool createImages(int paletteCount, int internalLodScale = 1);
+	bool createImages(int paletteCount, int internalLodScale = 1, int8_t *rgbaModifier = nullptr);
 	uint8_t scale(int vramPalXBpp2, int vramPalY) const override;
 	TexturePacker::TextureTypes drawToImage(
 		int offsetX, int offsetY,
@@ -122,12 +131,16 @@ public:
 	void copyRect(int sourceXBpp2, int sourceY, int sourceWBpp2, int sourceH, int targetXBpp2, int targetY, const TextureModStandard &targetTexture);
 	// Set to -1 to unforce
 	void forceCurrentPalette(int8_t currentPalette);
+	void setCurrentAnimationFrame(int frameId);
 private:
 	bool createImage(const char *name, int paletteId = -1, const char *extension = nullptr, char *foundExtension = nullptr);
 	uint8_t computePaletteId(int vramPalXBpp2, int vramPalY) const;
 	const TextureImage &textureImage(uint8_t paletteId) const;
 	std::map<uint8_t, TextureImage> _textures; // Index: paletteId or current texture
+	TextureImage _remasteredUpperImage;
+	TextureImage _remasteredLowerImage;
 	int8_t _currentPalette;
+	int _currentAnimationFrame;
 };
 
 class TextureBackground : public ModdedTexture {

@@ -34,6 +34,10 @@
 #include "world/chara_one.h"
 #include "world/wmset.h"
 #include "battle/stage.h"
+#include "battle/effects.h"
+#include "remaster.h"
+#include "remastered_battle_texture.h"
+#include "./file.h"
 
 #include <shlwapi.h>
 #include <unordered_map>
@@ -42,6 +46,7 @@
 TexturePacker texturePacker;
 
 char next_texture_name[MAX_PATH] = "";
+char next_remastered_texture_name[MAX_PATH] = "";
 TexturePacker::TextureInfos texture_infos = TexturePacker::TextureInfos();
 TexturePacker::TextureInfos palette_infos = TexturePacker::TextureInfos();
 uint16_t *next_pal_data = nullptr;
@@ -55,6 +60,8 @@ int next_texture_count = -1;
 int next_do_not_clear_old_texture = false;
 Tim::Bpp next_bpp = Tim::Bpp16;
 int last_CLUT = 0;
+int8_t *next_rgba_modifier = nullptr;
+bool next_is_lzs_image_format = false;
 
 // Field background
 uint8_t *mim_texture_buffer = nullptr;
@@ -68,6 +75,8 @@ int chara_one_current_pos = 0;
 uint32_t chara_one_current_model = 0;
 uint32_t chara_one_current_mch = 0;
 uint32_t chara_one_current_texture = 0;
+const uint8_t *chara_one_pcb_data = 0;
+int chara_one_pcb_size = 0;
 // World
 std::vector<CharaOneModelTextures> chara_one_world_texture_offsets;
 uint8_t *chara_one_world_data;
@@ -77,6 +86,7 @@ int wm_selphie_old_second_texture_pos = 0;
 int wm_selphie_new_second_texture_pos = 0;
 // Battle
 char battle_texture_name[MAX_PATH] = "";
+int battle_file_id = 0;
 int battle_texture_id = 0;
 Stage stage;
 struct BattleTextureHeader {
@@ -97,6 +107,152 @@ struct BattleTextureFileName {
 };
 std::vector<BattleTextureFileName> battle_texture_data_list = std::vector<BattleTextureFileName>(battle_texture_data_list_size);
 int battle_texture_data_list_cursor = 0;
+
+bool set_remastered_battle_texture_name(char *output, size_t outputSize, const char *classicName, const char *battleName, int textureIndex)
+{
+	if (outputSize > 0)
+	{
+		*output = '\0';
+	}
+
+	const char *group = strchr(battleName, '.');
+	const int variant = textureIndex;
+	for (const remastered_battle_texture::Mapping &mapping : remastered_battle_texture::mappings)
+	{
+		if (mapping.kind == remastered_battle_texture::MappingKind::NamedOverride
+			&& stricmp(battleName, mapping.battleName) == 0)
+		{
+			char candidate[MAX_PATH] = {};
+			char archivePath[MAX_PATH] = {};
+			snprintf(candidate, sizeof(candidate), "battle.fs\\hd_new\\%s_%d", mapping.family, mapping.outputIndex);
+			snprintf(archivePath, sizeof(archivePath), "textures\\%s.png", candidate);
+			if (g_FF8ZzzArchiveMain.fileExists(archivePath))
+			{
+				snprintf(output, outputSize, "%s", candidate);
+			}
+			return true;
+		}
+	}
+	for (const remastered_battle_texture::Mapping &mapping : remastered_battle_texture::mappings)
+	{
+		if (mapping.kind == remastered_battle_texture::MappingKind::BlockedPrefix
+			&& strnicmp(battleName, mapping.battleName, strlen(mapping.battleName)) == 0)
+		{
+			return true;
+		}
+	}
+
+	int resourceId = -1;
+	for (const remastered_battle_texture::Mapping &mapping : remastered_battle_texture::mappings)
+	{
+		if (mapping.kind == remastered_battle_texture::MappingKind::SourceAlias
+			&& stricmp(battleName, mapping.battleName) == 0)
+		{
+			resourceId = mapping.resourceId;
+			break;
+		}
+	}
+
+	if (resourceId < 0 && strnicmp(classicName, "MAG", 3) == 0)
+	{
+		char *end = nullptr;
+		const long parsedId = strtol(classicName + 3, &end, 10);
+		if (end != classicName + 3 && (*end == '\0' || *end == '_' || *end == '.') && parsedId >= 0 && parsedId <= INT_MAX)
+		{
+			resourceId = int(parsedId);
+		}
+	}
+
+	if (resourceId < 0 && strlen(classicName) == 6 && strnicmp(classicName, "C0M", 3) == 0
+		&& classicName[3] >= '0' && classicName[3] <= '9'
+		&& classicName[4] >= '0' && classicName[4] <= '9'
+		&& classicName[5] >= '0' && classicName[5] <= '9')
+	{
+		resourceId = 1000 + (classicName[3] - '0') * 100 + (classicName[4] - '0') * 10 + (classicName[5] - '0');
+	}
+
+	if (resourceId >= 0)
+	{
+		const remastered_battle_texture::Mapping *familyMapping = nullptr;
+		for (const remastered_battle_texture::Mapping &mapping : remastered_battle_texture::mappings)
+		{
+			if (mapping.kind == remastered_battle_texture::MappingKind::FamilyVariant
+				&& mapping.resourceId == resourceId && (mapping.variant == variant || mapping.variant == -1))
+			{
+				familyMapping = &mapping;
+				if (mapping.variant == variant)
+				{
+					break;
+				}
+			}
+		}
+		if (familyMapping != nullptr)
+		{
+			char candidate[MAX_PATH] = {};
+			char archivePath[MAX_PATH] = {};
+			snprintf(candidate, sizeof(candidate), "battle.fs\\hd_new\\%s_%d", familyMapping->family, variant);
+			snprintf(archivePath, sizeof(archivePath), "textures\\%s.png", candidate);
+			if (g_FF8ZzzArchiveMain.fileExists(archivePath))
+			{
+				snprintf(output, outputSize, "%s", candidate);
+			}
+			return true;
+		}
+	}
+
+	if (group == nullptr || group[1] < '2' || group[1] > '9' || group[2] != 'T') {
+		return false;
+	}
+
+	const size_t nameLength = strlen(classicName);
+	if (nameLength < 2 || classicName[nameLength - 2] != '_' || classicName[nameLength - 1] != 'B') {
+		return false;
+	}
+
+	char candidate[MAX_PATH] = {};
+	snprintf(candidate, sizeof(candidate), "%.*s_%d", int(nameLength - 2), classicName, group[1] - '1');
+
+	char archivePath[MAX_PATH] = {};
+	snprintf(archivePath, sizeof(archivePath), "textures\\battle.fs\\hd_new\\%s.png", candidate);
+	if (!g_FF8ZzzArchiveMain.fileExists(archivePath)) {
+		return false;
+	}
+
+	snprintf(output, outputSize, "battle.fs\\hd_new\\%s", candidate);
+	return true;
+}
+
+const remastered_battle_texture::ImageLayout *remastered_battle_texture::findImageLayout(
+	const std::string &remasteredName, int imageIndexOverride)
+{
+	const size_t familyStart = remasteredName.find_last_of("\\/");
+	const size_t suffixSeparator = remasteredName.find_last_of('_');
+	const size_t familyOffset = familyStart == std::string::npos ? 0 : familyStart + 1;
+	if (suffixSeparator == std::string::npos || suffixSeparator <= familyOffset)
+	{
+		return nullptr;
+	}
+
+	char *suffixEnd = nullptr;
+	const long parsedIndex = strtol(remasteredName.c_str() + suffixSeparator + 1, &suffixEnd, 10);
+	if (suffixEnd == remasteredName.c_str() + suffixSeparator + 1 || *suffixEnd != '\0' || parsedIndex < 0 || parsedIndex > INT_MAX)
+	{
+		return nullptr;
+	}
+
+	const std::string family = remasteredName.substr(familyOffset, suffixSeparator - familyOffset);
+	const int imageIndex = imageIndexOverride >= 0 ? imageIndexOverride : int(parsedIndex);
+	for (const remastered_battle_texture::Mapping &mapping : remastered_battle_texture::mappings)
+	{
+		if (mapping.kind == remastered_battle_texture::MappingKind::ImageLayout
+			&& mapping.layout.imageIndex == imageIndex && _stricmp(mapping.family, family.c_str()) == 0)
+		{
+			return &mapping.layout;
+		}
+	}
+
+	return nullptr;
+}
 
 struct VramPos {
 	uint16_t x, y;
@@ -209,6 +365,18 @@ bool ff8_vram_save(const char *fileName, Tim::Bpp bpp)
 
 void ff8_upload_vram(int16_t *pos_and_size, uint8_t *texture_buffer)
 {
+	// Fix width/height according to file header
+	if (next_is_lzs_image_format) {
+		uint16_t *header = (uint16_t *)texture_buffer - 2;
+		if (header[0] <= 640) {
+			pos_and_size[2] = header[0];
+			pos_and_size[0] = (640 - pos_and_size[2]) / 2;
+		}
+		if (header[1] <= 480) {
+			pos_and_size[3] = header[1];
+		}
+	}
+
 	const int16_t x = pos_and_size[0];
 	const int16_t y = pos_and_size[1];
 	const int16_t w = pos_and_size[2];
@@ -216,7 +384,8 @@ void ff8_upload_vram(int16_t *pos_and_size, uint8_t *texture_buffer)
 	bool isPal = (next_pal_data != nullptr && (uint8_t *)next_pal_data == texture_buffer)
 		|| (palette_infos.isValid() && palette_infos.x() == x && palette_infos.y() == y && palette_infos.w() == w && palette_infos.h() == h);
 
-	if (trace_all || trace_vram) ffnx_trace("%s x=%d y=%d w=%d h=%d bpp=%d isPal=%d texture_buffer=0x%X\n", __func__, x, y, w, h, next_bpp, isPal, texture_buffer);
+	if (trace_all || trace_vram) ffnx_trace("%s x=%d y=%d w=%d h=%d bpp=%d isPal=%d texture_buffer=0x%X rgba_modifier=(%d, %d, %d, %d)\n", __func__, x, y, w, h, next_bpp, isPal, texture_buffer,
+		next_rgba_modifier ? next_rgba_modifier[0] : 0, next_rgba_modifier ? next_rgba_modifier[1] : 0, next_rgba_modifier ? next_rgba_modifier[2] : 0, next_rgba_modifier ? next_rgba_modifier[3] : 0);
 
 	uint8_t *vram = ff8_vram_seek(x, y);
 	const int vramLineWidth = VRAM_DEPTH * VRAM_WIDTH;
@@ -230,19 +399,22 @@ void ff8_upload_vram(int16_t *pos_and_size, uint8_t *texture_buffer)
 	}
 
 	if (texture_infos.isValid() && palette_infos.isValid()) {
-		texturePacker.setTexture(next_texture_name, texture_infos, palette_infos, next_texture_count, !next_do_not_clear_old_texture);
+		texturePacker.setTexture(next_texture_name, next_remastered_texture_name, texture_infos, palette_infos, next_texture_count, next_rgba_modifier, !next_do_not_clear_old_texture);
 
 		texture_infos = TexturePacker::TextureInfos();
 		palette_infos = TexturePacker::TextureInfos();
 	} else if (!texture_infos.isValid() && !palette_infos.isValid() && !isPal) {
-		texturePacker.setTexture(next_texture_name, TexturePacker::TextureInfos(x, y, w, h, next_bpp), TexturePacker::TextureInfos(), next_texture_count, !next_do_not_clear_old_texture);
+		texturePacker.setTexture(next_texture_name, next_remastered_texture_name, TexturePacker::TextureInfos(x, y, w, h, next_bpp), TexturePacker::TextureInfos(), next_texture_count, next_rgba_modifier, !next_do_not_clear_old_texture);
 	}
 
 	ff8_externals.sub_464850(x, y, x + w - 1, h + y - 1);
 
 	*next_texture_name = '\0';
+	*next_remastered_texture_name = '\0';
 	next_do_not_clear_old_texture = false;
 	next_texture_count = -1;
+	next_rgba_modifier = nullptr;
+	next_is_lzs_image_format = false;
 }
 
 void ff8_vram_copy_part(int x, int y, int w, int h, int target_x, int target_y)
@@ -410,6 +582,35 @@ const std::string &tex_name_special_cases(std::string &filename, const std::stri
 	return filename;
 }
 
+const std::string &tex_name_special_cases_remastered(std::string &filename, const std::string &full_filename, int vram_id)
+{
+	if (full_filename.starts_with("cards\\back") || full_filename.starts_with("cards\\board")) {
+		filename = full_filename;
+		filename.append("_");
+		filename.append(std::to_string(vram_id / 4)); // Adjusting number
+	} else if (full_filename.starts_with("cards\\text")) {
+		// Add lang
+		char langPath[16] = {};
+		concat_lang_str(langPath);
+		if (strncmp(langPath, "en", sizeof("en")) != 0) {
+			filename.append("_");
+			filename.append(langPath);
+		}
+	} else if (vram_id >= 20 && full_filename.starts_with("ff8logo\\")) {
+		// Add lang
+		if (JP_VERSION || game_language == GAME_LANGUAGE_JP) {
+			filename.append("_jp");
+		} else {
+			filename.append("_efigs");
+		}
+	} else if (vram_id == 15 && full_filename.starts_with("field.fs\\field_hd_new\\wmset_014")) {
+		filename = full_filename;
+		filename.append("_0"); // Adjusting number
+	}
+
+	return filename;
+}
+
 void set_tex_name(const TexturePacker::TiledTex &tiledTex, ff8_tex_header *tex_header)
 {
 	if (tex_header == nullptr)
@@ -424,7 +625,8 @@ void set_tex_name(const TexturePacker::TiledTex &tiledTex, ff8_tex_header *tex_h
 		return;
 	}
 
-	std::string filename;
+	std::string filename, remasteredFilename;
+	const bool hasSingleTexture = textures.size() == 1;
 	int file_count = 0;
 	int start_vram_id = 0;
 
@@ -432,6 +634,9 @@ void set_tex_name(const TexturePacker::TiledTex &tiledTex, ff8_tex_header *tex_h
 	{
 		if (tex.isValid())
 		{
+			if (hasSingleTexture && remasteredFilename.empty() && !tex.remasteredName().empty()) {
+				remasteredFilename.append(tex.remasteredName());
+			}
 			if (file_count == 0)
 			{
 				filename.append(tex.name());
@@ -492,11 +697,23 @@ void set_tex_name(const TexturePacker::TiledTex &tiledTex, ff8_tex_header *tex_h
 
 		if (trace_all || trace_vram) ffnx_trace("%s: %s\n", __func__, filename.c_str());
 
-		tex_header->file.pc_name = (char*)external_malloc(1024);
+		tex_header->file.pc_name = (char*)external_calloc(1024, sizeof(char));
 
 		if (tex_header->file.pc_name != nullptr)
 		{
-			strncpy(tex_header->file.pc_name, filename.c_str(), 1024);
+			strncpy(tex_header->file.pc_name, filename.c_str(), 511);
+
+			if (hasSingleTexture && !remasteredFilename.empty()) {
+				full_filename = remasteredFilename;
+				remasteredFilename.append("_");
+				remasteredFilename.append(std::to_string(vramId));
+
+				remasteredFilename = tex_name_special_cases_remastered(remasteredFilename, full_filename, vramId);
+
+				if (trace_all || trace_vram) ffnx_trace("%s: %s (alternative)\n", __func__, remasteredFilename.c_str());
+
+				strncpy(tex_header->file.pc_name + 512, remasteredFilename.c_str(), 511);
+			}
 		}
 	}
 }
@@ -607,6 +824,35 @@ int ff8_write_palette_to_driver(int source_offset, int size, uint32_t *source_rg
 
 	uint16_t palette_x = (last_CLUT & 0x3F) * 16, palette_y = (last_CLUT >> 6) & 0x1FF;
 	int pal_index = dest_offset / size / 2;
+	const int source_clut = last_CLUT;
+
+	if (ff8_remastered_edition && size > 0 && dest_offset % (size * 2) == 0)
+	{
+		const TexturePacker::TiledTex tiledTex = texturePacker.getTiledTex(VREF(tex_header, image_data));
+		if (tiledTex.isValid())
+		{
+			for (const TexturePacker::IdentifiedTexture &identifiedTexture: texturePacker.matchTextures(tiledTex, false))
+			{
+				const TexturePacker::TextureInfos &texture = identifiedTexture.texture();
+				const TexturePacker::TextureInfos &palette = identifiedTexture.palette();
+				if (texture.x() != tiledTex.x() || texture.y() != tiledTex.y() || !palette.isValid()
+					|| palette.h() <= 1 || pal_index >= palette.h())
+				{
+					continue;
+				}
+
+				const int expectedPaletteX = palette.x();
+				const int expectedPaletteY = palette.y() + pal_index;
+				if (palette_x == expectedPaletteX && palette_y == expectedPaletteY + 1)
+				{
+					const int canonicalClut = ((expectedPaletteY & 0x1FF) << 6) | ((expectedPaletteX / 16) & 0x3F);
+					ff8_read_vram_palette(canonicalClut, reinterpret_cast<uint8_t *>(source_rgba + source_offset), size);
+					last_CLUT = source_clut;
+				}
+				break;
+			}
+		}
+	}
 
 	texturePacker.registerPaletteWrite(VREF(tex_header, image_data), pal_index, palette_x, palette_y);
 
@@ -619,7 +865,17 @@ uint32_t ff8_credits_open_texture(char *fileName, char *buffer)
 
 	// {name}.lzs
 	strncpy(next_texture_name, strrchr(fileName, '\\') + 1, sizeof(next_texture_name));
+	if (!is_remastered_hd_textures_disabled("intro")) {
+		if (strstr(fileName, "ff8.lzs")) {
+			snprintf(next_remastered_texture_name, sizeof(next_remastered_texture_name), "ff8logo\\%s", strrchr(fileName, '\\') + 1);
+		} else if (strstr(fileName, "square.lzs")) {
+			snprintf(next_remastered_texture_name, sizeof(next_remastered_texture_name), "squarelogo\\%s", strrchr(fileName, '\\') + 1);
+		} else {
+			snprintf(next_remastered_texture_name, sizeof(next_remastered_texture_name), "opening\\%s", strrchr(fileName, '\\') + 1);
+		}
+	}
 	next_bpp = Tim::Bpp16;
+	next_is_lzs_image_format = true;
 
 	uint32_t ret = ff8_externals.credits_open_file(fileName, buffer);
 
@@ -634,6 +890,7 @@ void ff8_cdcheck_error_upload_vram(int16_t *pos_and_size, uint8_t *texture_buffe
 
 	strncpy(next_texture_name, "discerr.lzs", sizeof(next_texture_name));
 	next_bpp = Tim::Bpp16;
+	next_is_lzs_image_format = true;
 
 	if (save_textures) Tim::fromLzsData(texture_buffer - 8).save(next_texture_name);
 
@@ -647,12 +904,18 @@ void ff8_upload_vram_triple_triad_1(int16_t *pos_and_size, uint8_t *texture_buff
 	if (texture_buffer == ff8_externals.cardgame_tim_texture_intro)
 	{
 		strncpy(next_texture_name, "cardgame/intro", sizeof(next_texture_name));
+		strncpy(next_remastered_texture_name, "cards\\back", sizeof(next_remastered_texture_name));
 		next_bpp = Tim::Bpp16;
 	}
 	else if (texture_buffer == ff8_externals.cardgame_tim_texture_game)
 	{
 		strncpy(next_texture_name, "cardgame/game", sizeof(next_texture_name));
+		strncpy(next_remastered_texture_name, "cards\\board", sizeof(next_remastered_texture_name));
 		next_bpp = Tim::Bpp16;
+	}
+
+	if (is_remastered_hd_textures_disabled("cardgame")) {
+		*next_remastered_texture_name = '\0';
 	}
 
 	if (save_textures && *next_texture_name != '\0')
@@ -672,6 +935,7 @@ void ff8_upload_vram_triple_triad_2_texture_name(uint8_t *texture_buffer)
 	if (texture_buffer >= ff8_externals.cardgame_tim_texture_cards && texture_buffer < ff8_externals.cardgame_tim_texture_game)
 	{
 		strncpy(next_texture_name, "cardgame/cards", sizeof(next_texture_name));
+		strncpy(next_remastered_texture_name, "cards\\cards", sizeof(next_remastered_texture_name));
 		if (next_pal_data == (uint16_t *)texture_buffer)
 		{
 			if (save_textures) Tim::fromTimData(texture_buffer - 20).saveMultiPaletteGrid(next_texture_name, 28, 4, 128, 2, true);
@@ -681,6 +945,7 @@ void ff8_upload_vram_triple_triad_2_texture_name(uint8_t *texture_buffer)
 	else if (texture_buffer >= ff8_externals.cardgame_tim_texture_icons && texture_buffer < ff8_externals.cardgame_tim_texture_font)
 	{
 		strncpy(next_texture_name, "cardgame/icons", sizeof(next_texture_name));
+		strncpy(next_remastered_texture_name, "cards\\text", sizeof(next_remastered_texture_name));
 		if (next_pal_data == (uint16_t *)texture_buffer)
 		{
 			if (save_textures) Tim::fromTimData(texture_buffer - 20).save(next_texture_name, 0, 0, true);
@@ -700,6 +965,10 @@ void ff8_upload_vram_triple_triad_2_texture_name(uint8_t *texture_buffer)
 			if (save_textures) tim.save(next_texture_name, 0, 0, true);
 		}
 		next_bpp = tim.bpp();
+	}
+
+	if (is_remastered_hd_textures_disabled("cardgame")) {
+		*next_remastered_texture_name = '\0';
 	}
 }
 
@@ -751,7 +1020,7 @@ void ff8_wm_section_17_set_texture(int texture_id)
 
 	snprintf(texture_name, sizeof(texture_name), "world/dat/wmset/section17/texture%d", texture_id);
 
-	texturePacker.setTexture(texture_name, texture_infos, palette_infos, tex.textureFramePositions.size(), true);
+	texturePacker.setTexture(texture_name, nullptr, texture_infos, palette_infos, tex.textureFramePositions.size(), nullptr, true);
 }
 
 uint32_t ff8_wm_section_38_prepare_texture_for_upload(uint8_t *tim_file_data, ff8_tim *tim_infos)
@@ -835,7 +1104,7 @@ uint32_t ff8_wm_section_38_prepare_texture_for_upload(uint8_t *tim_file_data, ff
 			if (trace_all || trace_vram) ffnx_trace("%s: set animation palette source=(%d, %d)\n", __func__, tex.srcX, tex.srcY);
 			next_texture_count = tex.height;
 			TexturePacker::TextureInfos palette(tex.x, tex.y, 256, tex.height, Tim::Bpp16);
-			texturePacker.setTexture(nullptr, palette, palette);
+			texturePacker.setTexture(nullptr, nullptr, palette, palette);
 
 			if (save_textures)
 			{
@@ -886,6 +1155,10 @@ Tim ff8_wm_set_texture_name_from_section_position(uint8_t section_number, uint32
 	next_do_not_clear_old_texture = section_number == 40 && timId == 0;
 
 	snprintf(next_texture_name, MAX_PATH, "world/dat/wmset/section%d/texture%d", section_number, timId);
+
+	if (section_number == 42 && timId == 14 && !is_remastered_hd_textures_disabled("world")) {
+		snprintf(next_remastered_texture_name, MAX_PATH, "field.fs\\field_hd_new\\wmset_014");
+	}
 
 	Tim tim = Tim::fromTimData(tim_file_data);
 
@@ -1272,12 +1545,58 @@ uint32_t ff8_field_read_map_data(char *filename, uint8_t *map_data)
 		for (int i = 0; i < VRAM_PAGE_MIM_MAX_COUNT; ++i) {
 			snprintf(tex_filename, sizeof(tex_filename), "%s_%d", tex_directory, i);
 			const int x = i * TEXTURE_WIDTH_BPP16, y = 256;
-			texturePacker.setTexture(tex_filename, TexturePacker::TextureInfos(x, y, TEXTURE_WIDTH_BPP16, TEXTURE_HEIGHT, Tim::Bpp16, true), TexturePacker::TextureInfos(), 0);
+			texturePacker.setTexture(tex_filename, nullptr, TexturePacker::TextureInfos(x, y, TEXTURE_WIDTH_BPP16, TEXTURE_HEIGHT, Tim::Bpp16, true), TexturePacker::TextureInfos(), 0);
 			// Force texture_reload_hack
 			texturePacker.setCurrentAnimationFrame(x, y, -1);
 		}
 	}
 
+	return ret;
+}
+
+int ff8_field_open_chara_one(
+	int current_data_pointer,
+	void *models_infos,
+	VramPos *palette_vram_positions,
+	VramPos *texture_vram_positions,
+	const char *dir_name,
+	const uint8_t *pcb_data,
+	int allocated_size,
+	int pcb_data_size
+) {
+	if (trace_all || trace_vram) ffnx_trace("%s\n", __func__);
+
+	chara_one_pcb_data = pcb_data;
+	chara_one_pcb_size = pcb_data_size;
+
+	VramPos tex_vram_pos[FIELD_VRAM_POS_LENGTH] = {}, pal_vram_pos[FIELD_VRAM_POS_LENGTH] = {};
+
+	// Maximize texture positioning by eliminating taken spots
+	int j = 0;
+	for (int i = 0; i < FIELD_VRAM_POS_LENGTH; ++i) {
+		VramPos pos = i < FIELD_MODEL_TEX_VRAM_POS_ORIGINAL_LENGTH ? texture_vram_positions[i] : field_model_tex_vram_pos[i - FIELD_MODEL_TEX_VRAM_POS_ORIGINAL_LENGTH];
+		// Background is at (0, 256, mim_real_width, 256)
+		if (pos.y >= 256 && pos.x < mim_real_width) {
+			if (trace_all || trace_vram) ffnx_warning("%s: (%d, %d) cell taken by mim, continue\n", __func__, pos.x, pos.y);
+			continue;
+		}
+		// Effects can be positionned anywhere, depending on the pmp file content
+		if (pos.x >= field_effect_texture_infos.x() && pos.x < field_effect_texture_infos.x() + field_effect_texture_infos.w()
+			&& pos.y >= field_effect_texture_infos.y() && pos.y < field_effect_texture_infos.y() + field_effect_texture_infos.h()) {
+			if (trace_all || trace_vram) ffnx_warning("%s: (%d, %d) cell taken by pmp, continue\n", __func__, pos.x, pos.y);
+			continue;
+		}
+		pal_vram_pos[j] = {0, uint16_t(i + 128u)}; // Relocate palettes on (0, 128) instead of (512, 240)
+		tex_vram_pos[j] = pos;
+		j += 1;
+	}
+
+	int ret = ((int(*)(int,void*,VramPos*,VramPos*,const char*,const uint8_t*,int,int))ff8_externals.load_field_models)(current_data_pointer, models_infos, palette_vram_positions, texture_vram_positions, dir_name, pcb_data, allocated_size, pcb_data_size);
+
+	if (ff8_remastered_edition) {
+		ff8_remaster_set_field_model_scaling(chara_one_models);
+	}
+	
 	return ret;
 }
 
@@ -1288,6 +1607,8 @@ int ff8_field_chara_one_read_file_header(int fd, uint8_t *const data, size_t siz
 	if (trace_all || trace_vram) ffnx_trace("%s: size=%d\n", __func__, size);
 
 	chara_one_models = ff8_chara_one_parse_models(data, size);
+	ff8_parse_pcb(chara_one_pcb_data, chara_one_pcb_size, chara_one_models);
+
 	chara_one_loaded_models.clear();
 	chara_one_current_model = 0;
 	chara_one_current_mch = 0;
@@ -1312,6 +1633,8 @@ int ff8_field_chara_one_read_model(int fd, uint8_t *const data, size_t size)
 	if (trace_all || trace_vram) ffnx_trace("%s: size=%d\n", __func__, size);
 
 	if (chara_one_models.contains(chara_one_current_pos)) {
+		chara_one_models[chara_one_current_pos].isDirect = ff8_is_direct_file(fd);
+
 		if (save_textures) {
 			char filename[MAX_PATH];
 			snprintf(filename, sizeof(filename), "field/model/second_chr");
@@ -1334,6 +1657,7 @@ int ff8_field_chara_one_read_mch(int fd, uint8_t *const data, size_t size)
 	for (uint32_t addr: chara_one_loaded_models) {
 		if (chara_one_models[addr].isMch) {
 			if (id == chara_one_current_mch) {
+				chara_one_models[addr].isDirect = ff8_is_direct_file(fd);
 				ff8_mch_parse_model(chara_one_models[addr], data, size);
 				if (save_textures) {
 					char filename[MAX_PATH];
@@ -1360,7 +1684,13 @@ int ff8_field_texture_upload_one(char *image_buffer, char bpp, char a3, int x, i
 		CharaOneModel model = chara_one_models[chara_one_loaded_models.at(chara_one_current_model)];
 
 		if (chara_one_current_texture < model.texturesData.size()) {
+			next_rgba_modifier = model.rgbaModifier;
 			next_bpp = Tim::Bpp(bpp);
+			if (!model.isDirect && !is_remastered_hd_textures_disabled("field")) {
+				snprintf(next_remastered_texture_name, MAX_PATH, "field.fs\\field_hd_new\\%s_%d", model.name, chara_one_current_texture);
+			} else {
+				next_remastered_texture_name[0] = '\0';
+			}
 			snprintf(next_texture_name, MAX_PATH, "field/model/%s_chr/%s-%d", model.isMch ? "main" : "second", model.name, chara_one_current_texture);
 
 			++chara_one_current_texture;
@@ -1395,7 +1725,7 @@ void ff8_field_effects_upload_vram1(int16_t *pos_and_size, uint8_t *texture_buff
 	ff8_upload_vram(pos_and_size, texture_buffer);
 
 	// This upload and the next one together
-	texturePacker.setTexture(texture_name, TexturePacker::TextureInfos(pos_and_size[0], pos_and_size[1], pos_and_size[2], pos_and_size[3] * 2, bpp));
+	texturePacker.setTexture(texture_name, nullptr, TexturePacker::TextureInfos(pos_and_size[0], pos_and_size[1], pos_and_size[2], pos_and_size[3] * 2, bpp));
 }
 
 int battle_get_texture_file_name_index(void *texture_buffer)
@@ -1408,12 +1738,16 @@ int battle_get_texture_file_name_index(void *texture_buffer)
 
 	return -1;
 }
+static constexpr uint16_t GILGAMESH_FIRST_EFFECT_ID = FF8BattleEffect::GilgameshZantetsukenReverse;
+static constexpr uint16_t GILGAMESH_LAST_EFFECT_ID = FF8BattleEffect::GilgameshExcalipoor;
+static constexpr int GILGAMESH_G_FILE_ID = 751;
 
 int16_t ff8_battle_open_and_read_file(int fileId, void *data, int a3, int callback)
 {
-	if (trace_all || trace_vram) ffnx_trace("%s: %d => %s\n", __func__, fileId, ff8_externals.battle_filenames[fileId]);
+	if (trace_all || trace_files) ffnx_trace("%s: %d => %s\n", __func__, fileId, ff8_externals.battle_filenames[fileId]);
 
 	battle_texture_id = 0;
+	battle_file_id = fileId;
 	if (stricmp(ff8_externals.battle_filenames[fileId], "B0WAVE.DAT") == 0) {
 		// Fix redundant texture
 		strncpy(battle_texture_name, "battle/A8DEF.TIM", sizeof(battle_texture_name));
@@ -1439,7 +1773,211 @@ int16_t ff8_battle_open_and_read_file(int fileId, void *data, int a3, int callba
 		battle_texture_data_list[index] = tex;
 	}
 
-	return ((int16_t(*)(int,void*,int,int))ff8_externals.battle_open_file)(fileId, data, a3, callback);
+	int16_t ret = ((int16_t(*)(int,void*,int,int))ff8_externals.battle_open_file)(fileId, data, a3, callback);
+	const int effect_id = ff8_externals.battle_magic_id != nullptr ? *ff8_externals.battle_magic_id : -1;
+	if (ff8_remastered_edition && fileId == GILGAMESH_G_FILE_ID && (trace_files || trace_all))
+		ffnx_trace("Gilgamesh G load: effect_id=%d data=0x%08X result=%d\n", effect_id, uint32_t(data), ret);
+
+	if (ff8_remastered_edition && fileId == GILGAMESH_G_FILE_ID
+		&& effect_id >= GILGAMESH_FIRST_EFFECT_ID && effect_id <= GILGAMESH_LAST_EFFECT_ID
+		&& ret == 0 && data != nullptr)
+	{
+		const uint32_t source_offset = FF8_GILGAMESH_G_DESCRIPTOR_SOURCE_OFFSET;
+		uint8_t *effect_arena = ((uint8_t *(*)())ff8_externals.get_battle_effect_buffer_sub_571B50)();
+		if (effect_arena != nullptr && data == effect_arena + source_offset)
+		{
+			const uint32_t *g_header = static_cast<const uint32_t *>(data);
+			uint32_t *root_header = reinterpret_cast<uint32_t *>(static_cast<uint8_t *>(data) - source_offset);
+			uint32_t relocated_offsets[4]{};
+			bool offsets_valid = true;
+
+			for (uint32_t field_index = 1; field_index <= 4; ++field_index)
+			{
+				const uint32_t relative_offset = g_header[field_index];
+				if (relative_offset >= FF8_BATTLE_EFFECT_BUFFER_SIZE - source_offset)
+				{
+					ffnx_warning("Gilgamesh G descriptor offset[%u]=0x%X exceeds the battle effect buffer; skipping relocation.\n",
+						field_index, relative_offset);
+					offsets_valid = false;
+					break;
+				}
+				relocated_offsets[field_index - 1] = source_offset + relative_offset;
+			}
+
+			if (offsets_valid)
+			{
+				const uint32_t previous_offsets[4] = { root_header[1], root_header[2], root_header[3], root_header[4] };
+				for (uint32_t field_index = 1; field_index <= 4; ++field_index)
+					root_header[field_index] = relocated_offsets[field_index - 1];
+
+				if (trace_files || trace_all)
+					ffnx_trace("Gilgamesh descriptor offsets: G=[%X,%X,%X,%X] B=[%X,%X,%X,%X]->[%X,%X,%X,%X]\n",
+						g_header[1], g_header[2], g_header[3], g_header[4],
+						previous_offsets[0], previous_offsets[1], previous_offsets[2], previous_offsets[3],
+						relocated_offsets[0], relocated_offsets[1], relocated_offsets[2], relocated_offsets[3]);
+			}
+		}
+		else
+		{
+			ffnx_warning("Gilgamesh G destination 0x%08X does not match the relocated effect-buffer slot, skipping descriptor relocation.\n",
+				uint32_t(data));
+		}
+	}
+
+	// c0mXXX.dat files (battle ennemies)
+	if (fileId >= 166 && fileId <= 309 && *(uint32_t *)data == 11)
+	{
+		char chunk_file[1024]{0};
+		byte *chunks_data[11]{nullptr};
+		long chunks_size[11]{0};
+		bool has_chunk = false;
+		char langPath[16] = "/";
+
+		ff8_fs_lang_string(langPath + 1);
+
+		for (int chunkId = 0; chunkId < 11; ++chunkId)
+		{
+			for (uint8_t lang = 0; lang < 2; lang++)
+			{
+				_snprintf(chunk_file, sizeof(chunk_file), "%s/%s%s/battle/%s.chunk.%i", basedir, direct_mode_path.c_str(), langPath, ff8_externals.battle_filenames[fileId], chunkId + 1);
+
+				FILE *fd = fopen(chunk_file, "rb");
+
+				if (fd != nullptr)
+				{
+					if (trace_all || trace_direct) ffnx_info("Direct file using %s\n", chunk_file);
+
+					fseek(fd, 0L, SEEK_END);
+					long chunk_size = ftell(fd);
+					fseek(fd, 0L, SEEK_SET);
+
+					byte *chunk_data = new byte[chunk_size];
+
+					fread(chunk_data, sizeof(byte), chunk_size, fd);
+					fclose(fd);
+
+					chunks_data[chunkId] = chunk_data;
+					chunks_size[chunkId] = chunk_size;
+					has_chunk = true;
+					break;
+				}
+
+				if (trace_all || trace_direct) ffnx_warning("Direct file not found %s\n", chunk_file);
+
+				*langPath = '\0';
+			}
+			*langPath = '/';
+		}
+
+		// Rebuild file content with chunks + original data
+		if (has_chunk)
+		{
+			uint32_t *toc = (uint32_t *)data + 1;
+			uint32_t cur_data_pos = (11 + 2) * sizeof(uint32_t);
+			byte *old_data = new byte[toc[11]];
+			memcpy(old_data, data, toc[11] * sizeof(byte));
+			uint32_t *old_toc = (uint32_t *)old_data + 1;
+
+			for (int chunkId = 0; chunkId < 11; ++chunkId)
+			{
+				byte *chunk_data = chunks_data[chunkId];
+				long chunk_size;
+				toc[chunkId] = cur_data_pos;
+				if (chunk_data != nullptr)
+				{
+					chunk_size = chunks_size[chunkId];
+					memcpy((uint8_t *)data + toc[chunkId], chunk_data, chunks_size[chunkId]);
+					delete[] chunk_data;
+				}
+				else
+				{
+					chunk_size = old_toc[chunkId + 1] - old_toc[chunkId];
+					memcpy((uint8_t *)data + toc[chunkId], old_data + old_toc[chunkId], chunk_size);
+				}
+				cur_data_pos += chunk_size;
+			}
+
+			toc[11] = cur_data_pos;
+
+			delete[] old_data;
+		}
+	}
+
+	return ret;
+}
+
+static uint8_t *ff8_remastered_battle_effect_parent_cursor = nullptr;
+
+static void *ff8_remastered_open_exe_dat(const char *fileName, void *data, int dataSize, DWORD *outSize)
+{
+	if (fileName == nullptr)
+	{
+		return nullptr;
+	}
+
+	const char *baseName = PathFindFileNameA(fileName);
+	const char *extension = strrchr(baseName, '.');
+	if (extension == nullptr || stricmp(extension, ".dat") != 0)
+	{
+		return nullptr;
+	}
+
+	char archivePath[MAX_PATH] = {};
+	snprintf(archivePath, sizeof(archivePath), "data\\exe_dat\\%s", baseName);
+	Zzz::File *file = g_FF8ZzzArchiveMain.openFile(archivePath);
+	if (file == nullptr)
+	{
+		return nullptr;
+	}
+
+	std::vector<uint8_t> fileData(file->size());
+	const int bytesRead = file->read(fileData.data(), unsigned(fileData.size()));
+	Zzz::closeFile(file);
+	if (bytesRead != int(fileData.size()))
+	{
+		ffnx_warning("%s: failed to read %s from main.zzz\n", __func__, archivePath);
+		return nullptr;
+	}
+
+	uint8_t *destination = nullptr;
+	if (data != nullptr && dataSize >= 0 && fileData.size() <= size_t(dataSize))
+	{
+		destination = (uint8_t *)data;
+	}
+	else
+	{
+		uint8_t *effect_arena = ((uint8_t *(*)())ff8_externals.get_battle_effect_buffer_sub_571B50)();
+		uint8_t *effect_parent_begin = effect_arena + 0x100000;
+		uint8_t *effect_parent_end = effect_arena + FF8_BATTLE_EFFECT_BUFFER_SIZE;
+		if (data == effect_arena || ff8_remastered_battle_effect_parent_cursor == nullptr)
+		{
+			ff8_remastered_battle_effect_parent_cursor = effect_parent_begin;
+		}
+
+		const size_t alignedSize = (fileData.size() + 3) & ~size_t(3);
+		if (ff8_remastered_battle_effect_parent_cursor > effect_parent_end
+			|| alignedSize > size_t(effect_parent_end - ff8_remastered_battle_effect_parent_cursor))
+		{
+			ffnx_warning("%s: %s exceeds the Remastered battle effect arena\n", __func__, archivePath);
+			return nullptr;
+		}
+
+		destination = ff8_remastered_battle_effect_parent_cursor;
+		ff8_remastered_battle_effect_parent_cursor += alignedSize;
+	}
+
+	memcpy(destination, fileData.data(), fileData.size());
+	if (outSize != nullptr)
+	{
+		*outSize = DWORD(fileData.size());
+	}
+
+	if (trace_all || trace_files)
+	{
+		ffnx_info("%s: loaded %s from main.zzz (%u bytes)\n", __func__, archivePath, unsigned(fileData.size()));
+	}
+
+	return destination;
 }
 
 void *ff8_battle_open_effect(const char *fileName, void *data, int dataSize, DWORD *outSize)
@@ -1449,7 +1987,31 @@ void *ff8_battle_open_effect(const char *fileName, void *data, int dataSize, DWO
 	battle_texture_id = 0;
 	snprintf(battle_texture_name, sizeof(battle_texture_name), "magic/%s", fileName);
 
-	return ((void *(*)(const char*,void*,int,DWORD*))ff8_externals.load_magic_data_sub_571900)(fileName, data, dataSize, outSize);
+	auto open_effect = (void *(*)(const char*,void*,int,DWORD*))ff8_externals.load_magic_data_sub_571900;
+	if (ff8_remastered_edition)
+	{
+		void *exeDat = ff8_remastered_open_exe_dat(fileName, data, dataSize, outSize);
+		if (exeDat != nullptr)
+		{
+			return exeDat;
+		}
+	}
+
+	if (!ff8_remastered_edition || data == nullptr)
+		return open_effect(fileName, data, dataSize, outSize);
+
+	uint8_t *effect_arena = ((uint8_t *(*)())ff8_externals.get_battle_effect_buffer_sub_571B50)();
+	uint8_t *effect_parent_begin = effect_arena + 0x100000;
+	uint8_t *effect_parent_end = effect_arena + FF8_BATTLE_EFFECT_BUFFER_SIZE;
+	if (data == effect_arena || ff8_remastered_battle_effect_parent_cursor == nullptr)
+		ff8_remastered_battle_effect_parent_cursor = effect_parent_begin;
+
+	uint8_t *destination = ff8_remastered_battle_effect_parent_cursor;
+	void *result = open_effect(fileName, destination, int(effect_parent_end - destination), outSize);
+	if (result == destination && outSize != nullptr && *outSize <= DWORD(effect_parent_end - destination))
+		ff8_remastered_battle_effect_parent_cursor += (*outSize + 3) & ~DWORD(3); // mag201_b.00 has an odd size
+
+	return result;
 }
 
 size_t ff8_battle_read_file(char *fileName, void *data)
@@ -1479,6 +2041,7 @@ int battle_get_texture_header_index(uint8_t *texture_buffer)
 void battle_read_effect_alloc()
 {
 	if (trace_all || trace_vram) ffnx_trace("%s: magic_id=%d\n", __func__, *ff8_externals.battle_magic_id);
+	ff8_remastered_battle_effect_parent_cursor = nullptr;
 
 	// Reset list
 	for (int i = 0; i < battle_texture_headers.size(); ++i) {
@@ -1747,17 +2310,29 @@ void ff8_battle_upload_texture_palette(int16_t *pos_and_size, uint8_t *texture_b
 		// Exceptionally split the texture into 3 pages, because the game will reupload page by page later (via MA8DEF textures)
 		texture_infos = TexturePacker::TextureInfos(tim.imageX(), tim.imageY(), 64, tim.imageHeight(), tim.bpp());
 		strncpy(next_texture_name, "battle/A8DEF0.TIM", sizeof(next_texture_name));
-		texturePacker.setTexture(next_texture_name, texture_infos, palette_infos);
+		texturePacker.setTexture(next_texture_name, nullptr, texture_infos, palette_infos);
 		texture_infos = TexturePacker::TextureInfos(tim.imageX() + 64, tim.imageY(), 64, tim.imageHeight(), tim.bpp());
 		strncpy(next_texture_name, "battle/A8DEF1.TIM", sizeof(next_texture_name));
-		texturePacker.setTexture(next_texture_name, texture_infos, palette_infos);
+		texturePacker.setTexture(next_texture_name, nullptr, texture_infos, palette_infos);
 		texture_infos = TexturePacker::TextureInfos(tim.imageX() + 128, tim.imageY(), 64, tim.imageHeight(), tim.bpp());
 		strncpy(next_texture_name, "battle/A8DEF2.TIM", sizeof(next_texture_name));
-		texturePacker.setTexture(next_texture_name, texture_infos, palette_infos);
+		texturePacker.setTexture(next_texture_name, nullptr, texture_infos, palette_infos);
 		texture_infos = TexturePacker::TextureInfos(); // Bypass next upload vram
 	} else if (battle_texture_id < 0) {
 		strncpy(next_texture_name, battle_texture_name, sizeof(next_texture_name));
 	} else {
+		if (strncmp(battle_texture_name, "battle/", sizeof("battle/") - 1) == 0) {
+			// Remove extension
+			strncpy(next_texture_name, ff8_externals.battle_filenames[battle_file_id], strlen(ff8_externals.battle_filenames[battle_file_id]) - 4);
+			next_texture_name[strlen(ff8_externals.battle_filenames[battle_file_id]) - 4] = '\0';
+
+			if (!is_remastered_hd_textures_disabled("battle")) {
+				if (!set_remastered_battle_texture_name(next_remastered_texture_name, sizeof(next_remastered_texture_name), next_texture_name, battle_texture_name, battle_texture_id))
+				{
+					snprintf(next_remastered_texture_name, sizeof(next_remastered_texture_name), "battle.fs\\hd_new\\%s_%d", next_texture_name, battle_texture_id);
+				}
+			}
+		}
 		snprintf(next_texture_name, sizeof(next_texture_name), "%s-%d", battle_texture_name, battle_texture_id);
 		++battle_texture_id;
 	}
@@ -1782,50 +2357,6 @@ void ff8_battle_upload_texture_palette(int16_t *pos_and_size, uint8_t *texture_b
 			tim.save(next_texture_name, 0, 0, true);
 		}
 	}
-}
-
-int ff8_load_field_models(
-	int current_data_pointer,
-	void *models_infos,
-	VramPos *palette_vram_positions,
-	VramPos *texture_vram_positions,
-	const char *dirName,
-	int field_data_pointer,
-	int field_data_max_pointer,
-	int pcb_data_size)
-{
-	VramPos tex_vram_pos[FIELD_VRAM_POS_LENGTH] = {}, pal_vram_pos[FIELD_VRAM_POS_LENGTH] = {};
-
-	// Maximize texture positioning by eliminating taken spots
-	int j = 0;
-	for (int i = 0; i < FIELD_VRAM_POS_LENGTH; ++i) {
-		VramPos pos = i < FIELD_MODEL_TEX_VRAM_POS_ORIGINAL_LENGTH ? texture_vram_positions[i] : field_model_tex_vram_pos[i - FIELD_MODEL_TEX_VRAM_POS_ORIGINAL_LENGTH];
-		// Background is at (0, 256, mim_real_width, 256)
-		if (pos.y >= 256 && pos.x < mim_real_width) {
-			if (trace_all || trace_vram) ffnx_warning("%s: (%d, %d) cell taken by mim, continue\n", __func__, pos.x, pos.y);
-			continue;
-		}
-		// Effects can be positionned anywhere, depending on the pmp file content
-		if (pos.x >= field_effect_texture_infos.x() && pos.x < field_effect_texture_infos.x() + field_effect_texture_infos.w()
-			&& pos.y >= field_effect_texture_infos.y() && pos.y < field_effect_texture_infos.y() + field_effect_texture_infos.h()) {
-			if (trace_all || trace_vram) ffnx_warning("%s: (%d, %d) cell taken by pmp, continue\n", __func__, pos.x, pos.y);
-			continue;
-		}
-		pal_vram_pos[j] = {0, uint16_t(i + 128u)}; // Relocate palettes on (0, 128) instead of (512, 240)
-		tex_vram_pos[j] = pos;
-		j += 1;
-	}
-
-	return ((int(*)(int,void*,VramPos*,VramPos*,const char*,int,int,int))ff8_externals.load_field_models)(
-		current_data_pointer,
-		models_infos,
-		pal_vram_pos,
-		tex_vram_pos,
-		dirName,
-		field_data_pointer,
-		field_data_max_pointer,
-		pcb_data_size
-	);
 }
 
 void engine_set_init_time(double fps_adjust)
@@ -1884,6 +2415,7 @@ void vram_init()
 	replace_call(ff8_externals.upload_mim_file + 0x2E, ff8_field_mim_palette_upload_vram);
 	replace_call(ff8_externals.read_field_data + (JP_VERSION ? 0x990 : 0x915), ff8_field_read_map_data);
 	// field: characters
+	replace_call(ff8_externals.read_field_data + (JP_VERSION ? 0xFA2 : 0xF0F), ff8_field_open_chara_one);
 	replace_call(ff8_externals.load_field_models + 0x15F, ff8_field_chara_one_read_file_header);
 	replace_call(ff8_externals.load_field_models + 0x582, ff8_field_chara_one_seek_to_model);
 	replace_call(ff8_externals.load_field_models + 0x594, ff8_field_chara_one_read_model);
@@ -1941,11 +2473,6 @@ void vram_init()
 	// Read palette from VRAM to Graphic driver
 	replace_call(ff8_externals.write_palette_texture_set_sub_466190 + 0x2C, ff8_read_vram_palette);
 	replace_call(ff8_externals.write_palette_texture_set_sub_466190 + 0x7E, ff8_write_palette_to_driver);
-
-	//---- Field VRAM arrangement
-
-	// Change texture positions in VRAM
-	replace_call(ff8_externals.read_field_data + (JP_VERSION ? 0xFA2 : 0xF0F), ff8_load_field_models);
 
 	//---- Misc
 

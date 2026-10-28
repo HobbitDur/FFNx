@@ -25,6 +25,8 @@
 #include "ff7.h"
 #include "patch.h"
 #include "ff7/defs.h"
+#include "ff7/universal_buttons.h"
+#include "ff7/multilanguage.h"
 #include "ff7_data.h"
 #include "ff7/widescreen.h"
 #include "ff7/time.h"
@@ -34,6 +36,70 @@
 
 unsigned char midi_fix[] = {0x8B, 0x4D, 0x14};
 WORD snowboard_fix[] = {0x0F, 0x10, 0x0F};
+
+static ff7_polygon_set *ff7_swirl_update_60fps(ff7_game_obj *game_object, int update)
+{
+	const auto native_update = reinterpret_cast<ff7_polygon_set *(*)(ff7_game_obj *, int)>(ff7_externals.swirl_loop_sub_4026D4);
+	auto &animation = *ff7_externals.swirl_animation;
+	static ff7_swirl_animation previous;
+	static uint32_t last_frame;
+	static bool first_frame = true;
+	static bool midpoint = false;
+	static bool next_midpoint = false;
+
+	if (!update)
+	{
+		first_frame = true;
+		next_midpoint = false;
+		return native_update(game_object, update);
+	}
+	if (first_frame || last_frame != frame_counter)
+	{
+		first_frame = false;
+		last_frame = frame_counter;
+		midpoint = next_midpoint;
+		next_midpoint = !next_midpoint;
+	}
+	if (!midpoint)
+	{
+		previous = animation;
+		return native_update(game_object, update);
+	}
+
+	const auto saved = animation;
+	// Native drawing uses the transform before advancing it to the next tick.
+	animation.rotation.z = (int(previous.rotation.z) + saved.rotation.z) / 2;
+	animation.scale.x = (previous.scale.x + saved.scale.x) / 2;
+	animation.scale.y = (previous.scale.y + saved.scale.y) / 2;
+	--animation.frame_count;
+	if (saved.frame_count >= 46)
+	{
+		// Execute the native color update even at the first halfway fade step.
+		animation.frame_count = saved.frame_count == 46 ? 46 : saved.frame_count - 1;
+		animation.fade = (saved.fade > 2 ? saved.fade - 2 : 0) + 4;
+	}
+	auto *result = native_update(game_object, update);
+	animation = saved;
+	return result;
+}
+
+static int ff7_swirl_draw_quad(const uint8_t *quad, ff7_graphics_object *graphics_object)
+{
+	const int result = ff7_externals.swirl_draw_quad(quad, graphics_object);
+	nvertex *vertices = reinterpret_cast<nvertex *>(graphics_object->vertex_transform);
+
+	// PSX UV endpoints are inclusive; triangles need the outer texel boundaries.
+	vertices[1].u += graphics_object->u_offset;
+	vertices[3].u += graphics_object->u_offset;
+	vertices[2].v += graphics_object->v_offset;
+	vertices[3].v += graphics_object->v_offset;
+	if (quad[12] == 1)
+	{
+		vertices[0].u = 0.0f;
+		vertices[2].u = 0.0f;
+	}
+	return result;
+}
 
 uint32_t ff7_credits_loop_gfx_begin_scene(uint32_t unknown, struct game_obj *game_object)
 {
@@ -103,6 +169,9 @@ void ff7_init_hooks(struct game_obj *_game_object)
 
 	// replace framebuffer access routine with our own version
 	replace_function(ff7_externals.sub_673F5C, sub_673F5C);
+
+	for (uint32_t offset : {0x609, 0x63C, 0x675, 0x6A7})
+		replace_call_function(ff7_externals.swirl_loop_sub_4026D4 + offset, ff7_swirl_draw_quad);
 
 	replace_function(ff7_externals.destroy_d3d2_indexed_primitive, destroy_d3d2_indexed_primitive);
 
@@ -264,16 +333,14 @@ void ff7_init_hooks(struct game_obj *_game_object)
 			{
 				common_frame_multiplier = 2;
 
-				// Swirl mode 60FPS fix
-				patch_multiply_code<byte>(ff7_externals.swirl_main_loop + 0x184, common_frame_multiplier); // wait frames before swirling
-				patch_multiply_code<byte>(ff7_externals.swirl_main_loop + 0x79, common_frame_multiplier); // swirling sound delay
-				patch_code_byte(ff7_externals.swirl_loop_sub_4026D4 + 0x3E, 50); // replace 48 with a bigger number without multiplying in order to have fading effect correctly
-				patch_code_byte(ff7_externals.swirl_loop_sub_4026D4 + 0x111, 0x7F); // cannot multiply otherwise char overflow
-				patch_divide_code<byte>(ff7_externals.swirl_loop_sub_4026D4 + 0x61, common_frame_multiplier); // decrease fading speed
-				patch_divide_code<double>(get_absolute_value(ff7_externals.swirl_loop_sub_4026D4, 0x1AB), common_frame_multiplier);
-				patch_divide_code<double>(get_absolute_value(ff7_externals.swirl_loop_sub_4026D4, 0x1B1), common_frame_multiplier);
-				patch_divide_code<double>(get_absolute_value(ff7_externals.swirl_loop_sub_4026D4, 0x1E4), common_frame_multiplier);
-				patch_divide_code<double>(get_absolute_value(ff7_externals.swirl_loop_sub_4026D4, 0x1EA), common_frame_multiplier);
+				static const double swirl_fps = 60.0;
+				patch_code_dword(ff7_externals.swirl_enter_40164E + 0x181, (uint32_t)&swirl_fps);
+				patch_code_byte(ff7_externals.swirl_main_loop + 0x79, 6);
+				patch_code_byte(ff7_externals.swirl_main_loop + 0x184, 6);
+				for (uint32_t offset : {0xC9, 0x124})
+					replace_call_function(ff7_externals.swirl_main_loop + offset, ff7_swirl_update_60fps);
+				// 1 - sqrt(1 - 64/255): preserve approximately the native trail decay at twice the draw rate.
+				patch_code_dword((uint32_t)ff7_externals.swirl_draw_quad + 0x9, 34);
 			}
 		}
 	}
@@ -377,26 +444,101 @@ void ff7_init_hooks(struct game_obj *_game_object)
 	// ###########################
 	// japanese text
 	// ###########################
+	// The menu loader also owns the universal field-button atlas for every language. Multi-font
+	// glyph submission and flushing remain limited to JP and multibyte translations.
+	replace_function((uint32_t)ff7_externals.engine_load_menu_graphics_objects_6C1468, engine_load_menu_graphics_objects_6C1468);
+	if (ff7_japanese_edition || ff7_multibyte_font)
+	{
+		replace_function((uint32_t)ff7_externals.common_submit_draw_char_from_buffer_6F564E, common_submit_draw_char_from_buffer_6F564E_jp);
+		replace_function(ff7_externals.sub_6F54A2, sub_6F54A2_jp);
+		// jafont glyph FLUSH + field char submitter — without these, multibyte glyphs queue but never draw
+		replace_function(ff7_externals.field_submit_draw_text_640x480_6E706D, field_submit_draw_text_640x480_6E706D_jp);
+		replace_function((uint32_t)ff7_externals.field_draw_text_boxes_and_text_graphics_object_6ECA68, field_draw_text_boxes_and_text_graphics_object_6ECA68_jp);
+		replace_function((uint32_t)ff7_externals.menu_draw_everything_6CC9D3, menu_draw_everything_6CC9D3_jp);
+		replace_function((uint32_t)ff7_externals.battle_draw_menu_everything_6CEE84, battle_draw_menu_everything_6CEE84_jp);
+		replace_function((uint32_t)ff7_externals.main_menu_draw_everything_maybe_6C0B91, main_menu_draw_everything_maybe_6C0B91_jp);
+		// battle top-display bar (draw_text_top_display_6D1CC0): shares the same per-char draw path as the
+		// rest of multibyte text. Without this hook, English-exe ff7_multibyte_font mode (Arabic) falls through
+		// to the vanilla single-byte draw for this specific bar -> Arabic byte codes get reinterpreted as
+		// vanilla Latin glyph indices -> garbled text (2026-07-09, reported in-battle). Moved here (out of
+		// the ff7_japanese_edition-only block below) since it's needed by BOTH JP edition and ff7_multibyte_font.
+		replace_function((uint32_t)ff7_externals.draw_text_top_display_6D1CC0, draw_text_top_display_6D1CC0_jp);
+	}
+	else
+	{
+		// Native text keeps the original renderer. Pass its frame to the universal F6-F9 submitter
+		// by replacing `mov/push graphics_object; push 1; call; add esp, 8` in place.
+		byte submit_vanilla_prompt_patch[] = {
+			0xFF, 0x75, 0xE0,             // push [ebp-0x20] (graphics_object)
+			0x6A, 0x01,                   // push 1 (use_alpha)
+			0x55,                         // push ebp (caller_frame)
+			0xE8, 0x00, 0x00, 0x00, 0x00, // call universal_buttons_submit_vanilla_prompt
+			0x83, 0xC4, 0x0C,             // add esp, 12
+		};
+		uint32_t submit_vanilla_prompt_address = ff7_externals.field_submit_draw_text_640x480_6E706D + 0x36E;
+		memcpy_code(submit_vanilla_prompt_address, submit_vanilla_prompt_patch, sizeof(submit_vanilla_prompt_patch));
+		replace_call(submit_vanilla_prompt_address + 0x6, universal_buttons_submit_vanilla_prompt);
+		replace_call_function(ff7_externals.field_submit_and_draw_text_box_and_text_6EBF2C + 0xBD, universal_buttons_flush_vanilla_field);
+		replace_call_function(ff7_externals.field_submit_and_draw_text_box_and_text_6EBF2C + 0x633, universal_buttons_flush_vanilla_field);
+		replace_call_function(ff7_externals.field_draw_everything_sub_63A60B + 0x3A2, universal_buttons_flush_vanilla_field);
+		replace_call_function((uint32_t)ff7_externals.world_wm0_overworld_draw_all_74C179 + 0x23D,
+			universal_buttons_flush_vanilla_field);
+		replace_call_function((uint32_t)ff7_externals.world_wm2_underwater_draw_all_74C3F0 + 0x15F,
+			universal_buttons_flush_vanilla_field);
+		replace_call_function((uint32_t)ff7_externals.world_wm3_snowstorm_draw_all_74C589 + 0xED,
+			universal_buttons_flush_vanilla_field);
+		for (uint32_t offset : { 0x174, 0x186, 0x199, 0x1AC, 0x1BE })
+			replace_call_function((uint32_t)ff7_externals.field_draw_text_boxes_and_text_graphics_object_6ECA68 + offset,
+				field_draw_graphics_object_full_viewport);
+	}
+	replace_function((uint32_t)ff7_externals.field_text_box_window_opening_6317A9, field_text_box_window_opening_6317A9_autosize);
+	replace_call_function(ff7_externals.world_opcode_message + 0x5A, world_text_box_window_opening_autosize);
+	replace_call_function(ff7_externals.world_opcode_ask + 0x5A, world_text_box_window_opening_autosize);
 	if (ff7_japanese_edition)
 	{
-		replace_function(ff7_externals.field_submit_draw_text_640x480_6E706D, field_submit_draw_text_640x480_6E706D_jp);
-		replace_function((uint32_t)ff7_externals.engine_load_menu_graphics_objects_6C1468, engine_load_menu_graphics_objects_6C1468_jp);
-		replace_function((uint32_t)ff7_externals.field_draw_text_boxes_and_text_graphics_object_6ECA68, field_draw_text_boxes_and_text_graphics_object_6ECA68_jp);
-		replace_function((uint32_t)ff7_externals.common_submit_draw_char_from_buffer_6F564E, common_submit_draw_char_from_buffer_6F564E_jp);
-		replace_function((uint32_t)	ff7_externals.menu_draw_everything_6CC9D3, menu_draw_everything_6CC9D3_jp);
-		replace_function((uint32_t)	ff7_externals.battle_draw_menu_everything_6CEE84, battle_draw_menu_everything_6CEE84_jp);
-		replace_function((uint32_t)	ff7_externals.draw_text_top_display_6D1CC0, draw_text_top_display_6D1CC0_jp);
-		replace_function((uint32_t)	ff7_externals.main_menu_draw_everything_maybe_6C0B91, main_menu_draw_everything_maybe_6C0B91_jp);
+		replace_call_function(ff7_externals.chocobo_end_scene_call_77B79E, chocobo_end_scene_with_jafonts);
+		replace_call_function(ff7_externals.chocobo_populate_race_data_call_77C448, chocobo_populate_race_data_jp);
+		replace_call_function(ff7_externals.chocobo_name_text_call_776B76, chocobo_draw_text_up_jp);
+		for (uint32_t address : ff7_externals.chocobo_gift_text_call_addresses)
+			replace_call_function(address, chocobo_draw_text_up_jp);
+		replace_function(ff7_externals.menu_draw_with_viewport_6FA12F, menu_draw_with_viewport_6FA12F_jp);
+		replace_function(ff7_externals.menu_draw_640x480_6FA347, menu_draw_640x480_6FA347_jp);
+		replace_call_function(ff7_externals.flush_battle_text_640x480_6DC1EB + 0x5A, battle_draw_graphics_object_and_jafonts);
+		replace_call_function(ff7_externals.flush_battle_text_640x480_6DC1EB + 0x22F, battle_reset_graphics_object_and_jafonts);
+
+		for (uint32_t i = 0; i < ff7_externals.japanese_text_small_glyph_call_count; ++i)
+			replace_call_function(ff7_externals.japanese_text_small_glyph_call_addresses[i], common_submit_draw_text_from_buffer_jp);
+		replace_call_function(ff7_externals.menu_sub_6DE3DB + 0x392, battle_command_text_width_jp);
+
+		// Match the item/materia cursor stride to the proportional Japanese label spacing.
+		patch_code_byte(ff7_externals.menu_shop_loop + 0xC9, 85);
+
+		replace_function((uint32_t)ff7_externals.draw_string_from_buffer_sub_6F5B03, common_submit_draw_text_from_buffer_large_jp);
+		replace_call_function(ff7_externals.japanese_text_large_glyph_char_call_6DD3C3, common_submit_draw_char_from_buffer_large_6F564E_jp);
+		replace_call_function(ff7_externals.japanese_text_large_glyph_char_call_7193DE, common_submit_draw_char_from_buffer_large_6F564E_jp);
 		//replace_function((uint32_t)	ff7_externals.field_text_box_window_paging_631945, field_text_box_window_paging_631945_jp);
-		replace_function((uint32_t)	ff7_externals.field_text_box_window_opening_6317A9, field_text_box_window_opening_6317A9_jp);
+		patch_code_byte((uint32_t)ff7_externals.field_dialog_print_table_632C4E, 0xC);
+		patch_code_byte((uint32_t)ff7_externals.field_dialog_print_table_632C4E + 0x1, 0xC);
+		patch_code_byte((uint32_t)ff7_externals.field_dialog_print_table_632C4E + 0x2, 0xC);
+		patch_code_byte((uint32_t)ff7_externals.field_dialog_print_table_632C4E + 0x3, 0xC);
+		patch_code_byte((uint32_t)ff7_externals.field_dialog_print_table_632C4E + 0x4, 0xC);
 
-		patch_code_byte(0x632C4E, 0xC);
-		patch_code_byte(0x632C4E + 0x1, 0xC);
-		patch_code_byte(0x632C4E + 0x2, 0xC);
-		patch_code_byte(0x632C4E + 0x3, 0xC);
-		patch_code_byte(0x632C4E + 0x4, 0xC);
-
-		replace_function(ff7_externals.sub_6F54A2, sub_6F54A2_jp);
+		// 3-mode (hiragana/katakana/eisuu) name-entry screen
+		name_input_jp_install();
+	}
+	if (version == VERSION_FF7_102_US)
+	{
+		replace_call_function(ff7_externals.menu_sub_6CDE72 + 0x202,
+			universal_buttons_draw_config_binding);
+		replace_call_function(ff7_externals.menu_sub_6CDE72 + 0x4A1,
+			universal_buttons_draw_config_binding);
+	}
+	if (!ff7_japanese_edition && !ff7_multibyte_font)
+	{
+		replace_call_function((uint32_t)ff7_externals.menu_draw_everything_6CC9D3 + 0xE5,
+			universal_buttons_flush_menu);
+		replace_call_function((uint32_t)ff7_externals.menu_draw_everything_6CC9D3 + 0x11F,
+			universal_buttons_flush_menu);
 	}
 
 	//######################
@@ -522,6 +664,9 @@ void ff7_init_hooks(struct game_obj *_game_object)
 	// snowboard .P model vertices limit fix + allow float vertex data type
 	//######################
 	replace_function(ff7_externals.snowboard_parse_model_vertices_732159, ff7_snowboard_parse_model_vertices);
+
+	// Multilanguage patch support for 2026 edition
+	if(ff7_2026_rerelease && !ff7_japanese_edition) ff7::multilanguage::init();
 }
 
 struct ff7_gfx_driver *ff7_load_driver(void* _game_object)

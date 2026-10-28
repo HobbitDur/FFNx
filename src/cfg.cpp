@@ -59,6 +59,7 @@ bool enable_voice_auto_text;
 bool enable_auto_run;
 bool save_textures;
 bool save_textures_legacy;
+bool save_gpu_textures;
 bool save_exe_data;
 bool trace_all;
 bool trace_renderer;
@@ -128,6 +129,7 @@ std::vector<std::string> disable_animated_textures_on_field;
 long ff7_fps_limiter;
 bool ff7_footsteps;
 bool ff7_field_center;
+bool ff7_field_autosize_text_box;
 bool use_sdl_gamepad;
 bool ff7_japanese_text;
 bool enable_analogue_controls;
@@ -145,7 +147,6 @@ long external_audio_number_of_channels;
 long external_audio_sample_rate;
 bool ff8_worldmap_internal_highres_textures;
 bool ff8_fix_uv_coords_precision;
-bool ff8_external_music_force_original_filenames;
 bool ff8_use_gamepad_icons;
 bool ff8_always_capture_input;
 bool ff8_battle_fx_dump;
@@ -164,7 +165,8 @@ long ffmpeg_video_volume;
 bool ff7_advanced_blinking;
 long display_index;
 long ff8_high_res_font;
-long hardware_video_decoding;
+std::vector<std::string> ff8_disable_remastered_hd_textures;
+long game_language;
 
 std::vector<std::string> get_string_or_array_of_strings(const toml::node_view<toml::node> &node)
 {
@@ -232,6 +234,7 @@ void read_cfg()
 	external_mesh_path = config["external_mesh_path"].value_or("");
 	save_textures = config["save_textures"].value_or(false);
 	save_textures_legacy = config["save_textures_legacy"].value_or(false);
+	save_gpu_textures = config["save_gpu_textures"].value_or(false);
 	save_exe_data = config["save_exe_data"].value_or(false);
 	trace_all = config["trace_all"].value_or(false);
 	trace_renderer = config["trace_renderer"].value_or(false);
@@ -301,6 +304,8 @@ void read_cfg()
 	ff7_fps_limiter = config["ff7_fps_limiter"].value_or(FPS_LIMITER_DEFAULT);
 	ff7_footsteps = config["ff7_footsteps"].value_or(false);
 	ff7_field_center = config["ff7_field_center"].value_or(true);
+	ff7_field_autosize_text_box = config["ff7_field_autosize_text_box"].value_or(false);
+	ff7_multibyte_font = config["ff7_multibyte_font"].value_or(false);
 	use_sdl_gamepad = config["use_sdl_gamepad"].value_or(false);
 	ff7_japanese_text = config["ff7_japanese_text"].value_or(false);
 	ff7_japanese_edition = config["ff7_japanese_edition"].value_or(false);
@@ -320,7 +325,6 @@ void read_cfg()
 	external_audio_sample_rate = config["external_audio_sample_rate"].value_or(44100);
 	ff8_worldmap_internal_highres_textures = config["ff8_worldmap_internal_highres_textures"].value_or(true);
 	ff8_fix_uv_coords_precision = config["ff8_fix_uv_coords_precision"].value_or(true);
-	ff8_external_music_force_original_filenames = config["ff8_external_music_force_original_filenames"].value_or(false);
 	ff8_use_gamepad_icons = config["ff8_use_gamepad_icons"].value_or(false);
 	ff8_always_capture_input = config["ff8_always_capture_input"].value_or(false);
 	ff8_battle_fx_dump = config["ff8_battle_fx_dump"].value_or(false);
@@ -339,7 +343,8 @@ void read_cfg()
 	ff7_advanced_blinking = config["ff7_advanced_blinking"].value_or(false);
 	display_index = config["display_index"].value_or(-1);
 	ff8_high_res_font = config["ff8_high_res_font"].value_or(-1);
-	hardware_video_decoding = config["hardware_video_decoding"].value_or(HWVA_NONE);
+	ff8_disable_remastered_hd_textures = get_string_or_array_of_strings(config["ff8_disable_remastered_hd_textures"]);
+	game_language = config["game_language"].value_or(GAME_LANGUAGE_AUTO);
 
 	// Windows x or y size can't be less then 0
 	if (window_size_x < 0) window_size_x = 0;
@@ -540,4 +545,9 @@ void read_cfg()
 
 	// DISPLAY INDEX
 	if (display_index < 1) display_index = -1;
+}
+
+bool is_remastered_hd_textures_disabled(const std::string &module)
+{
+	return std::find(ff8_disable_remastered_hd_textures.begin(), ff8_disable_remastered_hd_textures.end(), module) != ff8_disable_remastered_hd_textures.end();
 }

@@ -39,6 +39,7 @@
 #include "cfg.h"
 #include "utils.h"
 #include "renderer.h"
+#include "video/ntscj.h"
 
 CMRC_DECLARE(FFNx);
 
@@ -137,11 +138,12 @@ void RendererCallbacks::fatal(const char* _filePath, uint16_t _line, bgfx::Fatal
     std::string error;
 
     switch (_code) {
-    case bgfx::Fatal::Enum::DebugCheck: error = "Debug Check";
-    case bgfx::Fatal::Enum::InvalidShader: error = "Invalid Shader";
-    case bgfx::Fatal::Enum::UnableToInitialize: error = "Unable To Initialize";
-    case bgfx::Fatal::Enum::UnableToCreateTexture: error = "Unable To Create Texture";
-    case bgfx::Fatal::Enum::DeviceLost: error = "Device Lost";
+    case bgfx::Fatal::Enum::DebugCheck: error = "Debug Check"; break;
+    case bgfx::Fatal::Enum::InvalidShader: error = "Invalid Shader"; break;
+    case bgfx::Fatal::Enum::UnableToInitialize: error = "Unable To Initialize"; break;
+    case bgfx::Fatal::Enum::UnableToCreateTexture: error = "Unable To Create Texture"; break;
+    case bgfx::Fatal::Enum::DeviceLost: error = "Device Lost"; break;
+    default: error = "Unknown"; break;
     }
 
     ffnx_error("[%s] %s\n", error.c_str(), _str);
@@ -200,9 +202,9 @@ void Renderer::setCommonUniforms()
         (float)internalState.alphaRef,
         (float)internalState.alphaFunc,
         (float)internalState.bDoAlphaTest,
-        NULL
+        (float)internalState.bFBTextureColorKey
     };
-    if (uniform_log) ffnx_trace("%s: FSAlphaFlags XYZW(inAlphaRef %f, inAlphaFunc %f, bDoAlphaTest %f, NULL)\n", __func__, internalState.FSAlphaFlags[0], internalState.FSAlphaFlags[1], internalState.FSAlphaFlags[2]);
+    if (uniform_log) ffnx_trace("%s: FSAlphaFlags XYZW(inAlphaRef %f, inAlphaFunc %f, bDoAlphaTest %f, fbTextureColorKey %f)\n", __func__, internalState.FSAlphaFlags[0], internalState.FSAlphaFlags[1], internalState.FSAlphaFlags[2], internalState.FSAlphaFlags[3]);
 
     internalState.FSMiscFlags = {
         NULL,
@@ -246,9 +248,9 @@ void Renderer::setCommonUniforms()
 
     internalState.FSMoreMovieFlags = {
         (float)internalState.bChromaLocation,
-        NULL,
-        NULL,
-        NULL
+        (float)internalState.bIsMovieRGB,
+        internalState.bIsMovieRGB ? internalState.movieRGBScaleX : (internalState.movieYUV8 ? 1020.0f / 1023.0f : 65535.0f / (1023.0f * (internalState.movieP010 ? 64.0f : 1.0f))),
+        internalState.bIsMovieRGB ? internalState.movieRGBScaleY : (internalState.movieYUV8 ? 256.0f : 1024.0f) * (internalState.movieUVInterleaved ? -1.0f : 1.0f)
     };
     if (uniform_log) ffnx_trace("%s: FSMoreMovieFlags XYZW(chroma location %f, reserved %f, reserved %f, reserved %f)\n", __func__, internalState.FSMoreMovieFlags[0], internalState.FSMoreMovieFlags[1], internalState.FSMoreMovieFlags[2], internalState.FSMoreMovieFlags[3]);
 
@@ -260,14 +262,6 @@ void Renderer::setCommonUniforms()
     };
     if (uniform_log) ffnx_trace("%s: gameLightingFlags XYZW(game_lighting %f, NULL, NULL, NULL)\n", __func__, internalState.gameLightingFlags[0]);
 
-    internalState.SmoothSkinningFlags = {
-        (float)internalState.bIsSmoothSkinning,
-        NULL,
-        NULL,
-        NULL
-    };
-    if (uniform_log) ffnx_trace("%s: SmoothSkinningFlags XYZW(isSmoothSkinning %f, NULL, NULL, NULL)\n", __func__, internalState.SmoothSkinningFlags[0]);
-
     setUniform(RendererUniform::VS_FLAGS,  internalState.VSFlags.data());
     setUniform(RendererUniform::FS_ALPHA_FLAGS, internalState.FSAlphaFlags.data());
     setUniform(RendererUniform::FS_MISC_FLAGS, internalState.FSMiscFlags.data());
@@ -276,7 +270,6 @@ void Renderer::setCommonUniforms()
     setUniform(RendererUniform::FS_MOVIE_FLAGS, internalState.FSMovieFlags.data());
     setUniform(RendererUniform::FS_MORE_MOVIE_FLAGS, internalState.FSMoreMovieFlags.data());
     setUniform(RendererUniform::WM_FLAGS, internalState.WMFlags.data());
-    setUniform(RendererUniform::SKINNING_FLAGS, internalState.SmoothSkinningFlags.data());
     setUniform(RendererUniform::TIME_COLOR, internalState.TimeColor.data());
     setUniform(RendererUniform::TIME_DATA, internalState.TimeData.data());
 
@@ -389,6 +382,9 @@ void Renderer::updateRendererShaderPaths()
     fragmentLightingPathSmooth += ".smooth" + shaderSuffix + ".frag";
     vertexShadowMapPath += ".smooth" + shaderSuffix + ".vert";
     fragmentShadowMapPath += ".smooth" + shaderSuffix + ".frag";
+    vertexSkinnedPath += ".smooth" + shaderSuffix + ".vert";
+    vertexLightingSkinnedPath += ".smooth" + shaderSuffix + ".vert";
+    vertexShadowMapSkinnedPath += ".smooth" + shaderSuffix + ".vert";
     vertexFieldShadowPath += ".smooth" + shaderSuffix + ".vert";
     fragmentFieldShadowPath += ".smooth" + shaderSuffix + ".frag";
     vertexBlitPath += ".flat" + shaderSuffix + ".vert";
@@ -397,6 +393,20 @@ void Renderer::updateRendererShaderPaths()
     fragmentYUVMoviePath += ".smooth" + shaderSuffix + ".frag";
     vertexYUVMovieTrueColorPath += ".smooth" + shaderSuffix + ".vert";
     fragmentYUVMovieTrueColorPath += ".smooth" + shaderSuffix + ".frag";
+}
+
+// Skinned counterpart of a 3D program (smooth shaded: external meshes have real normals, so there is no flat
+// variant); any other program is returned unchanged
+Renderer::RendererProgram Renderer::getSkinnedProgram(RendererProgram program)
+{
+    switch (program)
+    {
+    case RendererProgram::FLAT:
+    case RendererProgram::SMOOTH: return RendererProgram::SKINNED_SMOOTH;
+    case RendererProgram::LIGHTING_FLAT:
+    case RendererProgram::LIGHTING_SMOOTH: return RendererProgram::LIGHTING_SKINNED_SMOOTH;
+    default: return program;
+    }
 }
 
 // Via https://dev.to/pperon/hello-bgfx-4dka
@@ -438,10 +448,10 @@ bgfx::ShaderHandle Renderer::getShader(const char* filePath)
     return handle;
 }
 
-bgfx::UniformHandle Renderer::createUniform(std::string uniformName, bgfx::UniformType::Enum uniformType)
+bgfx::UniformHandle Renderer::createUniform(std::string uniformName, bgfx::UniformType::Enum uniformType, uint16_t arraySize)
 {
     bgfx::UniformHandle handle;
-    handle = bgfx::createUniform(uniformName.c_str(), uniformType);
+    handle = bgfx::createUniform(uniformName.c_str(), uniformType, arraySize);
     return handle;
 }
 
@@ -469,6 +479,12 @@ void Renderer::destroyUniforms()
 void Renderer::destroyAll()
 {
     destroyUniforms();
+
+    if (bgfx::isValid(fallbackTexture))
+    {
+        bgfx::destroy(fallbackTexture);
+        fallbackTexture = BGFX_INVALID_HANDLE;
+    }
 
     for (auto& handle : internalState.texHandlers)
     {
@@ -516,7 +532,7 @@ void Renderer::resetState()
     isSmoothSkinning();
     setColorMatrix();
     setColorGamut();
-    setOverallColorGamut(enable_ntscj_gamut_mode ? COLORGAMUT_NTSCJ : COLORGAMUT_SRGB);
+    setOverallColorGamut(ntscj_get_overall_color_gamut());
     setGammaType();
     setChromaLocationType();
     setGameLightData();
@@ -530,6 +546,52 @@ void Renderer::resetState()
 
 void Renderer::renderFrame()
 {
+    bgfx::TextureHandle frameTexture = bgfx::getTexture(backendFrameBuffer);
+
+    // Do staged down-sampling for high-quality super-sampling
+    if (!downsampleTargets.empty())
+    {
+        const float fullWidth = widescreen_enabled ? wide_game_width : game_width;
+        const float fullHeight = widescreen_enabled ? wide_game_height : game_height;
+        const float bottomV = getCaps()->originBottomLeft ? 1.0f : 0.0f;
+        const float topV = getCaps()->originBottomLeft ? 0.0f : 1.0f;
+
+        struct nvertex downsampleVertices[] = {
+            {0.0f, 0.0f, 1.0f, 1.0f, 0xff000000, 0, 0.0f, bottomV},
+            {0.0f, fullHeight, 1.0f, 1.0f, 0xff000000, 0, 0.0f, topV},
+            {fullWidth, 0.0f, 1.0f, 1.0f, 0xff000000, 0, 1.0f, bottomV},
+            {fullWidth, fullHeight, 1.0f, 1.0f, 0xff000000, 0, 1.0f, topV},
+        };
+        WORD downsampleIndices[] = {
+            0, 1, 2,
+            1, 3, 2
+        };
+
+        backendProgram = RendererProgram::BLIT;
+        setCullMode(RendererCullMode::DISABLED);
+        setBlendMode(RendererBlendMode::BLEND_DISABLED);
+        doDepthTest(false);
+        doDepthWrite(false);
+        setPrimitiveType(RendererPrimitiveType::PT_TRIANGLES);
+
+        for (const DownsampleTarget& target : downsampleTargets)
+        {
+            backendViewId++;
+            setClearFlags(false, false);
+            useTexture(frameTexture.idx);
+            bgfx::setTexture(
+                RendererTextureSlot::TEX_Y,
+                bgfxTexUniformHandles[RendererTextureSlot::TEX_Y],
+                frameTexture,
+                BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_ANISOTROPIC | BGFX_SAMPLER_MAG_ANISOTROPIC
+            );
+            bindVertexBuffer(downsampleVertices, 0, 4);
+            bindIndexBuffer(downsampleIndices, 6);
+            draw(false, true, false, target.frameBuffer, target.width, target.height);
+            frameTexture = bgfx::getTexture(target.frameBuffer);
+        }
+    }
+
     /*  y0    y2
      x0 +-----+ x2
         |    /|
@@ -575,16 +637,11 @@ void Renderer::renderFrame()
         1, 3, 2
     };
 
-    if (internalState.bIsOverallColorGamut == COLORGAMUT_NTSCJ){
-      backendProgram = RendererProgram::POSTPROCESSING_NTSCJ;
-    }
-    else {
-      backendProgram = RendererProgram::POSTPROCESSING;
-    }
+    setPostprocessingBackend();
     backendViewId++;
     {
         useTexture(
-            bgfx::getTexture(backendFrameBuffer).idx
+            frameTexture.idx
         );
 
         setClearFlags(true, true);
@@ -601,7 +658,7 @@ void Renderer::renderFrame()
     }
 };
 
-void Renderer::printMatrix(char* name, float* mat)
+void Renderer::printMatrix(const char* name, float* mat)
 {
     ffnx_trace("%s: 0 [%f, %f, %f, %f]\n", name, mat[0], mat[1], mat[2], mat[3]);
     ffnx_trace("%s: 1 [%f, %f, %f, %f]\n", name, mat[4], mat[5], mat[6], mat[7]);
@@ -758,6 +815,13 @@ void Renderer::prepareFramebuffer()
     if (bgfx::isValid(backendFrameBuffer))
         bgfx::destroy(backendFrameBuffer);
 
+    for (const DownsampleTarget& target : downsampleTargets)
+    {
+        if (bgfx::isValid(target.frameBuffer))
+            bgfx::destroy(target.frameBuffer);
+    }
+    downsampleTargets.clear();
+
     uint64_t fbFlags = BGFX_TEXTURE_RT;
 
     if (enable_antialiasing > 0)
@@ -795,6 +859,36 @@ void Renderer::prepareFramebuffer()
         backendFrameBufferRT.data(),
         true
     );
+
+    uint16_t sourceWidth = framebufferWidth;
+    uint16_t sourceHeight = framebufferHeight;
+    while (viewWidth != 0 && viewHeight != 0 &&
+        (sourceWidth > static_cast<uint32_t>(viewWidth) * 2 || sourceHeight > static_cast<uint32_t>(viewHeight) * 2))
+    {
+        const uint16_t targetWidth = sourceWidth > static_cast<uint32_t>(viewWidth) * 2
+            ? static_cast<uint16_t>(std::max<uint32_t>(static_cast<uint32_t>(viewWidth) * 2, (sourceWidth + 1) / 2))
+            : sourceWidth;
+        const uint16_t targetHeight = sourceHeight > static_cast<uint32_t>(viewHeight) * 2
+            ? static_cast<uint16_t>(std::max<uint32_t>(static_cast<uint32_t>(viewHeight) * 2, (sourceHeight + 1) / 2))
+            : sourceHeight;
+
+        bgfx::TextureHandle texture = bgfx::createTexture2D(
+            targetWidth,
+            targetHeight,
+            false,
+            1,
+            internalState.bIsHDR ? bgfx::TextureFormat::RGB10A2 : bgfx::TextureFormat::RGBA16,
+            BGFX_TEXTURE_RT | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP
+        );
+        DownsampleTarget target;
+        target.frameBuffer = bgfx::createFrameBuffer(1, &texture, true);
+        target.width = targetWidth;
+        target.height = targetHeight;
+        downsampleTargets.push_back(target);
+
+        sourceWidth = targetWidth;
+        sourceHeight = targetHeight;
+    }
 }
 
 void Renderer::bindTextures()
@@ -804,6 +898,11 @@ void Renderer::bindTextures()
         for (uint32_t idx = RendererTextureSlot::TEX_Y; idx < RendererTextureSlot::COUNT; idx++)
         {
             bgfx::TextureHandle handle = internalState.texHandlers[idx];
+
+            if (idx == RendererTextureSlot::TEX_Y && !internalState.bIsTexture && !bgfx::isValid(handle))
+            {
+                handle = fallbackTexture;
+            }
 
             if (bgfx::isValid(handle))
             {
@@ -824,7 +923,7 @@ void Renderer::bindTextures()
                         {
                             if (internalState.bDoMirrorTextureWrap) flags |= BGFX_SAMPLER_U_MIRROR | BGFX_SAMPLER_V_MIRROR | BGFX_SAMPLER_W_CLAMP;
 
-                            if (internalState.bIsMovie) flags |= BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_W_CLAMP;
+                            if (internalState.bIsMovie || internalState.bIsFBTexture) flags |= BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_W_CLAMP;
 
                             // we always need chroma interpolation for YUV420 movies
                             if (internalState.bIsMovie && (idx > RendererTextureSlot::TEX_Y)){
@@ -854,36 +953,6 @@ void Renderer::bindTextures()
     }
 }
 
-void Renderer::AssignGamutLUT()
-{
-  // If we aren't in NTSC-J mode, we won't be using a LUT at all
-  if (internalState.bIsOverallColorGamut != COLORGAMUT_NTSCJ){
-    return;
-  }
-
-  // NTSC-J mode post-processing uses the NTSCJ to sRGB LUT in SDR mode (but uses a matrix in HDR mode)
-  if ((backendProgram == RendererProgram::POSTPROCESSING_NTSCJ) && !internalState.bIsHDR){
-    LoadGamutLUT(INDEX_LUT_NTSCJ_TO_SRGB); // load LUT if not already loaded
-    useTexture(GLUTHandleNTSCJtoSRGB.idx, RendererTextureSlot::TEX_G_LUT);
-  }
-  // Movies may use LUTs in NTSC-J mode
-  else if (backendProgram == RendererProgram::YUVMOVIE_TRUECOLOR){
-    // This is slightly wrong for HDR, since the LUTs invert gamut compression that wouldn't happen in HDR.
-    // The consequence is that some colors near places where the P22 gamut exceeds the sRGB/SMPTE-C gamuts
-    // will appear slightly brighter and/or more saturated in HDR than they would if the round-trip were perfect.
-    // I don't think anyone will mind...
-    if (internalState.bIsMovieColorGamut == COLORGAMUT_SRGB){
-      LoadGamutLUT(INDEX_LUT_INVERSE_NTSCJ_TO_SRGB); // load LUT if not already loaded
-      useTexture(GLUTHandleInverseNTSCJtoSRGB.idx, RendererTextureSlot::TEX_G_LUT);
-    }
-    else if (internalState.bIsMovieColorGamut == COLORGAMUT_SMPTEC){
-      LoadGamutLUT(INDEX_LUT_INVERSE_NTSCJ_TO_SMPTEC); // load LUT if not already loaded
-      useTexture(GLUTHandleInverseNTSCJtoSMPTEC.idx, RendererTextureSlot::TEX_G_LUT);
-    }
-  }
-  return;
-}
-
 // PUBLIC
 
 void Renderer::init()
@@ -891,18 +960,19 @@ void Renderer::init()
     recalcInternals();
 
     // Init renderer
-    bgfxInit.platformData.nwh = gameHwnd;
     bgfxInit.type = getUserChosenRenderer();
-    bgfxInit.resolution.width = window_size_x;
-    bgfxInit.resolution.height = window_size_y;
+    bgfxInit.swapChain.nwh = gameHwnd;
+    bgfxInit.swapChain.width = window_size_x;
+    bgfxInit.swapChain.height = window_size_y;
 
     if (enable_anisotropic)
-        bgfxInit.resolution.reset |= BGFX_RESET_MAXANISOTROPY;
+        bgfxInit.reset |= BGFX_RESET_MAXANISOTROPY;
 
     if (enable_vsync)
-        bgfxInit.resolution.reset |= BGFX_RESET_VSYNC;
+        bgfxInit.reset |= BGFX_RESET_VSYNC;
 
     bgfxInit.debug = renderer_debug;
+    bgfxInit.videoDecode = true;
     bgfxInit.callback = &bgfxCallbacks;
 
     if (!bgfx::init(bgfxInit)) exit(1);
@@ -913,8 +983,8 @@ void Renderer::init()
         internalState.bIsHDR = true;
         ffnx_info("HDR monitor detected. HDR enabled.\n");
 
-        bgfxInit.resolution.reset |= BGFX_RESET_HDR10;
-        bgfxInit.resolution.formatColor = bgfx::TextureFormat::RGB10A2;
+        bgfxInit.reset |= BGFX_RESET_HDR10;
+        bgfxInit.swapChain.formatColor = bgfx::TextureFormat::RGB10A2;
 
         if (hdr_max_nits <= 0) {
             ffnx_info("Attempting to autodetect SDR white level for HDR...\n");
@@ -1021,7 +1091,7 @@ void Renderer::init()
             }
         } // end if  (hdr_max_nits <= 0)
 
-        bgfx::reset(window_size_x, window_size_y, bgfxInit.resolution.reset, bgfxInit.resolution.formatColor);
+        bgfx::reset(bgfxInit.reset, &bgfxInit.swapChain);
     } //end if HDR
 
     internalState.texHandlers.resize(RendererTextureSlot::COUNT, BGFX_INVALID_HANDLE);
@@ -1079,6 +1149,26 @@ void Renderer::init()
 
     backendProgramHandles[RendererProgram::SHADOW_MAP] = bgfx::createProgram(
         getShader(vertexShadowMapPath.c_str()),
+        getShader(fragmentShadowMapPath.c_str()),
+        true
+    );
+
+    // Smooth skinning variants (smooth shaded only): the same fragment shaders, vertex shaders built with
+    // SMOOTH_SKINNING
+    backendProgramHandles[RendererProgram::SKINNED_SMOOTH] = bgfx::createProgram(
+        getShader(vertexSkinnedPath.c_str()),
+        getShader(fragmentPathSmooth.c_str()),
+        true
+    );
+
+    backendProgramHandles[RendererProgram::LIGHTING_SKINNED_SMOOTH] = bgfx::createProgram(
+        getShader(vertexLightingSkinnedPath.c_str()),
+        getShader(fragmentLightingPathSmooth.c_str()),
+        true
+    );
+
+    backendProgramHandles[RendererProgram::SHADOW_MAP_SKINNED] = bgfx::createProgram(
+        getShader(vertexShadowMapSkinnedPath.c_str()),
         getShader(fragmentShadowMapPath.c_str()),
         true
     );
@@ -1170,13 +1260,21 @@ void Renderer::init()
     bgfxUniformHandles[RendererUniform::GAME_LIGHT_DIR3] = createUniform("gameLightDir3", bgfx::UniformType::Vec4);
     bgfxUniformHandles[RendererUniform::GAME_SCRIPTED_LIGHT_COLOR] = createUniform("gameScriptedLightColor", bgfx::UniformType::Vec4);
 
-    bgfxUniformHandles[RendererUniform::BONE_MATRICES] = createUniform("boneMatrices", bgfx::UniformType::Mat4);
-    bgfxUniformHandles[RendererUniform::SKINNING_FLAGS] = createUniform("skinningFlags", bgfx::UniformType::Vec4);
+    bgfxUniformHandles[RendererUniform::BONE_MATRICES] = createUniform("boneMatrices", bgfx::UniformType::Mat4, MAX_BONE_MATRICES);
 
     for(int i = 0; i < RendererTextureSlot::COUNT; ++i)
     {
         bgfxTexUniformHandles[i] = createUniform("tex_" + std::to_string(i), bgfx::UniformType::Sampler);
     }
+
+    const uint8_t fallbackPixel[] = { 255, 255, 255, 255 };
+    fallbackTexture = bgfx::createTexture2D(
+        1, 1, false, 1, bgfx::TextureFormat::RGBA8,
+        BGFX_SAMPLER_POINT | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP,
+        bgfx::copy(fallbackPixel, sizeof(fallbackPixel))
+    );
+    if (bgfx::isValid(fallbackTexture))
+        bgfx::setName(fallbackTexture, "Untextured draw fallback");
 
     // Set defaults
     show();
@@ -1192,7 +1290,9 @@ void Renderer::reset()
 
     if(!ff8 && enable_lighting) prepareShadowMap();
 
-    bgfx::reset(window_size_x, window_size_y, bgfxInit.resolution.reset, bgfxInit.resolution.formatColor);
+    bgfxInit.swapChain.width = window_size_x;
+    bgfxInit.swapChain.height = window_size_y;
+    bgfx::reset(bgfxInit.reset, &bgfxInit.swapChain);
 }
 
 #define FFNX_LOGO_PATH ".logo/logo_nobg.png"
@@ -1267,68 +1367,6 @@ void Renderer::prepareEnvBrdf()
     if (!envBrdfTexture.idx) envBrdfTexture = BGFX_INVALID_HANDLE;
 }
 
-void Renderer::prepareGamutLUTs()
-{
-
-  // flush everything (they should have all initialized to BGFX_INVALID_HANDLE, but let's be careful)
-  if (bgfx::isValid(GLUTHandleNTSCJtoSRGB))
-    bgfx::destroy(GLUTHandleNTSCJtoSRGB);
-  if (bgfx::isValid(GLUTHandleInverseNTSCJtoSRGB))
-    bgfx::destroy(GLUTHandleInverseNTSCJtoSRGB);
-  if (bgfx::isValid(GLUTHandleInverseNTSCJtoSMPTEC))
-    bgfx::destroy(GLUTHandleInverseNTSCJtoSMPTEC);
-
-  // load the NTSC-J to sRGB LUT if we're likely to need it.
-  // (consult the global setting so we don't get tripped up by renderer state changing to accomodate the FFNx logo)
-  if (enable_ntscj_gamut_mode && !internalState.bIsHDR){
-    LoadGamutLUT(INDEX_LUT_NTSCJ_TO_SRGB);
-  }
-  // Any other LUTs we end up needing will be lazy loaded by AssignGamutLUT()
-
-  return;
-}
-
-void Renderer::LoadGamutLUT(GamutLUTIndexType whichLUT)
-{
-
-  static char fullpath[MAX_PATH];
-  uint32_t width = 0;
-  uint32_t height = 0;
-  uint32_t mipCount = 0;
-
-  // Note: It's important that the final parameter to createTextureHandle() -- isSrgb -- is false.
-  // Otherwise the sRGB gamma function will be applied to convert sRGB to linear RGB.
-  // But we don't want that because these LUTs are already in linear RGB.
-
-  switch (whichLUT){
-    case INDEX_LUT_NTSCJ_TO_SRGB:
-      if (!bgfx::isValid(GLUTHandleNTSCJtoSRGB)){
-        sprintf(fullpath, "%s/shaders/glut_ntscj_to_srgb.png", basedir);
-        GLUTHandleNTSCJtoSRGB = createTextureHandle(fullpath, &width, &height, &mipCount, false);
-        if (!GLUTHandleNTSCJtoSRGB.idx) GLUTHandleNTSCJtoSRGB = BGFX_INVALID_HANDLE;
-      }
-      break;
-    case INDEX_LUT_INVERSE_NTSCJ_TO_SRGB:
-      if (!bgfx::isValid(GLUTHandleInverseNTSCJtoSRGB)){
-        sprintf(fullpath, "%s/shaders/glut_inverse_ntscj_to_srgb.png", basedir);
-        GLUTHandleInverseNTSCJtoSRGB = createTextureHandle(fullpath, &width, &height, &mipCount, false);
-        if (!GLUTHandleInverseNTSCJtoSRGB.idx) GLUTHandleInverseNTSCJtoSRGB = BGFX_INVALID_HANDLE;
-      }
-      break;
-    case INDEX_LUT_INVERSE_NTSCJ_TO_SMPTEC:
-      if (!bgfx::isValid(GLUTHandleInverseNTSCJtoSMPTEC)){
-        sprintf(fullpath, "%s/shaders/glut_inverse_ntscj_to_smptec.png", basedir);
-        GLUTHandleInverseNTSCJtoSMPTEC = createTextureHandle(fullpath, &width, &height, &mipCount, false);
-        if (!GLUTHandleInverseNTSCJtoSMPTEC.idx) GLUTHandleInverseNTSCJtoSMPTEC = BGFX_INVALID_HANDLE;
-      }
-      break;
-    default:
-      ffnx_error("LoadGamutLUT: called with invalid index: %i\n", whichLUT);
-      break;
-  }
-  return;
-}
-
 void Renderer::shutdown()
 {
     destroyAll();
@@ -1380,13 +1418,14 @@ void Renderer::drawToShadowMap(bool uniformsAlreadyAttached, bool texturesAlread
     {
         switch (internalState.cullMode)
         {
-        case RendererCullMode::FRONT: internalState.state |= BGFX_STATE_CULL_CW;
-        case RendererCullMode::BACK: internalState.state |= BGFX_STATE_CULL_CCW;
+        case RendererCullMode::FRONT: internalState.state |= BGFX_STATE_CULL_CW; break;
+        case RendererCullMode::BACK: internalState.state |= BGFX_STATE_CULL_CCW; break;
         }
     }
     bgfx::setState(internalState.state);
 
-    bgfx::submit(0, backendProgramHandles[RendererProgram::SHADOW_MAP], 0, BGFX_DISCARD_NONE);
+    auto shadowMapProgram = internalState.bIsSmoothSkinning ? RendererProgram::SHADOW_MAP_SKINNED : RendererProgram::SHADOW_MAP;
+    bgfx::submit(0, backendProgramHandles[shadowMapProgram], 0, BGFX_DISCARD_NONE);
 };
 
 void Renderer::drawWithLighting(bool uniformsAlreadyAttached, bool texturesAlreadyAttached, bool keepBindings)
@@ -1434,12 +1473,18 @@ void Renderer::drawFieldShadow()
     draw();
 }
 
-void Renderer::draw(bool uniformsAlreadyAttached, bool texturesAlreadyAttached, bool keepBindings)
+void Renderer::draw(bool uniformsAlreadyAttached, bool texturesAlreadyAttached, bool keepBindings, bgfx::FrameBufferHandle targetFrameBuffer, uint16_t targetWidth, uint16_t targetHeight)
 {
     if (trace_all || trace_renderer) ffnx_trace("Renderer::%s with backendProgram %d\n", __func__, backendProgram);
 
     // Set current view rect
-    if ((backendProgram == RendererProgram::POSTPROCESSING) || (backendProgram == RendererProgram::POSTPROCESSING_NTSCJ))
+    if (bgfx::isValid(targetFrameBuffer))
+    {
+        bgfx::setViewFrameBuffer(backendViewId, targetFrameBuffer);
+        bgfx::setViewRect(backendViewId, 0, 0, targetWidth, targetHeight);
+        bgfx::setViewTransform(backendViewId, NULL, internalState.postprocessingProjMatrix);
+    }
+    else if ((backendProgram == RendererProgram::POSTPROCESSING) || (backendProgram == RendererProgram::POSTPROCESSING_NTSCJ))
     {
         bgfx::setViewRect(backendViewId, 0, 0, window_size_x, window_size_y);
 
@@ -1481,8 +1526,8 @@ void Renderer::draw(bool uniformsAlreadyAttached, bool texturesAlreadyAttached, 
 
         switch (internalState.cullMode)
         {
-        case RendererCullMode::FRONT: internalState.state |= BGFX_STATE_CULL_CW;
-        case RendererCullMode::BACK: internalState.state |= BGFX_STATE_CULL_CCW;
+        case RendererCullMode::FRONT: internalState.state |= BGFX_STATE_CULL_CW; break;
+        case RendererCullMode::BACK: internalState.state |= BGFX_STATE_CULL_CCW; break;
         }
 
         switch (internalState.blendMode)
@@ -1527,7 +1572,8 @@ void Renderer::draw(bool uniformsAlreadyAttached, bool texturesAlreadyAttached, 
     bgfx::setState(internalState.state);
 
     auto flags = keepBindings ? BGFX_DISCARD_STATE : BGFX_DISCARD_ALL;
-    bgfx::submit(backendViewId, backendProgramHandles[backendProgram], 0, flags);
+    auto program = internalState.bIsSmoothSkinning ? getSkinnedProgram(backendProgram) : backendProgram;
+    bgfx::submit(backendViewId, backendProgramHandles[program], 0, flags);
 
     internalState.bHasDrawBeenDone = true;
     internalState.bTexturesBound = false;
@@ -1622,7 +1668,16 @@ void Renderer::show()
     // Reset internal state
     resetState();
 
-    if (internalState.bHasDrawBeenDone)
+    const bool presentFrame = internalState.bHasDrawBeenDone
+        || internalState.bHasColorClearBeenDone;
+
+    if (presentFrame && !internalState.bHasDrawBeenDone)
+    {
+        bgfx::setViewFrameBuffer(backendViewId, backendFrameBuffer);
+        bgfx::setViewRect(backendViewId, 0, 0, framebufferWidth, framebufferHeight);
+    }
+
+    if (presentFrame)
     {
         renderFrame();
 
@@ -1655,7 +1710,12 @@ void Renderer::show()
         if (--ffnx_cap_left == 0) ffnx_info("capture: burst finished, %d frames in %s\n", ffnx_cap_seq, ffnx_cap_dir);
     }
 
-    bgfx::frame(doCaptureFrame ? BGFX_FRAME_DEBUG_CAPTURE : BGFX_FRAME_NONE);
+    uint8_t frameFlags = doCaptureFrame ? BGFX_FRAME_DEBUG_CAPTURE : BGFX_FRAME_NONE;
+    if (!presentFrame) frameFlags |= BGFX_FRAME_FLUSH;
+    bgfx::frame(frameFlags);
+
+    internalState.bHasDrawBeenDone = false;
+    internalState.bHasColorClearBeenDone = false;
 
     if (trace_all || trace_renderer) ffnx_trace("Renderer::%s\n", __func__);
 
@@ -1788,7 +1848,7 @@ void Renderer::setScissor(uint16_t x, uint16_t y, uint16_t width, uint16_t heigh
         case MODE_FIELD:
             {
                 // Keep the default scissor for widescreen disabled movies and fields
-                bool isKeepDefaultScissor = false;
+                bool isKeepDefaultScissor = ff8;
                 if (!ff8)
                 {
                      bool is_movie_playing = *ff7_externals.word_CC1638 && !ff7_externals.modules_global_object->BGMOVIE_flag;
@@ -1821,7 +1881,7 @@ void Renderer::setScissor(uint16_t x, uint16_t y, uint16_t width, uint16_t heigh
             {
                 if(x == 0 && width == game_width)
                     scissorWidth = getInternalCoordX(wide_viewport_width);
-                else if(internalState.bIsTLVertex)
+                else if(ff8 || internalState.bIsTLVertex)
                     scissorOffsetX = getInternalCoordX(x + abs(wide_viewport_x));
 
                 if (ff8)
@@ -1872,7 +1932,7 @@ void Renderer::setClearFlags(bool doClearColor, bool doClearDepth)
     bgfx::setViewClear(backendViewId, clearFlags, internalState.clearColorValue, 1.0f);
     bgfx::touch(backendViewId);
 
-    internalState.bHasDrawBeenDone = false;
+    internalState.bHasColorClearBeenDone |= doClearColor;
 }
 
 void Renderer::setBackgroundColor(float r, float g, float b, float a)
@@ -1880,7 +1940,7 @@ void Renderer::setBackgroundColor(float r, float g, float b, float a)
     internalState.clearColorValue = createBGRA(r * 255, g * 255, b * 255, a * 255);
 }
 
-uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int stride, RendererTextureType type, bool isSrgb, bool copyData)
+uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int stride, RendererTextureType type, bool isSrgb, bool copyData, const char* debugName)
 {
     bgfx::TextureHandle ret = FFNX_RENDERER_INVALID_HANDLE;
 
@@ -1893,27 +1953,43 @@ uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int
         texFormat = bgfx::TextureFormat::BGRA8;
         imgFormat = bimg::TextureFormat::BGRA8;
     }
+    else if (type == RendererTextureType::YUV8)
+    {
+        texFormat = bgfx::TextureFormat::R8;
+        imgFormat = bimg::TextureFormat::R8;
+    }
+    else if (type == RendererTextureType::UV8)
+    {
+        texFormat = bgfx::TextureFormat::RG8;
+        imgFormat = bimg::TextureFormat::RG8;
+    }
+    else if (type == RendererTextureType::UV16)
+    {
+        texFormat = bgfx::TextureFormat::RG16;
+        imgFormat = bimg::TextureFormat::RG16;
+    }
 
     bimg::TextureInfo texInfo;
     bimg::imageGetSize(&texInfo, width, height, 0, false, false, 1, imgFormat);
+	uint32_t uploadSize = stride > 0 ? uint32_t(stride * height) : texInfo.storageSize;
 
     // If the texture we are going to create does not fit in memory, return an empty one.
     // Will prevent the game from crashing, while allowing the player to not loose its progress.
-    if (doesItFitInMemory(texInfo.storageSize) && (data != NULL))
+    if (doesItFitInMemory(uploadSize) && (data != NULL))
     {
         const bgfx::Memory* mem;
 
         if (copyData)
         {
-            mem = bgfx::alloc(texInfo.storageSize);
+            mem = bgfx::alloc(uploadSize);
             // Protect from crashes
             if (mem != NULL) {
-                bx::memCopy(mem->data, data, texInfo.storageSize);
+                bx::memCopy(mem->data, data, uploadSize);
             }
         }
         else
         {
-            mem = bgfx::makeRef(data, texInfo.storageSize, RendererReleaseData, (void *)data);
+            mem = bgfx::makeRef(data, uploadSize, RendererReleaseData, (void *)data);
         }
 
         uint64_t flags = BGFX_SAMPLER_NONE;
@@ -1943,6 +2019,9 @@ uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int
                 mem,
                 stride
             );
+
+        if (bgfx::isValid(ret) && debugName != nullptr && debugName[0] != '\0')
+            bgfx::setName(ret, debugName);
 
         if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: %u => %ux%u from data with stride %u\n", __func__, ret.idx, width, height, stride);
     }
@@ -2017,6 +2096,9 @@ bgfx::TextureHandle Renderer::createTextureHandle(char* filename, uint32_t* widt
             *height = img->m_height;
             *mipCount = img->m_numMips;
 
+            if (bgfx::isValid(ret) && filename != nullptr)
+                bgfx::setName(ret, filename);
+
             if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: %u => %ux%u from filename %s\n", __func__, ret.idx, width, height, filename);
         }
     }
@@ -2068,6 +2150,9 @@ bgfx::TextureHandle Renderer::createTextureHandle(cmrc::file* file, char* filena
             *height = img->m_height;
             *mipCount = img->m_numMips;
 
+            if (bgfx::isValid(ret) && filename != nullptr)
+                bgfx::setName(ret, filename);
+
             if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: %u => %ux%u from filename %s\n", __func__, ret.idx, width, height, filename);
         }
     }
@@ -2103,6 +2188,9 @@ uint32_t Renderer::createTextureLibPng(char* filename, uint32_t* width, uint32_t
 
     *width = img->m_width;
     *height = img->m_height;
+
+    if (bgfx::isValid(ret) && filename != nullptr)
+        bgfx::setName(ret, filename);
 
     if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: %u => %ux%u from filename %s\n", __func__, ret.idx, *width, *height, filename);
 
@@ -2170,7 +2258,23 @@ uint32_t Renderer::createBlitTexture(uint32_t x, uint32_t y, uint32_t width, uin
     uint16_t newWidth = getInternalCoordX(width);
     uint16_t newHeight = getInternalCoordY(height);
 
-    bgfx::TextureHandle ret = bgfx::createTexture2D(newWidth, newHeight, false, 1, internalState.bIsHDR ? bgfx::TextureFormat::RGB10A2 : bgfx::TextureFormat::RGBA16, BGFX_TEXTURE_BLIT_DST);
+    const auto format = internalState.bIsHDR ? bgfx::TextureFormat::RGB10A2 : bgfx::TextureFormat::RGBA16;
+    bgfx::TextureInfo info;
+    bgfx::calcTextureSize(info, newWidth, newHeight, 1, false, false, 1, format);
+    if (!doesItFitInMemory(info.storageSize))
+    {
+        ffnx_error("Cannot initialize framebuffer texture %ux%u: insufficient memory for %u bytes\n", newWidth, newHeight, info.storageSize);
+        return bgfx::kInvalidHandle;
+    }
+    const bgfx::Memory *pixels = bgfx::alloc(info.storageSize);
+    if (pixels == nullptr)
+    {
+        ffnx_error("Cannot allocate %u bytes for framebuffer texture %ux%u\n", info.storageSize, newWidth, newHeight);
+        return bgfx::kInvalidHandle;
+    }
+    // Native captures pad areas outside the screen with black.
+    memset(pixels->data, 0, pixels->size);
+    bgfx::TextureHandle ret = bgfx::createTexture2D(newWidth, newHeight, false, 1, format, BGFX_TEXTURE_BLIT_DST, pixels);
 
     if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: %u => XY(%u,%u) WH(%u,%u)\n", __func__, ret.idx, newX, newY, newWidth, newHeight);
 
@@ -2210,7 +2314,12 @@ void Renderer::blitTexture(uint16_t dest, uint32_t x, uint32_t y, uint32_t width
     backendViewId++;
 
     bgfx::TextureHandle texHandle = { dest };
-    bgfx::blit(backendViewId, texHandle, 0, dstY, bgfx::getTexture(backendFrameBuffer, 0), newX, newY, newWidth, newHeight);
+    if (newX < framebufferWidth && newY < framebufferHeight && dstY < newHeight)
+    {
+        const auto copyWidth = static_cast<uint16_t>(std::min<uint32_t>(newWidth, framebufferWidth - newX));
+        const auto copyHeight = static_cast<uint16_t>(std::min<uint32_t>(newHeight - dstY, framebufferHeight - newY));
+        bgfx::blit(backendViewId, {.handle = texHandle, .x = 0, .y = dstY}, {.handle = bgfx::getTexture(backendFrameBuffer, 0), .x = newX, .y = newY, .width = copyWidth, .height = copyHeight} );
+    }
     bgfx::touch(backendViewId);
     setClearFlags(false, false);
 
@@ -2218,7 +2327,7 @@ void Renderer::blitTexture(uint16_t dest, uint32_t x, uint32_t y, uint32_t width
     setClearFlags(false, false);
 }
 
-void Renderer::zoomBackendFrameBuffer(int x, int y, int width, int height)
+void Renderer::zoomBackendFrameBuffer(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
 {
     if(!internalState.bHasDrawBeenDone) return;
 
@@ -2227,7 +2336,7 @@ void Renderer::zoomBackendFrameBuffer(int x, int y, int width, int height)
     backendViewId++;
     bgfx::setViewClear(backendViewId, BGFX_CLEAR_NONE, internalState.clearColorValue, 1.0f);
     bgfx::touch(backendViewId);
-    bgfx::blit(backendViewId, textureHandle, 0, 0, bgfx::getTexture(backendFrameBuffer, 0), x, y, width, height);
+    bgfx::blit(backendViewId, {.handle = textureHandle, .x = 0, .y = 0}, {.handle = bgfx::getTexture(backendFrameBuffer, 0), .x = x, .y = y, .width = width, .height = height});
     backendViewId++;
     bgfx::setViewClear(backendViewId, BGFX_CLEAR_NONE, internalState.clearColorValue, 1.0f);
     bgfx::touch(backendViewId);
@@ -2324,9 +2433,10 @@ void Renderer::isTexture(bool flag)
     internalState.bIsTexture = flag;
 };
 
-void Renderer::isFBTexture(bool flag)
+void Renderer::isFBTexture(bool flag, bool colorKey)
 {
     internalState.bIsFBTexture = flag;
+    internalState.bFBTextureColorKey = flag && colorKey;
 };
 
 void Renderer::isFullRange(bool flag)
@@ -2357,6 +2467,18 @@ void Renderer::isExternalTexture(bool flag)
 bool Renderer::isHDR()
 {
     return internalState.bIsHDR;
+}
+
+void Renderer::setMovieYUVFormat(bool eightBit, bool interleaved, bool p010){
+    internalState.movieYUV8 = eightBit;
+    internalState.movieUVInterleaved = interleaved;
+    internalState.movieP010 = p010;
+}
+
+void Renderer::setMovieRGB(bool flag, float scaleX, float scaleY){
+    internalState.bIsMovieRGB = flag;
+    internalState.movieRGBScaleX = scaleX;
+    internalState.movieRGBScaleY = scaleY;
 }
 
 void Renderer::setColorMatrix(ColorMatrixType cmtype){
@@ -2404,17 +2526,6 @@ void Renderer::setInterpolationQualifier(RendererInterpolationQualifier qualifie
         backendProgram = RendererProgram::SMOOTH;
         if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: SMOOTH\n", __func__);
         break;
-    }
-}
-
-void Renderer::setYUVMovieBackend(){
-    if (internalState.bIsOverallColorGamut == COLORGAMUT_NTSCJ){
-        backendProgram = RendererProgram::YUVMOVIE_TRUECOLOR;
-        if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: YUVMOVIE_TRUECOLOR\n", __func__);
-    }
-    else {
-        backendProgram = RendererProgram::YUVMOVIE;
-        if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: YUVMOVIE\n", __func__);
     }
 }
 
@@ -2601,11 +2712,14 @@ void Renderer::isSmoothSkinning(bool flag)
     internalState.bIsSmoothSkinning = flag;
 }
 
-void Renderer::setSmoothSkinningBoneMatrices(std::array<struct matrix, MAX_BONE_MATRICES>* matrix_palette)
+void Renderer::setSmoothSkinningBoneMatrices(std::array<struct matrix, MAX_BONE_MATRICES>* matrix_palette, size_t joint_count)
 {
     if(matrix_palette != nullptr)
     {
-        for(int i = 0; i < MAX_BONE_MATRICES; ++i)
+        // Only the joints the model actually has are copied and uploaded
+        internalState.bone_matrix_count = static_cast<uint16_t>(std::clamp<size_t>(joint_count, 1, MAX_BONE_MATRICES));
+
+        for(int i = 0; i < internalState.bone_matrix_count; ++i)
         {
             ::memcpy(&internalState.bone_matrices[16*i], &(*matrix_palette)[i].m[0][0], sizeof((*matrix_palette)[i].m));
         }
@@ -2614,7 +2728,7 @@ void Renderer::setSmoothSkinningBoneMatrices(std::array<struct matrix, MAX_BONE_
 
 void Renderer::setSmoothSkinningUniforms()
 {
-    setUniform(RendererUniform::BONE_MATRICES, internalState.bone_matrices, MAX_BONE_MATRICES);
+    setUniform(RendererUniform::BONE_MATRICES, internalState.bone_matrices, internalState.bone_matrix_count);
 }
 
 void Renderer::setSphericalWorldRate(float value)
@@ -2736,4 +2850,3 @@ void Renderer::setGameLightData(light_data* lightdata)
         internalState.gameScriptedLightColor[2] = 1.0;
     }
 }
-

@@ -23,6 +23,11 @@
 #pragma once
 
 #include "common.h"
+
+#ifdef small
+#undef small
+#endif
+
 #include "overlay.h"
 
 #include <cmrc/cmrc.hpp>
@@ -37,12 +42,13 @@
 #include <bimg/bimg.h>
 #include <bimg/decode.h>
 #include <bimg/encode.h>
-#include <bgfx/platform.h>
 #include <bgfx/bgfx.h>
 
 #define FFNX_RENDERER_INVALID_HANDLE { 0 }
 
-#define MAX_BONE_MATRICES 128
+// bgfx stores a uniform array's element count in 8 bits, so 255 matrices is the largest array it supports.
+// Keep in sync with misc/FFNx.common.sh
+#define MAX_BONE_MATRICES 255
 
 enum RendererInterpolationQualifier {
     FLAT = 0,
@@ -91,7 +97,10 @@ enum RendererPrimitiveType
 enum RendererTextureType
 {
     BGRA = 0,
-    YUV
+    YUV,
+    YUV8,
+    UV8,
+    UV16
 };
 
 enum RendererUniform
@@ -139,7 +148,6 @@ enum RendererUniform
     INV_VIEW_OFFSET_MATRIX,
 
     BONE_MATRICES,
-    SKINNING_FLAGS,
 
     COUNT,
 };
@@ -262,6 +270,9 @@ private:
         BLIT,
         YUVMOVIE,
         YUVMOVIE_TRUECOLOR,
+        SKINNED_SMOOTH,
+        LIGHTING_SKINNED_SMOOTH,
+        SHADOW_MAP_SKINNED,
         COUNT
     };
 
@@ -271,6 +282,7 @@ private:
         bool bTexturesBound = false;
 
         bool bHasDrawBeenDone = false;
+        bool bHasColorClearBeenDone = false;
 
         bool bDoAlphaTest = false;
         float alphaRef = 0.0f;
@@ -282,12 +294,19 @@ private:
 
         bool bIsTLVertex = false;
         bool bIsFBTexture = false;
+        bool bFBTextureColorKey = false;
         bool bIsTexture = false;
         bool bDoTextureFiltering = false;
         bool bDoMirrorTextureWrap = false;
         bool bModulateAlpha = false;
         bool bIsMovie = false;
         bool bIsMovieFullRange = false;
+        bool bIsMovieRGB = false;
+        float movieRGBScaleX = 1.0f;
+        float movieRGBScaleY = 1.0f;
+        bool movieYUV8 = false;
+        bool movieUVInterleaved = false;
+        bool movieP010 = false;
         bool bIsExternalTexture = false;
         bool bIsHDR = false;
         bool bIsFogEnabled = false;
@@ -308,13 +327,13 @@ private:
         std::vector<float> FSTexFlags;
         std::vector<float> WMFlags;
         std::vector<float> FSMovieFlags;
-        std::vector<float> SmoothSkinningFlags;
         std::vector<float> FSMoreMovieFlags;
 
         std::array<float, 4> TimeColor;
         std::array<float, 4> TimeData;
 
         float bone_matrices[16*MAX_BONE_MATRICES];
+        uint16_t bone_matrix_count = 1;
 
         std::array<float, 4> gameLightingFlags;
         float gameGlobalLightColor[4] = { 0.0, 0.0, 0.0, 0.0 };
@@ -346,6 +365,13 @@ private:
         bool isViewMatrixSet = false;
     };
 
+    struct DownsampleTarget
+    {
+        bgfx::FrameBufferHandle frameBuffer = BGFX_INVALID_HANDLE;
+        uint16_t width = 0;
+        uint16_t height = 0;
+    };
+
     std::string vertexPathFlat = "shaders/FFNx";
     std::string fragmentPathFlat = "shaders/FFNx";
     std::string vertexPathSmooth = "shaders/FFNx";
@@ -362,6 +388,9 @@ private:
     std::string fragmentLightingPathSmooth = "shaders/FFNx.lighting";
     std::string vertexShadowMapPath = "shaders/FFNx.shadowmap";
     std::string fragmentShadowMapPath = "shaders/FFNx.shadowmap";
+    std::string vertexSkinnedPath = "shaders/FFNx.skinned";
+    std::string vertexLightingSkinnedPath = "shaders/FFNx.lighting.skinned";
+    std::string vertexShadowMapSkinnedPath = "shaders/FFNx.shadowmap.skinned";
     std::string vertexFieldShadowPath = "shaders/FFNx.field.shadow";
     std::string fragmentFieldShadowPath = "shaders/FFNx.field.shadow";
     std::string vertexBlitPath = "shaders/FFNx.blit";
@@ -379,6 +408,7 @@ private:
 
     std::vector<bgfx::TextureHandle> backendFrameBufferRT = { BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE };
     bgfx::FrameBufferHandle backendFrameBuffer = BGFX_INVALID_HANDLE;
+    std::vector<DownsampleTarget> downsampleTargets;
 
     bgfx::TextureHandle shadowMapTexture = BGFX_INVALID_HANDLE;
     bgfx::FrameBufferHandle shadowMapFrameBuffer = BGFX_INVALID_HANDLE;
@@ -394,6 +424,8 @@ private:
     bgfx::DynamicIndexBufferHandle indexBufferHandle = BGFX_INVALID_HANDLE;
 
     bgfx::TextureHandle FFNxLogoHandle = BGFX_INVALID_HANDLE;
+
+    bgfx::TextureHandle fallbackTexture = BGFX_INVALID_HANDLE;
 
     bgfx::TextureHandle GLUTHandleNTSCJtoSRGB = BGFX_INVALID_HANDLE;
     bgfx::TextureHandle GLUTHandleSMPTECtoSRGB = BGFX_INVALID_HANDLE;
@@ -429,8 +461,9 @@ private:
     bgfx::RendererType::Enum getUserChosenRenderer();
     void updateRendererShaderPaths();
     bgfx::ShaderHandle getShader(const char* filePath);
+    RendererProgram getSkinnedProgram(RendererProgram program);
 
-    bgfx::UniformHandle createUniform(std::string uniformName, bgfx::UniformType::Enum uniformType);
+    bgfx::UniformHandle createUniform(std::string uniformName, bgfx::UniformType::Enum uniformType, uint16_t arraySize = 1);
 
     void destroyUniforms();
     void destroyAll();
@@ -439,13 +472,14 @@ private:
 
     void renderFrame();
 
-    void printMatrix(char* name, float* mat);
+    void printMatrix(const char* name, float* mat);
 
     void recalcInternals();
     void calcBackendProjMatrix();
     void prepareFramebuffer();
 
     void AssignGamutLUT();
+    void setPostprocessingBackend();
 
     bx::DefaultAllocator defaultAllocator;
     bx::FileWriter defaultWriter;
@@ -475,7 +509,7 @@ public:
     void drawToShadowMap(bool uniformsAlreadyAttached = false, bool texturesAlreadyAttached = false);
     void drawWithLighting(bool uniformsAlreadyAttached = false, bool texturesAlreadyAttached = false, bool keepBindings = false);
     void drawFieldShadow();
-    void draw(bool uniformsAlreadyAttached = false, bool texturesAlreadyAttached = false, bool keepBindings = false);
+    void draw(bool uniformsAlreadyAttached = false, bool texturesAlreadyAttached = false, bool keepBindings = false, bgfx::FrameBufferHandle targetFrameBuffer = BGFX_INVALID_HANDLE, uint16_t targetWidth = 0, uint16_t targetHeight = 0);
     void discardAllBindings();
     void drawOverlay();
     void drawFFNxLogo(float fade);
@@ -502,7 +536,7 @@ public:
     void setClearFlags(bool doClearColor = false, bool doClearDepth = false);
     void setBackgroundColor(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 0.0f);
 
-    uint32_t createTexture(uint8_t* data, size_t width, size_t height, int stride = 0, RendererTextureType type = RendererTextureType::BGRA, bool isSrgb = true, bool copyData = true);
+    uint32_t createTexture(uint8_t* data, size_t width, size_t height, int stride = 0, RendererTextureType type = RendererTextureType::BGRA, bool isSrgb = true, bool copyData = true, const char* debugName = nullptr);
     uint32_t createTexture(char* filename, uint32_t* width, uint32_t* height, uint32_t* mipCount, bool isSrgb = true);
     bimg::ImageContainer* createImageContainer(const char* filename, bimg::TextureFormat::Enum targetFormat = bimg::TextureFormat::Enum::Count);
     bimg::ImageContainer* createImageContainer(cmrc::file* file, bimg::TextureFormat::Enum targetFormat = bimg::TextureFormat::Enum::Count);
@@ -514,14 +548,14 @@ public:
     void useTexture(uint16_t texId, uint32_t slot = 0);
     uint32_t createBlitTexture(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
     void blitTexture(uint16_t dest, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-    void zoomBackendFrameBuffer(int x, int y, int width, int height);
+    void zoomBackendFrameBuffer(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
     void clearDepthBuffer();
 
     void isMovie(bool flag = false);
     void isTLVertex(bool flag = false);
     void setBlendMode(RendererBlendMode mode = RendererBlendMode::BLEND_NONE);
     void isTexture(bool flag = false);
-    void isFBTexture(bool flag = false);
+    void isFBTexture(bool flag = false, bool colorKey = false);
     void isFullRange(bool flag = false);
     void doModulateAlpha(bool flag = false);
     void doTextureFiltering(bool flag = false);
@@ -529,6 +563,8 @@ public:
     void isExternalTexture(bool flag = false);
     bool isHDR();
     void setColorMatrix(ColorMatrixType cmtype = COLORMATRIX_BT601);
+    void setMovieRGB(bool flag = false, float scaleX = 1.0f, float scaleY = 1.0f);
+    void setMovieYUVFormat(bool eightBit = false, bool interleaved = false, bool p010 = false);
     void setColorGamut(ColorGamutType cgtype = COLORGAMUT_SRGB);
     void setOverallColorGamut(ColorGamutType cgtype = COLORGAMUT_SRGB);
     void setGammaType(InverseGammaFunctionType gtype = GAMMAFUNCTION_SRGB);
@@ -579,7 +615,7 @@ public:
 
     // Smooth skinning
     void isSmoothSkinning(bool flag = false);
-    void setSmoothSkinningBoneMatrices(std::array<struct matrix, MAX_BONE_MATRICES>* matrix_palette);
+    void setSmoothSkinningBoneMatrices(std::array<struct matrix, MAX_BONE_MATRICES>* matrix_palette, size_t joint_count);
     void setSmoothSkinningUniforms();
     
     // Worldmap
