@@ -329,6 +329,7 @@ void gl_draw_indexed_primitive(uint32_t primitivetype, uint32_t vertextype, stru
 	}
 
 	bool isLightingEnabledTexture = true;
+	bool framebufferColorKey = false;
 
 	// If we're attaching a texture, and it is an external one, then use a better blending that considers the alpha channel
 	if (current_state.texture_set)
@@ -336,6 +337,12 @@ void gl_draw_indexed_primitive(uint32_t primitivetype, uint32_t vertextype, stru
 		VOBJ(texture_set, texture_set, current_state.texture_set);
 
 		if (VREF(texture_set, ogl.external)) newRenderer.isExternalTexture(true);
+
+		if (current_state.fb_texture)
+		{
+			VOBJ(tex_header, tex_header, VREF(texture_set, tex_header));
+			framebufferColorKey = VREF(tex_header, color_key) != 0;
+		}
 
 		if(enable_lighting && VREF(texture_set, ogl.gl_set->disable_lighting))
 		{
@@ -354,7 +361,7 @@ void gl_draw_indexed_primitive(uint32_t primitivetype, uint32_t vertextype, stru
 	}
 
 	newRenderer.isTLVertex(vertextype == TLVERTEX);
-	newRenderer.isFBTexture(current_state.fb_texture);
+	newRenderer.isFBTexture(current_state.fb_texture, framebufferColorKey);
 
 	newRenderer.doModulateAlpha(true);
 
@@ -417,31 +424,40 @@ uint32_t gl_draw_text(uint32_t x, uint32_t y, uint32_t color, uint32_t alpha, ch
 	return true;
 }
 
+// The current field's model scale (from its model loader data), or 0 when no field is loaded
+float gl_get_field_model_scale()
+{
+	byte *level_data = *ff7_externals.field_level_data_pointer;
+	if (!level_data) return 0.0f;
+
+	uint32_t model_loader_offset = *(uint32_t *)(level_data + 0x0E);
+	auto pScale = (short*)(level_data + model_loader_offset + 0x8);
+	return static_cast<float>((*pScale)) / 128.0f;
+}
+
 void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightdata)
-{	
+{
 	if(gl_defer_external_mesh(externalMesh, lightdata)) return;
 
-	byte *level_data = *ff7_externals.field_level_data_pointer;
-	if (!level_data)
+	auto scale = gl_get_field_model_scale();
+	if (scale == 0.0f)
 	{
 		return;
 	}
 
-	uint32_t model_loader_offset = *(uint32_t *)(level_data + 0x0E);
-	auto pScale = (short*)(level_data + model_loader_offset + 0x8);
-	auto scale = static_cast<float>((*pScale)) / 128.0f;
-
 	std::array<struct matrix, MAX_BONE_MATRICES> matrix_palette;
+	size_t jointCount = 0;
     if (externalMesh->skins.size() > 0)
 	{
 		auto skin = externalMesh->skins[0];
 		auto current_frame =  skin.current_frame;
-	
+
+		// Joints past the bone limit are ignored instead of overflowing matrix_palette
+		jointCount = std::min(skin.joints.size(), static_cast<size_t>(MAX_BONE_MATRICES));
+
 		if(externalMesh->animations.contains(skin.current_anim))
 		{
-			auto anim = externalMesh->animations[skin.current_anim];		
-
-			auto jointCount = skin.joints.size();
+			auto anim = externalMesh->animations[skin.current_anim];
 
 			for(int i = 0; i < jointCount; ++i)
 			{
@@ -486,7 +502,6 @@ void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightd
 		}
 		else
 		{
-			auto jointCount = skin.joints.size();
 			for(int i = 0; i < jointCount; ++i)
 			{			
 				float parentMatrix[16];
@@ -512,7 +527,7 @@ void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightd
 
 	if (externalMesh->skins.size())
 	{
-		newRenderer.setSmoothSkinningBoneMatrices(&matrix_palette);
+		newRenderer.setSmoothSkinningBoneMatrices(&matrix_palette, jointCount);
 
 		newRenderer.isSmoothSkinning(true);
 		newRenderer.setSmoothSkinningUniforms();
@@ -560,6 +575,8 @@ void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightd
 	{
 		auto& shape = externalMesh->shapes[i];
 
+		// drawWithLighting() turns the program into its lighting variant, so every part starts from SMOOTH again
+		newRenderer.setInterpolationQualifier(SMOOTH);
 		newRenderer.setCullMode(shape.isDoubleSided ? RendererCullMode::DISABLED : RendererCullMode::FRONT);
 
 		externalMesh->bindField3dVertexBuffer(vertexOffset, shape.vertices.size());
@@ -599,11 +616,14 @@ void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightd
 			newRenderer.drawToShadowMap(true, true);
 			newRenderer.drawWithLighting(true, true, true);
 		}
-		newRenderer.draw(true, true, true);
+		else newRenderer.draw(true, true, true);
 
 		vertexOffset += shape.vertices.size();
 		indexOffset += shape.indices.size();
 	}
-	
+
 	newRenderer.discardAllBindings();
+
+	// Don't let the skinned programs leak into whatever is drawn next
+	newRenderer.isSmoothSkinning(false);
 }

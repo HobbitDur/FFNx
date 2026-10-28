@@ -71,46 +71,65 @@ void normalize_path(char *name)
 	}
 }
 
-void save_texture(const void *data, uint32_t dataSize, uint32_t width, uint32_t height, uint32_t palette_index, const char *name, bool is_animated)
+static std::string make_texture_filename(const void *data, uint32_t dataSize, uint32_t palette_index, const char *name, bool is_animated, const char *outputDirectory)
 {
-	char filename[sizeof(basedir) + 1024];
-	uint64_t hash;
-
-	if (!save_textures && !save_textures_legacy) {
-		ffnx_warning("Save texture skipped because the option \"save_textures\" is disabled (name=%s).\n", name);
-
-		return;
-	}
+	char filename[sizeof(basedir) + 1024] = {};
 
 	if (is_animated)
 	{
-		char xxhash_filename[sizeof(basedir) + 1024];
-		hash = XXH3_64bits(data, dataSize);
-		_snprintf(xxhash_filename, sizeof(xxhash_filename), "%s/%s/%s_%02i_%llx.png", basedir, mod_path.c_str(), name, palette_index, hash);
+		const uint64_t hash = XXH3_64bits(data, dataSize);
+		_snprintf(filename, sizeof(filename), "%s/%s/%s_%02i_%llx.png", basedir, outputDirectory, name, palette_index, hash);
 	}
 	else if (palette_index == uint32_t(-1))
 	{
-		_snprintf(filename, sizeof(filename), "%s/%s/%s.png", basedir, mod_path.c_str(), name);
+		_snprintf(filename, sizeof(filename), "%s/%s/%s.png", basedir, outputDirectory, name);
 	}
 	else if (palette_index & 0x40000000)
 	{
-		_snprintf(filename, sizeof(filename), "%s/%s/%s_%u_%u.png", basedir, mod_path.c_str(), name, (palette_index & 0x7FFF), ((palette_index & 0x3FFFFFFF) >> 15) & 0x7FFF);
+		_snprintf(filename, sizeof(filename), "%s/%s/%s_%u_%u.png", basedir, outputDirectory, name, (palette_index & 0x7FFF), ((palette_index & 0x3FFFFFFF) >> 15) & 0x7FFF);
 	}
 	else
 	{
-		_snprintf(filename, sizeof(filename), "%s/%s/%s_%02i.png", basedir, mod_path.c_str(), name, palette_index);
+		_snprintf(filename, sizeof(filename), "%s/%s/%s_%02i.png", basedir, outputDirectory, name, palette_index);
 	}
 
 	normalize_path(filename);
+	return filename;
+}
 
-	make_path(filename);
+std::string get_gpu_texture_name(const void *data, uint32_t dataSize, uint32_t palette_index, const char *name, bool is_animated)
+{
+	const std::string filename = make_texture_filename(data, dataSize, palette_index, name, is_animated, "dump/gpu");
+	return std::filesystem::path(filename).stem().string();
+}
 
-	if (!fileExists(filename))
+static void save_texture_to_directory(const void *data, uint32_t dataSize, uint32_t width, uint32_t height, uint32_t palette_index, const char *name, bool is_animated, const char *outputDirectory)
+{
+	const std::string filename = make_texture_filename(data, dataSize, palette_index, name, is_animated, outputDirectory);
+
+	make_path(filename.c_str());
+
+	if (!fileExists(filename.c_str()))
 	{
-		if (!newRenderer.saveTexture(filename, width, height, data)) ffnx_error("Save texture failed for the file [ %s ].\n", filename);
+		if (!newRenderer.saveTexture(filename.c_str(), width, height, data)) ffnx_error("Save texture failed for the file [ %s ].\n", filename.c_str());
 	}
 	else
-		ffnx_warning("Save texture skipped because the file [ %s ] already exists.\n", filename);
+		ffnx_warning("Save texture skipped because the file [ %s ] already exists.\n", filename.c_str());
+}
+
+void save_texture(const void *data, uint32_t dataSize, uint32_t width, uint32_t height, uint32_t palette_index, const char *name, bool is_animated)
+{
+	if (!save_textures && !save_textures_legacy) {
+		ffnx_warning("Save texture skipped because the option \"save_textures\" is disabled (name=%s).\n", name);
+		return;
+	}
+
+	save_texture_to_directory(data, dataSize, width, height, palette_index, name, is_animated, mod_path.c_str());
+}
+
+void save_gpu_texture(const void *data, uint32_t dataSize, uint32_t width, uint32_t height, uint32_t palette_index, const char *name, bool is_animated)
+{
+	save_texture_to_directory(data, dataSize, width, height, palette_index, name, is_animated, "dump/gpu");
 }
 
 uint32_t load_texture_helper(char* name, uint32_t* width, uint32_t* height, bool useLibPng, bool isSrgb)
@@ -145,6 +164,10 @@ uint32_t load_normal_texture(const void* data, uint32_t dataSize, const char* na
 		if (palette_index == uint32_t(-1))
 		{
 			_snprintf(filename, sizeof(filename), "%s/%s/%s.%s", basedir, tex_path.c_str(), name, mod_ext[idx].c_str());
+		}
+		else if ((palette_index & 0xC0000000) == 0xC0000000) // Remastered
+		{
+			_snprintf(filename, sizeof(filename), "%s/%s/%s/%u.%s", basedir, tex_path.c_str(), name, palette_index & 0xFFFF, mod_ext[idx].c_str());
 		}
 		else if (palette_index & 0x40000000)
 		{

@@ -7,9 +7,13 @@ Welcome to the FFNx documentation!
 - [How To Install](how_to_install.md)
 - [FAQ - Frequently Asked Questions](faq.md)
 - [Built-In Shortcuts](shortcuts.md)
+- [External Movies](external_movies.md)
 - [Gamma and Color Gamut Information](gamma_and_gamut.md)
 
 ## FF7
+
+- [Multibyte Font Mode](ff7/multibyte_font.md)
+- [Universal Field Button Prompts](ff7/universal_buttons.md)
 
 ## FF8
 

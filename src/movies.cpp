@@ -29,6 +29,7 @@
 #include "achievement.h"
 #include "utils.h"
 #include "ff8/movies.h"
+#include "ff8/remaster.h"
 
 enum MovieAudioLayers {
 	MUSIC = 0,
@@ -192,21 +193,38 @@ uint32_t ff7_get_movie_frame()
 	return ffmpeg_get_movie_frame();
 }
 
+uint32_t ff8_get_movie_frame()
+{
+	// Field scripts wait for movie frames counted at 15 FPS
+	if (movie_fps_ratio > 1) return ff8_externals.movie_object->movie_current_frame / movie_fps_ratio;
+
+	return ff8_externals.movie_object->movie_current_frame;
+}
+
 uint32_t ff8_movie_frames;
 
 void ff8_prepare_movie(uint8_t disc, uint32_t movie)
 {
 	char fmvName[MAX_PATH], camName[MAX_PATH], newFmvName[MAX_PATH], newCamName[MAX_PATH];
+	char drivename[4], dirname[256], filename[128];
 
 	_snprintf(fmvName, sizeof(fmvName), "data/movies/disc%02i_%02ih.%s", disc, movie, ffmpeg_video_ext.c_str());
 
-	if (redirect_path_with_override(fmvName, newFmvName, sizeof(newFmvName)) != 0) {
+	const int redirect_status = redirect_path_with_override(fmvName, newFmvName, sizeof(newFmvName));
+	if (redirect_status != 0) {
 		_snprintf(newFmvName, sizeof(newFmvName), "%s/%s", ff8_externals.app_path, fmvName);
 	}
+
+	_splitpath(newFmvName, drivename, dirname, filename, NULL);
+	_snprintf(movie_music_path, sizeof(movie_music_path), "%s%s%s", drivename, dirname, filename);
+	_snprintf(movie_voice_path, sizeof(movie_voice_path), "%s_va", movie_music_path);
+	bool has_ext_audio_file = nxAudioEngine.canPlayMovieAudio(movie_music_path);
+	if (!has_ext_audio_file) nxAudioEngine.setStreamMasterVolume(ffmpeg_video_volume / 100.0f);
 
 	if(disc != 4)
 	{
 		_snprintf(camName, sizeof(camName), "data/movies/disc%02i_%02i.cam", disc, movie);
+		bool camdata_read = false;
 
 		if (redirect_path_with_override(camName, newCamName, sizeof(newCamName)) != 0) {
 			_snprintf(newCamName, sizeof(newCamName), "%s/%s", ff8_externals.app_path, camName);
@@ -214,32 +232,27 @@ void ff8_prepare_movie(uint8_t disc, uint32_t movie)
 
 		FILE *camFile = fopen(newCamName, "rb");
 
-		if(!camFile)
+		if (!camFile)
 		{
-			if (steam_edition)
+			if (!steam_edition)
 			{
-				ffnx_error("could not load camera data from %s\n", newCamName);
-				return;
+				// Try to open the cam files using the FF8 2000 PAK files
+				const pak_pointers_entry &pak_pointer = ff8_externals.disc_pak_offsets[disc][movie];
+
+				char filename[MAX_PATH] = {};
+				strcpy(filename, ff8_externals.data_drive_path);
+				strcat(filename, ff8_externals.disc_pak_filenames[disc]);
+
+				camFile = fopen(filename, "rb");
+
+				if (camFile)
+				{
+					fseek(camFile, pak_pointer.cam_offset, SEEK_SET);
+					fread(&ff8_movie_cam_buffer, 1, pak_pointer.bik_offset - pak_pointer.cam_offset, camFile);
+					fclose(camFile);
+					camdata_read = true;
+				}
 			}
-
-			// Try to open the cam files using the FF8 2000 PAK files
-			const pak_pointers_entry &pak_pointer = ff8_externals.disc_pak_offsets[disc][movie];
-
-			char filename[MAX_PATH] = {};
-			strcpy(filename, ff8_externals.data_drive_path);
-			strcat(filename, ff8_externals.disc_pak_filenames[disc]);
-
-			FILE *camFile = fopen(filename, "rb");
-
-			if (!camFile)
-			{
-				ffnx_error("could not load camera data from %s\n", filename);
-				return;
-			}
-
-			fseek(camFile, pak_pointer.cam_offset, SEEK_SET);
-			fread(&ff8_movie_cam_buffer, 1, pak_pointer.bik_offset - pak_pointer.cam_offset, camFile);
-			fclose(camFile);
 		}
 		else
 		{
@@ -248,6 +261,26 @@ void ff8_prepare_movie(uint8_t disc, uint32_t movie)
 			rewind(camFile);
 			fread(&ff8_movie_cam_buffer, 1, camFileSize, camFile);
 			fclose(camFile);
+			camdata_read = true;
+		}
+
+		if (!camdata_read && ff8_remastered_edition)
+		{
+			Zzz::File *f = g_FF8ZzzArchiveOther.openFile(camName);
+
+			if (f != nullptr)
+			{
+				f->read(&ff8_movie_cam_buffer, f->size());
+				Zzz::closeFile(f);
+
+				camdata_read = true;
+			}
+		}
+
+		if (!camdata_read)
+		{
+			ffnx_error("could not load camera data from %s\n", camName);
+			return;
 		}
 
 		ff8_externals.movie_object->movie_intro_pak = false;
@@ -269,17 +302,37 @@ void ff8_prepare_movie(uint8_t disc, uint32_t movie)
 		}
 	}
 
-	if (!steam_edition && !fileExists(newFmvName)) {
-		void *opaque = ff8_bink_open(disc, movie);
+	ffmpeg_release_movie_objects();
 
-		if (opaque != nullptr) {
-			ff8_movie_frames = ffmpeg_prepare_movie_from_io(newFmvName, opaque, ff8_bink_read, ff8_bink_seek, ff8_bink_close);
+	if (!fileExists(newFmvName)) {
+		if (ff8_remastered_edition) {
+			// Force 'avi' extension
+			if (game_language == GAME_LANGUAGE_JP && disc == 3 && (movie == 5 || movie == 6)) {
+				_snprintf(fmvName, sizeof(fmvName), "data/lang-jp/movies/disc%02i_%02ih.avi", disc, movie);
+			} else {
+				_snprintf(fmvName, sizeof(fmvName), "data/movies/disc%02i_%02ih.avi", disc, movie);
+			}
+			void *opaque = ff8_zzz_open(fmvName);
 
-			return;
+			if (opaque != nullptr) {
+				ff8_movie_frames = ffmpeg_prepare_movie_from_io(fmvName, opaque, ff8_zzz_read, ff8_zzz_seek, ff8_zzz_close, !has_ext_audio_file);
+
+				return;
+			}
+		} else if (!steam_edition) {
+			// Name is mostly for logs
+			_snprintf(fmvName, sizeof(fmvName), "disc%02i_%02ih.bik", disc, movie);
+			void *opaque = ff8_bink_open(disc, movie);
+
+			if (opaque != nullptr) {
+				ff8_movie_frames = ffmpeg_prepare_movie_from_io(fmvName, opaque, ff8_bink_read, ff8_bink_seek, ff8_bink_close, !has_ext_audio_file);
+
+				return;
+			}
 		}
 	}
 
-	ff8_movie_frames = ffmpeg_prepare_movie(newFmvName);
+	ff8_movie_frames = ffmpeg_prepare_movie(newFmvName, !has_ext_audio_file);
 }
 
 void ff8_release_movie_objects()
@@ -318,9 +371,9 @@ int ff8_update_movie_sample()
 
 	int ret = 0;
 
-	if (ff8_externals.movie_object->movie_current_frame <= ff8_externals.movie_object->movie_total_frames)
+	if (ff8_externals.movie_object->movie_current_frame <= ff8_externals.movie_object->movie_total_frames &&
+		ffmpeg_update_movie_sample())
 	{
-		ffmpeg_update_movie_sample();
 		ret = (int)ff8_externals.movie_object->camdata_start;
 		ff8_externals.movie_object->camdata_pointer = &ff8_externals.movie_object->camdata_start[ff8_externals.movie_object->movie_current_frame];
 	}
@@ -337,6 +390,9 @@ int ff8_start_movie()
 	if(trace_all || trace_movies) ffnx_trace("start_movie\n");
 
 	ff8_externals.movie_object->field_4C4B0 = 0;
+
+	// Required by > 15 FPS movies
+	movie_fps_ratio = ffmpeg_get_fps_ratio();
 
 	if(ff8_externals.movie_object->movie_intro_pak)
 	{
@@ -356,6 +412,10 @@ int ff8_start_movie()
 
 	ff8_externals.movie_object->movie_is_playing = true;
 
+	nxAudioEngine.setMovieMasterVolume(ffmpeg_video_volume / 100.0f);
+	nxAudioEngine.playMovieAudio(movie_music_path, MovieAudioLayers::MUSIC);
+	nxAudioEngine.playMovieAudio(movie_voice_path, MovieAudioLayers::VOICE, 3.0f);
+
 	return ff8_update_movie_sample();
 }
 
@@ -364,6 +424,9 @@ int ff8_stop_movie()
 	if(trace_all || trace_movies) ffnx_trace("stop_movie\n");
 
 	ffmpeg_stop_movie();
+
+	nxAudioEngine.stopMovieAudio(MovieAudioLayers::MUSIC);
+	nxAudioEngine.stopMovieAudio(MovieAudioLayers::VOICE);
 
 	ff8_externals.movie_object->movie_is_playing = false;
 
@@ -403,12 +466,15 @@ void movie_init()
 	}
 	else
 	{
+		nxAudioEngine.setMovieAudioMaxSlots(1);
+
 		replace_function(common_externals.prepare_movie, ff8_prepare_movie);
 		replace_function(common_externals.release_movie_objects, ff8_release_movie_objects);
 		replace_function(common_externals.start_movie, ff8_start_movie);
 		replace_function(common_externals.update_movie_sample, ff8_update_movie_sample);
 		replace_function(ff8_externals.draw_movie_frame, draw_current_frame);
 		replace_function(common_externals.stop_movie, ff8_stop_movie);
+		replace_function(common_externals.get_movie_frame, ff8_get_movie_frame);
 	}
 
 	ffmpeg_movie_init();
