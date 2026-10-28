@@ -20,7 +20,9 @@
 // started from (draw headers and the melting target's work block keep the scratch bytes where the
 // code does not write). A held frame replays the log in the same order:
 //   Layout   - (target task, draws THEN updates) the prim-model layout through prim::play_held:
-//              every object's exact in-between record; the anchor (taken at the spawn) holds;
+//              every object's exact in-between record, with the effect-relative camera of the view the
+//              frame draws with (the root derives it from the camera every tick); the anchor (taken at the
+//              spawn) holds;
 //              blended vertex frames go to a private buffer.
 //   Melting  - (draws THEN updates) the target at its in-between pose (pose_midpoint), the melt
 //              amplitude half way to the next step's sin (the last step holds); the melt amounts,
@@ -260,7 +262,12 @@ namespace gastric128
 				PrimArg arg = r.arg;
 				memcpy(g_held_morph, (const void *)r.arg.morph, 0x200);
 				arg.morph = (uint32_t)g_held_morph;
+				// the effect-relative camera of the view this frame draws with (the root derives it from the camera every tick,
+				// 0x67AAE0, before its draws): flag-0x1000 records place their offsets with it; put back after
+				const Mat4x3 ec = EffectCamera();
+				EffectCameraMatrix(&Camera(), &EffectCamera());
 				prim::play_held(r.layout, PartCallback, (int)&arg, num, den);
+				EffectCamera() = ec;
 				break;
 			}
 			}
