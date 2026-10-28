@@ -63,7 +63,8 @@ namespace part_brothers
 	// entity skeleton are SAVED before and RESTORED after, so the entity keeps exactly the real
 	// tick's state (bone+0xBC/+0xC4 are in the bone array, restored by HeldFrame).
 	// Draw 48 DrawBattleEntityCopy: runs as vanilla with the in-between node pose (the copy is
-	// drawn at the in-between transform, in the entity's current real pose); entity byte 0 and
+	// drawn at the in-between transform, in the entity's in-between pose: pose_midpoint of the
+	// step the battle loop makes between the two ticks); entity byte 0 and
 	// the entity skeleton are saved before and restored after (arena + bone array: HeldFrame).
 	// ------------------------------------------------------------------------------------
 	struct EntityHeldSave
@@ -102,7 +103,15 @@ namespace part_brothers
 	static void held_entity_begin(uint8_t *ent, uint32_t head_n)
 	{
 		g_hs_on = g_held.active;
-		if (g_hs_on) held_save_entity(g_hs, ent, head_n);
+		if (!g_hs_on) return;
+		held_save_entity(g_hs, ent, head_n);
+		// Draw 48: the copy is drawn in the entity's pose (its skeleton's local matrices, which
+		// ComputeBonesWorldMatrices composes with the copy's transform). The battle loop steps the
+		// entity's animation once per tick, so the in-between pose is the midpoint of the step
+		// (pose_midpoint: the bone matrices of the exact in-between pose; a completed animation
+		// holds). Vanilla rebuilds the real pose after RenderGeometry; the skeleton is restored by
+		// held_entity_end anyway.
+		if (U8(CUR(), 0x1C) == 48) pose_midpoint(ent + 0x60, ent + 0x6C, g_held.num, g_held.den);
 	}
 
 	static void held_entity_end()

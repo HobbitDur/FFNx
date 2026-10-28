@@ -215,6 +215,7 @@ namespace gfc
 		uint16_t keys[64];
 		uint8_t lights[5 * 0x50];
 		Mat4x3 bb[4];
+		Mat4x3 camalt;            // CamAlt (0x104's camera) of the next tick
 		bool cam;
 		int16_t eye[3], at[3];
 		int16_t shake[3];         // shake offsets the next tick's VM leaves (0 = not written)
@@ -335,6 +336,88 @@ namespace gfc
 		return false;
 	}
 
+	// --- node ops of the predicted tick (NodeReplay) ---
+	// The VM builds the matrix nodes from the bones' outAngle / outPos with the camera (node 0,
+	// CamAlt) or another node: node = Cam * Local(bone) (ops 0x065..0x067, 0x06A, 0x116), = aux *
+	// Local (0x105, aux slot built by 0x104 from CamAlt), = parent o M (0x07A). Blending the two
+	// ticks' finished nodes is not the half-way state: under a turning camera every camera-relative
+	// node moves on an arc (the blend cuts the chord), and an int16 position that wraps between two
+	// ticks (a bone falling through -32768: the VM's own s16 arithmetic) gives camera-space
+	// translations 65536 units apart whose blend lands in the middle of the scene. The exact
+	// half-way node is the one the op builds from the half-way inputs: the predicted tick records
+	// its pure node ops in order (op, bone, stream, op word, ctx+2, the inputs it read) and the held
+	// frame runs them again with the ports, on the in-between bones / camera (NodeReplay).
+	struct NodeRec
+	{
+		uint16_t op, opw, h, key;
+		uint8_t *bone, *stream;
+		int16_t ang[3], pos[3];
+		uint8_t *srcp;      // 0x07A with w1: the matrix it composes (bone + w1)
+		Mat4x3 src;         // its predicted value
+		bool ok;            // the inputs it read are the bone's values at the end of the tick
+	};
+	static NodeRec g_nrec[512];
+	static int g_nnrec = 0;
+	static bool g_nrec_over = false;
+	static VoidFn g_node_fn[0x200];
+	static void node_record(uint16_t op)
+	{
+		if (g_nnrec >= 512) { g_nrec_over = true; return; }
+		NodeRec &r = g_nrec[g_nnrec++];
+		r.op = op;
+		r.bone = CUR();
+		r.stream = STREAM();
+		r.opw = U16(RT(), 0x4A);
+		r.h = U16(CTX(), 2);
+		r.key = U16(r.bone, 0x12);
+		for (int k = 0; k < 3; k++) { r.ang[k] = S16(r.bone, 0x8C + 2 * k); r.pos[k] = S16(r.bone, 0x94 + 2 * k); }
+		r.srcp = nullptr;
+		if (op == 0x07A && S16(r.stream, 4) != 0)
+		{
+			r.srcp = r.bone + S16(r.stream, 4);
+			memcpy(&r.src, r.srcp, sizeof(Mat4x3));
+		}
+		r.ok = true;
+	}
+	template<int OP> static void __cdecl PredNodeOp()
+	{
+		node_record((uint16_t)OP);
+		g_node_fn[OP]();
+	}
+	// the replayed ops: inputs = the current bone, node 0 / CamAlt, an aux slot, a parent node or a
+	// bone matrix (ops reading other bones' values, 0x069 / 0x0CB, and the copies 0x084 / model joints
+	// 0x05B keep the blended node)
+	struct NodeOpEntry { uint16_t op; VoidFn wrap; };
+	static const NodeOpEntry NODE_OPS[] = {
+		{ 0x065, PredNodeOp<0x065> }, { 0x066, PredNodeOp<0x066> }, { 0x067, PredNodeOp<0x067> }, { 0x06A, PredNodeOp<0x06A> },
+		{ 0x07A, PredNodeOp<0x07A> }, { 0x0C4, PredNodeOp<0x0C4> }, { 0x104, PredNodeOp<0x104> }, { 0x105, PredNodeOp<0x105> },
+		{ 0x116, PredNodeOp<0x116> } };
+	// (predicting) the clone's node ops that are the engine's own ports, wrapped
+	static void NodeOpsWrap(Clone &c, bool on)
+	{
+		for (const NodeOpEntry &e : NODE_OPS)
+		{
+			if (on)
+			{
+				g_node_fn[e.op] = c.vm[e.op] != nullptr && c.vm[e.op] == g_generic.vm[e.op] ? c.vm[e.op] : nullptr;
+				if (g_node_fn[e.op]) c.vm[e.op] = e.wrap;
+			}
+			else if (g_node_fn[e.op]) c.vm[e.op] = g_node_fn[e.op];
+		}
+	}
+	// (end of the predicted tick) a record whose inputs changed after the op ran is not replayed
+	static void NodeRecsCheck()
+	{
+		for (int i = 0; i < g_nnrec; i++)
+		{
+			NodeRec &r = g_nrec[i];
+			for (int k = 0; k < 3; k++)
+				if (S16(r.bone, 0x8C + 2 * k) != r.ang[k] || S16(r.bone, 0x94 + 2 * k) != r.pos[k]) r.ok = false;
+			if (U16(r.bone, 0x12) != r.key) r.ok = false;
+			if (r.srcp && memcmp(r.srcp, &r.src, sizeof(Mat4x3))) r.ok = false;
+		}
+	}
+
 	static void CaptureBones(PredBone *out, uint32_t nb)
 	{
 		uint8_t *bones = PTR(CTX(), 0x90);
@@ -422,11 +505,17 @@ namespace gfc
 		{
 			g_pred_op089 = c.vm[0x089];
 			c.vm[0x089] = PredOp089;
+			g_nnrec = 0;
+			g_nrec_over = false;
+			NodeOpsWrap(c, true);
 			AnimChannelsNeg();
 			AnimIntegrator();
 			AnimChannelsPos();
+			NodeOpsWrap(c, false);
 			c.vm[0x089] = g_pred_op089;
+			NodeRecsCheck();
 		}
+		else g_nnrec = 0;
 		ModelStepsEnd();
 		g_pred.nb = BoneCount();
 		CaptureBones(g_pred.b, g_pred.nb);
@@ -434,6 +523,7 @@ namespace gfc
 		memcpy(g_pred.keys, NODEKEYS(), sizeof(g_pred.keys));
 		memcpy(g_pred.lights, LIGHTS(), sizeof(g_pred.lights));
 		memcpy(g_pred.bb, BBMAT(), sizeof(g_pred.bb));
+		g_pred.camalt = *CAMALT();
 		g_pred.cam = g_cam_written;
 		memcpy(g_pred.eye, (void *)0xB8B7F0, 6);
 		memcpy(g_pred.at, (void *)0xB8B7F8, 6);
@@ -477,15 +567,18 @@ namespace gfc
 		if (again) PredictPass(c);
 	}
 
-	// in-between value, holding on large jumps (teleports, re-spawns)
+	// in-between value, holding on large jumps (teleports, re-spawns). Fraction den (the next tick
+	// itself, a test-only call) is the next tick's value, jump or not, as MixMatrix gives it.
 	static inline int16_t mix16(int16_t a, int16_t b, int num, int den, int32_t cut)
 	{
+		if (num >= den) return b;
 		int32_t d = (int16_t)(b - a);
 		if (d > cut || d < -cut) return a;
 		return (int16_t)(a + d * num / den);
 	}
 	static inline int32_t mix32(int32_t a, int32_t b, int num, int den, int32_t cut)
 	{
+		if (num >= den) return b;
 		int64_t d = (int64_t)b - a;
 		if (d > cut || d < -cut) return a;
 		return (int32_t)(a + d * num / den);
@@ -647,6 +740,74 @@ namespace gfc
 			for (int o = 0x40; o < 0x4C; o += 4) S32(l, o) = mix32(S32(l, o), AT<int32_t>(n, o), num, den, 0x7FFFFFFF);
 		}
 		for (int k = 0; k < 4; k++) MixMatrix(BBMAT()[k], g_pred.bb[k], num, den);
+		MixMatrix(*CAMALT(), g_pred.camalt, num, den);
+	}
+
+	// the node ops of the predicted tick run again, in order, on the in-between state (bones,
+	// node 0, CamAlt: ApplyInBetween): every node they write is the node the VM builds from the
+	// half-way inputs. A record is replayed when its bone is interpolated (alive on both ticks,
+	// same id / draw), its inputs are the bone's end-of-tick values and the node slots it uses
+	// exist on the real tick (NodeForCurBone would allocate one otherwise); 0x07A composing the
+	// own node in place only after a replayed op rebuilt that node on this frame, its bone matrix
+	// source (w1) at the in-between of the two ticks' values. Everything else keeps the blended
+	// node. Fraction 0 (the real tick itself: camera cut, self-check) keeps tick N's nodes.
+	static void NodeReplay(int num, int den)
+	{
+		if (num <= 0 || g_nnrec <= 0 || g_nrec_over) return;
+		static uint8_t gte[0xA00];
+		memcpy(gte, (void *)0x1CA8A00, sizeof(gte));
+		uint8_t *cur0 = CUR(), *st0 = STREAM();
+		const uint16_t opw0 = U16(RT(), 0x4A), h0 = U16(CTX(), 2);
+		uint8_t *bones = PTR(CTX(), 0x90);
+		auto has_key = [](uint16_t key) {
+			for (int k = 0; k < 64; k++) if (NODEKEYS()[k] == key) return true;
+			return false;
+		};
+		static uint16_t rebuilt[512];
+		int nrebuilt = 0;
+		auto was_rebuilt = [&](uint16_t key) {
+			for (int k = 0; k < nrebuilt; k++) if (rebuilt[k] == key) return true;
+			return false;
+		};
+		for (int i = 0; i < g_nnrec; i++)
+		{
+			const NodeRec &r = g_nrec[i];
+			if (!r.ok || g_node_fn[r.op] == nullptr || r.bone < bones) continue;
+			const uint32_t off = (uint32_t)(r.bone - bones);
+			if (off >= 128 * 0x100 || (off & 0xFF) != 0 || !g_mixed[off >> 8] || U16(r.bone, 0x12) != r.key) continue;
+			if (r.op == 0x104)
+			{
+				// writes aux slot w0 (index from data): only inside the engine state
+				const uint32_t a = 0x2798B68u + 32u * (uint32_t)(int32_t)S16(r.stream, 2);
+				if (a < STATE_LO || a + 32 > STATE_HI) continue;
+			}
+			else
+			{
+				if (!has_key(r.key)) continue;
+				if (r.op == 0x07A)
+				{
+					const int32_t ref = S16(r.stream, 2);
+					if (ref != 0 && !has_key(U16(blob::GetBone(ref), 0x12))) continue;
+					if (r.srcp == nullptr && !was_rebuilt(r.key)) continue;
+					if (r.srcp != nullptr)
+					{
+						if (r.srcp < bones || r.srcp + sizeof(Mat4x3) > bones + 128 * 0x100) continue;
+						MixMatrix(*(Mat4x3 *)r.srcp, r.src, num, den);
+					}
+				}
+			}
+			CUR() = r.bone;
+			STREAM() = r.stream;
+			U16(RT(), 0x4A) = r.opw;
+			U16(CTX(), 2) = (uint16_t)mix16((int16_t)h0, (int16_t)r.h, num, den, 0x7FFF);
+			g_node_fn[r.op]();
+			if (r.op != 0x104 && nrebuilt < 512) rebuilt[nrebuilt++] = r.key;
+		}
+		U16(CTX(), 2) = h0;
+		U16(RT(), 0x4A) = opw0;
+		CUR() = cur0;
+		STREAM() = st0;
+		memcpy((void *)0x1CA8A00, gte, sizeof(gte));
 	}
 
 	bool held_bone_ends(const uint8_t *b, int16_t ang0[3], int16_t pos0[3], int16_t ang1[3], int16_t pos1[3])
@@ -693,6 +854,12 @@ namespace gfc
 		// the mesh renderer leaves its depth scale here and a later mesh may read it: keep the
 		// real tick's value for the next real tick
 		float depth_scale = FLT_1877DA8();
+		// ParsePolygons (0x50FDF0, the battle model / stage-object renderer under RenderGeometry: draw 3
+		// models, Brothers' draws 38 / 48) keeps its packet cursor and object word in two globals
+		// (g_ParsePolygons_PacketCursor 0x1D99C18, g_ParsePolygons_ObjWord 0x1D99C1C), written at its
+		// entry: a held draw would leave them pointing into the private held packet buffer
+		uint32_t pp_globals[2];
+		memcpy(pp_globals, (const void *)0x1D99C18, sizeof(pp_globals));
 		BindHeld();
 		// the arena holds the state blocks of the clone-specific draw handlers (ribbons, starfield,
 		// melt columns, ...): saved with the engine so that nothing a held draw writes persists
@@ -726,7 +893,11 @@ namespace gfc
 		SaveFreeScratch();
 		SaveDrawScratch();
 		memset(g_mixed, 0, sizeof(g_mixed));
-		if (g_pred.ok && !g_pred.paused) ApplyInBetween(num, den);
+		if (g_pred.ok && !g_pred.paused)
+		{
+			ApplyInBetween(num, den);
+			NodeReplay(num, den);
+		}
 
 		// the tick's draw preamble, packets into a private buffer
 		if (U16(CTX(), 0) & 0x400)
@@ -754,6 +925,7 @@ namespace gfc
 		RestoreEngine(true);
 		*CrtSeed() = seed;
 		FLT_1877DA8() = depth_scale;
+		memcpy((void *)0x1D99C18, pp_globals, sizeof(pp_globals));
 		PKTCUR() = pktcur;
 		RT() = saved_globals[0]; WS() = saved_globals[1]; CTX() = saved_globals[2]; SCENE() = saved_globals[3];
 		RCTX() = saved_globals[4]; SEQ() = saved_globals[5]; CUR() = saved_globals[6]; STREAM() = saved_globals[7];
