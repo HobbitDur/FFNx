@@ -31,6 +31,30 @@ namespace gfc
 	Held g_held = { false, 0, 1, 0 };
 
 	static uint32_t g_ported_tick = 0xFFFFFFFF;
+	// camera cut (HeldFrame): the battle camera words (eye 0xB8B7F0, look-at 0xB8B7F8, s16 x/y/z + pad) at
+	// the start of the last real tick (held_note_tick). The battle loop builds the view a tick draws with
+	// (0x5033E0, node 0) from the words left by the previous frame, so these are C[N-1], the camera node 0
+	// of tick N was built from, and the live words when a held frame runs are C[N], the camera of tick
+	// N+1 (the gate puts the true words back at every frame start). The VM has no cut event of its own:
+	// op 0x039 copies the camera bones' outPos every tick (or the camera player writes them), and a script
+	// cut is just a jump of those bones.
+	static int16_t g_cam_tick[8] = {};
+	static bool g_cam_tick_ok = false;
+	// the gate camera's cut rule (ff8_opengl.cpp FF8_BGATE_CAM_CUT): an eye / look-at component jumping
+	// more than 1500 in one tick. The gate then keeps C[N-1] (the camera of tick N) for the held frames.
+	static const int32_t CAM_CUT = 1500;
+	static bool CameraCut()
+	{
+		if (!g_cam_tick_ok) return false;
+		static const int comp[6] = { 0, 1, 2, 4, 5, 6 };   // eye x/y/z, look-at x/y/z (not the pads)
+		const int16_t *w = (const int16_t *)0xB8B7F0;
+		for (int k : comp)
+		{
+			int32_t d = (int32_t)w[k] - g_cam_tick[k];
+			if (d > CAM_CUT || d < -CAM_CUT) return true;
+		}
+		return false;
+	}
 	// Draw 37 ribbons (held_ribbon_v0 / held_ribbon_restore): real tick: VXY0 at the end of the
 	// last ribbon draw; held frame: the value the last ribbon drawn will leave there on the next
 	// tick (ok = known)
@@ -654,6 +678,11 @@ namespace gfc
 	void HeldFrame(Clone &c, int num, int den)
 	{
 		if (!HeldReady(c) || den <= 0) return;
+		// a camera cut between this tick and the next: no half-way state exists (the two ticks
+		// show different shots; blending the nodes, which carry the camera, mixes them). The held
+		// frame holds tick N, as the gate camera does on the same cut: drawn at fraction 0 (the
+		// exact replay of the real tick, heldzero). Fraction den (a test-only call) still draws N+1.
+		if (num > 0 && num < den && CameraCut()) num = 0;
 		g_clone = &c;
 		Predict(c);
 		// the frame's camera shake: in-between of this tick's and the next tick's offsets
@@ -742,7 +771,7 @@ namespace gfc
 		for (int k = 0; k < 3; k++)
 		{
 			int32_t de = (int32_t)g_pred.eye[k] - e0[k], da = (int32_t)g_pred.at[k] - a0[k];
-			if (de > 1500 || de < -1500 || da > 1500 || da < -1500) cut = true;
+			if (de > CAM_CUT || de < -CAM_CUT || da > CAM_CUT || da < -CAM_CUT) cut = true;
 		}
 		for (int k = 0; k < 3; k++)
 		{
@@ -756,7 +785,13 @@ namespace gfc
 	// SequenceTick (0xB25DF0)
 	// ------------------------------------------------------------------------------------
 	// the ports ran on this real tick
-	void held_note_tick() { g_ported_tick = g_real_tick; g_rib_last_ok = false; }
+	void held_note_tick()
+	{
+		g_ported_tick = g_real_tick;
+		g_rib_last_ok = false;
+		memcpy(g_cam_tick, (void *)0xB8B7F0, sizeof(g_cam_tick));   // C[N-1] (CameraCut)
+		g_cam_tick_ok = true;
+	}
 
 	// Workspace + RuntimeSlot of the tick, copied at its end (held frames and the prediction
 	// run on this copy)
