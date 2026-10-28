@@ -59,8 +59,16 @@
 // offset): they reach the GTE's VZ0 high half (0x1CA8A16) only, which nothing reads. The main
 // task's anchor carries the caster's height there (GetDefaultEffectPosition writes it); the target
 // layout's its scale word. The matrices' pad words (block + 0x12) are never read.
+// PC SCREEN UNITS: the PC's software GTE gives screen coordinates in eighths of a pixel
+// (GTE_RTPS 0x45FAA0: 8 x H x / z + 8 OFX); the main layout's frame takes them as the PSX's
+// pixels, so on PC its translation lands 8 times the caster's screen offset out (off screen) and
+// its basis leans out as much. HypnotizeParams main.pixels (off: the PC as it is) takes them back
+// to pixels first, as the PSX had them.
+// Parameters (HypnotizeParams, fx_params.h): the numbers below, one struct per part, defaults =
+// the game's; the parts are tagged (FX_PART) for the effect lab.
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -94,6 +102,62 @@ namespace hypno133
 	static const uint32_t *const RING_TABLE = (const uint32_t *)0x1212AE0;    // 8 x (x, y, z, bone)
 	static const uint32_t SEQ_Sprite = 0x12077B8;        // sprite sequence
 	static const void *const SOUND_Hypnotize = (const void *)0x1212ADC;
+
+	// ------------------------------------------------------------------
+	// Parameters (fx_params.h): the game's values by default
+	// ------------------------------------------------------------------
+	struct HypnotizeParams
+	{
+		struct Timing
+		{
+			int16_t sound_tick;     // the sound plays (main counter)
+			int16_t damage_tick;    // every target of action 0 takes the result
+			int16_t end_tick;       // the main task ends
+		} timing;
+		struct Main
+		{
+			int16_t last_tick;      // drawn while the counter is at most this
+			int16_t basis_h;        // its basis: the screen offset at basis_h x H
+			int16_t depth_h;        // its translation at depth_h x H
+			int16_t offset_shift;   // the screen offset times 2^shift
+			int16_t pixels;         // 1: the screen offset in pixels (the PSX) instead of the PC's eighths
+		} main;
+		struct Spawned
+		{
+			fxp::Window window;     // main counters it is spawned at...
+			int16_t every;          // ...every this many ticks
+		};
+		Spawned rings;
+		struct Targets
+		{
+			Spawned spawn;
+			fxp::Range spread_x;    // added to the bone point's x
+			fxp::Range scale;       // its size (4096 = 1), rolled on rand() >> 4
+			int16_t depth;          // the prim header's depth
+		} targets;
+		struct Sprites
+		{
+			Spawned spawn;
+			int16_t bone;           // the target's bone point
+			fxp::Range spread_x, spread_y, spread_z;
+			int16_t frames;         // flipbook frames: lifetime
+		} sprites;
+	};
+	static const HypnotizeParams DEFAULTS = {
+		{ 0, 0x22, 0x2A },
+		{ 0x1D, 12, 16, 4, 0 },
+		{ { 0, 0xF }, 2 },
+		{ { { 2, 0x16 }, 2 }, { -0x400, 0x3FF }, { 0x800, 0xFFF }, -0x80 },
+		{ { { 0x12, 0x29 }, 2 }, 0xF0, { -0x100, 0xFF }, { -0x180, 0x7F }, { -0x100, 0xFF }, 0xE },
+	};
+	static HypnotizeParams g_params = DEFAULTS;
+	static inline const HypnotizeParams &P() { return g_params; }
+	enum PartId { PART_MAIN = 1, PART_RINGS = 2, PART_TARGETS = 3, PART_SPRITES = 4 };
+	// spawned at counter c: inside the window, every `every` ticks from its first
+	static inline bool Spawns(const HypnotizeParams::Spawned &s, int32_t c)
+	{
+		return s.window.has(c) && s.every > 0 && (c - s.window.first) % s.every == 0;
+	}
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -257,25 +321,32 @@ namespace hypno133
 	}
 
 	// the main layout's view-space frame (0x6B1243..0x6B130B): the anchor projected, the basis of
-	// its screen offset from the centre at 12 H, translation at 16 H. The basis direction and the
-	// translation share the block's +0x14 words (the original's stack layout).
+	// its screen offset from the centre (PSX pixels: 160, 120) at 12 H, translation at 16 H. The
+	// basis direction and the translation share the block's +0x14 words (the original's stack
+	// layout). On PC the projection is in eighths of a pixel (see PC SCREEN UNITS above).
 	static void MainFrame(const int16_t *pos, PrimArg *arg)
 	{
+		const HypnotizeParams::Main &mp = P().main;
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
 		GteLoadV0(pos);
 		GteRTPS();
 		int16_t sxy[2];
 		GteReadSXY2(sxy);
+		if (mp.pixels)
+		{
+			sxy[0] = (int16_t)(sxy[0] >> 3);
+			sxy[1] = (int16_t)(sxy[1] >> 3);
+		}
 		int32_t *v = arg->m.t;
-		v[0] = shl32(0xA0 - (int32_t)sxy[0], 4);
-		v[1] = shl32(0x78 - (int32_t)sxy[1], 4);
+		v[0] = shl32(0xA0 - (int32_t)sxy[0], mp.offset_shift);
+		v[1] = shl32(0x78 - (int32_t)sxy[1], mp.offset_shift);
 		const int32_t h = ProjectionH();
-		v[2] = shl32(h, 4) - shl32(h, 2);
+		v[2] = h * mp.basis_h;
 		BuildOrthonormalBasis(v, &arg->m);
 		v[1] = (int32_t)(0u - (uint32_t)v[1]);
 		v[0] = (int32_t)(0u - (uint32_t)v[0]);
-		v[2] = shl32(h, 4);
+		v[2] = h * mp.depth_h;
 	}
 
 	// the camera rows scaled by s / 4096 through the GTE (IR0 interpolation, 0x6B190D..0x6B1958)
@@ -335,9 +406,10 @@ namespace hypno133
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_sprite(s);)
+		FX_PART(PART_SPRITES);
 		SpriteDraw(s);
 		s->counter++;
-		return s->counter < 0xE ? 0 : TASK_END;
+		return s->counter < P().sprites.frames ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -346,6 +418,7 @@ namespace hypno133
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *g = (RingNode *)n;
+		FX_PART(PART_RINGS);
 		int16_t pos[4];
 		BonePoint(g->point, pos);
 		PrimArg arg;
@@ -364,10 +437,11 @@ namespace hypno133
 	static uint32_t __cdecl TargetLayoutTask(TaskNode *n)
 	{
 		TargetNode *p = (TargetNode *)n;
+		FX_PART(PART_TARGETS);
 		PrimArg arg;
 		ScaledCamera(p->scale, &arg.m);
 		CameraAnchor(p->pos, &arg.m);
-		arg.depth = -0x80;
+		arg.depth = P().targets.depth;
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_play(PLAY_TARGET, n, (prim::Layout *)p->layout, &arg);)
@@ -387,8 +461,10 @@ namespace hypno133
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *t = (MainNode *)n;
-		if ((uint16_t)t->counter < 0x1E)
+		const HypnotizeParams &pp = P();
+		if ((uint16_t)t->counter <= (uint16_t)pp.main.last_tick)
 		{
+			FX_PART(PART_MAIN);
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
 			PrimArg arg;
@@ -399,22 +475,22 @@ namespace hypno133
 			FX_HELD(held_note_play(PLAY_MAIN, n, (prim::Layout *)t->layout, &arg);)
 			prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		}
-		if (t->counter == 0) BdPlaySE(SOUND_Hypnotize, 0, 0x80);
+		if (t->counter == pp.timing.sound_tick) BdPlaySE(SOUND_Hypnotize, 0, 0x80);
 		const int32_t c = t->counter;
-		if ((uint32_t)c < 0x10 && !(c & 1))
+		if (Spawns(pp.rings, c))
 		{
 			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
 			if (g)
 			{
-				const uint32_t i = (uint32_t)c >> 1;
+				const uint32_t i = (uint32_t)((c - pp.rings.window.first) / pp.rings.every) & 7;
 				((uint32_t *)g->point)[0] = RING_TABLE[2 * i];
 				((uint32_t *)g->point)[1] = RING_TABLE[2 * i + 1];
 				DecodeModelPrimLayout(MODEL_Rings[i], g->layout, 0x9C);
 			}
 		}
-		const uint32_t e = (uint32_t)((int32_t)t->counter - 2);
-		if (e < 0x15 && !(e & 1))
+		if (Spawns(pp.targets.spawn, c))
 		{
+			const uint32_t e = (uint32_t)((c - pp.targets.spawn.window.first) / pp.targets.spawn.every);
 			TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetLayoutTask);
 			if (p)
 			{
@@ -422,29 +498,28 @@ namespace hypno133
 				const int32_t flag = CrtRand() >> 3;
 				const int32_t bone = mul32(CrtRand(), (int32_t)***(uint8_t ***)(ent + 0x64)) >> 15;
 				GetEffectSpawnPosition(ent, bone, flag, p->pos);
-				p->pos[0] = (int16_t)(p->pos[0] + ((CrtRand() & 0x7FF) - 0x400));
-				p->scale = (int16_t)((CrtRand() >> 4) + 0x800);
-				DecodeModelPrimLayout(MODEL_Targets[(e >> 1) & 7], p->layout, 0x40);
+				p->pos[0] = (int16_t)(p->pos[0] + pp.targets.spread_x.roll(CrtRand()));
+				p->scale = (int16_t)pp.targets.scale.roll(CrtRand() >> 4);
+				DecodeModelPrimLayout(MODEL_Targets[e & 7], p->layout, 0x40);
 			}
 		}
-		const uint32_t f = (uint32_t)((int32_t)t->counter - 0x12);
-		if (f < 0x18 && !(f & 1))
+		if (Spawns(pp.sprites.spawn, c))
 		{
 			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
 			if (s)
 			{
 				uint8_t *ent = RandomTarget(t);
-				GetEffectSpawnPosition(ent, 0xF0, 0, s->pos);
-				s->pos[0] = (int16_t)(s->pos[0] + ((CrtRand() & 0x1FF) - 0x100));
-				s->pos[1] = (int16_t)(s->pos[1] + ((CrtRand() & 0x1FF) - 0x180));
+				GetEffectSpawnPosition(ent, pp.sprites.bone, 0, s->pos);
+				s->pos[0] = (int16_t)(s->pos[0] + pp.sprites.spread_x.roll(CrtRand()));
+				s->pos[1] = (int16_t)(s->pos[1] + pp.sprites.spread_y.roll(CrtRand()));
 				const int32_t rz = CrtRand();
 				s->counter = 0;
-				s->pos[2] = (int16_t)(s->pos[2] + ((rz & 0x1FF) - 0x100));
+				s->pos[2] = (int16_t)(s->pos[2] + pp.sprites.spread_z.roll(rz));
 			}
 		}
-		if (t->counter == 0x22) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+		if (t->counter == pp.timing.damage_tick) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 		t->counter++;
-		return t->counter < 0x2A ? 0 : TASK_END;
+		return t->counter < pp.timing.end_tick ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -486,6 +561,7 @@ namespace hypno133
 			a1 = ExecuteTaskQueue(QRings());
 			a2 = ExecuteTaskQueue(QTargets());
 			a3 = ExecuteTaskQueue(QSprites());
+			FX_PART(0);
 		}
 		else a0 = a1 = a2 = a3 = (int)n;
 		if (m->started && a0 == 0 && a1 == 0 && a2 == 0 && a3 == 0) return TASK_END;
@@ -494,8 +570,61 @@ namespace hypno133
 	}
 }
 
+	// ------------------------------------------------------------------
+	// Parameter table (fx_params.h): what an editor shows of HypnotizeParams
+	// ------------------------------------------------------------------
+	namespace hypno133
+	{
+		using fxp::Field;
+#define HYPNO_FIELD(part, member, label, doc, type, lo, hi) \
+		{ part, #member, label, doc, (uint32_t)offsetof(HypnotizeParams, member), fxp::type, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The main task's clock: when the sound plays, when the targets take the result, when it ends (draws nothing)" },
+			{ PART_MAIN, "main", "Main layout", "The layout in front of the caster, framed in view space on its screen position" },
+			{ PART_RINGS, "rings", "Rings", "Eight layouts at points of the caster's bones, one every other tick" },
+			{ PART_TARGETS, "targets", "Target layouts", "Layouts at random bones of random targets, at random sizes" },
+			{ PART_SPRITES, "sprites", "Sprites", "A flipbook at random points around a target's bone" },
+		};
+		static const Field FIELDS[] = {
+			HYPNO_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays at this tick", I16, 0, 200),
+			HYPNO_FIELD("timing", timing.damage_tick, "Damage tick", "The targets take the result at this tick", I16, 0, 200),
+			HYPNO_FIELD("timing", timing.end_tick, "End tick", "The main task ends at this tick", I16, 1, 200),
+			HYPNO_FIELD("main", main.last_tick, "Last tick", "Drawn up to this tick", I16, -1, 200),
+			HYPNO_FIELD("main", main.basis_h, "Basis depth (x H)", "Its orientation: the caster's screen offset seen at this many projection distances", I16, 1, 64),
+			HYPNO_FIELD("main", main.depth_h, "Depth (x H)", "Its distance: this many projection distances", I16, 1, 64),
+			HYPNO_FIELD("main", main.offset_shift, "Offset scale (2^n)", "The screen offset times 2^n", I16, 0, 8),
+			HYPNO_FIELD("main", main.pixels, "PSX screen units", "1: the caster's screen position in pixels as on PSX (on PC it is in eighths: the layout lands far off it)", I16, 0, 1),
+			HYPNO_FIELD("rings", rings.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
+			HYPNO_FIELD("rings", rings.window.last, "To tick", "...to this one...", I16, 0, 200),
+			HYPNO_FIELD("rings", rings.every, "Every", "...every this many ticks (8 layouts, then they repeat)", I16, 1, 50),
+			HYPNO_FIELD("targets", targets.spawn.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
+			HYPNO_FIELD("targets", targets.spawn.window.last, "To tick", "...to this one...", I16, 0, 200),
+			HYPNO_FIELD("targets", targets.spawn.every, "Every", "...every this many ticks", I16, 1, 50),
+			HYPNO_FIELD("targets", targets.spread_x.min, "Spread x min", "Added to the bone point's x, at random in [min, max]", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("targets", targets.spread_x.max, "Spread x max", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("targets", targets.scale.min, "Size min", "4096 = its own size", I16, 0, 0x7FFF),
+			HYPNO_FIELD("targets", targets.scale.max, "Size max", "", I16, 0, 0x7FFF),
+			HYPNO_FIELD("targets", targets.depth, "Depth", "Drawing depth offset", I16, -0x1000, 0x1000),
+			HYPNO_FIELD("sprites", sprites.spawn.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
+			HYPNO_FIELD("sprites", sprites.spawn.window.last, "To tick", "...to this one...", I16, 0, 200),
+			HYPNO_FIELD("sprites", sprites.spawn.every, "Every", "...every this many ticks", I16, 1, 50),
+			HYPNO_FIELD("sprites", sprites.bone, "Bone", "The target's bone point they start from", I16, 0, 0xFF),
+			HYPNO_FIELD("sprites", sprites.spread_x.min, "Spread x min", "Added to the bone point, at random in [min, max]", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread_x.max, "Spread x max", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread_y.min, "Spread y min", "y goes down", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread_y.max, "Spread y max", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread_z.min, "Spread z min", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread_z.max, "Spread z max", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.frames, "Frames", "Flipbook frames: lifetime", I16, 1, 64),
+		};
+#undef HYPNO_FIELD
+	}
+
 	void register_mag133_hypnotize()
 	{
+		fxp::register_params({ 133, "Hypnotize", &hypno133::g_params, &hypno133::DEFAULTS, sizeof(hypno133::HypnotizeParams),
+		                       hypno133::PARTS, (int)(sizeof(hypno133::PARTS) / sizeof(hypno133::PARTS[0])),
+		                       hypno133::FIELDS, (int)(sizeof(hypno133::FIELDS) / sizeof(hypno133::FIELDS[0])) });
 		register_port(hypno133::ORIG_MasterTask, (void *)hypno133::MasterTask, "133 MasterTask", 133);
 		register_port(hypno133::ORIG_MainTask, (void *)hypno133::MainTask, "133 MainTask", 133);
 		register_port(hypno133::ORIG_RingTask, (void *)hypno133::RingTask, "133 RingTask", 133);
@@ -504,6 +633,7 @@ namespace hypno133
 		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(register_mag133_held();)
 	}
+	FX_LAB_MODULE(register_mag133_hypnotize);
 }
 
 #ifdef FF8_FX_HELD
