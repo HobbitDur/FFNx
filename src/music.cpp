@@ -25,6 +25,8 @@
 #include "audio.h"
 #include "music.h"
 #include "patch.h"
+#include "ff8/remaster.h"
+#include "audio/vgmstream/zzzstreamfile.h"
 
 #include "ff8/engine.h"
 
@@ -143,12 +145,12 @@ uint32_t ff7_midi_init(uint32_t unknown)
 
 char ff8_midi[32];
 
-char* ff8_format_midi_name(const char* midi_name)
+char* ff8_format_midi_name(const char* midi_name, bool force_original_filenames)
 {
 	// midi_name format: {num}{type}-{name}.sgt or {name}.sgt or _Missing.sgt
 	const char* truncated_name = midi_name;
 
-	if (!ff8_external_music_force_original_filenames) {
+	if (!force_original_filenames) {
 		truncated_name = strchr(midi_name, '-');
 
 		if (nullptr != truncated_name) {
@@ -176,12 +178,12 @@ char* ff8_format_midi_name(const char* midi_name)
 	return nullptr;
 }
 
-char* ff8_midi_name(uint32_t musicId)
+char* ff8_midi_name(uint32_t musicId, bool force_original_filenames)
 {
 	if (musicId != UINT_MAX)
 	{
 		const char* midi_name = common_externals.get_midi_name(musicId);
-		return ff8_format_midi_name(midi_name);
+		return ff8_format_midi_name(midi_name, force_original_filenames);
 	}
 
 	return nullptr;
@@ -190,7 +192,7 @@ char* ff8_midi_name(uint32_t musicId)
 char* current_midi_name(int channel)
 {
 	const uint32_t musicId = nxAudioEngine.currentMusicId(channel);
-	return ff8 ? ff8_midi_name(musicId) : common_externals.get_midi_name(musicId);
+	return ff8 ? ff8_midi_name(musicId, false) : common_externals.get_midi_name(musicId);
 }
 
 void pause_music()
@@ -294,6 +296,28 @@ bool play_music(const char* music_name, uint32_t music_id, int channel, NxAudioE
 			options.useNameAsFullPath = true;
 			strcpy(options.format, "wav");
 			playing = nxAudioEngine.playMusic(wav_fullpath, music_id, channel, options);
+		}
+
+		if (!playing && ff8_remastered_edition)
+		{
+			char file_name[MAX_PATH] = {};
+
+			if (wav_fullpath != nullptr)
+			{
+				snprintf(file_name, sizeof(file_name), "zzz://%s", wav_fullpath);
+				options.useNameAsFullPath = true;
+				strcpy(options.format, "wav");
+				playing = nxAudioEngine.playMusic(file_name, music_id, channel, options);
+			}
+			else
+			{
+				music_name = ff8_midi_name(music_id, true);
+
+				snprintf(file_name, sizeof(file_name), "zzz://data\\music\\dmusic\\ogg\\%s.ogg", music_name);
+				options.useNameAsFullPath = true;
+				strcpy(options.format, "ogg");
+				playing = nxAudioEngine.playMusic(file_name, music_id, channel, options);
+			}
 		}
 	}
 	else
@@ -777,7 +801,7 @@ uint32_t ff8_play_midi(uint32_t music_id, int32_t volume, uint32_t unused1, uint
 	{
 		if (is_gameover(music_id)) music_flush();
 
-		const char* music_name = ff8_midi_name(music_id);
+		const char* music_name = ff8_midi_name(music_id, false);
 
 		if (nullptr == music_name) {
 			ffnx_error("%s: Cannot get music name from music_id %d\n", __func__, music_id);
@@ -855,7 +879,7 @@ uint32_t ff8_play_wav(uint32_t zero, char* filename, uint32_t volume)
 			} else {
 				music_name += 1;
 			}
-			music_name = ff8_format_midi_name(music_name);
+			music_name = ff8_format_midi_name(music_name, false);
 		}
 
 		if (nullptr == music_name) {
@@ -1094,7 +1118,7 @@ uint32_t ff8_opcode_choicemusic(uint32_t unused, uint32_t instruments)
 
 uint32_t ff8_load_midi_segment(void* directsound, const char* filename)
 {
-	const char* midi_name = ff8_format_midi_name(filename);
+	const char* midi_name = ff8_format_midi_name(filename, false);
 
 	hold_volume_for_channel[0] = false;
 

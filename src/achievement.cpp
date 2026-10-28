@@ -20,10 +20,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-#include <steamworkssdk/isteamutils.h>
-#include <steamworkssdk/isteamuserstats.h>
-#include <steamworkssdk/isteamuser.h>
-
 #include <numeric>
 #include <algorithm>
 #include <unordered_set>
@@ -51,25 +47,67 @@ SteamManager::SteamManager(const achievement *achievements, int nAchievements, s
         this->stats.insert({statName, 0});
     }
     this->achievementList.insert(this->achievementList.end(), &achievements[0], &achievements[nAchievements]);
-    this->requestStats();
+    if (this->checkStatsAvailability())
+    {
+        this->loadStatsAndAchievements();
+    }
     ach_trace("%s - Init steam achievements with appID: %d\n", __func__, this->appID);
 }
 
-bool SteamManager::requestStats()
+bool SteamManager::checkStatsAvailability()
 {
-    // Is Steam loaded?
-    if (NULL == SteamUserStats() || NULL == SteamUser())
+    ISteamUserStats *userStats = SteamUserStats();
+    ISteamUser *user = SteamUser();
+    if (userStats == nullptr || user == nullptr)
     {
+        ach_trace("%s - Steam user stats interfaces are unavailable\n", __func__);
         return false;
     }
-    // Is the user logged on?
-    if (!SteamUser()->BLoggedOn())
+    if (!user->BLoggedOn())
     {
+        ach_trace("%s - Steam user is not logged in; cannot load user stats\n", __func__);
         return false;
     }
-    ach_trace("%s - Request user stats sent\n", __func__);
 
-    return SteamUserStats()->RequestCurrentStats();
+    ach_trace("%s - Steam user is logged in; loading current stats directly (AppID: %u)\n", __func__, this->appID);
+    return true;
+}
+
+void SteamManager::loadStatsAndAchievements()
+{
+    ISteamUserStats *userStats = SteamUserStats();
+    if (userStats == nullptr)
+    {
+        ach_trace("%s - Steam user stats interface is unavailable\n", __func__);
+        return;
+    }
+
+    for (auto &stat : this->stats) {
+        int statValue;
+        if (userStats->GetStat(stat.first.c_str(), &statValue)) {
+            stat.second = statValue;
+            ach_trace("%s - user stat(%s, %d)\n", __func__, stat.first.c_str(), statValue);
+        } else {
+            ach_trace("%s - failed to read user stat(%s)\n", __func__, stat.first.c_str());
+        }
+    }
+
+    for (int i = 0; i < this->nAchievements; ++i)
+    {
+        achievement &ach = this->achievementList[i];
+
+        userStats->GetAchievement(ach.chAchID, &ach.isAchieved);
+        _snprintf(ach.achName, sizeof(ach.achName), "%s",
+                  userStats->GetAchievementDisplayAttribute(ach.chAchID, "name"));
+        _snprintf(ach.achDescription, sizeof(ach.achDescription), "%s",
+                  userStats->GetAchievementDisplayAttribute(ach.chAchID, "desc"));
+
+        ach_trace("%s - achievement data(%s, %s, %s)\n",
+                  __func__, ach.chAchID, ach.achDescription, ach.isAchieved ? "true" : "false");
+    }
+
+    this->isInitialized = true;
+    ach_trace("%s - Steam stats and achievements are ready\n", __func__);
 }
 
 bool SteamManager::setAchievement(int achID)
@@ -81,18 +119,33 @@ bool SteamManager::setAchievement(int achID)
             return true;
         }
 
-        ach_trace("%s - Achievement %s set, Store request sent to Steam\n", __func__, this->getStringAchievementID(achID));
-
-        this->achievementList[achID].isAchieved = true;
         if (steam_achievements_debug_mode)
         {
             return SteamUserStats()->IndicateAchievementProgress(this->getStringAchievementID(achID), 99, 100);
         }
-        else
+
+        ISteamUserStats *userStats = SteamUserStats();
+        if (userStats == nullptr)
         {
-            SteamUserStats()->SetAchievement(this->getStringAchievementID(achID));
-            return SteamUserStats()->StoreStats();
+            ffnx_error("%s - Steam user stats interface is unavailable\n", __func__);
+            return false;
         }
+
+        const char *achievementID = this->getStringAchievementID(achID);
+        if (!userStats->SetAchievement(achievementID))
+        {
+            ffnx_error("%s - Steam rejected SetAchievement for %s\n", __func__, achievementID);
+            return false;
+        }
+        if (!userStats->StoreStats())
+        {
+            ffnx_error("%s - Steam rejected StoreStats for %s\n", __func__, achievementID);
+            return false;
+        }
+
+        this->achievementList[achID].isAchieved = true;
+        ach_trace("%s - Achievement %s submitted to Steam; waiting for store callback\n", __func__, achievementID);
+        return true;
     }
 
     if (trace_all || trace_achievement)
@@ -145,67 +198,63 @@ bool SteamManager::updateUserStat(const std::string &statName, int value) {
 
 void SteamManager::OnUserStatsReceived(UserStatsReceived_t *pCallback)
 {
-    if (this->appID == pCallback->m_nGameID)
+    const uint32 callbackAppID = CGameID(pCallback->m_nGameID).AppID();
+    ach_trace("%s - callback received (AppID: %u, expected AppID: %u, result: %d)\n",
+              __func__, callbackAppID, this->appID, static_cast<int>(pCallback->m_eResult));
+
+    if (this->appID != callbackAppID)
     {
-        if (k_EResultOK == pCallback->m_eResult)
-        {
-            ach_trace("%s - received stats and achievements from Steam\n", __func__);
-            this->isInitialized = true;
- 
-            // load stats (assume all stats to be integers)
-            for (auto statName: this->stats) {
-                int statValue;
-                if (SteamUserStats()->GetStat(statName.first.c_str(), &statValue)) {
-                    this->stats.insert_or_assign(statName.first, statValue);
-                }
-
-                ach_trace("%s - user stat(%s, %d)\n", __func__, statName.first.c_str(), statValue);
-            }
-
-            // load achievements
-            for (int i = 0; i < this->nAchievements; ++i)
-            {
-                achievement &ach = this->achievementList[i];
-
-                SteamUserStats()->GetAchievement(ach.chAchID, &ach.isAchieved);
-                _snprintf(ach.achName, sizeof(ach.achName), "%s",
-                          SteamUserStats()->GetAchievementDisplayAttribute(ach.chAchID,
-                                                                           "name"));
-                _snprintf(ach.achDescription, sizeof(ach.achDescription), "%s",
-                          SteamUserStats()->GetAchievementDisplayAttribute(ach.chAchID,
-                                                                           "desc"));
-
-                ach_trace("%s - achievement data(%s, %s, %s)\n", __func__, ach.chAchID, ach.achDescription, ach.isAchieved ? "true" : "false");
-            }
-        }
-        else
-        {
-            ach_trace("%s - RequestStats - failed, %d\n", __func__, pCallback->m_eResult);
-        }
+        ach_trace("%s - ignoring callback for a different AppID\n", __func__);
+        return;
     }
+
+    if (k_EResultOK != pCallback->m_eResult)
+    {
+        ach_trace("%s - failed to receive stats from Steam, result: %d\n",
+                  __func__, static_cast<int>(pCallback->m_eResult));
+        return;
+    }
+
+    this->loadStatsAndAchievements();
 }
 
 void SteamManager::OnUserStatsStored(UserStatsStored_t *pCallback)
 {
-    if (this->appID == pCallback->m_nGameID)
+    const uint32 callbackAppID = CGameID(pCallback->m_nGameID).AppID();
+    ach_trace("%s - callback received (AppID: %u, expected AppID: %u, result: %d)\n",
+              __func__, callbackAppID, this->appID, static_cast<int>(pCallback->m_eResult));
+
+    if (this->appID != callbackAppID)
     {
-        if (k_EResultOK == pCallback->m_eResult)
-        {
-            if (trace_all || trace_achievement)
-                ffnx_info("%s - success\n", __func__);
-        }
-        else
-        {
-            ach_trace("%s - failed, %d\n", __func__, pCallback->m_eResult);
-        }
+        ach_trace("%s - ignoring callback for a different AppID\n", __func__);
+        return;
+    }
+
+    if (k_EResultOK == pCallback->m_eResult)
+    {
+        ach_trace("%s - stats stored successfully\n", __func__);
+    }
+    else
+    {
+        ffnx_error("%s - Steam failed to store stats, result: %d\n",
+                   __func__, static_cast<int>(pCallback->m_eResult));
+        this->loadStatsAndAchievements();
     }
 }
 
 void SteamManager::OnAchievementStored(UserAchievementStored_t *pCallback)
 {
-    if (this->appID == pCallback->m_nGameID)
+    const uint32 callbackAppID = CGameID(pCallback->m_nGameID).AppID();
+    ach_trace("%s - callback received (AppID: %u, expected AppID: %u, achievement: %s)\n",
+              __func__, callbackAppID, this->appID, pCallback->m_rgchAchievementName);
+
+    if (this->appID == callbackAppID)
     {
         ach_trace("%s - Stored Achievement %s for Steam\n", __func__, pCallback->m_rgchAchievementName);
+    }
+    else
+    {
+        ach_trace("%s - ignoring callback for a different AppID\n", __func__);
     }
 }
 
@@ -663,10 +712,25 @@ void SteamAchievementsFF7::unlockBikeHighscoreAchievement(int score)
 
 // -------------------------- STEAM ACHIEVEMENTS OF FF8 ---------------------------
 
-SteamAchievementsFF8::SteamAchievementsFF8()
+SteamAchievementsFF8::SteamAchievementsFF8(boolean isRemastered)
 {
-    std::vector<std::string> statsNameVec = { ENEMY_KILLED_STAT_NAME, DRAW_MAGIC_STAT_NAME, STOCK_MAGIC_STAT_NAME, WON_CARDGAME_STAT_NAME };
-    this->steamManager = std::make_unique<SteamManager>(SteamAchievementsFF8::ACHIEVEMENTS, FF8_N_ACHIEVEMENTS, statsNameVec);
+    this->isRemastered = isRemastered;
+    if (isRemastered) {
+        std::vector<std::string> statsNameVec = {};
+        this->steamManager = std::make_unique<SteamManager>(SteamAchievementsFF8::ACHIEVEMENTS_REMASTERED, std::size(SteamAchievementsFF8::ACHIEVEMENTS_REMASTERED), statsNameVec);
+    } else {
+        std::vector<std::string> statsNameVec = { ENEMY_KILLED_STAT_NAME, DRAW_MAGIC_STAT_NAME, STOCK_MAGIC_STAT_NAME, WON_CARDGAME_STAT_NAME };
+        this->steamManager = std::make_unique<SteamManager>(SteamAchievementsFF8::ACHIEVEMENTS, std::size(SteamAchievementsFF8::ACHIEVEMENTS), statsNameVec);
+    }
+}
+
+int SteamAchievementsFF8::getAchievementIdByVersion(Achievements ach_original, AchievementsRemastered ach_remastered)
+{
+    if (this->isRemastered) {
+        return ach_remastered;
+    } else {
+        return ach_original;
+    }
 }
 
 void SteamAchievementsFF8::initOwnedTripleTriadRareCards(const savemap_ff8_triple_triad &tt_data)
@@ -698,9 +762,10 @@ byte SteamAchievementsFF8::getStatCharIdUnderStatCompute() {
 void SteamAchievementsFF8::unlockPlayTripleTriadAchievement()
 {
     ach_trace("%s - trying to unlock play card game first time achievement\n", __func__);
+    int ach = getAchievementIdByVersion(CARDGAME_FIRST_TIME, NEW_ACHIEVEMENT_1_6);
 
-    if (!(this->steamManager->isAchieved(CARDGAME_FIRST_TIME)))
-        this->steamManager->setAchievement(CARDGAME_FIRST_TIME);
+    if (!(this->steamManager->isAchieved(ach)))
+        this->steamManager->setAchievement(ach);
 }
 
 void SteamAchievementsFF8::unlockLoserTripleTriadAchievement(const savemap_ff8_triple_triad &tt_data)
@@ -711,20 +776,29 @@ void SteamAchievementsFF8::unlockLoserTripleTriadAchievement(const savemap_ff8_t
         bool owned = tt_data.card_locations[i] == SQUALL_CARD_LOCATION && (tt_data.cards_rare[i / 8] & (1 << i % 8)) > 0;
         if (!owned && this->prevOwnedRareCards[i]) {
             ach_trace("%s - LOSER achievement unlocked due to card id '%d' lost\n", __func__, i);
+            int ach = getAchievementIdByVersion(LOSER, NEW_ACHIEVEMENT_1_19);
 
-            if (!(this->steamManager->isAchieved(LOSER)))
-                this->steamManager->setAchievement(LOSER);
+            if (!(this->steamManager->isAchieved(ach)))
+                this->steamManager->setAchievement(ach);
         }
     }
 }
 
 void SteamAchievementsFF8::increaseCardWinsAndUnlockProfessionalAchievement()
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     this->increaseUserStatAndTryUnlockAchievement(PROFESSIONAL, WON_CARDGAME_STAT_NAME, 100);
 }
 
 void SteamAchievementsFF8::unlockCollectorTripleTriadAchievement(const savemap_ff8_triple_triad &tt_data)
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     ach_trace("%s - trying to unlock collector card game achievement\n", __func__);
     if (this->steamManager->isAchieved(COLLECT_ALL_CARDS)) {
       return;
@@ -758,14 +832,15 @@ void SteamAchievementsFF8::unlockGuardianForceAchievement(int gf_idx)
     }
 
     ach_trace("%s - trying to unlock guardian force achievement (gf id: %d)\n", __func__, gf_idx);
-    this->steamManager->setAchievement(gfIndexToAchMap[gf_idx]);
+    int achId = (this->isRemastered) ? (int)this->gfIndexToAchRemasteredMap[gf_idx] : (int)this->gfIndexToAchMap[gf_idx];
+    this->steamManager->setAchievement(achId);
 }
 
 void SteamAchievementsFF8::unlockTopSeedRankAchievement(WORD seed_exp)
 {
     ach_trace("%s - trying to unlock seed rank A achivement (seed exp: %d)\n", __func__, seed_exp);
     if (seed_exp >= MAX_SEED_EXP) {
-        this->steamManager->setAchievement(REACH_SEED_RANK_A);
+        this->steamManager->setAchievement(getAchievementIdByVersion(REACH_SEED_RANK_A, NEW_ACHIEVEMENT_2_1));
     }
 }
 
@@ -780,7 +855,7 @@ void SteamAchievementsFF8::unlockUpgradeWeaponAchievement(const savemap_ff8 &sav
     ach_trace("%s - trying to unlock handyman achivement (new weapon id: %d, old weapon id: %d)\n",
               __func__, weaponId, this->prevWeaponUpgradeData.prev_weapon_id);
     if (weaponId > this->prevWeaponUpgradeData.prev_weapon_id) {
-        this->steamManager->setAchievement(UPGRADE_WEAPON_FIRST_TIME);
+        this->steamManager->setAchievement(getAchievementIdByVersion(UPGRADE_WEAPON_FIRST_TIME, NEW_ACHIEVEMENT_1_5));
     }
 
     this->prevWeaponUpgradeData.char_id = 0xFF;
@@ -792,13 +867,17 @@ void SteamAchievementsFF8::unlockMaxHpAchievement(int max_hp)
     ach_trace("%s - trying to unlock maximum HP achivement (max hp: %d)\n", __func__, max_hp);
 
     if (max_hp >= MAX_HP) {
-        this->steamManager->setAchievement(REACH_MAX_HP);
+        this->steamManager->setAchievement(getAchievementIdByVersion(REACH_MAX_HP, NEW_ACHIEVEMENT_1_9));
     }
     this->statCharId = 0xFF;
 }
 
 void SteamAchievementsFF8::unlockMaxGilAchievement(uint32_t gil)
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     ach_trace("%s - trying to unlock maximum gil achivement (gil: %d)\n", __func__, gil);
 
     if (gil >= MAX_GIL) {
@@ -808,6 +887,10 @@ void SteamAchievementsFF8::unlockMaxGilAchievement(uint32_t gil)
 
 void SteamAchievementsFF8::unlockTopLevelAchievement(int level)
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     ach_trace("%s - trying to unlock top level achivement (level: %d)\n", __func__, level);
 
     if (level == MAX_LEVEL) {
@@ -815,60 +898,98 @@ void SteamAchievementsFF8::unlockTopLevelAchievement(int level)
     }
 }
 
-void SteamAchievementsFF8::increaseKillsAndTryUnlockAchievement()
+void SteamAchievementsFF8::increaseKillsAndTryUnlockAchievement(const savemap_ff8 &savemap)
 {
-    if (this->steamManager->isAchieved(TOTAL_KILLS_10000))
-    {
-        return;
+    int new_kills = 0;
+    if (this->isRemastered) {
+        for (int i = 0; i < G_FORCE_NUM; i++) {
+            new_kills += savemap.gfs[i].kills;
+        }
+        for (int i = 0; i < CHAR_NUM; i++) {
+            new_kills += savemap.chars[i].kills;
+        }
+        new_kills++;
+    } else {
+        auto opt_kills = this->steamManager->getUserStat(ENEMY_KILLED_STAT_NAME);
+        if (!opt_kills.has_value()) {
+            ffnx_error("%s - failed to get %s stat\n", __func__, ENEMY_KILLED_STAT_NAME.c_str());
+            return;
+        }
+
+        new_kills += opt_kills.value() + 1;
+        this->steamManager->updateUserStat(ENEMY_KILLED_STAT_NAME, new_kills);
     }
 
-    auto opt_kills = this->steamManager->getUserStat(ENEMY_KILLED_STAT_NAME);
-    if (!opt_kills.has_value()) {
-        ffnx_error("%s - failed to get %s stat\n", __func__, ENEMY_KILLED_STAT_NAME.c_str());
-        return;
-    }
-
-    int new_kills = opt_kills.value() + 1;
     ach_trace("%s - trying to unlock kills achivements (kills: %d)\n", __func__, new_kills);
-    this->steamManager->updateUserStat(ENEMY_KILLED_STAT_NAME, new_kills);
-
+    int achId100 = getAchievementIdByVersion(TOTAL_KILLS_100, NEW_ACHIEVEMENT_1_10);
+    int achId1000 = getAchievementIdByVersion(TOTAL_KILLS_1000, NEW_ACHIEVEMENT_1_22);
     if (new_kills >= 100)
     {
-        this->steamManager->setAchievement(TOTAL_KILLS_100);
+        this->steamManager->setAchievement(achId100);
     }
     else if (new_kills % 10 == 0) {
-        this->steamManager->showAchievementProgress(TOTAL_KILLS_100, new_kills, 100);
+        this->steamManager->showAchievementProgress(achId100, new_kills, 100);
     }
 
     if (new_kills >= 1000)
     {
-        this->steamManager->setAchievement(TOTAL_KILLS_1000);
+        this->steamManager->setAchievement(achId1000);
     }
     else if (new_kills > 100 && new_kills % 100 == 0) {
-        this->steamManager->showAchievementProgress(TOTAL_KILLS_1000, new_kills, 1000);
+        this->steamManager->showAchievementProgress(achId1000, new_kills, 1000);
     }
 
-    if (new_kills >= 10000)
+    if (!this->isRemastered && new_kills >= 10000)
     {
         this->steamManager->setAchievement(TOTAL_KILLS_10000);
     }
 }
 
-void SteamAchievementsFF8::increaseMagicStockAndTryUnlockAchievement()
+void SteamAchievementsFF8::increaseMagicStockAndTryUnlockAchievement(savemap_ff8 &savemap)
 {
-    this->increaseUserStatAndTryUnlockAchievement(DRAW_100_MAGIC, STOCK_MAGIC_STAT_NAME, 100, true);
+    if (this->isRemastered) {
+        byte draw_count = savemap.header.curr_disk.bytes.draw_magic_storage + 1;
+
+        ach_trace("%s - trying to unlock DRAW_100_MAGIC achivement (count: %d)\n", __func__, draw_count);
+
+        if (draw_count >= 100)
+        {
+            this->steamManager->setAchievement(NEW_ACHIEVEMENT_1_12);
+        }
+        else if (draw_count % 10 == 0)
+        {
+            this->steamManager->showAchievementProgress(NEW_ACHIEVEMENT_1_12, draw_count, 100);
+        }
+    } else {
+        this->increaseUserStatAndTryUnlockAchievement(DRAW_100_MAGIC, STOCK_MAGIC_STAT_NAME, 100, true);
+    }
 }
 
-void SteamAchievementsFF8::increaseMagicDrawsAndTryUnlockAchievement()
+void SteamAchievementsFF8::increaseMagicDrawsAndTryUnlockAchievement(savemap_ff8 &savemap)
 {
-    this->increaseUserStatAndTryUnlockAchievement(MAGIC_FINDER, DRAW_MAGIC_STAT_NAME, 100, true);
+    if (this->isRemastered) {
+        byte draw_count = savemap.header.curr_disk.bytes.magic_finder_storage + 1;
+
+        ach_trace("%s - trying to unlock MAGIC_FINDER achivement (count: %d)\n", __func__, draw_count);
+
+        if (draw_count >= 100)
+        {
+            this->steamManager->setAchievement(NEW_ACHIEVEMENT_1_24);
+        }
+        else if (draw_count % 10 == 0)
+        {
+            this->steamManager->showAchievementProgress(NEW_ACHIEVEMENT_1_24, draw_count, 100);
+        }
+    } else {
+        this->increaseUserStatAndTryUnlockAchievement(MAGIC_FINDER, DRAW_MAGIC_STAT_NAME, 100, true);
+    }
 }
 
 void SteamAchievementsFF8::unlockTimberManiacsAchievement(WORD timber_maniacs_bitmap)
 {
     ach_trace("%s - trying to unlock timber maniacs achivement (timber maniacs: 0x%x)\n", __func__, timber_maniacs_bitmap);
     if ((timber_maniacs_bitmap & 0x3FFF) == 0x3FFE || (timber_maniacs_bitmap & 0x3FFF) == 0x3FFD) {
-        this->steamManager->setAchievement(TIMBER_MANIACS);
+        this->steamManager->setAchievement(getAchievementIdByVersion(TIMBER_MANIACS, NEW_ACHIEVEMENT_1_25));
     }
 }
 
@@ -876,11 +997,15 @@ void SteamAchievementsFF8::unlockFirstSalaryAchievement()
 {
     ach_trace("%s - trying to unlock first salary achivement\n", __func__);
 
-    this->steamManager->setAchievement(SEED_FIRST_SALARY);
+    this->steamManager->setAchievement(getAchievementIdByVersion(SEED_FIRST_SALARY, NEW_ACHIEVEMENT_1_7));
 }
 
 void SteamAchievementsFF8::unlockQuistisLimitBreaksAchievement(WORD quistis_lb_bitmap)
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     ach_trace("%s - trying to unlock quistis limit breaks achivement (quistis lb: 0x%x)\n", __func__, quistis_lb_bitmap);
 
     if (quistis_lb_bitmap == 0xFFFF) {
@@ -890,6 +1015,10 @@ void SteamAchievementsFF8::unlockQuistisLimitBreaksAchievement(WORD quistis_lb_b
 
 void SteamAchievementsFF8::unlockRinoaLimitBreaksAchievement(byte rinoa_completed_lb)
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     ach_trace("%s - trying to unlock rinoa limit breaks achivement (completed lb: 0x%x)\n", __func__, rinoa_completed_lb);
 
     if (rinoa_completed_lb == 0xFF) {
@@ -901,7 +1030,7 @@ void SteamAchievementsFF8::unlockOmegaDestroyedAchievement()
 {
     ach_trace("%s - trying to unlock omega destroyed achivement\n", __func__);
 
-    this->steamManager->setAchievement(BEAT_OMEGA_WEAPON);
+    this->steamManager->setAchievement(getAchievementIdByVersion(BEAT_OMEGA_WEAPON, NEW_ACHIEVEMENT_1_23));
 }
 
 void SteamAchievementsFF8::unlockPupuQuestAchievement(byte pupu_encounter_bitmap)
@@ -909,12 +1038,16 @@ void SteamAchievementsFF8::unlockPupuQuestAchievement(byte pupu_encounter_bitmap
     ach_trace("%s - trying to unlock UFO achivement (pupu encounter var: 0x%x)\n", __func__, pupu_encounter_bitmap);
 
     if ((pupu_encounter_bitmap & 0xFC) == 0xFC) {
-        this->steamManager->setAchievement(UFO);
+        this->steamManager->setAchievement(getAchievementIdByVersion(UFO, NEW_ACHIEVEMENT_2_2));
     }
 }
 
 void SteamAchievementsFF8::unlockChocoLootAchievement()
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     ach_trace("%s - trying to unlock choco loot achivement\n", __func__);
 
     this->steamManager->setAchievement(CHOCORPG_FIRST_ITEM);
@@ -922,6 +1055,10 @@ void SteamAchievementsFF8::unlockChocoLootAchievement()
 
 void SteamAchievementsFF8::unlockTopLevelBokoAchievement(byte boko_lvl)
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     ach_trace("%s - trying to unlock top level boko achivement (boko lvl: %d)\n", __func__, boko_lvl);
 
     if (boko_lvl >= 100) {
@@ -933,7 +1070,7 @@ void SteamAchievementsFF8::unlockChocoboAchievement()
 {
     ach_trace("%s - trying to unlock chocobo achivement\n", __func__);
 
-    this->steamManager->setAchievement(CAPTURE_CHOCOBO_FIRST_TIME);
+    this->steamManager->setAchievement(getAchievementIdByVersion(CAPTURE_CHOCOBO_FIRST_TIME, NEW_ACHIEVEMENT_1_11));
 }
 
 void SteamAchievementsFF8::unlockCardClubMasterAchievement(const savemap_ff8_field &savemap_field)
@@ -942,7 +1079,7 @@ void SteamAchievementsFF8::unlockCardClubMasterAchievement(const savemap_ff8_fie
     ach_trace("%s - trying to unlock card club master achivement (cc king unlocked: %d)\n", __func__, cc_king_unlocked);
 
     if (cc_king_unlocked) {
-        this->steamManager->setAchievement(CARDS_CLUB_MASTER);
+        this->steamManager->setAchievement(getAchievementIdByVersion(CARDS_CLUB_MASTER, NEW_ACHIEVEMENT_1_20));
     }
 }
 
@@ -950,37 +1087,41 @@ void SteamAchievementsFF8::unlockObelLakeQuestAchievement()
 {
     ach_trace("%s - trying to unlock obel lake quest achivement\n", __func__);
 
-    this->steamManager->setAchievement(OBEL_LAKE_SECRET);
+    this->steamManager->setAchievement(getAchievementIdByVersion(OBEL_LAKE_SECRET, NEW_ACHIEVEMENT_1_21));
 }
 
 void SteamAchievementsFF8::unlockRagnarokAchievement()
 {
     ach_trace("%s - trying to unlock ragnarok achivement\n", __func__);
 
-    this->steamManager->setAchievement(FOUND_RAGNAROK);
+    this->steamManager->setAchievement(getAchievementIdByVersion(FOUND_RAGNAROK, NEW_ACHIEVEMENT_2_0));
 }
 
 void SteamAchievementsFF8::unlockEndOfGameAchievement(int squall_lvl)
 {
     ach_trace("%s - trying to unlock end of game achivement (squall_lvl: %d)\n", __func__, squall_lvl);
 
-    this->steamManager->setAchievement(FINISH_THE_GAME);
+    this->steamManager->setAchievement(getAchievementIdByVersion(FINISH_THE_GAME, NEW_ACHIEVEMENT_1_29));
 
-    if (squall_lvl == 7) {
+    if (!this->isRemastered && squall_lvl == 7) {
         this->steamManager->setAchievement(FINISH_THE_GAME_INITIAL_LEVEL);
     }
 }
 
-void SteamAchievementsFF8::unlockMagazineAddictAchievement(const savemap_ff8_items &items)
+void SteamAchievementsFF8::unlockMagazineAddictAchievement(std::span<const savemap_ff8_item> items)
 {
+    if (this->isRemastered) {
+        return;
+    }
+
     std::unordered_set<uint8_t> magazines_found = {};
-    for (int i = 0; i < ITEM_SLOTS; i++) {
-        if (itemIsMagazine(items.items[i].item_id) && items.items[i].item_quantity > 0) {
-            magazines_found.insert(items.items[i].item_id);
+    for (const auto &item : items) {
+        if (itemIsMagazine(item.item_id) && item.item_quantity > 0) {
+            magazines_found.insert(item.item_id);
         }
     }
     ach_trace("%s - trying to unlock magazine addict achivement (magazines found: %d)\n", __func__, magazines_found.size());
- 
+
     if (magazines_found.size() >= MAGAZINES_TO_COLLECT) {
         this->steamManager->setAchievement(MAGAZINES_ADDICT);
     }
@@ -991,7 +1132,7 @@ bool SteamAchievementsFF8::itemIsMagazine(uint8_t item_id) {
 }
 
 // Private methods
-void SteamAchievementsFF8::increaseUserStatAndTryUnlockAchievement(Achievements achId, const std::string &statName, int achValue, bool showAchievementProgress)
+void SteamAchievementsFF8::increaseUserStatAndTryUnlockAchievement(int achId, const std::string &statName, int achValue, bool showAchievementProgress)
 {
     if (this->steamManager->isAchieved(achId))
     {
@@ -1017,4 +1158,3 @@ void SteamAchievementsFF8::increaseUserStatAndTryUnlockAchievement(Achievements 
         this->steamManager->showAchievementProgress(achId, new_stat_value, achValue);
     }
 }
-

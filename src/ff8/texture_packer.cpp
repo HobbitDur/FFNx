@@ -20,6 +20,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 #include <set>
+#include <algorithm>
 
 #include "texture_packer.h"
 #include "../saveload.h"
@@ -147,14 +148,16 @@ void TexturePacker::setVramTextureId(ModdedTextureId textureId, int xBpp2, int y
 	}
 }
 
-bool TexturePacker::setTexture(const char *name, const TextureInfos &texture, const TextureInfos &palette, int textureCount, bool clearOldTexture)
+bool TexturePacker::setTexture(const char *name, const char *remasteredName, const TextureInfos &texture, const TextureInfos &palette, int textureCount, int8_t *rgbaModifier, bool clearOldTexture)
 {
-	bool hasNamedTexture = name != nullptr && *name != '\0';
+	bool hasNamedTexture = name != nullptr && *name != '\0',
+		hasRemasteredNamedTexture = remasteredName != nullptr && *remasteredName != '\0';
 
-	if (trace_all || trace_vram) ffnx_trace("TexturePacker::%s %s xBpp2=%d y=%d wBpp2=%d h=%d bpp=%d xPal=%d yPal=%d wPal=%d hPal=%d textureCount=%d clearOldTexture=%d\n", __func__,
+	if (trace_all || trace_vram) ffnx_trace("TexturePacker::%s %s xBpp2=%d y=%d wBpp2=%d h=%d bpp=%d xPal=%d yPal=%d wPal=%d hPal=%d textureCount=%d clearOldTexture=%d remastered=%s\n", __func__,
 		hasNamedTexture ? name : "N/A",
 		texture.x(), texture.y(), texture.w(), texture.h(), texture.bpp(),
-		palette.x(), palette.y(), palette.w(), palette.h(), textureCount, clearOldTexture);
+		palette.x(), palette.y(), palette.w(), palette.h(), textureCount, clearOldTexture,
+		hasRemasteredNamedTexture ? remasteredName : "N/A");
 
 	ModdedTextureId textureId = makeTextureId(texture.x(), texture.y());
 	setVramTextureId(textureId, texture.x(), texture.y(), texture.w(), texture.h(), clearOldTexture);
@@ -164,13 +167,13 @@ bool TexturePacker::setTexture(const char *name, const TextureInfos &texture, co
 		setVramTextureId(makeTextureId(texture.x(), texture.y(), true), palette.x(), palette.y(), palette.w(), palette.h(), clearOldTexture);
 	}
 
-	IdentifiedTexture tex(name, texture, palette);
+	IdentifiedTexture tex(name, texture, palette, remasteredName);
 
 	if (hasNamedTexture && textureCount != 0)
 	{
 		TextureModStandard *mod = new TextureModStandard(tex);
 
-		if (mod->createImages(textureCount))
+		if (mod->createImages(textureCount, 1, rgbaModifier))
 		{
 			tex.setMod(mod);
 		}
@@ -348,7 +351,7 @@ void TexturePacker::animateTextureByCopy(int sourceXBpp2, int sourceY, int sourc
 			{
 				dynamic_cast<TextureModStandard *>(itTarget->second.mod())->forceCurrentPalette(sourceY - it->second.palette().y());
 			}
-			else if (it->second.mod() != nullptr && it->second.mod()->canCopyRect())
+			else if (it->second.mod() != nullptr && it->second.mod()->canCopyRect() && it->second.remasteredName().empty())
 			{
 				dynamic_cast<TextureModStandard *>(it->second.mod())->copyRect(
 					sourceXBpp2, sourceY, sourceWBpp2, sourceH, targetXBpp2, targetY,
@@ -363,7 +366,7 @@ void TexturePacker::animateTextureByCopy(int sourceXBpp2, int sourceY, int sourc
 		{
 			dynamic_cast<TextureModStandard *>(it->second.mod())->forceCurrentPalette(sourceY - it->second.palette().y());
 		}
-		else
+		else if (it->second.remasteredName().empty())
 		{
 			dynamic_cast<TextureModStandard *>(it->second.mod())->copyRect(
 				sourceXBpp2, sourceY, sourceWBpp2, sourceH, targetXBpp2, targetY
@@ -526,7 +529,8 @@ std::list<TexturePacker::IdentifiedTexture> TexturePacker::matchTextures(const T
 
 uint32_t TexturePacker::composeTextures(
 	const uint8_t *texData, uint32_t *rgbaImageData, int originalW, int originalH,
-	int palIndex, uint32_t* width, uint32_t* height, struct gl_texture_set* gl_set, bool *isExternal) const
+	int palIndex, uint32_t* width, uint32_t* height, struct gl_texture_set* gl_set, bool *isExternal,
+	const char *textureName, uint32_t savePaletteIndex) const
 {
 	if (trace_all || trace_vram) ffnx_trace("TexturePacker::%s texData=0x%X originalSize=(%d, %d) palIndex=%d\n", __func__, texData, originalW, originalH, palIndex);
 
@@ -626,7 +630,6 @@ uint32_t TexturePacker::composeTextures(
 	TextureTypes textureType = drawTextures(textures, tiledTex, palette, target, originalW, originalH, scale);
 
 	if (trace_all || trace_vram) ffnx_trace("TexturePacker::%s tex=(%d, %d) bpp=%d paletteVram=(%d, %d) drawnTextureTypes=0x%X scale=%d\n", __func__, tiledTex.x(), tiledTex.y(), tiledTex.bpp(), palette.x(), palette.y(), textureType, scale);
-
 	if (textureType == TexturePacker::InternalTexture || (!save_textures && textureType == TexturePacker::ExternalTexture))
 	{
 		*isExternal = textureType == TexturePacker::ExternalTexture;
@@ -634,7 +637,17 @@ uint32_t TexturePacker::composeTextures(
 		*height = originalH * scale;
 		// Data is passed to bgfx, not need to free it here
 		bool copyData = target == rgbaImageData;
-		return newRenderer.createTexture(reinterpret_cast<uint8_t *>(target), *width, *height, 0, RendererTextureType::BGRA, true, copyData);
+		if (save_gpu_textures && textureName != nullptr)
+		{
+			save_gpu_texture(target, *width * *height * sizeof(uint32_t), *width, *height, savePaletteIndex, textureName, gl_set != nullptr && gl_set->is_animated);
+		}
+		std::string debugName;
+		if ((uint32_t)textureName > 32)
+		{
+			debugName = get_gpu_texture_name(target, *width * *height * sizeof(uint32_t), savePaletteIndex,
+				textureName, gl_set != nullptr && gl_set->is_animated);
+		}
+		return newRenderer.createTexture(reinterpret_cast<uint8_t *>(target), *width, *height, 0, RendererTextureType::BGRA, true, copyData, debugName.empty() ? nullptr : debugName.c_str());
 	}
 
 	if (target != nullptr && target != rgbaImageData)
@@ -785,7 +798,7 @@ TexturePacker::TiledTex::TiledTex(
 }
 
 TexturePacker::IdentifiedTexture::IdentifiedTexture() :
-	_texture(TextureInfos()), _palette(TextureInfos()), _name(""), _mod(nullptr),
+	_texture(TextureInfos()), _palette(TextureInfos()), _name(""), _remasteredName(""), _mod(nullptr),
 	_frameId(-1), _isAnimated(false)
 {
 }
@@ -793,8 +806,10 @@ TexturePacker::IdentifiedTexture::IdentifiedTexture() :
 TexturePacker::IdentifiedTexture::IdentifiedTexture(
 	const char *name,
 	const TextureInfos &texture,
-	const TextureInfos &palette
-) : _texture(texture), _palette(palette), _name(name == nullptr ? "" : name), _mod(nullptr),
+	const TextureInfos &palette,
+	const char *remasteredName
+) : _texture(texture), _palette(palette), _name(name == nullptr ? "" : name),
+	_remasteredName(remasteredName == nullptr ? "" : remasteredName), _mod(nullptr),
     _frameId(-1), _isAnimated(false)
 {
 }
@@ -818,6 +833,10 @@ void TexturePacker::IdentifiedTexture::setCurrentAnimationFrame(int frameId)
 {
 	_frameId = frameId;
 	_isAnimated = true;
+	if (TextureModStandard *mod = dynamic_cast<TextureModStandard *>(_mod))
+	{
+		mod->setCurrentAnimationFrame(_frameId);
+	}
 }
 
 void TexturePacker::IdentifiedTexture::setCurrentAnimationFrame(int xBpp2, int y, int wBpp2, int h)
@@ -833,5 +852,9 @@ void TexturePacker::IdentifiedTexture::setCurrentAnimationFrame(int xBpp2, int y
 	else
 	{
 		_frameId = std::distance(_frames.begin(), it);
+	}
+	if (TextureModStandard *mod = dynamic_cast<TextureModStandard *>(_mod))
+	{
+		mod->setCurrentAnimationFrame(_frameId);
 	}
 }
