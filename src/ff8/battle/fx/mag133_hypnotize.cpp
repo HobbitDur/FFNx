@@ -62,8 +62,8 @@
 // PC SCREEN UNITS: the PC's software GTE gives screen coordinates in eighths of a pixel
 // (GTE_RTPS 0x45FAA0: 8 x H x / z + 8 OFX); the main layout's frame takes them as the PSX's
 // pixels, so on PC its translation lands 8 times the caster's screen offset out (off screen) and
-// its basis leans out as much. HypnotizeParams main.pixels takes them back to pixels first, as
-// the PSX had them: on by default on branch PCScreenUnitsFix (0: the PC as it was).
+// its basis leans out as much. HypnotizeParams main.pixels (on by default) takes them back to
+// pixels first, as the PSX had them; 0 keeps the PC's behaviour.
 // Parameters (HypnotizeParams, fx_params.h): the numbers below, one struct per part, defaults =
 // the game's; the parts are tagged (FX_PART) for the effect lab.
 
@@ -145,7 +145,7 @@ namespace hypno133
 	};
 	static const HypnotizeParams DEFAULTS = {
 		{ 0, 0x22, 0x2A },
-		{ 0x1D, 12, 16, 4, 1 },       // PC SCREEN UNITS: pixels on
+		{ 0x1D, 12, 16, 4, 1 },
 		{ { 0, 0xF }, 2 },
 		{ { { 2, 0x16 }, 2 }, { -0x400, 0x3FF }, { 0x800, 0xFFF }, -0x80 },
 		{ { { 0x12, 0x29 }, 2 }, 0xF0, { -0x100, 0xFF }, { -0x180, 0x7F }, { -0x100, 0xFF }, 0xE },

@@ -12,6 +12,10 @@
 
 - Core: Add native support for japanese text rendering ( https://github.com/julianxhokaxhiu/FFNx/pull/737 + https://github.com/julianxhokaxhiu/FFNx/pull/925 ) 
 
+## FF8
+
+- Battle: Fix the missing light on Cure, Cura, Potion and Hi-Potion, and the missing swirl on Hypnotize
+
 # 1.24.3
 
 - Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.24.2...1.24.3

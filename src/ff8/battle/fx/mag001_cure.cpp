@@ -58,15 +58,6 @@
 // block 0x278C7A0, overlay context 0x278C7E8), the effect library's glint cursor address 0x2792E74
 // and camera snapshot 0x2793E58.
 
-// PC SCREEN UNITS (branch PCScreenUnitsFix): the PC's software GTE gives screen coordinates in
-// eighths of a pixel (GTE_RTPS 0x45FAA0: 8 x H x / z + 8 OFX) where the PSX gave pixels. The
-// overlay's light pass tests its projected vertices against a window in PSX pixels (around 160,
-// 120), so on PC no polygon ever passed and the light never drew; they are taken back to pixels
-// first (PsxPixels). And the PC draws by depth keys (far first), not by the ordering table: the
-// light's auto depth keys were the PROJECTOR's (its RTPT runs last), far behind the model it lies
-// on, so it would draw under it; it takes its polygon's camera keys and is inserted after it, so
-// it draws over it as the PSX's ordering table had it.
-
 #include "mag_common.h"
 #include "fx_params.h"
 
@@ -474,7 +465,7 @@ namespace cure001
 	{
 		for (int v = 0; v < count; v++)
 		{
-			const int16_t x = PsxPixels(F<int16_t>(s, 0x40 + 4 * v));      // PC SCREEN UNITS
+			const int16_t x = PsxPixels(F<int16_t>(s, 0x40 + 4 * v));
 			if (x < F<int16_t>(s, 0xC0) || x > F<int16_t>(s, 0xC2)) return false;
 			const int16_t y = PsxPixels(F<int16_t>(s, 0x42 + 4 * v));
 			if (y < F<int16_t>(s, 0xC4) || y > F<int16_t>(s, 0xC6)) return false;
@@ -581,7 +572,7 @@ namespace cure001
 			uint8_t *fp = (uint8_t *)fcur;
 			for (int32_t t = tris; t > 0; t--, poly += 0x10)
 			{
-				uint8_t *light = nullptr;     // PC SCREEN UNITS: inserted after its triangle
+				uint8_t *light = nullptr; // drawn over the model polygon, with its depth
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
@@ -638,7 +629,7 @@ namespace cure001
 			}
 			for (int32_t q = quads; q > 0; q--, poly += 0x14)
 			{
-				uint8_t *light = nullptr;     // PC SCREEN UNITS: inserted after its quad
+				uint8_t *light = nullptr; // drawn over the model polygon, with its depth
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
