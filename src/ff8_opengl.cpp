@@ -2650,6 +2650,15 @@ static void ff8_bgate_pose_held(void *header, void *anim_cmd, int k, int div)
 // exactly the vanilla state. A completed animation has no next frame in its own stream (the
 // sequence script decides what plays next): it holds its last pose for that half tick, as
 // vanilla shows it until the next tick.
+// Per-bone scales: every frame of the stream carries its own scale flag (skeleton +1 bit 0,
+// written by the reader at 0x50905E / 0x509169; set: the frame's scales follow its rotations,
+// as absolute values). BattleModel_BuildBoneMatricesFromPose builds an unscaled pose exactly as
+// the same pose with the flag set and every scale 1024 (bit-identical bone matrices on every
+// frame of every battle model: work\posemid oracle), so the flag only says "all scales 1024":
+// the in-between of a frame pair whose flag changes is the scaled pose with the unscaled side's
+// scales taken as 1024 (no N / N+1 pick needed; the flag is never half way, the scales are).
+// At fraction 1 the next frame's pose is built exactly as the reader left it (its flag, its
+// own spelling of every angle): the bone matrices are the next tick's, bit for bit.
 static uint8_t ff8_bgate_la_skel_save[16 + 48 * FF8_BGATE_POSE_BONES];
 
 static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int div)
@@ -2662,47 +2671,63 @@ static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int di
 		return;
 	}
 	int nb = sk[0];
-	bool scaled = (sk[1] & 1) != 0;
 	uint32_t size = 16 + 48 * nb;
 	uint8_t cmd_save[8];
 	memcpy(cmd_save, cmd, 8);
 	memcpy(ff8_bgate_la_skel_save, sk, size);
 	static ff8_bgate_pose_t cur, next, mid;
-	ff8_bgate_pose_read(sk, nb, scaled, cur);
+	const bool cur_scaled = (sk[1] & 1) != 0;
+	ff8_bgate_pose_read(sk, nb, true, cur); // scale words too, whatever the flag (put back as they were)
 	unreplace_function(ff8_bgate_readanim_ri);
 	ff8_bgate_readanim_guarded(header, anim_cmd);
 	rereplace_function(ff8_bgate_readanim_ri);
-	ff8_bgate_pose_read(sk, nb, scaled, next);
+	const bool next_scaled = (sk[1] & 1) != 0; // the flag of the frame just read
+	ff8_bgate_pose_read(sk, nb, true, next);
 	memcpy(sk, ff8_bgate_la_skel_save, size);
 	memcpy(cmd, cmd_save, 8);
-	for (int a = 0; a < 3; a++)
-		mid.root[a] = (int16_t)(cur.root[a] + ff8_bgate_scale_round(next.root[a] - cur.root[a], k, div));
-	for (int b = 0; b < nb; b++)
+	bool mid_scaled;
+	if (k >= div)
 	{
-		// a bone rotation Ry(-y) Rx(-x) Rz(z) is also written (2048 - x, y + 2048, z + 2048): the
-		// animation data switches between the two near x = +-1024, and blending the numbers across
-		// such a switch turns the bone half way round; blend toward the spelling of the next pose
-		// nearer the current one (each angle the shortest way round)
-		int d[3], e[3], sd = 0, se = 0;
-		for (int a = 0; a < 3; a++)
-		{
-			d[a] = ((next.v[b][a] - cur.v[b][a] + 2048) & 4095) - 2048;
-			sd += d[a] < 0 ? -d[a] : d[a];
-		}
-		e[0] = ((2048 - next.v[b][0] - cur.v[b][0] + 2048) & 4095) - 2048;
-		e[1] = ((next.v[b][1] - cur.v[b][1]) & 4095) - 2048;
-		e[2] = ((next.v[b][2] - cur.v[b][2]) & 4095) - 2048;
-		for (int a = 0; a < 3; a++) se += e[a] < 0 ? -e[a] : e[a];
-		const int *dd = se < sd ? e : d;
-		for (int a = 0; a < 3; a++)
-			mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(dd[a], k, div));
-		if (scaled)
-			for (int a = 3; a < 6; a++)
-				mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(next.v[b][a] - cur.v[b][a], k, div));
+		mid = next; // fraction 1: the next frame as read
+		mid_scaled = next_scaled;
 	}
-	ff8_bgate_pose_write(sk, nb, scaled, mid);
+	else
+	{
+		mid_scaled = cur_scaled || next_scaled;
+		for (int a = 0; a < 3; a++)
+			mid.root[a] = (int16_t)(cur.root[a] + ff8_bgate_scale_round(next.root[a] - cur.root[a], k, div));
+		for (int b = 0; b < nb; b++)
+		{
+			// a bone rotation Ry(-y) Rx(-x) Rz(z) is also written (2048 - x, y + 2048, z + 2048): the
+			// animation data switches between the two near x = +-1024, and blending the numbers across
+			// such a switch turns the bone half way round; blend toward the spelling of the next pose
+			// nearer the current one (each angle the shortest way round)
+			int d[3], e[3], sd = 0, se = 0;
+			for (int a = 0; a < 3; a++)
+			{
+				d[a] = ((next.v[b][a] - cur.v[b][a] + 2048) & 4095) - 2048;
+				sd += d[a] < 0 ? -d[a] : d[a];
+			}
+			e[0] = ((2048 - next.v[b][0] - cur.v[b][0] + 2048) & 4095) - 2048;
+			e[1] = ((next.v[b][1] - cur.v[b][1]) & 4095) - 2048;
+			e[2] = ((next.v[b][2] - cur.v[b][2]) & 4095) - 2048;
+			for (int a = 0; a < 3; a++) se += e[a] < 0 ? -e[a] : e[a];
+			const int *dd = se < sd ? e : d;
+			for (int a = 0; a < 3; a++)
+				mid.v[b][a] = (int16_t)(cur.v[b][a] + ff8_bgate_scale_round(dd[a], k, div));
+			if (mid_scaled)
+				for (int a = 3; a < 6; a++)
+				{
+					const int c = cur_scaled ? cur.v[b][a] : 1024, n = next_scaled ? next.v[b][a] : 1024;
+					mid.v[b][a] = (int16_t)(c + ff8_bgate_scale_round(n - c, k, div));
+				}
+		}
+	}
+	sk[1] = (uint8_t)((sk[1] & ~1) | (mid_scaled ? 1 : 0));
+	ff8_bgate_pose_write(sk, nb, mid_scaled, mid);
 	((void(__cdecl *)(void *))0x508C90)(header); // BattleModel_BuildBoneMatricesFromPose
-	ff8_bgate_pose_write(sk, nb, scaled, cur);
+	sk[1] = ff8_bgate_la_skel_save[1];
+	ff8_bgate_pose_write(sk, nb, true, cur);
 }
 
 namespace ff8fx
