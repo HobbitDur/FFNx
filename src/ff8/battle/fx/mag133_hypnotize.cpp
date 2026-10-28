@@ -62,8 +62,8 @@
 // PC SCREEN UNITS: the PC's software GTE gives screen coordinates in eighths of a pixel
 // (GTE_RTPS 0x45FAA0: 8 x H x / z + 8 OFX); the main layout's frame takes them as the PSX's
 // pixels, so on PC its translation lands 8 times the caster's screen offset out (off screen) and
-// its basis leans out as much. HypnotizeParams main.pixels (off: the PC as it is) takes them back
-// to pixels first, as the PSX had them.
+// its basis leans out as much. HypnotizeParams main.pixels takes them back to pixels first, as
+// the PSX had them: on by default on branch PCScreenUnitsFix (0: the PC as it was).
 // Parameters (HypnotizeParams, fx_params.h): the numbers below, one struct per part, defaults =
 // the game's; the parts are tagged (FX_PART) for the effect lab.
 
@@ -145,7 +145,7 @@ namespace hypno133
 	};
 	static const HypnotizeParams DEFAULTS = {
 		{ 0, 0x22, 0x2A },
-		{ 0x1D, 12, 16, 4, 0 },
+		{ 0x1D, 12, 16, 4, 1 },       // PC SCREEN UNITS: pixels on
 		{ { 0, 0xF }, 2 },
 		{ { { 2, 0x16 }, 2 }, { -0x400, 0x3FF }, { 0x800, 0xFFF }, -0x80 },
 		{ { { 0x12, 0x29 }, 2 }, 0xF0, { -0x100, 0xFF }, { -0x180, 0x7F }, { -0x100, 0xFF }, 0xE },
@@ -593,7 +593,7 @@ namespace hypno133
 			HYPNO_FIELD("main", main.basis_h, "Basis depth (x H)", "Its orientation: the caster's screen offset seen at this many projection distances", I16, 1, 64),
 			HYPNO_FIELD("main", main.depth_h, "Depth (x H)", "Its distance: this many projection distances", I16, 1, 64),
 			HYPNO_FIELD("main", main.offset_shift, "Offset scale (2^n)", "The screen offset times 2^n", I16, 0, 8),
-			HYPNO_FIELD("main", main.pixels, "PSX screen units", "1: the caster's screen position in pixels as on PSX (on PC it is in eighths: the layout lands far off it)", I16, 0, 1),
+			HYPNO_FIELD("main", main.pixels, "PSX screen units", "1: the caster's screen position in pixels as on PSX; 0: in the PC's eighths, as the PC had it (the layout lands far off screen)", I16, 0, 1),
 			HYPNO_FIELD("rings", rings.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
 			HYPNO_FIELD("rings", rings.window.last, "To tick", "...to this one...", I16, 0, 200),
 			HYPNO_FIELD("rings", rings.every, "Every", "...every this many ticks (8 layouts, then they repeat)", I16, 1, 50),

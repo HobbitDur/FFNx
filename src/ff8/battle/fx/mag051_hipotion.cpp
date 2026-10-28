@@ -66,6 +66,15 @@
 // 0x262B1E8, light block 0x2634970, vertex blend buffer pointer 0x26349A8, overlay state
 // 0x26349C0..0x2634AB8); the shared battle light words 0x1D98992 + k * 0x2C.
 
+// PC SCREEN UNITS (branch PCScreenUnitsFix): the PC's software GTE gives screen coordinates in
+// eighths of a pixel (GTE_RTPS 0x45FAA0: 8 x H x / z + 8 OFX) where the PSX gave pixels. The
+// overlay's light pass tests its projected vertices against a window in PSX pixels (around 160,
+// 120), so on PC no polygon ever passed and the light never drew; they are taken back to pixels
+// first (PsxPixels). And the PC draws by depth keys (far first), not by the ordering table: the
+// light's auto depth keys were the PROJECTOR's (its RTPT runs last), far behind the model it lies
+// on, so it would draw under it; it takes its polygon's camera keys and is inserted after it, so
+// it draws over it as the PSX's ordering table had it.
+
 #include "act_engine.h"
 
 namespace ff8fx
@@ -711,6 +720,7 @@ namespace hipotion
 			// triangles (16-byte records: 3 vertex indices, +6 uv2, +8 uv0 + clut, +0xC uv1 + tpage)
 			for (int32_t c = ntri; c > 0; c--, rec += 0x10)
 			{
+				uint32_t light = 0;           // PC SCREEN UNITS: inserted after its triangle
 				U32(h, 0x9C) = U16(rec, 4) & 0xFFF;
 				U32(h, 0x98) = U16(rec, 2) & 0xFFF;
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
@@ -740,14 +750,14 @@ namespace hipotion
 					cx::GteReadSXY012(h + 0x40);
 					for (int i = 0; i < 3; i++)
 					{
-						const int16_t sx = S16(h, 0x40 + 4 * i), sy = S16(h, 0x42 + 4 * i);
+						const int16_t sx = PsxPixels(S16(h, 0x40 + 4 * i)), sy = PsxPixels(S16(h, 0x42 + 4 * i));   // PC SCREEN UNITS
 						if (sx < S16(h, 0xC0) || sx > S16(h, 0xC2) || sy < S16(h, 0xC4) || sy > S16(h, 0xC6))
 						{
 							U16(h, 0xCC) = 1;
 							break;
 						}
 						U16(h, 0x40 + 4 * i) = (uint16_t)(U16(h, 0xC8) + (uint16_t)sx);
-						U16(h, 0x42 + 4 * i) = (uint16_t)(U16(h, 0x42 + 4 * i) + U16(h, 0xCA));
+						U16(h, 0x42 + 4 * i) = (uint16_t)((uint16_t)sy + U16(h, 0xCA));
 					}
 					if (U16(h, 0xCC) == 0)
 					{
@@ -763,7 +773,7 @@ namespace hipotion
 						U32(pk, 0x10) = U32(h, 0xA8);
 						U32(pk, 4) = U32(h, 0xA8);
 						U32(pk, 0) = 0x9000000;
-						x::SSIGPU_InsertPrimAutoDepth(ot + U32(h, 0x90) * 4, pk);
+						light = pk;
 						pk += 0x28;
 					}
 				}
@@ -775,6 +785,7 @@ namespace hipotion
 				if (U8(rec, 0xF) & 2)
 					U8(ft, 7) |= 2;
 				x::SSIGPU_InsertPrimDepthKeys(ot + U32(h, 0x90) * 4, ft, sz1, sz2, sz3, 0);
+				if (light) x::SSIGPU_InsertPrimDepthKeys(ot + U32(h, 0x90) * 4, light, sz1, sz2, sz3, 0);
 				ft += 0x20;
 				x::GTE_SetRotMatrix(h);
 				x::GTE_SetTransVector(h);
@@ -783,6 +794,7 @@ namespace hipotion
 			// +0x12 uv3)
 			for (int32_t c = nquad; c > 0; c--, rec += 0x14)
 			{
+				uint32_t light = 0;           // PC SCREEN UNITS: inserted after its quad
 				U32(h, 0x9C) = U16(rec, 4) & 0xFFF;
 				U32(h, 0x98) = U16(rec, 2) & 0xFFF;
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
@@ -821,14 +833,14 @@ namespace hipotion
 					x::GTE_ReadSXY2(h + 0x4C);
 					for (int i = 0; i < 4; i++)
 					{
-						const int16_t sx = S16(h, 0x40 + 4 * i), sy = S16(h, 0x42 + 4 * i);
+						const int16_t sx = PsxPixels(S16(h, 0x40 + 4 * i)), sy = PsxPixels(S16(h, 0x42 + 4 * i));   // PC SCREEN UNITS
 						if (sx < S16(h, 0xC0) || sx > S16(h, 0xC2) || sy < S16(h, 0xC4) || sy > S16(h, 0xC6))
 						{
 							U16(h, 0xCC) = 1;
 							break;
 						}
 						U16(h, 0x40 + 4 * i) = (uint16_t)(U16(h, 0xC8) + (uint16_t)sx);
-						U16(h, 0x42 + 4 * i) = (uint16_t)(U16(h, 0x42 + 4 * i) + U16(h, 0xCA));
+						U16(h, 0x42 + 4 * i) = (uint16_t)((uint16_t)sy + U16(h, 0xCA));
 					}
 					if (U16(h, 0xCC) == 0)
 					{
@@ -847,7 +859,7 @@ namespace hipotion
 						U32(pk, 4) = U32(h, 0xAC);
 						U16(pk, 0xE) = U16(h, 0xBE);
 						U32(pk, 0) = 0xC000000;
-						x::SSIGPU_InsertPrimAutoDepth(ot + U32(h, 0x90) * 4, pk);
+						light = pk;
 						pk += 0x34;
 					}
 				}
@@ -860,6 +872,7 @@ namespace hipotion
 				if (U8(rec, 0xF) & 2)
 					U8(ft, 7) |= 2;
 				x::SSIGPU_InsertPrimDepthKeys(ot + U32(h, 0x90) * 4, ft, sz1, sz2, sz3, sz4);
+				if (light) x::SSIGPU_InsertPrimDepthKeys(ot + U32(h, 0x90) * 4, light, sz1, sz2, sz3, sz4);
 				ft += 0x28;
 				x::GTE_SetRotMatrix(h);
 				x::GTE_SetTransVector(h);

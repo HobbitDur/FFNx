@@ -58,6 +58,15 @@
 // block 0x278C7A0, overlay context 0x278C7E8), the effect library's glint cursor address 0x2792E74
 // and camera snapshot 0x2793E58.
 
+// PC SCREEN UNITS (branch PCScreenUnitsFix): the PC's software GTE gives screen coordinates in
+// eighths of a pixel (GTE_RTPS 0x45FAA0: 8 x H x / z + 8 OFX) where the PSX gave pixels. The
+// overlay's light pass tests its projected vertices against a window in PSX pixels (around 160,
+// 120), so on PC no polygon ever passed and the light never drew; they are taken back to pixels
+// first (PsxPixels). And the PC draws by depth keys (far first), not by the ordering table: the
+// light's auto depth keys were the PROJECTOR's (its RTPT runs last), far behind the model it lies
+// on, so it would draw under it; it takes its polygon's camera keys and is inserted after it, so
+// it draws over it as the PSX's ordering table had it.
+
 #include "mag_common.h"
 #include "fx_params.h"
 
@@ -465,12 +474,12 @@ namespace cure001
 	{
 		for (int v = 0; v < count; v++)
 		{
-			const int16_t x = F<int16_t>(s, 0x40 + 4 * v);
+			const int16_t x = PsxPixels(F<int16_t>(s, 0x40 + 4 * v));      // PC SCREEN UNITS
 			if (x < F<int16_t>(s, 0xC0) || x > F<int16_t>(s, 0xC2)) return false;
-			const int16_t y = F<int16_t>(s, 0x42 + 4 * v);
+			const int16_t y = PsxPixels(F<int16_t>(s, 0x42 + 4 * v));
 			if (y < F<int16_t>(s, 0xC4) || y > F<int16_t>(s, 0xC6)) return false;
 			F<int16_t>(s, 0x40 + 4 * v) = (int16_t)(F<int16_t>(s, 0xC8) + x);
-			F<int16_t>(s, 0x42 + 4 * v) = (int16_t)(F<int16_t>(s, 0x42 + 4 * v) + F<int16_t>(s, 0xCA));
+			F<int16_t>(s, 0x42 + 4 * v) = (int16_t)(y + F<int16_t>(s, 0xCA));
 		}
 		return true;
 	}
@@ -572,6 +581,7 @@ namespace cure001
 			uint8_t *fp = (uint8_t *)fcur;
 			for (int32_t t = tris; t > 0; t--, poly += 0x10)
 			{
+				uint8_t *light = nullptr;     // PC SCREEN UNITS: inserted after its triangle
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
@@ -609,7 +619,7 @@ namespace cure001
 						F<uint32_t>(gp, 0x10) = F<uint32_t>(s, 0xA8);
 						F<uint32_t>(gp, 4) = F<uint32_t>(s, 0xA8);
 						F<uint32_t>(gp, 0) = 0x9000000;
-						InsertPrimAutoDepth(ot + F<uint32_t>(s, 0x90) * 4, gp);
+						light = gp;
 						gp += 0x28;
 					}
 				}
@@ -621,12 +631,14 @@ namespace cure001
 				F<uint32_t>(fp, 0) = 0x7000000;
 				if (poly[0xF] & 2) fp[7] |= 2;
 				InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, fp, z1, z2, z3, 0);
+				if (light) InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, light, z1, z2, z3, 0);
 				fp += 0x20;
 				GteSetRotMatrixCtrl((const Mat4x3 *)s);
 				GteSetTransVectorCtrl((const Mat4x3 *)s);
 			}
 			for (int32_t q = quads; q > 0; q--, poly += 0x14)
 			{
+				uint8_t *light = nullptr;     // PC SCREEN UNITS: inserted after its quad
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
@@ -676,7 +688,7 @@ namespace cure001
 						F<uint32_t>(gp, 4) = F<uint32_t>(s, 0xAC);
 						F<uint16_t>(gp, 0xE) = F<uint16_t>(s, 0xBE);
 						F<uint32_t>(gp, 0) = 0xC000000;
-						InsertPrimAutoDepth(ot + F<uint32_t>(s, 0x90) * 4, gp);
+						light = gp;
 						gp += 0x34;
 					}
 				}
@@ -688,6 +700,7 @@ namespace cure001
 				F<uint32_t>(fp, 0) = 0x9000000;
 				if (poly[0xF] & 2) fp[7] |= 2;
 				InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, fp, z1, z2, z3, z4);
+				if (light) InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, light, z1, z2, z3, z4);
 				fp += 0x28;
 				GteSetRotMatrixCtrl((const Mat4x3 *)s);
 				GteSetTransVectorCtrl((const Mat4x3 *)s);
