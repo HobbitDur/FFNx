@@ -1272,6 +1272,7 @@ namespace cure001
 		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(register_mag001_held();)
 	}
+	FX_LAB_MODULE(register_mag001_cure);
 }
 
 #ifdef FF8_FX_HELD
