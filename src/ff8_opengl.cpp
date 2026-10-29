@@ -44,6 +44,7 @@
 #include "ff8/kernel_item.h"
 #include "ff8/battle/ai.h"
 #include "ff8/battle/effect_camera.h"
+#include "ff8/battle/battle_memory.h"
 #include "ff8/field/movie.h"
 #include "ff8/kernel_magic.h"
 #include "ff8/kernel_ability.h"
@@ -7542,6 +7543,8 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	{
 		ff8_bgate_active = true;
 		ff8_bgate_install_hooks();
+		// The battle data converted to 30 fps is bigger than the vanilla battle memory regions
+		ff8_battle_memory_enlarge();
 	}
 #if !FF8_BGATE_DIAG
 	else if (FF8_US_VERSION)
