@@ -45,6 +45,8 @@
 //   Mote (0x820F70) / Sparkle (0x8210C0) - flipbooks moving at a random constant velocity (motes
 //     rise, sparkles fly out and up) until their last frame.
 //   Glints - the shared effect-library task Effect_Glint_Tick 0x8DCC20 (ported in fx_glint.cpp).
+// Parameters (HealRingParams, mag_heal_ring.h, shared with Cure): the numbers below, one struct per
+// part, defaults = the game's; the parts are tagged (FX_PART) for the effect lab.
 // Overlay (0x820120, context 0x26463E0): the target's shadow, then every object of its body (+0x64)
 // and weapon (+0x78) models: vertices through the bones into the overlay vertex buffer 0x263DA20,
 // each front-facing polygon drawn twice - flat in the entity's colour with its own texture (frame
@@ -61,6 +63,7 @@
 // and camera snapshot 0x2793E58.
 
 #include "mag_common.h"
+#include "mag_heal_ring.h"
 
 namespace ff8fx
 {
@@ -175,6 +178,13 @@ namespace potion050
 #pragma pack(pop)
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x58, "Potion nodes");
 	static_assert(sizeof(Particle) == 0x6C && sizeof(OverlayCtx) == 0xF8, "Potion nodes");
+
+	// ------------------------------------------------------------------
+	// Parameters: one struct per part, defaults = the game's values
+	// ------------------------------------------------------------------
+	using namespace healring;           // HealRingParams, DEFAULTS, PartId (mag_heal_ring.h)
+	static HealRingParams g_params = DEFAULTS;
+	static inline const HealRingParams &P() { return g_params; }
 
 	// ------------------------------------------------------------------
 	// Module globals
@@ -661,10 +671,10 @@ namespace potion050
 		c->offset[0] = 0;
 		c->offset[1] = 0;
 		c->offset[2] = 0;
-		c->rgb[0] = 0x80;
-		c->rgb[1] = 0x80;
-		c->rgb[2] = 0x80;
-		c->light_dist = 0x2000;
+		c->rgb[0] = P().overlay.rgb[0];
+		c->rgb[1] = P().overlay.rgb[1];
+		c->rgb[2] = P().overlay.rgb[2];
+		c->light_dist = P().overlay.light_dist;
 		c->mode = 1;
 		c->ce = 0;
 		c->glow = 0;
@@ -725,7 +735,7 @@ namespace potion050
 	{
 		memcpy(r->h.pos, r->center, 8);
 		r->h.pos[1] = (int16_t)(r->h.pos[1] + (int16_t)(r->vel[1] * (int16_t)step));
-		const int32_t angle = (int32_t)((step << 7) & 0xFFF);
+		const int32_t angle = (int32_t)((step * (uint32_t)P().ring.angle_step) & 0xFFF);
 		r->angle = (int16_t)angle;
 		r->h.pos[0] = (int16_t)(r->h.pos[0] + Div4096(mul32(ComputeSin((int16_t)angle), r->radius)));
 		r->h.pos[2] = (int16_t)(r->h.pos[2] + Div4096(mul32(ComputeCos(r->angle), r->radius)));
@@ -734,7 +744,7 @@ namespace potion050
 	// MAG_050_POTION_Ring_SpawnSparkle (0x821090): counter 1..16
 	static void SpawnSparkle(Particle *r)
 	{
-		if (r->h.counter > 0 && r->h.counter < 0x11) AddEffectTask(QParticles(), ORIG_Sparkle, 0x6C, r);
+		if (P().sparkle.window.has(r->h.counter)) AddEffectTask(QParticles(), ORIG_Sparkle, 0x6C, r);
 	}
 
 	// MAG_050_POTION_Ring_SpawnMotes (0x820E30): counter 2..: 1 (2..6), 2 (7, 8), 3 (9, 10), 2 (11..)
@@ -742,27 +752,22 @@ namespace potion050
 	// height lowered by a random part of the ring's height above the target's top
 	static void SpawnMotes(Particle *r)
 	{
+		const HealRingParams::Mote &mp = P().mote;
 		const int16_t c = r->h.counter;
-		if (c <= 1 || c >= 0x7FFF) return;
-		int32_t n;
-		if (c > 10) n = 2;
-		else if (c > 8) n = 3;
-		else n = (c > 6) + 1;
-		for (; n; n--)
+		if (!mp.window.has(c)) return;
+		for (int32_t n = mp.count.at(c); n > 0; n--)
 		{
-			const int32_t a = CrtRand() & 0xFFF;
+			const int32_t a = mp.angle.roll(CrtRand());
 			Particle *m = (Particle *)AddEffectTask(QParticles(), ORIG_Mote, 0x6C, r);
 			CopyAnchorXZFromSource(m, m->h.pos);
 			m->h.pos[1] = r->h.pos[1];
 			int32_t d = (int32_t)r->h.pos[1] - (int32_t)(int16_t)BoundsMaxWorldY(r);
-			d = mul32(d, CrtRand() & 0x1F);
-			// d / -48 (0xD5555555, >> 3)
-			int32_t q = (int32_t)(((int64_t)d * (int32_t)0xD5555555) >> 32) >> 3;
-			q += (int32_t)((uint32_t)q >> 31);
-			m->h.pos[1] = (int16_t)(m->h.pos[1] + q);
-			const int32_t rad = (int32_t)(int16_t)BoundsRadius(r) * 3 / 2;
+			d = mul32(d, mp.drop.roll(CrtRand()));
+			// d / -48 (compiled 0xD5555555, >> 3: truncated toward zero as C does)
+			m->h.pos[1] = (int16_t)(m->h.pos[1] + d / -mp.drop_divisor);
+			const int32_t rad = mp.radius.of((int16_t)BoundsRadius(r));
 			m->radius = (int16_t)rad;
-			if ((int16_t)rad > 0x400) m->radius = 0x400;
+			if ((int16_t)rad > mp.radius_max) m->radius = mp.radius_max;
 			m->h.pos[0] = (int16_t)(m->h.pos[0] + Div4096(mul32(ComputeSin((int16_t)a), m->radius)));
 			m->h.pos[2] = (int16_t)(m->h.pos[2] + Div4096(mul32(ComputeCos((int16_t)a), m->radius)));
 			memcpy(m->vel, r->vel, 8);
@@ -773,29 +778,26 @@ namespace potion050
 	// (Effect_Glint_Tick) drawing into the module cursor: 8 ticks growing, 8 fading, spinning either way
 	static void SpawnGlints(Particle *r)
 	{
+		const HealRingParams::Glint &gp = P().glint;
 		const int16_t c = r->h.counter;
-		if (c <= 3 || c >= 0xB) return;
-		int32_t n;
-		if (c > 10) n = 2;
-		else if (c > 8) n = 4;
-		else n = (c > 6) + 2;
-		for (; n; n--)
+		if (!gp.window.has(c)) return;
+		for (int32_t n = gp.count.at(c); n > 0; n--)
 		{
 			var<uint32_t>(GLINT_CURSOR) = 0x2634ABC;
 			uint8_t *g = (uint8_t *)AddEffectTask(QGlints(), ORIG_Glint, 0x5C, r);
-			F<int16_t>(g, 0x56) = 8;
-			g[0x4C] = 0x10;
-			g[0x4D] = 0x10;
-			g[0x4E] = 0x10;
-			g[0x50] = 0;
-			g[0x51] = 0;
-			g[0x52] = 0x10;
-			F<int16_t>(g, 0x3C) = 0x100;
-			F<int16_t>(g, 0x3E) = 0x10;
-			F<int16_t>(g, 0x40) = 0x40;
-			F<int16_t>(g, 0x42) = 0x10;
-			if (CrtRand() & 1) F<int16_t>(g, 0x58) = 0x40;
-			else F<int16_t>(g, 0x58) = (int16_t)0xFFC0;
+			F<int16_t>(g, 0x56) = gp.style.ticks;
+			g[0x4C] = gp.style.centre_step[0];
+			g[0x4D] = gp.style.centre_step[1];
+			g[0x4E] = gp.style.centre_step[2];
+			g[0x50] = gp.style.tip_step[0];
+			g[0x51] = gp.style.tip_step[1];
+			g[0x52] = gp.style.tip_step[2];
+			F<int16_t>(g, 0x3C) = gp.style.grow_w;
+			F<int16_t>(g, 0x3E) = gp.style.grow_h;
+			F<int16_t>(g, 0x40) = gp.style.shrink_w;
+			F<int16_t>(g, 0x42) = gp.style.shrink_h;
+			if (CrtRand() & 1) F<int16_t>(g, 0x58) = gp.style.spin;
+			else F<int16_t>(g, 0x58) = (int16_t)-gp.style.spin;
 		}
 	}
 
@@ -810,14 +812,14 @@ namespace potion050
 		uint8_t *entity = Entity(r->h.slot);
 		CopyAnchorXZFromSource(r, r->center);
 		r->center[1] = (int16_t)BoundsMaxWorldY(r);
-		const int32_t rad = shl32(BoundsRadius(r), 1);
+		const HealRingParams::Ring &rp = P().ring;
+		const int32_t rad = rp.radius.of(BoundsRadius(r));
 		r->radius = (int16_t)rad;
-		if ((int16_t)rad > 0x400) r->radius = 0x400;
-		const int32_t hv = (int32_t)(int16_t)BoundsHeight(r) + 0x100;
-		// hv / -20 (0x99999999, >> 3)
-		int32_t q = (int32_t)(((int64_t)hv * (int32_t)0x99999999) >> 32) >> 3;
-		q += (int32_t)((uint32_t)q >> 31);
-		r->vel[1] = (int16_t)((int32_t)(int16_t)q / 4);
+		if ((int16_t)rad > rp.radius_max) r->radius = rp.radius_max;
+		const int32_t hv = (int32_t)(int16_t)BoundsHeight(r) + rp.climb_extra;
+		// hv / -20 (compiled 0x99999999, >> 3: truncated toward zero), per place
+		const int32_t q = hv / -rp.climb_ticks;
+		r->vel[1] = (int16_t)((int32_t)(int16_t)q / rp.substeps);
 		SetupTargetOverlay(&Overlay(), OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, r->h.slot);
 		*(uint8_t *)&r->h.flags |= 8;
 		entity[0] |= 4;
@@ -857,10 +859,10 @@ namespace potion050
 		{
 		case 0: // 0x821120: random velocity, flying out and up
 			p->seq = SEQ_Sparkle;
-			p->last = 8;
-			p->vel[0] = (int16_t)((CrtRand() & 0x1F) - 0x10);
-			p->vel[2] = (int16_t)((CrtRand() & 0x1F) - 0x10);
-			p->vel[1] = (int16_t)((CrtRand() & 0xF) + 0x10);
+			p->last = P().sparkle.frames;
+			p->vel[0] = (int16_t)P().sparkle.vx.roll(CrtRand());
+			p->vel[2] = (int16_t)P().sparkle.vz.roll(CrtRand());
+			p->vel[1] = (int16_t)P().sparkle.vy.roll(CrtRand());
 			p->h.phase++;
 			break;
 		case 1: Integrate(p); break;
@@ -868,6 +870,7 @@ namespace potion050
 		}
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(held_note_particle(p);)
+		FX_PART(PART_SPARKLES);
 		DrawSprite(p);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
@@ -885,8 +888,8 @@ namespace potion050
 		{
 		case 0: // 0x820FD0: rising at a random speed
 			p->seq = SEQ_Mote;
-			p->last = 0x10;
-			p->vel[1] = (int16_t)(-8 - (CrtRand() & 0xF));
+			p->last = P().mote.frames;
+			p->vel[1] = (int16_t)-P().mote.rise.roll(CrtRand());
 			p->vel[0] = 0;
 			p->vel[2] = 0;
 			p->h.phase++;
@@ -896,6 +899,7 @@ namespace potion050
 		}
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(held_note_particle(p);)
+		FX_PART(PART_MOTES);
 		DrawSprite(p);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
@@ -916,19 +920,20 @@ namespace potion050
 		{
 		case 0: RingInit(r); break;
 		case 1: // 0x821380: at 20 the ending flipbook
-			if (r->h.counter >= 0x14)
+			if (r->h.counter >= P().ring.end_tick)
 			{
 				r->seq = SEQ_RingEnd;
-				r->last = 4;
+				r->last = P().ring.end_frames;
 				r->h.phase++;
 			}
 			break;
 		case 2: RingEnd(r); break;
 		default: break; // phase 3: nullsub 0x821400
 		}
-		for (uint32_t s = 0; s < 4; s++)
+		const int32_t substeps = P().ring.substeps;
+		for (uint32_t s = 0; s < (uint32_t)substeps; s++)
 		{
-			RingPlace(r, (uint32_t)(uint16_t)(r->h.counter << 2) + s);
+			RingPlace(r, (uint32_t)(uint16_t)(r->h.counter * substeps) + s);
 			if (r->h.flags & 2) SpawnSparkle(r);
 		}
 		if (r->h.flags & 2)
@@ -940,20 +945,28 @@ namespace potion050
 		FX_HELD(held_note_ring(r);)
 		if (r->h.flags & 8)
 		{
+			const HealRingParams::Overlay &op = P().overlay;
+			FX_PART(PART_OVERLAY);
 			Overlay().offset[1] = r->h.pos[1];
-			SetOverlayTexturePage(&Overlay(), r->h.pos, 0x200, 0x180, 0x140, 0xF1, 0x80, 0x80);
+			SetOverlayTexturePage(&Overlay(), r->h.pos, op.tex_x, op.tex_y, op.clut_x, op.clut_y, op.width, op.height);
 			DrawTargetModelWithOverlay(&Overlay());
 		}
-		if (r->h.counter < 0x14)
+		if (r->h.counter < P().glow.ticks)
 		{
 			// grey 0x3C - 3 * counter; the 4th byte is the high byte of the task argument (the node
 			// address) the colour is written over on the original's stack
-			const uint32_t grey = (uint8_t)(0x3C - (uint8_t)(r->h.counter * 3));
+			const uint32_t grey = (uint8_t)(P().glow.grey - (uint8_t)(r->h.counter * P().glow.fade));
 			const uint32_t colour = grey | grey << 8 | grey << 16 | ((uint32_t)r & 0xFF000000u);
+			FX_PART(PART_RING);
 			DrawSprite(r);
+			FX_PART(PART_GLOW);
 			DrawAdditiveGlow(r, SEQ_Glow, &colour);
 		}
-		else DrawSprite(r);
+		else
+		{
+			FX_PART(PART_RING);
+			DrawSprite(r);
+		}
 		r->h.counter++;
 		if ((r->h.flags & 1) && r->h.children == 0)
 		{
@@ -979,7 +992,7 @@ namespace potion050
 			break;
 		case 1: e->h.phase++; break; // 0x821410
 		case 2: // 0x821420: heal from 15
-			if (e->h.counter >= 0xF)
+			if (e->h.counter >= P().emitter.heal_tick)
 			{
 				ApplyActionResultToTarget(e->h.ctx->actions[e->h.action].targets + e->h.target * TARGET_STRIDE);
 				*(uint8_t *)&e->h.flags |= 1;
@@ -988,7 +1001,7 @@ namespace potion050
 			break;
 		default: break; // phase 3: nullsub 0x821460
 		}
-		if (e->h.counter == 0) BdPlaySE(SOUND_Potion, 0, 0x80);
+		if (e->h.counter == P().emitter.sound_tick) BdPlaySE(SOUND_Potion, 0, 0x80);
 		e->h.counter++;
 		if ((e->h.flags & 1) && e->h.children == 0)
 		{
@@ -1071,7 +1084,9 @@ namespace potion050
 		r->alive = 0;
 		r->alive = (int16_t)(r->alive + ExecuteTaskQueue(QEmitters()));
 		r->alive = (int16_t)(r->alive + ExecuteTaskQueue(QParticles()));
+		FX_PART(PART_GLINTS);                 // the shared glint task draws them
 		r->alive = (int16_t)(r->alive + ExecuteTaskQueue(QGlints()));
+		FX_PART(0);
 		r->tick++;
 		r->h.counter++;
 		if ((r->h.flags & 1) && r->h.children == 0)
@@ -1085,6 +1100,7 @@ namespace potion050
 
 	void register_mag050_potion()
 	{
+		healring::register_params(50, "Potion", &potion050::g_params);
 		register_port(potion050::ORIG_Root, (void *)potion050::RootTask, "050 Root", 50);
 		register_port(potion050::ORIG_Emitter, (void *)potion050::EmitterTask, "050 Emitter", 50);
 		register_port(potion050::ORIG_Ring, (void *)potion050::RingTask, "050 Ring", 50);
@@ -1093,6 +1109,7 @@ namespace potion050
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(register_mag050_held();)
 	}
+	FX_LAB_MODULE(register_mag050_potion);
 }
 
 #ifdef FF8_FX_HELD
