@@ -15,8 +15,9 @@
 
 // The healing ring's parameters (fx_params.h), shared by the modules that run its code: Cure
 // (effect 1, mag001_cure.cpp) and its relocated copy Potion (effect 50, mag050_potion.cpp). One
-// struct per part, the game's values (the same in both), the parts (FX_PART tags) and the field
-// table; each module keeps its own live copy, so each effect can be edited on its own.
+// struct per part, the game's values (the same in both but the sprite sequences: each module has
+// its own copies), the parts (FX_PART tags) and the field table; each module keeps its own live
+// copy, so each effect can be edited on its own.
 
 #pragma once
 
@@ -38,6 +39,8 @@ namespace healring
 		} emitter;
 		struct Ring
 		{
+			uint32_t seq;            // sprite sequence of the climbing light (FF8_EN.exe data)
+			uint32_t end_seq;        // sprite sequence of its ending flipbook
 			int16_t substeps;        // places per tick (each spawns a sparkle while it spawns)
 			int16_t angle_step;      // turn per place (4096 = a full turn)
 			fxp::Fraction radius;    // of the target's bounds radius
@@ -49,6 +52,7 @@ namespace healring
 		} ring;
 		struct Glow
 		{
+			uint32_t seq;            // sprite sequence (its frame 0, lying on the ground)
 			int16_t ticks;           // drawn under the ring for this many ticks
 			uint8_t grey;            // starting brightness (additive)
 			uint8_t fade;            // brightness lost per tick
@@ -64,12 +68,14 @@ namespace healring
 		} overlay;
 		struct Sparkle
 		{
+			uint32_t seq;            // sprite sequence
 			fxp::Window window;      // ring ticks it spawns them (one per place)
 			fxp::Range vx, vy, vz;   // speed per tick (y down)
 			int16_t frames;          // last flipbook frame: lifetime
 		} sparkle;
 		struct Mote
 		{
+			uint32_t seq;            // sprite sequence
 			fxp::Window window;      // ring ticks it spawns them
 			fxp::Schedule count;     // how many per tick
 			fxp::Fraction radius;    // circle: of the target's bounds radius
@@ -87,15 +93,29 @@ namespace healring
 			fxp::GlintStyle style;
 		} glint;
 	};
+	// the game's values but the sprite sequences, each module's own (game_values)
 	inline const HealRingParams DEFAULTS = {
 		{ 0, 0xF },
-		{ 4, 0x80, { 2, 1 }, 0x400, 0x100, 20, 0x14, 4 },
-		{ 0x14, 0x3C, 3 },
+		{ 0, 0, 4, 0x80, { 2, 1 }, 0x400, 0x100, 20, 0x14, 4 },
+		{ 0, 0x14, 0x3C, 3 },
 		{ 0x200, 0x180, 0x140, 0xF1, 0x80, 0x80, { 0x80, 0x80, 0x80 }, 0, 0x2000 },
-		{ { 1, 0x10 }, { -0x10, 0xF }, { 0x10, 0x1F }, { -0x10, 0xF }, 8 },
-		{ { 2, 0x7FFE }, { { 2, 7, 9, 11 }, { 1, 2, 3, 2 } }, { 3, 2 }, 0x400, { 0, 0xFFF }, { 0, 0x1F }, 48, { 8, 0x17 }, 0x10 },
+		{ 0, { 1, 0x10 }, { -0x10, 0xF }, { 0x10, 0x1F }, { -0x10, 0xF }, 8 },
+		{ 0, { 2, 0x7FFE }, { { 2, 7, 9, 11 }, { 1, 2, 3, 2 } }, { 3, 2 }, 0x400, { 0, 0xFFF }, { 0, 0x1F }, 48, { 8, 0x17 }, 0x10 },
 		{ { 4, 10 }, { { 4, 7, 9, 11 }, { 2, 3, 4, 2 } }, { 8, 0x100, 0x10, 0x40, 0x10, { 0x10, 0x10, 0x10 }, { 0, 0, 0x10 }, 0x40 } },
 	};
+
+	// a module's sprite sequences (Cure's and Potion's copies lie apart in the exe)
+	struct Sequences { uint32_t ring, ring_end, glow, sparkle, mote; };
+	inline HealRingParams game_values(const Sequences &s)
+	{
+		HealRingParams p = DEFAULTS;
+		p.ring.seq = s.ring;
+		p.ring.end_seq = s.ring_end;
+		p.glow.seq = s.glow;
+		p.sparkle.seq = s.sparkle;
+		p.mote.seq = s.mote;
+		return p;
+	}
 
 #define HEAL_RING_FIELD(part, member, label, doc, type, lo, hi) \
 	{ part, #member, label, doc, (uint32_t)offsetof(HealRingParams, member), fxp::type, lo, hi }
@@ -111,6 +131,8 @@ namespace healring
 	inline const fxp::Field FIELDS[] = {
 		HEAL_RING_FIELD("emitter", emitter.sound_tick, "Sound tick", "The sound plays at this tick", I16, 0, 200),
 		HEAL_RING_FIELD("emitter", emitter.heal_tick, "Heal tick", "The HP are given from this tick", I16, 0, 200),
+		HEAL_RING_FIELD("ring", ring.seq, "Sequence", "Sprite sequence of the climbing light", Seq, 0, 0x7FFFFFFF),
+		HEAL_RING_FIELD("ring", ring.end_seq, "End sequence", "Sprite sequence of its ending flipbook", Seq, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("ring", ring.substeps, "Places per tick", "Places the ring goes through each tick (each spawns a sparkle)", I16, 1, 16),
 		HEAL_RING_FIELD("ring", ring.angle_step, "Turn per place", "Angle between two places (4096 = a full turn)", I16, -2048, 2048),
 		HEAL_RING_FIELD("ring", ring.radius.num, "Radius (times)", "Radius = target radius x this / divisor", I16, 0, 32),
@@ -120,6 +142,7 @@ namespace healring
 		HEAL_RING_FIELD("ring", ring.climb_ticks, "Climb ticks", "...in this many ticks", I16, 1, 200),
 		HEAL_RING_FIELD("ring", ring.end_tick, "End tick", "Its ending flipbook starts at this tick", I16, 1, 200),
 		HEAL_RING_FIELD("ring", ring.end_frames, "End frames", "Last frame of the ending flipbook", I16, 0, 64),
+		HEAL_RING_FIELD("glow", glow.seq, "Sequence", "Sprite sequence (its frame 0)", Seq, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("glow", glow.ticks, "Ticks", "Drawn for this many ticks", I16, 0, 200),
 		HEAL_RING_FIELD("glow", glow.grey, "Brightness", "Starting brightness (additive grey)", U8, 0, 255),
 		HEAL_RING_FIELD("glow", glow.fade, "Fade per tick", "Brightness lost per tick", U8, 0, 255),
@@ -133,6 +156,7 @@ namespace healring
 		HEAL_RING_FIELD("overlay", overlay.rgb[1], "Green", "", U8, 0, 255),
 		HEAL_RING_FIELD("overlay", overlay.rgb[2], "Blue", "", U8, 0, 255),
 		HEAL_RING_FIELD("overlay", overlay.light_dist, "Projector distance", "", I32, 0, 0x10000),
+		HEAL_RING_FIELD("sparkles", sparkle.seq, "Sequence", "Sprite sequence", Seq, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("sparkles", sparkle.window.first, "From tick", "Ring ticks they are spawned (one per place)", I16, 0, 200),
 		HEAL_RING_FIELD("sparkles", sparkle.window.last, "To tick", "", I16, 0, 200),
 		HEAL_RING_FIELD("sparkles", sparkle.vx.min, "Speed x min", "Speed per tick, at random in [min, max]", I16, -0x400, 0x400),
@@ -142,6 +166,7 @@ namespace healring
 		HEAL_RING_FIELD("sparkles", sparkle.vz.min, "Speed z min", "", I16, -0x400, 0x400),
 		HEAL_RING_FIELD("sparkles", sparkle.vz.max, "Speed z max", "", I16, -0x400, 0x400),
 		HEAL_RING_FIELD("sparkles", sparkle.frames, "Frames", "Last flipbook frame: lifetime", I16, 0, 64),
+		HEAL_RING_FIELD("motes", mote.seq, "Sequence", "Sprite sequence", Seq, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("motes", mote.window.first, "From tick", "Ring ticks they are spawned", I16, 0, 200),
 		HEAL_RING_FIELD("motes", mote.window.last, "To tick", "", I16, 0, 0x7FFE),
 		HEAL_RING_FIELD("motes", mote.count.from[0], "Step 1 from", "From this tick...", I16, 0, 200),
@@ -188,10 +213,10 @@ namespace healring
 	};
 #undef HEAL_RING_FIELD
 
-	// a module's live parameters under its effect id (for the tools: fx_params.h)
-	inline void register_params(int effect_id, const char *name, HealRingParams *live)
+	// a module's live parameters and game values under its effect id (for the tools: fx_params.h)
+	inline void register_params(int effect_id, const char *name, HealRingParams *live, const HealRingParams *game)
 	{
-		fxp::register_params({ effect_id, name, live, &DEFAULTS, sizeof(HealRingParams),
+		fxp::register_params({ effect_id, name, live, game, sizeof(HealRingParams),
 		                       PARTS, (int)(sizeof(PARTS) / sizeof(PARTS[0])),
 		                       FIELDS, (int)(sizeof(FIELDS) / sizeof(FIELDS[0])) });
 	}

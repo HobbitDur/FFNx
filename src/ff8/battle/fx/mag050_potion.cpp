@@ -182,9 +182,7 @@ namespace potion050
 	// ------------------------------------------------------------------
 	// Parameters: one struct per part, defaults = the game's values
 	// ------------------------------------------------------------------
-	using namespace healring;           // HealRingParams, DEFAULTS, PartId (mag_heal_ring.h)
-	static HealRingParams g_params = DEFAULTS;
-	static inline const HealRingParams &P() { return g_params; }
+	using namespace healring;           // HealRingParams, game_values, PartId (mag_heal_ring.h)
 
 	// ------------------------------------------------------------------
 	// Module globals
@@ -207,6 +205,10 @@ namespace potion050
 	static const void *const SOUND_Potion = (const void *)0x15ACD78;
 	static const uint32_t SEQ_Ring = 0x15AD52C, SEQ_RingEnd = 0x15AD580, SEQ_Mote = 0x15AD610, SEQ_Sparkle = 0x15AD7EC;
 	static const uint32_t SEQ_Glow = 0x15ADAB8;
+	// the game's values (with its own sprite sequences) and the live ones the code reads
+	static const HealRingParams GAME = game_values({ SEQ_Ring, SEQ_RingEnd, SEQ_Glow, SEQ_Sparkle, SEQ_Mote });
+	static HealRingParams g_params = GAME;
+	static inline const HealRingParams &P() { return g_params; }
 	static const uint32_t CAM_SNAPSHOT = 0x2793E58;       // Effect_SharedCamMatrixSnapshot
 	static const uint32_t ARENA_A = 0x2646394, LIMIT_A = 0x263DA14, ARENA_B = 0x2646390, LIMIT_B = 0x263DA10;
 	static const uint32_t OVERLAY_A00 = 0x2634AC0, OVERLAY_SPRITE = 0x2646398, OVERLAY_VERTS = 0x263DA20;
@@ -808,7 +810,7 @@ namespace potion050
 	static void RingInit(Particle *r)
 	{
 		*(uint8_t *)&r->h.flags |= 2;
-		r->seq = SEQ_Ring;
+		r->seq = fxp::sequence(P().ring.seq, SEQ_Ring);
 		uint8_t *entity = Entity(r->h.slot);
 		CopyAnchorXZFromSource(r, r->center);
 		r->center[1] = (int16_t)BoundsMaxWorldY(r);
@@ -858,8 +860,8 @@ namespace potion050
 		switch (p->h.phase)
 		{
 		case 0: // 0x821120: random velocity, flying out and up
-			p->seq = SEQ_Sparkle;
-			p->last = P().sparkle.frames;
+			p->seq = fxp::sequence(P().sparkle.seq, SEQ_Sparkle);
+			p->last = fxp::last_frame(p->seq, P().sparkle.frames);
 			p->vel[0] = (int16_t)P().sparkle.vx.roll(CrtRand());
 			p->vel[2] = (int16_t)P().sparkle.vz.roll(CrtRand());
 			p->vel[1] = (int16_t)P().sparkle.vy.roll(CrtRand());
@@ -887,8 +889,8 @@ namespace potion050
 		switch (p->h.phase)
 		{
 		case 0: // 0x820FD0: rising at a random speed
-			p->seq = SEQ_Mote;
-			p->last = P().mote.frames;
+			p->seq = fxp::sequence(P().mote.seq, SEQ_Mote);
+			p->last = fxp::last_frame(p->seq, P().mote.frames);
 			p->vel[1] = (int16_t)-P().mote.rise.roll(CrtRand());
 			p->vel[0] = 0;
 			p->vel[2] = 0;
@@ -922,8 +924,8 @@ namespace potion050
 		case 1: // 0x821380: at 20 the ending flipbook
 			if (r->h.counter >= P().ring.end_tick)
 			{
-				r->seq = SEQ_RingEnd;
-				r->last = P().ring.end_frames;
+				r->seq = fxp::sequence(P().ring.end_seq, SEQ_RingEnd);
+				r->last = fxp::last_frame(r->seq, P().ring.end_frames);
 				r->h.phase++;
 			}
 			break;
@@ -960,7 +962,7 @@ namespace potion050
 			FX_PART(PART_RING);
 			DrawSprite(r);
 			FX_PART(PART_GLOW);
-			DrawAdditiveGlow(r, SEQ_Glow, &colour);
+			DrawAdditiveGlow(r, fxp::sequence(P().glow.seq, SEQ_Glow), &colour);
 		}
 		else
 		{
@@ -1100,7 +1102,7 @@ namespace potion050
 
 	void register_mag050_potion()
 	{
-		healring::register_params(50, "Potion", &potion050::g_params);
+		healring::register_params(50, "Potion", &potion050::g_params, &potion050::GAME);
 		register_port(potion050::ORIG_Root, (void *)potion050::RootTask, "050 Root", 50);
 		register_port(potion050::ORIG_Emitter, (void *)potion050::EmitterTask, "050 Emitter", 50);
 		register_port(potion050::ORIG_Ring, (void *)potion050::RingTask, "050 Ring", 50);

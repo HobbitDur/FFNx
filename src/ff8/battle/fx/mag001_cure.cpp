@@ -178,9 +178,7 @@ namespace cure001
 	// ------------------------------------------------------------------
 	// Parameters: one struct per part, defaults = the game's values
 	// ------------------------------------------------------------------
-	using namespace healring;           // HealRingParams, DEFAULTS, PartId (mag_heal_ring.h)
-	static HealRingParams g_params = DEFAULTS;
-	static inline const HealRingParams &P() { return g_params; }
+	using namespace healring;           // HealRingParams, game_values, PartId (mag_heal_ring.h)
 
 	// ------------------------------------------------------------------
 	// Module globals
@@ -203,6 +201,10 @@ namespace cure001
 	static const void *const SOUND_Cure = (const void *)0x16417C4;
 	static const uint32_t SEQ_Ring = 0x1641F78, SEQ_RingEnd = 0x1641FCC, SEQ_Mote = 0x164205C, SEQ_Sparkle = 0x1642238;
 	static const uint32_t SEQ_Glow = 0x1642504;
+	// the game's values (with its own sprite sequences) and the live ones the code reads
+	static const HealRingParams GAME = game_values({ SEQ_Ring, SEQ_RingEnd, SEQ_Glow, SEQ_Sparkle, SEQ_Mote });
+	static HealRingParams g_params = GAME;
+	static inline const HealRingParams &P() { return g_params; }
 	static const uint32_t CAM_SNAPSHOT = 0x2793E58;       // Effect_SharedCamMatrixSnapshot
 	static const uint32_t ARENA_A = 0x278C79C, LIMIT_A = 0x2783E1C, ARENA_B = 0x278C798, LIMIT_B = 0x2783E18;
 	static const uint32_t OVERLAY_A00 = 0x277AEC8, OVERLAY_SPRITE = 0x278C7A0, OVERLAY_VERTS = 0x2783E28;
@@ -804,7 +806,7 @@ namespace cure001
 	static void RingInit(Particle *r)
 	{
 		*(uint8_t *)&r->h.flags |= 2;
-		r->seq = SEQ_Ring;
+		r->seq = fxp::sequence(P().ring.seq, SEQ_Ring);
 		uint8_t *entity = Entity(r->h.slot);
 		CopyAnchorXZFromSource(r, r->center);
 		r->center[1] = (int16_t)BoundsMaxWorldY(r);
@@ -854,8 +856,8 @@ namespace cure001
 		switch (p->h.phase)
 		{
 		case 0: // 0x8D8110: random velocity, flying out and up
-			p->seq = SEQ_Sparkle;
-			p->last = P().sparkle.frames;
+			p->seq = fxp::sequence(P().sparkle.seq, SEQ_Sparkle);
+			p->last = fxp::last_frame(p->seq, P().sparkle.frames);
 			p->vel[0] = (int16_t)P().sparkle.vx.roll(CrtRand());
 			p->vel[2] = (int16_t)P().sparkle.vz.roll(CrtRand());
 			p->vel[1] = (int16_t)P().sparkle.vy.roll(CrtRand());
@@ -883,8 +885,8 @@ namespace cure001
 		switch (p->h.phase)
 		{
 		case 0: // 0x8D7FC0: rising at a random speed
-			p->seq = SEQ_Mote;
-			p->last = P().mote.frames;
+			p->seq = fxp::sequence(P().mote.seq, SEQ_Mote);
+			p->last = fxp::last_frame(p->seq, P().mote.frames);
 			p->vel[1] = (int16_t)-P().mote.rise.roll(CrtRand());
 			p->vel[0] = 0;
 			p->vel[2] = 0;
@@ -918,8 +920,8 @@ namespace cure001
 		case 1: // 0x8D8370: at 20 the ending flipbook
 			if (r->h.counter >= P().ring.end_tick)
 			{
-				r->seq = SEQ_RingEnd;
-				r->last = P().ring.end_frames;
+				r->seq = fxp::sequence(P().ring.end_seq, SEQ_RingEnd);
+				r->last = fxp::last_frame(r->seq, P().ring.end_frames);
 				r->h.phase++;
 			}
 			break;
@@ -956,7 +958,7 @@ namespace cure001
 			FX_PART(PART_RING);
 			DrawSprite(r);
 			FX_PART(PART_GLOW);
-			DrawAdditiveGlow(r, SEQ_Glow, &colour);
+			DrawAdditiveGlow(r, fxp::sequence(P().glow.seq, SEQ_Glow), &colour);
 		}
 		else
 		{
@@ -1096,7 +1098,7 @@ namespace cure001
 
 	void register_mag001_cure()
 	{
-		healring::register_params(1, "Cure", &cure001::g_params);
+		healring::register_params(1, "Cure", &cure001::g_params, &cure001::GAME);
 		register_port(cure001::ORIG_Root, (void *)cure001::RootTask, "001 Root", 1);
 		register_port(cure001::ORIG_Emitter, (void *)cure001::EmitterTask, "001 Emitter", 1);
 		register_port(cure001::ORIG_Ring, (void *)cure001::RingTask, "001 Ring", 1);

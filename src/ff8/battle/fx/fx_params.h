@@ -83,8 +83,27 @@ namespace fxp
 		int16_t spin;                       // Y angle per tick, either way at random
 	};
 
+	// a sprite sequence parameter (the flipbooks of FF8_EN.exe's data, InitEffectSequenceFromData
+	// 0x571C80): its address when it is one - in the exe image, the signature 24 05 01 00 - else the
+	// game's, so a wrong value draws the game's sprite instead of reading anywhere
+	inline uint32_t sequence(uint32_t address, uint32_t game)
+	{
+		constexpr uint32_t image_begin = 0x400000, image_end = 0x282B000;    // FF8_EN.exe in memory
+		if (address == game || address < image_begin || address + 12 > image_end || address & 3) return game;
+		return *(const uint32_t *)address == 0x00010524 ? address : game;
+	}
+
+	// a flipbook's last frame played, within its sequence (frame count at +8): past it the game would
+	// read the frame list's end as a frame
+	inline int16_t last_frame(uint32_t sequence, int16_t last)
+	{
+		const int16_t count = (int16_t)*(const uint16_t *)(sequence + 8);
+		return last < 0 ? 0 : last >= count ? (int16_t)(count - 1) : last;
+	}
+
 	// ---- field table (what an editor shows) ----
-	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2 };
+	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences
+	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3 };
 	struct Field
 	{
 		const char *part;    // the part it belongs to (PartDesc::key)
