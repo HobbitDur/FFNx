@@ -229,6 +229,8 @@ namespace draw
 		// (fade +0x1CE and colour +0x16C hold: the model renderer's depth-cued colours are not monotonic
 		// in the fade across draws, a lerped fade can leave [N, N+1])
 		// at fraction 1 the next tick's actor (same draws: same copy count, still drawn)
+		// fx091 (backport from 91): an actor whose motion step clears its sequence / model (+0x170: its last frame) is not drawn on the next tick
+		if (num >= den && U32(nxt, 0x170) == 0) return P_ENDS;
 		if (num >= den && S8(nxt, 0x1D8) == S8(cur, 0x1D8) && U32(nxt, 0x170) != 0)
 		{
 			memcpy((void *)cur, (const void *)nxt, ACTOR_BYTES);

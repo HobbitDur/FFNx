@@ -105,6 +105,9 @@ namespace curaga
 		uint8_t scratch[SCRATCH_HI - SCRATCH_LO];
 		uint8_t falloc[0x400];
 		VertexBlocks verts; // the vertex blocks its models were drawn with
+		uint32_t drawn[MAX_ACTORS][3]; // morph052: the actors its draw passes saw (node, sequence +0x170, step count +0x1CA): an actor a
+		                               // later queue of the tick adds (or re-spawns in a freed node) was not drawn by the real tick
+		int ndrawn;
 	};
 	static const int MAX_SYSTEMS = 8;
 	static SysNote g_sys[MAX_SYSTEMS];
@@ -253,6 +256,14 @@ namespace curaga
 		memcpy(n.scratch, (const void *)SCRATCH_LO, sizeof(n.scratch));
 		memcpy(n.falloc, (const void *)MEM<uint32_t>(0x1D999C4), sizeof(n.falloc));
 		n.verts.save(sys);
+		n.ndrawn = 0;
+		for (uint32_t act = U32(sys, 0x2C); act && n.ndrawn < MAX_ACTORS; act = U32(act, 4))
+			if (U16(act, 8) == 1 && U32(act, 0x170) != 0)
+			{
+				n.drawn[n.ndrawn][0] = act;
+				n.drawn[n.ndrawn][1] = U32(act, 0x170);
+				n.drawn[n.ndrawn++][2] = U16(act, 0x1CA);
+			}
 	}
 
 	static bool HeldReady()
@@ -383,6 +394,8 @@ namespace curaga
 				const int32_t o = 0x19C + 8 * i + 2 * k;
 				S16(cur, o) = (int16_t)lerp_i(S16(cur, o), S16(nxt, o), num, den);
 			}
+		// fx091 (backport from 91): an actor whose motion step clears its sequence / model (+0x170: its last frame) is not drawn on the next tick
+		if (num >= den && U32(nxt, 0x170) == 0) return P_ENDS;
 		if (num >= den && S8(nxt, 0x1D8) == S8(cur, 0x1D8) && U32(nxt, 0x170) != 0)
 			memcpy((void *)cur, (const void *)nxt, ACTOR_BYTES);
 		return P_NEXT;
@@ -395,9 +408,12 @@ namespace curaga
 		// the drawn actors: sprite sequences (definition kinds 0..2) and models (4 / 5)
 		uint32_t list[MAX_ACTORS];
 		int nl = 0;
-		for (uint32_t act = U32(n.sys, 0x2C); act && nl < MAX_ACTORS; act = U32(act, 4))
+		// in the order the real tick drew them (the list as it was at the draw: a node the tick relinks or re-spawns afterwards
+		// keeps its draw slot; an actor a later queue adds, or whose node now holds another actor, is not drawn)
+		for (int d = 0; d < n.ndrawn && nl < MAX_ACTORS; d++)
 		{
-			if (U16(act, 8) != 1 || U32(act, 0x170) == 0) continue;
+			const uint32_t act = n.drawn[d][0];
+			if (U16(act, 8) != 1 || U32(act, 0x170) != n.drawn[d][1] || U16(act, 0x1CA) != n.drawn[d][2]) continue;
 			const uint8_t kind = U8(DefOf(act), 0x16);
 			if (kind > 5 || kind == 3) continue;
 			list[nl++] = act;

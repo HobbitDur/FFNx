@@ -169,6 +169,8 @@ namespace mguard
 				const int32_t o = 0x19C + 8 * i + 2 * k;
 				S16(cur, o) = (int16_t)lerp_i(S16(cur, o), S16(nxt, o), num, den);
 			}
+		// fx091 (backport from 91): an actor whose motion step clears its sequence / model (+0x170: its last frame) is not drawn on the next tick
+		if (num >= den && U32(nxt, 0x170) == 0) return P_ENDS;
 		if (num >= den && S8(nxt, 0x1D8) == S8(cur, 0x1D8) && U32(nxt, 0x170) != 0)
 		{
 			memcpy((void *)cur, (const void *)nxt, ACTOR_BYTES);
