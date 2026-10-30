@@ -145,19 +145,19 @@ namespace potion050
 		Mat4x3 world2;          // +0x54 entity matrix moved by `offset`
 		Mat4x3 light;           // +0x74 projector matrix (the entity seen from light_pos)
 		uint8_t pad94[0x10];
-		int16_t a4[3];          // +0xA4
+		int16_t unused_vecA4[3];    // +0xA4 vestigial: cleared, read by no copy of this overlay code
 		int16_t padAA;
-		int16_t ac[3];          // +0xAC
+		int16_t unused_vecAC[3];    // +0xAC (same)
 		int16_t padB2;
 		int16_t offset[3];      // +0xB4 (y = the ring's height)
 		int16_t padBA;
-		int16_t bc[3];          // +0xBC
+		int16_t unused_vecBC[3];    // +0xBC (same)
 		int16_t padC2;
 		uint8_t rgb[3];         // +0xC4 projected colour
 		uint8_t padC7;
 		int32_t light_dist;     // +0xC8
-		int16_t cc;             // +0xCC
-		int16_t ce;             // +0xCE
+		int16_t wave_phase;     // +0xCC sway: the swaying copies (Bio's) push each vertex by
+		int16_t wave_amplitude; // +0xCE amplitude x sin/cos(phase + 12 y) / 0x40000; Cure: 0
 		int16_t padD0;
 		int16_t mode;           // +0xD2 0: offset in model space, 1: in world space
 		uint8_t padD4[4];
@@ -172,7 +172,7 @@ namespace potion050
 		uint16_t tpage;         // +0xEC
 		uint16_t clut;          // +0xEE
 		int16_t padF0;
-		int16_t glow;           // +0xF2
+		int16_t unused_F2;      // +0xF2 cleared, never read
 		int16_t cull;           // +0xF4 (0x26464D4, never written by Potion) 1: projector back faces skipped
 		int16_t padF6;
 	};
@@ -477,8 +477,8 @@ namespace potion050
 		F<uint32_t>(s, 0xB4) = col | 0x2C000000;
 		memcpy(s, &c->view, 0x20);
 		memcpy(s + 0x20, &c->light, 0x20);
-		F<int16_t>(s, 0xA4) = c->ce;
-		F<int16_t>(s, 0xA6) = c->cc;
+		F<int16_t>(s, 0xA4) = c->wave_amplitude;
+		F<int16_t>(s, 0xA6) = c->wave_phase;
 		GteSetRotMatrixCtrl((const Mat4x3 *)s);
 		GteSetTransVectorCtrl((const Mat4x3 *)s);
 		const uint32_t *offs = (const uint32_t *)(table + 4);
@@ -690,27 +690,30 @@ namespace potion050
 		c->rgb[2] = P().overlay.rgb[2];
 		c->light_dist = P().overlay.light_dist;
 		c->mode = 1;
-		c->ce = 0;
-		c->glow = 0;
-		c->a4[0] = 0;
-		c->a4[1] = 0;
-		c->a4[2] = 0;
-		c->ac[0] = 0;
-		c->ac[1] = 0;
-		c->ac[2] = 0;
-		c->bc[0] = 0;
-		c->bc[1] = 0;
-		c->bc[2] = 0;
+		c->wave_amplitude = 0;
+		c->unused_F2 = 0;
+		c->unused_vecA4[0] = 0;
+		c->unused_vecA4[1] = 0;
+		c->unused_vecA4[2] = 0;
+		c->unused_vecAC[0] = 0;
+		c->unused_vecAC[1] = 0;
+		c->unused_vecAC[2] = 0;
+		c->unused_vecBC[0] = 0;
+		c->unused_vecBC[1] = 0;
+		c->unused_vecBC[2] = 0;
 		sprite[0x1C] = 0x80;
 		sprite[0x1D] = 0x80;
 		sprite[0x1E] = 0x80;
 		F<uint32_t>(sprite, 4) = verts;
-		F<uint16_t>(sprite, 0x14) = 0;
-		F<uint16_t>(sprite, 0x16) = 0;
-		F<uint16_t>(sprite, 0x18) = 0x140;
-		F<uint16_t>(sprite, 0x1A) = 0;
-		F<uint32_t>(sprite, 0x20) = 0xFFFFFFFF;
-		F<uint16_t>(sprite, 0x24) = 0;
+		// the effect library's model draw descriptor (Effect_FlatPolygons 0x6BCB50): its clip
+		// rectangle (left, top, right, bottom: unused by Cure's own renderer), every object visible,
+		// the vertex scratch cleared
+		F<uint16_t>(sprite, 0x14) = 0;           // clip_left
+		F<uint16_t>(sprite, 0x16) = 0;           // clip_top
+		F<uint16_t>(sprite, 0x18) = 0x140;       // clip_right
+		F<uint16_t>(sprite, 0x1A) = 0;           // clip_bottom
+		F<uint32_t>(sprite, 0x20) = 0xFFFFFFFF;  // visible_parts_mask
+		F<uint16_t>(sprite, 0x24) = 0;           // vertex_sxy_scratch
 	}
 
 	// ------------------------------------------------------------------
