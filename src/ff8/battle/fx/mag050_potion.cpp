@@ -32,7 +32,8 @@
 //     busy, then moves to the next action (back to 3) until the last one, 6 waits until the three
 //     queues (emitters, particles, glints) are empty, 9 done. Runs the three queues every tick.
 //   Emitter (0x81FCD0) - on the action's target: target anchor and model bounds every tick
-//     (Effect library 0x8DC610 / 0x8DC870); spawns the ring at its first tick, sound at 0, heal
+//     (MAG_001_CURE_Emitter_UpdatePos 0x8DC610 / _Emitter_ComputeModelBounds 0x8DC870, effect-library
+//     helpers shared by Cure and Potion); spawns the ring at its first tick, sound at 0, heal
 //     (ApplyActionResultToTarget 0x506690) from tick 15, then done.
 //   Ring (0x81FD90) - a light rising in a helix around the target: its position is recomputed
 //     every tick from the counter in 4 sub-steps (step = 4 * counter + s: centre + step * climb in y,
@@ -193,7 +194,7 @@ namespace potion050
 	inline TaskQueue *QParticles() { return (TaskQueue *)0x2635B68; } // 300 x 0x6C
 	inline TaskQueue *QGlints() { return (TaskQueue *)0x2646380; }    // 100 x 0x5C
 	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x26463E0); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }   // g_Battle_FrameRenderListBase + off
 
 	static const uint32_t ORIG_Root = 0x81FB40;
 	static const uint32_t ORIG_Emitter = 0x81FCD0;
@@ -221,8 +222,8 @@ namespace potion050
 	// inherited from `parent` (the parent's child count goes up)
 	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
 	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }                 // the parent's child count goes down
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }                  // MAG_001_CURE_Emitter_UpdatePos
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }                // MAG_001_CURE_Emitter_ComputeModelBounds
+	inline void Emitter_UpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }                  // MAG_001_CURE_Emitter_UpdatePos
+	inline void Emitter_ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }                // MAG_001_CURE_Emitter_ComputeModelBounds
 	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }          // (caster, ctx +0)
 	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC6E0)(n, out); } // emitter +0x30
 	inline int32_t BoundsMaxWorldY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAC0)(n); }      // Effect_GetTargetBoundsMaxWorldY (ax)
@@ -254,13 +255,13 @@ namespace potion050
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
 	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DCF0)(x, y, z); }
 	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // IR = L * V0 + BK
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
-	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
-	// drawing
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }                     // GTE_MVMVA_RotIR
+	inline void GteLoadIRFromMatrixColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }   // GTE_LoadIRFromMatrixColumn
+	inline void GteStoreIRToMatrixColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }               // GTE_StoreIRToMatrixColumn
+	// drawing: SSIGPU_InsertPrimDepthKeys (0x45C870), the OT insertion keyed by the GTE SZ depths
 	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, void *, uint32_t, uint32_t, uint32_t, uint32_t)>(0x45C870)(ot, prim, a, b, c, d); }
-	// sub_5088A0: an entity's ground shadow (returns the packet cursor)
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
+	// BattleEntity_DrawShadow (0x5088A0): an entity's ground shadow (returns the packet cursor)
+	inline uint32_t BattleEntity_DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	// battle models
 	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
 	inline void PreBattleReadAnimation(void *hdr, void *cmd, uint32_t anim) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x509440)(hdr, cmd, anim); }
@@ -339,7 +340,7 @@ namespace potion050
 	}
 
 	// MAG_050_POTION_Overlay_UpdateMatrices (0x820210): the entity's matrix, and a copy moved by `offset`
-	static void UpdateMatrices(OverlayCtx *c, const uint8_t *entity)
+	static void Overlay_UpdateMatrices(OverlayCtx *c, const uint8_t *entity)
 	{
 		memcpy(&c->world, entity + 0x40, 0x20);
 		memcpy(&c->world2, entity + 0x40, 0x20);
@@ -360,8 +361,9 @@ namespace potion050
 	}
 
 	// MAG_050_POTION_Overlay_BuildProjectorMatrix (0x8202D0): `light` = the entity's rotation seen from
-	// light_pos (looking at the moved entity origin, at light_dist)
-	static void BuildProjectorMatrix(OverlayCtx *c)
+	// light_pos (looking at the moved entity origin, at light_dist). Work block (Field_Alloc 0x70):
+	// CureProjectorScratch in IDA.
+	static void Overlay_BuildProjectorMatrix(OverlayCtx *c)
 	{
 		uint8_t *s = (uint8_t *)FieldAlloc(0x70);
 		const int16_t x = (int16_t)c->world2.t[0];
@@ -396,9 +398,9 @@ namespace potion050
 		uint8_t *light = (uint8_t *)&c->light;
 		for (int k = 0; k < 3; k++)
 		{
-			GteLoadIRFromColumn(s + 0x20 + 2 * k);
+			GteLoadIRFromMatrixColumn(s + 0x20 + 2 * k);
 			GteMVMVA_RotIR();
-			GteStoreIRToColumn(light + 2 * k);
+			GteStoreIRToMatrixColumn(light + 2 * k);
 		}
 		GteSetTransVectorCtrl((const Mat4x3 *)(s + 0x40));
 		GteLoadV0Dwords(s + 0x34);
@@ -437,12 +439,14 @@ namespace potion050
 	}
 
 	// MAG_050_POTION_Overlay_RenderModel (0x820440): every object of `model` the entity's mask shows.
-	// Work block (Field_Alloc 0xD0): +0x00 view matrix, +0x20 projector matrix, +0x40 projected
+	// Packets: model pass GpuPolyFT3 / GpuPolyFT4, overlay pass GpuPolyGT3 / GpuPolyGT4; geometry records
+	// BattleModelTriangle / BattleModelQuad; overlay vertex buffer entries CureOverlayVertex (IDA types).
+	// Work block (Field_Alloc 0xD0, CureOverlayRenderScratch in IDA): +0x00 view matrix, +0x20 projector matrix, +0x40 projected
 	// xy (4), +0x70 vertex, +0x8C NCLIP, +0x90 OTZ, +0x94..+0xA0 vertex indices, +0xA8 / +0xAC
 	// projected colour codes (GT3 / GT4), +0xB0 / +0xB4 entity colour codes (FT3 / FT4), +0xB8
 	// object mask, +0xBC tpage, +0xBE clut, +0xC0..+0xC6 window, +0xC8 / +0xCA texel offset,
 	// +0xCC skip, +0xCE back-face test.
-	static void RenderModel(const uint8_t *model, uint32_t ot, int32_t mode, OverlayCtx *c)
+	static void Overlay_RenderModel(const uint8_t *model, uint32_t ot, int32_t mode, OverlayCtx *c)
 	{
 		(void)mode;
 		uint32_t fcur = *c->frame_cursor;
@@ -652,7 +656,7 @@ namespace potion050
 	static void DrawTargetModelWithOverlay(OverlayCtx *c)
 	{
 		uint8_t *entity = c->entity;
-		UpdateMatrices(c, entity);
+		Overlay_UpdateMatrices(c, entity);
 		if (c->slot != 0xFF) BuildBoneMatricesFromPose(entity + 0x60);
 		else
 		{
@@ -661,11 +665,11 @@ namespace potion050
 			if (more) PreBattleReadAnimation(entity + 0x60, entity + 0x6C, ((uint32_t)more & 0xFFFF0000u) | (uint16_t)c->anim);
 		}
 		ComposeAffineTransform(&Camera(), &c->world, &c->view);
-		if (!(entity[0] & 0x20)) *c->frame_cursor = DrawShadow(entity, RenderOT(0x4040), 0x10, *c->frame_cursor);
-		BuildProjectorMatrix(c);
-		RenderModel(*(const uint8_t *const *)(entity + 0x64), RenderOT(0x44), 4, c);
+		if (!(entity[0] & 0x20)) *c->frame_cursor = BattleEntity_DrawShadow(entity, RenderOT(0x4040), 0x10, *c->frame_cursor);
+		Overlay_BuildProjectorMatrix(c);
+		Overlay_RenderModel(*(const uint8_t *const *)(entity + 0x64), RenderOT(0x44), 4, c);
 		const uint8_t *weapon = *(const uint8_t *const *)(entity + 0x78);
-		if (weapon) RenderModel(*(const uint8_t *const *)(weapon + 4), RenderOT(0x44), 4, c);
+		if (weapon) Overlay_RenderModel(*(const uint8_t *const *)(weapon + 4), RenderOT(0x44), 4, c);
 		if (c->slot != 0xFF) BuildBoneMatricesFromPose(entity + 0x60);
 	}
 
@@ -714,7 +718,7 @@ namespace potion050
 	// ------------------------------------------------------------------
 	// Effect_LifetimeTick_Expired (0x821050): next flipbook frame; past the last one the node is
 	// hidden (frame stays last) and 1 is returned
-	static int32_t LifetimeExpired(Particle *p)
+	static int32_t LifetimeTick_Expired(Particle *p)
 	{
 		p->frame++;
 		if (p->frame > p->last)
@@ -726,13 +730,13 @@ namespace potion050
 		return 0;
 	}
 
-	// mote / sparkle phase 1 (0x821010 / 0x821170): position += velocity, done at the last frame
+	// mote / sparkle phase 1 (MAG_050_POTION_Mote_State1_Integrate 0x821010 / _Sparkle_State1_Integrate 0x821170): position += velocity, done at the last frame
 	static void Integrate(Particle *p)
 	{
 		p->h.pos[0] = (int16_t)(p->h.pos[0] + p->vel[0]);
 		p->h.pos[1] = (int16_t)(p->h.pos[1] + p->vel[1]);
 		p->h.pos[2] = (int16_t)(p->h.pos[2] + p->vel[2]);
-		if (LifetimeExpired(p))
+		if (LifetimeTick_Expired(p))
 		{
 			*(uint8_t *)&p->h.flags |= 1;
 			p->h.phase++;
@@ -752,7 +756,7 @@ namespace potion050
 	}
 
 	// MAG_050_POTION_Ring_SpawnSparkle (0x821090): counter 1..16
-	static void SpawnSparkle(Particle *r)
+	static void Ring_SpawnSparkle(Particle *r)
 	{
 		if (P().sparkle.window.has(r->h.counter)) AddEffectTask(QParticles(), ORIG_Sparkle, 0x6C, r);
 	}
@@ -760,7 +764,7 @@ namespace potion050
 	// MAG_050_POTION_Ring_SpawnMotes (0x820E30): counter 2..: 1 (2..6), 2 (7, 8), 3 (9, 10), 2 (11..)
 	// motes on a circle of 1.5 x the target's radius (at most 0x400) at a random angle, at the ring's
 	// height lowered by a random part of the ring's height above the target's top
-	static void SpawnMotes(Particle *r)
+	static void Ring_SpawnMotes(Particle *r)
 	{
 		const HealRingParams::Mote &mp = P().mote;
 		const int16_t c = r->h.counter;
@@ -786,7 +790,7 @@ namespace potion050
 
 	// MAG_050_POTION_Ring_SpawnGlints (0x820D60): counter 4..10: 2 (4..6), 3 (7, 8), 4 (9, 10) glints
 	// (Effect_Glint_Tick) drawing into the module cursor: 8 ticks growing, 8 fading, spinning either way
-	static void SpawnGlints(Particle *r)
+	static void Ring_SpawnGlints(Particle *r)
 	{
 		const HealRingParams::Glint &gp = P().glint;
 		const int16_t c = r->h.counter;
@@ -815,7 +819,7 @@ namespace potion050
 	// anchor at the top of the target's bounds; radius 2 x the bounds radius (at most 0x400); climb
 	// (height + 0x100) / -20 / 4 per sub-step; the overlay on the target, which the normal renderer
 	// then skips (entity flag 4)
-	static void RingInit(Particle *r)
+	static void Ring_State0_Init(Particle *r)
 	{
 		*(uint8_t *)&r->h.flags |= 2;
 		r->seq = fxp::sequence(P().ring.seq, SEQ_Ring);
@@ -841,9 +845,9 @@ namespace potion050
 
 	// ring phase 2 (0x8213B0): at the flipbook's end: the root is free again, the target shown,
 	// spawning and overlay off, done
-	static void RingEnd(Particle *r)
+	static void Ring_State2_EndAndUnblockDirector(Particle *r)
 	{
-		if (!LifetimeExpired(r)) return;
+		if (!LifetimeTick_Expired(r)) return;
 		((RootNode *)r->h.root)->busy = 0;
 		*(uint16_t *)Entity(r->h.slot) &= 0xFFFB;
 		uint16_t f = r->h.flags;
@@ -879,7 +883,7 @@ namespace potion050
 			p->h.phase++;
 			break;
 		case 1: Integrate(p); break;
-		default: break; // phase 2: nullsub 0x8211B0
+		default: break; // phase 2: MAG_050_POTION_Sparkle_State2_Idle 0x8211B0
 		}
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(held_note_particle(p);)
@@ -908,7 +912,7 @@ namespace potion050
 			p->h.phase++;
 			break;
 		case 1: Integrate(p); break;
-		default: break; // phase 2: nullsub 0x821080
+		default: break; // phase 2: MAG_050_POTION_Mote_State2_Idle 0x821080
 		}
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(held_note_particle(p);)
@@ -931,7 +935,7 @@ namespace potion050
 		Particle *r = (Particle *)n;
 		switch (r->h.phase)
 		{
-		case 0: RingInit(r); break;
+		case 0: Ring_State0_Init(r); break;
 		case 1: // 0x821380: at 20 the ending flipbook
 			if (r->h.counter >= P().ring.ending.tick)
 			{
@@ -940,19 +944,19 @@ namespace potion050
 				r->h.phase++;
 			}
 			break;
-		case 2: RingEnd(r); break;
-		default: break; // phase 3: nullsub 0x821400
+		case 2: Ring_State2_EndAndUnblockDirector(r); break;
+		default: break; // phase 3: MAG_050_POTION_Ring_State3_Idle 0x821400
 		}
 		const int32_t substeps = P().ring.steps.per_tick;
 		for (uint32_t s = 0; s < (uint32_t)substeps; s++)
 		{
 			RingPlace(r, (uint32_t)(uint16_t)(r->h.counter * substeps) + s);
-			if (r->h.flags & 2) SpawnSparkle(r);
+			if (r->h.flags & 2) Ring_SpawnSparkle(r);
 		}
 		if (r->h.flags & 2)
 		{
-			SpawnMotes(r);
-			SpawnGlints(r);
+			Ring_SpawnMotes(r);
+			Ring_SpawnGlints(r);
 		}
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(held_note_ring(r);)
@@ -995,11 +999,11 @@ namespace potion050
 	static uint32_t __cdecl EmitterTask(TaskNode *n)
 	{
 		EmitterNode *e = (EmitterNode *)n;
-		EmitterUpdatePos(e);
-		ComputeModelBounds(e);
+		Emitter_UpdatePos(e);
+		Emitter_ComputeModelBounds(e);
 		switch (e->h.phase)
 		{
-		case 0: // 0x81FD60: the ring
+		case 0: // MAG_050_POTION_Emitter_State0_SpawnRing 0x81FD60: the ring
 			if (e->h.counter < P().ring.start.delay) break;      // its start delayed
 			AddEffectTask(QParticles(), ORIG_Ring, 0x6C, e);
 			e->h.phase++;
@@ -1013,7 +1017,7 @@ namespace potion050
 				e->h.phase++;
 			}
 			break;
-		default: break; // phase 3: nullsub 0x821460
+		default: break; // phase 3: MAG_050_POTION_Emitter_State3_Idle 0x821460
 		}
 		if (e->h.counter == P().emitter.sound_tick) BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Potion), 0, P().emitter.sound_pan);
 		e->h.counter++;
@@ -1071,7 +1075,7 @@ namespace potion050
 			*(uint8_t *)&r->h.flags |= 1;
 			r->h.phase++;
 			break;
-		default: break; // 0x821510
+		default: break; // 0x821510 MAG_050_POTION_State10_Idle
 		}
 	}
 
