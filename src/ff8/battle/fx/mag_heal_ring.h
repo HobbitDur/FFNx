@@ -63,9 +63,9 @@ namespace healring
 		struct Glow
 		{
 			uint32_t seq;            // sprite sequence (its frame 0, lying on the ground)
-			int16_t ticks;           // drawn under the ring for this many ticks
 			struct Brightness
 			{
+				int16_t ticks;       // drawn under the ring for this many ticks
 				uint8_t start;       // additive grey...
 				uint8_t fade;        // ...lost per tick
 			} brightness;
@@ -111,7 +111,7 @@ namespace healring
 	inline const HealRingParams DEFAULTS = {
 		{ 0, 0, 0xF },
 		{ 0, { 4, 0x80 }, { 2, 1, 0x400 }, { 0x100, 20 }, { 0, 0x14, 4 } },
-		{ 0, 0x14, { 0x3C, 3 } },
+		{ 0, { 0x14, 0x3C, 3 } },
 		{ { 0x200, 0x180, 0x140, 0xF1, 0x80, 0x80 }, { 0x80, 0x80, 0x80 }, 0, 0x2000 },
 		{ 0, { 1, 0x10 }, { { -0x10, 0xF }, { 0x10, 0x1F }, { -0x10, 0xF } }, 8 },
 		{ 0, { 2, 0x7FFE }, { { 2, 7, 9, 11 }, { 1, 2, 3, 2 } }, { 3, 2, 0x400 }, { 0, 0xFFF }, { 0, 0x1F, 48 }, { 8, 0x17 }, 0x10 },
@@ -150,18 +150,18 @@ namespace healring
 		{ "ring.radius", "Radius", "radius = target's radius x Times / Divided by (whole numbers), then at most At most. At step n the ring is at centre + (sin(angle) x radius, height, cos(angle) x radius)" },
 		{ "ring.climb", "Climb speed", "rise per step = ((target's height + Target height +) / Every) / Per tick (whole numbers, rounded toward 0). The ring starts at the target's feet and rises at this speed until it ends (its ending flipbook done, its sparkles and motes gone): after Every ticks it is Target height + over the target's top, then it goes on" },
 		{ "ring.ending", "Ending flipbook", "From ring tick From tick the ring plays this sequence, one frame per tick, up to Last frame, then ends once its sparkles and motes are gone: it lives about From tick + Last frame + 1 ticks" },
-		{ "glow.brightness", "Brightness", "grey = (Start - ring tick x Lost per tick), kept to 0-255 by wrapping (below 0 it starts again from 255); additive: it adds grey to what is behind, 0 adds nothing" },
+		{ "glow.brightness", "Brightness", "Drawn while ring tick < Duration, its grey = Start - (ring tick x Lost per tick), one byte each: below 0 it wraps to 255 and the glow comes back bright. Additive: 0 adds nothing. The game stops at 20 = Start / Lost per tick, when it reaches 0" },
 		{ "overlay.image", "Projected image", "The target is redrawn with this image projected from the ring (a slide projector): a target point seen from the ring at screen (x, y) takes texel image corner + (x - 160, y - 120) + window / 2, inside the Width x Height window, with this palette" },
 		{ "overlay.rgb", "Light colour", "redrawn colour = texel x this / 128 (128 = the image as it is)" },
-		{ "sparkle.window", "Born", "A sparkle is born at each ring step while From tick <= ring tick <= To tick: Per tick sparkles per ring tick" },
+		{ "sparkle.window", "Born", "A sparkle is born at each ring step while From tick <= ring tick <= To tick: Per tick sparkles per ring tick. The ring only spawns while it lives: until its ending flipbook is done (From tick + Last frame: ring tick 24 with the game's), later ticks do nothing" },
 		{ "sparkle.speed", "Speed", "Rolled once at birth, x then z then y, each min + random % (max - min + 1); then position += speed every tick (y goes down: a positive y falls)" },
-		{ "mote.window", "Born", "Motes are born while From tick <= ring tick <= To tick" },
+		{ "mote.window", "Born", "Motes are born while From tick <= ring tick <= To tick. The ring only spawns while it lives: until its ending flipbook is done (From tick + Last frame: ring tick 24 with the game's), later ticks do nothing" },
 		{ "mote.count", "How many", "Motes per ring tick = the count of the last rate whose from tick <= ring tick" },
 		{ "mote.radius", "Circle", "circle radius = target's radius x Times / Divided by (whole numbers), then at most At most; centred on the target" },
 		{ "mote.angle", "Place on the circle", "angle = min + random % (max - min + 1) (4096 = a full turn), rolled at birth" },
 		{ "mote.drop", "Drop", "Born below the ring by (the ring's height over the target's feet) x (min + random % (max - min + 1)) / Divided by, rolled at birth" },
 		{ "mote.rise", "Rise speed", "Rises min + random % (max - min + 1) every tick, rolled once (its first tick)" },
-		{ "glint.window", "Born", "Glints are born while From tick <= ring tick <= To tick, at the target's centre (every tick they go back there: the middle of its line anchor, at the height of its bounds centre)" },
+		{ "glint.window", "Born", "Glints are born while From tick <= ring tick <= To tick, at the target's centre (every tick they go back there: the middle of its line anchor, at the height of its bounds centre). The ring only spawns while it lives: until its ending flipbook is done (From tick + Last frame: ring tick 24 with the game's), later ticks do nothing" },
 		{ "glint.count", "How many", "Glints per ring tick = the count of the last rate whose from tick <= ring tick" },
 		{ "glint.style.grow", "Growth", "width, height += this every tick while growing" },
 		{ "glint.style.shrink", "Shrinking", "width, height -= this every tick while shrinking" },
@@ -184,7 +184,7 @@ namespace healring
 		HEAL_RING_FIELD("ring", ring.ending.tick, "From tick", "The ring switches to it at this ring tick", I16, 1, 200),
 		HEAL_RING_FIELD("ring", ring.ending.frames, "Last frame", "One frame per tick up to this one, then the ring ends", I16, 0, 64),
 		HEAL_RING_FIELD("glow", glow.seq, "Sequence", "Its frame 0, lying flat on the ground (y = 0) under the ring", Seq, 0, 0x7FFFFFFF),
-		HEAL_RING_FIELD("glow", glow.ticks, "Duration", "Drawn while ring tick < this", I16, 0, 200),
+		HEAL_RING_FIELD("glow", glow.brightness.ticks, "Duration", "Drawn while ring tick < this", I16, 0, 200),
 		HEAL_RING_FIELD("glow", glow.brightness.start, "Start", "grey at ring tick 0", U8, 0, 255),
 		HEAL_RING_FIELD("glow", glow.brightness.fade, "Lost per tick", "grey taken away every ring tick", U8, 0, 255),
 		HEAL_RING_FIELD("overlay", overlay.image.tex_x, "VRAM x", "The image's corner in video memory", I16, 0, 1023),

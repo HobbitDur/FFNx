@@ -945,7 +945,7 @@ namespace cure001
 			SetOverlayTexturePage(&Overlay(), r->h.pos, op.image.tex_x, op.image.tex_y, op.image.clut_x, op.image.clut_y, op.image.width, op.image.height);
 			DrawTargetModelWithOverlay(&Overlay());
 		}
-		if (r->h.counter < P().glow.ticks)
+		if (r->h.counter < P().glow.brightness.ticks)
 		{
 			// grey 0x3C - 3 * counter; the 4th byte is the high byte of the task argument (the node
 			// address) the colour is written over on the original's stack
