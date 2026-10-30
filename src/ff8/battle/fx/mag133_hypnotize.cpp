@@ -111,7 +111,8 @@ namespace hypno133
 		struct Timing
 		{
 			uint32_t sound;         // sound block (FF8_EN.exe data): BdPlaySE reads its world sound id
-			int16_t sound_tick;     // the sound plays (main counter)
+			int16_t sound_tick;     // the sound plays (main counter)...
+			int16_t sound_pan;      // ...panned so (BdPlaySE's 3rd argument: 0x80 the middle)
 			int16_t damage_tick;    // every target of action 0 takes the result
 			int16_t end_tick;       // the main task ends
 		} timing;
@@ -145,7 +146,7 @@ namespace hypno133
 		} sprites;
 	};
 	static const HypnotizeParams DEFAULTS = {
-		{ (uint32_t)SOUND_Hypnotize, 0, 0x22, 0x2A },
+		{ (uint32_t)SOUND_Hypnotize, 0, 0x80, 0x22, 0x2A },
 		{ 0x1D, 12, 16, 4, 0 },
 		{ { 0, 0xF }, 2 },
 		{ { { 2, 0x16 }, 2 }, { -0x400, 0x3FF }, { 0x800, 0xFFF }, -0x80 },
@@ -476,7 +477,7 @@ namespace hypno133
 			FX_HELD(held_note_play(PLAY_MAIN, n, (prim::Layout *)t->layout, &arg);)
 			prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		}
-		if (t->counter == pp.timing.sound_tick) BdPlaySE((const void *)fxp::sound(pp.timing.sound, (uint32_t)SOUND_Hypnotize), 0, 0x80);
+		if (t->counter == pp.timing.sound_tick) BdPlaySE((const void *)fxp::sound(pp.timing.sound, (uint32_t)SOUND_Hypnotize), 0, pp.timing.sound_pan);
 		const int32_t c = t->counter;
 		if (Spawns(pp.rings, c))
 		{
@@ -599,6 +600,7 @@ namespace hypno133
 		static const Field FIELDS[] = {
 			HYPNO_FIELD("timing", timing.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
 			HYPNO_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays when the main tick == this", I16, 0, 200),
+			HYPNO_FIELD("timing", timing.sound_pan, "Sound pan", "Where it plays between the speakers: 128 the middle (BdPlaySE's pan)", I16, 0, 255),
 			HYPNO_FIELD("timing", timing.damage_tick, "Damage tick", "The targets take the result when the main tick == this", I16, 0, 200),
 			HYPNO_FIELD("timing", timing.end_tick, "End tick", "The main task ends when the main tick reaches this", I16, 1, 200),
 			HYPNO_FIELD("main", main.last_tick, "Last tick", "Drawn while main tick <= this", I16, -1, 200),

@@ -275,11 +275,13 @@ namespace potion050
 	// Drawing helpers
 	// ------------------------------------------------------------------
 	// MAG_050_POTION_DrawSprite (0x81FF30): the node's flipbook frame at its position (camera-facing)
-	static void DrawSprite(const Particle *p, const fxp::Colour &colour)
+	// size: the camera scale the sprite is drawn with (TransformCameraByShadowRotation 0x571BC0: 4096
+	// = its own size); p->shade moves it along the line of sight
+	static void DrawSprite(const Particle *p, const fxp::Colour &colour, int16_t size)
 	{
 		if (p->h.flags & 4) return;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		TransformCameraByShadowRotation(p->h.pos, 0x1000, p->shade);
+		TransformCameraByShadowRotation(p->h.pos, size, p->shade);
 		F<uint32_t>(h, 0) = p->seq;
 		F<int16_t>(h, 4) = p->frame;
 		F<int16_t>(h, 0x24) = 0;
@@ -882,7 +884,7 @@ namespace potion050
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_SPARKLES);
-		DrawSprite(p, P().sparkle.colour);
+		DrawSprite(p, P().sparkle.colour, P().sparkle.size);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -911,7 +913,7 @@ namespace potion050
 		// 30 fps layer: see mag050_potion_held.inc
 		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_MOTES);
-		DrawSprite(p, P().mote.colour);
+		DrawSprite(p, P().mote.colour, P().mote.size);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -969,14 +971,14 @@ namespace potion050
 			const uint32_t grey = (uint8_t)(P().glow.brightness.start - (uint8_t)(r->h.counter * P().glow.brightness.fade));
 			const uint32_t colour = grey | grey << 8 | grey << 16 | ((uint32_t)r & 0xFF000000u);
 			FX_PART(PART_RING);
-			DrawSprite(r, P().ring.colour);
+			DrawSprite(r, P().ring.colour, P().ring.size);
 			FX_PART(PART_GLOW);
 			DrawAdditiveGlow(r, fxp::sequence(P().glow.seq, SEQ_Glow), &colour);
 		}
 		else
 		{
 			FX_PART(PART_RING);
-			DrawSprite(r, P().ring.colour);
+			DrawSprite(r, P().ring.colour, P().ring.size);
 		}
 		r->h.counter++;
 		if ((r->h.flags & 1) && r->h.children == 0)
@@ -1013,7 +1015,7 @@ namespace potion050
 			break;
 		default: break; // phase 3: nullsub 0x821460
 		}
-		if (e->h.counter == P().emitter.sound_tick) BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Potion), 0, 0x80);
+		if (e->h.counter == P().emitter.sound_tick) BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Potion), 0, P().emitter.sound_pan);
 		e->h.counter++;
 		if ((e->h.flags & 1) && e->h.children == 0)
 		{

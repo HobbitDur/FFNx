@@ -36,7 +36,8 @@ namespace healring
 		struct Emitter
 		{
 			uint32_t sound;          // sound block (FF8_EN.exe data): BdPlaySE reads its world sound id
-			int16_t sound_tick;      // the sound plays at this tick
+			int16_t sound_tick;      // the sound plays at this tick...
+			int16_t sound_pan;       // ...panned so (BdPlaySE's 3rd argument: 0x80 the middle)
 			int16_t heal_tick;       // the HP are given from this tick
 		} emitter;
 		struct Ring
@@ -48,6 +49,7 @@ namespace healring
 				int16_t above;       // ...this high over the target's feet (game units)
 			} start;
 			fxp::Colour colour;      // its pieces' colour (128 = as they are)
+			int16_t size;            // its sprite's scale (4096 = its own size)
 			struct Steps
 			{
 				int16_t per_tick;    // each tick: drawn at the last one, a sparkle born at each
@@ -99,6 +101,7 @@ namespace healring
 			uint32_t seq;            // sprite sequence
 			fxp::Window window;      // ring ticks it spawns them (one per step)
 			fxp::Colour colour;      // their pieces' colour (128 = as they are)
+			int16_t size;            // their sprite's scale (4096 = its own size)
 			fxp::Range3 speed;       // per tick (y down)
 			int16_t frames;          // last flipbook frame: lifetime
 		} sparkle;
@@ -108,6 +111,7 @@ namespace healring
 			fxp::Window window;      // ring ticks it spawns them
 			fxp::Schedule count;     // how many per tick
 			fxp::Colour colour;      // their pieces' colour (128 = as they are)
+			int16_t size;            // their sprite's scale (4096 = its own size)
 			fxp::Scaled radius;      // circle: of the target's bounds radius
 			fxp::Range angle;        // place on the circle
 			fxp::RandomFraction drop;    // below the ring: this share of its height over the target
@@ -123,12 +127,12 @@ namespace healring
 	};
 	// the game's values but the sprite sequences, each module's own (game_values)
 	inline const HealRingParams DEFAULTS = {
-		{ 0, 0, 0xF },
-		{ 0, { 0, 0 }, { 0x80, 0x80, 0x80, 0 }, { 4, 0x80 }, { 2, 1, 0x400 }, { 0x100, 20 }, { 0, 0x14, 4 } },
+		{ 0, 0, 0x80, 0xF },
+		{ 0, { 0, 0 }, { 0x80, 0x80, 0x80, 0 }, 0x1000, { 4, 0x80 }, { 2, 1, 0x400 }, { 0x100, 20 }, { 0, 0x14, 4 } },
 		{ 0, { 0x400, 0, 0 }, { 0x14, 0x3C, 3 } },
 		{ { 0x200, 0x180, 0x140, 0xF1, 0x80, 0x80 }, { 0x80, 0x80, 0x80 }, 0, 0x2000 },
-		{ 0, { 1, 0x10 }, { 0x80, 0x80, 0x80, 0 }, { { -0x10, 0xF }, { 0x10, 0x1F }, { -0x10, 0xF } }, 8 },
-		{ 0, { 2, 0x7FFE }, { { 2, 7, 9, 11 }, { 1, 2, 3, 2 } }, { 0x80, 0x80, 0x80, 0 }, { 3, 2, 0x400 }, { 0, 0xFFF }, { 0, 0x1F, 48 }, { 8, 0x17 }, 0x10 },
+		{ 0, { 1, 0x10 }, { 0x80, 0x80, 0x80, 0 }, 0x1000, { { -0x10, 0xF }, { 0x10, 0x1F }, { -0x10, 0xF } }, 8 },
+		{ 0, { 2, 0x7FFE }, { { 2, 7, 9, 11 }, { 1, 2, 3, 2 } }, { 0x80, 0x80, 0x80, 0 }, 0x1000, { 3, 2, 0x400 }, { 0, 0xFFF }, { 0, 0x1F, 48 }, { 8, 0x17 }, 0x10 },
 		{ { 4, 10 }, { { 4, 7, 9, 11 }, { 2, 3, 4, 2 } }, { 8, { 0x100, 0x10 }, { 0x40, 0x10 }, { 0x10, 0x10, 0x10 }, { 0, 0, 0x10 }, 0x40 } },
 	};
 
@@ -190,6 +194,7 @@ namespace healring
 	inline const fxp::Field FIELDS[] = {
 		HEAL_RING_FIELD("emitter", emitter.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("emitter", emitter.sound_tick, "Sound tick", "The sound plays when the cast's tick == this", I16, 0, 200),
+		HEAL_RING_FIELD("emitter", emitter.sound_pan, "Sound pan", "Where it plays between the speakers: 128 the middle (BdPlaySE's pan)", I16, 0, 255),
 		HEAL_RING_FIELD("emitter", emitter.heal_tick, "Heal tick", "The HP are given once, at the first cast tick >= this", I16, 0, 200),
 		HEAL_RING_FIELD("ring", ring.seq, "Sequence", "Sprite sequence of the climbing light (its frame 0, drawn at the ring's last step of each tick)", Seq, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("ring", ring.start.delay, "Delay (ticks)", "The emitter's tick it starts the ring at", I16, 0, 200),
@@ -197,6 +202,7 @@ namespace healring
 		HEAL_RING_FIELD("ring", ring.colour.r, "Red", "", U8, 0, 255),
 		HEAL_RING_FIELD("ring", ring.colour.g, "Green", "", U8, 0, 255),
 		HEAL_RING_FIELD("ring", ring.colour.b, "Blue", "", U8, 0, 255),
+		HEAL_RING_UNIT("ring", ring.size, "Size", "Its sprite's scale (x 1: its own size)", I16, 0, 0x7FFF, Scale),
 		HEAL_RING_FIELD("ring", ring.steps.per_tick, "Per tick", "Steps the ring takes each ring tick", I16, 1, 16),
 		HEAL_RING_UNIT("ring", ring.steps.angle, "Angle", "angle of step n = n x this (4096 = a full turn)", I16, -2048, 2048, Angle),
 		HEAL_RING_FIELD("ring", ring.radius.num, "Times", "radius = target's radius x this...", I16, 0, 32),
@@ -230,6 +236,7 @@ namespace healring
 		HEAL_RING_FIELD("sparkles", sparkle.colour.r, "Red", "", U8, 0, 255),
 		HEAL_RING_FIELD("sparkles", sparkle.colour.g, "Green", "", U8, 0, 255),
 		HEAL_RING_FIELD("sparkles", sparkle.colour.b, "Blue", "", U8, 0, 255),
+		HEAL_RING_UNIT("sparkles", sparkle.size, "Size", "Their sprite's scale (x 1: its own size)", I16, 0, 0x7FFF, Scale),
 		HEAL_RING_FIELD("sparkles", sparkle.speed.x.min, "x min", "", I16, -0x400, 0x400),
 		HEAL_RING_FIELD("sparkles", sparkle.speed.x.max, "x max", "", I16, -0x400, 0x400),
 		HEAL_RING_FIELD("sparkles", sparkle.speed.y.min, "y min", "y goes down", I16, -0x400, 0x400),
@@ -251,6 +258,7 @@ namespace healring
 		HEAL_RING_FIELD("motes", mote.colour.r, "Red", "", U8, 0, 255),
 		HEAL_RING_FIELD("motes", mote.colour.g, "Green", "", U8, 0, 255),
 		HEAL_RING_FIELD("motes", mote.colour.b, "Blue", "", U8, 0, 255),
+		HEAL_RING_UNIT("motes", mote.size, "Size", "Their sprite's scale (x 1: its own size)", I16, 0, 0x7FFF, Scale),
 		HEAL_RING_FIELD("motes", mote.radius.num, "Times", "The target's radius times this...", I16, 0, 32),
 		HEAL_RING_FIELD("motes", mote.radius.den, "Divided by", "...divided by this...", I16, 1, 32),
 		HEAL_RING_FIELD("motes", mote.radius.max, "At most", "...never more than this (game units)", I16, 0, 0x2000),
