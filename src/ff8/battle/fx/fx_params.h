@@ -29,6 +29,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 namespace ff8fx
 {
@@ -133,6 +134,14 @@ namespace fxp
 		return address == game || address < image_begin || address + 4 > image_end || address & 3 ? game : address;
 	}
 
+	// a file name parameter (the files an effect's loader reads from the magic folder,
+	// IO_GetFile_MAGIC 0x571B80): empty = the game's own file
+	struct FileName { char name[16]; };
+	inline const char *file(const FileName &f, const char *game)
+	{
+		return f.name[0] && memchr(f.name, 0, sizeof(f.name)) ? f.name : game;
+	}
+
 	// a flipbook's last frame played, within its sequence (frame count at +8): past it the game would
 	// read the frame list's end as a frame
 	inline int16_t last_frame(uint32_t sequence, int16_t last)
@@ -144,7 +153,7 @@ namespace fxp
 	// ---- field table (what an editor shows) ----
 	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences; Sound: a sound
 	// block's address (32 bits)
-	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4 };
+	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4, File = 5 };
 	// how an editor shows the value (the raw value beside it): Angle 4096 = a full turn (degrees),
 	// Scale 4096 = its own size (x 1)
 	enum Unit : uint8_t { Plain = 0, Angle = 1, Scale = 2 };

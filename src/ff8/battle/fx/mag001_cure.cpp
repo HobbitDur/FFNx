@@ -1131,7 +1131,7 @@ namespace cure001
 	// module's buffer
 	static uint32_t __cdecl FileLoader()
 	{
-		const uint32_t file = IO_GetFile_MAGIC((const char *)0x164252C);
+		const uint32_t file = IO_GetFile_MAGIC(fxp::file(P().files.texture, (const char *)0x164252C));
 		var<uint32_t>(TEXTURE_FILE) = file;
 		return file;
 	}

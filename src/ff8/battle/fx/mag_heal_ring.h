@@ -124,6 +124,10 @@ namespace healring
 			fxp::Schedule count;     // how many per tick
 			fxp::GlintStyle style;
 		} glint;
+		struct Files
+		{
+			fxp::FileName texture;   // the TIM the loader reads (empty: the game's, mag000-049.tim)
+		} files;
 	};
 	// the game's values but the sprite sequences, each module's own (game_values)
 	inline const HealRingParams DEFAULTS = {
@@ -162,6 +166,7 @@ namespace healring
 		{ PART_SPARKLES, "sparkles", "Sparkles", "Flipbooks born at each step of the ring, drifting out and down" },
 		{ PART_MOTES, "motes", "Motes", "Flipbooks rising on a circle around the target" },
 		{ PART_GLINTS, "glints", "Glints", "The shared effect library's glints: streaks at the target's centre (they never move), growing then shrinking, spinning" },
+		{ 0, "files", "Files", "The files the effect loads from the magic folder (draws nothing)" },
 	};
 	inline const fxp::Group GROUPS[] = {
 		{ "ring.start", "Start", "The emitter starts the ring at its tick Delay (0: its first), Above over the target's feet; it climbs from there" },
@@ -293,6 +298,7 @@ namespace healring
 		HEAL_RING_FIELD("glints", glint.style.tip_step[1], "Green", "", U8, 0, 255),
 		HEAL_RING_FIELD("glints", glint.style.tip_step[2], "Blue", "", U8, 0, 255),
 		HEAL_RING_UNIT("glints", glint.style.spin, "Spin per tick", "Turn about the vertical axis every tick, + or - this, one random roll per glint (4096 = a full turn)", I16, -2048, 2048, Angle),
+		HEAL_RING_FIELD("files", files.texture, "Texture", "The TIM file of the magic folder its loader reads: the sprites' and the projected image's pixels and palettes (empty: the game's, mag000-049.tim)", File, 0, 15),
 	};
 #undef HEAL_RING_FIELD
 #undef HEAL_RING_UNIT

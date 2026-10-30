@@ -1134,7 +1134,7 @@ namespace potion050
 	// module's buffer
 	static uint32_t __cdecl FileLoader()
 	{
-		const uint32_t file = IO_GetFile_MAGIC((const char *)0x15ADAE0);
+		const uint32_t file = IO_GetFile_MAGIC(fxp::file(P().files.texture, (const char *)0x15ADAE0));
 		var<uint32_t>(TEXTURE_FILE) = file;
 		return file;
 	}
