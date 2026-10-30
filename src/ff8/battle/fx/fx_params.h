@@ -94,6 +94,15 @@ namespace fxp
 		int16_t w, h;
 	};
 
+	// a colour multiplier (128 = unchanged), as the sprite drawer takes it (its workspace +0x1C,
+	// flag 4): a piece's colour = its texel x this x its intensity >> 14
+	struct Colour
+	{
+		uint8_t r, g, b, pad;
+		bool unchanged() const { return r == 0x80 && g == 0x80 && b == 0x80; }
+		uint32_t word() const { return (uint32_t)r | (uint32_t)g << 8 | (uint32_t)b << 16; }
+	};
+
 	// the shared effect library's glint (Effect_Glint_Tick 0x8DCC20, fx_glint.cpp): a streak that
 	// grows for `ticks`, then shrinks for as many, its colours stepping, spinning about Y
 	struct GlintStyle

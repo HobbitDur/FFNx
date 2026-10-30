@@ -271,7 +271,7 @@ namespace cure001
 	// Drawing helpers
 	// ------------------------------------------------------------------
 	// MAG_001_CURE_DrawSprite (0x8D6F20): the node's flipbook frame at its position (camera-facing)
-	static void DrawSprite(const Particle *p)
+	static void DrawSprite(const Particle *p, const fxp::Colour &colour)
 	{
 		if (p->h.flags & 4) return;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -279,6 +279,11 @@ namespace cure001
 		F<uint32_t>(h, 0) = p->seq;
 		F<int16_t>(h, 4) = p->frame;
 		F<int16_t>(h, 0x24) = 0;
+		if (!colour.unchanged())                 // the game's: the drawer's own 0x808080
+		{
+			F<uint32_t>(h, 0x1C) = colour.word();
+			F<int16_t>(h, 0x24) = 4;
+		}
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -288,18 +293,19 @@ namespace cure001
 	static void DrawAdditiveGlow(const Particle *p, uint32_t seq, const uint32_t *colour)
 	{
 		if (p->h.flags & 4) return;
+		const HealRingParams::Glow::Placement &gp = P().glow.placement;
 		Mat4x3 m;
 		IdentityMatrix(&m);
-		RotateX(&m, 0x400);
+		RotateX(&m, gp.tilt);
 		m.t[0] = p->h.pos[0];
-		m.t[1] = 0;
+		m.t[1] = -gp.height;                     // y down: the game's 0 on the ground
 		m.t[2] = p->h.pos[2];
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint32_t>(h, 0) = seq;
-		F<int16_t>(h, 4) = 0;
+		F<int16_t>(h, 4) = fxp::last_frame(seq, gp.frame);
 		F<uint32_t>(h, 0x1C) = *colour;
 		F<int16_t>(h, 0x24) = 4;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -807,7 +813,7 @@ namespace cure001
 		r->seq = fxp::sequence(P().ring.seq, SEQ_Ring);
 		uint8_t *entity = Entity(r->h.slot);
 		CopyAnchorXZFromSource(r, r->center);
-		r->center[1] = (int16_t)BoundsMaxWorldY(r);
+		r->center[1] = (int16_t)((int16_t)BoundsMaxWorldY(r) - P().ring.start.above);     // y down
 		const HealRingParams::Ring &rp = P().ring;
 		r->radius = rp.radius.of(BoundsRadius(r));
 		const int32_t hv = (int32_t)(int16_t)BoundsHeight(r) + rp.climb.above;
@@ -865,7 +871,7 @@ namespace cure001
 		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_SPARKLES);
-		DrawSprite(p);
+		DrawSprite(p, P().sparkle.colour);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -894,7 +900,7 @@ namespace cure001
 		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_MOTES);
-		DrawSprite(p);
+		DrawSprite(p, P().mote.colour);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -952,14 +958,14 @@ namespace cure001
 			const uint32_t grey = (uint8_t)(P().glow.brightness.start - (uint8_t)(r->h.counter * P().glow.brightness.fade));
 			const uint32_t colour = grey | grey << 8 | grey << 16 | ((uint32_t)r & 0xFF000000u);
 			FX_PART(PART_RING);
-			DrawSprite(r);
+			DrawSprite(r, P().ring.colour);
 			FX_PART(PART_GLOW);
 			DrawAdditiveGlow(r, fxp::sequence(P().glow.seq, SEQ_Glow), &colour);
 		}
 		else
 		{
 			FX_PART(PART_RING);
-			DrawSprite(r);
+			DrawSprite(r, P().ring.colour);
 		}
 		r->h.counter++;
 		if ((r->h.flags & 1) && r->h.children == 0)
@@ -981,6 +987,7 @@ namespace cure001
 		switch (e->h.phase)
 		{
 		case 0: // 0x8D6D50: the ring
+			if (e->h.counter < P().ring.start.delay) break;      // its start delayed
 			AddEffectTask(QParticles(), ORIG_Ring, 0x6C, e);
 			e->h.phase++;
 			break;

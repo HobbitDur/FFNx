@@ -42,6 +42,12 @@ namespace healring
 		struct Ring
 		{
 			uint32_t seq;            // sprite sequence of the climbing light (FF8_EN.exe data)
+			struct Start
+			{
+				int16_t delay;       // the emitter starts it at its tick this (0: its first)...
+				int16_t above;       // ...this high over the target's feet (game units)
+			} start;
+			fxp::Colour colour;      // its pieces' colour (128 = as they are)
 			struct Steps
 			{
 				int16_t per_tick;    // each tick: drawn at the last one, a sparkle born at each
@@ -63,6 +69,12 @@ namespace healring
 		struct Glow
 		{
 			uint32_t seq;            // sprite sequence (its frame 0, lying on the ground)
+			struct Placement
+			{
+				int16_t tilt;        // turned about X (0x400: lying flat)...
+				int16_t height;      // ...this high over the ground (y up)...
+				int16_t frame;       // ...this frame of its sequence
+			} placement;
 			struct Brightness
 			{
 				int16_t ticks;       // drawn under the ring for this many ticks
@@ -86,6 +98,7 @@ namespace healring
 		{
 			uint32_t seq;            // sprite sequence
 			fxp::Window window;      // ring ticks it spawns them (one per step)
+			fxp::Colour colour;      // their pieces' colour (128 = as they are)
 			fxp::Range3 speed;       // per tick (y down)
 			int16_t frames;          // last flipbook frame: lifetime
 		} sparkle;
@@ -94,6 +107,7 @@ namespace healring
 			uint32_t seq;            // sprite sequence
 			fxp::Window window;      // ring ticks it spawns them
 			fxp::Schedule count;     // how many per tick
+			fxp::Colour colour;      // their pieces' colour (128 = as they are)
 			fxp::Scaled radius;      // circle: of the target's bounds radius
 			fxp::Range angle;        // place on the circle
 			fxp::RandomFraction drop;    // below the ring: this share of its height over the target
@@ -110,11 +124,11 @@ namespace healring
 	// the game's values but the sprite sequences, each module's own (game_values)
 	inline const HealRingParams DEFAULTS = {
 		{ 0, 0, 0xF },
-		{ 0, { 4, 0x80 }, { 2, 1, 0x400 }, { 0x100, 20 }, { 0, 0x14, 4 } },
-		{ 0, { 0x14, 0x3C, 3 } },
+		{ 0, { 0, 0 }, { 0x80, 0x80, 0x80, 0 }, { 4, 0x80 }, { 2, 1, 0x400 }, { 0x100, 20 }, { 0, 0x14, 4 } },
+		{ 0, { 0x400, 0, 0 }, { 0x14, 0x3C, 3 } },
 		{ { 0x200, 0x180, 0x140, 0xF1, 0x80, 0x80 }, { 0x80, 0x80, 0x80 }, 0, 0x2000 },
-		{ 0, { 1, 0x10 }, { { -0x10, 0xF }, { 0x10, 0x1F }, { -0x10, 0xF } }, 8 },
-		{ 0, { 2, 0x7FFE }, { { 2, 7, 9, 11 }, { 1, 2, 3, 2 } }, { 3, 2, 0x400 }, { 0, 0xFFF }, { 0, 0x1F, 48 }, { 8, 0x17 }, 0x10 },
+		{ 0, { 1, 0x10 }, { 0x80, 0x80, 0x80, 0 }, { { -0x10, 0xF }, { 0x10, 0x1F }, { -0x10, 0xF } }, 8 },
+		{ 0, { 2, 0x7FFE }, { { 2, 7, 9, 11 }, { 1, 2, 3, 2 } }, { 0x80, 0x80, 0x80, 0 }, { 3, 2, 0x400 }, { 0, 0xFFF }, { 0, 0x1F, 48 }, { 8, 0x17 }, 0x10 },
 		{ { 4, 10 }, { { 4, 7, 9, 11 }, { 2, 3, 4, 2 } }, { 8, { 0x100, 0x10 }, { 0x40, 0x10 }, { 0x10, 0x10, 0x10 }, { 0, 0, 0x10 }, 0x40 } },
 	};
 
@@ -146,17 +160,22 @@ namespace healring
 		{ PART_GLINTS, "glints", "Glints", "The shared effect library's glints: streaks at the target's centre (they never move), growing then shrinking, spinning" },
 	};
 	inline const fxp::Group GROUPS[] = {
+		{ "ring.start", "Start", "The emitter starts the ring at its tick Delay (0: its first), Above over the target's feet; it climbs from there" },
+		{ "ring.colour", "Colour", "Each piece's colour = its own x this / 128 (128: as it is), one value per channel" },
 		{ "ring.steps", "Steps", "step n = ring tick x Per tick + k (k = 0 .. Per tick - 1); its angle = n x Angle. Each ring tick the ring goes through its Per tick steps and is drawn at the last one; a sparkle is born at every step. It turns Per tick x Angle per tick" },
 		{ "ring.radius", "Radius", "radius = target's radius x Times / Divided by (whole numbers), then at most At most. At step n the ring is at centre + (sin(angle) x radius, height, cos(angle) x radius)" },
 		{ "ring.climb", "Climb speed", "rise per step = ((target's height + Target height +) / Every) / Per tick (whole numbers, rounded toward 0). The ring starts at the target's feet and rises at this speed until it ends (its ending flipbook done, its sparkles and motes gone): after Every ticks it is Target height + over the target's top, then it goes on" },
 		{ "ring.ending", "Ending flipbook", "From ring tick From tick the ring plays this sequence, one frame per tick, up to Last frame, then ends once its sparkles and motes are gone: it lives about From tick + Last frame + 1 ticks" },
+		{ "glow.placement", "Placement", "Its sequence's frame Frame, turned by Tilt about the x axis (90 degrees: lying flat), Height over the ground, under the ring" },
 		{ "glow.brightness", "Brightness", "Drawn while ring tick < Duration, its grey = Start - (ring tick x Lost per tick), one byte each: below 0 it wraps to 255 and the glow comes back bright. Additive: 0 adds nothing. The game stops at 20 = Start / Lost per tick, when it reaches 0" },
 		{ "overlay.image", "Projected image", "The target is redrawn with this image projected from the ring (a slide projector): a target point seen from the ring at screen (x, y) takes texel image corner + (x - 160, y - 120) + window / 2, inside the Width x Height window, with this palette" },
 		{ "overlay.rgb", "Light colour", "redrawn colour = texel x this / 128 (128 = the image as it is)" },
 		{ "sparkle.window", "Born", "A sparkle is born at each ring step while From tick <= ring tick <= To tick: Per tick sparkles per ring tick. The ring only spawns while it lives: until its ending flipbook is done (From tick + Last frame: ring tick 24 with the game's), later ticks do nothing" },
+		{ "sparkle.colour", "Colour", "Each piece's colour = its own x this / 128 (128: as it is), one value per channel" },
 		{ "sparkle.speed", "Speed", "Rolled once at birth, x then z then y, each min + random % (max - min + 1); then position += speed every tick (y goes down: a positive y falls)" },
 		{ "mote.window", "Born", "Motes are born while From tick <= ring tick <= To tick. The ring only spawns while it lives: until its ending flipbook is done (From tick + Last frame: ring tick 24 with the game's), later ticks do nothing" },
 		{ "mote.count", "How many", "Motes per ring tick = the count of the last rate whose from tick <= ring tick" },
+		{ "mote.colour", "Colour", "Each piece's colour = its own x this / 128 (128: as it is), one value per channel" },
 		{ "mote.radius", "Circle", "circle radius = target's radius x Times / Divided by (whole numbers), then at most At most; centred on the target" },
 		{ "mote.angle", "Place on the circle", "angle = min + random % (max - min + 1) (4096 = a full turn), rolled at birth" },
 		{ "mote.drop", "Drop", "Born below the ring by (the ring's height over the target's feet) x (min + random % (max - min + 1)) / Divided by, rolled at birth" },
@@ -173,6 +192,11 @@ namespace healring
 		HEAL_RING_FIELD("emitter", emitter.sound_tick, "Sound tick", "The sound plays when the cast's tick == this", I16, 0, 200),
 		HEAL_RING_FIELD("emitter", emitter.heal_tick, "Heal tick", "The HP are given once, at the first cast tick >= this", I16, 0, 200),
 		HEAL_RING_FIELD("ring", ring.seq, "Sequence", "Sprite sequence of the climbing light (its frame 0, drawn at the ring's last step of each tick)", Seq, 0, 0x7FFFFFFF),
+		HEAL_RING_FIELD("ring", ring.start.delay, "Delay (ticks)", "The emitter's tick it starts the ring at", I16, 0, 200),
+		HEAL_RING_FIELD("ring", ring.start.above, "Above feet", "Its starting height over the target's feet (game units)", I16, -0x1000, 0x1000),
+		HEAL_RING_FIELD("ring", ring.colour.r, "Red", "", U8, 0, 255),
+		HEAL_RING_FIELD("ring", ring.colour.g, "Green", "", U8, 0, 255),
+		HEAL_RING_FIELD("ring", ring.colour.b, "Blue", "", U8, 0, 255),
 		HEAL_RING_FIELD("ring", ring.steps.per_tick, "Per tick", "Steps the ring takes each ring tick", I16, 1, 16),
 		HEAL_RING_UNIT("ring", ring.steps.angle, "Angle", "angle of step n = n x this (4096 = a full turn)", I16, -2048, 2048, Angle),
 		HEAL_RING_FIELD("ring", ring.radius.num, "Times", "radius = target's radius x this...", I16, 0, 32),
@@ -184,6 +208,9 @@ namespace healring
 		HEAL_RING_FIELD("ring", ring.ending.tick, "From tick", "The ring switches to it at this ring tick", I16, 1, 200),
 		HEAL_RING_FIELD("ring", ring.ending.frames, "Last frame", "One frame per tick up to this one, then the ring ends", I16, 0, 64),
 		HEAL_RING_FIELD("glow", glow.seq, "Sequence", "Its frame 0, lying flat on the ground (y = 0) under the ring", Seq, 0, 0x7FFFFFFF),
+		HEAL_RING_UNIT("glow", glow.placement.tilt, "Tilt", "Turn about the x axis (90 degrees: lying flat)", I16, -2048, 2048, Angle),
+		HEAL_RING_FIELD("glow", glow.placement.height, "Height", "Over the ground (game units)", I16, -0x1000, 0x1000),
+		HEAL_RING_FIELD("glow", glow.placement.frame, "Frame", "The frame of its sequence drawn", I16, 0, 64),
 		HEAL_RING_FIELD("glow", glow.brightness.ticks, "Duration", "Drawn while ring tick < this", I16, 0, 200),
 		HEAL_RING_FIELD("glow", glow.brightness.start, "Start", "grey at ring tick 0", U8, 0, 255),
 		HEAL_RING_FIELD("glow", glow.brightness.fade, "Lost per tick", "grey taken away every ring tick", U8, 0, 255),
@@ -200,6 +227,9 @@ namespace healring
 		HEAL_RING_FIELD("sparkles", sparkle.seq, "Sequence", "Sprite sequence", Seq, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("sparkles", sparkle.window.first, "From tick", "", I16, 0, 200),
 		HEAL_RING_FIELD("sparkles", sparkle.window.last, "To tick", "", I16, 0, 200),
+		HEAL_RING_FIELD("sparkles", sparkle.colour.r, "Red", "", U8, 0, 255),
+		HEAL_RING_FIELD("sparkles", sparkle.colour.g, "Green", "", U8, 0, 255),
+		HEAL_RING_FIELD("sparkles", sparkle.colour.b, "Blue", "", U8, 0, 255),
 		HEAL_RING_FIELD("sparkles", sparkle.speed.x.min, "x min", "", I16, -0x400, 0x400),
 		HEAL_RING_FIELD("sparkles", sparkle.speed.x.max, "x max", "", I16, -0x400, 0x400),
 		HEAL_RING_FIELD("sparkles", sparkle.speed.y.min, "y min", "y goes down", I16, -0x400, 0x400),
@@ -218,6 +248,9 @@ namespace healring
 		HEAL_RING_FIELD("motes", mote.count.count[2], "3: per tick", "", I16, 0, 16),
 		HEAL_RING_FIELD("motes", mote.count.from[3], "4: from tick", "", I16, 0, 200),
 		HEAL_RING_FIELD("motes", mote.count.count[3], "4: per tick", "", I16, 0, 16),
+		HEAL_RING_FIELD("motes", mote.colour.r, "Red", "", U8, 0, 255),
+		HEAL_RING_FIELD("motes", mote.colour.g, "Green", "", U8, 0, 255),
+		HEAL_RING_FIELD("motes", mote.colour.b, "Blue", "", U8, 0, 255),
 		HEAL_RING_FIELD("motes", mote.radius.num, "Times", "The target's radius times this...", I16, 0, 32),
 		HEAL_RING_FIELD("motes", mote.radius.den, "Divided by", "...divided by this...", I16, 1, 32),
 		HEAL_RING_FIELD("motes", mote.radius.max, "At most", "...never more than this (game units)", I16, 0, 0x2000),
