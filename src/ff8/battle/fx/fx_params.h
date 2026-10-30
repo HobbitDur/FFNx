@@ -210,6 +210,10 @@ namespace fxp
 #ifdef FF8_FX_LAB
 namespace ff8fx { void fx_part(int id); }   // the lab records where each part starts drawing
 #define FX_PART(id) ff8fx::fx_part(id)
+// FX_NOTE(name, value): a value the port measures (the target's size, the radius it takes...), noted by
+// the lab with its tick for the tools to show (Fujin's geometry view); nothing in the game
+namespace ff8fx { void fx_note(const char *name, int32_t value); }
+#define FX_NOTE(name, value) ff8fx::fx_note(name, (int32_t)(value))
 namespace ff8fx
 {
 namespace fxp
@@ -226,5 +230,6 @@ namespace fxp
 #define FX_LAB_MODULE(fn) static ff8fx::fxp::LabModule fx_lab_module_##fn(fn)
 #else
 #define FX_PART(id) ((void)0)
+#define FX_NOTE(name, value) ((void)0)
 #define FX_LAB_MODULE(fn) static_assert(true, "")
 #endif

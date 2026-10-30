@@ -770,6 +770,8 @@ namespace cure001
 			// d / -48 (compiled 0xD5555555, >> 3: truncated toward zero as C does)
 			m->h.pos[1] = (int16_t)(m->h.pos[1] + d / -mp.drop.den);
 			m->radius = mp.radius.of((int16_t)BoundsRadius(r));
+			FX_NOTE("mote circle radius", m->radius);
+			FX_NOTE("mote drop", d / -mp.drop.den);
 			m->h.pos[0] = (int16_t)(m->h.pos[0] + Div4096(mul32(ComputeSin((int16_t)a), m->radius)));
 			m->h.pos[2] = (int16_t)(m->h.pos[2] + Div4096(mul32(ComputeCos((int16_t)a), m->radius)));
 			memcpy(m->vel, r->vel, 8);
@@ -816,10 +818,15 @@ namespace cure001
 		r->center[1] = (int16_t)((int16_t)BoundsMaxWorldY(r) - P().ring.start.above);     // y down
 		const HealRingParams::Ring &rp = P().ring;
 		r->radius = rp.radius.of(BoundsRadius(r));
+		FX_NOTE("target radius", BoundsRadius(r));
+		FX_NOTE("target height", (int16_t)BoundsHeight(r));
+		FX_NOTE("ring radius", r->radius);
 		const int32_t hv = (int32_t)(int16_t)BoundsHeight(r) + rp.climb.above;
 		// hv / -20 (compiled 0x99999999, >> 3: truncated toward zero), per place
 		const int32_t q = hv / -rp.climb.ticks;
 		r->vel[1] = (int16_t)((int32_t)(int16_t)q / rp.steps.per_tick);
+		FX_NOTE("ring rise per step", -r->vel[1]);
+		FX_NOTE("ring start above feet", rp.start.above);
 		SetupTargetOverlay(&Overlay(), OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, r->h.slot);
 		*(uint8_t *)&r->h.flags |= 8;
 		entity[0] |= 4;
