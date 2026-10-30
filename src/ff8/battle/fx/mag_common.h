@@ -77,6 +77,11 @@ namespace magc
 	inline void BdPlaySE3D(const void *sound, int32_t volume, const int16_t *pos) { fn<void (__cdecl *)(const void *, int32_t, const int16_t *)>(0x5013A0)(sound, volume, pos); }
 	inline void ApplyActionResultToTargets(uint8_t *targets, uint32_t count) { fn<void (__cdecl *)(uint8_t *, uint32_t)>(0x506BA0)(targets, count); }
 	inline void ApplyActionResultToTarget(uint8_t *target) { fn<void (__cdecl *)(uint8_t *)>(0x506690)(target); }
+	// a module's setup / file loader: read a file of the magic folder (its buffer), start a camera
+	// track, queue a loaded TIM for its VRAM upload
+	inline uint32_t IO_GetFile_MAGIC(const char *name) { return fn<uint32_t (__cdecl *)(const char *)>(0x571B80)(name); }
+	inline void PlayCameraAnimation(const void *track) { fn<void (__cdecl *)(const void *)>(0x5099A0)(track); }   // Battle_PlayCameraAnimation
+	inline uint32_t QueueTimUpload(uint32_t tim) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x505E30)(tim); }     // Battle_QueueTIMUpload_GetEOF
 	// au_re_BdLinkTask_6: full-screen fade task in the hit-effect queue 0x209FAA8
 	inline void ScreenFadeTask(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
 	// sub_508630: anim-seq task that restores the battle textures; *done becomes non-zero when finished

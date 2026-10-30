@@ -17,7 +17,8 @@
 //
 // Structure (module code 0x8D69E0..0x8D8510: file loader MAG_001_CURE_FL 0x8D69E0 = the texture
 // file named at 0x164252C; setup MAG_001_CURE_Init 0x8D6A00 sets up the queues, the root node and
-// the packet arenas, starts camera animation 0x16417C8 and queues the TIM). Every node starts with
+// the packet arenas, starts camera animation 0x16417C8 and queues the TIM; both ported at the end of this file: fx_dispatch.cpp points the
+// game's dispatch slots at them). Every node starts with
 // the shared effect-library header (Effect_AddTaskAndInitFromCtx 0x8DC540: context, root, emitter,
 // parent, position, counter, flags, child count, phase, action / target, caster / target slot);
 // every task runs its current phase function (node +0x29) from a small table, and ends when it is
@@ -184,14 +185,20 @@ namespace cure001
 	// ------------------------------------------------------------------
 	// Module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x277AEC4); }
+	// every address of the module's own memory is named in this block (the setup, the tasks and
+	// the overlay reach it only through these names)
+	static const uint32_t PACKET_CURSOR = 0x277AEC4, CAM_PTR_A = 0x278C7DC, CAM_PTR_B = 0x277AEF0;
+	inline uint32_t &PacketCursor() { return var<uint32_t>(PACKET_CURSOR); }
 	inline uint32_t &PacketLimit() { return var<uint32_t>(0x277AEEC); }
 	inline TaskQueue *QEmitters() { return (TaskQueue *)0x278A228; }  // 4 x 0x58
 	inline TaskQueue *QParticles() { return (TaskQueue *)0x277BF70; } // 300 x 0x6C
 	inline TaskQueue *QGlints() { return (TaskQueue *)0x278C788; }    // 100 x 0x5C
 	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x278C7E8); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x277AFC0; }      // 2 x 0x64
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }   // g_Battle_FrameRenderListBase + off
 
+	static const uint32_t ORIG_FL = 0x8D69E0;
+	static const uint32_t ORIG_Init = 0x8D6A00;
 	static const uint32_t ORIG_Root = 0x8D6B30;
 	static const uint32_t ORIG_Emitter = 0x8D6CC0;
 	static const uint32_t ORIG_Ring = 0x8D6D80;
@@ -208,6 +215,8 @@ namespace cure001
 	static inline const HealRingParams &P() { return g_params; }
 	static const uint32_t CAM_SNAPSHOT = 0x2793E58;       // Effect_SharedCamMatrixSnapshot
 	static const uint32_t ARENA_A = 0x278C79C, LIMIT_A = 0x2783E1C, ARENA_B = 0x278C798, LIMIT_B = 0x2783E18;
+	static const uint32_t TEXTURE_FILE = 0x277AEC0, ARENA_TOP = 0x278C7E4, INIT_FLAG_A = 0x278C7E0, INIT_FLAG_B = 0x2783E10;
+	static const uint32_t ROOT_POOL = 0x277AEF8, EMITTER_POOL = 0x278C628, PARTICLE_POOL = 0x277BF80, GLINT_POOL = 0x278A238;
 	static const uint32_t OVERLAY_A00 = 0x277AEC8, OVERLAY_SPRITE = 0x278C7A0, OVERLAY_VERTS = 0x2783E28;
 	static const uint32_t GLINT_CURSOR = 0x2792E74;       // the effect library's glint packet cursor address
 
@@ -678,7 +687,7 @@ namespace cure001
 		c->slot = (int16_t)slot;
 		c->sprite = sprite;
 		c->frame_cursor = (uint32_t *)0x1D8E054;
-		c->packets = (uint32_t *)0x277AEC4;
+		c->packets = &PacketCursor();
 		c->offset[0] = 0;
 		c->offset[1] = 0;
 		c->offset[2] = 0;
@@ -797,7 +806,7 @@ namespace cure001
 		if (!gp.window.has(c)) return;
 		for (int32_t n = gp.count.at(c); n > 0; n--)
 		{
-			var<uint32_t>(GLINT_CURSOR) = 0x277AEC4;
+			var<uint32_t>(GLINT_CURSOR) = PACKET_CURSOR;
 			uint8_t *g = (uint8_t *)AddEffectTask(QGlints(), ORIG_Glint, 0x5C, r);
 			F<int16_t>(g, 0x56) = gp.style.ticks;
 			g[0x4C] = gp.style.centre_step[0];
@@ -1083,8 +1092,8 @@ namespace cure001
 	{
 		RootNode *r = (RootNode *)n;
 		memcpy((void *)CAM_SNAPSHOT, &Camera(), 0x20);
-		var<uint32_t>(0x278C7DC) = CAM_SNAPSHOT;
-		var<uint32_t>(0x277AEF0) = CAM_SNAPSHOT;
+		var<uint32_t>(CAM_PTR_A) = CAM_SNAPSHOT;
+		var<uint32_t>(CAM_PTR_B) = CAM_SNAPSHOT;
 		if (r->tick & 1)
 		{
 			PacketCursor() = var<uint32_t>(ARENA_A);
@@ -1114,11 +1123,61 @@ namespace cure001
 		}
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x8D69E0) and setup (0x8D6A00)
+	// ------------------------------------------------------------------
+	// MAG_001_CURE_FL: the texture file (its name at 0x164252C, "mag000-049.tim") read into the
+	// module's buffer
+	static uint32_t __cdecl FileLoader()
+	{
+		const uint32_t file = IO_GetFile_MAGIC((const char *)0x164252C);
+		var<uint32_t>(TEXTURE_FILE) = file;
+		return file;
+	}
+
+	// MAG_001_CURE_Init: the root queue with its director (the target loop: the last action is the
+	// larger of target count - 1 and action count - 1), the camera track and the texture upload
+	// (unless the cast asks for neither), the packet arenas inside the texture file's buffer (two
+	// of 0x10000 bytes, the root alternates them), the three other queues
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		var<uint32_t>(INIT_FLAG_A) = 0;
+		var<uint32_t>(INIT_FLAG_B) = 0;
+		InitTaskQueuePool(QRoot(), (void *)ROOT_POOL, 0x64, 2);
+		RootNode *r = (RootNode *)AddEffectTask(QRoot(), ORIG_Root, 0x64, nullptr);
+		const ActionData *a = ctx->actions + r->h.action;
+		r->h.ctx = ctx;
+		r->h.attacker = a->attacker;
+		r->h.phase = 0;
+		r->h.slot = a->targets[TARGET_STRIDE * r->h.target];
+		r->target_count = ctx->actions[0].target_count;
+		r->last_action = ctx->actions[0].last_action;
+		r->h.last = (uint8_t)(r->target_count - 1);
+		if ((int16_t)r->h.last < r->last_action) r->h.last = (uint8_t)r->last_action;
+		if (!(ctx->flags & 1))
+		{
+			PlayCameraAnimation((const void *)0x16417C8);
+			QueueTimUpload(var<uint32_t>(TEXTURE_FILE));
+		}
+		const uint32_t file = var<uint32_t>(TEXTURE_FILE);
+		var<uint32_t>(ARENA_A) = file;
+		var<uint32_t>(LIMIT_A) = file + 0x10000;
+		var<uint32_t>(ARENA_B) = file + 0x10000;
+		var<uint32_t>(ARENA_TOP) = file + 0x20000;
+		var<uint32_t>(LIMIT_B) = file + 0x20000;
+		InitTaskQueuePool(QEmitters(), (void *)EMITTER_POOL, 0x58, 4);
+		InitTaskQueuePool(QParticles(), (void *)PARTICLE_POOL, 0x6C, 300);
+		InitTaskQueuePool(QGlints(), (void *)GLINT_POOL, 0x5C, 100);
+		return QRoot();
+	}
 }
 
 	void register_mag001_cure()
 	{
 		healring::register_params(1, "Cure", &cure001::g_params, &cure001::GAME);
+		register_port(cure001::ORIG_FL, (void *)cure001::FileLoader, "001 File loader", 1);
+		register_port(cure001::ORIG_Init, (void *)cure001::Setup, "001 Setup", 1);
 		register_port(cure001::ORIG_Root, (void *)cure001::RootTask, "001 Root", 1);
 		register_port(cure001::ORIG_Emitter, (void *)cure001::EmitterTask, "001 Emitter", 1);
 		register_port(cure001::ORIG_Ring, (void *)cure001::RingTask, "001 Ring", 1);

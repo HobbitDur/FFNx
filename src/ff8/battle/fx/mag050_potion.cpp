@@ -21,7 +21,8 @@
 //
 // Structure (module code 0x81F9F0..0x821520: file loader MAG_050_POTION_FL 0x81F9F0 = the texture
 // file named at 0x15ADAE0; setup MAG_050_POTION_Init 0x81FA10 sets up the queues, the root node and
-// the packet arenas, starts camera animation 0x15ACD7C and queues the TIM). Every node starts with
+// the packet arenas, starts camera animation 0x15ACD7C and queues the TIM; both ported at the end of this file: fx_dispatch.cpp points the
+// game's dispatch slots at them). Every node starts with
 // the shared effect-library header (Effect_AddTaskAndInitFromCtx 0x8DC540: context, root, emitter,
 // parent, position, counter, flags, child count, phase, action / target, caster / target slot);
 // every task runs its current phase function (node +0x29) from a small table, and ends when it is
@@ -188,14 +189,20 @@ namespace potion050
 	// ------------------------------------------------------------------
 	// Module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2634ABC); }
+	// every address of the module's own memory is named in this block (the setup, the tasks and
+	// the overlay reach it only through these names)
+	static const uint32_t PACKET_CURSOR = 0x2634ABC, CAM_PTR_A = 0x26463D4, CAM_PTR_B = 0x2634AE8;
+	inline uint32_t &PacketCursor() { return var<uint32_t>(PACKET_CURSOR); }
 	inline uint32_t &PacketLimit() { return var<uint32_t>(0x2634AE4); }
 	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2643E20; }  // 4 x 0x58
 	inline TaskQueue *QParticles() { return (TaskQueue *)0x2635B68; } // 300 x 0x6C
 	inline TaskQueue *QGlints() { return (TaskQueue *)0x2646380; }    // 100 x 0x5C
 	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x26463E0); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x2634BB8; }      // 2 x 0x64
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }   // g_Battle_FrameRenderListBase + off
 
+	static const uint32_t ORIG_FL = 0x81F9F0;
+	static const uint32_t ORIG_Init = 0x81FA10;
 	static const uint32_t ORIG_Root = 0x81FB40;
 	static const uint32_t ORIG_Emitter = 0x81FCD0;
 	static const uint32_t ORIG_Ring = 0x81FD90;
@@ -212,6 +219,8 @@ namespace potion050
 	static inline const HealRingParams &P() { return g_params; }
 	static const uint32_t CAM_SNAPSHOT = 0x2793E58;       // Effect_SharedCamMatrixSnapshot
 	static const uint32_t ARENA_A = 0x2646394, LIMIT_A = 0x263DA14, ARENA_B = 0x2646390, LIMIT_B = 0x263DA10;
+	static const uint32_t TEXTURE_FILE = 0x2634AB8, ARENA_TOP = 0x26463DC, INIT_FLAG_A = 0x26463D8, INIT_FLAG_B = 0x263DA08;
+	static const uint32_t ROOT_POOL = 0x2634AF0, EMITTER_POOL = 0x2646220, PARTICLE_POOL = 0x2635B78, GLINT_POOL = 0x2643E30;
 	static const uint32_t OVERLAY_A00 = 0x2634AC0, OVERLAY_SPRITE = 0x2646398, OVERLAY_VERTS = 0x263DA20;
 	static const uint32_t GLINT_CURSOR = 0x2792E74;       // the effect library's glint packet cursor address
 
@@ -682,7 +691,7 @@ namespace potion050
 		c->slot = (int16_t)slot;
 		c->sprite = sprite;
 		c->frame_cursor = (uint32_t *)0x1D8E054;
-		c->packets = (uint32_t *)0x2634ABC;
+		c->packets = &PacketCursor();
 		c->offset[0] = 0;
 		c->offset[1] = 0;
 		c->offset[2] = 0;
@@ -801,7 +810,7 @@ namespace potion050
 		if (!gp.window.has(c)) return;
 		for (int32_t n = gp.count.at(c); n > 0; n--)
 		{
-			var<uint32_t>(GLINT_CURSOR) = 0x2634ABC;
+			var<uint32_t>(GLINT_CURSOR) = PACKET_CURSOR;
 			uint8_t *g = (uint8_t *)AddEffectTask(QGlints(), ORIG_Glint, 0x5C, r);
 			F<int16_t>(g, 0x56) = gp.style.ticks;
 			g[0x4C] = gp.style.centre_step[0];
@@ -1087,8 +1096,8 @@ namespace potion050
 	{
 		RootNode *r = (RootNode *)n;
 		memcpy((void *)CAM_SNAPSHOT, &Camera(), 0x20);
-		var<uint32_t>(0x26463D4) = CAM_SNAPSHOT;
-		var<uint32_t>(0x2634AE8) = CAM_SNAPSHOT;
+		var<uint32_t>(CAM_PTR_A) = CAM_SNAPSHOT;
+		var<uint32_t>(CAM_PTR_B) = CAM_SNAPSHOT;
 		if (r->tick & 1)
 		{
 			PacketCursor() = var<uint32_t>(ARENA_A);
@@ -1118,11 +1127,60 @@ namespace potion050
 		}
 		return 0;
 	}
+	// ------------------------------------------------------------------
+	// File loader (0x81F9F0) and setup (0x81FA10)
+	// ------------------------------------------------------------------
+	// MAG_050_POTION_POTION_FL: the texture file (its name at 0x15ADAE0, "mag000-049.tim") read into the
+	// module's buffer
+	static uint32_t __cdecl FileLoader()
+	{
+		const uint32_t file = IO_GetFile_MAGIC((const char *)0x15ADAE0);
+		var<uint32_t>(TEXTURE_FILE) = file;
+		return file;
+	}
+
+	// MAG_050_POTION_POTION_Init: the root queue with its director (the target loop: the last action is the
+	// larger of target count - 1 and action count - 1), the camera track and the texture upload
+	// (unless the cast asks for neither), the packet arenas inside the texture file's buffer (two
+	// of 0x10000 bytes, the root alternates them), the three other queues
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		var<uint32_t>(INIT_FLAG_A) = 0;
+		var<uint32_t>(INIT_FLAG_B) = 0;
+		InitTaskQueuePool(QRoot(), (void *)ROOT_POOL, 0x64, 2);
+		RootNode *r = (RootNode *)AddEffectTask(QRoot(), ORIG_Root, 0x64, nullptr);
+		const ActionData *a = ctx->actions + r->h.action;
+		r->h.ctx = ctx;
+		r->h.attacker = a->attacker;
+		r->h.phase = 0;
+		r->h.slot = a->targets[TARGET_STRIDE * r->h.target];
+		r->target_count = ctx->actions[0].target_count;
+		r->last_action = ctx->actions[0].last_action;
+		r->h.last = (uint8_t)(r->target_count - 1);
+		if ((int16_t)r->h.last < r->last_action) r->h.last = (uint8_t)r->last_action;
+		if (!(ctx->flags & 1))
+		{
+			PlayCameraAnimation((const void *)0x15ACD7C);
+			QueueTimUpload(var<uint32_t>(TEXTURE_FILE));
+		}
+		const uint32_t file = var<uint32_t>(TEXTURE_FILE);
+		var<uint32_t>(ARENA_A) = file;
+		var<uint32_t>(LIMIT_A) = file + 0x10000;
+		var<uint32_t>(ARENA_B) = file + 0x10000;
+		var<uint32_t>(ARENA_TOP) = file + 0x20000;
+		var<uint32_t>(LIMIT_B) = file + 0x20000;
+		InitTaskQueuePool(QEmitters(), (void *)EMITTER_POOL, 0x58, 4);
+		InitTaskQueuePool(QParticles(), (void *)PARTICLE_POOL, 0x6C, 300);
+		InitTaskQueuePool(QGlints(), (void *)GLINT_POOL, 0x5C, 100);
+		return QRoot();
+	}
 }
 
 	void register_mag050_potion()
 	{
 		healring::register_params(50, "Potion", &potion050::g_params, &potion050::GAME);
+		register_port(potion050::ORIG_FL, (void *)potion050::FileLoader, "050 File loader", 50);
+		register_port(potion050::ORIG_Init, (void *)potion050::Setup, "050 Setup", 50);
 		register_port(potion050::ORIG_Root, (void *)potion050::RootTask, "050 Root", 50);
 		register_port(potion050::ORIG_Emitter, (void *)potion050::EmitterTask, "050 Emitter", 50);
 		register_port(potion050::ORIG_Ring, (void *)potion050::RingTask, "050 Ring", 50);
