@@ -93,7 +93,7 @@ namespace healring
 				int16_t width, height;   // projected window
 			} image;
 			uint8_t rgb[3];          // projected light colour
-			uint8_t pad;
+			uint8_t skip_back_faces; // 1: faces turned away from the ring get no light (vanilla 0)
 			int32_t light_dist;      // projector distance
 		} overlay;
 		struct Sparkle
@@ -229,6 +229,7 @@ namespace healring
 		HEAL_RING_FIELD("overlay", overlay.rgb[0], "Red", "", U8, 0, 255),
 		HEAL_RING_FIELD("overlay", overlay.rgb[1], "Green", "", U8, 0, 255),
 		HEAL_RING_FIELD("overlay", overlay.rgb[2], "Blue", "", U8, 0, 255),
+		HEAL_RING_FIELD("overlay", overlay.skip_back_faces, "Skip back faces", "1: the target's faces turned away from the ring are not redrawn lit (the renderer's projector cull switch, which vanilla leaves at 0: both sides lit)", U8, 0, 1),
 		HEAL_RING_FIELD("overlay", overlay.light_dist, "Projector distance", "The target is seen from the ring at this depth (farther: it covers less of the image)", I32, 0, 0x10000),
 		HEAL_RING_FIELD("sparkles", sparkle.seq, "Sequence", "Sprite sequence", Seq, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("sparkles", sparkle.window.first, "From tick", "", I16, 0, 200),

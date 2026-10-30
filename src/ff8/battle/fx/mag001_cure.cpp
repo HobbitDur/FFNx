@@ -453,7 +453,8 @@ namespace cure001
 		const int32_t count = *(const int32_t *)table;
 		const uint8_t *entity = c->entity;
 		uint8_t *s = (uint8_t *)FieldAlloc(0xD0);
-		F<int16_t>(s, 0xCE) = c->cull;
+		// the projector cull switch: vanilla never writes c->cull (0, both sides lit)
+		F<int16_t>(s, 0xCE) = P().overlay.skip_back_faces ? 1 : c->cull;
 		F<uint32_t>(s, 0xB8) = *(const uint32_t *)(entity + 0x7C);
 		F<uint16_t>(s, 0xBC) = c->tpage;
 		F<uint16_t>(s, 0xBE) = c->clut;
