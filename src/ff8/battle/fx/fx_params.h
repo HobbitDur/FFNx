@@ -116,6 +116,14 @@ namespace fxp
 		return *(const uint32_t *)address == 0x00010524 ? address : game;
 	}
 
+	// a sound parameter (the battle's sound blocks, BdPlaySE 0x501330: it reads their leading world
+	// sound id only): its address when it can be one - in the exe image, aligned - else the game's
+	inline uint32_t sound(uint32_t address, uint32_t game)
+	{
+		constexpr uint32_t image_begin = 0x400000, image_end = 0x282B000;    // FF8_EN.exe in memory
+		return address == game || address < image_begin || address + 4 > image_end || address & 3 ? game : address;
+	}
+
 	// a flipbook's last frame played, within its sequence (frame count at +8): past it the game would
 	// read the frame list's end as a frame
 	inline int16_t last_frame(uint32_t sequence, int16_t last)
@@ -125,8 +133,9 @@ namespace fxp
 	}
 
 	// ---- field table (what an editor shows) ----
-	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences
-	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3 };
+	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences; Sound: a sound
+	// block's address (32 bits)
+	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4 };
 	// how an editor shows the value (the raw value beside it): Angle 4096 = a full turn (degrees),
 	// Scale 4096 = its own size (x 1)
 	enum Unit : uint8_t { Plain = 0, Angle = 1, Scale = 2 };

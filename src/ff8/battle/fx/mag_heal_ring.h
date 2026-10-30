@@ -35,6 +35,7 @@ namespace healring
 	{
 		struct Emitter
 		{
+			uint32_t sound;          // sound block (FF8_EN.exe data): BdPlaySE reads its world sound id
 			int16_t sound_tick;      // the sound plays at this tick
 			int16_t heal_tick;       // the HP are given from this tick
 		} emitter;
@@ -108,7 +109,7 @@ namespace healring
 	};
 	// the game's values but the sprite sequences, each module's own (game_values)
 	inline const HealRingParams DEFAULTS = {
-		{ 0, 0xF },
+		{ 0, 0, 0xF },
 		{ 0, { 4, 0x80 }, { 2, 1, 0x400 }, { 0x100, 20 }, { 0, 0x14, 4 } },
 		{ 0, 0x14, { 0x3C, 3 } },
 		{ { 0x200, 0x180, 0x140, 0xF1, 0x80, 0x80 }, { 0x80, 0x80, 0x80 }, 0, 0x2000 },
@@ -118,7 +119,7 @@ namespace healring
 	};
 
 	// a module's sprite sequences (Cure's and Potion's copies lie apart in the exe)
-	struct Sequences { uint32_t ring, ring_end, glow, sparkle, mote; };
+	struct Sequences { uint32_t ring, ring_end, glow, sparkle, mote, sound; };
 	inline HealRingParams game_values(const Sequences &s)
 	{
 		HealRingParams p = DEFAULTS;
@@ -127,6 +128,7 @@ namespace healring
 		p.glow.seq = s.glow;
 		p.sparkle.seq = s.sparkle;
 		p.mote.seq = s.mote;
+		p.emitter.sound = s.sound;
 		return p;
 	}
 
@@ -167,6 +169,7 @@ namespace healring
 		{ "glint.style.tip_step", "Tip colour step", "tip colour += this every tick while growing, -= while shrinking (bytes wrap past 255)" },
 	};
 	inline const fxp::Field FIELDS[] = {
+		HEAL_RING_FIELD("emitter", emitter.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
 		HEAL_RING_FIELD("emitter", emitter.sound_tick, "Sound tick", "The sound plays when the cast's tick == this", I16, 0, 200),
 		HEAL_RING_FIELD("emitter", emitter.heal_tick, "Heal tick", "The HP are given once, at the first cast tick >= this", I16, 0, 200),
 		HEAL_RING_FIELD("ring", ring.seq, "Sequence", "Sprite sequence of the climbing light (its frame 0, drawn at the ring's last step of each tick)", Seq, 0, 0x7FFFFFFF),

@@ -202,7 +202,7 @@ namespace cure001
 	static const uint32_t SEQ_Ring = 0x1641F78, SEQ_RingEnd = 0x1641FCC, SEQ_Mote = 0x164205C, SEQ_Sparkle = 0x1642238;
 	static const uint32_t SEQ_Glow = 0x1642504;
 	// the game's values (with its own sprite sequences) and the live ones the code reads
-	static const HealRingParams GAME = game_values({ SEQ_Ring, SEQ_RingEnd, SEQ_Glow, SEQ_Sparkle, SEQ_Mote });
+	static const HealRingParams GAME = game_values({ SEQ_Ring, SEQ_RingEnd, SEQ_Glow, SEQ_Sparkle, SEQ_Mote, (uint32_t)SOUND_Cure });
 	static HealRingParams g_params = GAME;
 	static inline const HealRingParams &P() { return g_params; }
 	static const uint32_t CAM_SNAPSHOT = 0x2793E58;       // Effect_SharedCamMatrixSnapshot
@@ -995,7 +995,7 @@ namespace cure001
 			break;
 		default: break;
 		}
-		if (e->h.counter == P().emitter.sound_tick) BdPlaySE(SOUND_Cure, 0, 0x80);
+		if (e->h.counter == P().emitter.sound_tick) BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Cure), 0, 0x80);
 		e->h.counter++;
 		if ((e->h.flags & 1) && e->h.children == 0)
 		{

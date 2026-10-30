@@ -206,7 +206,7 @@ namespace potion050
 	static const uint32_t SEQ_Ring = 0x15AD52C, SEQ_RingEnd = 0x15AD580, SEQ_Mote = 0x15AD610, SEQ_Sparkle = 0x15AD7EC;
 	static const uint32_t SEQ_Glow = 0x15ADAB8;
 	// the game's values (with its own sprite sequences) and the live ones the code reads
-	static const HealRingParams GAME = game_values({ SEQ_Ring, SEQ_RingEnd, SEQ_Glow, SEQ_Sparkle, SEQ_Mote });
+	static const HealRingParams GAME = game_values({ SEQ_Ring, SEQ_RingEnd, SEQ_Glow, SEQ_Sparkle, SEQ_Mote, (uint32_t)SOUND_Potion });
 	static HealRingParams g_params = GAME;
 	static inline const HealRingParams &P() { return g_params; }
 	static const uint32_t CAM_SNAPSHOT = 0x2793E58;       // Effect_SharedCamMatrixSnapshot
@@ -999,7 +999,7 @@ namespace potion050
 			break;
 		default: break; // phase 3: nullsub 0x821460
 		}
-		if (e->h.counter == P().emitter.sound_tick) BdPlaySE(SOUND_Potion, 0, 0x80);
+		if (e->h.counter == P().emitter.sound_tick) BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Potion), 0, 0x80);
 		e->h.counter++;
 		if ((e->h.flags & 1) && e->h.children == 0)
 		{
