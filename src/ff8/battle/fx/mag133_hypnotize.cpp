@@ -139,7 +139,7 @@ namespace hypno133
 		{
 			Spawned spawn;
 			int16_t bone;           // the target's bone point
-			fxp::Range spread_x, spread_y, spread_z;
+			fxp::Range3 spread;     // added to the bone point
 			int16_t frames;         // flipbook frames: lifetime
 		} sprites;
 	};
@@ -148,7 +148,7 @@ namespace hypno133
 		{ 0x1D, 12, 16, 4, 0 },
 		{ { 0, 0xF }, 2 },
 		{ { { 2, 0x16 }, 2 }, { -0x400, 0x3FF }, { 0x800, 0xFFF }, -0x80 },
-		{ { { 0x12, 0x29 }, 2 }, 0xF0, { -0x100, 0xFF }, { -0x180, 0x7F }, { -0x100, 0xFF }, 0xE },
+		{ { { 0x12, 0x29 }, 2 }, 0xF0, { { -0x100, 0xFF }, { -0x180, 0x7F }, { -0x100, 0xFF } }, 0xE },
 	};
 	static HypnotizeParams g_params = DEFAULTS;
 	static inline const HypnotizeParams &P() { return g_params; }
@@ -510,11 +510,11 @@ namespace hypno133
 			{
 				uint8_t *ent = RandomTarget(t);
 				GetEffectSpawnPosition(ent, pp.sprites.bone, 0, s->pos);
-				s->pos[0] = (int16_t)(s->pos[0] + pp.sprites.spread_x.roll(CrtRand()));
-				s->pos[1] = (int16_t)(s->pos[1] + pp.sprites.spread_y.roll(CrtRand()));
+				s->pos[0] = (int16_t)(s->pos[0] + pp.sprites.spread.x.roll(CrtRand()));
+				s->pos[1] = (int16_t)(s->pos[1] + pp.sprites.spread.y.roll(CrtRand()));
 				const int32_t rz = CrtRand();
 				s->counter = 0;
-				s->pos[2] = (int16_t)(s->pos[2] + pp.sprites.spread_z.roll(rz));
+				s->pos[2] = (int16_t)(s->pos[2] + pp.sprites.spread.z.roll(rz));
 			}
 		}
 		if (t->counter == pp.timing.damage_tick) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
@@ -587,6 +587,14 @@ namespace hypno133
 			{ PART_TARGETS, "targets", "Target layouts", "Layouts at random bones of random targets, at random sizes" },
 			{ PART_SPRITES, "sprites", "Sprites", "A flipbook at random points around a target's bone" },
 		};
+		static const fxp::Group GROUPS[] = {
+			{ "rings", "Spawning", "From this tick to this one, every this many ticks" },
+			{ "targets.spawn", "Spawning", "From this tick to this one, every this many ticks" },
+			{ "targets.spread_x", "Spread x", "Added to the bone point's x, at random in [min, max]" },
+			{ "targets.scale", "Size", "At random in [min, max] (x 1 = its own size)" },
+			{ "sprites.spawn", "Spawning", "From this tick to this one, every this many ticks" },
+			{ "sprites.spread", "Spread", "Added to the bone point on each axis, at random in [min, max]" },
+		};
 		static const Field FIELDS[] = {
 			HYPNO_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays at this tick", I16, 0, 200),
 			HYPNO_FIELD("timing", timing.damage_tick, "Damage tick", "The targets take the result at this tick", I16, 0, 200),
@@ -596,27 +604,27 @@ namespace hypno133
 			HYPNO_FIELD("main", main.depth_h, "Depth (x H)", "Its distance: this many projection distances", I16, 1, 64),
 			HYPNO_FIELD("main", main.offset_shift, "Offset scale (2^n)", "The screen offset times 2^n", I16, 0, 8),
 			HYPNO_FIELD("main", main.pixels, "PSX screen units", "1: the caster's screen position in pixels as on PSX (on PC it is in eighths: the layout lands far off it)", I16, 0, 1),
-			HYPNO_FIELD("rings", rings.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
-			HYPNO_FIELD("rings", rings.window.last, "To tick", "...to this one...", I16, 0, 200),
-			HYPNO_FIELD("rings", rings.every, "Every", "...every this many ticks (8 layouts, then they repeat)", I16, 1, 50),
-			HYPNO_FIELD("targets", targets.spawn.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
-			HYPNO_FIELD("targets", targets.spawn.window.last, "To tick", "...to this one...", I16, 0, 200),
-			HYPNO_FIELD("targets", targets.spawn.every, "Every", "...every this many ticks", I16, 1, 50),
-			HYPNO_FIELD("targets", targets.spread_x.min, "Spread x min", "Added to the bone point's x, at random in [min, max]", I16, -0x2000, 0x2000),
-			HYPNO_FIELD("targets", targets.spread_x.max, "Spread x max", "", I16, -0x2000, 0x2000),
-			HYPNO_UNIT("targets", targets.scale.min, "Size min", "Its size, at random in [min, max] (x 1 = its own)", I16, 0, 0x7FFF, Scale),
-			HYPNO_UNIT("targets", targets.scale.max, "Size max", "", I16, 0, 0x7FFF, Scale),
+			HYPNO_FIELD("rings", rings.window.first, "From tick", "", I16, 0, 200),
+			HYPNO_FIELD("rings", rings.window.last, "To tick", "", I16, 0, 200),
+			HYPNO_FIELD("rings", rings.every, "Every", "8 layouts, then they repeat", I16, 1, 50),
+			HYPNO_FIELD("targets", targets.spawn.window.first, "From tick", "", I16, 0, 200),
+			HYPNO_FIELD("targets", targets.spawn.window.last, "To tick", "", I16, 0, 200),
+			HYPNO_FIELD("targets", targets.spawn.every, "Every", "", I16, 1, 50),
+			HYPNO_FIELD("targets", targets.spread_x.min, "Min", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("targets", targets.spread_x.max, "Max", "", I16, -0x2000, 0x2000),
+			HYPNO_UNIT("targets", targets.scale.min, "Min", "", I16, 0, 0x7FFF, Scale),
+			HYPNO_UNIT("targets", targets.scale.max, "Max", "", I16, 0, 0x7FFF, Scale),
 			HYPNO_FIELD("targets", targets.depth, "Depth", "Drawing depth offset", I16, -0x1000, 0x1000),
-			HYPNO_FIELD("sprites", sprites.spawn.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
-			HYPNO_FIELD("sprites", sprites.spawn.window.last, "To tick", "...to this one...", I16, 0, 200),
-			HYPNO_FIELD("sprites", sprites.spawn.every, "Every", "...every this many ticks", I16, 1, 50),
+			HYPNO_FIELD("sprites", sprites.spawn.window.first, "From tick", "", I16, 0, 200),
+			HYPNO_FIELD("sprites", sprites.spawn.window.last, "To tick", "", I16, 0, 200),
+			HYPNO_FIELD("sprites", sprites.spawn.every, "Every", "", I16, 1, 50),
 			HYPNO_FIELD("sprites", sprites.bone, "Bone", "The target's bone point they start from", I16, 0, 0xFF),
-			HYPNO_FIELD("sprites", sprites.spread_x.min, "Spread x min", "Added to the bone point, at random in [min, max]", I16, -0x2000, 0x2000),
-			HYPNO_FIELD("sprites", sprites.spread_x.max, "Spread x max", "", I16, -0x2000, 0x2000),
-			HYPNO_FIELD("sprites", sprites.spread_y.min, "Spread y min", "y goes down", I16, -0x2000, 0x2000),
-			HYPNO_FIELD("sprites", sprites.spread_y.max, "Spread y max", "", I16, -0x2000, 0x2000),
-			HYPNO_FIELD("sprites", sprites.spread_z.min, "Spread z min", "", I16, -0x2000, 0x2000),
-			HYPNO_FIELD("sprites", sprites.spread_z.max, "Spread z max", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread.x.min, "x min", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread.x.max, "x max", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread.y.min, "y min", "y goes down", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread.y.max, "y max", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread.z.min, "z min", "", I16, -0x2000, 0x2000),
+			HYPNO_FIELD("sprites", sprites.spread.z.max, "z max", "", I16, -0x2000, 0x2000),
 			HYPNO_FIELD("sprites", sprites.frames, "Frames", "Flipbook frames: lifetime", I16, 1, 64),
 		};
 #undef HYPNO_FIELD
@@ -627,7 +635,8 @@ namespace hypno133
 	{
 		fxp::register_params({ 133, "Hypnotize", &hypno133::g_params, &hypno133::DEFAULTS, sizeof(hypno133::HypnotizeParams),
 		                       hypno133::PARTS, (int)(sizeof(hypno133::PARTS) / sizeof(hypno133::PARTS[0])),
-		                       hypno133::FIELDS, (int)(sizeof(hypno133::FIELDS) / sizeof(hypno133::FIELDS[0])) });
+		                       hypno133::FIELDS, (int)(sizeof(hypno133::FIELDS) / sizeof(hypno133::FIELDS[0])),
+		                       hypno133::GROUPS, (int)(sizeof(hypno133::GROUPS) / sizeof(hypno133::GROUPS[0])) });
 		register_port(hypno133::ORIG_MasterTask, (void *)hypno133::MasterTask, "133 MasterTask", 133);
 		register_port(hypno133::ORIG_MainTask, (void *)hypno133::MainTask, "133 MainTask", 133);
 		register_port(hypno133::ORIG_RingTask, (void *)hypno133::RingTask, "133 RingTask", 133);

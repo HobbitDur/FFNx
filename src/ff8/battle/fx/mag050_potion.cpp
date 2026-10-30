@@ -737,7 +737,7 @@ namespace potion050
 	{
 		memcpy(r->h.pos, r->center, 8);
 		r->h.pos[1] = (int16_t)(r->h.pos[1] + (int16_t)(r->vel[1] * (int16_t)step));
-		const int32_t angle = (int32_t)((step * (uint32_t)P().ring.angle_step) & 0xFFF);
+		const int32_t angle = (int32_t)((step * (uint32_t)P().ring.steps.angle) & 0xFFF);
 		r->angle = (int16_t)angle;
 		r->h.pos[0] = (int16_t)(r->h.pos[0] + Div4096(mul32(ComputeSin((int16_t)angle), r->radius)));
 		r->h.pos[2] = (int16_t)(r->h.pos[2] + Div4096(mul32(ComputeCos(r->angle), r->radius)));
@@ -766,10 +766,8 @@ namespace potion050
 			int32_t d = (int32_t)r->h.pos[1] - (int32_t)(int16_t)BoundsMaxWorldY(r);
 			d = mul32(d, mp.drop.roll(CrtRand()));
 			// d / -48 (compiled 0xD5555555, >> 3: truncated toward zero as C does)
-			m->h.pos[1] = (int16_t)(m->h.pos[1] + d / -mp.drop_divisor);
-			const int32_t rad = mp.radius.of((int16_t)BoundsRadius(r));
-			m->radius = (int16_t)rad;
-			if ((int16_t)rad > mp.radius_max) m->radius = mp.radius_max;
+			m->h.pos[1] = (int16_t)(m->h.pos[1] + d / -mp.drop.den);
+			m->radius = mp.radius.of((int16_t)BoundsRadius(r));
 			m->h.pos[0] = (int16_t)(m->h.pos[0] + Div4096(mul32(ComputeSin((int16_t)a), m->radius)));
 			m->h.pos[2] = (int16_t)(m->h.pos[2] + Div4096(mul32(ComputeCos((int16_t)a), m->radius)));
 			memcpy(m->vel, r->vel, 8);
@@ -794,10 +792,10 @@ namespace potion050
 			g[0x50] = gp.style.tip_step[0];
 			g[0x51] = gp.style.tip_step[1];
 			g[0x52] = gp.style.tip_step[2];
-			F<int16_t>(g, 0x3C) = gp.style.grow_w;
-			F<int16_t>(g, 0x3E) = gp.style.grow_h;
-			F<int16_t>(g, 0x40) = gp.style.shrink_w;
-			F<int16_t>(g, 0x42) = gp.style.shrink_h;
+			F<int16_t>(g, 0x3C) = gp.style.grow.w;
+			F<int16_t>(g, 0x3E) = gp.style.grow.h;
+			F<int16_t>(g, 0x40) = gp.style.shrink.w;
+			F<int16_t>(g, 0x42) = gp.style.shrink.h;
 			if (CrtRand() & 1) F<int16_t>(g, 0x58) = gp.style.spin;
 			else F<int16_t>(g, 0x58) = (int16_t)-gp.style.spin;
 		}
@@ -815,13 +813,11 @@ namespace potion050
 		CopyAnchorXZFromSource(r, r->center);
 		r->center[1] = (int16_t)BoundsMaxWorldY(r);
 		const HealRingParams::Ring &rp = P().ring;
-		const int32_t rad = rp.radius.of(BoundsRadius(r));
-		r->radius = (int16_t)rad;
-		if ((int16_t)rad > rp.radius_max) r->radius = rp.radius_max;
-		const int32_t hv = (int32_t)(int16_t)BoundsHeight(r) + rp.climb_extra;
+		r->radius = rp.radius.of(BoundsRadius(r));
+		const int32_t hv = (int32_t)(int16_t)BoundsHeight(r) + rp.climb.above;
 		// hv / -20 (compiled 0x99999999, >> 3: truncated toward zero), per place
-		const int32_t q = hv / -rp.climb_ticks;
-		r->vel[1] = (int16_t)((int32_t)(int16_t)q / rp.substeps);
+		const int32_t q = hv / -rp.climb.ticks;
+		r->vel[1] = (int16_t)((int32_t)(int16_t)q / rp.steps.per_tick);
 		SetupTargetOverlay(&Overlay(), OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, r->h.slot);
 		*(uint8_t *)&r->h.flags |= 8;
 		entity[0] |= 4;
@@ -862,9 +858,9 @@ namespace potion050
 		case 0: // 0x821120: random velocity, flying out and up
 			p->seq = fxp::sequence(P().sparkle.seq, SEQ_Sparkle);
 			p->last = fxp::last_frame(p->seq, P().sparkle.frames);
-			p->vel[0] = (int16_t)P().sparkle.vx.roll(CrtRand());
-			p->vel[2] = (int16_t)P().sparkle.vz.roll(CrtRand());
-			p->vel[1] = (int16_t)P().sparkle.vy.roll(CrtRand());
+			p->vel[0] = (int16_t)P().sparkle.speed.x.roll(CrtRand());
+			p->vel[2] = (int16_t)P().sparkle.speed.z.roll(CrtRand());
+			p->vel[1] = (int16_t)P().sparkle.speed.y.roll(CrtRand());
 			p->h.phase++;
 			break;
 		case 1: Integrate(p); break;
@@ -922,17 +918,17 @@ namespace potion050
 		{
 		case 0: RingInit(r); break;
 		case 1: // 0x821380: at 20 the ending flipbook
-			if (r->h.counter >= P().ring.end_tick)
+			if (r->h.counter >= P().ring.ending.tick)
 			{
-				r->seq = fxp::sequence(P().ring.end_seq, SEQ_RingEnd);
-				r->last = fxp::last_frame(r->seq, P().ring.end_frames);
+				r->seq = fxp::sequence(P().ring.ending.seq, SEQ_RingEnd);
+				r->last = fxp::last_frame(r->seq, P().ring.ending.frames);
 				r->h.phase++;
 			}
 			break;
 		case 2: RingEnd(r); break;
 		default: break; // phase 3: nullsub 0x821400
 		}
-		const int32_t substeps = P().ring.substeps;
+		const int32_t substeps = P().ring.steps.per_tick;
 		for (uint32_t s = 0; s < (uint32_t)substeps; s++)
 		{
 			RingPlace(r, (uint32_t)(uint16_t)(r->h.counter * substeps) + s);
@@ -950,14 +946,14 @@ namespace potion050
 			const HealRingParams::Overlay &op = P().overlay;
 			FX_PART(PART_OVERLAY);
 			Overlay().offset[1] = r->h.pos[1];
-			SetOverlayTexturePage(&Overlay(), r->h.pos, op.tex_x, op.tex_y, op.clut_x, op.clut_y, op.width, op.height);
+			SetOverlayTexturePage(&Overlay(), r->h.pos, op.image.tex_x, op.image.tex_y, op.image.clut_x, op.image.clut_y, op.image.width, op.image.height);
 			DrawTargetModelWithOverlay(&Overlay());
 		}
 		if (r->h.counter < P().glow.ticks)
 		{
 			// grey 0x3C - 3 * counter; the 4th byte is the high byte of the task argument (the node
 			// address) the colour is written over on the original's stack
-			const uint32_t grey = (uint8_t)(P().glow.grey - (uint8_t)(r->h.counter * P().glow.fade));
+			const uint32_t grey = (uint8_t)(P().glow.brightness.start - (uint8_t)(r->h.counter * P().glow.brightness.fade));
 			const uint32_t colour = grey | grey << 8 | grey << 16 | ((uint32_t)r & 0xFF000000u);
 			FX_PART(PART_RING);
 			DrawSprite(r);

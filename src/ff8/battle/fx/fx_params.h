@@ -64,11 +64,34 @@ namespace fxp
 		int32_t roll(int32_t random) const { return min + random % (max - min + 1); }
 	};
 
-	// value * num / den (integer, as the game computes it)
-	struct Fraction
+	// a random value on each axis
+	struct Range3
 	{
-		int16_t num, den;
-		int32_t of(int32_t value) const { return value * num / den; }
+		Range x, y, z;
+	};
+
+	// value * num / den, at most max (integer, as the game computes it: the product's low 16 bits,
+	// then the cap) - a size from the target's, as Cure's ring radius
+	struct Scaled
+	{
+		int16_t num, den, max;
+		int16_t of(int32_t value) const
+		{
+			const int16_t v = (int16_t)(value * num / den);
+			return v > max ? max : v;
+		}
+	};
+
+	// a random share: a numerator at random in [min, max], over den
+	struct RandomFraction
+	{
+		int16_t min, max, den;
+		int32_t roll(int32_t random) const { return min + random % (max - min + 1); }
+	};
+
+	struct Size
+	{
+		int16_t w, h;
 	};
 
 	// the shared effect library's glint (Effect_Glint_Tick 0x8DCC20, fx_glint.cpp): a streak that
@@ -76,8 +99,8 @@ namespace fxp
 	struct GlintStyle
 	{
 		int16_t ticks;                      // ticks per phase
-		int16_t grow_w, grow_h;             // size added per tick while growing
-		int16_t shrink_w, shrink_h;         // size taken per tick while shrinking
+		Size grow;                          // size added per tick while growing
+		Size shrink;                        // size taken per tick while shrinking
 		uint8_t centre_step[3];             // centre colour added / taken per tick (wrapping bytes)
 		uint8_t tip_step[3];                // tip colour
 		int16_t spin;                       // Y angle per tick, either way at random
@@ -125,6 +148,14 @@ namespace fxp
 		const char *title;
 		const char *doc;
 	};
+	// values edited together: the fields of one sub-structure (a field belongs to the group whose
+	// key starts its own, followed by '.' or '['), e.g. "ring.radius": num, den, max
+	struct Group
+	{
+		const char *key;
+		const char *label;
+		const char *doc;
+	};
 	struct Module
 	{
 		int effect_id;
@@ -136,6 +167,8 @@ namespace fxp
 		int part_count;
 		const Field *fields;
 		int field_count;
+		const Group *groups = nullptr;
+		int group_count = 0;
 	};
 
 	// every module's parameters, registered by its register function
