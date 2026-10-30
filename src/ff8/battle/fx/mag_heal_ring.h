@@ -13,7 +13,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// The healing ring's parameters (fx_params.h), shared by the modules that run its code: Cure
+// The healing ring's parameters (fx_params.h; its code: mag_heal_ring_code.h), shared by the copies of the module: Cure
 // (effect 1, mag001_cure.cpp) and its relocated copy Potion (effect 50, mag050_potion.cpp). One
 // struct per part, the values edited together in a sub-structure of their own (a group: the
 // ring's radius, its steps...), the game's values (the same in both but the sprite sequences:
