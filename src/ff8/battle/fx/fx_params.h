@@ -104,6 +104,9 @@ namespace fxp
 	// ---- field table (what an editor shows) ----
 	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences
 	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3 };
+	// how an editor shows the value (the raw value beside it): Angle 4096 = a full turn (degrees),
+	// Scale 4096 = its own size (x 1)
+	enum Unit : uint8_t { Plain = 0, Angle = 1, Scale = 2 };
 	struct Field
 	{
 		const char *part;    // the part it belongs to (PartDesc::key)
@@ -113,6 +116,7 @@ namespace fxp
 		uint32_t offset;     // in the module's parameter struct
 		FieldType type;
 		int32_t min, max;    // editor bounds
+		Unit unit = Plain;
 	};
 	struct Part
 	{

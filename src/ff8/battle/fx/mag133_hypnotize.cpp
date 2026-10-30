@@ -578,6 +578,8 @@ namespace hypno133
 		using fxp::Field;
 #define HYPNO_FIELD(part, member, label, doc, type, lo, hi) \
 		{ part, #member, label, doc, (uint32_t)offsetof(HypnotizeParams, member), fxp::type, lo, hi }
+#define HYPNO_UNIT(part, member, label, doc, type, lo, hi, unit) \
+		{ part, #member, label, doc, (uint32_t)offsetof(HypnotizeParams, member), fxp::type, lo, hi, fxp::unit }
 		static const fxp::Part PARTS[] = {
 			{ 0, "timing", "Timing", "The main task's clock: when the sound plays, when the targets take the result, when it ends (draws nothing)" },
 			{ PART_MAIN, "main", "Main layout", "The layout in front of the caster, framed in view space on its screen position" },
@@ -602,8 +604,8 @@ namespace hypno133
 			HYPNO_FIELD("targets", targets.spawn.every, "Every", "...every this many ticks", I16, 1, 50),
 			HYPNO_FIELD("targets", targets.spread_x.min, "Spread x min", "Added to the bone point's x, at random in [min, max]", I16, -0x2000, 0x2000),
 			HYPNO_FIELD("targets", targets.spread_x.max, "Spread x max", "", I16, -0x2000, 0x2000),
-			HYPNO_FIELD("targets", targets.scale.min, "Size min", "4096 = its own size", I16, 0, 0x7FFF),
-			HYPNO_FIELD("targets", targets.scale.max, "Size max", "", I16, 0, 0x7FFF),
+			HYPNO_UNIT("targets", targets.scale.min, "Size min", "Its size, at random in [min, max] (x 1 = its own)", I16, 0, 0x7FFF, Scale),
+			HYPNO_UNIT("targets", targets.scale.max, "Size max", "", I16, 0, 0x7FFF, Scale),
 			HYPNO_FIELD("targets", targets.depth, "Depth", "Drawing depth offset", I16, -0x1000, 0x1000),
 			HYPNO_FIELD("sprites", sprites.spawn.window.first, "From tick", "Spawned from this tick...", I16, 0, 200),
 			HYPNO_FIELD("sprites", sprites.spawn.window.last, "To tick", "...to this one...", I16, 0, 200),
@@ -618,6 +620,7 @@ namespace hypno133
 			HYPNO_FIELD("sprites", sprites.frames, "Frames", "Flipbook frames: lifetime", I16, 1, 64),
 		};
 #undef HYPNO_FIELD
+#undef HYPNO_UNIT
 	}
 
 	void register_mag133_hypnotize()
