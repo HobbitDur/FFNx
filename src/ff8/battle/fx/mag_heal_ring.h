@@ -141,7 +141,7 @@ namespace healring
 		{ PART_OVERLAY, "overlay", "Overlay", "The target redrawn lit by an image projected from the ring" },
 		{ PART_SPARKLES, "sparkles", "Sparkles", "Flipbooks born at each step of the ring, drifting out and down" },
 		{ PART_MOTES, "motes", "Motes", "Flipbooks rising on a circle around the target" },
-		{ PART_GLINTS, "glints", "Glints", "The shared effect library's glints: streaks growing then shrinking, spinning" },
+		{ PART_GLINTS, "glints", "Glints", "The shared effect library's glints: streaks at the target's centre (they never move), growing then shrinking, spinning" },
 	};
 	inline const fxp::Group GROUPS[] = {
 		{ "ring.steps", "Steps", "step n = ring tick x Per tick + k (k = 0 .. Per tick - 1); its angle = n x Angle. Each ring tick the ring goes through its Per tick steps and is drawn at the last one; a sparkle is born at every step. It turns Per tick x Angle per tick" },
@@ -159,7 +159,7 @@ namespace healring
 		{ "mote.angle", "Place on the circle", "angle = min + random % (max - min + 1) (4096 = a full turn), rolled at birth" },
 		{ "mote.drop", "Drop", "Born below the ring by (the ring's height over the target's feet) x (min + random % (max - min + 1)) / Divided by, rolled at birth" },
 		{ "mote.rise", "Rise speed", "Rises min + random % (max - min + 1) every tick, rolled once (its first tick)" },
-		{ "glint.window", "Born", "Glints are born at the ring while From tick <= ring tick <= To tick" },
+		{ "glint.window", "Born", "Glints are born while From tick <= ring tick <= To tick, at the target's centre (every tick they go back there: the middle of its line anchor, at the height of its bounds centre)" },
 		{ "glint.count", "How many", "Glints per ring tick = the count of the last rate whose from tick <= ring tick" },
 		{ "glint.style.grow", "Growth", "width, height += this every tick while growing" },
 		{ "glint.style.shrink", "Shrinking", "width, height -= this every tick while shrinking" },
