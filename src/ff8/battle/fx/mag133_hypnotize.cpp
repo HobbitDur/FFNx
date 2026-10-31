@@ -40,7 +40,7 @@
 //     the layout.
 //   SpriteTask (0x6B1740) - sprite sequence 0x12077B8 at its position through the shadow-rotation
 //     camera (0x400, -0x100), flipbook frame = its counter; 14 ticks.
-//   PrimCallback (0x6B1520, Heartbreak's 0x872700 on this module's cursor and parameter block)
+//   PrimCallback (0x6B1520, Heartbreak's 0x872700; fx_layouts.h, on this module's cursor and morph buffer)
 //     draws every layout object.
 // No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
 // DRAW ORDER: every task draws in the same tick it updates (draw THEN update: the layouts advance
@@ -69,6 +69,7 @@
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -76,6 +77,7 @@ namespace hypno133
 {
 	using namespace eng;
 	using namespace magc;
+	using namespace layouts;
 
 	// --- module globals ---
 	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520EE8); }        // caster entity (setup)
@@ -86,7 +88,6 @@ namespace hypno133
 	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520F20; }        // pool: + 0x280, 0x10 x 0x54
 	inline TaskQueue *QRings() { return (TaskQueue *)0x2520F30; }          // pool: + 0x7C0, 8 x 0xB0
 	inline TaskQueue *QMain() { return (TaskQueue *)0x2520F40; }           // pool: + 0xD40, 1 x 0xC4
-	inline int16_t ProjectionH() { return var<int16_t>(0x1D8E038); }
 
 	static const uint32_t ORIG_MasterTask = 0x6B1060;
 	static const uint32_t ORIG_MainTask = 0x6B1230;
@@ -161,17 +162,6 @@ namespace hypno133
 		return s.window.has(c) && s.every > 0 && (c - s.window.first) % s.every == 0;
 	}
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
-	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-
 	// ------------------------------------------------------------------
 	// Node layouts
 	// ------------------------------------------------------------------
@@ -211,183 +201,14 @@ namespace hypno133
 		int16_t pos[3];    // +0x0C
 		int16_t counter;   // +0x12 flipbook frame
 	};
-	// the prim-player callback's parameter block (a stack block of the drawing task)
-	struct PrimArg
-	{
-		Mat4x3 m;          // +0x00 object frame (main: view space; else camera x anchor)
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
-	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0xC4 && sizeof(RingNode) == 0xB0, "Hypnotize nodes");
 	static_assert(sizeof(TargetNode) == 0x54 && sizeof(SpriteNode) == 0x14, "Hypnotize nodes");
-	static_assert(sizeof(PrimArg) == 0x28, "Hypnotize prim block");
-
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6B1520, Heartbreak's 0x872700 on this module's cursor and block): one
-	// object of a layout. Vertex frame (or blend into the parameter block's morph buffer), rotation
-	// from the record's angles, the record's offset through the parameter matrix (flag 0x200: as
-	// is), the matrix composed with it, scale unless 1.0, fade, drawn by 0x7043B0.
-	// ------------------------------------------------------------------
-	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
-	{
-		const PrimArg *arg = (const PrimArg *)arg_;
-		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
-		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
-		uint8_t *h = AllocHeader(0x58);
-		const int32_t object = (int16_t)r->flags_lo;
-		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
-		*(uint8_t **)h = model;
-		const int16_t f0 = r->b0, f1 = r->b1;
-		const int32_t nverts = *(const int32_t *)(model + 4);
-		if (f0 == f1)
-		{
-			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-		}
-		else
-		{
-			const int16_t t = r->b;
-			if (t == 0)
-			{
-				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-			}
-			else if (t == 0x1000)
-			{
-				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
-			}
-			else
-			{
-				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
-				*(uint32_t *)(h + 4) = arg->morph;
-			}
-		}
-		Mat4x3 m = {};
-		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
-		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
-		int32_t t[3];
-		if (r->flags & 0x200)
-		{
-			t[0] = off[0];
-			t[1] = off[1];
-			t[2] = off[2];
-		}
-		else
-		{
-			GteSetRotMatrixCtrl(&arg->m);
-			GteLoadV0(off);
-			GteMVMVA_RotV0();
-			GteReadMAC123(m.t);
-			MatrixMultiply(&arg->m, &m);
-			t[0] = m.t[0];
-			t[1] = m.t[1];
-			t[2] = m.t[2];
-		}
-		m.t[0] = (int32_t)((uint32_t)t[0] + (uint32_t)arg->m.t[0]);
-		m.t[1] = (int32_t)((uint32_t)t[1] + (uint32_t)arg->m.t[1]);
-		m.t[2] = (int32_t)((uint32_t)t[2] + (uint32_t)arg->m.t[2]);
-		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
-		{
-			const int32_t v[3] = { r->scale[0], r->scale[1], r->scale[2] };
-			Scale3DMatrix(&m, v);
-		}
-		GteSetRotMatrix(&m);
-		GteSetTransVector(&m);
-		*(uint32_t *)(h + 0x1C) = 0x2030;
-		*(int32_t *)(h + 0xC) = r->a;
-		if (r->a != 0)
-		{
-			*(uint32_t *)(h + 0x1C) = 0x20F0;
-			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
-		}
-		*(int32_t *)(h + 0x18) = arg->depth;
-		PacketCursor() = RenderPrim2(h, RenderOT(), 2, PacketCursor());
-		FieldFree(0x58);
-	}
-
-	// 0x6B18A0 (= Dissolving Acid's 0x6B2B70): a point through the caster's bone (word +6) composed
-	// with its matrix
-	static void BonePoint(const int16_t *entry, int16_t *out)
-	{
-		uint8_t *c = Caster();
-		Mat4x3 m = {};
-		ComposeAffineTransform((const Mat4x3 *)(c + 0x40), (const Mat4x3 *)(**(uint8_t ***)(c + 0x64) + 0x20 + (int32_t)entry[3] * 0x30), &m);
-		GteSetRotMatrixCtrl(&m);
-		GteSetTransVectorCtrl(&m);
-		GteLoadV0(entry);
-		GteMVMVA_RotV0Tr();
-		GteStoreIR123(out);
-	}
-
-	// the main layout's view-space frame (0x6B1243..0x6B130B): the anchor projected, the basis of
-	// its screen offset from the centre (PSX pixels: 160, 120) at 12 H, translation at 16 H. The
-	// basis direction and the translation share the block's +0x14 words (the original's stack
-	// layout). On PC the projection is in eighths of a pixel (see PC SCREEN UNITS above).
-	static void MainFrame(const int16_t *pos, PrimArg *arg)
-	{
-		const HypnotizeParams::Main &mp = P().main;
-		GteSetRotMatrix(&Camera());
-		GteSetTransVector(&Camera());
-		GteLoadV0(pos);
-		GteRTPS();
-		int16_t sxy[2];
-		GteReadSXY2(sxy);
-		if (mp.pixels)
-		{
-			sxy[0] = (int16_t)(sxy[0] >> 3);
-			sxy[1] = (int16_t)(sxy[1] >> 3);
-		}
-		int32_t *v = arg->m.t;
-		v[0] = shl32(0xA0 - (int32_t)sxy[0], mp.offset_shift);
-		v[1] = shl32(0x78 - (int32_t)sxy[1], mp.offset_shift);
-		const int32_t h = ProjectionH();
-		v[2] = h * mp.basis_h;
-		BuildOrthonormalBasis(v, &arg->m);
-		v[1] = (int32_t)(0u - (uint32_t)v[1]);
-		v[0] = (int32_t)(0u - (uint32_t)v[0]);
-		v[2] = h * mp.depth_h;
-	}
-
-	// the camera rows scaled by s / 4096 through the GTE (IR0 interpolation, 0x6B190D..0x6B1958)
-	static void ScaledCamera(int32_t s, Mat4x3 *m)
-	{
-		GteSetIR0(s);
-		GteLoadIR123(&Camera().m[0][0]);
-		GteGPF();
-		GteStoreIR123(&m->m[0][0]);
-		GteLoadIR123(&Camera().m[1][0]);
-		GteGPF();
-		GteStoreIR123(&m->m[1][0]);
-		GteLoadIR123(&Camera().m[2][0]);
-		GteGPF();
-		GteStoreIR123(&m->m[2][0]);
-	}
-
-	// an anchor through the camera: rotation already in m, translation = camera x pos + camera t
-	static void CameraAnchor(const int16_t *pos, Mat4x3 *m)
-	{
-		GteSetRotMatrixCtrl(&Camera());
-		GteLoadV0(pos);
-		GteMVMVA_RotV0();
-		GteReadMAC123(m->t);
-		m->t[0] = (int32_t)((uint32_t)m->t[0] + (uint32_t)Camera().t[0]);
-		m->t[1] = (int32_t)((uint32_t)m->t[1] + (uint32_t)Camera().t[1]);
-		m->t[2] = (int32_t)((uint32_t)m->t[2] + (uint32_t)Camera().t[2]);
-	}
 
 	// the sprite (0x6B1742..0x6B17A0)
 	static void SpriteDraw(const SpriteNode *s)
 	{
-		uint8_t *h = AllocHeader(0xB4);
-		TransformCameraByShadowRotation(s->pos, 0x400, -0x100);
-		*(uint32_t *)h = SEQ_Sprite;
-		*(int16_t *)(h + 4) = s->counter;
-		*(uint16_t *)(h + 0x24) = 0;
-		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
-		FieldFree(0xB4);
+		DrawSequenceSprite(s->pos, SEQ_Sprite, s->counter, 0x400, -0x100, PacketCursor());
 	}
 }
 }
@@ -422,15 +243,16 @@ namespace hypno133
 		RingNode *g = (RingNode *)n;
 		FX_PART(PART_RINGS);
 		int16_t pos[4];
-		BonePoint(g->point, pos);
+		BonePoint(Caster(), g->point, pos);
 		PrimArg arg;
-		memcpy(&arg.m.m, &Camera().m, sizeof(arg.m.m));
+		CameraRotation(&arg.m);
 		CameraAnchor(pos, &arg.m);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
+		arg.cursor = &PacketCursor();
 		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_play(PLAY_RING, n, (prim::Layout *)g->layout, &arg);)
-		return prim::play((prim::Layout *)g->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
+		return Play(g->layout, &arg) ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -445,16 +267,10 @@ namespace hypno133
 		CameraAnchor(p->pos, &arg.m);
 		arg.depth = P().targets.depth;
 		arg.morph = TexBase() + MORPH;
+		arg.cursor = &PacketCursor();
 		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_play(PLAY_TARGET, n, (prim::Layout *)p->layout, &arg);)
-		return prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
-	}
-
-	// a random target of action 0 (CRT rand)
-	static uint8_t *RandomTarget(const MainNode *t)
-	{
-		const int32_t i = mul32(CrtRand(), (int32_t)t->count) >> 15;
-		return t->ents[i];
+		return Play(p->layout, &arg) ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -470,12 +286,13 @@ namespace hypno133
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
 			PrimArg arg;
-			MainFrame(pos, &arg);
+			ViewFrame(pos, pp.main.basis_h, pp.main.depth_h, pp.main.offset_shift, pp.main.pixels != 0, &arg.m);
 			arg.depth = 0;
 			arg.morph = TexBase() + MORPH;
+			arg.cursor = &PacketCursor();
 			// 30 fps layer: see mag133_hypnotize_held.inc
 			FX_HELD(held_note_play(PLAY_MAIN, n, (prim::Layout *)t->layout, &arg);)
-			prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
+			Play(t->layout, &arg);
 		}
 		if (t->counter == pp.timing.sound_tick) BdPlaySE((const void *)fxp::sound(pp.timing.sound, (uint32_t)SOUND_Hypnotize), 0, pp.timing.sound_pan);
 		const int32_t c = t->counter;
@@ -496,10 +313,7 @@ namespace hypno133
 			TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetLayoutTask);
 			if (p)
 			{
-				uint8_t *ent = RandomTarget(t);
-				const int32_t flag = CrtRand() >> 3;
-				const int32_t bone = mul32(CrtRand(), (int32_t)***(uint8_t ***)(ent + 0x64)) >> 15;
-				GetEffectSpawnPosition(ent, bone, flag, p->pos);
+				RandomBonePoint(RandomEntity(t->ents, t->count), p->pos);
 				p->pos[0] = (int16_t)(p->pos[0] + pp.targets.spread_x.roll(CrtRand()));
 				p->scale = (int16_t)pp.targets.scale.roll(CrtRand() >> 4);
 				DecodeModelPrimLayout(MODEL_Targets[e & 7], p->layout, 0x40);
@@ -510,8 +324,7 @@ namespace hypno133
 			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
 			if (s)
 			{
-				uint8_t *ent = RandomTarget(t);
-				GetEffectSpawnPosition(ent, pp.sprites.bone, 0, s->pos);
+				GetEffectSpawnPosition(RandomEntity(t->ents, t->count), pp.sprites.bone, 0, s->pos);
 				s->pos[0] = (int16_t)(s->pos[0] + pp.sprites.spread.x.roll(CrtRand()));
 				s->pos[1] = (int16_t)(s->pos[1] + pp.sprites.spread.y.roll(CrtRand()));
 				const int32_t rz = CrtRand();
