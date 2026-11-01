@@ -26,6 +26,7 @@ namespace final_form_death
 	static void dh_22_EntityDisintegrateHeld();
 	static void DrawPiecesHeld();
 	static void DotsHeld();
+	static void held_next_pose(uint8_t *hdr, uint8_t *cmd);
 }
 }
 	static void register_mag077_final_form_death_held();

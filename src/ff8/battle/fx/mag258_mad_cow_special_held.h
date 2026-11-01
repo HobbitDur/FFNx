@@ -19,5 +19,12 @@
 
 namespace ff8fx
 {
+namespace gfc
+{
+namespace mad_cow_special
+{
+	static void held_next_pose(uint8_t *hdr, uint8_t *cmd);
+}
+}
 	static void register_mag258_mad_cow_special_held();
 }
