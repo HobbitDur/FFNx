@@ -21,6 +21,7 @@
 // address; listings: gf_study/tools/ff8dis.py.
 
 #include "gfc_engine.h"
+#include <intrin.h>
 
 // ============================================================================================
 // part core
@@ -3697,6 +3698,29 @@ namespace part_vm_d
 	{
 		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
 	}
+	// fn(a, b) called with its return-address slot at ret_mod8 (0 / 4) mod 8. 0xB65590 RotMatrixOrder
+	// reaches Matrix3x3_MultiplyPSX 0x56C090 (and esp, -8) whose temporaries' pad words (+0x12, never
+	// written) end up in ws+0xB2 / ws+0xF2: the stack words they read depend on that alignment only
+	// (order 1: return slot mod 8 = 0 -> ws+0xF2 = high half of ws+0xA0 (0x56C270's saved esi), else
+	// m[0][1] of 0x56C270's product), so the call keeps the original's alignment.
+	static __declspec(naked) uint32_t __cdecl xl_call2_aligned(uint32_t fn, uint32_t a, uint32_t b, uint32_t ret_mod8)
+	{
+		__asm
+		{
+			push ebp
+			mov ebp, esp
+			lea eax, [esp - 0xC]          // return slot without padding (2 args + return address)
+			sub eax, [ebp + 0x14]
+			and eax, 4
+			sub esp, eax
+			push dword ptr [ebp + 0x10]
+			push dword ptr [ebp + 0xC]
+			call dword ptr [ebp + 8]
+			mov esp, ebp
+			pop ebp
+			ret
+		}
+	}
 	// 30 fps layer: writes outside the engine state block (light / aux slot indices from data,
 	// fog state) are preceded by FX_HELD(guard_...), see gfc_engine_held.h
 
@@ -3759,13 +3783,16 @@ namespace part_vm_d
 
 	// 0xB2E950 (VM 0x067 NodeCamRotTranslate): node.trans = Cam * outPos, node.rot = Cam.rot *
 	// RotOrder(outAngle, op>>12), node.H = 0. Length 4.
+	// The original keeps every cdecl argument on the stack (one add esp, 0x28 at the end): it calls
+	// RotMatrixOrder with the return slot at entry - 0x24 (the C++ frame is deeper), see xl_call2_aligned.
 	static void __cdecl op_067_NodeCamRotTranslate()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
 		x::SetRotMatrix(NODEMAT());
 		x::SetTransVector(NODEMAT());
 		x::TransformToCamera(CUR() + 0x94, node + 0x14, WS() + 0xF0);
-		Mat4x3 *r = blob::RotMatrixOrder(CUR() + 0x8C, (int32_t)((uint32_t)U16(RT(), 0x4A) >> 12));
+		Mat4x3 *r = (Mat4x3 *)xl_call2_aligned(0xB65590, (uint32_t)(CUR() + 0x8C), (uint32_t)U16(RT(), 0x4A) >> 12,
+			((uint32_t)_AddressOfReturnAddress() - 0x24) & 7);
 		x::MulMatrix3(NODEMAT(), r, node);
 		U16(node, 0x12) = 0;
 		STREAM() += 4;
