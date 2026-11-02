@@ -173,7 +173,9 @@ namespace layouts
 		uint32_t morph;    // +0x0C blended vertex frames
 		uint32_t honoured; // the record flags tested (the module's build options)
 		uint32_t *cursor;  // the packet cursor the objects are drawn at (the module's global in the original)
-		const Mat4x3 *matrix; // ANCHOR_MATRIX's (Echo Screen's module camera matrix, 0x67AAE0 of the camera)
+		const Mat4x3 *matrix = nullptr; // ANCHOR_MATRIX's (Echo Screen's module camera matrix, 0x67AAE0 of the camera)
+		int32_t nearer_object = -1;     // this object of the layout drawn `nearer_by` nearer (Silence's 4, 0x20)
+		int32_t nearer_by = 0;
 	};
 #pragma pack(pop)
 	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
@@ -290,6 +292,7 @@ namespace layouts
 			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
 		}
 		*(int32_t *)(h + 0x18) = arg->depth;
+		if ((int32_t)(int16_t)r->flags_lo == arg->nearer_object) *(int32_t *)(h + 0x18) = (int32_t)((uint32_t)arg->depth - (uint32_t)arg->nearer_by);
 		*arg->cursor = RenderPrim2(h, RenderOT(), 2, *arg->cursor);
 		FieldFree(0x58);
 	}
@@ -402,6 +405,12 @@ namespace layouts
 		const int32_t h = *(const int16_t *)(ent + 0x92);
 		const int32_t a = h * times_a / (share_a ? share_a : 1), b = h * times_b / (share_b ? share_b : 1);
 		out[1] = (int16_t)((a + b) / 2 + *(const int16_t *)(ent + 0x24));
+	}
+
+	// a drawing depth from an entity's size word (+0x26): (base - size) >> shift (Silence: -0x800, 5)
+	inline int32_t DepthFromSize(const uint8_t *ent, int32_t base, int32_t shift)
+	{
+		return (int32_t)((uint32_t)base - (uint32_t)(int32_t)*(const int16_t *)(ent + 0x26)) >> shift;
 	}
 
 	// where a part is anchored on an entity (the status-cure items' options)
