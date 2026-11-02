@@ -176,6 +176,9 @@ namespace layouts
 		const Mat4x3 *matrix = nullptr; // ANCHOR_MATRIX's (Echo Screen's module camera matrix, 0x67AAE0 of the camera)
 		int32_t nearer_object = -1;     // this object of the layout drawn `nearer_by` nearer (Silence's 4, 0x20)
 		int32_t nearer_by = 0;
+		int32_t scaled = 0;             // Aero: the record offsets and the object scaled by `scale` (4.12)
+		int32_t scale[3] = {};
+		bool short_scale = false;       // Aero: the record's scale applied row by row as 16-bit factors (its inlined copy)
 	};
 #pragma pack(pop)
 	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
@@ -222,6 +225,15 @@ namespace layouts
 		if (flags & ANCHOR_ROT_YXZ) RotationFromAnglesYXZ(r->rot, &m);
 		else if (flags & ANCHOR_ROT_ZYX) RotationFromAnglesZYX(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
+		// the record's offset, scaled by the arg's scale when it has one (Aero's WindPart)
+		int16_t pos[3] = { r->pos[0], r->pos[1], r->pos[2] };
+		if (arg->scaled)
+		{
+			pos[0] = (int16_t)(mul32(r->pos[0], arg->scale[0]) >> 12);
+			pos[1] = (int16_t)(mul32(r->pos[1], arg->scale[1]) >> 12);
+			pos[2] = (int16_t)(mul32(r->pos[2], arg->scale[2]) >> 12);
+			Scale3DMatrix(&m, arg->scale);
+		}
 		if (flags & ANCHOR_OFFSET_AS_IS)
 		{
 			// the anchor through the camera (its 4th word goes to the GTE V0 pad only) + the record's offset
@@ -229,15 +241,15 @@ namespace layouts
 			GteLoadV0(arg->anchor);
 			GteMVMVA_RotV0();
 			GteReadMAC123(m.t);
-			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(int32_t)r->pos[0]);
-			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)(int32_t)r->pos[1]);
-			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)(int32_t)r->pos[2]);
+			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(int32_t)pos[0]);
+			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)(int32_t)pos[1]);
+			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)(int32_t)pos[2]);
 		}
 		else if (flags & ANCHOR_MATRIX)
 		{
 			// the anchor through the camera + the record's offset through the matrix (the offset's 4th
 			// word never written: only loaded into the GTE V0 pad)
-			const int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
+			const int16_t off[4] = { pos[0], pos[1], pos[2], 0 };
 			int32_t v[3];
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->anchor);
@@ -256,7 +268,7 @@ namespace layouts
 		{
 			// the record's offset + the anchor through the camera (4th word never written: only
 			// loaded into the GTE V0 pad)
-			const int16_t off[4] = { (int16_t)(r->pos[0] + arg->anchor[0]), (int16_t)(r->pos[1] + arg->anchor[1]), (int16_t)(r->pos[2] + arg->anchor[2]), 0 };
+			const int16_t off[4] = { (int16_t)(pos[0] + arg->anchor[0]), (int16_t)(pos[1] + arg->anchor[1]), (int16_t)(pos[2] + arg->anchor[2]), 0 };
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(off);
 			GteMVMVA_RotV0();
@@ -275,6 +287,18 @@ namespace layouts
 				d.m[1][1] = r->scale[1];
 				d.m[2][2] = r->scale[2];
 				MulMatrix3(&m, &d);
+			}
+			else if (arg->short_scale)
+			{
+				// each row of the rotation times its scale, read as 16 bits (a scale of 1.0 leaves the row)
+				for (int k = 0; k < 3; k++)
+				{
+					const int16_t sk = (int16_t)r->scale[k];
+					if (sk == 0x1000) continue;
+					m.m[k][0] = (int16_t)(mul32(m.m[k][0], sk) >> 12);
+					m.m[k][1] = (int16_t)(mul32(m.m[k][1], sk) >> 12);
+					m.m[k][2] = (int16_t)(mul32(m.m[k][2], sk) >> 12);
+				}
 			}
 			else
 			{
@@ -745,6 +769,129 @@ namespace layouts
 		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2] - (uint32_t)nearer);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
+		cursor = RenderPrimModel(h, RenderOT(), 2, cursor);
+		FieldFree(0x58);
+	}
+
+	// ------------------------------------------------------------------
+	// Whirl leaves (Aero 0x6C14B0): a model circling its spawner's anchor, climbing (the spiral's
+	// radius shrinking with the height) while its spawner is young, then falling, bouncing on the
+	// ground, drifting outwards and shrinking away; tumbling on three axes all along.
+	// ------------------------------------------------------------------
+#pragma pack(push, 1)
+	struct WhirlLeaf // a node's fields after the header (0x30 bytes)
+	{
+		int16_t action;    // +0x00 the spawner's action (not read)
+		int16_t reach;     // +0x02 spiral reach (the target's size / 2 + 0x800)
+		int16_t scale;     // +0x04 size 4.12, grows to 0x1000
+		int16_t angle;     // +0x06 around the anchor
+		int16_t speed;     // +0x08 angle step
+		int16_t cx;        // +0x0A the anchor's x
+		int16_t cz;        // +0x0C the anchor's z
+		int16_t pos[3];    // +0x0E x, y, z
+		int16_t pad14;
+		int16_t cosv;      // +0x16 cos(angle) of the last circling tick
+		int16_t vy;        // +0x18 vertical speed
+		int16_t sinv;      // +0x1A sin(angle) of the last circling tick
+		int16_t pad1C;
+		int16_t ang[3];    // +0x1E tumbling angles
+		int16_t fall;      // +0x24 ticks since the fall started
+		int8_t spin[3];    // +0x26 tumbling speeds (x 8)
+		uint8_t pad29[3];
+		const int16_t *owner_counter; // +0x2C its spawner's counter (Aero: its target task's)
+	};
+#pragma pack(pop)
+	static_assert(sizeof(WhirlLeaf) == 0x30, "whirl leaf");
+
+	// a new leaf around `anchor` (CRT rand in the original's order: its height, its angle, its three
+	// tumbling angles and speeds)
+	inline void WhirlLeafStart(WhirlLeaf *f, int16_t action, const int16_t *anchor, int32_t reach, const int16_t *owner_counter,
+	                           int32_t scale, int32_t speed, int32_t vy)
+	{
+		f->action = action;
+		f->cx = anchor[0];
+		f->cz = anchor[2];
+		const int32_t y = CrtRand() & 0xFF;
+		f->owner_counter = owner_counter;
+		f->pos[1] = (int16_t)y;
+		f->reach = (int16_t)reach;
+		f->scale = (int16_t)scale;
+		f->angle = (int16_t)CrtRand();
+		f->speed = (int16_t)speed;
+		f->ang[0] = (int16_t)CrtRand();
+		f->ang[1] = (int16_t)CrtRand();
+		f->ang[2] = (int16_t)CrtRand();
+		f->spin[0] = (int8_t)(CrtRand() + 0x80);
+		f->spin[1] = (int8_t)(CrtRand() + 0x80);
+		const int32_t s2 = CrtRand();
+		f->vy = (int16_t)vy;
+		f->spin[2] = (int8_t)(s2 + 0x80);
+	}
+
+	// one tick of a leaf: false once it has shrunk away. It climbs while its spawner's counter is
+	// below `climb` (faster from `speed_up`), then falls.
+	inline bool WhirlLeafMove(WhirlLeaf *f, int32_t climb, int32_t speed_up)
+	{
+		const int16_t oc = *f->owner_counter;
+		if (oc < climb)
+		{
+			if (oc >= speed_up)
+			{
+				f->vy = (int16_t)(f->vy - 4);
+				f->speed = (int16_t)(f->speed + 0x10);
+			}
+			f->scale = (int16_t)(f->scale + 0x100);
+			if (f->scale > 0x1000) f->scale = 0x1000;
+			f->pos[1] = (int16_t)(f->pos[1] + f->vy);
+			const int32_t y = f->pos[1] >> 6;
+			const int32_t radius = shl32(f->reach, 5) / (mul32(y, y) + 0x200);
+			f->angle = (int16_t)(f->angle + f->speed);
+			const int32_t c = parts::ComputeCos(f->angle);
+			f->cosv = (int16_t)c;
+			f->pos[0] = (int16_t)((mul32((int16_t)c, radius) >> 9) + f->cx);
+			const int32_t s = ComputeSin(f->angle);
+			f->sinv = (int16_t)s;
+			f->pos[2] = (int16_t)((mul32((int16_t)s, radius) >> 9) + f->cz);
+		}
+		else
+		{
+			const int16_t n = f->fall;
+			f->fall = (int16_t)(n + 1);
+			if (n > 0x10)
+			{
+				f->scale = (int16_t)(f->scale - 0x200);
+				if (f->scale <= 0) return false;
+			}
+			f->vy = (int16_t)(f->vy + 0x10);
+			f->pos[1] = (int16_t)(f->pos[1] + f->vy);
+			if (f->pos[1] >= 0) f->vy = (int16_t)-f->vy;
+			f->pos[0] = (int16_t)(f->pos[0] + (int16_t)(f->cosv >> 6));
+			f->pos[2] = (int16_t)(f->pos[2] + (int16_t)(f->sinv >> 6));
+		}
+		f->ang[0] = (int16_t)(f->ang[0] + (int16_t)(f->spin[0] << 3));
+		f->ang[1] = (int16_t)(f->ang[1] + (int16_t)(f->spin[1] << 3));
+		f->ang[2] = (int16_t)(f->ang[2] + (int16_t)(f->spin[2] << 3));
+		return true;
+	}
+
+	// a prim model (no layout) turned by three angles (0x56CD50), scaled by `scale`, at `pos` composed
+	// with the camera, its draw mode `mode` (its fade words left as the scratch held them); the
+	// engine's renderer (Aero's leaves)
+	inline void DrawTumblingModel(uint32_t model, const int16_t *ang, int32_t scale, const int16_t *pos, uint32_t mode, uint32_t &cursor)
+	{
+		uint8_t *h = AllocHeader(0x58);
+		*(uint32_t *)h = model;
+		Mat4x3 m = {};
+		BuildRotationMatrixFromAngles(ang, &m);
+		const int32_t v[3] = { scale, scale, scale };
+		Scale3DMatrix(&m, v);
+		m.t[0] = pos[0];
+		m.t[1] = pos[1];
+		m.t[2] = pos[2];
+		ComposeAffineTransform(&Camera(), &m, &m);
+		GteSetRotMatrix(&m);
+		GteSetTransVector(&m);
+		*(uint32_t *)(h + 0x1C) = mode;
 		cursor = RenderPrimModel(h, RenderOT(), 2, cursor);
 		FieldFree(0x58);
 	}
