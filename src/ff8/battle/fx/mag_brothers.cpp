@@ -133,6 +133,8 @@ namespace part_brothers
 		U8(ent, 0) |= 0x20;
 		uint8_t *hdr = ent + 0x60;                                        // [ebp-0x18]
 		x::BuildBoneMatricesFromPose(hdr);
+		// 30 fps layer: see mag_brothers_held.inc (held_entity_attach_pose)
+		FX_HELD(held_entity_attach_pose(ent);)
 		x::ComputeBonesWorldMatrices(hdr, root);
 		uint8_t *sk = PTR(PTR(ent, 0x64), 0);                             // [ebp-0x14]
 		int32_t i = 1;                                                    // [ebp-0x10]
@@ -288,6 +290,8 @@ namespace part_brothers
 		xl_Apply3DTransform(WS() + 0x60, off, WS() + 0x74);
 		uint8_t *hdr = ent + 0x60;                                        // ebx
 		x::BuildBoneMatricesFromPose(hdr);
+		// 30 fps layer: see mag_brothers_held.inc (held_entity_attach_pose)
+		FX_HELD(held_entity_attach_pose(ent);)
 		blob::Blob_B66B80(hdr, 0xF1, 0x1000, WS() + 0x60);
 		// ws+0xE2 = pad of the result: uninitialised temporary of ComposeAffineTransform 0x56C2F0
 		GFC_TAINT(WS() + 0xE2, nullptr, 2);
