@@ -161,6 +161,7 @@ namespace layouts
 		ANCHOR_DIAGONAL_SCALE = 0x100,   // scale as a diagonal matrix multiplied in (0x56C220), not scale3DMatrix
 		ANCHOR_OFFSET_AS_IS = 0x200,     // the anchor through the camera + the offset as is, not composed
 		ANCHOR_ROT_ZYX = 0x400,          // rotation from the angles in ZYX order (0x701430)
+		ANCHOR_MATRIX = 0x1000,          // the anchor through the camera + the offset through the arg's matrix (composed with it)
 		ANCHOR_NOT_COMPOSED = 0x8000,    // the rotation not composed with the camera
 		ANCHOR_ROT_YXZ = 0x40000,        // rotation from the angles in YXZ order (0x7015B0)
 	};
@@ -172,6 +173,7 @@ namespace layouts
 		uint32_t morph;    // +0x0C blended vertex frames
 		uint32_t honoured; // the record flags tested (the module's build options)
 		uint32_t *cursor;  // the packet cursor the objects are drawn at (the module's global in the original)
+		const Mat4x3 *matrix; // ANCHOR_MATRIX's (Echo Screen's module camera matrix, 0x67AAE0 of the camera)
 	};
 #pragma pack(pop)
 	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
@@ -228,6 +230,25 @@ namespace layouts
 			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(int32_t)r->pos[0]);
 			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)(int32_t)r->pos[1]);
 			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)(int32_t)r->pos[2]);
+		}
+		else if (flags & ANCHOR_MATRIX)
+		{
+			// the anchor through the camera + the record's offset through the matrix (the offset's 4th
+			// word never written: only loaded into the GTE V0 pad)
+			const int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
+			int32_t v[3];
+			GteSetRotMatrixCtrl(&Camera());
+			GteLoadV0(arg->anchor);
+			GteMVMVA_RotV0();
+			GteReadMAC123(m.t);
+			GteSetRotMatrixCtrl(arg->matrix);
+			GteLoadV0(off);
+			GteMVMVA_RotV0();
+			GteReadMAC123(v);
+			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)v[0]);
+			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)v[1]);
+			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)v[2]);
+			if (!(flags & ANCHOR_NOT_COMPOSED)) MatrixMultiply(arg->matrix, &m);
 		}
 		else
 		{
@@ -372,12 +393,26 @@ namespace layouts
 		GetEffectSpawnPosition(ent, bone, flag, out);
 	}
 
-	// `ent`'s default effect position (0x571400) at a share of its height: y = its +0x24 word + its
-	// height (+0x92) x num / den (Antidote's anchor: 1 / 2, the middle)
-	inline void HeightPoint(uint8_t *ent, int32_t num, int32_t den, int16_t *out)
+	// `ent`'s default effect position (0x571400) between two shares of its height: y = its +0x24 word
+	// + (h x times_a / share_a + h x times_b / share_b) / 2, h = its height (+0x92); Antidote's
+	// anchor: 1 / 2 and 1 / 2, the middle; Holy Water's: 2 / 3 and 1 / 2
+	inline void HeightPoint(uint8_t *ent, int32_t times_a, int32_t share_a, int32_t times_b, int32_t share_b, int16_t *out)
 	{
 		GetDefaultEffectPosition(ent, out);
-		out[1] = (int16_t)((int32_t)*(const int16_t *)(ent + 0x92) * num / den + *(const int16_t *)(ent + 0x24));
+		const int32_t h = *(const int16_t *)(ent + 0x92);
+		const int32_t a = h * times_a / (share_a ? share_a : 1), b = h * times_b / (share_b ? share_b : 1);
+		out[1] = (int16_t)((a + b) / 2 + *(const int16_t *)(ent + 0x24));
+	}
+
+	// where a part is anchored on an entity (the status-cure items' options)
+	enum AnchorKind { ANCHOR_AT_POSITION = 0, ANCHOR_AT_HEIGHT = 1, ANCHOR_AT_BONE = 2 };
+	// its default effect position (0x571400), that point between two shares of its height
+	// (HeightPoint), or its effect point `bone` (0x502170, flag 0)
+	inline void AnchorPoint(uint8_t *ent, int32_t kind, int32_t bone, int32_t times_a, int32_t share_a, int32_t times_b, int32_t share_b, int16_t *out)
+	{
+		if (kind == ANCHOR_AT_HEIGHT) HeightPoint(ent, times_a, share_a, times_b, share_b, out);
+		else if (kind == ANCHOR_AT_BONE) GetEffectSpawnPosition(ent, bone, 0, out);
+		else GetDefaultEffectPosition(ent, out);
 	}
 
 	// ------------------------------------------------------------------

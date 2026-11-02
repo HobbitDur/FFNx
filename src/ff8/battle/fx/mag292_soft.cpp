@@ -44,7 +44,8 @@
 // R33 word only) and its offset's 4th word (loaded into the GTE VZ0 word only); see the report of the
 // port (they never reach a packet).
 // The module is the status-cure item module (mag_status_item.h: its code, parts and parameters);
-// this file says where this copy is and its build options (the record flags its callback tests).
+// this file says where this copy is and its build options (the record flags its callback tests,
+// its anchor, the sound's place, its camera matrix).
 
 #include "mag_status_item.h"
 
@@ -58,6 +59,8 @@ namespace soft292
 		0x2507AEC, 0x2507AF8, 0x2507B2C, 0x2507B30,  // context, play queue, packet cursor, magic buffer base
 		0x6DC, 0x106DC,                              // packet arenas
 		layouts::ANCHOR_ROT_YXZ | layouts::ANCHOR_OFFSET_AS_IS | layouts::ANCHOR_NOT_COMPOSED,
+		layouts::ANCHOR_AT_HEIGHT, 0xF0, 1, 2, 1, 2,   // anchor: its effect position at half its height
+		false, 0,                                    // sound first, camera matrix
 	};
 }
 

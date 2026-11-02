@@ -16,13 +16,15 @@
 // The status-cure item module (effects 292 Soft, 293 Eye Drops, 294 Antidote, 295 Echo Screen,
 // 296 Holy Water: one source built five times with different options), written once from the
 // parts library (fx_layouts.h). A `Layout` says where one copy is (its original functions, its exe
-// data, its memory) and which options it was built with (the record flags its callback tests).
+// data, its memory) and which options it was built with (the record flags its callback tests, its
+// anchor, the sound's place, a camera matrix of its own).
 //
 //   RootTask - alternates the packet arena (magic buffer + arena_a / arena_b by tick parity); on
 //     counter 1 sets up the play pool (1 node at the start of the magic buffer) and starts the play
-//     task with the anchor of target 0 of action 0, taken once: its default effect position
-//     (0x571400) at a share of its height (HeightPoint); then the play queue (the sound on its
-//     counter, after it); ends when the play queue is empty.
+//     task with the anchor of target 0 of action 0, taken once (AnchorPoint: its default effect
+//     position, that point between two shares of its height, or a bone's effect point); then, every
+//     tick, its camera matrix (Echo Screen: 0x67AAE0 of the camera), the play queue and the sound on
+//     its counter (after the play; Holy Water: before); ends when the play queue is empty.
 //   PlayTask - draws THEN advances the layout (at node +0x14) at the anchor (AnchorPrimCallback,
 //     the morph buffer right after the play node); when the layout ends: the action result of
 //     target 0 of action 0 (ApplyActionResultToTarget: the status cure) and the end.
@@ -61,6 +63,12 @@ namespace statusitem
 		uint32_t arena_a, arena_b;
 		// its build: the record flags its callback tests (layouts::ANCHOR_*)
 		uint32_t honoured;
+		// its anchor (layouts::AnchorKind, the bone, the two height shares: the game's parameters)
+		int16_t anchor, bone, height_a_times, height_a_share, height_b_times, height_b_share;
+		// the sound played before the play queue (Holy Water), not after
+		bool sound_first;
+		// its camera matrix (Echo Screen's: 0x67AAE0 of the camera every tick; 0: none)
+		uint32_t camera_matrix;
 	};
 
 	// ------------------------------------------------------------------
@@ -77,8 +85,10 @@ namespace statusitem
 		struct Play
 		{
 			int16_t depth;          // the prim header's depth
-			int16_t height_times;   // the anchor's y: the target's +0x24 + its height x times / share
-			int16_t height_share;
+			int16_t anchor;         // where on the target (layouts::AnchorKind)
+			int16_t bone;           // ANCHOR_AT_BONE: its effect point
+			struct Share { int16_t times, share; };
+			Share height_a, height_b; // ANCHOR_AT_HEIGHT: y = the target's +0x24 + (h x a + h x b) / 2
 		} layout;
 	};
 	enum PartId { PART_LAYOUT = 1 };
@@ -93,15 +103,20 @@ namespace statusitem
 			{ PART_LAYOUT, "layout", "Layout", "The layout played on the target; target 0 takes the result when it ends" },
 		};
 		static const fxp::Group GROUPS[] = {
-			{ "layout.height", "Anchor height", "The anchor: the target's effect position, y = its +0x24 word + its height x Times / Share (y goes down)" },
+			{ "layout.height_a", "Anchor height A", "Anchor 1: y = the target's +0x24 word + (its height x A + its height x B) / 2, each Times / Share (y goes down)" },
+			{ "layout.height_b", "Anchor height B", "" },
 		};
 		static const Field FIELDS[] = {
 			STATUS_ITEM_FIELD("timing", timing.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
 			STATUS_ITEM_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays when the root tick == this (the layout starts at root tick 1)", I16, 0, 200),
 			STATUS_ITEM_FIELD("timing", timing.sound_pan, "Sound pan", "Where it plays between the speakers: 128 the middle (BdPlaySE's pan)", I16, 0, 255),
 			STATUS_ITEM_FIELD("layout", layout.depth, "Depth", "Added to its drawing depth (sort key)", I16, -0x1000, 0x1000),
-			STATUS_ITEM_FIELD("layout", layout.height_times, "Times", "", I16, -16, 16),
-			STATUS_ITEM_FIELD("layout", layout.height_share, "Share", "", I16, 1, 16),
+			STATUS_ITEM_FIELD("layout", layout.anchor, "Anchor", "Where on target 0: 0 its effect position, 1 that point between two shares of its height (A, B), 2 the effect point of Bone", I16, 0, 2),
+			STATUS_ITEM_FIELD("layout", layout.bone, "Bone", "Anchor 2: the target's effect point (0xF0 and up: the engine's named points)", I16, 0, 0xFF),
+			STATUS_ITEM_FIELD("layout", layout.height_a.times, "Times", "", I16, -16, 16),
+			STATUS_ITEM_FIELD("layout", layout.height_a.share, "Share", "", I16, 1, 16),
+			STATUS_ITEM_FIELD("layout", layout.height_b.times, "Times", "", I16, -16, 16),
+			STATUS_ITEM_FIELD("layout", layout.height_b.share, "Share", "", I16, 1, 16),
 		};
 #undef STATUS_ITEM_FIELD
 	}
@@ -131,7 +146,8 @@ namespace statusitem
 	struct StatusItem
 	{
 		// the game's values (with this copy's own sound) and the live ones the code reads
-		inline static const StatusItemParams GAME = { { L.sound, 1, 0x80 }, { -0x80, 1, 2 } };
+		inline static const StatusItemParams GAME = { { L.sound, 1, 0x80 },
+			{ -0x80, L.anchor, L.bone, { L.height_a_times, L.height_a_share }, { L.height_b_times, L.height_b_share } } };
 		inline static StatusItemParams live = GAME;
 		static const StatusItemParams &P() { return live; }
 
@@ -154,12 +170,19 @@ namespace statusitem
 			arg.morph = TexBase() + NodeBytes();
 			arg.honoured = L.honoured;
 			arg.cursor = &PacketCursor();
+			arg.matrix = L.camera_matrix ? (const Mat4x3 *)L.camera_matrix : &Camera();
 			if (PlayAtAnchor(p->layout, &arg) == 0)
 			{
 				ApplyActionResultToTarget(Ctx()->actions[0].targets);
 				return TASK_END;
 			}
 			return 0;
+		}
+
+		static void Sound(int16_t counter)
+		{
+			const StatusItemParams &pp = P();
+			if (counter == pp.timing.sound_tick) BdPlaySE((const void *)fxp::sound(pp.timing.sound, L.sound), 0, pp.timing.sound_pan);
 		}
 
 		// ------------------------------------------------------------------
@@ -184,16 +207,19 @@ namespace statusitem
 				r->started = 1;
 				InitTaskQueuePool(QPlay(), (void *)TexBase(), NodeBytes(), 1);
 				PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), L.play);
-				// the anchor of target 0 of action 0: its effect position at a share of its height
-				HeightPoint(Entity(Ctx()->actions[0].targets[0]), pp.layout.height_times, pp.layout.height_share, p->anchor);
+				// the anchor of target 0 of action 0
+				AnchorPoint(Entity(Ctx()->actions[0].targets[0]), pp.layout.anchor, pp.layout.bone, pp.layout.height_a.times,
+				            pp.layout.height_a.share, pp.layout.height_b.times, pp.layout.height_b.share, p->anchor);
 				DecodeModelPrimLayout(L.model, p->layout, L.layout_bytes);
 			}
 			int a;
 			if (r->started)
 			{
+				if (L.camera_matrix) EffectCameraMatrix(&Camera(), (Mat4x3 *)L.camera_matrix);
+				if (L.sound_first) Sound(r->counter);
 				a = ExecuteTaskQueue(QPlay());
 				FX_PART(0);
-				if (r->counter == pp.timing.sound_tick) BdPlaySE((const void *)fxp::sound(pp.timing.sound, L.sound), 0, pp.timing.sound_pan);
+				if (!L.sound_first) Sound(r->counter);
 			}
 			else a = (int)n;
 			if (r->started && a == 0) return TASK_END;
