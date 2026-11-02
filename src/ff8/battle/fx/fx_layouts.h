@@ -304,6 +304,156 @@ namespace layouts
 	}
 
 	// ------------------------------------------------------------------
+	// The frame callback (Float 0x6C9760, Haste / Slow's ClockPart 0x6BBA40 / 0x6BD580): one object of
+	// a layout in a frame of the target (turned with it, at a point of it) scaled by its size. The
+	// record's offset scaled, through the frame, composed with it; the record flags a module's build
+	// tests are `honoured` (FRAME_* below). Vertex frame and fade as PrimCallback.
+	// ------------------------------------------------------------------
+	enum FrameFlag : uint32_t
+	{
+		FRAME_DIAGONAL_SCALE = 0x100,   // the record's scale as a diagonal matrix multiplied in (0x56C220)
+		FRAME_OFFSET_AS_IS = 0x200,     // the (scaled) offset as is, not turned, not composed
+		FRAME_MATRIX = 0x1000,          // the offset through the arg's matrix (Haste's effect camera), composed with it
+		FRAME_SUBTRACT = 0x2000,        // the draw mode | 0xC
+		FRAME_NO_LIGHT = 0x4000,        // the draw mode 0x2000, not 0x2030
+		FRAME_NOT_COMPOSED = 0x8000,    // the rotation not composed with the frame
+	};
+#pragma pack(push, 1)
+	struct FrameArg
+	{
+		Mat4x3 m;          // +0x00 the frame: camera x (turned with the target, at its point)
+		int32_t scale[3];  // +0x20 4.12, applied to the record offsets and the matrix
+		int32_t scaled;    // +0x2C scale present
+		int32_t depth;     // +0x30 the prim header's +0x18
+		uint32_t morph;    // +0x34 blended vertex frames
+		uint32_t honoured; // the record flags tested (the module's build options)
+		uint32_t *cursor;  // the packet cursor the objects are drawn at (the module's global in the original)
+		const Mat4x3 *matrix = nullptr; // FRAME_MATRIX's
+		bool engine_draw = false;       // drawn by 0x572200, the header's depth not written (Haste, Slow), not 0x7043B0
+	};
+#pragma pack(pop)
+
+	static void __cdecl FramePrimCallback(prim::Layout *l, prim::Record *r, int arg_)
+	{
+		const FrameArg *arg = (const FrameArg *)arg_;
+		const uint32_t flags = r->flags & arg->honoured;
+		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
+		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
+		uint8_t *h = AllocHeader(0x58);
+		const int32_t object = (int16_t)r->flags_lo;
+		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
+		*(uint8_t **)h = model;
+		const int16_t f0 = r->b0, f1 = r->b1;
+		const int32_t nverts = *(const int32_t *)(model + 4);
+		if (f0 == f1)
+		{
+			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
+			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
+		}
+		else
+		{
+			const int16_t t = r->b;
+			if (t == 0)
+			{
+				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
+				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
+			}
+			else if (t == 0x1000)
+			{
+				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
+				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
+			}
+			else
+			{
+				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
+				*(uint32_t *)(h + 4) = arg->morph;
+			}
+		}
+		Mat4x3 m = {};
+		RotationFromAngles(r->rot, &m);
+		// the record's offset (scaled by the block's scale when "scaled"; 4th word only loaded into the GTE V0 pad)
+		int16_t off[4] = {};
+		const int32_t scaled = arg->scaled;
+		if (scaled)
+		{
+			off[0] = (int16_t)(mul32(r->pos[0], arg->scale[0]) >> 12);
+			off[1] = (int16_t)(mul32(r->pos[1], arg->scale[1]) >> 12);
+			off[2] = (int16_t)(mul32(r->pos[2], arg->scale[2]) >> 12);
+		}
+		else
+		{
+			off[0] = r->pos[0];
+			off[1] = r->pos[1];
+			off[2] = r->pos[2];
+		}
+		if (scaled) Scale3DMatrix(&m, arg->scale);
+		if (flags & FRAME_MATRIX)
+		{
+			GteSetRotMatrixCtrl(arg->matrix);
+			GteLoadV0(off);
+			GteMVMVA_RotV0();
+			GteReadMAC123(m.t);
+			if (!(flags & FRAME_NOT_COMPOSED)) MatrixMultiply(arg->matrix, &m);
+		}
+		else if (flags & FRAME_OFFSET_AS_IS)
+		{
+			m.t[0] = off[0];
+			m.t[1] = off[1];
+			m.t[2] = off[2];
+		}
+		else
+		{
+			GteSetRotMatrixCtrl(&arg->m);
+			GteLoadV0(off);
+			GteMVMVA_RotV0();
+			GteReadMAC123(m.t);
+			if (!(flags & FRAME_NOT_COMPOSED)) MatrixMultiply(&arg->m, &m);
+		}
+		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)arg->m.t[0]);
+		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)arg->m.t[1]);
+		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)arg->m.t[2]);
+		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
+		{
+			if (flags & FRAME_DIAGONAL_SCALE)
+			{
+				Mat4x3 d = {};
+				d.m[0][0] = r->scale[0];
+				d.m[1][1] = r->scale[1];
+				d.m[2][2] = r->scale[2];
+				MulMatrix3(&m, &d);
+			}
+			else
+			{
+				int32_t v[3] = { r->scale[0], r->scale[1], r->scale[2] };
+				Scale3DMatrix(&m, v);
+			}
+		}
+		GteSetRotMatrix(&m);
+		GteSetTransVector(&m);
+		*(uint32_t *)(h + 0x1C) = (flags & FRAME_NO_LIGHT) ? 0x2000 : 0x2030;
+		if (flags & FRAME_SUBTRACT) *(uint32_t *)(h + 0x1C) |= 0xC;
+		*(int32_t *)(h + 0xC) = r->a;
+		if (r->a != 0)
+		{
+			*(uint32_t *)(h + 0x1C) |= 0xC0;
+			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
+		}
+		if (arg->engine_draw) *arg->cursor = RenderPrimModel(h, RenderOT(), 2, *arg->cursor);
+		else
+		{
+			*(int32_t *)(h + 0x18) = arg->depth;
+			*arg->cursor = RenderPrim2(h, RenderOT(), 2, *arg->cursor);
+		}
+		FieldFree(0x58);
+	}
+
+	// the layout played one tick in `arg`'s frame: the frames left (0 = finished)
+	inline int PlayInFrame(void *layout, FrameArg *arg)
+	{
+		return prim::play((prim::Layout *)layout, FramePrimCallback, (int)arg, 0);
+	}
+
+	// ------------------------------------------------------------------
 	// Frames
 	// ------------------------------------------------------------------
 	// Hypnotize 0x6B18A0 (= Dissolving Acid's 0x6B2B70): a point (x, y, z, bone) through the
@@ -405,6 +555,35 @@ namespace layouts
 		const int32_t h = *(const int16_t *)(ent + 0x92);
 		const int32_t a = h * times_a / (share_a ? share_a : 1), b = h * times_b / (share_b ? share_b : 1);
 		out[1] = (int16_t)((a + b) / 2 + *(const int16_t *)(ent + 0x24));
+	}
+
+	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)((int32_t)(uint16_t)angle, out); }   // MAG_063_sub_701270
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
+
+	// a frame of an entity (Float, Haste, Slow): turned about the vertical axis with it (-facing,
+	// +0x0E), at `point` (x, y, z), composed with the camera
+	inline void TargetFrame(const uint8_t *ent, const int32_t *point, Mat4x3 *m)
+	{
+		RotationY((int16_t)-*(const int16_t *)(ent + 0xE), m);
+		m->t[0] = point[0];
+		m->t[1] = point[1];
+		m->t[2] = point[2];
+		ComposeAffineTransform(&Camera(), m, m);
+	}
+
+	// a scale (4.12) from an entity's size word (+0x26): ((size >> 1) + base) >> shift (Float: 0x800, 2)
+	inline int32_t SizeScale(const uint8_t *ent, int32_t base, int32_t shift)
+	{
+		return ((*(const int16_t *)(ent + 0x26) >> 1) + base) >> shift;
+	}
+
+	// the depth of a point of a frame, by an entity's size (Float's upper layout 0x6C96C2..0x6C96F3):
+	// (size + 0x800) x (the point through the frame).z >> 15
+	inline int32_t PointDepth(const Mat4x3 *m, const uint8_t *ent, const int16_t *point)
+	{
+		int16_t out[4];
+		MatrixMultiplyVector(m, point, out);
+		return mul32(*(const int16_t *)(ent + 0x26) + 0x800, out[2]) >> 15;
 	}
 
 	// a drawing depth from an entity's size word (+0x26): (base - size) >> shift (Silence: -0x800, 5)
