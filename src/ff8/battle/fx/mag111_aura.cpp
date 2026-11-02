@@ -32,8 +32,14 @@
 // Module globals: 0x2521970..0x25219C8 (texture file, magic buffer base, context, root pool,
 // packet cursor 0x2521994, flame / target / root queues). The target pool (3 x 0x360), the flame
 // pool (32 x 0x20), the morph vertex buffer (+0xE20) and the packet arenas are in the magic buffer.
+// Built from the parts library (fx_layouts.h): the table callback (TablePrimCallback, the aura's
+// per-object words), SqrtSizeFrame, FeetPoint, FadeInOut, DrawSpinningModel (the flames),
+// DrawSequenceSprite (the glow). Parameters (AuraParams, fx_params.h): the numbers above, defaults =
+// the game's; the parts are tagged (FX_PART).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -41,6 +47,7 @@ namespace aura111
 {
 	using namespace eng;
 	using namespace magc;
+	using namespace layouts;
 
 	// --- module globals ---
 	inline uint32_t &TexBase() { return var<uint32_t>(0x2521974); }        // Magic_TextureOFF (magic buffer)
@@ -48,7 +55,6 @@ namespace aura111
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521994); }
 	inline TaskQueue *QFlames() { return (TaskQueue *)0x2521998; }          // pool: + 0xA20, 0x20 x 0x20
 	inline TaskQueue *QTargets() { return (TaskQueue *)0x25219A8; }         // pool: magic buffer, 3 x 0x360
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6CD9C0;
 	static const uint32_t ORIG_TargetTask = 0x6CDB60;
@@ -56,27 +62,66 @@ namespace aura111
 	static const uint32_t MODEL_Aura = 0x12DB9E0;        // prim-model layout data (0x34C-byte layout)
 	static const uint32_t MODEL_Flame = 0x12DB818;       // prim model
 	static const uint32_t SEQ_Glow = 0x12DB75C;
-	static const uint32_t PART_Flags = 0x12E061C;        // per-object flags of the aura layout
+	static const uint32_t PART_Flags = 0x12E061C;        // per-object words of the aura layout
 	static const void *const SOUND_Aura = (const void *)0x12E0618;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	// ------------------------------------------------------------------
+	// Parameters (fx_params.h): the game's values by default
+	// ------------------------------------------------------------------
+	struct AuraParams
+	{
+		struct Timing
+		{
+			int16_t every;          // the root starts the next action's target task every this many ticks...
+			int16_t busy_tick;      // ...unless a target task on that target is at this tick or before (the cycle restarts)
+			uint32_t sound;         // sound block (FF8_EN.exe data): BdPlaySE3D reads its world sound id
+			int16_t sound_tick;     // the sound plays at the target's effect position (target counter)...
+			int16_t sound_volume;   // ...at this volume (BdPlaySE3D's 2nd argument)
+			int16_t damage_tick;    // the action's target takes the result
+			int16_t end_tick;       // the target task ends once its counter reaches this
+		} timing;
+		struct Aura
+		{
+			int16_t bone;           // at this effect point's x / z, the target's feet
+			int16_t size_shift;     // scaled by sqrt(the target's size << this)
+		} aura;
+		struct Flames
+		{
+			fxp::Window window;     // target ticks they are spawned at...
+			int16_t count;          // ...this many a tick, a quarter turn apart
+			int16_t bone;           // around this effect point...
+			int16_t lift;           // ...at the target's feet + this (y goes down)
+			int16_t angle_step;     // between the flames of one tick
+			struct { int16_t base, mask; } radius;   // radius = base + (rand & mask)
+			struct { int16_t base, mask; } speed;    // turn a tick = base + (rand & mask), either way (rand & 1)
+			struct { int16_t base, mask, in, from, out; } fade;  // strength = base + (rand & mask); in over `in` ticks, out over `out` after `from`
+			int16_t nearer;         // subtracted from its depth
+			int16_t mode;           // its draw mode
+			int16_t frames;         // it ends once its counter reaches this
+		} flames;
+		struct Glow
+		{
+			int16_t from;           // drawn from this target tick (the screen fade then)...
+			int16_t frames;         // ...this many ticks, frame = tick - from
+			int16_t lift;           // at the flames' point, the target's feet + this
+			int16_t rot_a, rot_b;   // the sprite's size and its angle (the shadow-rotation camera's)
+		} glow;
+	};
+	static const AuraParams DEFAULTS = {
+		{ 10, 0x1C, (uint32_t)SOUND_Aura, 0, 0x101, 0x1D, 0x22 },
+		{ 0xF1, 12 },
+		{ { 0xF, 0x12 }, 4, 0xF1, -0x258, 0x400, { 0x320, 0x3FF }, { 0x10, 0xF }, { 0x800, 0x7FF, 8, 0xC, 8 }, 0x100, 0xF3, 0x14 },
+		{ 0x1C, 6, -0x258, 0x1000, -0x100 },
+	};
+	static AuraParams g_params = DEFAULTS;
+	static inline const AuraParams &P() { return g_params; }
+	enum PartId { PART_AURA = 1, PART_FLAMES = 2, PART_GLOW = 3 };
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct RootNode // pool of 1 node of 0x14 bytes
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
+		int16_t counter;   // +0x0C 0..every - 1, a target spawn at 1
 		uint8_t action;    // +0x0E next action
 		uint8_t started;   // +0x0F pools set up
 		uint32_t arena;    // +0x10 packet arena parity
@@ -94,159 +139,15 @@ namespace aura111
 		TaskNode hdr;
 		int16_t counter;   // +0x0C
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10 x, y (height - 600), z of the target anchor
+		int16_t pos[3];    // +0x10 x, y (the feet + lift), z of the target's effect point
 		int16_t radius;    // +0x16 (GetEffectSpawnPosition's 4th word, replaced)
-		int16_t angle;     // +0x18 around the vertical axis
+		int16_t angle;     // +0x18 around the view's axis
 		int16_t speed;     // +0x1A angle step
 		int16_t fade;      // +0x1C strength (0x800..0xFFF)
 		int16_t pad1E;
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
-	struct PrimArg
-	{
-		Mat4x3 m;          // +0x00 camera x (size scale at the target's feet)
-		uint32_t flags;    // +0x20 per-object flags table
-		uint32_t morph;    // +0x24 blended vertex frames
-	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x360 && sizeof(FlameNode) == 0x20, "Aura nodes");
-	static_assert(sizeof(PrimArg) == 0x28, "Aura prim block");
-
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6CDE10): one object of the aura model
-	// ------------------------------------------------------------------
-	static void __cdecl AuraPart(prim::Layout *l, prim::Record *r, int arg_)
-	{
-		PrimArg *arg = (PrimArg *)arg_;
-		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
-		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
-		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		const int32_t object = (int16_t)r->flags_lo;
-		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
-		*(uint8_t **)h = model;
-		const int16_t f0 = r->b0, f1 = r->b1;
-		const int32_t nverts = *(const int32_t *)(model + 4);
-		if (f0 == f1)
-		{
-			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-		}
-		else
-		{
-			const int16_t t = r->b;
-			if (t == 0)
-			{
-				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-			}
-			else if (t == 0x1000)
-			{
-				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
-			}
-			else
-			{
-				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
-				*(uint32_t *)(h + 4) = arg->morph;
-			}
-		}
-		Mat4x3 m = {};
-		RotationFromAngles(r->rot, &m);
-		m.t[0] = r->pos[0];
-		m.t[1] = r->pos[1];
-		m.t[2] = r->pos[2];
-		const uint32_t flags = *(const uint32_t *)(arg->flags + 4 * (int16_t)r->index);
-		if (flags & 0x10000000)
-		{
-			// the offset through the block's matrix, the rotation kept
-			TransformVectorBy3x3Matrix(&arg->m, m.t, m.t);
-			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)arg->m.t[0]);
-			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)arg->m.t[1]);
-			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)arg->m.t[2]);
-		}
-		else ComposeAffineTransform(&arg->m, &m, &m);
-		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
-		{
-			int32_t v[3] = { r->scale[0], r->scale[1], r->scale[2] };
-			Scale3DMatrix(&m, v);
-		}
-		GteSetRotMatrix(&m);
-		GteSetTransVector(&m);
-		const uint32_t mode = (*(const uint32_t *)(arg->flags + 4 * (int16_t)r->index) & 0xDFFF) | 0x2000;
-		*(uint32_t *)(h + 0x1C) = mode;
-		*(int32_t *)(h + 0xC) = r->a;
-		if (r->a != 0)
-		{
-			*(uint32_t *)(h + 0x1C) = mode | 0xC0;
-			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
-		}
-		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
-		FieldFree(0x58);
-	}
-
-	// ------------------------------------------------------------------
-	// Flame (0x6CE020)
-	// ------------------------------------------------------------------
-	// MAG_111_sub_6CE1B0: rotation by angle about the depth axis, scaled by s (the lower row is
-	// the unit z axis; pad and translation not written)
-	static void RollScaleMatrix(int16_t angle, Mat4x3 *m, int32_t s)
-	{
-		const int32_t sn = mul32(ComputeSin(angle), s) >> 12;
-		const int32_t cs = mul32(ComputeCos(angle), s) >> 12;
-		m->m[0][1] = (int16_t)-sn;
-		m->m[1][0] = (int16_t)sn;
-		m->m[0][0] = (int16_t)cs;
-		m->m[0][2] = 0;
-		m->m[1][1] = (int16_t)cs;
-		m->m[1][2] = 0;
-		m->m[2][0] = 0;
-		m->m[2][1] = 0;
-		m->m[2][2] = 0x1000;
-	}
-
-	// the fade (+0x0C of the draw header): in over 0..7, out from 13, else 0x1000 - strength
-	static int32_t FlameFade(const FlameNode *f)
-	{
-		const int16_t c = f->counter;
-		if (c < 8)
-		{
-			const int32_t e = 0x1000 - (shl32(c, 12) / 8);
-			return 0x1000 - (mul32(f->fade, 0x1000 - e) >> 12);
-		}
-		if (c > 0xC)
-		{
-			const int32_t e = shl32(c - 0xC, 12) / 8;
-			return 0x1000 - (mul32(f->fade, 0x1000 - e) >> 12);
-		}
-		return 0x1000 - f->fade;
-	}
-
-	static void FlameDraw(const FlameNode *f, uint8_t *h)
-	{
-		Mat4x3 m = {};
-		RollScaleMatrix(f->angle, &m, f->radius);
-		GteSetRotMatrixCtrl(&Camera());
-		GteLoadV0(f->pos);
-		GteMVMVA_RotV0();
-		GteReadMAC123(m.t);
-		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
-		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
-		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2] - 0x100u);
-		GteSetRotMatrix(&m);
-		GteSetTransVector(&m);
-		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
-	}
-
-	// the flame's header (on the scratch stack): model, fade colour black, fade, mode 0xF3
-	static void FlameHeader(uint8_t *h, const FlameNode *f)
-	{
-		*(uint32_t *)h = MODEL_Flame;
-		h[0xA] = 0;
-		h[9] = 0;
-		h[8] = 0;
-		*(int32_t *)(h + 0xC) = FlameFade(f);
-		*(uint32_t *)(h + 0x1C) = 0xF3;
-	}
 }
 }
 
@@ -261,28 +162,17 @@ namespace aura111
 	static uint32_t __cdecl FlameTask(TaskNode *n)
 	{
 		FlameNode *f = (FlameNode *)n;
+		const AuraParams::Flames &pf = P().flames;
 		// 30 fps layer: see mag111_aura_held.inc
 		FX_HELD(held_note_flame(f);)
-		uint8_t *h = AllocHeader(0x58);
-		FlameHeader(h, f);
-		FlameDraw(f, h);
-		FieldFree(0x58);
-		if (f->counter >= 0x14) return TASK_END;
+		FX_PART(PART_FLAMES);
+		DrawSpinningModel(MODEL_Flame, f->pos, f->angle, f->radius, FadeInOut(f->counter, f->fade, pf.fade.in, pf.fade.from, pf.fade.out),
+		                  (uint32_t)(uint16_t)pf.mode, pf.nearer, PacketCursor());
+		FX_PART(0);
+		if (f->counter >= pf.frames) return TASK_END;
 		f->angle = (int16_t)(f->angle + f->speed);
 		f->counter++;
 		return 0;
-	}
-
-	// the glow sequence at the target's feet (step e of 0..5)
-	static void GlowDraw(const int16_t *pos, int32_t e)
-	{
-		TransformCameraByShadowRotation(pos, 0x1000, (int32_t)0xFFFFFF00);
-		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Glow;
-		*(int16_t *)(h + 4) = (int16_t)e;
-		*(uint16_t *)(h + 0x24) = 0;
-		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
-		FieldFree(0xB4);
 	}
 
 	// ------------------------------------------------------------------
@@ -291,76 +181,62 @@ namespace aura111
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
+		const AuraParams &pp = P();
 		if (t->counter >= 0)
 		{
-			// the block: camera x (scale sqrt(size) at the target's feet)
-			PrimArg arg;
-			const int16_t s = (int16_t)Sqrt(shl32(*(const int16_t *)(t->entity + 0x26), 12));
-			int16_t pos[4];
-			arg.m.m[0][0] = s;
-			arg.m.m[1][1] = s;
-			arg.m.m[2][2] = s;
-			arg.m.m[2][1] = 0;
-			arg.m.m[2][0] = 0;
-			arg.m.m[1][2] = 0;
-			arg.m.m[1][0] = 0;
-			arg.m.m[0][2] = 0;
-			arg.m.m[0][1] = 0;
-			// UNINIT: the block's pad word (+0x12) is never written (the matrix helpers do not
-			// read it); 0 here
-			arg.m.pad = 0;
-			GetEffectSpawnPosition(t->entity, 0xF1, 0, pos);
-			arg.m.t[0] = pos[0];
-			arg.m.t[2] = pos[2];
-			arg.m.t[1] = *(const int16_t *)(t->entity + 0x24);
+			FX_PART(PART_AURA);
+			TableArg arg;
+			SqrtSizeFrame(t->entity, pp.aura.size_shift, pp.aura.bone, &arg.m);
 			// 30 fps layer: see mag111_aura_held.inc
 			FX_HELD(held_note_play(t, &arg.m);)
-			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.flags = PART_Flags;
 			arg.morph = TexBase() + 0xE20;
-			prim::play((prim::Layout *)t->aura, AuraPart, (int)&arg, 0);
+			arg.cursor = &PacketCursor();
+			PlayWithTable(t->aura, &arg);
+			FX_PART(0);
 		}
-		if ((uint32_t)(t->counter - 0xF) < 4)
+		if (pp.flames.window.has(t->counter))
 		{
+			// one turn and speed for the tick's flames, a quarter turn apart
 			int32_t angle = CrtRand();
-			int32_t speed = (CrtRand() & 0xF) + 0x10;
+			int32_t speed = (CrtRand() & pp.flames.speed.mask) + pp.flames.speed.base;
 			if (CrtRand() & 1) speed = -speed;
-			for (int k = 0; k < 4; k++)
+			for (int k = 0; k < pp.flames.count; k++)
 			{
 				FlameNode *f = (FlameNode *)AddTaskToQueue(QFlames(), ORIG_FlameTask);
 				if (f)
 				{
 					Memset32(&f->counter, 0, 5);
-					GetEffectSpawnPosition(t->entity, 0xF1, 0, f->pos);
-					f->pos[1] = (int16_t)(*(const int16_t *)(t->entity + 0x24) - 0x258);
-					const int32_t r = CrtRand() & 0x3FF;
+					FeetPoint(t->entity, pp.flames.bone, pp.flames.lift, f->pos);
+					const int32_t r = CrtRand() & pp.flames.radius.mask;
 					f->angle = (int16_t)angle;
 					f->speed = (int16_t)speed;
-					f->radius = (int16_t)(r + 0x320);
-					f->fade = (int16_t)((CrtRand() & 0x7FF) + 0x800);
+					f->radius = (int16_t)(r + pp.flames.radius.base);
+					f->fade = (int16_t)((CrtRand() & pp.flames.fade.mask) + pp.flames.fade.base);
 				}
-				angle += 0x400;
+				angle += pp.flames.angle_step;
 			}
 		}
-		const int32_t e = t->counter - 0x1C;
-		if ((uint32_t)e < 6)
+		const int32_t e = t->counter - pp.glow.from;
+		if ((uint32_t)e < (uint32_t)pp.glow.frames)
 		{
 			if (e == 0) ScreenFadeTask(0, 1, 0, 0x80);
 			int16_t pos[4];
-			GetEffectSpawnPosition(t->entity, 0xF1, 0, pos);
-			pos[1] = (int16_t)(*(const int16_t *)(t->entity + 0x24) - 0x258);
+			FeetPoint(t->entity, pp.flames.bone, pp.glow.lift, pos);
 			// 30 fps layer: see mag111_aura_held.inc
 			FX_HELD(held_note_glow(pos, e);)
-			GlowDraw(pos, e);
+			FX_PART(PART_GLOW);
+			DrawSequenceSprite(pos, SEQ_Glow, (int16_t)e, pp.glow.rot_a, pp.glow.rot_b, PacketCursor());
+			FX_PART(0);
 		}
-		if (t->counter == 0)
+		if (t->counter == pp.timing.sound_tick)
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(t->entity, pos);
-			BdPlaySE3D(SOUND_Aura, 0x101, pos);
+			BdPlaySE3D((const void *)fxp::sound(pp.timing.sound, (uint32_t)SOUND_Aura), pp.timing.sound_volume, pos);
 		}
-		if (t->counter == 0x1D) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
-		if (t->counter >= 0x22) return TASK_END;
+		if (t->counter == pp.timing.damage_tick) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
+		if (t->counter >= pp.timing.end_tick) return TASK_END;
 		t->counter++;
 		return 0;
 	}
@@ -371,6 +247,7 @@ namespace aura111
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
+		const AuraParams &pp = P();
 		// 30 fps layer: see mag111_aura_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
@@ -395,11 +272,11 @@ namespace aura111
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				// wait while a target task of 28 ticks or less runs on this target
+				// wait while a target task at busy_tick or before runs on this target
 				TargetNode *pool = (TargetNode *)TexBase();
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
-					if ((*(const uint8_t *)&pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= 0x1C)
+					if ((*(const uint8_t *)&pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= pp.timing.busy_tick)
 					{
 						busy = true;
 						break;
@@ -432,19 +309,81 @@ namespace aura111
 		}
 		if (r->started && a == 0 && b == 0) return TASK_END;
 		r->counter++;
-		if (r->counter >= 10) r->counter = 0;
+		if (r->counter >= pp.timing.every) r->counter = 0;
 		return 0;
 	}
 }
 
+	// ------------------------------------------------------------------
+	// Parameter table (fx_params.h): what an editor shows of AuraParams
+	// ------------------------------------------------------------------
+	namespace aura111
+	{
+		using fxp::Field;
+#define AURA_FIELD(part, member, label, doc, type, lo, hi) \
+		{ part, #member, label, doc, (uint32_t)offsetof(AuraParams, member), fxp::type, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The root starts one target task per action, in turn (not while one is young on that target); each target task's clock: its sound, its result, its end (draws nothing)" },
+			{ PART_AURA, "aura", "Aura", "The aura layout at the target's feet, scaled by the square root of its size, each object's draw mode from a table" },
+			{ PART_FLAMES, "flames", "Flames", "Flame models spinning around the target, a few a tick, fading in and out" },
+			{ PART_GLOW, "glow", "Glow", "A flipbook at the target's feet, with a screen fade" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flames.window", "Spawning", "Count flames spawned at every target tick From tick .. To tick, Angle step apart" },
+			{ "flames.radius", "Radius", "Base + (random & Mask)" },
+			{ "flames.speed", "Turn a tick", "Base + (random & Mask), either way at random" },
+			{ "flames.fade", "Strength", "Base + (random & Mask) (4096: full), in over In ticks, out over Out ticks after From" },
+		};
+		static const Field FIELDS[] = {
+			AURA_FIELD("timing", timing.every, "Every", "The root starts the next action's target task every this many ticks", I16, 1, 100),
+			AURA_FIELD("timing", timing.busy_tick, "Busy tick", "Not while a target task on that target is at this tick or before (the cycle restarts)", I16, -1, 200),
+			AURA_FIELD("timing", timing.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
+			AURA_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays at the target's effect position when the target tick == this", I16, 0, 200),
+			AURA_FIELD("timing", timing.sound_volume, "Sound volume", "BdPlaySE3D's volume argument", I16, 0, 0x7FFF),
+			AURA_FIELD("timing", timing.damage_tick, "Damage tick", "The action's target takes the result when the target tick == this", I16, 0, 200),
+			AURA_FIELD("timing", timing.end_tick, "End tick", "The target task ends when its tick reaches this", I16, 0, 200),
+			AURA_FIELD("aura", aura.bone, "Bone", "The target's effect point giving its x and z (0xF0 and up: the engine's named points)", I16, 0, 0xFF),
+			AURA_FIELD("aura", aura.size_shift, "Size shift", "Scaled by sqrt(the target's size << this)", I16, 0, 16),
+			AURA_FIELD("flames", flames.window.first, "From tick", "", I16, 0, 200),
+			AURA_FIELD("flames", flames.window.last, "To tick", "", I16, 0, 200),
+			AURA_FIELD("flames", flames.count, "Count", "", I16, 0, 16),
+			AURA_FIELD("flames", flames.angle_step, "Angle step", "", I16, -0x1000, 0x1000),
+			AURA_FIELD("flames", flames.bone, "Bone", "The target's effect point they turn around (at its feet)", I16, 0, 0xFF),
+			AURA_FIELD("flames", flames.lift, "Lift", "Added to the target's feet (y goes down)", I16, -0x2000, 0x2000),
+			AURA_FIELD("flames", flames.radius.base, "Base", "", I16, 0, 0x7FFF),
+			AURA_FIELD("flames", flames.radius.mask, "Mask", "", I16, 0, 0x7FFF),
+			AURA_FIELD("flames", flames.speed.base, "Base", "", I16, -0x1000, 0x1000),
+			AURA_FIELD("flames", flames.speed.mask, "Mask", "", I16, 0, 0x7FFF),
+			AURA_FIELD("flames", flames.fade.base, "Base", "", I16, 0, 0x1000),
+			AURA_FIELD("flames", flames.fade.mask, "Mask", "", I16, 0, 0xFFF),
+			AURA_FIELD("flames", flames.fade.in, "In", "", I16, 1, 64),
+			AURA_FIELD("flames", flames.fade.from, "From", "", I16, 0, 200),
+			AURA_FIELD("flames", flames.fade.out, "Out", "", I16, 1, 64),
+			AURA_FIELD("flames", flames.nearer, "Nearer", "Subtracted from their depth", I16, -0x1000, 0x1000),
+			AURA_FIELD("flames", flames.mode, "Draw mode", "The prim model's draw mode word", I16, 0, 0x7FFF),
+			AURA_FIELD("flames", flames.frames, "Frames", "A flame ends once its tick reaches this", I16, 0, 200),
+			AURA_FIELD("glow", glow.from, "From tick", "Drawn from this target tick (the screen fade then)", I16, 0, 200),
+			AURA_FIELD("glow", glow.frames, "Frames", "Drawn this many ticks, frame = tick - From tick", I16, 0, 64),
+			AURA_FIELD("glow", glow.lift, "Lift", "Added to the target's feet (y goes down)", I16, -0x2000, 0x2000),
+			AURA_FIELD("glow", glow.rot_a, "Size", "The sprite's size", I16, 0, 0x7FFF),
+			AURA_FIELD("glow", glow.rot_b, "Angle", "The sprite's angle", I16, -0x8000, 0x7FFF),
+		};
+#undef AURA_FIELD
+	}
+
 	void register_mag111_aura()
 	{
+		fxp::register_params({ 111, "Aura", &aura111::g_params, &aura111::DEFAULTS, sizeof(aura111::AuraParams),
+		                       aura111::PARTS, (int)(sizeof(aura111::PARTS) / sizeof(aura111::PARTS[0])),
+		                       aura111::FIELDS, (int)(sizeof(aura111::FIELDS) / sizeof(aura111::FIELDS[0])),
+		                       aura111::GROUPS, (int)(sizeof(aura111::GROUPS) / sizeof(aura111::GROUPS[0])) });
 		register_port(aura111::ORIG_RootTask, (void *)aura111::RootTask, "A111 RootTask", 111);
 		register_port(aura111::ORIG_TargetTask, (void *)aura111::TargetTask, "A111 TargetTask", 111);
 		register_port(aura111::ORIG_FlameTask, (void *)aura111::FlameTask, "A111 FlameTask", 111);
 		// 30 fps layer: see mag111_aura_held.inc
 		FX_HELD(register_mag111_held();)
 	}
+	FX_LAB_MODULE(register_mag111_aura);
 }
 
 #ifdef FF8_FX_HELD

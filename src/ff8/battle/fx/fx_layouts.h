@@ -454,6 +454,96 @@ namespace layouts
 	}
 
 	// ------------------------------------------------------------------
+	// The table callback (Aura 0x6CDE10): one object of a layout in a frame, its draw mode from a
+	// table of one word per object (exe data). Flag 0x10000000 of its word: the offset through the
+	// frame's 3x3 + its translation, the rotation kept; else the object composed with the frame. Its
+	// draw mode: the word with bit 0x2000 set (| 0xC0 when it fades); the engine's renderer 0x572200.
+	// ------------------------------------------------------------------
+#pragma pack(push, 1)
+	struct TableArg
+	{
+		Mat4x3 m;          // +0x00 the frame
+		uint32_t flags;    // +0x20 the per-object words (an address)
+		uint32_t morph;    // +0x24 blended vertex frames
+		uint32_t *cursor;  // the packet cursor the objects are drawn at (the module's global in the original)
+	};
+#pragma pack(pop)
+
+	static void __cdecl TablePrimCallback(prim::Layout *l, prim::Record *r, int arg_)
+	{
+		const TableArg *arg = (const TableArg *)arg_;
+		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
+		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
+		uint8_t *h = AllocHeader(0x58);
+		const int32_t object = (int16_t)r->flags_lo;
+		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
+		*(uint8_t **)h = model;
+		const int16_t f0 = r->b0, f1 = r->b1;
+		const int32_t nverts = *(const int32_t *)(model + 4);
+		if (f0 == f1)
+		{
+			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
+			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
+		}
+		else
+		{
+			const int16_t t = r->b;
+			if (t == 0)
+			{
+				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
+				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
+			}
+			else if (t == 0x1000)
+			{
+				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
+				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
+			}
+			else
+			{
+				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
+				*(uint32_t *)(h + 4) = arg->morph;
+			}
+		}
+		Mat4x3 m = {};
+		RotationFromAngles(r->rot, &m);
+		m.t[0] = r->pos[0];
+		m.t[1] = r->pos[1];
+		m.t[2] = r->pos[2];
+		const uint32_t word = *(const uint32_t *)(arg->flags + 4 * (int16_t)r->index);
+		if (word & 0x10000000)
+		{
+			TransformVectorBy3x3Matrix(&arg->m, m.t, m.t);
+			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)arg->m.t[0]);
+			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)arg->m.t[1]);
+			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)arg->m.t[2]);
+		}
+		else ComposeAffineTransform(&arg->m, &m, &m);
+		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
+		{
+			int32_t v[3] = { r->scale[0], r->scale[1], r->scale[2] };
+			Scale3DMatrix(&m, v);
+		}
+		GteSetRotMatrix(&m);
+		GteSetTransVector(&m);
+		const uint32_t mode = (*(const uint32_t *)(arg->flags + 4 * (int16_t)r->index) & 0xDFFF) | 0x2000;
+		*(uint32_t *)(h + 0x1C) = mode;
+		*(int32_t *)(h + 0xC) = r->a;
+		if (r->a != 0)
+		{
+			*(uint32_t *)(h + 0x1C) = mode | 0xC0;
+			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
+		}
+		*arg->cursor = RenderPrimModel(h, RenderOT(), 2, *arg->cursor);
+		FieldFree(0x58);
+	}
+
+	// the layout played one tick through the table callback: the frames left (0 = finished)
+	inline int PlayWithTable(void *layout, TableArg *arg)
+	{
+		return prim::play((prim::Layout *)layout, TablePrimCallback, (int)arg, 0);
+	}
+
+	// ------------------------------------------------------------------
 	// Frames
 	// ------------------------------------------------------------------
 	// Hypnotize 0x6B18A0 (= Dissolving Acid's 0x6B2B70): a point (x, y, z, bone) through the
@@ -569,6 +659,94 @@ namespace layouts
 		m->t[1] = point[1];
 		m->t[2] = point[2];
 		ComposeAffineTransform(&Camera(), m, m);
+	}
+
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }   // Math_Sqrt
+
+	// a frame at an entity's feet scaled by the square root of its size (Aura 0x6CDB60): a diagonal
+	// of sqrt(size << shift) (no turn), at its effect point `bone`'s x / z and its +0x24, composed
+	// with the camera (the frame's pad word is never written: 0)
+	inline void SqrtSizeFrame(uint8_t *ent, int32_t shift, int32_t bone, Mat4x3 *m)
+	{
+		const int16_t s = (int16_t)Sqrt(shl32(*(const int16_t *)(ent + 0x26), shift));
+		int16_t pos[4];
+		m->m[0][0] = s;
+		m->m[1][1] = s;
+		m->m[2][2] = s;
+		m->m[2][1] = 0;
+		m->m[2][0] = 0;
+		m->m[1][2] = 0;
+		m->m[1][0] = 0;
+		m->m[0][2] = 0;
+		m->m[0][1] = 0;
+		m->pad = 0;
+		GetEffectSpawnPosition(ent, bone, 0, pos);
+		m->t[0] = pos[0];
+		m->t[2] = pos[2];
+		m->t[1] = *(const int16_t *)(ent + 0x24);
+		ComposeAffineTransform(&Camera(), m, m);
+	}
+
+	// an entity's effect point `bone` at its feet raised by `lift` (y: its +0x24 + lift; y goes down)
+	inline void FeetPoint(uint8_t *ent, int32_t bone, int32_t lift, int16_t *out)
+	{
+		GetEffectSpawnPosition(ent, bone, 0, out);
+		out[1] = (int16_t)(*(const int16_t *)(ent + 0x24) + lift);
+	}
+
+	// a fade (0x1000 = gone) of strength `strength` at tick c: in over `in` ticks, held, out over
+	// `out` ticks after `from` (Aura's flames: 8, 0xC, 8)
+	inline int32_t FadeInOut(int32_t c, int32_t strength, int32_t in, int32_t from, int32_t out)
+	{
+		if (c < in)
+		{
+			const int32_t e = 0x1000 - (shl32(c, 12) / in);
+			return 0x1000 - (mul32(strength, 0x1000 - e) >> 12);
+		}
+		if (c > from)
+		{
+			const int32_t e = shl32(c - from, 12) / out;
+			return 0x1000 - (mul32(strength, 0x1000 - e) >> 12);
+		}
+		return 0x1000 - strength;
+	}
+
+	// a prim model (no layout: its first vertex frame, its draw mode `mode`, black fade colour, `fade`)
+	// turned about the view's z axis by `angle` and scaled by `radius` in x / y, at `pos` through the
+	// camera, `nearer` subtracted from its depth; the engine's renderer (Aura's flames 0x6CE020)
+	inline void DrawSpinningModel(uint32_t model, const int16_t *pos, int16_t angle, int32_t radius, int32_t fade, uint32_t mode,
+	                              int32_t nearer, uint32_t &cursor)
+	{
+		uint8_t *h = AllocHeader(0x58);
+		*(uint32_t *)h = model;
+		h[0xA] = 0;
+		h[9] = 0;
+		h[8] = 0;
+		*(int32_t *)(h + 0xC) = fade;
+		*(uint32_t *)(h + 0x1C) = mode;
+		Mat4x3 m = {};
+		const int32_t sn = mul32(ComputeSin(angle), radius) >> 12;
+		const int32_t cs = mul32(parts::ComputeCos(angle), radius) >> 12;
+		m.m[0][1] = (int16_t)-sn;
+		m.m[1][0] = (int16_t)sn;
+		m.m[0][0] = (int16_t)cs;
+		m.m[0][2] = 0;
+		m.m[1][1] = (int16_t)cs;
+		m.m[1][2] = 0;
+		m.m[2][0] = 0;
+		m.m[2][1] = 0;
+		m.m[2][2] = 0x1000;
+		GteSetRotMatrixCtrl(&Camera());
+		GteLoadV0(pos);
+		GteMVMVA_RotV0();
+		GteReadMAC123(m.t);
+		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
+		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
+		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2] - (uint32_t)nearer);
+		GteSetRotMatrix(&m);
+		GteSetTransVector(&m);
+		cursor = RenderPrimModel(h, RenderOT(), 2, cursor);
+		FieldFree(0x58);
 	}
 
 	// a scale (4.12) from an entity's size word (+0x26): ((size >> 1) + base) >> shift (Float: 0x800, 2)
