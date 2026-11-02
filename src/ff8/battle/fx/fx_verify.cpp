@@ -76,9 +76,10 @@ namespace
 		uint32_t node_size; // K_QPOOL
 	};
 	const int ENTRIES_MAX = 160;
-	// engine regions ~0x101400 + module globals 0x20000 + streams 0x80000 + OT span 0x44CC +
-	// SSIGPU arena 0x60000 + frame packet window 0x40000 + scratch 0x1000 + pools 0x80000
-	const uint32_t BUF_SIZE = 0x300000;
+	// engine regions ~0x381400 (magic buffer 0x380000 once FFNx moved it) + module globals 0x20000 +
+	// streams 0x80000 + OT span 0x44CC + SSIGPU arena 0x60000 + frame packet window 0x40000 +
+	// scratch 0x1000 + pools 0x80000
+	const uint32_t BUF_SIZE = 0x580000;
 	const uint32_t POOL_MAX = 0x20000;          // one task queue's node storage
 	const uint32_t POOLS_TOTAL_MAX = 0x80000;   // all of them
 	const uint32_t FRAME_WINDOW_MAX = 0x40000;  // free part of the frame packet arena (0x1C000 / 0x24000)
@@ -157,6 +158,12 @@ namespace
 
 	uint32_t *crt_seed() { return (uint32_t *)(((uint8_t *(__cdecl *)())mod::CRT_TLS_FN)() + 0x14); }
 
+	// the magic buffer where the game has it now: FFNx moves it into its extended memory and
+	// patches these two getters (ff8_opengl.cpp, "Relocate effect buffer")
+	const uint32_t MAGIC_BUFFER_STATIC = 0x20DFAB8;
+	uint32_t magic_buffer() { return (uint32_t)((uint8_t *(__cdecl *)())0x571B50)(); }
+	uint32_t magic_buffer_size() { return ((uint32_t(__cdecl *)())0x571B60)(); }
+
 	// the ranges known before the tick runs
 	bool build_entries(const mod::Module &m)
 	{
@@ -164,7 +171,11 @@ namespace
 		g_incomplete = false; g_incomplete_msg[0] = 0;
 		g_phase = PH_PRE;
 		for (int i = 0; i < mod::engine_region_count; i++)
-			add_entry(mod::engine_regions[i].addr, mod::engine_regions[i].size, K_REGION, mod::engine_regions[i].name);
+		{
+			uint32_t addr = mod::engine_regions[i].addr, size = mod::engine_regions[i].size;
+			if (addr == MAGIC_BUFFER_STATIC) { addr = magic_buffer(); size = magic_buffer_size(); }
+			add_entry(addr, size, K_REGION, mod::engine_regions[i].name);
+		}
 		add_entry(m.data_lo, m.data_hi - m.data_lo, K_REGION, "module globals");
 		if (m.extra) add_entry(m.extra, m.extra_size, K_REGION, "module extra cell");
 		for (int i = 0; i < m.nstreams; i++) add_entry(m.streams[i].addr, m.streams[i].size, K_REGION, "module stream/cell");
