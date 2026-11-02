@@ -42,8 +42,14 @@
 // NEVER-WRITTEN STACK WORDS: the callback's matrix pad (+0x12: loaded into the GTE control register
 // R33 word only) and its offset's 4th word (loaded into the GTE VZ0 word only); see the report of the
 // port (they never reach a packet).
+// Built from the parts library (fx_layouts.h): the anchor callback (AnchorPrimCallback, the record
+// flags 0x40000 and 0x8000 honoured) and the anchor at a share of the target's height (HeightPoint).
+// Parameters (AntidoteParams, fx_params.h): the numbers above, defaults = the game's; the layout is
+// tagged (FX_PART) for the effect lab.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -51,6 +57,7 @@ namespace antidote294
 {
 	using namespace eng;
 	using namespace magc;
+	using namespace layouts;
 
 	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2507A4C); }
@@ -66,18 +73,33 @@ namespace antidote294
 	static const void *const SOUND = (const void *)0x106379C;
 	static const uint32_t ARENA_A = 0xA34;         // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x10A34;
+	static const uint32_t HONOURED = ANCHOR_ROT_YXZ | ANCHOR_NOT_COMPOSED;   // the record flags its callback tests
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_RotationFromAnglesYXZ
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_RenderPrimModel: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	// ------------------------------------------------------------------
+	// Parameters (fx_params.h): the game's values by default
+	// ------------------------------------------------------------------
+	struct AntidoteParams
+	{
+		struct Timing
+		{
+			uint32_t sound;         // sound block (FF8_EN.exe data): BdPlaySE reads its world sound id
+			int16_t sound_tick;     // the sound plays (root counter, after the play)...
+			int16_t sound_pan;      // ...panned so (BdPlaySE's 3rd argument: 0x80 the middle)
+		} timing;
+		struct Layout
+		{
+			int16_t depth;          // the prim header's depth
+			int16_t height_times;   // the anchor's y: the target's +0x24 + its height x times / share
+			int16_t height_share;
+		} layout;
+	};
+	static const AntidoteParams DEFAULTS = {
+		{ (uint32_t)SOUND, 1, 0x80 },
+		{ -0x80, 1, 2 },
+	};
+	static AntidoteParams g_params = DEFAULTS;
+	static inline const AntidoteParams &P() { return g_params; }
+	enum PartId { PART_LAYOUT = 1 };
 
 	// ------------------------------------------------------------------
 	// Node layouts
@@ -97,89 +119,8 @@ namespace antidote294
 		int16_t anchor[4]; // +0x0C anchor (counter 1; the 4th word is the pool's bytes)
 		uint8_t layout[LAYOUT_BYTES]; // +0x14 prim-model layout
 	};
-	// the prim-player callback's parameter block (a stack block of the play task)
-	struct PrimArg
-	{
-		int16_t anchor[4]; // +0x00 the node's anchor (8 bytes)
-		int32_t depth;     // +0x08 prim header +0x18
-		uint32_t morph;    // +0x0C blended vertex frames
-	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(PlayNode) == NODE_BYTES, "Antidote nodes");
-	static_assert(sizeof(PrimArg) == 0x10, "Antidote prim block");
-
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x674630): one object of the layout
-	// ------------------------------------------------------------------
-	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
-	{
-		const PrimArg *arg = (const PrimArg *)arg_;
-		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
-		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
-		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		const int32_t object = (int16_t)r->flags_lo;
-		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
-		*(uint8_t **)h = model;
-		const int16_t f0 = r->b0, f1 = r->b1;
-		const int32_t nverts = *(const int32_t *)(model + 4);
-		if (f0 == f1)
-		{
-			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-		}
-		else
-		{
-			const int16_t t = r->b;
-			if (t == 0)
-			{
-				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-			}
-			else if (t == 0x1000)
-			{
-				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
-			}
-			else
-			{
-				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
-				*(uint32_t *)(h + 4) = arg->morph;
-			}
-		}
-		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 word only)
-		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
-		else RotationFromAngles(r->rot, &m);
-		{
-			// the record's offset + the anchor through the camera (4th word never written: only
-			// loaded into the GTE V0 pad)
-			const int16_t off[4] = { (int16_t)(r->pos[0] + arg->anchor[0]), (int16_t)(r->pos[1] + arg->anchor[1]), (int16_t)(r->pos[2] + arg->anchor[2]), 0 };
-			GteSetRotMatrixCtrl(&Camera());
-			GteLoadV0(off);
-			GteMVMVA_RotV0();
-			GteReadMAC123(m.t);
-			if (!(r->flags & 0x8000)) MatrixMultiply(&Camera(), &m);
-		}
-		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
-		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
-		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2]);
-		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
-		{
-			const int32_t v[3] = { r->scale[0], r->scale[1], r->scale[2] };
-			Scale3DMatrix(&m, v);
-		}
-		GteSetRotMatrix(&m);
-		GteSetTransVector(&m);
-		*(uint32_t *)(h + 0x1C) = 0x2030;
-		*(int32_t *)(h + 0xC) = r->a;
-		if (r->a != 0)
-		{
-			*(uint32_t *)(h + 0x1C) = 0x20F0;
-			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
-		}
-		*(int32_t *)(h + 0x18) = arg->depth;
-		PacketCursor() = RenderPrimModel2(h, RenderOT(), 2, PacketCursor());
-		FieldFree(0x58);
-	}
 }
 }
 
@@ -197,13 +138,16 @@ namespace antidote294
 	static uint32_t __cdecl PlayTask(TaskNode *n)
 	{
 		PlayNode *p = (PlayNode *)n;
-		PrimArg arg;
+		FX_PART(PART_LAYOUT);
+		AnchorArg arg;
 		memcpy(arg.anchor, p->anchor, sizeof(arg.anchor));
-		arg.depth = -0x80;
+		arg.depth = P().layout.depth;
 		arg.morph = TexBase() + NODE_BYTES;
+		arg.honoured = HONOURED;
+		arg.cursor = &PacketCursor();
 		// 30 fps layer: see mag294_antidote_held.inc
 		FX_HELD(held_note_play((prim::Layout *)p->layout, p->anchor);)
-		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
+		if (PlayAtAnchor(p->layout, &arg) == 0)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
 			return TASK_END;
@@ -217,6 +161,7 @@ namespace antidote294
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
+		const AntidoteParams &pp = P();
 		// 30 fps layer: see mag294_antidote_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
@@ -234,17 +179,16 @@ namespace antidote294
 			r->started = 1;
 			InitTaskQueuePool(QPlay(), (void *)TexBase(), NODE_BYTES, 1);
 			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
-			uint8_t *e = Entity(Ctx()->actions[0].targets[0]);
-			GetDefaultEffectPosition(e, p->anchor);
-			// y: half the target's height above its +0x24
-			p->anchor[1] = (int16_t)((int32_t)*(const int16_t *)(e + 0x92) / 2 + *(const int16_t *)(e + 0x24));
+			// the anchor of target 0 of action 0: its effect position at half its height
+			HeightPoint(Entity(Ctx()->actions[0].targets[0]), pp.layout.height_times, pp.layout.height_share, p->anchor);
 			DecodeModelPrimLayout(MODEL, p->layout, LAYOUT_BYTES);
 		}
 		int a;
 		if (r->started)
 		{
 			a = ExecuteTaskQueue(QPlay());
-			if (r->counter == 1) BdPlaySE(SOUND, 0, 0x80);
+			FX_PART(0);
+			if (r->counter == pp.timing.sound_tick) BdPlaySE((const void *)fxp::sound(pp.timing.sound, (uint32_t)SOUND), 0, pp.timing.sound_pan);
 		}
 		else a = (int)n;
 		if (r->started && a == 0) return TASK_END;
@@ -253,13 +197,44 @@ namespace antidote294
 	}
 }
 
+	// ------------------------------------------------------------------
+	// Parameter table (fx_params.h): what an editor shows of AntidoteParams
+	// ------------------------------------------------------------------
+	namespace antidote294
+	{
+		using fxp::Field;
+#define ANTIDOTE_FIELD(part, member, label, doc, type, lo, hi) \
+		{ part, #member, label, doc, (uint32_t)offsetof(AntidoteParams, member), fxp::type, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The root task's clock: when the sound plays (draws nothing)" },
+			{ PART_LAYOUT, "layout", "Layout", "The layout played on the target; target 0 takes the result when it ends" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "layout.height", "Anchor height", "The anchor: the target's effect position, y = its +0x24 word + its height x Times / Share (y goes down)" },
+		};
+		static const Field FIELDS[] = {
+			ANTIDOTE_FIELD("timing", timing.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
+			ANTIDOTE_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays when the root tick == this (the layout starts at root tick 1)", I16, 0, 200),
+			ANTIDOTE_FIELD("timing", timing.sound_pan, "Sound pan", "Where it plays between the speakers: 128 the middle (BdPlaySE's pan)", I16, 0, 255),
+			ANTIDOTE_FIELD("layout", layout.depth, "Depth", "Added to its drawing depth (sort key)", I16, -0x1000, 0x1000),
+			ANTIDOTE_FIELD("layout", layout.height_times, "Times", "", I16, -16, 16),
+			ANTIDOTE_FIELD("layout", layout.height_share, "Share", "", I16, 1, 16),
+		};
+#undef ANTIDOTE_FIELD
+	}
+
 	void register_mag294_antidote()
 	{
+		fxp::register_params({ 294, "Antidote", &antidote294::g_params, &antidote294::DEFAULTS, sizeof(antidote294::AntidoteParams),
+		                       antidote294::PARTS, (int)(sizeof(antidote294::PARTS) / sizeof(antidote294::PARTS[0])),
+		                       antidote294::FIELDS, (int)(sizeof(antidote294::FIELDS) / sizeof(antidote294::FIELDS[0])),
+		                       antidote294::GROUPS, (int)(sizeof(antidote294::GROUPS) / sizeof(antidote294::GROUPS[0])) });
 		register_port(antidote294::ORIG_RootTask, (void *)antidote294::RootTask, "294 RootTask", 294);
 		register_port(antidote294::ORIG_PlayTask, (void *)antidote294::PlayTask, "294 PlayTask", 294);
 		// 30 fps layer: see mag294_antidote_held.inc
 		FX_HELD(register_mag294_held();)
 	}
+	FX_LAB_MODULE(register_mag294_antidote);
 }
 
 #ifdef FF8_FX_HELD
