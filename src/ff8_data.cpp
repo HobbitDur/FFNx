@@ -268,6 +268,7 @@ void ff8_find_externals()
 
 	ff8_externals.loc_47D490 = ff8_externals.sub_47CCB0 + 0xDA + 0x4 + *((int32_t *)(ff8_externals.sub_47CCB0 + 0xDA));
 	ff8_externals.sub_500870 = get_relative_call(ff8_externals.loc_47D490, 0x85);
+	ff8_externals.battle_exit_sub_4868C0 = get_relative_call(ff8_externals.loc_47D490, 0x1F);
 	ff8_externals.sub_500C00 = get_relative_call(ff8_externals.sub_500870, 0x31);
 	ff8_externals.sub_500CC0 = get_absolute_value(ff8_externals.sub_500C00, 0x9A);
 	if (FF8_US_VERSION)
@@ -407,7 +408,7 @@ void ff8_find_externals()
 	ff8_externals.ff8_draw_icon_or_key1 = get_relative_call(uint32_t(ff8_externals.pause_menu_with_vibration), 0x1CF);
 	ff8_externals.get_icon_sp1_data = get_relative_call(ff8_externals.ff8_draw_icon_or_key1, 0x2);
 	ff8_externals.draw_controller_or_keyboard_icons = get_relative_call(ff8_externals.ff8_draw_icon_or_key1, 0x40);
-	ff8_externals.get_command_key = get_relative_call(ff8_externals.draw_controller_or_keyboard_icons, 0x31);
+	ff8_externals.get_command_key = (uint8_t(*)(int,int,int))get_relative_call(ff8_externals.draw_controller_or_keyboard_icons, 0x31);
 	ff8_externals.sub_49BB30 = get_relative_call(ff8_externals.ff8_draw_icon_or_key1, 0xF6);
 	ff8_externals.vibration_apply = get_relative_call(uint32_t(ff8_externals.pause_menu_with_vibration), 0xB4);
 	ff8_externals.vibration_set_is_enabled = get_relative_call(uint32_t(ff8_externals.pause_menu_with_vibration), 0xF3);
@@ -445,10 +446,7 @@ void ff8_find_externals()
 	ff8_externals.opcode_amesw = common_externals.execute_opcode_table[0x64];
 	ff8_externals.opcode_ames = common_externals.execute_opcode_table[0x65];
 	ff8_externals.opcode_battle = common_externals.execute_opcode_table[0x69];
-	ff8_externals.opcode_keyscan = (int(*)(void*))common_externals.execute_opcode_table[0x6D];
 	ff8_externals.opcode_keyon = (int(*)(void*))common_externals.execute_opcode_table[0x6E];
-	ff8_externals.opcode_keyscan2 = (int(*)(void*))common_externals.execute_opcode_table[0x14C];
-	ff8_externals.opcode_keyon2 = (int(*)(void*))common_externals.execute_opcode_table[0x14D];
 	ff8_externals.opcode_aask = common_externals.execute_opcode_table[0x6F];
 	ff8_externals.opcode_setvibrate = common_externals.execute_opcode_table[0xA1];
 	ff8_externals.opcode_movieready = common_externals.execute_opcode_table[0xA3];
@@ -473,7 +471,6 @@ void ff8_find_externals()
 	ff8_externals.cardgame_deck_id_1DCD7AD = (uint8_t*)get_absolute_value((uint32_t)ff8_externals.opcode_cardgame, 0xAE);
 	ff8_externals.vibrate_data_field = (uint8_t*)get_absolute_value(ff8_externals.opcode_setvibrate, 0x27);
 	ff8_externals.current_tutorial_id = (BYTE*)get_absolute_value(ff8_externals.opcode_tuto, 0x2A);
-	ff8_externals.field_keys_scanned = (uint32_t *)get_absolute_value(uint32_t(ff8_externals.opcode_keyscan), 0x7);
 	ff8_externals.field_keys_pressed = (uint32_t *)get_absolute_value(uint32_t(ff8_externals.opcode_keyon), 0x7);
 
 	common_externals.cross_fade_midi = get_relative_call(ff8_externals.opcode_crossmusic, 0x5C);
@@ -650,7 +647,6 @@ void ff8_find_externals()
 	ff8_externals.draw_icons_sub_49F850 = get_relative_call(ff8_externals.render_save_entry_sub_4E6020, JP_VERSION ? 0xC2 : 0xC3);
 	ff8_externals.dword_1D2B100 = (uint32_t *)get_absolute_value(ff8_externals.draw_icons_sub_49F850, 0x7);
 	ff8_externals.sub_4BE100 = get_relative_call(ff8_externals.sub_4B3410, 0x37);
-	ff8_externals.input_get_key_using_savemap_sub_4A2D60 = get_relative_call(ff8_externals.sub_4BE100, 0x2D);
 	ff8_externals.sub_4BE4D0 = get_relative_call(ff8_externals.sub_4B3410, 0x68);
 	ff8_externals.sub_4BECC0 = get_relative_call(ff8_externals.sub_4BE4D0, 0x39);
 	ff8_externals.menu_draw_text = get_relative_call(ff8_externals.sub_4BECC0, 0x127);
@@ -723,7 +719,6 @@ void ff8_find_externals()
 	ff8_externals.engine_eval_is_button_pressed = get_relative_call((uint32_t)ff8_externals.engine_eval_keyboard_gamepad_input, 0x4A6);
 	ff8_externals.engine_input_confirmed_buttons = (uint32_t*)get_absolute_value(ff8_externals.engine_eval_is_button_pressed, 0x62);
 	ff8_externals.engine_input_valid_buttons = (uint32_t*)get_absolute_value(ff8_externals.engine_eval_is_button_pressed, 0x3C);
-	ff8_externals.engine_gamepad_button_pressed = (BYTE*)get_absolute_value((uint32_t)ff8_externals.has_keyboard_gamepad_input, 0x22);
 	ff8_externals.engine_mapped_buttons = (DWORD*)get_absolute_value((uint32_t)ff8_externals.engine_eval_keyboard_gamepad_input, 0xB9);
 
 	common_externals.get_keyboard_state = get_relative_call((uint32_t)ff8_externals.engine_eval_keyboard_gamepad_input, 0x11);
@@ -1149,6 +1144,8 @@ void ff8_find_externals()
 	ff8_externals.battle_magic_effect_start_call = ff8_externals.sub_50A9A0 + 0x27F;
 	ff8_externals.battle_play_camera_animation_sub_5099A0 = get_relative_call(ff8_externals.func_off_battle_effects_C81774[FF8BattleEffect::Cure], 0xA3);
 	ff8_externals.battle_set_camera_track_sub_509970 = get_relative_call(ff8_externals.battle_play_camera_animation_sub_5099A0, 0x5);
+	ff8_externals.battle_bind_anim_set_sub_5022C0 = get_relative_call(ff8_externals.func_off_battle_effects_C81774[FF8BattleEffect::WhiteWind], 0x76);
+	ff8_externals.battle_set_com_file_data_sub_502270 = get_relative_call(ff8_externals.battle_bind_anim_set_sub_5022C0, 0x2F);
 
 	ff8_externals.sub_6C3640 = get_relative_call(ff8_externals.func_off_battle_effects_C81774[FF8BattleEffect::Quezacotl], 0x5);
 	ff8_externals.sub_6C3760 = get_absolute_value(ff8_externals.sub_6C3640, 0x8B);
@@ -1222,6 +1219,9 @@ void ff8_find_externals()
 		ff8_externals.fps_limiter = get_relative_call(ff8_externals.fps_limiter, 0x0);
 	}
 	ff8_externals.time_volume_change_related_1A78BE0 = (double *)get_absolute_value(ff8_externals.fps_limiter, 0x3F);
+	ff8_externals.menu_main_loop = get_absolute_value(ff8_externals.main_loop, JP_VERSION ? 0x514 : 0x526);
+	ff8_externals.menu_timestamp = (uint64_t *)get_absolute_value(ff8_externals.menu_main_loop, 0x166);
+	ff8_externals.menu_frame_time = (double *)get_absolute_value(ff8_externals.menu_main_loop, 0x18F);
 
 	ff8_externals.field_vars_stack_1CFE9B8 = get_absolute_value(ff8_externals.opcode_pshm_w, 0x1E);
 

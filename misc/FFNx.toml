@@ -26,17 +26,22 @@ display_index = -1
 renderer_backend = 0
 
 #[FULLSCREEN]
-# If off, it will run in window mode.
+# Enables fullscreen with display mode switching.
+# If off, it will run in window mode unless borderless is enabled.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fullscreen = false
 
 #[BORDERLESS]
-# If off, it will run using the default window style.
+# Covers the selected monitor, including the taskbar area, without borders
+# or changing the desktop resolution and refresh rate.
+# This mode is selected at startup; runtime display-mode switching is disabled.
+# Ignored when fullscreen is enabled.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 borderless = false
 
 #[RESOLUTION]
 # Resolution of the game.
+# Borderless fullscreen always uses the desktop resolution and ignores these values.
 # Default (value = 0):
 # - Window mode will use 640x480 (1024x768 on FF8:Remastered)
 # - Fullscreen mode will use your desktop resolution
@@ -199,6 +204,7 @@ external_audio_sample_rate = 44100
 
 #[USE EXTERNAL SFX]
 # This flag will enable/disable the support of an enhanced audio layer to reproduce sounds in-game.
+# Missing external effects fall back to the original FF7/FF8 sound archive after all external layers are checked.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 use_external_sfx = false
 
@@ -755,6 +761,7 @@ save_path = "save"
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This flag will enable advanced blinking for Field models.
 # NOTE: Models have to be patched to support this feature. Vanilla models work out of the box.
+# Custom expression textures and missing-file lookups are cached until the field changes.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ff7_advanced_blinking = false
 

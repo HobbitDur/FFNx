@@ -2829,24 +2829,6 @@ struct ff7_model_eye_texture_data
 
 // --------------- end of FF7 imports ---------------
 
-struct ff7_model_custom_data
-{
-	int has_mouth;
-	int current_mouth_idx;
-	char* mouth_tex_filename;
-	p_hundred* mouth_tex;
-	char *left_eye_tex_filename;
-	char *right_eye_tex_filename;
-	p_hundred* left_eye_tex;
-	p_hundred* right_eye_tex;
-	byte is_kawai_active;
-	byte do_kawai_repeat;
-	byte init_kawai_opcode;
-	ff7_kawai_opcode_params* init_kawai_params;
-	byte exec_kawai_opcode;
-	ff7_kawai_opcode_params* exec_kawai_params;
-};
-
 struct ff7_channel_6_state
 {
 	float volume;
@@ -2910,6 +2892,7 @@ struct ff7_externals
 	WORD *num_field_entities;
 	struct field_object **field_objects;
 	uint32_t open_field_file;
+	void (*field_load_tut_file_60DAD4)(ff7_game_obj*);
 	WORD *field_id;
 	char *field_file_name;
 	uint32_t read_field_file;
@@ -2917,6 +2900,7 @@ struct ff7_externals
 	uint32_t battle_loop;
 	battle_actor_data *battle_actor_data;
 	DWORD *battle_mode;
+	std::array<uint32_t*, 8> battle_substate_pointers;
 	WORD *battle_location_id;
 	WORD *battle_formation_id;
 	uint32_t battle_sub_429AC0;
@@ -3074,6 +3058,11 @@ struct ff7_externals
 	uint32_t menu_sub_719B81;
 	uint32_t menu_sub_718B9A;
 	uint32_t (*menu_input_check_6F53F1)(uint32_t);
+	uint32_t input_query_repeatable;
+	int (*get_button_held)(int);
+	uint32_t *input_repeat_interval;
+	uint32_t *input_repeat_gate;
+	uint32_t *input_repeat_active;
 	uint32_t *name_menu_selected_pane_921ED4;
 	uint32_t name_menu_pane_cursor_rows_DD453C;
 	uint32_t name_menu_action_jump_table_719B61;
@@ -3154,6 +3143,8 @@ struct ff7_externals
 	uint32_t *sfx_initialized;
 	uint32_t sfx_play_summon;
 	uint32_t sfx_load_and_play_with_speed;
+	uint32_t sfx_update_volume;
+	uint32_t sfx_set_volume_per_effect;
 	ff7_audio_fmt* sfx_fmt_header;
 	DWORD *sfx_play_effects_id_channel_6;
 	uint32_t sfx_stop_channel_6;
@@ -3348,7 +3339,6 @@ struct ff7_externals
 	int (*field_load_map_trigger_data_sub_6211C3)();
 	uint32_t field_fade_screen_sub_63B84B;
 	uint32_t field_calc_fade_color_sub_63AE66;
-	uint32_t field_apply_model_light_sub_685028;
 
 	// battle camera script externals
 	uint32_t handle_camera_functions;
@@ -3590,6 +3580,7 @@ struct ff7_externals
 	std::span<vector4<short>> pollensalta_cold_breath_white_dots_pos;
 	short* pollensalta_cold_breath_white_dot_rgb_scalar;
 	uint32_t pollensalta_cold_breath_bg_texture_ctx;
+	uint32_t pandora_box_skill_init_566871;
 	uint32_t pandora_box_skill_draw_bg_flash_effect_568371;
 
 	// battle menu

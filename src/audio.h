@@ -52,14 +52,15 @@ public:
 			noIntro(false),
 			sync(false),
 			useNameAsFullPath(false),
-			suppressOpeningSilence(false)
+			suppressOpeningSilence(false),
+			matchName(false)
 		{}
 		SoLoud::time offsetSeconds;
 		SoLoud::time fadetime;
 		float targetVolume;
 		float relativeSpeed;
 		char format[12];
-		bool noIntro, sync, useNameAsFullPath, suppressOpeningSilence;
+		bool noIntro, sync, useNameAsFullPath, suppressOpeningSilence, matchName;
 	};
 
 	struct NxAudioEngineSFX
@@ -74,6 +75,8 @@ public:
 		{}
 		int game_id;
 		int id;
+		std::string sourceName;
+		bool original = false;
 		SoLoud::VGMStream *stream;
 		SoLoud::handle handle;
 		float volume;
@@ -94,6 +97,7 @@ public:
 		}
 		SoLoud::handle handle;
 		int32_t id;
+		std::string sourceName;
 		float wantedMusicVolume;
 		SoLoud::time lastMusicOffset;
 		bool sync;
@@ -237,7 +241,7 @@ public:
 	// SFX
 	int getSFXIdFromChannel(int channel);
 	void unloadSFX(int id);
-	bool playSFX(const char* name, int id, int channel, float panning, bool loop = false, float volume = 1.0f);
+	bool playSFX(const char* name, int id, int channel, float panning, bool loop = false, float volume = 1.0f, bool fallbackToOriginal = false);
 	void stopSFX(int channel, double time = 0);
 	void pauseSFX(int channel);
 	void resumeSFX(int channel);

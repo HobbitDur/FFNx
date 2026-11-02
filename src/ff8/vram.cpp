@@ -36,6 +36,7 @@
 #include "battle/stage.h"
 #include "battle/effects.h"
 #include "remaster.h"
+#include "widescreen.h"
 #include "remastered_battle_texture.h"
 #include "./file.h"
 
@@ -252,6 +253,19 @@ const remastered_battle_texture::ImageLayout *remastered_battle_texture::findIma
 	}
 
 	return nullptr;
+}
+
+bool remastered_battle_texture::shouldPreservePalette(const std::string &textureName)
+{
+	for (const Mapping &mapping : mappings)
+	{
+		if (mapping.kind == MappingKind::PreservePalette && _stricmp(mapping.battleName, textureName.c_str()) == 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 struct VramPos {
@@ -840,6 +854,10 @@ int ff8_write_palette_to_driver(int source_offset, int size, uint32_t *source_rg
 				{
 					continue;
 				}
+				if (remastered_battle_texture::shouldPreservePalette(identifiedTexture.name()))
+				{
+					break;
+				}
 
 				const int expectedPaletteX = palette.x();
 				const int expectedPaletteY = palette.y() + pal_index;
@@ -900,6 +918,8 @@ void ff8_cdcheck_error_upload_vram(int16_t *pos_and_size, uint8_t *texture_buffe
 void ff8_upload_vram_triple_triad_1(int16_t *pos_and_size, uint8_t *texture_buffer)
 {
 	if (trace_all || trace_vram) ffnx_trace("%s %p\n", __func__, texture_buffer);
+
+	ff8_widescreen_set_card_background_source(texture_buffer);
 
 	if (texture_buffer == ff8_externals.cardgame_tim_texture_intro)
 	{
@@ -1591,7 +1611,7 @@ int ff8_field_open_chara_one(
 		j += 1;
 	}
 
-	int ret = ((int(*)(int,void*,VramPos*,VramPos*,const char*,const uint8_t*,int,int))ff8_externals.load_field_models)(current_data_pointer, models_infos, palette_vram_positions, texture_vram_positions, dir_name, pcb_data, allocated_size, pcb_data_size);
+	int ret = ((int(*)(int,void*,VramPos*,VramPos*,const char*,const uint8_t*,int,int))ff8_externals.load_field_models)(current_data_pointer, models_infos, pal_vram_pos, tex_vram_pos, dir_name, pcb_data, allocated_size, pcb_data_size);
 
 	if (ff8_remastered_edition) {
 		ff8_remaster_set_field_model_scaling(chara_one_models);

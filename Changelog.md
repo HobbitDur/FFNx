@@ -1,69 +1,107 @@
 # Next
 
-- Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.24.3...master
+- Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.1...master
+
+# 1.25.1
+
+- Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.0...1.25.1
+
+## FF8
+
+- External textures: Fix lookup order between FF8R and FF8 Classic, see [External Textures](docs/mods/external_textures.md)
+
+# 1.25.0
+
+- Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.24.3...1.25.0
 
 ## Common
 
-- Renderer: Substantial overhaul of movie rendering, NTSC-J mode, and gamma functions ( https://github.com/julianxhokaxhiu/FFNx/pull/832 )
-- Renderer: fix `enable_bilinear` option for original game textures ( https://github.com/julianxhokaxhiu/FFNx/pull/914 )
 - Core: Add support for SDL3 Gamepad API (`use_sdl_gamepad`) ( https://github.com/julianxhokaxhiu/FFNx/pull/915 )
 - Core: Fix a crash during startup when a file signature check fails, which left FFNx.log truncated instead of naming the file ( https://github.com/julianxhokaxhiu/FFNx/pull/986 )
-- Renderer: Improved super sampling to prevent aliasing and shimmering ( https://github.com/julianxhokaxhiu/FFNx/pull/990 )
+- Core: Borderless mode now behaves as Borderless Fullscreen as any other game does
 - Movie: Rework movie hardware and software decoding, allowing to smoothly decode 4K movies in both cases
+- Renderer: Substantial overhaul of movie rendering, NTSC-J mode, and gamma functions ( https://github.com/julianxhokaxhiu/FFNx/pull/832 )
+- Renderer: fix `enable_bilinear` option for original game textures ( https://github.com/julianxhokaxhiu/FFNx/pull/914 )
+- Renderer: Improved super sampling to prevent aliasing and shimmering ( https://github.com/julianxhokaxhiu/FFNx/pull/990 )
+- SFX: Allow effects to fallback to the original vanilla one when external ones are not found and `use_external_sfx` is enabled
 
 ## FF7
 
+- 60FPS: Interpolate native battle swirl transforms and fading while keeping the original speed
 - Core: Add native support for japanese text rendering ( https://github.com/julianxhokaxhiu/FFNx/pull/737 + https://github.com/julianxhokaxhiu/FFNx/pull/925 + https://github.com/julianxhokaxhiu/FFNx/pull/952 + https://github.com/julianxhokaxhiu/FFNx/pull/953 + https://github.com/julianxhokaxhiu/FFNx/pull/951) 
 - Core: Add `ff7_multibyte_font` mode: multibyte text support for non-Japanese translations on the English executable ( https://github.com/julianxhokaxhiu/FFNx/pull/948 )
 - Core: Add support for [Universal Button Prompts](docs/ff7/universal_buttons.md)
 - Core: Add support for Field text window autoresize for all languages
 - Core: Add 2026 multilanguage support for DE, FR and SP editions
 - Core: Fix battle swirl battle effect to correctly match the software renderer
-- 60FPS: Interpolate native battle swirl transforms and fading while keeping the original speed
-- Widescreen: Fix battle swirl to correctly capture the widescreen content instead of the original 4:3
-- Lighting: Minor adjustment to ambient light and shadow map resolution default values ( https://github.com/julianxhokaxhiu/FFNx/pull/1007 )
+- Core: Fix Cid's Hyper Jump crashing ( https://github.com/julianxhokaxhiu/FFNx/issues/673 )
+- Core: Preserve hidden and multipart battle models after Pandora's Box, thanks to DLPB2 ( https://github.com/julianxhokaxhiu/FFNx/issues/795 )
 - Core: Fix a crash on exit after the world map loaded gltf models ( https://github.com/julianxhokaxhiu/FFNx/pull/1004 )
 - Core: Match gltf animation names case-insensitively ( https://github.com/julianxhokaxhiu/FFNx/pull/1002 )
+- Core: Fix the cull mode and fatal error switches falling through in the renderer ( https://github.com/julianxhokaxhiu/FFNx/pull/1009 )
+- Core: Log gltf models that fail to load, and their load time with `trace_loaders` ( https://github.com/julianxhokaxhiu/FFNx/pull/1012 )
+- Core: Fix a memory leak in the model draw with external meshes enabled ( https://github.com/julianxhokaxhiu/FFNx/pull/1008 )
+- Core: gltf models follow the animation's root motion, from the gltf when it has its own ( https://github.com/julianxhokaxhiu/FFNx/pull/1044 )
+- Input: Fix held menu buttons firing again when another button is pressed, while preserving normal input repeat ( https://github.com/julianxhokaxhiu/FFNx/issues/713 )
+- Lighting: Minor adjustment to ambient light and shadow map resolution default values ( https://github.com/julianxhokaxhiu/FFNx/pull/1007 )
+- Music: Fix repeated world-map music updates causing sustained slowdowns after region changes, and allow regional tracks sharing a music ID to switch correctly ( https://github.com/julianxhokaxhiu/FFNx/issues/818 )
+- Renderer: Draw untextured gltf model parts with their material color ( https://github.com/julianxhokaxhiu/FFNx/pull/1003 )
+- Renderer: Draw mogu_1 water before its additive lighting, matching PSX compositing ( https://github.com/julianxhokaxhiu/FFNx/issues/926 )
+- Renderer: Use subtractive scene compositing for field FADE types 1 and 2 and NFADE type 12, preserving dialogue and native fade timing ( https://github.com/julianxhokaxhiu/FFNx/issues/805 )
+- Renderer: Restore PSX subtractive blending and stock texture palettes for Shadow Flare ( https://github.com/julianxhokaxhiu/FFNx/issues/279 )
+- Renderer: Restore PSX subtractive blending for Ifrit's ground hole, thanks to JakeIsYoshi ( https://github.com/julianxhokaxhiu/FFNx/issues/654 )
 - Renderer: Raise the gltf bone limit to 255 ( https://github.com/julianxhokaxhiu/FFNx/pull/1001 )
 - Renderer: Re-enable smooth skinning for gltf models without slowing down other draws ( https://github.com/julianxhokaxhiu/FFNx/pull/1000 )
 - Renderer: Fix a crash when drawing gltf models ( https://github.com/julianxhokaxhiu/FFNx/pull/998 )
-- Core: Fix the cull mode and fatal error switches falling through in the renderer ( https://github.com/julianxhokaxhiu/FFNx/pull/1009 )
 - Renderer: Fix gltf model parts drawn flat-shaded or twice with advanced lighting ( https://github.com/julianxhokaxhiu/FFNx/pull/1011 )
-- Core: Log gltf models that fail to load, and their load time with `trace_loaders` ( https://github.com/julianxhokaxhiu/FFNx/pull/1012 )
-- Core: Fix a memory leak in the model draw with external meshes enabled ( https://github.com/julianxhokaxhiu/FFNx/pull/1008 )
 - Renderer: Skin the normals of smooth-skinned gltf models, so game lighting follows their pose ( https://github.com/julianxhokaxhiu/FFNx/pull/1010 )
-- Core: gltf models follow the animation's root motion, from the gltf when it has its own ( https://github.com/julianxhokaxhiu/FFNx/pull/1044 )
+- SFX: Correct the vanilla DirectSound volume curve so low-volume effects remain audible, without changing native music or external SFX ( https://github.com/julianxhokaxhiu/FFNx/issues/744 )
+- SFX: Preserve looping sound effects during volume fades, including the wind in Cloud and Tifa's scene under the Highwind ( https://github.com/julianxhokaxhiu/FFNx/issues/745 )
+- Widescreen: Fix battle swirl to correctly capture the widescreen content instead of the original 4:3
 
 ## FF8
 
+- Achievements: Add support for remastered achievements
+- Core: Preserve per-vertex depth in the world-map vehicle renderer while retaining native polygon sorting ( https://github.com/julianxhokaxhiu/FFNx/issues/879 )
+- Audio: Add a Sound screen to the Config menu, to set the sound effects, music, voice, ambient and movie volumes in game ( https://github.com/julianxhokaxhiu/FFNx/pull/1015 )
 - Core: Add extended item definitions and 24 inventory pages, with persistent save-tail inventory storage (see [item documentation](docs/ff8/items.md)) ( https://github.com/julianxhokaxhiu/FFNx/pull/1051 )
 - Core: Extend the battle actor sound table through c0m199 ( https://github.com/julianxhokaxhiu/FFNx/pull/999 )
 - Core: Give monsters c0m144-c0m199 their own Scan camera framing, editable through the `battle_scan_cameras.bin` exe data file ( https://github.com/julianxhokaxhiu/FFNx/pull/1045 )
 - Core: Show "Has nothing" instead of "[Card]" when a monster has an empty Draw list
 - Core: Add monster-AI `target` opcode values 228-248 to target two battle slots at once ( https://github.com/julianxhokaxhiu/FFNx/pull/961 )
 - Core: Load battle effect cameras from `<direct_mode_path>/exe/effect_NNN.bcam`, one file per effect ( [docs](docs/ff8/mods/effect_camera.md) )
+- Core: Load battle anim sets (limit breaks, Blue Magic...) from `<direct_mode_path>/exe/effect_NNN.animset` ( https://github.com/julianxhokaxhiu/FFNx/pull/1054 )
 - Core: Add support for remastered version, [see manual](https://github.com/julianxhokaxhiu/FFNx/blob/master/docs/how_to_install.md#remastered-release) for more informations ( https://github.com/julianxhokaxhiu/FFNx/pull/887 https://github.com/julianxhokaxhiu/FFNx/pull/977 https://github.com/julianxhokaxhiu/FFNx/pull/979 )
 - Core: Fix IT and DE versions crashing on launch ( https://github.com/julianxhokaxhiu/FFNx/pull/957 )
 - Core: Fix crash when entering battle in JP version ( https://github.com/julianxhokaxhiu/FFNx/pull/1022 )
 - Core: Support extended kernel.bin abilities (up to 128), battle commands (up to 176) and command ability data (up to 255), including ability removal, reserved command slots and a full typed kernel mapping, [see manual](docs/ff8/kernel_abilities.md) ( https://github.com/julianxhokaxhiu/FFNx/pull/1016 )
+- Core: Support up to 255 kernel.bin abilities; learned abilities past ID 127 are saved in a block of the save image, [see manual](docs/ff8/kernel_abilities.md) ( https://github.com/julianxhokaxhiu/FFNx/pull/1053 )
 - Core: Support kernel.bin Magic sections beyond the vanilla 57 spells, unlocking ids 57-63 and 96-255 (64-95 reserved for GFs) ( https://github.com/julianxhokaxhiu/FFNx/pull/956 )
 - Core: Unlock unused battle monster models c0m144-c0m199 (EN/FR/DE/IT/SP/JP), selectable via `enemy_com_value` 160-215 in scene.out ( https://github.com/julianxhokaxhiu/FFNx/pull/955 )
 - Core: Add an Esc menu to return to the game, restart it or exit it ( https://github.com/julianxhokaxhiu/FFNx/pull/1019 )
 - Core: Fix normal and boss battle transition animations
-- Renderer: Fix frozen battle-end transitions and stale-frame wobbling ( https://github.com/julianxhokaxhiu/FFNx/issues/1021 )
-- Achievements: Add support for remastered achievements
-- Audio: Add a Sound screen to the Config menu, to set the sound effects, music, voice, ambient and movie volumes in game ( https://github.com/julianxhokaxhiu/FFNx/pull/1015 )
+- Core: Speedhack now works for Menus and Tutorials
+- Core: Save/Load screen progress bar now follow file disk read speed instead of being artificially slow
 - Direct mode: Optionally add the language prefix to the path for multi-language mods ( https://github.com/julianxhokaxhiu/FFNx/pull/898 )
 - Direct mode: Add the chunk feature for c0mXXX.dat files ( https://github.com/julianxhokaxhiu/FFNx/pull/898 )
 - Exe data: Ensure files loaded only once ( https://github.com/julianxhokaxhiu/FFNx/pull/898 )
 - External textures: Disable texture filtering in worldmap when filtering is enabled ( https://github.com/julianxhokaxhiu/FFNx/pull/954 )
 - External textures: Change texture color for model field external textures, depending on the current map ( https://github.com/julianxhokaxhiu/FFNx/pull/981 )
+- External textures: Reload changed static texture pages, fixing cars disappearing in Balamb during the dog chase ( https://github.com/julianxhokaxhiu/FFNx/issues/984 )
+- External textures: Restore field model texture and palette VRAM relocation to avoid conflicts with backgrounds and particle effects ( https://github.com/julianxhokaxhiu/FFNx/issues/983 )
+- Input: Keep Japanese Remastered field scripts, including game over, on the engine's configured Confirm, Cancel, and Menu bindings
 - Japanese support: Add ability to use Japanese data with a non-jp exe ( https://github.com/julianxhokaxhiu/FFNx/pull/844 )
-- Widescreen: Fix text dialogues in battles when using 16:9 ( https://github.com/julianxhokaxhiu/FFNx/pull/960 )
 - Movie: Add support for Music/Voice layer for external movies
 - Movie: Fix field models and scripts running too fast on top of movies above 15 FPS, models move smoothly between the 15 FPS steps
+- Renderer: Fix frozen battle-end transitions and stale-frame wobbling ( https://github.com/julianxhokaxhiu/FFNx/issues/1021 )
+- Renderer: Reduce battle-effect texture mod stalls with a bounded decoded-image cache, faster texture composition and VRAM copies, and targeted palette invalidation
 - Voice: Add main character and enemy voice actions (attack, magic, etc.)
+- Widescreen: Fix text dialogues in battles when using 16:9 ( https://github.com/julianxhokaxhiu/FFNx/pull/960 )
 - Widescreen: Refine 16:9 mode by unlocking true 16:9 for 3D scenes while keeping 4:3 for the remaining ones until they can be ported natively
+
+## FF7/FF8 Steam
+
+- Recreate missing Steam save metadata for FF7 and FF8, including existing saves and Chocobo World, to prevent launcher save deletion
 
 ## FF8 Remastered
 

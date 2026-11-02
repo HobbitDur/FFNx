@@ -1,4 +1,4 @@
-![License](https://img.shields.io/github/license/julianxhokaxhiu/FFNx) ![Overall Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/total?label=Overall%20Downloads) ![Latest Stable Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/latest/total?label=Latest%20Stable%20Downloads&sort=semver) ![Latest Canary Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/canary/total?label=Latest%20Canary%20Downloads) ![GitHub Actions Workflow Status](https://github.com/julianxhokaxhiu/FFNx/actions/workflows/main-1.24.3.yml/badge.svg?branch=master)
+![License](https://img.shields.io/github/license/julianxhokaxhiu/FFNx) ![Overall Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/total?label=Overall%20Downloads) ![Latest Stable Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/latest/total?label=Latest%20Stable%20Downloads&sort=semver) ![Latest Canary Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/canary/total?label=Latest%20Canary%20Downloads) ![GitHub Actions Workflow Status](https://github.com/julianxhokaxhiu/FFNx/actions/workflows/main-1.25.1.yml/badge.svg?branch=master)
 
 <div align="center">
   <img src="https://github.com/julianxhokaxhiu/FFNx/blob/master/.logo/logo_nobg.png" alt="">
@@ -219,6 +219,21 @@ To build from the terminal (example with *RelWithDebInfo*):
 
 **NOTE**: Make sure to use the `cmake` executable that comes from Visual Studio
 (e.g. `C:\Program Files\Microsoft Visual Studio\2026\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe`)
+
+### FF8 texture regression tests
+
+After building FFNx, run the focused texture tests using its existing dependencies:
+
+```powershell
+cmake -S tests\ff8-textures -B .build\ff8-texture-tests -G "Visual Studio 18 2026" -A Win32
+cmake --build .build\ff8-texture-tests --config Release
+ctest --test-dir .build\ff8-texture-tests -C Release --output-on-failure
+```
+
+The tests cover decoded-image caching and eviction, copy-on-write animation,
+pixel/alpha equivalence, mixed-palette VRAM copies, composition coverage, and
+palette invalidation. The test executable also accepts a HIT-J mod directory
+to check its 512 and 1024 DDS variants against uncached decoding.
 
 ## Auto-Formatting
 

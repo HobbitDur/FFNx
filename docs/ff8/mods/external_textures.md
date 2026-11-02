@@ -42,11 +42,56 @@ Path: `{mod_path}\cardgame`
 | intro_00  | Intro/outro background  | No       | No             |
 | font_00   | Font (unused)           | No       | Yes (2)        |
 
+### Optional widescreen backgrounds
+
+With `aspect_ratio = 2` (16:9) or `aspect_ratio = 3` (16:10), Triple Triad can
+use separate, full-screen background images:
+
+| File name         | Aspect ratio | Description            |
+| ----------------- | ------------ | ---------------------- |
+| game_16x9_00      | 16:9         | Game background        |
+| intro_16x9_00     | 16:9         | Intro/outro background |
+| game_16x10_00     | 16:10        | Game background        |
+| intro_16x10_00    | 16:10        | Intro/outro background |
+
+Place DDS (recommended) or PNG images under `{mod_path}\cardgame`, for example
+`mods\Textures\cardgame\game_16x9_00.dds`. Formats follow `mod_ext` order.
+`override_mod_path` is checked first. Language-specific images can be placed
+under `{mod_path}\{language}\cardgame`, for example
+`mods\Textures\fre\cardgame\intro_16x9_00.png`.
+
+These are complete background images, not VRAM pages or texture atlases.
+Do not widen the existing `game_00` or `intro_00` files. Those replacements
+continue to use their original layout and remain the fallback.
+
+Keep all board artwork aligned with the original centered 4:3 gameplay area:
+cards, cursor, text, input coordinates, and game logic are not widened or moved.
+Extend the artwork into the side areas rather than stretching the original board.
+For a 1920x1080 image, the central 4:3 area is 1440x1080, starting at x=240.
+For a 1920x1200 image, it is 1600x1200, starting at x=160.
+Use an opaque image and include only the background, not cards or interface text.
+
+The game and intro/outro assets are independent. A missing, unreadable, or
+wrong-aspect image leaves that background in its original 4:3 presentation with
+black sidebars, including existing texture mods. A 16:9 asset is not used in
+16:10 mode, or vice versa. In 4:3 mode, these optional images are ignored.
+Invalid files produce a warning in FFNx.log; enable `trace_loaders` for lookup
+details and the first `Card background draw` trace for each background.
+Images are cached until the game reloads its textures; re-enter the
+minigame after changing them.
+
 ## Battle
 
 Path: `{mod_path}\battle\{filename with extension in FS archive}-0_00`
 
 Example: `.\mods\Textures\battle\A0STG101.X-0_00.dds`
+
+Decoded filesystem images used by battle and magic texture replacements are
+cached with a 128 MiB least-recently-used limit. Cache eviction does not unload
+active textures, and VRAM animation copies do not modify cached originals.
+The cache distinguishes source dimensions, resolution/LOD settings, color
+modifiers, and file size/timestamps. Remastered archive images retain their
+existing loading path.
 
 ## Worldmap
 
