@@ -2496,10 +2496,14 @@ namespace part_vm_b
 	// (blob B66B80 -> ws+0xF0/F4/F8). op bit15: orbit, s16 w1 radius mul, s16 w2 angle/16:
 	// Z = F8 + ((cos(16*w2)*e26 >> 4) * w1) / 65536, X = F0 + (sin...), Y = F4; cursor 8.
 	// Else accumPos = F0/F4/F8 << 16, cursor 4. Then bone handler.
+	// 30 fps: while the held layer predicts the next tick, the joint comes from the entity's NEXT
+	// pose (held_entity_next_pose; the same in 0x06E / 0x075 / 0x05B).
 	static void __cdecl op_060_PosFromEntityJoint()
 	{
 		uint8_t *e = Entity();
 		int32_t joint = S16(STREAM(), 2);
+		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+		FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 		blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 		if (U8(RT(), 0x4B) & 0x80)
 		{
@@ -2542,6 +2546,8 @@ namespace part_vm_b
 			do
 			{
 				uint8_t *e = PTR(scene, 0x60 + 4 * (int32_t)S8(scene, 0x48 + i));
+				// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+				FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 				blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 				uint8_t *ws = WS();
 				int32_t fx = S32(ws, 0xF0), fy = S32(ws, 0xF4), fz = S32(ws, 0xF8);
@@ -2582,6 +2588,8 @@ namespace part_vm_b
 		int32_t size = S16(e, 0x26);
 		if (ops & 0x200)
 		{
+			// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+			FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 			blob::Blob_B66B80(e + 0x60, 0, 0x1000, e + 0x40);
 			int32_t f4 = S32(WS(), 0xF4);
 			int32_t a = sub32(f4, S16(e, 0x36));
@@ -4075,6 +4083,8 @@ namespace part_vm_d
 		}
 		// writes the model skeleton
 		x::BuildBoneMatricesFromPose(hdr);
+		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+		FX_HELD(if (held_predicting() && (U8(RT(), 0x4B) & 4)) held_entity_next_pose(hdr - 0x60);)
 		uint8_t *jm = xl_B66B80(hdr, joint, scale, base);
 		switch ((uint32_t)U16(RT(), 0x4A) >> 12)
 		{
