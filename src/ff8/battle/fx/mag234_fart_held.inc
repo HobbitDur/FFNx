@@ -23,12 +23,18 @@
 // node. Embedded-model path (param flag bit 0): the model block is registered as a model draw
 // (held_model_draws), so its skeleton is posed at the exact in-between pose and put back. Live
 // entity path: vanilla composes the entity skeleton (and its weapon's) IN PLACE with the camera
-// node, so after a real tick the skeleton holds world matrices; the real tick records the
-// skeletons as they were before the composition (the entity's pose of that tick, built by the
-// battle), a held draw starts from that record (the pose holds, as the battle drives it) and
-// everything it writes outside the saved sets - the skeletons, the battle entity record (flag +0
-// on a first draw, fields written by the entity render 0x5088A0), the packet cursor global of the
-// object renderer 0x5106E0 (dword_1D99C18) - is put back after it.
+// node, so after a real tick the skeleton holds world matrices. The draw hides the entity (flag
+// +0 |= 4): the wobbling copy IS the caster on screen, so a held draw poses the skeleton at the
+// entity's in-between pose (pose_midpoint on the entity's animation command, as Breath's draw 32:
+// the pose the next tick's battle-loop animation step leads to, held when it does not advance;
+// the weapon on its own command) instead of holding the real tick's pose (the caster animated at
+// 15 fps under Fart); without an entity record (outside the 7 battle entities) the skeleton the
+// real tick recorded before the composition is used. Everything the held draw writes outside the
+// saved sets - the skeletons, the battle entity record (flag +0 on a first draw, fields written
+// by the entity render 0x5088A0), the packet cursor global of the object renderer 0x5106E0
+// (dword_1D99C18) - is put back after it. The gas emitter sits on a joint of the caster
+// (Bite Bug, animating; the entity-joint VM ops): registered with held_entity_joints, the prediction
+// reads that joint at the caster's next pose (gfc_engine_held.inc).
 
 namespace ff8fx
 {
@@ -93,7 +99,9 @@ namespace fart
 			s.p = sk;
 			s.n = n;
 			memcpy(s.m, sk, n);
-			if (g_local[i].tick == g_real_tick && g_local[i].sk == sk && g_local[i].n == n) memcpy(sk, g_local[i].m, n);
+			if (i == 0 && g_save_ent) pose_midpoint(hdr, g_save_ent + 0x6C, g_held.num, g_held.den);
+			else if (i == 1 && g_save_ent) pose_midpoint(weapon, weapon + 0xC, g_held.num, g_held.den);
+			else if (g_local[i].tick == g_real_tick && g_local[i].sk == sk && g_local[i].n == n) memcpy(sk, g_local[i].m, n);
 		}
 	}
 
@@ -120,6 +128,7 @@ namespace fart
 	{
 		using namespace gfc;
 		held_model_draws(fart::g_c, 30);
+		held_entity_joints(fart::g_c);
 		mark_held(0xA48F60);
 		register_module_held(234, fart::Ready, fart::Frame);
 		register_module_camera(234, fart::Camera);

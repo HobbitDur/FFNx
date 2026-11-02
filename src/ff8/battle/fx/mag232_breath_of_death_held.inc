@@ -25,6 +25,8 @@
 // colour, the render descriptor and the model copy block live in the arena (saved by HeldFrame);
 // the two engine cells RenderGeometry writes (0x1D99C18 / 0x1D99C1C) are put back after the draw.
 // Bone 10 (ArcBetweenBones) only runs in the VM prediction (pure node math on saved state).
+// The breath source sits on a joint of the caster (Blood Soul, animating; VM 0x060): registered with
+// held_entity_joints, the prediction reads that joint at the caster's next pose (gfc_engine_held.inc).
 // Draws 2 / 44 (scaled parent transform 0xA5D580): the scale is the exact in-between of the two
 // real ticks' outAngle << 4 (held_bone_ends), not the integer-mixed outAngle.
 
@@ -73,6 +75,7 @@ namespace death232
 	{
 		using namespace gfc;
 		held_model_draws(death232::g_c, 44);
+		held_entity_joints(death232::g_c);
 		mark_held(0xA5C950);
 		register_module_held(232, death232::Ready, death232::Frame);
 		register_module_camera(232, death232::Camera);

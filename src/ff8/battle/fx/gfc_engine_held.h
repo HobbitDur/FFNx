@@ -96,6 +96,11 @@ namespace gfc
 	// holds the real tick's values). For draw handlers whose discrete inputs (table indices...)
 	// need the two ends rather than the in-between value.
 	bool held_bone_ends(const uint8_t *b, int16_t ang0[3], int16_t pos0[3], int16_t ang1[3], int16_t pos1[3]);
+	// VM ops reading a battle entity's joint (0x05B entity path, 0x060, 0x06E, 0x075 bit 9) while predicting:
+	// the entity's bone matrices at its next pose (pose_midpoint at 1), the skeleton block journaled (guard);
+	// only for the clones registered with held_entity_joints (verified one by one)
+	void held_entity_next_pose(uint8_t *ent);
+	void held_entity_joints(Clone &c);
 
 	// ------------------------------------------------------------------------------------
 	// FX_HELD statements of gfc_engine.cpp (gfc_engine_held.inc)

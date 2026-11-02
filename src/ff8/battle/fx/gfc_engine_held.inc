@@ -826,6 +826,38 @@ namespace gfc
 		return true;
 	}
 
+	// VM ops 0x05B (entity path) / 0x060 / 0x06E / 0x075 (bit 9) read a joint from a battle entity's
+	// bone matrices as the battle built them for its current pose. The next real tick reads them after
+	// the battle's animation step of the entity: while predicting, the matrices of the entity's NEXT
+	// pose (pose_midpoint at 1 = the animation reader's next frame, held when the animation does not
+	// advance), the skeleton block (root, poses, matrices: 16 + 48 bytes per bone) journaled first and
+	// put back when the prediction ends. Without it the joint holds the real tick's pose and a bone
+	// placed there lags half a tick behind an animating entity (232 Breath of Death: the breath source
+	// on Blood Soul; Mad Cow Special 258 / Homing Laser 229 do the same for their VM 0x0AD). Only for
+	// the clones registered by their held part (held_entity_joints): the others keep the real tick's
+	// pose there until checked with an animating entity.
+	static const Clone *g_entjoint_clones[32];
+	static int g_entjoint_n = 0;
+	void held_entity_joints(Clone &c)
+	{
+		for (int i = 0; i < g_entjoint_n; i++) if (g_entjoint_clones[i] == &c) return;
+		if (g_entjoint_n < 32) g_entjoint_clones[g_entjoint_n++] = &c;
+	}
+
+	void held_entity_next_pose(uint8_t *ent)
+	{
+		if (!ent) return;
+		bool on = false;
+		for (int i = 0; i < g_entjoint_n; i++) if (g_entjoint_clones[i] == &C()) on = true;
+		if (!on) return;
+		uint8_t *hdr = ent + 0x60;
+		uint8_t *com = PTR(hdr, 4);
+		uint8_t *sk = com ? PTR(com, 0) : nullptr;
+		if (!sk || U8(sk, 0) == 0) return;
+		guard(sk, 16 + 48 * (int)U8(sk, 0));
+		pose_midpoint(hdr, ent + 0x6C, 1, 1);
+	}
+
 	bool HeldReady(Clone &c)
 	{
 		(void)c;
