@@ -284,6 +284,9 @@ namespace desperado261
 		desperado261::g_d38 = desperado261::g_c.draw[38];
 		desperado261::g_c.draw[38] = desperado261::dh_38_AttachBattleEntityHeld;
 		mark_held(0x959F40);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(desperado261::g_c);
 		register_module_held(261, desperado261::Ready, desperado261::Frame);
 		register_module_camera(261, desperado261::Camera);
 		register_module_entity(261, desperado261::HeldEntities);

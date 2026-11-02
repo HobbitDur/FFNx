@@ -112,6 +112,9 @@ namespace anchor263
 		anchor263::g_op048 = anchor263::g_c.vm[0x048];
 		anchor263::g_c.vm[0x048] = anchor263::op_048_OverrideEntityTransformHeld;
 		mark_held(0x945E80);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(anchor263::g_c);
 		register_module_held(263, anchor263::Ready, anchor263::Frame);
 		register_module_camera(263, anchor263::Camera);
 		register_module_entity(263, anchor263::HeldEntities);

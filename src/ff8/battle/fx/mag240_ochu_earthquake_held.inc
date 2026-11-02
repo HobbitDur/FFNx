@@ -42,6 +42,9 @@ namespace ochu_quake
 	{
 		using namespace gfc;
 		mark_held(0xA0B9D0);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(ochu_quake::g_c);
 		register_module_held(240, ochu_quake::Ready, ochu_quake::Frame);
 		register_module_camera(240, ochu_quake::Camera);
 	}

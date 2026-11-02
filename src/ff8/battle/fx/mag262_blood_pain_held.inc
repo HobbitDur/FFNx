@@ -211,6 +211,9 @@ namespace bloodpain262
 		bloodpain262::g_op05B = bloodpain262::g_c.vm[0x05B];
 		bloodpain262::g_c.vm[0x05B] = bloodpain262::op_05B_AttachToModelJointHeld;
 		mark_held(0x950060);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(bloodpain262::g_c);
 		register_module_held(262, bloodpain262::Ready, bloodpain262::Frame);
 		register_module_camera(262, bloodpain262::Camera);
 	}

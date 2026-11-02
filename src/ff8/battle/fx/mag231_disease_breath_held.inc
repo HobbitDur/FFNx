@@ -83,6 +83,9 @@ namespace disease231
 	{
 		using namespace gfc;
 		mark_held(0xA66B10);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(disease231::g_c);
 		register_module_held(231, disease231::Ready, disease231::Frame);
 		register_module_camera(231, disease231::Camera);
 	}

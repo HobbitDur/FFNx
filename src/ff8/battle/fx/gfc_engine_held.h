@@ -100,6 +100,7 @@ namespace gfc
 	// the entity's bone matrices at its next pose (pose_midpoint at 1), the skeleton block journaled (guard);
 	// only for the clones registered with held_entity_joints (verified one by one)
 	void held_entity_next_pose(uint8_t *ent);
+	bool held_entity_joints_on();
 	void held_entity_joints(Clone &c);
 
 	// ------------------------------------------------------------------------------------

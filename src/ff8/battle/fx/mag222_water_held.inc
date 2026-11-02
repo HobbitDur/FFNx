@@ -16,7 +16,9 @@
 // 30 fps part of mag222_water.cpp: Water's held frames are the cinematic engine's
 // (gfc_engine_held.inc): the node poses / matrix nodes interpolated between two real ticks,
 // every draw handler re-run in its frozen (boneSkipFlag) form; draw 38 (AttachBattleEntity,
-// mag_brothers.cpp) saves / restores the battle entity it writes. Camera: HeldCamera
+// mag_brothers.cpp) saves / restores the battle entity it writes and reads the carried
+// entity's joint 0xF1 / shadow extent at the entity's in-between pose (held_entity_attach_pose;
+// the battle animates the target while the column carries it). Camera: HeldCamera
 // interpolates the battle camera words the VM writes (op 0x039).
 
 namespace ff8fx
@@ -35,6 +37,9 @@ namespace water
 	{
 		using namespace gfc;
 		mark_held(0xA9B870);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(water::g_water);
 		register_module_held(222, water::Ready, water::Frame);
 		register_module_camera(222, water::Camera);
 	}

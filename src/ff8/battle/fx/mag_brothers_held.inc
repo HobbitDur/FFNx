@@ -119,6 +119,20 @@ namespace part_brothers
 		if (g_hs_on) held_restore_entity(g_hs);
 		g_hs_on = false;
 	}
+
+	// Draw 38: the pivot shift of the entity position (joint 0xF1) and the shadow extent
+	// (EntityShadow_AF5D00, every bone) come from the skeleton the handler builds for the attached
+	// entity's current pose (two FX_HELD seams, one after each build). The
+	// battle steps the entity's animation once per tick, so on a held frame the joint of the
+	// in-between pose (pose_midpoint; at 1 the next tick's pose, which the real tick N+1 builds) -
+	// for the clones registered with held_entity_joints (222 Water: the target carried by the
+	// column; Brothers 205 keeps the real tick's pose until checked). The skeleton is restored by
+	// held_entity_end.
+	static void held_entity_attach_pose(uint8_t *ent)
+	{
+		if (!g_hs_on || !held_entity_joints_on()) return;
+		pose_midpoint(ent + 0x60, ent + 0x6C, g_held.num, g_held.den);
+	}
 }
 }
 }

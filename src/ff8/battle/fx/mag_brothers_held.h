@@ -27,6 +27,7 @@ namespace part_brothers
 	static bool held_shadow03(uint8_t *hdr, uint8_t *blk, int32_t otspec, int32_t y);
 	static void held_entity_begin(uint8_t *ent, uint32_t head_n);
 	static void held_entity_end();
+	static void held_entity_attach_pose(uint8_t *ent);
 }
 }
 	static void register_gfc_brothers_held();

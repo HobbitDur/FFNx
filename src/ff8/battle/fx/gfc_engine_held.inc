@@ -834,8 +834,10 @@ namespace gfc
 	// put back when the prediction ends. Without it the joint holds the real tick's pose and a bone
 	// placed there lags half a tick behind an animating entity (232 Breath of Death: the breath source
 	// on Blood Soul; Mad Cow Special 258 / Homing Laser 229 do the same for their VM 0x0AD). Only for
-	// the clones registered by their held part (held_entity_joints): the others keep the real tick's
-	// pose there until checked with an animating entity.
+	// the clones registered by their held part (held_entity_joints), each checked with an animating
+	// entity (the predicted joint equals the next real tick's): the others keep the real tick's pose
+	// there. The registration also turns on Brothers' draw 38 in-between entity pose
+	// (mag_brothers_held.inc held_entity_attach_pose, 222 Water).
 	static const Clone *g_entjoint_clones[32];
 	static int g_entjoint_n = 0;
 	void held_entity_joints(Clone &c)
@@ -844,12 +846,16 @@ namespace gfc
 		if (g_entjoint_n < 32) g_entjoint_clones[g_entjoint_n++] = &c;
 	}
 
+	// the current clone is registered (held_entity_joints)
+	bool held_entity_joints_on()
+	{
+		for (int i = 0; i < g_entjoint_n; i++) if (g_entjoint_clones[i] == &C()) return true;
+		return false;
+	}
+
 	void held_entity_next_pose(uint8_t *ent)
 	{
-		if (!ent) return;
-		bool on = false;
-		for (int i = 0; i < g_entjoint_n; i++) if (g_entjoint_clones[i] == &C()) on = true;
-		if (!on) return;
+		if (!ent || !held_entity_joints_on()) return;
 		uint8_t *hdr = ent + 0x60;
 		uint8_t *com = PTR(hdr, 4);
 		uint8_t *sk = com ? PTR(com, 0) : nullptr;

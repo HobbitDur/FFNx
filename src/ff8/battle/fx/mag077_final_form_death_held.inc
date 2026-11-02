@@ -152,6 +152,9 @@ namespace final_form_death
 	{
 		using namespace gfc;
 		mark_held(0xB30990);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(final_form_death::g_c);
 		register_module_held(77, final_form_death::Ready, final_form_death::Frame);
 		register_module_camera(77, final_form_death::Camera);
 	}
