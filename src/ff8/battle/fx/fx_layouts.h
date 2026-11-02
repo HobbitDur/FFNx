@@ -586,6 +586,39 @@ namespace layouts
 		return mul32(*(const int16_t *)(ent + 0x26) + 0x800, out[2]) >> 15;
 	}
 
+	// the screen flash level at tick c (Dispel 0x6CF700): c x level / rise over the first `rise`
+	// ticks, then level, then (end - c) x level / (end - fall) from `fall` (signed divisions)
+	inline int32_t ScreenFlashCurve(int32_t c, int32_t rise, int32_t level, int32_t fall, int32_t end)
+	{
+		if (c < rise) return c * level / rise;
+		if (c >= fall) return (end - c) * level / (end - fall);
+		return level;
+	}
+
+	// a point around `centre` (Dispel's sparkles): x and z each centre + ((r + r' - 0x8000) x spread
+	// >> 18), y = centre.y - (r >> 6) + lift (CRT rand, in the original's order: x's two, y's, z's two)
+	inline void RandomAround(const int16_t *centre, int32_t spread, int32_t lift, int16_t *out)
+	{
+		const int32_t r1 = CrtRand();
+		const int32_t r2 = CrtRand();
+		out[0] = (int16_t)((mul32(r1 + r2 - 0x8000, spread) >> 18) + centre[0]);
+		const int32_t r3 = CrtRand();
+		out[1] = (int16_t)(centre[1] - (int16_t)(r3 >> 6) + lift);
+		const int32_t r4 = CrtRand();
+		const int32_t r5 = CrtRand();
+		out[2] = (int16_t)((mul32(r4 + r5 - 0x8000, spread) >> 18) + centre[2]);
+	}
+
+	// point e of a circle around `centre` (Dispel's rising circle): angle = (e << 12) / turns, x / z =
+	// centre + sin / cos >> 4, y = centre.y - (angle >> 3) + lift
+	inline void RisingCirclePoint(const int16_t *centre, int32_t e, int32_t turns, int32_t lift, int16_t *out)
+	{
+		const int32_t angle = (int32_t)((uint32_t)e << 12) / turns;
+		out[0] = (int16_t)((int16_t)(ComputeSin(angle) >> 4) + centre[0]);
+		out[2] = (int16_t)((int16_t)(parts::ComputeCos(angle) >> 4) + centre[2]);
+		out[1] = (int16_t)(centre[1] - (int16_t)(angle >> 3) + lift);
+	}
+
 	// a drawing depth from an entity's size word (+0x26): (base - size) >> shift (Silence: -0x800, 5)
 	inline int32_t DepthFromSize(const uint8_t *ent, int32_t base, int32_t shift)
 	{

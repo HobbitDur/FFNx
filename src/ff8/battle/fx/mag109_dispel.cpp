@@ -34,8 +34,14 @@
 // packet cursor 0x2521A8C, particle / target / root queues). The target pool (3 x 0x348), the
 // particle pool (64 x 0x1C), the morph vertex buffer (+0x10D8) and the packet arenas are in the
 // magic buffer.
+// Built from the parts library (fx_layouts.h): the ring through the anchor callback (record flags
+// 0x40000 and 0x8000; its never-written "scaled" word is 0), ScreenFlashCurve, RandomAround,
+// RisingCirclePoint, DrawSequenceSprite. Parameters (DispelParams, fx_params.h): the numbers above,
+// defaults = the game's; the parts are tagged (FX_PART).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -43,6 +49,7 @@ namespace dispel109
 {
 	using namespace eng;
 	using namespace magc;
+	using namespace layouts;
 
 	// --- module globals ---
 	inline uint32_t &TexBase() { return var<uint32_t>(0x2521A6C); }        // Magic_TextureOFF (magic buffer)
@@ -50,7 +57,6 @@ namespace dispel109
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521A8C); }
 	inline TaskQueue *QParticles() { return (TaskQueue *)0x2521A90; }       // pool: magic buffer, 0x40 x 0x1C
 	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521AA0; }         // pool: + 0x700, 3 x 0x348
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6CF540;
 	static const uint32_t ORIG_TargetTask = 0x6CF700;
@@ -59,19 +65,57 @@ namespace dispel109
 	static const uint32_t SEQ_Sparkle = 0x12E3440;
 	static const uint32_t SEQ_Circle = 0x12E337C;
 	static const void *const SOUND_Dispel = (const void *)0x12E6C38;
+	// the record flags RingPart tests; its "scaled" word is never written (0: the ring is not scaled),
+	// so it is the anchor callback
+	static const uint32_t HONOURED = ANCHOR_ROT_YXZ | ANCHOR_NOT_COMPOSED;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_sub_7043B0: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	// ------------------------------------------------------------------
+	// Parameters (fx_params.h): the game's values by default
+	// ------------------------------------------------------------------
+	struct DispelParams
+	{
+		struct Timing
+		{
+			int16_t every;          // the root starts the next action's target task every this many ticks...
+			int16_t busy_tick;      // ...unless a target task on that target is at this tick or before (the cycle restarts)
+			uint32_t sound;         // sound block (FF8_EN.exe data): BdPlaySE3D reads its world sound id
+			int16_t sound_tick;     // the sound plays at the target's effect position (target counter)...
+			int16_t sound_volume;   // ...at this volume (BdPlaySE3D's 2nd argument)
+			int16_t fade_tick;      // the engine's screen fade (0x5712C0) starts
+			int16_t damage_tick;    // the action's target takes the result
+			int16_t end_tick;       // the target task ends once its counter reaches this (the flash off)
+		} timing;
+		struct Flash
+		{
+			int16_t rise, level, fall;   // the screen flash: up over `rise` ticks to `level`, down from `fall` to the end
+		} flash;
+		struct Ring
+		{
+			int16_t depth;          // the prim header's depth
+			int16_t size_base, size_times;  // the anchor's size word: (the target's size + base) x times (the sparkles' spread)
+		} ring;
+		struct Particles
+		{
+			fxp::Window window;     // spawned at target ticks first, first + every... up to last
+			int16_t every;
+			int16_t lift;           // added to y (y goes down)
+			int16_t scale;          // the sprite's size (its rotation a)
+			int16_t frames;         // sequence frames: it lives this many ticks
+			int16_t turns;          // the circle: angle = (e << 12) / turns, e = tick - first
+			uint32_t seq;           // its sprite sequence (FF8_EN.exe data)
+		};
+		Particles sparkles, circle;
+	};
+	static const DispelParams DEFAULTS = {
+		{ 10, 0x43, (uint32_t)SOUND_Dispel, 0, 0x101, 0x1B, 0x43, 0x48 },
+		{ 8, 0x8FC, 0x3C },
+		{ -0x100, 0x100, 3 },
+		{ { 0x1A, 0x29 }, 2, 0x100, 0x400, 0x10, 0, SEQ_Sparkle },
+		{ { 0x17, 0x1C }, 2, 0x100, 0x800, 7, 6, SEQ_Circle },
+	};
+	static DispelParams g_params = DEFAULTS;
+	static inline const DispelParams &P() { return g_params; }
+	enum PartId { PART_RING = 1, PART_SPARKLES = 2, PART_CIRCLE = 3 };
 
 	// ------------------------------------------------------------------
 	// Node layouts
@@ -80,7 +124,7 @@ namespace dispel109
 	struct RootNode // pool of 1 node of 0x14 bytes
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
+		int16_t counter;   // +0x0C 0..every - 1, a target spawn at 1
 		uint8_t action;    // +0x0E next action
 		uint8_t started;   // +0x0F pools set up
 		uint32_t arena;    // +0x10 packet arena parity
@@ -92,8 +136,7 @@ namespace dispel109
 		int16_t action;    // +0x0E action index
 		uint8_t pad10[4];
 		uint8_t *entity;   // +0x14 target entity
-		int16_t pos[3];    // +0x18 effect anchor x, y, z (GetDefaultEffectPosition)
-		int16_t size;      // +0x1E (the anchor's height word, replaced by (entity size + 0x100) * 3)
+		int16_t pos[4];    // +0x18 effect anchor x, y, z (GetDefaultEffectPosition), then the size word
 		uint8_t ring[0x328]; // +0x20 prim-model layout (prim::Layout: data, frame, state)
 	};
 	struct ParticleNode // pool of 0x40 nodes of 0x1C bytes
@@ -105,125 +148,21 @@ namespace dispel109
 		int16_t scale;     // +0x16
 		uint32_t seq;      // +0x18 sprite sequence data
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
-	struct PrimArg
-	{
-		int16_t pos[4];    // +0x00 x, y, z, size word
-		int32_t scale[3];  // +0x08 4.12, applied to the record offsets and the matrix
-		int32_t scaled;    // +0x14 scale present
-		int32_t depth;     // +0x18 prim header +0x18
-		uint32_t morph;    // +0x1C blended vertex frames
-	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x348 && sizeof(ParticleNode) == 0x1C, "Dispel nodes");
-	static_assert(sizeof(PrimArg) == 0x20, "Dispel prim block");
 
-	// x / 12 (0x2AAAAAAB, sar 1)
-	static inline int32_t Div12(int32_t x)
+	// a particle of `part` at tick c, if its window spawns one: its node, placed by `place`
+	template<typename Place>
+	static void SpawnParticle(const DispelParams::Particles &part, int32_t c, uint32_t seq, Place place)
 	{
-		int32_t hi = (int32_t)(((int64_t)x * 0x2AAAAAAB) >> 32) >> 1;
-		return hi + (int32_t)((uint32_t)hi >> 31);
-	}
-
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6CF9A0): one object of the ring model
-	// ------------------------------------------------------------------
-	static void __cdecl RingPart(prim::Layout *l, prim::Record *r, int arg_)
-	{
-		const PrimArg *arg = (const PrimArg *)arg_;
-		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
-		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
-		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		const int32_t object = (int16_t)r->flags_lo;
-		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
-		*(uint8_t **)h = model;
-		const int16_t f0 = r->b0, f1 = r->b1;
-		const int32_t nverts = *(const int32_t *)(model + 4);
-		if (f0 == f1)
-		{
-			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-		}
-		else
-		{
-			const int16_t t = r->b;
-			if (t == 0)
-			{
-				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-			}
-			else if (t == 0x1000)
-			{
-				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
-			}
-			else
-			{
-				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
-				*(uint32_t *)(h + 4) = arg->morph;
-			}
-		}
-		Mat4x3 m = {};
-		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
-		else RotationFromAngles(r->rot, &m);
-		// the record's offset (scaled by the block's scale) + the block position, through the camera
-		int16_t off[4] = {};
-		const int32_t scaled = arg->scaled;
-		if (scaled)
-		{
-			off[0] = (int16_t)(mul32(r->pos[0], arg->scale[0]) >> 12);
-			off[1] = (int16_t)(mul32(r->pos[1], arg->scale[1]) >> 12);
-			off[2] = (int16_t)(mul32(r->pos[2], arg->scale[2]) >> 12);
-		}
-		else
-		{
-			off[0] = r->pos[0];
-			off[1] = r->pos[1];
-			off[2] = r->pos[2];
-		}
-		if (scaled) Scale3DMatrix(&m, arg->scale);
-		off[0] = (int16_t)(off[0] + arg->pos[0]);
-		off[1] = (int16_t)(off[1] + arg->pos[1]);
-		off[2] = (int16_t)(off[2] + arg->pos[2]);
-		GteSetRotMatrixCtrl(&Camera());
-		GteLoadV0(off);
-		GteMVMVA_RotV0();
-		GteReadMAC123(m.t);
-		if (!(r->flags & 0x8000)) MatrixMultiply(&Camera(), &m);
-		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
-		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
-		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2]);
-		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
-		{
-			int32_t v[3] = { r->scale[0], r->scale[1], r->scale[2] };
-			Scale3DMatrix(&m, v);
-		}
-		GteSetRotMatrix(&m);
-		GteSetTransVector(&m);
-		*(uint32_t *)(h + 0x1C) = 0x2030;
-		*(int32_t *)(h + 0xC) = r->a;
-		if (r->a != 0)
-		{
-			*(uint32_t *)(h + 0x1C) = 0x20F0;
-			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
-		}
-		*(int32_t *)(h + 0x18) = arg->depth;
-		PacketCursor() = RenderPrimModel2(h, RenderOT(0x44), 2, PacketCursor());
-		FieldFree(0x58);
-	}
-
-	// ------------------------------------------------------------------
-	// Particle (0x6CFC50): a sprite sequence in place
-	// ------------------------------------------------------------------
-	static void ParticleDraw(const ParticleNode *p)
-	{
-		uint8_t *h = AllocHeader(0xB4);
-		TransformCameraByShadowRotation(p->pos, p->scale, (int32_t)0xFFFFF800);
-		*(uint32_t *)h = p->seq;
-		*(int16_t *)(h + 4) = p->counter;
-		*(uint16_t *)(h + 0x24) = 0;
-		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
-		FieldFree(0xB4);
+		const int32_t e = c - part.window.first;
+		if (!(part.window.has(c) && part.every > 0 && e % part.every == 0)) return;
+		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+		Memset32(&p->counter, 0, 4);
+		place(p, e);
+		p->scale = part.scale;
+		p->seq = fxp::sequence(part.seq, seq);
+		p->end = part.frames;
 	}
 }
 }
@@ -241,7 +180,7 @@ namespace dispel109
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag109_dispel_held.inc
 		FX_HELD(held_note_particle(p);)
-		ParticleDraw(p);
+		DrawSequenceSprite(p->pos, p->seq, p->counter, p->scale, (int32_t)0xFFFFF800, PacketCursor());
 		p->counter++;
 		return p->counter < p->end ? 0 : TASK_END;
 	}
@@ -252,71 +191,30 @@ namespace dispel109
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
-		int32_t flash;
-		const int16_t c0 = t->counter;
-		if (c0 < 8) flash = (int32_t)c0 * 2300 / 8;
-		else if (c0 >= 0x3C) flash = Div12((0x48 - (int32_t)c0) * 2300);
-		else flash = 0x8FC;
-		SetScreenFlash((uint32_t)flash, 0);
-		// a random sparkle around the target every other tick over 26..41
-		const int32_t e1 = t->counter - 0x1A;
-		if ((uint32_t)e1 < 0x10 && !(e1 & 1))
-		{
-			ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
-			Memset32(&p->counter, 0, 4);
-			const int32_t r1 = CrtRand();
-			const int32_t r2 = CrtRand();
-			p->pos[0] = (int16_t)((mul32(r1 + r2 - 0x8000, t->size) >> 18) + t->pos[0]);
-			const int32_t r3 = CrtRand();
-			p->pos[1] = (int16_t)(t->pos[1] - (int16_t)(r3 >> 6) + 0x100);
-			const int32_t r4 = CrtRand();
-			const int32_t r5 = CrtRand();
-			p->scale = 0x400;
-			p->seq = SEQ_Sparkle;
-			p->end = 0x10;
-			p->pos[2] = (int16_t)((mul32(r4 + r5 - 0x8000, t->size) >> 18) + t->pos[2]);
-		}
-		// one every other tick over 23..28 on a circle (sixths of a turn), rising
-		const int32_t e2 = t->counter - 0x17;
-		if ((uint32_t)e2 < 6 && !(e2 & 1))
-		{
-			const uint32_t angle = (uint32_t)(((uint64_t)((uint32_t)e2 << 12) * 0xAAAAAAABu) >> 32) >> 2;
-			ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
-			Memset32(&p->counter, 0, 4);
-			p->pos[0] = (int16_t)((int16_t)(ComputeSin((int32_t)angle) >> 4) + t->pos[0]);
-			p->pos[2] = (int16_t)((int16_t)(ComputeCos((int32_t)angle) >> 4) + t->pos[2]);
-			p->scale = 0x800;
-			p->seq = SEQ_Circle;
-			p->pos[1] = (int16_t)(t->pos[1] - (int16_t)((int32_t)angle >> 3) + 0x100);
-			p->end = 7;
-		}
-		if (t->counter == 0x1B) ScreenFadeTask(0, 1, 1, 0x60);
+		const DispelParams &pp = P();
+		SetScreenFlash((uint32_t)ScreenFlashCurve(t->counter, pp.flash.rise, pp.flash.level, pp.flash.fall, pp.timing.end_tick), 0);
+		// a random sparkle around the target, one on a rising circle
+		SpawnParticle(pp.sparkles, t->counter, SEQ_Sparkle, [&](ParticleNode *p, int32_t) { RandomAround(t->pos, t->pos[3], pp.sparkles.lift, p->pos); });
+		SpawnParticle(pp.circle, t->counter, SEQ_Circle, [&](ParticleNode *p, int32_t e) { RisingCirclePoint(t->pos, e, pp.circle.turns, pp.circle.lift, p->pos); });
+		if (t->counter == pp.timing.fade_tick) ScreenFadeTask(0, 1, 1, 0x60);
 		if (t->counter >= 0)
 		{
-			PrimArg arg;
-			*(uint32_t *)&arg.pos[0] = *(const uint32_t *)&t->pos[0];
-			*(uint32_t *)&arg.pos[2] = *(const uint32_t *)&t->pos[2];
-			arg.scale[0] = t->size;
-			arg.scale[2] = t->size;
-			arg.scale[1] = 0xBB8;
-			// UNINIT 0x6CF8C5..0x6CF90F: the original never writes the block's "scaled" word
-			// ([esp+0x20], read by the callback at 0x6CFA9C): it holds what older code left on the
-			// stack (0 in every harness run and after fx_verify's stack scrub), taken as 0 here
-			arg.scaled = 0;
-			arg.depth = (int32_t)0xFFFFFF00;
+			FX_PART(PART_RING);
+			AnchorArg arg;
+			memcpy(arg.anchor, t->pos, sizeof(arg.anchor));
+			arg.depth = pp.ring.depth;
 			arg.morph = TexBase() + 0x10D8;
+			arg.honoured = HONOURED;
+			arg.cursor = &PacketCursor();
 			// 30 fps layer: see mag109_dispel_held.inc
 			FX_HELD(held_note_play(t, &arg);)
-			prim::play((prim::Layout *)t->ring, RingPart, (int)&arg, 0);
-			if (t->counter == 0)
-			{
-				int16_t pos[4];
-				GetDefaultEffectPosition(t->entity, pos);
-				BdPlaySE3D(SOUND_Dispel, 0x101, pos);
-			}
+			PlayAtAnchor(t->ring, &arg);
+			FX_PART(0);
+			if (t->counter == pp.timing.sound_tick)
+				BdPlaySE3D((const void *)fxp::sound(pp.timing.sound, (uint32_t)SOUND_Dispel), pp.timing.sound_volume, t->pos);
 		}
-		if (t->counter == 0x43) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
-		if (t->counter >= 0x48)
+		if (t->counter == pp.timing.damage_tick) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
+		if (t->counter >= pp.timing.end_tick)
 		{
 			SetScreenFlash(0, 0);
 			return TASK_END;
@@ -331,6 +229,7 @@ namespace dispel109
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
+		const DispelParams &pp = P();
 		// 30 fps layer: see mag109_dispel_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
@@ -355,11 +254,11 @@ namespace dispel109
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				// wait while a target task of 67 ticks or less runs on this target
+				// wait while a target task at busy_tick or before runs on this target
 				TargetNode *pool = (TargetNode *)(TexBase() + 0x700);
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
-					if ((*(const uint8_t *)&pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= 0x43)
+					if ((*(const uint8_t *)&pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= pp.timing.busy_tick)
 					{
 						busy = true;
 						break;
@@ -372,7 +271,7 @@ namespace dispel109
 					t->action = (int16_t)(uint16_t)r->action;
 					t->entity = entity;
 					GetDefaultEffectPosition(entity, t->pos);
-					t->size = (int16_t)((*(const int16_t *)(t->entity + 0x26) + 0x100) * 3);
+					t->pos[3] = (int16_t)((*(const int16_t *)(t->entity + 0x26) + pp.ring.size_base) * pp.ring.size_times);
 					DecodeModelPrimLayout(MODEL_Ring, t->ring, 0x328);
 					r->action++;
 				}
@@ -391,19 +290,78 @@ namespace dispel109
 		}
 		if (r->started && a == 0 && b == 0) return TASK_END;
 		r->counter++;
-		if (r->counter >= 10) r->counter = 0;
+		if (r->counter >= pp.timing.every) r->counter = 0;
 		return 0;
 	}
 }
 
+	// ------------------------------------------------------------------
+	// Parameter table (fx_params.h): what an editor shows of DispelParams
+	// ------------------------------------------------------------------
+	namespace dispel109
+	{
+		using fxp::Field;
+#define DISPEL_FIELD(part, member, label, doc, type, lo, hi) \
+		{ part, #member, label, doc, (uint32_t)offsetof(DispelParams, member), fxp::type, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The root starts one target task per action, in turn (not while one is young on that target); each target task's clock: the screen flash, its sound, the fade, its result, its end (draws nothing)" },
+			{ PART_RING, "ring", "Ring", "The ring layout at the target's effect position" },
+			{ PART_SPARKLES, "sparkles", "Sparkles", "A flipbook at random points around the target, spread by the anchor's size word" },
+			{ PART_CIRCLE, "circle", "Circle", "A flipbook on a rising circle around the target" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flash", "Screen flash", "Up over Rise ticks to Level, Level, then down from Fall to the end tick" },
+			{ "ring.size", "Size word", "The anchor's size word: (the target's size + Base) x Times (the sparkles' spread)" },
+			{ "sparkles.window", "Spawning", "One spawned at target ticks From tick, From tick + Every, ... up to To tick" },
+			{ "circle.window", "Spawning", "One spawned at target ticks From tick, From tick + Every, ... up to To tick" },
+		};
+		static const Field FIELDS[] = {
+			DISPEL_FIELD("timing", timing.every, "Every", "The root starts the next action's target task every this many ticks", I16, 1, 100),
+			DISPEL_FIELD("timing", timing.busy_tick, "Busy tick", "Not while a target task on that target is at this tick or before (the cycle restarts)", I16, -1, 200),
+			DISPEL_FIELD("timing", timing.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
+			DISPEL_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays at the target's effect position when the target tick == this", I16, 0, 200),
+			DISPEL_FIELD("timing", timing.sound_volume, "Sound volume", "BdPlaySE3D's volume argument", I16, 0, 0x7FFF),
+			DISPEL_FIELD("timing", timing.fade_tick, "Fade tick", "The engine's screen fade starts when the target tick == this", I16, -1, 200),
+			DISPEL_FIELD("timing", timing.damage_tick, "Damage tick", "The action's target takes the result when the target tick == this", I16, 0, 200),
+			DISPEL_FIELD("timing", timing.end_tick, "End tick", "The target task ends when its tick reaches this (the flash off)", I16, 0, 200),
+			DISPEL_FIELD("timing", flash.rise, "Rise", "", I16, 1, 200),
+			DISPEL_FIELD("timing", flash.level, "Level", "", I16, 0, 0x7FFF),
+			DISPEL_FIELD("timing", flash.fall, "Fall", "", I16, 0, 199),
+			DISPEL_FIELD("ring", ring.depth, "Depth", "Added to its drawing depth (sort key)", I16, -0x1000, 0x1000),
+			DISPEL_FIELD("ring", ring.size_base, "Base", "", I16, -0x1000, 0x1000),
+			DISPEL_FIELD("ring", ring.size_times, "Times", "", I16, 0, 16),
+			DISPEL_FIELD("sparkles", sparkles.window.first, "From tick", "", I16, 0, 200),
+			DISPEL_FIELD("sparkles", sparkles.window.last, "To tick", "", I16, 0, 200),
+			DISPEL_FIELD("sparkles", sparkles.every, "Every", "", I16, 1, 50),
+			DISPEL_FIELD("sparkles", sparkles.lift, "Lift", "Added to y (y goes down)", I16, -0x2000, 0x2000),
+			DISPEL_FIELD("sparkles", sparkles.scale, "Size", "The sprite's size", I16, 0, 0x7FFF),
+			DISPEL_FIELD("sparkles", sparkles.frames, "Frames", "Flipbook frames, one per tick: it lives this many ticks", I16, 1, 64),
+			DISPEL_FIELD("sparkles", sparkles.seq, "Sequence", "The sprite sequence", Seq, 0, 0x7FFFFFFF),
+			DISPEL_FIELD("circle", circle.window.first, "From tick", "", I16, 0, 200),
+			DISPEL_FIELD("circle", circle.window.last, "To tick", "", I16, 0, 200),
+			DISPEL_FIELD("circle", circle.every, "Every", "", I16, 1, 50),
+			DISPEL_FIELD("circle", circle.lift, "Lift", "Added to y (y goes down)", I16, -0x2000, 0x2000),
+			DISPEL_FIELD("circle", circle.scale, "Size", "The sprite's size", I16, 0, 0x7FFF),
+			DISPEL_FIELD("circle", circle.frames, "Frames", "Flipbook frames, one per tick: it lives this many ticks", I16, 1, 64),
+			DISPEL_FIELD("circle", circle.turns, "Points a turn", "angle = (tick - From tick) x 4096 / this", I16, 1, 64),
+			DISPEL_FIELD("circle", circle.seq, "Sequence", "The sprite sequence", Seq, 0, 0x7FFFFFFF),
+		};
+#undef DISPEL_FIELD
+	}
+
 	void register_mag109_dispel()
 	{
+		fxp::register_params({ 109, "Dispel", &dispel109::g_params, &dispel109::DEFAULTS, sizeof(dispel109::DispelParams),
+		                       dispel109::PARTS, (int)(sizeof(dispel109::PARTS) / sizeof(dispel109::PARTS[0])),
+		                       dispel109::FIELDS, (int)(sizeof(dispel109::FIELDS) / sizeof(dispel109::FIELDS[0])),
+		                       dispel109::GROUPS, (int)(sizeof(dispel109::GROUPS) / sizeof(dispel109::GROUPS[0])) });
 		register_port(dispel109::ORIG_RootTask, (void *)dispel109::RootTask, "D109 RootTask", 109);
 		register_port(dispel109::ORIG_TargetTask, (void *)dispel109::TargetTask, "D109 TargetTask", 109);
 		register_port(dispel109::ORIG_ParticleTask, (void *)dispel109::ParticleTask, "D109 ParticleTask", 109);
 		// 30 fps layer: see mag109_dispel_held.inc
 		FX_HELD(register_mag109_held();)
 	}
+	FX_LAB_MODULE(register_mag109_dispel);
 }
 
 #ifdef FF8_FX_HELD
