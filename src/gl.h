@@ -25,8 +25,10 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <type_traits>
 
 #include "common.h"
+#include "ff7/field/kawai.h"
 
 #define VERTEX 1
 #define LVERTEX 2
@@ -66,7 +68,11 @@ struct driver_state
 	uint32_t alpharef;
 	struct matrix world_view_matrix;
 	struct matrix d3dprojection_matrix;
+	ff7::field::kawai::Effect kawai_effect;
+	struct matrix kawai_camera_matrix;
 };
+
+static_assert(std::is_trivially_copyable_v<driver_state>);
 
 struct deferred_draw
 {
@@ -140,7 +146,7 @@ uint32_t gl_defer_world_external_mesh();
 uint32_t gl_defer_cloud_external_mesh();
 void gl_draw_deferred(draw_field_shadow_callback shadow_callback);
 struct boundingbox calculateSceneAabb();
-void gl_draw_sorted_deferred();
+void gl_draw_sorted_deferred(bool defer_to_lighting = false);
 void gl_check_deferred(struct texture_set *texture_set);
 void gl_cleanup_deferred();
 uint32_t gl_special_case(uint32_t primitivetype, uint32_t vertextype, struct nvertex *vertices, uint32_t vertexcount, WORD *indices, uint32_t count, struct graphics_object *graphics_object, uint32_t clip, uint32_t mipmap);

@@ -178,6 +178,8 @@ void gl_load_state(struct driver_state *src, bool bind_textures)
 		current_state.texture_set = src->texture_set;
 	}
 
+	current_state.kawai_effect = src->kawai_effect;
+	current_state.kawai_camera_matrix = src->kawai_camera_matrix;
 	common_setviewport(src->viewport[0], src->viewport[1], src->viewport[2], src->viewport[3], 0);
 	gl_set_blend_func(src->blend_mode);
 	internal_set_renderstate(V_WIREFRAME, src->wireframe, 0);
@@ -253,8 +255,29 @@ void gl_calculate_normals(std::vector<vector3<float>>* pNormals, struct indexed_
 	}
 }
 
+namespace
+{
+	struct KawaiDrawScope
+	{
+		ff7::field::kawai::Effect effect = current_state.kawai_effect;
+		matrix camera = current_state.kawai_camera_matrix;
+
+		explicit KawaiDrawScope(polygon_data* polygon)
+		{
+			ff7::field::bind_kawai_effect(ff8 ? nullptr : polygon);
+		}
+
+		~KawaiDrawScope()
+		{
+			current_state.kawai_effect = effect;
+			current_state.kawai_camera_matrix = camera;
+		}
+	};
+}
+
 void gl_draw_without_lighting(struct indexed_primitive* ip, struct polygon_data *polydata, struct light_data* lightdata, uint32_t clip)
 {
+	KawaiDrawScope kawai_scope(polydata);
 	if (enable_external_mesh && polydata->field_48)
 	{
 		auto externalMesh = reinterpret_cast<ExternalMesh*>(polydata->field_48);
@@ -263,6 +286,12 @@ void gl_draw_without_lighting(struct indexed_primitive* ip, struct polygon_data 
 	}
 	
 	static std::vector<vector3<float>> normals;
+	if (!ff8 && current_state.kawai_effect.kind != ff7::field::kawai::Kind::none)
+	{
+		gl_calculate_normals(&normals, ip, polydata, lightdata);
+		ff7::field::draw_kawai_model(polydata, ip, normals, lightdata, clip);
+		return;
+	}
 	if (!ff8 && lightdata != nullptr && game_lighting != GAME_LIGHTING_ORIGINAL)
 	{
 		gl_calculate_normals(&normals, ip, polydata, lightdata);
@@ -273,6 +302,7 @@ void gl_draw_without_lighting(struct indexed_primitive* ip, struct polygon_data 
 // draw a set of primitives with lighting
 void gl_draw_with_lighting(struct indexed_primitive *ip, struct polygon_data *polydata, struct light_data* lightdata, uint32_t clip)
 {
+	KawaiDrawScope kawai_scope(polydata);
 	if (enable_external_mesh && polydata->field_48)
 	{
 		auto externalMesh = reinterpret_cast<ExternalMesh*>(polydata->field_48);
@@ -284,6 +314,7 @@ void gl_draw_with_lighting(struct indexed_primitive *ip, struct polygon_data *po
 	if (!ff8)
 	{
 		gl_calculate_normals(&normals, ip, polydata, lightdata);
+		if (ff7::field::draw_kawai_model(polydata, ip, normals, lightdata, clip)) return;
 		gl_draw_indexed_primitive(ip->primitivetype, ip->vertextype, ip->vertices, normals.data(), ip->vertexcount, ip->indices, ip->indexcount, 0, polydata->boundingboxdata, lightdata, clip, true);
 	}
 	else gl_draw_indexed_primitive(ip->primitivetype, ip->vertextype, ip->vertices, nullptr, ip->vertexcount, ip->indices, ip->indexcount, 0, polydata->boundingboxdata, lightdata, clip, true);
@@ -435,9 +466,32 @@ float gl_get_field_model_scale()
 	return static_cast<float>((*pScale)) / 128.0f;
 }
 
+// Every texture slot is set for every part, so a part never samples the previous part's textures.
+// A part without a base color texture is drawn with its material color instead of being discarded.
+static void gl_use_external_mesh_textures(const Shape& shape)
+{
+	auto pMaterial = shape.pMaterial;
+	bgfx::TextureHandle baseColorTexHandle = BGFX_INVALID_HANDLE;
+	bgfx::TextureHandle normalTexHandle = BGFX_INVALID_HANDLE;
+	bgfx::TextureHandle pbrTexHandle = BGFX_INVALID_HANDLE;
+	if(pMaterial != nullptr)
+	{
+		if(pMaterial->baseColorTexHandles.size() > 0) baseColorTexHandle = pMaterial->baseColorTexHandles[pMaterial->texIndex];
+		if(pMaterial->normalTexHandles.size() > 0) normalTexHandle = pMaterial->normalTexHandles[0];
+		if(pMaterial->pbrTexHandles.size() > 0) pbrTexHandle = pMaterial->pbrTexHandles[0];
+	}
+	newRenderer.useTexture(bgfx::isValid(baseColorTexHandle) ? baseColorTexHandle.idx : 0, RendererTextureSlot::TEX_Y);
+	newRenderer.useTexture(bgfx::isValid(normalTexHandle) ? normalTexHandle.idx : 0, RendererTextureSlot::TEX_NML);
+	newRenderer.useTexture(bgfx::isValid(pbrTexHandle) ? pbrTexHandle.idx : 0, RendererTextureSlot::TEX_PBR);
+}
+
 void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightdata)
 {
+	auto shapeCount = externalMesh->shapes.size();
+	if (shapeCount == 0) return;
+
 	if(gl_defer_external_mesh(externalMesh, lightdata)) return;
+	const bool kawai_active = current_state.kawai_effect.kind != ff7::field::kawai::Kind::none;
 
 	auto scale = gl_get_field_model_scale();
 	if (scale == 0.0f)
@@ -520,18 +574,21 @@ void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightd
 		}
 	}	
 
-	if(!ff8 && lightdata != nullptr && game_lighting != GAME_LIGHTING_ORIGINAL) 
+	if(!ff8 && lightdata != nullptr && game_lighting != GAME_LIGHTING_ORIGINAL &&
+		(!kawai_active || current_state.kawai_effect.kind == ff7::field::kawai::Kind::clip ||
+			ff7::field::kawai::gpu_color_offset(current_state.kawai_effect, true)))
 	{
 		newRenderer.setGameLightData(lightdata);
 	} else newRenderer.setGameLightData(nullptr);
 
-	if (externalMesh->skins.size())
+	if (externalMesh->skins.size() && !kawai_active)
 	{
 		newRenderer.setSmoothSkinningBoneMatrices(&matrix_palette, jointCount);
 
 		newRenderer.isSmoothSkinning(true);
 		newRenderer.setSmoothSkinningUniforms();
 	}
+	else newRenderer.isSmoothSkinning(false);
 
 	newRenderer.setInterpolationQualifier(SMOOTH);
 	newRenderer.setPrimitiveType();
@@ -564,10 +621,11 @@ void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightd
 		}
 	}
 
+	// The common and lighting uniforms are set once per model, with the first part's textures picked
+	gl_use_external_mesh_textures(externalMesh->shapes[0]);
 	newRenderer.setCommonUniforms();
 	if (enable_lighting) newRenderer.setLightingUniforms();
 
-	auto shapeCount = externalMesh->shapes.size();
 	int vertexOffset = 0;
 	int indexOffset = 0;
 
@@ -579,44 +637,111 @@ void gl_draw_external_mesh(ExternalMesh* externalMesh, struct light_data* lightd
 		newRenderer.setInterpolationQualifier(SMOOTH);
 		newRenderer.setCullMode(shape.isDoubleSided ? RendererCullMode::DISABLED : RendererCullMode::FRONT);
 
-		externalMesh->bindField3dVertexBuffer(vertexOffset, shape.vertices.size());
-		externalMesh->bindField3dIndexBuffer(indexOffset, shape.indices.size());
-
-		if(shape.pMaterial != nullptr)
+		ff7::field::KawaiGeometry kawai_geometry;
+		if (kawai_active)
 		{
-			if(shape.pMaterial->baseColorTexHandles.size() > 0)
+			auto vertices = shape.vertices;
+			auto normals = shape.normals;
+			if (jointCount != 0)
 			{
-				auto baseColorTexHandle = shape.pMaterial->baseColorTexHandles[shape.pMaterial->texIndex];
-				if(bgfx::isValid(baseColorTexHandle))
-					newRenderer.useTexture(baseColorTexHandle.idx, RendererTextureSlot::TEX_Y);
-				else newRenderer.useTexture(0, RendererTextureSlot::TEX_Y);
+				if (shape.joints.size() != vertices.size() || shape.weights.size() != vertices.size())
+				{
+					ffnx_error("KAWAI: skinned mesh has inconsistent joint/weight arrays\n");
+					continue;
+				}
+				bool valid = true;
+				for (size_t v = 0; v < vertices.size() && valid; ++v)
+				{
+					const auto& j = shape.joints[v];
+					const auto& w = shape.weights[v];
+					const std::array<float, 4> joints = {j.x, j.y, j.z, j.w};
+					const std::array<float, 4> weights = {w.x, w.y, w.z, w.w};
+					vector3<float> position{}, normal{};
+					for (size_t component = 0; component < 4; ++component)
+					{
+						if (!std::isfinite(weights[component]))
+						{
+							valid = false;
+							break;
+						}
+						if (weights[component] == 0) continue;
+						if (!std::isfinite(joints[component]) || joints[component] != std::trunc(joints[component]) ||
+							joints[component] < 0 || joints[component] >= jointCount)
+						{
+							valid = false;
+							break;
+						}
+						auto bone = matrix_palette[static_cast<size_t>(joints[component])];
+						vector3<float> transformed;
+						transform_point(&bone, &shape.vertices[v]._, &transformed);
+						position.x += weights[component] * transformed.x;
+						position.y += weights[component] * transformed.y;
+						position.z += weights[component] * transformed.z;
+						if (v < normals.size())
+						{
+							bone._41 = bone._42 = bone._43 = 0;
+							auto source_normal = shape.normals[v];
+							transform_point(&bone, &source_normal, &transformed);
+							normal.x += weights[component] * transformed.x;
+							normal.y += weights[component] * transformed.y;
+							normal.z += weights[component] * transformed.z;
+						}
+					}
+					vertices[v]._ = position;
+					if (v < normals.size()) normals[v] = normal;
+				}
+				if (!valid)
+				{
+					ffnx_error("KAWAI: skinned mesh has invalid weights or joint indices\n");
+					continue;
+				}
 			}
-
-			if(shape.pMaterial->normalTexHandles.size() > 0)
+			std::vector<uint32_t> source_colors;
+			source_colors.reserve(shape.vertices.size());
+			for (const auto& vertex : shape.vertices) source_colors.push_back(vertex.color.color);
+			kawai_geometry = ff7::field::process_kawai_geometry(vertices, normals, shape.indices, source_colors, lightdata);
+			if (ff7::field::kawai::gpu_color_offset(current_state.kawai_effect, game_lighting != GAME_LIGHTING_ORIGINAL))
 			{
-				auto normalTexHandle = shape.pMaterial->normalTexHandles[0];
-				if(bgfx::isValid(normalTexHandle))
-					newRenderer.useTexture(normalTexHandle.idx, RendererTextureSlot::TEX_NML);
-				else newRenderer.useTexture(0, RendererTextureSlot::TEX_NML);
+				newRenderer.setGameLightData(kawai_geometry.normals.empty() ? nullptr : lightdata);
+				newRenderer.setCommonUniforms();
 			}
-
-			if(shape.pMaterial->pbrTexHandles.size() > 0)
-			{
-				auto pbrTexHandle = shape.pMaterial->pbrTexHandles[0];
-				if(bgfx::isValid(pbrTexHandle))
-					newRenderer.useTexture(pbrTexHandle.idx, RendererTextureSlot::TEX_PBR);
-				else newRenderer.useTexture(0, RendererTextureSlot::TEX_PBR);
-			}
-
-			newRenderer.bindTextures();      
+		}
+		else
+		{
+			externalMesh->bindField3dVertexBuffer(vertexOffset, shape.vertices.size());
+			externalMesh->bindField3dIndexBuffer(indexOffset, shape.indices.size());
 		}
 
- 		if (enable_lighting)
+		gl_use_external_mesh_textures(shape);
+		newRenderer.bindTextures();
+
+		// The first part's flags were set with the common uniforms; the others update the ones that depend on textures
+		if (i > 0) newRenderer.setTextureFlagsUniforms();
+
+		auto draw_shape = []()
 		{
-			newRenderer.drawToShadowMap(true, true);
-			newRenderer.drawWithLighting(true, true, true);
+			if (enable_lighting)
+			{
+				newRenderer.drawToShadowMap(true, true);
+				newRenderer.drawWithLighting(true, true, true);
+			}
+			else newRenderer.draw(true, true, true);
+		};
+		if (kawai_active)
+		{
+			for (size_t start = 0; start < kawai_geometry.vertices.size(); start += 65535)
+			{
+				const auto count = static_cast<uint32_t>(std::min<size_t>(65535, kawai_geometry.vertices.size() - start));
+				std::vector<WORD> indices(count);
+				for (uint32_t index = 0; index < count; ++index) indices[index] = static_cast<WORD>(index);
+				newRenderer.bindVertexBuffer(kawai_geometry.vertices.data() + start,
+					kawai_geometry.normals.empty() ? nullptr : kawai_geometry.normals.data() + start, count);
+				newRenderer.bindIndexBuffer(indices.data(), count);
+				newRenderer.setInterpolationQualifier(SMOOTH);
+				draw_shape();
+			}
 		}
-		else newRenderer.draw(true, true, true);
+		else draw_shape();
 
 		vertexOffset += shape.vertices.size();
 		indexOffset += shape.indices.size();

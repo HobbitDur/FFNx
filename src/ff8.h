@@ -770,6 +770,15 @@ struct ff8_menu_config_task {
 	uint8_t gap3[79];
 };
 
+struct ff8_menu_save_task {
+	uint8_t gap1[16];
+	uint16_t state;
+	uint8_t gap2[44];
+	uint16_t progress;
+	uint8_t gap3[14];
+	uint8_t scan_index;
+};
+
 struct ff8_draw_menu_sprite_texture_infos_short {
 	uint32_t texID; // 2 bits = depth | 2 bits = blend | 1 bit = draw | 4 bits = textureID
 	uint32_t color;
@@ -1276,6 +1285,38 @@ struct ff8_battle_magic_cast_context {
 	uint8_t unk_0B;
 };
 
+// AnimSeq state of a battle model
+struct ff8_battle_anim_sequence_state {
+	uint8_t current_sequence;
+	uint8_t delay;
+	uint8_t base_sequence;
+	uint8_t next_sequence;
+	uint8_t unk_04[0x0E];
+	uint16_t saved_base_sequence;
+};
+
+// Battle model slot (0x9C bytes, one per battle entity)
+struct ff8_battle_entity_state {
+	uint8_t entity_flags;
+	uint8_t status_flags;
+	uint16_t combat_flags; // 0x08: an external anim set is bound
+	uint8_t com_id; // below 0x10: party character
+	uint8_t unk_05[0x5B];
+	uint8_t anim_header[0x0C];
+	uint8_t anim_cmd[0x08];
+	ff8_battle_anim_sequence_state *sequence_state;
+	void *weapon_anim_header;
+	uint8_t unk_7C[0x20];
+};
+
+// Sections a model uses, the anim set bind block holds one per pool (body, then weapon)
+struct ff8_battle_com_file_data {
+	void *skeleton;
+	void *geometry;
+	void *animations;
+	void *sequences;
+};
+
 struct ff8_menu_callback {
 	void (*func)(int);
 	uint32_t field_4;
@@ -1400,7 +1441,6 @@ struct ff8_externals
 	uint32_t field_fade_sub_47B980;
 	uint32_t field_draw_shadows_sub_472F20;
 	ff8_field_fade *field_fade;
-	uint32_t *field_keys_scanned;
 	uint32_t *field_keys_pressed;
 	char (*sub_47CA90)();
 	uint32_t field_update_seed_level_52B140;
@@ -1416,7 +1456,7 @@ struct ff8_externals
 	uint32_t sub_467C00;
 	uint32_t sub_468810;
 	uint32_t dinput_get_input_device_capabilities_number_of_buttons;
-	uint32_t get_command_key;
+	uint8_t (*get_command_key)(int, int, int);
 	uint32_t sub_468BD0;
 	uint32_t pubintro_cleanup;
 	uint32_t pubintro_cleanup_textures;
@@ -1573,7 +1613,6 @@ struct ff8_externals
 	LPDIRECTINPUTDEVICE8A dinput_gamepad_device;
 	LPDIJOYSTATE2 dinput_gamepad_state;
 	uint32_t dinput_init_gamepad;
-	BYTE* engine_gamepad_button_pressed;
 	DWORD* engine_mapped_buttons;
 	uint32_t draw_movie_frame;
 	struct ff8_movie_obj *movie_object;
@@ -1665,9 +1704,6 @@ struct ff8_externals
 	uint32_t opcode_ames;
 	uint32_t opcode_amesw;
 	int (*opcode_keyon)(void*);
-	int (*opcode_keyscan)(void*);
-	int (*opcode_keyscan2)(void*);
-	int (*opcode_keyon2)(void*);
 	uint32_t opcode_ramesw;
 	uint32_t opcode_ask;
 	uint32_t opcode_aask;
@@ -1956,6 +1992,9 @@ struct ff8_externals
 	uint32_t battle_magic_effect_start_call; // where sub_50A9A0 calls the loaded effect
 	uint32_t battle_play_camera_animation_sub_5099A0;
 	uint32_t battle_set_camera_track_sub_509970;
+	uint32_t battle_bind_anim_set_sub_5022C0;
+	uint32_t battle_set_com_file_data_sub_502270;
+	uint32_t battle_exit_sub_4868C0;
 	uint32_t sub_571870;
 	DWORD* func_off_battle_effect_textures_50AF93;
 	uint32_t get_battle_effect_buffer_sub_571B50;
@@ -2004,6 +2043,9 @@ struct ff8_externals
 	uint32_t scan_text_data;
 	uint32_t scan_text_positions;
 	uint32_t fps_limiter;
+	uint32_t menu_main_loop;
+	uint64_t *menu_timestamp;
+	double *menu_frame_time;
 	double *time_volume_change_related_1A78BE0;
 	uint32_t field_vars_stack_1CFE9B8;
 	uint32_t get_card_name;
@@ -2109,7 +2151,6 @@ struct ff8_externals
 	uint32_t render_save_entry_sub_4E6020;
 	uint32_t draw_icons_sub_49F850;
 	uint32_t sub_4BE100;
-	uint32_t input_get_key_using_savemap_sub_4A2D60;
 	uint32_t play_sfx_menu_sub_4B92A0;
 	uint32_t menu_draw_text_sub_4BDE30;
 	uint32_t word_1D77148;

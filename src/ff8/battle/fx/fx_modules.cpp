@@ -508,7 +508,7 @@ namespace ff8fx::mod
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
 	const Region engine_regions[] = {
-		{ 0x20DFAB8, 0x100000, "magic buffer" }, // MAGIC_TEXTURE_BUFFER_BASE: creature, particle pools, packet arenas
+		{ 0x20DFAB8, 0x100000, "magic buffer" }, // MAGIC_TEXTURE_BUFFER_BASE: creature, particle pools, packet arenas (fx_verify: wherever 0x571B50 says, FFNx moves it)
 		{ 0x21DFAB8, 4, "magic buffer cursor" },  // its fill cursor (zeroed with it by Magic_ClearMemoryForTex)
 		{ 0x1D99A88, 4, "MAGIC_TEXTURE_BUFFER_PTR" },
 		{ 0xB8B7F0, 0x20, "battle camera" },      // Battle_Camera_world/LookAt + ReturnView

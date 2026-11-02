@@ -23,6 +23,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <vector>
 #include <unordered_map>
 #include <windows.h>
@@ -37,11 +38,18 @@
 #include "texture_packer.h"
 #include "field/background.h"
 
+namespace remastered_battle_texture
+{
+struct ImageLayout;
+}
+
 class TextureImage {
 public:
 	TextureImage();
-	bool createImage(const char *filename, int originalTexturePixelWidth, int originalTextureHeight, int internalLodScale = 1, int8_t *rgbaModifier = nullptr);
+	bool createImage(const char *filename, int originalTexturePixelWidth, int originalTextureHeight, int internalLodScale = 1, int8_t *rgbaModifier = nullptr, bool useCache = false);
 	void destroyImage();
+	uint32_t *writableData();
+	static void clearCache();
 	inline uint8_t scale() const {
 		return _scale;
 	}
@@ -56,12 +64,13 @@ public:
 	}
 	static int computeMaxScale();
 private:
+	void setImage(bimg::ImageContainer *image);
 	void setLod(uint8_t lod);
 	void alterColors(int8_t *rgbaModifier);
 	uint8_t computeLod(int originalTexturePixelWidth, int imageWidth, int numMips, int internalScale = 1, const char *filename = "") const;
 	uint8_t computeScale(int originalTexturePixelWidth, int originalTextureHeight, const char *filename = "") const;
-	bimg::ImageContainer *_image;
-	bimg::ImageMip _mip;
+	std::shared_ptr<bimg::ImageContainer> _image;
+	bimg::ImageMip _mip{};
 	uint8_t _scale;
 
 	static bx::DefaultAllocator defaultAllocator;
@@ -87,9 +96,13 @@ public:
 		uint32_t *targetRgba, int targetW, int targetH, uint8_t targetScale, Tim::Bpp targetBpp,
 		int16_t paletteVramX, int16_t paletteVramY
 	) const=0;
+	virtual bool coversImage(int offsetX, int offsetY, int targetW, int targetH, uint8_t targetScale, Tim::Bpp targetBpp, int16_t vramPalXBpp2, int16_t vramPalY) const {
+		return false;
+	}
 	bool findExternalTexture(char *outFilename, uint8_t palette_index, bool hasPal, const char *extension = nullptr, char *foundExtension = nullptr) const;
 	static bool findExternalTextureRemastered(const char *name, char *filename, uint8_t palette_index, bool hasPal, const char *extension = nullptr, char *found_extension = nullptr);
 	static bool findExternalTexture(const char *name, char *outFilename, uint8_t palette_index, bool hasPal, const char *extension = nullptr, char *foundExtension = nullptr);
+	static bool hasRemasteredArchiveTextureOverride(const char *archiveFilename);
 protected:
 	static void drawImage(
 		const uint32_t *sourceRgba, int sourceRgbaW, uint8_t sourceScale,
@@ -112,9 +125,9 @@ private:
 
 class TextureModStandard : public ModdedTexture {
 public:
-	TextureModStandard(const TexturePacker::IdentifiedTexture &originalTexture) : ModdedTexture(originalTexture), _currentPalette(-1), _currentAnimationFrame(-1) {}
+	TextureModStandard(const TexturePacker::IdentifiedTexture &originalTexture) : ModdedTexture(originalTexture), _layout(nullptr), _usesRemasteredImages(false), _currentPalette(-1), _currentAnimationFrame(-1) {}
 	TextureModStandard(const TextureModStandard &other) = delete;
-	~TextureModStandard();
+	~TextureModStandard() override = default;
 	inline bool canCopyRect() const override {
 		return true;
 	}
@@ -125,10 +138,11 @@ public:
 		uint32_t *targetRgba, int targetW, int targetH, uint8_t targetScale, Tim::Bpp targetBpp,
 		int16_t vramPalXBpp2, int16_t vramPalY
 	) const override;
+	bool coversImage(int offsetX, int offsetY, int targetW, int targetH, uint8_t targetScale, Tim::Bpp targetBpp, int16_t vramPalXBpp2, int16_t vramPalY) const override;
 	// Copy rect inside the textures
 	void copyRect(int sourceXBpp2, int sourceY, int sourceWBpp2, int sourceH, int targetXBpp2, int targetY);
 	// Copy rect to another textures
-	void copyRect(int sourceXBpp2, int sourceY, int sourceWBpp2, int sourceH, int targetXBpp2, int targetY, const TextureModStandard &targetTexture);
+	void copyRect(int sourceXBpp2, int sourceY, int sourceWBpp2, int sourceH, int targetXBpp2, int targetY, TextureModStandard &targetTexture);
 	// Set to -1 to unforce
 	void forceCurrentPalette(int8_t currentPalette);
 	void setCurrentAnimationFrame(int frameId);
@@ -139,6 +153,8 @@ private:
 	std::map<uint8_t, TextureImage> _textures; // Index: paletteId or current texture
 	TextureImage _remasteredUpperImage;
 	TextureImage _remasteredLowerImage;
+	const remastered_battle_texture::ImageLayout *_layout;
+	bool _usesRemasteredImages;
 	int8_t _currentPalette;
 	int _currentAnimationFrame;
 };
@@ -150,7 +166,7 @@ public:
 		const std::vector<Tile> &mapTiles
 	);
 	TextureBackground(const TextureBackground &other) = delete;
-	~TextureBackground();
+	~TextureBackground() override = default;
 	bool isBpp(Tim::Bpp bpp) const override;
 	inline uint8_t scale(int vramPalXBpp2, int vramPalY) const override {
 		return _texture.scale();

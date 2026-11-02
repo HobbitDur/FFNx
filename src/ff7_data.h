@@ -158,6 +158,7 @@ inline void ff7_find_externals(struct ff7_game_obj* game_object)
 	ff7_externals.field_id = (WORD *)get_absolute_value(field_main_loop, 0x326);
 
 	ff7_externals.open_field_file = get_relative_call(field_main_loop, 0x331);
+	ff7_externals.field_load_tut_file_60DAD4 = (void (*)(ff7_game_obj*))get_relative_call(ff7_externals.open_field_file, 0x9E);
 	ff7_externals.field_file_name = (char *)get_absolute_value(ff7_externals.open_field_file, 0x77);
 	ff7_externals.read_field_file = get_relative_call(ff7_externals.open_field_file, 0xCF);
 
@@ -436,6 +437,13 @@ inline void ff7_find_externals(struct ff7_game_obj* game_object)
 	// japanese name-entry screen (used by the ff7_japanese_edition path)
 	ff7_externals.menu_sub_718B9A = get_relative_call(ff7_externals.menu_sub_718DBE, 0x1C0);
 	ff7_externals.menu_input_check_6F53F1 = (uint32_t (*)(uint32_t))get_relative_call(ff7_externals.menu_sub_718DBE, 0x25F);
+	ff7_externals.input_query_repeatable = get_relative_call((uint32_t)ff7_externals.menu_input_check_6F53F1, 0x7);
+	ff7_externals.get_button_held = (int (*)(int))get_relative_call(ff7_externals.input_query_repeatable, 0x10);
+	ff7_externals.input_repeat_interval = (uint32_t *)get_absolute_value(ff7_externals.input_query_repeatable, 0x5);
+	ff7_externals.input_repeat_gate = (uint32_t *)get_absolute_value(ff7_externals.input_query_repeatable, 0x2B);
+	// The repeat updater follows the query and its interval accessors.
+	uint32_t input_repeat_update = ff7_externals.input_query_repeatable + 0x6F;
+	ff7_externals.input_repeat_active = (uint32_t *)get_absolute_value(input_repeat_update, 0x18);
 	ff7_externals.name_menu_selected_pane_921ED4 = (uint32_t *)get_absolute_value(ff7_externals.menu_sub_718DBE, 0x234);
 	ff7_externals.name_menu_pane_cursor_rows_DD453C = get_absolute_value(ff7_externals.menu_sub_718DBE, 0x284);
 	ff7_externals.name_menu_action_jump_table_719B61 = get_absolute_value(ff7_externals.menu_sub_718DBE, 0x29B);
@@ -491,7 +499,7 @@ inline void ff7_find_externals(struct ff7_game_obj* game_object)
 	common_externals.set_sfx_panning_trans_on_channel = (uint32_t(*)(uint32_t, uint32_t, uint32_t))get_relative_call(ff7_externals.sound_operation, 0x54B);
 	common_externals.set_sfx_frequency_on_channel = (uint32_t(*)(uint32_t, uint32_t))get_relative_call(ff7_externals.sound_operation, 0x5DB);
 	common_externals.set_sfx_frequency_trans_on_channel = (uint32_t(*)(uint32_t, uint32_t, uint32_t))get_relative_call(ff7_externals.sound_operation, 0x65F);
-	common_externals.dsound_volume_table = (uint32_t*)get_absolute_value(uint32_t(common_externals.set_sfx_volume_on_channel), 0xCC);
+	common_externals.dsound_volume_table = (int32_t*)get_absolute_value(uint32_t(common_externals.set_sfx_volume_on_channel), 0xCC);
 	common_externals.play_sfx = (uint32_t(*)(uint32_t))get_relative_call(ff7_externals.sound_operation, 0x703);
 	common_externals.play_sfx_effects = (uint32_t(*)(byte, uint32_t, uint32_t, uint32_t, uint32_t))get_relative_call(ff7_externals.sound_operation, 0x327);
 	ff7_externals.sfx_play_effects_id_channel_6 = (DWORD *)get_absolute_value((uint32_t)common_externals.play_sfx_effects, 0x119);
@@ -507,6 +515,9 @@ inline void ff7_find_externals(struct ff7_game_obj* game_object)
 	ff7_externals.battle_clear_sound_flags = get_relative_call(ff7_externals.battle_sub_429AC0, 0x6C);
 	ff7_externals.swirl_sound_effect = get_relative_call(swirl_main_loop, 0x8B);
 	ff7_externals.sfx_load_and_play_with_speed = get_relative_call(ff7_externals.swirl_sound_effect, 0x3E);
+	ff7_externals.sfx_update_volume = get_relative_call(common_externals.sfx_init, 0x244);
+	uint32_t submarine_update_sound = get_relative_call(submarine_main_loop, 0x791);
+	ff7_externals.sfx_set_volume_per_effect = get_relative_call(submarine_update_sound, 0x2F8);
 
 	ff7_externals.field_initialize_variables = get_relative_call(ff7_externals.field_sub_60DCED, 0x178);
 	ff7_externals.music_lock_clear_fix = ff7_externals.field_initialize_variables + 0x2B8;
@@ -790,6 +801,20 @@ inline void ff7_find_externals(struct ff7_game_obj* game_object)
 	ff7_externals.battle_camera_focal_sub_5C5714 = get_absolute_value(ff7_externals.set_camera_focal_position_scripts, 0x67D);
 
 	ff7_externals.battle_sub_430DD0 = get_relative_call(ff7_externals.battle_loop, 0x99E);
+	uint32_t battle_run_action_script = get_relative_call(ff7_externals.battle_loop, 0x447);
+	uint32_t battle_wait_for_action = get_relative_call(ff7_externals.battle_loop, 0x322);
+	uint32_t battle_arena_next_scene = get_relative_call(ff7_externals.battle_loop, 0x8C8);
+	uint32_t battle_chocobo_escape = get_relative_call(ff7_externals.battle_loop, 0x765);
+	ff7_externals.battle_substate_pointers = {
+		(uint32_t*)get_absolute_value(battle_run_action_script, 0x7),
+		(uint32_t*)get_absolute_value(battle_wait_for_action, 0x5),
+		(uint32_t*)get_absolute_value(ff7_externals.battle_loop, 0x6D6),
+		(uint32_t*)get_absolute_value(ff7_externals.battle_loop, 0x845),
+		(uint32_t*)get_absolute_value(ff7_externals.battle_loop, 0x94B),
+		(uint32_t*)get_absolute_value(ff7_externals.battle_sub_430DD0, 0x7),
+		(uint32_t*)get_absolute_value(battle_arena_next_scene, 0x13),
+		(uint32_t*)get_absolute_value(battle_chocobo_escape, 0xE),
+	};
 	ff7_externals.battle_sub_429D8A = get_absolute_value(ff7_externals.battle_loop, 0x59);
 	ff7_externals.update_battle_camera_sub_5C20CE = get_relative_call(ff7_externals.battle_sub_42D992, 0xFB);
 	ff7_externals.set_battle_camera_sub_5C22BD = get_relative_call(ff7_externals.update_battle_camera_sub_5C20CE, 0x5A);
@@ -826,7 +851,6 @@ inline void ff7_find_externals(struct ff7_game_obj* game_object)
 	ff7_externals.execute_effect10_fn = get_relative_call(ff7_externals.battle_sub_42D992, 0x4D);
 	uint32_t battle_sub_42B66A = get_relative_call(ff7_externals.run_animation_script, 0x460A);
 	ff7_externals.battle_update_3d_model_data = get_relative_call(ff7_externals.run_animation_script, 0x623);
-	ff7_externals.field_apply_model_light_sub_685028 = get_relative_call(ff7_externals.run_animation_script, 0x41FF);
 
 	ff7_externals.effect100_array_data = std::span((effect100_data*)get_absolute_value(ff7_externals.add_fn_to_effect100_fn, 0x5D), 100);
 	ff7_externals.effect100_array_fn = std::span((uint32_t*)get_absolute_value(ff7_externals.add_fn_to_effect100_fn, 0x48), 100);
@@ -1178,8 +1202,8 @@ inline void ff7_find_externals(struct ff7_game_obj* game_object)
 	ff7_externals.pollensalta_cold_breath_bg_texture_ctx = get_absolute_value(ff7_externals.pollensalta_cold_breath_atk_draw_bg_effect_547B94, 0x2A);
 	uint32_t pandora_box_skill_enter_5667E1 = ff7_externals.enemy_skill_effects_fn_table[23];
 	uint32_t pandora_box_skill_main_566806 = get_relative_call(pandora_box_skill_enter_5667E1, 0x1A);
-	uint32_t pandora_box_skill_sub_566871 = get_absolute_value(pandora_box_skill_main_566806, 0x30);
-	uint32_t pandora_box_skill_main_loop_566E61 = get_absolute_value(pandora_box_skill_sub_566871, 0x1F);
+	ff7_externals.pandora_box_skill_init_566871 = get_absolute_value(pandora_box_skill_main_566806, 0x30);
+	uint32_t pandora_box_skill_main_loop_566E61 = get_absolute_value(ff7_externals.pandora_box_skill_init_566871, 0x1F);
 	ff7_externals.pandora_box_skill_draw_bg_flash_effect_568371 = get_absolute_value(pandora_box_skill_main_loop_566E61, 0x162);
 
 	// Texture/Material animation
