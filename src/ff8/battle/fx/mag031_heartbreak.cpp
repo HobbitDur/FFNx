@@ -69,8 +69,16 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (hb_XXXXXX), most of them
 // the text of the matching Magma Breath / Psycho Blast / Confuse / Dribble / Counter Laser-Eye port
 // with this module's addresses.
+// Fujin's described Heartbreak (effect_031.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (HeartbreakParams: the emitter's sound, flashes and ticks, the master's wait, the actor system, the stage light)
+// are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -99,6 +107,20 @@ namespace heartbreak
 	static const uint32_t ORIG_Spawner = 0x872170, ORIG_SparkA = 0x8723E0, ORIG_SparkB = 0x873010, ORIG_SparkC = 0x8730C0;
 	static const uint32_t PRIM_CB = 0x872700;          // the prim-model player's draw callback
 	static const uint32_t SOUND_Heartbreak = 0x15F8DF0;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct HeartbreakParams
+	{
+		struct { uint32_t sound; int16_t flash_a, flash_b, release, result; } emitter;   // its sound; the screen flashes / the master released / the damage at these ticks
+		struct { int16_t wait; } master;                                                  // after the last action, the light ramp down after these ticks
+		struct { int16_t start, length, mode; } actors;                                   // the actor system
+		struct { int16_t level, step; } light;                                            // the stage light ramps
+	};
+	static const HeartbreakParams GAME = { { SOUND_Heartbreak, 0x11, 0x1A, 0x1E, 0x1E }, { 0xA }, { 0, 0x2D, 0 }, { 0x400, 0x100 } };
+	static HeartbreakParams live = GAME;
+	static const HeartbreakParams &PH() { return live; }
 	static const uint32_t ACTOR_DATA = 0x160D188;      // the actor system's data (exe data)
 	static const uint32_t FLASH_SCRIPT_1 = 0x15F8DC8, FLASH_SCRIPT_2 = 0x15F8DD8; // screen flash colour scripts
 	static const uint32_t FLIGHT_T = 0x160D3B4;        // the arrow's flight parameter per step (0..0x1000)
@@ -211,7 +233,7 @@ namespace heartbreak
 	static void FlashDraw(uint32_t colour)
 	{
 		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		uint32_t pkt = MEM<uint32_t>(R(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -224,7 +246,7 @@ namespace heartbreak
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 
@@ -330,14 +352,15 @@ namespace heartbreak
 	uint32_t __cdecl hb_86CB50(uint32_t a1)
 	{
 		g_mod = &MOD_031;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag031_heartbreak_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x26CDDB0) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26CDDB0)) = 0x2793E58;
 		states[0] = 0x86CCC0;
 		states[1] = 0x86CCD0;
 		const uint8_t parity = U8(node, 0x5C);
@@ -352,29 +375,29 @@ namespace heartbreak
 		states[10] = 0x8735C0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26D2DA4);
-			const uint32_t v2 = MEM<uint32_t>(0x26D219C);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26CDDAC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26D2DA4));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26D219C));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26CDDAC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26D2DA0);
-			const uint32_t v2 = MEM<uint32_t>(0x26D2198);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26CDDAC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26D2DA0));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26D2198));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26CDDAC)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x26D33C8) = 0;
-		MEM<uint16_t>(0x26D2DAA) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_FLASH));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PRIM));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PART));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(R(0x26D33C8)) = 0;
+		MEM<uint16_t>(R(0x26D2DAA)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_FLASH)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_PART)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -385,12 +408,12 @@ namespace heartbreak
 	// 0x400 (then finished, next state), written to the four stage wobble words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl hb_86CE10(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
-		if (S16(a1, 0x1C) >= 0x400)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PH().light.step);
+		if (S16(a1, 0x1C) >= PH().light.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x400;
+			U16(a1, 0x1C) = (uint16_t)PH().light.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -478,7 +501,7 @@ namespace heartbreak
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(0x26D33E0) = st;
+		MEM<uint32_t>(R(0x26D33E0)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -490,7 +513,7 @@ namespace heartbreak
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x26D33E0);
+			st = MEM<uint32_t>(R(0x26D33E0));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -510,20 +533,20 @@ namespace heartbreak
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		hb_86D4F0();
-		st = MEM<uint32_t>(0x26D33E0);
+		st = MEM<uint32_t>(R(0x26D33E0));
 		if (U16(st, 0x24) == 4)
 			callp(0x86D410, node);
 		hb_86D840();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(0x26D33E0);
+		st = MEM<uint32_t>(R(0x26D33E0));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x86D650, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(0x26D33E0);
+			st = MEM<uint32_t>(R(0x26D33E0));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x26D33E0);
+			st = MEM<uint32_t>(R(0x26D33E0));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -538,7 +561,7 @@ namespace heartbreak
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x26D33E0);
+		st = MEM<uint32_t>(R(0x26D33E0));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -549,7 +572,7 @@ namespace heartbreak
 	// the harness)
 	uint32_t __cdecl hb_86D410(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26D33E0);
+		const uint32_t arena = MEM<uint32_t>(R(0x26D33E0));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -570,7 +593,7 @@ namespace heartbreak
 	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl hb_86D4F0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -579,7 +602,7 @@ namespace heartbreak
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -592,7 +615,7 @@ namespace heartbreak
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -600,7 +623,7 @@ namespace heartbreak
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -618,7 +641,7 @@ namespace heartbreak
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl hb_86D650(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26D33E0);
+		const uint32_t arena = MEM<uint32_t>(R(0x26D33E0));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -646,7 +669,7 @@ namespace heartbreak
 	// position (the stack words keep what they held)
 	uint32_t __cdecl hb_86D840(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -660,7 +683,7 @@ namespace heartbreak
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -673,7 +696,7 @@ namespace heartbreak
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -681,7 +704,7 @@ namespace heartbreak
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -729,7 +752,7 @@ namespace heartbreak
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x26D33E0, 0) = sys;
+		U32(R(0x26D33E0), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -743,7 +766,7 @@ namespace heartbreak
 			FX_HELD(held_note_system(sys);)
 			hb_86F3C0();
 			hb_86DD40();
-			sys = U32(0x26D33E0, 0);
+			sys = U32(R(0x26D33E0), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -756,8 +779,8 @@ namespace heartbreak
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x26D33C8, 0) = (uint16_t)(U16(0x26D33C8, 0) + c14);
-		U16(0x26D2DAA, 0) = (uint16_t)(U16(0x26D2DAA, 0) + c16);
+		U16(R(0x26D33C8), 0) = (uint16_t)(U16(R(0x26D33C8), 0) + c14);
+		U16(R(0x26D2DAA), 0) = (uint16_t)(U16(R(0x26D2DAA), 0) + c16);
 		return done;
 	}
 
@@ -766,12 +789,12 @@ namespace heartbreak
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl hb_86DD40(void)
 	{
-		uint32_t act = U32(U32(0x26D33E0, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x26D33E0), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x26D33E0, 0);
+				uint32_t sys = U32(R(0x26D33E0), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -788,10 +811,10 @@ namespace heartbreak
 	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl hb_86DDA0(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -811,9 +834,9 @@ namespace heartbreak
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -828,17 +851,17 @@ namespace heartbreak
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1381,15 +1404,15 @@ namespace heartbreak
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl hb_86F3C0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x26D33E0), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x26D33E0)), 0x2C);
 		if (act == 0)
 			return 0; // void
-		uint32_t ebp = Q_ACTORS; // (RESIDUE: ebp as the executor 0x508420 set it, the actor queue)
+		uint32_t ebp = R(Q_ACTORS); // (RESIDUE: ebp as the executor 0x508420 set it, the actor queue)
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x26D33E0);
+				uint32_t st = MEM<uint32_t>(R(0x26D33E0));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1433,20 +1456,20 @@ namespace heartbreak
 	uint32_t __cdecl hb_86F480(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		// (RESIDUE: 0x8DD260 saves esi (the header), ebp, ebx (actor + 0xAC) below its return 0x86F4DD
 		// and its first argument: d7..d11)
 		shadow5(7, hdr, g_sprite_ebp, act + 0xAC, 0x86F4DD, hdr);
@@ -1457,7 +1480,7 @@ namespace heartbreak
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl hb_86F500(void)
 	{
-		uint32_t act = U32(U32(0x26D33E0, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x26D33E0), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1478,7 +1501,7 @@ namespace heartbreak
 	uint32_t __cdecl hb_86F540(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x26D33E0);
+		uint32_t st = MEM<uint32_t>(R(0x26D33E0));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1499,7 +1522,7 @@ namespace heartbreak
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x26D33E0);
+			st = MEM<uint32_t>(R(0x26D33E0));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1517,7 +1540,7 @@ namespace heartbreak
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x26D33E0, 0);                  // actor state block
+		uint32_t st = U32(R(0x26D33E0), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1614,8 +1637,8 @@ namespace heartbreak
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 10 records
 	uint32_t __cdecl hb_870730(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26D2DAC);
-		int32_t idx = MEM<int16_t>(0x26D10A0);
+		const uint32_t pool = MEM<uint32_t>(R(0x26D2DAC));
+		int32_t idx = MEM<int16_t>(R(0x26D10A0));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1625,7 +1648,7 @@ namespace heartbreak
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1640,9 +1663,9 @@ namespace heartbreak
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x26D10A0) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x26D10A0)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x26D10A0) = 0;
+			MEM<uint16_t>(R(0x26D10A0)) = 0;
 		return slot;
 	}
 
@@ -1672,7 +1695,7 @@ namespace heartbreak
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl hb_870850(uint32_t a1)
 	{
-		uint32_t sys = U32(0x26D33E0, 0);
+		uint32_t sys = U32(R(0x26D33E0), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1707,9 +1730,9 @@ namespace heartbreak
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x26D33D0, 0) - 0x50;
+		uint32_t sp = U32(R(0x26D33D0), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x26D33D0, 0) = sp;
+		U32(R(0x26D33D0), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = hb_8710B0(a1, (uint16_t)kind);
@@ -1721,7 +1744,7 @@ namespace heartbreak
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x26D33E0, 0);
+			uint32_t ctx = U32(R(0x26D33E0), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1900,7 +1923,7 @@ namespace heartbreak
 			}
 		}
 		hb_871DC0(node, desc);
-		U32(0x26D33D0, 0) = U32(0x26D33D0, 0) + 0x50;
+		U32(R(0x26D33D0), 0) = U32(R(0x26D33D0), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1909,8 +1932,8 @@ namespace heartbreak
 	// record 49 of the 50 is never used), cleared, owner a1, definition index a2
 	uint32_t __cdecl hb_8710B0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26D33D4);
-		int32_t i = MEM<int16_t>(0x26D2DB8);
+		const uint32_t pool = MEM<uint32_t>(R(0x26D33D4));
+		int32_t i = MEM<int16_t>(R(0x26D2DB8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1923,7 +1946,7 @@ namespace heartbreak
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1940,9 +1963,9 @@ namespace heartbreak
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(0x26D2DB8) = 0;
+			MEM<uint16_t>(R(0x26D2DB8)) = 0;
 		else
-			MEM<uint16_t>(0x26D2DB8) = (uint16_t)i;
+			MEM<uint16_t>(R(0x26D2DB8)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1956,7 +1979,7 @@ namespace heartbreak
 	uint32_t __cdecl hb_8712D0(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x26D33E0, 0);            // ecx
+		const uint32_t st = U32(R(0x26D33E0), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2020,7 +2043,7 @@ namespace heartbreak
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x26D33E0, 0);
+				uint32_t g = U32(R(0x26D33E0), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2030,7 +2053,7 @@ namespace heartbreak
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x26D33E0, 0);
+				uint32_t g = U32(R(0x26D33E0), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2118,7 +2141,7 @@ namespace heartbreak
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl hb_871E50(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x26D33E0);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x26D33E0));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2143,14 +2166,14 @@ namespace heartbreak
 				do
 				{
 					hb_870730(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x26D33E0);
+					dir = MEM<uint32_t>(R(0x26D33E0));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				hb_870730(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x26D33E0);
+				dir = MEM<uint32_t>(R(0x26D33E0));
 			}
 		}
 		return 0; // void
@@ -2181,10 +2204,10 @@ namespace heartbreak
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0; // void
 	}
@@ -2283,7 +2306,7 @@ namespace heartbreak
 	// 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl hb_8733C0(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x1E)
+		if (S16(a1, 0x24) == PH().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2296,7 +2319,7 @@ namespace heartbreak
 	uint32_t __cdecl hb_8733E0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x1E)
+		if (S16(node, 0x24) < PH().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -2328,7 +2351,7 @@ namespace heartbreak
 			return 0; // void
 		}
 		const uint8_t st = U8(node, 0x29);
-		U16(node, 0x60) = 0xA;
+		U16(node, 0x60) = (uint16_t)PH().master.wait;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
 	}
@@ -2340,7 +2363,7 @@ namespace heartbreak
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x8734A0, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x8734A0, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2349,7 +2372,7 @@ namespace heartbreak
 	uint32_t __cdecl hb_873500(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x1C) = 0x400;
+		U16(a1, 0x1C) = (uint16_t)PH().light.level;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -2358,7 +2381,7 @@ namespace heartbreak
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl hb_873520(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PH().light.step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -2381,14 +2404,14 @@ namespace heartbreak
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x26D33DC);
-		MEM<uint32_t>(0x26D2DAC) = p;
+		uint32_t p = MEM<uint32_t>(R(0x26D33DC));
+		MEM<uint32_t>(R(0x26D2DAC)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x26D33D4) = p;
+		MEM<uint32_t>(R(0x26D33D4)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(0x26D33DC) = p;
+		MEM<uint32_t>(R(0x26D33DC)) = p;
 		hb_86CD30();
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x86CD70, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x86CD70, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2398,12 +2421,12 @@ namespace heartbreak
 	// cursor 0x26D10A0, the actor cursor 0x26D2DB8 and the words 0x26D2DA8 / 0x26CDD94
 	uint32_t __cdecl hb_86CD30(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26D2DAC), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26D33D4), 0x8340);
-		MEM<uint16_t>(0x26D10A0) = 0;
-		MEM<uint16_t>(0x26D2DB8) = 0;
-		MEM<uint16_t>(0x26D2DA8) = 0;
-		MEM<uint16_t>(0x26CDD94) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26D2DAC)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26D33D4)), 0x8340);
+		MEM<uint16_t>(R(0x26D10A0)) = 0;
+		MEM<uint16_t>(R(0x26D2DB8)) = 0;
+		MEM<uint16_t>(R(0x26D2DA8)) = 0;
+		MEM<uint16_t>(R(0x26CDD94)) = 0;
 		return 0; // void
 	}
 
@@ -2445,15 +2468,15 @@ namespace heartbreak
 		}
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(SOUND_Heartbreak, 0, 0x80);
-		if (U16(node, 0x24) == 0x11)
+			x::BdPlaySE(fxp::sound(PH().emitter.sound, SOUND_Heartbreak), 0, 0x80);
+		if (S16(node, 0x24) == PH().emitter.flash_a)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
+			const uint32_t t = Spawn(R(Q_FLASH), ORIG_Flash, 0x3C, node);
 			U32(t, 0x30) = FLASH_SCRIPT_1;
 		}
-		if (U16(node, 0x24) == 0x1A)
+		if (S16(node, 0x24) == PH().emitter.flash_b)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
+			const uint32_t t = Spawn(R(Q_FLASH), ORIG_Flash, 0x3C, node);
 			U32(t, 0x30) = FLASH_SCRIPT_2;
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2471,8 +2494,8 @@ namespace heartbreak
 		hb_871F10(a1, ORIG_Ring, 0x1602658, 0x2C, 1, 0);
 		hb_871F10(a1, ORIG_Arrow, 0x1608024, 0x7C, 2, 0);
 		hb_871F10(a1, ORIG_Burst, 0x160AF24, 0x6C, 3, 0);
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0, 0x2D, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_Shake, 0x80, a1);
+		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, (uint16_t)PH().actors.start, (uint16_t)PH().actors.length, (uint16_t)PH().actors.mode);
+		Spawn(R(Q_PART), ORIG_Shake, 0x80, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2522,7 +2545,7 @@ namespace heartbreak
 	// layout data a3, +0x78 layout argument (short a4), +0x80 = a5, +0x82 = a6; returns the node
 	uint32_t __cdecl hb_871F10(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, a2, 0x1B0, a1);
+		const uint32_t t = Spawn(R(Q_PRIM), a2, 0x1B0, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -2595,12 +2618,12 @@ namespace heartbreak
 		S32(L, 0x1C) = S16(node, 0x20);
 		memcpy(pl, fr, 0x20); // rep movsd: the placement before the camera
 		x::ComposeAffineTransform(0x1D97778, L, L);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		// 30 fps layer: see mag031_heartbreak_held.inc
 		FX_HELD(held_note_play(node, place);)
 		if (prim_play(node + 0x94, PRIM_CB, L, 0) == 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_Spawner, 0x80, node);
+			const uint32_t t = Spawn(R(Q_PART), ORIG_Spawner, 0x80, node);
 			U8(node, 0x26) |= 1;
 			const uint8_t st = U8(node, 0x29);
 			memcpy((void *)(t + 0x58), pl, 0x20);
@@ -2608,7 +2631,7 @@ namespace heartbreak
 		}
 		// (RESIDUE: its frame's block (d0..d7, blend d18) and placement copy (d23..d26))
 		shadow_copy(0, L, 8);
-		g_shadow[18] = BLEND_BUF;
+		g_shadow[18] = R(BLEND_BUF);
 		shadow_copy(23, place, 4);
 		return 0; // void
 	}
@@ -2623,7 +2646,7 @@ namespace heartbreak
 	// plane at speed a4 plus z = +-speed / 2 (rand & 1), turned by the spawner's placement +0x58
 	uint32_t __cdecl hb_872310(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_SparkA, 0x80, a1);
+		const uint32_t t = Spawn(R(Q_PART), ORIG_SparkA, 0x80, a1);
 		const uint32_t w20 = U32(a1, 0x20);
 		U32(t, 0x1C) = U32(a1, 0x1C);
 		U32(t, 0x20) = w20;
@@ -2783,7 +2806,7 @@ namespace heartbreak
 		// 30 fps layer: see mag031_heartbreak_held.inc
 		FX_HELD(held_note_play(node, L);)
 		x::ComposeAffineTransform(0x1D97778, L, L);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		if (prim_play(node + 0x94, PRIM_CB, L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -2794,7 +2817,7 @@ namespace heartbreak
 		g_shadow[5] = g_front_vec[0] | (uint32_t)g_front_vec[1] << 16;
 		g_shadow[6] = (g_shadow[6] & 0xFFFF0000) | g_front_vec[2];
 		shadow_copy(7, L, 8);
-		g_shadow[25] = BLEND_BUF;
+		g_shadow[25] = R(BLEND_BUF);
 		return 0; // void
 	}
 
@@ -2904,37 +2927,37 @@ namespace heartbreak
 		U16(node, 0x1AE) = (uint16_t)(U16(node, 0x1AE) + 1);
 		arrow_matrix(node, ent, L);
 		x::ComposeAffineTransform(0x1D97778, L, L);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		if ((U8(node, 0x26) & 1) == 0)
 		{
 			// 30 fps layer: see mag031_heartbreak_held.inc
 			FX_HELD(held_note_play(node, 0);)
 			prim_play(node + 0x94, PRIM_CB, L, 0);
 		}
-		uint32_t p = x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_SparkB, 0x80, node);
+		uint32_t p = Spawn(R(Q_PART), ORIG_SparkB, 0x80, node);
 		uint32_t w = U32(node, 0x20);
 		U32(p, 0x1C) = U32(node, 0x1C);
 		U32(p, 0x20) = w;
 		uint32_t r = x::CrtRand();
 		U16(p, 0x1E) = (uint16_t)(U16(p, 0x1E) + (uint16_t)((r & 0xFF) - 0x80));
-		p = x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_SparkB, 0x80, node);
+		p = Spawn(R(Q_PART), ORIG_SparkB, 0x80, node);
 		U16(p, 0x1C) = (uint16_t)(((int32_t)S16(node, 0x194) + S16(node, 0x1C)) / 2);
 		U16(p, 0x1E) = (uint16_t)(((int32_t)S16(node, 0x196) + S16(node, 0x1E)) / 2);
 		U16(p, 0x20) = (uint16_t)(((int32_t)S16(node, 0x198) + S16(node, 0x20)) / 2);
 		r = x::CrtRand();
 		U16(p, 0x1E) = (uint16_t)(U16(p, 0x1E) + (uint16_t)((r & 0xFF) - 0x80));
-		p = x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_SparkC, 0x80, node);
+		p = Spawn(R(Q_PART), ORIG_SparkC, 0x80, node);
 		w = U32(node, 0x20);
 		U32(p, 0x1C) = U32(node, 0x1C);
 		U32(p, 0x20) = w;
 		hb_872F60(p, 0x80);
-		p = x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_SparkC, 0x80, node);
+		p = Spawn(R(Q_PART), ORIG_SparkC, 0x80, node);
 		U16(p, 0x1C) = (uint16_t)(((int32_t)S16(node, 0x194) + S16(node, 0x1C)) / 2);
 		U16(p, 0x1E) = (uint16_t)(((int32_t)S16(node, 0x196) + S16(node, 0x1E)) / 2);
 		U16(p, 0x20) = (uint16_t)(((int32_t)S16(node, 0x198) + S16(node, 0x20)) / 2);
 		hb_872F60(p, 0x80);
 		shadow_copy(7, L, 8); // (RESIDUE: its frame's block (d7..d14) and blend word (d25))
-		g_shadow[25] = BLEND_BUF;
+		g_shadow[25] = R(BLEND_BUF);
 		return 0; // void
 	}
 
@@ -3016,7 +3039,7 @@ namespace heartbreak
 		S32(node, 0x48) = S16(node, 0x1E);
 		S32(node, 0x4C) = S16(node, 0x20);
 		x::ComposeAffineTransform(0x1D97778, M, L);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		// 30 fps layer: see mag031_heartbreak_held.inc
 		FX_HELD(held_note_play(node, M);)
 		prim_play(node + 0x94, PRIM_CB, L, 0);
@@ -3025,7 +3048,7 @@ namespace heartbreak
 		g_shadow[5] = U16(vec, 0) | (uint32_t)U16(vec, 2) << 16;
 		g_shadow[6] = (g_shadow[6] & 0xFFFF0000) | U16(vec, 4);
 		shadow_copy(7, L, 8);
-		g_shadow[25] = BLEND_BUF;
+		g_shadow[25] = R(BLEND_BUF);
 		return 0; // void
 	}
 
@@ -3037,7 +3060,7 @@ namespace heartbreak
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
 		x::ComposeAffineTransform(0x1D97778, node + 0x30, L);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		// 30 fps layer: see mag031_heartbreak_held.inc
 		FX_HELD(held_note_play(node, node + 0x30);)
 		if (prim_play(node + 0x94, PRIM_CB, L, 0) == 0)
@@ -3047,7 +3070,7 @@ namespace heartbreak
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		shadow_copy(7, L, 8); // (RESIDUE: its frame's block (d7..d14) and blend word (d25))
-		g_shadow[25] = BLEND_BUF;
+		g_shadow[25] = R(BLEND_BUF);
 		return 0; // void
 	}
 
@@ -3146,9 +3169,36 @@ namespace heartbreak
 			U32(hdr, 8) = U32(rec, 0x20);   // fade colour
 		}
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 		return 0; // void (prim player callback)
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(HeartbreakParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the screen flashes, the actor system, the master's release, the damage; the master's wait" },
+			{ 0, "stage", "Stage light", "The stage light ramps up (once the master's children are gone) and down (after the wait)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "At the emitter's start: Start, Length (ticks), Mode (0: the targets' positions)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(HeartbreakParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.flash_a, "First flash", "A screen flash at this tick", 0, 200),
+			DT("emitter", emitter.flash_b, "Second flash", "Another at this tick", 0, 200),
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Damage tick", "The damage of the action's target from this tick", 0, 200),
+			DT("emitter", master.wait, "Wait", "After the last action, the light ramp down after these ticks", 1, 200),
+			DT("emitter", actors.start, "Start", "", 0, 200),
+			DT("emitter", actors.length, "Length", "", 0, 200),
+			DT("emitter", actors.mode, "Mode", "", 0, 4),
+			DT("stage", light.level, "Level", "Its level (up to it, then down from it)", 0, 0x1000),
+			DT("stage", light.step, "Step", "Up / down by this a tick", 1, 0x1000),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -3292,6 +3342,11 @@ namespace heartbreak
 
 	void register_mag031_heartbreak()
 	{
+		fxp::register_params({ 31, "Heartbreak", &act::heartbreak::live, &act::heartbreak::GAME, sizeof(act::heartbreak::HeartbreakParams),
+		                       act::heartbreak::table::PARTS, (int)(sizeof(act::heartbreak::table::PARTS) / sizeof(act::heartbreak::table::PARTS[0])),
+		                       act::heartbreak::table::FIELDS, (int)(sizeof(act::heartbreak::table::FIELDS) / sizeof(act::heartbreak::table::FIELDS[0])),
+		                       act::heartbreak::table::GROUPS, (int)(sizeof(act::heartbreak::table::GROUPS) / sizeof(act::heartbreak::table::GROUPS[0])) });
+		act::register_mod(&act::heartbreak::MOD_031);
 		act::register_module(31);
 		for (const act::heartbreak::ModPort *p = act::heartbreak::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(31, p->addr, p->port, p->name);
@@ -3300,6 +3355,7 @@ namespace heartbreak
 		// 30 fps layer: see mag031_heartbreak_held.inc
 		FX_HELD(register_mag031_held();)
 	}
+	FX_LAB_MODULE(register_mag031_heartbreak);
 }
 
 #ifdef FF8_FX_HELD
