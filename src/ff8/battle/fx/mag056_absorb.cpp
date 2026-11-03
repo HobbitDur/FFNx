@@ -43,8 +43,14 @@
 // Module globals: 0x260E338..0x260F144 (pools, queues, file pointer 0x260E3FC, packet cursor
 // 0x260E400, arenas, actor state 0x260F140, scratch stack pointer 0x260F130), the module scratch
 // stack below the camera copy 0x2793E58, the stage wobble words 0x1D98992 + k * 0x2C.
+// Fujin's described Absorb (effect_056.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (AbsorbParams: the emitter's sound and ticks, the master's wait, the actor system, the stage wobble) are set from
+// the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,6 +73,20 @@ namespace absorb
 	static const uint32_t ORIG_Flash = 0x803730;
 	static const uint32_t ORIG_ActorSystem = 0x8038B0;
 	static const void *const SOUND_Absorb = (const void *)0x159EF30;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct AbsorbParams
+	{
+		struct { uint32_t sound; int16_t flash_a, flash_b, release, result; } emitter;   // its sound; its flashes / the master released / the damage at these ticks
+		struct { int16_t wait; } master;                                                  // after the last action, the wobble out after these ticks
+		struct { int16_t start, length, mode; } actors;                                   // the actor system
+		struct { int16_t level, step_in, step_out; } wobble;                              // the stage wobble: its level, up / down a step a tick
+	};
+	static const AbsorbParams GAME = { { 0x159EF30, 4, 0x14, 0x1E, 0x1E }, { 0xA }, { 0, 0x2D, 0 }, { 0x400, 0x100, 0x100 } };
+	static AbsorbParams live = GAME;
+	static const AbsorbParams &PD() { return live; }
 
 	// engine functions not in act::x
 	namespace rx
@@ -200,14 +220,15 @@ namespace absorb
 	uint32_t __cdecl ab_803340(uint32_t a1)
 	{
 		g_mod = &MOD_056;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag056_absorb_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x260E420) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x260E420)) = 0x2793E58;
 		states[0] = 0x803490;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x8034A0;
@@ -222,24 +243,24 @@ namespace absorb
 		states[10] = 0x8087F0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x260F114);
-			const uint32_t v2 = MEM<uint32_t>(0x260E50C);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x260E41C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x260F114));
+			const uint32_t v2 = MEM<uint32_t>(R(0x260E50C));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x260E41C)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x260F110);
-			const uint32_t v2 = MEM<uint32_t>(0x260E508);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x260E41C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x260F110));
+			const uint32_t v2 = MEM<uint32_t>(R(0x260E508));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x260E41C)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x260F12A) = 0;
-		MEM<uint16_t>(0x260F11A) = 0;
-		static const uint32_t queues[4] = { Q_EMITTER, Q_FLASH, Q_ACTORS, Q_STAGE };
+		MEM<uint16_t>(R(0x260F12A)) = 0;
+		MEM<uint16_t>(R(0x260F11A)) = 0;
+		const uint32_t queues[4] = { R(Q_EMITTER), R(Q_FLASH), R(Q_ACTORS), R(Q_STAGE) };
 		for (int i = 0; i < 4; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -252,12 +273,12 @@ namespace absorb
 	// 0x16F80 bytes at [0x260F134]) and the pool cursors / counters
 	uint32_t __cdecl ab_803500(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x260F11C), 0x10E0);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x260F134), 0x16F80);
-		MEM<uint16_t>(0x260E500) = 0;
-		MEM<uint16_t>(0x260F128) = 0;
-		MEM<uint16_t>(0x260F118) = 0;
-		MEM<uint16_t>(0x260E404) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x260F11C)), 0x10E0);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x260F134)), 0x16F80);
+		MEM<uint16_t>(R(0x260E500)) = 0;
+		MEM<uint16_t>(R(0x260F128)) = 0;
+		MEM<uint16_t>(R(0x260F118)) = 0;
+		MEM<uint16_t>(R(0x260E404)) = 0;
 		return 0; // void
 	}
 
@@ -268,14 +289,14 @@ namespace absorb
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x260F13C);
-		MEM<uint32_t>(0x260F11C) = p;
+		uint32_t p = MEM<uint32_t>(R(0x260F13C));
+		MEM<uint32_t>(R(0x260F11C)) = p;
 		p += 0x10E0;
-		MEM<uint32_t>(0x260F134) = p;
+		MEM<uint32_t>(R(0x260F134)) = p;
 		p += 0x16F80;
-		MEM<uint32_t>(0x260F13C) = p;
+		MEM<uint32_t>(R(0x260F13C)) = p;
 		ab_803500();
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x803540, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x803540, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -284,12 +305,12 @@ namespace absorb
 	// 0x400 (then finished, next state), written to the four stage wobble words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl ab_8035E0(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
-		if (S16(a1, 0x1C) >= 0x400)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PD().wobble.step_in);
+		if (S16(a1, 0x1C) >= PD().wobble.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x400;
+			U16(a1, 0x1C) = (uint16_t)PD().wobble.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -314,15 +335,15 @@ namespace absorb
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Absorb), 0, 0x80);
-		if (U16(node, 0x24) == 4)
+			x::BdPlaySE(fxp::sound(PD().emitter.sound, P(SOUND_Absorb)), 0, 0x80);
+		if (S16(node, 0x24) == PD().emitter.flash_a)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
+			const uint32_t t = Spawn(R(Q_FLASH), ORIG_Flash, 0x3C, node);
 			U32(t, 0x30) = 0x159EF04;
 		}
-		if (U16(node, 0x24) == 0x14)
+		if (S16(node, 0x24) == PD().emitter.flash_b)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
+			const uint32_t t = Spawn(R(Q_FLASH), ORIG_Flash, 0x3C, node);
 			U32(t, 0x30) = 0x159EF10;
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -335,7 +356,7 @@ namespace absorb
 	static void FlashDraw(uint32_t colour)
 	{
 		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		uint32_t pkt = MEM<uint32_t>(R(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -348,7 +369,7 @@ namespace absorb
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	// 0x803730 (MAG_056_sub_851900): SCREEN FLASH task - colour script at +0x30 (dwords: colour, or
@@ -392,7 +413,7 @@ namespace absorb
 	// 0x15A3088, start tick 0, mode 0x2D) through the engine spawner 0x803860, next state
 	uint32_t __cdecl ab_803830(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, 0x15A3088, 0, 0x2D, 0);
+		a_73C100(a1, ORIG_ActorSystem, 0x15A3088, (uint16_t)PD().actors.start, (uint16_t)PD().actors.length, (uint16_t)PD().actors.mode);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -401,7 +422,7 @@ namespace absorb
 	// 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl ab_8085F0(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x1E)
+		if (S16(a1, 0x24) == PD().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -414,7 +435,7 @@ namespace absorb
 	uint32_t __cdecl ab_808610(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x1E)
+		if (S16(node, 0x24) < PD().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -446,7 +467,7 @@ namespace absorb
 			return 0; // void
 		}
 		const uint8_t st = U8(node, 0x29);
-		U16(node, 0x60) = 0xA;
+		U16(node, 0x60) = (uint16_t)PD().master.wait;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
 	}
@@ -458,7 +479,7 @@ namespace absorb
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x8086D0, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x8086D0, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -467,7 +488,7 @@ namespace absorb
 	uint32_t __cdecl ab_808730(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x1C) = 0x400;
+		U16(a1, 0x1C) = (uint16_t)PD().wobble.level;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -482,10 +503,10 @@ namespace absorb
 	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl ab_804480(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -505,9 +526,9 @@ namespace absorb
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -522,17 +543,17 @@ namespace absorb
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -541,20 +562,20 @@ namespace absorb
 	uint32_t __cdecl ab_805B60(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -563,8 +584,8 @@ namespace absorb
 	// index a2) with the module's pool of 0x8C records (cursor wraps at 0x8B)
 	uint32_t __cdecl ab_807790(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x260F134);
-		int32_t i = MEM<int16_t>(0x260F128);
+		const uint32_t pool = MEM<uint32_t>(R(0x260F134));
+		int32_t i = MEM<int16_t>(R(0x260F128));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -577,7 +598,7 @@ namespace absorb
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -594,9 +615,9 @@ namespace absorb
 		}
 		i++;
 		if (i >= 0x8B)
-			MEM<uint16_t>(0x260F128) = 0;
+			MEM<uint16_t>(R(0x260F128)) = 0;
 		else
-			MEM<uint16_t>(0x260F128) = (uint16_t)i;
+			MEM<uint16_t>(R(0x260F128)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -606,7 +627,7 @@ namespace absorb
 	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl ab_803BD0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -615,7 +636,7 @@ namespace absorb
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -628,7 +649,7 @@ namespace absorb
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -636,7 +657,7 @@ namespace absorb
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -656,7 +677,7 @@ namespace absorb
 	// position (the stack words keep what they held)
 	uint32_t __cdecl ab_803F20(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -670,7 +691,7 @@ namespace absorb
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -683,7 +704,7 @@ namespace absorb
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -691,7 +712,7 @@ namespace absorb
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -761,7 +782,7 @@ namespace absorb
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(0x260F140) = st;
+		MEM<uint32_t>(R(0x260F140)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -773,7 +794,7 @@ namespace absorb
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x260F140);
+			st = MEM<uint32_t>(R(0x260F140));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -793,20 +814,20 @@ namespace absorb
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		ab_803BD0();
-		st = MEM<uint32_t>(0x260F140);
+		st = MEM<uint32_t>(R(0x260F140));
 		if (U16(st, 0x24) == 4)
 			callp(0x803AF0, node);
 		ab_803F20();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(0x260F140);
+		st = MEM<uint32_t>(R(0x260F140));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x803D30, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(0x260F140);
+			st = MEM<uint32_t>(R(0x260F140));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x260F140);
+			st = MEM<uint32_t>(R(0x260F140));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -821,7 +842,7 @@ namespace absorb
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x260F140);
+		st = MEM<uint32_t>(R(0x260F140));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -835,7 +856,7 @@ namespace absorb
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x260F140, 0) = sys;
+		U32(R(0x260F140), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -849,7 +870,7 @@ namespace absorb
 			FX_HELD(held_note_system(sys);)
 			ab_805AA0();
 			ab_804420();
-			sys = U32(0x260F140, 0);
+			sys = U32(R(0x260F140), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -862,8 +883,8 @@ namespace absorb
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x260F12A, 0) = (uint16_t)(U16(0x260F12A, 0) + c14);
-		U16(0x260F11A, 0) = (uint16_t)(U16(0x260F11A, 0) + c16);
+		U16(R(0x260F12A), 0) = (uint16_t)(U16(R(0x260F12A), 0) + c14);
+		U16(R(0x260F11A), 0) = (uint16_t)(U16(R(0x260F11A), 0) + c16);
 		return done;
 	}
 
@@ -872,12 +893,12 @@ namespace absorb
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl ab_804420(void)
 	{
-		uint32_t act = U32(U32(0x260F140, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x260F140), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x260F140, 0);
+				uint32_t sys = U32(R(0x260F140), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -895,14 +916,14 @@ namespace absorb
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl ab_805AA0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x260F140), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x260F140)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x260F140);
+				uint32_t st = MEM<uint32_t>(R(0x260F140));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -938,7 +959,7 @@ namespace absorb
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl ab_805BE0(void)
 	{
-		uint32_t act = U32(U32(0x260F140, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x260F140), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -977,7 +998,7 @@ namespace absorb
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl ab_806F30(uint32_t a1)
 	{
-		uint32_t sys = U32(0x260F140, 0);
+		uint32_t sys = U32(R(0x260F140), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1012,9 +1033,9 @@ namespace absorb
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x260F130, 0) - 0x50;
+		uint32_t sp = U32(R(0x260F130), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x260F130, 0) = sp;
+		U32(R(0x260F130), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = ab_807790(a1, (uint16_t)kind);
@@ -1026,7 +1047,7 @@ namespace absorb
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x260F140, 0);
+			uint32_t ctx = U32(R(0x260F140), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1205,7 +1226,7 @@ namespace absorb
 			}
 		}
 		a_743100(node, desc);
-		U32(0x260F130, 0) = U32(0x260F130, 0) + 0x50;
+		U32(R(0x260F130), 0) = U32(R(0x260F130), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1510,7 +1531,7 @@ namespace absorb
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x260F140, 0);                  // actor state block
+		uint32_t st = U32(R(0x260F140), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1558,7 +1579,7 @@ namespace absorb
 	uint32_t __cdecl ab_8079B0(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x260F140, 0);            // ecx
+		const uint32_t st = U32(R(0x260F140), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -1622,7 +1643,7 @@ namespace absorb
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x260F140, 0);
+				uint32_t g = U32(R(0x260F140), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1632,7 +1653,7 @@ namespace absorb
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x260F140, 0);
+				uint32_t g = U32(R(0x260F140), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1681,7 +1702,7 @@ namespace absorb
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl ab_808750(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PD().wobble.step_out);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -1702,7 +1723,7 @@ namespace absorb
 	// the harness)
 	uint32_t __cdecl ab_803AF0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x260F140);
+		const uint32_t arena = MEM<uint32_t>(R(0x260F140));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1722,7 +1743,7 @@ namespace absorb
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl ab_803D30(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x260F140);
+		const uint32_t arena = MEM<uint32_t>(R(0x260F140));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -1999,6 +2020,34 @@ namespace absorb
 		return pkt;
 	}
 
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(AbsorbParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, two screen flashes, the actor system, the master's release, the damage; the master's wait" },
+			{ 0, "stage", "Stage wobble", "The stage wobble in before the first action, out after the last one" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "At the emitter's start: Start, Length (ticks), Mode (0: the targets' positions)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(AbsorbParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.flash_a, "Flash 1 tick", "The first screen flash at this tick", 0, 200),
+			DT("emitter", emitter.flash_b, "Flash 2 tick", "The second screen flash at this tick", 0, 200),
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Damage tick", "The damage of its target from this tick", 0, 200),
+			DT("emitter", master.wait, "Wait", "After the last action, the wobble out after these ticks", 1, 200),
+			DT("emitter", actors.start, "Start", "", 0, 200),
+			DT("emitter", actors.length, "Length", "", 0, 200),
+			DT("emitter", actors.mode, "Mode", "", 0, 4),
+			DT("stage", wobble.level, "Level", "Its amplitude", 0, 0x1000),
+			DT("stage", wobble.step_in, "Step in", "Up by this a tick", 1, 0x1000),
+			DT("stage", wobble.step_out, "Step out", "Down by this a tick", 1, 0x1000),
+		};
+#undef DT
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	// the module's functions served by the engine's ports (identical code up to module addresses)
 	static const ModPort ENGINE_PORTS[] = {
@@ -2097,6 +2146,11 @@ namespace absorb
 
 	void register_mag056_absorb()
 	{
+		fxp::register_params({ 56, "Absorb", &act::absorb::live, &act::absorb::GAME, sizeof(act::absorb::AbsorbParams),
+		                       act::absorb::table::PARTS, (int)(sizeof(act::absorb::table::PARTS) / sizeof(act::absorb::table::PARTS[0])),
+		                       act::absorb::table::FIELDS, (int)(sizeof(act::absorb::table::FIELDS) / sizeof(act::absorb::table::FIELDS[0])),
+		                       act::absorb::table::GROUPS, (int)(sizeof(act::absorb::table::GROUPS) / sizeof(act::absorb::table::GROUPS[0])) });
+		act::register_mod(&act::absorb::MOD_056);
 		act::register_module(56);
 		for (const act::absorb::ModPort *p = act::absorb::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(56, p->addr, p->port, p->name);
@@ -2105,6 +2159,7 @@ namespace absorb
 		// 30 fps layer: see mag056_absorb_held.inc
 		FX_HELD(register_mag056_held();)
 	}
+	FX_LAB_MODULE(register_mag056_absorb);
 }
 
 #ifdef FF8_FX_HELD
