@@ -64,8 +64,14 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (ab_XXXXXX), the library ones
 // the text of the matching Resonance / Granaldo / Doom / Drink Magic / Curse / Stare / Tonberry /
 // Siren port with this module's addresses.
+// Fujin's described Aqua Breath (effect_055.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or
+// thunks of their ports (Spawn); its parameters (AquaParams: the director's sound and damage cue, the stage
+// darkening, the water ball, the drops) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -81,6 +87,21 @@ namespace aqua
 	static const uint32_t PACKET_CURSOR = 0x2610FAC;   // module packet cursor (tick parity: file + 0xC000 / + 0x18000)
 	static const uint32_t DIR_PTR = 0x15A38D4;         // director block pointer (0x54 bytes at 0x26163B0)
 	static const uint32_t PHASE_DATA = DIR_PTR;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct AquaParams
+	{
+		struct { uint32_t sound; int16_t damage; } director;             // its sound; the damage cue after this phase tick
+		struct { int16_t level, step_in, hold, step_out; } darken;       // the stage darkening: its level, up a tick, held until its tick, down a tick
+		struct { int16_t fade_out, hold, fade_in; } orb;                 // the water ball's fade out a tick, its hold, its fade back a tick
+		struct { int16_t from, until; } splash;                          // the targets' splash drops: from / until these ticks
+		struct { int16_t from, until; } rain;                            // the rain drops round the targets: from / until these ticks
+	};
+	static const AquaParams GAME = { { 0x15A38D8, 0x32 }, { 0x600, 0x200, 0x28, 0x100 }, { 0x200, 0xF, 0x200 }, { 4, 0x12 }, { 0x14, 0x1C } };
+	static AquaParams live = GAME;
+	static const AquaParams &PA() { return live; }
 	static const uint32_t Q_EMITTER = 0x2615838, Q_DIRECTOR = 0x2611088, Q_TASKS = 0x2611190, Q_ORB = 0x2615410, Q_SPARE = 0x2615828;
 	static const uint32_t ORIG_Master = 0x808970;
 	static const uint32_t ORIG_Darken = 0x808ED0;      // stage darkening (engine task a_73F110)
@@ -467,7 +488,7 @@ namespace aqua
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x15A38D4])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -544,19 +565,19 @@ namespace aqua
 	// farthest target's ground distance (0x808D10) clamped to [0x1000, 0x2000] (the orb / drop scale)
 	uint32_t __cdecl ab_808BD0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		a_73A720(MEM<uint32_t>(DIR_PTR) + 8);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		a_73A720(MEM<uint32_t>(G(G_1533010)) + 8);
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2C));
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(d, 0) = U32(ent, 0x1C);
 		U32(d, 4) = U32(ent, 0x20);
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		const uint32_t dist = ab_808D10(node);
-		const uint32_t d2 = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d2 = MEM<uint32_t>(G(G_1533010));
 		U32(d2, 0x3C) = dist;
 		if ((int32_t)dist < 0x1000)
 			U32(d2, 0x3C) = 0x1000;
@@ -591,7 +612,7 @@ namespace aqua
 	uint32_t __cdecl ab_808EA0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Darken, 0x154, node);
+		Spawn(R(Q_TASKS), ORIG_Darken, 0x154, node);
 		const uint8_t st = U8(node, 0x29);
 		U16(node, 0x44) = 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
@@ -616,18 +637,18 @@ namespace aqua
 	// per target (0x154 bytes, task queue; +0x2D = the target's slot)
 	uint32_t __cdecl ab_809150(uint32_t a1)
 	{
-		if ((int32_t)S16(MEM<uint32_t>(DIR_PTR), 0x40) - 1 != 0)
+		if ((int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x40) - 1 != 0)
 			return 0; // void
 		const uint32_t node = a1;
-		x::Effect_AddTaskAndInitFromCtx(Q_ORB, ORIG_Orb, 0x60, node);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Stream, 0x154, node);
+		Spawn(R(Q_ORB), ORIG_Orb, 0x60, node);
+		Spawn(R(Q_TASKS), ORIG_Stream, 0x154, node);
 		uint32_t act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 		if (U8(act, 0x10) != 0)
 		{
 			int32_t k = 0;
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Splash, 0x154, node);
+				const uint32_t t = Spawn(R(Q_TASKS), ORIG_Splash, 0x154, node);
 				act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 				U8(t, 0x2D) = U8(U32(act, 8), k * 0x18);
 				k++;
@@ -639,7 +660,7 @@ namespace aqua
 			int32_t k = 0;
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Rain, 0x154, node);
+				const uint32_t t = Spawn(R(Q_TASKS), ORIG_Rain, 0x154, node);
 				act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 				U8(t, 0x2D) = U8(U32(act, 8), k * 0x18);
 				k++;
@@ -726,7 +747,7 @@ namespace aqua
 	uint32_t __cdecl ab_80B580(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t s = U32(MEM<uint32_t>(DIR_PTR), 0x3C);
+		const uint32_t s = U32(MEM<uint32_t>(G(G_1533010)), 0x3C);
 		const uint8_t slot = U8(node, 0x2C);
 		U32(node, 0x38) = s;
 		U32(node, 0x34) = s;
@@ -770,12 +791,12 @@ namespace aqua
 	uint32_t __cdecl ab_80B680(uint32_t a1)
 	{
 		ab_80B5E0(a1 + 0x1C, (uint32_t)U8(a1, 0x2C));
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0xFE00);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) - PA().orb.fade_out);
 		if (S16(a1, 0x50) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x50) = 0;
-			U16(a1, 0x5C) = 0xF;
+			U16(a1, 0x5C) = (uint16_t)PA().orb.hold;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		return 0; // void
@@ -804,7 +825,7 @@ namespace aqua
 	{
 		const uint32_t node = a1;
 		ab_80B5E0(node + 0x1C, (uint32_t)U8(node, 0x2C));
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Drops, 0x154, node);
+		const uint32_t t = Spawn(R(Q_TASKS), ORIG_Drops, 0x154, node);
 		uint32_t spin = t + 0x148;
 		uint32_t mt = t + 0xC0;
 		for (int32_t n = 4; n != 0; n--)
@@ -883,7 +904,7 @@ namespace aqua
 	uint32_t __cdecl ab_80C100(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const int32_t v = S32(MEM<uint32_t>(DIR_PTR), 0x3C);
+		const int32_t v = S32(MEM<uint32_t>(G(G_1533010)), 0x3C);
 		int32_t hi = (int32_t)(((int64_t)v * (int64_t)(int32_t)0xD5555555) >> 32);
 		hi >>= 1;
 		const int32_t q = add32(hi, (int32_t)((uint32_t)hi >> 31));
@@ -903,7 +924,7 @@ namespace aqua
 	uint32_t __cdecl ab_80C210(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 4)
+		if (S16(node, 0x24) < PA().splash.from)
 			return 0; // void
 		const uint32_t caster = ENT(U8(node, 0x2C));
 		const uint32_t target = ENT(U8(node, 0x2D));
@@ -929,7 +950,7 @@ namespace aqua
 		const uint32_t node = a1;
 		if (((U8(node, 0x2D) + U8(node, 0x24)) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_SplashDrops, 0x154, node);
+			const uint32_t t = Spawn(R(Q_TASKS), ORIG_SplashDrops, 0x154, node);
 			ab_80C3D0(ENT(U8(node, 0x2D)), t + 0x80, 2);
 			uint32_t vel = t + 0xA0;
 			for (int32_t n = 2; n != 0; n--, vel += 8)
@@ -954,7 +975,7 @@ namespace aqua
 				x::GTE_StoreIR123(vel);
 			}
 		}
-		if (S16(node, 0x24) >= 0x12)
+		if (S16(node, 0x24) >= PA().splash.until)
 		{
 			U8(node, 0x26) |= 1;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1044,7 +1065,7 @@ namespace aqua
 	uint32_t __cdecl ab_80C600(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x14)
+		if (S16(node, 0x24) < PA().rain.from)
 			return 0; // void
 		const uint32_t ent = ENT(U8(node, 0x2C));
 		x::MAG_022_sub_8DD770(node + 0x58);
@@ -1062,7 +1083,7 @@ namespace aqua
 		const uint32_t node = a1;
 		if (((U8(node, 0x2D) + U8(node, 0x24)) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_RainDrops, 0x154, node);
+			const uint32_t t = Spawn(R(Q_TASKS), ORIG_RainDrops, 0x154, node);
 			ab_80C3D0(ENT(U8(node, 0x2D)), t + 0x80, 4);
 			uint32_t pos = t + 0x80;
 			for (int32_t n = 4; n != 0; n--, pos += 8)
@@ -1093,7 +1114,7 @@ namespace aqua
 				x::GTE_StoreIR123(pos + 0x20);
 			}
 		}
-		if (S16(node, 0x24) >= 0x1C)
+		if (S16(node, 0x24) >= PA().rain.until)
 		{
 			U8(node, 0x26) |= 1;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1157,14 +1178,15 @@ namespace aqua
 	uint32_t __cdecl ab_808970(uint32_t a1)
 	{
 		g_mod = &MOD_055;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag055_aqua_breath_held.inc
 		FX_HELD(held_note_tick();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x2616410) = 0x2793E58;
-		MEM<uint32_t>(0x26110B0) = 0x2793E58;
+		MEM<uint32_t>(R(0x2616410)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26110B0)) = 0x2793E58;
 		states[0] = 0x808AC0;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x808AD0;
@@ -1179,26 +1201,26 @@ namespace aqua
 		states[10] = 0x80CA80;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26159AC);
-			const uint32_t v2 = MEM<uint32_t>(0x26155A4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26110AC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26159AC));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26155A4));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26110AC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26159A8);
-			const uint32_t v2 = MEM<uint32_t>(0x26155A0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26110AC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26159A8));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26155A0));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26110AC)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TASKS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ORB));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPARE));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_TASKS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ORB)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_SPARE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1219,7 +1241,7 @@ namespace aqua
 	uint32_t __cdecl ab_808BA0(uint32_t a1)
 	{
 		ab_808BD0(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2611088, 0x808DD0, 0x48, a1);
+		Spawn(R(0x2611088), 0x808DD0, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1278,11 +1300,11 @@ namespace aqua
 	// 0x200 up to 0x600 (then next state); writes the level to the 4 words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl ab_808F80(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x200);
-		if (S16(a1, 0x1C) >= 0x600)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PA().darken.step_in);
+		if (S16(a1, 0x1C) >= PA().darken.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
-			U16(a1, 0x1C) = 0x600;
+			U16(a1, 0x1C) = (uint16_t)PA().darken.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -1296,7 +1318,7 @@ namespace aqua
 	// next state
 	uint32_t __cdecl ab_808FC0(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x28)
+		if (S16(a1, 0x24) > PA().darken.hold)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -1305,7 +1327,7 @@ namespace aqua
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl ab_808FD0(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PA().darken.step_out);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -1326,7 +1348,7 @@ namespace aqua
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x15A38D8, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PA().director.sound, 0x15A38D8), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -1335,8 +1357,8 @@ namespace aqua
 	// +0x48 = 1), next state
 	uint32_t __cdecl ab_8090D0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
-		if (S16(d, 0x46) > 0x32)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) > PA().director.damage)
 		{
 			U16(d, 0x48) = 1;
 			next_state(a1);
@@ -2139,7 +2161,7 @@ namespace aqua
 	// next state
 	uint32_t __cdecl ab_80B6F0(uint32_t a1)
 	{
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0x200);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + PA().orb.fade_in);
 		if (S16(a1, 0x50) >= 0x1000)
 		{
 			int8_t st = S8(a1, 0x29);
@@ -2193,7 +2215,7 @@ namespace aqua
 		uint32_t ot = U32(0x1D8E04C, 0) + 0x44;
 		U16(hdr, 0x24) = 0;
 		U16(hdr, 0xB4) = depth;
-		U32(0x1D8E054, 0) = a_7435E0(hdr, ot, 2, cursor);
+		U32(0x1D8E054, 0) = callo(0x80BB50, hdr, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -2238,6 +2260,36 @@ namespace aqua
 	}
 
 	// ---- generated (gendesc.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(AquaParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its phases: the stage darkening, the sound; phase 1 - the water ball, the stream of drops, a splash and a rain per target; the damage cue" },
+			{ 0, "orb", "Water ball", "At the caster, fading out, held, fading back" },
+			{ 0, "drops", "Drops", "The targets' splash and the rain round them" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "darken", "Stage darkening", "Its level, up a tick, held until its tick, down a tick" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "", (uint32_t)offsetof(AquaParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("director", director.damage, "Damage cue", "The damage of the targets after this tick of the phase", 0, 200),
+			DT("director", darken.level, "Level", "", 0, 0x1000),
+			DT("director", darken.step_in, "Step in", "", 1, 0x1000),
+			DT("director", darken.hold, "Hold until", "", 0, 200),
+			DT("director", darken.step_out, "Step out", "", 1, 0x1000),
+			DT("orb", orb.fade_out, "Fade out", "Its fade a tick (4096: all of it)", 1, 0x1000),
+			DT("orb", orb.hold, "Hold", "Ticks held between the fades", 0, 200),
+			DT("orb", orb.fade_in, "Fade in", "", 1, 0x1000),
+			DT("drops", splash.from, "Splash from", "The target's hit animation and its drops from this tick", 0, 200),
+			DT("drops", splash.until, "Splash until", "", 0, 200),
+			DT("drops", rain.from, "Rain from", "", 0, 200),
+			DT("drops", rain.until, "Rain until", "", 0, 200),
+		};
+#undef DT
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x808AC0, (void *)a_73A0D0, "055 MAG_055_sub_808AC0" },
@@ -2338,6 +2390,11 @@ namespace aqua
 
 	void register_mag055_aqua_breath()
 	{
+		fxp::register_params({ 55, "Aqua Breath", &act::aqua::live, &act::aqua::GAME, sizeof(act::aqua::AquaParams),
+		                       act::aqua::table::PARTS, (int)(sizeof(act::aqua::table::PARTS) / sizeof(act::aqua::table::PARTS[0])),
+		                       act::aqua::table::FIELDS, (int)(sizeof(act::aqua::table::FIELDS) / sizeof(act::aqua::table::FIELDS[0])),
+		                       act::aqua::table::GROUPS, (int)(sizeof(act::aqua::table::GROUPS) / sizeof(act::aqua::table::GROUPS[0])) });
+		act::register_mod(&act::aqua::MOD_055);
 		act::register_module(55);
 		for (const act::aqua::ModPort *p = act::aqua::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(55, p->addr, p->port, p->name);
@@ -2346,6 +2403,7 @@ namespace aqua
 		// 30 fps layer: see mag055_aqua_breath_held.inc
 		FX_HELD(register_mag055_held();)
 	}
+	FX_LAB_MODULE(register_mag055_aqua_breath);
 }
 
 #ifdef FF8_FX_HELD
