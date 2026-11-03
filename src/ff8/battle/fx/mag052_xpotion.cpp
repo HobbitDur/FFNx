@@ -45,8 +45,13 @@
 // by that port (ENGINE_PORTS); the others are ported below (xp_XXXXXX): the text of Curaga's port of the
 // rh-identical function (code identical up to module addresses, callees compared by content) with this
 // module's addresses and callees; the master and the pool set-up are ported by hand.
+// Fujin's described X-Potion (effect_052.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (XPotionParams: the emitter's sound and ticks, the actor system) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -69,6 +74,18 @@ namespace xpotion
 	static const uint32_t ORIG_Flash = 0x817800;
 	static const uint32_t ORIG_ActorSystem = 0x817980;
 	static const void *const SOUND_XPotion = (const void *)0x15A9214;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct XPotionParams
+	{
+		struct { uint32_t sound; int16_t flash, release, result; } emitter;   // its sound; the screen flash / the master released / the heal at these ticks
+		struct { int16_t start, length, mode; } actors;                       // the actor system
+	};
+	static const XPotionParams GAME = { { 0x15A9214, 0x14, 0x1E, 0x1E }, { 0, 0x2D, 0 } };
+	static XPotionParams live = GAME;
+	static const XPotionParams &PX() { return live; }
 	static const uint32_t FLASH_SCRIPT = 0x15A9208;    // screen flash colour script
 	static const uint32_t ACTOR_DATA = 0x17AB0E8;      // the actor system's data (exe data, relocated once by 0x818200)
 
@@ -207,14 +224,15 @@ namespace xpotion
 	uint32_t __cdecl xp_817540(uint32_t a1)
 	{
 		g_mod = &MOD_052;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag052_xpotion_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x26194B8) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26194B8)) = 0x2793E58;
 		states[0] = 0x817680;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x817690;
@@ -229,24 +247,24 @@ namespace xpotion
 		states[10] = 0x81C7D0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2619F1C);
-			const uint32_t v2 = MEM<uint32_t>(0x26195A4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26194B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2619F1C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26195A4));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26194B4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2619F18);
-			const uint32_t v2 = MEM<uint32_t>(0x26195A0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26194B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2619F18));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26195A0));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26194B4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x2619F32) = 0;
-		MEM<uint16_t>(0x2619F22) = 0;
-		static const uint32_t queues[3] = { Q_EMITTER, Q_FLASH, Q_ACTORS };
+		MEM<uint16_t>(R(0x2619F32)) = 0;
+		MEM<uint16_t>(R(0x2619F22)) = 0;
+		const uint32_t queues[3] = { R(Q_EMITTER), R(Q_FLASH), R(Q_ACTORS) };
 		for (int i = 0; i < 3; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -262,12 +280,12 @@ namespace xpotion
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x2619F44);
-		MEM<uint32_t>(0x2619F24) = p;
+		uint32_t p = MEM<uint32_t>(R(0x2619F44));
+		MEM<uint32_t>(R(0x2619F24)) = p;
 		p += 0x25F8;
-		MEM<uint32_t>(0x2619F3C) = p;
+		MEM<uint32_t>(R(0x2619F3C)) = p;
 		p += 0x16F80;
-		MEM<uint32_t>(0x2619F44) = p;
+		MEM<uint32_t>(R(0x2619F44)) = p;
 		xp_8176E0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -278,12 +296,12 @@ namespace xpotion
 	// cursors / counters
 	uint32_t __cdecl xp_8176E0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2619F24), 0x25F8);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2619F3C), 0x16F80);
-		MEM<uint16_t>(0x2619598) = 0;
-		MEM<uint16_t>(0x2619F30) = 0;
-		MEM<uint16_t>(0x2619F20) = 0;
-		MEM<uint16_t>(0x261949C) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2619F24)), 0x25F8);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2619F3C)), 0x16F80);
+		MEM<uint16_t>(R(0x2619598)) = 0;
+		MEM<uint16_t>(R(0x2619F30)) = 0;
+		MEM<uint16_t>(R(0x2619F20)) = 0;
+		MEM<uint16_t>(R(0x261949C)) = 0;
 		return 0; // void
 	}
 
@@ -303,10 +321,10 @@ namespace xpotion
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_XPotion), 0, 0x80);
-		if (U16(node, 0x24) == 0x14)
+			x::BdPlaySE(fxp::sound(PX().emitter.sound, P(SOUND_XPotion)), 0, 0x80);
+		if (S16(node, 0x24) == PX().emitter.flash)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
+			const uint32_t t = Spawn(R(Q_FLASH), ORIG_Flash, 0x3C, node);
 			U32(t, 0x30) = FLASH_SCRIPT;
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -319,7 +337,7 @@ namespace xpotion
 	static void FlashDraw(uint32_t colour)
 	{
 		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		uint32_t pkt = MEM<uint32_t>(R(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -332,7 +350,7 @@ namespace xpotion
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	// 0x817800 (MAG_052_sub_817800; = Curaga cg_87E020): SCREEN FLASH task - colour script at
@@ -377,7 +395,7 @@ namespace xpotion
 	// 0x17AB0E8, start tick 0, mode 0x2D) through the engine spawner 0x817930, next state
 	uint32_t __cdecl xp_817900(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0, 0x2D, 0);
+		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, (uint16_t)PX().actors.start, (uint16_t)PX().actors.length, (uint16_t)PX().actors.mode);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -409,7 +427,7 @@ namespace xpotion
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(0x2619F48) = st;
+		MEM<uint32_t>(R(0x2619F48)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -421,7 +439,7 @@ namespace xpotion
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x2619F48);
+			st = MEM<uint32_t>(R(0x2619F48));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -441,20 +459,20 @@ namespace xpotion
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		xp_817CA0();
-		st = MEM<uint32_t>(0x2619F48);
+		st = MEM<uint32_t>(R(0x2619F48));
 		if (U16(st, 0x24) == 4)
 			callp(0x817BC0, node);
 		xp_817FF0();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(0x2619F48);
+		st = MEM<uint32_t>(R(0x2619F48));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x817E00, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(0x2619F48);
+			st = MEM<uint32_t>(R(0x2619F48));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x2619F48);
+			st = MEM<uint32_t>(R(0x2619F48));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -469,7 +487,7 @@ namespace xpotion
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x2619F48);
+		st = MEM<uint32_t>(R(0x2619F48));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -480,7 +498,7 @@ namespace xpotion
 	// the harness)
 	uint32_t __cdecl xp_817BC0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2619F48);
+		const uint32_t arena = MEM<uint32_t>(R(0x2619F48));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -501,7 +519,7 @@ namespace xpotion
 	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl xp_817CA0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -510,7 +528,7 @@ namespace xpotion
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -523,7 +541,7 @@ namespace xpotion
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -531,7 +549,7 @@ namespace xpotion
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -549,7 +567,7 @@ namespace xpotion
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl xp_817E00(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2619F48);
+		const uint32_t arena = MEM<uint32_t>(R(0x2619F48));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -577,7 +595,7 @@ namespace xpotion
 	// position (the stack words keep what they held)
 	uint32_t __cdecl xp_817FF0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -591,7 +609,7 @@ namespace xpotion
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -604,7 +622,7 @@ namespace xpotion
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -612,7 +630,7 @@ namespace xpotion
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -660,7 +678,7 @@ namespace xpotion
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x2619F48, 0) = sys;
+		U32(R(0x2619F48), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -674,7 +692,7 @@ namespace xpotion
 			FX_HELD(held_note_system(sys);)
 			xp_819B70();
 			xp_8184F0();
-			sys = U32(0x2619F48, 0);
+			sys = U32(R(0x2619F48), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -687,8 +705,8 @@ namespace xpotion
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x2619F32, 0) = (uint16_t)(U16(0x2619F32, 0) + c14);
-		U16(0x2619F22, 0) = (uint16_t)(U16(0x2619F22, 0) + c16);
+		U16(R(0x2619F32), 0) = (uint16_t)(U16(R(0x2619F32), 0) + c14);
+		U16(R(0x2619F22), 0) = (uint16_t)(U16(R(0x2619F22), 0) + c16);
 		return done;
 	}
 
@@ -697,12 +715,12 @@ namespace xpotion
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl xp_8184F0(void)
 	{
-		uint32_t act = U32(U32(0x2619F48, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2619F48), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x2619F48, 0);
+				uint32_t sys = U32(R(0x2619F48), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -719,10 +737,10 @@ namespace xpotion
 	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl xp_818550(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -742,9 +760,9 @@ namespace xpotion
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -759,17 +777,17 @@ namespace xpotion
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1312,14 +1330,14 @@ namespace xpotion
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl xp_819B70(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x2619F48), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x2619F48)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x2619F48);
+				uint32_t st = MEM<uint32_t>(R(0x2619F48));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1356,20 +1374,20 @@ namespace xpotion
 	uint32_t __cdecl xp_819C30(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1377,7 +1395,7 @@ namespace xpotion
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl xp_819CB0(void)
 	{
-		uint32_t act = U32(U32(0x2619F48, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2619F48), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1397,7 +1415,7 @@ namespace xpotion
 	uint32_t __cdecl xp_819CF0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x2619F48);
+		uint32_t st = MEM<uint32_t>(R(0x2619F48));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1418,7 +1436,7 @@ namespace xpotion
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x2619F48);
+			st = MEM<uint32_t>(R(0x2619F48));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1436,7 +1454,7 @@ namespace xpotion
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2619F48, 0);                  // actor state block
+		uint32_t st = U32(R(0x2619F48), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1536,8 +1554,8 @@ namespace xpotion
 	// particle list with state 0 (0x81C110); returns the slot or 0
 	uint32_t __cdecl xp_81AEE0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2619F24);
-		int32_t idx = (int32_t)MEM<int16_t>(0x2619598);
+		const uint32_t pool = MEM<uint32_t>(R(0x2619F24));
+		int32_t idx = (int32_t)MEM<int16_t>(R(0x2619598));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1547,7 +1565,7 @@ namespace xpotion
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1562,9 +1580,9 @@ namespace xpotion
 		} while (tries < 0x5A);
 		idx++;
 		if (idx < 0x59)
-			MEM<uint16_t>(0x2619598) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x2619598)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x2619598) = 0;
+			MEM<uint16_t>(R(0x2619598)) = 0;
 		return slot;
 	}
 
@@ -1594,7 +1612,7 @@ namespace xpotion
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl xp_81B000(uint32_t a1)
 	{
-		uint32_t sys = U32(0x2619F48, 0);
+		uint32_t sys = U32(R(0x2619F48), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1629,9 +1647,9 @@ namespace xpotion
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x2619F38, 0) - 0x50;
+		uint32_t sp = U32(R(0x2619F38), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x2619F38, 0) = sp;
+		U32(R(0x2619F38), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = xp_81B860(a1, (uint16_t)kind);
@@ -1643,7 +1661,7 @@ namespace xpotion
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x2619F48, 0);
+			uint32_t ctx = U32(R(0x2619F48), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1822,7 +1840,7 @@ namespace xpotion
 			}
 		}
 		xp_81C570(node, desc);
-		U32(0x2619F38, 0) = U32(0x2619F38, 0) + 0x50;
+		U32(R(0x2619F38), 0) = U32(R(0x2619F38), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1831,8 +1849,8 @@ namespace xpotion
 	// index a2) with the module's pool of 0x8C records (cursor wraps at 0x8B)
 	uint32_t __cdecl xp_81B860(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2619F3C);
-		int32_t i = MEM<int16_t>(0x2619F30);
+		const uint32_t pool = MEM<uint32_t>(R(0x2619F3C));
+		int32_t i = MEM<int16_t>(R(0x2619F30));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1845,7 +1863,7 @@ namespace xpotion
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1862,9 +1880,9 @@ namespace xpotion
 		}
 		i++;
 		if (i >= 0x8B)
-			MEM<uint16_t>(0x2619F30) = 0;
+			MEM<uint16_t>(R(0x2619F30)) = 0;
 		else
-			MEM<uint16_t>(0x2619F30) = (uint16_t)i;
+			MEM<uint16_t>(R(0x2619F30)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1878,7 +1896,7 @@ namespace xpotion
 	uint32_t __cdecl xp_81BA80(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2619F48, 0);            // ecx
+		const uint32_t st = U32(R(0x2619F48), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -1942,7 +1960,7 @@ namespace xpotion
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x2619F48, 0);
+				uint32_t g = U32(R(0x2619F48), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1952,7 +1970,7 @@ namespace xpotion
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x2619F48, 0);
+				uint32_t g = U32(R(0x2619F48), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2040,7 +2058,7 @@ namespace xpotion
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl xp_81C600(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2619F48);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x2619F48));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2065,14 +2083,14 @@ namespace xpotion
 				do
 				{
 					xp_81AEE0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x2619F48);
+					dir = MEM<uint32_t>(R(0x2619F48));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				xp_81AEE0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x2619F48);
+				dir = MEM<uint32_t>(R(0x2619F48));
 			}
 		}
 		return 0; // void
@@ -2095,7 +2113,7 @@ namespace xpotion
 	// 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl xp_81C6C0(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x1E)
+		if (S16(a1, 0x24) == PX().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2108,7 +2126,7 @@ namespace xpotion
 	uint32_t __cdecl xp_81C6E0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x1E)
+		if (S16(node, 0x24) < PX().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -2119,6 +2137,26 @@ namespace xpotion
 		U8(node, 0x26) |= 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(XPotionParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the screen flash, the master's release, the heal" },
+			{ 0, "actors", "Actor system", "The actor system (its actor data the exe's)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(XPotionParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.flash, "Flash tick", "The screen flash at this tick", 0, 200),
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Heal tick", "The heal of its target from this tick", 0, 200),
+			DT("actors", actors.start, "Start", "Its start tick", 0, 200),
+			DT("actors", actors.length, "Length", "Its ticks", 0, 200),
+			DT("actors", actors.mode, "Mode", "Its placement mode", 0, 4),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -2211,6 +2249,11 @@ namespace xpotion
 
 	void register_mag052_xpotion()
 	{
+		fxp::register_params({ 52, "X-Potion", &act::xpotion::live, &act::xpotion::GAME, sizeof(act::xpotion::XPotionParams),
+		                       act::xpotion::table::PARTS, (int)(sizeof(act::xpotion::table::PARTS) / sizeof(act::xpotion::table::PARTS[0])),
+		                       act::xpotion::table::FIELDS, (int)(sizeof(act::xpotion::table::FIELDS) / sizeof(act::xpotion::table::FIELDS[0])),
+		                       nullptr, 0 });
+		act::register_mod(&act::xpotion::MOD_052);
 		act::register_module(52);
 		for (const act::xpotion::ModPort *p = act::xpotion::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(52, p->addr, p->port, p->name);
@@ -2219,6 +2262,7 @@ namespace xpotion
 		// 30 fps layer: see mag052_xpotion_held.inc
 		FX_HELD(register_mag052_held();)
 	}
+	FX_LAB_MODULE(register_mag052_xpotion);
 }
 
 #ifdef FF8_FX_HELD
