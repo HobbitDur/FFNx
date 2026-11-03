@@ -325,6 +325,7 @@ namespace layouts
 		int32_t ot_shift = 2;           // the renderers' depth shift (Blind: 3)
 		uint32_t additive_objects = 0;  // these objects (a bit each) drawn as their textured quads only, additive (Blind: 0 and 3)
 		bool quads_gouraud_only = false; // Zombie: those objects' gouraud quads only, their depth + the header's, clamped at 0
+		uint32_t far_objects = 0;       // Flare: these objects (a bit each) at depth >> 2 (0 stays 0)
 	};
 #pragma pack(pop)
 	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
@@ -391,18 +392,7 @@ namespace layouts
 			pos[2] = (int16_t)(mul32(pos[2], arg->scale[2]) >> 12);
 			Scale3DMatrix(&m, arg->scale);
 		}
-		if (flags & ANCHOR_OFFSET_AS_IS)
-		{
-			// the anchor through the camera (its 4th word goes to the GTE V0 pad only) + the record's offset
-			GteSetRotMatrixCtrl(&Camera());
-			GteLoadV0(arg->anchor);
-			GteMVMVA_RotV0();
-			GteReadMAC123(m.t);
-			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(int32_t)pos[0]);
-			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)(int32_t)pos[1]);
-			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)(int32_t)pos[2]);
-		}
-		else if (flags & ANCHOR_MATRIX)
+		if (flags & ANCHOR_MATRIX)   // (before 0x200: Flare's order)
 		{
 			// the anchor through the camera + the record's offset through the matrix (the offset's 4th
 			// word never written: only loaded into the GTE V0 pad)
@@ -420,6 +410,17 @@ namespace layouts
 			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)v[1]);
 			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)v[2]);
 			if (!(flags & ANCHOR_NOT_COMPOSED)) MatrixMultiply(arg->matrix, &m);
+		}
+		else if (flags & ANCHOR_OFFSET_AS_IS)
+		{
+			// the anchor through the camera (its 4th word goes to the GTE V0 pad only) + the record's offset
+			GteSetRotMatrixCtrl(&Camera());
+			GteLoadV0(arg->anchor);
+			GteMVMVA_RotV0();
+			GteReadMAC123(m.t);
+			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(int32_t)pos[0]);
+			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)(int32_t)pos[1]);
+			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)(int32_t)pos[2]);
 		}
 		else
 		{
@@ -476,6 +477,7 @@ namespace layouts
 		{
 			*(int32_t *)(h + 0x18) = arg->depth;
 			if ((int32_t)(int16_t)r->flags_lo == arg->nearer_object) *(int32_t *)(h + 0x18) = (int32_t)((uint32_t)arg->depth - (uint32_t)arg->nearer_by);
+			if (arg->depth != 0 && (uint32_t)object < 32 && (arg->far_objects >> object & 1)) *(int32_t *)(h + 0x18) = arg->depth >> 2;
 		}
 		if ((uint32_t)object < 32 && (arg->additive_objects >> object & 1)) *arg->cursor = AdditiveQuads(h, RenderOT(), arg->ot_shift, *arg->cursor, arg->quads_gouraud_only);
 		else if (arg->engine_draw) *arg->cursor = RenderPrimModel(h, RenderOT(), arg->ot_shift, *arg->cursor);
@@ -1035,6 +1037,123 @@ namespace layouts
 		return true;
 	}
 
+	// ------------------------------------------------------------------
+	// Collapsing sparks (Flare 0x6BD020): a sprite on a sphere around a point, its direction turning;
+	// it shows at its spawn radius, collapses into the centre at a random time, bursts out again from
+	// `burst` and fades out from `fade`.
+	// ------------------------------------------------------------------
+#pragma pack(push, 1)
+	struct CollapseSpark // a node's fields after the header (0x20 bytes)
+	{
+		int16_t size;      // +0x00 radius around the point
+		int16_t grow;      // +0x02 spawn radius, then the burst step
+		int16_t start;     // +0x04 tick the collapse starts
+		int16_t pos[3];    // +0x06 the point x, y, z
+		int16_t shade;     // +0x0C sprite size (0x4B0)
+		int16_t ang[3];    // +0x0E direction angles
+		int16_t alpha;     // +0x14 brightness (sprite colour)
+		int16_t vel[3];    // +0x16 angular velocity
+		int16_t age;       // +0x1C
+		int16_t mode;      // +0x1E (a pad in the original) this tick's sprite mode: 4 coloured by alpha, 0 plain, -1 none, -2 gone
+	};
+#pragma pack(pop)
+	static_assert(sizeof(CollapseSpark) == 0x20, "collapse spark");
+
+	// a new spark around `point` (its 4 words: the 4th lands on `shade`, then set) of a spawner at
+	// tick `counter`, its radius from `scale` (s - s / 4): CRT rand in the original's order (its
+	// start in `window` ticks, its velocity's three angles, its direction's three)
+	inline void CollapseSparkStart(CollapseSpark *f, const int16_t *point, int32_t counter, int32_t scale, int32_t window, int32_t speed, int32_t sprite)
+	{
+		memset(f, 0, sizeof(*f));
+		const int32_t r = CrtRand();
+		f->start = (int16_t)((mul32(r, window) >> 15) - counter + 4);
+		const int16_t s0 = (int16_t)(scale - (scale >> 2));
+		f->size = s0;
+		f->grow = s0;
+		f->pos[0] = point[0];
+		f->pos[1] = point[1];
+		f->pos[2] = point[2];
+		f->shade = (int16_t)sprite;
+		int16_t ang[4] = {};
+		ang[0] = (int16_t)CrtRand();
+		ang[1] = (int16_t)CrtRand();
+		ang[2] = (int16_t)CrtRand();
+		Mat4x3 m = {};
+		BuildRotationMatrixFromAngles(ang, &m);
+		int16_t v[4] = { 0, 0, (int16_t)speed, 0 };
+		MatrixMultiplyVector(&m, v, f->vel);
+		f->ang[0] = (int16_t)CrtRand();
+		f->ang[1] = (int16_t)CrtRand();
+		f->ang[2] = (int16_t)CrtRand();
+	}
+
+	// the tick's size / brightness steps before the draw: the sprite mode (4 = coloured by alpha,
+	// 0 = plain), -1 = nothing drawn, -2 = finished
+	inline int CollapseSparkPrepare(CollapseSpark *p, int32_t burst, int32_t fade)
+	{
+		const int32_t age = p->age;
+		const uint32_t k = (uint32_t)(age - p->start);
+		if (k <= 8)
+			p->size = (int16_t)((uint32_t)mul32(p->grow, (int32_t)(8 - k)) >> 3);
+		if (age >= burst)
+		{
+			const int16_t g = p->grow;
+			const int16_t q = (int16_t)(g >> 2);
+			p->size = (int16_t)(p->size + q);
+			if (g > 0x200) p->grow = (int16_t)(g - q);
+			else p->grow = 0x200;
+			if (age >= fade)
+			{
+				p->alpha = (int16_t)(p->alpha - 0x20);
+				if (p->alpha <= 0) return -2;
+				return 4;
+			}
+		}
+		if (p->size <= 0) return -1;
+		if (p->alpha < 0x80)
+		{
+			p->alpha = (int16_t)(p->alpha + 8);
+			return 4;
+		}
+		return 0;
+	}
+
+	// the sprite sequence `seq` at the spark's place on its sphere
+	inline void CollapseSparkDraw(const CollapseSpark *p, int mode, uint32_t seq, uint32_t &cursor)
+	{
+		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
+		if (mode == 4)
+		{
+			const uint8_t a = (uint8_t)p->alpha;
+			*(uint16_t *)(h + 0x24) = 4;
+			h[0x1E] = a;
+			h[0x1D] = a;
+			h[0x1C] = a;
+		}
+		else *(uint16_t *)(h + 0x24) = 0;
+		Mat4x3 m = {};
+		BuildRotationMatrixFromAngles(p->ang, &m);
+		int16_t v[4] = { 0, 0, p->size, 0 };
+		int16_t at[4] = {};
+		MatrixMultiplyVector(&m, v, at);
+		at[1] = (int16_t)(at[1] + p->pos[1]);
+		at[0] = (int16_t)(at[0] + p->pos[0]);
+		at[2] = (int16_t)(at[2] + p->pos[2]);
+		TransformCameraByShadowRotation(at, p->shade, -(p->shade >> 2));
+		*(uint32_t *)h = seq;
+		*(uint16_t *)(h + 4) = 0;
+		cursor = InitEffectSequenceFromData(h, RenderOT(), 2, cursor);
+		FieldFree(0xB4);
+	}
+
+	inline void CollapseSparkMove(CollapseSpark *p)
+	{
+		p->ang[0] = (int16_t)(p->ang[0] + p->vel[0]);
+		p->ang[1] = (int16_t)(p->ang[1] + p->vel[1]);
+		p->ang[2] = (int16_t)(p->ang[2] + p->vel[2]);
+		p->age++;
+	}
+
 	// a prim model (no layout) turned by three angles (0x56CD50), scaled by `scale`, at `pos` composed
 	// with the camera, its draw mode `mode` (its fade words left as the scratch held them); the
 	// engine's renderer (Aero's leaves)
@@ -1079,6 +1198,38 @@ namespace layouts
 		if (c < rise) return c * level / rise;
 		if (c >= fall) return (end - c) * level / (end - fall);
 		return level;
+	}
+
+	// a screen flash level of tick c (Flare's): c x up before `rise`, (end - c) x down after
+	// `fall_after`, else `level` (a floor the target tasks raise it to)
+	inline int32_t ScreenFlashRiseHoldFall(int32_t c, int32_t rise, int32_t up, int32_t level, int32_t fall_after, int32_t end, int32_t down)
+	{
+		if (c < rise) return c * up;
+		if (c > fall_after) return (end - c) * down;
+		return level;
+	}
+
+	// sub_56CC00: out = colour blend of a (weight wa) and b (weight wb), weights 4.12
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
+
+	// an entity's colour (+0x28) at tick c (Flare's red): from `saved` to `tint` over from ..
+	// from + ticks - 1 (weight (c - from) << shift), `tint` until back_from, back to `saved` over
+	// back_from .. back_from + back_ticks - 1 (weight (c - back_from) << back_shift), else `saved`
+	inline void TintEntity(uint8_t *entity, const void *tint, const uint32_t *saved, int32_t c, int32_t from, int32_t ticks, int32_t shift,
+	                       int32_t back_from, int32_t back_ticks, int32_t back_shift)
+	{
+		if ((uint32_t)(c - from) < (uint32_t)ticks)
+		{
+			const int32_t w = (c - from) << shift;
+			BlendColour(tint, saved, w, 0x1000 - w, entity + 0x28);
+		}
+		else if ((uint32_t)(c - back_from) < (uint32_t)back_ticks)
+		{
+			const int32_t w = (c - back_from) << back_shift;
+			BlendColour(tint, saved, 0x1000 - w, w, entity + 0x28);
+		}
+		else if (c >= from && c <= back_from) *(uint32_t *)(entity + 0x28) = *(const uint32_t *)tint;
+		else *(uint32_t *)(entity + 0x28) = *saved;
 	}
 
 	// a screen flash level of tick c rising and falling (Blind's, a level each target task raises):

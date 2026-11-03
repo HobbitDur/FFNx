@@ -44,8 +44,6 @@ namespace layouts
 		inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 		inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 		inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-		// sub_56CC00: out = colour blend of a (weight wa) and b (weight wb), weights 4.12
-		inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
 		inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // the overlay's vertex buffer
 		// Zombie's module words never written (0x2521860: the zero vector, 0x2521868: black)
 		static const int16_t ZERO_VECTOR[4] = {};
@@ -285,7 +283,7 @@ namespace layouts
 			F<uint32_t>(h, 0x24) = sway::BoneWorkspace();
 			F<int16_t>(h, 0x38) = 0x140;
 			F<int16_t>(h, 0x3A) = 0xD8;
-			sway::BlendColour(sway::BLACK, entity + 0x28, a->weight, 0x1000 - a->weight, h + 0x3C);
+			BlendColour(sway::BLACK, entity + 0x28, a->weight, 0x1000 - a->weight, h + 0x3C);
 			h[0x3F] = 0;
 			F<uint32_t>(h, 0x40) = *(const uint32_t *)(entity + 0x7C);
 			cursor = sway::SwayModel(*(const uint8_t *const *)(entity + 0x64), h + 0x20, RenderOT(), 0, cursor, wave);
