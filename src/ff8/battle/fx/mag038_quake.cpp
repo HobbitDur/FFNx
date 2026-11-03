@@ -46,8 +46,14 @@
 // Module globals: 0x278C8E0..0x2792E60 (packet cursor, zone ripples, saved entity flags /
 // positions, task pools, mesh state, packet templates) + the magic buffer (packet arenas, mesh
 // entries 0x70 bytes each at +0x28000, vertex zone masks at +0x33600).
+// Fujin's described Quake (effect_038.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup ported below; its parameters (QuakeParams: the sounds, the sequence's fades, the
+// ripples' length and the most debris, rocks and dust, the targets' bounce, the shake's start and the fallback).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -68,36 +74,36 @@ namespace quake038
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
 	// --- module globals ---
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x278C8E0); }
-	inline int16_t &WaveTick() { return var<int16_t>(0x278C8E4); }     // state 1 tick (0..16)
-	inline int16_t &HalfZ() { return var<int16_t>(0x278C8E6); }        // zone map half extents
-	inline int16_t &HalfX() { return var<int16_t>(0x278C8E8); }
-	inline int16_t &CrackTick() { return var<int16_t>(0x278C8EA); }    // state 3 tick
-	inline int16_t &PrimCount() { return var<int16_t>(0x278C8EC); }    // ground prims (last id)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x278C8E0)); }
+	inline int16_t &WaveTick() { return var<int16_t>(own::R(0x278C8E4)); }     // state 1 tick (0..16)
+	inline int16_t &HalfZ() { return var<int16_t>(own::R(0x278C8E6)); }        // zone map half extents
+	inline int16_t &HalfX() { return var<int16_t>(own::R(0x278C8E8)); }
+	inline int16_t &CrackTick() { return var<int16_t>(own::R(0x278C8EA)); }    // state 3 tick
+	inline int16_t &PrimCount() { return var<int16_t>(own::R(0x278C8EC)); }    // ground prims (last id)
 	static const uint32_t SAVED_FLAGS = 0x278C8F0;                      // 7 x u32: entity flags at phase 3
 	static const uint32_t ZONES = 0x278C910;                            // 10 x 16 bytes (see ZoneReset)
-	inline int16_t &TargetsParty() { return var<int16_t>(0x278C9B0); } // 1: the first target is a party member
-	inline int16_t &FallTick() { return var<int16_t>(0x2792B40); }      // state 5 tick
-	inline uint32_t &Arena1() { return var<uint32_t>(0x2792B44); }
-	inline uint32_t &Arena0() { return var<uint32_t>(0x2792B48); }
-	inline int16_t &DebrisCount() { return var<int16_t>(0x279299C); }
-	inline int16_t &State() { return var<int16_t>(0x279299E); }         // mesh state 0..7
+	inline int16_t &TargetsParty() { return var<int16_t>(own::R(0x278C9B0)); } // 1: the first target is a party member
+	inline int16_t &FallTick() { return var<int16_t>(own::R(0x2792B40)); }      // state 5 tick
+	inline uint32_t &Arena1() { return var<uint32_t>(own::R(0x2792B44)); }
+	inline uint32_t &Arena0() { return var<uint32_t>(own::R(0x2792B48)); }
+	inline int16_t &DebrisCount() { return var<int16_t>(own::R(0x279299C)); }
+	inline int16_t &State() { return var<int16_t>(own::R(0x279299E)); }         // mesh state 0..7
 	static const uint32_t CRACK_TEMPLATE = 0x27929A0;                    // POLY_FT4 template (crack lines)
-	inline uint32_t &SeqCtx() { return var<uint32_t>(0x27929C8); }      // ground sequence node
-	inline int16_t &VertexBase() { return var<int16_t>(0x2792D68); }
-	inline int16_t &ChipCount() { return var<int16_t>(0x2792D6A); }
-	inline int16_t &RockCount() { return var<int16_t>(0x2792D6C); }
-	inline int16_t &ZoneOffsetZ() { return var<int16_t>(0x2792D6E); }
-	inline int16_t &RippleTick() { return var<int16_t>(0x2792D70); }   // state 4 tick
+	inline uint32_t &SeqCtx() { return var<uint32_t>(own::R(0x27929C8)); }      // ground sequence node
+	inline int16_t &VertexBase() { return var<int16_t>(own::R(0x2792D68)); }
+	inline int16_t &ChipCount() { return var<int16_t>(own::R(0x2792D6A)); }
+	inline int16_t &RockCount() { return var<int16_t>(own::R(0x2792D6C)); }
+	inline int16_t &ZoneOffsetZ() { return var<int16_t>(own::R(0x2792D6E)); }
+	inline int16_t &RippleTick() { return var<int16_t>(own::R(0x2792D70)); }   // state 4 tick
 	static const uint32_t SAVED_POS = 0x2792D78;                         // 7 x 0x14: entity positions
-	inline int16_t &BoundXHi() { return var<int16_t>(0x2792E04); }
-	inline int16_t &BoundXLo() { return var<int16_t>(0x2792E06); }
-	inline uint32_t &VertexZones() { return var<uint32_t>(0x2792E0C); } // per vertex: u16 zone mask, u16 count
-	inline int16_t &DustCount() { return var<int16_t>(0x2792E18); }
-	inline uint32_t &Entries() { return var<uint32_t>(0x2792E1C); }     // 0x70-byte mesh entries
-	inline int16_t &QuakeGo() { return var<int16_t>(0x2792E20); }
-	inline int16_t &BoundZHi() { return var<int16_t>(0x2792E2C); }
-	inline int16_t &BoundZLo() { return var<int16_t>(0x2792E2E); }
+	inline int16_t &BoundXHi() { return var<int16_t>(own::R(0x2792E04)); }
+	inline int16_t &BoundXLo() { return var<int16_t>(own::R(0x2792E06)); }
+	inline uint32_t &VertexZones() { return var<uint32_t>(own::R(0x2792E0C)); } // per vertex: u16 zone mask, u16 count
+	inline int16_t &DustCount() { return var<int16_t>(own::R(0x2792E18)); }
+	inline uint32_t &Entries() { return var<uint32_t>(own::R(0x2792E1C)); }     // 0x70-byte mesh entries
+	inline int16_t &QuakeGo() { return var<int16_t>(own::R(0x2792E20)); }
+	inline int16_t &BoundZHi() { return var<int16_t>(own::R(0x2792E2C)); }
+	inline int16_t &BoundZLo() { return var<int16_t>(own::R(0x2792E2E)); }
 	static const uint32_t WALL_TEMPLATE = 0x2792E38;                     // POLY_FT4 template (crack walls)
 
 	// queues (TaskQueue headers)
@@ -113,6 +119,27 @@ namespace quake038
 	static const uint32_t SEQ_Rock = 0x16434A0, SEQ_Dust = 0x164335C, SEQ_Chip = 0x1643218;
 	static const void *const SOUND_Rumble = (const void *)0x1642D68;
 	static const void *const SOUND_Quake = (const void *)0x1642D6C;
+	static const uint32_t ORIG_Setup = 0x8D8510;
+	static const uint32_t TIM = 0x18295EC, CAMERA = 0x1642D70;   // its texture (exe data) and camera track
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x278E648); }   // 2 x 0x64
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct QuakeParams
+	{
+		struct { uint32_t rumble, quake; } sounds;                   // the rumble at the fade's end, the quake once the ripples start
+		struct { int16_t wait, fade_out, fade_in; } sequence;        // ticks before the darkening; the caster's side fade a tick
+		struct { int16_t length, debris, rocks, dust; } quake;       // the ripples' ticks; the most debris, rocks and dust alive
+		struct { int16_t speed, gravity; } bounce;                   // the targets thrown up, pulled back a tick
+		struct { int16_t shake, sound, end; } fallback;              // the shake's start; no ground: the second sound, the end
+	};
+	static const QuakeParams GAME = { { 0x1642D68, 0x1642D6C }, { 0x10, 0x200, 0x100 }, { 0x28, 0x1E, 0xA, 0xD }, { 0x30, 0x30 },
+	                                  { 2, 0x30, 0x60 } };
+	static QuakeParams live = GAME;
+	static const QuakeParams &PQ() { return live; }
+	inline const void *Rumble() { return (const void *)fxp::sound(PQ().sounds.rumble, (uint32_t)SOUND_Rumble); }
+	inline const void *QuakeSound() { return (const void *)fxp::sound(PQ().sounds.quake, (uint32_t)SOUND_Quake); }
 
 	static const uint32_t STAGE_GROUND = 0x1D989C0;   // stage slot 1: skeleton, objects, animation
 	static const uint32_t ENTITY0 = 0x1D972C0, ENTITY3 = 0x1D97494, ENTITY_SIZE = 0x9C;
@@ -239,7 +266,7 @@ namespace quake038
 	{
 		for (int i = 0; i < 10; i++)
 		{
-			uint32_t z = ZONES + 0x10 * i;
+			uint32_t z = own::R(ZONES) + 0x10 * i;
 			S16(z, 0) = (int16_t)i;
 			ZoneReset(z);
 		}
@@ -251,7 +278,7 @@ namespace quake038
 	{
 		for (int i = 0; i < 10; i++)
 		{
-			uint32_t z = ZONES + 0x10 * i;
+			uint32_t z = own::R(ZONES) + 0x10 * i;
 			switch (S16(z, 0xA))
 			{
 			case 0:
@@ -281,7 +308,7 @@ namespace quake038
 		int32_t all = 1;
 		for (int i = 0; i < 10; i++)
 		{
-			uint32_t z = ZONES + 0x10 * i;
+			uint32_t z = own::R(ZONES) + 0x10 * i;
 			if (S16(z, 2) == 0) continue;
 			S16(z, 0xC) = (int16_t)(S16(z, 0xC) + 0x60);
 			S16(z, 2) = (int16_t)(S16(z, 2) + S16(z, 0xC));
@@ -291,7 +318,7 @@ namespace quake038
 		return all;
 	}
 
-	inline int16_t ZoneHeight(int zone) { return S16(ZONES + 0x10 * zone, 2); }
+	inline int16_t ZoneHeight(int zone) { return S16(own::R(ZONES) + 0x10 * zone, 2); }
 
 	// sub_8D9A80 / sub_8D9B30: ground cell of (x, z) (clamped to the half extents, 16 x 16 cells)
 	// looked up in a 16 x 32 byte map
@@ -629,12 +656,12 @@ namespace quake038
 		GteAVSZ4();
 		uint32_t otz;
 		GteReadOTZ32(&otz);
-		U32(cur, 0) = U32(CRACK_TEMPLATE, 0);
-		U8(cur, 7) = U8(CRACK_TEMPLATE, 7);
-		U32(cur, 0xC) = U32(CRACK_TEMPLATE, 0xC);
-		U32(cur, 0x14) = U32(CRACK_TEMPLATE, 0x14);
-		U32(cur, 0x1C) = U32(CRACK_TEMPLATE, 0x1C);
-		U32(cur, 0x24) = U32(CRACK_TEMPLATE, 0x24);
+		U32(cur, 0) = U32(own::R(CRACK_TEMPLATE), 0);
+		U8(cur, 7) = U8(own::R(CRACK_TEMPLATE), 7);
+		U32(cur, 0xC) = U32(own::R(CRACK_TEMPLATE), 0xC);
+		U32(cur, 0x14) = U32(own::R(CRACK_TEMPLATE), 0x14);
+		U32(cur, 0x1C) = U32(own::R(CRACK_TEMPLATE), 0x1C);
+		U32(cur, 0x24) = U32(own::R(CRACK_TEMPLATE), 0x24);
 		U16(cur, 0xE) = 0x3C54;
 		uint8_t shade = U8(STEP_SHADE, step);
 		U8(cur, 6) = shade;
@@ -653,7 +680,7 @@ namespace quake038
 		if (RippleTick() >= 0xC) return;
 		if (CrtRand() & 3) return;
 		ChipCount() = (int16_t)(ChipCount() + 1);
-		uint32_t n = AddLinkedTask(Q_SPRITES, ORIG_Chip, 0xAC, ctx);
+		uint32_t n = AddLinkedTask(own::R(Q_SPRITES), own::Fn(ORIG_Chip), 0xAC, ctx);
 		S16(n, 0x1C) = (int16_t)((pA[0] + pB[0]) / 2);
 		int32_t r = CrtRand();
 		S16(n, 0x1E) = (int16_t)((pA[1] + pB[1]) / 2 - (r & 0x1FF));
@@ -689,12 +716,12 @@ namespace quake038
 		GteAVSZ4();
 		uint32_t otz;
 		GteReadOTZ32(&otz);
-		U32(cur, 0) = U32(WALL_TEMPLATE, 0);
-		U32(cur, 0xC) = U32(WALL_TEMPLATE, 0xC);
-		U8(cur, 7) = U8(WALL_TEMPLATE, 7);
-		U32(cur, 0x1C) = U32(WALL_TEMPLATE, 0x1C);
-		U32(cur, 0x14) = U32(WALL_TEMPLATE, 0x14);
-		U32(cur, 0x24) = U32(WALL_TEMPLATE, 0x24);
+		U32(cur, 0) = U32(own::R(WALL_TEMPLATE), 0);
+		U32(cur, 0xC) = U32(own::R(WALL_TEMPLATE), 0xC);
+		U8(cur, 7) = U8(own::R(WALL_TEMPLATE), 7);
+		U32(cur, 0x1C) = U32(own::R(WALL_TEMPLATE), 0x1C);
+		U32(cur, 0x14) = U32(own::R(WALL_TEMPLATE), 0x14);
+		U32(cur, 0x24) = U32(own::R(WALL_TEMPLATE), 0x24);
 		uint8_t shade = U8(STEP_SHADE, (uint8_t)(step + 1));
 		U8(cur, 6) = shade;
 		U8(cur, 5) = shade;
@@ -875,7 +902,7 @@ namespace quake038
 		sj->wA = (uint16_t)y;
 		if (x <= BoundXLo() || x >= BoundXHi() || z <= BoundZLo() || z >= BoundZHi()) return;
 		DebrisCount() = (int16_t)(DebrisCount() + 1);
-		uint32_t d = AddLinkedTask(Q_DEBRIS, ORIG_Debris, 0xB0, ctx);
+		uint32_t d = AddLinkedTask(own::R(Q_DEBRIS), own::Fn(ORIG_Debris), 0xB0, ctx);
 		S16(d, 0x1C) = x;
 		S16(d, 0x1E) = y;
 		S16(d, 0x20) = z;
@@ -900,7 +927,7 @@ namespace quake038
 		uint32_t ctx = SeqCtx();
 		if (RandomGroundPoint(p) != 1) return;
 		RockCount() = (int16_t)(RockCount() + 1);
-		uint32_t n = AddLinkedTask(Q_SPRITES, ORIG_Rock, 0xAC, ctx);
+		uint32_t n = AddLinkedTask(own::R(Q_SPRITES), own::Fn(ORIG_Rock), 0xAC, ctx);
 		S16(n, 0x58) = p[0];
 		S16(n, 0x5A) = p[1];
 		S16(n, 0x5C) = p[2];
@@ -931,7 +958,7 @@ namespace quake038
 		uint32_t ctx = SeqCtx();
 		if (RandomGroundPoint(p) != 1) return;
 		DustCount() = (int16_t)(DustCount() + 1);
-		uint32_t n = AddLinkedTask(Q_SPRITES, ORIG_Dust, 0xAC, ctx);
+		uint32_t n = AddLinkedTask(own::R(Q_SPRITES), own::Fn(ORIG_Dust), 0xAC, ctx);
 		S16(n, 0x58) = p[0];
 		S16(n, 0x5A) = p[1];
 		S16(n, 0x5C) = p[2];
@@ -1106,19 +1133,19 @@ namespace quake038
 			ZonesUpdate();
 			int16_t t = (int16_t)(FallTick() + 1);
 			FallTick() = t;
-			if (t > 0x28) State() = 6;
-			if (DebrisCount() < 0x1E)
+			if (t > PQ().quake.length) State() = 6;
+			if (DebrisCount() < PQ().quake.debris)
 			{
 				for (int c = 0; c < 6; c++) SpawnDebris(sj.w6, &sj);
 				t = FallTick();
 			}
 			bool rocks = false;
-			if (RockCount() < 0xA)
+			if (RockCount() < PQ().quake.rocks)
 			{
 				SpawnRocks(t < 0x22 ? 6 : (t < 0x25 ? 5 : 4), sj.wA);
 				rocks = true;
 			}
-			if (DustCount() < 0xD) SpawnDust(rocks ? 0x008D : sj.w6);
+			if (DustCount() < PQ().quake.dust) SpawnDust(rocks ? 0x008D : sj.w6);
 			break;
 		}
 		case 6:
@@ -1166,7 +1193,7 @@ namespace quake038
 	static void Root_SpawnEmitter(uint32_t n)
 	{
 		U8(n, 0x63) = 1;
-		AddLinkedTask(Q_EMITTER, ORIG_Emitter, 0x58, n);
+		AddLinkedTask(own::R(Q_EMITTER), own::Fn(ORIG_Emitter), 0x58, n);
 		NextPhase(n);
 	}
 
@@ -1181,6 +1208,34 @@ namespace quake038
 			U8(n, 0x29) = (uint8_t)(U8(n, 0x29) - 1);
 		}
 		else NextPhase(n);
+	}
+
+	// Setup (0x8D8510; its file loader the engine's nullsub): the game runs its own; Fujin's programs this (its
+	// memory may be a copy's): the root with the cast, the first target's slot and the action counts, the camera
+	// and the texture (exe data), the two packet arenas, the mesh entries and the vertex zones in the magic
+	// buffer, the queues
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		const uint8_t slot = ctx->actions->targets[0];
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x278E560), 0x64, 2);
+		const uint32_t r = AddLinkedTask((uint32_t)QRoot(), own::Fn(ORIG_Root), 0x64, 0);
+		U32(r, 0xC) = (uint32_t)ctx;
+		U8(r, 0x2D) = slot;
+		U16(r, 0x5A) = ctx->actions->target_count;
+		U16(r, 0x58) = ctx->actions->last_action;
+		PlayCameraAnimation((const void *)CAMERA);
+		QueueTimUpload(TIM);
+		Arena0() = layouts::MagicBuffer();
+		Arena1() = Arena0() + 0x14000;
+		var<uint32_t>(own::R(0x2792E34)) = Arena0() + 0x28000;
+		Entries() = Arena0() + 0x28000;
+		VertexZones() = Arena0() + 0x33600;
+		var<uint32_t>(own::R(0x2792E08)) = Arena0() + 0x342C0;
+		InitTaskQueuePool((TaskQueue *)own::R(Q_EMITTER), (void *)own::R(0x27929E0), 0x58, 4);
+		InitTaskQueuePool((TaskQueue *)own::R(Q_SEQUENCE), (void *)own::R(0x2792B60), 0x34, 10);
+		InitTaskQueuePool((TaskQueue *)own::R(Q_SPRITES), (void *)own::R(0x278E658), 0xAC, 100);
+		InitTaskQueuePool((TaskQueue *)own::R(Q_DEBRIS), (void *)own::R(0x278C9B8), 0xB0, 40);
+		return QRoot();
 	}
 
 	// MAG_038_QUAKE_Tick (0x8D8610): root task
@@ -1205,10 +1260,10 @@ namespace quake038
 			break;
 		default: break;                              // nullsub
 		}
-		U16(n, 0x5E) = (uint16_t)ExecuteTaskQueue((TaskQueue *)Q_EMITTER);
-		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)Q_SEQUENCE));
-		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)Q_SPRITES));
-		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)Q_DEBRIS));
+		U16(n, 0x5E) = (uint16_t)ExecuteTaskQueue((TaskQueue *)own::R(Q_EMITTER));
+		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)own::R(Q_SEQUENCE)));
+		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)own::R(Q_SPRITES)));
+		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)own::R(Q_DEBRIS)));
 		U16(n, 0x5C) = (uint16_t)(U16(n, 0x5C) + 1);
 		return EndCheck(n);
 	}
@@ -1219,10 +1274,10 @@ namespace quake038
 	{
 		if ((U8(0x1D989BD, 0) & 1) && U32(U32(0x1D989C4, 0), 0) != 0)
 		{
-			AddLinkedTask(Q_SEQUENCE, ORIG_Sequence, 0x34, n);
-			AddLinkedTask(Q_SEQUENCE, ORIG_Shake, 0x34, n);
+			AddLinkedTask(own::R(Q_SEQUENCE), own::Fn(ORIG_Sequence), 0x34, n);
+			AddLinkedTask(own::R(Q_SEQUENCE), own::Fn(ORIG_Shake), 0x34, n);
 		}
-		else AddLinkedTask(Q_SEQUENCE, ORIG_Fallback, 0x34, n);
+		else AddLinkedTask(own::R(Q_SEQUENCE), own::Fn(ORIG_Fallback), 0x34, n);
 		NextPhase(n);
 	}
 
@@ -1281,12 +1336,12 @@ namespace quake038
 		BoundZHi() = 0x2000;
 		memset((void *)entries, 0, 0x2D80 * 4);
 		memset((void *)VertexZones(), 0, 0x330 * 4);
-		U8(0x27929C4, 0) = 0x1F;
-		U8(0x27929B4, 0) = 0x1F;
-		U8(0x27929C5, 0) = 0x7F;
-		U8(0x27929BD, 0) = 0x7F;
-		U8(0x2792E5C, 0) = 0x7F;
-		U8(0x2792E4C, 0) = 0x7F;
+		U8(own::R(0x27929C4), 0) = 0x1F;
+		U8(own::R(0x27929B4), 0) = 0x1F;
+		U8(own::R(0x27929C5), 0) = 0x7F;
+		U8(own::R(0x27929BD), 0) = 0x7F;
+		U8(own::R(0x2792E5C), 0) = 0x7F;
+		U8(own::R(0x2792E4C), 0) = 0x7F;
 		ZoneOffsetZ() = 0;
 		State() = 0;
 		QuakeGo() = 0;
@@ -1297,23 +1352,23 @@ namespace quake038
 		RockCount() = 0;
 		DustCount() = 0;
 		ChipCount() = 0;
-		U32(0x27929A0, 0) = 0x9000000;
-		U8(0x27929BC, 0) = 0;
-		U8(0x27929AC, 0) = 0;
-		U8(0x27929B5, 0) = 0;
-		U8(0x27929AD, 0) = 0;
-		U8(0x27929A7, 0) = 0x2E;
-		U16(0x27929B6, 0) = 0xB9;
-		U32(0x2792E38, 0) = 0x9000000;
-		U8(0x2792E54, 0) = 0;
-		U8(0x2792E44, 0) = 0;
-		U8(0x2792E4D, 0) = 0;
-		U8(0x2792E45, 0) = 0;
-		U8(0x2792E5D, 0) = 0xFF;
-		U8(0x2792E55, 0) = 0xFF;
-		U8(0x2792E3F, 0) = 0x2E;
-		U16(0x2792E4E, 0) = 0xBA;
-		U16(0x2792E46, 0) = 0x3C14;
+		U32(own::R(0x27929A0), 0) = 0x9000000;
+		U8(own::R(0x27929BC), 0) = 0;
+		U8(own::R(0x27929AC), 0) = 0;
+		U8(own::R(0x27929B5), 0) = 0;
+		U8(own::R(0x27929AD), 0) = 0;
+		U8(own::R(0x27929A7), 0) = 0x2E;
+		U16(own::R(0x27929B6), 0) = 0xB9;
+		U32(own::R(0x2792E38), 0) = 0x9000000;
+		U8(own::R(0x2792E54), 0) = 0;
+		U8(own::R(0x2792E44), 0) = 0;
+		U8(own::R(0x2792E4D), 0) = 0;
+		U8(own::R(0x2792E45), 0) = 0;
+		U8(own::R(0x2792E5D), 0) = 0xFF;
+		U8(own::R(0x2792E55), 0) = 0xFF;
+		U8(own::R(0x2792E3F), 0) = 0x2E;
+		U16(own::R(0x2792E4E), 0) = 0xBA;
+		U16(own::R(0x2792E46), 0) = 0x3C14;
 	}
 
 	// the side opposite the targets (the caster's): slots 3..6 when the first target is a party
@@ -1321,9 +1376,9 @@ namespace quake038
 	template<typename F> static void ForCasterSide(bool enemies, F fn)
 	{
 		if (enemies)
-			for (int s = 3; s < 7; s++) fn(EntityAt(s), SAVED_FLAGS + 4 * s);
+			for (int s = 3; s < 7; s++) fn(EntityAt(s), own::R(SAVED_FLAGS) + 4 * s);
 		else
-			for (int s = 0; s < 3; s++) fn(EntityAt(s), SAVED_FLAGS + 4 * s);
+			for (int s = 0; s < 3; s++) fn(EntityAt(s), own::R(SAVED_FLAGS) + 4 * s);
 	}
 
 	// darkening of an entity's two colour words toward black by level / 4096
@@ -1354,7 +1409,7 @@ namespace quake038
 	// (colour mode 2)
 	static void Seq_Darken(uint32_t n)
 	{
-		for (int s = 0; s < 7; s++) U32(SAVED_FLAGS, 4 * s) = U16(EntityAt(s), 0);
+		for (int s = 0; s < 7; s++) U32(own::R(SAVED_FLAGS), 4 * s) = U16(EntityAt(s), 0);
 		S16(n, 0x1C) = 0;
 		uint32_t light = var<uint32_t>(0xB8B7D8);
 		ForCasterSide(TargetsParty() != 0, [&](uint32_t ent, uint32_t saved) {
@@ -1370,12 +1425,12 @@ namespace quake038
 	// sub_8DB870 (phase 4): fade the caster's side to black; at full black the quake starts
 	static void Seq_FadeOut(uint32_t n)
 	{
-		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) + 0x200);
+		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) + PQ().sequence.fade_out);
 		if (S16(n, 0x1C) >= 0x1000)
 		{
 			S16(n, 0x1C) = 0x1000;
 			QuakeGo() = 1;
-			BdPlaySE(SOUND_Rumble, 0, 0x80);
+			BdPlaySE(Rumble(), 0, 0x80);
 			NextPhase(n);
 		}
 		DarkenCasterSide(n);
@@ -1387,13 +1442,13 @@ namespace quake038
 	{
 		if (TargetsParty())
 		{
-			for (int s = 3; s < 7; s++) if (!(U8(SAVED_FLAGS, 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
-			for (int s = 0; s < 3; s++) if (!(U8(SAVED_FLAGS, 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
+			for (int s = 3; s < 7; s++) if (!(U8(own::R(SAVED_FLAGS), 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
+			for (int s = 0; s < 3; s++) if (!(U8(own::R(SAVED_FLAGS), 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
 		}
 		else
 		{
-			for (int s = 0; s < 3; s++) if (!(U8(SAVED_FLAGS, 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
-			for (int s = 3; s < 7; s++) if (!(U8(SAVED_FLAGS, 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
+			for (int s = 0; s < 3; s++) if (!(U8(own::R(SAVED_FLAGS), 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
+			for (int s = 3; s < 7; s++) if (!(U8(own::R(SAVED_FLAGS), 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
 		}
 		NextPhase(n);
 		GroundRender();
@@ -1404,7 +1459,7 @@ namespace quake038
 	{
 		for (int s = 0; s < 7; s++)
 		{
-			uint32_t rec = SAVED_POS + 0x14 * s, ent = EntityAt(s);
+			uint32_t rec = own::R(SAVED_POS) + 0x14 * s, ent = EntityAt(s);
 			U32(rec, 0) = U32(ent, 0xC);
 			U32(rec, 4) = U32(ent, 0x10);
 			U32(rec, 8) = U32(ent, 0x1C);
@@ -1420,7 +1475,7 @@ namespace quake038
 		if (State() == 5)
 		{
 			SavePositions();
-			BdPlaySE(SOUND_Quake, 1, 0x80);
+			BdPlaySE(QuakeSound(), 1, 0x80);
 			U8(n, 0x29) = (uint8_t)(U8(n, 0x29) + 1);
 		}
 		GroundRender();
@@ -1430,7 +1485,7 @@ namespace quake038
 	// while lifted, else thrown up at -0x30); state 1 falls back (+0x30 per tick) and may flinch
 	static void Bounce(uint32_t n, uint32_t ent, int slot)
 	{
-		uint32_t rec = SAVED_POS + 0x14 * slot;
+		uint32_t rec = own::R(SAVED_POS) + 0x14 * slot;
 		uint16_t zone = ZoneLookup(ZONE_MAP, S16(rec, 8), S16(rec, 0xC));
 		int16_t h = ZoneHeight((int16_t)zone);
 		switch (S16(rec, 0x10))
@@ -1438,7 +1493,7 @@ namespace quake038
 		case 0:
 			if (S16(ent, 0x1E) < h)
 			{
-				S16(rec, 0x12) = -0x30;
+				S16(rec, 0x12) = (int16_t)-PQ().bounce.speed;
 				U32(ent, 0xC) = U32(rec, 0);
 				S16(rec, 0x10) = (int16_t)(S16(rec, 0x10) + 1);
 				U32(ent, 0x10) = U32(rec, 4);
@@ -1455,7 +1510,7 @@ namespace quake038
 			return;
 		case 1:
 		{
-			S16(rec, 0x12) = (int16_t)(S16(rec, 0x12) + 0x30);
+			S16(rec, 0x12) = (int16_t)(S16(rec, 0x12) + PQ().bounce.gravity);
 			S16(ent, 0x1E) = (int16_t)(S16(ent, 0x1E) + S16(rec, 0x12));
 			if (S16(ent, 0x1E) < h) return;
 			S16(ent, 0x1E) = h;
@@ -1491,7 +1546,7 @@ namespace quake038
 	{
 		for (int s = 0; s < 7; s++)
 		{
-			uint32_t rec = SAVED_POS + 0x14 * s, ent = EntityAt(s);
+			uint32_t rec = own::R(SAVED_POS) + 0x14 * s, ent = EntityAt(s);
 			U32(ent, 0xC) = U32(rec, 0);
 			U32(ent, 0x10) = U32(rec, 4);
 			U32(ent, 0x1C) = U32(rec, 8);
@@ -1505,11 +1560,11 @@ namespace quake038
 	{
 		if (TargetsParty())
 		{
-			for (int s = 0; s < 3; s++) if (!(U8(SAVED_FLAGS, 4 * s) & 4)) Bounce(n, EntityAt(s), s);
+			for (int s = 0; s < 3; s++) if (!(U8(own::R(SAVED_FLAGS), 4 * s) & 4)) Bounce(n, EntityAt(s), s);
 		}
 		else
 		{
-			for (int k = 0; k < 4; k++) if (!(U8(SAVED_FLAGS, 4 * (3 + k)) & 4)) Bounce(n, EntityAt(3 + k), k + 3);
+			for (int k = 0; k < 4; k++) if (!(U8(own::R(SAVED_FLAGS), 4 * (3 + k)) & 4)) Bounce(n, EntityAt(3 + k), k + 3);
 		}
 		GroundRender();
 		if (State() == 7)
@@ -1528,31 +1583,31 @@ namespace quake038
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				if (U8(SAVED_FLAGS, 4 * k + 0xC) & 4) continue;
+				if (U8(own::R(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
 				uint32_t ent = EntityAt(3 + k);
-				U16(ent, 0) ^= (uint16_t)((U8(SAVED_FLAGS, 4 * k) ^ U8(ent, 0)) & 4);
+				U16(ent, 0) ^= (uint16_t)((U8(own::R(SAVED_FLAGS), 4 * k) ^ U8(ent, 0)) & 4);
 			}
 			for (int s = 0; s < 3; s++)
 			{
-				if (U8(SAVED_FLAGS, 4 * s) & 4) continue;
+				if (U8(own::R(SAVED_FLAGS), 4 * s) & 4) continue;
 				uint32_t ent = EntityAt(s);
-				U16(ent, 0) ^= (uint16_t)((U16(SAVED_FLAGS, 4 * s) ^ U16(ent, 0)) & 0x1020);
+				U16(ent, 0) ^= (uint16_t)((U16(own::R(SAVED_FLAGS), 4 * s) ^ U16(ent, 0)) & 0x1020);
 			}
 		}
 		else
 		{
 			for (int s = 0; s < 3; s++)
 			{
-				uint8_t f = U8(SAVED_FLAGS, 4 * s);
+				uint8_t f = U8(own::R(SAVED_FLAGS), 4 * s);
 				if (f & 4) continue;
 				uint32_t ent = EntityAt(s);
 				U16(ent, 0) ^= (uint16_t)((f ^ U8(ent, 0)) & 4);
 			}
 			for (int k = 0; k < 4; k++)
 			{
-				if (U8(SAVED_FLAGS, 4 * k + 0xC) & 4) continue;
+				if (U8(own::R(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
 				uint32_t ent = EntityAt(3 + k);
-				U16(ent, 0) ^= (uint16_t)((U16(SAVED_FLAGS, 4 * k) ^ U16(ent, 0)) & 0x1020);
+				U16(ent, 0) ^= (uint16_t)((U16(own::R(SAVED_FLAGS), 4 * k) ^ U16(ent, 0)) & 0x1020);
 			}
 		}
 		NextPhase(n);
@@ -1561,7 +1616,7 @@ namespace quake038
 	// sub_8DBF60 (phase 9): fade back from black
 	static void Seq_FadeIn(uint32_t n)
 	{
-		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - 0x100);
+		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - PQ().sequence.fade_in);
 		if (S16(n, 0x1C) <= 0)
 		{
 			S16(n, 0x1C) = 0;
@@ -1578,9 +1633,9 @@ namespace quake038
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				if (U8(SAVED_FLAGS, 4 * k + 0xC) & 4) continue;
+				if (U8(own::R(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
 				uint32_t ent = EntityAt(3 + k);
-				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(SAVED_FLAGS, 4 * k)) & 0x800);
+				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(own::R(SAVED_FLAGS), 4 * k)) & 0x800);
 				U32(ent, 0x28) = light;
 				U32(ent, 0x2C) = light2;
 			}
@@ -1589,9 +1644,9 @@ namespace quake038
 		{
 			for (int s = 0; s < 3; s++)
 			{
-				if (U8(SAVED_FLAGS, 4 * s) & 4) continue;
+				if (U8(own::R(SAVED_FLAGS), 4 * s) & 4) continue;
 				uint32_t ent = EntityAt(s);
-				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(SAVED_FLAGS, 4 * s)) & 0x800);
+				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(own::R(SAVED_FLAGS), 4 * s)) & 0x800);
 				U32(ent, 0x28) = light;
 				U32(ent, 0x2C) = light2;
 			}
@@ -1612,7 +1667,7 @@ namespace quake038
 			break;
 		case 1:                                      // sub_8D8A10: build the mesh
 			GroundRender();
-			S16(n, 0x30) = 0x10;
+			S16(n, 0x30) = PQ().sequence.wait;
 			NextPhase(n);
 			break;
 		case 2:                                      // sub_8DB770: 16 ticks
@@ -1651,7 +1706,7 @@ namespace quake038
 		switch (PhaseOf(n))
 		{
 		case 0:                                      // sub_8DC2C0: wait 3 ticks
-			if (S16(n, 0x24) > 2) NextPhase(n);
+			if (S16(n, 0x24) > PQ().fallback.shake) NextPhase(n);
 			break;
 		case 1:                                      // MAG_038_QUAKE_SetShakeFromTableA
 		{
@@ -1682,13 +1737,13 @@ namespace quake038
 		switch (PhaseOf(n))
 		{
 		case 0:                                      // au_re_BdPlaySE_8
-			BdPlaySE(SOUND_Rumble, 0, 0x80);
+			BdPlaySE(Rumble(), 0, 0x80);
 			NextPhase(n);
 			break;
 		case 1:                                      // sub_8DC3E0
-			if (S16(n, 0x24) >= 0x30)
+			if (S16(n, 0x24) >= PQ().fallback.sound)
 			{
-				BdPlaySE(SOUND_Quake, 1, 0x80);
+				BdPlaySE(QuakeSound(), 1, 0x80);
 				NextPhase(n);
 			}
 			break;
@@ -1696,7 +1751,7 @@ namespace quake038
 		{
 			int16_t t = S16(n, 0x24);
 			CameraShake() = S16(SHAKE_B, (t & 0xF) * 2);
-			if (t >= 0x60)
+			if (t >= PQ().fallback.end)
 			{
 				U8(n, 0x26) |= 1;
 				NextPhase(n);
@@ -2000,10 +2055,55 @@ namespace quake038
 		SpriteDraw(n);
 		return EndCheck(n);
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define QP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(QuakeParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "sequence", "Ground sequence", "The stage ground rebuilt as a mesh: the caster's side darkened, the ground cracking, rippling and settling, rocks, dust, chips and debris thrown, the targets bounced" },
+			{ 0, "fallback", "Fallback", "The camera shake; without a stage ground: two sounds and the shake only" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The rumble once the caster's side is dark, the quake once the ripples start (the fallback's too)" },
+			{ "quake", "Ripples", "The ripples' ticks; the most debris, rocks and dust alive (more are thrown while fewer)" },
+			{ "bounce", "Bounce", "The targets on the ripples" },
+		};
+		static const Field FIELDS[] = {
+			{ "sequence", "sounds.rumble", "Rumble", "", (uint32_t)offsetof(QuakeParams, sounds.rumble), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "sequence", "sounds.quake", "Quake", "", (uint32_t)offsetof(QuakeParams, sounds.quake), fxp::Sound, 0, 0x7FFFFFFF },
+			QP("sequence", sequence.wait, "Wait", "Ticks after the mesh is built before the caster's side darkens", 0, 200),
+			QP("sequence", sequence.fade_out, "Fade out", "The caster's side fade to black a tick (4096: all of it)", 1, 0x1000),
+			QP("sequence", sequence.fade_in, "Fade in", "Its fade back a tick (4096: all of it)", 1, 0x1000),
+			QP("sequence", quake.length, "Length", "", 1, 200),
+			QP("sequence", quake.debris, "Debris", "", 0, 34),
+			QP("sequence", quake.rocks, "Rocks", "", 0, 12),
+			QP("sequence", quake.dust, "Dust", "", 0, 16),
+			QP("sequence", bounce.speed, "Speed", "Their upward speed when the ripple drops under them", 0, 0x400),
+			QP("sequence", bounce.gravity, "Gravity", "Added to their speed a tick while they fall back", 1, 0x400),
+			QP("fallback", fallback.shake, "Shake after", "The camera shake starts after this tick", 0, 200),
+			QP("fallback", fallback.sound, "Sound tick", "No ground: the second sound at this tick", 0, 400),
+			QP("fallback", fallback.end, "End tick", "No ground: done at this tick", 0, 400),
+		};
+#undef QP
+	}
 }
 
 	void register_mag038_quake()
 	{
+		fxp::register_params({ 38, "Quake", &quake038::live, &quake038::GAME, sizeof(quake038::QuakeParams),
+		                       quake038::table::PARTS, (int)(sizeof(quake038::table::PARTS) / sizeof(quake038::table::PARTS[0])),
+		                       quake038::table::FIELDS, (int)(sizeof(quake038::table::FIELDS) / sizeof(quake038::table::FIELDS[0])),
+		                       quake038::table::GROUPS, (int)(sizeof(quake038::table::GROUPS) / sizeof(quake038::table::GROUPS[0])) });
+		own::note(quake038::ORIG_Setup, (void *)quake038::Setup);
+		own::note(quake038::ORIG_Root, (void *)quake038::RootTask);
+		own::note(quake038::ORIG_Emitter, (void *)quake038::EmitterTask);
+		own::note(quake038::ORIG_Sequence, (void *)quake038::SequenceTask);
+		own::note(quake038::ORIG_Shake, (void *)quake038::ShakeTask);
+		own::note(quake038::ORIG_Fallback, (void *)quake038::FallbackTask);
+		own::note(quake038::ORIG_Debris, (void *)quake038::DebrisTask);
+		own::note(quake038::ORIG_Rock, (void *)quake038::RockTask);
+		own::note(quake038::ORIG_Dust, (void *)quake038::DustTask);
+		own::note(quake038::ORIG_Chip, (void *)quake038::ChipTask);
 		register_port(quake038::ORIG_Root, (void *)quake038::RootTask, "Q038 RootTask", 38);
 		register_port(quake038::ORIG_Emitter, (void *)quake038::EmitterTask, "Q038 EmitterTask", 38);
 		register_port(quake038::ORIG_Sequence, (void *)quake038::SequenceTask, "Q038 SequenceTask", 38);
@@ -2016,6 +2116,7 @@ namespace quake038
 		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(register_mag038_held();)
 	}
+	FX_LAB_MODULE(register_mag038_quake);
 }
 
 #ifdef FF8_FX_HELD
