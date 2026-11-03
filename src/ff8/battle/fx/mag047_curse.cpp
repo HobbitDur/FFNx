@@ -62,8 +62,14 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (cu_XXXXXX), the library ones
 // the text of the matching Doom / Death / Granaldo / Stare / Tonberry / Psycho Blast port with this
 // module's addresses.
+// Fujin's described Curse (effect_047.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the phase data through its exe word (G), the tasks it spawns the program's or thunks of their
+// ports (Spawn); its parameters (CurseParams: the director's sound, phase ticks and damage cue, the middle curse's
+// start, the actor system, the stage darkening) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -87,6 +93,20 @@ namespace curse
 	static const uint32_t Q_PRIM = 0x264DFC8, Q_STAGE = 0x264B5B8;
 	static const uint32_t ORIG_Master = 0x82A970;
 	static const uint32_t PRIM_CB = 0x82B870;          // the prim-model player's object callback
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct CurseParams
+	{
+		struct { uint32_t sound; int16_t length, damage; } director;    // its sound (once cue 1 runs); phase 1's ticks, the damage cue after these
+		struct { int16_t middle; } prims;                                // the curse between both hands from this tick
+		struct { int16_t start, length, mode; } actors;                  // phase 2's actor system
+		struct { int16_t level, step_in, step_out; } darken;             // the stage darkening: its level, up / down a step a tick
+	};
+	static const CurseParams GAME = { { 0x15B802C, 0x36, 0x32 }, { 0xF }, { 0, 0, 0 }, { 0x600, 0x200, 0x100 } };
+	static CurseParams live = GAME;
+	static const CurseParams &PC() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
 
 	// engine functions not in act::x
@@ -159,7 +179,7 @@ namespace curse
 	}
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	// the names of the ports the adapted texts come from
-	static inline uint32_t t1_data() { return MEM<uint32_t>(PHASE_DATA); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { next_state(node); }
 	static inline void t4_next_state(uint32_t node) { next_state(node); }
 	static inline void b103_next_state(uint32_t node) { next_state(node); }
@@ -320,14 +340,15 @@ namespace curse
 	uint32_t __cdecl cu_82A970(uint32_t a1)
 	{
 		g_mod = &MOD_047;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag047_curse_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x264EADC) = 0x2793E58;
-		MEM<uint32_t>(0x264B4D8) = 0x2793E58;
+		MEM<uint32_t>(R(0x264EADC)) = 0x2793E58;
+		MEM<uint32_t>(R(0x264B4D8)) = 0x2793E58;
 		states[0] = 0x82AAF0;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x82AB00;
@@ -342,25 +363,25 @@ namespace curse
 		states[10] = 0x831B20;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x264E69C);
-			const uint32_t v2 = MEM<uint32_t>(0x264DFDC);
-			MEM<uint32_t>(0x264B3CC) = v1;
-			MEM<uint32_t>(0x264B4D4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x264E69C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x264DFDC));
+			MEM<uint32_t>(R(0x264B3CC)) = v1;
+			MEM<uint32_t>(R(0x264B4D4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x264E698);
-			const uint32_t v2 = MEM<uint32_t>(0x264DFD8);
-			MEM<uint32_t>(0x264B3CC) = v1;
-			MEM<uint32_t>(0x264B4D4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x264E698));
+			const uint32_t v2 = MEM<uint32_t>(R(0x264DFD8));
+			MEM<uint32_t>(R(0x264B3CC)) = v1;
+			MEM<uint32_t>(R(0x264B4D4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x264EAC0) = 0;
-		MEM<uint16_t>(0x264E704) = 0;
-		const uint32_t queues[7] = { 0x264E528, 0x264B4B0, 0x264EAC8, 0x264E288,
-			0x264B5B8, 0x264DFC8, 0x264E518 };
+		MEM<uint16_t>(R(0x264EAC0)) = 0;
+		MEM<uint16_t>(R(0x264E704)) = 0;
+		const uint32_t queues[7] = { R(0x264E528), R(0x264B4B0), R(0x264EAC8), R(0x264E288),
+			R(0x264B5B8), R(0x264DFC8), R(0x264E518) };
 		for (int i = 0; i < 7; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -383,12 +404,12 @@ namespace curse
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x264EAE8);
-		MEM<uint32_t>(0x264E708) = p;
+		uint32_t p = MEM<uint32_t>(R(0x264EAE8));
+		MEM<uint32_t>(R(0x264E708)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x264EAE0) = p;
+		MEM<uint32_t>(R(0x264EAE0)) = p;
 		p += 0xB7C0;
-		MEM<uint32_t>(0x264EAE8) = p;
+		MEM<uint32_t>(R(0x264EAE8)) = p;
 		cu_82AB50();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -398,12 +419,12 @@ namespace curse
 	// at [0x275F980]) and the pool cursors / counters
 	uint32_t __cdecl cu_82AB50(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x264E708), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x264EAE0), 0xB7C0);
-		MEM<uint16_t>(0x264D828) = 0;
-		MEM<uint16_t>(0x264E714) = 0;
-		MEM<uint16_t>(0x264E6A4) = 0;
-		MEM<uint16_t>(0x264B3D0) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x264E708)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x264EAE0)), 0xB7C0);
+		MEM<uint16_t>(R(0x264D828)) = 0;
+		MEM<uint16_t>(R(0x264E714)) = 0;
+		MEM<uint16_t>(R(0x264E6A4)) = 0;
+		MEM<uint16_t>(R(0x264B3D0)) = 0;
 		return 0; // void
 	}
 
@@ -414,8 +435,8 @@ namespace curse
 	{
 		cu_82B0F0(a1);
 		cu_82AC90();
-		x::Effect_AddTaskAndInitFromCtx(0x264EAC8, 0x82AD90, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x264B4B0, 0x82B170, 0x48, a1);
+		Spawn(R(0x264EAC8), 0x82AD90, 0x30, a1);
+		Spawn(R(0x264B4B0), 0x82B170, 0x48, a1);
 		t1_next_state(a1);
 		return 0; // void
 	}
@@ -426,15 +447,15 @@ namespace curse
 	// 0x19ECBB8 / 0x19ED83C), +0x164 / +0x166 = 0; [0x275E830] = 0x1636C78
 	uint32_t __cdecl cu_82AC90(void)
 	{
-		MEM<uint32_t>(0x264E6A0) = 0x15B8230;
-		MEM<uint32_t>(0x264E6A8) = 0x264EAF0;
-		x::MAG_007_sub_8DCC00(0x264EAF0, 0x16C);
-		const uint32_t t = MEM<uint32_t>(0x264E6A8);
-		uint32_t c = MEM<uint32_t>(0x264EAE8);
+		MEM<uint32_t>(R(0x264E6A0)) = 0x15B8230;
+		MEM<uint32_t>(R(0x264E6A8)) = R(0x264EAF0);
+		x::MAG_007_sub_8DCC00(R(0x264EAF0), 0x16C);
+		const uint32_t t = MEM<uint32_t>(R(0x264E6A8));
+		uint32_t c = MEM<uint32_t>(R(0x264EAE8));
 		U32(t, 0x100) = c;
 		c += 0xA000;
 		U32(t, 0x114) = 0x19EB018;
-		MEM<uint32_t>(0x264EAE8) = c;
+		MEM<uint32_t>(R(0x264EAE8)) = c;
 		U32(t, 0x118) = 0x19EB018;
 		U32(t, 0x11C) = 0x19EB018;
 		U32(t, 0x120) = 0x19EB018;
@@ -457,8 +478,8 @@ namespace curse
 	// the target seen from the origin - 0x800 (12 bits)
 	uint32_t __cdecl cu_82B0F0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -468,7 +489,7 @@ namespace curse
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -527,7 +548,7 @@ namespace curse
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x15B802C, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PC().director.sound, 0x15B802C), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -1355,7 +1376,7 @@ namespace curse
 	// the harness)
 	uint32_t __cdecl cu_82E1A0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x264EAEC);
+		const uint32_t arena = MEM<uint32_t>(R(0x264EAEC));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1375,7 +1396,7 @@ namespace curse
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl cu_82E420(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x264EAEC);
+		const uint32_t arena = MEM<uint32_t>(R(0x264EAEC));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -1405,7 +1426,7 @@ namespace curse
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x264EAEC, 0) = sys;
+		U32(R(0x264EAEC), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1419,7 +1440,7 @@ namespace curse
 			FX_HELD(held_note_system(sys);)
 			a_740700();
 			cu_82EB60();
-			sys = U32(0x264EAEC, 0);
+			sys = U32(R(0x264EAEC), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1432,8 +1453,8 @@ namespace curse
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x264EAC0, 0) = (uint16_t)(U16(0x264EAC0, 0) + c14);
-		U16(0x264E704, 0) = (uint16_t)(U16(0x264E704, 0) + c16);
+		U16(R(0x264EAC0), 0) = (uint16_t)(U16(R(0x264EAC0), 0) + c14);
+		U16(R(0x264E704), 0) = (uint16_t)(U16(R(0x264E704), 0) + c16);
 		return done;
 	}
 
@@ -1442,12 +1463,12 @@ namespace curse
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl cu_82EB60(void)
 	{
-		uint32_t act = U32(U32(0x264EAEC, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x264EAEC), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x264EAEC, 0);
+				uint32_t sys = U32(R(0x264EAEC), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1464,10 +1485,10 @@ namespace curse
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x8C5DD0 into the frame arena 0x1D8E054
 	uint32_t __cdecl cu_82EBC0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1510,8 +1531,8 @@ namespace curse
 				MEM<uint32_t>(0x1D8E054) = cu_82BAB0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1519,7 +1540,7 @@ namespace curse
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl cu_82EE60(void)
 	{
-		uint32_t act = U32(U32(0x264EAEC, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x264EAEC), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1540,7 +1561,7 @@ namespace curse
 	uint32_t __cdecl cu_82EEA0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x264EAEC);
+		uint32_t st = MEM<uint32_t>(R(0x264EAEC));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1561,7 +1582,7 @@ namespace curse
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x264EAEC);
+			st = MEM<uint32_t>(R(0x264EAEC));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1579,7 +1600,7 @@ namespace curse
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x264EAEC, 0);                  // actor state block
+		uint32_t st = U32(R(0x264EAEC), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1676,8 +1697,8 @@ namespace curse
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 10 records
 	uint32_t __cdecl cu_830090(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x264E708);
-		int32_t idx = MEM<int16_t>(0x264D828);
+		const uint32_t pool = MEM<uint32_t>(R(0x264E708));
+		int32_t idx = MEM<int16_t>(R(0x264D828));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1687,7 +1708,7 @@ namespace curse
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1702,9 +1723,9 @@ namespace curse
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x264D828) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x264D828)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x264D828) = 0;
+			MEM<uint16_t>(R(0x264D828)) = 0;
 		return slot;
 	}
 
@@ -1734,7 +1755,7 @@ namespace curse
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl cu_8301B0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x264EAEC, 0);
+		uint32_t sys = U32(R(0x264EAEC), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1769,9 +1790,9 @@ namespace curse
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x264EADC, 0) - 0x50;
+		uint32_t sp = U32(R(0x264EADC), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x264EADC, 0) = sp;
+		U32(R(0x264EADC), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = cu_830A10(a1, (uint16_t)kind);
@@ -1783,7 +1804,7 @@ namespace curse
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x264EAEC, 0);
+			uint32_t ctx = U32(R(0x264EAEC), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1962,7 +1983,7 @@ namespace curse
 			}
 		}
 		cu_831720(node, desc);
-		U32(0x264EADC, 0) = U32(0x264EADC, 0) + 0x50;
+		U32(R(0x264EADC), 0) = U32(R(0x264EADC), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1970,8 +1991,8 @@ namespace curse
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x46 records
 	uint32_t __cdecl cu_830A10(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x264EAE0);
-		int32_t i = MEM<int16_t>(0x264E714);
+		const uint32_t pool = MEM<uint32_t>(R(0x264EAE0));
+		int32_t i = MEM<int16_t>(R(0x264E714));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1984,7 +2005,7 @@ namespace curse
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2001,9 +2022,9 @@ namespace curse
 		}
 		i++;
 		if (i >= 0x45)
-			MEM<uint16_t>(0x264E714) = 0;
+			MEM<uint16_t>(R(0x264E714)) = 0;
 		else
-			MEM<uint16_t>(0x264E714) = (uint16_t)i;
+			MEM<uint16_t>(R(0x264E714)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2017,7 +2038,7 @@ namespace curse
 	uint32_t __cdecl cu_830C30(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x264EAEC, 0);            // ecx
+		const uint32_t st = U32(R(0x264EAEC), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2081,7 +2102,7 @@ namespace curse
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x264EAEC, 0);
+				uint32_t g = U32(R(0x264EAEC), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2091,7 +2112,7 @@ namespace curse
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x264EAEC, 0);
+				uint32_t g = U32(R(0x264EAEC), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2179,7 +2200,7 @@ namespace curse
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl cu_8317B0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x264EAEC);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x264EAEC));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2204,14 +2225,14 @@ namespace curse
 				do
 				{
 					cu_830090(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x264EAEC);
+					dir = MEM<uint32_t>(R(0x264EAEC));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				cu_830090(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x264EAEC);
+				dir = MEM<uint32_t>(R(0x264EAEC));
 			}
 		}
 		return 0; // void
@@ -2234,11 +2255,11 @@ namespace curse
 	// 0x200 up to 0x600 (then next state); writes the level to the 4 words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl cu_831920(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x200);
-		if (S16(a1, 0x1C) >= 0x600)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PC().darken.step_in);
+		if (S16(a1, 0x1C) >= PC().darken.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
-			U16(a1, 0x1C) = 0x600;
+			U16(a1, 0x1C) = (uint16_t)PC().darken.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -2260,7 +2281,7 @@ namespace curse
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl cu_831980(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PC().darken.step_out);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -2279,7 +2300,7 @@ namespace curse
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl cu_8319D0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x15B8028);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2302,13 +2323,13 @@ namespace curse
 	// on the effect light is released (a_73BB60(1))
 	uint32_t __cdecl cu_82B370(uint32_t a1)
 	{
-		if (U16(MEM<uint32_t>(ASSET_TABLE_PTR), 0x166) == 0)
+		if (U16(MEM<uint32_t>(R(ASSET_TABLE_PTR)), 0x166) == 0)
 		{
 			a_73BB60(0);
 			next_state(a1);
 			return a1;
 		}
-		if (S16(MEM<uint32_t>(PHASE_DATA), 0x46) >= 0x35)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= 0x35)
 			a_73BB60(1);
 		return 0; // void
 	}
@@ -2316,7 +2337,7 @@ namespace curse
 	// 0x82B400 (sub_82B400): director state - next state from phase tick 0x36
 	uint32_t __cdecl cu_82B400(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(PHASE_DATA), 0x46) >= 0x36)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PC().director.length)
 			next_state(a1);
 		return 0; // void
 	}
@@ -2325,8 +2346,8 @@ namespace curse
 	// +0x48 = 1), next state
 	uint32_t __cdecl cu_82B460(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
-		if (S16(d, 0x46) > 0x32)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) > PC().director.damage)
 		{
 			U16(d, 0x48) = 1;
 			next_state(a1);
@@ -2340,16 +2361,16 @@ namespace curse
 	// 0x82DF60 (actor data 0x17B97A4)
 	uint32_t __cdecl cu_82B500(uint32_t a1)
 	{
-		const int32_t k = S16(MEM<uint32_t>(PHASE_DATA), 0x40);
+		const int32_t k = S16(MEM<uint32_t>(G(G_1533010)), 0x40);
 		if (k == 1)
 		{
 			cu_82B5F0(a1, 0x82B640, 0x17BB134, 0x154, 0, 0);
 			cu_82B5F0(a1, 0x82DD00, 0x17BDF6C, 0x154, 1, 0);
 			cu_82B5F0(a1, 0x82DE00, 0x17C0DA4, 0x1F4, 2, 0);
-			return x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x831870, 0xB0, a1);
+			return Spawn(R(Q_STAGE), 0x831870, 0xB0, a1);
 		}
 		if (k == 2)
-			return a_73C100(a1, 0x82DF60, 0x17B97A4, 0, 0, 0);
+			return a_73C100(a1, 0x82DF60, 0x17B97A4, (uint16_t)PC().actors.start, (uint16_t)PC().actors.length, (uint16_t)PC().actors.mode);
 		return (uint32_t)(k - 2);
 	}
 
@@ -2358,7 +2379,7 @@ namespace curse
 	// +0x82 = a6; returns the node
 	uint32_t __cdecl cu_82B5F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, a2, 0x288, a1);
+		const uint32_t t = Spawn(R(Q_PRIM), a2, 0x288, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -2426,7 +2447,7 @@ namespace curse
 	uint32_t __cdecl cu_82DE60(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0xF)
+		if (S16(node, 0x24) < PC().prims.middle)
 			return 0; // void
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
 		// stack: [esp+4] the position of monster 0x38 (B), [esp+0xC] of monster 0x37 (A)
@@ -2574,6 +2595,32 @@ namespace curse
 	}
 
 	// ---- generated (gendesc.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(CurseParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its phases: the sound; phase 1 - the curse at both hands (Vysage's Lefty and Righty) and between them, the stage darkening, the damage cue; phase 2 - the actor system" },
+			{ 0, "stage", "Stage darkening", "The stage group darkened, held until the director's cue 3, back" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "Phase 2's (its actor data the exe's): Start, Length (ticks), Mode" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "Played once cue 1 runs", (uint32_t)offsetof(CurseParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("director", director.length, "Phase ticks", "Phase 1 is over after these ticks", 0, 400),
+			DT("director", director.damage, "Damage cue", "The damage of the target after this tick of the phase", 0, 400),
+			DT("director", prims.middle, "Middle tick", "The curse between both hands from this tick", 0, 200),
+			DT("director", actors.start, "Start", "", 0, 200),
+			DT("director", actors.length, "Length", "", 0, 200),
+			DT("director", actors.mode, "Mode", "", 0, 4),
+			DT("stage", darken.level, "Level", "", 0, 0x1000),
+			DT("stage", darken.step_in, "Step in", "Up by this a tick", 1, 0x1000),
+			DT("stage", darken.step_out, "Step out", "Down by this a tick", 1, 0x1000),
+		};
+#undef DT
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x82AAF0, (void *)a_73A0D0, "047 MAG_047_sub_82AAF0" },
@@ -2718,6 +2765,11 @@ namespace curse
 
 	void register_mag047_curse()
 	{
+		fxp::register_params({ 47, "Curse", &act::curse::live, &act::curse::GAME, sizeof(act::curse::CurseParams),
+		                       act::curse::table::PARTS, (int)(sizeof(act::curse::table::PARTS) / sizeof(act::curse::table::PARTS[0])),
+		                       act::curse::table::FIELDS, (int)(sizeof(act::curse::table::FIELDS) / sizeof(act::curse::table::FIELDS[0])),
+		                       act::curse::table::GROUPS, (int)(sizeof(act::curse::table::GROUPS) / sizeof(act::curse::table::GROUPS[0])) });
+		act::register_mod(&act::curse::MOD_047);
 		act::register_module(47);
 		for (const act::curse::ModPort *p = act::curse::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(47, p->addr, p->port, p->name);
@@ -2726,6 +2778,7 @@ namespace curse
 		// 30 fps layer: see mag047_curse_held.inc
 		FX_HELD(register_mag047_held();)
 	}
+	FX_LAB_MODULE(register_mag047_curse);
 }
 
 #ifdef FF8_FX_HELD
