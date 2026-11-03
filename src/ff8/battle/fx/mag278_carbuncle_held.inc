@@ -39,6 +39,36 @@ namespace c278
 	};
 	static CreatureMemo g_cm = { 0xFFFFFFFF };
 
+	// the creature skeleton (pose + bone matrices) as the real tick drew it: the tick may start a new
+	// animation after its draw (110 / 136: ReadAnimationStart reads the new animation's first frame)
+	static const uint32_t SKEL_MAX = 16 + 48 * 256;
+	static uint8_t g_cm_skel[SKEL_MAX];
+	static uint32_t g_cm_skel_size = 0;
+	static uint8_t *Skel(uint8_t *e, uint32_t *size)
+	{
+		uint8_t *com = *(uint8_t **)(e + 0x64);
+		uint8_t *sk = com ? *(uint8_t **)com : nullptr;
+		if (!sk) return nullptr;
+		*size = 16 + 48 * (uint32_t)sk[0];
+		return *size <= SKEL_MAX ? sk : nullptr;
+	}
+
+	// the tasks that drew on the real tick, in their execution order (= the master's queue order): a
+	// task that ends on the tick (TASK_END after its draw) is no longer queued on the held frames but
+	// its last picture stays until the next tick, as at 15 fps
+	enum { DL_SPARKLE = 1, DL_SHARD, DL_RUBY, DL_ORBIT, DL_RING };
+	static struct { uint32_t tick; int n; uint8_t kind[256]; void *node[256]; } g_dl = { 0xFFFFFFFF, 0 };
+	static void held_note_draw(int kind, void *node)
+	{
+		if (g_dl.tick != g_real_tick) { g_dl.tick = g_real_tick; g_dl.n = 0; }
+		if (g_dl.n < 256) { g_dl.kind[g_dl.n] = (uint8_t)kind; g_dl.node[g_dl.n++] = node; }
+	}
+	static bool Queued(const TaskNode *head, const void *n)
+	{
+		for (const TaskNode *t = head; t; t = t->next) if (t == n) return true;
+		return false;
+	}
+
 	struct RubyMemo { int16_t c; };
 	struct OrbitMemo { int16_t c, angle, tilt; };
 	struct RingMemo { int16_t c, scale; };
@@ -55,21 +85,25 @@ namespace c278
 	static void held_note_sparkle(SparkleNode *p)
 	{
 		if (SparkleMemo *m = g_sparkle_memo.put(p)) memcpy(m->pos, p->pos, 8);
+		held_note_draw(DL_SPARKLE, p);
 	}
 
 	static void held_note_shard(ShardNode *p)
 	{
 		if (ShardMemo *m = g_shard_memo.put(p)) memcpy(m->pos, p->pos, 8);
+		held_note_draw(DL_SHARD, p);
 	}
 
 	static void held_note_orbit(OrbitNode *o)
 	{
 		if (OrbitMemo *m = g_orbit_memo.put(o)) { m->c = o->counter; m->angle = o->angle; m->tilt = o->tilt; }
+		held_note_draw(DL_ORBIT, o);
 	}
 
 	static void held_note_ring(RingNode *r)
 	{
 		if (RingMemo *m = g_ring_memo.put(r)) { m->c = r->counter; m->scale = r->scale; }
+		held_note_draw(DL_RING, r);
 	}
 
 	// beam: the sprites' position and frame as drawn
@@ -81,7 +115,11 @@ namespace c278
 	static void held_note_ruby(RubyNode *r)
 	{
 		if (RubyMemo *m = g_ruby_memo.put(r)) m->c = r->counter;
+		held_note_draw(DL_RUBY, r);
 	}
+
+	static uint8_t g_stage1_last[0x514];
+	static bool g_stage1_last_ok = false;
 
 	// creature: the counter the tick runs with; what it draws is noted below
 	static void held_note_creature(CreatureNode *cn)
@@ -92,17 +130,31 @@ namespace c278
 		memo.c0 = cn->counter;
 		memo.model = memo.dome = false;
 		memo.prim = 0;
+		g_stage1_last_ok = false;
 	}
 
 	static void held_note_model(CreatureNode *cn)
 	{
 		g_cm.model = true;
 		g_cm.root = Root(cn);
+		uint32_t size = 0;
+		uint8_t *sk = Skel(E(cn), &size);
+		g_cm_skel_size = sk ? size : 0;
+		if (sk) memcpy(g_cm_skel, sk, size);
 	}
 
 	static void held_note_dome() { g_cm.dome = true; }
 
-	static void held_note_prim_stage(int stage) { g_cm.prim = stage; }
+	// prim stage 1's last play (145) is followed in the same tick by the stage-2 layout decoded over it:
+	// its layout as that play started, to draw that last picture again on the held frames
+	static void held_note_prim_stage(int stage)
+	{
+		g_cm.prim = stage;
+		const CreatureNode *cn = (const CreatureNode *)g_cm.node;
+		if (stage != 1 || !cn || cn->counter != 0x91) return;
+		memcpy(g_stage1_last, cn->prim, sizeof(g_stage1_last));
+		g_stage1_last_ok = true;
+	}
 
 	// ruby view matrix for a held frame: RubyMatrices on a copy of the node's model matrix
 	static void RubyView(const RubyNode *r, Mat4x3 *view)
@@ -182,6 +234,38 @@ namespace c278
 		}
 	};
 
+	// The creature model at tick + num / den: between the pose the real tick drew (g_cm_skel) and the one
+	// the next tick's AdvanceModelAnim (0x6FBDB0) reads, run ahead on the real skeleton and command and
+	// put back: it restarts a completed animation (the two-frame loops from 110 on) and continues one
+	// the tick started after its draw (110 / 136); paused, the drawn pose holds. PoseEnd puts the whole
+	// real skeleton back.
+	static uint8_t g_ps_save[SKEL_MAX], g_ps_next[SKEL_MAX];
+	static uint32_t g_ps_size = 0;
+	static void PoseBegin(CreatureNode *cn, int num, int den)
+	{
+		uint8_t *e = E(cn);
+		uint32_t size = 0;
+		uint8_t *sk = Skel(e, &size);
+		g_ps_size = 0;
+		if (!sk || size != g_cm_skel_size) { pose_midpoint(e + 0x60, e + 0x6C, num, den); return; }
+		memcpy(g_ps_save, sk, size);
+		uint8_t cmd[8];
+		memcpy(cmd, e + 0x6C, sizeof(cmd));
+		if (!Pause()) AdvanceModelAnim(e);
+		memcpy(g_ps_next, sk, size);
+		memcpy(e + 0x6C, cmd, sizeof(cmd));
+		memcpy(sk, g_cm_skel, size);
+		pose_midpoint_to(e + 0x60, g_ps_next, num, den);
+		g_ps_size = size;
+	}
+	static void PoseEnd(CreatureNode *cn)
+	{
+		uint32_t size = 0;
+		uint8_t *sk = Skel(E(cn), &size);
+		if (sk && g_ps_size == size) memcpy(sk, g_ps_save, size);
+		g_ps_size = 0;
+	}
+
 	static void CreatureHeld(CreatureNode *cn, int num, int den)
 	{
 		const CreatureMemo &m = g_cm;
@@ -195,8 +279,9 @@ namespace c278
 		{
 			Mat4x3 save = Root(cn);
 			Root(cn) = m.root;
-			pose_midpoint(e + 0x60, e + 0x6C, num, den);
+			PoseBegin(cn, num, den);
 			FrameCursor() = DrawModel(e, Scratch(), FrameCursor(), var<uint32_t>(0x1D969A8));
+			PoseEnd(cn);
 			Root(cn) = save;
 		}
 
@@ -217,12 +302,30 @@ namespace c278
 		if (m.prim == 1)
 		{
 			PrimCtx ctx;
-			pose_midpoint(e + 0x60, e + 0x6C, num, den); // vertex 0xB0 at the in-between pose
+			PoseBegin(cn, num, den); // vertex 0xB0 at the in-between pose
 			CtxStage110(ctx, cn);
+			PoseEnd(cn);
 			prim::play_held((prim::Layout *)cn->prim, (prim::Callback)CB_PrimObject, (int)&ctx, num, den);
 		}
 		else if (m.prim == 2)
 		{
+			if (g_stage1_last_ok && m.c0 == 0x91)
+			{
+				// stage 1's last picture (vanilla shows it until the next tick): its play again from the layout
+				// it started with (the play steps, then draws), the stage-2 layout put back after
+				static uint8_t now[0x514];
+				memcpy(now, cn->prim, sizeof(now));
+				memcpy(cn->prim, g_stage1_last, sizeof(now));
+				PrimCtx ctx1;
+				Mat4x3 root = Root(cn);
+				if (m.model) Root(cn) = m.root; // the root that play used (145 moves it after)
+				PoseBegin(cn, 0, den);
+				CtxStage110(ctx1, cn);
+				PoseEnd(cn);
+				Root(cn) = root;
+				prim::play((prim::Layout *)cn->prim, (prim::Callback)CB_PrimObject, (int)&ctx1, (int)Pause());
+				memcpy(cn->prim, now, sizeof(now));
+			}
 			PrimCtx ctx;
 			CtxStage145(ctx);
 			prim::play_held((prim::Layout *)cn->prim, (prim::Callback)CB_PrimObject, (int)&ctx, num, den);
@@ -356,16 +459,22 @@ namespace c278
 		PacketCursor2() = (uint32_t)g_held_packets + 0x40000;
 		for (TaskNode *t = QueueCreature().second.head; t; t = t->next)
 			if ((uint32_t)t->func == ORIG_CreatureTask) CreatureHeld((CreatureNode *)t, num, den);
-		for (TaskNode *t = QueueCreature().first.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_SparkleTask) SparkleHeld((SparkleNode *)t);
-		for (TaskNode *t = QueueRubies().second.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_ShardTask) ShardHeld((ShardNode *)t, num, den);
-		for (TaskNode *t = QueueRubies().first.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_RubyTask) RubyHeld((RubyNode *)t, num, den);
-		for (TaskNode *t = QueueOrbits().first.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_OrbitTask) OrbitHeld((OrbitNode *)t, num, den);
-		for (TaskNode *t = QueueOrbits().second.head; t; t = t->next)
-			if ((uint32_t)t->func == ORIG_RingTask) RingHeld((RingNode *)t, num, den);
+		// the small tasks as they drew on the real tick (draw list): one that ended on the tick keeps its
+		// last picture (fraction 0: the drawn state; an ended orbit / ring keeps its counter, which holds)
+		if (g_dl.tick == g_real_tick)
+			for (int i = 0; i < g_dl.n; i++)
+			{
+				void *p = g_dl.node[i];
+				switch (g_dl.kind[i])
+				{
+				case DL_SPARKLE: SparkleHeld((SparkleNode *)p); break;
+				case DL_SHARD: ShardHeld((ShardNode *)p, Queued(QueueRubies().second.head, p) ? num : 0, den); break;
+				case DL_RUBY: if (Queued(QueueRubies().first.head, p)) RubyHeld((RubyNode *)p, num, den); break;
+				case DL_ORBIT: OrbitHeld((OrbitNode *)p, Queued(QueueOrbits().first.head, p) ? num : 0, den); break;
+				case DL_RING: RingHeld((RingNode *)p, Queued(QueueOrbits().second.head, p) ? num : 0, den); break;
+				default: break;
+				}
+			}
 		if (QueueBeams().head)
 		{
 			uint8_t *h = BeamHeaderInit();

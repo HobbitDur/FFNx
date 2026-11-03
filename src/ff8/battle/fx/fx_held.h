@@ -114,6 +114,10 @@ namespace ff8fx
 	// exact midpoint pose (angles the short way round), the real pose values are put back.
 	// A completed animation holds its pose. (Implemented in ff8_opengl.cpp.)
 	void pose_midpoint(void *anim_header, void *anim_cmd, int num, int den);
+	// Pose between the skeleton's current pose and the pose of next_skeleton (a copy of the same skeleton as the next tick
+	// will have it, e.g. after an effect-model anim advance 0x6FBDB0 that restarts a completed animation), same rules
+	// (fraction 1 = next_skeleton's pose exactly). (Implemented in ff8_opengl.cpp.)
+	void pose_midpoint_to(void *anim_header, const void *next_skeleton, int num, int den);
 
 	// per-node memo of the state a task drew on the current real tick (for the in-between
 	// state of tasks that draw then update). Entries from older ticks count as free slots.

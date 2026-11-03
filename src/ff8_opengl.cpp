@@ -2678,6 +2678,8 @@ static void ff8_bgate_pose_held(void *header, void *anim_cmd, int k, int div)
 // own spelling of every angle): the bone matrices are the next tick's, bit for bit.
 static uint8_t ff8_bgate_la_skel_save[16 + 48 * FF8_BGATE_POSE_BONES];
 
+static void ff8_bgate_pose_blend(void *header, uint8_t *sk, int nb, const ff8_bgate_pose_t &cur, bool cur_scaled, const ff8_bgate_pose_t &next, bool next_scaled, int k, int div);
+
 static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int div)
 {
 	uint8_t *sk = ff8_bgate_skeleton(header);
@@ -2692,7 +2694,7 @@ static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int di
 	uint8_t cmd_save[8];
 	memcpy(cmd_save, cmd, 8);
 	memcpy(ff8_bgate_la_skel_save, sk, size);
-	static ff8_bgate_pose_t cur, next, mid;
+	static ff8_bgate_pose_t cur, next;
 	const bool cur_scaled = (sk[1] & 1) != 0;
 	ff8_bgate_pose_read(sk, nb, true, cur); // scale words too, whatever the flag (put back as they were)
 	unreplace_function(ff8_bgate_readanim_ri);
@@ -2702,6 +2704,15 @@ static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int di
 	ff8_bgate_pose_read(sk, nb, true, next);
 	memcpy(sk, ff8_bgate_la_skel_save, size);
 	memcpy(cmd, cmd_save, 8);
+	ff8_bgate_pose_blend(header, sk, nb, cur, cur_scaled, next, next_scaled, k, div);
+}
+
+// The in-between pose of cur and next at k / div (fraction 1 = next exactly, its flag and spelling), bone matrices built from
+// it, then the real pose values put back (cur, its flag). Shared by the look-ahead above and pose_midpoint_to.
+static void ff8_bgate_pose_blend(void *header, uint8_t *sk, int nb, const ff8_bgate_pose_t &cur, bool cur_scaled, const ff8_bgate_pose_t &next, bool next_scaled, int k, int div)
+{
+	static ff8_bgate_pose_t mid;
+	const uint8_t flag_save = sk[1];
 	bool mid_scaled;
 	if (k >= div)
 	{
@@ -2743,15 +2754,34 @@ static void ff8_bgate_pose_lookahead(void *header, void *anim_cmd, int k, int di
 	sk[1] = (uint8_t)((sk[1] & ~1) | (mid_scaled ? 1 : 0));
 	ff8_bgate_pose_write(sk, nb, mid_scaled, mid);
 	((void(__cdecl *)(void *))0x508C90)(header); // BattleModel_BuildBoneMatricesFromPose
-	sk[1] = ff8_bgate_la_skel_save[1];
+	sk[1] = flag_save;
 	ff8_bgate_pose_write(sk, nb, true, cur);
 }
+
 
 namespace ff8fx
 {
 	void pose_midpoint(void *anim_header, void *anim_cmd, int num, int den)
 	{
 		ff8_bgate_pose_lookahead(anim_header, anim_cmd, num, den);
+	}
+
+	// the in-between pose of the skeleton's current pose and the pose held by next_skeleton (a copy of the same skeleton after
+	// whatever the next tick does to it: an effect-model anim advance that loops or restarts, a pose drawn earlier, ...)
+	void pose_midpoint_to(void *anim_header, const void *next_skeleton, int num, int den)
+	{
+		uint8_t *sk = ff8_bgate_skeleton(anim_header);
+		const uint8_t *nx = (const uint8_t *)next_skeleton;
+		if (!sk || !nx || sk[0] == 0 || sk[0] > FF8_BGATE_POSE_BONES || nx[0] != sk[0])
+		{
+			((void(__cdecl *)(void *))0x508C90)(anim_header); // plain hold
+			return;
+		}
+		const int nb = sk[0];
+		static ff8_bgate_pose_t cur, next;
+		ff8_bgate_pose_read(sk, nb, true, cur);
+		ff8_bgate_pose_read(nx, nb, true, next);
+		ff8_bgate_pose_blend(anim_header, sk, nb, cur, (sk[1] & 1) != 0, next, (nx[1] & 1) != 0, num, den);
 	}
 }
 
