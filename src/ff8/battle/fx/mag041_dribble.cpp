@@ -63,8 +63,13 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (db_XXXXXX), most of them
 // the text of the matching Curaga / Full-life / Confuse / Counter Laser-Eye port with this
 // module's addresses.
+// Fujin's described Dribble (effect_041.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (DribbleParams: the two sounds, the emitter's ticks, the actor system, the ball) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -92,6 +97,21 @@ namespace dribble
 	static const uint32_t ORIG_Dust = 0x84CA70;
 	static const void *const SOUND_Grab = (const void *)0x15CA5A8;
 	static const void *const SOUND_Land = (const void *)0x15CA5AC;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct DribbleParams
+	{
+		struct { uint32_t grab, land; } sounds;                              // the grab (the emitter's), the landing
+		struct { int16_t sound, release, result; } emitter;                  // the grab sound / the master released / the damage at these ticks
+		struct { int16_t start, length, mode; } actors;                      // the actor system
+		struct { int16_t grab, morph, bounce, lift, gravity, unmorph; } ball;   // the grab's ticks, the morph a tick, the throw's tick, its lift, gravity, the unmorph a tick
+	};
+	static const DribbleParams GAME = { { 0x15CA5A8, 0x15CA5AC }, { 0x11, 0x74, 0x74 }, { 0xF, 0x2D, 0 },
+	                                    { 0x13, 0x200, 0x33, 0x200, 0x30, 0x100 } };
+	static DribbleParams live = GAME;
+	static const DribbleParams &PB() { return live; }
 	static const uint32_t ACTOR_DATA = 0x15CD8B0;      // the actor system's data (exe data, relocated once by 0x8472A0)
 	static const uint32_t RADIUS_TABLE = 0x15CDC80;    // ball y radius by dribble tick 0..56 (6-byte records)
 	static const uint32_t DUST_FLIPBOOK = 0x15CA5B0;
@@ -264,14 +284,15 @@ namespace dribble
 	uint32_t __cdecl db_8466F0(uint32_t a1)
 	{
 		g_mod = &MOD_041;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag041_dribble_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x268F1B8) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x268F1B8)) = 0x2793E58;
 		states[0] = 0x846830;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x846840;
@@ -286,24 +307,24 @@ namespace dribble
 		states[10] = 0x84D000; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2698A5C);
-			const uint32_t v2 = MEM<uint32_t>(0x26903E4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x268F1B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2698A5C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26903E4));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x268F1B4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2698A58);
-			const uint32_t v2 = MEM<uint32_t>(0x26903E0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x268F1B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2698A58));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26903E0));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x268F1B4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x2698A9E) = 0;
-		MEM<uint16_t>(0x2698A8E) = 0;
-		static const uint32_t queues[3] = { Q_EMITTER, Q_ACTORS, Q_TASKS };
+		MEM<uint16_t>(R(0x2698A9E)) = 0;
+		MEM<uint16_t>(R(0x2698A8E)) = 0;
+		const uint32_t queues[3] = { R(Q_EMITTER), R(Q_ACTORS), R(Q_TASKS) };
 		for (int i = 0; i < 3; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -317,12 +338,12 @@ namespace dribble
 	// cursors / counters
 	uint32_t __cdecl db_846890(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2698A90), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2698AA8), 0x8340);
-		MEM<uint16_t>(0x26903D8) = 0;
-		MEM<uint16_t>(0x2698A9C) = 0;
-		MEM<uint16_t>(0x2698A8C) = 0;
-		MEM<uint16_t>(0x267B860) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2698A90)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2698AA8)), 0x8340);
+		MEM<uint16_t>(R(0x26903D8)) = 0;
+		MEM<uint16_t>(R(0x2698A9C)) = 0;
+		MEM<uint16_t>(R(0x2698A8C)) = 0;
+		MEM<uint16_t>(R(0x267B860)) = 0;
 		return 0; // void
 	}
 
@@ -353,7 +374,7 @@ namespace dribble
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(0x2698AB4) = st;
+		MEM<uint32_t>(R(0x2698AB4)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -365,7 +386,7 @@ namespace dribble
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x2698AB4);
+			st = MEM<uint32_t>(R(0x2698AB4));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -385,20 +406,20 @@ namespace dribble
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		db_846D40();
-		st = MEM<uint32_t>(0x2698AB4);
+		st = MEM<uint32_t>(R(0x2698AB4));
 		if (U16(st, 0x24) == 4)
 			callp(0x846C60, node);
 		db_847090();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(0x2698AB4);
+		st = MEM<uint32_t>(R(0x2698AB4));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x846EA0, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(0x2698AB4);
+			st = MEM<uint32_t>(R(0x2698AB4));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x2698AB4);
+			st = MEM<uint32_t>(R(0x2698AB4));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -413,7 +434,7 @@ namespace dribble
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x2698AB4);
+		st = MEM<uint32_t>(R(0x2698AB4));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -424,7 +445,7 @@ namespace dribble
 	// the harness)
 	uint32_t __cdecl db_846C60(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2698AB4);
+		const uint32_t arena = MEM<uint32_t>(R(0x2698AB4));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -445,7 +466,7 @@ namespace dribble
 	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl db_846D40(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -454,7 +475,7 @@ namespace dribble
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -467,7 +488,7 @@ namespace dribble
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -475,7 +496,7 @@ namespace dribble
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -493,7 +514,7 @@ namespace dribble
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl db_846EA0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2698AB4);
+		const uint32_t arena = MEM<uint32_t>(R(0x2698AB4));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -521,7 +542,7 @@ namespace dribble
 	// position (the stack words keep what they held)
 	uint32_t __cdecl db_847090(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -535,7 +556,7 @@ namespace dribble
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -548,7 +569,7 @@ namespace dribble
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -556,7 +577,7 @@ namespace dribble
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -600,12 +621,12 @@ namespace dribble
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl db_8476F0(void)
 	{
-		uint32_t act = U32(U32(0x2698AB4, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2698AB4), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x2698AB4, 0);
+				uint32_t sys = U32(R(0x2698AB4), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -622,10 +643,10 @@ namespace dribble
 	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl db_847750(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -645,9 +666,9 @@ namespace dribble
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -662,17 +683,17 @@ namespace dribble
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1215,14 +1236,14 @@ namespace dribble
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl db_848D70(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x2698AB4), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x2698AB4)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x2698AB4);
+				uint32_t st = MEM<uint32_t>(R(0x2698AB4));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1259,20 +1280,20 @@ namespace dribble
 	uint32_t __cdecl db_848E30(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1280,7 +1301,7 @@ namespace dribble
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl db_848EB0(void)
 	{
-		uint32_t act = U32(U32(0x2698AB4, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2698AB4), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1301,7 +1322,7 @@ namespace dribble
 	uint32_t __cdecl db_848EF0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x2698AB4);
+		uint32_t st = MEM<uint32_t>(R(0x2698AB4));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1322,7 +1343,7 @@ namespace dribble
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x2698AB4);
+			st = MEM<uint32_t>(R(0x2698AB4));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1340,7 +1361,7 @@ namespace dribble
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2698AB4, 0);                  // actor state block
+		uint32_t st = U32(R(0x2698AB4), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1437,8 +1458,8 @@ namespace dribble
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 0x14 records
 	uint32_t __cdecl db_84A0E0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2698A90);
-		int32_t idx = MEM<int16_t>(0x26903D8);
+		const uint32_t pool = MEM<uint32_t>(R(0x2698A90));
+		int32_t idx = MEM<int16_t>(R(0x26903D8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1448,7 +1469,7 @@ namespace dribble
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1463,9 +1484,9 @@ namespace dribble
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(0x26903D8) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x26903D8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x26903D8) = 0;
+			MEM<uint16_t>(R(0x26903D8)) = 0;
 		return slot;
 	}
 
@@ -1495,7 +1516,7 @@ namespace dribble
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl db_84A200(uint32_t a1)
 	{
-		uint32_t sys = U32(0x2698AB4, 0);
+		uint32_t sys = U32(R(0x2698AB4), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1530,9 +1551,9 @@ namespace dribble
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x2698AA4, 0) - 0x50;
+		uint32_t sp = U32(R(0x2698AA4), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x2698AA4, 0) = sp;
+		U32(R(0x2698AA4), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = db_84AA60(a1, (uint16_t)kind);
@@ -1544,7 +1565,7 @@ namespace dribble
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x2698AB4, 0);
+			uint32_t ctx = U32(R(0x2698AB4), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1723,7 +1744,7 @@ namespace dribble
 			}
 		}
 		db_84B770(node, desc);
-		U32(0x2698AA4, 0) = U32(0x2698AA4, 0) + 0x50;
+		U32(R(0x2698AA4), 0) = U32(R(0x2698AA4), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1732,8 +1753,8 @@ namespace dribble
 	// record 49 of the 50 is never used), cleared, owner a1, definition index a2
 	uint32_t __cdecl db_84AA60(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2698AA8);
-		int32_t i = MEM<int16_t>(0x2698A9C);
+		const uint32_t pool = MEM<uint32_t>(R(0x2698AA8));
+		int32_t i = MEM<int16_t>(R(0x2698A9C));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1746,7 +1767,7 @@ namespace dribble
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1763,9 +1784,9 @@ namespace dribble
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(0x2698A9C) = 0;
+			MEM<uint16_t>(R(0x2698A9C)) = 0;
 		else
-			MEM<uint16_t>(0x2698A9C) = (uint16_t)i;
+			MEM<uint16_t>(R(0x2698A9C)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1779,7 +1800,7 @@ namespace dribble
 	uint32_t __cdecl db_84AC80(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2698AB4, 0);            // ecx
+		const uint32_t st = U32(R(0x2698AB4), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -1843,7 +1864,7 @@ namespace dribble
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x2698AB4, 0);
+				uint32_t g = U32(R(0x2698AB4), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1853,7 +1874,7 @@ namespace dribble
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x2698AB4, 0);
+				uint32_t g = U32(R(0x2698AB4), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1941,7 +1962,7 @@ namespace dribble
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl db_84B800(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2698AB4);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x2698AB4));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1966,14 +1987,14 @@ namespace dribble
 				do
 				{
 					db_84A0E0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x2698AB4);
+					dir = MEM<uint32_t>(R(0x2698AB4));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				db_84A0E0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x2698AB4);
+				dir = MEM<uint32_t>(R(0x2698AB4));
 			}
 		}
 		return 0; // void
@@ -2002,10 +2023,10 @@ namespace dribble
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0; // void
 	}
@@ -2018,12 +2039,12 @@ namespace dribble
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x2698AB0);
-		MEM<uint32_t>(0x2698A90) = p;
+		uint32_t p = MEM<uint32_t>(R(0x2698AB0));
+		MEM<uint32_t>(R(0x2698A90)) = p;
 		p += 0x870;
-		MEM<uint32_t>(0x2698AA8) = p;
+		MEM<uint32_t>(R(0x2698AA8)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(0x2698AB0) = p;
+		MEM<uint32_t>(R(0x2698AB0)) = p;
 		db_846890();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -2043,8 +2064,8 @@ namespace dribble
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
-		if (U16(node, 0x24) == 0x11)
-			x::BdPlaySE(P(SOUND_Grab), 0, 0x80);
+		if (S16(node, 0x24) == PB().emitter.sound)
+			x::BdPlaySE(fxp::sound(PB().sounds.grab, P(SOUND_Grab)), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -2055,8 +2076,8 @@ namespace dribble
 	// dribble spawner task 0x84B8C0 (0xDC B, queue 0x268F298), next state
 	uint32_t __cdecl db_846990(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0xF, 0x2D, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Spawner, 0xDC, a1);
+		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, (uint16_t)PB().actors.start, (uint16_t)PB().actors.length, (uint16_t)PB().actors.mode);
+		Spawn(R(Q_TASKS), ORIG_Spawner, 0xDC, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2065,7 +2086,7 @@ namespace dribble
 	// = 0), next state
 	uint32_t __cdecl db_84CEF0(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x74)
+		if (S16(a1, 0x24) == PB().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2078,7 +2099,7 @@ namespace dribble
 	uint32_t __cdecl db_84CF10(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x74)
+		if (S16(node, 0x24) < PB().emitter.result)
 			return 0; // void
 		const uint32_t act = U32(U32(node, 0xC), 4) + (uint32_t)(S8(node, 0x2A) * 20);
 		x::ApplyActionResultToTarget(U32(act, 8) + (uint32_t)(S8(node, 0x2B) * 24));
@@ -2104,13 +2125,13 @@ namespace dribble
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		MEM<uint32_t>(ACTOR_STATE) = sys;
+		MEM<uint32_t>(R(ACTOR_STATE)) = sys;
 		int16_t pos[4] = { 0, 0, 0, 0 };
 		const uint32_t pp = P(pos);
 		if (U16(sys, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(0x1D972C0 + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x18, 0, pp);
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			sys = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x114) = shl32(S16(pp, 0), 16);
@@ -2119,7 +2140,7 @@ namespace dribble
 		if (U16(sys, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(0x1D972C0 + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x15, 0, pp);
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			sys = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x154) = shl32(S16(pp, 0), 16);
@@ -2131,7 +2152,7 @@ namespace dribble
 		if (U16(sys, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(0x1D972C0 + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x18, 0, pp);
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			sys = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x204) = shl32(S16(pp, 0), 16);
@@ -2150,7 +2171,7 @@ namespace dribble
 			FX_HELD(held_note_system(sys);)
 			db_848D70();
 			db_8476F0();
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			sys = MEM<uint32_t>(R(ACTOR_STATE));
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2163,8 +2184,8 @@ namespace dribble
 		}
 		const uint16_t c14 = U16(sys, 0x14);
 		const uint16_t c16 = U16(sys, 0x16);
-		MEM<uint16_t>(0x2698A9E) = (uint16_t)(MEM<uint16_t>(0x2698A9E) + c14);
-		MEM<uint16_t>(0x2698A8E) = (uint16_t)(MEM<uint16_t>(0x2698A8E) + c16);
+		MEM<uint16_t>(R(0x2698A9E)) = (uint16_t)(MEM<uint16_t>(R(0x2698A9E)) + c14);
+		MEM<uint16_t>(R(0x2698A8E)) = (uint16_t)(MEM<uint16_t>(R(0x2698A8E)) + c16);
 		return done;
 	}
 
@@ -2178,7 +2199,7 @@ namespace dribble
 	{
 		if (S16(a1, 0x24) >= 8)
 		{
-			x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Dribble, 0xDC, a1);
+			Spawn(R(Q_TASKS), ORIG_Dribble, 0xDC, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -2208,18 +2229,18 @@ namespace dribble
 		if ((U8(node, 0x26) & 8) != 0)
 		{
 			const uint32_t ent = 0x1D972C0 + (uint32_t)U8(node, 0x2D) * 0x9C;
-			const int16_t px = (int16_t)(MEM<uint16_t>(BLK + 0x7C) - MEM<uint16_t>(BLK + 0x74));
+			const int16_t px = (int16_t)(MEM<uint16_t>(R(BLK) + 0x7C) - MEM<uint16_t>(R(BLK) + 0x74));
 			S16(ent, 0x1C) = px;
 			S32(ent, 0x54) = px;
-			const int16_t py = (int16_t)(MEM<uint16_t>(BLK + 0x7E) - MEM<uint16_t>(BLK + 0x76));
+			const int16_t py = (int16_t)(MEM<uint16_t>(R(BLK) + 0x7E) - MEM<uint16_t>(R(BLK) + 0x76));
 			S16(ent, 0x1E) = py;
 			S32(ent, 0x58) = py;
-			const int16_t pz = (int16_t)(MEM<uint16_t>(BLK + 0x80) - MEM<uint16_t>(BLK + 0x78));
+			const int16_t pz = (int16_t)(MEM<uint16_t>(R(BLK) + 0x80) - MEM<uint16_t>(R(BLK) + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
 			// 30 fps layer: see mag041_dribble_held.inc
 			FX_HELD(held_note_ball(node);)
-			db_84BA60(BLK);
+			db_84BA60(R(BLK));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2509,21 +2530,21 @@ namespace dribble
 		const uint32_t node = a1;
 		const uint32_t slot = U8(node, 0x2D);
 		const uint32_t ent = 0x1D972C0 + slot * 0x9C;
-		db_84C2D0(BLK, 0x267B920, 0x2698A60, 0x2690BE8, ent, slot);
+		db_84C2D0(R(BLK), R(0x267B920), R(0x2698A60), R(0x2690BE8), ent, slot);
 		U8(ent, 0) |= 4;
 		const uint32_t p0 = U32(ent, 0x1C);
 		const uint32_t p1 = U32(ent, 0x20);
 		U8(node, 0x26) |= 8;
-		MEM<uint32_t>(0x267B8F4) = p0;
-		MEM<uint32_t>(0x267B8F8) = p1;
+		MEM<uint32_t>(R(0x267B8F4)) = p0;
+		MEM<uint32_t>(R(0x267B8F8)) = p1;
 		if ((uint8_t)x::CrtRand() == 0)
 		{
-			MEM<uint16_t>(BLK + 0xB4) = 1;
-			MEM<uint16_t>(BLK + 0x9E) = 0x800;
+			MEM<uint16_t>(R(BLK) + 0xB4) = 1;
+			MEM<uint16_t>(R(BLK) + 0x9E) = 0x800;
 		}
-		db_84C3A0(node, BLK);
-		db_84C350(node, BLK);
-		db_84C460(node, BLK);
+		db_84C3A0(node, R(BLK));
+		db_84C350(node, R(BLK));
+		db_84C460(node, R(BLK));
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -2647,11 +2668,11 @@ namespace dribble
 	// 0x84C610 (sub_84C610): dribble state 1 - pivot, radii, ball position; from tick 19 next state
 	uint32_t __cdecl db_84C610(uint32_t a1)
 	{
-		db_84C3A0(a1, BLK);
-		if (S16(a1, 0x24) >= 0x13)
+		db_84C3A0(a1, R(BLK));
+		if (S16(a1, 0x24) >= PB().ball.grab)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		db_84C350(a1, BLK);
-		db_84C460(a1, BLK);
+		db_84C350(a1, R(BLK));
+		db_84C460(a1, R(BLK));
 		return 0; // void
 	}
 
@@ -2659,25 +2680,25 @@ namespace dribble
 	// state; pivot, radii, ball position
 	uint32_t __cdecl db_84C650(uint32_t a1)
 	{
-		db_84C3A0(a1, BLK);
-		const uint16_t m = (uint16_t)(MEM<uint16_t>(BLK + 0xA8) + 0x200);
-		MEM<uint16_t>(BLK + 0xA8) = m;
+		db_84C3A0(a1, R(BLK));
+		const uint16_t m = (uint16_t)(MEM<uint16_t>(R(BLK) + 0xA8) + PB().ball.morph);
+		MEM<uint16_t>(R(BLK) + 0xA8) = m;
 		if ((int16_t)m >= 0x1000)
 		{
-			MEM<uint16_t>(BLK + 0xA8) = 0x1000;
+			MEM<uint16_t>(R(BLK) + 0xA8) = 0x1000;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		db_84C350(a1, BLK);
-		db_84C460(a1, BLK);
+		db_84C350(a1, R(BLK));
+		db_84C460(a1, R(BLK));
 		return 0; // void
 	}
 
 	// 0x84C6B0 (sub_84C6B0): dribble state 3 - pivot, radii, ball position, next state
 	uint32_t __cdecl db_84C6B0(uint32_t a1)
 	{
-		db_84C3A0(a1, BLK);
-		db_84C350(a1, BLK);
-		db_84C460(a1, BLK);
+		db_84C3A0(a1, R(BLK));
+		db_84C350(a1, R(BLK));
+		db_84C460(a1, R(BLK));
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2688,21 +2709,21 @@ namespace dribble
 	uint32_t __cdecl db_84C6F0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
-		db_84C3A0(a1, BLK);
-		if (S16(a1, 0x24) >= 0x33)
+		db_84C3A0(a1, R(BLK));
+		if (S16(a1, 0x24) >= PB().ball.bounce)
 		{
 			gx::QueueChainTransformation(ent, 6);
 			const int32_t f = S16(ent, 0xE);
-			MEM<uint16_t>(BLK + 0x96) = 0xFE00;
+			MEM<uint16_t>(R(BLK) + 0x96) = (uint16_t)-PB().ball.lift;
 			const int32_t s = (int32_t)x::computeSin((uint32_t)f);
-			MEM<uint16_t>(BLK + 0x94) = (uint16_t)(shl32(s, 7) / 4096);
+			MEM<uint16_t>(R(BLK) + 0x94) = (uint16_t)(shl32(s, 7) / 4096);
 			const int32_t c = (int32_t)x::computeCosine((uint32_t)(int32_t)S16(ent, 0xE));
-			MEM<uint16_t>(BLK + 0xB2) = 0;
-			MEM<uint16_t>(BLK + 0x98) = (uint16_t)(shl32(c, 7) / 4096);
+			MEM<uint16_t>(R(BLK) + 0xB2) = 0;
+			MEM<uint16_t>(R(BLK) + 0x98) = (uint16_t)(shl32(c, 7) / 4096);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		db_84C350(a1, BLK);
-		db_84C460(a1, BLK);
+		db_84C350(a1, R(BLK));
+		db_84C460(a1, R(BLK));
 		return 0; // void
 	}
 
@@ -2715,39 +2736,39 @@ namespace dribble
 	uint32_t __cdecl db_84C7A0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
-		db_84C3A0(a1, BLK);
-		const uint16_t t = MEM<uint16_t>(BLK + 0xB2);
+		db_84C3A0(a1, R(BLK));
+		const uint16_t t = MEM<uint16_t>(R(BLK) + 0xB2);
 		if ((int16_t)t <= 0x10)
 		{
-			MEM<uint16_t>(BLK + 0x9C) = (uint16_t)((uint16_t)(t * 0xFF00u) & 0xFFF);
-			if (MEM<uint16_t>(BLK + 0xB4) == 1)
-				MEM<uint16_t>(BLK + 0x9E) = (uint16_t)((uint16_t)(0x10 - t) << 7);
+			MEM<uint16_t>(R(BLK) + 0x9C) = (uint16_t)((uint16_t)(t * 0xFF00u) & 0xFFF);
+			if (MEM<uint16_t>(R(BLK) + 0xB4) == 1)
+				MEM<uint16_t>(R(BLK) + 0x9E) = (uint16_t)((uint16_t)(0x10 - t) << 7);
 		}
-		const uint16_t m = (uint16_t)(MEM<uint16_t>(BLK + 0xA8) + 0xFF00);
-		MEM<uint16_t>(BLK + 0xA8) = m;
+		const uint16_t m = (uint16_t)(MEM<uint16_t>(R(BLK) + 0xA8) - PB().ball.unmorph);
+		MEM<uint16_t>(R(BLK) + 0xA8) = m;
 		if ((int16_t)m <= 0)
-			MEM<uint16_t>(BLK + 0xA8) = 0;
-		const uint16_t vx = MEM<uint16_t>(BLK + 0x94);
-		const uint16_t vz = MEM<uint16_t>(BLK + 0x98);
-		MEM<uint16_t>(BLK + 0x7C) = (uint16_t)(MEM<uint16_t>(BLK + 0x7C) + vx);
-		const uint16_t vy = (uint16_t)(MEM<uint16_t>(BLK + 0x96) + 0x30);
-		MEM<uint16_t>(BLK + 0x80) = (uint16_t)(MEM<uint16_t>(BLK + 0x80) + vz);
-		MEM<uint16_t>(BLK + 0x7E) = (uint16_t)(MEM<uint16_t>(BLK + 0x7E) + vy);
-		MEM<uint16_t>(BLK + 0x96) = vy;
-		if ((int16_t)vy > 0 && (int16_t)MEM<uint16_t>(BLK + 0x7E) >= (int16_t)MEM<uint16_t>(BLK + 0x76))
+			MEM<uint16_t>(R(BLK) + 0xA8) = 0;
+		const uint16_t vx = MEM<uint16_t>(R(BLK) + 0x94);
+		const uint16_t vz = MEM<uint16_t>(R(BLK) + 0x98);
+		MEM<uint16_t>(R(BLK) + 0x7C) = (uint16_t)(MEM<uint16_t>(R(BLK) + 0x7C) + vx);
+		const uint16_t vy = (uint16_t)(MEM<uint16_t>(R(BLK) + 0x96) + PB().ball.gravity);
+		MEM<uint16_t>(R(BLK) + 0x80) = (uint16_t)(MEM<uint16_t>(R(BLK) + 0x80) + vz);
+		MEM<uint16_t>(R(BLK) + 0x7E) = (uint16_t)(MEM<uint16_t>(R(BLK) + 0x7E) + vy);
+		MEM<uint16_t>(R(BLK) + 0x96) = vy;
+		if ((int16_t)vy > 0 && (int16_t)MEM<uint16_t>(R(BLK) + 0x7E) >= (int16_t)MEM<uint16_t>(R(BLK) + 0x76))
 		{
 			gx::QueueChainTransformation(ent, 6);
-			const uint16_t ground = MEM<uint16_t>(BLK + 0x76);
-			MEM<uint16_t>(BLK + 0x7E) = ground;
-			const uint32_t n = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_DustSpawner, 0xDC, a1);
+			const uint16_t ground = MEM<uint16_t>(R(BLK) + 0x76);
+			MEM<uint16_t>(R(BLK) + 0x7E) = ground;
+			const uint32_t n = Spawn(R(Q_TASKS), ORIG_DustSpawner, 0xDC, a1);
 			U32(n, 0x1C) = U32(ent, 0x1C);
 			U32(n, 0x20) = U32(ent, 0x20);
 			U16(n, 0x1E) = 0;
-			x::BdPlaySE(P(SOUND_Land), 1, 0x80);
+			x::BdPlaySE(fxp::sound(PB().sounds.land, P(SOUND_Land)), 1, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		MEM<uint16_t>(BLK + 0xB2) = (uint16_t)(MEM<uint16_t>(BLK + 0xB2) + 1);
-		db_84C350(a1, BLK);
+		MEM<uint16_t>(R(BLK) + 0xB2) = (uint16_t)(MEM<uint16_t>(R(BLK) + 0xB2) + 1);
+		db_84C350(a1, R(BLK));
 		return 0; // void
 	}
 
@@ -2771,16 +2792,16 @@ namespace dribble
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		const uint16_t fl = U16(ent, 0);
-		MEM<uint32_t>(0x267B90C) = fl;
+		MEM<uint32_t>(R(0x267B90C)) = fl;
 		U16(ent, 0) = (uint16_t)(fl | 0x1000);
 		if (U8(U32(ent, 0x74), 0) == 6)
 			return 0; // void
 		gx::QueueChainTransformation(ent, 0x1A);
 		const uint16_t facing = (uint16_t)((U16(ent, 0xE) - 0x800) & 0xFFF);
-		MEM<uint16_t>(BLK + 0xB2) = 0xA;
+		MEM<uint16_t>(R(BLK) + 0xB2) = 0xA;
 		U16(ent, 0xE) = facing;
-		MEM<uint16_t>(BLK + 0x94) = (uint16_t)(sub32(MEM<int16_t>(0x267B8F4), S16(ent, 0x1C)) / 10);
-		MEM<uint16_t>(BLK + 0x98) = (uint16_t)(sub32(MEM<int16_t>(0x267B8F8), S16(ent, 0x20)) / 10);
+		MEM<uint16_t>(R(BLK) + 0x94) = (uint16_t)(sub32(MEM<int16_t>(R(0x267B8F4)), S16(ent, 0x1C)) / 10);
+		MEM<uint16_t>(R(BLK) + 0x98) = (uint16_t)(sub32(MEM<int16_t>(R(0x267B8F8)), S16(ent, 0x20)) / 10);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2790,17 +2811,17 @@ namespace dribble
 	uint32_t __cdecl db_84CDE0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
-		const uint16_t vx = MEM<uint16_t>(BLK + 0x94);
-		const uint16_t vz = MEM<uint16_t>(BLK + 0x98);
+		const uint16_t vx = MEM<uint16_t>(R(BLK) + 0x94);
+		const uint16_t vz = MEM<uint16_t>(R(BLK) + 0x98);
 		U16(ent, 0x1C) = (uint16_t)(U16(ent, 0x1C) + vx);
 		U16(ent, 0x20) = (uint16_t)(U16(ent, 0x20) + vz);
-		const uint16_t t = (uint16_t)(MEM<uint16_t>(BLK + 0xB2) - 1);
-		MEM<uint16_t>(BLK + 0xB2) = t;
+		const uint16_t t = (uint16_t)(MEM<uint16_t>(R(BLK) + 0xB2) - 1);
+		MEM<uint16_t>(R(BLK) + 0xB2) = t;
 		if ((int16_t)t > 0)
 			return 0; // void
 		gx::QueueChainTransformation(ent, U8(U32(ent, 0x74), 2));
-		U32(ent, 0x1C) = MEM<uint32_t>(0x267B8F4);
-		U32(ent, 0x20) = MEM<uint32_t>(0x267B8F8);
+		U32(ent, 0x1C) = MEM<uint32_t>(R(0x267B8F4));
+		U32(ent, 0x20) = MEM<uint32_t>(R(0x267B8F8));
 		U16(ent, 0xE) = (uint16_t)((U16(ent, 0xE) - 0x800) & 0xFFF);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -2811,7 +2832,7 @@ namespace dribble
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		U8(a1, 0x26) |= 1;
-		const uint16_t d = (uint16_t)((U16(ent, 0) ^ MEM<uint16_t>(0x267B90C)) & 0x1000);
+		const uint16_t d = (uint16_t)((U16(ent, 0) ^ MEM<uint16_t>(R(0x267B90C))) & 0x1000);
 		U16(ent, 0) ^= d;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -2824,7 +2845,7 @@ namespace dribble
 	// (rand & 0x3FF); from its tick 1 next state
 	uint32_t __cdecl db_84C940(uint32_t a1)
 	{
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Dust, 0xDC, a1);
+		const uint32_t n = Spawn(R(Q_TASKS), ORIG_Dust, 0xDC, a1);
 		U16(n, 0xD8) = 8;
 		uint32_t vel = n + 0x98;
 		for (int32_t i = 0; i < S16(n, 0xD8); i++, vel += 8)
@@ -2912,6 +2933,37 @@ namespace dribble
 		return 0; // void
 	}
 
+
+	namespace table
+	{
+		using fxp::Field;
+#define DB(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(DribbleParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: the grab sound, the actor system (its actor data the exe's), the dribble spawner, the master's release, the damage" },
+			{ 0, "ball", "Ball", "The target grabbed, morphed into a ball, bounced in the caster's hand, thrown, landing with dust, walking back" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The grab (at the emitter's sound tick), the landing" },
+			{ "actors", "Actor system", "At the emitter's start: Start, Length (ticks), Mode" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "sounds.grab", "Grab", "", (uint32_t)offsetof(DribbleParams, sounds.grab), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "emitter", "sounds.land", "Landing", "", (uint32_t)offsetof(DribbleParams, sounds.land), fxp::Sound, 0, 0x7FFFFFFF },
+			DB("emitter", emitter.sound, "Sound tick", "The grab sound at this tick", 0, 200),
+			DB("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 400),
+			DB("emitter", emitter.result, "Damage tick", "The damage of its target from this tick", 0, 400),
+			DB("emitter", actors.start, "Start", "", 0, 200),
+			DB("emitter", actors.length, "Length", "", 0, 200),
+			DB("emitter", actors.mode, "Mode", "", 0, 4),
+			DB("ball", ball.grab, "Grab ticks", "The morph starts at this tick of the dribble", 0, 200),
+			DB("ball", ball.morph, "Morph", "Into the ball a tick (4096: all of it)", 1, 0x1000),
+			DB("ball", ball.bounce, "Throw tick", "Bounced in the caster's hand until this tick, then thrown", 0, 200),
+			DB("ball", ball.lift, "Lift", "The throw's upward speed", 0, 0x1000),
+			DB("ball", ball.gravity, "Gravity", "Added to its falling speed a tick", 1, 0x400),
+			DB("ball", ball.unmorph, "Unmorph", "Back from the ball a tick in the flight (4096: all of it)", 1, 0x1000),
+		};
+#undef DB
+	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	// the module's functions served by the engine's ports (identical code up to module addresses)
@@ -3034,6 +3086,11 @@ namespace dribble
 
 	void register_mag041_dribble()
 	{
+		fxp::register_params({ 41, "Dribble", &act::dribble::live, &act::dribble::GAME, sizeof(act::dribble::DribbleParams),
+		                       act::dribble::table::PARTS, (int)(sizeof(act::dribble::table::PARTS) / sizeof(act::dribble::table::PARTS[0])),
+		                       act::dribble::table::FIELDS, (int)(sizeof(act::dribble::table::FIELDS) / sizeof(act::dribble::table::FIELDS[0])),
+		                       act::dribble::table::GROUPS, (int)(sizeof(act::dribble::table::GROUPS) / sizeof(act::dribble::table::GROUPS[0])) });
+		act::register_mod(&act::dribble::MOD_041);
 		act::register_module(41);
 		for (const act::dribble::ModPort *p = act::dribble::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(41, p->addr, p->port, p->name);
@@ -3042,6 +3099,7 @@ namespace dribble
 		// 30 fps layer: see mag041_dribble_held.inc
 		FX_HELD(register_mag041_held();)
 	}
+	FX_LAB_MODULE(register_mag041_dribble);
 }
 
 #ifdef FF8_FX_HELD
