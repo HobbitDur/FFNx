@@ -6323,6 +6323,23 @@ int __cdecl ff8_bgate_stageq_gate(void *queue)
 	return ff8_bgate_stageq_orig(queue);
 }
 
+// BattleTurn_ProcessActionQueue (0x485460, from FFBattleDirector_battleLoop @0x47D7C3, every battle loop iteration,
+// just before that iteration's BdLink): when no action runs it starts the next queued one (BEGIN boundary =
+// BATTLE_CURRENTLY_IN_ACTION 1) and queues its tasks for BattleTaskMainHandler. Vanilla starts an action and runs its
+// first tasks in the same tick; a reaction AI section (queued by processBattleActionCompletion) even starts and ends
+// there (Battle_FinishAISectionAndQueueReactions clears the flag again). With the stage queue on real frames, an
+// action started on an iteration whose BdLink is held waited a frame for its tasks: the flag rose for one frame after
+// every action end (the reaction section), and every action started 1 frame before its logic. Only on the iterations
+// whose BdLink is a real frame (the hook bumps ff8_bgate_phase first: real <=> (phase + 1) % n == 0).
+static int (__cdecl *ff8_bgate_actq_orig)() = nullptr;
+
+int __cdecl ff8_bgate_actq_gate()
+{
+	if (ff8_bgate_n > 1 && (ff8_bgate_phase + 1) % ff8_bgate_n != 0)
+		return 0; // (the caller ignores the return)
+	return ff8_bgate_actq_orig();
+}
+
 // Hit-effect queue (ExecuteTaskQueue(dword_1D96AA0) @0x500923, TASK_QUEUE 0x209FAA8): fed by
 // CreateCameraShakeTask, DispatchEffectCommand, CreateEffectTask* (weapon/monster impact
 // effects), the 99/B1 footstep particles, Renzokuken (MAG_141/159/160/161), MAG_332..343.
@@ -6521,6 +6538,13 @@ DWORD __cdecl ff8_bgate_t9f_hook(uint8_t *n)
 	return ff8_bgate_phase ? 0 : ff8_bgate_t9f_call(n);
 }
 DWORD __cdecl ff8_bgate_tstep_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_tstep_call(n); }
+// Effect texture restore (BattleTask_LoadDefaultEffectTexture 0x508660, queued by Battle_RestoreDefaultEffectTexture
+// 0x508630 from effect code: Fira's WaitTexRestore 0x61DE10, Siren, gfc VM 0x07B...): 3 states, one per call (load the
+// default effect texture file, upload its TIM, set the done flag the effect waits for). Ticked every host frame, the
+// flag came ~2 ticks early and every effect ending on that wait ended early (Fira: invisible last ticks, the action
+// ended ~0.13 s before vanilla). Real frames only = one state per vanilla tick.
+FF8_BGATE_TASK_HOOK(ttexrestore, 0x508660)
+DWORD __cdecl ff8_bgate_ttexrestore_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_ttexrestore_call(n); }
 // 96 (0x50F6C0): Y shake = start + (end - start) * i / duration, negated on odd i, i++; ends
 // (returns 2) once i reaches the duration. Held frame: report the value the next real tick
 // writes (the node's i is already the next index).
@@ -7166,6 +7190,9 @@ static void ff8_bgate_install_hooks()
 	// battle-stage queue (battle logic state machines): real frames only (see ff8_bgate_stageq_gate)
 	ff8_bgate_stageq_orig = (int(__cdecl *)(void *))get_relative_call(0x50090B, 0);
 	replace_call(0x50090B, (void *)ff8_bgate_stageq_gate);
+	// next queued action started only on the loop iterations whose BdLink is a real frame (see ff8_bgate_actq_gate)
+	ff8_bgate_actq_orig = (int(__cdecl *)())get_relative_call(0x47D7C3, 0);
+	replace_call(0x47D7C3, (void *)ff8_bgate_actq_gate);
 	// hit-effect queue: same record/replay pacing
 	ff8_bgate_eq_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x500923, 0);
 	replace_call(0x500923, (void *)ff8_bgate_eq_tick_gate);
@@ -7176,6 +7203,7 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_t84_ri = replace_function(0x501F90, (void *)ff8_bgate_t84_hook);
 	ff8_bgate_t9f_ri = replace_function(0x5057D0, (void *)ff8_bgate_t9f_hook);
 	ff8_bgate_tstep_ri = replace_function(0x50F830, (void *)ff8_bgate_tstep_hook);
+	ff8_bgate_ttexrestore_ri = replace_function(0x508660, (void *)ff8_bgate_ttexrestore_hook);
 	ff8_bgate_t96_ri = replace_function(0x50F6C0, (void *)ff8_bgate_t96_hook);
 	ff8_bgate_tdrag_ri = replace_function(0x50F500, (void *)ff8_bgate_tdrag_hook);
 	ff8_bgate_t81_ri = replace_function(0x50F0E0, (void *)ff8_bgate_t81_hook);
