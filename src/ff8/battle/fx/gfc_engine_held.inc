@@ -837,7 +837,7 @@ namespace gfc
 	// the clones registered by their held part (held_entity_joints), each checked with an animating
 	// entity (the predicted joint equals the next real tick's): the others keep the real tick's pose
 	// there. The registration also turns on Brothers' draw 38 in-between entity pose
-	// (mag_brothers_held.inc held_entity_attach_pose, 222 Water).
+	// (mag_brothers_held.inc held_entity_attach_pose, 222 Water and 205 Brothers).
 	static const Clone *g_entjoint_clones[32];
 	static int g_entjoint_n = 0;
 	void held_entity_joints(Clone &c)

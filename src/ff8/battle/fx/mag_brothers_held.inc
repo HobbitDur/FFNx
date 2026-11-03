@@ -126,7 +126,7 @@ namespace part_brothers
 	// battle steps the entity's animation once per tick, so on a held frame the joint of the
 	// in-between pose (pose_midpoint; at 1 the next tick's pose, which the real tick N+1 builds) -
 	// for the clones registered with held_entity_joints (222 Water: the target carried by the
-	// column; Brothers 205 keeps the real tick's pose until checked). The skeleton is restored by
+	// column; Brothers 205: the target its draw 38 attaches). The skeleton is restored by
 	// held_entity_end.
 	static void held_entity_attach_pose(uint8_t *ent)
 	{
@@ -154,6 +154,9 @@ namespace brothers
 	{
 		using namespace gfc;
 		mark_held(0xAF4B90);
+		// draw 38 attaches a battle entity (the carried target): its joint 0xF1 / shadow at the entity's
+		// in-between pose (held_entity_attach_pose), as 222 Water
+		held_entity_joints(brothers::g_c);
 		register_module_held(205, brothers::Ready, brothers::Frame);
 		register_module_camera(205, brothers::Camera);
 	}
