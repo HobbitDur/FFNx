@@ -47,6 +47,10 @@
 //     tick to 0x800, keeps them until its tick 0x28, lowers them by 0x100 per tick to 0.
 // It does not write a battle entity's position or the battle camera (the camera animation is the setup's 0x5099A0
 // call); no task tests the draw-only flags (battle_to_update_flags 0x201).
+// Fujin's described Recover (effect_016.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the director block through the descriptor (G_1533010), the tasks it spawns the
+// program's or thunks of their ports (Spawn); its parameters (RecoverParams: the director's sound and result
+// cue, the actor system, the stage darkening) are set from the program's.
 // Module globals: 0x27304A0..0x2732BF0 (file pointer 0x27304A0, packet cursors, pools, queues, arenas, pool
 // cursors / counters, scratch stack pointer 0x2732BDC, actor state 0x2732BEC), the module scratch stack below the
 // camera copy 0x2793E58, the director block [0x162A484], the actor data 0x17F7F1C (relocated once).
@@ -57,6 +61,8 @@
 // differ) with this module's addresses and callees.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -81,6 +87,20 @@ namespace recover
 	static const uint32_t Q_WOBBLE = 0x2730690;       // stage darkening (0x8C x 0x32)
 	static const uint32_t Q_TINT = 0x27329E0;         // fifth pool (0x40 x 0xA): no task of this module uses it
 	static const uint32_t ORIG_ActorSystem = 0x8AB890; // the actor system task
+	static const uint32_t SOUND = 0x162A488;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct RecoverParams
+	{
+		struct { uint32_t sound; int16_t result; } director;                  // its sound (cut 1); the result from this cut frame
+		struct { int16_t start, length, mode; } actors;                      // the actor system
+		struct { int16_t step, level, hold, out_step; } stage;               // the stage darkening
+	};
+	static const RecoverParams GAME = { { SOUND, 0x28 }, { 4, 0xF, 0 }, { 0x200, 0x800, 0x28, 0x100 } };
+	static RecoverParams live = GAME;
+	static const RecoverParams &PR() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; } // battle entity of a slot
 
 	// engine functions not in act::x
@@ -420,7 +440,7 @@ namespace recover
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -494,14 +514,15 @@ namespace recover
 	uint32_t __cdecl rc_8AB290(uint32_t a1)
 	{
 		g_mod = &MOD_016;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag016_recover_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x27305B0) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x27305B0)) = 0x2793E58;
 		states[0] = 0x8AB3F0;
 		states[1] = 0x8AB400;
 		const uint8_t parity = U8(node, 0x5C);
@@ -516,28 +537,28 @@ namespace recover
 		states[10] = 0x8B08E0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2732B64);
-			const uint32_t v2 = MEM<uint32_t>(0x2732204);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x27305AC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2732B64));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2732204));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x27305AC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2732B60);
-			const uint32_t v2 = MEM<uint32_t>(0x2732200);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x27305AC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2732B60));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2732200));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x27305AC)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x2732BD6) = 0;
-		MEM<uint16_t>(0x2732BC4) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_WOBBLE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TINT));
+		MEM<uint16_t>(R(0x2732BD6)) = 0;
+		MEM<uint16_t>(R(0x2732BC4)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_WOBBLE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_TINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -550,12 +571,12 @@ namespace recover
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x2732BE8);
-		MEM<uint32_t>(0x2732BC8) = p;
+		uint32_t p = MEM<uint32_t>(R(0x2732BE8));
+		MEM<uint32_t>(R(0x2732BC8)) = p;
 		p += 0x870;
-		MEM<uint32_t>(0x2732BE0) = p;
+		MEM<uint32_t>(R(0x2732BE0)) = p;
 		p += 0xEC40;
-		MEM<uint32_t>(0x2732BE8) = p;
+		MEM<uint32_t>(R(0x2732BE8)) = p;
 		rc_8AB450();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -565,12 +586,12 @@ namespace recover
 	// at [0x2742868]) and the pool cursors / counters
 	uint32_t __cdecl rc_8AB450(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2732BC8), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2732BE0), 0xEC40);
-		MEM<uint16_t>(0x27321F8) = 0;
-		MEM<uint16_t>(0x2732BD4) = 0;
-		MEM<uint16_t>(0x2732B68) = 0;
-		MEM<uint16_t>(0x27304A8) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2732BC8)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2732BE0)), 0xEC40);
+		MEM<uint16_t>(R(0x27321F8)) = 0;
+		MEM<uint16_t>(R(0x2732BD4)) = 0;
+		MEM<uint16_t>(R(0x2732B68)) = 0;
+		MEM<uint16_t>(R(0x27304A8)) = 0;
 		return 0; // void
 	}
 
@@ -579,7 +600,7 @@ namespace recover
 	uint32_t __cdecl rc_8AB540(uint32_t a1)
 	{
 		rc_8AB570(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2730588, 0x8AB600, 0x48, a1);
+		Spawn(R(0x2730588), 0x8AB600, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -590,8 +611,8 @@ namespace recover
 	// - 0x800, 12 bits) in +0x4A
 	uint32_t __cdecl rc_8AB570(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -601,7 +622,7 @@ namespace recover
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0; // void
 	}
 
@@ -655,7 +676,7 @@ namespace recover
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x162A488, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PR().director.sound, SOUND), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -664,8 +685,8 @@ namespace recover
 	// of the emitter 0x8B07B0), next state
 	uint32_t __cdecl rc_8AB770(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		if (S16(d, 0x46) < 0x28)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) < PR().director.result)
 			return d;
 		U16(d, 0x48) = 1;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -677,11 +698,11 @@ namespace recover
 	// the stage darkening 0x8B0660 (0x8C bytes, stage queue); returns cut - 1 / the darkening's node
 	uint32_t __cdecl rc_8AB7F0(uint32_t a1)
 	{
-		const int32_t cut = S16(MEM<uint32_t>(DIR_PTR), 0x40);
+		const int32_t cut = S16(MEM<uint32_t>(G(G_1533010)), 0x40);
 		if (cut - 1 != 0)
 			return (uint32_t)(cut - 1);
-		a_73C100(a1, 0x8AB890, 0x17F7F1C, 4, 0xF, 0);
-		return x::Effect_AddTaskAndInitFromCtx(Q_WOBBLE, 0x8B0660, 0x8C, a1);
+		a_73C100(a1, 0x8AB890, 0x17F7F1C, (uint16_t)PR().actors.start, (uint16_t)PR().actors.length, (uint16_t)PR().actors.mode);
+		return Spawn(R(Q_WOBBLE), 0x8B0660, 0x8C, a1);
 	}
 
 	// 0x8AB8F0 (sub_8AB8F0; from Ultimecia 337 ud_79F5F0: copy of mb_825410 0x825410: copy of db_846A80 0x846A80: copy of cg_87E200 0x87E200: MAG_028_CURAGA_MainVisual_State0_GateAndAdvance; = Confuse c_85FBA0, copy of a_7348A0 0x7348A0; engine; MiniMog sub_7348A0): state: once the frame counter +0x24 reaches
@@ -703,7 +724,7 @@ namespace recover
 	// the harness)
 	uint32_t __cdecl rc_8ABAD0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2732BEC);
+		const uint32_t arena = MEM<uint32_t>(R(0x2732BEC));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -723,7 +744,7 @@ namespace recover
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl rc_8ABD50(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2732BEC);
+		const uint32_t arena = MEM<uint32_t>(R(0x2732BEC));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -753,7 +774,7 @@ namespace recover
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x2732BEC, 0) = sys;
+		U32(R(0x2732BEC), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -767,7 +788,7 @@ namespace recover
 			FX_HELD(held_note_system(sys);)
 			rc_8ADB10();
 			a_735440();
-			sys = U32(0x2732BEC, 0);
+			sys = U32(R(0x2732BEC), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -780,8 +801,8 @@ namespace recover
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x2732BD6, 0) = (uint16_t)(U16(0x2732BD6, 0) + c14);
-		U16(0x2732BC4, 0) = (uint16_t)(U16(0x2732BC4, 0) + c16);
+		U16(R(0x2732BD6), 0) = (uint16_t)(U16(R(0x2732BD6), 0) + c14);
+		U16(R(0x2732BC4), 0) = (uint16_t)(U16(R(0x2732BC4), 0) + c16);
 		return done;
 	}
 
@@ -1324,14 +1345,14 @@ namespace recover
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl rc_8ADB10(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x2732BEC), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x2732BEC)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x2732BEC);
+				uint32_t st = MEM<uint32_t>(R(0x2732BEC));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1368,20 +1389,20 @@ namespace recover
 	uint32_t __cdecl rc_8ADBD0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1389,7 +1410,7 @@ namespace recover
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl rc_8ADC50(void)
 	{
-		uint32_t act = U32(U32(0x2732BEC, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2732BEC), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1410,7 +1431,7 @@ namespace recover
 	uint32_t __cdecl rc_8ADC90(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x2732BEC);
+		uint32_t st = MEM<uint32_t>(R(0x2732BEC));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1431,7 +1452,7 @@ namespace recover
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x2732BEC);
+			st = MEM<uint32_t>(R(0x2732BEC));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1449,7 +1470,7 @@ namespace recover
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2732BEC, 0);                  // actor state block
+		uint32_t st = U32(R(0x2732BEC), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1546,8 +1567,8 @@ namespace recover
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 0x14 records
 	uint32_t __cdecl rc_8AEE80(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2732BC8);
-		int32_t idx = MEM<int16_t>(0x27321F8);
+		const uint32_t pool = MEM<uint32_t>(R(0x2732BC8));
+		int32_t idx = MEM<int16_t>(R(0x27321F8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1557,7 +1578,7 @@ namespace recover
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1572,9 +1593,9 @@ namespace recover
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(0x27321F8) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x27321F8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x27321F8) = 0;
+			MEM<uint16_t>(R(0x27321F8)) = 0;
 		return slot;
 	}
 
@@ -1604,7 +1625,7 @@ namespace recover
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl rc_8AEFA0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x2732BEC, 0);
+		uint32_t sys = U32(R(0x2732BEC), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1639,9 +1660,9 @@ namespace recover
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x2732BDC, 0) - 0x50;
+		uint32_t sp = U32(R(0x2732BDC), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x2732BDC, 0) = sp;
+		U32(R(0x2732BDC), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = rc_8AF800(a1, (uint16_t)kind);
@@ -1653,7 +1674,7 @@ namespace recover
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x2732BEC, 0);
+			uint32_t ctx = U32(R(0x2732BEC), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1832,7 +1853,7 @@ namespace recover
 			}
 		}
 		rc_8B0510(node, desc);
-		U32(0x2732BDC, 0) = U32(0x2732BDC, 0) + 0x50;
+		U32(R(0x2732BDC), 0) = U32(R(0x2732BDC), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1840,8 +1861,8 @@ namespace recover
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x5A records
 	uint32_t __cdecl rc_8AF800(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2732BE0);
-		int32_t i = MEM<int16_t>(0x2732BD4);
+		const uint32_t pool = MEM<uint32_t>(R(0x2732BE0));
+		int32_t i = MEM<int16_t>(R(0x2732BD4));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1854,7 +1875,7 @@ namespace recover
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1871,9 +1892,9 @@ namespace recover
 		}
 		i++;
 		if (i >= 0x59)
-			MEM<uint16_t>(0x2732BD4) = 0;
+			MEM<uint16_t>(R(0x2732BD4)) = 0;
 		else
-			MEM<uint16_t>(0x2732BD4) = (uint16_t)i;
+			MEM<uint16_t>(R(0x2732BD4)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1887,7 +1908,7 @@ namespace recover
 	uint32_t __cdecl rc_8AFA20(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2732BEC, 0);            // ecx
+		const uint32_t st = U32(R(0x2732BEC), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -1951,7 +1972,7 @@ namespace recover
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x2732BEC, 0);
+				uint32_t g = U32(R(0x2732BEC), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1961,7 +1982,7 @@ namespace recover
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x2732BEC, 0);
+				uint32_t g = U32(R(0x2732BEC), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2049,7 +2070,7 @@ namespace recover
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl rc_8B05A0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2732BEC);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x2732BEC));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2074,14 +2095,14 @@ namespace recover
 				do
 				{
 					rc_8AEE80(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x2732BEC);
+					dir = MEM<uint32_t>(R(0x2732BEC));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				rc_8AEE80(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x2732BEC);
+				dir = MEM<uint32_t>(R(0x2732BEC));
 			}
 		}
 		return 0; // void
@@ -2104,11 +2125,11 @@ namespace recover
 	// next state), written to the four stage wobble words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl rc_8B0710(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x200);
-		if (S16(a1, 0x1C) >= 0x800)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PR().stage.step);
+		if (S16(a1, 0x1C) >= PR().stage.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
-			U16(a1, 0x1C) = 0x800;
+			U16(a1, 0x1C) = (uint16_t)PR().stage.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -2121,7 +2142,7 @@ namespace recover
 	// 0x8B0750 (sub_8B0750; = Ultimecia 337 ud_7A4FF0): stage darkening state 2 - waits until tick 0x28, next state
 	uint32_t __cdecl rc_8B0750(uint32_t a1)
 	{
-		if (S16(a1, 0x24) >= 0x28)
+		if (S16(a1, 0x24) >= PR().stage.hold)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -2130,7 +2151,7 @@ namespace recover
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl rc_8B0760(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PR().stage.out_step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -2149,7 +2170,7 @@ namespace recover
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl rc_8B07B0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x162A484);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2161,6 +2182,31 @@ namespace recover
 		x::ApplyActionResultToTarget(arr + (uint32_t)(sub * 24));
 		t4_next_state(node);
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define RC(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(RecoverParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The director's cuts: its sound, the result, the actor system and the stage darkening at cut 1" },
+			{ 0, "stage", "Stage darkening", "The stage's light words: up, kept, down" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "Its start tick, its ticks, its mode (0: the bones)" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "Played at cut 1", (uint32_t)offsetof(RecoverParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			RC("director", director.result, "Result at", "The action's result from this frame of the cut", 0, 500),
+			RC("director", actors.start, "Start", "", 0, 200),
+			RC("director", actors.length, "Ticks", "", 0, 1000),
+			RC("director", actors.mode, "Mode", "", 0, 4),
+			RC("stage", stage.step, "Step", "The light up by this a tick...", 1, 0x1000),
+			RC("stage", stage.level, "Level", "...to this", 0, 0x1000),
+			RC("stage", stage.hold, "Hold until", "Kept until this tick", 0, 500),
+			RC("stage", stage.out_step, "Out step", "Then down by this a tick", 1, 0x1000),
+		};
+#undef RC
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -2272,6 +2318,11 @@ namespace recover
 
 	void register_mag016_recover()
 	{
+		fxp::register_params({ 16, "Recover", &act::recover::live, &act::recover::GAME, sizeof(act::recover::RecoverParams),
+		                       act::recover::table::PARTS, (int)(sizeof(act::recover::table::PARTS) / sizeof(act::recover::table::PARTS[0])),
+		                       act::recover::table::FIELDS, (int)(sizeof(act::recover::table::FIELDS) / sizeof(act::recover::table::FIELDS[0])),
+		                       act::recover::table::GROUPS, (int)(sizeof(act::recover::table::GROUPS) / sizeof(act::recover::table::GROUPS[0])) });
+		act::register_mod(&act::recover::MOD_016);
 		act::register_module(16);
 		for (const act::recover::ModPort *p = act::recover::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(16, p->addr, p->port, p->name);
@@ -2280,6 +2331,7 @@ namespace recover
 		// 30 fps layer: see mag016_recover_held.inc
 		FX_HELD(register_mag016_held();)
 	}
+	FX_LAB_MODULE(register_mag016_recover);
 }
 
 #ifdef FF8_FX_HELD
