@@ -57,8 +57,14 @@
 // arenas, actor state 0x26A8DB0, scratch stack pointer 0x26A8DA0, gathering point 0x26A8D80), the module
 // scratch stack below the camera copy 0x2793E58; exe data rewritten: the actor data 0x17C8420.. and the orb
 // model's vertices 0x15D62EC.. .
+// Fujin's described Drink Magic (effect_037.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (DrinkParams: the emitter's sound and ticks, the actor system, the ribbons and streaks, the orb) are set from
+// the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -90,6 +96,22 @@ namespace drinkmagic
 	static const void *const SOUND_Drink = (const void *)0x15D62E8;
 	static const uint32_t RIBBON_FLIPBOOK = 0x15D92F4, SPARK_FLIPBOOK = 0x15D9504, STREAK_FLIPBOOK = 0x15D9624;
 	static const uint32_t ORB_MODEL = 0x15D62EC, ORB_TEMPLATE = 0x15D860C;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct DrinkParams
+	{
+		struct { uint32_t sound; int16_t release, result; } emitter;   // its sound; the master released / the damage at these ticks
+		struct { int16_t start, length, mode; } actors;                 // the actor system
+		struct { int16_t first, every, spread, twist; } ribbons;        // the five ribbons' ticks (first, then every), spread, twist a tick
+		struct { int16_t from, until, accel; } streaks;                 // one streak a tick from / until these spawner ticks; its acceleration
+		struct { int16_t appear, scale, fade, hold, spin; } orb;        // the orb at the caster: its tick, scale, fade a tick, hold, spin a tick
+	};
+	static const DrinkParams GAME = { { 0x15D62E8, 0xF, 0xF }, { 0x28, 0xF, 0 }, { 0x28, 2, 0x80, 0x180 }, { 0xE, 0x3E, 0x30 },
+	                                  { 0xF, 0x1400, 0x100, 0x14, 0xA0 } };
+	static DrinkParams live = GAME;
+	static const DrinkParams &PK() { return live; }
 
 	// engine functions not in act::x
 	namespace gx
@@ -535,14 +557,15 @@ namespace drinkmagic
 	uint32_t __cdecl dk_856B40(uint32_t a1)
 	{
 		g_mod = &MOD_037;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag037_drink_magic_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x26A05EC) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26A05EC)) = 0x2793E58;
 		states[0] = 0x856CA0;
 		states[1] = 0x856CB0;
 		const uint8_t parity = U8(node, 0x5C);
@@ -557,28 +580,28 @@ namespace drinkmagic
 		states[10] = 0x85F4B0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26A8D7C);
-			const uint32_t v2 = MEM<uint32_t>(0x26A8174);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26A05E8) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26A8D7C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26A8174));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26A05E8)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26A8D78);
-			const uint32_t v2 = MEM<uint32_t>(0x26A8170);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26A05E8) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26A8D78));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26A8170));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26A05E8)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x26A8D9A) = 0;
-		MEM<uint16_t>(0x26A8D8A) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_RIBBON));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ORB));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(R(0x26A8D9A)) = 0;
+		MEM<uint16_t>(R(0x26A8D8A)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_RIBBON)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ORB)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -591,12 +614,12 @@ namespace drinkmagic
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x26A8DAC);
-		MEM<uint32_t>(0x26A8D8C) = p;
+		uint32_t p = MEM<uint32_t>(R(0x26A8DAC));
+		MEM<uint32_t>(R(0x26A8D8C)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x26A8DA4) = p;
+		MEM<uint32_t>(R(0x26A8DA4)) = p;
 		p += 0x6900;
-		MEM<uint32_t>(0x26A8DAC) = p;
+		MEM<uint32_t>(R(0x26A8DAC)) = p;
 		dk_856D00();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -606,12 +629,12 @@ namespace drinkmagic
 	// at [0x275F980]) and the pool cursors / counters
 	uint32_t __cdecl dk_856D00(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26A8D8C), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26A8DA4), 0x6900);
-		MEM<uint16_t>(0x26A7D98) = 0;
-		MEM<uint16_t>(0x26A8D98) = 0;
-		MEM<uint16_t>(0x26A8D88) = 0;
-		MEM<uint16_t>(0x26A05D0) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26A8D8C)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26A8DA4)), 0x6900);
+		MEM<uint16_t>(R(0x26A7D98)) = 0;
+		MEM<uint16_t>(R(0x26A8D98)) = 0;
+		MEM<uint16_t>(R(0x26A8D88)) = 0;
+		MEM<uint16_t>(R(0x26A05D0)) = 0;
 		return 0; // void
 	}
 
@@ -630,7 +653,7 @@ namespace drinkmagic
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Drink), 0, 0x80);
+			x::BdPlaySE(fxp::sound(PK().emitter.sound, P(SOUND_Drink)), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -663,7 +686,7 @@ namespace drinkmagic
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(0x26A8DB0) = st;
+		MEM<uint32_t>(R(0x26A8DB0)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -675,7 +698,7 @@ namespace drinkmagic
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x26A8DB0);
+			st = MEM<uint32_t>(R(0x26A8DB0));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -695,20 +718,20 @@ namespace drinkmagic
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		dk_8571B0();
-		st = MEM<uint32_t>(0x26A8DB0);
+		st = MEM<uint32_t>(R(0x26A8DB0));
 		if (U16(st, 0x24) == 4)
 			callp(0x8570D0, node);
 		dk_857500();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(0x26A8DB0);
+		st = MEM<uint32_t>(R(0x26A8DB0));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x857310, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(0x26A8DB0);
+			st = MEM<uint32_t>(R(0x26A8DB0));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x26A8DB0);
+			st = MEM<uint32_t>(R(0x26A8DB0));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -723,7 +746,7 @@ namespace drinkmagic
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x26A8DB0);
+		st = MEM<uint32_t>(R(0x26A8DB0));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -734,7 +757,7 @@ namespace drinkmagic
 	// the harness)
 	uint32_t __cdecl dk_8570D0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26A8DB0);
+		const uint32_t arena = MEM<uint32_t>(R(0x26A8DB0));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -755,7 +778,7 @@ namespace drinkmagic
 	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl dk_8571B0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -764,7 +787,7 @@ namespace drinkmagic
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -777,7 +800,7 @@ namespace drinkmagic
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -785,7 +808,7 @@ namespace drinkmagic
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -803,7 +826,7 @@ namespace drinkmagic
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl dk_857310(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26A8DB0);
+		const uint32_t arena = MEM<uint32_t>(R(0x26A8DB0));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -831,7 +854,7 @@ namespace drinkmagic
 	// position (the stack words keep what they held)
 	uint32_t __cdecl dk_857500(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -845,7 +868,7 @@ namespace drinkmagic
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -858,7 +881,7 @@ namespace drinkmagic
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -866,7 +889,7 @@ namespace drinkmagic
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -914,7 +937,7 @@ namespace drinkmagic
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x26A8DB0, 0) = sys;
+		U32(R(0x26A8DB0), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -928,7 +951,7 @@ namespace drinkmagic
 			FX_HELD(held_note_system(sys);)
 			dk_859080();
 			a_735440();
-			sys = U32(0x26A8DB0, 0);
+			sys = U32(R(0x26A8DB0), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -941,8 +964,8 @@ namespace drinkmagic
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x26A8D9A, 0) = (uint16_t)(U16(0x26A8D9A, 0) + c14);
-		U16(0x26A8D8A, 0) = (uint16_t)(U16(0x26A8D8A, 0) + c16);
+		U16(R(0x26A8D9A), 0) = (uint16_t)(U16(R(0x26A8D9A), 0) + c14);
+		U16(R(0x26A8D8A), 0) = (uint16_t)(U16(R(0x26A8D8A), 0) + c16);
 		return done;
 	}
 
@@ -1485,14 +1508,14 @@ namespace drinkmagic
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl dk_859080(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x26A8DB0), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x26A8DB0)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x26A8DB0);
+				uint32_t st = MEM<uint32_t>(R(0x26A8DB0));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1529,20 +1552,20 @@ namespace drinkmagic
 	uint32_t __cdecl dk_859140(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1550,7 +1573,7 @@ namespace drinkmagic
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl dk_8591C0(void)
 	{
-		uint32_t act = U32(U32(0x26A8DB0, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x26A8DB0), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1571,7 +1594,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_859200(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x26A8DB0);
+		uint32_t st = MEM<uint32_t>(R(0x26A8DB0));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1592,7 +1615,7 @@ namespace drinkmagic
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x26A8DB0);
+			st = MEM<uint32_t>(R(0x26A8DB0));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1610,7 +1633,7 @@ namespace drinkmagic
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x26A8DB0, 0);                  // actor state block
+		uint32_t st = U32(R(0x26A8DB0), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1707,8 +1730,8 @@ namespace drinkmagic
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 10 records
 	uint32_t __cdecl dk_85A3F0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26A8D8C);
-		int32_t idx = MEM<int16_t>(0x26A7D98);
+		const uint32_t pool = MEM<uint32_t>(R(0x26A8D8C));
+		int32_t idx = MEM<int16_t>(R(0x26A7D98));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1718,7 +1741,7 @@ namespace drinkmagic
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1733,9 +1756,9 @@ namespace drinkmagic
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x26A7D98) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x26A7D98)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x26A7D98) = 0;
+			MEM<uint16_t>(R(0x26A7D98)) = 0;
 		return slot;
 	}
 
@@ -1765,7 +1788,7 @@ namespace drinkmagic
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl dk_85A510(uint32_t a1)
 	{
-		uint32_t sys = U32(0x26A8DB0, 0);
+		uint32_t sys = U32(R(0x26A8DB0), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1800,9 +1823,9 @@ namespace drinkmagic
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x26A8DA0, 0) - 0x50;
+		uint32_t sp = U32(R(0x26A8DA0), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x26A8DA0, 0) = sp;
+		U32(R(0x26A8DA0), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = dk_85AD70(a1, (uint16_t)kind);
@@ -1814,7 +1837,7 @@ namespace drinkmagic
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x26A8DB0, 0);
+			uint32_t ctx = U32(R(0x26A8DB0), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1993,7 +2016,7 @@ namespace drinkmagic
 			}
 		}
 		dk_85BA80(node, desc);
-		U32(0x26A8DA0, 0) = U32(0x26A8DA0, 0) + 0x50;
+		U32(R(0x26A8DA0), 0) = U32(R(0x26A8DA0), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -2001,8 +2024,8 @@ namespace drinkmagic
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x28 records
 	uint32_t __cdecl dk_85AD70(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26A8DA4);
-		int32_t i = MEM<int16_t>(0x26A8D98);
+		const uint32_t pool = MEM<uint32_t>(R(0x26A8DA4));
+		int32_t i = MEM<int16_t>(R(0x26A8D98));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2015,7 +2038,7 @@ namespace drinkmagic
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2032,9 +2055,9 @@ namespace drinkmagic
 		}
 		i++;
 		if (i >= 0x27)
-			MEM<uint16_t>(0x26A8D98) = 0;
+			MEM<uint16_t>(R(0x26A8D98)) = 0;
 		else
-			MEM<uint16_t>(0x26A8D98) = (uint16_t)i;
+			MEM<uint16_t>(R(0x26A8D98)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2048,7 +2071,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85AF90(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x26A8DB0, 0);            // ecx
+		const uint32_t st = U32(R(0x26A8DB0), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2112,7 +2135,7 @@ namespace drinkmagic
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x26A8DB0, 0);
+				uint32_t g = U32(R(0x26A8DB0), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2122,7 +2145,7 @@ namespace drinkmagic
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x26A8DB0, 0);
+				uint32_t g = U32(R(0x26A8DB0), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2210,7 +2233,7 @@ namespace drinkmagic
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl dk_85BB10(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x26A8DB0);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x26A8DB0));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2235,14 +2258,14 @@ namespace drinkmagic
 				do
 				{
 					dk_85A3F0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x26A8DB0);
+					dir = MEM<uint32_t>(R(0x26A8DB0));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				dk_85A3F0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x26A8DB0);
+				dir = MEM<uint32_t>(R(0x26A8DB0));
 			}
 		}
 		return 0; // void
@@ -2297,10 +2320,10 @@ namespace drinkmagic
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0; // void
 	}
@@ -2954,7 +2977,7 @@ namespace drinkmagic
 		// 30 fps layer: see mag037_drink_magic_held.inc
 		FX_HELD(held_note_ribbon(node);)
 		dk_85BE30(node);
-		U16(node, 0x126) = (uint16_t)((U16(node, 0x126) + 0x180) & 0xFFF);
+		U16(node, 0x126) = (uint16_t)((U16(node, 0x126) + PK().ribbons.twist) & 0xFFF);
 		dk_85EB60(node);
 		U16(node, 0x124) = (uint16_t)(U16(node, 0x124) + 1);
 		if (S16(node, 0x124) > 0xA)
@@ -3025,7 +3048,7 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		uint32_t pkt = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t last = S16(node, 0x12A);
 		if (last == 0 || S16(node, 0x128) >= 0xA)
 			return 0; // void
@@ -3143,7 +3166,7 @@ namespace drinkmagic
 			x::SSIGPU_InsertPrimAutoDepth(bucket + (uint32_t)(z * 4), pkt);
 			pkt += 0x28;
 		}
-		MEM<uint32_t>(PACKET_CURSOR) = pkt;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = pkt;
 		return 0; // void
 	}
 
@@ -3152,7 +3175,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85F020(uint32_t a1)
 	{
 		if (S16(a1, 0x124) < 0xA)
-			return x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Spark, NODE_SIZE, a1);
+			return Spawn(R(Q_RIBBON), ORIG_Spark, NODE_SIZE, a1);
 		U8(a1, 0x26) |= 5;
 		U16(a1, 0x124) = 0xA;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3200,10 +3223,10 @@ namespace drinkmagic
 		x::GTE_SetTransVector_W(P(m));
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0; // void
 	}
@@ -3225,7 +3248,7 @@ namespace drinkmagic
 	// 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl dk_85F3A0(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0xF)
+		if (S16(a1, 0x24) == PK().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3238,7 +3261,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85F3C0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0xF)
+		if (S16(node, 0x24) < PK().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -3260,8 +3283,8 @@ namespace drinkmagic
 	// spawner (0x85BBD0, 0x130 bytes, ribbon queue), next state
 	uint32_t __cdecl dk_856E00(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0x28, 0xF, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Spawner, NODE_SIZE, a1);
+		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, (uint16_t)PK().actors.start, (uint16_t)PK().actors.length, (uint16_t)PK().actors.mode);
+		Spawn(R(Q_RIBBON), ORIG_Spawner, NODE_SIZE, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -3295,9 +3318,9 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		const uint32_t caster = 0x1D972C0 + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C;
-		spawn_point_up(caster, 0, GATHER);
+		spawn_point_up(caster, 0, R(GATHER));
 		gx::Effect_CopyMidpointFromSource(node, node + 0x1C);
-		x::Effect_AddTaskAndInitFromCtx(Q_ORB, ORIG_Orb, 0x60, node);
+		Spawn(R(Q_ORB), ORIG_Orb, 0x60, node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -3308,27 +3331,28 @@ namespace drinkmagic
 	{
 		if (U16(a1, 0x24) != tick)
 			return 0; // void
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Ribbon, NODE_SIZE, a1);
-		dk_85BC90(t, 0x80);
+		const uint32_t t = Spawn(R(Q_RIBBON), ORIG_Ribbon, NODE_SIZE, a1);
+		dk_85BC90(t, (uint32_t)PK().ribbons.spread);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		U16(t, 0x120) = number;
 		return 0; // void
 	}
-	uint32_t __cdecl dk_85E8E0(uint32_t a1) { return spawner_one(a1, 0x28, 0); }
-	uint32_t __cdecl dk_85F260(uint32_t a1) { return spawner_one(a1, 0x2A, 1); }
-	uint32_t __cdecl dk_85F2B0(uint32_t a1) { return spawner_one(a1, 0x2C, 2); }
+	static uint16_t ribbon_tick(int n) { return (uint16_t)(PK().ribbons.first + n * PK().ribbons.every); }
+	uint32_t __cdecl dk_85E8E0(uint32_t a1) { return spawner_one(a1, ribbon_tick(0), 0); }
+	uint32_t __cdecl dk_85F260(uint32_t a1) { return spawner_one(a1, ribbon_tick(1), 1); }
+	uint32_t __cdecl dk_85F2B0(uint32_t a1) { return spawner_one(a1, ribbon_tick(2), 2); }
 
 	// 0x85F300 (sub_85F300): ribbon spawner state 4 - at tick 0x2E the last two ribbons (numbers 3 and
 	// 4, the second one flagged +0x122), finished, next state
 	uint32_t __cdecl dk_85F300(uint32_t a1)
 	{
-		if (U16(a1, 0x24) != 0x2E)
+		if (U16(a1, 0x24) != ribbon_tick(3))
 			return 0; // void
-		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Ribbon, NODE_SIZE, a1);
-		dk_85BC90(t1, 0x80);
+		const uint32_t t1 = Spawn(R(Q_RIBBON), ORIG_Ribbon, NODE_SIZE, a1);
+		dk_85BC90(t1, (uint32_t)PK().ribbons.spread);
 		U16(t1, 0x120) = 3;
-		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Ribbon, NODE_SIZE, a1);
-		dk_85BC90(t2, 0x80);
+		const uint32_t t2 = Spawn(R(Q_RIBBON), ORIG_Ribbon, NODE_SIZE, a1);
+		dk_85BC90(t2, (uint32_t)PK().ribbons.spread);
 		U16(a1, 0x26) |= 1;
 		U16(t2, 0x122) = 1;
 		const uint8_t st = U8(a1, 0x29);
@@ -3342,10 +3366,10 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85BC50(uint32_t a1)
 	{
 		const int16_t t = S16(a1, 0x24);
-		if (t <= 0xD || t >= 0x3F)
+		if (t < PK().streaks.from || t > PK().streaks.until)
 			return 0; // void
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Streak, NODE_SIZE, a1);
-		dk_85BC90(n, 0x80);
+		const uint32_t n = Spawn(R(Q_RIBBON), ORIG_Streak, NODE_SIZE, a1);
+		dk_85BC90(n, (uint32_t)PK().ribbons.spread);
 		return 0; // void
 	}
 
@@ -3383,12 +3407,12 @@ namespace drinkmagic
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
-		const uint32_t g0 = MEM<uint32_t>(GATHER);
+		const uint32_t g0 = MEM<uint32_t>(R(GATHER));
 		const uint32_t z0 = U32(node, 0x20);
 		U32(node, 0x80) = g0;
 		U16(node, 0x126) = (uint16_t)(r & 0xFFF);
 		U32(node, 0x88) = U32(node, 0x1C);
-		const uint32_t g1 = MEM<uint32_t>(GATHER + 4);
+		const uint32_t g1 = MEM<uint32_t>(R(GATHER) + 4);
 		U32(node, 0x8C) = z0;
 		U32(node, 0x84) = g1;
 		alignas(4) uint8_t up[8];
@@ -3411,7 +3435,7 @@ namespace drinkmagic
 	// +0x12C >= 0x1000 finished and hidden (+0x26 |= 5), next state
 	uint32_t __cdecl dk_85C0C0(uint32_t a1)
 	{
-		U16(a1, 0x12E) = (uint16_t)(U16(a1, 0x12E) + 0x30);
+		U16(a1, 0x12E) = (uint16_t)(U16(a1, 0x12E) + PK().streaks.accel);
 		U16(a1, 0x12C) = (uint16_t)(U16(a1, 0x12C) + U16(a1, 0x12E));
 		if (S16(a1, 0x12C) >= 0x1000)
 		{
@@ -3498,12 +3522,12 @@ namespace drinkmagic
 		U16(node, 0x52) = 5;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
-		const uint32_t g0 = MEM<uint32_t>(GATHER);
+		const uint32_t g0 = MEM<uint32_t>(R(GATHER));
 		const uint32_t z0 = U32(node, 0x20);
 		U32(node, 0x80) = g0;
 		U16(node, 0x126) = (uint16_t)(r & 0xFFF);
 		U32(node, 0x88) = U32(node, 0x1C);
-		const uint32_t g1 = MEM<uint32_t>(GATHER + 4);
+		const uint32_t g1 = MEM<uint32_t>(R(GATHER) + 4);
 		U32(node, 0x8C) = z0;
 		U32(node, 0x84) = g1;
 		alignas(4) uint8_t up[8];
@@ -3571,13 +3595,13 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85E640(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0xF)
+		if (S16(node, 0x24) < PK().orb.appear)
 			return 0; // void
 		U8(node, 0x26) &= 0xFB;
 		U32(node, 0x4C) = ORB_MODEL;
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(node, 0x2C) * 0x9C;
-		U32(node, 0x30) = 0x1400;
-		U32(node, 0x34) = 0x1400;
+		U32(node, 0x30) = (uint32_t)PK().orb.scale;
+		U32(node, 0x34) = (uint32_t)PK().orb.scale;
 		U32(node, 0x38) = dk_85E6C0(node);
 		U16(node, 0x46) = U16(ent, 0xE);
 		U16(node, 0x44) = 0xF00;
@@ -3592,11 +3616,11 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85E820(uint32_t a1)
 	{
 		dk_85E780(a1 + 0x1C, (uint32_t)U8(a1, 0x2C));
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0xFF00);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) - PK().orb.fade);
 		if (S16(a1, 0x50) <= 0)
 		{
 			U16(a1, 0x50) = 0;
-			U16(a1, 0x5C) = 0x14;
+			U16(a1, 0x5C) = (uint16_t)PK().orb.hold;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -3617,7 +3641,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85E890(uint32_t a1)
 	{
 		dk_85E780(a1 + 0x1C, (uint32_t)U8(a1, 0x2C));
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0x100);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + PK().orb.fade);
 		if (S16(a1, 0x50) >= 0x1000)
 		{
 			U8(a1, 0x26) |= 1;
@@ -3761,8 +3785,8 @@ namespace drinkmagic
 		if ((U8(node, 0x26) & 4) == 0)
 		{
 			ORB_VERTEX_PAD = st == 1 ? g_85E780_m2 : 0xFF00;
-			const uint32_t b = (uint32_t)(uint16_t)(U16(node, 0x58) - 0xA0) & 0xFFF;
-			const uint32_t a = (uint32_t)(uint16_t)(U16(node, 0x54) + 0xA0) & 0xFFF;
+			const uint32_t b = (uint32_t)(uint16_t)(U16(node, 0x58) - PK().orb.spin) & 0xFFF;
+			const uint32_t a = (uint32_t)(uint16_t)(U16(node, 0x54) + PK().orb.spin) & 0xFFF;
 			U16(node, 0x58) = (uint16_t)b;
 			U16(node, 0x54) = (uint16_t)a;
 			dk_85E4E0(ORB_TEMPLATE, U32(node, 0x4C), a, b);
@@ -3776,6 +3800,42 @@ namespace drinkmagic
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DK(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(DrinkParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the actor system (its actor data the exe's), the ribbon spawner, the master's release, the damage" },
+			{ 0, "ribbons", "Ribbons", "The drunk magic: five twisted ribbons with their sparks and the streaks, from round the target to the caster" },
+			{ 0, "orb", "Orb", "The swelling orb at the caster: fades out, holds, fades back in" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "Spawned by the emitter (its actor data the exe's)" },
+			{ "streaks", "Streaks", "One a tick of the spawner, flying to the caster" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(DrinkParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DK("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DK("emitter", emitter.result, "Damage tick", "The damage of its target from this tick", 0, 200),
+			DK("emitter", actors.start, "Start", "Its start tick", 0, 200),
+			DK("emitter", actors.length, "Length", "Its ticks", 0, 200),
+			DK("emitter", actors.mode, "Mode", "Its placement mode", 0, 4),
+			DK("ribbons", ribbons.first, "First tick", "The first ribbon at this spawner tick", 0, 200),
+			DK("ribbons", ribbons.every, "Every", "The next ones every this many ticks (the last two together)", 1, 50),
+			DK("ribbons", ribbons.spread, "Spread", "How far from the emitter's midpoint the ribbons and streaks start", 0, 0x7FFF),
+			DK("ribbons", ribbons.twist, "Twist", "A ribbon's twist a tick (4096: a turn)", -0x1000, 0x1000),
+			DK("ribbons", streaks.from, "From", "The first streak at this spawner tick", 0, 200),
+			DK("ribbons", streaks.until, "Until", "The last streak at this spawner tick", 0, 200),
+			DK("ribbons", streaks.accel, "Acceleration", "Added to a streak's speed a tick (4096: the whole line)", 1, 0x400),
+			DK("orb", orb.appear, "Appear tick", "Shown at the caster from this tick", 0, 200),
+			DK("orb", orb.scale, "Scale", "Its scale (4096: the model's size)", 0x100, 0x7FFF),
+			DK("orb", orb.fade, "Fade", "Its fade out and back in a tick (4096: all of it)", 1, 0x1000),
+			DK("orb", orb.hold, "Hold", "Ticks between its fade out and fade in", 0, 200),
+			DK("orb", orb.spin, "Spin", "Its twist and swell angles a tick (4096: a turn)", -0x800, 0x800),
+		};
+#undef DK
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -3915,6 +3975,11 @@ namespace drinkmagic
 
 	void register_mag037_drink_magic()
 	{
+		fxp::register_params({ 37, "Drink Magic", &act::drinkmagic::live, &act::drinkmagic::GAME, sizeof(act::drinkmagic::DrinkParams),
+		                       act::drinkmagic::table::PARTS, (int)(sizeof(act::drinkmagic::table::PARTS) / sizeof(act::drinkmagic::table::PARTS[0])),
+		                       act::drinkmagic::table::FIELDS, (int)(sizeof(act::drinkmagic::table::FIELDS) / sizeof(act::drinkmagic::table::FIELDS[0])),
+		                       act::drinkmagic::table::GROUPS, (int)(sizeof(act::drinkmagic::table::GROUPS) / sizeof(act::drinkmagic::table::GROUPS[0])) });
+		act::register_mod(&act::drinkmagic::MOD_037);
 		act::register_module(37);
 		for (const act::drinkmagic::ModPort *p = act::drinkmagic::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(37, p->addr, p->port, p->name);
@@ -3923,6 +3988,7 @@ namespace drinkmagic
 		// 30 fps layer: see mag037_drink_magic_held.inc
 		FX_HELD(register_mag037_held();)
 	}
+	FX_LAB_MODULE(register_mag037_drink_magic);
 }
 
 #ifdef FF8_FX_HELD
