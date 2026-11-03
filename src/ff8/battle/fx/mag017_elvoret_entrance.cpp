@@ -61,8 +61,14 @@
 // packet cursor 0x2556FC4, particle / main / root queues, the black colour 0x2556FF8). The particle
 // pool (0x80 x 0x20), the main pool (+ 0x1000), the morph buffer (+ 0x1B9C) and the packet arenas
 // are in the magic buffer.
+// Fujin's described entrance (effect_017.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup ported below; its parameters (ElvoretParams: the sounds, the descent,
+// the ring burst, the end) are set from the program's.
 
 #include "mag_common.h"
+#include "fx_layouts.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -72,12 +78,13 @@ namespace elvoret017
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556FA0); }         // the caster's entity
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556FA4); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2556FA8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556FC4); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2556FC8; }       // pool: magic buffer, 0x80 x 0x20
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2556FD8; }            // pool: + 0x1000, 1 x 0x1FC
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2556FA0)); }         // the caster's entity
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2556FA4)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2556FA8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2556FC4)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x2556FC8); }       // pool: magic buffer, 0x80 x 0x20
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2556FE8); }        // pool: 0x2556FB0, 1 x 0x14
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2556FD8); }            // pool: + 0x1000, 1 x 0x1FC
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x700460;
@@ -92,6 +99,21 @@ namespace elvoret017
 	static const void *const SOUND_Voice = (const void *)0x14D8E48;
 	static const void *const SOUND_Wings = (const void *)0x14D8E40;
 	static const void *const SOUND_Land = (const void *)0x14D8E44;
+	static const uint32_t ORIG_Setup = 0x7003C0, TIM = 0x14D8F58, CAMERA = 0x14D8BAC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ElvoretParams
+	{
+		struct { uint32_t wings, land; } sound;
+		struct { int16_t height, descent; } caster;      // it starts this high (negative: up), comes down by this a tick
+		struct { int16_t from, ticks; } burst;           // the ring burst at its landing
+		int16_t end;                                     // the main task ends after this tick
+	};
+	static const ElvoretParams GAME = { { 0x14D8E40, 0x14D8E44 }, { -5440, 0x40 }, { 0x50, 0x14 }, 0x7A };
+	static ElvoretParams live = GAME;
+	static const ElvoretParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
@@ -286,11 +308,11 @@ namespace elvoret017
 			if ((uint32_t)(int32_t)m->counter <= 0x20)
 			{
 				const int32_t t = (int32_t)(((uint32_t)(int32_t)m->counter & 0xFFFFF) << 7);
-				ColourLerp(AMBIENT, COLOUR_Black, t, 0x1000 - t, Caster() + 0x2C);
+				ColourLerp(AMBIENT, own::R(COLOUR_Black), t, 0x1000 - t, Caster() + 0x2C);
 			}
-			*(int16_t *)(Caster() + 0x1E) = (int16_t)(*(const int16_t *)(Caster() + 0x1E) + 0x40);
+			*(int16_t *)(Caster() + 0x1E) = (int16_t)(*(const int16_t *)(Caster() + 0x1E) + P().caster.descent);
 		}
-		if ((uint32_t)((int32_t)m->counter - 0x50) < 0x14)
+		if ((uint32_t)((int32_t)m->counter - P().burst.from) < (uint32_t)P().burst.ticks)
 		{
 			// the ring burst around the caster's ground point
 			int32_t count = BurstCount(m->counter);
@@ -298,7 +320,7 @@ namespace elvoret017
 			const int32_t step = 0x1000 / count;
 			do
 			{
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 				if (p)
 				{
 					Memset32(&p->counter, 0, 5);
@@ -327,12 +349,12 @@ namespace elvoret017
 			int16_t sp[4];
 			sp[3] = 0; // see below: overwritten by the particle size before anything reads it
 			GetEffectSpawnPosition(Caster(), 0x1D, 0x400, sp);
-			if (phase == 0) BdPlaySE3D(SOUND_Wings, 0, sp);
+			if (phase == 0) BdPlaySE3D((const void *)fxp::sound(P().sound.wings, (uint32_t)SOUND_Wings), 0, sp);
 			for (int k = 0; k < 2; k++)
 			{
 				const uint32_t chance = (uint32_t)(mul32(CrtRand(), 20) >> 15);
 				if (chance <= phase) continue;
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
 				memcpy(p->pos, sp, 8); // x, y, z and the word after (overwritten by the size)
@@ -353,7 +375,7 @@ namespace elvoret017
 		}
 		if (m->counter >= 0x32)
 		{
-			if (m->counter == 0x50) BdPlaySE3D(SOUND_Land, 0, (const int16_t *)(Caster() + 0x1C));
+			if (m->counter == 0x50) BdPlaySE3D((const void *)fxp::sound(P().sound.land, (uint32_t)SOUND_Land), 0, (const int16_t *)(Caster() + 0x1C));
 			PrimArg arg;
 			arg.pos[0] = *(const int16_t *)(Caster() + 0x1C);
 			arg.pos[2] = *(const int16_t *)(Caster() + 0x20);
@@ -367,7 +389,7 @@ namespace elvoret017
 		}
 		if (m->counter == 0x76) ReleaseVoiceSlot(m->voice);
 		const int16_t c = m->counter;
-		if (c >= 0x7A) return TASK_END;
+		if (c >= P().end) return TASK_END;
 		m->counter = (int16_t)(c + 1);
 		return 0;
 	}
@@ -375,6 +397,23 @@ namespace elvoret017
 	// ------------------------------------------------------------------
 	// Root (0x700460)
 	// ------------------------------------------------------------------
+	// Setup (0x7003C0 -> 0x7003D0; the file loader is the engine's nullsub, the TIM is exe data): the game runs its
+	// own; Fujin's programs this: the TIM, the magic buffer, the cast, the caster high above the ground with its
+	// flag 0x1000, the root, the camera
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TIM);
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		*(int16_t *)(Caster() + 0x1E) = P().caster.height;
+		Caster()[1] |= 0x10;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2556FB0), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -400,7 +439,7 @@ namespace elvoret017
 				InitTaskQueuePool(QMain(), (void *)(TexBase() + 0x1000), 0x1FC, 1);
 				InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x20, 0x80);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x7C);
@@ -424,16 +463,46 @@ namespace elvoret017
 		if (r->counter >= 10) r->counter = 10;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define EV(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(ElvoretParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "entrance", "Entrance", "Elvoret coming down from above, its wings' particles and sounds, the ring burst at its landing" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "burst", "Ring burst", "From tick From for Ticks" },
+		};
+		static const Field FIELDS[] = {
+			{ "entrance", "sound.wings", "Wings sound", "Every 25 ticks while it comes down", (uint32_t)offsetof(ElvoretParams, sound.wings), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "entrance", "sound.land", "Landing sound", "At its landing", (uint32_t)offsetof(ElvoretParams, sound.land), fxp::Sound, 0, 0x7FFFFFFF },
+			EV("entrance", caster.height, "Start height", "It starts this far above the ground (negative: up)", -0x4000, 0),
+			EV("entrance", caster.descent, "Descent", "It comes down by this a tick", 0, 0x400),
+			EV("entrance", burst.from, "From", "", 0, 200),
+			EV("entrance", burst.ticks, "Ticks", "", 0, 100),
+			EV("entrance", end, "End", "The entrance ends after this tick", 1, 400),
+		};
+#undef EV
+	}
 }
 
 	void register_mag017_elvoret_entrance()
 	{
+		fxp::register_params({ 17, "Elvoret's entrance", &elvoret017::live, &elvoret017::GAME, sizeof(elvoret017::ElvoretParams),
+		                       elvoret017::table::PARTS, (int)(sizeof(elvoret017::table::PARTS) / sizeof(elvoret017::table::PARTS[0])),
+		                       elvoret017::table::FIELDS, (int)(sizeof(elvoret017::table::FIELDS) / sizeof(elvoret017::table::FIELDS[0])),
+		                       elvoret017::table::GROUPS, (int)(sizeof(elvoret017::table::GROUPS) / sizeof(elvoret017::table::GROUPS[0])) });
+		own::note(elvoret017::ORIG_Setup, (void *)elvoret017::Setup);
 		register_port(elvoret017::ORIG_RootTask, (void *)elvoret017::RootTask, "017 RootTask", 17);
 		register_port(elvoret017::ORIG_MainTask, (void *)elvoret017::MainTask, "017 MainTask", 17);
 		register_port(elvoret017::ORIG_ParticleTask, (void *)elvoret017::ParticleTask, "017 ParticleTask", 17);
+		own::note(elvoret017::ORIG_RootTask, (void *)elvoret017::RootTask);
+		own::note(elvoret017::ORIG_MainTask, (void *)elvoret017::MainTask);
+		own::note(elvoret017::ORIG_ParticleTask, (void *)elvoret017::ParticleTask);
 		// 30 fps layer: see mag017_elvoret_entrance_held.inc
 		FX_HELD(register_mag017_held();)
 	}
+	FX_LAB_MODULE(register_mag017_elvoret_entrance);
 }
 
 #ifdef FF8_FX_HELD
