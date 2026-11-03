@@ -54,6 +54,7 @@ namespace layouts
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
 	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
 	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
 	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
 	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
@@ -151,6 +152,130 @@ namespace layouts
 	}
 
 	// ------------------------------------------------------------------
+	// Additive quads (Blind 0x6BE4E0): a prim model drawn as its textured quads only (its flat list
+	// 4, sub_6AE420 of the Oil Shot module, and its gouraud list 8, 0x6BE5C0), each quad after an
+	// additive draw-mode primitive in the same bucket; the header as the engine renderer's (model,
+	// vertices, fade colour +8, fade +0xC; +0x20 the list cursor, +0x2C the depth, +0x30 the flag)
+	// ------------------------------------------------------------------
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
+	inline void GteReadSXY012To(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }                   // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
+
+	namespace quads
+	{
+		using parts::F; using parts::GteLoadV012; using parts::GteRTPT; using parts::GteAVSZ4; using parts::GteReadOTZWord;
+		// screen clip of a projected vertex (x 0..0xA00, y 0..0x6C0: the PC's 4x subpixel screen)
+		static inline bool OutX(const uint8_t *xy) { const int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
+		static inline bool OutY(const uint8_t *xy) { const int16_t v = *(const int16_t *)(xy + 2); return v < 0 || v > 0x6C0; }
+
+		// the quads of the list at header +0x20 (flat: 0x18-byte records, 0x28-byte packets; gouraud:
+		// 0x24-byte records, 0x34-byte packets), each projected, clipped, faded, bucketed by its depth >> shift
+		static uint32_t Quads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor, bool gouraud)
+		{
+			const uint32_t size = gouraud ? 0x24 : 0x18;   // a record
+			const uint32_t v1 = gouraud ? 0x14 : 0x10, v2 = gouraud ? 0x20 : 0x18, v3 = gouraud ? 0x2C : 0x20;   // its packet's vertices
+			uint8_t *pk = (uint8_t *)cursor;
+			const uint8_t *list = F<uint8_t *>(h, 0x20);
+			const int32_t count = *(const int32_t *)list;
+			const uint8_t *rec = list + 4;
+			const uint8_t *verts = F<uint8_t *>(h, 4);
+			F<const uint8_t *>(h, 0x20) = rec;
+			if (count <= 0) return (uint32_t)pk;
+			for (int32_t k = count; k != 0; k--, rec += size)
+			{
+				GteLoadV012(verts + (uint32_t)*(const uint16_t *)(rec + 4) * 4, verts + (uint32_t)*(const uint16_t *)(rec + 6) * 4, verts + (uint32_t)*(const uint16_t *)(rec + 8) * 4);
+				GteRTPT();
+				F<uint32_t>(pk, 0) = gouraud ? 0xC000000 : 0x9000000;
+				F<uint32_t>(pk, 4) = *(const uint32_t *)rec;
+				F<uint32_t>(pk, 0xC) = *(const uint32_t *)(rec + 0xC);
+				F<uint32_t>(pk, v1 + 4) = *(const uint32_t *)(rec + 0x10);
+				const uint32_t uv = *(const uint32_t *)(rec + 0x14);
+				F<uint32_t>(pk, v2 + 4) = uv;
+				F<uint32_t>(pk, v3 + 4) = uv >> 16;
+				GteReadFLAG(h + 0x30);
+				if (F<uint32_t>(h, 0x30) & 0x60000) continue;
+				GteReadSXY012To(pk + 8, pk + v1, pk + v2);
+				uint32_t clip = 0;
+				GteLoadV0(verts + (uint32_t)*(const uint16_t *)(rec + 0xA) * 4);
+				GteRTPS();
+				if (OutX(pk + 8)) clip = 1;
+				if (OutX(pk + v1)) clip |= 2;
+				if (OutX(pk + v2)) clip |= 4;
+				if (OutY(pk + 8)) clip |= 0x10;
+				if (OutY(pk + v1)) clip |= 0x20;
+				if (OutY(pk + v2)) clip |= 0x40;
+				GteReadSXY2(pk + v3);
+				GteAVSZ4();
+				if (OutX(pk + v3)) clip |= 8;
+				if (OutY(pk + v3)) clip |= 0x80;
+				if ((clip & 0xF) == 0xF) continue;
+				if ((clip & 0xF0) == 0xF0) continue;
+				GteReadOTZWord(h + 0x2C);
+				if (F<uint32_t>(h, 0xC) != 0)
+				{
+					GteSetFarColor(F<uint8_t>(h, 8), F<uint8_t>(h, 9), F<uint8_t>(h, 0xA));
+					if (gouraud)
+					{
+						GteLoadRGB012(rec + 0x18, rec + 0x1C, rec + 0x20);
+						GteSetIR0(F<int32_t>(h, 0xC));
+						GteDPCT();
+						GteStoreRGB012(pk + 0x10, pk + 0x1C, pk + 0x28);
+					}
+					GteLoadRGBC(pk + 4);
+					if (!gouraud) GteSetIR0(F<int32_t>(h, 0xC));   // (the gouraud quads' IR0 is still set)
+					GteDPCS();
+					GteStoreRGB2(pk + 4);
+				}
+				else if (gouraud)
+				{
+					F<uint32_t>(pk, 0x10) = *(const uint32_t *)(rec + 0x18);
+					F<uint32_t>(pk, 0x1C) = *(const uint32_t *)(rec + 0x1C);
+					F<uint32_t>(pk, 0x28) = *(const uint32_t *)(rec + 0x20);
+				}
+				const uint32_t bucket = ot + (uint32_t)(F<int32_t>(h, 0x2C) >> shift) * 4;
+				uint8_t *quad = pk;
+				uint8_t *mode = pk + v3 + 8;
+				pk = mode + 8;
+				F<uint32_t>(mode, 0) = 0x1000000;
+				F<uint32_t>(mode, 4) = 0xE1000220;
+				InsertPrimAutoDepth(bucket, mode);
+				InsertPrimAutoDepth(bucket, quad);
+			}
+			F<const uint8_t *>(h, 0x20) = rec;
+			return (uint32_t)pk;
+		}
+
+		// list at p: count dword + count records of `size` bytes -> the next list
+		static inline const uint8_t *SkipList(const uint8_t *p, uint32_t size)
+		{
+			const int32_t n = *(const int32_t *)p;
+			if (n == 0) return p + 4;
+			return p + (uint32_t)mul32(n, (int32_t)size) + 4;
+		}
+	}
+
+	// the model's lists 4 (flat textured quads) and 8 (gouraud textured quads), additive
+	inline uint32_t AdditiveQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
+	{
+		using quads::SkipList;
+		const uint8_t *model = parts::F<uint8_t *>(h, 0);
+		const uint8_t *p = model + *(const uint32_t *)model;
+		const uint32_t before_flat[] = { 12, 12, 20 }, before_gouraud[] = { 20, 24, 28 };
+		parts::F<const uint8_t *>(h, 0x20) = p;
+		for (uint32_t size : before_flat) parts::F<const uint8_t *>(h, 0x20) = p = SkipList(p, size);
+		cursor = quads::Quads(h, ot, shift, cursor, false);
+		p = parts::F<uint8_t *>(h, 0x20);
+		for (uint32_t size : before_gouraud) parts::F<const uint8_t *>(h, 0x20) = p = SkipList(p, size);
+		return quads::Quads(h, ot, shift, cursor, true);
+	}
+
+	// ------------------------------------------------------------------
 	// The anchor callback (Antidote 0x674630, the status-cure items 292..296: one source built with
 	// different options): one object of a layout played at an anchor. The record's offset + the
 	// anchor through the camera, composed with it; the record flags a build tests are `honoured`
@@ -160,6 +285,7 @@ namespace layouts
 	{
 		ANCHOR_DIAGONAL_SCALE = 0x100,   // scale as a diagonal matrix multiplied in (0x56C220), not scale3DMatrix
 		ANCHOR_OFFSET_AS_IS = 0x200,     // the anchor through the camera + the offset as is, not composed
+		ANCHOR_OFFSET_TURNED = 0x800,    // the offset turned by the object's own rotation first (Blind)
 		ANCHOR_ROT_ZYX = 0x400,          // rotation from the angles in ZYX order (0x701430)
 		ANCHOR_MATRIX = 0x1000,          // the anchor through the camera + the offset through the arg's matrix (composed with it)
 		ANCHOR_NOT_COMPOSED = 0x8000,    // the rotation not composed with the camera
@@ -179,6 +305,9 @@ namespace layouts
 		int32_t scaled = 0;             // Aero: the record offsets and the object scaled by `scale` (4.12)
 		int32_t scale[3] = {};
 		bool short_scale = false;       // Aero: the record's scale applied row by row as 16-bit factors (its inlined copy)
+		bool engine_draw = false;       // Blind: drawn by the engine's renderer 0x572200, the header's depth not written, not 0x7043B0
+		int32_t ot_shift = 2;           // the renderers' depth shift (Blind: 3)
+		uint32_t additive_objects = 0;  // these objects (a bit each) drawn as their textured quads only, additive (Blind: 0 and 3)
 	};
 #pragma pack(pop)
 	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
@@ -225,13 +354,22 @@ namespace layouts
 		if (flags & ANCHOR_ROT_YXZ) RotationFromAnglesYXZ(r->rot, &m);
 		else if (flags & ANCHOR_ROT_ZYX) RotationFromAnglesZYX(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset, scaled by the arg's scale when it has one (Aero's WindPart)
+		// the record's offset (turned by the object's rotation: Blind's), scaled by the arg's scale when
+		// it has one (Aero's WindPart)
 		int16_t pos[3] = { r->pos[0], r->pos[1], r->pos[2] };
+		if (flags & ANCHOR_OFFSET_TURNED)
+		{
+			int16_t off[4] = { pos[0], pos[1], pos[2], 0 };   // in place, as the original
+			MatrixMultiplyVector(&m, off, off);
+			pos[0] = off[0];
+			pos[1] = off[1];
+			pos[2] = off[2];
+		}
 		if (arg->scaled)
 		{
-			pos[0] = (int16_t)(mul32(r->pos[0], arg->scale[0]) >> 12);
-			pos[1] = (int16_t)(mul32(r->pos[1], arg->scale[1]) >> 12);
-			pos[2] = (int16_t)(mul32(r->pos[2], arg->scale[2]) >> 12);
+			pos[0] = (int16_t)(mul32(pos[0], arg->scale[0]) >> 12);
+			pos[1] = (int16_t)(mul32(pos[1], arg->scale[1]) >> 12);
+			pos[2] = (int16_t)(mul32(pos[2], arg->scale[2]) >> 12);
 			Scale3DMatrix(&m, arg->scale);
 		}
 		if (flags & ANCHOR_OFFSET_AS_IS)
@@ -315,9 +453,14 @@ namespace layouts
 			*(uint32_t *)(h + 0x1C) = 0x20F0;
 			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
 		}
-		*(int32_t *)(h + 0x18) = arg->depth;
-		if ((int32_t)(int16_t)r->flags_lo == arg->nearer_object) *(int32_t *)(h + 0x18) = (int32_t)((uint32_t)arg->depth - (uint32_t)arg->nearer_by);
-		*arg->cursor = RenderPrim2(h, RenderOT(), 2, *arg->cursor);
+		if (!arg->engine_draw)
+		{
+			*(int32_t *)(h + 0x18) = arg->depth;
+			if ((int32_t)(int16_t)r->flags_lo == arg->nearer_object) *(int32_t *)(h + 0x18) = (int32_t)((uint32_t)arg->depth - (uint32_t)arg->nearer_by);
+		}
+		if ((uint32_t)object < 32 && (arg->additive_objects >> object & 1)) *arg->cursor = AdditiveQuads(h, RenderOT(), arg->ot_shift, *arg->cursor);
+		else if (arg->engine_draw) *arg->cursor = RenderPrimModel(h, RenderOT(), arg->ot_shift, *arg->cursor);
+		else *arg->cursor = RenderPrim2(h, RenderOT(), arg->ot_shift, *arg->cursor);
 		FieldFree(0x58);
 	}
 
@@ -672,7 +815,6 @@ namespace layouts
 	}
 
 	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)((int32_t)(uint16_t)angle, out); }   // MAG_063_sub_701270
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
 
 	// a frame of an entity (Float, Haste, Slow): turned about the vertical axis with it (-facing,
 	// +0x0E), at `point` (x, y, z), composed with the camera
@@ -918,6 +1060,16 @@ namespace layouts
 		if (c < rise) return c * level / rise;
 		if (c >= fall) return (end - c) * level / (end - fall);
 		return level;
+	}
+
+	// a screen flash level of tick c rising and falling (Blind's, a level each target task raises):
+	// (c - from) x up over from..peak - 1, (to - c) x down over peak..to, -1 outside
+	inline int32_t ScreenFlashRiseFall(int32_t c, int32_t from, int32_t peak, int32_t to, int32_t up, int32_t down)
+	{
+		const int32_t e = c - from;
+		if ((uint32_t)e < (uint32_t)(peak - from)) return e * up;
+		if ((uint32_t)e <= (uint32_t)(to - from)) return (to - c) * down;
+		return -1;
 	}
 
 	// a point around `centre` (Dispel's sparkles): x and z each centre + ((r + r' - 0x8000) x spread
