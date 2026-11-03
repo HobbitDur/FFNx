@@ -2125,9 +2125,11 @@ int __cdecl ff8_bgate_bdlink_hook()
 	// on EVERY frame: the frame's tasks always see the true camera words
 	ff8_bgate_cam_restore();
 	ff8_bgate_ent_frame_start();
+	// held-frame position nudges are display-only: taken back on EVERY frame (the VM runs on held
+	// frames too now and must read the true positions)
+	ff8_bgate_move_restore_all();
 	if (ff8_bgate_phase == 0)
 	{
-		ff8_bgate_move_restore_all();
 		ff8_bgate_feedback_req = 0; // re-armed by the effect if it still wants it this tick
 	}
 	else if (ff8_bgate_feedback_req && !ff8_bgate_fx_bypass && ff8_bgate_feedback_rearm)
@@ -2327,90 +2329,75 @@ int __cdecl ff8_bgate_savemap_tick_hook()
 	return r;
 }
 
-// --- battle model animation: engine-native SLOW interpolation (smooth models) ---
-// Battle_ReadAnimation (0x508F90) consumes a bit-packed DELTA stream: frame 0 is the
-// absolute base pose (bones zeroed at anim start), later frames are accumulative deltas -
-// there is no closed form to re-sample, so a naive high-fps mod can only hold the pose.
-// BUT the engine's Slow-status mechanism (BATTLE_ANIM_FLAG_SLOW, flags bit 0) is a complete
-// half-step player: deltas halved, each frame consumed twice across 2 calls (stream offset
-// only saved when the sub-frame counter, flags bits 0xC, is 0), and pre_Battle_ReadAnimation
-// (0x509440) sets total_frames = 2*nbFrames-1 so completion stays exact. Repurposed at 2x
-// call rate, forced SLOW = native speed + native duration + a genuine midpoint pose every
-// host frame. Per-entity policy keeps the Slow/Haste statuses visually distinct:
+/// --- battle model animation: CONVERTED DATA, read at the data rate (30 Hz) ---
+// With 30 fps on, every battle data file is assumed converted to 30 fps by the FF8UltimateEditor
+// tools (no marker, no detection, no fallback; study DAT30FPS_STUDY.md 7.2 / 12): every entity and
+// weapon animation has exactly 2n frames for the n it had, and the sequences (section 5) count
+// ticks of 1/30 s. So the reader and the AnimSeq VM simply run at the data rate:
+//   ff8_bgate_data_div = host frames per 30 Hz data tick (1 at 30 fps, 2 at 60 fps).
+// Battle_ReadAnimation (0x508F90) consumes a bit-packed DELTA stream (frame 0 absolute, later frames
+// deltas): an anim_cmd held for k host frames shows the exact look-ahead midpoint pose
+// (ff8_bgate_pose_lookahead) on its held calls.
 //
-//   status   vanilla (15 calls/s)   n=2 (30 calls/s)      n=4 (60 calls/s)
-//   normal   plain    = 15 f/s      SLOW, no hold         SLOW, hold 1-in-2
-//   Haste    FAST     = 30 f/s      plain, no hold        SLOW, no hold
-//   Slow     SLOW     = 7.5 f/s     SLOW, hold 1-in-2     SLOW, hold 1-in-4
+//   status   vanilla 15 Hz data       converted data, FFNx
+//   normal   plain                    plain, 1 read per data tick
+//   Haste    FAST (engine)            FAST, untouched
+//   Slow     SLOW: total = 2N-1       SLOW cleared, each frame held 2 data ticks (user decision
+//                                     10-22: no byte wrap of total_frames, no 128-frame limit)
 //
-// Choreography stays exact: no AnimSeq opcode reads current_frame (audited - sequences wait
-// on completion or B9 tick delays), and Renzokuken's AB stage buckets use the .dat frame
-// counts, whose wall-clock spans are unchanged. See wiki: Battle Model Animation Timing.
+// Entity / weapon anim_cmds get their policy at every start (Battle_QueueAnimation 0x509520 ->
+// pre_Battle_ReadAnimation 0x509440). Unknown anim_cmds (stage models read by
+// BattleStage_AnimateAndRenderGroups 0x50102E, effect models read inside the 15 Hz effect tick)
+// keep the former rule: read on real frames (phase 0), look-ahead midpoint on held frames.
 #define FF8_BGATE_ANIM_FLAG_SLOW 0x01
 #define FF8_BGATE_ANIM_FLAG_FAST 0x02
 
-// Hold divisor per anim_cmd: readanim passes a call through only when phase % div == 0.
-// Entries are (re)written at every entity animation start; anim_cmd addresses are stable
-// (entity slot data / weapon headers). Unknown anim_cmds (stage models, effect models -
-// they never start via Battle_QueueAnimation) default to div = n, the plain pose-hold.
-static struct { void *cmd; int div; bool forced; } ff8_bgate_anim_policy[32];
+static int ff8_bgate_data_div = 1; // host frames per 30 Hz data tick (set at install: n / 2)
 
-static void ff8_bgate_anim_policy_set(void *cmd, int div, bool forced)
+// a 30 Hz data tick (AnimSeq VM, camera player, VM-created tasks run on it)
+static inline bool ff8_bgate_data_tick() { return (ff8_bgate_phase % ff8_bgate_data_div) == 0; }
+
+// Per anim_cmd: hold divisor (reader calls per animation frame) and the calls made since the
+// animation started; slow = engine Slow status emulated by the hold (the C3 frame variables report
+// the doubled counts the sequences expect then).
+struct ff8_bgate_anim_policy_t { void *cmd; int div; bool slow; uint32_t calls; };
+static ff8_bgate_anim_policy_t ff8_bgate_anim_policy[32];
+
+static void ff8_bgate_anim_policy_set(void *cmd, int div, bool slow)
 {
 	int free_slot = -1;
 	for (int i = 0; i < 32; i++)
 	{
-		if (ff8_bgate_anim_policy[i].cmd == cmd)
-		{
-			ff8_bgate_anim_policy[i].div = div;
-			ff8_bgate_anim_policy[i].forced = forced;
-			return;
-		}
+		if (ff8_bgate_anim_policy[i].cmd == cmd) { free_slot = i; break; }
 		if (!ff8_bgate_anim_policy[i].cmd && free_slot < 0) free_slot = i;
 	}
 	if (free_slot >= 0)
-	{
-		ff8_bgate_anim_policy[free_slot].cmd = cmd;
-		ff8_bgate_anim_policy[free_slot].div = div;
-		ff8_bgate_anim_policy[free_slot].forced = forced;
-	}
+		ff8_bgate_anim_policy[free_slot] = { cmd, div, slow, 0 };
+}
+
+static ff8_bgate_anim_policy_t *ff8_bgate_anim_policy_find(void *cmd)
+{
+	for (int i = 0; i < 32; i++)
+		if (ff8_bgate_anim_policy[i].cmd == cmd) return &ff8_bgate_anim_policy[i];
+	return nullptr;
 }
 
 static int ff8_bgate_anim_policy_get(void *cmd)
 {
-	for (int i = 0; i < 32; i++)
-		if (ff8_bgate_anim_policy[i].cmd == cmd) return ff8_bgate_anim_policy[i].div;
-	return ff8_bgate_n; // unknown anim_cmd: hold 1-in-n (previous behavior)
+	const ff8_bgate_anim_policy_t *p = ff8_bgate_anim_policy_find(cmd);
+	return p ? p->div : ff8_bgate_n; // unknown anim_cmd (stage / effect model): hold 1-in-n
 }
 
-// true if WE set SLOW on this anim_cmd (vanilla would not have doubled its total_frames)
-static bool ff8_bgate_anim_policy_forced(void *cmd)
-{
-	for (int i = 0; i < 32; i++)
-		if (ff8_bgate_anim_policy[i].cmd == cmd) return ff8_bgate_anim_policy[i].forced;
-	return false;
-}
-
-// --- AnimSeq C3 special vars 0x09/0x0A: report frame counts in NATIVE units ---
-// Choreography sequences read the current animation's frame counts through
+// --- AnimSeq C3 special vars 0x09/0x0A under the emulated Slow status ---
 // AnimSeq_ReadSpecialVar_C3 (0x5044B0): var 0x0A = anim_cmd->total_frames, var 0x09 =
-// anim_cmd->current_frame. A common construct is a counted wait-loop that holds a pose
-// for exactly the animation's length: "C3 0A E5 7F" (counter = total frames) then
-// "A0 xx ... C3 7F C5 FF E5 7F E7 xx" (decrement once per VM run, loop while > 0).
-// The VM runs at native rate, but forced SLOW doubles total_frames (2T-1) - so those
-// loops spun ~2x too long: +3 VM ticks of frozen pose at the end of every attack
-// run-up and walk-back (measured against a vanilla 15fps reference trace; the
-// diagnostic showed the interpreter parked on the E7 loop with delay 0). Rescale both
-// vars back to native frame units when WE forced the SLOW flag; a real Slow status
-// keeps the doubled values, exactly as vanilla reports them.
-// CRITICAL - the signature must be int/int, NOT uint16_t: IDA types this function as
-// returning WORD, but it actually returns SIGN-EXTENDED 32-bit values in EAX (movsx at
-// 0x5044D0 / 0x5044ED / 0x50455E ...), and the interpreter consumes the full EAX
-// (its c3Handler is int(*)(int)). A uint16_t-typed wrapper truncates and zero-extends,
-// turning every negative variable into a huge positive one - e.g. Squall's settle
-// sequence computes position.y = -1756 + (C3_02 + 1756) * frame / total with
-// C3_02 = -1700, which became 63836 and flung the model off-screen for 3 of 4 frames
-// (culled by RenderGeometry -> the model vanished). Sign extension is load-bearing here.
+// anim_cmd->current_frame. Vanilla Slow doubles total_frames (2N-1) and counts current_frame in
+// calls, so "C3 0A E5 7F ... decrement per VM run" countdowns last the slowed animation. The Slow
+// emulation keeps the anim_cmd undoubled: report data ticks instead (0A = 2N, 09 = 1 + data ticks
+// since the start, capped), so those loops still last exactly the held animation. Without Slow the
+// values are the engine's, untouched.
+// CRITICAL - the signature must be int/int, NOT uint16_t: the function returns SIGN-EXTENDED 32-bit
+// values in EAX (movsx at 0x5044D0 / 0x5044ED / 0x50455E ...) and the interpreter consumes the full
+// EAX; a uint16_t wrapper turns every negative variable into a huge positive one.
 #define FF8_BGATE_ACTIVE_ANIM_CMD (*(uint8_t **)0x1D981F8)
 
 static int (__cdecl *ff8_bgate_c3var_orig)(int) = nullptr;
@@ -2421,10 +2408,16 @@ int __cdecl ff8_bgate_c3var_hook(int var)
 	unreplace_function(ff8_bgate_c3var_ri);
 	int r = ff8_bgate_c3var_orig(var);
 	rereplace_function(ff8_bgate_c3var_ri);
-	// 09/0A are zero-extended byte loads (xor eax,eax; mov al,[..]) - always positive,
-	// so the rescale is safe on the full-width value.
-	if ((var == 0x09 || var == 0x0A) && ff8_bgate_anim_policy_forced(FF8_BGATE_ACTIVE_ANIM_CMD))
-		r = (r + 1) / 2; // total: 2T-1 -> T; current: call index -> data frame index
+	if (var == 0x09 || var == 0x0A)
+	{
+		const ff8_bgate_anim_policy_t *p = ff8_bgate_anim_policy_find(FF8_BGATE_ACTIVE_ANIM_CMD);
+		if (p && p->slow)
+		{
+			const int total = 2 * (int)FF8_BGATE_ACTIVE_ANIM_CMD[7];
+			const int cur = (int)(p->calls / (uint32_t)ff8_bgate_data_div) + 1;
+			r = (var == 0x0A) ? total : (cur < total ? cur : total);
+		}
+	}
 	return r;
 }
 
@@ -2450,51 +2443,42 @@ int __cdecl ff8_bgate_queueanim_hook(void *entity_slot, int opcode)
 	return r;
 }
 
-// pre_Battle_ReadAnimation resets the anim state and doubles total_frames if SLOW is set,
-// so the policy has to be written into flags BEFORE the original body runs. When called
-// from anywhere else (stage load, effect model animators) the flags are left untouched.
+// pre_Battle_ReadAnimation resets the anim state and doubles total_frames if SLOW is set, so the
+// policy is written into the flags BEFORE the original body runs. Called from anywhere else (stage
+// load, effect model animators) the flags are left untouched.
 static int (__cdecl *ff8_bgate_preread_orig)(void *, void *, int) = nullptr;
 static uint32_t ff8_bgate_preread_ri = 0;
-
-// TRUE 30 FPS models (default): the animation logic stays exactly vanilla - every entity and
-// weapon animation keeps the flags the engine gave it (Slow/Haste included) and is read once
-// per logic tick, so frame counts, completions, sequence waits and the C3 frame variables are
-// the vanilla ones. Held frames show the exact midpoint between the pose of this tick and the
-// pose the next read will produce (ff8_bgate_pose_lookahead). 0 = the older forced-SLOW mode.
-#define FF8_BGATE_ANIM_LOOKAHEAD 1
+static bool ff8_bgate_inside_preread = false;
 
 int __cdecl ff8_bgate_preread_hook(void *anim_header, void *anim_cmd, int animID)
 {
-	if (ff8_bgate_inside_queue_anim && FF8_BGATE_ANIM_LOOKAHEAD)
-		ff8_bgate_anim_policy_set(anim_cmd, ff8_bgate_n, false);
-	else if (ff8_bgate_inside_queue_anim)
+	if (ff8_bgate_inside_queue_anim)
 	{
 		uint8_t *flags = (uint8_t *)anim_cmd + 1;
-		// speed multiplier x2: 2 = normal, 4 = Haste, 1 = Slow (the engine set at most one bit)
-		int m2 = 2;
-		if (*flags & FF8_BGATE_ANIM_FLAG_SLOW) m2 = 1;
-		else if (*flags & FF8_BGATE_ANIM_FLAG_FAST) m2 = 4;
-		// with SLOW the visible rate is 15n/(2*div) frames/s; we want 7.5*m2 -> div = n/m2
-		int div = ff8_bgate_n / m2;
-		if (div >= 1)
-		{
-			*flags = (*flags | FF8_BGATE_ANIM_FLAG_SLOW) & (uint8_t)~FF8_BGATE_ANIM_FLAG_FAST;
-			// "forced" = vanilla would NOT have SLOW here (m2 > 1), so total_frames gets a
-			// doubling the sequence scripts don't expect - the C3 var hook compensates.
-			// Real Slow status (m2 == 1) is doubled in vanilla too: not forced.
-			ff8_bgate_anim_policy_set(anim_cmd, div, m2 > 1);
-		}
-		else
-		{
-			// SLOW would undershoot even unheld (Haste at n=2): plain reading at 15n/div f/s
-			*flags &= (uint8_t)~(FF8_BGATE_ANIM_FLAG_SLOW | FF8_BGATE_ANIM_FLAG_FAST);
-			ff8_bgate_anim_policy_set(anim_cmd, (2 * ff8_bgate_n) / m2, false);
-		}
+		const bool slow = (*flags & FF8_BGATE_ANIM_FLAG_SLOW) != 0;
+		// Slow status: no engine doubling, every frame held 2 data ticks instead; FAST unchanged
+		if (slow) *flags &= (uint8_t)~FF8_BGATE_ANIM_FLAG_SLOW;
+		ff8_bgate_anim_policy_set(anim_cmd, slow ? 2 * ff8_bgate_data_div : ff8_bgate_data_div, slow);
 	}
+	// the original reads frame 0 itself (0x5094B7 -> 0x508F90): that read is never held nor counted
+	ff8_bgate_inside_preread = true;
 	unreplace_function(ff8_bgate_preread_ri);
 	int r = ff8_bgate_preread_orig(anim_header, anim_cmd, animID);
 	rereplace_function(ff8_bgate_preread_ri);
+	ff8_bgate_inside_preread = false;
 	return r;
+}
+
+// --- AB (Renzokuken / gunblade trigger): getAnimationFrameCount 0x5094D0, only caller AB 0x504EA2 ---
+// The R1 windows (0x4BA4C0: 4*cumsum - 27, against a clock +4 per 15 Hz tick, kept at native pace by
+// the renzo hook) are built from the frame counts of the AB list: a converted animation has 2n frames
+// for the n vanilla had, so the native count is (2n + 1) / 2 = n (study 1.4, user decision 10-21 (4)).
+int __cdecl ff8_bgate_framecount_hook(uint8_t *entity, int animation_id)
+{
+	const uint8_t *com = *(const uint8_t *const *)(entity + 0x64); // anim_header.comFileData
+	const uint8_t *sec3 = *(const uint8_t *const *)(com + 8);     // comFileModelAnimationSection3
+	const int frames = sec3[*(const uint32_t *)(sec3 + 4 + 4 * animation_id)];
+	return (frames + 1) / 2;
 }
 
 static int (__cdecl *ff8_bgate_readanim_orig)(void *, void *) = nullptr;
@@ -2513,9 +2497,10 @@ static int ff8_bgate_readanim_guarded(void *header, void *anim_cmd)
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		uint8_t *c = (uint8_t *)anim_cmd;
-		ffnx_info("battle 30fps: animation read FAULTED (header=%p anim_cmd=%p anim=%u flags=%02X frame=%u/%u policy div=%d forced=%d) -> animation finished early\n",
+		const ff8_bgate_anim_policy_t *p = ff8_bgate_anim_policy_find(anim_cmd);
+		ffnx_info("battle 30fps: animation read FAULTED (header=%p anim_cmd=%p anim=%u flags=%02X frame=%u/%u policy div=%d slow=%d) -> animation finished early\n",
 			header, anim_cmd, (unsigned)c[0], (unsigned)c[1], (unsigned)c[6], (unsigned)c[7],
-			ff8_bgate_anim_policy_get(anim_cmd), (int)ff8_bgate_anim_policy_forced(anim_cmd));
+			ff8_bgate_anim_policy_get(anim_cmd), p ? (int)p->slow : 0);
 		c[6] = c[7]; // complete
 		return 1;    // READ_ANIMATION_RETURN_ANIMATION_COMPLETE
 	}
@@ -2543,18 +2528,6 @@ struct ff8_bgate_pose_t
 	int16_t root[3];
 	int16_t v[FF8_BGATE_POSE_BONES][6]; // rot x/y/z, scale x/y/z
 };
-struct ff8_bgate_pose_hist_t
-{
-	void *cmd;
-	uint8_t anim_id, frame; // anim id / current frame at the time of the cur capture
-	uint32_t cur_at, prev_at; // host frame numbers of the captures
-	bool prev_ok;
-	int nb;
-	bool scaled;
-	ff8_bgate_pose_t prev, cur;
-};
-static ff8_bgate_pose_hist_t ff8_bgate_pose_hist[FF8_BGATE_POSE_SLOTS];
-
 static uint8_t *ff8_bgate_skeleton(void *header)
 {
 	uint8_t *com = *(uint8_t **)((uint8_t *)header + 4); // BattleAnimHeader.comFileData
@@ -2579,83 +2552,6 @@ static void ff8_bgate_pose_write(uint8_t *sk, int nb, bool scaled, const ff8_bga
 		uint8_t *bone = sk + 16 + 48 * b;
 		memcpy(bone + 4, p.v[b], scaled ? 12 : 6);
 	}
-}
-
-static ff8_bgate_pose_hist_t *ff8_bgate_pose_slot(void *cmd, bool create)
-{
-	ff8_bgate_pose_hist_t *free_slot = nullptr;
-	for (int i = 0; i < FF8_BGATE_POSE_SLOTS; i++)
-	{
-		if (ff8_bgate_pose_hist[i].cmd == cmd) return &ff8_bgate_pose_hist[i];
-		if (!ff8_bgate_pose_hist[i].cmd && !free_slot) free_slot = &ff8_bgate_pose_hist[i];
-	}
-	if (!create || !free_slot) return nullptr;
-	memset(free_slot, 0, sizeof(*free_slot));
-	free_slot->cmd = cmd;
-	return free_slot;
-}
-
-// after a REAL read of a held (div > 1) animation
-static void ff8_bgate_pose_capture(void *header, void *anim_cmd)
-{
-	uint8_t *sk = ff8_bgate_skeleton(header);
-	if (!sk || sk[0] == 0 || sk[0] > FF8_BGATE_POSE_BONES) return;
-	ff8_bgate_pose_hist_t *h = ff8_bgate_pose_slot(anim_cmd, true);
-	if (!h) return;
-	uint8_t id = ((uint8_t *)anim_cmd)[0], frame = ((uint8_t *)anim_cmd)[6];
-	int nb = sk[0];
-	bool scaled = (sk[1] & 1) != 0;
-	// a new animation, a restart or a different model: nothing to extrapolate from yet
-	bool continues = h->cur_at != 0 && h->anim_id == id && frame > h->frame && h->nb == nb && h->scaled == scaled;
-	if (continues)
-	{
-		h->prev = h->cur;
-		h->prev_at = h->cur_at;
-	}
-	h->prev_ok = continues;
-	h->nb = nb;
-	h->scaled = scaled;
-	h->anim_id = id;
-	h->frame = frame;
-	h->cur_at = ff8_bgate_frame_no;
-	ff8_bgate_pose_read(sk, nb, scaled, h->cur);
-}
-
-static inline int16_t ff8_bgate_extrap_angle(int16_t c, int16_t p, int k, int div)
-{
-	int d = ((c - p + 2048) & 4095) - 2048; // shortest way round
-	return (int16_t)(c + ff8_bgate_scale_round(d, k, div));
-}
-
-// on a HELD frame (k = position inside the hold window, 1..div-1): build the bone
-// matrices from the extrapolated pose, then restore the real one
-static void ff8_bgate_pose_held(void *header, void *anim_cmd, int k, int div)
-{
-	uint8_t *sk = ff8_bgate_skeleton(header);
-	ff8_bgate_pose_hist_t *h = sk ? ff8_bgate_pose_slot(anim_cmd, false) : nullptr;
-	bool ok = h && h->prev_ok && h->nb == sk[0] && h->scaled == ((sk[1] & 1) != 0)
-		&& h->anim_id == ((uint8_t *)anim_cmd)[0]
-		&& ff8_bgate_frame_no - h->cur_at < (uint32_t)div        // cur is this window's read
-		&& h->cur_at - h->prev_at == (uint32_t)div;             // prev is the one before it
-	if (!ok)
-	{
-		((void(__cdecl *)(void *))0x508C90)(header); // no history: plain hold
-		return;
-	}
-	static ff8_bgate_pose_t x;
-	for (int a = 0; a < 3; a++)
-		x.root[a] = (int16_t)(h->cur.root[a] + ff8_bgate_scale_round(h->cur.root[a] - h->prev.root[a], k, div));
-	for (int b = 0; b < h->nb; b++)
-	{
-		for (int a = 0; a < 3; a++)
-			x.v[b][a] = ff8_bgate_extrap_angle(h->cur.v[b][a], h->prev.v[b][a], k, div);
-		if (h->scaled)
-			for (int a = 3; a < 6; a++)
-				x.v[b][a] = (int16_t)(h->cur.v[b][a] + ff8_bgate_scale_round(h->cur.v[b][a] - h->prev.v[b][a], k, div));
-	}
-	ff8_bgate_pose_write(sk, h->nb, h->scaled, x);
-	((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
-	ff8_bgate_pose_write(sk, h->nb, h->scaled, h->cur);
 }
 
 // Held frame of an animation read once per logic tick: run the engine's own reader one frame
@@ -2761,8 +2657,17 @@ static void ff8_bgate_pose_blend(void *header, uint8_t *sk, int nb, const ff8_bg
 
 namespace ff8fx
 {
+	// Ported effects draw a battle entity "at its in-between pose" on held frames. An entity / weapon
+	// animation read at the data rate (policy div 1) already shows its own pose on every host frame:
+	// its in-between pose IS the current one (only the prediction at fraction 1, the next read, moves).
 	void pose_midpoint(void *anim_header, void *anim_cmd, int num, int den)
 	{
+		const ff8_bgate_anim_policy_t *p = ff8_bgate_anim_policy_find(anim_cmd);
+		if (p && p->div == 1 && num < den)
+		{
+			((void(__cdecl *)(void *))0x508C90)(anim_header); // BattleModel_BuildBoneMatricesFromPose
+			return;
+		}
 		ff8_bgate_pose_lookahead(anim_header, anim_cmd, num, den);
 	}
 
@@ -2787,74 +2692,65 @@ namespace ff8fx
 
 int __cdecl ff8_bgate_readanim_hook(void *header, void *anim_cmd)
 {
-	// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the
-	// double-buffered geometry. Vanilla never shows that - its VM runs every tick and
-	// requeues the loop in the same call - but with the VM gated to real frames a
-	// completion surfacing on a held frame leaves the entity's geometry stale for one
-	// frame -> 1-frame flicker once per animation loop (SLOW loops are 2T-1 calls, odd,
-	// so the completion parity keeps landing on held frames). Rebuild before returning.
-	// (Effect-model reads run only inside the real-frame effect tick now, where phase
-	// is 0 - both branches below pass them straight through, so no special-casing.)
-	if (*((uint8_t *)anim_cmd + 6) >= *((uint8_t *)anim_cmd + 7))
+	uint8_t *cmd = (uint8_t *)anim_cmd;
+	if (ff8_bgate_inside_preread)
 	{
-		((void(__cdecl *)(void *))0x508C90)(header); // ProcessFieldEntitiesTransformation
+		// frame 0 of an animation start (pre_Battle_ReadAnimation): always read, never counted
+		unreplace_function(ff8_bgate_readanim_ri);
+		int r0 = ff8_bgate_readanim_guarded(header, anim_cmd);
+		rereplace_function(ff8_bgate_readanim_ri);
+		return r0;
+	}
+	ff8_bgate_anim_policy_t *p = ff8_bgate_anim_policy_find(anim_cmd);
+	if (p)
+	{
+		// entity / weapon animation (converted data): every call is a read, except under the emulated
+		// Slow status (or at 60 fps) where each frame is held div calls (look-ahead midpoint on the held
+		// calls, the last frame held too: the animation lasts exactly div x its frame count)
+		p->calls++;
+		if (p->div > 1 && (p->calls % (uint32_t)p->div) != 0)
+		{
+			if (cmd[6] != 0 && cmd[6] < cmd[7]) ff8_bgate_pose_lookahead(header, anim_cmd, (int)(p->calls % (uint32_t)p->div), p->div);
+			else ((void(__cdecl *)(void *))0x508C90)(header); // plain hold (frame 0 never held: no T-pose)
+			return 0; // "frame processed, not complete" -> animation continues
+		}
+	}
+	// COMPLETED animation: the original early-outs (return 1) WITHOUT rebuilding the double-buffered
+	// geometry; a completion surfacing on a frame where nothing requeues leaves it stale for one frame.
+	// Rebuild before returning (harmless when the VM requeues in the same call, as vanilla does).
+	if (cmd[6] >= cmd[7])
+	{
+		((void(__cdecl *)(void *))0x508C90)(header); // BattleModel_BuildBoneMatricesFromPose
 		return 1; // READ_ANIMATION_RETURN_ANIMATION_COMPLETE (same as the early-out)
 	}
-	int div = ff8_bgate_anim_policy_get(anim_cmd);
-	// frame 0 is the absolute base pose read right after the bones were zeroed - never
-	// hold it, or the model shows a T-pose for a frame.
-	if (div > 1 && *((uint8_t *)anim_cmd + 6) != 0 && (ff8_bgate_phase % div) != 0)
+	if (!p)
 	{
-		// held: show the in-between pose instead of repeating the last one
-		if (FF8_BGATE_ANIM_LOOKAHEAD) ff8_bgate_pose_lookahead(header, anim_cmd, ff8_bgate_phase % div, div);
-		else ff8_bgate_pose_held(header, anim_cmd, ff8_bgate_phase % div, div);
-		return 0; // "frame processed, not complete" -> animation continues
+		// stage / effect model (not converted, or read inside the 15 Hz effect tick, where phase is 0):
+		// read on real frames, the look-ahead midpoint on held frames (former behaviour)
+		const int div = ff8_bgate_n;
+		if (div > 1 && cmd[6] != 0 && (ff8_bgate_phase % div) != 0)
+		{
+			ff8_bgate_pose_lookahead(header, anim_cmd, ff8_bgate_phase % div, div);
+			return 0;
+		}
 	}
 	unreplace_function(ff8_bgate_readanim_ri);
 	int r = ff8_bgate_readanim_guarded(header, anim_cmd);
 	rereplace_function(ff8_bgate_readanim_ri);
-	if (div > 1 && !FF8_BGATE_ANIM_LOOKAHEAD)
-		ff8_bgate_pose_capture(header, anim_cmd);
 	return r;
 }
 
-// AnimSeq_UpdateEntityPerFrame (0x504290) advances the CHOREOGRAPHY (run-up
-// movement, animation transitions, frame delays, sound triggers) and the skeletal
-// frame. On held ticks skip the VM but still call
-// AdvanceAnimationBy1AndCheckCompletion (0x5094F0) so the leaf gate above fires
-// its geometry rebuild. The sole caller ignores the return value.
-//
-// Loop-boundary stall: under SLOW an animation consumes its stream in 2T-1 calls -
-// an ODD number - and entity animations start on real frames (the VM only runs
-// there), so the COMPLETE return always surfaces on a HELD frame. Vanilla handles a
-// completion in the same tick it appears (requeue the looping run/idle cycle, bake
-// transforms, continue the sequence); with the VM gated, the entity instead froze
-// for one host frame at every animation loop - a visible hitch each run cycle.
-// Fix: when a completion surfaces on a held frame, run the VM once for this entity
-// right now - exactly what vanilla would do - EDGE-TRIGGERED per completion, so a
-// sequence that stays in a completed-animation wait state (B9 delays etc.) still
-// ticks its VM only on real frames and its timing is untouched.
-struct ff8_bgate_done_cache_t { void *slot; bool was_complete; };
-static ff8_bgate_done_cache_t ff8_bgate_done_cache[16];
-
-static ff8_bgate_done_cache_t *ff8_bgate_done_cache_get(void *slot)
-{
-	int free_slot = -1;
-	for (int i = 0; i < 16; i++)
-	{
-		if (ff8_bgate_done_cache[i].slot == slot) return &ff8_bgate_done_cache[i];
-		if (!ff8_bgate_done_cache[i].slot && free_slot < 0) free_slot = i;
-	}
-	if (free_slot < 0) return nullptr;
-	ff8_bgate_done_cache[free_slot].slot = slot;
-	ff8_bgate_done_cache[free_slot].was_complete = false;
-	return &ff8_bgate_done_cache[free_slot];
-}
-
-// FF8BattleEntitySlotData.anim_cmd is at +0x6C; current_frame/total_frames at +6/+7
-#define FF8_BGATE_ANIM_COMPLETE(slot) \
-	(*((uint8_t *)(slot) + 0x6C + 6) >= *((uint8_t *)(slot) + 0x6C + 7))
-
+/// AnimSeq_UpdateEntityPerFrame (0x504290) runs the entity's CHOREOGRAPHY VM (section 5: run-up
+// movement, animation transitions, frame delays, sound / effect triggers, background 9A sequences)
+// and advances the skeletal frame (AdvanceAnimationBy1AndCheckCompletion 0x5094F0). Converted data:
+// it runs on every 30 Hz data tick (every host frame at 30 fps), exactly as vanilla runs it on its
+// data's 15 Hz tick. The sequences of a converted file count 30 Hz ticks themselves (waits and
+// counters x2, steps /2, 9A bodies self-gated to 15 Hz by a toggle variable), so nothing is paced
+// here. Tasks created while it runs are tagged as VM tasks (ff8_bgate_vmtask_*). Effect launches:
+// the handshake flags the VM sets (cast ready 0x10 / fire 0x20 / done 0x200, C3 0x28) are levels the
+// 15 Hz effect code polls on its real tick: a flag set on a held frame starts the effect at the next
+// real frame (study 7.3, user decision 10-22).
+static bool ff8_bgate_in_vm = false;
 static int (__cdecl *ff8_bgate_animseq_upd_orig)(void *) = nullptr;
 static uint32_t ff8_bgate_animseq_upd_ri = 0;
 
@@ -3038,19 +2934,18 @@ static void ff8_bgate_ent_render_end(uint8_t *slot)
 	ff8_bgate_ent_swapped = nullptr;
 }
 
-// --- held-frame extrapolation of SCRIPT-DRIVEN entity movement ---
-// Choreography scripts that move an entity themselves (flying approaches, jumps, lunges:
-// E5 0D/0E/0F write the state position offset from frame-count formulas) change it only
-// when the VM runs - on real frames - so the body moved in 15 steps/s next to 30fps limbs
-// ("teleporting" Bite Bugs). On held frames the rendered position is nudged forward by
-// half the last real step, and the true value is put back at the start of the next real
-// frame, before any logic reads it.
-// Two lessons from the 16/07 attempt (which extrapolated based_position blindly):
-//  - root motion is folded into based_position once per animation loop - a one-off spike
-//    that is NOT movement: only STEADY motion is extrapolated (the last two real steps must
-//    agree), so a lone handover spike never qualifies;
-//  - some movement already runs every host frame (9E run-up task): if the position changed
-//    since the last real update, something else is animating it smoothly - hands off.
+/// --- held-frame extrapolation of CODE-DRIVEN entity movement (15 Hz effect writes) ---
+// The choreography VM moves entities on every data tick now (converted data): nothing to smooth.
+// What still moves an entity only on real frames is 15 Hz code - an effect that is not natively
+// ported writing the entity position from its tick (KnockBack-like moves). On held frames that
+// position is nudged forward by phase/n of the last real step, and the true value is put back at the
+// start of the next frame, before any logic reads it.
+//  - only STEADY motion is extrapolated (the last two real steps agree), so a lone spike (root
+//    motion folded in once per loop, a teleport) never qualifies;
+//  - hands off as soon as anything moved the entity on a held frame (its VM, a 9E / AD / AE task,
+//    which run every host frame): such an entity is smooth already, and stays excluded until two
+//    real ticks passed with no held-frame move;
+//  - an entity the running ported effect lists (ff8_bgate_ent_*) is the effect's.
 // Positions handled: FF8BattleEntitySlotData.based_position (+0x1C, int16 z/y/x) and the
 // state controller's position offset (*(slot+0x74) + 0x24, int16 x3).
 #define FF8_BGATE_MOVE_SLOTS 16
@@ -3062,6 +2957,7 @@ struct ff8_bgate_move_t
 	int16_t d1[6], d2[6]; // last two real steps
 	bool nudged;
 	int16_t written[6];  // values we wrote on the held frame (validity check on restore)
+	uint8_t held_moved;  // real ticks left during which the entity counts as moved on held frames
 };
 static ff8_bgate_move_t ff8_bgate_move[FF8_BGATE_MOVE_SLOTS];
 
@@ -3088,7 +2984,7 @@ static ff8_bgate_move_t *ff8_bgate_move_get(void *slot)
 	return free_slot;
 }
 
-// start of a real frame (BdLink hook, before any battle logic): put the true positions back
+// start of every frame (BdLink hook, before any battle logic): put the true positions back
 static void ff8_bgate_move_restore_all()
 {
 	for (int m = 0; m < FF8_BGATE_MOVE_SLOTS; m++)
@@ -3105,7 +3001,7 @@ static void ff8_bgate_move_restore_all()
 	}
 }
 
-// end of a real update: record this native step
+// end of a real-frame update: record this native step
 static void ff8_bgate_move_record(void *slot)
 {
 	ff8_bgate_move_t *mv = ff8_bgate_move_get(slot);
@@ -3123,20 +3019,25 @@ static void ff8_bgate_move_record(void *slot)
 	}
 	mv->have_d = mv->have;
 	mv->have = true;
+	if (mv->held_moved) mv->held_moved--;
 }
 
-// held frame: nudge steady movement half a step forward
+// held frame, after the entity's VM ran: nudge steady real-frame-only movement forward
 static void ff8_bgate_move_nudge(void *slot)
 {
-	if (ff8_bgate_ent_claimed(slot)) return; // the running effect drives this entity (ff8_bgate_ent_*)
 	ff8_bgate_move_t *mv = ff8_bgate_move_get(slot);
-	if (!mv || !mv->have_d || mv->nudged) return;
+	if (!mv || !mv->have) return;
 	for (int i = 0; i < 6; i++)
 	{
 		int16_t *p = ff8_bgate_move_pos(slot, i);
 		if (p && *p != mv->last[i])
-			return; // moved since the real update (9E task, teleport...): not ours to smooth
+		{
+			mv->held_moved = 2; // moved on a held frame (VM, 9E task...): smooth on its own
+			return;
+		}
 	}
+	if (ff8_bgate_ent_claimed(slot)) return; // the running effect drives this entity (ff8_bgate_ent_*)
+	if (!mv->have_d || mv->nudged || mv->held_moved) return;
 	bool any = false;
 	for (int i = 0; i < 6; i++)
 	{
@@ -3157,82 +3058,36 @@ static void ff8_bgate_move_nudge(void *slot)
 
 int __cdecl ff8_bgate_animseq_upd_hook(void *slot_data_struct)
 {
-	ff8_bgate_done_cache_t *dc = ff8_bgate_done_cache_get(slot_data_struct);
-
 #if FF8_BGATE_DIAG
-	// diagnostics-only mode: log and pass straight through (pure vanilla flow)
-	if (!ff8_bgate_active)
 	{
-		uint8_t *sv = (uint8_t *)slot_data_struct;
-		uint8_t *stv = (uint8_t *)*(uint32_t *)(sv + 0x74);
-		ffnx_info("V f=%u e=%p com=%u anim=%02X cf=%u/%u pos=%d,%d,%d\n",
-			ff8_bgate_diag_frame, slot_data_struct, sv[4], sv[0x6C], sv[0x72], sv[0x73],
-			(int)*(int16_t *)(stv + 0x24), (int)*(int16_t *)(stv + 0x26),
-			(int)*(int16_t *)(stv + 0x28));
+		uint8_t *s = (uint8_t *)slot_data_struct;
+		uint8_t *st = (uint8_t *)*(uint32_t *)(s + 0x74); // battle_state_controler_pointer
+		ffnx_info("D f=%u p=%d e=%p com=%u anim=%02X cf=%u/%u seq=%u pc=%u dly=%u flg=%04X pos=%d,%d,%d\n",
+			ff8_bgate_diag_frame, ff8_bgate_phase, slot_data_struct, s[4],
+			s[0x6C], s[0x72], s[0x73],
+			st[0], (unsigned)*(uint16_t *)(st + 0x2E), st[1],
+			(unsigned)*(uint16_t *)(st + 0x2C),
+			(int)*(int16_t *)(st + 0x24), (int)*(int16_t *)(st + 0x26),
+			(int)*(int16_t *)(st + 0x28));
+	}
+#endif
+	int r = 0;
+	if (ff8_bgate_data_tick())
+	{
+		// converted data: the VM runs on every data tick (every host frame at 30 fps)
+		ff8_bgate_in_vm = true;
 		unreplace_function(ff8_bgate_animseq_upd_ri);
-		int rv = ff8_bgate_animseq_upd_orig(slot_data_struct);
+		r = ff8_bgate_animseq_upd_orig(slot_data_struct);
 		rereplace_function(ff8_bgate_animseq_upd_ri);
-		return rv;
+		ff8_bgate_in_vm = false;
 	}
-#endif
-#if FF8_BGATE_DIAG
+	else
 	{
-		int idx = FF8_BGATE_SLOT_IDX(slot_data_struct);
-		{ // log every entity - party slots turned out to live outside the 0x1D97494 array
-			uint8_t *s = (uint8_t *)slot_data_struct;
-			int rx = 0, rz = 0, b0 = 0;
-			uint32_t comdata = *(uint32_t *)(s + 0x64); // anim_header.comFileData
-			if (comdata > 0x10000 && comdata < 0x7F000000)
-			{
-				uint32_t skel = *(uint32_t *)comdata; // comFileSkeletonSection1
-				if (skel > 0x10000 && skel < 0x7F000000)
-				{
-					rx = *(int16_t *)(skel + 8);   // root_pos_x
-					rz = *(int16_t *)(skel + 12);  // root_pos_z
-					b0 = *(int16_t *)(skel + 0x14); // bone0 rotX (pose probe)
-				}
-			}
-			uint8_t *st = (uint8_t *)*(uint32_t *)(s + 0x74); // battle_state_controler_pointer
-			ffnx_info("D f=%u p=%d e=%p com=%u anim=%02X cf=%u/%u root=%d,%d seq=%u pc=%u dly=%u flg=%04X pos=%d,%d,%d\n",
-				ff8_bgate_diag_frame, ff8_bgate_phase, slot_data_struct, s[4],
-				s[0x6C], s[0x72], s[0x73], rx, rz,
-				st[0], (unsigned)*(uint16_t *)(st + 0x2E), st[1],
-				(unsigned)*(uint16_t *)(st + 0x2C),
-				(int)*(int16_t *)(st + 0x24), (int)*(int16_t *)(st + 0x26),
-				(int)*(int16_t *)(st + 0x28)); // state->position (E5 0D/0E/0F offsets)
-		}
+		// 60 fps only: host frame between two data ticks - the reader shows its look-ahead midpoint
+		((int(__cdecl *)(void *))0x5094F0)(slot_data_struct);
 	}
-#endif
-
-	if (ff8_bgate_phase != 0)
-	{
-		int complete = ((int(__cdecl *)(void *))0x5094F0)(slot_data_struct);
-		// (forced-SLOW mode only: with vanilla-rate reads a completion only appears on a logic tick,
-		// and vanilla handles it on the next one)
-		if (complete && dc && !dc->was_complete && !FF8_BGATE_ANIM_LOOKAHEAD)
-		{
-			// fresh completion on a held frame: handle it now instead of stalling a frame
-			dc->was_complete = true;
-			unreplace_function(ff8_bgate_animseq_upd_ri);
-			ff8_bgate_animseq_upd_orig(slot_data_struct);
-			rereplace_function(ff8_bgate_animseq_upd_ri);
-			// if the VM requeued a new animation, the state below re-arms automatically
-			dc->was_complete = FF8_BGATE_ANIM_COMPLETE(slot_data_struct);
-		}
-		else if (dc)
-		{
-			dc->was_complete = (complete != 0);
-		}
-		ff8_bgate_move_nudge(slot_data_struct);
-		return 0;
-	}
-
-	unreplace_function(ff8_bgate_animseq_upd_ri);
-	int r = ff8_bgate_animseq_upd_orig(slot_data_struct);
-	rereplace_function(ff8_bgate_animseq_upd_ri);
-	if (dc)
-		dc->was_complete = FF8_BGATE_ANIM_COMPLETE(slot_data_struct);
-	ff8_bgate_move_record(slot_data_struct);
+	if (ff8_bgate_phase == 0) ff8_bgate_move_record(slot_data_struct);
+	else ff8_bgate_move_nudge(slot_data_struct);
 	return r;
 }
 
@@ -3256,16 +3111,11 @@ char __cdecl ff8_bgate_entrender_hook(void *slot)
 	return r;
 }
 
-// --- run-up movement task (AnimSeq opcode 9E): native duration, host-rate smooth ---
-// moveEntityToTargetSmoothly (0x50F750) is a time-parameterized lerp: one counter++ per
-// task tick, position = origin + (counter/movement_param) * (target - origin), done when
-// counter reaches movement_param. AnimSeq task queues tick every HOST frame, so at n x
-// call rate the lerp finished in 1/n of the intended wall time: the entity arrived early
-// and stood waiting for the (correctly native-paced) choreography - one visible hitch at
-// the end of each run segment, both toward the target and back. Scaling movement_param
-// by n at task creation restores the intended duration with n x finer steps; the curve
-// is a pure ratio (counter << 12) / movement_param, so it passes through exactly the
-// same positions the native pacing would, plus genuine in-between ones every host frame.
+// --- run-up movement task (AnimSeq opcode 9E, only creator AnimSeq_DispatchActionOpcode 0x505585) ---
+// moveEntityToTargetSmoothly (0x50F750) is a time-parameterized lerp: one counter++ per task tick,
+// position = origin + (counter/movement_param) * (target - origin). The task ticks every host frame;
+// converted data already doubled movement_param (30 Hz ticks), so at 30 fps it is left alone; at
+// 60 fps it is scaled by data_div (the curve is a pure ratio: same positions, finer steps).
 static void *(__cdecl *ff8_bgate_anim9e_orig)(void *, void *, int) = nullptr;
 static uint32_t ff8_bgate_anim9e_ri = 0;
 
@@ -3282,8 +3132,10 @@ void *__cdecl ff8_bgate_anim9e_hook(void *active_entity, void *param_entity, int
 			ff8_bgate_diag_frame, ff8_bgate_phase, FF8_BGATE_SLOT_IDX(active_entity),
 			FF8_BGATE_SLOT_IDX(param_entity), (unsigned)*param, (unsigned)(*param * ff8_bgate_n));
 #endif
-		if (*param > 0)
-			*param = (uint16_t)(*param * ff8_bgate_n);
+		// converted data: the 9E duration is already in 30 Hz ticks (x2 by the converter); the task
+		// ticks every host frame, so only 60 fps scales it (x data_div)
+		if (*param > 0 && ff8_bgate_data_div > 1)
+			*param = (uint16_t)(*param * ff8_bgate_data_div);
 	}
 	return task;
 }
@@ -3293,10 +3145,15 @@ void *__cdecl ff8_bgate_anim9e_hook(void *active_entity, void *param_entity, int
 static int (__cdecl *ff8_bgate_camanim_orig)(void *) = nullptr;
 static uint32_t ff8_bgate_camanim_ri = 0;
 
+// Converted data: every camera keyframe collection (monster sec6 / char sec5, stage, MAG, r0win, exe
+// effect tracks .bcam) has its durations x2 (30 Hz ticks): the player runs on every data tick with
+// the VANILLA step (16 per call, never halved - see the install-site note on the hang), as vanilla
+// runs it on its own data's tick. Effect code (15 Hz) only STARTS a track (Battle_PlayCameraAnimation);
+// the player task (BD_LINK_TASK_HEADER_CAMERA) steps it every frame.
 int __cdecl ff8_bgate_camanim_hook(void *task)
 {
-	if (ff8_bgate_phase != 0)
-		return 0; // held frame: camera_struct stays put, no advance (see updateBattleCamera hook below for the render-facing interpolation this enables safely)
+	if (!ff8_bgate_data_tick())
+		return 0; // 60 fps only: between two data ticks, the camera struct stays put
 	unreplace_function(ff8_bgate_camanim_ri);
 	int r = ff8_bgate_camanim_orig(task);
 	rereplace_function(ff8_bgate_camanim_ri);
@@ -3326,10 +3183,12 @@ static uint32_t ff8_bgate_updatecam_ri = 0;
 static void *(__cdecl *ff8_bgate_camseq_orig)() = nullptr;
 static uint32_t ff8_bgate_camseq_ri = 0;
 
+// Converted data: camera scripts have their 01 yields (outside the C3 0x10 shot-flag loops) and 04 XX
+// ease ticks x2 (FF8GameData/dat/camera30.py): the VM runs on every data tick.
 void *__cdecl ff8_bgate_camseq_hook()
 {
-	if (ff8_bgate_phase != 0)
-		return *(void **)0x1D99A34; // CURRENT_CAMERA_SETTING_ADDR
+	if (!ff8_bgate_data_tick())
+		return *(void **)0x1D99A34; // CURRENT_CAMERA_SETTING_ADDR (60 fps only: between two data ticks)
 	unreplace_function(ff8_bgate_camseq_ri);
 	void *r = ff8_bgate_camseq_orig();
 	rereplace_function(ff8_bgate_camseq_ri);
@@ -3482,6 +3341,12 @@ static void ff8_bgate_cam_read(ff8_bgate_cam_real_t &c)
 // never interpolated, the true pads stay
 static const int ff8_bgate_cam_comp[6] = { 0, 1, 2, 4, 5, 6 }; // s16 indices of eye x/y/z, look-at x/y/z
 
+// Which cameras still get the in-between: only those that move on real frames alone, i.e. the
+// camera words 15 Hz effect code writes from its tick (not ported to a held camera). A camera that
+// moved on a held frame is played from converted data every frame: no in-between on the following
+// real frame either (ff8_bgate_cam_held_moved).
+static bool ff8_bgate_cam_held_moved = false;
+
 int __cdecl ff8_bgate_updatecam_hook()
 {
 	int32_t *g = (int32_t *)0xB8B7F0; // eye SVECTOR, look-at SVECTOR (as 4 dwords)
@@ -3501,13 +3366,23 @@ int __cdecl ff8_bgate_updatecam_hook()
 		ff8_bgate_camdbg.path = "real";
 		ff8_bgate_cam_r0 = ff8_bgate_cam_r1;
 		ff8_bgate_cam_read(ff8_bgate_cam_r1);
+		// the camera also moved on the held frame(s) since the last real one: it is played from data
+		// every frame (converted keyframes / camera script) - shown as is, no in-between
+		if (ff8_bgate_cam_held_moved)
+		{
+			ff8_bgate_camdbg.path = "real(data)";
+			ff8_bgate_cam_r0 = ff8_bgate_cam_r1;
+			ff8_bgate_cam_held_moved = false;
+		}
 	}
 	else if (memcmp(before, after, sizeof(before)) != 0)
 	{
-		// the engine moved the camera itself on this held frame: that value wins from now on
+		// the engine moved the camera itself on this held frame (data camera, return snap, blend):
+		// that value wins from now on
 		ff8_bgate_camdbg.path = "engine";
 		ff8_bgate_cam_read(ff8_bgate_cam_r1);
 		ff8_bgate_cam_r0 = ff8_bgate_cam_r1;
+		ff8_bgate_cam_held_moved = true;
 	}
 	else
 		ff8_bgate_camdbg.path = "held";
@@ -6360,10 +6235,60 @@ int __cdecl ff8_bgate_camops_hook()
 		return r; \
 	}
 
-// Pure counters with persistent effects: skipping held frames = native pace.
-//   84 sine wobble of a stage group (0x501F90), 9F texture toggle timeline (0x5057D0),
-//   99/B1 footstep dust + step sounds (0x50F830), 96 camera shake (0x50F6C0 - its offset
-//   is held by the camera hook above).
+// --- VM tasks: AddTaskToQueueAnimSeq (0x506C10) is the single creator of AnimSeq-queue tasks ---
+// A task created while an entity's choreography VM runs (ff8_bgate_in_vm) is a VM task: its
+// duration / stamps come from converted data (84 duration, 9F tick stamps, AD/AE frames x2 by
+// FF8GameData/dat/seqrewrite30.py), so it ticks every data tick. Any other creator (and a node
+// recycled by one) is untagged.
+#define FF8_BGATE_VMTASK_MAX 64
+static void *ff8_bgate_vmtask[FF8_BGATE_VMTASK_MAX];
+static void *(__cdecl *ff8_bgate_addtask_orig)(void *) = nullptr;
+static uint32_t ff8_bgate_addtask_ri = 0;
+
+static void ff8_bgate_vmtask_set(void *node, bool vm)
+{
+	int free_slot = -1;
+	for (int i = 0; i < FF8_BGATE_VMTASK_MAX; i++)
+	{
+		if (ff8_bgate_vmtask[i] == node) ff8_bgate_vmtask[i] = nullptr;
+		if (!ff8_bgate_vmtask[i] && free_slot < 0) free_slot = i;
+	}
+	if (vm && node && free_slot >= 0) ff8_bgate_vmtask[free_slot] = node;
+}
+
+static bool ff8_bgate_vmtask_is(const void *node)
+{
+	for (int i = 0; i < FF8_BGATE_VMTASK_MAX; i++)
+		if (ff8_bgate_vmtask[i] == node) return true;
+	return false;
+}
+
+void *__cdecl ff8_bgate_addtask_hook(void *callback)
+{
+	unreplace_function(ff8_bgate_addtask_ri);
+	void *node = ff8_bgate_addtask_orig(callback);
+	rereplace_function(ff8_bgate_addtask_ri);
+	ff8_bgate_vmtask_set(node, ff8_bgate_in_vm);
+	return node;
+}
+
+// a VM task ticks on every data tick; a tick that removes it (2) untags the node
+#define FF8_BGATE_VMTASK_TICK(name, n) \
+	if (ff8_bgate_vmtask_is(n)) \
+	{ \
+		if (!ff8_bgate_data_tick()) return 0; \
+		DWORD r_ = ff8_bgate_##name##_call(n); \
+		if (r_ == 2) ff8_bgate_vmtask_set(n, false); \
+		return r_; \
+	}
+
+// Code-paced tasks (converted data leaves their parameters at vanilla, seqrewrite30.py: "96, 99/B1,
+// 81, A6 and A8 run hardcoded 15-tick tasks that FFNx keeps at 15 Hz"): skipping held frames = native
+// pace. 99/B1 footstep dust + step sounds (0x50F830), 96 camera shake (0x50F6C0: amplitudes and
+// duration from the opcode, left unconverted; its offset is held by the camera hook above).
+// Data-paced VM tasks: 84 sine wobble of a stage group (0x501F90), 9F texture toggle timeline
+// (0x5057D0), AD/AE drag (0x50F500) - every data tick (FF8_BGATE_VMTASK_TICK); untagged ones keep the
+// former 15 Hz pacing below.
 FF8_BGATE_TASK_HOOK(t84, 0x501F90)
 FF8_BGATE_TASK_HOOK(t9f, 0x5057D0)
 FF8_BGATE_TASK_HOOK(tstep, 0x50F830)
@@ -6373,6 +6298,7 @@ FF8_BGATE_TASK_HOOK(t96, 0x50F6C0)
 // phase/n, the next real tick writes the vanilla value again.
 DWORD __cdecl ff8_bgate_t84_hook(uint8_t *n)
 {
+	FF8_BGATE_VMTASK_TICK(t84, n)
 	if (!ff8_bgate_phase) return ff8_bgate_t84_call(n);
 	int32_t c = *(int16_t *)(n + 0x0C), d = *(int16_t *)(n + 0x0E);
 	if (d <= 0) return 0;
@@ -6381,7 +6307,11 @@ DWORD __cdecl ff8_bgate_t84_hook(uint8_t *n)
 	for (uint32_t a = 0x1D98992; a < 0x1D98A42; a += 0x2C) *(int16_t *)a = v;
 	return 0;
 }
-DWORD __cdecl ff8_bgate_t9f_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_t9f_call(n); }
+DWORD __cdecl ff8_bgate_t9f_hook(uint8_t *n)
+{
+	FF8_BGATE_VMTASK_TICK(t9f, n)
+	return ff8_bgate_phase ? 0 : ff8_bgate_t9f_call(n);
+}
 DWORD __cdecl ff8_bgate_tstep_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_tstep_call(n); }
 // 96 (0x50F6C0): Y shake = start + (end - start) * i / duration, negated on odd i, i++; ends
 // (returns 2) once i reaches the duration. Held frame: report the value the next real tick
@@ -6411,6 +6341,13 @@ DWORD __cdecl ff8_bgate_t96_hook(uint8_t *n)
 FF8_BGATE_TASK_HOOK(tdrag, 0x50F500)
 DWORD __cdecl ff8_bgate_tdrag_hook(uint8_t *n)
 {
+	if (ff8_bgate_vmtask_is(n) && ff8_bgate_data_tick())
+	{
+		// VM task (AD/AE frames converted x2): every data tick
+		DWORD r = ff8_bgate_tdrag_call(n);
+		if (r == 2) ff8_bgate_vmtask_set(n, false);
+		return r;
+	}
 	if (ff8_bgate_phase == 0)
 		return ff8_bgate_tdrag_call(n);
 	int32_t left = *(int32_t *)(n + 0x18);
@@ -6844,8 +6781,10 @@ static void ff8_bgate_battle_reset()
 	ff8_bgate_fx_otclear = false;
 	memset(ff8_bgate_shake_last, 0, sizeof(ff8_bgate_shake_last));
 	memset(ff8_bgate_anim_policy, 0, sizeof(ff8_bgate_anim_policy));
-	memset(ff8_bgate_done_cache, 0, sizeof(ff8_bgate_done_cache));
-	memset(ff8_bgate_pose_hist, 0, sizeof(ff8_bgate_pose_hist));
+	memset(ff8_bgate_vmtask, 0, sizeof(ff8_bgate_vmtask));
+	ff8_bgate_in_vm = false;
+	ff8_bgate_inside_preread = false;
+	ff8_bgate_cam_held_moved = false;
 	memset(ff8_bgate_move, 0, sizeof(ff8_bgate_move));
 	ff8_bgate_nent_req = 0;
 	ff8_bgate_ent_last_ok = ff8_bgate_ent_prev_ok = ff8_bgate_ent_real_ok = false;
@@ -6861,11 +6800,47 @@ static void ff8_bgate_battle_reset()
 	ffnx_info("battle 30fps: new battle, per-battle state reset\n");
 }
 
+// DATA vs CODE: every hook below, classified (30 fps on = every battle data file is converted to
+// 30 fps by the FF8UltimateEditor tools: no marker, no detection, no fallback; DAT30FPS_STUDY.md 12).
+// DATA = plays converted battle data: runs on every 30 Hz data tick (every host frame at 30 fps),
+// never gated, never extrapolated. CODE = hardcoded engine timing: kept at the native 15 Hz.
+//   0x500900 BdLink                    phase driver (+ per-battle reset, display-only restores)
+//   0x4A8E30/0x4A84E0 HUD, 0xB8A3E4    CODE  battle UI ticks / input latch
+//   0x56DD70 Boost, 0x4BA6C0 Renzo     CODE  GF Boost, Renzokuken trigger clock
+//   0x4701B0 savemap tick              CODE  game time / battle countdown
+//   0x509520 QueueAnimation            DATA  scope marker for the policy below
+//   0x509440 pre_ReadAnimation         DATA  entity/weapon policy div 1 (Slow: SLOW cleared, hold 2)
+//   0x5044B0 C3 vars 09/0A             DATA  untouched (Slow emulation reports doubled counts)
+//   0x508F90 ReadAnimation             DATA  entity/weapon: real read every call; stage + effect models
+//                                            (no policy, read in stage code / the 15 Hz effect tick):
+//                                            unchanged 1-in-n + look-ahead midpoint
+//   0x504290 AnimSeq VM                DATA  every data tick; held-frame nudge only for 15 Hz code moves
+//   0x5094D0 getAnimationFrameCount    DATA  AB windows: (2n+1)/2 = the native frame count
+//   0x506C10 AddTaskToQueueAnimSeq     DATA  tags tasks created inside the VM
+//   0x50F720 9E move task              DATA  converted duration as is (x data_div at 60 fps)
+//   0x501F90 t84, 0x5057D0 t9f,
+//   0x50F500 tdrag (AD/AE)             DATA  VM tasks every data tick (untagged: former 15 Hz pacing)
+//   0x50F6C0 t96, 0x50F830 tstep,
+//   0x50F0E0 t81, 0x50F2E0 ta6         CODE  15-tick tasks the converter leaves at vanilla: 15 Hz
+//   0x5035E0 camera keyframe player    DATA  every data tick, vanilla step 16
+//   0x509610 camera script VM          DATA  every data tick
+//   0x504060 updateBattleCamera        DATA  as is when the camera moves on held frames; in-between
+//                                            only for cameras 15 Hz effect code writes on real frames
+//   0x5033E0 camera shake offsets      CODE  shake producers are 15 Hz code (96, hit queue, effects)
+//   0x47CF50 screen feedback, 0x45D610 display, 0x50093A effect tree, 0x500923 hit-effect queue,
+//   0x500971/0x502B95 entity queue/render (ported effects' entities), GF cinematic / timeline redraws
+//                                      CODE  effects: native 15 Hz tick + held frames + draw replay
+//   0x483470 status timers, 0x482F80 Gilgamesh/Angelo  CODE
+//   0x50A1C0 pulse, 0x50A370 Confuse spin, 0x50A5F0 Float bob, 0x5711C0 overlay, 0x50C110 A8 fades
+//                                      CODE  status visuals (A8 left unconverted by the converter)
+//   0x50ACB4 magic cast timeout        CODE  x n host frames = native 60 s
 static void ff8_bgate_install_hooks()
 {
 	// The one knob: host frames per real battle tick. ff8_limit_fps() drives the battle module
 	// at 30fps for limiter 2 and 60fps for limiter 3, against a native 15fps tick.
 	ff8_bgate_n = (ff8_fps_limiter >= FPS_LIMITER_60FPS) ? 4 : 2;
+	// converted battle data is 30 Hz: host frames per data tick
+	ff8_bgate_data_div = ff8_bgate_n / 2 > 1 ? ff8_bgate_n / 2 : 1;
 
 	// Battle frame phase driver
 	ff8_bgate_bdlink_orig = (int(__cdecl *)())0x500900;
@@ -6894,8 +6869,9 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_savemap_tick_orig = (int(__cdecl *)())0x4701B0;
 	ff8_bgate_savemap_tick_ri = replace_function(0x4701B0, (void *)ff8_bgate_savemap_tick_hook);
 
-	// Battle model animation: per-anim_cmd policy (forced SLOW interpolation for entities,
-	// pose-hold for stage/effect models) + choreography VM 1-in-n
+	// Battle model animation: converted data read at the data rate (per-anim_cmd policy: entities
+	// every data tick, Slow emulated by a hold; stage / effect models 1-in-n + look-ahead), the
+	// choreography VM every data tick, AB frame counts in native units
 	ff8_bgate_queueanim_orig = (int(__cdecl *)(void *, int))0x509520;
 	ff8_bgate_queueanim_ri = replace_function(0x509520, (void *)ff8_bgate_queueanim_hook);
 	ff8_bgate_preread_orig = (int(__cdecl *)(void *, void *, int))0x509440;
@@ -6907,7 +6883,11 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_readanim_ri = replace_function(0x508F90, (void *)ff8_bgate_readanim_hook);
 	ff8_bgate_animseq_upd_orig = (int(__cdecl *)(void *))0x504290;
 	ff8_bgate_animseq_upd_ri = replace_function(0x504290, (void *)ff8_bgate_animseq_upd_hook);
-	// run-up movement task duration x n (ticks at host rate -> native wall time, smooth)
+	replace_function(0x5094D0, (void *)ff8_bgate_framecount_hook); // getAnimationFrameCount, fully replaced
+	// VM task tagging (single AnimSeq-queue task creator)
+	ff8_bgate_addtask_orig = (void *(__cdecl *)(void *))0x506C10;
+	ff8_bgate_addtask_ri = replace_function(0x506C10, (void *)ff8_bgate_addtask_hook);
+	// run-up movement task: converted duration, x data_div at 60 fps only
 	ff8_bgate_anim9e_orig = (void *(__cdecl *)(void *, void *, int))0x50F720;
 	ff8_bgate_anim9e_ri = replace_function(0x50F720, (void *)ff8_bgate_anim9e_hook);
 #if FF8_BGATE_DIAG
@@ -7011,9 +6991,8 @@ static void ff8_bgate_install_hooks()
 	// 0x384 * n host frames = the native 60 s
 	patch_code_word(0x50ACB4, (WORD)(0x384 * ff8_bgate_n));
 
-	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d, camera gated+extrapolated; entity anims %s, effects native-tick + draw replay)\n",
-		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n,
-		FF8_BGATE_ANIM_LOOKAHEAD ? "vanilla-rate + look-ahead midpoint poses" : "SLOW-interpolated");
+	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d; battle DATA at 30 Hz (data tick 1-in-%d): entity anims + AnimSeq VM + VM tasks + cameras unpaced; effects native-tick + draw replay)\n",
+		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n, ff8_bgate_data_div);
 }
 
 int ff8_main_menu_controller(ff8_menu_save_task *task)
