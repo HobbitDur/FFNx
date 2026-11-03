@@ -47,8 +47,14 @@
 // Module globals: 0x2704568..0x2714F24 (file pointer, packet cursor 0x270456C, node pools, queues,
 // overlay vertex buffer 0x270E560, arena bases 0x2714BA0 / 0x2714BA4, overlay context 0x2714E30);
 // the mesh vertex buffers and the palette TIM live in the exe's data (0x16146E8..0x1623784).
+// Fujin's described Bio (effect_022.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BioParams: the emitter's sound
+// and its spawns' ticks, the blob's cycles and spin).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -220,15 +226,17 @@ namespace bio022
 	// ------------------------------------------------------------------
 	// Module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x270456C); }
-	inline uint32_t &ArenaA() { return var<uint32_t>(0x2714BA4); } // magic buffer (Magic_TextureOFF)
-	inline uint32_t &ArenaB() { return var<uint32_t>(0x2714BA0); } // magic buffer + 0xC000
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2714960; }  // 4 x 0x8C
-	inline TaskQueue *QControl() { return (TaskQueue *)0x2714BA8; }   // 10 x 0x38
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x270E540; } // 300 x 0x70
-	inline TaskQueue *QMeshes() { return (TaskQueue *)0x2705150; }    // 20 x 0x98
-	inline TaskQueue *QFlash() { return (TaskQueue *)0x27044E0; }     // 2 x 0x3C
-	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x2714E30); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x270456C)); }
+	inline uint32_t &ArenaA() { return var<uint32_t>(own::R(0x2714BA4)); } // magic buffer (Magic_TextureOFF)
+	inline uint32_t &ArenaB() { return var<uint32_t>(own::R(0x2714BA0)); } // magic buffer + 0xC000
+	inline TaskQueue *QEmitters() { return (TaskQueue *)own::R(0x2714960); }  // 4 x 0x8C
+	inline TaskQueue *QControl() { return (TaskQueue *)own::R(0x2714BA8); }   // 10 x 0x38
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x270E540); } // 300 x 0x70
+	inline TaskQueue *QMeshes() { return (TaskQueue *)own::R(0x2705150); }    // 20 x 0x98
+	inline TaskQueue *QFlash() { return (TaskQueue *)own::R(0x27044E0); }     // 2 x 0x3C
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2705250); }      // 2 x 0x64
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2704568)); }   // the effect's file (its TIM)
+	inline OverlayCtx &Overlay() { return var<OverlayCtx>(own::R(0x2714E30)); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_Root = 0x89A7B0;
@@ -249,6 +257,20 @@ namespace bio022
 	static const uint32_t ORIG_Overlay = 0x89D3D0;
 
 	static const void *const SOUND_Bio = (const void *)0x16146E4;
+	static const uint32_t ORIG_FileLoader = 0x89A690, ORIG_Setup = 0x89A6B0;
+	static const uint32_t TEXTURE_NAME = 0x16269CC, CAMERA = 0x1626014;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BioParams
+	{
+		struct { uint32_t sound; int16_t bubbles, pools, pools_every, blob, mists, overlay; } emitter;   // its sound; its spawns' ticks
+		struct { int16_t cycles, spin; } blob;                                                         // the boiling blob bursts after these key shapes
+	};
+	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 } };
+	static BioParams live = GAME;
+	static const BioParams &P() { return live; }
 	static const uint32_t STAGE_WOBBLE = 0x1D98990;       // 4 stage groups of 0x2C bytes: +2 amplitude
 	static const uint32_t PALETTE_TIM = 0x16146E8;        // acid CLUT (uploaded every tick)
 	static const uint32_t PALETTES = 0x1614F68;           // 3 source palette TIMs
@@ -770,7 +792,7 @@ namespace bio022
 		int32_t n = *(const int32_t *)(m->mesh + 4) / 8 - 1;
 		for (; n > 0; n--)
 		{
-			Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_Droplet, 0x70, m);
+			Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_Droplet), 0x70, m);
 			GteLoadV0(v);
 			GteMVMVA_RotV0Tr2();
 			GteStoreIR123(p->h.pos);
@@ -843,11 +865,11 @@ namespace bio022
 			m->t = 0;
 		}
 		BlobShow(m);
-		if (m->cycles >= 5)
+		if (m->cycles >= P().blob.cycles)
 		{
 			BlobBurst(m, 0);
 			e->acid_done = 1;
-			FlashNode *f = (FlashNode *)AddEffectTask(QFlash(), ORIG_Flash, 0x3C, m);
+			FlashNode *f = (FlashNode *)AddEffectTask(QFlash(), own::Fn(ORIG_Flash), 0x3C, m);
 			f->script = (const uint32_t *)FLASH_Script;
 			m->h.phase++;
 		}
@@ -1014,7 +1036,7 @@ namespace bio022
 	static void BubblePop(Particle *p)
 	{
 		if (!AdvanceFrame(p)) return;
-		Particle *q = (Particle *)AddEffectTask(QParticles(), ORIG_Splash, 0x70, p);
+		Particle *q = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_Splash), 0x70, p);
 		q->variant = p->variant;
 		p->h.flags |= 1;
 		memcpy(q->scale, p->scale, 0x10);
@@ -1245,7 +1267,7 @@ namespace bio022
 			int32_t a = CrtRand() & 0xFFF;
 			int32_t r = CrtRand() % 0x180;
 			int32_t rad = mul32(r + 0x380, e->scale) / 4096;
-			Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_Bubble, 0x70, n);
+			Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_Bubble), 0x70, n);
 			p->variant = (int16_t)(CrtRand() & 1);
 			int32_t r16 = (int16_t)rad;
 			int32_t sn = ComputeSin((int16_t)a);
@@ -1264,7 +1286,7 @@ namespace bio022
 			int32_t a = CrtRand() & 0xFFF;
 			int32_t r = CrtRand() % 0x180;
 			int32_t rad = mul32(r + 0x380, e->scale) / 4096;
-			Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_Splash, 0x70, n);
+			Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_Splash), 0x70, n);
 			p->variant = (int16_t)(CrtRand() & 1);
 			int32_t r16 = (int16_t)rad;
 			int32_t sn = ComputeSin((int16_t)a);
@@ -1308,7 +1330,7 @@ namespace bio022
 		int32_t count = *(const uint8_t *)(counts + n->counter);
 		for (int32_t k = count; k > 0; k--)
 		{
-			Particle *p = (Particle *)AddEffectTask(QParticles(), task, 0x70, n);
+			Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(task), 0x70, n);
 			int32_t r = CrtRand();
 			int32_t sc = e->scale;
 			if (!(r & 1)) sc /= 2;
@@ -1545,7 +1567,7 @@ namespace bio022
 		mc->a00 = a00;
 		mc->sprite = sprite;
 		mc->frame_cursor = (uint32_t *)0x1D8E054;
-		mc->packets = (uint32_t *)0x270456C;
+		mc->packets = (uint32_t *)own::R(0x270456C);
 		mc->offset[0] = 0;
 		mc->offset[1] = 0;
 		mc->offset[2] = 0;
@@ -1804,7 +1826,7 @@ namespace bio022
 	{
 		uint8_t slot = o->slot;
 		uint8_t *entity = Entity(slot);
-		InitOverlay(&Overlay(), OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, slot);
+		InitOverlay(&Overlay(), own::R(OVERLAY_A00), (uint8_t *)own::R(OVERLAY_SPRITE), own::R(OVERLAY_VERTS), entity, slot);
 		o->flags |= 8;
 		entity[0] |= 4;
 		o->phase++;
@@ -1889,8 +1911,8 @@ namespace bio022
 			e->big = 1;
 			e->center[1] = (int16_t)(shl32(cy * 3, 10) / 4096);
 		}
-		AddEffectTask(QControl(), ORIG_Wobble, 0x38, e);
-		MeshNode *m = (MeshNode *)AddEffectTask(QMeshes(), ORIG_Pool, 0x98, e);
+		AddEffectTask(QControl(), own::Fn(ORIG_Wobble), 0x38, e);
+		MeshNode *m = (MeshNode *)AddEffectTask(QMeshes(), own::Fn(ORIG_Pool), 0x98, e);
 		m->variant = 0;
 		e->h.phase++;
 	}
@@ -1899,7 +1921,7 @@ namespace bio022
 	static void EmitterPool(EmitterNode *e, int16_t tick, int16_t variant)
 	{
 		if (e->h.counter < tick) return;
-		MeshNode *m = (MeshNode *)AddEffectTask(QMeshes(), ORIG_Pool, 0x98, e);
+		MeshNode *m = (MeshNode *)AddEffectTask(QMeshes(), own::Fn(ORIG_Pool), 0x98, e);
 		m->variant = variant;
 		e->h.phase++;
 	}
@@ -1910,36 +1932,36 @@ namespace bio022
 		{
 		case 0: EmitterInit(e); break;
 		case 1: // sub_89BA20: bubble spawner and pool 1
-			if (e->h.counter >= 2)
+			if (e->h.counter >= P().emitter.bubbles)
 			{
-				AddEffectTask(QControl(), ORIG_BubbleSpawner, 0x38, e);
-				EmitterPool(e, 2, 1);
+				AddEffectTask(QControl(), own::Fn(ORIG_BubbleSpawner), 0x38, e);
+				EmitterPool(e, P().emitter.bubbles, 1);
 			}
 			break;
-		case 2: EmitterPool(e, 4, 2); break;  // sub_89C130
-		case 3: EmitterPool(e, 6, 3); break;  // sub_89C170
-		case 4: EmitterPool(e, 8, 4); break;  // sub_89C1B0
-		case 5: EmitterPool(e, 10, 5); break; // sub_89C1F0
+		case 2: EmitterPool(e, (int16_t)(P().emitter.pools + 0 * P().emitter.pools_every), 2); break;  // sub_89C130
+		case 3: EmitterPool(e, (int16_t)(P().emitter.pools + 1 * P().emitter.pools_every), 3); break;  // sub_89C170
+		case 4: EmitterPool(e, (int16_t)(P().emitter.pools + 2 * P().emitter.pools_every), 4); break;  // sub_89C1B0
+		case 5: EmitterPool(e, (int16_t)(P().emitter.pools + 3 * P().emitter.pools_every), 5); break; // sub_89C1F0
 		case 6: // sub_89C230: palette cycler and blob
-			if (e->h.counter >= 0x1E)
+			if (e->h.counter >= P().emitter.blob)
 			{
-				AddEffectTask(QControl(), ORIG_Palette, 0x38, e);
-				AddEffectTask(QMeshes(), ORIG_Blob, 0x98, e);
+				AddEffectTask(QControl(), own::Fn(ORIG_Palette), 0x38, e);
+				AddEffectTask(QMeshes(), own::Fn(ORIG_Blob), 0x98, e);
 				e->h.phase++;
 			}
 			break;
 		case 7: // sub_89CD20: mist spawners
-			if (e->h.counter >= 0x20)
+			if (e->h.counter >= P().emitter.mists)
 			{
-				AddEffectTask(QControl(), ORIG_MistSpawnerA, 0x38, e);
-				AddEffectTask(QControl(), ORIG_MistSpawnerB, 0x38, e);
+				AddEffectTask(QControl(), own::Fn(ORIG_MistSpawnerA), 0x38, e);
+				AddEffectTask(QControl(), own::Fn(ORIG_MistSpawnerB), 0x38, e);
 				e->h.phase++;
 			}
 			break;
 		case 8: // sub_89D3A0: target overlay
-			if (e->h.counter >= 0x22)
+			if (e->h.counter >= P().emitter.overlay)
 			{
-				AddEffectTask(QControl(), ORIG_Overlay, 0x38, e);
+				AddEffectTask(QControl(), own::Fn(ORIG_Overlay), 0x38, e);
 				e->h.phase++;
 			}
 			break;
@@ -1961,10 +1983,10 @@ namespace bio022
 		EmitterUpdatePos(e);
 		ComputeModelBounds(e);
 		EmitterPhase(e);
-		e->spin = (int16_t)((uint16_t)(e->spin - 0x40) & 0xFFF);
+		e->spin = (int16_t)((uint16_t)(e->spin + P().blob.spin) & 0xFFF);
 		IdentityMatrix(&e->spin_m);
 		RotateY(&e->spin_m, e->spin);
-		if (e->h.counter == 0) BdPlaySE(SOUND_Bio, 0, 0x80);
+		if (e->h.counter == 0) BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Bio), 0, 0x80);
 		return Finish(&e->h);
 	}
 
@@ -1978,7 +2000,7 @@ namespace bio022
 		case 0: r->h.phase++; break; // sub_89A890
 		case 1: // sub_89A8A0: emitter of the current action
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x8C, r);
+			AddEffectTask(QEmitters(), own::Fn(ORIG_Emitter), 0x8C, r);
 			r->h.phase++;
 			break;
 		case 2: // sub_89DE70: when its overlay is over, the next action (back to phase 1)
@@ -2004,6 +2026,39 @@ namespace bio022
 		}
 	}
 
+	// File loader (0x89A690) and setup (0x89A6B0): the game runs its own; Fujin's programs these (its memory may be
+	// a copy's): the root with the cast, the first target's slot and the action counts, the camera and the
+	// texture, the two packet arenas in the magic buffer, the queues
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		const uint8_t slot = ctx->actions->targets[0];
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2705188), 0x64, 2);
+		RootNode *r = (RootNode *)AddEffectTask(QRoot(), own::Fn(ORIG_Root), 0x64, nullptr);
+		r->h.ctx = ctx;
+		r->h.slot = slot;
+		r->target_count = ctx->actions->target_count;
+		r->last_action = ctx->actions->last_action;
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)CAMERA);
+			QueueTimUpload(TexFile());
+		}
+		ArenaA() = layouts::MagicBuffer();
+		ArenaB() = ArenaA() + 0xC000;
+		InitTaskQueuePool(QEmitters(), (void *)own::R(0x2714970), 0x8C, 4);
+		InitTaskQueuePool(QControl(), (void *)own::R(0x2714BB8), 0x38, 10);
+		InitTaskQueuePool(QParticles(), (void *)own::R(0x2706200), 0x70, 300);
+		InitTaskQueuePool(QMeshes(), (void *)own::R(0x2704570), 0x98, 20);
+		InitTaskQueuePool(QFlash(), (void *)own::R(0x27044F0), 0x3C, 2);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -2027,10 +2082,53 @@ namespace bio022
 		}
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define BP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(BioParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the acid pools, the bubbles, the boiling blob, the mists, the target overlay at their ticks" },
+			{ 0, "blob", "Blob", "The boiling acid blob on the target, bursting into droplets and a flash" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(BioParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			BP("emitter", emitter.bubbles, "Bubbles tick", "The bubble spawner and the second pool at this tick", 0, 200),
+			BP("emitter", emitter.pools, "Pools from", "The third to sixth pools from this tick", 0, 200),
+			BP("emitter", emitter.pools_every, "Pools every", "One a step of these ticks", 0, 50),
+			BP("emitter", emitter.blob, "Blob tick", "The palette cycler and the blob at this tick", 0, 200),
+			BP("emitter", emitter.mists, "Mists tick", "The two mist spawners at this tick", 0, 200),
+			BP("emitter", emitter.overlay, "Overlay tick", "The target's wobbling overlay at this tick", 0, 200),
+			BP("blob", blob.cycles, "Cycles", "It bursts after this many key shapes (then the damage)", 1, 50),
+			BP("blob", blob.spin, "Spin", "The emitter's spin a tick (its meshes turned by it)", -0x800, 0x800),
+		};
+#undef BP
+	}
 }
 
 	void register_mag022_bio()
 	{
+		fxp::register_params({ 22, "Bio", &bio022::live, &bio022::GAME, sizeof(bio022::BioParams),
+		                       bio022::table::PARTS, (int)(sizeof(bio022::table::PARTS) / sizeof(bio022::table::PARTS[0])),
+		                       bio022::table::FIELDS, (int)(sizeof(bio022::table::FIELDS) / sizeof(bio022::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(bio022::ORIG_FileLoader, (void *)bio022::FileLoader);
+		own::note(bio022::ORIG_Setup, (void *)bio022::Setup);
+		own::note(bio022::ORIG_Root, (void *)bio022::RootTask);
+		own::note(bio022::ORIG_Emitter, (void *)bio022::EmitterTask);
+		own::note(bio022::ORIG_Pool, (void *)bio022::PoolTask);
+		own::note(bio022::ORIG_Wobble, (void *)bio022::WobbleTask);
+		own::note(bio022::ORIG_BubbleSpawner, (void *)bio022::BubbleSpawnerTask);
+		own::note(bio022::ORIG_Splash, (void *)bio022::SplashTask);
+		own::note(bio022::ORIG_Bubble, (void *)bio022::BubbleTask);
+		own::note(bio022::ORIG_Blob, (void *)bio022::BlobTask);
+		own::note(bio022::ORIG_Flash, (void *)bio022::FlashTask);
+		own::note(bio022::ORIG_Droplet, (void *)bio022::DropletTask);
+		own::note(bio022::ORIG_Palette, (void *)bio022::PaletteTask);
+		own::note(bio022::ORIG_MistSpawnerA, (void *)bio022::MistSpawnerATask);
+		own::note(bio022::ORIG_MistA, (void *)bio022::MistATask);
+		own::note(bio022::ORIG_MistSpawnerB, (void *)bio022::MistSpawnerBTask);
+		own::note(bio022::ORIG_MistB, (void *)bio022::MistBTask);
+		own::note(bio022::ORIG_Overlay, (void *)bio022::OverlayTask);
 		register_port(bio022::ORIG_Root, (void *)bio022::RootTask, "B022 RootTask", 22);
 		register_port(bio022::ORIG_Emitter, (void *)bio022::EmitterTask, "B022 EmitterTask", 22);
 		register_port(bio022::ORIG_Pool, (void *)bio022::PoolTask, "B022 PoolTask", 22);
@@ -2050,6 +2148,7 @@ namespace bio022
 		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(register_mag022_held();)
 	}
+	FX_LAB_MODULE(register_mag022_bio);
 }
 
 #ifdef FF8_FX_HELD
