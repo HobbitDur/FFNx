@@ -58,8 +58,16 @@
 // geometry descriptor 0x27303E8, vertex scratch 0x272E0A0), the director block [0x1629FA8], the
 // module scratch stack below the camera copy 0x2793E58; the actor data 0x17F37BC.. in exe data is
 // rewritten in place.
+// Fujin's described Raldo Throw (effect_019.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the director block through the descriptor (G_1533010), the tasks it spawns the
+// program's or thunks of their ports (Spawn); its parameters (RaldoParams: the sound, the ball's radii, the
+// throw and the rebound, the debris, the ball's actor system) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -86,6 +94,22 @@ namespace raldo
 	static const uint32_t ORIG_DebrisHigh = 0x8AA1D0, ORIG_DebrisLow = 0x8AAA30;
 	static const uint32_t BALL_DATA = 0x17F37BC;       // the ball actor system's data (exe data)
 	static const uint32_t SOUND_Throw = 0x1629FAC;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct RaldoParams
+	{
+		struct { uint32_t sound; int16_t sound_tick, radius, give_back; } raldo;   // its sound, the ball's radii, the wait before its rotation is put back
+		struct { int16_t start, mode; } ball;                                     // the ball's actor system
+		struct { int16_t speed, spin, morph, lift, hit_lift, gravity; } toss;     // the throw: progress, spin, morph a tick, vertical speeds, gravity
+		struct { int16_t speed, bounce_lift, unmorph; } rebound;                  // back to the caster
+		struct { int16_t take, landing, bounce; } debris;                         // the debris spawners' ticks
+	};
+	static const RaldoParams GAME = { { SOUND_Throw, 0x1C, 0x1C0, 8 }, { 0x1C, 4 }, { 0x200, 0x200, 0x200, -0x180, -0x260, 0x80 },
+	                                  { 0x100, -0x180, 0x300 }, { 2, 1, 4 } };
+	static RaldoParams live = GAME;
+	static const RaldoParams &PR() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
 
 	// engine functions not in act::x
@@ -432,7 +456,7 @@ namespace raldo
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1629FA8])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
@@ -525,14 +549,15 @@ namespace raldo
 	uint32_t __cdecl rt_8A33F0(uint32_t a1)
 	{
 		g_mod = &MOD_019;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag019_raldo_throw_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x272B8F8) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x272B8F8)) = 0x2793E58;
 		states[0] = 0x8A3550;
 		states[1] = 0x8A3560;
 		const uint8_t parity = U8(node, 0x5C);
@@ -547,28 +572,28 @@ namespace raldo
 		states[10] = 0x8AB110; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x27303E4);
-			const uint32_t v2 = MEM<uint32_t>(0x272DDE4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x272B8F4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x27303E4));
+			const uint32_t v2 = MEM<uint32_t>(R(0x272DDE4));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x272B8F4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x27303E0);
-			const uint32_t v2 = MEM<uint32_t>(0x272DDE0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x272B8F4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x27303E0));
+			const uint32_t v2 = MEM<uint32_t>(R(0x272DDE0));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x272B8F4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x273047E) = 0;
-		MEM<uint16_t>(0x273046C) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_BALL));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_RALDO));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(R(0x273047E)) = 0;
+		MEM<uint16_t>(R(0x273046C)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_BALL)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_RALDO)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -581,12 +606,12 @@ namespace raldo
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x2730490);
-		MEM<uint32_t>(0x2730470) = p;
+		uint32_t p = MEM<uint32_t>(R(0x2730490));
+		MEM<uint32_t>(R(0x2730470)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x2730488) = p;
+		MEM<uint32_t>(R(0x2730488)) = p;
 		p += 0xB7C0;
-		MEM<uint32_t>(0x2730490) = p;
+		MEM<uint32_t>(R(0x2730490)) = p;
 		rt_8A35B0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -596,12 +621,12 @@ namespace raldo
 	// at [0x275F980]) and the pool cursors / counters
 	uint32_t __cdecl rt_8A35B0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2730470), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2730488), 0xB7C0);
-		MEM<uint16_t>(0x272DDD8) = 0;
-		MEM<uint16_t>(0x273047C) = 0;
-		MEM<uint16_t>(0x2730414) = 0;
-		MEM<uint16_t>(0x2726908) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2730470)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2730488)), 0xB7C0);
+		MEM<uint16_t>(R(0x272DDD8)) = 0;
+		MEM<uint16_t>(R(0x273047C)) = 0;
+		MEM<uint16_t>(R(0x2730414)) = 0;
+		MEM<uint16_t>(R(0x2726908)) = 0;
 		return 0; // void
 	}
 
@@ -610,7 +635,7 @@ namespace raldo
 	uint32_t __cdecl rt_8A36A0(uint32_t a1)
 	{
 		rt_8A36D0(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2726AB0, 0x8A3760, 0x48, a1);
+		Spawn(R(0x2726AB0), 0x8A3760, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -651,7 +676,7 @@ namespace raldo
 	// (+0x46) reaches 4
 	uint32_t __cdecl rt_8A38C0(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1629FA8, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) < 4) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -660,7 +685,7 @@ namespace raldo
 	// 0x8A38E0 (copy of dm_8C5610 0x8C5610: copy of s_73BA30 0x73BA30: module; Siren sub_73BA30): director state: advances after cut frame 0x2D
 	uint32_t __cdecl rt_8A38E0(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1629FA8, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) <= 0x2D) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -672,7 +697,7 @@ namespace raldo
 	// the harness)
 	uint32_t __cdecl rt_8A3CB0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2730494);
+		const uint32_t arena = MEM<uint32_t>(R(0x2730494));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -692,7 +717,7 @@ namespace raldo
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl rt_8A3F30(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2730494);
+		const uint32_t arena = MEM<uint32_t>(R(0x2730494));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -722,7 +747,7 @@ namespace raldo
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x2730494, 0) = sys;
+		U32(R(0x2730494), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -736,7 +761,7 @@ namespace raldo
 			FX_HELD(held_note_system(sys);)
 			a_740700();
 			rt_8A4670();
-			sys = U32(0x2730494, 0);
+			sys = U32(R(0x2730494), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -749,8 +774,8 @@ namespace raldo
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x273047E, 0) = (uint16_t)(U16(0x273047E, 0) + c14);
-		U16(0x273046C, 0) = (uint16_t)(U16(0x273046C, 0) + c16);
+		U16(R(0x273047E), 0) = (uint16_t)(U16(R(0x273047E), 0) + c14);
+		U16(R(0x273046C), 0) = (uint16_t)(U16(R(0x273046C), 0) + c16);
 		return done;
 	}
 
@@ -759,12 +784,12 @@ namespace raldo
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl rt_8A4670(void)
 	{
-		uint32_t act = U32(U32(0x2730494, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2730494), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x2730494, 0);
+				uint32_t sys = U32(R(0x2730494), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -781,10 +806,10 @@ namespace raldo
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x8C5DD0 into the frame arena 0x1D8E054
 	uint32_t __cdecl rt_8A46D0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -827,8 +852,8 @@ namespace raldo
 				MEM<uint32_t>(0x1D8E054) = rt_8A4830(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1449,7 +1474,7 @@ namespace raldo
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl rt_8A69D0(void)
 	{
-		uint32_t act = U32(U32(0x2730494, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2730494), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1470,7 +1495,7 @@ namespace raldo
 	uint32_t __cdecl rt_8A6A10(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x2730494);
+		uint32_t st = MEM<uint32_t>(R(0x2730494));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1491,7 +1516,7 @@ namespace raldo
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x2730494);
+			st = MEM<uint32_t>(R(0x2730494));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1509,7 +1534,7 @@ namespace raldo
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2730494, 0);                  // actor state block
+		uint32_t st = U32(R(0x2730494), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1606,8 +1631,8 @@ namespace raldo
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 10 records
 	uint32_t __cdecl rt_8A7C00(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2730470);
-		int32_t idx = MEM<int16_t>(0x272DDD8);
+		const uint32_t pool = MEM<uint32_t>(R(0x2730470));
+		int32_t idx = MEM<int16_t>(R(0x272DDD8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1617,7 +1642,7 @@ namespace raldo
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1632,9 +1657,9 @@ namespace raldo
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x272DDD8) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x272DDD8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x272DDD8) = 0;
+			MEM<uint16_t>(R(0x272DDD8)) = 0;
 		return slot;
 	}
 
@@ -1664,7 +1689,7 @@ namespace raldo
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl rt_8A7D20(uint32_t a1)
 	{
-		uint32_t sys = U32(0x2730494, 0);
+		uint32_t sys = U32(R(0x2730494), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1699,9 +1724,9 @@ namespace raldo
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x2730484, 0) - 0x50;
+		uint32_t sp = U32(R(0x2730484), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x2730484, 0) = sp;
+		U32(R(0x2730484), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = rt_8A8580(a1, (uint16_t)kind);
@@ -1713,7 +1738,7 @@ namespace raldo
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x2730494, 0);
+			uint32_t ctx = U32(R(0x2730494), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1892,7 +1917,7 @@ namespace raldo
 			}
 		}
 		rt_8A9290(node, desc);
-		U32(0x2730484, 0) = U32(0x2730484, 0) + 0x50;
+		U32(R(0x2730484), 0) = U32(R(0x2730484), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1900,8 +1925,8 @@ namespace raldo
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x46 records
 	uint32_t __cdecl rt_8A8580(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2730488);
-		int32_t i = MEM<int16_t>(0x273047C);
+		const uint32_t pool = MEM<uint32_t>(R(0x2730488));
+		int32_t i = MEM<int16_t>(R(0x273047C));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1914,7 +1939,7 @@ namespace raldo
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1931,9 +1956,9 @@ namespace raldo
 		}
 		i++;
 		if (i >= 0x45)
-			MEM<uint16_t>(0x273047C) = 0;
+			MEM<uint16_t>(R(0x273047C)) = 0;
 		else
-			MEM<uint16_t>(0x273047C) = (uint16_t)i;
+			MEM<uint16_t>(R(0x273047C)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1947,7 +1972,7 @@ namespace raldo
 	uint32_t __cdecl rt_8A87A0(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2730494, 0);            // ecx
+		const uint32_t st = U32(R(0x2730494), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2011,7 +2036,7 @@ namespace raldo
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x2730494, 0);
+				uint32_t g = U32(R(0x2730494), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2021,7 +2046,7 @@ namespace raldo
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x2730494, 0);
+				uint32_t g = U32(R(0x2730494), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2109,7 +2134,7 @@ namespace raldo
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl rt_8A9320(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2730494);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x2730494));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2134,14 +2159,14 @@ namespace raldo
 				do
 				{
 					rt_8A7C00(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x2730494);
+					dir = MEM<uint32_t>(R(0x2730494));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				rt_8A7C00(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x2730494);
+				dir = MEM<uint32_t>(R(0x2730494));
 			}
 		}
 		return 0; // void
@@ -2514,7 +2539,7 @@ namespace raldo
 		uint32_t ot = U32(0x1D8E04C, 0) + 0x44;
 		U16(hdr, 0x24) = 0;
 		U16(hdr, 0xB4) = depth;
-		U32(0x1D8E054, 0) = a_7435E0(hdr, ot, 2, cursor);
+		U32(0x1D8E054, 0) = callo(0x8AA400, hdr, ot, 2u, cursor);   // (the module's own sprite reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -2575,7 +2600,7 @@ namespace raldo
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl rt_8AAFE0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1629FA8);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2599,8 +2624,8 @@ namespace raldo
 	// - 0x800, 12 bits) in +0x4A
 	uint32_t __cdecl rt_8A36D0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -2610,7 +2635,7 @@ namespace raldo
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0; // void
 	}
 
@@ -2641,12 +2666,12 @@ namespace raldo
 	// exactly at the caster's position (the node's +0x2C, copied from the director)
 	uint32_t __cdecl rt_8A3940(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x40) != 1)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x40) != 1)
 			return 0; // void
 		const uint32_t node = a1;
-		a_73C100(node, ORIG_Ball, BALL_DATA, 0x1C, 0, 4);
+		a_73C100(node, ORIG_Ball, BALL_DATA, (uint16_t)PR().ball.start, 0, (uint16_t)PR().ball.mode);
 		const uint32_t cst = ENT(U8(node, 0x2C));
-		const uint32_t raldo = x::Effect_AddTaskAndInitFromCtx(Q_RALDO, ORIG_Raldo, 0xB8, node);
+		const uint32_t raldo = Spawn(R(Q_RALDO), ORIG_Raldo, 0xB8, node);
 		uint8_t slot = 0;
 		for (uint32_t e = ENT(0); e < ENT(7); e += 0x9C, slot++)
 		{
@@ -2827,18 +2852,18 @@ namespace raldo
 		if ((U8(node, 0x26) & 8) != 0)
 		{
 			const uint32_t ent = ENT(U8(node, 0x2C));
-			const int16_t px = (int16_t)(MEM<uint16_t>(BLK + 0x7C) - MEM<uint16_t>(BLK + 0x74));
+			const int16_t px = (int16_t)(MEM<uint16_t>(R(BLK) + 0x7C) - MEM<uint16_t>(R(BLK) + 0x74));
 			S16(ent, 0x1C) = px;
 			S32(ent, 0x54) = px;
-			const int16_t py = (int16_t)(MEM<uint16_t>(BLK + 0x7E) - MEM<uint16_t>(BLK + 0x76));
+			const int16_t py = (int16_t)(MEM<uint16_t>(R(BLK) + 0x7E) - MEM<uint16_t>(R(BLK) + 0x76));
 			S16(ent, 0x1E) = py;
 			S32(ent, 0x58) = py;
-			const int16_t pz = (int16_t)(MEM<uint16_t>(BLK + 0x80) - MEM<uint16_t>(BLK + 0x78));
+			const int16_t pz = (int16_t)(MEM<uint16_t>(R(BLK) + 0x80) - MEM<uint16_t>(R(BLK) + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
 			// 30 fps layer: see mag019_raldo_throw_held.inc
 			FX_HELD(held_note_ball(node);)
-			rt_8A94E0(BLK);
+			rt_8A94E0(R(BLK));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2854,26 +2879,26 @@ namespace raldo
 		const uint32_t node = a1;
 		const uint8_t slot = U8(node, 0x2C);
 		const uint32_t e = ENT(slot);
-		rt_8A9D20(BLK, 0x2726AC0, 0x27303E8, 0x272E0A0, e, slot);
+		rt_8A9D20(R(BLK), R(0x2726AC0), R(0x27303E8), R(0x272E0A0), e, slot);
 		const uint32_t z = U32(e, 0x20);
 		const uint32_t r0 = U32(e, 0xC);
 		const uint32_t xy = U32(e, 0x1C);
-		MEM<uint32_t>(0x27269C4) = z;
-		MEM<uint32_t>(0x27269C8) = r0;
-		MEM<uint32_t>(0x27269C0) = xy;
+		MEM<uint32_t>(R(0x27269C4)) = z;
+		MEM<uint32_t>(R(0x27269C8)) = r0;
+		MEM<uint32_t>(R(0x27269C0)) = xy;
 		const uint32_t r1 = U32(e, 0x10);
-		U16(e, 0xE) = U16(MEM<uint32_t>(DIR_PTR), 0x4A);
+		U16(e, 0xE) = U16(MEM<uint32_t>(G(G_1533010)), 0x4A);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		MEM<uint32_t>(0x27269CC) = r1;
+		MEM<uint32_t>(R(0x27269CC)) = r1;
 		return 0; // void
 	}
 
 	// 0x8A9DA0 (sub_8A9DA0): Raldo state 1 - at tick 0x1C the sound 0x1629FAC, next state
 	uint32_t __cdecl rt_8A9DA0(uint32_t a1)
 	{
-		if (S16(a1, 0x24) < 0x1C)
+		if (S16(a1, 0x24) < PR().raldo.sound_tick)
 			return 0; // void
-		x::BdPlaySE(SOUND_Throw, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PR().raldo.sound, SOUND_Throw), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2889,26 +2914,26 @@ namespace raldo
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 8);
 		const uint32_t e = ENT(U8(node, 0x2C));
 		U8(e, 0) = (uint8_t)(U8(e, 0) | 4);
-		rt_8AABA0(node, BLK);
-		MEM<uint16_t>(0x27269B8) = 0x1C0;
-		MEM<uint16_t>(0x27269BA) = 0x1C0;
-		MEM<uint16_t>(0x27269B6) = 0x1C0;
-		x::MAG_022_sub_8DD770(BLK);
+		rt_8AABA0(node, R(BLK));
+		MEM<uint16_t>(R(0x27269B8)) = (uint16_t)PR().raldo.radius;
+		MEM<uint16_t>(R(0x27269BA)) = (uint16_t)PR().raldo.radius;
+		MEM<uint16_t>(R(0x27269B6)) = (uint16_t)PR().raldo.radius;
+		x::MAG_022_sub_8DD770(R(BLK));
 		const uint32_t xy = U32(e, 0x1C);
-		const uint16_t py = MEM<uint16_t>(0x2726986);
-		MEM<uint32_t>(0x272698C) = xy;
-		MEM<uint16_t>(0x272698E) = (uint16_t)(MEM<uint16_t>(0x272698E) + py);
+		const uint16_t py = MEM<uint16_t>(R(0x2726986));
+		MEM<uint32_t>(R(0x272698C)) = xy;
+		MEM<uint16_t>(R(0x272698E)) = (uint16_t)(MEM<uint16_t>(R(0x272698E)) + py);
 		const uint32_t z = U32(e, 0x20);
 		const uint32_t tgt = ENT(U8(node, 0x2D));
-		const uint32_t pos = MEM<uint32_t>(0x272698C);
-		MEM<uint32_t>(0x2726990) = z;
-		MEM<uint32_t>(0x272699C) = pos;
-		MEM<uint32_t>(0x27269A0) = z;
-		x::GetEffectSpawnPosition(tgt, 0xF1, 0, 0x2726994);
-		MEM<uint16_t>(0x27269A6) = 0xFE80;
-		MEM<uint16_t>(0x27269D2) = 0;
-		rt_8A9EC0(node, 2);
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x8DDC30, 0x40, node);
+		const uint32_t pos = MEM<uint32_t>(R(0x272698C));
+		MEM<uint32_t>(R(0x2726990)) = z;
+		MEM<uint32_t>(R(0x272699C)) = pos;
+		MEM<uint32_t>(R(0x27269A0)) = z;
+		x::GetEffectSpawnPosition(tgt, 0xF1, 0, R(0x2726994));
+		MEM<uint16_t>(R(0x27269A6)) = (uint16_t)PR().toss.lift;
+		MEM<uint16_t>(R(0x27269D2)) = 0;
+		rt_8A9EC0(node, (uint32_t)PR().debris.take);
+		const uint32_t t = Spawn(R(Q_STAGE), 0x8DDC30, 0x40, node);
 		U32(t, 0x34) = 0x162A470;
 		U16(t, 0x38) = 9;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -2919,11 +2944,11 @@ namespace raldo
 	// position 0x272698C / 0x2726990 (y 0) running a2 ticks (+0xB6)
 	uint32_t __cdecl rt_8A9EC0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_RALDO, 0x8A9F10, 0xB8, a1);
+		const uint32_t t = Spawn(R(Q_RALDO), 0x8A9F10, 0xB8, a1);
 		const uint16_t n = (uint16_t)a2;
-		const uint32_t xy = MEM<uint32_t>(0x272698C);
+		const uint32_t xy = MEM<uint32_t>(R(0x272698C));
 		U16(t, 0xB6) = n;
-		const uint32_t z = MEM<uint32_t>(0x2726990);
+		const uint32_t z = MEM<uint32_t>(R(0x2726990));
 		U32(t, 0x1C) = xy;
 		U32(t, 0x20) = z;
 		U16(t, 0x1E) = 0;
@@ -2974,9 +2999,9 @@ namespace raldo
 	uint32_t __cdecl rt_8A9F60(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(Q_RALDO, 0x8AAA30, 0xB8, node);
+		const uint32_t t1 = Spawn(R(Q_RALDO), 0x8AAA30, 0xB8, node);
 		rt_debris_burst(t1, node, 0x40, 0x100, false);
-		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(Q_RALDO, 0x8AA1D0, 0xB8, node);
+		const uint32_t t2 = Spawn(R(Q_RALDO), 0x8AA1D0, 0xB8, node);
 		rt_debris_burst(t2, node, 0x80, 0x800, true);
 		if ((int32_t)S16(node, 0x24) >= (int32_t)S16(node, 0xB6) - 1)
 		{
@@ -3080,10 +3105,10 @@ namespace raldo
 	// 0x2726998 at progress t (0..0x1000) of 0x8AAC50 / 0x8AAD90: x -> 0x272698C, z -> 0x2726990
 	static inline void rt_ball_xz(int32_t t)
 	{
-		const int32_t dx = mul32((int32_t)MEM<int16_t>(0x2726994) - (int32_t)MEM<int16_t>(0x272699C), t) / 4096;
-		MEM<uint16_t>(0x272698C) = (uint16_t)add32(dx, (int32_t)MEM<uint32_t>(0x272699C));
-		const int32_t dz = mul32((int32_t)MEM<int16_t>(0x2726998) - (int32_t)MEM<int16_t>(0x27269A0), t) / 4096;
-		MEM<uint16_t>(0x2726990) = (uint16_t)add32(dz, (int32_t)MEM<uint32_t>(0x27269A0));
+		const int32_t dx = mul32((int32_t)MEM<int16_t>(R(0x2726994)) - (int32_t)MEM<int16_t>(R(0x272699C)), t) / 4096;
+		MEM<uint16_t>(R(0x272698C)) = (uint16_t)add32(dx, (int32_t)MEM<uint32_t>(R(0x272699C)));
+		const int32_t dz = mul32((int32_t)MEM<int16_t>(R(0x2726998)) - (int32_t)MEM<int16_t>(R(0x27269A0)), t) / 4096;
+		MEM<uint16_t>(R(0x2726990)) = (uint16_t)add32(dz, (int32_t)MEM<uint32_t>(R(0x27269A0)));
 	}
 
 	// 0x8AAC50 (sub_8AAC50): Raldo state 3 - the throw: pivot, morph +0x200 a tick (to 0x1000), spin
@@ -3094,39 +3119,39 @@ namespace raldo
 	uint32_t __cdecl rt_8AAC50(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		rt_8AABA0(node, BLK);
-		uint16_t m = (uint16_t)(MEM<uint16_t>(0x27269B4) + 0x200);
-		MEM<uint16_t>(0x27269B4) = m;
+		rt_8AABA0(node, R(BLK));
+		uint16_t m = (uint16_t)(MEM<uint16_t>(R(0x27269B4)) + PR().toss.morph);
+		MEM<uint16_t>(R(0x27269B4)) = m;
 		if ((int16_t)m >= 0x1000)
-			MEM<uint16_t>(0x27269B4) = 0x1000;
-		uint16_t t = MEM<uint16_t>(0x27269D0);
-		MEM<uint16_t>(0x27269AC) = (uint16_t)(MEM<uint16_t>(0x27269AC) + 0x200);
-		MEM<uint16_t>(0x27269B0) = (uint16_t)(MEM<uint16_t>(0x27269B0) & 0xFFF);
-		t = (uint16_t)(t + 0x200);
-		MEM<uint16_t>(0x27269D0) = t;
+			MEM<uint16_t>(R(0x27269B4)) = 0x1000;
+		uint16_t t = MEM<uint16_t>(R(0x27269D0));
+		MEM<uint16_t>(R(0x27269AC)) = (uint16_t)(MEM<uint16_t>(R(0x27269AC)) + PR().toss.spin);
+		MEM<uint16_t>(R(0x27269B0)) = (uint16_t)(MEM<uint16_t>(R(0x27269B0)) & 0xFFF);
+		t = (uint16_t)(t + PR().toss.speed);
+		MEM<uint16_t>(R(0x27269D0)) = t;
 		uint16_t vy;
 		if ((int16_t)t >= 0x1000)
 		{
 			t = 0x1000;
-			MEM<uint16_t>(0x27269D0) = t;
-			vy = 0xFDA0;
-			U16(MEM<uint32_t>(DIR_PTR), 0x48) = 1;
+			MEM<uint16_t>(R(0x27269D0)) = t;
+			vy = (uint16_t)PR().toss.hit_lift;
+			U16(MEM<uint32_t>(G(G_1533010)), 0x48) = 1;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		else
-			vy = MEM<uint16_t>(0x27269A6);
-		vy = (uint16_t)(vy + 0x80);
-		MEM<uint16_t>(0x27269A6) = vy;
+			vy = MEM<uint16_t>(R(0x27269A6));
+		vy = (uint16_t)(vy + PR().toss.gravity);
+		MEM<uint16_t>(R(0x27269A6)) = vy;
 		rt_ball_xz((int32_t)(int16_t)t);
-		const uint16_t ground = MEM<uint16_t>(0x2726986);
-		const uint16_t y = (uint16_t)(MEM<uint16_t>(0x272698E) + vy);
-		MEM<uint16_t>(0x272698E) = y;
+		const uint16_t ground = MEM<uint16_t>(R(0x2726986));
+		const uint16_t y = (uint16_t)(MEM<uint16_t>(R(0x272698E)) + vy);
+		MEM<uint16_t>(R(0x272698E)) = y;
 		if ((int16_t)y >= (int16_t)ground)
 		{
-			MEM<uint16_t>(0x272698E) = ground;
-			if (MEM<uint16_t>(0x27269D2) == 0)
-				MEM<uint16_t>(0x27269D2) = 1;
-			rt_8A9EC0(node, 1);
+			MEM<uint16_t>(R(0x272698E)) = ground;
+			if (MEM<uint16_t>(R(0x27269D2)) == 0)
+				MEM<uint16_t>(R(0x27269D2)) = 1;
+			rt_8A9EC0(node, (uint32_t)PR().debris.landing);
 		}
 		return 0; // void
 	}
@@ -3138,38 +3163,38 @@ namespace raldo
 	uint32_t __cdecl rt_8AAD90(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		rt_8AABA0(node, BLK);
-		uint16_t t = MEM<uint16_t>(0x27269D0);
-		MEM<uint16_t>(0x27269AC) = (uint16_t)(MEM<uint16_t>(0x27269AC) + 0xFE00);
-		MEM<uint16_t>(0x27269B0) = (uint16_t)(MEM<uint16_t>(0x27269B0) & 0xFFF);
-		t = (uint16_t)(t + 0xFF00);
-		MEM<uint16_t>(0x27269D0) = t;
+		rt_8AABA0(node, R(BLK));
+		uint16_t t = MEM<uint16_t>(R(0x27269D0));
+		MEM<uint16_t>(R(0x27269AC)) = (uint16_t)(MEM<uint16_t>(R(0x27269AC)) - PR().toss.spin);
+		MEM<uint16_t>(R(0x27269B0)) = (uint16_t)(MEM<uint16_t>(R(0x27269B0)) & 0xFFF);
+		t = (uint16_t)(t - PR().rebound.speed);
+		MEM<uint16_t>(R(0x27269D0)) = t;
 		if (!((int16_t)t > 0))
 		{
 			t = 0;
-			MEM<uint16_t>(0x27269D0) = t;
+			MEM<uint16_t>(R(0x27269D0)) = t;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		rt_ball_xz((int32_t)(int16_t)t);
-		const uint16_t vy = (uint16_t)(MEM<uint16_t>(0x27269A6) + 0x80);
-		MEM<uint16_t>(0x27269A6) = vy;
-		const uint16_t y = (uint16_t)(MEM<uint16_t>(0x272698E) + vy);
-		const uint16_t ground = MEM<uint16_t>(0x2726986);
-		MEM<uint16_t>(0x272698E) = y;
+		const uint16_t vy = (uint16_t)(MEM<uint16_t>(R(0x27269A6)) + PR().toss.gravity);
+		MEM<uint16_t>(R(0x27269A6)) = vy;
+		const uint16_t y = (uint16_t)(MEM<uint16_t>(R(0x272698E)) + vy);
+		const uint16_t ground = MEM<uint16_t>(R(0x2726986));
+		MEM<uint16_t>(R(0x272698E)) = y;
 		if ((int16_t)y >= (int16_t)ground)
 		{
-			MEM<uint16_t>(0x272698E) = ground;
-			const uint16_t b = MEM<uint16_t>(0x27269D2);
+			MEM<uint16_t>(R(0x272698E)) = ground;
+			const uint16_t b = MEM<uint16_t>(R(0x27269D2));
 			if (b == 1)
 			{
-				MEM<uint16_t>(0x27269D2) = 2;
-				MEM<uint16_t>(0x27269A6) = 0xFE80;
-				rt_8A9EC0(node, 4);
+				MEM<uint16_t>(R(0x27269D2)) = 2;
+				MEM<uint16_t>(R(0x27269A6)) = (uint16_t)PR().rebound.bounce_lift;
+				rt_8A9EC0(node, (uint32_t)PR().debris.bounce);
 				return 0; // void
 			}
 			if (b == 2)
-				MEM<uint16_t>(0x27269D2) = 3;
-			rt_8A9EC0(node, 1);
+				MEM<uint16_t>(R(0x27269D2)) = 3;
+			rt_8A9EC0(node, (uint32_t)PR().debris.landing);
 		}
 		return 0; // void
 	}
@@ -3177,12 +3202,12 @@ namespace raldo
 	// 0x8AAEC0 (sub_8AAEC0): Raldo state 5 - pivot, morph -0x300 a tick; at 0 next state
 	uint32_t __cdecl rt_8AAEC0(uint32_t a1)
 	{
-		rt_8AABA0(a1, BLK);
-		const uint16_t m = (uint16_t)(MEM<uint16_t>(0x27269B4) + 0xFD00);
-		MEM<uint16_t>(0x27269B4) = m;
+		rt_8AABA0(a1, R(BLK));
+		const uint16_t m = (uint16_t)(MEM<uint16_t>(R(0x27269B4)) - PR().rebound.unmorph);
+		MEM<uint16_t>(R(0x27269B4)) = m;
 		if (!((int16_t)m > 0))
 		{
-			MEM<uint16_t>(0x27269B4) = 0;
+			MEM<uint16_t>(R(0x27269B4)) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -3195,12 +3220,12 @@ namespace raldo
 	{
 		const uint32_t node = a1;
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) & 0xF7);
-		U16(node, 0xB4) = 8;
+		U16(node, 0xB4) = (uint16_t)PR().raldo.give_back;
 		const uint32_t e = ENT(U8(node, 0x2C));
 		U16(e, 0) = (uint16_t)(U16(e, 0) & 0xFFFB);
 		U16(e, 0x1E) = U16(e, 0x24);
-		U32(e, 0x1C) = MEM<uint32_t>(0x27269C0);
-		U32(e, 0x20) = MEM<uint32_t>(0x27269C4);
+		U32(e, 0x1C) = MEM<uint32_t>(R(0x27269C0));
+		U32(e, 0x20) = MEM<uint32_t>(R(0x27269C4));
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -3214,10 +3239,46 @@ namespace raldo
 		if (S16(node, 0xB4) > 0)
 			return 0; // void
 		const uint32_t e = ENT(U8(node, 0x2C));
-		U32(e, 0xC) = MEM<uint32_t>(0x27269C8);
-		U32(e, 0x10) = MEM<uint32_t>(0x27269CC);
+		U32(e, 0xC) = MEM<uint32_t>(R(0x27269C8));
+		U32(e, 0x10) = MEM<uint32_t>(R(0x27269CC));
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(RaldoParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "raldo", "Raldo", "The Raldo taken from the caster, morphed into a ball, thrown at the target and rolled back; its sound and debris" },
+			{ 0, "ball", "Ball actors", "The ball's actor system (its actor data the exe's)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "toss", "Throw", "To the target: Progress (4096: there), Spin, Morph (into a ball), Lift (its first vertical speed), Hit lift (at the target), Gravity, a tick" },
+			{ "rebound", "Rebound", "Back to the caster: Progress back a tick, the second bounce's lift, Unmorph a tick" },
+			{ "debris", "Debris", "The debris spawners' ticks: at the take, at each landing, at the first bounce back" },
+		};
+		static const Field FIELDS[] = {
+			{ "raldo", "raldo.sound", "Sound", "Played at its tick", (uint32_t)offsetof(RaldoParams, raldo.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("raldo", raldo.sound_tick, "Sound tick", "The sound at this tick of the Raldo task (then it is taken)", 0, 200),
+			DT("raldo", raldo.radius, "Ball radius", "The ball's radii (x, y, z)", 0, 0x1000),
+			DT("raldo", raldo.give_back, "Turn back after", "Its rotation put back these ticks after it is given back", 0, 100),
+			DT("raldo", toss.speed, "Progress", "", 1, 0x1000),
+			DT("raldo", toss.spin, "Spin", "", -0x1000, 0x1000),
+			DT("raldo", toss.morph, "Morph", "", 1, 0x1000),
+			DT("raldo", toss.lift, "Lift", "", -0x1000, 0x1000),
+			DT("raldo", toss.hit_lift, "Hit lift", "", -0x1000, 0x1000),
+			DT("raldo", toss.gravity, "Gravity", "", -0x400, 0x400),
+			DT("raldo", rebound.speed, "Progress back", "", 1, 0x1000),
+			DT("raldo", rebound.bounce_lift, "Bounce lift", "", -0x1000, 0x1000),
+			DT("raldo", rebound.unmorph, "Unmorph", "", 1, 0x1000),
+			DT("raldo", debris.take, "At the take", "", 0, 100),
+			DT("raldo", debris.landing, "At a landing", "", 0, 100),
+			DT("raldo", debris.bounce, "At the bounce", "", 0, 100),
+			DT("ball", ball.start, "Start", "Its actor system's start (its 4th word)", 0, 1000),
+			DT("ball", ball.mode, "Mode", "Its placement mode (4: at the caster)", 0, 4),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -3354,6 +3415,11 @@ namespace raldo
 
 	void register_mag019_raldo_throw()
 	{
+		fxp::register_params({ 19, "Raldo Throw", &act::raldo::live, &act::raldo::GAME, sizeof(act::raldo::RaldoParams),
+		                       act::raldo::table::PARTS, (int)(sizeof(act::raldo::table::PARTS) / sizeof(act::raldo::table::PARTS[0])),
+		                       act::raldo::table::FIELDS, (int)(sizeof(act::raldo::table::FIELDS) / sizeof(act::raldo::table::FIELDS[0])),
+		                       act::raldo::table::GROUPS, (int)(sizeof(act::raldo::table::GROUPS) / sizeof(act::raldo::table::GROUPS[0])) });
+		act::register_mod(&act::raldo::MOD_019);
 		act::register_module(19);
 		for (const act::raldo::ModPort *p = act::raldo::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(19, p->addr, p->port, p->name);
@@ -3362,6 +3428,7 @@ namespace raldo
 		// 30 fps layer: see mag019_raldo_throw_held.inc
 		FX_HELD(register_mag019_held();)
 	}
+	FX_LAB_MODULE(register_mag019_raldo_throw);
 }
 
 #ifdef FF8_FX_HELD
