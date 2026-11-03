@@ -1085,6 +1085,8 @@ namespace act
 	{
 		for (int k = 0; k < g_thunk_count; k++)
 			if (P((const void *)ThunkTable::fns[k]) == fn) return g_thunk_orig[k];
+		if (g_own && g_orig_hook)   // (a described copy's own task, spawned by the copy itself)
+			if (const uint32_t orig = g_orig_hook(fn)) return orig;
 		return fn;
 	}
 

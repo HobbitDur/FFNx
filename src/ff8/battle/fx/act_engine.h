@@ -495,6 +495,7 @@ namespace act
 	// tasks' ports itself (Spawn below)
 	inline bool g_own = false;
 	inline uint32_t (*g_spawn_hook)(uint32_t orig) = nullptr;   // its own task for an original (0: none)
+	inline uint32_t (*g_orig_hook)(uint32_t fn) = nullptr;      // the original one of its own tasks mirrors (0: none)
 	void add_port(uint32_t orig, void *port);
 	void remove_port(uint32_t orig);               // (harness bisection)
 	template<typename... A> inline uint32_t callo(uint32_t addr, A... a) { return ((uint32_t (__cdecl *)(A...))addr)(a...); }

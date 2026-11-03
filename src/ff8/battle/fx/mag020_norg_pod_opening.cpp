@@ -53,8 +53,16 @@
 // Library functions: the ones whose code is identical to an engine port (up to module addresses)
 // are served by that port (ENGINE_PORTS); the renderer is the text of the Raldo Throw port with this
 // module's addresses; the others are ported below (np_XXXXXX).
+// Fujin's described NORG Pod opening (effect_020.json) runs this code as its pieces (Doom's kind): its module
+// memory through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its
+// parameters (NorgParams: the emitter's sound and ticks, the master's wait, the stage light ramps, the lid's
+// flight, the debris sprites) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,6 +83,22 @@ namespace norgpod
 	static const uint32_t ORIG_Debris = 0x8A01B0;
 	static const uint32_t ORIG_Chunk = 0x8A0990;
 	static const uint32_t SOUND_Open = 0x1629C50;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct NorgParams
+	{
+		struct { uint32_t sound; int16_t release, damage; } emitter;   // its sound, the master released / the damage from these ticks
+		struct { int16_t wait; } master;                                 // after the last action, the light ramp down after these ticks
+		struct { int16_t step, level; } light;                           // the stage light ramps
+		struct { int16_t start, ticks, gravity, spin_x, spin_z; struct { int16_t x, y, z; } velocity; } lid;   // its flight
+		struct { int16_t frames, colour; } debris;                       // the debris sprites
+	};
+	static const NorgParams GAME = { { SOUND_Open, 0x1E, 0x1E }, { 0xF }, { 0x100, 0x400 },
+	                                 { 0x22, 0x18, 0x28, -0x40, 0x30, { 0x120, -0x140, 0x20 } }, { 0xF, -0x200 } };
+	static NorgParams live = GAME;
+	static const NorgParams &PN() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
 
 	// engine functions not in act::x
@@ -484,12 +508,13 @@ namespace norgpod
 	uint32_t __cdecl np_89FD00(uint32_t a1)
 	{
 		g_mod = &MOD_020;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x27268F4) = 0x2793E58;
-		MEM<uint32_t>(0x27215B0) = 0x2793E58;
+		MEM<uint32_t>(R(0x27268F4)) = 0x2793E58;
+		MEM<uint32_t>(R(0x27215B0)) = 0x2793E58;
 		states[0] = 0x89FE40;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x89FE50;
@@ -504,27 +529,27 @@ namespace norgpod
 		states[10] = 0x8A3270; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x27268E4);
-			const uint32_t v2 = MEM<uint32_t>(0x27264DC);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x27215AC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x27268E4));
+			const uint32_t v2 = MEM<uint32_t>(R(0x27264DC));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x27215AC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x27268E0);
-			const uint32_t v2 = MEM<uint32_t>(0x27264D8);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x27215AC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x27268E0));
+			const uint32_t v2 = MEM<uint32_t>(R(0x27264D8));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x27215AC)) = v2;
 		}
 		// 30 fps layer: see mag020_norg_pod_opening_held.inc
 		FX_HELD(held_note_master();)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_POD));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_CHUNK));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_POD)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_CHUNK)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -537,7 +562,7 @@ namespace norgpod
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x89FE90, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x89FE90, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -547,12 +572,12 @@ namespace norgpod
 	// 0x1D98992 + k * 0x2C
 	uint32_t __cdecl np_89FF30(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
-		if (S16(a1, 0x1C) >= 0x400)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PN().light.step);
+		if (S16(a1, 0x1C) >= PN().light.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x400;
+			U16(a1, 0x1C) = (uint16_t)PN().light.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -577,7 +602,7 @@ namespace norgpod
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(SOUND_Open, 0, 0x80);
+			x::BdPlaySE(fxp::sound(PN().emitter.sound, SOUND_Open), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -587,7 +612,7 @@ namespace norgpod
 	// queue), next state
 	uint32_t __cdecl np_8A0040(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(Q_POD, ORIG_Lid, 0x78, a1);
+		Spawn(R(Q_POD), ORIG_Lid, 0x78, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -596,7 +621,7 @@ namespace norgpod
 	// master (root +0x63 = 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl np_8A3070(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x1E)
+		if (S16(a1, 0x24) == PN().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -610,7 +635,7 @@ namespace norgpod
 	uint32_t __cdecl np_8A3090(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x1E)
+		if (S16(node, 0x24) < PN().emitter.damage)
 			return 0; // void
 		const int32_t ai = S8(node, 0x2A);
 		const int32_t ti = S8(node, 0x2B);
@@ -643,7 +668,7 @@ namespace norgpod
 			return a1; // void
 		}
 		const uint8_t st = U8(node, 0x29);
-		U16(node, 0x60) = 0xF;
+		U16(node, 0x60) = (uint16_t)PN().master.wait;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return a1; // void
 	}
@@ -655,7 +680,7 @@ namespace norgpod
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x8A3150, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x8A3150, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -665,7 +690,7 @@ namespace norgpod
 	uint32_t __cdecl np_8A31B0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x1C) = 0x400;
+		U16(a1, 0x1C) = (uint16_t)PN().light.level;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -674,7 +699,7 @@ namespace norgpod
 	// -= 0x100 down to 0 (then finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl np_8A31D0(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PN().light.step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -797,17 +822,17 @@ namespace norgpod
 	uint32_t __cdecl np_8A2F70(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) >= 0x22)
+		if (S16(node, 0x24) >= PN().lid.start)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x8DDC30, 0x40, node);
+			const uint32_t t = Spawn(R(Q_STAGE), 0x8DDC30, 0x40, node);
 			U32(t, 0x34) = 0x1629F14;
 			U16(t, 0x38) = 1;
-			U16(node, 0x60) = 0x120;
-			U16(node, 0x62) = 0xFEC0;
-			U16(node, 0x64) = 0x20;
+			U16(node, 0x60) = (uint16_t)PN().lid.velocity.x;
+			U16(node, 0x62) = (uint16_t)PN().lid.velocity.y;
+			U16(node, 0x64) = (uint16_t)PN().lid.velocity.z;
 			gx::QueueChainTransformation(0x1D97668, 0xC);
 			const uint8_t st = U8(node, 0x29);
-			U16(node, 0x70) = 0x18;
+			U16(node, 0x70) = (uint16_t)PN().lid.ticks;
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		np_8A2D90(node);
@@ -822,14 +847,14 @@ namespace norgpod
 	{
 		const uint32_t node = a1;
 		const uint16_t ax0 = U16(node, 0x68);
-		U16(node, 0x62) = (uint16_t)(U16(node, 0x62) + 0x28);
+		U16(node, 0x62) = (uint16_t)(U16(node, 0x62) + PN().lid.gravity);
 		const uint16_t cz0 = U16(node, 0x6C);
 		const uint16_t vx = U16(node, 0x60);
 		U16(node, 0x58) = (uint16_t)(U16(node, 0x58) + vx);
-		U16(node, 0x68) = (uint16_t)((uint16_t)(ax0 - 0x40) & 0xFFF);
+		U16(node, 0x68) = (uint16_t)((uint16_t)(ax0 + PN().lid.spin_x) & 0xFFF);
 		U16(node, 0x5A) = (uint16_t)(U16(node, 0x5A) + U16(node, 0x62));
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + U16(node, 0x64));
-		const uint16_t cz = (uint16_t)((uint16_t)(cz0 + 0x30) & 0xFFF);
+		const uint16_t cz = (uint16_t)((uint16_t)(cz0 + PN().lid.spin_z) & 0xFFF);
 		U16(node, 0x70) = (uint16_t)(U16(node, 0x70) - 1);
 		const bool over = S16(node, 0x70) <= 0;
 		U16(node, 0x6C) = cz;
@@ -864,7 +889,7 @@ namespace norgpod
 		{
 			const int32_t r = (int32_t)x::CrtRand();
 			const uint32_t off = 0x1629F28 + (uint32_t)(r % 12) * 8;
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_POD, ORIG_Debris, 0x78, node);
+			const uint32_t t = Spawn(R(Q_POD), ORIG_Debris, 0x78, node);
 			U32(t, 0x1C) = U32(node, 0x1C);
 			U32(t, 0x20) = U32(node, 0x20);
 			U16(t, 0x1C) = (uint16_t)(U16(t, 0x1C) + MEM<uint16_t>(off));
@@ -907,8 +932,8 @@ namespace norgpod
 		uint8_t st = U8(node, 0x29);
 		U32(node, 0x4c) = 0x1629C54;
 		st++;
-		U16(node, 0x56) = 0xFE00;
-		U16(node, 0x52) = 0xF;
+		U16(node, 0x56) = (uint16_t)PN().debris.colour;
+		U16(node, 0x52) = (uint16_t)PN().debris.frames;
 		U8(node, 0x29) = st;
 		return 0; // void
 	}
@@ -969,11 +994,11 @@ namespace norgpod
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(PACKET_CURSOR) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = callo(0x8A0350, blk, ot, 2u, cursor);   // (the module's own sprite reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -989,7 +1014,7 @@ namespace norgpod
 		const uint32_t src = a1;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_CHUNK, ORIG_Chunk, 0x98, src);
+			const uint32_t t = Spawn(R(Q_CHUNK), ORIG_Chunk, 0x98, src);
 			uint32_t v = t + 0x74;
 			for (int k = 2; k != 0; k--, v += 8)
 			{
@@ -1108,7 +1133,7 @@ namespace norgpod
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = np_8A0BC0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = np_8A0BC0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0; // void
 	}
@@ -1856,6 +1881,39 @@ namespace norgpod
 		return pkt;
 	}
 
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(NorgParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the master's release, the damage; the master's wait and the stage light ramps" },
+			{ 0, "lid", "Lid", "The pod's shell (the caster's bone 1) thrown off, and its debris" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "light", "Stage light", "Its ramps up (before the first action) and down (after the wait): Step a tick, Level" },
+			{ "lid.velocity", "Velocity", "The lid's first velocity a tick (x, y: negative up, z)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(NorgParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.damage, "Damage tick", "The action's result from this tick", 0, 200),
+			DT("emitter", master.wait, "Wait", "After the last action, the light ramp down after these ticks", 1, 200),
+			DT("emitter", light.step, "Step", "", 1, 0x1000),
+			DT("emitter", light.level, "Level", "", 0, 0x1000),
+			DT("lid", lid.start, "Start tick", "It flies off (the stage wobble, the caster's chain transformation) from this tick", 0, 200),
+			DT("lid", lid.ticks, "Flight ticks", "Its flight lasts these ticks (then the caster's presence 6)", 1, 200),
+			DT("lid", lid.gravity, "Gravity", "Added to its y velocity a tick", -0x200, 0x200),
+			DT("lid", lid.spin_x, "Spin x", "Its x angle a tick", -0x800, 0x800),
+			DT("lid", lid.spin_z, "Spin z", "Its z angle a tick", -0x800, 0x800),
+			DT("lid", lid.velocity.x, "x", "", -0x1000, 0x1000),
+			DT("lid", lid.velocity.y, "y", "", -0x1000, 0x1000),
+			DT("lid", lid.velocity.z, "z", "", -0x1000, 0x1000),
+			DT("lid", debris.frames, "Debris frames", "Its debris sprites' frames", 1, 60),
+			DT("lid", debris.colour, "Debris colour", "Its debris sprites' colour word", -0x8000, 0x7FFF),
+		};
+#undef DT
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	// the module's functions served by the engine's ports (identical code up to module addresses)
 	static const ModPort ENGINE_PORTS[] = {
@@ -1925,6 +1983,11 @@ namespace norgpod
 
 	void register_mag020_norg_pod_opening()
 	{
+		fxp::register_params({ 20, "NORG Pod opening", &act::norgpod::live, &act::norgpod::GAME, sizeof(act::norgpod::NorgParams),
+		                       act::norgpod::table::PARTS, (int)(sizeof(act::norgpod::table::PARTS) / sizeof(act::norgpod::table::PARTS[0])),
+		                       act::norgpod::table::FIELDS, (int)(sizeof(act::norgpod::table::FIELDS) / sizeof(act::norgpod::table::FIELDS[0])),
+		                       act::norgpod::table::GROUPS, (int)(sizeof(act::norgpod::table::GROUPS) / sizeof(act::norgpod::table::GROUPS[0])) });
+		act::register_mod(&act::norgpod::MOD_020);
 		act::register_module(20);
 		for (const act::norgpod::ModPort *p = act::norgpod::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(20, p->addr, p->port, p->name);
@@ -1933,6 +1996,7 @@ namespace norgpod
 		// 30 fps layer: see mag020_norg_pod_opening_held.inc
 		FX_HELD(register_mag020_held();)
 	}
+	FX_LAB_MODULE(register_mag020_norg_pod_opening);
 }
 
 #ifdef FF8_FX_HELD
