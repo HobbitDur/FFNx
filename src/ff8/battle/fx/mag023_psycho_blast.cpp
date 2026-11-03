@@ -54,8 +54,17 @@
 // queues, arenas, actor state 0x27044D8, scratch stack pointer 0x27044C8, vertex blend buffer
 // 0x2704220), the director block [0x1614284], the geometry block [0x16146C4], the module scratch
 // stack below the camera copy 0x2793E58; the actor data 0x17EA4F0.. in exe data is rewritten in place.
+// Fujin's described Psycho Blast (effect_023.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the director block through the descriptor (G_1533010), the geometry block's word
+// moved with it, the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (PsychoParams: the director's sound and wobble, the actor system, the orb's flight, the debris) are set from
+// the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -82,6 +91,20 @@ namespace psycho
 	static const uint32_t PRIM_CB = 0x893B20;          // the prim-model player's object callback
 	static const uint32_t BLEND_BUF = 0x2704220;       // vertex blend buffer of the prim callback
 	static const uint32_t SOUND_Blast = 0x1614288;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct PsychoParams
+	{
+		struct { uint32_t sound; int16_t sound_tick, wobble; } director;           // its sound (ticks into its phase), the stage wobble's ticks
+		struct { int16_t start, length, mode; } actors;                            // the actor system
+		struct { int16_t appear, speed, short_of; } orb;                           // the orb and the ring appear; its flight
+		struct { int16_t first, second, colour; } debris;                          // debris tasks on the spawner's two ticks; their sprites' colour
+	};
+	static const PsychoParams GAME = { { SOUND_Blast, 4, 0x27 }, { 0, 0x28, 4 }, { 0x23, 0x556, 0x200 }, { 8, 4, -0x40 } };
+	static PsychoParams live = GAME;
+	static const PsychoParams &PP() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
 
 	// engine functions not in act::x
@@ -421,7 +444,7 @@ namespace psycho
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1614284])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
@@ -512,12 +535,12 @@ namespace psycho
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x27044D4);
-		MEM<uint32_t>(0x2704210) = p;
+		uint32_t p = MEM<uint32_t>(R(0x27044D4));
+		MEM<uint32_t>(R(0x2704210)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x27044CC) = p;
+		MEM<uint32_t>(R(0x27044CC)) = p;
 		p += 0xD200;
-		MEM<uint32_t>(0x27044D4) = p;
+		MEM<uint32_t>(R(0x27044D4)) = p;
 		pb_893360();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -527,12 +550,12 @@ namespace psycho
 	// at [0x27044CC]) and the pool cursors / counters
 	uint32_t __cdecl pb_893360(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2704210), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x27044CC), 0xD200);
-		MEM<uint16_t>(0x2703650) = 0;
-		MEM<uint16_t>(0x270421C) = 0;
-		MEM<uint16_t>(0x27041B0) = 0;
-		MEM<uint16_t>(0x27011C0) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2704210)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x27044CC)), 0xD200);
+		MEM<uint16_t>(R(0x2703650)) = 0;
+		MEM<uint16_t>(R(0x270421C)) = 0;
+		MEM<uint16_t>(R(0x27041B0)) = 0;
+		MEM<uint16_t>(R(0x27011C0)) = 0;
 		return 0; // void
 	}
 
@@ -541,7 +564,7 @@ namespace psycho
 	uint32_t __cdecl pb_893450(uint32_t a1)
 	{
 		pb_893480(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x27012A0, 0x893500, 0x48, a1);
+		Spawn(R(0x27012A0), 0x893500, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -615,7 +638,7 @@ namespace psycho
 	// returns the node
 	uint32_t __cdecl pb_893900(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, a2, 0x180, a1);
+		const uint32_t t = Spawn(R(Q_PRIM), a2, 0x180, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -1403,7 +1426,7 @@ namespace psycho
 	// the harness)
 	uint32_t __cdecl pb_8964B0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x27044D8);
+		const uint32_t arena = MEM<uint32_t>(R(0x27044D8));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1423,7 +1446,7 @@ namespace psycho
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl pb_896730(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x27044D8);
+		const uint32_t arena = MEM<uint32_t>(R(0x27044D8));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -1453,7 +1476,7 @@ namespace psycho
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x27044D8, 0) = sys;
+		U32(R(0x27044D8), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1467,7 +1490,7 @@ namespace psycho
 			FX_HELD(held_note_system(sys);)
 			pb_897030();
 			pb_896E70();
-			sys = U32(0x27044D8, 0);
+			sys = U32(R(0x27044D8), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1480,8 +1503,8 @@ namespace psycho
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x27044C0, 0) = (uint16_t)(U16(0x27044C0, 0) + c14);
-		U16(0x270420C, 0) = (uint16_t)(U16(0x270420C, 0) + c16);
+		U16(R(0x27044C0), 0) = (uint16_t)(U16(R(0x27044C0), 0) + c14);
+		U16(R(0x270420C), 0) = (uint16_t)(U16(R(0x270420C), 0) + c16);
 		return done;
 	}
 
@@ -1490,12 +1513,12 @@ namespace psycho
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl pb_896E70(void)
 	{
-		uint32_t act = U32(U32(0x27044D8, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x27044D8), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x27044D8, 0);
+				uint32_t sys = U32(R(0x27044D8), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1512,10 +1535,10 @@ namespace psycho
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x8C5DD0 into the frame arena 0x1D8E054
 	uint32_t __cdecl pb_896ED0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1558,8 +1581,8 @@ namespace psycho
 				MEM<uint32_t>(0x1D8E054) = pb_893DE0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1569,14 +1592,14 @@ namespace psycho
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl pb_897030(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x27044D8), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x27044D8)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x27044D8);
+				uint32_t st = MEM<uint32_t>(R(0x27044D8));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1613,20 +1636,20 @@ namespace psycho
 	uint32_t __cdecl pb_8970F0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1634,7 +1657,7 @@ namespace psycho
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl pb_897170(void)
 	{
-		uint32_t act = U32(U32(0x27044D8, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x27044D8), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1655,7 +1678,7 @@ namespace psycho
 	uint32_t __cdecl pb_8971B0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x27044D8);
+		uint32_t st = MEM<uint32_t>(R(0x27044D8));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1676,7 +1699,7 @@ namespace psycho
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x27044D8);
+			st = MEM<uint32_t>(R(0x27044D8));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1694,7 +1717,7 @@ namespace psycho
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x27044D8, 0);                  // actor state block
+		uint32_t st = U32(R(0x27044D8), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1791,8 +1814,8 @@ namespace psycho
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 10 records
 	uint32_t __cdecl pb_8983A0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2704210);
-		int32_t idx = MEM<int16_t>(0x2703650);
+		const uint32_t pool = MEM<uint32_t>(R(0x2704210));
+		int32_t idx = MEM<int16_t>(R(0x2703650));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1802,7 +1825,7 @@ namespace psycho
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1817,9 +1840,9 @@ namespace psycho
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x2703650) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x2703650)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x2703650) = 0;
+			MEM<uint16_t>(R(0x2703650)) = 0;
 		return slot;
 	}
 
@@ -1849,7 +1872,7 @@ namespace psycho
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl pb_8984C0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x27044D8, 0);
+		uint32_t sys = U32(R(0x27044D8), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1884,9 +1907,9 @@ namespace psycho
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x27044C8, 0) - 0x50;
+		uint32_t sp = U32(R(0x27044C8), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x27044C8, 0) = sp;
+		U32(R(0x27044C8), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = pb_898D20(a1, (uint16_t)kind);
@@ -1898,7 +1921,7 @@ namespace psycho
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x27044D8, 0);
+			uint32_t ctx = U32(R(0x27044D8), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2077,7 +2100,7 @@ namespace psycho
 			}
 		}
 		pb_899A30(node, desc);
-		U32(0x27044C8, 0) = U32(0x27044C8, 0) + 0x50;
+		U32(R(0x27044C8), 0) = U32(R(0x27044C8), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -2087,8 +2110,8 @@ namespace psycho
 	// cursor wraps at 0x4F)
 	uint32_t __cdecl pb_898D20(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x27044CC);
-		int32_t i = MEM<int16_t>(0x270421C);
+		const uint32_t pool = MEM<uint32_t>(R(0x27044CC));
+		int32_t i = MEM<int16_t>(R(0x270421C));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2101,7 +2124,7 @@ namespace psycho
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2118,9 +2141,9 @@ namespace psycho
 		}
 		i++;
 		if (i >= 0x4F)
-			MEM<uint16_t>(0x270421C) = 0;
+			MEM<uint16_t>(R(0x270421C)) = 0;
 		else
-			MEM<uint16_t>(0x270421C) = (uint16_t)i;
+			MEM<uint16_t>(R(0x270421C)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2134,7 +2157,7 @@ namespace psycho
 	uint32_t __cdecl pb_898F40(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x27044D8, 0);            // ecx
+		const uint32_t st = U32(R(0x27044D8), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2198,7 +2221,7 @@ namespace psycho
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x27044D8, 0);
+				uint32_t g = U32(R(0x27044D8), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2208,7 +2231,7 @@ namespace psycho
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x27044D8, 0);
+				uint32_t g = U32(R(0x27044D8), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2296,7 +2319,7 @@ namespace psycho
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl pb_899AC0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x27044D8);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x27044D8));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2321,14 +2344,14 @@ namespace psycho
 				do
 				{
 					pb_8983A0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x27044D8);
+					dir = MEM<uint32_t>(R(0x27044D8));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				pb_8983A0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x27044D8);
+				dir = MEM<uint32_t>(R(0x27044D8));
 			}
 		}
 		return 0; // void
@@ -2399,11 +2422,11 @@ namespace psycho
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x27011BC);
+		const uint32_t cursor = MEM<uint32_t>(R(0x27011BC));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x27011BC) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(0x27011BC)) = callo(0x899EF0, blk, ot, 2u, cursor);   // (the module's own sprite reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -2416,7 +2439,7 @@ namespace psycho
 		uint8_t st = U8(node, 0x29);
 		U32(node, 0x4c) = 0x161428C;
 		st++;
-		U16(node, 0x56) = 0xFFC0;
+		U16(node, 0x56) = (uint16_t)PP().debris.colour;
 		U16(node, 0x52) = 8;
 		U8(node, 0x29) = st;
 		return 0; // void
@@ -2439,7 +2462,7 @@ namespace psycho
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl pb_89A530(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1614284);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2465,14 +2488,15 @@ namespace psycho
 	uint32_t __cdecl pb_893190(uint32_t a1)
 	{
 		g_mod = &MOD_023;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag023_psycho_blast_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x2701304) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x2701304)) = 0x2793E58;
 		states[0] = 0x893300;
 		states[1] = 0x893310;
 		const uint8_t parity = U8(node, 0x5C);
@@ -2487,29 +2511,29 @@ namespace psycho
 		states[10] = 0x89A680; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x27041AC);
-			const uint32_t v2 = MEM<uint32_t>(0x2703AEC);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2701300) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x27041AC));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2703AEC));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2701300)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x27041A8);
-			const uint32_t v2 = MEM<uint32_t>(0x2703AE8);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2701300) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x27041A8));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2703AE8));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2701300)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x27044C0) = 0;
-		MEM<uint16_t>(0x270420C) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DEBRIS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PRIM));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(R(0x27044C0)) = 0;
+		MEM<uint16_t>(R(0x270420C)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DEBRIS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2521,8 +2545,8 @@ namespace psycho
 	// the target seen from the origin - 0x800 (12 bits)
 	uint32_t __cdecl pb_893480(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -2532,7 +2556,7 @@ namespace psycho
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -2556,7 +2580,7 @@ namespace psycho
 		U16(V, 2) = 0xF200;
 		U16(V, 4) = 0xFC00;
 		x::matrixMultiplyVector(M, V, V);
-		uint32_t b = MEM<uint32_t>(GEO_PTR);
+		uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 		U32(b, 0x20) = U32(caster, 0x1C);
 		U32(b, 0x24) = U32(caster, 0x20);
 		U16(b, 0x20) = (uint16_t)(U16(b, 0x20) + U16(V, 0));
@@ -2566,14 +2590,14 @@ namespace psycho
 		U16(V, 2) = 0xF200;
 		U16(V, 4) = 0xF688;
 		x::matrixMultiplyVector(M, V, V);
-		b = MEM<uint32_t>(GEO_PTR);
+		b = R(MEM<uint32_t>(GEO_PTR));
 		U32(b, 0x28) = U32(caster, 0x1C);
 		U32(b, 0x2C) = U32(caster, 0x20);
 		U16(b, 0x28) = (uint16_t)(U16(b, 0x28) + U16(V, 0));
 		U16(b, 0x2A) = (uint16_t)(U16(b, 0x2A) + U16(V, 2));
 		U16(b, 0x2C) = (uint16_t)(U16(b, 0x2C) + U16(V, 4));
 		x::GetEffectSpawnPosition(target, 0xF0, 0, b + 0x30);
-		b = MEM<uint32_t>(GEO_PTR);
+		b = R(MEM<uint32_t>(GEO_PTR));
 		return gx::sub_8DDAC0(b, b + 0x28, b + 0x30);
 	}
 
@@ -2581,9 +2605,9 @@ namespace psycho
 	// (BdPlaySE, volume 0x80), next state
 	uint32_t __cdecl pb_8937A0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) < 4)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) < PP().director.sound_tick)
 			return 0; // void
-		x::BdPlaySE(SOUND_Blast, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PP().director.sound, SOUND_Blast), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2595,15 +2619,15 @@ namespace psycho
 	// 0x16146C8, +0x38 = 0x27 ticks)
 	uint32_t __cdecl pb_893830(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(DIR_PTR), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x40) - 1;
 		if (ph != 0)
 			return (uint32_t)ph;
-		a_73C100(a1, 0x896250, 0x17EA4F0, 0, 0x28, 4);
+		a_73C100(a1, 0x896250, 0x17EA4F0, (uint16_t)PP().actors.start, (uint16_t)PP().actors.length, (uint16_t)PP().actors.mode);
 		pb_893900(a1, ORIG_Ring, 0x17EE254, 0xD8, 0, 0);
 		pb_893900(a1, ORIG_Orb, 0x17F01B0, 0x58, 1, 0);
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x8DDC30, 0x40, a1);
+		const uint32_t t = Spawn(R(Q_STAGE), 0x8DDC30, 0x40, a1);
 		U32(t, 0x34) = 0x16146C8;
-		U16(t, 0x38) = 0x27;
+		U16(t, 0x38) = (uint16_t)PP().director.wobble;
 		return t;
 	}
 
@@ -2613,13 +2637,13 @@ namespace psycho
 	uint32_t __cdecl pb_8939B0(uint32_t a1)
 	{
 		const uint32_t n = a1;
-		if (S16(n, 0x24) < 0x23)
+		if (S16(n, 0x24) < PP().orb.appear)
 			return 0; // void
 		x::Effect_DecodeModelPrimLayout(U32(n, 0x74), n + 0x94, U32(n, 0x78));
 		U32(n, 0x58) = 0x1000;
 		U32(n, 0x54) = 0x1000;
 		U32(n, 0x50) = 0x1000;
-		const uint32_t b = MEM<uint32_t>(GEO_PTR);
+		const uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 		const uint32_t w2c = U32(b, 0x2C);
 		memcpy((void *)(n + 0x30), (const void *)b, 0x20); // rep movsd
 		const uint32_t w28 = U32(b, 0x28);
@@ -2657,7 +2681,7 @@ namespace psycho
 		U16(L, 0x4E) = U16(a1, 0x8E);
 		U16(L, 0x52) = U16(a1, 0x92);
 		U16(L, 0x50) = U16(a1, 0x90);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		U16(L, 0x56) = U16(a1, 0x80);
 		U16(L, 0x58) = U16(a1, 0x88);
 		// 30 fps layer: see mag023_psycho_blast_held.inc
@@ -2794,13 +2818,13 @@ namespace psycho
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);   // depth offset
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(PACKET_CURSOR) = pb_893DE0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = pb_893DE0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -2817,10 +2841,10 @@ namespace psycho
 		U16(V, 0) = 0;
 		U16(V, 2) = 0;
 		memcpy((void *)M, (const void *)(a1 + 0x30), 0x20); // rep movsd
-		U16(V, 4) = 0xFE00;
+		U16(V, 4) = (uint16_t)-PP().orb.short_of;
 		x::scale3DMatrix(M, a1 + 0x50);
 		x::matrixMultiplyVector(M, V, V);
-		const uint32_t b = MEM<uint32_t>(GEO_PTR);
+		const uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 		U16(a2, 0) = (uint16_t)(U16(b, 0x30) + U16(V, 0));
 		const uint16_t y = (uint16_t)(U16(b, 0x32) + U16(V, 2));
 		const uint16_t z = (uint16_t)(U16(b, 0x34) + U16(V, 4));
@@ -2837,11 +2861,11 @@ namespace psycho
 	uint32_t __cdecl pb_895ED0(uint32_t a1)
 	{
 		const uint32_t n = a1;
-		U16(n, 0x17C) = (uint16_t)(U16(n, 0x17C) + 0x556);
+		U16(n, 0x17C) = (uint16_t)(U16(n, 0x17C) + PP().orb.speed);
 		const int16_t t = S16(n, 0x17C);
 		if (t >= 0x1000)
 		{
-			const uint32_t b = MEM<uint32_t>(GEO_PTR);
+			const uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 			U32(n, 0x1C) = U32(b, 0x28);
 			U16(n, 0x17C) = 0x1000;
 			U32(n, 0x20) = U32(b, 0x2C);
@@ -2851,7 +2875,7 @@ namespace psycho
 			const uint32_t w20 = U32(n, 0x20);
 			U32(burst, 0x1C) = w1c;
 			U32(burst, 0x20) = w20;
-			x::Effect_AddTaskAndInitFromCtx(Q_DEBRIS, ORIG_Spawner, 0xB0, n);
+			Spawn(R(Q_DEBRIS), ORIG_Spawner, 0xB0, n);
 			U8(n, 0x29) = (uint8_t)(U8(n, 0x29) + 1);
 			return pb_893A30(n);
 		}
@@ -2872,11 +2896,11 @@ namespace psycho
 	{
 		const uint32_t n = a1;
 		x::Effect_DecodeModelPrimLayout(U32(n, 0x74), n + 0x94, U32(n, 0x78));
-		U16(MEM<uint32_t>(DIR_PTR), 0x48) = 1;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x48) = 1;
 		U32(n, 0x58) = 0x1000;
 		U32(n, 0x54) = 0x1000;
 		U32(n, 0x50) = 0x1000;
-		const uint32_t b = MEM<uint32_t>(GEO_PTR);
+		const uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 		const uint32_t w34 = U32(b, 0x34);
 		memcpy((void *)(n + 0x30), (const void *)b, 0x20); // rep movsd
 		U32(n, 0x1C) = U32(b, 0x30);
@@ -2911,13 +2935,13 @@ namespace psycho
 	uint32_t __cdecl pb_8961B0(uint32_t a1)
 	{
 		const uint32_t n = a1;
-		if (S16(n, 0x24) < 0x23)
+		if (S16(n, 0x24) < PP().orb.appear)
 			return 0; // void
 		x::Effect_DecodeModelPrimLayout(U32(n, 0x74), n + 0x94, U32(n, 0x78));
 		U32(n, 0x58) = 0x1000;
 		U32(n, 0x54) = 0x1000;
 		U32(n, 0x50) = 0x1000;
-		const uint32_t b = MEM<uint32_t>(GEO_PTR);
+		const uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 		const uint32_t w2c = U32(b, 0x2C);
 		memcpy((void *)(n + 0x30), (const void *)b, 0x20); // rep movsd
 		U32(n, 0x1C) = U32(b, 0x28);
@@ -2935,7 +2959,7 @@ namespace psycho
 		const uint32_t n = a1;
 		if (S16(n, 0x24) < S16(n, 0x298))
 			return 0; // void
-		const uint32_t b = MEM<uint32_t>(GEO_PTR);
+		const uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 		U32(n, 0x290) = U32(b, 0x20);
 		U32(n, 0x294) = U32(b, 0x24);
 		a_73F990(n);
@@ -2954,12 +2978,12 @@ namespace psycho
 		int32_t count = 0;
 		const uint16_t tick = U16(n, 0x24);
 		if (tick == 0)
-			count = 8;
+			count = PP().debris.first;
 		else if (tick == 1)
 		{
 			U8(n, 0x26) |= 1;
 			U8(n, 0x29) = (uint8_t)(U8(n, 0x29) + 1);
-			count = 4;
+			count = PP().debris.second;
 		}
 		if (count <= 0)
 			return 0; // void
@@ -2968,18 +2992,18 @@ namespace psycho
 		const uint32_t M = P(mbuf);
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_DEBRIS, ORIG_Debris, 0xB0, n);
+			const uint32_t t = Spawn(R(Q_DEBRIS), ORIG_Debris, 0xB0, n);
 			uint32_t v = t + 0x8C;
 			for (int k = 4; k != 0; k--, v += 8)
 			{
-				const uint32_t b = MEM<uint32_t>(GEO_PTR);
+				const uint32_t b = R(MEM<uint32_t>(GEO_PTR));
 				U32(v, -0x20) = U32(b, 0x30);
 				U32(v, -0x1C) = U32(b, 0x34);
 				U16(v, 0) = 0;
 				const uint32_t r = x::CrtRand();
 				U16(v, 2) = (uint16_t)((r & 0xFFF) + 0x400);
 				U16(v, 4) = 0;
-				memcpy((void *)M, (const void *)MEM<uint32_t>(GEO_PTR), 0x20); // rep movsd
+				memcpy((void *)M, (const void *)R(MEM<uint32_t>(GEO_PTR)), 0x20); // rep movsd
 				const uint32_t r2 = x::CrtRand() & 0xFFF;
 				x::sub_8DD960(M, (uint32_t)(int32_t)(int16_t)r2);
 				x::matrixMultiplyVector(M, v, v);
@@ -3023,6 +3047,35 @@ namespace psycho
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(PsychoParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The director's sound, the stage wobble and the actor system" },
+			{ 0, "orb", "Orb", "The psychic orb and its ring, its flight to the target; the burst's debris" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "At phase 1: Start, Length (ticks), Mode (4: at the orb point)" },
+			{ "debris", "Debris", "Debris tasks on the spawner's first and second ticks, their sprites' colour word" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "Played at its tick of the phase", (uint32_t)offsetof(PsychoParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("director", director.sound_tick, "Sound tick", "The sound these ticks into the phase", 0, 100),
+			DT("director", director.wobble, "Wobble ticks", "The stage wobble lasts these ticks", 0, 200),
+			DT("director", actors.start, "Start", "", 0, 200),
+			DT("director", actors.length, "Length", "", 0, 200),
+			DT("director", actors.mode, "Mode", "", 0, 4),
+			DT("orb", orb.appear, "Appear tick", "The orb and the ring appear at this tick", 0, 200),
+			DT("orb", orb.speed, "Speed", "Its flight's progress a tick (4096: there)", 1, 0x1000),
+			DT("orb", orb.short_of, "Short of", "It stops this short of the target", -0x1000, 0x1000),
+			DT("orb", debris.first, "First", "", 0, 30),
+			DT("orb", debris.second, "Second", "", 0, 30),
+			DT("orb", debris.colour, "Colour", "", -0x8000, 0x7FFF),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -3157,6 +3210,11 @@ namespace psycho
 
 	void register_mag023_psycho_blast()
 	{
+		fxp::register_params({ 23, "Psycho Blast", &act::psycho::live, &act::psycho::GAME, sizeof(act::psycho::PsychoParams),
+		                       act::psycho::table::PARTS, (int)(sizeof(act::psycho::table::PARTS) / sizeof(act::psycho::table::PARTS[0])),
+		                       act::psycho::table::FIELDS, (int)(sizeof(act::psycho::table::FIELDS) / sizeof(act::psycho::table::FIELDS[0])),
+		                       act::psycho::table::GROUPS, (int)(sizeof(act::psycho::table::GROUPS) / sizeof(act::psycho::table::GROUPS[0])) });
+		act::register_mod(&act::psycho::MOD_023);
 		act::register_module(23);
 		for (const act::psycho::ModPort *p = act::psycho::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(23, p->addr, p->port, p->name);
@@ -3165,6 +3223,7 @@ namespace psycho
 		// 30 fps layer: see mag023_psycho_blast_held.inc
 		FX_HELD(register_mag023_held();)
 	}
+	FX_LAB_MODULE(register_mag023_psycho_blast);
 }
 
 #ifdef FF8_FX_HELD
