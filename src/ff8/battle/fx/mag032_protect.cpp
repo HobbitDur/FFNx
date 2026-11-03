@@ -47,8 +47,16 @@
 // Module globals: 0x26C3890..0x26CDCC8 (pools, queues, file pointer 0x26C3954, packet cursor
 // 0x26C3958, arenas, prim-model blend buffer 0x26CDAF8), camera copy 0x2793E58 (0x20 bytes), the
 // stage wobble words 0x1D98992 + k * 0x2C, the shadow-camera scratch 0x21DFED0 (0x20 bytes).
+// Fujin's described Protect (effect_032.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (ProtectParams: the emitter's sound and ticks, the master's wait, the particle spawner, the stage wobble) are
+// set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -78,6 +86,20 @@ namespace protect
 	static const uint32_t ORIG_Spawner = 0x86C3A0;
 	static const uint32_t ORIG_Particle = 0x86C5C0;
 	static const void *const SOUND_Protect = (const void *)0x15F3B20;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct ProtectParams
+	{
+		struct { uint32_t sound; int16_t flash, release, result; } emitter;   // its sound; the screen flash / the master released / the result at these ticks
+		struct { int16_t wait; } master;                                       // after the last action, the wobble out after these ticks
+		struct { int16_t from, until; } particles;                             // the particle spawner's ticks
+		struct { int16_t level, step; } wobble;                                // the stage wobble in and out
+	};
+	static const ProtectParams GAME = { { 0x15F3B20, 0x16, 0x12, 0x12 }, { 7 }, { 0x14, 0x18 }, { 0x400, 0x100 } };
+	static ProtectParams live = GAME;
+	static const ProtectParams &PP() { return live; }
 
 	// battle entity of a node's target slot (+0x2D)
 	static inline uint32_t TargetEntity(uint32_t node)
@@ -119,14 +141,15 @@ namespace protect
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_032;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag032_protect_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x26CDCBC) = 0x2793E58;
-		MEM<uint32_t>(0x26C3974) = 0x2793E58;
+		MEM<uint32_t>(R(0x26CDCBC)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26C3974)) = 0x2793E58;
 		states[0] = 0x86BC50;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x86BC60;
@@ -141,22 +164,22 @@ namespace protect
 		states[10] = 0x86C9B0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26CDAEC);
-			const uint32_t v2 = MEM<uint32_t>(0x26CD6E4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26C3970) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26CDAEC));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26CD6E4));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26C3970)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26CDAE8);
-			const uint32_t v2 = MEM<uint32_t>(0x26CD6E0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26C3970) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26CDAE8));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26CD6E0));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26C3970)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		static const uint32_t queues[5] = { Q_EMITTER, Q_FLASH, Q_PARTICLE, Q_SHIELD, Q_STAGE };
+		const uint32_t queues[5] = { R(Q_EMITTER), R(Q_FLASH), R(Q_PARTICLE), R(Q_SHIELD), R(Q_STAGE) };
 		for (int i = 0; i < 5; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -171,7 +194,7 @@ namespace protect
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x86BCA0, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x86BCA0, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -181,12 +204,12 @@ namespace protect
 	// 0x1D98992 + k * 0x2C
 	static uint32_t __cdecl WobbleIn(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
-		if (S16(a1, 0x1C) >= 0x400)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PP().wobble.step);
+		if (S16(a1, 0x1C) >= PP().wobble.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x400;
+			U16(a1, 0x1C) = (uint16_t)PP().wobble.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -211,10 +234,10 @@ namespace protect
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Protect), 0, 0x80);
-		if (U16(node, 0x24) == 0x16)
+			x::BdPlaySE(fxp::sound(PP().emitter.sound, P(SOUND_Protect)), 0, 0x80);
+		if (S16(node, 0x24) == PP().emitter.flash)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
+			const uint32_t t = Spawn(R(Q_FLASH), ORIG_Flash, 0x3C, node);
 			U32(t, 0x30) = 0x15F3B14;
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -227,7 +250,7 @@ namespace protect
 	static void FlashDraw(uint32_t colour)
 	{
 		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		uint32_t pkt = MEM<uint32_t>(R(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -240,7 +263,7 @@ namespace protect
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	// 0x86BE70 (MAG_032_sub_86BE70, = Drain 0x851900): SCREEN FLASH task - colour script at +0x30
@@ -285,7 +308,7 @@ namespace protect
 	// under `parent`: +0x74 model data, +0x78 animation word (sign-extended), +0x80 / +0x82 modes
 	static uint32_t SpawnPlayer(uint32_t parent, uint32_t fn_addr, uint32_t model, uint32_t anim, uint32_t w80, uint32_t w82)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SHIELD, fn_addr, 0x504, parent);
+		const uint32_t t = Spawn(R(Q_SHIELD), fn_addr, 0x504, parent);
 		U16(t, 0x80) = (uint16_t)w80;
 		U32(t, 0x74) = model;
 		S32(t, 0x78) = (int16_t)anim;
@@ -298,7 +321,7 @@ namespace protect
 	static uint32_t __cdecl SpawnShieldAndParticles(uint32_t a1)
 	{
 		SpawnPlayer(a1, ORIG_ShieldPlayer, 0x15F3B24, 0x470, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_PARTICLE, ORIG_Spawner, 0x88, a1);
+		Spawn(R(Q_PARTICLE), ORIG_Spawner, 0x88, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -345,7 +368,7 @@ namespace protect
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
 		ShieldMatrix(node, L);
-		U32(L, 0x48) = BLEND_BUFFER;
+		U32(L, 0x48) = R(BLEND_BUFFER);
 		// 30 fps layer: see mag032_protect_held.inc
 		FX_HELD(held_note_shield(node);)
 		if (prim_play(node + 0x94, ORIG_ShieldDraw, L, 0) == 0)
@@ -445,7 +468,7 @@ namespace protect
 			U32(hdr, 8) = U32(rec, 0x20);   // fade colour
 		}
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 		return 0; // void (prim player callback)
 	}
@@ -492,7 +515,7 @@ namespace protect
 	// 0x86C480 (sub_86C480): spawner state 1 - next state at tick 20
 	static uint32_t __cdecl SpawnerWait(uint32_t a1)
 	{
-		if (S16(a1, 0x24) >= 0x14)
+		if (S16(a1, 0x24) >= PP().particles.from)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -512,7 +535,7 @@ namespace protect
 			const uint32_t mat = node + 0x58;
 			do
 			{
-				const uint32_t p = x::Effect_AddTaskAndInitFromCtx(Q_PARTICLE, ORIG_Particle, 0x88, node);
+				const uint32_t p = Spawn(R(Q_PARTICLE), ORIG_Particle, 0x88, node);
 				x::MAG_022_sub_8DD770(H);
 				S32(H, 0x14) = 0;
 				S32(H, 0x18) = -0x280;
@@ -530,7 +553,7 @@ namespace protect
 				U16(p, 0x7C) = (uint16_t)((int32_t)S16(H, 0x10) * speed / 4096);
 			} while (--count != 0);
 		}
-		if (S16(node, 0x24) > 0x18)
+		if (S16(node, 0x24) > PP().particles.until)
 		{
 			const uint8_t st = U8(node, 0x29);
 			U8(node, 0x26) |= 1;
@@ -553,11 +576,11 @@ namespace protect
 		FX_HELD(held_header(hdr, 0xB4);)
 		TransformCameraByShadowRotation((const void *)(node + 0x1C), 0x1000, S16(node, 0x54));
 		U32(hdr, 0) = U32(node, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = InitEffectSequenceFromData((void *)hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = InitEffectSequenceFromData((void *)hdr, ot, 2, cursor);
 		x::Field_Free(0xB4);
 	}
 
@@ -639,7 +662,7 @@ namespace protect
 	// 0: its action loop may spawn the next emitter), next state
 	static uint32_t __cdecl ReleaseMaster(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x12)
+		if (S16(a1, 0x24) == PP().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -652,7 +675,7 @@ namespace protect
 	static uint32_t __cdecl ActionResult(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x12)
+		if (S16(node, 0x24) < PP().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -684,7 +707,7 @@ namespace protect
 			return 0; // void
 		}
 		const uint8_t st = U8(node, 0x29);
-		U16(node, 0x60) = 7;
+		U16(node, 0x60) = (uint16_t)PP().master.wait;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
 	}
@@ -696,7 +719,7 @@ namespace protect
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x86C890, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x86C890, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -706,7 +729,7 @@ namespace protect
 	static uint32_t __cdecl WobbleOutInit(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x1C) = 0x400;
+		U16(a1, 0x1C) = (uint16_t)PP().wobble.level;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -716,7 +739,7 @@ namespace protect
 	// words 0x1D98992 + k * 0x2C
 	static uint32_t __cdecl WobbleOut(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PP().wobble.step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -729,6 +752,31 @@ namespace protect
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(ProtectParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the screen flash, the shield, the particle spawner, the master's release, the result; the master's wait" },
+			{ 0, "stage", "Stage wobble", "The stage wobble in (once the master's children are gone) and out (after the wait)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "particles", "Particles", "The particle spawner throws particles from this tick until this one (its count table a tick: 20..24)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(ProtectParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.flash, "Flash tick", "The screen flash at this tick", 0, 200),
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Result tick", "The action's result from this tick", 0, 200),
+			DT("emitter", master.wait, "Wait", "After the last action, the wobble out after these ticks", 1, 200),
+			DT("emitter", particles.from, "From", "", 20, 24),
+			DT("emitter", particles.until, "Until", "(its count table has 25 ticks)", 20, 24),
+			DT("stage", wobble.level, "Level", "Its amplitude (in: up to it, out: from it)", 0, 0x1000),
+			DT("stage", wobble.step, "Step", "Up / down by this a tick", 1, 0x1000),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -787,6 +835,11 @@ namespace protect
 
 	void register_mag032_protect()
 	{
+		fxp::register_params({ 32, "Protect", &act::protect::live, &act::protect::GAME, sizeof(act::protect::ProtectParams),
+		                       act::protect::table::PARTS, (int)(sizeof(act::protect::table::PARTS) / sizeof(act::protect::table::PARTS[0])),
+		                       act::protect::table::FIELDS, (int)(sizeof(act::protect::table::FIELDS) / sizeof(act::protect::table::FIELDS[0])),
+		                       act::protect::table::GROUPS, (int)(sizeof(act::protect::table::GROUPS) / sizeof(act::protect::table::GROUPS[0])) });
+		act::register_mod(&act::protect::MOD_032);
 		act::register_module(32);
 		for (const act::protect::ModPort *p = act::protect::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(32, p->addr, p->port, p->name);
@@ -795,6 +848,7 @@ namespace protect
 		// 30 fps layer: see mag032_protect_held.inc
 		FX_HELD(register_mag032_held();)
 	}
+	FX_LAB_MODULE(register_mag032_protect);
 }
 
 #ifdef FF8_FX_HELD
