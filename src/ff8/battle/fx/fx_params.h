@@ -198,14 +198,14 @@ namespace fxp
 		int group_count = 0;
 	};
 
-	// every module's parameters, registered by its register function
-	inline Module g_modules[64];
+	// every module's parameters, registered by its register function (room for every effect)
+	inline Module g_modules[512];
 	inline int g_module_count = 0;
 	inline void register_params(const Module &m)
 	{
 		for (int k = 0; k < g_module_count; k++)
 			if (g_modules[k].effect_id == m.effect_id) return;
-		if (g_module_count < 64) g_modules[g_module_count++] = m;
+		if (g_module_count < 512) g_modules[g_module_count++] = m;
 	}
 	inline const Module *find_params(int effect_id)
 	{
@@ -228,11 +228,11 @@ namespace ff8fx
 namespace fxp
 {
 	using RegisterFn = void (*)();
-	inline RegisterFn g_lab_modules[64];
+	inline RegisterFn g_lab_modules[512];   // (every lab module: past 64 the last ones were dropped)
 	inline int g_lab_module_count = 0;
 	struct LabModule
 	{
-		LabModule(RegisterFn f) { if (g_lab_module_count < 64) g_lab_modules[g_lab_module_count++] = f; }
+		LabModule(RegisterFn f) { if (g_lab_module_count < 512) g_lab_modules[g_lab_module_count++] = f; }
 	};
 }
 }

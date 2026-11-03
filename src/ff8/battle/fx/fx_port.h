@@ -167,14 +167,14 @@ namespace ff8fx
 		inline uint32_t (*task_of)(uint32_t orig) = nullptr;   // the program's own task for an original (0: none)
 		inline uint32_t R(uint32_t a) { return a + reloc; }    // a module address, where the running copy has it
 		// the ports a program may run, by original (the modules note theirs, their setups and loaders too)
-		inline uint32_t g_orig[512];
-		inline void *g_port[512];
+		inline uint32_t g_orig[4096];
+		inline void *g_port[4096];
 		inline int g_count = 0;
 		inline void note(uint32_t orig, void *port)
 		{
 			for (int k = 0; k < g_count; k++)
 				if (g_orig[k] == orig) { g_port[k] = port; return; }
-			if (g_count < 512) { g_orig[g_count] = orig; g_port[g_count++] = port; }
+			if (g_count < 4096) { g_orig[g_count] = orig; g_port[g_count++] = port; }
 		}
 		inline void *find(uint32_t orig)
 		{

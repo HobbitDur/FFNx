@@ -982,14 +982,14 @@ namespace act
 
 	static const Mod *const MODS[] = { &MOD_090, &MOD_095, &MOD_096, &MOD_097, &MOD_098, &MOD_099, &MOD_100 };
 
-	static const Mod *g_more_mods[64];
+	static const Mod *g_more_mods[512];
 	static int g_more_mod_count = 0;
 
 	void register_mod(const Mod *m)
 	{
 		for (int k = 0; k < g_more_mod_count; k++)
 			if (g_more_mods[k] == m) return;
-		if (g_more_mod_count < 64) g_more_mods[g_more_mod_count++] = m;
+		if (g_more_mod_count < 512) g_more_mods[g_more_mod_count++] = m;
 	}
 
 	const Mod *find_mod(int effect_id)
