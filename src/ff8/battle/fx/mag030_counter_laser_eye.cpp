@@ -63,8 +63,16 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (cl_XXXXXX), most of them
 // the text of the matching Wind Blast port (or of the Death / Boko / Drain / Esuna / Confuse /
 // MiniMog / Tonberry port) with this module's addresses.
+// Fujin's described Counter Laser-Eye (effect_030.json) runs this code as its pieces (Doom's kind): its module
+// memory through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its
+// parameters (LaserEyeParams: the emitter's sound and ticks, the master's wait, the actor system, the beam, the
+// stage light) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -89,6 +97,21 @@ namespace lasereye
 	static const uint32_t ORIG_Laser = 0x878930;
 	static const uint32_t ORIG_Spark = 0x878F20;
 	static const void *const SOUND_LaserEye = (const void *)0x160D3E8;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct LaserEyeParams
+	{
+		struct { uint32_t sound; int16_t release, result; } emitter;   // its sound; the master released / the damage at these ticks
+		struct { int16_t wait; } master;                                // after the last action, the light ramp down after these ticks
+		struct { int16_t start, length, mode; } actors;                 // the actor system
+		struct { int16_t appear, grow, hold, shrink; } laser;           // the beam: shown at, its width up a tick, held to, down a tick
+		struct { int16_t level, step; } light;                          // the stage light ramps
+	};
+	static const LaserEyeParams GAME = { { 0x160D3E8, 0xA, 0xA }, { 0x14 }, { 0, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 } };
+	static LaserEyeParams live = GAME;
+	static const LaserEyeParams &PL() { return live; }
 	static const uint32_t ACTOR_DATA = 0x17CC72C;      // the actor system's data (exe data, relocated once by 0x874410)
 	static const uint32_t SPARK_TABLE = 0x160DED8;     // per laser tick 0..18: {s16 base, s16 spread, s16 count, s16}
 
@@ -260,14 +283,15 @@ namespace lasereye
 	uint32_t __cdecl cl_873740(uint32_t a1)
 	{
 		g_mod = &MOD_030;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag030_counter_laser_eye_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x26D40DC) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26D40DC)) = 0x2793E58;
 		states[0] = 0x8738A0;
 		states[1] = 0x8738B0;
 		const uint8_t parity = U8(node, 0x5C);
@@ -282,28 +306,28 @@ namespace lasereye
 		states[10] = 0x879470; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26D6A0C);
-			const uint32_t v2 = MEM<uint32_t>(0x26D5E04);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26D40D8) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26D6A0C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26D5E04));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26D40D8)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26D6A08);
-			const uint32_t v2 = MEM<uint32_t>(0x26D5E00);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26D40D8) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26D6A08));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26D5E00));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26D40D8)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x26D6A22) = 0;
-		MEM<uint16_t>(0x26D6A12) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_LASER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPARK));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(R(0x26D6A22)) = 0;
+		MEM<uint16_t>(R(0x26D6A12)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_LASER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_SPARK)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -318,14 +342,14 @@ namespace lasereye
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x26D6A34);
-		MEM<uint32_t>(0x26D6A14) = p;
+		uint32_t p = MEM<uint32_t>(R(0x26D6A34));
+		MEM<uint32_t>(R(0x26D6A14)) = p;
 		p += 0x870;
-		MEM<uint32_t>(0x26D6A2C) = p;
+		MEM<uint32_t>(R(0x26D6A2C)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(0x26D6A34) = p;
+		MEM<uint32_t>(R(0x26D6A34)) = p;
 		cl_873910();
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x873950, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x873950, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -335,12 +359,12 @@ namespace lasereye
 	// cursors / counters
 	uint32_t __cdecl cl_873910(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26D6A14), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26D6A2C), 0x8340);
-		MEM<uint16_t>(0x26D4768) = 0;
-		MEM<uint16_t>(0x26D6A20) = 0;
-		MEM<uint16_t>(0x26D6A10) = 0;
-		MEM<uint16_t>(0x26D40C0) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26D6A14)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26D6A2C)), 0x8340);
+		MEM<uint16_t>(R(0x26D4768)) = 0;
+		MEM<uint16_t>(R(0x26D6A20)) = 0;
+		MEM<uint16_t>(R(0x26D6A10)) = 0;
+		MEM<uint16_t>(R(0x26D40C0)) = 0;
 		return 0; // void
 	}
 
@@ -359,7 +383,7 @@ namespace lasereye
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_LaserEye), 0, 0x80);
+			x::BdPlaySE(fxp::sound(PL().emitter.sound, P(SOUND_LaserEye)), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -370,8 +394,8 @@ namespace lasereye
 	// beam (0x878930, 0x90 bytes, laser queue), next state
 	uint32_t __cdecl cl_873B00(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0, 0x2D, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_LASER, ORIG_Laser, 0x90, a1);
+		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, (uint16_t)PL().actors.start, (uint16_t)PL().actors.length, (uint16_t)PL().actors.mode);
+		Spawn(R(Q_LASER), ORIG_Laser, 0x90, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -380,7 +404,7 @@ namespace lasereye
 	// = 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl cl_879270(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0xA)
+		if (S16(a1, 0x24) == PL().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -393,7 +417,7 @@ namespace lasereye
 	uint32_t __cdecl cl_879290(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0xA)
+		if (S16(node, 0x24) < PL().emitter.result)
 			return 0; // void
 		const int32_t ai = S8(node, 0x2A);
 		const int32_t ti = S8(node, 0x2B);
@@ -416,7 +440,7 @@ namespace lasereye
 	{
 		alignas(4) uint8_t frame[0x10] = {};
 		const uint32_t f = P(frame);
-		uint32_t dir = MEM<uint32_t>(ACTOR_STATE);  // ecx
+		uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));  // ecx
 		const uint32_t table = U32(dir, 0x224);
 		const int32_t di = (int32_t)S8(a1, 0x6A);
 		const uint32_t owner = U32(a1, 0x5C);
@@ -432,7 +456,7 @@ namespace lasereye
 			{
 				x::MAG_022_sub_8DD770(m);
 				const int32_t k = shl32((int32_t)S8(a1, 0x6B), 4);
-				const uint32_t d = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t d = MEM<uint32_t>(R(ACTOR_STATE));
 				const uint32_t e = (uint32_t)k + d;
 				const int32_t dx = sub32(S32(d, 0x1C4), S32(e, 0x54));
 				const int32_t dz = sub32(S32(d, 0x1CC), S32(e, 0x5C));
@@ -460,7 +484,7 @@ namespace lasereye
 			case 4: // 0x8784B4: yaw of battle entity dir+0x1E (entity +0xE)
 			{
 				x::MAG_022_sub_8DD770(m);
-				dir = MEM<uint32_t>(ACTOR_STATE);
+				dir = MEM<uint32_t>(R(ACTOR_STATE));
 				const int32_t ent = (int32_t)S16(dir, 0x1E);
 				const int32_t yaw = (int32_t)S16(0x1D972CE + (uint32_t)(ent * 39) * 4, 0);
 				if (yaw != 0)
@@ -622,10 +646,10 @@ namespace lasereye
 		U32(hdr, 0) = U32(a1, 0x4C);
 		U32(hdr, 8) = U32(a1, 0x40);
 		S32(hdr, 0xC) = S16(a1, 0x50);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U32(hdr, 0x1C) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
 		x::Field_Free(0x58);
 		return 0; // void
 	}
@@ -641,8 +665,8 @@ namespace lasereye
 			return 0; // void
 		const uint32_t rec = SPARK_TABLE + (uint32_t)((int32_t)tick * 8);
 		int32_t count = S16(rec, 4);
-		const uint32_t sp = MEM<uint32_t>(SCRATCH_SP) - 8;
-		MEM<uint32_t>(SCRATCH_SP) = sp;
+		const uint32_t sp = MEM<uint32_t>(R(SCRATCH_SP)) - 8;
+		MEM<uint32_t>(R(SCRATCH_SP)) = sp;
 		if (count > 0)
 		{
 			const uint32_t pt = sp + 4;
@@ -652,7 +676,7 @@ namespace lasereye
 				const int32_t t = S16(rec, 0) + r % (int32_t)S16(rec, 2);
 				S32(pt, 0) = t;
 				S32(sp, 0) = 0x1000 - t;
-				const uint32_t spark = x::Effect_AddTaskAndInitFromCtx(Q_SPARK, ORIG_Spark, 0x60, a1);
+				const uint32_t spark = Spawn(R(Q_SPARK), ORIG_Spark, 0x60, a1);
 				x::set_dword_1CA8A30(U32(sp, 0));
 				gx::sub_45E0B0(a1 + 0x74);
 				gx::sub_45E9D0();
@@ -664,7 +688,7 @@ namespace lasereye
 				count--;
 			} while (count != 0);
 		}
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 8;
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 8;
 		return 0; // void
 	}
 
@@ -721,7 +745,7 @@ namespace lasereye
 		U32(a1, 0x1C) = e0;
 		U16(a1, 0x46) = 0x800;
 		U32(a1, 0x20) = e1;
-		if (tick >= 4)
+		if (tick >= PL().laser.appear)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) &= 0xFB;
@@ -735,7 +759,7 @@ namespace lasereye
 	uint32_t __cdecl cl_8791B0(uint32_t a1)
 	{
 		const uint32_t e0 = U32(a1, 0x74);
-		U16(a1, 0x8C) = (uint16_t)(U16(a1, 0x8C) + 0x400);
+		U16(a1, 0x8C) = (uint16_t)(U16(a1, 0x8C) + PL().laser.grow);
 		const uint32_t e1 = U32(a1, 0x78);
 		U32(a1, 0x1C) = e0;
 		const int16_t w = S16(a1, 0x8C);
@@ -759,7 +783,7 @@ namespace lasereye
 		U32(a1, 0x1C) = e0;
 		U16(a1, 0x46) = 0x800;
 		U32(a1, 0x20) = e1;
-		if (tick >= 0xE)
+		if (tick >= PL().laser.hold)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -769,7 +793,7 @@ namespace lasereye
 	uint32_t __cdecl cl_879220(uint32_t a1)
 	{
 		const uint32_t t0 = U32(a1, 0x7C);
-		U16(a1, 0x8C) = (uint16_t)(U16(a1, 0x8C) + 0xF800);
+		U16(a1, 0x8C) = (uint16_t)(U16(a1, 0x8C) - PL().laser.shrink);
 		const int16_t w = S16(a1, 0x8C);
 		U32(a1, 0x1C) = t0;
 		const uint32_t t1 = U32(a1, 0x80);
@@ -800,10 +824,10 @@ namespace lasereye
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0; // void
 	}
@@ -855,12 +879,12 @@ namespace lasereye
 	// 0x400 (then finished, next state), written to the four stage wobble words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl cl_8739F0(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
-		if (S16(a1, 0x1C) >= 0x400)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PL().light.step);
+		if (S16(a1, 0x1C) >= PL().light.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x400;
+			U16(a1, 0x1C) = (uint16_t)PL().light.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -897,7 +921,7 @@ namespace lasereye
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(0x26D6A38) = st;
+		MEM<uint32_t>(R(0x26D6A38)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -909,7 +933,7 @@ namespace lasereye
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x26D6A38);
+			st = MEM<uint32_t>(R(0x26D6A38));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -929,20 +953,20 @@ namespace lasereye
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		cl_873EB0();
-		st = MEM<uint32_t>(0x26D6A38);
+		st = MEM<uint32_t>(R(0x26D6A38));
 		if (U16(st, 0x24) == 4)
 			callp(0x873DD0, node);
 		cl_874200();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(0x26D6A38);
+		st = MEM<uint32_t>(R(0x26D6A38));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x874010, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(0x26D6A38);
+			st = MEM<uint32_t>(R(0x26D6A38));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x26D6A38);
+			st = MEM<uint32_t>(R(0x26D6A38));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -957,7 +981,7 @@ namespace lasereye
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x26D6A38);
+		st = MEM<uint32_t>(R(0x26D6A38));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -968,7 +992,7 @@ namespace lasereye
 	// the harness)
 	uint32_t __cdecl cl_873DD0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26D6A38);
+		const uint32_t arena = MEM<uint32_t>(R(0x26D6A38));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -989,7 +1013,7 @@ namespace lasereye
 	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl cl_873EB0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -998,7 +1022,7 @@ namespace lasereye
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -1011,7 +1035,7 @@ namespace lasereye
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -1019,7 +1043,7 @@ namespace lasereye
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -1037,7 +1061,7 @@ namespace lasereye
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl cl_874010(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26D6A38);
+		const uint32_t arena = MEM<uint32_t>(R(0x26D6A38));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -1065,7 +1089,7 @@ namespace lasereye
 	// position (the stack words keep what they held)
 	uint32_t __cdecl cl_874200(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -1079,7 +1103,7 @@ namespace lasereye
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -1092,7 +1116,7 @@ namespace lasereye
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -1100,7 +1124,7 @@ namespace lasereye
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -1148,7 +1172,7 @@ namespace lasereye
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x26D6A38, 0) = sys;
+		U32(R(0x26D6A38), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1162,7 +1186,7 @@ namespace lasereye
 			FX_HELD(held_note_system(sys);)
 			cl_875D80();
 			cl_874700();
-			sys = U32(0x26D6A38, 0);
+			sys = U32(R(0x26D6A38), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1175,8 +1199,8 @@ namespace lasereye
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x26D6A22, 0) = (uint16_t)(U16(0x26D6A22, 0) + c14);
-		U16(0x26D6A12, 0) = (uint16_t)(U16(0x26D6A12, 0) + c16);
+		U16(R(0x26D6A22), 0) = (uint16_t)(U16(R(0x26D6A22), 0) + c14);
+		U16(R(0x26D6A12), 0) = (uint16_t)(U16(R(0x26D6A12), 0) + c16);
 		return done;
 	}
 
@@ -1185,12 +1209,12 @@ namespace lasereye
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl cl_874700(void)
 	{
-		uint32_t act = U32(U32(0x26D6A38, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x26D6A38), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x26D6A38, 0);
+				uint32_t sys = U32(R(0x26D6A38), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1207,10 +1231,10 @@ namespace lasereye
 	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl cl_874760(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -1230,9 +1254,9 @@ namespace lasereye
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -1247,17 +1271,17 @@ namespace lasereye
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1800,14 +1824,14 @@ namespace lasereye
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl cl_875D80(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x26D6A38), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x26D6A38)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x26D6A38);
+				uint32_t st = MEM<uint32_t>(R(0x26D6A38));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1844,20 +1868,20 @@ namespace lasereye
 	uint32_t __cdecl cl_875E40(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1865,7 +1889,7 @@ namespace lasereye
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl cl_875EC0(void)
 	{
-		uint32_t act = U32(U32(0x26D6A38, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x26D6A38), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1885,7 +1909,7 @@ namespace lasereye
 	uint32_t __cdecl cl_875F00(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x26D6A38);
+		uint32_t st = MEM<uint32_t>(R(0x26D6A38));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1906,7 +1930,7 @@ namespace lasereye
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x26D6A38);
+			st = MEM<uint32_t>(R(0x26D6A38));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1924,7 +1948,7 @@ namespace lasereye
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x26D6A38, 0);                  // actor state block
+		uint32_t st = U32(R(0x26D6A38), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -2021,8 +2045,8 @@ namespace lasereye
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 0x14 records
 	uint32_t __cdecl cl_8770F0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26D6A14);
-		int32_t idx = MEM<int16_t>(0x26D4768);
+		const uint32_t pool = MEM<uint32_t>(R(0x26D6A14));
+		int32_t idx = MEM<int16_t>(R(0x26D4768));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -2032,7 +2056,7 @@ namespace lasereye
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -2047,9 +2071,9 @@ namespace lasereye
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(0x26D4768) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x26D4768)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x26D4768) = 0;
+			MEM<uint16_t>(R(0x26D4768)) = 0;
 		return slot;
 	}
 
@@ -2079,7 +2103,7 @@ namespace lasereye
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl cl_877210(uint32_t a1)
 	{
-		uint32_t sys = U32(0x26D6A38, 0);
+		uint32_t sys = U32(R(0x26D6A38), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2114,9 +2138,9 @@ namespace lasereye
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x26D6A28, 0) - 0x50;
+		uint32_t sp = U32(R(0x26D6A28), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x26D6A28, 0) = sp;
+		U32(R(0x26D6A28), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = cl_877A70(a1, (uint16_t)kind);
@@ -2128,7 +2152,7 @@ namespace lasereye
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x26D6A38, 0);
+			uint32_t ctx = U32(R(0x26D6A38), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2307,7 +2331,7 @@ namespace lasereye
 			}
 		}
 		cl_8787E0(node, desc);
-		U32(0x26D6A28, 0) = U32(0x26D6A28, 0) + 0x50;
+		U32(R(0x26D6A28), 0) = U32(R(0x26D6A28), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -2316,8 +2340,8 @@ namespace lasereye
 	// record 49 of the 50 is never used), cleared, owner a1, definition index a2
 	uint32_t __cdecl cl_877A70(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26D6A2C);
-		int32_t i = MEM<int16_t>(0x26D6A20);
+		const uint32_t pool = MEM<uint32_t>(R(0x26D6A2C));
+		int32_t i = MEM<int16_t>(R(0x26D6A20));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2330,7 +2354,7 @@ namespace lasereye
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2347,9 +2371,9 @@ namespace lasereye
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(0x26D6A20) = 0;
+			MEM<uint16_t>(R(0x26D6A20)) = 0;
 		else
-			MEM<uint16_t>(0x26D6A20) = (uint16_t)i;
+			MEM<uint16_t>(R(0x26D6A20)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2363,7 +2387,7 @@ namespace lasereye
 	uint32_t __cdecl cl_877C90(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x26D6A38, 0);            // ecx
+		const uint32_t st = U32(R(0x26D6A38), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2427,7 +2451,7 @@ namespace lasereye
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x26D6A38, 0);
+				uint32_t g = U32(R(0x26D6A38), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2437,7 +2461,7 @@ namespace lasereye
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x26D6A38, 0);
+				uint32_t g = U32(R(0x26D6A38), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2525,7 +2549,7 @@ namespace lasereye
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl cl_878870(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x26D6A38);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x26D6A38));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2550,14 +2574,14 @@ namespace lasereye
 				do
 				{
 					cl_8770F0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x26D6A38);
+					dir = MEM<uint32_t>(R(0x26D6A38));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				cl_8770F0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x26D6A38);
+				dir = MEM<uint32_t>(R(0x26D6A38));
 			}
 		}
 		return 0; // void
@@ -2611,7 +2635,7 @@ namespace lasereye
 			return a1; // void
 		}
 		const uint8_t st = U8(node, 0x29);
-		U16(node, 0x60) = 0x14;
+		U16(node, 0x60) = (uint16_t)PL().master.wait;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return a1; // void
 	}
@@ -2623,7 +2647,7 @@ namespace lasereye
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x879350, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x879350, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2632,7 +2656,7 @@ namespace lasereye
 	uint32_t __cdecl cl_8793B0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x1C) = 0x400;
+		U16(a1, 0x1C) = (uint16_t)PL().light.level;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -2641,7 +2665,7 @@ namespace lasereye
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl cl_8793D0(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PL().light.step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -2654,6 +2678,36 @@ namespace lasereye
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(LaserEyeParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the actor system, the master's release, the damage; the master's wait and the stage light" },
+			{ 0, "laser", "Laser", "The beam from the caster's eye to its target" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "At the emitter's start: Start, Length (ticks), Mode (0: the targets' positions)" },
+			{ "light", "Stage light", "Its ramps up (before the first action) and down (after the wait): Level, Step a tick" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(LaserEyeParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Damage tick", "The damage of the action's target from this tick", 0, 200),
+			DT("emitter", master.wait, "Wait", "After the last action, the light ramp down after these ticks", 1, 200),
+			DT("emitter", actors.start, "Start", "", 0, 200),
+			DT("emitter", actors.length, "Length", "", 0, 200),
+			DT("emitter", actors.mode, "Mode", "", 0, 4),
+			DT("emitter", light.level, "Level", "", 0, 0x1000),
+			DT("emitter", light.step, "Step", "", 1, 0x1000),
+			DT("laser", laser.appear, "Appear tick", "Shown from this tick", 0, 100),
+			DT("laser", laser.grow, "Grow", "Its width up by this a tick (4096: full)", 1, 0x1000),
+			DT("laser", laser.hold, "Hold until", "Held at the eye until this tick", 0, 100),
+			DT("laser", laser.shrink, "Shrink", "At the target, its width down by this a tick", 1, 0x1000),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -2769,6 +2823,11 @@ namespace lasereye
 
 	void register_mag030_counter_laser_eye()
 	{
+		fxp::register_params({ 30, "Counter Laser-Eye", &act::lasereye::live, &act::lasereye::GAME, sizeof(act::lasereye::LaserEyeParams),
+		                       act::lasereye::table::PARTS, (int)(sizeof(act::lasereye::table::PARTS) / sizeof(act::lasereye::table::PARTS[0])),
+		                       act::lasereye::table::FIELDS, (int)(sizeof(act::lasereye::table::FIELDS) / sizeof(act::lasereye::table::FIELDS[0])),
+		                       act::lasereye::table::GROUPS, (int)(sizeof(act::lasereye::table::GROUPS) / sizeof(act::lasereye::table::GROUPS[0])) });
+		act::register_mod(&act::lasereye::MOD_030);
 		act::register_module(30);
 		for (const act::lasereye::ModPort *p = act::lasereye::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(30, p->addr, p->port, p->name);
@@ -2777,6 +2836,7 @@ namespace lasereye
 		// 30 fps layer: see mag030_counter_laser_eye_held.inc
 		FX_HELD(register_mag030_held();)
 	}
+	FX_LAB_MODULE(register_mag030_counter_laser_eye);
 }
 
 #ifdef FF8_FX_HELD
