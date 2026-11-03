@@ -654,6 +654,7 @@ namespace layouts
 		uint32_t flags;    // +0x20 the per-object words (an address)
 		uint32_t morph;    // +0x24 blended vertex frames
 		uint32_t *cursor;  // the packet cursor the objects are drawn at (the module's global in the original)
+		int16_t offset[3] = {};   // added to each record's offset first (Berserk's: its spawn point, the frame the camera)
 	};
 #pragma pack(pop)
 
@@ -694,9 +695,9 @@ namespace layouts
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		m.t[0] = r->pos[0];
-		m.t[1] = r->pos[1];
-		m.t[2] = r->pos[2];
+		m.t[0] = (int32_t)r->pos[0] + arg->offset[0];
+		m.t[1] = (int32_t)r->pos[1] + arg->offset[1];
+		m.t[2] = (int32_t)r->pos[2] + arg->offset[2];
 		const uint32_t word = *(const uint32_t *)(arg->flags + 4 * (int16_t)r->index);
 		if (word & 0x10000000)
 		{
@@ -1152,6 +1153,80 @@ namespace layouts
 		p->ang[1] = (int16_t)(p->ang[1] + p->vel[1]);
 		p->ang[2] = (int16_t)(p->ang[2] + p->vel[2]);
 		p->age++;
+	}
+
+	// ------------------------------------------------------------------
+	// Sprite motes (Berserk 0x6D1250): a sprite sequence in place, its frame its counter; rising ones
+	// (Berserk's embers) move up, decelerating
+	// ------------------------------------------------------------------
+#pragma pack(push, 1)
+	struct Mote // a node's fields after the header (0x10 bytes)
+	{
+		uint8_t counter;   // +0x00 sequence frame
+		int8_t accel;      // +0x01 rising: vertical acceleration
+		int16_t scale;     // +0x02
+		int16_t pos[3];    // +0x04
+		int16_t vel;       // +0x0A rising: vertical speed
+		uint32_t seq;      // +0x0C sprite sequence data
+	};
+#pragma pack(pop)
+	static_assert(sizeof(Mote) == 0x10, "mote");
+
+	inline void MoteDraw(const Mote *p, uint32_t &cursor)
+	{
+		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
+		// the original pushes the scale as eax with only its low word loaded: the high word is the
+		// header address's (0x571BC0 reads the low word only)
+		TransformCameraByShadowRotation(p->pos, (int32_t)(((uint32_t)h & 0xFFFF0000u) | (uint16_t)p->scale), -((int32_t)p->scale >> 2));
+		*(uint32_t *)h = p->seq;
+		*(int16_t *)(h + 4) = (int16_t)(int8_t)p->counter;
+		*(uint16_t *)(h + 0x24) = 0;
+		cursor = InitEffectSequenceFromData(h, RenderOT(), 2, cursor);
+		FieldFree(0xB4);
+	}
+
+	// a tick of a mote (rising: its speed + its acceleration, its height + its speed): done once its
+	// frame reaches `frames`
+	inline bool MoteStep(Mote *p, bool rising, int32_t frames)
+	{
+		if (rising)
+		{
+			p->vel = (int16_t)(p->vel + p->accel);
+			p->pos[1] = (int16_t)(p->pos[1] + p->vel);
+		}
+		p->counter++;
+		return (int8_t)p->counter >= frames;
+	}
+
+	// a prim model (no layout) at `pos` (through the camera), unrotated, scaled uniformly by `scale`,
+	// faded by `fade`, its draw mode `mode` (Berserk's glow: sin(e x 1024 / ticks) + base, fade
+	// e x 2048 / ticks + base)
+	inline void PulseModelDraw(uint32_t model, const int16_t *pos, int32_t e, int32_t ticks, int32_t scale_base, int32_t fade_base, uint32_t mode, uint32_t &cursor)
+	{
+		const uint32_t t = (uint32_t)(ticks ? ticks : 1);
+		const int32_t scale = ComputeSin((int32_t)((uint32_t)shl32(e, 10) / t)) + scale_base;
+		const int32_t fade = (int32_t)((uint32_t)shl32(e, 11) / t + (uint32_t)fade_base);
+		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
+		// the matrix pad is never written by the original (stack)
+		Mat4x3 m = {};
+		m.m[0][0] = (int16_t)scale;
+		m.m[1][1] = (int16_t)scale;
+		m.m[2][2] = (int16_t)scale;
+		GteSetRotMatrix(&Camera());
+		GteSetTransVector(&Camera());
+		GteLoadV0(pos);
+		GteMVMVA_RotV0Tr();
+		GteReadMAC123(m.t);
+		GteSetRotMatrix(&m);
+		GteSetTransVector(&m);
+		*(uint32_t *)h = model;
+		h[0xA] = 0;
+		h[9] = 0;
+		h[8] = 0;
+		*(int32_t *)(h + 0xC) = fade;
+		*(uint32_t *)(h + 0x1C) = mode;
+		cursor = RenderPrimModel(h, RenderOT(), 2, cursor);
+		FieldFree(0x58);
 	}
 
 	// a prim model (no layout) turned by three angles (0x56CD50), scaled by `scale`, at `pos` composed
