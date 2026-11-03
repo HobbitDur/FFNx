@@ -56,8 +56,14 @@
 // Module globals: 0x24C66B0..0x24C91D0; exe data: the pool pointers 0xDEA3D4 / 0xDEA3D8.
 // SpawnerTask copies a never-written stack word (the 4th word of its spawn position, entry esp - 2)
 // into its children (+0x16) and pool 2 (+0xE): see SpawnPadWord.
+// Fujin's described Griever's death (effect_066.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (GDeathParams: the damage,
+// voice and end ticks, the shards' push, the screen flash).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -69,20 +75,20 @@ namespace gu066
 	template<typename T> static inline T &At(uint32_t base, int32_t off) { return *(T *)(base + off); }
 
 	// --- module globals ---
-	inline int32_t &Pool3Cursor() { return var<int32_t>(0x24C66B0); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x24C66D8; }      // pool 0x24C66B8, 2 x 0x10
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x24C8308; }    // pool 0x24C8318, 0x64 x 0x24
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24C9148); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x24C914C); }
-	inline int16_t *Centre() { return (int16_t *)0x24C9170; }         // x, y, z, push (0x24C9176)
-	inline int16_t &Push() { return var<int16_t>(0x24C9176); }
-	inline uint32_t &TexFile() { return var<uint32_t>(0x24C9178); }
-	inline uint32_t &ShardTable() { return var<uint32_t>(0x24C917C); }
-	inline int32_t &ShardCursor() { return var<int32_t>(0x24C9180); }
-	inline uint32_t &FaceStates() { return var<uint32_t>(0x24C9190); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x24C91A0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24C91A4); }
-	inline uint32_t &Voice() { return var<uint32_t>(0x24C91A8); }
+	inline int32_t &Pool3Cursor() { return var<int32_t>(own::R(0x24C66B0)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x24C66D8); }      // pool 0x24C66B8, 2 x 0x10
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x24C8308); }    // pool 0x24C8318, 0x64 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24C9148)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x24C914C)); }
+	inline int16_t *Centre() { return (int16_t *)own::R(0x24C9170); }         // x, y, z, push (0x24C9176)
+	inline int16_t &Push() { return var<int16_t>(own::R(0x24C9176)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24C9178)); }
+	inline uint32_t &ShardTable() { return var<uint32_t>(own::R(0x24C917C)); }
+	inline int32_t &ShardCursor() { return var<int32_t>(own::R(0x24C9180)); }
+	inline uint32_t &FaceStates() { return var<uint32_t>(own::R(0x24C9190)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x24C91A0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24C91A4)); }
+	inline uint32_t &Voice() { return var<uint32_t>(own::R(0x24C91A8)); }
 	inline uint32_t &Pool4() { return var<uint32_t>(0xDEA3D4); }      // exe data
 	inline uint32_t &Pool3() { return var<uint32_t>(0xDEA3D8); }      // exe data
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
@@ -100,6 +106,21 @@ namespace gu066
 	static const uint32_t RAIN_COLOURS = 0xDEA454;                     // 12 colour scales (cycle)
 
 	static const uint32_t ORIG_RootTask = 0x627DF0;
+	static const uint32_t ORIG_FileLoader = 0x6225F0, ORIG_Setup = 0x622610;
+	static const uint32_t TEXTURE_NAME = 0xDEA5B8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GDeathParams
+	{
+		struct { int16_t damage, voice, end; } master;   // the damage of the first target / the voice slot released / the end after these ticks
+		struct { int16_t push; } melt;                   // the shards' push: the caster's size times this / 8192
+		struct { int16_t flash_in, flash_out_from; } flash;   // the screen flash up to its tick (a 64 step), back down from its tick (a 128 step, 16 ticks)
+	};
+	static const GDeathParams GAME = { { 0x19, 0x33D, 0x340 }, { 1450 }, { 0x20, 0x281 } };
+	static GDeathParams live = GAME;
+	static const GDeathParams &PG() { return live; }
 	static const uint32_t ORIG_Master = 0x6226E0;
 	static const uint32_t ORIG_FadeTask = 0x622D30;
 	static const uint32_t ORIG_FeedbackA = 0x622E10;
@@ -860,7 +881,7 @@ namespace gu066
 	// 0x622CD0: a master-queue task with counters +0xC / +0xE cleared
 	static uint32_t AddMasterTask(uint32_t fn)
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), fn);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(fn));   // (its callers pass the task's original)
 		At<int16_t>(n, 0xC) = 0;
 		At<int16_t>(n, 0xE) = 0;
 		return n;
@@ -869,7 +890,7 @@ namespace gu066
 	// 0x622CF0: screen fade task (in, hold, out ticks, level)
 	static void AddFadeTask(int16_t in, int16_t hold, int16_t out, int16_t level)
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_FadeTask);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_FadeTask));
 		At<int16_t>(n, 0x10) = in;
 		At<int16_t>(n, 0x12) = hold;
 		At<int16_t>(n, 0xC) = 0;
@@ -880,7 +901,7 @@ namespace gu066
 	// 0x622DC0: white screen feedback task (0x622E60 when kind != 0, else 0x622E10) for `ticks`
 	static void AddFeedbackTask(int32_t kind, int16_t ticks)
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), kind ? ORIG_FeedbackB : ORIG_FeedbackA);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(kind ? ORIG_FeedbackB : ORIG_FeedbackA));
 		At<int16_t>(n, 0xC) = 0;
 		At<int16_t>(n, 0xE) = ticks;
 	}
@@ -982,14 +1003,14 @@ namespace gu066
 		const uint32_t w = (uint32_t)FieldAlloc(0x80);
 		if (!DrawOnly() && Counter(n) <= 0x46 && Counter(n) % 3 == 0)
 		{
-			uint32_t e = POOL1;
+			uint32_t e = own::R(POOL1);
 			int32_t i = 0;
 			bool found = true;
 			while (At<int32_t>(e, 0) != 0)
 			{
 				e += 0x18;
 				i++;
-				if (e >= POOL1_END) { found = false; break; }
+				if (e >= own::R(POOL1_END)) { found = false; break; }
 			}
 			if (found && i < 100)
 			{
@@ -1024,8 +1045,8 @@ namespace gu066
 		At<int32_t>(w, 0x74) = -0x1000;
 		At<int32_t>(w, 0x78) = 0;
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
-		FX_HELD(held_note_pool(ORIG_SparkTask, n, w, POOL1);)
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x18)
+		FX_HELD(held_note_pool(ORIG_SparkTask, n, w, own::R(POOL1));)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != 1) continue;
 			SparkDraw(w, h, e);
@@ -1066,7 +1087,7 @@ namespace gu066
 		const int32_t flag = CrtRand() % 0x1000;
 		GetEffectSpawnPosition(Caster(), At<int32_t>(SPAWN_BONES, bone * 4), flag, pos);
 		const uint32_t lo = *(const uint32_t *)&pos[0], hi = *(const uint32_t *)&pos[2];
-		uint32_t t = (uint32_t)AddTaskToQueue(QMaster(), ORIG_RingTask);
+		uint32_t t = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_RingTask));
 		At<int16_t>(t, 0xC) = 0;
 		At<uint32_t>(t, 0x10) = lo;
 		At<uint32_t>(t, 0x14) = hi;
@@ -1074,17 +1095,17 @@ namespace gu066
 		const int32_t size = (CrtRand() % 0x1600 + 0xC00) / 3;
 		At<int16_t>(t, 0x1E) = (int16_t)size;
 		At<int16_t>(t, 0x1C) = (int16_t)size;
-		t = (uint32_t)AddTaskToQueue(QMaster(), ORIG_PuffTask);
+		t = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_PuffTask));
 		At<int16_t>(t, 0xC) = 0;
 		At<int16_t>(t, 0xE) = (int16_t)(Counter(n) + 0x64);
 		At<uint32_t>(t, 0x10) = lo;
 		At<uint32_t>(t, 0x14) = hi;
-		t = (uint32_t)AddTaskToQueue(QMaster(), ORIG_DustTask);
+		t = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_DustTask));
 		At<int16_t>(t, 0xC) = 0;
 		At<int16_t>(t, 0xE) = (int16_t)(Counter(n) + 0xC8);
 		At<uint32_t>(t, 0x10) = lo;
 		At<uint32_t>(t, 0x14) = hi;
-		t = (uint32_t)AddTaskToQueue(QMaster(), ORIG_SmokeTask);
+		t = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_SmokeTask));
 		At<int16_t>(t, 0xC) = 0;
 		At<int16_t>(n, 0xE) = (int16_t)(At<int16_t>(n, 0xE) + 1);
 		At<int16_t>(t, 0xE) = (int16_t)(Counter(n) + 0x12C);
@@ -1199,7 +1220,7 @@ namespace gu066
 			At<uint32_t>(w, 4) = At<uint32_t>(n, 0x14);
 			for (int k = 0; k < 1; k++)
 			{
-				const uint32_t e = PoolFree(POOL1, POOL1_END, 100);
+				const uint32_t e = PoolFree(own::R(POOL1), own::R(POOL1_END), 100);
 				if (!e) break;
 				At<int32_t>(e, 0) = At<int16_t>(n, 0xE);
 				At<int16_t>(e, 4) = 0;
@@ -1218,8 +1239,8 @@ namespace gu066
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
-		FX_HELD(held_note_pool(ORIG_PuffTask, n, w, POOL1);)
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x18)
+		FX_HELD(held_note_pool(ORIG_PuffTask, n, w, own::R(POOL1));)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != tag) continue;
 			SpritePushed(w, h, e, push, At<int16_t>(e, 4));
@@ -1264,7 +1285,7 @@ namespace gu066
 			At<uint32_t>(w, 4) = At<uint32_t>(n, 0x14);
 			for (int k = 0; k < 5; k++)
 			{
-				const uint32_t e = PoolFree(POOL2, POOL2_END, 200);
+				const uint32_t e = PoolFree(own::R(POOL2), own::R(POOL2_END), 200);
 				if (!e) break;
 				At<int32_t>(e, 0) = At<int16_t>(n, 0xE);
 				At<int16_t>(e, 4) = 0;
@@ -1289,8 +1310,8 @@ namespace gu066
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
-		FX_HELD(held_note_pool(ORIG_DustTask, n, w, POOL2);)
-		for (uint32_t e = POOL2; e < POOL2_END; e += 0x18)
+		FX_HELD(held_note_pool(ORIG_DustTask, n, w, own::R(POOL2));)
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != tag) continue;
 			SpritePushed(w, h, e, push, At<int16_t>(e, 4));
@@ -1324,7 +1345,7 @@ namespace gu066
 			At<uint32_t>(w, 4) = At<uint32_t>(n, 0x14);
 			for (int k = 0; k < 1; k++)
 			{
-				const uint32_t e = PoolFree(POOL2, POOL2_END, 200);
+				const uint32_t e = PoolFree(own::R(POOL2), own::R(POOL2_END), 200);
 				if (!e) break;
 				At<int32_t>(e, 0) = At<int16_t>(n, 0xE);
 				At<int16_t>(e, 4) = 0;
@@ -1347,8 +1368,8 @@ namespace gu066
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
-		FX_HELD(held_note_pool(ORIG_SmokeTask, n, w, POOL2);)
-		for (uint32_t e = POOL2; e < POOL2_END; e += 0x18)
+		FX_HELD(held_note_pool(ORIG_SmokeTask, n, w, own::R(POOL2));)
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != tag) continue;
 			SpritePushed(w, h, e, push, At<int16_t>(e, 4));
@@ -1785,7 +1806,7 @@ namespace gu066
 	// (texture base + 0x29184) emptied
 	static void StartMelt()
 	{
-		uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_MeltTask);
+		uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_MeltTask));
 		At<int16_t>(n, 0xC) = 0;
 		const uint32_t base = TexBase();
 		uint32_t d = base + 0x28000;
@@ -1837,15 +1858,15 @@ namespace gu066
 		const uint32_t w = (uint32_t)FieldAlloc(0x68);
 		if (!DrawOnly() && Counter(n) <= 0x78 && Counter(n) % 16 == 0)
 		{
-			const uint32_t e = PoolFree(POOL1, POOL1_END, 100);
+			const uint32_t e = PoolFree(own::R(POOL1), own::R(POOL1_END), 100);
 			if (e)
 			{
 				At<int32_t>(e, 0) = 2;
 				At<int16_t>(e, 4) = 0;
 				At<int16_t>(e, 6) = (int16_t)(CrtRand() % 0x1400 + 0x600);
-				At<int16_t>(e, 8) = (int16_t)(CrtRand() % 0x1770 + var<int32_t>(0x24C9170) - 0xBB8);
+				At<int16_t>(e, 8) = (int16_t)(CrtRand() % 0x1770 + var<int32_t>(own::R(0x24C9170)) - 0xBB8);
 				At<int16_t>(e, 0xA) = 0;
-				At<int16_t>(e, 0xC) = (int16_t)(CrtRand() % 0x1770 + var<int32_t>(0x24C9174) - 0xBB8);
+				At<int16_t>(e, 0xC) = (int16_t)(CrtRand() % 0x1770 + var<int32_t>(own::R(0x24C9174)) - 0xBB8);
 				At<int16_t>(e, 0xE) = (int16_t)(CrtRand() % 0x1000);
 				At<int16_t>(e, 0x10) = 0;
 				const int16_t v = (int16_t)(CrtRand() % 0x10 + 4);
@@ -1866,8 +1887,8 @@ namespace gu066
 		At<int16_t>(w, 4) = 0;
 		At<int16_t>(w, 0) = 0;
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
-		FX_HELD(held_note_pool(ORIG_GlowTask, n, w, POOL1);)
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x18)
+		FX_HELD(held_note_pool(ORIG_GlowTask, n, w, own::R(POOL1));)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x18)
 		{
 			if (!(At<uint8_t>(e, 0) & 2)) continue;
 			GlowDraw(w, h, e);
@@ -1883,7 +1904,7 @@ namespace gu066
 		if (DrawOnly()) return 0;
 		Counter(n) = (int16_t)(Counter(n) + 1);
 		if (Counter(n) < 0x8C) return 0;
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x18)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x18)
 			if (At<uint8_t>(e, 0) & 2) At<int32_t>(e, 0) = 0;
 		return TASK_END;
 	}
@@ -1942,7 +1963,7 @@ namespace gu066
 	static void StartWave()
 	{
 		Centre()[1] = (int16_t)(Centre()[1] + 0x7D0);
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_WaveTask);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_WaveTask));
 		At<int16_t>(n, 0x10) = Centre()[0];
 		At<int16_t>(n, 0x12) = Centre()[1];
 		At<int16_t>(n, 0xC) = 0;
@@ -2007,9 +2028,9 @@ namespace gu066
 
 	static void StartSwirls()
 	{
-		uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_SwirlTask);
-		At<uint32_t>(n, 0x10) = var<uint32_t>(0x24C9170);
-		At<uint32_t>(n, 0x14) = var<uint32_t>(0x24C9174);
+		uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_SwirlTask));
+		At<uint32_t>(n, 0x10) = var<uint32_t>(own::R(0x24C9170));
+		At<uint32_t>(n, 0x14) = var<uint32_t>(own::R(0x24C9174));
 		At<int16_t>(n, 0x12) = (int16_t)(At<int16_t>(n, 0x12) + (int16_t)0xFC18);
 		At<int16_t>(n, 0xC) = 0;
 		At<int16_t>(n, 0xE) = 0x22;
@@ -2020,9 +2041,9 @@ namespace gu066
 		At<int16_t>(n, 0x1E) = 1;
 		At<int16_t>(n, 0x20) = 0x1000;
 		At<int16_t>(n, 0x22) = 0xC;
-		n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_SwirlTask);
-		At<uint32_t>(n, 0x10) = var<uint32_t>(0x24C9170);
-		At<uint32_t>(n, 0x14) = var<uint32_t>(0x24C9174);
+		n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_SwirlTask));
+		At<uint32_t>(n, 0x10) = var<uint32_t>(own::R(0x24C9170));
+		At<uint32_t>(n, 0x14) = var<uint32_t>(own::R(0x24C9174));
 		At<int16_t>(n, 0xC) = 0;
 		At<int16_t>(n, 0xE) = 0x24;
 		At<int16_t>(n, 0x16) = 0xC;
@@ -2032,9 +2053,9 @@ namespace gu066
 		At<int16_t>(n, 0x1E) = 1;
 		At<int16_t>(n, 0x20) = 0xE00;
 		At<int16_t>(n, 0x22) = 0xC;
-		n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_SwirlTask);
-		At<uint32_t>(n, 0x10) = var<uint32_t>(0x24C9170);
-		At<uint32_t>(n, 0x14) = var<uint32_t>(0x24C9174);
+		n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_SwirlTask));
+		At<uint32_t>(n, 0x10) = var<uint32_t>(own::R(0x24C9170));
+		At<uint32_t>(n, 0x14) = var<uint32_t>(own::R(0x24C9174));
 		At<int16_t>(n, 0x12) = (int16_t)(At<int16_t>(n, 0x12) + 0x4B0);
 		At<int16_t>(n, 0xC) = 0;
 		At<int16_t>(n, 0xE) = 0x20;
@@ -2099,9 +2120,9 @@ namespace gu066
 
 	static void StartFlare()
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_FlareTask);
-		At<uint32_t>(n, 0x10) = var<uint32_t>(0x24C9170);
-		At<uint32_t>(n, 0x14) = var<uint32_t>(0x24C9174);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_FlareTask));
+		At<uint32_t>(n, 0x10) = var<uint32_t>(own::R(0x24C9170));
+		At<uint32_t>(n, 0x14) = var<uint32_t>(own::R(0x24C9174));
 		At<int16_t>(n, 0x12) = (int16_t)(At<int16_t>(n, 0x12) + 0x118);
 		At<int16_t>(n, 0xC) = 0;
 		At<int16_t>(n, 0x18) = (int16_t)(CrtRand() % 0x1000);
@@ -2121,11 +2142,11 @@ namespace gu066
 		const uint32_t w = (uint32_t)FieldAlloc(0x48);
 		if (!DrawOnly() && Counter(n) <= 0x6E)
 		{
-			At<uint32_t>(w, 0) = var<uint32_t>(0x24C9170);
-			At<uint32_t>(w, 4) = var<uint32_t>(0x24C9174);
+			At<uint32_t>(w, 0) = var<uint32_t>(own::R(0x24C9170));
+			At<uint32_t>(w, 4) = var<uint32_t>(own::R(0x24C9174));
 			for (int k = 0; k < 2; k++)
 			{
-				const uint32_t e = PoolFree(POOL2, POOL2_END, 200);
+				const uint32_t e = PoolFree(own::R(POOL2), own::R(POOL2_END), 200);
 				if (!e) break;
 				At<int32_t>(e, 0) = 1;
 				At<int16_t>(e, 4) = 0;
@@ -2140,8 +2161,8 @@ namespace gu066
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		SpriteBegin(w, h, 0xDE45D0);
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
-		FX_HELD(held_note_pool(ORIG_ShardSpin, n, w, POOL2);)
-		for (uint32_t e = POOL2; e < POOL2_END; e += 0x18)
+		FX_HELD(held_note_pool(ORIG_ShardSpin, n, w, own::R(POOL2));)
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x18)
 		{
 			if (!(At<uint8_t>(e, 0) & 1)) continue;
 			SpritePushed(w, h, e, -(At<int16_t>(e, 6) >> 3), At<int16_t>(e, 4));
@@ -2156,7 +2177,7 @@ namespace gu066
 		if (DrawOnly()) return 0;
 		Counter(n) = (int16_t)(Counter(n) + 1);
 		if (Counter(n) < 0x78) return 0;
-		for (uint32_t e = POOL2; e < POOL2_END; e += 0x18)
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x18)
 			if (At<uint8_t>(e, 0) & 1) At<int32_t>(e, 0) = 0;
 		return TASK_END;
 	}
@@ -2199,7 +2220,7 @@ namespace gu066
 		{
 			for (int k = 0; k < 1; k++)
 			{
-				const uint32_t e = PoolFree(POOL1, POOL1_END, 100);
+				const uint32_t e = PoolFree(own::R(POOL1), own::R(POOL1_END), 100);
 				if (!e) break;
 				At<int32_t>(e, 0) = 1;
 				At<int16_t>(e, 4) = 0;
@@ -2216,14 +2237,14 @@ namespace gu066
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		h->model = 0xDE90CC;
 		At<uint32_t>((uint32_t)h, 8) = 0;
-		TransformCameraByShadowRotation((const void *)0x24C9170, 0x1000, -1000);
+		TransformCameraByShadowRotation((const void *)own::R(0x24C9170), 0x1000, -1000);
 		At<int16_t>(w, 2) = 0;
 		At<int16_t>(w, 0) = 0;
 		At<int32_t>(w, 0x50) = 0x2800;
 		At<int32_t>(w, 0x4C) = 0x2800;
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
-		FX_HELD(held_note_pool(ORIG_SparkRain, n, w, POOL1);)
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x18)
+		FX_HELD(held_note_pool(ORIG_SparkRain, n, w, own::R(POOL1));)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x18)
 		{
 			if (!(At<uint8_t>(e, 0) & 1)) continue;
 			SparkRainDraw(w, h, e);
@@ -2246,7 +2267,7 @@ namespace gu066
 		if (DrawOnly()) return 0;
 		Counter(n) = (int16_t)(Counter(n) + 1);
 		if (Counter(n) < 0x78) return 0;
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x18)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x18)
 			if (At<uint8_t>(e, 0) & 1) At<int32_t>(e, 0) = 0;
 		return TASK_END;
 	}
@@ -2257,9 +2278,9 @@ namespace gu066
 	// ------------------------------------------------------------------
 	static void ScreenAnchor(const int16_t *pos, int16_t scale, int32_t zoff)
 	{
-		At<int16_t>(BILLBOARD, 0x10) = scale;
-		At<int16_t>(BILLBOARD, 8) = scale;
-		At<int16_t>(BILLBOARD, 0) = scale;
+		At<int16_t>(own::R(BILLBOARD), 0x10) = scale;
+		At<int16_t>(own::R(BILLBOARD), 8) = scale;
+		At<int16_t>(own::R(BILLBOARD), 0) = scale;
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
 		GteLoadV0(pos);
@@ -2268,11 +2289,11 @@ namespace gu066
 		GteReadSXY2(xy);
 		const int16_t sx = (int16_t)(xy[0] / 8);
 		const int16_t sy = (int16_t)(xy[1] / 8);
-		At<int32_t>(BILLBOARD, 0x14) = sx - 0xA0;
-		At<int32_t>(BILLBOARD, 0x18) = sy - 0x6C;
-		At<int32_t>(BILLBOARD, 0x1C) = var<int16_t>(0x1D8E038) + zoff;
-		GteSetRotMatrix((const Mat4x3 *)BILLBOARD);
-		GteSetTransVector((const Mat4x3 *)BILLBOARD);
+		At<int32_t>(own::R(BILLBOARD), 0x14) = sx - 0xA0;
+		At<int32_t>(own::R(BILLBOARD), 0x18) = sy - 0x6C;
+		At<int32_t>(own::R(BILLBOARD), 0x1C) = var<int16_t>(0x1D8E038) + zoff;
+		GteSetRotMatrix((const Mat4x3 *)own::R(BILLBOARD));
+		GteSetTransVector((const Mat4x3 *)own::R(BILLBOARD));
 	}
 
 	// Billboard (0x627510, from 0x6274D0 at the centre): model 0xDE87FC scaled (+0x1C, +0x20, 0),
@@ -2316,10 +2337,10 @@ namespace gu066
 
 	static void StartBillboard()
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_Billboard);
-		At<uint32_t>(n, 0x10) = var<uint32_t>(0x24C9170);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_Billboard));
+		At<uint32_t>(n, 0x10) = var<uint32_t>(own::R(0x24C9170));
 		At<int16_t>(n, 0xC) = 0;
-		At<uint32_t>(n, 0x14) = var<uint32_t>(0x24C9174);
+		At<uint32_t>(n, 0x14) = var<uint32_t>(own::R(0x24C9174));
 		At<int16_t>(n, 0x1E) = 0x600;
 		At<int16_t>(n, 0x1C) = 0x600;
 		At<int16_t>(n, 0x20) = 0x20;
@@ -2368,10 +2389,10 @@ namespace gu066
 
 	static void StartBillboard2()
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_Billboard2);
-		At<uint32_t>(n, 0x10) = var<uint32_t>(0x24C9170);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_Billboard2));
+		At<uint32_t>(n, 0x10) = var<uint32_t>(own::R(0x24C9170));
 		At<int16_t>(n, 0xC) = 0;
-		At<uint32_t>(n, 0x14) = var<uint32_t>(0x24C9174);
+		At<uint32_t>(n, 0x14) = var<uint32_t>(own::R(0x24C9174));
 		At<int16_t>(n, 0x1E) = 0x1D5;
 		At<int16_t>(n, 0x1C) = 0x1D5;
 	}
@@ -2468,11 +2489,11 @@ namespace gu066
 
 	static void StartDustFall2()
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_DustFall2);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_DustFall2));
 		At<int16_t>(n, 0x10) = Centre()[0];
 		At<int16_t>(n, 0xC) = 0;
 		At<int16_t>(n, 0x12) = 0;
-		At<int16_t>(n, 0x14) = (int16_t)(var<int32_t>(0x24C9174) + 0x1DB0);
+		At<int16_t>(n, 0x14) = (int16_t)(var<int32_t>(own::R(0x24C9174)) + 0x1DB0);
 		uint32_t e = ShardTable();
 		Pool4() = e;
 		for (int k = 0; k < 400; k++, e += 0x18)
@@ -2517,7 +2538,7 @@ namespace gu066
 
 	static void StartDustFall()
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), ORIG_DustFall);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QMaster(), own::Fn(ORIG_DustFall));
 		At<int16_t>(n, 0xC) = 0;
 		uint32_t e = TexBase();
 		Pool3() = e;
@@ -2567,6 +2588,31 @@ namespace gu066
 	// ------------------------------------------------------------------
 	// RootTask (0x627DF0)
 	// ------------------------------------------------------------------
+	// File loader (0x6225F0) and setup (0x622610): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its target and caster slots, the root and the master, both particle pools
+	// freed, the caster's matrix kept
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x24C66B4)) = ctx->actions->targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x24C66B8), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x24C8318), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Master)) + 0xC) = 0;
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x18) *(uint32_t *)e = 0;
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x18) *(uint32_t *)e = 0;
+		memcpy((void *)own::R(CASTER_FRAME), Entity(CasterSlot()) + 0x40, 0x20);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
@@ -2588,7 +2634,7 @@ namespace gu066
 	static uint32_t __cdecl Master(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)CASTER_FRAME, (Mat4x3 *)CASTER_VIEW);
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)own::R(CASTER_FRAME), (Mat4x3 *)own::R(CASTER_VIEW));
 		const uint32_t uf = UpdateFlags();
 		if (uf & 0x201)
 		{
@@ -2597,7 +2643,7 @@ namespace gu066
 		}
 		if (Counter(n) == 0)
 		{
-			CameraScriptStart(0xDEA484, CASTER_FRAME, Caster(), QMaster(), 0);
+			CameraScriptStart(0xDEA484, own::R(CASTER_FRAME), Caster(), QMaster(), 0);
 			ArmCameraReturn();
 			*(int32_t *)(Caster() + 0x7C) = 3;
 			Voice() = ClaimVoiceSlot((const void *)0xDEA20C, 1, 0x80);
@@ -2628,7 +2674,7 @@ namespace gu066
 				Centre()[1] = (int16_t)((p2[1] + p1[1]) / 2);
 				Centre()[2] = (int16_t)((p2[2] + p1[2]) / 2);
 				const int32_t size = *(const int16_t *)(Caster() + 0x26);
-				Push() = (int16_t)((size * 1450) >> 13);
+				Push() = (int16_t)((size * PG().melt.push) >> 13);
 				MusicStop(0);
 			}
 			else if (c == 1)
@@ -2717,16 +2763,16 @@ namespace gu066
 				SfxVolumeTrans(0x78, 0);
 		}
 		const int16_t t = Counter(n);
-		if (t <= 0x20)
+		if (t <= PG().flash.flash_in)
 			SetScreenFlash((uint32_t)(t << 6), 0);
-		else if (t >= 0x281 && t < 0x291)
-			SetScreenFlash((uint32_t)((0x291 - t) << 7), 0);
-		if (Counter(n) == 0x19)
+		else if (t >= PG().flash.flash_out_from && t < PG().flash.flash_out_from + 0x10)
+			SetScreenFlash((uint32_t)((PG().flash.flash_out_from + 0x10 - t) << 7), 0);
+		if (Counter(n) == PG().master.damage)
 			ApplyActionResultToTarget(Ctx()->actions->targets);
-		if (Counter(n) == 0x33D && VoiceBusy(Voice()))
+		if (Counter(n) == PG().master.voice && VoiceBusy(Voice()))
 			VoiceRelease(Voice());
 		Counter(n) = (int16_t)(Counter(n) + 1);
-		if (Counter(n) <= 0x340) return 0;
+		if (Counter(n) <= PG().master.end) return 0;
 		SetScreenFlash(0x1000, 0);
 		var<uint32_t>(0xB8B800) = var<uint32_t>(0xB8B7F0);
 		var<uint32_t>(0xB8B804) = var<uint32_t>(0xB8B7F4);
@@ -2737,36 +2783,86 @@ namespace gu066
 		ChainTransformation(Caster(), 1);
 		return TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define GP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(GDeathParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Its 0x341-tick timeline: the camera script, the chain transformations, the caster melting into shards, sparks, dust, glows, waves, rings, flares, billboards, the flashes; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flash", "Screen flash", "Up to its tick (by 64 a tick), back down from its tick (by 128 a tick, 16 ticks)" },
+		};
+		static const Field FIELDS[] = {
+			GP("master", master.damage, "Damage tick", "", 0, 0x340),
+			GP("master", master.voice, "Voice release", "", 0, 0x340),
+			GP("master", master.end, "End after", "The camera put back and the effect done after this tick", 0x33D, 0x400),
+			GP("master", melt.push, "Shard push", "The shards' push: the caster's size times this / 8192", 0, 0x2000),
+			GP("master", flash.flash_in, "Up to", "", 0, 0x40),
+			GP("master", flash.flash_out_from, "Down from", "", 0x21, 0x330),
+		};
+#undef GP
+	}
 }
 
 	void register_mag066_griever_ultimecia_death()
 	{
+		fxp::register_params({ 66, "Griever's death", &gu066::live, &gu066::GAME, sizeof(gu066::GDeathParams),
+		                       gu066::table::PARTS, (int)(sizeof(gu066::table::PARTS) / sizeof(gu066::table::PARTS[0])),
+		                       gu066::table::FIELDS, (int)(sizeof(gu066::table::FIELDS) / sizeof(gu066::table::FIELDS[0])),
+		                       gu066::table::GROUPS, (int)(sizeof(gu066::table::GROUPS) / sizeof(gu066::table::GROUPS[0])) });
+		own::note(gu066::ORIG_FileLoader, (void *)gu066::FileLoader);
+		own::note(gu066::ORIG_Setup, (void *)gu066::Setup);
+		own::note(gu066::ORIG_RootTask, (void *)gu066::RootTask);
 		register_port(gu066::ORIG_RootTask, (void *)gu066::RootTask, "G066 RootTask", 66);
+		own::note(gu066::ORIG_Master, (void *)gu066::Master);
 		register_port(gu066::ORIG_Master, (void *)gu066::Master, "G066 Master", 66);
+		own::note(gu066::ORIG_FadeTask, (void *)gu066::FadeTask);
 		register_port(gu066::ORIG_FadeTask, (void *)gu066::FadeTask, "G066 FadeTask", 66);
+		own::note(gu066::ORIG_FeedbackA, (void *)gu066::FeedbackTask);
 		register_port(gu066::ORIG_FeedbackA, (void *)gu066::FeedbackTask, "G066 FeedbackA", 66);
+		own::note(gu066::ORIG_FeedbackB, (void *)gu066::FeedbackTask);
 		register_port(gu066::ORIG_FeedbackB, (void *)gu066::FeedbackTask, "G066 FeedbackB", 66);
+		own::note(gu066::ORIG_SparkTask, (void *)gu066::SparkTask);
 		register_port(gu066::ORIG_SparkTask, (void *)gu066::SparkTask, "G066 SparkTask", 66);
+		own::note(gu066::ORIG_SpawnerTask, (void *)gu066::SpawnerTask);
 		register_port(gu066::ORIG_SpawnerTask, (void *)gu066::SpawnerTask, "G066 SpawnerTask", 66);
+		own::note(gu066::ORIG_RingTask, (void *)gu066::RingTask);
 		register_port(gu066::ORIG_RingTask, (void *)gu066::RingTask, "G066 RingTask", 66);
+		own::note(gu066::ORIG_PuffTask, (void *)gu066::PuffTask);
 		register_port(gu066::ORIG_PuffTask, (void *)gu066::PuffTask, "G066 PuffTask", 66);
+		own::note(gu066::ORIG_DustTask, (void *)gu066::DustTask);
 		register_port(gu066::ORIG_DustTask, (void *)gu066::DustTask, "G066 DustTask", 66);
+		own::note(gu066::ORIG_SmokeTask, (void *)gu066::SmokeTask);
 		register_port(gu066::ORIG_SmokeTask, (void *)gu066::SmokeTask, "G066 SmokeTask", 66);
+		own::note(gu066::ORIG_MeltTask, (void *)gu066::MeltTask);
 		register_port(gu066::ORIG_MeltTask, (void *)gu066::MeltTask, "G066 MeltTask", 66);
+		own::note(gu066::ORIG_GlowTask, (void *)gu066::GlowTask);
 		register_port(gu066::ORIG_GlowTask, (void *)gu066::GlowTask, "G066 GlowTask", 66);
+		own::note(gu066::ORIG_WaveTask, (void *)gu066::WaveTask);
 		register_port(gu066::ORIG_WaveTask, (void *)gu066::WaveTask, "G066 WaveTask", 66);
+		own::note(gu066::ORIG_SwirlTask, (void *)gu066::SwirlTask);
 		register_port(gu066::ORIG_SwirlTask, (void *)gu066::SwirlTask, "G066 SwirlTask", 66);
+		own::note(gu066::ORIG_FlareTask, (void *)gu066::FlareTask);
 		register_port(gu066::ORIG_FlareTask, (void *)gu066::FlareTask, "G066 FlareTask", 66);
+		own::note(gu066::ORIG_ShardSpin, (void *)gu066::ShardSpin);
 		register_port(gu066::ORIG_ShardSpin, (void *)gu066::ShardSpin, "G066 ShardSpin", 66);
+		own::note(gu066::ORIG_SparkRain, (void *)gu066::SparkRain);
 		register_port(gu066::ORIG_SparkRain, (void *)gu066::SparkRain, "G066 SparkRain", 66);
+		own::note(gu066::ORIG_Billboard, (void *)gu066::Billboard);
 		register_port(gu066::ORIG_Billboard, (void *)gu066::Billboard, "G066 Billboard", 66);
+		own::note(gu066::ORIG_Billboard2, (void *)gu066::Billboard2);
 		register_port(gu066::ORIG_Billboard2, (void *)gu066::Billboard2, "G066 Billboard2", 66);
+		own::note(gu066::ORIG_DustFall2, (void *)gu066::DustFall2);
 		register_port(gu066::ORIG_DustFall2, (void *)gu066::DustFall2, "G066 DustFall2", 66);
+		own::note(gu066::ORIG_DustFall, (void *)gu066::DustFall);
 		register_port(gu066::ORIG_DustFall, (void *)gu066::DustFall, "G066 DustFall", 66);
+		own::note(gu066::ORIG_StageTask, (void *)gu066::StageTask);
 		register_port(gu066::ORIG_StageTask, (void *)gu066::StageTask, "G066 StageTask", 66);
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
 		FX_HELD(register_mag066_held();)
 	}
+	FX_LAB_MODULE(register_mag066_griever_ultimecia_death);
 }
 
 #ifdef FF8_FX_HELD
