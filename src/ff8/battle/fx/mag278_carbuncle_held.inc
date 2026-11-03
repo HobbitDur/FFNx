@@ -590,6 +590,9 @@ namespace c278
 		mark_held(c278::ORIG_OrbitTask);
 		mark_held(c278::ORIG_RingTask);
 		mark_held(c278::ORIG_BeamTask);
+		// the master's own one-tick draw (tick 2: screen tile + draw-env prims) is not redrawn by HeldFrame: the gate
+		// draws it as drawn (ff8fx::keep_drawn)
+		keep_drawn(c278::ORIG_SequenceTask);
 		register_module_held(278, c278::HeldReady, c278::HeldFrame);
 		register_module_camera(278, c278::mag278_held_camera);
 	}

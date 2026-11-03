@@ -2057,6 +2057,22 @@ extern int ffnx_cap_left, ffnx_cap_seq, ffnx_cap_div;
 extern char ffnx_cap_label[96], ffnx_cap_dir[260];
 static int ff8_bgate_cap_burst = 0;
 
+// END OF AN EFFECT, as the battle logic sees it. The action sequence ticks (BattleActionSequence_Tick_*, battle-stage
+// queue 0x500905: every host frame, BEFORE the effect tick of the frame) wait for C3_28_GF_data_pointer (0x1D96AAC, via
+// Magic_IsEffectOrCameraStillRunning) and g_HitEffectQueueBusy (0x1D96A90) to fall to 0. In vanilla the last tick of
+// vanilla frame F clears them and the sequence sees it on frame F + 1. At 30 fps the last real tick is host frame 2F and
+// the held frame 2F + 1 already saw the clear: everything the sequence does after the effect (camera return, next
+// animation, next effect) started 1/30 s early, over the effect's last picture. The gates keep both signals up through
+// the held frames after the last tick (the effect pointer: kept by the effect gate, released here at the next real frame
+// before any queue runs; the busy flag: see ff8_bgate_eq_tick_gate), so the sequence sees the end at the vanilla time.
+static uint32_t ff8_bgate_fx_end_hold = 0; // effect root queue that finished on the last real tick, kept in C3_28
+static void ff8_bgate_fx_end_release()
+{
+	if (!ff8_bgate_fx_end_hold) return;
+	if (*(uint32_t *)0x1D96AAC == ff8_bgate_fx_end_hold) *(uint32_t *)0x1D96AAC = 0; // (unless a new effect took its place)
+	ff8_bgate_fx_end_hold = 0;
+}
+
 int __cdecl ff8_bgate_bdlink_hook()
 {
 	if (ff8_bgate_left_battle)
@@ -2131,6 +2147,7 @@ int __cdecl ff8_bgate_bdlink_hook()
 	if (ff8_bgate_phase == 0)
 	{
 		ff8_bgate_feedback_req = 0; // re-armed by the effect if it still wants it this tick
+		ff8_bgate_fx_end_release();
 	}
 	else if (ff8_bgate_feedback_req && !ff8_bgate_fx_bypass && ff8_bgate_feedback_rearm)
 	{
@@ -3501,7 +3518,7 @@ static_assert(sizeof(ff8_bgate_exec_node) == 24, "SSIGPU execution node is 24 by
 static int16_t ff8_bgate_fx_node_bucket[FF8_BGATE_FX_MAX_PRIMS];
 
 // task node -> range of SSIGPU nodes it created (indices relative to the tick's first node)
-struct ff8_bgate_task_rng { void *node; uint16_t a, b; };
+struct ff8_bgate_task_rng { void *node; uint16_t a, b; uint32_t func; bool ended; }; // func: the function the task ran, ended: it returned TASK_END
 #define FF8_BGATE_TASK_LOG 1024
 
 // One real tick's worth of effect draws, copied
@@ -3554,6 +3571,10 @@ struct ff8_bgate_rec_t
 	void *blacklist[16];
 	int blacklist_n;
 	int last_r;           // queue return value of the last real tick (reported on held frames)
+	// the last real tick emptied the queue (r == 0): vanilla shows that tick's picture for its whole frame, so the held
+	// frames after it replay the tick's draws as drawn (snaps[cur]); dropped at the next real frame (ff8_bgate_tail_*)
+	bool tail;
+	bool tail_otclear;
 	ff8_bgate_fx_sum_t sum;
 	uint32_t out[FF8_BGATE_FX_ARENA_WORDS]; // held-frame packets (live until the frame is drawn)
 	ff8_bgate_fx_snap la;                   // tick N+1 (look-ahead), when available
@@ -3601,7 +3622,11 @@ static void ff8_bgate_etq_queue_start(ff8fx::TaskQueue *qv)
 	}
 }
 
-static bool ff8_bgate_etq_task_before(ff8fx::TaskQueue *q, ff8fx::TaskNode *, int index, uint32_t *cookie)
+// the function each running task was called with (a task may switch its node's function): one entry per nested call
+static uint32_t ff8_bgate_etq_fn_stack[64];
+static int ff8_bgate_etq_fn_depth = 0;
+
+static bool ff8_bgate_etq_task_before(ff8fx::TaskQueue *q, ff8fx::TaskNode *n, int index, uint32_t *cookie)
 {
 	if (index >= 65536)
 	{
@@ -3610,12 +3635,16 @@ static bool ff8_bgate_etq_task_before(ff8fx::TaskQueue *q, ff8fx::TaskNode *, in
 		return false;
 	}
 	*cookie = FF8_BGATE_EXEC_CUR;
+	if (ff8_bgate_etq_fn_depth < 64) ff8_bgate_etq_fn_stack[ff8_bgate_etq_fn_depth] = (uint32_t)n->func;
+	ff8_bgate_etq_fn_depth++;
 	return true;
 }
 
-static void ff8_bgate_etq_task_after(ff8fx::TaskQueue *, ff8fx::TaskNode *n, uint32_t, uint32_t before)
+static void ff8_bgate_etq_task_after(ff8fx::TaskQueue *, ff8fx::TaskNode *n, uint32_t ret, uint32_t before)
 {
 	uint32_t after = FF8_BGATE_EXEC_CUR;
+	uint32_t fn = (uint32_t)n->func;
+	if (ff8_bgate_etq_fn_depth > 0 && --ff8_bgate_etq_fn_depth < 64) fn = ff8_bgate_etq_fn_stack[ff8_bgate_etq_fn_depth];
 	if (ff8_bgate_etq_rec && after > before && before >= ff8_bgate_fx_rec_begin)
 	{
 		if (ff8_bgate_etq_log_n < FF8_BGATE_TASK_LOG)
@@ -3624,6 +3653,8 @@ static void ff8_bgate_etq_task_after(ff8fx::TaskQueue *, ff8fx::TaskNode *n, uin
 			e.node = n;
 			e.a = (uint16_t)((before - ff8_bgate_fx_rec_begin) / sizeof(ff8_bgate_exec_node));
 			e.b = (uint16_t)((after - ff8_bgate_fx_rec_begin) / sizeof(ff8_bgate_exec_node));
+			e.func = fn;
+			e.ended = (ret & 2) != 0;
 		}
 		else ff8_bgate_etq_log_overflow = true;
 	}
@@ -4401,6 +4432,97 @@ static void ff8_bgate_fx_replay(void *effect_ctx)
 	{
 		ff8_bgate_fx_replay_blacklist_add(effect_ctx);
 		ffnx_info("30fps: effect_ctx=%p faulted during held-frame replay -> blacklisted (native 15fps, no redraw)\n", effect_ctx);
+	}
+}
+
+// ENDING TASKS on a native held frame: a task that ends on a real tick (TASK_END after its draw) is gone from the live
+// queues the module's held part walks, but vanilla shows what it drew until the next tick. For the tasks whose module asks
+// for it (ff8fx::keep_ended), the packets the task drew on the last real tick are linked again as drawn (fraction 0: no
+// next tick to blend toward), in their place among the held draw's insertions [h0, h1): ff8fx::held_merge_kept gives the
+// order (the real tick's insertions, the held draw's taking the place of the others); the held draw's nodes are unlinked
+// from the heads of their buckets and every node is linked again in that order. If a held node is not at a bucket head
+// (own OT, cleared OT...) the kept packets are only added after the held draw.
+static uint32_t ff8_bgate_fx_kept_prims = 0; // stats (summary of the native held frames)
+static void ff8_bgate_fx_keep_ended_unsafe(uint32_t h0, uint32_t h1)
+{
+	const ff8_bgate_fx_snap &cur = ff8_bgate_fx_snaps[ff8_bgate_fx_cur];
+	if (!cur.valid || cur.ntasks <= 0 || h1 < h0 || (h1 - h0) % sizeof(ff8_bgate_exec_node) != 0) return;
+	static bool kept[FF8_BGATE_FX_MAX_PRIMS];
+	static ff8_bgate_pkt_info ki;
+	int nkept = 0;
+	for (int i = 0; i < cur.n; i++)
+	{
+		const int t = cur.task_of[i];
+		kept[i] = t >= 0 && ((cur.tasks[t].ended && ff8fx::keeps_ended(cur.tasks[t].func)) || ff8fx::keeps_drawn(cur.tasks[t].func));
+		// (VRAM transfers are never replayed, see ff8_bgate_fx_replay_unsafe)
+		if (kept[i] && !ff8_bgate_pkt_parse(&cur.arena[cur.prim[i].off], cur.prim[i].words, ki) && ki.last_cmd >= 0x80 && ki.last_cmd <= 0xDF) kept[i] = false;
+		if (kept[i]) nkept++;
+	}
+	if (!nkept) return;
+	uint32_t *ot = (uint32_t *)FF8_BGATE_CUR_OT();
+	const uint32_t SZ = sizeof(ff8_bgate_exec_node);
+	int nheld = (int)((h1 - h0) / SZ);
+	static int16_t held_bucket[FF8_BGATE_FX_MAX_PRIMS];
+	bool merge = nheld <= FF8_BGATE_FX_MAX_PRIMS;
+	if (merge)
+	{
+		for (int j = 0; j < nheld; j++) held_bucket[j] = -1;
+		int found = 0;
+		for (int b = 0; b < FF8_BGATE_OT_BUCKETS; b++)
+			for (uint32_t v = ot[b]; v >= h0 && v < h1 && (v - h0) % SZ == 0; )
+			{
+				const int j = (int)((v - h0) / SZ);
+				if (held_bucket[j] >= 0) break;
+				held_bucket[j] = (int16_t)b;
+				found++;
+				const ff8_bgate_exec_node *nd = (const ff8_bgate_exec_node *)v;
+				v = (nd->pkt[0] & 0xFFFFFF) | ((uint32_t)nd->link_hi << 24);
+			}
+		merge = found == nheld;
+	}
+	if (merge)
+		for (int b = 0; b < FF8_BGATE_OT_BUCKETS; b++)
+		{
+			uint32_t v = ot[b];
+			while (v >= h0 && v < h1 && (v - h0) % SZ == 0)
+			{
+				const ff8_bgate_exec_node *nd = (const ff8_bgate_exec_node *)v;
+				v = (nd->pkt[0] & 0xFFFFFF) | ((uint32_t)nd->link_hi << 24);
+			}
+			ot[b] = v;
+		}
+	uint32_t out_used = 0;
+	auto link = [&](ff8_bgate_exec_node *node, uint32_t *pkt, int bucket) {
+		const uint32_t old_head = ot[bucket];
+		node->pkt = pkt;
+		node->link_hi = (uint8_t)(old_head >> 24);
+		ot[bucket] = (uint32_t)node;
+		pkt[0] = (pkt[0] & 0xFF000000) | (old_head & 0xFFFFFF);
+	};
+	ff8fx::held_merge_kept(kept, cur.n, merge ? nheld : 0, [&](bool real, int k) {
+		if (!real) { ff8_bgate_exec_node *node = (ff8_bgate_exec_node *)(h0 + (uint32_t)k * SZ); link(node, node->pkt, held_bucket[k]); return; }
+		const ff8_bgate_fx_prim &e = cur.prim[k];
+		if (out_used + e.words > FF8_BGATE_FX_ARENA_WORDS || FF8_BGATE_EXEC_CUR - FF8_BGATE_EXEC_START >= FF8_BGATE_EXEC_LIMIT) return;
+		uint32_t *dst = &ff8_bgate_fx_out[out_used];
+		memcpy(dst, &cur.arena[e.off], e.words * 4);
+		out_used += e.words;
+		ff8_bgate_exec_node *node = (ff8_bgate_exec_node *)FF8_BGATE_EXEC_CUR;
+		memcpy(node->k, e.k, sizeof(node->k));
+		node->msk = e.msk;
+		FF8_BGATE_EXEC_CUR += SZ;
+		link(node, dst, e.bucket);
+		ff8_bgate_fx_kept_prims++;
+	});
+}
+
+static void ff8_bgate_fx_keep_ended(void *effect_ctx, uint32_t h0, uint32_t h1)
+{
+	if (ff8_bgate_fx_replay_is_blacklisted(effect_ctx)) return;
+	__try { ff8_bgate_fx_keep_ended_unsafe(h0, h1); }
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		ff8_bgate_fx_replay_blacklist_add(effect_ctx);
+		ffnx_info("30fps: effect_ctx=%p faulted while keeping the ended tasks' draws -> blacklisted\n", effect_ctx);
 	}
 }
 
@@ -5917,12 +6039,37 @@ static void ff8_bgate_fxv_summary(const char *name)
 {
 	if (!ff8_bgate_fxv_held_frames) return;
 	if (ff8_battle_fx_held_check)
-		ffnx_info("30fps held: %s native held frames=%u, checked=%u, frames with a leak=%u, old-frame prims not claimed by a held task=%u\n", name, ff8_bgate_fxv_held_frames, ff8_bgate_hc_checked, ff8_bgate_hc_leaks, ff8_bgate_fx_unclaimed_prims);
+		ffnx_info("30fps held: %s native held frames=%u, checked=%u, frames with a leak=%u, old-frame prims not claimed by a held task=%u, ended tasks' prims kept=%u\n", name, ff8_bgate_fxv_held_frames, ff8_bgate_hc_checked, ff8_bgate_hc_leaks, ff8_bgate_fx_unclaimed_prims, ff8_bgate_fx_kept_prims);
 	else
-		ffnx_info("30fps held: %s native held frames=%u\n", name, ff8_bgate_fxv_held_frames);
+		ffnx_info("30fps held: %s native held frames=%u, ended tasks' prims kept=%u\n", name, ff8_bgate_fxv_held_frames, ff8_bgate_fx_kept_prims);
 	ff8_bgate_fxv_held_frames = 0;
+	ff8_bgate_fx_kept_prims = 0;
 	ff8_bgate_hc_checked = ff8_bgate_hc_leaks = ff8_bgate_hc_logged = 0;
 	ff8_bgate_fx_unclaimed_prims = 0;
+}
+
+// --- tail of a finished queue (ff8_bgate_rec_t::tail) ---
+// The real tick that empties a queue (r == 0) draws its last picture; vanilla shows it until its next frame (1/15 s), so
+// the held frames after that tick replay its draws exactly as drawn. The magic effect tree's tick call is skipped once
+// the battle loop clears the effect pointer (0x500946): its tail is drawn from the hit-effect queue gate, which runs every
+// frame just before that call (same place in the frame). The next real frame drops it.
+static void ff8_bgate_tail_drop(ff8_bgate_rec_t *rec)
+{
+	if (!rec->tail) return;
+	rec->tail = rec->tail_otclear = false;
+	rec->snaps[rec->cur].valid = false;
+	memset(&rec->sum, 0, sizeof(rec->sum)); // (the tail's replays were reported with the finished queue)
+}
+
+static void ff8_bgate_tail_held(ff8_bgate_rec_t *rec)
+{
+	if (!rec->tail || ff8_bgate_phase == 0 || ff8_bgate_fx_mode == 3) return;
+	ff8_bgate_rec_t *save = ff8_bgate_R;
+	ff8_bgate_R = rec;
+	if (rec->tail_otclear)
+		((void (__cdecl *)(void *, int))0x45D530)((void *)FF8_BGATE_CUR_OT(), 4096); // the tick cleared the OT first, as every held frame of it does
+	ff8_bgate_fx_replay(rec->snaps[rec->cur].ctx);
+	ff8_bgate_R = save;
 }
 
 // Shared gate body for a recorded queue (ff8_bgate_R already selected): real frame =
@@ -5936,6 +6083,8 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 	{
 		// real frame: advance + draw at native rate; the draws it makes are the arena nodes
 		// created between these two cursor reads (see the recording note above)
+		ff8_bgate_tail_drop(ff8_bgate_R);
+		ff8_bgate_etq_fn_depth = 0;
 		ff8_bgate_fx_rec_begin = FF8_BGATE_EXEC_CUR;
 		ff8_bgate_fx_rec_ot = FF8_BGATE_CUR_OT();
 		if (ff8_bgate_R == &ff8_bgate_rec_fx)
@@ -5994,8 +6143,20 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 		if (ff8_bgate_R == &ff8_bgate_rec_fx) { ff8_bgate_tlb_real_tick(ctx, r); ff8_bgate_tla_real_tick(ctx, r); }
 		if (r == 0)
 		{
-			// queue empty = effect finished: never ghost-draw past the end, never pair
-			// with the next one
+			// queue empty = effect finished. Vanilla displays this last tick's draws for its whole frame: they are
+			// captured as any tick's and replayed as drawn on the held frames that follow (the tail, no in-between:
+			// there is no next tick), then dropped at the next real frame. Never paired with, nor drawn into, the
+			// next effect: the replay of a new effect stays off until its own first real tick.
+			bool tail = !ff8_bgate_fx_replay_is_blacklisted(ctx);
+			if (tail)
+			{
+				ff8_bgate_fx_capture(ctx);
+				tail = ff8_bgate_fx_snaps[ff8_bgate_fx_cur].valid && ff8_bgate_fx_snaps[ff8_bgate_fx_cur].n > 0;
+			}
+			if (tail && ff8_bgate_R == &ff8_bgate_rec_fx)
+				ff8_bgate_fx_recapture_pending = true; // what the display shows (packet aliasing), as any tick
+			ff8_bgate_R->tail = tail;
+			ff8_bgate_R->tail_otclear = tail && ff8_bgate_fx_otclear;
 			ff8_bgate_fx_summary("finished");
 			if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8_bgate_la_finish();
 			if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_gfc_ctx)
@@ -6009,7 +6170,8 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			}
 			ff8_bgate_fx_replay_ok = false;
 			ff8_bgate_fx_otclear = false;
-			ff8_bgate_fx_snaps[0].valid = ff8_bgate_fx_snaps[1].valid = false;
+			ff8_bgate_fx_snaps[ff8_bgate_fx_cur ^ 1].valid = false;
+			if (!tail) ff8_bgate_fx_snaps[ff8_bgate_fx_cur].valid = false;
 		}
 		else if (ff8_bgate_fx_replay_ok)
 		{
@@ -6060,11 +6222,14 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			memcpy(t_c18, (void *)0x1D99C18, sizeof(t_c18));
 			memcpy(t_ed0, (void *)0x21DFED0, sizeof(t_ed0));
 			ff8_bgate_hc_before(ff8_bgate_la_cur);
+			const uint32_t held_h0 = FF8_BGATE_EXEC_CUR;
 			__try { ff8fx::held_draw(eid, ff8_bgate_phase, ff8_bgate_n); }
 			__except (ff8_bgate_gfc_fault_filter(GetExceptionInformation()))
 			{
 				ffnx_info("30fps held: effect %d native held draw FAULT %08X at %08X\n", eid, ff8_bgate_gfc_fault_code, ff8_bgate_gfc_fault_addr);
 			}
+			// the tasks that ended on the last real tick keep their last picture (ff8fx::keep_ended)
+			ff8_bgate_fx_keep_ended(ctx, held_h0, FF8_BGATE_EXEC_CUR);
 			// the entities the effect moves: their next real tick's state (ff8_bgate_ent_*)
 			__try { ff8_bgate_ent_collect(eid); }
 			__except (EXCEPTION_EXECUTE_HANDLER) { ff8_bgate_nent_req = 0; }
@@ -6089,6 +6254,8 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 		return held_ret;
 	if (ff8_bgate_fx_replay_ok && ff8_bgate_fx_mode != 3)
 		ff8_bgate_fx_replay(ctx);
+	else if (ff8_bgate_R == &ff8_bgate_rec_eq)
+		ff8_bgate_tail_held(ff8_bgate_R); // (the effect tree's tail is drawn by the hit-effect queue gate)
 	return held_ret;
 }
 
@@ -6124,6 +6291,13 @@ int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
 	ff8_bgate_R = &ff8_bgate_rec_fx;
 	// 1 on held frames: still running (don't let the caller clear the effect pointer)
 	int r = ff8_bgate_gate_tick(effect_ctx, ff8_bgate_effect_tick_orig, 1);
+	if (r == 0 && ff8_bgate_phase == 0 && !ff8_bgate_fx_bypass && ff8_bgate_n > 1)
+	{
+		// finished: the pointer stays set through the held frames of this tick (the empty queue is not run again: held
+		// frames never tick), released at the next real frame (ff8_bgate_fx_end_release)
+		ff8_bgate_fx_end_hold = (uint32_t)effect_ctx;
+		return 1;
+	}
 	return r;
 }
 
@@ -6137,8 +6311,20 @@ static int (__cdecl *ff8_bgate_eq_tick_orig)(void *) = nullptr;
 int __cdecl ff8_bgate_eq_tick_gate(void *queue)
 {
 	ff8_bgate_R = &ff8_bgate_rec_eq;
+	const int prev_r = ff8_bgate_rec_eq.last_r;
 	int r = ff8_bgate_gate_tick(queue, ff8_bgate_eq_tick_orig, ff8_bgate_rec_eq.last_r);
 	ff8_bgate_R = &ff8_bgate_rec_fx;
+	// the busy flag (g_HitEffectQueueBusy = this return) falls when the queue empties: the real frame of that tick still
+	// reports the previous count, its held frames report 0, so the action sequences see the end on the next real frame,
+	// as in vanilla (see ff8_bgate_fx_end_hold)
+	if (r == 0 && prev_r != 0 && ff8_bgate_phase == 0 && !ff8_bgate_fx_bypass && ff8_bgate_n > 1)
+		r = prev_r;
+	// the magic effect tree's tail (its tick call, next in the frame, is skipped once the effect pointer is cleared)
+	if (!ff8_bgate_fx_bypass)
+	{
+		if (ff8_bgate_phase == 0) ff8_bgate_tail_drop(&ff8_bgate_rec_fx);
+		else ff8_bgate_tail_held(&ff8_bgate_rec_fx);
+	}
 	return r;
 }
 
@@ -6769,10 +6955,12 @@ static void ff8_bgate_battle_reset()
 		ff8_bgate_fx_summary("battle ended");
 		rec->snaps[0].valid = rec->snaps[1].valid = false;
 		rec->replay_ok = false;
+		rec->tail = rec->tail_otclear = false;
 		rec->blacklist_n = 0;
 		rec->last_r = 0;
 	}
 	ff8_bgate_R = &ff8_bgate_rec_fx;
+	ff8_bgate_fx_end_hold = 0;
 	ff8_bgate_gfc_reset();
 	ff8_bgate_tlb_reset();
 	ff8_bgate_tla_reset();

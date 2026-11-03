@@ -111,6 +111,52 @@ namespace ff8fx
 		}
 	}
 
+	// tasks whose ended draws the gate keeps on the held frames (keep_ended): same set layout
+	static uint32_t g_keep_tasks[HELD_TASKS_SIZE];
+	static int g_nkeep_tasks = 0;
+
+	void keep_ended(uint32_t orig)
+	{
+		if (!orig || keeps_ended(orig) || g_nkeep_tasks >= HELD_TASKS_SIZE / 2) return;
+		uint32_t h = task_slot(orig);
+		while (g_keep_tasks[h & (HELD_TASKS_SIZE - 1)]) h++;
+		g_keep_tasks[h & (HELD_TASKS_SIZE - 1)] = orig;
+		g_nkeep_tasks++;
+	}
+
+	bool keeps_ended(uint32_t orig)
+	{
+		for (uint32_t h = task_slot(orig);; h++)
+		{
+			uint32_t v = g_keep_tasks[h & (HELD_TASKS_SIZE - 1)];
+			if (!v) return false;
+			if (v == orig) return true;
+		}
+	}
+
+	// tasks the held frames never redraw (keep_drawn): the gate draws their packets of the tick
+	static uint32_t g_keep_drawn[HELD_TASKS_SIZE];
+	static int g_nkeep_drawn = 0;
+
+	void keep_drawn(uint32_t orig)
+	{
+		if (!orig || keeps_drawn(orig) || g_nkeep_drawn >= HELD_TASKS_SIZE / 2) return;
+		uint32_t h = task_slot(orig);
+		while (g_keep_drawn[h & (HELD_TASKS_SIZE - 1)]) h++;
+		g_keep_drawn[h & (HELD_TASKS_SIZE - 1)] = orig;
+		g_nkeep_drawn++;
+	}
+
+	bool keeps_drawn(uint32_t orig)
+	{
+		for (uint32_t h = task_slot(orig);; h++)
+		{
+			uint32_t v = g_keep_drawn[h & (HELD_TASKS_SIZE - 1)];
+			if (!v) return false;
+			if (v == orig) return true;
+		}
+	}
+
 	// ------------------------------------------------------------------ shared registrations
 	// the shared camera-script task 0x63E9C0 (Doomtrain's code file, mag191_doomtrain_held.inc)
 	// drives the camera of several modules (191 registers it itself)

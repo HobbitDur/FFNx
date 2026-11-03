@@ -979,6 +979,14 @@ namespace s185
 		mark_held(s185::ORIG_BlizzardTask);
 		mark_held(s185::ORIG_IceBlockTask);
 		mark_held(s185::ORIG_DustTask);
+		// HeldFrame walks the live sub-queue: a task that ends on a tick keeps its last picture through the gate
+		// (ff8fx::keep_ended: its packets of the tick, drawn as drawn, in their place among the held draw's)
+		static const uint32_t walked[] = { s185::ORIG_RingTask, s185::ORIG_ShatterTask, s185::ORIG_MountTask, s185::ORIG_GroundRingTask,
+			s185::ORIG_PuffTask, s185::ORIG_MistTask, s185::ORIG_IcicleTask, s185::ORIG_CreatureTask, s185::ORIG_SparkleTask,
+			s185::ORIG_HandGlowTask, s185::ORIG_SpikeRingTask, s185::ORIG_ShardBurstTask, s185::ORIG_OrbitSnowTask, s185::ORIG_GlowRingTask,
+			s185::ORIG_GlowIcicleTask, s185::ORIG_SnowfallTask, s185::ORIG_HaloTask, s185::ORIG_BlizzardTask, s185::ORIG_IceBlockTask,
+			s185::ORIG_DustTask };
+		for (uint32_t f : walked) keep_ended(f);
 		register_module_held(185, s185::HeldReady, s185::HeldFrame);
 	}
 }

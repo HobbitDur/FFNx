@@ -653,6 +653,10 @@ namespace d325
 		mark_held(d325::ORIG_TimelineTask);
 		mark_held(d325::ORIG_RisingTask);
 		mark_held(d325::ORIG_BurstTask);
+		// HeldFrame walks the live queues: a task that ends on a tick keeps its last picture through the gate (ff8fx::keep_ended)
+		keep_ended(d325::ORIG_TimelineTask);
+		keep_ended(d325::ORIG_RisingTask);
+		keep_ended(d325::ORIG_BurstTask);
 		register_module_held(325, d325::HeldReady, d325::HeldFrame);
 		register_module_camera(325, mag325_held_camera);
 	}

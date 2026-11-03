@@ -39,6 +39,29 @@ namespace ff8fx
 	// skips the packets those tasks drew on the last real tick)
 	void mark_held(uint32_t orig);
 	bool held_redraws(uint32_t orig);
+	// Tasks that end on a tick (TASK_END after their draw): vanilla shows what they drew for the whole tick, but a held
+	// part that walks the live task queues no longer finds them. keep_ended(orig) = the module's held frame does not
+	// redraw an ended orig task itself: the gate draws the packets that task drew on the last real tick, exactly as drawn
+	// (no next tick to blend toward), in their place among the held frame's insertions (held_merge_kept). A held part
+	// that redraws ended tasks from a draw list of the tick (DrawLog, 278) must not mark them.
+	void keep_ended(uint32_t orig);
+	bool keeps_ended(uint32_t orig);
+	// keep_drawn(orig): the module's held frame never redraws an orig task (a one-tick draw of a master task: a screen
+	// tile, draw-env prims...): the gate draws what it drew on the last real tick as drawn, ended or not (same merge)
+	void keep_drawn(uint32_t orig);
+	bool keeps_drawn(uint32_t orig);
+	// order of a held frame with kept insertions: the real tick's insertions in order, kept[i] = drawn again as drawn;
+	// every other real insertion takes the next insertion of the held draw, those left over come last. emit(true, i) =
+	// real insertion i, emit(false, j) = held insertion j. At fraction 0 a held draw that equals the real tick but for the
+	// ended tasks gives back the real tick's sequence exactly.
+	template<typename F> inline void held_merge_kept(const bool *kept, int nreal, int nheld, F emit)
+	{
+		int j = 0;
+		for (int i = 0; i < nreal; i++)
+			if (kept[i]) emit(true, i);
+			else if (j < nheld) emit(false, j++);
+		while (j < nheld) emit(false, j++);
+	}
 	// held-frame camera of an effect that writes the battle camera itself (eye / look-at words
 	// at 0xB8B7F0 / 0xB8B7F8): the module predicts the next tick's camera and returns the
 	// in-between one; false = it does not drive the camera now
