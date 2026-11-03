@@ -21,7 +21,11 @@
 // (Siren 095 and MiniMog 096 run to their end, every tick, every byte, every engine call).
 
 #include "act_engine.h"
+#if __has_include("../../../log.h")
 #include "../../../log.h"
+#else
+#define ffnx_error(...) ((void)0)   // (built outside FFNx: Fujin's effect lab and host)
+#endif
 
 #ifdef FF8_FX_HELD
 #include "act_engine_held.h"
