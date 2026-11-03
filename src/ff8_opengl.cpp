@@ -2058,7 +2058,7 @@ extern char ffnx_cap_label[96], ffnx_cap_dir[260];
 static int ff8_bgate_cap_burst = 0;
 
 // END OF AN EFFECT, as the battle logic sees it. The action sequence ticks (BattleActionSequence_Tick_*, battle-stage
-// queue 0x500905: every host frame, BEFORE the effect tick of the frame) wait for C3_28_GF_data_pointer (0x1D96AAC, via
+// queue 0x50090B: real frames only since ff8_bgate_stageq_gate, BEFORE the effect tick of the frame) wait for C3_28_GF_data_pointer (0x1D96AAC, via
 // Magic_IsEffectOrCameraStillRunning) and g_HitEffectQueueBusy (0x1D96A90) to fall to 0. In vanilla the last tick of
 // vanilla frame F clears them and the sequence sees it on frame F + 1. At 30 fps the last real tick is host frame 2F and
 // the held frame 2F + 1 already saw the clear: everything the sequence does after the effect (camera return, next
@@ -6301,6 +6301,28 @@ int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
 	return r;
 }
 
+// Battle-stage queue (ExecuteTaskQueue(g_BattleStageTaskQueue) @0x50090B, the FIRST queue of BdLink): the battle
+// LOGIC's state machines. Its first task is BattleTaskMainHandler (0x500CC0, the BATTLE_TASK_MANAGER FIFO: action
+// boundaries, processBattleActionCompletion = BATTLE_CURRENTLY_IN_ACTION 0x1D27B00 back to 0, text / fade / anim
+// requests), then the tasks it spawns: the action sequences (BattleActionSequence_Tick_* 0x50A9A0..0x50BEE0: wait for
+// the AnimSeq flags 0x10 / 0x20, the hit-effect queue, the effect pointer, the camera; start the effect; mark the
+// effect done; end the action), entity load / wait tasks, the r0win victory starter (0x503040), AI enable. All of it is
+// code that polls and moves one state per call: no data is played there (the sequences, animations and cameras it
+// starts are played by their own players, every host frame). Called every host frame, each state step took 1/30 s
+// instead of 1/15 s: every reaction of the battle logic came 1/30 s early (the effect started ~0.1 s early after the
+// cast's AnimSeq waits, and the 3 steps after the effect end - state 6 effect end, state 7 action-sequence done, the
+// completion callback - ended the action 3 host frames early: Fira at 30 fps ended ~0.2 s before vanilla). Real frames
+// only, like vanilla's one call per 15 Hz tick; on a real frame it runs before the effect tick, as in vanilla, so an
+// effect is always started on a real frame and gets its first tick in that same frame.
+static int (__cdecl *ff8_bgate_stageq_orig)(void *) = nullptr;
+
+int __cdecl ff8_bgate_stageq_gate(void *queue)
+{
+	if (ff8_bgate_phase != 0 && ff8_bgate_n > 1)
+		return 1; // (the caller ignores the return)
+	return ff8_bgate_stageq_orig(queue);
+}
+
 // Hit-effect queue (ExecuteTaskQueue(dword_1D96AA0) @0x500923, TASK_QUEUE 0x209FAA8): fed by
 // CreateCameraShakeTask, DispatchEffectCommand, CreateEffectTask* (weapon/monster impact
 // effects), the 99/B1 footstep particles, Renzokuken (MAG_141/159/160/161), MAG_332..343.
@@ -7141,6 +7163,9 @@ static void ff8_bgate_install_hooks()
 	replace_call(0x500971, (void *)ff8_bgate_entq_hook);
 	ff8_bgate_entrender_orig = (char(__cdecl *)(void *))get_relative_call(0x502B95, 0);
 	replace_call(0x502B95, (void *)ff8_bgate_entrender_hook);
+	// battle-stage queue (battle logic state machines): real frames only (see ff8_bgate_stageq_gate)
+	ff8_bgate_stageq_orig = (int(__cdecl *)(void *))get_relative_call(0x50090B, 0);
+	replace_call(0x50090B, (void *)ff8_bgate_stageq_gate);
 	// hit-effect queue: same record/replay pacing
 	ff8_bgate_eq_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x500923, 0);
 	replace_call(0x500923, (void *)ff8_bgate_eq_tick_gate);
@@ -7174,10 +7199,8 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_fade_orig = (int(__cdecl *)(uint8_t *))0x50C110;
 	ff8_bgate_fade_ri = replace_function(0x50C110, (void *)ff8_bgate_fade_hook);
 
-	// Magic cast safety timeout: BattleActionSequence_Tick_MagicCast (battle-stage queue, ticked every host
-	// frame) stops all sounds once "++MAGIC_EFFECT_TIMEOUT_CTR < 0x384" fails (cmp ax, imm16 @0x50ACB4):
-	// 0x384 * n host frames = the native 60 s
-	patch_code_word(0x50ACB4, (WORD)(0x384 * ff8_bgate_n));
+	// (Magic cast safety timeout "++MAGIC_EFFECT_TIMEOUT_CTR < 0x384" @0x50ACB4: no patch any more, the battle-stage
+	// queue that runs BattleActionSequence_Tick_MagicCast is paced to real frames: 0x384 calls = the native 60 s)
 
 	ffnx_info("battle %dfps: gates installed (n=%d -> UI %d ticks/frame, input latch %d; battle DATA at 30 Hz (data tick 1-in-%d): entity anims + AnimSeq VM + VM tasks + cameras unpaced; effects native-tick + draw replay)\n",
 		15 * ff8_bgate_n, ff8_bgate_n, 4 / ff8_bgate_n, 4 / ff8_bgate_n, ff8_bgate_data_div);
