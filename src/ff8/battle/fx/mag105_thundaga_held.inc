@@ -27,7 +27,8 @@
 //   Bolt    - the lightning model through prim::play_held: every object's exact in-between record
 //             (position, rotation, scale, colour, fade, morph weight); the UV scroll step of the
 //             scrolled parts holds (the frame the real tick drew). Morph vertices go to a private
-//             buffer.
+//             buffer. The anchor (the target's anchor 0xF1) is read with the target at its
+//             in-between pose.
 //   Capture - the frame-28 render-to-texture is replayed as drawn (private prim copies and arena).
 //   Shard   - position along its velocity, angles along the spin.
 //   Spark   - position along its velocity; sequence frame holds.
@@ -179,6 +180,31 @@ namespace thundaga105
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
 
+	// the bolt's anchor (the target's anchor 0xF1, read by BoltTask on every tick) at the target's in-between
+	// pose (pose_midpoint at num / den, as the target model is drawn): GetEffectSpawnPosition, then the real
+	// pose rebuilt and the word GetEffectSpawnPosition writes (0x1D9770C), the cursor 0x1D99C18 and the scratch put back (as
+	// mag005 / mag011); the caller restores the record's GTE state and scratch afterwards
+	static void HeldBoltAnchor(const BoltNode *p, BoltArg &arg, int num, int den)
+	{
+		uint8_t *e = p->entity;
+		if (!num || !e || !*(const uint32_t *)(e + 0x64)) return;
+		uint8_t *scratch = var<uint8_t *>(0x1D999C4);
+		uint8_t save[0x100];
+		memcpy(save, scratch, sizeof(save));
+		const int16_t w = var<int16_t>(0x1D9770C);
+		uint8_t c18[8];
+		memcpy(c18, (const void *)0x1D99C18, sizeof(c18)); // a polygon cursor the pose rebuild moves (the in-game gate puts it back too)
+		int16_t next[4] = {};
+		pose_midpoint(e + 0x60, e + 0x6C, num, den);
+		GetEffectSpawnPosition(e, 0xF1, 0, next);
+		fn<uint32_t (__cdecl *)(uint32_t)>(0x508C90)((uint32_t)(e + 0x60)); // BattleModel_BuildBoneMatricesFromPose: the real pose
+		var<int16_t>(0x1D9770C) = w;
+		memcpy((void *)0x1D99C18, c18, sizeof(c18));
+		memcpy(scratch, save, sizeof(save));
+		arg.pos[0] = next[0];
+		arg.pos[2] = next[2];
+	}
+
 	static void HeldFrame(int num, int den)
 	{
 		HeldScope scope(PacketCursor(), g_held_packets, sizeof(g_held_packets), g_packets);
@@ -198,6 +224,10 @@ namespace thundaga105
 			case REC_BOLT:
 			{
 				BoltArg arg = r.arg;
+				HeldBoltAnchor((const BoltNode *)r.live, arg, num, den);
+				memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
+				memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
+				memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
 				memcpy(g_morph, TexBase() + 0x2254, sizeof(g_morph));
 				arg.morph = g_morph;
 				g_part_held = true;

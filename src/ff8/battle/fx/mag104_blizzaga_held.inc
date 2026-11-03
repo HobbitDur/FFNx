@@ -31,7 +31,10 @@
 //   Ring           - size and depth cue half way, UV scroll half a step further.
 //   Flash model    - x / z size and fade half way.
 //   Ribbon, Spiral - their trails (a history of positions shifted each tick) hold: the draw is
-//                    replayed on the node as it was before the real draw.
+//                    replayed on the node as it was before the real draw, anchored on the target
+//                    at its in-between pose (the ribbon's camera-space anchor recomputed as its
+//                    task does, the spiral's anchor read by its draw); the spiral's spin and
+//                    growth half way to the next tick's.
 //   Sparkle, Mist, Flake - position half way; flipbook frame holds.
 // The last tick of a task (it ends after its draw) holds.
 
@@ -55,7 +58,7 @@ namespace blizzaga104
 	static FreezeRec *g_frozen_rec = nullptr; // frozen draw being recorded (its frame cursor after the shadow)
 	static FreezeRec g_freeze[16];
 	static int g_nfreeze = 0;
-	struct TrailRec { int rec; uint8_t node[sizeof(RibbonNode)]; };
+	struct TrailRec { int rec; const uint8_t *live; uint8_t node[sizeof(RibbonNode)]; };
 	static TrailRec g_trails[16];
 	static int g_ntrails = 0;
 
@@ -142,10 +145,65 @@ namespace blizzaga104
 		if (g_draws.n != n + 1 || g_ntrails >= 16) return;
 		TrailRec &t = g_trails[g_ntrails++];
 		t.rec = n;
+		t.live = (const uint8_t *)node;
 		memcpy(t.node, node, fn == ORIG_RibbonTask ? sizeof(RibbonNode) : sizeof(SpiralNode));
 	}
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_draws.current(); }
+
+	// a held draw that reads the target's anchor (GetEffectSpawnPosition) sees the target at its in-between
+	// pose (pose_midpoint at num / den); afterwards the real pose is rebuilt and the word
+	// GetEffectSpawnPosition writes (0x1D9770C) and the Field_Alloc scratch are put back (as mag005 / mag011)
+	struct HeldPoseAt
+	{
+		uint8_t *e;
+		bool on;
+		int16_t w;
+		uint8_t save[0x100], c18[8];
+		HeldPoseAt(uint8_t *ent, int num, int den) : e(ent), on(num != 0 && ent && *(const uint32_t *)(ent + 0x64) != 0), w(0)
+		{
+			if (!on) return;
+			memcpy(save, var<uint8_t *>(0x1D999C4), sizeof(save));
+			w = var<int16_t>(0x1D9770C);
+			memcpy(c18, (const void *)0x1D99C18, sizeof(c18)); // a polygon cursor the pose rebuild moves (the in-game gate puts it back too)
+			pose_midpoint(e + 0x60, e + 0x6C, num, den);
+		}
+		~HeldPoseAt()
+		{
+			if (!on) return;
+			fn<uint32_t (__cdecl *)(uint32_t)>(0x508C90)((uint32_t)(e + 0x60)); // BattleModel_BuildBoneMatricesFromPose: the real pose
+			var<int16_t>(0x1D9770C) = w;
+			memcpy((void *)0x1D99C18, c18, sizeof(c18));
+			memcpy(var<uint8_t *>(0x1D999C4), save, sizeof(save));
+		}
+	};
+
+	// the ribbon's anchor (the target's anchor 0xF1 in camera space, computed by RibbonTask before its
+	// draw on every tick) recomputed as RibbonTask does with the target at its in-between pose and the
+	// frame's camera; the GTE is the record's again for the draw (BeginReplay)
+	static void RibbonAnchorHeld(RibbonNode *r, int num, int den)
+	{
+		HeldPoseAt pose(r->entity, num, den);
+		if (!pose.on) return;
+		int16_t pos[4];
+		GetEffectSpawnPosition(r->entity, 0xF1, 0, pos);
+		pos[1] = EntityHeight2(r->entity);
+		GteSetRotMatrix(&Camera());
+		GteSetTransVector(&Camera());
+		GteLoadV0(pos);
+		GteMVMVA_RotV0Tr();
+		GteReadMAC123(r->m.t);
+	}
+
+	// the spiral's spin (yaw) and growth (scale) num / den of the way to the values its update after the
+	// real draw left in the live node (drawn on the next tick); the growth start (scale reset when the
+	// freeze counter reaches 0x1C: the acceleration is set) and a node that ended or was reused hold
+	static void SpiralSpinHeld(SpiralNode *s, const SpiralNode *live, int num, int den)
+	{
+		if (!num || !live || live->counter != (int16_t)(s->counter + 1)) return;
+		s->yaw = lerp16(s->yaw, live->yaw, num, den);
+		if (live->scale_acc == s->scale_acc) s->scale = lerp16(s->scale, live->scale, num, den);
+	}
 
 	static const FreezeRec *FreezeOf(int rec)
 	{
@@ -307,8 +365,19 @@ namespace blizzaga104
 					if (g_trails[k].rec != i) continue;
 					static uint8_t copy[sizeof(RibbonNode)];
 					memcpy(copy, g_trails[k].node, sizeof(copy));
-					if (r.fn == ORIG_RibbonTask) RibbonDraw((RibbonNode *)copy);
-					else SpiralDraw((SpiralNode *)copy);
+					if (r.fn == ORIG_RibbonTask)
+					{
+						RibbonNode *rn = (RibbonNode *)copy;
+						if (num) RibbonAnchorHeld(rn, num, den);
+						RibbonDraw(rn);
+					}
+					else
+					{
+						SpiralNode *sn = (SpiralNode *)copy;
+						SpiralSpinHeld(sn, (const SpiralNode *)g_trails[k].live, num, den);
+						HeldPoseAt pose(sn->entity, num, den);
+						SpiralDraw(sn);
+					}
 				}
 				break;
 			}
