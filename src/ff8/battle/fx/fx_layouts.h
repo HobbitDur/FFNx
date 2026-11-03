@@ -176,7 +176,8 @@ namespace layouts
 
 		// the quads of the list at header +0x20 (flat: 0x18-byte records, 0x28-byte packets; gouraud:
 		// 0x24-byte records, 0x34-byte packets), each projected, clipped, faded, bucketed by its depth >> shift
-		static uint32_t Quads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor, bool gouraud)
+		// (depth: Zombie's, the OTZ + the header's +0x18 depth, clamped at 0)
+		static uint32_t Quads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor, bool gouraud, bool depth = false)
 		{
 			const uint32_t size = gouraud ? 0x24 : 0x18;   // a record
 			const uint32_t v1 = gouraud ? 0x14 : 0x10, v2 = gouraud ? 0x20 : 0x18, v3 = gouraud ? 0x2C : 0x20;   // its packet's vertices
@@ -238,6 +239,12 @@ namespace layouts
 					F<uint32_t>(pk, 0x1C) = *(const uint32_t *)(rec + 0x1C);
 					F<uint32_t>(pk, 0x28) = *(const uint32_t *)(rec + 0x20);
 				}
+				if (depth)
+				{
+					const int32_t z = (int32_t)((uint32_t)F<int32_t>(h, 0x2C) + (uint32_t)F<int32_t>(h, 0x18));
+					F<int32_t>(h, 0x2C) = z;
+					if (z < 0) F<int32_t>(h, 0x2C) = 0;
+				}
 				const uint32_t bucket = ot + (uint32_t)(F<int32_t>(h, 0x2C) >> shift) * 4;
 				uint8_t *quad = pk;
 				uint8_t *mode = pk + v3 + 8;
@@ -260,12 +267,20 @@ namespace layouts
 		}
 	}
 
-	// the model's lists 4 (flat textured quads) and 8 (gouraud textured quads), additive
-	inline uint32_t AdditiveQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
+	// the model's lists 4 (flat textured quads) and 8 (gouraud textured quads), additive; gouraud
+	// only: list 8 alone, its depth + the header's, clamped at 0 (Zombie 0x6CA0E0 / 0x6CA1B0)
+	inline uint32_t AdditiveQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor, bool gouraud_only = false)
 	{
 		using quads::SkipList;
 		const uint8_t *model = parts::F<uint8_t *>(h, 0);
 		const uint8_t *p = model + *(const uint32_t *)model;
+		if (gouraud_only)
+		{
+			static const uint32_t before[] = { 12, 12, 20, 24, 20, 24, 28 };
+			parts::F<const uint8_t *>(h, 0x20) = p;
+			for (uint32_t size : before) parts::F<const uint8_t *>(h, 0x20) = p = SkipList(p, size);
+			return quads::Quads(h, ot, shift, cursor, true, true);
+		}
 		const uint32_t before_flat[] = { 12, 12, 20 }, before_gouraud[] = { 20, 24, 28 };
 		parts::F<const uint8_t *>(h, 0x20) = p;
 		for (uint32_t size : before_flat) parts::F<const uint8_t *>(h, 0x20) = p = SkipList(p, size);
@@ -289,6 +304,7 @@ namespace layouts
 		ANCHOR_ROT_ZYX = 0x400,          // rotation from the angles in ZYX order (0x701430)
 		ANCHOR_MATRIX = 0x1000,          // the anchor through the camera + the offset through the arg's matrix (composed with it)
 		ANCHOR_NOT_COMPOSED = 0x8000,    // the rotation not composed with the camera
+		ANCHOR_ROT_XZY = 0x20000,        // rotation from the angles in XZY order (0x701530, Zombie)
 		ANCHOR_ROT_YXZ = 0x40000,        // rotation from the angles in YXZ order (0x7015B0)
 	};
 #pragma pack(push, 1)
@@ -308,10 +324,12 @@ namespace layouts
 		bool engine_draw = false;       // Blind: drawn by the engine's renderer 0x572200, the header's depth not written, not 0x7043B0
 		int32_t ot_shift = 2;           // the renderers' depth shift (Blind: 3)
 		uint32_t additive_objects = 0;  // these objects (a bit each) drawn as their textured quads only, additive (Blind: 0 and 3)
+		bool quads_gouraud_only = false; // Zombie: those objects' gouraud quads only, their depth + the header's, clamped at 0
 	};
 #pragma pack(pop)
 	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
 	inline void RotationFromAnglesZYX(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); } // MAG_117_RotationFromAnglesZYX
+	inline void RotationFromAnglesXZY(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701530)(angles, out); } // MAG_065_RotationFromAnglesXZY
 	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }       // MatrixMultiply3x3: a = a * b
 
 	static void __cdecl AnchorPrimCallback(prim::Layout *l, prim::Record *r, int arg_)
@@ -353,6 +371,7 @@ namespace layouts
 		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 word only)
 		if (flags & ANCHOR_ROT_YXZ) RotationFromAnglesYXZ(r->rot, &m);
 		else if (flags & ANCHOR_ROT_ZYX) RotationFromAnglesZYX(r->rot, &m);
+		else if (flags & ANCHOR_ROT_XZY) RotationFromAnglesXZY(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
 		// the record's offset (turned by the object's rotation: Blind's), scaled by the arg's scale when
 		// it has one (Aero's WindPart)
@@ -458,7 +477,7 @@ namespace layouts
 			*(int32_t *)(h + 0x18) = arg->depth;
 			if ((int32_t)(int16_t)r->flags_lo == arg->nearer_object) *(int32_t *)(h + 0x18) = (int32_t)((uint32_t)arg->depth - (uint32_t)arg->nearer_by);
 		}
-		if ((uint32_t)object < 32 && (arg->additive_objects >> object & 1)) *arg->cursor = AdditiveQuads(h, RenderOT(), arg->ot_shift, *arg->cursor);
+		if ((uint32_t)object < 32 && (arg->additive_objects >> object & 1)) *arg->cursor = AdditiveQuads(h, RenderOT(), arg->ot_shift, *arg->cursor, arg->quads_gouraud_only);
 		else if (arg->engine_draw) *arg->cursor = RenderPrimModel(h, RenderOT(), arg->ot_shift, *arg->cursor);
 		else *arg->cursor = RenderPrim2(h, RenderOT(), arg->ot_shift, *arg->cursor);
 		FieldFree(0x58);
