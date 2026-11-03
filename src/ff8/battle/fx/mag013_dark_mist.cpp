@@ -43,8 +43,14 @@
 // Module globals: 0x27428A8..0x274EFE4 (file pointer, packet cursor 0x27428AC, node pools,
 // queues, overlay vertex buffer 0x274C3E0, arena bases 0x274EAD0 / 0x274EAD4, overlay sprite
 // 0x274EEA8 and context 0x274EEF0); the swirl model lives in the exe's data (0x163257C).
+// Fujin's described Dark Mist (effect_013.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (MistParams: the
+// emitter's and the mist controller's ticks, the sound) are set from the program's.
 
 #include "mag_common.h"
+#include "fx_layouts.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -171,14 +177,16 @@ namespace mist013
 	// ------------------------------------------------------------------
 	// Module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x27428AC); }
-	inline uint32_t &ArenaA() { return var<uint32_t>(0x274EAD4); } // magic buffer (Magic_TextureOFF)
-	inline uint32_t &ArenaB() { return var<uint32_t>(0x274EAD0); } // magic buffer + 0x4000
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x274E960; }  // 4 x 0x58
-	inline TaskQueue *QControl() { return (TaskQueue *)0x274EAD8; }   // 20 x 0x30
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x274C3C0; } // 150 x 0x68
-	inline TaskQueue *QModels() { return (TaskQueue *)0x27437B0; }    // 40 x 0x60
-	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x274EEF0); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x27428AC)); }
+	inline uint32_t &ArenaA() { return var<uint32_t>(own::R(0x274EAD4)); } // magic buffer (Magic_TextureOFF)
+	inline uint32_t &ArenaB() { return var<uint32_t>(own::R(0x274EAD0)); } // magic buffer + 0x4000
+	inline TaskQueue *QEmitters() { return (TaskQueue *)own::R(0x274E960); }  // 4 x 0x58
+	inline TaskQueue *QControl() { return (TaskQueue *)own::R(0x274EAD8); }   // 20 x 0x30
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x274C3C0); } // 150 x 0x68
+	inline TaskQueue *QModels() { return (TaskQueue *)own::R(0x27437B0); }    // 40 x 0x60
+	inline uint32_t &File() { return var<uint32_t>(own::R(0x27428A8)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2747720); }       // pool: 0x2747658, 2 x 0x64
+	inline OverlayCtx &Overlay() { return var<OverlayCtx>(own::R(0x274EEF0)); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_Root = 0x8BE2D0;
@@ -195,8 +203,22 @@ namespace mist013
 	static const uint32_t ORIG_SpawnerE = 0x8BF640;
 	static const uint32_t ORIG_Stream = 0x8BF700;
 	static const uint32_t ORIG_Overlay = 0x8BF880;
+	static const uint32_t ORIG_FileLoader = 0x8BE1D0, ORIG_Setup = 0x8BE1F0;
+	static const uint32_t TEXTURE_NAME = 0x1634B70, CAMERA = 0x1634A4C;
 
 	static const void *const SOUND_Mist = (const void *)0x16309F8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MistParams
+	{
+		struct { uint32_t sound; int16_t control, damage; } emitter;   // its sound; the mist controller and the damage from these ticks
+		struct { int16_t puffs_until, stream_a, stream_b, spawner_c, spawner_d, overlay, end; } control;   // the controller's ticks
+	};
+	static const MistParams GAME = { { 0x16309F8, 0x19, 0x46 }, { 0xC, 0x10, 0x17, 0x10, 0x1E, 0x10, 0x1E } };
+	static MistParams live = GAME;
+	static const MistParams &P() { return live; }
 	static const uint32_t MODEL_Swirl = 0x163257C, MODEL_Cloud = 0x1633C24;
 	static const uint32_t RING_Table = 0x1630ED4;         // swirl ring: count at +4, (x, y, angle, -) from +8
 	static const uint32_t STREAM_Vectors = 0x1634B20;     // 10 x (x, y, z, -)
@@ -637,7 +659,7 @@ namespace mist013
 		case 0:
 			if (s->counter <= 0x10)
 			{
-				Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_PuffC, 0x68, s);
+				Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_PuffC), 0x68, s);
 				p->variant = s->counter;
 			}
 			else s->phase++;
@@ -663,8 +685,8 @@ namespace mist013
 		case 0:
 			if (s->counter <= 8)
 			{
-				AddEffectTask(QParticles(), ORIG_PuffD, 0x68, s);
-				Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_PuffD, 0x68, s);
+				AddEffectTask(QParticles(), own::Fn(ORIG_PuffD), 0x68, s);
+				Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_PuffD), 0x68, s);
 				p->variant = s->counter;
 			}
 			else s->phase++;
@@ -741,7 +763,7 @@ namespace mist013
 		case 0:
 			if (s->counter <= 9)
 			{
-				Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_Stream, 0x68, s);
+				Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_Stream), 0x68, s);
 				p->variant = s->counter;
 			}
 			else
@@ -913,7 +935,7 @@ namespace mist013
 		mc->a00 = a00;
 		mc->sprite = sprite;
 		mc->frame_cursor = (uint32_t *)0x1D8E054;
-		mc->packets = (uint32_t *)0x27428AC;
+		mc->packets = (uint32_t *)own::R(0x27428AC);
 		mc->offset[0] = 0;
 		mc->offset[1] = 0;
 		mc->offset[2] = 0;
@@ -1177,7 +1199,7 @@ namespace mist013
 		{
 			uint8_t slot = o->slot;
 			uint8_t *entity = Entity(slot);
-			InitOverlay(&mc, OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, slot);
+			InitOverlay(&mc, own::R(OVERLAY_A00), (uint8_t *)own::R(OVERLAY_SPRITE), own::R(OVERLAY_VERTS), entity, slot);
 			o->flags |= 8;
 			entity[0] |= 4;
 			o->phase++;
@@ -1230,14 +1252,14 @@ namespace mist013
 		{
 		case 0: c->phase++; break; // sub_8BF840
 		case 1: // sub_8BF850: the overlay at 16
-			if (c->counter >= 0x10)
+			if (c->counter >= P().control.overlay)
 			{
-				AddEffectTask(QControl(), ORIG_Overlay, 0x30, c);
+				AddEffectTask(QControl(), own::Fn(ORIG_Overlay), 0x30, c);
 				c->phase++;
 			}
 			break;
 		case 2: // sub_8C0280: done after 30
-			if (c->counter > 0x1E)
+			if (c->counter > P().control.end)
 			{
 				c->flags |= 1;
 				c->phase++;
@@ -1245,21 +1267,21 @@ namespace mist013
 			break;
 		default: break; // nullsub_1819
 		}
-		if (c->counter == 0) AddEffectTask(QModels(), ORIG_Cloud, 0x60, c);
-		if (c->counter <= 0xC)
+		if (c->counter == 0) AddEffectTask(QModels(), own::Fn(ORIG_Cloud), 0x60, c);
+		if (c->counter <= P().control.puffs_until)
 		{
-			Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_MistA, 0x68, c);
+			Particle *p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_MistA), 0x68, c);
 			p->variant = 0;
-			p = (Particle *)AddEffectTask(QParticles(), ORIG_MistA, 0x68, c);
+			p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_MistA), 0x68, c);
 			p->variant = 1;
-			p = (Particle *)AddEffectTask(QParticles(), ORIG_MistB, 0x68, c);
+			p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_MistB), 0x68, c);
 			p->variant = 0;
-			p = (Particle *)AddEffectTask(QParticles(), ORIG_MistB, 0x68, c);
+			p = (Particle *)AddEffectTask(QParticles(), own::Fn(ORIG_MistB), 0x68, c);
 			p->variant = 1;
 		}
-		if (c->counter == 0x10 || c->counter == 0x17) AddEffectTask(QControl(), ORIG_SpawnerE, 0x30, c);
-		if (c->counter == 0x10) AddEffectTask(QControl(), ORIG_SpawnerC, 0x30, c);
-		if (c->counter == 0x1E) AddEffectTask(QControl(), ORIG_SpawnerD, 0x30, c);
+		if (c->counter == P().control.stream_a || c->counter == P().control.stream_b) AddEffectTask(QControl(), own::Fn(ORIG_SpawnerE), 0x30, c);
+		if (c->counter == P().control.spawner_c) AddEffectTask(QControl(), own::Fn(ORIG_SpawnerC), 0x30, c);
+		if (c->counter == P().control.spawner_d) AddEffectTask(QControl(), own::Fn(ORIG_SpawnerD), 0x30, c);
 		return Finish(c);
 	}
 
@@ -1274,18 +1296,18 @@ namespace mist013
 		switch (e->h.phase)
 		{
 		case 0: // sub_8BE470: the swirl
-			AddEffectTask(QModels(), ORIG_Swirl, 0x60, e);
+			AddEffectTask(QModels(), own::Fn(ORIG_Swirl), 0x60, e);
 			e->h.phase++;
 			break;
 		case 1: // MAG_013_sub_8BE930: the mist controller at 25
-			if (e->h.counter >= 0x19)
+			if (e->h.counter >= P().emitter.control)
 			{
-				AddEffectTask(QControl(), ORIG_Control, 0x30, e);
+				AddEffectTask(QControl(), own::Fn(ORIG_Control), 0x30, e);
 				e->h.phase++;
 			}
 			break;
 		case 2: // MAG_013_sub_8C02B0: damage at 70
-			if (e->h.counter >= 0x46)
+			if (e->h.counter >= P().emitter.damage)
 			{
 				ApplyActionResultToTarget(e->h.ctx->actions[e->h.action].targets);
 				e->h.flags |= 1;
@@ -1294,7 +1316,7 @@ namespace mist013
 			break;
 		default: break; // nullsub_1820
 		}
-		if (e->h.counter == 0) BdPlaySE(SOUND_Mist, 0, 0x80);
+		if (e->h.counter == 0) BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Mist), 0, 0x80);
 		return Finish(&e->h);
 	}
 
@@ -1308,7 +1330,7 @@ namespace mist013
 		case 0: r->h.phase++; break; // MAG_013_sub_8BE3A0
 		case 1: // MAG_013_sub_8BE3B0: emitter of the current action
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
+			AddEffectTask(QEmitters(), own::Fn(ORIG_Emitter), 0x58, r);
 			r->h.phase++;
 			break;
 		case 2: // MAG_013_sub_8C0300: when its overlay is over, the next action (back to phase 1)
@@ -1334,6 +1356,35 @@ namespace mist013
 		}
 	}
 
+	// File loader (0x8BE1D0) and setup (0x8BE1F0): the game runs its own; Fujin's programs these: the root (the
+	// cast, its first target, its actions and targets), the camera, the texture, the arenas in the magic buffer, the
+	// four pools
+	static uint32_t __cdecl FileLoader()
+	{
+		File() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return File();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		const uint8_t slot = ctx->actions[0].targets[0];
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2747658), 0x64, 2);
+		RootNode *r = (RootNode *)AddEffectTask(QRoot(), own::Fn(ORIG_Root), 100, nullptr);
+		r->h.ctx = ctx;
+		r->h.slot = slot;
+		r->last_action = ctx->actions[0].last_action;
+		r->target_count = (int16_t)ctx->actions[0].target_count;
+		PlayCameraAnimation((const void *)CAMERA);
+		QueueTimUpload(File());
+		ArenaA() = layouts::MagicBuffer();
+		ArenaB() = ArenaA() + 0x4000;
+		InitTaskQueuePool(QEmitters(), (void *)own::R(0x274E970), 0x58, 4);
+		InitTaskQueuePool(QControl(), (void *)own::R(0x274EAE8), 0x30, 20);
+		InitTaskQueuePool(QModels(), (void *)own::R(0x27428B0), 0x60, 40);
+		InitTaskQueuePool(QParticles(), (void *)own::R(0x27486D0), 0x68, 150);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1356,10 +1407,39 @@ namespace mist013
 		}
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define DMI(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(MistParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: the swirl at the caster's mouth at once, the mist controller, the damage, its sound" },
+			{ 0, "mist", "Mist", "The mist controller: the cloud, the mist puffs thrown to the target, the streams, the puffs round the "
+			  "target, the target's wobbling overlay" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at the emitter's first tick", (uint32_t)offsetof(MistParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DMI("emitter", emitter.control, "Mist from", "The mist controller from this tick", 0, 200),
+			DMI("emitter", emitter.damage, "Damage at", "The action's result from this tick", 0, 200),
+			DMI("mist", control.puffs_until, "Puffs until", "Four mist puffs a tick until this tick of the controller", 0, 100),
+			DMI("mist", control.stream_a, "Stream 1", "A stream at this tick...", 0, 100),
+			DMI("mist", control.stream_b, "Stream 2", "...and one at this tick", 0, 100),
+			DMI("mist", control.spawner_c, "Target puffs 1", "Puffs round the target from this tick...", 0, 100),
+			DMI("mist", control.spawner_d, "Target puffs 2", "...and more from this one", 0, 100),
+			DMI("mist", control.overlay, "Overlay at", "The target's wobbling overlay from this tick", 0, 100),
+			DMI("mist", control.end, "End", "The controller is done after this tick", 0, 200),
+		};
+#undef DMI
+	}
 }
 
 	void register_mag013_dark_mist()
 	{
+		fxp::register_params({ 13, "Dark Mist", &mist013::live, &mist013::GAME, sizeof(mist013::MistParams),
+		                       mist013::table::PARTS, (int)(sizeof(mist013::table::PARTS) / sizeof(mist013::table::PARTS[0])),
+		                       mist013::table::FIELDS, (int)(sizeof(mist013::table::FIELDS) / sizeof(mist013::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(mist013::ORIG_FileLoader, (void *)mist013::FileLoader);
+		own::note(mist013::ORIG_Setup, (void *)mist013::Setup);
 		register_port(mist013::ORIG_Root, (void *)mist013::RootTask, "M013 RootTask", 13);
 		register_port(mist013::ORIG_Emitter, (void *)mist013::EmitterTask, "M013 EmitterTask", 13);
 		register_port(mist013::ORIG_Swirl, (void *)mist013::SwirlTask, "M013 SwirlTask", 13);
@@ -1374,9 +1454,24 @@ namespace mist013
 		register_port(mist013::ORIG_SpawnerE, (void *)mist013::SpawnerETask, "M013 SpawnerETask", 13);
 		register_port(mist013::ORIG_Stream, (void *)mist013::StreamTask, "M013 StreamTask", 13);
 		register_port(mist013::ORIG_Overlay, (void *)mist013::OverlayTask, "M013 OverlayTask", 13);
+		own::note(mist013::ORIG_Root, (void *)mist013::RootTask);
+		own::note(mist013::ORIG_Emitter, (void *)mist013::EmitterTask);
+		own::note(mist013::ORIG_Swirl, (void *)mist013::SwirlTask);
+		own::note(mist013::ORIG_Control, (void *)mist013::ControlTask);
+		own::note(mist013::ORIG_Cloud, (void *)mist013::CloudTask);
+		own::note(mist013::ORIG_MistA, (void *)mist013::MistATask);
+		own::note(mist013::ORIG_MistB, (void *)mist013::MistBTask);
+		own::note(mist013::ORIG_SpawnerC, (void *)mist013::SpawnerCTask);
+		own::note(mist013::ORIG_PuffC, (void *)mist013::PuffCTask);
+		own::note(mist013::ORIG_SpawnerD, (void *)mist013::SpawnerDTask);
+		own::note(mist013::ORIG_PuffD, (void *)mist013::PuffDTask);
+		own::note(mist013::ORIG_SpawnerE, (void *)mist013::SpawnerETask);
+		own::note(mist013::ORIG_Stream, (void *)mist013::StreamTask);
+		own::note(mist013::ORIG_Overlay, (void *)mist013::OverlayTask);
 		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(register_mag013_held();)
 	}
+	FX_LAB_MODULE(register_mag013_dark_mist);
 }
 
 #ifdef FF8_FX_HELD
