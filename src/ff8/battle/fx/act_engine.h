@@ -62,6 +62,10 @@ namespace act
 	inline int32_t add32(int32_t a, int32_t b) { return (int32_t)((uint32_t)a + (uint32_t)b); }
 	inline int32_t sub32(int32_t a, int32_t b) { return (int32_t)((uint32_t)a - (uint32_t)b); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }  // pointer -> 32-bit word
+	// a module's own memory moved (Fujin's described copies of an effect run its code on a block of their
+	// own): R(module address) = where it is now; 0 for the module itself
+	inline uint32_t g_reloc = 0;
+	inline uint32_t R(uint32_t a) { return a + g_reloc; }
 
 	// ---- generated: cross-module address classes (canonical = Siren address when Siren has it) ----
 	enum GIdx : int
@@ -478,6 +482,7 @@ namespace act
 	inline uint32_t G(int k) { return g_mod->g[k]; }
 	inline uint32_t F(int k) { return g_mod->f[k]; }
 	const Mod *find_mod(int effect_id);
+	void register_mod(const Mod *m);   // a module beyond the generated ones (Mega Phoenix, Doom...): found too
 	// selects the module whose code range holds code_addr (a master task passes its own node's
 	// original function address, node +8) - every master port calls this first
 	void set_mod_by_code(uint32_t code_addr);
@@ -486,6 +491,10 @@ namespace act
 	// dispatch
 	// ------------------------------------------------------------------------------------
 	void *port_of(uint32_t orig);                 // port of an original address, or nullptr
+	// a described copy of an effect (Fujin's: memory of its own, no original to stand in for) runs its
+	// tasks' ports itself (Spawn below)
+	inline bool g_own = false;
+	inline uint32_t (*g_spawn_hook)(uint32_t orig) = nullptr;   // its own task for an original (0: none)
 	void add_port(uint32_t orig, void *port);
 	void remove_port(uint32_t orig);               // (harness bisection)
 	template<typename... A> inline uint32_t callo(uint32_t addr, A... a) { return ((uint32_t (__cdecl *)(A...))addr)(a...); }
@@ -500,6 +509,24 @@ namespace act
 	void register_module(int effect_id);
 	// the module's own ports (s_/m_ functions) go through this, so they are dispatchable too
 	void register_module_port(int effect_id, uint32_t orig, void *port, const char *name);
+
+	// a described copy of an effect (Fujin's: memory of its own, no original to stand in for) runs its
+	// tasks' ports itself: while g_own, the nodes the ports spawn hold a thunk of the port instead of the
+	// original's address (the original's code stays as it is: the effect itself may run too)
+	uint32_t PortFn(uint32_t orig);   // a thunk running port_of(orig) (orig itself when it has no port)
+	uint32_t OrigOf(uint32_t fn);     // the original a thunk stands for (fn itself when it is none)
+	// a function of the module handed to the game to call back (a file loaded): its port's thunk in a copy
+	inline uint32_t Callback(uint32_t orig) { return g_own ? PortFn(orig) : orig; }
+	inline uint32_t Spawn(uint32_t q, uint32_t fn, uint32_t size, uint32_t parent)
+	{
+		uint32_t to = fn;
+		if (g_own)
+		{
+			const uint32_t own = g_spawn_hook ? g_spawn_hook(fn) : 0;
+			to = own ? own : PortFn(fn);
+		}
+		return x::Effect_AddTaskAndInitFromCtx(q, to, size, parent);
+	}
 
 	// ------------------------------------------------------------------------------------
 	// prim-model player

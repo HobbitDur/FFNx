@@ -939,6 +939,7 @@ namespace megaphoenix
 		                       act::megaphoenix::table::PARTS, (int)(sizeof(act::megaphoenix::table::PARTS) / sizeof(act::megaphoenix::table::PARTS[0])),
 		                       act::megaphoenix::table::FIELDS, (int)(sizeof(act::megaphoenix::table::FIELDS) / sizeof(act::megaphoenix::table::FIELDS[0])),
 		                       act::megaphoenix::table::GROUPS, (int)(sizeof(act::megaphoenix::table::GROUPS) / sizeof(act::megaphoenix::table::GROUPS[0])) });
+		act::register_mod(&act::actors::MOD_007);
 		act::register_module(7);
 		act::actors::register_ports(7);
 		for (const act::megaphoenix::ModPort *p = act::megaphoenix::ENGINE_PORTS; p->addr; p++)

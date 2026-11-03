@@ -21,6 +21,7 @@
 // (Siren 095 and MiniMog 096 run to their end, every tick, every byte, every engine call).
 
 #include "act_engine.h"
+#include <utility>
 #if __has_include("../../../log.h")
 #include "../../../log.h"
 #else
@@ -981,10 +982,22 @@ namespace act
 
 	static const Mod *const MODS[] = { &MOD_090, &MOD_095, &MOD_096, &MOD_097, &MOD_098, &MOD_099, &MOD_100 };
 
+	static const Mod *g_more_mods[64];
+	static int g_more_mod_count = 0;
+
+	void register_mod(const Mod *m)
+	{
+		for (int k = 0; k < g_more_mod_count; k++)
+			if (g_more_mods[k] == m) return;
+		if (g_more_mod_count < 64) g_more_mods[g_more_mod_count++] = m;
+	}
+
 	const Mod *find_mod(int effect_id)
 	{
 		for (const Mod *m : MODS)
 			if (m->effect_id == effect_id) return m;
+		for (int k = 0; k < g_more_mod_count; k++)
+			if (g_more_mods[k]->effect_id == effect_id) return g_more_mods[k];
 		return nullptr;
 	}
 
@@ -992,6 +1005,8 @@ namespace act
 	{
 		for (const Mod *m : MODS)
 			if (code_addr >= m->lo && code_addr < m->hi) { g_mod = m; return; }
+		for (int k = 0; k < g_more_mod_count; k++)
+			if (code_addr >= g_more_mods[k]->lo && code_addr < g_more_mods[k]->hi) { g_mod = g_more_mods[k]; return; }
 	}
 
 	// original address -> port (open addressing; engine ports of every registered module plus the
@@ -1041,6 +1056,36 @@ namespace act
 			if (k == orig) { g_disp_val[h & (DISPATCH_SIZE - 1)] = nullptr; return; }
 			if (k == 0) return;
 		}
+	}
+
+	// thunks of ports for a described copy (Spawn): a fixed pool, one per original task function
+	namespace
+	{
+		const int THUNKS = 256;
+		uint32_t g_thunk_orig[THUNKS];
+		int g_thunk_count = 0;
+		template<int K> uint32_t __cdecl thunk(uint32_t n) { return ((uint32_t (__cdecl *)(uint32_t))port_of(g_thunk_orig[K]))(n); }
+		using ThunkFn = uint32_t (__cdecl *)(uint32_t);
+		template<int... K> struct Thunks { static constexpr ThunkFn fns[sizeof...(K)] = { thunk<K>... }; };
+		template<int... K> Thunks<K...> thunk_table(std::integer_sequence<int, K...>);
+		using ThunkTable = decltype(thunk_table(std::make_integer_sequence<int, THUNKS>()));
+	}
+
+	uint32_t PortFn(uint32_t orig)
+	{
+		if (!port_of(orig)) return orig;
+		for (int k = 0; k < g_thunk_count; k++)
+			if (g_thunk_orig[k] == orig) return P((const void *)ThunkTable::fns[k]);
+		if (g_thunk_count == THUNKS) return orig;   // (full: the original's address, as without)
+		g_thunk_orig[g_thunk_count] = orig;
+		return P((const void *)ThunkTable::fns[g_thunk_count++]);
+	}
+
+	uint32_t OrigOf(uint32_t fn)
+	{
+		for (int k = 0; k < g_thunk_count; k++)
+			if (P((const void *)ThunkTable::fns[k]) == fn) return g_thunk_orig[k];
+		return fn;
 	}
 
 	static const AddrPort *engine_ports(int effect_id)
@@ -2271,7 +2316,7 @@ namespace act
 	// (sum of their results in +0x5E), advances its counters and ends when finished and idle
 	uint32_t __cdecl a_739F40(uint32_t a1)
 	{
-		set_mod_by_code(U32(a1, 8));      // node +8 = original task function address -> current module
+		set_mod_by_code(OrigOf(U32(a1, 8)));      // node +8 = original task function address -> current module
 		// 30 fps layer: see act_engine_held.inc
 		FX_HELD(held_note_master();)
 
@@ -2333,7 +2378,7 @@ namespace act
 	uint32_t __cdecl a_73A170(uint32_t a1)
 	{
 		U8(a1, 0x63) = 1;
-		x::Effect_AddTaskAndInitFromCtx(G(G_258BE30), F(F_73A1A0), 0x58, a1);
+		Spawn(G(G_258BE30), F(F_73A1A0), 0x58, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2364,7 +2409,7 @@ namespace act
 		// 0x73A380 0x73F800 0x73F900 0x743250 0x7447C0 0x745180 0x745250 0x746920 0x746A40, MiniMog
 		// 0x732390 0x733570 0x733810 0x733BE0 0x733CE0 0x734840 ...): the table is read from the
 		// running copy's own code (the three `mov [esp+x], imm32` at +0x0D/+0x19/+0x21)
-		const uint32_t fn = U32(a1, 8);
+		const uint32_t fn = OrigOf(U32(a1, 8));   // (a described copy's node: its thunk's original)
 		uint32_t states[3] = { U32(fn, 0x0D), U32(fn, 0x19), U32(fn, 0x21) };
 		callp(states[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
@@ -2408,7 +2453,7 @@ namespace act
 			U16(ctx, 0x164) = 1;
 			dst = U32(ctx, 0x100);
 			U32(rec, 0xC) = dst;
-			x::pre_LoadBattleFile(U16(rec, 2), dst, 0, F(F_73A580));
+			x::pre_LoadBattleFile(U16(rec, 2), dst, 0, Callback(F(F_73A580)));
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0; // void
 		case 6:
@@ -2416,7 +2461,7 @@ namespace act
 			U16(ctx, 0x164) = 1;
 			dst = U32(ctx, 0x100);
 			U32(rec, 0xC) = dst;
-			x::pre_LoadBattleFile(U16(rec, 2), dst, 0, F(F_73A5B0));
+			x::pre_LoadBattleFile(U16(rec, 2), dst, 0, Callback(F(F_73A5B0)));
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0; // void
 		default:
@@ -2431,7 +2476,7 @@ namespace act
 			U16(ctx, 0x164) = 1;
 			dst = U32(ctx, (int32_t)(slot * 4) + base);
 			U32(rec, 0xC) = dst;
-			x::pre_LoadBattleFile(U16(rec, 2), dst, 0, cb);
+			x::pre_LoadBattleFile(U16(rec, 2), dst, 0, Callback(cb));
 			a_73A620();
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0; // void
@@ -3143,7 +3188,7 @@ namespace act
 	// +0x30 = a3, +0x298 = a4, +0x29C = a6, +0x29E = a5 (words); returns the node
 	uint32_t __cdecl a_73C100(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		uint32_t n = x::Effect_AddTaskAndInitFromCtx(G(G_258BA90), a2, 0x2A4, a1);
+		uint32_t n = Spawn(G(G_258BA90), a2, 0x2A4, a1);
 		U32(n, 0x30) = a3;
 		U16(n, 0x298) = (uint16_t)a4;
 		U16(n, 0x29C) = (uint16_t)a6;
@@ -3391,7 +3436,7 @@ namespace act
 		// this task body exists several times per module with different state tables (Siren
 		// 0x73F110 0x73F370 0x73F500, Chocometeor 0x71F310 0x71FFB0 0x7215A0): the table is read
 		// from the running copy's own code (the five `mov [esp+x], imm32` at +0x0D..+0x31)
-		const uint32_t fn = U32(node, 8);
+		const uint32_t fn = OrigOf(U32(node, 8));   // (a described copy's node: its thunk's original)
 		uint32_t states[5] = { U32(fn, 0x0D), U32(fn, 0x19), U32(fn, 0x21), U32(fn, 0x29), U32(fn, 0x31) };
 		int32_t state = S8(node, 0x29);
 		// the original indexes its 5-slot stack table without a bound check (states 0..4 only)
