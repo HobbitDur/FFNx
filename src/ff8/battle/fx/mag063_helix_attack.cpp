@@ -50,8 +50,14 @@
 // Module globals: 0x25450A0..0x2545100 (file, context, caster / target entities, master / particle /
 // root queues, root pool, packet cursor 0x25450F0, magic buffer base 0x25450FC). The pools, the
 // packet arenas and the vertex blend buffer are in the magic buffer.
+// Fujin's described Helix's beam (effect_063.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (HelixParams: the sound,
+// the damage and end ticks, the flash level, the impact's offset).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -61,13 +67,15 @@ namespace helix063
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25450A4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25450A8); }         // caster entity (setup)
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25450AC); }         // first target's entity (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25450F0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25450FC); }          // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x25450B0; }           // pool: magic buffer + 0x348, 1 x 0xE08
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25450C0; }        // pool: magic buffer, 30 x 0x1C
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25450A4)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25450A8)); }         // caster entity (setup)
+	inline uint8_t *&Target() { return var<uint8_t *>(own::R(0x25450AC)); }         // first target's entity (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25450F0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25450FC)); }          // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25450B0); }           // pool: magic buffer + 0x348, 1 x 0xE08
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x25450C0); }        // pool: magic buffer, 30 x 0x1C
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25450D0); }             // 1 x 0x10
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25450A0)); }          // the effect's file (its TIM)
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6E6CB0;
@@ -83,6 +91,21 @@ namespace helix063
 	static const uint32_t OBJS_Plain = 0x1354A08;     // per-object flags of the layouts: '1' = v scroll
 	static const uint32_t OBJS_Impact = 0x1354A28;
 	static const void *const SOUND_Start = (const void *)0x13549F4;
+	static const uint32_t ORIG_FileLoader = 0x6E6BF0, ORIG_Setup = 0x6E6BE0;
+	static const uint32_t TEXTURE_NAME = 0x1354A1C, CAMERA = 0x134BFA0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct HelixParams
+	{
+		uint32_t sound;                          // at the master's first tick
+		struct { int16_t damage, end; } master;  // the damage of the first target / the end at these ticks
+		struct { int16_t flash, push; } impact;  // the screen flash level; the impact this far from the target towards the caster
+	};
+	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 } };
+	static HelixParams live = GAME;
+	static const HelixParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
@@ -422,7 +445,7 @@ namespace helix063
 	static void SpawnParticles(MasterNode *m)
 	{
 		int32_t count = 10;
-		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 		while (p)
 		{
 			p->pos[0] = m->pos[0];
@@ -443,7 +466,7 @@ namespace helix063
 			p->vel[2] = (int16_t)z;
 			p->acc[2] = Drag((int16_t)z);
 			if (--count == 0) break;
-			p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+			p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 		}
 	}
 
@@ -456,8 +479,8 @@ namespace helix063
 		const int32_t c = m->counter;
 		uint32_t flash;
 		if ((uint32_t)(c - 0x10) < 4) flash = (uint32_t)mul32(c - 0x10, 0x23F);
-		else if (m->counter >= 0x34) flash = (uint32_t)(mul32(0x40 - c, 0x8FC) / 12);
-		else flash = m->counter >= 0x10 ? 0x8FC : 0;
+		else if (m->counter >= 0x34) flash = (uint32_t)(mul32(0x40 - c, P().impact.flash) / 12);
+		else flash = m->counter >= 0x10 ? (uint32_t)P().impact.flash : 0;
 		SetScreenFlash(flash, 0);
 		Points pts;
 		CasterPoint(POINT_A, pts.p1);
@@ -544,9 +567,9 @@ namespace helix063
 			v[2] = (int32_t)*(const int16_t *)(tgt + 0x20) - mid[2];
 			v[1] = 0;
 			const int32_t len = BuildOrthonormalBasis(v, &arg.m);
-			arg.m.t[0] = mul32(v[0], 500) / len + m->pos[0];
+			arg.m.t[0] = mul32(v[0], P().impact.push) / len + m->pos[0];
 			arg.m.t[1] = m->pos[1];
-			arg.m.t[2] = m->pos[2] - mul32(v[2], 500) / len;
+			arg.m.t[2] = m->pos[2] - mul32(v[2], P().impact.push) / len;
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = (int16_t)0xFF80;
 			arg.objs = OBJS_Impact;
@@ -556,9 +579,9 @@ namespace helix063
 			FX_HELD(held_note_play((prim::Layout *)m->impact, &arg);)
 			prim::play((prim::Layout *)m->impact, PartCallback, (int)&arg, 0);
 		}
-		if (m->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (m->counter == 0x36) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (m->counter >= 0x40)
+		if (m->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Start), 0, 0x80);
+		if (m->counter == P().master.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (m->counter >= P().master.end)
 		{
 			SetScreenFlash(0, 0);
 			return TASK_END;
@@ -570,6 +593,28 @@ namespace helix063
 	// ------------------------------------------------------------------
 	// Root task (0x6E6CB0)
 	// ------------------------------------------------------------------
+	// File loader (0x6E6BF0) and setup (0x6E6BE0 -> 0x6E6C10): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast, its caster and first target, the root, the
+	// camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		Target() = Entity(ctx->actions->targets[0]);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25450E0), 0x10, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 1);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -590,7 +635,7 @@ namespace helix063
 			r->started = 1;
 			InitTaskQueuePool(QMaster(), (void *)(TexBase() + 0x348), 0xE08, 1);
 			InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x1E);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x37F);
 			DecodeModelPrimLayout(MODEL_Ring, m->ring1, 0xE8);
 			DecodeModelPrimLayout(MODEL_Ring, m->ring2, 0xE8);
@@ -609,16 +654,42 @@ namespace helix063
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define HP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(HelixParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Its sound, the layouts at the caster's points, the two beams, the flash, the particles and the impact at the target, the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sound", "Sound", "", (uint32_t)offsetof(HelixParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			HP("master", master.damage, "Damage tick", "The damage of the first target at this tick", 0, 200),
+			HP("master", master.end, "End tick", "", 0x40, 200),
+			HP("master", impact.flash, "Flash", "The screen flash's level", 0, 0x1000),
+			HP("master", impact.push, "Impact offset", "The impact this far from the target towards the caster", -0x1000, 0x1000),
+		};
+#undef HP
+	}
 }
 
 	void register_mag063_helix_attack()
 	{
+		fxp::register_params({ 63, "Helix's beam", &helix063::live, &helix063::GAME, sizeof(helix063::HelixParams),
+		                       helix063::table::PARTS, (int)(sizeof(helix063::table::PARTS) / sizeof(helix063::table::PARTS[0])),
+		                       helix063::table::FIELDS, (int)(sizeof(helix063::table::FIELDS) / sizeof(helix063::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(helix063::ORIG_FileLoader, (void *)helix063::FileLoader);
+		own::note(helix063::ORIG_Setup, (void *)helix063::Setup);
+		own::note(helix063::ORIG_RootTask, (void *)helix063::RootTask);
 		register_port(helix063::ORIG_RootTask, (void *)helix063::RootTask, "H063 RootTask", 63);
+		own::note(helix063::ORIG_MasterTask, (void *)helix063::MasterTask);
 		register_port(helix063::ORIG_MasterTask, (void *)helix063::MasterTask, "H063 MasterTask", 63);
+		own::note(helix063::ORIG_ParticleTask, (void *)helix063::ParticleTask);
 		register_port(helix063::ORIG_ParticleTask, (void *)helix063::ParticleTask, "H063 ParticleTask", 63);
 		// 30 fps layer: see mag063_helix_attack_held.inc
 		FX_HELD(register_mag063_held();)
 	}
+	FX_LAB_MODULE(register_mag063_helix_attack);
 }
 
 #ifdef FF8_FX_HELD
