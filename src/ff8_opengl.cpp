@@ -6331,6 +6331,32 @@ int __cdecl ff8_bgate_stageq_gate(void *queue)
 // action started on an iteration whose BdLink is held waited a frame for its tasks: the flag rose for one frame after
 // every action end (the reaction section), and every action started 1 frame before its logic. Only on the iterations
 // whose BdLink is a real frame (the hook bumps ff8_bgate_phase first: real <=> (phase + 1) % n == 0).
+// Emulated CD load time of battle files: LoadBattleFile (0x482610) registers BattleFile_RunCompletionCountdown
+// (0x482870) with frames_remaining = file size / 20480 (/ 10240 outside the fight); BattleFile_PollOneCallback runs it
+// once per battle loop iteration, just before the iteration's BdLink (0x47D900 = poll + jmp BdLink), and the load
+// "completes" (BATTLE_FILE_LOADING_STATE >= 0, completion callback) when it reaches 0. Per host frame, every load
+// completed in half the vanilla ticks: Fira's texture restore (A8DEF.TIM 99168 bytes = 4 -> 5 polls) ended its
+// WaitTexRestore ~2.5 ticks early (the action ended 0.16-0.26 s early), effect files (MagicCast state 3), GF files
+// (GF_Cinematic state 2) and model loads came early too. Counted only on the iterations whose BdLink is a real frame;
+// not gated if BdLink stopped running (ff8_bgate_frame_no unchanged), so a load can never stall.
+static int (__cdecl *ff8_bgate_fileload_orig)() = nullptr;
+static uint32_t ff8_bgate_fileload_ri = 0;
+
+int __cdecl ff8_bgate_fileload_countdown_hook()
+{
+	static uint32_t last_frame_no = 0;
+	static int stale = 0;
+	stale = (ff8_bgate_frame_no == last_frame_no) ? stale + 1 : 0;
+	last_frame_no = ff8_bgate_frame_no;
+	if (ff8_bgate_n > 1 && !ff8_bgate_left_battle && stale < 2 && getmode_cached()->driver_mode == MODE_BATTLE
+		&& (ff8_bgate_phase + 1) % ff8_bgate_n != 0)
+		return 0; // (BattleFile_PollOneCallback ignores the return; the slot stays registered)
+	unreplace_function(ff8_bgate_fileload_ri);
+	int r = ff8_bgate_fileload_orig();
+	rereplace_function(ff8_bgate_fileload_ri);
+	return r;
+}
+
 static int (__cdecl *ff8_bgate_actq_orig)() = nullptr;
 
 int __cdecl ff8_bgate_actq_gate()
@@ -7193,6 +7219,9 @@ static void ff8_bgate_install_hooks()
 	// next queued action started only on the loop iterations whose BdLink is a real frame (see ff8_bgate_actq_gate)
 	ff8_bgate_actq_orig = (int(__cdecl *)())get_relative_call(0x47D7C3, 0);
 	replace_call(0x47D7C3, (void *)ff8_bgate_actq_gate);
+	// emulated battle file load time counted on real frames (see ff8_bgate_fileload_countdown_hook)
+	ff8_bgate_fileload_orig = (int(__cdecl *)())0x482870;
+	ff8_bgate_fileload_ri = replace_function(0x482870, (void *)ff8_bgate_fileload_countdown_hook);
 	// hit-effect queue: same record/replay pacing
 	ff8_bgate_eq_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x500923, 0);
 	replace_call(0x500923, (void *)ff8_bgate_eq_tick_gate);
