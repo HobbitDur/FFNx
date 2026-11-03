@@ -1072,6 +1072,16 @@ namespace layouts
 		return -1;
 	}
 
+	// `point` moved ahead of an entity's facing (+0x0E) by the unit circle >> shift (Petrify Stare's
+	// stare: x - sin >> 4, z - cos >> 4), its height kept
+	inline void AheadOfFacing(const uint8_t *ent, const int16_t *point, int32_t shift, int16_t *out)
+	{
+		const int32_t facing = *(const int16_t *)(ent + 0xE);
+		out[0] = (int16_t)((-ComputeSin(facing) >> shift) + point[0]);
+		out[2] = (int16_t)((-parts::ComputeCos(facing) >> shift) + point[2]);
+		out[1] = point[1];
+	}
+
 	// a point around `centre` (Dispel's sparkles): x and z each centre + ((r + r' - 0x8000) x spread
 	// >> 18), y = centre.y - (r >> 6) + lift (CRT rand, in the original's order: x's two, y's, z's two)
 	inline void RandomAround(const int16_t *centre, int32_t spread, int32_t lift, int16_t *out)
