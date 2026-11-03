@@ -63,8 +63,14 @@
 // 0xA6, 0xC5..0xEC, 0xED, 0x107, 0x121, 0x13B, 0x155..0x190, 0x191..0x1D4, 0x1D7, 0x21E (back to
 // 0xB8B800); camera return armed at 0 (0x50A730).
 // Module globals: 0x2544F60..0x2545014. Pools, arenas, particle tables in the magic buffer.
+// Fujin's described Great Attractor (effect_065.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (AttractorParams: the six
+// sounds, the caster's sinking, the targets' moving away, the damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -74,28 +80,30 @@ namespace ga065
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &Scale() { return var<int32_t>(0x2544F64); }              // overlay layout scale (callback 0x6E5050)
-	inline int32_t &Pause() { return var<int32_t>(0x2544F68); }              // debug pause
-	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2544F6C); }             // cast context
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2544F70); }          // caster entity
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2544F78; }          // pool: magic buffer + 0x3D430, 8 x 0x1B8
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2544F88; }           // pool: magic buffer, 1 x 0xDB8
-	inline uint8_t *&SegCursor() { return var<uint8_t *>(0x2544FBC); }       // ribbon segments (0x18) alloc cursor
-	inline uint8_t *&ChainCursor() { return var<uint8_t *>(0x2544FC0); }     // ribbon chains (0x38) alloc cursor
-	inline uint8_t *&PModelCursor() { return var<uint8_t *>(0x2544FC4); }    // particle models (0x16) alloc cursor
-	inline uint8_t *&QuadCursor() { return var<uint8_t *>(0x2544FC8); }      // quad particles (0x20) alloc cursor
-	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(0x2544FCC); }    // sprite particles (8) alloc cursor
-	inline uint8_t *Flags() { return (uint8_t *)0x2544FD0; }                 // ribbons / sprites / models / quads on
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2544FD4); }
-	inline int16_t *CasterPos() { return (int16_t *)0x2544FD8; }              // x, y, z, (w) of the caster at the start
-	inline int16_t *Centre() { return (int16_t *)0x2544FE0; }                // the targets' centre
-	inline int16_t &NoiseShift() { return var<int16_t>(0x2544FE8); }         // ribbon jitter: 15 - shift
-	inline int16_t &NoiseHalf() { return var<int16_t>(0x2544FEA); }          // (1 << shift) / 2
-	inline int16_t &NoiseKeep() { return var<int16_t>(0x2544FEC); }          // second jitter threshold
-	inline int16_t &RibbonDepth() { return var<int16_t>(0x2544FEE); }        // OT offset of the ribbons
-	inline int32_t &Lcg() { return var<int32_t>(0x2544FF0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544FF4); }          // Magic_TextureOFF (magic buffer)
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x2544FF8; }          // 7 entities' flag words
+	inline int32_t &Scale() { return var<int32_t>(own::R(0x2544F64)); }              // overlay layout scale (callback 0x6E5050)
+	inline int32_t &Pause() { return var<int32_t>(own::R(0x2544F68)); }              // debug pause
+	inline uint8_t *&Ctx() { return var<uint8_t *>(own::R(0x2544F6C)); }             // cast context
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2544F70)); }          // caster entity
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x2544F78); }          // pool: magic buffer + 0x3D430, 8 x 0x1B8
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2544F88); }           // pool: magic buffer, 1 x 0xDB8
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2544F98); }             // 1 x 0x14
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2544F60)); }          // the effect's file (its TIM)
+	inline uint8_t *&SegCursor() { return var<uint8_t *>(own::R(0x2544FBC)); }       // ribbon segments (0x18) alloc cursor
+	inline uint8_t *&ChainCursor() { return var<uint8_t *>(own::R(0x2544FC0)); }     // ribbon chains (0x38) alloc cursor
+	inline uint8_t *&PModelCursor() { return var<uint8_t *>(own::R(0x2544FC4)); }    // particle models (0x16) alloc cursor
+	inline uint8_t *&QuadCursor() { return var<uint8_t *>(own::R(0x2544FC8)); }      // quad particles (0x20) alloc cursor
+	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(own::R(0x2544FCC)); }    // sprite particles (8) alloc cursor
+	inline uint8_t *Flags() { return (uint8_t *)own::R(0x2544FD0); }                 // ribbons / sprites / models / quads on
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2544FD4)); }
+	inline int16_t *CasterPos() { return (int16_t *)own::R(0x2544FD8); }              // x, y, z, (w) of the caster at the start
+	inline int16_t *Centre() { return (int16_t *)own::R(0x2544FE0); }                // the targets' centre
+	inline int16_t &NoiseShift() { return var<int16_t>(own::R(0x2544FE8)); }         // ribbon jitter: 15 - shift
+	inline int16_t &NoiseHalf() { return var<int16_t>(own::R(0x2544FEA)); }          // (1 << shift) / 2
+	inline int16_t &NoiseKeep() { return var<int16_t>(own::R(0x2544FEC)); }          // second jitter threshold
+	inline int16_t &RibbonDepth() { return var<int16_t>(own::R(0x2544FEE)); }        // OT offset of the ribbons
+	inline int32_t &Lcg() { return var<int32_t>(own::R(0x2544FF0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2544FF4)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t *SavedFlags() { return (uint32_t *)own::R(0x2544FF8); }          // 7 entities' flag words
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }       // battle_texture_data_ptr (frame packet arena)
 	inline int16_t &CameraZoom() { return var<int16_t>(0x1D977A2); }
 	inline uint32_t OT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -113,6 +121,20 @@ namespace ga065
 	static const uint32_t ENTITY_SCALE = 0x133AB88;  // entity +0x30 while pulled
 	static const uint32_t SPRITE_SEQ = 0x1334F0C;    // sprite particle flipbook
 	static const void *const SOUND_Voice = (const void *)0x1334D70;
+	static const uint32_t ORIG_FileLoader = 0x6E0360, ORIG_Setup = 0x6E0350;
+	static const uint32_t TEXTURE_NAME = 0x1342D20;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct AttractorParams
+	{
+		struct { uint32_t start, layouts, beams, swirl, pull, vortex; } sounds;   // the six sounds of the timeline
+		struct { int16_t sink, away, damage; } master;   // the caster's sinking a tick (ticks 1..0x1F); the targets moved away at 0x20; the damage tick
+	};
+	static const AttractorParams GAME = { { 0x133AB6C, 0x133AB70, 0x133AB74, 0x133AB78, 0x133AB7C, 0x133AB80 }, { 0x142, 0x2710, 0x224 } };
+	static AttractorParams live = GAME;
+	static const AttractorParams &PA() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -311,7 +333,7 @@ namespace ga065
 	static void RestoreEntityFlag4()
 	{
 		const uint32_t *src = SavedFlags();
-		for (uint32_t e = 0x1D972C0; src < (const uint32_t *)0x2545014; e += 0x9C, src++)
+		for (uint32_t e = 0x1D972C0; src < (const uint32_t *)own::R(0x2545014); e += 0x9C, src++)
 		{
 			const uint16_t f = *(const uint16_t *)e;
 			if (f & 2) *(uint16_t *)e = (uint16_t)((((uint8_t)*src ^ (uint32_t)f) & 4) ^ f);
@@ -1934,7 +1956,7 @@ namespace ga065
 				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, 0, 0x800C, 0x800, 0x1334FFC, PacketCursor());
 				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, shl32((int32_t)s, 5), 0x8030, -0x200, 0x1336924, PacketCursor());
 				PacketCursor() = Stars(0, CasterPos()[0], 0, CasterPos()[2], sdiv_pow2(size, 2), PacketCursor());
-				if (Pause() == 0) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - 0x142);
+				if (Pause() == 0) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - PA().master.sink);
 			}
 		}
 		// 0x20..0x21D: the backdrop and the dots in the frame arena
@@ -2149,7 +2171,7 @@ namespace ga065
 				{
 					if (s == 0x3A)
 					{
-						LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
+						LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
 						if (L)
 						{
 							L->depth = -0x800;
@@ -2162,7 +2184,7 @@ namespace ga065
 					}
 					if (size < 0x341)
 					{
-						LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
+						LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
 						if (L)
 						{
 							L->depth = -0x800;
@@ -2393,12 +2415,12 @@ namespace ga065
 		if (m->counter == 0x224) ReleaseVoice(m->voice);
 		switch (m->counter)
 		{
-		case 0: BdPlaySE((const void *)0x133AB6C, 0, 0x80); break;
-		case 0x61: BdPlaySE((const void *)0x133AB70, 0, 0x80); break;
-		case 0xA7: BdPlaySE((const void *)0x133AB74, 0, 0x80); break;
-		case 0xEE: BdPlaySE((const void *)0x133AB78, 0, 0x80); break;
-		case 0x156: BdPlaySE((const void *)0x133AB7C, 0, 0x80); break;
-		case 0x1C9: BdPlaySE((const void *)0x133AB80, 0, 0x80); break;
+		case 0: BdPlaySE((const void *)fxp::sound(PA().sounds.start, 0x133AB6C), 0, 0x80); break;
+		case 0x61: BdPlaySE((const void *)fxp::sound(PA().sounds.layouts, 0x133AB70), 0, 0x80); break;
+		case 0xA7: BdPlaySE((const void *)fxp::sound(PA().sounds.beams, 0x133AB74), 0, 0x80); break;
+		case 0xEE: BdPlaySE((const void *)fxp::sound(PA().sounds.swirl, 0x133AB78), 0, 0x80); break;
+		case 0x156: BdPlaySE((const void *)fxp::sound(PA().sounds.pull, 0x133AB7C), 0, 0x80); break;
+		case 0x1C9: BdPlaySE((const void *)fxp::sound(PA().sounds.vortex, 0x133AB80), 0, 0x80); break;
 		default: break;
 		}
 		if (m->counter == 0x20)
@@ -2408,13 +2430,13 @@ namespace ga065
 				uint8_t *e = m->targets[i].entity;
 				*(uint32_t *)(e + 0x1C) = m->targets[i].pos_xy;
 				*(uint32_t *)(e + 0x20) = m->targets[i].pos_z;
-				*(int16_t *)(e + 0x20) = (int16_t)(*(int16_t *)(e + 0x20) + 0x2710);
+				*(int16_t *)(e + 0x20) = (int16_t)(*(int16_t *)(e + 0x20) + PA().master.away);
 			}
 			*(uint32_t *)(Caster() + 0x1C) = m->caster_xy;
 			*(uint32_t *)(Caster() + 0x20) = m->caster_z;
 		}
 		MasterCamera(m->counter);
-		if (m->counter == 0x224)
+		if (m->counter == PA().master.damage)
 		{
 			const ActionData *act = *(const ActionData *const *)(Ctx() + 4);
 			ApplyActionResultToTargets(*(uint8_t *const *)((const uint8_t *)act + 8), *((const uint8_t *)act + 0x10));
@@ -2458,6 +2480,26 @@ namespace ga065
 	// ------------------------------------------------------------------
 	// Root task (0x6E03F0)
 	// ------------------------------------------------------------------
+	// File loader (0x6E0360) and setup (0x6E0350 -> 0x6E0380): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root (no camera track:
+	// the master writes the battle camera itself)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = (uint8_t *)ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2544FA8), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -2478,7 +2520,7 @@ namespace ga065
 			r->started = 1;
 			SaveEntityFlags();
 			InitTaskQueuePool(QMaster(), (void *)TexBase(), 0xDB8, 1);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x36B);
 			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
 			const uint8_t *act = *(const uint8_t *const *)(Ctx() + 4);
@@ -2551,16 +2593,49 @@ namespace ga065
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define GP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(AttractorParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Its 0x228-tick timeline: the star backdrop, the caster sinking and swinging, the layouts, beams and rays, the targets pulled to the centre, the vortex, the flashes; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At ticks 0, 0x61, 0xA7, 0xEE, 0x156, 0x1C9" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sounds.start", "Start", "", (uint32_t)offsetof(AttractorParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.layouts", "Layouts", "", (uint32_t)offsetof(AttractorParams, sounds.layouts), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.beams", "Beams", "", (uint32_t)offsetof(AttractorParams, sounds.beams), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.swirl", "Swirl", "", (uint32_t)offsetof(AttractorParams, sounds.swirl), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.pull", "Pull", "", (uint32_t)offsetof(AttractorParams, sounds.pull), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.vortex", "Vortex", "", (uint32_t)offsetof(AttractorParams, sounds.vortex), fxp::Sound, 0, 0x7FFFFFFF },
+			GP("master", master.sink, "Sink", "The caster's sinking a tick over ticks 1..0x1F", -0x1000, 0x1000),
+			GP("master", master.away, "Targets away", "The targets moved this far away at tick 0x20 (back at 0x21E)", -0x7FFF, 0x7FFF),
+			GP("master", master.damage, "Damage tick", "", 0, 0x227),
+		};
+#undef GP
+	}
 }
 
 	void register_mag065_great_attractor()
 	{
+		fxp::register_params({ 65, "Great Attractor", &ga065::live, &ga065::GAME, sizeof(ga065::AttractorParams),
+		                       ga065::table::PARTS, (int)(sizeof(ga065::table::PARTS) / sizeof(ga065::table::PARTS[0])),
+		                       ga065::table::FIELDS, (int)(sizeof(ga065::table::FIELDS) / sizeof(ga065::table::FIELDS[0])),
+		                       ga065::table::GROUPS, (int)(sizeof(ga065::table::GROUPS) / sizeof(ga065::table::GROUPS[0])) });
+		own::note(ga065::ORIG_FileLoader, (void *)ga065::FileLoader);
+		own::note(ga065::ORIG_Setup, (void *)ga065::Setup);
+		own::note(ga065::ORIG_RootTask, (void *)ga065::RootTask);
 		register_port(ga065::ORIG_RootTask, (void *)ga065::RootTask, "A065 RootTask", 65);
+		own::note(ga065::ORIG_MasterTask, (void *)ga065::MasterTask);
 		register_port(ga065::ORIG_MasterTask, (void *)ga065::MasterTask, "A065 MasterTask", 65);
+		own::note(ga065::ORIG_LayoutTask, (void *)ga065::LayoutTask);
 		register_port(ga065::ORIG_LayoutTask, (void *)ga065::LayoutTask, "A065 LayoutTask", 65);
 		// 30 fps layer: see mag065_great_attractor_held.inc
 		FX_HELD(register_mag065_held();)
 	}
+	FX_LAB_MODULE(register_mag065_great_attractor);
 }
 
 #ifdef FF8_FX_HELD
