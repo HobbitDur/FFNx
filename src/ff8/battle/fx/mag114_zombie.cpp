@@ -97,7 +97,7 @@ namespace zombie114
 		} mist;
 		struct Overlay
 		{
-			int16_t from, ticks;    // the target redrawn swayed over from .. from + ticks - 1 (not when the cast's flags have 2)
+			struct { int16_t from, ticks; } window;   // the target redrawn swayed over from .. from + ticks - 1 (not when the cast's flags have 2)
 			int16_t lift_shift;     // lifted by sin x the mist's size >> this
 			struct { int16_t base, step; } amp;   // the sway's amplitude: base + step x the step's 4096ths
 			int16_t phase_step;     // the wave's phase a step
@@ -106,7 +106,7 @@ namespace zombie114
 	static const ZombieParams DEFAULTS = {
 		{ 10, 0x28, (uint32_t)SOUND_Zombie, 0, 0x101, 0x36, 0x3C, 0x1E },
 		{ { -0x800, 3 }, { 0x800, 0 }, { 2, 3 } },
-		{ 0x1E, 0x1E, 13, { 0x200, 2 }, 8 },
+		{ { 0x1E, 0x1E }, 13, { 0x200, 2 }, 8 },
 	};
 	static ZombieParams g_params = DEFAULTS;
 	static inline const ZombieParams &P() { return g_params; }
@@ -176,11 +176,11 @@ namespace zombie114
 		FX_PART(PART_MIST);
 		PlayAtAnchor(t->mist, &arg);
 		FX_PART(0);
-		const int32_t e = t->counter - pp.overlay.from;
-		if ((uint32_t)e < (uint32_t)pp.overlay.ticks && !(Ctx()->flags & 2))
+		const int32_t e = t->counter - pp.overlay.window.from;
+		if ((uint32_t)e < (uint32_t)pp.overlay.window.ticks && !(Ctx()->flags & 2))
 		{
 			SwayArg o;
-			SwayOverlayParams(e, pp.overlay.ticks, arg.scale[0], pp.overlay.lift_shift, pp.overlay.amp.base, pp.overlay.amp.step,
+			SwayOverlayParams(e, pp.overlay.window.ticks, arg.scale[0], pp.overlay.lift_shift, pp.overlay.amp.base, pp.overlay.amp.step,
 			                  pp.overlay.phase_step, &o);
 			// 30 fps layer: see mag114_zombie_held.inc
 			FX_HELD(held_note_overlay(t, &o, e, arg.scale[0]);)
@@ -283,6 +283,7 @@ namespace zombie114
 			{ "mist.depth", "Depth", "Its drawing depth: (Base - the target's size word) >> Shift" },
 			{ "mist.scale", "Size", "Scaled by ((the target's size >> 1) + Base) >> Shift (4096 = its own size); the overlay's lift too" },
 			{ "mist.additive", "Additive objects", "These two objects of the layout are drawn as their gouraud quads only, additive (-1: none)" },
+			{ "overlay.window", "Redrawn", "The target is redrawn swayed from tick From tick for Ticks ticks (its lift and tint: a quarter sine over them)" },
 			{ "overlay.amp", "Sway", "Amplitude Base + Step x the step's 4096ths" },
 		};
 		static const Field FIELDS[] = {
@@ -300,8 +301,8 @@ namespace zombie114
 			ZOMBIE_FIELD("mist", mist.scale.shift, "Shift", "", I16, 0, 15),
 			ZOMBIE_FIELD("mist", mist.additive.a, "Object", "", I16, -1, 31),
 			ZOMBIE_FIELD("mist", mist.additive.b, "Object", "", I16, -1, 31),
-			ZOMBIE_FIELD("overlay", overlay.from, "From tick", "The target is redrawn swayed from this tick...", I16, 0, 200),
-			ZOMBIE_FIELD("overlay", overlay.ticks, "Ticks", "...for this many ticks (its lift and tint: a quarter sine over them)", I16, 1, 200),
+			ZOMBIE_FIELD("overlay", overlay.window.from, "From tick", "", I16, 0, 200),
+			ZOMBIE_FIELD("overlay", overlay.window.ticks, "Ticks", "", I16, 1, 200),
 			ZOMBIE_FIELD("overlay", overlay.lift_shift, "Lift shift", "Lifted by sin x the mist's size >> this", I16, 0, 31),
 			ZOMBIE_FIELD("overlay", overlay.amp.base, "Base", "", I16, -0x4000, 0x4000),
 			ZOMBIE_FIELD("overlay", overlay.amp.step, "Step", "", I16, -16, 16),
