@@ -67,6 +67,9 @@
 //     half; the callback's matrix pad +0x12 only the GTE R33 word's high half.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -77,10 +80,12 @@ namespace hero309
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507484); }
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x2507490; }             // pool: magic buffer, 1 x 0x3CC
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25074C4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25074C8); }          // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507484)); }
+	inline TaskQueue *QPlay() { return (TaskQueue *)own::R(0x2507490); }             // pool: magic buffer, 1 x 0x3CC
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25074C4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507480)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25074A0); }           // 1 x 0x14
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25074C8)); }          // Magic_TextureOFF (magic buffer)
 
 	static const uint32_t ORIG_RootTask = 0x666E70;
 	static const uint32_t ORIG_PlayTask = 0x667030;
@@ -90,6 +95,19 @@ namespace hero309
 	static const uint32_t NODE_BYTES = 0x3CC;     // play node
 	static const uint32_t MORPH = 0x3CC;          // magic buffer: blended vertex frames
 	static const void *const SOUND = (const void *)0x10257E0;
+	static const uint32_t ORIG_FileLoader = 0x666DE0, ORIG_Setup = 0x666DD0;
+	static const uint32_t TEXTURE_NAME = 0x10244D8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct HeroParams
+	{
+		uint32_t sound;   // the play task's counter 1
+	};
+	static const HeroParams GAME = { 0x10257E0 };
+	static HeroParams live = GAME;
+	static const HeroParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x3D4;         // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x103D4;
 	static const int32_t MAIN_TICKS = 0x28, ORBIT_TICKS = 0x12, DEBRIS_FIRST = 0x10, DEBRIS_TICKS = 0x14;
@@ -379,7 +397,7 @@ namespace hero309
 			}
 			FieldFree(0x88);
 		}
-		if (p->counter == 1) BdPlaySE(SOUND, 0, 0x80);
+		if (p->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 		if (p->counter == 0x20)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -387,6 +405,25 @@ namespace hero309
 		p->counter++;
 		return p->counter < MAIN_TICKS ? 0 : TASK_END;
 	}
+	// File loader (0x666DE0) and setup (0x666DD0 -> _Init 0x666E00): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x2507488)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25074B0), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl PlayTask(TaskNode *n)
 	{
 		// the original's block word +0x14 (entry esp - 0xC), read before anything is written below this entry
@@ -417,7 +454,7 @@ namespace hero309
 		{
 			r->started = 1;
 			InitTaskQueuePool(QPlay(), (void *)TexBase(), NODE_BYTES, 1);
-			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
+			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), own::Fn(ORIG_PlayTask));
 			g_spawned = true;
 			g_spawn_word = 0x13C;
 			p->counter = 0;
@@ -448,15 +485,34 @@ namespace hero309
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "play", "Play", "The orbit layouts spiralling in, the main layout and the shards at the target, the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "play", "sound", "Sound", "The play task's counter 1", (uint32_t)offsetof(HeroParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag309_hero()
 	{
+		fxp::register_params({ 309, "Hero", &hero309::live, &hero309::GAME, sizeof(hero309::HeroParams),
+		                       hero309::table::PARTS, (int)(sizeof(hero309::table::PARTS) / sizeof(hero309::table::PARTS[0])),
+		                       hero309::table::FIELDS, (int)(sizeof(hero309::table::FIELDS) / sizeof(hero309::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(hero309::ORIG_FileLoader, (void *)hero309::FileLoader);
+		own::note(hero309::ORIG_Setup, (void *)hero309::Setup);
+		own::note(hero309::ORIG_RootTask, (void *)hero309::RootTask);
 		register_port(hero309::ORIG_RootTask, (void *)hero309::RootTask, "309 RootTask", 309);
+		own::note(hero309::ORIG_PlayTask, (void *)hero309::PlayTask);
 		register_port(hero309::ORIG_PlayTask, (void *)hero309::PlayTask, "309 PlayTask", 309);
 		// 30 fps layer: see mag309_hero_held.inc
 		FX_HELD(register_mag309_held();)
 	}
+	FX_LAB_MODULE(register_mag309_hero);
 }
 
 #ifdef FF8_FX_HELD
