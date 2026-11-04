@@ -68,6 +68,9 @@
 // arenas, packet cursor).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -77,12 +80,14 @@ namespace gg305
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2245650); }  // the first target
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2247778); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x224777C); }
-	inline int16_t *Muzzle() { return (int16_t *)0x2247788; }            // caster effect point 0xF0, 100 ahead
-	inline uint32_t &Cursor() { return var<uint32_t>(0x2257790); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2246958; }     // pool 0x2246968, 100 x 0x24
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x2245650)); }  // the first target
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2247778)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x224777C)); }
+	inline int16_t *Muzzle() { return (int16_t *)own::R(0x2247788); }            // caster effect point 0xF0, 100 ahead
+	inline uint32_t &Cursor() { return var<uint32_t>(own::R(0x2257790)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2247780)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2245668); }             // 1 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x2246958); }     // pool 0x2246968, 100 x 0x24
 	static const uint32_t ARENA_A = 0x224F790, ARENA_B = 0x2247790;     // 0x8000 bytes each
 
 	static const uint32_t ORIG_RootTask = 0x5A6BC0;
@@ -103,6 +108,20 @@ namespace gg305
 	static const uint32_t SEQ_Flash = 0xCED15C;
 	static const uint32_t SEQ_Sparks = 0xCED504;
 	static const void *const SOUND_Gun = (const void *)0xCEDF28;
+	static const uint32_t ORIG_FileLoader = 0x5A57B0, ORIG_Setup = 0x5A57D0;
+	static const uint32_t TEXTURE_NAME = 0xCEDF30, CAMERA_ANIM = 0xCEB2DC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GatlingGunParams
+	{
+		uint32_t sound;                    // at the director's tick 8
+		struct { int16_t damage; } master; // the damage at this tick
+	};
+	static const GatlingGunParams GAME = { 0xCEDF28, { 0x1E } };
+	static GatlingGunParams live = GAME;
+	static const GatlingGunParams &P() { return live; }
 	static const uint32_t BIND_Block = 0x2245FD8;   // 0x20-byte block BS_BindEntityModelFromComData fills
 	static const uint32_t COM_Anim = 0xCEB5E8;      // the module's animation set (com data)
 
@@ -152,11 +171,11 @@ namespace gg305
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Gatling Gun (Quistis) nodes");
 	static_assert(sizeof(Particle) == 0x18, "Gatling Gun (Quistis) records");
 
-	inline Particle *PartsA() { return (Particle *)0x2245FF8; }
-	inline Particle *PartsB() { return (Particle *)0x2245678; }
+	inline Particle *PartsA() { return (Particle *)own::R(0x2245FF8); }
+	inline Particle *PartsB() { return (Particle *)own::R(0x2245678); }
 	inline int16_t *EntPos(int32_t slot) { return (int16_t *)(Entity(slot) + 0x1C); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
-	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), fn); }
+	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), own::Fn(fn)); }   // (a copy: the port's thunk)
 }
 }
 
@@ -321,6 +340,31 @@ namespace gg305
 	// Tasks
 	// ------------------------------------------------------------------
 	// Muzzle flash (0x5A5C50)
+	// File loader (0x5A57B0) and setup (0x5A57D0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the director, both particle arrays
+	// cleared, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2245658), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x2246968), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_MasterTask)) + 0xC) = 0;
+		for (uint32_t a = own::R(0x2245FF8); a < own::R(0x2246958); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(0x2245678); a < own::R(0x2245FD8); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl MuzzleTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -651,7 +695,7 @@ namespace gg305
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 1)
 		{
-			BindEntityModelFromComData(Entity(CasterSlot()), BIND_Block, COM_Anim);
+			BindEntityModelFromComData(Entity(CasterSlot()), own::R(BIND_Block), COM_Anim);
 			QueueChainTransformation(Entity(CasterSlot()), 1);
 		}
 		if (n->counter >= 9 && n->counter <= 0x20 && (n->counter & 1))
@@ -707,8 +751,8 @@ namespace gg305
 		}
 		if (n->counter <= 8) SetScreenFlash((uint32_t)(n->counter * 0xC0), 0);
 		else if (n->counter >= 0x1C) SetScreenFlash((uint32_t)((0x24 - n->counter) * 0xC0), 0);
-		if (n->counter == 0x1E) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (n->counter == 8) BdPlaySE(SOUND_Gun, 0, 0x80);
+		if (n->counter == P().master.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (n->counter == 8) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), 0, 0x80);
 		n->counter++;
 		if (n->counter <= 0x24) return 0;
 		SetScreenFlash(0, 0);
@@ -720,30 +764,59 @@ namespace gg305
 		RootNode *r = (RootNode *)n_;
 		// 30 fps layer: see mag305_gatling_gun_quistis_held.inc
 		FX_HELD(held_note_root();)
-		Cursor() = ARENA_A;
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_B;
+		Cursor() = own::R(ARENA_A);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = own::R(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
 		r->counter++;
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Her cast animation, the muzzle flashes, the grey smoke, five misses on the line to the target and seven hits on it (with their dust and sparks), the screen flash, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sound", "Sound", "At the director's tick 8", (uint32_t)offsetof(GatlingGunParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "master.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(GatlingGunParams, master.damage), fxp::I16, 0, 36 },
+		};
 	}
 }
 
 	void register_mag305_gatling_gun_quistis()
 	{
+		fxp::register_params({ 305, "Gatling Gun (Quistis)", &gg305::live, &gg305::GAME, sizeof(gg305::GatlingGunParams),
+		                       gg305::table::PARTS, (int)(sizeof(gg305::table::PARTS) / sizeof(gg305::table::PARTS[0])),
+		                       gg305::table::FIELDS, (int)(sizeof(gg305::table::FIELDS) / sizeof(gg305::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(gg305::ORIG_FileLoader, (void *)gg305::FileLoader);
+		own::note(gg305::ORIG_Setup, (void *)gg305::Setup);
+		own::note(gg305::ORIG_RootTask, (void *)gg305::RootTask);
 		register_port(gg305::ORIG_RootTask, (void *)gg305::RootTask, "G305 RootTask", 305);
+		own::note(gg305::ORIG_MasterTask, (void *)gg305::MasterTask);
 		register_port(gg305::ORIG_MasterTask, (void *)gg305::MasterTask, "G305 MasterTask", 305);
+		own::note(gg305::ORIG_MuzzleTask, (void *)gg305::MuzzleTask);
 		register_port(gg305::ORIG_MuzzleTask, (void *)gg305::MuzzleTask, "G305 MuzzleTask", 305);
+		own::note(gg305::ORIG_SmokeTask, (void *)gg305::SmokeTask);
 		register_port(gg305::ORIG_SmokeTask, (void *)gg305::SmokeTask, "G305 SmokeTask", 305);
+		own::note(gg305::ORIG_MissTask, (void *)gg305::MissTask);
 		register_port(gg305::ORIG_MissTask, (void *)gg305::MissTask, "G305 MissTask", 305);
+		own::note(gg305::ORIG_ImpactTask, (void *)gg305::ImpactTask);
 		register_port(gg305::ORIG_ImpactTask, (void *)gg305::ImpactTask, "G305 ImpactTask", 305);
+		own::note(gg305::ORIG_FlashTask, (void *)gg305::FlashTask);
 		register_port(gg305::ORIG_FlashTask, (void *)gg305::FlashTask, "G305 FlashTask", 305);
+		own::note(gg305::ORIG_DustTask, (void *)gg305::DustTask);
 		register_port(gg305::ORIG_DustTask, (void *)gg305::DustTask, "G305 DustTask", 305);
+		own::note(gg305::ORIG_HitTask, (void *)gg305::HitTask);
 		register_port(gg305::ORIG_HitTask, (void *)gg305::HitTask, "G305 HitTask", 305);
+		own::note(gg305::ORIG_SparkTask, (void *)gg305::SparkTask);
 		register_port(gg305::ORIG_SparkTask, (void *)gg305::SparkTask, "G305 SparkTask", 305);
+		own::note(gg305::ORIG_SparksTask, (void *)gg305::SparksTask);
 		register_port(gg305::ORIG_SparksTask, (void *)gg305::SparksTask, "G305 SparksTask", 305);
 		// 30 fps layer: see mag305_gatling_gun_quistis_held.inc
 		FX_HELD(register_mag305_held();)
 	}
+	FX_LAB_MODULE(register_mag305_gatling_gun_quistis);
 }
 
 #ifdef FF8_FX_HELD
