@@ -68,8 +68,16 @@
 // 0x2793E58; the pointers 0x1582068 / 0x1586388 (exe data) lead to the reaper data 0x25F3A90 / 0x25F3ED0. The
 // reaper model container (0x158233C..) and the actor data files (0x1771F5C.., 0x1776950.., 0x1778BFC..) in exe
 // data are rewritten in place (skeleton, relocation, fade).
+// Fujin's described LV?Death (effect_074.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the reaper data through the descriptor (G_1533010), the other data word's value moved with it,
+// the tasks it spawns the program's or thunks of their ports (Spawn); its parameters (LvDeathQParams: the sounds,
+// the first reaper's wait, the reapers' fades and frames, the two actor systems) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -92,6 +100,20 @@ namespace lvdeath_quistis
 	static const uint32_t ORIG_ActorSystem = 0x7C54A0;
 	static const uint32_t ORIG_Spark = 0x7CB790;
 	static const uint32_t REAPER_CTX = 0x25EC528;      // render context of the dark reaper draw
+	static const uint32_t SOUND_APPEAR = 0x158206C, SOUND_STRIKE = 0x1582070;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct LvDeathQParams
+	{
+		struct { uint32_t appear, strike; } sound;
+		struct { int16_t wait, fade_in, dark_until, strike_frame, vanish_frame, fade_out; } reaper;   // the first one's wait (the cast animation), its fades, its animation frames
+		struct { int16_t length, mode; } aura, strike;                                                 // the two actor systems
+	};
+	static const LvDeathQParams GAME = { { SOUND_APPEAR, SOUND_STRIKE }, { 0xC, 0x400, 0x14, 5, 0xB, 0x200 }, { 0x14, 2 }, { 0x14, 0 } };
+	static LvDeathQParams live = GAME;
+	static const LvDeathQParams &PD() { return live; }
 	static const uint32_t BIND_Block = 0x25F3F00;      // 0x20-byte block BS_BindEntityModelFromComData fills
 	static const uint32_t COM_Anim = 0x15863B0;        // the module's animation set (com data)
 
@@ -328,12 +350,12 @@ namespace lvdeath_quistis
 	// at [0x25F3F20]) and the pool cursors / counters
 	uint32_t __cdecl d_7C47C0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25F3EBC), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25F3F20), 0x9D80);
-		MEM<uint16_t>(0x25ECBD0) = 0;
-		MEM<uint16_t>(0x25F3EC8) = 0;
-		MEM<uint16_t>(0x25F3A88) = 0;
-		MEM<uint16_t>(0x25EC520) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25F3EBC)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25F3F20)), 0x9D80);
+		MEM<uint16_t>(R(0x25ECBD0)) = 0;
+		MEM<uint16_t>(R(0x25F3EC8)) = 0;
+		MEM<uint16_t>(R(0x25F3A88)) = 0;
+		MEM<uint16_t>(R(0x25EC520)) = 0;
 		return 0; // void
 	}
 
@@ -343,12 +365,12 @@ namespace lvdeath_quistis
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x25F3F28);
-		MEM<uint32_t>(0x25F3EBC) = p;
+		uint32_t p = MEM<uint32_t>(R(0x25F3F28));
+		MEM<uint32_t>(R(0x25F3EBC)) = p;
 		p += 0x870;
-		MEM<uint32_t>(0x25F3F20) = p;
+		MEM<uint32_t>(R(0x25F3F20)) = p;
 		p += 0x9D80;
-		MEM<uint32_t>(0x25F3F28) = p;
+		MEM<uint32_t>(R(0x25F3F28)) = p;
 		d_7C47C0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -360,11 +382,11 @@ namespace lvdeath_quistis
 	// enemy), +0x4A its yaw facing the target (angle of +8 - +0 in x / z, minus 0x800)
 	uint32_t __cdecl d_7C48E0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(REAPER_DATA), 0x54);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
 		const uint32_t slot0 = U8(a1, 0x2D);
-		x::GetEffectSpawnPosition(0x1D972C0 + slot0 * 0x9C, 0xF1, 0, MEM<uint32_t>(REAPER_DATA) + 8);
+		x::GetEffectSpawnPosition(0x1D972C0 + slot0 * 0x9C, 0xF1, 0, MEM<uint32_t>(G(G_1533010)) + 8);
 		const uint8_t slot = U8(a1, 0x2D);
-		const uint32_t d = MEM<uint32_t>(REAPER_DATA);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0xA) = 0;
 		const uint32_t ent = 0x1D972C0 + (uint32_t)slot * 0x9C;
 		U32(d, 0) = U32(ent, 0x1C);
@@ -379,7 +401,7 @@ namespace lvdeath_quistis
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dxv = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t angle = x::CartesianToGameAngle((uint32_t)(int32_t)dxv, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(REAPER_DATA), 0x4A) = (uint16_t)((angle - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)((angle - 0x800) & 0xFFF);
 		return 0; // void
 	}
 
@@ -388,7 +410,7 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7C48B0(uint32_t a1)
 	{
 		d_7C48E0(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25EC658, 0x7C49D0, 0x48, a1);
+		Spawn(R(0x25EC658), 0x7C49D0, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -398,7 +420,7 @@ namespace lvdeath_quistis
 	// the requested one (the per-phase hooks of this copy are empty)
 	uint32_t __cdecl d_7C4A40(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(REAPER_DATA);
+		uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -406,7 +428,7 @@ namespace lvdeath_quistis
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			a_73A6D0(); // nullsub 0x7CBC20 (a1 pushed, unused)
-			d = MEM<uint32_t>(REAPER_DATA);
+			d = MEM<uint32_t>(G(G_1533010));
 		}
 		const uint16_t next = U16(d, 0x44);
 		if (U16(d, 0x42) != next)
@@ -445,10 +467,10 @@ namespace lvdeath_quistis
 			x::Battle_QueueTIMUpload_GetEOF(0x1778F3C);
 			x::Battle_QueueTIMUpload_GetEOF(0x178135C);
 			const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C;
-			BS_BindEntityModelFromComData(ent, BIND_Block, COM_Anim);
+			BS_BindEntityModelFromComData(ent, R(BIND_Block), COM_Anim);
 			QueueChainTransformation(ent, 1);
 			const uint8_t st = U8(a1, 0x29);
-			U16(a1, 0x44) = 0xC;
+			U16(a1, 0x44) = (uint16_t)PD().reaper.wait;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 			return 0; // void
 		}
@@ -465,7 +487,7 @@ namespace lvdeath_quistis
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) > 0)
 			return 0; // void
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(0x25F3EA8, ORIG_Reaper, 0x140, a1);
+		const uint32_t n = Spawn(R(0x25F3EA8), ORIG_Reaper, 0x140, a1);
 		x::Effect_BindModelContainerSetAnim(n, 0x158233C, 3);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -662,9 +684,9 @@ namespace lvdeath_quistis
 			S32(a1, 0x88) = S16(a1, 0x4E);
 			S32(a1, 0x8C) = S16(a1, 0x50);
 			x::scale3DMatrix(a1 + 0x70, a1 + 0x114);
-			return d_7C4E70(REAPER_CTX);
+			return d_7C4E70(R(REAPER_CTX));
 		}
-		MEM<uint32_t>(PACKET_CURSOR) = a_746C10(a1, 0x25F3088, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = a_746C10(a1, R(0x25F3088), MEM<uint32_t>(R(PACKET_CURSOR)));
 		return 0; // void
 	}
 
@@ -705,7 +727,7 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7CB2C0(uint32_t a1)
 	{
 		(void)a1;
-		U16(MEM<uint32_t>(0x1586388), 0x20) = 0;
+		U16(R(MEM<uint32_t>(0x1586388)), 0x20) = 0;
 		return 0; // void
 	}
 
@@ -717,8 +739,8 @@ namespace lvdeath_quistis
 		x::MAG_007_sub_8DCC00(a1, 0x54);
 		U32(a1, 0x48) = a4;
 		U32(a1, 0x40) = a2;
-		U32(a1, 0x4C) = PACKET_CURSOR;
-		U32(a1, 0x50) = PACKET_CURSOR;
+		U32(a1, 0x4C) = R(PACKET_CURSOR);
+		U32(a1, 0x50) = R(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(a1, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -737,7 +759,7 @@ namespace lvdeath_quistis
 	// object block 0x25F3F30, model block = the reaper node +0x30); dark flag +0x26 bit 3
 	uint32_t __cdecl d_7CB230(uint32_t a1)
 	{
-		d_7CB260(REAPER_CTX, 0x25ECBE8, 0x25F3F30, a1 + 0x30);
+		d_7CB260(R(REAPER_CTX), R(0x25ECBE8), R(0x25F3F30), a1 + 0x30);
 		U8(a1, 0x26) |= 8;
 		return 0; // void
 	}
@@ -748,7 +770,7 @@ namespace lvdeath_quistis
 	// animation 6, fully shown (+0x13A / +0x13C = 0x1000), sound 0x1582070, two states on
 	uint32_t __cdecl d_7C5360(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(REAPER_DATA);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(a1, 0x4C) = U32(d, 0);
 		const uint32_t w4 = U32(d, 4);
 		const uint16_t yaw = U16(d, 0x4A);
@@ -763,9 +785,9 @@ namespace lvdeath_quistis
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 5);
 			d_7CB230(a1);
-			a_73C100(a1, ORIG_ActorSystem, 0x1771F5C, 0, 0x14, 2);
-			x::Effect_AddTaskAndInitFromCtx(0x25EC760, 0x7CB140, 0x70, a1);
-			x::BdPlaySE(0x158206C, 0, 0x80);
+			a_73C100(a1, ORIG_ActorSystem, 0x1771F5C, 0, (uint16_t)PD().aura.length, (uint16_t)PD().aura.mode);
+			Spawn(R(0x25EC760), 0x7CB140, 0x70, a1);
+			x::BdPlaySE(fxp::sound(PD().sound.appear, SOUND_APPEAR), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0; // void
 		}
@@ -774,7 +796,7 @@ namespace lvdeath_quistis
 		U16(a1, 0x13C) = 0x1000;
 		d_7CAFB0(a1, 1);
 		d_7CB0D0(a1);
-		x::BdPlaySE(0x1582070, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PD().sound.strike, SOUND_STRIKE), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 2);
 		return 0; // void
 	}
@@ -783,13 +805,13 @@ namespace lvdeath_quistis
 	// when the appearance animation ends: animation 6, sound 0x1582070, next state
 	uint32_t __cdecl d_7CB2D0(uint32_t a1)
 	{
-		if (U16(a1, 0x136) == 0x14)
+		if (S16(a1, 0x136) == PD().reaper.dark_until)
 			U8(a1, 0x26) &= 0xF7;
 		if (x::au_re_Battle_ReadAnimation_8(a1) == 1)
 		{
 			U8(a1, 0x26) &= 0xF7;
 			x::au_re_Battle_ReadAnimation_7(a1, 6);
-			x::BdPlaySE(0x1582070, 0, 0x80);
+			x::BdPlaySE(fxp::sound(PD().sound.strike, SOUND_STRIKE), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -802,22 +824,22 @@ namespace lvdeath_quistis
 	// (the last action) or from frame 0xB (other actions)
 	uint32_t __cdecl d_7CB320(uint32_t a1)
 	{
-		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) + 0xFC00);
+		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) - PD().reaper.fade_in);
 		if (S16(a1, 0x13A) <= 0)
 			U16(a1, 0x13A) = 0;
 		U16(a1, 0x13C) = U16(a1, 0x13A);
 		d_7CAFB0(a1, 1);
 		d_7CB0D0(a1);
-		if (U16(a1, 0x136) == 5)
+		if (S16(a1, 0x136) == PD().reaper.strike_frame)
 		{
 			const int32_t action = S8(a1, 0x2A);
-			U16(MEM<uint32_t>(REAPER_DATA), 0x48) = 1;
+			U16(MEM<uint32_t>(G(G_1533010)), 0x48) = 1;
 			const uint32_t targets = U32(U32(U32(a1, 0xC), 4) + (uint32_t)(action * 20), 8);
 			const int32_t target = S8(a1, 0x2B);
 			if (!(U8(targets + (uint32_t)(target * 24), 3) & 4))
 			{
-				a_73C100(a1, ORIG_ActorSystem, 0x1776950, 0, 0x14, 0);
-				x::Effect_AddTaskAndInitFromCtx(0x25ECBD8, 0x7CB400, 0x118, a1);
+				a_73C100(a1, ORIG_ActorSystem, 0x1776950, 0, (uint16_t)PD().strike.length, (uint16_t)PD().strike.mode);
+				Spawn(R(0x25ECBD8), 0x7CB400, 0x118, a1);
 			}
 		}
 		const uint32_t r = x::au_re_Battle_ReadAnimation_8(a1);
@@ -827,7 +849,7 @@ namespace lvdeath_quistis
 				U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0; // void
 		}
-		if (S16(a1, 0x136) >= 0xB)
+		if (S16(a1, 0x136) >= PD().reaper.vanish_frame)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -837,7 +859,7 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7CBA50(uint32_t a1)
 	{
 		x::au_re_Battle_ReadAnimation_8(a1);
-		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) + 0x200);
+		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) + PD().reaper.fade_out);
 		if (S16(a1, 0x13A) >= 0x1000)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -856,8 +878,8 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7CBAB0(uint32_t a1)
 	{
 		if (U8(a1, 0x2E) == U8(a1, 0x2F))
-			x::Effect_AddTaskAndInitFromCtx(0x25EC760, 0x7CBB00, 0x70, a1);
-		const uint32_t d = MEM<uint32_t>(REAPER_DATA);
+			Spawn(R(0x25EC760), 0x7CBB00, 0x70, a1);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(a1, 0x26) |= 1;
 		U16(d, 0x4C) = 1;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -928,7 +950,7 @@ namespace lvdeath_quistis
 	// 0x20k), and a velocity (+0xF4 + 8k) of -(0x1000 + random 0..0x1FFF) along y through it
 	static void SparkGroup(uint32_t a1, uint32_t base, uint32_t m2, uint32_t pitch_mask, uint32_t pitch_add, int32_t pitch_sub)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25ECBD8, ORIG_Spark, 0x118, a1);
+		const uint32_t t = Spawn(R(0x25ECBD8), ORIG_Spark, 0x118, a1);
 		uint32_t vel = t + 0xF4;
 		uint32_t mat = t + 0x54;
 		for (int k = 4; k != 0; k--, mat += 0x20, vel += 8)
@@ -1016,7 +1038,7 @@ namespace lvdeath_quistis
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = d_7C6240(h, ot, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = d_7C6240(h, ot, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0; // void
 	}
@@ -1114,10 +1136,10 @@ namespace lvdeath_quistis
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x7C6240
 	uint32_t __cdecl d_7C60E0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1145,7 +1167,7 @@ namespace lvdeath_quistis
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(PACKET_CURSOR) = d_7C6240(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = d_7C6240(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		}
 		else if (copies > 0)
 		{
@@ -1157,11 +1179,11 @@ namespace lvdeath_quistis
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(PACKET_CURSOR) = d_7C6240(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+				MEM<uint32_t>(R(PACKET_CURSOR)) = d_7C6240(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1170,20 +1192,20 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7C8520(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1191,8 +1213,8 @@ namespace lvdeath_quistis
 	// from the pool [0x25F3EBC], cursor 0x25ECBD0) with the module's pool of 0x14 records
 	uint32_t __cdecl d_7C97D0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25F3EBC);
-		int32_t idx = MEM<int16_t>(0x25ECBD0);
+		const uint32_t pool = MEM<uint32_t>(R(0x25F3EBC));
+		int32_t idx = MEM<int16_t>(R(0x25ECBD0));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1202,7 +1224,7 @@ namespace lvdeath_quistis
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1217,9 +1239,9 @@ namespace lvdeath_quistis
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(0x25ECBD0) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x25ECBD0)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x25ECBD0) = 0;
+			MEM<uint16_t>(R(0x25ECBD0)) = 0;
 		return slot;
 	}
 
@@ -1227,8 +1249,8 @@ namespace lvdeath_quistis
 	// from the pool [0x25F3F20], cursor 0x25F3EC8) with the module's pool of 0x3C records
 	uint32_t __cdecl d_7CA150(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25F3F20);
-		int32_t i = MEM<int16_t>(0x25F3EC8);
+		const uint32_t pool = MEM<uint32_t>(R(0x25F3F20));
+		int32_t i = MEM<int16_t>(R(0x25F3EC8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1241,7 +1263,7 @@ namespace lvdeath_quistis
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1258,9 +1280,9 @@ namespace lvdeath_quistis
 		}
 		i++;
 		if (i >= 0x3B)
-			MEM<uint16_t>(0x25F3EC8) = 0;
+			MEM<uint16_t>(R(0x25F3EC8)) = 0;
 		else
-			MEM<uint16_t>(0x25F3EC8) = (uint16_t)i;
+			MEM<uint16_t>(R(0x25F3EC8)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1274,14 +1296,15 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7C45E0(uint32_t a1)
 	{
 		g_mod = &MOD_074;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see act_engine_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25F3EFC) = 0x2793E58;
-		MEM<uint32_t>(0x25EC680) = 0x2793E58;
+		MEM<uint32_t>(R(0x25F3EFC)) = 0x2793E58;
+		MEM<uint32_t>(R(0x25EC680)) = 0x2793E58;
 		states[0] = 0x7C4760;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x7C4770;
@@ -1296,25 +1319,25 @@ namespace lvdeath_quistis
 		states[10] = 0x7CBD80;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25F3084);
-			const uint32_t v2 = MEM<uint32_t>(0x25F21DC);
-			MEM<uint32_t>(0x25EC51C) = v1;
-			MEM<uint32_t>(0x25EC67C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25F3084));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25F21DC));
+			MEM<uint32_t>(R(0x25EC51C)) = v1;
+			MEM<uint32_t>(R(0x25EC67C)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25F3080);
-			const uint32_t v2 = MEM<uint32_t>(0x25F21D8);
-			MEM<uint32_t>(0x25EC51C) = v1;
-			MEM<uint32_t>(0x25EC67C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25F3080));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25F21D8));
+			MEM<uint32_t>(R(0x25EC51C)) = v1;
+			MEM<uint32_t>(R(0x25EC67C)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x25F3EF4) = 0;
-		MEM<uint16_t>(0x25F3EB8) = 0;
-		const uint32_t queues[7] = { 0x25F2F10, 0x25EC658, 0x25F3EA8, 0x25F2C70,
-			0x25EC760, 0x25ECBD8, 0x25F2F00 };
+		MEM<uint16_t>(R(0x25F3EF4)) = 0;
+		MEM<uint16_t>(R(0x25F3EB8)) = 0;
+		const uint32_t queues[7] = { R(0x25F2F10), R(0x25EC658), R(0x25F3EA8), R(0x25F2C70),
+			R(0x25EC760), R(0x25ECBD8), R(0x25F2F00) };
 		for (int i = 0; i < 7; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -1350,7 +1373,7 @@ namespace lvdeath_quistis
 	// the harness)
 	uint32_t __cdecl d_7C56C0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25F3F2C);
+		const uint32_t arena = MEM<uint32_t>(R(0x25F3F2C));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1370,7 +1393,7 @@ namespace lvdeath_quistis
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl d_7C5940(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25F3F2C);
+		const uint32_t arena = MEM<uint32_t>(R(0x25F3F2C));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -1400,7 +1423,7 @@ namespace lvdeath_quistis
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x25F3F2C, 0) = sys;
+		U32(R(0x25F3F2C), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1414,7 +1437,7 @@ namespace lvdeath_quistis
 			FX_HELD(held_note_system(sys);)
 			d_7C8460();
 			d_7C6080();
-			sys = U32(0x25F3F2C, 0);
+			sys = U32(R(0x25F3F2C), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1427,8 +1450,8 @@ namespace lvdeath_quistis
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x25F3EF4, 0) = (uint16_t)(U16(0x25F3EF4, 0) + c14);
-		U16(0x25F3EB8, 0) = (uint16_t)(U16(0x25F3EB8, 0) + c16);
+		U16(R(0x25F3EF4), 0) = (uint16_t)(U16(R(0x25F3EF4), 0) + c14);
+		U16(R(0x25F3EB8), 0) = (uint16_t)(U16(R(0x25F3EB8), 0) + c16);
 		return done;
 	}
 
@@ -1437,12 +1460,12 @@ namespace lvdeath_quistis
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl d_7C6080(void)
 	{
-		uint32_t act = U32(U32(0x25F3F2C, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x25F3F2C), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x25F3F2C, 0);
+				uint32_t sys = U32(R(0x25F3F2C), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -2214,14 +2237,14 @@ namespace lvdeath_quistis
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl d_7C8460(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x25F3F2C), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x25F3F2C)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x25F3F2C);
+				uint32_t st = MEM<uint32_t>(R(0x25F3F2C));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -2257,7 +2280,7 @@ namespace lvdeath_quistis
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl d_7C85A0(void)
 	{
-		uint32_t act = U32(U32(0x25F3F2C, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x25F3F2C), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2277,7 +2300,7 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7C85E0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x25F3F2C);
+		uint32_t st = MEM<uint32_t>(R(0x25F3F2C));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -2298,7 +2321,7 @@ namespace lvdeath_quistis
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x25F3F2C);
+			st = MEM<uint32_t>(R(0x25F3F2C));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2316,7 +2339,7 @@ namespace lvdeath_quistis
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x25F3F2C, 0);                  // actor state block
+		uint32_t st = U32(R(0x25F3F2C), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -2435,7 +2458,7 @@ namespace lvdeath_quistis
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl d_7C98F0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x25F3F2C, 0);
+		uint32_t sys = U32(R(0x25F3F2C), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2470,9 +2493,9 @@ namespace lvdeath_quistis
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x25F3EFC, 0) - 0x50;
+		uint32_t sp = U32(R(0x25F3EFC), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x25F3EFC, 0) = sp;
+		U32(R(0x25F3EFC), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = d_7CA150(a1, (uint16_t)kind);
@@ -2484,7 +2507,7 @@ namespace lvdeath_quistis
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x25F3F2C, 0);
+			uint32_t ctx = U32(R(0x25F3F2C), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2663,7 +2686,7 @@ namespace lvdeath_quistis
 			}
 		}
 		d_7CAE60(node, desc);
-		U32(0x25F3EFC, 0) = U32(0x25F3EFC, 0) + 0x50;
+		U32(R(0x25F3EFC), 0) = U32(R(0x25F3EFC), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -2677,7 +2700,7 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7CA370(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x25F3F2C, 0);            // ecx
+		const uint32_t st = U32(R(0x25F3F2C), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2741,7 +2764,7 @@ namespace lvdeath_quistis
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x25F3F2C, 0);
+				uint32_t g = U32(R(0x25F3F2C), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2751,7 +2774,7 @@ namespace lvdeath_quistis
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x25F3F2C, 0);
+				uint32_t g = U32(R(0x25F3F2C), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2845,7 +2868,7 @@ namespace lvdeath_quistis
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl d_7CAEF0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x25F3F2C);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x25F3F2C));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2870,14 +2893,14 @@ namespace lvdeath_quistis
 				do
 				{
 					d_7C97D0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x25F3F2C);
+					dir = MEM<uint32_t>(R(0x25F3F2C));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				d_7C97D0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x25F3F2C);
+				dir = MEM<uint32_t>(R(0x25F3F2C));
 			}
 		}
 		return 0; // void
@@ -2948,7 +2971,7 @@ namespace lvdeath_quistis
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl d_7CBC30(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1582068);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2985,12 +3008,12 @@ namespace lvdeath_quistis
 		U32(st, 0x228) = data + 0x44;
 		U32(st, 0x22C) = data + 0x84;
 		const uint32_t relocated = U32(data, 0);
-		MEM<uint32_t>(ACTOR_STATE) = st;
+		MEM<uint32_t>(R(ACTOR_STATE)) = st;
 		U32(st, 0x230) = data + 0xC4;
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 			U32(data, 0) = 1;
 		}
 		const int32_t action = S8(node, 0x2A);
@@ -3001,20 +3024,20 @@ namespace lvdeath_quistis
 		U32(st, 4) = U8(rec, (int32_t)mul32(target, 3) * 8);   // target slot
 		U16(st, 0x1A) = U16(node, 0x29E);
 		a_73FC20();
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(R(ACTOR_STATE));
 		if (U16(st, 0x24) == 4)
 			callp(F(F_73FB40), node);
 		a_73FFB0();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(R(ACTOR_STATE));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(F(F_73FDC0), node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		// distance caster entity -> the target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		const int32_t s1 = S16(st, 0x1E);
@@ -3029,7 +3052,7 @@ namespace lvdeath_quistis
 		const int32_t dz = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)U32(e2, 0x20));
 		const int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		const uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(R(ACTOR_STATE));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -3051,6 +3074,35 @@ namespace lvdeath_quistis
 		}
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(LvDeathQParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "reaper", "Reaper", "A reaper in front of each target: fading in in the dark, striking, vanishing; its sounds; the first one waits for the caster's cast animation" },
+			{ 0, "actors", "Actor systems", "The aura's actor system at its appearance, the dark one at the strike (their actor data the exe's)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "aura", "Aura", "Its actor system at the reaper's appearance: Ticks, Mode (2: the reaper data's fixed positions)" },
+			{ "strike", "Strike", "The dark actor system at the strike: Ticks, Mode (0: the bones)" },
+		};
+		static const Field FIELDS[] = {
+			{ "reaper", "sound.appear", "Appear sound", "Played when it appears (the first target)", (uint32_t)offsetof(LvDeathQParams, sound.appear), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "reaper", "sound.strike", "Strike sound", "Played when its dark draw ends", (uint32_t)offsetof(LvDeathQParams, sound.strike), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("reaper", reaper.wait, "Wait", "The first target's reaper after these ticks (the caster's cast animation)", 1, 200),
+			DT("reaper", reaper.fade_in, "Fade in", "Its fade down by this a tick (4096: fully shown)", 1, 0x1000),
+			DT("reaper", reaper.dark_until, "Dark until frame", "Drawn dark until this frame of its animation", 0, 200),
+			DT("reaper", reaper.strike_frame, "Strike frame", "It strikes (the damage, the dark actor system, the sparks) at this frame", 0, 200),
+			DT("reaper", reaper.vanish_frame, "Vanish from frame", "It vanishes from this frame", 0, 200),
+			DT("reaper", reaper.fade_out, "Fade out", "Its fade up by this a tick", 1, 0x1000),
+			DT("actors", aura.length, "Ticks", "", 0, 1000),
+			DT("actors", aura.mode, "Mode", "", 0, 4),
+			DT("actors", strike.length, "Ticks", "", 0, 1000),
+			DT("actors", strike.mode, "Mode", "", 0, 4),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -3186,6 +3238,12 @@ namespace lvdeath_quistis
 
 	void register_mag074_lvdeath_quistis()
 	{
+		fxp::register_params({ 74, "LV?Death (Quistis)", &act::lvdeath_quistis::live, &act::lvdeath_quistis::GAME,
+		                       sizeof(act::lvdeath_quistis::LvDeathQParams),
+		                       act::lvdeath_quistis::table::PARTS, (int)(sizeof(act::lvdeath_quistis::table::PARTS) / sizeof(act::lvdeath_quistis::table::PARTS[0])),
+		                       act::lvdeath_quistis::table::FIELDS, (int)(sizeof(act::lvdeath_quistis::table::FIELDS) / sizeof(act::lvdeath_quistis::table::FIELDS[0])),
+		                       act::lvdeath_quistis::table::GROUPS, (int)(sizeof(act::lvdeath_quistis::table::GROUPS) / sizeof(act::lvdeath_quistis::table::GROUPS[0])) });
+		act::register_mod(&act::lvdeath_quistis::MOD_074);
 		act::register_module(74);
 		for (const act::lvdeath_quistis::ModPort *p = act::lvdeath_quistis::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(74, p->addr, p->port, p->name);
@@ -3194,6 +3252,7 @@ namespace lvdeath_quistis
 		// 30 fps layer: see mag074_lvdeath_quistis_held.inc
 		FX_HELD(register_mag074_held();)
 	}
+	FX_LAB_MODULE(register_mag074_lvdeath_quistis);
 }
 
 #ifdef FF8_FX_HELD
