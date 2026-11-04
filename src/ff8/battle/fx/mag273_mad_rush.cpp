@@ -45,6 +45,9 @@
 // never read (the callback uses x, y, z only).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -54,11 +57,13 @@ namespace madrush273
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25084F4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25084F0); }          // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250850C); }
-	inline TaskQueue *QDust() { return (TaskQueue *)0x2508510; }              // pool: magic buffer + 0x930, 0x40 x 0x18
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x2508520; }              // pool: magic buffer, 3 x 0x310
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25084F4)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25084F0)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250850C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25084EC)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508530); }             // 1 x 0x14
+	inline TaskQueue *QDust() { return (TaskQueue *)own::R(0x2508510); }              // pool: magic buffer + 0x930, 0x40 x 0x18
+	inline TaskQueue *QPlay() { return (TaskQueue *)own::R(0x2508520); }              // pool: magic buffer, 3 x 0x310
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_RootTask = 0x68D700;
@@ -74,6 +79,19 @@ namespace madrush273
 	static const uint32_t SEQ_DUST = 0x110E5DC;       // sprite sequence
 	static const int DUST_FRAMES = 0xD;
 	static const void *const SOUND = (const void *)0x11110CC;
+	static const uint32_t ORIG_FileLoader = 0x68D660, ORIG_Setup = 0x68D650;
+	static const uint32_t TEXTURE_NAME = 0x1111220, CAMERA_ANIM = 0x11110D0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MadRushParams
+	{
+		uint32_t sound;   // for each target's play task
+	};
+	static const MadRushParams GAME = { 0x11110CC };
+	static MadRushParams live = GAME;
+	static const MadRushParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -210,6 +228,29 @@ namespace ff8fx
 {
 namespace madrush273
 {
+	// File loader (0x68D660) and setup (0x68D650 -> _Init 0x68D680): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x25084E8)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25084F8), 0x14, 1);
+		uint32_t *r = (uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC);
+		r[0] = 0;
+		r[1] = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl DustTask(TaskNode *n)
 	{
 		DustNode *d = (DustNode *)n;
@@ -246,7 +287,7 @@ namespace madrush273
 			const int32_t s = ComputeSin((int32_t)((uint32_t)shl32(c, 11) / 10u)) >> 11;
 			for (int32_t k = s + 1; k; k--)
 			{
-				DustNode *d = (DustNode *)AddTaskToQueue(QDust(), ORIG_DustTask);
+				DustNode *d = (DustNode *)AddTaskToQueue(QDust(), own::Fn(ORIG_DustTask));
 				if (!d) continue;
 				d->counter = 0;
 				d->scale = (int16_t)((CrtRand() & 0x400) + 0x400);
@@ -293,7 +334,7 @@ namespace madrush273
 			}
 			for (int32_t k = 0; k < (int32_t)Ctx()->actions[0].target_count; k++)
 			{
-				PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
+				PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), own::Fn(ORIG_PlayTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 0xC1);
 				p->index = (int16_t)k;
@@ -302,7 +343,7 @@ namespace madrush273
 				GetEffectSpawnPosition(p->entity, 0xF1, 0, p->anchor);
 				p->anchor[1] = *(const int16_t *)(p->entity + 0x24);
 				DecodeModelPrimLayout(MODEL_LAYOUT, p->layout, LAYOUT_BYTES);
-				BdPlaySE(SOUND, 0, 0x80);
+				BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 			}
 		}
 		int a, b;
@@ -316,16 +357,36 @@ namespace madrush273
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "root", "Root", "One layout per target (its morphing model at the target's bone), the dust rising, the sound; each target's action result when its layout ends" },
+		};
+		static const Field FIELDS[] = {
+			{ "root", "sound", "Sound", "For each target's play task", (uint32_t)offsetof(MadRushParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag273_mad_rush()
 	{
+		fxp::register_params({ 273, "Mad Rush", &madrush273::live, &madrush273::GAME, sizeof(madrush273::MadRushParams),
+		                       madrush273::table::PARTS, (int)(sizeof(madrush273::table::PARTS) / sizeof(madrush273::table::PARTS[0])),
+		                       madrush273::table::FIELDS, (int)(sizeof(madrush273::table::FIELDS) / sizeof(madrush273::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(madrush273::ORIG_FileLoader, (void *)madrush273::FileLoader);
+		own::note(madrush273::ORIG_Setup, (void *)madrush273::Setup);
+		own::note(madrush273::ORIG_RootTask, (void *)madrush273::RootTask);
 		register_port(madrush273::ORIG_RootTask, (void *)madrush273::RootTask, "273 RootTask", 273);
+		own::note(madrush273::ORIG_PlayTask, (void *)madrush273::PlayTask);
 		register_port(madrush273::ORIG_PlayTask, (void *)madrush273::PlayTask, "273 PlayTask", 273);
+		own::note(madrush273::ORIG_DustTask, (void *)madrush273::DustTask);
 		register_port(madrush273::ORIG_DustTask, (void *)madrush273::DustTask, "273 DustTask", 273);
 		// 30 fps layer: see mag273_mad_rush_held.inc
 		FX_HELD(register_mag273_held();)
 	}
+	FX_LAB_MODULE(register_mag273_mad_rush);
 }
 
 #ifdef FF8_FX_HELD
