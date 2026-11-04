@@ -7279,6 +7279,16 @@ static void ff8_bgate_battle_reset()
 //   0x50A1C0 pulse, 0x50A370 Confuse spin, 0x50A5F0 Float bob, 0x5711C0 overlay, 0x50C110 A8 fades
 //                                      CODE  status visuals (A8 left unconverted by the converter)
 //   0x50ACB4 magic cast timeout        CODE  x n host frames = native 60 s
+
+// Exported for test tools (AutoTest): the phase of the battle loop iteration in progress, read before its BdLink
+// (e.g. at the input pump). 1 = this iteration's BdLink is a real frame (the battle logic runs in it: a pad read
+// here is the vanilla tick's read), 0 = held (data only), -1 = no battle gate (not 30/60 fps, or not in a battle yet).
+extern "C" __declspec(dllexport) int __cdecl ff8_bgate_next_bdlink_real()
+{
+	if (!ff8_bgate_active || ff8_bgate_left_battle || getmode_cached()->driver_mode != MODE_BATTLE) return -1;
+	return (ff8_bgate_phase + 1) % ff8_bgate_n == 0 ? 1 : 0;
+}
+
 static void ff8_bgate_install_hooks()
 {
 	// The one knob: host frames per real battle tick. ff8_limit_fps() drives the battle module

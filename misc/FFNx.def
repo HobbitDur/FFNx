@@ -38,3 +38,5 @@ new_dll_graphics_driver
 ; FFNx APIs
 nxRegisterMouseListener
 nxRegisterKeyListener
+; True30FPS battle gate: phase of the battle loop iteration in progress (test tools)
+ff8_bgate_next_bdlink_real
