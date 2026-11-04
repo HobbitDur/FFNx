@@ -140,8 +140,9 @@ namespace oil136
 	{
 		uint32_t sound;                  // at the shot's tick 0x1E
 		struct { int16_t damage; } shot; // the damage at this tick of the shot
+		struct { uint32_t splash, stream, fall, mouth, hit, pool; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const OilParams GAME = { 0x11F81CC, { 0x3E } };
+	static const OilParams GAME = { 0x11F81CC, { 0x3E }, { MODEL_Splash, MODEL_Stream, MODEL_Fall, MODEL_Mouth, MODEL_Hit, MODEL_Pool } };
 	static OilParams live = GAME;
 	static const OilParams &PO() { return live; }   // (P: the shot task's stream point)
 
@@ -814,7 +815,7 @@ namespace oil136
 				d->landed = 1;
 				// 30 fps layer: see mag136_oil_shot_held.inc
 				FX_HELD(held_note_landing(n);)
-				DecodeModelPrimLayout(MODEL_Splash, d->layout, 0xA8);
+				DecodeModelPrimLayout(fxp::layout(PO().layouts.splash, MODEL_Splash, 0xA8), d->layout, 0xA8);
 			}
 		}
 		return 0;
@@ -956,7 +957,7 @@ namespace oil136
 					d->vel[1] = (int16_t)(ComputeSin(r) >> 8);
 					d->vel[2] = 0x32;
 					MatrixMultiplyVector(&M, d->vel, d->vel);
-					DecodeModelPrimLayout(MODEL_Stream, d->layout, 0xA8);
+					DecodeModelPrimLayout(fxp::layout(PO().layouts.stream, MODEL_Stream, 0xA8), d->layout, 0xA8);
 				}
 				ScaleZ() = MeshScaleZ(s, sine);
 				MulMatrix3(&M, SCALE_Z);
@@ -991,7 +992,7 @@ namespace oil136
 					f->vel[0] = (int16_t)(mul32(ComputeSin(a), sp) >> 12);
 					f->vel[2] = (int16_t)(mul32(ComputeCos(a), sp) >> 12);
 					f->vel[1] = (int16_t)(-0x40 - (CrtRand() & 0x7F));
-					DecodeModelPrimLayout(MODEL_Fall, f->layout, 0x50);
+					DecodeModelPrimLayout(fxp::layout(PO().layouts.fall, MODEL_Fall, 0x50), f->layout, 0x50);
 				}
 			}
 			if ((uint32_t)h >= 4 && (uint32_t)h < 0x14)
@@ -1047,9 +1048,9 @@ namespace oil136
 		Memset32(&w->counter, 0, 0x118);
 		w->target = target;
 		GetDefaultEffectPosition(target, w->pos);
-		DecodeModelPrimLayout(MODEL_Mouth, w->mouth, 0xC8);
-		DecodeModelPrimLayout(MODEL_Hit, w->hit, 0x1F4);
-		DecodeModelPrimLayout(MODEL_Pool, w->pool, 0x184);
+		DecodeModelPrimLayout(fxp::layout(PO().layouts.mouth, MODEL_Mouth, 0xC8), w->mouth, 0xC8);
+		DecodeModelPrimLayout(fxp::layout(PO().layouts.hit, MODEL_Hit, 0x1F4), w->hit, 0x1F4);
+		DecodeModelPrimLayout(fxp::layout(PO().layouts.pool, MODEL_Pool, 0x184), w->pool, 0x184);
 		NormalizeMesh(MESH);
 	}
 
@@ -1096,6 +1097,12 @@ namespace oil136
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Sound", "", (uint32_t)offsetof(OilParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "shot", "shot.damage", "Damage tick", "The damage at this tick of the shot", (uint32_t)offsetof(OilParams, shot.damage), fxp::I16, 0, 200 },
+			{ "shot", "layouts.splash", "Splash", "The prim-model layout splash (its models' animation)", (uint32_t)offsetof(OilParams, layouts.splash), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "shot", "layouts.stream", "Stream", "The prim-model layout stream (its models' animation)", (uint32_t)offsetof(OilParams, layouts.stream), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "shot", "layouts.fall", "Fall", "The prim-model layout fall (its models' animation)", (uint32_t)offsetof(OilParams, layouts.fall), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "shot", "layouts.mouth", "Mouth", "The prim-model layout mouth (its models' animation)", (uint32_t)offsetof(OilParams, layouts.mouth), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "shot", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(OilParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "shot", "layouts.pool", "Pool", "The prim-model layout pool (its models' animation)", (uint32_t)offsetof(OilParams, layouts.pool), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

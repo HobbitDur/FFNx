@@ -112,8 +112,9 @@ namespace micromissiles299
 	struct MicroMissilesParams
 	{
 		uint32_t sound;   // the master's counter 10 (the first missile)
+		struct { uint32_t hit, miss, missile; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const MicroMissilesParams GAME = { 0x104E2FC };
+	static const MicroMissilesParams GAME = { 0x104E2FC, { MODEL_Hit, MODEL_Miss, MODEL_Missile } };
 	static MicroMissilesParams live = GAME;
 	static const MicroMissilesParams &P() { return live; }
 
@@ -553,11 +554,11 @@ namespace micromissiles299
 				hit->m.t[2] = m->cur[2];
 				if (m->type <= 1)
 				{
-					DecodeModelPrimLayout(MODEL_Hit, hit->layout, 0xA0);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0xA0), hit->layout, 0xA0);
 					if (m->type == 0) QueueChainTransformation(Entity(Ctx()->actions[0].targets[0]), 5);
 					else ApplyActionResultToTarget(Ctx()->actions[0].targets);
 				}
-				else DecodeModelPrimLayout(MODEL_Miss, hit->layout, 0x114);
+				else DecodeModelPrimLayout(fxp::layout(P().layouts.miss, MODEL_Miss, 0x114), hit->layout, 0x114);
 			}
 			for (int k = 0; k < 0x10; k++)
 			{
@@ -618,7 +619,7 @@ namespace micromissiles299
 		int32_t v[3] = { (int32_t)pos[0] - aim[0], (int32_t)aim[1] - pos[1], (int32_t)aim[2] - pos[2] };
 		Mat4x3 basis;
 		m->dist = (int16_t)BuildOrthonormalBasis(v, &basis);
-		DecodeModelPrimLayout(MODEL_Missile, m->layout, 0x7D8);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.missile, MODEL_Missile, 0x7D8), m->layout, 0x7D8);
 		RotZ(shl32(k, 8) - 0x280, Frame(m));
 		Matrix3x3MultiplyPSX(&basis, Frame(m), Frame(m));
 		// RESIDUE (see STACK WORDS): 0x56C090 copies its 8-aligned temp's never-written pad word into +0x1E; with the master's frame
@@ -674,6 +675,9 @@ namespace micromissiles299
 		};
 		static const Field FIELDS[] = {
 			{ "master", "sound", "Sound", "The master's counter 10 (the first missile)", (uint32_t)offsetof(MicroMissilesParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(MicroMissilesParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.miss", "Miss", "The prim-model layout miss (its models' animation)", (uint32_t)offsetof(MicroMissilesParams, layouts.miss), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.missile", "Missile", "The prim-model layout missile (its models' animation)", (uint32_t)offsetof(MicroMissilesParams, layouts.missile), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

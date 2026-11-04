@@ -121,8 +121,9 @@ namespace meteor112
 	struct MeteorParams
 	{
 		struct { uint32_t start, hit; } sounds;   // the director's ticks 2 and 0x49
+		struct { uint32_t target, billboard, impact_a, impact_b, ground, hand_a, hand_b, fist; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 } };
+	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 }, { LAYOUT_Target, LAYOUT_Billboard, LAYOUT_ImpactA, LAYOUT_ImpactB, LAYOUT_Ground, LAYOUT_HandA, LAYOUT_HandB, LAYOUT_Fist } };
 	static MeteorParams live = GAME;
 	static const MeteorParams &P() { return live; }
 
@@ -713,10 +714,10 @@ namespace meteor112
 		if ((uint32_t)e >= 0x20) PacketCursor() = ScreenTile(0x28, 0x37, 0x32, e - 0x20, 3, PacketCursor());
 		if (e == 0)
 		{
-			DecodeModelPrimLayout(LAYOUT_Target, d->target_l, 0x10C);
-			DecodeModelPrimLayout(LAYOUT_Billboard, d->billboard, 0x380);
-			DecodeModelPrimLayout(LAYOUT_ImpactA, d->impact_a, 0xE0);
-			DecodeModelPrimLayout(LAYOUT_ImpactB, d->impact_b, 0xD0);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.target, LAYOUT_Target, 0x10C), d->target_l, 0x10C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.billboard, LAYOUT_Billboard, 0x380), d->billboard, 0x380);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.impact_a, LAYOUT_ImpactA, 0xE0), d->impact_a, 0xE0);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.impact_b, LAYOUT_ImpactB, 0xD0), d->impact_b, 0xD0);
 			// Zell at the target: facing halved, his position = the target's anchor minus (size + 5000) / 4 along it
 			int32_t f = W16(caster, 0xE);
 			if (f > 0x800) f -= 0x1000;
@@ -892,7 +893,7 @@ namespace meteor112
 		{
 			if (k == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Ground, d->ground_l, 0xC0);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.ground, LAYOUT_Ground, 0xC0), d->ground_l, 0xC0);
 				GetEffectSpawnPosition(caster, 0xF1, 0, d->ground);
 			}
 			else
@@ -919,8 +920,8 @@ namespace meteor112
 		{
 			if (h == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_HandA, d->hand_a, 0x110);
-				DecodeModelPrimLayout(LAYOUT_HandB, d->hand_b, 0x338);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.hand_a, LAYOUT_HandA, 0x110), d->hand_a, 0x110);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.hand_b, LAYOUT_HandB, 0x338), d->hand_b, 0x338);
 			}
 			HandsMidpoint(caster, L.arg.pos);
 			L.arg.radial = (uint32_t)h < 0x16 ? 0 : (int16_t)-0x400;
@@ -944,7 +945,7 @@ namespace meteor112
 		{
 			if (f == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Fist, d->fist_l, 0x350);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.fist, LAYOUT_Fist, 0x350), d->fist_l, 0x350);
 				int16_t *ang = &L.arg.pos[2]; // (the angles local overlaps the parameter block)
 				ang[0] = 0x12C;
 				ang[1] = W16(caster, 0xE);
@@ -1154,6 +1155,14 @@ namespace meteor112
 		static const Field FIELDS[] = {
 			{ "director", "sounds.start", "Start", "", (uint32_t)offsetof(MeteorParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.hit", "Hit", "", (uint32_t)offsetof(MeteorParams, sounds.hit), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.billboard", "Billboard", "The prim-model layout billboard (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.billboard), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.impact_a", "Impact a", "The prim-model layout impact a (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.impact_a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.impact_b", "Impact b", "The prim-model layout impact b (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.impact_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.ground", "Ground", "The prim-model layout ground (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.ground), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.hand_a", "Hand a", "The prim-model layout hand a (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.hand_a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.hand_b", "Hand b", "The prim-model layout hand b (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.hand_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.fist", "Fist", "The prim-model layout fist (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.fist), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

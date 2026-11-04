@@ -114,8 +114,9 @@ namespace badbreath131
 	{
 		uint32_t sound;                    // at the emitter's tick 0x14
 		struct { int16_t damage; } target; // the damage at this tick of a target task
+		struct { uint32_t target; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BreathParams GAME = { 0x121C978, { 0x28 } };
+	static const BreathParams GAME = { 0x121C978, { 0x28 }, { MODEL_Target } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 	static const uint32_t VERTS = 0xA00;                 // magic buffer: swirled mesh vertices / morph output
@@ -626,7 +627,7 @@ namespace badbreath131
 						p->slot = (uint8_t)((int32_t)((uint32_t)target - 0x1D972C0u) / 0x9C);
 						GetDefaultEffectPosition(target, p->pos);
 						p->pos[1] = (int16_t)(*(const int16_t *)(target + 0x24) - 0xC8);
-						DecodeModelPrimLayout(MODEL_Target, p->layout, 0x128);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.target, MODEL_Target, 0x128), p->layout, 0x128);
 					}
 					e->next++;
 				}
@@ -758,6 +759,7 @@ namespace badbreath131
 		static const Field FIELDS[] = {
 			{ "emitter", "sound", "Sound", "", (uint32_t)offsetof(BreathParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "emitter", "target.damage", "Damage tick", "The damage at this tick of a target task", (uint32_t)offsetof(BreathParams, target.damage), fxp::I16, 0, 200 },
+			{ "emitter", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

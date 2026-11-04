@@ -109,8 +109,10 @@ namespace gastric128
 	{
 		uint32_t sound;                    // at the target task's tick 10
 		struct { int16_t damage; } target; // the damage at this tick of the target task
+		uint32_t layout;                   // the prim-model layout played at the target
+		struct { uint32_t spray, drip, splash; } seqs; // the particles' flipbooks
 	};
-	static const JuiceParams GAME = { 0x12337B8, { 0x35 } };
+	static const JuiceParams GAME = { 0x12337B8, { 0x35 }, MODEL_Layout, { SEQ_Spray, SEQ_Drip, SEQ_Splash } };
 	static JuiceParams live = GAME;
 	static const JuiceParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x12337BC; // [|dy|][|dx|] -> length, 128 x 128
@@ -785,7 +787,7 @@ namespace gastric128
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_particle(ORIG_SprayTask, p);)
-		ParticleDraw(p, SEQ_Spray);
+		ParticleDraw(p, fxp::sequence(P().seqs.spray, SEQ_Spray));
 		SprayStep(p);
 		p->counter++;
 		return p->counter < 9 ? 0 : TASK_END;
@@ -796,7 +798,7 @@ namespace gastric128
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_particle(ORIG_DripTask, p);)
-		ParticleDraw(p, SEQ_Drip);
+		ParticleDraw(p, fxp::sequence(P().seqs.drip, SEQ_Drip));
 		DripStep(p);
 		p->counter++;
 		return p->counter < 0xD ? 0 : TASK_END;
@@ -807,7 +809,7 @@ namespace gastric128
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_particle(ORIG_SplashTask, p);)
-		ParticleDraw(p, SEQ_Splash);
+		ParticleDraw(p, fxp::sequence(P().seqs.splash, SEQ_Splash));
 		p->counter++;
 		return p->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -1047,7 +1049,7 @@ namespace gastric128
 				int16_t caster[4];
 				GetDefaultEffectPosition(Caster(), caster);
 				t->angle = (int16_t)CartesianToGameAngle((int32_t)t->pos[0] - caster[0], (int32_t)t->pos[2] - caster[2]);
-				DecodeModelPrimLayout(MODEL_Layout, t->layout, 0x248);
+				DecodeModelPrimLayout(fxp::layout(P().layout, MODEL_Layout, 0x248), t->layout, 0x248);
 				r->action++;
 				InitMelt(t->entity);
 			}
@@ -1075,6 +1077,10 @@ namespace gastric128
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "", (uint32_t)offsetof(JuiceParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "target.damage", "Damage tick", "The damage at this tick of the target task", (uint32_t)offsetof(JuiceParams, target.damage), fxp::I16, 0, 200 },
+			{ "target", "layout", "Layout", "The prim-model layout played at the target (its models' animation)", (uint32_t)offsetof(JuiceParams, layout), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.spray", "Spray", "The spray's flipbook (9 frames played)", (uint32_t)offsetof(JuiceParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.drip", "Drip", "The drips' flipbook (13 frames played)", (uint32_t)offsetof(JuiceParams, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.splash", "Splash", "The splashes' flipbook (16 frames played)", (uint32_t)offsetof(JuiceParams, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -101,8 +101,9 @@ namespace lv272
 	struct LvDownParams
 	{
 		uint32_t sound;   // when the play task starts
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const LvDownParams GAME = { 0x1115964 };
+	static const LvDownParams GAME = { 0x1115964, { MODEL_LAYOUT } };
 	static LvDownParams live = GAME;
 	static const LvDownParams &P() { return live; }
 
@@ -796,7 +797,7 @@ namespace lv272
 				p->scale[2] = p->scale[1];
 				p->scale[0] = p->scale[1];
 			}
-			DecodeModelPrimLayout(MODEL_LAYOUT, p->layout, LAYOUT_BYTES);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_LAYOUT, LAYOUT_BYTES), p->layout, LAYOUT_BYTES);
 			r->action++;
 			BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 		}
@@ -816,6 +817,7 @@ namespace lv272
 		};
 		static const Field FIELDS[] = {
 			{ "root", "sound", "Sound", "When the play task starts", (uint32_t)offsetof(LvDownParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "root", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(LvDownParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

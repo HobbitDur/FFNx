@@ -91,8 +91,9 @@ namespace fullcure280
 	struct FullCureParams
 	{
 		uint32_t sound;   // at each target's layout start
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const FullCureParams GAME = { 0x10AB124 };
+	static const FullCureParams GAME = { 0x10AB124, { LAYOUT } };
 	static FullCureParams live = GAME;
 	static const FullCureParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x1DF0;        // magic buffer: packet arenas
@@ -401,7 +402,7 @@ namespace fullcure280
 				t->entity = e;
 				GetEffectSpawnPosition(e, EFFECT_POINT, 0, t->anchor);
 				t->counter = 0;
-				DecodeModelPrimLayout(LAYOUT, t->layout, 0x8C4);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.main, LAYOUT, 0x8C4), t->layout, 0x8C4);
 				BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 			}
 		}
@@ -465,6 +466,7 @@ namespace fullcure280
 		};
 		static const Field FIELDS[] = {
 			{ "control", "sound", "Sound", "At each target's layout start", (uint32_t)offsetof(FullCureParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "control", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(FullCureParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

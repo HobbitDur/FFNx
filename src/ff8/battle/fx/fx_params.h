@@ -116,22 +116,82 @@ namespace fxp
 		int16_t spin;                       // Y angle per tick, either way at random
 	};
 
-	// a sprite sequence parameter (the flipbooks of FF8_EN.exe's data, InitEffectSequenceFromData
-	// 0x571C80): its address when it is one - in the exe image, the signature 24 05 01 00 - else the
-	// game's, so a wrong value draws the game's sprite instead of reading anywhere
-	inline uint32_t sequence(uint32_t address, uint32_t game)
+	// the data blocks a data parameter may point into besides the exe image: a new effect's own copies
+	// of the exe's data (its flipbooks, sounds, layouts), each registered by the host of the program
+	// that holds it (FF8UltimateEditor's Tools/fxhost/fxprogram.h) and dropped with that program
+	struct DataBlock { const void *owner; uint32_t begin, end; };
+	inline DataBlock g_data_blocks[1024];
+	inline int g_data_block_count = 0;
+	inline void add_data(const void *owner, uint32_t begin, uint32_t size)
+	{
+		if (g_data_block_count < 1024) g_data_blocks[g_data_block_count++] = { owner, begin, begin + size };
+	}
+	inline void drop_data(const void *owner)
+	{
+		int n = 0;
+		for (int k = 0; k < g_data_block_count; k++)
+			if (g_data_blocks[k].owner != owner) g_data_blocks[n++] = g_data_blocks[k];
+		g_data_block_count = n;
+	}
+	// the end of what [address, + size) lies in: the exe image or a data block (0: neither)
+	inline uint32_t data_end(uint32_t address, uint32_t size)
 	{
 		constexpr uint32_t image_begin = 0x400000, image_end = 0x282B000;    // FF8_EN.exe in memory
-		if (address == game || address < image_begin || address + 12 > image_end || address & 3) return game;
+		if (address + size < address) return 0;
+		if (address >= image_begin && address + size <= image_end) return image_end;
+		for (int k = 0; k < g_data_block_count; k++)
+			if (address >= g_data_blocks[k].begin && address + size <= g_data_blocks[k].end) return g_data_blocks[k].end;
+		return 0;
+	}
+#define FXP_DATA_BLOCKS 1   // (hosts test it: older sources have no data blocks)
+
+	// a sprite sequence parameter (the flipbooks of FF8_EN.exe's data, InitEffectSequenceFromData
+	// 0x571C80): its address when it is one - in the exe image or a data block, the signature
+	// 24 05 01 00 - else the game's, so a wrong value draws the game's sprite instead of reading anywhere
+	inline uint32_t sequence(uint32_t address, uint32_t game)
+	{
+		if (address == game || address & 3 || !data_end(address, 12)) return game;
 		return *(const uint32_t *)address == 0x00010524 ? address : game;
 	}
 
 	// a sound parameter (the battle's sound blocks, BdPlaySE 0x501330: it reads their leading world
-	// sound id only): its address when it can be one - in the exe image, aligned - else the game's
+	// sound id only): its address when it can be one - in the exe image or a data block, aligned -
+	// else the game's
 	inline uint32_t sound(uint32_t address, uint32_t game)
 	{
-		constexpr uint32_t image_begin = 0x400000, image_end = 0x282B000;    // FF8_EN.exe in memory
-		return address == game || address < image_begin || address + 4 > image_end || address & 3 ? game : address;
+		return address == game || address & 3 || !data_end(address, 4) ? game : address;
+	}
+
+	// a prim-model layout parameter (the effect library's prim player's: Effect_DecodeModelPrimLayout
+	// 0x7016B0 reads it, FF8UltimateEditor's FF8GameData/psxgpu/primlayout.py its format): its address
+	// when it reads as one - in the exe image or a data block, aligned, its model count, its header
+	// (object count, length) and objects inside what it lies in, the player state it needs within
+	// `capacity` (the caller's block, the size it decodes it with) - else the game's
+	inline uint32_t layout(uint32_t address, uint32_t game, uint32_t capacity)
+	{
+		if (address == game || address & 3) return game;
+		const uint32_t end = data_end(address, 8);
+		if (!end) return game;
+		const uint32_t models = *(const uint32_t *)address;
+		const int32_t at = *(const int32_t *)(address + 4);
+		if (models > 256 || at < 8 || (uint32_t)at + 8 > end - address) return game;
+		const uint32_t header = address + at;
+		const int32_t objects = *(const int32_t *)header, frames = *(const int32_t *)(header + 4);
+		if (objects < 0 || objects > 256 || frames <= 0 || header + 8 + 4 * (uint32_t)objects > end) return game;
+		// the decoder's state: the data pointer and the frame, then each object's integrator slots by its track flags
+		uint32_t words = 2;
+		for (int32_t k = 0; k < objects; k++)
+		{
+			const uint32_t object = header + *(const int32_t *)(header + 8 + 4 * k);
+			if (object < header || object + 8 > end) return game;
+			const uint32_t tf = *(const uint32_t *)(object + 4);
+			words += tf & 4 ? 9 : tf & 2 ? 6 : tf & 1 ? 3 : 0;            // position
+			words += tf & 0x20 ? 9 : tf & 0x10 ? 6 : tf & 8 ? 3 : 0;      // rotation
+			words += tf & 0x100 ? 9 : tf & 0x80 ? 6 : tf & 0x40 ? 3 : 0;  // scale
+			words += tf & 0x800 ? 6 : tf & 0x400 ? 4 : tf & 0x200 ? 2 : 0; // colour
+			words += (tf & 0x1000 ? 3 : 0) + (tf & 0x2000 ? 4 : 0);        // channels A, B
+		}
+		return words * 4 <= capacity ? address : game;
 	}
 
 	// a file name parameter (the files an effect's loader reads from the magic folder,
@@ -152,8 +212,8 @@ namespace fxp
 
 	// ---- field table (what an editor shows) ----
 	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences; Sound: a sound
-	// block's address (32 bits)
-	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4, File = 5 };
+	// block's address (32 bits); Layout: a prim-model layout's address (32 bits)
+	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4, File = 5, Layout = 6 };
 	// how an editor shows the value (the raw value beside it): Angle 4096 = a full turn (degrees),
 	// Scale 4096 = its own size (x 1)
 	enum Unit : uint8_t { Plain = 0, Angle = 1, Scale = 2 };

@@ -121,8 +121,9 @@ namespace boomerang304
 	struct BoomerangSwordParams
 	{
 		uint32_t sound;   // the throw (the main task's counter 5)
+		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BoomerangSwordParams GAME = { 0x10312C8 };
+	static const BoomerangSwordParams GAME = { 0x10312C8, { MODEL_Hit } };
 	static BoomerangSwordParams live = GAME;
 	static const BoomerangSwordParams &P() { return live; }
 
@@ -619,7 +620,7 @@ namespace boomerang304
 					{
 						h->ent = ent;
 						GetDefaultEffectPosition(ent, h->pos);
-						DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x1CC);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x1CC), h->layout, 0x1CC);
 					}
 					int32_t angle = 0;
 					Mat4x3 basis;
@@ -736,6 +737,7 @@ namespace boomerang304
 		};
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The throw (the main task's counter 5)", (uint32_t)offsetof(BoomerangSwordParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(BoomerangSwordParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

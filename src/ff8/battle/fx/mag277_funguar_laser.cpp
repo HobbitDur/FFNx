@@ -112,8 +112,9 @@ namespace laser277
 	struct FunguarLaserParams
 	{
 		uint32_t sound;   // each beam's counter 0
+		struct { uint32_t hit, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const FunguarLaserParams GAME = { 0x10D2E9C };
+	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact } };
 	static FunguarLaserParams live = GAME;
 	static const FunguarLaserParams &P() { return live; }
 	static const int16_t P_OBJECT = 0, P_VERTEX = 0x7B;  // the beam's start: caster model object 0, vertex 0x7B
@@ -633,7 +634,7 @@ namespace laser277
 						h->frame.t[0] = T[0];
 						h->frame.t[1] = T[1];
 						h->frame.t[2] = T[2];
-						DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x7C);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x7C), h->layout, 0x7C);
 					}
 				}
 				FX_HELD(held_note_beam(n);)
@@ -715,9 +716,9 @@ namespace laser277
 						b->ent = ent;
 						GetEffectSpawnPosition(ent, 0xF1, 0, b->spawn);
 						m->index++;
-						DecodeModelPrimLayout(MODEL_Muzzle, b->muzzle, 0x3B0);
-						DecodeModelPrimLayout(MODEL_Ray, b->ray, 0xE8);
-						DecodeModelPrimLayout(MODEL_Impact, b->impact, 0x1B0);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.muzzle, MODEL_Muzzle, 0x3B0), b->muzzle, 0x3B0);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.ray, MODEL_Ray, 0xE8), b->ray, 0xE8);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.impact, MODEL_Impact, 0x1B0), b->impact, 0x1B0);
 					}
 				}
 			}
@@ -743,6 +744,10 @@ namespace laser277
 		};
 		static const Field FIELDS[] = {
 			{ "beam", "sound", "Sound", "Each beam's counter 0", (uint32_t)offsetof(FunguarLaserParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.ray", "Ray", "The prim-model layout ray (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.ray), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

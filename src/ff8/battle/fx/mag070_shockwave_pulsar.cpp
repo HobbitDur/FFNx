@@ -138,8 +138,9 @@ namespace sp070
 	{
 		struct { uint32_t voice, start, wave, burst; } sounds;   // the voice claimed at the master's start; the sounds at ticks 0, 0x50, 0xAA
 		struct { int16_t damage, voice_release, end; } master;   // the damage, the voice released, the end (positions and flags restored) at these ticks
+		struct { uint32_t ring, centre, wave, lift, rise; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 } };
+	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE } };
 	static PulsarParams live = GAME;
 	static const PulsarParams &PP() { return live; }
 
@@ -1088,7 +1089,7 @@ namespace sp070
 				ring->pos[0] = E16(e, 0x1C);
 				ring->pos[2] = E16(e, 0x20);
 				ring->pos[1] = 0;
-				DecodeModelPrimLayout(LAYOUT_RING, ring->layout, 0xD8);
+				DecodeModelPrimLayout(fxp::layout(PP().layouts.ring, LAYOUT_RING, 0xD8), ring->layout, 0xD8);
 			}
 			const int16_t d = (int16_t)sdiv_pow2(t, 3);
 			if (slot & 1)
@@ -1150,7 +1151,7 @@ namespace sp070
 		// 0x32..0x4F: the centre layout
 		if ((uint32_t)((int32_t)m->counter - 0x32) < 0x1E)
 		{
-			if (m->counter == 0x32) DecodeModelPrimLayout(LAYOUT_CENTRE, m->layout, 0x218);
+			if (m->counter == 0x32) DecodeModelPrimLayout(fxp::layout(PP().layouts.centre, LAYOUT_CENTRE, 0x218), m->layout, 0x218);
 			PrimArg arg;
 			arg.pos[0] = (int16_t)CentreX();
 			arg.pos[2] = (int16_t)CentreZ();
@@ -1189,7 +1190,7 @@ namespace sp070
 			{
 				InitTaskQueuePool(QSub(), (void *)TexBase(), 0x114, 6);
 				EntitiesFlag4On();
-				DecodeModelPrimLayout(LAYOUT_WAVE, m->layout, 0x1100);
+				DecodeModelPrimLayout(fxp::layout(PP().layouts.wave, LAYOUT_WAVE, 0x1100), m->layout, 0x1100);
 				for (int32_t k = 0; k < m->ntargets; k++)
 				{
 					SubNode *t = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_LiftTask));
@@ -1207,7 +1208,7 @@ namespace sp070
 					}
 					rec->ang[2] = 0;
 					t->t.counter = 0;
-					DecodeModelPrimLayout(LAYOUT_LIFT, t->layout, 0xBC);
+					DecodeModelPrimLayout(fxp::layout(PP().layouts.lift, LAYOUT_LIFT, 0xBC), t->layout, 0xBC);
 					t->t.rec = rec;
 				}
 			}
@@ -1350,7 +1351,7 @@ namespace sp070
 				MeasureHeight(rec->entity, &rec->y_max);
 				t->t.counter = 0;
 				t->t.delay = (int16_t)(0x32 - (int32_t)c1);
-				DecodeModelPrimLayout(LAYOUT_RISE, t->layout, 0x100);
+				DecodeModelPrimLayout(fxp::layout(PP().layouts.rise, LAYOUT_RISE, 0x100), t->layout, 0x100);
 				t->t.rec = rec;
 			}
 		}
@@ -1598,6 +1599,11 @@ namespace sp070
 			PP_("master", master.damage, "Damage tick", "", 0, 0x105),
 			PP_("master", master.voice_release, "Voice release", "The voice released at this tick", 0, 0x105),
 			PP_("master", master.end, "End after", "Positions and flags restored, the effect done after this tick (the flash fades out from 0xFA)", 0xD7, 0x400),
+			{ "master", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.centre", "Centre", "The prim-model layout centre (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.centre), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.wave", "Wave", "The prim-model layout wave (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.wave), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.lift", "Lift", "The prim-model layout lift (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.lift), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.rise", "Rise", "The prim-model layout rise (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 #undef PP_
 	}

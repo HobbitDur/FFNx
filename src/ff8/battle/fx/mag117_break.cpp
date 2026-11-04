@@ -92,8 +92,9 @@ namespace break117
 	{
 		uint32_t sound;                    // at the target task's tick 0 (3D, at the anchor)
 		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
+		struct { uint32_t shell; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BreakParams GAME = { 0x1298C58, { 0x4E } };
+	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell } };
 	static BreakParams live = GAME;
 	static const BreakParams &P() { return live; }
 	static const uint32_t STONE_TPage = 0xB8, STONE_Clut = 0x3D54;
@@ -1137,7 +1138,7 @@ namespace break117
 						t->entity = entity;
 						GetEffectSpawnPosition(entity, 0xF1, 0, t->pos);
 						t->pos[1] = *(const int16_t *)(entity + 0x24);
-						DecodeModelPrimLayout(MODEL_Shell, t->layout, 0x1554);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.shell, MODEL_Shell, 0x1554), t->layout, 0x1554);
 						r->action++;
 					}
 				}
@@ -1166,6 +1167,7 @@ namespace break117
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "", (uint32_t)offsetof(BreakParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(BreakParams, target.status), fxp::I16, 0, 83 },
+			{ "target", "layouts.shell", "Shell", "The prim-model layout shell (its models' animation)", (uint32_t)offsetof(BreakParams, layouts.shell), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

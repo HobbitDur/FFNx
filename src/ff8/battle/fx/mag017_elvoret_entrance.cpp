@@ -110,8 +110,9 @@ namespace elvoret017
 		struct { int16_t height, descent; } caster;      // it starts this high (negative: up), comes down by this a tick
 		struct { int16_t from, ticks; } burst;           // the ring burst at its landing
 		int16_t end;                                     // the main task ends after this tick
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const ElvoretParams GAME = { { 0x14D8E40, 0x14D8E44 }, { -5440, 0x40 }, { 0x50, 0x14 }, 0x7A };
+	static const ElvoretParams GAME = { { 0x14D8E40, 0x14D8E44 }, { -5440, 0x40 }, { 0x50, 0x14 }, 0x7A, { MODEL_Layout } };
 	static ElvoretParams live = GAME;
 	static const ElvoretParams &P() { return live; }
 
@@ -444,7 +445,7 @@ namespace elvoret017
 			{
 				Memset32(&m->counter, 0, 0x7C);
 				m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
-				DecodeModelPrimLayout(MODEL_Layout, m->layout, 0x1E8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_Layout, 0x1E8), m->layout, 0x1E8);
 			}
 		}
 		int a, b;
@@ -481,6 +482,7 @@ namespace elvoret017
 			EV("entrance", burst.from, "From", "", 0, 200),
 			EV("entrance", burst.ticks, "Ticks", "", 0, 100),
 			EV("entrance", end, "End", "The entrance ends after this tick", 1, 400),
+			{ "entrance", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(ElvoretParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 #undef EV
 	}

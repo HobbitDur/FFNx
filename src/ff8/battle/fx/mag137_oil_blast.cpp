@@ -124,8 +124,9 @@ namespace oil137
 	{
 		uint32_t sound;                   // at the blast's tick 10
 		struct { int16_t damage; } blast; // the damage at this tick of the blast
+		struct { uint32_t puddle, spout, blast; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BlastParams GAME = { 0x11F035C, { 0x2D } };
+	static const BlastParams GAME = { 0x11F035C, { 0x2D }, { MODEL_Puddle, MODEL_Spout, MODEL_Blast } };
 	static BlastParams live = GAME;
 	static const BlastParams &P() { return live; }
 
@@ -723,8 +724,8 @@ namespace oil137
 				w->puddle1[1] = 0;
 				GetEffectSpawnPosition(Caster(), 0x1C, 0, w->puddle2);
 				w->puddle2[1] = 0;
-				DecodeModelPrimLayout(MODEL_Puddle, w->lay1, 0x40);
-				DecodeModelPrimLayout(MODEL_Puddle, w->lay2, 0x40);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.puddle, MODEL_Puddle, 0x40), w->lay1, 0x40);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.puddle, MODEL_Puddle, 0x40), w->lay2, 0x40);
 			}
 			BlockAt(&arg, w->puddle1);
 			arg.mode = 0;
@@ -744,7 +745,7 @@ namespace oil137
 			{
 				GetEffectSpawnPosition(Caster(), 0x13, 0, w->spout);
 				w->spout[1] = 0;
-				DecodeModelPrimLayout(MODEL_Spout, w->layS, 0x1A0);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.spout, MODEL_Spout, 0x1A0), w->layS, 0x1A0);
 			}
 			SpoutBlock(&arg, w->spout);
 			arg.mode = 0;
@@ -791,7 +792,7 @@ namespace oil137
 			if (kd == 0)
 			{
 				FloorBasis(w->spout, w->aim, &w->basisD);
-				DecodeModelPrimLayout(MODEL_Blast, w->layB, 0x2FC);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.blast, MODEL_Blast, 0x2FC), w->layB, 0x2FC);
 			}
 			w->basisD.t[1] = 0;
 			w->basisD.t[0] = w->aim[0] - (w->basisD.m[0][2] >> 2);
@@ -883,6 +884,9 @@ namespace oil137
 		static const Field FIELDS[] = {
 			{ "blast", "sound", "Sound", "", (uint32_t)offsetof(BlastParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "blast", "blast.damage", "Damage tick", "The damage at this tick of the blast", (uint32_t)offsetof(BlastParams, blast.damage), fxp::I16, 0, 200 },
+			{ "blast", "layouts.puddle", "Puddle", "The prim-model layout puddle (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.puddle), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "blast", "layouts.spout", "Spout", "The prim-model layout spout (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.spout), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "blast", "layouts.blast", "Blast", "The prim-model layout blast (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.blast), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

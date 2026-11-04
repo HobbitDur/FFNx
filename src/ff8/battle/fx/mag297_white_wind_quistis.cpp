@@ -96,8 +96,9 @@ namespace whitewind297
 	struct WhiteWind297Params
 	{
 		uint32_t sound;   // at the scene task's tick 1
+		struct { uint32_t caster, sweep, target; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const WhiteWind297Params GAME = { 0x105BA94 };
+	static const WhiteWind297Params GAME = { 0x105BA94, { MODEL_Caster, MODEL_Sweep, MODEL_Target } };
 	static WhiteWind297Params live = GAME;
 	static const WhiteWind297Params &P() { return live; }
 	static const uint32_t MORPH = 0xAEC;                 // magic buffer: blended vertex frames
@@ -364,7 +365,7 @@ namespace whitewind297
 			{
 				GetDefaultEffectPosition(Caster(), s->caster);
 				s->caster[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(MODEL_Caster, s->lay_caster, 0x188);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.caster, MODEL_Caster, 0x188), s->lay_caster, 0x188);
 			}
 			arg.m.t[0] = s->caster[0];
 			arg.m.t[1] = s->caster[1];
@@ -390,7 +391,7 @@ namespace whitewind297
 				s->sweep[0] = 0;
 				s->sweep[2] = (int16_t)((int32_t)s->sweep[2] / (int32_t)a->target_count);
 				s->sweep[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(MODEL_Sweep, s->lay_sweep, 0x194);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.sweep, MODEL_Sweep, 0x194), s->lay_sweep, 0x194);
 			}
 			arg.m.t[0] = s->sweep[0];
 			arg.m.t[1] = s->sweep[1];
@@ -425,7 +426,7 @@ namespace whitewind297
 					t->entity = e;
 					GetDefaultEffectPosition(e, t->pos);
 					t->pos[1] = AnchorY(e);
-					DecodeModelPrimLayout(MODEL_Target, t->layout, 0x278);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.target, MODEL_Target, 0x278), t->layout, 0x278);
 				}
 			}
 		}
@@ -478,6 +479,9 @@ namespace whitewind297
 		};
 		static const Field FIELDS[] = {
 			{ "scene", "sound", "Sound", "At the scene task's tick 1", (uint32_t)offsetof(WhiteWind297Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "scene", "layouts.caster", "Caster", "The prim-model layout caster (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.caster), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "scene", "layouts.sweep", "Sweep", "The prim-model layout sweep (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.sweep), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "scene", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

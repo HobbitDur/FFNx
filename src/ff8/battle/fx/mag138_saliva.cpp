@@ -139,8 +139,9 @@ namespace saliva138
 	{
 		uint32_t sound;                  // at the main task's tick 0x19
 		struct { int16_t damage; } main; // the damage at this tick of the main task
+		struct { uint32_t a, b, c; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const SalivaParams GAME = { 0x11E3134, { 0x28 } };
+	static const SalivaParams GAME = { 0x11E3134, { 0x28 }, { MODEL_A, MODEL_B, MODEL_C } };
 	static SalivaParams live = GAME;
 	static const SalivaParams &PS() { return live; }
 
@@ -1056,9 +1057,9 @@ namespace saliva138
 		Memset32(&w->counter, 0, 0xDD);
 		w->target = target;
 		GetEffectSpawnPosition(target, 0xF1, 0, w->pos);
-		DecodeModelPrimLayout(MODEL_A, w->layA, 0xA8);
-		DecodeModelPrimLayout(MODEL_B, w->layB, 0x194);
-		DecodeModelPrimLayout(MODEL_C, w->layC, 0x118);
+		DecodeModelPrimLayout(fxp::layout(PS().layouts.a, MODEL_A, 0xA8), w->layA, 0xA8);
+		DecodeModelPrimLayout(fxp::layout(PS().layouts.b, MODEL_B, 0x194), w->layB, 0x194);
+		DecodeModelPrimLayout(fxp::layout(PS().layouts.c, MODEL_C, 0x118), w->layC, 0x118);
 		NormalizeMesh(MESH);
 		Point *p = (Point *)(TexBase() + POINTS);
 		for (int i = 0x60; i; i--, p++) p->width = -1;
@@ -1102,6 +1103,9 @@ namespace saliva138
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "", (uint32_t)offsetof(SalivaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "main.damage", "Damage tick", "The damage at this tick of the main task", (uint32_t)offsetof(SalivaParams, main.damage), fxp::I16, 0, 200 },
+			{ "main", "layouts.a", "A", "The prim-model layout a (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.c", "C", "The prim-model layout c (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.c), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

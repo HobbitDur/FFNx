@@ -132,8 +132,9 @@ namespace beat216
 	struct DifferentBeatParams
 	{
 		uint32_t sound;   // at the director's tick 0
+		struct { uint32_t ring, rise, fly, drop, impact, crater, pillar; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const DifferentBeatParams GAME = { 0x113C1A8 };
+	static const DifferentBeatParams GAME = { 0x113C1A8, { LAYOUT_Ring, LAYOUT_Rise, LAYOUT_Fly, LAYOUT_Drop, LAYOUT_Impact, LAYOUT_Crater, LAYOUT_Pillar } };
 	static DifferentBeatParams live = GAME;
 	static const DifferentBeatParams &P() { return live; }
 	static const uint32_t MORPH = 0x2CD8;   // magic buffer: twisted / blended vertices
@@ -1656,7 +1657,7 @@ namespace beat216
 		k->pos[1] = (int16_t)(W16(Caster(), 0x1E) + y);
 		k->angle = 0;
 		k->pos[2] = (int16_t)(W16(Caster(), 0x20) + z);
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0xEC);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.ring, LAYOUT_Ring, 0xEC), k->layout, 0xEC);
 	}
 
 	// 0x69A410: a rock (the model 0x1140AA4) at its position, angles x / y (x 16), scale; life--: ends at 0, else it moves
@@ -1989,7 +1990,7 @@ namespace beat216
 				W16(z, 0xE) = 0;
 				U32(z, 0x1C) = *(const uint32_t *)&d->place[0];
 				U32(z, 0x20) = *(const uint32_t *)&d->place[2];
-				DecodeModelPrimLayout(LAYOUT_Rise, d->layout_a, 0x40);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.rise, LAYOUT_Rise, 0x40), d->layout_a, 0x40);
 				d->lift = 0xC40;
 				d->ghosts[3] = 0;
 				d->ghosts[2] = 0;
@@ -2059,7 +2060,7 @@ namespace beat216
 		{
 			if (s == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Fly, d->layout_a, 0x484);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.fly, LAYOUT_Fly, 0x484), d->layout_a, 0x484);
 				ForChain([](uint8_t *e) { if (B8(e, 0) & 2) U16(e, 0) = (uint16_t)((U16(e, 0) & 0xFFFB) | 8); });
 				MeasureHeight(Target(), d->height);
 				d->height[0] = (int16_t)(d->height[0] - W16(Target(), 0x1E));
@@ -2119,7 +2120,7 @@ namespace beat216
 		s = c - 0x67;
 		if ((uint32_t)s < 0x12)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Drop, d->layout_b, 0x160);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.drop, LAYOUT_Drop, 0x160), d->layout_b, 0x160);
 			if ((uint32_t)s < 0xA)
 			{
 				RotationX(-0x200, &arg.m);
@@ -2162,8 +2163,8 @@ namespace beat216
 			const int32_t e24 = (int32_t)(((uint32_t)s << 12) / 24);
 			if (s == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Impact, d->layout_c, 0xA8);
-				DecodeModelPrimLayout(LAYOUT_Crater, d->layout_d, 0x684);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.impact, LAYOUT_Impact, 0xA8), d->layout_c, 0xA8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.crater, LAYOUT_Crater, 0x684), d->layout_d, 0x684);
 				W16(Target(), 0x1E) = (int16_t)(W16(&d->target_pos[0], 2) - d->height[0]);
 				U32(z, 0xC) = d->saved_rot[0];
 				U32(z, 0x10) = d->saved_rot[1];
@@ -2252,7 +2253,7 @@ namespace beat216
 		s = c - 0x29;
 		if ((uint32_t)s < 0x48)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Pillar, d->layout_e, 0xEC);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.pillar, LAYOUT_Pillar, 0xEC), d->layout_e, 0xEC);
 			RotationY(0, &arg.m);
 			arg.m.t[0] = d->place[0];
 			arg.m.t[1] = d->lift - 0x3A80;
@@ -2412,6 +2413,13 @@ namespace beat216
 		};
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 0", (uint32_t)offsetof(DifferentBeatParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.rise", "Rise", "The prim-model layout rise (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.fly", "Fly", "The prim-model layout fly (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.fly), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.drop", "Drop", "The prim-model layout drop (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.drop), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.crater", "Crater", "The prim-model layout crater (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.crater), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.pillar", "Pillar", "The prim-model layout pillar (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.pillar), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

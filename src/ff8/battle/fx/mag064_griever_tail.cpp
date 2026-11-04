@@ -100,8 +100,9 @@ namespace gtail064
 	{
 		struct { uint32_t sound; int16_t sound_tick, voice, end; } master;   // its sound at its tick; the voice slot released / the end at these ticks
 		struct { int16_t a, b, c; } flashes;                                  // the white screen flashes' first ticks (4 ticks each)
+		struct { uint32_t l0, l1; } layouts;                                  // the bone scripts' prim-model layouts (LAYOUTS entries 0, 1)
 	};
-	static const TailParams GAME = { { 0x1342EF4, 10, 0xA6, 0xAA }, { 0x13, 0x18, 0x2B } };
+	static const TailParams GAME = { { 0x1342EF4, 10, 0xA6, 0xAA }, { 0x13, 0x18, 0x2B }, { 0x13433C8, 0x1343C30 } };
 	static TailParams live = GAME;
 	static const TailParams &PT() { return live; }
 	// the 18 bone scripts started at counter 0 (first word: pose entry)
@@ -706,7 +707,10 @@ namespace gtail064
 		L->depth = (int16_t)depth;
 		L->objs = LAYOUTS + mul32(layout, 12) + 8;
 		BuildBoneMatricesFromPose(anim);
-		DecodeModelPrimLayout(*(const uint32_t *)(LAYOUTS + mul32(layout, 12)), L->layout, *(const int32_t *)(LAYOUTS + mul32(layout, 12) + 4));
+		const uint32_t game = *(const uint32_t *)(LAYOUTS + mul32(layout, 12));
+		const int32_t size = *(const int32_t *)(LAYOUTS + mul32(layout, 12) + 4);
+		const uint32_t data = layout == 0 ? fxp::layout(PT().layouts.l0, game, size) : layout == 1 ? fxp::layout(PT().layouts.l1, game, size) : game;
+		DecodeModelPrimLayout(data, L->layout, size);
 		return ip;
 	}
 
@@ -1068,6 +1072,8 @@ namespace gtail064
 			TP("master", flashes.a, "First", "", 0, 400),
 			TP("master", flashes.b, "Second", "", 0, 400),
 			TP("master", flashes.c, "Third", "", 0, 400),
+			{ "master", "layouts.l0", "Layout 0", "The bone scripts' prim-model layout 0 (its models' animation)", (uint32_t)offsetof(TailParams, layouts.l0), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.l1", "Layout 1", "The bone scripts' prim-model layout 1 (its models' animation)", (uint32_t)offsetof(TailParams, layouts.l1), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 #undef TP
 	}

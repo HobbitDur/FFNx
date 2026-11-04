@@ -125,8 +125,9 @@ namespace badbreath300
 	struct BadBreath300Params
 	{
 		uint32_t sound;   // the breath task's counter 10
+		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BadBreath300Params GAME = { 0x10430F4 };
+	static const BadBreath300Params GAME = { 0x10430F4, { MODEL_Hit } };
 	static BadBreath300Params live = GAME;
 	static const BadBreath300Params &P() { return live; }
 	static const uint32_t VERTS = 0x85C;                  // magic buffer: swirled mesh vertices / morph output
@@ -686,7 +687,7 @@ namespace badbreath300
 						p->slot = (uint8_t)((int32_t)((uint32_t)target - 0x1D972C0u) / 0x9C);
 						GetDefaultEffectPosition(target, p->pos);
 						p->pos[1] = (int16_t)((int32_t)*(const int16_t *)(target + 0x92) / 2 + *(const int16_t *)(target + 0x1E));
-						DecodeModelPrimLayout(MODEL_Hit, p->layout, 0x128);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x128), p->layout, 0x128);
 					}
 					e->next++;
 				}
@@ -833,6 +834,7 @@ namespace badbreath300
 		};
 		static const Field FIELDS[] = {
 			{ "breath", "sound", "Sound", "At counter 10 of the breath task", (uint32_t)offsetof(BadBreath300Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "breath", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(BadBreath300Params, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

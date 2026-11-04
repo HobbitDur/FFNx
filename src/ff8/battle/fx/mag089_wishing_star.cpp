@@ -115,8 +115,9 @@ namespace ws089
 	struct WishingStarParams
 	{
 		struct { uint32_t rise, sky, landing; } sounds;   // the director's sounds at ticks 0, 0x32, 0xA2
+		struct { uint32_t dive, at_14a6370, at_14a09a0, at_14a6600, at_14a9ff0; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 } };
+	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 } };
 	static WishingStarParams live = GAME;
 	static const WishingStarParams &PW() { return live; }
 
@@ -898,7 +899,7 @@ namespace ws089
 	{
 		DiveNode *t = (DiveNode *)AddTaskToQueue(QC(), own::Fn(task));   // (its callers pass the task's original)
 		if (!t) return nullptr;
-		DecodeModelPrimLayout(LAYOUT_Dive, t->layout, 0x158);
+		DecodeModelPrimLayout(fxp::layout(PW().layouts.dive, LAYOUT_Dive, 0x158), t->layout, 0x158);
 		int16_t ang[4];
 		ang[0] = (int16_t)a;
 		ang[1] = (int16_t)b;
@@ -2023,7 +2024,7 @@ namespace ws089
 		s = (uint32_t)((int32_t)d->counter - 0x4B);
 		if (s < 0x14)
 		{
-			if (s == 0) DecodeModelPrimLayout(0x14A6370, d->layout, 0x68);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a6370, 0x14A6370, 0x68), d->layout, 0x68);
 			Play(d->layout, d->centre[0], d->centre[1], d->centre[2] + 0x3A98, 0, &Cursor());
 		}
 		// 0x57..0x65: a growing prim model
@@ -2053,7 +2054,7 @@ namespace ws089
 		s = (uint32_t)((int32_t)d->counter - 0x20);
 		if (s < 4)
 		{
-			if (s == 0) DecodeModelPrimLayout(0x14A09A0, d->layout, 0x70);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a09a0, 0x14A09A0, 0x70), d->layout, 0x70);
 			int16_t p[4];
 			GetEffectSpawnPosition(angelo, 0x13, 0, p);
 			Play(d->layout, p[0], p[1], p[2], -0x200, &Cursor());
@@ -2087,7 +2088,7 @@ namespace ws089
 			{
 				*(uint8_t *)Caster() |= 0xC;
 				angelo[0] |= 0xC;
-				DecodeModelPrimLayout(0x14A6600, d->layout, 0x218);
+				DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a6600, 0x14A6600, 0x218), d->layout, 0x218);
 				SpritesInit();
 				ModelsOn() = 1;
 				SpritesOn() = 1;
@@ -2103,7 +2104,7 @@ namespace ws089
 		s = (uint32_t)((int32_t)d->counter - 0x25);
 		if (s < 0xBD)
 		{
-			if (s == 0) DecodeModelPrimLayout(0x14A9FF0, d->layout2, 0xEC);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a9ff0, 0x14A9FF0, 0xEC), d->layout2, 0xEC);
 			Play(d->layout2, d->centre[0], 0, d->centre[2], 0, &FrameArena());
 			FX_HELD(held_note_stars();)
 			FrameArena() = Stars(0, Centre()[0], 0, Centre()[2], 0x10000, FrameArena());
@@ -2437,6 +2438,11 @@ namespace ws089
 			{ "director", "sounds.rise", "Rise", "", (uint32_t)offsetof(WishingStarParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.sky", "Sky", "", (uint32_t)offsetof(WishingStarParams, sounds.sky), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.landing", "Landing", "", (uint32_t)offsetof(WishingStarParams, sounds.landing), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "layouts.dive", "Dive", "The prim-model layout dive (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.dive), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a6370", "At 14a6370", "The prim-model layout at 14a6370 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a6370), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a09a0", "At 14a09a0", "The prim-model layout at 14a09a0 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a09a0), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a6600", "At 14a6600", "The prim-model layout at 14a6600 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a6600), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a9ff0", "At 14a9ff0", "The prim-model layout at 14a9ff0 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a9ff0), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

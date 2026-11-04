@@ -128,8 +128,9 @@ namespace reflect135
 	{
 		uint32_t sound;                     // at the sweep's tick 0
 		struct { int16_t damage; } reflect; // the damage at this tick of a reflection task
+		struct { uint32_t reflect, shot, shot_hit, sweep; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const ReflectBeamParams GAME = { 0x1201D88, { 0x19 } };
+	static const ReflectBeamParams GAME = { 0x1201D88, { 0x19 }, { MODEL_Reflect, MODEL_Shot, MODEL_ShotHit, MODEL_Sweep } };
 	static ReflectBeamParams live = GAME;
 	static const ReflectBeamParams &P() { return live; }
 
@@ -701,7 +702,7 @@ namespace reflect135
 								r->ent = ent;
 								GetEffectSpawnPosition(ent, 0xF1, 0, r->pos);
 								r->pos[1] = (int16_t)(r->pos[1] + 0x80);
-								DecodeModelPrimLayout(MODEL_Reflect, r->layout, 0x310);
+								DecodeModelPrimLayout(fxp::layout(reflect135::P().layouts.reflect, MODEL_Reflect, 0x310), r->layout, 0x310);
 							}
 							w->next++;
 						}
@@ -723,8 +724,8 @@ namespace reflect135
 				s->hit = 0;
 				s->counter = 0;
 				s->bone = (const int16_t *)SHOT_Bones + ((uint32_t)c >> 2) % 3u;
-				DecodeModelPrimLayout(MODEL_Shot, s->layout, 0x1F8);
-				DecodeModelPrimLayout(MODEL_ShotHit, s->hitlayout, 0x58);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.shot, MODEL_Shot, 0x1F8), s->layout, 0x1F8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.shot_hit, MODEL_ShotHit, 0x58), s->hitlayout, 0x58);
 			}
 		}
 		if (w->counter >= 0x39)
@@ -779,7 +780,7 @@ namespace reflect135
 				}
 			}
 		}
-		DecodeModelPrimLayout(MODEL_Sweep, w->layout, 0x2B8);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.sweep, MODEL_Sweep, 0x2B8), w->layout, 0x2B8);
 	}
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)
@@ -830,6 +831,10 @@ namespace reflect135
 		static const Field FIELDS[] = {
 			{ "sweep", "sound", "Sound", "", (uint32_t)offsetof(ReflectBeamParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "sweep", "reflect.damage", "Damage tick", "The damage at this tick of a reflection task", (uint32_t)offsetof(ReflectBeamParams, reflect.damage), fxp::I16, 0, 200 },
+			{ "sweep", "layouts.reflect", "Reflect", "The prim-model layout reflect (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.reflect), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "layouts.shot", "Shot", "The prim-model layout shot (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.shot), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "layouts.shot_hit", "Shot hit", "The prim-model layout shot hit (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.shot_hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "layouts.sweep", "Sweep", "The prim-model layout sweep (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.sweep), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

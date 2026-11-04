@@ -88,8 +88,9 @@ namespace thundaga105
 	{
 		uint32_t sound;                  // at the bolt's frame 0 (3D, at the target)
 		struct { int16_t damage; } bolt; // the damage (and the bolt's end) from this frame of the bolt
+		struct { uint32_t bolt; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const ThundagaParams GAME = { 0x131265C, { 0x40 } };
+	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt } };
 	static ThundagaParams live = GAME;
 	static const ThundagaParams &P() { return live; }
 	static const uint32_t SEQ_Spark = 0x13115DC;
@@ -557,7 +558,7 @@ namespace thundaga105
 					b->entity = entity;
 					b->colour = *(uint32_t *)(entity + 0x28);
 					b->scale = (((int32_t)*(int16_t *)(entity + 0x26) >> 1) + 0xE86) >> 1;
-					DecodeModelPrimLayout(MODEL_Bolt, b->layout, 0x868);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.bolt, MODEL_Bolt, 0x868), b->layout, 0x868);
 					r->last_bolt = b;
 					r->action++;
 				}
@@ -1319,6 +1320,7 @@ namespace thundaga105
 		static const Field FIELDS[] = {
 			{ "bolt", "sound", "Sound", "", (uint32_t)offsetof(ThundagaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "bolt", "bolt.damage", "Damage frame", "The damage (and the bolt's end) from this frame of the bolt", (uint32_t)offsetof(ThundagaParams, bolt.damage), fxp::I16, 0, 200 },
+			{ "bolt", "layouts.bolt", "Bolt", "The prim-model layout bolt (its models' animation)", (uint32_t)offsetof(ThundagaParams, layouts.bolt), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

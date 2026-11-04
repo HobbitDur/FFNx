@@ -108,10 +108,11 @@ namespace storm011
 		struct { int16_t from, ticks, from2, ticks2; } mist;            // blown out of the mouth: slow, then fast
 		struct { int16_t from, ticks, every; } rings;                   // along the stream
 		struct { int16_t wobble, sway; } stream_angles;                 // the stream's angles a tick
+		struct { uint32_t mouth, cone; } layout_data; // the prim-model layouts played (their models' animation)
 	};
 	static const StormParams GAME = {
 		{ 0x136B970, 8, 0x4B }, { 0x19, 0x32, 5 }, { 0x18, 0x1D }, { 0x23, 0x1E, 0xC00, 0x7FF },
-		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 },
+		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 },
 	};
 	static StormParams live = GAME;
 	static const StormParams &P() { return live; }
@@ -786,7 +787,7 @@ namespace storm011
 		if ((uint32_t)(int32_t)t->counter < (uint32_t)P().layouts.mouth_ticks)
 		{
 			// the mouth layout, turned by the caster's facing
-			if (t->counter == 0) DecodeModelPrimLayout(MODEL_Mouth, t->layout, 0x4A0);
+			if (t->counter == 0) DecodeModelPrimLayout(fxp::layout(P().layout_data.mouth, MODEL_Mouth, 0x4A0), t->layout, 0x4A0);
 			const int16_t angles[3] = { (int16_t)0xFF80, (int16_t)(*(const int16_t *)(Caster() + 0xE) + 0x800), 0 };
 			Mat4x3 m2, m3;
 			BuildRotationMatrixFromAngles(angles, &m2);
@@ -830,7 +831,7 @@ namespace storm011
 			if (t->counter == P().layouts.cone_from)
 			{
 				memcpy(t->frozen, t->mouth, 8);
-				DecodeModelPrimLayout(MODEL_Cone, t->layout, 0x140);
+				DecodeModelPrimLayout(fxp::layout(P().layout_data.cone, MODEL_Cone, 0x140), t->layout, 0x140);
 			}
 			m2.t[0] = t->frozen[0];
 			m2.t[1] = t->frozen[1];
@@ -1087,6 +1088,8 @@ namespace storm011
 			SB("mist", rings.from, "From", "", 0, 200),
 			SB("mist", rings.ticks, "Ticks", "", 0, 200),
 			SB("mist", rings.every, "Every", "", 1, 50),
+			{ "timing", "layout_data.mouth", "Mouth", "The prim-model layout mouth (its models' animation)", (uint32_t)offsetof(StormParams, layout_data.mouth), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "timing", "layout_data.cone", "Cone", "The prim-model layout cone (its models' animation)", (uint32_t)offsetof(StormParams, layout_data.cone), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 #undef SB
 	}

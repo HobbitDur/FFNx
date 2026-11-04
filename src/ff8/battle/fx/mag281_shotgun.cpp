@@ -106,8 +106,9 @@ namespace shotgun281
 	struct ShotgunParams
 	{
 		uint32_t sound;   // the main task's counter 2
+		struct { uint32_t hit, muzzle; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const ShotgunParams GAME = { 0x10A7958 };
+	static const ShotgunParams GAME = { 0x10A7958, { MODEL_Hit, MODEL_Muzzle } };
 	static ShotgunParams live = GAME;
 	static const ShotgunParams &P() { return live; }
 
@@ -438,7 +439,7 @@ namespace shotgun281
 					if (!RandomBonePoint(ent, idx, h->pos)) break;
 				} while (true);
 				h->pad12 = 0;
-				DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x138);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x138), h->layout, 0x138);
 				for (int k = 0; k < 8; k++)
 				{
 					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
@@ -498,7 +499,7 @@ namespace shotgun281
 			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&mn->counter, 0, 0x85);
 			mn->ent = Entity(Ctx()->actions[0].targets[0]);
-			DecodeModelPrimLayout(MODEL_Muzzle, mn->muzzle, 0x20C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.muzzle, MODEL_Muzzle, 0x20C), mn->muzzle, 0x20C);
 			uint8_t *caster = Caster();
 			int32_t v[3];
 			v[0] = (int32_t)*(const int16_t *)(mn->ent + 0x1C) - *(const int16_t *)(caster + 0x1C);
@@ -532,6 +533,8 @@ namespace shotgun281
 		};
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The main task's counter 2", (uint32_t)offsetof(ShotgunParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(ShotgunParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(ShotgunParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

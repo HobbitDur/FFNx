@@ -132,8 +132,9 @@ namespace acid132
 	{
 		uint32_t sound;                    // at the target task's tick 10
 		struct { int16_t damage; } target; // the damage (and the target task's end) from this tick
+		struct { uint32_t splash1, splash2, puddle; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const AcidParams GAME = { 0x1214FD0, { 0x2D } };
+	static const AcidParams GAME = { 0x1214FD0, { 0x2D }, { MODEL_Splash1, MODEL_Splash2, MODEL_Puddle } };
 	static AcidParams live = GAME;
 	static const AcidParams &P() { return live; }
 	static const uint8_t *const STREAM_TABLE = (const uint8_t *)0x1214FE8; // 5 x 16: point, bone / vector, flag
@@ -569,8 +570,8 @@ namespace acid132
 		s->counter = 0;
 		*(uint32_t *)&s->pos[0] = *(const uint32_t *)&end[0];
 		*(uint32_t *)&s->pos[2] = *(const uint32_t *)&end[2];
-		if (CrtRand() & 1) DecodeModelPrimLayout(MODEL_Splash1, s->layout, 0xB0);
-		else DecodeModelPrimLayout(MODEL_Splash2, s->layout, 0xB0);
+		if (CrtRand() & 1) DecodeModelPrimLayout(fxp::layout(P().layouts.splash1, MODEL_Splash1, 0xB0), s->layout, 0xB0);
+		else DecodeModelPrimLayout(fxp::layout(P().layouts.splash2, MODEL_Splash2, 0xB0), s->layout, 0xB0);
 	}
 	static void SpawnPuddle(const int16_t *end)
 	{
@@ -578,7 +579,7 @@ namespace acid132
 		s->counter = 0;
 		*(uint32_t *)&s->pos[0] = *(const uint32_t *)&end[0];
 		*(uint32_t *)&s->pos[2] = *(const uint32_t *)&end[2];
-		DecodeModelPrimLayout(MODEL_Puddle, s->layout, 0x78);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.puddle, MODEL_Puddle, 0x78), s->layout, 0x78);
 	}
 
 	// ------------------------------------------------------------------
@@ -944,6 +945,9 @@ namespace acid132
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "", (uint32_t)offsetof(AcidParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "target.damage", "Damage tick", "The damage (and the target task's end) from this tick", (uint32_t)offsetof(AcidParams, target.damage), fxp::I16, 0, 200 },
+			{ "target", "layouts.splash1", "Splash1", "The prim-model layout splash1 (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.splash1), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "layouts.splash2", "Splash2", "The prim-model layout splash2 (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.splash2), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "layouts.puddle", "Puddle", "The prim-model layout puddle (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.puddle), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

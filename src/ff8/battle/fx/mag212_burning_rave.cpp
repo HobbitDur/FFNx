@@ -120,8 +120,9 @@ namespace rave212
 	{
 		struct { uint32_t start, burn; } sounds; // at the director's ticks 5 and 0x43
 		struct { int16_t damage; } director;    // the damage at this tick
+		struct { uint32_t ground, bone, front, burn; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE } };
+	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn } };
 	static BurningRaveParams live = GAME;
 	static const BurningRaveParams &P() { return live; }
 
@@ -1364,7 +1365,7 @@ namespace rave212
 		{
 			if (s == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Ground, d->burn_l, 0x190);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.ground, LAYOUT_Ground, 0x190), d->burn_l, 0x190);
 				GetDefaultEffectPosition(Caster(), d->anchor);
 			}
 			RotationY(0, &arg.m);
@@ -1404,7 +1405,7 @@ namespace rave212
 		// 0x51..0x68: a layout at his bone 0x16
 		if ((uint32_t)(c - 0x51) < 0x18)
 		{
-			if (c == 0x51) DecodeModelPrimLayout(LAYOUT_Bone, d->bone_l, 0x44);
+			if (c == 0x51) DecodeModelPrimLayout(fxp::layout(P().layouts.bone, LAYOUT_Bone, 0x44), d->bone_l, 0x44);
 			int16_t p[4];
 			GetEffectSpawnPosition(Caster(), 0x16, 0, p);
 			RotationY(0, &arg.m);
@@ -1423,7 +1424,7 @@ namespace rave212
 		// 0x54..0x6D: a layout before him
 		if ((uint32_t)(c - 0x54) < 0x1A)
 		{
-			if (c == 0x54) DecodeModelPrimLayout(LAYOUT_Front, d->front_l, 0x230);
+			if (c == 0x54) DecodeModelPrimLayout(fxp::layout(P().layouts.front, LAYOUT_Front, 0x230), d->front_l, 0x230);
 			RotationY(0, &arg.m);
 			arg.m.t[1] = 0;
 			arg.m.t[0] = *(const int16_t *)(Caster() + 0x1C) - 0xC3;
@@ -1440,7 +1441,7 @@ namespace rave212
 		const int32_t f = c - 0x5E;
 		if ((uint32_t)f < 0x46)
 		{
-			if (f == 0) DecodeModelPrimLayout(LAYOUT_Burn, d->burn_l, 0x484);
+			if (f == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.burn, LAYOUT_Burn, 0x484), d->burn_l, 0x484);
 			RotationY(0x800, &arg.m);
 			if ((uint32_t)f < 0xF)
 			{
@@ -1460,7 +1461,7 @@ namespace rave212
 					box_a[3] = box_b[3];
 					CaptureStage(&d->box[4], box_a);
 					B8(Caster(), 0) |= 4;
-					DecodeModelPrimLayout(LAYOUT_Burn, d->burn_l, 0x484);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.burn, LAYOUT_Burn, 0x484), d->burn_l, 0x484);
 				}
 				arg.m.t[0] = d->box[4];
 				arg.m.t[1] = 0;
@@ -1747,6 +1748,10 @@ namespace rave212
 			{ "director", "sounds.start", "Start", "At the director's tick 5", (uint32_t)offsetof(BurningRaveParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.burn", "Burn", "At the director's tick 0x43", (uint32_t)offsetof(BurningRaveParams, sounds.burn), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(BurningRaveParams, director.damage), fxp::I16, 0, 181 },
+			{ "director", "layouts.ground", "Ground", "The prim-model layout ground (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.ground), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.bone", "Bone", "The prim-model layout bone (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.bone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.front", "Front", "The prim-model layout front (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.front), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.burn", "Burn", "The prim-model layout burn (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.burn), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -118,8 +118,9 @@ namespace gravija311
 	struct GravijaParams
 	{
 		uint32_t sound;   // the main task's counter 0
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const GravijaParams GAME = { 0x1021044 };
+	static const GravijaParams GAME = { 0x1021044, { MODEL_Main } };
 	static GravijaParams live = GAME;
 	static const GravijaParams &P() { return live; }
 
@@ -858,7 +859,7 @@ namespace gravija311
 			InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x40);
 			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&w->counter, 0, 0xCF);
-			DecodeModelPrimLayout(MODEL_Main, w->layout, 0x2F4);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_Main, 0x2F4), w->layout, 0x2F4);
 			w->count = (int16_t)Ctx()->actions[0].target_count;
 			w->avg[2] = 0;
 			w->avg[1] = 0;
@@ -895,6 +896,7 @@ namespace gravija311
 		};
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The main task's counter 0", (uint32_t)offsetof(GravijaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(GravijaParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

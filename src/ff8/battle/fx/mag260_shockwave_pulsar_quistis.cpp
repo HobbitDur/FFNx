@@ -161,8 +161,9 @@ namespace pulsar260
 	{
 		struct { uint32_t start, pulse, burst; } sounds; // at the master's ticks 0, 0x50, 0xAA
 		struct { int16_t damage; } master;              // the action results at this tick
+		struct { uint32_t ring, centre, wave, lift, rise; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const Pulsar260Params GAME = { { 0x111CF40, 0x111CF44, 0x111CF48 }, { 0xFC } };
+	static const Pulsar260Params GAME = { { 0x111CF40, 0x111CF44, 0x111CF48 }, { 0xFC }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE } };
 	static Pulsar260Params live = GAME;
 	static const Pulsar260Params &P() { return live; }
 	static const uint32_t SPARKS = 0x12E0, SPARKS_LAST = 0x1AD0;   // magic buffer: pool A (0x80 x 0x10)
@@ -1586,7 +1587,7 @@ namespace pulsar260
 				ring->pos[0] = E16(e, 0x1C);
 				ring->pos[2] = E16(e, 0x20);
 				ring->pos[1] = 0;
-				DecodeModelPrimLayout(LAYOUT_RING, ring->layout, 0xD8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.ring, LAYOUT_RING, 0xD8), ring->layout, 0xD8);
 			}
 			const int16_t d = (int16_t)sdiv_pow2(t, 3);
 			if (slot & 1)
@@ -1748,7 +1749,7 @@ namespace pulsar260
 		// 0x32..0x4F: the centre layout
 		if ((uint32_t)((int32_t)m->counter - 0x32) < 0x1E)
 		{
-			if (m->counter == 0x32) DecodeModelPrimLayout(LAYOUT_CENTRE, m->layout, 0x218);
+			if (m->counter == 0x32) DecodeModelPrimLayout(fxp::layout(P().layouts.centre, LAYOUT_CENTRE, 0x218), m->layout, 0x218);
 			PrimArg arg;
 			arg.pos[0] = (int16_t)CentreX();
 			arg.pos[2] = (int16_t)CentreZ();
@@ -1777,7 +1778,7 @@ namespace pulsar260
 			{
 				InitTaskQueuePool(QSub(), (void *)(TexBase() + 0x2160), 0x114, 0xC);
 				EntitiesFlag4On();
-				DecodeModelPrimLayout(LAYOUT_WAVE, m->layout, 0x1100);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.wave, LAYOUT_WAVE, 0x1100), m->layout, 0x1100);
 				for (int32_t k = 0; k < m->ntargets; k++)
 				{
 					SubNode *t = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_LiftTask));
@@ -1796,7 +1797,7 @@ namespace pulsar260
 					}
 					rec->ang[2] = 0;
 					t->t.counter = 0;
-					DecodeModelPrimLayout(LAYOUT_LIFT, t->layout, 0xBC);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.lift, LAYOUT_LIFT, 0xBC), t->layout, 0xBC);
 					t->t.rec = rec;
 				}
 			}
@@ -1950,7 +1951,7 @@ namespace pulsar260
 				*rec->entity |= 8;
 				t->t.counter = 0;
 				t->t.len = (int16_t)(0x32 - (int32_t)c1);
-				DecodeModelPrimLayout(LAYOUT_RISE, t->layout, 0x100);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.rise, LAYOUT_RISE, 0x100), t->layout, 0x100);
 				t->t.rec = rec;
 			}
 		}
@@ -2112,6 +2113,11 @@ namespace pulsar260
 			{ "master", "sounds.pulse", "Pulse", "At the master's tick 0x50", (uint32_t)offsetof(Pulsar260Params, sounds.pulse), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "sounds.burst", "Burst", "At the master's tick 0xAA", (uint32_t)offsetof(Pulsar260Params, sounds.burst), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "master.damage", "Damage tick", "The action results at this tick of the master", (uint32_t)offsetof(Pulsar260Params, master.damage), fxp::I16, 0, 300 },
+			{ "master", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(Pulsar260Params, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.centre", "Centre", "The prim-model layout centre (its models' animation)", (uint32_t)offsetof(Pulsar260Params, layouts.centre), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.wave", "Wave", "The prim-model layout wave (its models' animation)", (uint32_t)offsetof(Pulsar260Params, layouts.wave), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.lift", "Lift", "The prim-model layout lift (its models' animation)", (uint32_t)offsetof(Pulsar260Params, layouts.lift), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.rise", "Rise", "The prim-model layout rise (its models' animation)", (uint32_t)offsetof(Pulsar260Params, layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

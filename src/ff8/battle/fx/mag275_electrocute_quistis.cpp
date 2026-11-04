@@ -118,8 +118,9 @@ namespace elec275
 	struct ElectrocuteParams
 	{
 		uint32_t sound;   // the discharge (main counter 0, at the caster)
+		struct { uint32_t glow; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const ElectrocuteParams GAME = { 0x10DC2D0 };
+	static const ElectrocuteParams GAME = { 0x10DC2D0, { MODEL_Glow } };
 	static ElectrocuteParams live = GAME;
 	static const ElectrocuteParams &P() { return live; }
 	static const void *const TINT_Colour = (const void *)0x10DC2D8;
@@ -1126,7 +1127,7 @@ namespace elec275
 			if (!(c14 & 3))
 			{
 				LayoutNode *g = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
-				DecodeModelPrimLayout(MODEL_Glow, g->layout, 0xC8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.glow, MODEL_Glow, 0xC8), g->layout, 0xC8);
 			}
 		}
 		if (m->counter == 0x2C)
@@ -1213,6 +1214,7 @@ namespace elec275
 		};
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The discharge (main counter 0, at the caster)", (uint32_t)offsetof(ElectrocuteParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.glow", "Glow", "The prim-model layout glow (its models' animation)", (uint32_t)offsetof(ElectrocuteParams, layouts.glow), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

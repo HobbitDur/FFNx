@@ -104,8 +104,9 @@ namespace hero309
 	struct HeroParams
 	{
 		uint32_t sound;   // the play task's counter 1
+		struct { uint32_t main, orbit; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const HeroParams GAME = { 0x10257E0 };
+	static const HeroParams GAME = { 0x10257E0, { MODEL_MAIN, MODEL_ORBIT } };
 	static HeroParams live = GAME;
 	static const HeroParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x3D4;         // magic buffer: packet arenas
@@ -464,9 +465,9 @@ namespace hero309
 			// y: h / 8 + h / 2 above the target's +0x24 (h = its +0x92)
 			const int32_t h = *(const int16_t *)(e + 0x92);
 			p->anchor[1] = (int16_t)(h / 8 + h / 2 + *(const int16_t *)(e + 0x24));
-			DecodeModelPrimLayout(MODEL_MAIN, p->main, 0x13C);
-			DecodeModelPrimLayout(MODEL_ORBIT, p->orbit[0], 0xBC);
-			DecodeModelPrimLayout(MODEL_ORBIT, p->orbit[1], 0xBC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_MAIN, 0x13C), p->main, 0x13C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.orbit, MODEL_ORBIT, 0xBC), p->orbit[0], 0xBC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.orbit, MODEL_ORBIT, 0xBC), p->orbit[1], 0xBC);
 			for (int i = 0; i < 16; i++)
 			{
 				Shard &s = p->shard[i];
@@ -493,6 +494,8 @@ namespace hero309
 		};
 		static const Field FIELDS[] = {
 			{ "play", "sound", "Sound", "The play task's counter 1", (uint32_t)offsetof(HeroParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "play", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(HeroParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "play", "layouts.orbit", "Orbit", "The prim-model layout orbit (its models' animation)", (uint32_t)offsetof(HeroParams, layouts.orbit), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

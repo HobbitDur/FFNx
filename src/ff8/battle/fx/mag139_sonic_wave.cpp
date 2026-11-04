@@ -143,8 +143,9 @@ namespace sonic139
 	struct SonicParams
 	{
 		uint32_t sound;   // at the main task's tick 0
+		struct { uint32_t target, main; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const SonicParams GAME = { 0x11DD338 };
+	static const SonicParams GAME = { 0x11DD338, { MODEL_Target, MODEL_Main } };
 	static SonicParams live = GAME;
 	static const SonicParams &P() { return live; }
 	static const uint32_t OT_CAPTURE = 0x4484;           // OT entry 0x1121: the capture area's clearing environment
@@ -919,7 +920,7 @@ namespace sonic139
 				p->entity = w->ents[i];
 				p->colour = *(const uint32_t *)(p->entity + 0x28);
 				GetDefaultEffectPosition(p->entity, p->pos);
-				DecodeModelPrimLayout(MODEL_Target, p->layout, 0x278);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.target, MODEL_Target, 0x278), p->layout, 0x278);
 			}
 		}
 		if (w->counter < 0x46)
@@ -963,7 +964,7 @@ namespace sonic139
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0x298, 4);
 			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&w->counter, 0, 0x134);
-			DecodeModelPrimLayout(MODEL_Main, w->layout, 0x4AC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_Main, 0x4AC), w->layout, 0x4AC);
 			w->count = (int16_t)Ctx()->actions[0].target_count;
 			w->avg[2] = 0;
 			w->avg[1] = 0;
@@ -1006,6 +1007,8 @@ namespace sonic139
 		};
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "", (uint32_t)offsetof(SonicParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(SonicParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(SonicParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

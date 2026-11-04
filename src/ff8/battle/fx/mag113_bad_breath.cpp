@@ -95,8 +95,9 @@ namespace badbreath113
 	{
 		uint32_t sound;                    // at the breath's tick 0 (3D, at the caster)
 		struct { int16_t damage; } target; // the damage at this tick of a target's task
+		struct { uint32_t cloud; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BreathParams GAME = { 0x12C1600, { 0x1B } };
+	static const BreathParams GAME = { 0x12C1600, { 0x1B }, { MODEL_Cloud } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 
@@ -676,7 +677,7 @@ namespace badbreath113
 					if (t)
 					{
 						Memset32(&t->counter, 0, 0x3C);
-						DecodeModelPrimLayout(MODEL_Cloud, t->cloud, 0xEC);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.cloud, MODEL_Cloud, 0xEC), t->cloud, 0xEC);
 						t->slot = (int16_t)(uint16_t)m->slot;
 					}
 				}
@@ -835,6 +836,7 @@ namespace badbreath113
 		static const Field FIELDS[] = {
 			{ "breath", "sound", "Sound", "", (uint32_t)offsetof(BreathParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "breath", "target.damage", "Damage tick", "The damage at this tick of a target's task", (uint32_t)offsetof(BreathParams, target.damage), fxp::I16, 0, 37 },
+			{ "breath", "layouts.cloud", "Cloud", "The prim-model layout cloud (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.cloud), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -91,8 +91,9 @@ namespace rapture288
 	struct RaptureParams
 	{
 		uint32_t sound;   // each target task's counter 0
+		struct { uint32_t a, b; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const RaptureParams GAME = { 0x1078970 };
+	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B } };
 	static RaptureParams live = GAME;
 	static const RaptureParams &P() { return live; }
 	static const uint32_t DEPTH_VEC = 0x1078978;  // 3 x int16: the layout B depth probe
@@ -538,8 +539,8 @@ namespace rapture288
 					t->entity = Entity(rec[0]);
 					t->flag = rec[3] & 4;
 					t->saved_y = S16(t->entity, 0x1E);
-					DecodeModelPrimLayout(LAYOUT_A, t->layout_a, 0xFC);
-					DecodeModelPrimLayout(LAYOUT_B, t->layout_b, 0x30C);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.a, LAYOUT_A, 0xFC), t->layout_a, 0xFC);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.b, LAYOUT_B, 0x30C), t->layout_b, 0x30C);
 				}
 				r->next++;
 			}
@@ -585,6 +586,8 @@ namespace rapture288
 		};
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "Each target task's counter 0", (uint32_t)offsetof(RaptureParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "layouts.a", "A", "The prim-model layout a (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

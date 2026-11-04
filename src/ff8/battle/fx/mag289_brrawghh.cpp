@@ -122,8 +122,9 @@ namespace brr289
 	struct BrrawghhParams
 	{
 		uint32_t sound;   // the main task's counter 0
+		struct { uint32_t splash, target; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BrrawghhParams GAME = { 0x1072638 };
+	static const BrrawghhParams GAME = { 0x1072638, { LAYOUT_Splash, LAYOUT_Target } };
 	static BrrawghhParams live = GAME;
 	static const BrrawghhParams &PB() { return live; }
 
@@ -855,7 +856,7 @@ namespace brr289
 			if (l)
 			{
 				memcpy(l->pos, P, 8);
-				DecodeModelPrimLayout(LAYOUT_Splash, l->layout, 0x40);
+				DecodeModelPrimLayout(fxp::layout(PB().layouts.splash, LAYOUT_Splash, 0x40), l->layout, 0x40);
 			}
 			GteSetRotMatrix(&M);
 			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
@@ -886,7 +887,7 @@ namespace brr289
 		MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 		Memset32(&w->counter, 0, 0x65);
 		w->target = Entity(Ctx()->actions->targets[0]);
-		DecodeModelPrimLayout(LAYOUT_Target, w->layout, 0x184);
+		DecodeModelPrimLayout(fxp::layout(PB().layouts.target, LAYOUT_Target, 0x184), w->layout, 0x184);
 		GetDefaultEffectPosition(w->target, w->pos);
 		NegateZ(TUBE_A);
 		NegateZ(TUBE_B);
@@ -928,6 +929,8 @@ namespace brr289
 		};
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The main task's counter 0", (uint32_t)offsetof(BrrawghhParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.splash", "Splash", "The prim-model layout splash (its models' animation)", (uint32_t)offsetof(BrrawghhParams, layouts.splash), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(BrrawghhParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

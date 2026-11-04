@@ -105,8 +105,9 @@ namespace holywar310
 	struct HolyWarParams
 	{
 		uint32_t sound;   // the play task's counter 1
+		struct { uint32_t main, orbit; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const HolyWarParams GAME = { 0x10244D4 };
+	static const HolyWarParams GAME = { 0x10244D4, { MODEL_MAIN, MODEL_ORBIT } };
 	static HolyWarParams live = GAME;
 	static const HolyWarParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x16E8;         // magic buffer: packet arenas
@@ -479,9 +480,9 @@ namespace holywar310
 			// y: h / 8 + h / 2 above the target's +0x24 (h = its +0x92)
 			const int32_t h = *(const int16_t *)(e + 0x92);
 			p->anchor[1] = (int16_t)(h / 8 + h / 2 + *(const int16_t *)(e + 0x24));
-			DecodeModelPrimLayout(MODEL_MAIN, p->main, 0x13C);
-			DecodeModelPrimLayout(MODEL_ORBIT, p->orbit[0], 0xBC);
-			DecodeModelPrimLayout(MODEL_ORBIT, p->orbit[1], 0xBC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_MAIN, 0x13C), p->main, 0x13C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.orbit, MODEL_ORBIT, 0xBC), p->orbit[0], 0xBC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.orbit, MODEL_ORBIT, 0xBC), p->orbit[1], 0xBC);
 			for (int i = 0; i < 16; i++)
 			{
 				Shard &s = p->shard[i];
@@ -510,6 +511,8 @@ namespace holywar310
 		};
 		static const Field FIELDS[] = {
 			{ "play", "sound", "Sound", "The play task's counter 1", (uint32_t)offsetof(HolyWarParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "play", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(HolyWarParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "play", "layouts.orbit", "Orbit", "The prim-model layout orbit (its models' animation)", (uint32_t)offsetof(HolyWarParams, layouts.orbit), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

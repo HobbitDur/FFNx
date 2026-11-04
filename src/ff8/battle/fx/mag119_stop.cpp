@@ -74,8 +74,9 @@ namespace stop119
 	{
 		uint32_t sound;                    // at the target task's tick 0 (3D, at the clock)
 		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
+		struct { uint32_t clock; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const StopParams GAME = { 0x1287C34, { 0x35 } };
+	static const StopParams GAME = { 0x1287C34, { 0x35 }, { MODEL_Clock } };
 	static StopParams live = GAME;
 	static const StopParams &P() { return live; }
 
@@ -837,7 +838,7 @@ namespace stop119
 				t->action = (int16_t)(uint16_t)r->action;
 				t->entity = Entity(Ctx()->actions[t->action].targets[0]);
 				GetDefaultEffectPosition(t->entity, t->pos);
-				DecodeModelPrimLayout(MODEL_Clock, t->clock, 0x4E8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.clock, MODEL_Clock, 0x4E8), t->clock, 0x4E8);
 				r->action++;
 			}
 		}
@@ -856,6 +857,7 @@ namespace stop119
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "", (uint32_t)offsetof(StopParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(StopParams, target.status), fxp::I16, 0, 69 },
+			{ "target", "layouts.clock", "Clock", "The prim-model layout clock (its models' animation)", (uint32_t)offsetof(StopParams, layouts.clock), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

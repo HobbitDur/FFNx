@@ -113,8 +113,9 @@ namespace acid_quistis
 	struct AcidParams
 	{
 		uint32_t sound;   // the target task's counter 10
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const AcidParams GAME = { 0x1001AC8 };
+	static const AcidParams GAME = { 0x1001AC8, { MODEL_Layout } };
 	static AcidParams live = GAME;
 	static const AcidParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1001ACC; // [|dy|][|dx|] -> length, 128 x 128
@@ -1077,7 +1078,7 @@ namespace acid_quistis
 				int16_t caster[4];
 				GetDefaultEffectPosition(Caster(), caster);
 				t->angle = (int16_t)CartesianToGameAngle((int32_t)t->pos[0] - caster[0], (int32_t)t->pos[2] - caster[2]);
-				DecodeModelPrimLayout(MODEL_Layout, t->layout, 0x248);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_Layout, 0x248), t->layout, 0x248);
 				r->action++;
 				InitMelt(t->entity);
 			}
@@ -1106,6 +1107,7 @@ namespace acid_quistis
 		};
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "The target task's counter 10", (uint32_t)offsetof(AcidParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

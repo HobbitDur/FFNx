@@ -99,8 +99,9 @@ namespace demi107
 	{
 		uint32_t sound;                    // at the target task's tick 0 (3D, at the anchor)
 		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
+		struct { uint32_t vortex; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const DemiParams GAME = { 0x12F3974, { 0x56 } };
+	static const DemiParams GAME = { 0x12F3974, { 0x56 }, { MODEL_Vortex } };
 	static DemiParams live = GAME;
 	static const DemiParams &P() { return live; }
 
@@ -1081,7 +1082,7 @@ namespace demi107
 					t->pos[0] = (int16_t)(((int32_t)b[0] + a[0]) >> 1);
 					t->pos[1] = (int16_t)(((int32_t)b[1] + a[1]) >> 1);
 					t->pos[2] = (int16_t)(((int32_t)b[2] + a[2]) >> 1);
-					DecodeModelPrimLayout(MODEL_Vortex, t->vortex, 0x278);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.vortex, MODEL_Vortex, 0x278), t->vortex, 0x278);
 					r->action++;
 				}
 			}
@@ -1109,6 +1110,7 @@ namespace demi107
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "", (uint32_t)offsetof(DemiParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(DemiParams, target.status), fxp::I16, 0, 90 },
+			{ "target", "layouts.vortex", "Vortex", "The prim-model layout vortex (its models' animation)", (uint32_t)offsetof(DemiParams, layouts.vortex), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

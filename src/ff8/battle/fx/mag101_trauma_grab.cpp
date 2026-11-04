@@ -92,8 +92,9 @@ namespace grab101
 	{
 		uint32_t sound;     // at the grab's first tick
 		int16_t flash;      // the screen flash's level
+		struct { uint32_t grab; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const GrabParams GAME = { 0x13249DC, 0x898 };
+	static const GrabParams GAME = { 0x13249DC, 0x898, { MODEL_Grab } };
 	static GrabParams live = GAME;
 	static const GrabParams &P() { return live; }
 
@@ -387,7 +388,7 @@ namespace grab101
 			InitTaskQueuePool(QGrab(), (void *)TexBase(), 0x2D0, 1);
 			GrabNode *g = (GrabNode *)AddTaskToQueue(QGrab(), own::Fn(ORIG_GrabTask));
 			Memset32(&g->counter, 0, 0xB1);
-			DecodeModelPrimLayout(MODEL_Grab, g->layout, 0x2B0);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.grab, MODEL_Grab, 0x2B0), g->layout, 0x2B0);
 			g->pos_xy = *(const uint32_t *)(Target() + 0x1C);
 			g->pos_z = *(const uint32_t *)(Target() + 0x20);
 			g->colour = *(const uint32_t *)(Target() + 0x2C);
@@ -417,6 +418,7 @@ namespace grab101
 		static const Field FIELDS[] = {
 			{ "grab", "sound", "Sound", "", (uint32_t)offsetof(GrabParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "grab", "flash", "Flash", "The screen flash's level", (uint32_t)offsetof(GrabParams, flash), fxp::I16, 0, 0x1000 },
+			{ "grab", "layouts.grab", "Grab", "The prim-model layout grab (its models' animation)", (uint32_t)offsetof(GrabParams, layouts.grab), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

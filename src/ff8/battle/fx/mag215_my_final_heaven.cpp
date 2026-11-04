@@ -113,8 +113,9 @@ namespace heaven215
 	{
 		struct { uint32_t start, jump; } sounds; // at the director's ticks 5 and 0xA2
 		struct { int16_t damage; } director;    // the damage at this tick
+		struct { uint32_t ring, anchor, back, run, screen, far, jump, jump_bone, target_ring, crater, bone; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const MyFinalHeavenParams GAME = { { 0x1154F48, 0x1154F4C }, { 0x108 } };
+	static const MyFinalHeavenParams GAME = { { 0x1154F48, 0x1154F4C }, { 0x108 }, { LAYOUT_Ring, LAYOUT_Anchor, LAYOUT_Back, LAYOUT_Run, LAYOUT_Screen, LAYOUT_Far, LAYOUT_Jump, LAYOUT_JumpBone, LAYOUT_TargetRing, LAYOUT_Crater, LAYOUT_Bone } };
 	static MyFinalHeavenParams live = GAME;
 	static const MyFinalHeavenParams &P() { return live; }
 
@@ -932,7 +933,7 @@ namespace heaven215
 		k->pos[1] = 0;
 		k->scale = (int16_t)scale;
 		*(uint32_t *)&k->angle = 0;
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0x40);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.ring, LAYOUT_Ring, 0x40), k->layout, 0x40);
 	}
 
 	// ------------------------------------------------------------------
@@ -1056,7 +1057,7 @@ namespace heaven215
 		k->scale = 0x2000;
 		*(uint32_t *)&k->angle = 0;
 		k->pos[2] = (int16_t)(W16(Caster(), 0x20) + 0x400);
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0x40);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.ring, LAYOUT_Ring, 0x40), k->layout, 0x40);
 	}
 
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
@@ -1078,7 +1079,7 @@ namespace heaven215
 		int32_t s = c - 1;
 		if ((uint32_t)s < 0x3D)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Anchor, d->layout_a, 0x370);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.anchor, LAYOUT_Anchor, 0x370), d->layout_a, 0x370);
 			GetDefaultEffectPosition(z, argb.pos);
 			argb.pos[1] = 0;
 			argb.morph = morph;
@@ -1092,7 +1093,7 @@ namespace heaven215
 		s = c - 0x3E;
 		if ((uint32_t)s < 0xE)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Back, d->layout_b, 0xB0);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.back, LAYOUT_Back, 0xB0), d->layout_b, 0xB0);
 			W16(z, 0x20) = (int16_t)(W16(z, 0x20) - 0x100);
 			RotationY(0, &arga.m);
 			arga.m.t[0] = W16(z, 0x1C);
@@ -1117,7 +1118,7 @@ namespace heaven215
 			{
 				QRings()->tail = nullptr;
 				QRings()->head = nullptr;
-				DecodeModelPrimLayout(LAYOUT_Run, d->layout_b, 0x188);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.run, LAYOUT_Run, 0x188), d->layout_b, 0x188);
 				W16(z, 0x20) = (int16_t)(d->centre[2] + 0x1800);
 				W32(z, 0x5C) = W16(z, 0x20);
 				W16(z, 0x20) = (int16_t)(W16(z, 0x20) - 0x4CC);
@@ -1169,7 +1170,7 @@ namespace heaven215
 					U32(r.e, 0xC) = r.rot01;
 					U32(r.e, 0x10) = r.rot23;
 				}
-				DecodeModelPrimLayout(LAYOUT_Screen, d->layout_b, 0x94);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.screen, LAYOUT_Screen, 0x94), d->layout_b, 0x94);
 			}
 			RotationY(0, &arga.m);
 			arga.morph = morph;
@@ -1187,7 +1188,7 @@ namespace heaven215
 		s = c - 0xA4;
 		if ((uint32_t)s < 0x12)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Far, d->layout_b, 0x154);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.far, LAYOUT_Far, 0x154), d->layout_b, 0x154);
 			RotationY(0, &arga.m);
 			arga.m.t[0] = W16(z, 0x1C);
 			arga.m.t[1] = 0;
@@ -1209,8 +1210,8 @@ namespace heaven215
 			if (b == 0)
 			{
 				W16(z, 0x20) = (int16_t)(d->centre[2] + 0x5AA0);
-				DecodeModelPrimLayout(LAYOUT_Jump, d->layout_b, 0xBC);
-				DecodeModelPrimLayout(LAYOUT_JumpBone, d->layout_c, 0x27C);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.jump, LAYOUT_Jump, 0xBC), d->layout_b, 0xBC);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.jump_bone, LAYOUT_JumpBone, 0x27C), d->layout_c, 0x27C);
 				InitTaskQueuePool(QRings(), (void *)(TexBase() + 0x1400), 0x294, 0x24);
 			}
 			if ((uint32_t)b < 0x1E)
@@ -1239,7 +1240,7 @@ namespace heaven215
 						GetDefaultEffectPosition(e, k->pos);
 						*(uint32_t *)&k->angle = 0x800;
 						k->scale = (int16_t)(((int32_t)W16(e, 0x26) / 2) * 2 + 0x800);
-						DecodeModelPrimLayout(LAYOUT_TargetRing, k->layout, 0x160);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.target_ring, LAYOUT_TargetRing, 0x160), k->layout, 0x160);
 					}
 				}
 				else if ((uint32_t)b < 0x19)
@@ -1303,7 +1304,7 @@ namespace heaven215
 		s = c - 0xDE;
 		if ((uint32_t)s < 0x20)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Crater, d->layout_a, 0x154);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.crater, LAYOUT_Crater, 0x154), d->layout_a, 0x154);
 			RotationY(0x800, &arga.m);
 			arga.m.t[0] = d->centre[0];
 			arga.m.t[1] = 0;
@@ -1338,7 +1339,7 @@ namespace heaven215
 			off[0] = 0;
 			if (t == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Crater, d->layout_a, 0x154);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.crater, LAYOUT_Crater, 0x154), d->layout_a, 0x154);
 				for (int32_t i = 0; i < TargetCount(); i++)
 				{
 					uint8_t *e = d->recs[i].e;
@@ -1388,7 +1389,7 @@ namespace heaven215
 		s = c - 0x18;
 		if ((uint32_t)s < 0x5C)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Bone, d->layout_c, 0x1B4);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.bone, LAYOUT_Bone, 0x1B4), d->layout_c, 0x1B4);
 			GetEffectSpawnPosition(z, 0x16, 0, argb.pos);
 			argb.morph = morph;
 			argb.depth = -0x80;
@@ -1558,6 +1559,17 @@ namespace heaven215
 			{ "director", "sounds.start", "Start", "At the director's tick 5", (uint32_t)offsetof(MyFinalHeavenParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.jump", "Jump", "At the director's tick 0xA2", (uint32_t)offsetof(MyFinalHeavenParams, sounds.jump), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(MyFinalHeavenParams, director.damage), fxp::I16, 0, 281 },
+			{ "director", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.anchor", "Anchor", "The prim-model layout anchor (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.anchor), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.back", "Back", "The prim-model layout back (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.back), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.run", "Run", "The prim-model layout run (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.run), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.screen", "Screen", "The prim-model layout screen (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.screen), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.far", "Far", "The prim-model layout far (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.far), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.jump", "Jump", "The prim-model layout jump (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.jump), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.jump_bone", "Jump bone", "The prim-model layout jump bone (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.jump_bone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.target_ring", "Target ring", "The prim-model layout target ring (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.target_ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.crater", "Crater", "The prim-model layout crater (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.crater), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.bone", "Bone", "The prim-model layout bone (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.bone), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

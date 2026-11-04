@@ -136,8 +136,9 @@ namespace xatm276
 	{
 		uint32_t sound_start;   // the director's tick 0
 		uint32_t sound_voice;   // the voice slot the root claims (counter 1), released on the director's tick 0x8C
+		struct { uint32_t prim_model; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const XAtmDeathParams GAME = { 0x10D4C58, 0x10D4C5C };
+	static const XAtmDeathParams GAME = { 0x10D4C58, 0x10D4C5C, { PRIM_Model } };
 	static XAtmDeathParams live = GAME;
 	static const XAtmDeathParams &P() { return live; }
 	static const uint32_t EVENTS[5] = { 0x10D56A8, 0x10D55A8, 0x10D5528, 0x10D5628, 0x10D5728 };
@@ -1420,7 +1421,7 @@ namespace xatm276
 				BonePosition(U8(e, 9), S16(e, 0xA), (void *)(p + 0xE));
 				S16(p, 0xC) = 0;
 				S16(p, 0x14) = S16(e, 0xC);
-				DecodeModelPrimLayout(PRIM_Model, (void *)(p + 0x18), 0x124);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.prim_model, PRIM_Model, 0x124), (void *)(p + 0x18), 0x124);
 			}
 		}
 		if (U8(e, 3) != 0xFF && S32(n, 0xC) == (int32_t)U8(e, 3)) ScreenFadeTask(U8(e, 4), U8(e, 5), U8(e, 6), 0x80);
@@ -1661,6 +1662,7 @@ namespace xatm276
 		static const Field FIELDS[] = {
 			{ "director", "sound_start", "Start", "The director's tick 0", (uint32_t)offsetof(XAtmDeathParams, sound_start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sound_voice", "Voice", "The voice slot claimed at the start (released on tick 0x8C)", (uint32_t)offsetof(XAtmDeathParams, sound_voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "layouts.prim_model", "Prim model", "The prim-model layout prim model (its models' animation)", (uint32_t)offsetof(XAtmDeathParams, layouts.prim_model), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

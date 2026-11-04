@@ -96,8 +96,9 @@ namespace lv271
 	struct LvUpParams
 	{
 		uint32_t sound;   // when the play task starts
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const LvUpParams GAME = { 0x111AA2C };
+	static const LvUpParams GAME = { 0x111AA2C, { MODEL_LAYOUT } };
 	static LvUpParams live = GAME;
 	static const LvUpParams &P() { return live; }
 
@@ -626,7 +627,7 @@ namespace lv271
 				p->scale[2] = p->scale[1];
 				p->scale[0] = p->scale[1];
 			}
-			DecodeModelPrimLayout(MODEL_LAYOUT, p->layout, LAYOUT_BYTES);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_LAYOUT, LAYOUT_BYTES), p->layout, LAYOUT_BYTES);
 			r->action++;
 			BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 		}
@@ -646,6 +647,7 @@ namespace lv271
 		};
 		static const Field FIELDS[] = {
 			{ "root", "sound", "Sound", "When the play task starts", (uint32_t)offsetof(LvUpParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "root", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(LvUpParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

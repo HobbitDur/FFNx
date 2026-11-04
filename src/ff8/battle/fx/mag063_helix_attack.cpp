@@ -102,8 +102,9 @@ namespace helix063
 		uint32_t sound;                          // at the master's first tick
 		struct { int16_t damage, end; } master;  // the damage of the first target / the end at these ticks
 		struct { int16_t flash, push; } impact;  // the screen flash level; the impact this far from the target towards the caster
+		struct { uint32_t ring, core, impact; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 } };
+	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 }, { MODEL_Ring, MODEL_Core, MODEL_Impact } };
 	static HelixParams live = GAME;
 	static const HelixParams &P() { return live; }
 
@@ -637,10 +638,10 @@ namespace helix063
 			InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x1E);
 			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x37F);
-			DecodeModelPrimLayout(MODEL_Ring, m->ring1, 0xE8);
-			DecodeModelPrimLayout(MODEL_Ring, m->ring2, 0xE8);
-			DecodeModelPrimLayout(MODEL_Core, m->core, 0x6A0);
-			DecodeModelPrimLayout(MODEL_Impact, m->impact, 0x580);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.ring, MODEL_Ring, 0xE8), m->ring1, 0xE8);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.ring, MODEL_Ring, 0xE8), m->ring2, 0xE8);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.core, MODEL_Core, 0x6A0), m->core, 0x6A0);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.impact, MODEL_Impact, 0x580), m->impact, 0x580);
 			GetDefaultEffectPosition(Target(), m->pos);
 		}
 		int a;
@@ -667,6 +668,9 @@ namespace helix063
 			HP("master", master.end, "End tick", "", 0x40, 200),
 			HP("master", impact.flash, "Flash", "The screen flash's level", 0, 0x1000),
 			HP("master", impact.push, "Impact offset", "The impact this far from the target towards the caster", -0x1000, 0x1000),
+			{ "master", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.core", "Core", "The prim-model layout core (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.core), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 #undef HP
 	}

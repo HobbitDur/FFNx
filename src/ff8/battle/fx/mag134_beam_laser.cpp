@@ -121,8 +121,9 @@ namespace beam134
 	{
 		uint32_t sound;                  // at the beam's tick 2
 		struct { int16_t damage; } beam; // the damage at this tick of the beam
+		struct { uint32_t hit, charge, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BeamParams GAME = { 0x120767C, { 0x1A } };
+	static const BeamParams GAME = { 0x120767C, { 0x1A }, { MODEL_Hit, MODEL_Charge, MODEL_Muzzle, MODEL_Ray, MODEL_Impact } };
 	static BeamParams live = GAME;
 	static const BeamParams &P() { return live; }
 
@@ -597,7 +598,7 @@ namespace beam134
 						h->frame.t[0] = hit[0];
 						h->frame.t[1] = hit[1];
 						h->frame.t[2] = hit[2];
-						DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x58);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x58), h->layout, 0x58);
 					}
 				}
 				else if (d.kind == 2)
@@ -691,11 +692,11 @@ namespace beam134
 						b->ent = ent;
 						GetEffectSpawnPosition(ent, 0xF1, 0, b->spawn);
 						m->index++;
-						DecodeModelPrimLayout(MODEL_Charge, b->charge[0], 0x58);
-						DecodeModelPrimLayout(MODEL_Charge, b->charge[1], 0x58);
-						DecodeModelPrimLayout(MODEL_Muzzle, b->muzzle, 0x220);
-						DecodeModelPrimLayout(MODEL_Ray, b->ray, 0xA4);
-						DecodeModelPrimLayout(MODEL_Impact, b->impact, 0x1B0);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.charge, MODEL_Charge, 0x58), b->charge[0], 0x58);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.charge, MODEL_Charge, 0x58), b->charge[1], 0x58);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.muzzle, MODEL_Muzzle, 0x220), b->muzzle, 0x220);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.ray, MODEL_Ray, 0xA4), b->ray, 0xA4);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.impact, MODEL_Impact, 0x1B0), b->impact, 0x1B0);
 					}
 				}
 			}
@@ -727,6 +728,11 @@ namespace beam134
 		static const Field FIELDS[] = {
 			{ "beam", "sound", "Sound", "", (uint32_t)offsetof(BeamParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "beam", "beam.damage", "Damage tick", "The damage at this tick of the beam", (uint32_t)offsetof(BeamParams, beam.damage), fxp::I16, 0, 200 },
+			{ "beam", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.charge", "Charge", "The prim-model layout charge (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.charge), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.ray", "Ray", "The prim-model layout ray (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.ray), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

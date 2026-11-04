@@ -149,8 +149,9 @@ namespace duel274
 		uint32_t sound_kick;   // Mach Kick's (its tick 0x1B)
 		uint32_t sound_dolphin;   // Dolphin Blow's (its tick 0x18)
 		uint32_t sound_meteor;   // Meteor Strike's (its tick 0x2B)
+		struct { uint32_t punch, punch_b, booya, heel, heel_b, kick, dolphin, dolphin_b, meteor, meteor_b; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const DuelParams GAME = { 0x110BE58, 0x110BE5C, 0x110BE60, 0x110BE64, 0x110BE68, 0x110BE6C };
+	static const DuelParams GAME = { 0x110BE58, 0x110BE5C, 0x110BE60, 0x110BE64, 0x110BE68, 0x110BE6C, { LAYOUT_Punch, LAYOUT_PunchB, LAYOUT_Booya, LAYOUT_Heel, LAYOUT_HeelB, LAYOUT_Kick, LAYOUT_Dolphin, LAYOUT_DolphinB, LAYOUT_Meteor, LAYOUT_MeteorB } };
 	static DuelParams live = GAME;
 	static const DuelParams &P() { return live; }
 
@@ -1531,8 +1532,8 @@ namespace duel274
 			Alloc() += 0x64;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Punch, m->layout_a, 0x14C);
-			DecodeModelPrimLayout(LAYOUT_PunchB, m->layout_b, 0x64);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.punch, LAYOUT_Punch, 0x14C), m->layout_a, 0x14C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.punch_b, LAYOUT_PunchB, 0x64), m->layout_b, 0x64);
 			static const int32_t bones[6] = { 0xD, 0x11, 0x15, 0xE, 0x12, 0x16 };
 			GhostInit((uint8_t *)m->ghosts, 6, bones);
 		}
@@ -1612,7 +1613,7 @@ namespace duel274
 			Alloc() += 0x5C8;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Booya, m->layout_a, 0x5C8);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.booya, LAYOUT_Booya, 0x5C8), m->layout_a, 0x5C8);
 			static const int32_t bones[1] = { 9 };
 			GhostInit((uint8_t *)m->ghosts, 1, bones);
 		}
@@ -1676,8 +1677,8 @@ namespace duel274
 			Alloc() += 0x64;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Heel, m->layout_a, 0x360);
-			DecodeModelPrimLayout(LAYOUT_HeelB, m->layout_b, 0x64);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.heel, LAYOUT_Heel, 0x360), m->layout_a, 0x360);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.heel_b, LAYOUT_HeelB, 0x64), m->layout_b, 0x64);
 			static const int32_t bones[3] = { 0xC, 0x10, 0x14 };
 			GhostInit((uint8_t *)m->ghosts, 3, bones);
 		}
@@ -1726,7 +1727,7 @@ namespace duel274
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
 			CopyDwords(backup, MODEL_Kick + 8, 0x9A);
-			DecodeModelPrimLayout(LAYOUT_Kick, m->layout_a, 0x23C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.kick, LAYOUT_Kick, 0x23C), m->layout_a, 0x23C);
 			static const int32_t bones[3] = { 0xC, 0x10, 0x14 };
 			GhostInit((uint8_t *)m->ghosts, 3, bones);
 		}
@@ -1811,8 +1812,8 @@ namespace duel274
 			Alloc() += 0x388;
 			InitTaskQueuePool(QSparks(), (void *)Alloc(), 0x24, 0x40);
 			Alloc() += 0x900;
-			DecodeModelPrimLayout(LAYOUT_Dolphin, m->layout_a, 0xE0);
-			DecodeModelPrimLayout(LAYOUT_DolphinB, m->layout_b, 0x388);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.dolphin, LAYOUT_Dolphin, 0xE0), m->layout_a, 0xE0);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.dolphin_b, LAYOUT_DolphinB, 0x388), m->layout_b, 0x388);
 		}
 		if (m->counter < 0x10)
 		{
@@ -1905,8 +1906,8 @@ namespace duel274
 			Alloc() += 0x9E4;
 			InitTaskQueuePool(QRocks(), (void *)Alloc(), 0x2C, 0x20);
 			Alloc() += 0x580;
-			DecodeModelPrimLayout(LAYOUT_Meteor, m->layout_a, 0x128);
-			DecodeModelPrimLayout(LAYOUT_MeteorB, m->layout_b, 0x9E4);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.meteor, LAYOUT_Meteor, 0x128), m->layout_a, 0x128);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.meteor_b, LAYOUT_MeteorB, 0x9E4), m->layout_b, 0x9E4);
 		}
 		int16_t pos[4];       // (the wave's place, then the module draw's offset)
 		int16_t ang[4];       // (the hip, then the module draw's angles)
@@ -2314,6 +2315,16 @@ namespace duel274
 			{ "kick", "sound_kick", "Sound", "On its tick 0x1B", (uint32_t)offsetof(DuelParams, sound_kick), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "dolphin", "sound_dolphin", "Sound", "On its tick 0x18", (uint32_t)offsetof(DuelParams, sound_dolphin), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "meteor", "sound_meteor", "Sound", "On its tick 0x2B", (uint32_t)offsetof(DuelParams, sound_meteor), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.punch", "Punch", "The prim-model layout punch (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.punch), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.punch_b", "Punch b", "The prim-model layout punch b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.punch_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.booya", "Booya", "The prim-model layout booya (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.booya), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.heel", "Heel", "The prim-model layout heel (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.heel), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.heel_b", "Heel b", "The prim-model layout heel b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.heel_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.kick", "Kick", "The prim-model layout kick (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.kick), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.dolphin", "Dolphin", "The prim-model layout dolphin (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.dolphin), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.dolphin_b", "Dolphin b", "The prim-model layout dolphin b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.dolphin_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.meteor", "Meteor", "The prim-model layout meteor (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.meteor_b", "Meteor b", "The prim-model layout meteor b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor_b), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

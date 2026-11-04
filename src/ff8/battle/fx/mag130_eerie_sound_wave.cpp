@@ -102,8 +102,9 @@ namespace eerie130
 	{
 		uint32_t sound;                    // at the emitter's tick 10
 		struct { int16_t damage; } impact; // the damage at this frame of an impact's layout play
+		struct { uint32_t impact, wave, emitter; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const WaveParams GAME = { 0x122380C, { 8 } };
+	static const WaveParams GAME = { 0x122380C, { 8 }, { MODEL_Impact, MODEL_Wave, MODEL_Emitter } };
 	static WaveParams live = GAME;
 	static const WaveParams &P() { return live; }
 
@@ -377,7 +378,7 @@ namespace eerie130
 			{
 				GetDefaultEffectPosition(w->entity, p->pos);
 				p->entity = w->entity;
-				DecodeModelPrimLayout(MODEL_Impact, p->layout, 0xA8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.impact, MODEL_Impact, 0xA8), p->layout, 0xA8);
 			}
 		}
 		PrimArg arg;
@@ -435,7 +436,7 @@ namespace eerie130
 					w->entity = e->ents[e->counter / 12];
 					w->counter = 0;
 					memcpy(w->start, pos, 8);
-					DecodeModelPrimLayout(MODEL_Wave, w->layout, 0x58);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.wave, MODEL_Wave, 0x58), w->layout, 0x58);
 				}
 			}
 		}
@@ -471,7 +472,7 @@ namespace eerie130
 			InitTaskQueuePool(QImpacts(), (void *)TexBase(), 0xC0, 3);
 			EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEmitter(), own::Fn(ORIG_EmitterTask));
 			Memset32(&e->counter, 0, 0x130);
-			DecodeModelPrimLayout(MODEL_Emitter, e->layout, 0x4AC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.emitter, MODEL_Emitter, 0x4AC), e->layout, 0x4AC);
 			uint8_t *const b = (uint8_t *)e;
 			e->count = (int16_t)Ctx()->actions[0].target_count;
 			// target record indexes (+0x1C + i) and entities (+0x10 + 4 i), written in this order
@@ -520,6 +521,9 @@ namespace eerie130
 		static const Field FIELDS[] = {
 			{ "emitter", "sound", "Sound", "", (uint32_t)offsetof(WaveParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "emitter", "impact.damage", "Damage frame", "The damage at this frame of an impact's layout play", (uint32_t)offsetof(WaveParams, impact.damage), fxp::I16, 1, 60 },
+			{ "emitter", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(WaveParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "emitter", "layouts.wave", "Wave", "The prim-model layout wave (its models' animation)", (uint32_t)offsetof(WaveParams, layouts.wave), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "emitter", "layouts.emitter", "Emitter", "The prim-model layout emitter (its models' animation)", (uint32_t)offsetof(WaveParams, layouts.emitter), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }

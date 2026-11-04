@@ -111,8 +111,9 @@ namespace breath129
 	{
 		uint32_t sound;                    // at the main task's tick 0
 		struct { int16_t damage; } target; // the damage at this tick of a target task
+		struct { uint32_t mouth2, target, mouth1, mouth3; } layouts; // the prim-model layouts played (their models' animation)
 	};
-	static const BreathParams GAME = { 0x12292F4, { 0x10 } };
+	static const BreathParams GAME = { 0x12292F4, { 0x10 }, { MODEL_Mouth2, MODEL_Target, MODEL_Mouth1, MODEL_Mouth3 } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1229F28;   // [|dy|][|dx|] -> length, 128 x 128
@@ -1486,7 +1487,7 @@ namespace breath129
 			{
 				// 30 fps layer: see mag129_breath_held.inc
 				FX_HELD(held_note_restart((prim::Layout *)m->mouth2);)
-				DecodeModelPrimLayout(MODEL_Mouth2, m->mouth2, 0x68);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.mouth2, MODEL_Mouth2, 0x68), m->mouth2, 0x68);
 			}
 			if (c1c <= 0x20)
 			{
@@ -1536,7 +1537,7 @@ namespace breath129
 						SampleFaces(e + 0x60, t->faces, 4);
 						HitEntity(HitCount()) = e;
 						HitCount()++;
-						DecodeModelPrimLayout(MODEL_Target, t->layout, 0x110);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.target, MODEL_Target, 0x110), t->layout, 0x110);
 					}
 					m->walk = (int16_t)(m->walk - 0x1000);
 					m->cur = m->next;
@@ -1619,9 +1620,9 @@ namespace breath129
 			for (int i = 0; i < 16; i++) Profile()[i] = (int16_t)ComputeSin(Div15(shl32(i, 11)));
 			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&mn->counter, 0, 0xC9);
-			DecodeModelPrimLayout(MODEL_Mouth1, mn->mouth1, 0x108);
-			DecodeModelPrimLayout(MODEL_Mouth2, mn->mouth2, 0x68);
-			DecodeModelPrimLayout(MODEL_Mouth3, mn->mouth3, 0x188);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.mouth1, MODEL_Mouth1, 0x108), mn->mouth1, 0x108);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.mouth2, MODEL_Mouth2, 0x68), mn->mouth2, 0x68);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.mouth3, MODEL_Mouth3, 0x188), mn->mouth3, 0x188);
 			mn->count = (int16_t)Ctx()->actions[0].target_count;
 			for (int i = 0; i < mn->count; i++)
 			{
@@ -1682,6 +1683,10 @@ namespace breath129
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "", (uint32_t)offsetof(BreathParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "target.damage", "Damage tick", "The damage at this tick of a target task", (uint32_t)offsetof(BreathParams, target.damage), fxp::I16, 0, 100 },
+			{ "main", "layouts.mouth2", "Mouth2", "The prim-model layout mouth2 (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.mouth2), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.mouth1", "Mouth1", "The prim-model layout mouth1 (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.mouth1), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.mouth3", "Mouth3", "The prim-model layout mouth3 (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.mouth3), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 	}
 }
