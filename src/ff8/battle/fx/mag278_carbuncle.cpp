@@ -35,6 +35,9 @@
 // Module globals: 0x2508110..0x25081FC (gf_study/gf_global_ranges.md).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -43,22 +46,23 @@ namespace c278
 	using namespace eng;
 
 	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x2508114); }           // debug pause, never set by the game
-	inline uint8_t *&BeamHeader() { return var<uint8_t *>(0x2508118); }     // flipbook header of the beam list (per tick)
-	inline uint8_t *&CastCtx() { return var<uint8_t *>(0x2508120); }
-	inline TaskQueue &QueueBeams() { return var<TaskQueue>(0x2508128); }    // single list, custom executor
-	inline TaskQueuePair &QueueOrbits() { return var<TaskQueuePair>(0x2508138); }   // .first orbits, .second rings
-	inline TaskQueuePair &QueueRubies() { return var<TaskQueuePair>(0x2508158); }   // .first rubies, .second shards
-	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(0x2508178); } // .first sparkles, .second creature
-	inline TaskQueue &QueueRoot() { return var<TaskQueue>(0x2508198); }     // master (pool 0x25081A8)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25081BC); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x25081C0); }   // the other arena: scratch of the mirror pass
-	inline int32_t &Centroid() { return var<int32_t>(0x25081C4); }          // mean "+0x20" (height) of the targets
-	inline int32_t &Base() { return var<int32_t>(0x25081CC); }              // centroid - 0x7D0 (floor reference)
-	inline int32_t &Lift() { return var<int32_t>(0x25081D0); }              // added to the enemies' height at tick 2
-	inline uint32_t &Flash() { return var<uint32_t>(0x25081D4); }
-	inline uint8_t &DoneFlag() { return var<uint8_t>(0x25081D8); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x25081F8); }    // = Magic_TextureOFF_ToEAX1()
+	inline uint32_t &Pause() { return var<uint32_t>(own::R(0x2508114)); }           // debug pause, never set by the game
+	inline uint8_t *&BeamHeader() { return var<uint8_t *>(own::R(0x2508118)); }     // flipbook header of the beam list (per tick)
+	inline uint8_t *&CastCtx() { return var<uint8_t *>(own::R(0x2508120)); }
+	inline TaskQueue &QueueBeams() { return var<TaskQueue>(own::R(0x2508128)); }    // single list, custom executor
+	inline TaskQueuePair &QueueOrbits() { return var<TaskQueuePair>(own::R(0x2508138)); }   // .first orbits, .second rings
+	inline TaskQueuePair &QueueRubies() { return var<TaskQueuePair>(own::R(0x2508158)); }   // .first rubies, .second shards
+	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(own::R(0x2508178)); } // .first sparkles, .second creature
+	inline TaskQueue &QueueRoot() { return var<TaskQueue>(own::R(0x2508198)); }     // master (pool 0x25081A8)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25081BC)); }
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(own::R(0x25081C0)); }   // the other arena: scratch of the mirror pass
+	inline int32_t &Centroid() { return var<int32_t>(own::R(0x25081C4)); }          // mean "+0x20" (height) of the targets
+	inline int32_t &Base() { return var<int32_t>(own::R(0x25081CC)); }              // centroid - 0x7D0 (floor reference)
+	inline int32_t &Lift() { return var<int32_t>(own::R(0x25081D0)); }              // added to the enemies' height at tick 2
+	inline uint32_t &Flash() { return var<uint32_t>(own::R(0x25081D4)); }
+	inline uint8_t &DoneFlag() { return var<uint8_t>(own::R(0x25081D8)); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(own::R(0x25081F8)); }    // = Magic_TextureOFF_ToEAX1()
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508110)); }          // the effect's file (its TIMs)
 	static const uint32_t BBOX = 0x25081E0;   // s16 min x, y, z, max x, y, z (MAG_278_sub_6D6070)
 	static const uint32_t MIRROR = 0x25081F0; // s16 0, 0, base - 200: floor plane of the mirror pass
 	// engine
@@ -74,6 +78,21 @@ namespace c278
 	static const uint32_t ORIG_OrbitTask = 0x683760;
 	static const uint32_t ORIG_ShardTask = 0x683DC0;
 	static const uint32_t ORIG_SparkleTask = 0x683E80;
+	static const uint32_t ORIG_FileLoader = 0x680C60, ORIG_Setup = 0x680C50;
+	static const uint32_t TEXTURE_NAME = 0x10CB61C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct CarbuncleParams
+	{
+		uint32_t voice;                                    // the voice slot claimed when the creature spawns
+		struct { uint32_t start, rise, ruby, wall; } sounds; // at the creature's ticks 1, 0x56, 0x91, 0xD7
+		struct { int16_t damage; } ruby;                   // each target's action result at this tick of its ruby
+	};
+	static const CarbuncleParams GAME = { 0x10C74DC, { 0x10C74CC, 0x10C74D0, 0x10C74D4, 0x10C74D8 }, { 0x32 } };
+	static CarbuncleParams live = GAME;
+	static const CarbuncleParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x681FD0; // prim-model callback (pure draw)
 
 	// --- engine / module helpers called through their original addresses ---
@@ -308,7 +327,7 @@ namespace c278
 		int32_t v = c - 1;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t id = var<uint8_t>(0x1D98990);
-		if (id == 0x2C || id == 0x2D || id == 0x2E) MirrorPass(MIRROR, BBOX);
+		if (id == 0x2C || id == 0x2D || id == 0x2E) MirrorPass(own::R(MIRROR), own::R(BBOX));
 		Mat4x3 M;
 		RotY(0, &M);
 		M.t[1] = 0;
@@ -583,6 +602,52 @@ namespace c278
 	// ------------------------------------------------------------------
 	// Sparkle (0x683E80): 11-frame flipbook 0x10BD044 at a fixed point
 	// ------------------------------------------------------------------
+	// File loader (0x680C60) and setup (0x680C50 -> GF_278Carbuncle_SetupSummon 0x680C80): the game runs its own;
+	// Fujin's programs these (its memory may be a copy's): a rand() word, both TIMs of the file, the model buffer (the
+	// magic buffer), the cast and its caster, the master; the targets' mean height and the floor below it, the lift of
+	// the enemies (those standing higher than 1500 below the floor; none in scene 0x3F, the floor at the mean there)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)((const char *)TEXTURE_NAME);   // IO_GetFile_MAGIC
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +4 the actions)
+	{
+		var<int32_t>(own::R(0x250811C)) = fn<int32_t (__cdecl *)()>(0x55CBD2)();   // rand()
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TexFile());   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TexFile() + 0x2A020);   // Battle_QueueTIMUpload_GetEOF
+		ModelBuffer() = (uint8_t *)layouts::MagicBuffer();
+		CastCtx() = ctx;
+		var<uint32_t>(own::R(0x2508124)) = 0x1D972C0 + 0x9C * ctx[0];
+		InitTaskQueuePool(&QueueRoot(), (void *)own::R(0x25081A8), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(&QueueRoot(), own::Fn(ORIG_SequenceTask)) + 0xC, 0, 2);
+		const uint8_t *action = *(const uint8_t **)(ctx + 4);
+		const int32_t count = action[0x10];
+		const uint8_t *targets = *(const uint8_t **)(action + 8);
+		int32_t sum = 0;
+		Centroid() = 0;
+		for (int32_t i = 0; i < count; i++) sum += *(const int16_t *)(0x1D972C0 + 0x9C * targets[0x18 * i] + 0x20);
+		const int32_t centroid = sum / count;
+		Centroid() = centroid;
+		Base() = centroid - 0x7D0;
+		int32_t top = -0x7FFF;
+		for (int32_t k = 3; k < 7; k++)
+		{
+			const uint8_t *e = (const uint8_t *)(0x1D972C0 + 0x9C * k);
+			if (!(e[0] & 2)) continue;
+			const int32_t h = *(const int16_t *)(e + 0x26) / 2 + *(const int16_t *)(e + 0x20);
+			if (top < h) top = h;
+		}
+		Lift() = top > Base() - 0x5DC ? Base() - top - 0x5DC : 0;
+		if (var<int16_t>(0x1CFF6E0) == 0x3F)   // COMBAT_SCENE_ID
+		{
+			Lift() = 0;
+			Base() = centroid;
+		}
+		return &QueueRoot();
+	}
+
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *p = (SparkleNode *)n;
@@ -723,7 +788,7 @@ namespace c278
 			PrimCtx ctx;
 			CtxRuby(ctx, r);
 			prim::play((prim::Layout *)r->prim, (prim::Callback)CB_PrimObject, (int)&ctx, (int)Pause());
-			SparkleNode *sp = (SparkleNode *)AddTaskToQueue(&QueueCreature().first, ORIG_SparkleTask);
+			SparkleNode *sp = (SparkleNode *)AddTaskToQueue(&QueueCreature().first, own::Fn(ORIG_SparkleTask));
 			if (sp)
 			{
 				int32_t rnd = SharedRand();
@@ -740,7 +805,7 @@ namespace c278
 				int32_t rnd = SharedRand();
 				for (int i = 8; i; i--)
 				{
-					OrbitNode *o = (OrbitNode *)AddTaskToQueue(&QueueOrbits().first, ORIG_OrbitTask);
+					OrbitNode *o = (OrbitNode *)AddTaskToQueue(&QueueOrbits().first, own::Fn(ORIG_OrbitTask));
 					if (!o) continue;
 					Memset32(&o->counter, 0, 4);
 					o->parent = r;
@@ -778,7 +843,7 @@ namespace c278
 			uint8_t *h = WallDraw(r->counter, WallHeight(e), WallFade(e), &r->view);
 			if (!Pause() && (uint32_t)e < 0x12 && (uint32_t)e % 6 == 0)
 			{
-				RingNode *g = (RingNode *)AddTaskToQueue(&QueueOrbits().second, ORIG_RingTask);
+				RingNode *g = (RingNode *)AddTaskToQueue(&QueueOrbits().second, own::Fn(ORIG_RingTask));
 				if (g)
 				{
 					Memset32(&g->counter, 0, 4);
@@ -792,7 +857,7 @@ namespace c278
 			FieldFree(0x60);
 		}
 		if (Pause()) return 0;
-		if (r->counter == 0x32) DamageTarget(r->target);
+		if (r->counter == P().ruby.damage) DamageTarget(r->target);
 		if (r->counter >= 0x37) return TASK_END;
 		r->counter++;
 		return 0;
@@ -863,10 +928,10 @@ namespace c278
 		BattlePreload();
 		switch (cn->counter)
 		{
-		case 1: PlaySE(0x10C74CC, 0, 0x80); break;
-		case 0x56: PlaySE(0x10C74D0, 0, 0x80); break;
-		case 0x91: PlaySE(0x10C74D4, 0, 0x80); break;
-		case 0xD7: PlaySE(0x10C74D8, 0, 0x80); break;
+		case 1: PlaySE(fxp::sound(P().sounds.start, 0x10C74CC), 0, 0x80); break;
+		case 0x56: PlaySE(fxp::sound(P().sounds.rise, 0x10C74D0), 0, 0x80); break;
+		case 0x91: PlaySE(fxp::sound(P().sounds.ruby, 0x10C74D4), 0, 0x80); break;
+		case 0xD7: PlaySE(fxp::sound(P().sounds.wall, 0x10C74D8), 0, 0x80); break;
 		default: break;
 		}
 
@@ -876,7 +941,7 @@ namespace c278
 		{
 			for (int k = 4; k; k--)
 			{
-				SparkleNode *sp = (SparkleNode *)AddTaskToQueue(&QueueCreature().first, ORIG_SparkleTask);
+				SparkleNode *sp = (SparkleNode *)AddTaskToQueue(&QueueCreature().first, own::Fn(ORIG_SparkleTask));
 				if (!sp) continue;
 				int32_t rnd = SharedRand();
 				SpawnPosition(E(cn), mul32(rnd, BoneCount(E(cn))) >> 15, 0, sp->pos);
@@ -891,7 +956,7 @@ namespace c278
 			int32_t k = (int32_t)cn->ntargets - (int32_t)((uint32_t)e >> 2) - 1;
 			if (k >= 0)
 			{
-				RubyNode *r = (RubyNode *)AddTaskToQueue(&QueueRubies().first, ORIG_RubyTask);
+				RubyNode *r = (RubyNode *)AddTaskToQueue(&QueueRubies().first, own::Fn(ORIG_RubyTask));
 				if (r)
 				{
 					Memset32(&r->counter, 0, 0x40);
@@ -912,7 +977,7 @@ namespace c278
 		if ((uint32_t)e < 4)
 		{
 			if (e == 0 && StreamBusy()) return 0;
-			ShardNode *s = (ShardNode *)AddTaskToQueue(&QueueRubies().second, ORIG_ShardTask);
+			ShardNode *s = (ShardNode *)AddTaskToQueue(&QueueRubies().second, own::Fn(ORIG_ShardTask));
 			if (s)
 			{
 				s->pos[0] = (int16_t)((SharedRand() & 0x7F) - 0x40);
@@ -1123,18 +1188,18 @@ namespace c278
 			InitTaskQueuePool(&QueueRubies().second, ModelBuffer() + 0x22C4, 0x1C, 8);
 			InitTaskQueuePool(&QueueCreature().first, ModelBuffer() + 0x23A4, 0x14, 0x40);
 			InitTaskQueuePool(&QueueCreature().second, ModelBuffer() + 0x28A4, 0x5E0, 1);
-			int16_t *mirror = (int16_t *)MIRROR, *bbox = (int16_t *)BBOX;
+			int16_t *mirror = (int16_t *)own::R(MIRROR), *bbox = (int16_t *)own::R(BBOX);
 			int16_t floor = (int16_t)(Base() - 200);
 			mirror[1] = 0;
 			mirror[0] = 0;
 			mirror[2] = floor;
 			bbox[2] = 0x7FFF; bbox[1] = 0x7FFF; bbox[0] = 0x7FFF;
 			bbox[5] = (int16_t)0x8001; bbox[4] = (int16_t)0x8001; bbox[3] = (int16_t)0x8001;
-			ModelBBox(0x10C0D08, BBOX);
-			MirrorPass(MIRROR, BBOX);
-			CreatureNode *cn = (CreatureNode *)AddTaskToQueue(&QueueCreature().second, ORIG_CreatureTask);
+			ModelBBox(0x10C0D08, own::R(BBOX));
+			MirrorPass(own::R(MIRROR), own::R(BBOX));
+			CreatureNode *cn = (CreatureNode *)AddTaskToQueue(&QueueCreature().second, own::Fn(ORIG_CreatureTask));
 			Memset32(&cn->counter, 0, 0x175);
-			cn->voice = ClaimVoiceSlot((const void *)0x10C74DC, 1, 0x80);
+			cn->voice = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0x10C74DC), 1, 0x80);
 			BindModelSections(E(cn), cn->sections, 0x10B6F94);
 			ReadAnimationStart(E(cn), 0);
 			RotY(0x800, &Root(cn));
@@ -1157,7 +1222,7 @@ namespace c278
 			}
 			bbox[2] = 0x7FFF; bbox[1] = 0x7FFF; bbox[0] = 0x7FFF;
 			bbox[5] = (int16_t)0x8001; bbox[4] = (int16_t)0x8001; bbox[3] = (int16_t)0x8001;
-			ModelBBox(0x10BD488, BBOX);
+			ModelBBox(0x10BD488, own::R(BBOX));
 			// reflect wall: bottom and height (+1/16) of its bounding box
 			int16_t *mbw = (int16_t *)ModelBuffer();
 			mbw[0] = bbox[2];
@@ -1191,20 +1256,54 @@ namespace c278
 		node->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "creature", "Creature", "Carbuncle's Ruby Light: the creature, the ruby dome and its floor mirror, the two keyframed stages, the sparkles and shards, one ruby per target (orbit stones, rings, the reflect wall), the camera orbit, the party hidden and the enemies lifted, the voice and the sounds; each target's action result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the creature's ticks 1, 0x56, 0x91, 0xD7" },
+		};
+		static const Field FIELDS[] = {
+			{ "creature", "voice", "Voice", "The voice slot claimed when the creature spawns", (uint32_t)offsetof(CarbuncleParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.start", "Start", "At the creature's tick 1", (uint32_t)offsetof(CarbuncleParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.rise", "Rise", "At the creature's tick 0x56", (uint32_t)offsetof(CarbuncleParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.ruby", "Ruby", "At the creature's tick 0x91", (uint32_t)offsetof(CarbuncleParams, sounds.ruby), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.wall", "Wall", "At the creature's tick 0xD7", (uint32_t)offsetof(CarbuncleParams, sounds.wall), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "ruby.damage", "Damage tick", "Each target's action result at this tick of its ruby", (uint32_t)offsetof(CarbuncleParams, ruby.damage), fxp::I16, 0, 0x7FFF },
+		};
+	}
 }
+
 	void register_mag278_carbuncle()
 	{
+		fxp::register_params({ 278, "Carbuncle", &c278::live, &c278::GAME, sizeof(c278::CarbuncleParams),
+		                       c278::table::PARTS, (int)(sizeof(c278::table::PARTS) / sizeof(c278::table::PARTS[0])),
+		                       c278::table::FIELDS, (int)(sizeof(c278::table::FIELDS) / sizeof(c278::table::FIELDS[0])),
+		                       c278::table::GROUPS, (int)(sizeof(c278::table::GROUPS) / sizeof(c278::table::GROUPS[0])) });
+		own::note(c278::ORIG_FileLoader, (void *)c278::FileLoader);
+		own::note(c278::ORIG_Setup, (void *)c278::Setup);
+		own::note(c278::ORIG_SequenceTask, (void *)c278::SequenceTask);
 		register_port(c278::ORIG_SequenceTask, (void *)c278::SequenceTask, "C278 SequenceTask", 278);
+		own::note(c278::ORIG_CreatureTask, (void *)c278::CreatureTask);
 		register_port(c278::ORIG_CreatureTask, (void *)c278::CreatureTask, "C278 CreatureTask", 278);
+		own::note(c278::ORIG_RubyTask, (void *)c278::RubyTask);
 		register_port(c278::ORIG_RubyTask, (void *)c278::RubyTask, "C278 RubyTask", 278);
+		own::note(c278::ORIG_SparkleTask, (void *)c278::SparkleTask);
 		register_port(c278::ORIG_SparkleTask, (void *)c278::SparkleTask, "C278 SparkleTask", 278);
+		own::note(c278::ORIG_ShardTask, (void *)c278::ShardTask);
 		register_port(c278::ORIG_ShardTask, (void *)c278::ShardTask, "C278 ShardTask", 278);
+		own::note(c278::ORIG_OrbitTask, (void *)c278::OrbitTask);
 		register_port(c278::ORIG_OrbitTask, (void *)c278::OrbitTask, "C278 OrbitTask", 278);
+		own::note(c278::ORIG_RingTask, (void *)c278::RingTask);
 		register_port(c278::ORIG_RingTask, (void *)c278::RingTask, "C278 RingTask", 278);
+		own::note(c278::ORIG_BeamTask, (void *)c278::BeamTask);
 		register_port(c278::ORIG_BeamTask, (void *)c278::BeamTask, "C278 BeamTask", 278);
 		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(register_mag278_held();)
 	}
+	FX_LAB_MODULE(register_mag278_carbuncle);
 }
 
 #ifdef FF8_FX_HELD
