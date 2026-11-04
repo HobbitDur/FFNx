@@ -40,6 +40,9 @@
 // Module globals: 0x25210A8..0x2521110 (caster 0x25210A8, texture file 0x25210AC, magic buffer base
 // 0x25210B0, context 0x25210B4, master pool 0x25210B8, packet cursor 0x25210CC, the queues
 // 0x25210D0 impacts / 0x25210E0 waves / 0x25210F0 emitter / 0x2521100 master).
+// Fujin's described Eerie Sound Wave (effect_130.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (WaveParams: the sound, the
+// impacts' damage frame).
 //
 // NEVER-WRITTEN STACK WORDS (the game's executor 0x508420 calls every task of a queue at one esp;
 // the master runs the emitter, wave and impact queues 4 bytes deeper each: emitter entry esp E,
@@ -58,6 +61,9 @@
 //     edi there (0: the master is the root queue's first node); later ticks: the residue (0).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,13 +73,15 @@ namespace eerie130
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25210A8); }         // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25210B0); }         // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25210B4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25210CC); }
-	inline TaskQueue *QImpacts() { return (TaskQueue *)0x25210D0; }          // pool: magic buffer, 3 x 0xC0
-	inline TaskQueue *QWaves() { return (TaskQueue *)0x25210E0; }            // pool: + 0x240, 0xC x 0x74
-	inline TaskQueue *QEmitter() { return (TaskQueue *)0x25210F0; }          // pool: + 0x7B0, 1 x 0x4CC
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25210A8)); }         // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25210B0)); }         // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25210B4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25210CC)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25210AC)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2521100); }           // 1 x 0x14
+	inline TaskQueue *QImpacts() { return (TaskQueue *)own::R(0x25210D0); }          // pool: magic buffer, 3 x 0xC0
+	inline TaskQueue *QWaves() { return (TaskQueue *)own::R(0x25210E0); }            // pool: + 0x240, 0xC x 0x74
+	inline TaskQueue *QEmitter() { return (TaskQueue *)own::R(0x25210F0); }          // pool: + 0x7B0, 1 x 0x4CC
 	inline uint32_t RenderOT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x6B42F0;
@@ -84,6 +92,20 @@ namespace eerie130
 	static const uint32_t MODEL_Wave = 0x12228A8;
 	static const uint32_t MODEL_Impact = 0x1220990;
 	static const void *const SOUND_Wave = (const void *)0x122380C;
+	static const uint32_t ORIG_FileLoader = 0x6B4250, ORIG_Setup = 0x6B4240;
+	static const uint32_t TEXTURE_NAME = 0x12238B0, CAMERA = 0x1223810;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct WaveParams
+	{
+		uint32_t sound;                    // at the emitter's tick 10
+		struct { int16_t damage; } impact; // the damage at this frame of an impact's layout play
+	};
+	static const WaveParams GAME = { 0x122380C, { 8 } };
+	static WaveParams live = GAME;
+	static const WaveParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -281,6 +303,26 @@ namespace eerie130
 	// ------------------------------------------------------------------
 	// Impact (0x6B4AD0)
 	// ------------------------------------------------------------------
+	// File loader (0x6B4250) and setup (0x6B4240 -> 0x6B4270): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x25210B8), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl ImpactTask(TaskNode *n)
 	{
 		ImpactNode *p = (ImpactNode *)n;
@@ -307,7 +349,7 @@ namespace eerie130
 		arg.morph = TexBase() + 0xC7C;
 		const int played = prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0);
 		if (played == 0) return TASK_END;
-		if (played == 8) DamageEntity(p->entity);
+		if (played == P().impact.damage) DamageEntity(p->entity);
 		return 0;
 	}
 
@@ -330,7 +372,7 @@ namespace eerie130
 		}
 		if (w->counter == 0 && w->no_hit == 0)
 		{
-			ImpactNode *p = (ImpactNode *)AddTaskToQueue(QImpacts(), ORIG_ImpactTask);
+			ImpactNode *p = (ImpactNode *)AddTaskToQueue(QImpacts(), own::Fn(ORIG_ImpactTask));
 			if (p)
 			{
 				GetDefaultEffectPosition(w->entity, p->pos);
@@ -375,7 +417,7 @@ namespace eerie130
 		arg.depth = -0x80;
 		arg.morph = TexBase() + 0xC7C;
 		if (prim::play((prim::Layout *)e->layout, PrimCallback, (int)&arg, 0) == 0) return TASK_END;
-		if (e->counter == 10) BdPlaySE(SOUND_Wave, 0, 0x80);
+		if (e->counter == 10) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Wave), 0, 0x80);
 		// the 4th word of the position is never written (module comment)
 		pos[3] = 0;
 		GetEffectSpawnPosition(Caster(), 0xB, 0x1000, pos);
@@ -385,7 +427,7 @@ namespace eerie130
 			const int32_t r = c % 12;
 			if ((uint32_t)r % 3 == 0)
 			{
-				WaveNode *w = (WaveNode *)AddTaskToQueue(QWaves(), ORIG_WaveTask);
+				WaveNode *w = (WaveNode *)AddTaskToQueue(QWaves(), own::Fn(ORIG_WaveTask));
 				if (w)
 				{
 					w->idx = e->idx[e->counter / 12];
@@ -427,7 +469,7 @@ namespace eerie130
 			InitTaskQueuePool(QEmitter(), (void *)(TexBase() + 0x7B0), 0x4CC, 1);
 			InitTaskQueuePool(QWaves(), (void *)(TexBase() + 0x240), 0x74, 0xC);
 			InitTaskQueuePool(QImpacts(), (void *)TexBase(), 0xC0, 3);
-			EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEmitter(), ORIG_EmitterTask);
+			EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEmitter(), own::Fn(ORIG_EmitterTask));
 			Memset32(&e->counter, 0, 0x130);
 			DecodeModelPrimLayout(MODEL_Emitter, e->layout, 0x4AC);
 			uint8_t *const b = (uint8_t *)e;
@@ -469,17 +511,39 @@ namespace eerie130
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "The sound waves from the caster's mouth towards the targets, their impact layouts on the targets, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "sound", "Sound", "", (uint32_t)offsetof(WaveParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "emitter", "impact.damage", "Damage frame", "The damage at this frame of an impact's layout play", (uint32_t)offsetof(WaveParams, impact.damage), fxp::I16, 1, 60 },
+		};
+	}
 }
 
 	void register_mag130_eerie_sound_wave()
 	{
+		fxp::register_params({ 130, "Eerie Sound Wave", &eerie130::live, &eerie130::GAME, sizeof(eerie130::WaveParams),
+		                       eerie130::table::PARTS, (int)(sizeof(eerie130::table::PARTS) / sizeof(eerie130::table::PARTS[0])),
+		                       eerie130::table::FIELDS, (int)(sizeof(eerie130::table::FIELDS) / sizeof(eerie130::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(eerie130::ORIG_FileLoader, (void *)eerie130::FileLoader);
+		own::note(eerie130::ORIG_Setup, (void *)eerie130::Setup);
+		own::note(eerie130::ORIG_MasterTask, (void *)eerie130::MasterTask);
 		register_port(eerie130::ORIG_MasterTask, (void *)eerie130::MasterTask, "130 MasterTask", 130);
+		own::note(eerie130::ORIG_EmitterTask, (void *)eerie130::EmitterTask);
 		register_port(eerie130::ORIG_EmitterTask, (void *)eerie130::EmitterTask, "130 EmitterTask", 130);
+		own::note(eerie130::ORIG_WaveTask, (void *)eerie130::WaveTask);
 		register_port(eerie130::ORIG_WaveTask, (void *)eerie130::WaveTask, "130 WaveTask", 130);
+		own::note(eerie130::ORIG_ImpactTask, (void *)eerie130::ImpactTask);
 		register_port(eerie130::ORIG_ImpactTask, (void *)eerie130::ImpactTask, "130 ImpactTask", 130);
 		// 30 fps layer: see mag130_eerie_sound_wave_held.inc
 		FX_HELD(register_mag130_held();)
 	}
+	FX_LAB_MODULE(register_mag130_eerie_sound_wave);
 }
 
 #ifdef FF8_FX_HELD
