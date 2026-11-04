@@ -51,8 +51,14 @@
 // Module globals: 0x244BE70..0x244D670 (target slot, root pool / queue, particle pool, effect
 // queue and node pool, target position, context, caster slot, rotation, texture file, anchor,
 // magic buffer base 0x244D668, packet cursor 0x244D66C).
+// Fujin's described Ultrasonic Waves (effect_152.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (UltrasonicParams: the sound,
+// the damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -62,16 +68,17 @@ namespace ultrasonic152
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x244BE70); }       // first target of action 0
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x244BE98; }            // pool 0x244BE78, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x244C808; }         // pool 0x244C818, 0x64 x 0x24
-	inline int16_t *TargetPos() { return (int16_t *)0x244D628; }            // target's default effect position
-	inline CastContext *&Ctx() { return var<CastContext *>(0x244D630); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x244D634); }
-	inline Mat4x3 &Rot() { return var<Mat4x3>(0x244D638); }                 // (0, 0, -1) -> flight direction
-	inline int16_t *Anchor() { return (int16_t *)0x244D660; }               // caster's effect anchor 0xF0
-	inline uint32_t &TexBase() { return var<uint32_t>(0x244D668); }         // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x244D66C); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x244BE70)); }       // first target of action 0
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x244BE98); }            // pool 0x244BE78, 2 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x244C808); }         // pool 0x244C818, 0x64 x 0x24
+	inline int16_t *TargetPos() { return (int16_t *)own::R(0x244D628); }            // target's default effect position
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x244D630)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x244D634)); }
+	inline Mat4x3 &Rot() { return var<Mat4x3>(own::R(0x244D638)); }                 // (0, 0, -1) -> flight direction
+	inline int16_t *Anchor() { return (int16_t *)own::R(0x244D660); }               // caster's effect anchor 0xF0
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x244D668)); }         // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x244D66C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x244D658)); }          // the effect's file (its TIM)
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_RootTask = 0x60C8F0;
@@ -89,6 +96,20 @@ namespace ultrasonic152
 	static const uint32_t MODEL_Ring = 0xDBE9E0;
 	static const uint32_t *const RingColours = (const uint32_t *)0xDBEC58; // 10 x (code / rgb)
 	static const void *const SOUND_Waves = (const void *)0xDBEC50;
+	static const uint32_t ORIG_FileLoader = 0x60AF90, ORIG_Setup = 0x60AFB0;
+	static const uint32_t TEXTURE_NAME = 0xDBEC80, CAMERA = 0xDBE370;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct UltrasonicParams
+	{
+		uint32_t sound;                        // at the controller's tick 1
+		struct { int16_t damage; } controller; // the damage at this tick
+	};
+	static const UltrasonicParams GAME = { 0xDBEC50, { 0x23 } };
+	static UltrasonicParams live = GAME;
+	static const UltrasonicParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -195,7 +216,7 @@ namespace ultrasonic152
 	static_assert(sizeof(ControllerNode) == 0x24 && sizeof(WaveNode) == 0x24 && sizeof(RingNode) == 0x24 && sizeof(BurstNode) == 0x24, "Ultrasonic Waves nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(RenderHeader) == 0x6C, "Ultrasonic Waves particle / render header");
 
-	inline Particle *Parts() { return (Particle *)0x244BEA8; }
+	inline Particle *Parts() { return (Particle *)own::R(0x244BEA8); }
 	static const int PART_COUNT = 100;
 }
 }
@@ -580,6 +601,31 @@ namespace ultrasonic152
 	// ------------------------------------------------------------------
 	// Root task (0x60C8F0)
 	// ------------------------------------------------------------------
+	// File loader (0x60AF90) and setup (0x60AFB0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the controller, the
+	// 100 burst particles freed, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x244BE78), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x244C818), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_Controller)) + 0xC) = 0;
+		for (uint32_t p = own::R(0x244BEA8); p < own::R(0x244C808); p += 0x18) *(uint32_t *)p = 0;
+		PlayCameraAnimation((const void *)CAMERA);
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -590,7 +636,7 @@ namespace ultrasonic152
 		int alive = ExecuteTaskQueue(QEffects());
 		if (alive == 0)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), ORIG_WaitTexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -633,7 +679,7 @@ namespace ultrasonic152
 		}
 		if (c->counter >= 1 && c->counter <= 0xE && c->counter % 5 == 1)
 		{
-			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffects(), ORIG_WaveTask);
+			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffects(), own::Fn(ORIG_WaveTask));
 			memcpy(&w->pos[0], &Anchor()[0], 4);
 			w->counter = 0;
 			memcpy(&w->pos[2], &Anchor()[2], 4);
@@ -645,7 +691,7 @@ namespace ultrasonic152
 		}
 		if (c->counter >= 5 && c->counter <= 0x14)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QEffects(), ORIG_RingTask);
+			RingNode *g = (RingNode *)AddTaskToQueue(QEffects(), own::Fn(ORIG_RingTask));
 			memcpy(&g->pos[0], &Anchor()[0], 4);
 			g->counter = 0;
 			memcpy(&g->pos[2], &Anchor()[2], 4);
@@ -660,27 +706,27 @@ namespace ultrasonic152
 		}
 		if (c->counter == 0x19)
 		{
-			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstA);
+			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), own::Fn(ORIG_BurstA));
 			memcpy(&b->pos[0], &TargetPos()[0], 4);
 			b->counter = 0;
 			memcpy(&b->pos[2], &TargetPos()[2], 4);
 		}
 		if (c->counter == 0x1A)
 		{
-			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstB);
+			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), own::Fn(ORIG_BurstB));
 			memcpy(&b->pos[0], &TargetPos()[0], 4);
 			b->counter = 0;
 			memcpy(&b->pos[2], &TargetPos()[2], 4);
 		}
 		if (c->counter == 0x1A)
 		{
-			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstC);
+			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), own::Fn(ORIG_BurstC));
 			memcpy(&b->pos[0], &TargetPos()[0], 4);
 			b->counter = 0;
 			memcpy(&b->pos[2], &TargetPos()[2], 4);
 		}
-		if (c->counter == 0x23) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (c->counter == 1) BdPlaySE(SOUND_Waves, 0, 0x80);
+		if (c->counter == P().controller.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (c->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Waves), 0, 0x80);
 		c->counter++;
 		return c->counter > 0x28 ? TASK_END : 0;
 	}
@@ -895,21 +941,47 @@ namespace ultrasonic152
 		b->counter++;
 		return (b->counter >= 4 && alive == 0) ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "The waves, the rings flying to the target, the three bursts at the target, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "At the controller's tick 1", (uint32_t)offsetof(UltrasonicParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "controller.damage", "Damage tick", "The damage at this tick of the controller", (uint32_t)offsetof(UltrasonicParams, controller.damage), fxp::I16, 0, 40 },
+		};
+	}
 }
 
 	void register_mag152_ultrasonic_waves()
 	{
+		fxp::register_params({ 152, "Ultrasonic Waves", &ultrasonic152::live, &ultrasonic152::GAME, sizeof(ultrasonic152::UltrasonicParams),
+		                       ultrasonic152::table::PARTS, (int)(sizeof(ultrasonic152::table::PARTS) / sizeof(ultrasonic152::table::PARTS[0])),
+		                       ultrasonic152::table::FIELDS, (int)(sizeof(ultrasonic152::table::FIELDS) / sizeof(ultrasonic152::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(ultrasonic152::ORIG_FileLoader, (void *)ultrasonic152::FileLoader);
+		own::note(ultrasonic152::ORIG_Setup, (void *)ultrasonic152::Setup);
+		own::note(ultrasonic152::ORIG_RootTask, (void *)ultrasonic152::RootTask);
 		register_port(ultrasonic152::ORIG_RootTask, (void *)ultrasonic152::RootTask, "U152 RootTask", 152);
+		own::note(ultrasonic152::ORIG_WaitTexRestore, (void *)ultrasonic152::WaitTexRestore);
 		register_port(ultrasonic152::ORIG_WaitTexRestore, (void *)ultrasonic152::WaitTexRestore, "U152 WaitTexRestore", 152);
+		own::note(ultrasonic152::ORIG_Controller, (void *)ultrasonic152::Controller);
 		register_port(ultrasonic152::ORIG_Controller, (void *)ultrasonic152::Controller, "U152 Controller", 152);
+		own::note(ultrasonic152::ORIG_WaveTask, (void *)ultrasonic152::WaveTask);
 		register_port(ultrasonic152::ORIG_WaveTask, (void *)ultrasonic152::WaveTask, "U152 WaveTask", 152);
+		own::note(ultrasonic152::ORIG_RingTask, (void *)ultrasonic152::RingTask);
 		register_port(ultrasonic152::ORIG_RingTask, (void *)ultrasonic152::RingTask, "U152 RingTask", 152);
+		own::note(ultrasonic152::ORIG_BurstA, (void *)ultrasonic152::BurstA);
 		register_port(ultrasonic152::ORIG_BurstA, (void *)ultrasonic152::BurstA, "U152 BurstA", 152);
+		own::note(ultrasonic152::ORIG_BurstB, (void *)ultrasonic152::BurstB);
 		register_port(ultrasonic152::ORIG_BurstB, (void *)ultrasonic152::BurstB, "U152 BurstB", 152);
+		own::note(ultrasonic152::ORIG_BurstC, (void *)ultrasonic152::BurstC);
 		register_port(ultrasonic152::ORIG_BurstC, (void *)ultrasonic152::BurstC, "U152 BurstC", 152);
 		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(register_mag152_held();)
 	}
+	FX_LAB_MODULE(register_mag152_ultrasonic_waves);
 }
 
 #ifdef FF8_FX_HELD
