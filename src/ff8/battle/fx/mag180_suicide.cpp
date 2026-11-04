@@ -50,6 +50,9 @@
 // packet cursor 0x2309550).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -66,11 +69,13 @@ namespace suicide180
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2309540); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2309544); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x230954C); }          // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2309550); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2308720; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2309540)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x2309544)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x230954C)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2309550)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2309548)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2307DB0); }             // 1 x 0x10
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x2308720); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }       // frame packet arena cursor
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }     // transformed model vertices
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -88,6 +93,20 @@ namespace suicide180
 	static const uint32_t MODEL_Explosion = 0xD4353C, MODEL_Ring = 0xD417D4, MODEL_Ring2 = 0xD4380C;
 	static const uint32_t SEQ_Spark = 0xD41674, SEQ_Smoke = 0xD414C8;
 	static const void *const SOUND_Fuse = (const void *)0xD445B4;
+	static const uint32_t ORIG_FileLoader = 0x5CC820, ORIG_Setup = 0x5CC840;
+	static const uint32_t TEXTURE_NAME = 0xD445BC, CAMERA_ANIM = 0xD413B8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct SuicideParams
+	{
+		uint32_t sound;                      // the fuse at the director's tick 1
+		struct { int16_t damage; } director; // the damage at this tick
+	};
+	static const SuicideParams GAME = { 0xD445B4, { 0x26 } };
+	static SuicideParams live = GAME;
+	static const SuicideParams &P() { return live; }
 
 	// ---- engine functions (original addresses)
 	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
@@ -148,7 +167,7 @@ namespace suicide180
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Suicide nodes");
 	static_assert(sizeof(Particle) == 0x18, "Suicide particle");
 
-	inline Particle *Pool() { return (Particle *)POOL; }
+	inline Particle *Pool() { return (Particle *)own::R(POOL); }
 	static const int POOL_COUNT = 0x64;
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
@@ -156,10 +175,10 @@ namespace suicide180
 	static int FreeParticle()
 	{
 		int i = 0;
-		for (uint32_t p = POOL; ; p += 0x18, i++)
+		for (uint32_t p = own::R(POOL); ; p += 0x18, i++)
 		{
 			if (U32(p, 0) == 0) break;
-			if (p + 0x18 >= POOL_END) return -1;
+			if (p + 0x18 >= own::R(POOL_END)) return -1;
 		}
 		if (i >= 0x64) return -1;
 		return i;
@@ -484,6 +503,31 @@ namespace suicide180
 	// ------------------------------------------------------------------
 	// Caster glow (0x5CCB60)
 	// ------------------------------------------------------------------
+	// File loader (0x5CC820) and setup (0x5CC840): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the director, the
+	// particle pool cleared, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x2307D98)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2307DA0), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x2308730), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl CasterGlowTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
@@ -513,7 +557,7 @@ namespace suicide180
 		ExplosionHeader(h);
 		ExplosionBlock(m);
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < POOL_END; p++)
+		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
 			if (!(p->type & 1)) continue;
 			DrawExplosionParticle(h, m, p, shl32(p->frame - 2, 10));
@@ -612,7 +656,7 @@ namespace suicide180
 		FX_HELD(held_note_pool(ORIG_Sparks, t);)
 		uint8_t *h = SpriteHeader(SEQ_Spark);
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < POOL_END; p++)
+		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
 			if (!(p->type & 2)) continue;
 			DrawSpriteParticle(h, p);
@@ -675,7 +719,7 @@ namespace suicide180
 		FX_HELD(held_note_pool(ORIG_Smoke, t);)
 		uint8_t *h = SpriteHeader(SEQ_Smoke);
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < POOL_END; p++)
+		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
 			if (!(p->type & 4)) continue;
 			DrawSpriteParticle(h, p);
@@ -718,7 +762,7 @@ namespace suicide180
 		uint8_t *h = SpriteHeader(SEQ_Spark);
 		*(int32_t *)(h + 0x14) = 0x1000;
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < POOL_END; p++)
+		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
 			if (!(p->type & 8)) continue;
 			DrawFuseParticle(h, p);
@@ -766,19 +810,19 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter == 0x10)
 		{
-			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_CasterGlow);
+			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_CasterGlow));
 			g->counter = 0;
 		}
 		if (t->counter == 0xF)
 		{
 			GetDefaultEffectPosition(Caster(), t->pos);
-			EffectNode *e = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Explosion);
+			EffectNode *e = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Explosion));
 			memcpy(e->pos, t->pos, 8);
 			e->counter = 0;
 		}
 		if (t->counter == 0x1C)
 		{
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring));
 			memcpy(r->pos, t->pos, 8);
 			r->counter = 0;
 			r->zero = 0;
@@ -787,7 +831,7 @@ namespace suicide180
 			r->scale_speed = 0x1CC;
 			r->scale = 0x1CC;
 			r->spin_speed = (int16_t)(s + 0x3C);
-			r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+			r = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring));
 			memcpy(r->pos, t->pos, 8);
 			r->counter = 0;
 			r->zero = 0;
@@ -799,29 +843,29 @@ namespace suicide180
 		}
 		if (t->counter == 0x1B)
 		{
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring2);
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring2));
 			memcpy(r->pos, t->pos, 8);
 			r->counter = 0;
 			r->spin = (int16_t)(CrtRand() % 0x1000);
 			r->scale_speed = 0x580;
 			r->scale = 0x580;
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Sparks);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Sparks));
 			memcpy(s->pos, t->pos, 8);
 			s->counter = 0;
 		}
 		if (t->counter == 0x1C)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Smoke);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Smoke));
 			memcpy(s->pos, t->pos, 8);
 			s->counter = 0;
 		}
 		if (t->counter == 1)
 		{
-			EffectNode *f = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_FuseSparks);
+			EffectNode *f = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_FuseSparks));
 			f->counter = 0;
 		}
-		if (t->counter == 0x26) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (t->counter == 1) BdPlaySE(SOUND_Fuse, 0, 0x80);
+		if (t->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (t->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Fuse), 0, 0x80);
 		t->counter++;
 		return t->counter > 0x32 ? TASK_END : 0;
 	}
@@ -840,22 +884,49 @@ namespace suicide180
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The Bomb's self-destruct: the fuse sparks, its glow then gone, the explosion, the rings, the sparks, the smoke, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "The fuse at the director's tick 1", (uint32_t)offsetof(SuicideParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SuicideParams, director.damage), fxp::I16, 0, 50 },
+		};
+	}
 }
 
 	void register_mag180_suicide()
 	{
+		fxp::register_params({ 180, "Suicide", &suicide180::live, &suicide180::GAME, sizeof(suicide180::SuicideParams),
+		                       suicide180::table::PARTS, (int)(sizeof(suicide180::table::PARTS) / sizeof(suicide180::table::PARTS[0])),
+		                       suicide180::table::FIELDS, (int)(sizeof(suicide180::table::FIELDS) / sizeof(suicide180::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(suicide180::ORIG_FileLoader, (void *)suicide180::FileLoader);
+		own::note(suicide180::ORIG_Setup, (void *)suicide180::Setup);
+		own::note(suicide180::ORIG_RootTask, (void *)suicide180::RootTask);
 		register_port(suicide180::ORIG_RootTask, (void *)suicide180::RootTask, "S180 RootTask", 180);
+		own::note(suicide180::ORIG_Director, (void *)suicide180::DirectorTask);
 		register_port(suicide180::ORIG_Director, (void *)suicide180::DirectorTask, "S180 Director", 180);
+		own::note(suicide180::ORIG_CasterGlow, (void *)suicide180::CasterGlowTask);
 		register_port(suicide180::ORIG_CasterGlow, (void *)suicide180::CasterGlowTask, "S180 CasterGlow", 180);
+		own::note(suicide180::ORIG_Explosion, (void *)suicide180::ExplosionTask);
 		register_port(suicide180::ORIG_Explosion, (void *)suicide180::ExplosionTask, "S180 Explosion", 180);
+		own::note(suicide180::ORIG_Ring, (void *)suicide180::RingTask);
 		register_port(suicide180::ORIG_Ring, (void *)suicide180::RingTask, "S180 Ring", 180);
+		own::note(suicide180::ORIG_Ring2, (void *)suicide180::Ring2Task);
 		register_port(suicide180::ORIG_Ring2, (void *)suicide180::Ring2Task, "S180 Ring2", 180);
+		own::note(suicide180::ORIG_Sparks, (void *)suicide180::SparksTask);
 		register_port(suicide180::ORIG_Sparks, (void *)suicide180::SparksTask, "S180 Sparks", 180);
+		own::note(suicide180::ORIG_Smoke, (void *)suicide180::SmokeTask);
 		register_port(suicide180::ORIG_Smoke, (void *)suicide180::SmokeTask, "S180 Smoke", 180);
+		own::note(suicide180::ORIG_FuseSparks, (void *)suicide180::FuseSparksTask);
 		register_port(suicide180::ORIG_FuseSparks, (void *)suicide180::FuseSparksTask, "S180 FuseSparks", 180);
 		// 30 fps layer: see mag180_suicide_held.inc
 		FX_HELD(register_mag180_held();)
 	}
+	FX_LAB_MODULE(register_mag180_suicide);
 }
 
 #ifdef FF8_FX_HELD
