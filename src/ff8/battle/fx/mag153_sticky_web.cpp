@@ -43,8 +43,14 @@
 // Every task but the master tests the draw-only flags (battle_to_update_flags 0x201) after drawing.
 // Module globals: 0x243A4D8..0x244BE70 (spline points, slots, root pool/queue, particles, spline
 // samples, effect queue + pool, positions, context, ring, the two packet arenas, packet cursor).
+// Fujin's described Sticky Web (effect_153.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn() (AddTask), the setup and the file loader ported below; its parameters (StickyWebParams: the
+// sound, the damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -54,14 +60,16 @@ namespace web153
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x243A53C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x243BDE8); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x243BDEC); }
-	inline int16_t *TargetPos() { return (int16_t *)0x243BDE0; }   // x, y, z (+ a word)
-	inline int16_t *CasterPos() { return (int16_t *)0x243BDF8; }   // caster's bone 0xE, y - 100
-	inline int16_t *Anchor() { return (int16_t *)0x243BE00; }      // thread anchor
-	inline uint32_t &Cursor() { return var<uint32_t>(0x244BE6C); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x243AFC0; } // pool 0x243AFD0, 100 x 0x24
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x243A53C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x243BDE8)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x243BDEC)); }
+	inline int16_t *TargetPos() { return (int16_t *)own::R(0x243BDE0); }   // x, y, z (+ a word)
+	inline int16_t *CasterPos() { return (int16_t *)own::R(0x243BDF8); }   // caster's bone 0xE, y - 100
+	inline int16_t *Anchor() { return (int16_t *)own::R(0x243BE00); }      // thread anchor
+	inline uint32_t &Cursor() { return var<uint32_t>(own::R(0x244BE6C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x243BDF0)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x243A550); }             // 1 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x243AFC0); } // pool 0x243AFD0, 100 x 0x24
 	static const uint32_t PTS_A = 0x243A4D8, PTS_B = 0x243A508;   // spline points (5 x 8 bytes)
 	static const uint32_t SPL_A = 0x243AEC0, SPL_B = 0x243AF40;   // spline samples (16 x 8 bytes)
 	static const uint32_t ARENA_A = 0x2443E6C, ARENA_B = 0x243BE6C; // 0x8000 bytes each
@@ -78,6 +86,20 @@ namespace web153
 	static const uint32_t SEQ_Particle = 0xDBB190;
 	static const uint32_t CLIP_TABLE = 0xDBE284;   // 7 x 8 vertex-slot indices of the clipper
 	static const void *const SOUND_Web = (const void *)0xDBE27C;
+	static const uint32_t ORIG_FileLoader = 0x609620, ORIG_Setup = 0x609640;
+	static const uint32_t TEXTURE_NAME = 0xDBE364, CAMERA = 0xDBAF3C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct StickyWebParams
+	{
+		uint32_t sound;                    // at the master's tick 1
+		struct { int16_t damage; } master; // the damage at this tick
+	};
+	static const StickyWebParams GAME = { 0xDBE27C, { 0x37 } };
+	static StickyWebParams live = GAME;
+	static const StickyWebParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -173,10 +195,10 @@ namespace web153
 	static_assert(sizeof(Particle) == 0x18 && sizeof(RingEntry) == 0x14, "Sticky Web records");
 	static_assert(sizeof(ClipHeader) == 0x1A8, "Sticky Web clip header");
 
-	inline Particle *Parts() { return (Particle *)0x243A560; }
-	inline RingEntry *Ring() { return (RingEntry *)0x243BE08; }
+	inline Particle *Parts() { return (Particle *)own::R(0x243A560); }
+	inline RingEntry *Ring() { return (RingEntry *)own::R(0x243BE08); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
-	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), fn); }
+	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), own::Fn(fn)); }   // (a copy: the port's thunk)
 }
 }
 
@@ -582,6 +604,30 @@ namespace web153
 	// Tasks
 	// ------------------------------------------------------------------
 	// Particles type 1 (0x60A990)
+	// File loader (0x609620) and setup (0x609640): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the master, the particles freed, the
+	// camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x243A540), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x243AFD0), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_MasterTask)) + 0xC) = 0;
+		for (uint32_t p = own::R(0x243A560); p < own::R(0x243AEC0); p += 0x18) *(uint32_t *)p = 0;
+		PlayCameraAnimation((const void *)CAMERA);
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl Particles1Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -760,10 +806,10 @@ namespace web153
 		{
 			const RingEntry &e = Ring()[slot];
 			if (!e.valid) break;
-			((uint32_t *)PTS_A)[i * 2] = e.p0;
-			((uint32_t *)PTS_A)[i * 2 + 1] = e.p1;
-			((uint32_t *)PTS_B)[i * 2] = e.q0;
-			((uint32_t *)PTS_B)[i * 2 + 1] = e.q1;
+			((uint32_t *)own::R(PTS_A))[i * 2] = e.p0;
+			((uint32_t *)own::R(PTS_A))[i * 2 + 1] = e.p1;
+			((uint32_t *)own::R(PTS_B))[i * 2] = e.q0;
+			((uint32_t *)own::R(PTS_B))[i * 2 + 1] = e.q1;
 			slot--;
 			if (slot < 0) slot = 4;
 			i++;
@@ -771,12 +817,12 @@ namespace web153
 		if (i > 1)
 		{
 			void *work = FieldAlloc(0x190);
-			SplineSetup(i, PTS_A, work);
-			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, SPL_A + j * 8, t / 15);
-			SplineSetup(i, PTS_B, work);
-			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, SPL_B + j * 8, t / 15);
+			SplineSetup(i, own::R(PTS_A), work);
+			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, own::R(SPL_A) + j * 8, t / 15);
+			SplineSetup(i, own::R(PTS_B), work);
+			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, own::R(SPL_B) + j * 8, t / 15);
 			FieldFree(0x190);
-			DrawStrips(h, (const uint8_t *)SPL_A, (const uint8_t *)SPL_B);
+			DrawStrips(h, (const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B));
 		}
 		FieldFree(0x40);
 		// 30 fps layer: see mag153_sticky_web_held.inc
@@ -837,8 +883,8 @@ namespace web153
 			b->f1E = s;
 			b->f1C = s;
 		}
-		if (n->counter == 0x37) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (n->counter == 1) BdPlaySE(SOUND_Web, 0, 0x80);
+		if (n->counter == P().master.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Web), 0, 0x80);
 		n->counter++;
 		return n->counter > 0x3C ? TASK_END : 0;
 	}
@@ -849,26 +895,51 @@ namespace web153
 		RootNode *r = (RootNode *)n_;
 		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_note_root();)
-		Cursor() = ARENA_A;
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_B;
+		Cursor() = own::R(ARENA_A);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = own::R(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
 		r->counter++;
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The silk thread and the web, the two particle flights, the burst at the target, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sound", "Sound", "At the master's tick 1", (uint32_t)offsetof(StickyWebParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "master.damage", "Damage tick", "The damage at this tick of the master", (uint32_t)offsetof(StickyWebParams, master.damage), fxp::I16, 0, 60 },
+		};
 	}
 }
 
 	void register_mag153_sticky_web()
 	{
+		fxp::register_params({ 153, "Sticky Web", &web153::live, &web153::GAME, sizeof(web153::StickyWebParams),
+		                       web153::table::PARTS, (int)(sizeof(web153::table::PARTS) / sizeof(web153::table::PARTS[0])),
+		                       web153::table::FIELDS, (int)(sizeof(web153::table::FIELDS) / sizeof(web153::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(web153::ORIG_FileLoader, (void *)web153::FileLoader);
+		own::note(web153::ORIG_Setup, (void *)web153::Setup);
+		own::note(web153::ORIG_RootTask, (void *)web153::RootTask);
 		register_port(web153::ORIG_RootTask, (void *)web153::RootTask, "W153 RootTask", 153);
+		own::note(web153::ORIG_MasterTask, (void *)web153::MasterTask);
 		register_port(web153::ORIG_MasterTask, (void *)web153::MasterTask, "W153 MasterTask", 153);
+		own::note(web153::ORIG_ThreadTask, (void *)web153::ThreadTask);
 		register_port(web153::ORIG_ThreadTask, (void *)web153::ThreadTask, "W153 ThreadTask", 153);
+		own::note(web153::ORIG_WebTask, (void *)web153::WebTask);
 		register_port(web153::ORIG_WebTask, (void *)web153::WebTask, "W153 WebTask", 153);
+		own::note(web153::ORIG_Particles1Task, (void *)web153::Particles1Task);
 		register_port(web153::ORIG_Particles1Task, (void *)web153::Particles1Task, "W153 Particles1Task", 153);
+		own::note(web153::ORIG_Particles2Task, (void *)web153::Particles2Task);
 		register_port(web153::ORIG_Particles2Task, (void *)web153::Particles2Task, "W153 Particles2Task", 153);
+		own::note(web153::ORIG_BurstTask, (void *)web153::BurstTask);
 		register_port(web153::ORIG_BurstTask, (void *)web153::BurstTask, "W153 BurstTask", 153);
 		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(register_mag153_held();)
 	}
+	FX_LAB_MODULE(register_mag153_sticky_web);
 }
 
 #ifdef FF8_FX_HELD
