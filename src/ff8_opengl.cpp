@@ -2158,10 +2158,16 @@ int __cdecl ff8_bgate_bdlink_hook()
 	int r = ff8_bgate_bdlink_orig();
 	rereplace_function(ff8_bgate_bdlink_ri);
 	ff8_bgate_camera_state_log();
-	// NOTE: FADE_OUT_END_BATTLE_DURATION (0x1D27B0C) is decremented once per battleLoop
-	// iteration (2x at 30fps), but compensating it alone desynced it from the VISUAL fade-out
-	// (still host-rate): the screen went black, came back, then the battle unloaded. Left at
-	// 2x until the visual fade driver is paced together with it.
+	// FADE_OUT_END_BATTLE_DURATION (0x1D27B0C, byte; 0xFF idle, 0 = unload the stage) is decremented once per battle
+	// loop iteration right after this BdLink returns (0x47D816..0x47D830, FIGHTING flow only; set to 30/40/60 by
+	// computeFadeOutEndBattle 0x47DFC0). It is paced together with what it waits for: the end fade timer
+	// (Battle_EndFadeTimerCallback, ff8_bgate_textmgmt_gate) and the fade to black it starts (ff8_bgate_tfadeblack_hook).
+	// Held frame: +1 here so the decrement after it leaves it unchanged (0xFE is left alone: +1 would make it idle).
+	if (ff8_bgate_phase != 0 && ff8_bgate_n > 1)
+	{
+		uint8_t &fade_out = *(uint8_t *)0x1D27B0C;
+		if (fade_out != 0 && fade_out < 0xFE) fade_out++;
+	}
 #if FF8_BGATE_DIAG
 	{
 		// final camera position after updateBattleCamera ran (world XZ packed s16 pair + Y),
@@ -6366,6 +6372,21 @@ int __cdecl ff8_bgate_actq_gate()
 	return ff8_bgate_actq_orig();
 }
 
+// executeTextManagementBattleAction (0x482D50, battle loop @0x47D7FB, every iteration): runs the battle "text
+// management" slots, all tick counters or one-shots on TEXT_PRINT_QUEUE[].time_wait: Battle_EndFadeTimerCallback
+// (0x47E030, end of battle: time_wait = fade duration - 15, then the fade to black), BattleText_WaitAndResumeBattle
+// (0x48ACD0, AI waits: battle suspended for time_wait), BattleText_PrintQueuedMessageAfterDelay (0x48AC90, AI message
+// after time_wait), BattleText_PrintQueuedMessage (0x48AC60). No data. Per host frame they counted 2x fast (the screen
+// went black ~1.1 s early after a won escape). Only on the iterations whose BdLink is a real frame, like the action queue.
+static int (__cdecl *ff8_bgate_textmgmt_orig)() = nullptr;
+
+int __cdecl ff8_bgate_textmgmt_gate()
+{
+	if (ff8_bgate_n > 1 && (ff8_bgate_phase + 1) % ff8_bgate_n != 0)
+		return 0; // (the caller ignores the return)
+	return ff8_bgate_textmgmt_orig();
+}
+
 // Hit-effect queue (ExecuteTaskQueue(dword_1D96AA0) @0x500923, TASK_QUEUE 0x209FAA8): fed by
 // CreateCameraShakeTask, DispatchEffectCommand, CreateEffectTask* (weapon/monster impact
 // effects), the 99/B1 footstep particles, Renzokuken (MAG_141/159/160/161), MAG_332..343.
@@ -6571,6 +6592,44 @@ DWORD __cdecl ff8_bgate_tstep_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff
 // ended ~0.13 s before vanilla). Real frames only = one state per vanilla tick.
 FF8_BGATE_TASK_HOOK(ttexrestore, 0x508660)
 DWORD __cdecl ff8_bgate_ttexrestore_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_ttexrestore_call(n); }
+
+// Code timers that DRAW on every call: on a held frame they draw again without advancing (skipping them would
+// make the picture vanish every other frame). Their durations are hardcoded or come from code (none from
+// converted data), counted in vanilla ticks.
+// - Battle text box task (processTextTask 0x506F70, TASK_QUEUE_PRINT, ticked by BdLink every host frame): +0x0E
+//   text_speed = display ticks left (8 * combatMsgSpeed + 8 for the action captions, "Escaped", "Received X",
+//   the AnimSeq text ops...), decremented while its channel is free, the task ends at 0. Each call also claims the
+//   channel the text renderer shows. Held frame: the same call with the counter put back (never ends there).
+FF8_BGATE_TASK_HOOK(ttext, 0x506F70)
+DWORD __cdecl ff8_bgate_ttext_hook(uint8_t *n)
+{
+	if (!ff8_bgate_phase) return ff8_bgate_ttext_call(n);
+	const uint8_t speed = n[0x0E];
+	if (speed == 0) n[0x0E] = 1; // (a held call must not end it: the next real frame does)
+	DWORD r = ff8_bgate_ttext_call(n);
+	n[0x0E] = speed;
+	return r & ~2u;
+}
+// - Screen fades (FF8BattleFadeTask: +0x0C elapsed, +0x0E duration, +0x10 start level, +0x11 end level; AnimSeq
+//   queue): BattleFade_UpdateBlackOverlay 0x501D10 (battle start from black 15 / BattleStage_StartCameraAndRenderTask,
+//   end of battle to black 13: system tasks 3 / 4) and BattleFade_UpdateWhiteOverlay 0x501E80 (GF cinematic VM op
+//   0x08A). Each draws level(elapsed) then advances elapsed. Held frame: elapsed - 1 for the call, so it draws the
+//   last real frame's level, then elapsed is put back (black: the elapsed == 5 countdown enable it may repeat is
+//   idempotent; white: no advance once elapsed >= duration). A task not run on a real frame yet draws level 0.
+FF8_BGATE_TASK_HOOK(tfadeblack, 0x501D10)
+FF8_BGATE_TASK_HOOK(tfadewhite, 0x501E80)
+static DWORD ff8_bgate_fade_held(uint8_t *n, bool white)
+{
+	int16_t &elapsed = *(int16_t *)(n + 0x0C);
+	const int16_t duration = *(int16_t *)(n + 0x0E), e = elapsed;
+	if (duration <= 1 && e == 0) return 0; // (would end on its first call: leave that to the real frame)
+	if (e > 0 && !(white && e >= duration)) elapsed = (int16_t)(e - 1);
+	DWORD r = white ? ff8_bgate_tfadewhite_call(n) : ff8_bgate_tfadeblack_call(n);
+	elapsed = e;
+	return r & ~2u;
+}
+DWORD __cdecl ff8_bgate_tfadeblack_hook(uint8_t *n) { return ff8_bgate_phase ? ff8_bgate_fade_held(n, false) : ff8_bgate_tfadeblack_call(n); }
+DWORD __cdecl ff8_bgate_tfadewhite_hook(uint8_t *n) { return ff8_bgate_phase ? ff8_bgate_fade_held(n, true) : ff8_bgate_tfadewhite_call(n); }
 // 96 (0x50F6C0): Y shake = start + (end - start) * i / duration, negated on odd i, i++; ends
 // (returns 2) once i reaches the duration. Held frame: report the value the next real tick
 // writes (the node's i is already the next index).
@@ -7219,6 +7278,9 @@ static void ff8_bgate_install_hooks()
 	// next queued action started only on the loop iterations whose BdLink is a real frame (see ff8_bgate_actq_gate)
 	ff8_bgate_actq_orig = (int(__cdecl *)())get_relative_call(0x47D7C3, 0);
 	replace_call(0x47D7C3, (void *)ff8_bgate_actq_gate);
+	// battle text-management timers (end-of-battle fade timer, AI waits / delayed messages) at native pace
+	ff8_bgate_textmgmt_orig = (int(__cdecl *)())get_relative_call(0x47D7FB, 0);
+	replace_call(0x47D7FB, (void *)ff8_bgate_textmgmt_gate);
 	// emulated battle file load time counted on real frames (see ff8_bgate_fileload_countdown_hook)
 	ff8_bgate_fileload_orig = (int(__cdecl *)())0x482870;
 	ff8_bgate_fileload_ri = replace_function(0x482870, (void *)ff8_bgate_fileload_countdown_hook);
@@ -7233,6 +7295,10 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_t9f_ri = replace_function(0x5057D0, (void *)ff8_bgate_t9f_hook);
 	ff8_bgate_tstep_ri = replace_function(0x50F830, (void *)ff8_bgate_tstep_hook);
 	ff8_bgate_ttexrestore_ri = replace_function(0x508660, (void *)ff8_bgate_ttexrestore_hook);
+	// battle text box duration and the screen fades: draw every frame, advance on real frames only
+	ff8_bgate_ttext_ri = replace_function(0x506F70, (void *)ff8_bgate_ttext_hook);
+	ff8_bgate_tfadeblack_ri = replace_function(0x501D10, (void *)ff8_bgate_tfadeblack_hook);
+	ff8_bgate_tfadewhite_ri = replace_function(0x501E80, (void *)ff8_bgate_tfadewhite_hook);
 	ff8_bgate_t96_ri = replace_function(0x50F6C0, (void *)ff8_bgate_t96_hook);
 	ff8_bgate_tdrag_ri = replace_function(0x50F500, (void *)ff8_bgate_tdrag_hook);
 	ff8_bgate_t81_ri = replace_function(0x50F0E0, (void *)ff8_bgate_t81_hook);
