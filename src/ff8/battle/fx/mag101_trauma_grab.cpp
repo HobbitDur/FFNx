@@ -50,8 +50,14 @@
 // Module globals: 0x2544E10..0x2544E74 (texture file, scale vector, context, caster / target entities,
 // grab / root queues, root pool, packet cursor 0x2544E6C, magic buffer base 0x2544E70). The grab pool,
 // the blend buffer (+0x2D0) and the packet arenas are in the magic buffer.
+// Fujin's described Trauma's grab (effect_101.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (GrabParams: the sound, the
+// screen flash's level).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -61,19 +67,35 @@ namespace grab101
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t *ScaleVector() { return (int32_t *)0x2544E18; }          // (s, s, s) for the target
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2544E28); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2544E2C); }          // caster entity (setup)
-	inline uint8_t *&Target() { return var<uint8_t *>(0x2544E30); }          // target entity (setup)
-	inline TaskQueue *QGrab() { return (TaskQueue *)0x2544E38; }             // pool: magic buffer, 1 x 0x2D0
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2544E6C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544E70); }          // Magic_TextureOFF (magic buffer)
+	inline int32_t *ScaleVector() { return (int32_t *)own::R(0x2544E18); }          // (s, s, s) for the target
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2544E28)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2544E2C)); }          // caster entity (setup)
+	inline uint8_t *&Target() { return var<uint8_t *>(own::R(0x2544E30)); }          // target entity (setup)
+	inline TaskQueue *QGrab() { return (TaskQueue *)own::R(0x2544E38); }             // pool: magic buffer, 1 x 0x2D0
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2544E6C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2544E70)); }          // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2544E48); }             // 1 x 0x14
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2544E10)); }          // the effect's file (its TIM)
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6DD1A0;
 	static const uint32_t ORIG_GrabTask = 0x6DD300;
 	static const uint32_t MODEL_Grab = 0x1321BEC;        // prim-model layout data (0x2B0-byte layout)
 	static const void *const SOUND_Grab = (const void *)0x13249DC;
+	static const uint32_t ORIG_FileLoader = 0x6DD0D0, ORIG_Setup = 0x6DD0C0;
+	static const uint32_t TEXTURE_NAME = 0x13249E0, CAMERA = 0x13248C0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GrabParams
+	{
+		uint32_t sound;     // at the grab's first tick
+		int16_t flash;      // the screen flash's level
+	};
+	static const GrabParams GAME = { 0x13249DC, 0x898 };
+	static GrabParams live = GAME;
+	static const GrabParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -229,9 +251,9 @@ namespace grab101
 	// screen flash level of a grab counter (x / 12 compiled as 0x2AAAAAAB, sar 1)
 	static uint32_t FlashLevel(int16_t c)
 	{
-		if (c < 0xC) return (uint32_t)(((int32_t)c * 0x898) / 12);
-		if (c >= 0x2A) return (uint32_t)(((0x36 - (int32_t)c) * 0x898) / 12);
-		return 0x898;
+		if (c < 0xC) return (uint32_t)(((int32_t)c * P().flash) / 12);
+		if (c >= 0x2A) return (uint32_t)(((0x36 - (int32_t)c) * P().flash) / 12);
+		return (uint32_t)P().flash;
 	}
 
 	// ------------------------------------------------------------------
@@ -272,7 +294,7 @@ namespace grab101
 			FX_HELD(held_note_play((prim::Layout *)g->layout, &arg);)
 			prim::play((prim::Layout *)g->layout, PartCallback, (int)&arg, 0);
 		}
-		if (g->counter == 0) BdPlaySE(SOUND_Grab, 0, 0x80);
+		if (g->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Grab), 0, 0x80);
 		const int32_t e = (int32_t)g->counter - 0x26;
 		if (e < 0x10)
 		{
@@ -320,6 +342,30 @@ namespace grab101
 	// ------------------------------------------------------------------
 	// Root task (0x6DD1A0)
 	// ------------------------------------------------------------------
+	// File loader (0x6DD0D0) and setup (0x6DD0C0 -> 0x6DD0F0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast, its caster and first target (flags |= 4 | 8),
+	// the root, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		Target() = Entity(ctx->actions->targets[0]);
+		*Target() |= 4;
+		*Target() |= 8;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2544E58), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -339,7 +385,7 @@ namespace grab101
 		{
 			r->started = 1;
 			InitTaskQueuePool(QGrab(), (void *)TexBase(), 0x2D0, 1);
-			GrabNode *g = (GrabNode *)AddTaskToQueue(QGrab(), ORIG_GrabTask);
+			GrabNode *g = (GrabNode *)AddTaskToQueue(QGrab(), own::Fn(ORIG_GrabTask));
 			Memset32(&g->counter, 0, 0xB1);
 			DecodeModelPrimLayout(MODEL_Grab, g->layout, 0x2B0);
 			g->pos_xy = *(const uint32_t *)(Target() + 0x1C);
@@ -362,15 +408,35 @@ namespace grab101
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "grab", "Grab", "The target pulled in front of Trauma, shrunk and held, its layout, the screen flash, the sound; the target put back" },
+		};
+		static const Field FIELDS[] = {
+			{ "grab", "sound", "Sound", "", (uint32_t)offsetof(GrabParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "grab", "flash", "Flash", "The screen flash's level", (uint32_t)offsetof(GrabParams, flash), fxp::I16, 0, 0x1000 },
+		};
+	}
 }
 
 	void register_mag101_trauma_grab()
 	{
+		fxp::register_params({ 101, "Trauma's grab", &grab101::live, &grab101::GAME, sizeof(grab101::GrabParams),
+		                       grab101::table::PARTS, (int)(sizeof(grab101::table::PARTS) / sizeof(grab101::table::PARTS[0])),
+		                       grab101::table::FIELDS, (int)(sizeof(grab101::table::FIELDS) / sizeof(grab101::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(grab101::ORIG_FileLoader, (void *)grab101::FileLoader);
+		own::note(grab101::ORIG_Setup, (void *)grab101::Setup);
+		own::note(grab101::ORIG_RootTask, (void *)grab101::RootTask);
 		register_port(grab101::ORIG_RootTask, (void *)grab101::RootTask, "101 RootTask", 101);
+		own::note(grab101::ORIG_GrabTask, (void *)grab101::GrabTask);
 		register_port(grab101::ORIG_GrabTask, (void *)grab101::GrabTask, "101 GrabTask", 101);
 		// 30 fps layer: see mag101_trauma_grab_held.inc
 		FX_HELD(register_mag101_held();)
 	}
+	FX_LAB_MODULE(register_mag101_trauma_grab);
 }
 
 #ifdef FF8_FX_HELD
