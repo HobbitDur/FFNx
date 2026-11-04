@@ -70,6 +70,9 @@
 // buffer base 0x2520D30, context 0x2520D34, master pool 0x2520D38, packet cursor 0x2520D4C, the
 // queues 0x2520D50 falling drops / 0x2520D60 splats / 0x2520D70 stream drops / 0x2520D80 sprays /
 // 0x2520D90 shot / 0x2520DA0 master, the matrix 0x2520DB0 (never written)).
+// Fujin's described Oil Shot (effect_136.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (OilParams: the sound, the damage
+// tick).
 // NEVER-WRITTEN STACK WORDS: ShotTask's P word +6 (entry esp - 0x3E; 0x56CB90 writes 3 words) is
 // copied into the node's previous-point word +0x2A on counters 0x1F..0x2A (0x6AD75B); it is never
 // read afterwards (see ShotResidue). The 4th words of the vectors loaded into GTE V0 (the target
@@ -78,6 +81,9 @@
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -88,16 +94,18 @@ namespace oil136
 	using namespace icec;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520D28); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520D30); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520D34); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520D4C); }
-	inline Mat4x3 &ZeroMatrix() { return var<Mat4x3>(0x2520DB0); }        // never written
-	inline TaskQueue *QFalls() { return (TaskQueue *)0x2520D50; }          // pool: magic buffer, 0x10 x 0x2BC
-	inline TaskQueue *QSplats() { return (TaskQueue *)0x2520D60; }         // pool: + 0x2BC0, 8 x 0x14
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x2520D70; }        // pool: + 0x2C60, 0x10 x 0xC4
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520D80; }         // pool: + 0x38A0, 8 x 0x20
-	inline TaskQueue *QShot() { return (TaskQueue *)0x2520D90; }           // pool: + 0x39A0, 1 x 0x46C
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2520D28)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2520D30)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2520D34)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2520D4C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2520D2C)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2520DA0); }           // 1 x 0x14
+	inline Mat4x3 &ZeroMatrix() { return var<Mat4x3>(own::R(0x2520DB0)); }        // never written
+	inline TaskQueue *QFalls() { return (TaskQueue *)own::R(0x2520D50); }          // pool: magic buffer, 0x10 x 0x2BC
+	inline TaskQueue *QSplats() { return (TaskQueue *)own::R(0x2520D60); }         // pool: + 0x2BC0, 8 x 0x14
+	inline TaskQueue *QStreams() { return (TaskQueue *)own::R(0x2520D70); }        // pool: + 0x2C60, 0x10 x 0xC4
+	inline TaskQueue *QSprays() { return (TaskQueue *)own::R(0x2520D80); }         // pool: + 0x38A0, 8 x 0x20
+	inline TaskQueue *QShot() { return (TaskQueue *)own::R(0x2520D90); }           // pool: + 0x39A0, 1 x 0x46C
 
 	static const uint32_t ORIG_MasterTask = 0x6AD250;
 	static const uint32_t ORIG_ShotTask = 0x6AD480;
@@ -122,6 +130,20 @@ namespace oil136
 	static int16_t &ScaleZ() { return *(int16_t *)0x11F81E0; }
 	static const int32_t *const WOBBLE = (const int32_t *)0x11F81F8;  // 0x801 x s32, by vertex w / 2
 	static const void *const SOUND_Shot = (const void *)0x11F81CC;
+	static const uint32_t ORIG_FileLoader = 0x6AD1B0, ORIG_Setup = 0x6AD1A0;
+	static const uint32_t TEXTURE_NAME = 0x11FA1FC, CAMERA = 0x11F7EDC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct OilParams
+	{
+		uint32_t sound;                  // at the shot's tick 0x1E
+		struct { int16_t damage; } shot; // the damage at this tick of the shot
+	};
+	static const OilParams GAME = { 0x11F81CC, { 0x3E } };
+	static OilParams live = GAME;
+	static const OilParams &PO() { return live; }   // (P: the shot task's stream point)
 
 	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -689,6 +711,26 @@ namespace oil136
 		FieldFree(0xB4);
 	}
 
+	// File loader (0x6AD1B0) and setup (0x6AD1A0 -> 0x6AD1D0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520D38), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
@@ -848,7 +890,7 @@ namespace oil136
 		{
 			BonePoint(MOUTH, P);
 			RotXY(*(const int16_t *)(Caster() + 0xE), -0x200, &M);
-			SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), ORIG_SprayTask);
+			SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), own::Fn(ORIG_SprayTask));
 			if (s)
 			{
 				s->angle = (int16_t)CrtRand();
@@ -897,7 +939,7 @@ namespace oil136
 				WobbleMesh(MESH, sine, (int16_t *)(TexBase() + VERTS));
 				StreamPoint(w, s, sine, P);
 				StreamBasis(P, w->prev, &M);
-				StreamNode *d = (StreamNode *)AddTaskToQueue(QStreams(), ORIG_StreamTask);
+				StreamNode *d = (StreamNode *)AddTaskToQueue(QStreams(), own::Fn(ORIG_StreamTask));
 				memcpy(w->prev, P, 8);
 				if (d)
 				{
@@ -939,7 +981,7 @@ namespace oil136
 			Play(w->hit, &arg);
 			if ((uint32_t)h < 0x10 && !(h & 1))
 			{
-				FallNode *f = (FallNode *)AddTaskToQueue(QFalls(), ORIG_FallTask);
+				FallNode *f = (FallNode *)AddTaskToQueue(QFalls(), own::Fn(ORIG_FallTask));
 				if (f)
 				{
 					memcpy(f->pos, w->pos, 8);
@@ -954,7 +996,7 @@ namespace oil136
 			}
 			if ((uint32_t)h >= 4 && (uint32_t)h < 0x14)
 			{
-				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), ORIG_SplatTask);
+				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), own::Fn(ORIG_SplatTask));
 				if (s)
 				{
 					memcpy(s->pos, w->pos, 8);
@@ -979,8 +1021,8 @@ namespace oil136
 			FX_HELD(held_note_play(PLAY_POOL, n, (prim::Layout *)w->pool, w->pos);)
 			Play(w->pool, &arg);
 		}
-		if (w->counter == 0x1E) BdPlaySE(SOUND_Shot, 0, 0x80);
-		if (w->counter == 0x3E) ApplyActionResultToTarget(Ctx()->actions->targets);
+		if (w->counter == 0x1E) BdPlaySE((const void *)fxp::sound(PO().sound, (uint32_t)SOUND_Shot), 0, 0x80);
+		if (w->counter == PO().shot.damage) ApplyActionResultToTarget(Ctx()->actions->targets);
 		if (w->counter >= 0x52)
 		{
 			SetScreenFlash(0, 0);
@@ -1001,7 +1043,7 @@ namespace oil136
 		InitTaskQueuePool(QStreams(), (void *)(TexBase() + 0x2C60), 0xC4, 0x10);
 		InitTaskQueuePool(QSplats(), (void *)(TexBase() + 0x2BC0), 0x14, 8);
 		InitTaskQueuePool(QFalls(), (void *)TexBase(), 0x2BC, 0x10);
-		ShotNode *w = (ShotNode *)AddTaskToQueue(QShot(), ORIG_ShotTask);
+		ShotNode *w = (ShotNode *)AddTaskToQueue(QShot(), own::Fn(ORIG_ShotTask));
 		Memset32(&w->counter, 0, 0x118);
 		w->target = target;
 		GetDefaultEffectPosition(target, w->pos);
@@ -1045,19 +1087,43 @@ namespace oil136
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "The oil shot from the caster's mouth: the stream, sprays, falling drops and splats, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "shot", "sound", "Sound", "", (uint32_t)offsetof(OilParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "shot.damage", "Damage tick", "The damage at this tick of the shot", (uint32_t)offsetof(OilParams, shot.damage), fxp::I16, 0, 200 },
+		};
+	}
 }
 
 	void register_mag136_oil_shot()
 	{
+		fxp::register_params({ 136, "Oil Shot", &oil136::live, &oil136::GAME, sizeof(oil136::OilParams),
+		                       oil136::table::PARTS, (int)(sizeof(oil136::table::PARTS) / sizeof(oil136::table::PARTS[0])),
+		                       oil136::table::FIELDS, (int)(sizeof(oil136::table::FIELDS) / sizeof(oil136::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(oil136::ORIG_FileLoader, (void *)oil136::FileLoader);
+		own::note(oil136::ORIG_Setup, (void *)oil136::Setup);
+		own::note(oil136::ORIG_MasterTask, (void *)oil136::MasterTask);
 		register_port(oil136::ORIG_MasterTask, (void *)oil136::MasterTask, "136 MasterTask", 136);
+		own::note(oil136::ORIG_ShotTask, (void *)oil136::ShotTask);
 		register_port(oil136::ORIG_ShotTask, (void *)oil136::ShotTask, "136 ShotTask", 136);
+		own::note(oil136::ORIG_SprayTask, (void *)oil136::SprayTask);
 		register_port(oil136::ORIG_SprayTask, (void *)oil136::SprayTask, "136 SprayTask", 136);
+		own::note(oil136::ORIG_StreamTask, (void *)oil136::StreamTask);
 		register_port(oil136::ORIG_StreamTask, (void *)oil136::StreamTask, "136 StreamTask", 136);
+		own::note(oil136::ORIG_SplatTask, (void *)oil136::SplatTask);
 		register_port(oil136::ORIG_SplatTask, (void *)oil136::SplatTask, "136 SplatTask", 136);
+		own::note(oil136::ORIG_FallTask, (void *)oil136::FallTask);
 		register_port(oil136::ORIG_FallTask, (void *)oil136::FallTask, "136 FallTask", 136);
 		// 30 fps layer: see mag136_oil_shot_held.inc
 		FX_HELD(register_mag136_held();)
 	}
+	FX_LAB_MODULE(register_mag136_oil_shot);
 }
 
 #ifdef FF8_FX_HELD
