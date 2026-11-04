@@ -46,8 +46,14 @@
 // Module globals: 0x2476660..0x2491BBC (first target slot 0x2476660, root pool / queue, effect queue
 // and pool, cast context 0x24774A8, caster 0x24774AC, texture file 0x24774B0, trails 0x24774B8,
 // packet arenas 0x2479BB8 / 0x2485BB8, packet cursor 0x2491BB8).
+// Fujin's described Regen (effect_147.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (RegenParams: the sound, the status
+// tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -57,9 +63,11 @@ namespace regen147
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24774A8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2491BB8); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2476688; }   // pool 0x2476698, 0x64 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24774A8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2491BB8)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24774B0)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2476678); }             // 1 x 0x10
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x2476688); }   // pool 0x2476698, 0x64 x 0x24
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_Root = 0x614D10;
@@ -69,6 +77,20 @@ namespace regen147
 	static const uint32_t MODEL_Envelope = 0xDCFC64;    // prim model
 	static const uint32_t SEQ_Leaf = 0xDCEFD0;          // sprite sequence (leaf, shadow, trail)
 	static const void *const SOUND_Regen = (const void *)0xDD05CC;
+	static const uint32_t ORIG_FileLoader = 0x614270, ORIG_Setup = 0x614290;
+	static const uint32_t TEXTURE_NAME = 0xDD05E8, CAMERA = 0xDCE760;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct RegenParams
+	{
+		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
+		struct { int16_t status; } director; // the status (and the next action's director) at this tick
+	};
+	static const RegenParams GAME = { 0xDD05CC, { 0x1C } };
+	static RegenParams live = GAME;
+	static const RegenParams &P() { return live; }
 	static const uint32_t TRAILS = 0x24774B8;           // 0x140 bytes (16 x 0x14) per action * 8 + leaf
 	static const uint32_t ARENA_EVEN = 0x2479BB8, ARENA_ODD = 0x2485BB8;
 
@@ -138,7 +160,7 @@ namespace regen147
 
 	static inline TrailPart *TrailOf(int32_t action, int32_t leaf)
 	{
-		return (TrailPart *)(TRAILS + (uint32_t)mul32(leaf + action * 8, 0x140));
+		return (TrailPart *)(own::R(TRAILS) + (uint32_t)mul32(leaf + action * 8, 0x140));
 	}
 
 	// x / 12 (0x2AAAAAAB, sar 1), x / 24 (0x2AAAAAAB, sar 2), x / 1000 (0x10624DD3, sar 6)
@@ -206,6 +228,35 @@ namespace ff8fx
 {
 namespace regen147
 {
+	// File loader (0x614270) and setup (0x614290): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the first action's director (its
+	// target slot +0x20), the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x2476660)) = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x24774AC)) = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2476668), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x2476698), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)CAMERA);
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl EnvelopeTask(TaskNode *n)
 	{
 		EnvelopeNode *e = (EnvelopeNode *)n;
@@ -383,7 +434,7 @@ namespace regen147
 		{
 			for (int kind = 0; kind < 2; kind++)
 			{
-				EnvelopeNode *e = (EnvelopeNode *)AddTaskToQueue(EffectQueue(), ORIG_Envelope);
+				EnvelopeNode *e = (EnvelopeNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Envelope));
 				*(uint32_t *)&e->pos[0] = *(const uint32_t *)&d->pos[0];
 				*(uint32_t *)&e->pos[2] = *(const uint32_t *)&d->pos[2];
 				e->counter = 0;
@@ -408,7 +459,7 @@ namespace regen147
 			const int32_t half = radius / 2;
 			for (int leaf = 0; leaf < 8; leaf++)
 			{
-				LeafNode *p = (LeafNode *)AddTaskToQueue(EffectQueue(), ORIG_Leaf);
+				LeafNode *p = (LeafNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Leaf));
 				angle += 0x200;
 				p->counter = 0;
 				p->pos[0] = d->pos[0];
@@ -426,13 +477,13 @@ namespace regen147
 				for (int k = 0; k < 16; k++) trail[k].counter = -1;
 			}
 		}
-		if (d->counter == 0x1C)
+		if (d->counter == P().director.status)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[d->action].targets);
 			const int32_t next = d->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *nd = (DirectorNode *)AddTaskToQueue(EffectQueue(), ORIG_Director);
+				DirectorNode *nd = (DirectorNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
 				nd->counter = 0;
 				nd->action = (int16_t)next;
 				nd->slot = Ctx()->actions[next].targets[0];
@@ -441,7 +492,7 @@ namespace regen147
 		if (d->counter == 1)
 		{
 			GetDefaultEffectPosition(Entity(d->slot), local);
-			BdPlaySE3D(SOUND_Regen, 0, local);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Regen), 0, local);
 		}
 		d->counter++;
 		return d->counter > 0x30 ? TASK_END : 0;
@@ -455,23 +506,45 @@ namespace regen147
 		RootNode *r = (RootNode *)n;
 		// 30 fps layer: see mag147_regen_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
-		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = ARENA_EVEN;
+		PacketCursor() = own::R(ARENA_ODD);
+		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = own::R(ARENA_EVEN);
 		const int alive = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return alive ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action on its target: the two envelopes at its feet, the eight leaves with their trails, the sound; the status" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "", (uint32_t)offsetof(RegenParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.status", "Status tick", "The status (and the next action's director) at this tick", (uint32_t)offsetof(RegenParams, director.status), fxp::I16, 0, 100 },
+		};
 	}
 }
 
 	void register_mag147_regen()
 	{
+		fxp::register_params({ 147, "Regen", &regen147::live, &regen147::GAME, sizeof(regen147::RegenParams),
+		                       regen147::table::PARTS, (int)(sizeof(regen147::table::PARTS) / sizeof(regen147::table::PARTS[0])),
+		                       regen147::table::FIELDS, (int)(sizeof(regen147::table::FIELDS) / sizeof(regen147::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(regen147::ORIG_FileLoader, (void *)regen147::FileLoader);
+		own::note(regen147::ORIG_Setup, (void *)regen147::Setup);
+		own::note(regen147::ORIG_Root, (void *)regen147::RootTask);
 		register_port(regen147::ORIG_Root, (void *)regen147::RootTask, "R147 Root", 147);
+		own::note(regen147::ORIG_Director, (void *)regen147::DirectorTask);
 		register_port(regen147::ORIG_Director, (void *)regen147::DirectorTask, "R147 Director", 147);
+		own::note(regen147::ORIG_Envelope, (void *)regen147::EnvelopeTask);
 		register_port(regen147::ORIG_Envelope, (void *)regen147::EnvelopeTask, "R147 Envelope", 147);
+		own::note(regen147::ORIG_Leaf, (void *)regen147::LeafTask);
 		register_port(regen147::ORIG_Leaf, (void *)regen147::LeafTask, "R147 Leaf", 147);
 		// 30 fps layer: see mag147_regen_held.inc
 		FX_HELD(register_mag147_held();)
 	}
+	FX_LAB_MODULE(register_mag147_regen);
 }
 
 #ifdef FF8_FX_HELD
