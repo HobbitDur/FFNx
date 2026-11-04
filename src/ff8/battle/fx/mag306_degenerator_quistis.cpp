@@ -100,6 +100,9 @@
 // 0x2245648).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -116,13 +119,14 @@ namespace degen306
 	static inline uint8_t &U8(uint32_t p, int32_t o) { return F<uint8_t>(p, o); }
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x2242590); }        // first target of action 0 (written by the setup)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x22425B8; }             // pool 0x2242598, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2243348; }          // pool 0x2243358, 0x64 x 0x24
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2244218); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x224421C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2245644); }          // Magic_TextureOFF_ToEAX1 (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2245648); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x2242590)); }        // first target of action 0 (written by the setup)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x22425B8); }             // pool 0x2242598, 2 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x2243348); }          // pool 0x2243358, 0x64 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2244218)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x224421C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2245644)); }          // Magic_TextureOFF_ToEAX1 (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2245648)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2244220)); }          // the effect's file (its TIM)
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }      // battle frame packet arena
 	inline uint32_t &VertexBuffer() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
@@ -156,6 +160,19 @@ namespace degen306
 	static const uint32_t SEQ_Flicker = 0xCE60C0, SEQ_Debris = 0xCE62A8;
 	static const uint32_t *const VortexColours = (const uint32_t *)0xCEB2A0; // 12 colours, counter % 12
 	static const void *const SOUND_Cast = (const void *)0xCEB284;
+	static const uint32_t ORIG_FileLoader = 0x5A2C70, ORIG_Setup = 0x5A2C90;
+	static const uint32_t TEXTURE_NAME = 0xCEB2D0, CAMERA_ANIM = 0xCE4164;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DegeneratorParams
+	{
+		uint32_t sound;   // the controller's counter 1
+	};
+	static const DegeneratorParams GAME = { 0xCEB284 };
+	static DegeneratorParams live = GAME;
+	static const DegeneratorParams &P() { return live; }
 	static const void *const CAMERA_Anim = (const void *)0xCE4164;          // (setup)
 
 	// engine functions not in fx_port.h / mag_common.h
@@ -603,6 +620,31 @@ namespace degen306
 	// ------------------------------------------------------------------
 	// Root task (0x5A5760)
 	// ------------------------------------------------------------------
+	// File loader (0x5A2C70) and setup (0x5A2C90): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic texture offset, the cast, its first target's and its caster's slots, the root and the
+	// controller, the debris particles freed, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2242598), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x2243358), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_Controller)) + 0xC) = 0;
+		for (uint32_t a = own::R(PARTS); a < own::R(PARTS_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
@@ -693,7 +735,7 @@ namespace degen306
 		int32_t target = TargetSlot();
 		for (int32_t k = 0; k < 7; k++)
 		{
-			const uint32_t e = Ent(k), f = SAVE + 0x18 * (uint32_t)k;
+			const uint32_t e = Ent(k), f = own::R(SAVE) + 0x18 * (uint32_t)k;
 			const uint16_t fl = U16(e, 0);
 			bool spawn = (fl & 2) && !(fl & 4) && k != CasterSlot() && k != target;
 			if (spawn)
@@ -719,7 +761,7 @@ namespace degen306
 				continue;
 			}
 			U32(f, 0) = 1;
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_FadeOut);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_FadeOut));
 			S16(t, 0xC) = 0;
 			S16(t, 0x1A) = (int16_t)(U16(e, 0) & 0x800);
 			target = TargetSlot();
@@ -733,8 +775,8 @@ namespace degen306
 	{
 		for (int32_t k = 0; k < 7; k++)
 		{
-			if (U32(SAVE + 0x18 * (uint32_t)k, 0) == 0) continue;
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_FadeIn);
+			if (U32(own::R(SAVE) + 0x18 * (uint32_t)k, 0) == 0) continue;
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_FadeIn));
 			S16(t, 0xC) = 0;
 			S16(t, 0xE) = (int16_t)k;
 			S16(t, 0x18) = (int16_t)duration;
@@ -764,27 +806,27 @@ namespace degen306
 		const int16_t c = S16(n, 0xC);
 		if (c == 1)
 		{
-			BindEntityModelFromComData(Ent(CasterSlot()), BIND_Block, COM_Anim);
+			BindEntityModelFromComData(Ent(CasterSlot()), own::R(BIND_Block), COM_Anim);
 			QueueChainTransformation(Ent(CasterSlot()), 2);
 		}
 		if (c == 0xA)
 		{
 			int16_t v[4];
-			GetEffectSpawnPosition(Ent(CasterSlot()), 0x19, 0x1000, HAND_Pos);
+			GetEffectSpawnPosition(Ent(CasterSlot()), 0x19, 0x1000, own::R(HAND_Pos));
 			GetEffectSpawnPosition(Ent(CasterSlot()), 0x1A, 0x1000, (uint32_t)v);
-			S16(HAND_Pos, 0) = (int16_t)((S16(HAND_Pos, 0) + v[0]) >> 1);
+			S16(own::R(HAND_Pos), 0) = (int16_t)((S16(own::R(HAND_Pos), 0) + v[0]) >> 1);
 			v[0] = 0;
-			S16(HAND_Pos, 2) = (int16_t)((S16(HAND_Pos, 2) + v[1]) >> 1);
-			S16(HAND_Pos, 4) = (int16_t)((S16(HAND_Pos, 4) + v[2]) >> 1);
+			S16(own::R(HAND_Pos), 2) = (int16_t)((S16(own::R(HAND_Pos), 2) + v[1]) >> 1);
+			S16(own::R(HAND_Pos), 4) = (int16_t)((S16(own::R(HAND_Pos), 4) + v[2]) >> 1);
 			v[1] = 0;
 			v[2] = -50;
 			MatVec((const void *)(Ent(CasterSlot()) + 0x40), v, v);
-			S16(HAND_Pos, 0) = (int16_t)(S16(HAND_Pos, 0) + v[0]);
-			S16(HAND_Pos, 2) = (int16_t)(S16(HAND_Pos, 2) + v[1]);
-			S16(HAND_Pos, 4) = (int16_t)(S16(HAND_Pos, 4) + v[2]);
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Core);
-			U32(t, 0x10) = U32(HAND_Pos, 0);
-			U32(t, 0x14) = U32(HAND_Pos, 4);
+			S16(own::R(HAND_Pos), 0) = (int16_t)(S16(own::R(HAND_Pos), 0) + v[0]);
+			S16(own::R(HAND_Pos), 2) = (int16_t)(S16(own::R(HAND_Pos), 2) + v[1]);
+			S16(own::R(HAND_Pos), 4) = (int16_t)(S16(own::R(HAND_Pos), 4) + v[2]);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Core));
+			U32(t, 0x10) = U32(own::R(HAND_Pos), 0);
+			U32(t, 0x14) = U32(own::R(HAND_Pos), 4);
 			S16(t, 0xC) = 0;
 			S16(t, 0x1C) = 0x700;
 			S16(t, 0x1E) = 0xF;
@@ -792,9 +834,9 @@ namespace degen306
 		}
 		if (c >= 0xA && c <= 0x64 && c % 3 == 1)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Pulse);
-			U32(t, 0x10) = U32(HAND_Pos, 0);
-			U32(t, 0x14) = U32(HAND_Pos, 4);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Pulse));
+			U32(t, 0x10) = U32(own::R(HAND_Pos), 0);
+			U32(t, 0x14) = U32(own::R(HAND_Pos), 4);
 			S16(t, 0xC) = 0;
 			S16(t, 0x18) = S16(Ent(CasterSlot()), 0xE);
 			S16(t, 0x1E) = 0x1C0;
@@ -802,19 +844,19 @@ namespace degen306
 		}
 		if (c == 0xA)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Flicker);
-			U32(t, 0x10) = U32(HAND_Pos, 0);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Flicker));
+			U32(t, 0x10) = U32(own::R(HAND_Pos), 0);
 			S16(t, 0xC) = 0;
-			U32(t, 0x14) = U32(HAND_Pos, 4);
+			U32(t, 0x14) = U32(own::R(HAND_Pos), 4);
 		}
 		if (c == 0x20)
 		{
-			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_ScreenRing);
+			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_ScreenRing));
 			S16(t, 0xC) = 0;
 			S16(t, 0x18) = (int16_t)(CrtRand() % 0x1000);
 			S16(t, 0x1A) = 0x10;
 			S16(t, 0x1C) = 0x2E0;
-			t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_ScreenRing);
+			t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_ScreenRing));
 			S16(t, 0xC) = 0;
 			S16(t, 0x18) = (int16_t)(CrtRand() % 0x1000);
 			S16(t, 0x1A) = -0x20;
@@ -822,14 +864,14 @@ namespace degen306
 		}
 		if (c == 0x2A)
 		{
-			if (TargetSlot() < 3) GetEffectSpawnPosition(Ent(TargetSlot()), 0xF1, 0, TARGET_Pos);
-			else GetDefaultEffectPosition((uint8_t *)Ent(TargetSlot()), (int16_t *)TARGET_Pos);
+			if (TargetSlot() < 3) GetEffectSpawnPosition(Ent(TargetSlot()), 0xF1, 0, own::R(TARGET_Pos));
+			else GetDefaultEffectPosition((uint8_t *)Ent(TargetSlot()), (int16_t *)own::R(TARGET_Pos));
 			for (int k = 0; k < 2; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_TargetRing);
-				U32(t, 0x10) = U32(TARGET_Pos, 0);
+				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_TargetRing));
+				U32(t, 0x10) = U32(own::R(TARGET_Pos), 0);
 				S16(t, 0xC) = 0;
-				U32(t, 0x14) = U32(TARGET_Pos, 4);
+				U32(t, 0x14) = U32(own::R(TARGET_Pos), 4);
 				S16(t, 0x18) = (int16_t)(CrtRand() % 0x1000);
 				S16(t, 0x1A) = (int16_t)(k ? -0x14 : 0x14);
 				const int16_t s = (int16_t)(shl32(S16(Ent(TargetSlot()), 0x26), 0xB) >> 0xC);
@@ -841,10 +883,10 @@ namespace degen306
 		{
 			for (int k = 0; k < 2; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Vortex);
-				U32(t, 0x10) = U32(TARGET_Pos, 0);
+				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Vortex));
+				U32(t, 0x10) = U32(own::R(TARGET_Pos), 0);
 				S16(t, 0xC) = 0;
-				U32(t, 0x14) = U32(TARGET_Pos, 4);
+				U32(t, 0x14) = U32(own::R(TARGET_Pos), 4);
 				S16(t, 0x18) = (int16_t)(CrtRand() % 0x1000);
 				S16(t, 0x1A) = (int16_t)(k ? 0x3C : 0x28);
 				S16(t, 0x20) = (int16_t)(k ? 0x800 : 0);
@@ -855,23 +897,23 @@ namespace degen306
 		}
 		if (c == 0x48 && !(Targets()[3] & 4))
 		{
-			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Swallow);
-			U32(t, 0x10) = U32(TARGET_Pos, 0);
+			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Swallow));
+			U32(t, 0x10) = U32(own::R(TARGET_Pos), 0);
 			S16(t, 0xC) = 0;
-			U32(t, 0x14) = U32(TARGET_Pos, 4);
-			t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Pull);
-			U32(t, 0x10) = U32(TARGET_Pos, 0);
+			U32(t, 0x14) = U32(own::R(TARGET_Pos), 4);
+			t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Pull));
+			U32(t, 0x10) = U32(own::R(TARGET_Pos), 0);
 			S16(t, 0xC) = 0;
 			S16(t, 0xE) = (int16_t)TargetSlot();
-			U32(t, 0x14) = U32(TARGET_Pos, 4);
+			U32(t, 0x14) = U32(own::R(TARGET_Pos), 4);
 			S16(t, 0x18) = (int16_t)shl32(CrtRand() % 2 + 1, 12);
 		}
 		if (c == 0x65 && !(Targets()[3] & 4))
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Debris);
-			U32(t, 0x10) = U32(TARGET_Pos, 0);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Debris));
+			U32(t, 0x10) = U32(own::R(TARGET_Pos), 0);
 			S16(t, 0xC) = 0;
-			U32(t, 0x14) = U32(TARGET_Pos, 4);
+			U32(t, 0x14) = U32(own::R(TARGET_Pos), 4);
 		}
 		if (c == 0x75)
 		{
@@ -881,7 +923,7 @@ namespace degen306
 		}
 		if (c == 0x47)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QRoot(), ORIG_TexRestore);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QRoot(), own::Fn(ORIG_TexRestore));
 			S16(t, 0xC) = 0;
 		}
 		if (c == 0) FadeOutOthers(8);
@@ -894,7 +936,7 @@ namespace degen306
 			FadeInAll(8);
 		}
 		if (c >= 0x72) SetScreenFlash((uint32_t)shl32(0x7A - c, 9), 0);
-		if (c == 1) BdPlaySE(SOUND_Cast, 0, 0x80);
+		if (c == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Cast), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(c + 1);
 		if (S16(n, 0xC) <= 0x7A) return 0;
 		SetScreenFlash(0, 0);
@@ -1351,7 +1393,7 @@ namespace degen306
 		const uint32_t n = (uint32_t)nd;
 		const int16_t c = S16(n, 0xC);
 		const int32_t slot = S16(n, 0xE);
-		const uint32_t e = Ent(slot), sv = SAVE + 0x18 * (uint32_t)slot;
+		const uint32_t e = Ent(slot), sv = own::R(SAVE) + 0x18 * (uint32_t)slot;
 		if (c == 0)
 		{
 			U16(sv, 4) = (uint16_t)(U16(e, 0) & 0x1020);
@@ -1402,13 +1444,13 @@ namespace degen306
 	{
 		for (int k = 0; k < 20; k++)
 		{
-			uint32_t p = PARTS;
+			uint32_t p = own::R(PARTS);
 			int32_t i = 0;
 			while (U32(p, 0) != 0)
 			{
 				p += 0x18;
 				i++;
-				if (p >= PARTS_END) return;
+				if (p >= own::R(PARTS_END)) return;
 			}
 			if (i >= PART_COUNT) return;
 			U32(p, 0) = 2;
@@ -1437,7 +1479,7 @@ namespace degen306
 		// 30 fps layer: see mag306_degenerator_quistis_held.inc
 		FX_HELD(held_note_debris(n, h);)
 		int32_t alive = 0;
-		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, 0) & 2)) continue;
 			DebrisDraw(h, p);
@@ -1468,27 +1510,58 @@ namespace degen306
 		if (S16(n, 0xC) < 4) return 0;
 		return alive == 0 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "The black vortex: the core, pulses, flicker, screen and target rings, the fades, the target pulled in and swallowed, the debris, the texture restore, the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "At the controller's counter 1", (uint32_t)offsetof(DegeneratorParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag306_degenerator_quistis()
 	{
+		fxp::register_params({ 306, "Degenerator (Quistis)", &degen306::live, &degen306::GAME, sizeof(degen306::DegeneratorParams),
+		                       degen306::table::PARTS, (int)(sizeof(degen306::table::PARTS) / sizeof(degen306::table::PARTS[0])),
+		                       degen306::table::FIELDS, (int)(sizeof(degen306::table::FIELDS) / sizeof(degen306::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(degen306::ORIG_FileLoader, (void *)degen306::FileLoader);
+		own::note(degen306::ORIG_Setup, (void *)degen306::Setup);
+		own::note(degen306::ORIG_RootTask, (void *)degen306::RootTask);
 		register_port(degen306::ORIG_RootTask, (void *)degen306::RootTask, "D306 RootTask", 306);
+		own::note(degen306::ORIG_TexRestore, (void *)degen306::TexRestore);
 		register_port(degen306::ORIG_TexRestore, (void *)degen306::TexRestore, "D306 TexRestore", 306);
+		own::note(degen306::ORIG_Controller, (void *)degen306::Controller);
 		register_port(degen306::ORIG_Controller, (void *)degen306::Controller, "D306 Controller", 306);
+		own::note(degen306::ORIG_Core, (void *)degen306::CoreTask);
 		register_port(degen306::ORIG_Core, (void *)degen306::CoreTask, "D306 Core", 306);
+		own::note(degen306::ORIG_Pulse, (void *)degen306::PulseTask);
 		register_port(degen306::ORIG_Pulse, (void *)degen306::PulseTask, "D306 Pulse", 306);
+		own::note(degen306::ORIG_Flicker, (void *)degen306::FlickerTask);
 		register_port(degen306::ORIG_Flicker, (void *)degen306::FlickerTask, "D306 Flicker", 306);
+		own::note(degen306::ORIG_ScreenRing, (void *)degen306::ScreenRingTask);
 		register_port(degen306::ORIG_ScreenRing, (void *)degen306::ScreenRingTask, "D306 ScreenRing", 306);
+		own::note(degen306::ORIG_Vortex, (void *)degen306::VortexTask);
 		register_port(degen306::ORIG_Vortex, (void *)degen306::VortexTask, "D306 Vortex", 306);
+		own::note(degen306::ORIG_Swallow, (void *)degen306::SwallowTask);
 		register_port(degen306::ORIG_Swallow, (void *)degen306::SwallowTask, "D306 Swallow", 306);
+		own::note(degen306::ORIG_Debris, (void *)degen306::DebrisTask);
 		register_port(degen306::ORIG_Debris, (void *)degen306::DebrisTask, "D306 Debris", 306);
+		own::note(degen306::ORIG_FadeIn, (void *)degen306::FadeInTask);
 		register_port(degen306::ORIG_FadeIn, (void *)degen306::FadeInTask, "D306 FadeIn", 306);
+		own::note(degen306::ORIG_FadeOut, (void *)degen306::FadeOutTask);
 		register_port(degen306::ORIG_FadeOut, (void *)degen306::FadeOutTask, "D306 FadeOut", 306);
+		own::note(degen306::ORIG_TargetRing, (void *)degen306::TargetRingTask);
 		register_port(degen306::ORIG_TargetRing, (void *)degen306::TargetRingTask, "D306 TargetRing", 306);
+		own::note(degen306::ORIG_Pull, (void *)degen306::PullTask);
 		register_port(degen306::ORIG_Pull, (void *)degen306::PullTask, "D306 Pull", 306);
 		// 30 fps layer: see mag306_degenerator_quistis_held.inc
 		FX_HELD(register_mag306_held();)
 	}
+	FX_LAB_MODULE(register_mag306_degenerator_quistis);
 }
 
 #ifdef FF8_FX_HELD
