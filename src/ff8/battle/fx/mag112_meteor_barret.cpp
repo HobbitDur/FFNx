@@ -60,8 +60,13 @@
 // Module globals: 0x25218E0..0x2521970 (caster 0x25218E0, module file 0x25218E4, magic buffer 0x25218E8, context 0x25218EC,
 //   column height top / span 0x25218F0 / 0x25218F2, root pool 0x25218F8, packet cursor 0x2521914, zero colour 0x2521918,
 //   queues 0x2521920 debris / 0x2521930 sparks / 0x2521940 smoke / 0x2521950 director / 0x2521960 root).
+// Fujin's described Meteor Barret (effect_112.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (MeteorParams: the two sounds).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -71,17 +76,19 @@ namespace meteor112
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25218E0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25218E8); }          // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25218EC); }
-	inline int16_t &ColumnTop() { return var<int16_t>(0x25218F0); }          // highest vertex y of the column model (setup)
-	inline int16_t &ColumnSpan() { return var<int16_t>(0x25218F2); }         // its height span (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521914); }
-	inline const void *Black() { return (const void *)0x2521918; }           // never written: the zero colour
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2521920; }          // debris + the texture restore (0x30)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521930; }          // sparks (0x24)
-	inline TaskQueue *QSmoke() { return (TaskQueue *)0x2521940; }           // smoke (0x1C)
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2521950; }        // the director (1 x 0xF48)
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25218E0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25218E8)); }          // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25218EC)); }
+	inline int16_t &ColumnTop() { return var<int16_t>(own::R(0x25218F0)); }          // highest vertex y of the column model (setup)
+	inline int16_t &ColumnSpan() { return var<int16_t>(own::R(0x25218F2)); }         // its height span (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2521914)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25218E4)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2521960); }             // 1 x 0x1C
+	inline const void *Black() { return (const void *)own::R(0x2521918); }           // never written: the zero colour
+	inline TaskQueue *QDebris() { return (TaskQueue *)own::R(0x2521920); }          // debris + the texture restore (0x30)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2521930); }          // sparks (0x24)
+	inline TaskQueue *QSmoke() { return (TaskQueue *)own::R(0x2521940); }           // smoke (0x1C)
+	inline TaskQueue *QDirector() { return (TaskQueue *)own::R(0x2521950); }        // the director (1 x 0xF48)
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_RootTask = 0x6CBCF0;
@@ -105,6 +112,19 @@ namespace meteor112
 	static const int16_t *const SPARK_Dirs = (const int16_t *)0x12DB730; // 4 SVECTORs (the impact sparks, last first)
 	static const void *const SOUND_Start = (const void *)0x12DB654;
 	static const void *const SOUND_Hit = (const void *)0x12DB658;
+	static const uint32_t ORIG_FileLoader = 0x6CBBF0, ORIG_Setup = 0x6CBBE0;
+	static const uint32_t TEXTURE_NAME = 0x12DB750;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MeteorParams
+	{
+		struct { uint32_t start, hit; } sounds;   // the director's ticks 2 and 0x49
+	};
+	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 } };
+	static MeteorParams live = GAME;
+	static const MeteorParams &P() { return live; }
 
 	// layout sites (director node offsets of the decoded layouts)
 	enum : int { SITE_GROUND = 0xB4, SITE_HAND_A = 0x174, SITE_HAND_B = 0x284, SITE_FIST = 0x5BC, SITE_TARGET = 0x90C,
@@ -556,7 +576,7 @@ namespace meteor112
 			int32_t angle = CrtRand();
 			for (int32_t i = 8; i != 0; i--, angle += 0x200)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				if (!s) continue;
 				Memset32(&s->counter, 0, 6);
 				s->seq = SEQ_Smoke;
@@ -578,7 +598,7 @@ namespace meteor112
 		{
 			for (int32_t i = 0xC; i != 0; i--)
 			{
-				SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
+				SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), own::Fn(ORIG_SmokeTask));
 				if (!s) continue;
 				Memset32(&s->counter, 0, 4);
 				memcpy(s->pos, L.spawn, 8); // (x, y, z and the local's 4th word, overwritten by the size)
@@ -634,7 +654,7 @@ namespace meteor112
 		const uint32_t dxy = *(const uint32_t *)&L.delta[0], dz = *(const uint32_t *)&L.delta[2];
 		for (int32_t i = 2; i != 0; i--)
 		{
-			DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+			DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), own::Fn(ORIG_DebrisTask));
 			if (!p) continue;
 			Memset32(&p->counter, 0, 9);
 			*(uint32_t *)&p->pos[0] = dxy;
@@ -748,7 +768,7 @@ namespace meteor112
 			// 16 debris thrown back from the impact point
 			for (*(int32_t *)&L.spawn[0] = 0x10; *(int32_t *)&L.spawn[0] != 0; (*(int32_t *)&L.spawn[0])--)
 			{
-				DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+				DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), own::Fn(ORIG_DebrisTask));
 				if (!p) continue;
 				int32_t spread = CrtRand();
 				spread -= CrtRand();
@@ -808,7 +828,7 @@ namespace meteor112
 				GteSetTransVector(&L.m);
 				for (*(uint32_t *)&L.delta[0] = (uint32_t)(SPARK_Dirs + 12); ; )
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (s)
 					{
 						Memset32(&s->counter, 0, 6);
@@ -851,8 +871,8 @@ namespace meteor112
 		DirectorNode *d = (DirectorNode *)n;
 		uint8_t *caster = Caster();
 		DirLocals L;
-		if (d->counter == 2) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (d->counter == 0x49) BdPlaySE(SOUND_Hit, 0, 0x80);
+		if (d->counter == 2) BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		if (d->counter == 0x49) BdPlaySE((const void *)fxp::sound(P().sounds.hit, (uint32_t)SOUND_Hit), 0, 0x80);
 		// the screen flash: rising on 0..3, 0x400, falling on 0x95..0x98
 		int32_t flash = (int32_t)0xFFFFD8F1;
 		const int16_t c0 = d->counter;
@@ -1009,7 +1029,7 @@ namespace meteor112
 		}
 		if (d->counter == 0x89)
 		{
-			TaskNode *w = AddTaskToQueue(QDebris(), ORIG_TexRestoreTask);
+			TaskNode *w = AddTaskToQueue(QDebris(), own::Fn(ORIG_TexRestoreTask));
 			if (w) Memset32((uint8_t *)w + 0xC, 0, 9);
 		}
 		if (d->counter >= 0x98)
@@ -1024,6 +1044,38 @@ namespace meteor112
 	// ------------------------------------------------------------------
 	// RootTask (0x6CBCF0, node 0x1C at 0x25218F8)
 	// ------------------------------------------------------------------
+	// File loader (0x6CBBF0) and setup (0x6CBBE0 -> 0x6CBC10): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root, the column model's
+	// top and height span (no camera animation: the director makes the camera blob current)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25218F8), 0x1C, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 4);
+		// the column model's vertex y range (count - 1 vertices from the second, the first one's y as the start)
+		const int16_t *v = (const int16_t *)0x12C593A;
+		int32_t n = *(const int32_t *)0x12C592C - 1;
+		int16_t hi = *(const int16_t *)0x12C5932, lo = hi;
+		do
+		{
+			if (lo <= *v) { if (hi < *v) hi = *v; }
+			else lo = *v;
+			v += 4;
+		} while (--n);
+		ColumnTop() = hi;
+		ColumnSpan() = (int16_t)(hi - lo);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1051,7 +1103,7 @@ namespace meteor112
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), ORIG_DirectorTask);
+				DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), own::Fn(ORIG_DirectorTask));
 				if (d)
 				{
 					uint8_t *caster = Caster();
@@ -1090,19 +1142,46 @@ namespace meteor112
 		if (r->counter >= 10) r->counter = 0;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action: Zell's run-up, the rising column, sparks, smoke and debris, his fist layout, the jump onto the target and the impact layouts, the screen flashes and tiles, the sounds; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the director's ticks 2 and 0x49" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start", "", (uint32_t)offsetof(MeteorParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.hit", "Hit", "", (uint32_t)offsetof(MeteorParams, sounds.hit), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag112_meteor_barret()
 	{
+		fxp::register_params({ 112, "Meteor Barret", &meteor112::live, &meteor112::GAME, sizeof(meteor112::MeteorParams),
+		                       meteor112::table::PARTS, (int)(sizeof(meteor112::table::PARTS) / sizeof(meteor112::table::PARTS[0])),
+		                       meteor112::table::FIELDS, (int)(sizeof(meteor112::table::FIELDS) / sizeof(meteor112::table::FIELDS[0])),
+		                       meteor112::table::GROUPS, (int)(sizeof(meteor112::table::GROUPS) / sizeof(meteor112::table::GROUPS[0])) });
+		own::note(meteor112::ORIG_FileLoader, (void *)meteor112::FileLoader);
+		own::note(meteor112::ORIG_Setup, (void *)meteor112::Setup);
+		own::note(meteor112::ORIG_RootTask, (void *)meteor112::RootTask);
 		register_port(meteor112::ORIG_RootTask, (void *)meteor112::RootTask, "112 RootTask", 112);
+		own::note(meteor112::ORIG_DirectorTask, (void *)meteor112::DirectorTask);
 		register_port(meteor112::ORIG_DirectorTask, (void *)meteor112::DirectorTask, "112 DirectorTask", 112);
+		own::note(meteor112::ORIG_SmokeTask, (void *)meteor112::SmokeTask);
 		register_port(meteor112::ORIG_SmokeTask, (void *)meteor112::SmokeTask, "112 SmokeTask", 112);
+		own::note(meteor112::ORIG_DebrisTask, (void *)meteor112::DebrisTask);
 		register_port(meteor112::ORIG_DebrisTask, (void *)meteor112::DebrisTask, "112 DebrisTask", 112);
+		own::note(meteor112::ORIG_SparkTask, (void *)meteor112::SparkTask);
 		register_port(meteor112::ORIG_SparkTask, (void *)meteor112::SparkTask, "112 SparkTask", 112);
+		own::note(meteor112::ORIG_TexRestoreTask, (void *)meteor112::TexRestoreTask);
 		register_port(meteor112::ORIG_TexRestoreTask, (void *)meteor112::TexRestoreTask, "112 TexRestoreTask", 112);
 		// 30 fps layer: see mag112_meteor_barret_held.inc
 		FX_HELD(register_mag112_held();)
 	}
+	FX_LAB_MODULE(register_mag112_meteor_barret);
 }
 
 #ifdef FF8_FX_HELD
