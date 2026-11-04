@@ -1941,6 +1941,114 @@ int ff8_limit_fps()
 
 static int ff8_bgate_phase = 0; // 0 = advance frame, otherwise held (bumped in BdLink hook)
 static uint32_t ff8_bgate_frame_no = 0; // host battle frames (bumped in the BdLink hook)
+
+// --- What the 15 Hz code sees of the models: the last REAL frame's pose ---
+// One BdLink: stage queue (logic), AnimSeq queue, hit-effect queue + effect tick (15 Hz code), then the entity queue
+// (render, VM + animation advance, matrices rebuilt). Vanilla tick T's code therefore reads the bones / world matrix
+// the entity queue of tick T-1 built. At 30 fps the real frame 2T runs after the HELD frame 2T-1, whose entity queue
+// already built the in-between pose (converted frame 2f+1): the 15 Hz code read the data one host frame newer than
+// vanilla (Fire's flame base, GetDefaultEffectPosition on bones 0xF0 / 0xF1, took another rand() branch: 31 ticks
+// instead of 28). The models keep playing and rendering every host frame; only the 15 Hz code's reads go through the
+// pose the last real frame built: after every entity queue the world matrix and every bone matrix of each battle
+// entity are kept in a ring of the last n host frames, and GetEffectSpawnPosition (0x502170: the bone position getter
+// behind GetDefaultEffectPosition 0x571400 and ~850 call sites) swaps in, for its call, the matrices of n host frames
+// ago while the 15 Hz code runs (battle loop logic before a real BdLink, stage queue, hit-effect queue, effect tick),
+// then puts the live ones back. On a real frame f that is the previous real frame (vanilla's previous tick); on a held
+// frame f (the effects' held draws) it is frame f - n, so the anchors the held draws see step evenly between the two
+// real ticks around them. A matrix that differs from what the last entity queue left was written by the code itself
+// this tick: its own write is used. Everything else (rendering, the VM, data tasks, the UI) reads the live models.
+#define FF8_BGATE_VIEW_SLOTS 8
+#define FF8_BGATE_VIEW_BONES 128
+struct ff8_bgate_view_t
+{
+	bool valid;
+	uint32_t skeleton; // anim_header.comFileData->comFileSkeletonSection1 when kept
+	int nb_bones;
+	uint8_t world[32];                       // world_transform (+0x40)
+	uint8_t bones[FF8_BGATE_VIEW_BONES][32]; // boneStruct[i] rotation_matrix + translation (+0x10)
+};
+struct ff8_bgate_view_frame_t { uint32_t frame; bool valid; ff8_bgate_view_t slots[FF8_BGATE_VIEW_SLOTS]; };
+static ff8_bgate_view_frame_t ff8_bgate_view_ring[4]; // the last 4 entity queues (n <= 4), by frame_no % 4
+static int ff8_bgate_logic_view = 0; // 15 Hz code running: 1 = inside BdLink, 2 = battle loop logic before BdLink
+static uint32_t ff8_bgate_view_reads = 0, ff8_bgate_view_swaps = 0; // stats
+
+static uint8_t *ff8_bgate_view_skeleton(uint8_t *slot)
+{
+	const uint8_t *com = *(uint8_t *const *)(slot + 0x64); // anim_header.comFileData
+	return com ? *(uint8_t *const *)com : nullptr;          // comFileSkeletonSection1
+}
+
+static void ff8_bgate_view_keep(ff8_bgate_view_t *views)
+{
+	// (views = FF8_BGATE_VIEW_SLOTS entries)
+	for (int s = 0; s < FF8_BGATE_VIEW_SLOTS; s++)
+	{
+		uint8_t *slot = (uint8_t *)(0x1D972C0 + 156 * s);
+		ff8_bgate_view_t &v = views[s];
+		v.valid = false;
+		if ((slot[0] & 2) == 0) continue; // BATTLE_ENTITY_ENTITY_FLAG_LOADED
+		uint8_t *skel = ff8_bgate_view_skeleton(slot);
+		if (!skel) continue;
+		v.skeleton = (uint32_t)skel;
+		v.nb_bones = skel[0] < FF8_BGATE_VIEW_BONES ? skel[0] : FF8_BGATE_VIEW_BONES;
+		memcpy(v.world, slot + 0x40, 32);
+		for (int b = 0; b < v.nb_bones; b++) memcpy(v.bones[b], skel + 16 + 48 * b + 16, 32);
+		v.valid = true;
+	}
+}
+
+static int (__cdecl *ff8_bgate_spawnpos_orig)(void *, int, int, void *) = nullptr;
+static uint32_t ff8_bgate_spawnpos_ri = 0;
+
+int __cdecl ff8_bgate_spawnpos_hook(void *task_node, int bone_selector, int interpolation, void *out)
+{
+	uint8_t *slot = (uint8_t *)task_node;
+	const uint32_t d = (uint32_t)slot - 0x1D972C0u;
+	const int s = (uint32_t)slot >= 0x1D972C0u && d % 156 == 0 && d / 156 < FF8_BGATE_VIEW_SLOTS ? (int)(d / 156) : -1;
+	uint8_t *skel = s >= 0 ? ff8_bgate_view_skeleton(slot) : nullptr;
+	// frame of the BdLink this code belongs to (the battle loop logic runs before its BdLink bumps frame_no)
+	const uint32_t f = ff8_bgate_frame_no + (ff8_bgate_logic_view == 2 ? 1 : 0);
+	const ff8_bgate_view_frame_t &fr = ff8_bgate_view_ring[(f - ff8_bgate_n) & 3], &fl = ff8_bgate_view_ring[(f - 1) & 3];
+	const bool frames_ok = ff8_bgate_logic_view && ff8_bgate_n > 1 && ff8_bgate_n <= 4 && s >= 0
+		&& fr.valid && fr.frame == f - ff8_bgate_n && fl.valid && fl.frame == f - 1;
+	const ff8_bgate_view_t *real = frames_ok ? &fr.slots[s] : nullptr, *last = frames_ok ? &fl.slots[s] : nullptr;
+	const bool use = frames_ok && skel && real->valid && last->valid
+		&& real->skeleton == (uint32_t)skel && last->skeleton == (uint32_t)skel && real->nb_bones == last->nb_bones;
+	static uint8_t live_world[32], live_bones[FF8_BGATE_VIEW_BONES][32];
+	static bool swapped[FF8_BGATE_VIEW_BONES + 1];
+	if (use)
+	{
+		ff8_bgate_view_reads++;
+		// the world matrix and each bone: the last real frame's, unless this tick's code wrote it
+		swapped[FF8_BGATE_VIEW_BONES] = memcmp(slot + 0x40, last->world, 32) == 0;
+		if (swapped[FF8_BGATE_VIEW_BONES])
+		{
+			memcpy(live_world, slot + 0x40, 32);
+			memcpy(slot + 0x40, real->world, 32);
+		}
+		for (int b = 0; b < real->nb_bones; b++)
+		{
+			uint8_t *m = skel + 16 + 48 * b + 16;
+			swapped[b] = memcmp(m, last->bones[b], 32) == 0;
+			if (swapped[b])
+			{
+				memcpy(live_bones[b], m, 32);
+				memcpy(m, real->bones[b], 32);
+			}
+		}
+	}
+	unreplace_function(ff8_bgate_spawnpos_ri);
+	int r = ff8_bgate_spawnpos_orig(task_node, bone_selector, interpolation, out);
+	rereplace_function(ff8_bgate_spawnpos_ri);
+	if (use)
+	{
+		if (swapped[FF8_BGATE_VIEW_BONES]) memcpy(slot + 0x40, live_world, 32);
+		for (int b = 0; b < real->nb_bones; b++)
+			if (swapped[b]) memcpy(skel + 16 + 48 * b + 16, live_bones[b], 32);
+		ff8_bgate_view_swaps++;
+	}
+	return r;
+}
 // Held-frame draw mode, cycled with F9 during battle (test builds): 0 = plain replay of tick N
 // (no interpolation), 1 = vertices extrapolated, 2 = vertices + vertex colors extrapolated,
 // 3 = nothing drawn on held frames (diagnostic: shows what the engine itself puts on screen),
@@ -2082,6 +2190,7 @@ int __cdecl ff8_bgate_bdlink_hook()
 		ff8_bgate_left_battle = false;
 		ff8_bgate_battle_reset();
 	}
+	ff8_bgate_logic_view = 0; // (the battle loop's logic before this BdLink is over)
 	ff8_bgate_phase = (ff8_bgate_phase + 1) % ff8_bgate_n;
 	ff8_bgate_frame_no++;
 	_snprintf_s(ffnx_cap_label, sizeof(ffnx_cap_label), _TRUNCATE, "f%u_%s", ff8_bgate_frame_no, ff8_bgate_phase == 0 ? "REAL" : "held");
@@ -3115,8 +3224,14 @@ static char (__cdecl *ff8_bgate_entrender_orig)(void *) = nullptr;
 
 int __cdecl ff8_bgate_entq_hook(void *queue)
 {
+	ff8_bgate_logic_view = 0;
 	int r = ff8_bgate_entq_orig(queue);
 	ff8_bgate_ent_after_queue();
+	// the pose this entity queue built: what the next real frame's 15 Hz code reads (see ff8_bgate_spawnpos_hook)
+	ff8_bgate_view_frame_t &vf = ff8_bgate_view_ring[ff8_bgate_frame_no & 3];
+	ff8_bgate_view_keep(vf.slots);
+	vf.frame = ff8_bgate_frame_no;
+	vf.valid = true;
 	return r;
 }
 
@@ -6290,7 +6405,9 @@ int __cdecl ff8_bgate_effect_tick_gate(void *effect_ctx)
 {
 	ff8_bgate_R = &ff8_bgate_rec_fx;
 	// 1 on held frames: still running (don't let the caller clear the effect pointer)
+	ff8_bgate_logic_view = 1; // (real tick and held draws alike: see ff8_bgate_spawnpos_hook)
 	int r = ff8_bgate_gate_tick(effect_ctx, ff8_bgate_effect_tick_orig, 1);
+	ff8_bgate_logic_view = 0;
 	if (r == 0 && ff8_bgate_phase == 0 && !ff8_bgate_fx_bypass && ff8_bgate_n > 1)
 	{
 		// finished: the pointer stays set through the held frames of this tick (the empty queue is not run again: held
@@ -6320,7 +6437,10 @@ int __cdecl ff8_bgate_stageq_gate(void *queue)
 {
 	if (ff8_bgate_phase != 0 && ff8_bgate_n > 1)
 		return 1; // (the caller ignores the return)
-	return ff8_bgate_stageq_orig(queue);
+	ff8_bgate_logic_view = 1;
+	int r = ff8_bgate_stageq_orig(queue);
+	ff8_bgate_logic_view = 0;
+	return r;
 }
 
 // BattleTurn_ProcessActionQueue (0x485460, from FFBattleDirector_battleLoop @0x47D7C3, every battle loop iteration,
@@ -6475,7 +6595,9 @@ static int __cdecl ff8_bgate_battleloop_mode()
 	k = 0;
 	if (state != 3) return 0; // (card game / unknown: untouched)
 	// in battle, stage loaded: the logic on the iterations whose BdLink is real (the hook bumps the phase first)
-	return (ff8_bgate_phase + 1) % ff8_bgate_n == 0 ? 0 : 2;
+	if ((ff8_bgate_phase + 1) % ff8_bgate_n != 0) return 2;
+	ff8_bgate_logic_view = 2; // the battle logic before its BdLink reads the last real frame's pose (spawnpos hook)
+	return 0;
 }
 
 static void __cdecl ff8_bgate_battleloop_data_only()
@@ -6532,7 +6654,9 @@ int __cdecl ff8_bgate_eq_tick_gate(void *queue)
 {
 	ff8_bgate_R = &ff8_bgate_rec_eq;
 	const int prev_r = ff8_bgate_rec_eq.last_r;
+	ff8_bgate_logic_view = 1;
 	int r = ff8_bgate_gate_tick(queue, ff8_bgate_eq_tick_orig, ff8_bgate_rec_eq.last_r);
+	ff8_bgate_logic_view = 0;
 	ff8_bgate_R = &ff8_bgate_rec_fx;
 	// the busy flag (g_HitEffectQueueBusy = this return) falls when the queue empties: the real frame of that tick still
 	// reports the previous count, its held frames report 0, so the action sequences see the end on the next real frame,
@@ -7310,6 +7434,8 @@ static void ff8_bgate_battle_reset()
 	ff8_bgate_inside_queue_anim = false;
 	ff8_bgate_tick_skip = false;
 	ff8_bgate_hidden_idx = 0;
+	for (ff8_bgate_view_frame_t &vf : ff8_bgate_view_ring) vf.valid = false;
+	ff8_bgate_logic_view = 0;
 	ff8_bgate_phase = ff8_bgate_n - 1; // the bump right after makes the battle's first BdLink a real frame (vanilla tick 0)
 	ffnx_info("battle 30fps: new battle, per-battle state reset\n");
 }
@@ -7496,6 +7622,9 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_loadfile_orig = (int(__cdecl *)(int, void *, int, void *))0x482610;
 	ff8_bgate_loadfile_ri = replace_function(0x482610, (void *)ff8_bgate_loadfile_hook);
 	// hit-effect queue: same record/replay pacing
+	// the 15 Hz code reads the models as the last real frame built them (see ff8_bgate_spawnpos_hook)
+	ff8_bgate_spawnpos_orig = (int(__cdecl *)(void *, int, int, void *))0x502170;
+	ff8_bgate_spawnpos_ri = replace_function(0x502170, (void *)ff8_bgate_spawnpos_hook);
 	ff8_bgate_eq_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x500923, 0);
 	replace_call(0x500923, (void *)ff8_bgate_eq_tick_gate);
 	// camera shake offsets held on held frames
