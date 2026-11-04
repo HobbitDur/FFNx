@@ -62,6 +62,9 @@
 // its argument slot for the trail frame counter and 0x1000 - cos(t / 4) (the executor never reads that slot again).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -71,13 +74,15 @@ namespace micromissiles299
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507814); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507818); }        // caster entity (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507820; }         // pool: magic buffer, 0x60 x 0x24
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507830; }           // pool: + 0xD80, 6 x 0x144
-	inline TaskQueue *QMissiles() { return (TaskQueue *)0x2507840; }       // pool: + 0x1518, 6 x 0x80C
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507874); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507878); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507814)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507818)); }        // caster entity (setup)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2507820); }         // pool: magic buffer, 0x60 x 0x24
+	inline TaskQueue *QHits() { return (TaskQueue *)own::R(0x2507830); }           // pool: + 0xD80, 6 x 0x144
+	inline TaskQueue *QMissiles() { return (TaskQueue *)own::R(0x2507840); }       // pool: + 0x1518, 6 x 0x80C
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507874)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507810)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2507850); }           // 1 x 0x14
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507878)); }        // Magic_TextureOFF (magic buffer)
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x66FD70;
@@ -98,6 +103,19 @@ namespace micromissiles299
 	static const uint32_t SEQ_Flash = 0x1048F1C;
 	static const uint32_t SEQ_Spark = 0x1048C94;
 	static const void *const SOUND_Launch = (const void *)0x104E2FC;
+	static const uint32_t ORIG_FileLoader = 0x66FCD0, ORIG_Setup = 0x66FCC0;
+	static const uint32_t TEXTURE_NAME = 0x104E320, CAMERA_ANIM = 0x104DF68;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MicroMissilesParams
+	{
+		uint32_t sound;   // the master's counter 10 (the first missile)
+	};
+	static const MicroMissilesParams GAME = { 0x104E2FC };
+	static MicroMissilesParams live = GAME;
+	static const MicroMissilesParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -418,6 +436,27 @@ namespace micromissiles299
 	// ------------------------------------------------------------------
 	// Spark (0x6707B0)
 	// ------------------------------------------------------------------
+	// File loader (0x66FCD0) and setup (0x66FCC0 -> _Init 0x66FCF0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507860), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
@@ -503,7 +542,7 @@ namespace micromissiles299
 		m->t = (int16_t)(m->t + m->step);
 		if (m->t >= 0x1000 && m->type != -1)
 		{
-			HitNode *hit = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+			HitNode *hit = (HitNode *)AddTaskToQueue(QHits(), own::Fn(ORIG_HitTask));
 			if (hit)
 			{
 				hit->counter = 0;
@@ -522,7 +561,7 @@ namespace micromissiles299
 			}
 			for (int k = 0; k < 0x10; k++)
 			{
-				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				if (!sp) continue;
 				memcpy(sp->pos, m->cur, 4);
 				memcpy(&sp->pos[2], &m->cur[2], 4);
@@ -558,7 +597,7 @@ namespace micromissiles299
 		pos[0] = (int16_t)(pos[0] + off[0]);
 		pos[2] = (int16_t)(pos[2] + off[2]);
 		pos[1] = (int16_t)(*(const int16_t *)(caster + 0x24) - 0x26C);
-		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), ORIG_MissileTask);
+		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), own::Fn(ORIG_MissileTask));
 		memcpy(m->cur, pos, 4);
 		memcpy(&m->cur[2], &pos[2], 4);
 		memcpy(m->start, pos, 4);
@@ -620,24 +659,45 @@ namespace micromissiles299
 			if (a0 == 0 && mn->done == 0) mn->done = 1;
 			a1 = ExecuteTaskQueue(QHits());
 			a2 = ExecuteTaskQueue(QSparks());
-			if (mn->counter == 0xA) BdPlaySE(SOUND_Launch, 0, 0x80);
+			if (mn->counter == 0xA) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Launch), 0, 0x80);
 		}
 		else a0 = a1 = a2 = (int)n;
 		if (mn->done && !a0 && !a1 && !a2) return TASK_END;
 		mn->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Her cast animation, six missiles fanned from her to random bones of the target (two miss) with their trails, hits, flashes and sparks, the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sound", "Sound", "The master's counter 10 (the first missile)", (uint32_t)offsetof(MicroMissilesParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag299_micro_missiles_quistis()
 	{
+		fxp::register_params({ 299, "Micro Missiles (Quistis)", &micromissiles299::live, &micromissiles299::GAME, sizeof(micromissiles299::MicroMissilesParams),
+		                       micromissiles299::table::PARTS, (int)(sizeof(micromissiles299::table::PARTS) / sizeof(micromissiles299::table::PARTS[0])),
+		                       micromissiles299::table::FIELDS, (int)(sizeof(micromissiles299::table::FIELDS) / sizeof(micromissiles299::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(micromissiles299::ORIG_FileLoader, (void *)micromissiles299::FileLoader);
+		own::note(micromissiles299::ORIG_Setup, (void *)micromissiles299::Setup);
+		own::note(micromissiles299::ORIG_MasterTask, (void *)micromissiles299::MasterTask);
 		register_port(micromissiles299::ORIG_MasterTask, (void *)micromissiles299::MasterTask, "299 MasterTask", 299);
+		own::note(micromissiles299::ORIG_MissileTask, (void *)micromissiles299::MissileTask);
 		register_port(micromissiles299::ORIG_MissileTask, (void *)micromissiles299::MissileTask, "299 MissileTask", 299);
+		own::note(micromissiles299::ORIG_HitTask, (void *)micromissiles299::HitTask);
 		register_port(micromissiles299::ORIG_HitTask, (void *)micromissiles299::HitTask, "299 HitTask", 299);
+		own::note(micromissiles299::ORIG_SparkTask, (void *)micromissiles299::SparkTask);
 		register_port(micromissiles299::ORIG_SparkTask, (void *)micromissiles299::SparkTask, "299 SparkTask", 299);
 		// 30 fps layer: see mag299_micro_missiles_quistis_held.inc
 		FX_HELD(register_mag299_held();)
 	}
+	FX_LAB_MODULE(register_mag299_micro_missiles_quistis);
 }
 
 #ifdef FF8_FX_HELD
