@@ -53,6 +53,9 @@
 // and the callback's offset 4th word (GTE VZ0 high half only).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -62,13 +65,15 @@ namespace whitewind226
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2508774); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508778); }          // caster entity (setup)
-	inline TaskQueue *QScene() { return (TaskQueue *)0x2508780; }            // pool: magic buffer + 0x7B0, 1 x 0x33C
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25087A0; }          // pool: magic buffer, 3 x 0x290
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25087C4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25087C8); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(0x25087D0); }            // camera matrix of the effect (every tick)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2508774)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2508778)); }          // caster entity (setup)
+	inline TaskQueue *QScene() { return (TaskQueue *)own::R(0x2508780); }            // pool: magic buffer + 0x7B0, 1 x 0x33C
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x25087A0); }          // pool: magic buffer, 3 x 0x290
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25087C4)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25087C8)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508770)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508790); }             // 1 x 0x14
+	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(own::R(0x25087D0)); }            // camera matrix of the effect (every tick)
 
 	static const uint32_t ORIG_RootTask = 0x6945D0;
 	static const uint32_t ORIG_SceneTask = 0x6946D0;
@@ -77,6 +82,19 @@ namespace whitewind226
 	static const uint32_t MODEL_Sweep = 0x11340C4;       // prim-model layout data (0x194-byte layout)
 	static const uint32_t MODEL_Target = 0x113202C;      // prim-model layout data (0x278-byte layout)
 	static const void *const SOUND_Wind = (const void *)0x11355CC;
+	static const uint32_t ORIG_FileLoader = 0x694530, ORIG_Setup = 0x694520;
+	static const uint32_t TEXTURE_NAME = 0x105BA98, CAMERA_ANIM = 0x113555C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct WhiteWind226Params
+	{
+		uint32_t sound;   // at the scene task's tick 1
+	};
+	static const WhiteWind226Params GAME = { 0x11355CC };
+	static WhiteWind226Params live = GAME;
+	static const WhiteWind226Params &P() { return live; }
 	static const uint32_t MORPH = 0xAEC;                 // magic buffer: blended vertex frames
 	static const uint32_t ARENA_A = 0xECC;               // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x10ECC;
@@ -287,6 +305,29 @@ namespace whitewind226
 	// ------------------------------------------------------------------
 	// Target (0x694D40)
 	// ------------------------------------------------------------------
+	// File loader (0x694530) and setup (0x694520 -> _Init 0x694550): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25087B0), 0x14, 1);
+		uint32_t *r = (uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC);
+		r[0] = 0;
+		r[1] = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -373,14 +414,14 @@ namespace whitewind226
 			FX_HELD(held_note_play((prim::Layout *)s->lay_sweep, PLAY_SWEEP, s->sweep, 0);)
 			prim::play((prim::Layout *)s->lay_sweep, PrimCallback, (int)&arg, 0);
 		}
-		if (s->counter == 1) BdPlaySE(SOUND_Wind, 0, 0x80);
+		if (s->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Wind), 0, 0x80);
 		const int32_t k = (int32_t)s->counter - 0x13;
 		if ((uint32_t)k < 0xC && (k & 3) == 0)
 		{
 			const uint32_t i = (uint32_t)k >> 2;
 			if (i < Ctx()->actions[0].target_count)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 				if (t)
 				{
 					uint8_t *e = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
@@ -418,7 +459,7 @@ namespace whitewind226
 			r->started = 1;
 			InitTaskQueuePool(QScene(), (void *)(TexBase() + 0x7B0), 0x33C, 1);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0x290, 3);
-			((SceneNode *)AddTaskToQueue(QScene(), ORIG_SceneTask))->counter = 0;
+			((SceneNode *)AddTaskToQueue(QScene(), own::Fn(ORIG_SceneTask)))->counter = 0;
 		}
 		int a, b;
 		if (r->started)
@@ -432,16 +473,36 @@ namespace whitewind226
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "scene", "Scene", "The healing wind at the caster and across the party, one sparkle layout per target with its result, the sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "scene", "sound", "Sound", "At the scene task's tick 1", (uint32_t)offsetof(WhiteWind226Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag226_white_wind()
 	{
+		fxp::register_params({ 226, "White Wind (enemy)", &whitewind226::live, &whitewind226::GAME, sizeof(whitewind226::WhiteWind226Params),
+		                       whitewind226::table::PARTS, (int)(sizeof(whitewind226::table::PARTS) / sizeof(whitewind226::table::PARTS[0])),
+		                       whitewind226::table::FIELDS, (int)(sizeof(whitewind226::table::FIELDS) / sizeof(whitewind226::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(whitewind226::ORIG_FileLoader, (void *)whitewind226::FileLoader);
+		own::note(whitewind226::ORIG_Setup, (void *)whitewind226::Setup);
+		own::note(whitewind226::ORIG_RootTask, (void *)whitewind226::RootTask);
 		register_port(whitewind226::ORIG_RootTask, (void *)whitewind226::RootTask, "226 RootTask", 226);
+		own::note(whitewind226::ORIG_SceneTask, (void *)whitewind226::SceneTask);
 		register_port(whitewind226::ORIG_SceneTask, (void *)whitewind226::SceneTask, "226 SceneTask", 226);
+		own::note(whitewind226::ORIG_TargetTask, (void *)whitewind226::TargetTask);
 		register_port(whitewind226::ORIG_TargetTask, (void *)whitewind226::TargetTask, "226 TargetTask", 226);
 		// 30 fps layer: see mag226_white_wind_held.inc
 		FX_HELD(register_mag226_held();)
 	}
+	FX_LAB_MODULE(register_mag226_white_wind);
 }
 
 #ifdef FF8_FX_HELD
