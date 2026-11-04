@@ -27,8 +27,14 @@
 //   particle tasks: sparks 0x6A7D90 (flipbook, 16 ticks), embers 0x6A7BF0 (prim model, 16 ticks).
 //   prim-model callback 0x6A7650 (drawn through the shared player, fx_primplayer.cpp).
 // Module globals: 0x2517AA0..0x2517B50 (gf_study/gf_global_ranges.md).
+// Fujin's described Phoenix (effect_140.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup, the file loader and its stream callback ported below; its parameters (PhoenixParams:
+// the voice, the three sounds, the damage tick).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -37,19 +43,20 @@ namespace p140
 	using namespace eng;
 
 	// --- module globals ---
-	inline uint8_t *&EmberPool() { return var<uint8_t *>(0x2517AA0); }   // tim buffer end - 0x10000 (set by _FL)
-	inline uint8_t *&SparkPool() { return var<uint8_t *>(0x2517AA4); }   // tim buffer end - 0x20000
-	inline uint32_t &Pause() { return var<uint32_t>(0x2517AAC); }        // debug pause, never set by the game
-	inline uint8_t *&CastCtx() { return var<uint8_t *>(0x2517AB0); }
-	inline TaskQueuePair &QueueParticles() { return var<TaskQueuePair>(0x2517AB8); } // .first embers, .second sparks
-	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(0x2517AD8); }  // .first creature, .second root
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2517B0C); }
-	inline int32_t &TargetsAvg() { return var<int32_t>(0x2517B10); }     // mean of the targets' BattleEntitySlotData +0x20
-	inline int32_t &Base() { return var<int32_t>(0x2517B18); }           // TargetsAvg + 0xE6A
-	inline uint32_t &Flash() { return var<uint32_t>(0x2517B20); }
-	inline uint8_t &DoneFlag() { return var<uint8_t>(0x2517B24); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2517B28); } // = Magic_TextureOFF_ToEAX1()
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2517B30); }
+	inline uint8_t *&EmberPool() { return var<uint8_t *>(own::R(0x2517AA0)); }   // tim buffer end - 0x10000 (set by _FL)
+	inline uint8_t *&SparkPool() { return var<uint8_t *>(own::R(0x2517AA4)); }   // tim buffer end - 0x20000
+	inline uint32_t &Pause() { return var<uint32_t>(own::R(0x2517AAC)); }        // debug pause, never set by the game
+	inline uint8_t *&CastCtx() { return var<uint8_t *>(own::R(0x2517AB0)); }
+	inline TaskQueuePair &QueueParticles() { return var<TaskQueuePair>(own::R(0x2517AB8)); } // .first embers, .second sparks
+	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(own::R(0x2517AD8)); }  // .first creature, .second root
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2517B0C)); }
+	inline int32_t &TargetsAvg() { return var<int32_t>(own::R(0x2517B10)); }     // mean of the targets' BattleEntitySlotData +0x20
+	inline int32_t &Base() { return var<int32_t>(own::R(0x2517B18)); }           // TargetsAvg + 0xE6A
+	inline uint32_t &Flash() { return var<uint32_t>(own::R(0x2517B20)); }
+	inline uint8_t &DoneFlag() { return var<uint8_t>(own::R(0x2517B24)); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(own::R(0x2517B28)); } // = Magic_TextureOFF_ToEAX1()
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(own::R(0x2517B30)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2517AA8)); }          // the effect's file (its TIM)
 	// engine
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }  // battle_texture_data_ptr_1D8E054
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }        // g_Battle_FrameRenderListBase
@@ -58,6 +65,21 @@ namespace p140
 
 	static const uint32_t ORIG_SequenceTask = 0x6A6530;
 	static const uint32_t ORIG_CreatureTask = 0x6A6750;
+	static const uint32_t ORIG_FileLoader = 0x6A6310, ORIG_Setup = 0x6A6300, ORIG_StreamLoadCallback = 0x6A6360;
+	static const uint32_t TEXTURE_NAME = 0x11D4E84;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct PhoenixParams
+	{
+		uint32_t voice;                                 // the creature's voice slot (claimed at its spawn)
+		struct { uint32_t trail, rise, stage; } sounds; // at the creature's ticks 0, 0x65, 0xC3
+		struct { int16_t damage; } creature;            // the damage at this tick of the creature's timeline
+	};
+	static const PhoenixParams GAME = { 0x11D0048, { 0x11D003C, 0x11D0040, 0x11D0044 }, { 0xF5 } };
+	static PhoenixParams live = GAME;
+	static const PhoenixParams &PX() { return live; }
 	static const uint32_t ORIG_EmberTask = 0x6A7BF0;
 	static const uint32_t ORIG_SparkTask = 0x6A7D90;
 
@@ -639,7 +661,7 @@ namespace p140
 	static void SpawnSpark(int32_t z0, int32_t xr, int32_t zr, int32_t y0, int32_t yr)
 	{
 		if (Pause()) return;
-		SparkNode *p = (SparkNode *)AddTaskToQueue(&QueueParticles().second, ORIG_SparkTask);
+		SparkNode *p = (SparkNode *)AddTaskToQueue(&QueueParticles().second, own::Fn(ORIG_SparkTask));
 		if (!p) return;
 		p->pos[0] = (int16_t)((Rand() & (xr - 1)) - (xr >> 1));
 		p->pos[2] = (int16_t)((Rand() & (zr - 1)) - (zr >> 1) + z0);
@@ -656,6 +678,84 @@ namespace p140
 	// ------------------------------------------------------------------
 	// Master task (0x6A6530)
 	// ------------------------------------------------------------------
+	// Stream callback (0x6A6360, the file loader's completion callback: one step of the summon stream script at
+	// [0x1DCD6E4]), file loader (0x6A6310) and setup (0x6A6300 -> 0x6A6430): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's): the spark / ember pools at the magic buffer's end, the random seed, the
+	// texture, the model buffer, the cast and its caster, the root, the three flame models' vertices, the targets'
+	// mean z (TargetsAvg, + 0xE6A at Base)
+	inline uint32_t QueueTim(uint32_t tim) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x505E30)(tim); }   // Battle_QueueTIMUpload_GetEOF
+	inline uint8_t *EntityOf(int slot) { return (uint8_t *)(0x1D972C0 + 0x9C * slot); }
+
+	static uint32_t __cdecl StreamLoadCallback()
+	{
+		uint8_t *st = (uint8_t *)var<uint32_t>(0x1DCD6E4);
+		uint8_t *cmd = st + 8 * st[4] + 8;
+		const int16_t op = *(const int16_t *)cmd;
+		if (op > 2)
+		{
+			if (op > 4)
+			{
+				if (op == 16)
+				{
+					QueueTim((uint32_t)(ModelBuffer() + 0x1F7A0));
+					QueueTim((uint32_t)(ModelBuffer() + 0x219C0));
+					QueueTim((uint32_t)(ModelBuffer() + 0x23BE0));
+					st[1] = 2;
+				}
+				else st[1] = 0;
+				st[4] = (uint8_t)(st[4] + 1);
+				st[0] = 0;
+			}
+			else
+			{
+				st[2] = 0;
+				fn<void (__cdecl *)(uint32_t, uint8_t *)>(0x501860)(*(uint32_t *)(cmd + 4), st + 2);   // BdTransSummonStream
+				st[1] = (uint8_t)(*cmd - 3);
+				st[4] = (uint8_t)(st[4] + 1);
+				st[0] = 0;
+			}
+		}
+		else
+		{
+			QueueTim(*(uint32_t *)(st + 8 * st[4] + 12));
+			st[1] = *cmd;
+			st[4] = (uint8_t)(st[4] + 1);
+			st[0] = 0;
+		}
+		return st[4];
+	}
+
+	static uint32_t __cdecl FileLoader()
+	{
+		var<uint32_t>(0x1DCD6E8) = own::Fn(ORIG_StreamLoadCallback);   // completion_callback
+		TexFile() = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)((const char *)TEXTURE_NAME);   // IO_GetFile_MAGIC
+		const uint32_t size = fn<uint32_t (__cdecl *)()>(0x571B60)();   // the magic buffer's size
+		SparkPool() = (uint8_t *)(layouts::MagicBuffer() + size - 0x20000);
+		EmberPool() = (uint8_t *)(layouts::MagicBuffer() + size - 0x10000);
+		return size;
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +4 the actions)
+	{
+		var<uint32_t>(own::R(0x2517B1C)) = (uint32_t)fn<int32_t (__cdecl *)()>(0x55CBD2)();   // rand()
+		QueueTim(TexFile());
+		ModelBuffer() = (uint8_t *)layouts::MagicBuffer();
+		CastCtx() = ctx;
+		var<uint8_t *>(own::R(0x2517AB4)) = EntityOf(ctx[0]);
+		InitTaskQueuePool(&QueueCreature().second, (void *)own::R(0x2517AF8), 0x14, 1);
+		Memset32(AddTaskToQueue(&QueueCreature().second, own::Fn(ORIG_SequenceTask)) + 1, 0, 2);
+		static const uint32_t FLAMES[3] = { 0x11D04B4, 0x11D2594, 0x11D3778 };
+		for (int k = 0; k < 3; k++)
+			fn<void (__cdecl *)(uint32_t)>(0x6A85E0)(FLAMES[k]);   // MAG_140_PrepareFlameModelVertices
+		const uint8_t *act = *(uint8_t *const *)(ctx + 4);   // action 0 (+8 the targets, stride 24; +0x10 their count)
+		const int32_t count = act[0x10];
+		int32_t sum = 0;
+		for (int32_t i = 0; i < count; i++) sum += *(const int16_t *)(EntityOf((*(uint8_t *const *)(act + 8))[i * 24]) + 0x20);
+		TargetsAvg() = sum / count;
+		Base() = sum / count + 0xE6A;
+		return &QueueCreature().second;
+	}
+
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
@@ -677,9 +777,9 @@ namespace p140
 		{
 			node->spawned = 1;
 			InitTaskQueuePool(&QueueCreature().first, ModelBuffer(), 0x878, 1);
-			CreatureNode *c = (CreatureNode *)AddTaskToQueue(&QueueCreature().first, ORIG_CreatureTask);
+			CreatureNode *c = (CreatureNode *)AddTaskToQueue(&QueueCreature().first, own::Fn(ORIG_CreatureTask));
 			Memset32(&c->counter, 0, 0x21B);
-			c->voice = ClaimVoiceSlot((const void *)0x11D0048, 1, 0x80);
+			c->voice = ClaimVoiceSlot((const void *)fxp::sound(PX().voice, 0x11D0048), 1, 0x80);
 			Mat4x3 &root = Root(c);
 			root.m[2][2] = 0x2000;
 			root.m[1][1] = 0x2000;
@@ -932,7 +1032,7 @@ namespace p140
 			}
 			if (!Pause() && (e & 3) == 0)
 			{
-				EmberNode *p = (EmberNode *)AddTaskToQueue(&QueueParticles().first, ORIG_EmberTask);
+				EmberNode *p = (EmberNode *)AddTaskToQueue(&QueueParticles().first, own::Fn(ORIG_EmberTask));
 				if (p)
 				{
 					p->pos[0] = (int16_t)((Rand() & 0x1FF) - 0x100);
@@ -1022,9 +1122,9 @@ namespace p140
 		else if (c == 0xA1)
 			PlaySummonStream(0x80, 1, 0x7F);
 		c = cn->counter;
-		if (c == 0) PlaySE(0x11D003C, 1, 0x80);
-		else if (c == 0x65) PlaySE(0x11D0040, 1, 0x80);
-		else if (c == 0xC3) PlaySE(0x11D0044, 1, 0x80);
+		if (c == 0) PlaySE(fxp::sound(PX().sounds.trail, 0x11D003C), 1, 0x80);
+		else if (c == 0x65) PlaySE(fxp::sound(PX().sounds.rise, 0x11D0040), 1, 0x80);
+		else if (c == 0xC3) PlaySE(fxp::sound(PX().sounds.stage, 0x11D0044), 1, 0x80);
 
 		// camera
 		c = cn->counter;
@@ -1109,7 +1209,7 @@ namespace p140
 		}
 
 		c = cn->counter;
-		if (c == 0xF5)
+		if (c == PX().creature.damage)
 		{
 			uint8_t *action = *(uint8_t **)(CastCtx() + 4);
 			ApplyActionResultToTargets(*(void **)(action + 8), action[0x10]);
@@ -1206,17 +1306,46 @@ namespace p140
 		p->age++;
 		return p->age < 16 ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "creature", "Creature", "Phoenix's 255-tick timeline: the fire trail flipbooks and flame meshes, white-out tiles, the Phoenix model and its three prim-model stages, heat haze, the camera's moves, streams, sparks and embers, the sounds; the damage, the voice release" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the creature's ticks 0, 0x65, 0xC3" },
+		};
+		static const Field FIELDS[] = {
+			{ "creature", "voice", "Voice", "The creature's voice slot", (uint32_t)offsetof(PhoenixParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.trail", "Trail", "", (uint32_t)offsetof(PhoenixParams, sounds.trail), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.rise", "Rise", "", (uint32_t)offsetof(PhoenixParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.stage", "Stage", "", (uint32_t)offsetof(PhoenixParams, sounds.stage), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "creature.damage", "Damage tick", "The damage at this tick of the creature's timeline", (uint32_t)offsetof(PhoenixParams, creature.damage), fxp::I16, 0, 254 },
+		};
+	}
 }
 
 	void register_mag140_phoenix()
 	{
+		fxp::register_params({ 140, "Phoenix", &p140::live, &p140::GAME, sizeof(p140::PhoenixParams),
+		                       p140::table::PARTS, (int)(sizeof(p140::table::PARTS) / sizeof(p140::table::PARTS[0])),
+		                       p140::table::FIELDS, (int)(sizeof(p140::table::FIELDS) / sizeof(p140::table::FIELDS[0])),
+		                       p140::table::GROUPS, (int)(sizeof(p140::table::GROUPS) / sizeof(p140::table::GROUPS[0])) });
+		own::note(p140::ORIG_FileLoader, (void *)p140::FileLoader);
+		own::note(p140::ORIG_Setup, (void *)p140::Setup);
+		own::note(p140::ORIG_StreamLoadCallback, (void *)p140::StreamLoadCallback);
+		own::note(p140::ORIG_SequenceTask, (void *)p140::SequenceTask);
 		register_port(p140::ORIG_SequenceTask, (void *)p140::SequenceTask, "P140 SequenceTask", 140);
+		own::note(p140::ORIG_CreatureTask, (void *)p140::CreatureTask);
 		register_port(p140::ORIG_CreatureTask, (void *)p140::CreatureTask, "P140 CreatureTask", 140);
+		own::note(p140::ORIG_EmberTask, (void *)p140::EmberTask);
 		register_port(p140::ORIG_EmberTask, (void *)p140::EmberTask, "P140 EmberTask", 140);
+		own::note(p140::ORIG_SparkTask, (void *)p140::SparkTask);
 		register_port(p140::ORIG_SparkTask, (void *)p140::SparkTask, "P140 SparkTask", 140);
 		// 30 fps layer: see mag140_phoenix_held.inc
 		FX_HELD(register_mag140_held();)
 	}
+	FX_LAB_MODULE(register_mag140_phoenix);
 }
 
 #ifdef FF8_FX_HELD
