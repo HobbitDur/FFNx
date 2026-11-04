@@ -47,6 +47,9 @@
 // midpoint helper 0x58E260 are called through their original addresses.
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -122,14 +125,15 @@ namespace g327
 
 	// --- module globals ---
 	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x21FF3A0); }  // effect frame (setup: rotation, centroid 0x21FF3B4/B8/BC)
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x21FF488); }       // Camera o RootMatrix, rebuilt by the timeline every tick
-	inline TaskQueue &Q1() { return var<TaskQueue>(0x21FFD58); }     // timeline + effects
-	inline TaskQueue &Q2() { return var<TaskQueue>(0x21FF458); }     // model tasks
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x21FF2A8); }
-	inline int32_t Variant() { return var<int32_t>(0x21FFA70); }     // 0 Zantetsuken, 1 Masamune, 2 Excalibur, 3 Excalipoor
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x2200DF0); }
-	inline uint32_t MB() { return var<uint32_t>(0x2200FB8); }        // model buffer (0x20DFAB8)
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(own::R(0x21FF3A0)); }  // effect frame (setup: rotation, centroid 0x21FF3B4/B8/BC)
+	inline Mat4x3 &Frame() { return var<Mat4x3>(own::R(0x21FF488)); }       // Camera o RootMatrix, rebuilt by the timeline every tick
+	inline TaskQueue &Q1() { return var<TaskQueue>(own::R(0x21FFD58)); }     // timeline + effects
+	inline TaskQueue &Q2() { return var<TaskQueue>(own::R(0x21FF458)); }     // model tasks
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(own::R(0x21FF2A8)); }
+	inline int32_t Variant() { return var<int32_t>(own::R(0x21FFA70)); }     // 0 Zantetsuken, 1 Masamune, 2 Excalibur, 3 Excalipoor
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x2200DF0)); }
+	inline uint32_t MB() { return var<uint32_t>(own::R(0x2200FB8)); }        // model buffer (0x20DFAB8)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2200FB4)); }          // the effect's file (its TIM)
 	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }   // battle_texture_data_ptr_1D8E054
 	inline uint32_t RenderList() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t OT() { return RenderList() + 0x44; }
@@ -140,11 +144,11 @@ namespace g327
 	inline uint32_t TargetCount() { return Targets()[0x10]; }
 	inline uint8_t *TargetRecs() { return *(uint8_t **)(Targets() + 8); }
 	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(0x1D972C0 + 156 * slot); }
-	inline uint8_t *Sword(int i) { return (uint8_t *)(0x21FF4F0 + 0x9C * i); }
-	inline uint8_t *Arm(int j) { return (uint8_t *)(0x21FF800 + 0x9C * j); }
-	static uint8_t *const GIL1 = (uint8_t *)0x21FF760;
-	static uint8_t *const GIL2 = (uint8_t *)0x2200F00;
-	static uint8_t *const GIL3 = (uint8_t *)0x2200FC0;
+	inline uint8_t *Sword(int i) { return (uint8_t *)(own::R(0x21FF4F0) + 0x9C * i); }
+	inline uint8_t *Arm(int j) { return (uint8_t *)(own::R(0x21FF800) + 0x9C * j); }
+	inline uint8_t *GIL1() { return (uint8_t *)own::R(0x21FF760); }
+	inline uint8_t *GIL2() { return (uint8_t *)own::R(0x2200F00); }
+	inline uint8_t *GIL3() { return (uint8_t *)own::R(0x2200FC0); }
 	static const uint32_t STREAM_STATE = 0x21FF398;
 
 	static const uint32_t ORIG_SequenceTick = 0x596B70;
@@ -198,6 +202,19 @@ namespace g327
 	static const uint32_t ORIG_Exca_SmokeTask = 0x591850;
 	static const uint32_t ORIG_Exca_StreakTask = 0x591B80;
 	static const uint32_t ORIG_Exca_PillarTask = 0x591F50;
+	static const uint32_t ORIG_FileLoader = 0x58D6E0, ORIG_Setup = 0x58D760;
+	static const uint32_t TEXTURE_NAME = 0xCD09B0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GilgameshParams
+	{
+		struct { uint32_t start, spin, horse; } sounds; // at the timeline's ticks 1, 121, 181
+	};
+	static const GilgameshParams GAME = { { 0xCD0378, 0xCD037C, 0xCD0380 } };
+	static GilgameshParams live = GAME;
+	static const GilgameshParams &P() { return live; }
 
 #pragma pack(push, 1)
 	// every Q1/Q2 node is 0x24 bytes; field use differs per task
@@ -260,14 +277,14 @@ namespace g327
 	// au_re_BdLinkTask_17 0x592970 (Q1) / _18 0x592990 (Q2) (no null check, as the original)
 	static Node24 *LinkQ1(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
 	}
 	static Node24 *LinkQ2(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q2(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q2(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
@@ -397,7 +414,7 @@ namespace g327
 	// MAG_327_sub_5929B0: screen feedback request task for len ticks (flag: skip its first tick)
 	static void LinkFeedback(int32_t flag, int16_t len)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), flag ? ORIG_Feedback2Task : ORIG_FeedbackTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(flag ? ORIG_Feedback2Task : ORIG_FeedbackTask));
 		n->c = 0;
 		n->e = len;
 	}
@@ -405,7 +422,7 @@ namespace g327
 	// au_re_BdLinkTask_19 0x592AB0 / _20 0x592B30: screen flash in / out, 16 ticks, level 0x800
 	static void LinkFlash(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0x10;
 		n->a18 = 0x800;
@@ -414,14 +431,14 @@ namespace g327
 	// MAG_327_sub_592D00: the ground rings (a still one, two spinning pairs)
 	static void SpawnRings()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RingTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RingTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xE4A8;
 		n->p14 = 0;
 		n->s1C = 0x2400;
 		n->s20 = 0x3000;
-		n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RingSpinTask);
+		n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RingSpinTask));
 		n->c = 0;
 		n->e = 0;
 		n->p10 = 0;
@@ -432,7 +449,7 @@ namespace g327
 		n->s1C = 0x2000;
 		n->s20 = 0x3000;
 		n->s22 = 0;
-		n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RingSpinTask);
+		n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RingSpinTask));
 		n->c = 0;
 		n->e = 1;
 		n->p10 = 0;
@@ -443,7 +460,7 @@ namespace g327
 		n->s1C = 0x2000;
 		n->s20 = 0x3000;
 		n->s22 = 0x600;
-		n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RingSpin2Task);
+		n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RingSpin2Task));
 		n->c = 0;
 		n->e = 0;
 		n->p10 = 0;
@@ -453,7 +470,7 @@ namespace g327
 		n->a1A = 4;
 		n->s1C = 0x3400;
 		n->s22 = 0x800;
-		n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RingSpin2Task);
+		n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RingSpin2Task));
 		n->c = 0;
 		n->e = 1;
 		n->p10 = 0;
@@ -468,15 +485,15 @@ namespace g327
 	// MAG_327_sub_5931E0: the flare row, 0x36B0 above the effect origin (world position)
 	static void SpawnFlareRow()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_FlareTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_FlareTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xC950;
 		n->p14 = 0;
 		MatrixMultiplyVector(&RootMatrix(), &n->p10, &n->p10);
-		n->p10 = (int16_t)(n->p10 + var<int16_t>(0x21FF3B4));
-		n->p12 = (int16_t)(n->p12 + var<int16_t>(0x21FF3B8));
-		n->p14 = (int16_t)(n->p14 + var<int16_t>(0x21FF3BC));
+		n->p10 = (int16_t)(n->p10 + var<int16_t>(own::R(0x21FF3B4)));
+		n->p12 = (int16_t)(n->p12 + var<int16_t>(own::R(0x21FF3B8)));
+		n->p14 = (int16_t)(n->p14 + var<int16_t>(own::R(0x21FF3BC)));
 		n->s22 = 0x320;
 		n->s20 = 0x320;
 	}
@@ -488,7 +505,7 @@ namespace g327
 		for (int32_t k = 0; k < 0x4000; k += 0x1000)
 		{
 			int32_t a = k / 4 + base;
-			Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RiserTask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RiserTask));
 			n->c = 0;
 			int32_t s = ComputeSin(a);
 			n->p12 = (int16_t)0xC568;
@@ -505,21 +522,21 @@ namespace g327
 	// particles (puffs + shards per sword, owner mask 1 << k, sword index table 0xCD0480)
 	static void SpawnSwords()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_SwordClipTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_SwordClipTask));
 		n->c = 0;
-		n->e = var<int16_t>(0x21FFA70);
-		n = (Node24 *)AddTaskToQueue(&Q2(), ORIG_SwordDrawTask);
+		n->e = var<int16_t>(own::R(0x21FFA70));
+		n = (Node24 *)AddTaskToQueue(&Q2(), own::Fn(ORIG_SwordDrawTask));
 		n->c = 0;
 		n->e = 0x69;
 		for (int k = 0; k < 4; k++)
 		{
 			int16_t sword = *(const int16_t *)(0xCD0480 + 4 * k);
-			Node24 *a = (Node24 *)AddTaskToQueue(&Q1(), ORIG_SwordPuffTask);
+			Node24 *a = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_SwordPuffTask));
 			a->c = 0;
 			a->e = (int16_t)k;
 			a->s1E = sword;
 			a->s1C = (int16_t)(1 << k);
-			Node24 *b = (Node24 *)AddTaskToQueue(&Q1(), ORIG_SwordShardTask);
+			Node24 *b = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_SwordShardTask));
 			b->c = 0;
 			b->s1C = (int16_t)(1 << k);
 			b->s1E = *(const int16_t *)(0xCD0480 + 4 * k);
@@ -531,7 +548,7 @@ namespace g327
 	{
 		for (uint32_t t = 0xCD046A; t < 0xCD0482; t += 8)
 		{
-			Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_SpinnerTask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_SpinnerTask));
 			n->c = 0;
 			n->e = *(const int16_t *)(t - 2);
 			n->p10 = 0;
@@ -551,14 +568,66 @@ namespace g327
 	// au_re_BdLinkTask_21 0x5943A0: the sword trail, its 10-entry history cleared
 	static void LinkTrail()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_TrailTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_TrailTask));
 		n->c = 0;
-		for (uint32_t a = 0x2200DF8; a < 0x2200EC0; a += 0x14) var<uint32_t>(a) = 0;
+		for (uint32_t a = own::R(0x2200DF8); a < own::R(0x2200EC0); a += 0x14) var<uint32_t>(a) = 0;
 	}
 
 	// ------------------------------------------------------------------
 	// Timeline (0x592300), 328 ticks. Load waits (sub_508500 < 0) repeat the tick.
 	// ------------------------------------------------------------------
+	// File loader (0x58D6E0) and setup (0x58D760, Zantetsuken: variant 0): the game runs its own; Fujin's programs these
+	// (its memory may be a copy's): the TIM, the model buffer (the magic buffer) and the exe data pool pointers into it,
+	// the cast, its first target and its caster, the master, the timeline and the model queue, both sprite pools
+	// cleared, the effect frame (the target's yaw + 0x800, at the targets' centre 4500 in front of the target), the
+	// variant
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)((const char *)TEXTURE_NAME);   // IO_GetFile_MAGIC
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +2 target mask, +4 the actions)
+	{
+		const uint32_t mb = (uint32_t)layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x2200FB8)) = mb;
+		var<uint32_t>(0xCD03A0) = mb + 0x31800;
+		var<uint32_t>(0xCD0398) = mb + 0x2E000;
+		var<uint32_t>(0xCD039C) = mb + 0x2F800;
+		const uint8_t *action = *(uint8_t **)(ctx + 4);
+		const int32_t target = (*(uint8_t **)(action + 8))[0];
+		var<uint8_t *>(own::R(0x2200DF0)) = ctx;
+		var<int32_t>(own::R(0x21FF3C4)) = target;
+		var<int32_t>(own::R(0x2200DF4)) = ctx[0];
+		InitTaskQueuePool((TaskQueue *)own::R(0x21FF4A8), (void *)own::R(0x21FF468), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue((TaskQueue *)own::R(0x21FF4A8), own::Fn(ORIG_SequenceTick)) + 0xC) = 0;
+		InitTaskQueuePool(&Q1(), (void *)own::R(0x21FFD68), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&Q1(), own::Fn(ORIG_TimelineTask)) + 0xC) = 0;
+		InitTaskQueuePool(&Q2(), (void *)own::R(0x21FF3C8), 0x24, 4);
+		for (int i = 0; i < 200; i++) *(uint32_t *)(PoolB() + 0x18 * i) = 0;
+		for (int i = 0; i < 200; i++) *(uint32_t *)(PoolA() + 0x20 * i) = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TexFile());   // Battle_QueueTIMUpload_GetEOF
+		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
+		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
+		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
+		int16_t *centre = (int16_t *)own::R(0x2200FA8);
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)(ctx + 2), centre); // CalculateCenterPosition
+		int32_t *t = (int32_t *)own::R(0x21FF3B4);
+		t[2] = centre[2];
+		t[0] = 0;
+		t[1] = 0;
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = -4500;
+		fn<uint32_t (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(e + 0x40, v, v);  // matrixMultiplyVector
+		t[0] += v[0];
+		var<uint32_t>(own::R(0x2200FA0)) = 0;
+		t[1] += v[1];
+		var<int32_t>(own::R(0x21FFA70)) = 0;   // the variant: Zantetsuken
+		t[2] += v[2];
+		return (TaskQueue *)own::R(0x21FF4A8);
+	}
+
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -571,17 +640,17 @@ namespace g327
 		}
 		if (n->c == 0)
 		{
-			CameraScriptStart(*(const uint32_t *)(0xCD0960 + 4 * Variant()), &RootMatrix(), GIL3, &Q1(), 0);
+			CameraScriptStart(*(const uint32_t *)(0xCD0960 + 4 * Variant()), &RootMatrix(), GIL3(), &Q1(), 0);
 			static const uint32_t streams[4] = { 0xE9151C, 0xE8D208, 0xE88EF4, 0xE84BE0 };
 			uint32_t v = (uint32_t)Variant();
-			if (v <= 3) BdTransSummonStream(streams[v], STREAM_STATE);
+			if (v <= 3) BdTransSummonStream(streams[v], own::R(STREAM_STATE));
 			VoiceSlot() = ClaimVoiceSlot(*(const void **)(0xCD04A0 + 4 * Variant()), 1, 0x80);
 		}
 		int32_t c = n->c;
 		int32_t e;
 		if (c < 0x10)
 		{
-			if (c == 1) BdPlaySE(0xCD0378, 0, 0x80);
+			if (c == 1) BdPlaySE(fxp::sound(P().sounds.start, 0xCD0378), 0, 0x80);
 			else if (c == 2) CharacterLoad(0x2E9, MB() + 0xE000);
 			else if (c == 0) LinkQ1(ORIG_FadeTileTask);
 			else if (c == 8)
@@ -629,7 +698,7 @@ namespace g327
 		{
 			if (e == 0)
 			{
-				BdPlaySE(0xCD037C, 0, 0x80);
+				BdPlaySE(fxp::sound(P().sounds.spin, 0xCD037C), 0, 0x80);
 				SpawnSpinners();
 			}
 			else if (e == 1)
@@ -651,7 +720,7 @@ namespace g327
 			else if (e == 0x37)
 			{
 				if (LoadState() < 0) return 0;
-				BdTransSummonStream(SummonData(), STREAM_STATE);
+				BdTransSummonStream(SummonData(), own::R(STREAM_STATE));
 			}
 			else if (e == 2) LinkQ1(ORIG_RisingRingSpawnerTask);
 		}
@@ -659,7 +728,7 @@ namespace g327
 		{
 			if (e == 0)
 			{
-				BdPlaySE(0xCD0380, 0, 0x80);
+				BdPlaySE(fxp::sound(P().sounds.horse, 0xCD0380), 0, 0x80);
 				BdPlaySummonStream(0x80, 0, 0x60);
 				CharacterLoad(0x2EF, MB());
 				LinkQ2(ORIG_Gil2DrawTask);
@@ -674,7 +743,7 @@ namespace g327
 			else if (e == 0x25)
 			{
 				if (LoadState() < 0) return 0;
-				BdTransSummonStream(SummonData(), STREAM_STATE);
+				BdTransSummonStream(SummonData(), own::R(STREAM_STATE));
 			}
 		}
 		else if ((e -= 0x2A) < 0x32) // 223
@@ -704,7 +773,7 @@ namespace g327
 			else if (e == 0x2D)
 			{
 				if (LoadState() < 0) return 0;
-				BdTransSummonStream(SummonData(), STREAM_STATE);
+				BdTransSummonStream(SummonData(), own::R(STREAM_STATE));
 			}
 			else if (e == 0x28) LinkTrail();
 			else if (e == 0xA) AnimSeqText();
@@ -939,7 +1008,7 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 0)
 		{
-			Node24 *p = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Zan_ScreenPrimTask);
+			Node24 *p = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Zan_ScreenPrimTask));
 			p->c = 0;
 			p->p10 = (int16_t)0xFF56;
 			p->p12 = (int16_t)0xFFE2;
@@ -963,7 +1032,7 @@ namespace g327
 					else
 					{
 						uint32_t slot = rec[0];
-						Node24 *cut = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Zan_CutTask);
+						Node24 *cut = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Zan_CutTask));
 						uint8_t *ent = Entity(slot);
 						cut->c = 0;
 						cut->e = (int16_t)slot;
@@ -974,7 +1043,7 @@ namespace g327
 						int32_t r = CrtRand() % 0x12C;
 						cut->s22 = (int16_t)(-150 - r);
 						cut->s20 = (int16_t)(-150 - r);
-						Node24 *sl = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Zan_SliceTask);
+						Node24 *sl = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Zan_SliceTask));
 						uint32_t p0 = *(const uint32_t *)&cut->p10, p1 = *(const uint32_t *)&cut->p14;
 						sl->e = (int16_t)slot;
 						*(uint32_t *)&sl->p10 = p0;
@@ -1003,7 +1072,7 @@ namespace g327
 			}
 			if (party)
 			{
-				Node24 *pc = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Zan_PartyClipTask);
+				Node24 *pc = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Zan_PartyClipTask));
 				pc->c = 0;
 				pc->e = 0x14;
 				pc->s20 = 0;
@@ -1047,7 +1116,7 @@ namespace g327
 		}
 		int16_t c = n->c;
 		int32_t slot = n->e;
-		int16_t *A = (int16_t *)(0x2200B7C + 60 * slot);
+		int16_t *A = (int16_t *)(own::R(0x2200B7C) + 60 * slot);
 		if (c == 0)
 		{
 			A[2] = 0;
@@ -1057,7 +1126,7 @@ namespace g327
 		if (c <= 0x28)
 		{
 			FX_HELD(MemoNode(n);)
-			CutMatrix(n, CutAngle0(c, n->a18), CutAngle1(c, n->a18), A[2], n->s20, (Mat4x3 *)(0x2200B94 + 60 * slot), A);
+			CutMatrix(n, CutAngle0(c, n->a18), CutAngle1(c, n->a18), A[2], n->s20, (Mat4x3 *)(own::R(0x2200B94) + 60 * slot), A);
 		}
 		if (Paused()) return 0;
 		int16_t v = n->s22;
@@ -1135,7 +1204,7 @@ namespace g327
 			uint8_t *ent = Entity((uint32_t)(int32_t)n->e);
 			ent[0] |= 0xC;
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D8);
-			SliceDraw(h, n, ent, (const Mat4x3 *)(0x2200B94 + 60 * (int32_t)n->e), n->c, -1);
+			SliceDraw(h, n, ent, (const Mat4x3 *)(own::R(0x2200B94) + 60 * (int32_t)n->e), n->c, -1);
 			FieldFree(0x1D8);
 			FX_HELD(MemoNode(n);)
 		}
@@ -1240,7 +1309,7 @@ namespace g327
 			for (uint32_t k = 0; k < TargetCount(); k++, off += 0x18)
 			{
 				uint32_t slot = TargetRecs()[off];
-				Node24 *p = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Masa_ScreenPrimTask);
+				Node24 *p = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Masa_ScreenPrimTask));
 				p->c = 0;
 				GetDefaultEffectPosition(Entity(slot), &p->p10);
 				GteSetRotMatrix(&Camera());
@@ -1263,7 +1332,7 @@ namespace g327
 			for (uint32_t k = 0; k < TargetCount(); k++, off += 0x18)
 			{
 				uint32_t slot = TargetRecs()[off];
-				Node24 *a = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Masa_PrimATask);
+				Node24 *a = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Masa_PrimATask));
 				a->c = 0;
 				GetDefaultEffectPosition(Entity(slot), &a->p10);
 				a->a18 = 0x200;
@@ -1271,7 +1340,7 @@ namespace g327
 				int16_t v = (int16_t)(r / 3);
 				a->s1E = v;
 				a->s1C = v;
-				Node24 *b = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Masa_PrimBTask);
+				Node24 *b = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Masa_PrimBTask));
 				int16_t vb = (int16_t)(a->s1E + 0x600);
 				uint32_t p0 = *(const uint32_t *)&a->p10, p1 = *(const uint32_t *)&a->p14;
 				*(uint32_t *)&b->p10 = p0;
@@ -1280,13 +1349,13 @@ namespace g327
 				b->a18 = 0x200;
 				b->s1E = vb;
 				b->s1C = vb;
-				Node24 *s = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Masa_SparkTask);
+				Node24 *s = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Masa_SparkTask));
 				*(uint32_t *)&s->p10 = *(const uint32_t *)&a->p10;
 				int16_t mask = (int16_t)(1 << k);
 				*(uint32_t *)&s->p14 = *(const uint32_t *)&a->p14;
 				s->c = 0;
 				s->p16 = mask;
-				Node24 *d = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Masa_DustTask);
+				Node24 *d = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Masa_DustTask));
 				*(uint32_t *)&d->p10 = *(const uint32_t *)&a->p10;
 				*(uint32_t *)&d->p14 = *(const uint32_t *)&a->p14;
 				d->c = 0;
@@ -1492,7 +1561,7 @@ namespace g327
 		if (Paused()) return 0;
 		if (n->c == 0)
 		{
-			Node24 *p = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Exca_ScreenPrimTask);
+			Node24 *p = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Exca_ScreenPrimTask));
 			p->c = 0;
 			p->e = poor;
 			p->p10 = (int16_t)0xFF56;
@@ -1508,24 +1577,24 @@ namespace g327
 			for (uint32_t k = 0; k < TargetCount(); k++, off += 0x18)
 			{
 				uint32_t slot = TargetRecs()[off];
-				Node24 *b = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Exca_BurstTask);
+				Node24 *b = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Exca_BurstTask));
 				b->c = 0;
 				b->e = poor;
 				GetDefaultEffectPosition(Entity(slot), &b->p10);
 				int16_t bit = (int16_t)(1 << k);
 				b->p16 = bit;
-				Node24 *s = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Exca_SmokeTask);
+				Node24 *s = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Exca_SmokeTask));
 				*(uint32_t *)&s->p10 = *(const uint32_t *)&b->p10;
 				*(uint32_t *)&s->p14 = *(const uint32_t *)&b->p14;
 				s->c = 0;
 				s->e = poor;
 				s->p16 = (int16_t)(0x100 << k);
-				Node24 *t = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Exca_StreakTask);
+				Node24 *t = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Exca_StreakTask));
 				*(uint32_t *)&t->p10 = *(const uint32_t *)&b->p10;
 				*(uint32_t *)&t->p14 = *(const uint32_t *)&b->p14;
 				t->c = 0;
 				t->p16 = bit;
-				Node24 *q = (Node24 *)AddTaskToQueue(&Q1(), ORIG_Exca_PillarTask);
+				Node24 *q = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_Exca_PillarTask));
 				*(uint32_t *)&q->p10 = *(const uint32_t *)&b->p10;
 				q->c = 0;
 				q->e = 1;
@@ -1878,9 +1947,9 @@ namespace g327
 	// ------------------------------------------------------------------
 	static void ScreenSpriteMatrix(const int16_t *v, int16_t size, int32_t zoff)
 	{
-		var<int16_t>(0x2201070) = size;
-		var<int16_t>(0x2201068) = size;
-		var<int16_t>(0x2201060) = size;
+		var<int16_t>(own::R(0x2201070)) = size;
+		var<int16_t>(own::R(0x2201068)) = size;
+		var<int16_t>(own::R(0x2201060)) = size;
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
 		GteLoadV0(v);
@@ -1889,11 +1958,11 @@ namespace g327
 		GteReadSXY2(sxy);
 		int16_t sx = (int16_t)((int32_t)sxy[0] / 8);
 		int16_t sy = (int16_t)((int32_t)sxy[1] / 8);
-		var<int32_t>(0x2201074) = (int32_t)sx - 0xA0;
-		var<int32_t>(0x2201078) = (int32_t)sy - 0x6C;
-		var<int32_t>(0x220107C) = (int32_t)var<int16_t>(0x1D8E038) + zoff;
-		GteSetRotMatrix((const Mat4x3 *)0x2201060);
-		GteSetTransVector((const Mat4x3 *)0x2201060);
+		var<int32_t>(own::R(0x2201074)) = (int32_t)sx - 0xA0;
+		var<int32_t>(own::R(0x2201078)) = (int32_t)sy - 0x6C;
+		var<int32_t>(own::R(0x220107C)) = (int32_t)var<int16_t>(0x1D8E038) + zoff;
+		GteSetRotMatrix((const Mat4x3 *)own::R(0x2201060));
+		GteSetTransVector((const Mat4x3 *)own::R(0x2201060));
 	}
 
 	static uint32_t FlareColour(int32_t c)
@@ -2138,7 +2207,7 @@ namespace g327
 		int16_t c = n->c;
 		if (c < 0x14 && (int32_t)c % 8 == 1)
 		{
-			Node24 *r = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RisingRingTask);
+			Node24 *r = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RisingRingTask));
 			r->c = 0;
 			r->p10 = 0;
 			r->p12 = 0;
@@ -2421,19 +2490,19 @@ namespace g327
 		uint8_t *s = (uint8_t *)FieldAlloc(0x40);
 		TrailPoints(s);
 		int32_t idx = (int32_t)n->c % 10;
-		uint8_t *e = (uint8_t *)(TRAIL_RING + 0x14 * idx);
+		uint8_t *e = (uint8_t *)(own::R(TRAIL_RING) + 0x14 * idx);
 		*(uint32_t *)e = 1;
 		*(uint32_t *)(e + 4) = *(const uint32_t *)(s + 0x20);
 		*(uint32_t *)(e + 8) = *(const uint32_t *)(s + 0x24);
 		*(uint32_t *)(e + 0xC) = *(const uint32_t *)(s + 0x28);
 		*(uint32_t *)(e + 0x10) = *(const uint32_t *)(s + 0x2C);
-		int32_t cnt = TrailGather((const uint8_t *)TRAIL_RING, idx, (uint8_t *)TRAIL_PTS_A, (uint8_t *)TRAIL_PTS_B);
+		int32_t cnt = TrailGather((const uint8_t *)own::R(TRAIL_RING), idx, (uint8_t *)own::R(TRAIL_PTS_A), (uint8_t *)own::R(TRAIL_PTS_B));
 		FX_HELD(held_note_trail(cnt);)
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)TRAIL_PTS_A, (const uint8_t *)TRAIL_PTS_B, (uint8_t *)TRAIL_SPL_A, (uint8_t *)TRAIL_SPL_B);
+			TrailSplines(cnt, (const uint8_t *)own::R(TRAIL_PTS_A), (const uint8_t *)own::R(TRAIL_PTS_B), (uint8_t *)own::R(TRAIL_SPL_A), (uint8_t *)own::R(TRAIL_SPL_B));
 			FX_HELD(held_note_trail_splines();)
-			TrailDraw((const uint8_t *)TRAIL_SPL_A, (const uint8_t *)TRAIL_SPL_B, s);
+			TrailDraw((const uint8_t *)own::R(TRAIL_SPL_A), (const uint8_t *)own::R(TRAIL_SPL_B), s);
 		}
 		FieldFree(0x40);
 		if (Paused()) return 0;
@@ -2731,7 +2800,7 @@ namespace g327
 		ComputeBonesWorldMatrices(E + 0x60, E + 0x40);
 		*(uint32_t *)(h + 0x10) = *(uint32_t *)(E + 0x28);
 		*(uint32_t *)(h + 0x14) = *(uint32_t *)(E + 0x7C);
-		var<uint32_t>(0x21FF3C0) = (uint32_t)frame;
+		var<uint32_t>(own::R(0x21FF3C0)) = (uint32_t)frame;
 		*(uint16_t *)(h + 0x18) = 0;
 		Cursor() = ClipRender(*(void **)(E + 0x64), h, OT(), 2, Cursor());
 		BuildBoneMatricesFromPose(E + 0x60);
@@ -2769,11 +2838,11 @@ namespace g327
 			{
 				uint8_t *E = Sword(i);
 				ModelMatrixInit(E + 0x40, 0, 0, 0);
-				ModelInit(E, (uint8_t *)(0x2200D20 + 0x34 * i), *(uint8_t **)(0xCD03E8 + 4 * (i + 4 * Variant())), 0x10);
+				ModelInit(E, (uint8_t *)(own::R(0x2200D20) + 0x34 * i), *(uint8_t **)(0xCD03E8 + 4 * (i + 4 * Variant())), 0x10);
 				SetAnim(E, n->e);
 			}
 		}
-		var<uint8_t>(0x21FF4F0) |= 4;
+		var<uint8_t>(own::R(0x21FF4F0)) |= 4;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x1A8);
 		ClipSetup(h);
 		for (int i = 0; i < 4; i++)
@@ -2789,12 +2858,12 @@ namespace g327
 			int32_t e = c - 10;
 			if (e < 15)
 			{
-				if (e == 0) var<uint8_t>(0x21FF4F0) |= 8;
+				if (e == 0) var<uint8_t>(own::R(0x21FF4F0)) |= 8;
 			}
 			else if ((e -= 15) >= 20)
 			{
 				e -= 20;
-				if (e < 60 && e == 0) var<uint16_t>(0x21FF4F0) &= 0xFFF7;
+				if (e < 60 && e == 0) var<uint16_t>(own::R(0x21FF4F0)) &= 0xFFF7;
 			}
 		}
 		n->c = (int16_t)(c + 1);
@@ -2806,22 +2875,22 @@ namespace g327
 	static uint32_t __cdecl SwordDrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		if (!(var<uint8_t>(0x21FF4F0) & 4))
+		if (!(var<uint8_t>(own::R(0x21FF4F0)) & 4))
 		{
 			for (int i = 0; i < 4; i++)
 			{
 				uint8_t *E = Sword(i);
 				if (i != 0)
 				{
-					memcpy(E + 0x40, (const void *)0x21FF530, sizeof(Mat4x3));
-					*(uint32_t *)(E + 0x28) = var<uint32_t>(0x21FF518);
+					memcpy(E + 0x40, (const void *)own::R(0x21FF530), sizeof(Mat4x3));
+					*(uint32_t *)(E + 0x28) = var<uint32_t>(own::R(0x21FF518));
 				}
 				DrawModel(E, &Frame(), 4);
 				FX_HELD(ModelMemoTake(E, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
-		if (!(var<uint8_t>(0x21FF4F0) & 8))
+		if (!(var<uint8_t>(own::R(0x21FF4F0)) & 8))
 			for (int i = 0; i < 4; i++) AdvanceModel(Sword(i));
 		n->c++;
 		return n->c >= n->e ? TASK_END : 0;
@@ -2834,21 +2903,21 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 0)
 		{
-			ModelMatrixInit(GIL1 + 0x40, 0, 0, 0);
-			ModelInit(GIL1, (uint8_t *)0x21FF4B8, (uint8_t *)MB(), 0x20);
+			ModelMatrixInit(GIL1() + 0x40, 0, 0, 0);
+			ModelInit(GIL1(), (uint8_t *)own::R(0x21FF4B8), (uint8_t *)MB(), 0x20);
 		}
 		int32_t c = n->c;
 		if (c < 10)
 		{
 			if (c == 0)
 			{
-				GIL1[0] |= 4;
-				SetAnim(GIL1, 0);
+				GIL1()[0] |= 4;
+				SetAnim(GIL1(), 0);
 			}
 		}
 		else if (c - 10 < 15)
 		{
-			if (c == 10) GIL1[0] |= 8;
+			if (c == 10) GIL1()[0] |= 8;
 		}
 		else if (c - 25 < 20)
 		{
@@ -2858,13 +2927,13 @@ namespace g327
 			uint8_t *h = (uint8_t *)FieldAlloc(0xB0);
 			*(uint32_t *)(h + 0x2C) = buf;
 			*(int32_t *)(h + 0x44) = c - 25;
-			MaterialDraw(h, GIL1);
+			MaterialDraw(h, GIL1());
 			FieldFree(0xB0);
-			FX_HELD(ModelMemoTake(GIL1, n, DK_MATERIAL, c - 25);)
+			FX_HELD(ModelMemoTake(GIL1(), n, DK_MATERIAL, c - 25);)
 		}
 		else if (c - 45 < 60)
 		{
-			if (c == 45) *(uint16_t *)GIL1 &= 0xFFF3;
+			if (c == 45) *(uint16_t *)GIL1() &= 0xFFF3;
 		}
 		if (Paused()) return 0;
 		n->c++;
@@ -2875,13 +2944,13 @@ namespace g327
 	static uint32_t __cdecl Gil1DrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		if (!(GIL1[0] & 4))
+		if (!(GIL1()[0] & 4))
 		{
-			DrawModel(GIL1, &Frame(), 4);
-			FX_HELD(ModelMemoTake(GIL1, n, DK_NORMAL4, 0);)
+			DrawModel(GIL1(), &Frame(), 4);
+			FX_HELD(ModelMemoTake(GIL1(), n, DK_NORMAL4, 0);)
 		}
 		if (Paused()) return 0;
-		if (!(GIL1[0] & 8)) AdvanceModel(GIL1);
+		if (!(GIL1()[0] & 8)) AdvanceModel(GIL1());
 		n->c++;
 		return n->c >= 0x69 ? TASK_END : 0;
 	}
@@ -2893,13 +2962,13 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 0)
 		{
-			ModelMatrixInit(GIL2 + 0x40, 0, -1000, 0);
-			ModelInit(GIL2, (uint8_t *)0x21FF2B0, (uint8_t *)(MB() + 0x22000), 0x80);
-			SetAnim(GIL2, 0);
+			ModelMatrixInit(GIL2() + 0x40, 0, -1000, 0);
+			ModelInit(GIL2(), (uint8_t *)own::R(0x21FF2B0), (uint8_t *)(MB() + 0x22000), 0x80);
+			SetAnim(GIL2(), 0);
 			uint8_t *buf = (uint8_t *)(MB() + 0x2379C);
 			for (int j = 0; j < 4; j++, buf += 0x1860)
 			{
-				ModelInit(Arm(j), (uint8_t *)(0x21FFC78 + 0x34 * j), buf, 0x40);
+				ModelInit(Arm(j), (uint8_t *)(own::R(0x21FFC78) + 0x34 * j), buf, 0x40);
 				SetAnim(Arm(j), j);
 			}
 		}
@@ -2913,25 +2982,25 @@ namespace g327
 	static uint32_t __cdecl Gil2DrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		if (!(GIL2[0] & 4))
+		if (!(GIL2()[0] & 4))
 		{
-			DrawModel(GIL2, &Frame(), 3);
-			FX_HELD(ModelMemoTake(GIL2, n, DK_NORMAL3, 0);)
+			DrawModel(GIL2(), &Frame(), 3);
+			FX_HELD(ModelMemoTake(GIL2(), n, DK_NORMAL3, 0);)
 			for (int j = 0; j < 4; j++)
 			{
 				uint8_t *A = Arm(j);
-				*(uint16_t *)A = *(uint16_t *)GIL2;
-				memcpy(A + 0x40, (const void *)0x2200F40, sizeof(Mat4x3));
+				*(uint16_t *)A = *(uint16_t *)GIL2();
+				memcpy(A + 0x40, (const void *)own::R(0x2200F40), sizeof(Mat4x3));
 				*(int32_t *)(A + 0x5C) += 0x50;
-				*(uint32_t *)(A + 0x28) = var<uint32_t>(0x2200F28);
+				*(uint32_t *)(A + 0x28) = var<uint32_t>(own::R(0x2200F28));
 				DrawModel(A, &Frame(), 4);
 				FX_HELD(ModelMemoTake(A, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
-		if (!(GIL2[0] & 8))
+		if (!(GIL2()[0] & 8))
 		{
-			AdvanceModel(GIL2);
+			AdvanceModel(GIL2());
 			for (int j = 0; j < 4; j++) AdvanceModel(Arm(j));
 		}
 		n->c++;
@@ -2945,12 +3014,12 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 0)
 		{
-			ModelMatrixInit(GIL3 + 0x40, 0, 0, 0);
-			ModelInit(GIL3, (uint8_t *)0x2200EC8, (uint8_t *)MB(), 0xF);
-			SetAnim(GIL3, 0);
+			ModelMatrixInit(GIL3() + 0x40, 0, 0, 0);
+			ModelInit(GIL3(), (uint8_t *)own::R(0x2200EC8), (uint8_t *)MB(), 0xF);
+			SetAnim(GIL3(), 0);
 			for (int i = 0; i < 4; i++)
 			{
-				ModelInit(Sword(i), (uint8_t *)(0x2200D20 + 0x34 * i), *(uint8_t **)(0xCD03E8 + 4 * (i + 4 * Variant())), 0x10);
+				ModelInit(Sword(i), (uint8_t *)(own::R(0x2200D20) + 0x34 * i), *(uint8_t **)(0xCD03E8 + 4 * (i + 4 * Variant())), 0x10);
 				SetAnim(Sword(i), Variant() + 4);
 			}
 		}
@@ -2964,87 +3033,156 @@ namespace g327
 	static uint32_t __cdecl Gil3DrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		if (!(GIL3[0] & 4))
+		if (!(GIL3()[0] & 4))
 		{
-			DrawModel(GIL3, &Frame(), 4);
-			FX_HELD(ModelMemoTake(GIL3, n, DK_NORMAL4, 0);)
+			DrawModel(GIL3(), &Frame(), 4);
+			FX_HELD(ModelMemoTake(GIL3(), n, DK_NORMAL4, 0);)
 			for (int i = 0; i < 4; i++)
 			{
 				uint8_t *E = Sword(i);
-				*(uint16_t *)E = *(uint16_t *)GIL3;
-				memcpy(E + 0x40, (const void *)0x2201000, sizeof(Mat4x3));
-				*(uint32_t *)(E + 0x28) = var<uint32_t>(0x2200FE8);
+				*(uint16_t *)E = *(uint16_t *)GIL3();
+				memcpy(E + 0x40, (const void *)own::R(0x2201000), sizeof(Mat4x3));
+				*(uint32_t *)(E + 0x28) = var<uint32_t>(own::R(0x2200FE8));
 				DrawModel(E, &Frame(), 4);
 				FX_HELD(ModelMemoTake(E, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
-		if (!(GIL2[0] & 8))
+		if (!(GIL2()[0] & 8))
 		{
-			AdvanceModel(GIL3);
+			AdvanceModel(GIL3());
 			for (int i = 0; i < 4; i++) AdvanceModel(Sword(i));
 		}
 		n->c++;
 		return n->c >= 0x32 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Gilgamesh's Zantetsuken: the camera script, the summon stream's loads, the fade tile, rings, flares, risers, the swords and Gilgamesh, sparks, puffs, spinners, dots and rising rings, the horse, the final pose, the trail, the sword attack (the targets sliced), the screen flash, the voice and the sounds; the action results" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the timeline's ticks 1, 121, 181" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "sounds.start", "Start", "At the timeline's tick 1", (uint32_t)offsetof(GilgameshParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.spin", "Spin", "At the timeline's tick 121", (uint32_t)offsetof(GilgameshParams, sounds.spin), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.horse", "Horse", "At the timeline's tick 181", (uint32_t)offsetof(GilgameshParams, sounds.horse), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
-	// One set of ports serves the four ids 327-330 (the tasks are shared, the variant is data):
-	// the ports are registered under 327.
 	void register_mag327_gilgamesh()
 	{
-		using namespace g327;
-		register_port(ORIG_SequenceTick, (void *)SequenceTick, "G327 SequenceTick", 327);
-		register_port(ORIG_TimelineTask, (void *)TimelineTask, "G327 TimelineTask", 327);
-		register_port(ORIG_FeedbackTask, (void *)FeedbackTask, "G327 FeedbackTask", 327);
-		register_port(ORIG_Feedback2Task, (void *)Feedback2Task, "G327 Feedback2Task", 327);
-		register_port(ORIG_FlashInTask, (void *)FlashInTask, "G327 FlashInTask", 327);
-		register_port(ORIG_FlashOutTask, (void *)FlashOutTask, "G327 FlashOutTask", 327);
-		register_port(ORIG_FadeTileTask, (void *)FadeTileTask, "G327 FadeTileTask", 327);
-		register_port(ORIG_RingTask, (void *)RingTask, "G327 RingTask", 327);
-		register_port(ORIG_RingSpinTask, (void *)RingSpinTask, "G327 RingSpinTask", 327);
-		register_port(ORIG_RingSpin2Task, (void *)RingSpin2Task, "G327 RingSpin2Task", 327);
-		register_port(ORIG_FlareTask, (void *)FlareTask, "G327 FlareTask", 327);
-		register_port(ORIG_RiserTask, (void *)RiserTask, "G327 RiserTask", 327);
-		register_port(ORIG_PuffTask, (void *)PuffTask, "G327 PuffTask", 327);
-		register_port(ORIG_SparkTask, (void *)SparkTask, "G327 SparkTask", 327);
-		register_port(ORIG_RisingRingSpawnerTask, (void *)RisingRingSpawnerTask, "G327 RisingRingSpawnerTask", 327);
-		register_port(ORIG_RisingRingTask, (void *)RisingRingTask, "G327 RisingRingTask", 327);
-		register_port(ORIG_DotTask, (void *)DotTask, "G327 DotTask", 327);
-		register_port(ORIG_SpinnerTask, (void *)SpinnerTask, "G327 SpinnerTask", 327);
-		register_port(ORIG_TrailTask, (void *)TrailTask, "G327 TrailTask", 327);
-		register_port(ORIG_SwordShardTask, (void *)SwordShardTask, "G327 SwordShardTask", 327);
-		register_port(ORIG_SwordPuffTask, (void *)SwordPuffTask, "G327 SwordPuffTask", 327);
-		register_port(ORIG_SwordClipTask, (void *)SwordClipTask, "G327 SwordClipTask", 327);
-		register_port(ORIG_SwordDrawTask, (void *)SwordDrawTask, "G327 SwordDrawTask", 327);
-		register_port(ORIG_Gil1Task, (void *)Gil1Task, "G327 Gil1Task", 327);
-		register_port(ORIG_Gil1DrawTask, (void *)Gil1DrawTask, "G327 Gil1DrawTask", 327);
-		register_port(ORIG_Gil2Task, (void *)Gil2Task, "G327 Gil2Task", 327);
-		register_port(ORIG_Gil2DrawTask, (void *)Gil2DrawTask, "G327 Gil2DrawTask", 327);
-		register_port(ORIG_Gil3Task, (void *)Gil3Task, "G327 Gil3Task", 327);
-		register_port(ORIG_Gil3DrawTask, (void *)Gil3DrawTask, "G327 Gil3DrawTask", 327);
-		register_port(ORIG_EndTask, (void *)EndTask, "G327 EndTask", 327);
-		register_port(ORIG_Zan_Task, (void *)ZanTask, "G327 ZanTask", 327);
-		register_port(ORIG_Zan_ScreenPrimTask, (void *)ZanScreenPrimTask, "G327 ZanScreenPrimTask", 327);
-		register_port(ORIG_Zan_CutTask, (void *)ZanCutTask, "G327 ZanCutTask", 327);
-		register_port(ORIG_Zan_SliceTask, (void *)ZanSliceTask, "G327 ZanSliceTask", 327);
-		register_port(ORIG_Zan_PartyClipTask, (void *)ZanPartyClipTask, "G327 ZanPartyClipTask", 327);
-		register_port(ORIG_Masa_Task, (void *)MasaTask, "G327 MasaTask", 327);
-		register_port(ORIG_Masa_ScreenPrimTask, (void *)MasaScreenPrimTask, "G327 MasaScreenPrimTask", 327);
-		register_port(ORIG_Masa_PrimATask, (void *)MasaPrimATask, "G327 MasaPrimATask", 327);
-		register_port(ORIG_Masa_PrimBTask, (void *)MasaPrimBTask, "G327 MasaPrimBTask", 327);
-		register_port(ORIG_Masa_SparkTask, (void *)MasaSparkTask, "G327 MasaSparkTask", 327);
-		register_port(ORIG_Masa_DustTask, (void *)MasaDustTask, "G327 MasaDustTask", 327);
-		register_port(ORIG_Exca_Task, (void *)ExcaTask, "G327 ExcaTask", 327);
-		register_port(ORIG_Poor_Task, (void *)PoorTask, "G327 PoorTask", 327);
-		register_port(ORIG_Exca_ScreenPrimTask, (void *)ExcaScreenPrimTask, "G327 ExcaScreenPrimTask", 327);
-		register_port(ORIG_Exca_BurstTask, (void *)ExcaBurstTask, "G327 ExcaBurstTask", 327);
-		register_port(ORIG_Exca_SmokeTask, (void *)ExcaSmokeTask, "G327 ExcaSmokeTask", 327);
-		register_port(ORIG_Exca_StreakTask, (void *)ExcaStreakTask, "G327 ExcaStreakTask", 327);
-		register_port(ORIG_Exca_PillarTask, (void *)ExcaPillarTask, "G327 ExcaPillarTask", 327);
+		fxp::register_params({ 327, "Gilgamesh", &g327::live, &g327::GAME, sizeof(g327::GilgameshParams),
+		                       g327::table::PARTS, (int)(sizeof(g327::table::PARTS) / sizeof(g327::table::PARTS[0])),
+		                       g327::table::FIELDS, (int)(sizeof(g327::table::FIELDS) / sizeof(g327::table::FIELDS[0])),
+		                       g327::table::GROUPS, (int)(sizeof(g327::table::GROUPS) / sizeof(g327::table::GROUPS[0])) });
+		own::note(g327::ORIG_FileLoader, (void *)g327::FileLoader);
+		own::note(g327::ORIG_Setup, (void *)g327::Setup);
+		// One set of ports serves the four ids 327-330 (the tasks are shared, the variant is data):
+		// the ports are registered under 327.
+		own::note(g327::ORIG_SequenceTick, (void *)g327::SequenceTick);
+		register_port(g327::ORIG_SequenceTick, (void *)g327::SequenceTick, "G327 SequenceTick", 327);
+		own::note(g327::ORIG_TimelineTask, (void *)g327::TimelineTask);
+		register_port(g327::ORIG_TimelineTask, (void *)g327::TimelineTask, "G327 TimelineTask", 327);
+		own::note(g327::ORIG_FeedbackTask, (void *)g327::FeedbackTask);
+		register_port(g327::ORIG_FeedbackTask, (void *)g327::FeedbackTask, "G327 FeedbackTask", 327);
+		own::note(g327::ORIG_Feedback2Task, (void *)g327::Feedback2Task);
+		register_port(g327::ORIG_Feedback2Task, (void *)g327::Feedback2Task, "G327 Feedback2Task", 327);
+		own::note(g327::ORIG_FlashInTask, (void *)g327::FlashInTask);
+		register_port(g327::ORIG_FlashInTask, (void *)g327::FlashInTask, "G327 FlashInTask", 327);
+		own::note(g327::ORIG_FlashOutTask, (void *)g327::FlashOutTask);
+		register_port(g327::ORIG_FlashOutTask, (void *)g327::FlashOutTask, "G327 FlashOutTask", 327);
+		own::note(g327::ORIG_FadeTileTask, (void *)g327::FadeTileTask);
+		register_port(g327::ORIG_FadeTileTask, (void *)g327::FadeTileTask, "G327 FadeTileTask", 327);
+		own::note(g327::ORIG_RingTask, (void *)g327::RingTask);
+		register_port(g327::ORIG_RingTask, (void *)g327::RingTask, "G327 RingTask", 327);
+		own::note(g327::ORIG_RingSpinTask, (void *)g327::RingSpinTask);
+		register_port(g327::ORIG_RingSpinTask, (void *)g327::RingSpinTask, "G327 RingSpinTask", 327);
+		own::note(g327::ORIG_RingSpin2Task, (void *)g327::RingSpin2Task);
+		register_port(g327::ORIG_RingSpin2Task, (void *)g327::RingSpin2Task, "G327 RingSpin2Task", 327);
+		own::note(g327::ORIG_FlareTask, (void *)g327::FlareTask);
+		register_port(g327::ORIG_FlareTask, (void *)g327::FlareTask, "G327 FlareTask", 327);
+		own::note(g327::ORIG_RiserTask, (void *)g327::RiserTask);
+		register_port(g327::ORIG_RiserTask, (void *)g327::RiserTask, "G327 RiserTask", 327);
+		own::note(g327::ORIG_PuffTask, (void *)g327::PuffTask);
+		register_port(g327::ORIG_PuffTask, (void *)g327::PuffTask, "G327 PuffTask", 327);
+		own::note(g327::ORIG_SparkTask, (void *)g327::SparkTask);
+		register_port(g327::ORIG_SparkTask, (void *)g327::SparkTask, "G327 SparkTask", 327);
+		own::note(g327::ORIG_RisingRingSpawnerTask, (void *)g327::RisingRingSpawnerTask);
+		register_port(g327::ORIG_RisingRingSpawnerTask, (void *)g327::RisingRingSpawnerTask, "G327 RisingRingSpawnerTask", 327);
+		own::note(g327::ORIG_RisingRingTask, (void *)g327::RisingRingTask);
+		register_port(g327::ORIG_RisingRingTask, (void *)g327::RisingRingTask, "G327 RisingRingTask", 327);
+		own::note(g327::ORIG_DotTask, (void *)g327::DotTask);
+		register_port(g327::ORIG_DotTask, (void *)g327::DotTask, "G327 DotTask", 327);
+		own::note(g327::ORIG_SpinnerTask, (void *)g327::SpinnerTask);
+		register_port(g327::ORIG_SpinnerTask, (void *)g327::SpinnerTask, "G327 SpinnerTask", 327);
+		own::note(g327::ORIG_TrailTask, (void *)g327::TrailTask);
+		register_port(g327::ORIG_TrailTask, (void *)g327::TrailTask, "G327 TrailTask", 327);
+		own::note(g327::ORIG_SwordShardTask, (void *)g327::SwordShardTask);
+		register_port(g327::ORIG_SwordShardTask, (void *)g327::SwordShardTask, "G327 SwordShardTask", 327);
+		own::note(g327::ORIG_SwordPuffTask, (void *)g327::SwordPuffTask);
+		register_port(g327::ORIG_SwordPuffTask, (void *)g327::SwordPuffTask, "G327 SwordPuffTask", 327);
+		own::note(g327::ORIG_SwordClipTask, (void *)g327::SwordClipTask);
+		register_port(g327::ORIG_SwordClipTask, (void *)g327::SwordClipTask, "G327 SwordClipTask", 327);
+		own::note(g327::ORIG_SwordDrawTask, (void *)g327::SwordDrawTask);
+		register_port(g327::ORIG_SwordDrawTask, (void *)g327::SwordDrawTask, "G327 SwordDrawTask", 327);
+		own::note(g327::ORIG_Gil1Task, (void *)g327::Gil1Task);
+		register_port(g327::ORIG_Gil1Task, (void *)g327::Gil1Task, "G327 Gil1Task", 327);
+		own::note(g327::ORIG_Gil1DrawTask, (void *)g327::Gil1DrawTask);
+		register_port(g327::ORIG_Gil1DrawTask, (void *)g327::Gil1DrawTask, "G327 Gil1DrawTask", 327);
+		own::note(g327::ORIG_Gil2Task, (void *)g327::Gil2Task);
+		register_port(g327::ORIG_Gil2Task, (void *)g327::Gil2Task, "G327 Gil2Task", 327);
+		own::note(g327::ORIG_Gil2DrawTask, (void *)g327::Gil2DrawTask);
+		register_port(g327::ORIG_Gil2DrawTask, (void *)g327::Gil2DrawTask, "G327 Gil2DrawTask", 327);
+		own::note(g327::ORIG_Gil3Task, (void *)g327::Gil3Task);
+		register_port(g327::ORIG_Gil3Task, (void *)g327::Gil3Task, "G327 Gil3Task", 327);
+		own::note(g327::ORIG_Gil3DrawTask, (void *)g327::Gil3DrawTask);
+		register_port(g327::ORIG_Gil3DrawTask, (void *)g327::Gil3DrawTask, "G327 Gil3DrawTask", 327);
+		own::note(g327::ORIG_EndTask, (void *)g327::EndTask);
+		register_port(g327::ORIG_EndTask, (void *)g327::EndTask, "G327 EndTask", 327);
+		own::note(g327::ORIG_Zan_Task, (void *)g327::ZanTask);
+		register_port(g327::ORIG_Zan_Task, (void *)g327::ZanTask, "G327 ZanTask", 327);
+		own::note(g327::ORIG_Zan_ScreenPrimTask, (void *)g327::ZanScreenPrimTask);
+		register_port(g327::ORIG_Zan_ScreenPrimTask, (void *)g327::ZanScreenPrimTask, "G327 ZanScreenPrimTask", 327);
+		own::note(g327::ORIG_Zan_CutTask, (void *)g327::ZanCutTask);
+		register_port(g327::ORIG_Zan_CutTask, (void *)g327::ZanCutTask, "G327 ZanCutTask", 327);
+		own::note(g327::ORIG_Zan_SliceTask, (void *)g327::ZanSliceTask);
+		register_port(g327::ORIG_Zan_SliceTask, (void *)g327::ZanSliceTask, "G327 ZanSliceTask", 327);
+		own::note(g327::ORIG_Zan_PartyClipTask, (void *)g327::ZanPartyClipTask);
+		register_port(g327::ORIG_Zan_PartyClipTask, (void *)g327::ZanPartyClipTask, "G327 ZanPartyClipTask", 327);
+		own::note(g327::ORIG_Masa_Task, (void *)g327::MasaTask);
+		register_port(g327::ORIG_Masa_Task, (void *)g327::MasaTask, "G327 MasaTask", 327);
+		own::note(g327::ORIG_Masa_ScreenPrimTask, (void *)g327::MasaScreenPrimTask);
+		register_port(g327::ORIG_Masa_ScreenPrimTask, (void *)g327::MasaScreenPrimTask, "G327 MasaScreenPrimTask", 327);
+		own::note(g327::ORIG_Masa_PrimATask, (void *)g327::MasaPrimATask);
+		register_port(g327::ORIG_Masa_PrimATask, (void *)g327::MasaPrimATask, "G327 MasaPrimATask", 327);
+		own::note(g327::ORIG_Masa_PrimBTask, (void *)g327::MasaPrimBTask);
+		register_port(g327::ORIG_Masa_PrimBTask, (void *)g327::MasaPrimBTask, "G327 MasaPrimBTask", 327);
+		own::note(g327::ORIG_Masa_SparkTask, (void *)g327::MasaSparkTask);
+		register_port(g327::ORIG_Masa_SparkTask, (void *)g327::MasaSparkTask, "G327 MasaSparkTask", 327);
+		own::note(g327::ORIG_Masa_DustTask, (void *)g327::MasaDustTask);
+		register_port(g327::ORIG_Masa_DustTask, (void *)g327::MasaDustTask, "G327 MasaDustTask", 327);
+		own::note(g327::ORIG_Exca_Task, (void *)g327::ExcaTask);
+		register_port(g327::ORIG_Exca_Task, (void *)g327::ExcaTask, "G327 ExcaTask", 327);
+		own::note(g327::ORIG_Poor_Task, (void *)g327::PoorTask);
+		register_port(g327::ORIG_Poor_Task, (void *)g327::PoorTask, "G327 PoorTask", 327);
+		own::note(g327::ORIG_Exca_ScreenPrimTask, (void *)g327::ExcaScreenPrimTask);
+		register_port(g327::ORIG_Exca_ScreenPrimTask, (void *)g327::ExcaScreenPrimTask, "G327 ExcaScreenPrimTask", 327);
+		own::note(g327::ORIG_Exca_BurstTask, (void *)g327::ExcaBurstTask);
+		register_port(g327::ORIG_Exca_BurstTask, (void *)g327::ExcaBurstTask, "G327 ExcaBurstTask", 327);
+		own::note(g327::ORIG_Exca_SmokeTask, (void *)g327::ExcaSmokeTask);
+		register_port(g327::ORIG_Exca_SmokeTask, (void *)g327::ExcaSmokeTask, "G327 ExcaSmokeTask", 327);
+		own::note(g327::ORIG_Exca_StreakTask, (void *)g327::ExcaStreakTask);
+		register_port(g327::ORIG_Exca_StreakTask, (void *)g327::ExcaStreakTask, "G327 ExcaStreakTask", 327);
+		own::note(g327::ORIG_Exca_PillarTask, (void *)g327::ExcaPillarTask);
+		register_port(g327::ORIG_Exca_PillarTask, (void *)g327::ExcaPillarTask, "G327 ExcaPillarTask", 327);
 		// 30 fps layer: see mag327_gilgamesh_held.inc
 		FX_HELD(register_mag327_held();)
 	}
+	FX_LAB_MODULE(register_mag327_gilgamesh);
 }
 
 #ifdef FF8_FX_HELD
