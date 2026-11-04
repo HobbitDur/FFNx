@@ -47,6 +47,9 @@
 // 0x23941E8).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -56,18 +59,18 @@ namespace holy175
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2392CE0); }            // mag174.tim
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23941BC); }            // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23941C0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2377744); }
-	inline int32_t &FadeSide() { return var<int32_t>(0x2374578); }             // target slot: fades act on the other side
-	inline int32_t &GridTextured() { return var<int32_t>(0x2377740); }         // 1 until director frame 0x1E
-	inline int32_t &GridActive() { return var<int32_t>(0x2376880); }           // cleared when no triangle is left
-	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(0x23745A0); } // .first = root / texture restore
-	inline TaskQueue &Tasks() { return var<TaskQueue>(0x2376870); }            // every effect task (100 nodes of 0x24)
-	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(0x2377698 + 0x18 * slot); } // entity faded out
-	inline Mat4x3 *OrbitMatrix(int index) { return (Mat4x3 *)(0x23745B0 + 0x20 * index); }
-	inline Mat4x3 *SpriteMatrix() { return (Mat4x3 *)0x23941E8; }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2392CE0)); }            // mag174.tim
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23941BC)); }            // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23941C0)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2377744)); }
+	inline int32_t &FadeSide() { return var<int32_t>(own::R(0x2374578)); }             // target slot: fades act on the other side
+	inline int32_t &GridTextured() { return var<int32_t>(own::R(0x2377740)); }         // 1 until director frame 0x1E
+	inline int32_t &GridActive() { return var<int32_t>(own::R(0x2376880)); }           // cleared when no triangle is left
+	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(own::R(0x23745A0)); } // .first = root / texture restore
+	inline TaskQueue &Tasks() { return var<TaskQueue>(own::R(0x2376870)); }            // every effect task (100 nodes of 0x24)
+	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(own::R(0x2377698) + 0x18 * slot); } // entity faded out
+	inline Mat4x3 *OrbitMatrix(int index) { return (Mat4x3 *)(own::R(0x23745B0) + 0x20 * index); }
+	inline Mat4x3 *SpriteMatrix() { return (Mat4x3 *)own::R(0x23941E8); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }              // g_Battle_FrameRenderListBase
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }         // battle_texture_data_ptr: frame packet arena
 	inline int16_t ProjH() { return var<int16_t>(0x1D8E038); }                 // GTE projection distance
@@ -92,6 +95,20 @@ namespace holy175
 	static const uint32_t ORIG_FlashTask = 0x5D43B0;
 
 	static const void *const SOUND_Holy = (const void *)0xD59180;
+	static const uint32_t ORIG_FileLoader = 0x5D1AB0, ORIG_Setup = 0x5D1AD0;
+	static const uint32_t TEXTURE_NAME = 0xD592F0, CAMERA = 0xD45188;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct HolyParams
+	{
+		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
+		struct { int16_t damage; } director; // the damage at this tick of an action's director
+	};
+	static const HolyParams GAME = { 0xD59180, { 0x6A } };
+	static HolyParams live = GAME;
+	static const HolyParams &P() { return live; }
 	static const void *const TIM_Upload = (const void *)0xD45EAC;  // texture uploaded at director frame 0x1E
 	static const uint32_t PILLAR_Delays = 0xD59188;  // 12 x (word delay / 3, word unused)
 	static const uint32_t BEAM_Sprites = 0xD591D0;   // 8 x (word frame, word size, word distance, word)
@@ -300,7 +317,7 @@ namespace holy175
 	static_assert(sizeof(OrbitCtrlNode) == 0x24 && sizeof(OrbitNode) == 0x24 && sizeof(EmitterNode) == 0x24 && sizeof(RingNode) == 0x24, "Holy nodes");
 	static_assert(sizeof(Sparkle) == 0x18 && sizeof(Mote) == 0x18 && sizeof(Vertex) == 0x10 && sizeof(Triangle) == 0x24, "Holy pools");
 
-	inline TaskNode *AddTask(uint32_t fn) { return AddTaskToQueue(&Tasks(), fn); }
+	inline TaskNode *AddTask(uint32_t fn) { return AddTaskToQueue(&Tasks(), own::Fn(fn)); }   // (a copy: the port's thunk)
 	inline uint16_t &EntityFlags(int slot) { return *(uint16_t *)Entity(slot); }
 
 	// x / 3, x / 6, x / 20 exactly as the magic-number divisions of the original
@@ -323,6 +340,40 @@ namespace holy175
 	// ------------------------------------------------------------------
 	// Root (0x5D44C0) and texture restore (0x5D4540)
 	// ------------------------------------------------------------------
+	// File loader (0x5D1AB0) and setup (0x5D1AD0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's (the fade side) and its caster's slots, the root and the
+	// first action's director (its target +0x20), the sparkle and mote pools freed, the camera (its return armed) and
+	// the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		FadeSide() = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x23814DC)) = ctx->attacker;
+		InitTaskQueuePool(&RootQueues().first, (void *)own::R(0x2374580), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&RootQueues().first, own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(&Tasks(), (void *)own::R(0x2376888), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(&Tasks(), own::Fn(ORIG_DirectorTask));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
+		for (uint32_t a = own::R(SPARKLES); a < own::R(SPARKLES_End); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(MOTES); a < own::R(MOTES_End); a += 0x18) *(int32_t *)a = 0;
+		fn<void (__cdecl *)()>(0x50A730)();   // BS_Camera_ArmReturnAfterEffect
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)CAMERA);
+			QueueTimUpload((const void *)TexFile());
+		}
+		return &RootQueues().first;
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -333,7 +384,7 @@ namespace holy175
 		int left = ExecuteTaskQueue(&Tasks());
 		if (!left && !(Ctx()->flags & 2))
 		{
-			RestoreNode *t = (RestoreNode *)AddTaskToQueue(&RootQueues().first, ORIG_RestoreTask);
+			RestoreNode *t = (RestoreNode *)AddTaskToQueue(&RootQueues().first, own::Fn(ORIG_RestoreTask));
 			t->counter = (int16_t)left;
 			t->done = (uint16_t)left;
 		}
@@ -366,7 +417,7 @@ namespace holy175
 
 	static void BuildGrid()
 	{
-		Vertex *e = (Vertex *)GRID_Vertices;
+		Vertex *e = (Vertex *)own::R(GRID_Vertices);
 		int32_t y = -0x78;
 		for (int row = 0; row < 15; row++, y += 0x10)
 		{
@@ -403,7 +454,7 @@ namespace holy175
 				e->v = (int16_t)(e->v + (int16_t)(y + 0x78));
 			}
 		}
-		Vertex *c = (Vertex *)GRID_Centres;
+		Vertex *c = (Vertex *)own::R(GRID_Centres);
 		int32_t yb = -0x78;
 		for (int row = 0; row < 14; row++, yb += 0x10)
 		{
@@ -424,11 +475,11 @@ namespace holy175
 				c->v = (int16_t)(c->v + (int16_t)(yb + 0x80));
 			}
 		}
-		Vertex *a = (Vertex *)GRID_Vertices;
-		Vertex *b = (Vertex *)GRID_Centres;
-		uint8_t *pk = (uint8_t *)GRID_Packets;
-		Triangle *t = (Triangle *)GRID_Triangles;
-		Vertex **cell = (Vertex **)GRID_CellPointers;
+		Vertex *a = (Vertex *)own::R(GRID_Vertices);
+		Vertex *b = (Vertex *)own::R(GRID_Centres);
+		uint8_t *pk = (uint8_t *)own::R(GRID_Packets);
+		Triangle *t = (Triangle *)own::R(GRID_Triangles);
+		Vertex **cell = (Vertex **)own::R(GRID_CellPointers);
 		for (int row = 0; row < 14; row++, a++)
 		{
 			for (int col = 0; col < 20; col++, a++, b++, pk += 0x100, t += 4)
@@ -473,7 +524,7 @@ namespace holy175
 	// fall and shrink speed
 	static void InitTriangles()
 	{
-		Triangle *t = (Triangle *)GRID_Triangles;
+		Triangle *t = (Triangle *)own::R(GRID_Triangles);
 		for (int i = 0; i < GRID_TriangleCount; i++, t++)
 		{
 			const Vertex *v0 = t->v[0], *v1 = t->v[1], *v2 = t->v[2];
@@ -673,9 +724,9 @@ namespace holy175
 		BuildDrawAreaPacket(pk, rect);
 		InsertPrimAutoDepth(OTBase() + 0x4484, pk);
 		pk += 0xC;
-		var<int16_t>(0x23941B8) = rect[0];
-		var<int16_t>(0x23941BA) = rect[1];
-		BuildDrawOffsetPacket(pk, (const void *)0x23941B8);
+		var<int16_t>(own::R(0x23941B8)) = rect[0];
+		var<int16_t>(own::R(0x23941BA)) = rect[1];
+		BuildDrawOffsetPacket(pk, (const void *)own::R(0x23941B8));
 		InsertPrimAutoDepth(OTBase() + 0x4484, pk);
 		pk += 0xC;
 		FrameArena() = (uint32_t)pk;
@@ -691,13 +742,13 @@ namespace holy175
 		m->t[2] = ProjH();
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		for (Vertex *v = (Vertex *)GRID_Vertices; v < (Vertex *)GRID_VerticesEnd; v++)
+		for (Vertex *v = (Vertex *)own::R(GRID_Vertices); v < (Vertex *)own::R(GRID_VerticesEnd); v++)
 		{
 			GteLoadV0(&v->x);
 			GteRTPS();
 			GteReadSXY2(v->sxy);
 		}
-		for (Vertex *v = (Vertex *)GRID_Centres; v < (Vertex *)GRID_CentresEnd; v++)
+		for (Vertex *v = (Vertex *)own::R(GRID_Centres); v < (Vertex *)own::R(GRID_CentresEnd); v++)
 		{
 			GteLoadV0(&v->x);
 			GteRTPS();
@@ -788,8 +839,8 @@ namespace holy175
 		ProjectGrid(h);
 		*(int32_t *)(h + 0x30) = ProjH();
 		int32_t drawn = 0;
-		uint8_t *pk = (uint8_t *)GRID_Packets;
-		Triangle *t = (Triangle *)GRID_Triangles;
+		uint8_t *pk = (uint8_t *)own::R(GRID_Packets);
+		Triangle *t = (Triangle *)own::R(GRID_Triangles);
 		for (int i = 0; i < GRID_TriangleCount; i++, t++, pk += 0x40)
 		{
 			if (t->delay < 0) continue;
@@ -876,7 +927,7 @@ namespace holy175
 		*(uint16_t *)(h + 0x24) = 0;
 		*(uint32_t *)(s + 2) = *(const uint32_t *)&p->pos[2];
 		int32_t alive = 0;
-		for (Sparkle *e = (Sparkle *)SPARKLES; e < (Sparkle *)SPARKLES_End; e++)
+		for (Sparkle *e = (Sparkle *)own::R(SPARKLES); e < (Sparkle *)own::R(SPARKLES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
 			// 30 fps layer: see mag175_holy_held.inc
@@ -900,13 +951,13 @@ namespace holy175
 		{
 			for (int j = 0; j < 2; j++)
 			{
-				Sparkle *e = (Sparkle *)SPARKLES;
+				Sparkle *e = (Sparkle *)own::R(SPARKLES);
 				int idx = 0;
 				while (e->active)
 				{
 					e++;
 					idx++;
-					if (e >= (Sparkle *)SPARKLES_End) goto spawned;
+					if (e >= (Sparkle *)own::R(SPARKLES_End)) goto spawned;
 				}
 				if (idx >= 100) goto spawned;
 				e->active = 1;
@@ -1093,7 +1144,7 @@ namespace holy175
 		*(int32_t *)(m + 0x1C) = 0;
 		*(int32_t *)(m + 0x20) = 0;
 		*(int32_t *)(m + 0x24) = ProjH();
-		for (Mote *e = (Mote *)MOTES; e < (Mote *)MOTES_End; e++)
+		for (Mote *e = (Mote *)own::R(MOTES); e < (Mote *)own::R(MOTES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
 			// 30 fps layer: see mag175_holy_held.inc
@@ -1116,13 +1167,13 @@ namespace holy175
 		{
 			for (int j = 0; j < 2; j++)
 			{
-				Mote *e = (Mote *)MOTES;
+				Mote *e = (Mote *)own::R(MOTES);
 				int idx = 0;
 				while (e->active)
 				{
 					e++;
 					idx++;
-					if (e >= (Mote *)MOTES_End) goto spawned;
+					if (e >= (Mote *)own::R(MOTES_End)) goto spawned;
 				}
 				if (idx >= 0x50) goto spawned;
 				e->active = 1;
@@ -1683,7 +1734,7 @@ namespace holy175
 			}
 			SetScreenFlash((uint32_t)((0x6F - p->counter) << 9), 0);
 		}
-		if (p->counter == 0x6A) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
+		if (p->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
 		if (p->counter == 0x6F)
 		{
 			int32_t next = p->action + 1;
@@ -1699,37 +1750,72 @@ namespace holy175
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(p->target), pos);
-			BdPlaySE3D(SOUND_Holy, 1, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Holy), 1, pos);
 		}
 		p->counter++;
 		if (p->counter <= 0x6F) return 0;
 		if ((uint16_t)p->action == (uint16_t)Ctx()->actions[0].last_action) SetScreenFlash(0, 0);
 		return TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action: the screen shattered into flying triangles (the stage captured), the side faded, the sparkles, orbits and motes, the rings and waves, the light pillars, the beam, the disks, the flash, the screen flash, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1 (3D, at the target)", (uint32_t)offsetof(HolyParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(HolyParams, director.damage), fxp::I16, 0, 110 },
+		};
+	}
 }
 
 	void register_mag175_holy()
 	{
+		fxp::register_params({ 175, "Holy", &holy175::live, &holy175::GAME, sizeof(holy175::HolyParams),
+		                       holy175::table::PARTS, (int)(sizeof(holy175::table::PARTS) / sizeof(holy175::table::PARTS[0])),
+		                       holy175::table::FIELDS, (int)(sizeof(holy175::table::FIELDS) / sizeof(holy175::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(holy175::ORIG_FileLoader, (void *)holy175::FileLoader);
+		own::note(holy175::ORIG_Setup, (void *)holy175::Setup);
+		own::note(holy175::ORIG_RootTask, (void *)holy175::RootTask);
 		register_port(holy175::ORIG_RootTask, (void *)holy175::RootTask, "H175 RootTask", 175);
+		own::note(holy175::ORIG_RestoreTask, (void *)holy175::RestoreTask);
 		register_port(holy175::ORIG_RestoreTask, (void *)holy175::RestoreTask, "H175 RestoreTask", 175);
+		own::note(holy175::ORIG_DirectorTask, (void *)holy175::DirectorTask);
 		register_port(holy175::ORIG_DirectorTask, (void *)holy175::DirectorTask, "H175 DirectorTask", 175);
+		own::note(holy175::ORIG_ShatterTask, (void *)holy175::ShatterTask);
 		register_port(holy175::ORIG_ShatterTask, (void *)holy175::ShatterTask, "H175 ShatterTask", 175);
+		own::note(holy175::ORIG_FadeInTask, (void *)holy175::FadeInTask);
 		register_port(holy175::ORIG_FadeInTask, (void *)holy175::FadeInTask, "H175 FadeInTask", 175);
+		own::note(holy175::ORIG_FadeOutTask, (void *)holy175::FadeOutTask);
 		register_port(holy175::ORIG_FadeOutTask, (void *)holy175::FadeOutTask, "H175 FadeOutTask", 175);
+		own::note(holy175::ORIG_SparkleTask, (void *)holy175::SparkleTask);
 		register_port(holy175::ORIG_SparkleTask, (void *)holy175::SparkleTask, "H175 SparkleTask", 175);
+		own::note(holy175::ORIG_OrbitCtrlTask, (void *)holy175::OrbitCtrlTask);
 		register_port(holy175::ORIG_OrbitCtrlTask, (void *)holy175::OrbitCtrlTask, "H175 OrbitCtrlTask", 175);
+		own::note(holy175::ORIG_OrbitTask, (void *)holy175::OrbitTask);
 		register_port(holy175::ORIG_OrbitTask, (void *)holy175::OrbitTask, "H175 OrbitTask", 175);
+		own::note(holy175::ORIG_MoteTask, (void *)holy175::MoteTask);
 		register_port(holy175::ORIG_MoteTask, (void *)holy175::MoteTask, "H175 MoteTask", 175);
+		own::note(holy175::ORIG_RingTask, (void *)holy175::RingTask);
 		register_port(holy175::ORIG_RingTask, (void *)holy175::RingTask, "H175 RingTask", 175);
+		own::note(holy175::ORIG_WaveTask, (void *)holy175::WaveTask);
 		register_port(holy175::ORIG_WaveTask, (void *)holy175::WaveTask, "H175 WaveTask", 175);
+		own::note(holy175::ORIG_ExpandTask, (void *)holy175::ExpandTask);
 		register_port(holy175::ORIG_ExpandTask, (void *)holy175::ExpandTask, "H175 ExpandTask", 175);
+		own::note(holy175::ORIG_PillarTask, (void *)holy175::PillarTask);
 		register_port(holy175::ORIG_PillarTask, (void *)holy175::PillarTask, "H175 PillarTask", 175);
+		own::note(holy175::ORIG_BeamTask, (void *)holy175::BeamTask);
 		register_port(holy175::ORIG_BeamTask, (void *)holy175::BeamTask, "H175 BeamTask", 175);
+		own::note(holy175::ORIG_DiskTask, (void *)holy175::DiskTask);
 		register_port(holy175::ORIG_DiskTask, (void *)holy175::DiskTask, "H175 DiskTask", 175);
+		own::note(holy175::ORIG_FlashTask, (void *)holy175::FlashTask);
 		register_port(holy175::ORIG_FlashTask, (void *)holy175::FlashTask, "H175 FlashTask", 175);
 		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(register_mag175_held();)
 	}
+	FX_LAB_MODULE(register_mag175_holy);
 }
 
 #ifdef FF8_FX_HELD
