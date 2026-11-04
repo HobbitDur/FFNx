@@ -33,8 +33,14 @@
 // (namespace w). Ported natively: the shattering
 // rasteriser 0x6FF6E0 (+0x6FF770, 0x700030, 0x6FF880, the shard allocator 0x6FFFE0 and the
 // module LCG 0x6FFFC0), the shard draw 0x6FF2F0, the spark draw 0x7001E0 and the fade 0x700150.
+// Fujin's described Griever (effect_069.json) calls the module's own setup (its memory is shared: the module's
+// helpers above run at their exe addresses on it), its root re-pointed at the ported master; the timeline's spawn
+// goes through own::Fn(); its parameters (GrieverParams: the sounds, the voice release and end ticks, the
+// shattering, the sinking, the sparks).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -59,6 +65,21 @@ namespace g069
 	static const uint32_t ORIG_SequenceTask = 0x6FE0D0;
 	static const uint32_t ORIG_TimelineTask = 0x6FE5D0;
 	static const uint32_t CB_PrimObject = 0x6FE9D0; // MAG_069_sub_6FE9D0, prim-player callback (pure draw)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GrieverParams
+	{
+		struct { uint32_t start, voice; } sounds;                 // the sound at tick 0, the voice claimed at the timeline's spawn
+		struct { int16_t voice_release, end; } timeline;          // the voice released at this tick; the end after this tick
+		struct { int16_t speed, reach; } shatter;                 // the shattering radius a tick (x 1/50, ticks 73..107), its cap
+		struct { int16_t depth; } sink;                           // the attacker sinking this far over ticks 94..125
+		struct { int16_t ticks, count, life; } sparks;            // spawned over these first ticks, this many a tick, their life
+	};
+	static const GrieverParams GAME = { { 0x14D0A48, 0x14D0740 }, { 0x7A, 0x7E }, { 28000, 6000 }, { 1400 }, { 0x1E, 4, 0x12 } };
+	static GrieverParams live = GAME;
+	static const GrieverParams &PG() { return live; }
 
 	// the two battle models (stru_1D9898C[1] / [2], 44-byte entries: +5 currentBsId, +0x18
 	// BattleAnimHeader, +0x24 BattleAnimCmd); the module passes &entry.battle_file_id (+4)
@@ -680,9 +701,9 @@ namespace g069
 			w::InitSparks();
 			w::InitShards();
 			InitTaskQueuePool(&QueueTimeline(), (void *)0x2556680, 0x8F0, 1);
-			TaskNode *t = AddTaskToQueue(&QueueTimeline(), ORIG_TimelineTask);
+			TaskNode *t = AddTaskToQueue(&QueueTimeline(), own::Fn(ORIG_TimelineTask));
 			Memset32((uint8_t *)t + 0xC, 0, 0x239);
-			*(uint32_t *)((uint8_t *)t + 0x10) = ClaimVoiceSlot((const void *)0x14D0740, 1, 0x80);
+			*(uint32_t *)((uint8_t *)t + 0x10) = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, 0x14D0740), 1, 0x80);
 			// per-face distance from the attacker, in a frame scaled (1/4, 1/2, 1/4) about it
 			uint8_t *a = Attacker();
 			Mat4x3 m;
@@ -766,8 +787,8 @@ namespace g069
 			uint32_t v = (uint32_t)((int32_t)node->counter - 0x49);
 			if (v < 0x23)
 			{
-				int32_t q = (int32_t)((v * 28000u) / 50u);
-				if (q > 6000) q = 6000;
+				int32_t q = (int32_t)((v * (uint32_t)PG().shatter.speed) / 50u);
+				if (q > PG().shatter.reach) q = PG().shatter.reach;
 				int32_t thr = (q * q) >> 12;
 				FX_HELD(held_note_models(thr);)
 				uint8_t *r = ShatterDraw(MODEL_1, MB + MB_FACE_DIST, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x4068, 0x10);
@@ -801,8 +822,8 @@ namespace g069
 			}
 		}
 
-		if (node->counter == 0) w::PlaySE(0x14D0A48, 0, 0x80);
-		if (node->counter == 0x7A) w::ReleaseVoice(node->voice);
+		if (node->counter == 0) w::PlaySE(fxp::sound(PG().sounds.start, 0x14D0A48), 0, 0x80);
+		if (node->counter == PG().timeline.voice_release) w::ReleaseVoice(node->voice);
 		if (node->counter < 0x2F) w::SparkUpdate();
 		w::ShardUpdate();
 
@@ -829,15 +850,15 @@ namespace g069
 			uint32_t t = (uint32_t)((int32_t)node->counter - 0x5E);
 			if (t < 0x20)
 			{
-				*(int16_t *)(Attacker() + 0x20) = (int16_t)(-2000 - (int32_t)(t * 1400) / 31);
+				*(int16_t *)(Attacker() + 0x20) = (int16_t)(-2000 - (int32_t)(t * PG().sink.depth) / 31);
 				*(int32_t *)(Attacker() + 0x5C) = *(int16_t *)(Attacker() + 0x20);
 			}
 		}
 
 		// 0..29: four sparks around the attacker per tick, a quarter turn apart
-		if ((uint16_t)node->counter < 0x1E)
+		if ((uint16_t)node->counter < (uint16_t)PG().sparks.ticks)
 		{
-			int k = 4;
+			int k = PG().sparks.count;
 			int32_t angle = w::Rand();
 			uint8_t *s = w::SparkAlloc();
 			while (s)
@@ -855,26 +876,58 @@ namespace g069
 				s[0xD] = (uint8_t)(0xF0 - (w::Rand() & 0x1F));
 				angle += 0x400;
 				*(int16_t *)(s + 0xA) = 0x800;
-				s[0xF] = 0x12;
+				s[0xF] = (uint8_t)PG().sparks.life;
 				if (--k == 0) break;
 				s = w::SparkAlloc();
 			}
 		}
 
-		if (node->counter >= 0x7E) return TASK_END;
+		if (node->counter >= PG().timeline.end) return TASK_END;
 		node->counter = (int16_t)(node->counter + 1);
 		FX_HELD(held_note_advanced();)
 		return 0;
+	}
+	namespace table
+	{
+		using fxp::Field;
+#define GP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(GrieverParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Its 127-tick timeline: the intro prim model, the attacker drawn by the module, the two battle models shattered into shards, the sparks, the white fade, the attacker sinking, the battle model swap" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "shatter", "Shattering", "The radius about the attacker under which the faces break into shards: its growth a tick (x 1/50) from tick 73, its cap" },
+			{ "sparks", "Sparks", "Rising round the attacker over the first ticks, a quarter turn apart" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "sounds.start", "Sound", "Played at tick 0", (uint32_t)offsetof(GrieverParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.voice", "Voice", "Claimed when the timeline starts", (uint32_t)offsetof(GrieverParams, sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			GP("timeline", timeline.voice_release, "Voice release", "The voice released at this tick", 0, 0x7E),
+			GP("timeline", timeline.end, "End after", "The effect done after this tick (the model swap at 110)", 0x6F, 0x200),
+			GP("timeline", shatter.speed, "Growth", "", 0, 0x7FFF),
+			GP("timeline", shatter.reach, "Cap", "", 0, 0x7FFF),
+			GP("timeline", sink.depth, "Sink", "The attacker sinking this far below -2000 over ticks 94..125", -0x2000, 0x2000),
+			GP("timeline", sparks.ticks, "Ticks", "Spawned over these first ticks", 0, 0x2F),
+			GP("timeline", sparks.count, "A tick", "", 0, 16),
+			GP("timeline", sparks.life, "Life", "", 1, 0xFF),
+		};
+#undef GP
 	}
 }
 
 	void register_mag069_griever()
 	{
+		fxp::register_params({ 69, "Griever", &g069::live, &g069::GAME, sizeof(g069::GrieverParams),
+		                       g069::table::PARTS, (int)(sizeof(g069::table::PARTS) / sizeof(g069::table::PARTS[0])),
+		                       g069::table::FIELDS, (int)(sizeof(g069::table::FIELDS) / sizeof(g069::table::FIELDS[0])),
+		                       g069::table::GROUPS, (int)(sizeof(g069::table::GROUPS) / sizeof(g069::table::GROUPS[0])) });
+		own::note(g069::ORIG_SequenceTask, (void *)g069::SequenceTask);
 		register_port(g069::ORIG_SequenceTask, (void *)g069::SequenceTask, "G069 SequenceTask", 69);
+		own::note(g069::ORIG_TimelineTask, (void *)g069::TimelineTask);
 		register_port(g069::ORIG_TimelineTask, (void *)g069::TimelineTask, "G069 TimelineTask", 69);
 		// 30 fps layer: see mag069_griever_held.inc
 		FX_HELD(register_mag069_held();)
 	}
+	FX_LAB_MODULE(register_mag069_griever);
 }
 
 #ifdef FF8_FX_HELD
