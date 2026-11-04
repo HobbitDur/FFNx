@@ -56,8 +56,14 @@
 // stream points (+ 0x16E8, 0x100 x 0x28), the melt amounts (+ 0x3EE8, one byte per vertex) and the
 // packet arenas. The melting target draws into the frame arena (battle_texture_data_ptr
 // 0x1D8E054) with the battle's bone workspace as its vertex buffer.
+// Fujin's described Gastric Juice (effect_128.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (JuiceParams: the sound, the damage
+// tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,14 +73,16 @@ namespace gastric128
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25211E0); }         // the caster's entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25211E8); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25211EC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521204); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2521208); }       // camera x effect frame (every tick)
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2521230; }       // pool: magic buffer, 0x80 x 0x20
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x2521240; }         // pool: + 0x1000, 8 x 0x50
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2521250; }          // pool: + 0x1280, 1 x 0x268
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25211E0)); }         // the caster's entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25211E8)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25211EC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2521204)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25211E4)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2521260); }             // 1 x 0x14
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(own::R(0x2521208)); }       // camera x effect frame (every tick)
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x2521230); }       // pool: magic buffer, 0x80 x 0x20
+	inline TaskQueue *QStreams() { return (TaskQueue *)own::R(0x2521240); }         // pool: + 0x1000, 8 x 0x50
+	inline TaskQueue *QTarget() { return (TaskQueue *)own::R(0x2521250); }          // pool: + 0x1280, 1 x 0x268
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // melting target's vertex buffer
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -91,6 +99,20 @@ namespace gastric128
 	static const uint32_t SEQ_Splash = 0x123338C;
 	static const uint32_t ZERO_Vector = 0x2521228;       // module global, never written (8 bytes)
 	static const void *const SOUND_Juice = (const void *)0x12337B8;
+	static const uint32_t ORIG_FileLoader = 0x6B7D10, ORIG_Setup = 0x6B7D00;
+	static const uint32_t TEXTURE_NAME = 0x1005AD8, CAMERA = 0x1233630;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct JuiceParams
+	{
+		uint32_t sound;                    // at the target task's tick 10
+		struct { int16_t damage; } target; // the damage at this tick of the target task
+	};
+	static const JuiceParams GAME = { 0x12337B8, { 0x35 } };
+	static JuiceParams live = GAME;
+	static const JuiceParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x12337BC; // [|dy|][|dx|] -> length, 128 x 128
 	static const uint32_t POINTS = 0x16E8;               // magic buffer: stream points
 	static const uint32_t MELT = 0x3EE8;                 // magic buffer: melt amounts
@@ -580,7 +602,7 @@ namespace gastric128
 	{
 		Point *p = AllocPoint(from, (int16_t)width);
 		if (!p) return nullptr;
-		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), ORIG_StreamTask);
+		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), own::Fn(ORIG_StreamTask));
 		if (!s)
 		{
 			p->width = -1;
@@ -821,7 +843,7 @@ namespace gastric128
 				at[2] = (int16_t)(at[2] + v[2]);
 				if (s->t >= 0x1000 && s->slot >= 0)
 				{
-					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_SplashTask);
+					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_SplashTask));
 					if (q)
 					{
 						q->counter = 0;
@@ -900,7 +922,7 @@ namespace gastric128
 			DrawMeltingTarget(t->entity, sinv);
 		}
 		else *(uint16_t *)t->entity &= 0xFFFB;
-		if (t->counter == 0xA) BdPlaySE(SOUND_Juice, 0, 0x80);
+		if (t->counter == 0xA) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Juice), 0, 0x80);
 		if (t->counter == 0xE)
 		{
 			// three streams from the caster's effect bone 3 to random bones of the target
@@ -916,8 +938,8 @@ namespace gastric128
 				Point *p = SpawnStream(from, to, slot, 0, 0x100, 0x96, w);
 				if (p)
 				{
-					*(uint32_t *)p->vel = var<uint32_t>(ZERO_Vector);
-					*(uint32_t *)&p->vel[2] = var<uint32_t>(ZERO_Vector + 4);
+					*(uint32_t *)p->vel = var<uint32_t>(own::R(ZERO_Vector));
+					*(uint32_t *)&p->vel[2] = var<uint32_t>(own::R(ZERO_Vector) + 4);
 				}
 			}
 		}
@@ -926,7 +948,7 @@ namespace gastric128
 			// eight spray particles from the caster's bone 0x14, +-1/8 turn around the direction
 			for (int k = 8; k != 0; k--)
 			{
-				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_SprayTask);
+				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_SprayTask));
 				if (!q) continue;
 				GetEffectSpawnPosition(Caster(), 0x14, 0, q->pos);
 				q->counter = 0;
@@ -942,7 +964,7 @@ namespace gastric128
 		if (d < 0x14 && !(d & 1))
 		{
 			// a drip at a random bone of the target (smaller from the 10th)
-			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_DripTask);
+			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_DripTask));
 			if (q)
 			{
 				uint8_t *entity = t->entity;
@@ -958,7 +980,7 @@ namespace gastric128
 				q->vel[1] = (int16_t)(-0x10 - (CrtRand() & 0x1F));
 			}
 		}
-		if (t->counter == 0x35) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
+		if (t->counter == P().target.damage) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
 		if (t->counter >= 0x45) return TASK_END;
 		t->counter++;
 		return 0;
@@ -967,6 +989,26 @@ namespace gastric128
 	// ------------------------------------------------------------------
 	// Root task (0x6B7DB0)
 	// ------------------------------------------------------------------
+	// File loader (0x6B7D10) and setup (0x6B7D00 -> 0x6B7D30): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25211F0), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -996,7 +1038,7 @@ namespace gastric128
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
 				// the pool's one node: a later action's spawn returns null and faults (not checked)
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), own::Fn(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x97);
 				t->action = (int16_t)(uint16_t)r->action;
 				uint8_t *entity = Entity(Ctx()->actions[t->action].targets[0]);
@@ -1024,19 +1066,43 @@ namespace gastric128
 		if (r->counter >= 10) r->counter = 0;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "target", "Target", "The juice sprayed from the caster's mouth in streams, its drips and splashes, the target melting; the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "target", "sound", "Sound", "", (uint32_t)offsetof(JuiceParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "target.damage", "Damage tick", "The damage at this tick of the target task", (uint32_t)offsetof(JuiceParams, target.damage), fxp::I16, 0, 200 },
+		};
+	}
 }
 
 	void register_mag128_gastric_juice()
 	{
+		fxp::register_params({ 128, "Gastric Juice", &gastric128::live, &gastric128::GAME, sizeof(gastric128::JuiceParams),
+		                       gastric128::table::PARTS, (int)(sizeof(gastric128::table::PARTS) / sizeof(gastric128::table::PARTS[0])),
+		                       gastric128::table::FIELDS, (int)(sizeof(gastric128::table::FIELDS) / sizeof(gastric128::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(gastric128::ORIG_FileLoader, (void *)gastric128::FileLoader);
+		own::note(gastric128::ORIG_Setup, (void *)gastric128::Setup);
+		own::note(gastric128::ORIG_RootTask, (void *)gastric128::RootTask);
 		register_port(gastric128::ORIG_RootTask, (void *)gastric128::RootTask, "128 RootTask", 128);
+		own::note(gastric128::ORIG_TargetTask, (void *)gastric128::TargetTask);
 		register_port(gastric128::ORIG_TargetTask, (void *)gastric128::TargetTask, "128 TargetTask", 128);
+		own::note(gastric128::ORIG_StreamTask, (void *)gastric128::StreamTask);
 		register_port(gastric128::ORIG_StreamTask, (void *)gastric128::StreamTask, "128 StreamTask", 128);
+		own::note(gastric128::ORIG_SprayTask, (void *)gastric128::SprayTask);
 		register_port(gastric128::ORIG_SprayTask, (void *)gastric128::SprayTask, "128 SprayTask", 128);
+		own::note(gastric128::ORIG_DripTask, (void *)gastric128::DripTask);
 		register_port(gastric128::ORIG_DripTask, (void *)gastric128::DripTask, "128 DripTask", 128);
+		own::note(gastric128::ORIG_SplashTask, (void *)gastric128::SplashTask);
 		register_port(gastric128::ORIG_SplashTask, (void *)gastric128::SplashTask, "128 SplashTask", 128);
 		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(register_mag128_held();)
 	}
+	FX_LAB_MODULE(register_mag128_gastric_juice);
 }
 
 #ifdef FF8_FX_HELD
