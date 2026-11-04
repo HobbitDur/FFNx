@@ -57,6 +57,9 @@
 // of 0x571400, GTE VZ0 high half only).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -72,11 +75,13 @@ namespace lv272
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250854C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508548); }          // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508564); }
-	inline Mat4x3 &CameraN() { return var<Mat4x3>(0x2508568); }               // orthonormalised camera rotation
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x2508588; }              // pool: magic buffer, 1 x 0x4FC
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250854C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2508548)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2508564)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508544)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508598); }             // 1 x 0x14
+	inline Mat4x3 &CameraN() { return var<Mat4x3>(own::R(0x2508568)); }               // orthonormalised camera rotation
+	inline TaskQueue *QPlay() { return (TaskQueue *)own::R(0x2508588); }              // pool: magic buffer, 1 x 0x4FC
 
 	static const uint32_t ORIG_RootTask = 0x68DD20;
 	static const uint32_t ORIG_PlayTask = 0x68E090;
@@ -87,6 +92,19 @@ namespace lv272
 	static const uint32_t ARENA_A = 0x504;            // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x10504;
 	static const void *const SOUND = (const void *)0x1115964;
+	static const uint32_t ORIG_FileLoader = 0x68DC80, ORIG_Setup = 0x68DC70;
+	static const uint32_t TEXTURE_NAME = 0x11162F8, CAMERA_ANIM = 0x1115968;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct LvDownParams
+	{
+		uint32_t sound;   // when the play task starts
+	};
+	static const LvDownParams GAME = { 0x1115964 };
+	static LvDownParams live = GAME;
+	static const LvDownParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -686,6 +704,29 @@ namespace lv272
 	// ------------------------------------------------------------------
 	// Play (0x68E090)
 	// ------------------------------------------------------------------
+	// File loader (0x68DC80) and setup (0x68DC70 -> _Init 0x68DCA0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x2508540)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508550), 0x14, 1);
+		uint32_t *r = (uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC);
+		r[0] = 0;
+		r[1] = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl PlayTask(TaskNode *n)
 	{
 		PlayNode *p = (PlayNode *)n;
@@ -735,7 +776,7 @@ namespace lv272
 				r->started = 1;
 				InitTaskQueuePool(QPlay(), (void *)TexBase(), NODE_BYTES, 1);
 			}
-			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
+			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), own::Fn(ORIG_PlayTask));
 			Memset32(&p->counter, 0, 0x13C);
 			p->action = (int16_t)r->action;
 			p->entity = Entity(Ctx()->actions[p->action].targets[0]);
@@ -757,7 +798,7 @@ namespace lv272
 			}
 			DecodeModelPrimLayout(MODEL_LAYOUT, p->layout, LAYOUT_BYTES);
 			r->action++;
-			BdPlaySE(SOUND, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 		}
 		EffectCameraMatrix(&Camera(), &CameraN());
 		int a;
@@ -767,15 +808,34 @@ namespace lv272
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "root", "Root", "The level-down layout on the target (its morphing model, the target measured), the sound; the action result when it ends" },
+		};
+		static const Field FIELDS[] = {
+			{ "root", "sound", "Sound", "When the play task starts", (uint32_t)offsetof(LvDownParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag272_lv_down()
 	{
+		fxp::register_params({ 272, "LV Down", &lv272::live, &lv272::GAME, sizeof(lv272::LvDownParams),
+		                       lv272::table::PARTS, (int)(sizeof(lv272::table::PARTS) / sizeof(lv272::table::PARTS[0])),
+		                       lv272::table::FIELDS, (int)(sizeof(lv272::table::FIELDS) / sizeof(lv272::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(lv272::ORIG_FileLoader, (void *)lv272::FileLoader);
+		own::note(lv272::ORIG_Setup, (void *)lv272::Setup);
+		own::note(lv272::ORIG_RootTask, (void *)lv272::RootTask);
 		register_port(lv272::ORIG_RootTask, (void *)lv272::RootTask, "272 RootTask", 272);
+		own::note(lv272::ORIG_PlayTask, (void *)lv272::PlayTask);
 		register_port(lv272::ORIG_PlayTask, (void *)lv272::PlayTask, "272 PlayTask", 272);
 		// 30 fps layer: see mag272_lv_down_held.inc
 		FX_HELD(register_mag272_held();)
 	}
+	FX_LAB_MODULE(register_mag272_lv_down);
 }
 
 #ifdef FF8_FX_HELD
