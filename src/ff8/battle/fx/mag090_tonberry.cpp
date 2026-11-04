@@ -28,8 +28,15 @@
 // summon stream 0x5018C0. Camera: the engine's keyed moves (a_73AB20 / a_73AE10) and tracks.
 // Module globals: 0x259EEA8..0x25A4E00 (+ camera copy 0x2793E58, 0x20 bytes; module data
 // 0x15474EC..0x1547A1C).
+// Fujin's described Tonberry (effect_090.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or thunks of
+// their ports (Spawn); its parameters (TonberryParams: the two sounds) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 #ifdef FF8_FX_HELD
 #include "mag090_tonberry_held.h"
@@ -46,6 +53,21 @@ namespace act
 		static inline uint32_t sub_8DE160(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DE160)(a1, a2); }
 		static inline uint32_t sub_8DE1F0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DE1F0)(a1, a2); }
 	}
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	namespace tonberry
+	{
+		static const uint32_t SOUND_A = 0x1547170, SOUND_B = 0x154716C;
+		struct TonberryParams
+		{
+			struct { uint32_t walk, knife; } sounds;   // its sounds: at the walk's cue, at the knife's stab
+		};
+		static const TonberryParams GAME = { { SOUND_A, SOUND_B } };
+		static TonberryParams live = GAME;
+		static const TonberryParams &PT() { return live; }
+	}
+
 	// module ports of this file (32-bit words in and out, cdecl, like the originals)
 	uint32_t __cdecl t_7624D0(uint32_t a1); // 0x7624D0 MAG_090_sub_7624D0 TASK, 80 insns, 090:7624D0
 	uint32_t __cdecl t_762650(uint32_t a1); // 0x762650 MAG_090_sub_762650, 6 insns, 090:762650
@@ -145,7 +167,7 @@ namespace act
 	// [0x25A4C04] = per-model depth offset table (s16 per model index) of the prim-model particle draw.
 	namespace
 	{
-		inline uint32_t t1_data() { return MEM<uint32_t>(0x1547168); }
+		inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 		inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 		// common task tail (after ++frame counter): end (release linked task, return 2) when
 		// finished (status read before the increment) and no children are alive
@@ -168,6 +190,8 @@ namespace act
 	// state table, then executes the 6 module task queues (live task count -> node +0x5E).
 	uint32_t __cdecl t_7624D0(uint32_t a1)
 	{
+		g_mod = &MOD_090;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		set_mod_by_code(U32(a1, 8));      // node +8 = original task function address -> current module
 		// 30 fps layer: see act_engine_held.inc
 		FX_HELD(held_note_master();)
@@ -175,8 +199,8 @@ namespace act
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25A4C08) = 0x2793E58;
-		MEM<uint32_t>(0x259EFB8) = 0x2793E58;
+		MEM<uint32_t>(R(0x25A4C08)) = 0x2793E58;
+		MEM<uint32_t>(R(0x259EFB8)) = 0x2793E58;
 		states[0] = 0x762630;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x762640;
@@ -191,22 +215,22 @@ namespace act
 		states[10] = 0x7684C0;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25A2CF4);
-			const uint32_t v2 = MEM<uint32_t>(0x25A2B74);
-			MEM<uint32_t>(0x259EEA8) = v1;
-			MEM<uint32_t>(0x259EFB4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25A2CF4));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25A2B74));
+			MEM<uint32_t>(R(0x259EEA8)) = v1;
+			MEM<uint32_t>(R(0x259EFB4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25A2CF0);
-			const uint32_t v2 = MEM<uint32_t>(0x25A2B70);
-			MEM<uint32_t>(0x259EEA8) = v1;
-			MEM<uint32_t>(0x259EFB4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25A2CF0));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25A2B70));
+			MEM<uint32_t>(R(0x259EEA8)) = v1;
+			MEM<uint32_t>(R(0x259EFB4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		static const uint32_t queues[6] = { 0x25A2B80, 0x259EF90, 0x25A4BF0, 0x25A3F90, 0x259F098, 0x25A2B60 };
+		const uint32_t queues[6] = { R(0x25A2B80), R(0x259EF90), R(0x25A4BF0), R(0x25A3F90), R(0x259F098), R(0x25A2B60) };
 		for (int i = 0; i < 6; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -234,8 +258,8 @@ namespace act
 	{
 		t_762BB0(a1);
 		a_7322A0();
-		x::Effect_AddTaskAndInitFromCtx(0x25A4BF0, 0x762850, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x259EF90, 0x762C60, 0x48, a1);
+		Spawn(R(0x25A4BF0), 0x762850, 0x30, a1);
+		Spawn(R(0x259EF90), 0x762C60, 0x48, a1);
 		t1_next_state(a1);
 		return 0; // void
 	}
@@ -323,7 +347,7 @@ namespace act
 		const uint32_t slot = x::BdSound_ClaimVoiceSlot(0x16D7CD0, 1, 0x80);
 		const uint32_t d = t1_data();
 		U16(d, 0x52) = (uint16_t)slot;
-		x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x762DA0, 0x7C, a1);
+		Spawn(R(0x259F098), 0x762DA0, 0x7C, a1);
 		t1_next_state(a1);
 		return 0; // void
 	}
@@ -379,7 +403,7 @@ namespace act
 		a_73AE10();
 		if (a_73AAE0(3) != 0)
 		{
-			x::BdPlaySE(0x1547170, 0, 0x80);
+			x::BdPlaySE(fxp::sound(tonberry::PT().sounds.walk, tonberry::SOUND_A), 0, 0x80);
 			a_73AB20(0x154EAC0, t1_data(), 0);
 			t1_next_state(a1);
 		}
@@ -514,19 +538,19 @@ namespace act
 		{
 		case 0:
 			t_763E60(a1, 0x763EB0, 0x16D7DEC, 0x48C, 0, 0);
-			return x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x7681B0, 0x7C, a1);
+			return Spawn(R(0x259F098), 0x7681B0, 0x7C, a1);
 		case 1:
 		{
-			const uint32_t creature = x::Effect_AddTaskAndInitFromCtx(0x25A3F90, 0x7674E0, 0x148, a1);
+			const uint32_t creature = Spawn(R(0x25A3F90), 0x7674E0, 0x148, a1);
 			x::Effect_BindModelContainerSetAnim(creature, 0x1547514, 3);
-			return x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x7670E0, 0x7C, a1);
+			return Spawn(R(0x259F098), 0x7670E0, 0x7C, a1);
 		}
 		case 5:
-			return x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x766FB0, 0x7C, a1);
+			return Spawn(R(0x259F098), 0x766FB0, 0x7C, a1);
 		case 6:
-			return x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x7667B0, 0x7C, a1);
+			return Spawn(R(0x259F098), 0x7667B0, 0x7C, a1);
 		case 7:
-			return x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x7682A0, 0x7C, a1);
+			return Spawn(R(0x259F098), 0x7682A0, 0x7C, a1);
 		default:
 			return k;
 		}
@@ -536,7 +560,7 @@ namespace act
 	// sets its model data +0x74 = a3, +0x78 = (s16)a4, +0x80 = a5, +0x82 = a6; returns the node.
 	uint32_t __cdecl t_763E60(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25A2B60, a2, 0x520, a1);
+		const uint32_t t = Spawn(R(0x25A2B60), a2, 0x520, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -559,15 +583,15 @@ namespace act
 		states[3] = 0x766760;
 		states[4] = 0x7667A0;  // nullsub
 		if (ticks == 0x1E)
-			MEM<uint32_t>(0x25A4C04) = 0x1547468;
+			MEM<uint32_t>(R(0x25A4C04)) = 0x1547468;
 		else if (ticks == 0x5A)
-			MEM<uint32_t>(0x25A4C04) = 0x154747C;
+			MEM<uint32_t>(R(0x25A4C04)) = 0x154747C;
 		else if (ticks == 0x64)
-			MEM<uint32_t>(0x25A4C04) = 0x1547490;
+			MEM<uint32_t>(R(0x25A4C04)) = 0x1547490;
 		else if (ticks == 0x69)
-			MEM<uint32_t>(0x25A4C04) = 0x15474A4;
+			MEM<uint32_t>(R(0x25A4C04)) = 0x15474A4;
 		else if (ticks == 0x71)
-			MEM<uint32_t>(0x25A4C04) = 0x15474B8;
+			MEM<uint32_t>(R(0x25A4C04)) = 0x15474B8;
 		const uint32_t node = a1;
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -599,7 +623,7 @@ namespace act
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + off[1]);
 		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) + off[0]);
 		U16(node, 0x20) = (uint16_t)(U16(node, 0x20) + off[2]);
-		MEM<uint32_t>(0x25A4C04) = 0x1547454;
+		MEM<uint32_t>(R(0x25A4C04)) = 0x1547454;
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
@@ -764,7 +788,7 @@ namespace act
 		if (U16(blk, 0x56) == 0)
 		{
 			const int32_t mi = S16(rec, 2);
-			const uint32_t tab = MEM<uint32_t>(0x25A4C04);
+			const uint32_t tab = MEM<uint32_t>(R(0x25A4C04));
 			U16(hdr, 0x18) = 0;
 			U16(hdr, 0x1A) = 0;
 			U16(hdr, 0x1E) = 0;
@@ -1733,12 +1757,12 @@ namespace act
 		const uint16_t w50 = U16(node, 0x50);
 		const uint16_t w56 = U16(node, 0x56);
 		U32(blk, 0) = model;
-		const uint32_t cursor = MEM<uint32_t>(0x259EEA8);
+		const uint32_t cursor = MEM<uint32_t>(R(0x259EEA8));
 		U16(blk, 4) = w50;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = w56;
-		MEM<uint32_t>(0x259EEA8) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(0x259EEA8)) = callo(0x766900, blk, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xE8);
 		return 0; // void
 	}
@@ -1899,7 +1923,7 @@ namespace act
 		const uint32_t node = a1;
 		if (S16(node, 0x24) >= 0x29)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1547168);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			U16(node, 0x78) = 0x40;
 			U16(node, 0x74) = 0;
 			const uint32_t xy = U32(d, 0);
@@ -1944,7 +1968,7 @@ namespace act
 		{
 			do
 			{
-				const uint32_t p = x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x767290, 0x7C, spawner);
+				const uint32_t p = Spawn(R(0x259F098), 0x767290, 0x7C, spawner);
 				const uint32_t r1 = x::CrtRand();
 				const uint32_t ang = r1 & 0xFFF;
 				const uint32_t r2 = x::CrtRand();
@@ -2019,11 +2043,11 @@ namespace act
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x259EEA8);
+		const uint32_t cursor = MEM<uint32_t>(R(0x259EEA8));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x259EEA8) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(0x259EEA8)) = callo(0x766900, blk, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -2119,10 +2143,10 @@ namespace act
 		// DRAW
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			const uint32_t cursor = MEM<uint32_t>(0x259EEA8);
-			const uint32_t next = a_746C10(node, 0x25A2D00, cursor);
-			MEM<uint32_t>(0x259EEA8) = next;
-			x::GetEffectSpawnPosition(model, 0x18, 0x9FC, 0x25A4C10);
+			const uint32_t cursor = MEM<uint32_t>(R(0x259EEA8));
+			const uint32_t next = a_746C10(node, R(0x25A2D00), cursor);
+			MEM<uint32_t>(R(0x259EEA8)) = next;
+			x::GetEffectSpawnPosition(model, 0x18, 0x9FC, R(0x25A4C10));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2135,20 +2159,20 @@ namespace act
 	uint32_t __cdecl t_7677F0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t d = MEM<uint32_t>(0x1547168);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(d, 0);
 		const uint32_t zp = U32(d, 4);
 		U8(node, 0x26) |= 4;
 		U8(node, 0x30) |= 0x20;
 		U32(node, 0x4C) = xy;
 		U32(node, 0x50) = zp;
-		MEM<uint16_t>(0x25A2B78) = 0;
+		MEM<uint16_t>(R(0x25A2B78)) = 0;
 		U32(node, 0x60) = node + 0x114;
 		U32(node, 0x11C) = 0x1000;
 		U32(node, 0x118) = 0x1000;
 		U32(node, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(node, 3);
-		x::BdPlaySE(0x154716C, 0, 0x80);
+		x::BdPlaySE(fxp::sound(tonberry::PT().sounds.knife, tonberry::SOUND_B), 0, 0x80);
 		xm::BdPlayStream(0x16D7DE8, 0x80, 1, 0x7F);
 		t4_next_state(node);
 		return 0; // void
@@ -2217,7 +2241,7 @@ namespace act
 		{
 			const uint32_t r0 = x::CrtRand();
 			const uint32_t bone = r0 & 0xFFF;
-			const uint32_t p = x::Effect_AddTaskAndInitFromCtx(0x259F098, 0x767C70, 0x7C, node);
+			const uint32_t p = Spawn(R(0x259F098), 0x767C70, 0x7C, node);
 			const uint32_t dst = p + 0x1C;
 			const uint32_t r1 = x::CrtRand();
 			U16(dst, 0) = (uint16_t)((r1 & 0xFF) - 0x80);
@@ -2229,7 +2253,7 @@ namespace act
 		}
 		if (U16(node, 0x136) == 0x5A)
 		{
-			MEM<uint16_t>(0x25A2B78) = 0xFF00;
+			MEM<uint16_t>(R(0x25A2B78)) = 0xFF00;
 			t_763E60(node, 0x767B40, 0x16F0F40, 0x14, 1, 0);
 		}
 		if (x::au_re_Battle_ReadAnimation_8(node) == 1)
@@ -2251,13 +2275,13 @@ namespace act
 		const uint32_t lay_b = U32(node, 0x78);
 		const uint32_t lay_a = U32(node, 0x74);
 		x::Effect_DecodeModelPrimLayout(lay_a, node + 0x94, lay_b);
-		const uint32_t zp = MEM<uint32_t>(0x25A4C14);
-		const uint16_t col = MEM<uint16_t>(0x25A2B78);
+		const uint32_t zp = MEM<uint32_t>(R(0x25A4C14));
+		const uint16_t col = MEM<uint16_t>(R(0x25A2B78));
 		U16(node, 0x1E) = 0;
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
-		U32(node, 0x1C) = MEM<uint32_t>(0x25A4C10);  // overwrites the +0x1E store above
+		U32(node, 0x1C) = MEM<uint32_t>(R(0x25A4C10));  // overwrites the +0x1E store above
 		U32(node, 0x20) = zp;
 		U16(node, 0x88) = col;
 		a_73C280(node);
@@ -2271,9 +2295,9 @@ namespace act
 	uint32_t __cdecl t_767C00(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t xy = MEM<uint32_t>(0x25A4C10);
-		const uint32_t zp = MEM<uint32_t>(0x25A4C14);
-		const uint16_t col = MEM<uint16_t>(0x25A2B78);
+		const uint32_t xy = MEM<uint32_t>(R(0x25A4C10));
+		const uint32_t zp = MEM<uint32_t>(R(0x25A4C14));
+		const uint16_t col = MEM<uint16_t>(R(0x25A2B78));
 		U32(node, 0x1C) = xy;
 		U32(node, 0x20) = zp;
 		U16(node, 0x88) = col;
@@ -2419,7 +2443,7 @@ namespace act
 		x::sub_8DD1C0(node);
 		if (a_73B7E0(6) == 0)
 			return 0; // void
-		const uint32_t d = MEM<uint32_t>(0x1547168);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(d, 8);
 		const uint16_t facing = U16(d, 0x4A);
 		const uint32_t zp = U32(d, 0xC);
@@ -2512,7 +2536,7 @@ namespace act
 			const uint8_t st = U8(node, 0x29);
 			U8(node, 0x26) |= 5;
 			U16(node, 0x13A) = 0x1000;
-			MEM<uint16_t>(0x25A4C10) = 0x7FFF;
+			MEM<uint16_t>(R(0x25A4C10)) = 0x7FFF;
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		U16(node, 0x13C) = U16(node, 0x13A);
@@ -2624,7 +2648,7 @@ namespace act
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl t_768370(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1547168);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2640,6 +2664,21 @@ namespace act
 
 namespace tonberry
 {
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The load script and the director's phases: Tonberry walking up (its ring particles and sparks), the knife, the prim-model particles and actors, the entity fades, the camera's keyed moves; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the walk's cue, at the knife's stab" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.walk", "Walk", "", (uint32_t)offsetof(TonberryParams, sounds.walk), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.knife", "Knife", "", (uint32_t)offsetof(TonberryParams, sounds.knife), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort PORTS[] = {
 		{ 0x7624D0, (void *)t_7624D0, "090 MAG_090_sub_7624D0" },
@@ -2730,12 +2769,18 @@ namespace tonberry
 }
 	void register_mag090_tonberry()
 	{
+		fxp::register_params({ 90, "Tonberry", &act::tonberry::live, &act::tonberry::GAME, sizeof(act::tonberry::TonberryParams),
+		                       act::tonberry::table::PARTS, (int)(sizeof(act::tonberry::table::PARTS) / sizeof(act::tonberry::table::PARTS[0])),
+		                       act::tonberry::table::FIELDS, (int)(sizeof(act::tonberry::table::FIELDS) / sizeof(act::tonberry::table::FIELDS[0])),
+		                       act::tonberry::table::GROUPS, (int)(sizeof(act::tonberry::table::GROUPS) / sizeof(act::tonberry::table::GROUPS[0])) });
+		act::register_mod(&act::MOD_090);
 		act::register_module(90);
 		for (const act::tonberry::ModPort *p = act::tonberry::PORTS; p->addr; p++)
 			act::register_module_port(90, p->addr, p->port, p->name);
 		// 30 fps layer: see mag090_tonberry_held.inc
 		FX_HELD(register_mag090_held();)
 	}
+	FX_LAB_MODULE(register_mag090_tonberry);
 }
 
 #ifdef FF8_FX_HELD
