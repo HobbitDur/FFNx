@@ -43,8 +43,14 @@
 // arrays A 0x2461EC0 / B 0x2462820 (100 x 0x18 each), effect queue 0x2463180 + pool (100 x 0x24),
 // per-slot fade flags 0x2463FA0, context, attacker, core vertex buffer 0x2464418, texture file /
 // base, packet cursor 0x2464BA0, voice slot 0x2464BA4).
+// Fujin's described Ultima (effect_149.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (UltimaParams: the three sounds, the
+// damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -54,15 +60,16 @@ namespace ultima149
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &RingScale() { return var<int32_t>(0x2461E88); }            // written by the ring every draw
-	inline TaskQueue &RootQueue() { return var<TaskQueue>(0x2461EB0); }       // pool 0x2461E90, 2 x 0x10
-	inline TaskQueue &FxQueue() { return var<TaskQueue>(0x2463180); }         // pool 0x2463190, 0x64 x 0x24
-	inline uint32_t *SideFlags() { return (uint32_t *)0x2463FA0; }            // per slot, stride 0x18
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2464048); }
-	inline uint8_t *CoreVertices() { return (uint8_t *)0x2464418; }            // 0x3C0 bytes per core
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2464B9C); }           // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2464BA0); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x2464BA4); }
+	inline int32_t &RingScale() { return var<int32_t>(own::R(0x2461E88)); }            // written by the ring every draw
+	inline TaskQueue &RootQueue() { return var<TaskQueue>(own::R(0x2461EB0)); }       // pool 0x2461E90, 2 x 0x10
+	inline TaskQueue &FxQueue() { return var<TaskQueue>(own::R(0x2463180)); }         // pool 0x2463190, 0x64 x 0x24
+	inline uint32_t *SideFlags() { return (uint32_t *)own::R(0x2463FA0); }            // per slot, stride 0x18
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2464048)); }
+	inline uint8_t *CoreVertices() { return (uint8_t *)own::R(0x2464418); }            // 0x3C0 bytes per core
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2464B9C)); }           // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2464BA0)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(own::R(0x2464BA4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2464B98)); }          // the effect's file (its TIM)
 
 	static const uint32_t ORIG_Director = 0x60F770;
 	static const uint32_t ORIG_Orbit = 0x60FC90;
@@ -83,6 +90,20 @@ namespace ultima149
 	static const void *const SOUND_Voice = (const void *)0xDC9ABC;
 	static const void *const SOUND_Start = (const void *)0xDC9BD0;
 	static const void *const SOUND_Blast = (const void *)0xDC9BD4;
+	static const uint32_t ORIG_FileLoader = 0x60F670, ORIG_Setup = 0x60F690;
+	static const uint32_t TEXTURE_NAME = 0xDC9C1C, CAMERA = 0xDC2D84;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct UltimaParams
+	{
+		struct { uint32_t voice, start, blast; } sounds; // the voice slot claimed at tick 0, the start (tick 1), the blast (0x5E)
+		struct { int16_t damage; } director;            // the damage at this tick of an action's director
+	};
+	static const UltimaParams GAME = { { 0xDC9ABC, 0xDC9BD0, 0xDC9BD4 }, { 0xA6 } };
+	static UltimaParams live = GAME;
+	static const UltimaParams &P() { return live; }
 	static const uint32_t SEQ_Orbit = 0xDC333C;
 	static const uint32_t SEQ_Dust = 0xDC312C;
 	static const uint32_t SEQ_Spark = 0xDC35B8;
@@ -221,8 +242,8 @@ namespace ultima149
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(DirectorNode) == 0x24 && sizeof(PartNode) == 0x24, "Ultima nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(StreakWork) == 0x88 && sizeof(ShardWork) == 0xA0 && sizeof(MeshHeader) == 0x80, "Ultima structs");
 
-	inline Particle *ArrayA() { return (Particle *)ARRAY_A; }
-	inline Particle *ArrayB() { return (Particle *)ARRAY_B; }
+	inline Particle *ArrayA() { return (Particle *)own::R(ARRAY_A); }
+	inline Particle *ArrayB() { return (Particle *)own::R(ARRAY_B); }
 
 	// first free particle of an array, nullptr when all are taken
 	static Particle *FreeParticle(Particle *a)
@@ -318,7 +339,7 @@ namespace ultima149
 		for (; i < end; i++)
 		{
 			if (SideFlags()[i * 6] == 0) continue;
-			PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), ORIG_SideFadeIn);
+			PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), own::Fn(ORIG_SideFadeIn));
 			n->counter = 0;
 			n->index = (int16_t)i;
 			n->rot = (int16_t)duration;
@@ -337,7 +358,7 @@ namespace ultima149
 			if ((f & 2) && !(f & 4))
 			{
 				SideFlags()[i * 6] = 1;
-				PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), ORIG_SideFadeOut);
+				PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), own::Fn(ORIG_SideFadeOut));
 				n->counter = 0;
 				n->index = (int16_t)i;
 				n->rot = (int16_t)duration;
@@ -363,6 +384,35 @@ namespace ultima149
 		GteLoadRGBC(&col);
 		GteDPCS();
 		GteStoreRGB2(e + 0x28);
+	}
+
+	// File loader (0x60F670) and setup (0x60F690): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the first action's
+	// director, both particle arrays cleared, the camera (its return armed) and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x2461E8C)) = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x2464410)) = ctx->attacker;
+		InitTaskQueuePool(&RootQueue(), (void *)own::R(0x2461E90), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&RootQueue(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(&FxQueue(), (void *)own::R(0x2463190), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(&FxQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		for (uint32_t p = own::R(ARRAY_B); p < own::R(0x2463180); p += 0x18) *(uint32_t *)p = 0;
+		for (uint32_t p = own::R(ARRAY_A); p < own::R(ARRAY_B); p += 0x18) *(uint32_t *)p = 0;
+		fn<void (__cdecl *)()>(0x50A730)();   // BS_Camera_ArmReturnAfterEffect
+		PlayCameraAnimation((const void *)CAMERA);
+		QueueTimUpload(TexFile());
+		return &RootQueue();
 	}
 
 	static uint32_t __cdecl SideFadeInTask(TaskNode *nd)
@@ -402,7 +452,7 @@ namespace ultima149
 	// ------------------------------------------------------------------
 	static PartNode *SpawnPart(uint32_t task, const DirectorNode *d, bool swap)
 	{
-		PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), task);
+		PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), own::Fn(task));
 		memcpy(n->pos, d->pos, 8);
 		if (swap)
 		{
@@ -426,7 +476,7 @@ namespace ultima149
 			d->pos[3] = (int16_t)0xF95C;
 			d->target = (int16_t)Ctx()->actions[d->action].targets[0];
 			d->pad22 = 0;
-			VoiceSlot() = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			VoiceSlot() = ClaimVoiceSlot((const void *)fxp::sound(P().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 		}
 		if (d->counter == 1) SpawnPart(ORIG_Orbit, d, false);
 		if (d->counter == 0xA) SpawnPart(ORIG_Streaks, d, true);
@@ -475,7 +525,7 @@ namespace ultima149
 		}
 		if (d->counter == 0x5B) ScreenFadeTask(3, 1, 8, 0xFF);
 		if (d->counter == 0x8A) ScreenFadeTask(0xF, 8, 0xA, 0xFF);
-		if (d->counter == 0xA6)
+		if (d->counter == P().director.damage)
 		{
 			ActionData *a = &Ctx()->actions[d->action];
 			ApplyActionResultToTargets(a->targets, a->target_count);
@@ -485,7 +535,7 @@ namespace ultima149
 			int32_t next = d->action + 1;
 			if (next <= (int32_t)Ctx()->actions[0].last_action)
 			{
-				DirectorNode *n = (DirectorNode *)AddTaskToQueue(&FxQueue(), ORIG_Director);
+				DirectorNode *n = (DirectorNode *)AddTaskToQueue(&FxQueue(), own::Fn(ORIG_Director));
 				n->counter = 0;
 				n->action = (int16_t)next;
 			}
@@ -495,13 +545,13 @@ namespace ultima149
 		{
 			ActionData *a = &Ctx()->actions[d->action];
 			AverageTargetPosition(a->targets, a->target_count, at);
-			BdPlaySE3D(SOUND_Start, 1, at);
+			BdPlaySE3D((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_Start), 1, at);
 		}
 		if (d->counter == 0x5E)
 		{
 			ActionData *a = &Ctx()->actions[d->action];
 			AverageTargetPosition(a->targets, a->target_count, at);
-			BdPlaySE3D(SOUND_Blast, 1, at);
+			BdPlaySE3D((const void *)fxp::sound(P().sounds.blast, (uint32_t)SOUND_Blast), 1, at);
 		}
 		if (d->counter == 0xA5)
 		{
@@ -1389,7 +1439,7 @@ namespace ultima149
 		int running = ExecuteTaskQueue(&FxQueue());
 		if (!running)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(&RootQueue(), ORIG_WaitTexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(&RootQueue(), own::Fn(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -1405,26 +1455,62 @@ namespace ultima149
 		w->counter++;
 		return done ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action: the orbiting sprites, the energy spins, the streaks, the shards, the ring and dome, the dust, the sparks, the core, the casting side faded, the screen flashes and fades, the sounds; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The voice, the start, the blast" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.voice", "Voice", "The voice slot claimed at the director's tick 0", (uint32_t)offsetof(UltimaParams, sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.start", "Start", "At the director's tick 1", (uint32_t)offsetof(UltimaParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.blast", "Blast", "At the director's tick 94 (the ring)", (uint32_t)offsetof(UltimaParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(UltimaParams, director.damage), fxp::I16, 0, 166 },
+		};
+	}
 }
 
 	void register_mag149_ultima()
 	{
+		fxp::register_params({ 149, "Ultima", &ultima149::live, &ultima149::GAME, sizeof(ultima149::UltimaParams),
+		                       ultima149::table::PARTS, (int)(sizeof(ultima149::table::PARTS) / sizeof(ultima149::table::PARTS[0])),
+		                       ultima149::table::FIELDS, (int)(sizeof(ultima149::table::FIELDS) / sizeof(ultima149::table::FIELDS[0])),
+		                       ultima149::table::GROUPS, (int)(sizeof(ultima149::table::GROUPS) / sizeof(ultima149::table::GROUPS[0])) });
+		own::note(ultima149::ORIG_FileLoader, (void *)ultima149::FileLoader);
+		own::note(ultima149::ORIG_Setup, (void *)ultima149::Setup);
+		own::note(ultima149::ORIG_Root, (void *)ultima149::RootTask);
 		register_port(ultima149::ORIG_Root, (void *)ultima149::RootTask, "U149 RootTask", 149);
+		own::note(ultima149::ORIG_WaitTexRestore, (void *)ultima149::WaitTexRestoreTask);
 		register_port(ultima149::ORIG_WaitTexRestore, (void *)ultima149::WaitTexRestoreTask, "U149 WaitTexRestore", 149);
+		own::note(ultima149::ORIG_Director, (void *)ultima149::DirectorTask);
 		register_port(ultima149::ORIG_Director, (void *)ultima149::DirectorTask, "U149 Director", 149);
+		own::note(ultima149::ORIG_Orbit, (void *)ultima149::OrbitTask);
 		register_port(ultima149::ORIG_Orbit, (void *)ultima149::OrbitTask, "U149 Orbit", 149);
+		own::note(ultima149::ORIG_Streaks, (void *)ultima149::StreaksTask);
 		register_port(ultima149::ORIG_Streaks, (void *)ultima149::StreaksTask, "U149 Streaks", 149);
+		own::note(ultima149::ORIG_Shards, (void *)ultima149::ShardsTask);
 		register_port(ultima149::ORIG_Shards, (void *)ultima149::ShardsTask, "U149 Shards", 149);
+		own::note(ultima149::ORIG_Energy, (void *)ultima149::EnergyTask);
 		register_port(ultima149::ORIG_Energy, (void *)ultima149::EnergyTask, "U149 Energy", 149);
+		own::note(ultima149::ORIG_Ring, (void *)ultima149::RingTask);
 		register_port(ultima149::ORIG_Ring, (void *)ultima149::RingTask, "U149 Ring", 149);
+		own::note(ultima149::ORIG_Core, (void *)ultima149::CoreTask);
 		register_port(ultima149::ORIG_Core, (void *)ultima149::CoreTask, "U149 Core", 149);
+		own::note(ultima149::ORIG_Dust, (void *)ultima149::DustTask);
 		register_port(ultima149::ORIG_Dust, (void *)ultima149::DustTask, "U149 Dust", 149);
+		own::note(ultima149::ORIG_Sparks, (void *)ultima149::SparksTask);
 		register_port(ultima149::ORIG_Sparks, (void *)ultima149::SparksTask, "U149 Sparks", 149);
+		own::note(ultima149::ORIG_SideFadeIn, (void *)ultima149::SideFadeInTask);
 		register_port(ultima149::ORIG_SideFadeIn, (void *)ultima149::SideFadeInTask, "U149 SideFadeIn", 149);
+		own::note(ultima149::ORIG_SideFadeOut, (void *)ultima149::SideFadeOutTask);
 		register_port(ultima149::ORIG_SideFadeOut, (void *)ultima149::SideFadeOutTask, "U149 SideFadeOut", 149);
 		// 30 fps layer: see mag149_ultima_held.inc
 		FX_HELD(register_mag149_held();)
 	}
+	FX_LAB_MODULE(register_mag149_ultima);
 }
 
 #ifdef FF8_FX_HELD
