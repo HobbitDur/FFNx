@@ -6378,6 +6378,44 @@ int __cdecl ff8_bgate_actq_gate()
 // (0x48ACD0, AI waits: battle suspended for time_wait), BattleText_PrintQueuedMessageAfterDelay (0x48AC90, AI message
 // after time_wait), BattleText_PrintQueuedMessage (0x48AC60). No data. Per host frame they counted 2x fast (the screen
 // went black ~1.1 s early after a won escape). Only on the iterations whose BdLink is a real frame, like the action queue.
+// Battle exit chain: once FADE_OUT_END_BATTLE_DURATION (0x1D27B0C) reaches 0, FFBattleDirector_battleLoop (0x47CCB0,
+// from battle_cardgame_main_loop @0x47D113) steps one state per call with no BdLink: stage unload request, party/item
+// writeback (Battle_ExitWritebackPartyItemsAndResult 0x4868C0 -> mode_StateGlobal 0x1CD8FC6 = 5 WHEN_ESCAPING / 6-7),
+// BattleResult_Init (state 5), exit_battle = 1 (default case) -> module switch. One state per host frame: the battle was
+// left ~2-3 vanilla ticks early after the fade. In those states (3 IN_BATTLE with the fade at 0, 5, 6, 7; never 4 or the
+// card game 8) the loop runs 1 call in n, like vanilla's one per tick. battleLoop is __usercall (ecx, ebp): naked thunk.
+static uint32_t ff8_bgate_battleloop_orig = 0;
+
+static int __cdecl ff8_bgate_battleloop_skip()
+{
+	static int k = 0;
+	if (ff8_bgate_n <= 1 || getmode_cached()->driver_mode != MODE_BATTLE) { k = 0; return 0; }
+	const uint16_t state = *(uint16_t *)0x1CD8FC6;
+	const bool exiting = (state == 3 && *(uint8_t *)0x1D27B0C == 0) || state == 5 || state == 6 || state == 7;
+	if (!exiting) { k = 0; return 0; }
+	k = (k + 1) % ff8_bgate_n;
+	return k != 0; // the first exit call after the last real frame is a held slot, as vanilla's next tick
+}
+
+static __declspec(naked) void ff8_bgate_battleloop_thunk()
+{
+	__asm
+	{
+		push eax
+		push ecx
+		push edx
+		call ff8_bgate_battleloop_skip
+		test eax, eax
+		pop edx
+		pop ecx
+		pop eax
+		jnz skip
+		jmp dword ptr [ff8_bgate_battleloop_orig]
+	skip:
+		ret
+	}
+}
+
 static int (__cdecl *ff8_bgate_textmgmt_orig)() = nullptr;
 
 int __cdecl ff8_bgate_textmgmt_gate()
@@ -6613,23 +6651,84 @@ DWORD __cdecl ff8_bgate_ttext_hook(uint8_t *n)
 // - Screen fades (FF8BattleFadeTask: +0x0C elapsed, +0x0E duration, +0x10 start level, +0x11 end level; AnimSeq
 //   queue): BattleFade_UpdateBlackOverlay 0x501D10 (battle start from black 15 / BattleStage_StartCameraAndRenderTask,
 //   end of battle to black 13: system tasks 3 / 4) and BattleFade_UpdateWhiteOverlay 0x501E80 (GF cinematic VM op
-//   0x08A). Each draws level(elapsed) then advances elapsed. Held frame: elapsed - 1 for the call, so it draws the
-//   last real frame's level, then elapsed is put back (black: the elapsed == 5 countdown enable it may repeat is
-//   idempotent; white: no advance once elapsed >= duration). A task not run on a real frame yet draws level 0.
+//   0x08A). Each call draws level(elapsed) = start + (end - start) * ((elapsed << 12) / duration >> 12), linear per
+//   tick, then advances elapsed (black: ends after drawing elapsed == duration; white: holds once elapsed >= duration).
+//   Real frames run them as vanilla and remember the elapsed each one drew (e0). Held frame k of n: the same call with
+//   elapsed = e0 * n + k and duration * n, i.e. the level k/n of the way from the last real draw (e0) to the next one
+//   (e0 + 1), then both fields are put back and an end is ignored (the next real frame ends it, on the vanilla tick).
+//   Never past the end level: a black fade's last real draw IS the end (the task is gone on the held frame after it,
+//   as on vanilla's next tick); a white fade whose last real draw held at elapsed >= duration holds again. A fade not
+//   drawn on a real frame yet (queued on a held frame) draws its level 0 without advancing. The black fade's countdown
+//   enable at elapsed == 5 (idempotent) is kept off the held calls (elapsed 5 scaled to 10 / duration x 2).
 FF8_BGATE_TASK_HOOK(tfadeblack, 0x501D10)
 FF8_BGATE_TASK_HOOK(tfadewhite, 0x501E80)
+static struct { uint8_t *node; int16_t e0; } ff8_bgate_fade_last[8]; // elapsed of each fade's last real draw
+
+static int ff8_bgate_fade_slot(uint8_t *n, bool add)
+{
+	int free_slot = -1;
+	for (int i = 0; i < 8; i++)
+	{
+		if (ff8_bgate_fade_last[i].node == n) return i;
+		if (!ff8_bgate_fade_last[i].node && free_slot < 0) free_slot = i;
+	}
+	if (add && free_slot >= 0) { ff8_bgate_fade_last[free_slot].node = n; return free_slot; }
+	return -1;
+}
+
+static DWORD ff8_bgate_fade_call(uint8_t *n, bool white)
+{
+	return white ? ff8_bgate_tfadewhite_call(n) : ff8_bgate_tfadeblack_call(n);
+}
+
+static DWORD ff8_bgate_fade_real(uint8_t *n, bool white)
+{
+	const int16_t e0 = *(int16_t *)(n + 0x0C);
+	DWORD r = ff8_bgate_fade_call(n, white);
+	const int s = ff8_bgate_fade_slot(n, r != 2);
+	if (s >= 0)
+	{
+		if (r == 2) ff8_bgate_fade_last[s].node = nullptr; // ended (the node goes back to the pool)
+		else ff8_bgate_fade_last[s].e0 = e0;
+	}
+	return r;
+}
+
 static DWORD ff8_bgate_fade_held(uint8_t *n, bool white)
 {
-	int16_t &elapsed = *(int16_t *)(n + 0x0C);
-	const int16_t duration = *(int16_t *)(n + 0x0E), e = elapsed;
-	if (duration <= 1 && e == 0) return 0; // (would end on its first call: leave that to the real frame)
-	if (e > 0 && !(white && e >= duration)) elapsed = (int16_t)(e - 1);
-	DWORD r = white ? ff8_bgate_tfadewhite_call(n) : ff8_bgate_tfadeblack_call(n);
+	int16_t &elapsed = *(int16_t *)(n + 0x0C), &duration = *(int16_t *)(n + 0x0E);
+	const int16_t e = elapsed, d = duration;
+	int s = ff8_bgate_fade_slot(n, false);
+	if (d <= 0) return 0;
+	// the remembered draw must be this fade's last one (a node reused by a new fade: no previous level)
+	if (s >= 0 && !(e == ff8_bgate_fade_last[s].e0 + 1 || (e == ff8_bgate_fade_last[s].e0 && e >= d))) s = -1;
+	if (s < 0)
+	{
+		// not drawn on a real frame yet: its first level, no advance (never an end on a held frame)
+		if (white ? (e < d && e + 1 >= d && n[0x11] == 0) : e >= d) return 0; // (this call would end it)
+		ff8_bgate_fade_call(n, white);
+		elapsed = e;
+		return 0;
+	}
+	const int16_t e0 = ff8_bgate_fade_last[s].e0;
+	int32_t ne, nd;
+	if (e0 >= d) { ne = e0; nd = d; } // (white holding at its end level: holds)
+	else
+	{
+		ne = (int32_t)e0 * ff8_bgate_n + ff8_bgate_phase; // < d * n: never past the next real draw
+		nd = (int32_t)d * ff8_bgate_n;
+		if (!white && ne == 5) { ne *= 2; nd *= 2; } // (keep the elapsed == 5 countdown enable to the real tick)
+	}
+	if (nd > 0x7FFF || ne > 0x7FFF) { ne = e0; nd = d; } // (out of the int16 fields: hold)
+	elapsed = (int16_t)ne;
+	duration = (int16_t)nd;
+	ff8_bgate_fade_call(n, white);
 	elapsed = e;
-	return r & ~2u;
+	duration = d;
+	return 0;
 }
-DWORD __cdecl ff8_bgate_tfadeblack_hook(uint8_t *n) { return ff8_bgate_phase ? ff8_bgate_fade_held(n, false) : ff8_bgate_tfadeblack_call(n); }
-DWORD __cdecl ff8_bgate_tfadewhite_hook(uint8_t *n) { return ff8_bgate_phase ? ff8_bgate_fade_held(n, true) : ff8_bgate_tfadewhite_call(n); }
+DWORD __cdecl ff8_bgate_tfadeblack_hook(uint8_t *n) { return ff8_bgate_phase ? ff8_bgate_fade_held(n, false) : ff8_bgate_fade_real(n, false); }
+DWORD __cdecl ff8_bgate_tfadewhite_hook(uint8_t *n) { return ff8_bgate_phase ? ff8_bgate_fade_held(n, true) : ff8_bgate_fade_real(n, true); }
 // 96 (0x50F6C0): Y shake = start + (end - start) * i / duration, negated on odd i, i++; ends
 // (returns 2) once i reaches the duration. Held frame: report the value the next real tick
 // writes (the node's i is already the next index).
@@ -7281,6 +7380,9 @@ static void ff8_bgate_install_hooks()
 	// battle text-management timers (end-of-battle fade timer, AI waits / delayed messages) at native pace
 	ff8_bgate_textmgmt_orig = (int(__cdecl *)())get_relative_call(0x47D7FB, 0);
 	replace_call(0x47D7FB, (void *)ff8_bgate_textmgmt_gate);
+	// battle exit chain (after the end fade) one state per vanilla tick (see ff8_bgate_battleloop_skip)
+	ff8_bgate_battleloop_orig = get_relative_call(0x47D113, 0);
+	replace_call(0x47D113, (void *)ff8_bgate_battleloop_thunk);
 	// emulated battle file load time counted on real frames (see ff8_bgate_fileload_countdown_hook)
 	ff8_bgate_fileload_orig = (int(__cdecl *)())0x482870;
 	ff8_bgate_fileload_ri = replace_function(0x482870, (void *)ff8_bgate_fileload_countdown_hook);
