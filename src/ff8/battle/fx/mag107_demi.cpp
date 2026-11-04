@@ -42,8 +42,14 @@
 // vertex buffer (+0x1DC8) and the packet arenas are in the magic buffer. The silhouette draws into
 // the frame arena (battle_texture_data_ptr 0x1D8E054) with the battle's bone workspace
 // (0x1D98B3C) as its vertex buffer.
+// Fujin's described Demi (effect_107.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (DemiParams: the sound, the
+// status tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -53,13 +59,15 @@ namespace demi107
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521B34); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521B38); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521B54); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521B68; }          // pool: + 0x16C8, 0x40 x 0x1C
-	inline TaskQueue *QMotes() { return (TaskQueue *)0x2521B78; }           // pool: + 0x7C8, 0x40 x 0x1C
-	inline TaskQueue *QOrbs() { return (TaskQueue *)0x2521B88; }            // pool: + 0xEC8, 0x40 x 0x20
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521B98; }         // pool: magic buffer, 3 x 0x298
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2521B34)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2521B38)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2521B54)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2521B30)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2521BA8); }             // 1 x 0x14
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2521B68); }          // pool: + 0x16C8, 0x40 x 0x1C
+	inline TaskQueue *QMotes() { return (TaskQueue *)own::R(0x2521B78); }           // pool: + 0x7C8, 0x40 x 0x1C
+	inline TaskQueue *QOrbs() { return (TaskQueue *)own::R(0x2521B88); }            // pool: + 0xEC8, 0x40 x 0x20
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2521B98); }         // pool: magic buffer, 3 x 0x298
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // silhouette vertex buffer
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -81,6 +89,20 @@ namespace demi107
 	static const uint32_t PULL_Distance = 0x12F5978;     // u8 [128][128]: distance of (|dy|, |dx|)
 	static const uint32_t PULL_Weights = 0x12F3978;      // u16 [32][128]: weight by distance, per step
 	static const void *const SOUND_Demi = (const void *)0x12F3974;
+	static const uint32_t ORIG_FileLoader = 0x6D1320, ORIG_Setup = 0x6D1310;
+	static const uint32_t TEXTURE_NAME = 0x12F99C8, CAMERA = 0x12F3068;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DemiParams
+	{
+		uint32_t sound;                    // at the target task's tick 0 (3D, at the anchor)
+		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
+	};
+	static const DemiParams GAME = { 0x12F3974, { 0x56 } };
+	static DemiParams live = GAME;
+	static const DemiParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
@@ -628,7 +650,7 @@ namespace demi107
 		{
 			for (int k = 0; k < 0x20; k++)
 			{
-				OrbNode *o = (OrbNode *)AddTaskToQueue(QOrbs(), ORIG_OrbTask);
+				OrbNode *o = (OrbNode *)AddTaskToQueue(QOrbs(), own::Fn(ORIG_OrbTask));
 				if (!o) continue;
 				Memset32(&o->counter, 0, 4);
 				o->owner = arg->owner;
@@ -647,7 +669,7 @@ namespace demi107
 			for (int k = 0; k < 2; k++)
 			{
 				if (CrtRand() >= chance) continue;
-				SparkNode *p = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *p = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				if (!p) continue;
 				Memset32(&p->frame, 0, 4);
 				const int32_t pick = CrtRand() & 1;
@@ -903,7 +925,7 @@ namespace demi107
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 4; k++)
 			{
-				MoteNode *p = (MoteNode *)AddTaskToQueue(QMotes(), ORIG_MoteTask);
+				MoteNode *p = (MoteNode *)AddTaskToQueue(QMotes(), own::Fn(ORIG_MoteTask));
 				if (!p) continue;
 				Memset32(&p->frame, 0, 4);
 				p->owner = t;
@@ -970,9 +992,9 @@ namespace demi107
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(t->entity, pos);
-			BdPlaySE3D(SOUND_Demi, 0x101, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Demi), 0x101, pos);
 		}
-		if (t->counter == 0x56) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
+		if (t->counter == P().target.status) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
 		if (t->counter >= 0x5B) return TASK_END;
 		t->counter++;
 		return 0;
@@ -981,6 +1003,28 @@ namespace demi107
 	// ------------------------------------------------------------------
 	// Root task (0x6D13B0)
 	// ------------------------------------------------------------------
+	// File loader (0x6D1320) and setup (0x6D1310 -> 0x6D1340): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast, the root, the camera and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2521B40), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)CAMERA);
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1027,7 +1071,7 @@ namespace demi107
 				}
 				else
 				{
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 					Memset32(&t->counter, 0, 0xA3);
 					t->action = (int16_t)(uint16_t)r->action;
 					t->entity = Entity(Ctx()->actions[t->action].targets[0]);
@@ -1056,18 +1100,41 @@ namespace demi107
 		if (r->counter >= 0x2D) r->counter = 0;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "target", "Target", "One target task an action on its first target: the motes, two sprite sequences, the screen fade, the target drawn as a silhouette pulled towards its middle, the vortex with its orbs and sparks, the sound; the status" },
+		};
+		static const Field FIELDS[] = {
+			{ "target", "sound", "Sound", "", (uint32_t)offsetof(DemiParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(DemiParams, target.status), fxp::I16, 0, 90 },
+		};
+	}
 }
 
 	void register_mag107_demi()
 	{
+		fxp::register_params({ 107, "Demi", &demi107::live, &demi107::GAME, sizeof(demi107::DemiParams),
+		                       demi107::table::PARTS, (int)(sizeof(demi107::table::PARTS) / sizeof(demi107::table::PARTS[0])),
+		                       demi107::table::FIELDS, (int)(sizeof(demi107::table::FIELDS) / sizeof(demi107::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(demi107::ORIG_FileLoader, (void *)demi107::FileLoader);
+		own::note(demi107::ORIG_Setup, (void *)demi107::Setup);
+		own::note(demi107::ORIG_RootTask, (void *)demi107::RootTask);
 		register_port(demi107::ORIG_RootTask, (void *)demi107::RootTask, "D107 RootTask", 107);
+		own::note(demi107::ORIG_TargetTask, (void *)demi107::TargetTask);
 		register_port(demi107::ORIG_TargetTask, (void *)demi107::TargetTask, "D107 TargetTask", 107);
+		own::note(demi107::ORIG_MoteTask, (void *)demi107::MoteTask);
 		register_port(demi107::ORIG_MoteTask, (void *)demi107::MoteTask, "D107 MoteTask", 107);
+		own::note(demi107::ORIG_OrbTask, (void *)demi107::OrbTask);
 		register_port(demi107::ORIG_OrbTask, (void *)demi107::OrbTask, "D107 OrbTask", 107);
+		own::note(demi107::ORIG_SparkTask, (void *)demi107::SparkTask);
 		register_port(demi107::ORIG_SparkTask, (void *)demi107::SparkTask, "D107 SparkTask", 107);
 		// 30 fps layer: see mag107_demi_held.inc
 		FX_HELD(register_mag107_held();)
 	}
+	FX_LAB_MODULE(register_mag107_demi);
 }
 
 #ifdef FF8_FX_HELD
