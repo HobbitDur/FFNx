@@ -49,9 +49,15 @@
 // Module globals: 0x2521110..0x25211E0 (branch frame 0x2521110, flash level 0x2521130, caster
 // 0x2521134, rotation 0x2521138, texture file 0x2521158, magic buffer base 0x252115C, context
 // 0x2521160, master pool 0x2521168, packet cursor 0x252117C, the six queues 0x2521180..0x25211D0).
+// Fujin's described Breath (effect_129.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BreathParams: the sound, the damage
+// tick).
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -62,18 +68,20 @@ namespace breath129
 	using namespace icec;
 
 	// --- module globals ---
-	inline Mat4x3 &BranchFrame() { return var<Mat4x3>(0x2521110); }       // camera x mesh frame (main task)
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2521130); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2521134); }        // the caster's entity (setup)
-	inline Mat4x3 &BranchRot() { return var<Mat4x3>(0x2521138); }         // rotation about z (main task)
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x252115C); }       // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521160); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252117C); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2521180; }        // pool: magic buffer, 9 x 0x18
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521190; }        // pool: + 0xD8, 3 x 0x1E8
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x25211A0; }           // pool: + 0x690, 0x10 x 0x80
-	inline TaskQueue *QBranches() { return (TaskQueue *)0x25211B0; }       // pool: + 0xE90, 0x40 x 0x20
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25211C0; }           // pool: + 0x1690, 1 x 0x330
+	inline Mat4x3 &BranchFrame() { return var<Mat4x3>(own::R(0x2521110)); }       // camera x mesh frame (main task)
+	inline int32_t &FlashLevel() { return var<int32_t>(own::R(0x2521130)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2521134)); }        // the caster's entity (setup)
+	inline Mat4x3 &BranchRot() { return var<Mat4x3>(own::R(0x2521138)); }         // rotation about z (main task)
+	inline uint8_t *&TexBase() { return var<uint8_t *>(own::R(0x252115C)); }       // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2521160)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x252117C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2521158)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25211D0); }           // 1 x 0x14
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2521180); }        // pool: magic buffer, 9 x 0x18
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2521190); }        // pool: + 0xD8, 3 x 0x1E8
+	inline TaskQueue *QArcs() { return (TaskQueue *)own::R(0x25211A0); }           // pool: + 0x690, 0x10 x 0x80
+	inline TaskQueue *QBranches() { return (TaskQueue *)own::R(0x25211B0); }       // pool: + 0xE90, 0x40 x 0x20
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25211C0); }           // pool: + 0x1690, 1 x 0x330
 
 	static const uint32_t ORIG_MasterTask = 0x6B4CB0;
 	static const uint32_t ORIG_MainTask = 0x6B5140;
@@ -93,6 +101,20 @@ namespace breath129
 	static const uint32_t ARC_FACES_CASTER = 0x1229338;
 	static const uint32_t ARC_STRIPS_TARGET = 0x12292F8;  // 3 x 8 bytes
 	static const void *const SOUND_Breath = (const void *)0x12292F4;
+	static const uint32_t ORIG_FileLoader = 0x6B4C10, ORIG_Setup = 0x6B4C00;
+	static const uint32_t TEXTURE_NAME = 0x12320A8, CAMERA = 0x12291CC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BreathParams
+	{
+		uint32_t sound;                    // at the main task's tick 0
+		struct { int16_t damage; } target; // the damage at this tick of a target task
+	};
+	static const BreathParams GAME = { 0x12292F4, { 0x10 } };
+	static BreathParams live = GAME;
+	static const BreathParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1229F28;   // [|dy|][|dx|] -> length, 128 x 128
 	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x122DEA8;
 	static const int16_t *const SWIRL_TABLE = (const int16_t *)0x122E0A8; // 0x1000 x (s16, s16)
@@ -616,7 +638,7 @@ namespace breath129
 		int16_t decay = (int16_t)-(intensity >> 3);
 		BoltSeg *s = SegAlloc(script[0], (int16_t)width, intensity, decay);
 		if (!s) return;
-		BranchNode *b = (BranchNode *)AddTaskToQueue(QBranches(), ORIG_BranchTask);
+		BranchNode *b = (BranchNode *)AddTaskToQueue(QBranches(), own::Fn(ORIG_BranchTask));
 		if (!b) return;
 		Memset32(&b->count, 0, 5);
 		b->tail = s;
@@ -1102,7 +1124,7 @@ namespace breath129
 	// 0x6B6820: new arc
 	static void SpawnArc(uint8_t **bones, const int16_t *strips, const uint8_t *faces, uint8_t reach_shift, uint8_t fade_shift, int16_t speed)
 	{
-		ArcNode *arc = (ArcNode *)AddTaskToQueue(QArcs(), ORIG_ArcTask);
+		ArcNode *arc = (ArcNode *)AddTaskToQueue(QArcs(), own::Fn(ORIG_ArcTask));
 		if (!arc) return;
 		arc->reach_shift = reach_shift;
 		arc->fade_shift = fade_shift;
@@ -1406,7 +1428,7 @@ namespace breath129
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter <= 8 && !(t->counter & 1))
 		{
-			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 			if (p)
 			{
 				const int32_t r = CrtRand();
@@ -1415,7 +1437,7 @@ namespace breath129
 				p->size = (int16_t)((CrtRand() & 0x1FF) + 0x400);
 			}
 		}
-		if (t->counter == 0x10) ApplyActionResultToTarget(Ctx()->actions[0].targets + 24 * t->action);
+		if (t->counter == P().target.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets + 24 * t->action);
 		if (t->counter >= 0xC && !(t->counter & 3))
 			SpawnArc(*(uint8_t ***)(entity + 0x64), (const int16_t *)(ARC_STRIPS_TARGET + 8 * ((t->counter - 0xC) >> 2)), t->faces, 0xC, 5, 0x800);
 		t->counter++;
@@ -1501,7 +1523,7 @@ namespace breath129
 				if (m->walk >= 0x1000)
 				{
 					// the walk passed a target: its hit task
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 					if (t)
 					{
 						t->counter = 0;
@@ -1537,7 +1559,7 @@ namespace breath129
 		}
 		RotZ((int16_t)-m->angle1, &BranchRot());
 		const int left = ExecuteTaskQueue(QBranches());
-		if (m->counter == 0) BdPlaySE(SOUND_Breath, 0, 0x80);
+		if (m->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Breath), 0, 0x80);
 		m->angle1 = (int16_t)(m->angle1 - 100);
 		m->angle2 = (int16_t)(m->angle2 + 200);
 		if (m->counter >= 0x49 && left == 0) return TASK_END;
@@ -1548,6 +1570,26 @@ namespace breath129
 	// ------------------------------------------------------------------
 	// Master (0x6B4CB0)
 	// ------------------------------------------------------------------
+	// File loader (0x6B4C10) and setup (0x6B4C00 -> 0x6B4C30): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint8_t *)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2521168), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *r = (MasterNode *)n;
@@ -1575,7 +1617,7 @@ namespace breath129
 			Memset32(TexBase() + SEGS, 0, 0x700);
 			for (int i = 0; i < 0x100; i++) Segs()[i].vertex = -1;
 			for (int i = 0; i < 16; i++) Profile()[i] = (int16_t)ComputeSin(Div15(shl32(i, 11)));
-			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&mn->counter, 0, 0xC9);
 			DecodeModelPrimLayout(MODEL_Mouth1, mn->mouth1, 0x108);
 			DecodeModelPrimLayout(MODEL_Mouth2, mn->mouth2, 0x68);
@@ -1631,19 +1673,43 @@ namespace breath129
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The breath from the caster: its branching lightning mesh, arcs and sprites, the screen flash, the target tasks, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "", (uint32_t)offsetof(BreathParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "target.damage", "Damage tick", "The damage at this tick of a target task", (uint32_t)offsetof(BreathParams, target.damage), fxp::I16, 0, 100 },
+		};
+	}
 }
 
 	void register_mag129_breath()
 	{
+		fxp::register_params({ 129, "Breath", &breath129::live, &breath129::GAME, sizeof(breath129::BreathParams),
+		                       breath129::table::PARTS, (int)(sizeof(breath129::table::PARTS) / sizeof(breath129::table::PARTS[0])),
+		                       breath129::table::FIELDS, (int)(sizeof(breath129::table::FIELDS) / sizeof(breath129::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(breath129::ORIG_FileLoader, (void *)breath129::FileLoader);
+		own::note(breath129::ORIG_Setup, (void *)breath129::Setup);
+		own::note(breath129::ORIG_MasterTask, (void *)breath129::MasterTask);
 		register_port(breath129::ORIG_MasterTask, (void *)breath129::MasterTask, "129 MasterTask", 129);
+		own::note(breath129::ORIG_MainTask, (void *)breath129::MainTask);
 		register_port(breath129::ORIG_MainTask, (void *)breath129::MainTask, "129 MainTask", 129);
+		own::note(breath129::ORIG_TargetTask, (void *)breath129::TargetTask);
 		register_port(breath129::ORIG_TargetTask, (void *)breath129::TargetTask, "129 TargetTask", 129);
+		own::note(breath129::ORIG_SpriteTask, (void *)breath129::SpriteTask);
 		register_port(breath129::ORIG_SpriteTask, (void *)breath129::SpriteTask, "129 SpriteTask", 129);
+		own::note(breath129::ORIG_BranchTask, (void *)breath129::BranchTask);
 		register_port(breath129::ORIG_BranchTask, (void *)breath129::BranchTask, "129 BranchTask", 129);
+		own::note(breath129::ORIG_ArcTask, (void *)breath129::ArcTask);
 		register_port(breath129::ORIG_ArcTask, (void *)breath129::ArcTask, "129 ArcTask", 129);
 		// 30 fps layer: see mag129_breath_held.inc
 		FX_HELD(register_mag129_held();)
 	}
+	FX_LAB_MODULE(register_mag129_breath);
 }
 
 #ifdef FF8_FX_HELD
