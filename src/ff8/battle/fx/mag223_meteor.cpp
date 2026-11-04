@@ -728,6 +728,9 @@ namespace meteor
 	{
 		using namespace gfc;
 		meteor::describe(meteor::g_meteor);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<223>::Register("Meteor", meteor::g_meteor, 0xA8F860, 0x186C834, 0x186C840,
+		                           (void *)meteor::SequenceTask);
 		init_clone(meteor::g_meteor, nullptr, 0);
 		apply_shared_misc(meteor::g_meteor);    // VM 0x096, draw 16, draw 26
 		meteor::apply_prim6(meteor::g_meteor);
@@ -736,6 +739,7 @@ namespace meteor
 		// 30 fps layer: see mag223_meteor_held.inc
 		FX_HELD(register_mag223_meteor_held();)
 	}
+	FX_LAB_MODULE(register_mag223_meteor);
 }
 
 #ifdef FF8_FX_HELD
