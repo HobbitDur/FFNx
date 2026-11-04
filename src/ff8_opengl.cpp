@@ -6335,8 +6335,12 @@ int __cdecl ff8_bgate_stageq_gate(void *queue)
 // "completes" (BATTLE_FILE_LOADING_STATE >= 0, completion callback) when it reaches 0. Per host frame, every load
 // completed in half the vanilla ticks: Fira's texture restore (A8DEF.TIM 99168 bytes = 4 -> 5 polls) ended its
 // WaitTexRestore ~2.5 ticks early (the action ended 0.16-0.26 s early), effect files (MagicCast state 3), GF files
-// (GF_Cinematic state 2) and model loads came early too. Counted only on the iterations whose BdLink is a real frame;
-// not gated if BdLink stopped running (ff8_bgate_frame_no unchanged), so a load can never stall.
+// (GF_Cinematic state 2) and model loads came early too. While an action runs (BATTLE_CURRENTLY_IN_ACTION 0x1D27B00:
+// set by the action start, cleared by its completion; the cast, effect, GF and texture-restore loads all happen inside
+// one, as the victory pose load) the countdown counts only on the iterations whose BdLink is a real frame, so the cast /
+// effect / sound timing stays vanilla. Outside an action (the battle-start stage, monster and party loads) it counts
+// every host frame: faster loading, nothing visible waits on it there. Not gated either if BdLink stopped running
+// (ff8_bgate_frame_no unchanged), so a load can never stall.
 static int (__cdecl *ff8_bgate_fileload_orig)() = nullptr;
 static uint32_t ff8_bgate_fileload_ri = 0;
 
@@ -6347,7 +6351,7 @@ int __cdecl ff8_bgate_fileload_countdown_hook()
 	stale = (ff8_bgate_frame_no == last_frame_no) ? stale + 1 : 0;
 	last_frame_no = ff8_bgate_frame_no;
 	if (ff8_bgate_n > 1 && !ff8_bgate_left_battle && stale < 2 && getmode_cached()->driver_mode == MODE_BATTLE
-		&& (ff8_bgate_phase + 1) % ff8_bgate_n != 0)
+		&& *(uint8_t *)0x1D27B00 != 0 && (ff8_bgate_phase + 1) % ff8_bgate_n != 0)
 		return 0; // (BattleFile_PollOneCallback ignores the return; the slot stays registered)
 	unreplace_function(ff8_bgate_fileload_ri);
 	int r = ff8_bgate_fileload_orig();
