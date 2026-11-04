@@ -77,6 +77,9 @@
 // finisher flag 0x23D3498, texture base 0x23D349C, packet cursor 0x23D34A0.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -87,14 +90,16 @@ namespace renzo161
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23D33FC); }
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23D0E10); }  // the boss (first target)
-	inline int32_t &Length() { return var<int32_t>(0x23D3494); }      // sum of the stage durations (4 until tick 2)
-	inline int32_t &Finisher() { return var<int32_t>(0x23D3498); }    // a finisher follows (action 0 word +4 == 0xFFFE)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23D349C); }   // Magic_TextureOFF
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23D34A0); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x23D33FC)); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x23D0E10)); }  // the boss (first target)
+	inline int32_t &Length() { return var<int32_t>(own::R(0x23D3494)); }      // sum of the stage durations (4 until tick 2)
+	inline int32_t &Finisher() { return var<int32_t>(own::R(0x23D3498)); }    // a finisher follows (action 0 word +4 == 0xFFFE)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23D349C)); }   // Magic_TextureOFF
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23D34A0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23D3400)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x23D1B18); }           // 1 x 0x10
 	inline int16_t &CameraShake() { return var<int16_t>(0x1D97712); } // battle camera shake (y)
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23D25D8; }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x23D25D8); }
 	inline TaskQueue *QHit() { return (TaskQueue *)0x209FAA8; }      // the battle's hit-effect queue
 	static const uint32_t POOL_A = 0x23D0E18, POOL_A_END = 0x23D0FF8;  // flashes, 0xC bytes
 	static const uint32_t POOL_B = 0x23D0FF8, POOL_B_SPAWN_END = 0x23D1278, POOL_B_END = 0x23D13B8; // sparks, 0x10 bytes
@@ -118,6 +123,19 @@ namespace renzo161
 
 	// data (FF8_EN.exe)
 	static const void *const SOUND = (const void *)0xE9AD24;
+	static const uint32_t ORIG_FileLoader = 0x5FD0E0, ORIG_Setup = 0x5FD100;
+	static const uint32_t TEXTURE_NAME = 0xDAA708, CAMERA = 0xE9AEC0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct Renzokuken161Params
+	{
+		uint32_t sound;   // at the controller's tick 1
+	};
+	static const Renzokuken161Params GAME = { 0xE9AD24 };
+	static Renzokuken161Params live = GAME;
+	static const Renzokuken161Params &P() { return live; }
 	static const uint32_t MODEL_SPARKLE = 0xE9AD28, SPARKLE_FADE = 0xE9AEB0, SPARKLE_DEPTH = 0xE9AEA0;
 	static const uint32_t ANIM_SETS = 0xE9B314, BIND_OUT = 0x24FEB98; // container: +4 the caster's com data, +8 the boss's
 	static const uint32_t MODEL_SLASH = 0xDA9474, MODEL_STREAK = 0xDA9E5C, MODEL_RING = 0xDAA12C;
@@ -294,6 +312,37 @@ namespace ff8fx
 {
 namespace renzo161
 {
+	// File loader (0x5FD0E0) and setup (0x5FD100, not a task): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer, the cast, its first target and its caster, the master and the controller,
+	// the length (4 until the sequence's tick 2), the finisher flag, the five particle pools freed, the camera, the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		var<CastContext *>(own::R(0x23D33F8)) = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x23D1B08), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Master)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(0x23D25E8), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Controller)) + 0xC) = 0;
+		Length() = 4;
+		Finisher() = *(const uint16_t *)((const uint8_t *)ctx->actions + 4) == 0xFFFE;
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_D); a < own::R(POOL_D_END); a += 0x14) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_E); a < own::R(POOL_E_END); a += 0x14) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10) *(int16_t *)a = -1;
+		PlayCameraAnimation((const void *)CAMERA);
+		QueueTimUpload(TexFile());
+		return QMaster();
+	}
+
 	// ------------------------------------------------------------------
 	// BindBoth (0x5FEBC0): the animation container's two com-data blocks bound to the caster and to the boss, both
 	// sequences started (the caster's `seq`, the boss's 1)
@@ -339,18 +388,18 @@ namespace renzo161
 			const int32_t last = (int32_t)StageCount() + 1;
 			Length() = 0;
 			for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(0x1D98214 + i);
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Trail);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Trail));
 			t->c = 0;
-			for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_SparkSpawn);
+			for (uint32_t a = own::R(RING); a < own::R(RING_END); a += 0x14) var<int32_t>(a) = 0;
+			t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_SparkSpawn));
 			t->c = 0;
 			t->e = (int16_t)(CrtRand() % 0x18);
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Hit);
+			t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Hit));
 			t->c = 0;
 		}
 		if (Finisher() != 0 && (int32_t)n->c == Length())
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), ORIG_HitSpark);
+			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), own::Fn(ORIG_HitSpark));
 			t->c = 0;
 			t->w1A = (int16_t)CasterSlot();
 		}
@@ -365,9 +414,9 @@ namespace renzo161
 			Normalize(d, d);
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_D, POOL_D_END, 0x14);
+				const int32_t i = FreeSlot(own::R(POOL_D), own::R(POOL_D_END), 0x14);
 				if (i < 0) break;
-				StreamP *p = (StreamP *)(POOL_D + 0x14 * i);
+				StreamP *p = (StreamP *)(own::R(POOL_D) + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x700 + 0x600);
 				memcpy(p->pos, b, 8);
@@ -384,7 +433,7 @@ namespace renzo161
 		if (n->c == 0x2E)
 		{
 			// the closing ring at the boss's effect position (x, height, z)
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Final);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Final));
 			t->c = 0;
 			GetDefaultEffectPosition(Target(), &t->w10);
 			const int16_t h = t->w16;
@@ -397,7 +446,7 @@ namespace renzo161
 			GetDefaultEffectPosition(Target(), p4);
 			for (int32_t k = 0; k < BURST_COUNT; k++)
 			{
-				BurstP *p = (BurstP *)(POOL_E + 0x14 * k);
+				BurstP *p = (BurstP *)(own::R(POOL_E) + 0x14 * k);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x1400);
 				p->pos[0] = p4[0];
@@ -439,7 +488,7 @@ namespace renzo161
 			GteDPCS();
 			GteStoreRGB2(Caster() + 0x28);
 		}
-		if (n->c == 1) BdPlaySE(SOUND, 0x8000, 0x80);
+		if (n->c == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0x8000, 0x80);
 		n->c++;
 		if ((int32_t)n->c <= Length()) return 0;
 		if (Finisher() == 0) SetScreenFlash(0, 0);
@@ -471,7 +520,7 @@ namespace renzo161
 			p[1] = h;
 			for (int32_t i = 0; i < 6; i++)
 			{
-				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), ORIG_Sparkle);
+				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), own::Fn(ORIG_Sparkle));
 				s->c = 0;
 				s->e = (int16_t)(CrtRand() % 6 + i);
 				const uint8_t *sk = **(uint8_t ***)(Entity(n->w1A) + 0x64);
@@ -684,21 +733,21 @@ namespace renzo161
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(own::R(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c < Length() - 7 ? 7 : Length() - c;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)own::R(RING), idx, want, (uint8_t *)own::R(PTS_A), (uint8_t *)own::R(PTS_B));
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
+			TrailSplines(cnt, (const uint8_t *)own::R(PTS_A), (const uint8_t *)own::R(PTS_B), (uint8_t *)own::R(SPL_A), (uint8_t *)own::R(SPL_B));
+			TrailHitPoint((const uint8_t *)own::R(SPL_B), (uint8_t *)own::R(HIT_POS), (int32_t *)own::R(HIT_DIR));
 			// 30 fps layer: see mag161_renzokuken_elvoret_held.inc
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
+			TrailDraw((const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -717,9 +766,9 @@ namespace renzo161
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_SPAWN_END, 0x10);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_SPAWN_END), 0x10);
 				if (i < 0) break;
-				SparkP *p = (SparkP *)(POOL_B + 0x10 * i);
+				SparkP *p = (SparkP *)(own::R(POOL_B) + 0x10 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
 				const uint8_t *sk = **(uint8_t ***)(Caster() + 0x64);
@@ -748,15 +797,15 @@ namespace renzo161
 			const int32_t lead = var<int32_t>(HIT_LEAD + 4 * b);
 			sum += StageLen(b);
 			if ((int32_t)n->c != sum - lead) continue;
-			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Slash);
+			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Slash));
 			s->c = 0;
 			s->e = (int16_t)b;
 			const int16_t sc = (int16_t)(CrtRand() % 0x300 + 0x500);
 			s->w1E = sc;
 			s->w1C = sc;
-			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
-			memcpy(r->pos, (const void *)HIT_POS, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			HitRec *r = (HitRec *)(own::R(HIT_REC) + 0x9C * b);
+			memcpy(r->pos, (const void *)own::R(HIT_POS), 8);
+			memcpy(r->dir, (const void *)own::R(HIT_DIR), 16);
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -769,12 +818,12 @@ namespace renzo161
 			// 3 flashes around the hit point
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0xC);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0xC);
 				if (i < 0) break;
-				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
+				FlashP *p = (FlashP *)(own::R(POOL_A) + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xE00);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				memcpy(p->pos, (const void *)own::R(HIT_POS), 8);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
@@ -782,14 +831,14 @@ namespace renzo161
 			// 12 debris thrown along the direction
 			for (int32_t j = 0; j < 0xC; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x14);
+				const int32_t i = FreeSlot(own::R(POOL_C), own::R(POOL_C_END), 0x14);
 				if (i < 0) break;
-				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
+				DebrisP *p = (DebrisP *)(own::R(POOL_C) + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1000 + 0x1800);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				memcpy(p->pos, (const void *)own::R(HIT_POS), 8);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
-				const int32_t *d = (const int32_t *)HIT_DIR;
+				const int32_t *d = (const int32_t *)own::R(HIT_DIR);
 				const int32_t r0 = CrtRand() % 200;
 				p->vel[0] = (int16_t)(r0 + (mul32(d[0], sp) >> 12) - 0x64);
 				const int32_t r1 = CrtRand() % 200;
@@ -808,7 +857,7 @@ namespace renzo161
 	static uint32_t __cdecl SlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
+		HitRec *r = (HitRec *)(own::R(HIT_REC) + 0x9C * n->e);
 		// 30 fps layer: see mag161_renzokuken_elvoret_held.inc
 		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
@@ -936,7 +985,7 @@ namespace renzo161
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_FLASH;
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0xC)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC)
 		{
 			FlashP *p = (FlashP *)a;
 			if (p->life < 0) continue;
@@ -948,7 +997,7 @@ namespace renzo161
 			if (*(const int16_t *)(h + 0x28) < 0) p->life = -1;
 		}
 		*(uint32_t *)h = SEQ_DEBRIS;
-		for (uint32_t a = POOL_C; a < POOL_C_END; a += 0x14)
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14)
 		{
 			DebrisP *p = (DebrisP *)a;
 			if (p->life < 0) continue;
@@ -971,9 +1020,9 @@ namespace renzo161
 			p->vel[2] = (int16_t)(p->vel[2] - (int16_t)(p->vel[2] >> 3));
 		}
 		*(uint32_t *)h = SEQ_STREAM;
-		for (uint32_t i = 0; i < (POOL_D_END - POOL_D) / 0x14; i++)
+		for (uint32_t i = 0; i < (own::R(POOL_D_END) - own::R(POOL_D)) / 0x14; i++)
 		{
-			StreamP *p = (StreamP *)(POOL_D + 0x14 * i);
+			StreamP *p = (StreamP *)(own::R(POOL_D) + 0x14 * i);
 			if (p->life < 0) continue;
 			*(int16_t *)(h + 4) = p->life;
 			TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
@@ -986,7 +1035,7 @@ namespace renzo161
 				continue;
 			}
 			// (the original grows it by the debris entry of the same index: pool C + 0x14 i + 2, >> 5)
-			p->scale = (int16_t)(p->scale + (int16_t)(((const DebrisP *)(POOL_C + 0x14 * i))->scale >> 5));
+			p->scale = (int16_t)(p->scale + (int16_t)(((const DebrisP *)(own::R(POOL_C) + 0x14 * i))->scale >> 5));
 			p->pos[0] = (int16_t)(p->pos[0] + p->vel[0]);
 			p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->fall + p->vel[1]));
 			p->pos[2] = (int16_t)(p->pos[2] + p->vel[2]);
@@ -996,7 +1045,7 @@ namespace renzo161
 			if (p->pos[1] > 0) p->life = -1; // below the ground
 		}
 		*(void **)h = EffectSpriteSharedSequence(SHARED_SEQ_BURST);
-		for (uint32_t a = POOL_E; a < POOL_E_END; a += 0x14)
+		for (uint32_t a = own::R(POOL_E); a < own::R(POOL_E_END); a += 0x14)
 		{
 			BurstP *p = (BurstP *)a;
 			if (p->life < 0) continue;
@@ -1018,7 +1067,7 @@ namespace renzo161
 		}
 		*(uint32_t *)h = SEQ_SPARK;
 		*(int16_t *)(h + 0x24) = 4;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x10)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10)
 		{
 			SparkP *p = (SparkP *)a;
 			if (p->life < 0) continue;
@@ -1055,22 +1104,48 @@ namespace renzo161
 		r->counter++;
 		return alive ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "Squall's Renzokuken on Elvoret: both animation sets and sequences, the gunblade's trail, the sparks, the hits' slashes with their flashes and debris, the stream and the burst, the closing ring, the screen flash and tint, the sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "", (uint32_t)offsetof(Renzokuken161Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag161_renzokuken_elvoret()
 	{
+		fxp::register_params({ 161, "Renzokuken (vs Elvoret)", &renzo161::live, &renzo161::GAME, sizeof(renzo161::Renzokuken161Params),
+		                       renzo161::table::PARTS, (int)(sizeof(renzo161::table::PARTS) / sizeof(renzo161::table::PARTS[0])),
+		                       renzo161::table::FIELDS, (int)(sizeof(renzo161::table::FIELDS) / sizeof(renzo161::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(renzo161::ORIG_FileLoader, (void *)renzo161::FileLoader);
+		own::note(renzo161::ORIG_Setup, (void *)renzo161::Setup);
+		own::note(renzo161::ORIG_Master, (void *)renzo161::MasterTask);
 		register_port(renzo161::ORIG_Master, (void *)renzo161::MasterTask, "161 Master", 161);
+		own::note(renzo161::ORIG_Controller, (void *)renzo161::ControllerTask);
 		register_port(renzo161::ORIG_Controller, (void *)renzo161::ControllerTask, "161 Controller", 161);
+		own::note(renzo161::ORIG_Trail, (void *)renzo161::TrailTask);
 		register_port(renzo161::ORIG_Trail, (void *)renzo161::TrailTask, "161 Trail", 161);
+		own::note(renzo161::ORIG_SparkSpawn, (void *)renzo161::SparkSpawnTask);
 		register_port(renzo161::ORIG_SparkSpawn, (void *)renzo161::SparkSpawnTask, "161 SparkSpawn", 161);
+		own::note(renzo161::ORIG_Hit, (void *)renzo161::HitTask);
 		register_port(renzo161::ORIG_Hit, (void *)renzo161::HitTask, "161 Hit", 161);
+		own::note(renzo161::ORIG_Slash, (void *)renzo161::SlashTask);
 		register_port(renzo161::ORIG_Slash, (void *)renzo161::SlashTask, "161 Slash", 161);
+		own::note(renzo161::ORIG_Final, (void *)renzo161::FinalTask);
 		register_port(renzo161::ORIG_Final, (void *)renzo161::FinalTask, "161 Final", 161);
+		own::note(renzo161::ORIG_HitSpark, (void *)renzo161::HitSparkTask);
 		register_port(renzo161::ORIG_HitSpark, (void *)renzo161::HitSparkTask, "161 HitSpark", 161);
+		own::note(renzo161::ORIG_Sparkle, (void *)renzo161::SparkleTask);
 		register_port(renzo161::ORIG_Sparkle, (void *)renzo161::SparkleTask, "161 Sparkle", 161);
 		// 30 fps layer: see mag161_renzokuken_elvoret_held.inc
 		FX_HELD(register_mag161_held();)
 	}
+	FX_LAB_MODULE(register_mag161_renzokuken_elvoret);
 }
 
 #ifdef FF8_FX_HELD
