@@ -90,6 +90,9 @@
 // bytes (h + 0x28..0x2A: the renderer's far colour) are Field_Alloc scratch residue (the port allocates the same way).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -99,26 +102,28 @@ namespace pulsar260
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&SparkCursor() { return var<uint8_t *>(0x2508614); }     // pool A alloc cursor
-	inline uint8_t *&ShardCursor() { return var<uint8_t *>(0x2508618); }     // pool B alloc cursor
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250861C); }
-	inline uint32_t &ArenaEnd() { return var<uint32_t>(0x2508620); }         // (written, never read)
-	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2508624); }             // cast context
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508628); }          // caster entity (setup)
-	inline TaskQueue *QSub() { return (TaskQueue *)0x2508630; }              // pool: magic buffer + 0x2160, 0xC x 0x114
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2508640; }           // pool: magic buffer + 0x48, 1 x 0x1298
-	inline uint32_t &InitAngles0() { return var<uint32_t>(0x2508690); }      // copied into every target's angles
-	inline uint32_t &InitAngles1() { return var<uint32_t>(0x2508694); }
-	inline uint32_t &CentreX() { return var<uint32_t>(0x25086A0); }          // targets' centre (x, y words; z)
-	inline int16_t &CentreY() { return var<int16_t>(0x25086A2); }
-	inline uint32_t &CentreZ() { return var<uint32_t>(0x25086A4); }
-	inline int32_t &FlashA() { return var<int32_t>(0x25086A8); }             // screen-flash entries 0..2 this tick
-	inline int32_t &FlashAPrev() { return var<int32_t>(0x25086AC); }
-	inline int32_t &FlashB() { return var<int32_t>(0x25086B0); }             // screen-flash entry 3 this tick
-	inline int32_t &FlashBPrev() { return var<int32_t>(0x25086B4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25086B8); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x25086C0); }               // effect camera matrix (0x67AAE0)
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x25086E0; }          // 7 entities' flag words
+	inline uint8_t *&SparkCursor() { return var<uint8_t *>(own::R(0x2508614)); }     // pool A alloc cursor
+	inline uint8_t *&ShardCursor() { return var<uint8_t *>(own::R(0x2508618)); }     // pool B alloc cursor
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250861C)); }
+	inline uint32_t &ArenaEnd() { return var<uint32_t>(own::R(0x2508620)); }         // (written, never read)
+	inline uint8_t *&Ctx() { return var<uint8_t *>(own::R(0x2508624)); }             // cast context
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2508628)); }          // caster entity (setup)
+	inline TaskQueue *QSub() { return (TaskQueue *)own::R(0x2508630); }              // pool: magic buffer + 0x2160, 0xC x 0x114
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2508640); }           // pool: magic buffer + 0x48, 1 x 0x1298
+	inline uint32_t &InitAngles0() { return var<uint32_t>(own::R(0x2508690)); }      // copied into every target's angles
+	inline uint32_t &InitAngles1() { return var<uint32_t>(own::R(0x2508694)); }
+	inline uint32_t &CentreX() { return var<uint32_t>(own::R(0x25086A0)); }          // targets' centre (x, y words; z)
+	inline int16_t &CentreY() { return var<int16_t>(own::R(0x25086A2)); }
+	inline uint32_t &CentreZ() { return var<uint32_t>(own::R(0x25086A4)); }
+	inline int32_t &FlashA() { return var<int32_t>(own::R(0x25086A8)); }             // screen-flash entries 0..2 this tick
+	inline int32_t &FlashAPrev() { return var<int32_t>(own::R(0x25086AC)); }
+	inline int32_t &FlashB() { return var<int32_t>(own::R(0x25086B0)); }             // screen-flash entry 3 this tick
+	inline int32_t &FlashBPrev() { return var<int32_t>(own::R(0x25086B4)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25086B8)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508610)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508650); }             // 1 x 0x10
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(own::R(0x25086C0)); }               // effect camera matrix (0x67AAE0)
+	inline uint32_t *SavedFlags() { return (uint32_t *)own::R(0x25086E0); }          // 7 entities' flag words
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C); }                // g_Battle_FrameRenderListBase
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t &ViewWord() { return var<int16_t>(0x1D8E038); }
@@ -146,6 +151,20 @@ namespace pulsar260
 	static const void *const SOUND_0 = (const void *)0x111CF40;
 	static const void *const SOUND_50 = (const void *)0x111CF44;
 	static const void *const SOUND_AA = (const void *)0x111CF48;
+	static const uint32_t ORIG_FileLoader = 0x6906A0, ORIG_Setup = 0x690690;
+	static const uint32_t TEXTURE_NAME = 0x112D1A4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct Pulsar260Params
+	{
+		struct { uint32_t start, pulse, burst; } sounds; // at the master's ticks 0, 0x50, 0xAA
+		struct { int16_t damage; } master;              // the action results at this tick
+	};
+	static const Pulsar260Params GAME = { { 0x111CF40, 0x111CF44, 0x111CF48 }, { 0xFC } };
+	static Pulsar260Params live = GAME;
+	static const Pulsar260Params &P() { return live; }
 	static const uint32_t SPARKS = 0x12E0, SPARKS_LAST = 0x1AD0;   // magic buffer: pool A (0x80 x 0x10)
 	static const uint32_t SHARDS = 0x1AE0, SHARDS_LAST = 0x1ED0;   // magic buffer: pool B (0x40 x 0x10)
 	static const uint32_t MORPH = 0x1EE0;              // magic buffer: blended vertex frames
@@ -323,6 +342,25 @@ namespace pulsar260
 	// 0x691C70: flat triangles (0xC-byte records: code + rgb, 3 vertex indices) -> POLY_F3 packets between two
 	// draw-mode primitives; header flags 1 / 4 semi-transparency on / off, 0x10 double-sided, 0x40 depth-cued colour
 	// ------------------------------------------------------------------
+	// File loader (0x6906A0) and setup (0x690690 -> _Init 0x6906C0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = (uint8_t *)ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508660), 0x10, 1);
+		*(uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl FlatTris(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -1544,7 +1582,7 @@ namespace pulsar260
 			const int32_t slot = SlotOf(e);
 			if (i == 0)
 			{
-				SubNode *ring = (SubNode *)AddTaskToQueue(QSub(), ORIG_RingTask);
+				SubNode *ring = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_RingTask));
 				ring->pos[0] = E16(e, 0x1C);
 				ring->pos[2] = E16(e, 0x20);
 				ring->pos[1] = 0;
@@ -1742,7 +1780,7 @@ namespace pulsar260
 				DecodeModelPrimLayout(LAYOUT_WAVE, m->layout, 0x1100);
 				for (int32_t k = 0; k < m->ntargets; k++)
 				{
-					SubNode *t = (SubNode *)AddTaskToQueue(QSub(), ORIG_LiftTask);
+					SubNode *t = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_LiftTask));
 					Target *rec = &m->targets[k];
 					E16(rec->entity, 0x1E) = 0x1000;
 					F<int32_t>(rec->entity, 0x58) = 0x1000;
@@ -1897,9 +1935,9 @@ namespace pulsar260
 		SparksUpdate();
 		ShardsUpdate();
 
-		if (m->counter == 0) BdPlaySE(SOUND_0, 0, 0x80);
-		else if (m->counter == 0x50) BdPlaySE(SOUND_50, 0, 0x80);
-		else if (m->counter == 0xAA) BdPlaySE(SOUND_AA, 0, 0x80);
+		if (m->counter == 0) BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_0), 0, 0x80);
+		else if (m->counter == 0x50) BdPlaySE((const void *)fxp::sound(P().sounds.pulse, (uint32_t)SOUND_50), 0, 0x80);
+		else if (m->counter == 0xAA) BdPlaySE((const void *)fxp::sound(P().sounds.burst, (uint32_t)SOUND_AA), 0, 0x80);
 
 		// 1, 9, 0x11, 0x19: a RiseTask on target (counter - 1) / 8
 		{
@@ -1907,7 +1945,7 @@ namespace pulsar260
 			if (c1 < 0x20 && (c1 & 7) == 0 && (int32_t)(c1 >> 3) < m->ntargets)
 			{
 				Target *rec = &m->targets[c1 >> 3];
-				SubNode *t = (SubNode *)AddTaskToQueue(QSub(), ORIG_RiseTask);
+				SubNode *t = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_RiseTask));
 				MeasureHeight(rec->entity, &rec->y_max);
 				*rec->entity |= 8;
 				t->t.counter = 0;
@@ -1919,7 +1957,7 @@ namespace pulsar260
 
 		MasterCamera(m->counter, true);
 		StreamPump();
-		if (m->counter == 0xFC)
+		if (m->counter == P().master.damage)
 		{
 			const ActionData *act = ((const CastContext *)Ctx())->actions;
 			ApplyActionResultToTargets(act->targets, act->target_count);
@@ -1971,7 +2009,7 @@ namespace pulsar260
 			StreamStateInit((void *)TexBase());
 			InitTaskQueuePool(QMaster(), (void *)(TexBase() + 0x48), 0x1298, 1);
 			InitTaskQueuePool(QSub(), (void *)(TexBase() + 0x2160), 0x114, 0xC);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x4A3);
 			BindEntityModelFromComData(Caster(), m->bind, COM_Anim);
 			QueueChainTransformation(Caster(), 1);
@@ -2060,18 +2098,46 @@ namespace pulsar260
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Quistis' Shockwave Pulsar: her animation set and chain, the effect camera, the targets lifted and risen, the rings, sparks and shards, the screen flashes and fade, the sounds; the action results" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the master's ticks 0, 0x50, 0xAA" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sounds.start", "Start", "At the master's tick 0", (uint32_t)offsetof(Pulsar260Params, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.pulse", "Pulse", "At the master's tick 0x50", (uint32_t)offsetof(Pulsar260Params, sounds.pulse), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.burst", "Burst", "At the master's tick 0xAA", (uint32_t)offsetof(Pulsar260Params, sounds.burst), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "master.damage", "Damage tick", "The action results at this tick of the master", (uint32_t)offsetof(Pulsar260Params, master.damage), fxp::I16, 0, 300 },
+		};
+	}
 }
 
 	void register_mag260_shockwave_pulsar_quistis()
 	{
+		fxp::register_params({ 260, "Shockwave Pulsar (Quistis)", &pulsar260::live, &pulsar260::GAME, sizeof(pulsar260::Pulsar260Params),
+		                       pulsar260::table::PARTS, (int)(sizeof(pulsar260::table::PARTS) / sizeof(pulsar260::table::PARTS[0])),
+		                       pulsar260::table::FIELDS, (int)(sizeof(pulsar260::table::FIELDS) / sizeof(pulsar260::table::FIELDS[0])),
+		                       pulsar260::table::GROUPS, (int)(sizeof(pulsar260::table::GROUPS) / sizeof(pulsar260::table::GROUPS[0])) });
+		own::note(pulsar260::ORIG_FileLoader, (void *)pulsar260::FileLoader);
+		own::note(pulsar260::ORIG_Setup, (void *)pulsar260::Setup);
+		own::note(pulsar260::ORIG_RootTask, (void *)pulsar260::RootTask);
 		register_port(pulsar260::ORIG_RootTask, (void *)pulsar260::RootTask, "260 RootTask", 260);
+		own::note(pulsar260::ORIG_MasterTask, (void *)pulsar260::MasterTask);
 		register_port(pulsar260::ORIG_MasterTask, (void *)pulsar260::MasterTask, "260 MasterTask", 260);
+		own::note(pulsar260::ORIG_LiftTask, (void *)pulsar260::LiftTask);
 		register_port(pulsar260::ORIG_LiftTask, (void *)pulsar260::LiftTask, "260 LiftTask", 260);
+		own::note(pulsar260::ORIG_RiseTask, (void *)pulsar260::RiseTask);
 		register_port(pulsar260::ORIG_RiseTask, (void *)pulsar260::RiseTask, "260 RiseTask", 260);
+		own::note(pulsar260::ORIG_RingTask, (void *)pulsar260::RingTask);
 		register_port(pulsar260::ORIG_RingTask, (void *)pulsar260::RingTask, "260 RingTask", 260);
 		// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 		FX_HELD(register_mag260_held();)
 	}
+	FX_LAB_MODULE(register_mag260_shockwave_pulsar_quistis);
 }
 
 #ifdef FF8_FX_HELD
