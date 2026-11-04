@@ -48,6 +48,9 @@
 // (a module copy of GetEffectSpawnPosition) are called through their original addresses.
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -126,22 +129,22 @@ namespace o326
 
 	// --- module globals ---
 	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x24F2248); }  // effect frame (setup: caster rotation + 0x800, centroid 0x24F225C/60/64)
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x24F2268); }       // Camera o RootMatrix, rebuilt by the timeline every tick
-	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x24F1320); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x24F2174); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x24F1060); }
-	inline uint32_t CasterSlot() { return var<uint32_t>(0x24F0C80); } // setup: first byte of castCtx->+4->+8
-	inline uint8_t *Creature() { return (uint8_t *)0x24F1268; }       // E: +0x28 colour 0x24F1290, +0x40 matrix 0x24F12A8, +0x60 BattleAnimHeader, +0x6C BattleAnimCmd, +0x7C object mask 0x24F12E4
-	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(0x24F12A8); }
-	inline uint8_t *Model2() { return (uint8_t *)0x24F0EE8; }         // E2: +0x28 colour 0x24F0F10, +0x40 matrix 0x24F0F28, +0x64 0x24F0F4C; model data 0x24F2140
-	inline Mat4x3 &Model2Mat() { return var<Mat4x3>(0x24F0F28); }
-	inline uint8_t *Model3() { return (uint8_t *)0x24F0D50; }         // E3: +0x28 colour 0x24F0D78, +0x40 matrix 0x24F0D90; model data 0x24F22A8
-	inline Mat4x3 &BoneCopy() { return var<Mat4x3>(0x24F2288); }     // bone matrix copied by the blade (creature skeleton + 0xB30) and by the sword (E2 skeleton + 0x20)
-	inline int16_t *BladeP0() { return (int16_t *)0x24F1310; }       // blade end points (effect frame), written by the blade task
-	inline int16_t *BladeP1() { return (int16_t *)0x24F1318; }
-	inline uint32_t &DoneFlags() { return var<uint32_t>(0x24F0C84); } // bit0 creature done
-	inline uint32_t MB() { return var<uint32_t>(0x24F22DC); }        // model buffer (0x20DFAB8)
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(own::R(0x24F2248)); }  // effect frame (setup: caster rotation + 0x800, centroid 0x24F225C/60/64)
+	inline Mat4x3 &Frame() { return var<Mat4x3>(own::R(0x24F2268)); }       // Camera o RootMatrix, rebuilt by the timeline every tick
+	inline TaskQueue &SubQueue() { return var<TaskQueue>(own::R(0x24F1320)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x24F2174)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(own::R(0x24F1060)); }
+	inline uint32_t CasterSlot() { return var<uint32_t>(own::R(0x24F0C80)); } // setup: first byte of castCtx->+4->+8
+	inline uint8_t *Creature() { return (uint8_t *)own::R(0x24F1268); }       // E: +0x28 colour 0x24F1290, +0x40 matrix 0x24F12A8, +0x60 BattleAnimHeader, +0x6C BattleAnimCmd, +0x7C object mask 0x24F12E4
+	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(own::R(0x24F12A8)); }
+	inline uint8_t *Model2() { return (uint8_t *)own::R(0x24F0EE8); }         // E2: +0x28 colour 0x24F0F10, +0x40 matrix 0x24F0F28, +0x64 0x24F0F4C; model data 0x24F2140
+	inline Mat4x3 &Model2Mat() { return var<Mat4x3>(own::R(0x24F0F28)); }
+	inline uint8_t *Model3() { return (uint8_t *)own::R(0x24F0D50); }         // E3: +0x28 colour 0x24F0D78, +0x40 matrix 0x24F0D90; model data 0x24F22A8
+	inline Mat4x3 &BoneCopy() { return var<Mat4x3>(own::R(0x24F2288)); }     // bone matrix copied by the blade (creature skeleton + 0xB30) and by the sword (E2 skeleton + 0x20)
+	inline int16_t *BladeP0() { return (int16_t *)own::R(0x24F1310); }       // blade end points (effect frame), written by the blade task
+	inline int16_t *BladeP1() { return (int16_t *)own::R(0x24F1318); }
+	inline uint32_t &DoneFlags() { return var<uint32_t>(own::R(0x24F0C84)); } // bit0 creature done
+	inline uint32_t MB() { return var<uint32_t>(own::R(0x24F22DC)); }        // model buffer (0x20DFAB8)
 	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }   // battle_texture_data_ptr_1D8E054
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint8_t *PoolA() { return var<uint8_t *>(0xE19668); }     // mb + 0x30800
@@ -194,6 +197,21 @@ namespace o326
 	static const uint32_t ORIG_SlashBTask = 0x6321A0;
 	static const uint32_t ORIG_SlashCTask = 0x632350;
 	static const uint32_t ORIG_SlashDTask = 0x632500;
+	static const uint32_t ORIG_FileLoader = 0x575540, ORIG_Setup = 0x62A7E0;   // (the file loader is the engine's nullsub)
+	static const uint32_t TIM_ENVIRO = 0xEF4C30;   // the environment TIM (exe data)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct OdinReverseParams
+	{
+		uint32_t voice;                                 // the voice slot claimed at the timeline's tick 0
+		struct { uint32_t start, sword, slash, cut; } sounds; // at the timeline's ticks 1, 111, 171, 252
+		struct { int16_t damage; } timeline;            // the action result at this tick
+	};
+	static const OdinReverseParams GAME = { 0xE194E4, { 0xE1964C, 0xE19650, 0xE19654, 0xE19658 }, { 0x198 } };
+	static OdinReverseParams live = GAME;
+	static const OdinReverseParams &P() { return live; }
 
 	// every sub-queue node is 0x24 bytes (pool 0x24F1330); field use differs per task
 #pragma pack(push, 1)
@@ -247,7 +265,7 @@ namespace o326
 	// au_re_BdLinkTask_69 0x62AFB0 (no null check, as the original)
 	static Node24 *LinkTask(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
@@ -283,14 +301,14 @@ namespace o326
 	// MAG_326_sub_62B010 (tick 6): the two ground grids
 	static void SpawnGrids()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GridATask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xE4A8;
 		n->p14 = (int16_t)0xEE6C;
 		n->a18 = 0x400;
 		n->s1C = 0x3000;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridBTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GridBTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xE570;
@@ -302,14 +320,14 @@ namespace o326
 	// MAG_326_sub_62BED0 (tick 322): two more grids, higher up, unrotated
 	static void SpawnGrids2()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridCTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GridCTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xCD38;
 		n->p14 = (int16_t)0xEE6C;
 		n->a18 = 0;
 		n->s1C = 0x3000;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridDTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GridDTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->a18 = 0;
@@ -321,17 +339,17 @@ namespace o326
 	// MAG_326_sub_62BA60 (tick 40): texture warp, glow, two screen streaks
 	static void SpawnIntro()
 	{
-		Node24 *w = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_WarpTask);
+		Node24 *w = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_WarpTask));
 		w->c = 0;
 		int32_t r = CrtRand() % 0x1000;
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GlowTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GlowTask));
 		w->a18 = (int16_t)r;
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
 		n->p14 = 0;
 		n->s1C = 0xB00;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_StreakTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_StreakTask));
 		n->c = 0;
 		n->e = 1;
 		n->p10 = -50;
@@ -340,7 +358,7 @@ namespace o326
 		n->s1C = 0xC00;
 		n->s1E = -4;
 		n->s20 = 0x500;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_StreakTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_StreakTask));
 		n->e = 1;
 		n->c = 0;
 		n->p10 = 0x5A;
@@ -360,7 +378,7 @@ namespace o326
 		static const int16_t z[4] = { (int16_t)0xEE6C, (int16_t)0xFBB4, (int16_t)0xEE6C, (int16_t)0xFBB4 };
 		for (int i = 0; i < 4; i++)
 		{
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_WallTask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_WallTask));
 			bool odd = (i & 1) != 0;
 			n->c = 0;
 			n->e = odd ? 1 : 0;
@@ -374,7 +392,7 @@ namespace o326
 			n->s1E = odd ? (int16_t)0x21 : (int16_t)-33;
 			n->s20 = n->s1E;
 		}
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_ShockTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_ShockTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->a18 = 0;
@@ -386,6 +404,53 @@ namespace o326
 	}
 
 	static void Stream() { BdPlaySummonStream(0x80, 0, 0x60); }
+
+	// Setup (0x62A7E0; the file loader is the engine's nullsub): the game runs its own; Fujin's programs this (its
+	// memory may be a copy's): the model buffer (the magic buffer) and the exe data pool pointers into it, the warp
+	// texture source, the cast, its first target and its caster, the master and the timeline, the three sprite pools
+	// cleared, the exe's environment TIM, the effect frame (the target's yaw + 0x800, at the targets' centre 4400 in
+	// front of the target)
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +2 target mask, +4 the actions)
+	{
+		const uint32_t mb = (uint32_t)layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x24F22DC)) = mb;
+		var<uint32_t>(0xE19668) = mb + 0x30800;
+		var<uint32_t>(0xE196B0) = mb + 0x38800;
+		var<uint32_t>(0xE1966C) = mb + 0x31800;
+		var<uint32_t>(0xE19670) = mb + 0x32800;
+		const uint8_t *action = *(uint8_t **)(ctx + 4);
+		var<uint32_t>(own::R(0x24F22E4)) = 0xEECC30;
+		const int32_t target = (*(uint8_t **)(action + 8))[0];
+		var<uint8_t *>(own::R(0x24F2174)) = ctx;
+		var<int32_t>(own::R(0x24F0C80)) = target;
+		var<int32_t>(own::R(0x24F2178)) = ctx[0];
+		InitTaskQueuePool((TaskQueue *)own::R(0x24F0ED8), (void *)own::R(0x24F0EB8), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue((TaskQueue *)own::R(0x24F0ED8), own::Fn(ORIG_SequenceTick)) + 0xC) = 0;
+		InitTaskQueuePool(&SubQueue(), (void *)own::R(0x24F1330), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TimelineTask)) + 0xC) = 0;
+		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolA() + 0x18 * i) = 0;
+		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolB() + 0x18 * i) = 0;
+		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolC() + 0x18 * i) = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_ENVIRO);   // Battle_QueueTIMUpload_GetEOF
+		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
+		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
+		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
+		int16_t *centre = (int16_t *)own::R(0x24F1308);
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)(ctx + 2), centre); // CalculateCenterPosition
+		int32_t *t = (int32_t *)own::R(0x24F225C);
+		t[2] = centre[2];
+		t[0] = 0;
+		t[1] = 0;
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = -4400;
+		fn<uint32_t (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(e + 0x40, v, v);  // matrixMultiplyVector
+		t[0] += v[0];
+		DoneFlags() = 0;
+		t[1] += v[1];
+		t[2] += v[2];
+		return (TaskQueue *)own::R(0x24F0ED8);
+	}
 
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
@@ -400,15 +465,15 @@ namespace o326
 		if (n->c == 0)
 		{
 			CameraScriptStart(0xE197D0, &RootMatrix(), Creature(), &SubQueue(), 0);
-			BdTransSummonStream(0xEECC2C, STREAM_STATE);
-			VoiceSlot() = ClaimVoiceSlot((const void *)0xE194E4, 1, 0x80);
+			BdTransSummonStream(0xEECC2C, own::R(STREAM_STATE));
+			VoiceSlot() = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0xE194E4), 1, 0x80);
 		}
 		int32_t c = n->c;
 		if (c < 12)
 		{
 			if (c == 1)
 			{
-				BdPlaySE(0xE1964C, 0, 0x80);
+				BdPlaySE(fxp::sound(P().sounds.start, 0xE1964C), 0, 0x80);
 				CharacterLoad(0x2E1, MB() + 0x14800);
 			}
 			else if (c == 6) SpawnGrids();
@@ -439,11 +504,11 @@ namespace o326
 			c -= 0x1C;
 			if (c < 0x19) // 91..115
 			{
-				if (c == 0x14) BdPlaySE(0xE19650, 0, 0x80);
+				if (c == 0x14) BdPlaySE(fxp::sound(P().sounds.sword, 0xE19650), 0, 0x80);
 			}
 			else if ((c -= 0x19) < 0x23) // 116..150
 			{
-				if (c == 0x11) BdTransSummonStream(0xEECC2C, STREAM_STATE);
+				if (c == 0x11) BdTransSummonStream(0xEECC2C, own::R(STREAM_STATE));
 				else if (c == 0x16) Stream();
 				else if (c == 1)
 				{
@@ -463,12 +528,12 @@ namespace o326
 				else if (c == 0xC)
 				{
 					if (LoadState() < 0) return 0;
-					BdTransSummonStream(SummonData(), STREAM_STATE);
+					BdTransSummonStream(SummonData(), own::R(STREAM_STATE));
 				}
 			}
 			else if ((c -= 0x14) < 0xC) // 171..182
 			{
-				if (c == 0) BdPlaySE(0xE19654, 0, 0x80);
+				if (c == 0) BdPlaySE(fxp::sound(P().sounds.slash, 0xE19654), 0, 0x80);
 			}
 			else if ((c -= 0xC) < 0xC) {} // 183..194
 			else if ((c -= 0xC) < 0x17) // 195..217
@@ -489,10 +554,10 @@ namespace o326
 			{
 				if (c == 0)
 				{
-					BdPlaySE(0xE19658, 0, 0x80);
+					BdPlaySE(fxp::sound(P().sounds.cut, 0xE19658), 0, 0x80);
 					if (LoadState() < 0) return 0;
-					BdTransSummonStream(SummonData(), STREAM_STATE);
-					CharacterLoad(0x2E8, var<uint32_t>(0x24F22E4));
+					BdTransSummonStream(SummonData(), own::R(STREAM_STATE));
+					CharacterLoad(0x2E8, var<uint32_t>(own::R(0x24F22E4)));
 				}
 			}
 			else if ((c -= 0x46) < 0x3C) // 322..381
@@ -545,7 +610,7 @@ namespace o326
 			SetScreenFlash(0xA00, 0);
 		}
 		else if (cc >= 0x162 && cc < 0x172) SetScreenFlash((uint32_t)((0x172 - (int32_t)cc) * 160), 0);
-		if (n->c == 0x198)
+		if (n->c == P().timeline.damage)
 		{
 			uint8_t *t = *(uint8_t **)(CastCtx() + 4);
 			ApplyActionResultToTargets(*(uint32_t *)(t + 8), t[0x10]);
@@ -860,7 +925,7 @@ namespace o326
 	static uint32_t __cdecl WarpTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		uint8_t *src = var<uint8_t *>(0x24F22E4);
+		uint8_t *src = var<uint8_t *>(own::R(0x24F22E4));
 		uint8_t *dst = src + 0x4000;
 		int32_t a1 = n->a18, a2 = n->a18;
 		uint8_t *row = dst;
@@ -1135,7 +1200,7 @@ namespace o326
 	// MAG_326_sub_62E810 (creature tick 3): two expanding rings (prim 0xE18150)
 	static void SpawnRings()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RingATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_RingATask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
@@ -1144,7 +1209,7 @@ namespace o326
 		n->s1C = 0xE00;
 		n->s22 = 0x555;
 		n->s20 = 0x555;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RingBTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_RingBTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
@@ -1158,14 +1223,14 @@ namespace o326
 	// MAG_326_sub_62F1C0 (creature tick 52): creature fade-in, screen flash, morph flash
 	static void SpawnFadeIn()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_FadeInTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_FadeInTask));
 		n->c = 0;
 		n->e = 0;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_FlashTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_FlashTask));
 		n->c = 0;
 		n->e = 0xA10;
 		n->s1C = 0xFF;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_MorphTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_MorphTask));
 		n->c = 0;
 		n->s1C = 0x400;
 		n->s20 = 0x400;
@@ -1174,42 +1239,42 @@ namespace o326
 	// au_re_BdLinkTask_70 0x62F710 (creature tick 82): sword sparks, history 0x24F0C88 cleared
 	static void SpawnSparks()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SparkTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SparkTask));
 		n->c = 0;
-		for (uint32_t a = 0x24F0C88; a < 0x24F0CC4; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(0x24F0C88); a < own::R(0x24F0CC4); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	// MAG_326_sub_62FC20 (creature tick 106): two spark tasks on bones 0x1E / 0x34, histories cleared
 	static void SpawnSparks2()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_Spark2Task);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_Spark2Task));
 		n->c = 0;
 		n->e = 0x1E;
 		n->a18 = 1;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_Spark2Task);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_Spark2Task));
 		n->c = 0;
 		n->e = 0x34;
 		n->a18 = 2;
-		for (uint32_t a = TRAIL_RECS; a < 0x24F2248; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(TRAIL_RECS); a < own::R(0x24F2248); a += 0x14) *(uint32_t *)a = 0;
 		for (uint32_t k = 0; k < 0x3C; k += 0x14)
 		{
-			*(uint32_t *)(0x24F0C88 + k) = 0;
-			*(uint32_t *)(0x24F0DF0 + k) = 0;
+			*(uint32_t *)(own::R(0x24F0C88) + k) = 0;
+			*(uint32_t *)(own::R(0x24F0DF0) + k) = 0;
 		}
 	}
 
 	// au_re_BdLinkTask_71 0x630400 (creature tick 146): the blade trail, its history cleared
 	static void SpawnTrail()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_TrailTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TrailTask));
 		n->c = 0;
-		for (uint32_t a = TRAIL_RECS; a < 0x24F2248; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(TRAIL_RECS); a < own::R(0x24F2248); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	// MAG_326_sub_630810 (creature tick 108): impact burst at the target's default effect position
 	static void SpawnBurstA()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BurstATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_BurstATask));
 		n->c = 0;
 		GetDefaultEffectPosition(Entity(CasterSlot()), &n->p10);
 		n->a18 = (int16_t)(CrtRand() % 0x1000);
@@ -1220,7 +1285,7 @@ namespace o326
 	// MAG_326_sub_630A70 (creature tick 132): burst at the camera-script look point
 	static void SpawnBurstB()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BurstBTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_BurstBTask));
 		n->c = 0;
 		n->a18 = (int16_t)(CrtRand() % 0x1000);
 		n->s1C = 0x600;
@@ -1231,13 +1296,13 @@ namespace o326
 	// creature's bone 0xF1, pushed 0x320 to each side, y 0
 	static void SpawnBlood()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BloodTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_BloodTask));
 		n->c = 0;
 		n->e = 4;
 		GetEffectSpawnPosition(Creature(), 0xF1, 0, &n->p10);
 		n->p10 = 0x320;
 		n->p12 = 0;
-		Node24 *m = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BloodTask);
+		Node24 *m = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_BloodTask));
 		int16_t x = n->p10, z = n->p14;
 		m->c = 0;
 		m->p12 = 0;
@@ -1254,7 +1319,7 @@ namespace o326
 		for (uint32_t e = 0xE19710; e < 0xE19728; e += 8)
 		{
 			const int16_t *t = (const int16_t *)e;
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashATask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashATask));
 			n->e = t[3];
 			int16_t z = t[2];
 			n->p10 = t[0];
@@ -1268,7 +1333,7 @@ namespace o326
 			n->s22 = z;
 			for (int i = 0; i < 2; i++)
 			{
-				Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashBTask);
+				Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashBTask));
 				u->e = n->e;
 				*(uint32_t *)&u->p10 = *(const uint32_t *)&n->p10;
 				*(uint32_t *)&u->p14 = *(const uint32_t *)&n->p14;
@@ -1283,7 +1348,7 @@ namespace o326
 			}
 		}
 		const int16_t *t = (const int16_t *)0xE19728;
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashCTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashCTask));
 		n->e = t[3];
 		int16_t z = t[2];
 		n->p10 = t[0];
@@ -1297,7 +1362,7 @@ namespace o326
 		n->s22 = z;
 		for (int i = 0; i < 4; i++)
 		{
-			Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashDTask);
+			Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashDTask));
 			u->e = n->e;
 			*(uint32_t *)&u->p10 = *(const uint32_t *)&n->p10;
 			*(uint32_t *)&u->p14 = *(const uint32_t *)&n->p14;
@@ -1456,17 +1521,17 @@ namespace o326
 		uint8_t *E = Creature();
 		if (n->c == 0)
 		{
-			ResetRotation((void *)0x24F12A8);
-			var<uint16_t>(0x24F12B8) = 0x2000;
-			var<uint16_t>(0x24F12B0) = 0x2000;
-			var<uint16_t>(0x24F12A8) = 0x2000;
-			var<int32_t>(0x24F12C0) = 0;
-			var<int32_t>(0x24F12BC) = 0;
-			var<int32_t>(0x24F12C4) = 0x708;
-			ModelInit(E, (uint8_t *)0x24F22E8, (uint8_t *)MB(), 0xF);
+			ResetRotation((void *)own::R(0x24F12A8));
+			var<uint16_t>(own::R(0x24F12B8)) = 0x2000;
+			var<uint16_t>(own::R(0x24F12B0)) = 0x2000;
+			var<uint16_t>(own::R(0x24F12A8)) = 0x2000;
+			var<int32_t>(own::R(0x24F12C0)) = 0;
+			var<int32_t>(own::R(0x24F12BC)) = 0;
+			var<int32_t>(own::R(0x24F12C4)) = 0x708;
+			ModelInit(E, (uint8_t *)own::R(0x24F22E8), (uint8_t *)MB(), 0xF);
 			E[0] |= 1;
 			LinkTask(ORIG_BladeTask);
-			var<uint32_t>(0x24F12E4) = 7;
+			var<uint32_t>(own::R(0x24F12E4)) = 7;
 		}
 		FX_HELD(held_note_slice_clear();)
 		int32_t c = n->c;
@@ -1484,9 +1549,9 @@ namespace o326
 		}
 		if ((c -= 12) < 0x1C) // 12..39
 		{
-			var<uint16_t>(0x24F12B8) = 0x1000;
-			var<uint16_t>(0x24F12B0) = 0x1000;
-			var<uint16_t>(0x24F12A8) = 0x1000;
+			var<uint16_t>(own::R(0x24F12B8)) = 0x1000;
+			var<uint16_t>(own::R(0x24F12B0)) = 0x1000;
+			var<uint16_t>(own::R(0x24F12A8)) = 0x1000;
 			if (Paused()) goto draw;
 			if (c == 0) SetAnim(E, 1);
 			else if (c == 9) LinkTask(ORIG_MistTask);
@@ -1542,16 +1607,16 @@ namespace o326
 			if (Paused()) goto draw_advance;
 			if (c == 0)
 			{
-				var<int32_t>(0x24F12BC) = 0xD2;
-				var<int32_t>(0x24F12C4) = (int32_t)n->p14 + 0x4B0;
+				var<int32_t>(own::R(0x24F12BC)) = 0xD2;
+				var<int32_t>(own::R(0x24F12C4)) = (int32_t)n->p14 + 0x4B0;
 				SetAnim(E, 5);
 				CameraShake(4, 6, 0xC, 0xFF);
-				var<int32_t>(0x24F12C4) = (int32_t)((uint32_t)var<int32_t>(0x24F12C4) - 0x1C2u);
+				var<int32_t>(own::R(0x24F12C4)) = (int32_t)((uint32_t)var<int32_t>(own::R(0x24F12C4)) - 0x1C2u);
 			}
-			else if (c == 0xA) var<uint32_t>(0x24F12E4) = 3;
+			else if (c == 0xA) var<uint32_t>(own::R(0x24F12E4)) = 3;
 			else if (c < 0xA)
 			{
-				var<int32_t>(0x24F12C4) = (int32_t)((uint32_t)var<int32_t>(0x24F12C4) - 0x1C2u);
+				var<int32_t>(own::R(0x24F12C4)) = (int32_t)((uint32_t)var<int32_t>(own::R(0x24F12C4)) - 0x1C2u);
 				if (c == 3) SpawnTrail();
 			}
 			goto draw_advance;
@@ -1621,11 +1686,11 @@ namespace o326
 		}
 		int16_t c = n->c;
 		int32_t v = c >= 1 ? (int32_t)c * 12 - 12 : 0;
-		var<uint32_t>(0x24F1290) = Rgb(v);
+		var<uint32_t>(own::R(0x24F1290)) = Rgb(v);
 		if (Paused()) return 0;
 		n->c = (int16_t)(c + 1);
 		if (n->c < 0xB) return 0;
-		var<uint32_t>(0x24F1290) = 0x808080;
+		var<uint32_t>(own::R(0x24F1290)) = 0x808080;
 		return TASK_END;
 	}
 
@@ -2061,10 +2126,10 @@ namespace o326
 		{
 			const uint32_t *e = (const uint32_t *)(table + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * n) = e[1];
-			var<uint32_t>(HIST_A + 8 * n + 4) = e[2];
-			var<uint32_t>(HIST_B + 8 * n) = e[3];
-			var<uint32_t>(HIST_B + 8 * n + 4) = e[4];
+			var<uint32_t>(own::R(HIST_A) + 8 * n) = e[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * n + 4) = e[2];
+			var<uint32_t>(own::R(HIST_B) + 8 * n) = e[3];
+			var<uint32_t>(own::R(HIST_B) + 8 * n + 4) = e[4];
 			if (--j < 0) j = 2;
 		}
 		return n;
@@ -2106,10 +2171,10 @@ namespace o326
 	static void SplineRails(int32_t n, int32_t points, int32_t div)
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x190);
-		SplineSetup(n, HIST_A, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_A + 8 * i, t / div);
-		SplineSetup(n, HIST_B, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_B + 8 * i, t / div);
+		SplineSetup(n, own::R(HIST_A), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, own::R(SPLINE_A) + 8 * i, t / div);
+		SplineSetup(n, own::R(HIST_B), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, own::R(SPLINE_B) + 8 * i, t / div);
 		FieldFree(0x190);
 	}
 
@@ -2118,7 +2183,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
-		int32_t hist = BoneHistory(0x24F0C88, 0x28, n->c, s);
+		int32_t hist = BoneHistory(own::R(0x24F0C88), 0x28, n->c, s);
 		SparkSetup(&Frame(), h, s, 0xE108E8, 0x404040);
 		int32_t count = SparkDrawPool(n, h, 1, INT_GROW5_DRAG8);
 		FieldFree(0x50);
@@ -2136,7 +2201,7 @@ namespace o326
 				r->alive = 1;
 				r->age = 0;
 				int32_t sz = CrtRand() % 0x480;
-				uint32_t pa = var<uint32_t>(SPLINE_A + 8 * j), pb = var<uint32_t>(SPLINE_A + 8 * j + 4);
+				uint32_t pa = var<uint32_t>(own::R(SPLINE_A) + 8 * j), pb = var<uint32_t>(own::R(SPLINE_A) + 8 * j + 4);
 				r->size = (int16_t)(sz + 0x380);
 				*(uint32_t *)&r->x = pa;
 				*(uint32_t *)&r->z = pb;
@@ -2144,7 +2209,7 @@ namespace o326
 				r->y = (int16_t)(r->y + (int16_t)(CrtRand() % 10 - 5));
 				r->z = (int16_t)(r->z + (int16_t)(CrtRand() % 10 - 5));
 				int32_t sp = CrtRand() % 0xF + 0x19;
-				const int16_t *d = (const int16_t *)(SPLINE_B + 8 * j);
+				const int16_t *d = (const int16_t *)(own::R(SPLINE_B) + 8 * j);
 				int32_t k = CrtRand() % 10;
 				r->vx = (int16_t)(k + (mul32(d[0], sp) >> 12) - 5);
 				k = CrtRand() % 10;
@@ -2182,7 +2247,7 @@ namespace o326
 				r->alive = 2;
 				r->age = 0;
 				int32_t sz = CrtRand() % 0x400;
-				uint32_t pa = var<uint32_t>(SPLINE_A + 8 * j), pb = var<uint32_t>(SPLINE_A + 8 * j + 4);
+				uint32_t pa = var<uint32_t>(own::R(SPLINE_A) + 8 * j), pb = var<uint32_t>(own::R(SPLINE_A) + 8 * j + 4);
 				r->size = (int16_t)(sz + 0x100);
 				*(uint32_t *)&r->x = pa;
 				*(uint32_t *)&r->z = pb;
@@ -2190,7 +2255,7 @@ namespace o326
 				r->y = (int16_t)(r->y + (int16_t)(CrtRand() % 20 - 10));
 				r->z = (int16_t)(r->z + (int16_t)(CrtRand() % 20 - 10));
 				int32_t sp = CrtRand() % 0xF + 0x19;
-				const int16_t *d = (const int16_t *)(SPLINE_B + 8 * j);
+				const int16_t *d = (const int16_t *)(own::R(SPLINE_B) + 8 * j);
 				int32_t k = CrtRand() % 20;
 				r->vx = (int16_t)(k + (mul32(d[0], sp) >> 12) - 10);
 				k = CrtRand() % 20;
@@ -2273,12 +2338,12 @@ namespace o326
 
 	static uint32_t __cdecl BladeTask(TaskNode *tn)
 	{
-		if (!(var<uint8_t>(0x24F12E4) & 4)) return TASK_END;
+		if (!(var<uint8_t>(own::R(0x24F12E4)) & 4)) return TASK_END;
 		Node24 *n = (Node24 *)tn;
 		FX_HELD(held_note_blade(n);)
 		BladeDraw(&Frame(), &CreatureMat(), &BoneCopy(), BladeP0(), BladeP1(), n->c > 0);
 		if (Paused()) return 0;
-		uint8_t *sk = **(uint8_t ***)(0x24F12CC);
+		uint8_t *sk = **(uint8_t ***)(own::R(0x24F12CC));
 		n->c++;
 		memcpy(&BoneCopy(), sk + 0xB30, 0x20);
 		return 0;
@@ -2354,12 +2419,12 @@ namespace o326
 		d[2] = (int32_t)p1[2] - (int32_t)p0[2];
 		int32_t len = Sqrt(NormalizeVectorToFixedPoint(d, d));
 		len = mul32(len, k) >> 12;
-		uint32_t w0 = var<uint32_t>(0x24F1310), w1 = var<uint32_t>(0x24F1314);
+		uint32_t w0 = var<uint32_t>(own::R(0x24F1310)), w1 = var<uint32_t>(own::R(0x24F1314));
 		*(int16_t *)(s + 0x28) = (int16_t)((mul32(d[0], len) >> 12) + (int32_t)w0);
 		*(int16_t *)(s + 0x2A) = (int16_t)((int16_t)(mul32(len, d[1]) >> 12) + p0[1]);
 		*(int16_t *)(s + 0x2C) = (int16_t)((mul32(d[2], len) >> 12) + (int32_t)w1);
 		int32_t idx = (int32_t)n->c % 10;
-		uint32_t *rec = (uint32_t *)(TRAIL_RECS + 0x14 * idx);
+		uint32_t *rec = (uint32_t *)(own::R(TRAIL_RECS) + 0x14 * idx);
 		rec[0] = 1;
 		rec[1] = w0;
 		rec[2] = w1;
@@ -2368,20 +2433,20 @@ namespace o326
 		int32_t cnt = 0;
 		for (int32_t j = idx; cnt < 10; cnt++)
 		{
-			const uint32_t *e = (const uint32_t *)(TRAIL_RECS + 0x14 * j);
+			const uint32_t *e = (const uint32_t *)(own::R(TRAIL_RECS) + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * cnt) = e[1];
-			var<uint32_t>(HIST_A + 8 * cnt + 4) = e[2];
-			const uint32_t *src = cnt == 0 ? (const uint32_t *)0x24F1318 : e + 3;
-			var<uint32_t>(HIST_B + 8 * cnt) = src[0];
-			var<uint32_t>(HIST_B + 8 * cnt + 4) = src[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * cnt) = e[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * cnt + 4) = e[2];
+			const uint32_t *src = cnt == 0 ? (const uint32_t *)own::R(0x24F1318) : e + 3;
+			var<uint32_t>(own::R(HIST_B) + 8 * cnt) = src[0];
+			var<uint32_t>(own::R(HIST_B) + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
 		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
 			SplineRails(cnt, 32, 31);
-			TrailDraw(&Frame(), SPLINE_A, SPLINE_B, s);
+			TrailDraw(&Frame(), own::R(SPLINE_A), own::R(SPLINE_B), s);
 			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
@@ -2410,10 +2475,10 @@ namespace o326
 		uint32_t col = 0x2606060;
 		for (int32_t i = 0, j = k; i < 6; i++)
 		{
-			const uint32_t *r = (const uint32_t *)(GHOST_RECS + 0x24 * j);
+			const uint32_t *r = (const uint32_t *)(own::R(GHOST_RECS) + 0x24 * j);
 			if (!r[0]) break;
 			memcpy(&Model2Mat(), r + 1, 0x20);
-			var<uint32_t>(0x24F0F10) = col;
+			var<uint32_t>(own::R(0x24F0F10)) = col;
 			DrawModel(E, frame, scratch);
 			col -= 0xC0C0C;
 			if (--j < 0) j = 5;
@@ -2426,21 +2491,21 @@ namespace o326
 		uint8_t *E = Model2();
 		if (n->c == 0)
 		{
-			ResetRotation((void *)0x24F0F28);
-			var<uint16_t>(0x24F0F38) = 0x1000;
-			var<uint16_t>(0x24F0F30) = 0x1000;
-			var<uint16_t>(0x24F0F28) = 0x1000;
-			var<int32_t>(0x24F0F3C) = 0xEA6;
-			var<int32_t>(0x24F0F40) = (int32_t)0xFFFFEC78;
-			var<int32_t>(0x24F0F44) = 0x1518;
-			ModelInit(E, (uint8_t *)0x24F2140, (uint8_t *)0xE18CF8, 0x10);
+			ResetRotation((void *)own::R(0x24F0F28));
+			var<uint16_t>(own::R(0x24F0F38)) = 0x1000;
+			var<uint16_t>(own::R(0x24F0F30)) = 0x1000;
+			var<uint16_t>(own::R(0x24F0F28)) = 0x1000;
+			var<int32_t>(own::R(0x24F0F3C)) = 0xEA6;
+			var<int32_t>(own::R(0x24F0F40)) = (int32_t)0xFFFFEC78;
+			var<int32_t>(own::R(0x24F0F44)) = 0x1518;
+			ModelInit(E, (uint8_t *)own::R(0x24F2140), (uint8_t *)0xE18CF8, 0x10);
 			SetAnim(E, 1);
 			n->p10 = (int16_t)0xFE89;
 			n->p12 = (int16_t)0xFD3C;
 			n->p14 = (int16_t)0xFD1B;
 			n->a18 = (int16_t)(CrtRand() % 0x1000);
 			n->s1A = 0x300;
-			for (uint32_t a = GHOST_RECS; a < 0x24F1060; a += 0x24) *(uint32_t *)a = 0;
+			for (uint32_t a = own::R(GHOST_RECS); a < own::R(0x24F1060); a += 0x24) *(uint32_t *)a = 0;
 		}
 		if (!Paused())
 		{
@@ -2454,14 +2519,14 @@ namespace o326
 		GhostPose(&Model2Mat(), n->a18);
 		DrawModel(E, &Frame(), Scratch());
 		int32_t k = (int32_t)n->c % 6;
-		uint32_t *rec = (uint32_t *)(GHOST_RECS + 0x24 * k);
+		uint32_t *rec = (uint32_t *)(own::R(GHOST_RECS) + 0x24 * k);
 		rec[0] = 1;
 		memcpy(rec + 1, &Model2Mat(), 0x20);
 		Mat4x3 save = Model2Mat();
 		FX_HELD(held_note_ghost(n, k, save);)
 		GhostEchoes(E, k, &Frame(), Scratch());
 		Model2Mat() = save;
-		var<uint32_t>(0x24F0F10) = 0x808080;
+		var<uint32_t>(own::R(0x24F0F10)) = 0x808080;
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
@@ -2480,7 +2545,7 @@ namespace o326
 		m1.t[1] = 0;
 		m1.t[2] = 0;
 		Scale3DMatrix(&m1, sc);
-		uint8_t *sk = **(uint8_t ***)(0x24F0F4C); // E2 comFileData -> skeleton
+		uint8_t *sk = **(uint8_t ***)(own::R(0x24F0F4C)); // E2 comFileData -> skeleton
 		memcpy(&BoneCopy(), sk + 0x20, 0x20);
 		ComposeAffineTransform(emat, &BoneCopy(), &m2);
 		GteMatrixMultiply(&m2, &m1);
@@ -2552,8 +2617,8 @@ namespace o326
 		return n->c >= 0x1B ? TASK_END : 0;
 	}
 
-	static uint32_t __cdecl FadeATask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model2(), 0x24F0F28, 0x24F2140, 0); }
-	static uint32_t __cdecl FadeBTask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model3(), 0x24F0D90, 0x24F22A8, 0x24F22E4); }
+	static uint32_t __cdecl FadeATask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model2(), own::R(0x24F0F28), own::R(0x24F2140), 0); }
+	static uint32_t __cdecl FadeBTask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model3(), own::R(0x24F0D90), own::R(0x24F22A8), own::R(0x24F22E4)); }
 
 	// ------------------------------------------------------------------
 	// Screen tint (0x62CD40, timeline tick 382), 27 ticks: full-screen tile (0x70, 0x80, 0xF0) at
@@ -2835,51 +2900,113 @@ namespace o326
 	static uint32_t __cdecl SlashBTask(TaskNode *tn) { return SlashTask((Node24 *)tn, 4, 2, 7); }
 	static uint32_t __cdecl SlashCTask(TaskNode *tn) { return SlashTask((Node24 *)tn, 6, 3, -1); }
 	static uint32_t __cdecl SlashDTask(TaskNode *tn) { return SlashTask((Node24 *)tn, 6, 3, 7); }
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Zantetsuken Reverse (Seifer cuts Odin in two): the camera script, the summon stream's loads, the grids, debris and intro, the creature with its blade, smoke, rings, mist and sparks, Odin cut in two with the blood bursts, the ghost and its sword, the walls, the fading models and tint, the screen flash, the voice and the sounds; the action result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the timeline's ticks 1, 111, 171, 252" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "voice", "Voice", "The voice slot claimed at the timeline's tick 0", (uint32_t)offsetof(OdinReverseParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.start", "Start", "At the timeline's tick 1", (uint32_t)offsetof(OdinReverseParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.sword", "Sword", "At the timeline's tick 111", (uint32_t)offsetof(OdinReverseParams, sounds.sword), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.slash", "Slash", "At the timeline's tick 171", (uint32_t)offsetof(OdinReverseParams, sounds.slash), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.cut", "Cut", "At the timeline's tick 252", (uint32_t)offsetof(OdinReverseParams, sounds.cut), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "timeline.damage", "Damage tick", "The action result at this tick of the timeline", (uint32_t)offsetof(OdinReverseParams, timeline.damage), fxp::I16, 0, 409 },
+		};
+	}
 }
 
 	void register_mag326_odin_reverse()
 	{
+		fxp::register_params({ 326, "Odin reverse", &o326::live, &o326::GAME, sizeof(o326::OdinReverseParams),
+		                       o326::table::PARTS, (int)(sizeof(o326::table::PARTS) / sizeof(o326::table::PARTS[0])),
+		                       o326::table::FIELDS, (int)(sizeof(o326::table::FIELDS) / sizeof(o326::table::FIELDS[0])),
+		                       o326::table::GROUPS, (int)(sizeof(o326::table::GROUPS) / sizeof(o326::table::GROUPS[0])) });
+		own::note(o326::ORIG_Setup, (void *)o326::Setup);
+		own::note(o326::ORIG_SequenceTick, (void *)o326::SequenceTick);
 		register_port(o326::ORIG_SequenceTick, (void *)o326::SequenceTick, "O326 SequenceTick", 326);
+		own::note(o326::ORIG_TimelineTask, (void *)o326::TimelineTask);
 		register_port(o326::ORIG_TimelineTask, (void *)o326::TimelineTask, "O326 TimelineTask", 326);
+		own::note(o326::ORIG_GridATask, (void *)o326::GridATask);
 		register_port(o326::ORIG_GridATask, (void *)o326::GridATask, "O326 GridATask", 326);
+		own::note(o326::ORIG_GridBTask, (void *)o326::GridBTask);
 		register_port(o326::ORIG_GridBTask, (void *)o326::GridBTask, "O326 GridBTask", 326);
+		own::note(o326::ORIG_DebrisTask, (void *)o326::DebrisTask);
 		register_port(o326::ORIG_DebrisTask, (void *)o326::DebrisTask, "O326 DebrisTask", 326);
+		own::note(o326::ORIG_WarpTask, (void *)o326::WarpTask);
 		register_port(o326::ORIG_WarpTask, (void *)o326::WarpTask, "O326 WarpTask", 326);
+		own::note(o326::ORIG_GlowTask, (void *)o326::GlowTask);
 		register_port(o326::ORIG_GlowTask, (void *)o326::GlowTask, "O326 GlowTask", 326);
+		own::note(o326::ORIG_StreakTask, (void *)o326::StreakTask);
 		register_port(o326::ORIG_StreakTask, (void *)o326::StreakTask, "O326 StreakTask", 326);
+		own::note(o326::ORIG_GridCTask, (void *)o326::GridCTask);
 		register_port(o326::ORIG_GridCTask, (void *)o326::GridCTask, "O326 GridCTask", 326);
+		own::note(o326::ORIG_GridDTask, (void *)o326::GridDTask);
 		register_port(o326::ORIG_GridDTask, (void *)o326::GridDTask, "O326 GridDTask", 326);
+		own::note(o326::ORIG_WallTask, (void *)o326::WallTask);
 		register_port(o326::ORIG_WallTask, (void *)o326::WallTask, "O326 WallTask", 326);
+		own::note(o326::ORIG_ShockTask, (void *)o326::ShockTask);
 		register_port(o326::ORIG_ShockTask, (void *)o326::ShockTask, "O326 ShockTask", 326);
+		own::note(o326::ORIG_GhostTask, (void *)o326::GhostTask);
 		register_port(o326::ORIG_GhostTask, (void *)o326::GhostTask, "O326 GhostTask", 326);
+		own::note(o326::ORIG_SwordTask, (void *)o326::SwordTask);
 		register_port(o326::ORIG_SwordTask, (void *)o326::SwordTask, "O326 SwordTask", 326);
+		own::note(o326::ORIG_FadeATask, (void *)o326::FadeATask);
 		register_port(o326::ORIG_FadeATask, (void *)o326::FadeATask, "O326 FadeATask", 326);
+		own::note(o326::ORIG_FadeBTask, (void *)o326::FadeBTask);
 		register_port(o326::ORIG_FadeBTask, (void *)o326::FadeBTask, "O326 FadeBTask", 326);
+		own::note(o326::ORIG_TintTask, (void *)o326::TintTask);
 		register_port(o326::ORIG_TintTask, (void *)o326::TintTask, "O326 TintTask", 326);
+		own::note(o326::ORIG_EndTask, (void *)o326::EndTask);
 		register_port(o326::ORIG_EndTask, (void *)o326::EndTask, "O326 EndTask", 326);
+		own::note(o326::ORIG_CreatureTask, (void *)o326::CreatureTask);
 		register_port(o326::ORIG_CreatureTask, (void *)o326::CreatureTask, "O326 CreatureTask", 326);
+		own::note(o326::ORIG_SmokeTask, (void *)o326::SmokeTask);
 		register_port(o326::ORIG_SmokeTask, (void *)o326::SmokeTask, "O326 SmokeTask", 326);
+		own::note(o326::ORIG_RingATask, (void *)o326::RingATask);
 		register_port(o326::ORIG_RingATask, (void *)o326::RingATask, "O326 RingATask", 326);
+		own::note(o326::ORIG_RingBTask, (void *)o326::RingBTask);
 		register_port(o326::ORIG_RingBTask, (void *)o326::RingBTask, "O326 RingBTask", 326);
+		own::note(o326::ORIG_DustTask, (void *)o326::DustTask);
 		register_port(o326::ORIG_DustTask, (void *)o326::DustTask, "O326 DustTask", 326);
+		own::note(o326::ORIG_MistTask, (void *)o326::MistTask);
 		register_port(o326::ORIG_MistTask, (void *)o326::MistTask, "O326 MistTask", 326);
+		own::note(o326::ORIG_FadeInTask, (void *)o326::FadeInTask);
 		register_port(o326::ORIG_FadeInTask, (void *)o326::FadeInTask, "O326 FadeInTask", 326);
+		own::note(o326::ORIG_FlashTask, (void *)o326::FlashTask);
 		register_port(o326::ORIG_FlashTask, (void *)o326::FlashTask, "O326 FlashTask", 326);
+		own::note(o326::ORIG_MorphTask, (void *)o326::MorphTask);
 		register_port(o326::ORIG_MorphTask, (void *)o326::MorphTask, "O326 MorphTask", 326);
+		own::note(o326::ORIG_SparkTask, (void *)o326::SparkTask);
 		register_port(o326::ORIG_SparkTask, (void *)o326::SparkTask, "O326 SparkTask", 326);
+		own::note(o326::ORIG_Spark2Task, (void *)o326::Spark2Task);
 		register_port(o326::ORIG_Spark2Task, (void *)o326::Spark2Task, "O326 Spark2Task", 326);
+		own::note(o326::ORIG_BladeTask, (void *)o326::BladeTask);
 		register_port(o326::ORIG_BladeTask, (void *)o326::BladeTask, "O326 BladeTask", 326);
+		own::note(o326::ORIG_TrailTask, (void *)o326::TrailTask);
 		register_port(o326::ORIG_TrailTask, (void *)o326::TrailTask, "O326 TrailTask", 326);
+		own::note(o326::ORIG_BurstATask, (void *)o326::BurstATask);
 		register_port(o326::ORIG_BurstATask, (void *)o326::BurstATask, "O326 BurstATask", 326);
+		own::note(o326::ORIG_BurstBTask, (void *)o326::BurstBTask);
 		register_port(o326::ORIG_BurstBTask, (void *)o326::BurstBTask, "O326 BurstBTask", 326);
+		own::note(o326::ORIG_BloodTask, (void *)o326::BloodTask);
 		register_port(o326::ORIG_BloodTask, (void *)o326::BloodTask, "O326 BloodTask", 326);
+		own::note(o326::ORIG_SlashATask, (void *)o326::SlashATask);
 		register_port(o326::ORIG_SlashATask, (void *)o326::SlashATask, "O326 SlashATask", 326);
+		own::note(o326::ORIG_SlashBTask, (void *)o326::SlashBTask);
 		register_port(o326::ORIG_SlashBTask, (void *)o326::SlashBTask, "O326 SlashBTask", 326);
+		own::note(o326::ORIG_SlashCTask, (void *)o326::SlashCTask);
 		register_port(o326::ORIG_SlashCTask, (void *)o326::SlashCTask, "O326 SlashCTask", 326);
+		own::note(o326::ORIG_SlashDTask, (void *)o326::SlashDTask);
 		register_port(o326::ORIG_SlashDTask, (void *)o326::SlashDTask, "O326 SlashDTask", 326);
 		// 30 fps layer: see mag326_odin_reverse_held.inc
 		FX_HELD(register_mag326_held();)
 	}
+	FX_LAB_MODULE(register_mag326_odin_reverse);
 }
 
 #ifdef FF8_FX_HELD
