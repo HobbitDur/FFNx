@@ -61,6 +61,9 @@
 // buffer base 0x2520F68, context 0x2520F6C, master pool 0x2520F70, drop header 0x2520F84, packet
 // cursor 0x2520F88, the queues 0x2520F90 drops / 0x2520FA0 unused / 0x2520FB0 streams / 0x2520FC0
 // layouts / 0x2520FD0 targets / 0x2520FE0 master).
+// Fujin's described Dissolving Acid (effect_132.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (AcidParams: the sound, the
+// damage tick).
 // NEVER-WRITTEN STACK WORDS (the game's executor 0x508420 calls every task of a queue at one esp;
 // the master pushes one more queue argument per executor call: target tasks start at E, layouts at
 // E - 4, the unused queue at E - 8, streams at E - 0xC; DR0 write watches under the game executor):
@@ -77,6 +80,9 @@
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -87,16 +93,18 @@ namespace acid132
 	using namespace icec;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520F60); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520F68); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520F6C); }
-	inline uint8_t *&DropHeader() { return var<uint8_t *>(0x2520F84); }    // the drop list's sprite header (per tick)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520F88); }
-	inline TaskQueue *QDrops() { return (TaskQueue *)0x2520F90; }          // pool: magic buffer, 0x40 x 0x1C
-	inline TaskQueue *QUnused() { return (TaskQueue *)0x2520FA0; }         // pool: + 0x700, 0x20 x 0x18 (never used)
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x2520FB0; }        // pool: + 0xA00, 0x10 x 0x40
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2520FC0; }        // pool: + 0xE00, 0x10 x 0x2D8
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520FD0; }        // pool: + 0x3B80, 3 x 0x14
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2520F60)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2520F68)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2520F6C)); }
+	inline uint8_t *&DropHeader() { return var<uint8_t *>(own::R(0x2520F84)); }    // the drop list's sprite header (per tick)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2520F88)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2520F64)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2520FE0); }           // 1 x 0x14
+	inline TaskQueue *QDrops() { return (TaskQueue *)own::R(0x2520F90); }          // pool: magic buffer, 0x40 x 0x1C
+	inline TaskQueue *QUnused() { return (TaskQueue *)own::R(0x2520FA0); }         // pool: + 0x700, 0x20 x 0x18 (never used)
+	inline TaskQueue *QStreams() { return (TaskQueue *)own::R(0x2520FB0); }        // pool: + 0xA00, 0x10 x 0x40
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x2520FC0); }        // pool: + 0xE00, 0x10 x 0x2D8
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2520FD0); }        // pool: + 0x3B80, 3 x 0x14
 
 	static const uint32_t ORIG_MasterTask = 0x6B1AA0;
 	static const uint32_t ORIG_TargetTask = 0x6B1DB0;
@@ -114,6 +122,20 @@ namespace acid132
 	static const uint32_t MODEL_Splash2 = 0x1213C04;
 	static const uint32_t MODEL_Puddle = 0x12148A4;
 	static const void *const SOUND_Acid = (const void *)0x1214FD0;
+	static const uint32_t ORIG_FileLoader = 0x6B1A00, ORIG_Setup = 0x6B19F0;
+	static const uint32_t TEXTURE_NAME = 0x121906C, CAMERA = 0x1214E1C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct AcidParams
+	{
+		uint32_t sound;                    // at the target task's tick 10
+		struct { int16_t damage; } target; // the damage (and the target task's end) from this tick
+	};
+	static const AcidParams GAME = { 0x1214FD0, { 0x2D } };
+	static AcidParams live = GAME;
+	static const AcidParams &P() { return live; }
 	static const uint8_t *const STREAM_TABLE = (const uint8_t *)0x1214FE8; // 5 x 16: point, bone / vector, flag
 	static const int16_t *const WEIGHTS = (const int16_t *)0x1219038;     // head weight by phase / 256
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1215038;  // [|dy|][|dx|] -> length, 128 x 128
@@ -543,7 +565,7 @@ namespace acid132
 	// ------------------------------------------------------------------
 	static void SpawnSplash(const int16_t *end)
 	{
-		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_SplashTask);
+		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_SplashTask));
 		s->counter = 0;
 		*(uint32_t *)&s->pos[0] = *(const uint32_t *)&end[0];
 		*(uint32_t *)&s->pos[2] = *(const uint32_t *)&end[2];
@@ -552,7 +574,7 @@ namespace acid132
 	}
 	static void SpawnPuddle(const int16_t *end)
 	{
-		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_PuddleTask);
+		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_PuddleTask));
 		s->counter = 0;
 		*(uint32_t *)&s->pos[0] = *(const uint32_t *)&end[0];
 		*(uint32_t *)&s->pos[2] = *(const uint32_t *)&end[2];
@@ -567,7 +589,7 @@ namespace acid132
 	{
 		Point *p = AllocPoint((int16_t)width);
 		if (!p) return;
-		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), ORIG_StreamTask);
+		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), own::Fn(ORIG_StreamTask));
 		if (!s)
 		{
 			p->width = -1;
@@ -626,6 +648,26 @@ namespace acid132
 	// ------------------------------------------------------------------
 	// Drop (0x6B2310): run by the drop list
 	// ------------------------------------------------------------------
+	// File loader (0x6B1A00) and setup (0x6B19F0 -> 0x6B1A20): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520F70), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl DropTask(TaskNode *n)
 	{
 		DropNode *d = (DropNode *)n;
@@ -760,7 +802,7 @@ namespace acid132
 				for (Point *b = a->next; b; a = b, b = b->next)
 				{
 					if (a->idx != r) continue;
-					DropNode *d = (DropNode *)AddTaskToQueue(QDrops(), ORIG_DropTask);
+					DropNode *d = (DropNode *)AddTaskToQueue(QDrops(), own::Fn(ORIG_DropTask));
 					if (!d) continue;
 					*(uint32_t *)&d->pos[0] = *(const uint32_t *)&a->pos[0];
 					*(uint32_t *)&d->pos[2] = *(const uint32_t *)&a->pos[2];
@@ -794,7 +836,7 @@ namespace acid132
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
-		if (t->counter == 0xA) BdPlaySE(SOUND_Acid, 0, 0x80);
+		if (t->counter == 0xA) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Acid), 0, 0x80);
 		const uint32_t e = (uint32_t)((int32_t)t->counter - 0x14);
 		if (e < 0xA && !(e & 1))
 		{
@@ -811,7 +853,7 @@ namespace acid132
 			const int32_t slot = (int32_t)((uint32_t)t->entity - 0x1D972C0u) / 0x9C;
 			SpawnStream(a1, a2, slot, 0x96, v, entry + 4);
 		}
-		if (t->counter >= 0x2D)
+		if (t->counter >= P().target.damage)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
 			return TASK_END;
@@ -868,7 +910,7 @@ namespace acid132
 				if (busy) m->counter = 0;
 				else
 				{
-					TargetNode *nt = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *nt = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 					if (nt)
 					{
 						Memset32(&nt->counter, 0, 2);
@@ -893,19 +935,43 @@ namespace acid132
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "target", "Target", "The acid streams from the caster's model to the target, the drops, splashes and puddle layouts, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "target", "sound", "Sound", "", (uint32_t)offsetof(AcidParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "target.damage", "Damage tick", "The damage (and the target task's end) from this tick", (uint32_t)offsetof(AcidParams, target.damage), fxp::I16, 0, 200 },
+		};
+	}
 }
 
 	void register_mag132_dissolving_acid()
 	{
+		fxp::register_params({ 132, "Dissolving Acid", &acid132::live, &acid132::GAME, sizeof(acid132::AcidParams),
+		                       acid132::table::PARTS, (int)(sizeof(acid132::table::PARTS) / sizeof(acid132::table::PARTS[0])),
+		                       acid132::table::FIELDS, (int)(sizeof(acid132::table::FIELDS) / sizeof(acid132::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(acid132::ORIG_FileLoader, (void *)acid132::FileLoader);
+		own::note(acid132::ORIG_Setup, (void *)acid132::Setup);
+		own::note(acid132::ORIG_MasterTask, (void *)acid132::MasterTask);
 		register_port(acid132::ORIG_MasterTask, (void *)acid132::MasterTask, "132 MasterTask", 132);
+		own::note(acid132::ORIG_TargetTask, (void *)acid132::TargetTask);
 		register_port(acid132::ORIG_TargetTask, (void *)acid132::TargetTask, "132 TargetTask", 132);
+		own::note(acid132::ORIG_StreamTask, (void *)acid132::StreamTask);
 		register_port(acid132::ORIG_StreamTask, (void *)acid132::StreamTask, "132 StreamTask", 132);
+		own::note(acid132::ORIG_DropTask, (void *)acid132::DropTask);
 		register_port(acid132::ORIG_DropTask, (void *)acid132::DropTask, "132 DropTask", 132);
+		own::note(acid132::ORIG_SplashTask, (void *)acid132::SplashTask);
 		register_port(acid132::ORIG_SplashTask, (void *)acid132::SplashTask, "132 SplashTask", 132);
+		own::note(acid132::ORIG_PuddleTask, (void *)acid132::PuddleTask);
 		register_port(acid132::ORIG_PuddleTask, (void *)acid132::PuddleTask, "132 PuddleTask", 132);
 		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(register_mag132_held();)
 	}
+	FX_LAB_MODULE(register_mag132_dissolving_acid);
 }
 
 #ifdef FF8_FX_HELD
