@@ -64,6 +64,9 @@
 // Module globals: 0x2520CC0..0x2520D28 (caster entity 0x2520CC0, texture file 0x2520CC4, magic
 // buffer base 0x2520CC8, context 0x2520CCC, master pool 0x2520CD0, packet cursor 0x2520CE4, the
 // queues 0x2520CE8 sprays / 0x2520CF8 chunks / 0x2520D08 blast / 0x2520D18 master).
+// Fujin's described Oil Blast (effect_137.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BlastParams: the sound, the damage
+// tick).
 // NEVER-WRITTEN STACK WORDS (none reaches the output): the play block's depth (entry esp - 0xC) on
 // counters 0x12..0x1B (mode 0: the callback reads it for mode 1 only); the blend point's 4th word
 // (entry esp - 0x3E: copied into a chunk's +0x12, then overwritten by 0); the block / chunk matrix
@@ -72,6 +75,9 @@
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -82,13 +88,15 @@ namespace oil137
 	using namespace icec;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520CC0); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520CC8); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520CCC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520CE4); }
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520CE8; }         // pool: magic buffer, 0x3C x 0x24
-	inline TaskQueue *QChunks() { return (TaskQueue *)0x2520CF8; }         // pool: + 0x870, 0x20 x 0x2C
-	inline TaskQueue *QBlast() { return (TaskQueue *)0x2520D08; }          // pool: + 0xDF0, 1 x 0x5A0
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2520CC0)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2520CC8)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2520CCC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2520CE4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2520CC4)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2520D18); }           // 1 x 0x14
+	inline TaskQueue *QSprays() { return (TaskQueue *)own::R(0x2520CE8); }         // pool: magic buffer, 0x3C x 0x24
+	inline TaskQueue *QChunks() { return (TaskQueue *)own::R(0x2520CF8); }         // pool: + 0x870, 0x20 x 0x2C
+	inline TaskQueue *QBlast() { return (TaskQueue *)own::R(0x2520D08); }          // pool: + 0xDF0, 1 x 0x5A0
 
 	static const uint32_t ORIG_MasterTask = 0x6AB900;
 	static const uint32_t ORIG_BlastTask = 0x6ABA50;
@@ -106,6 +114,20 @@ namespace oil137
 	static const void *const SCALE_MAT = (const void *)0x11F0360;   // exe matrix, its diagonal rewritten
 	static int16_t *const SCALE_DIAG = (int16_t *)0x11F0360;        // words 0 / 4 / 8
 	static const void *const SOUND_Blast = (const void *)0x11F035C;
+	static const uint32_t ORIG_FileLoader = 0x6AB860, ORIG_Setup = 0x6AB850;
+	static const uint32_t TEXTURE_NAME = 0x11F2384, CAMERA = 0x11F0108;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BlastParams
+	{
+		uint32_t sound;                   // at the blast's tick 10
+		struct { int16_t damage; } blast; // the damage at this tick of the blast
+	};
+	static const BlastParams GAME = { 0x11F035C, { 0x2D } };
+	static BlastParams live = GAME;
+	static const BlastParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -603,6 +625,26 @@ namespace oil137
 		FieldFree(0xB4);
 	}
 
+	// File loader (0x6AB860) and setup (0x6AB850 -> 0x6AB880): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520CD0), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
@@ -730,7 +772,7 @@ namespace oil137
 			MeshRender(&M, (uint16_t)((k & 3) << 5));
 			for (int i = 2; i; i--)
 			{
-				ChunkNode *c = (ChunkNode *)AddTaskToQueue(QChunks(), ORIG_ChunkTask);
+				ChunkNode *c = (ChunkNode *)AddTaskToQueue(QChunks(), own::Fn(ORIG_ChunkTask));
 				if (!c) continue;
 				memcpy(c->pos, Q, 8);
 				c->frame = 0;
@@ -758,7 +800,7 @@ namespace oil137
 			{
 				for (int i = 0xA; i; i--)
 				{
-					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), ORIG_SprayTask);
+					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), own::Fn(ORIG_SprayTask));
 					s->pos[0] = (int16_t)w->basisD.t[0];
 					s->pos[2] = (int16_t)w->basisD.t[2];
 					s->pos[1] = 0;
@@ -778,8 +820,8 @@ namespace oil137
 			FX_HELD(held_note_play(PLAY_BLAST, n, (prim::Layout *)w->layB);)
 			Play(w->layB, &arg);
 		}
-		if (w->counter == 0xA) BdPlaySE(SOUND_Blast, 0, 0x80);
-		if (w->counter == 0x2D) ApplyActionResultToTarget(Ctx()->actions->targets);
+		if (w->counter == 0xA) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Blast), 0, 0x80);
+		if (w->counter == P().blast.damage) ApplyActionResultToTarget(Ctx()->actions->targets);
 		if (w->counter >= 0x3C) return TASK_END;
 		w->counter++;
 		return 0;
@@ -794,7 +836,7 @@ namespace oil137
 		InitTaskQueuePool(QBlast(), (void *)(TexBase() + 0xDF0), 0x5A0, 1);
 		InitTaskQueuePool(QChunks(), (void *)(TexBase() + 0x870), 0x2C, 0x20);
 		InitTaskQueuePool(QSprays(), (void *)TexBase(), 0x24, 0x3C);
-		BlastNode *w = (BlastNode *)AddTaskToQueue(QBlast(), ORIG_BlastTask);
+		BlastNode *w = (BlastNode *)AddTaskToQueue(QBlast(), own::Fn(ORIG_BlastTask));
 		Memset32(&w->counter, 0, 0x165);
 		w->target = target;
 		GetEffectSpawnPosition(target, 0xF1, 0, w->aim);
@@ -832,17 +874,39 @@ namespace oil137
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "blast", "Blast", "The oil blast: the block on the floor, its chunks and sprays, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "blast", "sound", "Sound", "", (uint32_t)offsetof(BlastParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "blast", "blast.damage", "Damage tick", "The damage at this tick of the blast", (uint32_t)offsetof(BlastParams, blast.damage), fxp::I16, 0, 200 },
+		};
+	}
 }
 
 	void register_mag137_oil_blast()
 	{
+		fxp::register_params({ 137, "Oil Blast", &oil137::live, &oil137::GAME, sizeof(oil137::BlastParams),
+		                       oil137::table::PARTS, (int)(sizeof(oil137::table::PARTS) / sizeof(oil137::table::PARTS[0])),
+		                       oil137::table::FIELDS, (int)(sizeof(oil137::table::FIELDS) / sizeof(oil137::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(oil137::ORIG_FileLoader, (void *)oil137::FileLoader);
+		own::note(oil137::ORIG_Setup, (void *)oil137::Setup);
+		own::note(oil137::ORIG_MasterTask, (void *)oil137::MasterTask);
 		register_port(oil137::ORIG_MasterTask, (void *)oil137::MasterTask, "137 MasterTask", 137);
+		own::note(oil137::ORIG_BlastTask, (void *)oil137::BlastTask);
 		register_port(oil137::ORIG_BlastTask, (void *)oil137::BlastTask, "137 BlastTask", 137);
+		own::note(oil137::ORIG_ChunkTask, (void *)oil137::ChunkTask);
 		register_port(oil137::ORIG_ChunkTask, (void *)oil137::ChunkTask, "137 ChunkTask", 137);
+		own::note(oil137::ORIG_SprayTask, (void *)oil137::SprayTask);
 		register_port(oil137::ORIG_SprayTask, (void *)oil137::SprayTask, "137 SprayTask", 137);
 		// 30 fps layer: see mag137_oil_blast_held.inc
 		FX_HELD(register_mag137_held();)
 	}
+	FX_LAB_MODULE(register_mag137_oil_blast);
 }
 
 #ifdef FF8_FX_HELD
