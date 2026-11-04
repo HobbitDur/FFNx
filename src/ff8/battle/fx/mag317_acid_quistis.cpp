@@ -66,6 +66,9 @@
 // bone workspace as its vertex buffer.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,14 +78,16 @@ namespace acid_quistis
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505490); }         // the caster's entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505498); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250549C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25054B4); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x25054B8); }       // camera x effect frame (every tick)
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25054E0; }       // pool: magic buffer, 0x80 x 0x20
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x25054F0; }         // pool: + 0x1000, 8 x 0x50
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2505500; }          // pool: + 0x1280, 1 x 0x268
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2505490)); }         // the caster's entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2505498)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250549C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25054B4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2505494)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2505510); }           // 1 x 0x14
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(own::R(0x25054B8)); }       // camera x effect frame (every tick)
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x25054E0); }       // pool: magic buffer, 0x80 x 0x20
+	inline TaskQueue *QStreams() { return (TaskQueue *)own::R(0x25054F0); }         // pool: + 0x1000, 8 x 0x50
+	inline TaskQueue *QTarget() { return (TaskQueue *)own::R(0x2505500); }          // pool: + 0x1280, 1 x 0x268
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // melting target's vertex buffer
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -99,6 +104,19 @@ namespace acid_quistis
 	static const uint32_t SEQ_Splash = 0x10014FC;
 	static const uint32_t ZERO_Vector = 0x25054D8;       // module global, never written (8 bytes)
 	static const void *const SOUND_Juice = (const void *)0x1001AC8;
+	static const uint32_t ORIG_FileLoader = 0x65F850, ORIG_Setup = 0x65F840;
+	static const uint32_t TEXTURE_NAME = 0x1005AD8, CAMERA_ANIM = 0x10017A0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct AcidParams
+	{
+		uint32_t sound;   // the target task's counter 10
+	};
+	static const AcidParams GAME = { 0x1001AC8 };
+	static AcidParams live = GAME;
+	static const AcidParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1001ACC; // [|dy|][|dx|] -> length, 128 x 128
 	static const uint32_t POINTS = 0x1708;               // magic buffer: stream points (128: + 0x16E8)
 	static const uint32_t MELT = 0x3F08;                 // magic buffer: melt amounts (128: + 0x3EE8)
@@ -614,7 +632,7 @@ namespace acid_quistis
 	{
 		Point *p = AllocPoint(from, (int16_t)width);
 		if (!p) return nullptr;
-		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), ORIG_StreamTask);
+		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), own::Fn(ORIG_StreamTask));
 		if (!s)
 		{
 			p->width = -1;
@@ -792,6 +810,26 @@ namespace acid_quistis
 	// ------------------------------------------------------------------
 	// Particle tasks
 	// ------------------------------------------------------------------
+	// File loader (0x65F850) and setup (0x65F840 -> _Init 0x65F870): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25054A0), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
@@ -855,7 +893,7 @@ namespace acid_quistis
 				at[2] = (int16_t)(at[2] + v[2]);
 				if (s->t >= 0x1000 && s->slot >= 0)
 				{
-					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_SplashTask);
+					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_SplashTask));
 					if (q)
 					{
 						q->counter = 0;
@@ -934,7 +972,7 @@ namespace acid_quistis
 			DrawMeltingTarget(t->entity, sinv);
 		}
 		else *(uint16_t *)t->entity &= 0xFFFB;
-		if (t->counter == 0xA) BdPlaySE(SOUND_Juice, 0, 0x80);
+		if (t->counter == 0xA) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Juice), 0, 0x80);
 		if (t->counter == 0x12)
 		{
 			// three streams from the caster point 0x1005AD0 (0x660240) to random bones of the target
@@ -950,8 +988,8 @@ namespace acid_quistis
 				Point *p = SpawnStream(from, to, slot, 0, 0xA0, 0x96, w);
 				if (p)
 				{
-					*(uint32_t *)p->vel = var<uint32_t>(ZERO_Vector);
-					*(uint32_t *)&p->vel[2] = var<uint32_t>(ZERO_Vector + 4);
+					*(uint32_t *)p->vel = var<uint32_t>(own::R(ZERO_Vector));
+					*(uint32_t *)&p->vel[2] = var<uint32_t>(own::R(ZERO_Vector) + 4);
 				}
 			}
 		}
@@ -960,7 +998,7 @@ namespace acid_quistis
 			// eight spray particles from the caster point 0x1005AD0 (0x660240), +-1/8 turn around the direction
 			for (int k = 8; k != 0; k--)
 			{
-				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_SprayTask);
+				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_SprayTask));
 				if (!q) continue;
 				CasterPoint((const int16_t *)CASTER_Point, q->pos);
 				q->counter = 0;
@@ -976,7 +1014,7 @@ namespace acid_quistis
 		if (d < 0x14 && !(d & 1))
 		{
 			// a drip at a random bone of the target (smaller from the 10th)
-			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_DripTask);
+			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_DripTask));
 			if (q)
 			{
 				uint8_t *entity = t->entity;
@@ -1030,7 +1068,7 @@ namespace acid_quistis
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
 				// the pool's one node (one action: the counter never comes back to 1)
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), own::Fn(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x97);
 				t->action = (int16_t)(uint16_t)r->action;
 				uint8_t *entity = Entity(Ctx()->actions[t->action].targets[0]);
@@ -1060,19 +1098,42 @@ namespace acid_quistis
 		r->counter++; // (no 10-tick cycle: 128's root wraps it at 10)
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "target", "Target", "Her cast animation, the acid streams and spray from her to the target, the drips and splashes, the target melting, the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "target", "sound", "Sound", "The target task's counter 10", (uint32_t)offsetof(AcidParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag317_acid_quistis()
 	{
+		fxp::register_params({ 317, "Acid (Quistis)", &acid_quistis::live, &acid_quistis::GAME, sizeof(acid_quistis::AcidParams),
+		                       acid_quistis::table::PARTS, (int)(sizeof(acid_quistis::table::PARTS) / sizeof(acid_quistis::table::PARTS[0])),
+		                       acid_quistis::table::FIELDS, (int)(sizeof(acid_quistis::table::FIELDS) / sizeof(acid_quistis::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(acid_quistis::ORIG_FileLoader, (void *)acid_quistis::FileLoader);
+		own::note(acid_quistis::ORIG_Setup, (void *)acid_quistis::Setup);
+		own::note(acid_quistis::ORIG_RootTask, (void *)acid_quistis::RootTask);
 		register_port(acid_quistis::ORIG_RootTask, (void *)acid_quistis::RootTask, "317 RootTask", 317);
+		own::note(acid_quistis::ORIG_TargetTask, (void *)acid_quistis::TargetTask);
 		register_port(acid_quistis::ORIG_TargetTask, (void *)acid_quistis::TargetTask, "317 TargetTask", 317);
+		own::note(acid_quistis::ORIG_StreamTask, (void *)acid_quistis::StreamTask);
 		register_port(acid_quistis::ORIG_StreamTask, (void *)acid_quistis::StreamTask, "317 StreamTask", 317);
+		own::note(acid_quistis::ORIG_SprayTask, (void *)acid_quistis::SprayTask);
 		register_port(acid_quistis::ORIG_SprayTask, (void *)acid_quistis::SprayTask, "317 SprayTask", 317);
+		own::note(acid_quistis::ORIG_DripTask, (void *)acid_quistis::DripTask);
 		register_port(acid_quistis::ORIG_DripTask, (void *)acid_quistis::DripTask, "317 DripTask", 317);
+		own::note(acid_quistis::ORIG_SplashTask, (void *)acid_quistis::SplashTask);
 		register_port(acid_quistis::ORIG_SplashTask, (void *)acid_quistis::SplashTask, "317 SplashTask", 317);
 		// 30 fps layer: see mag317_acid_quistis_held.inc
 		FX_HELD(register_mag317_held();)
 	}
+	FX_LAB_MODULE(register_mag317_acid_quistis);
 }
 
 #ifdef FF8_FX_HELD
