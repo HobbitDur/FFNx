@@ -33,6 +33,9 @@
 // addresses (namespace w); only the seven task functions are ported.
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -43,18 +46,18 @@ namespace p291
 	// ------------------------------------------------------------------
 	// module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &Pause() { return var<uint32_t>(0x2556258); }            // debug pause, never set by the game
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x255625C); }
-	inline TaskQueue &QLand() { return var<TaskQueue>(0x2556268); }          // stru_2556268.header: LandPrim
-	inline TaskQueue &QFall() { return var<TaskQueue>(0x2556278); }          // stru_2556268.data: FallPrim
-	inline TaskQueue &QTrail() { return var<TaskQueue>(0x2556288); }         // stru_2556288.header: Trail
-	inline TaskQueue &QFlip() { return var<TaskQueue>(0x2556298); }          // stru_2556288.data: flipbooks
-	inline TaskQueue &QCreature() { return var<TaskQueue>(0x25562A8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25562DC); }
-	inline int32_t &Ground() { return var<int32_t>(0x25562E0); }             // mean target z (entity +0x20)
-	inline int32_t &Center() { return var<int32_t>(0x25562E8); }             // Ground() + 4000: tornado centre
-	inline int32_t &Flash() { return var<int32_t>(0x25562F0); }
-	inline uint8_t *MB() { return var<uint8_t *>(0x25562F4); }               // = MAGIC_TEXTURE_BUFFER_BASE
+	inline uint32_t &Pause() { return var<uint32_t>(own::R(0x2556258)); }            // debug pause, never set by the game
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x255625C)); }
+	inline TaskQueue &QLand() { return var<TaskQueue>(own::R(0x2556268)); }          // stru_2556268.header: LandPrim
+	inline TaskQueue &QFall() { return var<TaskQueue>(own::R(0x2556278)); }          // stru_2556268.data: FallPrim
+	inline TaskQueue &QTrail() { return var<TaskQueue>(own::R(0x2556288)); }         // stru_2556288.header: Trail
+	inline TaskQueue &QFlip() { return var<TaskQueue>(own::R(0x2556298)); }          // stru_2556288.data: flipbooks
+	inline TaskQueue &QCreature() { return var<TaskQueue>(own::R(0x25562A8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25562DC)); }
+	inline int32_t &Ground() { return var<int32_t>(own::R(0x25562E0)); }             // mean target z (entity +0x20)
+	inline int32_t &Center() { return var<int32_t>(own::R(0x25562E8)); }             // Ground() + 4000: tornado centre
+	inline int32_t &Flash() { return var<int32_t>(own::R(0x25562F0)); }
+	inline uint8_t *MB() { return var<uint8_t *>(own::R(0x25562F4)); }               // = MAGIC_TEXTURE_BUFFER_BASE
 	inline int32_t &LoadState() { return var<int32_t>(0x13BBBE8); }          // static data, not a module global
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }      // battle_texture_data_ptr_1D8E054
 	inline int16_t &CamW(int i) { return var<int16_t>(0xB8B7F0 + 2 * i); }   // eye x, z(*), y   (*) 683D10 keeps it
@@ -78,6 +81,20 @@ namespace p291
 	static const uint32_t ORIG_SwirlFlipTask = 0x6F0ED0;
 	static const uint32_t ORIG_RiseFlipTask = 0x6F0FB0;
 	static const uint32_t ORIG_TrailTask = 0x6F1060;
+	static const uint32_t ORIG_FileLoader = 0x5755A0, ORIG_Setup = 0x6ED250;   // (the file loader is the engine's nullsub)
+	static const uint32_t TIM_A = 0x13BBBEC, TIM_B = 0x13ED20C;   // the setup's two TIMs (exe data)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct PandemonaParams
+	{
+		uint32_t voice;                                          // the voice slot claimed when the timeline spawns
+		struct { uint32_t start, cut, rise, spin, drop; } sounds;  // at the camera's first cuts and the timeline's ticks 0xDF, 0x178, 0x1C0
+	};
+	static const PandemonaParams GAME = { 0x13B7A5C, { 0x13B7A48, 0x13B7A4C, 0x13B7A50, 0x13B7A54, 0x13B7A58 } };
+	static PandemonaParams live = GAME;
+	static const PandemonaParams &P() { return live; }
 	static const uint32_t CB_Prim = 0x6F06F0; // MAG_291_sub_6F06F0: prim player object -> prim set, rel. to ctx matrix
 
 	// ------------------------------------------------------------------
@@ -160,6 +177,29 @@ namespace p291
 	//   +0x14 s16 angles x, y, z (entity +0x0C.., y + 0x800)  +0x1C u8 landed ticks
 	//   +0x1D u8 drawn by the module  +0x1E u8 not linked to another target (draw the chain)
 	// ------------------------------------------------------------------
+	// Setup (0x6ED250 -> GF_291Pandemona_SetupSummon 0x6ED260; the file loader is the engine's nullsub): the game runs its
+	// own; Fujin's programs this (its memory may be a copy's): a module word cleared, the two exe TIMs, the model buffer
+	// (the magic buffer), the cast and its caster, the master; the targets' mean height (the ground) and the tornado's
+	// centre 4000 above it
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +4 the actions)
+	{
+		var<uint32_t>(own::R(0x25562EC)) = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_A);   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_B);
+		var<uint8_t *>(own::R(0x25562F4)) = (uint8_t *)layouts::MagicBuffer();
+		var<uint8_t *>(own::R(0x255625C)) = ctx;
+		var<uint32_t>(own::R(0x2556260)) = 0x1D972C0 + 0x9C * ctx[0];
+		InitTaskQueuePool((TaskQueue *)own::R(0x25562B8), (void *)own::R(0x25562C8), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue((TaskQueue *)own::R(0x25562B8), own::Fn(ORIG_SequenceTask)) + 0xC, 0, 2);
+		const int32_t count = Count();
+		int32_t sum = 0;
+		Ground() = 0;
+		for (int32_t i = 0; i < count; i++) sum += *(const int16_t *)(0x1D972C0 + 0x9C * TargetIds()[0x18 * i] + 0x20);
+		Ground() = sum / count;
+		Center() = Ground() + 0xFA0;
+		return (TaskQueue *)own::R(0x25562B8);
+	}
+
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		uint8_t *nd = (uint8_t *)n;
@@ -184,9 +224,9 @@ namespace p291
 			InitTaskQueuePool(&QTrail(), MB() + 0xD90, 0x45C, 3);
 			InitTaskQueuePool(&QFall(), MB() + 0x640, 0x9C, 0xC);
 			InitTaskQueuePool(&QLand(), MB(), 0x190, 4);
-			uint8_t *cr = (uint8_t *)AddTaskToQueue(&QCreature(), ORIG_TimelineTask);
+			uint8_t *cr = (uint8_t *)AddTaskToQueue(&QCreature(), own::Fn(ORIG_TimelineTask));
 			Memset32(cr + 0xC, 0, 0x409);
-			At<uint32_t>(cr, 0x10) = ClaimVoiceSlot((const void *)0x13B7A5C, 1, 0x80);
+			At<uint32_t>(cr, 0x10) = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0x13B7A5C), 1, 0x80);
 			At<uint32_t>(cr, 0x102C) = (uint32_t)(cr + 0x42C);
 			for (int i = 0; i < Count(); i++)
 			{
@@ -883,7 +923,7 @@ namespace p291
 			{
 				if (real && (v & 3) == 0)
 				{
-					uint8_t *t = (uint8_t *)AddTaskToQueue(&QFall(), ORIG_FallPrimTask);
+					uint8_t *t = (uint8_t *)AddTaskToQueue(&QFall(), own::Fn(ORIG_FallPrimTask));
 					if (t)
 					{
 						At<uint8_t *>(t, 0xC) = rec;
@@ -894,7 +934,7 @@ namespace p291
 			}
 			if (real)
 			{
-				uint8_t *t = (uint8_t *)AddTaskToQueue(&QLand(), ORIG_LandPrimTask);
+				uint8_t *t = (uint8_t *)AddTaskToQueue(&QLand(), own::Fn(ORIG_LandPrimTask));
 				if (t)
 				{
 					At<uint8_t *>(t, 0xC) = rec;
@@ -967,7 +1007,7 @@ namespace p291
 	{
 		for (int32_t k = n; k != 0; k--)
 		{
-			uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), ORIG_SwirlFlipTask);
+			uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), own::Fn(ORIG_SwirlFlipTask));
 			if (!t) break;
 			At<int16_t>(t, 0xC) = 0;
 			At<int16_t>(t, 0x16) = va;
@@ -993,7 +1033,7 @@ namespace p291
 			if (c == 0)
 			{
 				cut = true;
-				if (real) w::PlaySE(0x13B7A48);
+				if (real) w::PlaySE(fxp::sound(P().sounds.start, 0x13B7A48));
 				Roll() = 0;
 				W1D8E038() = 0xF0;
 				CamL(0) = 0;
@@ -1048,7 +1088,7 @@ namespace p291
 			CamW(0) = 0;
 			CamW(1) = (int16_t)0xF976;
 			CamW(2) = (int16_t)(Center() - 0x936);
-			if (real) w::PlaySE(0x13B7A4C);
+			if (real) w::PlaySE(fxp::sound(P().sounds.cut, 0x13B7A4C));
 		}
 		y8 = Center();
 		if (c == 0x6B && real) w::PlayStream();
@@ -1119,7 +1159,7 @@ namespace p291
 		if (c == 0xDF)
 		{
 			cut = true;
-			if (real) w::PlaySE(0x13B7A50);
+			if (real) w::PlaySE(fxp::sound(P().sounds.rise, 0x13B7A50));
 			int32_t g = Ground();
 			CamL(0) = 0x34F;
 			CamL(1) = (int16_t)0xF9F4;
@@ -1189,7 +1229,7 @@ namespace p291
 		if (c == 0x178)
 		{
 			cut = true;
-			if (real) w::PlaySE(0x13B7A54);
+			if (real) w::PlaySE(fxp::sound(P().sounds.spin, 0x13B7A54));
 			CamL(0) = 0;
 			uint8_t *ent = Ent(nd, 0);
 			int32_t g = Ground();
@@ -1207,7 +1247,7 @@ namespace p291
 		}
 		if ((uint32_t)(c - 0x1B8) < 0x28)
 		{
-			if (c - 0x1B8 == 8 && real) w::PlaySE(0x13B7A58);
+			if (c - 0x1B8 == 8 && real) w::PlaySE(fxp::sound(P().sounds.drop, 0x13B7A58));
 			if (Rec(nd, 0)[0x1C] <= 2)
 			{
 				uint8_t *ent = Ent(nd, 0);
@@ -1343,7 +1383,7 @@ namespace p291
 						{
 							for (int32_t k = 2;; k--)
 							{
-								uint8_t *t = (uint8_t *)AddTaskToQueue(&QTrail(), ORIG_TrailTask); // (no null test)
+								uint8_t *t = (uint8_t *)AddTaskToQueue(&QTrail(), own::Fn(ORIG_TrailTask)); // (no null test)
 								At<int16_t>(t, 0xC) = 0;
 								At<int32_t>(t, 0x20) = 0;
 								At<int16_t>(t, 0x10) = (int16_t)(shl32(k, 11) - 0x1770);
@@ -1446,7 +1486,7 @@ namespace p291
 					SpawnHandParticles(nd, fr, 0x2C, (int32_t)(v >> 2), false);
 					for (int32_t k = 3;; k--)
 					{
-						uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), ORIG_RiseFlipTask);
+						uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), own::Fn(ORIG_RiseFlipTask));
 						if (!t) break;
 						At<int16_t>(t, 0x12) = 0;
 						At<int16_t>(t, 0x18) = 0x2000;
@@ -1853,20 +1893,51 @@ namespace p291
 		if (na > 8 && At<int32_t>(nd, 0x20) < 2) return TASK_END;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Pandemona's Tornado Zone: the tornado layers, prim models and particles, the creature, the targets sucked up, spun, carried round and dropped, the camera, the streamed loads, the voice and the sounds; each target's action result when it lands" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the camera's first cuts and the timeline's ticks 0xDF, 0x178, 0x1C0" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "voice", "Voice", "The voice slot claimed when the timeline spawns", (uint32_t)offsetof(PandemonaParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.start", "Start", "At the camera's first cut (tick 0)", (uint32_t)offsetof(PandemonaParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.cut", "Cut", "At the camera's next cut", (uint32_t)offsetof(PandemonaParams, sounds.cut), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.rise", "Rise", "At the timeline's tick 0xDF", (uint32_t)offsetof(PandemonaParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.spin", "Spin", "At the timeline's tick 0x178", (uint32_t)offsetof(PandemonaParams, sounds.spin), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.drop", "Drop", "At the timeline's tick 0x1C0", (uint32_t)offsetof(PandemonaParams, sounds.drop), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag291_pandemona()
 	{
+		fxp::register_params({ 291, "Pandemona", &p291::live, &p291::GAME, sizeof(p291::PandemonaParams),
+		                       p291::table::PARTS, (int)(sizeof(p291::table::PARTS) / sizeof(p291::table::PARTS[0])),
+		                       p291::table::FIELDS, (int)(sizeof(p291::table::FIELDS) / sizeof(p291::table::FIELDS[0])),
+		                       p291::table::GROUPS, (int)(sizeof(p291::table::GROUPS) / sizeof(p291::table::GROUPS[0])) });
+		own::note(p291::ORIG_Setup, (void *)p291::Setup);
+		own::note(p291::ORIG_SequenceTask, (void *)p291::SequenceTask);
 		register_port(p291::ORIG_SequenceTask, (void *)p291::SequenceTask, "P291 SequenceTask", 291);
+		own::note(p291::ORIG_TimelineTask, (void *)p291::TimelineTask);
 		register_port(p291::ORIG_TimelineTask, (void *)p291::TimelineTask, "P291 TimelineTask", 291);
+		own::note(p291::ORIG_LandPrimTask, (void *)p291::TargetPrimTask);
 		register_port(p291::ORIG_LandPrimTask, (void *)p291::TargetPrimTask, "P291 LandPrimTask", 291);
+		own::note(p291::ORIG_FallPrimTask, (void *)p291::TargetPrimTask);
 		register_port(p291::ORIG_FallPrimTask, (void *)p291::TargetPrimTask, "P291 FallPrimTask", 291);
+		own::note(p291::ORIG_SwirlFlipTask, (void *)p291::SwirlFlipTask);
 		register_port(p291::ORIG_SwirlFlipTask, (void *)p291::SwirlFlipTask, "P291 SwirlFlipTask", 291);
+		own::note(p291::ORIG_RiseFlipTask, (void *)p291::RiseFlipTask);
 		register_port(p291::ORIG_RiseFlipTask, (void *)p291::RiseFlipTask, "P291 RiseFlipTask", 291);
+		own::note(p291::ORIG_TrailTask, (void *)p291::TrailTask);
 		register_port(p291::ORIG_TrailTask, (void *)p291::TrailTask, "P291 TrailTask", 291);
 		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(register_mag291_held();)
 	}
+	FX_LAB_MODULE(register_mag291_pandemona);
 }
 
 #ifdef FF8_FX_HELD
