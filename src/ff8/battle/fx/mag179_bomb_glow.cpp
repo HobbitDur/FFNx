@@ -47,6 +47,9 @@
 // arenas, packet cursor 0x231AD0C).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -63,10 +66,12 @@ namespace bombglow179
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x230AD00); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x230AD04); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x231AD0C); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2309EE0; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x230AD00)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x230AD04)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x231AD0C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x230AD08)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2309570); }             // 1 x 0x10
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x2309EE0); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }       // frame packet arena cursor
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }     // transformed model vertices
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -80,6 +85,20 @@ namespace bombglow179
 	static const uint32_t SEQ_Spark = 0xD44700;
 	static const uint32_t GLOW_COLOURS = 0xD44970;                             // 8 GTE RGBC words
 	static const void *const SOUND_Glow = (const void *)0xD44968;
+	static const uint32_t ORIG_FileLoader = 0x5CDF20, ORIG_Setup = 0x5CDF40;
+	static const uint32_t TEXTURE_NAME = 0xD44990, CAMERA_ANIM = 0xD445C8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BombGlowParams
+	{
+		uint32_t sound;                      // at the director's tick 1 (3D, at the caster)
+		struct { int16_t damage; } director; // the damage at this tick
+	};
+	static const BombGlowParams GAME = { 0xD44968, { 0x23 } };
+	static BombGlowParams live = GAME;
+	static const BombGlowParams &P() { return live; }
 
 	// ---- engine functions (original addresses)
 	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
@@ -137,7 +156,7 @@ namespace bombglow179
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Bomb glow nodes");
 	static_assert(sizeof(Particle) == 0x18, "Bomb glow particle");
 
-	inline Particle *Pool() { return (Particle *)POOL; }
+	inline Particle *Pool() { return (Particle *)own::R(POOL); }
 	static const int POOL_COUNT = 0x64;
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
@@ -145,10 +164,10 @@ namespace bombglow179
 	static int FreeParticle()
 	{
 		int i = 0;
-		for (uint32_t p = POOL; ; p += 0x18, i++)
+		for (uint32_t p = own::R(POOL); ; p += 0x18, i++)
 		{
 			if (U32(p, 0) == 0) break;
-			if (p + 0x18 >= POOL_END) return -1;
+			if (p + 0x18 >= own::R(POOL_END)) return -1;
 		}
 		if (i >= 0x64) return -1;
 		return i;
@@ -473,6 +492,30 @@ namespace bombglow179
 	// ------------------------------------------------------------------
 	// Caster glow (0x5CE0F0)
 	// ------------------------------------------------------------------
+	// File loader (0x5CDF20) and setup (0x5CDF40): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the director, the particle pool
+	// cleared, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x2309558)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2309560), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x2309EF0), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl CasterGlowTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
@@ -507,7 +550,7 @@ namespace bombglow179
 		FX_HELD(held_note_pool(t);)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < POOL_END; p++)
+		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
 			if (!(p->type & 1)) continue;
 			DrawFuseParticle(h, p);
@@ -555,21 +598,21 @@ namespace bombglow179
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter == 1)
 		{
-			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_CasterGlow);
+			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_CasterGlow));
 			g->counter = 0;
 			g->hidden = (uint16_t)(Caster()[0] & 4);
 		}
 		if (t->counter == 1)
 		{
-			EffectNode *f = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_FuseSparks);
+			EffectNode *f = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_FuseSparks));
 			f->counter = 0;
 		}
-		if (t->counter == 0x23) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (t->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		if (t->counter == 1)
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
-			BdPlaySE3D(SOUND_Glow, 0, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Glow), 0, pos);
 		}
 		t->counter++;
 		return t->counter > 0x28 ? TASK_END : 0;
@@ -583,23 +626,45 @@ namespace bombglow179
 		RootNode *r = (RootNode *)n;
 		// 30 fps layer: see mag179_bomb_glow_held.inc
 		FX_HELD(held_note_root();)
-		if (r->counter & 1) PacketCursor() = ARENA1;
-		else PacketCursor() = ARENA0;
+		if (r->counter & 1) PacketCursor() = own::R(ARENA1);
+		else PacketCursor() = own::R(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The Bomb's glow (its model redrawn with a scrolling additive overlay in a cycling colour), the fuse sparks, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1 (3D, at the caster)", (uint32_t)offsetof(BombGlowParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(BombGlowParams, director.damage), fxp::I16, 0, 40 },
+		};
 	}
 }
 
 	void register_mag179_bomb_glow()
 	{
+		fxp::register_params({ 179, "Bomb glow", &bombglow179::live, &bombglow179::GAME, sizeof(bombglow179::BombGlowParams),
+		                       bombglow179::table::PARTS, (int)(sizeof(bombglow179::table::PARTS) / sizeof(bombglow179::table::PARTS[0])),
+		                       bombglow179::table::FIELDS, (int)(sizeof(bombglow179::table::FIELDS) / sizeof(bombglow179::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(bombglow179::ORIG_FileLoader, (void *)bombglow179::FileLoader);
+		own::note(bombglow179::ORIG_Setup, (void *)bombglow179::Setup);
+		own::note(bombglow179::ORIG_RootTask, (void *)bombglow179::RootTask);
 		register_port(bombglow179::ORIG_RootTask, (void *)bombglow179::RootTask, "B179 RootTask", 179);
+		own::note(bombglow179::ORIG_Director, (void *)bombglow179::DirectorTask);
 		register_port(bombglow179::ORIG_Director, (void *)bombglow179::DirectorTask, "B179 Director", 179);
+		own::note(bombglow179::ORIG_CasterGlow, (void *)bombglow179::CasterGlowTask);
 		register_port(bombglow179::ORIG_CasterGlow, (void *)bombglow179::CasterGlowTask, "B179 CasterGlow", 179);
+		own::note(bombglow179::ORIG_FuseSparks, (void *)bombglow179::FuseSparksTask);
 		register_port(bombglow179::ORIG_FuseSparks, (void *)bombglow179::FuseSparksTask, "B179 FuseSparks", 179);
 		// 30 fps layer: see mag179_bomb_glow_held.inc
 		FX_HELD(register_mag179_held();)
 	}
+	FX_LAB_MODULE(register_mag179_bomb_glow);
 }
 
 #ifdef FF8_FX_HELD
