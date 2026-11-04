@@ -70,6 +70,9 @@
 //   texture base, packet cursor).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -79,16 +82,20 @@ namespace shot188
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &EndTick() { return var<int32_t>(0x22B2A38); }      // afterimages end here (999999 until EndTask)
-	inline int32_t &ModuleTick() { return var<int32_t>(0x22B2A3C); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x22B5578); }       // 1 ready, 2 ended, 4 a shot is busy
-	inline CastContext *&Ctx() { return var<CastContext *>(0x22B63A0); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x22B7348); }
-	inline int32_t &ImpactCount() { return var<int32_t>(0x22B75E8); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x22B75EC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x22B75F0); }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x22B38A8; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x22B5580; }
+	inline int32_t &EndTick() { return var<int32_t>(own::R(0x22B2A38)); }      // afterimages end here (999999 until EndTask)
+	inline int32_t &ModuleTick() { return var<int32_t>(own::R(0x22B2A3C)); }
+	inline uint32_t &Flags() { return var<uint32_t>(own::R(0x22B5578)); }       // 1 ready, 2 ended, 4 a shot is busy
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x22B63A0)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x22B7348)); }
+	inline int32_t &ImpactCount() { return var<int32_t>(own::R(0x22B75E8)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x22B75EC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x22B75F0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x22B734C)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x22B3898); }             // 4 x 0x10
+	inline int32_t &ShotIndex() { return var<int32_t>(own::R(0x22B2A44)); }          // 0, 1, 2 cycling: chain 3 + it
+	inline int32_t &ShotCount() { return var<int32_t>(own::R(0x22B75E4)); }
+	inline TaskQueue *QShots() { return (TaskQueue *)own::R(0x22B38A8); }
+	inline TaskQueue *QAux() { return (TaskQueue *)own::R(0x22B5580); }
 	static const uint32_t PARTS_A = 0x22B38B8, PARTS_B = 0x22B46E8;  // 150 x 0x18 each
 	static const uint32_t SHOTS = 0x22B63A8;                         // 100 x 0x28 shot records
 	static const uint32_t BIND_OUT = 0x22B46C8;
@@ -108,6 +115,19 @@ namespace shot188
 	static const uint32_t ORIG_SmokeTask = 0x5BEC30;
 	static const uint32_t ORIG_GroundSmokeTask = 0x5BECD0;
 	static const uint32_t ORIG_ImpactTask = 0x5BEDE0;
+	static const uint32_t ORIG_FileLoader = 0x5BE320, ORIG_Setup = 0x5BE340;
+	static const uint32_t TEXTURE_NAME = 0xD1DA54;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct NormalShotParams
+	{
+		uint32_t sound;   // the gun at each shot (with its action result)
+	};
+	static const NormalShotParams GAME = { 0xD1DA28 };
+	static NormalShotParams live = GAME;
+	static const NormalShotParams &P() { return live; }
 
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xD1B4B8;
@@ -172,10 +192,10 @@ namespace shot188
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Normal Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x28 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Normal Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x28 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(own::R(SHOTS) + 0x28 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(own::R(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
+	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, own::Fn(fn)); }   // (a copy: the port's thunk)
 }
 }
 
@@ -390,12 +410,68 @@ namespace shot188
 		e->vel[1] = (int16_t)(e->vel[1] - (int16_t)(e->vel[1] >> 2));
 		e->vel[2] = (int16_t)(e->vel[2] - (int16_t)(e->vel[2] >> 2));
 	}
-	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? PARTS_B : PARTS_A); }
+	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? own::R(PARTS_B) : own::R(PARTS_A)); }
 
 	// ------------------------------------------------------------------
 	// Tasks
 	// ------------------------------------------------------------------
 	// FlashTask (0x5BE980): 2 ticks, faded 0xC00 on counter 1
+	// File loader (0x5BE320) and setup (_Init 0x5BE340 + SetupByMode 0x5BE370): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's). The setup runs again for each trigger press of the Shot window (the battle's
+	// BattleActionSequence_Tick_Shot 0x50BEE0: the cast context's sequence mode +8): 0 the opening - the root, the shot
+	// and aux queues, StartTask, the flags and counts cleared, both particle arrays freed, the camera's shots reset, the
+	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		const uint8_t mode = ((const uint8_t *)ctx)[8];
+		if (mode == 0)
+		{
+			InitTaskQueuePool(QRoot(), (void *)own::R(0x22B2A48), 0x10, 4);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+			InitTaskQueuePool(QAux(), (void *)own::R(0x22B5590), 0x24, 100);
+			InitTaskQueuePool(QShots(), (void *)own::R(0x22B2A88), 0x24, 100);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_StartTask)) + 0xC) = 0;
+			Flags() = 0;
+			ShotIndex() = 0;
+			ShotCount() = 0;
+			ImpactCount() = 0;
+			ModuleTick() = 0;
+			for (int i = 0; i < 900; i += 6)
+			{
+				((int32_t *)own::R(PARTS_A))[i] = 0;
+				((int32_t *)own::R(PARTS_B))[i] = 0;
+			}
+			fn<void (__cdecl *)()>(0x5095F0)();   // BattleCamera_ResetShotsAndReturnToSavedView
+			QueueTimUpload(TexFile());
+		}
+		else if (mode == 1)
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_EndTask)) + 0xC) = 0;
+		else if (mode == 2)
+		{
+			uint8_t *t = (uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_ShotTask));
+			if (t)
+			{
+				const int32_t count = ShotCount();
+				*(uint16_t *)(t + 0xC) = 0;
+				ShotCount() = count + 1;
+				*(uint16_t *)(t + 0xE) = (uint16_t)(count % 100);
+				*(uint16_t *)(t + 0x18) = (uint16_t)(ShotIndex() + 3);
+				*(uint16_t *)(t + 0x1A) = ctx->actions[0].targets[0];
+				ShotIndex() = ShotIndex() < 2 ? ShotIndex() + 1 : 0;
+			}
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -580,7 +656,7 @@ namespace shot188
 			i->pos[3] = (int16_t)(mul32(*(const int16_t *)(Entity(n->f1A) + 0x26), 2000) >> 12);
 			i->f1C = (int16_t)(CrtRand() % 0xC00 + 0x800);
 			ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-			BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+			BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), (n->f0E & 1) ? 1 : 2, 0x80);
 		}
 		n->counter++;
 		return n->counter >= 10 ? TASK_END : 0;
@@ -617,7 +693,7 @@ namespace shot188
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)own::R(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -635,7 +711,7 @@ namespace shot188
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)own::R(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -649,7 +725,7 @@ namespace shot188
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), ANIM_DATA);
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -657,7 +733,7 @@ namespace shot188
 			f->f18 = 0x800;
 			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = own::R(GHOSTS); a < own::R(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -702,25 +778,54 @@ namespace shot188
 		r->counter++;
 		return (aux == 0 && shots == 0 && (Flags() & 2)) ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "Irvine's Normal Shot: his animation set and chains, the afterimages of his gun, per shot the muzzle flashes, smoke and ground smoke, the impact with its particles, the action result and the gun sound; the closing action" },
+		};
+		static const Field FIELDS[] = {
+			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(NormalShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag188_normal_shot()
 	{
+		fxp::register_params({ 188, "Normal Shot", &shot188::live, &shot188::GAME, sizeof(shot188::NormalShotParams),
+		                       shot188::table::PARTS, (int)(sizeof(shot188::table::PARTS) / sizeof(shot188::table::PARTS[0])),
+		                       shot188::table::FIELDS, (int)(sizeof(shot188::table::FIELDS) / sizeof(shot188::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(shot188::ORIG_FileLoader, (void *)shot188::FileLoader);
+		own::note(shot188::ORIG_Setup, (void *)shot188::Setup);
+		own::note(shot188::ORIG_RootTask, (void *)shot188::RootTask);
 		register_port(shot188::ORIG_RootTask, (void *)shot188::RootTask, "188 RootTask", 188);
+		own::note(shot188::ORIG_StartTask, (void *)shot188::StartTask);
 		register_port(shot188::ORIG_StartTask, (void *)shot188::StartTask, "188 StartTask", 188);
+		own::note(shot188::ORIG_ShotTask, (void *)shot188::ShotTask);
 		register_port(shot188::ORIG_ShotTask, (void *)shot188::ShotTask, "188 ShotTask", 188);
+		own::note(shot188::ORIG_EndTask, (void *)shot188::EndTask);
 		register_port(shot188::ORIG_EndTask, (void *)shot188::EndTask, "188 EndTask", 188);
+		own::note(shot188::ORIG_FadeOutTask, (void *)shot188::FadeOutTask);
 		register_port(shot188::ORIG_FadeOutTask, (void *)shot188::FadeOutTask, "188 FadeOutTask", 188);
+		own::note(shot188::ORIG_FadeInTask, (void *)shot188::FadeInTask);
 		register_port(shot188::ORIG_FadeInTask, (void *)shot188::FadeInTask, "188 FadeInTask", 188);
+		own::note(shot188::ORIG_AfterimageTask, (void *)shot188::AfterimageTask);
 		register_port(shot188::ORIG_AfterimageTask, (void *)shot188::AfterimageTask, "188 AfterimageTask", 188);
+		own::note(shot188::ORIG_FlashTask, (void *)shot188::FlashTask);
 		register_port(shot188::ORIG_FlashTask, (void *)shot188::FlashTask, "188 FlashTask", 188);
+		own::note(shot188::ORIG_Flash2Task, (void *)shot188::Flash2Task);
 		register_port(shot188::ORIG_Flash2Task, (void *)shot188::Flash2Task, "188 Flash2Task", 188);
+		own::note(shot188::ORIG_SmokeTask, (void *)shot188::SmokeTask);
 		register_port(shot188::ORIG_SmokeTask, (void *)shot188::SmokeTask, "188 SmokeTask", 188);
+		own::note(shot188::ORIG_GroundSmokeTask, (void *)shot188::GroundSmokeTask);
 		register_port(shot188::ORIG_GroundSmokeTask, (void *)shot188::GroundSmokeTask, "188 GroundSmokeTask", 188);
+		own::note(shot188::ORIG_ImpactTask, (void *)shot188::ImpactTask);
 		register_port(shot188::ORIG_ImpactTask, (void *)shot188::ImpactTask, "188 ImpactTask", 188);
 		// 30 fps layer: see mag188_normal_shot_held.inc
 		FX_HELD(register_mag188_held();)
 	}
+	FX_LAB_MODULE(register_mag188_normal_shot);
 }
 
 #ifdef FF8_FX_HELD
