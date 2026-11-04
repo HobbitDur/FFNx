@@ -6337,8 +6337,9 @@ int __cdecl ff8_bgate_stageq_gate(void *queue)
 // WaitTexRestore ~2.5 ticks early (the action ended 0.16-0.26 s early), effect files (MagicCast state 3), GF files
 // (GF_Cinematic state 2) and model loads came early too. While an action runs (BATTLE_CURRENTLY_IN_ACTION 0x1D27B00:
 // set by the action start, cleared by its completion; the cast, effect, GF and texture-restore loads all happen inside
-// one, as the victory pose load) the countdown counts only on the iterations whose BdLink is a real frame, so the cast /
-// effect / sound timing stays vanilla. Outside an action (the battle-start stage, monster and party loads) it counts
+// one) or once the battle is decided (battle_result 0x1CFF6E7 != 0: victory / escape / defeat, e.g. the victory pose
+// file r0win.dat that the win sequence waits on) the countdown counts only on the iterations whose BdLink is a real
+// frame, so the cast / effect / sound / victory timing stays vanilla. Outside an action (the battle-start stage, monster and party loads) it counts
 // every host frame: faster loading, nothing visible waits on it there. Not gated either if BdLink stopped running
 // (ff8_bgate_frame_no unchanged), so a load can never stall.
 static int (__cdecl *ff8_bgate_fileload_orig)() = nullptr;
@@ -6351,7 +6352,7 @@ int __cdecl ff8_bgate_fileload_countdown_hook()
 	stale = (ff8_bgate_frame_no == last_frame_no) ? stale + 1 : 0;
 	last_frame_no = ff8_bgate_frame_no;
 	if (ff8_bgate_n > 1 && !ff8_bgate_left_battle && stale < 2 && getmode_cached()->driver_mode == MODE_BATTLE
-		&& *(uint8_t *)0x1D27B00 != 0 && (ff8_bgate_phase + 1) % ff8_bgate_n != 0)
+		&& (*(uint8_t *)0x1D27B00 != 0 || *(uint8_t *)0x1CFF6E7 != 0) && (ff8_bgate_phase + 1) % ff8_bgate_n != 0)
 		return 0; // (BattleFile_PollOneCallback ignores the return; the slot stays registered)
 	unreplace_function(ff8_bgate_fileload_ri);
 	int r = ff8_bgate_fileload_orig();
@@ -6661,6 +6662,11 @@ DWORD __cdecl ff8_bgate_tstep_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff
 // ended ~0.13 s before vanilla). Real frames only = one state per vanilla tick.
 FF8_BGATE_TASK_HOOK(ttexrestore, 0x508660)
 DWORD __cdecl ff8_bgate_ttexrestore_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_ttexrestore_call(n); }
+// Victory fanfare task (BS_R0win_PlayVictoryFanfareTask 0x501A70, AnimSeq queue, queued by the r0win win sequence): 3
+// code states, one per call (music command 1, copy the AKAO fanfare + music command 2, raise the completion flag the
+// win sequence waits on before the poses and the victory camera). Real frames only = one state per vanilla tick.
+FF8_BGATE_TASK_HOOK(tfanfare, 0x501A70)
+DWORD __cdecl ff8_bgate_tfanfare_hook(uint8_t *n) { return ff8_bgate_phase ? 0 : ff8_bgate_tfanfare_call(n); }
 
 // Code timers that DRAW on every call: on a held frame they draw again without advancing (skipping them would
 // make the picture vanish every other frame). Their durations are hardcoded or come from code (none from
@@ -7438,6 +7444,7 @@ static void ff8_bgate_install_hooks()
 	ff8_bgate_t9f_ri = replace_function(0x5057D0, (void *)ff8_bgate_t9f_hook);
 	ff8_bgate_tstep_ri = replace_function(0x50F830, (void *)ff8_bgate_tstep_hook);
 	ff8_bgate_ttexrestore_ri = replace_function(0x508660, (void *)ff8_bgate_ttexrestore_hook);
+	ff8_bgate_tfanfare_ri = replace_function(0x501A70, (void *)ff8_bgate_tfanfare_hook);
 	// battle text box duration and the screen fades: draw every frame, advance on real frames only
 	ff8_bgate_ttext_ri = replace_function(0x506F70, (void *)ff8_bgate_ttext_hook);
 	ff8_bgate_tfadeblack_ri = replace_function(0x501D10, (void *)ff8_bgate_tfadeblack_hook);
