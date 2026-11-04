@@ -173,12 +173,16 @@ namespace mad_cow_special
 	{
 		using namespace gfc;
 		mad_cow_special::describe(mad_cow_special::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<258>::Register("Mad Cow Special", mad_cow_special::g_c, 0x9649D0, 0x185A04C, 0x185A058,
+		                           (void *)mad_cow_special::SequenceTask);
 		init_clone(mad_cow_special::g_c, nullptr, 0);
 		mad_cow_special::apply_slots(mad_cow_special::g_c);
 		register_port(0x965070, (void *)mad_cow_special::SequenceTask, "MAG258 Mad Cow Special SequenceTick", 258);
 		// 30 fps layer: see mag258_mad_cow_special_held.inc
 		FX_HELD(register_mag258_mad_cow_special_held();)
 	}
+	FX_LAB_MODULE(register_mag258_mad_cow_special);
 }
 
 #ifdef FF8_FX_HELD

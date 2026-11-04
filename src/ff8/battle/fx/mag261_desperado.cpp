@@ -451,12 +451,16 @@ namespace desperado261
 	{
 		using namespace gfc;
 		desperado261::describe(desperado261::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<261>::Register("Desperado", desperado261::g_c, 0x9598A0, 0x18596BC, 0x18596C8,
+		                           (void *)desperado261::SequenceTask);
 		init_clone(desperado261::g_c, nullptr, 0);
 		desperado261::apply_slots(desperado261::g_c);
 		register_port(0x959F40, (void *)desperado261::SequenceTask, "MAG261 Desperado SequenceTick", 261);
 		// 30 fps layer: see mag261_desperado_held.inc
 		FX_HELD(register_mag261_desperado_held();)
 	}
+	FX_LAB_MODULE(register_mag261_desperado);
 }
 
 #ifdef FF8_FX_HELD

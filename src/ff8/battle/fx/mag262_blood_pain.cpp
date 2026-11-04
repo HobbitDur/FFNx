@@ -398,12 +398,16 @@ namespace bloodpain262
 	{
 		using namespace gfc;
 		bloodpain262::describe(bloodpain262::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<262>::Register("Blood Pain", bloodpain262::g_c, 0x94F9C0, 0x1858BC0, 0x1858BCC,
+		                           (void *)bloodpain262::SequenceTask);
 		init_clone(bloodpain262::g_c, nullptr, 0);
 		bloodpain262::apply_slots(bloodpain262::g_c);
 		register_port(0x950060, (void *)bloodpain262::SequenceTask, "MAG262 Blood Pain SequenceTick", 262);
 		// 30 fps layer: see mag262_blood_pain_held.inc
 		FX_HELD(register_mag262_blood_pain_held();)
 	}
+	FX_LAB_MODULE(register_mag262_blood_pain);
 }
 
 #ifdef FF8_FX_HELD

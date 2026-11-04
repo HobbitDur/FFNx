@@ -97,12 +97,16 @@ namespace sand_shake
 	{
 		using namespace gfc;
 		sand_shake::describe(sand_shake::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<256>::Register("Sand Shake", sand_shake::g_c, 0x9793D0, 0x185B3F8, 0x185B404,
+		                           (void *)sand_shake::SequenceTask);
 		init_clone(sand_shake::g_c, nullptr, 0);
 		apply_shared_misc(sand_shake::g_c);   // draw 26 0x97A580, VM 0x096 0x980C10 (the live slots)
 		register_port(0x979A70, (void *)sand_shake::SequenceTask, "MAG256 Sand Shake SequenceTick", 256);
 		// 30 fps layer: see mag256_sand_shake_held.inc
 		FX_HELD(register_mag256_sand_shake_held();)
 	}
+	FX_LAB_MODULE(register_mag256_sand_shake);
 }
 
 #ifdef FF8_FX_HELD
