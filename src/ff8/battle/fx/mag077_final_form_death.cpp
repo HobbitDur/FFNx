@@ -43,6 +43,9 @@
 // flag +0 |= 4 on its first draw and rebuilds the entity skeleton (pose + world matrices) on every
 // draw; VM 0x0AD rebuilds the entity's bone matrices from its pose. No entity position
 // (+0x1C..+0x20) is written; the battle camera is written only by the engine (VM 0x039).
+// Fujin's described final form death (effect_077.json) calls the clone's own setup (the engine's state block is
+// shared), its root re-pointed at the ported tick; the file loader is ProgramFiles' (gfc_engine.h): its two
+// script files are its parameters.
 //
 // Draw 22 EntityDisintegrate: the slot entity's model (a model copy block, Brothers' 0xAF62B0)
 // falls apart polygon by polygon. Parameter block desc = bone+0xB8: +0 / +2 / +4 s16 offsets of
@@ -1408,12 +1411,16 @@ namespace final_form_death
 	{
 		using namespace gfc;
 		final_form_death::describe(final_form_death::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<77>::Register("Ultimecia's final form death", final_form_death::g_c, 0xB302C0, 0x1875E94, 0x1875EA0,
+		                           (void *)final_form_death::SequenceTask);
 		init_clone(final_form_death::g_c, nullptr, 0);
 		final_form_death::apply_slots(final_form_death::g_c);
 		register_port(0xB30990, (void *)final_form_death::SequenceTask, "MAG077 Final Form Death SequenceTick", 77);
 		// 30 fps layer: see mag077_final_form_death_held.inc
 		FX_HELD(register_mag077_final_form_death_held();)
 	}
+	FX_LAB_MODULE(register_mag077_final_form_death);
 }
 
 #ifdef FF8_FX_HELD
