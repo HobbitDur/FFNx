@@ -59,6 +59,8 @@
 #include "ff8/widescreen.h"
 #include "ff8/world.h"
 #include "ff8/battle/fx/fx_port.h"
+#include "exe_data.h"
+#include <unordered_map>
 
 #include <array>
 #include <chrono>
@@ -6337,6 +6339,73 @@ int __cdecl ff8_bgate_stageq_gate(void *queue)
 // WaitTexRestore ~2.5 ticks early (the action ended 0.16-0.26 s early), effect files (MagicCast state 3), GF files
 // (GF_Cinematic state 2) and model loads came early too. Counted only on the iterations whose BdLink is a real frame;
 // not gated if BdLink stopped running (ff8_bgate_frame_no unchanged), so a load can never stall.
+// The emulated load time comes from the file size, and a file converted to 30 fps is bigger than the vanilla one (its
+// animations have 2n frames): Squall's d0c000.dat 79284 -> 100508 bytes = 3 -> 4 countdown frames, Quistis' d3c007.dat
+// 82796 -> 106704 = 4 -> 5, so the party came out of the battle-start load chain 2 ticks after vanilla and everything
+// afterwards (ATB, commands, actions) ran 2 ticks late against the monsters. LoadBattleFile (0x482610) is wrapped: when
+// the converter's table <direct>/[<lang>/]exe/battle_vanilla_sizes.txt ("<file name> <vanilla size>" per line, written
+// with the converted files) has the file, the countdown just registered is recomputed from the vanilla size by the
+// engine's own rule (no delay override: size / 20480; override, not fighting: size / 10240; override in the fight: the
+// override). Files not in the table (or no table) keep the engine's value.
+static std::unordered_map<std::string, int> ff8_bgate_vanilla_sizes;
+static bool ff8_bgate_vanilla_sizes_loaded = false;
+
+static void ff8_bgate_vanilla_sizes_load()
+{
+	ff8_bgate_vanilla_sizes_loaded = true;
+	char filename[MAX_PATH];
+	if (!ff8_get_exe_path("battle_vanilla_sizes", filename, "txt"))
+	{
+		ffnx_info("battle 30fps: no battle_vanilla_sizes.txt, emulated load times follow the files as they are\n");
+		return;
+	}
+	FILE *f = fopen(filename, "r");
+	if (!f) return;
+	char line[256];
+	while (fgets(line, sizeof(line), f))
+	{
+		char name[128];
+		int size = 0;
+		if (line[0] == '#' || sscanf(line, "%127s %d", name, &size) != 2 || size <= 0) continue;
+		for (char *c = name; *c; c++) *c = (char)tolower((unsigned char)*c);
+		ff8_bgate_vanilla_sizes[name] = size;
+	}
+	fclose(f);
+	ffnx_info("battle 30fps: %u vanilla battle file sizes for the emulated load times (%s)\n", (unsigned)ff8_bgate_vanilla_sizes.size(), filename);
+}
+
+static int (__cdecl *ff8_bgate_loadfile_orig)(int, void *, int, void *) = nullptr;
+static uint32_t ff8_bgate_loadfile_ri = 0;
+
+int __cdecl ff8_bgate_loadfile_hook(int file_id, void *dest, int unused, void *callback)
+{
+	uint32_t *const handlers = (uint32_t *)0x1D29638; // BATTLE_FILE_POLL_HANDLERS[16]
+	bool busy[16];
+	for (int i = 0; i < 16; i++) busy[i] = handlers[i] != 0;
+	unreplace_function(ff8_bgate_loadfile_ri);
+	int r = ff8_bgate_loadfile_orig(file_id, dest, unused, callback);
+	rereplace_function(ff8_bgate_loadfile_ri);
+	if (!callback || ff8_bgate_n <= 1) return r;
+	if (!ff8_bgate_vanilla_sizes_loaded) ff8_bgate_vanilla_sizes_load();
+	if (ff8_bgate_vanilla_sizes.empty() || file_id < 0 || file_id > 1023) return r;
+	int slot = -1;
+	for (int i = 0; i < 16 && slot < 0; i++) if (!busy[i] && handlers[i]) slot = i;
+	const char *const name_ptr = ((const char *const *)0xB84CCC)[file_id]; // BattleFilesArray
+	if (slot < 0 || !name_ptr) return r;
+	char name[64];
+	strncpy(name, name_ptr, sizeof(name) - 1);
+	name[sizeof(name) - 1] = '\0';
+	for (char *c = name; *c; c++) *c = (char)tolower((unsigned char)*c);
+	auto it = ff8_bgate_vanilla_sizes.find(name);
+	if (it == ff8_bgate_vanilla_sizes.end()) return r;
+	const int16_t override_frames = *(int16_t *)0x1D2A1FA; // BATTLE_FILE_CALLBACK_DELAY_OVERRIDE
+	const bool fighting = *(uint32_t *)0x1D27B04 == 4;     // BATTLE_LOOP_FLOW_STATE == FIGHTING
+	int16_t &frames = *(int16_t *)(0x1D29A0A + 12 * slot); // BATTLE_FILE_COMPLETION_STATES[slot].frames_remaining
+	if (override_frames == 0) frames = (int16_t)(it->second / 20480);
+	else if (!fighting) frames = (int16_t)(it->second / 10240);
+	return r;
+}
+
 static int (__cdecl *ff8_bgate_fileload_orig)() = nullptr;
 static uint32_t ff8_bgate_fileload_ri = 0;
 
@@ -7423,6 +7492,9 @@ static void ff8_bgate_install_hooks()
 	// emulated battle file load time counted on real frames (see ff8_bgate_fileload_countdown_hook)
 	ff8_bgate_fileload_orig = (int(__cdecl *)())0x482870;
 	ff8_bgate_fileload_ri = replace_function(0x482870, (void *)ff8_bgate_fileload_countdown_hook);
+	// emulated load time of a converted file = the vanilla file's (see ff8_bgate_loadfile_hook)
+	ff8_bgate_loadfile_orig = (int(__cdecl *)(int, void *, int, void *))0x482610;
+	ff8_bgate_loadfile_ri = replace_function(0x482610, (void *)ff8_bgate_loadfile_hook);
 	// hit-effect queue: same record/replay pacing
 	ff8_bgate_eq_tick_orig = (int(__cdecl *)(void *))get_relative_call(0x500923, 0);
 	replace_call(0x500923, (void *)ff8_bgate_eq_tick_gate);
