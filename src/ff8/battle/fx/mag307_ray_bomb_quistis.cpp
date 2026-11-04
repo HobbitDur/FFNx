@@ -74,6 +74,9 @@
 // 0x224258C).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -83,14 +86,15 @@ namespace raybomb307
 	using namespace magc;
 
 	// --- module globals ---
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2240F08; }
-	inline TaskQueue *QEffect() { return (TaskQueue *)0x22416B8; }
-	inline int16_t *Centre() { return (int16_t *)0x2242568; }             // targets' centre (x, y, z, pad)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2242570); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2242574); }
-	inline int16_t *Muzzle() { return (int16_t *)0x2242580; }             // x, y, z, pad
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2242588); }       // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x224258C); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2240F08); }
+	inline TaskQueue *QEffect() { return (TaskQueue *)own::R(0x22416B8); }
+	inline int16_t *Centre() { return (int16_t *)own::R(0x2242568); }             // targets' centre (x, y, z, pad)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2242570)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x2242574)); }
+	inline int16_t *Muzzle() { return (int16_t *)own::R(0x2242580); }             // x, y, z, pad
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2242588)); }       // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x224258C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2242578)); }          // the effect's file (its TIM)
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_Director = 0x5A1220;
@@ -115,6 +119,19 @@ namespace raybomb307
 	static const uint32_t TABLE_DebrisX = 0xCE40EC, TABLE_DebrisZ = 0xCE4114; // 5 spots (dword stride)
 	static const void *const SOUND_Muzzle = (const void *)0xCE40CC;
 	static const void *const SOUND_Blast = (const void *)0xCE40D0;
+	static const uint32_t ORIG_FileLoader = 0x5A1150, ORIG_Setup = 0x5A1170;
+	static const uint32_t TEXTURE_NAME = 0xCE4158, CAMERA_ANIM = 0xCDF6D8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct RayBomb307Params
+	{
+		struct { uint32_t muzzle, blast; } sounds;   // at the muzzle (director tick 0xA); with the shockwave (0x51)
+	};
+	static const RayBomb307Params GAME = { { 0xCE40CC, 0xCE40D0 } };
+	static RayBomb307Params live = GAME;
+	static const RayBomb307Params &P() { return live; }
 	static const uint32_t BIND_Block = 0x2240F18;                      // 0x20-byte block BS_BindEntityModelFromComData fills
 	static const uint32_t COM_Anim = 0xCDF86C;                         // the module's animation set (com data)
 
@@ -262,9 +279,9 @@ namespace raybomb307
 	static_assert(sizeof(ChargeNode) == 0x24 && sizeof(BounceNode) == 0x24, "Ray-Bomb (Quistis) nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(SavedEntity) == 0x14, "Ray-Bomb particles / saved entities");
 
-	inline Particle *Particles() { return (Particle *)0x2240F38; }
+	inline Particle *Particles() { return (Particle *)own::R(0x2240F38); }
 	static const int PARTICLES = 80;
-	inline SavedEntity *Saved(int slot) { return (SavedEntity *)(0x22424D8 + 0x14 * slot); }
+	inline SavedEntity *Saved(int slot) { return (SavedEntity *)(own::R(0x22424D8) + 0x14 * slot); }
 }
 }
 
@@ -332,6 +349,30 @@ namespace raybomb307
 	// ------------------------------------------------------------------
 	// Root task (0x5A2B00): node +0x0C counter
 	// ------------------------------------------------------------------
+	// File loader (0x5A1150) and setup (0x5A1170): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast and its caster's slot, the root and the director, the camera, the TIM, the
+	// particles freed
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2240EE8), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffect(), (void *)own::R(0x22416C8), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		QueueTimUpload(TexFile());
+		for (int i = 0; i < PARTICLES; i++) *(int32_t *)&Particles()[i] = 0;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -641,7 +682,7 @@ namespace raybomb307
 			{
 				do
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QEffect(), ORIG_Spark);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Spark));
 					s->frame = 0;
 					int32_t r = CrtRand() & 7;
 					memcpy(s->pos, end, 4);
@@ -941,7 +982,7 @@ namespace raybomb307
 		const Mat4x3 *crot = (const Mat4x3 *)(caster + 0x40);
 		if (d->counter == 1)
 		{
-			BindEntityModelFromComData(caster, BIND_Block, COM_Anim);
+			BindEntityModelFromComData(caster, own::R(BIND_Block), COM_Anim);
 			QueueChainTransformation(Entity(CasterSlot()), 3);
 		}
 		if (d->counter == 0xF) caster[0] |= 8;
@@ -955,7 +996,7 @@ namespace raybomb307
 		{
 			for (int k = 0; k < 2; k++)
 			{
-				ChargeNode *c = (ChargeNode *)AddTaskToQueue(QEffect(), ORIG_Charge);
+				ChargeNode *c = (ChargeNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Charge));
 				c->counter = 0;
 				c->delay = (int16_t)(CrtRand() % 6 + k);
 				c->spread = d->spread;
@@ -1000,7 +1041,7 @@ namespace raybomb307
 		}
 		if (d->counter == 0x1B)
 		{
-			FlashNode *f = (FlashNode *)AddTaskToQueue(QEffect(), ORIG_Flash);
+			FlashNode *f = (FlashNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Flash));
 			f->counter = 0;
 			f->spread = d->spread;
 			f->scale = 0x3333;
@@ -1008,7 +1049,7 @@ namespace raybomb307
 		}
 		if (d->counter == 0x25)
 		{
-			BeamNode *b = (BeamNode *)AddTaskToQueue(QEffect(), ORIG_Beam);
+			BeamNode *b = (BeamNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Beam));
 			int16_t v[4];
 			v[0] = (int16_t)(Centre()[0] - Muzzle()[0]);
 			b->counter = 0;
@@ -1032,7 +1073,7 @@ namespace raybomb307
 				int32_t cnt = (CrtRand() & 1) + 1;
 				for (int j = cnt; j > 0; j--)
 				{
-					PuffNode *p = (PuffNode *)AddTaskToQueue(QEffect(), ORIG_Puff);
+					PuffNode *p = (PuffNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Puff));
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
 					memcpy(p->pos, Centre(), 4);
@@ -1052,7 +1093,7 @@ namespace raybomb307
 		}
 		if (d->counter == 0x54)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QEffect(), ORIG_Ring);
+			RingNode *g = (RingNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Ring));
 			memcpy(g->pos, Centre(), 4);
 			memcpy(&g->pos[2], &Centre()[2], 4);
 			g->counter = 0;
@@ -1068,7 +1109,7 @@ namespace raybomb307
 				int32_t scale = cnt * 400;
 				for (int j = 0; j < cnt; j++)
 				{
-					DebrisNode *p = (DebrisNode *)AddTaskToQueue(QEffect(), ORIG_Debris);
+					DebrisNode *p = (DebrisNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Debris));
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
 					memcpy(p->pos, Centre(), 4);
@@ -1095,7 +1136,7 @@ namespace raybomb307
 		}
 		if (d->counter == 0x3E)
 		{
-			RestoreNode *t = (RestoreNode *)AddTaskToQueue(QRoot(), ORIG_Restore);
+			RestoreNode *t = (RestoreNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Restore));
 			t->counter = 0;
 		}
 		if (d->counter == 0x55)
@@ -1104,7 +1145,7 @@ namespace raybomb307
 			for (int k = 0; k < Ctx()->actions->target_count; k++)
 			{
 				const int slot = Ctx()->actions->targets[k * TARGET_STRIDE];
-				BounceNode *b = (BounceNode *)AddTaskToQueue(QEffect(), ORIG_Bounce);
+				BounceNode *b = (BounceNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Bounce));
 				b->counter = 0;
 				b->slot = (int16_t)slot;
 				int32_t r = CrtRand() % 3;
@@ -1116,31 +1157,63 @@ namespace raybomb307
 		}
 		if (d->counter <= 8) SetScreenFlash((uint32_t)shl32(d->counter, 8), 0);
 		else if (d->counter >= 0x7F) SetScreenFlash((uint32_t)shl32(0x87 - d->counter, 8), 0);
-		if (d->counter == 0xA) BdPlaySE3D(SOUND_Muzzle, 0, Muzzle());
-		if (d->counter == 0x51) BdPlaySE3D(SOUND_Blast, 0x100, Centre());
+		if (d->counter == 0xA) BdPlaySE3D((const void *)fxp::sound(P().sounds.muzzle, (uint32_t)SOUND_Muzzle), 0, Muzzle());
+		if (d->counter == 0x51) BdPlaySE3D((const void *)fxp::sound(P().sounds.blast, (uint32_t)SOUND_Blast), 0x100, Centre());
 		d->counter++;
 		if (d->counter <= 0x87) return 0;
 		SetScreenFlash(0, 0);
 		return TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Her cast animation, the muzzle at her hand charging, the dust and the flash, the beam to the targets with its sparks, the shockwave rings, puffs and debris, the party thrown up, the texture restore, the sounds; the action results" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the muzzle (director tick 0xA); with the shockwave (0x51)" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.muzzle", "Muzzle", "At the muzzle (director tick 0xA)", (uint32_t)offsetof(RayBomb307Params, sounds.muzzle), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.blast", "Blast", "With the shockwave (director tick 0x51)", (uint32_t)offsetof(RayBomb307Params, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag307_ray_bomb_quistis()
 	{
+		fxp::register_params({ 307, "Ray-Bomb (Quistis)", &raybomb307::live, &raybomb307::GAME, sizeof(raybomb307::RayBomb307Params),
+		                       raybomb307::table::PARTS, (int)(sizeof(raybomb307::table::PARTS) / sizeof(raybomb307::table::PARTS[0])),
+		                       raybomb307::table::FIELDS, (int)(sizeof(raybomb307::table::FIELDS) / sizeof(raybomb307::table::FIELDS[0])),
+		                       raybomb307::table::GROUPS, (int)(sizeof(raybomb307::table::GROUPS) / sizeof(raybomb307::table::GROUPS[0])) });
+		own::note(raybomb307::ORIG_FileLoader, (void *)raybomb307::FileLoader);
+		own::note(raybomb307::ORIG_Setup, (void *)raybomb307::Setup);
+		own::note(raybomb307::ORIG_RootTask, (void *)raybomb307::RootTask);
 		register_port(raybomb307::ORIG_RootTask, (void *)raybomb307::RootTask, "R307 RootTask", 307);
+		own::note(raybomb307::ORIG_Director, (void *)raybomb307::DirectorTask);
 		register_port(raybomb307::ORIG_Director, (void *)raybomb307::DirectorTask, "R307 Director", 307);
+		own::note(raybomb307::ORIG_Debris, (void *)raybomb307::DebrisTask);
 		register_port(raybomb307::ORIG_Debris, (void *)raybomb307::DebrisTask, "R307 Debris", 307);
+		own::note(raybomb307::ORIG_Ring, (void *)raybomb307::RingTask);
 		register_port(raybomb307::ORIG_Ring, (void *)raybomb307::RingTask, "R307 Ring", 307);
+		own::note(raybomb307::ORIG_Puff, (void *)raybomb307::PuffTask);
 		register_port(raybomb307::ORIG_Puff, (void *)raybomb307::PuffTask, "R307 Puff", 307);
+		own::note(raybomb307::ORIG_Beam, (void *)raybomb307::BeamTask);
 		register_port(raybomb307::ORIG_Beam, (void *)raybomb307::BeamTask, "R307 Beam", 307);
+		own::note(raybomb307::ORIG_Spark, (void *)raybomb307::SparkTask);
 		register_port(raybomb307::ORIG_Spark, (void *)raybomb307::SparkTask, "R307 Spark", 307);
+		own::note(raybomb307::ORIG_Flash, (void *)raybomb307::FlashTask);
 		register_port(raybomb307::ORIG_Flash, (void *)raybomb307::FlashTask, "R307 Flash", 307);
+		own::note(raybomb307::ORIG_Charge, (void *)raybomb307::ChargeTask);
 		register_port(raybomb307::ORIG_Charge, (void *)raybomb307::ChargeTask, "R307 Charge", 307);
+		own::note(raybomb307::ORIG_Bounce, (void *)raybomb307::BounceTask);
 		register_port(raybomb307::ORIG_Bounce, (void *)raybomb307::BounceTask, "R307 Bounce", 307);
+		own::note(raybomb307::ORIG_Restore, (void *)raybomb307::RestoreTask);
 		register_port(raybomb307::ORIG_Restore, (void *)raybomb307::RestoreTask, "R307 Restore", 307);
 		// 30 fps layer: see mag307_ray_bomb_quistis_held.inc
 		FX_HELD(register_mag307_held();)
 	}
+	FX_LAB_MODULE(register_mag307_ray_bomb_quistis);
 }
 
 #ifdef FF8_FX_HELD
