@@ -85,6 +85,9 @@
 // 0x23CA114, packet cursor 0x23CA118).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -94,15 +97,16 @@ namespace blast164
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23C6950); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23C9D88); }
-	inline CastContext *&Context() { return var<CastContext *>(0x23C9D60); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23CA114); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23CA118); }
-	inline uint32_t &Colour() { return var<uint32_t>(0x23CA110); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x23C6950)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x23C9D88)); }
+	inline CastContext *&Context() { return var<CastContext *>(own::R(0x23C9D60)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23CA114)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23CA118)); }
+	inline uint32_t &Colour() { return var<uint32_t>(own::R(0x23CA110)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23C9D8C)); }          // the effect's file (its TIM)
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23C6968; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23C8F40; }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23C6968); }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x23C8F40); }
 	static const uint32_t POOL_A = 0x23C6978, POOL_A_END = 0x23C72D8;  // 100 x 0x18
 	static const uint32_t POOL_B = 0x23C72D8, POOL_B_END = 0x23C7C38;  // 100 x 0x18
 	static const uint32_t POOL_C = 0x23C7C38, POOL_C_END = 0x23C8EF8;  // 200 x 0x18
@@ -124,6 +128,20 @@ namespace blast164
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xD88AA0, CAMERA_SCRIPT = 0xD99C70;
 	static const void *const SOUND_A = (const void *)0xD99C10, *const SOUND_B = (const void *)0xD99C14;
+	static const uint32_t ORIG_FileLoader = 0x5F0240, ORIG_Setup = 0x5F0260;
+	static const uint32_t TEXTURE_NAME = 0xD99DB8, FRAME_REF_DIR = 0xD99C60;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BlastingZoneParams
+	{
+		struct { uint32_t raise, blast; } sounds; // the blade raised, the blast
+		struct { int16_t damage; } director;     // the action results at this tick
+	};
+	static const BlastingZoneParams GAME = { { 0xD99C10, 0xD99C14 }, { 0x133 } };
+	static BlastingZoneParams live = GAME;
+	static const BlastingZoneParams &P() { return live; }
 	static const uint32_t GLOW_REF = 0xD99C50;    // reference direction of the blade glow
 	static const uint32_t DOT_COLOURS = 0xD99C1C; // 12 TILE code + colour words (MorphSpark, by life)
 	static const uint32_t SEQ_ORBIT = 0xD99748, SEQ_BURST = 0xD999AC, SEQ_SMOKE = 0xD9961C;
@@ -249,9 +267,9 @@ namespace blast164
 
 	template<typename T> static inline T &At(uint32_t base, int32_t off) { return *(T *)(base + off); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Mat4x3 *CamFrame() { return (Mat4x3 *)CAM_FRAME; }
-	inline int16_t PointX() { return var<int16_t>(POINT); }
-	inline int16_t PointZ() { return var<int16_t>(POINT + 4); }
+	inline Mat4x3 *CamFrame() { return (Mat4x3 *)own::R(CAM_FRAME); }
+	inline int16_t PointX() { return var<int16_t>(own::R(POINT)); }
+	inline int16_t PointZ() { return var<int16_t>(own::R(POINT) + 4); }
 	inline PoolE *Entry(uint32_t pool, int32_t i) { return (PoolE *)(pool + 0x18 * i); }
 
 	// first free entry (flags 0) of a pool, or -1 (none / index >= max)
@@ -934,10 +952,10 @@ namespace blast164
 	static void SetTipPoint()
 	{
 		int32_t dir[4]; // (4th word never written)
-		WeaponBone(Caster(), 1, dir, (int16_t *)POINT);
-		var<int16_t>(POINT) = (int16_t)(var<int16_t>(POINT) + (int16_t)(mul32(dir[0], 380) >> 12));
-		var<int16_t>(POINT + 2) = (int16_t)(var<int16_t>(POINT + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
-		var<int16_t>(POINT + 4) = (int16_t)(var<int16_t>(POINT + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
+		WeaponBone(Caster(), 1, dir, (int16_t *)own::R(POINT));
+		var<int16_t>(own::R(POINT)) = (int16_t)(var<int16_t>(own::R(POINT)) + (int16_t)(mul32(dir[0], 380) >> 12));
+		var<int16_t>(own::R(POINT) + 2) = (int16_t)(var<int16_t>(own::R(POINT) + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
+		var<int16_t>(own::R(POINT) + 4) = (int16_t)(var<int16_t>(own::R(POINT) + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
 	}
 
 	// 0x5F0950 / 0x5F0970: the four stage groups' flag bit 1 set (hidden) / cleared (shown)
@@ -953,7 +971,7 @@ namespace blast164
 	// ------------------------------------------------------------------
 	// Spawners (called by the director)
 	// ------------------------------------------------------------------
-	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
+	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), own::Fn(fn)); }   // (a copy: the port's thunk)
 
 	// 0x5F0930: a task with counter / word +0xE cleared
 	static void AddCleared(uint32_t fn)
@@ -967,9 +985,9 @@ namespace blast164
 	static void AddFlareA()
 	{
 		Node24 *t = AddMain(ORIG_FlareA);
-		*(uint32_t *)&t->w10 = var<uint32_t>(POINT);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(POINT));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(POINT + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(POINT) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		t->w1A = 0x1E;
 		t->w1E = 0x3A0;
@@ -980,9 +998,9 @@ namespace blast164
 	static void AddFlareB()
 	{
 		Node24 *t = AddMain(ORIG_FlareB);
-		*(uint32_t *)&t->w10 = var<uint32_t>(POINT);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(POINT));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(POINT + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(POINT) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		t->w1A = 0x14;
 		t->w1C = 0x1800;
@@ -1012,8 +1030,8 @@ namespace blast164
 	static void AddBall()
 	{
 		Node24 *t = AddMain(ORIG_Ball);
-		*(uint32_t *)&t->w10 = var<uint32_t>(POINT);
-		*(uint32_t *)&t->w14 = var<uint32_t>(POINT + 4);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(POINT));
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(POINT) + 4);
 		t->c = 0;
 		t->w16 = (int16_t)(mul32(EntitySize(CasterSlot()), 2000) >> 12);
 		t->w1E = 0x80;
@@ -1074,9 +1092,9 @@ namespace blast164
 		{
 			t = AddMain(ORIG_Rock);
 			t->c = 0;
-			t->w10 = (int16_t)(CrtRand() % 0xD48 + var<int32_t>(POINT) - 0x6A4);
+			t->w10 = (int16_t)(CrtRand() % 0xD48 + var<int32_t>(own::R(POINT)) - 0x6A4);
 			t->w12 = (int16_t)(CrtRand() % 0x2BC - i * 700 - 0x2C56);
-			t->w14 = (int16_t)(CrtRand() % 0xD48 + var<int32_t>(POINT + 4) - 0x6A4);
+			t->w14 = (int16_t)(CrtRand() % 0xD48 + var<int32_t>(own::R(POINT) + 4) - 0x6A4);
 			t->w18 = (int16_t)((*(const uint8_t *)&t->w10 & 1) << 11);
 			t->w1C = (int16_t)(CrtRand() % 0x700 + 0x200);
 			const int16_t step = (int16_t)(CrtRand() % 0x19 + 5);
@@ -1208,10 +1226,54 @@ namespace blast164
 	// ------------------------------------------------------------------
 	// Director (0x5F0430)
 	// ------------------------------------------------------------------
+	// File loader (0x5F0240) and setup (0x5F0260, not a task): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer, the cast, its first target and its caster, the root and the director, the
+	// three particle pools freed, the TIM, the caster's rotation words kept, his effect bone 0xF1, the targets' centre,
+	// the effect frame (the rotation from 0xD99C60 to the direction bone -> centre, at the bone on the ground) and his
+	// yaw: Squall faces the targets
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Context() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23C6958), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(0x23C8F50), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x18) *(int32_t *)a = 0;
+		QueueTimUpload(TexFile());
+		uint8_t *e = Caster();
+		var<uint32_t>(own::R(0x23C8F18)) = *(const uint32_t *)(e + 0x10);
+		var<uint32_t>(own::R(0x23C8F1C)) = *(const uint32_t *)(e + 0x0C);
+		int16_t *bone = (int16_t *)own::R(0x23C9DA0), *centre = (int16_t *)own::R(0x23C9D90);
+		fn<int32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, int16_t *)>(0x502170)(e, 0xF1, 0, bone);        // GetEffectSpawnPosition
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)((const uint8_t *)ctx + 2), centre); // CalculateCenterPosition
+		int32_t dir[4] = { centre[0] - bone[0], 0, centre[2] - bone[2], 0 };
+		NormalizeVector(dir, dir);
+		int32_t axis[4];
+		int32_t angle = RotationBetweenVectors((const int32_t *)FRAME_REF_DIR, dir, axis);
+		BuildAxisAngleRotationMatrix(angle, (Mat4x3 *)own::R(FRAME), axis);
+		var<int32_t>(own::R(0x23C8F34)) = bone[0];
+		var<int32_t>(own::R(0x23C8F38)) = 0;
+		var<int32_t>(own::R(0x23C8F3C)) = bone[2];
+		if (axis[1] < 0) angle = -angle;
+		*(int16_t *)(e + 0x0E) = (int16_t)angle;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)FRAME, CamFrame());
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)own::R(FRAME), CamFrame());
 		const int32_t ir0 = (ComputeCos(shl32(n->c, 9)) + 0x1000) >> 1;
 		Colour() = 0x30587F;
 		GteSetFarColor(0x30, 0x30, 0x80);
@@ -1228,9 +1290,9 @@ namespace blast164
 		}
 		if (n->c == 0)
 		{
-			CameraScriptStart(CAMERA_SCRIPT, FRAME, Caster(), QMain(), 0);
+			CameraScriptStart(CAMERA_SCRIPT, own::R(FRAME), Caster(), QMain(), 0);
 			ArmCameraReturn();
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), ANIM_DATA);
 		}
 		int32_t c = n->c;
 		if (c < 0x23)
@@ -1249,7 +1311,7 @@ namespace blast164
 			{
 				QueueChainTransformation(Caster(), 2);
 				SetTipPoint();
-				BdPlaySE(SOUND_A, 0, 0x80);
+				BdPlaySE((const void *)fxp::sound(P().sounds.raise, (uint32_t)SOUND_A), 0, 0x80);
 			}
 			else if (c == 1) AddFlareA();
 			else if (c == 0xC) AddFlareB();
@@ -1292,7 +1354,7 @@ namespace blast164
 		{
 			if (c == 0)
 			{
-				BdPlaySE(SOUND_B, 0, 0x80);
+				BdPlaySE((const void *)fxp::sound(P().sounds.blast, (uint32_t)SOUND_B), 0, 0x80);
 				AddCleared(ORIG_Starfield);
 				AddScreenFlash();
 				*Entity(TargetSlot()) |= 4;
@@ -1334,7 +1396,7 @@ namespace blast164
 			}
 			else if (c == 1) AddCleared(ORIG_Restore);
 		}
-		if (n->c == 0x133) ApplyActionResultToTargets(Context()->actions->targets, Context()->actions->target_count);
+		if (n->c == P().director.damage) ApplyActionResultToTargets(Context()->actions->targets, Context()->actions->target_count);
 		if (n->c >= 0x132) SetScreenFlash((uint32_t)shl32(0x13A - n->c, 8), 0);
 		n->c++;
 		if (n->c <= 0x13A) return 0;
@@ -1905,9 +1967,9 @@ namespace blast164
 		}
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Morph, n);)
-		MorphMatrix(n, n->w20, (Mat4x3 *)MORPH_MAT);
-		MorphVertices(n->c, (uint8_t *)MORPH_VTX);
-		PacketCursor() = MorphRender(n, (const uint8_t *)MORPH_VTX, Colour(), PacketCursor());
+		MorphMatrix(n, n->w20, (Mat4x3 *)own::R(MORPH_MAT));
+		MorphVertices(n->c, (uint8_t *)own::R(MORPH_VTX));
+		PacketCursor() = MorphRender(n, (const uint8_t *)own::R(MORPH_VTX), Colour(), PacketCursor());
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w22;
 		n->w20 = (int16_t)(n->w20 + r);
@@ -1964,7 +2026,7 @@ namespace blast164
 		const int32_t angle = RotationBetweenVectors((const int32_t *)GLOW_REF, dir, axis);
 		Mat4x3 m = {};
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
-		MatrixMultiply3x3(&m, (const Mat4x3 *)FRAME);
+		MatrixMultiply3x3(&m, (const Mat4x3 *)own::R(FRAME));
 		int32_t sv[3];
 		m.t[2] = pos[2];
 		m.t[0] = pos[0];
@@ -2151,9 +2213,9 @@ namespace blast164
 		{
 			for (int32_t j = 0; j < 1; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x64);
 				if (i < 0) break;
-				PoolE *p = Entry(POOL_A, i);
+				PoolE *p = Entry(own::R(POOL_A), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x280 + 0x300);
@@ -2171,8 +2233,8 @@ namespace blast164
 		*(int16_t *)(h + 0x24) = 0;
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_OrbitSpark, n, h);)
-		PoolLight(&w->m1, w->pos, PointX(), var<int16_t>(POINT + 2), PointZ(), &Camera());
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		PoolLight(&w->m1, w->pos, PointX(), var<int16_t>(own::R(POINT) + 2), PointZ(), &Camera());
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->flags & 1)) continue;
@@ -2191,7 +2253,7 @@ namespace blast164
 		if (DrawOnly()) return 0;
 		n->c++;
 		if (n->c < 0x36) return 0;
-		ClearType(POOL_A, POOL_A_END, 1);
+		ClearType(own::R(POOL_A), own::R(POOL_A_END), 1);
 		return TASK_END;
 	}
 
@@ -2240,9 +2302,9 @@ namespace blast164
 		{
 			for (int32_t j = 0; j < 1; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x64);
 				if (i < 0) break;
-				PoolE *p = Entry(POOL_A, i);
+				PoolE *p = Entry(own::R(POOL_A), i);
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1800 + 0x400);
@@ -2258,12 +2320,12 @@ namespace blast164
 		SwirlHeader(h);
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Swirl, n, h);)
-		TransformCameraByShadowRotation((const void *)POINT, 0x1000, 0);
+		TransformCameraByShadowRotation((const void *)own::R(POINT), 0x1000, 0);
 		w->v[2] = 0x1000;
 		w->v[1] = 0x1000;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->flags & 2)) continue;
@@ -2282,7 +2344,7 @@ namespace blast164
 		if (DrawOnly()) return 0;
 		n->c++;
 		if (n->c < 0x36) return 0;
-		ClearType(POOL_A, POOL_A_END, 2);
+		ClearType(own::R(POOL_A), own::R(POOL_A_END), 2);
 		return TASK_END;
 	}
 
@@ -2329,14 +2391,14 @@ namespace blast164
 		{
 			for (int32_t j = 0; j < 5; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x64);
 				if (i < 0) break;
-				PoolE *p = Entry(POOL_A, i);
+				PoolE *p = Entry(own::R(POOL_A), i);
 				p->flags = 1;
 				p->life = 0;
 				const int32_t r = CrtRand() % 0x69;
-				*(uint32_t *)&p->a[0] = var<uint32_t>(MORPH_VTX + 8 * r);
-				*(uint32_t *)&p->a[2] = var<uint32_t>(MORPH_VTX + 8 * r + 4);
+				*(uint32_t *)&p->a[0] = var<uint32_t>(own::R(MORPH_VTX) + 8 * r);
+				*(uint32_t *)&p->a[2] = var<uint32_t>(own::R(MORPH_VTX) + 8 * r + 4);
 				int32_t *v = (int32_t *)&w->m2;
 				v[0] = CrtRand() % 0x1000 - 0x800;
 				v[1] = CrtRand() % 0x1000 - 0x800;
@@ -2350,11 +2412,11 @@ namespace blast164
 		}
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_MorphSpark, n, nullptr);)
-		MorphSparkSetup((const Mat4x3 *)MORPH_MAT);
+		MorphSparkSetup((const Mat4x3 *)own::R(MORPH_MAT));
 		uint32_t pk = FrameArena();
 		w->v[0] = (int32_t)RenderOT();
 		w->v[1] = 4;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->flags & 1)) continue;
@@ -2365,7 +2427,7 @@ namespace blast164
 		if (DrawOnly()) return 0;
 		n->c++;
 		if (n->c < 0x24) return 0;
-		ClearType(POOL_A, POOL_A_END, 1);
+		ClearType(own::R(POOL_A), own::R(POOL_A_END), 1);
 		return TASK_END;
 	}
 
@@ -2387,9 +2449,9 @@ namespace blast164
 		{
 			for (int32_t j = 0; j < 8; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x64);
 				if (i < 0) break;
-				PoolE *p = Entry(POOL_A, i);
+				PoolE *p = Entry(own::R(POOL_A), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x280 + 0x200);
@@ -2417,7 +2479,7 @@ namespace blast164
 		FX_HELD(held_note_pool(ORIG_BurstSpark, n, h);)
 		int32_t count = 0;
 		PoolLight(&w->m1, w->ang, PointX(), 0, PointZ(), &Camera());
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->flags & 1)) continue;
@@ -2495,9 +2557,9 @@ namespace blast164
 			const int32_t base = c * 96;
 			for (int32_t j = 0; j < count; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x64);
 				if (i < 0) break;
-				PoolE *p = Entry(POOL_B, i);
+				PoolE *p = Entry(own::R(POOL_B), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
@@ -2518,7 +2580,7 @@ namespace blast164
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Shard, n, h);)
 		ShardFrame(w, &Camera());
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->flags & 1)) continue;
@@ -2539,7 +2601,7 @@ namespace blast164
 		if (DrawOnly()) return 0;
 		n->c++;
 		if (n->c < 0x26) return 0;
-		ClearType(POOL_B, POOL_B_END, 1);
+		ClearType(own::R(POOL_B), own::R(POOL_B_END), 1);
 		return TASK_END;
 	}
 
@@ -2570,9 +2632,9 @@ namespace blast164
 		{
 			for (int32_t j = 0; j < 5; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x64);
 				if (i < 0) break;
-				PoolE *p = Entry(POOL_B, i);
+				PoolE *p = Entry(own::R(POOL_B), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xC00 + 0x300);
@@ -2587,7 +2649,7 @@ namespace blast164
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Smoke, n, h);)
 		PoolLight(&w->m1, w->ang, PointX(), 0, PointZ(), CamFrame());
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->flags & 1)) continue;
@@ -2601,7 +2663,7 @@ namespace blast164
 		if (DrawOnly()) return 0;
 		n->c++;
 		if (n->c < 0x19) return 0;
-		ClearType(POOL_B, POOL_B_END, 1);
+		ClearType(own::R(POOL_B), own::R(POOL_B_END), 1);
 		return TASK_END;
 	}
 
@@ -2629,9 +2691,9 @@ namespace blast164
 		{
 			for (int32_t j = 0; j < 0xA0; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0xC8);
+				const int32_t i = FreeSlot(own::R(POOL_C), own::R(POOL_C_END), 0xC8);
 				if (i < 0) break;
-				PoolE *p = Entry(POOL_C, i);
+				PoolE *p = Entry(own::R(POOL_C), i);
 				p->flags = 1;
 				p->life = 0;
 				p->a[0] = (int16_t)(CrtRand() % 0x140);
@@ -2643,12 +2705,12 @@ namespace blast164
 		}
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Starfield, n, nullptr);)
-		FrameArena() = StarfieldDraw(POOL_C, POOL_C_END, FrameArena());
+		FrameArena() = StarfieldDraw(own::R(POOL_C), own::R(POOL_C_END), FrameArena());
 		FieldFree(0x48);
 		if (DrawOnly()) return 0;
 		n->c++;
 		if (n->c < 0x3C) return 0;
-		ClearType(POOL_C, POOL_C_END, 1);
+		ClearType(own::R(POOL_C), own::R(POOL_C_END), 1);
 		return TASK_END;
 	}
 
@@ -2686,45 +2748,97 @@ namespace blast164
 		r->c++;
 		return alive ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Squall's Blasting Zone: his animation set and sequence (facing the targets), the flares, orbit sparks, swirl and rings, the pulses, shards and ball, the frame model, the domes, the beam, the rocks and debris, the starfield, the screen flash, the morph and its sparks, the blade glow, the burst sparks, the waves, the smoke, the shake, the sounds; the action results" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The blade raised, the blast" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.raise", "Raise", "The blade raised (Squall's sequence 2)", (uint32_t)offsetof(BlastingZoneParams, sounds.raise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.blast", "Blast", "The blast (the starfield and the screen flash)", (uint32_t)offsetof(BlastingZoneParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The action results at this tick of the director", (uint32_t)offsetof(BlastingZoneParams, director.damage), fxp::I16, 0, 314 },
+		};
+	}
 }
 
 	void register_mag164_blasting_zone()
 	{
-		using namespace blast164;
-		register_port(ORIG_Root, (void *)RootTask, "164 Root", 164);
-		register_port(ORIG_Director, (void *)DirectorTask, "164 Director", 164);
-		register_port(ORIG_FlareA, (void *)FlareATask, "164 FlareA", 164);
-		register_port(ORIG_FlareB, (void *)FlareBTask, "164 FlareB", 164);
-		register_port(ORIG_OrbitSpark, (void *)OrbitSparkTask, "164 OrbitSpark", 164);
-		register_port(ORIG_Swirl, (void *)SwirlTask, "164 Swirl", 164);
-		register_port(ORIG_Ring, (void *)RingTask, "164 Ring", 164);
-		register_port(ORIG_Spawner, (void *)SpawnerTask, "164 Spawner", 164);
-		register_port(ORIG_PulseA, (void *)PulseATask, "164 PulseA", 164);
-		register_port(ORIG_PulseB, (void *)PulseBTask, "164 PulseB", 164);
-		register_port(ORIG_Shard, (void *)ShardTask, "164 Shard", 164);
-		register_port(ORIG_Ball, (void *)BallTask, "164 Ball", 164);
-		register_port(ORIG_FrameModel, (void *)FrameModelTask, "164 FrameModel", 164);
-		register_port(ORIG_Dome, (void *)DomeTask, "164 Dome", 164);
-		register_port(ORIG_Dome2, (void *)Dome2Task, "164 Dome2", 164);
-		register_port(ORIG_Beam, (void *)BeamTask, "164 Beam", 164);
-		register_port(ORIG_Rock, (void *)RockTask, "164 Rock", 164);
-		register_port(ORIG_Debris, (void *)DebrisTask, "164 Debris", 164);
-		register_port(ORIG_Starfield, (void *)StarfieldTask, "164 Starfield", 164);
-		register_port(ORIG_ScreenFlash, (void *)ScreenFlashTask, "164 ScreenFlash", 164);
-		register_port(ORIG_Morph, (void *)MorphTask, "164 Morph", 164);
-		register_port(ORIG_RingFlat, (void *)RingFlatTask, "164 RingFlat", 164);
-		register_port(ORIG_RingFlat2, (void *)RingFlat2Task, "164 RingFlat2", 164);
-		register_port(ORIG_MorphSpark, (void *)MorphSparkTask, "164 MorphSpark", 164);
-		register_port(ORIG_BladeGlow, (void *)BladeGlowTask, "164 BladeGlow", 164);
-		register_port(ORIG_BurstSpark, (void *)BurstSparkTask, "164 BurstSpark", 164);
-		register_port(ORIG_Wave, (void *)WaveTask, "164 Wave", 164);
-		register_port(ORIG_Wave2, (void *)Wave2Task, "164 Wave2", 164);
-		register_port(ORIG_Smoke, (void *)SmokeTask, "164 Smoke", 164);
-		register_port(ORIG_Shake, (void *)ShakeTask, "164 Shake", 164);
-		register_port(ORIG_Restore, (void *)RestoreTask, "164 Restore", 164);
+		fxp::register_params({ 164, "Blasting Zone", &blast164::live, &blast164::GAME, sizeof(blast164::BlastingZoneParams),
+		                       blast164::table::PARTS, (int)(sizeof(blast164::table::PARTS) / sizeof(blast164::table::PARTS[0])),
+		                       blast164::table::FIELDS, (int)(sizeof(blast164::table::FIELDS) / sizeof(blast164::table::FIELDS[0])),
+		                       blast164::table::GROUPS, (int)(sizeof(blast164::table::GROUPS) / sizeof(blast164::table::GROUPS[0])) });
+		own::note(blast164::ORIG_FileLoader, (void *)blast164::FileLoader);
+		own::note(blast164::ORIG_Setup, (void *)blast164::Setup);
+		own::note(blast164::ORIG_Root, (void *)blast164::RootTask);
+		register_port(blast164::ORIG_Root, (void *)blast164::RootTask, "164 Root", 164);
+		own::note(blast164::ORIG_Director, (void *)blast164::DirectorTask);
+		register_port(blast164::ORIG_Director, (void *)blast164::DirectorTask, "164 Director", 164);
+		own::note(blast164::ORIG_FlareA, (void *)blast164::FlareATask);
+		register_port(blast164::ORIG_FlareA, (void *)blast164::FlareATask, "164 FlareA", 164);
+		own::note(blast164::ORIG_FlareB, (void *)blast164::FlareBTask);
+		register_port(blast164::ORIG_FlareB, (void *)blast164::FlareBTask, "164 FlareB", 164);
+		own::note(blast164::ORIG_OrbitSpark, (void *)blast164::OrbitSparkTask);
+		register_port(blast164::ORIG_OrbitSpark, (void *)blast164::OrbitSparkTask, "164 OrbitSpark", 164);
+		own::note(blast164::ORIG_Swirl, (void *)blast164::SwirlTask);
+		register_port(blast164::ORIG_Swirl, (void *)blast164::SwirlTask, "164 Swirl", 164);
+		own::note(blast164::ORIG_Ring, (void *)blast164::RingTask);
+		register_port(blast164::ORIG_Ring, (void *)blast164::RingTask, "164 Ring", 164);
+		own::note(blast164::ORIG_Spawner, (void *)blast164::SpawnerTask);
+		register_port(blast164::ORIG_Spawner, (void *)blast164::SpawnerTask, "164 Spawner", 164);
+		own::note(blast164::ORIG_PulseA, (void *)blast164::PulseATask);
+		register_port(blast164::ORIG_PulseA, (void *)blast164::PulseATask, "164 PulseA", 164);
+		own::note(blast164::ORIG_PulseB, (void *)blast164::PulseBTask);
+		register_port(blast164::ORIG_PulseB, (void *)blast164::PulseBTask, "164 PulseB", 164);
+		own::note(blast164::ORIG_Shard, (void *)blast164::ShardTask);
+		register_port(blast164::ORIG_Shard, (void *)blast164::ShardTask, "164 Shard", 164);
+		own::note(blast164::ORIG_Ball, (void *)blast164::BallTask);
+		register_port(blast164::ORIG_Ball, (void *)blast164::BallTask, "164 Ball", 164);
+		own::note(blast164::ORIG_FrameModel, (void *)blast164::FrameModelTask);
+		register_port(blast164::ORIG_FrameModel, (void *)blast164::FrameModelTask, "164 FrameModel", 164);
+		own::note(blast164::ORIG_Dome, (void *)blast164::DomeTask);
+		register_port(blast164::ORIG_Dome, (void *)blast164::DomeTask, "164 Dome", 164);
+		own::note(blast164::ORIG_Dome2, (void *)blast164::Dome2Task);
+		register_port(blast164::ORIG_Dome2, (void *)blast164::Dome2Task, "164 Dome2", 164);
+		own::note(blast164::ORIG_Beam, (void *)blast164::BeamTask);
+		register_port(blast164::ORIG_Beam, (void *)blast164::BeamTask, "164 Beam", 164);
+		own::note(blast164::ORIG_Rock, (void *)blast164::RockTask);
+		register_port(blast164::ORIG_Rock, (void *)blast164::RockTask, "164 Rock", 164);
+		own::note(blast164::ORIG_Debris, (void *)blast164::DebrisTask);
+		register_port(blast164::ORIG_Debris, (void *)blast164::DebrisTask, "164 Debris", 164);
+		own::note(blast164::ORIG_Starfield, (void *)blast164::StarfieldTask);
+		register_port(blast164::ORIG_Starfield, (void *)blast164::StarfieldTask, "164 Starfield", 164);
+		own::note(blast164::ORIG_ScreenFlash, (void *)blast164::ScreenFlashTask);
+		register_port(blast164::ORIG_ScreenFlash, (void *)blast164::ScreenFlashTask, "164 ScreenFlash", 164);
+		own::note(blast164::ORIG_Morph, (void *)blast164::MorphTask);
+		register_port(blast164::ORIG_Morph, (void *)blast164::MorphTask, "164 Morph", 164);
+		own::note(blast164::ORIG_RingFlat, (void *)blast164::RingFlatTask);
+		register_port(blast164::ORIG_RingFlat, (void *)blast164::RingFlatTask, "164 RingFlat", 164);
+		own::note(blast164::ORIG_RingFlat2, (void *)blast164::RingFlat2Task);
+		register_port(blast164::ORIG_RingFlat2, (void *)blast164::RingFlat2Task, "164 RingFlat2", 164);
+		own::note(blast164::ORIG_MorphSpark, (void *)blast164::MorphSparkTask);
+		register_port(blast164::ORIG_MorphSpark, (void *)blast164::MorphSparkTask, "164 MorphSpark", 164);
+		own::note(blast164::ORIG_BladeGlow, (void *)blast164::BladeGlowTask);
+		register_port(blast164::ORIG_BladeGlow, (void *)blast164::BladeGlowTask, "164 BladeGlow", 164);
+		own::note(blast164::ORIG_BurstSpark, (void *)blast164::BurstSparkTask);
+		register_port(blast164::ORIG_BurstSpark, (void *)blast164::BurstSparkTask, "164 BurstSpark", 164);
+		own::note(blast164::ORIG_Wave, (void *)blast164::WaveTask);
+		register_port(blast164::ORIG_Wave, (void *)blast164::WaveTask, "164 Wave", 164);
+		own::note(blast164::ORIG_Wave2, (void *)blast164::Wave2Task);
+		register_port(blast164::ORIG_Wave2, (void *)blast164::Wave2Task, "164 Wave2", 164);
+		own::note(blast164::ORIG_Smoke, (void *)blast164::SmokeTask);
+		register_port(blast164::ORIG_Smoke, (void *)blast164::SmokeTask, "164 Smoke", 164);
+		own::note(blast164::ORIG_Shake, (void *)blast164::ShakeTask);
+		register_port(blast164::ORIG_Shake, (void *)blast164::ShakeTask, "164 Shake", 164);
+		own::note(blast164::ORIG_Restore, (void *)blast164::RestoreTask);
+		register_port(blast164::ORIG_Restore, (void *)blast164::RestoreTask, "164 Restore", 164);
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(register_mag164_held();)
 	}
+	FX_LAB_MODULE(register_mag164_blasting_zone);
 }
 
 #ifdef FF8_FX_HELD
