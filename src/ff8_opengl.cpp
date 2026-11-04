@@ -2154,9 +2154,30 @@ int __cdecl ff8_bgate_bdlink_hook()
 		*(int *)0x1CFF6F4 = ff8_bgate_feedback_req;
 		ff8_bgate_feedback_held++;
 	}
+	// slow battle frames (a stall the player sees): host frame time and the BdLink share, a few lines per battle
+	static LARGE_INTEGER qpf = {}, last_entry = {};
+	static int slow_lines = 0;
+	if (!qpf.QuadPart) QueryPerformanceFrequency(&qpf);
+	LARGE_INTEGER t0;
+	QueryPerformanceCounter(&t0);
+	if (ff8_bgate_frame_no <= 2) slow_lines = 0;
+	const double frame_ms = last_entry.QuadPart ? 1000.0 * double(t0.QuadPart - last_entry.QuadPart) / double(qpf.QuadPart) : 0.0;
+	last_entry = t0;
 	unreplace_function(ff8_bgate_bdlink_ri);
 	int r = ff8_bgate_bdlink_orig();
 	rereplace_function(ff8_bgate_bdlink_ri);
+	{
+		LARGE_INTEGER t1;
+		QueryPerformanceCounter(&t1);
+		const double bdlink_ms = 1000.0 * double(t1.QuadPart - t0.QuadPart) / double(qpf.QuadPart);
+		if ((frame_ms > 100.0 || bdlink_ms > 50.0) && slow_lines < 20)
+		{
+			slow_lines++;
+			ffnx_info("battle 30fps: slow host frame f=%u ph=%d: %.1f ms since the previous BdLink, this BdLink %.1f ms (in action %d, result %d, loading %d, flow %u)\n",
+				ff8_bgate_frame_no, ff8_bgate_phase, frame_ms, bdlink_ms, (int)*(uint8_t *)0x1D27B00, (int)*(uint8_t *)0x1CFF6E7,
+				*(int32_t *)0x1D999C8, *(uint32_t *)0x1D27B04);
+		}
+	}
 	ff8_bgate_camera_state_log();
 	// (FADE_OUT_END_BATTLE_DURATION 0x1D27B0C: decremented by the battle loop after its BdLink, which runs on real
 	// frames only: ff8_bgate_battleloop_thunk)
