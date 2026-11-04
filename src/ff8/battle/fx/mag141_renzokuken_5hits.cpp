@@ -74,6 +74,9 @@
 // 0x24C31B8 (7 x 0x14), length 0x24C3244, finisher flag 0x24C3248, texture base 0x24C324C, packet cursor 0x24C3250, saved hit point / direction 0x24C3258 / 0x24C3260).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -83,12 +86,14 @@ namespace renzo141
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &CasterSlot() { return var<int32_t>(0x24C31AC); }
-	inline int32_t &Length() { return var<int32_t>(0x24C3244); }      // sum of the stage durations (4 until tick 2)
-	inline int32_t &Finisher() { return var<int32_t>(0x24C3248); }    // a finisher follows (action 0 word +4 == 0xFFFE)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x24C324C); }   // Magic_TextureOFF
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24C3250); }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x24C2388; }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x24C31AC)); }
+	inline int32_t &Length() { return var<int32_t>(own::R(0x24C3244)); }      // sum of the stage durations (4 until tick 2)
+	inline int32_t &Finisher() { return var<int32_t>(own::R(0x24C3248)); }    // a finisher follows (action 0 word +4 == 0xFFFE)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x24C324C)); }   // Magic_TextureOFF
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24C3250)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24C31B0)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x24C1E40); }           // 1 x 0x10
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x24C2388); }
 	inline TaskQueue *QHit() { return (TaskQueue *)0x209FAA8; }      // the battle's hit-effect queue
 	static const uint32_t POOL_A = 0x24C1140, POOL_A_END = 0x24C1320;  // flashes, 0xC bytes
 	static const uint32_t POOL_B = 0x24C1320, POOL_B_SPAWN_END = 0x24C15A0, POOL_B_END = 0x24C16E0; // sparks, 0x10 bytes
@@ -110,6 +115,19 @@ namespace renzo141
 
 	// data (FF8_EN.exe)
 	static const void *const SOUND = (const void *)0xEA7E74;
+	static const uint32_t ORIG_FileLoader = 0x61DE50, ORIG_Setup = 0x61DE70;
+	static const uint32_t TEXTURE_NAME = 0xDE1728, CAMERA = 0xEA8010;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct RenzokukenParams
+	{
+		uint32_t sound;   // at the controller's tick 1
+	};
+	static const RenzokukenParams GAME = { 0xEA7E74 };
+	static RenzokukenParams live = GAME;
+	static const RenzokukenParams &PZ() { return live; }
 	static const uint32_t MODEL_SPARKLE = 0xEA7E78, SPARKLE_FADE = 0xEA8000, SPARKLE_DEPTH = 0xEA7FF0;
 	static const uint32_t ANIM_DATA = 0xEA8AB4, BIND_OUT = 0x24FEC28;
 	static const uint32_t MODEL_SLASH = 0xDDFA28, MODEL_STREAK = 0xDE0410, MODEL_FINAL = 0xDE0690;
@@ -271,6 +289,35 @@ namespace renzo141
 	// ------------------------------------------------------------------
 	// Controller (0x61DF70): the caster's choreography, flash, tint, the other tasks
 	// ------------------------------------------------------------------
+	// File loader (0x61DE50) and setup (0x61DE70, not a task): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer, the cast, its first target and its caster, the master and the controller,
+	// the length (4 until the sequence's tick 2), the finisher flag, the three particle pools freed, the camera, the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		var<CastContext *>(own::R(0x24C31A8)) = ctx;
+		var<int32_t>(own::R(0x24C1138)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x24C1E30), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Master)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(0x24C2398), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Controller)) + 0xC) = 0;
+		Length() = 4;
+		Finisher() = *(const uint16_t *)((const uint8_t *)ctx->actions + 4) == 0xFFFE;
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10) *(int16_t *)a = -1;
+		PlayCameraAnimation((const void *)CAMERA);
+		QueueTimUpload(TexFile());
+		return QMaster();
+	}
+
 	static uint32_t __cdecl ControllerTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -293,28 +340,28 @@ namespace renzo141
 			const int32_t last = (int32_t)StageCount() + 1;
 			Length() = 0;
 			for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(0x1D98214 + i);
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Trail);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Trail));
 			t->c = 0;
-			for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_SparkSpawn);
+			for (uint32_t a = own::R(RING); a < own::R(RING_END); a += 0x14) var<int32_t>(a) = 0;
+			t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_SparkSpawn));
 			t->c = 0;
 			t->e = (int16_t)(CrtRand() % 0x18);
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Hit);
+			t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Hit));
 			t->c = 0;
 		}
 		if (Finisher() != 0 && (int32_t)n->c == Length())
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), ORIG_HitSpark);
+			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), own::Fn(ORIG_HitSpark));
 			t->c = 0;
 			t->w1A = (int16_t)CasterSlot();
 		}
 		if (n->c == 0x33)
 		{
 			// the closing slash: this tick's hit point and direction (pos 8 bytes + dir 16 bytes) kept for it
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Final);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Final));
 			t->c = 0;
 			const int16_t sc = (int16_t)((CrtRand() % 0xA00 + 0x1C00) / 3);
-			memcpy((void *)SAVED_POS, (const void *)HIT_POS, 0x18);
+			memcpy((void *)own::R(SAVED_POS), (const void *)own::R(HIT_POS), 0x18);
 			t->w1E = sc;
 			t->w1C = sc;
 		}
@@ -346,7 +393,7 @@ namespace renzo141
 			GteDPCS();
 			GteStoreRGB2(Caster() + 0x28);
 		}
-		if (n->c == 1) BdPlaySE(SOUND, 0x8000, 0x80);
+		if (n->c == 1) BdPlaySE((const void *)fxp::sound(PZ().sound, (uint32_t)SOUND), 0x8000, 0x80);
 		n->c++;
 		if ((int32_t)n->c <= Length()) return 0;
 		if (Finisher() == 0) SetScreenFlash(0, 0);
@@ -373,7 +420,7 @@ namespace renzo141
 			p[1] = h;
 			for (int32_t i = 0; i < 6; i++)
 			{
-				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), ORIG_Sparkle);
+				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), own::Fn(ORIG_Sparkle));
 				s->c = 0;
 				s->e = (int16_t)(CrtRand() % 6 + i);
 				const uint8_t *sk = **(uint8_t ***)(Entity(n->w1A) + 0x64);
@@ -586,21 +633,21 @@ namespace renzo141
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(own::R(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c < Length() - 7 ? 7 : Length() - c;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)own::R(RING), idx, want, (uint8_t *)own::R(PTS_A), (uint8_t *)own::R(PTS_B));
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
+			TrailSplines(cnt, (const uint8_t *)own::R(PTS_A), (const uint8_t *)own::R(PTS_B), (uint8_t *)own::R(SPL_A), (uint8_t *)own::R(SPL_B));
+			TrailHitPoint((const uint8_t *)own::R(SPL_B), (uint8_t *)own::R(HIT_POS), (int32_t *)own::R(HIT_DIR));
 			// 30 fps layer: see mag141_renzokuken_5hits_held.inc
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
+			TrailDraw((const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -631,9 +678,9 @@ namespace renzo141
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_SPAWN_END, 0x10);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_SPAWN_END), 0x10);
 				if (i < 0) break;
-				SparkP *p = (SparkP *)(POOL_B + 0x10 * i);
+				SparkP *p = (SparkP *)(own::R(POOL_B) + 0x10 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
 				const uint8_t *sk = **(uint8_t ***)(Caster() + 0x64);
@@ -662,15 +709,15 @@ namespace renzo141
 			const int32_t lead = var<int32_t>(HIT_LEAD + 4 * b);
 			sum += StageLen(b);
 			if ((int32_t)n->c != sum - lead) continue;
-			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Slash);
+			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Slash));
 			s->c = 0;
 			s->e = (int16_t)b;
 			const int16_t sc = (int16_t)(CrtRand() % 0x280 + 0x400);
 			s->w1E = sc;
 			s->w1C = sc;
-			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
-			memcpy(r->pos, (const void *)HIT_POS, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			HitRec *r = (HitRec *)(own::R(HIT_REC) + 0x9C * b);
+			memcpy(r->pos, (const void *)own::R(HIT_POS), 8);
+			memcpy(r->dir, (const void *)own::R(HIT_DIR), 16);
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -683,12 +730,12 @@ namespace renzo141
 			// 3 flashes at the hit point
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0xC);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0xC);
 				if (i < 0) break;
-				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
+				FlashP *p = (FlashP *)(own::R(POOL_A) + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xA00);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				memcpy(p->pos, (const void *)own::R(HIT_POS), 8);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x15E - 0xAF));
@@ -696,14 +743,14 @@ namespace renzo141
 			// 12 debris thrown along the direction (back the other way on hit 3)
 			for (int32_t j = 0; j < 0xC; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x14);
+				const int32_t i = FreeSlot(own::R(POOL_C), own::R(POOL_C_END), 0x14);
 				if (i < 0) break;
-				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
+				DebrisP *p = (DebrisP *)(own::R(POOL_C) + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xC00);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				memcpy(p->pos, (const void *)own::R(HIT_POS), 8);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
-				const int32_t *d = (const int32_t *)HIT_DIR;
+				const int32_t *d = (const int32_t *)own::R(HIT_DIR);
 				const int32_t r0 = CrtRand() % 200;
 				p->vel[0] = (int16_t)(r0 + (mul32(d[0], sp) >> 12) - 0x64);
 				const int32_t r1 = CrtRand() % 200;
@@ -728,7 +775,7 @@ namespace renzo141
 	static uint32_t __cdecl SlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
+		HitRec *r = (HitRec *)(own::R(HIT_REC) + 0x9C * n->e);
 		// 30 fps layer: see mag141_renzokuken_5hits_held.inc
 		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
@@ -814,7 +861,7 @@ namespace renzo141
 	{
 		(void)sy;
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)SLASH_REF, (const int32_t *)SAVED_DIR, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)SLASH_REF, (const int32_t *)own::R(SAVED_DIR), axis);
 		Mat4x3 m; // (pad +0x12 never written in the original: GTE R33 high half only)
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		int16_t v[4]; // (4th word never written in the original: matrixMultiplyVector reads 3)
@@ -823,9 +870,9 @@ namespace renzo141
 		v[2] = -400;
 		v[3] = 0;
 		MatVec(&m, v, v);
-		m.t[0] = (int32_t)var<int16_t>(SAVED_POS) + v[0];
-		m.t[1] = var<int16_t>(SAVED_POS + 2);
-		m.t[2] = (int32_t)var<int16_t>(SAVED_POS + 4) + v[2];
+		m.t[0] = (int32_t)var<int16_t>(own::R(SAVED_POS)) + v[0];
+		m.t[1] = var<int16_t>(own::R(SAVED_POS) + 2);
+		m.t[2] = (int32_t)var<int16_t>(own::R(SAVED_POS) + 4) + v[2];
 		int32_t sv[3];
 		sv[2] = sx;
 		sv[1] = sx;
@@ -876,7 +923,7 @@ namespace renzo141
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_FLASH;
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0xC)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC)
 		{
 			FlashP *p = (FlashP *)a;
 			if (p->life < 0) continue;
@@ -888,7 +935,7 @@ namespace renzo141
 			if (*(const int16_t *)(h + 0x28) < 0) p->life = -1;
 		}
 		*(uint32_t *)h = SEQ_DEBRIS;
-		for (uint32_t a = POOL_C; a < POOL_C_END; a += 0x14)
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14)
 		{
 			DebrisP *p = (DebrisP *)a;
 			if (p->life < 0) continue;
@@ -912,7 +959,7 @@ namespace renzo141
 		}
 		*(uint32_t *)h = SEQ_SPARK;
 		*(int16_t *)(h + 0x24) = 4;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x10)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10)
 		{
 			SparkP *p = (SparkP *)a;
 			if (p->life < 0) continue;
@@ -949,22 +996,48 @@ namespace renzo141
 		r->counter++;
 		return alive ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "Squall's Renzokuken: his animation set and sequence, the gunblade's trail, the sparks, the five hits' slashes with their flashes and debris, the closing slash, the screen flash and tint, the sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "", (uint32_t)offsetof(RenzokukenParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag141_renzokuken_5hits()
 	{
+		fxp::register_params({ 141, "Renzokuken (5 hits)", &renzo141::live, &renzo141::GAME, sizeof(renzo141::RenzokukenParams),
+		                       renzo141::table::PARTS, (int)(sizeof(renzo141::table::PARTS) / sizeof(renzo141::table::PARTS[0])),
+		                       renzo141::table::FIELDS, (int)(sizeof(renzo141::table::FIELDS) / sizeof(renzo141::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(renzo141::ORIG_FileLoader, (void *)renzo141::FileLoader);
+		own::note(renzo141::ORIG_Setup, (void *)renzo141::Setup);
+		own::note(renzo141::ORIG_Master, (void *)renzo141::MasterTask);
 		register_port(renzo141::ORIG_Master, (void *)renzo141::MasterTask, "141 Master", 141);
+		own::note(renzo141::ORIG_Controller, (void *)renzo141::ControllerTask);
 		register_port(renzo141::ORIG_Controller, (void *)renzo141::ControllerTask, "141 Controller", 141);
+		own::note(renzo141::ORIG_Trail, (void *)renzo141::TrailTask);
 		register_port(renzo141::ORIG_Trail, (void *)renzo141::TrailTask, "141 Trail", 141);
+		own::note(renzo141::ORIG_SparkSpawn, (void *)renzo141::SparkSpawnTask);
 		register_port(renzo141::ORIG_SparkSpawn, (void *)renzo141::SparkSpawnTask, "141 SparkSpawn", 141);
+		own::note(renzo141::ORIG_Hit, (void *)renzo141::HitTask);
 		register_port(renzo141::ORIG_Hit, (void *)renzo141::HitTask, "141 Hit", 141);
+		own::note(renzo141::ORIG_Slash, (void *)renzo141::SlashTask);
 		register_port(renzo141::ORIG_Slash, (void *)renzo141::SlashTask, "141 Slash", 141);
+		own::note(renzo141::ORIG_Final, (void *)renzo141::FinalTask);
 		register_port(renzo141::ORIG_Final, (void *)renzo141::FinalTask, "141 Final", 141);
+		own::note(renzo141::ORIG_HitSpark, (void *)renzo141::HitSparkTask);
 		register_port(renzo141::ORIG_HitSpark, (void *)renzo141::HitSparkTask, "141 HitSpark", 141);
+		own::note(renzo141::ORIG_Sparkle, (void *)renzo141::SparkleTask);
 		register_port(renzo141::ORIG_Sparkle, (void *)renzo141::SparkleTask, "141 Sparkle", 141);
 		// 30 fps layer: see mag141_renzokuken_5hits_held.inc
 		FX_HELD(register_mag141_held();)
 	}
+	FX_LAB_MODULE(register_mag141_renzokuken_5hits);
 }
 
 #ifdef FF8_FX_HELD
