@@ -210,6 +210,9 @@ namespace earthquake
 	{
 		using namespace gfc;
 		earthquake::describe(earthquake::g_eq);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<233>::Register("Earthquake", earthquake::g_eq, 0xA51F10, 0x1868C70, 0x1868C7C,
+		                           (void *)earthquake::SequenceTask);
 		init_clone(earthquake::g_eq, nullptr, 0);
 		earthquake::apply_draw18(earthquake::g_eq);
 		earthquake::g_eq.vm[0x06F] = earthquake::op_06F_OffscreenStageGround;   // 0xA5A6F0
@@ -218,6 +221,7 @@ namespace earthquake
 		// 30 fps layer: see mag233_earthquake_held.inc
 		FX_HELD(register_mag233_earthquake_held();)
 	}
+	FX_LAB_MODULE(register_mag233_earthquake);
 }
 
 #ifdef FF8_FX_HELD
