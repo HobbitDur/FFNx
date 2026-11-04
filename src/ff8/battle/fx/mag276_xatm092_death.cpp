@@ -73,6 +73,9 @@
 
 #include "mag_common.h"
 #include <intrin.h>
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -89,20 +92,23 @@ namespace xatm276
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 
 	// --- module globals ---
-	inline uint32_t &Caster() { return var<uint32_t>(0x2508278); }        // caster entity
-	inline uint32_t &Buffer() { return var<uint32_t>(0x2508280); }        // magic buffer base
-	inline uint32_t &Seed() { return var<uint32_t>(0x2508284); }          // module LCG
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25082A4); }
+	inline uint32_t &Caster() { return var<uint32_t>(own::R(0x2508278)); }        // caster entity
+	inline uint32_t &Buffer() { return var<uint32_t>(own::R(0x2508280)); }        // magic buffer base
+	inline uint32_t &Seed() { return var<uint32_t>(own::R(0x2508284)); }          // module LCG
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25082A4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x250827C)); }          // the effect's file (its TIM)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2508288)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508318); }             // 1 x 0x14
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }   // frame packet arena cursor
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
-	inline TaskQueue *QSmoke() { return (TaskQueue *)0x25082A8; }
-	inline TaskQueue *QFall() { return (TaskQueue *)0x25082B8; }
-	inline TaskQueue *QSpark() { return (TaskQueue *)0x25082C8; }
-	inline TaskQueue *QPrim() { return (TaskQueue *)0x25082D8; }
-	inline TaskQueue *QArc() { return (TaskQueue *)0x25082E8; }
-	inline TaskQueue *QEvent() { return (TaskQueue *)0x25082F8; }
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2508308; }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2508328); }
+	inline TaskQueue *QSmoke() { return (TaskQueue *)own::R(0x25082A8); }
+	inline TaskQueue *QFall() { return (TaskQueue *)own::R(0x25082B8); }
+	inline TaskQueue *QSpark() { return (TaskQueue *)own::R(0x25082C8); }
+	inline TaskQueue *QPrim() { return (TaskQueue *)own::R(0x25082D8); }
+	inline TaskQueue *QArc() { return (TaskQueue *)own::R(0x25082E8); }
+	inline TaskQueue *QEvent() { return (TaskQueue *)own::R(0x25082F8); }
+	inline TaskQueue *QDirector() { return (TaskQueue *)own::R(0x2508308); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(own::R(0x2508328)); }
 
 	static const uint32_t ORIG_RootTask = 0x684FA0;
 	static const uint32_t ORIG_Director = 0x6851F0;
@@ -120,6 +126,20 @@ namespace xatm276
 	static const uint32_t ARC_Distance = 0x10D57A8;    // 128 x 128 bytes: screen distance of |dx|, |dy|
 	static const void *const SOUND_Start = (const void *)0x10D4C58;
 	static const void *const SOUND_Voice = (const void *)0x10D4C5C;
+	static const uint32_t ORIG_FileLoader = 0x684EF0, ORIG_Setup = 0x684EE0;
+	static const uint32_t TEXTURE_NAME = 0x10D9928, CAMERA_ANIM = 0x10D4A78;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct XAtmDeathParams
+	{
+		uint32_t sound_start;   // the director's tick 0
+		uint32_t sound_voice;   // the voice slot the root claims (counter 1), released on the director's tick 0x8C
+	};
+	static const XAtmDeathParams GAME = { 0x10D4C58, 0x10D4C5C };
+	static XAtmDeathParams live = GAME;
+	static const XAtmDeathParams &P() { return live; }
 	static const uint32_t EVENTS[5] = { 0x10D56A8, 0x10D55A8, 0x10D5528, 0x10D5628, 0x10D5728 };
 
 	// buffer offsets
@@ -897,6 +917,29 @@ namespace xatm276
 
 	// ArcTask (0x686A10), node 0x4C bytes: +0x0C counter, +0x0E amplitude shift, +0x0F fade shift,
 	// +0x10 / +0x14 the two triangles, +0x18 model, +0x1C 8 points (width, brightness, 0)
+	// File loader (0x684EF0) and setup (0x684EE0 -> 0x684F10): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the TIM, the magic buffer, the module LCG zeroed, the cast and its caster's entity (its flag bit 2
+	// cleared), the root (it sets up the rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		Buffer() = (uint32_t)layouts::MagicBuffer();
+		Seed() = 0;
+		Ctx() = ctx;
+		Caster() = 0x1D972C0 + 0x9C * ctx->attacker;
+		*(uint16_t *)Caster() &= 0xFFFB;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508290), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl ArcTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
@@ -1017,7 +1060,7 @@ namespace xatm276
 		int32_t dy = ((int32_t)S16(a, 0x14) + S16(a, 0xC) + S16(a, 4)) - ((int32_t)S16(b, 0x14) + S16(b, 0xC) + S16(b, 4));
 		if (dy < 0) dy = -dy;
 		if (dz < 0x100 && dx < 0x100 && dy < 0x100) return 0;
-		const uint32_t n = (uint32_t)AddTaskToQueue(QArc(), ORIG_ArcTask);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QArc(), own::Fn(ORIG_ArcTask));
 		if (n)
 		{
 			U8(n, 0xE) = amp_shift;
@@ -1112,7 +1155,7 @@ namespace xatm276
 			const int16_t first = (int16_t)(spec >> 4);
 			for (uint32_t k = spec & 0xF; k != 0; k--)
 			{
-				const uint32_t c = (uint32_t)AddTaskToQueue(QFall(), ORIG_FallTask);
+				const uint32_t c = (uint32_t)AddTaskToQueue(QFall(), own::Fn(ORIG_FallTask));
 				if (!c) continue;
 				U32(c, 0xC) = U32(n, 0x10);
 				U32(c, 0x10) = U32(n, 0x14);
@@ -1136,7 +1179,7 @@ namespace xatm276
 		const int32_t n = BoneVertexCount(Caster(), bone);
 		for (int32_t k = count; k != 0; k--)
 		{
-			const uint32_t s = (uint32_t)AddTaskToQueue(QSpark(), ORIG_SparkTask);
+			const uint32_t s = (uint32_t)AddTaskToQueue(QSpark(), own::Fn(ORIG_SparkTask));
 			if (!s) return;
 			const int32_t idx = mul32(SharedRand(), n) >> 15;
 			BoneVertex(Caster(), bone, idx, (void *)(s + 0x10));
@@ -1342,7 +1385,7 @@ namespace xatm276
 				pos[3] = 0;
 				do
 				{
-					const uint32_t s = (uint32_t)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
+					const uint32_t s = (uint32_t)AddTaskToQueue(QSmoke(), own::Fn(ORIG_SmokeTask));
 					if (s)
 					{
 						U32(s, 0xC) = *(const uint32_t *)pos;
@@ -1371,7 +1414,7 @@ namespace xatm276
 		}
 		if (S32(n, 0xC) == (int32_t)U8(e, 8))
 		{
-			const uint32_t p = (uint32_t)AddTaskToQueue(QPrim(), ORIG_PrimTask);
+			const uint32_t p = (uint32_t)AddTaskToQueue(QPrim(), own::Fn(ORIG_PrimTask));
 			if (p)
 			{
 				BonePosition(U8(e, 9), S16(e, 0xA), (void *)(p + 0xE));
@@ -1388,7 +1431,7 @@ namespace xatm276
 	// sub_685CC0
 	static void SpawnEvent(uint32_t table)
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QEvent(), ORIG_EventTask);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QEvent(), own::Fn(ORIG_EventTask));
 		if (!n) return;
 		U32(n, 0xC) = 0;
 		U32(n, 0x10) = table;
@@ -1534,7 +1577,7 @@ namespace xatm276
 		if (S16(n, 0xC) <= 0x6C) DrawCaster(Caster(), n + 0xE);
 		U8(Caster(), 0) |= 4;
 		const int16_t c = S16(n, 0xC);
-		if (c == 0) BdPlaySE(SOUND_Start, 0, 0x80);
+		if (c == 0) BdPlaySE((const void *)fxp::sound(P().sound_start, (uint32_t)SOUND_Start), 0, 0x80);
 		else if (c == 0x8C) ReleaseVoiceSlot(U32(n, 0x4C));
 		MoveDebris(n);
 		switch (c)
@@ -1562,9 +1605,9 @@ namespace xatm276
 		InitTaskQueuePool(QDirector(), (void *)(Buffer() + BUF_DIRECTOR), 0x2454, 1);
 		InitTaskQueuePool(QEvent(), (void *)(Buffer() + 0x1BCC), 0x14, 5);
 		InitTaskQueuePool(QArc(), (void *)(Buffer() + 0x124C), 0x4C, 0x20);
-		const uint32_t d = (uint32_t)AddTaskToQueue(QDirector(), ORIG_Director);
+		const uint32_t d = (uint32_t)AddTaskToQueue(QDirector(), own::Fn(ORIG_Director));
 		Memset32((void *)(d + 0xC), 0, 0x912);
-		U32(d, 0x4C) = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+		U32(d, 0x4C) = ClaimVoiceSlot((const void *)fxp::sound(P().sound_voice, (uint32_t)SOUND_Voice), 1, 0x80);
 		U32(d, 0x50) = d + 0x54;
 		U32(d, 0x48) = d + 0xE;
 		memset((void *)(d + 0xE), 0xFF, 0x37);
@@ -1609,20 +1652,46 @@ namespace xatm276
 		S16(n, 0xC)++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The debris polygons, the white screen, the machine drawn without its burst bones, the events (arcs, sparks, smoke, bursts), the sounds" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound_start", "Start", "The director's tick 0", (uint32_t)offsetof(XAtmDeathParams, sound_start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sound_voice", "Voice", "The voice slot claimed at the start (released on tick 0x8C)", (uint32_t)offsetof(XAtmDeathParams, sound_voice), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag276_xatm092_death()
 	{
+		fxp::register_params({ 276, "X-ATM092 death", &xatm276::live, &xatm276::GAME, sizeof(xatm276::XAtmDeathParams),
+		                       xatm276::table::PARTS, (int)(sizeof(xatm276::table::PARTS) / sizeof(xatm276::table::PARTS[0])),
+		                       xatm276::table::FIELDS, (int)(sizeof(xatm276::table::FIELDS) / sizeof(xatm276::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(xatm276::ORIG_FileLoader, (void *)xatm276::FileLoader);
+		own::note(xatm276::ORIG_Setup, (void *)xatm276::Setup);
+		own::note(xatm276::ORIG_RootTask, (void *)xatm276::RootTask);
 		register_port(xatm276::ORIG_RootTask, (void *)xatm276::RootTask, "276 RootTask", 276);
+		own::note(xatm276::ORIG_Director, (void *)xatm276::DirectorTask);
 		register_port(xatm276::ORIG_Director, (void *)xatm276::DirectorTask, "276 Director", 276);
+		own::note(xatm276::ORIG_EventTask, (void *)xatm276::EventTask);
 		register_port(xatm276::ORIG_EventTask, (void *)xatm276::EventTask, "276 EventTask", 276);
+		own::note(xatm276::ORIG_SmokeTask, (void *)xatm276::SmokeTask);
 		register_port(xatm276::ORIG_SmokeTask, (void *)xatm276::SmokeTask, "276 SmokeTask", 276);
+		own::note(xatm276::ORIG_PrimTask, (void *)xatm276::PrimTask);
 		register_port(xatm276::ORIG_PrimTask, (void *)xatm276::PrimTask, "276 PrimTask", 276);
+		own::note(xatm276::ORIG_SparkTask, (void *)xatm276::SparkTask);
 		register_port(xatm276::ORIG_SparkTask, (void *)xatm276::SparkTask, "276 SparkTask", 276);
+		own::note(xatm276::ORIG_FallTask, (void *)xatm276::FallTask);
 		register_port(xatm276::ORIG_FallTask, (void *)xatm276::FallTask, "276 FallTask", 276);
+		own::note(xatm276::ORIG_ArcTask, (void *)xatm276::ArcTask);
 		register_port(xatm276::ORIG_ArcTask, (void *)xatm276::ArcTask, "276 ArcTask", 276);
 		FX_HELD(register_mag276_held();)
 	}
+	FX_LAB_MODULE(register_mag276_xatm092_death);
 }
 
 #ifdef FF8_FX_HELD
