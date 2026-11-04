@@ -2319,6 +2319,7 @@ namespace act
 	uint32_t __cdecl a_739F40(uint32_t a1)
 	{
 		set_mod_by_code(OrigOf(U32(a1, 8)));      // node +8 = original task function address -> current module
+		g_reloc = 0;   // (the game's own memory: Fujin's described copies move it, their program sets it)
 		// 30 fps layer: see act_engine_held.inc
 		FX_HELD(held_note_master();)
 
