@@ -32,6 +32,9 @@
 // Module globals: 0x250517C..0x2505230 (gf_study/gf_global_ranges.md).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -40,21 +43,22 @@ namespace d325
 	using namespace eng;
 
 	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x2505180); }            // debug pause, zeroed by the setup, never set
-	inline uint8_t *&CastCtx() { return var<uint8_t *>(0x2505184); }
-	inline TaskQueuePair &QueueMain() { return var<TaskQueuePair>(0x2505190); } // .first = prim particles, .second = timeline
+	inline uint32_t &Pause() { return var<uint32_t>(own::R(0x2505180)); }            // debug pause, zeroed by the setup, never set
+	inline uint8_t *&CastCtx() { return var<uint8_t *>(own::R(0x2505184)); }
+	inline TaskQueuePair &QueueMain() { return var<TaskQueuePair>(own::R(0x2505190)); } // .first = prim particles, .second = timeline
 	inline TaskQueue &QueueParticles() { return QueueMain().first; }
 	inline TaskQueue &QueueTimeline() { return QueueMain().second; }            // 0x25051A0
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25051D0); }
-	inline int32_t &CenterZ() { return var<int32_t>(0x25051D4); }             // targets' mean BattleEntitySlotData +0x20
-	inline int32_t &CenterX() { return var<int32_t>(0x25051D8); }             // targets' mean +0x1C
-	inline int32_t &FarZ() { return var<int32_t>(0x25051DC); }                // CenterZ + 0xFA0
-	inline int32_t &MidZ() { return var<int32_t>(0x25051E0); }                // CenterZ + 0x7D0
-	inline uint32_t &Flash() { return var<uint32_t>(0x25051E8); }
-	inline uint32_t &FlashPrev() { return var<uint32_t>(0x25051EC); }
-	inline uint8_t &Mode() { return var<uint8_t>(0x25051F0); }                // particle system: 2 = bolts, 3 = puffs
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2505208); }      // = Magic_TextureOFF_ToEAX1()
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2505210); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25051D0)); }
+	inline int32_t &CenterZ() { return var<int32_t>(own::R(0x25051D4)); }             // targets' mean BattleEntitySlotData +0x20
+	inline int32_t &CenterX() { return var<int32_t>(own::R(0x25051D8)); }             // targets' mean +0x1C
+	inline int32_t &FarZ() { return var<int32_t>(own::R(0x25051DC)); }                // CenterZ + 0xFA0
+	inline int32_t &MidZ() { return var<int32_t>(own::R(0x25051E0)); }                // CenterZ + 0x7D0
+	inline uint32_t &Flash() { return var<uint32_t>(own::R(0x25051E8)); }
+	inline uint32_t &FlashPrev() { return var<uint32_t>(own::R(0x25051EC)); }
+	inline uint8_t &Mode() { return var<uint8_t>(own::R(0x25051F0)); }                // particle system: 2 = bolts, 3 = puffs
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(own::R(0x2505208)); }      // = Magic_TextureOFF_ToEAX1()
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x250517C)); }          // the effect's file (its TIM)
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(own::R(0x2505210)); }
 	// engine
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }       // battle_texture_data_ptr_1D8E054
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }             // g_Battle_FrameRenderListBase
@@ -66,6 +70,21 @@ namespace d325
 	static const uint32_t ORIG_TimelineTask = 0x6545F0;
 	static const uint32_t ORIG_BurstTask = 0x659860;
 	static const uint32_t ORIG_RisingTask = 0x659960;
+	static const uint32_t ORIG_FileLoader = 0x6541F0, ORIG_Setup = 0x6541E0;
+	static const uint32_t TEXTURE_NAME = 0xFE0F78;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DiablosParams
+	{
+		uint32_t voice;                                              // the voice slot claimed when the timeline spawns
+		struct { uint32_t start, rise, gather, orb, drop, burst; } sounds; // at the timeline's ticks 0, 0x5B, 0xEE, 0x14D, 0x192, 0x1C8
+		struct { int16_t damage; } timeline;                         // the action results at this tick
+	};
+	static const DiablosParams GAME = { 0xFD6658, { 0xFD6640, 0xFD6644, 0xFD6648, 0xFD664C, 0xFD6650, 0xFD6654 }, { 0x1F3 } };
+	static DiablosParams live = GAME;
+	static const DiablosParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x656B70; // prim-model object callback (pure draw)
 
 	// --- engine and module functions called through their original addresses ---
@@ -263,6 +282,42 @@ namespace d325
 	// ------------------------------------------------------------------
 	// Master task (0x654350)
 	// ------------------------------------------------------------------
+	// File loader (0x6541F0) and setup (0x6541E0 -> GF_325Diablos_SetupSummon 0x654210): the game runs its own; Fujin's
+	// programs these (its memory may be a copy's): the TIM, the model buffer (the magic buffer), the cast and its
+	// caster, the master; the targets' mean position (z, x) and the two depths from it
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)((const char *)TEXTURE_NAME);   // IO_GetFile_MAGIC
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +4 the actions)
+	{
+		var<uint32_t>(own::R(0x25051E4)) = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TexFile());   // Battle_QueueTIMUpload_GetEOF
+		ModelBuffer() = (uint8_t *)layouts::MagicBuffer();
+		Pause() = 0;
+		CastCtx() = ctx;
+		var<uint32_t>(own::R(0x2505188)) = 0x1D972C0 + 0x9C * ctx[0];
+		InitTaskQueuePool((TaskQueue *)own::R(0x25051B0), (void *)own::R(0x25051C0), 0x10, 1);
+		Memset32((uint8_t *)AddTaskToQueue((TaskQueue *)own::R(0x25051B0), own::Fn(ORIG_SequenceTask)) + 0xC, 0, 1);
+		const uint8_t *action = *(const uint8_t **)(ctx + 4);
+		const int32_t count = action[0x10];
+		const uint8_t *targets = *(const uint8_t **)(action + 8);
+		int32_t z = 0, x = 0;
+		for (int32_t i = 0; i < count; i++)
+		{
+			const uint32_t e = 0x1D972C0 + 0x9C * targets[0x18 * i];
+			z += *(const int16_t *)(e + 0x20);
+			x += *(const int16_t *)(e + 0x1C);
+		}
+		CenterZ() = z / count;
+		FarZ() = CenterZ() + 0xFA0;
+		MidZ() = CenterZ() + 0x7D0;
+		CenterX() = x / count;
+		return (TaskQueue *)own::R(0x25051B0);
+	}
+
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
@@ -285,9 +340,9 @@ namespace d325
 			node->spawned = 1;
 			x::ResetPuffs();
 			InitTaskQueuePool(&QueueTimeline(), ModelBuffer(), 0x994, 1);
-			TimelineNode *t = (TimelineNode *)AddTaskToQueue(&QueueTimeline(), ORIG_TimelineTask);
+			TimelineNode *t = (TimelineNode *)AddTaskToQueue(&QueueTimeline(), own::Fn(ORIG_TimelineTask));
 			Memset32(&t->counter, 0, 0x262);
-			t->voice = ClaimVoiceSlot((const void *)0xFD6658, 1, 0x80);
+			t->voice = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0xFD6658), 1, 0x80);
 			x::Decode(0xFD8584, t->prim_a, 0xE0);
 			for (int k = 0; k < TargetCount(); k++)
 			{
@@ -1106,12 +1161,12 @@ namespace d325
 		// sound effects
 		switch ((uint16_t)t->counter)
 		{
-		case 0: x::PlaySE(0xFD6640, 1, 0x80); break;
-		case 0x5B: x::PlaySE(0xFD6644, 1, 0x80); break;
-		case 0xEE: x::PlaySE(0xFD6648, 1, 0x80); break;
-		case 0x14D: x::PlaySE(0xFD664C, 1, 0x80); break;
-		case 0x192: x::PlaySE(0xFD6650, 1, 0x80); break;
-		case 0x1C8: x::PlaySE(0xFD6654, 1, 0x80); break;
+		case 0: x::PlaySE(fxp::sound(P().sounds.start, 0xFD6640), 1, 0x80); break;
+		case 0x5B: x::PlaySE(fxp::sound(P().sounds.rise, 0xFD6644), 1, 0x80); break;
+		case 0xEE: x::PlaySE(fxp::sound(P().sounds.gather, 0xFD6648), 1, 0x80); break;
+		case 0x14D: x::PlaySE(fxp::sound(P().sounds.orb, 0xFD664C), 1, 0x80); break;
+		case 0x192: x::PlaySE(fxp::sound(P().sounds.drop, 0xFD6650), 1, 0x80); break;
+		case 0x1C8: x::PlaySE(fxp::sound(P().sounds.burst, 0xFD6654), 1, 0x80); break;
 		default: break;
 		}
 
@@ -1227,10 +1282,10 @@ namespace d325
 			{
 				if (e == 0)
 				{
-					var<int16_t>(0x2505200) = 9;
-					var<int16_t>(0x2505202) = 0x20;
-					var<int16_t>(0x2505204) = 0x800;
-					var<int16_t>(0x2505206) = -4;
+					var<int16_t>(own::R(0x2505200)) = 9;
+					var<int16_t>(own::R(0x2505202)) = 0x20;
+					var<int16_t>(own::R(0x2505204)) = 0x800;
+					var<int16_t>(own::R(0x2505206)) = -4;
 				}
 				int16_t P[4];
 				x::SpawnPosition(e1, 0x21, 0, P);
@@ -1363,7 +1418,7 @@ namespace d325
 				if (e == 0) InitTaskQueuePool(&QueueParticles(), ModelBuffer() + 0x3505C, 0xE8, 0x10);
 				for (int k = 2; k; k--)
 				{
-					BurstNode *b = (BurstNode *)AddTaskToQueue(&QueueParticles(), ORIG_BurstTask);
+					BurstNode *b = (BurstNode *)AddTaskToQueue(&QueueParticles(), own::Fn(ORIG_BurstTask));
 					if (!b) continue;
 					int32_t r = x::Rand();
 					uint32_t nb = ***(uint8_t ***)(e1 + 0x64); // bone count: comFileData -> skeleton -> byte 0
@@ -1394,7 +1449,7 @@ namespace d325
 		}
 
 		// 499: damage, the targets' effect flags are cleared
-		if (t->counter == 0x1F3)
+		if (t->counter == P().timeline.damage)
 		{
 			for (int k = 0; k < TargetCount(); k++) *(uint16_t *)t->targets[k].entity &= 0xFFF3;
 			Mode() = 0;
@@ -1465,17 +1520,48 @@ namespace d325
 		CtxBurst(c, p);
 		return Play(p->layout, c) ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Diablos' Dark Messenger: the two battle models, the prim-model players and particles (bolts, puffs, rising and burst layouts), the targets squashed, the camera, the streamed loads, the screen flash, the voice and the sounds; the action results" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the timeline's ticks 0, 0x5B, 0xEE, 0x14D, 0x192, 0x1C8" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "voice", "Voice", "The voice slot claimed when the timeline spawns", (uint32_t)offsetof(DiablosParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.start", "Start", "At the timeline's tick 0", (uint32_t)offsetof(DiablosParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.rise", "Rise", "At the timeline's tick 0x5B", (uint32_t)offsetof(DiablosParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.gather", "Gather", "At the timeline's tick 0xEE", (uint32_t)offsetof(DiablosParams, sounds.gather), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.orb", "Orb", "At the timeline's tick 0x14D", (uint32_t)offsetof(DiablosParams, sounds.orb), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.drop", "Drop", "At the timeline's tick 0x192", (uint32_t)offsetof(DiablosParams, sounds.drop), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.burst", "Burst", "At the timeline's tick 0x1C8", (uint32_t)offsetof(DiablosParams, sounds.burst), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "timeline.damage", "Damage tick", "The action results at this tick of the timeline", (uint32_t)offsetof(DiablosParams, timeline.damage), fxp::I16, 0, 529 },
+		};
+	}
 }
 
 	void register_mag325_diablos()
 	{
+		fxp::register_params({ 325, "Diablos", &d325::live, &d325::GAME, sizeof(d325::DiablosParams),
+		                       d325::table::PARTS, (int)(sizeof(d325::table::PARTS) / sizeof(d325::table::PARTS[0])),
+		                       d325::table::FIELDS, (int)(sizeof(d325::table::FIELDS) / sizeof(d325::table::FIELDS[0])),
+		                       d325::table::GROUPS, (int)(sizeof(d325::table::GROUPS) / sizeof(d325::table::GROUPS[0])) });
+		own::note(d325::ORIG_FileLoader, (void *)d325::FileLoader);
+		own::note(d325::ORIG_Setup, (void *)d325::Setup);
+		own::note(d325::ORIG_SequenceTask, (void *)d325::SequenceTask);
 		register_port(d325::ORIG_SequenceTask, (void *)d325::SequenceTask, "D325 SequenceTask", 325);
+		own::note(d325::ORIG_TimelineTask, (void *)d325::TimelineTask);
 		register_port(d325::ORIG_TimelineTask, (void *)d325::TimelineTask, "D325 TimelineTask", 325);
+		own::note(d325::ORIG_RisingTask, (void *)d325::RisingTask);
 		register_port(d325::ORIG_RisingTask, (void *)d325::RisingTask, "D325 RisingTask", 325);
+		own::note(d325::ORIG_BurstTask, (void *)d325::BurstTask);
 		register_port(d325::ORIG_BurstTask, (void *)d325::BurstTask, "D325 BurstTask", 325);
 		// 30 fps layer: see mag325_diablos_held.inc
 		FX_HELD(register_mag325_held();)
 	}
+	FX_LAB_MODULE(register_mag325_diablos);
 }
 
 #ifdef FF8_FX_HELD
