@@ -2158,16 +2158,8 @@ int __cdecl ff8_bgate_bdlink_hook()
 	int r = ff8_bgate_bdlink_orig();
 	rereplace_function(ff8_bgate_bdlink_ri);
 	ff8_bgate_camera_state_log();
-	// FADE_OUT_END_BATTLE_DURATION (0x1D27B0C, byte; 0xFF idle, 0 = unload the stage) is decremented once per battle
-	// loop iteration right after this BdLink returns (0x47D816..0x47D830, FIGHTING flow only; set to 30/40/60 by
-	// computeFadeOutEndBattle 0x47DFC0). It is paced together with what it waits for: the end fade timer
-	// (Battle_EndFadeTimerCallback, ff8_bgate_textmgmt_gate) and the fade to black it starts (ff8_bgate_tfadeblack_hook).
-	// Held frame: +1 here so the decrement after it leaves it unchanged (0xFE is left alone: +1 would make it idle).
-	if (ff8_bgate_phase != 0 && ff8_bgate_n > 1)
-	{
-		uint8_t &fade_out = *(uint8_t *)0x1D27B0C;
-		if (fade_out != 0 && fade_out < 0xFE) fade_out++;
-	}
+	// (FADE_OUT_END_BATTLE_DURATION 0x1D27B0C: decremented by the battle loop after its BdLink, which runs on real
+	// frames only: ff8_bgate_battleloop_thunk)
 #if FF8_BGATE_DIAG
 	{
 		// final camera position after updateBattleCamera ran (world XZ packed s16 pair + Y),
@@ -6378,23 +6370,49 @@ int __cdecl ff8_bgate_actq_gate()
 // (0x48ACD0, AI waits: battle suspended for time_wait), BattleText_PrintQueuedMessageAfterDelay (0x48AC90, AI message
 // after time_wait), BattleText_PrintQueuedMessage (0x48AC60). No data. Per host frame they counted 2x fast (the screen
 // went black ~1.1 s early after a won escape). Only on the iterations whose BdLink is a real frame, like the action queue.
-// Battle exit chain: once FADE_OUT_END_BATTLE_DURATION (0x1D27B0C) reaches 0, FFBattleDirector_battleLoop (0x47CCB0,
-// from battle_cardgame_main_loop @0x47D113) steps one state per call with no BdLink: stage unload request, party/item
-// writeback (Battle_ExitWritebackPartyItemsAndResult 0x4868C0 -> mode_StateGlobal 0x1CD8FC6 = 5 WHEN_ESCAPING / 6-7),
-// BattleResult_Init (state 5), exit_battle = 1 (default case) -> module switch. One state per host frame: the battle was
-// left ~2-3 vanilla ticks early after the fade. In those states (3 IN_BATTLE with the fade at 0, 5, 6, 7; never 4 or the
-// card game 8) the loop runs 1 call in n, like vanilla's one per tick. battleLoop is __usercall (ecx, ebp): naked thunk.
+// Battle LOGIC loop at 15 Hz: FFBattleDirector_battleLoop (0x47CCB0, from battle_cardgame_main_loop @0x47D113, once per
+// host frame) is the battle's per-tick logic: the module/flow state machines (GLOBAL_BATTLE_MOD_STATE 0x1CFF83C
+// countdown -> transition -> in battle; BATTLE_LOOP_FLOW_STATE: start encounter -> load monsters (monster info, party
+// formation, weapon anim init) -> end load (BATTLE_IS_ACTIVE, AI init) -> fighting), and in the fight the victory /
+// defeat / escape checks, the player command intake, monster turns, the action queue, status timers, the text-management
+// timers, the end-of-battle countdown (FADE_OUT_END_BATTLE_DURATION 0x1D27B0C) - with its BdLink (0x500900) in the
+// middle. Run once per host frame, every step of it came one host frame after the previous one instead of one tick:
+// a flow transition or a command taken on a held-bound iteration started its models / sequences / ATB one frame off the
+// 2 x tick grid (the converted data then ran half a tick out of phase with the 15 Hz logic and the effects).
+// Now the whole loop runs on the iterations whose BdLink is a real frame, exactly as vanilla runs it once per tick; the
+// other iterations only do what keeps the DATA running: the file poll + BdLink (the battle stage at 30 Hz, its held
+// frames). States without a BdLink (the module start states before the first BdLink, the stage init iteration, and the
+// exit chain once the end countdown is 0: unload, writeback, mode_StateGlobal 0x1CD8FC6 = 5 / 6 / 7, the module switch)
+// run 1 call in n. The card game (state 8) is untouched. battleLoop is __usercall (ecx, ebp): naked thunk.
 static uint32_t ff8_bgate_battleloop_orig = 0;
 
-static int __cdecl ff8_bgate_battleloop_skip()
+// 0 = run the battle loop, 1 = skip this call, 2 = data only (file poll + BdLink)
+static int __cdecl ff8_bgate_battleloop_mode()
 {
 	static int k = 0;
 	if (ff8_bgate_n <= 1 || getmode_cached()->driver_mode != MODE_BATTLE) { k = 0; return 0; }
-	const uint16_t state = *(uint16_t *)0x1CD8FC6;
-	const bool exiting = (state == 3 && *(uint8_t *)0x1D27B0C == 0) || state == 5 || state == 6 || state == 7;
-	if (!exiting) { k = 0; return 0; }
-	k = (k + 1) % ff8_bgate_n;
-	return k != 0; // the first exit call after the last real frame is a held slot, as vanilla's next tick
+	const uint16_t state = *(uint16_t *)0x1CD8FC6;        // mode_StateGlobal
+	const uint32_t mod_state = *(uint32_t *)0x1CFF83C;    // GLOBAL_BATTLE_MOD_STATE (3 = in battle)
+	const uint32_t load = *(uint32_t *)0x1CFF848;         // BATTLE_STAGE_LOAD_STATUS (0 init, 1 loaded, 2 unload)
+	const uint8_t fade_out = *(uint8_t *)0x1D27B0C;
+	const bool no_bdlink = state == 4 || state == 5 || state == 6 || state == 7
+		|| (state == 3 && (mod_state != 3 || load != 1 || fade_out == 0));
+	if (no_bdlink)
+	{
+		// one call per vanilla tick, the first one after a BdLink-driven stretch on the held slot
+		k = (k + 1) % ff8_bgate_n;
+		return k != 0 ? 1 : 0;
+	}
+	k = 0;
+	if (state != 3) return 0; // (card game / unknown: untouched)
+	// in battle, stage loaded: the logic on the iterations whose BdLink is real (the hook bumps the phase first)
+	return (ff8_bgate_phase + 1) % ff8_bgate_n == 0 ? 0 : 2;
+}
+
+static void __cdecl ff8_bgate_battleloop_data_only()
+{
+	((int (__cdecl *)())0x48D0C0)();  // j_BattleFile_PollOneCallback (load countdowns: real-bound only, see the hook)
+	((int (__cdecl *)())0x500900)();  // BattleRender_UpdateTasksAndSubmitFrame = BdLink (ff8_bgate_bdlink_hook)
 }
 
 static __declspec(naked) void ff8_bgate_battleloop_thunk()
@@ -6404,15 +6422,24 @@ static __declspec(naked) void ff8_bgate_battleloop_thunk()
 		push eax
 		push ecx
 		push edx
-		call ff8_bgate_battleloop_skip
-		test eax, eax
+		call ff8_bgate_battleloop_mode
+		cmp eax, 1
 		pop edx
 		pop ecx
 		pop eax
-		jnz skip
-		jmp dword ptr [ff8_bgate_battleloop_orig]
+		jb run
+		je skip
+		push eax
+		push ecx
+		push edx
+		call ff8_bgate_battleloop_data_only
+		pop edx
+		pop ecx
+		pop eax
 	skip:
 		ret
+	run:
+		jmp dword ptr [ff8_bgate_battleloop_orig]
 	}
 }
 
@@ -7214,7 +7241,7 @@ static void ff8_bgate_battle_reset()
 	ff8_bgate_inside_queue_anim = false;
 	ff8_bgate_tick_skip = false;
 	ff8_bgate_hidden_idx = 0;
-	ff8_bgate_phase = 0;
+	ff8_bgate_phase = ff8_bgate_n - 1; // the bump right after makes the battle's first BdLink a real frame (vanilla tick 0)
 	ffnx_info("battle 30fps: new battle, per-battle state reset\n");
 }
 
@@ -7380,7 +7407,7 @@ static void ff8_bgate_install_hooks()
 	// battle text-management timers (end-of-battle fade timer, AI waits / delayed messages) at native pace
 	ff8_bgate_textmgmt_orig = (int(__cdecl *)())get_relative_call(0x47D7FB, 0);
 	replace_call(0x47D7FB, (void *)ff8_bgate_textmgmt_gate);
-	// battle exit chain (after the end fade) one state per vanilla tick (see ff8_bgate_battleloop_skip)
+	// battle logic loop on real frames, data-only iterations in between (see ff8_bgate_battleloop_mode)
 	ff8_bgate_battleloop_orig = get_relative_call(0x47D113, 0);
 	replace_call(0x47D113, (void *)ff8_bgate_battleloop_thunk);
 	// emulated battle file load time counted on real frames (see ff8_bgate_fileload_countdown_hook)
