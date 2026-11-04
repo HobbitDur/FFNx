@@ -73,6 +73,9 @@
 //     output; the prim headers keep the Field_Alloc scratch's unwritten fields, as in the game.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -82,14 +85,16 @@ namespace boomerang304
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507558); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507560); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507564); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250757C); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507580; }         // pool: + 0xC58, 0x40 x 0x24
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507590; }           // pool: + 0x6AC, 3 x 0x1E4
-	inline TaskQueue *QTrails() { return (TaskQueue *)0x25075A0; }         // pool: + 0xAC, 0x20 x 0x30
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25075B0; }           // pool: + 0, 1 x 0xAC
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507558)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507560)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507564)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250757C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x250755C)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25075C0); }           // 1 x 0x14
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2507580); }         // pool: + 0xC58, 0x40 x 0x24
+	inline TaskQueue *QHits() { return (TaskQueue *)own::R(0x2507590); }           // pool: + 0x6AC, 3 x 0x1E4
+	inline TaskQueue *QTrails() { return (TaskQueue *)own::R(0x25075A0); }         // pool: + 0xAC, 0x20 x 0x30
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25075B0); }           // pool: + 0, 1 x 0xAC
 
 	static const uint32_t ORIG_MasterTask = 0x669840;
 	static const uint32_t ORIG_MainTask = 0x669AF0;
@@ -107,6 +112,19 @@ namespace boomerang304
 	static const uint32_t MODEL_Hit = 0x102F48C;         // prim-model layout
 	static const uint32_t SEQ_Spark = 0x102E94C;         // sprite sequence
 	static const void *const SOUND_Throw = (const void *)0x10312C8;
+	static const uint32_t ORIG_FileLoader = 0x6697A0, ORIG_Setup = 0x669790;
+	static const uint32_t TEXTURE_NAME = 0x1031430, CAMERA_ANIM = 0x10312CC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BoomerangSwordParams
+	{
+		uint32_t sound;   // the throw (the main task's counter 5)
+	};
+	static const BoomerangSwordParams GAME = { 0x10312C8 };
+	static BoomerangSwordParams live = GAME;
+	static const BoomerangSwordParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -431,6 +449,27 @@ namespace boomerang304
 	// ------------------------------------------------------------------
 	// Spark (0x66A330)
 	// ------------------------------------------------------------------
+	// File loader (0x6697A0) and setup (0x669790 -> _Init 0x6697C0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the rest),
+	// the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507568), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
@@ -560,7 +599,7 @@ namespace boomerang304
 			int32_t dir[3] = { (int32_t)m->prev[0] - cur[0], 0, (int32_t)cur[2] - m->prev[2] };
 			Mat4x3 frame;
 			SwordDraw(cur, dir, m->spin, m->tilt, &frame);
-			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), ORIG_TrailTask);
+			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), own::Fn(ORIG_TrailTask));
 			if (tr)
 			{
 				tr->counter = 0;
@@ -574,7 +613,7 @@ namespace boomerang304
 				uint8_t *ent = m->ents[m->next];
 				if (cur[0] < *(const int16_t *)(ent + 0x1C))
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), own::Fn(ORIG_HitTask));
 					ApplyResultsOf(ent);
 					if (h)
 					{
@@ -588,7 +627,7 @@ namespace boomerang304
 					cur[3] = 0;
 					for (int i = 0; i < 0x15; i++)
 					{
-						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 						if (!s) continue;
 						memcpy(s->pos, cur, 4);
 						memcpy(&s->pos[2], &cur[2], 4); // (+0x12: the counter, 0)
@@ -606,7 +645,7 @@ namespace boomerang304
 				}
 			}
 		}
-		if (m->counter == 5) BdPlaySE(SOUND_Throw, 0, 0x80);
+		if (m->counter == 5) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Throw), 0, 0x80);
 		m->counter++;
 		return m->counter < 0x3B ? 0 : TASK_END;
 	}
@@ -636,7 +675,7 @@ namespace boomerang304
 			InitTaskQueuePool(QTrails(), (void *)(TexBase() + POOL_Trails), 0x30, 0x20);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x1E4, 3);
 			InitTaskQueuePool(QSparks(), (void *)(TexBase() + POOL_Sparks), 0x24, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x28);
@@ -689,18 +728,40 @@ namespace boomerang304
 		ms->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The sword thrown from the caster's hand along the targets and back, spinning, with its trail, a hit layout and sparks at each target it passes, the sound; each target's action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "The throw (the main task's counter 5)", (uint32_t)offsetof(BoomerangSwordParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag304_boomerang_sword()
 	{
+		fxp::register_params({ 304, "Boomerang Sword", &boomerang304::live, &boomerang304::GAME, sizeof(boomerang304::BoomerangSwordParams),
+		                       boomerang304::table::PARTS, (int)(sizeof(boomerang304::table::PARTS) / sizeof(boomerang304::table::PARTS[0])),
+		                       boomerang304::table::FIELDS, (int)(sizeof(boomerang304::table::FIELDS) / sizeof(boomerang304::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(boomerang304::ORIG_FileLoader, (void *)boomerang304::FileLoader);
+		own::note(boomerang304::ORIG_Setup, (void *)boomerang304::Setup);
+		own::note(boomerang304::ORIG_MasterTask, (void *)boomerang304::MasterTask);
 		register_port(boomerang304::ORIG_MasterTask, (void *)boomerang304::MasterTask, "304 MasterTask", 304);
+		own::note(boomerang304::ORIG_MainTask, (void *)boomerang304::MainTask);
 		register_port(boomerang304::ORIG_MainTask, (void *)boomerang304::MainTask, "304 MainTask", 304);
+		own::note(boomerang304::ORIG_TrailTask, (void *)boomerang304::TrailTask);
 		register_port(boomerang304::ORIG_TrailTask, (void *)boomerang304::TrailTask, "304 TrailTask", 304);
+		own::note(boomerang304::ORIG_HitTask, (void *)boomerang304::HitTask);
 		register_port(boomerang304::ORIG_HitTask, (void *)boomerang304::HitTask, "304 HitTask", 304);
+		own::note(boomerang304::ORIG_SparkTask, (void *)boomerang304::SparkTask);
 		register_port(boomerang304::ORIG_SparkTask, (void *)boomerang304::SparkTask, "304 SparkTask", 304);
 		// 30 fps layer: see mag304_boomerang_sword_held.inc
 		FX_HELD(register_mag304_held();)
 	}
+	FX_LAB_MODULE(register_mag304_boomerang_sword);
 }
 
 #ifdef FF8_FX_HELD
