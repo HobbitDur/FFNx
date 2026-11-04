@@ -57,8 +57,14 @@
 // +0x2C (ambient colour), the update flags (& ~0x400), the camera save words 0xB8B800..0xB8B80F and
 // 0x1D977A0 and, through the camera-script task, the battle camera.
 // Module globals: 0x24C3270..0x24C66AC.
+// Fujin's described final form appearing (effect_076.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the setup and the file loader ported below; its parameters (FinalFormParams: the
+// two sounds, the caster's sinking, the voice release and end ticks, the halo, the ring).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <string.h>
 
 namespace ff8fx
@@ -79,22 +85,23 @@ namespace uff076
 
 	// --- module globals ---
 	static const uint32_t SPAWN_POS = 0x24C3270;                      // 4 x int16 (Flash1 / Flash2 anchor)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x24C3290; }      // pool 0x24C3280, 1 x 0x10
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x24C3290); }      // pool 0x24C3280, 1 x 0x10
 	static const uint32_t POOL1 = 0x24C32A0, POOL1_END = 0x24C3F20;   // 100 x 0x20
 	static const uint32_t POOL2 = 0x24C3F20, POOL2_END = 0x24C5820;   // 200 x 0x20
-	inline uint8_t &FanfareDone() { return var<uint8_t>(0x24C5820); }
+	inline uint8_t &FanfareDone() { return var<uint8_t>(own::R(0x24C5820)); }
 	static const uint32_t SAVED_XY = 0x24C5828, SAVED_Z = 0x24C582C;  // caster +0x1C / +0x20 dwords
-	inline int16_t SavedX() { return var<int16_t>(0x24C5828); }
-	inline int16_t SavedY() { return var<int16_t>(0x24C582A); }
-	inline int16_t SavedZ() { return var<int16_t>(0x24C582C); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x24C5830; }    // pool 0x24C5840, 0x64 x 0x24
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24C6650); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x24C6658); }
+	inline int16_t SavedX() { return var<int16_t>(own::R(0x24C5828)); }
+	inline int16_t SavedY() { return var<int16_t>(own::R(0x24C582A)); }
+	inline int16_t SavedZ() { return var<int16_t>(own::R(0x24C582C)); }
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x24C5830); }    // pool 0x24C5840, 0x64 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24C6650)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x24C6658)); }
 	static const uint32_t CASTER_VIEW = 0x24C6660;                    // camera x CASTER_FRAME
 	static const uint32_t CASTER_FRAME = 0x24C6680;                   // caster entity +0x40 (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x24C66A0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24C66A4); }
-	inline uint32_t &Voice() { return var<uint32_t>(0x24C66A8); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x24C66A0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24C66A4)); }
+	inline uint32_t &Voice() { return var<uint32_t>(own::R(0x24C66A8)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24C6654)); }                // the effect's file (its TIM)
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
@@ -122,6 +129,22 @@ namespace uff076
 	static const uint32_t CAMERA_SCRIPT = 0xDE4160;
 	static const void *const SOUND_Voice = (const void *)0xDE3FF0;
 	static const void *const SOUND_Hit = (const void *)0xDE4148;
+	static const uint32_t ORIG_FileLoader = 0x61F980, ORIG_Setup = 0x61F9A0;
+	static const uint32_t TEXTURE_NAME = 0xDE4224;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FinalFormParams
+	{
+		struct { uint32_t voice, hit; } sounds;            // the voice claimed at the master's start; the hit sound (tick 0x1FF)
+		struct { int16_t sink, voice_release, end; } master;   // the caster's sinking a tick (ticks 0x5A..0xB3); the voice released / the end at these ticks
+		struct { int16_t scale, step; } halo;              // the halo (tick 0x96): its scale, its growth
+		struct { int16_t spin, size; } ring;               // the ring (tick 0x206): its spin a tick, its size
+	};
+	static const FinalFormParams GAME = { { 0xDE3FF0, 0xDE4148 }, { 0x37, 0x296, 0x299 }, { 0x800, 0x1800 }, { 0x10, 0x680 } };
+	static FinalFormParams live = GAME;
+	static const FinalFormParams &PF() { return live; }
 	static const uint32_t FANFARE = 0xEAA7EC;
 	static const uint32_t WAV_DIR = 0x1A77F88, WAV_NAME = 0xDE4230;   // directory string, 10 name bytes
 
@@ -485,7 +508,7 @@ namespace uff076
 	// au_re_BdLinkTask_59 (0x61FC40): a master-queue task, counter and +0xE cleared
 	static Node *AddMasterTask(uint32_t fn)
 	{
-		Node *n = (Node *)AddTaskToQueue(QMaster(), fn);
+		Node *n = (Node *)AddTaskToQueue(QMaster(), own::Fn(fn));   // (its callers pass the task's original)
 		n->counter = 0;
 		n->e = 0;
 		return n;
@@ -582,7 +605,7 @@ namespace uff076
 			const int32_t count = n->counter / 20 + 1;
 			for (int32_t k = 0; k < count; k++)
 			{
-				const uint32_t e = PoolFree(POOL1, POOL1_END);
+				const uint32_t e = PoolFree(own::R(POOL1), own::R(POOL1_END));
 				if (!e) break;
 				U32(e, 0) = 1;
 				S16(e, 4) = 0;
@@ -612,7 +635,7 @@ namespace uff076
 		int32_t alive = 0;
 		BaseMatrix(s, 0xFA0);
 		S32(s, 0x70) = 0;
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x20)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x20)
 		{
 			if (!(U8(e, 0) & 1)) continue;
 			BurstDraw(s, h, e);
@@ -675,7 +698,7 @@ namespace uff076
 		const uint32_t s = P(FieldAlloc(0x78));
 		if (!DrawOnly() && n->counter <= 0x32 && n->counter % 4 == 0)
 		{
-			const uint32_t e = PoolFree(POOL1, POOL1_END);
+			const uint32_t e = PoolFree(own::R(POOL1), own::R(POOL1_END));
 			if (e)
 			{
 				U32(e, 0) = 2;
@@ -699,7 +722,7 @@ namespace uff076
 		int32_t alive = 0;
 		BaseMatrix(s, 0xFA0);
 		S32(s, 0x6C) = 0x6000;
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x20)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x20)
 		{
 			if (!(U8(e, 0) & 2)) continue;
 			SpinDraw(s, h, e);
@@ -766,7 +789,7 @@ namespace uff076
 		const uint32_t s = P(FieldAlloc(0x98));
 		if (!DrawOnly() && n->counter <= 0x5A && n->counter % 3 == 0)
 		{
-			const uint32_t e = PoolFree(POOL2, POOL2_END);
+			const uint32_t e = PoolFree(own::R(POOL2), own::R(POOL2_END));
 			if (e)
 			{
 				U32(e, 0) = 1;
@@ -800,7 +823,7 @@ namespace uff076
 		S16(s, 4) = 0;
 		S16(s, 0) = 0;
 		S32(s, 0x90) = 0;
-		for (uint32_t e = POOL2; e < POOL2_END; e += 0x20)
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x20)
 		{
 			if (!(U8(e, 0) & 1)) continue;
 			RiseDraw(s, h, e);
@@ -879,7 +902,7 @@ namespace uff076
 		{
 			for (int32_t k = 0; k < 10; k++)
 			{
-				const uint32_t e = PoolFree(POOL1, POOL1_END);
+				const uint32_t e = PoolFree(own::R(POOL1), own::R(POOL1_END));
 				if (!e) break;
 				U32(e, 0) = 4;
 				S16(e, 4) = 0;
@@ -912,7 +935,7 @@ namespace uff076
 		U32(h, 8) = 0;
 		int32_t alive = 0;
 		BaseMatrix(s, 0);
-		for (uint32_t e = POOL1; e < POOL1_END; e += 0x20)
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x20)
 		{
 			if (!(U8(e, 0) & 4)) continue;
 			if (S16(e, 6) == 0) Burst2Draw(s, h, e);
@@ -992,7 +1015,7 @@ namespace uff076
 		{
 			for (int32_t k = 0; k < 10; k++)
 			{
-				const uint32_t e = PoolFree(POOL2, POOL2_END);
+				const uint32_t e = PoolFree(own::R(POOL2), own::R(POOL2_END));
 				if (!e) break;
 				U32(e, 0) = 1;
 				S16(e, 4) = 0;
@@ -1027,7 +1050,7 @@ namespace uff076
 		U32(h, 8) = 0;
 		int32_t alive = 0;
 		BaseMatrix(s, 0);
-		for (uint32_t e = POOL2; e < POOL2_END; e += 0x20)
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x20)
 		{
 			if (!(U8(e, 0) & 1)) continue;
 			DebrisDraw(s, h, e);
@@ -1286,7 +1309,7 @@ namespace uff076
 	// MAG_076_sub_6200A0: a feedback task for `ticks` ticks (kind 0: FeedbackA, else FeedbackB)
 	static void AddFeedbackTask(int32_t kind, int16_t ticks)
 	{
-		Node *n = (Node *)AddTaskToQueue(QMaster(), kind ? ORIG_FeedbackB : ORIG_FeedbackA);
+		Node *n = (Node *)AddTaskToQueue(QMaster(), own::Fn(kind ? ORIG_FeedbackB : ORIG_FeedbackA));
 		n->counter = 0;
 		n->e = ticks;
 	}
@@ -1335,8 +1358,8 @@ namespace uff076
 		if (n->counter == 0)
 		{
 			uint8_t *c = Caster();
-			var<uint32_t>(SAVED_XY) = *(const uint32_t *)(c + 0x1C);
-			var<uint32_t>(SAVED_Z) = *(const uint32_t *)(c + 0x20);
+			var<uint32_t>(own::R(SAVED_XY)) = *(const uint32_t *)(c + 0x1C);
+			var<uint32_t>(own::R(SAVED_Z)) = *(const uint32_t *)(c + 0x20);
 			SetScreenFlash(0x1000, 0);
 			*(int16_t *)(Caster() + 0x1E) = 0x1388;
 			*Caster() |= 4;
@@ -1372,13 +1395,13 @@ namespace uff076
 	static uint32_t __cdecl MasterTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
-		ComposeAffineTransform(&Camera(), M(CASTER_FRAME), M(CASTER_VIEW));
+		ComposeAffineTransform(&Camera(), M(own::R(CASTER_FRAME)), M(own::R(CASTER_VIEW)));
 		if (DrawOnly()) return 0;
 		if (n->counter == 0)
 		{
-			CameraScriptStart(CAMERA_SCRIPT, CASTER_FRAME, Caster(), QMaster(), 0);
+			CameraScriptStart(CAMERA_SCRIPT, own::R(CASTER_FRAME), Caster(), QMaster(), 0);
 			ArmCameraReturn();
-			Voice() = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			Voice() = ClaimVoiceSlot((const void *)fxp::sound(PF().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 		}
 		int32_t c = n->counter;
 		if (c < 0x28)
@@ -1401,14 +1424,14 @@ namespace uff076
 		else if ((c -= 0x32) < 0x5A)
 		{
 			if (c == 0x46) ChainTransformation(Caster(), 0x10);
-			*(int16_t *)(Caster() + 0x1E) = (int16_t)(*(int16_t *)(Caster() + 0x1E) - 0x37);
+			*(int16_t *)(Caster() + 0x1E) = (int16_t)(*(int16_t *)(Caster() + 0x1E) - PF().master.sink);
 			if (c == 1) AddMasterTask(ORIG_Rise);
 			else if (c == 0x3C)
 			{
-				Node *h = (Node *)AddTaskToQueue(QMaster(), ORIG_Halo); // au_re_BdLinkTask_60
+				Node *h = (Node *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Halo)); // au_re_BdLinkTask_60
 				h->counter = 0;
-				h->scale = 0x800;
-				h->step = 0x1800;
+				h->scale = PF().halo.scale;
+				h->step = PF().halo.step;
 			}
 		}
 		else if ((c -= 0x5A) < 0x3C)
@@ -1427,9 +1450,9 @@ namespace uff076
 			else if (c == 0xEF)
 			{
 				// MAG_076_sub_620D60
-				GetEffectSpawnPosition(Caster(), 0xF0, 0x800, (int16_t *)SPAWN_POS);
-				Node *f = (Node *)AddTaskToQueue(QMaster(), ORIG_Flash1);
-				memcpy(f->pos, (const void *)SPAWN_POS, 8);
+				GetEffectSpawnPosition(Caster(), 0xF0, 0x800, (int16_t *)own::R(SPAWN_POS));
+				Node *f = (Node *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Flash1));
+				memcpy(f->pos, (const void *)own::R(SPAWN_POS), 8);
 				f->counter = 0;
 				f->step = 0xC00;
 				f->scale = 0xC00;
@@ -1438,8 +1461,8 @@ namespace uff076
 			else if (c == 0xF3)
 			{
 				// au_re_BdLinkTask_61
-				Node *f = (Node *)AddTaskToQueue(QMaster(), ORIG_Flash2);
-				memcpy(f->pos, (const void *)SPAWN_POS, 8);
+				Node *f = (Node *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Flash2));
+				memcpy(f->pos, (const void *)own::R(SPAWN_POS), 8);
 				f->counter = 0;
 				f->step = 0x255;
 				f->scale = 0x255;
@@ -1448,18 +1471,18 @@ namespace uff076
 		}
 		else if ((c -= 0x10E) < 0x5F)
 		{
-			if (c == 1) BdPlaySE(SOUND_Hit, 0, 0x80);
+			if (c == 1) BdPlaySE((const void *)fxp::sound(PF().sounds.hit, (uint32_t)SOUND_Hit), 0, 0x80);
 			else if (c == 0) ChainTransformation(Caster(), 0x11);
 			else if (c == 8)
 			{
 				// MAG_076_sub_6210A0
-				Node *r = (Node *)AddTaskToQueue(QMaster(), ORIG_Ring);
+				Node *r = (Node *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Ring));
 				r->counter = 0;
 				GetEffectSpawnPosition(Caster(), 0xF1, 0, r->pos);
 				r->angle = (int16_t)(CrtRand() % 0x800);
-				r->spin = 0x10;
-				r->step = 0x680;
-				r->scale = 0x680;
+				r->spin = PF().ring.spin;
+				r->step = PF().ring.size;
+				r->scale = PF().ring.size;
 				AddMasterTask(ORIG_Burst2);
 			}
 			else if (c == 6) AddMasterTask(ORIG_Debris);
@@ -1473,15 +1496,43 @@ namespace uff076
 		{
 			if (c == 0) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		}
-		if (n->counter == 0x296 && VoiceBusy(Voice())) VoiceRelease(Voice());
+		if (n->counter == PF().master.voice_release && VoiceBusy(Voice())) VoiceRelease(Voice());
 		n->counter++;
-		if (n->counter <= 0x299) return 0;
+		if (n->counter <= PF().master.end) return 0;
 		SetScreenFlash(0, 0);
 		memcpy((void *)0xB8B800, (const void *)0xB8B7F0, 0x10);
 		var<int16_t>(0x1D977A0) = var<int16_t>(0x1D8E038);
 		Sub4A8480(1);
 		var<uint32_t>(0x1D96A9C) &= ~0x400u;
 		return TASK_END;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x61F980) and setup (0x61F9A0): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer, the cast, its first target and caster slots, the root and the intro,
+	// both particle pools freed, the texture, the caster's matrix kept
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x24C3278)) = ctx->actions->targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x24C3280), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x24C5840), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Intro)) + 0xC) = 0;
+		for (uint32_t e = own::R(POOL1); e < own::R(POOL1_END); e += 0x20) *(uint32_t *)e = 0;
+		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x20) *(uint32_t *)e = 0;
+		QueueTimUpload(TexFile());
+		memcpy((void *)own::R(CASTER_FRAME), Entity(CasterSlot()) + 0x40, 0x20);
+		return QRoot();
 	}
 
 	// ------------------------------------------------------------------
@@ -1497,29 +1548,77 @@ namespace uff076
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define FP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(FinalFormParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The intro (the caster hidden high, the fanfare, the battle model swap, the music), then the master's 0x29A-tick timeline: the camera script, the chains, the bursts, spins, rises, halo, flashes, messages, the ring, debris and feedback; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The voice claimed at the master's start; the hit at tick 0x1FF" },
+			{ "halo", "Halo", "Spawned at tick 0x96: its scale, its growth" },
+			{ "ring", "Ring", "Spawned at tick 0x206 at the caster's point 0xF1: its spin a tick, its size" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sounds.voice", "Voice", "", (uint32_t)offsetof(FinalFormParams, sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.hit", "Hit", "", (uint32_t)offsetof(FinalFormParams, sounds.hit), fxp::Sound, 0, 0x7FFFFFFF },
+			FP("master", master.sink, "Sink", "The caster's sinking a tick over ticks 0x5A..0xB3 (back up at 0xB4)", -0x400, 0x400),
+			FP("master", master.voice_release, "Voice release", "The voice released at this tick", 0, 0x299),
+			FP("master", master.end, "End after", "The flash off, the camera saved, the effect done after this tick", 0x25D, 0x400),
+			FP("master", halo.scale, "Scale", "", 0, 0x7FFF),
+			FP("master", halo.step, "Growth", "", 0, 0x7FFF),
+			FP("master", ring.spin, "Spin", "", -0x400, 0x400),
+			FP("master", ring.size, "Size", "", 0, 0x7FFF),
+		};
+#undef FP
+	}
 }
 
 	void register_mag076_ultimecia_final_form_spawn()
 	{
+		fxp::register_params({ 76, "Ultimecia's final form appears", &uff076::live, &uff076::GAME, sizeof(uff076::FinalFormParams),
+		                       uff076::table::PARTS, (int)(sizeof(uff076::table::PARTS) / sizeof(uff076::table::PARTS[0])),
+		                       uff076::table::FIELDS, (int)(sizeof(uff076::table::FIELDS) / sizeof(uff076::table::FIELDS[0])),
+		                       uff076::table::GROUPS, (int)(sizeof(uff076::table::GROUPS) / sizeof(uff076::table::GROUPS[0])) });
+		own::note(uff076::ORIG_FileLoader, (void *)uff076::FileLoader);
+		own::note(uff076::ORIG_Setup, (void *)uff076::Setup);
+		own::note(uff076::ORIG_RootTask, (void *)uff076::RootTask);
 		register_port(uff076::ORIG_RootTask, (void *)uff076::RootTask, "U076 RootTask", 76);
+		own::note(uff076::ORIG_Intro, (void *)uff076::IntroTask);
 		register_port(uff076::ORIG_Intro, (void *)uff076::IntroTask, "U076 Intro", 76);
+		own::note(uff076::ORIG_Wait, (void *)uff076::WaitTask);
 		register_port(uff076::ORIG_Wait, (void *)uff076::WaitTask, "U076 Wait", 76);
+		own::note(uff076::ORIG_Master, (void *)uff076::MasterTask);
 		register_port(uff076::ORIG_Master, (void *)uff076::MasterTask, "U076 Master", 76);
+		own::note(uff076::ORIG_FeedbackA, (void *)uff076::FeedbackA);
 		register_port(uff076::ORIG_FeedbackA, (void *)uff076::FeedbackA, "U076 FeedbackA", 76);
+		own::note(uff076::ORIG_FeedbackB, (void *)uff076::FeedbackB);
 		register_port(uff076::ORIG_FeedbackB, (void *)uff076::FeedbackB, "U076 FeedbackB", 76);
+		own::note(uff076::ORIG_Burst, (void *)uff076::BurstTask);
 		register_port(uff076::ORIG_Burst, (void *)uff076::BurstTask, "U076 Burst", 76);
+		own::note(uff076::ORIG_Spin, (void *)uff076::SpinTask);
 		register_port(uff076::ORIG_Spin, (void *)uff076::SpinTask, "U076 Spin", 76);
+		own::note(uff076::ORIG_Rise, (void *)uff076::RiseTask);
 		register_port(uff076::ORIG_Rise, (void *)uff076::RiseTask, "U076 Rise", 76);
+		own::note(uff076::ORIG_Halo, (void *)uff076::HaloTask);
 		register_port(uff076::ORIG_Halo, (void *)uff076::HaloTask, "U076 Halo", 76);
+		own::note(uff076::ORIG_Flash1, (void *)uff076::Flash1Task);
 		register_port(uff076::ORIG_Flash1, (void *)uff076::Flash1Task, "U076 Flash1", 76);
+		own::note(uff076::ORIG_Flash2, (void *)uff076::Flash2Task);
 		register_port(uff076::ORIG_Flash2, (void *)uff076::Flash2Task, "U076 Flash2", 76);
+		own::note(uff076::ORIG_Ring, (void *)uff076::RingTask);
 		register_port(uff076::ORIG_Ring, (void *)uff076::RingTask, "U076 Ring", 76);
+		own::note(uff076::ORIG_Burst2, (void *)uff076::Burst2Task);
 		register_port(uff076::ORIG_Burst2, (void *)uff076::Burst2Task, "U076 Burst2", 76);
+		own::note(uff076::ORIG_Debris, (void *)uff076::DebrisTask);
 		register_port(uff076::ORIG_Debris, (void *)uff076::DebrisTask, "U076 Debris", 76);
+		own::note(uff076::ORIG_TexRestore, (void *)uff076::TexRestoreTask);
 		register_port(uff076::ORIG_TexRestore, (void *)uff076::TexRestoreTask, "U076 TexRestore", 76);
 		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(register_mag076_held();)
 	}
+	FX_LAB_MODULE(register_mag076_ultimecia_final_form_spawn);
 }
 
 #ifdef FF8_FX_HELD
