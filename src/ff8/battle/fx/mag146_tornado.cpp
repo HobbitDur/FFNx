@@ -52,8 +52,14 @@
 // Module globals: 0x2491BC0..0x24AA62C (crater grid / links, rings, packets, pools, queues, cast
 // context 0x24946DC, packet arenas and cursor 0x24AA628); exe data written: the funnel matrix
 // translation 0xDD674C..0xDD6757 and the OT link of the capture's static packet 0xDD6780.
+// Fujin's described Tornado (effect_146.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn() (Add), the setup and the file loader ported below; its parameters (TornadoParams: the two sounds,
+// the damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -74,10 +80,10 @@ namespace tornado146
 	inline void Copy8(uint32_t dst, uint32_t src) { U32(dst, 0) = U32(src, 0); U32(dst, 4) = U32(src, 4); }
 
 	// --- module globals ---
-	inline uint32_t &TimFile() { return var<uint32_t>(0x2495228); }       // mag145.tim (texture restore)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24946DC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24AA628); }
-	inline uint32_t &Parity() { return var<uint32_t>(0x24AA624); }       // root counter & 1
+	inline uint32_t &TimFile() { return var<uint32_t>(own::R(0x2495228)); }       // mag145.tim (texture restore)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24946DC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24AA628)); }
+	inline uint32_t &Parity() { return var<uint32_t>(own::R(0x24AA624)); }       // root counter & 1
 	static const uint32_t Q_ROOT = 0x24936E8, Q_FX = 0x2493750;
 	static const uint32_t ARENA_EVEN = 0x249A624, ARENA_ODD = 0x24A2624;
 	// crater mesh grid: 9 x 8 cells of 0x200 (u32 head: 1 = empty), links of 12 bytes (next, triangle, 0)
@@ -103,6 +109,20 @@ namespace tornado146
 	static const uint32_t MORPH_Model = 0xDD0B2C, MORPH_Base = 0xDD0B34, MORPH_Target = 0xDD181C;
 	static const void *const SOUND_Wind = (const void *)0xDD6638;
 	static const void *const SOUND_Land = (const void *)0xDD663C;
+	static const uint32_t ORIG_FileLoader = 0x614D50, ORIG_Setup = 0x614D70;
+	static const uint32_t TEXTURE_NAME = 0xDD6798, CAMERA_ANIM = 0xDD05F8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct TornadoParams
+	{
+		struct { uint32_t wind, land; } sounds; // the wind at the director's tick 1, a piece landing
+		struct { int16_t damage; } director;    // the damage at this tick of an action's director
+	};
+	static const TornadoParams GAME = { { 0xDD6638, 0xDD663C }, { 0x52 } };
+	static TornadoParams live = GAME;
+	static const TornadoParams &PT() { return live; }
 
 	// battle / stage
 	static const uint32_t STAGE_Ground = 0x1D989C0;    // stage group 1 (skeleton +0, objects +4)
@@ -129,7 +149,7 @@ namespace tornado146
 	static const uint32_t ORIG_TexRestore = 0x618480;
 
 	// --- engine functions (original addresses) ---
-	inline uint32_t Add(uint32_t q, uint32_t task) { return (uint32_t)AddTaskToQueue((TaskQueue *)q, task); }
+	inline uint32_t Add(uint32_t q, uint32_t task) { return (uint32_t)AddTaskToQueue((TaskQueue *)q, own::Fn(task)); }   // (a copy: the port's thunk)
 	inline int32_t Sin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D130)(a); }   // computeSin
 	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }   // computeCosine
 	inline void BuildRot(uint32_t angles, uint32_t m) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56CD50)(angles, m); }
@@ -220,15 +240,40 @@ namespace tornado146
 	// ------------------------------------------------------------------
 	// Root task (0x618560): node +0x0C counter
 	// ------------------------------------------------------------------
+	// File loader (0x614D50) and setup (0x614D70): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the first action's director, the
+	// camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TimFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TimFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x2491E3C)) = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x2494AA0)) = ctx->attacker;
+		InitTaskQueuePool((TaskQueue *)own::R(Q_ROOT), (void *)own::R(0x24936C8), 0x10, 2);
+		S16(Add(own::R(Q_ROOT), ORIG_Root), 0xC) = 0;
+		InitTaskQueuePool((TaskQueue *)own::R(Q_FX), (void *)own::R(0x2493760), 0x24, 100);
+		const uint32_t d = Add(own::R(Q_FX), ORIG_Director);
+		S16(d, 0xC) = 0;
+		S16(d, 0xE) = 0;
+		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		QueueTimUpload(TimFile());
+		return (TaskQueue *)own::R(Q_ROOT);
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		uint32_t p = (uint32_t)n;
 		// 30 fps layer: see mag146_tornado_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
+		PacketCursor() = own::R(ARENA_ODD);
 		Parity() = U8(p, 0xC) & 1;
-		if (Parity() == 0) PacketCursor() = ARENA_EVEN;
-		int alive = ExecuteTaskQueue((TaskQueue *)Q_FX);
+		if (Parity() == 0) PacketCursor() = own::R(ARENA_EVEN);
+		int alive = ExecuteTaskQueue((TaskQueue *)own::R(Q_FX));
 		U16(p, 0xC) = (uint16_t)(U16(p, 0xC) + 1);
 		return alive ? 0 : TASK_END;
 	}
@@ -265,9 +310,9 @@ namespace tornado146
 		tri += 4;
 		U32(h, 0x38) = tri;
 		if (count <= 0) return;
-		int32_t first = S32(GRID_LinkCount, 0);
-		S32(GRID_LinkCount, 0) = first + count;
-		uint32_t link = GRID_Links + 12 * first;
+		int32_t first = S32(own::R(GRID_LinkCount), 0);
+		S32(own::R(GRID_LinkCount), 0) = first + count;
+		uint32_t link = own::R(GRID_Links) + 12 * first;
 		for (; count > 0; count--)
 		{
 			Copy8(h + 0x68, verts + U16(tri, 4) * 4);
@@ -275,7 +320,7 @@ namespace tornado146
 			Copy8(h + 0x78, verts + U16(tri, 8) * 4);
 			int32_t cx = Div512(Div3(S16(h, 0x78) + S16(h, 0x68) + S16(h, 0x70)) + 0x8D8);
 			int32_t cz = Div512(Div3(S16(h, 0x7C) + S16(h, 0x74) + S16(h, 0x6C)) + 0x80E);
-			uint32_t cell = GRID + (uint32_t)(cz * 9 + cx) * 4;
+			uint32_t cell = own::R(GRID) + (uint32_t)(cz * 9 + cx) * 4;
 			uint32_t head = U32(cell, 0);
 			if (head != 1) U32(link, 0) = head;
 			U32(cell, 0) = link;
@@ -289,9 +334,9 @@ namespace tornado146
 
 	static void GridBuild(uint32_t h)
 	{
-		for (int k = 0; k < 0x48; k++) U32(GRID, 4 * k) = 1;
-		U32(GRID_LinkCount, 0) = 0;
-		for (uint32_t l = GRID_Links; l < GRID_LinksEnd; l += 12) U32(l, 0) = 1;
+		for (int k = 0; k < 0x48; k++) U32(own::R(GRID), 4 * k) = 1;
+		U32(own::R(GRID_LinkCount), 0) = 0;
+		for (uint32_t l = own::R(GRID_Links); l < own::R(GRID_LinksEnd); l += 12) U32(l, 0) = 1;
 		uint32_t mesh = U32(h, 0x30);
 		uint32_t tri = mesh + U32(mesh, 0);
 		U32(h, 0x34) = mesh + 8;
@@ -326,7 +371,7 @@ namespace tornado146
 	{
 		for (int set = 0; set < 2; set++)
 		{
-			uint32_t base = FUNNEL_Packets + 0x2800 * set;
+			uint32_t base = own::R(FUNNEL_Packets) + 0x2800 * set;
 			uint16_t clut = set ? 0x3FD4 : 0x3F94, tpage = set ? 0xB6 : 0xB7;
 			for (int k = 0; k < 8; k++)
 			{
@@ -346,19 +391,19 @@ namespace tornado146
 			}
 		}
 		int32_t acc = 0;
-		for (uint32_t r = RINGS; r < RINGS + 17 * RING_SIZE; r += RING_SIZE, acc += 0x50)
+		for (uint32_t r = own::R(RINGS); r < own::R(RINGS) + 17 * RING_SIZE; r += RING_SIZE, acc += 0x50)
 		{
 			S16(r, 0) = 0;
 			S16(r, 2) = (int16_t)Div16(acc);
 			S16(r, 4) = 0;
 			S32(r, 0x10) = 0x5DC;
 		}
-		S16(WANDER_Offset, 4) = 0;
-		S16(WANDER_Offset, 2) = 0;
-		S16(WANDER_Offset, 0) = 0;
-		S16(WANDER_Angle, 4) = 0;
-		S16(WANDER_Angle, 2) = 0;
-		S16(WANDER_Angle, 0) = 0;
+		S16(own::R(WANDER_Offset), 4) = 0;
+		S16(own::R(WANDER_Offset), 2) = 0;
+		S16(own::R(WANDER_Offset), 0) = 0;
+		S16(own::R(WANDER_Angle), 4) = 0;
+		S16(own::R(WANDER_Angle), 2) = 0;
+		S16(own::R(WANDER_Angle), 0) = 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -418,7 +463,8 @@ namespace tornado146
 		Insert(OT44(), pk.offset);
 	}
 
-	static const CapturePackets CAPTURE_PACKETS = { PKT_Env, PKT_Black, PKT_Mask, PKT_Area, PKT_Offset, OFFSET_XY };
+	// (built at the call: a static would keep the game's addresses in a copy)
+	inline CapturePackets CAPTURE_PACKETS() { return { own::R(PKT_Env), PKT_Black, own::R(PKT_Mask), own::R(PKT_Area), own::R(PKT_Offset), own::R(OFFSET_XY) }; }
 
 	// ------------------------------------------------------------------
 	// 0x617BD0: morph deltas (target - base) / 12 of the 120 cloud vertices
@@ -427,7 +473,7 @@ namespace tornado146
 	{
 		for (int i = 0; i < 120; i++)
 			for (int c = 0; c < 3; c++)
-				S16(MORPH_Delta + 8 * i, 2 * c) = (int16_t)((S16(target + 8 * i, 2 * c) - S16(base + 8 * i, 2 * c)) / 12);
+				S16(own::R(MORPH_Delta) + 8 * i, 2 * c) = (int16_t)((S16(target + 8 * i, 2 * c) - S16(base + 8 * i, 2 * c)) / 12);
 	}
 
 	// ------------------------------------------------------------------
@@ -446,7 +492,7 @@ namespace tornado146
 			S16(d, 0x22) = 0;
 			// 30 fps layer: see mag146_tornado_held.inc
 			FX_HELD(held_note_capture(d);)
-			Capture(d + 0x10, CAPTURE_PACKETS);
+			Capture(d + 0x10, CAPTURE_PACKETS());
 			uint32_t h = Alloc(0xC8);
 			U32(h, 0x30) = MESH_Crater;
 			GridBuild(h);
@@ -457,7 +503,7 @@ namespace tornado146
 		{
 			for (int k = 0; k < 15; k++)
 			{
-				uint32_t p = Add(Q_FX, ORIG_Piece);
+				uint32_t p = Add(own::R(Q_FX), ORIG_Piece);
 				U32(p, 0x10) = U32(d, 0x10);
 				S16(p, 0xC) = 0;
 				S16(p, 0xE) = (int16_t)k;
@@ -476,32 +522,32 @@ namespace tornado146
 				S16(p, 0x22) = (int16_t)spin;
 				if (U8(p, 0x1A) & 1) S16(p, 0x22) = (int16_t)-spin;
 			}
-			uint32_t g = Add(Q_FX, ORIG_Ground);
+			uint32_t g = Add(own::R(Q_FX), ORIG_Ground);
 			U32(g, 0x10) = U32(d, 0x10);
 			S16(g, 0xC) = 0;
 			U32(g, 0x14) = U32(d, 0x14);
 		}
 		if (S16(d, 0xC) == 1)
 		{
-			uint32_t f = Add(Q_FX, ORIG_Funnel);
+			uint32_t f = Add(own::R(Q_FX), ORIG_Funnel);
 			U32(f, 0x10) = U32(d, 0x10);
 			S16(f, 0xC) = 0;
 			U32(f, 0x14) = U32(d, 0x14);
 			MorphDeltas(MORPH_Base, MORPH_Target);
 			if (S16(d, 0xC) == 1)
 			{
-				uint32_t s = Add(Q_FX, ORIG_Sparks);
+				uint32_t s = Add(own::R(Q_FX), ORIG_Sparks);
 				U32(s, 0x10) = U32(d, 0x10);
 				S16(s, 0xC) = 0;
 				U32(s, 0x14) = U32(d, 0x14);
-				for (uint32_t e = SPARKS; e < SPARKS_End; e += 0x10) S32(e, 0) = -1;
+				for (uint32_t e = own::R(SPARKS); e < own::R(SPARKS_End); e += 0x10) S32(e, 0) = -1;
 			}
 		}
 		int16_t c = S16(d, 0xC);
 		if (c >= 2 && c <= 0x46 && c % 12 == 2)
 		{
 			U16(d, 0x22) ^= 1;
-			uint32_t m = Add(Q_FX, ORIG_Morph);
+			uint32_t m = Add(own::R(Q_FX), ORIG_Morph);
 			U16(m, 0xE) = U16(d, 0x22);
 			U32(m, 0x10) = U32(d, 0x10);
 			S16(m, 0xC) = 0;
@@ -510,7 +556,7 @@ namespace tornado146
 		}
 		if (S16(d, 0xC) == 1)
 		{
-			uint32_t l = Add(Q_FX, ORIG_Lift);
+			uint32_t l = Add(own::R(Q_FX), ORIG_Lift);
 			U16(l, 0xE) = U16(d, 0xE);
 			U32(l, 0x10) = U32(d, 0x10);
 			S16(l, 0xC) = 0;
@@ -519,10 +565,10 @@ namespace tornado146
 		}
 		if (U16(d, 0xE) == (uint16_t)Ctx()->actions[0].last_action && S16(d, 0xC) == 0x4E)
 		{
-			uint32_t t = Add(Q_ROOT, ORIG_TexRestore);
+			uint32_t t = Add(own::R(Q_ROOT), ORIG_TexRestore);
 			S16(t, 0xC) = 0;
 		}
-		if (S16(d, 0xC) == 0x52)
+		if (S16(d, 0xC) == PT().director.damage)
 		{
 			ActionData *ad = &Ctx()->actions[S16(d, 0xE)];
 			ApplyActionResultToTargets(ad->targets, ad->target_count);
@@ -532,7 +578,7 @@ namespace tornado146
 			int32_t next = S16(d, 0xE) + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				uint32_t t = Add(Q_FX, ORIG_Director);
+				uint32_t t = Add(own::R(Q_FX), ORIG_Director);
 				S16(t, 0xC) = 0;
 				S16(t, 0xE) = (int16_t)next;
 			}
@@ -542,7 +588,7 @@ namespace tornado146
 			ActionData *ad = &Ctx()->actions[S16(d, 0xE)];
 			int16_t pos[4];
 			AverageTargetPos((uint32_t)ad->targets, ad->target_count, (uint32_t)pos);
-			BdPlaySE3D(SOUND_Wind, 0, pos);
+			BdPlaySE3D((const void *)fxp::sound(PT().sounds.wind, (uint32_t)SOUND_Wind), 0, pos);
 		}
 		S16(d, 0xC) = (int16_t)(S16(d, 0xC) + 1);
 		return S16(d, 0xC) > 0x58 ? TASK_END : 0;
@@ -934,7 +980,7 @@ namespace tornado146
 		S32(h, 0x60) = 0;
 		for (int32_t r = r0; r < r1; r++)
 		{
-			uint32_t cell = GRID + (uint32_t)(r * 9 + c0) * 4;
+			uint32_t cell = own::R(GRID) + (uint32_t)(r * 9 + c0) * 4;
 			for (int32_t c = c0; c < c1; c++, cell += 4)
 			{
 				uint32_t link = U32(cell, 0);
@@ -1248,10 +1294,10 @@ namespace tornado146
 	{
 		uint32_t h = Alloc(0x28);
 		int32_t k = 16;
-		for (uint32_t ring = RINGS + 16 * RING_SIZE; ring >= RINGS; ring -= RING_SIZE, k--)
+		for (uint32_t ring = own::R(RINGS) + 16 * RING_SIZE; ring >= own::R(RINGS); ring -= RING_SIZE, k--)
 		{
 			uint32_t a = ring + 8;
-			if (ring > RINGS)
+			if (ring > own::R(RINGS))
 			{
 				for (int m = 0; m < 3; m++)
 				{
@@ -1261,16 +1307,16 @@ namespace tornado146
 			}
 			else
 			{
-				S16(a, 0) = S16(WANDER_Offset, 0);
-				S16(a, 2) = S16(WANDER_Offset, 2);
-				S16(a, 4) = S16(WANDER_Offset, 4);
+				S16(a, 0) = S16(own::R(WANDER_Offset), 0);
+				S16(a, 2) = S16(own::R(WANDER_Offset), 2);
+				S16(a, 4) = S16(own::R(WANDER_Offset), 4);
 				for (int m = 0; m < 3; m++)
 				{
 					int32_t r = CrtRand() % 512;
-					S16(WANDER_Angle, 2 * m) = (int16_t)(S16(WANDER_Angle, 2 * m) + (int16_t)(r - 0x100));
+					S16(own::R(WANDER_Angle), 2 * m) = (int16_t)(S16(own::R(WANDER_Angle), 2 * m) + (int16_t)(r - 0x100));
 				}
 				for (int m = 0; m < 3; m++)
-					S16(WANDER_Offset, 2 * m) = (int16_t)(S16(WANDER_Offset, 2 * m) + (int16_t)(shl32(Sin(S16(WANDER_Angle, 2 * m)), 9) >> 12));
+					S16(own::R(WANDER_Offset), 2 * m) = (int16_t)(S16(own::R(WANDER_Offset), 2 * m) + (int16_t)(shl32(Sin(S16(own::R(WANDER_Angle), 2 * m)), 9) >> 12));
 			}
 			RingPlace(ring, k, P, h);
 		}
@@ -1399,7 +1445,7 @@ namespace tornado146
 		int32_t c = S16(f, 0xC);
 		// 30 fps layer: see mag146_tornado_held.inc
 		FX_HELD(held_note_draw(ORIG_Funnel, f);)
-		FunnelDraw(RINGS, FUNNEL_Packets, c * 100, FunnelAlpha(c));
+		FunnelDraw(own::R(RINGS), own::R(FUNNEL_Packets), c * 100, FunnelAlpha(c));
 		if (DrawOnly()) return 0;
 		S16(f, 0xC) = (int16_t)(S16(f, 0xC) + 1);
 		return S16(f, 0xC) >= 0x4C ? TASK_END : 0;
@@ -1438,7 +1484,7 @@ namespace tornado146
 		uint32_t h = Alloc(0xB4);
 		U32(h, 0) = SEQ_Spark;
 		S16(h, 0x24) = 0;
-		for (uint32_t e = SPARKS; e < SPARKS_End; e += 0x10)
+		for (uint32_t e = own::R(SPARKS); e < own::R(SPARKS_End); e += 0x10)
 		{
 			if (S32(e, 0) < 0) continue;
 			// 30 fps layer: see mag146_tornado_held.inc
@@ -1456,12 +1502,12 @@ namespace tornado146
 			for (int32_t i = 0; i < count; i++)
 			{
 				int32_t k = 0;
-				uint32_t e = SPARKS;
+				uint32_t e = own::R(SPARKS);
 				while (S32(e, 0) >= 0)
 				{
 					e += 0x10;
 					k++;
-					if (e >= SPARKS_End) goto done;
+					if (e >= own::R(SPARKS_End)) goto done;
 				}
 				if (k >= 0x3C) break;
 				S32(e, 0) = 0;
@@ -1506,10 +1552,10 @@ namespace tornado146
 		S32(h, 0xC) = d * 341;
 		if (d < 12)
 		{
-			uint32_t buf = MORPH_Verts + S16(p, 0xE) * 0x3C0;
+			uint32_t buf = own::R(MORPH_Verts) + S16(p, 0xE) * 0x3C0;
 			for (int i = 0; i < 120; i++)
 				for (int c = 0; c < 3; c++)
-					S16(buf + 8 * i, 2 * c) = (int16_t)((int16_t)(S16(MORPH_Delta + 8 * i, 2 * c) * d) + S16(MORPH_Base + 8 * i, 2 * c));
+					S16(buf + 8 * i, 2 * c) = (int16_t)((int16_t)(S16(own::R(MORPH_Delta) + 8 * i, 2 * c) * d) + S16(MORPH_Base + 8 * i, 2 * c));
 			U32(h, 0x1C) = 0x20C0;
 			U32(h, 4) = buf;
 		}
@@ -1539,14 +1585,14 @@ namespace tornado146
 		uint32_t l = (uint32_t)n;
 		if (S16(l, 0xC) == 0)
 		{
-			for (uint32_t r = LIFT; r < LIFT_End; r += LIFT_SIZE) U32(r, 0) = 1;
+			for (uint32_t r = own::R(LIFT); r < own::R(LIFT_End); r += LIFT_SIZE) U32(r, 0) = 1;
 			int32_t count = Ctx()->actions[S16(l, 0xE)].target_count;
-			S32(TARGET_Count, 0) = count;
-			for (int32_t k = 0; k < S32(TARGET_Count, 0); k++)
+			S32(own::R(TARGET_Count), 0) = count;
+			for (int32_t k = 0; k < S32(own::R(TARGET_Count), 0); k++)
 			{
 				int32_t slot = Ctx()->actions[S16(l, 0xE)].targets[k * TARGET_STRIDE];
-				S32(TARGET_Slots, 4 * k) = slot;
-				uint32_t r = LIFT + LIFT_SIZE * slot;
+				S32(own::R(TARGET_Slots), 4 * k) = slot;
+				uint32_t r = own::R(LIFT) + LIFT_SIZE * slot;
 				uint32_t e = Entity(slot);
 				uint32_t e1C = U32(e, 0x1C), e20 = U32(e, 0x20), e0C = U32(e, 0xC), e10 = U32(e, 0x10);
 				U32(r, 0) = 0;
@@ -1573,7 +1619,7 @@ namespace tornado146
 		}
 		for (int slot = 0; slot < 7; slot++)
 		{
-			uint32_t r = LIFT + LIFT_SIZE * slot;
+			uint32_t r = own::R(LIFT) + LIFT_SIZE * slot;
 			uint32_t e = Entity(slot);
 			if (U32(r, 0) != 0) continue;
 			int16_t c = S16(l, 0xC);
@@ -1615,7 +1661,7 @@ namespace tornado146
 		if (DrawOnly()) return 0;
 		for (int slot = 0; slot < 7; slot++)
 		{
-			uint32_t r = LIFT + LIFT_SIZE * slot;
+			uint32_t r = own::R(LIFT) + LIFT_SIZE * slot;
 			uint32_t e = Entity(slot);
 			if (U32(r, 0) != 0) continue;
 			int16_t c = S16(l, 0xC);
@@ -1646,7 +1692,7 @@ namespace tornado146
 				S16(r, 0x1A) = (int16_t)(S16(r, 0x1A) + S16(r, 0x1E));
 			else if (c == 0x50)
 			{
-				uint32_t b = Add(Q_FX, ORIG_Debris);
+				uint32_t b = Add(own::R(Q_FX), ORIG_Debris);
 				U32(b, 0x10) = U32(r, 0x18);
 				int16_t first = S16(l, 0x18);
 				S16(b, 0xE) = first;
@@ -1654,8 +1700,8 @@ namespace tornado146
 				S16(b, 0xC) = 0;
 				int16_t end = (int16_t)(first + 0x14);
 				S16(l, 0x18) = end;
-				for (int32_t i = S16(b, 0xE); i < end; i++) U16(DEBRIS_Life + 8 * i, 6) = 0xFFFF;
-				BdPlaySE3D(SOUND_Land, 0x8000, (const int16_t *)(r + 0x18));
+				for (int32_t i = S16(b, 0xE); i < end; i++) U16(own::R(DEBRIS_Life) + 8 * i, 6) = 0xFFFF;
+				BdPlaySE3D((const void *)fxp::sound(PT().sounds.land, (uint32_t)SOUND_Land), 0x8000, (const int16_t *)(r + 0x18));
 			}
 			else
 				CameraShake() = (int16_t)(CameraShake() + ((c & 1) ? -12 : 12));
@@ -1664,7 +1710,7 @@ namespace tornado146
 		if (S16(l, 0xC) <= 0x53) return 0;
 		for (int slot = 0; slot < 7; slot++)
 		{
-			uint32_t r = LIFT + LIFT_SIZE * slot;
+			uint32_t r = own::R(LIFT) + LIFT_SIZE * slot;
 			uint32_t e = Entity(slot);
 			if (U32(r, 0) == 0) U16(e, 0) = (uint16_t)((U16(e, 0) & 0xEFDF) | U16(r, 4));
 		}
@@ -1705,7 +1751,7 @@ namespace tornado146
 		uint32_t b = (uint32_t)n;
 		uint32_t h = Alloc(0xB4);
 		int32_t first = S16(b, 0xE);
-		uint32_t pos0 = DEBRIS_Pos + 16 * first, life0 = DEBRIS_Life + 8 * first;
+		uint32_t pos0 = own::R(DEBRIS_Pos) + 16 * first, life0 = own::R(DEBRIS_Life) + 8 * first;
 		U32(h, 0) = SEQ_Spark;
 		S16(h, 0x24) = 0;
 		for (int i = 0; i < 0x14; i++)
@@ -1755,23 +1801,55 @@ namespace tornado146
 		S16(t, 0xC) = (int16_t)(S16(t, 0xC) + 1);
 		return done ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action: the crater's pieces and the ground redrawn, the funnel's rings, the sparks, the morph cloud, the targets lifted and the debris bursts, the screen flash and shake, the sounds; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The wind, a piece landing" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.wind", "Wind", "At the director's tick 1", (uint32_t)offsetof(TornadoParams, sounds.wind), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.land", "Land", "A piece landing", (uint32_t)offsetof(TornadoParams, sounds.land), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(TornadoParams, director.damage), fxp::I16, 0, 87 },
+		};
+	}
 }
 
 	void register_mag146_tornado()
 	{
+		fxp::register_params({ 146, "Tornado", &tornado146::live, &tornado146::GAME, sizeof(tornado146::TornadoParams),
+		                       tornado146::table::PARTS, (int)(sizeof(tornado146::table::PARTS) / sizeof(tornado146::table::PARTS[0])),
+		                       tornado146::table::FIELDS, (int)(sizeof(tornado146::table::FIELDS) / sizeof(tornado146::table::FIELDS[0])),
+		                       tornado146::table::GROUPS, (int)(sizeof(tornado146::table::GROUPS) / sizeof(tornado146::table::GROUPS[0])) });
+		own::note(tornado146::ORIG_FileLoader, (void *)tornado146::FileLoader);
+		own::note(tornado146::ORIG_Setup, (void *)tornado146::Setup);
+		own::note(tornado146::ORIG_Root, (void *)tornado146::RootTask);
 		register_port(tornado146::ORIG_Root, (void *)tornado146::RootTask, "146 RootTask", 146);
+		own::note(tornado146::ORIG_Director, (void *)tornado146::DirectorTask);
 		register_port(tornado146::ORIG_Director, (void *)tornado146::DirectorTask, "146 DirectorTask", 146);
+		own::note(tornado146::ORIG_Piece, (void *)tornado146::PieceTask);
 		register_port(tornado146::ORIG_Piece, (void *)tornado146::PieceTask, "146 PieceTask", 146);
+		own::note(tornado146::ORIG_Ground, (void *)tornado146::GroundTask);
 		register_port(tornado146::ORIG_Ground, (void *)tornado146::GroundTask, "146 GroundTask", 146);
+		own::note(tornado146::ORIG_Funnel, (void *)tornado146::FunnelTask);
 		register_port(tornado146::ORIG_Funnel, (void *)tornado146::FunnelTask, "146 FunnelTask", 146);
+		own::note(tornado146::ORIG_Sparks, (void *)tornado146::SparksTask);
 		register_port(tornado146::ORIG_Sparks, (void *)tornado146::SparksTask, "146 SparksTask", 146);
+		own::note(tornado146::ORIG_Morph, (void *)tornado146::MorphTask);
 		register_port(tornado146::ORIG_Morph, (void *)tornado146::MorphTask, "146 MorphTask", 146);
+		own::note(tornado146::ORIG_Lift, (void *)tornado146::LiftTask);
 		register_port(tornado146::ORIG_Lift, (void *)tornado146::LiftTask, "146 LiftTask", 146);
+		own::note(tornado146::ORIG_Debris, (void *)tornado146::DebrisTask);
 		register_port(tornado146::ORIG_Debris, (void *)tornado146::DebrisTask, "146 DebrisTask", 146);
+		own::note(tornado146::ORIG_TexRestore, (void *)tornado146::TexRestoreTask);
 		register_port(tornado146::ORIG_TexRestore, (void *)tornado146::TexRestoreTask, "146 TexRestoreTask", 146);
 		// 30 fps layer: see mag146_tornado_held.inc
 		FX_HELD(register_mag146_held();)
 	}
+	FX_LAB_MODULE(register_mag146_tornado);
 }
 
 #ifdef FF8_FX_HELD
