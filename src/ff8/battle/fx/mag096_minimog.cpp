@@ -22,8 +22,13 @@
 // prim-model sparkles (m_733FC0) and the particle actors (a_7348A0 / a_7353B0). Screen/entity
 // fades and the music volume (0x46BB40) are driven by the director's states.
 // Module globals: 0x257B740..0x257F8A0 (+ camera copy 0x2793E58, 0x20 bytes).
+// Fujin's described MiniMog (effect_096.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or thunks of
+// their ports (Spawn); its parameters (MiniMogParams: the two sounds) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 #ifdef FF8_FX_HELD
 #include "mag096_minimog_held.h"
@@ -33,6 +38,21 @@ namespace ff8fx
 {
 namespace act
 {
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	namespace minimog
+	{
+		static const uint32_t SOUND_A = 0x152BB94, SOUND_B = 0x152BB98;
+		struct MiniMogParams
+		{
+			struct { uint32_t cue, moogle; } sounds;   // the director's first cue, MiniMog appearing
+		};
+		static const MiniMogParams GAME = { { SOUND_A, SOUND_B } };
+		static MiniMogParams live = GAME;
+		static const MiniMogParams &PM() { return live; }
+	}
+
 	// module ports of this file (32-bit words in and out, cdecl, like the originals)
 	uint32_t __cdecl m_731F70(uint32_t a1); // 0x731F70 MAG_096_sub_731F70 TASK, 88 insns
 	uint32_t __cdecl m_732250(uint32_t a1); // 0x732250 MAG_096_sub_732250, 21 insns
@@ -93,7 +113,7 @@ namespace act
 	{
 		inline uint32_t m1_add_task(uint32_t queue, uint32_t fn, uint32_t size, uint32_t parent)
 		{
-			return x::Effect_AddTaskAndInitFromCtx(queue, fn, size, parent);
+			return Spawn(queue, fn, size, parent);
 		}
 		// common task tail (after ++frame counter): end (release linked task, return 2) when
 		// finished (status read before the increment) and no children are alive
@@ -111,7 +131,7 @@ namespace act
 		{
 			if (a_73AE10() == 1)
 			{
-				a_73AB20(script, MEM<uint32_t>(0x152BB90), 0);
+				a_73AB20(script, MEM<uint32_t>(G(G_1533010)), 0);
 				U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			}
 		}
@@ -128,6 +148,8 @@ namespace act
 	// state table, then executes the 8 module task queues (live task count -> node +0x5E).
 	uint32_t __cdecl m_731F70(uint32_t a1)
 	{
+		g_mod = &MOD_096;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		set_mod_by_code(U32(a1, 8));      // node +8 = original task function address -> current module
 		// 30 fps layer: see act_engine_held.inc
 		FX_HELD(held_note_master();)
@@ -135,8 +157,8 @@ namespace act
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x257F71C) = 0x2793E58;
-		MEM<uint32_t>(0x257B850) = 0x2793E58;
+		MEM<uint32_t>(R(0x257F71C)) = 0x2793E58;
+		MEM<uint32_t>(R(0x257B850)) = 0x2793E58;
 		states[0] = 0x732100;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x732110;
@@ -151,24 +173,24 @@ namespace act
 		states[10] = 0x739D70;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x257E3DC);
-			const uint32_t v2 = MEM<uint32_t>(0x257DA64);
-			MEM<uint32_t>(0x257B744) = v1;
-			MEM<uint32_t>(0x257B84C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x257E3DC));
+			const uint32_t v2 = MEM<uint32_t>(R(0x257DA64));
+			MEM<uint32_t>(R(0x257B744)) = v1;
+			MEM<uint32_t>(R(0x257B84C)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x257E3D8);
-			const uint32_t v2 = MEM<uint32_t>(0x257DA60);
-			MEM<uint32_t>(0x257B744) = v1;
-			MEM<uint32_t>(0x257B84C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x257E3D8));
+			const uint32_t v2 = MEM<uint32_t>(R(0x257DA60));
+			MEM<uint32_t>(R(0x257B744)) = v1;
+			MEM<uint32_t>(R(0x257B84C)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x257F704) = 0;
-		MEM<uint16_t>(0x257F688) = 0;
-		static const uint32_t queues[8] = { 0x257E268, 0x257B828, 0x257F708, 0x257F678, 0x257E258, 0x257DA50, 0x257B930, 0x257CF28 };
+		MEM<uint16_t>(R(0x257F704)) = 0;
+		MEM<uint16_t>(R(0x257F688)) = 0;
+		const uint32_t queues[8] = { R(0x257E268), R(0x257B828), R(0x257F708), R(0x257F678), R(0x257E258), R(0x257DA50), R(0x257B930), R(0x257CF28) };
 		for (int i = 0; i < 8; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -187,8 +209,8 @@ namespace act
 	{
 		m_7326F0();
 		a_7322A0();
-		m1_add_task(0x257F708, 0x732390, 0x30, a1);
-		m1_add_task(0x257B828, 0x7327B0, 0x48, a1);
+		m1_add_task(R(0x257F708), 0x732390, 0x30, a1);
+		m1_add_task(R(0x257B828), 0x7327B0, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -197,8 +219,8 @@ namespace act
 	// [0x152BB90], sets its origin words (0, 0xFF00, 0) and initialises block+8 (a_73A720).
 	uint32_t __cdecl m_7326F0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x152BB90), 0x54);
-		const uint32_t d = MEM<uint32_t>(0x152BB90);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0) = 0;
 		U16(d, 2) = 0xFF00;
 		U16(d, 4) = 0;
@@ -248,7 +270,7 @@ namespace act
 	// the queued phase (+0x44) becomes the requested one.
 	uint32_t __cdecl m_7328B0(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(0x152BB90);
+		uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -256,7 +278,7 @@ namespace act
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			m_733E90(a1);
-			d = MEM<uint32_t>(0x152BB90);
+			d = MEM<uint32_t>(G(G_1533010));
 		}
 		const uint16_t next = U16(d, 0x44);
 		if (U16(d, 0x42) != next)
@@ -274,13 +296,13 @@ namespace act
 	{
 		if (a_73B7E0(1) == 0)
 			return 0;
-		x::BdPlaySE(0x152BB94, 0, 0x80);
+		x::BdPlaySE(fxp::sound(minimog::PM().sounds.cue, minimog::SOUND_A), 0, 0x80);
 		const uint32_t node = a1;
-		m1_add_task(0x257B930, 0x732A00, 0x70, node);
-		m1_add_task(0x257B930, 0x733570, 0x70, node);
-		m1_add_task(0x257B930, 0x733690, 0x70, node);
+		m1_add_task(R(0x257B930), 0x732A00, 0x70, node);
+		m1_add_task(R(0x257B930), 0x733570, 0x70, node);
+		m1_add_task(R(0x257B930), 0x733690, 0x70, node);
 		const uint32_t slot = x::BdSound_ClaimVoiceSlot(0x1692140, 1, 0x80);
-		const uint32_t d = MEM<uint32_t>(0x152BB90);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(node, 0x44) = 0xC;
 		U16(d, 0x52) = (uint16_t)slot;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -292,7 +314,7 @@ namespace act
 	uint32_t __cdecl m_732AC0(uint32_t a1)
 	{
 		a_73AB00();
-		const uint32_t d = MEM<uint32_t>(0x152BB90);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(0x1532C68, d + 8, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -305,7 +327,7 @@ namespace act
 		a_73AE10();
 		if (a_73AAE0(2) != 0)
 		{
-			a_73AB20(0x1532CB0, MEM<uint32_t>(0x152BB90), 0);
+			a_73AB20(0x1532CB0, MEM<uint32_t>(G(G_1533010)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -409,7 +431,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0)
 		{
-			m1_add_task(0x257B930, 0x733810, 0x70, a1);
+			m1_add_task(R(0x257B930), 0x733810, 0x70, a1);
 			U16(a1, 0x44) = U16(a1, 0x24);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -483,8 +505,8 @@ namespace act
 	{
 		if (a_73B7E0(3) == 0)
 			return 0;
-		m1_add_task(0x257B930, 0x733BE0, 0x70, a1);
-		m1_add_task(0x257B930, 0x733CE0, 0x70, a1);
+		m1_add_task(R(0x257B930), 0x733BE0, 0x70, a1);
+		m1_add_task(R(0x257B930), 0x733CE0, 0x70, a1);
 		const uint8_t st = U8(a1, 0x29);
 		U16(a1, 0x44) = 0x1E;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -554,8 +576,8 @@ namespace act
 	{
 		if (a_73B640(4) == 0)
 			return 0;
-		x::sub_4A2940((uint32_t)(int32_t)S16(MEM<uint32_t>(0x152BB90), 0x52));
-		const uint32_t d = MEM<uint32_t>(0x152BB90);
+		x::sub_4A2940((uint32_t)(int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x52));
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint8_t st = U8(a1, 0x29);
 		U16(d, 0x48) = 1;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -568,12 +590,12 @@ namespace act
 	// prim-model task 0x734840 (0x1696DE8, 0x6E).
 	uint32_t __cdecl m_733E90(uint32_t a1)
 	{
-		const int32_t diff = (int32_t)S16(MEM<uint32_t>(0x152BB90), 0x40) - 2;
+		const int32_t diff = (int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x40) - 2;
 		if (diff != 0)
 			return (uint32_t)diff;
 		a_73C100(a1, 0x734840, 0x169227C, 0, 0x2D, 2);
 		m_733F70(a1, 0x733FC0, 0x169A1BC, 0x488, 0, 0);
-		const uint32_t creature = m1_add_task(0x257F678, 0x739610, 0x140, a1);
+		const uint32_t creature = m1_add_task(R(0x257F678), 0x739610, 0x140, a1);
 		x::Effect_BindModelContainerSetAnim(creature, 0x152BC04, 3);
 		return a_73C100(a1, 0x734840, 0x1696DE8, 0x6E, 0x2D, 2);
 	}
@@ -582,7 +604,7 @@ namespace act
 	// sets its model data +0x74 = a3, +0x78 = (s16)a4, +0x80 = a5, +0x82 = a6; returns the node.
 	uint32_t __cdecl m_733F70(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = m1_add_task(0x257DA50, a2, 0x51C, a1);
+		const uint32_t t = m1_add_task(R(0x257DA50), a2, 0x51C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -618,7 +640,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t d = MEM<uint32_t>(0x152BB90);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(d, 0);
 		const uint32_t zp = U32(d, 4);
 		U32(node, 0x1C) = xy;
@@ -664,7 +686,7 @@ namespace act
 		S32(L, 0x18) = py;
 		S32(L, 0x1C) = pz;
 		x::ComposeAffineTransform(0x1D97778, L, L);
-		U32(L, 0x48) = MEM<uint32_t>(0x257F700);
+		U32(L, 0x48) = MEM<uint32_t>(R(0x257F700));
 		U16(L, 0x54) = U16(node, 0x86);
 		const uint32_t v7c = U32(node, 0x7C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -674,7 +696,7 @@ namespace act
 		U32(L, 0x44) = v7c;
 		const uint16_t w8e = U16(node, 0x8E);
 		U16(L, 0x50) = w90;
-		const uint32_t paused = MEM<uint32_t>(0x257CF24);
+		const uint32_t paused = MEM<uint32_t>(R(0x257CF24));
 		U16(L, 0x52) = w92;
 		U16(L, 0x4E) = w8e;
 		U16(L, 0x56) = U16(node, 0x80);
@@ -832,7 +854,7 @@ namespace act
 		if ((U8(node, 0x26) & 4) == 0)
 		{
 			const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-			MEM<uint32_t>(0x1D8E054) = a_746C10(node, 0x257E3E8, cursor);
+			MEM<uint32_t>(0x1D8E054) = a_746C10(node, R(0x257E3E8), cursor);
 			a_739890(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -846,7 +868,7 @@ namespace act
 	uint32_t __cdecl m_739A50(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t d = MEM<uint32_t>(0x152BB90);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(d, 0);
 		const uint32_t zp = U32(d, 4);
 		U32(node, 0x4C) = xy;
@@ -857,7 +879,7 @@ namespace act
 		U32(node, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(node, 0);
 		a_739AC0(node, 0x1532FC8, 1);
-		x::BdPlaySE(0x152BB98, 1, 0x80);
+		x::BdPlaySE(fxp::sound(minimog::PM().sounds.moogle, minimog::SOUND_B), 1, 0x80);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -908,6 +930,21 @@ namespace act
 
 namespace minimog
 {
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The director's phase script: MiniMog dancing (his texture animation), the prim-model sparkles, the particle actors, the screen and entity fades, the music volume; the heal" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The director's first cue, MiniMog appearing" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.cue", "Cue", "", (uint32_t)offsetof(MiniMogParams, sounds.cue), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.moogle", "MiniMog", "", (uint32_t)offsetof(MiniMogParams, sounds.moogle), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort PORTS[] = {
 		{ 0x731F70, (void *)m_731F70, "096 MAG_096_sub_731F70" },
@@ -961,12 +998,17 @@ namespace minimog
 }
 	void register_mag096_minimog()
 	{
+		fxp::register_params({ 96, "MiniMog", &act::minimog::live, &act::minimog::GAME, sizeof(act::minimog::MiniMogParams),
+		                       act::minimog::table::PARTS, (int)(sizeof(act::minimog::table::PARTS) / sizeof(act::minimog::table::PARTS[0])),
+		                       act::minimog::table::FIELDS, (int)(sizeof(act::minimog::table::FIELDS) / sizeof(act::minimog::table::FIELDS[0])),
+		                       act::minimog::table::GROUPS, (int)(sizeof(act::minimog::table::GROUPS) / sizeof(act::minimog::table::GROUPS[0])) });
 		act::register_module(96);
 		for (const act::minimog::ModPort *p = act::minimog::PORTS; p->addr; p++)
 			act::register_module_port(96, p->addr, p->port, p->name);
 		// 30 fps layer: see mag096_minimog_held.inc
 		FX_HELD(register_mag096_held();)
 	}
+	FX_LAB_MODULE(register_mag096_minimog);
 }
 
 #ifdef FF8_FX_HELD
