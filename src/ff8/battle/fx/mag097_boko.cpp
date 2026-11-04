@@ -32,8 +32,14 @@
 // to fixed buffers 0x19D3018..0x19F3EF8.
 // Module globals: 097 0x2575268..0x257B740, 098 0x256E358..0x2575268, 099 0x2565A30..0x256E358,
 // 100 0x255EAC8..0x2565A30 (+ camera copy 0x2793E58).
+// Fujin's described Boko summons (effect_097.json .. effect_100.json) run this code as their pieces (Doom's kind): each
+// module's memory through R() (act_engine.h; the shared code's through BG(), which moves the module's own addresses),
+// the director block through the engine's G word, the tasks they spawn the program's or thunks of their ports (Spawn);
+// their parameters (BokoParams: the sounds, one set per summon) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 #ifdef FF8_FX_HELD
 #include "mag097_boko_held.h"
@@ -171,8 +177,29 @@ namespace act
 		default: return BOKO_097;
 		}
 	}
-	inline uint32_t BG(int k) { return boko_mod().g[k]; }
+	// (the modules' own memory moves with g_reloc: Fujin's described copies; exe words stay)
+	inline uint32_t BG(int k) { const uint32_t a = boko_mod().g[k]; return a >= 0x255EAC8 && a < 0x257B740 ? R(a) : a; }
 	inline uint32_t BF(int k) { return boko_mod().f[k]; }
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	namespace bokop
+	{
+		struct BokoParams
+		{
+			struct { uint32_t play, call, attack, second; } sounds;   // the prim play's, the chocobo's call, the summon's own two
+		};
+		static const BokoParams GAME[4] = {
+			{ { 0x152B5BC, 0x152B5C0, 0x152B5C4, 0 } },            // ChocoFire
+			{ { 0x152AF34, 0x152AF38, 0x152AF3C, 0 } },            // ChocoFlare
+			{ { 0x1529FA4, 0x1529FA8, 0x1529FAC, 0x1529FB0 } },    // ChocoMeteor
+			{ { 0x15297F4, 0x15297F8, 0x15297FC, 0x1529800 } },    // ChocoBocle
+		};
+		static BokoParams live[4] = { GAME[0], GAME[1], GAME[2], GAME[3] };
+		inline int slot() { const int e = g_mod->effect_id; return e >= 97 && e <= 100 ? e - 97 : 0; }
+		inline const BokoParams &PB() { return live[slot()]; }
+	}
 	const BokoMod BOKO_097 = { 97,
 		{ 0x257B5BC, 0x2575378, 0x2579EBC, 0x2579544, 0x257526C, 0x2575374, 0x2579EB8, 0x2579540, 0x2579D48, 0x257B5A0, 0x257B168, 0x2575350, 0x257B5A8, 0x257B158, 0x2579D38, 0x2579530, 0x2575458, 0x152B5B8, 0x1683420, 0x168C654, 0x168F8BC, 0x1688434, 0x152B5BC, 0x257802C, 0x257B1E0, 0x257B5CC, 0x152BA38, 0x152BA80, 0x257AFB8, 0x168354C, 0x2579EC8, 0x152BB58, 0x152B5C8, 0x152B5C0 },
 		{ 0x729D50, 0x729D60, 0x729D70, 0x729DF0, 0x731CF0, 0x731D30, 0x731D40, 0x731D50, 0x731D80, 0x731D90, 0x731DB0, 0x72A380, 0x72AB20, 0x72A5C0, 0x72A660, 0x72A610, 0x72FBC0, 0x72A720, 0x72A840, 0x72FC70, 0x72FC90, 0x730490, 0x72FF80, 0x730610, 0x7306A0, 0x730B00, 0x730BA0, 0x730BD0, 0x730E30, 0x730EA0, 0x730EF0, 0x730F10, 0x730F50, 0x730F80, 0x730FB0, 0x730760, 0x730940, 0x730B60, 0x730C10, 0x730D00, 0x730D50, 0x730D70, 0x730DD0, 0x730E00, 0x730E20, 0x730C90, 0x730DA0, 0x730E80, 0x730EC0, 0x7318D0, 0x731920, 0x731940, 0x7311C0, 0x7319D0, 0x731A20, 0x731A40, 0x0 } };
@@ -447,6 +474,7 @@ namespace act
 	uint32_t __cdecl b_729BD0(uint32_t a1)
 	{
 		set_mod_by_code(U32(a1, 8));      // node +8 = original task function address -> current module
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see act_engine_held.inc
 		FX_HELD(held_note_master();)
 
@@ -508,8 +536,8 @@ namespace act
 	// (0x54 bytes), sets its angle word +4 = 0x800 and centres +8 on the live battle entities
 	uint32_t __cdecl b_72A350(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(BG(BG_152B5B8)), 0x54);
-		const uint32_t p = MEM<uint32_t>(BG(BG_152B5B8));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t p = MEM<uint32_t>(G(G_1533010));
 		U16(p, 0) = 0;
 		U16(p, 2) = 0;
 		U16(p, 4) = 0x800;
@@ -520,13 +548,13 @@ namespace act
 	// (+8) of the origin block to >= 0
 	uint32_t __cdecl b_718670(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(BG(BG_152B5B8)), 0x54);
-		uint32_t p = MEM<uint32_t>(BG(BG_152B5B8));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		uint32_t p = MEM<uint32_t>(G(G_1533010));
 		U16(p, 0) = 0;
 		U16(p, 2) = 0;
 		U16(p, 4) = 0x800;
 		a_73A720(p + 8);
-		p = MEM<uint32_t>(BG(BG_152B5B8));
+		p = MEM<uint32_t>(G(G_1533010));
 		if (S16(p, 8) <= 0)
 			U16(p, 8) = 0;
 		return p;
@@ -597,12 +625,12 @@ namespace act
 	uint32_t __cdecl b_72A540(uint32_t a1)
 	{
 		const uint32_t slot = x::BdSound_ClaimVoiceSlot(BG(BG_1683420), 1, 0x80);
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		const uint32_t node = a1;
 		U16(origin, 0x52) = (uint16_t)slot;
 		a_73C100(node, BF(BF_72AB20), BG(BG_168C654), 0x12, 0x2D, 2);
 		b_72A610(node, BF(BF_72A660), BG(BG_168F8BC), 0x4AC, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(BG(BG_2575458), BF(BF_72FBC0), 0x70, node);
+		Spawn(BG(BG_2575458), BF(BF_72FBC0), 0x70, node);
 		x::Battle_QueueTIMUpload_GetEOF(BG(BG_1688434));
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
@@ -612,7 +640,7 @@ namespace act
 	// into queue BG_2579530: +0x74 = model data a3, +0x78 = (s16)a4, +0x80 = a5, +0x82 = a6
 	uint32_t __cdecl b_72A610(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t node = x::Effect_AddTaskAndInitFromCtx(BG(BG_2579530), a2, 0x540, a1);
+		const uint32_t node = Spawn(BG(BG_2579530), a2, 0x540, a1);
 		U16(node, 0x80) = (uint16_t)a5;
 		U32(node, 0x74) = a3;
 		U32(node, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -627,7 +655,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		const uint32_t o0 = U32(origin, 0);
 		const uint32_t o4 = U32(origin, 4);
 		U32(node, 0x1C) = o0;
@@ -636,7 +664,7 @@ namespace act
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
 		b_72A720(node);
-		x::BdPlaySE(BG(BG_152B5BC), 0, 0x80);
+		x::BdPlaySE(fxp::sound(bokop::PB().sounds.play, BG(BG_152B5BC)), 0, 0x80);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -1654,7 +1682,7 @@ namespace act
 	uint32_t __cdecl b_72FC40(uint32_t a1)
 	{
 		a_73AB00();
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(BG(BG_152BA38), origin, 0);
 		b3_next_state(a1);
 		return a1;
@@ -1667,7 +1695,7 @@ namespace act
 		const uint32_t r = a_73AAE0(2);
 		if (r == 0)
 			return 0;
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(BG(BG_152BA80), origin, 0);
 		b3_next_state(a1);
 		return a1;
@@ -1708,7 +1736,7 @@ namespace act
 	{
 		if (S16(a1, 0x24) < 0x1C)
 			return 0;
-		const uint32_t task = x::Effect_AddTaskAndInitFromCtx(BG(BG_257B158), BF(BF_7306A0), 0x140, a1);
+		const uint32_t task = Spawn(BG(BG_257B158), BF(BF_7306A0), 0x140, a1);
 		x::Effect_BindModelContainerSetAnim(task, BG(BG_168354C), 1);
 		b3_next_state(a1);
 		return 0; // void (eax = low byte of the new state)
@@ -1748,7 +1776,7 @@ namespace act
 	uint32_t __cdecl b_730B00(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(origin, 0);
 		const uint32_t zw = U32(origin, 4);
 		U32(node, 0x4C) = xy;
@@ -1773,7 +1801,7 @@ namespace act
 		if (S16(node, 0x136) < 0)
 			return 0;
 		x::au_re_Battle_ReadAnimation_7(node, 2);
-		x::Effect_AddTaskAndInitFromCtx(BG(BG_2575458), BF(BF_730C10), 0x70, node);
+		Spawn(BG(BG_2575458), BF(BF_730C10), 0x70, node);
 		b3_next_state(node);
 		return 0; // void
 	}
@@ -1824,7 +1852,7 @@ namespace act
 	uint32_t __cdecl b_730D00(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(origin, 0);
 		const uint32_t zw = U32(origin, 4);
 		U16(node, 0x26) = (uint16_t)(U16(node, 0x26) | 4);
@@ -1896,7 +1924,7 @@ namespace act
 		if (r == 0)
 			return 0;
 		x::au_re_Battle_ReadAnimation_7(node, 3);
-		x::BdPlaySE(BG(BG_152B5C0), 0, 0x80);
+		x::BdPlaySE(fxp::sound(bokop::PB().sounds.call, BG(BG_152B5C0)), 0, 0x80);
 		b3_next_state(node);
 		return 0; // void
 	}
@@ -1971,7 +1999,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(origin, 8);
 		const uint32_t zw = U32(origin, 0xC);
 		U32(node, 0x1C) = xy;
@@ -1991,7 +2019,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0x12)
 		{
-			const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+			const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 			U16(origin, 0x48) = 1;
 			b3_next_state(a1);
 		}
@@ -2033,7 +2061,7 @@ namespace act
 		const uint32_t r = a_73B640(6);
 		if (r == 0)
 			return 0;
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		x::sub_4A2940((uint32_t)(int32_t)S16(origin, 0x52));
 		const uint8_t st = U8(a1, 0x29);
 		U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) | 1);
@@ -2066,7 +2094,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(origin, 0);
 		const uint32_t zw = U32(origin, 4);
 		U32(node, 0x1C) = xy;
@@ -2103,7 +2131,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t origin = MEM<uint32_t>(BG(BG_152B5B8));
+		const uint32_t origin = MEM<uint32_t>(G(G_1533010));
 		const uint32_t xy = U32(origin, 0);
 		const uint32_t zw = U32(origin, 4);
 		U32(node, 0x1C) = xy;
@@ -2202,7 +2230,7 @@ namespace act
 			}
 			else
 			{
-				x::UnpackRotationMatrix(MEM<uint32_t>(0x2575378), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(R(0x2575378)), m);
 			}
 			if (sub == 0 || sub == 2)
 			{
@@ -2241,7 +2269,7 @@ namespace act
 			x::GTE_LoadIRFromMatrixColumn(node + 0x90);
 			x::GTE_MVMVA_RotIR();
 			x::GTE_StoreIRToMatrixColumn(node + 0xB0);
-			x::GTE_SetTransVector(MEM<uint32_t>(0x2575378));
+			x::GTE_SetTransVector(MEM<uint32_t>(R(0x2575378)));
 			x::GTE_LoadV0FromDwords(node + 0xA0);
 			x::GTE_MVMVA_RotV0_Tr();
 			x::GTE_ReadMAC123(node + 0xC0);
@@ -2296,8 +2324,8 @@ namespace act
 	{
 		b_72A350();
 		b7_729EF0();
-		x::Effect_AddTaskAndInitFromCtx(0x257B5A8, 0x729FF0, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2575350, 0x72A410, 0x48, a1);
+		Spawn(R(0x257B5A8), 0x729FF0, 0x30, a1);
+		Spawn(R(0x2575350), 0x72A410, 0x48, a1);
 		b71_next_state(a1);
 		return 0; // void
 	}
@@ -2308,14 +2336,14 @@ namespace act
 	// (0x19DB018 default, 0x19DFEF8, 0x19E4958, 0x19E8660); +0x164/+0x166 = 0
 	uint32_t __cdecl b7_729EF0(void)
 	{
-		MEM<uint32_t>(0x2579EC0) = 0x152B930;
-		MEM<uint32_t>(0x257AFB8) = 0x257B5D0;
-		x::MAG_007_sub_8DCC00(0x257B5D0, 0x16C);
-		const uint32_t t = MEM<uint32_t>(0x257AFB8);
-		uint32_t cur = MEM<uint32_t>(0x257B5C8);
+		MEM<uint32_t>(R(0x2579EC0)) = 0x152B930;
+		MEM<uint32_t>(R(0x257AFB8)) = R(0x257B5D0);
+		x::MAG_007_sub_8DCC00(R(0x257B5D0), 0x16C);
+		const uint32_t t = MEM<uint32_t>(R(0x257AFB8));
+		uint32_t cur = MEM<uint32_t>(R(0x257B5C8));
 		U32(t, 0x100) = cur;
 		cur += 0xA000;
-		MEM<uint32_t>(0x257B5C8) = cur;
+		MEM<uint32_t>(R(0x257B5C8)) = cur;
 		const uint32_t def = 0x19DB018;
 		U32(t, 0x114) = def;
 		U32(t, 0x118) = def;
@@ -2372,7 +2400,7 @@ namespace act
 	// tasks (b7_731780); next requested (+0x44) != requested -> take it (then nullsub)
 	uint32_t __cdecl b7_72A4F0(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(0x152B5B8);
+		uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -2380,7 +2408,7 @@ namespace act
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			b7_731780(a1);
-			d = MEM<uint32_t>(0x152B5B8);
+			d = MEM<uint32_t>(G(G_1533010));
 		}
 		const uint16_t next = U16(d, 0x44);
 		if (U16(d, 0x42) != next)
@@ -2411,7 +2439,7 @@ namespace act
 	{
 		uint32_t dir = a1 + 0x34;
 		uint32_t done = 0;
-		MEM<uint32_t>(0x257B5CC) = dir;
+		MEM<uint32_t>(R(0x257B5CC)) = dir;
 		const uint16_t stage = U16(dir, 0x20);
 		switch ((int32_t)(int16_t)stage)
 		{
@@ -2423,7 +2451,7 @@ namespace act
 			b7_72CEE0();
 			a_740700();
 			a_735440();
-			dir = MEM<uint32_t>(0x257B5CC);
+			dir = MEM<uint32_t>(R(0x257B5CC));
 			U16(dir, 0x18) = (uint16_t)(U16(dir, 0x18) + 1);
 			if (S16(dir, 0x18) >= S16(dir, 0x1A) && U16(dir, 0x14) == 0 && U16(dir, 0x16) == 0)
 				U16(dir, 0x20) = (uint16_t)(U16(dir, 0x20) + 1);
@@ -2436,8 +2464,8 @@ namespace act
 		}
 		const uint16_t n1 = U16(dir, 0x14);
 		const uint16_t n2 = U16(dir, 0x16);
-		MEM<uint16_t>(0x257B5A0) = (uint16_t)(MEM<uint16_t>(0x257B5A0) + n1);
-		MEM<uint16_t>(0x257B168) = (uint16_t)(MEM<uint16_t>(0x257B168) + n2);
+		MEM<uint16_t>(R(0x257B5A0)) = (uint16_t)(MEM<uint16_t>(R(0x257B5A0)) + n1);
+		MEM<uint16_t>(R(0x257B168)) = (uint16_t)(MEM<uint16_t>(R(0x257B168)) + n2);
 		return done;
 	}
 
@@ -2445,7 +2473,7 @@ namespace act
 	// kind (+8) 1 -> b7_72CF20 (update + transform), 0 -> 0x72E480 (a_737ED0)
 	uint32_t __cdecl b7_72CEE0(void)
 	{
-		uint32_t e = U32(MEM<uint32_t>(0x257B5CC), 0x2C);
+		uint32_t e = U32(MEM<uint32_t>(R(0x257B5CC)), 0x2C);
 		while (e != 0)
 		{
 			const int32_t kind = (int32_t)S16(e, 8);
@@ -2465,14 +2493,14 @@ namespace act
 	uint32_t __cdecl b7_72CF20(uint32_t a1)
 	{
 		const uint32_t e = a1;
-		const uint32_t table = U32(MEM<uint32_t>(0x257B5CC), 0x224);
+		const uint32_t table = U32(MEM<uint32_t>(R(0x257B5CC)), 0x224);
 		const int32_t di = (int32_t)S8(e, 0x1D6);
 		const uint32_t desc = U32(table + (uint32_t)(di * 4), 0);
 		const int32_t state = (int32_t)S16(e, 0x1CC);
 		if (state == 1)
 		{
 			a_742CD0(e);
-			const uint32_t dir = MEM<uint32_t>(0x257B5CC);
+			const uint32_t dir = MEM<uint32_t>(R(0x257B5CC));
 			U8(e, 0x1D7) = 0;
 			U16(dir, 0x16) = (uint16_t)(U16(dir, 0x16) - 1);
 			return 0; // void
@@ -2509,7 +2537,7 @@ namespace act
 		{
 			const int32_t frame = (int32_t)S16(node, 0x1CA);
 			const uint32_t tex = U8(U32(desc, 0x12C) + (uint32_t)frame, 0);
-			const uint32_t dir = MEM<uint32_t>(0x257B5CC);
+			const uint32_t dir = MEM<uint32_t>(R(0x257B5CC));
 			U32(node, 0x170) = U32(U32(dir, 0x22C) + tex * 4, 0); // texture entry of this frame
 			if (mode == 5)
 				b_72E220(node, desc);
@@ -2523,7 +2551,7 @@ namespace act
 		switch ((uint32_t)rot_mode)
 		{
 		case 0: // 0x72D83E: camera rotation + roll (+0xD0)
-			x::UnpackRotationMatrix(MEM<uint32_t>(0x2575378), m);
+			x::UnpackRotationMatrix(MEM<uint32_t>(R(0x2575378)), m);
 			if (U16(node, 0xD0) != 0)
 				x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 			break;
@@ -2533,7 +2561,7 @@ namespace act
 			break;
 		case 2: // 0x72DA4F: identity + camera yaw
 		{
-			const uint32_t yaw = x::sub_8DD7B0(MEM<uint32_t>(0x2575378));
+			const uint32_t yaw = x::sub_8DD7B0(MEM<uint32_t>(R(0x2575378)));
 			x::MAG_022_sub_8DD770(m);
 			if ((uint16_t)yaw != 0)
 				x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)(int16_t)yaw);
@@ -2576,7 +2604,7 @@ namespace act
 		const uint8_t count = U8(node, 0x1D8);
 		if (count == 1)
 		{
-			b71_world_to_view(node, node + 0xDC, MEM<uint32_t>(0x2575378));
+			b71_world_to_view(node, node + 0xDC, MEM<uint32_t>(R(0x2575378)));
 			U32(node, 0xC8) = (uint32_t)add32(S32(node, 0xC8), (int32_t)S16(desc, 0x38));
 			return 0; // void
 		}
@@ -2588,7 +2616,7 @@ namespace act
 			uint32_t dst = node + 0x19C;  // edi - 2
 			do
 			{
-				const uint32_t cam = MEM<uint32_t>(0x2575378);
+				const uint32_t cam = MEM<uint32_t>(R(0x2575378));
 				b71_world_to_view(node, src, cam);
 				U16(dst, 0) = U16(node, 0xC0);
 				U16(dst, 2) = U16(node, 0xC4);
@@ -2692,7 +2720,7 @@ namespace act
 		if (a_73B640(4) != 0)
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 4);
-			x::BdPlaySE(0x152B5C4, 0, 0x80);
+			x::BdPlaySE(fxp::sound(bokop::live[0].sounds.attack, 0x152B5C4), 0, 0x80);
 			b71_next_state(a1);
 		}
 		return 0; // void
@@ -2705,7 +2733,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) > 0)
 			return 0; // void
-		const uint32_t model = U32(MEM<uint32_t>(0x257AFB8), 0x130);
+		const uint32_t model = U32(MEM<uint32_t>(R(0x257AFB8)), 0x130);
 		b_72A610(a1, 0x731100, model, 0x290, 3, 0);
 		b71_next_state(a1);
 		return 0; // void
@@ -2751,7 +2779,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) > 0x10)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(0x2575458, 0x731630, 0x70, a1);
+		Spawn(R(0x2575458), 0x731630, 0x70, a1);
 		b71_next_state(a1);
 		return 0; // void
 	}
@@ -2762,23 +2790,23 @@ namespace act
 	// +0x108, 0, 0x2D, 2); 5 -> task 0x731B40 (0x70 B, queue 0x2575458)
 	uint32_t __cdecl b7_731780(uint32_t a1)
 	{
-		const int32_t phase = (int32_t)S16(MEM<uint32_t>(0x152B5B8), 0x40);
+		const int32_t phase = (int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x40);
 		if (phase == 2)
 		{
-			const uint32_t model = U32(MEM<uint32_t>(0x257AFB8), 0x128);
+			const uint32_t model = U32(MEM<uint32_t>(R(0x257AFB8)), 0x128);
 			b_72A610(a1, 0x731840, model, 0x44C, 1, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x2575458, 0x731A50, 0x70, a1);
+			Spawn(R(0x2575458), 0x731A50, 0x70, a1);
 		}
 		else if (phase == 4)
 		{
-			const uint32_t model = U32(MEM<uint32_t>(0x257AFB8), 0x12C);
+			const uint32_t model = U32(MEM<uint32_t>(R(0x257AFB8)), 0x12C);
 			b_72A610(a1, 0x731950, model, 0x170, 2, 0);
-			const uint32_t model2 = U32(MEM<uint32_t>(0x257AFB8), 0x108);
+			const uint32_t model2 = U32(MEM<uint32_t>(R(0x257AFB8)), 0x108);
 			a_73C100(a1, 0x72AB20, model2, 0, 0x2D, 2);
 		}
 		else if (phase == 5)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x2575458, 0x731B40, 0x70, a1);
+			Spawn(R(0x2575458), 0x731B40, 0x70, a1);
 		}
 		return 0; // void
 	}
@@ -2798,8 +2826,8 @@ namespace act
 	{
 		b_72A350(); // the original pushes a1 (unused)
 		b8_721CF0();
-		x::Effect_AddTaskAndInitFromCtx(0x25750D0, 0x721DF0, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x256E440, 0x722210, 0x48, a1);
+		Spawn(R(0x25750D0), 0x721DF0, 0x30, a1);
+		Spawn(R(0x256E440), 0x722210, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2809,13 +2837,13 @@ namespace act
 	// prim-layout pointers (0x19DB018 default, 0x19DFEF8, 0x19E187C, 0x19E5584, 0x19E8E70)
 	uint32_t __cdecl b8_721CF0(void)
 	{
-		MEM<uint32_t>(0x2573C40) = 0x152B2A8;
-		MEM<uint32_t>(0x2574D38) = 0x25750F8;
-		x::MAG_007_sub_8DCC00(0x25750F8, 0x16C);
-		uint32_t t = MEM<uint32_t>(0x2574D38);
-		uint32_t arena = MEM<uint32_t>(0x25750F0);
+		MEM<uint32_t>(R(0x2573C40)) = 0x152B2A8;
+		MEM<uint32_t>(R(0x2574D38)) = R(0x25750F8);
+		x::MAG_007_sub_8DCC00(R(0x25750F8), 0x16C);
+		uint32_t t = MEM<uint32_t>(R(0x2574D38));
+		uint32_t arena = MEM<uint32_t>(R(0x25750F0));
 		U32(t, 0x100) = arena;
-		MEM<uint32_t>(0x25750F0) = arena + 0xA000;
+		MEM<uint32_t>(R(0x25750F0)) = arena + 0xA000;
 		const uint32_t base = 0x19DB018;
 		U32(t, 0x114) = base;
 		U32(t, 0x118) = base;
@@ -2863,7 +2891,7 @@ namespace act
 	// (b8_729420); latches +0x44 into +0x42 (then calls the null state 0x729410)
 	uint32_t __cdecl b8_7222F0(uint32_t a1)
 	{
-		uint32_t cur = MEM<uint32_t>(0x152AF30);
+		uint32_t cur = MEM<uint32_t>(G(G_1533010));
 		U16(cur, 0x46) = (uint16_t)(U16(cur, 0x46) + 1);
 		uint16_t req = U16(cur, 0x42);
 		if (U16(cur, 0x40) != req)
@@ -2871,7 +2899,7 @@ namespace act
 			U16(cur, 0x40) = req;
 			U16(cur, 0x46) = 0;
 			b8_729420(a1);
-			cur = MEM<uint32_t>(0x152AF30);
+			cur = MEM<uint32_t>(G(G_1533010));
 		}
 		uint16_t nxt = U16(cur, 0x44);
 		if (U16(cur, 0x42) != nxt)
@@ -2889,11 +2917,11 @@ namespace act
 	uint32_t __cdecl b8_722340(uint32_t a1)
 	{
 		uint32_t slot = x::BdSound_ClaimVoiceSlot(0x16746FC, 1, 0x80);
-		uint32_t cur = MEM<uint32_t>(0x152AF30);
+		uint32_t cur = MEM<uint32_t>(G(G_1533010));
 		U16(cur, 0x52) = (uint16_t)slot;
 		a_73C100(a1, 0x722920, 0x167D934, 0x12, 0x2D, 2);
 		b8_722410(a1, 0x722460, 0x1680B9C, 0x4AC, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7276F0, 0x70, a1);
+		Spawn(R(0x256E548), 0x7276F0, 0x70, a1);
 		x::Battle_QueueTIMUpload_GetEOF(0x1679714);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -2904,7 +2932,7 @@ namespace act
 	// u16 +0x82 = a6; returns the node
 	uint32_t __cdecl b8_722410(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25732B0, a2, 0x864, a1);
+		uint32_t t = Spawn(R(0x25732B0), a2, 0x864, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -2936,7 +2964,7 @@ namespace act
 	{
 		if (a_73AE10() == 1)
 		{
-			uint32_t cur = MEM<uint32_t>(0x152AF30);
+			uint32_t cur = MEM<uint32_t>(G(G_1533010));
 			a_73AB20(0x152B538, cur + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -2976,7 +3004,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x130);
+			uint32_t layout = U32(MEM<uint32_t>(R(0x2574D38)), 0x130);
 			b8_722410(a1, 0x728C60, layout, 0x494, 3, 0);
 			uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x44) = 0x18;
@@ -2991,7 +3019,7 @@ namespace act
 	uint32_t __cdecl b8_728CC0(uint32_t a1)
 	{
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
-		uint32_t cur = MEM<uint32_t>(0x152AF30);
+		uint32_t cur = MEM<uint32_t>(G(G_1533010));
 		uint32_t xy = U32(cur, 8);
 		uint32_t zw = U32(cur, 0xC);
 		U32(a1, 0x1C) = xy;
@@ -3001,7 +3029,7 @@ namespace act
 		U32(a1, 0x54) = 0x1000;
 		U32(a1, 0x50) = 0x1000;
 		b_72A720(a1);
-		x::BdPlaySE(0x152AF3C, 0, 0x80);
+		x::BdPlaySE(fxp::sound(bokop::live[1].sounds.attack, 0x152AF3C), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -3013,7 +3041,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x134);
+			uint32_t layout = U32(MEM<uint32_t>(R(0x2574D38)), 0x134);
 			b8_722410(a1, 0x728DA0, layout, 0x7D0, 4, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3068,7 +3096,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0x18)
 		{
-			U16(MEM<uint32_t>(0x152AF30), 0x48) = 1;
+			U16(MEM<uint32_t>(G(G_1533010)), 0x48) = 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -3081,7 +3109,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 8)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7292D0, 0x70, a1);
+			Spawn(R(0x256E548), 0x7292D0, 0x70, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -3112,21 +3140,21 @@ namespace act
 	// task 0x7295D0 (asset +0x12C, 368, 2); 5 = task 0x7297C0 (queue 0x256E548)
 	uint32_t __cdecl b8_729420(uint32_t a1)
 	{
-		int32_t phase = S16(MEM<uint32_t>(0x152AF30), 0x40);
+		int32_t phase = S16(MEM<uint32_t>(G(G_1533010)), 0x40);
 		if (phase == 2)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x128);
+			uint32_t layout = U32(MEM<uint32_t>(R(0x2574D38)), 0x128);
 			b8_722410(a1, 0x7294C0, layout, 0x44C, 1, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7296D0, 0x70, a1);
+			Spawn(R(0x256E548), 0x7296D0, 0x70, a1);
 		}
 		else if (phase == 4)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x12C);
+			uint32_t layout = U32(MEM<uint32_t>(R(0x2574D38)), 0x12C);
 			b8_722410(a1, 0x7295D0, layout, 0x170, 2, 0);
 		}
 		else if (phase == 5)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7297C0, 0x70, a1);
+			Spawn(R(0x256E548), 0x7297C0, 0x70, a1);
 		}
 		return 0; // void
 	}
@@ -3168,8 +3196,8 @@ namespace
 	{
 		b_718670();
 		b9_718200();
-		x::Effect_AddTaskAndInitFromCtx(0x256E1C0, 0x718310, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2565B18, 0x718750, 0x48, a1);
+		Spawn(R(0x256E1C0), 0x718310, 0x30, a1);
+		Spawn(R(0x2565B18), 0x718750, 0x48, a1);
 		b91_next(a1);
 		return 0; // void
 	}
@@ -3179,13 +3207,13 @@ namespace
 	// (+0x100) and fills its model/data pointer slots +0x104..+0x160 (loaded file addresses).
 	uint32_t __cdecl b9_718200(void)
 	{
-		MEM<uint32_t>(0x256C5F8) = 0x152AAA0;
-		MEM<uint32_t>(0x256D6F0) = 0x256E1E8;
-		x::MAG_007_sub_8DCC00(0x256E1E8, 0x16C);
-		const uint32_t t = MEM<uint32_t>(0x256D6F0);
-		const uint32_t arena = MEM<uint32_t>(0x256E1E0);
+		MEM<uint32_t>(R(0x256C5F8)) = 0x152AAA0;
+		MEM<uint32_t>(R(0x256D6F0)) = R(0x256E1E8);
+		x::MAG_007_sub_8DCC00(R(0x256E1E8), 0x16C);
+		const uint32_t t = MEM<uint32_t>(R(0x256D6F0));
+		const uint32_t arena = MEM<uint32_t>(R(0x256E1E0));
 		U32(t, 0x100) = arena;
-		MEM<uint32_t>(0x256E1E0) = arena + 0xA000;
+		MEM<uint32_t>(R(0x256E1E0)) = arena + 0xA000;
 		const uint32_t base = 0x19D3018;
 		U32(t, 0x114) = base;
 		U32(t, 0x118) = base;
@@ -3256,7 +3284,7 @@ namespace
 	// differs from +0x42, +0x42 = +0x44 (nullsub hook).
 	uint32_t __cdecl b9_718840(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(0x1529FA0);
+		uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -3264,7 +3292,7 @@ namespace
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			b9_71F620(a1);
-			d = MEM<uint32_t>(0x1529FA0);
+			d = MEM<uint32_t>(G(G_1533010));
 		}
 		const uint16_t nxt = U16(d, 0x44);
 		if (U16(d, 0x42) != nxt)
@@ -3282,12 +3310,12 @@ namespace
 	uint32_t __cdecl b9_718890(uint32_t a1)
 	{
 		const uint32_t slot = x::BdSound_ClaimVoiceSlot(0x16659D8, 1, 0x80);
-		const uint32_t d = MEM<uint32_t>(0x1529FA0);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t node = a1;
 		U16(d, 0x52) = (uint16_t)slot;
 		a_73C100(node, 0x718E70, 0x166A9F0, 0x12, 0x2D, 2);
 		b9_718960(node, 0x7189B0, 0x166DC58, 0x4AC, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x71DC40, 0xB0, node);
+		Spawn(R(0x2565C20), 0x71DC40, 0xB0, node);
 		x::Battle_QueueTIMUpload_GetEOF(0x16704DC);
 		b91_next(node);
 		return 0; // void
@@ -3298,7 +3326,7 @@ namespace
 	// a6 (+0x82); returns the node.
 	uint32_t __cdecl b9_718960(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x256B9D8, a2, 0x548, a1);
+		const uint32_t t = Spawn(R(0x256B9D8), a2, 0x548, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -3376,7 +3404,7 @@ namespace
 	// (a_73B160); at step 10 starts camera key 0x152AE40 from the director origin, next state.
 	uint32_t __cdecl b9_71E610(uint32_t a1)
 	{
-		const uint32_t c = MEM<uint32_t>(0x152AC40);
+		const uint32_t c = MEM<uint32_t>(G(G_15339D0));
 		U16(c, 0x86) = (uint16_t)(U16(c, 0x86) + 0x10);
 		if (S16(c, 0x86) >= 0x80)
 			U16(c, 0x86) = 0x80;
@@ -3391,7 +3419,7 @@ namespace
 		a_73B160();
 		if (a_73AAE0(0xA) != 0)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			a_73AB20(0x152AE40, d + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3404,9 +3432,9 @@ namespace
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			a_73AB20(0x152AE88, d + 8, 0);
-			const uint32_t c = MEM<uint32_t>(0x152AC40);
+			const uint32_t c = MEM<uint32_t>(G(G_15339D0));
 			U16(c, 0x8E) = 6;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3419,7 +3447,7 @@ namespace
 	uint32_t __cdecl b9_71E700(uint32_t a1)
 	{
 		a_73AE10();
-		const uint32_t c = MEM<uint32_t>(0x152AC40);
+		const uint32_t c = MEM<uint32_t>(G(G_15339D0));
 		if (S16(c, 0xE2) >= 0x42)
 		{
 			U16(c, 0x8E) = (uint16_t)(U16(c, 0x8E) - 1);
@@ -3457,7 +3485,7 @@ namespace
 		{
 			// draw (after the update)
 			const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-			MEM<uint32_t>(0x1D8E054) = a_746C10(node, 0x256C600, cursor);
+			MEM<uint32_t>(0x1D8E054) = a_746C10(node, R(0x256C600), cursor);
 			a_739890(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -3475,7 +3503,7 @@ namespace
 		if (S16(node, 0x136) >= 0)
 		{
 			x::au_re_Battle_ReadAnimation_7(node, 2);
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x71EE40, 0xB0, node);
+			Spawn(R(0x2565C20), 0x71EE40, 0xB0, node);
 			b91_next(node);
 		}
 		return 0; // void
@@ -3486,7 +3514,7 @@ namespace
 	// +0x54 = 0xFF00, timer +0xAC = 4, next state.
 	uint32_t __cdecl b9_71EF30(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1529FA0);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t node = a1;
 		const uint32_t xy = U32(d, 0);
 		const uint32_t zp = U32(d, 4);
@@ -3570,7 +3598,7 @@ namespace
 		U16(node, 0x44) = (uint16_t)(U16(node, 0x44) - 1);
 		if (S16(node, 0x44) <= 0)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x71F310, 0xB0, node);
+			Spawn(R(0x2565C20), 0x71F310, 0xB0, node);
 			b91_next(node);
 		}
 		return 0; // void
@@ -3584,7 +3612,7 @@ namespace
 		{
 			a_746A10();
 			a_73B9F0();
-			x::BdPlaySE(0x1529FAC, 0, 0x80);
+			x::BdPlaySE(fxp::sound(bokop::live[2].sounds.attack, 0x1529FAC), 0, 0x80);
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0xAC) = 0x24;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -3646,7 +3674,7 @@ namespace
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			U16(a1, 0x44) = 0x28;
 			U16(d, 0x48) = 1;
 			b91_next(a1);
@@ -3669,7 +3697,7 @@ namespace
 	{
 		if (a_73B7E0(0xB) != 0)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			x::sub_4A2940((uint32_t)(int32_t)S16(d, 0x52));
 			b91_finish(a1);
 		}
@@ -3683,54 +3711,54 @@ namespace
 	uint32_t __cdecl b9_71F620(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t d = MEM<uint32_t>(0x1529FA0);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const int32_t sel = (int32_t)S16(d, 0x40) - 2;
 		switch (sel)  // jump table 0x71F85C (9 entries, phases 3 and 6 empty)
 		{
 		case 0:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
+			const uint32_t tab = MEM<uint32_t>(R(0x256D6F0));
 			b9_718960(node, 0x71F950, U32(tab, 0x128), 0x44C, 1, 0);
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x721010, 0xB0, node);
+			return Spawn(R(0x2565C20), 0x721010, 0xB0, node);
 		}
 		case 2:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
+			const uint32_t tab = MEM<uint32_t>(R(0x256D6F0));
 			return b9_718960(node, 0x71FDC0, U32(tab, 0x12C), 0x170, 2, 0);
 		}
 		case 3:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
+			const uint32_t tab = MEM<uint32_t>(R(0x256D6F0));
 			b9_718960(node, 0x71FEC0, U32(tab, 0x130), 0xB0, 3, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x721100, 0xB0, node);
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720500, 0xB0, node);
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720790, 0xB0, node);
+			Spawn(R(0x2565C20), 0x721100, 0xB0, node);
+			Spawn(R(0x2565C20), 0x720500, 0xB0, node);
+			return Spawn(R(0x2565C20), 0x720790, 0xB0, node);
 		}
 		case 5:
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x7215A0, 0xB0, node);
+			return Spawn(R(0x2565C20), 0x7215A0, 0xB0, node);
 		case 6:
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x2569338, 0x7211D0, 0x58, node);
-			x::Effect_AddTaskAndInitFromCtx(0x2569338, 0x721390, 0x58, node);
-			uint32_t tab = MEM<uint32_t>(0x256D6F0);
+			Spawn(R(0x2569338), 0x7211D0, 0x58, node);
+			Spawn(R(0x2569338), 0x721390, 0x58, node);
+			uint32_t tab = MEM<uint32_t>(R(0x256D6F0));
 			b9_718960(node, 0x71FFB0, U32(tab, 0x134), 0x2C, 4, 0);
-			tab = MEM<uint32_t>(0x256D6F0);
+			tab = MEM<uint32_t>(R(0x256D6F0));
 			b9_718960(node, 0x7201F0, U32(tab, 0x138), 0x194, 5, 0);
-			tab = MEM<uint32_t>(0x256D6F0);
+			tab = MEM<uint32_t>(R(0x256D6F0));
 			b9_718960(node, 0x720320, U32(tab, 0x13C), 0x30, 6, 0);
-			tab = MEM<uint32_t>(0x256D6F0);
+			tab = MEM<uint32_t>(R(0x256D6F0));
 			return b9_718960(node, 0x720410, U32(tab, 0x140), 0x1E8, 7, 0);
 		}
 		case 7:
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x721460, 0xB0, node);
+			return Spawn(R(0x2565C20), 0x721460, 0xB0, node);
 		case 8:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
+			const uint32_t tab = MEM<uint32_t>(R(0x256D6F0));
 			a_73C100(node, 0x718E70, U32(tab, 0x108), 4, 0x2D, 2);
-			const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(0x256C470, 0x71F880, 0x40, node);
+			const uint32_t t1 = Spawn(R(0x256C470), 0x71F880, 0x40, node);
 			U32(t1, 0x34) = 0x152AEF0;
 			U16(t1, 0x38) = 8;
-			const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(0x256C470, 0x8DDC30, 0x40, node);
+			const uint32_t t2 = Spawn(R(0x256C470), 0x8DDC30, 0x40, node);
 			U32(t2, 0x34) = 0x152AF04;
 			U16(t2, 0x38) = 9;
 			return t2;
@@ -3896,11 +3924,11 @@ namespace
 		const uint32_t L = P(blk);
 		x::MAG_022_sub_8DD770(L);
 		const uint32_t node = a1;
-		U32(L, 0x48) = 0x256DA58;
+		U32(L, 0x48) = R(0x256DA58);
 		S32(L, 0x14) = (int32_t)S16(node, 0x1C);
 		S32(L, 0x18) = (int32_t)S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
-		const uint32_t paused = MEM<uint32_t>(0x2569334);
+		const uint32_t paused = MEM<uint32_t>(R(0x2569334));
 		S32(L, 0x1C) = pz;
 		return prim_play(node + 0x94, 0x718B90, L, paused);
 	}
@@ -4066,7 +4094,7 @@ namespace
 	{
 		if (a_743C20(a1) != 0)
 		{
-			const uint32_t asset = U32(MEM<uint32_t>(0x256D6F0), 0x134);
+			const uint32_t asset = U32(MEM<uint32_t>(R(0x256D6F0)), 0x134);
 			b9_718960(a1, 0x720610, asset, 0x2C, 4, 0);
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -4148,7 +4176,7 @@ namespace
 		alignas(4) uint8_t mat[0x20];  // [esp+0x18]
 		for (int n = 2; n != 0; n--)
 		{
-			uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x7208D0, 0xB0, a1);
+			uint32_t node = Spawn(R(0x2565C20), 0x7208D0, 0xB0, a1);
 			const int32_t r = (int32_t)x::CrtRand();
 			switch (r % 3)
 			{
@@ -4216,7 +4244,7 @@ namespace
 	// each jittered by b9_720AE0(0x100), random velocity in [-0x200, 0x1FF]; wait flag +0xAE = a2.
 	uint32_t __cdecl b9_7209B0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720B90, 0xB0, a1);
+		const uint32_t node = Spawn(R(0x2565C20), 0x720B90, 0xB0, a1);
 		alignas(4) uint32_t pos[2];  // [esp+0x10]: s16 x, y, z (+ the parent's word +0x22)
 		pos[0] = U32(a1, 0x1C);
 		pos[1] = U32(a1, 0x20);
@@ -4337,7 +4365,7 @@ namespace
 	// radius 0x80..0xFF), outward velocity 0x400..0xBFF, up velocity 0x200..0x5FF; wait flag = a2.
 	uint32_t __cdecl b9_720D70(uint32_t a1, uint32_t a2)
 	{
-		uint32_t e = x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720EA0, 0xB0, a1);
+		uint32_t e = Spawn(R(0x2565C20), 0x720EA0, 0xB0, a1);
 		U16(e, 0xAE) = (uint16_t)a2;
 		uint32_t angle = x::CrtRand() & 0xFFF;  // [esp+0x1C]
 		e += 0x6C;
@@ -4419,7 +4447,7 @@ namespace
 	// 0x1000), y = 0x1400, z = 0x2000, next state.
 	uint32_t __cdecl b9_721320(uint32_t a1)
 	{
-		const uint32_t model = U32(MEM<uint32_t>(0x256D6F0), 0x144);
+		const uint32_t model = U32(MEM<uint32_t>(R(0x256D6F0)), 0x144);
 		U32(a1, 0x4C) = model;
 		U32(a1, 0x30) = 0x1000;
 		U32(a1, 0x38) = 0x1000;
@@ -4457,7 +4485,7 @@ namespace
 	// y = 0, countdown +0x54 = 0x10, next state.
 	uint32_t __cdecl b9_7213F0(uint32_t a1)
 	{
-		const uint32_t model = U32(MEM<uint32_t>(0x256D6F0), 0x148);
+		const uint32_t model = U32(MEM<uint32_t>(R(0x256D6F0)), 0x148);
 		U32(a1, 0x4C) = model;
 		U32(a1, 0x38) = 0x1000;
 		U32(a1, 0x34) = 0x1000;
@@ -4498,7 +4526,7 @@ namespace
 		{
 			a_746AE0();
 			a_73BA90();
-			x::BdPlaySE(0x1529FB0, 0, 0x80);
+			x::BdPlaySE(fxp::sound(bokop::live[2].sounds.second, 0x1529FB0), 0, 0x80);
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -5355,8 +5383,8 @@ namespace
 		const uint32_t node = a1;
 		b_718670();   // (node pushed as an unused argument)
 		b10_70EE30();
-		x::Effect_AddTaskAndInitFromCtx(0x2565868, 0x70EF30, 0x30, node);
-		x::Effect_AddTaskAndInitFromCtx(0x255EBB0, 0x70F370, 0x48, node);
+		Spawn(R(0x2565868), 0x70EF30, 0x30, node);
+		Spawn(R(0x255EBB0), 0x70F370, 0x48, node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -5366,13 +5394,13 @@ namespace
 	// and its model/texture pointers (+0x104..+0x160), clears +0x164/+0x166; 0x25642E0 = 0x1529B70.
 	uint32_t __cdecl b10_70EE30(void)
 	{
-		MEM<uint32_t>(0x25642E0) = 0x1529B70;
-		MEM<uint32_t>(0x25653D8) = 0x25658C0;
-		x::MAG_007_sub_8DCC00(0x25658C0, 0x16C);
-		const uint32_t c = MEM<uint32_t>(0x25653D8);
-		const uint32_t arena = MEM<uint32_t>(0x2565888);
+		MEM<uint32_t>(R(0x25642E0)) = 0x1529B70;
+		MEM<uint32_t>(R(0x25653D8)) = R(0x25658C0);
+		x::MAG_007_sub_8DCC00(R(0x25658C0), 0x16C);
+		const uint32_t c = MEM<uint32_t>(R(0x25653D8));
+		const uint32_t arena = MEM<uint32_t>(R(0x2565888));
 		U32(c, 0x100) = arena;
-		MEM<uint32_t>(0x2565888) = arena + 0xA000;
+		MEM<uint32_t>(R(0x2565888)) = arena + 0xA000;
 		const uint32_t dflt = 0x19D5018;
 		U32(c, 0x114) = dflt;
 		U32(c, 0x118) = 0x19E8678;
@@ -5435,7 +5463,7 @@ namespace
 	// pending step (+0x44 != +0x42) takes it (nullsub 0x716110).
 	uint32_t __cdecl b10_70F480(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(0x15297F0);
+		uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		uint16_t v = U16(d, 0x42);
 		if (U16(d, 0x40) != v)
@@ -5443,7 +5471,7 @@ namespace
 			U16(d, 0x40) = v;
 			U16(d, 0x46) = 0;
 			b10_716120(a1);
-			d = MEM<uint32_t>(0x15297F0);
+			d = MEM<uint32_t>(G(G_1533010));
 		}
 		v = U16(d, 0x44);
 		if (U16(d, 0x42) != v)
@@ -5624,7 +5652,7 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(5) != 0)
 		{
-			a_73AB20(0x1529DB0, MEM<uint32_t>(0x15297F0) + 8, 0);
+			a_73AB20(0x1529DB0, MEM<uint32_t>(G(G_1533010)) + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -5636,7 +5664,7 @@ namespace
 	{
 		if (a_73AAE0(6) != 0)
 		{
-			a_73AB20(0x1529DF8, MEM<uint32_t>(0x15297F0) + 8, 0);
+			a_73AB20(0x1529DF8, MEM<uint32_t>(G(G_1533010)) + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -5649,7 +5677,7 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(8) != 0)
 		{
-			a_73AB20(0x1529E40, MEM<uint32_t>(0x15297F0) + 8, 0);
+			a_73AB20(0x1529E40, MEM<uint32_t>(G(G_1533010)) + 8, 0);
 			U16(a1, 0x6C) = 9;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -5684,8 +5712,8 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(9) != 0)
 		{
-			a_73AB20(0x1529E88, MEM<uint32_t>(0x15297F0) + 8, 0);
-			x::BdPlaySE(0x1529800, 0, 0x80);
+			a_73AB20(0x1529E88, MEM<uint32_t>(G(G_1533010)) + 8, 0);
+			x::BdPlaySE(fxp::sound(bokop::live[3].sounds.second, 0x1529800), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -5722,7 +5750,7 @@ namespace
 		if ((U8(node, 0x26) & 4) == 0)
 		{
 			const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-			MEM<uint32_t>(0x1D8E054) = a_746C10(node, 0x25642E8, cursor);
+			MEM<uint32_t>(0x1D8E054) = a_746C10(node, R(0x25642E8), cursor);
 			a_739890(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -5784,7 +5812,7 @@ namespace
 		if (a_73B7E0(6) == 0)
 			return 0;
 		U16(a1, 0x44) = U16(a1, 0x24);
-		x::BdPlaySE(0x15297FC, 0, 0x80);
+		x::BdPlaySE(fxp::sound(bokop::live[3].sounds.attack, 0x15297FC), 0, 0x80);
 		b103_next_state(a1);
 		return 0; // void
 	}
@@ -5806,7 +5834,7 @@ namespace
 	{
 		if (a_73B640(0xA) == 0)
 			return 0;
-		x::sub_4A2940((uint32_t)(int32_t)S16(U32(0x15297F0, 0), 0x52));
+		x::sub_4A2940((uint32_t)(int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x52));
 		U8(a1, 0x26) |= 1;
 		b103_next_state(a1);
 		return 0; // void
@@ -5817,31 +5845,31 @@ namespace
 	// 0x7175F0 + anim bind), 9 spawns one "target wobble" actor 0x716C20 per subtarget of the action
 	uint32_t __cdecl b10_716120(uint32_t a1)
 	{
-		uint32_t dir = U32(0x15297F0, 0);
+		uint32_t dir = MEM<uint32_t>(G(G_1533010));
 		int32_t step = (int32_t)S16(dir, 0x40);
 		uint32_t d;
 		uint32_t t;
 		switch (step)
 		{
 		case 2:
-			d = U32(0x25653D8, 0);
+			d = U32(R(0x25653D8), 0);
 			b_72A610(a1, 0x7163D0, U32(d, 0x128), 0x44C, 1, 0);
-			return x::Effect_AddTaskAndInitFromCtx(0x255ECB8, 0x716A60, 0x70, a1);
+			return Spawn(R(0x255ECB8), 0x716A60, 0x70, a1);
 		case 4:
-			d = U32(0x25653D8, 0);
+			d = U32(R(0x25653D8), 0);
 			b_72A610(a1, 0x716840, U32(d, 0x12C), 0x170, 2, 0);
-			return x::Effect_AddTaskAndInitFromCtx(0x255ECB8, 0x716B50, 0x70, a1);
+			return Spawn(R(0x255ECB8), 0x716B50, 0x70, a1);
 		case 6:
-			d = U32(0x25653D8, 0);
+			d = U32(R(0x25653D8), 0);
 			a_73C100(a1, 0x70FAF0, U32(d, 0x108), 0, 0x2D, 2);
-			t = x::Effect_AddTaskAndInitFromCtx(0x25656B8, 0x7175F0, 0x140, a1);
-			d = U32(0x25653D8, 0);
+			t = Spawn(R(0x25656B8), 0x7175F0, 0x140, a1);
+			d = U32(R(0x25653D8), 0);
 			return x::Effect_BindModelContainerSetAnim(t, U32(d, 0x118), 0x3C);
 		case 8:
-			d = U32(0x25653D8, 0);
+			d = U32(R(0x25653D8), 0);
 			b_72A610(a1, 0x716950, U32(d, 0x130), 0x32C, 3, 0);
-			t = x::Effect_AddTaskAndInitFromCtx(0x2564158, 0x716300, 0x40, a1);
-			d = U32(0x25653D8, 0);
+			t = Spawn(R(0x2564158), 0x716300, 0x40, a1);
+			d = U32(R(0x25653D8), 0);
 			U32(t, 0x34) = 0x1529F70;
 			U16(t, 0x38) = 0xF;
 			return a_73C100(a1, 0x70FAF0, U32(d, 0x10C), 0xF, 0x2D, 2);
@@ -5857,7 +5885,7 @@ namespace
 			uint32_t off = 0;
 			for (;;)
 			{
-				t = x::Effect_AddTaskAndInitFromCtx(0x2561890, 0x716C20, 0xD0, a1);
+				t = Spawn(R(0x2561890), 0x716C20, 0xD0, a1);
 				int32_t a = (int32_t)S8(a1, 0x2A);
 				uint32_t rec = U32(U32(a1, 0xC), 4) + (uint32_t)(a * 20);
 				i++;
@@ -5892,7 +5920,7 @@ namespace
 	uint32_t __cdecl b10_7169B0(uint32_t a1)
 	{
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
-		uint32_t dir = U32(0x15297F0, 0);
+		uint32_t dir = MEM<uint32_t>(G(G_1533010));
 		U16(a1, 0x60) = 0x480;
 		U32(a1, 0x58) = 0x2800;
 		uint32_t p0 = U32(dir, 8);
@@ -6241,7 +6269,7 @@ namespace
 		U16(a1, 0xCC) = (uint16_t)(U16(a1, 0xCC) - 1);
 		if (S16(a1, 0xCC) > 0)
 			return 0;
-		b10_717450(r, U32(U32(0x25653D8, 0), 0x100), 0x2565890, ent);
+		b10_717450(r, U32(U32(R(0x25653D8), 0), 0x100), R(0x2565890), ent);
 		U8(ent, 0) |= 4;
 		int16_t h = (int16_t)(U16(ent, 0x3C) - U16(ent, 0x36));
 		U16(a1, 0x26) |= 8;
@@ -6358,7 +6386,7 @@ namespace
 	// draw (+0x26 |= 4), timer +0x134 = 8, next state
 	uint32_t __cdecl b10_7176B0(uint32_t a1)
 	{
-		uint32_t dir = U32(0x15297F0, 0);
+		uint32_t dir = MEM<uint32_t>(G(G_1533010));
 		uint32_t p0 = U32(dir, 8);
 		uint32_t p1 = U32(dir, 0xC);
 		U32(a1, 0x4C) = p0;
@@ -6559,6 +6587,24 @@ namespace
 
 namespace boko
 {
+	namespace table
+	{
+		using fxp::Field;
+		using bokop::BokoParams;
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The prim play's, the chocobo's call, the summon's own" },
+		};
+		static const Field FIELDS_2[] = {   // (ChocoFire and ChocoFlare: the first three)
+			{ "director", "sounds.play", "Play", "The prim-model play's", (uint32_t)offsetof(BokoParams, sounds.play), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.call", "Call", "The chocobo's call", (uint32_t)offsetof(BokoParams, sounds.call), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.attack", "Attack", "The summon's own", (uint32_t)offsetof(BokoParams, sounds.attack), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.second", "Second", "The summon's own second", (uint32_t)offsetof(BokoParams, sounds.second), fxp::Sound, 0, 0x7FFFFFFF },
+		};
+		static const fxp::Part PARTS_097[] = { { 0, "director", "Director", "The director's phase script: the chocobo running in, its shadow, the prim-model fire plays, the emitter stage; the damage" } };
+		static const fxp::Part PARTS_098[] = { { 0, "director", "Director", "The director's phase script: the chocobo, its shadow, the prim-model flare plays; the damage" } };
+		static const fxp::Part PARTS_099[] = { { 0, "director", "Director", "The director's phase script: the chocobo, its shadow, the meteor with its trails and sparks, the prim-model plays; the damage" } };
+		static const fxp::Part PARTS_100[] = { { 0, "director", "Director", "The director's phase script: the chocobo and the chicobo, the target's wobble, the prim-model plays, the camera scripts; the damage" } };
+	}
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort PORTS_097[] = {
 		{ 0x729BD0, (void *)b_729BD0, "097 MAG_097_sub_729BD0" },
@@ -6935,6 +6981,14 @@ namespace boko
 	void register_mag097_boko()
 	{
 		using namespace act::boko;
+		{
+			using namespace act::bokop;
+			using namespace act::boko::table;
+			fxp::register_params({ 97, "ChocoFire", &live[0], &GAME[0], sizeof(BokoParams), PARTS_097, 1, FIELDS_2, 3, GROUPS, 1 });
+			fxp::register_params({ 98, "ChocoFlare", &live[1], &GAME[1], sizeof(BokoParams), PARTS_098, 1, FIELDS_2, 3, GROUPS, 1 });
+			fxp::register_params({ 99, "ChocoMeteor", &live[2], &GAME[2], sizeof(BokoParams), PARTS_099, 1, FIELDS_2, 4, GROUPS, 1 });
+			fxp::register_params({ 100, "ChocoBocle", &live[3], &GAME[3], sizeof(BokoParams), PARTS_100, 1, FIELDS_2, 4, GROUPS, 1 });
+		}
 		reg(97, PORTS_097);
 		reg(98, PORTS_098);
 		reg(99, PORTS_099);
@@ -6942,6 +6996,7 @@ namespace boko
 		// 30 fps layer: see mag097_boko_held.inc
 		FX_HELD(register_mag097_held();)
 	}
+	FX_LAB_MODULE(register_mag097_boko);
 }
 
 #ifdef FF8_FX_HELD
