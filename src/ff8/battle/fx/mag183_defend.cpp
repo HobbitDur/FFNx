@@ -43,6 +43,9 @@
 // packet cursor 0x230421C).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -52,10 +55,12 @@ namespace defend183
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x22F4210); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x22F4214); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x230421C); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x22F33F0; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x22F4210)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x22F4214)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x230421C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x22F4218)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x22F33E0); }             // 1 x 0x10
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x22F33F0); }
 	static const uint32_t ARENA0 = 0x22F421C, ARENA1 = 0x22FC21C, ARENA_SIZE = 0x8000;
 
 	static const uint32_t ORIG_RootTask = 0x5C9F80;
@@ -65,6 +70,20 @@ namespace defend183
 	static const uint32_t MODEL_ShieldA = 0xD348C4, MODEL_ShieldB = 0xD34CE4;
 	static const uint32_t SHIELD_COLOURS = 0xD3933C;                          // 10 colour words (ShieldB)
 	static const void *const SOUND_Defend = (const void *)0xD39304;
+	static const uint32_t ORIG_FileLoader = 0x5C9A30, ORIG_Setup = 0x5C9A50;
+	static const uint32_t TEXTURE_NAME = 0xD39364;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DefendParams
+	{
+		uint32_t sound;                      // at the director's tick 1 (3D, at the caster)
+		struct { int16_t result; } director; // the action result at this tick
+	};
+	static const DefendParams GAME = { 0xD39304, { 0x1E } };
+	static DefendParams live = GAME;
+	static const DefendParams &P() { return live; }
 
 	// ---- engine functions (original addresses)
 	// GetEffectSpawnPosition (0x502170): position of an entity's effect bone
@@ -225,6 +244,27 @@ namespace defend183
 	// ------------------------------------------------------------------
 	// ShieldA (0x5C9C40): counters 0..0xF, shrinking
 	// ------------------------------------------------------------------
+	// File loader (0x5C9A30) and setup (0x5C9A50): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the director, the TIM (no camera)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x22F33C8)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x22F33D0), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x22F3400), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl ShieldATask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
@@ -261,7 +301,7 @@ namespace defend183
 		if (t->counter == 0) GetEffectSpawnPosition(Caster(), 0xF1, 0, t->pos);
 		if (t->counter == 1)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_ShieldA);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_ShieldA));
 			*(uint32_t *)&s->pos[0] = *(const uint32_t *)&t->pos[0];
 			*(uint32_t *)&s->pos[2] = *(const uint32_t *)&t->pos[2];
 			s->counter = 0;
@@ -271,19 +311,19 @@ namespace defend183
 		}
 		if (t->counter == 6)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_ShieldB);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_ShieldB));
 			*(uint32_t *)&s->pos[0] = *(const uint32_t *)&t->pos[0];
 			*(uint32_t *)&s->pos[2] = *(const uint32_t *)&t->pos[2];
 			s->counter = 0;
 			s->scale = 0x700;
 			s->angle = *(const int16_t *)(Caster() + 0xE);
 		}
-		if (t->counter == 0x1E) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (t->counter == P().director.result) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		if (t->counter == 1)
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
-			BdPlaySE3D(SOUND_Defend, 0, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Defend), 0, pos);
 		}
 		t->counter++;
 		return t->counter > 0x23 ? TASK_END : 0;
@@ -295,25 +335,47 @@ namespace defend183
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = ARENA1;
-		if (!(r->counter & 1)) PacketCursor() = ARENA0;
+		PacketCursor() = own::R(ARENA1);
+		if (!(r->counter & 1)) PacketCursor() = own::R(ARENA0);
 		// 30 fps layer: see mag183_defend_held.inc
 		FX_HELD(held_note_root();)
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The two shields in front of the caster (the large one shrinking onto him, the small one flickering), the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1 (3D, at the caster)", (uint32_t)offsetof(DefendParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.result", "Result tick", "The action result at this tick of the director", (uint32_t)offsetof(DefendParams, director.result), fxp::I16, 0, 35 },
+		};
+	}
 }
 
 	void register_mag183_defend()
 	{
+		fxp::register_params({ 183, "Defend", &defend183::live, &defend183::GAME, sizeof(defend183::DefendParams),
+		                       defend183::table::PARTS, (int)(sizeof(defend183::table::PARTS) / sizeof(defend183::table::PARTS[0])),
+		                       defend183::table::FIELDS, (int)(sizeof(defend183::table::FIELDS) / sizeof(defend183::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(defend183::ORIG_FileLoader, (void *)defend183::FileLoader);
+		own::note(defend183::ORIG_Setup, (void *)defend183::Setup);
+		own::note(defend183::ORIG_RootTask, (void *)defend183::RootTask);
 		register_port(defend183::ORIG_RootTask, (void *)defend183::RootTask, "D183 RootTask", 183);
+		own::note(defend183::ORIG_Director, (void *)defend183::DirectorTask);
 		register_port(defend183::ORIG_Director, (void *)defend183::DirectorTask, "D183 Director", 183);
+		own::note(defend183::ORIG_ShieldA, (void *)defend183::ShieldATask);
 		register_port(defend183::ORIG_ShieldA, (void *)defend183::ShieldATask, "D183 ShieldA", 183);
+		own::note(defend183::ORIG_ShieldB, (void *)defend183::ShieldBTask);
 		register_port(defend183::ORIG_ShieldB, (void *)defend183::ShieldBTask, "D183 ShieldB", 183);
 		// 30 fps layer: see mag183_defend_held.inc
 		FX_HELD(register_mag183_held();)
 	}
+	FX_LAB_MODULE(register_mag183_defend);
 }
 
 #ifdef FF8_FX_HELD
