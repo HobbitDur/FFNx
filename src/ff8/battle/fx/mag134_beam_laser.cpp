@@ -58,6 +58,9 @@
 // buffer base 0x2520E70, caster flag word 0x2520E74, context 0x2520E78, master pool 0x2520E80,
 // packet cursor 0x2520E94, the queues 0x2520E98 hits / 0x2520EA8 sparks / 0x2520EB8 glows /
 // 0x2520EC8 beam / 0x2520ED8 master).
+// Fujin's described Beam Laser (effect_134.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BeamParams: the sound, the damage
+// tick).
 // NEVER-WRITTEN STACK WORDS: BeamTask loads entry esp - 0x9C (its local +0x34) into ebx on counters
 // >= 14 (0x6B0535) before anything writes it; every path that uses ebx afterwards (0x6B0894, counters
 // 14..0x21) assigns it first (0x6B059D / 0x6B05F7): dead read. The 4th words of the vectors loaded
@@ -66,6 +69,9 @@
 // +0x04 / +0x18 (and +0x0C when it does not fade), as in the game.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,15 +81,17 @@ namespace beam134
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520E68); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520E70); }        // Magic_TextureOFF (magic buffer)
-	inline uint32_t &CasterFlags() { return var<uint32_t>(0x2520E74); }    // the caster's flag word at the setup
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520E78); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520E94); }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2520E98; }           // pool: magic buffer, 8 x 0x84
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2520EA8; }         // pool: + 0x420, 0x10 x 0x1C
-	inline TaskQueue *QGlows() { return (TaskQueue *)0x2520EB8; }          // pool: + 0x5E0, 0x10 x 0x14
-	inline TaskQueue *QBeam() { return (TaskQueue *)0x2520EC8; }           // pool: + 0x720, 1 x 0x540
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2520E68)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2520E70)); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &CasterFlags() { return var<uint32_t>(own::R(0x2520E74)); }    // the caster's flag word at the setup
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2520E78)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2520E94)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2520E6C)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2520ED8); }           // 1 x 0x14
+	inline TaskQueue *QHits() { return (TaskQueue *)own::R(0x2520E98); }           // pool: magic buffer, 8 x 0x84
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2520EA8); }         // pool: + 0x420, 0x10 x 0x1C
+	inline TaskQueue *QGlows() { return (TaskQueue *)own::R(0x2520EB8); }          // pool: + 0x5E0, 0x10 x 0x14
+	inline TaskQueue *QBeam() { return (TaskQueue *)own::R(0x2520EC8); }           // pool: + 0x720, 1 x 0x540
 
 	static const uint32_t ORIG_MasterTask = 0x6B0130;
 	static const uint32_t ORIG_BeamTask = 0x6B03B0;
@@ -103,6 +111,20 @@ namespace beam134
 	static const uint32_t SEQ_Spark = 0x1202068;         // sprite sequences
 	static const uint32_t SEQ_Glow = 0x1201EBC;
 	static const void *const SOUND_Beam = (const void *)0x120767C;
+	static const uint32_t ORIG_FileLoader = 0x6B0080, ORIG_Setup = 0x6B0070;
+	static const uint32_t TEXTURE_NAME = 0x12077A8, CAMERA = 0x1207680;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BeamParams
+	{
+		uint32_t sound;                  // at the beam's tick 2
+		struct { int16_t damage; } beam; // the damage at this tick of the beam
+	};
+	static const BeamParams GAME = { 0x120767C, { 0x1A } };
+	static BeamParams live = GAME;
+	static const BeamParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
@@ -447,6 +469,29 @@ namespace beam134
 	// ------------------------------------------------------------------
 	// Glow (0x6B0E30)
 	// ------------------------------------------------------------------
+	// File loader (0x6B0080) and setup (0x6B0070 -> 0x6B00A0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster (its flag word kept, bit 3
+	// set), the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		CasterFlags() = *(const uint16_t *)Caster();
+		*Caster() |= 8;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520E80), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)CAMERA);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
@@ -545,7 +590,7 @@ namespace beam134
 				BeamShape(b, f.P, T, &d);
 				if (d.kind == 1)
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), own::Fn(ORIG_HitTask));
 					if (h)
 					{
 						memcpy(&h->frame.m, &f.R.m, sizeof(h->frame.m));
@@ -557,7 +602,7 @@ namespace beam134
 				}
 				else if (d.kind == 2)
 				{
-					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), ORIG_GlowTask);
+					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), own::Fn(ORIG_GlowTask));
 					if (g)
 					{
 						g->pos[0] = T[0];
@@ -576,7 +621,7 @@ namespace beam134
 			{
 				for (int k = 0; k < 4; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (!s) continue;
 					memcpy(s->pos, b->spawn, 4);
 					*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->spawn[2];
@@ -595,8 +640,8 @@ namespace beam134
 			FX_HELD(held_note_play(PLAY_IMPACT, n, (prim::Layout *)b->impact, &f);)
 			prim::play((prim::Layout *)b->impact, PrimCallback, (int)&arg, 0);
 		}
-		if (b->counter == 2) BdPlaySE(SOUND_Beam, 0, 0x80);
-		if (b->counter == 0x1A) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (b->counter == 2) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Beam), 0, 0x80);
+		if (b->counter == P().beam.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		if (b->counter >= 0x2E) return TASK_END;
 		b->counter++;
 		return 0;
@@ -638,7 +683,7 @@ namespace beam134
 				if ((live->hdr.flags & 1) && live->ent == ent) m->counter = 0;
 				else
 				{
-					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), ORIG_BeamTask);
+					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), own::Fn(ORIG_BeamTask));
 					if (b)
 					{
 						Memset32(&b->counter, 0, 0x14D);
@@ -673,18 +718,41 @@ namespace beam134
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "beam", "Beam", "The beam from the caster to the target, its glows, sparks and hits, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "beam", "sound", "Sound", "", (uint32_t)offsetof(BeamParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "beam", "beam.damage", "Damage tick", "The damage at this tick of the beam", (uint32_t)offsetof(BeamParams, beam.damage), fxp::I16, 0, 200 },
+		};
+	}
 }
 
 	void register_mag134_beam_laser()
 	{
+		fxp::register_params({ 134, "Beam Laser", &beam134::live, &beam134::GAME, sizeof(beam134::BeamParams),
+		                       beam134::table::PARTS, (int)(sizeof(beam134::table::PARTS) / sizeof(beam134::table::PARTS[0])),
+		                       beam134::table::FIELDS, (int)(sizeof(beam134::table::FIELDS) / sizeof(beam134::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(beam134::ORIG_FileLoader, (void *)beam134::FileLoader);
+		own::note(beam134::ORIG_Setup, (void *)beam134::Setup);
+		own::note(beam134::ORIG_MasterTask, (void *)beam134::MasterTask);
 		register_port(beam134::ORIG_MasterTask, (void *)beam134::MasterTask, "134 MasterTask", 134);
+		own::note(beam134::ORIG_BeamTask, (void *)beam134::BeamTask);
 		register_port(beam134::ORIG_BeamTask, (void *)beam134::BeamTask, "134 BeamTask", 134);
+		own::note(beam134::ORIG_HitTask, (void *)beam134::HitTask);
 		register_port(beam134::ORIG_HitTask, (void *)beam134::HitTask, "134 HitTask", 134);
+		own::note(beam134::ORIG_SparkTask, (void *)beam134::SparkTask);
 		register_port(beam134::ORIG_SparkTask, (void *)beam134::SparkTask, "134 SparkTask", 134);
+		own::note(beam134::ORIG_GlowTask, (void *)beam134::GlowTask);
 		register_port(beam134::ORIG_GlowTask, (void *)beam134::GlowTask, "134 GlowTask", 134);
 		// 30 fps layer: see mag134_beam_laser_held.inc
 		FX_HELD(register_mag134_held();)
 	}
+	FX_LAB_MODULE(register_mag134_beam_laser);
 }
 
 #ifdef FF8_FX_HELD
