@@ -32,8 +32,14 @@
 // Module globals: 0x2543F18..0x2544E10 (bolt pool 3 x 0x6C, texture file, flash pool 0x20 x 0x18,
 // texture base, context, root pool, packet cursor 0x254437C, spark pool 0x3C x 0x2C, queues
 // 0x2544DD0 (root / bolts) and 0x2544DF0 (sparks / flashes)).
+// Fujin's described Thundara (effect_102.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (ThundaraParams: the sound, the
+// bolt's damage frame).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -43,11 +49,12 @@ namespace thundara102
 	using namespace magc;
 
 	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x2544DD0); }    // .first = root, .second = bolts
-	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(0x2544DF0); } // .first = sparks, .second = flashes
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544360); }             // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2544364); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x254437C); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(own::R(0x2544DD0)); }    // .first = root, .second = bolts
+	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(own::R(0x2544DF0)); } // .first = sparks, .second = flashes
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2544360)); }             // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2544364)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x254437C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x254405C)); }          // the effect's file (its TIM)
 
 	static const uint32_t ORIG_RootTask = 0x6DC390;
 	static const uint32_t ORIG_BoltTask = 0x6DC510;
@@ -57,6 +64,20 @@ namespace thundara102
 	static const int BOLT_POOL_COUNT = 3;
 	static const void *const SOUND_Thundara = (const void *)0x1321BD8;
 	static const void *const FLASH_Colour = (const void *)0x1321BDC;  // flash quad colour word
+	static const uint32_t ORIG_FileLoader = 0x6DC2B0, ORIG_Setup = 0x6DC2D0;
+	static const uint32_t TEXTURE_NAME = 0x1321BE0, CAMERA = 0x1321588;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ThundaraParams
+	{
+		uint32_t sound;                  // at the bolt's frame 4 (3D, at the target)
+		struct { int16_t damage; } bolt; // the damage at this frame of the bolt
+	};
+	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A } };
+	static ThundaraParams live = GAME;
+	static const ThundaraParams &P() { return live; }
 	// strike layers (sprite sequences)
 	static const uint32_t SEQ_Strike = 0x131E878;    // frames 0..7
 	static const uint32_t SEQ_UpperA = 0x131EABC;    // frames 2..9, 200 units lower
@@ -182,6 +203,32 @@ namespace thundara102
 	// ------------------------------------------------------------------
 	// Root task (0x6DC390)
 	// ------------------------------------------------------------------
+	// File loader (0x6DC2B0) and setup (0x6DC2D0 -> 0x6DC2E0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast, the root and the bolt / spark / flash pools, the camera
+	// and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(&Queues().first, (void *)own::R(0x2544368), 0x14, 1);
+		FillDwords(AddTaskToQueue(&Queues().first, own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		InitTaskQueuePool(&Queues().second, (void *)own::R(0x2543F18), 0x6C, 3);
+		InitTaskQueuePool(&Particles().first, (void *)own::R(0x2544380), 0x2C, 60);
+		InitTaskQueuePool(&Particles().second, (void *)own::R(0x2544060), 0x18, 32);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)CAMERA);
+			QueueTimUpload(TexFile());
+		}
+		return &Queues().first;
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -209,7 +256,7 @@ namespace thundara102
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
 				// wait while a bolt of 26 frames or less runs on this target
-				BoltNode *pool = (BoltNode *)BOLT_POOL;
+				BoltNode *pool = (BoltNode *)own::R(BOLT_POOL);
 				bool busy = false;
 				for (int k = 0; k < BOLT_POOL_COUNT; k++)
 					if ((pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= 0x1A)
@@ -220,7 +267,7 @@ namespace thundara102
 				if (busy) r->counter = 0;
 				else
 				{
-					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, ORIG_BoltTask);
+					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_BoltTask));
 					FillDwords(&b->counter, 0, 0x18);
 					b->action = (int16_t)(uint16_t)r->action;
 					b->entity = Entity(Ctx()->actions[b->action].targets[0]);
@@ -447,7 +494,7 @@ namespace thundara102
 	{
 		for (int k = 2; k; k--)
 		{
-			FlashNode *f = (FlashNode *)AddTaskToQueue(&Particles().second, ORIG_FlashTask);
+			FlashNode *f = (FlashNode *)AddTaskToQueue(&Particles().second, own::Fn(ORIG_FlashTask));
 			if (!f) continue;
 			FillDwords(&f->counter, 0, 3);
 			int32_t radius = (EntitySizeOf(p->entity) >> 1) + 0x12C;
@@ -463,13 +510,13 @@ namespace thundara102
 	static uint32_t __cdecl BoltTask(TaskNode *n)
 	{
 		BoltNode *p = (BoltNode *)n;
-		if (p->counter == 4) BdPlaySE3D(SOUND_Thundara, 0x101, p->pos);
+		if (p->counter == 4) BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Thundara), 0x101, p->pos);
 		if (p->counter == 0)
 		{
 			// 20 sparks on a ring around the target, 500 units lower than the anchor
 			for (int k = 0; k < 20; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Particles().first, ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Particles().first, own::Fn(ORIG_SparkTask));
 				if (!s) break;
 				p->sparks[19 - k] = s;
 				FillDwords(&s->counter, 0, 8);
@@ -512,7 +559,7 @@ namespace thundara102
 			if (f >= 4 && f < 0x14 && !(f & 1)) SpawnFlashes(p);
 			FieldFree(0xB4);
 		}
-		if (p->counter == 0x1A) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
+		if (p->counter == P().bolt.damage) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
 		if (p->counter >= 0x1F) return TASK_END;
 		p->counter++;
 		return 0;
@@ -590,17 +637,39 @@ namespace thundara102
 		p->counter++;
 		return p->counter < 8 ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "bolt", "Bolt", "One bolt an action on its first target: the sparks thrown outwards, the screen flash, the strike's sprite layers and prim models, the flash sprites, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "bolt", "sound", "Sound", "", (uint32_t)offsetof(ThundaraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "bolt", "bolt.damage", "Damage frame", "The damage at this frame of the bolt", (uint32_t)offsetof(ThundaraParams, bolt.damage), fxp::I16, 0, 30 },
+		};
+	}
 }
 
 	void register_mag102_thundara()
 	{
+		fxp::register_params({ 102, "Thundara", &thundara102::live, &thundara102::GAME, sizeof(thundara102::ThundaraParams),
+		                       thundara102::table::PARTS, (int)(sizeof(thundara102::table::PARTS) / sizeof(thundara102::table::PARTS[0])),
+		                       thundara102::table::FIELDS, (int)(sizeof(thundara102::table::FIELDS) / sizeof(thundara102::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(thundara102::ORIG_FileLoader, (void *)thundara102::FileLoader);
+		own::note(thundara102::ORIG_Setup, (void *)thundara102::Setup);
+		own::note(thundara102::ORIG_RootTask, (void *)thundara102::RootTask);
 		register_port(thundara102::ORIG_RootTask, (void *)thundara102::RootTask, "T102 RootTask", 102);
+		own::note(thundara102::ORIG_BoltTask, (void *)thundara102::BoltTask);
 		register_port(thundara102::ORIG_BoltTask, (void *)thundara102::BoltTask, "T102 BoltTask", 102);
+		own::note(thundara102::ORIG_SparkTask, (void *)thundara102::SparkTask);
 		register_port(thundara102::ORIG_SparkTask, (void *)thundara102::SparkTask, "T102 SparkTask", 102);
+		own::note(thundara102::ORIG_FlashTask, (void *)thundara102::FlashTask);
 		register_port(thundara102::ORIG_FlashTask, (void *)thundara102::FlashTask, "T102 FlashTask", 102);
 		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(register_mag102_held();)
 	}
+	FX_LAB_MODULE(register_mag102_thundara);
 }
 
 #ifdef FF8_FX_HELD
