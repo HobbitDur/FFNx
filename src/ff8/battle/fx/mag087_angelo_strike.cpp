@@ -50,8 +50,16 @@
 // return; the GTE screen offset (0x56CCE0, set and put back by the ground capture); the root-matrix slot 0x1D99AB0 (Angelo);
 // the camera copy 0x2793E58; action results (0x506690).
 // Module globals: 0x25ACEB0..0x25B4CC4 (+ camera copy 0x2793E58, 0x20 bytes).
+// Fujin's described Angelo Strike (effect_087.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or thunks
+// of their ports (Spawn); its parameters (StrikeParams: the two sounds, the done flag's frame) are set from the
+// program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -65,6 +73,20 @@ namespace strike87
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x779D00, 0x779E40, 0x779F80, 0x77A190, 0x77A410, 0x77A650, 0x77A8F0, 0x77AB20, 0x77ADE0, 0x77B040, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x773BA0, 0x773BB0, 0x773BC0, 0x773C40, 0x773C70, 0x773CF0, 0x0, 0x774030, 0x774060, 0x774090, 0x7740A0, 0x7740B0, 0x7740C0, 0x7740D0, 0x0, 0x0, 0x774FD0, 0x0, 0x0, 0x774500, 0x774850, 0x0, 0x0, 0x0, 0x774370, 0x774F50, 0x774F90, 0x7766B0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7792E0, 0x7793C0, 0x779560, 0x779630, 0x779750, 0x7799B0, 0x0, 0x0, 0x77BB90, 0x77BBE0, 0x0, 0x0, 0x77C4D0, 0x0, 0x0, 0x0, 0x77CEB0, 0x77CEE0, 0x77CFC0, 0x77D0E0, 0x77D230, 0x0, 0x77D8F0, 0x77DAD0, 0x77DC10, 0x7759E0, 0x0, 0x77F0D0, 0x77F110, 0x77F130, 0x77F150, 0x77F160, 0x77F1A0, 0x77F1B0, 0x77F1C0, 0x77F1F0, 0x77F200, 0x77F220 } };
 
 	// --- module globals ---
+	static const uint32_t SOUND_A = 0x1557D2C, SOUND_B = 0x1557D30;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct StrikeParams
+	{
+		struct { uint32_t run, slam; } sounds;    // Angelo's run, the slam
+		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
+	};
+	static const StrikeParams GAME = { { SOUND_A, SOUND_B }, { 0x48 } };
+	static StrikeParams live = GAME;
+	static const StrikeParams &PC() { return live; }
+
 	static const uint32_t DIR_PTR = 0x1557D28;        // pointer to the director block (phase +0x40 / requested +0x42 / next +0x44, frame +0x46, done +0x48)
 	static const uint32_t PHASE_DATA = DIR_PTR;       // (the library's name of the director pointer)
 	static const uint32_t PACKET_CURSOR = 0x25ACEB4;  // module packet cursor (tick parity: [0x25B394C] / [0x25B3948])
@@ -431,7 +453,7 @@ namespace strike87
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -579,13 +601,14 @@ namespace strike87
 	uint32_t __cdecl ak_773A10(uint32_t a1)
 	{
 		g_mod = &MOD_087;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag087_angelo_strike_held.inc
 		FX_HELD(held_note_master();)
 
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25B4B24) = 0x2793E58;
-		MEM<uint32_t>(0x25ACFC0) = 0x2793E58;
+		MEM<uint32_t>(R(0x25B4B24)) = 0x2793E58;
+		MEM<uint32_t>(R(0x25ACFC0)) = 0x2793E58;
 		uint32_t states[11];
 		states[0] = 0x773BA0;
 		states[1] = 0x773BB0;
@@ -600,20 +623,20 @@ namespace strike87
 		states[10] = 0x77F220; // nullsub (ret)
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(0x25ACEB4) = MEM<uint32_t>(0x25B394C);
-			MEM<uint32_t>(0x25ACFBC) = MEM<uint32_t>(0x25B2AA4);
+			MEM<uint32_t>(R(0x25ACEB4)) = MEM<uint32_t>(R(0x25B394C));
+			MEM<uint32_t>(R(0x25ACFBC)) = MEM<uint32_t>(R(0x25B2AA4));
 		}
 		else
 		{
-			MEM<uint32_t>(0x25ACEB4) = MEM<uint32_t>(0x25B3948);
-			MEM<uint32_t>(0x25ACFBC) = MEM<uint32_t>(0x25B2AA0);
+			MEM<uint32_t>(R(0x25ACEB4)) = MEM<uint32_t>(R(0x25B3948));
+			MEM<uint32_t>(R(0x25ACFBC)) = MEM<uint32_t>(R(0x25B2AA0));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x25B4B08) = 0;
-		MEM<uint16_t>(0x25B4630) = 0;
-		static const uint32_t queues[9] = { 0x25B37D8, 0x25ACF98, 0x25B4B10, 0x25B4620, 0x25B3538, 0x25AD0A0, 0x25AECD8, 0x25B2A90, 0x25B37C8 };
+		MEM<uint16_t>(R(0x25B4B08)) = 0;
+		MEM<uint16_t>(R(0x25B4630)) = 0;
+		const uint32_t queues[9] = { R(0x25B37D8), R(0x25ACF98), R(0x25B4B10), R(0x25B4620), R(0x25B3538), R(0x25AD0A0), R(0x25AECD8), R(0x25B2A90), R(0x25B37C8) };
 		for (int i = 0; i < 9; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -635,12 +658,12 @@ namespace strike87
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x25B4B50);
-		MEM<uint32_t>(0x25B4634) = p;
+		uint32_t p = MEM<uint32_t>(R(0x25B4B50));
+		MEM<uint32_t>(R(0x25B4634)) = p;
 		p += 0x870;
-		MEM<uint32_t>(0x25B4B48) = p;
+		MEM<uint32_t>(R(0x25B4B48)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(0x25B4B50) = p;
+		MEM<uint32_t>(R(0x25B4B50)) = p;
 		ak_773C00();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -651,12 +674,12 @@ namespace strike87
 	// cursors / counters
 	uint32_t __cdecl ak_773C00(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25B4634), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25B4B48), 0x8340);
-		MEM<uint16_t>(0x25AECD0) = 0;
-		MEM<uint16_t>(0x25B4640) = 0;
-		MEM<uint16_t>(0x25B4444) = 0;
-		MEM<uint16_t>(0x25ACEB8) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25B4634)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25B4B48)), 0x8340);
+		MEM<uint16_t>(R(0x25AECD0)) = 0;
+		MEM<uint16_t>(R(0x25B4640)) = 0;
+		MEM<uint16_t>(R(0x25B4444)) = 0;
+		MEM<uint16_t>(R(0x25ACEB8)) = 0;
 		return 0; // void
 	}
 
@@ -667,8 +690,8 @@ namespace strike87
 	{
 		ak_774190(a1);
 		ak_773D40();
-		x::Effect_AddTaskAndInitFromCtx(0x25B4B10, 0x773E30, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25ACF98, 0x774240, 0x48, a1);
+		Spawn(R(0x25B4B10), 0x773E30, 0x30, a1);
+		Spawn(R(0x25ACF98), 0x774240, 0x48, a1);
 		t1_next_state(a1);
 		return 0; // void
 	}
@@ -678,14 +701,14 @@ namespace strike87
 	// destinations (0x19CF018, +0x114 0x19EB018), +0x164 / +0x166 loading / script-done words cleared
 	uint32_t __cdecl ak_773D40()
 	{
-		MEM<uint32_t>(0x25B3950) = 0x155B190;
-		MEM<uint32_t>(0x25B4448) = 0x25B4B58;
-		x::MAG_007_sub_8DCC00(0x25B4B58, 0x16C);
-		const uint32_t b = MEM<uint32_t>(0x25B4448);
-		uint32_t c = MEM<uint32_t>(0x25B4B50);
+		MEM<uint32_t>(R(0x25B3950)) = 0x155B190;
+		MEM<uint32_t>(R(0x25B4448)) = R(0x25B4B58);
+		x::MAG_007_sub_8DCC00(R(0x25B4B58), 0x16C);
+		const uint32_t b = MEM<uint32_t>(R(0x25B4448));
+		uint32_t c = MEM<uint32_t>(R(0x25B4B50));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(0x25B4B50) = c;
+		MEM<uint32_t>(R(0x25B4B50)) = c;
 		U32(b, 0x114) = 0x19EB018;
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
 			if (o != 0x114) U32(b, o) = 0x19CF018;
@@ -701,8 +724,8 @@ namespace strike87
 	uint32_t __cdecl ak_774190(uint32_t a1)
 	{
 		const uint32_t t = gx::EntityChainLowest(ENT(U8(a1, 0x2D)));
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(d, 8) = U32(t, 0x1C);
 		const uint32_t c = ENT(U8(a1, 0x2C));
 		U32(d, 0xC) = U32(t, 0x20);
@@ -712,7 +735,7 @@ namespace strike87
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
 		const uint16_t size = U16(t, 0x26);
-		const uint32_t d2 = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d2 = MEM<uint32_t>(G(G_1533010));
 		U16(d2, 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		U16(d2, 0x4E) = size;
 		return d2;
@@ -776,7 +799,7 @@ namespace strike87
 	{
 		x::Battle_QueueTIMUpload_GetEOF(0x16FDF78);
 		gx::BS_Camera_ArmReturnAfterEffect();
-		x::Effect_AddTaskAndInitFromCtx(0x25AD0A0, 0x7743A0, 0x90, a1);
+		Spawn(R(0x25AD0A0), 0x7743A0, 0x90, a1);
 		if (a_73B640(1) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -816,7 +839,7 @@ namespace strike87
 	{
 		a_73AB00();
 		const uint16_t ang = U16(ENT(U8(a1, 0x2C)), 0xE);
-		U16(MEM<uint32_t>(0x155B1E0), 0xE8) = ang;
+		U16(R(MEM<uint32_t>(0x155B1E0)), 0xE8) = ang;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -835,7 +858,7 @@ namespace strike87
 		a_73AE10();
 		if (a_73AAE0(1) != 0)
 		{
-			a_73AB20(0x15600F8, MEM<uint32_t>(DIR_PTR), 0);
+			a_73AB20(0x15600F8, MEM<uint32_t>(G(G_1533010)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -845,8 +868,8 @@ namespace strike87
 	// script; at its end starts 0x1560140 from the director block, next state
 	uint32_t __cdecl ak_774CB0(uint32_t a1)
 	{
-		if (MEM<uint32_t>(0x25B4B4C) == 0 && a_73AE10() == 1)
-			ak_cam_chain(a1, 0x1560140, MEM<uint32_t>(DIR_PTR));
+		if (MEM<uint32_t>(R(0x25B4B4C)) == 0 && a_73AE10() == 1)
+			ak_cam_chain(a1, 0x1560140, MEM<uint32_t>(G(G_1533010)));
 		return 0; // void
 	}
 
@@ -854,9 +877,9 @@ namespace strike87
 	// (random bit 0) from Angelo's point (+0x148 of his node, director +0x18), next state
 	uint32_t __cdecl ak_774CE0(uint32_t a1)
 	{
-		if (MEM<uint32_t>(0x25B4B4C) == 0 && a_73AE10() == 1)
+		if (MEM<uint32_t>(R(0x25B4B4C)) == 0 && a_73AE10() == 1)
 		{
-			const uint32_t angelo = U32(MEM<uint32_t>(DIR_PTR), 0x18);
+			const uint32_t angelo = U32(MEM<uint32_t>(G(G_1533010)), 0x18);
 			const uint32_t r = x::CrtRand();
 			ak_cam_chain(a1, (r & 1) ? 0x1560188 : 0x15601D0, angelo + 0x148);
 		}
@@ -869,7 +892,7 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(DIR_PTR);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			const uint32_t angelo = U32(d, 0x18);
 			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? 0x1560218 : 0x1560260, angelo + 0x148);
 		}
@@ -882,7 +905,7 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(DIR_PTR);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			const uint32_t angelo = U32(d, 0x18);
 			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? 0x15602E0 : 0x1560370, angelo + 0x148);
 		}
@@ -895,7 +918,7 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(DIR_PTR);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			if (S16(d, 0x4E) < 0x1000)
 				a_73AB20(0x1560328, U32(d, 0x18) + 0x148, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -909,7 +932,7 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(DIR_PTR);
+			const uint32_t d = MEM<uint32_t>(G(G_1533010));
 			const uint32_t angelo = U32(d, 0x18);
 			alignas(4) uint8_t pt[8];
 			U32(P(pt), 0) = U32(angelo, 0x148);
@@ -924,7 +947,7 @@ namespace strike87
 	uint32_t __cdecl ak_774E90(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, 0x1560468, MEM<uint32_t>(DIR_PTR));
+			ak_cam_chain(a1, 0x1560468, MEM<uint32_t>(G(G_1533010)));
 		return 0; // void
 	}
 
@@ -932,7 +955,7 @@ namespace strike87
 	uint32_t __cdecl ak_774EC0(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, 0x15604F0, MEM<uint32_t>(DIR_PTR));
+			ak_cam_chain(a1, 0x15604F0, MEM<uint32_t>(G(G_1533010)));
 		return 0; // void
 	}
 
@@ -957,9 +980,9 @@ namespace strike87
 	// stop); when they are done a_73BB60(0), next state
 	uint32_t __cdecl ak_775010(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) < 0x1C)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) < 0x1C)
 			return 0; // void
-		if (U16(MEM<uint32_t>(0x25B4448), 0x166) == 0)
+		if (U16(MEM<uint32_t>(R(0x25B4448)), 0x166) == 0)
 		{
 			a_73BB60(0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -973,8 +996,8 @@ namespace strike87
 	// library's finish states), next state
 	uint32_t __cdecl ak_7750E0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		if (S16(d, 0x46) >= 0x48)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) >= PC().director.damage)
 		{
 			U16(d, 0x48) = 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -997,9 +1020,9 @@ namespace strike87
 	// 0x7751A0 (queue 0x25B4620, node 0x178) bound to the model container 0x155B1E4 animation 3
 	uint32_t __cdecl ak_775160(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x40) == 1)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x40) == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B4620, 0x7751A0, 0x178, a1);
+			const uint32_t t = Spawn(R(0x25B4620), 0x7751A0, 0x178, a1);
 			x::Effect_BindModelContainerSetAnim(t, 0x155B1E4, 3);
 		}
 		return 0; // void
@@ -1048,7 +1071,7 @@ namespace strike87
 		{
 			// 30 fps layer: see mag087_angelo_strike_held.inc
 			FX_HELD(held_note_draw(HK_ANGELO, node);)
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, CREATURE_ARG, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_746C10(node, R(CREATURE_ARG), MEM<uint32_t>(R(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
 				const uint8_t anim = U8(node, 0x9C), frame = U8(node, 0xA2);
@@ -1097,7 +1120,7 @@ namespace strike87
 		const int n = k > 3 ? 2 : 4;
 		for (int i = 0; i < n; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25AD0A0, 0x775720, 0x90, a1);
+			const uint32_t t = Spawn(R(0x25AD0A0), 0x775720, 0x90, a1);
 			if ((uint32_t)(int32_t)k <= 5)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			if (k <= 3)
@@ -1197,11 +1220,11 @@ namespace strike87
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x25ACEB4);
+		const uint32_t cursor = MEM<uint32_t>(R(0x25ACEB4));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x25ACEB4) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(0x25ACEB4)) = callo(0x7758A0, blk, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -1246,7 +1269,7 @@ namespace strike87
 	{
 		alignas(4) uint8_t m[0x20];
 		const uint32_t M = P(m);
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25AD0A0, 0x775720, 0x90, a1);
+		const uint32_t t = Spawn(R(0x25AD0A0), 0x775720, 0x90, a1);
 		x::GetEffectSpawnPosition(a1 + 0x30, 0xF1, 0, t + 0x1C);
 		U16(t, 0x1E) = 0;
 		const int32_t r1 = (int32_t)x::CrtRand();
@@ -1276,10 +1299,10 @@ namespace strike87
 		const uint32_t node = a1;
 		const uint32_t c = ENT(U8(node, 0x2C));
 		const uint32_t t = gx::EntityChainLowest(ENT(U8(node, 0x2D)));
-		U32(MEM<uint32_t>(DIR_PTR), 0x18) = node;
-		gx::BindEntityModelFromComData(c, 0x25B4B28, 0x1560550);
+		U32(MEM<uint32_t>(G(G_1533010)), 0x18) = node;
+		gx::BindEntityModelFromComData(c, R(0x25B4B28), 0x1560550);
 		gx::QueueChainTransformation(c, 1);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 4);
 		const uint32_t rot0 = U32(t, 0xC);
 		U32(node, 0x4C) = U32(d, 0);
@@ -1360,7 +1383,7 @@ namespace strike87
 	// step (0x8DD1C0); from animation frame +0x136 = 0x14 animation 0xA, next state
 	uint32_t __cdecl ak_776260(uint32_t a1)
 	{
-		if (MEM<uint32_t>(0x25B4B4C) != 0)
+		if (MEM<uint32_t>(R(0x25B4B4C)) != 0)
 			return 0; // void
 		const uint32_t node = a1;
 		ak_height_step(node);
@@ -1416,7 +1439,7 @@ namespace strike87
 			U32(t, 0x240) = node + 0x30;
 			U16(t, 0x8A) = 0;
 			ak_7789B0(node);
-			x::BdPlaySE(0x1557D2C, 0, 0x80);
+			x::BdPlaySE(fxp::sound(PC().sounds.run, SOUND_A), 0, 0x80);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		return 0; // void
@@ -1426,7 +1449,7 @@ namespace strike87
 	// +0x78 = (s16) a4 (its count), +0x80 = a5 (the callback's mode word), +0x82 = a6; returns the node
 	uint32_t __cdecl ak_776460(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B2A90, a2, 0x25C, a1);
+		const uint32_t t = Spawn(R(0x25B2A90), a2, 0x25C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -1547,7 +1570,7 @@ namespace strike87
 			U32(hdr, 0x14) = U32(hdr, 0x14) | 0xC0;
 			U32(hdr, 8) = U32(rec, 0x20);   // colour
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
@@ -1560,7 +1583,7 @@ namespace strike87
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = ak_776920(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = ak_776920(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -2546,7 +2569,7 @@ namespace strike87
 		const uint32_t node = a1;
 		if (S16(node, 0x24) < S16(node, 0x298))
 			return 0; // void
-		const uint32_t mdl = U32(MEM<uint32_t>(DIR_PTR), 0x18) + 0x30;
+		const uint32_t mdl = U32(MEM<uint32_t>(G(G_1533010)), 0x18) + 0x30;
 		const int16_t k = S16(node, 0x2A0);
 		const int32_t pt = k == 0 ? 0x1E : k == 1 ? 0x21 : (k != 2 ? 0x1D : 0x1C);
 		x::GetEffectSpawnPosition(mdl, (uint32_t)pt, 0, node + 0x290);
@@ -2562,7 +2585,7 @@ namespace strike87
 	// the harness)
 	uint32_t __cdecl ak_7792E0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25B4B54);
+		const uint32_t arena = MEM<uint32_t>(R(0x25B4B54));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -2582,7 +2605,7 @@ namespace strike87
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl ak_779560(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25B4B54);
+		const uint32_t arena = MEM<uint32_t>(R(0x25B4B54));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -2612,7 +2635,7 @@ namespace strike87
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x25B4B54, 0) = sys;
+		U32(R(0x25B4B54), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2626,7 +2649,7 @@ namespace strike87
 			FX_HELD(held_note_system(sys);)
 			ak_77B320();
 			a_735440();
-			sys = U32(0x25B4B54, 0);
+			sys = U32(R(0x25B4B54), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2639,8 +2662,8 @@ namespace strike87
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x25B4B08, 0) = (uint16_t)(U16(0x25B4B08, 0) + c14);
-		U16(0x25B4630, 0) = (uint16_t)(U16(0x25B4630, 0) + c16);
+		U16(R(0x25B4B08), 0) = (uint16_t)(U16(R(0x25B4B08), 0) + c14);
+		U16(R(0x25B4630), 0) = (uint16_t)(U16(R(0x25B4630), 0) + c16);
 		return done;
 	}
 
@@ -3183,14 +3206,14 @@ namespace strike87
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl ak_77B320(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x25B4B54), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x25B4B54)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x25B4B54);
+				uint32_t st = MEM<uint32_t>(R(0x25B4B54));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -3227,20 +3250,20 @@ namespace strike87
 	uint32_t __cdecl ak_77B3E0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -3248,7 +3271,7 @@ namespace strike87
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl ak_77B460(void)
 	{
-		uint32_t act = U32(U32(0x25B4B54, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x25B4B54), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -3269,7 +3292,7 @@ namespace strike87
 	uint32_t __cdecl ak_77B4A0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x25B4B54);
+		uint32_t st = MEM<uint32_t>(R(0x25B4B54));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -3290,7 +3313,7 @@ namespace strike87
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x25B4B54);
+			st = MEM<uint32_t>(R(0x25B4B54));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -3308,7 +3331,7 @@ namespace strike87
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x25B4B54, 0);                  // actor state block
+		uint32_t st = U32(R(0x25B4B54), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -3405,8 +3428,8 @@ namespace strike87
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 0x14 records
 	uint32_t __cdecl ak_77C690(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25B4634);
-		int32_t idx = MEM<int16_t>(0x25AECD0);
+		const uint32_t pool = MEM<uint32_t>(R(0x25B4634));
+		int32_t idx = MEM<int16_t>(R(0x25AECD0));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -3416,7 +3439,7 @@ namespace strike87
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -3431,9 +3454,9 @@ namespace strike87
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(0x25AECD0) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x25AECD0)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x25AECD0) = 0;
+			MEM<uint16_t>(R(0x25AECD0)) = 0;
 		return slot;
 	}
 
@@ -3463,7 +3486,7 @@ namespace strike87
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl ak_77C7B0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x25B4B54, 0);
+		uint32_t sys = U32(R(0x25B4B54), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -3498,9 +3521,9 @@ namespace strike87
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x25B4B24, 0) - 0x50;
+		uint32_t sp = U32(R(0x25B4B24), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x25B4B24, 0) = sp;
+		U32(R(0x25B4B24), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = ak_77D010(a1, (uint16_t)kind);
@@ -3512,7 +3535,7 @@ namespace strike87
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x25B4B54, 0);
+			uint32_t ctx = U32(R(0x25B4B54), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -3691,7 +3714,7 @@ namespace strike87
 			}
 		}
 		ak_77DD20(node, desc);
-		U32(0x25B4B24, 0) = U32(0x25B4B24, 0) + 0x50;
+		U32(R(0x25B4B24), 0) = U32(R(0x25B4B24), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -3700,8 +3723,8 @@ namespace strike87
 	// record 49 of the 50 is never used), cleared, owner a1, definition index a2
 	uint32_t __cdecl ak_77D010(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25B4B48);
-		int32_t i = MEM<int16_t>(0x25B4640);
+		const uint32_t pool = MEM<uint32_t>(R(0x25B4B48));
+		int32_t i = MEM<int16_t>(R(0x25B4640));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -3714,7 +3737,7 @@ namespace strike87
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -3731,9 +3754,9 @@ namespace strike87
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(0x25B4640) = 0;
+			MEM<uint16_t>(R(0x25B4640)) = 0;
 		else
-			MEM<uint16_t>(0x25B4640) = (uint16_t)i;
+			MEM<uint16_t>(R(0x25B4640)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -3747,7 +3770,7 @@ namespace strike87
 	uint32_t __cdecl ak_77D230(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x25B4B54, 0);            // ecx
+		const uint32_t st = U32(R(0x25B4B54), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -3811,7 +3834,7 @@ namespace strike87
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x25B4B54, 0);
+				uint32_t g = U32(R(0x25B4B54), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -3821,7 +3844,7 @@ namespace strike87
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x25B4B54, 0);
+				uint32_t g = U32(R(0x25B4B54), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3909,7 +3932,7 @@ namespace strike87
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl ak_77DDB0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x25B4B54);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x25B4B54));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3934,14 +3957,14 @@ namespace strike87
 				do
 				{
 					ak_77C690(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x25B4B54);
+					dir = MEM<uint32_t>(R(0x25B4B54));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				ak_77C690(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x25B4B54);
+				dir = MEM<uint32_t>(R(0x25B4B54));
 			}
 		}
 		return 0; // void
@@ -3995,7 +4018,7 @@ namespace strike87
 		x::MAG_022_sub_8DD770(M);
 		x::MAG_022_sub_8DD8A0(M, (uint32_t)(0x1000 - (int32_t)S16(node, 0x3E)));
 		x::matrixMultiplyVector(M, node + 0x160, node + 0x160);
-		const uint32_t h = x::Effect_AddTaskAndInitFromCtx(0x25AECD8, 0x77DFC0, 0x98, node);
+		const uint32_t h = Spawn(R(0x25AECD8), 0x77DFC0, 0x98, node);
 		U32(h, 0x8C) = mdl;
 		const uint32_t p = ak_776460(node, 0x7764B0, 0x16FD248, 0xB0, 0, 0);
 		U32(p, 0x240) = mdl;
@@ -4281,13 +4304,13 @@ namespace strike87
 		if (U16(node, 0x168) != 0x1000)
 			return 0; // void
 		x::au_re_Battle_ReadAnimation_7(node, 6);
-		const uint32_t p = ak_776460(node, 0x77E6C0, U32(MEM<uint32_t>(0x25B4448), 0x128), 0x1AC, 1, 0);
+		const uint32_t p = ak_776460(node, 0x77E6C0, U32(MEM<uint32_t>(R(0x25B4448)), 0x128), 0x1AC, 1, 0);
 		U32(p, 0x240) = mdl;
-		const uint32_t d = x::Effect_AddTaskAndInitFromCtx(0x25AECD8, 0x77E800, 0x98, node);
+		const uint32_t d = Spawn(R(0x25AECD8), 0x77E800, 0x98, node);
 		U32(d, 0x1C) = U32(mdl, 0x1C);
 		U32(d, 0x20) = U32(mdl, 0x20);
 		U16(d, 0x1E) = 0;
-		x::BdPlaySE(0x1557D30, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PC().sounds.slam, SOUND_B), 0, 0x80);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -4373,7 +4396,7 @@ namespace strike87
 			{
 				const int32_t ang = (int32_t)(int16_t)(x::CrtRand() & 0xFFF);
 				const int32_t dist = (int32_t)(int16_t)((x::CrtRand() & 0x3FF) + 0x100);
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25AECD8, kind == 0 ? 0x77EAB0 : 0x77EC00, 0x98, node);
+				const uint32_t t = Spawn(R(0x25AECD8), kind == 0 ? 0x77EAB0 : 0x77EC00, 0x98, node);
 				U32(t, 0x1C) = U32(node, 0x1C);
 				U32(t, 0x20) = U32(node, 0x20);
 				U16(t, 0x1C) = (uint16_t)(U16(t, 0x1C) + (uint16_t)((int32_t)x::computeSin((uint32_t)ang) * dist / 4096));
@@ -4624,7 +4647,7 @@ namespace strike87
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl ak_77F0D0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1557D28);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -4639,6 +4662,22 @@ namespace strike87
 	}
 
 	// ---- generated (desc87.py / cls87c.txt): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Angelo runs at the target, digs in under it (the ground capture), lifts it, swings it over his head and slams it down (debris, dust, the impact play), jumps back; the camera; the done flag" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "Angelo's run, the slam" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.run", "Run", "", (uint32_t)offsetof(StrikeParams, sounds.run), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.slam", "Slam", "", (uint32_t)offsetof(StrikeParams, sounds.slam), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(StrikeParams, director.damage), fxp::I16, 0, 0x200 },
+		};
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x773BA0, (void *)a_73A0D0, "087 MAG_087_sub_773BA0" },
@@ -4856,6 +4895,11 @@ namespace strike87
 
 	void register_mag087_angelo_strike()
 	{
+		fxp::register_params({ 87, "Angelo Strike", &act::strike87::live, &act::strike87::GAME, sizeof(act::strike87::StrikeParams),
+		                       act::strike87::table::PARTS, (int)(sizeof(act::strike87::table::PARTS) / sizeof(act::strike87::table::PARTS[0])),
+		                       act::strike87::table::FIELDS, (int)(sizeof(act::strike87::table::FIELDS) / sizeof(act::strike87::table::FIELDS[0])),
+		                       act::strike87::table::GROUPS, (int)(sizeof(act::strike87::table::GROUPS) / sizeof(act::strike87::table::GROUPS[0])) });
+		act::register_mod(&act::strike87::MOD_087);
 		act::register_module(87);
 		for (const act::strike87::ModPort *p = act::strike87::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(87, p->addr, p->port, p->name);
@@ -4864,6 +4908,7 @@ namespace strike87
 		// 30 fps layer: see mag087_angelo_strike_held.inc
 		FX_HELD(register_mag087_held();)
 	}
+	FX_LAB_MODULE(register_mag087_angelo_strike);
 }
 
 #ifdef FF8_FX_HELD
