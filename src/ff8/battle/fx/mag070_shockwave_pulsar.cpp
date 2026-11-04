@@ -64,8 +64,14 @@
 // BATTLE CAMERA: eye 0xB8B7F0 / look-at 0xB8B7F8 on 0, 0x14..0x3A, 0x3B, 0x4F..0xB2, 0xD5; 0x1D8E038 on
 // 0, 0x4F..0x76, 0xD5 and at the end; 0x1D977A2 on 0; camera return armed at 0 (0x50A730).
 // Module globals: 0x2544E78..0x2544F5C. Pools, arenas, particle tables in the magic buffer.
+// Fujin's described Shockwave Pulsar (effect_070.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the setup and the file loader ported below; its parameters (PulsarParams: the
+// four sounds, the damage, voice release and end ticks).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,24 +81,27 @@ namespace sp070
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&SparkCursor() { return var<uint8_t *>(0x2544E7C); }     // pool A alloc cursor
-	inline uint8_t *&ShardCursor() { return var<uint8_t *>(0x2544E80); }     // pool B alloc cursor
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2544E84); }
-	inline uint32_t &ArenaEnd() { return var<uint32_t>(0x2544E88); }         // (written, never read)
-	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2544E8C); }             // cast context
-	inline TaskQueue *QSub() { return (TaskQueue *)0x2544E98; }              // pool: magic buffer, 6 x 0x114
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2544EA8; }           // pool: magic buffer + 0x6C0, 1 x 0x115C
-	inline uint32_t &InitAngles0() { return var<uint32_t>(0x2544EF8); }      // copied into every target's angles
-	inline uint32_t &InitAngles1() { return var<uint32_t>(0x2544EFC); }
-	inline uint32_t &CentreX() { return var<uint32_t>(0x2544F08); }          // targets' centre (x, y words; z)
-	inline int16_t &CentreY() { return var<int16_t>(0x2544F0A); }
-	inline uint32_t &CentreZ() { return var<uint32_t>(0x2544F0C); }
-	inline int32_t &Flash() { return var<int32_t>(0x2544F10); }              // screen flash level this tick
-	inline int32_t &FlashPrev() { return var<int32_t>(0x2544F14); }
-	inline int32_t &Side() { return var<int32_t>(0x2544F18); }               // +1: targets are the party, -1: enemies
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544F1C); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2544F20); }               // effect camera matrix (0x67AAE0)
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x2544F40; }          // 7 entities' flag words
+	inline uint8_t *&SparkCursor() { return var<uint8_t *>(own::R(0x2544E7C)); }     // pool A alloc cursor
+	inline uint8_t *&ShardCursor() { return var<uint8_t *>(own::R(0x2544E80)); }     // pool B alloc cursor
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2544E84)); }
+	inline uint32_t &ArenaEnd() { return var<uint32_t>(own::R(0x2544E88)); }         // (written, never read)
+	inline uint8_t *&Ctx() { return var<uint8_t *>(own::R(0x2544E8C)); }             // cast context
+	inline TaskQueue *QSub() { return (TaskQueue *)own::R(0x2544E98); }              // pool: magic buffer, 6 x 0x114
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2544EA8); }           // pool: magic buffer + 0x6C0, 1 x 0x115C
+	inline uint32_t &InitAngles0() { return var<uint32_t>(own::R(0x2544EF8)); }      // copied into every target's angles
+	inline uint32_t &InitAngles1() { return var<uint32_t>(own::R(0x2544EFC)); }
+	inline uint32_t &CentreX() { return var<uint32_t>(own::R(0x2544F08)); }          // targets' centre (x, y words; z)
+	inline int16_t &CentreY() { return var<int16_t>(own::R(0x2544F0A)); }
+	inline uint32_t &CentreZ() { return var<uint32_t>(own::R(0x2544F0C)); }
+	inline int32_t &Flash() { return var<int32_t>(own::R(0x2544F10)); }              // screen flash level this tick
+	inline int32_t &FlashPrev() { return var<int32_t>(own::R(0x2544F14)); }
+	inline int32_t &Side() { return var<int32_t>(own::R(0x2544F18)); }               // +1: targets are the party, -1: enemies
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2544F1C)); }          // Magic_TextureOFF (magic buffer)
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(own::R(0x2544F20)); }               // effect camera matrix (0x67AAE0)
+	inline uint32_t *SavedFlags() { return (uint32_t *)own::R(0x2544F40); }          // 7 entities' flag words
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2544EB8); }             // 1 x 0x10
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2544E78)); }          // the effect's file (its TIM)
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2544E90)); }          // the caster's entity
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C); }                // g_Battle_FrameRenderListBase
 	inline int16_t &ViewWord() { return var<int16_t>(0x1D8E038); }
 	inline int16_t &CameraZoom() { return var<int16_t>(0x1D977A2); }
@@ -119,6 +128,20 @@ namespace sp070
 	static const void *const SOUND_0 = (const void *)0x1324ECC;
 	static const void *const SOUND_50 = (const void *)0x1324ED0;
 	static const void *const SOUND_AA = (const void *)0x1324ED4;
+	static const uint32_t ORIG_FileLoader = 0x6DD8E0, ORIG_Setup = 0x6DD8D0;
+	static const uint32_t TEXTURE_NAME = 0x112D1A4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct PulsarParams
+	{
+		struct { uint32_t voice, start, wave, burst; } sounds;   // the voice claimed at the master's start; the sounds at ticks 0, 0x50, 0xAA
+		struct { int16_t damage, voice_release, end; } master;   // the damage, the voice released, the end (positions and flags restored) at these ticks
+	};
+	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 } };
+	static PulsarParams live = GAME;
+	static const PulsarParams &PP() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -1061,7 +1084,7 @@ namespace sp070
 			const int32_t slot = SlotOf(e);
 			if (i == 0)
 			{
-				SubNode *ring = (SubNode *)AddTaskToQueue(QSub(), ORIG_RingTask);
+				SubNode *ring = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_RingTask));
 				ring->pos[0] = E16(e, 0x1C);
 				ring->pos[2] = E16(e, 0x20);
 				ring->pos[1] = 0;
@@ -1169,7 +1192,7 @@ namespace sp070
 				DecodeModelPrimLayout(LAYOUT_WAVE, m->layout, 0x1100);
 				for (int32_t k = 0; k < m->ntargets; k++)
 				{
-					SubNode *t = (SubNode *)AddTaskToQueue(QSub(), ORIG_LiftTask);
+					SubNode *t = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_LiftTask));
 					Target *rec = &m->targets[k];
 					*(int16_t *)(rec->entity + 0x1E) = 0x1000;
 					if (SlotOf(rec->entity) & 1)
@@ -1311,10 +1334,10 @@ namespace sp070
 		SparksUpdate();
 		ShardsUpdate();
 
-		if (m->counter == 0) BdPlaySE(SOUND_0, 0, 0x80);
-		else if (m->counter == 0x50) BdPlaySE(SOUND_50, 0, 0x80);
-		else if (m->counter == 0xAA) BdPlaySE(SOUND_AA, 0, 0x80);
-		if (m->counter == 0x102) ReleaseVoice(m->voice);
+		if (m->counter == 0) BdPlaySE((const void *)fxp::sound(PP().sounds.start, (uint32_t)SOUND_0), 0, 0x80);
+		else if (m->counter == 0x50) BdPlaySE((const void *)fxp::sound(PP().sounds.wave, (uint32_t)SOUND_50), 0, 0x80);
+		else if (m->counter == 0xAA) BdPlaySE((const void *)fxp::sound(PP().sounds.burst, (uint32_t)SOUND_AA), 0, 0x80);
+		if (m->counter == PP().master.voice_release) ReleaseVoice(m->voice);
 
 		// 1, 9, 0x11: a RiseTask on target (counter - 1) / 8
 		{
@@ -1322,7 +1345,7 @@ namespace sp070
 			if (c1 < 0x18 && (c1 & 7) == 0 && (int32_t)(c1 >> 3) < m->ntargets)
 			{
 				Target *rec = &m->targets[c1 >> 3];
-				SubNode *t = (SubNode *)AddTaskToQueue(QSub(), ORIG_RiseTask);
+				SubNode *t = (SubNode *)AddTaskToQueue(QSub(), own::Fn(ORIG_RiseTask));
 				*rec->entity |= 8;
 				MeasureHeight(rec->entity, &rec->y_max);
 				t->t.counter = 0;
@@ -1428,12 +1451,12 @@ namespace sp070
 			StreamLoad(0x169, TexBase() + 0x269C, 0);
 		}
 		StreamPump();
-		if (m->counter == 0xFC)
+		if (m->counter == PP().master.damage)
 		{
 			const ActionData *act = ((const CastContext *)Ctx())->actions;
 			ApplyActionResultToTargets(act->targets, act->target_count);
 		}
-		if (m->counter >= 0x106)
+		if (m->counter >= PP().master.end)
 		{
 			RestoreEntityFlags();
 			Flash() = 0;
@@ -1449,6 +1472,25 @@ namespace sp070
 	// ------------------------------------------------------------------
 	// Root task (0x6DD970)
 	// ------------------------------------------------------------------
+	// File loader (0x6DD8E0) and setup (0x6DD8D0 -> 0x6DD900): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = (uint8_t *)ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2544EC8), 0x10, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 1);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1476,9 +1518,9 @@ namespace sp070
 			StreamStateInit((void *)(TexBase() + 0x678));
 			InitTaskQueuePool(QMaster(), (void *)(TexBase() + 0x6C0), 0x115C, 1);
 			InitTaskQueuePool(QSub(), (void *)TexBase(), 0x114, 6);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x454);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PP().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 			const ActionData *act = ((const CastContext *)Ctx())->actions;
 			int16_t minx = 0x7FFF, miny = 0x7FFF, minz = 0x7FFF;
 			int16_t maxx = (int16_t)0x8001, maxy = (int16_t)0x8001, maxz = (int16_t)0x8001;
@@ -1538,18 +1580,51 @@ namespace sp070
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define PP_(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(PulsarParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Its 0x106-tick timeline: the screen flash, the targets rising and lifted, spinning and scaled, the layouts at the targets and their centre, the shockwave, sparks and shards, the white tile, the battle camera moved; the damage, then positions and flags restored" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The voice claimed at the start; the sounds at ticks 0, 0x50, 0xAA" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sounds.voice", "Voice", "", (uint32_t)offsetof(PulsarParams, sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.start", "Start", "", (uint32_t)offsetof(PulsarParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.wave", "Shockwave", "", (uint32_t)offsetof(PulsarParams, sounds.wave), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.burst", "Burst", "", (uint32_t)offsetof(PulsarParams, sounds.burst), fxp::Sound, 0, 0x7FFFFFFF },
+			PP_("master", master.damage, "Damage tick", "", 0, 0x105),
+			PP_("master", master.voice_release, "Voice release", "The voice released at this tick", 0, 0x105),
+			PP_("master", master.end, "End after", "Positions and flags restored, the effect done after this tick (the flash fades out from 0xFA)", 0xD7, 0x400),
+		};
+#undef PP_
+	}
 }
 
 	void register_mag070_shockwave_pulsar()
 	{
+		fxp::register_params({ 70, "Shockwave Pulsar", &sp070::live, &sp070::GAME, sizeof(sp070::PulsarParams),
+		                       sp070::table::PARTS, (int)(sizeof(sp070::table::PARTS) / sizeof(sp070::table::PARTS[0])),
+		                       sp070::table::FIELDS, (int)(sizeof(sp070::table::FIELDS) / sizeof(sp070::table::FIELDS[0])),
+		                       sp070::table::GROUPS, (int)(sizeof(sp070::table::GROUPS) / sizeof(sp070::table::GROUPS[0])) });
+		own::note(sp070::ORIG_FileLoader, (void *)sp070::FileLoader);
+		own::note(sp070::ORIG_Setup, (void *)sp070::Setup);
+		own::note(sp070::ORIG_RootTask, (void *)sp070::RootTask);
 		register_port(sp070::ORIG_RootTask, (void *)sp070::RootTask, "P070 RootTask", 70);
+		own::note(sp070::ORIG_MasterTask, (void *)sp070::MasterTask);
 		register_port(sp070::ORIG_MasterTask, (void *)sp070::MasterTask, "P070 MasterTask", 70);
+		own::note(sp070::ORIG_LiftTask, (void *)sp070::LiftTask);
 		register_port(sp070::ORIG_LiftTask, (void *)sp070::LiftTask, "P070 LiftTask", 70);
+		own::note(sp070::ORIG_RiseTask, (void *)sp070::RiseTask);
 		register_port(sp070::ORIG_RiseTask, (void *)sp070::RiseTask, "P070 RiseTask", 70);
+		own::note(sp070::ORIG_RingTask, (void *)sp070::RingTask);
 		register_port(sp070::ORIG_RingTask, (void *)sp070::RingTask, "P070 RingTask", 70);
 		// // 30 fps layer: see mag070_shockwave_pulsar_held.inc
 		FX_HELD(register_mag070_held();)
 	}
+	FX_LAB_MODULE(register_mag070_shockwave_pulsar);
 }
 
 #ifdef FF8_FX_HELD
