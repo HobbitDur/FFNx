@@ -141,8 +141,9 @@ namespace saliva138
 		struct { int16_t damage; } main; // the damage at this tick of the main task
 		struct { uint32_t a, b, c; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spray, splat; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main; } model_data; // the prim models drawn (meshes)
 	};
-	static const SalivaParams GAME = { 0x11E3134, { 0x28 }, { MODEL_A, MODEL_B, MODEL_C }, { SEQ_Spray, SEQ_Splat } };
+	static const SalivaParams GAME = { 0x11E3134, { 0x28 }, { MODEL_A, MODEL_B, MODEL_C }, { SEQ_Spray, SEQ_Splat }, { 0x11DF764 } };
 	static SalivaParams live = GAME;
 	static const SalivaParams &PS() { return live; }
 
@@ -575,7 +576,7 @@ namespace saliva138
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
-		*(uint8_t **)h = MESH;
+		*(uint8_t **)h = ((uint8_t *)fxp::model(PS().model_data.main, (uint32_t)MESH));
 		*(uint32_t *)(h + 4) = verts;
 		*(uint16_t *)(h + 0x16) = 0;
 		*(uint16_t *)(h + 0x14) = 0;
@@ -878,7 +879,7 @@ namespace saliva138
 				GteSetRotMatrix(&M);
 				GteZeroTrans();
 				const int32_t wave = mul32(s->amp, sine);
-				WobbleMesh(MESH, wave >> 13, (int16_t *)(TexBase() + VERTS));
+				WobbleMesh(((uint8_t *)fxp::model(PS().model_data.main, (uint32_t)MESH)), wave >> 13, (int16_t *)(TexBase() + VERTS));
 				int16_t P[4];  // entry esp - 0x38
 				P[3] = StringResidue();
 				StringPoint(s, t, wave, P);
@@ -1061,7 +1062,7 @@ namespace saliva138
 		DecodeModelPrimLayout(fxp::layout(PS().layouts.a, MODEL_A, 0xA8), w->layA, 0xA8);
 		DecodeModelPrimLayout(fxp::layout(PS().layouts.b, MODEL_B, 0x194), w->layB, 0x194);
 		DecodeModelPrimLayout(fxp::layout(PS().layouts.c, MODEL_C, 0x118), w->layC, 0x118);
-		NormalizeMesh(MESH);
+		NormalizeMesh(((uint8_t *)fxp::model(PS().model_data.main, (uint32_t)MESH)));
 		Point *p = (Point *)(TexBase() + POINTS);
 		for (int i = 0x60; i; i--, p++) p->width = -1;
 	}
@@ -1109,6 +1110,7 @@ namespace saliva138
 			{ "main", "layouts.c", "C", "The prim-model layout c (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.c), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SalivaParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "main", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(SalivaParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "model_data.main", "Main model", "The prim model main (a mesh of 108 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SalivaParams, model_data.main), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

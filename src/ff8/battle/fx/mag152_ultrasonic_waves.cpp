@@ -107,8 +107,9 @@ namespace ultrasonic152
 		uint32_t sound;                        // at the controller's tick 1
 		struct { int16_t damage; } controller; // the damage at this tick
 		struct { uint32_t wave, burst_a, burst_b, burst_c; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring; } models; // the prim models drawn (meshes)
 	};
-	static const UltrasonicParams GAME = { 0xDBEC50, { 0x23 }, { SEQ_Wave, SEQ_BurstA, SEQ_BurstB, SEQ_BurstC } };
+	static const UltrasonicParams GAME = { 0xDBEC50, { 0x23 }, { SEQ_Wave, SEQ_BurstA, SEQ_BurstB, SEQ_BurstC }, { MODEL_Ring } };
 	static UltrasonicParams live = GAME;
 	static const UltrasonicParams &P() { return live; }
 
@@ -799,7 +800,7 @@ namespace ultrasonic152
 		GteSetTransVector(&m);
 		RenderHeader *h = (RenderHeader *)AllocHeader(0x6C);
 		h->far_rgb[0] = h->far_rgb[1] = h->far_rgb[2] = h->far_rgb[3] = 0;
-		h->model = MODEL_Ring;
+		h->model = fxp::model(P().models.ring, MODEL_Ring);
 		h->flags = 0x33;
 		h->colour = colour;
 		if (p->counter >= 0x10)
@@ -955,6 +956,7 @@ namespace ultrasonic152
 			{ "controller", "seqs.burst_a", "Burst a", "The sprite sequence burst a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(UltrasonicParams, seqs.burst_a), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "controller", "seqs.burst_b", "Burst b", "The sprite sequence burst b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(UltrasonicParams, seqs.burst_b), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "controller", "seqs.burst_c", "Burst c", "The sprite sequence burst c (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(UltrasonicParams, seqs.burst_c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring", "Ring model", "The prim model ring (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltrasonicParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

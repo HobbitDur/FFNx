@@ -177,8 +177,9 @@ namespace lion165
 	{
 		struct { uint32_t a, b, c, d; } sounds; // the director's four sounds, in order
 		struct { uint32_t spark, smoke, hita, hitb; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t groundring, tipflash, tipring, slasha, slashb, flatring, wave, tipflash2, streak, finalring, finalflash, rock, debris, tipshard, shard, tiprock; } models; // the prim models drawn (meshes)
 	};
-	static const LionHeartParams GAME = { { 0xD886D4, 0xD886D8, 0xD886DC, 0xD886E0 }, { 0xD7B1C8, 0xD7B4D4, 0xD7AFE0, 0xD7B340 } };
+	static const LionHeartParams GAME = { { 0xD886D4, 0xD886D8, 0xD886DC, 0xD886E0 }, { 0xD7B1C8, 0xD7B4D4, 0xD7AFE0, 0xD7B340 }, { 0xD879EC, 0xD7F960, 0xD8392C, 0xD823E4, 0xD82B5C, 0xD84BE4, 0xD7B668, 0xD813B0, 0xD81B34, 0xD7D9A0, 0xD83E3C, 0xD83244, 0xD85D74, 0xD818A0, 0xD81620, 0xD80230 } };
 	static LionHeartParams live = GAME;
 	static const LionHeartParams &P() { return live; }
 	static const uint32_t REF_RIGHT = 0xD886F8;  // (0x1000, 0, 0): Streak's
@@ -1523,7 +1524,7 @@ namespace lion165
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_GROUNDRING;
+		*(uint32_t *)h = fxp::model(P().models.groundring, MODEL_GROUNDRING);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1556,7 +1557,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		FacingMatrix(&m, 0, s, &n->w10, 0, -(s >> 3));
-		uint8_t *h = ModelHeader(MODEL_TIPFLASH, false, 0);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tipflash, MODEL_TIPFLASH), false, 0);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1600,7 +1601,7 @@ namespace lion165
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_TIPRING, c >= 4, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tipring, MODEL_TIPRING), c >= 4, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1656,7 +1657,7 @@ namespace lion165
 		Node24 *n = (Node24 *)tn;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_HitSlashA, n);)
-		HitSlashDraw(n, MODEL_SLASHA, n->w1C, n->c >= 4, mul32(n->c - 4, 682));
+		HitSlashDraw(n, fxp::model(P().models.slasha, MODEL_SLASHA), n->w1C, n->c >= 4, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1670,7 +1671,7 @@ namespace lion165
 		Node24 *n = (Node24 *)tn;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_HitSlashB, n);)
-		HitSlashDraw(n, MODEL_SLASHB, n->w1C, n->c >= 2, shl32(n->c - 2, 9));
+		HitSlashDraw(n, fxp::model(P().models.slashb, MODEL_SLASHB), n->w1C, n->c >= 2, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1684,7 +1685,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, n->w18, 0, n->w10, 0, n->w14, n->w1C, sy, n->w1C, &Camera());
-		uint8_t *h = ModelHeader(MODEL_FLATRING, c >= 2, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flatring, MODEL_FLATRING), c >= 2, fade);
 		RenderToArena(h);
 		FieldFree(0x58);
 	}
@@ -1749,7 +1750,7 @@ namespace lion165
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_WAVE;
+		*(uint32_t *)h = fxp::model(P().models.wave, MODEL_WAVE);
 		*(uint32_t *)(h + 0x20) = 0xF3;
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1E) = 0x80;
@@ -1777,7 +1778,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		FacingMatrix(&m, roll, s, &n->w10, 0x1000, -(s >> 3));
-		uint8_t *h = ModelHeader(MODEL_TIPFLASH2, c < 8 || c >= 0x20, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tipflash2, MODEL_TIPFLASH2), c < 8 || c >= 0x20, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1835,7 +1836,7 @@ namespace lion165
 		Scale3DMatrix(&m, sv);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_STREAK, c >= 0x20, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.streak, MODEL_STREAK), c >= 0x20, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1866,7 +1867,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, n->w18, 0, n->w10, n->w12, n->w14, s, s, s, &Camera());
-		uint8_t *h = ModelHeader(MODEL_FINALRING, c >= 0xC, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.finalring, MODEL_FINALRING), c >= 0xC, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1902,7 +1903,7 @@ namespace lion165
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(&n->w10, 0x1000, 0);
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_FINALFLASH, c >= 0x10, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.finalflash, MODEL_FINALFLASH), c >= 0x10, fade);
 		FrameArena() = RenderPrimModel(h, RenderOT(), 1, FrameArena());
 		FieldFree(0x58);
 	}
@@ -1927,7 +1928,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, 0, 0, n->w10, 0, n->w14, s, s, s, &Camera());
-		uint8_t *h = ModelHeader(MODEL_ROCK, c >= 6, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.rock, MODEL_ROCK), c >= 6, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -2000,7 +2001,7 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		w->m1 = Camera();
 		const int32_t id = n->e;
-		*(uint32_t *)h = MODEL_ROCK;
+		*(uint32_t *)h = fxp::model(P().models.rock, MODEL_ROCK);
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[1] = 0;
@@ -2088,7 +2089,7 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		w->m1 = Camera();
 		const int32_t id = n->e;
-		*(uint32_t *)h = MODEL_DEBRIS;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_DEBRIS);
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[0] = 0;
@@ -2180,7 +2181,7 @@ namespace lion165
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_TIPSHARD;
+		*(uint32_t *)h = fxp::model(P().models.tipshard, MODEL_TIPSHARD);
 		*(uint32_t *)(h + 8) = 0;
 		TipShardFrame(w, n, &Camera());
 		const int32_t id = n->e;
@@ -2298,7 +2299,7 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		HitShardFrame(w, n, r, &Camera());
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
@@ -2381,7 +2382,7 @@ namespace lion165
 		int32_t count = 0;
 		*(uint32_t *)(h + 8) = 0;
 		w->m1 = Camera();
-		*(uint32_t *)h = MODEL_TIPROCK;
+		*(uint32_t *)h = fxp::model(P().models.tiprock, MODEL_TIPROCK);
 		w->ang[1] = 0;
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
@@ -2484,7 +2485,7 @@ namespace lion165
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		FinalShardFrame(w, n, &Camera());
@@ -3351,6 +3352,22 @@ namespace lion165
 			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.hita", "Hita", "The sprite sequence hita (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.hita), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.hitb", "Hitb", "The sprite sequence hitb (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.hitb), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.groundring", "Groundring model", "The prim model groundring (a mesh of 96 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.groundring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipflash", "Tipflash model", "The prim model tipflash (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipflash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipring", "Tipring model", "The prim model tipring (a mesh of 49 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slasha", "Slasha model", "The prim model slasha (a mesh of 72 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.slasha), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slashb", "Slashb model", "The prim model slashb (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.slashb), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flatring", "Flatring model", "The prim model flatring (a mesh of 185 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.flatring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wave", "Wave model", "The prim model wave (a mesh of 274 vertices, 288 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipflash2", "Tipflash2 model", "The prim model tipflash2 (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipflash2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.streak", "Streak model", "The prim model streak (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.streak), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.finalring", "Finalring model", "The prim model finalring (a mesh of 195 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.finalring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.finalflash", "Finalflash model", "The prim model finalflash (a mesh of 96 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.finalflash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.rock", "Rock model", "The prim model rock (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.debris", "Debris model", "The prim model debris (a mesh of 186 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipshard", "Tipshard model", "The prim model tipshard (a mesh of 25 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipshard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tiprock", "Tiprock model", "The prim model tiprock (a mesh of 147 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tiprock), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

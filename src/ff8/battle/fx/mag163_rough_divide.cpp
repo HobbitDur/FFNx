@@ -131,8 +131,9 @@ namespace rough163
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the action result at this tick
 		struct { uint32_t spark, pillar; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t glow, shard, chip, pillar, blade, flash, ring, shock, flare, wave; } models; // the prim models drawn (meshes)
 	};
-	static const RoughDivideParams GAME = { 0xDA00A8, { 0x41 }, { 0xD9B458, 0xD9B2AC } };
+	static const RoughDivideParams GAME = { 0xDA00A8, { 0x41 }, { 0xD9B458, 0xD9B2AC }, { 0xD9E2D4, 0xD9D314, 0xD9E1DC, 0xD9CE04, 0xD9FE54, 0xD9EC8C, 0xD9B5D0, 0xD9D594, 0xD9DD34, 0xD9CB38 } };
 	static RoughDivideParams live = GAME;
 	static const RoughDivideParams &P() { return live; }
 	static const uint32_t ANIM_DATA = 0xD99DC8;
@@ -781,7 +782,7 @@ namespace rough163
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_GLOW;
+		*(uint32_t *)h = fxp::model(P().models.glow, MODEL_GLOW);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 7)
@@ -1030,7 +1031,7 @@ namespace rough163
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
@@ -1117,7 +1118,7 @@ namespace rough163
 		FX_HELD(held_note_pool(ORIG_Chip, (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_CHIP;
+		*(uint32_t *)h = fxp::model(P().models.chip, MODEL_CHIP);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t count = 0;
@@ -1188,7 +1189,7 @@ namespace rough163
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_CHIP;
+		*(uint32_t *)h = fxp::model(P().models.chip, MODEL_CHIP);
 		w->ang[1] = 0;
 		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x20)
 		{
@@ -1285,7 +1286,7 @@ namespace rough163
 		FX_HELD(held_note_header2(hm, 0x58);)
 		*(uint32_t *)(hm + 8) = 0;
 		w->cam = Camera();
-		*(uint32_t *)hm = MODEL_PILLAR;
+		*(uint32_t *)hm = fxp::model(P().models.pillar, MODEL_PILLAR);
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
 		w->ang[0] = 0x200;
@@ -1363,7 +1364,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_pool(ORIG_Blade, (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_BLADE;
+		*(uint32_t *)h = fxp::model(P().models.blade, MODEL_BLADE);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->v[2] = 0;
@@ -1575,7 +1576,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Flash, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_FLASH, n->c, 1, mul32(n->c - 1, 682));
+		ModelRender(fxp::model(P().models.flash, MODEL_FLASH), n->c, 1, mul32(n->c - 1, 682));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w22;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1591,7 +1592,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Ring, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_RING, n->c, 0xC, shl32(n->c - 0xC, 9));
+		ModelRender(fxp::model(P().models.ring, MODEL_RING), n->c, 0xC, shl32(n->c - 0xC, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w22;
 		n->w20 = (int16_t)(n->w20 + rate);
@@ -1612,7 +1613,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Shock, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_SHOCK, n->c, 8, shl32(n->c - 8, 9));
+		ModelRender(fxp::model(P().models.shock, MODEL_SHOCK), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1628,7 +1629,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Flare, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w1C);
-		ModelRender(MODEL_FLARE, n->c, 8, shl32(n->c - 8, 9));
+		ModelRender(fxp::model(P().models.flare, MODEL_FLARE), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
 		n->w1C = (int16_t)(n->w1C + rate);
@@ -1643,7 +1644,7 @@ namespace rough163
 	{
 		uint8_t *h = AllocHeader(0x7C);
 		*(int32_t *)(h + 0x10) = scroll;
-		*(uint32_t *)h = MODEL_WAVE;
+		*(uint32_t *)h = fxp::model(P().models.wave, MODEL_WAVE);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x18) = 0;
@@ -1722,6 +1723,16 @@ namespace rough163
 			{ "director", "director.damage", "Damage tick", "The action result at this tick of the director", (uint32_t)offsetof(RoughDivideParams, director.damage), fxp::I16, 0, 85 },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(RoughDivideParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.pillar", "Pillar", "The sprite sequence pillar (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RoughDivideParams, seqs.pillar), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.glow", "Glow model", "The prim model glow (a mesh of 99 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.chip", "Chip model", "The prim model chip (a mesh of 6 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.chip), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 37 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.blade", "Blade model", "The prim model blade (a mesh of 20 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.blade), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 186 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 176 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shock", "Shock model", "The prim model shock (a mesh of 65 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.shock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flare", "Flare model", "The prim model flare (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.flare), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wave", "Wave model", "The prim model wave (a mesh of 32 vertices, 15 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.wave), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

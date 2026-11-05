@@ -159,8 +159,9 @@ namespace canister195
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t smoke, impact, impact_smoke, steam, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ground_flash, cone, ring, debris, impact_flash; } models; // the prim models drawn (meshes)
 	};
-	static const CanisterShotParams GAME = { 0xD0BD30, { 0xD099F0, 0xD09E0C, 0xD097CC, 0xD09AB4, 0xD09C60 } };
+	static const CanisterShotParams GAME = { 0xD0BD30, { 0xD099F0, 0xD09E0C, 0xD097CC, 0xD09AB4, 0xD09C60 }, { 0xD0A978, 0xD0AFE0, 0xD0B488, 0xD0AD68, 0xD09FB8 } };
 	static CanisterShotParams live = GAME;
 	static const CanisterShotParams &P() { return live; }
 
@@ -394,7 +395,7 @@ namespace canister195
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_GroundFlash;
+		*(uint32_t *)h = fxp::model(P().models.ground_flash, MODEL_GroundFlash);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (faded)
@@ -427,7 +428,7 @@ namespace canister195
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Cone, faded, fade);
+		ModelDraw(fxp::model(P().models.cone, MODEL_Cone), faded, fade);
 	}
 
 	// the muzzle ring: (-0x1000, 0, 0) turned onto the muzzle direction x ZYX(pitch, yaw, 0), uniform scale
@@ -454,7 +455,7 @@ namespace canister195
 		ComposeAffineTransform(&Camera(), &a, &a);
 		GteSetRotMatrix(&a);
 		GteSetTransVector(&a);
-		ModelDraw(MODEL_Ring, faded, fade);
+		ModelDraw(fxp::model(P().models.ring, MODEL_Ring), faded, fade);
 	}
 
 	// the impact models: rotation = the shot record's x roll, scaled; the translation is TransformCameraByShadowRotation's at
@@ -550,7 +551,7 @@ namespace canister195
 	static void DebrisBegin(uint8_t *s, uint8_t *h)
 	{
 		memcpy(s + 8, &Camera(), 0x20);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_Debris);
 		*(uint32_t *)(h + 8) = 0;
 	}
 
@@ -866,7 +867,7 @@ namespace canister195
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag195_canister_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactFlashTask, n);)
-		ImpactModelDraw(n, 0, MODEL_ImpactFlash, n->counter >= 4, ImpactFlashFade(n->counter));
+		ImpactModelDraw(n, 0, fxp::model(P().models.impact_flash, MODEL_ImpactFlash), n->counter >= 4, ImpactFlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -962,7 +963,7 @@ namespace canister195
 		}
 		// 30 fps layer: see mag195_canister_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactConeTask, n);)
-		ImpactModelDraw(n, n->f18, MODEL_Cone, n->counter >= 0, ImpactConeFade(n->counter));
+		ImpactModelDraw(n, n->f18, fxp::model(P().models.cone, MODEL_Cone), n->counter >= 0, ImpactConeFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -1221,6 +1222,11 @@ namespace canister195
 			{ "shot", "seqs.impact_smoke", "Impact smoke", "The sprite sequence impact smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.impact_smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.steam", "Steam", "The sprite sequence steam (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.steam), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.ground_flash", "Ground flash model", "The prim model ground flash (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.ground_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.cone", "Cone model", "The prim model cone (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.ring", "Ring model", "The prim model ring (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.debris", "Debris model", "The prim model debris (a mesh of 14 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.impact_flash", "Impact flash model", "The prim model impact flash (a mesh of 91 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.impact_flash), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -76,8 +76,9 @@ namespace firaga143
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
 		struct { uint32_t area_flame; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t burst, flame_swirl, fireball, spark; } models; // the prim models drawn (meshes)
 	};
-	static const FiragaParams GAME = { 0xDDD8F0, { 0x30 }, { 0xDDA594 } };
+	static const FiragaParams GAME = { 0xDDD8F0, { 0x30 }, { 0xDDA594 }, { 0xDDD208, 0xDDA740, 0xDDC578, 0xDDCE48 } };
 	static FiragaParams live = GAME;
 	static const FiragaParams &P() { return live; }
 
@@ -408,7 +409,7 @@ namespace firaga143
 
 	static void BurstHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = ((const void *)fxp::model(P().models.burst, (uint32_t)MODEL_Burst));
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 0xA)
 		{
@@ -453,7 +454,7 @@ namespace firaga143
 
 	static void FlameSwirlHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_FlameSwirl;
+		*(const void **)h = ((const void *)fxp::model(P().models.flame_swirl, (uint32_t)MODEL_FlameSwirl));
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 0xE)
 		{
@@ -495,7 +496,7 @@ namespace firaga143
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 5));
 		uint8_t *h = AllocHeader(0x58);
-		*(const void **)h = MODEL_Fireball;
+		*(const void **)h = ((const void *)fxp::model(P().models.fireball, (uint32_t)MODEL_Fireball));
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -547,7 +548,7 @@ namespace firaga143
 
 	static void SparkHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Spark;
+		*(const void **)h = ((const void *)fxp::model(P().models.spark, (uint32_t)MODEL_Spark));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -594,6 +595,10 @@ namespace firaga143
 			{ "director", "sound", "Sound", "", (uint32_t)offsetof(FiragaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(FiragaParams, director.damage), fxp::I16, 0, 100 },
 			{ "director", "seqs.area_flame", "Area flame", "The sprite sequence area flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FiragaParams, seqs.area_flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.burst", "Burst model", "The prim model burst (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flame_swirl", "Flame swirl model", "The prim model flame swirl (a mesh of 162 vertices, 320 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.flame_swirl), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.fireball", "Fireball model", "The prim model fireball (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.fireball), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.spark", "Spark model", "The prim model spark (a mesh of 31 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.spark), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

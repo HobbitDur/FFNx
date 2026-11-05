@@ -95,9 +95,10 @@ namespace norgpod
 		struct { int16_t start, ticks, gravity, spin_x, spin_z; struct { int16_t x, y, z; } velocity; } lid;   // its flight
 		struct { int16_t frames, colour; } debris;                       // the debris sprites
 		struct { uint32_t at_1629c54; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_1629e00; } models; // the prim models drawn (meshes)
 	};
 	static const NorgParams GAME = { { SOUND_Open, 0x1E, 0x1E }, { 0xF }, { 0x100, 0x400 },
-	                                 { 0x22, 0x18, 0x28, -0x40, 0x30, { 0x120, -0x140, 0x20 } }, { 0xF, -0x200 }, { 0x1629C54 } };
+	                                 { 0x22, 0x18, 0x28, -0x40, 0x30, { 0x120, -0x140, 0x20 } }, { 0xF, -0x200 }, { 0x1629C54 }, { 0x1629E00 } };
 	static NorgParams live = GAME;
 	static const NorgParams &PN() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
@@ -1062,7 +1063,7 @@ namespace norgpod
 	uint32_t __cdecl np_8A2C20(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = 0x1629E00;
+		U32(node, 0x4C) = fxp::model(PN().models.at_1629e00, 0x1629E00);
 		U32(node, 0x38) = 0x300;
 		U32(node, 0x34) = 0x300;
 		U32(node, 0x30) = 0x300;
@@ -1912,6 +1913,7 @@ namespace norgpod
 			DT("lid", debris.frames, "Debris frames", "Its debris sprites' frames", 1, 60),
 			DT("lid", debris.colour, "Debris colour", "Its debris sprites' colour word", -0x8000, 0x7FFF),
 			{ "emitter", "seqs.at_1629c54", "Flipbook 1629C54", "The sprite sequence at 0x1629C54 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NorgParams, seqs.at_1629c54), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.at_1629e00", "Model 1629E00", "The prim model at 0x1629E00 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NorgParams, models.at_1629e00), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

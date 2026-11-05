@@ -119,8 +119,9 @@ namespace card182
 		struct { uint32_t short_, card; } sounds;          // at the director's tick 1: no card (A) / carded (B)
 		struct { int16_t result_short, result_card; } director; // the action result at this tick (A / B)
 		struct { uint32_t sparkle, card; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, card; } models; // the prim models drawn (meshes)
 	};
-	static const CardParams GAME = { { 0xD3D38C, 0xD3D388 }, { 0x23, 0x40 }, { SEQ_Sparkle, SEQ_Card } };
+	static const CardParams GAME = { { 0xD3D38C, 0xD3D388 }, { 0x23, 0x40 }, { SEQ_Sparkle, SEQ_Card }, { MODEL_Ring, MODEL_Card } };
 	static CardParams live = GAME;
 	static const CardParams &P() { return live; }
 
@@ -231,7 +232,7 @@ namespace card182
 	{
 		ModelMatrix(angle, n->x, 0, n->z, scale, scale, scale, nullptr);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
 		*(int32_t *)(h + 0xC) = fade;
@@ -291,7 +292,7 @@ namespace card182
 		slot->used = 1;
 		ModelMatrix(angle, x, y, z, scale, scale, scale, &slot->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_Card;
+		*(uint32_t *)h = fxp::model(P().models.card, MODEL_Card);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (c < 0x1E)
@@ -760,6 +761,8 @@ namespace card182
 			{ "director", "director.result_card", "Result tick (carded)", "DirectorB's action result at this tick", (uint32_t)offsetof(CardParams, director.result_card), fxp::I16, 0, 65 },
 			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CardParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.card", "Card", "The sprite sequence card (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(CardParams, seqs.card), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CardParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.card", "Card model", "The prim model card (a mesh of 35 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CardParams, models.card), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

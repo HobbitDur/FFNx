@@ -122,8 +122,9 @@ namespace renzo159
 	{
 		uint32_t sound;   // at the controller's tick 1
 		struct { uint32_t flash, debris, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring_a, ring_b, ring_c, ring_d, sparkle, slash, streak; } models; // the prim models drawn (meshes)
 	};
-	static const Renzokuken159Params GAME = { 0xEA32CC, { 0xDAC2D0, 0xDAC5A0, 0xDAC47C } };
+	static const Renzokuken159Params GAME = { 0xEA32CC, { 0xDAC2D0, 0xDAC5A0, 0xDAC47C }, { 0xDAD510, 0xDAD928, 0xDAD9C8, 0xDAE9B8, 0xEA32D0, 0xDAC858, 0xDAD240 } };
 	static Renzokuken159Params live = GAME;
 	static const Renzokuken159Params &P() { return live; }
 	static const uint32_t MODEL_SPARKLE = 0xEA32D0, SPARKLE_FADE = 0xEA3458, SPARKLE_DEPTH = 0xEA3448;
@@ -608,7 +609,7 @@ namespace renzo159
 		GteSetRotMatrix(&m1);
 		GteSetTransVector(&m1);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SPARKLE;
+		*(uint32_t *)h = fxp::model(P().models.sparkle, MODEL_SPARKLE);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0xC) = var<uint16_t>(SPARKLE_FADE + 2 * n->c);
 		*(uint32_t *)(h + 0x18) = var<uint16_t>(SPARKLE_DEPTH + 2 * n->w1C);
@@ -884,7 +885,7 @@ namespace renzo159
 		GteSetRotMatrix(&m3);
 		GteSetTransVector(&m3);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SLASH;
+		*(uint32_t *)h = fxp::model(P().models.slash, MODEL_SLASH);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (n->c >= 2)
 		{
@@ -895,7 +896,7 @@ namespace renzo159
 			*(int32_t *)(h + 0xC) = mul32(n->c - 2, 682);
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
-		*(uint32_t *)h = MODEL_STREAK;
+		*(uint32_t *)h = fxp::model(P().models.streak, MODEL_STREAK);
 		*(uint32_t *)(h + 0x1C) |= 3;
 		for (int32_t k = 0; k < r->count; k++)
 		{
@@ -954,7 +955,7 @@ namespace renzo159
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = RINGS[kind].model;
+		*(uint32_t *)h = fxp::model((&P().models.ring_a)[kind], RINGS[kind].model);
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= 4)
 		{
@@ -1102,6 +1103,13 @@ namespace renzo159
 			{ "controller", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(Renzokuken159Params, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(Renzokuken159Params, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "controller", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(Renzokuken159Params, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring_a", "Ring a model", "The prim model ring a (a mesh of 36 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken159Params, models.ring_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring_b", "Ring b model", "The prim model ring b (a mesh of 6 vertices, 2 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken159Params, models.ring_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring_c", "Ring c model", "The prim model ring c (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken159Params, models.ring_c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring_d", "Ring d model", "The prim model ring d (a mesh of 108 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken159Params, models.ring_d), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.sparkle", "Sparkle model", "The prim model sparkle (a mesh of 18 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken159Params, models.sparkle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.slash", "Slash model", "The prim model slash (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken159Params, models.slash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.streak", "Streak model", "The prim model streak (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken159Params, models.streak), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

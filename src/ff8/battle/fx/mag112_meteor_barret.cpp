@@ -123,8 +123,9 @@ namespace meteor112
 		struct { uint32_t start, hit; } sounds;   // the director's ticks 2 and 0x49
 		struct { uint32_t target, billboard, impact_a, impact_b, ground, hand_a, hand_b, fist; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t smoke, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t debris, column; } model_data; // the prim models drawn (meshes)
 	};
-	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 }, { LAYOUT_Target, LAYOUT_Billboard, LAYOUT_ImpactA, LAYOUT_ImpactB, LAYOUT_Ground, LAYOUT_HandA, LAYOUT_HandB, LAYOUT_Fist }, { SEQ_Smoke, SEQ_Spark } };
+	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 }, { LAYOUT_Target, LAYOUT_Billboard, LAYOUT_ImpactA, LAYOUT_ImpactB, LAYOUT_Ground, LAYOUT_HandA, LAYOUT_HandB, LAYOUT_Fist }, { SEQ_Smoke, SEQ_Spark }, { MODEL_Debris, MODEL_Column } };
 	static MeteorParams live = GAME;
 	static const MeteorParams &P() { return live; }
 
@@ -508,7 +509,7 @@ namespace meteor112
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().model_data.debris, MODEL_Debris);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x58);
@@ -627,7 +628,7 @@ namespace meteor112
 		GteSetTransVector(&L.m);
 		int32_t len = SqrtInt(mul32(L.delta[0], L.delta[0]) + mul32(L.delta[2], L.delta[2]));
 		if (L.delta[2] > 0) len = -len;
-		ColumnBend(MODEL_Column, (int16_t *)(TexBase() + 0x1808), len);
+		ColumnBend(fxp::model(P().model_data.column, MODEL_Column), (int16_t *)(TexBase() + 0x1808), len);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		YawMatrix(W16(caster, 0xE), &L.m);
 		L.m.m[1][1] = (int16_t)shl32(-*(const int32_t *)&L.delta[1], 2);
@@ -637,7 +638,7 @@ namespace meteor112
 		ComposeAffineTransform(&Camera(), &L.m, &L.m);
 		GteSetRotMatrix(&L.m);
 		GteSetTransVector(&L.m);
-		*(uint32_t *)h = MODEL_Column;
+		*(uint32_t *)h = fxp::model(P().model_data.column, MODEL_Column);
 		*(uint32_t *)(h + 4) = TexBase() + 0x1808;
 		if ((uint32_t)k >= 7)
 		{
@@ -1166,6 +1167,8 @@ namespace meteor112
 			{ "director", "layouts.fist", "Fist", "The prim-model layout fist (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.fist), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MeteorParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(MeteorParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeteorParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.column", "Column model", "The prim model column (a mesh of 208 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeteorParams, model_data.column), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

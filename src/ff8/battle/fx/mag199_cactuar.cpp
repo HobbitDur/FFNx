@@ -129,8 +129,9 @@ namespace c199
 		uint32_t voice;                          // the voice slot claimed at the timeline's tick 0
 		struct { uint32_t start, flash; } sounds; // at the timeline's ticks 15, 53
 		struct { uint32_t at_cf0740; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_cf26f8, at_cf08ec, at_cf11bc; } models; // the prim models drawn (meshes)
 	};
-	static const CactuarParams GAME = { 0xCF3318, { 0xCF3558, 0xCF355C }, { 0xCF0740 } };
+	static const CactuarParams GAME = { 0xCF3318, { 0xCF3558, 0xCF355C }, { 0xCF0740 }, { 0xCF26F8, 0xCF08EC, 0xCF11BC } };
 	static CactuarParams live = GAME;
 	static const CactuarParams &P() { return live; }
 	static const uint32_t ORIG_CreatureTask = 0x5A8C20;
@@ -601,7 +602,7 @@ namespace c199
 		scale[0] = n->s;
 		scale[2] = n->s;
 		scale[1] = shl32((int32_t)(0u - (uint32_t)y), 12) / 1590;
-		PrimDraw(frame, angles, n->p, scale, false, 0xCF26F8, fade, fade_value);
+		PrimDraw(frame, angles, n->p, scale, false, fxp::model(P().models.at_cf26f8, 0xCF26F8), fade, fade_value);
 	}
 
 	static uint32_t __cdecl RisePrimTask(TaskNode *tn)
@@ -622,7 +623,7 @@ namespace c199
 	{
 		int16_t angles[4] = { 0, 0, 0, 0 };
 		int32_t scale[3] = { s, s, s };
-		PrimDraw(frame, angles, n->p, scale, true, 0xCF08EC, fade, fade_value);
+		PrimDraw(frame, angles, n->p, scale, true, fxp::model(P().models.at_cf08ec, 0xCF08EC), fade, fade_value);
 	}
 
 	static uint32_t __cdecl ShrinkPrimTask(TaskNode *tn)
@@ -650,7 +651,7 @@ namespace c199
 	{
 		int16_t angles[4] = { 0, 0, angle, 0 };
 		int32_t scale[3] = { n->s, n->s, n->s };
-		PrimDraw(frame, angles, n->p, scale, true, 0xCF11BC, fade, fade_value);
+		PrimDraw(frame, angles, n->p, scale, true, fxp::model(P().models.at_cf11bc, 0xCF11BC), fade, fade_value);
 	}
 
 	static int32_t SpinFade(int32_t c) { return c < 8 ? shl32(8 - c, 9) : 409 * (c - 14); }
@@ -1161,6 +1162,9 @@ namespace c199
 			{ "timeline", "sounds.start", "Start", "At the timeline's tick 15", (uint32_t)offsetof(CactuarParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.flash", "Flash", "At the timeline's tick 53 (the flash in)", (uint32_t)offsetof(CactuarParams, sounds.flash), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_cf0740", "Flipbook CF0740", "The sprite sequence at 0xCF0740 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CactuarParams, seqs.at_cf0740), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cf26f8", "Model CF26F8", "The prim model at 0xCF26F8 (a mesh of 125 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf26f8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cf08ec", "Model CF08EC", "The prim model at 0xCF08EC (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf08ec), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cf11bc", "Model CF11BC", "The prim model at 0xCF11BC (a mesh of 240 vertices, 145 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf11bc), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -140,8 +140,9 @@ namespace sp070
 		struct { int16_t damage, voice_release, end; } master;   // the damage, the voice released, the end (positions and flags restored) at these ticks
 		struct { uint32_t ring, centre, wave, lift, rise; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t burst, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t shard; } model_data; // the prim models drawn (meshes)
 	};
-	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE }, { BURST_SEQ, SPARK_SEQ } };
+	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE }, { BURST_SEQ, SPARK_SEQ }, { SHARD_MODEL } };
 	static PulsarParams live = GAME;
 	static const PulsarParams &PP() { return live; }
 
@@ -902,7 +903,7 @@ namespace sp070
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)h, (Mat4x3 *)h);
 			GteSetRotMatrix((Mat4x3 *)h);
 			GteSetTransVector((Mat4x3 *)h);
-			F<uint32_t>(h, 0x20) = SHARD_MODEL;
+			F<uint32_t>(h, 0x20) = fxp::model(PP().model_data.shard, SHARD_MODEL);
 			PacketCursor() = RenderModel(h + 0x20, OT() + 0x44, 2, PacketCursor());
 		}
 		FieldFree(0x78);
@@ -1607,6 +1608,7 @@ namespace sp070
 			{ "master", "layouts.rise", "Rise", "The prim-model layout rise (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(PulsarParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(PulsarParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "model_data.shard", "Shard model", "The prim model shard (a mesh of 12 vertices, 6 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PulsarParams, model_data.shard), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef PP_
 	}

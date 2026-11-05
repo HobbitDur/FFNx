@@ -112,8 +112,9 @@ namespace sigh
 		struct { int16_t show, fade, breath; } sigh;                    // shown from this tick, its fade after this one; the breath's first burst
 		struct { int16_t level, step_in, step_out; } wobble;            // the stage wobble: its level, up / down a step a tick
 		struct { uint32_t flipbook_0, flipbook_1, flipbook_2; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t a, b; } models; // the prim models drawn (meshes)
 	};
-	static const SighParams GAME = { { 0x15B82A0, 0x28, 0x28 }, { 5 }, { 0, 0x2D, 0 }, { 4, 0x16, 8 }, { 0x400, 0x100, 0x100 }, { FLIPBOOK_0, FLIPBOOK_1, FLIPBOOK_2 } };
+	static const SighParams GAME = { { 0x15B82A0, 0x28, 0x28 }, { 5 }, { 0, 0x2D, 0 }, { 4, 0x16, 8 }, { 0x400, 0x100, 0x100 }, { FLIPBOOK_0, FLIPBOOK_1, FLIPBOOK_2 }, { MODEL_A, MODEL_B } };
 	static SighParams live = GAME;
 	static const SighParams &PH() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
@@ -1800,8 +1801,8 @@ namespace sigh
 		S32(a1, 0x38) = 0x1000;
 		const uint16_t face = U16(ent, 0xE);
 		U16(a1, 0x80) = face;
-		U32(a1, 0x74) = MODEL_A;
-		U32(a1, 0x78) = MODEL_B;
+		U32(a1, 0x74) = fxp::model(PH().models.a, MODEL_A);
+		U32(a1, 0x78) = fxp::model(PH().models.b, MODEL_B);
 		U16(a1, 0x7C) = (uint16_t)(face - 0x155);
 		U16(a1, 0x7E) = (uint16_t)(face + 0x155);
 		uint16_t rect[4];
@@ -2059,6 +2060,8 @@ namespace sigh
 			{ "emitter", "seqs.flipbook_0", "Flipbook 0", "The sprite sequence flipbook 0 (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(SighParams, seqs.flipbook_0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.flipbook_1", "Flipbook 1", "The sprite sequence flipbook 1 (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(SighParams, seqs.flipbook_1), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.flipbook_2", "Flipbook 2", "The sprite sequence flipbook 2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SighParams, seqs.flipbook_2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.a", "A model", "The prim model a (a mesh of 77 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SighParams, models.a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.b", "B model", "The prim model b (a mesh of 77 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SighParams, models.b), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

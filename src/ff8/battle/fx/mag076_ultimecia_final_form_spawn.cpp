@@ -141,8 +141,9 @@ namespace uff076
 		struct { int16_t sink, voice_release, end; } master;   // the caster's sinking a tick (ticks 0x5A..0xB3); the voice released / the end at these ticks
 		struct { int16_t scale, step; } halo;              // the halo (tick 0x96): its scale, its growth
 		struct { int16_t spin, size; } ring;               // the ring (tick 0x206): its spin a tick, its size
+		struct { uint32_t burst, spin, rise, debris, halo, flash2, ring; } models; // the prim models drawn (meshes)
 	};
-	static const FinalFormParams GAME = { { 0xDE3FF0, 0xDE4148 }, { 0x37, 0x296, 0x299 }, { 0x800, 0x1800 }, { 0x10, 0x680 } };
+	static const FinalFormParams GAME = { { 0xDE3FF0, 0xDE4148 }, { 0x37, 0x296, 0x299 }, { 0x800, 0x1800 }, { 0x10, 0x680 }, { MODEL_Burst, MODEL_Spin, MODEL_Rise, MODEL_Debris, MODEL_Halo, MODEL_Flash2, MODEL_Ring } };
 	static FinalFormParams live = GAME;
 	static const FinalFormParams &PF() { return live; }
 	static const uint32_t FANFARE = 0xEAA7EC;
@@ -630,7 +631,7 @@ namespace uff076
 		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Burst, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Burst;
+		U32(h, 0) = fxp::model(PF().models.burst, MODEL_Burst);
 		U32(h, 8) = 0;
 		int32_t alive = 0;
 		BaseMatrix(s, 0xFA0);
@@ -717,7 +718,7 @@ namespace uff076
 		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Spin, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Spin;
+		U32(h, 0) = fxp::model(PF().models.spin, MODEL_Spin);
 		U32(h, 8) = 0;
 		int32_t alive = 0;
 		BaseMatrix(s, 0xFA0);
@@ -816,7 +817,7 @@ namespace uff076
 		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Rise, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Rise;
+		U32(h, 0) = fxp::model(PF().models.rise, MODEL_Rise);
 		U32(h, 8) = 0;
 		int32_t alive = 0;
 		BaseMatrix(s, 0xBB8);
@@ -931,7 +932,7 @@ namespace uff076
 		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Burst2, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Spin;
+		U32(h, 0) = fxp::model(PF().models.spin, MODEL_Spin);
 		U32(h, 8) = 0;
 		int32_t alive = 0;
 		BaseMatrix(s, 0);
@@ -1046,7 +1047,7 @@ namespace uff076
 		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Debris, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x5C));
-		U32(h, 0) = MODEL_Debris;
+		U32(h, 0) = fxp::model(PF().models.debris, MODEL_Debris);
 		U32(h, 8) = 0;
 		int32_t alive = 0;
 		BaseMatrix(s, 0);
@@ -1095,7 +1096,7 @@ namespace uff076
 		TransformCameraByShadowRotation(pos, n->scale, -300);
 		GteSetRotMatrix(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Halo;
+		U32(h, 0) = fxp::model(PF().models.halo, MODEL_Halo);
 		U32(h, 8) = 0;
 		SetFade(h, FADE, HaloFade(n->counter));
 		FX_HELD(held_fade(h);)
@@ -1148,7 +1149,7 @@ namespace uff076
 		TransformCameraByShadowRotation(pos, n->scale, -1000);
 		GteSetRotMatrix(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Halo;
+		U32(h, 0) = fxp::model(PF().models.halo, MODEL_Halo);
 		U32(h, 8) = 0;
 		int32_t fade = 0;
 		const uint32_t flags = Flash1Fade(n->counter, &fade);
@@ -1199,7 +1200,7 @@ namespace uff076
 		TransformCameraByShadowRotation(n->pos, n->scale, -1000);
 		GteSetRotMatrix(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Flash2;
+		U32(h, 0) = fxp::model(PF().models.flash2, MODEL_Flash2);
 		U32(h, 8) = 0;
 		int32_t fade = 0;
 		const uint32_t flags = Flash2Fade(n->counter, &fade);
@@ -1248,7 +1249,7 @@ namespace uff076
 		TransformCameraByShadowRotation(n->pos, 0, 0x7D0);
 		GteSetRotMatrix(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Ring;
+		U32(h, 0) = fxp::model(PF().models.ring, MODEL_Ring);
 		U32(h, 8) = 0;
 		int32_t fade = 0;
 		const uint32_t flags = RingFade(n->counter, &fade);
@@ -1570,6 +1571,13 @@ namespace uff076
 			FP("master", halo.step, "Growth", "", 0, 0x7FFF),
 			FP("master", ring.spin, "Spin", "", -0x400, 0x400),
 			FP("master", ring.size, "Size", "", 0, 0x7FFF),
+			{ "master", "models.burst", "Burst model", "The prim model burst (a mesh of 10 vertices, 4 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.spin", "Spin model", "The prim model spin (a mesh of 89 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.spin), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.rise", "Rise model", "The prim model rise (a mesh of 21 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.rise), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.debris", "Debris model", "The prim model debris (a mesh of 18 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.halo", "Halo model", "The prim model halo (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.halo), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.flash2", "Flash2 model", "The prim model flash2 (a mesh of 80 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.flash2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.ring", "Ring model", "The prim model ring (a mesh of 128 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef FP
 	}

@@ -95,8 +95,9 @@ namespace blizzaga104
 		uint32_t sound;                    // at the freeze's tick 0 (3D, at the target)
 		struct { int16_t damage; } freeze; // the damage at this tick of the freeze
 		struct { uint32_t mist, flake; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, flash; } models; // the prim models drawn (meshes)
 	};
-	static const BlizzagaParams GAME = { 0x13197A8, { 0x44 }, { 0x1312690, 0x13127A0 } };
+	static const BlizzagaParams GAME = { 0x13197A8, { 0x44 }, { 0x1312690, 0x13127A0 }, { 0x1317088, 0x1318490 } };
 	static BlizzagaParams live = GAME;
 	static const BlizzagaParams &P() { return live; }
 	static const uint32_t MODEL_OFFSET[3] = { 0x11FB0, 0x142D8, 0x16600 };   // per action, in the magic buffer
@@ -986,7 +987,7 @@ namespace blizzaga104
 		int32_t t = c - 0x2E;
 		*(uint16_t *)(h + 0x16) = 0x100;
 		*(uint16_t *)(h + 0x14) = 0x100;
-		*(const void **)h = MODEL_Ring;
+		*(const void **)h = ((const void *)fxp::model(P().models.ring, (uint32_t)MODEL_Ring));
 		*(uint16_t *)(h + 0x12) = 0;
 		*(uint16_t *)(h + 0x10) = 0;
 		*(uint16_t *)(h + 0x18) = 0;
@@ -1040,7 +1041,7 @@ namespace blizzaga104
 		m.t[1] = f->pos[1];
 		m.t[2] = f->pos[2];
 		ComposeAffineTransform(&Camera(), &m, &m);
-		*(const void **)h = MODEL_Flash;
+		*(const void **)h = ((const void *)fxp::model(P().models.flash, (uint32_t)MODEL_Flash));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1719,6 +1720,8 @@ namespace blizzaga104
 			{ "freeze", "freeze.damage", "Damage tick", "The damage at this tick of the freeze", (uint32_t)offsetof(BlizzagaParams, freeze.damage), fxp::I16, 0, 98 },
 			{ "freeze", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzagaParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "freeze", "seqs.flake", "Flake", "The sprite sequence flake (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzagaParams, seqs.flake), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "freeze", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 132 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzagaParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "freeze", "models.flash", "Flash model", "The prim model flash (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzagaParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

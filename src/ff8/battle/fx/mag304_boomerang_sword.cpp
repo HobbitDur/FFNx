@@ -123,8 +123,9 @@ namespace boomerang304
 		uint32_t sound;   // the throw (the main task's counter 5)
 		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t sword, trail; } model_data; // the prim models drawn (meshes)
 	};
-	static const BoomerangSwordParams GAME = { 0x10312C8, { MODEL_Hit }, { SEQ_Spark } };
+	static const BoomerangSwordParams GAME = { 0x10312C8, { MODEL_Hit }, { SEQ_Spark }, { MODEL_Sword, MODEL_Trail } };
 	static BoomerangSwordParams live = GAME;
 	static const BoomerangSwordParams &P() { return live; }
 
@@ -387,7 +388,7 @@ namespace boomerang304
 		GteSetRotMatrix(&cam);
 		GteSetTransVector(&cam);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Sword;
+		*(uint32_t *)h = fxp::model(P().model_data.sword, MODEL_Sword);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -413,7 +414,7 @@ namespace boomerang304
 		if (blue > 0xFF) blue = 0xFF;
 		h[0xA] = (uint8_t)blue;
 		*(uint32_t *)(h + 0x1C) = 0xC0;
-		*(uint32_t *)h = MODEL_Trail;
+		*(uint32_t *)h = fxp::model(P().model_data.trail, MODEL_Trail);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -740,6 +741,8 @@ namespace boomerang304
 			{ "main", "sound", "Sound", "The throw (the main task's counter 5)", (uint32_t)offsetof(BoomerangSwordParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(BoomerangSwordParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(BoomerangSwordParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "model_data.sword", "Sword model", "The prim model sword (a mesh of 52 vertices, 78 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BoomerangSwordParams, model_data.sword), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "model_data.trail", "Trail model", "The prim model trail (a mesh of 14 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BoomerangSwordParams, model_data.trail), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

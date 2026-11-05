@@ -99,8 +99,9 @@ namespace sandstorm155
 		uint32_t sound;                      // the wind at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
 		struct { uint32_t dust_a, dust_b; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t funnel; } models; // the prim models drawn (meshes)
 	};
-	static const SandStormParams GAME = { 0xDBA8F8, { 0x32 }, { SEQ_DustA, SEQ_DustB } };
+	static const SandStormParams GAME = { 0xDBA8F8, { 0x32 }, { SEQ_DustA, SEQ_DustB }, { MODEL_Funnel } };
 	static SandStormParams live = GAME;
 	static const SandStormParams &P() { return live; }
 
@@ -275,7 +276,7 @@ namespace sandstorm155
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		*(int32_t *)(h + 0xC) = 0;
 		*(int32_t *)(h + 8) = 0;
-		*(uint32_t *)h = MODEL_Funnel;
+		*(uint32_t *)h = fxp::model(P().models.funnel, MODEL_Funnel);
 		*(uint32_t *)(h + 4) = verts;
 		*(uint32_t *)(h + 0x1C) = flags;
 		*(int32_t *)(h + 0xC) = fade;
@@ -338,7 +339,7 @@ namespace sandstorm155
 	static void VertexOrder()
 	{
 		Order *o = (Order *)own::R(ORDER);
-		uint32_t src = MODEL_Funnel + 8, dst = own::R(VERTS);
+		uint32_t src = fxp::model(P().models.funnel, MODEL_Funnel) + 8, dst = own::R(VERTS);
 		for (int ring = 0x13; ring != 0; ring--)
 			for (int i = 0x10; i != 0; i--, o++, src += 8, dst += 8)
 			{
@@ -675,6 +676,7 @@ namespace sandstorm155
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SandStormParams, director.damage), fxp::I16, 0, 60 },
 			{ "director", "seqs.dust_a", "Dust a", "The sprite sequence dust a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStormParams, seqs.dust_a), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.dust_b", "Dust b", "The sprite sequence dust b (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStormParams, seqs.dust_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.funnel", "Funnel model", "The prim model funnel (a mesh of 304 vertices, 288 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SandStormParams, models.funnel), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

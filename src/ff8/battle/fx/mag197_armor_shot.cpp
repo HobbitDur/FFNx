@@ -177,8 +177,9 @@ namespace armor197
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t debris, spark, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ground_flash, path_ring, beam, beam_head, armor, muzzle_flash, cone, impact_ring, impact_spin; } models; // the prim models drawn (meshes)
 	};
-	static const ArmorShotParams GAME = { 0xD05230, { 0xCFDC20, 0xCFD714, 0xCFDA74 } };
+	static const ArmorShotParams GAME = { 0xD05230, { 0xCFDC20, 0xCFD714, 0xCFDA74 }, { 0xD02180, 0xD04B88, 0xCFDD18, 0xCFEDE8, 0xCFF2F8, 0xD012B0, 0xD03940, 0xD02570, 0xD03298 } };
 	static ArmorShotParams live = GAME;
 	static const ArmorShotParams &P() { return live; }
 
@@ -468,7 +469,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(MODEL_GroundFlash, faded, fade);
+		ModelDraw(fxp::model(P().models.ground_flash, MODEL_GroundFlash), faded, fade);
 	}
 
 	// a path ring at its point: rotation (0, 0, -0x1000) -> the shot direction x roll, scale (scale, scale, depth)
@@ -493,7 +494,7 @@ namespace armor197
 		const int32_t v[3] = { n->f1C, n->f1C, n->f20 };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(MODEL_PathRing, faded, fade);
+		ModelDraw(fxp::model(P().models.path_ring, MODEL_PathRing), faded, fade);
 	}
 
 	// the beam: the stretched model from the muzzle (length * 4096 / 6000 deep), then (same header) the head model camera facing
@@ -522,7 +523,7 @@ namespace armor197
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_Beam, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.beam, MODEL_Beam), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		int16_t p[4];
 		p[0] = (int16_t)((mul32(s->dir[0], n->f20) >> 12) + s->pos[0]);
@@ -532,7 +533,7 @@ namespace armor197
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_head(p[3]);)
 		TransformCameraByShadowRotation(p, p[3], -((int32_t)p[3] >> 3));
-		*(uint32_t *)h = MODEL_BeamHead;
+		*(uint32_t *)h = fxp::model(P().models.beam_head, MODEL_BeamHead);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 		return p[3];
@@ -578,7 +579,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
-		ModelDraw(MODEL_Armor, faded, fade);
+		ModelDraw(fxp::model(P().models.armor, MODEL_Armor), faded, fade);
 	}
 
 	// the bone smoke / target sparks: the light matrix / back colour = the camera (scratch 0x48, +8); a header (0xB4) with
@@ -744,7 +745,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_MuzzleFlashTask, n);)
-		MuzzleModel(n, n->f18, 0, MODEL_MuzzleFlash, n->counter >= 2, FadeFrom2(n->counter));
+		MuzzleModel(n, n->f18, 0, fxp::model(P().models.muzzle_flash, MODEL_MuzzleFlash), n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -759,7 +760,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_MuzzleConeTask, n);)
-		MuzzleModel(n, 0, n->f18, MODEL_Cone, n->counter >= 6, FadeFrom6(n->counter));
+		MuzzleModel(n, 0, n->f18, fxp::model(P().models.cone, MODEL_Cone), n->counter >= 6, FadeFrom6(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -887,7 +888,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactRingTask, n);)
-		ImpactModelDraw(n, DIR_FRONT, MODEL_ImpactRing, n->counter >= 2, IringFade(n->counter));
+		ImpactModelDraw(n, DIR_FRONT, fxp::model(P().models.impact_ring, MODEL_ImpactRing), n->counter >= 2, IringFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -902,7 +903,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactSpinTask, n);)
-		ImpactModelDraw(n, DIR_BACK, MODEL_ImpactSpin, n->counter >= 6, Fade2AA(n->counter));
+		ImpactModelDraw(n, DIR_BACK, fxp::model(P().models.impact_spin, MODEL_ImpactSpin), n->counter >= 6, Fade2AA(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -1451,6 +1452,15 @@ namespace armor197
 			{ "shot", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.ground_flash", "Ground flash model", "The prim model ground flash (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.ground_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.path_ring", "Path ring model", "The prim model path ring (a mesh of 64 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.path_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam", "Beam model", "The prim model beam (a mesh of 155 vertices, 132 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam_head", "Beam head model", "The prim model beam head (a mesh of 49 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.beam_head), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.armor", "Armor model", "The prim model armor (a mesh of 242 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.armor), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.muzzle_flash", "Muzzle flash model", "The prim model muzzle flash (a mesh of 145 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.muzzle_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.cone", "Cone model", "The prim model cone (a mesh of 160 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.impact_ring", "Impact ring model", "The prim model impact ring (a mesh of 128 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.impact_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.impact_spin", "Impact spin model", "The prim model impact spin (a mesh of 64 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.impact_spin), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

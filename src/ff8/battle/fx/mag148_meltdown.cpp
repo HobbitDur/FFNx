@@ -102,8 +102,9 @@ namespace melt148
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
 		struct { uint32_t acid_a, acid_b; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t disc, glow_flat, glow; } models; // the prim models drawn (meshes)
 	};
-	static const MeltdownParams GAME = { 0xDCE74C, { 0x50 }, { SEQ_AcidA, SEQ_AcidB } };
+	static const MeltdownParams GAME = { 0xDCE74C, { 0x50 }, { SEQ_AcidA, SEQ_AcidB }, { MODEL_Disc, MODEL_GlowFlat, MODEL_Glow } };
 	static MeltdownParams live = GAME;
 	static const MeltdownParams &PM() { return live; }
 
@@ -891,7 +892,7 @@ namespace melt148
 		const uint32_t hdr = P(AllocHeader(0x7C));
 		const int16_t c16 = S16(node, 0xC);
 		const int32_t c = c16;
-		U32(hdr, 0) = MODEL_Disc;
+		U32(hdr, 0) = fxp::model(PM().models.disc, MODEL_Disc);
 		U32(hdr, 0x20) = 0x30;
 		U32(hdr, 0x10) = 0;
 		U16(hdr, 0x18) = 0;
@@ -940,7 +941,7 @@ namespace melt148
 		const uint32_t hdr = P(AllocHeader(0x7C));
 		const int16_t c16 = S16(node, 0xC);
 		const int32_t c = c16;
-		U32(hdr, 0) = MODEL_GlowFlat;
+		U32(hdr, 0) = fxp::model(PM().models.glow_flat, MODEL_GlowFlat);
 		U32(hdr, 0x20) = 0x30;
 		U32(hdr, 0x10) = (uint32_t)shl32(c * 3, 3);
 		U32(hdr, 0x14) = 0;
@@ -966,7 +967,7 @@ namespace melt148
 		SetScaledFrame(S16(node, 0xE), s, sz, true);
 		U16(hdr, 0x18) = 0x40;
 		U16(hdr, 0x1C) = 0x40;
-		U32(hdr, 0) = MODEL_Glow;
+		U32(hdr, 0) = fxp::model(PM().models.glow, MODEL_Glow);
 		U32(hdr, 0x10) = 0;
 		U32(hdr, 0x14) = (uint32_t)shl32(S16(node, 0xC), 3);
 		U16(hdr, 0x1A) = 0;
@@ -1174,6 +1175,9 @@ namespace melt148
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(MeltdownParams, director.damage), fxp::I16, 0, 84 },
 			{ "director", "seqs.acid_a", "Acid a", "The sprite sequence acid a (a flipbook of 17 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltdownParams, seqs.acid_a), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.acid_b", "Acid b", "The sprite sequence acid b (a flipbook of 17 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltdownParams, seqs.acid_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.disc", "Disc model", "The prim model disc (a mesh of 91 vertices, 90 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltdownParams, models.disc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.glow_flat", "Glow flat model", "The prim model glow flat (a mesh of 234 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltdownParams, models.glow_flat), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.glow", "Glow model", "The prim model glow (a mesh of 108 vertices, 90 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltdownParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

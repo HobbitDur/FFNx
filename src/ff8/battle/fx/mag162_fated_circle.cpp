@@ -122,8 +122,9 @@ namespace circle162
 		struct { uint32_t start, circle; } sounds; // at the director's ticks 1 and 0x39
 		struct { int16_t damage; } director;      // the action results at this tick
 		struct { uint32_t dust, orbit, ember, spark, swirl; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t swipe, shock, glow, shard, burst, rain, shell, circle; } models; // the prim models drawn (meshes)
 	};
-	static const FatedCircleParams GAME = { { 0xDA8C68, 0xDA8C6C }, { 0x96 }, { 0xDA1D74, 0xDA1F20, 0xDA19B4, 0xDA219C, 0xDA1B60 } };
+	static const FatedCircleParams GAME = { { 0xDA8C68, 0xDA8C6C }, { 0x96 }, { 0xDA1D74, 0xDA1F20, 0xDA19B4, 0xDA219C, 0xDA1B60 }, { 0xDA6700, 0xDA4488, 0xDA3A58, 0xDA3E48, 0xDA4118, 0xDA4308, 0xDA7198, 0xDA2348 } };
 	static FatedCircleParams live = GAME;
 	static const FatedCircleParams &P() { return live; }
 	static const uint32_t MODEL_SWIPE = 0xDA6700, MODEL_SHOCK = 0xDA4488, MODEL_GLOW = 0xDA3A58, MODEL_SHARD = 0xDA3E48,
@@ -736,7 +737,7 @@ namespace circle162
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SWIPE;
+		*(uint32_t *)h = fxp::model(P().models.swipe, MODEL_SWIPE);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 3)
 		{
@@ -788,7 +789,7 @@ namespace circle162
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHOCK;
+		*(uint32_t *)h = fxp::model(P().models.shock, MODEL_SHOCK);
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c >= 4)
 		{
@@ -825,7 +826,7 @@ namespace circle162
 	{
 		TransformCameraByShadowRotation(&n->w10, s, -0x100);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_GLOW;
+		*(uint32_t *)h = fxp::model(P().models.glow, MODEL_GLOW);
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (c >= 0x1C)
 		{
@@ -975,7 +976,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Shard, n);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1167,7 +1168,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Burst, n);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_BURST;
+		*(uint32_t *)h = fxp::model(P().models.burst, MODEL_BURST);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1276,7 +1277,7 @@ namespace circle162
 		FX_HELD(held_note_pool(ORIG_Rain, n);)
 		uint8_t *h = AllocHeader(0x58);
 		RainWork w;
-		*(uint32_t *)h = MODEL_RAIN;
+		*(uint32_t *)h = fxp::model(P().models.rain, MODEL_RAIN);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1590,7 +1591,7 @@ namespace circle162
 	{
 		ShellMatrix(n, n->w18, 0x1F4, s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHELL;
+		*(uint32_t *)h = fxp::model(P().models.shell, MODEL_SHELL);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1635,7 +1636,7 @@ namespace circle162
 	{
 		ShellMatrix(n, n->w18, 0x29, s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHELL;
+		*(uint32_t *)h = fxp::model(P().models.shell, MODEL_SHELL);
 		*(uint32_t *)(h + 4) = SHELL_TO;
 		h[0xA] = 0;
 		h[9] = 0;
@@ -1835,7 +1836,7 @@ namespace circle162
 		MeshHeader *h = (MeshHeader *)AllocHeader(0xCC);
 		h->tpage[0] = 0x40;
 		h->tpage[2] = 0x40;
-		h->model = MODEL_CIRCLE;
+		h->model = fxp::model(P().models.circle, MODEL_CIRCLE);
 		h->mode = 0x30;
 		h->tpage[1] = 0;
 		h->tpage[3] = 0x80;
@@ -2247,6 +2248,14 @@ namespace circle162
 			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.swirl", "Swirl", "The sprite sequence swirl (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.swirl), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.swipe", "Swipe model", "The prim model swipe (a mesh of 78 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.swipe), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shock", "Shock model", "The prim model shock (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.shock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.glow", "Glow model", "The prim model glow (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.burst", "Burst model", "The prim model burst (a mesh of 21 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.rain", "Rain model", "The prim model rain (a mesh of 15 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.rain), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shell", "Shell model", "The prim model shell (a mesh of 168 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.shell), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.circle", "Circle model", "The prim model circle (a mesh of 93 vertices, 156 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.circle), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

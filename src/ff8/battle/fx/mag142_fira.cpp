@@ -78,8 +78,9 @@ namespace fira142
 		uint32_t sound;                      // at the director's tick 3 (3D, at the target)
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
 		struct { uint32_t ember, shock_ring; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t flame_column, burst, trail; } models; // the prim models drawn (meshes)
 	};
-	static const FiraParams GAME = { 0xDDF44C, { 0xE }, { 0xDDE100, 0xDDE0D8 } };
+	static const FiraParams GAME = { 0xDDF44C, { 0xE }, { 0xDDE100, 0xDDE0D8 }, { 0xDDEF14, 0xDDE6C4, 0xDDE2AC } };
 	static FiraParams live = GAME;
 	static const FiraParams &P() { return live; }
 
@@ -537,7 +538,7 @@ namespace fira142
 
 	static void FlameColumnHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_FlameColumn;
+		*(const void **)h = ((const void *)fxp::model(P().models.flame_column, (uint32_t)MODEL_FlameColumn));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -599,7 +600,7 @@ namespace fira142
 
 	static void BurstHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = ((const void *)fxp::model(P().models.burst, (uint32_t)MODEL_Burst));
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 0xE)
 		{
@@ -684,7 +685,7 @@ namespace fira142
 
 	static void TrailHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Trail;
+		*(const void **)h = ((const void *)fxp::model(P().models.trail, (uint32_t)MODEL_Trail));
 		*(uint32_t *)(h + 0x1C) = 0x1033;
 		*(uint32_t *)(h + 0x18) = TRAIL_TABLE[c];
 		if (c >= 8)
@@ -736,6 +737,9 @@ namespace fira142
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(FiraParams, director.damage), fxp::I16, 0, 100 },
 			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FiraParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.shock_ring", "Shock ring", "The sprite sequence shock ring (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(FiraParams, seqs.shock_ring), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.flame_column", "Flame column model", "The prim model flame column (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.flame_column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.burst", "Burst model", "The prim model burst (a mesh of 72 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.trail", "Trail model", "The prim model trail (a mesh of 26 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.trail), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

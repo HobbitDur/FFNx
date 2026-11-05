@@ -120,8 +120,9 @@ namespace tornado146
 		struct { uint32_t wind, land; } sounds; // the wind at the director's tick 1, a piece landing
 		struct { int16_t damage; } director;    // the damage at this tick of an action's director
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t crater; } models; // the prim models drawn (meshes)
 	};
-	static const TornadoParams GAME = { { 0xDD6638, 0xDD663C }, { 0x52 }, { SEQ_Spark } };
+	static const TornadoParams GAME = { { 0xDD6638, 0xDD663C }, { 0x52 }, { SEQ_Spark }, { MESH_Crater } };
 	static TornadoParams live = GAME;
 	static const TornadoParams &PT() { return live; }
 
@@ -495,7 +496,7 @@ namespace tornado146
 			FX_HELD(held_note_capture(d);)
 			Capture(d + 0x10, CAPTURE_PACKETS());
 			uint32_t h = Alloc(0xC8);
-			U32(h, 0x30) = MESH_Crater;
+			U32(h, 0x30) = fxp::model(PT().models.crater, MESH_Crater);
 			GridBuild(h);
 			FieldFree(0xC8);
 			BuildFunnelMesh();
@@ -1232,7 +1233,7 @@ namespace tornado146
 		uint32_t h = Alloc(0xC8);
 		U32(h, 0xB8) = U32(g, 0x10);
 		U32(h, 0xBC) = U32(g, 0x14);
-		U32(h, 0x30) = MESH_Crater;
+		U32(h, 0x30) = fxp::model(PT().models.crater, MESH_Crater);
 		S32(h, 0x3C) = factor;
 		GroundDraw(h);
 		FieldFree(0xC8);
@@ -1816,6 +1817,7 @@ namespace tornado146
 			{ "director", "sounds.land", "Land", "A piece landing", (uint32_t)offsetof(TornadoParams, sounds.land), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(TornadoParams, director.damage), fxp::I16, 0, 87 },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(TornadoParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.crater", "Crater model", "The prim model crater (a mesh of 142 vertices, 261 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TornadoParams, models.crater), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

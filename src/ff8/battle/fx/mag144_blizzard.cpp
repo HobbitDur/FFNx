@@ -78,8 +78,9 @@ namespace blizzard144
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t damage; } director; // the shockwave and the damage at this tick of an action's director
 		struct { uint32_t ice, mist; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t crystal, shockwave, crystal_uv; } models; // the prim models drawn (meshes)
 	};
-	static const BlizzardParams GAME = { 0xDD9A38, { 0x25 }, { 0xDD83E4, 0xDD82F0 } };
+	static const BlizzardParams GAME = { 0xDD9A38, { 0x25 }, { 0xDD83E4, 0xDD82F0 }, { 0xDD8590, 0xDD8D48, 0xDD9280 } };
 	static BlizzardParams live = GAME;
 	static const BlizzardParams &P() { return live; }
 
@@ -376,7 +377,7 @@ namespace blizzard144
 			GetEffectSpawnPosition(Entity(d->slot), 0xF0, 0x1000, d->pos);
 			d->height = EntityHeight(d->slot);
 			CrystalHeader *h = (CrystalHeader *)FieldAlloc(0xD0);
-			h->model = MODEL_Crystal;
+			h->model = ((const uint8_t *)fxp::model(P().models.crystal, (uint32_t)MODEL_Crystal));
 			h->flags = 0;
 			h->shards = ShardBuffer(d->action);
 			ShatterPrep(h);
@@ -500,7 +501,7 @@ namespace blizzard144
 
 	static void ShockwaveHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Shockwave;
+		*(const void **)h = ((const void *)fxp::model(P().models.shockwave, (uint32_t)MODEL_Shockwave));
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c >= 8)
 		{
@@ -842,8 +843,8 @@ namespace blizzard144
 	static void CrystalHeaderInit(CrystalHeader *h, const CrystalNode *p, const Mat4x3 *m)
 	{
 		h->limit = p->counter;
-		h->model = MODEL_Crystal;
-		h->uvmodel = MODEL_CrystalUV;
+		h->model = ((const uint8_t *)fxp::model(P().models.crystal, (uint32_t)MODEL_Crystal));
+		h->uvmodel = ((const uint8_t *)fxp::model(P().models.crystal_uv, (uint32_t)MODEL_CrystalUV));
 		h->flags = 0;
 		h->shards = ShardBuffer(p->action);
 		ComposeAffineTransform(&Camera(), m, &h->base);
@@ -914,6 +915,9 @@ namespace blizzard144
 			{ "director", "director.damage", "Damage tick", "The shockwave and the damage at this tick of an action's director", (uint32_t)offsetof(BlizzardParams, director.damage), fxp::I16, 0, 100 },
 			{ "director", "seqs.ice", "Ice", "The sprite sequence ice (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzardParams, seqs.ice), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzardParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.crystal", "Crystal model", "The prim model crystal (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.crystal), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shockwave", "Shockwave model", "The prim model shockwave (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.shockwave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.crystal_uv", "Crystal uv model", "The prim model crystal uv (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.crystal_uv), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

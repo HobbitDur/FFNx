@@ -96,8 +96,9 @@ namespace blade012
 		struct { int16_t ticks, life, scale; } sparks;                     // at the impact, two a tick
 		struct { int16_t life, scale, spread; } fans;                      // glints and streaks thrown out of the impact
 		struct { uint32_t spark, streak, glint, hit, flash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t blade, ring, trail, wing_a, wing_b; } models; // the prim models drawn (meshes)
 	};
-	static const BladeParams GAME = { { 0x136562C, 0x1365630, 5 }, { 0x20, 0x210, 0x64, 0x3E }, { 0xA, 0xF, 0xC00 }, { 0xD, 0x800, 0x313 }, { 0x1362AEC, 0x13627E4, 0x136298C, 0x1362C80, 0x13628FC } };
+	static const BladeParams GAME = { { 0x136562C, 0x1365630, 5 }, { 0x20, 0x210, 0x64, 0x3E }, { 0xA, 0xF, 0xC00 }, { 0xD, 0x800, 0x313 }, { 0x1362AEC, 0x13627E4, 0x136298C, 0x1362C80, 0x13628FC }, { 0x13646EC, 0x136401C, 0x1364F14, 0x1362E3C, 0x136372C } };
 	static BladeParams live = GAME;
 	static const BladeParams &P() { return live; }
 	static const uint32_t MODEL_Blade = 0x13646EC;       // prim models
@@ -500,7 +501,7 @@ namespace blade012
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Blade;
+		*(uint32_t *)h = fxp::model(P().models.blade, MODEL_Blade);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 	}
@@ -539,7 +540,7 @@ namespace blade012
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		*(int32_t *)(h + 0xC) = ComputeSin((int32_t)s >> 2);
 		*(uint32_t *)(h + 0x1C) = 0xF0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
@@ -646,7 +647,7 @@ namespace blade012
 		h[8] = 0;
 		v = *(const int32_t *)(h + 0xC);
 		*(uint32_t *)(h + 0x1C) = 0xC0;
-		*(uint32_t *)h = MODEL_Trail;
+		*(uint32_t *)h = fxp::model(P().models.trail, MODEL_Trail);
 		h[0xA] = (uint8_t)((0x1000 - v) >> 5);
 		*(int32_t *)(h + 0xC) = (v >> 1) + 0x800;
 		PacketCursor() = DrawModel(h, RenderOT(), 2, PacketCursor());
@@ -988,14 +989,14 @@ namespace blade012
 		{
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_k(K_WING_A, n, k);)
-			WingPair(n, RingScale(k), MODEL_WingA, KEYS_WingA0, KEYS_WingA1, 0x71);
+			WingPair(n, RingScale(k), fxp::model(P().models.wing_a, MODEL_WingA), KEYS_WingA0, KEYS_WingA1, 0x71);
 		}
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 0x14)
 		{
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_k(K_WING_B, n, k);)
-			WingPair(n, RingScale(k), MODEL_WingB, KEYS_WingB0, KEYS_WingB1, 0x11C);
+			WingPair(n, RingScale(k), fxp::model(P().models.wing_b, MODEL_WingB), KEYS_WingB0, KEYS_WingB1, 0x11C);
 		}
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < (uint32_t)P().sparks.ticks) SpawnSparks(n);
@@ -1055,6 +1056,11 @@ namespace blade012
 			{ "blade", "seqs.glint", "Glint", "The sprite sequence glint (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.glint), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "blade", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "blade", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "models.blade", "Blade model", "The prim model blade (a mesh of 144 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.blade), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.ring", "Ring model", "The prim model ring (a mesh of 69 vertices, 44 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.trail", "Trail model", "The prim model trail (a mesh of 110 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.wing_a", "Wing a model", "The prim model wing a (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.wing_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.wing_b", "Wing b model", "The prim model wing b (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.wing_b), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef BS
 	}

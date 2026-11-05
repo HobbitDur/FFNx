@@ -113,8 +113,9 @@ namespace breath129
 		struct { int16_t damage; } target; // the damage at this tick of a target task
 		struct { uint32_t mouth2, target, mouth1, mouth3; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main; } model_data; // the prim models drawn (meshes)
 	};
-	static const BreathParams GAME = { 0x12292F4, { 0x10 }, { MODEL_Mouth2, MODEL_Target, MODEL_Mouth1, MODEL_Mouth3 }, { SEQ_Spark } };
+	static const BreathParams GAME = { 0x12292F4, { 0x10 }, { MODEL_Mouth2, MODEL_Target, MODEL_Mouth1, MODEL_Mouth3 }, { SEQ_Spark }, { 0x12272DC } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1229F28;   // [|dy|][|dx|] -> length, 128 x 128
@@ -464,7 +465,7 @@ namespace breath129
 		RotZ(angle1, &rz);
 		GteSetRotMatrix(&rz);
 		GteZeroTrans();
-		SwirlVertices(MESH, angle2, out);
+		SwirlVertices(((uint8_t *)fxp::model(P().model_data.main, (uint32_t)MESH)), angle2, out);
 	}
 
 	// the mesh frame (z along pos -> the walk point x, y, z, scaled to its length) composed with the
@@ -494,7 +495,7 @@ namespace breath129
 		*(uint16_t *)(h + 0x1C) = 0x100;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0xE) = scroll;
-		*(uint8_t **)h = MESH;
+		*(uint8_t **)h = ((uint8_t *)fxp::model(P().model_data.main, (uint32_t)MESH));
 		*(uint32_t *)(h + 0x20) = verts;
 		PacketCursor() = RenderMesh(h, RenderOT(), 2, PacketCursor());
 		return length;
@@ -1551,7 +1552,7 @@ namespace breath129
 			const uint8_t c8 = (uint8_t)c1e;
 			m->length = MeshDraw(h, m->pos, x, y, z, (uint16_t)((c8 & 7) << 4), &BranchFrame(), Verts());
 			// the mesh draw's quad countdown local ends at 0 in the branch tasks' direction slot
-			if (*(const int32_t *)(MESH + *(const uint32_t *)MESH + 0x1C) > 0) g_branch_slot = 0;
+			if (*(const int32_t *)(((uint8_t *)fxp::model(P().model_data.main, (uint32_t)MESH)) + *(const uint32_t *)((uint8_t *)fxp::model(P().model_data.main, (uint32_t)MESH)) + 0x1C) > 0) g_branch_slot = 0;
 			FieldFree(0x5C);
 			if (!(c8 & 1))
 			{
@@ -1648,7 +1649,7 @@ namespace breath129
 				const int32_t hi = (int32_t)(((int64_t)x * 0x3E0F83E1) >> 32) >> 3;
 				mn->step = (int16_t)(hi + (int32_t)((uint32_t)hi >> 31)); // / 33
 			}
-			NormalizeDepth(MESH);
+			NormalizeDepth(((uint8_t *)fxp::model(P().model_data.main, (uint32_t)MESH)));
 			NormalizeDepth(BRANCH_VERTS);
 			HitCount() = 0;
 			HitEntity(2) = nullptr;
@@ -1689,6 +1690,7 @@ namespace breath129
 			{ "main", "layouts.mouth1", "Mouth1", "The prim-model layout mouth1 (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.mouth1), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.mouth3", "Mouth3", "The prim-model layout mouth3 (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.mouth3), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "model_data.main", "Main model", "The prim model main (a mesh of 176 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, model_data.main), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

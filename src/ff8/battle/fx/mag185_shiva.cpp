@@ -164,8 +164,9 @@ namespace s185
 		struct { uint32_t start, rise, stream, blast; } sounds; // at the timeline's ticks 1, 101, 147, 249
 		struct { int16_t damage; } timeline;               // the action result at this tick
 		struct { uint32_t at_d209f4, at_d20c7c, at_d20ad0, at_d208b0, at_d20e10; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_d215c4, at_d3138c, at_d2f1c4, at_d2ba3c, at_d2d600, at_d31a74, at_d3048c, at_d309a4, at_d21b9c, at_d2a50c, at_d257cc, at_d27e6c; } models; // the prim models drawn (meshes)
 	};
-	static const ShivaParams GAME = { 0xD32344, { 0xD32488, 0xD3248C, 0xD32490, 0xD32494 }, { 0x109 }, { 0xD209F4, 0xD20C7C, 0xD20AD0, 0xD208B0, 0xD20E10 } };
+	static const ShivaParams GAME = { 0xD32344, { 0xD32488, 0xD3248C, 0xD32490, 0xD32494 }, { 0x109 }, { 0xD209F4, 0xD20C7C, 0xD20AD0, 0xD208B0, 0xD20E10 }, { 0xD215C4, 0xD3138C, 0xD2F1C4, 0xD2BA3C, 0xD2D600, 0xD31A74, 0xD3048C, 0xD309A4, 0xD21B9C, 0xD2A50C, 0xD257CC, 0xD27E6C } };
 	static ShivaParams live = GAME;
 	static const ShivaParams &P() { return live; }
 
@@ -598,7 +599,7 @@ namespace s185
 	static void RingDraw(uint32_t verts, int32_t h5c, int32_t h60, bool fade)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x68);
-		*(uint32_t *)h = 0xD215C4;
+		*(uint32_t *)h = fxp::model(P().models.at_d215c4, 0xD215C4);
 		*(uint32_t *)(h + 4) = verts;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2030;
@@ -855,7 +856,7 @@ namespace s185
 		ComposeAffineTransform(frame, &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimModel(0xD3138C, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d3138c, 0xD3138C), fade, fade_value);
 	}
 
 	static uint32_t __cdecl IcicleTask(TaskNode *tn)
@@ -904,7 +905,7 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		*(int32_t *)(h + 0x20) = n->c;
 		ComposeAffineTransform(&Frame(), &m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD2F1C4;
+		*(uint32_t *)h = fxp::model(P().models.at_d2f1c4, 0xD2F1C4);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		*(uint32_t *)(h + 0x28) = Shards();
@@ -975,7 +976,7 @@ namespace s185
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x1A8);
 		int16_t *p = (int16_t *)(h + 0x58);
-		*(uint32_t *)(h + 0x1C) = 0xD2BA3C;
+		*(uint32_t *)(h + 0x1C) = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 		*(uint32_t *)(h + 0x24) = 0;
 		p[0] = 0;
 		p[2] = 0;
@@ -991,7 +992,7 @@ namespace s185
 	static void MountStand()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xD2BA3C;
+		*(uint32_t *)h = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		Cursor() = RenderPrimModel(h, OT(), 2, Cursor());
@@ -1003,7 +1004,7 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		if (init)
 		{
-			*(uint32_t *)h = 0xD2BA3C;
+			*(uint32_t *)h = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 			*(uint32_t *)(h + 0x28) = Shards();
 			MountShardInit(h);
 		}
@@ -1011,7 +1012,7 @@ namespace s185
 		*(uint32_t *)(h + 0x14) = 0x33;
 		*(int32_t *)(h + 0x20) = c + 0xE;
 		ComposeAffineTransform(frame, m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD2BA3C;
+		*(uint32_t *)h = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x10) = 3;
 		*(uint32_t *)(h + 0x18) = 6;
@@ -1066,7 +1067,7 @@ namespace s185
 		*(uint16_t *)(h + 0x18) = 0;
 		*(uint16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = 0xD2D600;
+		*(uint32_t *)h = fxp::model(P().models.at_d2d600, 0xD2D600);
 		*(uint32_t *)(h + 0x20) = 0x30;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(uint16_t *)(h + 0x1E) = 0x80;
@@ -1393,7 +1394,7 @@ namespace s185
 	static void HandGlowDraw(int16_t scale, bool fade, int32_t fade_value)
 	{
 		TransformCameraByShadowRotation(MidWorld(), scale, -((int32_t)scale >> 3));
-		PrimModel(0xD31A74, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d31a74, 0xD31A74), fade, fade_value);
 	}
 
 	static uint32_t __cdecl HandGlowTask(TaskNode *tn)
@@ -1470,7 +1471,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD3048C;
+		*(uint32_t *)h = fxp::model(P().models.at_d3048c, 0xD3048C);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		SpikeRingSetup(s);
@@ -1550,7 +1551,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD309A4;
+		*(uint32_t *)h = fxp::model(P().models.at_d309a4, 0xD309A4);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		*(int16_t *)s = 0;
@@ -1777,7 +1778,7 @@ namespace s185
 		ComposeAffineTransform(frame, &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimModel(0xD21B9C, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d21b9c, 0xD21B9C), fade, fade_value);
 	}
 
 	static uint32_t __cdecl GlowRingTask(TaskNode *tn)
@@ -1808,7 +1809,7 @@ namespace s185
 		ComposeAffineTransform(frame, &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimModel(0xD3138C, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d3138c, 0xD3138C), fade, fade_value);
 	}
 
 	static uint32_t __cdecl GlowIcicleTask(TaskNode *tn)
@@ -1958,7 +1959,7 @@ namespace s185
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(uint16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = 0xD2A50C;
+		*(uint32_t *)h = fxp::model(P().models.at_d2a50c, 0xD2A50C);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -2102,14 +2103,14 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		*(int32_t *)(h + 0x20) = c;
 		ComposeAffineTransform(frame, m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD257CC;
+		*(uint32_t *)h = fxp::model(P().models.at_d257cc, 0xD257CC);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		*(uint32_t *)(h + 0x28) = rec0;
 		// 30 fps layer: see mag185_shiva_held.inc
 		FX_HELD(if (memo) held_note_block0_recs();)
 		Arena() = IceBlockRender(h, OT(), 2, Arena());
-		*(uint32_t *)h = 0xD27E6C;
+		*(uint32_t *)h = fxp::model(P().models.at_d27e6c, 0xD27E6C);
 		*(uint32_t *)(h + 0x1C) = 3;
 		*(uint32_t *)(h + 0x28) = rec1;
 		// 30 fps layer: see mag185_shiva_held.inc
@@ -2125,7 +2126,7 @@ namespace s185
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xD257CC;
+		*(uint32_t *)h = fxp::model(P().models.at_d257cc, 0xD257CC);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		Arena() = RenderPrimModel(h, OT(), 2, Arena());
@@ -2134,7 +2135,7 @@ namespace s185
 		// flash: fade (c - 18) << 9 from 18, scroll (c - 18) * 12; flash_c2 = 2 * c (flash_frac:
 		// the scroll is taken from flash_c2)
 		h = (uint8_t *)FieldAlloc(0x7C);
-		*(uint32_t *)h = 0xD27E6C;
+		*(uint32_t *)h = fxp::model(P().models.at_d27e6c, 0xD27E6C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 3;
 		int32_t d2 = flash_c2 - 0x24; // 2 * (c - 18)
@@ -2158,7 +2159,7 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		*(int32_t *)(h + 0x20) = c - 0x20;
 		ComposeAffineTransform(frame, m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD257CC;
+		*(uint32_t *)h = fxp::model(P().models.at_d257cc, 0xD257CC);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		*(uint32_t *)(h + 0x10) = 5;
@@ -2295,6 +2296,18 @@ namespace s185
 			{ "timeline", "seqs.at_d20ad0", "Flipbook D20AD0", "The sprite sequence at 0xD20AD0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20ad0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_d208b0", "Flipbook D208B0", "The sprite sequence at 0xD208B0 (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d208b0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_d20e10", "Flipbook D20E10", "The sprite sequence at 0xD20E10 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20e10), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d215c4", "Model D215C4", "The prim model at 0xD215C4 (a mesh of 74 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d215c4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d3138c", "Model D3138C", "The prim model at 0xD3138C (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d3138c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2f1c4", "Model D2F1C4", "The prim model at 0xD2F1C4 (a mesh of 103 vertices, 170 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2f1c4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2ba3c", "Model D2BA3C", "The prim model at 0xD2BA3C (a mesh of 166 vertices, 287 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2ba3c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2d600", "Model D2D600", "The prim model at 0xD2D600 (a mesh of 166 vertices, 287 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2d600), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d31a74", "Model D31A74", "The prim model at 0xD31A74 (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d31a74), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d3048c", "Model D3048C", "The prim model at 0xD3048C (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d3048c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d309a4", "Model D309A4", "The prim model at 0xD309A4 (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d309a4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d21b9c", "Model D21B9C", "The prim model at 0xD21B9C (a mesh of 433 vertices, 432 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d21b9c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2a50c", "Model D2A50C", "The prim model at 0xD2A50C (a mesh of 157 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2a50c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d257cc", "Model D257CC", "The prim model at 0xD257CC (a mesh of 231 vertices, 400 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d257cc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d27e6c", "Model D27E6C", "The prim model at 0xD27E6C (a mesh of 231 vertices, 400 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d27e6c), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

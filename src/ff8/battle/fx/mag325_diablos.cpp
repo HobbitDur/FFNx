@@ -82,8 +82,9 @@ namespace d325
 		struct { uint32_t start, rise, gather, orb, drop, burst; } sounds; // at the timeline's ticks 0, 0x5B, 0xEE, 0x14D, 0x192, 0x1C8
 		struct { int16_t damage; } timeline;                         // the action results at this tick
 		struct { uint32_t at_fd69c0, at_fd6814; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_fd6b6c; } models; // the prim models drawn (meshes)
 	};
-	static const DiablosParams GAME = { 0xFD6658, { 0xFD6640, 0xFD6644, 0xFD6648, 0xFD664C, 0xFD6650, 0xFD6654 }, { 0x1F3 }, { 0xFD69C0, 0xFD6814 } };
+	static const DiablosParams GAME = { 0xFD6658, { 0xFD6640, 0xFD6644, 0xFD6648, 0xFD664C, 0xFD6650, 0xFD6654 }, { 0x1F3 }, { 0xFD69C0, 0xFD6814 }, { 0xFD6B6C } };
 	static DiablosParams live = GAME;
 	static const DiablosParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x656B70; // prim-model object callback (pure draw)
@@ -486,7 +487,7 @@ namespace d325
 		*(int32_t *)(w + 0x3C) = 0;
 		*(int32_t *)(w + 0x40) = 0;
 		*(int32_t *)(w + 0x38) = 0;
-		*(uint32_t *)(w + 0x20) = 0xFD6B6C;
+		*(uint32_t *)(w + 0x20) = fxp::model(P().models.at_fd6b6c, 0xFD6B6C);
 		PacketCursor() = x::RenderPrimSet(w + 0x20, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x8C);
 	}
@@ -1541,6 +1542,7 @@ namespace d325
 			{ "timeline", "timeline.damage", "Damage tick", "The action results at this tick of the timeline", (uint32_t)offsetof(DiablosParams, timeline.damage), fxp::I16, 0, 529 },
 			{ "timeline", "seqs.at_fd69c0", "Flipbook FD69C0", "The sprite sequence at 0xFD69C0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DiablosParams, seqs.at_fd69c0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_fd6814", "Flipbook FD6814", "The sprite sequence at 0xFD6814 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DiablosParams, seqs.at_fd6814), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_fd6b6c", "Model FD6B6C", "The prim model at 0xFD6B6C (a mesh of 266 vertices, 288 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DiablosParams, models.at_fd6b6c), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

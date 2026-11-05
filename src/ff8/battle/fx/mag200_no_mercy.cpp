@@ -142,8 +142,9 @@ namespace mercy200
 		struct { uint32_t start, swing; } sounds; // at the director's ticks 6 and 0x23
 		struct { int16_t damage; } director;     // the action results at this tick
 		struct { uint32_t flame, flame_glow, ember, sparkburst, tspark, tburst; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, flash, slash_b, slash_a, frame, wavering, tring, shard, wavetrail; } models; // the prim models drawn (meshes)
 	};
-	static const NoMercyParams GAME = { { 0xE33D30, 0xE33D34 }, { 0x8D }, { 0xE3382C, 0xE339D8, 0xE33B84, 0xE2DB40, 0xE2DC84, 0xE2DFE4 } };
+	static const NoMercyParams GAME = { { 0xE33D30, 0xE33D34 }, { 0x8D }, { 0xE3382C, 0xE339D8, 0xE33B84, 0xE2DB40, 0xE2DC84, 0xE2DFE4 }, { 0xE316B4, 0xE2E15C, 0xE33074, 0xE328BC, 0xE2FFB4, 0xE3239C, 0xE3102C, 0xE2F8DC, 0xE3260C } };
 	static NoMercyParams live = GAME;
 	static const NoMercyParams &P() { return live; }
 	static const uint32_t REF_DIR = 0xE33D40;      // (0, 0, -0x1000)-style reference direction of the wave records
@@ -1560,7 +1561,7 @@ namespace mercy200
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0x18) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_RING;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_RING);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1603,7 +1604,7 @@ namespace mercy200
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(&n->w10, scale, -(scale >> 3));
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_FLASH, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flash, MODEL_FLASH), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1640,7 +1641,7 @@ namespace mercy200
 		ang[1] = 0;
 		ang[2] = az;
 		ModelMatrix(&Camera(), ang, point, scale, scale, scale);
-		uint8_t *h = ModelHeader((n->e & 1) ? MODEL_SLASH_B : MODEL_SLASH_A, faded, fade);
+		uint8_t *h = ModelHeader((n->e & 1) ? fxp::model(P().models.slash_b, MODEL_SLASH_B) : fxp::model(P().models.slash_a, MODEL_SLASH_A), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1671,7 +1672,7 @@ namespace mercy200
 		ang[1] = 0;
 		ang[2] = 0;
 		ModelMatrix(cam_frame, ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_FRAME, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.frame, MODEL_FRAME), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1715,7 +1716,7 @@ namespace mercy200
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_WAVERING;
+		*(uint32_t *)h = fxp::model(P().models.wavering, MODEL_WAVERING);
 		*(int32_t *)(h + 0xC) = fade;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -1758,7 +1759,7 @@ namespace mercy200
 		ang[2] = 0;
 		ang[1] = n->w1A;
 		ModelMatrix(&Camera(), ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_FLASH, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flash, MODEL_FLASH), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1786,7 +1787,7 @@ namespace mercy200
 		ang[1] = ay;
 		ang[2] = 0;
 		ModelMatrix(&Camera(), ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_TRING, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tring, MODEL_TRING), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1859,7 +1860,7 @@ namespace mercy200
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && n->c <= 0x10) ShardSpawn();
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
-		h->model = MODEL_SHARD;
+		h->model = fxp::model(P().models.shard, MODEL_SHARD);
 		*(uint32_t *)h->far_rgb = 0;
 		int32_t count = 0;
 		TransformCameraByShadowRotation((const void *)own::R(POINT), 0x1000, 0);
@@ -2051,7 +2052,7 @@ namespace mercy200
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		memcpy(&w->m1, &rec->mat, sizeof(Mat4x3));
-		*(uint32_t *)h = MODEL_WAVETRAIL;
+		*(uint32_t *)h = fxp::model(P().models.wavetrail, MODEL_WAVETRAIL);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->m1.t[0] = 0;
@@ -2652,6 +2653,15 @@ namespace mercy200
 			{ "director", "seqs.sparkburst", "Sparkburst", "The sprite sequence sparkburst (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.sparkburst), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.tspark", "Tspark", "The sprite sequence tspark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.tspark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.tburst", "Tburst", "The sprite sequence tburst (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.tburst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 96 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 195 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slash_b", "Slash b model", "The prim model slash b (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.slash_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slash_a", "Slash a model", "The prim model slash a (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.slash_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.frame", "Frame model", "The prim model frame (a mesh of 144 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.frame), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wavering", "Wavering model", "The prim model wavering (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.wavering), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tring", "Tring model", "The prim model tring (a mesh of 60 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.tring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 70 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wavetrail", "Wavetrail model", "The prim model wavetrail (a mesh of 27 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.wavetrail), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

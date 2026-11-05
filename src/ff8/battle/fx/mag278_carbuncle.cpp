@@ -90,8 +90,9 @@ namespace c278
 		struct { uint32_t start, rise, ruby, wall; } sounds; // at the creature's ticks 1, 0x56, 0x91, 0xD7
 		struct { int16_t damage; } ruby;                   // each target's action result at this tick of its ruby
 		struct { uint32_t at_10bd2fc, at_10bd170, at_10bd044, at_10bce98; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_10c0d08, at_10bfb08, at_10bd488, at_10bf3a8, at_10bf480; } models; // the prim models drawn (meshes)
 	};
-	static const CarbuncleParams GAME = { 0x10C74DC, { 0x10C74CC, 0x10C74D0, 0x10C74D4, 0x10C74D8 }, { 0x32 }, { 0x10BD2FC, 0x10BD170, 0x10BD044, 0x10BCE98 } };
+	static const CarbuncleParams GAME = { 0x10C74DC, { 0x10C74CC, 0x10C74D0, 0x10C74D4, 0x10C74D8 }, { 0x32 }, { 0x10BD2FC, 0x10BD170, 0x10BD044, 0x10BCE98 }, { 0x10C0D08, 0x10BFB08, 0x10BD488, 0x10BF3A8, 0x10BF480 } };
 	static CarbuncleParams live = GAME;
 	static const CarbuncleParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x681FD0; // prim-model callback (pure draw)
@@ -337,7 +338,7 @@ namespace c278
 		ComposeAffineTransform(&Camera(), &M, &M);
 		GteSetTransVector(&M);
 		GteSetRotMatrix(&M);
-		*(uint32_t *)h = 0x10C0D08;
+		*(uint32_t *)h = fxp::model(P().models.at_10c0d08, 0x10C0D08);
 		*(uint32_t *)(h + 0x1C) = 0x2030;
 		int32_t a = shl32(0x1000 - flash, 7) >> 12;
 		h[0xA] = (uint8_t)a;
@@ -352,7 +353,7 @@ namespace c278
 		{
 			*(uint32_t *)(h + 4) = 0x10C1940;
 			FrameCursor() = DrawDome(h, RenderOT(), 2, FrameCursor());
-			*(uint32_t *)h = 0x10BFB08;
+			*(uint32_t *)h = fxp::model(P().models.at_10bfb08, 0x10BFB08);
 			*(uint32_t *)(h + 4) = 0x10BFB10;
 			*(uint32_t *)(h + 0x1C) = 0x2000;
 			FrameCursor() = RenderPrimModel(h, RenderOT(), 2, FrameCursor());
@@ -373,7 +374,7 @@ namespace c278
 			ComposeAffineTransform(&Camera(), &M, &M);
 			GteSetTransVector(&M);
 			GteSetRotMatrix(&M);
-			*(uint32_t *)h = 0x10BFB08;
+			*(uint32_t *)h = fxp::model(P().models.at_10bfb08, 0x10BFB08);
 			*(uint32_t *)(h + 4) = 0x10BFB10;
 			*(uint32_t *)(h + 0x1C) = 0x2000;
 			FrameCursor() = RenderPrimModel(h, RenderOT(), 2, FrameCursor());
@@ -459,7 +460,7 @@ namespace c278
 	static uint8_t *WallDraw(int32_t c, int32_t height, int32_t fade, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x60);
-		*(uint32_t *)h = 0x10BD488;
+		*(uint32_t *)h = fxp::model(P().models.at_10bd488, 0x10BD488);
 		*(uint16_t *)(h + 0x12) = 0;
 		*(uint16_t *)(h + 0x10) = 0;
 		*(uint16_t *)(h + 0x16) = 0x100;
@@ -509,7 +510,7 @@ namespace c278
 		GteMatrixMultiply(&R, &Q);
 		GteSetRotMatrix(&Q);
 		GteSetTransVector(&Q);
-		*(uint32_t *)h = 0x10BF3A8;
+		*(uint32_t *)h = fxp::model(P().models.at_10bf3a8, 0x10BF3A8);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -549,7 +550,7 @@ namespace c278
 		S.m[2][2] = scale;
 		MatMul56C220(&S, view);
 		GteSetRotMatrix(&S);
-		*(uint32_t *)h = 0x10BF480;
+		*(uint32_t *)h = fxp::model(P().models.at_10bf480, 0x10BF480);
 		*(int32_t *)(h + 0xC) = RingFade(c);
 		h[0xA] = 0;
 		h[9] = 0;
@@ -1196,7 +1197,7 @@ namespace c278
 			mirror[2] = floor;
 			bbox[2] = 0x7FFF; bbox[1] = 0x7FFF; bbox[0] = 0x7FFF;
 			bbox[5] = (int16_t)0x8001; bbox[4] = (int16_t)0x8001; bbox[3] = (int16_t)0x8001;
-			ModelBBox(0x10C0D08, own::R(BBOX));
+			ModelBBox(fxp::model(P().models.at_10c0d08, 0x10C0D08), own::R(BBOX));
 			MirrorPass(own::R(MIRROR), own::R(BBOX));
 			CreatureNode *cn = (CreatureNode *)AddTaskToQueue(&QueueCreature().second, own::Fn(ORIG_CreatureTask));
 			Memset32(&cn->counter, 0, 0x175);
@@ -1223,7 +1224,7 @@ namespace c278
 			}
 			bbox[2] = 0x7FFF; bbox[1] = 0x7FFF; bbox[0] = 0x7FFF;
 			bbox[5] = (int16_t)0x8001; bbox[4] = (int16_t)0x8001; bbox[3] = (int16_t)0x8001;
-			ModelBBox(0x10BD488, own::R(BBOX));
+			ModelBBox(fxp::model(P().models.at_10bd488, 0x10BD488), own::R(BBOX));
 			// reflect wall: bottom and height (+1/16) of its bounding box
 			int16_t *mbw = (int16_t *)ModelBuffer();
 			mbw[0] = bbox[2];
@@ -1277,6 +1278,11 @@ namespace c278
 			{ "creature", "seqs.at_10bd170", "Flipbook 10BD170", "The sprite sequence at 0x10BD170 (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(CarbuncleParams, seqs.at_10bd170), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "creature", "seqs.at_10bd044", "Flipbook 10BD044", "The sprite sequence at 0x10BD044 (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(CarbuncleParams, seqs.at_10bd044), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "creature", "seqs.at_10bce98", "Flipbook 10BCE98", "The sprite sequence at 0x10BCE98 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CarbuncleParams, seqs.at_10bce98), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "models.at_10c0d08", "Model 10C0D08", "The prim model at 0x10C0D08 (a mesh of 115 vertices, 90 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CarbuncleParams, models.at_10c0d08), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "models.at_10bfb08", "Model 10BFB08", "The prim model at 0x10BFB08 (a mesh of 81 vertices, 140 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CarbuncleParams, models.at_10bfb08), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "models.at_10bd488", "Model 10BD488", "The prim model at 0x10BD488 (a mesh of 193 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CarbuncleParams, models.at_10bd488), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "models.at_10bf3a8", "Model 10BF3A8", "The prim model at 0x10BF3A8 (a mesh of 10 vertices, 4 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CarbuncleParams, models.at_10bf3a8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "models.at_10bf480", "Model 10BF480", "The prim model at 0x10BF480 (a mesh of 60 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CarbuncleParams, models.at_10bf480), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

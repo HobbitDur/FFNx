@@ -88,8 +88,9 @@ namespace regen147
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t status; } director; // the status (and the next action's director) at this tick
 		struct { uint32_t leaf; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t envelope; } models; // the prim models drawn (meshes)
 	};
-	static const RegenParams GAME = { 0xDD05CC, { 0x1C }, { SEQ_Leaf } };
+	static const RegenParams GAME = { 0xDD05CC, { 0x1C }, { SEQ_Leaf }, { MODEL_Envelope } };
 	static RegenParams live = GAME;
 	static const RegenParams &P() { return live; }
 	static const uint32_t TRAILS = 0x24774B8;           // 0x140 bytes (16 x 0x14) per action * 8 + leaf
@@ -202,7 +203,7 @@ namespace regen147
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
-		*(uint32_t *)h = MODEL_Envelope;
+		*(uint32_t *)h = fxp::model(P().models.envelope, MODEL_Envelope);
 		*(int32_t *)(h + 0xC) = fade;
 		*(uint32_t *)(h + 0x1C) = 0xF0;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
@@ -523,6 +524,7 @@ namespace regen147
 			{ "director", "sound", "Sound", "", (uint32_t)offsetof(RegenParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.status", "Status tick", "The status (and the next action's director) at this tick", (uint32_t)offsetof(RegenParams, director.status), fxp::I16, 0, 100 },
 			{ "director", "seqs.leaf", "Leaf", "The sprite sequence leaf (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RegenParams, seqs.leaf), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.envelope", "Envelope model", "The prim model envelope (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RegenParams, models.envelope), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

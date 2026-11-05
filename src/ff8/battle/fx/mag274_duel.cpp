@@ -151,8 +151,9 @@ namespace duel274
 		uint32_t sound_meteor;   // Meteor Strike's (its tick 0x2B)
 		struct { uint32_t punch, punch_b, booya, heel, heel_b, kick, dolphin, dolphin_b, meteor, meteor_b; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t flash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t rock, kick, wave; } model_data; // the prim models drawn (meshes)
 	};
-	static const DuelParams GAME = { 0x110BE58, 0x110BE5C, 0x110BE60, 0x110BE64, 0x110BE68, 0x110BE6C, { LAYOUT_Punch, LAYOUT_PunchB, LAYOUT_Booya, LAYOUT_Heel, LAYOUT_HeelB, LAYOUT_Kick, LAYOUT_Dolphin, LAYOUT_DolphinB, LAYOUT_Meteor, LAYOUT_MeteorB }, { SEQ_Flash } };
+	static const DuelParams GAME = { 0x110BE58, 0x110BE5C, 0x110BE60, 0x110BE64, 0x110BE68, 0x110BE6C, { LAYOUT_Punch, LAYOUT_PunchB, LAYOUT_Booya, LAYOUT_Heel, LAYOUT_HeelB, LAYOUT_Kick, LAYOUT_Dolphin, LAYOUT_DolphinB, LAYOUT_Meteor, LAYOUT_MeteorB }, { SEQ_Flash }, { MODEL_Rock, MODEL_Kick, MODEL_Wave } };
 	static DuelParams live = GAME;
 	static const DuelParams &P() { return live; }
 
@@ -1256,7 +1257,7 @@ namespace duel274
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Rock;
+		*(uint32_t *)h = fxp::model(P().model_data.rock, MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x58);
@@ -1727,7 +1728,7 @@ namespace duel274
 			Alloc() += 0x23C;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			CopyDwords(backup, MODEL_Kick + 8, 0x9A);
+			CopyDwords(backup, fxp::model(P().model_data.kick, MODEL_Kick) + 8, 0x9A);
 			DecodeModelPrimLayout(fxp::layout(P().layouts.kick, LAYOUT_Kick, 0x23C), m->layout_a, 0x23C);
 			static const int32_t bones[3] = { 0xC, 0x10, 0x14 };
 			GhostInit((uint8_t *)m->ghosts, 3, bones);
@@ -1766,7 +1767,7 @@ namespace duel274
 			GteSetRotMatrix(&b);
 			GteSetTransVector(&b);
 			uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-			*(uint32_t *)h = MODEL_Kick;
+			*(uint32_t *)h = fxp::model(P().model_data.kick, MODEL_Kick);
 			if (v >= 4)
 			{
 				*(uint32_t *)(h + 0x1C) = 0xF0;
@@ -1784,9 +1785,9 @@ namespace duel274
 		if (w < 4)
 		{
 			if (m->counter == 0x1C) GetEffectSpawnPosition(c, 0x14, 0, from);
-			BendWave(MODEL_Kick, (const uint8_t *)backup, (int32_t)(w << 10) + 0x100, (int32_t)(w << 10));
+			BendWave(fxp::model(P().model_data.kick, MODEL_Kick), (const uint8_t *)backup, (int32_t)(w << 10) + 0x100, (int32_t)(w << 10));
 		}
-		if (m->counter == 0x25) CopyDwords(MODEL_Kick + 8, backup, 0x9A);
+		if (m->counter == 0x25) CopyDwords(fxp::model(P().model_data.kick, MODEL_Kick) + 8, backup, 0x9A);
 		if (m->counter >= 0x19 && m->counter <= 0x20) GhostRecord(c, (uint8_t *)m->ghosts);
 		if (m->counter == 0x20)
 		{
@@ -1868,7 +1869,7 @@ namespace duel274
 		GteSetRotMatrix(w);
 		GteSetTransVector(w);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Wave;
+		*(uint32_t *)h = fxp::model(P().model_data.wave, MODEL_Wave);
 		if (counter < 0x2C)
 		{
 			*(uint32_t *)(h + 0x1C) = 0x30;
@@ -2327,6 +2328,9 @@ namespace duel274
 			{ "punch", "layouts.meteor", "Meteor", "The prim-model layout meteor (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "punch", "layouts.meteor_b", "Meteor b", "The prim-model layout meteor b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor_b), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "punch", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DuelParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "punch", "model_data.rock", "Rock model", "The prim model rock (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DuelParams, model_data.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "punch", "model_data.kick", "Kick model", "The prim model kick (a mesh of 77 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DuelParams, model_data.kick), fxp::Model, 0, 0x7FFFFFFF },
+			{ "punch", "model_data.wave", "Wave model", "The prim model wave (a mesh of 208 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DuelParams, model_data.wave), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

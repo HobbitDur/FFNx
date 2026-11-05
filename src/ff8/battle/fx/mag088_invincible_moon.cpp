@@ -77,8 +77,9 @@ namespace moon88
 		struct { uint32_t howl, rise; } sounds;   // Angelo's howl, the moon rising
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
 		struct { uint32_t at_154ecec, at_154ee30; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_154ef74, at_154f404; } models; // the prim models drawn (meshes)
 	};
-	static const MoonParams GAME = { { SOUND_A, SOUND_B }, { 0x23 }, { 0x154ECEC, 0x154EE30 } };
+	static const MoonParams GAME = { { SOUND_A, SOUND_B }, { 0x23 }, { 0x154ECEC, 0x154EE30 }, { 0x154EF74, 0x154F404 } };
 	static MoonParams live = GAME;
 	static const MoonParams &PC() { return live; }
 
@@ -3671,7 +3672,7 @@ namespace moon88
 			U16(a1, 0x20) = (uint16_t)(U16(R(MEM<uint32_t>(0x154F918)), 0xE0) << 1);
 			break;
 		case 1:
-			U32(a1, 0x4C) = 0x154EF74;
+			U32(a1, 0x4C) = fxp::model(PC().models.at_154ef74, 0x154EF74);
 			U16(a1, 0x52) = 0x700;
 			U16(a1, 0x1C) = 0x60;
 			U16(a1, 0x1E) = 0xFFA0;
@@ -3679,7 +3680,7 @@ namespace moon88
 			U16(a1, 0x7C) = 0x14;
 			break;
 		case 2:
-			U32(a1, 0x4C) = 0x154F404;
+			U32(a1, 0x4C) = fxp::model(PC().models.at_154f404, 0x154F404);
 			U16(a1, 0x52) = 0x600;
 			U16(a1, 0x1C) = 0xFFA0;
 			U16(a1, 0x1E) = 0x60;
@@ -4636,6 +4637,8 @@ namespace moon88
 			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(MoonParams, director.damage), fxp::I16, 0, 0x200 },
 			{ "director", "seqs.at_154ecec", "Flipbook 154ECEC", "The sprite sequence at 0x154ECEC (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoonParams, seqs.at_154ecec), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.at_154ee30", "Flipbook 154EE30", "The sprite sequence at 0x154EE30 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoonParams, seqs.at_154ee30), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.at_154ef74", "Model 154EF74", "The prim model at 0x154EF74 (a mesh of 45 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoonParams, models.at_154ef74), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_154f404", "Model 154F404", "The prim model at 0x154F404 (a mesh of 45 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoonParams, models.at_154f404), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 

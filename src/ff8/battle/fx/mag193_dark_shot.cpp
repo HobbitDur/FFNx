@@ -150,8 +150,9 @@ namespace dark193
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t ground_smoke, smoke2, spark, target_spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main, flash2, blast; } models; // the prim models drawn (meshes)
 	};
-	static const DarkShotParams GAME = { 0xD155B0, { 0xD145E4, 0xD1450C, 0xD149B0, 0xD14658, 0xD14430 } };
+	static const DarkShotParams GAME = { 0xD155B0, { 0xD145E4, 0xD1450C, 0xD149B0, 0xD14658, 0xD14430 }, { 0xD14AA8, 0xD14D18, 0xD15108 } };
 	static DarkShotParams live = GAME;
 	static const DarkShotParams &P() { return live; }
 
@@ -665,7 +666,7 @@ namespace dark193
 	{
 		TransformCameraByShadowRotation(n->pos, n->f1C, n->pos[3]);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
-		*(uint32_t *)h = MODEL_Model;
+		*(uint32_t *)h = fxp::model(P().models.main, MODEL_Model);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (faded)
@@ -858,7 +859,7 @@ namespace dark193
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag193_dark_shot_held.inc
 		FX_HELD(held_note_node(ORIG_Flash2Task, n);)
-		MuzzleModel(n, n->f18, MODEL_Flash2, n->counter >= 1, Flash2Fade(n->counter));
+		MuzzleModel(n, n->f18, fxp::model(P().models.flash2, MODEL_Flash2), n->counter >= 1, Flash2Fade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -873,7 +874,7 @@ namespace dark193
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag193_dark_shot_held.inc
 		FX_HELD(held_note_node(ORIG_BlastTask, n);)
-		MuzzleModel(n, 0, MODEL_Blast, n->counter >= 1, BlastFade(n->counter));
+		MuzzleModel(n, 0, fxp::model(P().models.blast, MODEL_Blast), n->counter >= 1, BlastFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -1271,6 +1272,9 @@ namespace dark193
 			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.target_spark", "Target spark", "The sprite sequence target spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.target_spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.main", "Main model", "The prim model main (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DarkShotParams, models.main), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash2", "Flash2 model", "The prim model flash2 (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DarkShotParams, models.flash2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.blast", "Blast model", "The prim model blast (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DarkShotParams, models.blast), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

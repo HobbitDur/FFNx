@@ -75,8 +75,9 @@ namespace m338
 		uint32_t voice;   // the voice slot claimed when the creature spawns
 		uint32_t sound;   // the creature's tick 0
 		struct { uint32_t spark_flash, spark_fly, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t debris, ring; } models; // the prim models drawn (meshes)
 	};
-	static const MoombaParams GAME = { 0x13710CC, 0x13710C8, { 0x1371464, 0x13711FC, 0x137130C } };
+	static const MoombaParams GAME = { 0x13710CC, 0x13710C8, { 0x1371464, 0x13711FC, 0x137130C }, { 0x1372CE8, 0x1371640 } };
 	static MoombaParams live = GAME;
 	static const MoombaParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x6ECCE0;      // prim-model object callback (pure draw)
@@ -426,7 +427,7 @@ namespace m338
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_Debris);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x98);
@@ -738,7 +739,7 @@ namespace m338
 				int32_t fade = 0x1000 - x::Cos((0x1000 - co) >> 2);
 				// 30 fps layer: see mag338_moomba_held.inc
 				FX_HELD(held_note_ring(root, (int32_t)(c << 8), fade);)
-				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(c << 8), fade, MODEL_Ring);
+				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(c << 8), fade, fxp::model(P().models.ring, MODEL_Ring));
 			}
 		}
 
@@ -807,7 +808,7 @@ namespace m338
 				int32_t fade = 0x1000 - ComputeSin(s);
 				// 30 fps layer: see mag338_moomba_held.inc
 				FX_HELD(held_note_ring(root, (int32_t)(ee << 8), fade);)
-				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(ee << 8), fade, MODEL_Ring);
+				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(ee << 8), fade, fxp::model(P().models.ring, MODEL_Ring));
 			}
 		}
 
@@ -860,6 +861,8 @@ namespace m338
 			{ "creature", "seqs.spark_flash", "Spark flash", "The sprite sequence spark flash (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark_flash), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "creature", "seqs.spark_fly", "Spark fly", "The sprite sequence spark fly (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark_fly), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "creature", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "models.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoombaParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoombaParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

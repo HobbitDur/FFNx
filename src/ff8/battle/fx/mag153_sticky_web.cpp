@@ -97,8 +97,9 @@ namespace web153
 		uint32_t sound;                    // at the master's tick 1
 		struct { int16_t damage; } master; // the damage at this tick
 		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t web, burst; } models; // the prim models drawn (meshes)
 	};
-	static const StickyWebParams GAME = { 0xDBE27C, { 0x37 }, { SEQ_Particle } };
+	static const StickyWebParams GAME = { 0xDBE27C, { 0x37 }, { SEQ_Particle }, { MODEL_Web, MODEL_Burst } };
 	static StickyWebParams live = GAME;
 	static const StickyWebParams &P() { return live; }
 
@@ -546,7 +547,7 @@ namespace web153
 			h->flags = 0;
 			const int32_t s = n->f1C;
 			h->slot[0].v[0] = 0;
-			h->model = (uint8_t *)MODEL_Web;
+			h->model = (uint8_t *)fxp::model(P().models.web, MODEL_Web);
 			const int32_t d = (int32_t)anchor_y - y;
 			const int32_t inv = 0x1000000 / s;
 			h->plane[1] = 0x1000;
@@ -561,7 +562,7 @@ namespace web153
 		else
 		{
 			uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-			*(uint32_t *)h = MODEL_Web;
+			*(uint32_t *)h = fxp::model(P().models.web, MODEL_Web);
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x1C) = 0;
 			if (c >= 0x25)
@@ -580,7 +581,7 @@ namespace web153
 	{
 		ModelMatrix(n);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Burst;
+		*(uint32_t *)h = fxp::model(P().models.burst, MODEL_Burst);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 6)
@@ -912,6 +913,8 @@ namespace web153
 			{ "master", "sound", "Sound", "At the master's tick 1", (uint32_t)offsetof(StickyWebParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "master.damage", "Damage tick", "The damage at this tick of the master", (uint32_t)offsetof(StickyWebParams, master.damage), fxp::I16, 0, 60 },
 			{ "master", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(StickyWebParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "models.web", "Web model", "The prim model web (a mesh of 314 vertices, 336 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StickyWebParams, models.web), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.burst", "Burst model", "The prim model burst (a mesh of 60 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StickyWebParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

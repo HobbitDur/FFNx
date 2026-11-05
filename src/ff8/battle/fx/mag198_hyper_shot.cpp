@@ -159,8 +159,9 @@ namespace hyper198
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t bone_smoke, spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t muzzle_flash, cone, beam, beam_shadow, ground_ring; } models; // the prim models drawn (meshes)
 	};
-	static const HyperShotParams GAME = { 0xCFB2FC, { 0xCF6054, 0xCF6200, 0xCF5E44 } };
+	static const HyperShotParams GAME = { 0xCFB2FC, { 0xCF6054, 0xCF6200, 0xCF5E44 }, { 0xCF9834, 0xCFA52C, 0xCF6394, 0xCF8D2C, 0xCFAE64 } };
 	static HyperShotParams live = GAME;
 	static const HyperShotParams &P() { return live; }
 
@@ -1149,7 +1150,7 @@ namespace hyper198
 		uint8_t *h = (uint8_t *)FieldAlloc(0x7C);
 		*(uint16_t *)(h + 0x1A) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
-		*(uint32_t *)h = MODEL_MuzzleFlash;
+		*(uint32_t *)h = fxp::model(P().models.muzzle_flash, MODEL_MuzzleFlash);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(uint16_t *)(h + 0x18) = 0;
@@ -1170,7 +1171,7 @@ namespace hyper198
 	{
 		Mat4x3 m;
 		MuzzleMatrix(n, &m);
-		uint8_t *h = ModelHeader(0x5C, MODEL_Cone, faded, fade);
+		uint8_t *h = ModelHeader(0x5C, fxp::model(P().models.cone, MODEL_Cone), faded, fade);
 		PacketCursor() = PrimRender((uint32_t)h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x5C);
 	}
@@ -1202,7 +1203,7 @@ namespace hyper198
 		s->m.t[2] = n->f20;
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(0x58, MODEL_Beam, faded, fade);
+		uint8_t *h = ModelHeader(0x58, fxp::model(P().models.beam, MODEL_Beam), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		int32_t d[4];
 		d[0] = s->dir[0];
@@ -1224,7 +1225,7 @@ namespace hyper198
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_BeamShadow;
+		*(uint32_t *)h = fxp::model(P().models.beam_shadow, MODEL_BeamShadow);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1252,7 +1253,7 @@ namespace hyper198
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		uint8_t *h = ModelHeader(0x58, MODEL_GroundRing, faded, fade);
+		uint8_t *h = ModelHeader(0x58, fxp::model(P().models.ground_ring, MODEL_GroundRing), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1954,6 +1955,11 @@ namespace hyper198
 			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.muzzle_flash", "Muzzle flash model", "The prim model muzzle flash (a mesh of 98 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.muzzle_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.cone", "Cone model", "The prim model cone (a mesh of 80 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam", "Beam model", "The prim model beam (a mesh of 350 vertices, 328 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam_shadow", "Beam shadow model", "The prim model beam shadow (a mesh of 104 vertices, 82 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.beam_shadow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.ground_ring", "Ground ring model", "The prim model ground ring (a mesh of 43 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.ground_ring), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -110,8 +110,9 @@ namespace lvdeath_quistis
 		struct { uint32_t appear, strike; } sound;
 		struct { int16_t wait, fade_in, dark_until, strike_frame, vanish_frame, fade_out; } reaper;   // the first one's wait (the cast animation), its fades, its animation frames
 		struct { int16_t length, mode; } aura, strike;                                                 // the two actor systems
+		struct { uint32_t at_1582074; } models; // the prim models drawn (meshes)
 	};
-	static const LvDeathQParams GAME = { { SOUND_APPEAR, SOUND_STRIKE }, { 0xC, 0x400, 0x14, 5, 0xB, 0x200 }, { 0x14, 2 }, { 0x14, 0 } };
+	static const LvDeathQParams GAME = { { SOUND_APPEAR, SOUND_STRIKE }, { 0xC, 0x400, 0x14, 5, 0xB, 0x200 }, { 0x14, 2 }, { 0x14, 0 }, { 0x1582074 } };
 	static LvDeathQParams live = GAME;
 	static const LvDeathQParams &PD() { return live; }
 	static const uint32_t BIND_Block = 0x25F3F00;      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -1106,7 +1107,7 @@ namespace lvdeath_quistis
 		U32(a1, 0x34) = 0x1000;
 		U32(a1, 0x30) = 0x1000;
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x1582074;
+		U32(a1, 0x4C) = fxp::model(PD().models.at_1582074, 0x1582074);
 		U8(a1, 0x40) = 0x28;
 		U8(a1, 0x41) = 0;
 		U8(a1, 0x42) = 0xA;
@@ -3101,6 +3102,7 @@ namespace lvdeath_quistis
 			DT("actors", aura.mode, "Mode", "", 0, 4),
 			DT("actors", strike.length, "Ticks", "", 0, 1000),
 			DT("actors", strike.mode, "Mode", "", 0, 4),
+			{ "reaper", "models.at_1582074", "Model 1582074", "The prim model at 0x1582074 (a mesh of 9 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LvDeathQParams, models.at_1582074), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

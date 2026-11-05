@@ -106,8 +106,9 @@ namespace sleep145
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t status; } director; // the status at this tick of an action's director
 		struct { uint32_t particle, zzz; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t bubble; } models; // the prim models drawn (meshes)
 	};
-	static const SleepParams GAME = { 0xDD7904, { 0x1E }, { SEQ_Particle, SEQ_Zzz } };
+	static const SleepParams GAME = { 0xDD7904, { 0x1E }, { SEQ_Particle, SEQ_Zzz }, { MODEL_Bubble } };
 	static SleepParams live = GAME;
 	static const SleepParams &PSL() { return live; }
 
@@ -774,7 +775,7 @@ namespace sleep145
 		GteSetRotMatrix(&v);
 		GteSetTransVector(&v);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Bubble;
+		H32(h, 0) = fxp::model(PSL().models.bubble, MODEL_Bubble);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -962,7 +963,7 @@ namespace sleep145
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Bubble;
+		H32(h, 0) = fxp::model(PSL().models.bubble, MODEL_Bubble);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1278,6 +1279,7 @@ namespace sleep145
 			{ "director", "director.status", "Status tick", "The status at this tick of an action's director", (uint32_t)offsetof(SleepParams, director.status), fxp::I16, 0, 100 },
 			{ "director", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.zzz", "Zzz", "The sprite sequence zzz (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.zzz), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.bubble", "Bubble model", "The prim model bubble (a mesh of 32 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SleepParams, models.bubble), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

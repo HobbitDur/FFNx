@@ -154,8 +154,9 @@ namespace o187
 		struct { uint32_t start, sword, slash; } sounds; // at the timeline's ticks 1, 111, 167
 		struct { int16_t damage; } timeline;       // the action result at this tick
 		struct { uint32_t at_e3cfd0, at_e3cff8, at_e3d300, at_e3cc38, at_e3d154; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_e40848, at_e40160, at_e3eff0, at_e41140, at_e41b28; } models; // the prim models drawn (meshes)
 	};
-	static const OdinParams GAME = { 0xE41CE8, { 0xE41E40, 0xE41E44, 0xE41E48 }, { 0x11F }, { 0xE3CFD0, 0xE3CFF8, 0xE3D300, 0xE3CC38, 0xE3D154 } };
+	static const OdinParams GAME = { 0xE41CE8, { 0xE41E40, 0xE41E44, 0xE41E48 }, { 0x11F }, { 0xE3CFD0, 0xE3CFF8, 0xE3D300, 0xE3CC38, 0xE3D154 }, { 0xE40848, 0xE40160, 0xE3EFF0, 0xE41140, 0xE41B28 } };
 	static OdinParams live = GAME;
 	static const OdinParams &P() { return live; }
 	static const uint32_t ORIG_GridATask = 0x6479D0;
@@ -834,7 +835,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x7C);
-		*(uint32_t *)h = 0xE40848;
+		*(uint32_t *)h = fxp::model(P().models.at_e40848, 0xE40848);
 		*(uint16_t *)(h + 0x1C) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = c;
@@ -879,7 +880,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE40160;
+		*(uint32_t *)h = fxp::model(P().models.at_e40160, 0xE40160);
 		*(uint32_t *)(h + 0xC) = 0x800;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -1527,7 +1528,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3EFF0;
+		*(uint32_t *)h = fxp::model(P().models.at_e3eff0, 0xE3EFF0);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		if (fade)
@@ -1661,7 +1662,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE41140;
+		*(uint32_t *)h = fxp::model(P().models.at_e41140, 0xE41140);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (fade)
@@ -2080,7 +2081,7 @@ namespace o187
 		if (o < 0) o = 0;
 		if (!draw) return;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE41B28;
+		*(uint32_t *)h = fxp::model(P().models.at_e41b28, 0xE41B28);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		Cursor() = RenderPrimModel(h, var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)o, 0xE, Cursor());
@@ -2318,6 +2319,11 @@ namespace o187
 			{ "timeline", "seqs.at_e3d300", "Flipbook E3D300", "The sprite sequence at 0xE3D300 (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3d300), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_e3cc38", "Flipbook E3CC38", "The sprite sequence at 0xE3CC38 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3cc38), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_e3d154", "Flipbook E3D154", "The sprite sequence at 0xE3D154 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3d154), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e40848", "Model E40848", "The prim model at 0xE40848 (a mesh of 82 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e40848), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e40160", "Model E40160", "The prim model at 0xE40160 (a mesh of 66 vertices, 50 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e40160), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3eff0", "Model E3EFF0", "The prim model at 0xE3EFF0 (a mesh of 126 vertices, 100 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e3eff0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e41140", "Model E41140", "The prim model at 0xE41140 (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e41140), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e41b28", "Model E41B28", "The prim model at 0xE41B28 (a mesh of 16 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e41b28), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -120,6 +120,7 @@ namespace doom
 		struct { int16_t tick, x, y, z, clock_step; } scythe;                   // in front of the caster; the doom clock from its model step
 		struct { int16_t after, step, level, out_step; } wobble;               // the stage's fade layers while the reaper stands
 		struct { int16_t delay; } tint;                                         // the screen tint's start
+		struct { uint32_t at_16350f0; } models; // the prim models drawn (meshes)
 	};
 	static const DoomParams GAME = {
 		{ SOUND, 0xC, 0x2D },
@@ -129,8 +130,7 @@ namespace doom
 		{ 0x23, 0xC00, 0x3FF, 0x300, 0x400, 0x400 },
 		{ 0xB, -17, -1076, -409, 0x13 },
 		{ 0x2D, 0xA0, 0x600, 0x100 },
-		{ 0x1A },
-	};
+		{ 0x1A }, { 0x16350F0 } };
 	static DoomParams live = GAME;
 	static const DoomParams &PD() { return live; }
 
@@ -3865,7 +3865,7 @@ namespace doom
 	uint32_t __cdecl dm_8CE130(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = 0x16350F0;
+		U32(node, 0x4C) = fxp::model(PD().models.at_16350f0, 0x16350F0);
 		const int32_t r1 = (int32_t)x::CrtRand();
 		U16(node, 0x50) = 0x1000;
 		const int32_t sc = r1 % PD().smoke.scale_rand + PD().smoke.scale;
@@ -3954,6 +3954,7 @@ namespace doom
 			DM_I16("wobble", wobble.level, "Level", "", 0, 0x1000),
 			DM_I16("wobble", wobble.out_step, "Out step", "Down by this a tick at the end", 1, 0x1000),
 			DM_I16("tint", tint.delay, "Delay", "The tint's colour script starts after this many ticks", 0, 200),
+			{ "timing", "models.at_16350f0", "Model 16350F0", "The prim model at 0x16350F0 (a mesh of 59 vertices, 42 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomParams, models.at_16350f0), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DM_I16
 #undef DM_FIELD

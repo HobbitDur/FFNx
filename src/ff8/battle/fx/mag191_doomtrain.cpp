@@ -155,8 +155,9 @@ namespace d191
 		struct { uint32_t start, horn, wheels, rush, end; } sounds; // at the timeline's ticks 4, 160, 294, 336, 417
 		struct { int16_t damage; } timeline;                    // the action result at this tick
 		struct { uint32_t at_e346b0, at_e33e40, at_e342a4, at_e3460c, at_e34548, at_e34404; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_e375bc, at_e38e78, at_e396b0, at_e3b83c, at_e3496c, at_e3a744, at_e3ad34, at_e3bd64; } models; // the prim models drawn (meshes)
 	};
-	static const DoomtrainParams GAME = { 0xE3C774, { 0xE3C8A8, 0xE3C8AC, 0xE3C8B0, 0xE3C8B4, 0xE3C8B8 }, { 0x1A4 }, { 0xE346B0, 0xE33E40, 0xE342A4, 0xE3460C, 0xE34548, 0xE34404 } };
+	static const DoomtrainParams GAME = { 0xE3C774, { 0xE3C8A8, 0xE3C8AC, 0xE3C8B0, 0xE3C8B4, 0xE3C8B8 }, { 0x1A4 }, { 0xE346B0, 0xE33E40, 0xE342A4, 0xE3460C, 0xE34548, 0xE34404 }, { 0xE375BC, 0xE38E78, 0xE396B0, 0xE3B83C, 0xE3496C, 0xE3A744, 0xE3AD34, 0xE3BD64 } };
 	static DoomtrainParams live = GAME;
 	static const DoomtrainParams &P() { return live; }
 	static const uint32_t ORIG_CamScriptTask = 0x63E9C0;
@@ -1011,7 +1012,7 @@ namespace d191
 	{
 		int16_t ang[3] = { 0, 0, 0 };
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
-		PrimModel(0xE375BC, 2, 0x30);
+		PrimModel(fxp::model(P().models.at_e375bc, 0xE375BC), 2, 0x30);
 	}
 	static uint32_t __cdecl RigPrimATask(TaskNode *tn)
 	{
@@ -1029,7 +1030,7 @@ namespace d191
 	{
 		int16_t ang[3] = { 0, 0, 0 };
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
-		PrimModel(0xE38E78, 3, 0);
+		PrimModel(fxp::model(P().models.at_e38e78, 0xE38E78), 3, 0);
 	}
 	static uint32_t __cdecl RigPrimBTask(TaskNode *tn)
 	{
@@ -1048,7 +1049,7 @@ namespace d191
 	{
 		int16_t ang[3] = { 0, 0, roll };
 		RigMatrix(W, ang, n, n->f1C, n->f20, n->f20);
-		PrimModel(0xE396B0, 2, 0);
+		PrimModel(fxp::model(P().models.at_e396b0, 0xE396B0), 2, 0);
 	}
 	static uint32_t __cdecl RigRockTask(TaskNode *tn)
 	{
@@ -1083,7 +1084,7 @@ namespace d191
 		int16_t ang[3] = { 0, 0, 0 };
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3B83C;
+		*(uint32_t *)h = fxp::model(P().models.at_e3b83c, 0xE3B83C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c == 0)
@@ -1195,7 +1196,7 @@ namespace d191
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x6C);
 		uint32_t mode = f1A ? 3 : 0xC;
-		*(uint32_t *)h = 0xE3496C;
+		*(uint32_t *)h = fxp::model(P().models.at_e3496c, 0xE3496C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = mode | 0x20C0;
 		*(uint32_t *)(h + 0x20) = ((const uint32_t *)0xE3C8DC)[idx & 0x1F];
@@ -2170,7 +2171,7 @@ namespace d191
 			ComposeAffineTransform(&Frame(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			PrimModel(0xE3A744, 2, 0x33);
+			PrimModel(fxp::model(P().models.at_e3a744, 0xE3A744), 2, 0x33);
 		}
 		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
@@ -2226,7 +2227,7 @@ namespace d191
 		GteSetRotMatrix(&m2);
 		GteSetTransVector(&m2);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3A744;
+		*(uint32_t *)h = fxp::model(P().models.at_e3a744, 0xE3A744);
 		*(int32_t *)(h + 0xC) = fade_override >= 0 ? fade_override : GlowFade();
 		if (*(int32_t *)(h + 0xC) < 0) *(int32_t *)(h + 0xC) = 0;
 		int32_t fade = *(int32_t *)(h + 0xC);
@@ -2238,7 +2239,7 @@ namespace d191
 		ComposeAffineTransform(frame, &m1, &m1);
 		GteSetRotMatrix(&m1);
 		GteSetTransVector(&m1);
-		*(uint32_t *)h = 0xE3AD34;
+		*(uint32_t *)h = fxp::model(P().models.at_e3ad34, 0xE3AD34);
 		*(uint32_t *)(h + 0xC) = 0;
 		Cursor() = RenderPrimModel(h, OT(), 3, Cursor());
 		FieldFree(0x58);
@@ -2822,7 +2823,7 @@ namespace d191
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3BD64;
+		*(uint32_t *)h = fxp::model(P().models.at_e3bd64, 0xE3BD64);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		if (fade)
@@ -3227,6 +3228,14 @@ namespace d191
 			{ "timeline", "seqs.at_e3460c", "Flipbook E3460C", "The sprite sequence at 0xE3460C (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e3460c), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_e34548", "Flipbook E34548", "The sprite sequence at 0xE34548 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e34548), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_e34404", "Flipbook E34404", "The sprite sequence at 0xE34404 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e34404), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e375bc", "Model E375BC", "The prim model at 0xE375BC (a mesh of 208 vertices, 183 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e375bc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e38e78", "Model E38E78", "The prim model at 0xE38E78 (a mesh of 48 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e38e78), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e396b0", "Model E396B0", "The prim model at 0xE396B0 (a mesh of 107 vertices, 119 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e396b0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3b83c", "Model E3B83C", "The prim model at 0xE3B83C (a mesh of 49 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3b83c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3496c", "Model E3496C", "The prim model at 0xE3496C (a mesh of 178 vertices, 352 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3496c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3a744", "Model E3A744", "The prim model at 0xE3A744 (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3a744), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3ad34", "Model E3AD34", "The prim model at 0xE3AD34 (a mesh of 96 vertices, 84 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3ad34), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3bd64", "Model E3BD64", "The prim model at 0xE3BD64 (a mesh of 63 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3bd64), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

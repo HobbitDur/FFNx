@@ -113,8 +113,9 @@ namespace gastric169
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
 		struct { uint32_t blob, drip, splash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main, puddle; } models; // the prim models drawn (meshes)
 	};
-	static const GastricJuice169Params GAME = { 0xD6BC1C, { 0x23 }, { SEQ_Blob, SEQ_Drip, SEQ_Splash } };
+	static const GastricJuice169Params GAME = { 0xD6BC1C, { 0x23 }, { SEQ_Blob, SEQ_Drip, SEQ_Splash }, { MODEL_Mesh, MODEL_Puddle } };
 	static GastricJuice169Params live = GAME;
 	static const GastricJuice169Params &PJ() { return live; }
 
@@ -829,7 +830,7 @@ namespace gastric169
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x5C));
-		U32(h, 0) = MODEL_Mesh;
+		U32(h, 0) = fxp::model(PJ().models.main, MODEL_Mesh);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0x2033;
 		for (int32_t k = 0; k < 0x49; k++)
@@ -888,7 +889,7 @@ namespace gastric169
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Puddle;
+		U32(h, 0) = fxp::model(PJ().models.puddle, MODEL_Puddle);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xF3;
 		S32(h, 0xC) = fade;
@@ -1245,6 +1246,8 @@ namespace gastric169
 			{ "director", "seqs.blob", "Blob", "The sprite sequence blob (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.blob), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.drip", "Drip", "The sprite sequence drip (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.splash", "Splash", "The sprite sequence splash (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.main", "Main model", "The prim model main (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GastricJuice169Params, models.main), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.puddle", "Puddle model", "The prim model puddle (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GastricJuice169Params, models.puddle), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

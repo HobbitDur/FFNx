@@ -92,8 +92,9 @@ namespace p291
 		uint32_t voice;                                          // the voice slot claimed when the timeline spawns
 		struct { uint32_t start, cut, rise, spin, drop; } sounds;  // at the camera's first cuts and the timeline's ticks 0xDF, 0x178, 0x1C0
 		struct { uint32_t at_13afcc0, at_13afe04; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_13a0e58, at_13a4f88, at_13a6508, at_13a8508, at_13ab5c0, at_13ac1b8, at_13acdb0, at_139ffe8, at_13a0978, at_13aebc0, at_13ae0f8; } models; // the prim models drawn (meshes)
 	};
-	static const PandemonaParams GAME = { 0x13B7A5C, { 0x13B7A48, 0x13B7A4C, 0x13B7A50, 0x13B7A54, 0x13B7A58 }, { 0x13AFCC0, 0x13AFE04 } };
+	static const PandemonaParams GAME = { 0x13B7A5C, { 0x13B7A48, 0x13B7A4C, 0x13B7A50, 0x13B7A54, 0x13B7A58 }, { 0x13AFCC0, 0x13AFE04 }, { 0x13A0E58, 0x13A4F88, 0x13A6508, 0x13A8508, 0x13AB5C0, 0x13AC1B8, 0x13ACDB0, 0x139FFE8, 0x13A0978, 0x13AEBC0, 0x13AE0F8 } };
 	static PandemonaParams live = GAME;
 	static const PandemonaParams &P() { return live; }
 	static const uint32_t CB_Prim = 0x6F06F0; // MAG_291_sub_6F06F0: prim player object -> prim set, rel. to ctx matrix
@@ -289,13 +290,13 @@ namespace p291
 				}
 				if (!found) rec[0x1E] = 1;
 			}
-			w::Flatten(0x13A0E58);
-			w::Flatten(0x13A4F88);
-			w::Flatten(0x13A6508);
-			w::Flatten2(0x13A8508);
-			w::Flatten2(0x13AB5C0);
-			w::Flatten2(0x13AC1B8);
-			w::Flatten2(0x13ACDB0);
+			w::Flatten(fxp::model(P().models.at_13a0e58, 0x13A0E58));
+			w::Flatten(fxp::model(P().models.at_13a4f88, 0x13A4F88));
+			w::Flatten(fxp::model(P().models.at_13a6508, 0x13A6508));
+			w::Flatten2(fxp::model(P().models.at_13a8508, 0x13A8508));
+			w::Flatten2(fxp::model(P().models.at_13ab5c0, 0x13AB5C0));
+			w::Flatten2(fxp::model(P().models.at_13ac1b8, 0x13AC1B8));
+			w::Flatten2(fxp::model(P().models.at_13acdb0, 0x13ACDB0));
 			w::StreamStateInit(MB() + 0x231D4);
 		}
 		uint32_t left = (uint32_t)nd; // the original keeps the node pointer here: non-zero
@@ -376,9 +377,9 @@ namespace p291
 		int32_t e = (int32_t)((uint32_t)shl32(v, 12) / 14u);
 		int32_t y = Center() + 0x7D0;
 		int32_t a[3][12] = {
-			{ y, 0x13A0E58, 0x13A4280, shl32(v, 6), 0, 0, 0, e, e + 0x1000, 0, shl32(v, 5), 0x1000 - (e >> 1) },
-			{ y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, shl32(v, 5), 0x1000 - (e >> 2) },
-			{ y, 0x13A6508, 0x13A7BF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, v * 40, 0x1000 - (e >> 2) } };
+			{ y, fxp::model(P().models.at_13a0e58, 0x13A0E58), 0x13A4280, shl32(v, 6), 0, 0, 0, e, e + 0x1000, 0, shl32(v, 5), 0x1000 - (e >> 1) },
+			{ y, fxp::model(P().models.at_13a4f88, 0x13A4F88), 0x13A5EF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, shl32(v, 5), 0x1000 - (e >> 2) },
+			{ y, fxp::model(P().models.at_13a6508, 0x13A6508), 0x13A7BF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, v * 40, 0x1000 - (e >> 2) } };
 		memcpy(r.t, a, sizeof(a));
 	}
 	static void DrawB(const Pass &p, int32_t v)
@@ -397,9 +398,9 @@ namespace p291
 		int32_t e = (int32_t)((uint32_t)shl32(v, 12) / 60u);
 		int32_t y = Center();
 		int32_t a[3][12] = {
-			{ y, 0x13A0E58, 0x13A4280, shl32(v, 6), e, shl32(v, 7), e >> 2, shl32(v + 0x20, 7), 0x2000, 0, shl32(v, 5), 0 },
-			{ y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), e, shl32(v + 2, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, shl32(v, 5), 0 },
-			{ y, 0x13A6508, 0x13A7BF0, shl32(v, 6), e, shl32(v + 4, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, v * 40, 0 } };
+			{ y, fxp::model(P().models.at_13a0e58, 0x13A0E58), 0x13A4280, shl32(v, 6), e, shl32(v, 7), e >> 2, shl32(v + 0x20, 7), 0x2000, 0, shl32(v, 5), 0 },
+			{ y, fxp::model(P().models.at_13a4f88, 0x13A4F88), 0x13A5EF0, shl32(v, 6), e, shl32(v + 2, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, shl32(v, 5), 0 },
+			{ y, fxp::model(P().models.at_13a6508, 0x13A6508), 0x13A7BF0, shl32(v, 6), e, shl32(v + 4, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, v * 40, 0 } };
 		memcpy(r.t, a, sizeof(a));
 		r.e = e;
 		r.ang2 = v * 100;
@@ -414,7 +415,7 @@ namespace p291
 		FX_HELD(held_par_c(p, v, r);)
 		for (int k = 0; k < 3; k++) w::Tornado(r.t[k]);
 		uint8_t *ws = (uint8_t *)FieldAlloc(0x8C);
-		w::Morph(0x139FFE8, 0x13A0790, r.e);
+		w::Morph(fxp::model(P().models.at_139ffe8, 0x139FFE8), 0x13A0790, r.e);
 		w::MatY(r.t[0][3], 0x2000, 0x1000, ws);
 		At<int32_t>(ws, 0x14) = 0;
 		At<int32_t>(ws, 0x18) = -0x2000;
@@ -427,7 +428,7 @@ namespace p291
 		At<int16_t>(ws, 0x40) = 0;
 		At<int32_t>(ws, 0x38) = 0x100;
 		At<uint32_t>(ws, 0x24) = (uint32_t)(MB() + 0x31D4);
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_139ffe8, 0x139FFE8);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		w::MatY(r.ang2, 0x1388, 0x1000, ws);
 		At<int32_t>(ws, 0x14) = 0;
@@ -437,7 +438,7 @@ namespace p291
 		GteSetRotMatrix((Mat4x3 *)ws);
 		GteSetTransVector((Mat4x3 *)ws);
 		At<int32_t>(ws, 0x38) = 0x80;
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_139ffe8, 0x139FFE8);
 		At<uint32_t>(ws, 0x24) = (uint32_t)(MB() + 0x31D4);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		if (r.third)
@@ -452,7 +453,7 @@ namespace p291
 			At<int32_t>(ws, 0x28) = 0;
 			At<int32_t>(ws, 0x2C) = r.fade;
 			At<int32_t>(ws, 0x38) = 0;
-			At<uint32_t>(ws, 0x20) = 0x13A0978;
+			At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_13a0978, 0x13A0978);
 			PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		}
 		FieldFree(0x8C);
@@ -467,13 +468,13 @@ namespace p291
 		if (v35 > 0x1000) return;
 		r.on = 1;
 		int32_t y = Center();
-		int32_t a0[12] = { y, 0x13A0E58, 0x13A4280, shl32(v, 6), 0x1000, 0, 0, 0x2E00, 0x2000, 0, shl32(v, 5), v35 };
+		int32_t a0[12] = { y, fxp::model(P().models.at_13a0e58, 0x13A0E58), 0x13A4280, shl32(v, 6), 0x1000, 0, 0, 0x2E00, 0x2000, 0, shl32(v, 5), v35 };
 		memcpy(r.t[0], a0, sizeof(a0));
 		int32_t v36 = (uint32_t)v < 0x18 ? 0 : (int32_t)((uint32_t)shl32(v - 0x18, 12) / 30u);
 		if (v36 > 0x1000) return;
 		r.more = 1;
-		int32_t a1[12] = { y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, shl32(v, 5), v36 };
-		int32_t a2[12] = { y, 0x13A6508, 0x13A7BF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, v * 40, v36 };
+		int32_t a1[12] = { y, fxp::model(P().models.at_13a4f88, 0x13A4F88), 0x13A5EF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, shl32(v, 5), v36 };
+		int32_t a2[12] = { y, fxp::model(P().models.at_13a6508, 0x13A6508), 0x13A7BF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, v * 40, v36 };
 		memcpy(r.t[1], a1, sizeof(a1));
 		memcpy(r.t[2], a2, sizeof(a2));
 		r.v36 = v36;
@@ -509,7 +510,7 @@ namespace p291
 		GteSetTransVector((Mat4x3 *)ws);
 		At<int32_t>(ws, 0x38) = 0x100;
 		At<uint32_t>(ws, 0x24) = 0x13A0798;
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_139ffe8, 0x139FFE8);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		w::MatY(r.ang2, 0x1388, 0x1000, ws);
 		At<int32_t>(ws, 0x14) = 0;
@@ -520,7 +521,7 @@ namespace p291
 		GteSetTransVector((Mat4x3 *)ws);
 		At<int32_t>(ws, 0x38) = 0x80;
 		At<uint32_t>(ws, 0x24) = 0x13A0798;
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_139ffe8, 0x139FFE8);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		At<int32_t>(ws, 0x14) = 0;
 		At<int32_t>(ws, 0x18) = -0x2000;
@@ -530,7 +531,7 @@ namespace p291
 		GteSetTransVector((Mat4x3 *)ws);
 		At<uint32_t>(ws, 0x3C) &= ~0x2000u;
 		At<int32_t>(ws, 0x38) = 0;
-		At<uint32_t>(ws, 0x20) = 0x13A0978;
+		At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_13a0978, 0x13A0978);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		FieldFree(0x8C);
 	}
@@ -625,7 +626,7 @@ namespace p291
 			At<int16_t>(ws, 0x42) = (int16_t)(scroll & 0x7F);
 			At<int32_t>(ws, 0x38) = 0;
 			At<uint32_t>(ws, 0x24) = 0x13AEBC8;
-			At<uint32_t>(ws, 0x20) = 0x13AEBC0;
+			At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_13aebc0, 0x13AEBC0);
 			PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		}
 		FieldFree(0x8C);
@@ -640,10 +641,10 @@ namespace p291
 		if (f > 0x2000) f = 0x2000;
 		int32_t g = v * 93 + 0x1000, s = shl32(v, 5), b = shl32(v + 4, 9);
 		int32_t a[4][10] = {
-			{ 0, 0x13A8508, shl32(v, 6), 0x1400, q, b, 0x2000, 2, s, f },
-			{ 0, 0x13AB5C0, shl32(v, 6), shl32(v, 7), q, b, 0x2000, 0, s, g },
-			{ 0, 0x13AC1B8, shl32(-v, 6), shl32(v, 7), q, b, 0x2000, 1, s, g },
-			{ 0, 0x13ACDB0, shl32(v, 6), shl32(v, 7), q, b, 0x2000, 2, s, g } };
+			{ 0, fxp::model(P().models.at_13a8508, 0x13A8508), shl32(v, 6), 0x1400, q, b, 0x2000, 2, s, f },
+			{ 0, fxp::model(P().models.at_13ab5c0, 0x13AB5C0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 0, s, g },
+			{ 0, fxp::model(P().models.at_13ac1b8, 0x13AC1B8), shl32(-v, 6), shl32(v, 7), q, b, 0x2000, 1, s, g },
+			{ 0, fxp::model(P().models.at_13acdb0, 0x13ACDB0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 2, s, g } };
 		memcpy(p.r, a, sizeof(a));
 	}
 	static void DrawJ(const Pass &p, int32_t v)
@@ -681,10 +682,10 @@ namespace p291
 		int32_t f = (uint32_t)v <= 0x18 ? 0x2000 : shl32(v - 8, 9);
 		int32_t s = shl32(v, 5);
 		int32_t a[4][10] = {
-			{ 0, 0x13A8508, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, 0x13AB5C0, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, 0x13AC1B8, shl32(-v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, 0x13ACDB0, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f } };
+			{ 0, fxp::model(P().models.at_13a8508, 0x13A8508), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, fxp::model(P().models.at_13ab5c0, 0x13AB5C0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, fxp::model(P().models.at_13ac1b8, 0x13AC1B8), shl32(-v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, fxp::model(P().models.at_13acdb0, 0x13ACDB0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f } };
 		memcpy(p.r, a, sizeof(a));
 		for (int k = 0; k < 4; k++)
 		{
@@ -732,7 +733,7 @@ namespace p291
 			GteSetRotMatrix((Mat4x3 *)ws);
 			GteSetTransVector((Mat4x3 *)ws);
 			At<int32_t>(ws, 0x38) = 0;
-			At<uint32_t>(ws, 0x20) = 0x13AE0F8;
+			At<uint32_t>(ws, 0x20) = fxp::model(P().models.at_13ae0f8, 0x13AE0F8);
 			PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		}
 		FieldFree(0x8C);
@@ -1912,6 +1913,17 @@ namespace p291
 			{ "timeline", "sounds.drop", "Drop", "At the timeline's tick 0x1C0", (uint32_t)offsetof(PandemonaParams, sounds.drop), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_13afcc0", "Flipbook 13AFCC0", "The sprite sequence at 0x13AFCC0 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(PandemonaParams, seqs.at_13afcc0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_13afe04", "Flipbook 13AFE04", "The sprite sequence at 0x13AFE04 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(PandemonaParams, seqs.at_13afe04), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13a0e58", "Model 13A0E58", "The prim model at 0x13A0E58 (a mesh of 416 vertices, 400 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13a0e58), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13a4f88", "Model 13A4F88", "The prim model at 0x13A4F88 (a mesh of 194 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13a4f88), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13a6508", "Model 13A6508", "The prim model at 0x13A6508 (a mesh of 290 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13a6508), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13a8508", "Model 13A8508", "The prim model at 0x13A8508 (a mesh of 294 vertices, 280 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13a8508), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13ab5c0", "Model 13AB5C0", "The prim model at 0x13AB5C0 (a mesh of 126 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13ab5c0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13ac1b8", "Model 13AC1B8", "The prim model at 0x13AC1B8 (a mesh of 126 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13ac1b8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13acdb0", "Model 13ACDB0", "The prim model at 0x13ACDB0 (a mesh of 204 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13acdb0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_139ffe8", "Model 139FFE8", "The prim model at 0x139FFE8 (a mesh of 60 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_139ffe8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13a0978", "Model 13A0978", "The prim model at 0x13A0978 (a mesh of 41 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13a0978), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13aebc0", "Model 13AEBC0", "The prim model at 0x13AEBC0 (a mesh of 155 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13aebc0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_13ae0f8", "Model 13AE0F8", "The prim model at 0x13AE0F8 (a mesh of 100 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PandemonaParams, models.at_13ae0f8), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

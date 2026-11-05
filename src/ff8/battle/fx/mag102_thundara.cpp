@@ -75,8 +75,9 @@ namespace thundara102
 		uint32_t sound;                  // at the bolt's frame 4 (3D, at the target)
 		struct { int16_t damage; } bolt; // the damage at this frame of the bolt
 		struct { uint32_t strike, upper_a, upper_b, core, arc, arc_low, glow, smoke, fade, spark, flash_sprite; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t tilted_glow, column, flash_ball; } models; // the prim models drawn (meshes)
 	};
-	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A }, { 0x131E878, 0x131EABC, 0x131ECB0, 0x131F0E8, 0x131FF74, 0x131EECC, 0x131F458, 0x131F5B4, 0x131FA68, 0x131F244, 0x131E760 } };
+	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A }, { 0x131E878, 0x131EABC, 0x131ECB0, 0x131F0E8, 0x131FF74, 0x131EECC, 0x131F458, 0x131F5B4, 0x131FA68, 0x131F244, 0x131E760 }, { 0x13200D0, 0x13207B8, 0x1320EA0 } };
 	static ThundaraParams live = GAME;
 	static const ThundaraParams &P() { return live; }
 	// strike layers (sprite sequences)
@@ -331,7 +332,7 @@ namespace thundara102
 		Mat4x3 m = {};
 		BuildTiltMatrix((int16_t)tilt, &m, s);
 		ModelGte(&m, pos[0], pos[1], pos[2]);
-		*(uint32_t *)h = MODEL_TiltedGlow;
+		*(uint32_t *)h = fxp::model(P().models.tilted_glow, MODEL_TiltedGlow);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -365,7 +366,7 @@ namespace thundara102
 		m.m[2][2] = (int16_t)w;
 		m.m[1][1] = (int16_t)v;
 		ModelGte(&m, pos[0], height, pos[2]);
-		*(uint32_t *)h = MODEL_Column;
+		*(uint32_t *)h = fxp::model(P().models.column, MODEL_Column);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -390,7 +391,7 @@ namespace thundara102
 		m.m[1][1] = (int16_t)s;
 		m.m[2][2] = (int16_t)s;
 		ModelGte(&m, pos[0], height, pos[2]);
-		*(uint32_t *)h = MODEL_FlashBall;
+		*(uint32_t *)h = fxp::model(P().models.flash_ball, MODEL_FlashBall);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -658,6 +659,9 @@ namespace thundara102
 			{ "bolt", "seqs.fade", "Fade", "The sprite sequence fade (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.fade), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "bolt", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "bolt", "seqs.flash_sprite", "Flash sprite", "The sprite sequence flash sprite (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.flash_sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "models.tilted_glow", "Tilted glow model", "The prim model tilted glow (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.tilted_glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "models.column", "Column model", "The prim model column (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "models.flash_ball", "Flash ball model", "The prim model flash ball (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.flash_ball), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

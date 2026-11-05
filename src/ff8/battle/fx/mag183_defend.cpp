@@ -80,8 +80,9 @@ namespace defend183
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the caster)
 		struct { int16_t result; } director; // the action result at this tick
+		struct { uint32_t shield_a, shield_b; } models; // the prim models drawn (meshes)
 	};
-	static const DefendParams GAME = { 0xD39304, { 0x1E } };
+	static const DefendParams GAME = { 0xD39304, { 0x1E }, { MODEL_ShieldA, MODEL_ShieldB } };
 	static DefendParams live = GAME;
 	static const DefendParams &P() { return live; }
 
@@ -204,7 +205,7 @@ namespace defend183
 	static ShieldDraw ShieldAState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
-		d.model = MODEL_ShieldA;
+		d.model = fxp::model(P().models.shield_a, MODEL_ShieldA);
 		d.front = -600;
 		d.scale = scale;
 		d.scroll = mul32(counter, -10);
@@ -220,7 +221,7 @@ namespace defend183
 	static ShieldDraw ShieldBState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
-		d.model = MODEL_ShieldB;
+		d.model = fxp::model(P().models.shield_b, MODEL_ShieldB);
 		d.front = 200;
 		d.scale = scale;
 		d.scroll = mul32(counter, -6);
@@ -352,6 +353,8 @@ namespace defend183
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 1 (3D, at the caster)", (uint32_t)offsetof(DefendParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.result", "Result tick", "The action result at this tick of the director", (uint32_t)offsetof(DefendParams, director.result), fxp::I16, 0, 35 },
+			{ "director", "models.shield_a", "Shield a model", "The prim model shield a (a mesh of 31 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DefendParams, models.shield_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shield_b", "Shield b model", "The prim model shield b (a mesh of 81 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DefendParams, models.shield_b), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

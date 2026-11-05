@@ -212,8 +212,9 @@ namespace g327
 	{
 		struct { uint32_t start, spin, horse; } sounds; // at the timeline's ticks 1, 121, 181
 		struct { uint32_t at_cc7120, at_cc6dc8, at_cc6954, at_cc6730, at_cc6f74, at_cc6c0c, at_cc6b64, at_cc6c34; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_ccde04, at_ccf2dc, at_ccec5c, at_cce5dc, at_cc877c, at_cc72fc, at_ccfab4, at_cc8f5c, at_ccad3c, at_cca14c, at_ccc434, at_ccb92c, at_cc78ec, at_cccb1c, at_cc7a94, at_cc8e64; } models; // the prim models drawn (meshes)
 	};
-	static const GilgameshParams GAME = { { 0xCD0378, 0xCD037C, 0xCD0380 }, { 0xCC7120, 0xCC6DC8, 0xCC6954, 0xCC6730, 0xCC6F74, 0xCC6C0C, 0xCC6B64, 0xCC6C34 } };
+	static const GilgameshParams GAME = { { 0xCD0378, 0xCD037C, 0xCD0380 }, { 0xCC7120, 0xCC6DC8, 0xCC6954, 0xCC6730, 0xCC6F74, 0xCC6C0C, 0xCC6B64, 0xCC6C34 }, { 0xCCDE04, 0xCCF2DC, 0xCCEC5C, 0xCCE5DC, 0xCC877C, 0xCC72FC, 0xCCFAB4, 0xCC8F5C, 0xCCAD3C, 0xCCA14C, 0xCCC434, 0xCCB92C, 0xCC78EC, 0xCCCB1C, 0xCC7A94, 0xCC8E64 } };
 	static GilgameshParams live = GAME;
 	static const GilgameshParams &P() { return live; }
 
@@ -965,9 +966,9 @@ namespace g327
 	// ------------------------------------------------------------------
 	static uint32_t ScreenPrimModel(const Node24 *n, uint32_t orig)
 	{
-		if (orig == ORIG_Zan_ScreenPrimTask) return 0xCCDE04;
-		if (orig == ORIG_Masa_ScreenPrimTask) return 0xCCF2DC;
-		return n->e ? 0xCCEC5C : 0xCCE5DC;
+		if (orig == ORIG_Zan_ScreenPrimTask) return fxp::model(P().models.at_ccde04, 0xCCDE04);
+		if (orig == ORIG_Masa_ScreenPrimTask) return fxp::model(P().models.at_ccf2dc, 0xCCF2DC);
+		return n->e ? fxp::model(P().models.at_ccec5c, 0xCCEC5C) : fxp::model(P().models.at_cce5dc, 0xCCE5DC);
 	}
 
 	static void ScreenPrimDraw(const Node24 *n, uint32_t model, int16_t s1C)
@@ -1377,7 +1378,7 @@ namespace g327
 
 	static void MasaPrimDraw(const Node24 *n, bool b, int16_t s1C, bool fade, int32_t f)
 	{
-		PrimArgs a = Prim(0, 0, n->a18, n->p10, n->p12, n->p14, s1C, s1C, s1C, &Camera(), b ? 0xCC877C : 0xCC72FC);
+		PrimArgs a = Prim(0, 0, n->a18, n->p10, n->p12, n->p14, s1C, s1C, s1C, &Camera(), b ? fxp::model(P().models.at_cc877c, 0xCC877C) : fxp::model(P().models.at_cc72fc, 0xCC72FC));
 		SetFade(a, fade, f);
 		PrimDraw(a);
 	}
@@ -1863,7 +1864,7 @@ namespace g327
 	// 16 ticks
 	static void ExcaPillarDraw(const Node24 *n, int16_t a18, int16_t s1C, int16_t s20, bool fade, int32_t f)
 	{
-		PrimArgs a = Prim(0, a18, 0, n->p10, 0, n->p14, s1C, s20, s1C, &Camera(), 0xCCFAB4);
+		PrimArgs a = Prim(0, a18, 0, n->p10, 0, n->p14, s1C, s20, s1C, &Camera(), fxp::model(P().models.at_ccfab4, 0xCCFAB4));
 		SetFade(a, fade, f);
 		PrimDraw(a);
 	}
@@ -1899,7 +1900,7 @@ namespace g327
 	// ------------------------------------------------------------------
 	static void RingDraw(const Node24 *n)
 	{
-		PrimArgs a = Prim(0, 0, 0, n->p10, n->p12, n->p14, n->s1C, n->s20, n->s1C, &Frame(), 0xCC8F5C);
+		PrimArgs a = Prim(0, 0, 0, n->p10, n->p12, n->p14, n->s1C, n->s20, n->s1C, &Frame(), fxp::model(P().models.at_cc8f5c, 0xCC8F5C));
 		a.mode = 1;
 		a.h1C = 0;
 		PrimDraw(a);
@@ -1917,7 +1918,7 @@ namespace g327
 
 	static void RingSpinDraw(const Node24 *n, bool b, int16_t a18)
 	{
-		uint32_t model = b ? (n->e ? 0xCCAD3C : 0xCCA14C) : (n->e ? 0xCCC434 : 0xCCB92C);
+		uint32_t model = b ? (n->e ? fxp::model(P().models.at_ccad3c, 0xCCAD3C) : fxp::model(P().models.at_cca14c, 0xCCA14C)) : (n->e ? fxp::model(P().models.at_ccc434, 0xCCC434) : fxp::model(P().models.at_ccb92c, 0xCCB92C));
 		PrimArgs a = b ? Prim(0, a18, 0, n->p10, n->p12, n->p14, n->s1C, n->s1C, n->s1C, &Frame(), model)
 			: Prim(0, a18, 0, n->p10, n->p12, n->p14, n->s1C, n->s20, n->s1C, &Frame(), model);
 		a.h1C = 0xC3;
@@ -2041,7 +2042,7 @@ namespace g327
 
 	static void RiserDraw(const Node24 *n, int16_t y, int16_t s1C, bool fade, int32_t f)
 	{
-		PrimArgs a = Prim(0, n->a18, 0, n->p10, y, n->p14, s1C, s1C, s1C, &Frame(), 0xCC78EC);
+		PrimArgs a = Prim(0, n->a18, 0, n->p10, y, n->p14, s1C, s1C, s1C, &Frame(), fxp::model(P().models.at_cc78ec, 0xCC78EC));
 		SetFade(a, fade, f);
 		PrimDraw(a);
 	}
@@ -2227,7 +2228,7 @@ namespace g327
 
 	static void RisingRingDraw(const Node24 *n, int16_t a18, int16_t s20, bool fade, int32_t f)
 	{
-		PrimArgs a = Prim(0, a18, 0, n->p10, n->p12, n->p14, n->s1C, s20, n->s1C, &Frame(), 0xCCCB1C);
+		PrimArgs a = Prim(0, a18, 0, n->p10, n->p12, n->p14, n->s1C, s20, n->s1C, &Frame(), fxp::model(P().models.at_cccb1c, 0xCCCB1C));
 		SetFade(a, fade, f);
 		PrimDraw(a);
 	}
@@ -2351,7 +2352,7 @@ namespace g327
 
 	static void SpinnerDraw(const Node24 *n, int16_t a18, int16_t s1C, bool fade, int32_t f)
 	{
-		PrimArgs a = Prim(0, a18, 0, n->p10, n->p12, n->p14, s1C, n->s20, s1C, &Frame(), 0xCC7A94);
+		PrimArgs a = Prim(0, a18, 0, n->p10, n->p12, n->p14, s1C, n->s20, s1C, &Frame(), fxp::model(P().models.at_cc7a94, 0xCC7A94));
 		SetFade(a, fade, f);
 		PrimDraw(a);
 	}
@@ -2597,7 +2598,7 @@ namespace g327
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t count = 0;
-		*(uint32_t *)h = 0xCC8E64;
+		*(uint32_t *)h = fxp::model(P().models.at_cc8e64, 0xCC8E64);
 		SwordTipFrame(s, n);
 		*(int16_t *)(s + 2) = 0;
 		FX_HELD(held_note_tip(n, s);)
@@ -3078,6 +3079,22 @@ namespace g327
 			{ "timeline", "seqs.at_cc6c0c", "Flipbook CC6C0C", "The sprite sequence at 0xCC6C0C (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6c0c), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_cc6b64", "Flipbook CC6B64", "The sprite sequence at 0xCC6B64 (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6b64), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timeline", "seqs.at_cc6c34", "Flipbook CC6C34", "The sprite sequence at 0xCC6C34 (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6c34), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_ccde04", "Model CCDE04", "The prim model at 0xCCDE04 (a mesh of 74 vertices, 58 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_ccde04), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_ccf2dc", "Model CCF2DC", "The prim model at 0xCCF2DC (a mesh of 74 vertices, 58 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_ccf2dc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_ccec5c", "Model CCEC5C", "The prim model at 0xCCEC5C (a mesh of 61 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_ccec5c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cce5dc", "Model CCE5DC", "The prim model at 0xCCE5DC (a mesh of 61 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cce5dc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cc877c", "Model CC877C", "The prim model at 0xCC877C (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cc877c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cc72fc", "Model CC72FC", "The prim model at 0xCC72FC (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cc72fc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_ccfab4", "Model CCFAB4", "The prim model at 0xCCFAB4 (a mesh of 39 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_ccfab4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cc8f5c", "Model CC8F5C", "The prim model at 0xCC8F5C (a mesh of 145 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cc8f5c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_ccad3c", "Model CCAD3C", "The prim model at 0xCCAD3C (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_ccad3c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cca14c", "Model CCA14C", "The prim model at 0xCCA14C (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cca14c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_ccc434", "Model CCC434", "The prim model at 0xCCC434 (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_ccc434), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_ccb92c", "Model CCB92C", "The prim model at 0xCCB92C (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_ccb92c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cc78ec", "Model CC78EC", "The prim model at 0xCC78EC (a mesh of 18 vertices, 10 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cc78ec), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cccb1c", "Model CCCB1C", "The prim model at 0xCCCB1C (a mesh of 168 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cccb1c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cc7a94", "Model CC7A94", "The prim model at 0xCC7A94 (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cc7a94), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cc8e64", "Model CC8E64", "The prim model at 0xCC8E64 (a mesh of 6 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GilgameshParams, models.at_cc8e64), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

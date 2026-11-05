@@ -121,8 +121,9 @@ namespace quick196
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t impact, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t flash, flash2; } models; // the prim models drawn (meshes)
 	};
-	static const QuickShotParams GAME = { 0xD073C4, { 0xD05DB0, 0xD05FC0 } };
+	static const QuickShotParams GAME = { 0xD073C4, { 0xD05DB0, 0xD05FC0 }, { 0xD0609C, 0xD06FD4 } };
 	static QuickShotParams live = GAME;
 	static const QuickShotParams &P() { return live; }
 
@@ -444,7 +445,7 @@ namespace quick196
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag196_quick_shot_held.inc
 		FX_HELD(held_note_node(ORIG_FlashTask, n);)
-		MuzzleModel(n, MODEL_Flash, n->counter == 1, 0xC00);
+		MuzzleModel(n, fxp::model(P().models.flash, MODEL_Flash), n->counter == 1, 0xC00);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -456,7 +457,7 @@ namespace quick196
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag196_quick_shot_held.inc
 		FX_HELD(held_note_node(ORIG_Flash2Task, n);)
-		YawModel(n, MODEL_Flash2, n->counter == 1, 0x800);
+		YawModel(n, fxp::model(P().models.flash2, MODEL_Flash2), n->counter == 1, 0x800);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -715,6 +716,8 @@ namespace quick196
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(QuickShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(QuickShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(QuickShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash", "Flash model", "The prim model flash (a mesh of 149 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(QuickShotParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash2", "Flash2 model", "The prim model flash2 (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(QuickShotParams, models.flash2), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

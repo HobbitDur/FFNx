@@ -126,8 +126,9 @@ namespace oil137
 		struct { int16_t damage; } blast; // the damage at this tick of the blast
 		struct { uint32_t puddle, spout, blast; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spray; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main, chunk; } model_data; // the prim models drawn (meshes)
 	};
-	static const BlastParams GAME = { 0x11F035C, { 0x2D }, { MODEL_Puddle, MODEL_Spout, MODEL_Blast }, { SEQ_Spray } };
+	static const BlastParams GAME = { 0x11F035C, { 0x2D }, { MODEL_Puddle, MODEL_Spout, MODEL_Blast }, { SEQ_Spray }, { MESH, MODEL_Chunk } };
 	static BlastParams live = GAME;
 	static const BlastParams &P() { return live; }
 
@@ -569,7 +570,7 @@ namespace oil137
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x54);
-		*(uint32_t *)h = MESH;
+		*(uint32_t *)h = fxp::model(P().model_data.main, MESH);
 		*(uint16_t *)(h + 0xA) = 0;
 		*(uint16_t *)(h + 8) = 0;
 		*(uint16_t *)(h + 0xE) = 0x100;
@@ -683,7 +684,7 @@ namespace oil137
 		GteSetRotMatrix(&M);
 		GteSetTransVector(&M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Chunk;
+		*(uint32_t *)h = fxp::model(P().model_data.chunk, MODEL_Chunk);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -889,6 +890,8 @@ namespace oil137
 			{ "blast", "layouts.spout", "Spout", "The prim-model layout spout (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.spout), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "blast", "layouts.blast", "Blast", "The prim-model layout blast (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.blast), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "blast", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blast", "model_data.main", "Main model", "The prim model main (a mesh of 216 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastParams, model_data.main), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blast", "model_data.chunk", "Chunk model", "The prim model chunk (a mesh of 8 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastParams, model_data.chunk), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

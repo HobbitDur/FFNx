@@ -123,8 +123,9 @@ namespace beam134
 		struct { int16_t damage; } beam; // the damage at this tick of the beam
 		struct { uint32_t hit, charge, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t glow, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t beam; } model_data; // the prim models drawn (meshes)
 	};
-	static const BeamParams GAME = { 0x120767C, { 0x1A }, { MODEL_Hit, MODEL_Charge, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Glow, SEQ_Spark } };
+	static const BeamParams GAME = { 0x120767C, { 0x1A }, { MODEL_Hit, MODEL_Charge, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Glow, SEQ_Spark }, { PRIM_Beam } };
 	static BeamParams live = GAME;
 	static const BeamParams &P() { return live; }
 
@@ -429,7 +430,7 @@ namespace beam134
 		s.m[2][2] = (int16_t)len;
 		MulMatrix3(M2, &s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Beam;
+		*(uint32_t *)h = fxp::model(P().model_data.beam, PRIM_Beam);
 		if (fade == 0) *(uint32_t *)(h + 0x1C) = 0x30;
 		else
 		{
@@ -736,6 +737,7 @@ namespace beam134
 			{ "beam", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "beam", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BeamParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "beam", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BeamParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "beam", "model_data.beam", "Beam model", "The prim model beam (a mesh of 220 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BeamParams, model_data.beam), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -83,8 +83,9 @@ namespace theend
 	{
 		struct { uint32_t a, b; } sounds;        // the sounds at cut 1 and cut 3
 		struct { int16_t damage; } director;     // the damage cue (and the battle UI back) from this frame of its last cut
+		struct { uint32_t at_156c7fc, at_156c8bc, at_156c85c; } models; // the prim models drawn (meshes)
 	};
-	static const TheEndParams GAME = { { SOUND_A, SOUND_B }, { 0xA } };
+	static const TheEndParams GAME = { { SOUND_A, SOUND_B }, { 0xA }, { 0x156C7FC, 0x156C8BC, 0x156C85C } };
 	static TheEndParams live = GAME;
 	static const TheEndParams &PT() { return live; }
 
@@ -2423,7 +2424,7 @@ namespace theend
 	uint32_t __cdecl te_788810(uint32_t a1)
 	{
 		const int32_t kind = S16(a1, 0xDE);
-		U32(a1, 0x4C) = 0x156C7FC;
+		U32(a1, 0x4C) = fxp::model(PT().models.at_156c7fc, 0x156C7FC);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -3702,7 +3703,7 @@ namespace theend
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
-		U32(a1, 0x4C) = 0x156C8BC;
+		U32(a1, 0x4C) = fxp::model(PT().models.at_156c8bc, 0x156C8BC);
 		U16(a1, 0xE0) = 0x80;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -3822,7 +3823,7 @@ namespace theend
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = 0x156C85C;
+		U32(a1, 0x4C) = fxp::model(PT().models.at_156c85c, 0x156C85C);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -4057,6 +4058,9 @@ namespace theend
 			{ "director", "sounds.a", "Sound A", "", (uint32_t)offsetof(TheEndParams, sounds.a), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.b", "Sound B", "", (uint32_t)offsetof(TheEndParams, sounds.b), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage frame", "The damage cue and the battle UI back from this frame of its last cut", (uint32_t)offsetof(TheEndParams, director.damage), fxp::I16, 0, 0x200 },
+			{ "director", "models.at_156c7fc", "Model 156C7FC", "The prim model at 0x156C7FC (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TheEndParams, models.at_156c7fc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_156c8bc", "Model 156C8BC", "The prim model at 0x156C8BC (a mesh of 441 vertices, 400 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TheEndParams, models.at_156c8bc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_156c85c", "Model 156C85C", "The prim model at 0x156C85C (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TheEndParams, models.at_156c85c), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 

@@ -162,8 +162,9 @@ namespace flame194
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t smoke, ground_smoke, head, flame; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, pillar, burst, flash, spin; } models; // the prim models drawn (meshes)
 	};
-	static const FlameShotParams GAME = { 0xD12E64, { 0xD0DB5C, 0xD0DC34, 0xD0DCA8, 0xD0D938 } };
+	static const FlameShotParams GAME = { 0xD12E64, { 0xD0DB5C, 0xD0DC34, 0xD0DCA8, 0xD0D938 }, { 0xD0DCE4, 0xD1283C, 0xD0FB0C, 0xD106DC, 0xD11B54 } };
 	static FlameShotParams live = GAME;
 	static const FlameShotParams &P() { return live; }
 
@@ -444,14 +445,14 @@ namespace flame194
 	static void RingDraw(const Node *n, bool faded, int32_t fade)
 	{
 		AimMatrix(n);
-		ModelDraw(MODEL_Ring, faded, fade);
+		ModelDraw(fxp::model(P().models.ring, MODEL_Ring), faded, fade);
 	}
 	// the pillar: MAG_151's renderer, v scroll -12 * counter
 	static void PillarDraw(const Node *n, int32_t scroll, bool faded, int32_t fade)
 	{
 		AimMatrix(n);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x7C);
-		*(uint32_t *)h = MODEL_Pillar;
+		*(uint32_t *)h = fxp::model(P().models.pillar, MODEL_Pillar);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x18) = 0;
@@ -472,7 +473,7 @@ namespace flame194
 	static void BurstDraw(const Node *n, bool faded, int32_t fade)
 	{
 		TransformCameraByShadowRotation(n->pos, n->f1C, -((int32_t)n->f1C >> 3));
-		ModelDraw(MODEL_Burst, faded, fade);
+		ModelDraw(fxp::model(P().models.burst, MODEL_Burst), faded, fade);
 	}
 
 	// the smoke at the shot record (camera facing): returns the sequence's +0x28 (< 0: ended)
@@ -688,7 +689,7 @@ namespace flame194
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag194_flame_shot_held.inc
 		FX_HELD(held_note_node(ORIG_FlashTask, n);)
-		MuzzleModel(n, MODEL_Flash, n->counter >= 2, FlashFade(n->counter));
+		MuzzleModel(n, fxp::model(P().models.flash, MODEL_Flash), n->counter >= 2, FlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -703,7 +704,7 @@ namespace flame194
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag194_flame_shot_held.inc
 		FX_HELD(held_note_node(ORIG_SpinTask, n);)
-		MuzzleModel(n, MODEL_Spin, n->counter >= 2, SpinFade(n->counter));
+		MuzzleModel(n, fxp::model(P().models.spin, MODEL_Spin), n->counter >= 2, SpinFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A, step = n->f1E;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -1361,6 +1362,11 @@ namespace flame194
 			{ "shot", "seqs.ground_smoke", "Ground smoke", "The sprite sequence ground smoke (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.ground_smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.head", "Head", "The sprite sequence head (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.head), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.ring", "Ring model", "The prim model ring (a mesh of 240 vertices, 224 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.burst", "Burst model", "The prim model burst (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash", "Flash model", "The prim model flash (a mesh of 200 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.spin", "Spin model", "The prim model spin (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.spin), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

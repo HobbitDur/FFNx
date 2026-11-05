@@ -113,8 +113,9 @@ namespace gas168
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
 		struct { uint32_t sparkle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t gas; } models; // the prim models drawn (meshes)
 	};
-	static const SleepingGasParams GAME = { 0xD6F77C, { 0x3C }, { SEQ_Sparkle } };
+	static const SleepingGasParams GAME = { 0xD6F77C, { 0x3C }, { SEQ_Sparkle }, { MODEL_Gas } };
 	static SleepingGasParams live = GAME;
 	static const SleepingGasParams &PG() { return live; }
 
@@ -443,7 +444,7 @@ namespace gas168
 	// no depth cue (+0x0C keeps the scratch)
 	static void GasHeader(uint8_t *h, const GasNode *g, uint32_t verts)
 	{
-		*(uint32_t *)(h + 0) = MODEL_Gas;
+		*(uint32_t *)(h + 0) = fxp::model(PG().models.gas, MODEL_Gas);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		*(uint32_t *)(h + 4) = verts;
@@ -784,6 +785,7 @@ namespace gas168
 			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(SleepingGasParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SleepingGasParams, director.damage), fxp::I16, 0, 70 },
 			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepingGasParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.gas", "Gas model", "The prim model gas (a mesh of 122 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SleepingGasParams, models.gas), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

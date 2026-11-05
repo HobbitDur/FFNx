@@ -101,8 +101,9 @@ namespace ultima149
 		struct { uint32_t voice, start, blast; } sounds; // the voice slot claimed at tick 0, the start (tick 1), the blast (0x5E)
 		struct { int16_t damage; } director;            // the damage at this tick of an action's director
 		struct { uint32_t dust, orbit, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t streak, shard, energy, ring, dome, core; } models; // the prim models drawn (meshes)
 	};
-	static const UltimaParams GAME = { { 0xDC9ABC, 0xDC9BD0, 0xDC9BD4 }, { 0xA6 }, { 0xDC312C, 0xDC333C, 0xDC35B8 } };
+	static const UltimaParams GAME = { { 0xDC9ABC, 0xDC9BD0, 0xDC9BD4 }, { 0xA6 }, { 0xDC312C, 0xDC333C, 0xDC35B8 }, { 0xDC8BC4, 0xDC8804, 0xDC7F54, 0xDC3784, 0xDC5254, 0xDC6EA4 } };
 	static UltimaParams live = GAME;
 	static const UltimaParams &P() { return live; }
 	static const uint32_t SEQ_Orbit = 0xDC333C;
@@ -719,7 +720,7 @@ namespace ultima149
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		StreakWork *w = (StreakWork *)FieldAlloc(0x88);
-		H32(h, 0) = MODEL_Streak;
+		H32(h, 0) = fxp::model(P().models.streak, MODEL_Streak);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x33;
 		w->up[0] = 0;
@@ -801,7 +802,7 @@ namespace ultima149
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		ShardWork *w = (ShardWork *)FieldAlloc(0xA0);
-		H32(h, 0) = MODEL_Shard;
+		H32(h, 0) = fxp::model(P().models.shard, MODEL_Shard);
 		memcpy(&w->pos[0], &n->pos[0], 4);
 		H32(h, 8) = 0;
 		memcpy(&w->pos[2], &n->pos[2], 4);
@@ -888,7 +889,7 @@ namespace ultima149
 		MatrixMultiply(shadow, &m);
 		GteSetRotMatrix(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Energy;
+		H32(h, 0) = fxp::model(P().models.energy, MODEL_Energy);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x33;
 		if (n->counter >= 0x5B)
@@ -1148,14 +1149,14 @@ namespace ultima149
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Ring;
+		H32(h, 0) = fxp::model(P().models.ring, MODEL_Ring);
 		H32(h, 8) = 0xCEE8CE;
 		H32(h, 0x1C) = 0xC0;
 		*(int32_t *)(h + 0xC) = RING_Fades[n->counter & 0xF];
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 		MeshHeader *g = (MeshHeader *)FieldAlloc(0x80);
-		g->model = MODEL_Dome;
+		g->model = fxp::model(P().models.dome, MODEL_Dome);
 		*(uint32_t *)g->far_rgb = 0;
 		g->flags = 0;
 		if (n->counter >= 0x36)
@@ -1218,7 +1219,7 @@ namespace ultima149
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int16_t c = n->counter;
-		H32(h, 0) = MODEL_Core;
+		H32(h, 0) = fxp::model(P().models.core, MODEL_Core);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x2033;
 		if (c < 4 || c >= 0x20)
@@ -1233,7 +1234,7 @@ namespace ultima149
 		// 30 fps layer: see mag149_ultima_held.inc
 		FX_HELD(t = held_frame_arg(t, c, 10, 40);)
 		int32_t w = ComputeSin(t);
-		const int16_t *v0 = (const int16_t *)(MODEL_Core + 8);
+		const int16_t *v0 = (const int16_t *)(fxp::model(P().models.core, MODEL_Core) + 8);
 		const int16_t *v1 = (const int16_t *)CORE_Shape1;
 		int16_t *out = (int16_t *)(CoreVertices() + n->index * 0x3C0);
 		for (int k = 0; k < CORE_VERTS; k++, v0 += 4, v1 += 4, out += 4)
@@ -1473,6 +1474,12 @@ namespace ultima149
 			{ "director", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(UltimaParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.orbit", "Orbit", "The sprite sequence orbit (a flipbook of 24 frames: an edited one keeps as many)", (uint32_t)offsetof(UltimaParams, seqs.orbit), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 32 frames: an edited one keeps as many)", (uint32_t)offsetof(UltimaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.streak", "Streak model", "The prim model streak (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.streak), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 31 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.energy", "Energy model", "The prim model energy (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.energy), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 217 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.dome", "Dome model", "The prim model dome (a mesh of 217 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.dome), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.core", "Core model", "The prim model core (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.core), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

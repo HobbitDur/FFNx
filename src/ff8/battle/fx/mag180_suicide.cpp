@@ -104,8 +104,9 @@ namespace suicide180
 		uint32_t sound;                      // the fuse at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
 		struct { uint32_t spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t explosion, ring, ring2; } models; // the prim models drawn (meshes)
 	};
-	static const SuicideParams GAME = { 0xD445B4, { 0x26 }, { SEQ_Spark, SEQ_Smoke } };
+	static const SuicideParams GAME = { 0xD445B4, { 0x26 }, { SEQ_Spark, SEQ_Smoke }, { MODEL_Explosion, MODEL_Ring, MODEL_Ring2 } };
 	static SuicideParams live = GAME;
 	static const SuicideParams &P() { return live; }
 
@@ -425,7 +426,7 @@ namespace suicide180
 	// explosion particle's draw header (0x58 block): model, colour 0, mode 0x33
 	static void ExplosionHeader(uint8_t *h)
 	{
-		*(uint32_t *)(h + 0) = MODEL_Explosion;
+		*(uint32_t *)(h + 0) = fxp::model(P().models.explosion, MODEL_Explosion);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 	}
@@ -621,7 +622,7 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag180_suicide_held.inc
 		FX_HELD(held_note_ring(ORIG_Ring, t);)
-		DrawRing(t, MODEL_Ring, 8, shl32(t->counter - 8, 9));
+		DrawRing(t, fxp::model(P().models.ring, MODEL_Ring), 8, shl32(t->counter - 8, 9));
 		if (DrawOnly()) return 0;
 		RingUpdate(t);
 		return t->counter >= 0x10 ? TASK_END : 0;
@@ -632,7 +633,7 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag180_suicide_held.inc
 		FX_HELD(held_note_ring(ORIG_Ring2, t);)
-		DrawRing(t, MODEL_Ring2, 0xA, shl32(t->counter - 0xA, 9));
+		DrawRing(t, fxp::model(P().models.ring2, MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
 		if (DrawOnly()) return 0;
 		Ring2Update(t);
 		return t->counter >= 0x12 ? TASK_END : 0;
@@ -896,6 +897,9 @@ namespace suicide180
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SuicideParams, director.damage), fxp::I16, 0, 50 },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(SuicideParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SuicideParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.explosion", "Explosion model", "The prim model explosion (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SuicideParams, models.explosion), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 234 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SuicideParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ring2", "Ring2 model", "The prim model ring2 (a mesh of 144 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SuicideParams, models.ring2), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

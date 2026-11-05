@@ -108,9 +108,10 @@ namespace drinkmagic
 		struct { int16_t from, until, accel; } streaks;                 // one streak a tick from / until these spawner ticks; its acceleration
 		struct { int16_t appear, scale, fade, hold, spin; } orb;        // the orb at the caster: its tick, scale, fade a tick, hold, spin a tick
 		struct { uint32_t spark, streak, ribbon; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t orb; } models; // the prim models drawn (meshes)
 	};
 	static const DrinkParams GAME = { { 0x15D62E8, 0xF, 0xF }, { 0x28, 0xF, 0 }, { 0x28, 2, 0x80, 0x180 }, { 0xE, 0x3E, 0x30 },
-	                                  { 0xF, 0x1400, 0x100, 0x14, 0xA0 }, { SPARK_FLIPBOOK, STREAK_FLIPBOOK, RIBBON_FLIPBOOK } };
+	                                  { 0xF, 0x1400, 0x100, 0x14, 0xA0 }, { SPARK_FLIPBOOK, STREAK_FLIPBOOK, RIBBON_FLIPBOOK }, { ORB_MODEL } };
 	static DrinkParams live = GAME;
 	static const DrinkParams &PK() { return live; }
 
@@ -3599,7 +3600,7 @@ namespace drinkmagic
 		if (S16(node, 0x24) < PK().orb.appear)
 			return 0; // void
 		U8(node, 0x26) &= 0xFB;
-		U32(node, 0x4C) = ORB_MODEL;
+		U32(node, 0x4C) = fxp::model(PK().models.orb, ORB_MODEL);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(node, 0x2C) * 0x9C;
 		U32(node, 0x30) = (uint32_t)PK().orb.scale;
 		U32(node, 0x34) = (uint32_t)PK().orb.scale;
@@ -3838,6 +3839,7 @@ namespace drinkmagic
 			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrinkParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.streak", "Streak", "The sprite sequence streak (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DrinkParams, seqs.streak), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.ribbon", "Ribbon", "The sprite sequence ribbon (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrinkParams, seqs.ribbon), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.orb", "Orb model", "The prim model orb (a mesh of 276 vertices, 208 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DrinkParams, models.orb), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DK
 	}

@@ -118,8 +118,9 @@ namespace gu066
 		struct { int16_t push; } melt;                   // the shards' push: the caster's size times this / 8192
 		struct { int16_t flash_in, flash_out_from; } flash;   // the screen flash up to its tick (a 64 step), back down from its tick (a 128 step, 16 ticks)
 		struct { uint32_t at_de43e8, at_de4910, at_de423c, at_de45d0, at_de477c; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_de90cc, at_de4a54, at_de97a4, at_de562c, at_de7f54, at_de98e4, at_de87fc; } models; // the prim models drawn (meshes)
 	};
-	static const GDeathParams GAME = { { 0x19, 0x33D, 0x340 }, { 1450 }, { 0x20, 0x281 }, { 0xDE43E8, 0xDE4910, 0xDE423C, 0xDE45D0, 0xDE477C } };
+	static const GDeathParams GAME = { { 0x19, 0x33D, 0x340 }, { 1450 }, { 0x20, 0x281 }, { 0xDE43E8, 0xDE4910, 0xDE423C, 0xDE45D0, 0xDE477C }, { 0xDE90CC, 0xDE4A54, 0xDE97A4, 0xDE562C, 0xDE7F54, 0xDE98E4, 0xDE87FC } };
 	static GDeathParams live = GAME;
 	static const GDeathParams &PG() { return live; }
 	static const uint32_t ORIG_Master = 0x6226E0;
@@ -1039,7 +1040,7 @@ namespace gu066
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		NotePad((uint32_t)h); // (its esp - 4 local)
 		memcpy((void *)(w + 0x10), (const void *)&Camera(), 0x20);
-		h->model = 0xDE90CC;
+		h->model = fxp::model(PG().models.at_de90cc, 0xDE90CC);
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		int32_t count = 0;
 		At<int32_t>(w, 0x70) = 0;
@@ -1137,7 +1138,7 @@ namespace gu066
 		GteSetRotMatrix(&m);
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x58);
 		const int16_t c = Counter(n);
-		h->model = 0xDE4A54;
+		h->model = fxp::model(PG().models.at_de4a54, 0xDE4A54);
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		h->flags = 0x33;
 		if (c >= 2)
@@ -1880,7 +1881,7 @@ namespace gu066
 		At<int16_t>(h, 0x18) = 0;
 		At<uint32_t>(h, 0x10) = 0;
 		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
-		At<uint32_t>(h, 0) = 0xDE97A4;
+		At<uint32_t>(h, 0) = fxp::model(PG().models.at_de97a4, 0xDE97A4);
 		At<int16_t>(h, 0x1A) = 0x80;
 		At<int16_t>(h, 0x1C) = 0x40;
 		At<int16_t>(h, 0x1E) = 0x80;
@@ -1935,7 +1936,7 @@ namespace gu066
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x58);
-		h->model = 0xDE562C;
+		h->model = fxp::model(PG().models.at_de562c, 0xDE562C);
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		h->flags = 0x33;
 		PacketCursor() = RenderPrimModel(h, OT44(), 2, PacketCursor());
@@ -1998,7 +1999,7 @@ namespace gu066
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		const int16_t c = Counter(n);
 		const int32_t start_out = At<int16_t>(n, 0xE) - out;
-		h->model = 0xDE7F54;
+		h->model = fxp::model(PG().models.at_de7f54, 0xDE7F54);
 		h->flags = 0x33;
 		if (c < in)
 		{
@@ -2088,7 +2089,7 @@ namespace gu066
 		GteSetTransVector(&m);
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x58);
 		const int16_t c = Counter(n);
-		h->model = 0xDE98E4;
+		h->model = fxp::model(PG().models.at_de98e4, 0xDE98E4);
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		h->flags = 0x33;
 		if (c < 6)
@@ -2236,7 +2237,7 @@ namespace gu066
 			}
 		}
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
-		h->model = 0xDE90CC;
+		h->model = fxp::model(PG().models.at_de90cc, 0xDE90CC);
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		TransformCameraByShadowRotation((const void *)own::R(0x24C9170), 0x1000, -1000);
 		At<int16_t>(w, 2) = 0;
@@ -2310,7 +2311,7 @@ namespace gu066
 		GteSetRotMatrix(&m);
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x58);
 		const int16_t c = Counter(n);
-		h->model = 0xDE87FC;
+		h->model = fxp::model(PG().models.at_de87fc, 0xDE87FC);
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		h->flags = 0x33;
 		if (c >= 0x16)
@@ -2363,7 +2364,7 @@ namespace gu066
 		ScreenAnchor((const int16_t *)(n + 0x10), 0x1000, 0);
 		GteSetRotMatrix(&m);
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x58);
-		h->model = 0xDE87FC;
+		h->model = fxp::model(PG().models.at_de87fc, 0xDE87FC);
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		h->flags = 0x33;
 		PacketCursor() = RenderPrimModel(h, OT44(), 0xE, PacketCursor());
@@ -2806,6 +2807,13 @@ namespace gu066
 			{ "master", "seqs.at_de423c", "Flipbook DE423C", "The sprite sequence at 0xDE423C (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de423c), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.at_de45d0", "Flipbook DE45D0", "The sprite sequence at 0xDE45D0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de45d0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.at_de477c", "Flipbook DE477C", "The sprite sequence at 0xDE477C (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de477c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "models.at_de90cc", "Model DE90CC", "The prim model at 0xDE90CC (a mesh of 70 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de90cc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_de4a54", "Model DE4A54", "The prim model at 0xDE4A54 (a mesh of 98 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de4a54), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_de97a4", "Model DE97A4", "The prim model at 0xDE97A4 (a mesh of 14 vertices, 6 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de97a4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_de562c", "Model DE562C", "The prim model at 0xDE562C (a mesh of 304 vertices, 288 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de562c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_de7f54", "Model DE7F54", "The prim model at 0xDE7F54 (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de7f54), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_de98e4", "Model DE98E4", "The prim model at 0xDE98E4 (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de98e4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_de87fc", "Model DE87FC", "The prim model at 0xDE87FC (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de87fc), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef GP
 	}

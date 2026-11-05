@@ -109,8 +109,9 @@ namespace lasereye
 		struct { int16_t appear, grow, hold, shrink; } laser;           // the beam: shown at, its width up a tick, held to, down a tick
 		struct { int16_t level, step; } light;                          // the stage light ramps
 		struct { uint32_t at_160de10; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_160d538, at_160dcf8, at_160dc50; } models; // the prim models drawn (meshes)
 	};
-	static const LaserEyeParams GAME = { { 0x160D3E8, 0xA, 0xA }, { 0x14 }, { 0, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x160DE10 } };
+	static const LaserEyeParams GAME = { { 0x160D3E8, 0xA, 0xA }, { 0x14 }, { 0, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x160DE10 }, { 0x160D538, 0x160DCF8, 0x160DC50 } };
 	static LaserEyeParams live = GAME;
 	static const LaserEyeParams &PL() { return live; }
 	static const uint32_t ACTOR_DATA = 0x17CC72C;      // the actor system's data (exe data, relocated once by 0x874410)
@@ -554,7 +555,7 @@ namespace lasereye
 		x::MAG_022_sub_8DD8A0(node + 0x54, (uint32_t)(int32_t)S16(node, 0x46));
 		const int32_t w = S16(node, 0x8C);
 		S32(node, 0x38) = div4864(mul32(w, S16(node, 0x8E)));
-		U32(node, 0x4C) = 0x160D538;
+		U32(node, 0x4C) = fxp::model(PL().models.at_160d538, 0x160D538);
 		// head: the beam's far end = position + (0, 0, -0x80 - width * 0x1300 / 4096) rotated
 		S16(f, 0x18) = 0;
 		S16(f, 0x1A) = 0;
@@ -580,13 +581,13 @@ namespace lasereye
 		U16(node, 0x8E) = len;
 		U16(node, 0x1E) = 0;
 		S32(node, 0x38) = div4864(mul32(w2, (int16_t)len));
-		U32(node, 0x4C) = 0x160DCF8;
+		U32(node, 0x4C) = fxp::model(PL().models.at_160dcf8, 0x160DCF8);
 		cl_878CC0(node, node + 0x54);
 		// third draw while the width is not 0x1000: the flash at the far end, facing the camera,
 		// unscaled (the scale words are put back after the draw)
 		if (U16(node, 0x8C) != 0x1000)
 		{
-			U32(node, 0x4C) = 0x160DC50;
+			U32(node, 0x4C) = fxp::model(PL().models.at_160dc50, 0x160DC50);
 			const uint32_t s0 = U32(node, 0x30);
 			U32(f, 0x1C) = U32(node, 0x34);
 			U32(f, 0x20) = U32(node, 0x38);
@@ -732,7 +733,7 @@ namespace lasereye
 		U32(a1, 0x30) = 0x1000;
 		const uint8_t st = U8(a1, 0x29);
 		U32(a1, 0x20) = e1;
-		U32(a1, 0x4C) = 0x160D538;
+		U32(a1, 0x4C) = fxp::model(PL().models.at_160d538, 0x160D538);
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -2708,6 +2709,9 @@ namespace lasereye
 			DT("laser", laser.hold, "Hold until", "Held at the eye until this tick", 0, 100),
 			DT("laser", laser.shrink, "Shrink", "At the target, its width down by this a tick", 1, 0x1000),
 			{ "emitter", "seqs.at_160de10", "Flipbook 160DE10", "The sprite sequence at 0x160DE10 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(LaserEyeParams, seqs.at_160de10), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.at_160d538", "Model 160D538", "The prim model at 0x160D538 (a mesh of 66 vertices, 88 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeParams, models.at_160d538), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.at_160dcf8", "Model 160DCF8", "The prim model at 0x160DCF8 (a mesh of 10 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeParams, models.at_160dcf8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.at_160dc50", "Model 160DC50", "The prim model at 0x160DC50 (a mesh of 6 vertices, 4 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeParams, models.at_160dc50), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

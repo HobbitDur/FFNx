@@ -115,8 +115,9 @@ namespace wall189
 		uint32_t sound;                  // at the main task's tick 1
 		struct { int16_t result; } main; // the action results at this tick
 		struct { uint32_t dust; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t wall, shard, debris; } models; // the prim models drawn (meshes)
 	};
-	static const WallParams GAME = { 0xD1B3A4, { 0x41 }, { SEQ_Dust } };
+	static const WallParams GAME = { 0xD1B3A4, { 0x41 }, { SEQ_Dust }, { MODEL_Wall, MODEL_Shard, MODEL_Debris } };
 	static WallParams live = GAME;
 	static const WallParams &P() { return live; }
 	static const int DUST_COUNT = 150, DEBRIS_COUNT = 100;
@@ -502,7 +503,7 @@ namespace wall189
 		if (c < WALL_CLIPPED)
 		{
 			ClipHeader *h = (ClipHeader *)FieldAlloc(0x1A8);
-			h->model = (uint8_t *)MODEL_Wall;
+			h->model = (uint8_t *)fxp::model(P().models.wall, MODEL_Wall);
 			h->flags = 0;
 			h->slot[0].v[0] = 0;
 			h->slot[0].v[2] = 0;
@@ -517,7 +518,7 @@ namespace wall189
 		else
 		{
 			uint8_t *h = (uint8_t *)FieldAlloc(0x60);
-			*(uint32_t *)h = MODEL_Wall;
+			*(uint32_t *)h = fxp::model(P().models.wall, MODEL_Wall);
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x1C) = 0;
 			*(uint32_t *)(h + 0x58) = 0xE1000020;
@@ -550,7 +551,7 @@ namespace wall189
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Shard;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_Shard);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= SHARD_FADE)
@@ -687,7 +688,7 @@ namespace wall189
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *w = (uint8_t *)FieldAlloc(0x88);
 		memcpy(w + 0x28, &Camera(), 0x20);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_Debris);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t alive = 0;
@@ -969,6 +970,9 @@ namespace wall189
 			{ "main", "sound", "Sound", "At the main task's tick 1", (uint32_t)offsetof(WallParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "main.result", "Result tick", "The action results at this tick of the main task", (uint32_t)offsetof(WallParams, main.result), fxp::I16, 0, 70 },
 			{ "main", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(WallParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "models.wall", "Wall model", "The prim model wall (a mesh of 144 vertices, 250 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.wall), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "models.shard", "Shard model", "The prim model shard (a mesh of 28 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "models.debris", "Debris model", "The prim model debris (a mesh of 6 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -239,8 +239,9 @@ namespace scan068
 		struct { int16_t approach, view, back, proj; } camera;   // its blend steps a tick (to the target, the close view, the next action's); the projection
 		struct { int16_t follow, grow; } brackets;         // the sliding brackets: ticks on the reticle, then their growth a tick
 		struct { uint32_t at_159462c, at_1594950; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_1592794, at_1592810, at_1591c44, at_159202c, at_159346c, at_15934cc; } models; // the prim models drawn (meshes)
 	};
-	static const ScanParams GAME = { 0x1594994, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 0x159462C, 0x1594950 } };
+	static const ScanParams GAME = { 0x1594994, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 0x159462C, 0x1594950 }, { 0x1592794, 0x1592810, 0x1591C44, 0x159202C, 0x159346C, 0x15934CC } };
 	static ScanParams live = GAME;
 	static const ScanParams &P() { return live; }
 	static const uint32_t INFO_TABLE = 0x1594998;   // 16 bytes per entity class
@@ -991,10 +992,10 @@ namespace scan068
 	static void PairDraw(ModelNode *n)
 	{
 		n->fade = n->fade1;
-		n->model = 0x1592794;
+		n->model = fxp::model(P().models.at_1592794, 0x1592794);
 		DrawHudModel(n, false);
 		n->fade = n->fade2;
-		n->model = 0x1592810;
+		n->model = fxp::model(P().models.at_1592810, 0x1592810);
 		DrawHudModel(n, false);
 	}
 
@@ -1023,7 +1024,7 @@ namespace scan068
 			n->angle[0] = 0x5DC;
 			n->angle[1] = 0x2A0;
 			n->angle[2] = (int16_t)0xF808;
-			n->model = 0x1591C44;
+			n->model = fxp::model(P().models.at_1591c44, 0x1591C44);
 			n->morph_a = 0x159390C;
 			n->morph_b = 0x1593A94;
 			n->fade = 0x1000;
@@ -1056,7 +1057,7 @@ namespace scan068
 			if (n->blend >= 0x1000)
 			{
 				n->blend = 0;
-				n->model = 0x159202C;
+				n->model = fxp::model(P().models.at_159202c, 0x159202C);
 				n->morph_a = 0x1593C1C;
 				n->morph_b = 0x1594124;
 				n->h.phase++;
@@ -1206,7 +1207,7 @@ namespace scan068
 			n->h.pos[0] = (int16_t)-0x88;
 			n->h.pos[1] = (int16_t)-0x3C;
 			n->h.pos[2] = 0x240;
-			n->model = 0x159346C;
+			n->model = fxp::model(P().models.at_159346c, 0x159346C);
 			n->h.phase++;
 			break;
 		case 1: // 0x7DE1C0: bars 1..7 of table 1
@@ -1245,7 +1246,7 @@ namespace scan068
 			n->h.pos[0] = (int16_t)-0x200;
 			n->h.pos[1] = 0;
 			n->h.pos[2] = 0x6C0;
-			n->model = 0x15934CC;
+			n->model = fxp::model(P().models.at_15934cc, 0x15934CC);
 			n->angle[1] = 0x400;
 			n->h.phase++;
 			break;
@@ -1614,6 +1615,12 @@ namespace scan068
 			SP("scanner", brackets.grow, "Grow", "Their growth a tick when sliding out (4096: their size)", 0, 0x2000),
 			{ "scanner", "seqs.at_159462c", "Flipbook 159462C", "The sprite sequence at 0x159462C (a flipbook of 32 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_159462c), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "scanner", "seqs.at_1594950", "Flipbook 1594950", "The sprite sequence at 0x1594950 (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_1594950), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_1592794", "Model 1592794", "The prim model at 0x1592794 (a mesh of 5 vertices, 3 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_1592794), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_1592810", "Model 1592810", "The prim model at 0x1592810 (a mesh of 5 vertices, 3 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_1592810), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_1591c44", "Model 1591C44", "The prim model at 0x1591C44 (a mesh of 48 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_1591c44), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_159202c", "Model 159202C", "The prim model at 0x159202C (a mesh of 160 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_159202c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_159346c", "Model 159346C", "The prim model at 0x159346C (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_159346c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15934cc", "Model 15934CC", "The prim model at 0x15934CC (a mesh of 6 vertices, 2 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15934cc), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef SP
 	}

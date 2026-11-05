@@ -108,8 +108,9 @@ namespace clash026
 		struct { int16_t first, last, a, b, sparks, radius; } bursts;              // at the caster's bones: their ticks, sparks, sparks' radius
 		struct { int16_t gravity; } knock;                                          // the target's knock-back
 		struct { uint32_t spark, dust; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, wave_a, wave_b; } models; // the prim models drawn (meshes)
 	};
-	static const ClashParams GAME = { { SOUND_Clash, 4, 4, 0x1E, 4 }, { 4, 0x28, 0x11, 0x14, 8, 0x100 }, { 0x30 }, { SEQ_Spark, SEQ_Dust } };
+	static const ClashParams GAME = { { SOUND_Clash, 4, 4, 0x1E, 4 }, { 4, 0x28, 0x11, 0x14, 8, 0x100 }, { 0x30 }, { SEQ_Spark, SEQ_Dust }, { MODEL_Ring, MODEL_WaveA, MODEL_WaveB } };
 	static ClashParams live = GAME;
 	static const ClashParams &PC() { return live; }
 
@@ -345,7 +346,7 @@ namespace clash026
 		S32(a1, 0x38) = 0x100;
 		S32(a1, 0x34) = 0x100;
 		S32(a1, 0x30) = 0x100;
-		U32(a1, 0x4C) = MODEL_Ring;
+		U32(a1, 0x4C) = fxp::model(PC().models.ring, MODEL_Ring);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -384,8 +385,8 @@ namespace clash026
 		U32(a1, 0x4C) = model;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 	}
-	static uint32_t __cdecl WaveAStart(uint32_t a1) { WaveStart(a1, MODEL_WaveA); return 0; }
-	static uint32_t __cdecl WaveBStart(uint32_t a1) { WaveStart(a1, MODEL_WaveB); return 0; }
+	static uint32_t __cdecl WaveAStart(uint32_t a1) { WaveStart(a1, fxp::model(PC().models.wave_a, MODEL_WaveA)); return 0; }
+	static uint32_t __cdecl WaveBStart(uint32_t a1) { WaveStart(a1, fxp::model(PC().models.wave_b, MODEL_WaveB)); return 0; }
 
 	// 0x889110: fade in 0x200 per tick, grow 0x400; at full fade hidden and finished
 	static uint32_t __cdecl WaveAGrow(uint32_t a1)
@@ -945,6 +946,9 @@ namespace clash026
 			DT("bursts", bursts.radius, "Radius", "", 0, 0x1000),
 			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ClashParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ClashParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.wave_a", "Wave a model", "The prim model wave a (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.wave_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.wave_b", "Wave b model", "The prim model wave b (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.wave_b), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

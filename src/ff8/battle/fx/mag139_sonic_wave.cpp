@@ -144,8 +144,9 @@ namespace sonic139
 	{
 		uint32_t sound;   // at the main task's tick 0
 		struct { uint32_t target, main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t at_11d4e90; } model_data; // the prim models drawn (meshes)
 	};
-	static const SonicParams GAME = { 0x11DD338, { MODEL_Target, MODEL_Main } };
+	static const SonicParams GAME = { 0x11DD338, { MODEL_Target, MODEL_Main }, { 0x11D4E90 } };
 	static SonicParams live = GAME;
 	static const SonicParams &P() { return live; }
 	static const uint32_t OT_CAPTURE = 0x4484;           // OT entry 0x1121: the capture area's clearing environment
@@ -807,7 +808,7 @@ namespace sonic139
 	{
 		QueueTimUpload(TexFile());
 		TexBase() = layouts::MagicBuffer();
-		memcpy(MESH(), (const void *)0x11D4E90, 0x9080);
+		memcpy(MESH(), (const void *)fxp::model(P().model_data.at_11d4e90, 0x11D4E90, true), 0x9080);
 		Ctx() = ctx;
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520BE0), 0x14, 1);
@@ -1009,6 +1010,7 @@ namespace sonic139
 			{ "main", "sound", "Sound", "", (uint32_t)offsetof(SonicParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(SonicParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(SonicParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "model_data.at_11d4e90", "Model 11D4E90", "The prim model at 0x11D4E90 (a mesh of 201 vertices, 380 primitives: its code copies it whole into a block of its size: an edited one keeps its vertices and its size (move vertices, change colours and texture corners))", (uint32_t)offsetof(SonicParams, model_data.at_11d4e90), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -148,8 +148,9 @@ namespace scatter192
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t smoke, ground_smoke, impact, dust, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, flash, flash2, blast; } models; // the prim models drawn (meshes)
 	};
-	static const ScatterShotParams GAME = { 0xD18668, { 0xD16B58, 0xD16C30, 0xD16CA4, 0xD16EC8, 0xD17074 } };
+	static const ScatterShotParams GAME = { 0xD18668, { 0xD16B58, 0xD16C30, 0xD16CA4, 0xD16EC8, 0xD17074 }, { 0xD17B58, 0xD17220, 0xD17768, 0xD17DC0 } };
 	static ScatterShotParams live = GAME;
 	static const ScatterShotParams &P() { return live; }
 
@@ -381,7 +382,7 @@ namespace scatter192
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Ring, faded, fade);
+		ModelDraw(fxp::model(P().models.ring, MODEL_Ring), faded, fade);
 	}
 
 	// the smoke at the shot record (camera facing): returns the sequence's +0x28 (< 0: ended)
@@ -540,7 +541,7 @@ namespace scatter192
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag192_scatter_shot_held.inc
 		FX_HELD(held_note_node(ORIG_FlashTask, n);)
-		MuzzleModel(n, n->f18, MODEL_Flash, n->counter == 1, 0xC00);
+		MuzzleModel(n, n->f18, fxp::model(P().models.flash, MODEL_Flash), n->counter == 1, 0xC00);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -552,7 +553,7 @@ namespace scatter192
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag192_scatter_shot_held.inc
 		FX_HELD(held_note_node(ORIG_Flash2Task, n);)
-		MuzzleModel(n, n->f18, MODEL_Flash2, n->counter >= 1, Flash2Fade(n->counter));
+		MuzzleModel(n, n->f18, fxp::model(P().models.flash2, MODEL_Flash2), n->counter >= 1, Flash2Fade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -567,7 +568,7 @@ namespace scatter192
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag192_scatter_shot_held.inc
 		FX_HELD(held_note_node(ORIG_BlastTask, n);)
-		MuzzleModel(n, 0, MODEL_Blast, n->counter >= 1, BlastFade(n->counter));
+		MuzzleModel(n, 0, fxp::model(P().models.blast, MODEL_Blast), n->counter >= 1, BlastFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -1050,6 +1051,10 @@ namespace scatter192
 			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.ring", "Ring model", "The prim model ring (a mesh of 24 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScatterShotParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash", "Flash model", "The prim model flash (a mesh of 56 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScatterShotParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash2", "Flash2 model", "The prim model flash2 (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScatterShotParams, models.flash2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.blast", "Blast model", "The prim model blast (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScatterShotParams, models.blast), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

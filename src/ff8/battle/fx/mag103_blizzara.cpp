@@ -80,8 +80,9 @@ namespace blizzara103
 		uint32_t sound;                   // at the ice block's tick 6 (3D, at the target)
 		struct { int16_t damage; } block; // the damage at this tick of the ice block
 		struct { uint32_t ice; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t block, pillar, burst; } models; // the prim models drawn (meshes)
 	};
-	static const BlizzaraParams GAME = { 0x131E750, { 0x3C }, { 0x13197E4 } };
+	static const BlizzaraParams GAME = { 0x131E750, { 0x3C }, { 0x13197E4 }, { 0x131ABB0, 0x1319990, 0x131A678 } };
 	static BlizzaraParams live = GAME;
 	static const BlizzaraParams &P() { return live; }
 	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };   // per action, in the magic buffer
@@ -275,7 +276,7 @@ namespace blizzara103
 					b->clip_y = 0x7FFF;
 					if (action >= 0 && action < 3)
 					{
-						CopyDwords(TexBase() + MODEL_OFFSET[action], MODEL_Block, 0x72F);
+						CopyDwords(TexBase() + MODEL_OFFSET[action], ((const uint8_t *)fxp::model(P().models.block, (uint32_t)MODEL_Block)), 0x72F);
 						CopyDwords(TexBase() + MODEL_UV_OFFSET[action], MODEL_BlockUV, 0x465);
 						b->model = TexBase() + MODEL_OFFSET[action];
 						b->model2 = TexBase() + MODEL_UV_OFFSET[action];
@@ -688,7 +689,7 @@ namespace blizzara103
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(const void **)h = MODEL_Pillar;
+		*(const void **)h = ((const void *)fxp::model(P().models.pillar, (uint32_t)MODEL_Pillar));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -750,7 +751,7 @@ namespace blizzara103
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = ((const void *)fxp::model(P().models.burst, (uint32_t)MODEL_Burst));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -869,6 +870,9 @@ namespace blizzara103
 			{ "block", "sound", "Sound", "", (uint32_t)offsetof(BlizzaraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "block", "block.damage", "Damage tick", "The damage at this tick of the ice block", (uint32_t)offsetof(BlizzaraParams, block.damage), fxp::I16, 0, 70 },
 			{ "block", "seqs.ice", "Ice", "The sprite sequence ice (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzaraParams, seqs.ice), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "block", "models.block", "Block model", "The prim model block (a mesh of 134 vertices, 223 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.block), fxp::Model, 0, 0x7FFFFFFF },
+			{ "block", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "block", "models.burst", "Burst model", "The prim model burst (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

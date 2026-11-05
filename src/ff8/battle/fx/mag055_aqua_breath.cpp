@@ -99,8 +99,9 @@ namespace aqua
 		struct { int16_t from, until; } splash;                          // the targets' splash drops: from / until these ticks
 		struct { int16_t from, until; } rain;                            // the rain drops round the targets: from / until these ticks
 		struct { uint32_t at_15a3a3c, at_15a3e5c, at_15a3b9c; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t orb; } models; // the prim models drawn (meshes)
 	};
-	static const AquaParams GAME = { { 0x15A38D8, 0x32 }, { 0x600, 0x200, 0x28, 0x100 }, { 0x200, 0xF, 0x200 }, { 4, 0x12 }, { 0x14, 0x1C }, { 0x15A3A3C, 0x15A3E5C, 0x15A3B9C } };
+	static const AquaParams GAME = { { 0x15A38D8, 0x32 }, { 0x600, 0x200, 0x28, 0x100 }, { 0x200, 0xF, 0x200 }, { 4, 0x12 }, { 0x14, 0x1C }, { 0x15A3A3C, 0x15A3E5C, 0x15A3B9C }, { 0x15A4168 } };
 	static AquaParams live = GAME;
 	static const AquaParams &PA() { return live; }
 	static const uint32_t Q_EMITTER = 0x2615838, Q_DIRECTOR = 0x2611088, Q_TASKS = 0x2611190, Q_ORB = 0x2615410, Q_SPARE = 0x2615828;
@@ -753,7 +754,7 @@ namespace aqua
 		U32(node, 0x38) = s;
 		U32(node, 0x34) = s;
 		U32(node, 0x30) = s;
-		U32(node, 0x4C) = ORB_MODEL;
+		U32(node, 0x4C) = fxp::model(PA().models.orb, ORB_MODEL);
 		U16(node, 0x46) = U16(ENT(slot), 0xE);
 		ab_80B5E0(node + 0x1C, slot);
 		const uint8_t st = U8(node, 0x29);
@@ -2290,6 +2291,7 @@ namespace aqua
 			{ "director", "seqs.at_15a3a3c", "Flipbook 15A3A3C", "The sprite sequence at 0x15A3A3C (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaParams, seqs.at_15a3a3c), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.at_15a3e5c", "Flipbook 15A3E5C", "The sprite sequence at 0x15A3E5C (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaParams, seqs.at_15a3e5c), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.at_15a3b9c", "Flipbook 15A3B9C", "The sprite sequence at 0x15A3B9C (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaParams, seqs.at_15a3b9c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.orb", "Orb model", "The prim model orb (a mesh of 312 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AquaParams, models.orb), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

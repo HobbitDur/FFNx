@@ -110,11 +110,12 @@ namespace raybomb010
 		struct { int16_t tick, height, height_rand; } bounce;                          // the party thrown up
 		struct { int16_t in, out, end; } screen;                                       // the screen flash ramps, the end
 		struct { uint32_t dust, puff, spark, charge; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, beam, flash; } models; // the prim models drawn (meshes)
 	};
 	static const RayBombParams GAME = {
 		{ 0xDED524, 0xDED528, 0xA }, { 0x320, 0x3A2 }, { 1, 2, 0x66, 0x190, 0x320 }, { 1, 0x1E, 6, 0x96, 0x8C },
 		{ 0x10, 0x3333, 0x1D4 }, { 0x22, 0x46, 0xA0, 0x800 }, { 0x3B, 0x40, 0x800, 0xE00 }, { 0x51, 0x3924, 0x130C },
-		{ 0x51, 0x54, 30, 0x1F4 }, { 0x52, 2500, 1000 }, { 8, 0x98, 0xA0 }, { 0xDEABB8, 0xDEA9E4, 0xDEAA0C, 0xDEA838 } };
+		{ 0x51, 0x54, 30, 0x1F4 }, { 0x52, 2500, 1000 }, { 8, 0x98, 0xA0 }, { 0xDEABB8, 0xDEA9E4, 0xDEAA0C, 0xDEA838 }, { 0xDEAD64, 0xDED00C, 0xDEC964 } };
 	static RayBombParams live = GAME;
 	static const RayBombParams &P() { return live; }
 
@@ -432,7 +433,7 @@ namespace raybomb010
 	// ------------------------------------------------------------------
 	static void RingHeader(uint8_t *h, const RingNode *p)
 	{
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (p->counter >= 10)
 		{
@@ -547,7 +548,7 @@ namespace raybomb010
 	// ------------------------------------------------------------------
 	static void BeamHeader(uint8_t *h, const BeamNode *p)
 	{
-		*(uint32_t *)h = MODEL_Beam;
+		*(uint32_t *)h = fxp::model(P().models.beam, MODEL_Beam);
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (p->counter >= 3)
 		{
@@ -706,7 +707,7 @@ namespace raybomb010
 		h[9] = 0;
 		h[8] = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Flash;
+		*(uint32_t *)h = fxp::model(P().models.flash, MODEL_Flash);
 		if (p->counter < 0x10)
 		{
 			*(int32_t *)(h + 0xC) = (0x10 - p->counter) << 8;
@@ -1185,6 +1186,9 @@ namespace raybomb010
 			{ "timing", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timing", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timing", "seqs.charge", "Charge", "The sprite sequence charge (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.charge), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBombParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "models.beam", "Beam model", "The prim model beam (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBombParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "models.flash", "Flash model", "The prim model flash (a mesh of 55 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBombParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef RB_SOUND
 #undef RB

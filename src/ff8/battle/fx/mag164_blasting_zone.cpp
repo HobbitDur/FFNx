@@ -139,8 +139,9 @@ namespace blast164
 		struct { uint32_t raise, blast; } sounds; // the blade raised, the blast
 		struct { int16_t damage; } director;     // the action results at this tick
 		struct { uint32_t orbit, burst, smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t flarea, flareb, ring, pulse, ball, frame, dome, beam, rock, debris, flash, morph, ringflat, ringflat2, glow, wave, wave2, swirl, shard; } models; // the prim models drawn (meshes)
 	};
-	static const BlastingZoneParams GAME = { { 0xD99C10, 0xD99C14 }, { 0x133 }, { 0xD99748, 0xD999AC, 0xD9961C } };
+	static const BlastingZoneParams GAME = { { 0xD99C10, 0xD99C14 }, { 0x133 }, { 0xD99748, 0xD999AC, 0xD9961C }, { 0xD8F8B8, 0xD909F0, 0xD94FAC, 0xD948C4, 0xD90F00, 0xD92154, 0xD8C130, 0xD9339C, 0xD8B180, 0xD8A048, 0xD8B880, 0xD8D918, 0xD8B610, 0xD95B7C, 0xD8EAA8, 0xD97D6C, 0xD95DEC, 0xD91AD0, 0xD95904 } };
 	static BlastingZoneParams live = GAME;
 	static const BlastingZoneParams &P() { return live; }
 	static const uint32_t GLOW_REF = 0xD99C50;    // reference direction of the blade glow
@@ -1466,7 +1467,7 @@ namespace blast164
 	{
 		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 high half only)
 		FacingMatrix(&m, roll, scale, &n->w10, scale, -(scale >> 4));
-		uint8_t *h = ModelHeader(MODEL_FLAREA, c >= 8, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flarea, MODEL_FLAREA), c >= 8, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1500,7 +1501,7 @@ namespace blast164
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(&n->w10, scale, -(scale >> 4));
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_FLAREB, c < 8, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flareb, MODEL_FLAREB), c < 8, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		ang[2] = (int16_t)-roll;
 		ComposeZYXRotationMatrix(ang, &m);
@@ -1528,7 +1529,7 @@ namespace blast164
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, yaw, &n->w10, n->w1C, sy, n->w1C, &Camera());
-		uint8_t *h = ModelHeader(MODEL_RING, c < 6 || c >= 0x18, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.ring, MODEL_RING), c < 6 || c >= 0x18, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1561,7 +1562,7 @@ namespace blast164
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, yaw, &n->w10, sx, sy, sx, &Camera());
-		uint8_t *h = ModelHeader(MODEL_PULSE, fade_on, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.pulse, MODEL_PULSE), fade_on, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1641,7 +1642,7 @@ namespace blast164
 	static void BallDraw(const Node24 *n, int16_t scale, int32_t c, int32_t fade)
 	{
 		TransformCameraByShadowRotation(&n->w10, scale, -n->w16);
-		uint8_t *h = ModelHeader(MODEL_BALL, c >= 0x14, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.ball, MODEL_BALL), c >= 0x14, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1665,7 +1666,7 @@ namespace blast164
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, 0, &n->w10, s, s, s, view);
-		uint8_t *h = ModelHeader(MODEL_FRAME, c >= 4, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.frame, MODEL_FRAME), c >= 4, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1691,7 +1692,7 @@ namespace blast164
 		WorldMatrix(&m, 0, 0, &n->w10, sx, sy, sx, &Camera());
 		RenderHeader *h = (RenderHeader *)AllocHeader(0x6C);
 		h->colour = colour;
-		h->model = MODEL_DOME;
+		h->model = fxp::model(P().models.dome, MODEL_DOME);
 		*(uint32_t *)h->far_rgb = 0;
 		h->flags = 0x33;
 		cursor = RenderModel(h, RenderOT(), shift, cursor);
@@ -1752,7 +1753,7 @@ namespace blast164
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_BEAM;
+		*(uint32_t *)h = fxp::model(P().models.beam, MODEL_BEAM);
 		*(int32_t *)(h + 0xC) = 0xA00;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xCC;
@@ -1797,7 +1798,7 @@ namespace blast164
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(pos, n->w1C, 0);
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_ROCK, false, 0);
+		uint8_t *h = ModelHeader(fxp::model(P().models.rock, MODEL_ROCK), false, 0);
 		FrameArena() = RenderPrimModel(h, RenderOT(), 2, FrameArena());
 		FieldFree(0x58);
 	}
@@ -1819,7 +1820,7 @@ namespace blast164
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, yaw, &n->w10, sx, sy, sx, &Camera());
-		uint8_t *h = ModelHeader(MODEL_DEBRIS, c >= 0xC, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.debris, MODEL_DEBRIS), c >= 0xC, fade);
 		FrameArena() = RenderPrimModel(h, RenderOT(), 2, FrameArena());
 		FieldFree(0x58);
 	}
@@ -1868,7 +1869,7 @@ namespace blast164
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_FLASH;
+		*(uint32_t *)h = fxp::model(P().models.flash, MODEL_FLASH);
 		*(int32_t *)(h + 0xC) = 0x400;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xCC;
@@ -1947,7 +1948,7 @@ namespace blast164
 	{
 		RenderHeader *h = (RenderHeader *)AllocHeader(0x6C);
 		h->fade = n->w18;
-		h->model = MODEL_MORPH;
+		h->model = fxp::model(P().models.morph, MODEL_MORPH);
 		*(uint32_t *)h->far_rgb = 0;
 		h->flags = 0x20F3;
 		h->verts = (uint32_t)verts;
@@ -1994,7 +1995,7 @@ namespace blast164
 		Node24 *n = (Node24 *)tn;
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_RingFlat, n);)
-		RingFlatDraw(n, MODEL_RINGFLAT, n->w18, n->w1C, n->c < 4, shl32(4 - n->c, 0xA));
+		RingFlatDraw(n, fxp::model(P().models.ringflat, MODEL_RINGFLAT), n->w18, n->w1C, n->c < 4, shl32(4 - n->c, 0xA));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -2009,7 +2010,7 @@ namespace blast164
 		Node24 *n = (Node24 *)tn;
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_RingFlat2, n);)
-		RingFlatDraw(n, MODEL_RINGFLAT2, n->w18, n->w1C, n->c >= 2, shl32(n->c - 2, 8));
+		RingFlatDraw(n, fxp::model(P().models.ringflat2, MODEL_RINGFLAT2), n->w18, n->w1C, n->c >= 2, shl32(n->c - 2, 8));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -2040,7 +2041,7 @@ namespace blast164
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		RenderHeader *h = (RenderHeader *)AllocHeader(0x6C);
-		h->model = MODEL_GLOW;
+		h->model = fxp::model(P().models.glow, MODEL_GLOW);
 		*(uint32_t *)h->far_rgb = 0;
 		h->flags = 0x33;
 		if (c >= 0x39)
@@ -2077,7 +2078,7 @@ namespace blast164
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_WAVE;
+		*(uint32_t *)h = fxp::model(P().models.wave, MODEL_WAVE);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1E) = 0x80;
@@ -2122,7 +2123,7 @@ namespace blast164
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x7C);
 		*(int32_t *)(h + 0x14) = scroll;
-		*(uint32_t *)h = MODEL_WAVE2;
+		*(uint32_t *)h = fxp::model(P().models.wave2, MODEL_WAVE2);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x18) = 0;
@@ -2266,7 +2267,7 @@ namespace blast164
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_SWIRL;
+		*(uint32_t *)h = fxp::model(P().models.swirl, MODEL_SWIRL);
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1E) = 0x80;
 	}
@@ -2576,7 +2577,7 @@ namespace blast164
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		*(uint32_t *)(h + 8) = 0;
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Shard, n, h);)
@@ -2765,6 +2766,25 @@ namespace blast164
 			{ "director", "seqs.orbit", "Orbit", "The sprite sequence orbit (a flipbook of 23 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastingZoneParams, seqs.orbit), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 23 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastingZoneParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastingZoneParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.flarea", "Flarea model", "The prim model flarea (a mesh of 158 vertices, 136 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.flarea), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flareb", "Flareb model", "The prim model flareb (a mesh of 49 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.flareb), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 93 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.pulse", "Pulse model", "The prim model pulse (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.pulse), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ball", "Ball model", "The prim model ball (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.ball), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.frame", "Frame model", "The prim model frame (a mesh of 160 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.frame), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.dome", "Dome model", "The prim model dome (a mesh of 226 vertices, 180 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.dome), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.beam", "Beam model", "The prim model beam (a mesh of 168 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.rock", "Rock model", "The prim model rock (a mesh of 45 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.debris", "Debris model", "The prim model debris (a mesh of 186 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.morph", "Morph model", "The prim model morph (a mesh of 105 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.morph), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ringflat", "Ringflat model", "The prim model ringflat (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.ringflat), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ringflat2", "Ringflat2 model", "The prim model ringflat2 (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.ringflat2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.glow", "Glow model", "The prim model glow (a mesh of 133 vertices, 104 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wave", "Wave model", "The prim model wave (a mesh of 177 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wave2", "Wave2 model", "The prim model wave2 (a mesh of 247 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.wave2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.swirl", "Swirl model", "The prim model swirl (a mesh of 49 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.swirl), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 23 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

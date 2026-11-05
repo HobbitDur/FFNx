@@ -127,8 +127,9 @@ namespace badbreath300
 		uint32_t sound;   // the breath task's counter 10
 		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t model_1, model_2; } model_data; // the prim models drawn (meshes)
 	};
-	static const BadBreath300Params GAME = { 0x10430F4, { MODEL_Hit }, { SEQ_Smoke } };
+	static const BadBreath300Params GAME = { 0x10430F4, { MODEL_Hit }, { SEQ_Smoke }, { 0x103FA04, 0x1040E84 } };
 	static BadBreath300Params live = GAME;
 	static const BadBreath300Params &P() { return live; }
 	static const uint32_t VERTS = 0x85C;                  // magic buffer: swirled mesh vertices / morph output
@@ -672,7 +673,7 @@ namespace badbreath300
 			GteSetRotMatrix(&rot);
 			GteZeroTrans();
 			const uint32_t verts = TexBase() + VERTS;
-			SwirlVertices(MESH1, e->phase, (int16_t *)verts);
+			SwirlVertices(((uint8_t *)fxp::model(P().model_data.model_1, (uint32_t)MESH1)), e->phase, (int16_t *)verts);
 			const int16_t x = SweepX(t, e->width);
 			const int16_t y = e->y, z = e->z;
 			if (e->next < e->count)
@@ -720,16 +721,16 @@ namespace badbreath300
 			*(uint16_t *)(h + 0x1A) = 0;
 			*(uint16_t *)(h + 0x1C) = 0x80;
 			*(uint16_t *)(h + 0xC) = (uint16_t)((uint8_t)t * 10 & 0x7F);
-			*(uint8_t **)h = MESH1;
+			*(uint8_t **)h = ((uint8_t *)fxp::model(P().model_data.model_1, (uint32_t)MESH1));
 			*(uint32_t *)(h + 0x20) = verts;
 			PacketCursor() = MeshDraw(h, RenderOT44(), 2, PacketCursor());
 			RotZ((int16_t)-e->angle, &rot);
 			GteSetRotMatrix(&rot);
 			GteZeroTrans();
-			SwirlVertices(MESH2, (int32_t)e->phase + 0x400, (int16_t *)verts);
+			SwirlVertices(((uint8_t *)fxp::model(P().model_data.model_2, (uint32_t)MESH2)), (int32_t)e->phase + 0x400, (int16_t *)verts);
 			GteSetRotMatrix(&MeshFrame());
 			GteSetTransVector(&MeshFrame());
-			*(uint8_t **)h = MESH2;
+			*(uint8_t **)h = ((uint8_t *)fxp::model(P().model_data.model_2, (uint32_t)MESH2));
 			PacketCursor() = MeshDraw(h, RenderOT44(), 2, PacketCursor());
 			FieldFree(0x5C);
 			if (t == 0) PartyReact(2);
@@ -810,8 +811,8 @@ namespace badbreath300
 					}
 				}
 			}
-			NormalizeDepth(MESH1);
-			NormalizeDepth(MESH2);
+			NormalizeDepth(((uint8_t *)fxp::model(P().model_data.model_1, (uint32_t)MESH1)));
+			NormalizeDepth(((uint8_t *)fxp::model(P().model_data.model_2, (uint32_t)MESH2)));
 			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, COM_Anim);
 			QueueChainTransformation(Caster(), 1);
 		}
@@ -837,6 +838,8 @@ namespace badbreath300
 			{ "breath", "sound", "Sound", "At counter 10 of the breath task", (uint32_t)offsetof(BadBreath300Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "breath", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(BadBreath300Params, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "breath", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 18 frames: an edited one keeps as many)", (uint32_t)offsetof(BadBreath300Params, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "breath", "model_data.model_1", "Model 1 model", "The prim model model 1 (a mesh of 165 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BadBreath300Params, model_data.model_1), fxp::Model, 0, 0x7FFFFFFF },
+			{ "breath", "model_data.model_2", "Model 2 model", "The prim model model 2 (a mesh of 165 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BadBreath300Params, model_data.model_2), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

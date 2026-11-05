@@ -104,8 +104,9 @@ namespace helix063
 		struct { int16_t flash, push; } impact;  // the screen flash level; the impact this far from the target towards the caster
 		struct { uint32_t ring, core, impact; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t beam; } model_data; // the prim models drawn (meshes)
 	};
-	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 }, { MODEL_Ring, MODEL_Core, MODEL_Impact }, { SEQ_Particle } };
+	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 }, { MODEL_Ring, MODEL_Core, MODEL_Impact }, { SEQ_Particle }, { MODEL_Beam } };
 	static HelixParams live = GAME;
 	static const HelixParams &P() { return live; }
 
@@ -335,7 +336,7 @@ namespace helix063
 		GteSetTransVector(m);
 		uint8_t *h = b + 0x50;
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = MODEL_Beam;
+		*(uint32_t *)h = fxp::model(P().model_data.beam, MODEL_Beam);
 		*(uint16_t *)(h + 0x2A) = 0x100;
 		*(uint16_t *)(h + 0x28) = 0x100;
 		*(uint16_t *)(h + 0x30) = 0x100;
@@ -673,6 +674,7 @@ namespace helix063
 			{ "master", "layouts.core", "Core", "The prim-model layout core (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.core), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(HelixParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "model_data.beam", "Beam model", "The prim model beam (a mesh of 246 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HelixParams, model_data.beam), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef HP
 	}

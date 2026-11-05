@@ -202,26 +202,33 @@ namespace fxp
 
 	// a prim model parameter (the meshes Effect_RenderPrimModel 0x572200 draws, FF8UltimateEditor's
 	// FF8GameData/psxgpu/primmodel.py their format): its address when it reads as one - in the exe image
-	// or a data block, aligned, its header (lists at 8 + 8 x vertices), at least the game's vertices (its
-	// code may read, morph or bound them by number) and its 8 primitive lists inside what it lies in -
-	// else the game's
-	inline uint32_t model(uint32_t address, uint32_t game)
+	// or a data block, aligned, its header (lists at 8 + 8 x vertices), the game's vertex count (its code
+	// may read, morph, bend or bound them by number, into blocks of that many) and its 8 primitive lists
+	// inside what it lies in - else the game's. same_size: its code copies the model whole into a block of
+	// the game model's size - the edited one has as many bytes too
+	inline uint32_t model_size(uint32_t address, uint32_t end)
+	{
+		static const uint32_t record[8] = { 12, 12, 20, 24, 20, 24, 28, 36 };   // F3 F4 FT3 FT4 G3 G4 GT3 GT4
+		uint32_t at = address + *(const uint32_t *)address;
+		for (uint32_t k = 0; k < 8; k++)
+		{
+			if (at + 4 > end) return 0;
+			const uint32_t count = *(const uint32_t *)at;
+			if (count > 4096 || at + 4 + count * record[k] > end) return 0;
+			at += 4 + count * record[k];
+		}
+		return at - address;
+	}
+	inline uint32_t model(uint32_t address, uint32_t game, bool same_size = false)
 	{
 		if (address == game || address & 3) return game;
 		const uint32_t end = data_end(address, 8);
 		if (!end) return game;
 		const uint32_t lists = *(const uint32_t *)address, vertices = *(const uint32_t *)(address + 4);
-		if (vertices == 0 || vertices > 4096 || lists != 8 + 8 * vertices) return game;
-		if (vertices < *(const uint32_t *)(game + 4)) return game;
-		static const uint32_t record[8] = { 12, 12, 20, 24, 20, 24, 28, 36 };   // F3 F4 FT3 FT4 G3 G4 GT3 GT4
-		uint32_t at = address + lists;
-		for (uint32_t k = 0; k < 8; k++)
-		{
-			if (at + 4 > end) return game;
-			const uint32_t count = *(const uint32_t *)at;
-			if (count > 4096 || at + 4 + count * record[k] > end) return game;
-			at += 4 + count * record[k];
-		}
+		const uint32_t game_vertices = *(const uint32_t *)(game + 4);
+		if (vertices != game_vertices || lists != 8 + 8 * vertices) return game;
+		const uint32_t size = model_size(address, end);
+		if (!size || (same_size && size != model_size(game, data_end(game, 8)))) return game;
 		return address;
 	}
 

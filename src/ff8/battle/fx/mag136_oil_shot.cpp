@@ -142,8 +142,9 @@ namespace oil136
 		struct { int16_t damage; } shot; // the damage at this tick of the shot
 		struct { uint32_t splash, stream, fall, mouth, hit, pool; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spray, splat; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main; } model_data; // the prim models drawn (meshes)
 	};
-	static const OilParams GAME = { 0x11F81CC, { 0x3E }, { MODEL_Splash, MODEL_Stream, MODEL_Fall, MODEL_Mouth, MODEL_Hit, MODEL_Pool }, { SEQ_Spray, SEQ_Splat } };
+	static const OilParams GAME = { 0x11F81CC, { 0x3E }, { MODEL_Splash, MODEL_Stream, MODEL_Fall, MODEL_Mouth, MODEL_Hit, MODEL_Pool }, { SEQ_Spray, SEQ_Splat }, { 0x11F2684 } };
 	static OilParams live = GAME;
 	static const OilParams &PO() { return live; }   // (P: the shot task's stream point)
 
@@ -865,7 +866,7 @@ namespace oil136
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
-		*(uint8_t **)h = MESH;
+		*(uint8_t **)h = ((uint8_t *)fxp::model(PO().model_data.main, (uint32_t)MESH));
 		*(uint32_t *)(h + 4) = verts;
 		*(uint16_t *)(h + 0x16) = 0;
 		*(uint16_t *)(h + 0x14) = 0;
@@ -938,7 +939,7 @@ namespace oil136
 				RotZ((k & 0xFF) << 8, &M);
 				GteSetRotMatrix(&M);
 				GteZeroTrans();
-				WobbleMesh(MESH, sine, (int16_t *)(TexBase() + VERTS));
+				WobbleMesh(((uint8_t *)fxp::model(PO().model_data.main, (uint32_t)MESH)), sine, (int16_t *)(TexBase() + VERTS));
 				StreamPoint(w, s, sine, P);
 				StreamBasis(P, w->prev, &M);
 				StreamNode *d = (StreamNode *)AddTaskToQueue(QStreams(), own::Fn(ORIG_StreamTask));
@@ -1052,7 +1053,7 @@ namespace oil136
 		DecodeModelPrimLayout(fxp::layout(PO().layouts.mouth, MODEL_Mouth, 0xC8), w->mouth, 0xC8);
 		DecodeModelPrimLayout(fxp::layout(PO().layouts.hit, MODEL_Hit, 0x1F4), w->hit, 0x1F4);
 		DecodeModelPrimLayout(fxp::layout(PO().layouts.pool, MODEL_Pool, 0x184), w->pool, 0x184);
-		NormalizeMesh(MESH);
+		NormalizeMesh(((uint8_t *)fxp::model(PO().model_data.main, (uint32_t)MESH)));
 	}
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)
@@ -1106,6 +1107,7 @@ namespace oil136
 			{ "shot", "layouts.pool", "Pool", "The prim-model layout pool (its models' animation)", (uint32_t)offsetof(OilParams, layouts.pool), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(OilParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OilParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "model_data.main", "Main model", "The prim model main (a mesh of 108 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OilParams, model_data.main), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

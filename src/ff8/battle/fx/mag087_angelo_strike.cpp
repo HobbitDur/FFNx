@@ -83,8 +83,9 @@ namespace strike87
 		struct { uint32_t run, slam; } sounds;    // Angelo's run, the slam
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
 		struct { uint32_t at_1557d34; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_155aa5c, at_1557fbc, at_155adf4, at_155b12c; } models; // the prim models drawn (meshes)
 	};
-	static const StrikeParams GAME = { { SOUND_A, SOUND_B }, { 0x48 }, { 0x1557D34 } };
+	static const StrikeParams GAME = { { SOUND_A, SOUND_B }, { 0x48 }, { 0x1557D34 }, { 0x155AA5C, 0x1557FBC, 0x155ADF4, 0x155B12C } };
 	static StrikeParams live = GAME;
 	static const StrikeParams &PC() { return live; }
 
@@ -2377,7 +2378,7 @@ namespace strike87
 		U16(B, 0xA) = 0x8001;
 		U16(B, 8) = 0x8001;
 		U16(B, 6) = 0x8001;
-		ak_778A20(0x155AA5C, B);
+		ak_778A20(fxp::model(PC().models.at_155aa5c, 0x155AA5C), B);
 		U32(Q, 0) = U32(a1, 0x4C);
 		U32(Q, 4) = U32(a1, 0x50);
 		U16(Q, 2) = 0;
@@ -4113,7 +4114,7 @@ namespace strike87
 		S32(a1, 0x38) = 0x800;
 		S32(a1, 0x34) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = 0x1557FBC;
+		U32(a1, 0x4C) = fxp::model(PC().models.at_1557fbc, 0x1557FBC);
 		U16(a1, 0x52) = 0xFE00;
 		x::GetEffectSpawnPosition(U32(a1, 0x8C), 0xF1, 0, a1 + 0x1C);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -4447,7 +4448,7 @@ namespace strike87
 	uint32_t __cdecl ak_77EB70(uint32_t a1)
 	{
 		const uint32_t r1 = x::CrtRand();
-		U32(a1, 0x4C) = (r1 & 1) ? 0x155AA5C : 0x155ADF4;
+		U32(a1, 0x4C) = (r1 & 1) ? fxp::model(PC().models.at_155aa5c, 0x155AA5C) : fxp::model(PC().models.at_155adf4, 0x155ADF4);
 		const int32_t s = (int32_t)x::CrtRand() % 0xFFF + 0x100;
 		S32(a1, 0x38) = s;
 		S32(a1, 0x30) = s;
@@ -4479,7 +4480,7 @@ namespace strike87
 	// (0..0x3F), next state
 	uint32_t __cdecl ak_77ECC0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x155B12C;
+		U32(a1, 0x4C) = fxp::model(PC().models.at_155b12c, 0x155B12C);
 		const int32_t s = (int32_t)x::CrtRand() % 0x7FF + 0x800;
 		S32(a1, 0x38) = s;
 		S32(a1, 0x30) = s;
@@ -4677,6 +4678,10 @@ namespace strike87
 			{ "director", "sounds.slam", "Slam", "", (uint32_t)offsetof(StrikeParams, sounds.slam), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(StrikeParams, director.damage), fxp::I16, 0, 0x200 },
 			{ "director", "seqs.at_1557d34", "Flipbook 1557D34", "The sprite sequence at 0x1557D34 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(StrikeParams, seqs.at_1557d34), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.at_155aa5c", "Model 155AA5C", "The prim model at 0x155AA5C (a mesh of 20 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StrikeParams, models.at_155aa5c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_1557fbc", "Model 1557FBC", "The prim model at 0x1557FBC (a mesh of 279 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StrikeParams, models.at_1557fbc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_155adf4", "Model 155ADF4", "The prim model at 0x155ADF4 (a mesh of 18 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StrikeParams, models.at_155adf4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_155b12c", "Model 155B12C", "The prim model at 0x155B12C (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StrikeParams, models.at_155b12c), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 

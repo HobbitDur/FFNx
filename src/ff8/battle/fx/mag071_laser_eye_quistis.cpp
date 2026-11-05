@@ -127,8 +127,9 @@ namespace laser_eye_quistis
 		struct { int16_t appear, grow, hold, shrink; } laser;           // a beam: shown at, its width up a tick, held to, down a tick
 		struct { int16_t level, step; } light;                          // the stage light ramps
 		struct { uint32_t at_158ff60; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_158f688, at_158fe48, at_158fda0; } models; // the prim models drawn (meshes)
 	};
-	static const LaserEyeQParams GAME = { { 0xA, 0x19 }, { 0x158F530, 0xE, 0x12 }, { 0xF }, { 0x12, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x158FF60 } };
+	static const LaserEyeQParams GAME = { { 0xA, 0x19 }, { 0x158F530, 0xE, 0x12 }, { 0xF }, { 0x12, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x158FF60 }, { 0x158F688, 0x158FE48, 0x158FDA0 } };
 	static LaserEyeQParams live = GAME;
 	static const LaserEyeQParams &PL() { return live; }
 	static const uint32_t BIND_Block = 0x25FCDA8;      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -642,7 +643,7 @@ namespace laser_eye_quistis
 		callp(U32(f, 0x28 + 4 * S8(node, 0x29)), node);
 		x::MAG_022_sub_8DD8A0(node + 0x54, (uint32_t)(int32_t)S16(node, 0x46));
 		const int32_t w = S16(node, 0x8C);
-		U32(node, 0x4C) = 0x158F688;
+		U32(node, 0x4C) = fxp::model(PL().models.at_158f688, 0x158F688);
 		S16(f, 0x18) = 0;
 		S16(f, 0x1A) = 0;
 		S32(node, 0x38) = div4864(mul32(w, S16(node, 0x8E)));
@@ -669,13 +670,13 @@ namespace laser_eye_quistis
 		U16(node, 0x1E) = 0;
 		const int32_t w2 = S16(node, 0x8C);
 		S32(node, 0x38) = div4864(mul32((int16_t)len, w2));
-		U32(node, 0x4C) = 0x158FE48;
+		U32(node, 0x4C) = fxp::model(PL().models.at_158fe48, 0x158FE48);
 		cl_7DB9B0(node, node + 0x54);
 		// third draw while the width is not 0x1000: the flash at the far end, facing the camera,
 		// unscaled (the scale words are put back after the draw)
 		if (U16(node, 0x8C) != 0x1000)
 		{
-			U32(node, 0x4C) = 0x158FDA0;
+			U32(node, 0x4C) = fxp::model(PL().models.at_158fda0, 0x158FDA0);
 			const uint32_t s0 = U32(node, 0x30);
 			U32(f, 0x1C) = U32(node, 0x34);
 			U32(f, 0x20) = U32(node, 0x38);
@@ -820,7 +821,7 @@ namespace laser_eye_quistis
 		U32(a1, 0x34) = 0x400;
 		const uint8_t st = U8(a1, 0x29);
 		U32(a1, 0x20) = e1;
-		U32(a1, 0x4C) = 0x158F688;
+		U32(a1, 0x4C) = fxp::model(PL().models.at_158f688, 0x158F688);
 		U32(a1, 0x38) = 0x1000;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
@@ -2800,6 +2801,9 @@ namespace laser_eye_quistis
 			DT("laser", laser.hold, "Hold until", "Held at the eye until this tick", 0, 100),
 			DT("laser", laser.shrink, "Shrink", "At the target, its width down by this a tick", 1, 0x1000),
 			{ "emitter", "seqs.at_158ff60", "Flipbook 158FF60", "The sprite sequence at 0x158FF60 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(LaserEyeQParams, seqs.at_158ff60), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.at_158f688", "Model 158F688", "The prim model at 0x158F688 (a mesh of 66 vertices, 88 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeQParams, models.at_158f688), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.at_158fe48", "Model 158FE48", "The prim model at 0x158FE48 (a mesh of 10 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeQParams, models.at_158fe48), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.at_158fda0", "Model 158FDA0", "The prim model at 0x158FDA0 (a mesh of 6 vertices, 4 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeQParams, models.at_158fda0), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

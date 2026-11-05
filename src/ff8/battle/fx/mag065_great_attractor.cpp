@@ -132,8 +132,9 @@ namespace ga065
 		struct { uint32_t start, layouts, beams, swirl, pull, vortex; } sounds;   // the six sounds of the timeline
 		struct { int16_t sink, away, damage; } master;   // the caster's sinking a tick (ticks 1..0x1F); the targets moved away at 0x20; the damage tick
 		struct { uint32_t sprite; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_133822c, at_133a0fc, at_1334ffc, at_1336924; } models; // the prim models drawn (meshes)
 	};
-	static const AttractorParams GAME = { { 0x133AB6C, 0x133AB70, 0x133AB74, 0x133AB78, 0x133AB7C, 0x133AB80 }, { 0x142, 0x2710, 0x224 }, { SPRITE_SEQ } };
+	static const AttractorParams GAME = { { 0x133AB6C, 0x133AB70, 0x133AB74, 0x133AB78, 0x133AB7C, 0x133AB80 }, { 0x142, 0x2710, 0x224 }, { SPRITE_SEQ }, { 0x133822C, 0x133A0FC, 0x1334FFC, 0x1336924 } };
 	static AttractorParams live = GAME;
 	static const AttractorParams &PA() { return live; }
 
@@ -1525,7 +1526,7 @@ namespace ga065
 	// 0x6E4710: a bent beam from p0 to p1 (basis along p1 - p0, x mirrored on z)
 	static void Beam(const int16_t *p0, const int16_t *p1, int32_t a, int32_t b)
 	{
-		BendBeam((const uint8_t *)0x133822C, (uint8_t *)(TexBase() + 0x6CB8), a, b);
+		BendBeam((const uint8_t *)fxp::model(PA().models.at_133822c, 0x133822C), (uint8_t *)(TexBase() + 0x6CB8), a, b);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x9C);
 		int32_t *d = (int32_t *)h;
 		d[0] = p1[0] - p0[0];
@@ -1540,7 +1541,7 @@ namespace ga065
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		uint8_t *p = h + 0x30;
-		F<uint32_t>(p, 0) = 0x133822C;
+		F<uint32_t>(p, 0) = fxp::model(PA().models.at_133822c, 0x133822C);
 		F<uint32_t>(p, 0x1C) = 0x2030;
 		F<uint32_t>(p, 4) = TexBase() + 0x6CB8;
 		F<uint32_t>(p, 0x20) = 0;
@@ -1612,7 +1613,7 @@ namespace ga065
 		F<uint32_t>(p, 0) = model;
 		F<int32_t>(p, 0x18) = -0x800;
 		PacketCursor() = RenderPrimSet(p, OT(0x44), 2, PacketCursor());
-		TwistRay((const uint8_t *)0x133A0FC, (uint8_t *)(TexBase() + 0x6CB8), sdiv_pow2(mul32(bend, sign), 2), fade);
+		TwistRay((const uint8_t *)fxp::model(PA().models.at_133a0fc, 0x133A0FC), (uint8_t *)(TexBase() + 0x6CB8), sdiv_pow2(mul32(bend, sign), 2), fade);
 		basis->t[0] = from[0];
 		basis->t[1] = from[1];
 		basis->t[2] = from[2];
@@ -1623,7 +1624,7 @@ namespace ga065
 		ComposeAffineTransform(&Camera(), basis, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		F<uint32_t>(p, 0) = 0x133A0FC;
+		F<uint32_t>(p, 0) = fxp::model(PA().models.at_133a0fc, 0x133A0FC);
 		F<uint32_t>(p, 0x1C) = 0x2030;
 		F<uint32_t>(p, 4) = TexBase() + 0x6CB8;
 		F<int32_t>(p, 0x18) = -0x400;
@@ -1954,8 +1955,8 @@ namespace ga065
 				else *(uint16_t *)Caster() &= 0xFFF7;
 				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_backdrop(0, (int32_t)s, size);)
-				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, 0, 0x800C, 0x800, 0x1334FFC, PacketCursor());
-				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, shl32((int32_t)s, 5), 0x8030, -0x200, 0x1336924, PacketCursor());
+				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, 0, 0x800C, 0x800, fxp::model(PA().models.at_1334ffc, 0x1334FFC), PacketCursor());
+				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, shl32((int32_t)s, 5), 0x8030, -0x200, fxp::model(PA().models.at_1336924, 0x1336924), PacketCursor());
 				PacketCursor() = Stars(0, CasterPos()[0], 0, CasterPos()[2], sdiv_pow2(size, 2), PacketCursor());
 				if (Pause() == 0) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - PA().master.sink);
 			}
@@ -1966,7 +1967,7 @@ namespace ga065
 			*(uint8_t *)0x1D98A15 &= 0xFD;
 			// 30 fps layer: see mag065_great_attractor_held.inc
 			FX_HELD(held_note_backdrop(1, 0, 0);)
-			FrameArena() = Billboard(CasterPos()[0], 0, CasterPos()[2], 0, 0x1000, 0, 0xC, 0, 0x1334FFC, FrameArena());
+			FrameArena() = Billboard(CasterPos()[0], 0, CasterPos()[2], 0, 0x1000, 0, 0xC, 0, fxp::model(PA().models.at_1334ffc, 0x1334FFC), FrameArena());
 			FrameArena() = Stars(0, CasterPos()[0], 0, CasterPos()[2], 0x10000, FrameArena());
 		}
 		// 0x2A..0x36 / 0x37..0x42: the mirrored layouts
@@ -2615,6 +2616,10 @@ namespace ga065
 			GP("master", master.away, "Targets away", "The targets moved this far away at tick 0x20 (back at 0x21E)", -0x7FFF, 0x7FFF),
 			GP("master", master.damage, "Damage tick", "", 0, 0x227),
 			{ "master", "seqs.sprite", "Sprite", "The sprite sequence sprite (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(AttractorParams, seqs.sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "models.at_133822c", "Model 133822C", "The prim model at 0x133822C (a mesh of 306 vertices, 150 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AttractorParams, models.at_133822c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_133a0fc", "Model 133A0FC", "The prim model at 0x133A0FC (a mesh of 104 vertices, 50 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AttractorParams, models.at_133a0fc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_1334ffc", "Model 1334FFC", "The prim model at 0x1334FFC (a mesh of 144 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AttractorParams, models.at_1334ffc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.at_1336924", "Model 1336924", "The prim model at 0x1336924 (a mesh of 220 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AttractorParams, models.at_1336924), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef GP
 	}

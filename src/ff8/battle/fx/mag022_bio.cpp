@@ -268,8 +268,9 @@ namespace bio022
 		struct { uint32_t sound; int16_t bubbles, pools, pools_every, blob, mists, overlay; } emitter;   // its sound; its spawns' ticks
 		struct { int16_t cycles, spin; } blob;                                                         // the boiling blob bursts after these key shapes
 		struct { uint32_t splash_a, splash_b, droplet, mist_a, mist_b, bubble_a, bubble_b; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t pool, splat, blob, blob_boil; } models; // the prim models drawn (meshes)
 	};
-	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 }, { 0x1614F74, 0x1615120, 0x16156F8, 0x1615858, 0x16155B4, 0x16152CC, 0x1615440 } };
+	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 }, { 0x1614F74, 0x1615120, 0x16156F8, 0x1615858, 0x16155B4, 0x16152CC, 0x1615440 }, { 0x1615CE4, 0x1617E3C, 0x1619888, 0x161F750 } };
 	static BioParams live = GAME;
 	static const BioParams &P() { return live; }
 	static const uint32_t STAGE_WOBBLE = 0x1D98990;       // 4 stage groups of 0x2C bytes: +2 amplitude
@@ -639,7 +640,7 @@ namespace bio022
 		m->offs_to[0] = (int16_t)(m->offs[0] * 2);
 		int32_t lift = mul32(s, 640) / 2 / 4096;
 		m->key_b = 1;
-		m->mesh = (uint8_t *)MESH_Pool;
+		m->mesh = (uint8_t *)fxp::model(P().models.pool, MESH_Pool);
 		m->offs_to[1] = (int16_t)((int16_t)-e->center[1] - lift);
 		m->spin = e->spin;
 		m->key_a = 0;
@@ -666,7 +667,7 @@ namespace bio022
 			EmitterNode *e = (EmitterNode *)m->h.emitter;
 			int16_t steps = (int16_t)(0x1E - e->h.counter);
 			int16_t sd = (int16_t)((int16_t)m->scale[0] - e->scale);
-			m->mesh = (uint8_t *)MESH_Splat;
+			m->mesh = (uint8_t *)fxp::model(P().models.splat, MESH_Splat);
 			m->key_a = 5;
 			m->steps = steps;
 			uint16_t sp = (uint16_t)((uint16_t)(m->spin - e->spin) & 0xFFF);
@@ -817,7 +818,7 @@ namespace bio022
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
 		memcpy(m->h.pos, e->center, 8);
 		m->rot[1] = e->spin;
-		m->mesh = (uint8_t *)MESH_Blob;
+		m->mesh = (uint8_t *)fxp::model(P().models.blob, MESH_Blob);
 		m->t = 0x400;
 		m->src = (const uint8_t *)KEY_BlobA;
 		m->dst = (const uint8_t *)KEY_BlobB;
@@ -841,7 +842,7 @@ namespace bio022
 			m->key_a = 4;
 			m->key_b = 0;
 			m->t = 0;
-			m->mesh = (uint8_t *)MESH_BlobBoil;
+			m->mesh = (uint8_t *)fxp::model(P().models.blob_boil, MESH_BlobBoil);
 			m->h.phase++;
 			m->src = a;
 			m->dst = b;
@@ -2108,6 +2109,10 @@ namespace bio022
 			{ "emitter", "seqs.mist_b", "Mist b", "The sprite sequence mist b (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.mist_b), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.bubble_a", "Bubble a", "The sprite sequence bubble a (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.bubble_a), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.bubble_b", "Bubble b", "The sprite sequence bubble b (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.bubble_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.pool", "Pool model", "The prim model pool (a mesh of 91 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BioParams, models.pool), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.splat", "Splat model", "The prim model splat (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BioParams, models.splat), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.blob", "Blob model", "The prim model blob (a mesh of 467 vertices, 598 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BioParams, models.blob), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.blob_boil", "Blob boil model", "The prim model blob boil (a mesh of 258 vertices, 512 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BioParams, models.blob_boil), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef BP
 	}

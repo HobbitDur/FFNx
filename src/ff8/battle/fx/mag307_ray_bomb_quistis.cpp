@@ -129,8 +129,9 @@ namespace raybomb307
 	{
 		struct { uint32_t muzzle, blast; } sounds;   // at the muzzle (director tick 0xA); with the shockwave (0x51)
 		struct { uint32_t dust, puff, spark, charge; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, beam, flash; } models; // the prim models drawn (meshes)
 	};
-	static const RayBomb307Params GAME = { { 0xCE40CC, 0xCE40D0 }, { SEQ_Dust, SEQ_Puff, SEQ_Spark, SEQ_Charge } };
+	static const RayBomb307Params GAME = { { 0xCE40CC, 0xCE40D0 }, { SEQ_Dust, SEQ_Puff, SEQ_Spark, SEQ_Charge }, { MODEL_Ring, MODEL_Beam, MODEL_Flash } };
 	static RayBomb307Params live = GAME;
 	static const RayBomb307Params &P() { return live; }
 	static const uint32_t BIND_Block = 0x2240F18;                      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -470,7 +471,7 @@ namespace raybomb307
 	// ------------------------------------------------------------------
 	static void RingHeader(uint8_t *h, const RingNode *p)
 	{
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (p->counter >= 10)
 		{
@@ -585,7 +586,7 @@ namespace raybomb307
 	// ------------------------------------------------------------------
 	static void BeamHeader(uint8_t *h, const BeamNode *p)
 	{
-		*(uint32_t *)h = MODEL_Beam;
+		*(uint32_t *)h = fxp::model(P().models.beam, MODEL_Beam);
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (p->counter >= 3)
 		{
@@ -744,7 +745,7 @@ namespace raybomb307
 		h[9] = 0;
 		h[8] = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Flash;
+		*(uint32_t *)h = fxp::model(P().models.flash, MODEL_Flash);
 		if (p->counter < 0x10)
 		{
 			*(int32_t *)(h + 0xC) = (0x10 - p->counter) << 8;
@@ -1181,6 +1182,9 @@ namespace raybomb307
 			{ "director", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBomb307Params, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBomb307Params, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.charge", "Charge", "The sprite sequence charge (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBomb307Params, seqs.charge), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBomb307Params, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.beam", "Beam model", "The prim model beam (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBomb307Params, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 55 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBomb307Params, models.flash), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

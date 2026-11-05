@@ -216,8 +216,9 @@ namespace mist013
 		struct { uint32_t sound; int16_t control, damage; } emitter;   // its sound; the mist controller and the damage from these ticks
 		struct { int16_t puffs_until, stream_a, stream_b, spawner_c, spawner_d, overlay, end; } control;   // the controller's ticks
 		struct { uint32_t mist, mist_b, puff_c, puff_d; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t cloud, swirl, ring_table; } models; // the prim models drawn (meshes)
 	};
-	static const MistParams GAME = { { 0x16309F8, 0x19, 0x46 }, { 0xC, 0x10, 0x17, 0x10, 0x1E, 0x10, 0x1E }, { 0x16309FC, 0x1630E94, 0x1630C78, 0x1630D84 } };
+	static const MistParams GAME = { { 0x16309F8, 0x19, 0x46 }, { 0xC, 0x10, 0x17, 0x10, 0x1E, 0x10, 0x1E }, { 0x16309FC, 0x1630E94, 0x1630C78, 0x1630D84 }, { 0x1633C24, 0x163257C, 0x1630ED4 } };
 	static MistParams live = GAME;
 	static const MistParams &P() { return live; }
 	static const uint32_t MODEL_Swirl = 0x163257C, MODEL_Cloud = 0x1633C24;
@@ -789,7 +790,7 @@ namespace mist013
 		c->length = 0x400;
 		c->fade_step = 0x2C0;
 		c->grow = 0x800;
-		c->model = MODEL_Cloud;
+		c->model = fxp::model(P().models.cloud, MODEL_Cloud);
 		c->rot[1] = *(const int16_t *)(entity + 0xE);
 		c->fade = 0;
 		c->rgb[0] = 0;
@@ -865,7 +866,7 @@ namespace mist013
 			w->rgb[0] = 0;
 			w->rgb[1] = 0;
 			w->rgb[2] = 0;
-			w->model = MODEL_Swirl;
+			w->model = fxp::model(P().models.swirl, MODEL_Swirl);
 			w->h.phase++;
 			break;
 		case 1: // sub_8BE8A0: fades in
@@ -907,7 +908,7 @@ namespace mist013
 		w->rot[2] = (int16_t)((uint16_t)(w->rot[2] - 0x20) & 0xFFF);
 		ScrollV(w->model);
 		w->angle = (int16_t)((uint16_t)(w->angle + 0x80) & 0xFFF);
-		WarpRing(RING_Table, w->model, w->angle);
+		WarpRing(fxp::model(P().models.ring_table, RING_Table), w->model, w->angle);
 		w->fade = w->fade_a;
 		w->scale[0] = 0x1000;
 		w->scale[1] = 0x1000;
@@ -1432,6 +1433,9 @@ namespace mist013
 			{ "emitter", "seqs.mist_b", "Mist b", "The sprite sequence mist b (a flipbook of 2 frames: an edited one keeps as many)", (uint32_t)offsetof(MistParams, seqs.mist_b), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.puff_c", "Puff c", "The sprite sequence puff c (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(MistParams, seqs.puff_c), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.puff_d", "Puff d", "The sprite sequence puff d (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(MistParams, seqs.puff_d), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.cloud", "Cloud model", "The prim model cloud (a mesh of 160 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MistParams, models.cloud), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.swirl", "Swirl model", "The prim model swirl (a mesh of 144 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MistParams, models.swirl), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.ring_table", "Ring table model", "The prim model ring table (a mesh of 144 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MistParams, models.ring_table), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef DMI
 	}

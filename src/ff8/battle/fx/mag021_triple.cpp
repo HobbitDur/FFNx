@@ -242,8 +242,9 @@ namespace triple021
 		struct { int16_t every, height, spin, fade_in, fade_out, shrink, column_tick; } runes;   // two opposite a step; their motion and fades
 		struct { int16_t until, radius; } motes;                                    // a mote a tick until this tick; spiral radius (+ rand)
 		struct { uint32_t sprite, spark, glow, mote; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t morph, big_rune1, big_rune2, column_flash, column, rune; } models; // the prim models drawn (meshes)
 	};
-	static const TripleParams GAME = { { 0x16269D8, 0x18 }, { 3, 0x280, 0x140, 0x200, 0x200, 0x200, 3 }, { 6, 0x200 }, { SEQ_Sprite, SEQ_Spark, SEQ_Glow, SEQ_Mote } };
+	static const TripleParams GAME = { { 0x16269D8, 0x18 }, { 3, 0x280, 0x140, 0x200, 0x200, 0x200, 3 }, { 6, 0x200 }, { SEQ_Sprite, SEQ_Spark, SEQ_Glow, SEQ_Mote }, { MODEL_Morph, MODEL_BigRune1, MODEL_BigRune2, MODEL_ColumnFlash, MODEL_Column, MODEL_Rune } };
 	static TripleParams live = GAME;
 	static const TripleParams &P() { return live; }
 
@@ -443,7 +444,7 @@ namespace triple021
 		CopyAnchorXZFromSource(m, m->h.pos);
 		m->h.pos[1] = (int16_t)(m->h.pos[1] - 0x280);
 		m->angle[1] = 0;
-		m->model = MODEL_Morph;
+		m->model = fxp::model(P().models.morph, MODEL_Morph);
 		m->fade = 0;
 		m->scale[0] = 0x1000;
 		m->scale[1] = 0x1000;
@@ -463,7 +464,7 @@ namespace triple021
 		n->scale[1] = 0x1000;
 		n->scale[2] = 0x1000;
 		n->angle[1] = 0;
-		n->model = MODEL_BigRune1;
+		n->model = fxp::model(P().models.big_rune1, MODEL_BigRune1);
 		n->fade1 = 0x800;
 		n->fade2 = 0;
 		n->rgb1[0] = 0xFF;
@@ -517,11 +518,11 @@ namespace triple021
 	{
 		memcpy(n->rgb, n->rgb1, 4);
 		n->fade = n->fade1;
-		n->model = MODEL_BigRune1;
+		n->model = fxp::model(P().models.big_rune1, MODEL_BigRune1);
 		DrawModel(n);
 		memcpy(n->rgb, n->rgb2, 4);
 		n->fade = n->fade2;
-		n->model = MODEL_BigRune2;
+		n->model = fxp::model(P().models.big_rune2, MODEL_BigRune2);
 		DrawModel(n);
 	}
 }
@@ -581,7 +582,7 @@ namespace triple021
 		MorphPhase(n);
 		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_MORPH, n);)
-		MorphVertices((const uint8_t *)MORPH_A, (const uint8_t *)MORPH_B, (uint8_t *)MODEL_Morph, n->morph);
+		MorphVertices((const uint8_t *)MORPH_A, (const uint8_t *)MORPH_B, (uint8_t *)fxp::model(P().models.morph, MODEL_Morph), n->morph);
 		DrawModel(n);
 		n->h.counter++;
 		if ((n->h.flags & 1) && n->h.children == 0)
@@ -852,9 +853,9 @@ namespace triple021
 	{
 		if (n->flash_on == 1)
 		{
-			n->model = MODEL_ColumnFlash;
+			n->model = fxp::model(P().models.column_flash, MODEL_ColumnFlash);
 			DrawModel(n);
-			n->model = MODEL_Column;
+			n->model = fxp::model(P().models.column, MODEL_Column);
 		}
 		DrawModel(n);
 	}
@@ -1040,7 +1041,7 @@ namespace triple021
 		c->orbit = r->orbit;
 		c->angle[1] = r->orbit;
 		c->arg = r->arg;
-		c->model = MODEL_Column;
+		c->model = fxp::model(P().models.column, MODEL_Column);
 		c->fade = 0x1000;
 		c->scale[0] = 0x10;
 		c->scale[1] = 0x10;
@@ -1140,7 +1141,7 @@ namespace triple021
 		r->arg = arg;
 		r->flagged = flagged;
 		r->orbit = a;
-		r->model = MODEL_Rune;
+		r->model = fxp::model(P().models.rune, MODEL_Rune);
 		r->fade = 0x1000;
 		r->scale[0] = 0x1000;
 		r->scale[1] = 0x1000;
@@ -1492,6 +1493,12 @@ namespace triple021
 			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.morph", "Morph model", "The prim model morph (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.morph), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.big_rune1", "Big rune1 model", "The prim model big rune1 (a mesh of 32 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.big_rune1), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.big_rune2", "Big rune2 model", "The prim model big rune2 (a mesh of 128 vertices, 104 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.big_rune2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.column_flash", "Column flash model", "The prim model column flash (a mesh of 24 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.column_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.column", "Column model", "The prim model column (a mesh of 24 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.rune", "Rune model", "The prim model rune (a mesh of 17 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.rune), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef TP
 	}

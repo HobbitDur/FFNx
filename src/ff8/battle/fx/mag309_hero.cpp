@@ -105,8 +105,9 @@ namespace hero309
 	{
 		uint32_t sound;   // the play task's counter 1
 		struct { uint32_t main, orbit; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t debris; } model_data; // the prim models drawn (meshes)
 	};
-	static const HeroParams GAME = { 0x10257E0, { MODEL_MAIN, MODEL_ORBIT } };
+	static const HeroParams GAME = { 0x10257E0, { MODEL_MAIN, MODEL_ORBIT }, { MODEL_DEBRIS } };
 	static HeroParams live = GAME;
 	static const HeroParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x3D4;         // magic buffer: packet arenas
@@ -372,7 +373,7 @@ namespace hero309
 		if ((uint32_t)k < (uint32_t)DEBRIS_TICKS)
 		{
 			ShardDraw *d = (ShardDraw *)FieldAlloc(0x88);
-			*(uint32_t *)(d->h + 0) = MODEL_DEBRIS;
+			*(uint32_t *)(d->h + 0) = fxp::model(P().model_data.debris, MODEL_DEBRIS);
 			*(uint32_t *)(d->h + 8) = 0;
 			*(int32_t *)(d->h + 0xC) = ShardFade(k);
 			*(uint32_t *)(d->h + 0x1C) = 0xF0;
@@ -496,6 +497,7 @@ namespace hero309
 			{ "play", "sound", "Sound", "The play task's counter 1", (uint32_t)offsetof(HeroParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "play", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(HeroParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "play", "layouts.orbit", "Orbit", "The prim-model layout orbit (its models' animation)", (uint32_t)offsetof(HeroParams, layouts.orbit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "play", "model_data.debris", "Debris model", "The prim model debris (a mesh of 28 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HeroParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

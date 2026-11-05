@@ -141,8 +141,9 @@ namespace fp315
 		uint32_t voice;                       // the voice slot claimed at the master's tick 0
 		struct { uint32_t start, hit; } sounds; // at the master's ticks 1 and 0x70 (with the damage)
 		struct { uint32_t drop, bubble, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t splash, puddle, column, ring; } models; // the prim models drawn (meshes)
 	};
-	static const FakePresidentDeathParams GAME = { 0xCD57A0, { 0xCD58BC, 0xCD58C0 }, { SEQ_Drop, SEQ_Bubble, SEQ_Spark } };
+	static const FakePresidentDeathParams GAME = { 0xCD57A0, { 0xCD58BC, 0xCD58C0 }, { SEQ_Drop, SEQ_Bubble, SEQ_Spark }, { MODEL_Splash, MODEL_Puddle, MODEL_Column, MODEL_Ring } };
 	static FakePresidentDeathParams live = GAME;
 	static const FakePresidentDeathParams &P() { return live; }
 
@@ -847,7 +848,7 @@ namespace fp315
 	{
 		PrimMatrix(n, S16(n, 0x1C), S16(n, 0x20), S16(n, 0x1C));
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Splash;
+		U32(h, 0) = fxp::model(P().models.splash, MODEL_Splash);
 		U32(h, 8) = 0;
 		ApplyCue(h, cue, 0x1C);
 		PacketCursor() = RenderPrimModel((void *)h, OT44(), 2, PacketCursor());
@@ -881,7 +882,7 @@ namespace fp315
 	{
 		PrimMatrix(n, S16(n, 0x1C), S16(n, 0x20), S16(n, 0x1C));
 		const uint32_t h = (uint32_t)FieldAlloc(0x7C);
-		U32(h, 0) = MODEL_Puddle;
+		U32(h, 0) = fxp::model(P().models.puddle, MODEL_Puddle);
 		U32(h, 8) = 0;
 		U32(h, 0x20) = 0x33;
 		U16(h, 0x18) = 0;
@@ -923,7 +924,7 @@ namespace fp315
 		const uint32_t h = (uint32_t)FieldAlloc(0x60);
 		U32(h, 0x58) = 0xE1000220;
 		U32(h, 0x5C) = 0xE1000220;
-		U32(h, 0) = MODEL_Column;
+		U32(h, 0) = fxp::model(P().models.column, MODEL_Column);
 		U32(h, 8) = 0;
 		ApplyCue(h, cue, 0x1C);
 		PacketCursor() = ColumnRender(h, OT44(), 2, PacketCursor());
@@ -964,7 +965,7 @@ namespace fp315
 	{
 		PrimMatrix(n, S16(n, 0x1C), S16(n, 0x1C), S16(n, 0x1C));
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Ring;
+		U32(h, 0) = fxp::model(P().models.ring, MODEL_Ring);
 		S32(h, 0xC) = fade;
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xF3;
@@ -1258,6 +1259,10 @@ namespace fp315
 			{ "master", "seqs.drop", "Drop", "The sprite sequence drop (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.drop), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.bubble", "Bubble", "The sprite sequence bubble (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.bubble), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 21 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "models.splash", "Splash model", "The prim model splash (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.splash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.puddle", "Puddle model", "The prim model puddle (a mesh of 121 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.puddle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.column", "Column model", "The prim model column (a mesh of 48 vertices, 33 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.ring", "Ring model", "The prim model ring (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

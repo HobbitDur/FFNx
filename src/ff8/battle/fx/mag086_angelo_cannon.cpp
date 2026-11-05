@@ -77,8 +77,9 @@ namespace cannon86
 		struct { uint32_t load, fire; } sounds;   // Angelo loaded into the launcher (his 4th step), fired (his dash)
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
 		struct { uint32_t at_156177c; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_15618c0, at_1561920, at_15638c8; } models; // the prim models drawn (meshes)
 	};
-	static const CannonParams GAME = { { SOUND_A, SOUND_B }, { 0x32 }, { 0x156177C } };
+	static const CannonParams GAME = { { SOUND_A, SOUND_B }, { 0x32 }, { 0x156177C }, { 0x15618C0, 0x1561920, 0x15638C8 } };
 	static CannonParams live = GAME;
 	static const CannonParams &PC() { return live; }
 
@@ -1753,7 +1754,7 @@ namespace cannon86
 	// 0x761090 (sub_761090): dust puff state 0 - model 0x154322C, scale 0x1000^3, random roll +0x48, next state
 	uint32_t __cdecl ac_782810(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x15618C0;
+		U32(a1, 0x4C) = fxp::model(PC().models.at_15618c0, 0x15618C0);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -2045,7 +2046,7 @@ namespace cannon86
 		ac_783550(node);
 		U16(node, 0x56) = 0;
 		U16(node, 0x54) = 0;
-		U32(node, 0x4C) = 0x1561920;
+		U32(node, 0x4C) = fxp::model(PC().models.at_1561920, 0x1561920);
 		U16(node, 0x58) = 0x80;
 		U16(node, 0x5A) = 0x80;
 		S32(node, 0x38) = 0x1000;
@@ -2387,7 +2388,7 @@ namespace cannon86
 		S32(node, 0x38) = 0x1000;
 		S32(node, 0x34) = 0x1000;
 		S32(node, 0x30) = 0x1000;
-		U32(node, 0x4C) = 0x15638C8;
+		U32(node, 0x4C) = fxp::model(PC().models.at_15638c8, 0x15638C8);
 		U16(node, 0x46) = 0x800;
 		U16(node, 0x54) = 0;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -2595,6 +2596,9 @@ namespace cannon86
 			{ "director", "sounds.fire", "Fire", "", (uint32_t)offsetof(CannonParams, sounds.fire), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(CannonParams, director.damage), fxp::I16, 0, 0x200 },
 			{ "director", "seqs.at_156177c", "Flipbook 156177C", "The sprite sequence at 0x156177C (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(CannonParams, seqs.at_156177c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.at_15618c0", "Model 15618C0", "The prim model at 0x15618C0 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_15618c0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_1561920", "Model 1561920", "The prim model at 0x1561920 (a mesh of 216 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_1561920), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_15638c8", "Model 15638C8", "The prim model at 0x15638C8 (a mesh of 180 vertices, 320 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_15638c8), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 

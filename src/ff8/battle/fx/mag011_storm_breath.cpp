@@ -110,10 +110,11 @@ namespace storm011
 		struct { int16_t wobble, sway; } stream_angles;                 // the stream's angles a tick
 		struct { uint32_t mouth, cone; } layout_data; // the prim-model layouts played (their models' animation)
 		struct { uint32_t puff, spark, mist, hit; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t stream, debris, ring; } model_data; // the prim models drawn (meshes)
 	};
 	static const StormParams GAME = {
 		{ 0x136B970, 8, 0x4B }, { 0x19, 0x32, 5 }, { 0x18, 0x1D }, { 0x23, 0x1E, 0xC00, 0x7FF },
-		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 }, { 0x1368580, 0x1368200, 0x136843C, 0x1368360 } };
+		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 }, { 0x1368580, 0x1368200, 0x136843C, 0x1368360 }, { 0x1365720, 0x1368010, 0x1367CA8 } };
 	static StormParams live = GAME;
 	static const StormParams &P() { return live; }
 	static const uint32_t MODEL_Stream = 0x1365720;     // stream model (vertex table at +8)
@@ -501,7 +502,7 @@ namespace storm011
 		*(int16_t *)(h + 0x1C) = 0x80;
 		*(int16_t *)(h + 0x1E) = 0x100;
 		*(int16_t *)(h + 0xC) = (int16_t)r.scroll;
-		*(uint32_t *)h = MODEL_Stream;
+		*(uint32_t *)h = fxp::model(P().model_data.stream, MODEL_Stream);
 		PacketCursor() = DrawStream(h, RenderOT(0x44), 2, PacketCursor(), verts);
 		FieldFree(0x5C);
 	}
@@ -588,7 +589,7 @@ namespace storm011
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().model_data.debris, MODEL_Debris);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -644,7 +645,7 @@ namespace storm011
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().model_data.ring, MODEL_Ring);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1094,6 +1095,9 @@ namespace storm011
 			{ "timing", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timing", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "timing", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "model_data.stream", "Stream model", "The prim model stream (a mesh of 308 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.stream), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "model_data.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.ring), fxp::Model, 0, 0x7FFFFFFF },
 		};
 #undef SB
 	}

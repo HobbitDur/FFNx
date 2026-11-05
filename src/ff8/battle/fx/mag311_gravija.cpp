@@ -120,8 +120,9 @@ namespace gravija311
 		uint32_t sound;   // the main task's counter 0
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_101b0e8; } model_data; // the prim models drawn (meshes)
 	};
-	static const GravijaParams GAME = { 0x1021044, { MODEL_Main }, { SEQ_Particle } };
+	static const GravijaParams GAME = { 0x1021044, { MODEL_Main }, { SEQ_Particle }, { 0x101B0E8 } };
 	static GravijaParams live = GAME;
 	static const GravijaParams &P() { return live; }
 
@@ -730,7 +731,7 @@ namespace gravija311
 	{
 		QueueTimUpload(TexFile());
 		TexBase() = (uint32_t)layouts::MagicBuffer();
-		memcpy((void *)own::R(0x25055EC), (const void *)0x101B0E8, 0x1DD0);   // the warp mesh (the module's copy of its data block)
+		memcpy((void *)own::R(0x25055EC), (const void *)fxp::model(P().model_data.at_101b0e8, 0x101B0E8, true), 0x1DD0);   // the warp mesh (the module's copy of its data block)
 		Ctx() = ctx;
 		var<uint32_t>(own::R(0x25055E0)) = 0x1D972C0 + 0x9C * ctx->attacker;
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x25073C0), 0x14, 1);
@@ -899,6 +900,7 @@ namespace gravija311
 			{ "main", "sound", "Sound", "The main task's counter 0", (uint32_t)offsetof(GravijaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(GravijaParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 50 frames: an edited one keeps as many)", (uint32_t)offsetof(GravijaParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "model_data.at_101b0e8", "Model 101B0E8", "The prim model at 0x101B0E8 (a mesh of 241 vertices, 240 primitives: its code copies it whole into a block of its size: an edited one keeps its vertices and its size (move vertices, change colours and texture corners))", (uint32_t)offsetof(GravijaParams, model_data.at_101b0e8), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -114,8 +114,9 @@ namespace heaven215
 		struct { uint32_t start, jump; } sounds; // at the director's ticks 5 and 0xA2
 		struct { int16_t damage; } director;    // the damage at this tick
 		struct { uint32_t ring, anchor, back, run, screen, far, jump, jump_bone, target_ring, crater, bone; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t at_1154f50; } model_data; // the prim models drawn (meshes)
 	};
-	static const MyFinalHeavenParams GAME = { { 0x1154F48, 0x1154F4C }, { 0x108 }, { LAYOUT_Ring, LAYOUT_Anchor, LAYOUT_Back, LAYOUT_Run, LAYOUT_Screen, LAYOUT_Far, LAYOUT_Jump, LAYOUT_JumpBone, LAYOUT_TargetRing, LAYOUT_Crater, LAYOUT_Bone } };
+	static const MyFinalHeavenParams GAME = { { 0x1154F48, 0x1154F4C }, { 0x108 }, { LAYOUT_Ring, LAYOUT_Anchor, LAYOUT_Back, LAYOUT_Run, LAYOUT_Screen, LAYOUT_Far, LAYOUT_Jump, LAYOUT_JumpBone, LAYOUT_TargetRing, LAYOUT_Crater, LAYOUT_Bone }, { 0x1154F50 } };
 	static MyFinalHeavenParams live = GAME;
 	static const MyFinalHeavenParams &P() { return live; }
 
@@ -674,8 +675,9 @@ namespace heaven215
 		GteReadMAC123(m->t);
 		GteSetRotMatrixCtrl(m);
 		GteSetTransVectorCtrl(m);
-		U32(h, 0x40) = MODEL_Debris;
-		U32(h, 0x44) = *(const uint32_t *)0x1154F50 + 0x1154F60;
+		const uint32_t debris = fxp::model(P().model_data.at_1154f50, 0x1154F50);   // (MODEL_Debris = its vertices)
+		U32(h, 0x40) = debris + 8;
+		U32(h, 0x44) = *(const uint32_t *)debris + debris + 0x10;
 		FramePackets() = TriRender(h + 0x40, OTBase() + 0x44, 2, FramePackets());
 	}
 
@@ -1570,6 +1572,7 @@ namespace heaven215
 			{ "director", "layouts.target_ring", "Target ring", "The prim-model layout target ring (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.target_ring), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.crater", "Crater", "The prim-model layout crater (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.crater), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.bone", "Bone", "The prim-model layout bone (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.bone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_1154f50", "Model 1154F50", "The prim model at 0x1154F50 (a mesh of 8 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MyFinalHeavenParams, model_data.at_1154f50), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

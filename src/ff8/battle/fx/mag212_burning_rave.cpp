@@ -122,8 +122,9 @@ namespace rave212
 		struct { int16_t damage; } director;    // the damage at this tick
 		struct { uint32_t ground, bone, front, burn; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t ember, flame; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t rock, rock_a, rock_b, rock_c, glow; } model_data; // the prim models drawn (meshes)
 	};
-	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn }, { SEQ_Ember, SEQ_Flame } };
+	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn }, { SEQ_Ember, SEQ_Flame }, { MODEL_Rock, MODEL_RockA, MODEL_RockB, MODEL_RockC, MODEL_Glow } };
 	static BurningRaveParams live = GAME;
 	static const BurningRaveParams &P() { return live; }
 
@@ -870,7 +871,7 @@ namespace rave212
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		RockDraw(k, MODEL_Rock);
+		RockDraw(k, fxp::model(P().model_data.rock, MODEL_Rock));
 		if (--k->life == 0) return TASK_END;
 		RockMoveBounce(k);
 		return 0;
@@ -887,22 +888,22 @@ namespace rave212
 	// 0x6A3280 / 0x6A33C0 / 0x6A33E0: the three falling rock models
 	static uint32_t __cdecl RockATask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, MODEL_RockA);
+		return RockModelTask((RockNode *)n, fxp::model(P().model_data.rock_a, MODEL_RockA));
 	}
 	static uint32_t __cdecl RockBTask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, MODEL_RockB);
+		return RockModelTask((RockNode *)n, fxp::model(P().model_data.rock_b, MODEL_RockB));
 	}
 	static uint32_t __cdecl RockCTask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, MODEL_RockC);
+		return RockModelTask((RockNode *)n, fxp::model(P().model_data.rock_c, MODEL_RockC));
 	}
 
 	// 0x6A3630: a debris piece of the burning layout
 	static uint32_t __cdecl PieceTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		RockDraw(k, MODEL_Rock);
+		RockDraw(k, fxp::model(P().model_data.rock, MODEL_Rock));
 		if (--k->life == 0) return TASK_END;
 		RockMove(k);
 		return 0;
@@ -1237,7 +1238,7 @@ namespace rave212
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		uint8_t *p = h + 0x20;
-		U32(p, 0) = MODEL_Glow;
+		U32(p, 0) = fxp::model(P().model_data.glow, MODEL_Glow);
 		if (g.mode == 0xF0)
 		{
 			U32(p, 8) = 0;
@@ -1755,6 +1756,11 @@ namespace rave212
 			{ "director", "layouts.burn", "Burn", "The prim-model layout burn (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.burn), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BurningRaveParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BurningRaveParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock", "Rock model", "The prim model rock (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock_a", "Rock a model", "The prim model rock a (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock_b", "Rock b model", "The prim model rock b (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock_c", "Rock c model", "The prim model rock c (a mesh of 18 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.glow", "Glow model", "The prim model glow (a mesh of 225 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.glow), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -94,8 +94,9 @@ namespace break117
 		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
 		struct { uint32_t shell; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t debris; } model_data; // the prim models drawn (meshes)
 	};
-	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell }, { SEQ_Spark } };
+	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell }, { SEQ_Spark }, { MODEL_Debris } };
 	static BreakParams live = GAME;
 	static const BreakParams &P() { return live; }
 	static const uint32_t STONE_TPage = 0xB8, STONE_Clut = 0x3D54;
@@ -878,7 +879,7 @@ namespace break117
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().model_data.debris, MODEL_Debris);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
@@ -1170,6 +1171,7 @@ namespace break117
 			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(BreakParams, target.status), fxp::I16, 0, 83 },
 			{ "target", "layouts.shell", "Shell", "The prim-model layout shell (its models' animation)", (uint32_t)offsetof(BreakParams, layouts.shell), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreakParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreakParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

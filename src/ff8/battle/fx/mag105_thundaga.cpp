@@ -90,8 +90,9 @@ namespace thundaga105
 		struct { int16_t damage; } bolt; // the damage (and the bolt's end) from this frame of the bolt
 		struct { uint32_t bolt; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark, flash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_130e55c, at_130e8e4, at_130ecb4, at_130eed4, at_130f18c, at_130f55c, at_130f824, at_130fadc, at_130fd94, at_131002c, at_131052c, at_13109dc, at_1310cdc, at_1310f8c; } model_data; // the prim models drawn (meshes)
 	};
-	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt }, { 0x13115DC, 0x131136C } };
+	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt }, { 0x13115DC, 0x131136C }, { 0x130E55C, 0x130E8E4, 0x130ECB4, 0x130EED4, 0x130F18C, 0x130F55C, 0x130F824, 0x130FADC, 0x130FD94, 0x131002C, 0x131052C, 0x13109DC, 0x1310CDC, 0x1310F8C } };
 	static ThundagaParams live = GAME;
 	static const ThundagaParams &P() { return live; }
 	static const uint32_t SEQ_Spark = 0x13115DC;
@@ -1147,7 +1148,7 @@ namespace thundaga105
 			m.m[0][0] = s;
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			for (int k = 0; k < 14; k++) ShardSpawn(arg.pos, (uint8_t *)SHARD_MESH[k][0], (const uint8_t *)SHARD_MESH[k][1], all);
+			for (int k = 0; k < 14; k++) ShardSpawn(arg.pos, (uint8_t *)fxp::model((&P().model_data.at_130e55c)[k], SHARD_MESH[k][0]), (const uint8_t *)SHARD_MESH[k][1], all);
 			SetScreenFlash(0, 0);
 			// 30 fps layer: see mag105_thundaga_held.inc
 			FX_HELD(held_note_capture(arg.pos, all);)
@@ -1324,6 +1325,20 @@ namespace thundaga105
 			{ "bolt", "layouts.bolt", "Bolt", "The prim-model layout bolt (its models' animation)", (uint32_t)offsetof(ThundagaParams, layouts.bolt), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "bolt", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundagaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "bolt", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundagaParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130e55c", "Model 130E55C", "The prim model at 0x130E55C (a mesh of 14 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130e55c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130e8e4", "Model 130E8E4", "The prim model at 0x130E8E4 (a mesh of 15 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130e8e4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130ecb4", "Model 130ECB4", "The prim model at 0x130ECB4 (a mesh of 9 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130ecb4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130eed4", "Model 130EED4", "The prim model at 0x130EED4 (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130eed4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130f18c", "Model 130F18C", "The prim model at 0x130F18C (a mesh of 15 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130f18c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130f55c", "Model 130F55C", "The prim model at 0x130F55C (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130f55c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130f824", "Model 130F824", "The prim model at 0x130F824 (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130f824), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130fadc", "Model 130FADC", "The prim model at 0x130FADC (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130fadc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130fd94", "Model 130FD94", "The prim model at 0x130FD94 (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130fd94), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_131002c", "Model 131002C", "The prim model at 0x131002C (a mesh of 19 vertices, 34 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_131002c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_131052c", "Model 131052C", "The prim model at 0x131052C (a mesh of 18 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_131052c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_13109dc", "Model 13109DC", "The prim model at 0x13109DC (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_13109dc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_1310cdc", "Model 1310CDC", "The prim model at 0x1310CDC (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_1310cdc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_1310f8c", "Model 1310F8C", "The prim model at 0x1310F8C (a mesh of 15 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_1310f8c), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

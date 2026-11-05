@@ -117,8 +117,9 @@ namespace ultra184
 	{
 		uint32_t sound;                        // at the controller's tick 6
 		struct { int16_t damage; } controller; // the damage at this tick
+		struct { uint32_t ring; } models; // the prim models drawn (meshes)
 	};
-	static const UltraWaves184Params GAME = { 0xD346C0, { 0x29 } };
+	static const UltraWaves184Params GAME = { 0xD346C0, { 0x29 }, { MODEL_Ring } };
 	static UltraWaves184Params live = GAME;
 	static const UltraWaves184Params &P() { return live; }
 	static const void *const CAMERA_Anim = (const void *)0xD32750;          // (setup)
@@ -937,7 +938,7 @@ namespace ultra184
 		h->far_rgb[0] = h->far_rgb[1] = h->far_rgb[2] = h->far_rgb[3] = 0;
 		w->from[0] = 0;
 		w->from[1] = 0;
-		h->model = MODEL_Ring;
+		h->model = fxp::model(P().models.ring, MODEL_Ring);
 		h->flags = 0x33;
 		w->from[2] = -0x1000;
 		w->to[0] = e->dir[0];
@@ -1090,6 +1091,7 @@ namespace ultra184
 		static const Field FIELDS[] = {
 			{ "controller", "sound", "Sound", "At the controller's tick 6", (uint32_t)offsetof(UltraWaves184Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "controller", "controller.damage", "Damage tick", "The damage at this tick of the controller", (uint32_t)offsetof(UltraWaves184Params, controller.damage), fxp::I16, 0, 44 },
+			{ "controller", "models.ring", "Ring model", "The prim model ring (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltraWaves184Params, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

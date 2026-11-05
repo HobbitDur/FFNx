@@ -74,8 +74,9 @@ namespace angelo92
 		struct { uint32_t arrive, walk, found; } sounds;   // Angelo walking in, walking to Rinoa, the found item's play
 		struct { int16_t damage; } director;               // the done flag (the found item) from this frame of the director
 		struct { uint32_t at_153d1e8; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_153d2c4; } models; // the prim models drawn (meshes)
 	};
-	static const SearchParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x9B }, { 0x153D1E8 } };
+	static const SearchParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x9B }, { 0x153D1E8 }, { 0x153D2C4 } };
 	static SearchParams live = GAME;
 	static const SearchParams &PS() { return live; }
 
@@ -1684,7 +1685,7 @@ namespace angelo92
 	// 0x761090 (sub_761090): dust puff state 0 - model 0x154322C, scale 0x1000^3, random roll +0x48, next state
 	uint32_t __cdecl as_758130(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x153D2C4;
+		U32(a1, 0x4C) = fxp::model(PS().models.at_153d2c4, 0x153D2C4);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -2154,6 +2155,7 @@ namespace angelo92
 			{ "director", "sounds.found", "Found", "", (uint32_t)offsetof(SearchParams, sounds.found), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Item frame", "The done flag (the found item) from this frame of the director", (uint32_t)offsetof(SearchParams, director.damage), fxp::I16, 0, 0x200 },
 			{ "director", "seqs.at_153d1e8", "Flipbook 153D1E8", "The sprite sequence at 0x153D1E8 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(SearchParams, seqs.at_153d1e8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.at_153d2c4", "Model 153D2C4", "The prim model at 0x153D2C4 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SearchParams, models.at_153d2c4), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 

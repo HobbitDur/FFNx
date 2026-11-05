@@ -93,8 +93,9 @@ namespace rapture288
 		uint32_t sound;   // each target task's counter 0
 		struct { uint32_t a, b; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t sequence; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t feather; } model_data; // the prim models drawn (meshes)
 	};
-	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B }, { SEQUENCE } };
+	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B }, { SEQUENCE }, { FEATHER_MODEL } };
 	static RaptureParams live = GAME;
 	static const RaptureParams &P() { return live; }
 	static const uint32_t DEPTH_VEC = 0x1078978;  // 3 x int16: the layout B depth probe
@@ -317,7 +318,7 @@ namespace rapture288
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = FEATHER_MODEL;
+		*(uint32_t *)h = fxp::model(P().model_data.feather, FEATHER_MODEL);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -590,6 +591,7 @@ namespace rapture288
 			{ "target", "layouts.a", "A", "The prim-model layout a (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "seqs.sequence", "Sequence", "The sprite sequence sequence (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(RaptureParams, seqs.sequence), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "model_data.feather", "Feather model", "The prim model feather (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RaptureParams, model_data.feather), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

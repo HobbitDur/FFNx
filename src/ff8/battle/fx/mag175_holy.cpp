@@ -106,8 +106,9 @@ namespace holy175
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
 		struct { uint32_t orbit_spark, mote, beam, sparkle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, wave, expand, pillar, disk, flash; } models; // the prim models drawn (meshes)
 	};
-	static const HolyParams GAME = { 0xD59180, { 0x6A }, { 0xD523E8, 0xD52374, 0xD522CC, 0xD524C4 } };
+	static const HolyParams GAME = { 0xD59180, { 0x6A }, { 0xD523E8, 0xD52374, 0xD522CC, 0xD524C4 }, { 0xD54588, 0xD56C58, 0xD53BA0, 0xD53688, 0xD52DD8, 0xD527F8 } };
 	static HolyParams live = GAME;
 	static const HolyParams &P() { return live; }
 	static const void *const TIM_Upload = (const void *)0xD45EAC;  // texture uploaded at director frame 0x1E
@@ -1233,7 +1234,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { 0, p->angle, 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(MODEL_Ring);
+		uint8_t *h = ModelHeader(fxp::model(P().models.ring, MODEL_Ring));
 		if (p->counter < 8)
 		{
 			int32_t fade = (8 - p->counter) << 9;
@@ -1272,7 +1273,7 @@ namespace holy175
 		int32_t scroll = p->w20 * c;
 		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(scroll = held_ramp(scroll, p->w20);)
-		*(uint32_t *)h = MODEL_Wave;
+		*(uint32_t *)h = fxp::model(P().models.wave, MODEL_Wave);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int32_t *)(h + 0x14) = scroll;
 		*(uint16_t *)(h + 0x1A) = 0x80;
@@ -1307,7 +1308,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { 0, 0, 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(MODEL_Expand);
+		uint8_t *h = ModelHeader(fxp::model(P().models.expand, MODEL_Expand));
 		if (p->counter >= 8)
 		{
 			int32_t fade = (p->counter - 8) << 9;
@@ -1344,7 +1345,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { p->angle, p->pos[3], 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(MODEL_Pillar);
+		uint8_t *h = ModelHeader(fxp::model(P().models.pillar, MODEL_Pillar));
 		int32_t c = p->counter;
 		if (c < 8)
 		{
@@ -1501,7 +1502,7 @@ namespace holy175
 		ComposeZYXRotationMatrix(ang, &m);
 		MatrixMultiply(s, &m);
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_Disk);
+		uint8_t *h = ModelHeader(fxp::model(P().models.disk, MODEL_Disk));
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 0xD, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1535,7 +1536,7 @@ namespace holy175
 		m->m[0][0] = p->scale;
 		m->m[1][1] = 0x1000;
 		GteSetRotMatrix(m);
-		uint8_t *h = ModelHeader(MODEL_Flash);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flash, MODEL_Flash));
 		int32_t c = p->counter;
 		if (c < 4)
 		{
@@ -1771,6 +1772,12 @@ namespace holy175
 			{ "director", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.beam", "Beam", "The sprite sequence beam (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.beam), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 31 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 313 vertices, 312 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wave", "Wave model", "The prim model wave (a mesh of 272 vertices, 256 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.expand", "Expand model", "The prim model expand (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.expand), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.disk", "Disk model", "The prim model disk (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.disk), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 63 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

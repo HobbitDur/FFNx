@@ -170,8 +170,9 @@ namespace degen306
 	{
 		uint32_t sound;   // the controller's counter 1
 		struct { uint32_t flicker, debris; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t core, pulse, screen_ring, target_ring, vortex; } models; // the prim models drawn (meshes)
 	};
-	static const DegeneratorParams GAME = { 0xCEB284, { SEQ_Flicker, SEQ_Debris } };
+	static const DegeneratorParams GAME = { 0xCEB284, { SEQ_Flicker, SEQ_Debris }, { MODEL_Core, MODEL_Pulse, MODEL_ScreenRing, MODEL_TargetRing, MODEL_Vortex } };
 	static DegeneratorParams live = GAME;
 	static const DegeneratorParams &P() { return live; }
 	static const void *const CAMERA_Anim = (const void *)0xCE4164;          // (setup)
@@ -997,7 +998,7 @@ namespace degen306
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag306_degenerator_quistis_held.inc
 		FX_HELD(held_note_draw(ORIG_Core, n);)
-		HandModelDraw(n, MODEL_Core, CoreCue(S16(n, 0xC)));
+		HandModelDraw(n, fxp::model(P().models.core, MODEL_Core), CoreCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - S16(n, 0x1E));
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -1016,7 +1017,7 @@ namespace degen306
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag306_degenerator_quistis_held.inc
 		FX_HELD(held_note_draw(ORIG_Pulse, n);)
-		HandModelDraw(n, MODEL_Pulse, PulseCue(S16(n, 0xC)));
+		HandModelDraw(n, fxp::model(P().models.pulse, MODEL_Pulse), PulseCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) + d);
@@ -1090,7 +1091,7 @@ namespace degen306
 		Scale3DMatrix(&m, s);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_ScreenRing, cue, OTBase() + 0x4068, -0xF2);
+		PrimDraw(fxp::model(P().models.screen_ring, MODEL_ScreenRing), cue, OTBase() + 0x4068, -0xF2);
 	}
 
 	static uint32_t __cdecl ScreenRingTask(TaskNode *nd)
@@ -1137,7 +1138,7 @@ namespace degen306
 		m.t[2] += Camera().t[2];
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_TargetRing, cue, OTBase() + 0x44, 2);
+		PrimDraw(fxp::model(P().models.target_ring, MODEL_TargetRing), cue, OTBase() + 0x44, 2);
 	}
 
 	static uint32_t __cdecl TargetRingTask(TaskNode *nd)
@@ -1182,7 +1183,7 @@ namespace degen306
 		GteSetTransVector(&m);
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		*(uint32_t *)h->far_rgb = 0;
-		h->model = MODEL_Vortex;
+		h->model = fxp::model(P().models.vortex, MODEL_Vortex);
 		h->flags = 0x33;
 		h->colour = colour;
 		if (cue.flags == 0xF3)
@@ -1521,6 +1522,11 @@ namespace degen306
 			{ "controller", "sound", "Sound", "At the controller's counter 1", (uint32_t)offsetof(DegeneratorParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "controller", "seqs.flicker", "Flicker", "The sprite sequence flicker (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(DegeneratorParams, seqs.flicker), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(DegeneratorParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "models.core", "Core model", "The prim model core (a mesh of 26 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.core), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.pulse", "Pulse model", "The prim model pulse (a mesh of 30 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.pulse), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.screen_ring", "Screen ring model", "The prim model screen ring (a mesh of 169 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.screen_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.target_ring", "Target ring model", "The prim model target ring (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.target_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.vortex", "Vortex model", "The prim model vortex (a mesh of 314 vertices, 336 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.vortex), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

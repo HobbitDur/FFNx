@@ -119,8 +119,9 @@ namespace gg305
 		uint32_t sound;                    // at the director's tick 8
 		struct { int16_t damage; } master; // the damage at this tick
 		struct { uint32_t smoke, flash, sparks; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t muzzle, impact, spark; } models; // the prim models drawn (meshes)
 	};
-	static const GatlingGunParams GAME = { 0xCEDF28, { 0x1E }, { SEQ_Smoke, SEQ_Flash, SEQ_Sparks } };
+	static const GatlingGunParams GAME = { 0xCEDF28, { 0x1E }, { SEQ_Smoke, SEQ_Flash, SEQ_Sparks }, { MODEL_Muzzle, MODEL_Impact, MODEL_Spark } };
 	static GatlingGunParams live = GAME;
 	static const GatlingGunParams &P() { return live; }
 	static const uint32_t BIND_Block = 0x2245FD8;   // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -226,7 +227,7 @@ namespace gg305
 		ComposeAffineTransform(&Camera(), &m, &m);
 		TransformCameraByShadowRotation(&n->f10, 0, -((int32_t)n->f1C >> 3));
 		GteSetRotMatrix(&m);
-		ModelDraw(MODEL_Muzzle, faded, fade, 2);
+		ModelDraw(fxp::model(P().models.muzzle, MODEL_Muzzle), faded, fade, 2);
 	}
 	static int32_t MuzzleFade(int32_t c) { return shl32(c, 11); }
 
@@ -249,7 +250,7 @@ namespace gg305
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Impact, faded, fade, 1);
+		ModelDraw(fxp::model(P().models.impact, MODEL_Impact), faded, fade, 1);
 	}
 	static int32_t ImpactFade(int32_t c) { return shl32(c, 9); }
 
@@ -278,7 +279,7 @@ namespace gg305
 		MatrixMultiply3(&m, &roll);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Spark, faded, fade, 1);
+		ModelDraw(fxp::model(P().models.spark, MODEL_Spark), faded, fade, 1);
 	}
 	static int32_t SparkFade(int32_t c) { return shl32(c, 10) - 0x400; }
 
@@ -783,6 +784,9 @@ namespace gg305
 			{ "master", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GatlingGunParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GatlingGunParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.sparks", "Sparks", "The sprite sequence sparks (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(GatlingGunParams, seqs.sparks), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "models.muzzle", "Muzzle model", "The prim model muzzle (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GatlingGunParams, models.muzzle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.impact", "Impact model", "The prim model impact (a mesh of 24 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GatlingGunParams, models.impact), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.spark", "Spark model", "The prim model spark (a mesh of 24 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GatlingGunParams, models.spark), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }

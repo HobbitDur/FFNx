@@ -77,8 +77,9 @@ namespace angelo91
 	{
 		uint32_t sound;   // Angelo's dash
 		struct { uint32_t at_15430e8; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_154322c; } models; // the prim models drawn (meshes)
 	};
-	static const RushParams GAME = { SOUND, { 0x15430E8 } };
+	static const RushParams GAME = { SOUND, { 0x15430E8 }, { 0x154322C } };
 	static RushParams live = GAME;
 	static const RushParams &PR() { return live; }
 
@@ -3111,7 +3112,7 @@ namespace angelo91
 	// 0x761090 (sub_761090): dust puff state 0 - model 0x154322C, scale 0x1000^3, random roll +0x48, next state
 	uint32_t __cdecl ru_761090(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x154322C;
+		U32(a1, 0x4C) = fxp::model(PR().models.at_154322c, 0x154322C);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -3635,6 +3636,7 @@ namespace angelo91
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "Angelo's dash", (uint32_t)offsetof(RushParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "seqs.at_15430e8", "Flipbook 15430E8", "The sprite sequence at 0x15430E8 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(RushParams, seqs.at_15430e8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.at_154322c", "Model 154322C", "The prim model at 0x154322C (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RushParams, models.at_154322c), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 

@@ -117,8 +117,9 @@ namespace ws089
 		struct { uint32_t rise, sky, landing; } sounds;   // the director's sounds at ticks 0, 0x32, 0xA2
 		struct { uint32_t dive, at_14a6370, at_14a09a0, at_14a6600, at_14a9ff0; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t sparkle, flash, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t mdl_debris, mdl_trail, at_149d0f8, at_1499fa8, at_149c730, mdl_shards; } model_data; // the prim models drawn (meshes)
 	};
-	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 }, { 0x14A07F4, 0x14A0538, 0x14A067C } };
+	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 }, { 0x14A07F4, 0x14A0538, 0x14A067C }, { 0x14A04D8, 0x1497140, 0x149D0F8, 0x1499FA8, 0x149C730, 0x1496550 } };
 	static WishingStarParams live = GAME;
 	static const WishingStarParams &PW() { return live; }
 
@@ -1417,7 +1418,7 @@ namespace ws089
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		F<uint32_t>(h, 0x44) = 0;
-		F<uint32_t>(h, 0x28) = MDL_Debris;
+		F<uint32_t>(h, 0x28) = fxp::model(PW().model_data.mdl_debris, MDL_Debris);
 		Cursor() = RenderPrimModel(h + 0x28, OTBase() + 0x44, 2, Cursor());
 		FieldFree(0x80);
 	}
@@ -1570,7 +1571,7 @@ namespace ws089
 		GteSetRotMatrix((const Mat4x3 *)h);
 		GteSetTransVector((const Mat4x3 *)h);
 		F<uint32_t>(h, 0x3C) = 0x30;
-		F<uint32_t>(h, 0x20) = MDL_Trail;
+		F<uint32_t>(h, 0x20) = fxp::model(PW().model_data.mdl_trail, MDL_Trail);
 		*cursor = RenderPrimModel(h + 0x20, OTBase() + 0x44, 2, *cursor);
 		FieldFree(0x78);
 	}
@@ -1826,7 +1827,7 @@ namespace ws089
 		GteSetTransVector(m);
 		F<uint32_t>(h, 0x50) = 0;
 		F<uint32_t>(h, 0x48) = 0;
-		F<uint32_t>(h, 0x30) = MDL_Trail;
+		F<uint32_t>(h, 0x30) = fxp::model(PW().model_data.mdl_trail, MDL_Trail);
 		F<uint32_t>(h, 0x4C) = 0;
 		Cursor() = RenderPrimSet(h + 0x30, OTBase() + 0x44, 2, Cursor());
 		FieldFree(0x9C);
@@ -1854,7 +1855,7 @@ namespace ws089
 		F<int16_t>(h, 0x4C) = 0;
 		F<int16_t>(h, 0x40) = 0;
 		F<uint32_t>(h, 0x28) = 0;
-		F<uint32_t>(pr, 0) = 0x149D0F8;
+		F<uint32_t>(pr, 0) = fxp::model(PW().model_data.at_149d0f8, 0x149D0F8);
 		F<int16_t>(h, 0x4E) = 0x80;
 		F<int16_t>(h, 0x52) = 0x80;
 		F<int16_t>(h, 0x42) = (int16_t)((lt & 3) << 5);
@@ -1874,13 +1875,13 @@ namespace ws089
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		F<uint32_t>(h, 0x40) = 0;
-		F<uint32_t>(pr, 0) = 0x1499FA8;
+		F<uint32_t>(pr, 0) = fxp::model(PW().model_data.at_1499fa8, 0x1499FA8);
 		F<int32_t>(h, 0x38) = -0x40;
 		F<uint32_t>(h, 0x3C) = 0x30;
 		Cursor() = RenderPrimSet(pr, OTBase() + 0x44, 2, Cursor());
 		F<uint32_t>(h, 0x3C) = 0xF0;
 		F<int32_t>(h, 0x2C) = g;
-		F<uint32_t>(pr, 0) = 0x149C730;
+		F<uint32_t>(pr, 0) = fxp::model(PW().model_data.at_149c730, 0x149C730);
 		F<int32_t>(h, 0x38) = -0x40;
 		Cursor() = RenderPrimSet(pr, OTBase() + 0x44, 2, Cursor());
 		FieldFree(0x8C);
@@ -2336,7 +2337,7 @@ namespace ws089
 		off[0] = 0xA0;
 		off[1] = 0x6C;
 		off[2] = 0;
-		ShardsInit(MDL_Shards, off);
+		ShardsInit(fxp::model(PW().model_data.mdl_shards, MDL_Shards), off);
 		StreamStateInit((void *)(TexBase() + 0x5E5C));
 		// the star dots: 8 groups (colours 0x14AF490 / 0x14AF494, their angles reset) x 128 dots at random directions
 		uint8_t *st = (uint8_t *)(TexBase() + 0x7C04);
@@ -2447,6 +2448,12 @@ namespace ws089
 			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "model_data.mdl_debris", "Mdl debris model", "The prim model mdl debris (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.mdl_debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.mdl_trail", "Mdl trail model", "The prim model mdl trail (a mesh of 400 vertices, 360 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.mdl_trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_149d0f8", "Model 149D0F8", "The prim model at 0x149D0F8 (a mesh of 320 vertices, 300 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_149d0f8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_1499fa8", "Model 1499FA8", "The prim model at 0x1499FA8 (a mesh of 300 vertices, 280 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_1499fa8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_149c730", "Model 149C730", "The prim model at 0x149C730 (a mesh of 80 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_149c730), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.mdl_shards", "Mdl shards model", "The prim model mdl shards (a mesh of 77 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.mdl_shards), fxp::Model, 0, 0x7FFFFFFF },
 		};
 	}
 }
