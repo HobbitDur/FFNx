@@ -147,8 +147,9 @@ namespace scatter192
 	struct ScatterShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t smoke, ground_smoke, impact, dust, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ScatterShotParams GAME = { 0xD18668 };
+	static const ScatterShotParams GAME = { 0xD18668, { 0xD16B58, 0xD16C30, 0xD16CA4, 0xD16EC8, 0xD17074 } };
 	static ScatterShotParams live = GAME;
 	static const ScatterShotParams &P() { return live; }
 
@@ -388,7 +389,7 @@ namespace scatter192
 	{
 		TransformCameraByShadowRotation(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -417,7 +418,7 @@ namespace scatter192
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_GroundSmoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ground_smoke, SEQ_GroundSmoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -429,7 +430,7 @@ namespace scatter192
 	static void ImpactFlashDraw(const Node *n, uint8_t *h)
 	{
 		*(int16_t *)(h + 4) = n->counter;
-		*(uint32_t *)h = SEQ_Impact;
+		*(uint32_t *)h = fxp::sequence(P().seqs.impact, SEQ_Impact);
 		*(int16_t *)(h + 0x24) = 8;
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -469,7 +470,7 @@ namespace scatter192
 	}
 	static void DustHeader(uint8_t *h)
 	{
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_Dust);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 	}
@@ -620,7 +621,7 @@ namespace scatter192
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		int32_t alive = 0;
 		const int32_t id = n->f0E + 1;
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
@@ -1044,6 +1045,11 @@ namespace scatter192
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(ScatterShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.ground_smoke", "Ground smoke", "The sprite sequence ground smoke (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.ground_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ScatterShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

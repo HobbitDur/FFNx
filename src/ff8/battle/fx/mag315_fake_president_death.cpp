@@ -140,8 +140,9 @@ namespace fp315
 	{
 		uint32_t voice;                       // the voice slot claimed at the master's tick 0
 		struct { uint32_t start, hit; } sounds; // at the master's ticks 1 and 0x70 (with the damage)
+		struct { uint32_t drop, bubble, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FakePresidentDeathParams GAME = { 0xCD57A0, { 0xCD58BC, 0xCD58C0 } };
+	static const FakePresidentDeathParams GAME = { 0xCD57A0, { 0xCD58BC, 0xCD58C0 }, { SEQ_Drop, SEQ_Bubble, SEQ_Spark } };
 	static FakePresidentDeathParams live = GAME;
 	static const FakePresidentDeathParams &P() { return live; }
 
@@ -356,7 +357,7 @@ namespace fp315
 		if (!DrawOnly() && S16(n, 0xC) <= 0x14) DropSpawn(n, w);
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
-		U32(h, 0) = SEQ_Drop;
+		U32(h, 0) = fxp::sequence(P().seqs.drop, SEQ_Drop);
 		S16(h, 0x24) = 0xA;
 		S32(h, 0xC) = 0x1000;
 		S32(h, 0x10) = 0xA00;
@@ -431,7 +432,7 @@ namespace fp315
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		S16(h, 0x24) = 0;
 		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
-		U32(h, 0) = SEQ_Bubble;
+		U32(h, 0) = fxp::sequence(P().seqs.bubble, SEQ_Bubble);
 		GteSetLightMatrix(w + 8);
 		GteSetBkFromTranslation(w + 8);
 		int32_t count = 0;
@@ -490,7 +491,7 @@ namespace fp315
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		S16(h, 0x24) = 0;
 		memcpy((void *)(w + 0x10), (const void *)&Camera(), 0x20);
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		GteSetLightMatrix(w + 0x10);
 		GteSetBkFromTranslation(w + 0x10);
 		U32(w, 8) = U32(n, 0x10);
@@ -1254,6 +1255,9 @@ namespace fp315
 			{ "master", "voice", "Voice", "The voice slot claimed at the master's tick 0", (uint32_t)offsetof(FakePresidentDeathParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "sounds.start", "Start", "At the master's tick 1", (uint32_t)offsetof(FakePresidentDeathParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "sounds.hit", "Hit", "At the master's tick 0x70 (with the damage)", (uint32_t)offsetof(FakePresidentDeathParams, sounds.hit), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "seqs.drop", "Drop", "The sprite sequence drop (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.drop), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.bubble", "Bubble", "The sprite sequence bubble (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.bubble), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 21 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

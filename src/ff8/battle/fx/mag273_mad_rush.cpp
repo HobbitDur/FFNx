@@ -89,8 +89,9 @@ namespace madrush273
 	{
 		uint32_t sound;   // for each target's play task
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t dust; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const MadRushParams GAME = { 0x11110CC, { MODEL_LAYOUT } };
+	static const MadRushParams GAME = { 0x11110CC, { MODEL_LAYOUT }, { SEQ_DUST } };
 	static MadRushParams live = GAME;
 	static const MadRushParams &P() { return live; }
 
@@ -212,7 +213,7 @@ namespace madrush273
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(d->pos, d->scale, -((int32_t)d->scale >> 2));
-		*(uint32_t *)h = SEQ_DUST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_DUST);
 		*(int16_t *)(h + 4) = d->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -367,6 +368,7 @@ namespace madrush273
 		static const Field FIELDS[] = {
 			{ "root", "sound", "Sound", "For each target's play task", (uint32_t)offsetof(MadRushParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "root", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(MadRushParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "root", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(MadRushParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

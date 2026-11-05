@@ -87,8 +87,9 @@ namespace regen147
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t status; } director; // the status (and the next action's director) at this tick
+		struct { uint32_t leaf; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const RegenParams GAME = { 0xDD05CC, { 0x1C } };
+	static const RegenParams GAME = { 0xDD05CC, { 0x1C }, { SEQ_Leaf } };
 	static RegenParams live = GAME;
 	static const RegenParams &P() { return live; }
 	static const uint32_t TRAILS = 0x24774B8;           // 0x140 bytes (16 x 0x14) per action * 8 + leaf
@@ -280,7 +281,7 @@ namespace regen147
 	{
 		TransformCameraByShadowRotation(p->pos, p->size, -(p->size >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Leaf;
+		*(uint32_t *)h = fxp::sequence(P().seqs.leaf, SEQ_Leaf);
 		if (p->counter < 0xE)
 		{
 			*(int16_t *)(h + 4) = p->counter >= 8 ? (int16_t)(p->counter - 8) : 0;
@@ -521,6 +522,7 @@ namespace regen147
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "", (uint32_t)offsetof(RegenParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.status", "Status tick", "The status (and the next action's director) at this tick", (uint32_t)offsetof(RegenParams, director.status), fxp::I16, 0, 100 },
+			{ "director", "seqs.leaf", "Leaf", "The sprite sequence leaf (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RegenParams, seqs.leaf), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -116,8 +116,9 @@ namespace ws089
 	{
 		struct { uint32_t rise, sky, landing; } sounds;   // the director's sounds at ticks 0, 0x32, 0xA2
 		struct { uint32_t dive, at_14a6370, at_14a09a0, at_14a6600, at_14a9ff0; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t sparkle, flash, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 } };
+	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 }, { 0x14A07F4, 0x14A0538, 0x14A067C } };
 	static WishingStarParams live = GAME;
 	static const WishingStarParams &PW() { return live; }
 
@@ -1196,7 +1197,7 @@ namespace ws089
 				s->pos[2] = F<int16_t>(p, 0x2C);
 				s->scale = 0x800;
 				s->life = 0x10;
-				s->seq = SEQ_Sparkle;
+				s->seq = fxp::sequence(PW().seqs.sparkle, SEQ_Sparkle);
 				s->vel[0] = (int16_t)(F<int16_t>(p, 0x12) >> 7);
 				s->vel[1] = (int16_t)(F<int16_t>(p, 0x18) >> 7);
 				s->vel[2] = (int16_t)(F<int16_t>(p, 0x1E) >> 7);
@@ -1383,7 +1384,7 @@ namespace ws089
 	{
 		TransformCameraByShadowRotation(t->pos, t->size, -(t->size >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		F<uint32_t>(h, 0) = SEQ_Flash;
+		F<uint32_t>(h, 0) = fxp::sequence(PW().seqs.flash, SEQ_Flash);
 		F<int16_t>(h, 4) = (int16_t)t->frame;
 		F<int16_t>(h, 0x24) = 0;
 		Cursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, Cursor());
@@ -1613,7 +1614,7 @@ namespace ws089
 			s->pos[2] = (int16_t)p[2];
 			s->scale = 0x800;
 			s->life = 0x10;
-			s->seq = SEQ_Sparkle;
+			s->seq = fxp::sequence(PW().seqs.sparkle, SEQ_Sparkle);
 			const int32_t r = CrtRand();
 			s->vel[0] = (int16_t)ComputeCos(r);
 			s->vel[1] = (int16_t)ComputeSin(r);
@@ -1651,7 +1652,7 @@ namespace ws089
 					s->pos[2] = (int16_t)d->m.t[2];
 					s->scale = 0x800;
 					s->life = 0x10;
-					s->seq = SEQ_Sparkle;
+					s->seq = fxp::sequence(PW().seqs.sparkle, SEQ_Sparkle);
 					const int32_t r = CrtRand();
 					s->vel[0] = (int16_t)ComputeCos(r);
 					s->vel[1] = (int16_t)ComputeSin(r);
@@ -2174,7 +2175,7 @@ namespace ws089
 				const int32_t r = CrtRand();
 				p->scale = 0x400;
 				p->life = 0xE;
-				p->seq = SEQ_Spark;
+				p->seq = fxp::sequence(PW().seqs.spark, SEQ_Spark);
 				p->pos[2] = (int16_t)(sdiv_pow2(mul32(r, 10000), 15) - 0x1388);
 				p->vel[0] = (int16_t)((CrtRand() & 0x3F) - 0x20);
 				p->vel[1] = (int16_t)((CrtRand() & 0x3F) - 0x20);
@@ -2443,6 +2444,9 @@ namespace ws089
 			{ "director", "layouts.at_14a09a0", "At 14a09a0", "The prim-model layout at 14a09a0 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a09a0), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.at_14a6600", "At 14a6600", "The prim-model layout at 14a6600 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a6600), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.at_14a9ff0", "At 14a9ff0", "The prim-model layout at 14a9ff0 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a9ff0), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

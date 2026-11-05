@@ -107,10 +107,10 @@ namespace drinkmagic
 		struct { int16_t first, every, spread, twist; } ribbons;        // the five ribbons' ticks (first, then every), spread, twist a tick
 		struct { int16_t from, until, accel; } streaks;                 // one streak a tick from / until these spawner ticks; its acceleration
 		struct { int16_t appear, scale, fade, hold, spin; } orb;        // the orb at the caster: its tick, scale, fade a tick, hold, spin a tick
-		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t spark, streak, ribbon; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const DrinkParams GAME = { { 0x15D62E8, 0xF, 0xF }, { 0x28, 0xF, 0 }, { 0x28, 2, 0x80, 0x180 }, { 0xE, 0x3E, 0x30 },
-	                                  { 0xF, 0x1400, 0x100, 0x14, 0xA0 }, { SPARK_FLIPBOOK } };
+	                                  { 0xF, 0x1400, 0x100, 0x14, 0xA0 }, { SPARK_FLIPBOOK, STREAK_FLIPBOOK, RIBBON_FLIPBOOK } };
 	static DrinkParams live = GAME;
 	static const DrinkParams &PK() { return live; }
 
@@ -3404,7 +3404,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85BFD0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = STREAK_FLIPBOOK;
+		U32(node, 0x4C) = fxp::sequence(PK().seqs.streak, STREAK_FLIPBOOK);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
@@ -3519,7 +3519,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85EF20(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = RIBBON_FLIPBOOK;
+		U32(node, 0x4C) = fxp::sequence(PK().seqs.ribbon, RIBBON_FLIPBOOK);
 		U16(node, 0x52) = 5;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
@@ -3836,6 +3836,8 @@ namespace drinkmagic
 			DK("orb", orb.hold, "Hold", "Ticks between its fade out and fade in", 0, 200),
 			DK("orb", orb.spin, "Spin", "Its twist and swell angles a tick (4096: a turn)", -0x800, 0x800),
 			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrinkParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.streak", "Streak", "The sprite sequence streak (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DrinkParams, seqs.streak), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.ribbon", "Ribbon", "The sprite sequence ribbon (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrinkParams, seqs.ribbon), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DK
 	}

@@ -137,8 +137,9 @@ namespace xatm276
 		uint32_t sound_start;   // the director's tick 0
 		uint32_t sound_voice;   // the voice slot the root claims (counter 1), released on the director's tick 0x8C
 		struct { uint32_t prim_model; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t smoke, fall, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const XAtmDeathParams GAME = { 0x10D4C58, 0x10D4C5C, { PRIM_Model } };
+	static const XAtmDeathParams GAME = { 0x10D4C58, 0x10D4C5C, { PRIM_Model }, { SEQ_Smoke, SEQ_Fall, SEQ_Spark } };
 	static XAtmDeathParams live = GAME;
 	static const XAtmDeathParams &P() { return live; }
 	static const uint32_t EVENTS[5] = { 0x10D56A8, 0x10D55A8, 0x10D5528, 0x10D5628, 0x10D5728 };
@@ -1104,7 +1105,7 @@ namespace xatm276
 		const uint32_t n = (uint32_t)t;
 		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_sprite(SPR_SMOKE, n);)
-		DrawMoving(n, SEQ_Smoke);
+		DrawMoving(n, fxp::sequence(P().seqs.smoke, SEQ_Smoke));
 		const int16_t vy = S16(n, 0x16);
 		S16(n, 0xE) = (int16_t)(S16(n, 0xE) + vy);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + S16(n, 0x14));
@@ -1119,7 +1120,7 @@ namespace xatm276
 		const uint32_t n = (uint32_t)t;
 		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_sprite(SPR_FALL, n);)
-		DrawMoving(n, SEQ_Fall);
+		DrawMoving(n, fxp::sequence(P().seqs.fall, SEQ_Fall));
 		const int16_t vy = S16(n, 0x16);
 		S16(n, 0xE) = (int16_t)(S16(n, 0xE) + vy);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + S16(n, 0x14));
@@ -1135,7 +1136,7 @@ namespace xatm276
 		const uint32_t h = (uint32_t)AllocHeader(0xB4);
 		const int16_t size = S16(n, 0x16);
 		TransformCameraByShadowRotation((const void *)(n + 0x10), size, -((int32_t)size >> 2));
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		S16(h, 4) = S16(n, 0xC);
 		S16(h, 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OTBase() + 0x44, 2, PacketCursor());
@@ -1663,6 +1664,9 @@ namespace xatm276
 			{ "director", "sound_start", "Start", "The director's tick 0", (uint32_t)offsetof(XAtmDeathParams, sound_start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sound_voice", "Voice", "The voice slot claimed at the start (released on tick 0x8C)", (uint32_t)offsetof(XAtmDeathParams, sound_voice), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "layouts.prim_model", "Prim model", "The prim-model layout prim model (its models' animation)", (uint32_t)offsetof(XAtmDeathParams, layouts.prim_model), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(XAtmDeathParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.fall", "Fall", "The sprite sequence fall (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(XAtmDeathParams, seqs.fall), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(XAtmDeathParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

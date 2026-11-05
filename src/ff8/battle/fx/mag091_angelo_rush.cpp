@@ -76,8 +76,9 @@ namespace angelo91
 	struct RushParams
 	{
 		uint32_t sound;   // Angelo's dash
+		struct { uint32_t at_15430e8; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const RushParams GAME = { SOUND };
+	static const RushParams GAME = { SOUND, { 0x15430E8 } };
 	static RushParams live = GAME;
 	static const RushParams &PR() { return live; }
 
@@ -3225,7 +3226,7 @@ namespace angelo91
 	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl ru_7618E0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x15430E8;
+		U32(a1, 0x4C) = fxp::sequence(PR().seqs.at_15430e8, 0x15430E8);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3633,6 +3634,7 @@ namespace angelo91
 		};
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "Angelo's dash", (uint32_t)offsetof(RushParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15430e8", "Flipbook 15430E8", "The sprite sequence at 0x15430E8 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(RushParams, seqs.at_15430e8), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 

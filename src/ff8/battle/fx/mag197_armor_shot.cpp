@@ -176,8 +176,9 @@ namespace armor197
 	struct ArmorShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t debris, spark, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ArmorShotParams GAME = { 0xD05230 };
+	static const ArmorShotParams GAME = { 0xD05230, { 0xCFDC20, 0xCFD714, 0xCFDA74 } };
 	static ArmorShotParams live = GAME;
 	static const ArmorShotParams &P() { return live; }
 
@@ -612,7 +613,7 @@ namespace armor197
 	// the debris: a header (0xB4: sequence 0xCFDC20, +0x24 = 0x208) and the anchor's camera matrix (scratch 0x98: +8)
 	static void DebrisBegin(const Node *n, uint8_t *s, uint8_t *h)
 	{
-		*(uint32_t *)h = SEQ_Debris;
+		*(uint32_t *)h = fxp::sequence(P().seqs.debris, SEQ_Debris);
 		*(int16_t *)(h + 0x24) = 0x208;
 		int16_t *ang = (int16_t *)s;
 		ang[0] = 0;
@@ -666,7 +667,7 @@ namespace armor197
 	// the arc sparks: a header (0xB4: sequence 0xCFD714, +0x24 = 0)
 	static void ArcSparkBegin(uint8_t *h)
 	{
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 0x24) = 0;
 	}
 	// one arc spark: frame * 2 + 1, camera facing at its point (its size, depth -(size / 16))
@@ -815,7 +816,7 @@ namespace armor197
 		FX_HELD(held_note_node(ORIG_BoneSmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_BoneSmoke);
+		SparkBegin(s, h, fxp::sequence(P().seqs.bone_smoke, SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1023,7 +1024,7 @@ namespace armor197
 		FX_HELD(held_note_node(ORIG_TargetSparkTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Spark);
+		SparkBegin(s, h, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1447,6 +1448,9 @@ namespace armor197
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(ArmorShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

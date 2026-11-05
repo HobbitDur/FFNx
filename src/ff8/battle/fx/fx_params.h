@@ -146,13 +146,15 @@ namespace fxp
 #define FXP_DATA_BLOCKS 1   // (hosts test it: older sources have no data blocks)
 
 	// a sprite sequence parameter (the flipbooks of FF8_EN.exe's data, InitEffectSequenceFromData
-	// 0x571C80): its address when it is one - in the exe image or a data block, the signature
-	// 24 05 01 00, its frame table in it and at least the game's frames (its code plays a fixed count) -
-	// else the game's, so a wrong value draws the game's sprite instead of reading anywhere
+	// 0x571C80): its address when it is one - in the exe image or a data block, the header 24 05 then
+	// 00 or 01 then a byte below 0x10 (24 05 01 00 for most; the Init never reads it), its frame table in
+	// it and at least the game's frames (its code plays a fixed count) - else the game's, so a wrong value
+	// draws the game's sprite instead of reading anywhere
 	inline uint32_t sequence(uint32_t address, uint32_t game)
 	{
 		if (address == game || address & 3 || !data_end(address, 12)) return game;
-		if (*(const uint32_t *)address != 0x00010524) return game;
+		const uint8_t *head = (const uint8_t *)address;
+		if (head[0] != 0x24 || head[1] != 0x05 || head[2] > 1 || head[3] >= 0x10) return game;
 		const uint32_t frames = *(const uint16_t *)(address + 8);
 		if (frames < *(const uint16_t *)(game + 8) || !data_end(address, 10 + 2 * frames)) return game;
 		return address;
@@ -198,6 +200,31 @@ namespace fxp
 		return words * 4 <= capacity ? address : game;
 	}
 
+	// a prim model parameter (the meshes Effect_RenderPrimModel 0x572200 draws, FF8UltimateEditor's
+	// FF8GameData/psxgpu/primmodel.py their format): its address when it reads as one - in the exe image
+	// or a data block, aligned, its header (lists at 8 + 8 x vertices), at least the game's vertices (its
+	// code may read, morph or bound them by number) and its 8 primitive lists inside what it lies in -
+	// else the game's
+	inline uint32_t model(uint32_t address, uint32_t game)
+	{
+		if (address == game || address & 3) return game;
+		const uint32_t end = data_end(address, 8);
+		if (!end) return game;
+		const uint32_t lists = *(const uint32_t *)address, vertices = *(const uint32_t *)(address + 4);
+		if (vertices == 0 || vertices > 4096 || lists != 8 + 8 * vertices) return game;
+		if (vertices < *(const uint32_t *)(game + 4)) return game;
+		static const uint32_t record[8] = { 12, 12, 20, 24, 20, 24, 28, 36 };   // F3 F4 FT3 FT4 G3 G4 GT3 GT4
+		uint32_t at = address + lists;
+		for (uint32_t k = 0; k < 8; k++)
+		{
+			if (at + 4 > end) return game;
+			const uint32_t count = *(const uint32_t *)at;
+			if (count > 4096 || at + 4 + count * record[k] > end) return game;
+			at += 4 + count * record[k];
+		}
+		return address;
+	}
+
 	// a file name parameter (the files an effect's loader reads from the magic folder,
 	// IO_GetFile_MAGIC 0x571B80): empty = the game's own file
 	struct FileName { char name[16]; };
@@ -216,8 +243,9 @@ namespace fxp
 
 	// ---- field table (what an editor shows) ----
 	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences; Sound: a sound
-	// block's address (32 bits); Layout: a prim-model layout's address (32 bits)
-	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4, File = 5, Layout = 6 };
+	// block's address (32 bits); Layout: a prim-model layout's address (32 bits); Model: a prim model's
+	// address (32 bits)
+	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4, File = 5, Layout = 6, Model = 7 };
 	// how an editor shows the value (the raw value beside it): Angle 4096 = a full turn (degrees),
 	// Scale 4096 = its own size (x 1)
 	enum Unit : uint8_t { Plain = 0, Angle = 1, Scale = 2 };

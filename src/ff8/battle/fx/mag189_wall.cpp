@@ -114,8 +114,9 @@ namespace wall189
 	{
 		uint32_t sound;                  // at the main task's tick 1
 		struct { int16_t result; } main; // the action results at this tick
+		struct { uint32_t dust; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const WallParams GAME = { 0xD1B3A4, { 0x41 } };
+	static const WallParams GAME = { 0xD1B3A4, { 0x41 }, { SEQ_Dust } };
 	static WallParams live = GAME;
 	static const WallParams &P() { return live; }
 	static const int DUST_COUNT = 150, DEBRIS_COUNT = 100;
@@ -759,7 +760,7 @@ namespace wall189
 		FX_HELD(held_begin(ORIG_DustTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_Dust);
 		*(int16_t *)(h + 0x24) = 8;
 		for (Dust *p = Dusts(); p < Dusts() + DUST_COUNT; p++)
 		{
@@ -967,6 +968,7 @@ namespace wall189
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "At the main task's tick 1", (uint32_t)offsetof(WallParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "main.result", "Result tick", "The action results at this tick of the main task", (uint32_t)offsetof(WallParams, main.result), fxp::I16, 0, 70 },
+			{ "main", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(WallParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

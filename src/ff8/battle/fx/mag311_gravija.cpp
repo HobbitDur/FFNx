@@ -119,8 +119,9 @@ namespace gravija311
 	{
 		uint32_t sound;   // the main task's counter 0
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const GravijaParams GAME = { 0x1021044, { MODEL_Main } };
+	static const GravijaParams GAME = { 0x1021044, { MODEL_Main }, { SEQ_Particle } };
 	static GravijaParams live = GAME;
 	static const GravijaParams &P() { return live; }
 
@@ -707,7 +708,7 @@ namespace gravija311
 		v[2] = (int16_t)(v[2] + avg[2]);
 		TransformCameraByShadowRotation(v, 0x800, (int32_t)0xFFFFFE00);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.particle, SEQ_Particle);
 		*(uint16_t *)(h + 4) = 1;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -897,6 +898,7 @@ namespace gravija311
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The main task's counter 0", (uint32_t)offsetof(GravijaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(GravijaParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 50 frames: an edited one keeps as many)", (uint32_t)offsetof(GravijaParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -105,8 +105,9 @@ namespace sleep145
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t status; } director; // the status at this tick of an action's director
+		struct { uint32_t particle, zzz; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SleepParams GAME = { 0xDD7904, { 0x1E } };
+	static const SleepParams GAME = { 0xDD7904, { 0x1E }, { SEQ_Particle, SEQ_Zzz } };
 	static SleepParams live = GAME;
 	static const SleepParams &PSL() { return live; }
 
@@ -1067,7 +1068,7 @@ namespace sleep145
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		H32(h, 0) = SEQ_Particle;
+		H32(h, 0) = fxp::sequence(PSL().seqs.particle, SEQ_Particle);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1117,7 +1118,7 @@ namespace sleep145
 	static uint8_t *ZzzBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = SEQ_Zzz;
+		H32(h, 0) = fxp::sequence(PSL().seqs.zzz, SEQ_Zzz);
 		*(uint16_t *)(h + 0x24) = 1;
 		return h;
 	}
@@ -1275,6 +1276,8 @@ namespace sleep145
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "", (uint32_t)offsetof(SleepParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.status", "Status tick", "The status at this tick of an action's director", (uint32_t)offsetof(SleepParams, director.status), fxp::I16, 0, 100 },
+			{ "director", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.zzz", "Zzz", "The sprite sequence zzz (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.zzz), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

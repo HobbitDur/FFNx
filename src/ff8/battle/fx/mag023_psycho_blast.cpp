@@ -101,8 +101,9 @@ namespace psycho
 		struct { int16_t start, length, mode; } actors;                            // the actor system
 		struct { int16_t appear, speed, short_of; } orb;                           // the orb and the ring appear; its flight
 		struct { int16_t first, second, colour; } debris;                          // debris tasks on the spawner's two ticks; their sprites' colour
+		struct { uint32_t at_161428c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const PsychoParams GAME = { { SOUND_Blast, 4, 0x27 }, { 0, 0x28, 4 }, { 0x23, 0x556, 0x200 }, { 8, 4, -0x40 } };
+	static const PsychoParams GAME = { { SOUND_Blast, 4, 0x27 }, { 0, 0x28, 4 }, { 0x23, 0x556, 0x200 }, { 8, 4, -0x40 }, { 0x161428C } };
 	static PsychoParams live = GAME;
 	static const PsychoParams &PP() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
@@ -2437,7 +2438,7 @@ namespace psycho
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = 0x161428C;
+		U32(node, 0x4c) = fxp::sequence(PP().seqs.at_161428c, 0x161428C);
 		st++;
 		U16(node, 0x56) = (uint16_t)PP().debris.colour;
 		U16(node, 0x52) = 8;
@@ -3074,6 +3075,7 @@ namespace psycho
 			DT("orb", debris.first, "First", "", 0, 30),
 			DT("orb", debris.second, "Second", "", 0, 30),
 			DT("orb", debris.colour, "Colour", "", -0x8000, 0x7FFF),
+			{ "director", "seqs.at_161428c", "Flipbook 161428C", "The sprite sequence at 0x161428C (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(PsychoParams, seqs.at_161428c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

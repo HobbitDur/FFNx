@@ -107,8 +107,9 @@ namespace shotgun281
 	{
 		uint32_t sound;   // the main task's counter 2
 		struct { uint32_t hit, muzzle; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t muzzle_spark, hit_spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ShotgunParams GAME = { 0x10A7958, { MODEL_Hit, MODEL_Muzzle } };
+	static const ShotgunParams GAME = { 0x10A7958, { MODEL_Hit, MODEL_Muzzle }, { SEQ_MuzzleSpark, SEQ_HitSpark } };
 	static ShotgunParams live = GAME;
 	static const ShotgunParams &P() { return live; }
 
@@ -418,7 +419,7 @@ namespace shotgun281
 					v[2] = (int16_t)(-0x80 - (CrtRand() & 0x7F));
 					s->counter = 0;
 					s->life = 8;
-					s->seq = SEQ_MuzzleSpark;
+					s->seq = fxp::sequence(P().seqs.muzzle_spark, SEQ_MuzzleSpark);
 					MatrixMulVector(&BasisM(), v, s->vel);
 					s->drag[0] = (int16_t)((int32_t)(0 - (int32_t)s->vel[0]) >> 3);
 					s->drag[1] = (int16_t)((int32_t)(0 - (int32_t)s->vel[1]) >> 3);
@@ -453,7 +454,7 @@ namespace shotgun281
 					s->counter = 0;
 					s->life = 0xA;
 					s->vel[0] = (int16_t)(mul32(s->vel[0], scale) >> 11);
-					s->seq = SEQ_HitSpark;
+					s->seq = fxp::sequence(P().seqs.hit_spark, SEQ_HitSpark);
 					s->vel[1] = (int16_t)(mul32(s->vel[1], scale) >> 11);
 					s->vel[2] = (int16_t)(mul32(s->vel[2], scale) >> 11);
 					s->drag[0] = (int16_t)((int32_t)(0 - (int32_t)s->vel[0]) >> 3);
@@ -535,6 +536,8 @@ namespace shotgun281
 			{ "main", "sound", "Sound", "The main task's counter 2", (uint32_t)offsetof(ShotgunParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(ShotgunParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(ShotgunParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.muzzle_spark", "Muzzle spark", "The sprite sequence muzzle spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ShotgunParams, seqs.muzzle_spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.hit_spark", "Hit spark", "The sprite sequence hit spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(ShotgunParams, seqs.hit_spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

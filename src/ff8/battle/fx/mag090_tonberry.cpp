@@ -62,8 +62,9 @@ namespace act
 		struct TonberryParams
 		{
 			struct { uint32_t walk, knife; } sounds;   // its sounds: at the walk's cue, at the knife's stab
+			struct { uint32_t at_1547174, at_1547258, at_1547280, at_1547344; } seqs; // the sprite sequences drawn (flipbooks)
 		};
-		static const TonberryParams GAME = { { SOUND_A, SOUND_B } };
+		static const TonberryParams GAME = { { SOUND_A, SOUND_B }, { 0x1547174, 0x1547258, 0x1547280, 0x1547344 } };
 		static TonberryParams live = GAME;
 		static const TonberryParams &PT() { return live; }
 	}
@@ -1811,7 +1812,7 @@ namespace act
 		U16(node, 0x1C) = 0x40;
 		U16(node, 0x1E) = 0xFFE4;
 		U16(node, 0x20) = z;
-		U32(node, 0x4C) = 0x1547174;
+		U32(node, 0x4C) = fxp::sequence(tonberry::PT().seqs.at_1547174, 0x1547174);
 		U16(node, 0x56) = 0xFF00;
 		U16(node, 0x52) = 5;
 		U8(node, 0x29) = (uint8_t)(st + 1);
@@ -1879,7 +1880,7 @@ namespace act
 		U16(node, 0x1C) = 0xFFC8;
 		U16(node, 0x1E) = 0xFFA8;
 		U16(node, 0x20) = z;
-		U32(node, 0x4C) = 0x1547258;
+		U32(node, 0x4C) = fxp::sequence(tonberry::PT().seqs.at_1547258, 0x1547258);
 		U16(node, 0x56) = 0xFF00;
 		U16(node, 0x52) = 0;
 		U8(node, 0x29) = (uint8_t)(st + 1);
@@ -2058,7 +2059,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		const uint8_t st = U8(node, 0x29);
-		U32(node, 0x4C) = 0x1547280;
+		U32(node, 0x4C) = fxp::sequence(tonberry::PT().seqs.at_1547280, 0x1547280);
 		U16(node, 0x56) = 0;
 		U16(node, 0x52) = 6;
 		U8(node, 0x29) = (uint8_t)(st + 1);
@@ -2336,7 +2337,7 @@ namespace act
 	uint32_t __cdecl t_767CD0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = 0x1547344;
+		U32(node, 0x4C) = fxp::sequence(tonberry::PT().seqs.at_1547344, 0x1547344);
 		U16(node, 0x56) = 0;
 		U16(node, 0x52) = 9;
 		const uint32_t r1 = x::CrtRand();
@@ -2676,6 +2677,10 @@ namespace tonberry
 		static const Field FIELDS[] = {
 			{ "director", "sounds.walk", "Walk", "", (uint32_t)offsetof(TonberryParams, sounds.walk), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.knife", "Knife", "", (uint32_t)offsetof(TonberryParams, sounds.knife), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1547174", "Flipbook 1547174", "The sprite sequence at 0x1547174 (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(TonberryParams, seqs.at_1547174), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1547258", "Flipbook 1547258", "The sprite sequence at 0x1547258 (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(TonberryParams, seqs.at_1547258), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1547280", "Flipbook 1547280", "The sprite sequence at 0x1547280 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(TonberryParams, seqs.at_1547280), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1547344", "Flipbook 1547344", "The sprite sequence at 0x1547344 (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(TonberryParams, seqs.at_1547344), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 

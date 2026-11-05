@@ -122,8 +122,9 @@ namespace boomerang304
 	{
 		uint32_t sound;   // the throw (the main task's counter 5)
 		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BoomerangSwordParams GAME = { 0x10312C8, { MODEL_Hit } };
+	static const BoomerangSwordParams GAME = { 0x10312C8, { MODEL_Hit }, { SEQ_Spark } };
 	static BoomerangSwordParams live = GAME;
 	static const BoomerangSwordParams &P() { return live; }
 
@@ -422,7 +423,7 @@ namespace boomerang304
 	{
 		TransformCameraByShadowRotation(pos, 0x800, -0x200);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -738,6 +739,7 @@ namespace boomerang304
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The throw (the main task's counter 5)", (uint32_t)offsetof(BoomerangSwordParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(BoomerangSwordParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(BoomerangSwordParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

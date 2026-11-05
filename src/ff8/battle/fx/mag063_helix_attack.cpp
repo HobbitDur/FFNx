@@ -103,8 +103,9 @@ namespace helix063
 		struct { int16_t damage, end; } master;  // the damage of the first target / the end at these ticks
 		struct { int16_t flash, push; } impact;  // the screen flash level; the impact this far from the target towards the caster
 		struct { uint32_t ring, core, impact; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 }, { MODEL_Ring, MODEL_Core, MODEL_Impact } };
+	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 }, { MODEL_Ring, MODEL_Core, MODEL_Impact }, { SEQ_Particle } };
 	static HelixParams live = GAME;
 	static const HelixParams &P() { return live; }
 
@@ -397,7 +398,7 @@ namespace helix063
 	{
 		TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.particle, SEQ_Particle);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -671,6 +672,7 @@ namespace helix063
 			{ "master", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.core", "Core", "The prim-model layout core (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.core), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(HelixParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef HP
 	}

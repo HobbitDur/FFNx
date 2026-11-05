@@ -121,8 +121,9 @@ namespace rave212
 		struct { uint32_t start, burn; } sounds; // at the director's ticks 5 and 0x43
 		struct { int16_t damage; } director;    // the damage at this tick
 		struct { uint32_t ground, bone, front, burn; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t ember, flame; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn } };
+	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn }, { SEQ_Ember, SEQ_Flame } };
 	static BurningRaveParams live = GAME;
 	static const BurningRaveParams &P() { return live; }
 
@@ -938,18 +939,18 @@ namespace rave212
 	// 0x6A3750: a spark (a fixed depth -0x89)
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
-		return SpriteTaskStep((SpriteNode *)n, SEQ_Ember, -0x89);
+		return SpriteTaskStep((SpriteNode *)n, fxp::sequence(P().seqs.ember, SEQ_Ember), -0x89);
 	}
 	// 0x6A3800 / 0x6A38B0: an ember / a flame (depth -size / 4)
 	static uint32_t __cdecl EmberTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		return SpriteTaskStep(s, SEQ_Ember, -((int32_t)s->size >> 2));
+		return SpriteTaskStep(s, fxp::sequence(P().seqs.ember, SEQ_Ember), -((int32_t)s->size >> 2));
 	}
 	static uint32_t __cdecl FlameTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		return SpriteTaskStep(s, SEQ_Flame, -((int32_t)s->size >> 2));
+		return SpriteTaskStep(s, fxp::sequence(P().seqs.flame, SEQ_Flame), -((int32_t)s->size >> 2));
 	}
 
 	// 0x6A3400: count + 1 rocks of task `fn` around (x, y, z) at radius (rand * rs >> 15) + rb, scale (rand * ss >> 15) + sb,
@@ -1752,6 +1753,8 @@ namespace rave212
 			{ "director", "layouts.bone", "Bone", "The prim-model layout bone (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.bone), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.front", "Front", "The prim-model layout front (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.front), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.burn", "Burn", "The prim-model layout burn (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.burn), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BurningRaveParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BurningRaveParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

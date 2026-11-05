@@ -81,8 +81,9 @@ namespace ujunct
 	{
 		struct { uint32_t a, b; } sounds;              // the junction task's two sounds
 		struct { int16_t lift, damage; } master;       // the caster put this far above its target; the damage cue from this cut frame
+		struct { uint32_t at_157b4e8, at_157b2ec; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const JunctionParams GAME = { { SOUND_A, SOUND_B }, { 0x6E8, 0xA0 } };
+	static const JunctionParams GAME = { { SOUND_A, SOUND_B }, { 0x6E8, 0xA0 }, { 0x157B4E8, 0x157B2EC } };
 	static JunctionParams live = GAME;
 	static const JunctionParams &PJ() { return live; }
 
@@ -2006,7 +2007,7 @@ namespace ujunct
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = 0x157B4E8;
+		U32(node, 0x4c) = fxp::sequence(PJ().seqs.at_157b4e8, 0x157B4E8);
 		st++;
 		U16(node, 0x56) = 0xff80;
 		U16(node, 0x52) = 0xB;
@@ -2101,7 +2102,7 @@ namespace ujunct
 	uint32_t __cdecl ud_7AF130(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = 0x157B2EC;
+		U32(node, 0x4C) = fxp::sequence(PJ().seqs.at_157b2ec, 0x157B2EC);
 		U16(node, 0x52) = 0x12;
 		U16(node, 0x40) = (uint16_t)(x::CrtRand() & 0xFFF);
 		U16(node, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -4329,6 +4330,8 @@ namespace ujunct
 			{ "director", "sounds.b", "Sound B", "", (uint32_t)offsetof(JunctionParams, sounds.b), fxp::Sound, 0, 0x7FFFFFFF },
 			DT("director", master.lift, "Caster above", "The caster put this far above its target (the master's state 1)", -0x4000, 0x4000),
 			DT("director", master.damage, "Damage frame", "The damage cue from this frame of its cut", 0, 0x200),
+			{ "director", "seqs.at_157b4e8", "Flipbook 157B4E8", "The sprite sequence at 0x157B4E8 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(JunctionParams, seqs.at_157b4e8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_157b2ec", "Flipbook 157B2EC", "The sprite sequence at 0x157B2EC (a flipbook of 19 frames: an edited one keeps as many)", (uint32_t)offsetof(JunctionParams, seqs.at_157b2ec), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

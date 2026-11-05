@@ -99,8 +99,9 @@ namespace raijin
 		struct { int16_t push, push_by, hit; } strike;                     // the target pushed back at this tick by this much; the strike at the hit tick
 		struct { int16_t start, level, step, hold; } darken;               // the stage darkening: from its tick up a step to its level, held until its tick
 		struct { int16_t from, until; } debris;                            // debris thrown off the target from / until these ticks
+		struct { uint32_t at_1597360; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const RaijinParams GAME = { { 0x159735C, 0x24 }, { 6, 0x24, 0x28, 4 }, { 6, 0x200, 0x24 }, { 5, 0x600, 0x100, 0x36 }, { 0x24, 0x2C } };
+	static const RaijinParams GAME = { { 0x159735C, 0x24 }, { 6, 0x24, 0x28, 4 }, { 6, 0x200, 0x24 }, { 5, 0x600, 0x100, 0x36 }, { 0x24, 0x2C }, { 0x1597360 } };
 	static RaijinParams live = GAME;
 	static const RaijinParams &PJ() { return live; }
 	static const uint32_t SCRATCH_SP = 0x2607048;      // module scratch stack pointer
@@ -3031,7 +3032,7 @@ namespace raijin
 	uint32_t __cdecl rj_7F2600(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x1597360;
+		U32(a1, 0x4C) = fxp::sequence(PJ().seqs.at_1597360, 0x1597360);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -3098,6 +3099,7 @@ namespace raijin
 			DT("stage", darken.level, "Level", "", 0, 0x1000),
 			DT("stage", darken.step, "Step", "Up by this a tick", 1, 0x1000),
 			DT("stage", darken.hold, "Hold until", "", 0, 200),
+			{ "director", "seqs.at_1597360", "Flipbook 1597360", "The sprite sequence at 0x1597360 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RaijinParams, seqs.at_1597360), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

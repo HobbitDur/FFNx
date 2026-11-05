@@ -149,8 +149,9 @@ namespace dark193
 	struct DarkShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t ground_smoke, smoke2, spark, target_spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DarkShotParams GAME = { 0xD155B0 };
+	static const DarkShotParams GAME = { 0xD155B0, { 0xD145E4, 0xD1450C, 0xD149B0, 0xD14658, 0xD14430 } };
 	static DarkShotParams live = GAME;
 	static const DarkShotParams &P() { return live; }
 
@@ -710,7 +711,7 @@ namespace dark193
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_GroundSmoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ground_smoke, SEQ_GroundSmoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -722,7 +723,7 @@ namespace dark193
 	static void ImpactFlashDraw(const Node *n, uint8_t *h)
 	{
 		*(int16_t *)(h + 4) = n->counter;
-		*(uint32_t *)h = SEQ_Smoke2;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke2, SEQ_Smoke2);
 		*(int16_t *)(h + 0x24) = 8;
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -730,7 +731,7 @@ namespace dark193
 	static void SparkHeader(uint8_t *h)
 	{
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 	}
 
 	// one impact particle
@@ -755,7 +756,7 @@ namespace dark193
 	{
 		*(int16_t *)(h + 0x24) = 0;
 		memcpy(s + 8, &Camera(), 0x20);
-		*(uint32_t *)h = SEQ_TargetSpark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.target_spark, SEQ_TargetSpark);
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -848,8 +849,8 @@ namespace dark193
 		return QRoot();
 	}
 
-	static uint32_t __cdecl SmokeTask(TaskNode *n_) { return SmokeStep((Node *)n_, ORIG_SmokeTask, SEQ_Smoke); }
-	static uint32_t __cdecl Smoke2Task(TaskNode *n_) { return SmokeStep((Node *)n_, ORIG_Smoke2Task, SEQ_Smoke2); }
+	static uint32_t __cdecl SmokeTask(TaskNode *n_) { return SmokeStep((Node *)n_, ORIG_SmokeTask, fxp::sequence(P().seqs.smoke, SEQ_Smoke)); }
+	static uint32_t __cdecl Smoke2Task(TaskNode *n_) { return SmokeStep((Node *)n_, ORIG_Smoke2Task, fxp::sequence(P().seqs.smoke2, SEQ_Smoke2)); }
 
 	// Flash2Task (0x5B7980): 4 ticks, scale + step, step - step / 3, fade from counter 1
 	static uint32_t __cdecl Flash2Task(TaskNode *n_)
@@ -1265,6 +1266,11 @@ namespace dark193
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(DarkShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.ground_smoke", "Ground smoke", "The sprite sequence ground smoke (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.ground_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke2", "Smoke2", "The sprite sequence smoke2 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.smoke2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.target_spark", "Target spark", "The sprite sequence target spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.target_spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DarkShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

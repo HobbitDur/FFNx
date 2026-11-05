@@ -119,10 +119,10 @@ namespace shoot
 		struct { int16_t sound, release, result; } emitter;                      // the kick sound / the master released / the damage at these ticks
 		struct { int16_t start, length, mode; } actors;                          // the actor system
 		struct { int16_t grab, morph, passes, shot, lift, gravity, unmorph; } ball;   // the grab's ticks, the morph a tick, the passes' tick, the shot's distance, lift, gravity, the unmorph a tick
-		struct { uint32_t at_15c65e4, at_15c646c; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_15c65e4, at_15c646c, dust; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const ShootParams GAME = { { 0x15C62B8, 0x15C62BC }, { 0x11, 0x7D, 0x7D }, { 0xF, 0x2D, 0 },
-	                                  { 0x13, 0x200, 0x27, 0xC00, 0x200, 0x30, 0x100 }, { 0x15C65E4, 0x15C646C } };
+	                                  { 0x13, 0x200, 0x27, 0xC00, 0x200, 0x30, 0x100 }, { 0x15C65E4, 0x15C646C, 0x15C62C0 } };
 	static ShootParams live = GAME;
 	static const ShootParams &PS() { return live; }
 	static const uint32_t ACTOR_DATA = 0x15C9DE0;      // the actor system's data (exe data, relocated once by 0x83F9F0)
@@ -2062,7 +2062,7 @@ namespace shoot
 	uint32_t __cdecl sh_845BC0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = DUST_FLIPBOOK;
+		U32(a1, 0x4C) = fxp::sequence(PS().seqs.dust, DUST_FLIPBOOK);
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
@@ -3494,6 +3494,7 @@ namespace shoot
 			SH("ball", ball.unmorph, "Unmorph", "Back from the ball a tick in the shot (4096: all of it)", 1, 0x1000),
 			{ "emitter", "seqs.at_15c65e4", "Flipbook 15C65E4", "The sprite sequence at 0x15C65E4 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ShootParams, seqs.at_15c65e4), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.at_15c646c", "Flipbook 15C646C", "The sprite sequence at 0x15C646C (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(ShootParams, seqs.at_15c646c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ShootParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef SH
 	}

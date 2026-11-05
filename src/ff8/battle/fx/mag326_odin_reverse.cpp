@@ -208,8 +208,9 @@ namespace o326
 		uint32_t voice;                                 // the voice slot claimed at the timeline's tick 0
 		struct { uint32_t start, sword, slash, cut; } sounds; // at the timeline's ticks 1, 111, 171, 252
 		struct { int16_t damage; } timeline;            // the action result at this tick
+		struct { uint32_t at_e10c80, at_e10ca8, at_e10fb0, at_e108e8, at_e10e04; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const OdinReverseParams GAME = { 0xE194E4, { 0xE1964C, 0xE19650, 0xE19654, 0xE19658 }, { 0x198 } };
+	static const OdinReverseParams GAME = { 0xE194E4, { 0xE1964C, 0xE19650, 0xE19654, 0xE19658 }, { 0x198 }, { 0xE10C80, 0xE10CA8, 0xE10FB0, 0xE108E8, 0xE10E04 } };
 	static OdinReverseParams live = GAME;
 	static const OdinReverseParams &P() { return live; }
 
@@ -820,7 +821,7 @@ namespace o326
 		*(uint32_t *)(h + 0x14) = 0x1000;
 		*(uint32_t *)(h + 0xC) = 0x1000;
 		memcpy(s + 8, &Camera(), 0x20);
-		*(uint32_t *)h = 0xE10C80;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e10c80, 0xE10C80);
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 2;
 		GteSetLightMatrix(s + 8);
@@ -829,7 +830,7 @@ namespace o326
 
 	static void DebrisSetupB(uint8_t *h, uint8_t *s)
 	{
-		*(uint32_t *)h = 0xE10CA8;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e10ca8, 0xE10CA8);
 		*(int16_t *)(h + 0x24) = 0x200;
 		*(int16_t *)(s + 0) = 0x400;
 		*(int16_t *)(s + 2) = 0;
@@ -1835,7 +1836,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE10FB0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e10fb0, 0xE10FB0);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		LitSetup(&Frame(), s, 0, 0, 0x28);
@@ -1963,7 +1964,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE108E8;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e108e8, 0xE108E8);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		LitSetup(&Frame(), s, 0, -40, 0x28);
@@ -2025,7 +2026,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE108E8;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e108e8, 0xE108E8);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		int32_t count = 0;
@@ -2184,7 +2185,7 @@ namespace o326
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		int32_t hist = BoneHistory(own::R(0x24F0C88), 0x28, n->c, s);
-		SparkSetup(&Frame(), h, s, 0xE108E8, 0x404040);
+		SparkSetup(&Frame(), h, s, fxp::sequence(P().seqs.at_e108e8, 0xE108E8), 0x404040);
 		int32_t count = SparkDrawPool(n, h, 1, INT_GROW5_DRAG8);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -2230,7 +2231,7 @@ namespace o326
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		uint32_t table = var<uint32_t>(0xE196A4 + 4 * (int32_t)n->a18);
 		int32_t hist = BoneHistory(table, n->e, n->c, s);
-		SparkSetup(&Frame(), h, s, 0xE10E04, 0x202020);
+		SparkSetup(&Frame(), h, s, fxp::sequence(P().seqs.at_e10e04, 0xE10E04), 0x202020);
 		int32_t count = SparkDrawPool(n, h, 2, INT_GROW6_DRAG8);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -2763,7 +2764,7 @@ namespace o326
 	{
 		*(int16_t *)(h + 0x24) = 8;
 		memcpy(s + 8, frame, 0x20);
-		*(uint32_t *)h = 0xE10E04;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e10e04, 0xE10E04);
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -2916,6 +2917,11 @@ namespace o326
 			{ "timeline", "sounds.slash", "Slash", "At the timeline's tick 171", (uint32_t)offsetof(OdinReverseParams, sounds.slash), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.cut", "Cut", "At the timeline's tick 252", (uint32_t)offsetof(OdinReverseParams, sounds.cut), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "timeline.damage", "Damage tick", "The action result at this tick of the timeline", (uint32_t)offsetof(OdinReverseParams, timeline.damage), fxp::I16, 0, 409 },
+			{ "timeline", "seqs.at_e10c80", "Flipbook E10C80", "The sprite sequence at 0xE10C80 (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinReverseParams, seqs.at_e10c80), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e10ca8", "Flipbook E10CA8", "The sprite sequence at 0xE10CA8 (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinReverseParams, seqs.at_e10ca8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e10fb0", "Flipbook E10FB0", "The sprite sequence at 0xE10FB0 (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinReverseParams, seqs.at_e10fb0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e108e8", "Flipbook E108E8", "The sprite sequence at 0xE108E8 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinReverseParams, seqs.at_e108e8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e10e04", "Flipbook E10E04", "The sprite sequence at 0xE10E04 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinReverseParams, seqs.at_e10e04), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

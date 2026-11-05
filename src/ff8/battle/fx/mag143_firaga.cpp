@@ -75,8 +75,9 @@ namespace firaga143
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
+		struct { uint32_t area_flame; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FiragaParams GAME = { 0xDDD8F0, { 0x30 } };
+	static const FiragaParams GAME = { 0xDDD8F0, { 0x30 }, { 0xDDA594 } };
 	static FiragaParams live = GAME;
 	static const FiragaParams &P() { return live; }
 
@@ -339,7 +340,7 @@ namespace firaga143
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
 		uint8_t *h = AllocHeader(0xB4);
-		*(const void **)h = SEQ_AreaFlame;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.area_flame, (uint32_t)SEQ_AreaFlame));
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -592,6 +593,7 @@ namespace firaga143
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "", (uint32_t)offsetof(FiragaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(FiragaParams, director.damage), fxp::I16, 0, 100 },
+			{ "director", "seqs.area_flame", "Area flame", "The sprite sequence area flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FiragaParams, seqs.area_flame), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

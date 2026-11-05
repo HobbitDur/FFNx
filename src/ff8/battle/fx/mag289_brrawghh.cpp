@@ -123,8 +123,9 @@ namespace brr289
 	{
 		uint32_t sound;   // the main task's counter 0
 		struct { uint32_t splash, target; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t drip, splat, spit; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BrrawghhParams GAME = { 0x1072638, { LAYOUT_Splash, LAYOUT_Target } };
+	static const BrrawghhParams GAME = { 0x1072638, { LAYOUT_Splash, LAYOUT_Target }, { SEQ_Drip, SEQ_Splat, SEQ_Spit } };
 	static BrrawghhParams live = GAME;
 	static const BrrawghhParams &PB() { return live; }
 
@@ -805,7 +806,7 @@ namespace brr289
 				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 				if (s)
 				{
-					SpawnAtTarget(s, w, SEQ_Drip, 0x1FF, 0x100);
+					SpawnAtTarget(s, w, fxp::sequence(PB().seqs.drip, SEQ_Drip), 0x1FF, 0x100);
 					s->vel[1] = 0;
 					s->vel[2] = 0;
 					s->vel[0] = 0;
@@ -816,7 +817,7 @@ namespace brr289
 				s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 				if (s)
 				{
-					SpawnAtTarget(s, w, SEQ_Splat, 0xFF, 0x80);
+					SpawnAtTarget(s, w, fxp::sequence(PB().seqs.splat, SEQ_Splat), 0xFF, 0x80);
 					s->vel[0] = 0;
 					s->vel[2] = (int16_t)(-0x20 - (CrtRand() & 0xF));
 					s->vel[1] = (int16_t)(-0x20 - (CrtRand() & 0xF));
@@ -840,7 +841,7 @@ namespace brr289
 			{
 				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 				if (!s) continue;
-				s->seq = SEQ_Spit;
+				s->seq = fxp::sequence(PB().seqs.spit, SEQ_Spit);
 				memcpy(s->pos, B, 8);
 				const int32_t a = CrtRand();
 				const int32_t r = (CrtRand() & 0xF) + 0x20;
@@ -863,7 +864,7 @@ namespace brr289
 			if (s)
 			{
 				memcpy(s->pos, P, 8);
-				s->seq = SEQ_Splat;
+				s->seq = fxp::sequence(PB().seqs.splat, SEQ_Splat);
 				s->vel[0] = 0;
 				s->vel[2] = (int16_t)(-0x10 - (CrtRand() & 0xF));
 				s->vel[1] = (int16_t)(-0x20 - (CrtRand() & 0xF));
@@ -931,6 +932,9 @@ namespace brr289
 			{ "main", "sound", "Sound", "The main task's counter 0", (uint32_t)offsetof(BrrawghhParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.splash", "Splash", "The prim-model layout splash (its models' animation)", (uint32_t)offsetof(BrrawghhParams, layouts.splash), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(BrrawghhParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.drip", "Drip", "The sprite sequence drip (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BrrawghhParams, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BrrawghhParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spit", "Spit", "The sprite sequence spit (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BrrawghhParams, seqs.spit), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

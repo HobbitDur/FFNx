@@ -128,8 +128,9 @@ namespace c199
 	{
 		uint32_t voice;                          // the voice slot claimed at the timeline's tick 0
 		struct { uint32_t start, flash; } sounds; // at the timeline's ticks 15, 53
+		struct { uint32_t at_cf0740; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const CactuarParams GAME = { 0xCF3318, { 0xCF3558, 0xCF355C } };
+	static const CactuarParams GAME = { 0xCF3318, { 0xCF3558, 0xCF355C }, { 0xCF0740 } };
 	static CactuarParams live = GAME;
 	static const CactuarParams &P() { return live; }
 	static const uint32_t ORIG_CreatureTask = 0x5A8C20;
@@ -731,7 +732,7 @@ namespace c199
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		memcpy(scratch + 8, &Frame(), sizeof(Mat4x3));
-		*(uint32_t *)h = 0xCF0740;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cf0740, 0xCF0740);
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		GteSetLightMatrix(scratch + 8);
@@ -1159,6 +1160,7 @@ namespace c199
 			{ "timeline", "voice", "Voice", "The voice slot claimed at the timeline's tick 0", (uint32_t)offsetof(CactuarParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.start", "Start", "At the timeline's tick 15", (uint32_t)offsetof(CactuarParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.flash", "Flash", "At the timeline's tick 53 (the flash in)", (uint32_t)offsetof(CactuarParams, sounds.flash), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cf0740", "Flipbook CF0740", "The sprite sequence at 0xCF0740 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CactuarParams, seqs.at_cf0740), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -133,8 +133,9 @@ namespace beat216
 	{
 		uint32_t sound;   // at the director's tick 0
 		struct { uint32_t ring, rise, fly, drop, impact, crater, pillar; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark, ember; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DifferentBeatParams GAME = { 0x113C1A8, { LAYOUT_Ring, LAYOUT_Rise, LAYOUT_Fly, LAYOUT_Drop, LAYOUT_Impact, LAYOUT_Crater, LAYOUT_Pillar } };
+	static const DifferentBeatParams GAME = { 0x113C1A8, { LAYOUT_Ring, LAYOUT_Rise, LAYOUT_Fly, LAYOUT_Drop, LAYOUT_Impact, LAYOUT_Crater, LAYOUT_Pillar }, { SEQ_Spark, SEQ_Ember } };
 	static DifferentBeatParams live = GAME;
 	static const DifferentBeatParams &P() { return live; }
 	static const uint32_t MORPH = 0x2CD8;   // magic buffer: twisted / blended vertices
@@ -1765,8 +1766,8 @@ namespace beat216
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag216_different_beat_held.inc
-		FX_HELD(held_note_sprite(s, SEQ_Spark);)
-		SpriteDraw(s, SEQ_Spark);
+		FX_HELD(held_note_sprite(s, fxp::sequence(P().seqs.spark, SEQ_Spark));)
+		SpriteDraw(s, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(s->vel[0] << 2));
 		s->pos[1] = (int16_t)(s->pos[1] + (int16_t)(s->vel[1] << 2));
 		s->pos[2] = (int16_t)(s->pos[2] + (int16_t)(s->vel[2] << 2));
@@ -1778,8 +1779,8 @@ namespace beat216
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag216_different_beat_held.inc
-		FX_HELD(held_note_sprite(s, SEQ_Ember);)
-		SpriteDraw(s, SEQ_Ember);
+		FX_HELD(held_note_sprite(s, fxp::sequence(P().seqs.ember, SEQ_Ember));)
+		SpriteDraw(s, fxp::sequence(P().seqs.ember, SEQ_Ember));
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(s->vel[0] << 2));
 		s->pos[1] = (int16_t)(s->pos[1] + (int16_t)(s->vel[1] << 2));
 		s->pos[2] = (int16_t)(s->pos[2] + (int16_t)(s->vel[2] << 2));
@@ -2420,6 +2421,8 @@ namespace beat216
 			{ "director", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.crater", "Crater", "The prim-model layout crater (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.crater), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.pillar", "Pillar", "The prim-model layout pillar (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.pillar), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(DifferentBeatParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DifferentBeatParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

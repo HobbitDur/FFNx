@@ -50,8 +50,9 @@ namespace act
 		struct SirenParams
 		{
 			struct { uint32_t wave, arrive, sparks, song; } sounds;   // cut 1 (the wave), cut 3 (Siren), cut 6 (the target sparks), her song
+			struct { uint32_t at_15331d0, at_1533328, at_15334a0, at_1533024, at_15335cc; } seqs; // the sprite sequences drawn (flipbooks)
 		};
-		static const SirenParams GAME = { { SOUND_A, SOUND_B, SOUND_C, SOUND_D } };
+		static const SirenParams GAME = { { SOUND_A, SOUND_B, SOUND_C, SOUND_D }, { 0x15331D0, 0x1533328, 0x15334A0, 0x1533024, 0x15335CC } };
 		static SirenParams live = GAME;
 		static const SirenParams &PS() { return live; }
 	}
@@ -3167,11 +3168,11 @@ namespace act
 		int32_t r = (int32_t)x::CrtRand();
 		int32_t pick = r % 3;
 		if (pick == 0)
-			U32(a1, 0x4C) = 0x15331D0;
+			U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_15331d0, 0x15331D0);
 		else if (pick == 1)
 		{
 			uint8_t st = U8(a1, 0x29);
-			U32(a1, 0x4C) = 0x1533328;
+			U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533328, 0x1533328);
 			U16(a1, 0x52) = 0xA;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 			return 0; // void
@@ -3179,7 +3180,7 @@ namespace act
 		else if (pick == 2)
 		{
 			uint8_t st = U8(a1, 0x29);
-			U32(a1, 0x4C) = 0x15334A0;
+			U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_15334a0, 0x15334A0);
 			U16(a1, 0x52) = 0xA;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 			return 0; // void
@@ -3239,7 +3240,7 @@ namespace act
 	// start frame 0..7, 15 frames; hidden (+0x26 |= 4) when a_73B7E0(2); next state
 	uint32_t __cdecl s_743FD0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x1533024;
+		U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		U16(a1, 0x56) = 0xFFD0;
 		uint32_t r = x::CrtRand() & 7;
 		U16(a1, 0x50) = (uint16_t)r;
@@ -3312,7 +3313,7 @@ namespace act
 	// -0x40, 15 frames; hidden when a_73B7E0(2); next state
 	uint32_t __cdecl s_7443C0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x1533024;
+		U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		uint32_t r = x::CrtRand() & 7;
 		U16(a1, 0x50) = (uint16_t)r;
 		U16(a1, 0x56) = 0xFFC0;
@@ -3426,7 +3427,7 @@ namespace act
 	// 15 frames; hidden when a_73B7E0(3); next state
 	uint32_t __cdecl s_744730(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x1533024;
+		U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		U16(a1, 0x56) = 0xFFF0;
 		uint32_t r = x::CrtRand() & 7;
 		U16(a1, 0x50) = (uint16_t)r;
@@ -3608,7 +3609,7 @@ namespace act
 	uint32_t __cdecl s_744BA0(uint32_t a1)
 	{
 		uint32_t node = a1;
-		U32(node, 0x4C) = 0x1533024;
+		U32(node, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		U16(node, 0x56) = 0xFFE0;
 		U16(node, 0x52) = 0xF;
 		if (a_73B7E0(3) != 0)
@@ -3726,7 +3727,7 @@ namespace act
 	uint32_t __cdecl s_744E80(uint32_t a1)
 	{
 		uint32_t node = a1;
-		U32(node, 0x4C) = 0x15335CC;
+		U32(node, 0x4C) = fxp::sequence(siren::PS().seqs.at_15335cc, 0x15335CC);
 		U16(node, 0x56) = 0xFFE0;
 		U16(node, 0x52) = 8;
 		if (a_73B7E0(3) != 0)
@@ -4849,11 +4850,11 @@ namespace act
 			uint32_t p1 = U32(node, i * 8 + 0x70);
 			U32(node, 0x20) = p1;
 			if (i == 0)
-				U32(node, 0x4c) = 0x15334a0;
+				U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_15334a0, 0x15334A0);
 			else if (i == 1)
-				U32(node, 0x4c) = 0x1533328;
+				U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_1533328, 0x1533328);
 			else
-				U32(node, 0x4c) = 0x15331d0;
+				U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_15331d0, 0x15331D0);
 			if (a_73B7E0(5) != 0)
 				s_7434C0(node);
 			else
@@ -5270,7 +5271,7 @@ namespace act
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = 0x15334a0;
+		U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_15334a0, 0x15334A0);
 		st++;
 		U16(node, 0x56) = 0xfff0;
 		U16(node, 0x52) = 0xa;
@@ -5325,6 +5326,11 @@ namespace siren
 			{ "director", "sounds.arrive", "Arrive", "", (uint32_t)offsetof(SirenParams, sounds.arrive), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.sparks", "Sparks", "", (uint32_t)offsetof(SirenParams, sounds.sparks), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.song", "Song", "", (uint32_t)offsetof(SirenParams, sounds.song), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15331d0", "Flipbook 15331D0", "The sprite sequence at 0x15331D0 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_15331d0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1533328", "Flipbook 1533328", "The sprite sequence at 0x1533328 (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_1533328), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15334a0", "Flipbook 15334A0", "The sprite sequence at 0x15334A0 (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_15334a0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1533024", "Flipbook 1533024", "The sprite sequence at 0x1533024 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_1533024), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15335cc", "Flipbook 15335CC", "The sprite sequence at 0x15335CC (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_15335cc), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 

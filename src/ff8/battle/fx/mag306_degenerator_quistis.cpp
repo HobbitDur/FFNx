@@ -169,8 +169,9 @@ namespace degen306
 	struct DegeneratorParams
 	{
 		uint32_t sound;   // the controller's counter 1
+		struct { uint32_t flicker, debris; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DegeneratorParams GAME = { 0xCEB284 };
+	static const DegeneratorParams GAME = { 0xCEB284, { SEQ_Flicker, SEQ_Debris } };
 	static DegeneratorParams live = GAME;
 	static const DegeneratorParams &P() { return live; }
 	static const void *const CAMERA_Anim = (const void *)0xCE4164;          // (setup)
@@ -1044,7 +1045,7 @@ namespace degen306
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
-		U32(h, 0) = SEQ_Flicker;
+		U32(h, 0) = fxp::sequence(P().seqs.flicker, SEQ_Flicker);
 		U16(h, 4) = 0;
 		U16(h, 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OTBase() + 0x44, 0xE, PacketCursor());
@@ -1474,7 +1475,7 @@ namespace degen306
 	{
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
-		U32(h, 0) = SEQ_Debris;
+		U32(h, 0) = fxp::sequence(P().seqs.debris, SEQ_Debris);
 		U16(h, 0x24) = 0;
 		// 30 fps layer: see mag306_degenerator_quistis_held.inc
 		FX_HELD(held_note_debris(n, h);)
@@ -1518,6 +1519,8 @@ namespace degen306
 		};
 		static const Field FIELDS[] = {
 			{ "controller", "sound", "Sound", "At the controller's counter 1", (uint32_t)offsetof(DegeneratorParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.flicker", "Flicker", "The sprite sequence flicker (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(DegeneratorParams, seqs.flicker), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(DegeneratorParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

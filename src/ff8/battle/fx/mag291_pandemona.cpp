@@ -91,8 +91,9 @@ namespace p291
 	{
 		uint32_t voice;                                          // the voice slot claimed when the timeline spawns
 		struct { uint32_t start, cut, rise, spin, drop; } sounds;  // at the camera's first cuts and the timeline's ticks 0xDF, 0x178, 0x1C0
+		struct { uint32_t at_13afcc0, at_13afe04; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const PandemonaParams GAME = { 0x13B7A5C, { 0x13B7A48, 0x13B7A4C, 0x13B7A50, 0x13B7A54, 0x13B7A58 } };
+	static const PandemonaParams GAME = { 0x13B7A5C, { 0x13B7A48, 0x13B7A4C, 0x13B7A50, 0x13B7A54, 0x13B7A58 }, { 0x13AFCC0, 0x13AFE04 } };
 	static PandemonaParams live = GAME;
 	static const PandemonaParams &P() { return live; }
 	static const uint32_t CB_Prim = 0x6F06F0; // MAG_291_sub_6F06F0: prim player object -> prim set, rel. to ctx matrix
@@ -1773,7 +1774,7 @@ namespace p291
 		pos[2] = (int16_t)((int16_t)(mul32(CosT(i), r) >> 12) + At<int16_t>(nd, 0x14));
 		TransformCameraByShadowRotation(pos, At<int16_t>(nd, 0x16), -(At<int16_t>(nd, 0x18) >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0x13AFCC0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_13afcc0, 0x13AFCC0);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1799,7 +1800,7 @@ namespace p291
 	{
 		TransformCameraByShadowRotation(pos, At<int16_t>(nd, 0x18), -(At<int16_t>(nd, 0x1A) >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0x13AFE04;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_13afe04, 0x13AFE04);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1909,6 +1910,8 @@ namespace p291
 			{ "timeline", "sounds.rise", "Rise", "At the timeline's tick 0xDF", (uint32_t)offsetof(PandemonaParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.spin", "Spin", "At the timeline's tick 0x178", (uint32_t)offsetof(PandemonaParams, sounds.spin), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.drop", "Drop", "At the timeline's tick 0x1C0", (uint32_t)offsetof(PandemonaParams, sounds.drop), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_13afcc0", "Flipbook 13AFCC0", "The sprite sequence at 0x13AFCC0 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(PandemonaParams, seqs.at_13afcc0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_13afe04", "Flipbook 13AFE04", "The sprite sequence at 0x13AFE04 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(PandemonaParams, seqs.at_13afe04), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

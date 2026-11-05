@@ -161,8 +161,9 @@ namespace flame194
 	struct FlameShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t smoke, ground_smoke, head, flame; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FlameShotParams GAME = { 0xD12E64 };
+	static const FlameShotParams GAME = { 0xD12E64, { 0xD0DB5C, 0xD0DC34, 0xD0DCA8, 0xD0D938 } };
 	static FlameShotParams live = GAME;
 	static const FlameShotParams &P() { return live; }
 
@@ -479,7 +480,7 @@ namespace flame194
 	{
 		TransformCameraByShadowRotation(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -508,7 +509,7 @@ namespace flame194
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_GroundSmoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ground_smoke, SEQ_GroundSmoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -523,7 +524,7 @@ namespace flame194
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 0;
-		*(uint32_t *)h = SEQ_Head;
+		*(uint32_t *)h = fxp::sequence(P().seqs.head, SEQ_Head);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -826,7 +827,7 @@ namespace flame194
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		const int32_t id = n->pos[3] + 1;
-		*(uint32_t *)h = SEQ_Flame;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame, SEQ_Flame);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1060,7 +1061,7 @@ namespace flame194
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		FireLight(s);
-		*(uint32_t *)h = SEQ_Flame;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame, SEQ_Flame);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1356,6 +1357,10 @@ namespace flame194
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(FlameShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.ground_smoke", "Ground smoke", "The sprite sequence ground smoke (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.ground_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.head", "Head", "The sprite sequence head (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.head), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

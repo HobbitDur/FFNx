@@ -113,8 +113,9 @@ namespace micromissiles299
 	{
 		uint32_t sound;   // the master's counter 10 (the first missile)
 		struct { uint32_t hit, miss, missile; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t trail, flash, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const MicroMissilesParams GAME = { 0x104E2FC, { MODEL_Hit, MODEL_Miss, MODEL_Missile } };
+	static const MicroMissilesParams GAME = { 0x104E2FC, { MODEL_Hit, MODEL_Miss, MODEL_Missile }, { SEQ_Trail, SEQ_Flash, SEQ_Spark } };
 	static MicroMissilesParams live = GAME;
 	static const MicroMissilesParams &P() { return live; }
 
@@ -269,7 +270,7 @@ namespace micromissiles299
 		view.t[2] = (int32_t)((uint32_t)view.t[2] + (uint32_t)Camera().t[2]);
 		GteSetRotMatrixCtrl(&view);
 		GteSetTransVectorCtrl(&view);
-		*(uint32_t *)h = SEQ_Trail;
+		*(uint32_t *)h = fxp::sequence(P().seqs.trail, SEQ_Trail);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -324,7 +325,7 @@ namespace micromissiles299
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash, SEQ_Flash);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -335,7 +336,7 @@ namespace micromissiles299
 	{
 		TransformCameraByShadowRotation(s->pos, 0x400, -0x100);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -678,6 +679,9 @@ namespace micromissiles299
 			{ "master", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(MicroMissilesParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.miss", "Miss", "The prim-model layout miss (its models' animation)", (uint32_t)offsetof(MicroMissilesParams, layouts.miss), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.missile", "Missile", "The prim-model layout missile (its models' animation)", (uint32_t)offsetof(MicroMissilesParams, layouts.missile), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "seqs.trail", "Trail", "The sprite sequence trail (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MicroMissilesParams, seqs.trail), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(MicroMissilesParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MicroMissilesParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -76,8 +76,9 @@ namespace moon88
 	{
 		struct { uint32_t howl, rise; } sounds;   // Angelo's howl, the moon rising
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
+		struct { uint32_t at_154ecec, at_154ee30; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const MoonParams GAME = { { SOUND_A, SOUND_B }, { 0x23 } };
+	static const MoonParams GAME = { { SOUND_A, SOUND_B }, { 0x23 }, { 0x154ECEC, 0x154EE30 } };
 	static MoonParams live = GAME;
 	static const MoonParams &PC() { return live; }
 
@@ -4053,7 +4054,7 @@ namespace moon88
 	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl im_772790(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x154ECEC;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.at_154ecec, 0x154ECEC);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -4106,7 +4107,7 @@ namespace moon88
 	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl im_7729F0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x154EE30;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.at_154ee30, 0x154EE30);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -4633,6 +4634,8 @@ namespace moon88
 			{ "director", "sounds.howl", "Howl", "", (uint32_t)offsetof(MoonParams, sounds.howl), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.rise", "Rise", "", (uint32_t)offsetof(MoonParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(MoonParams, director.damage), fxp::I16, 0, 0x200 },
+			{ "director", "seqs.at_154ecec", "Flipbook 154ECEC", "The sprite sequence at 0x154ECEC (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoonParams, seqs.at_154ecec), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_154ee30", "Flipbook 154EE30", "The sprite sequence at 0x154EE30 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoonParams, seqs.at_154ee30), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 

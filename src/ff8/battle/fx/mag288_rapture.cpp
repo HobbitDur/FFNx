@@ -92,8 +92,9 @@ namespace rapture288
 	{
 		uint32_t sound;   // each target task's counter 0
 		struct { uint32_t a, b; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t sequence; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B } };
+	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B }, { SEQUENCE } };
 	static RaptureParams live = GAME;
 	static const RaptureParams &P() { return live; }
 	static const uint32_t DEPTH_VEC = 0x1078978;  // 3 x int16: the layout B depth probe
@@ -325,7 +326,7 @@ namespace rapture288
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(s->pos, 0x1000, -0x400);
-		*(uint32_t *)h = SEQUENCE;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sequence, SEQUENCE);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -588,6 +589,7 @@ namespace rapture288
 			{ "target", "sound", "Sound", "Each target task's counter 0", (uint32_t)offsetof(RaptureParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "layouts.a", "A", "The prim-model layout a (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.sequence", "Sequence", "The sprite sequence sequence (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(RaptureParams, seqs.sequence), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -90,9 +90,9 @@ namespace draw
 		struct { int16_t a, b, c; } sounds;                 // the emitter's three sounds at its first tick (sound ids)
 		struct { int16_t release, length, mode; } emitter;   // the master released at this tick; the actor system's ticks, mode
 		struct { int16_t twist, spread; } ribbons;          // a ribbon's twist a tick; how far from the emitter they start
-		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t spark, ribbon; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DrawParams GAME = { { 0x73, 0x74, 0x75 }, { 0xF, 0xF, 0 }, { 0x180, 0x80 }, { SPARK_FLIPBOOK } };
+	static const DrawParams GAME = { { 0x73, 0x74, 0x75 }, { 0xF, 0xF, 0 }, { 0x180, 0x80 }, { SPARK_FLIPBOOK, RIBBON_FLIPBOOK } };
 	static DrawParams live = GAME;
 	static const DrawParams &PW() { return live; }
 
@@ -2222,7 +2222,7 @@ namespace draw
 	{
 		const uint32_t node = a1;
 		const uint32_t ctx = U32(node, 0xC);
-		U32(node, 0x4C) = RIBBON_FLIPBOOK;
+		U32(node, 0x4C) = fxp::sequence(PW().seqs.ribbon, RIBBON_FLIPBOOK);
 		U16(node, 0x52) = 5;
 		U16(node, 0x54) = 0;
 		const uint32_t caster = 0x1D972C0 + (uint32_t)U8(ctx, 0) * 0x9C;
@@ -2562,6 +2562,7 @@ namespace draw
 			DW("ribbons", ribbons.twist, "Twist", "A ribbon's twist a tick (4096: a turn)", -0x1000, 0x1000),
 			DW("ribbons", ribbons.spread, "Spread", "How far from the emitter's midpoint the ribbons start", 0, 0x7FFF),
 			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrawParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.ribbon", "Ribbon", "The sprite sequence ribbon (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrawParams, seqs.ribbon), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DW
 	}

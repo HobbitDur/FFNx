@@ -94,8 +94,9 @@ namespace junk044
 		struct { int16_t from, span, every, big; } items;   // the falling items: from / for / every these ticks; the big item's tick
 		struct { int16_t gravity; } fall;                   // added to an item's falling speed a tick
 		struct { uint32_t debris; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const JunkParams GAME = { 0x1354B7C, { 0x96, 0x100 }, { 0xF, 0x20, 3, 0x3E }, { 0x32 }, { 0x1354CE0 } };
+	static const JunkParams GAME = { 0x1354B7C, { 0x96, 0x100 }, { 0xF, 0x20, 3, 0x3E }, { 0x32 }, { 0x1354CE0 }, { 0x1354B80 } };
 	static JunkParams live = GAME;
 	static const JunkParams &P() { return live; }
 	static const uint32_t SEQ_Smoke = 0x1354B80;      // smoke sprite sequence (+8: frame count word)
@@ -286,9 +287,9 @@ namespace junk044
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(s->pos, (int32_t)s->rot, -((int32_t)s->rot >> 2));
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 0x24) = 0;
-		*(int16_t *)(h + 4) = (int16_t)(*(const uint16_t *)(SEQ_Smoke + 8) - s->life);
+		*(int16_t *)(h + 4) = (int16_t)(*(const uint16_t *)(fxp::sequence(P().seqs.smoke, SEQ_Smoke) + 8) - s->life);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -716,6 +717,7 @@ namespace junk044
 			JP("control", items.big, "Big item tick", "", 0, 100),
 			JP("control", fall.gravity, "Gravity", "Added to an item's falling speed a tick", 1, 0x400),
 			{ "control", "layouts.debris", "Debris", "The prim-model layout debris (its models' animation)", (uint32_t)offsetof(JunkParams, layouts.debris), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "control", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(JunkParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef JP
 	}

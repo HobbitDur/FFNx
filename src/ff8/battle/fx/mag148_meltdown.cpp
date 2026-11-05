@@ -101,8 +101,9 @@ namespace melt148
 	{
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
+		struct { uint32_t acid_a, acid_b; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const MeltdownParams GAME = { 0xDCE74C, { 0x50 } };
+	static const MeltdownParams GAME = { 0xDCE74C, { 0x50 }, { SEQ_AcidA, SEQ_AcidB } };
 	static MeltdownParams live = GAME;
 	static const MeltdownParams &PM() { return live; }
 
@@ -1046,7 +1047,7 @@ namespace melt148
 	static uint32_t __cdecl ParticlesATask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		const uint32_t h = ParticleSetup(node, SEQ_AcidA);
+		const uint32_t h = ParticleSetup(node, fxp::sequence(PM().seqs.acid_a, SEQ_AcidA));
 		for (uint32_t e = own::R(POOL_A); e < own::R(POOL_A_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
@@ -1120,7 +1121,7 @@ namespace melt148
 	static uint32_t __cdecl ParticlesBTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		const uint32_t h = ParticleSetup(node, SEQ_AcidB);
+		const uint32_t h = ParticleSetup(node, fxp::sequence(PM().seqs.acid_b, SEQ_AcidB));
 		for (uint32_t e = own::R(POOL_B); e < own::R(POOL_B_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
@@ -1171,6 +1172,8 @@ namespace melt148
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(MeltdownParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(MeltdownParams, director.damage), fxp::I16, 0, 84 },
+			{ "director", "seqs.acid_a", "Acid a", "The sprite sequence acid a (a flipbook of 17 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltdownParams, seqs.acid_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.acid_b", "Acid b", "The sprite sequence acid b (a flipbook of 17 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltdownParams, seqs.acid_b), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -107,9 +107,10 @@ namespace dribble
 		struct { int16_t sound, release, result; } emitter;                  // the grab sound / the master released / the damage at these ticks
 		struct { int16_t start, length, mode; } actors;                      // the actor system
 		struct { int16_t grab, morph, bounce, lift, gravity, unmorph; } ball;   // the grab's ticks, the morph a tick, the throw's tick, its lift, gravity, the unmorph a tick
+		struct { uint32_t dust; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const DribbleParams GAME = { { 0x15CA5A8, 0x15CA5AC }, { 0x11, 0x74, 0x74 }, { 0xF, 0x2D, 0 },
-	                                    { 0x13, 0x200, 0x33, 0x200, 0x30, 0x100 } };
+	                                    { 0x13, 0x200, 0x33, 0x200, 0x30, 0x100 }, { 0x15CA5B0 } };
 	static DribbleParams live = GAME;
 	static const DribbleParams &PB() { return live; }
 	static const uint32_t ACTOR_DATA = 0x15CD8B0;      // the actor system's data (exe data, relocated once by 0x8472A0)
@@ -2903,7 +2904,7 @@ namespace dribble
 	uint32_t __cdecl db_84CB70(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = DUST_FLIPBOOK;
+		U32(a1, 0x4C) = fxp::sequence(PB().seqs.dust, DUST_FLIPBOOK);
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
@@ -2961,6 +2962,7 @@ namespace dribble
 			DB("ball", ball.lift, "Lift", "The throw's upward speed", 0, 0x1000),
 			DB("ball", ball.gravity, "Gravity", "Added to its falling speed a tick", 1, 0x400),
 			DB("ball", ball.unmorph, "Unmorph", "Back from the ball a tick in the flight (4096: all of it)", 1, 0x1000),
+			{ "emitter", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DribbleParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DB
 	}

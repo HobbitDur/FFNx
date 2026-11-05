@@ -124,8 +124,9 @@ namespace renzo141
 	struct RenzokukenParams
 	{
 		uint32_t sound;   // at the controller's tick 1
+		struct { uint32_t flash, debris, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const RenzokukenParams GAME = { 0xEA7E74 };
+	static const RenzokukenParams GAME = { 0xEA7E74, { 0xDDF4A0, 0xDDF770, 0xDDF64C } };
 	static RenzokukenParams live = GAME;
 	static const RenzokukenParams &PZ() { return live; }
 	static const uint32_t MODEL_SPARKLE = 0xEA7E78, SPARKLE_FADE = 0xEA8000, SPARKLE_DEPTH = 0xEA7FF0;
@@ -921,7 +922,7 @@ namespace renzo141
 		// 30 fps layer: see mag141_renzokuken_5hits_held.inc
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_FLASH;
+		*(uint32_t *)h = fxp::sequence(PZ().seqs.flash, SEQ_FLASH);
 		*(int16_t *)(h + 0x24) = 0;
 		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC)
 		{
@@ -934,7 +935,7 @@ namespace renzo141
 			p->life++;
 			if (*(const int16_t *)(h + 0x28) < 0) p->life = -1;
 		}
-		*(uint32_t *)h = SEQ_DEBRIS;
+		*(uint32_t *)h = fxp::sequence(PZ().seqs.debris, SEQ_DEBRIS);
 		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14)
 		{
 			DebrisP *p = (DebrisP *)a;
@@ -957,7 +958,7 @@ namespace renzo141
 			p->vel[1] = (int16_t)(p->vel[1] - (int16_t)(p->vel[1] >> 3));
 			p->vel[2] = (int16_t)(p->vel[2] - (int16_t)(p->vel[2] >> 3));
 		}
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = fxp::sequence(PZ().seqs.spark, SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 4;
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10)
 		{
@@ -1004,6 +1005,9 @@ namespace renzo141
 		};
 		static const Field FIELDS[] = {
 			{ "controller", "sound", "Sound", "", (uint32_t)offsetof(RenzokukenParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzokukenParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzokukenParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzokukenParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

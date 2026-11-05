@@ -112,8 +112,9 @@ namespace gastric169
 	{
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t blob, drip, splash; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const GastricJuice169Params GAME = { 0xD6BC1C, { 0x23 } };
+	static const GastricJuice169Params GAME = { 0xD6BC1C, { 0x23 }, { SEQ_Blob, SEQ_Drip, SEQ_Splash } };
 	static GastricJuice169Params live = GAME;
 	static const GastricJuice169Params &PJ() { return live; }
 
@@ -933,7 +934,7 @@ namespace gastric169
 		Node *n = (Node *)tn;
 		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Blob, n);)
-		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, SEQ_Blob);
+		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, fxp::sequence(PJ().seqs.blob, SEQ_Blob));
 		if (DrawOnly()) return 0;
 		const int16_t v = n->a1a;
 		n->a18 = (int16_t)(n->a18 + v);
@@ -959,7 +960,7 @@ namespace gastric169
 		FX_HELD(held_note_draw(ORIG_Drips, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Drip;
+		U32(h, 0) = fxp::sequence(PJ().seqs.drip, SEQ_Drip);
 		U16(h, 0x24) = 0;
 		for (Drop *e = Drops(); P(e) < own::R(DROPS_END); e++)
 		{
@@ -1054,7 +1055,7 @@ namespace gastric169
 		FX_HELD(held_note_draw(ORIG_Splash, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Splash;
+		U32(h, 0) = fxp::sequence(PJ().seqs.splash, SEQ_Splash);
 		U16(h, 0x24) = 0;
 		SplashSetup(StreamOf(n->idx));
 		for (Drop *e = Drops(); P(e) < own::R(DROPS_END); e++)
@@ -1241,6 +1242,9 @@ namespace gastric169
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(GastricJuice169Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(GastricJuice169Params, director.damage), fxp::I16, 0, 50 },
+			{ "director", "seqs.blob", "Blob", "The sprite sequence blob (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.blob), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.drip", "Drip", "The sprite sequence drip (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.splash", "Splash", "The sprite sequence splash (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -82,8 +82,9 @@ namespace strike87
 	{
 		struct { uint32_t run, slam; } sounds;    // Angelo's run, the slam
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
+		struct { uint32_t at_1557d34; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const StrikeParams GAME = { { SOUND_A, SOUND_B }, { 0x48 } };
+	static const StrikeParams GAME = { { SOUND_A, SOUND_B }, { 0x48 }, { 0x1557D34 } };
 	static StrikeParams live = GAME;
 	static const StrikeParams &PC() { return live; }
 
@@ -1232,7 +1233,7 @@ namespace strike87
 	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl ak_775E50(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x1557D34;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.at_1557d34, 0x1557D34);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -4675,6 +4676,7 @@ namespace strike87
 			{ "director", "sounds.run", "Run", "", (uint32_t)offsetof(StrikeParams, sounds.run), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.slam", "Slam", "", (uint32_t)offsetof(StrikeParams, sounds.slam), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(StrikeParams, director.damage), fxp::I16, 0, 0x200 },
+			{ "director", "seqs.at_1557d34", "Flipbook 1557D34", "The sprite sequence at 0x1557D34 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(StrikeParams, seqs.at_1557d34), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 

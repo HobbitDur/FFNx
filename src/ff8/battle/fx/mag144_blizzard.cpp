@@ -77,8 +77,9 @@ namespace blizzard144
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t damage; } director; // the shockwave and the damage at this tick of an action's director
+		struct { uint32_t ice, mist; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BlizzardParams GAME = { 0xDD9A38, { 0x25 } };
+	static const BlizzardParams GAME = { 0xDD9A38, { 0x25 }, { 0xDD83E4, 0xDD82F0 } };
 	static BlizzardParams live = GAME;
 	static const BlizzardParams &P() { return live; }
 
@@ -543,7 +544,7 @@ namespace blizzard144
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -579,7 +580,7 @@ namespace blizzard144
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -610,7 +611,7 @@ namespace blizzard144
 	// ------------------------------------------------------------------
 	static void MistHeader(uint8_t *h, int16_t frame)
 	{
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.mist, (uint32_t)SEQ_Mist));
 		*(uint16_t *)(h + 4) = (uint16_t)(frame > 4 ? 4 : frame);
 		*(uint16_t *)(h + 0x24) = 8;
 		if (frame >= 4)
@@ -911,6 +912,8 @@ namespace blizzard144
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "", (uint32_t)offsetof(BlizzardParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The shockwave and the damage at this tick of an action's director", (uint32_t)offsetof(BlizzardParams, director.damage), fxp::I16, 0, 100 },
+			{ "director", "seqs.ice", "Ice", "The sprite sequence ice (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzardParams, seqs.ice), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzardParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

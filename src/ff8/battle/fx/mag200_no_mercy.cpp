@@ -141,14 +141,14 @@ namespace mercy200
 	{
 		struct { uint32_t start, swing; } sounds; // at the director's ticks 6 and 0x23
 		struct { int16_t damage; } director;     // the action results at this tick
+		struct { uint32_t flame, flame_glow, ember, sparkburst, tspark, tburst; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const NoMercyParams GAME = { { 0xE33D30, 0xE33D34 }, { 0x8D } };
+	static const NoMercyParams GAME = { { 0xE33D30, 0xE33D34 }, { 0x8D }, { 0xE3382C, 0xE339D8, 0xE33B84, 0xE2DB40, 0xE2DC84, 0xE2DFE4 } };
 	static NoMercyParams live = GAME;
 	static const NoMercyParams &P() { return live; }
 	static const uint32_t REF_DIR = 0xE33D40;      // (0, 0, -0x1000)-style reference direction of the wave records
 	static const uint32_t SHARD_COLOURS = 0xE33D50; // 8 colour words (TipShards)
-	static const void *const SEQ_Flame = (const void *)0xE3382C, *const SEQ_FlameGlow = (const void *)0xE339D8,
-		*const SEQ_Ember = (const void *)0xE33B84;
+	static const uint32_t SEQ_Flame = 0xE3382C, SEQ_FlameGlow = 0xE339D8, SEQ_Ember = 0xE33B84;
 	static const uint32_t SEQ_SPARKBURST = 0xE2DB40, SEQ_TSPARK = 0xE2DC84, SEQ_TBURST = 0xE2DFE4;
 	static const uint32_t MODEL_RING = 0xE316B4, MODEL_FLASH = 0xE2E15C, MODEL_SHARD = 0xE2F8DC, MODEL_SLASH_A = 0xE328BC,
 		MODEL_SLASH_B = 0xE33074, MODEL_FRAME = 0xE2FFB4, MODEL_WAVERING = 0xE3239C, MODEL_WAVETRAIL = 0xE3260C,
@@ -1203,7 +1203,7 @@ namespace mercy200
 		const int16_t *pos = &p->w10;
 		TransformCameraByShadowRotation(pos, p->w1C, -(p->w1C >> 4));
 		uint8_t *h = AllocHeader(0xB4);
-		*(const void **)h = SEQ_Flame;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame, SEQ_Flame);
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1223,7 +1223,7 @@ namespace mercy200
 		int32_t q = (int32_t)(((int64_t)shl32(y, 12) * 0x10624DD3) >> 32) >> 7;
 		q += (int32_t)((uint32_t)q >> 31);                  // (y << 12) / 2000
 		uint8_t level = (uint8_t)((q * 160) / 4096 + 0xA0);
-		*(const void **)h = SEQ_FlameGlow;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame_glow, SEQ_FlameGlow);
 		*(uint16_t *)(h + 0x24) = 0xC;
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
 		h[0x1E] = level;
@@ -1331,7 +1331,7 @@ namespace mercy200
 		TransformCameraByShadowRotation(&p->w10, p->w1C, -(p->w1C >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
-		*(const void **)h = SEQ_Ember;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ember, SEQ_Ember);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1960,7 +1960,7 @@ namespace mercy200
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 0x24) = 8;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_SPARKBURST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sparkburst, SEQ_SPARKBURST);
 		int32_t count = 0;
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_SparkBurst, n, h);)
@@ -2122,7 +2122,7 @@ namespace mercy200
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 0x24) = 8;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_TSPARK;
+		*(uint32_t *)h = fxp::sequence(P().seqs.tspark, SEQ_TSPARK);
 		int32_t count = 0;
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_TargetSparks, n, h);)
@@ -2201,7 +2201,7 @@ namespace mercy200
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_TBURST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.tburst, SEQ_TBURST);
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_TargetBurst, n, h);)
 		const int32_t pull = -n->w18;
@@ -2646,6 +2646,12 @@ namespace mercy200
 			{ "director", "sounds.start", "Start", "At the director's tick 6", (uint32_t)offsetof(NoMercyParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.swing", "Swing", "At the director's tick 0x23", (uint32_t)offsetof(NoMercyParams, sounds.swing), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The action results at this tick of the director", (uint32_t)offsetof(NoMercyParams, director.damage), fxp::I16, 0, 173 },
+			{ "director", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.flame_glow", "Flame glow", "The sprite sequence flame glow (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.flame_glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.sparkburst", "Sparkburst", "The sprite sequence sparkburst (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.sparkburst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.tspark", "Tspark", "The sprite sequence tspark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.tspark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.tburst", "Tburst", "The sprite sequence tburst (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.tburst), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -77,8 +77,9 @@ namespace fira142
 	{
 		uint32_t sound;                      // at the director's tick 3 (3D, at the target)
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
+		struct { uint32_t ember, shock_ring; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FiraParams GAME = { 0xDDF44C, { 0xE } };
+	static const FiraParams GAME = { 0xDDF44C, { 0xE }, { 0xDDE100, 0xDDE0D8 } };
 	static FiraParams live = GAME;
 	static const FiraParams &P() { return live; }
 
@@ -436,7 +437,7 @@ namespace fira142
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ember;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ember, (uint32_t)SEQ_Ember));
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -499,7 +500,7 @@ namespace fira142
 
 	static void ShockRingHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = SEQ_ShockRing;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.shock_ring, (uint32_t)SEQ_ShockRing));
 		*(uint16_t *)(h + 4) = 0;
 		*(uint16_t *)(h + 0x24) = 0;
 		uint8_t level;
@@ -733,6 +734,8 @@ namespace fira142
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "", (uint32_t)offsetof(FiraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(FiraParams, director.damage), fxp::I16, 0, 100 },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FiraParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.shock_ring", "Shock ring", "The sprite sequence shock ring (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(FiraParams, seqs.shock_ring), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

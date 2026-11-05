@@ -76,8 +76,9 @@ namespace cannon86
 	{
 		struct { uint32_t load, fire; } sounds;   // Angelo loaded into the launcher (his 4th step), fired (his dash)
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
+		struct { uint32_t at_156177c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const CannonParams GAME = { { SOUND_A, SOUND_B }, { 0x32 } };
+	static const CannonParams GAME = { { SOUND_A, SOUND_B }, { 0x32 }, { 0x156177C } };
 	static CannonParams live = GAME;
 	static const CannonParams &PC() { return live; }
 
@@ -1867,7 +1868,7 @@ namespace cannon86
 	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl ac_783060(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x156177C;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.at_156177c, 0x156177C);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2593,6 +2594,7 @@ namespace cannon86
 			{ "director", "sounds.load", "Load", "", (uint32_t)offsetof(CannonParams, sounds.load), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.fire", "Fire", "", (uint32_t)offsetof(CannonParams, sounds.fire), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(CannonParams, director.damage), fxp::I16, 0, 0x200 },
+			{ "director", "seqs.at_156177c", "Flipbook 156177C", "The sprite sequence at 0x156177C (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(CannonParams, seqs.at_156177c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 

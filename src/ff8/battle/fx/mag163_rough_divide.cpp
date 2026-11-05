@@ -130,8 +130,9 @@ namespace rough163
 	{
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the action result at this tick
+		struct { uint32_t spark, pillar; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const RoughDivideParams GAME = { 0xDA00A8, { 0x41 } };
+	static const RoughDivideParams GAME = { 0xDA00A8, { 0x41 }, { 0xD9B458, 0xD9B2AC } };
 	static RoughDivideParams live = GAME;
 	static const RoughDivideParams &P() { return live; }
 	static const uint32_t ANIM_DATA = 0xD99DC8;
@@ -832,7 +833,7 @@ namespace rough163
 		uint8_t *h = AllocHeader(0xB4);
 		w->cam = Camera();
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_SPARK);
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
 		int32_t count = 0;
@@ -1276,7 +1277,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_pool(ORIG_Pillar, n);)
 		uint8_t *hs = AllocHeader(0xB4);
-		*(uint32_t *)hs = SEQ_PILLAR;
+		*(uint32_t *)hs = fxp::sequence(P().seqs.pillar, SEQ_PILLAR);
 		*(int16_t *)(hs + 0x24) = 8;
 		int32_t count = 0;
 		uint8_t *hm = (uint8_t *)FieldAlloc(0x58);
@@ -1719,6 +1720,8 @@ namespace rough163
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(RoughDivideParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The action result at this tick of the director", (uint32_t)offsetof(RoughDivideParams, director.damage), fxp::I16, 0, 85 },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(RoughDivideParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.pillar", "Pillar", "The sprite sequence pillar (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RoughDivideParams, seqs.pillar), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

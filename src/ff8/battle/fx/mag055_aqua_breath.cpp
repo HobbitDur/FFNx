@@ -98,8 +98,9 @@ namespace aqua
 		struct { int16_t fade_out, hold, fade_in; } orb;                 // the water ball's fade out a tick, its hold, its fade back a tick
 		struct { int16_t from, until; } splash;                          // the targets' splash drops: from / until these ticks
 		struct { int16_t from, until; } rain;                            // the rain drops round the targets: from / until these ticks
+		struct { uint32_t at_15a3a3c, at_15a3e5c, at_15a3b9c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const AquaParams GAME = { { 0x15A38D8, 0x32 }, { 0x600, 0x200, 0x28, 0x100 }, { 0x200, 0xF, 0x200 }, { 4, 0x12 }, { 0x14, 0x1C } };
+	static const AquaParams GAME = { { 0x15A38D8, 0x32 }, { 0x600, 0x200, 0x28, 0x100 }, { 0x200, 0xF, 0x200 }, { 4, 0x12 }, { 0x14, 0x1C }, { 0x15A3A3C, 0x15A3E5C, 0x15A3B9C } };
 	static AquaParams live = GAME;
 	static const AquaParams &PA() { return live; }
 	static const uint32_t Q_EMITTER = 0x2615838, Q_DIRECTOR = 0x2611088, Q_TASKS = 0x2611190, Q_ORB = 0x2615410, Q_SPARE = 0x2615828;
@@ -908,7 +909,7 @@ namespace aqua
 		int32_t hi = (int32_t)(((int64_t)v * (int64_t)(int32_t)0xD5555555) >> 32);
 		hi >>= 1;
 		const int32_t q = add32(hi, (int32_t)((uint32_t)hi >> 31));
-		U32(node, 0x4C) = 0x15A3A3C;
+		U32(node, 0x4C) = fxp::sequence(PA().seqs.at_15a3a3c, 0x15A3A3C);
 		const uint8_t st = U8(node, 0x29);
 		U16(node, 0x56) = 0xFFF0;
 		U16(node, 0x52) = 0xC;
@@ -1053,7 +1054,7 @@ namespace aqua
 	uint32_t __cdecl ab_80C540(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x15A3E5C;
+		U32(a1, 0x4C) = fxp::sequence(PA().seqs.at_15a3e5c, 0x15A3E5C);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -1156,7 +1157,7 @@ namespace aqua
 	uint32_t __cdecl ab_80C8C0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x15A3B9C;
+		U32(a1, 0x4C) = fxp::sequence(PA().seqs.at_15a3b9c, 0x15A3B9C);
 		U16(a1, 0x56) = 0xFFF0;
 		U16(a1, 0x52) = 0xC;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -2286,6 +2287,9 @@ namespace aqua
 			DT("drops", splash.until, "Splash until", "", 0, 200),
 			DT("drops", rain.from, "Rain from", "", 0, 200),
 			DT("drops", rain.until, "Rain until", "", 0, 200),
+			{ "director", "seqs.at_15a3a3c", "Flipbook 15A3A3C", "The sprite sequence at 0x15A3A3C (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaParams, seqs.at_15a3a3c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15a3e5c", "Flipbook 15A3E5C", "The sprite sequence at 0x15A3E5C (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaParams, seqs.at_15a3e5c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15a3b9c", "Flipbook 15A3B9C", "The sprite sequence at 0x15A3B9C (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaParams, seqs.at_15a3b9c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

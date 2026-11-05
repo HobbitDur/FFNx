@@ -163,8 +163,9 @@ namespace s185
 		uint32_t voice;                                    // the voice slot claimed at the timeline's tick 0
 		struct { uint32_t start, rise, stream, blast; } sounds; // at the timeline's ticks 1, 101, 147, 249
 		struct { int16_t damage; } timeline;               // the action result at this tick
+		struct { uint32_t at_d209f4, at_d20c7c, at_d20ad0, at_d208b0, at_d20e10; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ShivaParams GAME = { 0xD32344, { 0xD32488, 0xD3248C, 0xD32490, 0xD32494 }, { 0x109 } };
+	static const ShivaParams GAME = { 0xD32344, { 0xD32488, 0xD3248C, 0xD32490, 0xD32494 }, { 0x109 }, { 0xD209F4, 0xD20C7C, 0xD20AD0, 0xD208B0, 0xD20E10 } };
 	static ShivaParams live = GAME;
 	static const ShivaParams &P() { return live; }
 
@@ -638,7 +639,7 @@ namespace s185
 		}
 		ComposeAffineTransform(&RootMatrix(), &m, &w);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD209F4;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d209f4, 0xD209F4);
 		*(uint16_t *)(h + 0x24) = 0;
 		if (n->c < 0x1D)
 		{
@@ -652,7 +653,7 @@ namespace s185
 			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 			count++;
 		}
-		*(uint32_t *)h = 0xD20C7C;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20c7c, 0xD20C7C);
 		int32_t mask = n->e;
 		for (int i = 0; i < 150; i++)
 		{
@@ -721,7 +722,7 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD20AD0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20ad0, 0xD20AD0);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		for (int i = 0; i < 100; i++)
@@ -784,7 +785,7 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD20AD0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20ad0, 0xD20AD0);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		for (int i = 0; i < 150; i++)
@@ -1335,7 +1336,7 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD208B0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d208b0, 0xD208B0);
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		*(uint32_t *)(h + 0x14) = 0x1000;
@@ -1650,7 +1651,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x40);
-		*(uint32_t *)h = 0xD20E10;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20e10, 0xD20E10);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		OrbitSetup(&Frame(), s);
@@ -1873,7 +1874,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD20E10;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20e10, 0xD20E10);
 		int32_t count = 0;
 		*(uint16_t *)(h + 0x24) = 0x208;
 		// 30 fps layer: see mag185_shiva_held.inc
@@ -2015,7 +2016,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD20AD0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20ad0, 0xD20AD0);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		BlizzardSetup(&Frame(), n, s);
@@ -2231,7 +2232,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xD208B0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d208b0, 0xD208B0);
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		DustSetup(&Frame(), s);
@@ -2289,6 +2290,11 @@ namespace s185
 			{ "timeline", "sounds.stream", "Stream", "At the timeline's tick 147", (uint32_t)offsetof(ShivaParams, sounds.stream), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.blast", "Blast", "At the timeline's tick 249", (uint32_t)offsetof(ShivaParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "timeline.damage", "Damage tick", "The action result at this tick of the timeline", (uint32_t)offsetof(ShivaParams, timeline.damage), fxp::I16, 0, 274 },
+			{ "timeline", "seqs.at_d209f4", "Flipbook D209F4", "The sprite sequence at 0xD209F4 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d209f4), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d20c7c", "Flipbook D20C7C", "The sprite sequence at 0xD20C7C (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20c7c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d20ad0", "Flipbook D20AD0", "The sprite sequence at 0xD20AD0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20ad0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d208b0", "Flipbook D208B0", "The sprite sequence at 0xD208B0 (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d208b0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d20e10", "Flipbook D20E10", "The sprite sequence at 0xD20E10 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20e10), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

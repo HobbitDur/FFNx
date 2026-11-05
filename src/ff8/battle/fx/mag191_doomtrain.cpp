@@ -154,8 +154,9 @@ namespace d191
 		uint32_t voice;                                         // the voice slot claimed at the timeline's tick 0
 		struct { uint32_t start, horn, wheels, rush, end; } sounds; // at the timeline's ticks 4, 160, 294, 336, 417
 		struct { int16_t damage; } timeline;                    // the action result at this tick
+		struct { uint32_t at_e346b0, at_e33e40, at_e342a4, at_e3460c, at_e34548, at_e34404; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DoomtrainParams GAME = { 0xE3C774, { 0xE3C8A8, 0xE3C8AC, 0xE3C8B0, 0xE3C8B4, 0xE3C8B8 }, { 0x1A4 } };
+	static const DoomtrainParams GAME = { 0xE3C774, { 0xE3C8A8, 0xE3C8AC, 0xE3C8B0, 0xE3C8B4, 0xE3C8B8 }, { 0x1A4 }, { 0xE346B0, 0xE33E40, 0xE342A4, 0xE3460C, 0xE34548, 0xE34404 } };
 	static DoomtrainParams live = GAME;
 	static const DoomtrainParams &P() { return live; }
 	static const uint32_t ORIG_CamScriptTask = 0x63E9C0;
@@ -1116,7 +1117,7 @@ namespace d191
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)(c & 7);
-		*(uint32_t *)h = 0xE346B0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e346b0, 0xE346B0);
 		*(uint16_t *)(h + 0x24) = 8;
 		Cursor() = InitEffectSequenceFromData(h, OT(), 3, Cursor());
 		FieldFree(0xB4);
@@ -1323,7 +1324,7 @@ namespace d191
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		LitFrame(s, nullptr, &Frame(), 0, 0, 0);
 		for (int i = 0; i < 170; i++)
@@ -1861,7 +1862,7 @@ namespace d191
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		*(int16_t *)s = 0;
 		*(int16_t *)(s + 2) = 0;
@@ -1986,7 +1987,7 @@ namespace d191
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		LitFrame(s, nullptr, &Frame(), 0, 0, 0);
 		for (int i = 0; i < 170; i++)
@@ -2048,7 +2049,7 @@ namespace d191
 
 	static void PuffWallSetup(uint8_t *h, uint8_t *s, const Mat4x3 *frame, int16_t c, bool grey_override, uint32_t grey)
 	{
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		if (c < 0xB) *(uint16_t *)(h + 0x24) = 0x208;
 		*(int16_t *)s = 0;
@@ -2273,7 +2274,7 @@ namespace d191
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE342A4;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e342a4, 0xE342A4);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		ChimneyFrame(s, &BoneWorld(), &Frame());
@@ -2435,7 +2436,7 @@ namespace d191
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		SteamHistory(s, n->c, false);
 		int32_t np = SteamCollect(n->c, false);
-		SteamSetup(h, s, 0xE342A4, true, 0xC);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), true, 0xC);
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = R(POOL_C, i);
@@ -2501,7 +2502,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, true, 0xC);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), true, 0xC);
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = R(POOL_C, i);
@@ -2549,7 +2550,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, true, 0xC);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), true, 0xC);
 		int32_t count = 0;
 		for (int i = 0; i < 150; i++)
 		{
@@ -2661,7 +2662,7 @@ namespace d191
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		WheelHistory(s, n->c, false);
 		int32_t np = SteamCollect(n->c, true);
-		SteamSetup(h, s, 0xE342A4, false, 8);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), false, 8);
 		WheelDrawLoop(n, h, s, 3, true, false, nullptr);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -2714,7 +2715,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, false, 8);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), false, 8);
 		WheelDrawLoop(n, h, s, 2, false, false, nullptr);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -2756,7 +2757,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, false, 8);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), false, 8);
 		int32_t count = 0;
 		WheelDrawLoop(n, h, s, 2, true, true, &count);
 		FieldFree(0x50);
@@ -2941,7 +2942,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x98);
-		*(uint32_t *)h = 0xE3460C;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e3460c, 0xE3460C);
 		*(uint16_t *)(h + 0x24) = 0x208;
 		int32_t count = 0;
 		// 30 fps layer: see mag191_doomtrain_held.inc
@@ -2955,7 +2956,7 @@ namespace d191
 			*(int16_t *)(h + 4) = n->c;
 			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 		}
-		*(uint32_t *)h = 0xE34548;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e34548, 0xE34548);
 		ExplosionFrame(s, n, &Frame());
 		*(int32_t *)(s + 0x70) = 0x1000;
 		*(int32_t *)(s + 0x68) = 0x1000;
@@ -3170,7 +3171,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		memcpy(s + 8, &Camera(), sizeof(Mat4x3));
-		*(uint32_t *)h = 0xE34404;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e34404, 0xE34404);
 		*(uint32_t *)(h + 0x1C) = 0x586880;
 		*(uint16_t *)(h + 0x24) = 0xC;
 		int32_t count = 0;
@@ -3220,6 +3221,12 @@ namespace d191
 			{ "timeline", "sounds.rush", "Rush", "At the timeline's tick 336", (uint32_t)offsetof(DoomtrainParams, sounds.rush), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.end", "End", "At the timeline's tick 417", (uint32_t)offsetof(DoomtrainParams, sounds.end), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "timeline.damage", "Damage tick", "The action result at this tick of the timeline", (uint32_t)offsetof(DoomtrainParams, timeline.damage), fxp::I16, 0, 423 },
+			{ "timeline", "seqs.at_e346b0", "Flipbook E346B0", "The sprite sequence at 0xE346B0 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e346b0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e33e40", "Flipbook E33E40", "The sprite sequence at 0xE33E40 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e33e40), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e342a4", "Flipbook E342A4", "The sprite sequence at 0xE342A4 (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e342a4), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e3460c", "Flipbook E3460C", "The sprite sequence at 0xE3460C (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e3460c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e34548", "Flipbook E34548", "The sprite sequence at 0xE34548 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e34548), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e34404", "Flipbook E34404", "The sprite sequence at 0xE34404 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e34404), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

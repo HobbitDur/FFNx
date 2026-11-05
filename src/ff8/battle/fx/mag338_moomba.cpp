@@ -74,8 +74,9 @@ namespace m338
 	{
 		uint32_t voice;   // the voice slot claimed when the creature spawns
 		uint32_t sound;   // the creature's tick 0
+		struct { uint32_t spark_flash, spark_fly, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const MoombaParams GAME = { 0x13710CC, 0x13710C8 };
+	static const MoombaParams GAME = { 0x13710CC, 0x13710C8, { 0x1371464, 0x13711FC, 0x137130C } };
 	static MoombaParams live = GAME;
 	static const MoombaParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x6ECCE0;      // prim-model object callback (pure draw)
@@ -344,7 +345,7 @@ namespace m338
 		s->vel[1] = 0;
 		*(uint32_t *)s->acc = 0;
 		s->unused12 = 0xBB8;
-		s->seq = SEQ_SparkFlash;
+		s->seq = fxp::sequence(P().seqs.spark_flash, SEQ_SparkFlash);
 		for (int k = 7;;)
 		{
 			s = SparkAlloc();
@@ -366,7 +367,7 @@ namespace m338
 			s->vel[2] = 0;
 			s->acc[1] = (int8_t)DivNeg10Sar2(s->vel[1]);
 			s->unused12 = 0xC00;
-			s->seq = SEQ_SparkFly;
+			s->seq = fxp::sequence(P().seqs.spark_fly, SEQ_SparkFly);
 			if (--k == 0) return;
 		}
 	}
@@ -703,7 +704,7 @@ namespace m338
 					s->vel[2] = 0;
 					*(uint32_t *)s->acc = 0;
 					r = x::Rand();
-					s->seq = SEQ_Spark;
+					s->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 					s->unused12 = (int16_t)((r & 0xFFF) + 0x800);
 					if (--count == 0) break;
 					s = SparkAlloc();
@@ -770,7 +771,7 @@ namespace m338
 						s->acc[0] = 0;
 						s->life = 0xC;
 						int32_t r3 = x::Rand();
-						s->seq = SEQ_Spark;
+						s->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 						s->unused12 = (int16_t)((r3 & 0xFFF) + 0xBB8);
 						int old = count--;
 						if (old == 0) break;
@@ -856,6 +857,9 @@ namespace m338
 		static const Field FIELDS[] = {
 			{ "creature", "voice", "Voice", "The voice slot claimed when the creature spawns", (uint32_t)offsetof(MoombaParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "creature", "sound", "Sound", "At the creature's tick 0", (uint32_t)offsetof(MoombaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "seqs.spark_flash", "Spark flash", "The sprite sequence spark flash (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark_flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "seqs.spark_fly", "Spark fly", "The sprite sequence spark fly (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark_fly), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

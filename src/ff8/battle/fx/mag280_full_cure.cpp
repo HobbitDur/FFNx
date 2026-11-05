@@ -92,8 +92,9 @@ namespace fullcure280
 	{
 		uint32_t sound;   // at each target's layout start
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t sequence; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FullCureParams GAME = { 0x10AB124, { LAYOUT } };
+	static const FullCureParams GAME = { 0x10AB124, { LAYOUT }, { SEQUENCE } };
 	static FullCureParams live = GAME;
 	static const FullCureParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x1DF0;        // magic buffer: packet arenas
@@ -341,7 +342,7 @@ namespace fullcure280
 		FX_HELD(held_note_sparkle(s);)
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQUENCE;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sequence, SEQUENCE);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -467,6 +468,7 @@ namespace fullcure280
 		static const Field FIELDS[] = {
 			{ "control", "sound", "Sound", "At each target's layout start", (uint32_t)offsetof(FullCureParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "control", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(FullCureParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "control", "seqs.sequence", "Sequence", "The sprite sequence sequence (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(FullCureParams, seqs.sequence), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

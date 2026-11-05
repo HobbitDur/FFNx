@@ -111,8 +111,9 @@ namespace sigh
 		struct { int16_t start, length, mode; } actors;                 // the actor system
 		struct { int16_t show, fade, breath; } sigh;                    // shown from this tick, its fade after this one; the breath's first burst
 		struct { int16_t level, step_in, step_out; } wobble;            // the stage wobble: its level, up / down a step a tick
+		struct { uint32_t flipbook_0, flipbook_1, flipbook_2; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SighParams GAME = { { 0x15B82A0, 0x28, 0x28 }, { 5 }, { 0, 0x2D, 0 }, { 4, 0x16, 8 }, { 0x400, 0x100, 0x100 } };
+	static const SighParams GAME = { { 0x15B82A0, 0x28, 0x28 }, { 5 }, { 0, 0x2D, 0 }, { 4, 0x16, 8 }, { 0x400, 0x100, 0x100 }, { FLIPBOOK_0, FLIPBOOK_1, FLIPBOOK_2 } };
 	static SighParams live = GAME;
 	static const SighParams &PH() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
@@ -1912,11 +1913,11 @@ namespace sigh
 	{
 		const int32_t r = (int32_t)x::CrtRand() % 3;
 		if (r == 0)
-			U32(a1, 0x4C) = FLIPBOOK_0;
+			U32(a1, 0x4C) = fxp::sequence(PH().seqs.flipbook_0, FLIPBOOK_0);
 		else if (r == 1)
-			U32(a1, 0x4C) = FLIPBOOK_1;
+			U32(a1, 0x4C) = fxp::sequence(PH().seqs.flipbook_1, FLIPBOOK_1);
 		else if (r == 2)
-			U32(a1, 0x4C) = FLIPBOOK_2;
+			U32(a1, 0x4C) = fxp::sequence(PH().seqs.flipbook_2, FLIPBOOK_2);
 		U16(a1, 0x52) = 0xE;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -2055,6 +2056,9 @@ namespace sigh
 			DT("stage", wobble.level, "Level", "Its amplitude", 0, 0x1000),
 			DT("stage", wobble.step_in, "Step in", "Up by this a tick", 1, 0x1000),
 			DT("stage", wobble.step_out, "Step out", "Down by this a tick", 1, 0x1000),
+			{ "emitter", "seqs.flipbook_0", "Flipbook 0", "The sprite sequence flipbook 0 (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(SighParams, seqs.flipbook_0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.flipbook_1", "Flipbook 1", "The sprite sequence flipbook 1 (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(SighParams, seqs.flipbook_1), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.flipbook_2", "Flipbook 2", "The sprite sequence flipbook 2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SighParams, seqs.flipbook_2), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

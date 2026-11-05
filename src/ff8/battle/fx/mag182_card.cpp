@@ -118,8 +118,9 @@ namespace card182
 	{
 		struct { uint32_t short_, card; } sounds;          // at the director's tick 1: no card (A) / carded (B)
 		struct { int16_t result_short, result_card; } director; // the action result at this tick (A / B)
+		struct { uint32_t sparkle, card; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const CardParams GAME = { { 0xD3D38C, 0xD3D388 }, { 0x23, 0x40 } };
+	static const CardParams GAME = { { 0xD3D38C, 0xD3D388 }, { 0x23, 0x40 }, { SEQ_Sparkle, SEQ_Card } };
 	static CardParams live = GAME;
 	static const CardParams &P() { return live; }
 
@@ -210,7 +211,7 @@ namespace card182
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sparkle, SEQ_Sparkle);
 		*(int16_t *)(h + 0x24) = 4;
 		return h;
 	}
@@ -258,7 +259,7 @@ namespace card182
 	static uint8_t *CardHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Card;
+		*(uint32_t *)h = fxp::sequence(P().seqs.card, SEQ_Card);
 		*(int16_t *)(h + 0x24) = 8;
 		return h;
 	}
@@ -757,6 +758,8 @@ namespace card182
 			{ "director", "sounds.card", "Sound (carded)", "DirectorB's, at its tick 1", (uint32_t)offsetof(CardParams, sounds.card), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.result_short", "Result tick (no card)", "DirectorA's action result at this tick", (uint32_t)offsetof(CardParams, director.result_short), fxp::I16, 0, 40 },
 			{ "director", "director.result_card", "Result tick (carded)", "DirectorB's action result at this tick", (uint32_t)offsetof(CardParams, director.result_card), fxp::I16, 0, 65 },
+			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CardParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.card", "Card", "The sprite sequence card (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(CardParams, seqs.card), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

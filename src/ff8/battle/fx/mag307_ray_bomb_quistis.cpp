@@ -128,8 +128,9 @@ namespace raybomb307
 	struct RayBomb307Params
 	{
 		struct { uint32_t muzzle, blast; } sounds;   // at the muzzle (director tick 0xA); with the shockwave (0x51)
+		struct { uint32_t dust, puff, spark, charge; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const RayBomb307Params GAME = { { 0xCE40CC, 0xCE40D0 } };
+	static const RayBomb307Params GAME = { { 0xCE40CC, 0xCE40D0 }, { SEQ_Dust, SEQ_Puff, SEQ_Spark, SEQ_Charge } };
 	static RayBomb307Params live = GAME;
 	static const RayBomb307Params &P() { return live; }
 	static const uint32_t BIND_Block = 0x2240F18;                      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -317,7 +318,7 @@ namespace raybomb307
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		uint32_t count = 0;
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_Dust);
 		*(int16_t *)(h + 0x24) = 0;
 		for (int i = 0; i < PARTICLES; i++)
 		{
@@ -529,7 +530,7 @@ namespace raybomb307
 	static void PuffHeader(uint8_t *h, const PuffNode *p)
 	{
 		*(uint16_t *)(h + 4) = 0;
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = fxp::sequence(P().seqs.puff, SEQ_Puff);
 		int32_t q = 0x80 / (int32_t)p->life;
 		*(uint16_t *)(h + 0x24) = 0xC;
 		uint8_t level = (uint8_t)(0x80 - (uint8_t)(q * p->counter));
@@ -714,7 +715,7 @@ namespace raybomb307
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -797,7 +798,7 @@ namespace raybomb307
 	static void ChargeHeader(uint8_t *h, const ChargeNode *p)
 	{
 		*(int32_t *)(h + 8) = p->size;
-		*(uint32_t *)h = SEQ_Charge;
+		*(uint32_t *)h = fxp::sequence(P().seqs.charge, SEQ_Charge);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 1;
 		if (p->counter < 8 || p->counter >= 0xE)
@@ -1176,6 +1177,10 @@ namespace raybomb307
 		static const Field FIELDS[] = {
 			{ "director", "sounds.muzzle", "Muzzle", "At the muzzle (director tick 0xA)", (uint32_t)offsetof(RayBomb307Params, sounds.muzzle), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.blast", "Blast", "With the shockwave (director tick 0x51)", (uint32_t)offsetof(RayBomb307Params, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBomb307Params, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBomb307Params, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBomb307Params, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.charge", "Charge", "The sprite sequence charge (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBomb307Params, seqs.charge), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

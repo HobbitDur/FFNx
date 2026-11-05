@@ -150,8 +150,9 @@ namespace duel274
 		uint32_t sound_dolphin;   // Dolphin Blow's (its tick 0x18)
 		uint32_t sound_meteor;   // Meteor Strike's (its tick 0x2B)
 		struct { uint32_t punch, punch_b, booya, heel, heel_b, kick, dolphin, dolphin_b, meteor, meteor_b; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t flash; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DuelParams GAME = { 0x110BE58, 0x110BE5C, 0x110BE60, 0x110BE64, 0x110BE68, 0x110BE6C, { LAYOUT_Punch, LAYOUT_PunchB, LAYOUT_Booya, LAYOUT_Heel, LAYOUT_HeelB, LAYOUT_Kick, LAYOUT_Dolphin, LAYOUT_DolphinB, LAYOUT_Meteor, LAYOUT_MeteorB } };
+	static const DuelParams GAME = { 0x110BE58, 0x110BE5C, 0x110BE60, 0x110BE64, 0x110BE68, 0x110BE6C, { LAYOUT_Punch, LAYOUT_PunchB, LAYOUT_Booya, LAYOUT_Heel, LAYOUT_HeelB, LAYOUT_Kick, LAYOUT_Dolphin, LAYOUT_DolphinB, LAYOUT_Meteor, LAYOUT_MeteorB }, { SEQ_Flash } };
 	static DuelParams live = GAME;
 	static const DuelParams &P() { return live; }
 
@@ -1212,7 +1213,7 @@ namespace duel274
 		FX_HELD(held_note_flash(f);)
 		TransformCameraByShadowRotation(f->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash, SEQ_Flash);
 		*(int16_t *)(h + 4) = f->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, PacketCursor());
@@ -2325,6 +2326,7 @@ namespace duel274
 			{ "punch", "layouts.dolphin_b", "Dolphin b", "The prim-model layout dolphin b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.dolphin_b), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "punch", "layouts.meteor", "Meteor", "The prim-model layout meteor (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "punch", "layouts.meteor_b", "Meteor b", "The prim-model layout meteor b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DuelParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

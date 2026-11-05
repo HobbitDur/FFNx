@@ -120,8 +120,9 @@ namespace quick196
 	struct QuickShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t impact, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const QuickShotParams GAME = { 0xD073C4 };
+	static const QuickShotParams GAME = { 0xD073C4, { 0xD05DB0, 0xD05FC0 } };
 	static QuickShotParams live = GAME;
 	static const QuickShotParams &P() { return live; }
 
@@ -354,7 +355,7 @@ namespace quick196
 	static void ImpactFlashDraw(const Node *n, uint8_t *h)
 	{
 		*(int16_t *)(h + 4) = n->counter;
-		*(uint32_t *)h = SEQ_Impact;
+		*(uint32_t *)h = fxp::sequence(P().seqs.impact, SEQ_Impact);
 		*(int16_t *)(h + 0x24) = 8;
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -471,7 +472,7 @@ namespace quick196
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		int32_t alive = 0;
 		const int32_t id = n->f0E + 1;
 		for (Particle *e = arr; e < arr + 150; e++)
@@ -712,6 +713,8 @@ namespace quick196
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(QuickShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(QuickShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(QuickShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

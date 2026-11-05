@@ -113,9 +113,9 @@ namespace laser277
 	{
 		uint32_t sound;   // each beam's counter 0
 		struct { uint32_t hit, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
-		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t spark, glow; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Spark } };
+	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Spark, SEQ_Glow } };
 	static FunguarLaserParams live = GAME;
 	static const FunguarLaserParams &P() { return live; }
 	static const int16_t P_OBJECT = 0, P_VERTEX = 0x7B;  // the beam's start: caster model object 0, vertex 0x7B
@@ -532,7 +532,7 @@ namespace laser277
 		GlowNode *g = (GlowNode *)n;
 		// 30 fps layer: see mag277_funguar_laser_held.inc
 		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, nullptr, g->counter);)
-		SpriteDraw(g->pos, g->counter, SEQ_Glow, 0xAF0, -0x400);
+		SpriteDraw(g->pos, g->counter, fxp::sequence(P().seqs.glow, SEQ_Glow), 0xAF0, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -750,6 +750,7 @@ namespace laser277
 			{ "beam", "layouts.ray", "Ray", "The prim-model layout ray (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.ray), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "beam", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "beam", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FunguarLaserParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "beam", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FunguarLaserParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

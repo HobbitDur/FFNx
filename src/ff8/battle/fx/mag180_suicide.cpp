@@ -103,8 +103,9 @@ namespace suicide180
 	{
 		uint32_t sound;                      // the fuse at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SuicideParams GAME = { 0xD445B4, { 0x26 } };
+	static const SuicideParams GAME = { 0xD445B4, { 0x26 }, { SEQ_Spark, SEQ_Smoke } };
 	static SuicideParams live = GAME;
 	static const SuicideParams &P() { return live; }
 
@@ -654,7 +655,7 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag180_suicide_held.inc
 		FX_HELD(held_note_pool(ORIG_Sparks, t);)
-		uint8_t *h = SpriteHeader(SEQ_Spark);
+		uint8_t *h = SpriteHeader(fxp::sequence(P().seqs.spark, SEQ_Spark));
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
@@ -717,7 +718,7 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag180_suicide_held.inc
 		FX_HELD(held_note_pool(ORIG_Smoke, t);)
-		uint8_t *h = SpriteHeader(SEQ_Smoke);
+		uint8_t *h = SpriteHeader(fxp::sequence(P().seqs.smoke, SEQ_Smoke));
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
@@ -759,7 +760,7 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag180_suicide_held.inc
 		FX_HELD(held_note_pool(ORIG_FuseSparks, t);)
-		uint8_t *h = SpriteHeader(SEQ_Spark);
+		uint8_t *h = SpriteHeader(fxp::sequence(P().seqs.spark, SEQ_Spark));
 		*(int32_t *)(h + 0x14) = 0x1000;
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
@@ -893,6 +894,8 @@ namespace suicide180
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "The fuse at the director's tick 1", (uint32_t)offsetof(SuicideParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SuicideParams, director.damage), fxp::I16, 0, 50 },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(SuicideParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SuicideParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

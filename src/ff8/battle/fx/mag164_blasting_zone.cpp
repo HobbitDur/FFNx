@@ -138,8 +138,9 @@ namespace blast164
 	{
 		struct { uint32_t raise, blast; } sounds; // the blade raised, the blast
 		struct { int16_t damage; } director;     // the action results at this tick
+		struct { uint32_t orbit, burst, smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BlastingZoneParams GAME = { { 0xD99C10, 0xD99C14 }, { 0x133 } };
+	static const BlastingZoneParams GAME = { { 0xD99C10, 0xD99C14 }, { 0x133 }, { 0xD99748, 0xD999AC, 0xD9961C } };
 	static BlastingZoneParams live = GAME;
 	static const BlastingZoneParams &P() { return live; }
 	static const uint32_t GLOW_REF = 0xD99C50;    // reference direction of the blade glow
@@ -2229,7 +2230,7 @@ namespace blast164
 			}
 		}
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_ORBIT;
+		*(uint32_t *)h = fxp::sequence(P().seqs.orbit, SEQ_ORBIT);
 		*(int16_t *)(h + 0x24) = 0;
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_OrbitSpark, n, h);)
@@ -2473,7 +2474,7 @@ namespace blast164
 			}
 		}
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_BURST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.burst, SEQ_BURST);
 		*(int16_t *)(h + 0x24) = 0;
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_BurstSpark, n, h);)
@@ -2644,7 +2645,7 @@ namespace blast164
 			}
 		}
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_SMOKE;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_SMOKE);
 		*(int16_t *)(h + 0x24) = 8;
 		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Smoke, n, h);)
@@ -2761,6 +2762,9 @@ namespace blast164
 			{ "director", "sounds.raise", "Raise", "The blade raised (Squall's sequence 2)", (uint32_t)offsetof(BlastingZoneParams, sounds.raise), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.blast", "Blast", "The blast (the starfield and the screen flash)", (uint32_t)offsetof(BlastingZoneParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The action results at this tick of the director", (uint32_t)offsetof(BlastingZoneParams, director.damage), fxp::I16, 0, 314 },
+			{ "director", "seqs.orbit", "Orbit", "The sprite sequence orbit (a flipbook of 23 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastingZoneParams, seqs.orbit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 23 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastingZoneParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastingZoneParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

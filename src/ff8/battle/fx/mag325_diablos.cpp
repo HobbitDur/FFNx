@@ -81,8 +81,9 @@ namespace d325
 		uint32_t voice;                                              // the voice slot claimed when the timeline spawns
 		struct { uint32_t start, rise, gather, orb, drop, burst; } sounds; // at the timeline's ticks 0, 0x5B, 0xEE, 0x14D, 0x192, 0x1C8
 		struct { int16_t damage; } timeline;                         // the action results at this tick
+		struct { uint32_t at_fd69c0, at_fd6814; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DiablosParams GAME = { 0xFD6658, { 0xFD6640, 0xFD6644, 0xFD6648, 0xFD664C, 0xFD6650, 0xFD6654 }, { 0x1F3 } };
+	static const DiablosParams GAME = { 0xFD6658, { 0xFD6640, 0xFD6644, 0xFD6648, 0xFD664C, 0xFD6650, 0xFD6654 }, { 0x1F3 }, { 0xFD69C0, 0xFD6814 } };
 	static DiablosParams live = GAME;
 	static const DiablosParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x656B70; // prim-model object callback (pure draw)
@@ -1205,7 +1206,7 @@ namespace d325
 						uint8_t *p = x::PuffAlloc();
 						if (!p) break;
 						p[0xF] = 0x10;
-						*(uint32_t *)p = (cnt & 1) ? 0xFD69C0 : 0xFD6814;
+						*(uint32_t *)p = (cnt & 1) ? fxp::sequence(P().seqs.at_fd69c0, 0xFD69C0) : fxp::sequence(P().seqs.at_fd6814, 0xFD6814);
 						int32_t ang = x::Rand() & 0x7FF;
 						int32_t rad = (x::Rand() & 0x1FF) + 0x200;
 						int32_t cx = mul32(x::Cos(ang), rad) >> 12;
@@ -1538,6 +1539,8 @@ namespace d325
 			{ "timeline", "sounds.drop", "Drop", "At the timeline's tick 0x192", (uint32_t)offsetof(DiablosParams, sounds.drop), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.burst", "Burst", "At the timeline's tick 0x1C8", (uint32_t)offsetof(DiablosParams, sounds.burst), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "timeline.damage", "Damage tick", "The action results at this tick of the timeline", (uint32_t)offsetof(DiablosParams, timeline.damage), fxp::I16, 0, 529 },
+			{ "timeline", "seqs.at_fd69c0", "Flipbook FD69C0", "The sprite sequence at 0xFD69C0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DiablosParams, seqs.at_fd69c0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_fd6814", "Flipbook FD6814", "The sprite sequence at 0xFD6814 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DiablosParams, seqs.at_fd6814), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

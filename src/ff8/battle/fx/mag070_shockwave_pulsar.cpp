@@ -139,8 +139,9 @@ namespace sp070
 		struct { uint32_t voice, start, wave, burst; } sounds;   // the voice claimed at the master's start; the sounds at ticks 0, 0x50, 0xAA
 		struct { int16_t damage, voice_release, end; } master;   // the damage, the voice released, the end (positions and flags restored) at these ticks
 		struct { uint32_t ring, centre, wave, lift, rise; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t burst, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE } };
+	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE }, { BURST_SEQ, SPARK_SEQ } };
 	static PulsarParams live = GAME;
 	static const PulsarParams &PP() { return live; }
 
@@ -1012,7 +1013,7 @@ namespace sp070
 					p->vel[0] = (int8_t)(mul32(ComputeSin(ang), speed) >> 12);
 					p->vel[2] = (int8_t)(mul32(ComputeCos(ang), speed) >> 12);
 					p->vel[1] = 0;
-					p->seq = (const uint8_t *)BURST_SEQ;
+					p->seq = (const uint8_t *)fxp::sequence(PP().seqs.burst, BURST_SEQ);
 					p->life = 0x10;
 					ang -= 0x100;
 					if (ang == 0) break;
@@ -1239,7 +1240,7 @@ namespace sp070
 						CrtRand();
 						p->vel[2] = 0;
 						p->vel[0] = 0;
-						p->seq = (const uint8_t *)SPARK_SEQ;
+						p->seq = (const uint8_t *)fxp::sequence(PP().seqs.spark, SPARK_SEQ);
 						p->life = 0x50;
 						if (--k == 0) break;
 						p = SparkAlloc();
@@ -1604,6 +1605,8 @@ namespace sp070
 			{ "master", "layouts.wave", "Wave", "The prim-model layout wave (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.wave), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.lift", "Lift", "The prim-model layout lift (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.lift), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.rise", "Rise", "The prim-model layout rise (its models' animation)", (uint32_t)offsetof(PulsarParams, layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(PulsarParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(PulsarParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef PP_
 	}

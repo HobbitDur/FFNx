@@ -158,8 +158,9 @@ namespace canister195
 	struct CanisterShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t smoke, impact, impact_smoke, steam, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const CanisterShotParams GAME = { 0xD0BD30 };
+	static const CanisterShotParams GAME = { 0xD0BD30, { 0xD099F0, 0xD09E0C, 0xD097CC, 0xD09AB4, 0xD09C60 } };
 	static CanisterShotParams live = GAME;
 	static const CanisterShotParams &P() { return live; }
 
@@ -489,9 +490,9 @@ namespace canister195
 		FieldFree(0xB4);
 		return *(const int16_t *)(h + 0x28);
 	}
-	static int16_t SmokeDraw(const Node *n) { return SeqDraw(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3), SEQ_Smoke, n->counter, 0); }
-	static int16_t ImpactDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], SEQ_Impact, n->counter, 0); }
-	static int16_t ImpactSmokeDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], SEQ_ImpactSmoke, n->counter, 8); }
+	static int16_t SmokeDraw(const Node *n) { return SeqDraw(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3), fxp::sequence(P().seqs.smoke, SEQ_Smoke), n->counter, 0); }
+	static int16_t ImpactDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], fxp::sequence(P().seqs.impact, SEQ_Impact), n->counter, 0); }
+	static int16_t ImpactSmokeDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], fxp::sequence(P().seqs.impact_smoke, SEQ_ImpactSmoke), n->counter, 8); }
 
 	// the GTE-positioned particles (steam / bone smoke): the light matrix and back colour = the camera (scratch 0x48, +8)
 	static void PartLight(uint8_t *s)
@@ -710,7 +711,7 @@ namespace canister195
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		PartLight(s);
-		*(uint32_t *)h = SEQ_Steam;
+		*(uint32_t *)h = fxp::sequence(P().seqs.steam, SEQ_Steam);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -775,7 +776,7 @@ namespace canister195
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 0x24) = 8;
 		PartLight(s);
-		*(uint32_t *)h = SEQ_BoneSmoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.bone_smoke, SEQ_BoneSmoke);
 		int32_t alive = 0;
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
@@ -1215,6 +1216,11 @@ namespace canister195
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(CanisterShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact_smoke", "Impact smoke", "The sprite sequence impact smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.impact_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.steam", "Steam", "The sprite sequence steam (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.steam), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -109,12 +109,12 @@ namespace raybomb010
 		struct { int16_t first, last, speed, speed_rand; } debris;
 		struct { int16_t tick, height, height_rand; } bounce;                          // the party thrown up
 		struct { int16_t in, out, end; } screen;                                       // the screen flash ramps, the end
+		struct { uint32_t dust, puff, spark, charge; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const RayBombParams GAME = {
 		{ 0xDED524, 0xDED528, 0xA }, { 0x320, 0x3A2 }, { 1, 2, 0x66, 0x190, 0x320 }, { 1, 0x1E, 6, 0x96, 0x8C },
 		{ 0x10, 0x3333, 0x1D4 }, { 0x22, 0x46, 0xA0, 0x800 }, { 0x3B, 0x40, 0x800, 0xE00 }, { 0x51, 0x3924, 0x130C },
-		{ 0x51, 0x54, 30, 0x1F4 }, { 0x52, 2500, 1000 }, { 8, 0x98, 0xA0 },
-	};
+		{ 0x51, 0x54, 30, 0x1F4 }, { 0x52, 2500, 1000 }, { 8, 0x98, 0xA0 }, { 0xDEABB8, 0xDEA9E4, 0xDEAA0C, 0xDEA838 } };
 	static RayBombParams live = GAME;
 	static const RayBombParams &P() { return live; }
 
@@ -307,7 +307,7 @@ namespace raybomb010
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		uint32_t count = 0;
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_Dust);
 		*(int16_t *)(h + 0x24) = 0;
 		for (int i = 0; i < PARTICLES; i++)
 		{
@@ -492,7 +492,7 @@ namespace raybomb010
 	static void PuffHeader(uint8_t *h, const PuffNode *p)
 	{
 		*(uint16_t *)(h + 4) = 0;
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = fxp::sequence(P().seqs.puff, SEQ_Puff);
 		int32_t q = 0x80 / (int32_t)p->life;
 		*(uint16_t *)(h + 0x24) = 0xC;
 		uint8_t level = (uint8_t)(0x80 - (uint8_t)(q * p->counter));
@@ -677,7 +677,7 @@ namespace raybomb010
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -760,7 +760,7 @@ namespace raybomb010
 	static void ChargeHeader(uint8_t *h, const ChargeNode *p)
 	{
 		*(int32_t *)(h + 8) = p->size;
-		*(uint32_t *)h = SEQ_Charge;
+		*(uint32_t *)h = fxp::sequence(P().seqs.charge, SEQ_Charge);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 1;
 		if (p->counter < 8 || p->counter >= 0x16)
@@ -1181,6 +1181,10 @@ namespace raybomb010
 			RB("bounce", bounce.tick, "Tick", "The party thrown up at this tick", 0, 160),
 			RB("bounce", bounce.height, "Height", "Each one up by this + rand % Height spread (half for those not hit)", 0, 0x4000),
 			RB("bounce", bounce.height_rand, "Height spread", "", 1, 0x4000),
+			{ "timing", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.charge", "Charge", "The sprite sequence charge (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.charge), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef RB_SOUND
 #undef RB

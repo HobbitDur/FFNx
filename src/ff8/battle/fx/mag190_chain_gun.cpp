@@ -99,9 +99,9 @@ namespace cg190
 	{
 		uint32_t sound;                    // at the master's tick 1
 		struct { int16_t damage; } master; // the damage at this tick
-		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t smoke, flash, sparks; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ChainGunParams GAME = { 0xD1956C, { 0x1E }, { SEQ_Smoke } };
+	static const ChainGunParams GAME = { 0xD1956C, { 0x1E }, { SEQ_Smoke, SEQ_Flash, SEQ_Sparks } };
 	static ChainGunParams live = GAME;
 	static const ChainGunParams &P() { return live; }
 
@@ -385,7 +385,7 @@ namespace cg190
 		TransformCameraByShadowRotation(&n->f10, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = frame;
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash, SEQ_Flash);
 		*(int16_t *)(h + 0x24) = 0;
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 		FieldFree(0xB4);
@@ -717,7 +717,7 @@ namespace cg190
 		FX_HELD(held_begin(ORIG_SparksTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Sparks;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sparks, SEQ_Sparks);
 		*(int16_t *)(h + 0x24) = 1;
 		for (Particle *e = PartsB(); e < PartsB() + 100; e++)
 		{
@@ -848,6 +848,8 @@ namespace cg190
 			{ "master", "sound", "Sound", "At the master's tick 1", (uint32_t)offsetof(ChainGunParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "master.damage", "Damage tick", "The damage at this tick of the master", (uint32_t)offsetof(ChainGunParams, master.damage), fxp::I16, 0, 36 },
 			{ "master", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ChainGunParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ChainGunParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.sparks", "Sparks", "The sprite sequence sparks (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(ChainGunParams, seqs.sparks), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

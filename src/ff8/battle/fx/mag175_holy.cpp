@@ -105,9 +105,9 @@ namespace holy175
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
-		struct { uint32_t orbit_spark, mote, beam; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t orbit_spark, mote, beam, sparkle; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const HolyParams GAME = { 0xD59180, { 0x6A }, { 0xD523E8, 0xD52374, 0xD522CC } };
+	static const HolyParams GAME = { 0xD59180, { 0x6A }, { 0xD523E8, 0xD52374, 0xD522CC, 0xD524C4 } };
 	static HolyParams live = GAME;
 	static const HolyParams &P() { return live; }
 	static const void *const TIM_Upload = (const void *)0xD45EAC;  // texture uploaded at director frame 0x1E
@@ -924,7 +924,7 @@ namespace holy175
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int16_t *s = (int16_t *)FieldAlloc(0x10);
 		*(uint32_t *)s = *(const uint32_t *)&p->pos[0];
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sparkle, SEQ_Sparkle);
 		*(uint16_t *)(h + 0x24) = 0;
 		*(uint32_t *)(s + 2) = *(const uint32_t *)&p->pos[2];
 		int32_t alive = 0;
@@ -1770,6 +1770,7 @@ namespace holy175
 			{ "director", "seqs.orbit_spark", "Orbit spark", "The sprite sequence orbit spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.orbit_spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.beam", "Beam", "The sprite sequence beam (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.beam), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 31 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

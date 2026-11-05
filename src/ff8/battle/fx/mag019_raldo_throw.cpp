@@ -105,9 +105,10 @@ namespace raldo
 		struct { int16_t speed, spin, morph, lift, hit_lift, gravity; } toss;     // the throw: progress, spin, morph a tick, vertical speeds, gravity
 		struct { int16_t speed, bounce_lift, unmorph; } rebound;                  // back to the caster
 		struct { int16_t take, landing, bounce; } debris;                         // the debris spawners' ticks
+		struct { uint32_t at_1629fb0, at_162a0c0; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const RaldoParams GAME = { { SOUND_Throw, 0x1C, 0x1C0, 8 }, { 0x1C, 4 }, { 0x200, 0x200, 0x200, -0x180, -0x260, 0x80 },
-	                                  { 0x100, -0x180, 0x300 }, { 2, 1, 4 } };
+	                                  { 0x100, -0x180, 0x300 }, { 2, 1, 4 }, { 0x1629FB0, 0x162A0C0 } };
 	static RaldoParams live = GAME;
 	static const RaldoParams &PR() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
@@ -2549,7 +2550,7 @@ namespace raldo
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = 0x1629FB0;
+		U32(node, 0x4c) = fxp::sequence(PR().seqs.at_1629fb0, 0x1629FB0);
 		st++;
 		U16(node, 0x56) = 0xfff0;
 		U16(node, 0x52) = 9;
@@ -2575,7 +2576,7 @@ namespace raldo
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = 0x162A0C0;
+		U32(node, 0x4c) = fxp::sequence(PR().seqs.at_162a0c0, 0x162A0C0);
 		st++;
 		U16(node, 0x56) = 0xfff0;
 		U16(node, 0x52) = 0xB;
@@ -3277,6 +3278,8 @@ namespace raldo
 			DT("raldo", debris.bounce, "At the bounce", "", 0, 100),
 			DT("ball", ball.start, "Start", "Its actor system's start (its 4th word)", 0, 1000),
 			DT("ball", ball.mode, "Mode", "Its placement mode (4: at the caster)", 0, 4),
+			{ "raldo", "seqs.at_1629fb0", "Flipbook 1629FB0", "The sprite sequence at 0x1629FB0 (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RaldoParams, seqs.at_1629fb0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "raldo", "seqs.at_162a0c0", "Flipbook 162A0C0", "The sprite sequence at 0x162A0C0 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(RaldoParams, seqs.at_162a0c0), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

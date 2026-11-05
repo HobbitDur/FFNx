@@ -267,9 +267,9 @@ namespace bio022
 	{
 		struct { uint32_t sound; int16_t bubbles, pools, pools_every, blob, mists, overlay; } emitter;   // its sound; its spawns' ticks
 		struct { int16_t cycles, spin; } blob;                                                         // the boiling blob bursts after these key shapes
-		struct { uint32_t splash_a, splash_b, droplet, mist_a, mist_b; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t splash_a, splash_b, droplet, mist_a, mist_b, bubble_a, bubble_b; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 }, { 0x1614F74, 0x1615120, 0x16156F8, 0x1615858, 0x16155B4 } };
+	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 }, { 0x1614F74, 0x1615120, 0x16156F8, 0x1615858, 0x16155B4, 0x16152CC, 0x1615440 } };
 	static BioParams live = GAME;
 	static const BioParams &P() { return live; }
 	static const uint32_t STAGE_WOBBLE = 0x1D98990;       // 4 stage groups of 0x2C bytes: +2 amplitude
@@ -1022,12 +1022,12 @@ namespace bio022
 		p->rot[0] = 0x400;
 		if (p->variant == 0)
 		{
-			p->seq = SEQ_BubbleA;
+			p->seq = fxp::sequence(P().seqs.bubble_a, SEQ_BubbleA);
 			p->last = 0xC;
 		}
 		else
 		{
-			p->seq = SEQ_BubbleB;
+			p->seq = fxp::sequence(P().seqs.bubble_b, SEQ_BubbleB);
 			p->last = 0xC;
 		}
 		p->h.phase++;
@@ -2106,6 +2106,8 @@ namespace bio022
 			{ "emitter", "seqs.droplet", "Droplet", "The sprite sequence droplet (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.droplet), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.mist_a", "Mist a", "The sprite sequence mist a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.mist_a), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.mist_b", "Mist b", "The sprite sequence mist b (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.mist_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.bubble_a", "Bubble a", "The sprite sequence bubble a (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.bubble_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.bubble_b", "Bubble b", "The sprite sequence bubble b (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.bubble_b), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef BP
 	}

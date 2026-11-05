@@ -176,8 +176,9 @@ namespace lion165
 	struct LionHeartParams
 	{
 		struct { uint32_t a, b, c, d; } sounds; // the director's four sounds, in order
+		struct { uint32_t spark, smoke, hita, hitb; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const LionHeartParams GAME = { { 0xD886D4, 0xD886D8, 0xD886DC, 0xD886E0 } };
+	static const LionHeartParams GAME = { { 0xD886D4, 0xD886D8, 0xD886DC, 0xD886E0 }, { 0xD7B1C8, 0xD7B4D4, 0xD7AFE0, 0xD7B340 } };
 	static LionHeartParams live = GAME;
 	static const LionHeartParams &P() { return live; }
 	static const uint32_t REF_RIGHT = 0xD886F8;  // (0x1000, 0, 0): Streak's
@@ -2589,7 +2590,7 @@ namespace lion165
 				if (i < 0xC8) BoneSpark(EntryA(i), n->e, 0x14);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 0);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.spark, SEQ_SPARK), 0);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
@@ -2645,7 +2646,7 @@ namespace lion165
 				}
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 0);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.spark, SEQ_SPARK), 0);
 		Mat4x3 *cam = (Mat4x3 *)((uint8_t *)w + 0x10);
 		*cam = Camera();
 		SpriteLight(cam);
@@ -2720,7 +2721,7 @@ namespace lion165
 				p->a[5] = (int16_t)(p->a[1] / t);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SMOKE, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.smoke, SEQ_SMOKE), 8);
 		TipSmokeFrame(w, n, &Camera());
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
@@ -2804,7 +2805,7 @@ namespace lion165
 				p->a[2] = (int16_t)(p->a[2] + (int16_t)(CrtRand() % 0x258 - 0x12C));
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITA, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hita, SEQ_HITA), 8);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		return SparkAPass(n, w, h, ORIG_HitSparkA);
@@ -2833,7 +2834,7 @@ namespace lion165
 				p->a[2] = (int16_t)(p->a[2] + (int16_t)(CrtRand() % 0x7D0 - 0x3E8));
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITA, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hita, SEQ_HITA), 8);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		return SparkAPass(n, w, h, ORIG_FinalSparkA);
@@ -2873,7 +2874,7 @@ namespace lion165
 				p->a[6] = (int16_t)(mul32(v[2], s2) >> 12);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITB, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hitb, SEQ_HITB), 8);
 		w->m1 = Camera();
 		int32_t count = 0;
 		SpriteLight(&w->m1);
@@ -2937,7 +2938,7 @@ namespace lion165
 				p->a[6] = (int16_t)(mul32(s2, sc[2]) >> 12);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.spark, SEQ_SPARK), 8);
 		int32_t count = 0;
 		w->ang[0] = 0;
 		w->ang[1] = 0;
@@ -3010,7 +3011,7 @@ namespace lion165
 				p->a[1] = (int16_t)(y - 0x64);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITB, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hitb, SEQ_HITB), 8);
 		int32_t count = 0;
 		w->ang[0] = 0x100;
 		w->ang[1] = 0;
@@ -3346,6 +3347,10 @@ namespace lion165
 			{ "director", "sounds.b", "Sound 2", "", (uint32_t)offsetof(LionHeartParams, sounds.b), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.c", "Sound 3", "", (uint32_t)offsetof(LionHeartParams, sounds.c), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.d", "Sound 4", "", (uint32_t)offsetof(LionHeartParams, sounds.d), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.hita", "Hita", "The sprite sequence hita (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.hita), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.hitb", "Hitb", "The sprite sequence hitb (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.hitb), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

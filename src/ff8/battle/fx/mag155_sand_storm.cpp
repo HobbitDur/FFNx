@@ -98,8 +98,9 @@ namespace sandstorm155
 	{
 		uint32_t sound;                      // the wind at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t dust_a, dust_b; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SandStormParams GAME = { 0xDBA8F8, { 0x32 } };
+	static const SandStormParams GAME = { 0xDBA8F8, { 0x32 }, { SEQ_DustA, SEQ_DustB } };
 	static SandStormParams live = GAME;
 	static const SandStormParams &P() { return live; }
 
@@ -480,7 +481,7 @@ namespace sandstorm155
 	{
 		DustNode *t = (DustNode *)n;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_DustA;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust_a, SEQ_DustA);
 		*(int16_t *)(h + 0x24) = 0;
 		int alive = 0;
 		for (Dust *d = (Dust *)own::R(POOL_A); d < (Dust *)own::R(POOL_A) + 100; d++)
@@ -540,7 +541,7 @@ namespace sandstorm155
 	{
 		DustNode *t = (DustNode *)n;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_DustB;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust_b, SEQ_DustB);
 		*(int16_t *)(h + 0x24) = 0;
 		int alive = 0;
 		for (Dust *d = (Dust *)own::R(POOL_B); d < (Dust *)own::R(POOL_B) + 100; d++)
@@ -672,6 +673,8 @@ namespace sandstorm155
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Wind", "At the director's tick 1", (uint32_t)offsetof(SandStormParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SandStormParams, director.damage), fxp::I16, 0, 60 },
+			{ "director", "seqs.dust_a", "Dust a", "The sprite sequence dust a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStormParams, seqs.dust_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.dust_b", "Dust b", "The sprite sequence dust b (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStormParams, seqs.dust_b), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -158,8 +158,9 @@ namespace hyper198
 	struct HyperShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t bone_smoke, spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const HyperShotParams GAME = { 0xCFB2FC };
+	static const HyperShotParams GAME = { 0xCFB2FC, { 0xCF6054, 0xCF6200, 0xCF5E44 } };
 	static HyperShotParams live = GAME;
 	static const HyperShotParams &P() { return live; }
 
@@ -1462,7 +1463,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_BoneSmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_BoneSmoke);
+		SparkBegin(s, h, fxp::sequence(P().seqs.bone_smoke, SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1535,7 +1536,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_SprayTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Spark);
+		SparkBegin(s, h, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1619,7 +1620,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_ImpactSparkTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Spark);
+		SparkBegin(s, h, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1686,7 +1687,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_ImpactSmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Smoke);
+		SparkBegin(s, h, fxp::sequence(P().seqs.smoke, SEQ_Smoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1950,6 +1951,9 @@ namespace hyper198
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(HyperShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

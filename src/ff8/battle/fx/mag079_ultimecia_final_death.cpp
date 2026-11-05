@@ -81,8 +81,9 @@ namespace udeath
 	{
 		struct { uint32_t a, b, c; } sounds;          // the three sounds of the cuts
 		struct { int16_t damage, actors; } director;  // the damage cue from this cut frame; the actor system's run length
+		struct { uint32_t at_1580e54, at_1580b30, at_1580d78; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const GrieverDeathParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x5A, 0xF } };
+	static const GrieverDeathParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x5A, 0xF }, { 0x1580E54, 0x1580B30, 0x1580D78 } };
 	static GrieverDeathParams live = GAME;
 	static const GrieverDeathParams &PU() { return live; }
 
@@ -3232,7 +3233,7 @@ namespace udeath
 	uint32_t __cdecl ud_7BC580(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x1580E54;
+		U32(a1, 0x4C) = fxp::sequence(PU().seqs.at_1580e54, 0x1580E54);
 		U16(a1, 0x56) = 0xFF80;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -3454,7 +3455,7 @@ namespace udeath
 	uint32_t __cdecl ud_7BCAA0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x1580B30;
+		U32(a1, 0x4C) = fxp::sequence(PU().seqs.at_1580b30, 0x1580B30);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 0x15;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -3554,7 +3555,7 @@ namespace udeath
 	uint32_t __cdecl ud_7BCCF0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x1580D78;
+		U32(a1, 0x4C) = fxp::sequence(PU().seqs.at_1580d78, 0x1580D78);
 		U16(a1, 0x56) = 0xFF80;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -4371,6 +4372,9 @@ namespace udeath
 			{ "director", "sounds.c", "Sound C", "", (uint32_t)offsetof(GrieverDeathParams, sounds.c), fxp::Sound, 0, 0x7FFFFFFF },
 			DT("director", director.damage, "Damage frame", "The damage cue from this frame of its cut", 0, 0x200),
 			DT("director", director.actors, "Actor ticks", "The actor system's run length", 0, 200),
+			{ "director", "seqs.at_1580e54", "Flipbook 1580E54", "The sprite sequence at 0x1580E54 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GrieverDeathParams, seqs.at_1580e54), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1580b30", "Flipbook 1580B30", "The sprite sequence at 0x1580B30 (a flipbook of 22 frames: an edited one keeps as many)", (uint32_t)offsetof(GrieverDeathParams, seqs.at_1580b30), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1580d78", "Flipbook 1580D78", "The sprite sequence at 0x1580D78 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(GrieverDeathParams, seqs.at_1580d78), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

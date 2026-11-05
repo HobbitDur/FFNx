@@ -76,8 +76,9 @@ namespace g069
 		struct { int16_t speed, reach; } shatter;                 // the shattering radius a tick (x 1/50, ticks 73..107), its cap
 		struct { int16_t depth; } sink;                           // the attacker sinking this far over ticks 94..125
 		struct { int16_t ticks, count, life; } sparks;            // spawned over these first ticks, this many a tick, their life
+		struct { uint32_t at_14d0a4c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const GrieverParams GAME = { { 0x14D0A48, 0x14D0740 }, { 0x7A, 0x7E }, { 28000, 6000 }, { 1400 }, { 0x1E, 4, 0x12 } };
+	static const GrieverParams GAME = { { 0x14D0A48, 0x14D0740 }, { 0x7A, 0x7E }, { 28000, 6000 }, { 1400 }, { 0x1E, 4, 0x12 }, { 0x14D0A4C } };
 	static GrieverParams live = GAME;
 	static const GrieverParams &PG() { return live; }
 
@@ -869,7 +870,7 @@ namespace g069
 				int32_t cs = w::Cos(angle);
 				int16_t z = (int16_t)(mul32(cs, r) / 4096 + *(int16_t *)(Attacker() + 0x20));
 				*(int16_t *)(s + 6) = 0;
-				*(uint32_t *)s = 0x14D0A4C;
+				*(uint32_t *)s = fxp::sequence(PG().seqs.at_14d0a4c, 0x14D0A4C);
 				*(int16_t *)(s + 8) = z;
 				s[0xC] = (uint8_t)((w::Rand() & 3) - 2);
 				s[0xE] = (uint8_t)((w::Rand() & 3) - 2);
@@ -909,6 +910,7 @@ namespace g069
 			GP("timeline", sparks.ticks, "Ticks", "Spawned over these first ticks", 0, 0x2F),
 			GP("timeline", sparks.count, "A tick", "", 0, 16),
 			GP("timeline", sparks.life, "Life", "", 1, 0xFF),
+			{ "timeline", "seqs.at_14d0a4c", "Flipbook 14D0A4C", "The sprite sequence at 0x14D0A4C (a flipbook of 18 frames: an edited one keeps as many)", (uint32_t)offsetof(GrieverParams, seqs.at_14d0a4c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef GP
 	}

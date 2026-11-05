@@ -121,8 +121,9 @@ namespace circle162
 	{
 		struct { uint32_t start, circle; } sounds; // at the director's ticks 1 and 0x39
 		struct { int16_t damage; } director;      // the action results at this tick
+		struct { uint32_t dust, orbit, ember, spark, swirl; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FatedCircleParams GAME = { { 0xDA8C68, 0xDA8C6C }, { 0x96 } };
+	static const FatedCircleParams GAME = { { 0xDA8C68, 0xDA8C6C }, { 0x96 }, { 0xDA1D74, 0xDA1F20, 0xDA19B4, 0xDA219C, 0xDA1B60 } };
 	static FatedCircleParams live = GAME;
 	static const FatedCircleParams &P() { return live; }
 	static const uint32_t MODEL_SWIPE = 0xDA6700, MODEL_SHOCK = 0xDA4488, MODEL_GLOW = 0xDA3A58, MODEL_SHARD = 0xDA3E48,
@@ -871,7 +872,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Dust, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_DUST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_DUST);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
@@ -1064,7 +1065,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Orbit, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_ORBIT;
+		*(uint32_t *)h = fxp::sequence(P().seqs.orbit, SEQ_ORBIT);
 		*(int16_t *)(h + 0x24) = 0;
 		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
@@ -1354,7 +1355,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Ember, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_EMBER;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ember, SEQ_EMBER);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
@@ -1417,7 +1418,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Spark, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
@@ -1498,7 +1499,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_swirl(n, residue);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_SWIRL;
+		*(uint32_t *)h = fxp::sequence(P().seqs.swirl, SEQ_SWIRL);
 		*(int16_t *)(h + 0x24) = 8;
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
@@ -2241,6 +2242,11 @@ namespace circle162
 			{ "director", "sounds.start", "Start", "At the director's tick 1", (uint32_t)offsetof(FatedCircleParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.circle", "Circle", "At the director's tick 0x39 (the shell and the dome)", (uint32_t)offsetof(FatedCircleParams, sounds.circle), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The action results at this tick of the director", (uint32_t)offsetof(FatedCircleParams, director.damage), fxp::I16, 0, 170 },
+			{ "director", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.orbit", "Orbit", "The sprite sequence orbit (a flipbook of 24 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.orbit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.swirl", "Swirl", "The sprite sequence swirl (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.swirl), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -124,8 +124,9 @@ namespace shot188
 	struct NormalShotParams
 	{
 		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t smoke, ground_smoke, impact, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const NormalShotParams GAME = { 0xD1DA28 };
+	static const NormalShotParams GAME = { 0xD1DA28, { 0xD1CA28, 0xD1CB00, 0xD1CB74, 0xD1CF44 } };
 	static NormalShotParams live = GAME;
 	static const NormalShotParams &P() { return live; }
 
@@ -347,7 +348,7 @@ namespace shot188
 	{
 		TransformCameraByShadowRotation(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -376,7 +377,7 @@ namespace shot188
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_GroundSmoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ground_smoke, SEQ_GroundSmoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -388,7 +389,7 @@ namespace shot188
 	static void ImpactFlashDraw(const Node *n, uint8_t *h)
 	{
 		*(int16_t *)(h + 4) = n->counter;
-		*(uint32_t *)h = SEQ_Impact;
+		*(uint32_t *)h = fxp::sequence(P().seqs.impact, SEQ_Impact);
 		*(int16_t *)(h + 0x24) = 8;
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -536,7 +537,7 @@ namespace shot188
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		int32_t alive = 0;
 		const int32_t id = n->f0E + 1;
 		for (Particle *e = arr; e < arr + 150; e++)
@@ -786,6 +787,10 @@ namespace shot188
 		};
 		static const Field FIELDS[] = {
 			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(NormalShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(NormalShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.ground_smoke", "Ground smoke", "The sprite sequence ground smoke (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(NormalShotParams, seqs.ground_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NormalShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NormalShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -73,8 +73,9 @@ namespace angelo92
 	{
 		struct { uint32_t arrive, walk, found; } sounds;   // Angelo walking in, walking to Rinoa, the found item's play
 		struct { int16_t damage; } director;               // the done flag (the found item) from this frame of the director
+		struct { uint32_t at_153d1e8; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SearchParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x9B } };
+	static const SearchParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x9B }, { 0x153D1E8 } };
 	static SearchParams live = GAME;
 	static const SearchParams &PS() { return live; }
 
@@ -1801,7 +1802,7 @@ namespace angelo92
 	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl as_758970(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x153D1E8;
+		U32(a1, 0x4C) = fxp::sequence(PS().seqs.at_153d1e8, 0x153D1E8);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2152,6 +2153,7 @@ namespace angelo92
 			{ "director", "sounds.walk", "Walk", "", (uint32_t)offsetof(SearchParams, sounds.walk), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.found", "Found", "", (uint32_t)offsetof(SearchParams, sounds.found), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Item frame", "The done flag (the found item) from this frame of the director", (uint32_t)offsetof(SearchParams, director.damage), fxp::I16, 0, 0x200 },
+			{ "director", "seqs.at_153d1e8", "Flipbook 153D1E8", "The sprite sequence at 0x153D1E8 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(SearchParams, seqs.at_153d1e8), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 

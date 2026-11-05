@@ -117,8 +117,9 @@ namespace gu066
 		struct { int16_t damage, voice, end; } master;   // the damage of the first target / the voice slot released / the end after these ticks
 		struct { int16_t push; } melt;                   // the shards' push: the caster's size times this / 8192
 		struct { int16_t flash_in, flash_out_from; } flash;   // the screen flash up to its tick (a 64 step), back down from its tick (a 128 step, 16 ticks)
+		struct { uint32_t at_de43e8, at_de4910, at_de423c, at_de45d0, at_de477c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const GDeathParams GAME = { { 0x19, 0x33D, 0x340 }, { 1450 }, { 0x20, 0x281 } };
+	static const GDeathParams GAME = { { 0x19, 0x33D, 0x340 }, { 1450 }, { 0x20, 0x281 }, { 0xDE43E8, 0xDE4910, 0xDE423C, 0xDE45D0, 0xDE477C } };
 	static GDeathParams live = GAME;
 	static const GDeathParams &PG() { return live; }
 	static const uint32_t ORIG_Master = 0x6226E0;
@@ -1234,7 +1235,7 @@ namespace gu066
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		SpriteBegin(w, h, 0xDE43E8);
+		SpriteBegin(w, h, fxp::sequence(PG().seqs.at_de43e8, 0xDE43E8));
 		int32_t count = 0;
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
@@ -1305,7 +1306,7 @@ namespace gu066
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		SpriteBegin(w, h, 0xDE4910);
+		SpriteBegin(w, h, fxp::sequence(PG().seqs.at_de4910, 0xDE4910));
 		int32_t count = 0;
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
@@ -1363,7 +1364,7 @@ namespace gu066
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		SpriteBegin(w, h, 0xDE423C);
+		SpriteBegin(w, h, fxp::sequence(PG().seqs.at_de423c, 0xDE423C));
 		int32_t count = 0;
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
@@ -2159,7 +2160,7 @@ namespace gu066
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		SpriteBegin(w, h, 0xDE45D0);
+		SpriteBegin(w, h, fxp::sequence(PG().seqs.at_de45d0, 0xDE45D0));
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
 		FX_HELD(held_note_pool(ORIG_ShardSpin, n, w, own::R(POOL2));)
 		for (uint32_t e = own::R(POOL2); e < own::R(POOL2_END); e += 0x18)
@@ -2455,7 +2456,7 @@ namespace gu066
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		At<int16_t>((uint32_t)h, 0x24) = 8;
 		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
-		At<uint32_t>((uint32_t)h, 0) = 0xDE477C;
+		At<uint32_t>((uint32_t)h, 0) = fxp::sequence(PG().seqs.at_de477c, 0xDE477C);
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBackFromTrans((const void *)(w + 8));
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
@@ -2510,7 +2511,7 @@ namespace gu066
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		At<int16_t>((uint32_t)h, 0x24) = 8;
 		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
-		At<uint32_t>((uint32_t)h, 0) = 0xDE477C;
+		At<uint32_t>((uint32_t)h, 0) = fxp::sequence(PG().seqs.at_de477c, 0xDE477C);
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBackFromTrans((const void *)(w + 8));
 		// 30 fps layer: see mag066_griever_ultimecia_death_held.inc
@@ -2800,6 +2801,11 @@ namespace gu066
 			GP("master", melt.push, "Shard push", "The shards' push: the caster's size times this / 8192", 0, 0x2000),
 			GP("master", flash.flash_in, "Up to", "", 0, 0x40),
 			GP("master", flash.flash_out_from, "Down from", "", 0x21, 0x330),
+			{ "master", "seqs.at_de43e8", "Flipbook DE43E8", "The sprite sequence at 0xDE43E8 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de43e8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.at_de4910", "Flipbook DE4910", "The sprite sequence at 0xDE4910 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de4910), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.at_de423c", "Flipbook DE423C", "The sprite sequence at 0xDE423C (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de423c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.at_de45d0", "Flipbook DE45D0", "The sprite sequence at 0xDE45D0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de45d0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.at_de477c", "Flipbook DE477C", "The sprite sequence at 0xDE477C (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(GDeathParams, seqs.at_de477c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef GP
 	}

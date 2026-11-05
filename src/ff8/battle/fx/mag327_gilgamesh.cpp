@@ -211,8 +211,9 @@ namespace g327
 	struct GilgameshParams
 	{
 		struct { uint32_t start, spin, horse; } sounds; // at the timeline's ticks 1, 121, 181
+		struct { uint32_t at_cc7120, at_cc6dc8, at_cc6954, at_cc6730, at_cc6f74, at_cc6c0c, at_cc6b64, at_cc6c34; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const GilgameshParams GAME = { { 0xCD0378, 0xCD037C, 0xCD0380 } };
+	static const GilgameshParams GAME = { { 0xCD0378, 0xCD037C, 0xCD0380 }, { 0xCC7120, 0xCC6DC8, 0xCC6954, 0xCC6730, 0xCC6F74, 0xCC6C0C, 0xCC6B64, 0xCC6C34 } };
 	static GilgameshParams live = GAME;
 	static const GilgameshParams &P() { return live; }
 
@@ -1403,7 +1404,7 @@ namespace g327
 	// flipbook 0xCC7120 (h+0x24 = 9), pushed towards the camera by size/8; ends when none is left
 	static void MasaSparkSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
-		*(uint32_t *)h = 0xCC7120;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cc7120, 0xCC7120);
 		*(uint16_t *)(h + 0x24) = 9;
 		LitSetupAt(s, n->p10, n->p12, n->p14, &Camera());
 	}
@@ -1480,7 +1481,7 @@ namespace g327
 	// 0xCC6DC8 (h+0x24 = 8) at the target's ground point, pushed by size/8
 	static void MasaDustSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
-		*(uint32_t *)h = 0xCC6DC8;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cc6dc8, 0xCC6DC8);
 		*(uint16_t *)(h + 0x24) = 8;
 		LitSetupAt(s, n->p10, 0, n->p14, &Camera());
 	}
@@ -1620,7 +1621,7 @@ namespace g327
 	// flipbook 0xCC6730 (Excalipoor 0xCC6954), pushed by size/8; ends when none is left
 	static void ExcaBurstSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
-		*(uint32_t *)h = n->e ? 0xCC6954 : 0xCC6730;
+		*(uint32_t *)h = n->e ? fxp::sequence(P().seqs.at_cc6954, 0xCC6954) : fxp::sequence(P().seqs.at_cc6730, 0xCC6730);
 		*(uint16_t *)(h + 0x24) = 8;
 		LitSetupAt(s, n->p10, n->p12, n->p14, &Camera());
 	}
@@ -1676,7 +1677,7 @@ namespace g327
 	// 0xC), colour 0x808080 (Excalipoor 0x404080)
 	static void ExcaSmokeSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
-		*(uint32_t *)h = 0xCC6F74;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cc6f74, 0xCC6F74);
 		*(uint16_t *)(h + 0x24) = 0xC;
 		*(uint32_t *)(h + 0x1C) = n->e ? 0x404080u : 0x808080u;
 		LitSetupAt(s, n->p10, n->p12, n->p14, &Camera());
@@ -1750,7 +1751,7 @@ namespace g327
 	// size, 0); from age 6 the length shrinks ((0x1FFC - 682*age) * initial >> 12), 13 ticks
 	static void ExcaStreakSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
-		*(uint32_t *)h = 0xCC6C0C;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cc6c0c, 0xCC6C0C);
 		*(uint16_t *)(h + 0x24) = 8;
 		*(uint16_t *)(h + 4) = 0;
 		*(int16_t *)(s + 0) = 0;
@@ -1991,7 +1992,7 @@ namespace g327
 		m.t[1] = n->p12;
 		m.t[2] = n->p14;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xCC6B64;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cc6b64, 0xCC6B64);
 		*(uint16_t *)(h + 0x24) = 4;
 		*(uint32_t *)(h + 0x1C) = colour;
 		int32_t a = spread + 0x200;
@@ -2068,7 +2069,7 @@ namespace g327
 	// ------------------------------------------------------------------
 	static void PuffSetup(uint8_t *h, uint8_t *s)
 	{
-		*(uint32_t *)h = 0xCC6DC8;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cc6dc8, 0xCC6DC8);
 		memcpy(s + 8, &Frame(), sizeof(Mat4x3));
 		*(uint16_t *)(h + 0x24) = 0;
 		GteSetLightMatrix(s + 8);
@@ -2635,7 +2636,7 @@ namespace g327
 
 	static void SwordPuffSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
-		*(uint32_t *)h = 0xCC6C34;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cc6c34, 0xCC6C34);
 		*(uint16_t *)(h + 0x24) = 8;
 		SwordTipFrame(s, n);
 		GteSetLightMatrix(s + 8);
@@ -3069,6 +3070,14 @@ namespace g327
 			{ "timeline", "sounds.start", "Start", "At the timeline's tick 1", (uint32_t)offsetof(GilgameshParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.spin", "Spin", "At the timeline's tick 121", (uint32_t)offsetof(GilgameshParams, sounds.spin), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "timeline", "sounds.horse", "Horse", "At the timeline's tick 181", (uint32_t)offsetof(GilgameshParams, sounds.horse), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc7120", "Flipbook CC7120", "The sprite sequence at 0xCC7120 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc7120), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc6dc8", "Flipbook CC6DC8", "The sprite sequence at 0xCC6DC8 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6dc8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc6954", "Flipbook CC6954", "The sprite sequence at 0xCC6954 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6954), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc6730", "Flipbook CC6730", "The sprite sequence at 0xCC6730 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6730), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc6f74", "Flipbook CC6F74", "The sprite sequence at 0xCC6F74 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6f74), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc6c0c", "Flipbook CC6C0C", "The sprite sequence at 0xCC6C0C (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6c0c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc6b64", "Flipbook CC6B64", "The sprite sequence at 0xCC6B64 (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6b64), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cc6c34", "Flipbook CC6C34", "The sprite sequence at 0xCC6C34 (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(GilgameshParams, seqs.at_cc6c34), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

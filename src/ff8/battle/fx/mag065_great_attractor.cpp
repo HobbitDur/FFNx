@@ -131,8 +131,9 @@ namespace ga065
 	{
 		struct { uint32_t start, layouts, beams, swirl, pull, vortex; } sounds;   // the six sounds of the timeline
 		struct { int16_t sink, away, damage; } master;   // the caster's sinking a tick (ticks 1..0x1F); the targets moved away at 0x20; the damage tick
+		struct { uint32_t sprite; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const AttractorParams GAME = { { 0x133AB6C, 0x133AB70, 0x133AB74, 0x133AB78, 0x133AB7C, 0x133AB80 }, { 0x142, 0x2710, 0x224 } };
+	static const AttractorParams GAME = { { 0x133AB6C, 0x133AB70, 0x133AB74, 0x133AB78, 0x133AB7C, 0x133AB80 }, { 0x142, 0x2710, 0x224 }, { SPRITE_SEQ } };
 	static AttractorParams live = GAME;
 	static const AttractorParams &PA() { return live; }
 
@@ -884,10 +885,10 @@ namespace ga065
 			*(uint16_t *)(h + 0x94) = 0x800;
 			*(uint16_t *)(h + 0x8C) = 0x800;
 			*(uint16_t *)(h + 0x84) = 0x800;
-			*(uint32_t *)h = SPRITE_SEQ;
-			const int32_t frames = *(const int16_t *)(SPRITE_SEQ + 8);
+			*(uint32_t *)h = fxp::sequence(PA().seqs.sprite, SPRITE_SEQ);
+			const int32_t frames = *(const int16_t *)(fxp::sequence(PA().seqs.sprite, SPRITE_SEQ) + 8);
 			const int32_t idx = frames - (life - 1) % frames;
-			uint32_t at = SPRITE_SEQ + *(const int16_t *)(SPRITE_SEQ + 8 + idx * 2);
+			uint32_t at = fxp::sequence(PA().seqs.sprite, SPRITE_SEQ) + *(const int16_t *)(fxp::sequence(PA().seqs.sprite, SPRITE_SEQ) + 8 + idx * 2);
 			*(uint32_t *)(h + 0x2C) = at;
 			int32_t w = *(const int32_t *)at;
 			*(int32_t *)(h + 0x30) = w;
@@ -2613,6 +2614,7 @@ namespace ga065
 			GP("master", master.sink, "Sink", "The caster's sinking a tick over ticks 1..0x1F", -0x1000, 0x1000),
 			GP("master", master.away, "Targets away", "The targets moved this far away at tick 0x20 (back at 0x21E)", -0x7FFF, 0x7FFF),
 			GP("master", master.damage, "Damage tick", "", 0, 0x227),
+			{ "master", "seqs.sprite", "Sprite", "The sprite sequence sprite (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(AttractorParams, seqs.sprite), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef GP
 	}
