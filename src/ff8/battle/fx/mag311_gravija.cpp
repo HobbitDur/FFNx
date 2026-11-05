@@ -121,8 +121,9 @@ namespace gravija311
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_101b0e8; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const GravijaParams GAME = { 0x1021044, { MODEL_Main }, { SEQ_Particle }, { 0x101B0E8 } };
+	static const GravijaParams GAME = { 0x1021044, { MODEL_Main }, { SEQ_Particle }, { 0x101B0E8 }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static GravijaParams live = GAME;
 	static const GravijaParams &P() { return live; }
 
@@ -723,7 +724,7 @@ namespace gravija311
 	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -736,7 +737,7 @@ namespace gravija311
 		var<uint32_t>(own::R(0x25055E0)) = 0x1D972C0 + 0x9C * ctx->attacker;
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x25073C0), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QMaster();
 	}
 
@@ -901,6 +902,8 @@ namespace gravija311
 			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(GravijaParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 50 frames: an edited one keeps as many)", (uint32_t)offsetof(GravijaParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "main", "model_data.at_101b0e8", "Model 101B0E8", "The prim model at 0x101B0E8 (a mesh of 241 vertices, 240 primitives: its code copies it whole into a block of its size: an edited one keeps its vertices and its size (move vertices, change colours and texture corners))", (uint32_t)offsetof(GravijaParams, model_data.at_101b0e8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(GravijaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(GravijaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

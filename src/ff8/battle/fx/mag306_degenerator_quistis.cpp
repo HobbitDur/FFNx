@@ -171,8 +171,9 @@ namespace degen306
 		uint32_t sound;   // the controller's counter 1
 		struct { uint32_t flicker, debris; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t core, pulse, screen_ring, target_ring, vortex; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const DegeneratorParams GAME = { 0xCEB284, { SEQ_Flicker, SEQ_Debris }, { MODEL_Core, MODEL_Pulse, MODEL_ScreenRing, MODEL_TargetRing, MODEL_Vortex } };
+	static const DegeneratorParams GAME = { 0xCEB284, { SEQ_Flicker, SEQ_Debris }, { MODEL_Core, MODEL_Pulse, MODEL_ScreenRing, MODEL_TargetRing, MODEL_Vortex }, { TEXTURE_NAME, CAMERA_ANIM, COM_Anim } };
 	static DegeneratorParams live = GAME;
 	static const DegeneratorParams &P() { return live; }
 	static const void *const CAMERA_Anim = (const void *)0xCE4164;          // (setup)
@@ -627,7 +628,7 @@ namespace degen306
 	// controller, the debris particles freed, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -642,7 +643,7 @@ namespace degen306
 		InitTaskQueuePool(QEffects(), (void *)own::R(0x2243358), 0x24, 100);
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_Controller)) + 0xC) = 0;
 		for (uint32_t a = own::R(PARTS); a < own::R(PARTS_END); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TexFile());
 		return QRoot();
 	}
@@ -808,7 +809,7 @@ namespace degen306
 		const int16_t c = S16(n, 0xC);
 		if (c == 1)
 		{
-			BindEntityModelFromComData(Ent(CasterSlot()), own::R(BIND_Block), COM_Anim);
+			BindEntityModelFromComData(Ent(CasterSlot()), own::R(BIND_Block), fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Ent(CasterSlot()), 2);
 		}
 		if (c == 0xA)
@@ -1527,6 +1528,9 @@ namespace degen306
 			{ "controller", "models.screen_ring", "Screen ring model", "The prim model screen ring (a mesh of 169 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.screen_ring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "controller", "models.target_ring", "Target ring model", "The prim model target ring (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.target_ring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "controller", "models.vortex", "Vortex model", "The prim model vortex (a mesh of 314 vertices, 336 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DegeneratorParams, models.vortex), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(DegeneratorParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(DegeneratorParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(DegeneratorParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

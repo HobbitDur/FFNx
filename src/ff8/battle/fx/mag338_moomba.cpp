@@ -76,8 +76,9 @@ namespace m338
 		uint32_t sound;   // the creature's tick 0
 		struct { uint32_t spark_flash, spark_fly, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t debris, ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_body, tim_atlas1, tim_atlas2; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const MoombaParams GAME = { 0x13710CC, 0x13710C8, { 0x1371464, 0x13711FC, 0x137130C }, { 0x1372CE8, 0x1371640 } };
+	static const MoombaParams GAME = { 0x13710CC, 0x13710C8, { 0x1371464, 0x13711FC, 0x137130C }, { 0x1372CE8, 0x1371640 }, { TIM_BODY, TIM_ATLAS1, TIM_ATLAS2 } };
 	static MoombaParams live = GAME;
 	static const MoombaParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x6ECCE0;      // prim-model object callback (pure draw)
@@ -455,9 +456,9 @@ namespace m338
 	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +4 the actions)
 	{
 		var<int32_t>(own::R(0x25561C8)) = fn<int32_t (__cdecl *)()>(0x55CBD2)();   // rand()
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_BODY);   // Battle_QueueTIMUpload_GetEOF
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_ATLAS1);
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_ATLAS2);
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_body, TIM_BODY));   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_atlas1, TIM_ATLAS1));
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_atlas2, TIM_ATLAS2));
 		ModelBuffer() = (uint8_t *)layouts::MagicBuffer();
 		CastCtx() = ctx;
 		Attacker() = (uint8_t *)(0x1D972C0 + 0x9C * ctx[0]);
@@ -863,6 +864,9 @@ namespace m338
 			{ "creature", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "creature", "models.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoombaParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
 			{ "creature", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoombaParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "res.tim_body", "TIM image body", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(MoombaParams, res.tim_body), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "creature", "res.tim_atlas1", "TIM image atlas1", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(MoombaParams, res.tim_atlas1), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "creature", "res.tim_atlas2", "TIM image atlas2", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(MoombaParams, res.tim_atlas2), fxp::Tim, 0, 0x7FFFFFFF },
 		};
 	}
 }

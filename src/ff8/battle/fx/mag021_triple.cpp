@@ -243,8 +243,11 @@ namespace triple021
 		struct { int16_t until, radius; } motes;                                    // a mote a tick until this tick; spiral radius (+ rand)
 		struct { uint32_t sprite, spark, glow, mote; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t morph, big_rune1, big_rune2, column_flash, column, rune; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t from, to; } morphs; // a morph's vertex sets (data): what its code blends a model's vertices from and to
+		struct { uint32_t fade_table_a, fade_table_b; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const TripleParams GAME = { { 0x16269D8, 0x18 }, { 3, 0x280, 0x140, 0x200, 0x200, 0x200, 3 }, { 6, 0x200 }, { SEQ_Sprite, SEQ_Spark, SEQ_Glow, SEQ_Mote }, { MODEL_Morph, MODEL_BigRune1, MODEL_BigRune2, MODEL_ColumnFlash, MODEL_Column, MODEL_Rune } };
+	static const TripleParams GAME = { { 0x16269D8, 0x18 }, { 3, 0x280, 0x140, 0x200, 0x200, 0x200, 3 }, { 6, 0x200 }, { SEQ_Sprite, SEQ_Spark, SEQ_Glow, SEQ_Mote }, { MODEL_Morph, MODEL_BigRune1, MODEL_BigRune2, MODEL_ColumnFlash, MODEL_Column, MODEL_Rune }, { TEXTURE_NAME, CAMERA }, { 0x16276E8, 0x1629000 }, { 0x1629C2C, 0x1629C14 } };
 	static TripleParams live = GAME;
 	static const TripleParams &P() { return live; }
 
@@ -496,10 +499,10 @@ namespace triple021
 		case 1:
 		{
 			n->step++;
-			const int16_t a = FadeTable(FADE_TABLE_A, n->step);
+			const int16_t a = FadeTable(fxp::data(P().tables.fade_table_a, FADE_TABLE_A, 24), n->step);
 			n->fade = a;
 			n->fade1 = a;
-			const int16_t b = FadeTable(FADE_TABLE_B, n->step);
+			const int16_t b = FadeTable(fxp::data(P().tables.fade_table_b, FADE_TABLE_B, 24), n->step);
 			n->fade = b;
 			n->fade2 = b;
 			if (n->step >= 0xB)
@@ -566,7 +569,7 @@ namespace triple021
 	{
 		if (n->h.phase != 0) return;
 		n->step++;
-		const int16_t a = FadeTable(FADE_TABLE_A, n->step);
+		const int16_t a = FadeTable(fxp::data(P().tables.fade_table_a, FADE_TABLE_A, 24), n->step);
 		n->fade = a;
 		n->morph = a;
 		if (n->step >= 0xB)
@@ -582,7 +585,7 @@ namespace triple021
 		MorphPhase(n);
 		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_MORPH, n);)
-		MorphVertices((const uint8_t *)MORPH_A, (const uint8_t *)MORPH_B, (uint8_t *)fxp::model(P().models.morph, MODEL_Morph), n->morph);
+		MorphVertices((const uint8_t *)fxp::vertices(P().morphs.from, MORPH_A), (const uint8_t *)fxp::vertices(P().morphs.to, MORPH_B), (uint8_t *)fxp::model(P().models.morph, MODEL_Morph), n->morph);
 		DrawModel(n);
 		n->h.counter++;
 		if ((n->h.flags & 1) && n->h.children == 0)
@@ -1414,7 +1417,7 @@ namespace triple021
 	// texture, the two packet arenas in the magic buffer, the queues
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1429,7 +1432,7 @@ namespace triple021
 		r->last_action = ctx->actions->last_action;
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		const uint32_t buffer = layouts::MagicBuffer();
@@ -1499,6 +1502,12 @@ namespace triple021
 			{ "emitter", "models.column_flash", "Column flash model", "The prim model column flash (a mesh of 24 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.column_flash), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.column", "Column model", "The prim model column (a mesh of 24 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.rune", "Rune model", "The prim model rune (a mesh of 17 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.rune), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(TripleParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "emitter", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(TripleParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "emitter", "morphs.from", "Morph from", "The vertices the morph model blends from (80 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(TripleParams, morphs.from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "morphs.to", "Morph to", "The vertices the morph model blends to (80 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(TripleParams, morphs.to), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.fade_table_a", "Fade a", "The runes' first fade by step (4096 = full) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(TripleParams, tables.fade_table_a), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.fade_table_b", "Fade b", "The runes' second fade by step (4096 = full) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(TripleParams, tables.fade_table_b), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef TP
 	}

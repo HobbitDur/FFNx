@@ -113,8 +113,9 @@ namespace cura
 		struct { int16_t lift, sparks; } glow;                          // the glow this above the anchor; its swirl sparks
 		struct { int16_t spread; } sparkles;                            // the sparkles' and particles' random offset
 		struct { uint32_t glow, swirl, swirl_end, mote, sparkle_a, sparkle_a2, sparkle_b, sparkle_b2; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t rings, sparkles, particles; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const CuraParams GAME = { { SOUND_Cura, 0xB, 0x1E }, { 0x800, 0xC00, 0xE00 }, { 0x600, 8 }, { 0x200 }, { SEQ_Glow, SEQ_Swirl, SEQ_SwirlEnd, SEQ_Mote, SEQ_SparkleA, SEQ_SparkleA2, SEQ_SparkleB, SEQ_SparkleB2 } };
+	static const CuraParams GAME = { { SOUND_Cura, 0xB, 0x1E }, { 0x800, 0xC00, 0xE00 }, { 0x600, 8 }, { 0x200 }, { SEQ_Glow, SEQ_Swirl, SEQ_SwirlEnd, SEQ_Mote, SEQ_SparkleA, SEQ_SparkleA2, SEQ_SparkleB, SEQ_SparkleB2 }, { 0x1613684, 0x16136C0, 0x16136FC } };
 	static CuraParams live = GAME;
 	static const CuraParams &PC() { return live; }
 
@@ -1321,7 +1322,7 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		int32_t i = 0;
-		if (S16(TAB_RINGS, S16(node, 0x24) * 2) > 0)
+		if (S16(fxp::data(PC().tables.rings, TAB_RINGS, 60), S16(node, 0x24) * 2) > 0)
 		{
 			do
 			{
@@ -1338,7 +1339,7 @@ namespace cura
 				if (x::CrtRand() & 1)
 					U16(t, 0x5C) = (uint16_t)(0x1000 - U16(t, 0x5C));
 				i++;
-			} while (i < S16(TAB_RINGS, S16(node, 0x24) * 2));
+			} while (i < S16(fxp::data(PC().tables.rings, TAB_RINGS, 60), S16(node, 0x24) * 2));
 		}
 		if (S16(node, 0x24) >= 0x12)
 		{
@@ -1436,7 +1437,7 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(TAB_SPARKLES, S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(fxp::data(PC().tables.sparkles, TAB_SPARKLES, 60), S16(node, 0x24) * 2); i++)
 		{
 			const uint32_t t = Spawn(R(Q_SPRITE), ORIG_Sparkle, 0x84, node);
 			RandomOffset(t, (uint32_t)PC().sparkles.spread);
@@ -1517,7 +1518,7 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(TAB_PARTICLES, S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(fxp::data(PC().tables.particles, TAB_PARTICLES, 60), S16(node, 0x24) * 2); i++)
 		{
 			const uint32_t t = Spawn(R(Q_SPRITE), ORIG_Particle, 0x84, node);
 			U16(t, 0x1E) = (uint16_t)(U16(node, 0x1E) - 0x180);
@@ -1727,6 +1728,9 @@ namespace cura
 			{ "emitter", "seqs.sparkle_a2", "Sparkle a2", "The sprite sequence sparkle a2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_a2), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.sparkle_b", "Sparkle b", "The sprite sequence sparkle b (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_b), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.sparkle_b2", "Sparkle b2", "The sprite sequence sparkle b2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_b2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.rings", "Rings a tick", "How many rings spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.rings), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.sparkles", "Sparkles a tick", "How many sparkles spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.sparkles), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.particles", "Particles a tick", "How many particles spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.particles), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

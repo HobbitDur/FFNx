@@ -114,8 +114,9 @@ namespace micromissiles299
 		uint32_t sound;   // the master's counter 10 (the first missile)
 		struct { uint32_t hit, miss, missile; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t trail, flash, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const MicroMissilesParams GAME = { 0x104E2FC, { MODEL_Hit, MODEL_Miss, MODEL_Missile }, { SEQ_Trail, SEQ_Flash, SEQ_Spark } };
+	static const MicroMissilesParams GAME = { 0x104E2FC, { MODEL_Hit, MODEL_Miss, MODEL_Missile }, { SEQ_Trail, SEQ_Flash, SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM, COM_Anim } };
 	static MicroMissilesParams live = GAME;
 	static const MicroMissilesParams &P() { return live; }
 
@@ -443,7 +444,7 @@ namespace micromissiles299
 	// rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -455,7 +456,7 @@ namespace micromissiles299
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507860), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QMaster();
 	}
 
@@ -649,7 +650,7 @@ namespace micromissiles299
 			InitTaskQueuePool(QMissiles(), (void *)(TexBase() + POOL_Missiles), 0x80C, 6);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x144, 6);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x24, 0x60);
-			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, COM_Anim);
+			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Caster(), 2);
 		}
 		const int32_t c = mn->counter - 0xA;
@@ -682,6 +683,9 @@ namespace micromissiles299
 			{ "master", "seqs.trail", "Trail", "The sprite sequence trail (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MicroMissilesParams, seqs.trail), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(MicroMissilesParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MicroMissilesParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MicroMissilesParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(MicroMissilesParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "master", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(MicroMissilesParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

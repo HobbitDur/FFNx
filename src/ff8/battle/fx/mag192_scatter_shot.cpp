@@ -149,8 +149,10 @@ namespace scatter192
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t smoke, ground_smoke, impact, dust, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ring, flash, flash2, blast; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const ScatterShotParams GAME = { 0xD18668, { 0xD16B58, 0xD16C30, 0xD16CA4, 0xD16EC8, 0xD17074 }, { 0xD17B58, 0xD17220, 0xD17768, 0xD17DC0 } };
+	static const ScatterShotParams GAME = { 0xD18668, { 0xD16B58, 0xD16C30, 0xD16CA4, 0xD16EC8, 0xD17074 }, { 0xD17B58, 0xD17220, 0xD17768, 0xD17DC0 }, { TEXTURE_NAME, 0xD155E8 }, { 0xD18680 } };
 	static ScatterShotParams live = GAME;
 	static const ScatterShotParams &P() { return live; }
 
@@ -487,7 +489,7 @@ namespace scatter192
 	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -951,7 +953,7 @@ namespace scatter192
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
@@ -969,7 +971,7 @@ namespace scatter192
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1055,6 +1057,9 @@ namespace scatter192
 			{ "shot", "models.flash", "Flash model", "The prim model flash (a mesh of 56 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScatterShotParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.flash2", "Flash2 model", "The prim model flash2 (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScatterShotParams, models.flash2), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.blast", "Blast model", "The prim model blast (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScatterShotParams, models.blast), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ScatterShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(ScatterShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(ScatterShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

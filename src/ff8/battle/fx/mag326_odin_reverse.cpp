@@ -210,8 +210,9 @@ namespace o326
 		struct { int16_t damage; } timeline;            // the action result at this tick
 		struct { uint32_t at_e10c80, at_e10ca8, at_e10fb0, at_e108e8, at_e10e04; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_e163f8, at_e15d10, at_e17450, at_e16cf0, at_e17bb0, at_e148e8, at_e18150, at_e18b38, at_e13040, at_e11798; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_enviro; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const OdinReverseParams GAME = { 0xE194E4, { 0xE1964C, 0xE19650, 0xE19654, 0xE19658 }, { 0x198 }, { 0xE10C80, 0xE10CA8, 0xE10FB0, 0xE108E8, 0xE10E04 }, { 0xE163F8, 0xE15D10, 0xE17450, 0xE16CF0, 0xE17BB0, 0xE148E8, 0xE18150, 0xE18B38, 0xE13040, 0xE11798 } };
+	static const OdinReverseParams GAME = { 0xE194E4, { 0xE1964C, 0xE19650, 0xE19654, 0xE19658 }, { 0x198 }, { 0xE10C80, 0xE10CA8, 0xE10FB0, 0xE108E8, 0xE10E04 }, { 0xE163F8, 0xE15D10, 0xE17450, 0xE16CF0, 0xE17BB0, 0xE148E8, 0xE18150, 0xE18B38, 0xE13040, 0xE11798 }, { TIM_ENVIRO } };
 	static OdinReverseParams live = GAME;
 	static const OdinReverseParams &P() { return live; }
 
@@ -433,7 +434,7 @@ namespace o326
 		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolA() + 0x18 * i) = 0;
 		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolB() + 0x18 * i) = 0;
 		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolC() + 0x18 * i) = 0;
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_ENVIRO);   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_enviro, TIM_ENVIRO));   // Battle_QueueTIMUpload_GetEOF
 		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
 		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
 		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
@@ -2933,6 +2934,7 @@ namespace o326
 			{ "timeline", "models.at_e18b38", "Model E18B38", "The prim model at 0xE18B38 (a mesh of 16 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinReverseParams, models.at_e18b38), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_e13040", "Model E13040", "The prim model at 0xE13040 (a mesh of 208 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinReverseParams, models.at_e13040), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_e11798", "Model E11798", "The prim model at 0xE11798 (a mesh of 208 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinReverseParams, models.at_e11798), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "res.tim_enviro", "TIM image enviro", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(OdinReverseParams, res.tim_enviro), fxp::Tim, 0, 0x7FFFFFFF },
 		};
 	}
 }

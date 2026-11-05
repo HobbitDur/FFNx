@@ -91,8 +91,9 @@ namespace thundaga105
 		struct { uint32_t bolt; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark, flash; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_130e55c, at_130e8e4, at_130ecb4, at_130eed4, at_130f18c, at_130f55c, at_130f824, at_130fadc, at_130fd94, at_131002c, at_131052c, at_13109dc, at_1310cdc, at_1310f8c; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt }, { 0x13115DC, 0x131136C }, { 0x130E55C, 0x130E8E4, 0x130ECB4, 0x130EED4, 0x130F18C, 0x130F55C, 0x130F824, 0x130FADC, 0x130FD94, 0x131002C, 0x131052C, 0x13109DC, 0x1310CDC, 0x1310F8C } };
+	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt }, { 0x13115DC, 0x131136C }, { 0x130E55C, 0x130E8E4, 0x130ECB4, 0x130EED4, 0x130F18C, 0x130F55C, 0x130F824, 0x130FADC, 0x130FD94, 0x131002C, 0x131052C, 0x13109DC, 0x1310CDC, 0x1310F8C }, { TEXTURE_NAME, CAMERA } };
 	static ThundagaParams live = GAME;
 	static const ThundagaParams &P() { return live; }
 	static const uint32_t SEQ_Spark = 0x13115DC;
@@ -501,7 +502,7 @@ namespace thundaga105
 	// memory may be a copy's): the magic buffer, the cast, the root, the camera and the texture
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -513,7 +514,7 @@ namespace thundaga105
 		Memset32(AddTaskToQueue(&RootQueue(), own::Fn(ORIG_RootTask)) + 1, 0, 4);
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return &RootQueue();
@@ -1339,6 +1340,8 @@ namespace thundaga105
 			{ "bolt", "model_data.at_13109dc", "Model 13109DC", "The prim model at 0x13109DC (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_13109dc), fxp::Model, 0, 0x7FFFFFFF },
 			{ "bolt", "model_data.at_1310cdc", "Model 1310CDC", "The prim model at 0x1310CDC (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_1310cdc), fxp::Model, 0, 0x7FFFFFFF },
 			{ "bolt", "model_data.at_1310f8c", "Model 1310F8C", "The prim model at 0x1310F8C (a mesh of 15 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_1310f8c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ThundagaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "bolt", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ThundagaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

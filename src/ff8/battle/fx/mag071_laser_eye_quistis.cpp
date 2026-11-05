@@ -128,8 +128,10 @@ namespace laser_eye_quistis
 		struct { int16_t level, step; } light;                          // the stage light ramps
 		struct { uint32_t at_158ff60; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_158f688, at_158fe48, at_158fda0; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t spark_table; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const LaserEyeQParams GAME = { { 0xA, 0x19 }, { 0x158F530, 0xE, 0x12 }, { 0xF }, { 0x12, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x158FF60 }, { 0x158F688, 0x158FE48, 0x158FDA0 } };
+	static const LaserEyeQParams GAME = { { 0xA, 0x19 }, { 0x158F530, 0xE, 0x12 }, { 0xF }, { 0x12, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x158FF60 }, { 0x158F688, 0x158FE48, 0x158FDA0 }, { 0x1590024 }, { 0x1591B98 } };
 	static LaserEyeQParams live = GAME;
 	static const LaserEyeQParams &PL() { return live; }
 	static const uint32_t BIND_Block = 0x25FCDA8;      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -560,7 +562,7 @@ namespace laser_eye_quistis
 	uint32_t __cdecl cl_7DB4D0(uint32_t a1)
 	{
 		const uint32_t entity = 0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C;
-		gx::BS_BindEntityModelFromComData(entity, R(BIND_Block), COM_Anim);
+		gx::BS_BindEntityModelFromComData(entity, R(BIND_Block), fxp::anim_set(PL().res.anim, COM_Anim));
 		gx::QueueChainTransformation(0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C, 3);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -754,7 +756,7 @@ namespace laser_eye_quistis
 		const int16_t tick = S16(a1, 0x24);
 		if (tick > 0x12)
 			return 0; // void
-		const uint32_t rec = SPARK_TABLE + (uint32_t)((int32_t)tick * 8);
+		const uint32_t rec = fxp::data(PL().tables.spark_table, SPARK_TABLE, 152) + (uint32_t)((int32_t)tick * 8);
 		int32_t count = S16(rec, 4); // (the count word 0x1591B9C + tick * 8)
 		const uint32_t sp = MEM<uint32_t>(R(SCRATCH_SP)) - 8;
 		MEM<uint32_t>(R(SCRATCH_SP)) = sp;
@@ -2804,6 +2806,8 @@ namespace laser_eye_quistis
 			{ "emitter", "models.at_158f688", "Model 158F688", "The prim model at 0x158F688 (a mesh of 66 vertices, 88 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeQParams, models.at_158f688), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.at_158fe48", "Model 158FE48", "The prim model at 0x158FE48 (a mesh of 10 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeQParams, models.at_158fe48), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.at_158fda0", "Model 158FDA0", "The prim model at 0x158FDA0 (a mesh of 6 vertices, 4 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeQParams, models.at_158fda0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(LaserEyeQParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.spark_table", "Sparks a tick", "The laser's sparks at each tick 0..18: base, random spread, count (152 bytes: an edited one keeps its length)", (uint32_t)offsetof(LaserEyeQParams, tables.spark_table), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

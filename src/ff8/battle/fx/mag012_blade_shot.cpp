@@ -97,8 +97,9 @@ namespace blade012
 		struct { int16_t life, scale, spread; } fans;                      // glints and streaks thrown out of the impact
 		struct { uint32_t spark, streak, glint, hit, flash; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t blade, ring, trail, wing_a, wing_b; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BladeParams GAME = { { 0x136562C, 0x1365630, 5 }, { 0x20, 0x210, 0x64, 0x3E }, { 0xA, 0xF, 0xC00 }, { 0xD, 0x800, 0x313 }, { 0x1362AEC, 0x13627E4, 0x136298C, 0x1362C80, 0x13628FC }, { 0x13646EC, 0x136401C, 0x1364F14, 0x1362E3C, 0x136372C } };
+	static const BladeParams GAME = { { 0x136562C, 0x1365630, 5 }, { 0x20, 0x210, 0x64, 0x3E }, { 0xA, 0xF, 0xC00 }, { 0xD, 0x800, 0x313 }, { 0x1362AEC, 0x13627E4, 0x136298C, 0x1362C80, 0x13628FC }, { 0x13646EC, 0x136401C, 0x1364F14, 0x1362E3C, 0x136372C }, { TEXTURE_NAME, 0x1365634 } };
 	static BladeParams live = GAME;
 	static const BladeParams &P() { return live; }
 	static const uint32_t MODEL_Blade = 0x13646EC;       // prim models
@@ -880,7 +881,7 @@ namespace blade012
 	// from the caster's hand to the target over 32 ticks, the trail and particle queues, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -907,7 +908,7 @@ namespace blade012
 		MotionInit(&n->mot, 32);
 		InitTaskQueuePool(QTrails(), (void *)own::R(0x2545EF8), 0x20, 16);
 		InitTaskQueuePool(QParts(), (void *)own::R(0x25451F0), 0x34, 64);
-		PlayCameraAnimation((const void *)0x1365634);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, 0x1365634));
 		return QRoot();
 	}
 
@@ -1061,6 +1062,8 @@ namespace blade012
 			{ "blade", "models.trail", "Trail model", "The prim model trail (a mesh of 110 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.trail), fxp::Model, 0, 0x7FFFFFFF },
 			{ "blade", "models.wing_a", "Wing a model", "The prim model wing a (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.wing_a), fxp::Model, 0, 0x7FFFFFFF },
 			{ "blade", "models.wing_b", "Wing b model", "The prim model wing b (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.wing_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BladeParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "blade", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BladeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 #undef BS
 	}

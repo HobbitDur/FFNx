@@ -115,8 +115,9 @@ namespace acid_quistis
 		uint32_t sound;   // the target task's counter 10
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spray, drip, splash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const AcidParams GAME = { 0x1001AC8, { MODEL_Layout }, { SEQ_Spray, SEQ_Drip, SEQ_Splash } };
+	static const AcidParams GAME = { 0x1001AC8, { MODEL_Layout }, { SEQ_Spray, SEQ_Drip, SEQ_Splash }, { TEXTURE_NAME, CAMERA_ANIM, 0xFFE6B0 } };
 	static AcidParams live = GAME;
 	static const AcidParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1001ACC; // [|dy|][|dx|] -> length, 128 x 128
@@ -816,7 +817,7 @@ namespace acid_quistis
 	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -828,7 +829,7 @@ namespace acid_quistis
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x25054A0), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QRoot();
 	}
 
@@ -1084,7 +1085,7 @@ namespace acid_quistis
 				InitMelt(t->entity);
 			}
 			// Quistis' cast animation: the module's animation set bound to her (block magic buffer + 0x14E8), chain 3
-			BindExternalAnimSet(Caster(), TexBase() + BIND, COM_Anim);
+			BindExternalAnimSet(Caster(), TexBase() + BIND, fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Caster(), 3);
 		}
 		int a, b, c;
@@ -1112,6 +1113,9 @@ namespace acid_quistis
 			{ "target", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "seqs.drip", "Drip", "The sprite sequence drip (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "seqs.splash", "Splash", "The sprite sequence splash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(AcidParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(AcidParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "target", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(AcidParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

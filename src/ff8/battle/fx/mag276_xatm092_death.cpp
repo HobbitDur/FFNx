@@ -138,8 +138,9 @@ namespace xatm276
 		uint32_t sound_voice;   // the voice slot the root claims (counter 1), released on the director's tick 0x8C
 		struct { uint32_t prim_model; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t smoke, fall, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const XAtmDeathParams GAME = { 0x10D4C58, 0x10D4C5C, { PRIM_Model }, { SEQ_Smoke, SEQ_Fall, SEQ_Spark } };
+	static const XAtmDeathParams GAME = { 0x10D4C58, 0x10D4C5C, { PRIM_Model }, { SEQ_Smoke, SEQ_Fall, SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static XAtmDeathParams live = GAME;
 	static const XAtmDeathParams &P() { return live; }
 	static const uint32_t EVENTS[5] = { 0x10D56A8, 0x10D55A8, 0x10D5528, 0x10D5628, 0x10D5728 };
@@ -924,7 +925,7 @@ namespace xatm276
 	// cleared), the root (it sets up the rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -938,7 +939,7 @@ namespace xatm276
 		*(uint16_t *)Caster() &= 0xFFFB;
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508290), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QRoot();
 	}
 
@@ -1667,6 +1668,8 @@ namespace xatm276
 			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(XAtmDeathParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.fall", "Fall", "The sprite sequence fall (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(XAtmDeathParams, seqs.fall), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(XAtmDeathParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(XAtmDeathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(XAtmDeathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -110,8 +110,10 @@ namespace disch126
 		struct { int16_t damage; } main; // the damage (and the main task's end) from this tick
 		struct { uint32_t glow; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark_b, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t tint_colour; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const DischargeParams GAME = { 0x1242278, { 0x34 }, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark } };
+	static const DischargeParams GAME = { 0x1242278, { 0x34 }, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark }, { TEXTURE_NAME, CAMERA }, { 0x1242280 } };
 	static DischargeParams live = GAME;
 	static const DischargeParams &P() { return live; }
 	static const void *const TINT_Colour = (const void *)0x1242280;
@@ -725,7 +727,7 @@ namespace disch126
 			uint8_t *e = Entity(s->slot);
 			e[1] |= 8;
 			const int32_t sn = ComputeSin(shl32(s->frame, 8));
-			BlendColour(&SavedTints()[s->slot], TINT_Colour, 0x1000 - sn, sn, e + 0x28);
+			BlendColour(&SavedTints()[s->slot], ((const void *)fxp::data(P().tables.tint_colour, (uint32_t)TINT_Colour, 4, 4)), 0x1000 - sn, sn, e + 0x28);
 		}
 		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_spark(s);)
@@ -1115,7 +1117,7 @@ namespace disch126
 	// the root, the three party entities' tints (+0x28), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1129,7 +1131,7 @@ namespace disch126
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x25212D8), 0x14, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
 		for (int k = 0; k < 3; k++) SavedTints()[k] = *(const uint32_t *)(Entity(k) + 0x28);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -1200,6 +1202,9 @@ namespace disch126
 			{ "main", "layouts.glow", "Glow", "The prim-model layout glow (its models' animation)", (uint32_t)offsetof(DischargeParams, layouts.glow), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.spark_b", "Spark b", "The sprite sequence spark b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DischargeParams, seqs.spark_b), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DischargeParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(DischargeParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(DischargeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "main", "tables.tint_colour", "Tint colour", "The colour the targets are tinted toward (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(DischargeParams, tables.tint_colour), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

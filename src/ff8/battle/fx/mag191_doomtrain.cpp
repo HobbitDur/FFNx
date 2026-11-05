@@ -156,8 +156,9 @@ namespace d191
 		struct { int16_t damage; } timeline;                    // the action result at this tick
 		struct { uint32_t at_e346b0, at_e33e40, at_e342a4, at_e3460c, at_e34548, at_e34404; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_e375bc, at_e38e78, at_e396b0, at_e3b83c, at_e3496c, at_e3a744, at_e3ad34, at_e3bd64; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_doomtrain; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const DoomtrainParams GAME = { 0xE3C774, { 0xE3C8A8, 0xE3C8AC, 0xE3C8B0, 0xE3C8B4, 0xE3C8B8 }, { 0x1A4 }, { 0xE346B0, 0xE33E40, 0xE342A4, 0xE3460C, 0xE34548, 0xE34404 }, { 0xE375BC, 0xE38E78, 0xE396B0, 0xE3B83C, 0xE3496C, 0xE3A744, 0xE3AD34, 0xE3BD64 } };
+	static const DoomtrainParams GAME = { 0xE3C774, { 0xE3C8A8, 0xE3C8AC, 0xE3C8B0, 0xE3C8B4, 0xE3C8B8 }, { 0x1A4 }, { 0xE346B0, 0xE33E40, 0xE342A4, 0xE3460C, 0xE34548, 0xE34404 }, { 0xE375BC, 0xE38E78, 0xE396B0, 0xE3B83C, 0xE3496C, 0xE3A744, 0xE3AD34, 0xE3BD64 }, { TIM_DOOMTRAIN } };
 	static DoomtrainParams live = GAME;
 	static const DoomtrainParams &P() { return live; }
 	static const uint32_t ORIG_CamScriptTask = 0x63E9C0;
@@ -739,7 +740,7 @@ namespace d191
 		                                                               { 0xE3C8CC, 120 }, { 0xE3C8D0, 130 }, { 0xE3C8D4, 590 } };
 		for (const auto &p : POOLS)
 			for (int i = 0; i < p.count; i++) *(uint32_t *)(var<uint32_t>(p.pool) + 0x18 * i) = 0;
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_DOOMTRAIN);   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_doomtrain, TIM_DOOMTRAIN));   // Battle_QueueTIMUpload_GetEOF
 		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
 		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
 		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &Root());          // BuildRotationMatrixFromAngles
@@ -3236,6 +3237,7 @@ namespace d191
 			{ "timeline", "models.at_e3a744", "Model E3A744", "The prim model at 0xE3A744 (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3a744), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_e3ad34", "Model E3AD34", "The prim model at 0xE3AD34 (a mesh of 96 vertices, 84 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3ad34), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_e3bd64", "Model E3BD64", "The prim model at 0xE3BD64 (a mesh of 63 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3bd64), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "res.tim_doomtrain", "TIM image doomtrain", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(DoomtrainParams, res.tim_doomtrain), fxp::Tim, 0, 0x7FFFFFFF },
 		};
 	}
 }

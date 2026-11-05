@@ -142,8 +142,9 @@ namespace uff076
 		struct { int16_t scale, step; } halo;              // the halo (tick 0x96): its scale, its growth
 		struct { int16_t spin, size; } ring;               // the ring (tick 0x206): its spin a tick, its size
 		struct { uint32_t burst, spin, rise, debris, halo, flash2, ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const FinalFormParams GAME = { { 0xDE3FF0, 0xDE4148 }, { 0x37, 0x296, 0x299 }, { 0x800, 0x1800 }, { 0x10, 0x680 }, { MODEL_Burst, MODEL_Spin, MODEL_Rise, MODEL_Debris, MODEL_Halo, MODEL_Flash2, MODEL_Ring } };
+	static const FinalFormParams GAME = { { 0xDE3FF0, 0xDE4148 }, { 0x37, 0x296, 0x299 }, { 0x800, 0x1800 }, { 0x10, 0x680 }, { MODEL_Burst, MODEL_Spin, MODEL_Rise, MODEL_Debris, MODEL_Halo, MODEL_Flash2, MODEL_Ring }, { TEXTURE_NAME } };
 	static FinalFormParams live = GAME;
 	static const FinalFormParams &PF() { return live; }
 	static const uint32_t FANFARE = 0xEAA7EC;
@@ -1515,7 +1516,7 @@ namespace uff076
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PF().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1578,6 +1579,7 @@ namespace uff076
 			{ "master", "models.halo", "Halo model", "The prim model halo (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.halo), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.flash2", "Flash2 model", "The prim model flash2 (a mesh of 80 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.flash2), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.ring", "Ring model", "The prim model ring (a mesh of 128 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FinalFormParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FinalFormParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
 		};
 #undef FP
 	}

@@ -244,8 +244,10 @@ namespace scan040
 		struct { int16_t step, level; } bars;              // the scan bars' fade a tick, their brightness
 		struct { uint32_t at_15d07d4, at_15d0af8; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_15ce93c, at_15ce9b8, at_15cddec, at_15ce1d4, at_15cf37c, at_15cf5b4, at_15cf614, at_15cea34, at_15cf674; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t small_from, small_to, big_from, big_to; } morphs; // a morph's vertex sets (data): what its code blends a model's vertices from and to
 	};
-	static const ScanParams GAME = { 0x15D0B3C, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 8, 0x80 }, { 0x15D07D4, 0x15D0AF8 }, { 0x15CE93C, 0x15CE9B8, 0x15CDDEC, 0x15CE1D4, 0x15CF37C, 0x15CF5B4, 0x15CF614, 0x15CEA34, 0x15CF674 } };
+	static const ScanParams GAME = { 0x15D0B3C, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 8, 0x80 }, { 0x15D07D4, 0x15D0AF8 }, { 0x15CE93C, 0x15CE9B8, 0x15CDDEC, 0x15CE1D4, 0x15CF37C, 0x15CF5B4, 0x15CF614, 0x15CEA34, 0x15CF674 }, { TEXTURE_NAME }, { 0x15CFAB4, 0x15CFC3C, 0x15CFDC4, 0x15D02CC } };
 	static ScanParams live = GAME;
 	static const ScanParams &P() { return live; }
 	static const uint32_t INFO_TABLE = 0x15D0B40;   // 16 bytes per entity class
@@ -1256,8 +1258,8 @@ namespace scan040
 			n->angle[1] = 0x2A0;
 			n->angle[2] = (int16_t)0xF808;
 			n->model = fxp::model(P().models.at_15cddec, 0x15CDDEC);
-			n->morph_a = 0x15CFAB4;
-			n->morph_b = 0x15CFC3C;
+			n->morph_a = fxp::vertices(P().morphs.small_from, 0x15CFAB4);
+			n->morph_b = fxp::vertices(P().morphs.small_to, 0x15CFC3C);
 			n->fade = 0x1000;
 			n->h.phase++;
 			break;
@@ -1289,8 +1291,8 @@ namespace scan040
 			{
 				n->blend = 0;
 				n->model = fxp::model(P().models.at_15ce1d4, 0x15CE1D4);
-				n->morph_a = 0x15CFDC4;
-				n->morph_b = 0x15D02CC;
+				n->morph_a = fxp::vertices(P().morphs.big_from, 0x15CFDC4);
+				n->morph_b = fxp::vertices(P().morphs.big_to, 0x15D02CC);
 				n->h.phase++;
 			}
 			break;
@@ -2417,7 +2419,7 @@ namespace scan040
 	// packet arenas in the magic buffer, the queues
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -2490,6 +2492,11 @@ namespace scan040
 			{ "scanner", "models.at_15cf614", "Model 15CF614", "The prim model at 0x15CF614 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cf614), fxp::Model, 0, 0x7FFFFFFF },
 			{ "scanner", "models.at_15cea34", "Model 15CEA34", "The prim model at 0x15CEA34 (a mesh of 84 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cea34), fxp::Model, 0, 0x7FFFFFFF },
 			{ "scanner", "models.at_15cf674", "Model 15CF674", "The prim model at 0x15CF674 (a mesh of 6 vertices, 2 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cf674), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ScanParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.small_from", "Small morph from", "The vertices the small scan model blends from (48 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.small_from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.small_to", "Small morph to", "The vertices the small scan model blends to (48 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.small_to), fxp::Data, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.big_from", "Big morph from", "The vertices the big scan model blends from (160 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.big_from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.big_to", "Big morph to", "The vertices the big scan model blends to (160 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.big_to), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef SP
 	}

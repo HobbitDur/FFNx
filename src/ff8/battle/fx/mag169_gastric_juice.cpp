@@ -114,8 +114,9 @@ namespace gastric169
 		struct { int16_t damage; } director; // the damage at this tick
 		struct { uint32_t blob, drip, splash; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t main, puddle; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const GastricJuice169Params GAME = { 0xD6BC1C, { 0x23 }, { SEQ_Blob, SEQ_Drip, SEQ_Splash }, { MODEL_Mesh, MODEL_Puddle } };
+	static const GastricJuice169Params GAME = { 0xD6BC1C, { 0x23 }, { SEQ_Blob, SEQ_Drip, SEQ_Splash }, { MODEL_Mesh, MODEL_Puddle }, { TEXTURE_NAME, CAMERA } };
 	static GastricJuice169Params live = GAME;
 	static const GastricJuice169Params &PJ() { return live; }
 
@@ -495,7 +496,7 @@ namespace gastric169
 	// droplets freed, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PJ().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -512,7 +513,7 @@ namespace gastric169
 		*(uint16_t *)(d + 0xC) = 0;
 		*(uint16_t *)(d + 0xE) = 0;
 		for (uint32_t a = own::R(DROPS); a < own::R(DROPS_END); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(PJ().res.camera, CAMERA));
 		QueueTimUpload(TexFile());
 		return QRoot();
 	}
@@ -1248,6 +1249,8 @@ namespace gastric169
 			{ "director", "seqs.splash", "Splash", "The sprite sequence splash (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "models.main", "Main model", "The prim model main (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GastricJuice169Params, models.main), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.puddle", "Puddle model", "The prim model puddle (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GastricJuice169Params, models.puddle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(GastricJuice169Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(GastricJuice169Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

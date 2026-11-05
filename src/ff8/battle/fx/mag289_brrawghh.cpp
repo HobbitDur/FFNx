@@ -125,8 +125,9 @@ namespace brr289
 		struct { uint32_t splash, target; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t drip, splat, spit; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t tube_a, tube_b; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BrrawghhParams GAME = { 0x1072638, { LAYOUT_Splash, LAYOUT_Target }, { SEQ_Drip, SEQ_Splat, SEQ_Spit }, { 0x106EDE4, 0x106FAF4 } };
+	static const BrrawghhParams GAME = { 0x1072638, { LAYOUT_Splash, LAYOUT_Target }, { SEQ_Drip, SEQ_Splat, SEQ_Spit }, { 0x106EDE4, 0x106FAF4 }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static BrrawghhParams live = GAME;
 	static const BrrawghhParams &PB() { return live; }
 
@@ -705,7 +706,7 @@ namespace brr289
 	// rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PB().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -717,7 +718,7 @@ namespace brr289
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507C20), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(PB().res.camera, CAMERA_ANIM));
 		return QMaster();
 	}
 
@@ -938,6 +939,8 @@ namespace brr289
 			{ "main", "seqs.spit", "Spit", "The sprite sequence spit (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BrrawghhParams, seqs.spit), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "main", "model_data.tube_a", "Tube a model", "The prim model tube a (a mesh of 164 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BrrawghhParams, model_data.tube_a), fxp::Model, 0, 0x7FFFFFFF },
 			{ "main", "model_data.tube_b", "Tube b model", "The prim model tube b (a mesh of 164 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BrrawghhParams, model_data.tube_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BrrawghhParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BrrawghhParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

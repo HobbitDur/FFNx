@@ -123,8 +123,9 @@ namespace rave212
 		struct { uint32_t ground, bone, front, burn; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t ember, flame; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t rock, rock_a, rock_b, rock_c, glow; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn }, { SEQ_Ember, SEQ_Flame }, { MODEL_Rock, MODEL_RockA, MODEL_RockB, MODEL_RockC, MODEL_Glow } };
+	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn }, { SEQ_Ember, SEQ_Flame }, { MODEL_Rock, MODEL_RockA, MODEL_RockB, MODEL_RockC, MODEL_Glow }, { TEXTURE_NAME, COM_Anim } };
 	static BurningRaveParams live = GAME;
 	static const BurningRaveParams &P() { return live; }
 
@@ -853,7 +854,7 @@ namespace rave212
 	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1669,7 +1670,7 @@ namespace rave212
 		Centre()[2] = d->centre[2];
 		static const int32_t bones[3] = { 0xE, 0x12, 0x16 };
 		GhostInit(d->ghosts, 3, bones);
-		BindExternalAnimSet(z, d->bind, COM_Anim);
+		BindExternalAnimSet(z, d->bind, fxp::anim_set(P().res.anim, COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x1BD0));
 	}
@@ -1761,6 +1762,8 @@ namespace rave212
 			{ "director", "model_data.rock_b", "Rock b model", "The prim model rock b (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_b), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "model_data.rock_c", "Rock c model", "The prim model rock c (a mesh of 18 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_c), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "model_data.glow", "Glow model", "The prim model glow (a mesh of 225 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BurningRaveParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(BurningRaveParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

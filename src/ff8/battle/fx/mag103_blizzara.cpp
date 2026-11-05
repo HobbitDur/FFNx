@@ -81,8 +81,9 @@ namespace blizzara103
 		struct { int16_t damage; } block; // the damage at this tick of the ice block
 		struct { uint32_t ice; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t block, pillar, burst; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BlizzaraParams GAME = { 0x131E750, { 0x3C }, { 0x13197E4 }, { 0x131ABB0, 0x1319990, 0x131A678 } };
+	static const BlizzaraParams GAME = { 0x131E750, { 0x3C }, { 0x13197E4 }, { 0x131ABB0, 0x1319990, 0x131A678 }, { TEXTURE_NAME, CAMERA } };
 	static BlizzaraParams live = GAME;
 	static const BlizzaraParams &P() { return live; }
 	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };   // per action, in the magic buffer
@@ -206,7 +207,7 @@ namespace blizzara103
 	// memory may be a copy's): the magic buffer, the cast, the root (the director), the camera and the texture
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -218,7 +219,7 @@ namespace blizzara103
 		FillDwords(AddTaskToQueue(QRoot(), own::Fn(ORIG_Director)) + 1, 0, 2);
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return QRoot();
@@ -873,6 +874,8 @@ namespace blizzara103
 			{ "block", "models.block", "Block model", "The prim model block (a mesh of 134 vertices, 223 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.block), fxp::Model, 0, 0x7FFFFFFF },
 			{ "block", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
 			{ "block", "models.burst", "Burst model", "The prim model burst (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "block", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BlizzaraParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "block", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BlizzaraParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -133,8 +133,9 @@ namespace ga065
 		struct { int16_t sink, away, damage; } master;   // the caster's sinking a tick (ticks 1..0x1F); the targets moved away at 0x20; the damage tick
 		struct { uint32_t sprite; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_133822c, at_133a0fc, at_1334ffc, at_1336924; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const AttractorParams GAME = { { 0x133AB6C, 0x133AB70, 0x133AB74, 0x133AB78, 0x133AB7C, 0x133AB80 }, { 0x142, 0x2710, 0x224 }, { SPRITE_SEQ }, { 0x133822C, 0x133A0FC, 0x1334FFC, 0x1336924 } };
+	static const AttractorParams GAME = { { 0x133AB6C, 0x133AB70, 0x133AB74, 0x133AB78, 0x133AB7C, 0x133AB80 }, { 0x142, 0x2710, 0x224 }, { SPRITE_SEQ }, { 0x133822C, 0x133A0FC, 0x1334FFC, 0x1336924 }, { TEXTURE_NAME } };
 	static AttractorParams live = GAME;
 	static const AttractorParams &PA() { return live; }
 
@@ -2487,7 +2488,7 @@ namespace ga065
 	// the master writes the battle camera itself)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PA().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -2620,6 +2621,7 @@ namespace ga065
 			{ "master", "models.at_133a0fc", "Model 133A0FC", "The prim model at 0x133A0FC (a mesh of 104 vertices, 50 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AttractorParams, models.at_133a0fc), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.at_1334ffc", "Model 1334FFC", "The prim model at 0x1334FFC (a mesh of 144 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AttractorParams, models.at_1334ffc), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.at_1336924", "Model 1336924", "The prim model at 0x1336924 (a mesh of 220 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AttractorParams, models.at_1336924), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(AttractorParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
 		};
 #undef GP
 	}

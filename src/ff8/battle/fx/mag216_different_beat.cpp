@@ -135,8 +135,9 @@ namespace beat216
 		struct { uint32_t ring, rise, fly, drop, impact, crater, pillar; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark, ember; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t rock, twist; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const DifferentBeatParams GAME = { 0x113C1A8, { LAYOUT_Ring, LAYOUT_Rise, LAYOUT_Fly, LAYOUT_Drop, LAYOUT_Impact, LAYOUT_Crater, LAYOUT_Pillar }, { SEQ_Spark, SEQ_Ember }, { MODEL_Rock, MODEL_Twist } };
+	static const DifferentBeatParams GAME = { 0x113C1A8, { LAYOUT_Ring, LAYOUT_Rise, LAYOUT_Fly, LAYOUT_Drop, LAYOUT_Impact, LAYOUT_Crater, LAYOUT_Pillar }, { SEQ_Spark, SEQ_Ember }, { MODEL_Rock, MODEL_Twist }, { TEXTURE_NAME, COM_Anim } };
 	static DifferentBeatParams live = GAME;
 	static const DifferentBeatParams &P() { return live; }
 	static const uint32_t MORPH = 0x2CD8;   // magic buffer: twisted / blended vertices
@@ -1613,7 +1614,7 @@ namespace beat216
 	// entity of its chain), the root (it sets up the rest)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -2320,7 +2321,7 @@ namespace beat216
 		CamAnchor()[1] = U32(z, 0x20);
 		Anchor()[0] = *(const uint32_t *)&d->place[0];
 		Anchor()[1] = *(const uint32_t *)&d->place[2];
-		BindExternalAnimSet(z, d->bind, COM_Anim);
+		BindExternalAnimSet(z, d->bind, fxp::anim_set(P().res.anim, COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x2C90));
 		U16(z, 0) &= 0xFFFB;
@@ -2426,6 +2427,8 @@ namespace beat216
 			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DifferentBeatParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "model_data.rock", "Rock model", "The prim model rock (a mesh of 8 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DifferentBeatParams, model_data.rock), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "model_data.twist", "Twist model", "The prim model twist (a mesh of 123 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DifferentBeatParams, model_data.twist), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(DifferentBeatParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(DifferentBeatParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

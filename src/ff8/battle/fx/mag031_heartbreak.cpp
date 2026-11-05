@@ -118,8 +118,9 @@ namespace heartbreak
 		struct { int16_t start, length, mode; } actors;                                   // the actor system
 		struct { int16_t level, step; } light;                                            // the stage light ramps
 		struct { uint32_t at_15f95e0, at_15f96bc, at_15f9250, at_15f944c; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t flight_t, arc_height; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const HeartbreakParams GAME = { { SOUND_Heartbreak, 0x11, 0x1A, 0x1E, 0x1E }, { 0xA }, { 0, 0x2D, 0 }, { 0x400, 0x100 }, { 0x15F95E0, 0x15F96BC, 0x15F9250, 0x15F944C } };
+	static const HeartbreakParams GAME = { { SOUND_Heartbreak, 0x11, 0x1A, 0x1E, 0x1E }, { 0xA }, { 0, 0x2D, 0 }, { 0x400, 0x100 }, { 0x15F95E0, 0x15F96BC, 0x15F9250, 0x15F944C }, { 0x160D3B4, 0x160D3C8 } };
 	static HeartbreakParams live = GAME;
 	static const HeartbreakParams &PH() { return live; }
 	static const uint32_t ACTOR_DATA = 0x160D188;      // the actor system's data (exe data)
@@ -2886,7 +2887,7 @@ namespace heartbreak
 		const uint16_t sy = U16(node, 0x19E);
 		const int32_t p = mul32((int32_t)S16(node, 0x1A6) - (int32_t)(int16_t)sy, t);
 		const uint16_t q = (uint16_t)(add32(p, (p >> 31) & 0xFFF) >> 12);
-		U16(node, 0x1E) = (uint16_t)((uint16_t)(q - MEM<uint16_t>(ARC_HEIGHT + (uint32_t)k * 2)) + sy);
+		U16(node, 0x1E) = (uint16_t)((uint16_t)(q - MEM<uint16_t>(fxp::data(PH().tables.arc_height, ARC_HEIGHT, 20) + (uint32_t)k * 2)) + sy);
 	}
 
 	// the arrow's placement: its facing (identity turned by the caster's +0x0E, 8DD8A0) at its
@@ -2915,7 +2916,7 @@ namespace heartbreak
 		const uint32_t w20 = U32(node, 0x20);
 		U32(node, 0x194) = U32(node, 0x1C);
 		U32(node, 0x198) = w20;
-		const uint16_t t = MEM<uint16_t>(FLIGHT_T + (uint32_t)k * 2);
+		const uint16_t t = MEM<uint16_t>(fxp::data(PH().tables.flight_t, FLIGHT_T, 20) + (uint32_t)k * 2);
 		U16(node, 0x1AC) = t;
 		if ((int16_t)t >= 0x1000)
 		{
@@ -3202,6 +3203,8 @@ namespace heartbreak
 			{ "emitter", "seqs.at_15f96bc", "Flipbook 15F96BC", "The sprite sequence at 0x15F96BC (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(HeartbreakParams, seqs.at_15f96bc), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.at_15f9250", "Flipbook 15F9250", "The sprite sequence at 0x15F9250 (a flipbook of 19 frames: an edited one keeps as many)", (uint32_t)offsetof(HeartbreakParams, seqs.at_15f9250), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "seqs.at_15f944c", "Flipbook 15F944C", "The sprite sequence at 0x15F944C (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(HeartbreakParams, seqs.at_15f944c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.flight_t", "Flight steps", "Each arrow's flight step (16-bit) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(HeartbreakParams, tables.flight_t), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.arc_height", "Arc heights", "Each arrow's arc height (taken from its y) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(HeartbreakParams, tables.arc_height), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

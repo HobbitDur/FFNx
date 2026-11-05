@@ -93,8 +93,9 @@ namespace grab101
 		uint32_t sound;     // at the grab's first tick
 		int16_t flash;      // the screen flash's level
 		struct { uint32_t grab; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const GrabParams GAME = { 0x13249DC, 0x898, { MODEL_Grab } };
+	static const GrabParams GAME = { 0x13249DC, 0x898, { MODEL_Grab }, { TEXTURE_NAME, CAMERA } };
 	static GrabParams live = GAME;
 	static const GrabParams &P() { return live; }
 
@@ -348,7 +349,7 @@ namespace grab101
 	// the root, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -363,7 +364,7 @@ namespace grab101
 		*Target() |= 8;
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2544E58), 0x14, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -419,6 +420,8 @@ namespace grab101
 			{ "grab", "sound", "Sound", "", (uint32_t)offsetof(GrabParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "grab", "flash", "Flash", "The screen flash's level", (uint32_t)offsetof(GrabParams, flash), fxp::I16, 0, 0x1000 },
 			{ "grab", "layouts.grab", "Grab", "The prim-model layout grab (its models' animation)", (uint32_t)offsetof(GrabParams, layouts.grab), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "grab", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(GrabParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "grab", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(GrabParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

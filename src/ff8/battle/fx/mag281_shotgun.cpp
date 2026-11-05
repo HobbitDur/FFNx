@@ -108,8 +108,9 @@ namespace shotgun281
 		uint32_t sound;   // the main task's counter 2
 		struct { uint32_t hit, muzzle; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t muzzle_spark, hit_spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const ShotgunParams GAME = { 0x10A7958, { MODEL_Hit, MODEL_Muzzle }, { SEQ_MuzzleSpark, SEQ_HitSpark } };
+	static const ShotgunParams GAME = { 0x10A7958, { MODEL_Hit, MODEL_Muzzle }, { SEQ_MuzzleSpark, SEQ_HitSpark }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static ShotgunParams live = GAME;
 	static const ShotgunParams &P() { return live; }
 
@@ -337,7 +338,7 @@ namespace shotgun281
 	// rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -349,7 +350,7 @@ namespace shotgun281
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507F78), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QMaster();
 	}
 
@@ -538,6 +539,8 @@ namespace shotgun281
 			{ "main", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(ShotgunParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.muzzle_spark", "Muzzle spark", "The sprite sequence muzzle spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ShotgunParams, seqs.muzzle_spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "main", "seqs.hit_spark", "Hit spark", "The sprite sequence hit spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(ShotgunParams, seqs.hit_spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ShotgunParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ShotgunParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

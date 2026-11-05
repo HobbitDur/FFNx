@@ -178,8 +178,10 @@ namespace lion165
 		struct { uint32_t a, b, c, d; } sounds; // the director's four sounds, in order
 		struct { uint32_t spark, smoke, hita, hitb; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t groundring, tipflash, tipring, slasha, slashb, flatring, wave, tipflash2, streak, finalring, finalflash, rock, debris, tipshard, shard, tiprock; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t hit_times, hit_offsets, hit_heights, wave_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const LionHeartParams GAME = { { 0xD886D4, 0xD886D8, 0xD886DC, 0xD886E0 }, { 0xD7B1C8, 0xD7B4D4, 0xD7AFE0, 0xD7B340 }, { 0xD879EC, 0xD7F960, 0xD8392C, 0xD823E4, 0xD82B5C, 0xD84BE4, 0xD7B668, 0xD813B0, 0xD81B34, 0xD7D9A0, 0xD83E3C, 0xD83244, 0xD85D74, 0xD818A0, 0xD81620, 0xD80230 } };
+	static const LionHeartParams GAME = { { 0xD886D4, 0xD886D8, 0xD886DC, 0xD886E0 }, { 0xD7B1C8, 0xD7B4D4, 0xD7AFE0, 0xD7B340 }, { 0xD879EC, 0xD7F960, 0xD8392C, 0xD823E4, 0xD82B5C, 0xD84BE4, 0xD7B668, 0xD813B0, 0xD81B34, 0xD7D9A0, 0xD83E3C, 0xD83244, 0xD85D74, 0xD818A0, 0xD81620, 0xD80230 }, { TEXTURE_NAME, ANIM_DATA }, { 0xD88718, 0xD88758, 0xD887D0, 0xD88808 } };
 	static LionHeartParams live = GAME;
 	static const LionHeartParams &P() { return live; }
 	static const uint32_t REF_RIGHT = 0xD886F8;  // (0x1000, 0, 0): Streak's
@@ -1252,7 +1254,7 @@ namespace lion165
 	// the direction bone -> centre, at the bone on the ground) and his yaw: Squall faces the targets
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1306,7 +1308,7 @@ namespace lion165
 			StopSounds(-1, 0);
 			CameraScriptStart(CAMERA_SCRIPT, own::R(FRAME), Caster(), QMain(), 0);
 			ArmCameraReturn();
-			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			var<uint32_t>(own::R(TARGET_KEPT)) = *(const uint32_t *)(Target() + 0x1C);
 			var<uint32_t>(own::R(TARGET_KEPT) + 4) = *(const uint32_t *)(Target() + 0x20);
 			var<uint32_t>(own::R(CASTER_KEPT)) = *(const uint32_t *)(Caster() + 0x1C);
@@ -1726,7 +1728,7 @@ namespace lion165
 	// scroll renderer into OT + 0x4068 (mode 6), v scroll w20 x counter, fade 0x1000 - 0x180 c (up to 8) / 0x400 / 0x180 c -
 	// 0x1A00 (from 0x14), colour 0xD88808[counter % 18]
 	static int32_t ScreenWaveFade(int32_t c) { return c < 8 ? 0x1000 - mul32(c, 0x180) : c >= 0x14 ? mul32(c, 0x180) - 0x1A00 : 0x400; }
-	static uint32_t ScreenWaveColour(int32_t c) { return var<uint32_t>(WAVE_COLOURS + 4 * (c % 0x12)); }
+	static uint32_t ScreenWaveColour(int32_t c) { return var<uint32_t>(fxp::data(P().tables.wave_colours, WAVE_COLOURS, 72, 4) + 4 * (c % 0x12)); }
 	static void ScreenWaveDraw(const Node24 *n, int32_t scroll, int32_t fade, uint32_t colour)
 	{
 		Mat4x3 m = {};
@@ -3072,12 +3074,12 @@ namespace lion165
 	{
 		for (int32_t i = 0; i < 0xF; i++)
 		{
-			const int32_t t = var<int32_t>(HIT_TIMES + 4 * i);
+			const int32_t t = var<int32_t>(fxp::data(P().tables.hit_times, HIT_TIMES, 64, 4) + 4 * i);
 			if (n->c > t) continue;
 			if (n->c < t) break;
 			int16_t v[4];
 			v[3] = (int16_t)(slot4 >> 16);
-			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HIT_OFFSETS + 8 * i), v);
+			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(fxp::data(P().tables.hit_offsets, HIT_OFFSETS, 120) + 8 * i), v);
 			v[0] = (int16_t)(v[0] + var<int16_t>(own::R(TIP0)));
 			v[1] = (int16_t)(v[1] + var<int16_t>(own::R(TIP0) + 2));
 			v[2] = (int16_t)(v[2] + var<int16_t>(own::R(TIP0) + 4));
@@ -3135,8 +3137,8 @@ namespace lion165
 				Node24 *b = AddMain(ORIG_TargetBounce);
 				b->c = 0;
 				b->e = (int16_t)ts;
-				b->w1A = (int16_t)(i != 0 ? var<int32_t>(HIT_TIMES + 4 * (i + 1)) - var<int32_t>(HIT_TIMES + 4 * i) : 8);
-				b->w1C = (int16_t)(var<int16_t>(HIT_HEIGHTS + 4 * i) - 0xFA0);
+				b->w1A = (int16_t)(i != 0 ? var<int32_t>(fxp::data(P().tables.hit_times, HIT_TIMES, 64, 4) + 4 * (i + 1)) - var<int32_t>(fxp::data(P().tables.hit_times, HIT_TIMES, 64, 4) + 4 * i) : 8);
+				b->w1C = (int16_t)(var<int16_t>(fxp::data(P().tables.hit_heights, HIT_HEIGHTS, 56) + 4 * i) - 0xFA0);
 				uint8_t *e = *(uint8_t **)(tg + 0x8C);
 				if (e && e != tg)
 				{
@@ -3368,6 +3370,12 @@ namespace lion165
 			{ "director", "models.tipshard", "Tipshard model", "The prim model tipshard (a mesh of 25 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipshard), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.tiprock", "Tiprock model", "The prim model tiprock (a mesh of 147 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tiprock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(LionHeartParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(LionHeartParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "tables.hit_times", "Hit ticks", "When each hit lands (64 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.hit_times), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.hit_offsets", "Hit offsets", "Where each hit lands from the caster (x, y, z) (120 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.hit_offsets), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.hit_heights", "Hit heights", "Each hit's height (- 0xFA0) (56 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.hit_heights), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.wave_colours", "Wave colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (72 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.wave_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -143,8 +143,9 @@ namespace oil136
 		struct { uint32_t splash, stream, fall, mouth, hit, pool; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spray, splat; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t main; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const OilParams GAME = { 0x11F81CC, { 0x3E }, { MODEL_Splash, MODEL_Stream, MODEL_Fall, MODEL_Mouth, MODEL_Hit, MODEL_Pool }, { SEQ_Spray, SEQ_Splat }, { 0x11F2684 } };
+	static const OilParams GAME = { 0x11F81CC, { 0x3E }, { MODEL_Splash, MODEL_Stream, MODEL_Fall, MODEL_Mouth, MODEL_Hit, MODEL_Pool }, { SEQ_Spray, SEQ_Splat }, { 0x11F2684 }, { TEXTURE_NAME, CAMERA } };
 	static OilParams live = GAME;
 	static const OilParams &PO() { return live; }   // (P: the shot task's stream point)
 
@@ -718,7 +719,7 @@ namespace oil136
 	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PO().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -730,7 +731,7 @@ namespace oil136
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520D38), 0x14, 1);
 		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(PO().res.camera, CAMERA));
 		return QMaster();
 	}
 
@@ -1108,6 +1109,8 @@ namespace oil136
 			{ "shot", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(OilParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OilParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "shot", "model_data.main", "Main model", "The prim model main (a mesh of 108 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OilParams, model_data.main), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(OilParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(OilParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

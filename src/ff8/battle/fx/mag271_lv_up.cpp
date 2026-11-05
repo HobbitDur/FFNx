@@ -97,8 +97,9 @@ namespace lv271
 	{
 		uint32_t sound;   // when the play task starts
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const LvUpParams GAME = { 0x111AA2C, { MODEL_LAYOUT } };
+	static const LvUpParams GAME = { 0x111AA2C, { MODEL_LAYOUT }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static LvUpParams live = GAME;
 	static const LvUpParams &P() { return live; }
 
@@ -540,7 +541,7 @@ namespace lv271
 	// rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -554,7 +555,7 @@ namespace lv271
 		uint32_t *r = (uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC);
 		r[0] = 0;
 		r[1] = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QRoot();
 	}
 
@@ -648,6 +649,8 @@ namespace lv271
 		static const Field FIELDS[] = {
 			{ "root", "sound", "Sound", "When the play task starts", (uint32_t)offsetof(LvUpParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "root", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(LvUpParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "root", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(LvUpParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "root", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(LvUpParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

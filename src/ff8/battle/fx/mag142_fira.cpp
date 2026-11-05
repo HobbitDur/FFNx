@@ -79,8 +79,9 @@ namespace fira142
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
 		struct { uint32_t ember, shock_ring; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t flame_column, burst, trail; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const FiraParams GAME = { 0xDDF44C, { 0xE }, { 0xDDE100, 0xDDE0D8 }, { 0xDDEF14, 0xDDE6C4, 0xDDE2AC } };
+	static const FiraParams GAME = { 0xDDF44C, { 0xE }, { 0xDDE100, 0xDDE0D8 }, { 0xDDEF14, 0xDDE6C4, 0xDDE2AC }, { TEXTURE_NAME, CAMERA } };
 	static FiraParams live = GAME;
 	static const FiraParams &P() { return live; }
 
@@ -166,7 +167,7 @@ namespace fira142
 	// action's first byte +0x22), the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -185,7 +186,7 @@ namespace fira142
 		*(uint16_t *)(d + 0x22) = act[0];
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return &Queues().first;
@@ -740,6 +741,8 @@ namespace fira142
 			{ "director", "models.flame_column", "Flame column model", "The prim model flame column (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.flame_column), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.burst", "Burst model", "The prim model burst (a mesh of 72 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.trail", "Trail model", "The prim model trail (a mesh of 26 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FiraParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FiraParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

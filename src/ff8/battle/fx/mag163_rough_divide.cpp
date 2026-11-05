@@ -132,8 +132,9 @@ namespace rough163
 		struct { int16_t damage; } director; // the action result at this tick
 		struct { uint32_t spark, pillar; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t glow, shard, chip, pillar, blade, flash, ring, shock, flare, wave; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const RoughDivideParams GAME = { 0xDA00A8, { 0x41 }, { 0xD9B458, 0xD9B2AC }, { 0xD9E2D4, 0xD9D314, 0xD9E1DC, 0xD9CE04, 0xD9FE54, 0xD9EC8C, 0xD9B5D0, 0xD9D594, 0xD9DD34, 0xD9CB38 } };
+	static const RoughDivideParams GAME = { 0xDA00A8, { 0x41 }, { 0xD9B458, 0xD9B2AC }, { 0xD9E2D4, 0xD9D314, 0xD9E1DC, 0xD9CE04, 0xD9FE54, 0xD9EC8C, 0xD9B5D0, 0xD9D594, 0xD9DD34, 0xD9CB38 }, { TEXTURE_NAME, CAMERA, 0xD99DC8 } };
 	static RoughDivideParams live = GAME;
 	static const RoughDivideParams &P() { return live; }
 	static const uint32_t ANIM_DATA = 0xD99DC8;
@@ -502,7 +503,7 @@ namespace rough163
 	// three particle pools freed, the camera, the TIM, a copy of the caster's matrix
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -519,7 +520,7 @@ namespace rough163
 		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18) *(int32_t *)a = 0;
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20) *(int32_t *)a = 0;
 		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x20) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		QueueTimUpload(TexFile());
 		memcpy((void *)own::R(CASTER_MAT), Caster() + 0x40, 0x20);
 		return QMaster();
@@ -530,7 +531,7 @@ namespace rough163
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)own::R(CASTER_MAT), (Mat4x3 *)own::R(CAM_CASTER));
 		if (DrawOnly()) return 0;
 		Node24 *n = (Node24 *)tn;
-		if (n->c == 0) BindEntityModelFromComData(Caster(), own::R(BIND_OUT), ANIM_DATA);
+		if (n->c == 0) BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 		int32_t c = n->c;
 		if (c < 7)
 		{
@@ -1733,6 +1734,9 @@ namespace rough163
 			{ "director", "models.shock", "Shock model", "The prim model shock (a mesh of 65 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.shock), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.flare", "Flare model", "The prim model flare (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.flare), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.wave", "Wave model", "The prim model wave (a mesh of 32 vertices, 15 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RoughDivideParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RoughDivideParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(RoughDivideParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

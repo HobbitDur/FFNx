@@ -111,10 +111,11 @@ namespace storm011
 		struct { uint32_t mouth, cone; } layout_data; // the prim-model layouts played (their models' animation)
 		struct { uint32_t puff, spark, mist, hit; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t stream, debris, ring; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
 	static const StormParams GAME = {
 		{ 0x136B970, 8, 0x4B }, { 0x19, 0x32, 5 }, { 0x18, 0x1D }, { 0x23, 0x1E, 0xC00, 0x7FF },
-		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 }, { 0x1368580, 0x1368200, 0x136843C, 0x1368360 }, { 0x1365720, 0x1368010, 0x1367CA8 } };
+		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 }, { 0x1368580, 0x1368200, 0x136843C, 0x1368360 }, { 0x1365720, 0x1368010, 0x1367CA8 }, { TEXTURE_NAME, 0x136B974 } };
 	static StormParams live = GAME;
 	static const StormParams &P() { return live; }
 	static const uint32_t MODEL_Stream = 0x1365720;     // stream model (vertex table at +8)
@@ -936,7 +937,7 @@ namespace storm011
 	// File loader (0x6EA510) and setup (0x6EA500 -> 0x6EA530): the game runs its own; Fujin's programs these
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -948,7 +949,7 @@ namespace storm011
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2556150), 0x14, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)0x136B974);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, 0x136B974));
 		return QRoot();
 	}
 
@@ -1098,6 +1099,8 @@ namespace storm011
 			{ "timing", "model_data.stream", "Stream model", "The prim model stream (a mesh of 308 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.stream), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timing", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timing", "model_data.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(StormParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "timing", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(StormParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 #undef SB
 	}

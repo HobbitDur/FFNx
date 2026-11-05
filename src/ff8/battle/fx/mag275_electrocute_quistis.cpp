@@ -120,8 +120,10 @@ namespace elec275
 		uint32_t sound;   // the discharge (main counter 0, at the caster)
 		struct { uint32_t glow; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark_b, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t tint_colour; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const ElectrocuteParams GAME = { 0x10DC2D0, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark } };
+	static const ElectrocuteParams GAME = { 0x10DC2D0, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM, 0x10DA574 }, { 0x10DC2D8 } };
 	static ElectrocuteParams live = GAME;
 	static const ElectrocuteParams &P() { return live; }
 	static const void *const TINT_Colour = (const void *)0x10DC2D8;
@@ -705,7 +707,7 @@ namespace elec275
 	// entity, the root (it sets up the rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -718,7 +720,7 @@ namespace elec275
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508360), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QRoot();
 	}
 
@@ -756,7 +758,7 @@ namespace elec275
 			uint8_t *e = Entity(s->slot);
 			e[1] |= 8;
 			const int32_t sn = ComputeSin(shl32(s->frame, 8));
-			BlendColour(&SavedTints()[s->slot], TINT_Colour, 0x1000 - sn, sn, e + 0x28);
+			BlendColour(&SavedTints()[s->slot], ((const void *)fxp::data(P().tables.tint_colour, (uint32_t)TINT_Colour, 4, 4)), 0x1000 - sn, sn, e + 0x28);
 		}
 		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(held_note_spark(s);)
@@ -1183,7 +1185,7 @@ namespace elec275
 				const uint8_t slot = Ctx()->actions->targets[i * TARGET_STRIDE];
 				SavedTints()[slot] = *(const uint32_t *)(Entity(slot) + 0x28);
 			}
-			BindExternalAnimSet(Caster(), (uint32_t)m->bind, COM_Anim);
+			BindExternalAnimSet(Caster(), (uint32_t)m->bind, fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Caster(), 1);
 			var<Point *>(TexBase() + ARC_FREE) = nullptr;
 			var<Point *>(TexBase() + CRAWL_FREE) = nullptr;
@@ -1218,6 +1220,10 @@ namespace elec275
 			{ "main", "layouts.glow", "Glow", "The prim-model layout glow (its models' animation)", (uint32_t)offsetof(ElectrocuteParams, layouts.glow), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "seqs.spark_b", "Spark b", "The sprite sequence spark b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ElectrocuteParams, seqs.spark_b), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ElectrocuteParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ElectrocuteParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ElectrocuteParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "main", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(ElectrocuteParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "main", "tables.tint_colour", "Tint colour", "The colour the targets are tinted toward (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(ElectrocuteParams, tables.tint_colour), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

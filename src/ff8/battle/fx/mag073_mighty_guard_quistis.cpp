@@ -107,8 +107,9 @@ namespace mguard_quistis
 		struct { int16_t wait; } master;                                            // after the last action, the darkening out after these ticks
 		struct { int16_t start, length, mode; } actors;                             // the actor system
 		struct { int16_t level, step; } darken;                                     // the stage darkening in and out: its level, a step a tick
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const MightyGuardQParams GAME = { { 0x1587F48, 0x10, 0x14, 0x2D }, { 0x23 }, { 0xC, 0x2D, 0 }, { 0x400, 0x100 } };
+	static const MightyGuardQParams GAME = { { 0x1587F48, 0x10, 0x14, 0x2D }, { 0x23 }, { 0xC, 0x2D, 0 }, { 0x400, 0x100 }, { COM_Anim } };
 	static MightyGuardQParams live = GAME;
 	static const MightyGuardQParams &PM() { return live; }
 	static const uint32_t Q_EMITTER = 0x25F4DA0, Q_ACTORS = 0x25F4B00, Q_STAGE = 0x25F4D90;
@@ -609,7 +610,7 @@ namespace mguard_quistis
 		Spawn(R(Q_STAGE), ORIG_Darken, 0x40, a1);
 		// Quistis' casting animation: the module's animation set bound to the caster (slot +0x2C), chain transformation 1
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C;
-		gx::BS_BindEntityModelFromComData(ent, R(BIND_Block), COM_Anim);
+		gx::BS_BindEntityModelFromComData(ent, R(BIND_Block), fxp::anim_set(PM().res.anim, COM_Anim));
 		gx::QueueChainTransformation(ent, 1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -2785,6 +2786,7 @@ namespace mguard_quistis
 			DT("emitter", actors.mode, "Mode", "", 0, 4),
 			DT("emitter", darken.level, "Level", "", 0, 0x1000),
 			DT("emitter", darken.step, "Step", "", 1, 0x1000),
+			{ "emitter", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(MightyGuardQParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

@@ -105,8 +105,10 @@ namespace helix063
 		struct { uint32_t ring, core, impact; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t beam; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t point_a, point_b; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 }, { MODEL_Ring, MODEL_Core, MODEL_Impact }, { SEQ_Particle }, { MODEL_Beam } };
+	static const HelixParams GAME = { 0x13549F4, { 0x36, 0x40 }, { 0x8FC, 500 }, { MODEL_Ring, MODEL_Core, MODEL_Impact }, { SEQ_Particle }, { MODEL_Beam }, { TEXTURE_NAME, CAMERA }, { 0x13549F8, 0x1354A00 } };
 	static HelixParams live = GAME;
 	static const HelixParams &P() { return live; }
 
@@ -486,8 +488,8 @@ namespace helix063
 		else flash = m->counter >= 0x10 ? (uint32_t)P().impact.flash : 0;
 		SetScreenFlash(flash, 0);
 		Points pts;
-		CasterPoint(POINT_A, pts.p1);
-		CasterPoint(POINT_B, pts.p2);
+		CasterPoint(fxp::data(P().tables.point_a, POINT_A, 8), pts.p1);
+		CasterPoint(fxp::data(P().tables.point_b, POINT_B, 8), pts.p2);
 		int16_t mid[3];
 		mid[0] = (int16_t)(((int32_t)pts.p2[0] + pts.p1[0]) / 2);
 		mid[1] = (int16_t)(((int32_t)pts.p2[1] + pts.p1[1]) / 2);
@@ -601,7 +603,7 @@ namespace helix063
 	// camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -614,7 +616,7 @@ namespace helix063
 		Target() = Entity(ctx->actions->targets[0]);
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x25450E0), 0x10, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 1);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -675,6 +677,10 @@ namespace helix063
 			{ "master", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(HelixParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(HelixParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "model_data.beam", "Beam model", "The prim model beam (a mesh of 246 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HelixParams, model_data.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(HelixParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(HelixParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "master", "tables.point_a", "Caster point a", "The first point on the caster: an offset from a bone (8 bytes: an edited one keeps its length)", (uint32_t)offsetof(HelixParams, tables.point_a), fxp::Data, 0, 0x7FFFFFFF },
+			{ "master", "tables.point_b", "Caster point b", "The second point on the caster: an offset from a bone (8 bytes: an edited one keeps its length)", (uint32_t)offsetof(HelixParams, tables.point_b), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef HP
 	}

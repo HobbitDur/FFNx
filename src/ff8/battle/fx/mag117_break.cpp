@@ -95,8 +95,9 @@ namespace break117
 		struct { uint32_t shell; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t debris; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell }, { SEQ_Spark }, { MODEL_Debris } };
+	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell }, { SEQ_Spark }, { MODEL_Debris }, { TEXTURE_NAME, CAMERA } };
 	static BreakParams live = GAME;
 	static const BreakParams &P() { return live; }
 	static const uint32_t STONE_TPage = 0xB8, STONE_Clut = 0x3D54;
@@ -1071,7 +1072,7 @@ namespace break117
 	// memory may be a copy's): the magic buffer, the cast, the root, the camera and the texture
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1083,7 +1084,7 @@ namespace break117
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return QRoot();
@@ -1172,6 +1173,8 @@ namespace break117
 			{ "target", "layouts.shell", "Shell", "The prim-model layout shell (its models' animation)", (uint32_t)offsetof(BreakParams, layouts.shell), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreakParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreakParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BreakParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BreakParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

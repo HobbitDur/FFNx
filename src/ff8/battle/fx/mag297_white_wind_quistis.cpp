@@ -97,8 +97,9 @@ namespace whitewind297
 	{
 		uint32_t sound;   // at the scene task's tick 1
 		struct { uint32_t caster, sweep, target; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const WhiteWind297Params GAME = { 0x105BA94, { MODEL_Caster, MODEL_Sweep, MODEL_Target } };
+	static const WhiteWind297Params GAME = { 0x105BA94, { MODEL_Caster, MODEL_Sweep, MODEL_Target }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static WhiteWind297Params live = GAME;
 	static const WhiteWind297Params &P() { return live; }
 	static const uint32_t MORPH = 0xAEC;                 // magic buffer: blended vertex frames
@@ -312,7 +313,7 @@ namespace whitewind297
 	// rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -326,7 +327,7 @@ namespace whitewind297
 		fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(Caster(), 1);                                        // QueueChainTransformation
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2507948), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QRoot();
 	}
 
@@ -482,6 +483,8 @@ namespace whitewind297
 			{ "scene", "layouts.caster", "Caster", "The prim-model layout caster (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.caster), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "scene", "layouts.sweep", "Sweep", "The prim-model layout sweep (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.sweep), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "scene", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "scene", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(WhiteWind297Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "scene", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(WhiteWind297Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

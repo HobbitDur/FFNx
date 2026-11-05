@@ -84,8 +84,9 @@ namespace confuse
 	{
 		struct { uint32_t sound; int16_t shake, chain, release, result; } emitter;   // its sound; the shake and overlay / the target's chain transformation / the master released / the damage at these ticks
 		struct { int16_t start, length, mode; } actors;                               // the actor system
+		struct { uint32_t shake_table; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const ConfuseParams GAME = { { 0x15D97F8, 0x14, 0x12, 0x1E, 0x1E }, { 0, 0x2D, 0 } };
+	static const ConfuseParams GAME = { { 0x15D97F8, 0x14, 0x12, 0x1E, 0x1E }, { 0, 0x2D, 0 }, { 0x15D97E0 } };
 	static ConfuseParams live = GAME;
 	static const ConfuseParams &PC() { return live; }
 	static const uint32_t SHAKE_TABLE = 0x15D97E0;     // s16 per tick, 0x7F = end
@@ -417,7 +418,7 @@ namespace confuse
 	// state) and leaves the word as it was
 	uint32_t __cdecl c_85FA80(uint32_t a1)
 	{
-		const uint16_t v = MEM<uint16_t>(SHAKE_TABLE + (uint32_t)((int32_t)S16(a1, 0x24) * 2));
+		const uint16_t v = MEM<uint16_t>(fxp::data(PC().tables.shake_table, SHAKE_TABLE, 12) + (uint32_t)((int32_t)S16(a1, 0x24) * 2));
 		if (v == 0x7F)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -2203,6 +2204,7 @@ namespace confuse
 			DT("actors", actors.start, "Start", "Its start tick", 0, 200),
 			DT("actors", actors.length, "Length", "Its ticks", 0, 200),
 			DT("actors", actors.mode, "Mode", "Its placement mode", 0, 4),
+			{ "emitter", "tables.shake_table", "Shake", "The screen shake by tick (12 bytes: an edited one keeps its length)", (uint32_t)offsetof(ConfuseParams, tables.shake_table), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

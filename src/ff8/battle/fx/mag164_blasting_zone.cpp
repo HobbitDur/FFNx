@@ -140,8 +140,11 @@ namespace blast164
 		struct { int16_t damage; } director;     // the action results at this tick
 		struct { uint32_t orbit, burst, smoke; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t flarea, flareb, ring, pulse, ball, frame, dome, beam, rock, debris, flash, morph, ringflat, ringflat2, glow, wave, wave2, swirl, shard; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t from, to; } morphs; // a morph's vertex sets (data): what its code blends a model's vertices from and to
+		struct { uint32_t dot_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const BlastingZoneParams GAME = { { 0xD99C10, 0xD99C14 }, { 0x133 }, { 0xD99748, 0xD999AC, 0xD9961C }, { 0xD8F8B8, 0xD909F0, 0xD94FAC, 0xD948C4, 0xD90F00, 0xD92154, 0xD8C130, 0xD9339C, 0xD8B180, 0xD8A048, 0xD8B880, 0xD8D918, 0xD8B610, 0xD95B7C, 0xD8EAA8, 0xD97D6C, 0xD95DEC, 0xD91AD0, 0xD95904 } };
+	static const BlastingZoneParams GAME = { { 0xD99C10, 0xD99C14 }, { 0x133 }, { 0xD99748, 0xD999AC, 0xD9961C }, { 0xD8F8B8, 0xD909F0, 0xD94FAC, 0xD948C4, 0xD90F00, 0xD92154, 0xD8C130, 0xD9339C, 0xD8B180, 0xD8A048, 0xD8B880, 0xD8D918, 0xD8B610, 0xD95B7C, 0xD8EAA8, 0xD97D6C, 0xD95DEC, 0xD91AD0, 0xD95904 }, { TEXTURE_NAME, ANIM_DATA }, { 0xD8E410, 0xD8E760 }, { 0xD99C1C } };
 	static BlastingZoneParams live = GAME;
 	static const BlastingZoneParams &P() { return live; }
 	static const uint32_t GLOW_REF = 0xD99C50;    // reference direction of the blade glow
@@ -1235,7 +1238,7 @@ namespace blast164
 	// yaw: Squall faces the targets
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1294,7 +1297,7 @@ namespace blast164
 		{
 			CameraScriptStart(CAMERA_SCRIPT, own::R(FRAME), Caster(), QMain(), 0);
 			ArmCameraReturn();
-			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 		}
 		int32_t c = n->c;
 		if (c < 0x23)
@@ -1934,7 +1937,7 @@ namespace blast164
 	{
 		const int32_t t = shl32(c, 12) / 36;
 		const int32_t count = var<int32_t>(MORPH_COUNT);
-		const uint8_t *a = (const uint8_t *)MORPH_A, *b = (const uint8_t *)MORPH_B;
+		const uint8_t *a = (const uint8_t *)fxp::data(P().morphs.from, MORPH_A, 840), *b = (const uint8_t *)fxp::data(P().morphs.to, MORPH_B, 840);
 		for (int32_t k = 0; k < count; k++, a += 8, b += 8, verts += 8)
 		{
 			const int16_t ax = *(const int16_t *)a, ay = *(const int16_t *)(a + 2);
@@ -2364,7 +2367,7 @@ namespace blast164
 		GteRTPS();
 		const int16_t life = p->life;
 		*(uint32_t *)pk = 0x2000000;
-		*(uint32_t *)(pk + 4) = var<uint32_t>(DOT_COLOURS + 4 * life);
+		*(uint32_t *)(pk + 4) = var<uint32_t>(fxp::data(P().tables.dot_colours, DOT_COLOURS, 52, 4) + 4 * life);
 		if (update)
 		{
 			const int16_t l = (int16_t)(life + 1);
@@ -2785,6 +2788,11 @@ namespace blast164
 			{ "director", "models.wave2", "Wave2 model", "The prim model wave2 (a mesh of 247 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.wave2), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.swirl", "Swirl model", "The prim model swirl (a mesh of 49 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.swirl), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 23 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlastingZoneParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BlastingZoneParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(BlastingZoneParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "morphs.from", "Morph from", "The vertices the morph model blends from (105 vertices x, y, z, pad: an edited one keeps the count)", (uint32_t)offsetof(BlastingZoneParams, morphs.from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "morphs.to", "Morph to", "The vertices the morph model blends to (105 vertices x, y, z, pad: an edited one keeps the count)", (uint32_t)offsetof(BlastingZoneParams, morphs.to), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.dot_colours", "Dot colours", "The dots' colour words by life (52 bytes: an edited one keeps its length)", (uint32_t)offsetof(BlastingZoneParams, tables.dot_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

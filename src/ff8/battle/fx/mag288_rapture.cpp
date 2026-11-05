@@ -94,8 +94,10 @@ namespace rapture288
 		struct { uint32_t a, b; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t sequence; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t feather; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B }, { SEQUENCE }, { FEATHER_MODEL } };
+	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B }, { SEQUENCE }, { FEATHER_MODEL }, { TEXTURE_NAME, CAMERA_ANIM }, { 0x1078980 } };
 	static RaptureParams live = GAME;
 	static const RaptureParams &P() { return live; }
 	static const uint32_t DEPTH_VEC = 0x1078978;  // 3 x int16: the layout B depth probe
@@ -364,7 +366,7 @@ namespace rapture288
 	// may be a copy's): the TIM, the magic buffer, the cast, the root (it sets up the rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -375,7 +377,7 @@ namespace rapture288
 		Ctx() = ctx;
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2507C88), 0x18, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 3);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QRoot();
 	}
 
@@ -559,7 +561,7 @@ namespace rapture288
 			const uint32_t q = mulhi_u(x, 0xBACF914Du);
 			const uint32_t w = (((x - q) >> 1) + q) >> 6;
 			const int32_t idx = (int32_t)w >> 12, frac = (int32_t)(w & 0xFFF);
-			BlendColour((const void *)(COLOURS + idx * 4), (const void *)(COLOURS + 4 + idx * 4), 0x1000 - frac, frac, &colour);
+			BlendColour((const void *)(fxp::data(P().tables.colours, COLOURS, 24, 4) + idx * 4), (const void *)(fxp::data(P().tables.colours, COLOURS, 24, 4) + 4 + idx * 4), 0x1000 - frac, frac, &colour);
 		}
 		int a;
 		if (r->started)
@@ -592,6 +594,9 @@ namespace rapture288
 			{ "target", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "seqs.sequence", "Sequence", "The sprite sequence sequence (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(RaptureParams, seqs.sequence), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "model_data.feather", "Feather model", "The prim model feather (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RaptureParams, model_data.feather), fxp::Model, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RaptureParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RaptureParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "target", "tables.colours", "Colours", "The colours it blends through (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(RaptureParams, tables.colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -97,8 +97,9 @@ namespace badbreath113
 		struct { int16_t damage; } target; // the damage at this tick of a target's task
 		struct { uint32_t cloud; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t stream, rise, spray; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BreathParams GAME = { 0x12C1600, { 0x1B }, { MODEL_Cloud }, { SEQ_Stream, SEQ_Rise, SEQ_Spray } };
+	static const BreathParams GAME = { 0x12C1600, { 0x1B }, { MODEL_Cloud }, { SEQ_Stream, SEQ_Rise, SEQ_Spray }, { TEXTURE_NAME, CAMERA } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 
@@ -772,7 +773,7 @@ namespace badbreath113
 	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -784,7 +785,7 @@ namespace badbreath113
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2521880), 0x14, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -841,6 +842,8 @@ namespace badbreath113
 			{ "breath", "seqs.stream", "Stream", "The sprite sequence stream (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.stream), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "breath", "seqs.rise", "Rise", "The sprite sequence rise (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.rise), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "breath", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "breath", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BreathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "breath", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BreathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

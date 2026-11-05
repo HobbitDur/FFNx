@@ -217,8 +217,10 @@ namespace mist013
 		struct { int16_t puffs_until, stream_a, stream_b, spawner_c, spawner_d, overlay, end; } control;   // the controller's ticks
 		struct { uint32_t mist, mist_b, puff_c, puff_d; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t cloud, swirl, ring_table; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t stream_vectors; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const MistParams GAME = { { 0x16309F8, 0x19, 0x46 }, { 0xC, 0x10, 0x17, 0x10, 0x1E, 0x10, 0x1E }, { 0x16309FC, 0x1630E94, 0x1630C78, 0x1630D84 }, { 0x1633C24, 0x163257C, 0x1630ED4 } };
+	static const MistParams GAME = { { 0x16309F8, 0x19, 0x46 }, { 0xC, 0x10, 0x17, 0x10, 0x1E, 0x10, 0x1E }, { 0x16309FC, 0x1630E94, 0x1630C78, 0x1630D84 }, { 0x1633C24, 0x163257C, 0x1630ED4 }, { TEXTURE_NAME, CAMERA }, { 0x1634B20 } };
 	static MistParams live = GAME;
 	static const MistParams &P() { return live; }
 	static const uint32_t MODEL_Swirl = 0x163257C, MODEL_Cloud = 0x1633C24;
@@ -718,7 +720,7 @@ namespace mist013
 		p->last = 0x17;
 		p->shade = (int16_t)0xFE00;
 		CopyAnchor(p, p->h.pos);
-		const int16_t *v = (const int16_t *)(STREAM_Vectors + (int32_t)p->variant * 8);
+		const int16_t *v = (const int16_t *)(fxp::data(P().tables.stream_vectors, STREAM_Vectors, 80) + (int32_t)p->variant * 8);
 		const int32_t d = p->life;
 		p->vel[0] = (int16_t)(v[0] / d);
 		p->vel[1] = (int16_t)(v[1] / d);
@@ -1363,7 +1365,7 @@ namespace mist013
 	// four pools
 	static uint32_t __cdecl FileLoader()
 	{
-		File() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		File() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return File();
 	}
 
@@ -1376,7 +1378,7 @@ namespace mist013
 		r->h.slot = slot;
 		r->last_action = ctx->actions[0].last_action;
 		r->target_count = (int16_t)ctx->actions[0].target_count;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		QueueTimUpload(File());
 		ArenaA() = layouts::MagicBuffer();
 		ArenaB() = ArenaA() + 0x4000;
@@ -1436,6 +1438,9 @@ namespace mist013
 			{ "emitter", "models.cloud", "Cloud model", "The prim model cloud (a mesh of 160 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MistParams, models.cloud), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.swirl", "Swirl model", "The prim model swirl (a mesh of 144 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MistParams, models.swirl), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.ring_table", "Ring table model", "The prim model ring table (a mesh of 144 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MistParams, models.ring_table), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MistParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "emitter", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(MistParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.stream_vectors", "Stream vectors", "Each mist stream variant's direction (x, y, z) (80 bytes: an edited one keeps its length)", (uint32_t)offsetof(MistParams, tables.stream_vectors), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef DMI
 	}

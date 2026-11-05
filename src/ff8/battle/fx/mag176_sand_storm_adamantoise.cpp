@@ -121,8 +121,9 @@ namespace sandstorm176
 	{
 		struct { uint32_t wind, land; } sounds; // the wind at the director's tick 14, a target landing
 		struct { uint32_t sand; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const SandStorm176Params GAME = { { 0xD4514C, 0xD45150 }, { SEQ_Sand } };
+	static const SandStorm176Params GAME = { { 0xD4514C, 0xD45150 }, { SEQ_Sand }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static SandStorm176Params live = GAME;
 	static const SandStorm176Params &P() { return live; }
 
@@ -498,7 +499,7 @@ namespace sandstorm176
 	// and the director, the sand pool cleared, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -513,7 +514,7 @@ namespace sandstorm176
 		InitTaskQueuePool((TaskQueue *)own::R(Q_FX), (void *)own::R(0x23733F8), 0x24, 100);
 		S16(Add(own::R(Q_FX), ORIG_Director), 0xC) = 0;
 		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TexFile());
 		return (TaskQueue *)own::R(Q_ROOT);
 	}
@@ -911,6 +912,8 @@ namespace sandstorm176
 			{ "director", "sounds.wind", "Wind", "At the director's tick 14", (uint32_t)offsetof(SandStorm176Params, sounds.wind), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.land", "Land", "A target landing (its result)", (uint32_t)offsetof(SandStorm176Params, sounds.land), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "seqs.sand", "Sand", "The sprite sequence sand (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStorm176Params, seqs.sand), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SandStorm176Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SandStorm176Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

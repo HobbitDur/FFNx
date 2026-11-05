@@ -109,8 +109,10 @@ namespace clash026
 		struct { int16_t gravity; } knock;                                          // the target's knock-back
 		struct { uint32_t spark, dust; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ring, wave_a, wave_b; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t fade_table; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const ClashParams GAME = { { SOUND_Clash, 4, 4, 0x1E, 4 }, { 4, 0x28, 0x11, 0x14, 8, 0x100 }, { 0x30 }, { SEQ_Spark, SEQ_Dust }, { MODEL_Ring, MODEL_WaveA, MODEL_WaveB } };
+	static const ClashParams GAME = { { SOUND_Clash, 4, 4, 0x1E, 4 }, { 4, 0x28, 0x11, 0x14, 8, 0x100 }, { 0x30 }, { SEQ_Spark, SEQ_Dust }, { MODEL_Ring, MODEL_WaveA, MODEL_WaveB }, { TEXTURE_NAME }, { 0x161075C } };
 	static ClashParams live = GAME;
 	static const ClashParams &PC() { return live; }
 
@@ -234,7 +236,7 @@ namespace clash026
 	{
 		if (i > 0xB) i = 0xB;
 		else if (i < 0) i = 0;
-		return MEM<int16_t>(FADE_TABLE + 2 * (int32_t)i);
+		return MEM<int16_t>(fxp::data(PC().tables.fade_table, FADE_TABLE, 24) + 2 * (int32_t)i);
 	}
 
 	// 0x888E70 (sub_888E70): next sequence frame; past the last one (+0x52): hidden, last frame, 1
@@ -872,7 +874,7 @@ namespace clash026
 	// no camera), the two packet arenas in the magic buffer, the queues
 	static uint32_t __cdecl FileLoader()
 	{
-		MEM<uint32_t>(own::R(FILE_PTR)) = x::IO_GetFile_MAGIC(TEXTURE_NAME);
+		MEM<uint32_t>(own::R(FILE_PTR)) = x::IO_GetFile_MAGIC(fxp::name(PC().res.texture_name, TEXTURE_NAME));
 		return MEM<uint32_t>(own::R(FILE_PTR));
 	}
 
@@ -949,6 +951,8 @@ namespace clash026
 			{ "emitter", "models.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.wave_a", "Wave a model", "The prim model wave a (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.wave_a), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.wave_b", "Wave b model", "The prim model wave b (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.wave_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ClashParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.fade_table", "Fade", "The fade by tick (4096 = full) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(ClashParams, tables.fade_table), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

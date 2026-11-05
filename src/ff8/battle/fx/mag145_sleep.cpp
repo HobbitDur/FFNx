@@ -107,8 +107,9 @@ namespace sleep145
 		struct { int16_t status; } director; // the status at this tick of an action's director
 		struct { uint32_t particle, zzz; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t bubble; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const SleepParams GAME = { 0xDD7904, { 0x1E }, { SEQ_Particle, SEQ_Zzz }, { MODEL_Bubble } };
+	static const SleepParams GAME = { 0xDD7904, { 0x1E }, { SEQ_Particle, SEQ_Zzz }, { MODEL_Bubble }, { TEXTURE_NAME, CAMERA } };
 	static SleepParams live = GAME;
 	static const SleepParams &PSL() { return live; }
 
@@ -868,7 +869,7 @@ namespace sleep145
 	// target slot +0x20), the 40 Zzz entries freed, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PSL().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -887,7 +888,7 @@ namespace sleep145
 		for (uint32_t z = own::R(ZZZ); z < own::R(ZZZ_END); z += 12) *(int16_t *)z = -1;
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(PSL().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return QRoot();
@@ -1280,6 +1281,8 @@ namespace sleep145
 			{ "director", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.zzz", "Zzz", "The sprite sequence zzz (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.zzz), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "models.bubble", "Bubble model", "The prim model bubble (a mesh of 32 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SleepParams, models.bubble), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SleepParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SleepParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -141,8 +141,9 @@ namespace sp070
 		struct { uint32_t ring, centre, wave, lift, rise; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t burst, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t shard; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE }, { BURST_SEQ, SPARK_SEQ }, { SHARD_MODEL } };
+	static const PulsarParams GAME = { { 0x1324DAC, 0x1324ECC, 0x1324ED0, 0x1324ED4 }, { 0xFC, 0x102, 0x106 }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE }, { BURST_SEQ, SPARK_SEQ }, { SHARD_MODEL }, { TEXTURE_NAME } };
 	static PulsarParams live = GAME;
 	static const PulsarParams &PP() { return live; }
 
@@ -1479,7 +1480,7 @@ namespace sp070
 	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PP().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1609,6 +1610,7 @@ namespace sp070
 			{ "master", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(PulsarParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(PulsarParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "model_data.shard", "Shard model", "The prim model shard (a mesh of 12 vertices, 6 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(PulsarParams, model_data.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(PulsarParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
 		};
 #undef PP_
 	}

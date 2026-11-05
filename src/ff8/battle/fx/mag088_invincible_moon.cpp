@@ -78,8 +78,9 @@ namespace moon88
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
 		struct { uint32_t at_154ecec, at_154ee30; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_154ef74, at_154f404; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const MoonParams GAME = { { SOUND_A, SOUND_B }, { 0x23 }, { 0x154ECEC, 0x154EE30 }, { 0x154EF74, 0x154F404 } };
+	static const MoonParams GAME = { { SOUND_A, SOUND_B }, { 0x23 }, { 0x154ECEC, 0x154EE30 }, { 0x154EF74, 0x154F404 }, { 0x15560C0 } };
 	static MoonParams live = GAME;
 	static const MoonParams &PC() { return live; }
 
@@ -4146,7 +4147,7 @@ namespace moon88
 	{
 		const uint32_t e = ENT(U8(a1, 0x2C));
 		U32(MEM<uint32_t>(G(G_1533010)), 0x18) = a1;
-		gx::BindEntityModelFromComData(e, R(0x25ACD10), 0x15560C0);
+		gx::BindEntityModelFromComData(e, R(0x25ACD10), fxp::anim_set(PC().res.anim, 0x15560C0));
 		gx::QueueChainTransformation(e, 1);
 		U32(a1, 0x4C) = U32(e, 0x1C);
 		U32(a1, 0x50) = U32(e, 0x20);
@@ -4639,6 +4640,7 @@ namespace moon88
 			{ "director", "seqs.at_154ee30", "Flipbook 154EE30", "The sprite sequence at 0x154EE30 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoonParams, seqs.at_154ee30), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "models.at_154ef74", "Model 154EF74", "The prim model at 0x154EF74 (a mesh of 45 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoonParams, models.at_154ef74), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.at_154f404", "Model 154F404", "The prim model at 0x154F404 (a mesh of 45 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoonParams, models.at_154f404), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(MoonParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 

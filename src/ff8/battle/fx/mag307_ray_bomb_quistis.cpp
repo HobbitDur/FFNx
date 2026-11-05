@@ -130,8 +130,10 @@ namespace raybomb307
 		struct { uint32_t muzzle, blast; } sounds;   // at the muzzle (director tick 0xA); with the shockwave (0x51)
 		struct { uint32_t dust, puff, spark, charge; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ring, beam, flash; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t dust_offset, dust_dir, puff_x, puff_z, debris_x, debris_z; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const RayBomb307Params GAME = { { 0xCE40CC, 0xCE40D0 }, { SEQ_Dust, SEQ_Puff, SEQ_Spark, SEQ_Charge }, { MODEL_Ring, MODEL_Beam, MODEL_Flash } };
+	static const RayBomb307Params GAME = { { 0xCE40CC, 0xCE40D0 }, { SEQ_Dust, SEQ_Puff, SEQ_Spark, SEQ_Charge }, { MODEL_Ring, MODEL_Beam, MODEL_Flash }, { TEXTURE_NAME, CAMERA_ANIM, 0xCDF86C }, { 0xCE4138, 0xCE4148, 0xCE40D8, 0xCE4100, 0xCE40EC, 0xCE4114 } };
 	static RayBomb307Params live = GAME;
 	static const RayBomb307Params &P() { return live; }
 	static const uint32_t BIND_Block = 0x2240F18;                      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -356,7 +358,7 @@ namespace raybomb307
 	// particles freed
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -369,7 +371,7 @@ namespace raybomb307
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
 		InitTaskQueuePool(QEffect(), (void *)own::R(0x22416C8), 0x24, 100);
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Director)) + 0xC) = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TexFile());
 		for (int i = 0; i < PARTICLES; i++) *(int32_t *)&Particles()[i] = 0;
 		return QRoot();
@@ -984,7 +986,7 @@ namespace raybomb307
 		const Mat4x3 *crot = (const Mat4x3 *)(caster + 0x40);
 		if (d->counter == 1)
 		{
-			BindEntityModelFromComData(caster, own::R(BIND_Block), COM_Anim);
+			BindEntityModelFromComData(caster, own::R(BIND_Block), fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Entity(CasterSlot()), 3);
 		}
 		if (d->counter == 0xF) caster[0] |= 8;
@@ -1023,7 +1025,7 @@ namespace raybomb307
 					p->counter = 0;
 					int32_t r = CrtRand() % 0x300;
 					int16_t off[4];
-					memcpy(off, (const void *)(TABLE_DustOffset + 8 * k), 8);
+					memcpy(off, (const void *)(fxp::data(P().tables.dust_offset, TABLE_DustOffset, 16) + 8 * k), 8);
 					p->scale = (int16_t)(r + 0x200);
 					MatrixMulVector(crot, off, off);
 					memcpy(p->pos, Muzzle(), 8);
@@ -1031,7 +1033,7 @@ namespace raybomb307
 					p->pos[1] = (int16_t)(p->pos[1] + off[1]);
 					p->pos[2] = (int16_t)(p->pos[2] + off[2]);
 					int16_t dir[4];
-					memcpy(dir, (const void *)(TABLE_DustDir + 8 * k), 8);
+					memcpy(dir, (const void *)(fxp::data(P().tables.dust_dir, TABLE_DustDir, 16) + 8 * k), 8);
 					MatrixMulVector(crot, dir, dir);
 					NormalizeSVector(dir, dir);
 					int32_t speed = CrtRand() % 100 + 0x3C;
@@ -1083,9 +1085,9 @@ namespace raybomb307
 					memcpy(&p->pos[2], &Centre()[2], 4);
 					r = CrtRand() % 0x320;
 					p->pos[1] = 0;
-					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_PuffX + 4 * k)) - 0x190);
+					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.puff_x, TABLE_PuffX, 20) + 4 * k)) - 0x190);
 					r = CrtRand() % 0x320;
-					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(TABLE_PuffZ + 4 * k)) - 0x12C);
+					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.puff_z, TABLE_PuffZ, 20) + 4 * k)) - 0x12C);
 					p->angle = (int16_t)(CrtRand() & 0xFFF);
 					r = CrtRand() % 0xE00;
 					p->scale = (int16_t)(r + 0x800);
@@ -1118,11 +1120,11 @@ namespace raybomb307
 					p->life = (int16_t)(r + j + 0xB);
 					memcpy(&p->pos[2], &Centre()[2], 4);
 					r = CrtRand() % 0xE10;
-					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_DebrisX + 4 * k)) - 0x708);
+					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.debris_x, TABLE_DebrisX, 20) + 4 * k)) - 0x708);
 					r = CrtRand() % 0x3C;
 					p->pos[1] = (int16_t)-r;
 					r = CrtRand() % 0xE10;
-					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(TABLE_DebrisZ + 4 * k)) - 0x708);
+					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.debris_z, TABLE_DebrisZ, 20) + 4 * k)) - 0x708);
 					r = CrtRand() % 0x1F4;
 					p->vy = (int16_t)(-30 - r);
 					p->model = (int16_t)(CrtRand() & 1);
@@ -1185,6 +1187,15 @@ namespace raybomb307
 			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBomb307Params, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.beam", "Beam model", "The prim model beam (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBomb307Params, models.beam), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 55 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBomb307Params, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RayBomb307Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RayBomb307Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(RayBomb307Params, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "tables.dust_offset", "Dust offsets", "Where each dust puff starts from the impact (x, y, z) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBomb307Params, tables.dust_offset), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.dust_dir", "Dust directions", "Each dust puff's direction (x, y, z) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBomb307Params, tables.dust_dir), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.puff_x", "Puff x offsets", "Each puff's x offset (+ a random, - 0x190) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBomb307Params, tables.puff_x), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.puff_z", "Puff z offsets", "Each puff's z offset (+ a random, - 0x12C) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBomb307Params, tables.puff_z), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.debris_x", "Debris x offsets", "Each debris' x offset (+ a random, - 0x708) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBomb307Params, tables.debris_x), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.debris_z", "Debris z offsets", "Each debris' z offset (+ a random, - 0x708) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBomb307Params, tables.debris_z), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

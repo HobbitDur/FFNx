@@ -163,8 +163,10 @@ namespace flame194
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t smoke, ground_smoke, head, flame; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ring, pillar, burst, flash, spin; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ember_colours, ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const FlameShotParams GAME = { 0xD12E64, { 0xD0DB5C, 0xD0DC34, 0xD0DCA8, 0xD0D938 }, { 0xD0DCE4, 0xD1283C, 0xD0FB0C, 0xD106DC, 0xD11B54 } };
+	static const FlameShotParams GAME = { 0xD12E64, { 0xD0DB5C, 0xD0DC34, 0xD0DCA8, 0xD0D938 }, { 0xD0DCE4, 0xD1283C, 0xD0FB0C, 0xD106DC, 0xD11B54 }, { TEXTURE_NAME, 0xD0BD78 }, { 0xD12E94, 0xD12E80 } };
 	static FlameShotParams live = GAME;
 	static const FlameShotParams &P() { return live; }
 
@@ -634,7 +636,7 @@ namespace flame194
 	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -892,7 +894,7 @@ namespace flame194
 			// 30 fps layer: see mag194_flame_shot_held.inc
 			FX_HELD(held_note_part(e);)
 			EmberLoad(e->pos);
-			const uint32_t colour = EMBER_COLOURS[frame];
+			const uint32_t colour = ((const uint32_t *)fxp::data(P().tables.ember_colours, (uint32_t)EMBER_COLOURS, 32, 4))[frame];
 			if (!(UpdateFlags() & 0x201))
 			{
 				e->frame = (int16_t)(frame + 1);
@@ -1263,7 +1265,7 @@ namespace flame194
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
@@ -1281,7 +1283,7 @@ namespace flame194
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1367,6 +1369,10 @@ namespace flame194
 			{ "shot", "models.burst", "Burst model", "The prim model burst (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.flash", "Flash model", "The prim model flash (a mesh of 200 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.spin", "Spin model", "The prim model spin (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.spin), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FlameShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(FlameShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ember_colours", "Ember colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(FlameShotParams, tables.ember_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(FlameShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

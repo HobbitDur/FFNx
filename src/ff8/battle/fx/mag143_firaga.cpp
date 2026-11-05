@@ -77,8 +77,9 @@ namespace firaga143
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
 		struct { uint32_t area_flame; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t burst, flame_swirl, fireball, spark; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const FiragaParams GAME = { 0xDDD8F0, { 0x30 }, { 0xDDA594 }, { 0xDDD208, 0xDDA740, 0xDDC578, 0xDDCE48 } };
+	static const FiragaParams GAME = { 0xDDD8F0, { 0x30 }, { 0xDDA594 }, { 0xDDD208, 0xDDA740, 0xDDC578, 0xDDCE48 }, { TEXTURE_NAME, CAMERA } };
 	static FiragaParams live = GAME;
 	static const FiragaParams &P() { return live; }
 
@@ -153,7 +154,7 @@ namespace firaga143
 	// director (its target slot +0x20), the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -172,7 +173,7 @@ namespace firaga143
 		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return &Queues().first;
@@ -599,6 +600,8 @@ namespace firaga143
 			{ "director", "models.flame_swirl", "Flame swirl model", "The prim model flame swirl (a mesh of 162 vertices, 320 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.flame_swirl), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.fireball", "Fireball model", "The prim model fireball (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.fireball), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.spark", "Spark model", "The prim model spark (a mesh of 31 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.spark), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FiragaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FiragaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -133,8 +133,10 @@ namespace renzo332
 		uint32_t sound;   // at the controller's tick 1
 		struct { uint32_t flash, debris, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t sparkle, slash, streak, ring_a, ring_b; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t hit_lead, hit_offs; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const Renzokuken332Params GAME = { 0xE7D4A0, { 0xCC3648, 0xCC3918, 0xCC37F4 }, { 0xE7D4A4, 0xCC3BD0, 0xCC45B8, 0xCC4838, 0xCC54E0 } };
+	static const Renzokuken332Params GAME = { 0xE7D4A0, { 0xCC3648, 0xCC3918, 0xCC37F4 }, { 0xE7D4A4, 0xCC3BD0, 0xCC45B8, 0xCC4838, 0xCC54E0 }, { TEXTURE_NAME, CAMERA, 0xE7E368 }, { 0xCC6680, 0xCC66B0 } };
 	static Renzokuken332Params live = GAME;
 	static const Renzokuken332Params &P() { return live; }
 	static const uint32_t MODEL_SPARKLE = 0xE7D4A4, SPARKLE_FADE = 0xE7D62C, SPARKLE_DEPTH = 0xE7D61C;
@@ -304,7 +306,7 @@ namespace renzo332
 	// the length (4 until the sequence's tick 2), the finisher flag, the three particle pools freed, the camera, the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -323,7 +325,7 @@ namespace renzo332
 		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC) *(int16_t *)a = -1;
 		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14) *(int16_t *)a = -1;
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10) *(int16_t *)a = -1;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		QueueTimUpload(TexFile());
 		return QMaster();
 	}
@@ -341,7 +343,7 @@ namespace renzo332
 		}
 		if (n->c == 1)
 		{
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+			BindEntityModelFromComData(Caster(), BIND_OUT, fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), (Finisher() != 0) + 1);
 		}
 		if (n->c == 2)
@@ -726,7 +728,7 @@ namespace renzo332
 		int32_t sum = 0;
 		for (int32_t b = 0; b < (int32_t)StageCount(); b++)
 		{
-			const int32_t lead = var<int32_t>(HIT_LEAD + 4 * b);
+			const int32_t lead = var<int32_t>(fxp::data(P().tables.hit_lead, HIT_LEAD, 48, 4) + 4 * b);
 			sum += StageLen(b);
 			if ((int32_t)n->c != sum - lead) continue;
 			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Slash));
@@ -740,7 +742,7 @@ namespace renzo332
 			// spark spawner 0x58C950, pushed first: the game executor 0x508420's ebx = the count of tasks kept so far in
 			// this pass, a small number): 0.
 			int16_t hp[4];
-			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HIT_OFFS + 8 * b), hp);
+			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(fxp::data(P().tables.hit_offs, HIT_OFFS, 96) + 8 * b), hp);
 			hp[0] = (int16_t)(hp[0] + var<int16_t>(own::R(HIT_POS)));
 			hp[1] = (int16_t)(hp[1] + var<int16_t>(own::R(HIT_POS) + 2));
 			hp[2] = (int16_t)(hp[2] + var<int16_t>(own::R(HIT_POS) + 4));
@@ -1050,6 +1052,11 @@ namespace renzo332
 			{ "controller", "models.streak", "Streak model", "The prim model streak (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken332Params, models.streak), fxp::Model, 0, 0x7FFFFFFF },
 			{ "controller", "models.ring_a", "Ring a model", "The prim model ring a (a mesh of 112 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken332Params, models.ring_a), fxp::Model, 0, 0x7FFFFFFF },
 			{ "controller", "models.ring_b", "Ring b model", "The prim model ring b (a mesh of 112 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken332Params, models.ring_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(Renzokuken332Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(Renzokuken332Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(Renzokuken332Params, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "controller", "tables.hit_lead", "Hit leads", "Each hit's lead (how far ahead of its slash) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(Renzokuken332Params, tables.hit_lead), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.hit_offs", "Hit offsets", "Where each hit lands from the caster (x, y, z) (96 bytes: an edited one keeps its length)", (uint32_t)offsetof(Renzokuken332Params, tables.hit_offs), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

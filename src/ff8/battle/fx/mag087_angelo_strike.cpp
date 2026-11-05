@@ -84,8 +84,9 @@ namespace strike87
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
 		struct { uint32_t at_1557d34; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_155aa5c, at_1557fbc, at_155adf4, at_155b12c; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const StrikeParams GAME = { { SOUND_A, SOUND_B }, { 0x48 }, { 0x1557D34 }, { 0x155AA5C, 0x1557FBC, 0x155ADF4, 0x155B12C } };
+	static const StrikeParams GAME = { { SOUND_A, SOUND_B }, { 0x48 }, { 0x1557D34 }, { 0x155AA5C, 0x1557FBC, 0x155ADF4, 0x155B12C }, { 0x1560550 } };
 	static StrikeParams live = GAME;
 	static const StrikeParams &PC() { return live; }
 
@@ -1302,7 +1303,7 @@ namespace strike87
 		const uint32_t c = ENT(U8(node, 0x2C));
 		const uint32_t t = gx::EntityChainLowest(ENT(U8(node, 0x2D)));
 		U32(MEM<uint32_t>(G(G_1533010)), 0x18) = node;
-		gx::BindEntityModelFromComData(c, R(0x25B4B28), 0x1560550);
+		gx::BindEntityModelFromComData(c, R(0x25B4B28), fxp::anim_set(PC().res.anim, 0x1560550));
 		gx::QueueChainTransformation(c, 1);
 		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 4);
@@ -4682,6 +4683,7 @@ namespace strike87
 			{ "director", "models.at_1557fbc", "Model 1557FBC", "The prim model at 0x1557FBC (a mesh of 279 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StrikeParams, models.at_1557fbc), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.at_155adf4", "Model 155ADF4", "The prim model at 0x155ADF4 (a mesh of 18 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StrikeParams, models.at_155adf4), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.at_155b12c", "Model 155B12C", "The prim model at 0x155B12C (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StrikeParams, models.at_155b12c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(StrikeParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 

@@ -76,8 +76,10 @@ namespace thundara102
 		struct { int16_t damage; } bolt; // the damage at this frame of the bolt
 		struct { uint32_t strike, upper_a, upper_b, core, arc, arc_low, glow, smoke, fade, spark, flash_sprite; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t tilted_glow, column, flash_ball; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t flash_colour; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A }, { 0x131E878, 0x131EABC, 0x131ECB0, 0x131F0E8, 0x131FF74, 0x131EECC, 0x131F458, 0x131F5B4, 0x131FA68, 0x131F244, 0x131E760 }, { 0x13200D0, 0x13207B8, 0x1320EA0 } };
+	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A }, { 0x131E878, 0x131EABC, 0x131ECB0, 0x131F0E8, 0x131FF74, 0x131EECC, 0x131F458, 0x131F5B4, 0x131FA68, 0x131F244, 0x131E760 }, { 0x13200D0, 0x13207B8, 0x1320EA0 }, { TEXTURE_NAME, CAMERA }, { 0x1321BDC } };
 	static ThundaraParams live = GAME;
 	static const ThundaraParams &P() { return live; }
 	// strike layers (sprite sequences)
@@ -210,7 +212,7 @@ namespace thundara102
 	// and the texture
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -225,7 +227,7 @@ namespace thundara102
 		InitTaskQueuePool(&Particles().second, (void *)own::R(0x2544060), 0x18, 32);
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return &Queues().first;
@@ -551,13 +553,13 @@ namespace thundara102
 		}
 		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(held_note_draw(ORIG_BoltTask, p, sizeof(BoltNode));)
-		if (p->counter == 0xC) PacketCursor() = ScreenFlashQuad(FLASH_Colour, PacketCursor());
+		if (p->counter == 0xC) PacketCursor() = ScreenFlashQuad(((const void *)fxp::data(P().tables.flash_colour, (uint32_t)FLASH_Colour, 4, 4)), PacketCursor());
 		if (p->counter > 0xA)
 		{
 			int32_t f = p->counter - 0xB;
 			uint8_t *h = AllocHeader(0xB4);
 			BoltLayers(p, f, h);
-			if (f == 0xC) PacketCursor() = ScreenFlashQuad(FLASH_Colour, PacketCursor());
+			if (f == 0xC) PacketCursor() = ScreenFlashQuad(((const void *)fxp::data(P().tables.flash_colour, (uint32_t)FLASH_Colour, 4, 4)), PacketCursor());
 			if (f >= 4 && f < 0x14 && !(f & 1)) SpawnFlashes(p);
 			FieldFree(0xB4);
 		}
@@ -662,6 +664,9 @@ namespace thundara102
 			{ "bolt", "models.tilted_glow", "Tilted glow model", "The prim model tilted glow (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.tilted_glow), fxp::Model, 0, 0x7FFFFFFF },
 			{ "bolt", "models.column", "Column model", "The prim model column (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
 			{ "bolt", "models.flash_ball", "Flash ball model", "The prim model flash ball (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.flash_ball), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ThundaraParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "bolt", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ThundaraParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "bolt", "tables.flash_colour", "Flash colour", "The screen flash's colour (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(ThundaraParams, tables.flash_colour), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

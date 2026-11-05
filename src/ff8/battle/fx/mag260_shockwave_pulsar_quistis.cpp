@@ -164,8 +164,9 @@ namespace pulsar260
 		struct { uint32_t ring, centre, wave, lift, rise; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t burst, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t shard; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const Pulsar260Params GAME = { { 0x111CF40, 0x111CF44, 0x111CF48 }, { 0xFC }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE }, { BURST_SEQ, SPARK_SEQ }, { SHARD_MODEL } };
+	static const Pulsar260Params GAME = { { 0x111CF40, 0x111CF44, 0x111CF48 }, { 0xFC }, { LAYOUT_RING, LAYOUT_CENTRE, LAYOUT_WAVE, LAYOUT_LIFT, LAYOUT_RISE }, { BURST_SEQ, SPARK_SEQ }, { SHARD_MODEL }, { TEXTURE_NAME, COM_Anim } };
 	static Pulsar260Params live = GAME;
 	static const Pulsar260Params &P() { return live; }
 	static const uint32_t SPARKS = 0x12E0, SPARKS_LAST = 0x1AD0;   // magic buffer: pool A (0x80 x 0x10)
@@ -349,7 +350,7 @@ namespace pulsar260
 	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -2014,7 +2015,7 @@ namespace pulsar260
 			InitTaskQueuePool(QSub(), (void *)(TexBase() + 0x2160), 0x114, 0xC);
 			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x4A3);
-			BindEntityModelFromComData(Caster(), m->bind, COM_Anim);
+			BindEntityModelFromComData(Caster(), m->bind, fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Caster(), 1);
 			int16_t minx = 0x7FFF, miny = 0x7FFF, minz = 0x7FFF;
 			int16_t maxx = (int16_t)0x8001, maxy = (int16_t)0x8001, maxz = (int16_t)0x8001;
@@ -2123,6 +2124,8 @@ namespace pulsar260
 			{ "master", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(Pulsar260Params, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(Pulsar260Params, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "master", "model_data.shard", "Shard model", "The prim model shard (a mesh of 12 vertices, 6 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Pulsar260Params, model_data.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(Pulsar260Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(Pulsar260Params, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

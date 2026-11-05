@@ -75,8 +75,9 @@ namespace angelo92
 		struct { int16_t damage; } director;               // the done flag (the found item) from this frame of the director
 		struct { uint32_t at_153d1e8; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_153d2c4; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const SearchParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x9B }, { 0x153D1E8 }, { 0x153D2C4 } };
+	static const SearchParams GAME = { { SOUND_A, SOUND_B, SOUND_C }, { 0x9B }, { 0x153D1E8 }, { 0x153D2C4 }, { 0x16C96E8 } };
 	static SearchParams live = GAME;
 	static const SearchParams &PS() { return live; }
 
@@ -723,7 +724,7 @@ namespace angelo92
 	{
 		const uint32_t node = a1;
 		const uint32_t e = ENT(U8(node, 0x2D));
-		gx::BindEntityModelFromComData(e, R(0x2598EF8), 0x16C96E8);
+		gx::BindEntityModelFromComData(e, R(0x2598EF8), fxp::anim_set(PS().res.anim, 0x16C96E8));
 		gx::QueueChainTransformation(e, 1);
 		U32(node, 0x148) = U32(e, 0x1C);
 		U32(node, 0x14C) = U32(e, 0x20);
@@ -2156,6 +2157,7 @@ namespace angelo92
 			{ "director", "director.damage", "Item frame", "The done flag (the found item) from this frame of the director", (uint32_t)offsetof(SearchParams, director.damage), fxp::I16, 0, 0x200 },
 			{ "director", "seqs.at_153d1e8", "Flipbook 153D1E8", "The sprite sequence at 0x153D1E8 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(SearchParams, seqs.at_153d1e8), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "models.at_153d2c4", "Model 153D2C4", "The prim model at 0x153D2C4 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SearchParams, models.at_153d2c4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(SearchParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 

@@ -119,8 +119,10 @@ namespace gu066
 		struct { int16_t flash_in, flash_out_from; } flash;   // the screen flash up to its tick (a 64 step), back down from its tick (a 128 step, 16 ticks)
 		struct { uint32_t at_de43e8, at_de4910, at_de423c, at_de45d0, at_de477c; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_de90cc, at_de4a54, at_de97a4, at_de562c, at_de7f54, at_de98e4, at_de87fc; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t spark_colours, glow_colours, rain_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const GDeathParams GAME = { { 0x19, 0x33D, 0x340 }, { 1450 }, { 0x20, 0x281 }, { 0xDE43E8, 0xDE4910, 0xDE423C, 0xDE45D0, 0xDE477C }, { 0xDE90CC, 0xDE4A54, 0xDE97A4, 0xDE562C, 0xDE7F54, 0xDE98E4, 0xDE87FC } };
+	static const GDeathParams GAME = { { 0x19, 0x33D, 0x340 }, { 1450 }, { 0x20, 0x281 }, { 0xDE43E8, 0xDE4910, 0xDE423C, 0xDE45D0, 0xDE477C }, { 0xDE90CC, 0xDE4A54, 0xDE97A4, 0xDE562C, 0xDE7F54, 0xDE98E4, 0xDE87FC }, { TEXTURE_NAME }, { 0xDEA3DC, 0xDEA424, 0xDEA454 } };
 	static GDeathParams live = GAME;
 	static const GDeathParams &PG() { return live; }
 	static const uint32_t ORIG_Master = 0x6226E0;
@@ -995,7 +997,7 @@ namespace gu066
 			h->fade = (c - 0x12) * 682;
 			h->flags = 0xF3;
 		}
-		h->colour = At<uint32_t>(SPARK_COLOURS, (c % 0x12) * 4);
+		h->colour = At<uint32_t>(fxp::data(PG().tables.spark_colours, SPARK_COLOURS, 72, 4), (c % 0x12) * 4);
 		PacketCursor() = RenderModel(h, OT44(), 2, PacketCursor());
 	}
 
@@ -1850,7 +1852,7 @@ namespace gu066
 			At<int32_t>(h, 0xC) = (0x10 - c) << 8;
 		}
 		At<int32_t>(h, 0x14) = At<int16_t>(e, 0x12);
-		At<uint32_t>(h, 0x24) = At<uint32_t>(GLOW_COLOURS, At<int16_t>(e, 0x10) * 4);
+		At<uint32_t>(h, 0x24) = At<uint32_t>(fxp::data(PG().tables.glow_colours, GLOW_COLOURS, 48, 4), At<int16_t>(e, 0x10) * 4);
 		FrameArena() = GlowRender((void *)h, OT44(), 2, FrameArena());
 	}
 
@@ -2210,7 +2212,7 @@ namespace gu066
 			h->fade = (c - 0xA) * 682;
 			h->flags = 0xF3;
 		}
-		h->colour = At<uint32_t>(RAIN_COLOURS, At<int16_t>(e, 8) * 4);
+		h->colour = At<uint32_t>(fxp::data(PG().tables.rain_colours, RAIN_COLOURS, 48, 4), At<int16_t>(e, 8) * 4);
 		PacketCursor() = RenderModel(h, OT44(), 2, PacketCursor());
 	}
 
@@ -2595,7 +2597,7 @@ namespace gu066
 	// freed, the caster's matrix kept
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -2814,6 +2816,10 @@ namespace gu066
 			{ "master", "models.at_de7f54", "Model DE7F54", "The prim model at 0xDE7F54 (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de7f54), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.at_de98e4", "Model DE98E4", "The prim model at 0xDE98E4 (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de98e4), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.at_de87fc", "Model DE87FC", "The prim model at 0xDE87FC (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GDeathParams, models.at_de87fc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(GDeathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "tables.spark_colours", "Spark colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (72 bytes: an edited one keeps its length)", (uint32_t)offsetof(GDeathParams, tables.spark_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "master", "tables.glow_colours", "Glow colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(GDeathParams, tables.glow_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "master", "tables.rain_colours", "Rain colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(GDeathParams, tables.rain_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef GP
 	}

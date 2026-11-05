@@ -79,8 +79,9 @@ namespace blizzard144
 		struct { int16_t damage; } director; // the shockwave and the damage at this tick of an action's director
 		struct { uint32_t ice, mist; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t crystal, shockwave, crystal_uv; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BlizzardParams GAME = { 0xDD9A38, { 0x25 }, { 0xDD83E4, 0xDD82F0 }, { 0xDD8590, 0xDD8D48, 0xDD9280 } };
+	static const BlizzardParams GAME = { 0xDD9A38, { 0x25 }, { 0xDD83E4, 0xDD82F0 }, { 0xDD8590, 0xDD8D48, 0xDD9280 }, { TEXTURE_NAME, CAMERA } };
 	static BlizzardParams live = GAME;
 	static const BlizzardParams &P() { return live; }
 
@@ -253,7 +254,7 @@ namespace blizzard144
 	// director (its target slot +0x20), the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -272,7 +273,7 @@ namespace blizzard144
 		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return &Queues().first;
@@ -918,6 +919,8 @@ namespace blizzard144
 			{ "director", "models.crystal", "Crystal model", "The prim model crystal (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.crystal), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.shockwave", "Shockwave model", "The prim model shockwave (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.shockwave), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.crystal_uv", "Crystal uv model", "The prim model crystal uv (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.crystal_uv), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BlizzardParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BlizzardParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

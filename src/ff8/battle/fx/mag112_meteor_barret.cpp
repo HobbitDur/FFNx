@@ -124,8 +124,9 @@ namespace meteor112
 		struct { uint32_t target, billboard, impact_a, impact_b, ground, hand_a, hand_b, fist; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t smoke, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t debris, column; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 }, { LAYOUT_Target, LAYOUT_Billboard, LAYOUT_ImpactA, LAYOUT_ImpactB, LAYOUT_Ground, LAYOUT_HandA, LAYOUT_HandB, LAYOUT_Fist }, { SEQ_Smoke, SEQ_Spark }, { MODEL_Debris, MODEL_Column } };
+	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 }, { LAYOUT_Target, LAYOUT_Billboard, LAYOUT_ImpactA, LAYOUT_ImpactB, LAYOUT_Ground, LAYOUT_HandA, LAYOUT_HandB, LAYOUT_Fist }, { SEQ_Smoke, SEQ_Spark }, { MODEL_Debris, MODEL_Column }, { TEXTURE_NAME, COM_Anim } };
 	static MeteorParams live = GAME;
 	static const MeteorParams &P() { return live; }
 
@@ -1052,7 +1053,7 @@ namespace meteor112
 	// top and height span (no camera animation: the director makes the camera blob current)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1114,7 +1115,7 @@ namespace meteor112
 					B8(caster, 1) |= 0x10;
 					d->action = r->action;
 					d->target = Entity(ActionTargets(r->action)[0]);
-					BindExternalAnimSet(caster, d->bind, COM_Anim);
+					BindExternalAnimSet(caster, d->bind, fxp::anim_set(P().res.anim, COM_Anim));
 					QueueChainTransformation(caster, 1);
 					W16(caster, 0xE) = (int16_t)CartesianToGameAngle((int32_t)W16(caster, 0x1C) - (int32_t)W16(d->target, 0x1C), (int32_t)W16(caster, 0x20) - (int32_t)W16(d->target, 0x20));
 					d->lift = (int32_t)W16(d->target, 0x26) - 0x190;
@@ -1169,6 +1170,8 @@ namespace meteor112
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(MeteorParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeteorParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "model_data.column", "Column model", "The prim model column (a mesh of 208 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeteorParams, model_data.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MeteorParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(MeteorParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

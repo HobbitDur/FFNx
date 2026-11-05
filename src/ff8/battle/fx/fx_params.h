@@ -240,6 +240,83 @@ namespace fxp
 		return f.name[0] && memchr(f.name, 0, sizeof(f.name)) ? f.name : game;
 	}
 
+	// a fixed-size data parameter (a table its code reads by index - colours, curves, spawn offsets, a
+	// morph's source vertices): its address when its `size` bytes lie in the exe image or a data block,
+	// aligned to `align` - else the game's (its code reads that many: an edited one keeps the game's length)
+	inline uint32_t data(uint32_t address, uint32_t game, uint32_t size, uint32_t align = 2)
+	{
+		return address == game || address & (align - 1) || !data_end(address, size) ? game : address;
+	}
+
+	// a vertex set parameter (a morph's source or target, read like a model's start: {its size, its count, count x
+	// {x, y, z, pad}} - its code reads the count from it and writes as many into a model of the game's count): its
+	// address when it reads as one - in the exe image or a data block, aligned, the game's count - else the game's
+	inline uint32_t vertices(uint32_t address, uint32_t game)
+	{
+		if (address == game || address & 3 || !data_end(address, 8)) return game;
+		const uint32_t count = *(const uint32_t *)(address + 4);
+		return count != *(const uint32_t *)(game + 4) || !data_end(address, 8 + 8 * count) ? game : address;
+	}
+
+	// a camera track parameter (Battle_PlayCameraAnimation 0x5099A0, FF8UltimateEditor's
+	// FF8GameData/dat/cameratrack.py its format): its address when it reads as one - in the exe image or a
+	// data block, aligned, its header {count, script at 8, keyframes after it, size} and the whole track
+	// inside what it lies in (its offsets are its own: any size) - else the game's
+	inline uint32_t camera(uint32_t address, uint32_t game)
+	{
+		if (address == game || address & 1 || !data_end(address, 8)) return game;
+		const uint16_t *h = (const uint16_t *)address;
+		return h[1] != 8 || h[2] <= 8 || h[3] <= h[2] || !data_end(address, h[3]) ? game : address;
+	}
+
+	// a TIM parameter (an image its setup uploads as it is, Battle_QueueTIMUpload_GetEOF 0x505E30: it reads
+	// the image block past the CLUT block's length): its address when it reads as one - in the exe image or a
+	// data block, aligned, id 0x10, a palette when the game's has one (and only then), each block inside what
+	// it lies in - else the game's
+	inline uint32_t tim(uint32_t address, uint32_t game)
+	{
+		if (address == game || address & 3 || !data_end(address, 8)) return game;
+		const uint32_t *t = (const uint32_t *)address, flags = t[1];
+		if (t[0] != 0x10 || flags & ~0xFu || (flags & 8) != (((const uint32_t *)game)[1] & 8)) return game;
+		uint32_t at = 8;
+		for (int block = flags & 8 ? 0 : 1; block < 2; block++)   // the CLUT block, the image block: {length, x, y, w, h, ...}
+		{
+			if (!data_end(address + at, 12)) return game;
+			const uint32_t length = *(const uint32_t *)(address + at);
+			if (length < 12 || !data_end(address + at, length)) return game;
+			at += length;
+		}
+		return address;
+	}
+
+	// a file name parameter in data (the effect's texture file its loader reads, IO_GetFile_MAGIC
+	// 0x571B80): its address when it holds a name - not empty, ending within 32 bytes inside what it lies in
+	// - else the game's
+	inline uint32_t name(uint32_t address, uint32_t game)
+	{
+		if (address == game || !data_end(address, 1) || !*(const char *)address) return game;
+		for (uint32_t k = 1; k < 32; k++)
+		{
+			if (!data_end(address, k + 1)) return game;
+			if (!((const char *)address)[k]) return address;
+		}
+		return game;
+	}
+
+	// an animation set parameter (the com data an effect binds to its caster, BattleEntity_BindExternalAnimSet
+	// 0x5022C0: {count, offsets[count], end} - its body animations, sequence scripts, weapon animations; a set
+	// of sets has the same shape): its address when it reads as one - in the exe image or a data block,
+	// aligned, the game's count, its offsets increasing inside it - else the game's
+	inline uint32_t anim_set(uint32_t address, uint32_t game)
+	{
+		if (address == game || address & 3 || !data_end(address, 4)) return game;
+		const uint32_t *s = (const uint32_t *)address, count = s[0];
+		if (count != *(const uint32_t *)game || !data_end(address, 4 * (count + 2))) return game;
+		for (uint32_t k = 1; k <= count; k++)
+			if (s[k] < 4 * (count + 2) || s[k] > s[k + 1]) return game;
+		return data_end(address, s[count + 1]) ? address : game;
+	}
+
 	// a flipbook's last frame played, within its sequence (frame count at +8): past it the game would
 	// read the frame list's end as a frame
 	inline int16_t last_frame(uint32_t sequence, int16_t last)
@@ -251,8 +328,10 @@ namespace fxp
 	// ---- field table (what an editor shows) ----
 	// Seq: a sprite sequence's address (32 bits): tools offer the exe's sequences; Sound: a sound
 	// block's address (32 bits); Layout: a prim-model layout's address (32 bits); Model: a prim model's
-	// address (32 bits)
-	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4, File = 5, Layout = 6, Model = 7 };
+	// address (32 bits); Data: a fixed-size table's address (32 bits, data()); Camera: a camera track's;
+	// Tim: a TIM's; Name: a file name's in data (name()); AnimSet: an animation set's (anim_set())
+	enum FieldType : uint8_t { I16 = 0, U8 = 1, I32 = 2, Seq = 3, Sound = 4, File = 5, Layout = 6, Model = 7, Data = 8, Camera = 9,
+	                           Tim = 10, Name = 11, AnimSet = 12 };
 	// how an editor shows the value (the raw value beside it): Angle 4096 = a full turn (degrees),
 	// Scale 4096 = its own size (x 1)
 	enum Unit : uint8_t { Plain = 0, Angle = 1, Scale = 2 };

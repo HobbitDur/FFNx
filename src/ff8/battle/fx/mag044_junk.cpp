@@ -95,8 +95,9 @@ namespace junk044
 		struct { int16_t gravity; } fall;                   // added to an item's falling speed a tick
 		struct { uint32_t debris; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const JunkParams GAME = { 0x1354B7C, { 0x96, 0x100 }, { 0xF, 0x20, 3, 0x3E }, { 0x32 }, { 0x1354CE0 }, { 0x1354B80 } };
+	static const JunkParams GAME = { 0x1354B7C, { 0x96, 0x100 }, { 0xF, 0x20, 3, 0x3E }, { 0x32 }, { 0x1354CE0 }, { 0x1354B80 }, { TEXTURE_NAME, CAMERA } };
 	static JunkParams live = GAME;
 	static const JunkParams &P() { return live; }
 	static const uint32_t SEQ_Smoke = 0x1354B80;      // smoke sprite sequence (+8: frame count word)
@@ -615,7 +616,7 @@ namespace junk044
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -627,7 +628,7 @@ namespace junk044
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2545160), 0x14, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -718,6 +719,8 @@ namespace junk044
 			JP("control", fall.gravity, "Gravity", "Added to an item's falling speed a tick", 1, 0x400),
 			{ "control", "layouts.debris", "Debris", "The prim-model layout debris (its models' animation)", (uint32_t)offsetof(JunkParams, layouts.debris), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "control", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(JunkParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "control", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(JunkParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "control", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(JunkParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 #undef JP
 	}

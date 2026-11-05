@@ -111,8 +111,9 @@ namespace lvdeath_quistis
 		struct { int16_t wait, fade_in, dark_until, strike_frame, vanish_frame, fade_out; } reaper;   // the first one's wait (the cast animation), its fades, its animation frames
 		struct { int16_t length, mode; } aura, strike;                                                 // the two actor systems
 		struct { uint32_t at_1582074; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const LvDeathQParams GAME = { { SOUND_APPEAR, SOUND_STRIKE }, { 0xC, 0x400, 0x14, 5, 0xB, 0x200 }, { 0x14, 2 }, { 0x14, 0 }, { 0x1582074 } };
+	static const LvDeathQParams GAME = { { SOUND_APPEAR, SOUND_STRIKE }, { 0xC, 0x400, 0x14, 5, 0xB, 0x200 }, { 0x14, 2 }, { 0x14, 0 }, { 0x1582074 }, { 0x15863B0 } };
 	static LvDeathQParams live = GAME;
 	static const LvDeathQParams &PD() { return live; }
 	static const uint32_t BIND_Block = 0x25F3F00;      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -468,7 +469,7 @@ namespace lvdeath_quistis
 			x::Battle_QueueTIMUpload_GetEOF(0x1778F3C);
 			x::Battle_QueueTIMUpload_GetEOF(0x178135C);
 			const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C;
-			BS_BindEntityModelFromComData(ent, R(BIND_Block), COM_Anim);
+			BS_BindEntityModelFromComData(ent, R(BIND_Block), fxp::anim_set(PD().res.anim, COM_Anim));
 			QueueChainTransformation(ent, 1);
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x44) = (uint16_t)PD().reaper.wait;
@@ -3103,6 +3104,7 @@ namespace lvdeath_quistis
 			DT("actors", strike.length, "Ticks", "", 0, 1000),
 			DT("actors", strike.mode, "Mode", "", 0, 4),
 			{ "reaper", "models.at_1582074", "Model 1582074", "The prim model at 0x1582074 (a mesh of 9 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LvDeathQParams, models.at_1582074), fxp::Model, 0, 0x7FFFFFFF },
+			{ "reaper", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(LvDeathQParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

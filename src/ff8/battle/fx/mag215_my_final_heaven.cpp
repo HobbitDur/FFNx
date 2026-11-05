@@ -115,8 +115,9 @@ namespace heaven215
 		struct { int16_t damage; } director;    // the damage at this tick
 		struct { uint32_t ring, anchor, back, run, screen, far, jump, jump_bone, target_ring, crater, bone; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t at_1154f50; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const MyFinalHeavenParams GAME = { { 0x1154F48, 0x1154F4C }, { 0x108 }, { LAYOUT_Ring, LAYOUT_Anchor, LAYOUT_Back, LAYOUT_Run, LAYOUT_Screen, LAYOUT_Far, LAYOUT_Jump, LAYOUT_JumpBone, LAYOUT_TargetRing, LAYOUT_Crater, LAYOUT_Bone }, { 0x1154F50 } };
+	static const MyFinalHeavenParams GAME = { { 0x1154F48, 0x1154F4C }, { 0x108 }, { LAYOUT_Ring, LAYOUT_Anchor, LAYOUT_Back, LAYOUT_Run, LAYOUT_Screen, LAYOUT_Far, LAYOUT_Jump, LAYOUT_JumpBone, LAYOUT_TargetRing, LAYOUT_Crater, LAYOUT_Bone }, { 0x1154F50 }, { TEXTURE_NAME, COM_Anim } };
 	static MyFinalHeavenParams live = GAME;
 	static const MyFinalHeavenParams &P() { return live; }
 
@@ -891,7 +892,7 @@ namespace heaven215
 	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1473,7 +1474,7 @@ namespace heaven215
 		CentreWords()[0] = *(const uint32_t *)&d->centre[0];
 		CentreWords()[1] = *(const uint32_t *)&d->centre[2];
 		DebrisInit(d);
-		BindExternalAnimSet(z, d->bind, COM_Anim);
+		BindExternalAnimSet(z, d->bind, fxp::anim_set(P().res.anim, COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x70D0));
 		*(uint16_t *)Entity(0) |= 4;
@@ -1573,6 +1574,8 @@ namespace heaven215
 			{ "director", "layouts.crater", "Crater", "The prim-model layout crater (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.crater), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.bone", "Bone", "The prim-model layout bone (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.bone), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "model_data.at_1154f50", "Model 1154F50", "The prim model at 0x1154F50 (a mesh of 8 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MyFinalHeavenParams, model_data.at_1154f50), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MyFinalHeavenParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(MyFinalHeavenParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -112,8 +112,9 @@ namespace elvoret017
 		int16_t end;                                     // the main task ends after this tick
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t camera, tim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const ElvoretParams GAME = { { 0x14D8E40, 0x14D8E44 }, { -5440, 0x40 }, { 0x50, 0x14 }, 0x7A, { MODEL_Layout }, { SEQ_Particle } };
+	static const ElvoretParams GAME = { { 0x14D8E40, 0x14D8E44 }, { -5440, 0x40 }, { 0x50, 0x14 }, 0x7A, { MODEL_Layout }, { SEQ_Particle }, { CAMERA, TIM } };
 	static ElvoretParams live = GAME;
 	static const ElvoretParams &P() { return live; }
 
@@ -404,7 +405,7 @@ namespace elvoret017
 	// flag 0x1000, the root, the camera
 	static TaskQueue *__cdecl Setup(CastContext *ctx)
 	{
-		QueueTimUpload(TIM);
+		QueueTimUpload(fxp::tim(P().res.tim, TIM));
 		TexBase() = layouts::MagicBuffer();
 		Ctx() = ctx;
 		Caster() = Entity(ctx->attacker);
@@ -412,7 +413,7 @@ namespace elvoret017
 		Caster()[1] |= 0x10;
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x2556FB0), 0x14, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -485,6 +486,8 @@ namespace elvoret017
 			EV("entrance", end, "End", "The entrance ends after this tick", 1, 400),
 			{ "entrance", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(ElvoretParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "entrance", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(ElvoretParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "entrance", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ElvoretParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "entrance", "res.tim", "TIM image", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(ElvoretParams, res.tim), fxp::Tim, 0, 0x7FFFFFFF },
 		};
 #undef EV
 	}

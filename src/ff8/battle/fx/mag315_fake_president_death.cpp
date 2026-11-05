@@ -142,8 +142,10 @@ namespace fp315
 		struct { uint32_t start, hit; } sounds; // at the master's ticks 1 and 0x70 (with the damage)
 		struct { uint32_t drop, bubble, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t splash, puddle, column, ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t drop_offsets; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const FakePresidentDeathParams GAME = { 0xCD57A0, { 0xCD58BC, 0xCD58C0 }, { SEQ_Drop, SEQ_Bubble, SEQ_Spark }, { MODEL_Splash, MODEL_Puddle, MODEL_Column, MODEL_Ring } };
+	static const FakePresidentDeathParams GAME = { 0xCD57A0, { 0xCD58BC, 0xCD58C0 }, { SEQ_Drop, SEQ_Bubble, SEQ_Spark }, { MODEL_Splash, MODEL_Puddle, MODEL_Column, MODEL_Ring }, { TEXTURE_NAME, CAMERA_ANIM }, { 0xCD58C8 } };
 	static FakePresidentDeathParams live = GAME;
 	static const FakePresidentDeathParams &P() { return live; }
 
@@ -291,8 +293,8 @@ namespace fp315
 	static void DropSpawn(uint32_t n, uint32_t w)
 	{
 		const int32_t bone = S16(n, 0x18);
-		U32(w, 0) = U32(DROP_OFFSETS + (uint32_t)(bone * 8), 0);
-		U32(w, 4) = U32(DROP_OFFSETS + (uint32_t)(bone * 8), 4);
+		U32(w, 0) = U32(fxp::data(P().tables.drop_offsets, DROP_OFFSETS, 24) + (uint32_t)(bone * 8), 0);
+		U32(w, 4) = U32(fxp::data(P().tables.drop_offsets, DROP_OFFSETS, 24) + (uint32_t)(bone * 8), 4);
 		MatrixMulVector(Ent(CasterSlot()) + 0x40, w, w);
 		S16(w, 2) = (int16_t)(S16(w, 2) + S16(n, 0x12));
 		S16(w, 0) = (int16_t)(S16(w, 0) + S16(n, 0x10));
@@ -324,7 +326,7 @@ namespace fp315
 	// the particle pool cleared, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -339,7 +341,7 @@ namespace fp315
 		InitTaskQueuePool(FxQueue(), (void *)own::R(0x223A838), 0x24, 100);
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Master)) + 0xC) = 0;
 		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TexFile());
 		return RootQueue();
 	}
@@ -1263,6 +1265,9 @@ namespace fp315
 			{ "master", "models.puddle", "Puddle model", "The prim model puddle (a mesh of 121 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.puddle), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.column", "Column model", "The prim model column (a mesh of 48 vertices, 33 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.ring", "Ring model", "The prim model ring (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FakePresidentDeathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FakePresidentDeathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "master", "tables.drop_offsets", "Drop offsets", "Where each drop starts, by bone (x, y, z) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(FakePresidentDeathParams, tables.drop_offsets), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

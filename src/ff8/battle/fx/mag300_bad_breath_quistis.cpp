@@ -128,8 +128,10 @@ namespace badbreath300
 		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t model_1, model_2; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const BadBreath300Params GAME = { 0x10430F4, { MODEL_Hit }, { SEQ_Smoke }, { 0x103FA04, 0x1040E84 } };
+	static const BadBreath300Params GAME = { 0x10430F4, { MODEL_Hit }, { SEQ_Smoke }, { 0x103FA04, 0x1040E84 }, { TEXTURE_NAME, CAMERA_ANIM, COM_Anim }, { 0x10430F8 } };
 	static BadBreath300Params live = GAME;
 	static const BadBreath300Params &P() { return live; }
 	static const uint32_t VERTS = 0x85C;                  // magic buffer: swirled mesh vertices / morph output
@@ -452,7 +454,7 @@ namespace badbreath300
 	{
 		const int32_t v = shl32(t, 10);
 		const int32_t i = (v >> 12) % 3, f = v & 0xFFF;
-		BlendColour(COLOURS + i * 4, COLOURS + i * 4 + 4, 0x1000 - f, f, h4);
+		BlendColour(((const uint8_t *)fxp::data(P().tables.colours, (uint32_t)COLOURS, 16, 4)) + i * 4, ((const uint8_t *)fxp::data(P().tables.colours, (uint32_t)COLOURS, 16, 4)) + i * 4 + 4, 0x1000 - f, f, h4);
 		if ((uint32_t)t < 8)
 		{
 			const int32_t s = ComputeSin((t & 0x3FFFFF) << 7);
@@ -577,7 +579,7 @@ namespace badbreath300
 	// rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -589,7 +591,7 @@ namespace badbreath300
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x25077B0), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QMaster();
 	}
 
@@ -813,7 +815,7 @@ namespace badbreath300
 			}
 			NormalizeDepth(((uint8_t *)fxp::model(P().model_data.model_1, (uint32_t)MESH1)));
 			NormalizeDepth(((uint8_t *)fxp::model(P().model_data.model_2, (uint32_t)MESH2)));
-			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, COM_Anim);
+			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Caster(), 1);
 		}
 		int a0, a1, a2;
@@ -840,6 +842,10 @@ namespace badbreath300
 			{ "breath", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 18 frames: an edited one keeps as many)", (uint32_t)offsetof(BadBreath300Params, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "breath", "model_data.model_1", "Model 1 model", "The prim model model 1 (a mesh of 165 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BadBreath300Params, model_data.model_1), fxp::Model, 0, 0x7FFFFFFF },
 			{ "breath", "model_data.model_2", "Model 2 model", "The prim model model 2 (a mesh of 165 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BadBreath300Params, model_data.model_2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "breath", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BadBreath300Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "breath", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BadBreath300Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "breath", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(BadBreath300Params, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "breath", "tables.colours", "Colours", "The colours it blends through (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(BadBreath300Params, tables.colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

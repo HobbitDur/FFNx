@@ -106,8 +106,9 @@ namespace aqua72
 		struct { int16_t from, until; } rain;                            // the rain drops round the targets: from / until these ticks
 		struct { uint32_t at_1589d90, at_158a1b0, at_1589ef0; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t orb; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const AquaQParams GAME = { { 0x1589C2C, 4, 0x23 }, { 0x600, 0x200, 0x28, 0x100 }, { 0x200, 0xF, 0x200 }, { 4, 0x12 }, { 0x14, 0x1C }, { 0x1589D90, 0x158A1B0, 0x1589EF0 }, { 0x158A4BC } };
+	static const AquaQParams GAME = { { 0x1589C2C, 4, 0x23 }, { 0x600, 0x200, 0x28, 0x100 }, { 0x200, 0xF, 0x200 }, { 4, 0x12 }, { 0x14, 0x1C }, { 0x1589D90, 0x158A1B0, 0x1589EF0 }, { 0x158A4BC }, { 0x158D9AC } };
 	static AquaQParams live = GAME;
 	static const AquaQParams &PA() { return live; }
 	static const uint32_t Q_EMITTER = 0x25F97F8, Q_DIRECTOR = 0x25F5048, Q_TASKS = 0x25F5150, Q_ORB = 0x25F93D0, Q_SPARE = 0x25F97E8;
@@ -629,7 +630,7 @@ namespace aqua72
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2C));
 		Spawn(R(Q_TASKS), ORIG_Darken, 0x154, node);
-		BindEntityModelFromComData(ent, R(BIND_BLOCK), COM_ANIM);
+		BindEntityModelFromComData(ent, R(BIND_BLOCK), fxp::anim_set(PA().res.anim, COM_ANIM));
 		QueueChainTransformation(ent, 1);
 		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(node, 0x44) = (uint16_t)PA().director.wait;
@@ -2311,6 +2312,7 @@ namespace aqua72
 			{ "director", "seqs.at_158a1b0", "Flipbook 158A1B0", "The sprite sequence at 0x158A1B0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaQParams, seqs.at_158a1b0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "seqs.at_1589ef0", "Flipbook 1589EF0", "The sprite sequence at 0x1589EF0 (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(AquaQParams, seqs.at_1589ef0), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "models.orb", "Orb model", "The prim model orb (a mesh of 312 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(AquaQParams, models.orb), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(AquaQParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

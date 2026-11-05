@@ -155,8 +155,9 @@ namespace o187
 		struct { int16_t damage; } timeline;       // the action result at this tick
 		struct { uint32_t at_e3cfd0, at_e3cff8, at_e3d300, at_e3cc38, at_e3d154; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_e40848, at_e40160, at_e3eff0, at_e41140, at_e41b28; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_enviro; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const OdinParams GAME = { 0xE41CE8, { 0xE41E40, 0xE41E44, 0xE41E48 }, { 0x11F }, { 0xE3CFD0, 0xE3CFF8, 0xE3D300, 0xE3CC38, 0xE3D154 }, { 0xE40848, 0xE40160, 0xE3EFF0, 0xE41140, 0xE41B28 } };
+	static const OdinParams GAME = { 0xE41CE8, { 0xE41E40, 0xE41E44, 0xE41E48 }, { 0x11F }, { 0xE3CFD0, 0xE3CFF8, 0xE3D300, 0xE3CC38, 0xE3D154 }, { 0xE40848, 0xE40160, 0xE3EFF0, 0xE41140, 0xE41B28 }, { TIM_ENVIRO } };
 	static OdinParams live = GAME;
 	static const OdinParams &P() { return live; }
 	static const uint32_t ORIG_GridATask = 0x6479D0;
@@ -380,7 +381,7 @@ namespace o187
 		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolA() + 0x18 * i) = 0;
 		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolB() + 0x18 * i) = 0;
 		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolC() + 0x18 * i) = 0;
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_ENVIRO);   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_enviro, TIM_ENVIRO));   // Battle_QueueTIMUpload_GetEOF
 		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
 		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
 		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
@@ -2324,6 +2325,7 @@ namespace o187
 			{ "timeline", "models.at_e3eff0", "Model E3EFF0", "The prim model at 0xE3EFF0 (a mesh of 126 vertices, 100 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e3eff0), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_e41140", "Model E41140", "The prim model at 0xE41140 (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e41140), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_e41b28", "Model E41B28", "The prim model at 0xE41B28 (a mesh of 16 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e41b28), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "res.tim_enviro", "TIM image enviro", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(OdinParams, res.tim_enviro), fxp::Tim, 0, 0x7FFFFFFF },
 		};
 	}
 }

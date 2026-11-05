@@ -160,8 +160,10 @@ namespace hyper198
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t bone_smoke, spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t muzzle_flash, cone, beam, beam_shadow, ground_ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const HyperShotParams GAME = { 0xCFB2FC, { 0xCF6054, 0xCF6200, 0xCF5E44 }, { 0xCF9834, 0xCFA52C, 0xCF6394, 0xCF8D2C, 0xCFAE64 } };
+	static const HyperShotParams GAME = { 0xCFB2FC, { 0xCF6054, 0xCF6200, 0xCF5E44 }, { 0xCF9834, 0xCFA52C, 0xCF6394, 0xCF8D2C, 0xCFAE64 }, { TEXTURE_NAME, 0xCF3A78 }, { 0xCFB328 } };
 	static HyperShotParams live = GAME;
 	static const HyperShotParams &P() { return live; }
 
@@ -1316,7 +1318,7 @@ namespace hyper198
 	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1873,7 +1875,7 @@ namespace hyper198
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
@@ -1891,7 +1893,7 @@ namespace hyper198
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1960,6 +1962,9 @@ namespace hyper198
 			{ "shot", "models.beam", "Beam model", "The prim model beam (a mesh of 350 vertices, 328 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.beam_shadow", "Beam shadow model", "The prim model beam shadow (a mesh of 104 vertices, 82 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.beam_shadow), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.ground_ring", "Ground ring model", "The prim model ground ring (a mesh of 43 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.ground_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(HyperShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(HyperShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(HyperShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

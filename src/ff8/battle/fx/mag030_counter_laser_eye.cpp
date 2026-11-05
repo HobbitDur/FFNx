@@ -110,8 +110,9 @@ namespace lasereye
 		struct { int16_t level, step; } light;                          // the stage light ramps
 		struct { uint32_t at_160de10; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_160d538, at_160dcf8, at_160dc50; } models; // the prim models drawn (meshes)
+		struct { uint32_t spark_table; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const LaserEyeParams GAME = { { 0x160D3E8, 0xA, 0xA }, { 0x14 }, { 0, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x160DE10 }, { 0x160D538, 0x160DCF8, 0x160DC50 } };
+	static const LaserEyeParams GAME = { { 0x160D3E8, 0xA, 0xA }, { 0x14 }, { 0, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x160DE10 }, { 0x160D538, 0x160DCF8, 0x160DC50 }, { 0x160DED8 } };
 	static LaserEyeParams live = GAME;
 	static const LaserEyeParams &PL() { return live; }
 	static const uint32_t ACTOR_DATA = 0x17CC72C;      // the actor system's data (exe data, relocated once by 0x874410)
@@ -665,7 +666,7 @@ namespace lasereye
 		const int16_t tick = S16(a1, 0x24);
 		if (tick > 0x12)
 			return 0; // void
-		const uint32_t rec = SPARK_TABLE + (uint32_t)((int32_t)tick * 8);
+		const uint32_t rec = fxp::data(PL().tables.spark_table, SPARK_TABLE, 152) + (uint32_t)((int32_t)tick * 8);
 		int32_t count = S16(rec, 4);
 		const uint32_t sp = MEM<uint32_t>(R(SCRATCH_SP)) - 8;
 		MEM<uint32_t>(R(SCRATCH_SP)) = sp;
@@ -2712,6 +2713,7 @@ namespace lasereye
 			{ "emitter", "models.at_160d538", "Model 160D538", "The prim model at 0x160D538 (a mesh of 66 vertices, 88 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeParams, models.at_160d538), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.at_160dcf8", "Model 160DCF8", "The prim model at 0x160DCF8 (a mesh of 10 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeParams, models.at_160dcf8), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.at_160dc50", "Model 160DC50", "The prim model at 0x160DC50 (a mesh of 6 vertices, 4 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LaserEyeParams, models.at_160dc50), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.spark_table", "Sparks a tick", "The laser's sparks at each tick 0..18: base, random spread, count (152 bytes: an edited one keeps its length)", (uint32_t)offsetof(LaserEyeParams, tables.spark_table), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

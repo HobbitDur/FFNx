@@ -143,8 +143,10 @@ namespace mercy200
 		struct { int16_t damage; } director;     // the action results at this tick
 		struct { uint32_t flame, flame_glow, ember, sparkburst, tspark, tburst; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ring, flash, slash_b, slash_a, frame, wavering, tring, shard, wavetrail; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_nomercy, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t shard_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const NoMercyParams GAME = { { 0xE33D30, 0xE33D34 }, { 0x8D }, { 0xE3382C, 0xE339D8, 0xE33B84, 0xE2DB40, 0xE2DC84, 0xE2DFE4 }, { 0xE316B4, 0xE2E15C, 0xE33074, 0xE328BC, 0xE2FFB4, 0xE3239C, 0xE3102C, 0xE2F8DC, 0xE3260C } };
+	static const NoMercyParams GAME = { { 0xE33D30, 0xE33D34 }, { 0x8D }, { 0xE3382C, 0xE339D8, 0xE33B84, 0xE2DB40, 0xE2DC84, 0xE2DFE4 }, { 0xE316B4, 0xE2E15C, 0xE33074, 0xE328BC, 0xE2FFB4, 0xE3239C, 0xE3102C, 0xE2F8DC, 0xE3260C }, { TIM_NOMERCY, ANIM_DATA }, { 0xE33D50 } };
 	static NoMercyParams live = GAME;
 	static const NoMercyParams &P() { return live; }
 	static const uint32_t REF_DIR = 0xE33D40;      // (0, 0, -0x1000)-style reference direction of the wave records
@@ -1850,7 +1852,7 @@ namespace mercy200
 			h->fade = fade;
 			h->flags = 0xF3;
 		}
-		h->colour = At<uint32_t>(SHARD_COLOURS, 4 * p->a[0]);
+		h->colour = At<uint32_t>(fxp::data(P().tables.shard_colours, SHARD_COLOURS, 32, 4), 4 * p->a[0]);
 		PacketCursor() = RenderModel(h, RenderOT(), 2, PacketCursor());
 	}
 
@@ -2483,7 +2485,7 @@ namespace mercy200
 		InitTaskQueuePool(QMain(), (void *)own::R(0x24F99A0), 0x24, 250);
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Director)) + 0xC) = 0;
 		for (uint32_t a = own::R(POOL); a < own::R(BIND_OUT); a += 0x18) *(int32_t *)a = 0;
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TIM_NOMERCY);   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_nomercy, TIM_NOMERCY));   // Battle_QueueTIMUpload_GetEOF
 		uint8_t *e = Caster();
 		var<uint32_t>(own::R(0x24F9950)) = *(const uint32_t *)(e + 0x10);
 		var<uint32_t>(own::R(0x24F9954)) = *(const uint32_t *)(e + 0x0C);
@@ -2530,7 +2532,7 @@ namespace mercy200
 			}
 			else if (c == 3)
 			{
-				BindEntityModelFromComData(Caster(), own::R(BIND_OUT), ANIM_DATA);
+				BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 				Sequence(4);
 			}
 			else if (c == 4) AddFlameDirector();
@@ -2662,6 +2664,9 @@ namespace mercy200
 			{ "director", "models.tring", "Tring model", "The prim model tring (a mesh of 60 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.tring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 70 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.wavetrail", "Wavetrail model", "The prim model wavetrail (a mesh of 27 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.wavetrail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.tim_nomercy", "TIM image nomercy", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(NoMercyParams, res.tim_nomercy), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(NoMercyParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "tables.shard_colours", "Shard colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(NoMercyParams, tables.shard_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

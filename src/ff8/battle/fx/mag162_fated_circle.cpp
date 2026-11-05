@@ -123,8 +123,11 @@ namespace circle162
 		struct { int16_t damage; } director;      // the action results at this tick
 		struct { uint32_t dust, orbit, ember, spark, swirl; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t swipe, shock, glow, shard, burst, rain, shell, circle; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t circle_to; } morphs; // the circle's morph (data): the vertices it blends to (from the circle model's own)
+		struct { uint32_t pillar_offx, pillar_offz; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const FatedCircleParams GAME = { { 0xDA8C68, 0xDA8C6C }, { 0x96 }, { 0xDA1D74, 0xDA1F20, 0xDA19B4, 0xDA219C, 0xDA1B60 }, { 0xDA6700, 0xDA4488, 0xDA3A58, 0xDA3E48, 0xDA4118, 0xDA4308, 0xDA7198, 0xDA2348 } };
+	static const FatedCircleParams GAME = { { 0xDA8C68, 0xDA8C6C }, { 0x96 }, { 0xDA1D74, 0xDA1F20, 0xDA19B4, 0xDA219C, 0xDA1B60 }, { 0xDA6700, 0xDA4488, 0xDA3A58, 0xDA3E48, 0xDA4118, 0xDA4308, 0xDA7198, 0xDA2348 }, { TEXTURE_NAME, CAMERA, ANIM_DATA }, { 0xDA3770 }, { 0xDA8C94, 0xDA8CB4 } };
 	static FatedCircleParams live = GAME;
 	static const FatedCircleParams &P() { return live; }
 	static const uint32_t MODEL_SWIPE = 0xDA6700, MODEL_SHOCK = 0xDA4488, MODEL_GLOW = 0xDA3A58, MODEL_SHARD = 0xDA3E48,
@@ -350,7 +353,7 @@ namespace circle162
 	// trail length, two unused words cleared, pools B / A freed, the camera, the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -369,7 +372,7 @@ namespace circle162
 		var<int32_t>(own::R(0x23CE61C)) = 0;
 		for (uint32_t a = own::R(POOL_B); a < own::R(SPL_A); a += 0x18) *(int32_t *)a = 0;
 		for (uint32_t a = own::R(POOL_A); a < own::R(PRIM_OFFSET); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		QueueTimUpload(TexFile());
 		return QMaster();
 	}
@@ -385,7 +388,7 @@ namespace circle162
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 1)
 		{
-			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 		}
 		if (n->c == 2)
@@ -510,7 +513,7 @@ namespace circle162
 			t->c = 0;
 			t->w1E = 0x380;
 			t->w1C = 0x380;
-			MorphDeltas((const int16_t *)CIRCLE_FROM, (const int16_t *)CIRCLE_TO, 0x5D, 0x18);
+			MorphDeltas((const int16_t *)(fxp::model(P().models.circle, MODEL_CIRCLE) + 8), (const int16_t *)fxp::data(P().morphs.circle_to, CIRCLE_TO, 744), 0x5D, 0x18);
 			SwirlFlag() = 0;
 			for (int32_t i = 0; i < 8; i++)
 			{
@@ -1804,7 +1807,7 @@ namespace circle162
 	// ------------------------------------------------------------------
 	static void CircleMorph(int16_t *dst, int32_t k)
 	{
-		const int16_t *d = (const int16_t *)own::R(MORPH_DELTA), *from = (const int16_t *)CIRCLE_FROM;
+		const int16_t *d = (const int16_t *)own::R(MORPH_DELTA), *from = (const int16_t *)(fxp::model(P().models.circle, MODEL_CIRCLE) + 8);
 		for (int32_t i = 0; i < 0x5D; i++, d += 4, from += 4, dst += 4)
 		{
 			dst[0] = (int16_t)(d[0] * k + from[0]);
@@ -2037,9 +2040,9 @@ namespace circle162
 		h->mode = 0;
 		h->off[1] = 0;
 		h->model = var<uint32_t>(PILLAR_MODEL + 4 * i);
-		h->off[0] = var<int16_t>(PILLAR_OFFX + 4 * i);
+		h->off[0] = var<int16_t>(fxp::data(P().tables.pillar_offx, PILLAR_OFFX, 32) + 4 * i);
 		h->ang[0] = n->w1C;
-		h->off[2] = var<int16_t>(PILLAR_OFFZ + 4 * i);
+		h->off[2] = var<int16_t>(fxp::data(P().tables.pillar_offz, PILLAR_OFFZ, 32) + 4 * i);
 		h->ang[1] = n->w20;
 		h->ang[2] = ang2;
 		ComposeAffineTransform(&Camera(), &m, &h->cam);
@@ -2256,6 +2259,12 @@ namespace circle162
 			{ "director", "models.rain", "Rain model", "The prim model rain (a mesh of 15 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.rain), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.shell", "Shell model", "The prim model shell (a mesh of 168 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.shell), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.circle", "Circle model", "The prim model circle (a mesh of 93 vertices, 156 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.circle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FatedCircleParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FatedCircleParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(FatedCircleParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "morphs.circle_to", "Circle morph to", "The vertices the circle model blends to (93 vertices x, y, z, pad: an edited one keeps the count)", (uint32_t)offsetof(FatedCircleParams, morphs.circle_to), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.pillar_offx", "Pillar x offsets", "Each pillar's x offset (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(FatedCircleParams, tables.pillar_offx), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.pillar_offz", "Pillar z offsets", "Each pillar's z offset (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(FatedCircleParams, tables.pillar_offz), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

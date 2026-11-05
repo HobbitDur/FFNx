@@ -134,8 +134,9 @@ namespace acid132
 		struct { int16_t damage; } target; // the damage (and the target task's end) from this tick
 		struct { uint32_t splash1, splash2, puddle; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t splash1, splash2, stream, drop; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const AcidParams GAME = { 0x1214FD0, { 0x2D }, { MODEL_Splash1, MODEL_Splash2, MODEL_Puddle }, { SEQ_Splash1, SEQ_Splash2, SEQ_Stream, MODEL_Drop } };
+	static const AcidParams GAME = { 0x1214FD0, { 0x2D }, { MODEL_Splash1, MODEL_Splash2, MODEL_Puddle }, { SEQ_Splash1, SEQ_Splash2, SEQ_Stream, MODEL_Drop }, { TEXTURE_NAME, CAMERA } };
 	static AcidParams live = GAME;
 	static const AcidParams &P() { return live; }
 	static const uint8_t *const STREAM_TABLE = (const uint8_t *)0x1214FE8; // 5 x 16: point, bone / vector, flag
@@ -654,7 +655,7 @@ namespace acid132
 	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -666,7 +667,7 @@ namespace acid132
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520F70), 0x14, 1);
 		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QMaster();
 	}
 
@@ -953,6 +954,8 @@ namespace acid132
 			{ "target", "seqs.splash2", "Splash2", "The sprite sequence splash2 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.splash2), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "seqs.stream", "Stream", "The sprite sequence stream (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.stream), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "seqs.drop", "Drop", "The sprite sequence drop (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.drop), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(AcidParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(AcidParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

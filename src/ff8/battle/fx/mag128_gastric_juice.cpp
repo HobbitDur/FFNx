@@ -111,8 +111,9 @@ namespace gastric128
 		struct { int16_t damage; } target; // the damage at this tick of the target task
 		uint32_t layout;                   // the prim-model layout played at the target
 		struct { uint32_t spray, drip, splash; } seqs; // the particles' flipbooks
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const JuiceParams GAME = { 0x12337B8, { 0x35 }, MODEL_Layout, { SEQ_Spray, SEQ_Drip, SEQ_Splash } };
+	static const JuiceParams GAME = { 0x12337B8, { 0x35 }, MODEL_Layout, { SEQ_Spray, SEQ_Drip, SEQ_Splash }, { TEXTURE_NAME, CAMERA } };
 	static JuiceParams live = GAME;
 	static const JuiceParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x12337BC; // [|dy|][|dx|] -> length, 128 x 128
@@ -995,7 +996,7 @@ namespace gastric128
 	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1007,7 +1008,7 @@ namespace gastric128
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QRoot(), (void *)own::R(0x25211F0), 0x14, 1);
 		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -1081,6 +1082,8 @@ namespace gastric128
 			{ "target", "seqs.spray", "Spray", "The spray's flipbook (9 frames played)", (uint32_t)offsetof(JuiceParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "seqs.drip", "Drip", "The drips' flipbook (13 frames played)", (uint32_t)offsetof(JuiceParams, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "target", "seqs.splash", "Splash", "The splashes' flipbook (16 frames played)", (uint32_t)offsetof(JuiceParams, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(JuiceParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(JuiceParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

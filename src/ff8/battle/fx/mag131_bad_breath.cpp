@@ -117,8 +117,10 @@ namespace badbreath131
 		struct { uint32_t target; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t bubble; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t model_1, model_2; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t colours, tint; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const BreathParams GAME = { 0x121C978, { 0x28 }, { MODEL_Target }, { SEQ_Bubble }, { 0x1219258, 0x121A6D8 } };
+	static const BreathParams GAME = { 0x121C978, { 0x28 }, { MODEL_Target }, { SEQ_Bubble }, { 0x1219258, 0x121A6D8 }, { TEXTURE_NAME, CAMERA }, { 0x121C97C, 0x121C98C } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 	static const uint32_t VERTS = 0xA00;                 // magic buffer: swirled mesh vertices / morph output
@@ -412,7 +414,7 @@ namespace badbreath131
 	{
 		const int32_t v = shl32(t, 10);
 		const int32_t i = (v >> 12) % 3, f = v & 0xFFF;
-		BlendColour(COLOURS + i * 4, COLOURS + i * 4 + 4, 0x1000 - f, f, h4);
+		BlendColour(((const uint8_t *)fxp::data(P().tables.colours, (uint32_t)COLOURS, 16, 4)) + i * 4, ((const uint8_t *)fxp::data(P().tables.colours, (uint32_t)COLOURS, 16, 4)) + i * 4 + 4, 0x1000 - f, f, h4);
 		if ((uint32_t)t < 8)
 		{
 			const int32_t s = ComputeSin((t & 0x3FFFFF) << 7);
@@ -518,7 +520,7 @@ namespace badbreath131
 	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -530,7 +532,7 @@ namespace badbreath131
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2521048), 0x14, 1);
 		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QMaster();
 	}
 
@@ -563,14 +565,14 @@ namespace badbreath131
 		if ((uint32_t)c < 8)
 		{
 			const int32_t w = shl32(c, 9);
-			BlendColour(TINT, &t->colour, w, 0x1000 - w, entity + 0x28);
+			BlendColour(((const void *)fxp::data(P().tables.tint, (uint32_t)TINT, 4, 4)), &t->colour, w, 0x1000 - w, entity + 0x28);
 		}
 		else if ((uint32_t)(c - 0x1E) <= 8)
 		{
 			const int32_t w = shl32(c - 0x1E, 9);
-			BlendColour(TINT, &t->colour, 0x1000 - w, w, entity + 0x28);
+			BlendColour(((const void *)fxp::data(P().tables.tint, (uint32_t)TINT, 4, 4)), &t->colour, 0x1000 - w, w, entity + 0x28);
 		}
-		else if (t->counter >= 0 && t->counter <= 0x1E) *(uint32_t *)(entity + 0x28) = *(const uint32_t *)TINT;
+		else if (t->counter >= 0 && t->counter <= 0x1E) *(uint32_t *)(entity + 0x28) = *(const uint32_t *)((const void *)fxp::data(P().tables.tint, (uint32_t)TINT, 4, 4));
 		else *(uint32_t *)(entity + 0x28) = t->colour;
 		if (t->counter <= 0x10)
 		{
@@ -765,6 +767,10 @@ namespace badbreath131
 			{ "emitter", "seqs.bubble", "Bubble", "The sprite sequence bubble (a flipbook of 18 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.bubble), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "emitter", "model_data.model_1", "Model 1 model", "The prim model model 1 (a mesh of 165 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, model_data.model_1), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "model_data.model_2", "Model 2 model", "The prim model model 2 (a mesh of 165 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, model_data.model_2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BreathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "emitter", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BreathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.colours", "Colours", "The colours it blends through (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(BreathParams, tables.colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.tint", "Tint colour", "The colour the targets are tinted toward (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(BreathParams, tables.tint), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

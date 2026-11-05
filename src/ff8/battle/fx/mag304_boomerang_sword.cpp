@@ -124,8 +124,9 @@ namespace boomerang304
 		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t sword, trail; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const BoomerangSwordParams GAME = { 0x10312C8, { MODEL_Hit }, { SEQ_Spark }, { MODEL_Sword, MODEL_Trail } };
+	static const BoomerangSwordParams GAME = { 0x10312C8, { MODEL_Hit }, { SEQ_Spark }, { MODEL_Sword, MODEL_Trail }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static BoomerangSwordParams live = GAME;
 	static const BoomerangSwordParams &P() { return live; }
 
@@ -457,7 +458,7 @@ namespace boomerang304
 	// the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -469,7 +470,7 @@ namespace boomerang304
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507568), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QMaster();
 	}
 
@@ -743,6 +744,8 @@ namespace boomerang304
 			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(BoomerangSwordParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "main", "model_data.sword", "Sword model", "The prim model sword (a mesh of 52 vertices, 78 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BoomerangSwordParams, model_data.sword), fxp::Model, 0, 0x7FFFFFFF },
 			{ "main", "model_data.trail", "Trail model", "The prim model trail (a mesh of 14 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BoomerangSwordParams, model_data.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BoomerangSwordParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BoomerangSwordParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -101,8 +101,9 @@ namespace cg190
 		struct { int16_t damage; } master; // the damage at this tick
 		struct { uint32_t smoke, flash, sparks; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t muzzle, impact, spark; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const ChainGunParams GAME = { 0xD1956C, { 0x1E }, { SEQ_Smoke, SEQ_Flash, SEQ_Sparks }, { MODEL_Muzzle, MODEL_Impact, MODEL_Spark } };
+	static const ChainGunParams GAME = { 0xD1956C, { 0x1E }, { SEQ_Smoke, SEQ_Flash, SEQ_Sparks }, { MODEL_Muzzle, MODEL_Impact, MODEL_Spark }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static ChainGunParams live = GAME;
 	static const ChainGunParams &P() { return live; }
 
@@ -444,7 +445,7 @@ namespace cg190
 	// cleared, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -459,7 +460,7 @@ namespace cg190
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_MasterTask)) + 0xC) = 0;
 		for (uint32_t a = own::R(0x22824A0); a < own::R(0x2282E00); a += 0x18) *(int32_t *)a = 0;
 		for (uint32_t a = own::R(0x2281B40); a < own::R(0x22824A0); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TexFile());
 		return QRoot();
 	}
@@ -854,6 +855,8 @@ namespace cg190
 			{ "master", "models.muzzle", "Muzzle model", "The prim model muzzle (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ChainGunParams, models.muzzle), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.impact", "Impact model", "The prim model impact (a mesh of 24 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ChainGunParams, models.impact), fxp::Model, 0, 0x7FFFFFFF },
 			{ "master", "models.spark", "Spark model", "The prim model spark (a mesh of 24 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ChainGunParams, models.spark), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ChainGunParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ChainGunParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -102,8 +102,9 @@ namespace ultima149
 		struct { int16_t damage; } director;            // the damage at this tick of an action's director
 		struct { uint32_t dust, orbit, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t streak, shard, energy, ring, dome, core; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const UltimaParams GAME = { { 0xDC9ABC, 0xDC9BD0, 0xDC9BD4 }, { 0xA6 }, { 0xDC312C, 0xDC333C, 0xDC35B8 }, { 0xDC8BC4, 0xDC8804, 0xDC7F54, 0xDC3784, 0xDC5254, 0xDC6EA4 } };
+	static const UltimaParams GAME = { { 0xDC9ABC, 0xDC9BD0, 0xDC9BD4 }, { 0xA6 }, { 0xDC312C, 0xDC333C, 0xDC35B8 }, { 0xDC8BC4, 0xDC8804, 0xDC7F54, 0xDC3784, 0xDC5254, 0xDC6EA4 }, { TEXTURE_NAME, CAMERA } };
 	static UltimaParams live = GAME;
 	static const UltimaParams &P() { return live; }
 	static const uint32_t SEQ_Orbit = 0xDC333C;
@@ -393,7 +394,7 @@ namespace ultima149
 	// director, both particle arrays cleared, the camera (its return armed) and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -412,7 +413,7 @@ namespace ultima149
 		for (uint32_t p = own::R(ARRAY_B); p < own::R(0x2463180); p += 0x18) *(uint32_t *)p = 0;
 		for (uint32_t p = own::R(ARRAY_A); p < own::R(ARRAY_B); p += 0x18) *(uint32_t *)p = 0;
 		fn<void (__cdecl *)()>(0x50A730)();   // BS_Camera_ArmReturnAfterEffect
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		QueueTimUpload(TexFile());
 		return &RootQueue();
 	}
@@ -1480,6 +1481,8 @@ namespace ultima149
 			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 217 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.dome", "Dome model", "The prim model dome (a mesh of 217 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.dome), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.core", "Core model", "The prim model core (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltimaParams, models.core), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(UltimaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(UltimaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

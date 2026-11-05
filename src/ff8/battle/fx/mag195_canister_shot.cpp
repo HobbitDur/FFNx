@@ -160,8 +160,10 @@ namespace canister195
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t smoke, impact, impact_smoke, steam, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ground_flash, cone, ring, debris, impact_flash; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const CanisterShotParams GAME = { 0xD0BD30, { 0xD099F0, 0xD09E0C, 0xD097CC, 0xD09AB4, 0xD09C60 }, { 0xD0A978, 0xD0AFE0, 0xD0B488, 0xD0AD68, 0xD09FB8 } };
+	static const CanisterShotParams GAME = { 0xD0BD30, { 0xD099F0, 0xD09E0C, 0xD097CC, 0xD09AB4, 0xD09C60 }, { 0xD0A978, 0xD0AFE0, 0xD0B488, 0xD0AD68, 0xD09FB8 }, { TEXTURE_NAME, 0xD07400 }, { 0xD0BD58 } };
 	static CanisterShotParams live = GAME;
 	static const CanisterShotParams &P() { return live; }
 
@@ -566,7 +568,7 @@ namespace canister195
 	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1138,7 +1140,7 @@ namespace canister195
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
@@ -1156,7 +1158,7 @@ namespace canister195
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1227,6 +1229,9 @@ namespace canister195
 			{ "shot", "models.ring", "Ring model", "The prim model ring (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.debris", "Debris model", "The prim model debris (a mesh of 14 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.impact_flash", "Impact flash model", "The prim model impact flash (a mesh of 91 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.impact_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(CanisterShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(CanisterShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(CanisterShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

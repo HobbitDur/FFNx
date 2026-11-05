@@ -127,8 +127,10 @@ namespace renzo259
 		uint32_t sound;   // at the controller's tick 1
 		struct { uint32_t flash, debris, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t sparkle, slash, streak, final; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t hit_lead; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const Renzokuken259Params GAME = { 0xE91520, { 0xCEDF40, 0xCEE210, 0xCEE0EC }, { 0xE91524, 0xCEE4C8, 0xCEEEB0, 0xCEF130 } };
+	static const Renzokuken259Params GAME = { 0xE91520, { 0xCEDF40, 0xCEE210, 0xCEE0EC }, { 0xE91524, 0xCEE4C8, 0xCEEEB0, 0xCEF130 }, { TEXTURE_NAME, CAMERA, 0xE9264C }, { 0xCF06E0 } };
 	static Renzokuken259Params live = GAME;
 	static const Renzokuken259Params &P() { return live; }
 	static const uint32_t MODEL_SPARKLE = 0xE91524, SPARKLE_FADE = 0xE916AC, SPARKLE_DEPTH = 0xE9169C;
@@ -297,7 +299,7 @@ namespace renzo259
 	// the length (4 until the sequence's tick 2), the finisher flag, the three particle pools freed, the camera, the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -316,7 +318,7 @@ namespace renzo259
 		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC) *(int16_t *)a = -1;
 		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14) *(int16_t *)a = -1;
 		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10) *(int16_t *)a = -1;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		QueueTimUpload(TexFile());
 		return QMaster();
 	}
@@ -334,7 +336,7 @@ namespace renzo259
 		}
 		if (n->c == 1)
 		{
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+			BindEntityModelFromComData(Caster(), BIND_OUT, fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), (Finisher() != 0) + 1);
 		}
 		if (n->c == 2)
@@ -709,7 +711,7 @@ namespace renzo259
 		int32_t sum = 0;
 		for (int32_t b = 0; b < (int32_t)StageCount(); b++)
 		{
-			const int32_t lead = var<int32_t>(HIT_LEAD + 4 * b);
+			const int32_t lead = var<int32_t>(fxp::data(P().tables.hit_lead, HIT_LEAD, 64, 4) + 4 * b);
 			sum += StageLen(b);
 			if ((int32_t)n->c != sum - lead) continue;
 			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Slash));
@@ -1011,6 +1013,10 @@ namespace renzo259
 			{ "controller", "models.slash", "Slash model", "The prim model slash (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken259Params, models.slash), fxp::Model, 0, 0x7FFFFFFF },
 			{ "controller", "models.streak", "Streak model", "The prim model streak (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken259Params, models.streak), fxp::Model, 0, 0x7FFFFFFF },
 			{ "controller", "models.final", "Final model", "The prim model final (a mesh of 130 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Renzokuken259Params, models.final), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(Renzokuken259Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(Renzokuken259Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(Renzokuken259Params, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "controller", "tables.hit_lead", "Hit leads", "Each hit's lead (how far ahead of its slash) (64 bytes: an edited one keeps its length)", (uint32_t)offsetof(Renzokuken259Params, tables.hit_lead), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -107,8 +107,10 @@ namespace holy175
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
 		struct { uint32_t orbit_spark, mote, beam, sparkle; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ring, wave, expand, pillar, disk, flash; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, tim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t pillar_delays; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const HolyParams GAME = { 0xD59180, { 0x6A }, { 0xD523E8, 0xD52374, 0xD522CC, 0xD524C4 }, { 0xD54588, 0xD56C58, 0xD53BA0, 0xD53688, 0xD52DD8, 0xD527F8 } };
+	static const HolyParams GAME = { 0xD59180, { 0x6A }, { 0xD523E8, 0xD52374, 0xD522CC, 0xD524C4 }, { 0xD54588, 0xD56C58, 0xD53BA0, 0xD53688, 0xD52DD8, 0xD527F8 }, { TEXTURE_NAME, CAMERA, 0xD45EAC }, { 0xD59188 } };
 	static HolyParams live = GAME;
 	static const HolyParams &P() { return live; }
 	static const void *const TIM_Upload = (const void *)0xD45EAC;  // texture uploaded at director frame 0x1E
@@ -348,7 +350,7 @@ namespace holy175
 	// the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -370,7 +372,7 @@ namespace holy175
 		fn<void (__cdecl *)()>(0x50A730)();   // BS_Camera_ArmReturnAfterEffect
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload((const void *)TexFile());
 		}
 		return &RootQueues().first;
@@ -1638,7 +1640,7 @@ namespace holy175
 		if (p->counter == 0x1E)
 		{
 			GridTextured() = 0;
-			QueueTimUpload(TIM_Upload);
+			QueueTimUpload(((const void *)fxp::tim(P().res.tim, (uint32_t)TIM_Upload)));
 		}
 		if (p->counter == 0x1F)
 		{
@@ -1681,7 +1683,7 @@ namespace holy175
 			for (int k = 0; k < 12; k++, acc += 0x1000)
 			{
 				RingNode *q = (RingNode *)AddTask(ORIG_PillarTask);
-				q->delay = (int16_t)(*(const int16_t *)(PILLAR_Delays + 4 * k) * 3);
+				q->delay = (int16_t)(*(const int16_t *)(fxp::data(P().tables.pillar_delays, PILLAR_Delays, 72) + 4 * k) * 3);
 				q->counter = 0;
 				int32_t ang = (Div12(acc) + r) & 0xFFF;
 				int32_t cs = ComputeCos(ang);
@@ -1778,6 +1780,10 @@ namespace holy175
 			{ "director", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.disk", "Disk model", "The prim model disk (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.disk), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 63 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(HolyParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(HolyParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "res.tim", "TIM image", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(HolyParams, res.tim), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "director", "tables.pillar_delays", "Pillar delays", "Each pillar's delay (x 3 ticks) (72 bytes: an edited one keeps its length)", (uint32_t)offsetof(HolyParams, tables.pillar_delays), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

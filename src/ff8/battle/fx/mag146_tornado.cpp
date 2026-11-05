@@ -121,8 +121,10 @@ namespace tornado146
 		struct { int16_t damage; } director;    // the damage at this tick of an action's director
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t crater; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t model, target; } morphs; // the cloud's morph (data): its model, whose vertices it blends from, and the vertices it blends to
 	};
-	static const TornadoParams GAME = { { 0xDD6638, 0xDD663C }, { 0x52 }, { SEQ_Spark }, { MESH_Crater } };
+	static const TornadoParams GAME = { { 0xDD6638, 0xDD663C }, { 0x52 }, { SEQ_Spark }, { MESH_Crater }, { TEXTURE_NAME, CAMERA_ANIM }, { 0xDD0B2C, 0xDD181C } };
 	static TornadoParams live = GAME;
 	static const TornadoParams &PT() { return live; }
 
@@ -247,7 +249,7 @@ namespace tornado146
 	// camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TimFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TimFile() = IO_GetFile_MAGIC((const char *)fxp::name(PT().res.texture_name, TEXTURE_NAME));
 		return TimFile();
 	}
 
@@ -262,7 +264,7 @@ namespace tornado146
 		const uint32_t d = Add(own::R(Q_FX), ORIG_Director);
 		S16(d, 0xC) = 0;
 		S16(d, 0xE) = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(PT().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TimFile());
 		return (TaskQueue *)own::R(Q_ROOT);
 	}
@@ -535,7 +537,7 @@ namespace tornado146
 			U32(f, 0x10) = U32(d, 0x10);
 			S16(f, 0xC) = 0;
 			U32(f, 0x14) = U32(d, 0x14);
-			MorphDeltas(MORPH_Base, MORPH_Target);
+			MorphDeltas(fxp::model(PT().morphs.model, MORPH_Model) + 8, fxp::data(PT().morphs.target, MORPH_Target, 960));
 			if (S16(d, 0xC) == 1)
 			{
 				uint32_t s = Add(own::R(Q_FX), ORIG_Sparks);
@@ -1547,7 +1549,7 @@ namespace tornado146
 		SetTransW((uint32_t)&m);
 		uint32_t h = Alloc(0x58);
 		int16_t d = S16(p, 0xC);
-		U32(h, 0) = MORPH_Model;
+		U32(h, 0) = fxp::model(PT().morphs.model, MORPH_Model);
 		U8(h, 0xA) = 0;
 		U8(h, 9) = 0;
 		U8(h, 8) = 0;
@@ -1557,13 +1559,13 @@ namespace tornado146
 			uint32_t buf = own::R(MORPH_Verts) + S16(p, 0xE) * 0x3C0;
 			for (int i = 0; i < 120; i++)
 				for (int c = 0; c < 3; c++)
-					S16(buf + 8 * i, 2 * c) = (int16_t)((int16_t)(S16(own::R(MORPH_Delta) + 8 * i, 2 * c) * d) + S16(MORPH_Base + 8 * i, 2 * c));
+					S16(buf + 8 * i, 2 * c) = (int16_t)((int16_t)(S16(own::R(MORPH_Delta) + 8 * i, 2 * c) * d) + S16(fxp::model(PT().morphs.model, MORPH_Model) + 8 + 8 * i, 2 * c));
 			U32(h, 0x1C) = 0x20C0;
 			U32(h, 4) = buf;
 		}
 		else
 		{
-			U32(h, 4) = MORPH_Target;
+			U32(h, 4) = fxp::data(PT().morphs.target, MORPH_Target, 960);
 			U32(h, 0x1C) = 0x20C0;
 		}
 		// 30 fps layer: see mag146_tornado_held.inc
@@ -1818,6 +1820,10 @@ namespace tornado146
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(TornadoParams, director.damage), fxp::I16, 0, 87 },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(TornadoParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "models.crater", "Crater model", "The prim model crater (a mesh of 142 vertices, 261 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TornadoParams, models.crater), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(TornadoParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(TornadoParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "morphs.model", "Cloud model", "The cloud's prim model (120 vertices: its vertices are where the morph starts; an edited one keeps them by number)", (uint32_t)offsetof(TornadoParams, morphs.model), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "morphs.target", "Cloud morph to", "The vertices the cloud blends to over 12 ticks (120 vertices x, y, z, pad: an edited one keeps the count)", (uint32_t)offsetof(TornadoParams, morphs.target), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -96,8 +96,10 @@ namespace bombglow179
 		uint32_t sound;                      // at the director's tick 1 (3D, at the caster)
 		struct { int16_t damage; } director; // the damage at this tick
 		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t glow_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const BombGlowParams GAME = { 0xD44968, { 0x23 }, { SEQ_Spark } };
+	static const BombGlowParams GAME = { 0xD44968, { 0x23 }, { SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM }, { 0xD44970 } };
 	static BombGlowParams live = GAME;
 	static const BombGlowParams &P() { return live; }
 
@@ -442,7 +444,7 @@ namespace bombglow179
 	static void GlowColour(uint32_t h, int16_t counter, int32_t level)
 	{
 		GteSetFarColor(0, 0, 0);
-		GteLoadRGBC(GLOW_COLOURS + (uint32_t)((int32_t)counter % 8) * 4);
+		GteLoadRGBC(fxp::data(P().tables.glow_colours, GLOW_COLOURS, 32, 4) + (uint32_t)((int32_t)counter % 8) * 4);
 		GteSetIR0(level);
 		GteDPCS();
 		GteStoreRGB2(h + 0x6C);
@@ -498,7 +500,7 @@ namespace bombglow179
 	// cleared, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -512,7 +514,7 @@ namespace bombglow179
 		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x2309EF0), 0x24, 100);
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
 		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TexFile());
 		return QRoot();
 	}
@@ -643,6 +645,9 @@ namespace bombglow179
 			{ "director", "sound", "Sound", "At the director's tick 1 (3D, at the caster)", (uint32_t)offsetof(BombGlowParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(BombGlowParams, director.damage), fxp::I16, 0, 40 },
 			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BombGlowParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BombGlowParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BombGlowParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "tables.glow_colours", "Glow colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(BombGlowParams, tables.glow_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

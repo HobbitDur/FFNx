@@ -89,8 +89,9 @@ namespace regen147
 		struct { int16_t status; } director; // the status (and the next action's director) at this tick
 		struct { uint32_t leaf; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t envelope; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const RegenParams GAME = { 0xDD05CC, { 0x1C }, { SEQ_Leaf }, { MODEL_Envelope } };
+	static const RegenParams GAME = { 0xDD05CC, { 0x1C }, { SEQ_Leaf }, { MODEL_Envelope }, { TEXTURE_NAME, CAMERA } };
 	static RegenParams live = GAME;
 	static const RegenParams &P() { return live; }
 	static const uint32_t TRAILS = 0x24774B8;           // 0x140 bytes (16 x 0x14) per action * 8 + leaf
@@ -235,7 +236,7 @@ namespace regen147
 	// target slot +0x20), the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -253,7 +254,7 @@ namespace regen147
 		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		return QRoot();
@@ -525,6 +526,8 @@ namespace regen147
 			{ "director", "director.status", "Status tick", "The status (and the next action's director) at this tick", (uint32_t)offsetof(RegenParams, director.status), fxp::I16, 0, 100 },
 			{ "director", "seqs.leaf", "Leaf", "The sprite sequence leaf (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RegenParams, seqs.leaf), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "director", "models.envelope", "Envelope model", "The prim model envelope (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RegenParams, models.envelope), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RegenParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RegenParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

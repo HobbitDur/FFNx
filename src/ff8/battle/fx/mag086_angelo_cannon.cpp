@@ -78,8 +78,9 @@ namespace cannon86
 		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
 		struct { uint32_t at_156177c; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_15618c0, at_1561920, at_15638c8; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const CannonParams GAME = { { SOUND_A, SOUND_B }, { 0x32 }, { 0x156177C }, { 0x15618C0, 0x1561920, 0x15638C8 } };
+	static const CannonParams GAME = { { SOUND_A, SOUND_B }, { 0x32 }, { 0x156177C }, { 0x15618C0, 0x1561920, 0x15638C8 }, { 0x156AA60 } };
 	static CannonParams live = GAME;
 	static const CannonParams &PC() { return live; }
 
@@ -1937,7 +1938,7 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		const uint32_t e = ENT(U8(node, 0x2C));
-		gx::BindEntityModelFromComData(e, R(0x25BC1F8), 0x156AA60);
+		gx::BindEntityModelFromComData(e, R(0x25BC1F8), fxp::anim_set(PC().res.anim, 0x156AA60));
 		gx::QueueChainTransformation(e, 1);
 		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 4);
@@ -2599,6 +2600,7 @@ namespace cannon86
 			{ "director", "models.at_15618c0", "Model 15618C0", "The prim model at 0x15618C0 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_15618c0), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.at_1561920", "Model 1561920", "The prim model at 0x1561920 (a mesh of 216 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_1561920), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.at_15638c8", "Model 15638C8", "The prim model at 0x15638C8 (a mesh of 180 vertices, 320 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_15638c8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(CannonParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 

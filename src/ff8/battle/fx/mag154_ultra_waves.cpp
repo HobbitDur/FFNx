@@ -111,8 +111,10 @@ namespace ultra154
 		uint32_t sound;                        // at the controller's tick 1
 		struct { int16_t damage; } controller; // the damage at this tick
 		struct { uint32_t ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ring_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const UltraWavesParams GAME = { 0xDBAD38, { 0x24 }, { MODEL_Ring } };
+	static const UltraWavesParams GAME = { 0xDBAD38, { 0x24 }, { MODEL_Ring }, { TEXTURE_NAME, CAMERA }, { 0xDBAE30 } };
 	static UltraWavesParams live = GAME;
 	static const UltraWavesParams &P() { return live; }
 	static const void *const CAMERA_Anim = (const void *)0xDBA910;          // (setup)
@@ -624,7 +626,7 @@ namespace ultra154
 	// particles freed, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -638,7 +640,7 @@ namespace ultra154
 		InitTaskQueuePool(QEffects(), (void *)own::R(0x2404BE0), 0x24, 100);
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_Controller)) + 0xC) = 0;
 		for (uint32_t p = own::R(0x2404270); p < own::R(0x2404BD0); p += 0x18) *(uint16_t *)p = 0;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		QueueTimUpload(TexFile());
 		return QRoot();
 	}
@@ -1026,7 +1028,7 @@ namespace ultra154
 		{
 			Particle &p = Parts()[i];
 			if (!(e->mask & p.mask)) continue;
-			ParticleDraw(h, w, p, RingColours[p.colour], ParticleFade(p.life));
+			ParticleDraw(h, w, p, ((const uint32_t *)fxp::data(P().tables.ring_colours, (uint32_t)RingColours, 64, 4))[p.colour], ParticleFade(p.life));
 			if (DrawOnly()) continue;
 			if (ParticleUpdate(p)) alive++;
 		}
@@ -1075,6 +1077,9 @@ namespace ultra154
 			{ "controller", "sound", "Sound", "At the controller's tick 1", (uint32_t)offsetof(UltraWavesParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "controller", "controller.damage", "Damage tick", "The damage at this tick of the controller", (uint32_t)offsetof(UltraWavesParams, controller.damage), fxp::I16, 0, 40 },
 			{ "controller", "models.ring", "Ring model", "The prim model ring (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltraWavesParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(UltraWavesParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(UltraWavesParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "tables.ring_colours", "Particle colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (64 bytes: an edited one keeps its length)", (uint32_t)offsetof(UltraWavesParams, tables.ring_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

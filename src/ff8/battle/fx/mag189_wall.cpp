@@ -116,8 +116,9 @@ namespace wall189
 		struct { int16_t result; } main; // the action results at this tick
 		struct { uint32_t dust; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t wall, shard, debris; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const WallParams GAME = { 0xD1B3A4, { 0x41 }, { SEQ_Dust }, { MODEL_Wall, MODEL_Shard, MODEL_Debris } };
+	static const WallParams GAME = { 0xD1B3A4, { 0x41 }, { SEQ_Dust }, { MODEL_Wall, MODEL_Shard, MODEL_Debris }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static WallParams live = GAME;
 	static const WallParams &P() { return live; }
 	static const int DUST_COUNT = 150, DEBRIS_COUNT = 100;
@@ -660,7 +661,7 @@ namespace wall189
 	// pools freed, the camera and the TIM
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -675,7 +676,7 @@ namespace wall189
 		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_MainTask)) + 0xC) = 0;
 		for (uint32_t a = own::R(0x2294DB0); a < own::R(PKT_DrawEnv); a += 0x18) *(int32_t *)a = 0;
 		for (uint32_t a = own::R(0x2293F90); a < own::R(0x22948F0); a += 0x18) *(int32_t *)a = 0;
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		QueueTimUpload(TexFile());
 		return QRoot();
 	}
@@ -973,6 +974,8 @@ namespace wall189
 			{ "main", "models.wall", "Wall model", "The prim model wall (a mesh of 144 vertices, 250 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.wall), fxp::Model, 0, 0x7FFFFFFF },
 			{ "main", "models.shard", "Shard model", "The prim model shard (a mesh of 28 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
 			{ "main", "models.debris", "Debris model", "The prim model debris (a mesh of 6 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(WallParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(WallParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

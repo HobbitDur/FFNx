@@ -269,8 +269,10 @@ namespace bio022
 		struct { int16_t cycles, spin; } blob;                                                         // the boiling blob bursts after these key shapes
 		struct { uint32_t splash_a, splash_b, droplet, mist_a, mist_b, bubble_a, bubble_b; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t pool, splat, blob, blob_boil; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t count_bubbles, count_splashes, count_mist_a, count_mist_b; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 }, { 0x1614F74, 0x1615120, 0x16156F8, 0x1615858, 0x16155B4, 0x16152CC, 0x1615440 }, { 0x1615CE4, 0x1617E3C, 0x1619888, 0x161F750 } };
+	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 }, { 0x1614F74, 0x1615120, 0x16156F8, 0x1615858, 0x16155B4, 0x16152CC, 0x1615440 }, { 0x1615CE4, 0x1617E3C, 0x1619888, 0x161F750 }, { TEXTURE_NAME, CAMERA }, { 0x162694C, 0x162696C, 0x162698C, 0x16269AC } };
 	static BioParams live = GAME;
 	static const BioParams &P() { return live; }
 	static const uint32_t STAGE_WOBBLE = 0x1D98990;       // 4 stage groups of 0x2C bytes: +2 amplitude
@@ -1263,7 +1265,7 @@ namespace bio022
 			return;
 		}
 		EmitterNode *e = (EmitterNode *)n->emitter;
-		int32_t count = *(const uint8_t *)(COUNT_Bubbles + n->counter);
+		int32_t count = *(const uint8_t *)(fxp::data(P().tables.count_bubbles, COUNT_Bubbles, 32, 1) + n->counter);
 		for (int32_t k = count; k > 0; k--)
 		{
 			int32_t a = CrtRand() & 0xFFF;
@@ -1282,7 +1284,7 @@ namespace bio022
 			p->scale[1] = sc;
 			p->scale[0] = sc;
 		}
-		count = *(const uint8_t *)(COUNT_Splashes + n->counter);
+		count = *(const uint8_t *)(fxp::data(P().tables.count_splashes, COUNT_Splashes, 32, 1) + n->counter);
 		for (int32_t k = count; k > 0; k--)
 		{
 			int32_t a = CrtRand() & 0xFFF;
@@ -1349,7 +1351,7 @@ namespace bio022
 		switch (s->phase)
 		{
 		case 0: SpawnerAtCenter(s); break;
-		case 1: MistSpawn(s, 0x18, COUNT_MistA, ORIG_MistA); break;
+		case 1: MistSpawn(s, 0x18, fxp::data(P().tables.count_mist_a, COUNT_MistA, 32, 1), ORIG_MistA); break;
 		default: break; // nullsub_1750
 		}
 		return Finish(s);
@@ -1362,7 +1364,7 @@ namespace bio022
 		switch (s->phase)
 		{
 		case 0: SpawnerAtCenter(s); break;
-		case 1: MistSpawn(s, 0x14, COUNT_MistB, ORIG_MistB); break;
+		case 1: MistSpawn(s, 0x14, fxp::data(P().tables.count_mist_b, COUNT_MistB, 32, 1), ORIG_MistB); break;
 		default: break; // nullsub_1754
 		}
 		return Finish(s);
@@ -2033,7 +2035,7 @@ namespace bio022
 	// texture, the two packet arenas in the magic buffer, the queues
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -2048,7 +2050,7 @@ namespace bio022
 		r->last_action = ctx->actions->last_action;
 		if ((ctx->flags & 1) == 0)
 		{
-			PlayCameraAnimation((const void *)CAMERA);
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 			QueueTimUpload(TexFile());
 		}
 		ArenaA() = layouts::MagicBuffer();
@@ -2113,6 +2115,12 @@ namespace bio022
 			{ "emitter", "models.splat", "Splat model", "The prim model splat (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BioParams, models.splat), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.blob", "Blob model", "The prim model blob (a mesh of 467 vertices, 598 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BioParams, models.blob), fxp::Model, 0, 0x7FFFFFFF },
 			{ "emitter", "models.blob_boil", "Blob boil model", "The prim model blob boil (a mesh of 258 vertices, 512 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BioParams, models.blob_boil), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BioParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "emitter", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BioParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.count_bubbles", "Bubbles a tick", "How many bubbles spawn at each tick (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(BioParams, tables.count_bubbles), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.count_splashes", "Splashes a tick", "How many splashes spawn at each tick (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(BioParams, tables.count_splashes), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.count_mist_a", "Mist a, a tick", "How many puffs of the first mist spawn at each tick (to tick 24) (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(BioParams, tables.count_mist_a), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.count_mist_b", "Mist b, a tick", "How many puffs of the second mist spawn at each tick (to tick 20) (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(BioParams, tables.count_mist_b), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef BP
 	}

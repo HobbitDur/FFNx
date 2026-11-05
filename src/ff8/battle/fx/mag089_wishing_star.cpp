@@ -118,8 +118,9 @@ namespace ws089
 		struct { uint32_t dive, at_14a6370, at_14a09a0, at_14a6600, at_14a9ff0; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t sparkle, flash, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t mdl_debris, mdl_trail, at_149d0f8, at_1499fa8, at_149c730, mdl_shards; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t tim_a, tim_b, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 }, { 0x14A07F4, 0x14A0538, 0x14A067C }, { 0x14A04D8, 0x1497140, 0x149D0F8, 0x1499FA8, 0x149C730, 0x1496550 } };
+	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 }, { 0x14A07F4, 0x14A0538, 0x14A067C }, { 0x14A04D8, 0x1497140, 0x149D0F8, 0x1499FA8, 0x149C730, 0x1496550 }, { TIM_A, TIM_B, 0x1495530 } };
 	static WishingStarParams live = GAME;
 	static const WishingStarParams &PW() { return live; }
 
@@ -2313,7 +2314,7 @@ namespace ws089
 		Centre()[2] = d->centre[2];
 		PartyFlag4On();
 		*(uint16_t *)Caster() &= 0xFFFB;
-		BindExternalAnimSet(Caster(), d->animset, 0x1495530);
+		BindExternalAnimSet(Caster(), d->animset, fxp::anim_set(PW().res.anim, 0x1495530));
 		QueueChainTransformation(Caster(), 1);
 		uint8_t *angelo = d->angelo;
 		BindModelContainer(angelo, d->sections, 0x14913FC);
@@ -2370,8 +2371,8 @@ namespace ws089
 	// two TIMs, the magic buffer, the cast and its caster, the root (no file loader: the shared null one)
 	static TaskQueue *__cdecl Setup(CastContext *ctx)
 	{
-		QueueTimUpload(TIM_A);
-		QueueTimUpload(TIM_B);
+		QueueTimUpload(fxp::tim(PW().res.tim_a, TIM_A));
+		QueueTimUpload(fxp::tim(PW().res.tim_b, TIM_B));
 		TexBase() = layouts::MagicBuffer();
 		Ctx() = (uint8_t *)ctx;
 		Caster() = Entity(ctx->attacker);
@@ -2454,6 +2455,9 @@ namespace ws089
 			{ "director", "model_data.at_1499fa8", "Model 1499FA8", "The prim model at 0x1499FA8 (a mesh of 300 vertices, 280 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_1499fa8), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "model_data.at_149c730", "Model 149C730", "The prim model at 0x149C730 (a mesh of 80 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_149c730), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "model_data.mdl_shards", "Mdl shards model", "The prim model mdl shards (a mesh of 77 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.mdl_shards), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.tim_a", "TIM image a", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(WishingStarParams, res.tim_a), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "director", "res.tim_b", "TIM image b", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(WishingStarParams, res.tim_b), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(WishingStarParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
 		};
 	}
 }

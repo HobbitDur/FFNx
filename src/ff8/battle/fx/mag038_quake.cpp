@@ -134,9 +134,11 @@ namespace quake038
 		struct { int16_t speed, gravity; } bounce;                   // the targets thrown up, pulled back a tick
 		struct { int16_t shake, sound, end; } fallback;              // the shake's start; no ground: the second sound, the end
 		struct { uint32_t dust, chip, rock; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t camera, tim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t shake_a, shake_b; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
 	static const QuakeParams GAME = { { 0x1642D68, 0x1642D6C }, { 0x10, 0x200, 0x100 }, { 0x28, 0x1E, 0xA, 0xD }, { 0x30, 0x30 },
-	                                  { 2, 0x30, 0x60 }, { SEQ_Dust, SEQ_Chip, SEQ_Rock } };
+	                                  { 2, 0x30, 0x60 }, { SEQ_Dust, SEQ_Chip, SEQ_Rock }, { CAMERA, TIM }, { 0x164364C, 0x1643678 } };
 	static QuakeParams live = GAME;
 	static const QuakeParams &PQ() { return live; }
 	inline const void *Rumble() { return (const void *)fxp::sound(PQ().sounds.rumble, (uint32_t)SOUND_Rumble); }
@@ -1224,8 +1226,8 @@ namespace quake038
 		U8(r, 0x2D) = slot;
 		U16(r, 0x5A) = ctx->actions->target_count;
 		U16(r, 0x58) = ctx->actions->last_action;
-		PlayCameraAnimation((const void *)CAMERA);
-		QueueTimUpload(TIM);
+		PlayCameraAnimation((const void *)fxp::camera(PQ().res.camera, CAMERA));
+		QueueTimUpload(fxp::tim(PQ().res.tim, TIM));
 		Arena0() = layouts::MagicBuffer();
 		Arena1() = Arena0() + 0x14000;
 		var<uint32_t>(own::R(0x2792E34)) = Arena0() + 0x28000;
@@ -1711,7 +1713,7 @@ namespace quake038
 			break;
 		case 1:                                      // MAG_038_QUAKE_SetShakeFromTableA
 		{
-			int16_t s = S16(SHAKE_A, S16(n, 0x24) * 2);
+			int16_t s = S16(fxp::data(PQ().tables.shake_a, SHAKE_A, 44), S16(n, 0x24) * 2);
 			if (s == 0x7F) NextPhase(n);
 			else CameraShake() = s;
 			break;
@@ -1720,7 +1722,7 @@ namespace quake038
 			if (State() == 5) NextPhase(n);
 			break;
 		case 3:                                      // MAG_038_QUAKE_SetShakeFromTableB
-			CameraShake() = S16(SHAKE_B, (U8(n, 0x24) & 0xF) * 2);
+			CameraShake() = S16(fxp::data(PQ().tables.shake_b, SHAKE_B, 32), (U8(n, 0x24) & 0xF) * 2);
 			if (State() == 7)
 			{
 				U8(n, 0x26) |= 1;
@@ -1751,7 +1753,7 @@ namespace quake038
 		case 2:                                      // MAG_038_QUAKE_SetShakeFromTableB2
 		{
 			int16_t t = S16(n, 0x24);
-			CameraShake() = S16(SHAKE_B, (t & 0xF) * 2);
+			CameraShake() = S16(fxp::data(PQ().tables.shake_b, SHAKE_B, 32), (t & 0xF) * 2);
 			if (t >= PQ().fallback.end)
 			{
 				U8(n, 0x26) |= 1;
@@ -2087,6 +2089,10 @@ namespace quake038
 			{ "sequence", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(QuakeParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "sequence", "seqs.chip", "Chip", "The sprite sequence chip (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(QuakeParams, seqs.chip), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "sequence", "seqs.rock", "Rock", "The sprite sequence rock (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(QuakeParams, seqs.rock), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sequence", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(QuakeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "sequence", "res.tim", "TIM image", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(QuakeParams, res.tim), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "sequence", "tables.shake_a", "Shake a", "The camera shake by tick while the ground rises (44 bytes: an edited one keeps its length)", (uint32_t)offsetof(QuakeParams, tables.shake_a), fxp::Data, 0, 0x7FFFFFFF },
+			{ "sequence", "tables.shake_b", "Shake b", "The camera shake cycle (16 ticks) (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(QuakeParams, tables.shake_b), fxp::Data, 0, 0x7FFFFFFF },
 		};
 #undef QP
 	}

@@ -101,8 +101,9 @@ namespace gtail064
 		struct { uint32_t sound; int16_t sound_tick, voice, end; } master;   // its sound at its tick; the voice slot released / the end at these ticks
 		struct { int16_t a, b, c; } flashes;                                  // the white screen flashes' first ticks (4 ticks each)
 		struct { uint32_t l0, l1; } layouts;                                  // the bone scripts' prim-model layouts (LAYOUTS entries 0, 1)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const TailParams GAME = { { 0x1342EF4, 10, 0xA6, 0xAA }, { 0x13, 0x18, 0x2B }, { 0x13433C8, 0x1343C30 } };
+	static const TailParams GAME = { { 0x1342EF4, 10, 0xA6, 0xAA }, { 0x13, 0x18, 0x2B }, { 0x13433C8, 0x1343C30 }, { TEXTURE_NAME, CAMERA } };
 	static TailParams live = GAME;
 	static const TailParams &PT() { return live; }
 	// the 18 bone scripts started at counter 0 (first word: pose entry)
@@ -989,7 +990,7 @@ namespace gtail064
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PT().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1006,7 +1007,7 @@ namespace gtail064
 		*(uint16_t *)Entity(0) |= 4;
 		*(uint16_t *)Entity(1) |= 4;
 		*(uint16_t *)Entity(2) |= 4;
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(PT().res.camera, CAMERA));
 		return QRoot();
 	}
 
@@ -1074,6 +1075,8 @@ namespace gtail064
 			TP("master", flashes.c, "Third", "", 0, 400),
 			{ "master", "layouts.l0", "Layout 0", "The bone scripts' prim-model layout 0 (its models' animation)", (uint32_t)offsetof(TailParams, layouts.l0), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "master", "layouts.l1", "Layout 1", "The bone scripts' prim-model layout 1 (its models' animation)", (uint32_t)offsetof(TailParams, layouts.l1), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(TailParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(TailParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 #undef TP
 	}

@@ -131,8 +131,9 @@ namespace reflect135
 		struct { uint32_t reflect, shot, shot_hit, sweep; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t burst, glint, spark; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t beam; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const ReflectBeamParams GAME = { 0x1201D88, { 0x19 }, { MODEL_Reflect, MODEL_Shot, MODEL_ShotHit, MODEL_Sweep }, { SEQ_Burst, SEQ_Glint, SEQ_Spark }, { PRIM_Beam } };
+	static const ReflectBeamParams GAME = { 0x1201D88, { 0x19 }, { MODEL_Reflect, MODEL_Shot, MODEL_ShotHit, MODEL_Sweep }, { SEQ_Burst, SEQ_Glint, SEQ_Spark }, { PRIM_Beam }, { TEXTURE_NAME, CAMERA } };
 	static ReflectBeamParams live = GAME;
 	static const ReflectBeamParams &P() { return live; }
 
@@ -408,7 +409,7 @@ namespace reflect135
 	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -420,7 +421,7 @@ namespace reflect135
 		Caster() = Entity(ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520DE0), 0x14, 1);
 		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
 		return QMaster();
 	}
 
@@ -841,6 +842,8 @@ namespace reflect135
 			{ "sweep", "seqs.glint", "Glint", "The sprite sequence glint (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.glint), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "sweep", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "sweep", "model_data.beam", "Beam model", "The prim model beam (a mesh of 220 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ReflectBeamParams, model_data.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "sweep", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ReflectBeamParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "sweep", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ReflectBeamParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

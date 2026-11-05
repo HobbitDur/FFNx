@@ -130,8 +130,9 @@ namespace c199
 		struct { uint32_t start, flash; } sounds; // at the timeline's ticks 15, 53
 		struct { uint32_t at_cf0740; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t at_cf26f8, at_cf08ec, at_cf11bc; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_body_tim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const CactuarParams GAME = { 0xCF3318, { 0xCF3558, 0xCF355C }, { 0xCF0740 }, { 0xCF26F8, 0xCF08EC, 0xCF11BC } };
+	static const CactuarParams GAME = { 0xCF3318, { 0xCF3558, 0xCF355C }, { 0xCF0740 }, { 0xCF26F8, 0xCF08EC, 0xCF11BC }, { BODY_TIM } };
 	static CactuarParams live = GAME;
 	static const CactuarParams &P() { return live; }
 	static const uint32_t ORIG_CreatureTask = 0x5A8C20;
@@ -265,7 +266,7 @@ namespace c199
 		for (int i = 0; i < 100; i++) *(uint32_t *)(var<uint32_t>(0xCF3588) + 0x1C * i) = 0;
 		for (int i = 0; i < 800; i++) *(uint32_t *)(var<uint32_t>(0xCF358C) + 0x3C * i) = 0;
 		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TexFile());   // Battle_QueueTIMUpload_GetEOF
-		fn<void (__cdecl *)(uint32_t)>(0x505E30)(BODY_TIM);
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_body_tim, BODY_TIM));
 		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
 		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
 		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
@@ -1165,6 +1166,7 @@ namespace c199
 			{ "timeline", "models.at_cf26f8", "Model CF26F8", "The prim model at 0xCF26F8 (a mesh of 125 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf26f8), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_cf08ec", "Model CF08EC", "The prim model at 0xCF08EC (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf08ec), fxp::Model, 0, 0x7FFFFFFF },
 			{ "timeline", "models.at_cf11bc", "Model CF11BC", "The prim model at 0xCF11BC (a mesh of 240 vertices, 145 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf11bc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "res.tim_body_tim", "TIM image body tim", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(CactuarParams, res.tim_body_tim), fxp::Tim, 0, 0x7FFFFFFF },
 		};
 	}
 }

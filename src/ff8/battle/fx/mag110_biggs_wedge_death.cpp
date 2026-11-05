@@ -122,8 +122,9 @@ namespace bw110
 		uint32_t sound;   // the wind at the stream's tick 0
 		struct { uint32_t spark, hit; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t stream, debris, ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const StormParams GAME = { 0x12E336C, { SEQ_Spark, SEQ_Hit }, { MODEL_Stream, MODEL_Debris, MODEL_Ring } };
+	static const StormParams GAME = { 0x12E336C, { SEQ_Spark, SEQ_Hit }, { MODEL_Stream, MODEL_Debris, MODEL_Ring }, { TEXTURE_NAME } };
 	static StormParams live = GAME;
 	static const StormParams &P() { return live; }
 	inline const int16_t *SOUND_Pos() { return (const int16_t *)own::R(0x2521A50); } // module global, never written (0, 0, 0)
@@ -846,7 +847,7 @@ namespace bw110
 	// memory may be a copy's): the texture, the magic buffer, the cast, the root (no camera animation)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -943,6 +944,7 @@ namespace bw110
 			{ "storm", "models.stream", "Stream model", "The prim model stream (a mesh of 308 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, models.stream), fxp::Model, 0, 0x7FFFFFFF },
 			{ "storm", "models.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
 			{ "storm", "models.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "storm", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(StormParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
 		};
 	}
 }

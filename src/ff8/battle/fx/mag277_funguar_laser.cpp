@@ -115,8 +115,9 @@ namespace laser277
 		struct { uint32_t hit, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
 		struct { uint32_t spark, glow; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t beam; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
 	};
-	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Spark, SEQ_Glow }, { PRIM_Beam } };
+	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Spark, SEQ_Glow }, { PRIM_Beam }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static FunguarLaserParams live = GAME;
 	static const FunguarLaserParams &P() { return live; }
 	static const int16_t P_OBJECT = 0, P_VERTEX = 0x7B;  // the beam's start: caster model object 0, vertex 0x7B
@@ -512,7 +513,7 @@ namespace laser277
 	// rest), the camera
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -524,7 +525,7 @@ namespace laser277
 		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
 		InitTaskQueuePool(QMaster(), (void *)own::R(0x2508210), 0x14, 1);
 		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
-		PlayCameraAnimation((const void *)CAMERA_ANIM);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
 		return QMaster();
 	}
 
@@ -753,6 +754,8 @@ namespace laser277
 			{ "beam", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FunguarLaserParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "beam", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FunguarLaserParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
 			{ "beam", "model_data.beam", "Beam model", "The prim model beam (a mesh of 220 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FunguarLaserParams, model_data.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "beam", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FunguarLaserParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "beam", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FunguarLaserParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 		};
 	}
 }

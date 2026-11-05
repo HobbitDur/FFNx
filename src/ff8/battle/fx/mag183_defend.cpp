@@ -81,8 +81,10 @@ namespace defend183
 		uint32_t sound;                      // at the director's tick 1 (3D, at the caster)
 		struct { int16_t result; } director; // the action result at this tick
 		struct { uint32_t shield_a, shield_b; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t shield_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const DefendParams GAME = { 0xD39304, { 0x1E }, { MODEL_ShieldA, MODEL_ShieldB } };
+	static const DefendParams GAME = { 0xD39304, { 0x1E }, { MODEL_ShieldA, MODEL_ShieldB }, { TEXTURE_NAME }, { 0xD3933C } };
 	static DefendParams live = GAME;
 	static const DefendParams &P() { return live; }
 
@@ -227,7 +229,7 @@ namespace defend183
 		d.scroll = mul32(counter, -6);
 		d.fade_on = counter < 4 || counter >= 0x10;
 		d.fade = counter < 4 ? shl32(4 - counter, 10) : counter >= 0x10 ? shl32(counter - 0x10, 10) : 0;
-		d.colour = var<uint32_t>(SHIELD_COLOURS + (uint32_t)((int32_t)counter % 10) * 4);
+		d.colour = var<uint32_t>(fxp::data(P().tables.shield_colours, SHIELD_COLOURS, 40, 4) + (uint32_t)((int32_t)counter % 10) * 4);
 		d.b = true;
 		return d;
 	}
@@ -249,7 +251,7 @@ namespace defend183
 	// copy's): the cast, its first target's and its caster's slots, the root and the director, the TIM (no camera)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -355,6 +357,8 @@ namespace defend183
 			{ "director", "director.result", "Result tick", "The action result at this tick of the director", (uint32_t)offsetof(DefendParams, director.result), fxp::I16, 0, 35 },
 			{ "director", "models.shield_a", "Shield a model", "The prim model shield a (a mesh of 31 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DefendParams, models.shield_a), fxp::Model, 0, 0x7FFFFFFF },
 			{ "director", "models.shield_b", "Shield b model", "The prim model shield b (a mesh of 81 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DefendParams, models.shield_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(DefendParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "tables.shield_colours", "Shield colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (40 bytes: an edited one keeps its length)", (uint32_t)offsetof(DefendParams, tables.shield_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }

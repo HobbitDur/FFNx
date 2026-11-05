@@ -178,8 +178,10 @@ namespace armor197
 		uint32_t sound;   // the gun at each shot (with its action result)
 		struct { uint32_t debris, spark, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t ground_flash, path_ring, beam, beam_head, armor, muzzle_flash, cone, impact_ring, impact_spin; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
 	};
-	static const ArmorShotParams GAME = { 0xD05230, { 0xCFDC20, 0xCFD714, 0xCFDA74 }, { 0xD02180, 0xD04B88, 0xCFDD18, 0xCFEDE8, 0xCFF2F8, 0xD012B0, 0xD03940, 0xD02570, 0xD03298 } };
+	static const ArmorShotParams GAME = { 0xD05230, { 0xCFDC20, 0xCFD714, 0xCFDA74 }, { 0xD02180, 0xD04B88, 0xCFDD18, 0xCFEDE8, 0xCFF2F8, 0xD012B0, 0xD03940, 0xD02570, 0xD03298 }, { TEXTURE_NAME, 0xCFB348 }, { 0xD05268 } };
 	static ArmorShotParams live = GAME;
 	static const ArmorShotParams &P() { return live; }
 
@@ -690,7 +692,7 @@ namespace armor197
 	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
 	static uint32_t __cdecl FileLoader()
 	{
-		TexFile() = IO_GetFile_MAGIC((const char *)TEXTURE_NAME);
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
 		return TexFile();
 	}
 
@@ -1354,7 +1356,7 @@ namespace armor197
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
@@ -1372,7 +1374,7 @@ namespace armor197
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), own::R(BIND_OUT), ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1461,6 +1463,9 @@ namespace armor197
 			{ "shot", "models.cone", "Cone model", "The prim model cone (a mesh of 160 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.impact_ring", "Impact ring model", "The prim model impact ring (a mesh of 128 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.impact_ring), fxp::Model, 0, 0x7FFFFFFF },
 			{ "shot", "models.impact_spin", "Impact spin model", "The prim model impact spin (a mesh of 64 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.impact_spin), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ArmorShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(ArmorShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(ArmorShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
 		};
 	}
 }
