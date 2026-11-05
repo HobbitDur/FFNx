@@ -115,8 +115,9 @@ namespace badbreath131
 		uint32_t sound;                    // at the emitter's tick 0x14
 		struct { int16_t damage; } target; // the damage at this tick of a target task
 		struct { uint32_t target; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t bubble; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BreathParams GAME = { 0x121C978, { 0x28 }, { MODEL_Target } };
+	static const BreathParams GAME = { 0x121C978, { 0x28 }, { MODEL_Target }, { SEQ_Bubble } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 	static const uint32_t VERTS = 0xA00;                 // magic buffer: swirled mesh vertices / morph output
@@ -505,7 +506,7 @@ namespace badbreath131
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
-		*(uint32_t *)h = SEQ_Bubble;
+		*(uint32_t *)h = fxp::sequence(P().seqs.bubble, SEQ_Bubble);
 		*(uint16_t *)(h + 4) = p->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -760,6 +761,7 @@ namespace badbreath131
 			{ "emitter", "sound", "Sound", "", (uint32_t)offsetof(BreathParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "emitter", "target.damage", "Damage tick", "The damage at this tick of a target task", (uint32_t)offsetof(BreathParams, target.damage), fxp::I16, 0, 200 },
 			{ "emitter", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.bubble", "Bubble", "The sprite sequence bubble (a flipbook of 18 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.bubble), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

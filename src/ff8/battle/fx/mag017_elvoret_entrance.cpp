@@ -111,8 +111,9 @@ namespace elvoret017
 		struct { int16_t from, ticks; } burst;           // the ring burst at its landing
 		int16_t end;                                     // the main task ends after this tick
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ElvoretParams GAME = { { 0x14D8E40, 0x14D8E44 }, { -5440, 0x40 }, { 0x50, 0x14 }, 0x7A, { MODEL_Layout } };
+	static const ElvoretParams GAME = { { 0x14D8E40, 0x14D8E44 }, { -5440, 0x40 }, { 0x50, 0x14 }, 0x7A, { MODEL_Layout }, { SEQ_Particle } };
 	static ElvoretParams live = GAME;
 	static const ElvoretParams &P() { return live; }
 
@@ -251,7 +252,7 @@ namespace elvoret017
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->scale >> 2));
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.particle, SEQ_Particle);
 		*(int16_t *)(h + 4) = p->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -483,6 +484,7 @@ namespace elvoret017
 			EV("entrance", burst.ticks, "Ticks", "", 0, 100),
 			EV("entrance", end, "End", "The entrance ends after this tick", 1, 400),
 			{ "entrance", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(ElvoretParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "entrance", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(ElvoretParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef EV
 	}

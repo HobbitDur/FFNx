@@ -120,8 +120,9 @@ namespace sandstorm176
 	struct SandStorm176Params
 	{
 		struct { uint32_t wind, land; } sounds; // the wind at the director's tick 14, a target landing
+		struct { uint32_t sand; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SandStorm176Params GAME = { { 0xD4514C, 0xD45150 } };
+	static const SandStorm176Params GAME = { { 0xD4514C, 0xD45150 }, { SEQ_Sand } };
 	static SandStorm176Params live = GAME;
 	static const SandStorm176Params &P() { return live; }
 
@@ -601,7 +602,7 @@ namespace sandstorm176
 	{
 		const uint32_t t = (uint32_t)n;
 		const uint32_t h = Alloc(0xB4);
-		U32(h, 0) = SEQ_Sand;
+		U32(h, 0) = fxp::sequence(P().seqs.sand, SEQ_Sand);
 		S16(h, 0x24) = 0;
 		int32_t alive = 0;
 		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
@@ -750,7 +751,7 @@ namespace sandstorm176
 		const uint32_t t = (uint32_t)n;
 		const uint32_t h = Alloc(0xB4);
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Sand;
+		U32(h, 0) = fxp::sequence(P().seqs.sand, SEQ_Sand);
 		S16(h, 0x24) = 0;
 		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
@@ -909,6 +910,7 @@ namespace sandstorm176
 		static const Field FIELDS[] = {
 			{ "director", "sounds.wind", "Wind", "At the director's tick 14", (uint32_t)offsetof(SandStorm176Params, sounds.wind), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.land", "Land", "A target landing (its result)", (uint32_t)offsetof(SandStorm176Params, sounds.land), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.sand", "Sand", "The sprite sequence sand (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStorm176Params, seqs.sand), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -140,8 +140,9 @@ namespace saliva138
 		uint32_t sound;                  // at the main task's tick 0x19
 		struct { int16_t damage; } main; // the damage at this tick of the main task
 		struct { uint32_t a, b, c; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spray, splat; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SalivaParams GAME = { 0x11E3134, { 0x28 }, { MODEL_A, MODEL_B, MODEL_C } };
+	static const SalivaParams GAME = { 0x11E3134, { 0x28 }, { MODEL_A, MODEL_B, MODEL_C }, { SEQ_Spray, SEQ_Splat } };
 	static SalivaParams live = GAME;
 	static const SalivaParams &PS() { return live; }
 
@@ -786,7 +787,7 @@ namespace saliva138
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spray;
+		*(uint32_t *)h = fxp::sequence(PS().seqs.spray, SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int32_t *)(h + 8) = angle;
 		*(int16_t *)(h + 0x24) = 1;
@@ -834,7 +835,7 @@ namespace saliva138
 	{
 		TransformCameraByShadowRotation(pos, 0xC00, -0x300);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Splat;
+		*(uint32_t *)h = fxp::sequence(PS().seqs.splat, SEQ_Splat);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1106,6 +1107,8 @@ namespace saliva138
 			{ "main", "layouts.a", "A", "The prim-model layout a (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.c", "C", "The prim-model layout c (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.c), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SalivaParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(SalivaParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

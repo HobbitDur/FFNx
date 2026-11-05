@@ -95,8 +95,9 @@ namespace bombglow179
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the caster)
 		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BombGlowParams GAME = { 0xD44968, { 0x23 } };
+	static const BombGlowParams GAME = { 0xD44968, { 0x23 }, { SEQ_Spark } };
 	static BombGlowParams live = GAME;
 	static const BombGlowParams &P() { return live; }
 
@@ -473,7 +474,7 @@ namespace bombglow179
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)(h + 0) = SEQ_Spark;
+		*(uint32_t *)(h + 0) = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 0x24) = 2;
 		*(int32_t *)(h + 0x14) = 0x1000;
 		return h;
@@ -641,6 +642,7 @@ namespace bombglow179
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 1 (3D, at the caster)", (uint32_t)offsetof(BombGlowParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(BombGlowParams, director.damage), fxp::I16, 0, 40 },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BombGlowParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -70,8 +70,9 @@ namespace q116
 		uint32_t voice;                                    // the creature's voice slot (claimed at its spawn)
 		struct { uint32_t arrive, rise, charge, strike; } sounds;   // at the creature's ticks 0, 0x41, 0xD1, 0x115
 		struct { int16_t damage; } creature;               // the damage at this tick of the creature's timeline
+		struct { uint32_t impact_flash; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const QuezacotlParams GAME = { 0x12AE500, { 0x12AE4F0, 0x12AE4F4, 0x12AE4F8, 0x12AE4FC }, { 345 } };
+	static const QuezacotlParams GAME = { 0x12AE500, { 0x12AE4F0, 0x12AE4F4, 0x12AE4F8, 0x12AE4FC }, { 345 }, { 0x12AE400 } };
 	static QuezacotlParams live = GAME;
 	static const QuezacotlParams &P() { return live; }
 	static void *const MODEL_Debris = (void *)0x12AC8B8; // prim model (off_12AC8B8)
@@ -847,7 +848,7 @@ namespace q116
 		FlashNode *f = (FlashNode *)n;
 		TransformCameraByShadowRotation(f->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(void **)h = SEQ_ImpactFlash;
+		*(void **)h = ((void *)fxp::sequence(P().seqs.impact_flash, (uint32_t)SEQ_ImpactFlash));
 		*(int16_t *)(h + 4) = f->age;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1828,6 +1829,7 @@ namespace q116
 			{ "creature", "sounds.charge", "Charge", "", (uint32_t)offsetof(QuezacotlParams, sounds.charge), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "creature", "sounds.strike", "Strike", "", (uint32_t)offsetof(QuezacotlParams, sounds.strike), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "creature", "creature.damage", "Damage tick", "The damage at this tick of the creature's timeline", (uint32_t)offsetof(QuezacotlParams, creature.damage), fxp::I16, 0, 354 },
+			{ "creature", "seqs.impact_flash", "Impact flash", "The sprite sequence impact flash (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(QuezacotlParams, seqs.impact_flash), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

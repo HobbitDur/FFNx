@@ -96,8 +96,9 @@ namespace badbreath113
 		uint32_t sound;                    // at the breath's tick 0 (3D, at the caster)
 		struct { int16_t damage; } target; // the damage at this tick of a target's task
 		struct { uint32_t cloud; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t stream, rise, spray; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BreathParams GAME = { 0x12C1600, { 0x1B }, { MODEL_Cloud } };
+	static const BreathParams GAME = { 0x12C1600, { 0x1B }, { MODEL_Cloud }, { SEQ_Stream, SEQ_Rise, SEQ_Spray } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 
@@ -521,7 +522,7 @@ namespace badbreath113
 	static void ParticleDraw(const ParticleNode *p)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		if (p->seq == SEQ_Stream && p->counter < 4) TransformCameraByShadowRotation(p->pos, p->scale, 0);
+		if (p->seq == fxp::sequence(P().seqs.stream, SEQ_Stream) && p->counter < 4) TransformCameraByShadowRotation(p->pos, p->scale, 0);
 		else TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->rot >> 2));
 		F<uint32_t>(h, 0) = p->seq;
 		F<int16_t>(h, 4) = p->counter;
@@ -592,7 +593,7 @@ namespace badbreath113
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] << 2));
 				p->vel[1] = (int16_t)(-0x20 - (r & 0x1F));
 				const int32_t r2 = CrtRand();
-				p->seq = SEQ_Rise;
+				p->seq = fxp::sequence(P().seqs.rise, SEQ_Rise);
 				// y = rand * y, signed division by the magic 0x57619F1 (>> 41)
 				const int32_t prod = mul32(r2, p->pos[1]);
 				int32_t q = (int32_t)(((int64_t)prod * 0x57619F1) >> 32) >> 9;
@@ -697,7 +698,7 @@ namespace badbreath113
 				p->vel[1] = (int16_t)((r1 & 0x3F) + ((int32_t)m->pos[1] - sp[1]) / 16 - 0x20);
 				const int32_t r2 = CrtRand();
 				const int32_t vz = (r2 & 0x3F) + ((int32_t)m->pos[2] - sp[2]) / 16 - 0x20;
-				p->seq = SEQ_Stream;
+				p->seq = fxp::sequence(P().seqs.stream, SEQ_Stream);
 				p->end = 0x14;
 				p->rot = 0x800;
 				p->vel[2] = (int16_t)vz;
@@ -723,7 +724,7 @@ namespace badbreath113
 				q->acc[0] = (int16_t)(-(int32_t)q->vel[0] >> 4);
 				q->acc[2] = (int16_t)(-(int32_t)q->vel[2] >> 4);
 				q->acc[1] = (int16_t)(-(int32_t)q->vel[1] >> 4);
-				q->seq = SEQ_Spray;
+				q->seq = fxp::sequence(P().seqs.spray, SEQ_Spray);
 				q->end = 0xE;
 				const int32_t r = CrtRand();
 				q->rot = 0;
@@ -746,7 +747,7 @@ namespace badbreath113
 				p->acc[2] = 0;
 				p->acc[1] = 0;
 				p->acc[0] = 0;
-				p->seq = SEQ_Spray;
+				p->seq = fxp::sequence(P().seqs.spray, SEQ_Spray);
 				p->end = 0xE;
 				const int16_t s = (int16_t)((CrtRand() >> 4) + 0x800);
 				p->scale = s;
@@ -837,6 +838,9 @@ namespace badbreath113
 			{ "breath", "sound", "Sound", "", (uint32_t)offsetof(BreathParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "breath", "target.damage", "Damage tick", "The damage at this tick of a target's task", (uint32_t)offsetof(BreathParams, target.damage), fxp::I16, 0, 37 },
 			{ "breath", "layouts.cloud", "Cloud", "The prim-model layout cloud (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.cloud), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "breath", "seqs.stream", "Stream", "The sprite sequence stream (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.stream), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "breath", "seqs.rise", "Rise", "The sprite sequence rise (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.rise), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "breath", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

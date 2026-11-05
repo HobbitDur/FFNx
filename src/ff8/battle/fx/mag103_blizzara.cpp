@@ -79,8 +79,9 @@ namespace blizzara103
 	{
 		uint32_t sound;                   // at the ice block's tick 6 (3D, at the target)
 		struct { int16_t damage; } block; // the damage at this tick of the ice block
+		struct { uint32_t ice; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BlizzaraParams GAME = { 0x131E750, { 0x3C } };
+	static const BlizzaraParams GAME = { 0x131E750, { 0x3C }, { 0x13197E4 } };
 	static BlizzaraParams live = GAME;
 	static const BlizzaraParams &P() { return live; }
 	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };   // per action, in the magic buffer
@@ -789,7 +790,7 @@ namespace blizzara103
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(c->pos, c->scale, -(c->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 4) = (uint16_t)(c->counter & 0xF);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -833,7 +834,7 @@ namespace blizzara103
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(m->pos, m->scale, -(m->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 4) = (uint16_t)(m->counter & 0xF);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -867,6 +868,7 @@ namespace blizzara103
 		static const Field FIELDS[] = {
 			{ "block", "sound", "Sound", "", (uint32_t)offsetof(BlizzaraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "block", "block.damage", "Damage tick", "The damage at this tick of the ice block", (uint32_t)offsetof(BlizzaraParams, block.damage), fxp::I16, 0, 70 },
+			{ "block", "seqs.ice", "Ice", "The sprite sequence ice (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzaraParams, seqs.ice), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

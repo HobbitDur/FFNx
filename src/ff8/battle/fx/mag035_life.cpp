@@ -93,8 +93,9 @@ namespace life
 		struct { uint32_t sound; int16_t result; } emitter;            // its sound; the result (and the master's release) after this tick
 		struct { int16_t until, scale, radius; } grow;                  // phase 1: until this tick, the sparkles' scale and radius up a tick
 		struct { int16_t until, radius, spread, ring; } spread;         // phase 2: until this tick, radius down, height spread up, ring height down a tick
+		struct { uint32_t rise_a, rise_b, revive, ring, fall; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const LifeParams GAME = { { 0x15E6388, 0x1E }, { 0xA, 0x180, 0x66 }, { 0x14, 0x4C, 0x40, 0x26 } };
+	static const LifeParams GAME = { { 0x15E6388, 0x1E }, { 0xA, 0x180, 0x66 }, { 0x14, 0x4C, 0x40, 0x26 }, { 0x15E638C, 0x15E6538, 0x15E6890, 0x15E66E4, 0x15E68EC } };
 	static LifeParams live = GAME;
 	static const LifeParams &PL() { return live; }
 	// sprite sequences in the file
@@ -240,7 +241,7 @@ namespace life
 				radius = S16(node, 0x58);
 			if (radius == 0)
 				radius = 1;
-			const uint32_t seq = (x::CrtRand() & 1) != 0 ? SEQ_RiseA : SEQ_RiseB;
+			const uint32_t seq = (x::CrtRand() & 1) != 0 ? fxp::sequence(PL().seqs.rise_a, SEQ_RiseA) : fxp::sequence(PL().seqs.rise_b, SEQ_RiseB);
 			const uint32_t s = SpawnSparkle(node, seq, 0xF, 0xFFFFFE00);
 			const int32_t angle = (int32_t)(x::CrtRand() & 0xFFF);
 			const int32_t dist = (int16_t)((int32_t)x::CrtRand() % (int32_t)radius);
@@ -259,11 +260,11 @@ namespace life
 	static void SpawnRevive(uint32_t node)
 	{
 		if (U16(node, 0x24) == 0)
-			SpawnSparkle(node, SEQ_Revive, 2, 0xFFFFFC00);
+			SpawnSparkle(node, fxp::sequence(PL().seqs.revive, SEQ_Revive), 2, 0xFFFFFC00);
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x16 || (t & 1) != 0)
 			return;
-		const uint32_t s = SpawnSparkle(node, SEQ_Revive, 2, 0xFFFFFC00);
+		const uint32_t s = SpawnSparkle(node, fxp::sequence(PL().seqs.revive, SEQ_Revive), 2, 0xFFFFFC00);
 		int16_t dx = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
 		const int16_t dy = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x5A) + 1));
 		int16_t dz = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
@@ -289,7 +290,7 @@ namespace life
 		U16(s, 0x1E) = (uint16_t)(U16(s, 0x1E) + U16(node, 0x62));
 		U32(s, 0x60) = U32(s, 0x1C);
 		U32(s, 0x64) = U32(s, 0x20);
-		U32(s, 0x4C) = SEQ_Ring;
+		U32(s, 0x4C) = fxp::sequence(PL().seqs.ring, SEQ_Ring);
 		U16(s, 0x52) = 0xF;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -305,7 +306,7 @@ namespace life
 		if (t <= 0x14 || t >= 0x25)
 			return;
 		const uint32_t s = Spawn(R(Q_SPRITE), ORIG_Fall, 0x70, node);
-		U32(s, 0x4C) = SEQ_Fall;
+		U32(s, 0x4C) = fxp::sequence(PL().seqs.fall, SEQ_Fall);
 		U16(s, 0x52) = 9;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -596,6 +597,11 @@ namespace life
 			DT("emitter", spread.radius, "Radius down", "", -0x1000, 0x1000),
 			DT("emitter", spread.spread, "Spread", "", -0x1000, 0x1000),
 			DT("emitter", spread.ring, "Ring down", "", -0x1000, 0x1000),
+			{ "emitter", "seqs.rise_a", "Rise a", "The sprite sequence rise a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.rise_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.rise_b", "Rise b", "The sprite sequence rise b (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.rise_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.revive", "Revive", "The sprite sequence revive (a flipbook of 3 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.revive), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.ring", "Ring", "The sprite sequence ring (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.ring), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.fall", "Fall", "The sprite sequence fall (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.fall), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

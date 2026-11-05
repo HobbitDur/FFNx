@@ -114,8 +114,9 @@ namespace acid_quistis
 	{
 		uint32_t sound;   // the target task's counter 10
 		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spray, drip, splash; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const AcidParams GAME = { 0x1001AC8, { MODEL_Layout } };
+	static const AcidParams GAME = { 0x1001AC8, { MODEL_Layout }, { SEQ_Spray, SEQ_Drip, SEQ_Splash } };
 	static AcidParams live = GAME;
 	static const AcidParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1001ACC; // [|dy|][|dx|] -> length, 128 x 128
@@ -581,7 +582,7 @@ namespace acid_quistis
 	static void ParticleDraw(const ParticleNode *p, uint32_t seq)
 	{
 		// (the spray 0x660830: no roll; 128's spray: -size / 4 as the others)
-		TransformCameraByShadowRotation(p->pos, p->size, seq == SEQ_Spray ? 0 : -((int32_t)p->size >> 2));
+		TransformCameraByShadowRotation(p->pos, p->size, seq == fxp::sequence(P().seqs.spray, SEQ_Spray) ? 0 : -((int32_t)p->size >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint32_t>(h, 0) = seq;
 		F<int16_t>(h, 4) = (int16_t)p->counter;
@@ -836,7 +837,7 @@ namespace acid_quistis
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag317_acid_quistis_held.inc
 		FX_HELD(held_note_particle(ORIG_SprayTask, p);)
-		ParticleDraw(p, SEQ_Spray);
+		ParticleDraw(p, fxp::sequence(P().seqs.spray, SEQ_Spray));
 		SprayStep(p);
 		p->counter++;
 		return p->counter < 9 ? 0 : TASK_END;
@@ -847,7 +848,7 @@ namespace acid_quistis
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag317_acid_quistis_held.inc
 		FX_HELD(held_note_particle(ORIG_DripTask, p);)
-		ParticleDraw(p, SEQ_Drip);
+		ParticleDraw(p, fxp::sequence(P().seqs.drip, SEQ_Drip));
 		DripStep(p);
 		p->counter++;
 		return p->counter < 0xD ? 0 : TASK_END;
@@ -858,7 +859,7 @@ namespace acid_quistis
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag317_acid_quistis_held.inc
 		FX_HELD(held_note_particle(ORIG_SplashTask, p);)
-		ParticleDraw(p, SEQ_Splash);
+		ParticleDraw(p, fxp::sequence(P().seqs.splash, SEQ_Splash));
 		p->counter++;
 		return p->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -1108,6 +1109,9 @@ namespace acid_quistis
 		static const Field FIELDS[] = {
 			{ "target", "sound", "Sound", "The target task's counter 10", (uint32_t)offsetof(AcidParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.drip", "Drip", "The sprite sequence drip (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.splash", "Splash", "The sprite sequence splash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

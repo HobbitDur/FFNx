@@ -126,8 +126,9 @@ namespace laser_eye_quistis
 		struct { int16_t start, length, mode; } actors;                 // the actor system
 		struct { int16_t appear, grow, hold, shrink; } laser;           // a beam: shown at, its width up a tick, held to, down a tick
 		struct { int16_t level, step; } light;                          // the stage light ramps
+		struct { uint32_t at_158ff60; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const LaserEyeQParams GAME = { { 0xA, 0x19 }, { 0x158F530, 0xE, 0x12 }, { 0xF }, { 0x12, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 } };
+	static const LaserEyeQParams GAME = { { 0xA, 0x19 }, { 0x158F530, 0xE, 0x12 }, { 0xF }, { 0x12, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x158FF60 } };
 	static LaserEyeQParams live = GAME;
 	static const LaserEyeQParams &PL() { return live; }
 	static const uint32_t BIND_Block = 0x25FCDA8;      // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -925,7 +926,7 @@ namespace laser_eye_quistis
 	// +0x58..+0x5C (each rand & 0x3FF - 0x200), next state
 	uint32_t __cdecl cl_7DBCE0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x158FF60;
+		U32(a1, 0x4C) = fxp::sequence(PL().seqs.at_158ff60, 0x158FF60);
 		U16(a1, 0x52) = 6;
 		U16(a1, 0x58) = (uint16_t)((x::CrtRand() & 0x3FF) - 0x200);
 		U16(a1, 0x5A) = (uint16_t)((x::CrtRand() & 0x3FF) - 0x200);
@@ -2798,6 +2799,7 @@ namespace laser_eye_quistis
 			DT("laser", laser.grow, "Grow", "Its width up by this a tick (4096: full)", 1, 0x1000),
 			DT("laser", laser.hold, "Hold until", "Held at the eye until this tick", 0, 100),
 			DT("laser", laser.shrink, "Shrink", "At the target, its width down by this a tick", 1, 0x1000),
+			{ "emitter", "seqs.at_158ff60", "Flipbook 158FF60", "The sprite sequence at 0x158FF60 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(LaserEyeQParams, seqs.at_158ff60), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

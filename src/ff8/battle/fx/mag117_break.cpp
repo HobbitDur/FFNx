@@ -93,8 +93,9 @@ namespace break117
 		uint32_t sound;                    // at the target task's tick 0 (3D, at the anchor)
 		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
 		struct { uint32_t shell; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell } };
+	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell }, { SEQ_Spark } };
 	static BreakParams live = GAME;
 	static const BreakParams &P() { return live; }
 	static const uint32_t STONE_TPage = 0xB8, STONE_Clut = 0x3D54;
@@ -905,7 +906,7 @@ namespace break117
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0x1000, (int32_t)0xFFFFFC00);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -1168,6 +1169,7 @@ namespace break117
 			{ "target", "sound", "Sound", "", (uint32_t)offsetof(BreakParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(BreakParams, target.status), fxp::I16, 0, 83 },
 			{ "target", "layouts.shell", "Shell", "The prim-model layout shell (its models' animation)", (uint32_t)offsetof(BreakParams, layouts.shell), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreakParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

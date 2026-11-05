@@ -119,8 +119,9 @@ namespace tornado146
 	{
 		struct { uint32_t wind, land; } sounds; // the wind at the director's tick 1, a piece landing
 		struct { int16_t damage; } director;    // the damage at this tick of an action's director
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const TornadoParams GAME = { { 0xDD6638, 0xDD663C }, { 0x52 } };
+	static const TornadoParams GAME = { { 0xDD6638, 0xDD663C }, { 0x52 }, { SEQ_Spark } };
 	static TornadoParams live = GAME;
 	static const TornadoParams &PT() { return live; }
 
@@ -1482,7 +1483,7 @@ namespace tornado146
 	{
 		uint32_t s = (uint32_t)n;
 		uint32_t h = Alloc(0xB4);
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = fxp::sequence(PT().seqs.spark, SEQ_Spark);
 		S16(h, 0x24) = 0;
 		for (uint32_t e = own::R(SPARKS); e < own::R(SPARKS_End); e += 0x10)
 		{
@@ -1752,7 +1753,7 @@ namespace tornado146
 		uint32_t h = Alloc(0xB4);
 		int32_t first = S16(b, 0xE);
 		uint32_t pos0 = own::R(DEBRIS_Pos) + 16 * first, life0 = own::R(DEBRIS_Life) + 8 * first;
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = fxp::sequence(PT().seqs.spark, SEQ_Spark);
 		S16(h, 0x24) = 0;
 		for (int i = 0; i < 0x14; i++)
 		{
@@ -1814,6 +1815,7 @@ namespace tornado146
 			{ "director", "sounds.wind", "Wind", "At the director's tick 1", (uint32_t)offsetof(TornadoParams, sounds.wind), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.land", "Land", "A piece landing", (uint32_t)offsetof(TornadoParams, sounds.land), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(TornadoParams, director.damage), fxp::I16, 0, 87 },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(TornadoParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

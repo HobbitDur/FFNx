@@ -125,8 +125,9 @@ namespace oil137
 		uint32_t sound;                   // at the blast's tick 10
 		struct { int16_t damage; } blast; // the damage at this tick of the blast
 		struct { uint32_t puddle, spout, blast; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spray; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BlastParams GAME = { 0x11F035C, { 0x2D }, { MODEL_Puddle, MODEL_Spout, MODEL_Blast } };
+	static const BlastParams GAME = { 0x11F035C, { 0x2D }, { MODEL_Puddle, MODEL_Spout, MODEL_Blast }, { SEQ_Spray } };
 	static BlastParams live = GAME;
 	static const BlastParams &P() { return live; }
 
@@ -619,7 +620,7 @@ namespace oil137
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Spray;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spray, SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -887,6 +888,7 @@ namespace oil137
 			{ "blast", "layouts.puddle", "Puddle", "The prim-model layout puddle (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.puddle), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "blast", "layouts.spout", "Spout", "The prim-model layout spout (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.spout), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "blast", "layouts.blast", "Blast", "The prim-model layout blast (its models' animation)", (uint32_t)offsetof(BlastParams, layouts.blast), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "blast", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BlastParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

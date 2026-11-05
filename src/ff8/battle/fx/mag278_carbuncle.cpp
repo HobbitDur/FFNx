@@ -89,8 +89,9 @@ namespace c278
 		uint32_t voice;                                    // the voice slot claimed when the creature spawns
 		struct { uint32_t start, rise, ruby, wall; } sounds; // at the creature's ticks 1, 0x56, 0x91, 0xD7
 		struct { int16_t damage; } ruby;                   // each target's action result at this tick of its ruby
+		struct { uint32_t at_10bd2fc, at_10bd170; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const CarbuncleParams GAME = { 0x10C74DC, { 0x10C74CC, 0x10C74D0, 0x10C74D4, 0x10C74D8 }, { 0x32 } };
+	static const CarbuncleParams GAME = { 0x10C74DC, { 0x10C74CC, 0x10C74D0, 0x10C74D4, 0x10C74D8 }, { 0x32 }, { 0x10BD2FC, 0x10BD170 } };
 	static CarbuncleParams live = GAME;
 	static const CarbuncleParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x681FD0; // prim-model callback (pure draw)
@@ -592,7 +593,7 @@ namespace c278
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(pos4, 0x800, -0x200);
-		*(uint32_t *)h = variant != 0 ? 0x10BD2FC : 0x10BD170;
+		*(uint32_t *)h = variant != 0 ? fxp::sequence(P().seqs.at_10bd2fc, 0x10BD2FC) : fxp::sequence(P().seqs.at_10bd170, 0x10BD170);
 		*(int16_t *)(h + 4) = pos4[3];
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1272,6 +1273,8 @@ namespace c278
 			{ "creature", "sounds.ruby", "Ruby", "At the creature's tick 0x91", (uint32_t)offsetof(CarbuncleParams, sounds.ruby), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "creature", "sounds.wall", "Wall", "At the creature's tick 0xD7", (uint32_t)offsetof(CarbuncleParams, sounds.wall), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "creature", "ruby.damage", "Damage tick", "Each target's action result at this tick of its ruby", (uint32_t)offsetof(CarbuncleParams, ruby.damage), fxp::I16, 0, 0x7FFF },
+			{ "creature", "seqs.at_10bd2fc", "Flipbook 10BD2FC", "The sprite sequence at 0x10BD2FC (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(CarbuncleParams, seqs.at_10bd2fc), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "seqs.at_10bd170", "Flipbook 10BD170", "The sprite sequence at 0x10BD170 (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(CarbuncleParams, seqs.at_10bd170), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

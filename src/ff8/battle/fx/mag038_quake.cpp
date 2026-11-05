@@ -133,9 +133,10 @@ namespace quake038
 		struct { int16_t length, debris, rocks, dust; } quake;       // the ripples' ticks; the most debris, rocks and dust alive
 		struct { int16_t speed, gravity; } bounce;                   // the targets thrown up, pulled back a tick
 		struct { int16_t shake, sound, end; } fallback;              // the shake's start; no ground: the second sound, the end
+		struct { uint32_t dust, chip; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const QuakeParams GAME = { { 0x1642D68, 0x1642D6C }, { 0x10, 0x200, 0x100 }, { 0x28, 0x1E, 0xA, 0xD }, { 0x30, 0x30 },
-	                                  { 2, 0x30, 0x60 } };
+	                                  { 2, 0x30, 0x60 }, { SEQ_Dust, SEQ_Chip } };
 	static QuakeParams live = GAME;
 	static const QuakeParams &PQ() { return live; }
 	inline const void *Rumble() { return (const void *)fxp::sound(PQ().sounds.rumble, (uint32_t)SOUND_Rumble); }
@@ -1978,7 +1979,7 @@ namespace quake038
 		{
 		case 0:                                      // sub_8DB4D0
 		{
-			U32(n, 0x4C) = SEQ_Dust;
+			U32(n, 0x4C) = fxp::sequence(PQ().seqs.dust, SEQ_Dust);
 			S16(n, 0x52) = 0xB;
 			int32_t r = CrtRand();
 			S16(n, 0xA2) = (int16_t)(-0x64 - (r & 0x7F));
@@ -2030,7 +2031,7 @@ namespace quake038
 		{
 		case 0:                                      // sub_8DB690
 		{
-			U32(n, 0x4C) = SEQ_Chip;
+			U32(n, 0x4C) = fxp::sequence(PQ().seqs.chip, SEQ_Chip);
 			S16(n, 0x52) = 0xB;
 			int32_t r = CrtRand();
 			S16(n, 0xA2) = (int16_t)(-0x30 - (r & 0xFF));
@@ -2083,6 +2084,8 @@ namespace quake038
 			QP("fallback", fallback.shake, "Shake after", "The camera shake starts after this tick", 0, 200),
 			QP("fallback", fallback.sound, "Sound tick", "No ground: the second sound at this tick", 0, 400),
 			QP("fallback", fallback.end, "End tick", "No ground: done at this tick", 0, 400),
+			{ "sequence", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(QuakeParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sequence", "seqs.chip", "Chip", "The sprite sequence chip (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(QuakeParams, seqs.chip), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef QP
 	}

@@ -94,8 +94,9 @@ namespace blizzaga104
 	{
 		uint32_t sound;                    // at the freeze's tick 0 (3D, at the target)
 		struct { int16_t damage; } freeze; // the damage at this tick of the freeze
+		struct { uint32_t mist, flake; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BlizzagaParams GAME = { 0x13197A8, { 0x44 } };
+	static const BlizzagaParams GAME = { 0x13197A8, { 0x44 }, { 0x1312690, 0x13127A0 } };
 	static BlizzagaParams live = GAME;
 	static const BlizzagaParams &P() { return live; }
 	static const uint32_t MODEL_OFFSET[3] = { 0x11FB0, 0x142D8, 0x16600 };   // per action, in the magic buffer
@@ -1611,7 +1612,7 @@ namespace blizzaga104
 		GteReadMAC123((void *)(SPARKLE_MATRIX + 0x14));
 		GteSetRotMatrix((const Mat4x3 *)SPARKLE_MATRIX);
 		GteSetTransVector((const Mat4x3 *)SPARKLE_MATRIX);
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.mist, (uint32_t)SEQ_Mist));
 		*(uint16_t *)(h + 4) = (uint16_t)s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -1643,7 +1644,7 @@ namespace blizzaga104
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(m->pos, m->scale, -(m->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.mist, (uint32_t)SEQ_Mist));
 		*(uint16_t *)(h + 4) = (uint16_t)m->counter;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1674,7 +1675,7 @@ namespace blizzaga104
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(fl->pos, fl->scale, -(fl->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Flake;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.flake, (uint32_t)SEQ_Flake));
 		*(uint16_t *)(h + 4) = (uint16_t)fl->counter;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1716,6 +1717,8 @@ namespace blizzaga104
 		static const Field FIELDS[] = {
 			{ "freeze", "sound", "Sound", "", (uint32_t)offsetof(BlizzagaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "freeze", "freeze.damage", "Damage tick", "The damage at this tick of the freeze", (uint32_t)offsetof(BlizzagaParams, freeze.damage), fxp::I16, 0, 98 },
+			{ "freeze", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzagaParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "freeze", "seqs.flake", "Flake", "The sprite sequence flake (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzagaParams, seqs.flake), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

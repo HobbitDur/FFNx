@@ -241,8 +241,9 @@ namespace triple021
 		struct { uint32_t sound; int16_t release; } emitter;                        // its sound; the root goes on, the flash, at this tick
 		struct { int16_t every, height, spin, fade_in, fade_out, shrink, column_tick; } runes;   // two opposite a step; their motion and fades
 		struct { int16_t until, radius; } motes;                                    // a mote a tick until this tick; spiral radius (+ rand)
+		struct { uint32_t sprite, spark, glow, mote; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const TripleParams GAME = { { 0x16269D8, 0x18 }, { 3, 0x280, 0x140, 0x200, 0x200, 0x200, 3 }, { 6, 0x200 } };
+	static const TripleParams GAME = { { 0x16269D8, 0x18 }, { 3, 0x280, 0x140, 0x200, 0x200, 0x200, 3 }, { 6, 0x200 }, { SEQ_Sprite, SEQ_Spark, SEQ_Glow, SEQ_Mote } };
 	static TripleParams live = GAME;
 	static const TripleParams &P() { return live; }
 
@@ -404,7 +405,7 @@ namespace triple021
 			p->scale[0] = 0x1000;
 			p->scale[1] = 0x1000;
 			p->scale[2] = 0x1000;
-			p->seq = SEQ_Sprite;
+			p->seq = fxp::sequence(P().seqs.sprite, SEQ_Sprite);
 			p->last = 7;
 			int16_t v[4];
 			if (mode == 0)
@@ -784,7 +785,7 @@ namespace triple021
 				if (n->fade <= 0xA00 && spawn)
 				{
 					SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), own::Fn(ORIG_Spark), 0x70, n);
-					p->seq = SEQ_Spark;
+					p->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 				}
 				n->fade = (int16_t)(n->fade + 0x200);
 				if (n->fade >= 0x1000)
@@ -955,7 +956,7 @@ namespace triple021
 		GlowPlace(p);
 		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_GLOW, p);)
-		DrawGroundGlow(p, SEQ_Glow, (const uint32_t *)p->rgb);
+		DrawGroundGlow(p, fxp::sequence(P().seqs.glow, SEQ_Glow), (const uint32_t *)p->rgb);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -1052,7 +1053,7 @@ namespace triple021
 		if (r->h.counter < 0 || r->h.counter > P().motes.until) return;
 		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), own::Fn(ORIG_Mote), 0x70, r);
 		memcpy(p->base, p->h.pos, 8);
-		p->seq = SEQ_Mote;
+		p->seq = fxp::sequence(P().seqs.mote, SEQ_Mote);
 		p->radius = (int16_t)((CrtRand() & 0x1FF) + P().motes.radius);
 		p->last = 0xC;
 		p->ay = (int16_t)(CrtRand() & 0xFFF);
@@ -1487,6 +1488,10 @@ namespace triple021
 			TP("runes", runes.column_tick, "Column tick", "Its column at this tick", 0, 30),
 			TP("runes", motes.until, "Until", "", 0, 30),
 			TP("runes", motes.radius, "Radius", "", 0, 0x1000),
+			{ "emitter", "seqs.sprite", "Sprite", "The sprite sequence sprite (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef TP
 	}

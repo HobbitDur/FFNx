@@ -99,8 +99,9 @@ namespace cg190
 	{
 		uint32_t sound;                    // at the master's tick 1
 		struct { int16_t damage; } master; // the damage at this tick
+		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ChainGunParams GAME = { 0xD1956C, { 0x1E } };
+	static const ChainGunParams GAME = { 0xD1956C, { 0x1E }, { SEQ_Smoke } };
 	static ChainGunParams live = GAME;
 	static const ChainGunParams &P() { return live; }
 
@@ -481,7 +482,7 @@ namespace cg190
 		FX_HELD(held_begin(ORIG_SmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 0x24) = 0;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
@@ -602,7 +603,7 @@ namespace cg190
 		FX_HELD(held_begin(ORIG_DustTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
@@ -846,6 +847,7 @@ namespace cg190
 		static const Field FIELDS[] = {
 			{ "master", "sound", "Sound", "At the master's tick 1", (uint32_t)offsetof(ChainGunParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "master.damage", "Damage tick", "The damage at this tick of the master", (uint32_t)offsetof(ChainGunParams, master.damage), fxp::I16, 0, 36 },
+			{ "master", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ChainGunParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

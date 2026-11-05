@@ -100,8 +100,9 @@ namespace demi107
 		uint32_t sound;                    // at the target task's tick 0 (3D, at the anchor)
 		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
 		struct { uint32_t vortex; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark_a, spark_b, mote, orb, burst, ring; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DemiParams GAME = { 0x12F3974, { 0x56 }, { MODEL_Vortex } };
+	static const DemiParams GAME = { 0x12F3974, { 0x56 }, { MODEL_Vortex }, { SEQ_SparkA, SEQ_SparkB, SEQ_Mote, SEQ_Orb, SEQ_Burst, SEQ_Ring } };
 	static DemiParams live = GAME;
 	static const DemiParams &P() { return live; }
 
@@ -676,7 +677,7 @@ namespace demi107
 				const int32_t pick = CrtRand() & 1;
 				if (pick == 0 || pick == 1)
 				{
-					p->seq = pick == 0 ? SEQ_SparkA : SEQ_SparkB;
+					p->seq = pick == 0 ? fxp::sequence(P().seqs.spark_a, SEQ_SparkA) : fxp::sequence(P().seqs.spark_b, SEQ_SparkB);
 					p->end = 0xD;
 					p->scale = 0x1000;
 				}
@@ -805,7 +806,7 @@ namespace demi107
 		GteSetRotMatrix(MOTE_Matrix);
 		GteSetTransVector(MOTE_Matrix);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Mote;
+		*(uint32_t *)h = fxp::sequence(P().seqs.mote, SEQ_Mote);
 		*(int16_t *)(h + 4) = p->frame;
 		*(int32_t *)(h + 8) = p->angle;
 		*(uint16_t *)(h + 0x24) = 1;
@@ -839,7 +840,7 @@ namespace demi107
 		v[2] = (int16_t)(v[2] + t->pos[2]);
 		TransformCameraByShadowRotation(v, 0x1000, (int32_t)0xFFFFFC00);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Orb;
+		*(uint32_t *)h = fxp::sequence(P().seqs.orb, SEQ_Orb);
 		*(uint16_t *)(h + 4) = 1;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -942,15 +943,15 @@ namespace demi107
 		if ((uint32_t)e < 6)
 		{
 			// 30 fps layer: see mag107_demi_held.inc
-			FX_HELD(held_note_burst(t, SEQ_Burst, e);)
-			BurstDraw(t, SEQ_Burst, e);
+			FX_HELD(held_note_burst(t, fxp::sequence(P().seqs.burst, SEQ_Burst), e);)
+			BurstDraw(t, fxp::sequence(P().seqs.burst, SEQ_Burst), e);
 		}
 		e = t->counter - 0x17;
 		if ((uint32_t)e < 6)
 		{
 			// 30 fps layer: see mag107_demi_held.inc
-			FX_HELD(held_note_burst(t, SEQ_Ring, e);)
-			BurstDraw(t, SEQ_Ring, e);
+			FX_HELD(held_note_burst(t, fxp::sequence(P().seqs.ring, SEQ_Ring), e);)
+			BurstDraw(t, fxp::sequence(P().seqs.ring, SEQ_Ring), e);
 		}
 		if (t->counter == 0x17) ScreenFadeTask(0, 1, 1, 0x80);
 		const uint32_t ps = (uint32_t)(t->counter - 0x1E);
@@ -1111,6 +1112,12 @@ namespace demi107
 			{ "target", "sound", "Sound", "", (uint32_t)offsetof(DemiParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(DemiParams, target.status), fxp::I16, 0, 90 },
 			{ "target", "layouts.vortex", "Vortex", "The prim-model layout vortex (its models' animation)", (uint32_t)offsetof(DemiParams, layouts.vortex), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.spark_a", "Spark a", "The sprite sequence spark a (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(DemiParams, seqs.spark_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.spark_b", "Spark b", "The sprite sequence spark b (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(DemiParams, seqs.spark_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(DemiParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.orb", "Orb", "The sprite sequence orb (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(DemiParams, seqs.orb), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DemiParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.ring", "Ring", "The sprite sequence ring (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DemiParams, seqs.ring), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

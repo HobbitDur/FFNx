@@ -74,8 +74,9 @@ namespace thundara102
 	{
 		uint32_t sound;                  // at the bolt's frame 4 (3D, at the target)
 		struct { int16_t damage; } bolt; // the damage at this frame of the bolt
+		struct { uint32_t strike, upper_a, upper_b, core, arc, arc_low, glow, smoke, fade, spark, flash_sprite; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A } };
+	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A }, { 0x131E878, 0x131EABC, 0x131ECB0, 0x131F0E8, 0x131FF74, 0x131EECC, 0x131F458, 0x131F5B4, 0x131FA68, 0x131F244, 0x131E760 } };
 	static ThundaraParams live = GAME;
 	static const ThundaraParams &P() { return live; }
 	// strike layers (sprite sequences)
@@ -417,7 +418,7 @@ namespace thundara102
 		if (f < 8)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, SEQ_Strike, f);
+			Layer(h, fxp::sequence(P().seqs.strike, SEQ_Strike), f);
 		}
 		if (f >= 2)
 		{
@@ -427,15 +428,15 @@ namespace thundara102
 				memcpy(low, p->pos, 8);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
-				Layer(h, SEQ_UpperA, f - 2);
+				Layer(h, fxp::sequence(P().seqs.upper_a, SEQ_UpperA), f - 2);
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				*(uint32_t *)h = SEQ_UpperB;
+				*(uint32_t *)h = fxp::sequence(P().seqs.upper_b, SEQ_UpperB);
 				PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 			}
 			if (f < 11)
 			{
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				Layer(h, SEQ_Core, f - 2);
+				Layer(h, fxp::sequence(P().seqs.core, SEQ_Core), f - 2);
 			}
 		}
 		if (f >= 1 && f < 13) PacketCursor() = TiltedGlow(p->pos, 0x200, f - 1, 0xC, RenderOT44(), 2, PacketCursor());
@@ -445,7 +446,7 @@ namespace thundara102
 			if (f < 14)
 			{
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				Layer(h, SEQ_Arc, f - 5);
+				Layer(h, fxp::sequence(P().seqs.arc, SEQ_Arc), f - 5);
 			}
 			if (f < 13)
 			{
@@ -453,7 +454,7 @@ namespace thundara102
 				memcpy(low, p->pos, 8);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
-				Layer(h, SEQ_ArcLow, f - 5);
+				Layer(h, fxp::sequence(P().seqs.arc_low, SEQ_ArcLow), f - 5);
 			}
 		}
 		if (f >= 3 && f < 15) PacketCursor() = TiltedGlow(p->pos, -0x200, f - 3, 0xC, RenderOT44(), 2, PacketCursor());
@@ -461,12 +462,12 @@ namespace thundara102
 		if (f >= 8 && f < 0x11)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, SEQ_Glow, f - 8);
+			Layer(h, fxp::sequence(P().seqs.glow, SEQ_Glow), f - 8);
 		}
 		if (f >= 0xB && f < 0x14)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, SEQ_Smoke, f - 0xB);
+			Layer(h, fxp::sequence(P().seqs.smoke, SEQ_Smoke), f - 0xB);
 		}
 		if (f >= 9 && f < 0x13)
 		{
@@ -479,7 +480,7 @@ namespace thundara102
 			q += (int32_t)((uint32_t)q >> 31);                // x / 10
 			// 30 fps layer: see mag102_thundara_held.inc
 			FX_HELD(q = held_frame_arg(q, k, 10, 10);)
-			*(uint32_t *)h = SEQ_Fade;
+			*(uint32_t *)h = fxp::sequence(P().seqs.fade, SEQ_Fade);
 			uint8_t level = (uint8_t)(0x80 - (uint8_t)(ComputeSin(q) >> 7));
 			*(uint16_t *)(h + 0x24) = 4;
 			h[0x1E] = level;
@@ -572,7 +573,7 @@ namespace thundara102
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(uint16_t *)(h + 4) = (uint16_t)(p->anim % 20);
 		uint8_t level = (uint8_t)p->level;
 		h[0x1E] = level;
@@ -621,7 +622,7 @@ namespace thundara102
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0xC00, -0x300);
-		*(uint32_t *)h = SEQ_FlashSprite;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash_sprite, SEQ_FlashSprite);
 		*(uint16_t *)(h + 0x24) = 0;
 		*(uint16_t *)(h + 4) = (uint16_t)(*(const uint8_t *)&p->counter & 7);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -646,6 +647,17 @@ namespace thundara102
 		static const Field FIELDS[] = {
 			{ "bolt", "sound", "Sound", "", (uint32_t)offsetof(ThundaraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "bolt", "bolt.damage", "Damage frame", "The damage at this frame of the bolt", (uint32_t)offsetof(ThundaraParams, bolt.damage), fxp::I16, 0, 30 },
+			{ "bolt", "seqs.strike", "Strike", "The sprite sequence strike (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.strike), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.upper_a", "Upper a", "The sprite sequence upper a (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.upper_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.upper_b", "Upper b", "The sprite sequence upper b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.upper_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.core", "Core", "The sprite sequence core (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.core), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.arc", "Arc", "The sprite sequence arc (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.arc), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.arc_low", "Arc low", "The sprite sequence arc low (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.arc_low), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.fade", "Fade", "The sprite sequence fade (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.fade), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.flash_sprite", "Flash sprite", "The sprite sequence flash sprite (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.flash_sprite), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

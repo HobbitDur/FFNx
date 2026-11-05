@@ -109,8 +109,9 @@ namespace disch126
 		uint32_t sound;                  // at the main task's tick 0 (3D, at the caster)
 		struct { int16_t damage; } main; // the damage (and the main task's end) from this tick
 		struct { uint32_t glow; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark_b, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DischargeParams GAME = { 0x1242278, { 0x34 }, { MODEL_Glow } };
+	static const DischargeParams GAME = { 0x1242278, { 0x34 }, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark } };
 	static DischargeParams live = GAME;
 	static const DischargeParams &P() { return live; }
 	static const void *const TINT_Colour = (const void *)0x1242280;
@@ -709,7 +710,7 @@ namespace disch126
 	{
 		TransformCameraByShadowRotation(s->pos, s->scale, -(s->scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = s->kind ? SEQ_SparkB : SEQ_Spark;
+		*(uint32_t *)h = s->kind ? fxp::sequence(P().seqs.spark_b, SEQ_SparkB) : fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1197,6 +1198,8 @@ namespace disch126
 			{ "main", "sound", "Sound", "", (uint32_t)offsetof(DischargeParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "main.damage", "Damage tick", "The damage (and the main task's end) from this tick", (uint32_t)offsetof(DischargeParams, main.damage), fxp::I16, 0, 200 },
 			{ "main", "layouts.glow", "Glow", "The prim-model layout glow (its models' animation)", (uint32_t)offsetof(DischargeParams, layouts.glow), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark_b", "Spark b", "The sprite sequence spark b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DischargeParams, seqs.spark_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DischargeParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

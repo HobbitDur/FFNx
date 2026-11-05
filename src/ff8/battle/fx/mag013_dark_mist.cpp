@@ -215,8 +215,9 @@ namespace mist013
 	{
 		struct { uint32_t sound; int16_t control, damage; } emitter;   // its sound; the mist controller and the damage from these ticks
 		struct { int16_t puffs_until, stream_a, stream_b, spawner_c, spawner_d, overlay, end; } control;   // the controller's ticks
+		struct { uint32_t mist, mist_b, puff_c, puff_d; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const MistParams GAME = { { 0x16309F8, 0x19, 0x46 }, { 0xC, 0x10, 0x17, 0x10, 0x1E, 0x10, 0x1E } };
+	static const MistParams GAME = { { 0x16309F8, 0x19, 0x46 }, { 0xC, 0x10, 0x17, 0x10, 0x1E, 0x10, 0x1E }, { 0x16309FC, 0x1630E94, 0x1630C78, 0x1630D84 } };
 	static MistParams live = GAME;
 	static const MistParams &P() { return live; }
 	static const uint32_t MODEL_Swirl = 0x163257C, MODEL_Cloud = 0x1633C24;
@@ -433,7 +434,7 @@ namespace mist013
 	// a step ahead
 	static void MistAInit(Particle *p)
 	{
-		p->seq = SEQ_Mist;
+		p->seq = fxp::sequence(P().seqs.mist, SEQ_Mist);
 		p->last = 0x17;
 		p->shade = 0;
 		CopyAnchor(p, p->vel);
@@ -499,7 +500,7 @@ namespace mist013
 	// sub_8BF000: aimed at a random point around the emitter's anchor
 	static void MistBInit(Particle *p)
 	{
-		p->seq = SEQ_MistB;
+		p->seq = fxp::sequence(P().seqs.mist_b, SEQ_MistB);
 		p->rgb[0] = 0x80;
 		p->rgb[1] = 0x80;
 		p->rgb[2] = 0x80;
@@ -587,7 +588,7 @@ namespace mist013
 	// sub_8BF360
 	static void PuffCInit(Particle *p)
 	{
-		p->seq = SEQ_PuffC;
+		p->seq = fxp::sequence(P().seqs.puff_c, SEQ_PuffC);
 		p->last = 8;
 		p->shade = 0;
 		CopyAnchor(p, p->h.pos);
@@ -600,7 +601,7 @@ namespace mist013
 	// sub_8BF550
 	static void PuffDInit(Particle *p)
 	{
-		p->seq = SEQ_PuffD;
+		p->seq = fxp::sequence(P().seqs.puff_d, SEQ_PuffD);
 		p->last = 9;
 		p->shade = 0;
 		CopyAnchor(p, p->h.pos);
@@ -710,7 +711,7 @@ namespace mist013
 	static void StreamInit(Particle *p)
 	{
 		const int16_t life = (int16_t)(0x14 - p->variant);
-		p->seq = SEQ_Mist;
+		p->seq = fxp::sequence(P().seqs.mist, SEQ_Mist);
 		p->life = life;
 		p->frame = (int16_t)(0x17 - life);
 		p->last = 0x17;
@@ -1427,6 +1428,10 @@ namespace mist013
 			DMI("mist", control.spawner_d, "Target puffs 2", "...and more from this one", 0, 100),
 			DMI("mist", control.overlay, "Overlay at", "The target's wobbling overlay from this tick", 0, 100),
 			DMI("mist", control.end, "End", "The controller is done after this tick", 0, 200),
+			{ "emitter", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 24 frames: an edited one keeps as many)", (uint32_t)offsetof(MistParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.mist_b", "Mist b", "The sprite sequence mist b (a flipbook of 2 frames: an edited one keeps as many)", (uint32_t)offsetof(MistParams, seqs.mist_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.puff_c", "Puff c", "The sprite sequence puff c (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(MistParams, seqs.puff_c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.puff_d", "Puff d", "The sprite sequence puff d (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(MistParams, seqs.puff_d), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DMI
 	}

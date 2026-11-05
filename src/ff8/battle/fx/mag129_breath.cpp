@@ -112,8 +112,9 @@ namespace breath129
 		uint32_t sound;                    // at the main task's tick 0
 		struct { int16_t damage; } target; // the damage at this tick of a target task
 		struct { uint32_t mouth2, target, mouth1, mouth3; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BreathParams GAME = { 0x12292F4, { 0x10 }, { MODEL_Mouth2, MODEL_Target, MODEL_Mouth1, MODEL_Mouth3 } };
+	static const BreathParams GAME = { 0x12292F4, { 0x10 }, { MODEL_Mouth2, MODEL_Target, MODEL_Mouth1, MODEL_Mouth3 }, { SEQ_Spark } };
 	static BreathParams live = GAME;
 	static const BreathParams &P() { return live; }
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1229F28;   // [|dy|][|dx|] -> length, 128 x 128
@@ -1391,7 +1392,7 @@ namespace breath129
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(uint16_t *)(h + 4) = p->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1687,6 +1688,7 @@ namespace breath129
 			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.mouth1", "Mouth1", "The prim-model layout mouth1 (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.mouth1), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "main", "layouts.mouth3", "Mouth3", "The prim-model layout mouth3 (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.mouth3), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

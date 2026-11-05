@@ -126,8 +126,9 @@ namespace badbreath300
 	{
 		uint32_t sound;   // the breath task's counter 10
 		struct { uint32_t hit; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BadBreath300Params GAME = { 0x10430F4, { MODEL_Hit } };
+	static const BadBreath300Params GAME = { 0x10430F4, { MODEL_Hit }, { SEQ_Smoke } };
 	static BadBreath300Params live = GAME;
 	static const BadBreath300Params &P() { return live; }
 	static const uint32_t VERTS = 0x85C;                  // magic buffer: swirled mesh vertices / morph output
@@ -563,7 +564,7 @@ namespace badbreath300
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(uint16_t *)(h + 4) = p->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -835,6 +836,7 @@ namespace badbreath300
 		static const Field FIELDS[] = {
 			{ "breath", "sound", "Sound", "At counter 10 of the breath task", (uint32_t)offsetof(BadBreath300Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "breath", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(BadBreath300Params, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "breath", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 18 frames: an edited one keeps as many)", (uint32_t)offsetof(BadBreath300Params, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

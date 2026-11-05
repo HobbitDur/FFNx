@@ -118,8 +118,9 @@ namespace gg305
 	{
 		uint32_t sound;                    // at the director's tick 8
 		struct { int16_t damage; } master; // the damage at this tick
+		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const GatlingGunParams GAME = { 0xCEDF28, { 0x1E } };
+	static const GatlingGunParams GAME = { 0xCEDF28, { 0x1E }, { SEQ_Smoke } };
 	static GatlingGunParams live = GAME;
 	static const GatlingGunParams &P() { return live; }
 	static const uint32_t BIND_Block = 0x2245FD8;   // 0x20-byte block BS_BindEntityModelFromComData fills
@@ -384,7 +385,7 @@ namespace gg305
 		FX_HELD(held_begin(ORIG_SmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
@@ -506,7 +507,7 @@ namespace gg305
 		FX_HELD(held_begin(ORIG_DustTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
@@ -779,6 +780,7 @@ namespace gg305
 		static const Field FIELDS[] = {
 			{ "master", "sound", "Sound", "At the director's tick 8", (uint32_t)offsetof(GatlingGunParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "master.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(GatlingGunParams, master.damage), fxp::I16, 0, 36 },
+			{ "master", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GatlingGunParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

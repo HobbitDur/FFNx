@@ -113,8 +113,9 @@ namespace laser277
 	{
 		uint32_t sound;   // each beam's counter 0
 		struct { uint32_t hit, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact } };
+	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Spark } };
 	static FunguarLaserParams live = GAME;
 	static const FunguarLaserParams &P() { return live; }
 	static const int16_t P_OBJECT = 0, P_VERTEX = 0x7B;  // the beam's start: caster model object 0, vertex 0x7B
@@ -544,7 +545,7 @@ namespace laser277
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag277_funguar_laser_held.inc
 		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->vel, s->counter);)
-		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0xC00, -0x300);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.spark, SEQ_Spark), 0xC00, -0x300);
 		s->counter++;
 		if (s->counter >= 0x10) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -748,6 +749,7 @@ namespace laser277
 			{ "beam", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "beam", "layouts.ray", "Ray", "The prim-model layout ray (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.ray), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "beam", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FunguarLaserParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -96,8 +96,9 @@ namespace web153
 	{
 		uint32_t sound;                    // at the master's tick 1
 		struct { int16_t damage; } master; // the damage at this tick
+		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const StickyWebParams GAME = { 0xDBE27C, { 0x37 } };
+	static const StickyWebParams GAME = { 0xDBE27C, { 0x37 }, { SEQ_Particle } };
 	static StickyWebParams live = GAME;
 	static const StickyWebParams &P() { return live; }
 
@@ -635,7 +636,7 @@ namespace web153
 		FX_HELD(held_begin(ORIG_Particles1Task, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.particle, SEQ_Particle);
 		*(int16_t *)(h + 0x24) = 8;
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
@@ -701,7 +702,7 @@ namespace web153
 		FX_HELD(held_begin(ORIG_Particles2Task, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.particle, SEQ_Particle);
 		*(int16_t *)(h + 0x24) = 8;
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
@@ -910,6 +911,7 @@ namespace web153
 		static const Field FIELDS[] = {
 			{ "master", "sound", "Sound", "At the master's tick 1", (uint32_t)offsetof(StickyWebParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "master", "master.damage", "Damage tick", "The damage at this tick of the master", (uint32_t)offsetof(StickyWebParams, master.damage), fxp::I16, 0, 60 },
+			{ "master", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(StickyWebParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

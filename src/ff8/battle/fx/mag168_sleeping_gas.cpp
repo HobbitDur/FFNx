@@ -112,8 +112,9 @@ namespace gas168
 	{
 		uint32_t sound;                      // at the director's tick 1
 		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t sparkle; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const SleepingGasParams GAME = { 0xD6F77C, { 0x3C } };
+	static const SleepingGasParams GAME = { 0xD6F77C, { 0x3C }, { SEQ_Sparkle } };
 	static SleepingGasParams live = GAME;
 	static const SleepingGasParams &PG() { return live; }
 
@@ -552,7 +553,7 @@ namespace gas168
 		FX_HELD(held_note_spark(ORIG_SparkTarget, s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sparkle, SEQ_Sparkle);
 		for (uint32_t p = own::R(POOL_A); p < own::R(POOL_A_END); p += 0x18)
 		{
 			Spark *e = (Spark *)p;
@@ -625,7 +626,7 @@ namespace gas168
 		FX_HELD(held_note_spark(ORIG_SparkCaster, s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sparkle, SEQ_Sparkle);
 		*(uint16_t *)(h + 0x24) = 8;
 		for (uint32_t p = own::R(POOL_B); p < own::R(POOL_B_END); p += 0x18)
 		{
@@ -782,6 +783,7 @@ namespace gas168
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(SleepingGasParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SleepingGasParams, director.damage), fxp::I16, 0, 70 },
+			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepingGasParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

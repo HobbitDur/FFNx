@@ -119,8 +119,9 @@ namespace elec275
 	{
 		uint32_t sound;   // the discharge (main counter 0, at the caster)
 		struct { uint32_t glow; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark_b, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ElectrocuteParams GAME = { 0x10DC2D0, { MODEL_Glow } };
+	static const ElectrocuteParams GAME = { 0x10DC2D0, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark } };
 	static ElectrocuteParams live = GAME;
 	static const ElectrocuteParams &P() { return live; }
 	static const void *const TINT_Colour = (const void *)0x10DC2D8;
@@ -740,7 +741,7 @@ namespace elec275
 	{
 		TransformCameraByShadowRotation(s->pos, s->scale, -(s->scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = s->kind ? SEQ_SparkB : SEQ_Spark;
+		*(uint32_t *)h = s->kind ? fxp::sequence(P().seqs.spark_b, SEQ_SparkB) : fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1215,6 +1216,8 @@ namespace elec275
 		static const Field FIELDS[] = {
 			{ "main", "sound", "Sound", "The discharge (main counter 0, at the caster)", (uint32_t)offsetof(ElectrocuteParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "main", "layouts.glow", "Glow", "The prim-model layout glow (its models' animation)", (uint32_t)offsetof(ElectrocuteParams, layouts.glow), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark_b", "Spark b", "The sprite sequence spark b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ElectrocuteParams, seqs.spark_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ElectrocuteParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -95,8 +95,9 @@ namespace blade012
 		struct { int16_t tilt, spin, catch_lift, trails_until; } blade;   // out: tilt a tick; back: spin a tick; the catch sprite above it
 		struct { int16_t ticks, life, scale; } sparks;                     // at the impact, two a tick
 		struct { int16_t life, scale, spread; } fans;                      // glints and streaks thrown out of the impact
+		struct { uint32_t spark, streak, glint, hit, flash; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BladeParams GAME = { { 0x136562C, 0x1365630, 5 }, { 0x20, 0x210, 0x64, 0x3E }, { 0xA, 0xF, 0xC00 }, { 0xD, 0x800, 0x313 } };
+	static const BladeParams GAME = { { 0x136562C, 0x1365630, 5 }, { 0x20, 0x210, 0x64, 0x3E }, { 0xA, 0xF, 0xC00 }, { 0xD, 0x800, 0x313 }, { 0x1362AEC, 0x13627E4, 0x136298C, 0x1362C80, 0x13628FC } };
 	static BladeParams live = GAME;
 	static const BladeParams &P() { return live; }
 	static const uint32_t MODEL_Blade = 0x13646EC;       // prim models
@@ -804,7 +805,7 @@ namespace blade012
 			p->acc[2] = (int16_t)(-(int32_t)v >> 5);
 			v = (int16_t)((int32_t)(0u - (uint32_t)CrtRand()) >> 10);
 			p->vel[1] = v;
-			p->seq = SEQ_Spark;
+			p->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 			p->acc[1] = (int16_t)(-(int32_t)v >> 5);
 			p->life = P().sparks.life;
 			p->scale = (int16_t)((CrtRand() >> 4) + P().sparks.scale);
@@ -835,7 +836,7 @@ namespace blade012
 				p->vel[0] = (int16_t)(p->vel[0] >> sh);
 				p->vel[1] = (int16_t)(p->vel[1] >> sh);
 				p->vel[2] = (int16_t)(p->vel[2] >> sh);
-				p->seq = streaks ? SEQ_Streak : SEQ_Glint;
+				p->seq = streaks ? fxp::sequence(P().seqs.streak, SEQ_Streak) : fxp::sequence(P().seqs.glint, SEQ_Glint);
 				p->acc[0] = (int16_t)(-(int32_t)p->vel[0] >> 4);
 				p->acc[1] = (int16_t)(-(int32_t)p->vel[1] >> 4);
 				p->acc[2] = (int16_t)(-(int32_t)p->vel[2] >> 4);
@@ -963,7 +964,7 @@ namespace blade012
 			}
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_HIT, n, h, 0xB4, k);)
-			SeqDraw(n->hit, h, SEQ_Hit, (int16_t)k);
+			SeqDraw(n->hit, h, fxp::sequence(P().seqs.hit, SEQ_Hit), (int16_t)k);
 			FieldFree(0xB4);
 		}
 		k = (int32_t)n->counter - 0x20;
@@ -973,7 +974,7 @@ namespace blade012
 			if (k == 0) memcpy(n->hit, n->blade, 8);
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_FLASH, n, h, 0xB4, k);)
-			SeqDraw(n->hit, h, SEQ_Flash, (int16_t)k);
+			SeqDraw(n->hit, h, fxp::sequence(P().seqs.flash, SEQ_Flash), (int16_t)k);
 			FieldFree(0xB4);
 		}
 		// 30 fps layer: see mag012_blade_shot_held.inc
@@ -1013,7 +1014,7 @@ namespace blade012
 			pos[2] = n->blade[2];
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_CATCH, n, h, 0xB4, k);)
-			SeqDraw(pos, h, SEQ_Hit, (int16_t)k);
+			SeqDraw(pos, h, fxp::sequence(P().seqs.hit, SEQ_Hit), (int16_t)k);
 			FieldFree(0xB4);
 			if (k == 0) BdPlaySE3D((const void *)fxp::sound(P().sound.catch_sound, (uint32_t)SOUND_Catch), 0, pos);
 		}
@@ -1049,6 +1050,11 @@ namespace blade012
 			BS("impact", fans.life, "Life", "", 1, 100),
 			BS("impact", fans.scale, "Scale", "", 0, 0x4000),
 			BS("impact", fans.spread, "Spread", "", 0, 0x1000),
+			{ "blade", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.streak", "Streak", "The sprite sequence streak (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.streak), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.glint", "Glint", "The sprite sequence glint (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.glint), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef BS
 	}

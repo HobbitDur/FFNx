@@ -122,8 +122,9 @@ namespace beam134
 		uint32_t sound;                  // at the beam's tick 2
 		struct { int16_t damage; } beam; // the damage at this tick of the beam
 		struct { uint32_t hit, charge, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t glow, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BeamParams GAME = { 0x120767C, { 0x1A }, { MODEL_Hit, MODEL_Charge, MODEL_Muzzle, MODEL_Ray, MODEL_Impact } };
+	static const BeamParams GAME = { 0x120767C, { 0x1A }, { MODEL_Hit, MODEL_Charge, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Glow, SEQ_Spark } };
 	static BeamParams live = GAME;
 	static const BeamParams &P() { return live; }
 
@@ -498,7 +499,7 @@ namespace beam134
 		GlowNode *g = (GlowNode *)n;
 		// 30 fps layer: see mag134_beam_laser_held.inc
 		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, g->counter);)
-		SpriteDraw(g->pos, g->counter, SEQ_Glow, 0x1000, -0x400);
+		SpriteDraw(g->pos, g->counter, fxp::sequence(P().seqs.glow, SEQ_Glow), 0x1000, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -511,7 +512,7 @@ namespace beam134
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag134_beam_laser_held.inc
 		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->counter);)
-		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0xC00, -0x300);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.spark, SEQ_Spark), 0xC00, -0x300);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
@@ -733,6 +734,8 @@ namespace beam134
 			{ "beam", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "beam", "layouts.ray", "Ray", "The prim-model layout ray (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.ray), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "beam", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(BeamParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BeamParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "beam", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BeamParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

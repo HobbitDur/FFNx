@@ -109,11 +109,11 @@ namespace storm011
 		struct { int16_t from, ticks, every; } rings;                   // along the stream
 		struct { int16_t wobble, sway; } stream_angles;                 // the stream's angles a tick
 		struct { uint32_t mouth, cone; } layout_data; // the prim-model layouts played (their models' animation)
+		struct { uint32_t puff, spark, mist, hit; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const StormParams GAME = {
 		{ 0x136B970, 8, 0x4B }, { 0x19, 0x32, 5 }, { 0x18, 0x1D }, { 0x23, 0x1E, 0xC00, 0x7FF },
-		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 },
-	};
+		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 }, { 0x1368580, 0x1368200, 0x136843C, 0x1368360 } };
 	static StormParams live = GAME;
 	static const StormParams &P() { return live; }
 	static const uint32_t MODEL_Stream = 0x1365720;     // stream model (vertex table at +8)
@@ -559,7 +559,7 @@ namespace storm011
 		pos[3] = 0; // never written by the original (stack word)
 		GteStoreIR123(pos);
 		TransformCameraByShadowRotation(pos, p->scale, -((int32_t)p->scale >> 2));
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = fxp::sequence(P().seqs.puff, SEQ_Puff);
 		*(int16_t *)(h + 4) = p->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -667,7 +667,7 @@ namespace storm011
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag011_storm_breath_held.inc
 		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Spark);
+		SpriteDraw(p, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
 
@@ -676,7 +676,7 @@ namespace storm011
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag011_storm_breath_held.inc
 		FX_HELD(held_note(K_MIST, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Mist);
+		SpriteDraw(p, fxp::sequence(P().seqs.mist, SEQ_Mist));
 		return SpriteMove(p, 0xC);
 	}
 
@@ -685,7 +685,7 @@ namespace storm011
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag011_storm_breath_held.inc
 		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Hit);
+		SpriteDraw(p, fxp::sequence(P().seqs.hit, SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
 
@@ -1090,6 +1090,10 @@ namespace storm011
 			SB("mist", rings.every, "Every", "", 1, 50),
 			{ "timing", "layout_data.mouth", "Mouth", "The prim-model layout mouth (its models' animation)", (uint32_t)offsetof(StormParams, layout_data.mouth), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "timing", "layout_data.cone", "Cone", "The prim-model layout cone (its models' animation)", (uint32_t)offsetof(StormParams, layout_data.cone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef SB
 	}

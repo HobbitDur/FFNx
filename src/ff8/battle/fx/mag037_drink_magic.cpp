@@ -107,9 +107,10 @@ namespace drinkmagic
 		struct { int16_t first, every, spread, twist; } ribbons;        // the five ribbons' ticks (first, then every), spread, twist a tick
 		struct { int16_t from, until, accel; } streaks;                 // one streak a tick from / until these spawner ticks; its acceleration
 		struct { int16_t appear, scale, fade, hold, spin; } orb;        // the orb at the caster: its tick, scale, fade a tick, hold, spin a tick
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
 	static const DrinkParams GAME = { { 0x15D62E8, 0xF, 0xF }, { 0x28, 0xF, 0 }, { 0x28, 2, 0x80, 0x180 }, { 0xE, 0x3E, 0x30 },
-	                                  { 0xF, 0x1400, 0x100, 0x14, 0xA0 } };
+	                                  { 0xF, 0x1400, 0x100, 0x14, 0xA0 }, { SPARK_FLIPBOOK } };
 	static DrinkParams live = GAME;
 	static const DrinkParams &PK() { return live; }
 
@@ -3235,7 +3236,7 @@ namespace drinkmagic
 	// +0x42 / +0x44, next state
 	uint32_t __cdecl dk_85F1B0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = SPARK_FLIPBOOK;
+		U32(a1, 0x4C) = fxp::sequence(PK().seqs.spark, SPARK_FLIPBOOK);
 		U16(a1, 0x52) = 5;
 		U16(a1, 0x54) = 0;
 		U16(a1, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -3834,6 +3835,7 @@ namespace drinkmagic
 			DK("orb", orb.fade, "Fade", "Its fade out and back in a tick (4096: all of it)", 1, 0x1000),
 			DK("orb", orb.hold, "Hold", "Ticks between its fade out and fade in", 0, 200),
 			DK("orb", orb.spin, "Spin", "Its twist and swell angles a tick (4096: a turn)", -0x800, 0x800),
+			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrinkParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DK
 	}

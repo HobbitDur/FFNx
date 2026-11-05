@@ -105,8 +105,9 @@ namespace holy175
 	{
 		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
 		struct { int16_t damage; } director; // the damage at this tick of an action's director
+		struct { uint32_t orbit_spark, mote, beam; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const HolyParams GAME = { 0xD59180, { 0x6A } };
+	static const HolyParams GAME = { 0xD59180, { 0x6A }, { 0xD523E8, 0xD52374, 0xD522CC } };
 	static HolyParams live = GAME;
 	static const HolyParams &P() { return live; }
 	static const void *const TIM_Upload = (const void *)0xD45EAC;  // texture uploaded at director frame 0x1E
@@ -1044,7 +1045,7 @@ namespace holy175
 		ShadowRotation(v, p->size, -(p->size >> 4));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)(*(const uint8_t *)&p->counter & 7);
-		*(uint32_t *)h = SEQ_OrbitSpark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.orbit_spark, SEQ_OrbitSpark);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1134,7 +1135,7 @@ namespace holy175
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *m = (uint8_t *)FieldAlloc(0x48);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Mote;
+		*(uint32_t *)h = fxp::sequence(P().seqs.mote, SEQ_Mote);
 		*(uint16_t *)(h + 0x24) = 0xC;
 		int16_t *ang = (int16_t *)m;
 		ang[0] = 0;
@@ -1432,7 +1433,7 @@ namespace holy175
 		r.t[2] = p->pos[2];
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t c = p->counter;
-		*(uint32_t *)h = SEQ_Beam;
+		*(uint32_t *)h = fxp::sequence(P().seqs.beam, SEQ_Beam);
 		*(uint16_t *)(h + 0x24) = 0;
 		bool lit = false;
 		int32_t level = 0;
@@ -1766,6 +1767,9 @@ namespace holy175
 		static const Field FIELDS[] = {
 			{ "director", "sound", "Sound", "At the director's tick 1 (3D, at the target)", (uint32_t)offsetof(HolyParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(HolyParams, director.damage), fxp::I16, 0, 110 },
+			{ "director", "seqs.orbit_spark", "Orbit spark", "The sprite sequence orbit spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.orbit_spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.beam", "Beam", "The sprite sequence beam (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(HolyParams, seqs.beam), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

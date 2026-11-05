@@ -242,8 +242,9 @@ namespace scan040
 		struct { int16_t approach, view, back, proj; } camera;   // its blend steps a tick (to the target, the close view, the next action's); the projection
 		struct { int16_t follow, grow; } brackets;         // the sliding brackets: ticks on the reticle, then their growth a tick
 		struct { int16_t step, level; } bars;              // the scan bars' fade a tick, their brightness
+		struct { uint32_t at_15d07d4, at_15d0af8; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ScanParams GAME = { 0x15D0B3C, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 8, 0x80 } };
+	static const ScanParams GAME = { 0x15D0B3C, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 8, 0x80 }, { 0x15D07D4, 0x15D0AF8 } };
 	static ScanParams live = GAME;
 	static const ScanParams &P() { return live; }
 	static const uint32_t INFO_TABLE = 0x15D0B40;   // 16 bytes per entity class
@@ -1655,7 +1656,7 @@ namespace scan040
 			n->h.pos[0] = 0x190;
 			n->h.pos[1] = 0xC0;
 			n->h.pos[2] = 0x900;
-			n->seq = 0x15D07D4;
+			n->seq = fxp::sequence(P().seqs.at_15d07d4, 0x15D07D4);
 			n->last = 0x1F;
 			n->h.phase++;
 			break;
@@ -1666,7 +1667,7 @@ namespace scan040
 				*(uint8_t *)&n->h.flags |= 4;
 				n->frame = n->last;
 				*(uint8_t *)&n->h.flags &= 0xFB;
-				n->seq = 0x15D0AF8;
+				n->seq = fxp::sequence(P().seqs.at_15d0af8, 0x15D0AF8);
 				n->frame = 0;
 				n->last = 3;
 				n->h.phase++;
@@ -2477,6 +2478,8 @@ namespace scan040
 			SP("scanner", brackets.grow, "Grow", "Their growth a tick when sliding out (4096: their size)", 0, 0x2000),
 			SP("scanner", bars.step, "Step", "", 1, 0x80),
 			SP("scanner", bars.level, "Level", "", 0, 0xFF),
+			{ "scanner", "seqs.at_15d07d4", "Flipbook 15D07D4", "The sprite sequence at 0x15D07D4 (a flipbook of 32 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_15d07d4), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "scanner", "seqs.at_15d0af8", "Flipbook 15D0AF8", "The sprite sequence at 0x15D0AF8 (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_15d0af8), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef SP
 	}

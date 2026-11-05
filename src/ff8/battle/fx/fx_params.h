@@ -147,11 +147,15 @@ namespace fxp
 
 	// a sprite sequence parameter (the flipbooks of FF8_EN.exe's data, InitEffectSequenceFromData
 	// 0x571C80): its address when it is one - in the exe image or a data block, the signature
-	// 24 05 01 00 - else the game's, so a wrong value draws the game's sprite instead of reading anywhere
+	// 24 05 01 00, its frame table in it and at least the game's frames (its code plays a fixed count) -
+	// else the game's, so a wrong value draws the game's sprite instead of reading anywhere
 	inline uint32_t sequence(uint32_t address, uint32_t game)
 	{
 		if (address == game || address & 3 || !data_end(address, 12)) return game;
-		return *(const uint32_t *)address == 0x00010524 ? address : game;
+		if (*(const uint32_t *)address != 0x00010524) return game;
+		const uint32_t frames = *(const uint16_t *)(address + 8);
+		if (frames < *(const uint16_t *)(game + 8) || !data_end(address, 10 + 2 * frames)) return game;
+		return address;
 	}
 
 	// a sound parameter (the battle's sound blocks, BdPlaySE 0x501330: it reads their leading world

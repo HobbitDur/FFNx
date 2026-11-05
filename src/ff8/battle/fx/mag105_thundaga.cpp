@@ -89,8 +89,9 @@ namespace thundaga105
 		uint32_t sound;                  // at the bolt's frame 0 (3D, at the target)
 		struct { int16_t damage; } bolt; // the damage (and the bolt's end) from this frame of the bolt
 		struct { uint32_t bolt; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark, flash; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt } };
+	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt }, { 0x13115DC, 0x131136C } };
 	static ThundagaParams live = GAME;
 	static const ThundagaParams &P() { return live; }
 	static const uint32_t SEQ_Spark = 0x13115DC;
@@ -1162,7 +1163,7 @@ namespace thundaga105
 				SpriteNode *s = (SpriteNode *)AddTaskToQueue(&SparkQueue(), own::Fn(ORIG_SparkTask));
 				if (!s) continue;
 				FillDwords(&s->counter, 0, 8);
-				s->seq = SEQ_Spark;
+				s->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 				s->pos[0] = (int16_t)ComputeCos(a);
 				int16_t sn = (int16_t)ComputeSin(a);
 				s->pos[2] = sn;
@@ -1188,7 +1189,7 @@ namespace thundaga105
 			if (f)
 			{
 				FillDwords(&f->counter, 0, 8);
-				f->seq = SEQ_Flash;
+				f->seq = fxp::sequence(P().seqs.flash, SEQ_Flash);
 				f->pos[0] = (int16_t)((CrtRand() & 0x7FF) + q[0] - 0x400);
 				f->pos[1] = (int16_t)((CrtRand() & 0x7FF) + q[1] - 0x400);
 				int32_t rz = CrtRand() & 0x7FF;
@@ -1321,6 +1322,8 @@ namespace thundaga105
 			{ "bolt", "sound", "Sound", "", (uint32_t)offsetof(ThundagaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "bolt", "bolt.damage", "Damage frame", "The damage (and the bolt's end) from this frame of the bolt", (uint32_t)offsetof(ThundagaParams, bolt.damage), fxp::I16, 0, 200 },
 			{ "bolt", "layouts.bolt", "Bolt", "The prim-model layout bolt (its models' animation)", (uint32_t)offsetof(ThundagaParams, layouts.bolt), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundagaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundagaParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

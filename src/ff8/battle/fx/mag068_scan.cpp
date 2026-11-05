@@ -238,8 +238,9 @@ namespace scan068
 		uint32_t sound;                                    // the emitter's sound at its first tick
 		struct { int16_t approach, view, back, proj; } camera;   // its blend steps a tick (to the target, the close view, the next action's); the projection
 		struct { int16_t follow, grow; } brackets;         // the sliding brackets: ticks on the reticle, then their growth a tick
+		struct { uint32_t at_159462c, at_1594950; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ScanParams GAME = { 0x1594994, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 } };
+	static const ScanParams GAME = { 0x1594994, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 0x159462C, 0x1594950 } };
 	static ScanParams live = GAME;
 	static const ScanParams &P() { return live; }
 	static const uint32_t INFO_TABLE = 0x1594998;   // 16 bytes per entity class
@@ -1287,7 +1288,7 @@ namespace scan068
 			n->h.pos[0] = 0x190;
 			n->h.pos[1] = 0xC0;
 			n->h.pos[2] = 0x900;
-			n->seq = 0x159462C;
+			n->seq = fxp::sequence(P().seqs.at_159462c, 0x159462C);
 			n->last = 0x1F;
 			n->h.phase++;
 			break;
@@ -1298,7 +1299,7 @@ namespace scan068
 				*(uint8_t *)&n->h.flags |= 4;
 				n->frame = n->last;
 				*(uint8_t *)&n->h.flags &= 0xFB;
-				n->seq = 0x1594950;
+				n->seq = fxp::sequence(P().seqs.at_1594950, 0x1594950);
 				n->frame = 0;
 				n->last = 3;
 				n->h.phase++;
@@ -1611,6 +1612,8 @@ namespace scan068
 			SP("scanner", camera.proj, "Projection", "The projection distance of the view", 0x80, 0x1000),
 			SP("scanner", brackets.follow, "Follow", "Ticks on the reticle before they slide out", 0, 200),
 			SP("scanner", brackets.grow, "Grow", "Their growth a tick when sliding out (4096: their size)", 0, 0x2000),
+			{ "scanner", "seqs.at_159462c", "Flipbook 159462C", "The sprite sequence at 0x159462C (a flipbook of 32 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_159462c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "scanner", "seqs.at_1594950", "Flipbook 1594950", "The sprite sequence at 0x1594950 (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_1594950), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef SP
 	}

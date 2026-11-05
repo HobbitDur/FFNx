@@ -107,8 +107,9 @@ namespace clash026
 		struct { uint32_t sound; int16_t sound_tick, start, end, dust; } emitter;   // its sound; the waves, knock-back and dust from start; done after end
 		struct { int16_t first, last, a, b, sparks, radius; } bursts;              // at the caster's bones: their ticks, sparks, sparks' radius
 		struct { int16_t gravity; } knock;                                          // the target's knock-back
+		struct { uint32_t spark, dust; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ClashParams GAME = { { SOUND_Clash, 4, 4, 0x1E, 4 }, { 4, 0x28, 0x11, 0x14, 8, 0x100 }, { 0x30 } };
+	static const ClashParams GAME = { { SOUND_Clash, 4, 4, 0x1E, 4 }, { 4, 0x28, 0x11, 0x14, 8, 0x100 }, { 0x30 }, { SEQ_Spark, SEQ_Dust } };
 	static ClashParams live = GAME;
 	static const ClashParams &PC() { return live; }
 
@@ -271,7 +272,7 @@ namespace clash026
 		RandomOffset(node, U16(node, 0x6C), U16(node, 0x6A));
 		const int32_t dx = S16(node, 0x1C) - S16(node, 0x58);
 		U8(node, 0x26) |= 4;
-		U32(node, 0x4C) = SEQ_Spark;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.spark, SEQ_Spark);
 		U16(node, 0x52) = 0xF;
 		const int32_t dy = S16(node, 0x1E) - S16(node, 0x5A);
 		const int32_t dz = S16(node, 0x20) - S16(node, 0x5C);
@@ -451,7 +452,7 @@ namespace clash026
 		U16(a1, 0x1E) = (uint16_t)(U16(a1, 0x1E) + 0xFD00);
 		DustOffset(a1, 0x180);
 		U8(a1, 0x26) |= 4;
-		U32(a1, 0x4C) = SEQ_Dust;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.dust, SEQ_Dust);
 		U16(a1, 0x52) = 7;
 		U16(a1, 0x54) = 0xFE00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -462,7 +463,7 @@ namespace clash026
 	static uint32_t __cdecl WalkDustStart(uint32_t a1)
 	{
 		cx::CopyAnchorFromSource(a1, a1 + 0x1C);
-		U32(a1, 0x4C) = SEQ_Spark;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.spark, SEQ_Spark);
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -942,6 +943,8 @@ namespace clash026
 			DT("bursts", bursts.b, "B", "", 0, 200),
 			DT("bursts", bursts.sparks, "Sparks", "", 0, 32),
 			DT("bursts", bursts.radius, "Radius", "", 0, 0x1000),
+			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ClashParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ClashParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

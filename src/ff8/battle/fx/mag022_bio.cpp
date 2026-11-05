@@ -267,8 +267,9 @@ namespace bio022
 	{
 		struct { uint32_t sound; int16_t bubbles, pools, pools_every, blob, mists, overlay; } emitter;   // its sound; its spawns' ticks
 		struct { int16_t cycles, spin; } blob;                                                         // the boiling blob bursts after these key shapes
+		struct { uint32_t splash_a, splash_b, droplet, mist_a, mist_b; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 } };
+	static const BioParams GAME = { { 0x16146E4, 2, 4, 2, 0x1E, 0x20, 0x22 }, { 5, -0x40 }, { 0x1614F74, 0x1615120, 0x16156F8, 0x1615858, 0x16155B4 } };
 	static BioParams live = GAME;
 	static const BioParams &P() { return live; }
 	static const uint32_t STAGE_WOBBLE = 0x1D98990;       // 4 stage groups of 0x2C bytes: +2 amplitude
@@ -972,8 +973,8 @@ namespace bio022
 	// splash (0x89BD20) - sub_89BE00: flipbook A / B, random circling
 	static void SplashInit(Particle *p)
 	{
-		if (p->variant == 0) p->seq = SEQ_SplashA;
-		else p->seq = SEQ_SplashB;
+		if (p->variant == 0) p->seq = fxp::sequence(P().seqs.splash_a, SEQ_SplashA);
+		else p->seq = fxp::sequence(P().seqs.splash_b, SEQ_SplashB);
 		p->last = 0xF;
 		p->vel[1] = -0x40;
 		p->angle = (int16_t)(CrtRand() & 0xFFF);
@@ -1063,7 +1064,7 @@ namespace bio022
 	{
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
 		int32_t r = CrtRand();
-		p->seq = SEQ_Droplet;
+		p->seq = fxp::sequence(P().seqs.droplet, SEQ_Droplet);
 		p->last = 0xC;
 		int32_t sc = mul32((r & 7) + 1, e->scale) / 8;
 		p->scale[2] = sc;
@@ -1158,7 +1159,7 @@ namespace bio022
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
 		memcpy(p->h.pos, e->center, 8);
 		RandomOffsetInBall(p, mul32(e->scale * 3, 256) / 4096);
-		p->seq = SEQ_MistA;
+		p->seq = fxp::sequence(P().seqs.mist_a, SEQ_MistA);
 		p->last = 0xF;
 		p->h.phase++;
 	}
@@ -1192,7 +1193,7 @@ namespace bio022
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
 		memcpy(p->h.pos, e->center, 8);
 		RandomOffsetOnSphere(p, mul32(e->scale * 5, 256) / 4096);
-		p->seq = SEQ_MistB;
+		p->seq = fxp::sequence(P().seqs.mist_b, SEQ_MistB);
 		int32_t r = CrtRand();
 		p->last = 0xB;
 		int32_t d = (int16_t)((r & 7) + 0xC);
@@ -2100,6 +2101,11 @@ namespace bio022
 			BP("emitter", emitter.overlay, "Overlay tick", "The target's wobbling overlay at this tick", 0, 200),
 			BP("blob", blob.cycles, "Cycles", "It bursts after this many key shapes (then the damage)", 1, 50),
 			BP("blob", blob.spin, "Spin", "The emitter's spin a tick (its meshes turned by it)", -0x800, 0x800),
+			{ "emitter", "seqs.splash_a", "Splash a", "The sprite sequence splash a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.splash_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.splash_b", "Splash b", "The sprite sequence splash b (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.splash_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.droplet", "Droplet", "The sprite sequence droplet (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.droplet), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.mist_a", "Mist a", "The sprite sequence mist a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.mist_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.mist_b", "Mist b", "The sprite sequence mist b (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BioParams, seqs.mist_b), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef BP
 	}

@@ -76,8 +76,9 @@ namespace p140
 		uint32_t voice;                                 // the creature's voice slot (claimed at its spawn)
 		struct { uint32_t trail, rise, stage; } sounds; // at the creature's ticks 0, 0x65, 0xC3
 		struct { int16_t damage; } creature;            // the damage at this tick of the creature's timeline
+		struct { uint32_t at_11d495c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const PhoenixParams GAME = { 0x11D0048, { 0x11D003C, 0x11D0040, 0x11D0044 }, { 0xF5 } };
+	static const PhoenixParams GAME = { 0x11D0048, { 0x11D003C, 0x11D0040, 0x11D0044 }, { 0xF5 }, { 0x11D495C } };
 	static PhoenixParams live = GAME;
 	static const PhoenixParams &PX() { return live; }
 	static const uint32_t ORIG_EmberTask = 0x6A7BF0;
@@ -1276,7 +1277,7 @@ namespace p140
 	{
 		TransformCameraByShadowRotation(pos, 0x400, -0x100);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0x11D495C;
+		*(uint32_t *)h = fxp::sequence(PX().seqs.at_11d495c, 0x11D495C);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1321,6 +1322,7 @@ namespace p140
 			{ "creature", "sounds.rise", "Rise", "", (uint32_t)offsetof(PhoenixParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "creature", "sounds.stage", "Stage", "", (uint32_t)offsetof(PhoenixParams, sounds.stage), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "creature", "creature.damage", "Damage tick", "The damage at this tick of the creature's timeline", (uint32_t)offsetof(PhoenixParams, creature.damage), fxp::I16, 0, 254 },
+			{ "creature", "seqs.at_11d495c", "Flipbook 11D495C", "The sprite sequence at 0x11D495C (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(PhoenixParams, seqs.at_11d495c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -96,8 +96,9 @@ namespace protect
 		struct { int16_t wait; } master;                                       // after the last action, the wobble out after these ticks
 		struct { int16_t from, until; } particles;                             // the particle spawner's ticks
 		struct { int16_t level, step; } wobble;                                // the stage wobble in and out
+		struct { uint32_t at_15f8c64; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ProtectParams GAME = { { 0x15F3B20, 0x16, 0x12, 0x12 }, { 7 }, { 0x14, 0x18 }, { 0x400, 0x100 } };
+	static const ProtectParams GAME = { { 0x15F3B20, 0x16, 0x12, 0x12 }, { 7 }, { 0x14, 0x18 }, { 0x400, 0x100 }, { 0x15F8C64 } };
 	static ProtectParams live = GAME;
 	static const ProtectParams &PP() { return live; }
 
@@ -604,7 +605,7 @@ namespace protect
 	static uint32_t __cdecl ParticleInit(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x15F8C64;
+		U32(a1, 0x4C) = fxp::sequence(PP().seqs.at_15f8c64, 0x15F8C64);
 		U16(a1, 0x52) = 0xB;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
@@ -775,6 +776,7 @@ namespace protect
 			DT("emitter", particles.until, "Until", "(its count table has 25 ticks)", 20, 24),
 			DT("stage", wobble.level, "Level", "Its amplitude (in: up to it, out: from it)", 0, 0x1000),
 			DT("stage", wobble.step, "Step", "Up / down by this a tick", 1, 0x1000),
+			{ "emitter", "seqs.at_15f8c64", "Flipbook 15F8C64", "The sprite sequence at 0x15F8C64 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(ProtectParams, seqs.at_15f8c64), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

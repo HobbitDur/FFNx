@@ -106,8 +106,9 @@ namespace ultrasonic152
 	{
 		uint32_t sound;                        // at the controller's tick 1
 		struct { int16_t damage; } controller; // the damage at this tick
+		struct { uint32_t wave, burst_a, burst_b, burst_c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const UltrasonicParams GAME = { 0xDBEC50, { 0x23 } };
+	static const UltrasonicParams GAME = { 0xDBEC50, { 0x23 }, { SEQ_Wave, SEQ_BurstA, SEQ_BurstB, SEQ_BurstC } };
 	static UltrasonicParams live = GAME;
 	static const UltrasonicParams &P() { return live; }
 
@@ -740,7 +741,7 @@ namespace ultrasonic152
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Wave;
+		*(uint32_t *)h = fxp::sequence(P().seqs.wave, SEQ_Wave);
 		*(uint16_t *)(h + 4) = (uint16_t)p->counter;
 		*(int32_t *)(h + 8) = p->roll;
 		*(uint16_t *)(h + 0x24) = 9;
@@ -871,7 +872,7 @@ namespace ultrasonic152
 		BurstNode *b = (BurstNode *)n;
 		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_burst(ORIG_BurstA, b);)
-		const int alive = BurstDraw(Parts(), SEQ_BurstA, 8, 1);
+		const int alive = BurstDraw(Parts(), fxp::sequence(P().seqs.burst_a, SEQ_BurstA), 8, 1);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 8)
 		{
@@ -897,7 +898,7 @@ namespace ultrasonic152
 		BurstNode *b = (BurstNode *)n;
 		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_burst(ORIG_BurstB, b);)
-		const int alive = BurstDraw(Parts(), SEQ_BurstB, 0, 2);
+		const int alive = BurstDraw(Parts(), fxp::sequence(P().seqs.burst_b, SEQ_BurstB), 0, 2);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 0xD)
 		{
@@ -922,7 +923,7 @@ namespace ultrasonic152
 		BurstNode *b = (BurstNode *)n;
 		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_burst(ORIG_BurstC, b);)
-		const int alive = BurstDraw(Parts(), SEQ_BurstC, 0, 4);
+		const int alive = BurstDraw(Parts(), fxp::sequence(P().seqs.burst_c, SEQ_BurstC), 0, 4);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 0xD)
 		{
@@ -950,6 +951,10 @@ namespace ultrasonic152
 		static const Field FIELDS[] = {
 			{ "controller", "sound", "Sound", "At the controller's tick 1", (uint32_t)offsetof(UltrasonicParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "controller", "controller.damage", "Damage tick", "The damage at this tick of the controller", (uint32_t)offsetof(UltrasonicParams, controller.damage), fxp::I16, 0, 40 },
+			{ "controller", "seqs.wave", "Wave", "The sprite sequence wave (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(UltrasonicParams, seqs.wave), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.burst_a", "Burst a", "The sprite sequence burst a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(UltrasonicParams, seqs.burst_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.burst_b", "Burst b", "The sprite sequence burst b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(UltrasonicParams, seqs.burst_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.burst_c", "Burst c", "The sprite sequence burst c (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(UltrasonicParams, seqs.burst_c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -120,8 +120,9 @@ namespace bw110
 	struct StormParams
 	{
 		uint32_t sound;   // the wind at the stream's tick 0
+		struct { uint32_t spark, hit; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const StormParams GAME = { 0x12E336C };
+	static const StormParams GAME = { 0x12E336C, { SEQ_Spark, SEQ_Hit } };
 	static StormParams live = GAME;
 	static const StormParams &P() { return live; }
 	inline const int16_t *SOUND_Pos() { return (const int16_t *)own::R(0x2521A50); } // module global, never written (0, 0, 0)
@@ -609,7 +610,7 @@ namespace bw110
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag110_biggs_wedge_death_held.inc
 		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Spark);
+		SpriteDraw(p, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
 
@@ -618,7 +619,7 @@ namespace bw110
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag110_biggs_wedge_death_held.inc
 		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Hit);
+		SpriteDraw(p, fxp::sequence(P().seqs.hit, SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
 
@@ -936,6 +937,8 @@ namespace bw110
 		};
 		static const Field FIELDS[] = {
 			{ "storm", "sound", "Sound", "The wind", (uint32_t)offsetof(StormParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "storm", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "storm", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

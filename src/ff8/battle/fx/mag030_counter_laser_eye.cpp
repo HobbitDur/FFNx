@@ -108,8 +108,9 @@ namespace lasereye
 		struct { int16_t start, length, mode; } actors;                 // the actor system
 		struct { int16_t appear, grow, hold, shrink; } laser;           // the beam: shown at, its width up a tick, held to, down a tick
 		struct { int16_t level, step; } light;                          // the stage light ramps
+		struct { uint32_t at_160de10; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const LaserEyeParams GAME = { { 0x160D3E8, 0xA, 0xA }, { 0x14 }, { 0, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 } };
+	static const LaserEyeParams GAME = { { 0x160D3E8, 0xA, 0xA }, { 0x14 }, { 0, 0x2D, 0 }, { 4, 0x400, 0xE, 0x800 }, { 0x400, 0x100 }, { 0x160DE10 } };
 	static LaserEyeParams live = GAME;
 	static const LaserEyeParams &PL() { return live; }
 	static const uint32_t ACTOR_DATA = 0x17CC72C;      // the actor system's data (exe data, relocated once by 0x874410)
@@ -836,7 +837,7 @@ namespace lasereye
 	// +0x58..+0x5C (each rand & 0x3FF - 0x200), next state
 	uint32_t __cdecl cl_878FF0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x160DE10;
+		U32(a1, 0x4C) = fxp::sequence(PL().seqs.at_160de10, 0x160DE10);
 		U16(a1, 0x52) = 6;
 		U16(a1, 0x58) = (uint16_t)((x::CrtRand() & 0x3FF) - 0x200);
 		U16(a1, 0x5A) = (uint16_t)((x::CrtRand() & 0x3FF) - 0x200);
@@ -2706,6 +2707,7 @@ namespace lasereye
 			DT("laser", laser.grow, "Grow", "Its width up by this a tick (4096: full)", 1, 0x1000),
 			DT("laser", laser.hold, "Hold until", "Held at the eye until this tick", 0, 100),
 			DT("laser", laser.shrink, "Shrink", "At the target, its width down by this a tick", 1, 0x1000),
+			{ "emitter", "seqs.at_160de10", "Flipbook 160DE10", "The sprite sequence at 0x160DE10 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(LaserEyeParams, seqs.at_160de10), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

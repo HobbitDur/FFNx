@@ -117,8 +117,9 @@ namespace heartbreak
 		struct { int16_t wait; } master;                                                  // after the last action, the light ramp down after these ticks
 		struct { int16_t start, length, mode; } actors;                                   // the actor system
 		struct { int16_t level, step; } light;                                            // the stage light ramps
+		struct { uint32_t at_15f95e0, at_15f96bc, at_15f9250, at_15f944c; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const HeartbreakParams GAME = { { SOUND_Heartbreak, 0x11, 0x1A, 0x1E, 0x1E }, { 0xA }, { 0, 0x2D, 0 }, { 0x400, 0x100 } };
+	static const HeartbreakParams GAME = { { SOUND_Heartbreak, 0x11, 0x1A, 0x1E, 0x1E }, { 0xA }, { 0, 0x2D, 0 }, { 0x400, 0x100 }, { 0x15F95E0, 0x15F96BC, 0x15F9250, 0x15F944C } };
 	static HeartbreakParams live = GAME;
 	static const HeartbreakParams &PH() { return live; }
 	static const uint32_t ACTOR_DATA = 0x160D188;      // the actor system's data (exe data)
@@ -2674,17 +2675,17 @@ namespace heartbreak
 		for (int i = n1; i != 0; i--)
 		{
 			const int32_t r = (int32_t)x::CrtRand();
-			hb_872310(node, 0x15F95E0, 7, (uint32_t)(r % 0xC00 + 0x400));
+			hb_872310(node, fxp::sequence(PH().seqs.at_15f95e0, 0x15F95E0), 7, (uint32_t)(r % 0xC00 + 0x400));
 		}
 		for (int i = n2; i != 0; i--)
 		{
 			const int32_t r = (int32_t)x::CrtRand();
-			hb_872310(node, 0x15F96BC, 8, (uint32_t)(r % 0x1800 + 0x800));
+			hb_872310(node, fxp::sequence(PH().seqs.at_15f96bc, 0x15F96BC), 8, (uint32_t)(r % 0x1800 + 0x800));
 		}
 		for (int i = n3; i != 0; i--)
 		{
 			const int32_t r = (int32_t)x::CrtRand();
-			hb_872310(node, 0x15F95E0, 7, (uint32_t)(r % 0x1000 + 0x800));
+			hb_872310(node, fxp::sequence(PH().seqs.at_15f95e0, 0x15F95E0), 7, (uint32_t)(r % 0x1000 + 0x800));
 		}
 	}
 
@@ -2965,7 +2966,7 @@ namespace heartbreak
 	uint32_t __cdecl hb_873070(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x15F9250;
+		U32(a1, 0x4C) = fxp::sequence(PH().seqs.at_15f9250, 0x15F9250);
 		U16(a1, 0x52) = 0x12;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1; // void (eax = node)
@@ -2975,7 +2976,7 @@ namespace heartbreak
 	// +0x7A = -(rand & 0x1FF), next state
 	uint32_t __cdecl hb_873120(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x15F944C;
+		U32(a1, 0x4C) = fxp::sequence(PH().seqs.at_15f944c, 0x15F944C);
 		U16(a1, 0x52) = 0xE;
 		const uint32_t r = x::CrtRand();
 		U16(a1, 0x7A) = (uint16_t)(0 - (r & 0x1FF));
@@ -3197,6 +3198,10 @@ namespace heartbreak
 			DT("emitter", actors.mode, "Mode", "", 0, 4),
 			DT("stage", light.level, "Level", "Its level (up to it, then down from it)", 0, 0x1000),
 			DT("stage", light.step, "Step", "Up / down by this a tick", 1, 0x1000),
+			{ "emitter", "seqs.at_15f95e0", "Flipbook 15F95E0", "The sprite sequence at 0x15F95E0 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(HeartbreakParams, seqs.at_15f95e0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.at_15f96bc", "Flipbook 15F96BC", "The sprite sequence at 0x15F96BC (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(HeartbreakParams, seqs.at_15f96bc), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.at_15f9250", "Flipbook 15F9250", "The sprite sequence at 0x15F9250 (a flipbook of 19 frames: an edited one keeps as many)", (uint32_t)offsetof(HeartbreakParams, seqs.at_15f9250), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.at_15f944c", "Flipbook 15F944C", "The sprite sequence at 0x15F944C (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(HeartbreakParams, seqs.at_15f944c), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

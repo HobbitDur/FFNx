@@ -133,8 +133,9 @@ namespace acid132
 		uint32_t sound;                    // at the target task's tick 10
 		struct { int16_t damage; } target; // the damage (and the target task's end) from this tick
 		struct { uint32_t splash1, splash2, puddle; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t splash1, splash2, stream, drop; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const AcidParams GAME = { 0x1214FD0, { 0x2D }, { MODEL_Splash1, MODEL_Splash2, MODEL_Puddle } };
+	static const AcidParams GAME = { 0x1214FD0, { 0x2D }, { MODEL_Splash1, MODEL_Splash2, MODEL_Puddle }, { SEQ_Splash1, SEQ_Splash2, SEQ_Stream, MODEL_Drop } };
 	static AcidParams live = GAME;
 	static const AcidParams &P() { return live; }
 	static const uint8_t *const STREAM_TABLE = (const uint8_t *)0x1214FE8; // 5 x 16: point, bone / vector, flag
@@ -334,9 +335,9 @@ namespace acid132
 	static void SplashSequences(const LayoutNode *s)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		if (s->counter < 9) SequenceAt(h, s->pos, 0x800, -0x200, SEQ_Splash1, s->counter);
+		if (s->counter < 9) SequenceAt(h, s->pos, 0x800, -0x200, fxp::sequence(P().seqs.splash1, SEQ_Splash1), s->counter);
 		const int32_t e = (int32_t)s->counter - 4;
-		if ((uint32_t)e < 0xC) SequenceAt(h, s->pos, 0x800, -0x200, SEQ_Splash2, (int16_t)e);
+		if ((uint32_t)e < 0xC) SequenceAt(h, s->pos, 0x800, -0x200, fxp::sequence(P().seqs.splash2, SEQ_Splash2), (int16_t)e);
 		FieldFree(0xB4);
 	}
 
@@ -345,7 +346,7 @@ namespace acid132
 	{
 		TransformCameraByShadowRotation(s->start, 0x1000, -0x400);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Stream;
+		*(uint32_t *)h = fxp::sequence(P().seqs.stream, SEQ_Stream);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -360,7 +361,7 @@ namespace acid132
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		DropHeader() = h;
-		*(uint32_t *)h = MODEL_Drop;
+		*(uint32_t *)h = fxp::sequence(P().seqs.drop, MODEL_Drop);
 		const uint8_t *model = *(const uint8_t **)h;
 		*(uint16_t *)(h + 0x92) = 0;
 		*(uint16_t *)(h + 0x90) = 0;
@@ -948,6 +949,10 @@ namespace acid132
 			{ "target", "layouts.splash1", "Splash1", "The prim-model layout splash1 (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.splash1), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "layouts.splash2", "Splash2", "The prim-model layout splash2 (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.splash2), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "target", "layouts.puddle", "Puddle", "The prim-model layout puddle (its models' animation)", (uint32_t)offsetof(AcidParams, layouts.puddle), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.splash1", "Splash1", "The sprite sequence splash1 (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.splash1), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.splash2", "Splash2", "The sprite sequence splash2 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.splash2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.stream", "Stream", "The sprite sequence stream (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.stream), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "seqs.drop", "Drop", "The sprite sequence drop (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(AcidParams, seqs.drop), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

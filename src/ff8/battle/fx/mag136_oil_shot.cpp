@@ -141,8 +141,9 @@ namespace oil136
 		uint32_t sound;                  // at the shot's tick 0x1E
 		struct { int16_t damage; } shot; // the damage at this tick of the shot
 		struct { uint32_t splash, stream, fall, mouth, hit, pool; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spray, splat; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const OilParams GAME = { 0x11F81CC, { 0x3E }, { MODEL_Splash, MODEL_Stream, MODEL_Fall, MODEL_Mouth, MODEL_Hit, MODEL_Pool } };
+	static const OilParams GAME = { 0x11F81CC, { 0x3E }, { MODEL_Splash, MODEL_Stream, MODEL_Fall, MODEL_Mouth, MODEL_Hit, MODEL_Pool }, { SEQ_Spray, SEQ_Splat } };
 	static OilParams live = GAME;
 	static const OilParams &PO() { return live; }   // (P: the shot task's stream point)
 
@@ -704,7 +705,7 @@ namespace oil136
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spray;
+		*(uint32_t *)h = fxp::sequence(PO().seqs.spray, SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int32_t *)(h + 8) = angle;
 		*(int16_t *)(h + 0x24) = 1;
@@ -751,7 +752,7 @@ namespace oil136
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Splat;
+		*(uint32_t *)h = fxp::sequence(PO().seqs.splat, SEQ_Splat);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1103,6 +1104,8 @@ namespace oil136
 			{ "shot", "layouts.mouth", "Mouth", "The prim-model layout mouth (its models' animation)", (uint32_t)offsetof(OilParams, layouts.mouth), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "shot", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(OilParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "shot", "layouts.pool", "Pool", "The prim-model layout pool (its models' animation)", (uint32_t)offsetof(OilParams, layouts.pool), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(OilParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OilParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

@@ -129,8 +129,9 @@ namespace reflect135
 		uint32_t sound;                     // at the sweep's tick 0
 		struct { int16_t damage; } reflect; // the damage at this tick of a reflection task
 		struct { uint32_t reflect, shot, shot_hit, sweep; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t burst, glint, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const ReflectBeamParams GAME = { 0x1201D88, { 0x19 }, { MODEL_Reflect, MODEL_Shot, MODEL_ShotHit, MODEL_Sweep } };
+	static const ReflectBeamParams GAME = { 0x1201D88, { 0x19 }, { MODEL_Reflect, MODEL_Shot, MODEL_ShotHit, MODEL_Sweep }, { SEQ_Burst, SEQ_Glint, SEQ_Spark } };
 	static ReflectBeamParams live = GAME;
 	static const ReflectBeamParams &P() { return live; }
 
@@ -427,7 +428,7 @@ namespace reflect135
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_BURST, n);)
-		SpriteDraw(s->pos, s->counter, SEQ_Burst, 0x1770, -0x400);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.burst, SEQ_Burst), 0x1770, -0x400);
 		s->counter++;
 		return s->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -437,7 +438,7 @@ namespace reflect135
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_GLINT, n);)
-		SpriteDraw(s->pos, s->counter, SEQ_Glint, 0x800, -0x400);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.glint, SEQ_Glint), 0x800, -0x400);
 		s->counter++;
 		return s->counter < 7 ? 0 : TASK_END;
 	}
@@ -447,7 +448,7 @@ namespace reflect135
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_SPARK, n);)
-		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0x800, -0x200);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.spark, SEQ_Spark), 0x800, -0x200);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
 		s->vel[1] = (int16_t)(s->vel[1] + s->drag[1]);
 		s->vel[2] = (int16_t)(s->vel[2] + s->drag[2]);
@@ -835,6 +836,9 @@ namespace reflect135
 			{ "sweep", "layouts.shot", "Shot", "The prim-model layout shot (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.shot), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "sweep", "layouts.shot_hit", "Shot hit", "The prim-model layout shot hit (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.shot_hit), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "sweep", "layouts.sweep", "Sweep", "The prim-model layout sweep (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.sweep), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sweep", "seqs.glint", "Glint", "The sprite sequence glint (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.glint), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sweep", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

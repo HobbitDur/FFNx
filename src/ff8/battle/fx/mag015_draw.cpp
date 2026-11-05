@@ -90,8 +90,9 @@ namespace draw
 		struct { int16_t a, b, c; } sounds;                 // the emitter's three sounds at its first tick (sound ids)
 		struct { int16_t release, length, mode; } emitter;   // the master released at this tick; the actor system's ticks, mode
 		struct { int16_t twist, spread; } ribbons;          // a ribbon's twist a tick; how far from the emitter they start
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const DrawParams GAME = { { 0x73, 0x74, 0x75 }, { 0xF, 0xF, 0 }, { 0x180, 0x80 } };
+	static const DrawParams GAME = { { 0x73, 0x74, 0x75 }, { 0xF, 0xF, 0 }, { 0x180, 0x80 }, { SPARK_FLIPBOOK } };
 	static DrawParams live = GAME;
 	static const DrawParams &PW() { return live; }
 
@@ -2482,7 +2483,7 @@ namespace draw
 	// +0x42 / +0x44, next state
 	uint32_t __cdecl dw_8B6590(uint32_t a1)
 	{
-		U32(a1, 0x4C) = SPARK_FLIPBOOK;
+		U32(a1, 0x4C) = fxp::sequence(PW().seqs.spark, SPARK_FLIPBOOK);
 		U16(a1, 0x52) = 5;
 		U16(a1, 0x54) = 0;
 		U16(a1, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -2560,6 +2561,7 @@ namespace draw
 			DW("emitter", emitter.mode, "Actor mode", "Where it takes its reference points (0: the bones)", 0, 4),
 			DW("ribbons", ribbons.twist, "Twist", "A ribbon's twist a tick (4096: a turn)", -0x1000, 0x1000),
 			DW("ribbons", ribbons.spread, "Spread", "How far from the emitter's midpoint the ribbons start", 0, 0x7FFF),
+			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(DrawParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DW
 	}

@@ -112,8 +112,9 @@ namespace cura
 		struct { int16_t second, third, fourth; } aura;                 // the later aura players' fade bases
 		struct { int16_t lift, sparks; } glow;                          // the glow this above the anchor; its swirl sparks
 		struct { int16_t spread; } sparkles;                            // the sparkles' and particles' random offset
+		struct { uint32_t glow, swirl, swirl_end, mote, sparkle_a, sparkle_a2, sparkle_b, sparkle_b2; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const CuraParams GAME = { { SOUND_Cura, 0xB, 0x1E }, { 0x800, 0xC00, 0xE00 }, { 0x600, 8 }, { 0x200 } };
+	static const CuraParams GAME = { { SOUND_Cura, 0xB, 0x1E }, { 0x800, 0xC00, 0xE00 }, { 0x600, 8 }, { 0x200 }, { SEQ_Glow, SEQ_Swirl, SEQ_SwirlEnd, SEQ_Mote, SEQ_SparkleA, SEQ_SparkleA2, SEQ_SparkleB, SEQ_SparkleB2 } };
 	static CuraParams live = GAME;
 	static const CuraParams &PC() { return live; }
 
@@ -1103,7 +1104,7 @@ namespace cura
 		const uint32_t node = a1;
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) - PC().glow.lift);
-		U32(node, 0x4C) = SEQ_Glow;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.glow, SEQ_Glow);
 		U16(node, 0x52) = 3;
 		uint32_t angle = x::CrtRand() & 0xFFF;
 		for (int i = PC().glow.sparks; i > 0; i--)
@@ -1175,7 +1176,7 @@ namespace cura
 		const uint32_t w20 = U32(node, 0x20);
 		U16(node, 0x78) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t w1c = U32(node, 0x1C);
-		U32(node, 0x4C) = SEQ_Swirl;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.swirl, SEQ_Swirl);
 		U32(node, 0x68) = w1c;
 		U32(node, 0x6C) = w20;
 		U16(node, 0x52) = 1;
@@ -1201,7 +1202,7 @@ namespace cura
 		if (S16(node, 0x24) >= 0x10)
 		{
 			U16(node, 0x26) |= 0x10;
-			U32(node, 0x4C) = SEQ_SwirlEnd;
+			U32(node, 0x4C) = fxp::sequence(PC().seqs.swirl_end, SEQ_SwirlEnd);
 			U16(node, 0x50) = 0;
 			U16(node, 0x52) = 6;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1232,7 +1233,7 @@ namespace cura
 	static uint32_t __cdecl MoteStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = SEQ_Mote;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.mote, SEQ_Mote);
 		U16(node, 0x50) = 0;
 		U16(node, 0x52) = 0xA;
 		const uint32_t r = x::CrtRand();
@@ -1481,13 +1482,13 @@ namespace cura
 		const uint32_t node = a1;
 		if (x::CrtRand() & 1)
 		{
-			U32(node, 0x4C) = SEQ_SparkleA;
-			U32(node, 0x70) = SEQ_SparkleA2;
+			U32(node, 0x4C) = fxp::sequence(PC().seqs.sparkle_a, SEQ_SparkleA);
+			U32(node, 0x70) = fxp::sequence(PC().seqs.sparkle_a2, SEQ_SparkleA2);
 		}
 		else
 		{
-			U32(node, 0x4C) = SEQ_SparkleB;
-			U32(node, 0x70) = SEQ_SparkleB2;
+			U32(node, 0x4C) = fxp::sequence(PC().seqs.sparkle_b, SEQ_SparkleB);
+			U32(node, 0x70) = fxp::sequence(PC().seqs.sparkle_b2, SEQ_SparkleB2);
 		}
 		const uint32_t r = x::CrtRand();
 		U16(node, 0x52) = 0xF;
@@ -1553,7 +1554,7 @@ namespace cura
 	static uint32_t __cdecl ParticleStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = SEQ_Mote;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.mote, SEQ_Mote);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0xFC00;
 		const uint32_t r = x::CrtRand();
@@ -1718,6 +1719,14 @@ namespace cura
 			DT("glow", glow.lift, "Lift", "The glow this above the anchor", -0x1000, 0x1000),
 			DT("glow", glow.sparks, "Swirl sparks", "Thrown out at its start, an eighth of a turn apart", 0, 16),
 			DT("glow", sparkles.spread, "Spread", "The sparkles' and the particles' random offset", 0, 0x1000),
+			{ "emitter", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.swirl", "Swirl", "The sprite sequence swirl (a flipbook of 2 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.swirl), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.swirl_end", "Swirl end", "The sprite sequence swirl end (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.swirl_end), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_a", "Sparkle a", "The sprite sequence sparkle a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_a2", "Sparkle a2", "The sprite sequence sparkle a2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_a2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_b", "Sparkle b", "The sprite sequence sparkle b (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_b2", "Sparkle b2", "The sprite sequence sparkle b2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_b2), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}

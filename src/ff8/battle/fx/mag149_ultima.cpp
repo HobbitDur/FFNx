@@ -100,8 +100,9 @@ namespace ultima149
 	{
 		struct { uint32_t voice, start, blast; } sounds; // the voice slot claimed at tick 0, the start (tick 1), the blast (0x5E)
 		struct { int16_t damage; } director;            // the damage at this tick of an action's director
+		struct { uint32_t dust; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const UltimaParams GAME = { { 0xDC9ABC, 0xDC9BD0, 0xDC9BD4 }, { 0xA6 } };
+	static const UltimaParams GAME = { { 0xDC9ABC, 0xDC9BD0, 0xDC9BD4 }, { 0xA6 }, { 0xDC312C } };
 	static UltimaParams live = GAME;
 	static const UltimaParams &P() { return live; }
 	static const uint32_t SEQ_Orbit = 0xDC333C;
@@ -1305,7 +1306,7 @@ namespace ultima149
 	static uint8_t *DustBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = SEQ_Dust;
+		H32(h, 0) = fxp::sequence(P().seqs.dust, SEQ_Dust);
 		*(uint16_t *)(h + 0x24) = 0;
 		return h;
 	}
@@ -1469,6 +1470,7 @@ namespace ultima149
 			{ "director", "sounds.start", "Start", "At the director's tick 1", (uint32_t)offsetof(UltimaParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "sounds.blast", "Blast", "At the director's tick 94 (the ring)", (uint32_t)offsetof(UltimaParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
 			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(UltimaParams, director.damage), fxp::I16, 0, 166 },
+			{ "director", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(UltimaParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }

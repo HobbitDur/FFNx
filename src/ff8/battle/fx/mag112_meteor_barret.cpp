@@ -122,8 +122,9 @@ namespace meteor112
 	{
 		struct { uint32_t start, hit; } sounds;   // the director's ticks 2 and 0x49
 		struct { uint32_t target, billboard, impact_a, impact_b, ground, hand_a, hand_b, fist; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t smoke, spark; } seqs; // the sprite sequences drawn (flipbooks)
 	};
-	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 }, { LAYOUT_Target, LAYOUT_Billboard, LAYOUT_ImpactA, LAYOUT_ImpactB, LAYOUT_Ground, LAYOUT_HandA, LAYOUT_HandB, LAYOUT_Fist } };
+	static const MeteorParams GAME = { { 0x12DB654, 0x12DB658 }, { LAYOUT_Target, LAYOUT_Billboard, LAYOUT_ImpactA, LAYOUT_ImpactB, LAYOUT_Ground, LAYOUT_HandA, LAYOUT_HandB, LAYOUT_Fist }, { SEQ_Smoke, SEQ_Spark } };
 	static MeteorParams live = GAME;
 	static const MeteorParams &P() { return live; }
 
@@ -580,7 +581,7 @@ namespace meteor112
 				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				if (!s) continue;
 				Memset32(&s->counter, 0, 6);
-				s->seq = SEQ_Smoke;
+				s->seq = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 				s->end = 0xC;
 				s->depth = 0x1000;
 				s->size = 0x1000;
@@ -606,7 +607,7 @@ namespace meteor112
 				s->pos[0] = (int16_t)(s->pos[0] + (int16_t)((CrtRand() & 0x1FF) - 0x100));
 				s->pos[2] = (int16_t)(s->pos[2] + (int16_t)((CrtRand() & 0x1FF) - 0x100));
 				const int32_t r = CrtRand() & 0x7FF;
-				s->seq = SEQ_Smoke;
+				s->seq = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 				s->end = 0xC;
 				s->size = (int16_t)(r + 0x1000);
 			}
@@ -833,7 +834,7 @@ namespace meteor112
 					if (s)
 					{
 						Memset32(&s->counter, 0, 6);
-						s->seq = SEQ_Spark;
+						s->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 						s->end = 0xF;
 						GteLoadV0((const void *)*(const uint32_t *)&L.delta[0]);
 						GteMVMVA_RotV0Tr();
@@ -1163,6 +1164,8 @@ namespace meteor112
 			{ "director", "layouts.hand_a", "Hand a", "The prim-model layout hand a (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.hand_a), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.hand_b", "Hand b", "The prim-model layout hand b (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.hand_b), fxp::Layout, 0, 0x7FFFFFFF },
 			{ "director", "layouts.fist", "Fist", "The prim-model layout fist (its models' animation)", (uint32_t)offsetof(MeteorParams, layouts.fist), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MeteorParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(MeteorParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
 		};
 	}
 }
