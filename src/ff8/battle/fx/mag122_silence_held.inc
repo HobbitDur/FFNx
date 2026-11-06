@@ -34,7 +34,7 @@ namespace silence122
 	struct Rec
 	{
 		prim::Layout *layout;     // the live layout (prim::play_held knows what it drew)
-		PrimArg arg;
+		AnchorArg arg;
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
 	};
@@ -55,7 +55,7 @@ namespace silence122
 		g_packets = 0;
 	}
 
-	static void held_note_play(const TargetNode *t, const PrimArg *arg)
+	static void held_note_play(const TargetNode *t, const AnchorArg *arg)
 	{
 		if (g_log_tick != g_real_tick || g_nrec >= (int)(sizeof(g_recs) / sizeof(g_recs[0]))) return;
 		if (g_nrec == 0) g_packets = PacketCursor();
@@ -79,10 +79,10 @@ namespace silence122
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
 			memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
-			PrimArg arg = r.arg;
+			AnchorArg arg = r.arg;
 			memcpy(g_held_morph, (const void *)r.arg.morph, sizeof(g_held_morph));
 			arg.morph = (uint32_t)g_held_morph;
-			prim::play_held(r.layout, MutePart, (int)&arg, num, den);
+			prim::play_held(r.layout, AnchorPrimCallback, (int)&arg, num, den);
 		}
 	}
 }

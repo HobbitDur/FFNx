@@ -49,8 +49,14 @@
 // Module globals: 0x24AA630..0x24BB960 (first target, Zzz sprites, bubble trails, queues and
 // pools, cast context 0x24AB8E0, attacker, texture file, main trails, packet arenas, packet
 // cursor 0x24BB95C).
+// Fujin's described Sleep (effect_145.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (SleepParams: the sound, the status
+// tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -70,9 +76,11 @@ namespace sleep145
 	inline uint32_t &H32(uint8_t *h, int off) { return *(uint32_t *)(h + off); }
 
 	// --- module globals ---
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x24AAAC0; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24AB8E0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24BB95C); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x24AAAC0); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24AB8E0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24BB95C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24AB8E8)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x24AA828); }             // 1 x 0x10
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	static const uint32_t ZZZ = 0x24AA638, ZZZ_END = 0x24AA818;  // 40 x 12 bytes
 	static const uint32_t BUBBLE_TRAILS = 0x24AA838;              // [action][bubble][3] x 12 bytes
@@ -87,6 +95,23 @@ namespace sleep145
 	static const uint32_t MODEL_Bubble = 0xDD746C;
 	static const uint32_t SEQ_Particle = 0xDD6FF0, SEQ_Zzz = 0xDD7114;
 	static const void *const SOUND_Sleep = (const void *)0xDD7904;
+	static const uint32_t ORIG_FileLoader = 0x6185B0, ORIG_Setup = 0x6185D0;
+	static const uint32_t TEXTURE_NAME = 0xDD790C, CAMERA = 0xDD67B4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct SleepParams
+	{
+		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
+		struct { int16_t status; } director; // the status at this tick of an action's director
+		struct { uint32_t particle, zzz; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t bubble; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const SleepParams GAME = { 0xDD7904, { 0x1E }, { SEQ_Particle, SEQ_Zzz }, { MODEL_Bubble }, { TEXTURE_NAME, CAMERA } };
+	static SleepParams live = GAME;
+	static const SleepParams &PSL() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -186,8 +211,8 @@ namespace sleep145
 	static_assert(sizeof(DirectorNode) == 0x24 && sizeof(MainNode) == 0x24 && sizeof(BubbleNode) == 0x24 && sizeof(ParticleNode) == 0x24, "Sleep nodes are 0x24 bytes");
 	static_assert(sizeof(Zzz) == 12 && sizeof(Trail) == 12, "Zzz / trail entries are 12 bytes");
 
-	inline Trail *MainTrail(int32_t action) { return (Trail *)(MAIN_TRAILS + (uint32_t)(action * 3 * 12)); }
-	inline Trail *BubbleTrail(int32_t action, int32_t index) { return (Trail *)(BUBBLE_TRAILS + (uint32_t)((action * 6 + index) * 3 * 12)); }
+	inline Trail *MainTrail(int32_t action) { return (Trail *)(own::R(MAIN_TRAILS) + (uint32_t)(action * 3 * 12)); }
+	inline Trail *BubbleTrail(int32_t action, int32_t index) { return (Trail *)(own::R(BUBBLE_TRAILS) + (uint32_t)((action * 6 + index) * 3 * 12)); }
 
 	// x / 18 as compiled (0x38E38E39, sar 2)
 	static int32_t Div18(int32_t x)
@@ -751,7 +776,7 @@ namespace sleep145
 		GteSetRotMatrix(&v);
 		GteSetTransVector(&v);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Bubble;
+		H32(h, 0) = fxp::model(PSL().models.bubble, MODEL_Bubble);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -839,6 +864,36 @@ namespace sleep145
 		}
 	}
 
+	// File loader (0x6185B0) and setup (0x6185D0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the first action's director (its
+	// target slot +0x20), the 40 Zzz entries freed, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PSL().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x24AA630)) = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x24AB8E4)) = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x24AA818), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x24AAAD0), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
+		for (uint32_t z = own::R(ZZZ); z < own::R(ZZZ_END); z += 12) *(int16_t *)z = -1;
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(PSL().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *p = (MainNode *)n;
@@ -868,7 +923,7 @@ namespace sleep145
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), ORIG_Particle);
+				ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Particle));
 				q->frame = 0;
 				q->delay = (int16_t)(CrtRand() % 4 + k);
 				memcpy(q->pos, f.pos, 8); // + the fade word into +0x16
@@ -909,7 +964,7 @@ namespace sleep145
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Bubble;
+		H32(h, 0) = fxp::model(PSL().models.bubble, MODEL_Bubble);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -984,7 +1039,7 @@ namespace sleep145
 		p->vz = (int16_t)(v - (int16_t)(v >> 6));
 		if (c >= 2 && c <= 0x12)
 		{
-			ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), ORIG_Particle);
+			ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Particle));
 			q->frame = 0;
 			q->delay = (int16_t)(CrtRand() % 3);
 			q->pos[0] = drawn[0];
@@ -1015,7 +1070,7 @@ namespace sleep145
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		H32(h, 0) = SEQ_Particle;
+		H32(h, 0) = fxp::sequence(PSL().seqs.particle, SEQ_Particle);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1065,7 +1120,7 @@ namespace sleep145
 	static uint8_t *ZzzBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = SEQ_Zzz;
+		H32(h, 0) = fxp::sequence(PSL().seqs.zzz, SEQ_Zzz);
 		*(uint16_t *)(h + 0x24) = 1;
 		return h;
 	}
@@ -1075,7 +1130,7 @@ namespace sleep145
 		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_note_zzz();)
 		uint8_t *h = ZzzBegin();
-		for (Zzz *z = (Zzz *)ZZZ; P(z) < ZZZ_END; z++)
+		for (Zzz *z = (Zzz *)own::R(ZZZ); P(z) < own::R(ZZZ_END); z++)
 		{
 			if (z->frame < 0) continue;
 			ZzzDraw(h, z);
@@ -1094,8 +1149,8 @@ namespace sleep145
 		RootNode *r = (RootNode *)n;
 		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
-		if (!(r->counter & 1)) PacketCursor() = ARENA_EVEN;
+		PacketCursor() = own::R(ARENA_ODD);
+		if (!(r->counter & 1)) PacketCursor() = own::R(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(EffectQueue());
 		ZzzTick();
 		r->counter++;
@@ -1122,7 +1177,7 @@ namespace sleep145
 		{
 			int32_t spread = (EntitySize(d->slot) * 5000) >> 12;
 			if (spread > 0x578) spread = 0x578;
-			MainNode *m = (MainNode *)AddTaskToQueue(EffectQueue(), ORIG_Main);
+			MainNode *m = (MainNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Main));
 			memcpy(m->pos, d->pos, 8);
 			m->pos[1] = (int16_t)(m->pos[1] - 200);
 			m->action = d->action;
@@ -1150,7 +1205,7 @@ namespace sleep145
 				int16_t dir[3];
 				BuildRotationMatrixFromAngles(ang, &m);
 				MatrixMulVector(&m, out0, dir);
-				BubbleNode *b = (BubbleNode *)AddTaskToQueue(EffectQueue(), ORIG_Bubble);
+				BubbleNode *b = (BubbleNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Bubble));
 				b->action = d->action;
 				b->counter = 0;
 				b->pos[0] = d->pos[0];
@@ -1177,14 +1232,14 @@ namespace sleep145
 			for (int spawned = 0; spawned < 1; spawned++)
 			{
 				int idx = 0;
-				Zzz *z = (Zzz *)ZZZ;
+				Zzz *z = (Zzz *)own::R(ZZZ);
 				while (z->frame >= 0)
 				{
 					z++;
 					idx++;
-					if (P(z) >= ZZZ_END) break;
+					if (P(z) >= own::R(ZZZ_END)) break;
 				}
-				if (P(z) >= ZZZ_END || idx >= 0x28) break;
+				if (P(z) >= own::R(ZZZ_END) || idx >= 0x28) break;
 				z->frame = 0;
 				z->scale = (int16_t)(CrtRand() % 0x700 + 0xA00);
 				z->pos[0] = (int16_t)(CrtRand() % 0x578 + pos[0] - 0x2BC);
@@ -1193,13 +1248,13 @@ namespace sleep145
 				z->rot = (int16_t)((CrtRand() % 4) << 8);
 			}
 		}
-		if (d->counter == 0x1E) ApplyActionResultToTarget(Ctx()->actions[d->action].targets);
+		if (d->counter == PSL().director.status) ApplyActionResultToTarget(Ctx()->actions[d->action].targets);
 		if (d->counter == 0x2D)
 		{
 			const int32_t next = d->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(EffectQueue(), ORIG_Director);
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
 				t->counter = 0;
 				t->action = (int16_t)next;
 				t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];
@@ -1209,23 +1264,51 @@ namespace sleep145
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
-			BdPlaySE3D(SOUND_Sleep, 0, pos);
+			BdPlaySE3D((const void *)fxp::sound(PSL().sound, (uint32_t)SOUND_Sleep), 0, pos);
 		}
 		d->counter++;
 		return d->counter > 0x3C ? TASK_END : 0;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action on its target: the main trails, the bubbles with their trails, the particles, the Zzz sprites, the sound; the status" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "", (uint32_t)offsetof(SleepParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.status", "Status tick", "The status at this tick of an action's director", (uint32_t)offsetof(SleepParams, director.status), fxp::I16, 0, 100 },
+			{ "director", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.zzz", "Zzz", "The sprite sequence zzz (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepParams, seqs.zzz), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.bubble", "Bubble model", "The prim model bubble (a mesh of 32 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SleepParams, models.bubble), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SleepParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SleepParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
 	}
 }
 
 	void register_mag145_sleep()
 	{
+		fxp::register_params({ 145, "Sleep", &sleep145::live, &sleep145::GAME, sizeof(sleep145::SleepParams),
+		                       sleep145::table::PARTS, (int)(sizeof(sleep145::table::PARTS) / sizeof(sleep145::table::PARTS[0])),
+		                       sleep145::table::FIELDS, (int)(sizeof(sleep145::table::FIELDS) / sizeof(sleep145::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(sleep145::ORIG_FileLoader, (void *)sleep145::FileLoader);
+		own::note(sleep145::ORIG_Setup, (void *)sleep145::Setup);
+		own::note(sleep145::ORIG_Root, (void *)sleep145::RootTask);
 		register_port(sleep145::ORIG_Root, (void *)sleep145::RootTask, "S145 RootTask", 145);
+		own::note(sleep145::ORIG_Director, (void *)sleep145::DirectorTask);
 		register_port(sleep145::ORIG_Director, (void *)sleep145::DirectorTask, "S145 DirectorTask", 145);
+		own::note(sleep145::ORIG_Main, (void *)sleep145::MainTask);
 		register_port(sleep145::ORIG_Main, (void *)sleep145::MainTask, "S145 MainTask", 145);
+		own::note(sleep145::ORIG_Bubble, (void *)sleep145::BubbleTask);
 		register_port(sleep145::ORIG_Bubble, (void *)sleep145::BubbleTask, "S145 BubbleTask", 145);
+		own::note(sleep145::ORIG_Particle, (void *)sleep145::ParticleTask);
 		register_port(sleep145::ORIG_Particle, (void *)sleep145::ParticleTask, "S145 ParticleTask", 145);
 		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(register_mag145_held();)
 	}
+	FX_LAB_MODULE(register_mag145_sleep);
 }
 
 #ifdef FF8_FX_HELD

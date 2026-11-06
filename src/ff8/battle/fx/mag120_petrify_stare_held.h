@@ -22,7 +22,16 @@ namespace ff8fx
 namespace petrify120
 {
 	static void held_note_root();
-	static void held_note_play(prim::Layout *layout, const PrimArg *arg);
+	static void held_note_play(prim::Layout *layout, const layouts::AnchorArg *arg);
+}
+namespace petrifystare
+{
+	template<>
+	struct Held<petrify120::LAYOUT>
+	{
+		static void note_root() { petrify120::held_note_root(); }
+		static void note_play(prim::Layout *layout, const AnchorArg *arg) { petrify120::held_note_play(layout, arg); }
+	};
 }
 	static void register_mag120_held();
 }

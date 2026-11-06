@@ -39,6 +39,9 @@
 // 0x5C3D10, 0x5C7AB0) are called through their original addresses.
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -102,24 +105,25 @@ namespace s185
 
 	// --- module globals ---
 	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x22BC130); }       // Camera o RootMatrix, rebuilt by the timeline every tick
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x22BD0C0); }  // effect frame (setup: rotation, centroid 0x22BD0D4/D8/DC)
-	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x22BC198); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x22BCFB8); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x22BD0E0); }
-	inline uint32_t &DoneFlags() { return var<uint32_t>(0x22BD010); } // bit0 creature done, bit1 ice block shattering
-	inline uint8_t *Creature() { return (uint8_t *)0x22BD018; }        // +0x40 model matrix 0x22BD058, +0x60 BattleAnimHeader, +0x6C BattleAnimCmd
-	inline uint32_t MB() { return var<uint32_t>(0x22BD0B4); }         // model buffer (0x20DFAB8)
-	inline uint32_t &Arena() { return var<uint32_t>(0x22BD0B8); }     // master's private packet arena
+	inline Mat4x3 &Frame() { return var<Mat4x3>(own::R(0x22BC130)); }       // Camera o RootMatrix, rebuilt by the timeline every tick
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(own::R(0x22BD0C0)); }  // effect frame (setup: rotation, centroid 0x22BD0D4/D8/DC)
+	inline TaskQueue &SubQueue() { return var<TaskQueue>(own::R(0x22BC198)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x22BCFB8)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(own::R(0x22BD0E0)); }
+	inline uint32_t &DoneFlags() { return var<uint32_t>(own::R(0x22BD010)); } // bit0 creature done, bit1 ice block shattering
+	inline uint8_t *Creature() { return (uint8_t *)own::R(0x22BD018); }        // +0x40 model matrix 0x22BD058, +0x60 BattleAnimHeader, +0x6C BattleAnimCmd
+	inline uint32_t MB() { return var<uint32_t>(own::R(0x22BD0B4)); }         // model buffer (0x20DFAB8)
+	inline uint32_t &Arena() { return var<uint32_t>(own::R(0x22BD0B8)); }     // master's private packet arena
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x22BC150)); }          // the effect's file (its TIM)
 	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr_1D8E054
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint8_t *PoolA0() { return var<uint8_t *>(0xD324A0); }     // 150 x 0x18
 	inline uint8_t *PoolA4() { return var<uint8_t *>(0xD324A4); }     // 100 x 0x18 (spawn search runs over 150)
 	inline uint32_t Shards() { return var<uint32_t>(0xD324A8); }      // mb + 0x2E000
 	inline uint8_t *RingVerts() { return var<uint8_t *>(0xD3249C); }  // mb + 0x33000
-	inline int32_t RootT(int k) { return var<int32_t>(0x22BD0D4 + 4 * k); }
-	inline int16_t *Mid() { return (int16_t *)0x22BCFC8; }            // hand midpoint (effect frame)
-	inline int16_t *MidWorld() { return (int16_t *)0x22BCFC0; }       // hand midpoint (world)
+	inline int32_t RootT(int k) { return var<int32_t>(own::R(0x22BD0D4) + 4 * k); }
+	inline int16_t *Mid() { return (int16_t *)own::R(0x22BCFC8); }            // hand midpoint (effect frame)
+	inline int16_t *MidWorld() { return (int16_t *)own::R(0x22BCFC0); }       // hand midpoint (world)
 	static const uint32_t SPRITE_MAT = 0x22BD0E8;                     // module matrix: rotation never written (zero), t at 0x22BD0FC/100/104
 
 	static const uint32_t ORIG_SequenceTick = 0x5C7F50;
@@ -148,6 +152,23 @@ namespace s185
 	static const uint32_t ORIG_BlizzardTask = 0x5C71B0;
 	static const uint32_t ORIG_IceBlockTask = 0x5C77C0;
 	static const uint32_t ORIG_DustTask = 0x5C7CA0;
+	static const uint32_t ORIG_FileLoader = 0x5C0D30, ORIG_Setup = 0x5C0D50;
+	static const uint32_t TEXTURE_NAME = 0xD32744;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ShivaParams
+	{
+		uint32_t voice;                                    // the voice slot claimed at the timeline's tick 0
+		struct { uint32_t start, rise, stream, blast; } sounds; // at the timeline's ticks 1, 101, 147, 249
+		struct { int16_t damage; } timeline;               // the action result at this tick
+		struct { uint32_t at_d209f4, at_d20c7c, at_d20ad0, at_d208b0, at_d20e10; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_d215c4, at_d3138c, at_d2f1c4, at_d2ba3c, at_d2d600, at_d31a74, at_d3048c, at_d309a4, at_d21b9c, at_d2a50c, at_d257cc, at_d27e6c; } models; // the prim models drawn (meshes)
+	};
+	static const ShivaParams GAME = { 0xD32344, { 0xD32488, 0xD3248C, 0xD32490, 0xD32494 }, { 0x109 }, { 0xD209F4, 0xD20C7C, 0xD20AD0, 0xD208B0, 0xD20E10 }, { 0xD215C4, 0xD3138C, 0xD2F1C4, 0xD2BA3C, 0xD2D600, 0xD31A74, 0xD3048C, 0xD309A4, 0xD21B9C, 0xD2A50C, 0xD257CC, 0xD27E6C } };
+	static ShivaParams live = GAME;
+	static const ShivaParams &P() { return live; }
 
 	// every sub-queue node is 0x24 bytes (pool 0x22BC1A8); field use differs per task
 #pragma pack(push, 1)
@@ -194,7 +215,7 @@ namespace s185
 	// au_re_BdLinkTask_28 0x5C1370 (no null check, as the original)
 	static Node24 *LinkTask(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
@@ -283,6 +304,58 @@ namespace s185
 	// ------------------------------------------------------------------
 	// Timeline (0x5C0F30), 276 ticks. Load waits (sub_508500 < 0) repeat the tick.
 	// ------------------------------------------------------------------
+	// File loader (0x5C0D30) and setup (0x5C0D50): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the model buffer (the magic buffer) and the exe data pool pointers into it, the cast, its first target
+	// and its caster, the master and the timeline, both sprite pools cleared, the TIM, the effect frame (the target's
+	// yaw + 0x800, at the targets' centre 4000 in front of the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)((const char *)TEXTURE_NAME);   // IO_GetFile_MAGIC
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +2 target mask, +4 the actions)
+	{
+		const uint32_t mb = (uint32_t)layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x22BD0B4)) = mb;
+		var<uint32_t>(0xD324A0) = mb + 0x2C000;
+		var<uint32_t>(0xD324A4) = mb + 0x2D000;
+		var<uint32_t>(0xD324AC) = mb + 0x30800;
+		var<uint32_t>(0xD3249C) = mb + 0x33000;
+		var<uint32_t>(0xD324B0) = mb + 0x33000;
+		var<uint32_t>(0xD324A8) = mb + 0x2E000;
+		const uint8_t *action = *(uint8_t **)(ctx + 4);
+		const int32_t target = (*(uint8_t **)(action + 8))[0];
+		var<uint8_t *>(own::R(0x22BCFB8)) = ctx;
+		var<int32_t>(own::R(0x22BC158)) = target;
+		var<int32_t>(own::R(0x22BCFBC)) = ctx[0];
+		InitTaskQueuePool((TaskQueue *)own::R(0x22BC180), (void *)own::R(0x22BC160), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue((TaskQueue *)own::R(0x22BC180), own::Fn(ORIG_SequenceTick)) + 0xC) = 0;
+		InitTaskQueuePool(&SubQueue(), (void *)own::R(0x22BC1A8), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TimelineTask)) + 0xC) = 0;
+		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolA0() + 0x18 * i) = 0;
+		for (int i = 0; i < 100; i++) *(uint32_t *)(PoolA4() + 0x18 * i) = 0;
+		x::QueueTIMUpload(TexFile());
+		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
+		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
+		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
+		int16_t *centre = (int16_t *)own::R(0x22BD008);
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)(ctx + 2), centre); // CalculateCenterPosition
+		int32_t *t = (int32_t *)own::R(0x22BD0D4);
+		t[2] = centre[2];
+		t[0] = 0;
+		t[1] = 0;
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = -4000;
+		fn<uint32_t (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(e + 0x40, v, v);  // matrixMultiplyVector
+		t[0] += v[0];
+		DoneFlags() = 0;
+		t[1] += v[1];
+		t[2] += v[2];
+		return (TaskQueue *)own::R(0x22BC180);
+	}
+
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -296,8 +369,8 @@ namespace s185
 		if (n->c == 0)
 		{
 			CameraScriptStart(0xD32604, &RootMatrix(), Creature(), &SubQueue(), 0x30);
-			BdTransSummonStream(0xE9AD20, 0x22BD0E4);
-			uint32_t v = ClaimVoiceSlot((const void *)0xD32344, 1, 0x80);
+			BdTransSummonStream(0xE9AD20, own::R(0x22BD0E4));
+			uint32_t v = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0xD32344), 1, 0x80);
 			VoiceSlot() = v;
 			LinkTask(ORIG_EndTask);
 		}
@@ -306,7 +379,7 @@ namespace s185
 		{
 			if (c == 1)
 			{
-				BdPlaySE(0xD32488, 0, 0x80);
+				BdPlaySE(fxp::sound(P().sounds.start, 0xD32488), 0, 0x80);
 				LinkTask(ORIG_RingTimerTask);
 				CharacterLoad(0x21F, MB() + 0x10000);
 			}
@@ -338,16 +411,16 @@ namespace s185
 			{
 				if (e == 0)
 				{
-					if (var<uint8_t>(0x22BD0E4)) CharacterLoad(0x221, SummonData());
+					if (var<uint8_t>(own::R(0x22BD0E4))) CharacterLoad(0x221, SummonData());
 				}
 				else if (e == 10)
 				{
 					if (LoadState() < 0) return 0;
-					BdTransSummonStream(SummonData(), 0x22BD0E4);
+					BdTransSummonStream(SummonData(), own::R(0x22BD0E4));
 				}
 				else if (e == 15)
 				{
-					if (var<uint8_t>(0x22BD0E4)) CharacterLoad(0x222, SummonData());
+					if (var<uint8_t>(own::R(0x22BD0E4))) CharacterLoad(0x222, SummonData());
 				}
 			}
 			else if ((e -= 30) >= 9 && (e -= 9) >= 1) // c - 101
@@ -357,7 +430,7 @@ namespace s185
 				{
 					if (e == 0)
 					{
-						BdPlaySE(0xD3248C, 0, 0x80);
+						BdPlaySE(fxp::sound(P().sounds.rise, 0xD3248C), 0, 0x80);
 						BdPlaySummonStream(0x80, 0, 0x60);
 					}
 				}
@@ -366,14 +439,14 @@ namespace s185
 					if (e == 15)
 					{
 						if (LoadState() < 0) return 0;
-						BdTransSummonStream(SummonData(), 0x22BD0E4);
+						BdTransSummonStream(SummonData(), own::R(0x22BD0E4));
 					}
 				}
 				else if ((e -= 30) < 50) // c - 147
 				{
 					if (e == 0)
 					{
-						BdPlaySE(0xD32490, 0, 0x80);
+						BdPlaySE(fxp::sound(P().sounds.stream, 0xD32490), 0, 0x80);
 						CharacterLoad(0x223, MB() + 0x10000);
 					}
 					else if (e == 44) BdPlaySummonStream(0x80, 0, 0x60);
@@ -389,11 +462,11 @@ namespace s185
 					if (e == 0)
 					{
 						if (LoadState() < 0) return 0;
-						BdTransSummonStream(0xE9AD20, 0x22BD0E4);
+						BdTransSummonStream(0xE9AD20, own::R(0x22BD0E4));
 					}
 					else if (e == 24)
 					{
-						BdPlaySE(0xD32494, 0, 0x80);
+						BdPlaySE(fxp::sound(P().sounds.blast, 0xD32494), 0, 0x80);
 						BdPlaySummonStream(0x80, 0, 0x60);
 					}
 					else if (e == 47)
@@ -407,7 +480,7 @@ namespace s185
 		int16_t cc = n->c;
 		if (cc <= 0x10) SetScreenFlash((uint32_t)shl32(cc, 7), 0);
 		else if (cc >= 0x103) SetScreenFlash((uint32_t)shl32(0x113 - (int32_t)cc, 7), 0);
-		if (n->c == 0x109)
+		if (n->c == P().timeline.damage)
 		{
 			uint8_t *t = *(uint8_t **)(CastCtx() + 4);
 			ApplyActionResultToTargets(*(uint32_t *)(t + 8), t[0x10]);
@@ -493,7 +566,7 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		int32_t arg = n->e >= 0x24 ? 0x24 : (int32_t)n->e;
-		RingGeometry(arg, RingVerts(), (uint8_t *)0x22BC128, (uint8_t *)0x22BC190);
+		RingGeometry(arg, RingVerts(), (uint8_t *)own::R(0x22BC128), (uint8_t *)own::R(0x22BC190));
 		// 30 fps layer: see mag185_shiva_held.inc
 		FX_HELD(held_note_ring_timer(arg);)
 		if (n->c == 0)
@@ -501,7 +574,7 @@ namespace s185
 			int32_t r = CrtRand() % 0x1000;
 			for (int i = 0; i < 4; i++)
 			{
-				Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RingTask);
+				Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_RingTask));
 				t->c = 0;
 				t->e = (int16_t)(1 << i);
 				t->f12 = 0;
@@ -513,7 +586,7 @@ namespace s185
 				t->f20 = 0x1800;
 				t->f22 = 0;
 			}
-			var<uint16_t>(0x22BC192) = 0xD8F1;
+			var<uint16_t>(own::R(0x22BC192)) = 0xD8F1;
 		}
 		if (Paused()) return 0;
 		n->e += 2;
@@ -526,7 +599,7 @@ namespace s185
 	static void RingDraw(uint32_t verts, int32_t h5c, int32_t h60, bool fade)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x68);
-		*(uint32_t *)h = 0xD215C4;
+		*(uint32_t *)h = fxp::model(P().models.at_d215c4, 0xD215C4);
 		*(uint32_t *)(h + 4) = verts;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2030;
@@ -567,12 +640,12 @@ namespace s185
 		}
 		ComposeAffineTransform(&RootMatrix(), &m, &w);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD209F4;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d209f4, 0xD209F4);
 		*(uint16_t *)(h + 0x24) = 0;
 		if (n->c < 0x1D)
 		{
 			int16_t v[4] = { 0, 0, 0, 0 };
-			MatrixMultiplyVector(&w, (const int16_t *)0x22BC190, v);
+			MatrixMultiplyVector(&w, (const int16_t *)own::R(0x22BC190), v);
 			v[0] = (int16_t)(v[0] + (int16_t)w.t[0]);
 			v[1] = (int16_t)(v[1] + (int16_t)w.t[1]);
 			v[2] = (int16_t)(v[2] + (int16_t)w.t[2]);
@@ -581,7 +654,7 @@ namespace s185
 			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 			count++;
 		}
-		*(uint32_t *)h = 0xD20C7C;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20c7c, 0xD20C7C);
 		int32_t mask = n->e;
 		for (int i = 0; i < 150; i++)
 		{
@@ -609,7 +682,7 @@ namespace s185
 		int16_t c = n->c;
 		if (c >= 0 && c <= 0x1E)
 		{
-			int32_t base = var<int16_t>(0x22BC196);
+			int32_t base = var<int16_t>(own::R(0x22BC196));
 			for (int k = 0; k < 3; k++)
 			{
 				int i = FreeRecord(PoolA0());
@@ -650,7 +723,7 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD20AD0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20ad0, 0xD20AD0);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		for (int i = 0; i < 100; i++)
@@ -713,7 +786,7 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD20AD0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20ad0, 0xD20AD0);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		for (int i = 0; i < 150; i++)
@@ -783,7 +856,7 @@ namespace s185
 		ComposeAffineTransform(frame, &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimModel(0xD3138C, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d3138c, 0xD3138C), fade, fade_value);
 	}
 
 	static uint32_t __cdecl IcicleTask(TaskNode *tn)
@@ -832,7 +905,7 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		*(int32_t *)(h + 0x20) = n->c;
 		ComposeAffineTransform(&Frame(), &m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD2F1C4;
+		*(uint32_t *)h = fxp::model(P().models.at_d2f1c4, 0xD2F1C4);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		*(uint32_t *)(h + 0x28) = Shards();
@@ -861,7 +934,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 0)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_MountTask);
+			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_MountTask));
 			t->c = 0;
 			t->f10 = 0;
 			t->f14 = 0x28;
@@ -872,7 +945,7 @@ namespace s185
 		}
 		if (n->c == 0xE || n->c == 0x1F)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GroundRingTask);
+			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GroundRingTask));
 			t->c = 0;
 			t->f12 = 0;
 			t->f10 = 0;
@@ -903,7 +976,7 @@ namespace s185
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x1A8);
 		int16_t *p = (int16_t *)(h + 0x58);
-		*(uint32_t *)(h + 0x1C) = 0xD2BA3C;
+		*(uint32_t *)(h + 0x1C) = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 		*(uint32_t *)(h + 0x24) = 0;
 		p[0] = 0;
 		p[2] = 0;
@@ -919,7 +992,7 @@ namespace s185
 	static void MountStand()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xD2BA3C;
+		*(uint32_t *)h = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		Cursor() = RenderPrimModel(h, OT(), 2, Cursor());
@@ -931,7 +1004,7 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		if (init)
 		{
-			*(uint32_t *)h = 0xD2BA3C;
+			*(uint32_t *)h = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 			*(uint32_t *)(h + 0x28) = Shards();
 			MountShardInit(h);
 		}
@@ -939,7 +1012,7 @@ namespace s185
 		*(uint32_t *)(h + 0x14) = 0x33;
 		*(int32_t *)(h + 0x20) = c + 0xE;
 		ComposeAffineTransform(frame, m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD2BA3C;
+		*(uint32_t *)h = fxp::model(P().models.at_d2ba3c, 0xD2BA3C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x10) = 3;
 		*(uint32_t *)(h + 0x18) = 6;
@@ -994,7 +1067,7 @@ namespace s185
 		*(uint16_t *)(h + 0x18) = 0;
 		*(uint16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = 0xD2D600;
+		*(uint32_t *)h = fxp::model(P().models.at_d2d600, 0xD2D600);
 		*(uint32_t *)(h + 0x20) = 0x30;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(uint16_t *)(h + 0x1E) = 0x80;
@@ -1101,7 +1174,7 @@ namespace s185
 		ComputeBonesWorldMatrices(E + 0x60, E + 0x40);
 		*(uint32_t *)(h + 0x10) = *(uint32_t *)(E + 0x28);
 		*(uint32_t *)(h + 0x14) = *(uint32_t *)(E + 0x7C);
-		var<uint32_t>(0x22BC154) = (uint32_t)frame;
+		var<uint32_t>(own::R(0x22BC154)) = (uint32_t)frame;
 		*(uint16_t *)(h + 0x18) = 0;
 		Cursor() = ShellRender(*(void **)(E + 0x64), h, OT(), 2, Cursor());
 		BuildBoneMatricesFromPose(E + 0x60);
@@ -1129,14 +1202,14 @@ namespace s185
 		uint8_t *E = Creature();
 		if (n->c == 0)
 		{
-			ResetRotation((void *)0x22BD058);
-			var<uint16_t>(0x22BD068) = 0x1000;
-			var<uint16_t>(0x22BD060) = 0x1000;
-			var<uint16_t>(0x22BD058) = 0x1000;
-			var<int32_t>(0x22BD070) = 0;
-			var<int32_t>(0x22BD06C) = 0;
-			var<int32_t>(0x22BD074) = 0;
-			ModelInit(E, (uint8_t *)0x22BCFD0, (uint8_t *)MB(), 3);
+			ResetRotation((void *)own::R(0x22BD058));
+			var<uint16_t>(own::R(0x22BD068)) = 0x1000;
+			var<uint16_t>(own::R(0x22BD060)) = 0x1000;
+			var<uint16_t>(own::R(0x22BD058)) = 0x1000;
+			var<int32_t>(own::R(0x22BD070)) = 0;
+			var<int32_t>(own::R(0x22BD06C)) = 0;
+			var<int32_t>(own::R(0x22BD074)) = 0;
+			ModelInit(E, (uint8_t *)own::R(0x22BCFD0), (uint8_t *)MB(), 3);
 			n->f20 = 0x4E2;
 			n->f22 = (int16_t)0xFF06;
 		}
@@ -1144,7 +1217,7 @@ namespace s185
 		if (c < 5)
 		{
 			if (!Paused() && c == 0) SetAnim(0);
-			var<int32_t>(0x22BD070) = n->f20;
+			var<int32_t>(own::R(0x22BD070)) = n->f20;
 			ShellPhase(E, &Frame(), var<uint32_t>(0xD324B0), true);
 			// 30 fps layer: see mag185_shiva_held.inc
 			FX_HELD(held_note_creature(true);)
@@ -1157,7 +1230,7 @@ namespace s185
 		}
 		else if (c - 5 < 0x36)
 		{
-			var<int32_t>(0x22BD070) = 0;
+			var<int32_t>(own::R(0x22BD070)) = 0;
 			if (c - 5 >= 0x30) TextureBlit(E, 1, var<int32_t>(0xD3244C + 4 * (c - 5)));
 			DrawModel(E, &Frame(), var<uint32_t>(0xD324B0));
 			// 30 fps layer: see mag185_shiva_held.inc
@@ -1181,7 +1254,7 @@ namespace s185
 					case 0x2E: TextureBlit(E, 0, 0); break;
 					case 0x2B:
 					{
-						Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_HandGlowTask); // au_re_BdLinkTask_29 0x5C5BB0
+						Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_HandGlowTask)); // au_re_BdLinkTask_29 0x5C5BB0
 						t->c = 0;
 						t->f1E = 0x23;
 						t->f1C = 0x23;
@@ -1207,7 +1280,7 @@ namespace s185
 					case 1: LinkTask(ORIG_GlowSpawnerTask); break;
 					case 0xE:
 					{
-						Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_HaloTask); // au_re_BdLinkTask_30 0x5C6FA0
+						Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_HaloTask)); // au_re_BdLinkTask_30 0x5C6FA0
 						t->c = 0;
 						t->f10 = 0;
 						t->f12 = 0;
@@ -1220,7 +1293,7 @@ namespace s185
 					}
 					case 0xD:
 					{
-						Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BlizzardTask); // au_re_BdLinkTask_31 0x5C7180
+						Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_BlizzardTask)); // au_re_BdLinkTask_31 0x5C7180
 						t->c = 0;
 						t->f10 = 0;
 						t->f12 = 0;
@@ -1264,7 +1337,7 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xD208B0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d208b0, 0xD208B0);
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		*(uint32_t *)(h + 0x14) = 0x1000;
@@ -1290,7 +1363,7 @@ namespace s185
 		int16_t c = n->c;
 		if (c >= 0 && c <= 0x29)
 		{
-			int32_t bones = **(uint8_t **)var<uint8_t *>(0x22BD07C);
+			int32_t bones = **(uint8_t **)var<uint8_t *>(own::R(0x22BD07C));
 			for (int k = 0; k < 4; k++)
 			{
 				int i = FreeRecord(PoolA0());
@@ -1321,7 +1394,7 @@ namespace s185
 	static void HandGlowDraw(int16_t scale, bool fade, int32_t fade_value)
 	{
 		TransformCameraByShadowRotation(MidWorld(), scale, -((int32_t)scale >> 3));
-		PrimModel(0xD31A74, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d31a74, 0xD31A74), fade, fade_value);
 	}
 
 	static uint32_t __cdecl HandGlowTask(TaskNode *tn)
@@ -1398,7 +1471,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD3048C;
+		*(uint32_t *)h = fxp::model(P().models.at_d3048c, 0xD3048C);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		SpikeRingSetup(s);
@@ -1478,7 +1551,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD309A4;
+		*(uint32_t *)h = fxp::model(P().models.at_d309a4, 0xD309A4);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		*(int16_t *)s = 0;
@@ -1542,7 +1615,7 @@ namespace s185
 		*(int32_t *)(s + 0x28) = Mid()[1];
 		*(int32_t *)(s + 0x2C) = Mid()[2];
 		ComposeAffineTransform(frame, (const Mat4x3 *)(s + 0x10), (Mat4x3 *)(s + 0x10));
-		GteSetRotMatrixCtrl((const Mat4x3 *)SPRITE_MAT);
+		GteSetRotMatrixCtrl((const Mat4x3 *)own::R(SPRITE_MAT));
 		GteSetLightMatrix(s + 0x10);
 		GteSetBackColorFromTrans(s + 0x10);
 	}
@@ -1551,7 +1624,7 @@ namespace s185
 	// its own direction (0x22BD0FC..104)
 	static void SpriteMatTrans(int16_t size, int32_t *dir)
 	{
-		int32_t *t = (int32_t *)(SPRITE_MAT + 0x14);
+		int32_t *t = (int32_t *)(own::R(SPRITE_MAT) + 0x14);
 		GteReadMAC123(t);
 		NormalizeVectorToFixedPoint(t, dir);
 		int32_t k = -((int32_t)size >> 3);
@@ -1570,7 +1643,7 @@ namespace s185
 		GteSetRotDiag(size);
 		*(int16_t *)(h + 4) = age;
 		SpriteMatTrans(size, (int32_t *)(s + 0x30));
-		GteSetTransVectorCtrl((const Mat4x3 *)SPRITE_MAT);
+		GteSetTransVectorCtrl((const Mat4x3 *)own::R(SPRITE_MAT));
 		Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 	}
 
@@ -1579,7 +1652,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x40);
-		*(uint32_t *)h = 0xD20E10;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20e10, 0xD20E10);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		OrbitSetup(&Frame(), s);
@@ -1657,7 +1730,7 @@ namespace s185
 			n->f1E = 0x155;
 			n->f20 = 0;
 			n->f22 = 0x800;
-			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GlowRingTask);
+			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GlowRingTask));
 			memcpy(&t->f10, &n->f10, 4);
 			t->c = 0;
 			memcpy(&t->f14, &n->f14, 4);
@@ -1669,7 +1742,7 @@ namespace s185
 			t->f1A = (int16_t)(-0x50 - r);
 			t->f1E = n->f1E;
 			t->f20 = n->f20;
-			t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SnowfallTask);
+			t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SnowfallTask));
 			memcpy(&t->f10, &n->f10, 4);
 			t->c = 0;
 			memcpy(&t->f14, &n->f14, 4);
@@ -1680,7 +1753,7 @@ namespace s185
 		{
 			for (uint32_t tab = 0xD324F8; tab < 0xD32508; tab += 4)
 			{
-				Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GlowIcicleTask);
+				Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GlowIcicleTask));
 				t->e = var<int16_t>(tab);
 				t->c = 0;
 				t->f10 = n->f10;
@@ -1705,7 +1778,7 @@ namespace s185
 		ComposeAffineTransform(frame, &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimModel(0xD21B9C, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d21b9c, 0xD21B9C), fade, fade_value);
 	}
 
 	static uint32_t __cdecl GlowRingTask(TaskNode *tn)
@@ -1736,7 +1809,7 @@ namespace s185
 		ComposeAffineTransform(frame, &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimModel(0xD3138C, fade, fade_value);
+		PrimModel(fxp::model(P().models.at_d3138c, 0xD3138C), fade, fade_value);
 	}
 
 	static uint32_t __cdecl GlowIcicleTask(TaskNode *tn)
@@ -1781,7 +1854,7 @@ namespace s185
 		*(int32_t *)(s + 0x20) = n->f12;
 		*(int32_t *)(s + 0x24) = n->f14;
 		ComposeAffineTransform(frame, (const Mat4x3 *)(s + 8), (Mat4x3 *)(s + 8));
-		GteSetRotMatrixCtrl((const Mat4x3 *)SPRITE_MAT);
+		GteSetRotMatrixCtrl((const Mat4x3 *)own::R(SPRITE_MAT));
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -1793,7 +1866,7 @@ namespace s185
 		GteSetRotDiag(size);
 		*(int16_t *)(h + 4) = frame;
 		SpriteMatTrans(size, (int32_t *)(s + dir_off));
-		GteSetTransVectorCtrl((const Mat4x3 *)SPRITE_MAT);
+		GteSetTransVectorCtrl((const Mat4x3 *)own::R(SPRITE_MAT));
 		Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 	}
 
@@ -1802,7 +1875,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD20E10;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20e10, 0xD20E10);
 		int32_t count = 0;
 		*(uint16_t *)(h + 0x24) = 0x208;
 		// 30 fps layer: see mag185_shiva_held.inc
@@ -1886,7 +1959,7 @@ namespace s185
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(uint16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = 0xD2A50C;
+		*(uint32_t *)h = fxp::model(P().models.at_d2a50c, 0xD2A50C);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1934,7 +2007,7 @@ namespace s185
 		*(int32_t *)(s + 0x20) = n->f12;
 		*(int32_t *)(s + 0x24) = n->f14;
 		ComposeAffineTransform(frame, (const Mat4x3 *)(s + 8), (Mat4x3 *)(s + 8));
-		GteSetRotMatrixCtrl((const Mat4x3 *)SPRITE_MAT);
+		GteSetRotMatrixCtrl((const Mat4x3 *)own::R(SPRITE_MAT));
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -1944,7 +2017,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x38);
-		*(uint32_t *)h = 0xD20AD0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d20ad0, 0xD20AD0);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		BlizzardSetup(&Frame(), n, s);
@@ -2030,14 +2103,14 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		*(int32_t *)(h + 0x20) = c;
 		ComposeAffineTransform(frame, m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD257CC;
+		*(uint32_t *)h = fxp::model(P().models.at_d257cc, 0xD257CC);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		*(uint32_t *)(h + 0x28) = rec0;
 		// 30 fps layer: see mag185_shiva_held.inc
 		FX_HELD(if (memo) held_note_block0_recs();)
 		Arena() = IceBlockRender(h, OT(), 2, Arena());
-		*(uint32_t *)h = 0xD27E6C;
+		*(uint32_t *)h = fxp::model(P().models.at_d27e6c, 0xD27E6C);
 		*(uint32_t *)(h + 0x1C) = 3;
 		*(uint32_t *)(h + 0x28) = rec1;
 		// 30 fps layer: see mag185_shiva_held.inc
@@ -2053,7 +2126,7 @@ namespace s185
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xD257CC;
+		*(uint32_t *)h = fxp::model(P().models.at_d257cc, 0xD257CC);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		Arena() = RenderPrimModel(h, OT(), 2, Arena());
@@ -2062,7 +2135,7 @@ namespace s185
 		// flash: fade (c - 18) << 9 from 18, scroll (c - 18) * 12; flash_c2 = 2 * c (flash_frac:
 		// the scroll is taken from flash_c2)
 		h = (uint8_t *)FieldAlloc(0x7C);
-		*(uint32_t *)h = 0xD27E6C;
+		*(uint32_t *)h = fxp::model(P().models.at_d27e6c, 0xD27E6C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 3;
 		int32_t d2 = flash_c2 - 0x24; // 2 * (c - 18)
@@ -2086,7 +2159,7 @@ namespace s185
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
 		*(int32_t *)(h + 0x20) = c - 0x20;
 		ComposeAffineTransform(frame, m, (Mat4x3 *)(h + 0x7C));
-		*(uint32_t *)h = 0xD257CC;
+		*(uint32_t *)h = fxp::model(P().models.at_d257cc, 0xD257CC);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		*(uint32_t *)(h + 0x10) = 5;
@@ -2160,7 +2233,7 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xD208B0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_d208b0, 0xD208B0);
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		DustSetup(&Frame(), s);
@@ -2202,39 +2275,107 @@ namespace s185
 		if (n->c < 4) return 0;
 		return count ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Shiva's Diamond Dust: the camera script, the summon stream's loads, the rings, the ground shatter, the mount, the creature with its glows, snow, halo and blizzard, the ice block and the dust, the screen flash, the voice and the sounds; the action result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the timeline's ticks 1, 101, 147, 249" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "voice", "Voice", "The voice slot claimed at the timeline's tick 0", (uint32_t)offsetof(ShivaParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.start", "Start", "At the timeline's tick 1", (uint32_t)offsetof(ShivaParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.rise", "Rise", "At the timeline's tick 101", (uint32_t)offsetof(ShivaParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.stream", "Stream", "At the timeline's tick 147", (uint32_t)offsetof(ShivaParams, sounds.stream), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.blast", "Blast", "At the timeline's tick 249", (uint32_t)offsetof(ShivaParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "timeline.damage", "Damage tick", "The action result at this tick of the timeline", (uint32_t)offsetof(ShivaParams, timeline.damage), fxp::I16, 0, 274 },
+			{ "timeline", "seqs.at_d209f4", "Flipbook D209F4", "The sprite sequence at 0xD209F4 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d209f4), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d20c7c", "Flipbook D20C7C", "The sprite sequence at 0xD20C7C (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20c7c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d20ad0", "Flipbook D20AD0", "The sprite sequence at 0xD20AD0 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20ad0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d208b0", "Flipbook D208B0", "The sprite sequence at 0xD208B0 (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d208b0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_d20e10", "Flipbook D20E10", "The sprite sequence at 0xD20E10 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ShivaParams, seqs.at_d20e10), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d215c4", "Model D215C4", "The prim model at 0xD215C4 (a mesh of 74 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d215c4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d3138c", "Model D3138C", "The prim model at 0xD3138C (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d3138c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2f1c4", "Model D2F1C4", "The prim model at 0xD2F1C4 (a mesh of 103 vertices, 170 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2f1c4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2ba3c", "Model D2BA3C", "The prim model at 0xD2BA3C (a mesh of 166 vertices, 287 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2ba3c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2d600", "Model D2D600", "The prim model at 0xD2D600 (a mesh of 166 vertices, 287 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2d600), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d31a74", "Model D31A74", "The prim model at 0xD31A74 (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d31a74), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d3048c", "Model D3048C", "The prim model at 0xD3048C (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d3048c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d309a4", "Model D309A4", "The prim model at 0xD309A4 (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d309a4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d21b9c", "Model D21B9C", "The prim model at 0xD21B9C (a mesh of 433 vertices, 432 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d21b9c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d2a50c", "Model D2A50C", "The prim model at 0xD2A50C (a mesh of 157 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d2a50c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d257cc", "Model D257CC", "The prim model at 0xD257CC (a mesh of 231 vertices, 400 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d257cc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_d27e6c", "Model D27E6C", "The prim model at 0xD27E6C (a mesh of 231 vertices, 400 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ShivaParams, models.at_d27e6c), fxp::Model, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag185_shiva()
 	{
+		fxp::register_params({ 185, "Shiva", &s185::live, &s185::GAME, sizeof(s185::ShivaParams),
+		                       s185::table::PARTS, (int)(sizeof(s185::table::PARTS) / sizeof(s185::table::PARTS[0])),
+		                       s185::table::FIELDS, (int)(sizeof(s185::table::FIELDS) / sizeof(s185::table::FIELDS[0])),
+		                       s185::table::GROUPS, (int)(sizeof(s185::table::GROUPS) / sizeof(s185::table::GROUPS[0])) });
+		own::note(s185::ORIG_FileLoader, (void *)s185::FileLoader);
+		own::note(s185::ORIG_Setup, (void *)s185::Setup);
+		own::note(s185::ORIG_SequenceTick, (void *)s185::SequenceTick);
 		register_port(s185::ORIG_SequenceTick, (void *)s185::SequenceTick, "S185 SequenceTick", 185);
+		own::note(s185::ORIG_TimelineTask, (void *)s185::TimelineTask);
 		register_port(s185::ORIG_TimelineTask, (void *)s185::TimelineTask, "S185 TimelineTask", 185);
+		own::note(s185::ORIG_EndTask, (void *)s185::EndTask);
 		register_port(s185::ORIG_EndTask, (void *)s185::EndTask, "S185 EndTask", 185);
+		own::note(s185::ORIG_RingTimerTask, (void *)s185::RingTimerTask);
 		register_port(s185::ORIG_RingTimerTask, (void *)s185::RingTimerTask, "S185 RingTimerTask", 185);
+		own::note(s185::ORIG_RingTask, (void *)s185::RingTask);
 		register_port(s185::ORIG_RingTask, (void *)s185::RingTask, "S185 RingTask", 185);
+		own::note(s185::ORIG_ShatterTask, (void *)s185::ShatterTask);
 		register_port(s185::ORIG_ShatterTask, (void *)s185::ShatterTask, "S185 ShatterTask", 185);
+		own::note(s185::ORIG_MountSpawnerTask, (void *)s185::MountSpawnerTask);
 		register_port(s185::ORIG_MountSpawnerTask, (void *)s185::MountSpawnerTask, "S185 MountSpawnerTask", 185);
+		own::note(s185::ORIG_MountTask, (void *)s185::MountTask);
 		register_port(s185::ORIG_MountTask, (void *)s185::MountTask, "S185 MountTask", 185);
+		own::note(s185::ORIG_GroundRingTask, (void *)s185::GroundRingTask);
 		register_port(s185::ORIG_GroundRingTask, (void *)s185::GroundRingTask, "S185 GroundRingTask", 185);
+		own::note(s185::ORIG_PuffTask, (void *)s185::PuffTask);
 		register_port(s185::ORIG_PuffTask, (void *)s185::PuffTask, "S185 PuffTask", 185);
+		own::note(s185::ORIG_MistTask, (void *)s185::MistTask);
 		register_port(s185::ORIG_MistTask, (void *)s185::MistTask, "S185 MistTask", 185);
+		own::note(s185::ORIG_IcicleTask, (void *)s185::IcicleTask);
 		register_port(s185::ORIG_IcicleTask, (void *)s185::IcicleTask, "S185 IcicleTask", 185);
+		own::note(s185::ORIG_CreatureTask, (void *)s185::CreatureTask);
 		register_port(s185::ORIG_CreatureTask, (void *)s185::CreatureTask, "S185 CreatureTask", 185);
+		own::note(s185::ORIG_SparkleTask, (void *)s185::SparkleTask);
 		register_port(s185::ORIG_SparkleTask, (void *)s185::SparkleTask, "S185 SparkleTask", 185);
+		own::note(s185::ORIG_HandGlowTask, (void *)s185::HandGlowTask);
 		register_port(s185::ORIG_HandGlowTask, (void *)s185::HandGlowTask, "S185 HandGlowTask", 185);
+		own::note(s185::ORIG_SpikeRingTask, (void *)s185::SpikeRingTask);
 		register_port(s185::ORIG_SpikeRingTask, (void *)s185::SpikeRingTask, "S185 SpikeRingTask", 185);
+		own::note(s185::ORIG_ShardBurstTask, (void *)s185::ShardBurstTask);
 		register_port(s185::ORIG_ShardBurstTask, (void *)s185::ShardBurstTask, "S185 ShardBurstTask", 185);
+		own::note(s185::ORIG_OrbitSnowTask, (void *)s185::OrbitSnowTask);
 		register_port(s185::ORIG_OrbitSnowTask, (void *)s185::OrbitSnowTask, "S185 OrbitSnowTask", 185);
+		own::note(s185::ORIG_GlowSpawnerTask, (void *)s185::GlowSpawnerTask);
 		register_port(s185::ORIG_GlowSpawnerTask, (void *)s185::GlowSpawnerTask, "S185 GlowSpawnerTask", 185);
+		own::note(s185::ORIG_GlowRingTask, (void *)s185::GlowRingTask);
 		register_port(s185::ORIG_GlowRingTask, (void *)s185::GlowRingTask, "S185 GlowRingTask", 185);
+		own::note(s185::ORIG_GlowIcicleTask, (void *)s185::GlowIcicleTask);
 		register_port(s185::ORIG_GlowIcicleTask, (void *)s185::GlowIcicleTask, "S185 GlowIcicleTask", 185);
+		own::note(s185::ORIG_SnowfallTask, (void *)s185::SnowfallTask);
 		register_port(s185::ORIG_SnowfallTask, (void *)s185::SnowfallTask, "S185 SnowfallTask", 185);
+		own::note(s185::ORIG_HaloTask, (void *)s185::HaloTask);
 		register_port(s185::ORIG_HaloTask, (void *)s185::HaloTask, "S185 HaloTask", 185);
+		own::note(s185::ORIG_BlizzardTask, (void *)s185::BlizzardTask);
 		register_port(s185::ORIG_BlizzardTask, (void *)s185::BlizzardTask, "S185 BlizzardTask", 185);
+		own::note(s185::ORIG_IceBlockTask, (void *)s185::IceBlockTask);
 		register_port(s185::ORIG_IceBlockTask, (void *)s185::IceBlockTask, "S185 IceBlockTask", 185);
+		own::note(s185::ORIG_DustTask, (void *)s185::DustTask);
 		register_port(s185::ORIG_DustTask, (void *)s185::DustTask, "S185 DustTask", 185);
 		// 30 fps layer: see mag185_shiva_held.inc
 		FX_HELD(register_mag185_held();)
 	}
+	FX_LAB_MODULE(register_mag185_shiva);
 }
 
 #ifdef FF8_FX_HELD

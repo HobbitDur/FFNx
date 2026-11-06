@@ -53,8 +53,14 @@
 // root pool, packet cursor 0x2556164, debris / ring / sprite / target / root queues; the stream's
 // wobble translation reads the three words at 0x25561B8). Pools, the vertex table, the morph
 // buffer and the packet arenas are in the magic buffer.
+// Fujin's described Storm Breath (effect_011.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the setup and the file loader ported below; its parameters (StormParams:
+// the timeline, the stream, the sparks, the mist and rings) are set from the program's.
 
 #include "mag_common.h"
+#include "fx_layouts.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -64,15 +70,17 @@ namespace storm011
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556140); }          // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556148); }         // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x255614C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556164); }
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2556168; }          // pool: + 0x1D4, 0x10 x 0x30
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2556178; }           // pool: + 0x4D4, 0x10 x 0x14
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2556188; }         // pool: + 0x614, 0x80 x 0x20
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2556198; }         // pool: + 0x1614, 1 x 0x504
-	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)0x25561A4; } // translation = words at 0x25561B8
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2556140)); }          // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2556148)); }         // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x255614C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2556164)); }
+	inline TaskQueue *QDebris() { return (TaskQueue *)own::R(0x2556168); }          // pool: + 0x1D4, 0x10 x 0x30
+	inline TaskQueue *QRings() { return (TaskQueue *)own::R(0x2556178); }           // pool: + 0x4D4, 0x10 x 0x14
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2556188); }         // pool: + 0x614, 0x80 x 0x20
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2556198); }         // pool: + 0x1614, 1 x 0x504
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2556144)); }      // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25561A8); }      // pool: 0x2556150, 1 x 0x14
+	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)own::R(0x25561A4); } // translation = words at 0x25561B8
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6EA5B0;
@@ -83,6 +91,33 @@ namespace storm011
 	static const uint32_t ORIG_PuffTask = 0x6EBB20;
 	static const uint32_t ORIG_MistTask = 0x6EBC10;
 	static const uint32_t ORIG_HitTask = 0x6EBCB0;
+	static const uint32_t ORIG_FileLoader = 0x6EA510, ORIG_Setup = 0x6EA500;
+	static const uint32_t TEXTURE_NAME = 0x12E3370;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct StormParams
+	{
+		struct { uint32_t sound; int16_t sound_tick, end; } timing;
+		struct { int16_t start, ticks, sweep_from; } stream;            // the breath stream's ticks; the sweep from this tick of it
+		struct { int16_t mouth_ticks, cone_from; } layouts;             // the mouth layout until; the cone from
+		struct { int16_t from, ticks, scale, scale_rand; } hits;        // two sparks a tick on the current target
+		struct { int16_t from, ticks, chance, scale, rise; } sparks;    // off the stream's vertices above the ground
+		struct { int16_t ticks, chance, speed, speed_rand; } debris;    // (within the sparks' ticks)
+		struct { int16_t from, ticks, from2, ticks2; } mist;            // blown out of the mouth: slow, then fast
+		struct { int16_t from, ticks, every; } rings;                   // along the stream
+		struct { int16_t wobble, sway; } stream_angles;                 // the stream's angles a tick
+		struct { uint32_t mouth, cone; } layout_data; // the prim-model layouts played (their models' animation)
+		struct { uint32_t puff, spark, mist, hit; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t stream, debris, ring; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const StormParams GAME = {
+		{ 0x136B970, 8, 0x4B }, { 0x19, 0x32, 5 }, { 0x18, 0x1D }, { 0x23, 0x1E, 0xC00, 0x7FF },
+		{ 0x1E, 0x28, 0x800, 0x800, 0x32 }, { 0x1E, 0x800, 0x80, 0x7F }, { 0x14, 5, 0x19, 0x28 }, { 0x19, 0x11, 4 }, { 100, 100 }, { 0x13693D0, 0x13686C4 }, { 0x1368580, 0x1368200, 0x136843C, 0x1368360 }, { 0x1365720, 0x1368010, 0x1367CA8 }, { TEXTURE_NAME, 0x136B974 } };
+	static StormParams live = GAME;
+	static const StormParams &P() { return live; }
 	static const uint32_t MODEL_Stream = 0x1365720;     // stream model (vertex table at +8)
 	static const uint32_t STREAM_VERTS = 0x1365728;     // 0x134 vertices of 8 bytes
 	static const int STREAM_NVERTS = 0x134;
@@ -468,7 +503,7 @@ namespace storm011
 		*(int16_t *)(h + 0x1C) = 0x80;
 		*(int16_t *)(h + 0x1E) = 0x100;
 		*(int16_t *)(h + 0xC) = (int16_t)r.scroll;
-		*(uint32_t *)h = MODEL_Stream;
+		*(uint32_t *)h = fxp::model(P().model_data.stream, MODEL_Stream);
 		PacketCursor() = DrawStream(h, RenderOT(0x44), 2, PacketCursor(), verts);
 		FieldFree(0x5C);
 	}
@@ -526,7 +561,7 @@ namespace storm011
 		pos[3] = 0; // never written by the original (stack word)
 		GteStoreIR123(pos);
 		TransformCameraByShadowRotation(pos, p->scale, -((int32_t)p->scale >> 2));
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = fxp::sequence(P().seqs.puff, SEQ_Puff);
 		*(int16_t *)(h + 4) = p->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -555,7 +590,7 @@ namespace storm011
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().model_data.debris, MODEL_Debris);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -611,7 +646,7 @@ namespace storm011
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().model_data.ring, MODEL_Ring);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -634,7 +669,7 @@ namespace storm011
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag011_storm_breath_held.inc
 		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Spark);
+		SpriteDraw(p, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
 
@@ -643,7 +678,7 @@ namespace storm011
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag011_storm_breath_held.inc
 		FX_HELD(held_note(K_MIST, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Mist);
+		SpriteDraw(p, fxp::sequence(P().seqs.mist, SEQ_Mist));
 		return SpriteMove(p, 0xC);
 	}
 
@@ -652,7 +687,7 @@ namespace storm011
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag011_storm_breath_held.inc
 		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Hit);
+		SpriteDraw(p, fxp::sequence(P().seqs.hit, SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
 
@@ -699,7 +734,7 @@ namespace storm011
 		int32_t angle = CrtRand();
 		for (int k = 0; k < 2; k++)
 		{
-			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_MistTask);
+			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_MistTask));
 			if (!p) continue;
 			Memset32(&p->counter, 0, 5);
 			int16_t v[4];
@@ -731,11 +766,11 @@ namespace storm011
 	{
 		TargetNode *t = (TargetNode *)n;
 		GetEffectSpawnPosition(Caster(), 0x1D, 0x400, t->mouth);
-		if (t->counter == 8) BdPlaySE3D(SOUND_Breath, 0, t->mouth);
-		const uint32_t phase = (uint32_t)((int32_t)t->counter - 0x19);
+		if (t->counter == P().timing.sound_tick) BdPlaySE3D((const void *)fxp::sound(P().timing.sound, (uint32_t)SOUND_Breath), 0, t->mouth);
+		const uint32_t phase = (uint32_t)((int32_t)t->counter - P().stream.start);
 		Mat4x3 m1;    // stream frame (basis * z scale at the mouth)
 		int32_t d[3]; // aim - mouth
-		if (phase < 0x32)
+		if (phase < (uint32_t)P().stream.ticks)
 		{
 			// 30 fps layer: see mag011_storm_breath_held.inc
 			FX_HELD(held_note_stream(t);)
@@ -748,13 +783,13 @@ namespace storm011
 			FX_HELD(held_note_aim(p0, p1);)
 			int16_t aim[3];
 			StreamAim(p0, p1, t->t, aim);
-			if (phase >= 5) SweepStep(t);
+			if (phase >= (uint32_t)P().stream.sweep_from) SweepStep(t);
 			StreamDraw(h, phase, nullptr, aim, t->mouth, &t->dist, &t->basis, &m1, d, STREAM_VERTS);
 		}
-		if ((uint32_t)(int32_t)t->counter < 0x18)
+		if ((uint32_t)(int32_t)t->counter < (uint32_t)P().layouts.mouth_ticks)
 		{
 			// the mouth layout, turned by the caster's facing
-			if (t->counter == 0) DecodeModelPrimLayout(MODEL_Mouth, t->layout, 0x4A0);
+			if (t->counter == 0) DecodeModelPrimLayout(fxp::layout(P().layout_data.mouth, MODEL_Mouth, 0x4A0), t->layout, 0x4A0);
 			const int16_t angles[3] = { (int16_t)0xFF80, (int16_t)(*(const int16_t *)(Caster() + 0xE) + 0x800), 0 };
 			Mat4x3 m2, m3;
 			BuildRotationMatrixFromAngles(angles, &m2);
@@ -776,7 +811,7 @@ namespace storm011
 			GteSetTransVector(&m2);
 			for (int k = 0; k < 2; k++)
 			{
-				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_PuffTask);
+				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_PuffTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
 				int16_t v[4];
@@ -791,14 +826,14 @@ namespace storm011
 				angle += 0x800;
 			}
 		}
-		if (t->counter >= 0x1D)
+		if (t->counter >= P().layouts.cone_from)
 		{
 			// the cone layout at the mouth position of counter 29, along the stream
 			Mat4x3 m2 = t->basis;
-			if (t->counter == 0x1D)
+			if (t->counter == P().layouts.cone_from)
 			{
 				memcpy(t->frozen, t->mouth, 8);
-				DecodeModelPrimLayout(MODEL_Cone, t->layout, 0x140);
+				DecodeModelPrimLayout(fxp::layout(P().layout_data.cone, MODEL_Cone, 0x140), t->layout, 0x140);
 			}
 			m2.t[0] = t->frozen[0];
 			m2.t[1] = t->frozen[1];
@@ -812,26 +847,26 @@ namespace storm011
 			FX_HELD(held_note_play(K_CONE, t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
 		}
-		if ((uint32_t)((int32_t)t->counter - 0x23) < 0x1E)
+		if ((uint32_t)((int32_t)t->counter - P().hits.from) < (uint32_t)P().hits.ticks)
 		{
 			// hit sparks on two vertices of the current target's model
 			int32_t v = CrtRand();
 			v = mul32(v, t->vc) >> 16;
 			for (int k = 0; k < 2; k++)
 			{
-				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_HitTask);
+				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_HitTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
 				VertexPosition(t->ent[t->cur], v, p->pos);
-				p->scale = (int16_t)((CrtRand() & 0x7FF) + 0xC00);
+				p->scale = (int16_t)((CrtRand() & P().hits.scale_rand) + P().hits.scale);
 				p->vel[1] = 0;
 				p->vel[0] = (int16_t)(shl32(d[0], 7) / t->dist);
 				p->vel[2] = (int16_t)(shl32(d[2], 7) / t->dist);
 				v += (int32_t)t->vc >> 1;
 			}
 		}
-		const uint32_t sweep = (uint32_t)((int32_t)t->counter - 0x1E);
-		if (sweep < 0x28)
+		const uint32_t sweep = (uint32_t)((int32_t)t->counter - P().sparks.from);
+		if (sweep < (uint32_t)P().sparks.ticks)
 		{
 			// sparks (and debris) off the stream vertices above the ground
 			GteSetRotMatrix(&m1);
@@ -844,24 +879,24 @@ namespace storm011
 				GteMVMVA_RotV0Tr();
 				GteStoreIR123(w);
 				if (w[1] < 0) continue;
-				if (CrtRand() < 0x800)
+				if (CrtRand() < P().sparks.chance)
 				{
-					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SparkTask);
+					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SparkTask));
 					if (p)
 					{
 						Memset32(&p->counter, 0, 5);
 						p->pos[0] = w[0];
 						p->pos[1] = w[1];
 						p->pos[2] = w[2];
-						p->scale = (int16_t)((CrtRand() & 0x7FF) + 0x800);
-						p->vel[1] = -0x32;
+						p->scale = (int16_t)((CrtRand() & 0x7FF) + P().sparks.scale);
+						p->vel[1] = (int16_t)-P().sparks.rise;
 						p->vel[0] = (int16_t)(shl32(d[0], 7) / t->dist);
 						p->vel[2] = (int16_t)(shl32(d[2], 7) / t->dist);
 					}
 				}
-				if (sweep >= 0x1E) continue;
-				if (CrtRand() >= 0x800) continue;
-				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+				if (sweep >= (uint32_t)P().debris.ticks) continue;
+				if (CrtRand() >= P().debris.chance) continue;
+				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), own::Fn(ORIG_DebrisTask));
 				if (!e) continue;
 				Memset32(&e->counter, 0, 9);
 				e->pos[0] = w[0];
@@ -869,19 +904,19 @@ namespace storm011
 				e->pos[2] = w[2];
 				e->scale = (int16_t)((CrtRand() & 0x7FF) + 0x800);
 				e->vel[0] = (int16_t)(shl32(d[0], 6) / t->dist);
-				e->vel[1] = (int16_t)(-0x80 - (CrtRand() & 0x7F));
+				e->vel[1] = (int16_t)(-P().debris.speed - (CrtRand() & P().debris.speed_rand));
 				e->vel[2] = (int16_t)(shl32(d[2], 6) / t->dist);
 				e->spin[0] = (int16_t)((CrtRand() & 0x3FF) - 0x200);
 				e->spin[1] = (int16_t)((CrtRand() & 0x3FF) - 0x200);
 				e->spin[2] = (int16_t)((CrtRand() & 0x3FF) - 0x200);
 			}
 		}
-		if ((uint32_t)((int32_t)t->counter - 0x14) < 5) SpawnMist(t, 0x100);
-		if ((uint32_t)((int32_t)t->counter - 0x19) < 0x28) SpawnMist(t, 0x400);
-		const uint32_t ring = (uint32_t)((int32_t)t->counter - 0x19);
-		if (ring < 0x11 && (ring & 3) == 0)
+		if ((uint32_t)((int32_t)t->counter - P().mist.from) < (uint32_t)P().mist.ticks) SpawnMist(t, 0x100);
+		if ((uint32_t)((int32_t)t->counter - P().mist.from2) < (uint32_t)P().mist.ticks2) SpawnMist(t, 0x400);
+		const uint32_t ring = (uint32_t)((int32_t)t->counter - P().rings.from);
+		if (ring < (uint32_t)P().rings.ticks && P().rings.every > 0 && ring % (uint32_t)P().rings.every == 0)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), own::Fn(ORIG_RingTask));
 			if (g)
 			{
 				Memset32(&g->pad0C, 0, 2);
@@ -889,9 +924,9 @@ namespace storm011
 			}
 		}
 		const int16_t c = t->counter;
-		t->a = (int16_t)(t->a - 100);
-		t->b = (int16_t)(t->b + 100);
-		if (c >= 0x4B) return TASK_END;
+		t->a = (int16_t)(t->a - P().stream_angles.wobble);
+		t->b = (int16_t)(t->b + P().stream_angles.sway);
+		if (c >= P().timing.end) return TASK_END;
 		t->counter = (int16_t)(c + 1);
 		return 0;
 	}
@@ -899,6 +934,25 @@ namespace storm011
 	// ------------------------------------------------------------------
 	// Root task (0x6EA5B0)
 	// ------------------------------------------------------------------
+	// File loader (0x6EA510) and setup (0x6EA500 -> 0x6EA530): the game runs its own; Fujin's programs these
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2556150), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, 0x136B974));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -939,7 +993,7 @@ namespace storm011
 				InitTaskQueuePool(QRings(), (void *)(TexBase() + 0x4D4), 0x14, 0x10);
 				InitTaskQueuePool(QDebris(), (void *)(TexBase() + 0x1D4), 0x30, 0x10);
 			}
-			TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+			TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 			if (t)
 			{
 				Memset32(&t->counter, 0, 0x13E);
@@ -989,10 +1043,85 @@ namespace storm011
 		if (r->counter >= 10) r->counter = 10;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define SB(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(StormParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The breath's sound and its end (draws nothing)" },
+			{ 0, "stream", "Stream", "The breath stream from the mouth sweeping the targets, its angles; the layouts at the mouth" },
+			{ 0, "sparks", "Sparks", "Hit sparks on the current target, sparks and debris off the stream" },
+			{ 0, "mist", "Mist and rings", "Mist blown out of the mouth, rings along the stream" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "hits", "Hits", "From tick From for Ticks: two a tick, scale Scale + (rand & Spread)" },
+			{ "debris", "Debris", "Within the sparks' first Ticks: chance Chance / 32768, thrown up by Speed + (rand & Spread)" },
+			{ "mist", "Mist", "Two a tick: slow from From for Ticks, then fast from From 2 for Ticks 2" },
+			{ "rings", "Rings", "From tick From for Ticks, one every Every ticks" },
+		};
+		static const Field FIELDS[] = {
+			{ "timing", "timing.sound", "Sound", "The breath's sound block (its world sound id)", (uint32_t)offsetof(StormParams, timing.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			SB("timing", timing.sound_tick, "Sound tick", "", 0, 200),
+			SB("timing", timing.end, "End", "The breath ends at this tick", 1, 300),
+			SB("stream", stream.start, "Start", "The stream from this tick...", 0, 200),
+			SB("stream", stream.ticks, "Ticks", "...for this many", 0, 200),
+			SB("stream", stream.sweep_from, "Sweep from", "It sweeps the targets from this tick of it", 0, 200),
+			SB("stream", stream_angles.wobble, "Wobble", "Its wobble angle a tick (4096: a turn)", -0x1000, 0x1000),
+			SB("stream", stream_angles.sway, "Sway", "Its sway angle a tick", -0x1000, 0x1000),
+			SB("stream", layouts.mouth_ticks, "Mouth layout until", "The layout at the mouth until this tick", 0, 200),
+			SB("stream", layouts.cone_from, "Cone from", "The cone along the stream from this tick", 0, 200),
+			SB("sparks", hits.from, "From", "", 0, 200),
+			SB("sparks", hits.ticks, "Ticks", "", 0, 200),
+			SB("sparks", hits.scale, "Scale", "", 0, 0x4000),
+			SB("sparks", hits.scale_rand, "Spread", "", 0, 0x7FFF),
+			SB("sparks", sparks.from, "Stream sparks from", "Sparks off the stream's vertices from this tick...", 0, 200),
+			SB("sparks", sparks.ticks, "Stream sparks ticks", "...for this many", 0, 200),
+			SB("sparks", sparks.chance, "Stream spark chance", "Per vertex above the ground, a tick (/ 32768)", 0, 0x7FFF),
+			SB("sparks", sparks.scale, "Stream spark scale", "Their scale: this + rand & 0x7FF", 0, 0x4000),
+			SB("sparks", sparks.rise, "Stream spark rise", "They rise by this a tick", -0x1000, 0x1000),
+			SB("sparks", debris.ticks, "Ticks", "", 0, 200),
+			SB("sparks", debris.chance, "Chance", "", 0, 0x7FFF),
+			SB("sparks", debris.speed, "Speed", "", 0, 0x2000),
+			SB("sparks", debris.speed_rand, "Spread", "", 0, 0x7FFF),
+			SB("mist", mist.from, "From", "", 0, 200),
+			SB("mist", mist.ticks, "Ticks", "", 0, 200),
+			SB("mist", mist.from2, "From 2", "", 0, 200),
+			SB("mist", mist.ticks2, "Ticks 2", "", 0, 200),
+			SB("mist", rings.from, "From", "", 0, 200),
+			SB("mist", rings.ticks, "Ticks", "", 0, 200),
+			SB("mist", rings.every, "Every", "", 1, 50),
+			{ "timing", "layout_data.mouth", "Mouth", "The prim-model layout mouth (its models' animation)", (uint32_t)offsetof(StormParams, layout_data.mouth), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "timing", "layout_data.cone", "Cone", "The prim-model layout cone (its models' animation)", (uint32_t)offsetof(StormParams, layout_data.cone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "model_data.stream", "Stream model", "The prim model stream (a mesh of 308 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.stream), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "model_data.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, model_data.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(StormParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "timing", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(StormParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+#undef SB
+	}
 }
 
 	void register_mag011_storm_breath()
 	{
+		fxp::register_params({ 11, "Storm Breath", &storm011::live, &storm011::GAME, sizeof(storm011::StormParams),
+		                       storm011::table::PARTS, (int)(sizeof(storm011::table::PARTS) / sizeof(storm011::table::PARTS[0])),
+		                       storm011::table::FIELDS, (int)(sizeof(storm011::table::FIELDS) / sizeof(storm011::table::FIELDS[0])),
+		                       storm011::table::GROUPS, (int)(sizeof(storm011::table::GROUPS) / sizeof(storm011::table::GROUPS[0])) });
+		own::note(storm011::ORIG_FileLoader, (void *)storm011::FileLoader);
+		own::note(storm011::ORIG_Setup, (void *)storm011::Setup);
+		own::note(storm011::ORIG_RootTask, (void *)storm011::RootTask);
+		own::note(storm011::ORIG_TargetTask, (void *)storm011::TargetTask);
+		own::note(storm011::ORIG_DebrisTask, (void *)storm011::DebrisTask);
+		own::note(storm011::ORIG_RingTask, (void *)storm011::RingTask);
+		own::note(storm011::ORIG_SparkTask, (void *)storm011::SparkTask);
+		own::note(storm011::ORIG_PuffTask, (void *)storm011::PuffTask);
+		own::note(storm011::ORIG_MistTask, (void *)storm011::MistTask);
+		own::note(storm011::ORIG_HitTask, (void *)storm011::HitTask);
 		register_port(storm011::ORIG_RootTask, (void *)storm011::RootTask, "S011 RootTask", 11);
 		register_port(storm011::ORIG_TargetTask, (void *)storm011::TargetTask, "S011 TargetTask", 11);
 		register_port(storm011::ORIG_DebrisTask, (void *)storm011::DebrisTask, "S011 DebrisTask", 11);
@@ -1004,6 +1133,7 @@ namespace storm011
 		// 30 fps layer: see mag011_storm_breath_held.inc
 		FX_HELD(register_mag011_held();)
 	}
+	FX_LAB_MODULE(register_mag011_storm_breath);
 }
 
 #ifdef FF8_FX_HELD

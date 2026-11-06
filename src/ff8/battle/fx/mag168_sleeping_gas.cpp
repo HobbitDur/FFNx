@@ -52,6 +52,9 @@
 // 0x23BD348, packet cursor 0x23BD34C).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -70,13 +73,15 @@ namespace gas168
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
 	// --- module globals ---
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B6A88; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23B78B0); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23B78B4); }
-	inline int16_t *Centre() { return (int16_t *)0x23B78A8; }        // cloud centre x, y, z (+ pad)
-	inline int16_t *CasterAnchor() { return (int16_t *)0x23B9270; }  // caster's bone 0xF0, 0xA0 higher
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23BD348); }  // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23BD34C); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x23B6A88); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23B78B0)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x23B78B4)); }
+	inline int16_t *Centre() { return (int16_t *)own::R(0x23B78A8); }        // cloud centre x, y, z (+ pad)
+	inline int16_t *CasterAnchor() { return (int16_t *)own::R(0x23B9270); }  // caster's bone 0xF0, 0xA0 higher
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23BD348)); }  // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23BD34C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23B9268)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23B5C68); }             // 1 x 0x10
 	static const uint32_t CLOUDS = 0x23B3C18;     // 12 x 0x1C cloud records
 	static const uint32_t OFFSETS = 0x23B3DD8;    // [cloud][61] x (x, y) int32 wave offsets
 	static const uint32_t VERTS = 0x23B9278;      // [cloud][122] x 8 bytes: cloud vertex buffers
@@ -97,6 +102,23 @@ namespace gas168
 	static const uint32_t SEQ_Sparkle = 0xD6BDE8;       // flipbook of both sparkle pools
 	static const int32_t *const AXIS_Model = (const int32_t *)0xD6F788; // model direction (unit vector)
 	static const void *const SOUND_Gas = (const void *)0xD6F77C;
+	static const uint32_t ORIG_FileLoader = 0x5E1730, ORIG_Setup = 0x5E1750;
+	static const uint32_t TEXTURE_NAME = 0xD6F798, CAMERA = 0xD6BC70;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct SleepingGasParams
+	{
+		uint32_t sound;                      // at the director's tick 1
+		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t sparkle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t gas; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const SleepingGasParams GAME = { 0xD6F77C, { 0x3C }, { SEQ_Sparkle }, { MODEL_Gas }, { TEXTURE_NAME, CAMERA } };
+	static SleepingGasParams live = GAME;
+	static const SleepingGasParams &PG() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -184,9 +206,9 @@ namespace gas168
 	static_assert(sizeof(DirectorNode) == 0x24 && sizeof(GasNode) == 0x24 && sizeof(SparkNode) == 0x24, "Sleeping Gas nodes are 0x24 bytes");
 	static_assert(sizeof(Cloud) == 0x1C && sizeof(Spark) == 0x18, "cloud record / sparkle entry");
 
-	inline Cloud *CloudRec(int32_t i) { return (Cloud *)(CLOUDS + (uint32_t)(i * 0x1C)); }
-	inline int32_t *CloudOffsets(int32_t i) { return (int32_t *)(OFFSETS + (uint32_t)(i * WAVE * 8)); }
-	inline uint32_t CloudVerts(int32_t i) { return VERTS + (uint32_t)(i * WAVE * 2 * 8); }
+	inline Cloud *CloudRec(int32_t i) { return (Cloud *)(own::R(CLOUDS) + (uint32_t)(i * 0x1C)); }
+	inline int32_t *CloudOffsets(int32_t i) { return (int32_t *)(own::R(OFFSETS) + (uint32_t)(i * WAVE * 8)); }
+	inline uint32_t CloudVerts(int32_t i) { return own::R(VERTS) + (uint32_t)(i * WAVE * 2 * 8); }
 
 	// x / 61 as compiled (0x4325C53F, sar 4)
 	static int32_t Div61(int32_t x)
@@ -302,7 +324,7 @@ namespace gas168
 	// offset), sorted by the model vertex's z (descending; the slots follow their vertex)
 	static void InitPairs()
 	{
-		uint32_t a = MODEL_GasVerts, b = VERTS, e = PAIRS;
+		uint32_t a = MODEL_GasVerts, b = own::R(VERTS), e = own::R(PAIRS);
 		for (int32_t i = WAVE; i != 0; i--)
 			for (int32_t k = 2; k != 0; k--)
 			{
@@ -312,10 +334,10 @@ namespace gas168
 				b += 8;
 				e += 8;
 			}
-		for (uint32_t i = PAIRS, n = 0; i < PAIRS_END - 8; i += 8, n++)
+		for (uint32_t i = own::R(PAIRS), n = 0; i < own::R(PAIRS_END) - 8; i += 8, n++)
 		{
 			if (n + 1 >= 0x7A) continue;
-			for (uint32_t j = i + 8; j < PAIRS_END; j += 8)
+			for (uint32_t j = i + 8; j < own::R(PAIRS_END); j += 8)
 			{
 				const uint32_t vi = U32(i, 0), vj = U32(j, 0);
 				if (S16(vi, 4) >= S16(vj, 4)) continue;
@@ -355,8 +377,8 @@ namespace gas168
 	static void WaveBuild(Cloud *c, const int32_t *offs, uint32_t verts, uint32_t node)
 	{
 		const int32_t count = c->count;
-		const uint32_t delta = verts - VERTS;
-		uint32_t e = PAIRS;
+		const uint32_t delta = verts - own::R(VERTS);
+		uint32_t e = own::R(PAIRS);
 		uint32_t last = node;
 		if (count > 0)
 		{
@@ -423,7 +445,7 @@ namespace gas168
 	// no depth cue (+0x0C keeps the scratch)
 	static void GasHeader(uint8_t *h, const GasNode *g, uint32_t verts)
 	{
-		*(uint32_t *)(h + 0) = MODEL_Gas;
+		*(uint32_t *)(h + 0) = fxp::model(PG().models.gas, MODEL_Gas);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		*(uint32_t *)(h + 4) = verts;
@@ -477,6 +499,34 @@ namespace gas168
 	// ------------------------------------------------------------------
 	// Gas cloud (0x5E1D20)
 	// ------------------------------------------------------------------
+	// File loader (0x5E1730) and setup (0x5E1750): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the director, both
+	// sparkle pools freed, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x23B3C10)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23B5C58), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x23B6A98), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl GasTask(TaskNode *n)
 	{
 		GasNode *g = (GasNode *)n;
@@ -505,8 +555,8 @@ namespace gas168
 		FX_HELD(held_note_spark(ORIG_SparkTarget, s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
-		*(uint32_t *)h = SEQ_Sparkle;
-		for (uint32_t p = POOL_A; p < POOL_A_END; p += 0x18)
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sparkle, SEQ_Sparkle);
+		for (uint32_t p = own::R(POOL_A); p < own::R(POOL_A_END); p += 0x18)
 		{
 			Spark *e = (Spark *)p;
 			if (!(e->owner & (int32_t)s->mask)) continue;
@@ -537,13 +587,13 @@ namespace gas168
 			for (int32_t k = 0; k < 1; k++)
 			{
 				int32_t idx = 0;
-				uint32_t p = POOL_A;
-				while (p < POOL_A_END && ((Spark *)p)->owner != 0)
+				uint32_t p = own::R(POOL_A);
+				while (p < own::R(POOL_A_END) && ((Spark *)p)->owner != 0)
 				{
 					p += 0x18;
 					idx++;
 				}
-				if (p >= POOL_A_END || idx >= 0x64) break;
+				if (p >= own::R(POOL_A_END) || idx >= 0x64) break;
 				Spark *e = (Spark *)p;
 				e->owner = s->mask;
 				e->frame = 0;
@@ -578,9 +628,9 @@ namespace gas168
 		FX_HELD(held_note_spark(ORIG_SparkCaster, s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sparkle, SEQ_Sparkle);
 		*(uint16_t *)(h + 0x24) = 8;
-		for (uint32_t p = POOL_B; p < POOL_B_END; p += 0x18)
+		for (uint32_t p = own::R(POOL_B); p < own::R(POOL_B_END); p += 0x18)
 		{
 			Spark *e = (Spark *)p;
 			if (!(e->owner & 1)) continue;
@@ -612,13 +662,13 @@ namespace gas168
 			for (int32_t k = 0; k < 1; k++)
 			{
 				int32_t idx = 0;
-				uint32_t p = POOL_B;
-				while (p < POOL_B_END && ((Spark *)p)->owner != 0)
+				uint32_t p = own::R(POOL_B);
+				while (p < own::R(POOL_B_END) && ((Spark *)p)->owner != 0)
 				{
 					p += 0x18;
 					idx++;
 				}
-				if (p >= POOL_B_END || idx >= 0x32) break;
+				if (p >= own::R(POOL_B_END) || idx >= 0x32) break;
 				Spark *e = (Spark *)p;
 				e->owner = 1;
 				e->frame = 0;
@@ -664,10 +714,10 @@ namespace gas168
 		{
 			for (int32_t k = 2; k != 0; k--)
 			{
-				GasNode *g = (GasNode *)AddTaskToQueue(EffectQueue(), ORIG_Gas);
+				GasNode *g = (GasNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Gas));
 				const int16_t cloud = d->clouds;
-				const uint32_t z = U32(0x23B78AC, 0);
-				U32(P(g), 0x10) = U32(0x23B78A8, 0);
+				const uint32_t z = U32(own::R(0x23B78AC), 0);
+				U32(P(g), 0x10) = U32(own::R(0x23B78A8), 0);
 				g->counter = 0;
 				g->cloud = cloud;
 				U32(P(g), 0x14) = z;
@@ -694,18 +744,18 @@ namespace gas168
 			for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
 			{
 				const uint8_t slot = Ctx()->actions[0].targets[i * TARGET_STRIDE];
-				SparkNode *s = (SparkNode *)AddTaskToQueue(EffectQueue(), ORIG_SparkTarget);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_SparkTarget));
 				s->counter = 0;
 				s->mask = (int16_t)(1 << (i & 31));
 				GetEffectSpawnPosition(Entity(slot), 0xF1, 0, s->pos);
 				s->pos[1] = *(int16_t *)(Entity(slot) + 0x3C);
 			}
 		}
-		if (d->counter == 4) ((SparkNode *)AddTaskToQueue(EffectQueue(), ORIG_SparkCaster))->counter = 0;
-		if (d->counter == 0x3C) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+		if (d->counter == 4) ((SparkNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_SparkCaster)))->counter = 0;
+		if (d->counter == PG().director.damage) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 		if (d->counter >= 4 && d->counter <= 0xC) SetScreenFlash((uint32_t)((d->counter - 4) * 0xC0), 0x302060);
 		else if (d->counter >= 0x3E) SetScreenFlash((uint32_t)((0x46 - d->counter) * 0xC0), 0x302060);
-		if (d->counter == 1) BdPlaySE(SOUND_Gas, 0, 0x80);
+		if (d->counter == 1) BdPlaySE((const void *)fxp::sound(PG().sound, (uint32_t)SOUND_Gas), 0, 0x80);
 		d->counter++;
 		if (d->counter <= 0x46) return 0;
 		SetScreenFlash(0, 0);
@@ -726,18 +776,45 @@ namespace gas168
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The gas clouds waving towards the targets, the target and caster sparkles, the screen flash, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(SleepingGasParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SleepingGasParams, director.damage), fxp::I16, 0, 70 },
+			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SleepingGasParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.gas", "Gas model", "The prim model gas (a mesh of 122 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SleepingGasParams, models.gas), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SleepingGasParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SleepingGasParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag168_sleeping_gas()
 	{
+		fxp::register_params({ 168, "Sleeping Gas", &gas168::live, &gas168::GAME, sizeof(gas168::SleepingGasParams),
+		                       gas168::table::PARTS, (int)(sizeof(gas168::table::PARTS) / sizeof(gas168::table::PARTS[0])),
+		                       gas168::table::FIELDS, (int)(sizeof(gas168::table::FIELDS) / sizeof(gas168::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(gas168::ORIG_FileLoader, (void *)gas168::FileLoader);
+		own::note(gas168::ORIG_Setup, (void *)gas168::Setup);
+		own::note(gas168::ORIG_Root, (void *)gas168::RootTask);
 		register_port(gas168::ORIG_Root, (void *)gas168::RootTask, "G168 RootTask", 168);
+		own::note(gas168::ORIG_Director, (void *)gas168::DirectorTask);
 		register_port(gas168::ORIG_Director, (void *)gas168::DirectorTask, "G168 DirectorTask", 168);
+		own::note(gas168::ORIG_Gas, (void *)gas168::GasTask);
 		register_port(gas168::ORIG_Gas, (void *)gas168::GasTask, "G168 GasTask", 168);
+		own::note(gas168::ORIG_SparkTarget, (void *)gas168::SparkTargetTask);
 		register_port(gas168::ORIG_SparkTarget, (void *)gas168::SparkTargetTask, "G168 SparkTargetTask", 168);
+		own::note(gas168::ORIG_SparkCaster, (void *)gas168::SparkCasterTask);
 		register_port(gas168::ORIG_SparkCaster, (void *)gas168::SparkCasterTask, "G168 SparkCasterTask", 168);
 		// 30 fps layer: see mag168_sleeping_gas_held.inc
 		FX_HELD(register_mag168_held();)
 	}
+	FX_LAB_MODULE(register_mag168_sleeping_gas);
 }
 
 #ifdef FF8_FX_HELD

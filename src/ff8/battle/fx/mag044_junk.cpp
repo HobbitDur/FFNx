@@ -46,8 +46,14 @@
 // No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
 // Module globals: 0x2545100..0x2545184 (texture file, context, caster entity, the five queues, root
 // pool 0x2545160, packet cursor 0x2545174, magic buffer base 0x2545180).
+// Fujin's described Junk (effect_044.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (JunkParams: the sound, the
+// shake and bounce, the falling items' ticks, the big item, the gravity).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -57,14 +63,16 @@ namespace junk044
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2545104); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2545108); }          // caster entity (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2545174); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2545180); }           // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2545110; }
-	inline TaskQueue *QItems() { return (TaskQueue *)0x2545120; }
-	inline TaskQueue *QSmoke() { return (TaskQueue *)0x2545130; }
-	inline TaskQueue *QControl() { return (TaskQueue *)0x2545140; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2545104)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2545108)); }          // caster entity (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2545174)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2545180)); }           // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QDebris() { return (TaskQueue *)own::R(0x2545110); }
+	inline TaskQueue *QItems() { return (TaskQueue *)own::R(0x2545120); }
+	inline TaskQueue *QSmoke() { return (TaskQueue *)own::R(0x2545130); }
+	inline TaskQueue *QControl() { return (TaskQueue *)own::R(0x2545140); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2545150); }      // 1 x 0x14
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2545100)); }   // the effect's file (its TIM)
 	inline int16_t &BattleWord1D97712() { return var<int16_t>(0x1D97712); }   // set to 150 with every smoke wave
 
 	static const uint32_t ORIG_RootTask = 0x6E7B90;
@@ -73,6 +81,25 @@ namespace junk044
 	static const uint32_t ORIG_ItemTask = 0x6E84D0;
 	static const uint32_t ORIG_DebrisTask = 0x6E8810;
 	static const void *const SOUND_Junk = (const void *)0x1354B7C;
+	static const uint32_t ORIG_FileLoader = 0x6E7AF0, ORIG_Setup = 0x6E7AE0;
+	static const uint32_t TEXTURE_NAME = 0x13627D8, CAMERA = 0x1354A30;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct JunkParams
+	{
+		uint32_t sound;                                     // at the controller's first tick
+		struct { int16_t shake, amp; } control;             // the camera shake word with each smoke wave; the targets' bounce (its least height)
+		struct { int16_t from, span, every, big; } items;   // the falling items: from / for / every these ticks; the big item's tick
+		struct { int16_t gravity; } fall;                   // added to an item's falling speed a tick
+		struct { uint32_t debris; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const JunkParams GAME = { 0x1354B7C, { 0x96, 0x100 }, { 0xF, 0x20, 3, 0x3E }, { 0x32 }, { 0x1354CE0 }, { 0x1354B80 }, { TEXTURE_NAME, CAMERA } };
+	static JunkParams live = GAME;
+	static const JunkParams &P() { return live; }
 	static const uint32_t SEQ_Smoke = 0x1354B80;      // smoke sprite sequence (+8: frame count word)
 	static const uint32_t MODEL_Debris = 0x1354CE0;   // prim-model layout data (0x40-byte layout)
 	static const uint32_t ITEM_KINDS = 0x1362730;     // 7 x 24 bytes
@@ -219,7 +246,7 @@ namespace junk044
 		GetEffectSpawnPosition(Caster(), bone, 0, pos);
 		while (count-- != 0)
 		{
-			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
+			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), own::Fn(ORIG_SmokeTask));
 			if (!s) break;
 			SmokeOne(s, pos[0], pos[2], radius, spread, base);
 		}
@@ -230,7 +257,7 @@ namespace junk044
 	{
 		while (count-- != 0)
 		{
-			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
+			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), own::Fn(ORIG_SmokeTask));
 			if (!s) break;
 			SmokeOne(s, pos[0], pos[2], radius, spread, base);
 		}
@@ -239,7 +266,7 @@ namespace junk044
 	// 0x6E8470: a falling item of `kind` at (x, -4096, z), life 20
 	static ItemNode *NewItem(int32_t x, int32_t z, uint8_t *entity, int32_t kind)
 	{
-		ItemNode *it = (ItemNode *)AddTaskToQueue(QItems(), ORIG_ItemTask);
+		ItemNode *it = (ItemNode *)AddTaskToQueue(QItems(), own::Fn(ORIG_ItemTask));
 		if (!it) return nullptr;
 		it->y = (int16_t)0xF000;
 		it->life = 0x14;
@@ -261,9 +288,9 @@ namespace junk044
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(s->pos, (int32_t)s->rot, -((int32_t)s->rot >> 2));
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 0x24) = 0;
-		*(int16_t *)(h + 4) = (int16_t)(*(const uint16_t *)(SEQ_Smoke + 8) - s->life);
+		*(int16_t *)(h + 4) = (int16_t)(*(const uint16_t *)(fxp::sequence(P().seqs.smoke, SEQ_Smoke) + 8) - s->life);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -410,7 +437,7 @@ namespace junk044
 		it->life--;
 		if (it->life == 0) return TASK_END;
 		const int16_t vx = it->vx;
-		it->vy = (int16_t)(it->vy + 0x32);
+		it->vy = (int16_t)(it->vy + P().fall.gravity);
 		const int16_t vy = it->vy;
 		it->x = (int16_t)(it->x + vx);
 		it->y = (int16_t)(it->y + vy);
@@ -432,7 +459,7 @@ namespace junk044
 				GetDefaultEffectPosition(it->entity, pos);
 				int32_t a = CrtRand();
 				int32_t count = 8;
-				DebrisNode *d = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+				DebrisNode *d = (DebrisNode *)AddTaskToQueue(QDebris(), own::Fn(ORIG_DebrisTask));
 				while (d)
 				{
 					d->x = (int16_t)(ComputeSin(a) / 16 + pos[0]);
@@ -444,10 +471,10 @@ namespace junk044
 					d->angle = (int16_t)CrtRand();
 					d->speed = (int16_t)((CrtRand() & 0xFF) + 0x100);
 					if (CrtRand() < 0x4000) d->speed = (int16_t)-d->speed;
-					DecodeModelPrimLayout(MODEL_Debris, d->layout, 0x40);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.debris, MODEL_Debris, 0x40), d->layout, 0x40);
 					a = a + (CrtRand() & 0xFF) + 0x180;
 					if (--count == 0) break;
-					d = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+					d = (DebrisNode *)AddTaskToQueue(QDebris(), own::Fn(ORIG_DebrisTask));
 				}
 				DamageEntity(it->entity);
 				it->vz = 0x50;
@@ -488,21 +515,21 @@ namespace junk044
 	static uint32_t __cdecl ControlTask(TaskNode *n)
 	{
 		ControlNode *c = (ControlNode *)n;
-		if (c->counter == 0) BdPlaySE(SOUND_Junk, 0, 0x80);
+		if (c->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Junk), 0, 0x80);
 		switch ((uint32_t)((int32_t)c->counter - 1))
 		{
 		case 0:
 			SmokeAtCaster(3, 0x17, 0xC8, 0x7D0, 0x7D0);
 			SmokeAtCaster(3, 0x15, 0xC8, 0x7D0, 0x7D0);
-			BattleWord1D97712() = 0x96;
+			BattleWord1D97712() = P().control.shake;
 			break;
 		case 7: case 21:
 			SmokeAtCaster(3, 0x15, 0xC8, 0x7D0, 0x7D0);
-			BattleWord1D97712() = 0x96;
+			BattleWord1D97712() = P().control.shake;
 			break;
 		case 14: case 28:
 			SmokeAtCaster(3, 0x17, 0xC8, 0x7D0, 0x7D0);
-			BattleWord1D97712() = 0x96;
+			BattleWord1D97712() = P().control.shake;
 			break;
 		default:
 			break;
@@ -515,7 +542,7 @@ namespace junk044
 			if (phase == 0)
 			{
 				for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
-					c->tg[i].amp = (int16_t)((CrtRand() & 0x1FF) + 0x100);
+					c->tg[i].amp = (int16_t)((CrtRand() & 0x1FF) + P().control.amp);
 			}
 			const int32_t s = ComputeSin((int32_t)(phase << 11) / 7 + 0x124);
 			for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
@@ -530,8 +557,8 @@ namespace junk044
 			}
 		}
 		// items: counters 15..46, every 3 ticks
-		const uint32_t f = (uint32_t)((int32_t)c->counter - 0xF);
-		if (f < 0x20 && f % 3 == 0)
+		const uint32_t f = (uint32_t)((int32_t)c->counter - P().items.from);
+		if (f < (uint32_t)P().items.span && f % (uint32_t)P().items.every == 0)
 		{
 			const uint32_t kind = ((uint32_t)(int32_t)c->rnd + (f >> 2)) % 6;
 			const int32_t rz = CrtRand();
@@ -549,7 +576,7 @@ namespace junk044
 			}
 		}
 		// the big item above every target
-		if (c->counter == 0x3E)
+		if (c->counter == P().items.big)
 		{
 			for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
 			{
@@ -583,6 +610,29 @@ namespace junk044
 	}
 
 	// ------------------------------------------------------------------
+	// File loader (0x6E7AF0) and setup (0x6E7AE0 -> 0x6E7B10): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root,
+	// the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2545160), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		return QRoot();
+	}
+
+	// ------------------------------------------------------------------
 	// Root task (0x6E7B90)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
@@ -607,7 +657,7 @@ namespace junk044
 			InitTaskQueuePool(QItems(), (void *)(TexBase() + 0xB00), 0x34, 0x10);
 			InitTaskQueuePool(QSmoke(), (void *)(TexBase() + 0xE40), 0x20, 0x20);
 			InitTaskQueuePool(QControl(), (void *)(TexBase() + 0x1240), 0x4C, 1);
-			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), ORIG_ControlTask);
+			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), own::Fn(ORIG_ControlTask));
 			Memset32(&c->counter, 0, 0x10);
 			c->avg[2] = 0;
 			c->avg[1] = 0;
@@ -648,18 +698,56 @@ namespace junk044
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define JP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(JunkParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "control", "Controller", "Its sound, smoke waves at the caster with a camera shake, the targets bouncing, the falling junk, the big item on every target" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "items", "Items", "Junk falling round the targets from a tick, for some ticks, one every few; the big item above every target at its tick (its hit: debris, the damage)" },
+		};
+		static const Field FIELDS[] = {
+			{ "control", "sound", "Sound", "", (uint32_t)offsetof(JunkParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			JP("control", control.shake, "Shake", "The camera shake word set with each smoke wave", 0, 0x400),
+			JP("control", control.amp, "Bounce", "The targets' least bounce height (a random 0..511 added)", 0, 0x1000),
+			JP("control", items.from, "From", "", 0, 100),
+			JP("control", items.span, "For", "", 0, 100),
+			JP("control", items.every, "Every", "", 1, 20),
+			JP("control", items.big, "Big item tick", "", 0, 100),
+			JP("control", fall.gravity, "Gravity", "Added to an item's falling speed a tick", 1, 0x400),
+			{ "control", "layouts.debris", "Debris", "The prim-model layout debris (its models' animation)", (uint32_t)offsetof(JunkParams, layouts.debris), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "control", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(JunkParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "control", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(JunkParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "control", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(JunkParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+#undef JP
+	}
 }
 
 	void register_mag044_junk()
 	{
+		fxp::register_params({ 44, "Junk", &junk044::live, &junk044::GAME, sizeof(junk044::JunkParams),
+		                       junk044::table::PARTS, (int)(sizeof(junk044::table::PARTS) / sizeof(junk044::table::PARTS[0])),
+		                       junk044::table::FIELDS, (int)(sizeof(junk044::table::FIELDS) / sizeof(junk044::table::FIELDS[0])),
+		                       junk044::table::GROUPS, (int)(sizeof(junk044::table::GROUPS) / sizeof(junk044::table::GROUPS[0])) });
+		own::note(junk044::ORIG_FileLoader, (void *)junk044::FileLoader);
+		own::note(junk044::ORIG_Setup, (void *)junk044::Setup);
+		own::note(junk044::ORIG_RootTask, (void *)junk044::RootTask);
 		register_port(junk044::ORIG_RootTask, (void *)junk044::RootTask, "J044 RootTask", 44);
+		own::note(junk044::ORIG_ControlTask, (void *)junk044::ControlTask);
 		register_port(junk044::ORIG_ControlTask, (void *)junk044::ControlTask, "J044 ControlTask", 44);
+		own::note(junk044::ORIG_SmokeTask, (void *)junk044::SmokeTask);
 		register_port(junk044::ORIG_SmokeTask, (void *)junk044::SmokeTask, "J044 SmokeTask", 44);
+		own::note(junk044::ORIG_ItemTask, (void *)junk044::ItemTask);
 		register_port(junk044::ORIG_ItemTask, (void *)junk044::ItemTask, "J044 ItemTask", 44);
+		own::note(junk044::ORIG_DebrisTask, (void *)junk044::DebrisTask);
 		register_port(junk044::ORIG_DebrisTask, (void *)junk044::DebrisTask, "J044 DebrisTask", 44);
 		// 30 fps layer: see mag044_junk_held.inc
 		FX_HELD(register_mag044_held();)
 	}
+	FX_LAB_MODULE(register_mag044_junk);
 }
 
 #ifdef FF8_FX_HELD

@@ -177,7 +177,7 @@ namespace draw
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -385,7 +385,7 @@ namespace draw
 		memcpy(rib, n.bytes, NODE_BYTES);
 		const uint32_t s = P(spr), r = P(rib);
 		// the next tick: its head sprite (not hidden) and its ribbon (range not empty)
-		const bool next = live(n.node, ORIG_Ribbon);
+		const bool next = node_live(n.node, ORIG_Ribbon);
 		if (next) RibbonNextState(n.node, P(nxt));
 		const bool head_next = next && (U8(P(nxt), 0x26) & 4) == 0;
 		const bool rib_next = next && S16(P(nxt), 0x12A) != 0 && S16(P(nxt), 0x128) < 0xA;
@@ -428,7 +428,7 @@ namespace draw
 		// the next tick: head position of its ribbon (as the ribbon's step leaves it when the ribbon runs
 		// before the spark, else as it is), flipbook step of state 1 (0x8B65D0: hidden past the last
 		// frame); a spark the next tick does not draw holds
-		if (live(n.node, ORIG_Spark) && (U8(n.node, 0x26) & 4) == 0)
+		if (node_live(n.node, ORIG_Spark) && (U8(n.node, 0x26) & 4) == 0)
 		{
 			int16_t frame = S16(n.node, 0x50);
 			bool draws = true;
@@ -495,7 +495,7 @@ namespace draw
 			for (int s = 0; s < g_nnodes; s++)
 			{
 				const NodeNote &n = g_nodes[s];
-				if (U32(P(n.bytes), 8) != ORIG_Ribbon || !live(n.node, ORIG_Ribbon)) continue;
+				if (U32(P(n.bytes), 8) != ORIG_Ribbon || !node_live(n.node, ORIG_Ribbon)) continue;
 				RibbonNextState(n.node, P(nxt));
 				RibbonNext &r = g_rnext[g_nrnext++];
 				r.node = n.node;

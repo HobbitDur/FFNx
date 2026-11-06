@@ -25,8 +25,13 @@
 // systems, 8 the end task. The camera script task (s_73A9E0) drives the battle camera through
 // the engine's keyed moves (a_73AB20/a_73AE10) and channel script (a_73B3B0/a_73B4B0).
 // Module globals: 0x257F8A0..0x258FCF4 (+ camera copy 0x2793E58, 0x20 bytes).
+// Fujin's described Siren (effect_095.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or thunks of
+// their ports (Spawn); its parameters (SirenParams: the four sounds) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 #ifdef FF8_FX_HELD
 #include "mag095_siren_held.h"
@@ -36,6 +41,22 @@ namespace ff8fx
 {
 namespace act
 {
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	namespace siren
+	{
+		static const uint32_t SOUND_A = 0x1533014, SOUND_B = 0x1533018, SOUND_C = 0x1533020, SOUND_D = 0x153301C;
+		struct SirenParams
+		{
+			struct { uint32_t wave, arrive, sparks, song; } sounds;   // cut 1 (the wave), cut 3 (Siren), cut 6 (the target sparks), her song
+			struct { uint32_t at_15331d0, at_1533328, at_15334a0, at_1533024, at_15335cc; } seqs; // the sprite sequences drawn (flipbooks)
+		};
+		static const SirenParams GAME = { { SOUND_A, SOUND_B, SOUND_C, SOUND_D }, { 0x15331D0, 0x1533328, 0x15334A0, 0x1533024, 0x15335CC } };
+		static SirenParams live = GAME;
+		static const SirenParams &PS() { return live; }
+	}
+
 	// module ports of this file (32-bit words in and out, cdecl, like the originals)
 	uint32_t __cdecl s_73A0F0(uint32_t a1); // 0x73A0F0 MAG_095_sub_73A0F0, 15 insns
 	uint32_t __cdecl s_73A130(void); // 0x73A130 MAG_095_sub_73A130, 15 insns
@@ -252,12 +273,12 @@ namespace act
 	{
 		uint32_t node = a1;
 		if (U8(node, 0x28) != 0) return 0; // eax = busy byte + leftover upper bits, unused by the dispatcher
-		uint32_t cur = U32(0x258FB74, 0);
-		U32(0x258EC54, 0) = cur;
+		uint32_t cur = U32(R(0x258FB74), 0);
+		U32(R(0x258EC54), 0) = cur;
 		cur += 0x10E0;
-		U32(0x258FB6C, 0) = cur;
+		U32(R(0x258FB6C), 0) = cur;
 		cur += 0xC240;
-		U32(0x258FB74, 0) = cur;
+		U32(R(0x258FB74), 0) = cur;
 		uint32_t r = s_73A130();
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return r; // 0
@@ -267,12 +288,12 @@ namespace act
 	// bytes, MAG_007_sub_8DCC00) and zeroes the words 0x2585AE0, 0x258EDD0, 0x258E89C, 0x257F8A8
 	uint32_t __cdecl s_73A130(void)
 	{
-		x::MAG_007_sub_8DCC00(U32(0x258EC54, 0), 0x10E0);
-		x::MAG_007_sub_8DCC00(U32(0x258FB6C, 0), 0xC240);
-		U16(0x2585AE0, 0) = 0;
-		U16(0x258EDD0, 0) = 0;
-		U16(0x258E89C, 0) = 0;
-		U16(0x257F8A8, 0) = 0;
+		x::MAG_007_sub_8DCC00(U32(R(0x258EC54), 0), 0x10E0);
+		x::MAG_007_sub_8DCC00(U32(R(0x258FB6C), 0), 0xC240);
+		U16(R(0x2585AE0), 0) = 0;
+		U16(R(0x258EDD0), 0) = 0;
+		U16(R(0x258E89C), 0) = 0;
+		U16(R(0x257F8A8), 0) = 0;
 		return 0;
 	}
 
@@ -284,8 +305,8 @@ namespace act
 		uint32_t node = a1;
 		s_73A6E0(); // quirk 0x73A225: node pushed as an argument the callee does not read
 		s_73A270();
-		x::Effect_AddTaskAndInitFromCtx(0x258FB48, 0x73A380, 0x30, node);
-		uint32_t r = x::Effect_AddTaskAndInitFromCtx(0x257F988, 0x73A7B0, 0x48, node);
+		Spawn(R(0x258FB48), 0x73A380, 0x30, node);
+		uint32_t r = Spawn(R(0x257F988), 0x73A7B0, 0x48, node);
 		return s1_inc_state_al(node, r);
 	}
 
@@ -295,15 +316,15 @@ namespace act
 	// (0x19D1018..0x19F19BC), +0x164/+0x166 = 0; sets 0x258BFA8 = 0x1533850; returns the table
 	uint32_t __cdecl s_73A270(void)
 	{
-		U32(0x258BFA8, 0) = 0x1533850;
-		U32(0x258EAA0, 0) = 0x258FB88;
-		x::MAG_007_sub_8DCC00(0x258FB88, 0x16C);
-		uint32_t tab = U32(0x258EAA0, 0);
-		uint32_t cur = U32(0x258FB74, 0);
+		U32(R(0x258BFA8), 0) = 0x1533850;
+		U32(R(0x258EAA0), 0) = R(0x258FB88);
+		x::MAG_007_sub_8DCC00(R(0x258FB88), 0x16C);
+		uint32_t tab = U32(R(0x258EAA0), 0);
+		uint32_t cur = U32(R(0x258FB74), 0);
 		const uint32_t edx = 0x19F1018;
 		U32(tab, 0x100) = cur;
 		cur += 0xA000;
-		U32(0x258FB74, 0) = cur;
+		U32(R(0x258FB74), 0) = cur;
 		const uint32_t ecx = 0x19D1018;
 		U32(tab, 0x114) = ecx; // creature model container (bound in cut 3)
 		U32(tab, 0x118) = ecx;
@@ -339,13 +360,13 @@ namespace act
 	// battle entities (a_73A720) and zeroes word +0x08
 	uint32_t __cdecl s_73A6E0(void)
 	{
-		x::MAG_007_sub_8DCC00(U32(0x1533010, 0), 0x54);
-		uint32_t blk = U32(0x1533010, 0);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		U16(blk, 0) = 0;
 		U16(blk, 2) = 0;
 		U16(blk, 4) = 0xCC0;
 		uint32_t r = a_73A720(blk + 8);
-		uint32_t blk2 = U32(0x1533010, 0);
+		uint32_t blk2 = MEM<uint32_t>(G(G_1533010));
 		U16(blk2, 8) = 0;
 		return r;
 	}
@@ -404,7 +425,7 @@ namespace act
 	uint32_t __cdecl s_73A8E0(uint32_t a1)
 	{
 		uint32_t node = a1;
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		U16(blk, 0x46) = (uint16_t)(U16(blk, 0x46) + 1);
 		uint16_t req = U16(blk, 0x42);
 		if (U16(blk, 0x40) != req)
@@ -412,7 +433,7 @@ namespace act
 			U16(blk, 0x40) = req;
 			U16(blk, 0x46) = 0;
 			s_73BCF0(node);
-			blk = U32(0x1533010, 0);
+			blk = MEM<uint32_t>(G(G_1533010));
 		}
 		uint16_t pend = U16(blk, 0x44);
 		if (U16(blk, 0x42) != pend)
@@ -431,9 +452,9 @@ namespace act
 		uint32_t node = a1;
 		if (S16(node, 0x24) < 4) return 0; // eax leftover, unused
 		uint32_t slot = x::BdSound_ClaimVoiceSlot(0x16A3FB0, 1, 0x80);
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		U16(blk, 0x52) = (uint16_t)slot;
-		uint32_t r = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x73A9E0, 0xE0, node);
+		uint32_t r = Spawn(R(0x257FA90), 0x73A9E0, 0xE0, node);
 		return s1_inc_state_al(node, r);
 	}
 
@@ -479,7 +500,7 @@ namespace act
 		uint32_t r = a_73AAE0(1);
 		if (r == 0) return 0;
 		a_73AB00();
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(0x1533C40, blk + 8, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -491,7 +512,7 @@ namespace act
 	{
 		uint32_t r = a_73AAE0(2);
 		if (r == 0) return 0;
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(0x1533C88, blk + 8, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -505,7 +526,7 @@ namespace act
 		a_73AE10();
 		uint32_t r = a_73AAE0(3);
 		if (r == 0) return 0;
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(0x1533CD0, blk, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -541,7 +562,7 @@ namespace act
 	{
 		uint32_t r = a_73AAE0(5);
 		if (r == 0) return 0;
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(0x1533D60, blk, 0);
 		U16(a1, 0xDC) = 0x20;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -577,7 +598,7 @@ namespace act
 		a_73AE10();
 		uint32_t r = a_73AAE0(6);
 		if (r == 0) return 0;
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(0x1533DA8, blk + 8, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -600,7 +621,7 @@ namespace act
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x1533014, 1, 0x80);
+		x::BdPlaySE(fxp::sound(siren::PS().sounds.wave, siren::SOUND_A), 1, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -610,14 +631,14 @@ namespace act
 	// staying in this state
 	uint32_t __cdecl s_73B800(uint32_t a1)
 	{
-		uint32_t tab = U32(0x258EAA0, 0);
+		uint32_t tab = U32(R(0x258EAA0), 0);
 		if (U16(tab, 0x166) == 0)
 		{
 			s_73B840(0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return a1;
 		}
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) < 0x1D) return tab;
 		return s_73B840(1);
 	}
@@ -626,19 +647,19 @@ namespace act
 	// 0x258FB70 / 0x2585E38 (0 or 1) when it changes; returns 1 when it set it, else 0
 	uint32_t __cdecl s_73B840(uint32_t a1)
 	{
-		uint32_t cur = U32(0x258FB70, 0);
+		uint32_t cur = U32(R(0x258FB70), 0);
 		if (a1 == 0)
 		{
 			if (cur == 1)
 			{
-				U32(0x258FB70, 0) = 0;
-				U32(0x2585E38, 0) = 0;
+				U32(R(0x258FB70), 0) = 0;
+				U32(R(0x2585E38), 0) = 0;
 			}
 			return 0;
 		}
 		if (cur != 0) return 0;
-		U32(0x258FB70, 0) = 1;
-		U32(0x2585E38, 0) = 1;
+		U32(R(0x258FB70), 0) = 1;
+		U32(R(0x2585E38), 0) = 1;
 		return 1;
 	}
 
@@ -646,7 +667,7 @@ namespace act
 	// (+0x46) reaches 0x1E
 	uint32_t __cdecl s_73B880(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) < 0x1E) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -657,11 +678,11 @@ namespace act
 	// advances the state
 	uint32_t __cdecl s_73B900(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) <= 0x19) return blk;
 		uint32_t node = a1;
 		U16(node, 0x44) = 6;
-		uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x258BE20, 0x8DDC30, 0x40, node);
+		uint32_t t = Spawn(R(0x258BE20), 0x8DDC30, 0x40, node);
 		U32(t, 0x34) = 0x1533E10;
 		U16(t, 0x38) = 0;
 		return s1_inc_state_al(node, t);
@@ -675,7 +696,7 @@ namespace act
 		U16(node, 0x44) = (uint16_t)(U16(node, 0x44) - 1);
 		uint16_t cnt = U16(node, 0x44);
 		if ((int16_t)cnt > 0) return cnt; // eax = ax + leftover upper bits, unused
-		uint32_t tab = U32(0x258EAA0, 0);
+		uint32_t tab = U32(R(0x258EAA0), 0);
 		if (U16(tab, 0x166) == 0)
 		{
 			uint32_t r = s_73B840(0);
@@ -690,7 +711,7 @@ namespace act
 	{
 		uint32_t r = a_73B640(3);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x1533018, 1, 0x80);
+		x::BdPlaySE(fxp::sound(siren::PS().sounds.arrive, siren::SOUND_B), 1, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -709,7 +730,7 @@ namespace act
 	// 0x73BA30 (module; Siren sub_73BA30): director state: advances after cut frame 0x2D
 	uint32_t __cdecl s_73BA30(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) <= 0x2D) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -741,7 +762,7 @@ namespace act
 	{
 		uint32_t r = a_73B7E0(6);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x1533020, 1, 0x80);
+		x::BdPlaySE(fxp::sound(siren::PS().sounds.sparks, siren::SOUND_C), 1, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -750,14 +771,14 @@ namespace act
 	// (clears the toggle 0x258FB70/0x2585E38) and advances; else from cut frame 0x1D a_73BB60(1)
 	uint32_t __cdecl s_73BB20(uint32_t a1)
 	{
-		uint32_t tab = U32(0x258EAA0, 0);
+		uint32_t tab = U32(R(0x258EAA0), 0);
 		if (U16(tab, 0x166) == 0)
 		{
 			a_73BB60(0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return a1;
 		}
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) < 0x1D) return tab;
 		return a_73BB60(1);
 	}
@@ -765,7 +786,7 @@ namespace act
 	// 0x73BBB0 (module; Siren sub_73BBB0): director state: advances after cut frame 0x1E
 	uint32_t __cdecl s_73BBB0(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) <= 0x1E) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -784,7 +805,7 @@ namespace act
 	// countdown +0x44 = 8, advances
 	uint32_t __cdecl s_73BC10(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) <= 1) return blk;
 		U16(blk, 0x48) = 1;
 		U16(a1, 0x44) = 8;
@@ -798,7 +819,7 @@ namespace act
 	{
 		uint32_t r = a_73B640(8);
 		if (r == 0) return 0;
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		x::sub_4A2940((uint32_t)(int32_t)S16(blk, 0x52));
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -820,7 +841,7 @@ namespace act
 	// (queue 0x258EC40) bound to its model container; cut 5 spawns nothing
 	uint32_t __cdecl s_73BCF0(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		int32_t cut = S16(blk, 0x40);
 		switch (cut) // jump table 0x73C0D8, index cut-1 (unsigned > 7 -> exit)
 		{
@@ -828,24 +849,24 @@ namespace act
 		{
 			uint32_t node = a1;
 			s_73C150(node, 0x73C1A0, 0x16A5380, 0x94, 0, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x743C70, 0xE0, node);
-			x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x744060, 0xE0, node);
-			x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x746920, 0xE0, node);
+			Spawn(R(0x257FA90), 0x743C70, 0xE0, node);
+			Spawn(R(0x257FA90), 0x744060, 0xE0, node);
+			Spawn(R(0x257FA90), 0x746920, 0xE0, node);
 			break;
 		}
 		case 2: // 0x73BD72
 		{
-			uint32_t tab = U32(0x258EAA0, 0);
+			uint32_t tab = U32(R(0x258EAA0), 0);
 			uint32_t node = a1;
 			s_73C150(node, 0x73EE50, U32(tab, 0x128), 0x48, 1, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x744450, 0xE0, node);
+			Spawn(R(0x257FA90), 0x744450, 0xE0, node);
 			uint32_t rec = s1_action_rec(node);
 			if (U8(rec, 0x10) == 0) break;
 			uint32_t i = 0;
 			uint32_t off = 0;
 			do // one per target
 			{
-				uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x7447C0, 0xE0, node);
+				uint32_t t = Spawn(R(0x257FA90), 0x7447C0, 0xE0, node);
 				rec = s1_action_rec(node);
 				i++;
 				off += 0x18;
@@ -857,31 +878,31 @@ namespace act
 		case 3: // 0x73BE10
 		{
 			uint32_t node = a1;
-			uint32_t actor = x::Effect_AddTaskAndInitFromCtx(0x258EC40, 0x746B60, 0x140, node);
-			uint32_t tab = U32(0x258EAA0, 0);
+			uint32_t actor = Spawn(R(0x258EC40), 0x746B60, 0x140, node);
+			uint32_t tab = U32(R(0x258EAA0), 0);
 			x::Effect_BindModelContainerSetAnim(actor, U32(tab, 0x114), 0);
-			tab = U32(0x258EAA0, 0);
+			tab = U32(R(0x258EAA0), 0);
 			s_73C150(node, 0x73EF60, U32(tab, 0x12C), 0x228, 2, 0);
-			tab = U32(0x258EAA0, 0);
+			tab = U32(R(0x258EAA0), 0);
 			s_73C150(node, 0x73F110, U32(tab, 0x130), 0x4A0, 3, 0);
-			tab = U32(0x258EAA0, 0);
+			tab = U32(R(0x258EAA0), 0);
 			s_73C150(node, 0x73F6A0, U32(tab, 0x138), 0xEC, 5, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x744F90, 0xE0, node);
+			Spawn(R(0x257FA90), 0x744F90, 0xE0, node);
 			break;
 		}
 		case 4: // 0x73BEC0
 		{
-			uint32_t tab = U32(0x258EAA0, 0);
+			uint32_t tab = U32(R(0x258EAA0), 0);
 			uint32_t node = a1;
 			s_73C150(node, 0x73F250, U32(tab, 0x134), 0x4A0, 4, 0);
-			tab = U32(0x258EAA0, 0);
+			tab = U32(R(0x258EAA0), 0);
 			s_73C150(node, 0x73F370, U32(tab, 0x134), 0x4A0, 4, 0);
-			tab = U32(0x258EAA0, 0);
+			tab = U32(R(0x258EAA0), 0);
 			s_73C150(node, 0x73F500, U32(tab, 0x134), 0x4A0, 4, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x2585EF0, 0x745250, 0x64, node);
+			Spawn(R(0x2585EF0), 0x745250, 0x64, node);
 			for (uint32_t i = 0; (int32_t)i < 4; i++)
 			{
-				uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x745AD0, 0xE0, node);
+				uint32_t t = Spawn(R(0x257FA90), 0x745AD0, 0xE0, node);
 				U16(t, 0xDE) = (uint16_t)i; // instance index 0..3
 			}
 			break;
@@ -896,7 +917,7 @@ namespace act
 				uint32_t off = 0;
 				do // one per target
 				{
-					uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2585EF0, 0x7456A0, 0x64, node);
+					uint32_t t = Spawn(R(0x2585EF0), 0x7456A0, 0x64, node);
 					rec = s1_action_rec(node);
 					i++;
 					off += 0x18;
@@ -910,7 +931,7 @@ namespace act
 			uint32_t off = 0;
 			do // one per target
 			{
-				uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x743250, 0xE0, node);
+				uint32_t t = Spawn(R(0x257FA90), 0x743250, 0xE0, node);
 				rec = s1_action_rec(node);
 				i++;
 				uint32_t targets = U32(rec, 8);
@@ -929,7 +950,7 @@ namespace act
 				uint32_t off = 0;
 				do // one model emitter per target
 				{
-					uint32_t tab = U32(0x258EAA0, 0);
+					uint32_t tab = U32(R(0x258EAA0), 0);
 					uint32_t t = s_73C150(node, 0x73F800, U32(tab, 0x13C), 0x140, 6, 0);
 					rec = s1_action_rec(node);
 					i++;
@@ -938,12 +959,12 @@ namespace act
 					U8(t, 0x2D) = U8(targets + off - 0x18, 0);
 				} while ((int32_t)i < (int32_t)U8(rec, 0x10));
 			}
-			uint32_t tab = U32(0x258EAA0, 0);
+			uint32_t tab = U32(R(0x258EAA0), 0);
 			a_73C100(node, 0x73F900, U32(tab, 0x10C), 0, 0x2D, 0);
 			break;
 		}
 		case 8: // 0x73C0B7
-			x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x746A40, 0xE0, a1);
+			Spawn(R(0x257FA90), 0x746A40, 0xE0, a1);
 			break;
 		default: // cut 5 (table -> 0x73C0D3) and anything outside 1..8: nothing
 			break;
@@ -956,7 +977,7 @@ namespace act
 	// model id, +0x82 = (u16)a6; returns the node
 	uint32_t __cdecl s_73C150(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x258A010, a2, 0x534, a1);
+		uint32_t t = Spawn(R(0x258A010), a2, 0x534, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -1000,7 +1021,7 @@ namespace act
 	{
 		uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		uint32_t blk = U32(0x1533010, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		uint32_t p0 = U32(blk, 8);
 		uint32_t p1 = U32(blk, 0xC);
 		U32(node, 0x1C) = p0;
@@ -1238,22 +1259,22 @@ namespace act
 
 		if (S16(env, 0x56) == 0 && U16(obj, 0) == 0)
 		{
-			MEM<uint16_t>(0x258FB80) = U16(obj, 8);
-			MEM<uint16_t>(0x258FB82) = U16(obj, 0xA);
-			MEM<uint16_t>(0x258FB84) = U16(obj, 0xC);
-			MEM<int32_t>(0x258EC60) = S16(obj, 0x18);
-			MEM<int32_t>(0x258EC64) = S16(obj, 0x1A);
-			MEM<int32_t>(0x258EC68) = S16(obj, 0x1C);
+			MEM<uint16_t>(R(0x258FB80)) = U16(obj, 8);
+			MEM<uint16_t>(R(0x258FB82)) = U16(obj, 0xA);
+			MEM<uint16_t>(R(0x258FB84)) = U16(obj, 0xC);
+			MEM<int32_t>(R(0x258EC60)) = S16(obj, 0x18);
+			MEM<int32_t>(R(0x258EC64)) = S16(obj, 0x1A);
+			MEM<int32_t>(R(0x258EC68)) = S16(obj, 0x1C);
 			s_73EB10(ctx);
 		}
 		if (U16(env, 0x56) == 1)
 		{
-			MEM<uint16_t>(0x258FB80) = U16(obj, 8);
-			MEM<uint16_t>(0x258FB82) = U16(obj, 0xA);
-			MEM<uint16_t>(0x258FB84) = U16(obj, 0xC);
-			MEM<int32_t>(0x258EC60) = S16(obj, 0x18);
-			MEM<int32_t>(0x258EC64) = S16(obj, 0x1A);
-			MEM<int32_t>(0x258EC68) = S16(obj, 0x1C);
+			MEM<uint16_t>(R(0x258FB80)) = U16(obj, 8);
+			MEM<uint16_t>(R(0x258FB82)) = U16(obj, 0xA);
+			MEM<uint16_t>(R(0x258FB84)) = U16(obj, 0xC);
+			MEM<int32_t>(R(0x258EC60)) = S16(obj, 0x18);
+			MEM<int32_t>(R(0x258EC64)) = S16(obj, 0x1A);
+			MEM<int32_t>(R(0x258EC68)) = S16(obj, 0x1C);
 			s_73E7F0(ctx);
 		}
 		x::Field_Free(0x68);
@@ -1915,34 +1936,34 @@ namespace act
 		const uint32_t src = U32(a1, 4);
 		for (int i = 0; i < 24; i++)
 		{
-			MEM<uint32_t>(0x258BAA0 + 8 * i) = U32(src, 0x88 + 0x10 * i);
-			MEM<uint32_t>(0x258BAA4 + 8 * i) = U32(src, 0x8C + 0x10 * i);
+			MEM<uint32_t>(R(0x258BAA0) + 8 * i) = U32(src, 0x88 + 0x10 * i);
+			MEM<uint32_t>(R(0x258BAA4) + 8 * i) = U32(src, 0x8C + 0x10 * i);
 		}
 		// quirk 0x73EA31: the last pair is +0x200/+0x204, not +0x208/+0x20C
-		MEM<uint32_t>(0x258BB60) = U32(src, 0x200);
-		MEM<uint32_t>(0x258BB64) = U32(src, 0x204);
+		MEM<uint32_t>(R(0x258BB60)) = U32(src, 0x200);
+		MEM<uint32_t>(R(0x258BB64)) = U32(src, 0x204);
 
 		// 0x73EA60: stack: +0 vector (8 bytes), +8 Mat4x3 (0x20 bytes)
 		alignas(4) uint8_t loc[0x28];
 		const uint32_t L = P(loc);
-		U32(L, 0) = MEM<uint32_t>(0x258BB00);
-		U32(L, 4) = MEM<uint32_t>(0x258BB04);
+		U32(L, 0) = MEM<uint32_t>(R(0x258BB00));
+		U32(L, 4) = MEM<uint32_t>(R(0x258BB04));
 		x::MAG_022_sub_8DD770(L + 8);
 		x::MAG_022_sub_8DD8A0(L + 8, 0x800);
-		x::scale3DMatrix(L + 8, 0x258EC60);
-		int32_t tx = MEM<int16_t>(0x258FB80);
-		int32_t ty = MEM<int16_t>(0x258FB82);
-		uint32_t g = MEM<uint32_t>(0x1533010);
+		x::scale3DMatrix(L + 8, R(0x258EC60));
+		int32_t tx = MEM<int16_t>(R(0x258FB80));
+		int32_t ty = MEM<int16_t>(R(0x258FB82));
+		uint32_t g = MEM<uint32_t>(G(G_1533010));
 		S32(L, 0x1C) = tx;
 		S32(L, 0x20) = ty;
 		int32_t gz = S16(g, 0xC);
-		int32_t oz = MEM<int16_t>(0x258FB84);
+		int32_t oz = MEM<int16_t>(R(0x258FB84));
 		S32(L, 0x24) = add32(add32(gz, oz), -0x1000);
 		x::GTE_SetRotMatrix_W(L + 8);
 		x::GTE_SetTransVector_W(L + 8);
 		x::GTE_LoadV0(L);
 		x::GTE_MVMVA_RotV0_Tr_2();
-		x::GTE_StoreIR123(0x258FB60);
+		x::GTE_StoreIR123(R(0x258FB60));
 		return 0; // void
 	}
 
@@ -1954,18 +1975,18 @@ namespace act
 		const uint32_t src = U32(a1, 4);
 		for (int i = 0; i < 16; i++)
 		{
-			MEM<uint32_t>(0x258E9A0 + 8 * i) = U32(src, 0x48 + 0x10 * i);
-			MEM<uint32_t>(0x258E9A4 + 8 * i) = U32(src, 0x4C + 0x10 * i);
+			MEM<uint32_t>(R(0x258E9A0) + 8 * i) = U32(src, 0x48 + 0x10 * i);
+			MEM<uint32_t>(R(0x258E9A4) + 8 * i) = U32(src, 0x4C + 0x10 * i);
 		}
-		MEM<uint32_t>(0x258EA20) = U32(src, 0);
-		MEM<uint32_t>(0x258EA24) = U32(src, 4);
+		MEM<uint32_t>(R(0x258EA20)) = U32(src, 0);
+		MEM<uint32_t>(R(0x258EA24)) = U32(src, 4);
 		for (int i = 0; i < 16; i++)
 		{
-			MEM<uint32_t>(0x258E8A0 + 8 * i) = U32(src, 0x40 + 0x10 * i);
-			MEM<uint32_t>(0x258E8A4 + 8 * i) = U32(src, 0x44 + 0x10 * i);
+			MEM<uint32_t>(R(0x258E8A0) + 8 * i) = U32(src, 0x40 + 0x10 * i);
+			MEM<uint32_t>(R(0x258E8A4) + 8 * i) = U32(src, 0x44 + 0x10 * i);
 		}
-		MEM<uint32_t>(0x258E920) = U32(src, 8);
-		MEM<uint32_t>(0x258E924) = U32(src, 0xC);
+		MEM<uint32_t>(R(0x258E920)) = U32(src, 8);
+		MEM<uint32_t>(R(0x258E924)) = U32(src, 0xC);
 		return 0; // void
 	}
 
@@ -2001,7 +2022,7 @@ namespace act
 	uint32_t __cdecl s_73EEC0(uint32_t a1)
 	{
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
-		uint32_t g = MEM<uint32_t>(0x1533010);
+		uint32_t g = MEM<uint32_t>(G(G_1533010));
 		uint32_t p0 = U32(g, 8);
 		uint32_t p1 = U32(g, 0xC);
 		U32(a1, 0x1C) = p0;
@@ -2304,7 +2325,7 @@ namespace act
 		U16(a1, 0x62) = (uint16_t)((yaw - 0x800) & 0xFFF);
 		if (a_73B7E0(6))
 		{
-			uint32_t g = MEM<uint32_t>(0x1533010);
+			uint32_t g = MEM<uint32_t>(G(G_1533010));
 			uint32_t p0 = U32(g, 8);
 			uint32_t p1 = U32(g, 0xC);
 			U32(a1, 0x1C) = p0;
@@ -2449,7 +2470,7 @@ namespace act
 	{
 		uint32_t sys = a1 + 0x34;
 		uint32_t done = 0;
-		MEM<uint32_t>(0x258FB78) = sys;
+		MEM<uint32_t>(R(0x258FB78)) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2461,7 +2482,7 @@ namespace act
 			s_740840();
 			a_740700();
 			s_740500();
-			sys = MEM<uint32_t>(0x258FB78);
+			sys = MEM<uint32_t>(R(0x258FB78));
 			U16(sys, 0x18)++;
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20)++;
@@ -2474,8 +2495,8 @@ namespace act
 		}
 		uint16_t n0 = U16(sys, 0x14);
 		uint16_t n1 = U16(sys, 0x16);
-		MEM<uint16_t>(0x258FB40) = (uint16_t)(MEM<uint16_t>(0x258FB40) + n0);
-		MEM<uint16_t>(0x258EC50) = (uint16_t)(MEM<uint16_t>(0x258EC50) + n1);
+		MEM<uint16_t>(R(0x258FB40)) = (uint16_t)(MEM<uint16_t>(R(0x258FB40)) + n0);
+		MEM<uint16_t>(R(0x258EC50)) = (uint16_t)(MEM<uint16_t>(R(0x258EC50)) + n1);
 		return done;
 	}
 
@@ -2484,14 +2505,14 @@ namespace act
 	// +0x170 pointer, calls the original 0x740560(emitter, descriptor)
 	uint32_t __cdecl s_740500(void)
 	{
-		uint32_t e = U32(MEM<uint32_t>(0x258FB78), 0x2C);
+		uint32_t e = U32(MEM<uint32_t>(R(0x258FB78)), 0x2C);
 		if (e == 0)
 			return 0; // void
 		do
 		{
 			if (U16(e, 8) == 1)
 			{
-				uint32_t sys = MEM<uint32_t>(0x258FB78);
+				uint32_t sys = MEM<uint32_t>(R(0x258FB78));
 				int32_t k = S8(e, 0x1D6);
 				uint32_t desc = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(desc, 0x16);
@@ -2507,7 +2528,7 @@ namespace act
 	// [0x258FB78]+0x2C, next +4): type 0 -> s_741B10, type 1 -> a_740880
 	uint32_t __cdecl s_740840(void)
 	{
-		uint32_t e = U32(MEM<uint32_t>(0x258FB78), 0x2C);
+		uint32_t e = U32(MEM<uint32_t>(R(0x258FB78)), 0x2C);
 		if (e == 0)
 			return 0; // void
 		do
@@ -2547,7 +2568,7 @@ namespace act
 	// descriptor s8 +0x36 (s_741C10(emitter, descriptor, n)), remainder last
 	uint32_t __cdecl s_741B90(uint32_t a1)
 	{
-		uint32_t sys = MEM<uint32_t>(0x258FB78);
+		uint32_t sys = MEM<uint32_t>(R(0x258FB78));
 		uint32_t table = U32(sys, 0x224);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t desc = U32(table, k * 4);
@@ -2639,13 +2660,13 @@ namespace act
 		{
 			x::MAG_022_sub_8DD770(m);
 			x::MAG_022_sub_8DD8A0(m, 0x800);
-			x::scale3DMatrix(m, 0x258EC60);
-			int32_t tx = S16(0x258FB80, 0);
-			int32_t ty = sub32(S16(0x258FB82, 0), ty_bias);
-			uint32_t root = U32(0x1533010, 0);
+			x::scale3DMatrix(m, R(0x258EC60));
+			int32_t tx = S16(R(0x258FB80), 0);
+			int32_t ty = sub32(S16(R(0x258FB82), 0), ty_bias);
+			uint32_t root = MEM<uint32_t>(G(G_1533010));
 			S32(m, 0x14) = tx;
 			S32(m, 0x18) = ty;
-			int32_t tz = sub32(add32(S16(root, 0x0C), S16(0x258FB84, 0)), tz_bias);
+			int32_t tz = sub32(add32(S16(root, 0x0C), S16(R(0x258FB84), 0)), tz_bias);
 			S32(m, 0x1C) = tz;
 			x::GTE_SetRotMatrix_W(m);
 			x::GTE_SetTransVector_W(m);
@@ -2727,7 +2748,7 @@ namespace act
 		// 0x743CD0 / 0x7440C0 / 0x7444B0: node pos = Siren root pos (+8..+0xF), y = 0, z += dz; next state
 		inline void s4_anchor_to_root(uint32_t node, uint16_t dz)
 		{
-			uint32_t root = U32(0x1533010, 0);
+			uint32_t root = MEM<uint32_t>(G(G_1533010));
 			uint32_t d0 = U32(root, 8);
 			uint32_t d1 = U32(root, 0xC);
 			U32(node, 0x1C) = d0;
@@ -2774,9 +2795,9 @@ namespace act
 	// keys (+0x1E0..), then a_743100; uses 0x50 bytes of the module scratch stack [0x258FB68]
 	uint32_t __cdecl s_741C10(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(0x258FB68, 0) - 0x50;           // scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles
+		uint32_t sp = U32(R(0x258FB68), 0) - 0x50;           // scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x258FB68, 0) = sp;
+		U32(R(0x258FB68), 0) = sp;
 		// quirk 0x741C21: `movsx ax` - the high half of the pushed word is stale eax; s_7423F0
 		// only reads the low byte
 		uint32_t node = s_7423F0(a1, (uint16_t)kind);
@@ -2788,7 +2809,7 @@ namespace act
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x258FB78, 0);
+			uint32_t ctx = U32(R(0x258FB78), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2960,7 +2981,7 @@ namespace act
 			}
 		}
 		a_743100(node, desc);
-		U32(0x258FB68, 0) = U32(0x258FB68, 0) + 0x50;
+		U32(R(0x258FB68), 0) = U32(R(0x258FB68), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -2970,8 +2991,8 @@ namespace act
 	// a_742CA0(rec, 1); advances the cursor; returns the record (0 when none is free)
 	uint32_t __cdecl s_7423F0(uint32_t a1, uint32_t a2)
 	{
-		uint32_t pool = U32(0x258FB6C, 0);
-		int32_t cur = S16(0x258EDD0, 0);
+		uint32_t pool = U32(R(0x258FB6C), 0);
+		int32_t cur = S16(R(0x258EDD0), 0);
 		uint32_t rec = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2983,7 +3004,7 @@ namespace act
 				uint8_t kind = (uint8_t)a2;
 				U32(rec, 0x1BC) = a1;
 				uint8_t b6b = U8(a1, 0x6B);
-				uint32_t ctx = U32(0x258FB78, 0);
+				uint32_t ctx = U32(R(0x258FB78), 0);
 				U8(rec, 0x1D7) = 1;
 				U16(ctx, 0x16) = (uint16_t)(U16(ctx, 0x16) + 1);
 				U8(rec, 0x1D6) = kind;
@@ -3000,9 +3021,9 @@ namespace act
 		}
 		cur++;
 		if (cur < 0x49)
-			U16(0x258EDD0, 0) = (uint16_t)cur;
+			U16(R(0x258EDD0), 0) = (uint16_t)cur;
 		else
-			U16(0x258EDD0, 0) = 0;
+			U16(R(0x258EDD0), 0) = 0;
 		return rec;
 	}
 
@@ -3026,7 +3047,7 @@ namespace act
 	uint32_t __cdecl s_7432C0(uint32_t a1)
 	{
 		uint32_t ent = s4_entity_of(a1);
-		uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x7433C0, 0xE0, a1);
+		uint32_t node = Spawn(R(0x257FA90), 0x7433C0, 0xE0, a1);
 		uint32_t p = node + 0x6E;
 		for (int32_t n = 4; n != 0; n--)
 		{
@@ -3134,7 +3155,7 @@ namespace act
 		uint32_t ot = U32(0x1D8E04C, 0) + 0x44;
 		U16(hdr, 0x24) = 0;
 		U16(hdr, 0xB4) = depth;
-		U32(0x1D8E054, 0) = a_7435E0(hdr, ot, 2, cursor);
+		U32(0x1D8E054, 0) = callo(0x7435E0, hdr, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -3147,11 +3168,11 @@ namespace act
 		int32_t r = (int32_t)x::CrtRand();
 		int32_t pick = r % 3;
 		if (pick == 0)
-			U32(a1, 0x4C) = 0x15331D0;
+			U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_15331d0, 0x15331D0);
 		else if (pick == 1)
 		{
 			uint8_t st = U8(a1, 0x29);
-			U32(a1, 0x4C) = 0x1533328;
+			U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533328, 0x1533328);
 			U16(a1, 0x52) = 0xA;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 			return 0; // void
@@ -3159,7 +3180,7 @@ namespace act
 		else if (pick == 2)
 		{
 			uint8_t st = U8(a1, 0x29);
-			U32(a1, 0x4C) = 0x15334A0;
+			U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_15334a0, 0x15334A0);
 			U16(a1, 0x52) = 0xA;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 			return 0; // void
@@ -3193,7 +3214,7 @@ namespace act
 	{
 		if ((U8(a1, 0x24) & 1) != 0)
 		{
-			uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x743DD0, 0xE0, a1);
+			uint32_t node = Spawn(R(0x257FA90), 0x743DD0, 0xE0, a1);
 			s4_fill_orbit_keys(node);
 		}
 		if (a_73B7E0(2) != 0)
@@ -3212,14 +3233,14 @@ namespace act
 	{
 		uint32_t tab[3] = { 0x743FD0, 0x744010, 0x744040 };
 		callp(tab[S8(a1, 0x29)], a1);
-		return s4_orbit_sprites_task(a1, 0x258E9A0, 0x80, 0x744010 >> 16);
+		return s4_orbit_sprites_task(a1, R(0x258E9A0), 0x80, 0x744010 >> 16);
 	}
 
 	// 0x743FD0 (module Siren, sub_743FD0): state: sprite sequence 0x1533024, depth -0x30, random
 	// start frame 0..7, 15 frames; hidden (+0x26 |= 4) when a_73B7E0(2); next state
 	uint32_t __cdecl s_743FD0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x1533024;
+		U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		U16(a1, 0x56) = 0xFFD0;
 		uint32_t r = x::CrtRand() & 7;
 		U16(a1, 0x50) = (uint16_t)r;
@@ -3265,7 +3286,7 @@ namespace act
 		// (the loop counter lives in the pushed-ecx slot [esp+0x10])
 		for (int32_t n = 5; n != 0; n--)
 		{
-			uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x7441D0, 0xE0, a1);
+			uint32_t node = Spawn(R(0x257FA90), 0x7441D0, 0xE0, a1);
 			s4_fill_orbit_keys(node);
 		}
 		if (a_73B7E0(2) != 0)
@@ -3285,14 +3306,14 @@ namespace act
 	{
 		uint32_t tab[3] = { 0x7443C0, 0x744400, 0x744430 };
 		callp(tab[S8(a1, 0x29)], a1);
-		return s4_orbit_sprites_task(a1, 0x258E8A0, 0, 0x744400 >> 16);
+		return s4_orbit_sprites_task(a1, R(0x258E8A0), 0, 0x744400 >> 16);
 	}
 
 	// 0x7443C0 (module Siren, sub_7443C0): state: sprite 0x1533024, random frame 0..7, depth
 	// -0x40, 15 frames; hidden when a_73B7E0(2); next state
 	uint32_t __cdecl s_7443C0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x1533024;
+		U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		uint32_t r = x::CrtRand() & 7;
 		U16(a1, 0x50) = (uint16_t)r;
 		U16(a1, 0x56) = 0xFFC0;
@@ -3338,7 +3359,7 @@ namespace act
 	{
 		for (int32_t k = 3; k != 0; k--)
 		{
-			uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x744570, 0xE0, a1);
+			uint32_t node = Spawn(R(0x257FA90), 0x744570, 0xE0, a1);
 			uint32_t pk = node + 0xD4;
 			for (int32_t n = 4; n != 0; n--)
 			{
@@ -3375,9 +3396,9 @@ namespace act
 			// stack vector [esp+0x14]; its 4th word is the high half of state entry 1 (0x744770)
 			int16_t v[4];
 			v[3] = (int16_t)(0x744770 >> 16);
-			v[0] = (int16_t)s4_key_lerp(0x258BAA0, k8, 0, t);
-			v[1] = (int16_t)s4_key_lerp(0x258BAA0, k8, 2, t);
-			v[2] = (int16_t)s4_key_lerp(0x258BAA0, k8, 4, t);
+			v[0] = (int16_t)s4_key_lerp(R(0x258BAA0), k8, 0, t);
+			v[1] = (int16_t)s4_key_lerp(R(0x258BAA0), k8, 2, t);
+			v[2] = (int16_t)s4_key_lerp(R(0x258BAA0), k8, 4, t);
 			x::GTE_LoadV0(P(v));
 			x::GTE_MVMVA_RotV0_Tr_2();
 			x::GTE_StoreIR123(out);
@@ -3406,7 +3427,7 @@ namespace act
 	// 15 frames; hidden when a_73B7E0(3); next state
 	uint32_t __cdecl s_744730(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x1533024;
+		U32(a1, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		U16(a1, 0x56) = 0xFFF0;
 		uint32_t r = x::CrtRand() & 7;
 		U16(a1, 0x50) = (uint16_t)r;
@@ -3442,7 +3463,7 @@ namespace act
 			U8(a1, 0x26) |= 1;
 			return 0; // void
 		}
-		if (S16(ent, 0x20) > S16(0x258FB64, 0))
+		if (S16(ent, 0x20) > S16(R(0x258FB64), 0))
 			return 0; // void
 		if ((U8(ent, 8) & 2) == 0)
 		{
@@ -3471,7 +3492,7 @@ namespace act
 		if ((U8(a1, 0x24) & 1) != 0)
 		{
 			uint32_t ent = s4_entity_of(a1);
-			uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x744AA0, 0xE0, a1);
+			uint32_t node = Spawn(R(0x257FA90), 0x744AA0, 0xE0, a1);
 			uint32_t p = node + 0x6E;
 			for (int32_t n = 4; n != 0; n--)
 			{
@@ -3492,7 +3513,7 @@ namespace act
 		}
 		{
 			uint32_t ent = s4_entity_of(a1);
-			uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x257FA90, 0x744C30, 0xE0, a1);
+			uint32_t node = Spawn(R(0x257FA90), 0x744C30, 0xE0, a1);
 			uint32_t p = node + 0x6E;
 			for (int32_t n = 4; n != 0; n--)
 			{
@@ -3588,7 +3609,7 @@ namespace act
 	uint32_t __cdecl s_744BA0(uint32_t a1)
 	{
 		uint32_t node = a1;
-		U32(node, 0x4C) = 0x1533024;
+		U32(node, 0x4C) = fxp::sequence(siren::PS().seqs.at_1533024, 0x1533024);
 		U16(node, 0x56) = 0xFFE0;
 		U16(node, 0x52) = 0xF;
 		if (a_73B7E0(3) != 0)
@@ -3695,7 +3716,7 @@ namespace act
 		uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(s, 0x24) = 0;
 		U16(s, 0xB4) = w56;
-		uint32_t r = a_7435E0(s, ot, 2, cursor);
+		uint32_t r = callo(0x7435E0, s, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		MEM<uint32_t>(0x1D8E054) = r;
 		x::Field_Free(0xE8);
 		return 0;  // void
@@ -3706,7 +3727,7 @@ namespace act
 	uint32_t __cdecl s_744E80(uint32_t a1)
 	{
 		uint32_t node = a1;
-		U32(node, 0x4C) = 0x15335CC;
+		U32(node, 0x4C) = fxp::sequence(siren::PS().seqs.at_15335cc, 0x15335CC);
 		U16(node, 0x56) = 0xFFE0;
 		U16(node, 0x52) = 8;
 		if (a_73B7E0(3) != 0)
@@ -3768,7 +3789,7 @@ namespace act
 	// the node's +0x1C/+0x20; next state
 	uint32_t __cdecl s_744FF0(uint32_t a1)
 	{
-		uint32_t obj = MEM<uint32_t>(0x1533010);
+		uint32_t obj = MEM<uint32_t>(G(G_1533010));
 		uint32_t xy = U32(obj, 8);
 		uint32_t z = U32(obj, 0xC);
 		U32(a1, 0x1C) = xy;
@@ -3818,7 +3839,7 @@ namespace act
 			if (S16(entry, 8) == 0)
 				asset = 0x16A40EC;
 			else
-				asset = U32(MEM<uint32_t>(0x258EAA0), 0x108);
+				asset = U32(MEM<uint32_t>(R(0x258EAA0)), 0x108);
 			uint32_t t = a_73C100(node, 0x745180, asset, 0, 0xA, 3);
 			if (t != 0)
 			{
@@ -3870,7 +3891,7 @@ namespace act
 	uint32_t __cdecl s_7452B0(uint32_t a1)
 	{
 		uint32_t node = a1;
-		uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2585EF0, 0x7452F0, 0x64, node);
+		uint32_t t = Spawn(R(0x2585EF0), 0x7452F0, 0x64, node);
 		uint16_t idx = U16(node, 0x60);
 		U16(t, 0x60) = idx;
 		U16(node, 0x60) = (uint16_t)(idx + 1);
@@ -3956,7 +3977,7 @@ namespace act
 	// +0x5E = 16..31; next state (9 rand calls)
 	uint32_t __cdecl s_745490(uint32_t a1)
 	{
-		uint32_t tab = MEM<uint32_t>(0x258EAA0);
+		uint32_t tab = MEM<uint32_t>(R(0x258EAA0));
 		uint32_t node = a1;
 		U32(node, 0x4C) = U32(tab, 0x144);
 		U16(node, 0x52) = 0xFE00;
@@ -4101,7 +4122,7 @@ namespace act
 		if ((ph & 3) == 0)
 		{
 			uint32_t ent = 0x1D972C0 + (uint32_t)slot * 39 * 4;
-			uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2585EF0, 0x745840, 0x64, node);
+			uint32_t t = Spawn(R(0x2585EF0), 0x745840, 0x64, node);
 			uint16_t lo = U16(ent, 0x34);
 			uint32_t r = x::CrtRand();
 			int32_t v = mul32((int32_t)(r & 0xFFF), sub32(S16(ent, 0x3A), (int16_t)lo)) / 4096;
@@ -4148,7 +4169,7 @@ namespace act
 	// +0x50 = 0x1000, spin speed +0x5E = 16..31; next state
 	uint32_t __cdecl s_7459D0(uint32_t a1)
 	{
-		uint32_t tab = MEM<uint32_t>(0x258EAA0);
+		uint32_t tab = MEM<uint32_t>(R(0x258EAA0));
 		uint32_t node = a1;
 		U32(node, 0x4C) = U32(tab, 0x148);
 		U32(node, 0x38) = 0x100;
@@ -4219,7 +4240,7 @@ namespace act
 			k = add32(k, mul32(k, 8));                   // lea ecx,[ecx+ecx*8]
 			k = shl32(k, 1);
 			k = sub32(k, idx);                           // 53 * idx
-			return (uint32_t)add32(mul32(k, 4), 0x2585ae8);
+			return (uint32_t)add32(mul32(k, 4), R(0x2585AE8));
 		}
 
 		// GPU texture-window command (0xE2) from the surface block at +o:
@@ -4262,7 +4283,7 @@ namespace act
 	// advance (index 2 can advance twice in one tick at frame >= 105).
 	uint32_t __cdecl s_745B40(uint32_t a1)
 	{
-		uint32_t script = MEM<uint32_t>(0x1533010);
+		uint32_t script = MEM<uint32_t>(G(G_1533010));
 		uint16_t z = U16(script, 4);
 		uint32_t node = a1;
 		U16(node, 0x1c) = 0x80;
@@ -4411,7 +4432,7 @@ namespace act
 		U8(b, 0x44) = 0;
 
 		// base vertex grid, 11 rows x 4 columns of SVECTOR (x, 0, z; pad word not written)
-		uint32_t v = 0x258ee38;
+		uint32_t v = R(0x258EE38);
 		int32_t width = 0xc0;   // [esp+0x20] (argument slot reused)
 		for (int32_t row = 0; row < 0xb; row++)
 		{
@@ -4563,10 +4584,10 @@ namespace act
 		}
 		uint16_t cx = U16(edi, 0xce);
 		uint16_t dx = U16(edi, 0xd0);
-		uint32_t src = 0x258ee38;   // ebp
+		uint32_t src = R(0x258EE38);   // ebp
 		U32(F0, 0x6c) = 0;          // x amplitude (argument slot reused)
 		U32(F0, 0x18) = 0;          // y amplitude
-		uint32_t dst = 0x258ec70;   // esi
+		uint32_t dst = R(0x258EC70);   // esi
 		// UNINIT 0x7460E9/0x7460EE: only the low words of [esp+0x1C]/[esp+0x20] are written; the high
 		// halves are never observed (movsx reads, and the 32-bit updates are masked with 0xFFF)
 		U16(F0, 0x1c) = cx;
@@ -4620,7 +4641,7 @@ namespace act
 		// per-vertex colours ((rows+1) x 4 dwords) at 0x2585E3C
 		{
 			int32_t n = S16(edi, 0xcc);
-			uint32_t out = 0x2585e3c;
+			uint32_t out = R(0x2585E3C);
 			for (int32_t r = 0; r < n + 1; r++)
 			{
 				for (int32_t c = 0; c < 4; c++)
@@ -4656,8 +4677,8 @@ namespace act
 		}
 
 		// DRAW: rows x 3 POLY_GT4 (+ 2 texture-window packets each)
-		U32(F0, 0x6c) = 0x258ec70;
-		uint32_t colp = 0x2585e3c;   // ebp
+		U32(F0, 0x6c) = R(0x258EC70);
+		uint32_t colp = R(0x2585E3C);   // ebp
 		x::GTE_SetTransVector(0x1d97778);
 		x::GTE_SetRotMatrix(0x1d97778);
 		U32(F0, 0x10) = 0;
@@ -4760,7 +4781,7 @@ namespace act
 		uint8_t par = (uint8_t)(U8(node, 0xde) + U8(node, 0x24));
 		if ((par & 1) == 0 && S16(edi, 0xcc) >= 4 && U8(edi, 0x4c) >= 0x40)
 		{
-			uint32_t task = x::Effect_AddTaskAndInitFromCtx(0x257fa90, 0x7466a0, 0xe0, node);
+			uint32_t task = Spawn(R(0x257FA90), 0x7466a0, 0xe0, node);
 			uint32_t pt = task + 0x6e;
 			U32(F0, 0x68) = 4;    // argument slot reused as loop counter
 			do
@@ -4776,7 +4797,7 @@ namespace act
 				else
 					row = rowr / 2;
 				int32_t idx = add32(col, mul32(row, 4));
-				uint32_t vp = (uint32_t)add32(mul32(idx, 8), 0x258ec70);
+				uint32_t vp = (uint32_t)add32(mul32(idx, 8), R(0x258EC70));
 				uint32_t q0 = U32(vp, 0);
 				uint32_t q1 = U32(vp, 4);
 				U32(F0, 0x2c) = q0;   // OT-base slot reused for the picked vertex
@@ -4829,11 +4850,11 @@ namespace act
 			uint32_t p1 = U32(node, i * 8 + 0x70);
 			U32(node, 0x20) = p1;
 			if (i == 0)
-				U32(node, 0x4c) = 0x15334a0;
+				U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_15334a0, 0x15334A0);
 			else if (i == 1)
-				U32(node, 0x4c) = 0x1533328;
+				U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_1533328, 0x1533328);
 			else
-				U32(node, 0x4c) = 0x15331d0;
+				U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_15331d0, 0x15331D0);
 			if (a_73B7E0(5) != 0)
 				s_7434C0(node);
 			else
@@ -5021,7 +5042,7 @@ namespace act
 		if ((U8(node, 0x26) & 4) == 0)
 		{
 			uint32_t cur = MEM<uint32_t>(0x1d8e054);
-			MEM<uint32_t>(0x1d8e054) = a_746C10(node, 0x258bfb0, cur);   // DRAW
+			MEM<uint32_t>(0x1d8e054) = a_746C10(node, R(0x258BFB0), cur);   // DRAW
 		}
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		if ((U8(node, 0x26) & 1) != 0 && U8(node, 0x28) == 0)
@@ -5074,10 +5095,10 @@ namespace act
 	// No animation advance while waiting (the pose is held).
 	uint32_t __cdecl s_746E80(uint32_t a1)
 	{
-		uint32_t script = MEM<uint32_t>(0x1533010);
+		uint32_t script = MEM<uint32_t>(G(G_1533010));
 		if (S16(script, 0x46) < 0x12)
 			return 0; // void
-		x::BdPlaySE(0x153301c, 1, 0x80);
+		x::BdPlaySE(fxp::sound(siren::PS().sounds.song, siren::SOUND_D), 1, 0x80);
 		x::BdPlaySummonStream(0x80, 1, 0x7f);
 		uint32_t node = a1;
 		x::au_re_Battle_ReadAnimation_7(node, 1);
@@ -5122,7 +5143,7 @@ namespace act
 			int32_t sel = (int32_t)r % 0xc;
 			r = x::CrtRand();
 			uint32_t ang = r & 0xfff;
-			uint32_t task = x::Effect_AddTaskAndInitFromCtx(0x257fa90, 0x746fd0, 0xe0, a1);
+			uint32_t task = Spawn(R(0x257FA90), 0x746fd0, 0xe0, a1);
 			int32_t tabv = S16((uint32_t)add32(mul32((int16_t)sel, 2), 0x1533df0), 0);
 			x::GetEffectSpawnPosition(a1 + 0x30, (uint32_t)tabv, (uint32_t)(int32_t)(int16_t)ang, ofs + task + 0x6c);
 			r = x::CrtRand();
@@ -5193,7 +5214,7 @@ namespace act
 			int32_t sel = (int32_t)r % 4;
 			r = x::CrtRand();
 			uint32_t ang = r & 0xfff;
-			uint32_t task = x::Effect_AddTaskAndInitFromCtx(0x257fa90, 0x747220, 0xe0, a1);
+			uint32_t task = Spawn(R(0x257FA90), 0x747220, 0xe0, a1);
 			int32_t tabv = S16((uint32_t)add32(mul32((int16_t)sel, 2), 0x1533e08), 0);
 			x::GetEffectSpawnPosition(a1 + 0x30, (uint32_t)tabv, (uint32_t)(int32_t)(int16_t)ang, ofs + task + 0x6c);
 			r = x::CrtRand();
@@ -5250,7 +5271,7 @@ namespace act
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = 0x15334a0;
+		U32(node, 0x4c) = fxp::sequence(siren::PS().seqs.at_15334a0, 0x15334A0);
 		st++;
 		U16(node, 0x56) = 0xfff0;
 		U16(node, 0x52) = 0xa;
@@ -5291,6 +5312,28 @@ namespace act
 
 namespace siren
 {
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The load script and the director's cuts: the wave, the notes and sparkles, Siren with her harp and particle actors, the water surfaces and orbit sprites, the target sparks and particle systems, the camera script; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "Cut 1 (the wave), cut 3 (Siren), cut 6 (the target sparks), her song" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.wave", "Wave", "", (uint32_t)offsetof(SirenParams, sounds.wave), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.arrive", "Arrive", "", (uint32_t)offsetof(SirenParams, sounds.arrive), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.sparks", "Sparks", "", (uint32_t)offsetof(SirenParams, sounds.sparks), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.song", "Song", "", (uint32_t)offsetof(SirenParams, sounds.song), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15331d0", "Flipbook 15331D0", "The sprite sequence at 0x15331D0 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_15331d0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1533328", "Flipbook 1533328", "The sprite sequence at 0x1533328 (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_1533328), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15334a0", "Flipbook 15334A0", "The sprite sequence at 0x15334A0 (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_15334a0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_1533024", "Flipbook 1533024", "The sprite sequence at 0x1533024 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_1533024), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.at_15335cc", "Flipbook 15335CC", "The sprite sequence at 0x15335CC (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(SirenParams, seqs.at_15335cc), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort PORTS[] = {
 		{ 0x73A0F0, (void *)s_73A0F0, "095 MAG_095_sub_73A0F0" },
@@ -5471,12 +5514,17 @@ namespace siren
 }
 	void register_mag095_siren()
 	{
+		fxp::register_params({ 95, "Siren", &act::siren::live, &act::siren::GAME, sizeof(act::siren::SirenParams),
+		                       act::siren::table::PARTS, (int)(sizeof(act::siren::table::PARTS) / sizeof(act::siren::table::PARTS[0])),
+		                       act::siren::table::FIELDS, (int)(sizeof(act::siren::table::FIELDS) / sizeof(act::siren::table::FIELDS[0])),
+		                       act::siren::table::GROUPS, (int)(sizeof(act::siren::table::GROUPS) / sizeof(act::siren::table::GROUPS[0])) });
 		act::register_module(95);
 		for (const act::siren::ModPort *p = act::siren::PORTS; p->addr; p++)
 			act::register_module_port(95, p->addr, p->port, p->name);
 		// 30 fps layer: see mag095_siren_held.inc
 		FX_HELD(register_mag095_held();)
 	}
+	FX_LAB_MODULE(register_mag095_siren);
 }
 
 #ifdef FF8_FX_HELD

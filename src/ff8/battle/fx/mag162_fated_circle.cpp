@@ -70,6 +70,9 @@
 // 0x23CE61C (cleared by the setup, never read), swirl flag 0x23D0D80, texture base 0x23D0D84, packet cursor 0x23D0D88).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -80,14 +83,15 @@ namespace circle162
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23D0798); }
-	inline CastContext *&Context() { return var<CastContext *>(0x23D0250); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23D0D84); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23D0D88); }
-	inline int32_t &Length() { return var<int32_t>(0x23D0D74); }
-	inline int32_t &SwirlFlag() { return var<int32_t>(0x23D0D80); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x23CE640; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23CF430; }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x23D0798)); }
+	inline CastContext *&Context() { return var<CastContext *>(own::R(0x23D0250)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23D0D84)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23D0D88)); }
+	inline int32_t &Length() { return var<int32_t>(own::R(0x23D0D74)); }
+	inline int32_t &SwirlFlag() { return var<int32_t>(own::R(0x23D0D80)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23D0CE0)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x23CE640); }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x23CF430); }
 	static const uint32_t POOL_A = 0x23CE650, POOL_A_END = 0x23CEA10;  // 40 x 0x18
 	static const uint32_t POOL_B = 0x23CEA40, POOL_B_END = 0x23CF1C0;  // 80 x 0x18
 	static const uint32_t BIND_OUT = 0x23CEA20;
@@ -107,6 +111,25 @@ namespace circle162
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xDA0100;
 	static const void *const SOUND_A = (const void *)0xDA8C68, *const SOUND_B = (const void *)0xDA8C6C;
+	static const uint32_t ORIG_FileLoader = 0x5F90D0, ORIG_Setup = 0x5F90F0;
+	static const uint32_t TEXTURE_NAME = 0xDA8D18, CAMERA = 0xDA1788;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FatedCircleParams
+	{
+		struct { uint32_t start, circle; } sounds; // at the director's ticks 1 and 0x39
+		struct { int16_t damage; } director;      // the action results at this tick
+		struct { uint32_t dust, orbit, ember, spark, swirl; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t swipe, shock, glow, shard, burst, rain, shell, circle; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t circle_to; } morphs; // the circle's morph (data): the vertices it blends to (from the circle model's own)
+		struct { uint32_t pillar_offx, pillar_offz; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const FatedCircleParams GAME = { { 0xDA8C68, 0xDA8C6C }, { 0x96 }, { 0xDA1D74, 0xDA1F20, 0xDA19B4, 0xDA219C, 0xDA1B60 }, { 0xDA6700, 0xDA4488, 0xDA3A58, 0xDA3E48, 0xDA4118, 0xDA4308, 0xDA7198, 0xDA2348 }, { TEXTURE_NAME, CAMERA, ANIM_DATA }, { 0xDA3770 }, { 0xDA8C94, 0xDA8CB4 } };
+	static FatedCircleParams live = GAME;
+	static const FatedCircleParams &P() { return live; }
 	static const uint32_t MODEL_SWIPE = 0xDA6700, MODEL_SHOCK = 0xDA4488, MODEL_GLOW = 0xDA3A58, MODEL_SHARD = 0xDA3E48,
 		MODEL_BURST = 0xDA4118, MODEL_RAIN = 0xDA4308, MODEL_SHELL = 0xDA7198, MODEL_CIRCLE = 0xDA2348;
 	static const uint32_t SEQ_DUST = 0xDA1D74, SEQ_ORBIT = 0xDA1F20, SEQ_EMBER = 0xDA19B4, SEQ_SPARK = 0xDA219C, SEQ_SWIRL = 0xDA1B60;
@@ -246,7 +269,7 @@ namespace circle162
 	static_assert(sizeof(RingEntry) == 0x14 && sizeof(TrailWork) == 0x40 && sizeof(MeshHeader) == 0xCC, "Fated Circle records");
 
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
+	inline Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), own::Fn(fn)); }   // (a copy: the port's thunk)
 
 	// first free entry (flags 0) of a pool, or -1 (none / index >= max)
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, int32_t max)
@@ -311,7 +334,7 @@ namespace circle162
 	// 0x5FD030: per-vertex steps from one vertex list to another (x, y, z each / steps) into 0x23D0258
 	static void MorphDeltas(const int16_t *from, const int16_t *to, int32_t n, int32_t steps)
 	{
-		int16_t *d = (int16_t *)MORPH_DELTA;
+		int16_t *d = (int16_t *)own::R(MORPH_DELTA);
 		for (; n > 0; n--, from += 4, to += 4, d += 4)
 		{
 			d[0] = (int16_t)(((int32_t)to[0] - from[0]) / steps);
@@ -325,6 +348,35 @@ namespace circle162
 	// ------------------------------------------------------------------
 	// Director (0x5F91D0)
 	// ------------------------------------------------------------------
+	// File loader (0x5F90D0) and setup (0x5F90F0, not a task): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer, the cast, its first target and its caster, the master and the director, the
+	// trail length, two unused words cleared, pools B / A freed, the camera, the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Context() = ctx;
+		var<int32_t>(own::R(0x23CE608)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x23CE620), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Master)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(0x23CF440), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		Length() = 170;
+		var<int32_t>(own::R(0x23D0D7C)) = 0;
+		var<int32_t>(own::R(0x23CE61C)) = 0;
+		for (uint32_t a = own::R(POOL_B); a < own::R(SPL_A); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(POOL_A); a < own::R(PRIM_OFFSET); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QMaster();
+	}
+
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		g_slot28_known = false;
@@ -336,13 +388,13 @@ namespace circle162
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 1)
 		{
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 		}
 		if (n->c == 2)
 		{
 			AddMain(ORIG_Trail)->c = 0;
-			for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
+			for (uint32_t a = own::R(RING); a < own::R(RING_END); a += 0x14) var<int32_t>(a) = 0;
 		}
 		if (n->c == 6)
 		{
@@ -372,8 +424,8 @@ namespace circle162
 		{
 			// 444 along the base direction from the base point (its 4th word kept)
 			int16_t q[4];
-			memcpy(q, (const void *)BASE_POS, 8);
-			const int32_t *d = (const int32_t *)BASE_DIR;
+			memcpy(q, (const void *)own::R(BASE_POS), 8);
+			const int32_t *d = (const int32_t *)own::R(BASE_DIR);
 			q[0] = (int16_t)((mul32(d[0], 444) >> 12) + q[0]);
 			q[1] = (int16_t)(q[1] + (int16_t)(mul32(d[1], 444) >> 12));
 			q[2] = (int16_t)(q[2] + (int16_t)(mul32(d[2], 444) >> 12));
@@ -450,7 +502,7 @@ namespace circle162
 		{
 			if (BattleFileLoadStatus() < 0) return 0;   // waits for the file (the counter does not move)
 			QueueTIMUpload(TexBase() + 0x10000);
-			((RootNode *)AddTaskToQueue(QMaster(), ORIG_Restore))->counter = 0;
+			((RootNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Restore)))->counter = 0;
 		}
 		if (n->c == 0x6F)
 		{
@@ -461,7 +513,7 @@ namespace circle162
 			t->c = 0;
 			t->w1E = 0x380;
 			t->w1C = 0x380;
-			MorphDeltas((const int16_t *)CIRCLE_FROM, (const int16_t *)CIRCLE_TO, 0x5D, 0x18);
+			MorphDeltas((const int16_t *)(fxp::model(P().models.circle, MODEL_CIRCLE) + 8), (const int16_t *)fxp::data(P().morphs.circle_to, CIRCLE_TO, 744), 0x5D, 0x18);
 			SwirlFlag() = 0;
 			for (int32_t i = 0; i < 8; i++)
 			{
@@ -508,10 +560,10 @@ namespace circle162
 				t->w1C = (int16_t)(mul32(*(const int16_t *)(Entity(slot) + 0x26), 2200) >> 12);
 			}
 		}
-		if (n->c == 0x96) ApplyActionResultToTargets(Context()->actions->targets, Context()->actions->target_count);
+		if (n->c == P().director.damage) ApplyActionResultToTargets(Context()->actions->targets, Context()->actions->target_count);
 		if (n->c >= 0xA2 && n->c > 4) SetScreenFlash((uint32_t)shl32(0xAA - n->c, 8), 0);
-		if (n->c == 1) BdPlaySE(SOUND_A, 0x8000, 0x80);
-		if (n->c == 0x39) BdPlaySE(SOUND_B, 0x8000, 0x80);
+		if (n->c == 1) BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_A), 0x8000, 0x80);
+		if (n->c == 0x39) BdPlaySE((const void *)fxp::sound(P().sounds.circle, (uint32_t)SOUND_B), 0x8000, 0x80);
 		n->c++;
 		if (n->c <= 0xAA) return 0;
 		SetScreenFlash(0, 0);
@@ -560,19 +612,19 @@ namespace circle162
 
 	static void TrailHitPoint(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(HIT_POS) = *(const uint32_t *)sb;
-		var<uint32_t>(HIT_POS + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)HIT_DIR;
+		var<uint32_t>(own::R(HIT_POS)) = *(const uint32_t *)sb;
+		var<uint32_t>(own::R(HIT_POS) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)own::R(HIT_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE_POS) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE_POS + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BASE_DIR;
-		b[0] = (int32_t)var<int16_t>(HIT_POS) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(HIT_POS + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(HIT_POS + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(own::R(BASE_POS)) = *(const uint32_t *)sa;
+		var<uint32_t>(own::R(BASE_POS) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)own::R(BASE_DIR);
+		b[0] = (int32_t)var<int16_t>(own::R(HIT_POS)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(own::R(HIT_POS) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(own::R(HIT_POS) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -633,23 +685,23 @@ namespace circle162
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(own::R(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c >= Length() - 7 ? Length() - c : 7;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)own::R(RING), idx, want, (uint8_t *)own::R(PTS_A), (uint8_t *)own::R(PTS_B));
 		g_slot28 = 1; // the last write of the original to [entry esp - 0x28]: its weapon-bone call's bone argument
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_A, (const uint8_t *)SPL_B);
+			TrailSplines(cnt, (const uint8_t *)own::R(PTS_A), (const uint8_t *)own::R(PTS_B), (uint8_t *)own::R(SPL_A), (uint8_t *)own::R(SPL_B));
+			TrailHitPoint((const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B));
 			// 30 fps layer: see mag162_fated_circle_held.inc
 			FX_HELD(held_note_trail(n);)
 			// (then: the argument of the last quad's GTE_ReadFLAG call when it was clipped, of its GTE_LoadV0 call when drawn)
-			g_slot28 = TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w) ? (uint32_t)&w->flag : (uint32_t)TRAIL_LAST_QUAD_V3;
+			g_slot28 = TrailDraw((const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B), w) ? (uint32_t)&w->flag : (uint32_t)own::R(TRAIL_LAST_QUAD_V3);
 		}
 		g_slot28_known = true;
 		FieldFree(0x40);
@@ -688,7 +740,7 @@ namespace circle162
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SWIPE;
+		*(uint32_t *)h = fxp::model(P().models.swipe, MODEL_SWIPE);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 3)
 		{
@@ -740,7 +792,7 @@ namespace circle162
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHOCK;
+		*(uint32_t *)h = fxp::model(P().models.shock, MODEL_SHOCK);
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c >= 4)
 		{
@@ -777,7 +829,7 @@ namespace circle162
 	{
 		TransformCameraByShadowRotation(&n->w10, s, -0x100);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_GLOW;
+		*(uint32_t *)h = fxp::model(P().models.glow, MODEL_GLOW);
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (c >= 0x1C)
 		{
@@ -824,10 +876,10 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Dust, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_DUST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_DUST);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -851,9 +903,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 0xA; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(own::R(POOL_B), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x500 + 0x900);
@@ -927,7 +979,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Shard, n);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -937,7 +989,7 @@ namespace circle162
 		w.ref[0] = 0;
 		w.ref[1] = -0x1000;
 		w.ref[2] = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 2)) continue;
@@ -961,9 +1013,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(own::R(POOL_B), i);
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
@@ -1017,9 +1069,9 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Orbit, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_ORBIT;
+		*(uint32_t *)h = fxp::sequence(P().seqs.orbit, SEQ_ORBIT);
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -1040,9 +1092,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 6; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x28);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x28);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_A, i);
+				Part *p = PartAt(own::R(POOL_A), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x180);
@@ -1059,7 +1111,7 @@ namespace circle162
 		}
 		n->c++;
 		if (n->c < 0x17) return 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 			if (*(const uint8_t *)a & 1) *(uint32_t *)a = 0;
 		return TASK_END;
 	}
@@ -1119,7 +1171,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Burst, n);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_BURST;
+		*(uint32_t *)h = fxp::model(P().models.burst, MODEL_BURST);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1129,7 +1181,7 @@ namespace circle162
 		w.ref[0] = 0;
 		w.ref[1] = -0x1000;
 		w.ref[2] = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 4)) continue;
@@ -1151,9 +1203,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 0xA; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(own::R(POOL_B), i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
@@ -1228,7 +1280,7 @@ namespace circle162
 		FX_HELD(held_note_pool(ORIG_Rain, n);)
 		uint8_t *h = AllocHeader(0x58);
 		RainWork w;
-		*(uint32_t *)h = MODEL_RAIN;
+		*(uint32_t *)h = fxp::model(P().models.rain, MODEL_RAIN);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1240,7 +1292,7 @@ namespace circle162
 		w.ref[1] = 0;
 		w.ref[2] = 0;
 		RainLook(&w);
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 8)) continue;
@@ -1271,9 +1323,9 @@ namespace circle162
 			MatVec((const Mat4x3 *)(Caster() + 0x40), u, u);
 			for (int32_t j = 0; j < 8; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(own::R(POOL_B), i);
 				p->flags = 8;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1400 + 0x800);
@@ -1307,10 +1359,10 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Ember, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_EMBER;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ember, SEQ_EMBER);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -1336,9 +1388,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 2; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x28);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x28);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_A, i);
+				Part *p = PartAt(own::R(POOL_A), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1000 + 0x900);
@@ -1370,10 +1422,10 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Spark, n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -1394,9 +1446,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 5; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(own::R(POOL_B), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xE00 + 0x800);
@@ -1451,9 +1503,9 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_swirl(n, residue);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_SWIRL;
+		*(uint32_t *)h = fxp::sequence(P().seqs.swirl, SEQ_SWIRL);
 		*(int16_t *)(h + 0x24) = 8;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 2)) continue;
@@ -1469,9 +1521,9 @@ namespace circle162
 			const int32_t k = n->c / 7 + 2;
 			for (int32_t j = 0; j < k; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(own::R(POOL_B), i);
 				p->flags = 2;
 				p->life = 0x13;
 				p->scale = (int16_t)(CrtRand() % 0x1400 + 0x900);
@@ -1542,7 +1594,7 @@ namespace circle162
 	{
 		ShellMatrix(n, n->w18, 0x1F4, s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHELL;
+		*(uint32_t *)h = fxp::model(P().models.shell, MODEL_SHELL);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1570,7 +1622,7 @@ namespace circle162
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Shell, n);)
 		const int32_t c = n->c;
-		ShellDraw(n, n->w1C, c, ShellFade(c), mul32(c - 8, 56), (int16_t *)MORPH_VTX);
+		ShellDraw(n, n->w1C, c, ShellFade(c), mul32(c - 8, 56), (int16_t *)own::R(MORPH_VTX));
 		g_slot28 = (uint32_t)(int32_t)n->w1C; // its scale vector's third word ([entry esp - 0x28])
 		g_slot28_known = true;
 		if (DrawOnly()) return 0;
@@ -1587,7 +1639,7 @@ namespace circle162
 	{
 		ShellMatrix(n, n->w18, 0x29, s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHELL;
+		*(uint32_t *)h = fxp::model(P().models.shell, MODEL_SHELL);
 		*(uint32_t *)(h + 4) = SHELL_TO;
 		h[0xA] = 0;
 		h[9] = 0;
@@ -1755,7 +1807,7 @@ namespace circle162
 	// ------------------------------------------------------------------
 	static void CircleMorph(int16_t *dst, int32_t k)
 	{
-		const int16_t *d = (const int16_t *)MORPH_DELTA, *from = (const int16_t *)CIRCLE_FROM;
+		const int16_t *d = (const int16_t *)own::R(MORPH_DELTA), *from = (const int16_t *)(fxp::model(P().models.circle, MODEL_CIRCLE) + 8);
 		for (int32_t i = 0; i < 0x5D; i++, d += 4, from += 4, dst += 4)
 		{
 			dst[0] = (int16_t)(d[0] * k + from[0]);
@@ -1787,7 +1839,7 @@ namespace circle162
 		MeshHeader *h = (MeshHeader *)AllocHeader(0xCC);
 		h->tpage[0] = 0x40;
 		h->tpage[2] = 0x40;
-		h->model = MODEL_CIRCLE;
+		h->model = fxp::model(P().models.circle, MODEL_CIRCLE);
 		h->mode = 0x30;
 		h->tpage[1] = 0;
 		h->tpage[3] = 0x80;
@@ -1804,8 +1856,8 @@ namespace circle162
 		{
 			if (!vtx)
 			{
-				CircleMorph((int16_t *)MORPH_VTX, (int16_t)(c - 0x10));
-				vtx = (const int16_t *)MORPH_VTX;
+				CircleMorph((int16_t *)own::R(MORPH_VTX), (int16_t)(c - 0x10));
+				vtx = (const int16_t *)own::R(MORPH_VTX);
 			}
 			h->verts = (uint32_t)vtx;
 			h->mode |= 0x2000;
@@ -1988,9 +2040,9 @@ namespace circle162
 		h->mode = 0;
 		h->off[1] = 0;
 		h->model = var<uint32_t>(PILLAR_MODEL + 4 * i);
-		h->off[0] = var<int16_t>(PILLAR_OFFX + 4 * i);
+		h->off[0] = var<int16_t>(fxp::data(P().tables.pillar_offx, PILLAR_OFFX, 32) + 4 * i);
 		h->ang[0] = n->w1C;
-		h->off[2] = var<int16_t>(PILLAR_OFFZ + 4 * i);
+		h->off[2] = var<int16_t>(fxp::data(P().tables.pillar_offz, PILLAR_OFFZ, 32) + 4 * i);
 		h->ang[1] = n->w20;
 		h->ang[2] = ang2;
 		ComposeAffineTransform(&Camera(), &m, &h->cam);
@@ -2120,8 +2172,8 @@ namespace circle162
 		sv[0] = 0x1000000 / (0x130E000 / rect[2]);
 		sv[2] = 0x1000000 / (0x1143000 / rect[3]);
 		Scale3DMatrix(&m, sv);
-		SetDrawEnv(PRIM_ENV, 0x1D969C8 + 92 * ((uint32_t)var<uint8_t>(0x1D96A80) ^ 1));
-		InsertPrimAutoDepth(RenderOT(), (void *)PRIM_ENV);
+		SetDrawEnv(own::R(PRIM_ENV), 0x1D969C8 + 92 * ((uint32_t)var<uint8_t>(0x1D96A80) ^ 1));
+		InsertPrimAutoDepth(RenderOT(), (void *)own::R(PRIM_ENV));
 		int32_t ox, oy;
 		GteReadScreenOffset(&ox, &oy);
 		GteSetScreenOffset(rect[2] / 2, rect[3] / 2);
@@ -2146,12 +2198,12 @@ namespace circle162
 		FieldFree(0x2C);
 		GteSetScreenOffset(ox, oy);
 		InsertPrimAltViewport(RenderOT(), ALT_VIEWPORT);
-		SetDrawArea(PRIM_AREA, rect);
-		InsertPrimAutoDepth(RenderOT(), (void *)PRIM_AREA);
-		var<int16_t>(OFFSET_WORDS) = rect[0];
-		var<int16_t>(OFFSET_WORDS + 2) = rect[1];
-		SetDrawOffset(PRIM_OFFSET, (const void *)OFFSET_WORDS);
-		InsertPrimAutoDepth(RenderOT(), (void *)PRIM_OFFSET);
+		SetDrawArea(own::R(PRIM_AREA), rect);
+		InsertPrimAutoDepth(RenderOT(), (void *)own::R(PRIM_AREA));
+		var<int16_t>(own::R(OFFSET_WORDS)) = rect[0];
+		var<int16_t>(own::R(OFFSET_WORDS) + 2) = rect[1];
+		SetDrawOffset(own::R(PRIM_OFFSET), (const void *)own::R(OFFSET_WORDS));
+		InsertPrimAutoDepth(RenderOT(), (void *)own::R(PRIM_OFFSET));
 	}
 
 	// ------------------------------------------------------------------
@@ -2181,33 +2233,94 @@ namespace circle162
 		r->counter++;
 		return alive ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Squall's Fated Circle: his animation set and sequence, the gunblade's trail, the swipe, dust and shock rings, the glow, shards and orbit sparks, the burst, the rain, the morph shell and the dome, the captured stage and the swirl, the circle with its pillars, rings and embers, the spark clouds, the screen flash, the sounds; the action results" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the director's ticks 1 and 0x39" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start", "At the director's tick 1", (uint32_t)offsetof(FatedCircleParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.circle", "Circle", "At the director's tick 0x39 (the shell and the dome)", (uint32_t)offsetof(FatedCircleParams, sounds.circle), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The action results at this tick of the director", (uint32_t)offsetof(FatedCircleParams, director.damage), fxp::I16, 0, 170 },
+			{ "director", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.orbit", "Orbit", "The sprite sequence orbit (a flipbook of 24 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.orbit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.swirl", "Swirl", "The sprite sequence swirl (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(FatedCircleParams, seqs.swirl), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.swipe", "Swipe model", "The prim model swipe (a mesh of 78 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.swipe), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shock", "Shock model", "The prim model shock (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.shock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.glow", "Glow model", "The prim model glow (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.burst", "Burst model", "The prim model burst (a mesh of 21 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.rain", "Rain model", "The prim model rain (a mesh of 15 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.rain), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shell", "Shell model", "The prim model shell (a mesh of 168 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.shell), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.circle", "Circle model", "The prim model circle (a mesh of 93 vertices, 156 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FatedCircleParams, models.circle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FatedCircleParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FatedCircleParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(FatedCircleParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "morphs.circle_to", "Circle morph to", "The vertices the circle model blends to (93 vertices x, y, z, pad: an edited one keeps the count)", (uint32_t)offsetof(FatedCircleParams, morphs.circle_to), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.pillar_offx", "Pillar x offsets", "Each pillar's x offset (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(FatedCircleParams, tables.pillar_offx), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.pillar_offz", "Pillar z offsets", "Each pillar's z offset (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(FatedCircleParams, tables.pillar_offz), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag162_fated_circle()
 	{
+		fxp::register_params({ 162, "Fated Circle", &circle162::live, &circle162::GAME, sizeof(circle162::FatedCircleParams),
+		                       circle162::table::PARTS, (int)(sizeof(circle162::table::PARTS) / sizeof(circle162::table::PARTS[0])),
+		                       circle162::table::FIELDS, (int)(sizeof(circle162::table::FIELDS) / sizeof(circle162::table::FIELDS[0])),
+		                       circle162::table::GROUPS, (int)(sizeof(circle162::table::GROUPS) / sizeof(circle162::table::GROUPS[0])) });
+		own::note(circle162::ORIG_FileLoader, (void *)circle162::FileLoader);
+		own::note(circle162::ORIG_Setup, (void *)circle162::Setup);
+		own::note(circle162::ORIG_Master, (void *)circle162::MasterTask);
 		register_port(circle162::ORIG_Master, (void *)circle162::MasterTask, "162 Master", 162);
+		own::note(circle162::ORIG_Restore, (void *)circle162::RestoreTask);
 		register_port(circle162::ORIG_Restore, (void *)circle162::RestoreTask, "162 Restore", 162);
+		own::note(circle162::ORIG_Director, (void *)circle162::DirectorTask);
 		register_port(circle162::ORIG_Director, (void *)circle162::DirectorTask, "162 Director", 162);
+		own::note(circle162::ORIG_Trail, (void *)circle162::TrailTask);
 		register_port(circle162::ORIG_Trail, (void *)circle162::TrailTask, "162 Trail", 162);
+		own::note(circle162::ORIG_Swipe, (void *)circle162::SwipeTask);
 		register_port(circle162::ORIG_Swipe, (void *)circle162::SwipeTask, "162 Swipe", 162);
+		own::note(circle162::ORIG_Dust, (void *)circle162::DustTask);
 		register_port(circle162::ORIG_Dust, (void *)circle162::DustTask, "162 Dust", 162);
+		own::note(circle162::ORIG_Shock, (void *)circle162::ShockTask);
 		register_port(circle162::ORIG_Shock, (void *)circle162::ShockTask, "162 Shock", 162);
+		own::note(circle162::ORIG_Glow, (void *)circle162::GlowTask);
 		register_port(circle162::ORIG_Glow, (void *)circle162::GlowTask, "162 Glow", 162);
+		own::note(circle162::ORIG_Shard, (void *)circle162::ShardTask);
 		register_port(circle162::ORIG_Shard, (void *)circle162::ShardTask, "162 Shard", 162);
+		own::note(circle162::ORIG_Orbit, (void *)circle162::OrbitTask);
 		register_port(circle162::ORIG_Orbit, (void *)circle162::OrbitTask, "162 Orbit", 162);
+		own::note(circle162::ORIG_Burst, (void *)circle162::BurstTask);
 		register_port(circle162::ORIG_Burst, (void *)circle162::BurstTask, "162 Burst", 162);
+		own::note(circle162::ORIG_Rain, (void *)circle162::RainTask);
 		register_port(circle162::ORIG_Rain, (void *)circle162::RainTask, "162 Rain", 162);
+		own::note(circle162::ORIG_Shell, (void *)circle162::ShellTask);
 		register_port(circle162::ORIG_Shell, (void *)circle162::ShellTask, "162 Shell", 162);
+		own::note(circle162::ORIG_Dome, (void *)circle162::DomeTask);
 		register_port(circle162::ORIG_Dome, (void *)circle162::DomeTask, "162 Dome", 162);
+		own::note(circle162::ORIG_Circle, (void *)circle162::CircleTask);
 		register_port(circle162::ORIG_Circle, (void *)circle162::CircleTask, "162 Circle", 162);
+		own::note(circle162::ORIG_Pillar, (void *)circle162::PillarTask);
 		register_port(circle162::ORIG_Pillar, (void *)circle162::PillarTask, "162 Pillar", 162);
+		own::note(circle162::ORIG_Ring, (void *)circle162::RingTask);
 		register_port(circle162::ORIG_Ring, (void *)circle162::RingTask, "162 Ring", 162);
+		own::note(circle162::ORIG_Ember, (void *)circle162::EmberTask);
 		register_port(circle162::ORIG_Ember, (void *)circle162::EmberTask, "162 Ember", 162);
+		own::note(circle162::ORIG_Spark, (void *)circle162::SparkTask);
 		register_port(circle162::ORIG_Spark, (void *)circle162::SparkTask, "162 Spark", 162);
+		own::note(circle162::ORIG_Swirl, (void *)circle162::SwirlTask);
 		register_port(circle162::ORIG_Swirl, (void *)circle162::SwirlTask, "162 Swirl", 162);
 		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(register_mag162_held();)
 	}
+	FX_LAB_MODULE(register_mag162_fated_circle);
 }
 
 #ifdef FF8_FX_HELD

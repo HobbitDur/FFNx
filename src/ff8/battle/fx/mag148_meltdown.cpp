@@ -41,8 +41,14 @@
 // Module globals: 0x2464BA8..0x2476660 (cast context 0x2466620, target / caster positions
 // 0x2466608 / 0x2466630, frames, pools, queues, packet arenas, cursor 0x2476638, scale matrix
 // 0x2476640).
+// Fujin's described Meltdown (effect_148.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (MeltdownParams: the sound, the
+// damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -61,12 +67,14 @@ namespace melt148
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
 	// --- module globals ---
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x24657E8; }
-	inline CastContext *Ctx() { return var<CastContext *>(0x2466620); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2476638); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x24657E8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2466620)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2476638)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2466628)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2465778); }             // 1 x 0x10
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t Frame(int32_t action) { return 0x2465788 + (uint32_t)shl32(action, 5); }   // Mat4x3 per action
-	inline uint32_t TargetPos(int32_t action) { return 0x2466608 + (uint32_t)shl32(action, 3); } // x, y, z, h
+	inline uint32_t Frame(int32_t action) { return own::R(0x2465788) + (uint32_t)shl32(action, 5); }   // Mat4x3 per action
+	inline uint32_t TargetPos(int32_t action) { return own::R(0x2466608) + (uint32_t)shl32(action, 3); } // x, y, z, h
 	static const uint32_t CASTER_POS = 0x2466630;
 	static const uint32_t SCALE_MATRIX = 0x2476640;   // diagonal 0x2476640 / 48 / 50, translation 54 / 58 / 5C
 	static const uint32_t POOL_A = 0x2464BB0, POOL_A_END = 0x2465060;
@@ -83,6 +91,23 @@ namespace melt148
 	static const uint32_t MODEL_Disc = 0xDCDB4C, MODEL_GlowFlat = 0xDCADB4, MODEL_Glow = 0xDCCDA4;
 	static const uint32_t SEQ_AcidA = 0xDCABEC, SEQ_AcidB = 0xDCAA24;
 	static const void *const SOUND_Meltdown = (const void *)0xDCE74C;
+	static const uint32_t ORIG_FileLoader = 0x6120B0, ORIG_Setup = 0x6120D0;
+	static const uint32_t TEXTURE_NAME = 0xDCE754, CAMERA = 0xDC9C28;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MeltdownParams
+	{
+		uint32_t sound;                      // at the director's tick 1
+		struct { int16_t damage; } director; // the damage at this tick of an action's director
+		struct { uint32_t acid_a, acid_b; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t disc, glow_flat, glow; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const MeltdownParams GAME = { 0xDCE74C, { 0x50 }, { SEQ_AcidA, SEQ_AcidB }, { MODEL_Disc, MODEL_GlowFlat, MODEL_Glow }, { TEXTURE_NAME, CAMERA } };
+	static MeltdownParams live = GAME;
+	static const MeltdownParams &PM() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -136,13 +161,43 @@ namespace melt148
 	// ------------------------------------------------------------------
 	// Root task (0x614230): node +0x0C counter
 	// ------------------------------------------------------------------
+	// File loader (0x6120B0) and setup (0x6120D0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the first action's director (its
+	// target and caster slots +0x20 / +0x22), the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PM().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x2464BA8)) = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x2466624)) = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2465768), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x24657F8), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
+		*(uint16_t *)(d + 0x22) = ctx->actions[0].attacker;
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(PM().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
 		// 30 fps layer: see mag148_meltdown_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
-		if (!(U8(node, 0xC) & 1)) PacketCursor() = ARENA_EVEN;
+		PacketCursor() = own::R(ARENA_ODD);
+		if (!(U8(node, 0xC) & 1)) PacketCursor() = own::R(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(EffectQueue());
 		U16(node, 0xC) = (uint16_t)(U16(node, 0xC) + 1);
 		return alive ? 0 : TASK_END;
@@ -161,11 +216,11 @@ namespace melt148
 			const uint32_t tp = TargetPos(action);
 			int32_t dir[3], from[3], scale[3], axis[3];
 			from[2] = -0x1000;
-			dir[0] = S16(tp, 0) - S16(CASTER_POS, 0);
+			dir[0] = S16(tp, 0) - S16(own::R(CASTER_POS), 0);
 			from[0] = 0;
 			from[1] = 0;
-			dir[1] = S16(tp, 2) - S16(CASTER_POS, 2);
-			dir[2] = S16(tp, 4) - S16(CASTER_POS, 4);
+			dir[1] = S16(tp, 2) - S16(own::R(CASTER_POS), 2);
+			dir[2] = S16(tp, 4) - S16(own::R(CASTER_POS), 4);
 			NormalizeVector(dir, dir);
 			int32_t angle = RotationBetweenVectors(from, dir, axis);
 			Mat4x3 *m = (Mat4x3 *)Frame(S16(node, 0xE));
@@ -173,9 +228,9 @@ namespace melt148
 			scale[2] = 0x600;
 			scale[1] = 0x600;
 			scale[0] = 0x600;
-			m->t[0] = (mul32(dir[0], 900) >> 12) + S16(CASTER_POS, 0);
-			m->t[1] = (mul32(dir[1], 900) >> 12) + S16(CASTER_POS, 2);
-			m->t[2] = (mul32(dir[2], 900) >> 12) + S16(CASTER_POS, 4);
+			m->t[0] = (mul32(dir[0], 900) >> 12) + S16(own::R(CASTER_POS), 0);
+			m->t[1] = (mul32(dir[1], 900) >> 12) + S16(own::R(CASTER_POS), 2);
+			m->t[2] = (mul32(dir[2], 900) >> 12) + S16(own::R(CASTER_POS), 4);
 			Scale3DMatrix(m, scale);
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)Frame(S16(node, 0xE)), (Mat4x3 *)Frame(S16(node, 0xE)));
 		}
@@ -183,14 +238,14 @@ namespace melt148
 		if (S16(node, 0xC) == 0)
 		{
 			GetDefaultEffectPosition(Entity(S16(node, 0x20)), (int16_t *)TargetPos(S16(node, 0xE)));
-			GetDefaultEffectPosition(Entity(S16(node, 0x22)), (int16_t *)CASTER_POS);
+			GetDefaultEffectPosition(Entity(S16(node, 0x22)), (int16_t *)own::R(CASTER_POS));
 			const uint32_t tp = TargetPos(S16(node, 0xE));
-			const int16_t cy = S16(CASTER_POS, 2);
+			const int16_t cy = S16(own::R(CASTER_POS), 2);
 			if (S16(tp, 2) > cy && S16(node, 0x22) < 3) S16(tp, 2) = cy;
 		}
 		if (S16(node, 0xC) == 0x28)
 		{
-			uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_Melt));
+			uint32_t t = P(AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Melt)));
 			U16(t, 0xE) = U16(node, 0xE);
 			const uint16_t slot = U16(node, 0x20);
 			U16(t, 0x18) = slot;
@@ -199,38 +254,38 @@ namespace melt148
 		}
 		if (S16(node, 0xC) == 1)
 		{
-			uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_Disc));
+			uint32_t t = P(AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Disc)));
 			const uint16_t a = U16(node, 0xE);
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = a;
 			U16(t, 0x1C) = 0xC00;
 			U16(t, 0x1E) = 0x80;
-			t = P(AddTaskToQueue(EffectQueue(), ORIG_ParticlesA));
+			t = P(AddTaskToQueue(EffectQueue(), own::Fn(ORIG_ParticlesA)));
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = U16(node, 0xE);
-			for (uint32_t p = POOL_A; p < POOL_A_END; p += 0x14) U16(p, 0) = 0xFFFF;
-			t = P(AddTaskToQueue(EffectQueue(), ORIG_ParticlesB));
+			for (uint32_t p = own::R(POOL_A); p < own::R(POOL_A_END); p += 0x14) U16(p, 0) = 0xFFFF;
+			t = P(AddTaskToQueue(EffectQueue(), own::Fn(ORIG_ParticlesB)));
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = U16(node, 0xE);
-			for (uint32_t p = POOL_B; p < POOL_B_END; p += 0x14) U16(p, 0) = 0xFFFF;
+			for (uint32_t p = own::R(POOL_B); p < own::R(POOL_B_END); p += 0x14) U16(p, 0) = 0xFFFF;
 		}
 		if (S16(node, 0xC) == 0x23)
 		{
-			uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_CasterGlow));
+			uint32_t t = P(AddTaskToQueue(EffectQueue(), own::Fn(ORIG_CasterGlow)));
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = U16(node, 0xE);
 			U16(t, 0x1C) = 0x300;
 			U16(t, 0x1E) = 0x600;
 			if (S16(node, 0xC) == 0x23) ScreenFadeTask(0, 1, 8, 0xFF);
 		}
-		if (S16(node, 0xC) == 0x50)
+		if (S16(node, 0xC) == PM().director.damage)
 			ApplyActionResultToTarget(Ctx()->actions[S16(node, 0xE)].targets);
 		if (S16(node, 0xC) == 0x55)
 		{
 			const int32_t next = S16(node, 0xE) + 1;
 			if (next <= (int32_t)Ctx()->actions[0].last_action)
 			{
-				uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_Director));
+				uint32_t t = P(AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)));
 				U16(t, 0xC) = 0;
 				ActionData *ad = &Ctx()->actions[next];
 				U16(t, 0xE) = (uint16_t)next;
@@ -238,7 +293,7 @@ namespace melt148
 				U16(t, 0x22) = ad->attacker;
 			}
 		}
-		if (S16(node, 0xC) == 1) BdPlaySE(SOUND_Meltdown, 0, 0x80);
+		if (S16(node, 0xC) == 1) BdPlaySE((const void *)fxp::sound(PM().sound, (uint32_t)SOUND_Meltdown), 0, 0x80);
 		U16(node, 0xC) = (uint16_t)(U16(node, 0xC) + 1);
 		return S16(node, 0xC) > 0x5A ? TASK_END : 0;
 	}
@@ -445,8 +500,8 @@ namespace melt148
 		const uint32_t tw0 = U32(TargetPos(action), 0);
 		const uint32_t tw1 = U32(TargetPos(action), 4);
 		entity[0] |= 0xC;
-		const uint32_t cw0 = U32(CASTER_POS, 0);
-		const uint32_t cw1 = U32(CASTER_POS, 4);
+		const uint32_t cw0 = U32(own::R(CASTER_POS), 0);
+		const uint32_t cw1 = U32(own::R(CASTER_POS), 4);
 		int16_t by = (int16_t)((uint16_t)(tw0 >> 16) + 0x1F4);
 		if (by > 0) by = 0;
 		const int32_t tx = (int16_t)tw0;
@@ -815,15 +870,15 @@ namespace melt148
 	// into the GTE
 	static void SetScaledFrame(int32_t action, uint16_t s, uint16_t sz, bool set_z_first)
 	{
-		if (set_z_first) U16(SCALE_MATRIX, 0x10) = sz;
-		U32(SCALE_MATRIX, 0x14) = 0;
-		U16(SCALE_MATRIX, 0) = s;
-		U16(SCALE_MATRIX, 8) = s;
-		if (!set_z_first) U16(SCALE_MATRIX, 0x10) = sz;
-		U32(SCALE_MATRIX, 0x18) = 0;
-		U32(SCALE_MATRIX, 0x1C) = 0;
+		if (set_z_first) U16(own::R(SCALE_MATRIX), 0x10) = sz;
+		U32(own::R(SCALE_MATRIX), 0x14) = 0;
+		U16(own::R(SCALE_MATRIX), 0) = s;
+		U16(own::R(SCALE_MATRIX), 8) = s;
+		if (!set_z_first) U16(own::R(SCALE_MATRIX), 0x10) = sz;
+		U32(own::R(SCALE_MATRIX), 0x18) = 0;
+		U32(own::R(SCALE_MATRIX), 0x1C) = 0;
 		Mat4x3 m = {};
-		ComposeAffineTransform((const Mat4x3 *)Frame(action), (const Mat4x3 *)SCALE_MATRIX, &m);
+		ComposeAffineTransform((const Mat4x3 *)Frame(action), (const Mat4x3 *)own::R(SCALE_MATRIX), &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 	}
@@ -838,7 +893,7 @@ namespace melt148
 		const uint32_t hdr = P(AllocHeader(0x7C));
 		const int16_t c16 = S16(node, 0xC);
 		const int32_t c = c16;
-		U32(hdr, 0) = MODEL_Disc;
+		U32(hdr, 0) = fxp::model(PM().models.disc, MODEL_Disc);
 		U32(hdr, 0x20) = 0x30;
 		U32(hdr, 0x10) = 0;
 		U16(hdr, 0x18) = 0;
@@ -881,13 +936,13 @@ namespace melt148
 	// ------------------------------------------------------------------
 	static void CasterGlowDraw(uint32_t node)
 	{
-		U16(SCALE_MATRIX, 0x10) = 0x4000;
+		U16(own::R(SCALE_MATRIX), 0x10) = 0x4000;
 		const uint16_t s = U16(node, 0x1C);
 		SetScaledFrame(S16(node, 0xE), s, 0x4000, false);
 		const uint32_t hdr = P(AllocHeader(0x7C));
 		const int16_t c16 = S16(node, 0xC);
 		const int32_t c = c16;
-		U32(hdr, 0) = MODEL_GlowFlat;
+		U32(hdr, 0) = fxp::model(PM().models.glow_flat, MODEL_GlowFlat);
 		U32(hdr, 0x20) = 0x30;
 		U32(hdr, 0x10) = (uint32_t)shl32(c * 3, 3);
 		U32(hdr, 0x14) = 0;
@@ -913,7 +968,7 @@ namespace melt148
 		SetScaledFrame(S16(node, 0xE), s, sz, true);
 		U16(hdr, 0x18) = 0x40;
 		U16(hdr, 0x1C) = 0x40;
-		U32(hdr, 0) = MODEL_Glow;
+		U32(hdr, 0) = fxp::model(PM().models.glow, MODEL_Glow);
 		U32(hdr, 0x10) = 0;
 		U32(hdr, 0x14) = (uint32_t)shl32(S16(node, 0xC), 3);
 		U16(hdr, 0x1A) = 0;
@@ -962,7 +1017,7 @@ namespace melt148
 		const uint32_t h = P(AllocHeader(0xB4));
 		U32(h, 0) = seq;
 		U16(h, 0x24) = 0;
-		GteSetRotMatrixCtrl((const Mat4x3 *)SCALE_MATRIX);
+		GteSetRotMatrixCtrl((const Mat4x3 *)own::R(SCALE_MATRIX));
 		GteSetLightMatrix(Frame(S16(node, 0xE)));
 		GteSetBkFromTranslation(Frame(S16(node, 0xE)));
 		return h;
@@ -994,8 +1049,8 @@ namespace melt148
 	static uint32_t __cdecl ParticlesATask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		const uint32_t h = ParticleSetup(node, SEQ_AcidA);
-		for (uint32_t e = POOL_A; e < POOL_A_END; e += 0x14)
+		const uint32_t h = ParticleSetup(node, fxp::sequence(PM().seqs.acid_a, SEQ_AcidA));
+		for (uint32_t e = own::R(POOL_A); e < own::R(POOL_A_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
 			// 30 fps layer: see mag148_meltdown_held.inc
@@ -1011,7 +1066,7 @@ namespace melt148
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				const uint32_t e = FreeEntry(POOL_A, POOL_A_END);
+				const uint32_t e = FreeEntry(own::R(POOL_A), own::R(POOL_A_END));
 				if (!e) break;
 				U16(e, 0) = 0;
 				S16(e, 2) = (int16_t)(CrtRand() % 1024 + 0x400);
@@ -1068,8 +1123,8 @@ namespace melt148
 	static uint32_t __cdecl ParticlesBTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		const uint32_t h = ParticleSetup(node, SEQ_AcidB);
-		for (uint32_t e = POOL_B; e < POOL_B_END; e += 0x14)
+		const uint32_t h = ParticleSetup(node, fxp::sequence(PM().seqs.acid_b, SEQ_AcidB));
+		for (uint32_t e = own::R(POOL_B); e < own::R(POOL_B_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
 			// 30 fps layer: see mag148_meltdown_held.inc
@@ -1085,7 +1140,7 @@ namespace melt148
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				const uint32_t e = FreeEntry(POOL_B, POOL_B_END);
+				const uint32_t e = FreeEntry(own::R(POOL_B), own::R(POOL_B_END));
 				if (!e) break;
 				U16(e, 0) = 0;
 				S16(e, 2) = (int16_t)(CrtRand() % 512 + 0x200);
@@ -1110,20 +1165,52 @@ namespace melt148
 		U16(node, 0xC) = (uint16_t)(U16(node, 0xC) + 1);
 		return S16(node, 0xC) >= 0x3C ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action: its frame towards the target, the disc, the two acid particle systems, the caster glow and the white fade, the melting target, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(MeltdownParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(MeltdownParams, director.damage), fxp::I16, 0, 84 },
+			{ "director", "seqs.acid_a", "Acid a", "The sprite sequence acid a (a flipbook of 17 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltdownParams, seqs.acid_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.acid_b", "Acid b", "The sprite sequence acid b (a flipbook of 17 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltdownParams, seqs.acid_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.disc", "Disc model", "The prim model disc (a mesh of 91 vertices, 90 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltdownParams, models.disc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.glow_flat", "Glow flat model", "The prim model glow flat (a mesh of 234 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltdownParams, models.glow_flat), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.glow", "Glow model", "The prim model glow (a mesh of 108 vertices, 90 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltdownParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MeltdownParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(MeltdownParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag148_meltdown()
 	{
+		fxp::register_params({ 148, "Meltdown", &melt148::live, &melt148::GAME, sizeof(melt148::MeltdownParams),
+		                       melt148::table::PARTS, (int)(sizeof(melt148::table::PARTS) / sizeof(melt148::table::PARTS[0])),
+		                       melt148::table::FIELDS, (int)(sizeof(melt148::table::FIELDS) / sizeof(melt148::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(melt148::ORIG_FileLoader, (void *)melt148::FileLoader);
+		own::note(melt148::ORIG_Setup, (void *)melt148::Setup);
+		own::note(melt148::ORIG_Root, (void *)melt148::RootTask);
 		register_port(melt148::ORIG_Root, (void *)melt148::RootTask, "M148 RootTask", 148);
+		own::note(melt148::ORIG_Director, (void *)melt148::DirectorTask);
 		register_port(melt148::ORIG_Director, (void *)melt148::DirectorTask, "M148 DirectorTask", 148);
+		own::note(melt148::ORIG_Melt, (void *)melt148::MeltTask);
 		register_port(melt148::ORIG_Melt, (void *)melt148::MeltTask, "M148 MeltTask", 148);
+		own::note(melt148::ORIG_Disc, (void *)melt148::DiscTask);
 		register_port(melt148::ORIG_Disc, (void *)melt148::DiscTask, "M148 DiscTask", 148);
+		own::note(melt148::ORIG_CasterGlow, (void *)melt148::CasterGlowTask);
 		register_port(melt148::ORIG_CasterGlow, (void *)melt148::CasterGlowTask, "M148 CasterGlowTask", 148);
+		own::note(melt148::ORIG_ParticlesA, (void *)melt148::ParticlesATask);
 		register_port(melt148::ORIG_ParticlesA, (void *)melt148::ParticlesATask, "M148 ParticlesATask", 148);
+		own::note(melt148::ORIG_ParticlesB, (void *)melt148::ParticlesBTask);
 		register_port(melt148::ORIG_ParticlesB, (void *)melt148::ParticlesBTask, "M148 ParticlesBTask", 148);
 		// 30 fps layer: see mag148_meltdown_held.inc
 		FX_HELD(register_mag148_held();)
 	}
+	FX_LAB_MODULE(register_mag148_meltdown);
 }
 
 #ifdef FF8_FX_HELD

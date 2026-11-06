@@ -66,6 +66,9 @@
 
 #include "mag_common.h"
 #include <intrin.h>
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,17 +78,19 @@ namespace elec275
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2508348); }       // screen flash level
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x250834C); }          // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508354); }          // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2508358); }
-	inline uint32_t *SavedTints() { return (uint32_t *)0x2508374; }          // the targets' +0x28 by entity slot (root counter 1)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25083A4); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x25083A8; }          // pool: magic buffer, 8 x 0xD4
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x25083B8; }           // + 0x6A0, 0x20 x 0x18
-	inline TaskQueue *QCrawlers() { return (TaskQueue *)0x25083C8; }         // + 0x9A0, 0x40 x 0x28
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x25083D8; }             // + 0x13A0, 0x40 x 0x3C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25083E8; }             // + 0x22A0, 1 x 0x34
+	inline uint32_t &FlashLevel() { return var<uint32_t>(own::R(0x2508348)); }       // screen flash level
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x250834C)); }          // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2508354)); }          // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2508358)); }
+	inline uint32_t *SavedTints() { return (uint32_t *)own::R(0x2508374); }          // the targets' +0x28 by entity slot (root counter 1)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25083A4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508350)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25083F8); }             // 1 x 0x14
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x25083A8); }          // pool: magic buffer, 8 x 0xD4
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x25083B8); }           // + 0x6A0, 0x20 x 0x18
+	inline TaskQueue *QCrawlers() { return (TaskQueue *)own::R(0x25083C8); }         // + 0x9A0, 0x40 x 0x28
+	inline TaskQueue *QArcs() { return (TaskQueue *)own::R(0x25083D8); }             // + 0x13A0, 0x40 x 0x3C
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25083E8); }             // + 0x22A0, 1 x 0x34
 	static const uint32_t ZERO_VEC = 0x2508408;                             // 8 bytes, never written
 	inline int32_t &FadeChance() { return var<int32_t>(0x10DC2D4); }         // exe data: screen fade threshold
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
@@ -104,6 +109,23 @@ namespace elec275
 	static const uint32_t SEQ_SparkB = 0x10D9A88;     // ... of the free arcs' ground sparks
 	static const uint32_t MODEL_Glow = 0x10D9B64;     // prim-model layout data (0xC8-byte layout)
 	static const void *const SOUND_Discharge = (const void *)0x10DC2D0;
+	static const uint32_t ORIG_FileLoader = 0x687B50, ORIG_Setup = 0x687B40;
+	static const uint32_t TEXTURE_NAME = 0x10E298C, CAMERA_ANIM = 0x10DC0E8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ElectrocuteParams
+	{
+		uint32_t sound;   // the discharge (main counter 0, at the caster)
+		struct { uint32_t glow; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark_b, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t tint_colour; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const ElectrocuteParams GAME = { 0x10DC2D0, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM, 0x10DA574 }, { 0x10DC2D8 } };
+	static ElectrocuteParams live = GAME;
+	static const ElectrocuteParams &P() { return live; }
 	static const void *const TINT_Colour = (const void *)0x10DC2D8;
 	static const uint8_t *const BONES_Caster = (const uint8_t *)0x10DC2DC;   // 6 effect bones
 	static const uint32_t COM_Anim = 0x10DA574;      // com data of the module's animation set (bound to the caster)
@@ -520,7 +542,7 @@ namespace elec275
 	{
 		Point *pt = AllocArcPoint(from, (int16_t)width);
 		if (!pt) return nullptr;
-		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), ORIG_ArcTask);
+		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), own::Fn(ORIG_ArcTask));
 		if (!a)
 		{
 			pt->b = -1;
@@ -561,7 +583,7 @@ namespace elec275
 		script++;
 		Point *pt = AllocCrawlerPoint(bone, script[0], width, 0, fade, step);
 		if (!pt) return;
-		CrawlerNode *c = (CrawlerNode *)AddTaskToQueue(QCrawlers(), ORIG_CrawlerTask);
+		CrawlerNode *c = (CrawlerNode *)AddTaskToQueue(QCrawlers(), own::Fn(ORIG_CrawlerTask));
 		if (!c)
 		{
 			pt->a[0] = -1;
@@ -680,6 +702,28 @@ namespace elec275
 	// ------------------------------------------------------------------
 	// Glow layout (0x688320)
 	// ------------------------------------------------------------------
+	// File loader (0x687B50) and setup (0x687B40 -> _Init 0x687B70): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the effect LCG seeded with rand(), the cast and its caster's
+	// entity, the root (it sets up the rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		fn<void (__cdecl *)(int)>(0x7059D0)(CrtRand());   // EffectLCG_Seed
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508360), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *g = (LayoutNode *)n;
@@ -699,7 +743,7 @@ namespace elec275
 	{
 		TransformCameraByShadowRotation(s->pos, s->scale, -(s->scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = s->kind ? SEQ_SparkB : SEQ_Spark;
+		*(uint32_t *)h = s->kind ? fxp::sequence(P().seqs.spark_b, SEQ_SparkB) : fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -714,7 +758,7 @@ namespace elec275
 			uint8_t *e = Entity(s->slot);
 			e[1] |= 8;
 			const int32_t sn = ComputeSin(shl32(s->frame, 8));
-			BlendColour(&SavedTints()[s->slot], TINT_Colour, 0x1000 - sn, sn, e + 0x28);
+			BlendColour(&SavedTints()[s->slot], ((const void *)fxp::data(P().tables.tint_colour, (uint32_t)TINT_Colour, 4, 4)), 0x1000 - sn, sn, e + 0x28);
 		}
 		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(held_note_spark(s);)
@@ -764,7 +808,7 @@ namespace elec275
 						FadeChance() = 0x1000;
 					}
 					else FadeChance() += 0x1000;
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (s)
 					{
 						s->frame = 0;
@@ -776,7 +820,7 @@ namespace elec275
 				}
 				else if (p[1] >= 0)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (s)
 					{
 						s->frame = 0;
@@ -803,7 +847,7 @@ namespace elec275
 			GteLoadIR123(a->dir);
 			GteGPF();
 			GteSetIR0(0x1000 - blend);
-			GteLoadIR123((const void *)ZERO_VEC);
+			GteLoadIR123((const void *)own::R(ZERO_VEC));
 			GteGPL();
 			GteStoreIR123(pt->c);
 			pt->d = hold;
@@ -1020,7 +1064,7 @@ namespace elec275
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
-			BdPlaySE3D(SOUND_Discharge, 0x100, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Discharge), 0x100, pos);
 		}
 		const int32_t c8 = m->counter - 8;
 		if ((uint32_t)c8 < 0x40 && !(c8 & 1))
@@ -1048,7 +1092,7 @@ namespace elec275
 			vel[3] = 0;
 			const int32_t style = Rand() & 1;
 			Point *pt = SpawnArc(vel, from, to, nullptr, -1, 0, 0x100, 0xFA, style, 3);
-			if (pt) memcpy(pt->c, (const void *)ZERO_VEC, 8);
+			if (pt) memcpy(pt->c, (const void *)own::R(ZERO_VEC), 8);
 		}
 		const int32_t c14 = m->counter - 0xE;
 		if ((uint32_t)c14 < 0x1E)
@@ -1081,12 +1125,12 @@ namespace elec275
 				const int32_t style = Rand() & 1;
 				const int32_t slot = (int32_t)(e - Entity(0)) / 0x9C;
 				Point *pt = SpawnArc(vel, from, to, nullptr, slot, 0, 0x100, 0xFA, style, 3);
-				if (pt) memcpy(pt->c, (const void *)ZERO_VEC, 8);
+				if (pt) memcpy(pt->c, (const void *)own::R(ZERO_VEC), 8);
 			}
 			if (!(c14 & 3))
 			{
-				LayoutNode *g = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
-				DecodeModelPrimLayout(MODEL_Glow, g->layout, 0xC8);
+				LayoutNode *g = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
+				DecodeModelPrimLayout(fxp::layout(P().layouts.glow, MODEL_Glow, 0xC8), g->layout, 0xC8);
 			}
 		}
 		if (m->counter == 0x2C)
@@ -1132,7 +1176,7 @@ namespace elec275
 			Memset32((void *)(TexBase() + ARC_POINTS), 0, 0x1400);
 			for (int i = 0; i < 0x200; i++) ((Point *)(TexBase() + CRAWL_POINTS))[i].a[0] = -1;
 			for (int i = 0; i < 0x200; i++) ((Point *)(TexBase() + ARC_POINTS))[i].b = -1;
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 10);
 			const int32_t count = Ctx()->actions->target_count;
 			m->targets = (int16_t)count;
@@ -1141,7 +1185,7 @@ namespace elec275
 				const uint8_t slot = Ctx()->actions->targets[i * TARGET_STRIDE];
 				SavedTints()[slot] = *(const uint32_t *)(Entity(slot) + 0x28);
 			}
-			BindExternalAnimSet(Caster(), (uint32_t)m->bind, COM_Anim);
+			BindExternalAnimSet(Caster(), (uint32_t)m->bind, fxp::anim_set(P().res.anim, COM_Anim));
 			QueueChainTransformation(Caster(), 1);
 			var<Point *>(TexBase() + ARC_FREE) = nullptr;
 			var<Point *>(TexBase() + CRAWL_FREE) = nullptr;
@@ -1165,19 +1209,49 @@ namespace elec275
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The crawlers over the caster, the free arcs, the arcs to the targets, the glow layouts, the flash, the sound; the action result at 44" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "The discharge (main counter 0, at the caster)", (uint32_t)offsetof(ElectrocuteParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.glow", "Glow", "The prim-model layout glow (its models' animation)", (uint32_t)offsetof(ElectrocuteParams, layouts.glow), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark_b", "Spark b", "The sprite sequence spark b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ElectrocuteParams, seqs.spark_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ElectrocuteParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ElectrocuteParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ElectrocuteParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "main", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(ElectrocuteParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "main", "tables.tint_colour", "Tint colour", "The colour the targets are tinted toward (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(ElectrocuteParams, tables.tint_colour), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag275_electrocute_quistis()
 	{
+		fxp::register_params({ 275, "Electrocute", &elec275::live, &elec275::GAME, sizeof(elec275::ElectrocuteParams),
+		                       elec275::table::PARTS, (int)(sizeof(elec275::table::PARTS) / sizeof(elec275::table::PARTS[0])),
+		                       elec275::table::FIELDS, (int)(sizeof(elec275::table::FIELDS) / sizeof(elec275::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(elec275::ORIG_FileLoader, (void *)elec275::FileLoader);
+		own::note(elec275::ORIG_Setup, (void *)elec275::Setup);
+		own::note(elec275::ORIG_RootTask, (void *)elec275::RootTask);
 		register_port(elec275::ORIG_RootTask, (void *)elec275::RootTask, "275 RootTask", 275);
+		own::note(elec275::ORIG_MainTask, (void *)elec275::MainTask);
 		register_port(elec275::ORIG_MainTask, (void *)elec275::MainTask, "275 MainTask", 275);
+		own::note(elec275::ORIG_ArcTask, (void *)elec275::ArcTask);
 		register_port(elec275::ORIG_ArcTask, (void *)elec275::ArcTask, "275 ArcTask", 275);
+		own::note(elec275::ORIG_CrawlerTask, (void *)elec275::CrawlerTask);
 		register_port(elec275::ORIG_CrawlerTask, (void *)elec275::CrawlerTask, "275 CrawlerTask", 275);
+		own::note(elec275::ORIG_SparkTask, (void *)elec275::SparkTask);
 		register_port(elec275::ORIG_SparkTask, (void *)elec275::SparkTask, "275 SparkTask", 275);
+		own::note(elec275::ORIG_LayoutTask, (void *)elec275::LayoutTask);
 		register_port(elec275::ORIG_LayoutTask, (void *)elec275::LayoutTask, "275 LayoutTask", 275);
 		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(register_mag275_held();)
 	}
+	FX_LAB_MODULE(register_mag275_electrocute_quistis);
 }
 
 #ifdef FF8_FX_HELD

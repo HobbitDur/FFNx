@@ -217,7 +217,7 @@ namespace drinkmagic
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -425,7 +425,7 @@ namespace drinkmagic
 		memcpy(rib, n.bytes, NODE_BYTES);
 		const uint32_t s = P(spr), r = P(rib);
 		// the next tick: its head sprite (not hidden) and its ribbon (range not empty)
-		const bool next = live(n.node, ORIG_Ribbon);
+		const bool next = node_live(n.node, ORIG_Ribbon);
 		if (next) RibbonNextState(n.node, P(nxt));
 		const bool head_next = next && (U8(P(nxt), 0x26) & 4) == 0;
 		const bool rib_next = next && S16(P(nxt), 0x12A) != 0 && S16(P(nxt), 0x128) < 0xA;
@@ -468,7 +468,7 @@ namespace drinkmagic
 		// the next tick: head position of its ribbon (as the ribbon's step leaves it when the ribbon runs
 		// before the spark, else as it is), flipbook step of state 1 (0x85F1F0: hidden past the last
 		// frame); a spark the next tick does not draw holds
-		if (live(n.node, ORIG_Spark) && (U8(n.node, 0x26) & 4) == 0)
+		if (node_live(n.node, ORIG_Spark) && (U8(n.node, 0x26) & 4) == 0)
 		{
 			int16_t frame = S16(n.node, 0x50);
 			bool draws = true;
@@ -507,7 +507,7 @@ namespace drinkmagic
 		const uint32_t c = P(cur);
 		// the next tick up to its draw: acceleration (state 1, 0x85C0C0: hidden at its end), head step
 		// 0x85BEC0; a streak the next tick does not draw holds
-		if (live(n.node, ORIG_Streak) && S8(n.node, 0x29) == 1)
+		if (node_live(n.node, ORIG_Streak) && S8(n.node, 0x29) == 1)
 		{
 			memcpy(nxt, (const void *)n.node, NODE_BYTES);
 			dk_85C0C0(P(nxt));
@@ -539,7 +539,7 @@ namespace drinkmagic
 		const uint32_t c = P(cur);
 		const uint32_t model = U32(c, 0x4C);
 		bool next = false;
-		if (live(n.node, ORIG_Orb) && n.nverts != 0)
+		if (node_live(n.node, ORIG_Orb) && n.nverts != 0)
 		{
 			// the next tick's state step (the states only write the node) and model rewrite
 			memcpy(nxt, (const void *)n.node, ORB_BYTES);
@@ -616,7 +616,7 @@ namespace drinkmagic
 			for (int s = 0; s < g_nnodes; s++)
 			{
 				const NodeNote &n = g_nodes[s];
-				if (U32(P(n.bytes), 8) != ORIG_Ribbon || !live(n.node, ORIG_Ribbon)) continue;
+				if (U32(P(n.bytes), 8) != ORIG_Ribbon || !node_live(n.node, ORIG_Ribbon)) continue;
 				RibbonNextState(n.node, P(nxt));
 				RibbonNext &r = g_rnext[g_nrnext++];
 				r.node = n.node;

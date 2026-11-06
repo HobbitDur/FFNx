@@ -63,8 +63,13 @@
 // capture. It WRITES THE BATTLE CAMERA: eye 0xB8B7F0 / look-at 0xB8B7F8, 0x1D977A2 and 0x1D8E038 (see above).
 // Module globals: 0x2556584..0x2556624. Pools, arenas, particle tables in the magic buffer; static tables 0x14AF460..0x14AF700
 // (the star groups 0x14AF490..0x14AF510 are WRITTEN: angles reset and turned).
+// Fujin's described Wishing Star (effect_089.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup ported below; its parameters (WishingStarParams: the three sounds).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -75,21 +80,22 @@ namespace ws089
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2556584); }               // cast context (g_MagicCastContext)
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556588); }            // Rinoa's entity
-	inline uint8_t &SpritesOn() { return var<uint8_t>(0x255658D); }            // sprites drawn (0x6FC8B0)
-	inline uint8_t &ModelsOn() { return var<uint8_t>(0x255658E); }             // particle models drawn (0x6FC500)
-	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(0x2556590); }      // sprite alloc cursor
-	inline uint8_t *&PartCursor() { return var<uint8_t *>(0x2556594); }        // particle model alloc cursor
-	inline TaskQueue *QC() { return (TaskQueue *)0x2556598; }                  // dives: magic buffer, 8 x 0x188
-	inline TaskQueue *QB() { return (TaskQueue *)0x25565A8; }                  // flashes / debris: + 0xC40, 0x20 x 0x30
-	inline TaskQueue *QA() { return (TaskQueue *)0x25565B8; }                  // director: + 0x5A40, 1 x 0x41C
-	inline uint32_t &Cursor() { return var<uint32_t>(0x25565EC); }             // module packet arena cursor
-	inline uint32_t &CursorEnd() { return var<uint32_t>(0x25565F0); }          // its end
-	inline int16_t *Centre() { return (int16_t *)0x25565F8; }                  // targets' centre x, y, (max) z
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556600); }            // Magic_TextureOFF (magic buffer)
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x2556604; }            // 7 entities' flag words
-	inline uint8_t *&TargetCursor() { return var<uint8_t *>(0x2556620); }      // next damage wave's target records
+	inline uint8_t *&Ctx() { return var<uint8_t *>(own::R(0x2556584)); }               // cast context (g_MagicCastContext)
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2556588)); }            // Rinoa's entity
+	inline uint8_t &SpritesOn() { return var<uint8_t>(own::R(0x255658D)); }            // sprites drawn (0x6FC8B0)
+	inline uint8_t &ModelsOn() { return var<uint8_t>(own::R(0x255658E)); }             // particle models drawn (0x6FC500)
+	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(own::R(0x2556590)); }      // sprite alloc cursor
+	inline uint8_t *&PartCursor() { return var<uint8_t *>(own::R(0x2556594)); }        // particle model alloc cursor
+	inline TaskQueue *QC() { return (TaskQueue *)own::R(0x2556598); }                  // dives: magic buffer, 8 x 0x188
+	inline TaskQueue *QB() { return (TaskQueue *)own::R(0x25565A8); }                  // flashes / debris: + 0xC40, 0x20 x 0x30
+	inline TaskQueue *QA() { return (TaskQueue *)own::R(0x25565B8); }                  // director: + 0x5A40, 1 x 0x41C
+	inline uint32_t &Cursor() { return var<uint32_t>(own::R(0x25565EC)); }             // module packet arena cursor
+	inline uint32_t &CursorEnd() { return var<uint32_t>(own::R(0x25565F0)); }          // its end
+	inline int16_t *Centre() { return (int16_t *)own::R(0x25565F8); }                  // targets' centre x, y, (max) z
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2556600)); }            // Magic_TextureOFF (magic buffer)
+	inline uint32_t *SavedFlags() { return (uint32_t *)own::R(0x2556604); }            // 7 entities' flag words
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25565C8); }               // 1 x 0x14
+	inline uint8_t *&TargetCursor() { return var<uint8_t *>(own::R(0x2556620)); }      // next damage wave's target records
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }         // battle_texture_data_ptr (frame packet arena)
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
@@ -100,6 +106,23 @@ namespace ws089
 	static const uint32_t ORIG_DiveTask = 0x6FD580;
 	static const uint32_t ORIG_LastDiveTask = 0x6FDC20;
 	static const uint32_t ORIG_PartCallback = 0x6FBB80;
+	static const uint32_t ORIG_Setup = 0x6F9CF0;
+	static const uint32_t TIM_A = 0x14AF700, TIM_B = 0x14B7B20;   // the two TIMs (exe data)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct WishingStarParams
+	{
+		struct { uint32_t rise, sky, landing; } sounds;   // the director's sounds at ticks 0, 0x32, 0xA2
+		struct { uint32_t dive, at_14a6370, at_14a09a0, at_14a6600, at_14a9ff0; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t sparkle, flash, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t mdl_debris, mdl_trail, at_149d0f8, at_1499fa8, at_149c730, mdl_shards; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t tim_a, tim_b, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const WishingStarParams GAME = { { 0x14913F0, 0x14913F4, 0x14913F8 }, { 0x14A3EB0, 0x14A6370, 0x14A09A0, 0x14A6600, 0x14A9FF0 }, { 0x14A07F4, 0x14A0538, 0x14A067C }, { 0x14A04D8, 0x1497140, 0x149D0F8, 0x1499FA8, 0x149C730, 0x1496550 }, { TIM_A, TIM_B, 0x1495530 } };
+	static WishingStarParams live = GAME;
+	static const WishingStarParams &PW() { return live; }
 
 	static const uint32_t STAR_GROUPS = 0x14AF490;   // 8 x 16: colour, colour 2, angle steps (+8), angles (+0xC)
 	static const uint32_t PART_KINDS = 0x14AF510;    // particle model kinds, 16 bytes: model, far colour, sprite at death, steps
@@ -845,7 +868,7 @@ namespace ws089
 	{
 		int16_t v[4];
 		BonePoint(c, pt, v);
-		SmallNode *t = (SmallNode *)AddTaskToQueue(QB(), ORIG_FlashTask);
+		SmallNode *t = (SmallNode *)AddTaskToQueue(QB(), own::Fn(ORIG_FlashTask));
 		if (t)
 		{
 			t->frame = 0;
@@ -856,7 +879,7 @@ namespace ws089
 		}
 		while (n-- != 0)
 		{
-			t = (SmallNode *)AddTaskToQueue(QB(), ORIG_DebrisTask);
+			t = (SmallNode *)AddTaskToQueue(QB(), own::Fn(ORIG_DebrisTask));
 			if (!t) break;
 			t->frame = 0xF;
 			t->pos[0] = v[0];
@@ -877,9 +900,9 @@ namespace ws089
 	// 0x6FD4D0 / 0x6FDB80: a dive (queue C) facing the angles (a, b), placed k (6 / 2) x its z axis from the centre
 	static DiveNode *DiveSpawn(uint32_t task, int32_t a, int32_t b, int32_t k)
 	{
-		DiveNode *t = (DiveNode *)AddTaskToQueue(QC(), task);
+		DiveNode *t = (DiveNode *)AddTaskToQueue(QC(), own::Fn(task));   // (its callers pass the task's original)
 		if (!t) return nullptr;
-		DecodeModelPrimLayout(LAYOUT_Dive, t->layout, 0x158);
+		DecodeModelPrimLayout(fxp::layout(PW().layouts.dive, LAYOUT_Dive, 0x158), t->layout, 0x158);
 		int16_t ang[4];
 		ang[0] = (int16_t)a;
 		ang[1] = (int16_t)b;
@@ -1176,7 +1199,7 @@ namespace ws089
 				s->pos[2] = F<int16_t>(p, 0x2C);
 				s->scale = 0x800;
 				s->life = 0x10;
-				s->seq = SEQ_Sparkle;
+				s->seq = fxp::sequence(PW().seqs.sparkle, SEQ_Sparkle);
 				s->vel[0] = (int16_t)(F<int16_t>(p, 0x12) >> 7);
 				s->vel[1] = (int16_t)(F<int16_t>(p, 0x18) >> 7);
 				s->vel[2] = (int16_t)(F<int16_t>(p, 0x1E) >> 7);
@@ -1363,7 +1386,7 @@ namespace ws089
 	{
 		TransformCameraByShadowRotation(t->pos, t->size, -(t->size >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		F<uint32_t>(h, 0) = SEQ_Flash;
+		F<uint32_t>(h, 0) = fxp::sequence(PW().seqs.flash, SEQ_Flash);
 		F<int16_t>(h, 4) = (int16_t)t->frame;
 		F<int16_t>(h, 0x24) = 0;
 		Cursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, Cursor());
@@ -1396,7 +1419,7 @@ namespace ws089
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		F<uint32_t>(h, 0x44) = 0;
-		F<uint32_t>(h, 0x28) = MDL_Debris;
+		F<uint32_t>(h, 0x28) = fxp::model(PW().model_data.mdl_debris, MDL_Debris);
 		Cursor() = RenderPrimModel(h + 0x28, OTBase() + 0x44, 2, Cursor());
 		FieldFree(0x80);
 	}
@@ -1549,7 +1572,7 @@ namespace ws089
 		GteSetRotMatrix((const Mat4x3 *)h);
 		GteSetTransVector((const Mat4x3 *)h);
 		F<uint32_t>(h, 0x3C) = 0x30;
-		F<uint32_t>(h, 0x20) = MDL_Trail;
+		F<uint32_t>(h, 0x20) = fxp::model(PW().model_data.mdl_trail, MDL_Trail);
 		*cursor = RenderPrimModel(h + 0x20, OTBase() + 0x44, 2, *cursor);
 		FieldFree(0x78);
 	}
@@ -1593,7 +1616,7 @@ namespace ws089
 			s->pos[2] = (int16_t)p[2];
 			s->scale = 0x800;
 			s->life = 0x10;
-			s->seq = SEQ_Sparkle;
+			s->seq = fxp::sequence(PW().seqs.sparkle, SEQ_Sparkle);
 			const int32_t r = CrtRand();
 			s->vel[0] = (int16_t)ComputeCos(r);
 			s->vel[1] = (int16_t)ComputeSin(r);
@@ -1631,7 +1654,7 @@ namespace ws089
 					s->pos[2] = (int16_t)d->m.t[2];
 					s->scale = 0x800;
 					s->life = 0x10;
-					s->seq = SEQ_Sparkle;
+					s->seq = fxp::sequence(PW().seqs.sparkle, SEQ_Sparkle);
 					const int32_t r = CrtRand();
 					s->vel[0] = (int16_t)ComputeCos(r);
 					s->vel[1] = (int16_t)ComputeSin(r);
@@ -1805,7 +1828,7 @@ namespace ws089
 		GteSetTransVector(m);
 		F<uint32_t>(h, 0x50) = 0;
 		F<uint32_t>(h, 0x48) = 0;
-		F<uint32_t>(h, 0x30) = MDL_Trail;
+		F<uint32_t>(h, 0x30) = fxp::model(PW().model_data.mdl_trail, MDL_Trail);
 		F<uint32_t>(h, 0x4C) = 0;
 		Cursor() = RenderPrimSet(h + 0x30, OTBase() + 0x44, 2, Cursor());
 		FieldFree(0x9C);
@@ -1833,7 +1856,7 @@ namespace ws089
 		F<int16_t>(h, 0x4C) = 0;
 		F<int16_t>(h, 0x40) = 0;
 		F<uint32_t>(h, 0x28) = 0;
-		F<uint32_t>(pr, 0) = 0x149D0F8;
+		F<uint32_t>(pr, 0) = fxp::model(PW().model_data.at_149d0f8, 0x149D0F8);
 		F<int16_t>(h, 0x4E) = 0x80;
 		F<int16_t>(h, 0x52) = 0x80;
 		F<int16_t>(h, 0x42) = (int16_t)((lt & 3) << 5);
@@ -1853,13 +1876,13 @@ namespace ws089
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		F<uint32_t>(h, 0x40) = 0;
-		F<uint32_t>(pr, 0) = 0x1499FA8;
+		F<uint32_t>(pr, 0) = fxp::model(PW().model_data.at_1499fa8, 0x1499FA8);
 		F<int32_t>(h, 0x38) = -0x40;
 		F<uint32_t>(h, 0x3C) = 0x30;
 		Cursor() = RenderPrimSet(pr, OTBase() + 0x44, 2, Cursor());
 		F<uint32_t>(h, 0x3C) = 0xF0;
 		F<int32_t>(h, 0x2C) = g;
-		F<uint32_t>(pr, 0) = 0x149C730;
+		F<uint32_t>(pr, 0) = fxp::model(PW().model_data.at_149c730, 0x149C730);
 		F<int32_t>(h, 0x38) = -0x40;
 		Cursor() = RenderPrimSet(pr, OTBase() + 0x44, 2, Cursor());
 		FieldFree(0x8C);
@@ -2004,7 +2027,7 @@ namespace ws089
 		s = (uint32_t)((int32_t)d->counter - 0x4B);
 		if (s < 0x14)
 		{
-			if (s == 0) DecodeModelPrimLayout(0x14A6370, d->layout, 0x68);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a6370, 0x14A6370, 0x68), d->layout, 0x68);
 			Play(d->layout, d->centre[0], d->centre[1], d->centre[2] + 0x3A98, 0, &Cursor());
 		}
 		// 0x57..0x65: a growing prim model
@@ -2034,7 +2057,7 @@ namespace ws089
 		s = (uint32_t)((int32_t)d->counter - 0x20);
 		if (s < 4)
 		{
-			if (s == 0) DecodeModelPrimLayout(0x14A09A0, d->layout, 0x70);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a09a0, 0x14A09A0, 0x70), d->layout, 0x70);
 			int16_t p[4];
 			GetEffectSpawnPosition(angelo, 0x13, 0, p);
 			Play(d->layout, p[0], p[1], p[2], -0x200, &Cursor());
@@ -2068,7 +2091,7 @@ namespace ws089
 			{
 				*(uint8_t *)Caster() |= 0xC;
 				angelo[0] |= 0xC;
-				DecodeModelPrimLayout(0x14A6600, d->layout, 0x218);
+				DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a6600, 0x14A6600, 0x218), d->layout, 0x218);
 				SpritesInit();
 				ModelsOn() = 1;
 				SpritesOn() = 1;
@@ -2084,7 +2107,7 @@ namespace ws089
 		s = (uint32_t)((int32_t)d->counter - 0x25);
 		if (s < 0xBD)
 		{
-			if (s == 0) DecodeModelPrimLayout(0x14A9FF0, d->layout2, 0xEC);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(PW().layouts.at_14a9ff0, 0x14A9FF0, 0xEC), d->layout2, 0xEC);
 			Play(d->layout2, d->centre[0], 0, d->centre[2], 0, &FrameArena());
 			FX_HELD(held_note_stars();)
 			FrameArena() = Stars(0, Centre()[0], 0, Centre()[2], 0x10000, FrameArena());
@@ -2154,7 +2177,7 @@ namespace ws089
 				const int32_t r = CrtRand();
 				p->scale = 0x400;
 				p->life = 0xE;
-				p->seq = SEQ_Spark;
+				p->seq = fxp::sequence(PW().seqs.spark, SEQ_Spark);
 				p->pos[2] = (int16_t)(sdiv_pow2(mul32(r, 10000), 15) - 0x1388);
 				p->vel[0] = (int16_t)((CrtRand() & 0x3F) - 0x20);
 				p->vel[1] = (int16_t)((CrtRand() & 0x3F) - 0x20);
@@ -2223,9 +2246,9 @@ namespace ws089
 		StreamPump();
 		// sounds
 		c = d->counter;
-		if (c == 0) BdPlaySE((const void *)0x14913F0, 1, 0x80);
-		else if (c == 0x32) BdPlaySE((const void *)0x14913F4, 1, 0x80);
-		else if (c == 0xA2) BdPlaySE((const void *)0x14913F8, 1, 0x80);
+		if (c == 0) BdPlaySE((const void *)fxp::sound(PW().sounds.rise, 0x14913F0), 1, 0x80);
+		else if (c == 0x32) BdPlaySE((const void *)fxp::sound(PW().sounds.sky, 0x14913F4), 1, 0x80);
+		else if (c == 0xA2) BdPlaySE((const void *)fxp::sound(PW().sounds.landing, 0x14913F8), 1, 0x80);
 		if (d->counter == 0x32)
 		{
 			RestoreEnemyFlags();
@@ -2291,7 +2314,7 @@ namespace ws089
 		Centre()[2] = d->centre[2];
 		PartyFlag4On();
 		*(uint16_t *)Caster() &= 0xFFFB;
-		BindExternalAnimSet(Caster(), d->animset, 0x1495530);
+		BindExternalAnimSet(Caster(), d->animset, fxp::anim_set(PW().res.anim, 0x1495530));
 		QueueChainTransformation(Caster(), 1);
 		uint8_t *angelo = d->angelo;
 		BindModelContainer(angelo, d->sections, 0x14913FC);
@@ -2315,7 +2338,7 @@ namespace ws089
 		off[0] = 0xA0;
 		off[1] = 0x6C;
 		off[2] = 0;
-		ShardsInit(MDL_Shards, off);
+		ShardsInit(fxp::model(PW().model_data.mdl_shards, MDL_Shards), off);
 		StreamStateInit((void *)(TexBase() + 0x5E5C));
 		// the star dots: 8 groups (colours 0x14AF490 / 0x14AF494, their angles reset) x 128 dots at random directions
 		uint8_t *st = (uint8_t *)(TexBase() + 0x7C04);
@@ -2342,6 +2365,20 @@ namespace ws089
 			}
 		}
 		(void)tex;
+	}
+
+	// Setup (0x6F9CF0 -> 0x6F9D00): the game runs its own; Fujin's programs this one (its memory may be a copy's): the
+	// two TIMs, the magic buffer, the cast and its caster, the root (no file loader: the shared null one)
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(fxp::tim(PW().res.tim_a, TIM_A));
+		QueueTimUpload(fxp::tim(PW().res.tim_b, TIM_B));
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = (uint8_t *)ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25565D8), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		return QRoot();
 	}
 
 	static uint32_t __cdecl RootTask(TaskNode *n)
@@ -2372,7 +2409,7 @@ namespace ws089
 				InitTaskQueuePool(QB(), (void *)(TexBase() + 0xC40), 0x30, 0x20);
 				InitTaskQueuePool(QC(), (void *)TexBase(), 0x188, 8);
 			}
-			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QA(), ORIG_Director);
+			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QA(), own::Fn(ORIG_Director));
 			if (d) DirectorInit(d);
 		}
 		int a = (int)n;
@@ -2391,19 +2428,63 @@ namespace ws089
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its 0x10F-tick timeline: Rinoa and Angelo rising, the screen shattered, the starry sky, eight dives and damage waves under the sparkles, the landing, the white fade; the camera all along" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At ticks 0, 0x32, 0xA2" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.rise", "Rise", "", (uint32_t)offsetof(WishingStarParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.sky", "Sky", "", (uint32_t)offsetof(WishingStarParams, sounds.sky), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.landing", "Landing", "", (uint32_t)offsetof(WishingStarParams, sounds.landing), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "layouts.dive", "Dive", "The prim-model layout dive (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.dive), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a6370", "At 14a6370", "The prim-model layout at 14a6370 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a6370), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a09a0", "At 14a09a0", "The prim-model layout at 14a09a0 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a09a0), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a6600", "At 14a6600", "The prim-model layout at 14a6600 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a6600), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.at_14a9ff0", "At 14a9ff0", "The prim-model layout at 14a9ff0 (its models' animation)", (uint32_t)offsetof(WishingStarParams, layouts.at_14a9ff0), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(WishingStarParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "model_data.mdl_debris", "Mdl debris model", "The prim model mdl debris (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.mdl_debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.mdl_trail", "Mdl trail model", "The prim model mdl trail (a mesh of 400 vertices, 360 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.mdl_trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_149d0f8", "Model 149D0F8", "The prim model at 0x149D0F8 (a mesh of 320 vertices, 300 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_149d0f8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_1499fa8", "Model 1499FA8", "The prim model at 0x1499FA8 (a mesh of 300 vertices, 280 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_1499fa8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_149c730", "Model 149C730", "The prim model at 0x149C730 (a mesh of 80 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.at_149c730), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.mdl_shards", "Mdl shards model", "The prim model mdl shards (a mesh of 77 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WishingStarParams, model_data.mdl_shards), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.tim_a", "TIM image a", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(WishingStarParams, res.tim_a), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "director", "res.tim_b", "TIM image b", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(WishingStarParams, res.tim_b), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(WishingStarParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag089_wishing_star()
 	{
+		fxp::register_params({ 89, "Wishing Star", &ws089::live, &ws089::GAME, sizeof(ws089::WishingStarParams),
+		                       ws089::table::PARTS, (int)(sizeof(ws089::table::PARTS) / sizeof(ws089::table::PARTS[0])),
+		                       ws089::table::FIELDS, (int)(sizeof(ws089::table::FIELDS) / sizeof(ws089::table::FIELDS[0])),
+		                       ws089::table::GROUPS, (int)(sizeof(ws089::table::GROUPS) / sizeof(ws089::table::GROUPS[0])) });
+		own::note(ws089::ORIG_Setup, (void *)ws089::Setup);
+		own::note(ws089::ORIG_RootTask, (void *)ws089::RootTask);
 		register_port(ws089::ORIG_RootTask, (void *)ws089::RootTask, "089 RootTask", 89);
+		own::note(ws089::ORIG_Director, (void *)ws089::Director);
 		register_port(ws089::ORIG_Director, (void *)ws089::Director, "089 Director", 89);
+		own::note(ws089::ORIG_FlashTask, (void *)ws089::FlashTask);
 		register_port(ws089::ORIG_FlashTask, (void *)ws089::FlashTask, "089 FlashTask", 89);
+		own::note(ws089::ORIG_DebrisTask, (void *)ws089::DebrisTask);
 		register_port(ws089::ORIG_DebrisTask, (void *)ws089::DebrisTask, "089 DebrisTask", 89);
+		own::note(ws089::ORIG_DiveTask, (void *)ws089::DiveTask);
 		register_port(ws089::ORIG_DiveTask, (void *)ws089::DiveTask, "089 DiveTask", 89);
+		own::note(ws089::ORIG_LastDiveTask, (void *)ws089::LastDiveTask);
 		register_port(ws089::ORIG_LastDiveTask, (void *)ws089::LastDiveTask, "089 LastDiveTask", 89);
 		// 30 fps layer: see mag089_wishing_star_held.inc
 		FX_HELD(register_mag089_held();)
 	}
+	FX_LAB_MODULE(register_mag089_wishing_star);
 }
 
 #ifdef FF8_FX_HELD

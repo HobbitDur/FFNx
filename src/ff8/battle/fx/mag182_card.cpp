@@ -69,6 +69,9 @@
 // after-image matrices 0x2306518, texture base 0x23065CC, packet cursor 0x23065D0).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -78,11 +81,13 @@ namespace card182
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2306508); }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2304220); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23065CC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23065D0); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23056E8; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2306508)); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x2304220)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23065CC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23065D0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2306510)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2304238); }             // 1 x 0x10
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x23056E8); }
 	static const uint32_t TRAIL_POOL = 0x2304248, TRAIL_END = 0x2304D88;    // 0x78 x 0x18 (card trails)
 	static const uint32_t SPARK_POOL = 0x2304D88, SPARK_END = 0x23056E8;    // 0x64 x 0x18 (sparkles)
 	static const uint32_t AFTER = 0x2306518, AFTER_END = 0x23065CC;          // 5 x 0x24: CardModel world matrices
@@ -103,6 +108,24 @@ namespace card182
 	static const uint32_t SPARK_COLOURS = 0xD3D3C4;                           // 8 colour words
 	static const void *const SOUND_CardA = (const void *)0xD3D38C;
 	static const void *const SOUND_CardB = (const void *)0xD3D388;
+	static const uint32_t ORIG_FileLoader = 0x5C9FC0, ORIG_Setup = 0x5C9FE0;
+	static const uint32_t TEXTURE_NAME = 0xD3D3E4, CAMERA_SHORT = 0xD39FD8, CAMERA_CARD = 0xD39370;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct CardParams
+	{
+		struct { uint32_t short_, card; } sounds;          // at the director's tick 1: no card (A) / carded (B)
+		struct { int16_t result_short, result_card; } director; // the action result at this tick (A / B)
+		struct { uint32_t sparkle, card; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, card; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, camera_2; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t spark_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const CardParams GAME = { { 0xD3D38C, 0xD3D388 }, { 0x23, 0x40 }, { SEQ_Sparkle, SEQ_Card }, { MODEL_Ring, MODEL_Card }, { TEXTURE_NAME, CAMERA_SHORT, CAMERA_CARD }, { 0xD3D3C4 } };
+	static CardParams live = GAME;
+	static const CardParams &P() { return live; }
 
 	// ---- engine functions (original addresses)
 	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // GTE_SetFarColor
@@ -153,9 +176,9 @@ namespace card182
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Card nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(AfterImage) == 0x24, "Card pools");
 
-	inline Particle *TrailPool() { return (Particle *)TRAIL_POOL; }
-	inline Particle *SparkPool() { return (Particle *)SPARK_POOL; }
-	inline AfterImage *After() { return (AfterImage *)AFTER; }
+	inline Particle *TrailPool() { return (Particle *)own::R(TRAIL_POOL); }
+	inline Particle *SparkPool() { return (Particle *)own::R(SPARK_POOL); }
+	inline AfterImage *After() { return (AfterImage *)own::R(AFTER); }
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 	inline uint32_t &Cursor() { return PacketCursor(); }
 
@@ -191,14 +214,14 @@ namespace card182
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sparkle, SEQ_Sparkle);
 		*(int16_t *)(h + 0x24) = 4;
 		return h;
 	}
 	static void SparkDraw(uint8_t *h, const Particle *p)
 	{
 		*(int16_t *)(h + 4) = p->frame;
-		*(uint32_t *)(h + 0x1C) = var<uint32_t>(SPARK_COLOURS + (uint32_t)((int32_t)p->frame % 8) * 4);
+		*(uint32_t *)(h + 0x1C) = var<uint32_t>(fxp::data(P().tables.spark_colours, SPARK_COLOURS, 32, 4) + (uint32_t)((int32_t)p->frame % 8) * 4);
 		TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->scale >> 4));
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
@@ -211,7 +234,7 @@ namespace card182
 	{
 		ModelMatrix(angle, n->x, 0, n->z, scale, scale, scale, nullptr);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
 		*(int32_t *)(h + 0xC) = fade;
@@ -239,7 +262,7 @@ namespace card182
 	static uint8_t *CardHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Card;
+		*(uint32_t *)h = fxp::sequence(P().seqs.card, SEQ_Card);
 		*(int16_t *)(h + 0x24) = 8;
 		return h;
 	}
@@ -271,7 +294,7 @@ namespace card182
 		slot->used = 1;
 		ModelMatrix(angle, x, y, z, scale, scale, scale, &slot->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_Card;
+		*(uint32_t *)h = fxp::model(P().models.card, MODEL_Card);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (c < 0x1E)
@@ -338,6 +361,42 @@ namespace card182
 	// ------------------------------------------------------------------
 	// Sparkles (0x5CA490)
 	// ------------------------------------------------------------------
+	// File loader (0x5C9FC0) and setup (0x5C9FE0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root, the director (target
+	// record 0 +3 bit 2: DirectorA and the short camera, else DirectorB and the card camera), both pools cleared, the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x230650C)) = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2304228), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x23056F8), 0x24, 100);
+		uint8_t *d;
+		if (ctx->actions[0].targets[3] & 4)
+		{
+			d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_DirectorA));
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_SHORT));
+		}
+		else
+		{
+			d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_DirectorB));
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera_2, CAMERA_CARD));
+		}
+		*(uint16_t *)(d + 0xC) = 0;
+		for (uint32_t a = own::R(SPARK_POOL); a < own::R(SPARK_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(TRAIL_POOL); a < own::R(TRAIL_END); a += 0x18) *(int32_t *)a = 0;
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl SparklesTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
@@ -345,7 +404,7 @@ namespace card182
 		FX_HELD(held_note_pool(ORIG_Sparkles, n);)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
-		for (Particle *p = SparkPool(); (uint32_t)p < SPARK_END; p++)
+		for (Particle *p = SparkPool(); (uint32_t)p < own::R(SPARK_END); p++)
 		{
 			if (!(p->tag & 1)) continue;
 			SparkDraw(h, p);
@@ -365,7 +424,7 @@ namespace card182
 				int i = 0;
 				Particle *p = SparkPool();
 				for (; p->tag != 0; p++, i++)
-					if ((uint32_t)(p + 1) >= SPARK_END) { p = nullptr; break; }
+					if ((uint32_t)(p + 1) >= own::R(SPARK_END)) { p = nullptr; break; }
 				if (!p || i >= 0x64) break;
 				p->tag = 1;
 				p->frame = 0;
@@ -443,7 +502,7 @@ namespace card182
 		uint8_t *h = CardHeader();
 		int alive = 0;
 		if (n->c < 8) CardSpriteDraw(h, n->c, &n->x, n->w1C);
-		for (Particle *p = TrailPool(); (uint32_t)p < TRAIL_END; p++)
+		for (Particle *p = TrailPool(); (uint32_t)p < own::R(TRAIL_END); p++)
 		{
 			if (!(p->tag & (uint32_t)(int32_t)n->e)) continue;
 			TrailDraw(h, p);
@@ -461,7 +520,7 @@ namespace card182
 				int i = 0;
 				Particle *p = TrailPool();
 				for (; p->tag != 0; p++, i++)
-					if ((uint32_t)(p + 1) >= TRAIL_END) { p = nullptr; break; }
+					if ((uint32_t)(p + 1) >= own::R(TRAIL_END)) { p = nullptr; break; }
 				if (!p || i >= 0x78) break;
 				p->tag = (uint32_t)(int32_t)n->e;
 				p->frame = 6;
@@ -540,13 +599,13 @@ namespace card182
 	// counter 1: sparkles, two rings, twelve shards
 	static void DirectorSpawn(Node *t)
 	{
-		Node *s = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Sparkles);
+		Node *s = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Sparkles));
 		*(uint32_t *)&s->x = *(const uint32_t *)&t->x;
 		*(uint32_t *)&s->z = *(const uint32_t *)&t->z;
 		s->w1C = t->w1C;
 		s->c = 0;
 		s->w1E = t->w1E;
-		Node *r1 = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+		Node *r1 = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring));
 		*(uint32_t *)&r1->x = *(const uint32_t *)&t->x;
 		r1->c = 0;
 		*(uint32_t *)&r1->z = *(const uint32_t *)&t->z;
@@ -556,7 +615,7 @@ namespace card182
 		r1->w1A = (int16_t)(rr + 0x14);
 		r1->w1E = (int16_t)(sc / 16);
 		r1->w1C = (int16_t)(sc / 16);
-		Node *r2 = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+		Node *r2 = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring));
 		*(uint32_t *)&r2->x = *(const uint32_t *)&t->x;
 		r2->c = 0;
 		*(uint32_t *)&r2->z = *(const uint32_t *)&t->z;
@@ -566,7 +625,7 @@ namespace card182
 		r2->w1C = r1->w1C;
 		for (int k = 0; k < 0xC; k++)
 		{
-			Node *d = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Shard);
+			Node *d = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Shard));
 			*(uint32_t *)&d->x = *(const uint32_t *)&t->x;
 			d->c = 0;
 			d->e = (int16_t)k;
@@ -612,9 +671,9 @@ namespace card182
 		Node *t = (Node *)tn;
 		if (t->c == 0) DirectorStart(t);
 		if (t->c == 1) DirectorSpawn(t);
-		if (t->c == 0x23) DirectorResult(t);
+		if (t->c == P().director.result_short) DirectorResult(t);
 		DirectorFlash(t->c, 0x28);
-		if (t->c == 1) DirectorSound(SOUND_CardA);
+		if (t->c == 1) DirectorSound((const void *)fxp::sound(P().sounds.short_, (uint32_t)SOUND_CardA));
 		t->c++;
 		if (t->c <= 0x28) return 0;
 		SetScreenFlash(0, 0);
@@ -631,7 +690,7 @@ namespace card182
 		{
 			for (int k = 0; k < 0xC; k++)
 			{
-				Node *d = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Card);
+				Node *d = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Card));
 				d->c = 0;
 				d->e = (int16_t)(1 << k);
 				d->x = (int16_t)(CrtRand() % 0x384 + t->x - 0x1C2);
@@ -646,7 +705,7 @@ namespace card182
 		}
 		if (t->c == 0x1A)
 		{
-			Node *m = (Node *)AddTaskToQueue(EffectQueue(), ORIG_CardModel);
+			Node *m = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_CardModel));
 			m->c = 0;
 			m->x = t->x;
 			m->y = (int16_t)(t->w16 - 0x1F4);
@@ -655,19 +714,19 @@ namespace card182
 			m->w1C = 0x800;
 			m->w1A = (int16_t)(CrtRand() % 0xC8 + 0x3E8);
 			m->w1E = (int16_t)(CrtRand() % 0x23 + 0x41);
-			for (AfterImage *a = After(); (uint32_t)a < AFTER_END; a++) a->used = 0;
+			for (AfterImage *a = After(); (uint32_t)a < own::R(AFTER_END); a++) a->used = 0;
 		}
 		if (t->c == 0x14)
 		{
-			Node *f = (Node *)AddTaskToQueue(EffectQueue(), ORIG_TargetFade);
+			Node *f = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_TargetFade));
 			f->c = 0;
 			f->e = (int16_t)TargetSlot();
 			f->w18 = 6;
 			f->w1A = (int16_t)(*(const uint16_t *)Target() & 0x800);
 		}
-		if (t->c == 0x40) DirectorResult(t);
+		if (t->c == P().director.result_card) DirectorResult(t);
 		DirectorFlash(t->c, 0x41);
-		if (t->c == 1) DirectorSound(SOUND_CardB);
+		if (t->c == 1) DirectorSound((const void *)fxp::sound(P().sounds.card, (uint32_t)SOUND_CardB));
 		t->c++;
 		if (t->c <= 0x41) return 0;
 		SetScreenFlash(0, 0);
@@ -688,22 +747,62 @@ namespace card182
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The sparkles, the two rings, the shards, the screen flash, the sound; carded: the target fading, the card spinning out of it, the twelve small cards with their trails; the action result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the director's tick 1: no card / carded" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.short_", "Sound (no card)", "DirectorA's, at its tick 1", (uint32_t)offsetof(CardParams, sounds.short_), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.card", "Sound (carded)", "DirectorB's, at its tick 1", (uint32_t)offsetof(CardParams, sounds.card), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.result_short", "Result tick (no card)", "DirectorA's action result at this tick", (uint32_t)offsetof(CardParams, director.result_short), fxp::I16, 0, 40 },
+			{ "director", "director.result_card", "Result tick (carded)", "DirectorB's action result at this tick", (uint32_t)offsetof(CardParams, director.result_card), fxp::I16, 0, 65 },
+			{ "director", "seqs.sparkle", "Sparkle", "The sprite sequence sparkle (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CardParams, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.card", "Card", "The sprite sequence card (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(CardParams, seqs.card), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CardParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.card", "Card model", "The prim model card (a mesh of 35 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CardParams, models.card), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(CardParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(CardParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "res.camera_2", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(CardParams, res.camera_2), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "tables.spark_colours", "Spark colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(CardParams, tables.spark_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag182_card()
 	{
+		fxp::register_params({ 182, "Card", &card182::live, &card182::GAME, sizeof(card182::CardParams),
+		                       card182::table::PARTS, (int)(sizeof(card182::table::PARTS) / sizeof(card182::table::PARTS[0])),
+		                       card182::table::FIELDS, (int)(sizeof(card182::table::FIELDS) / sizeof(card182::table::FIELDS[0])),
+		                       card182::table::GROUPS, (int)(sizeof(card182::table::GROUPS) / sizeof(card182::table::GROUPS[0])) });
+		own::note(card182::ORIG_FileLoader, (void *)card182::FileLoader);
+		own::note(card182::ORIG_Setup, (void *)card182::Setup);
+		own::note(card182::ORIG_RootTask, (void *)card182::RootTask);
 		register_port(card182::ORIG_RootTask, (void *)card182::RootTask, "C182 RootTask", 182);
+		own::note(card182::ORIG_DirectorA, (void *)card182::DirectorATask);
 		register_port(card182::ORIG_DirectorA, (void *)card182::DirectorATask, "C182 DirectorA", 182);
+		own::note(card182::ORIG_DirectorB, (void *)card182::DirectorBTask);
 		register_port(card182::ORIG_DirectorB, (void *)card182::DirectorBTask, "C182 DirectorB", 182);
+		own::note(card182::ORIG_Sparkles, (void *)card182::SparklesTask);
 		register_port(card182::ORIG_Sparkles, (void *)card182::SparklesTask, "C182 Sparkles", 182);
+		own::note(card182::ORIG_Ring, (void *)card182::RingTask);
 		register_port(card182::ORIG_Ring, (void *)card182::RingTask, "C182 Ring", 182);
+		own::note(card182::ORIG_Shard, (void *)card182::ShardTask);
 		register_port(card182::ORIG_Shard, (void *)card182::ShardTask, "C182 Shard", 182);
+		own::note(card182::ORIG_Card, (void *)card182::CardTask);
 		register_port(card182::ORIG_Card, (void *)card182::CardTask, "C182 Card", 182);
+		own::note(card182::ORIG_CardModel, (void *)card182::CardModelTask);
 		register_port(card182::ORIG_CardModel, (void *)card182::CardModelTask, "C182 CardModel", 182);
+		own::note(card182::ORIG_TargetFade, (void *)card182::TargetFadeTask);
 		register_port(card182::ORIG_TargetFade, (void *)card182::TargetFadeTask, "C182 TargetFade", 182);
 		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(register_mag182_held();)
 	}
+	FX_LAB_MODULE(register_mag182_card);
 }
 
 #ifdef FF8_FX_HELD

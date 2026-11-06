@@ -40,6 +40,9 @@
 // 0x648970 are called through their original addresses.
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -112,18 +115,18 @@ namespace o187
 
 	// --- module globals ---
 	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x24FE880); }  // effect frame (setup: rotation, centroid 0x24FE894/98/9C)
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x24FE8A0); }       // Camera o RootMatrix, rebuilt by the timeline every tick
-	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x24FD990); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x24FE7B0); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x24FD6D4); }
-	inline uint8_t *Creature() { return (uint8_t *)0x24FD8D8; }       // +0x28 colour 0x24FD900, +0x40 model matrix 0x24FD918, +0x60 BattleAnimHeader, +0x6C BattleAnimCmd
-	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(0x24FD918); }
-	inline Mat4x3 &BoneCopy() { return var<Mat4x3>(0x24FE8C0); }     // creature bone matrix (skeleton + 0xB30) copied by the blade task
-	inline int16_t *BladeP0() { return (int16_t *)0x24FD980; }       // blade end points (effect frame), written by the blade task
-	inline int16_t *BladeP1() { return (int16_t *)0x24FD988; }
-	inline uint32_t &DoneFlags() { return var<uint32_t>(0x24FD50C); } // bit0 creature done
-	inline uint32_t MB() { return var<uint32_t>(0x24FE8E0); }        // model buffer (0x20DFAB8)
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(own::R(0x24FE880)); }  // effect frame (setup: rotation, centroid 0x24FE894/98/9C)
+	inline Mat4x3 &Frame() { return var<Mat4x3>(own::R(0x24FE8A0)); }       // Camera o RootMatrix, rebuilt by the timeline every tick
+	inline TaskQueue &SubQueue() { return var<TaskQueue>(own::R(0x24FD990)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x24FE7B0)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(own::R(0x24FD6D4)); }
+	inline uint8_t *Creature() { return (uint8_t *)own::R(0x24FD8D8); }       // +0x28 colour 0x24FD900, +0x40 model matrix 0x24FD918, +0x60 BattleAnimHeader, +0x6C BattleAnimCmd
+	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(own::R(0x24FD918)); }
+	inline Mat4x3 &BoneCopy() { return var<Mat4x3>(own::R(0x24FE8C0)); }     // creature bone matrix (skeleton + 0xB30) copied by the blade task
+	inline int16_t *BladeP0() { return (int16_t *)own::R(0x24FD980); }       // blade end points (effect frame), written by the blade task
+	inline int16_t *BladeP1() { return (int16_t *)own::R(0x24FD988); }
+	inline uint32_t &DoneFlags() { return var<uint32_t>(own::R(0x24FD50C)); } // bit0 creature done
+	inline uint32_t MB() { return var<uint32_t>(own::R(0x24FE8E0)); }        // model buffer (0x20DFAB8)
 	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }   // battle_texture_data_ptr_1D8E054
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint8_t *PoolA() { return var<uint8_t *>(0xE41E50); }     // mb + 0x30000
@@ -139,6 +142,24 @@ namespace o187
 
 	static const uint32_t ORIG_SequenceTick = 0x64DD50;
 	static const uint32_t ORIG_TimelineTask = 0x6474C0;
+	static const uint32_t ORIG_FileLoader = 0x575570, ORIG_Setup = 0x6472E0;   // (the file loader is the engine's nullsub)
+	static const uint32_t TIM_ENVIRO = 0xFAD4A8;   // GF_Odin_TextureEnviro (exe data)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct OdinParams
+	{
+		uint32_t voice;                            // the voice slot claimed at the timeline's tick 0
+		struct { uint32_t start, sword, slash; } sounds; // at the timeline's ticks 1, 111, 167
+		struct { int16_t damage; } timeline;       // the action result at this tick
+		struct { uint32_t at_e3cfd0, at_e3cff8, at_e3d300, at_e3cc38, at_e3d154; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_e40848, at_e40160, at_e3eff0, at_e41140, at_e41b28; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_enviro; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const OdinParams GAME = { 0xE41CE8, { 0xE41E40, 0xE41E44, 0xE41E48 }, { 0x11F }, { 0xE3CFD0, 0xE3CFF8, 0xE3D300, 0xE3CC38, 0xE3D154 }, { 0xE40848, 0xE40160, 0xE3EFF0, 0xE41140, 0xE41B28 }, { TIM_ENVIRO } };
+	static OdinParams live = GAME;
+	static const OdinParams &P() { return live; }
 	static const uint32_t ORIG_GridATask = 0x6479D0;
 	static const uint32_t ORIG_GridBTask = 0x647E40;
 	static const uint32_t ORIG_DebrisTask = 0x647F80;
@@ -218,7 +239,7 @@ namespace o187
 	// au_re_BdLinkTask_98 0x647900 (no null check, as the original)
 	static Node24 *LinkTask(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
@@ -253,14 +274,14 @@ namespace o187
 	// MAG_187_sub_647960 (tick 6): the two ground grids
 	static void SpawnGrids()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GridATask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xE4A8;
 		n->p14 = (int16_t)0xEE6C;
 		n->a18 = 0x400;
 		n->s1C = 0x3000;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridBTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GridBTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xE570;
@@ -272,17 +293,17 @@ namespace o187
 	// MAG_187_sub_6483B0 (tick 40): texture warp, glow, two screen streaks
 	static void SpawnIntro()
 	{
-		Node24 *w = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_WarpTask);
+		Node24 *w = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_WarpTask));
 		w->c = 0;
 		int32_t r = CrtRand() % 0x1000;
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GlowTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_GlowTask));
 		w->a18 = (int16_t)r;
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
 		n->p14 = 0;
 		n->s1C = 0xB00;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_StreakTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_StreakTask));
 		n->c = 0;
 		n->e = 1;
 		n->p10 = -50;
@@ -291,7 +312,7 @@ namespace o187
 		n->s1C = 0xC00;
 		n->s1E = -4;
 		n->s20 = 0x500;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_StreakTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_StreakTask));
 		n->e = 1;
 		n->c = 0;
 		n->p10 = 0x5A;
@@ -312,7 +333,7 @@ namespace o187
 			uint8_t *rec = *(uint8_t **)(t + 8) + 0x18 * i;
 			if (rec[3] & 4) continue;
 			uint32_t slot = rec[0];
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SliceTask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SliceTask));
 			n->c = 0;
 			n->e = (int16_t)slot;
 			SpawnPosMid(Entity(slot), &n->p10);
@@ -334,6 +355,53 @@ namespace o187
 
 	static void Stream() { BdPlaySummonStream(0x80, 0, 0x60); }
 
+	// Setup (0x6472E0; the file loader is the engine's nullsub): the game runs its own; Fujin's programs this (its
+	// memory may be a copy's): the model buffer (the magic buffer) and the exe data pool pointers into it, the summon
+	// data pointer, the cast, its first target and its caster, the master and the timeline, the three sprite pools
+	// cleared, the exe's environment TIM, the effect frame (the target's yaw + 0x800, at the targets' centre 4400 in
+	// front of the target)
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +2 target mask, +4 the actions)
+	{
+		const uint32_t mb = (uint32_t)layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x24FE8E0)) = mb;
+		var<uint32_t>(0xE41E50) = mb + 0x30000;
+		var<uint32_t>(0xE41E98) = mb + 0x38000;
+		var<uint32_t>(0xE41E54) = mb + 0x31000;
+		var<uint32_t>(0xE41E58) = mb + 0x32000;
+		const uint8_t *action = *(uint8_t **)(ctx + 4);
+		var<uint32_t>(own::R(0x24FE8E8)) = 0xFA54A8;
+		const int32_t target = (*(uint8_t **)(action + 8))[0];
+		var<uint8_t *>(own::R(0x24FE7B0)) = ctx;
+		var<int32_t>(own::R(0x24FD508)) = target;
+		var<int32_t>(own::R(0x24FE7B4)) = ctx[0];
+		InitTaskQueuePool((TaskQueue *)own::R(0x24FD6C0), (void *)own::R(0x24FD6A0), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue((TaskQueue *)own::R(0x24FD6C0), own::Fn(ORIG_SequenceTick)) + 0xC) = 0;
+		InitTaskQueuePool(&SubQueue(), (void *)own::R(0x24FD9A0), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TimelineTask)) + 0xC) = 0;
+		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolA() + 0x18 * i) = 0;
+		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolB() + 0x18 * i) = 0;
+		for (int i = 0; i < 150; i++) *(uint32_t *)(PoolC() + 0x18 * i) = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_enviro, TIM_ENVIRO));   // Battle_QueueTIMUpload_GetEOF
+		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
+		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
+		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
+		int16_t *centre = (int16_t *)own::R(0x24FD978);
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)(ctx + 2), centre); // CalculateCenterPosition
+		int32_t *t = (int32_t *)own::R(0x24FE894);
+		t[2] = centre[2];
+		t[0] = 0;
+		t[1] = 0;
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = -4400;
+		fn<uint32_t (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(e + 0x40, v, v);  // matrixMultiplyVector
+		t[0] += v[0];
+		DoneFlags() = 0;
+		t[1] += v[1];
+		t[2] += v[2];
+		return (TaskQueue *)own::R(0x24FD6C0);
+	}
+
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -347,15 +415,15 @@ namespace o187
 		if (n->c == 0)
 		{
 			CameraScriptStart(0xE41F28, &RootMatrix(), Creature(), &SubQueue(), 0);
-			BdTransSummonStream(0xFA54A4, 0x24FD6D0);
-			VoiceSlot() = ClaimVoiceSlot((const void *)0xE41CE8, 1, 0x80);
+			BdTransSummonStream(0xFA54A4, own::R(0x24FD6D0));
+			VoiceSlot() = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0xE41CE8), 1, 0x80);
 		}
 		int32_t c = n->c;
 		if (c < 12)
 		{
 			if (c == 1)
 			{
-				BdPlaySE(0xE41E40, 0, 0x80);
+				BdPlaySE(fxp::sound(P().sounds.start, 0xE41E40), 0, 0x80);
 				CharacterLoad(0x225, MB() + 0x14000);
 			}
 			else if (c == 6) SpawnGrids();
@@ -386,11 +454,11 @@ namespace o187
 			c -= 28;
 			if (c < 25) // 91..115
 			{
-				if (c == 20) BdPlaySE(0xE41E44, 0, 0x80);
+				if (c == 20) BdPlaySE(fxp::sound(P().sounds.sword, 0xE41E44), 0, 0x80);
 			}
 			else if ((c -= 25) < 35) // 116..150
 			{
-				if (c == 17) BdTransSummonStream(SummonData(), 0x24FD6D0);
+				if (c == 17) BdTransSummonStream(SummonData(), own::R(0x24FD6D0));
 				else if (c == 22) Stream();
 				else if (c == 1)
 				{
@@ -409,13 +477,13 @@ namespace o187
 				if (c == 12)
 				{
 					if (LoadState() < 0) return 0;
-					BdTransSummonStream(SummonData(), 0x24FD6D0);
+					BdTransSummonStream(SummonData(), own::R(0x24FD6D0));
 				}
 				else if (c == 19)
 				{
-					if (var<uint8_t>(0x24FD6D0)) CharacterLoad(0x22A, SummonData());
+					if (var<uint8_t>(own::R(0x24FD6D0))) CharacterLoad(0x22A, SummonData());
 				}
-				else if (c == 17) BdPlaySE(0xE41E48, 0, 0x80);
+				else if (c == 17) BdPlaySE(fxp::sound(P().sounds.slash, 0xE41E48), 0, 0x80);
 			}
 			else if ((c -= 20) < 12) { if (c == 2) Stream(); }      // 171..182
 			else if ((c -= 12) < 12) { if (c == 2) Stream(); }      // 183..194
@@ -425,7 +493,7 @@ namespace o187
 				if (c == 0)
 				{
 					if (LoadState() < 0) return 0;
-					BdTransSummonStream(SummonData(), 0x24FD6D0);
+					BdTransSummonStream(SummonData(), own::R(0x24FD6D0));
 					SpawnSlices();
 				}
 				else if (c == 4) Stream();
@@ -449,7 +517,7 @@ namespace o187
 			SetScreenFlash(0xA00, 0);
 		}
 		else if (cc >= 0x111) SetScreenFlash((uint32_t)((0x121 - (int32_t)cc) * 160), 0);
-		if (n->c == 0x11F)
+		if (n->c == P().timeline.damage)
 		{
 			uint8_t *t = Targets();
 			ApplyActionResultToTargets(*(uint32_t *)(t + 8), t[0x10]);
@@ -620,7 +688,7 @@ namespace o187
 		*(uint32_t *)(h + 0x14) = 0x1000;
 		*(uint32_t *)(h + 0xC) = 0x1000;
 		memcpy(s + 8, &Camera(), 0x20);
-		*(uint32_t *)h = 0xE3CFD0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e3cfd0, 0xE3CFD0);
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 2;
 		GteSetLightMatrix(s + 8);
@@ -629,7 +697,7 @@ namespace o187
 
 	static void DebrisSetupB(uint8_t *h, uint8_t *s)
 	{
-		*(uint32_t *)h = 0xE3CFF8;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e3cff8, 0xE3CFF8);
 		*(int16_t *)(h + 0x24) = 0x200;
 		*(int16_t *)(s + 0) = 0x400;
 		*(int16_t *)(s + 2) = 0;
@@ -725,7 +793,7 @@ namespace o187
 	static uint32_t __cdecl WarpTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		uint8_t *src = var<uint8_t *>(0x24FE8E8);
+		uint8_t *src = var<uint8_t *>(own::R(0x24FE8E8));
 		uint8_t *dst = src + 0x4000;
 		int32_t a1 = n->a18, a2 = n->a18;
 		uint8_t *row = dst;
@@ -768,7 +836,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x7C);
-		*(uint32_t *)h = 0xE40848;
+		*(uint32_t *)h = fxp::model(P().models.at_e40848, 0xE40848);
 		*(uint16_t *)(h + 0x1C) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = c;
@@ -813,7 +881,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE40160;
+		*(uint32_t *)h = fxp::model(P().models.at_e40160, 0xE40160);
 		*(uint32_t *)(h + 0xC) = 0x800;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -1030,7 +1098,7 @@ namespace o187
 	// MAG_187_sub_64A690 (creature tick 3): two expanding rings (prim 0xE41140)
 	static void SpawnRings()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RingATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_RingATask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
@@ -1039,7 +1107,7 @@ namespace o187
 		n->s1C = 0xE00;
 		n->s22 = 0x555;
 		n->s20 = 0x555;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RingBTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_RingBTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
@@ -1053,14 +1121,14 @@ namespace o187
 	// MAG_187_sub_64B040 (creature tick 52): creature fade-in, screen flash, morph flash
 	static void SpawnFadeIn()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_FadeInTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_FadeInTask));
 		n->c = 0;
 		n->e = 0;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_FlashTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_FlashTask));
 		n->c = 0;
 		n->e = 0xA10;
 		n->s1C = 0xFF;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_MorphTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_MorphTask));
 		n->c = 0;
 		n->s1C = 0x400;
 		n->s20 = 0x400;
@@ -1069,36 +1137,36 @@ namespace o187
 	// MAG_187_sub_64B610 (creature tick 82): sword sparks, history 0x24FD510 cleared
 	static void SpawnSparks()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SparkTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SparkTask));
 		n->c = 0;
-		for (uint32_t a = 0x24FD510; a < 0x24FD54C; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(0x24FD510); a < own::R(0x24FD54C); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	// MAG_187_sub_64BB20 (creature tick 106): two spark tasks on bones 0x1E / 0x34, histories cleared
 	static void SpawnSparks2()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_Spark2Task);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_Spark2Task));
 		n->c = 0;
 		n->e = 0x1E;
 		n->a18 = 1;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_Spark2Task);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_Spark2Task));
 		n->c = 0;
 		n->e = 0x34;
 		n->a18 = 2;
-		for (uint32_t a = TRAIL_RECS; a < 0x24FE880; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(TRAIL_RECS); a < own::R(0x24FE880); a += 0x14) *(uint32_t *)a = 0;
 		for (uint32_t k = 0; k < 0x3C; k += 0x14)
 		{
-			*(uint32_t *)(0x24FD510 + k) = 0;
-			*(uint32_t *)(0x24FD5D8 + k) = 0;
+			*(uint32_t *)(own::R(0x24FD510) + k) = 0;
+			*(uint32_t *)(own::R(0x24FD5D8) + k) = 0;
 		}
 	}
 
 	// MAG_187_sub_64C300 (creature ticks 123/135/147): the blade trail, its history cleared
 	static void SpawnTrail()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_TrailTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TrailTask));
 		n->c = 0;
-		for (uint32_t a = TRAIL_RECS; a < 0x24FE880; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(TRAIL_RECS); a < own::R(0x24FE880); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	// MAG_187_sub_64D850 (creature ticks 121/133/145, k = 3/4/5): one stroke (0x64D930) and four
@@ -1106,7 +1174,7 @@ namespace o187
 	static void SpawnStrokes(int32_t k)
 	{
 		const int16_t *t = (const int16_t *)(0xE41EF8 + 8 * k);
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashCTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashCTask));
 		n->e = t[3];
 		int16_t z = t[2];
 		n->p10 = t[0];
@@ -1120,7 +1188,7 @@ namespace o187
 		n->s22 = z;
 		for (int i = 0; i < 4; i++)
 		{
-			Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashDTask);
+			Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashDTask));
 			u->e = n->e;
 			*(uint32_t *)&u->p10 = *(const uint32_t *)&n->p10;
 			*(uint32_t *)&u->p14 = *(const uint32_t *)&n->p14;
@@ -1142,7 +1210,7 @@ namespace o187
 		for (uint32_t e = 0xE41EF8; e < 0xE41F10; e += 8)
 		{
 			const int16_t *t = (const int16_t *)e;
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashATask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashATask));
 			n->e = t[3];
 			int16_t z = t[2];
 			n->p10 = t[0];
@@ -1156,7 +1224,7 @@ namespace o187
 			n->s22 = z;
 			for (int i = 0; i < 2; i++)
 			{
-				Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashBTask);
+				Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SlashBTask));
 				u->e = n->e;
 				*(uint32_t *)&u->p10 = *(const uint32_t *)&n->p10;
 				*(uint32_t *)&u->p14 = *(const uint32_t *)&n->p14;
@@ -1179,7 +1247,7 @@ namespace o187
 		for (uint32_t i = 0; i < Targets()[0x10]; i++)
 		{
 			uint32_t slot = (*(uint8_t **)(Targets() + 8))[0x18 * i];
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_HideTask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_HideTask));
 			n->a18 = (int16_t)slot;
 			n->c = 0;
 			n->e = (int16_t)k;
@@ -1203,14 +1271,14 @@ namespace o187
 		uint8_t *E = Creature();
 		if (n->c == 0)
 		{
-			ResetRotation((void *)0x24FD918);
-			var<uint16_t>(0x24FD928) = 0x2000;
-			var<uint16_t>(0x24FD920) = 0x2000;
-			var<uint16_t>(0x24FD918) = 0x2000;
-			var<int32_t>(0x24FD930) = 0;
-			var<int32_t>(0x24FD92C) = 0;
-			var<int32_t>(0x24FD934) = 0x708;
-			ModelInit(E, (uint8_t *)0x24FE8F0, (uint8_t *)MB(), 0xF);
+			ResetRotation((void *)own::R(0x24FD918));
+			var<uint16_t>(own::R(0x24FD928)) = 0x2000;
+			var<uint16_t>(own::R(0x24FD920)) = 0x2000;
+			var<uint16_t>(own::R(0x24FD918)) = 0x2000;
+			var<int32_t>(own::R(0x24FD930)) = 0;
+			var<int32_t>(own::R(0x24FD92C)) = 0;
+			var<int32_t>(own::R(0x24FD934)) = 0x708;
+			ModelInit(E, (uint8_t *)own::R(0x24FE8F0), (uint8_t *)MB(), 0xF);
 			E[0] |= 1;
 			LinkTask(ORIG_BladeTask);
 		}
@@ -1229,9 +1297,9 @@ namespace o187
 		}
 		if ((c -= 12) < 28) // 12..39
 		{
-			var<uint16_t>(0x24FD928) = 0x1000;
-			var<uint16_t>(0x24FD920) = 0x1000;
-			var<uint16_t>(0x24FD918) = 0x1000;
+			var<uint16_t>(own::R(0x24FD928)) = 0x1000;
+			var<uint16_t>(own::R(0x24FD920)) = 0x1000;
+			var<uint16_t>(own::R(0x24FD918)) = 0x1000;
 			if (Paused()) goto draw;
 			if (c == 0) SetAnim(1);
 			else if (c == 9) LinkTask(ORIG_MistTask);
@@ -1262,7 +1330,7 @@ namespace o187
 			if (!Paused() && c == 0) SetAnim(4);
 			Draw(E);
 			if (Paused()) goto end;
-			if (c < 4) var<int32_t>(0x24FD934) += 0x5A;
+			if (c < 4) var<int32_t>(own::R(0x24FD934)) += 0x5A;
 			AdvanceModelAnimLoop(E);
 			GetEffectSpawnPosition(E, 0, 0, &n->p10);
 			goto end;
@@ -1272,9 +1340,9 @@ namespace o187
 			if (Paused()) goto draw_advance;
 			if (c == 0)
 			{
-				var<int32_t>(0x24FD92C) = 0;
-				var<int32_t>(0x24FD930) = 0;
-				var<int32_t>(0x24FD934) = n->p14 - 100;
+				var<int32_t>(own::R(0x24FD92C)) = 0;
+				var<int32_t>(own::R(0x24FD930)) = 0;
+				var<int32_t>(own::R(0x24FD934)) = n->p14 - 100;
 				SetAnim(5);
 			}
 			else if (c == 3)
@@ -1322,9 +1390,9 @@ namespace o187
 		if ((c -= 2) < 11) // 157..167
 		{
 			if (Paused() || c != 0) goto draw;
-			var<int32_t>(0x24FD930) = 0x2BC;
-			var<int32_t>(0x24FD934) = (int32_t)0xFFFFDD3C;
-			var<int32_t>(0x24FD92C) = mul32(var<int32_t>(0x24FBE78), -1900);
+			var<int32_t>(own::R(0x24FD930)) = 0x2BC;
+			var<int32_t>(own::R(0x24FD934)) = (int32_t)0xFFFFDD3C;
+			var<int32_t>(own::R(0x24FD92C)) = mul32(var<int32_t>(0x24FBE78), -1900);
 			SetAnim(6);
 			goto draw;
 		}
@@ -1371,11 +1439,11 @@ namespace o187
 		}
 		int16_t c = n->c;
 		int32_t v = c >= 1 ? (int32_t)c * 12 - 12 : 0;
-		var<uint32_t>(0x24FD900) = Rgb(v);
+		var<uint32_t>(own::R(0x24FD900)) = Rgb(v);
 		if (Paused()) return 0;
 		n->c = (int16_t)(c + 1);
 		if (n->c < 0xB) return 0;
-		var<uint32_t>(0x24FD900) = 0x808080;
+		var<uint32_t>(own::R(0x24FD900)) = 0x808080;
 		return TASK_END;
 	}
 
@@ -1461,7 +1529,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3EFF0;
+		*(uint32_t *)h = fxp::model(P().models.at_e3eff0, 0xE3EFF0);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		if (fade)
@@ -1520,7 +1588,7 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE3D300;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e3d300, 0xE3D300);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		LitSetup(&Frame(), s, 0, 0, 0x28);
@@ -1595,7 +1663,7 @@ namespace o187
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE41140;
+		*(uint32_t *)h = fxp::model(P().models.at_e41140, 0xE41140);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (fade)
@@ -1648,7 +1716,7 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE3CC38;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e3cc38, 0xE3CC38);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		LitSetup(&Frame(), s, 0, -40, 0x28);
@@ -1710,7 +1778,7 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE3CC38;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e3cc38, 0xE3CC38);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		int32_t count = 0;
@@ -1811,10 +1879,10 @@ namespace o187
 		{
 			const uint32_t *e = (const uint32_t *)(table + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * n) = e[1];
-			var<uint32_t>(HIST_A + 8 * n + 4) = e[2];
-			var<uint32_t>(HIST_B + 8 * n) = e[3];
-			var<uint32_t>(HIST_B + 8 * n + 4) = e[4];
+			var<uint32_t>(own::R(HIST_A) + 8 * n) = e[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * n + 4) = e[2];
+			var<uint32_t>(own::R(HIST_B) + 8 * n) = e[3];
+			var<uint32_t>(own::R(HIST_B) + 8 * n + 4) = e[4];
 			if (--j < 0) j = 2;
 		}
 		return n;
@@ -1856,10 +1924,10 @@ namespace o187
 	static void SplineRails(int32_t n, int32_t points, int32_t div)
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x190);
-		SplineSetup(n, HIST_A, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_A + 8 * i, t / div);
-		SplineSetup(n, HIST_B, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_B + 8 * i, t / div);
+		SplineSetup(n, own::R(HIST_A), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, own::R(SPLINE_A) + 8 * i, t / div);
+		SplineSetup(n, own::R(HIST_B), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, own::R(SPLINE_B) + 8 * i, t / div);
 		FieldFree(0x190);
 	}
 
@@ -1868,8 +1936,8 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
-		int32_t hist = BoneHistory(0x24FD510, 0x28, n->c, s);
-		SparkSetup(&Frame(), h, s, 0xE3CC38, 0x404040);
+		int32_t hist = BoneHistory(own::R(0x24FD510), 0x28, n->c, s);
+		SparkSetup(&Frame(), h, s, fxp::sequence(P().seqs.at_e3cc38, 0xE3CC38), 0x404040);
 		int32_t count = SparkDrawPool(n, h, 1, INT_GROW5_DRAG8);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -1886,7 +1954,7 @@ namespace o187
 				r->alive = 1;
 				r->age = 0;
 				int32_t sz = CrtRand() % 0x480;
-				uint32_t pa = var<uint32_t>(SPLINE_A + 8 * j), pb = var<uint32_t>(SPLINE_A + 8 * j + 4);
+				uint32_t pa = var<uint32_t>(own::R(SPLINE_A) + 8 * j), pb = var<uint32_t>(own::R(SPLINE_A) + 8 * j + 4);
 				r->size = (int16_t)(sz + 0x380);
 				*(uint32_t *)&r->x = pa;
 				*(uint32_t *)&r->z = pb;
@@ -1894,7 +1962,7 @@ namespace o187
 				r->y = (int16_t)(r->y + (int16_t)(CrtRand() % 10 - 5));
 				r->z = (int16_t)(r->z + (int16_t)(CrtRand() % 10 - 5));
 				int32_t sp = CrtRand() % 0xF + 0x19;
-				const int16_t *d = (const int16_t *)(SPLINE_B + 8 * j);
+				const int16_t *d = (const int16_t *)(own::R(SPLINE_B) + 8 * j);
 				int32_t k = CrtRand() % 10;
 				r->vx = (int16_t)(k + (mul32(d[0], sp) >> 12) - 5);
 				k = CrtRand() % 10;
@@ -1915,7 +1983,7 @@ namespace o187
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		uint32_t table = var<uint32_t>(0xE41E8C + 4 * (int32_t)n->a18);
 		int32_t hist = BoneHistory(table, n->e, n->c, s);
-		SparkSetup(&Frame(), h, s, 0xE3D154, 0x202020);
+		SparkSetup(&Frame(), h, s, fxp::sequence(P().seqs.at_e3d154, 0xE3D154), 0x202020);
 		int32_t count = SparkDrawPool(n, h, 2, INT_GROW6_DRAG8);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -1932,7 +2000,7 @@ namespace o187
 				r->alive = 2;
 				r->age = 0;
 				int32_t sz = CrtRand() % 0x400;
-				uint32_t pa = var<uint32_t>(SPLINE_A + 8 * j), pb = var<uint32_t>(SPLINE_A + 8 * j + 4);
+				uint32_t pa = var<uint32_t>(own::R(SPLINE_A) + 8 * j), pb = var<uint32_t>(own::R(SPLINE_A) + 8 * j + 4);
 				r->size = (int16_t)(sz + 0x100);
 				*(uint32_t *)&r->x = pa;
 				*(uint32_t *)&r->z = pb;
@@ -1940,7 +2008,7 @@ namespace o187
 				r->y = (int16_t)(r->y + (int16_t)(CrtRand() % 20 - 10));
 				r->z = (int16_t)(r->z + (int16_t)(CrtRand() % 20 - 10));
 				int32_t sp = CrtRand() % 0xF + 0x19;
-				const int16_t *d = (const int16_t *)(SPLINE_B + 8 * j);
+				const int16_t *d = (const int16_t *)(own::R(SPLINE_B) + 8 * j);
 				int32_t k = CrtRand() % 20;
 				r->vx = (int16_t)(k + (mul32(d[0], sp) >> 12) - 10);
 				k = CrtRand() % 20;
@@ -2014,7 +2082,7 @@ namespace o187
 		if (o < 0) o = 0;
 		if (!draw) return;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE41B28;
+		*(uint32_t *)h = fxp::model(P().models.at_e41b28, 0xE41B28);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		Cursor() = RenderPrimModel(h, var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)o, 0xE, Cursor());
@@ -2023,12 +2091,12 @@ namespace o187
 
 	static uint32_t __cdecl BladeTask(TaskNode *tn)
 	{
-		if (var<uint8_t>(0x24FD50C) & 1) return TASK_END;
+		if (var<uint8_t>(own::R(0x24FD50C)) & 1) return TASK_END;
 		Node24 *n = (Node24 *)tn;
 		FX_HELD(held_note_blade(n);)
 		BladeDraw(&Frame(), &CreatureMat(), &BoneCopy(), BladeP0(), BladeP1(), n->c > 0);
 		if (Paused()) return 0;
-		uint8_t *sk = **(uint8_t ***)(0x24FD93C);
+		uint8_t *sk = **(uint8_t ***)(own::R(0x24FD93C));
 		n->c++;
 		memcpy(&BoneCopy(), sk + 0xB30, 0x20);
 		return 0;
@@ -2104,12 +2172,12 @@ namespace o187
 		d[2] = (int32_t)p1[2] - (int32_t)p0[2];
 		int32_t len = Sqrt(NormalizeVectorToFixedPoint(d, d));
 		len = mul32(len, k) >> 12;
-		uint32_t w0 = var<uint32_t>(0x24FD980), w1 = var<uint32_t>(0x24FD984);
+		uint32_t w0 = var<uint32_t>(own::R(0x24FD980)), w1 = var<uint32_t>(own::R(0x24FD984));
 		*(int16_t *)(s + 0x28) = (int16_t)((mul32(d[0], len) >> 12) + (int32_t)w0);
 		*(int16_t *)(s + 0x2A) = (int16_t)((int16_t)(mul32(len, d[1]) >> 12) + p0[1]);
 		*(int16_t *)(s + 0x2C) = (int16_t)((mul32(d[2], len) >> 12) + (int32_t)w1);
 		int32_t idx = (int32_t)n->c % 10;
-		uint32_t *rec = (uint32_t *)(TRAIL_RECS + 0x14 * idx);
+		uint32_t *rec = (uint32_t *)(own::R(TRAIL_RECS) + 0x14 * idx);
 		rec[0] = 1;
 		rec[1] = w0;
 		rec[2] = w1;
@@ -2118,20 +2186,20 @@ namespace o187
 		int32_t cnt = 0;
 		for (int32_t j = idx; cnt < 10; cnt++)
 		{
-			const uint32_t *e = (const uint32_t *)(TRAIL_RECS + 0x14 * j);
+			const uint32_t *e = (const uint32_t *)(own::R(TRAIL_RECS) + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * cnt) = e[1];
-			var<uint32_t>(HIST_A + 8 * cnt + 4) = e[2];
-			const uint32_t *src = cnt == 0 ? (const uint32_t *)0x24FD988 : e + 3;
-			var<uint32_t>(HIST_B + 8 * cnt) = src[0];
-			var<uint32_t>(HIST_B + 8 * cnt + 4) = src[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * cnt) = e[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * cnt + 4) = e[2];
+			const uint32_t *src = cnt == 0 ? (const uint32_t *)own::R(0x24FD988) : e + 3;
+			var<uint32_t>(own::R(HIST_B) + 8 * cnt) = src[0];
+			var<uint32_t>(own::R(HIST_B) + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
 		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
 			SplineRails(cnt, 32, 31);
-			TrailDraw(&Frame(), SPLINE_A, SPLINE_B, s);
+			TrailDraw(&Frame(), own::R(SPLINE_A), own::R(SPLINE_B), s);
 			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
@@ -2232,41 +2300,103 @@ namespace o187
 		*flags = (uint16_t)((*flags & 0xFFF7) | (uint16_t)n->s1A);
 		return TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Odin's Zantetsuken: the camera script, the summon stream's loads, the grids, debris and intro, the creature with its blade glow, smoke, rings, mist, sparks and slashes, the target slices, the party hidden, the screen flash, the voice and the sounds; the action result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the timeline's ticks 1, 111, 167" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "voice", "Voice", "The voice slot claimed at the timeline's tick 0", (uint32_t)offsetof(OdinParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.start", "Start", "At the timeline's tick 1", (uint32_t)offsetof(OdinParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.sword", "Sword", "At the timeline's tick 111", (uint32_t)offsetof(OdinParams, sounds.sword), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.slash", "Slash", "At the timeline's tick 167", (uint32_t)offsetof(OdinParams, sounds.slash), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "timeline.damage", "Damage tick", "The action result at this tick of the timeline", (uint32_t)offsetof(OdinParams, timeline.damage), fxp::I16, 0, 288 },
+			{ "timeline", "seqs.at_e3cfd0", "Flipbook E3CFD0", "The sprite sequence at 0xE3CFD0 (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3cfd0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e3cff8", "Flipbook E3CFF8", "The sprite sequence at 0xE3CFF8 (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3cff8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e3d300", "Flipbook E3D300", "The sprite sequence at 0xE3D300 (a flipbook of 6 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3d300), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e3cc38", "Flipbook E3CC38", "The sprite sequence at 0xE3CC38 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3cc38), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e3d154", "Flipbook E3D154", "The sprite sequence at 0xE3D154 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(OdinParams, seqs.at_e3d154), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e40848", "Model E40848", "The prim model at 0xE40848 (a mesh of 82 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e40848), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e40160", "Model E40160", "The prim model at 0xE40160 (a mesh of 66 vertices, 50 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e40160), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3eff0", "Model E3EFF0", "The prim model at 0xE3EFF0 (a mesh of 126 vertices, 100 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e3eff0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e41140", "Model E41140", "The prim model at 0xE41140 (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e41140), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e41b28", "Model E41B28", "The prim model at 0xE41B28 (a mesh of 16 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(OdinParams, models.at_e41b28), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "res.tim_enviro", "TIM image enviro", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(OdinParams, res.tim_enviro), fxp::Tim, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag187_odin()
 	{
+		fxp::register_params({ 187, "Odin", &o187::live, &o187::GAME, sizeof(o187::OdinParams),
+		                       o187::table::PARTS, (int)(sizeof(o187::table::PARTS) / sizeof(o187::table::PARTS[0])),
+		                       o187::table::FIELDS, (int)(sizeof(o187::table::FIELDS) / sizeof(o187::table::FIELDS[0])),
+		                       o187::table::GROUPS, (int)(sizeof(o187::table::GROUPS) / sizeof(o187::table::GROUPS[0])) });
+		own::note(o187::ORIG_Setup, (void *)o187::Setup);
+		own::note(o187::ORIG_SequenceTick, (void *)o187::SequenceTick);
 		register_port(o187::ORIG_SequenceTick, (void *)o187::SequenceTick, "O187 SequenceTick", 187);
+		own::note(o187::ORIG_TimelineTask, (void *)o187::TimelineTask);
 		register_port(o187::ORIG_TimelineTask, (void *)o187::TimelineTask, "O187 TimelineTask", 187);
+		own::note(o187::ORIG_GridATask, (void *)o187::GridATask);
 		register_port(o187::ORIG_GridATask, (void *)o187::GridATask, "O187 GridATask", 187);
+		own::note(o187::ORIG_GridBTask, (void *)o187::GridBTask);
 		register_port(o187::ORIG_GridBTask, (void *)o187::GridBTask, "O187 GridBTask", 187);
+		own::note(o187::ORIG_DebrisTask, (void *)o187::DebrisTask);
 		register_port(o187::ORIG_DebrisTask, (void *)o187::DebrisTask, "O187 DebrisTask", 187);
+		own::note(o187::ORIG_WarpTask, (void *)o187::WarpTask);
 		register_port(o187::ORIG_WarpTask, (void *)o187::WarpTask, "O187 WarpTask", 187);
+		own::note(o187::ORIG_GlowTask, (void *)o187::GlowTask);
 		register_port(o187::ORIG_GlowTask, (void *)o187::GlowTask, "O187 GlowTask", 187);
+		own::note(o187::ORIG_StreakTask, (void *)o187::StreakTask);
 		register_port(o187::ORIG_StreakTask, (void *)o187::StreakTask, "O187 StreakTask", 187);
+		own::note(o187::ORIG_SliceTask, (void *)o187::SliceTask);
 		register_port(o187::ORIG_SliceTask, (void *)o187::SliceTask, "O187 SliceTask", 187);
+		own::note(o187::ORIG_EndTask, (void *)o187::EndTask);
 		register_port(o187::ORIG_EndTask, (void *)o187::EndTask, "O187 EndTask", 187);
+		own::note(o187::ORIG_CreatureTask, (void *)o187::CreatureTask);
 		register_port(o187::ORIG_CreatureTask, (void *)o187::CreatureTask, "O187 CreatureTask", 187);
+		own::note(o187::ORIG_SmokeTask, (void *)o187::SmokeTask);
 		register_port(o187::ORIG_SmokeTask, (void *)o187::SmokeTask, "O187 SmokeTask", 187);
+		own::note(o187::ORIG_RingATask, (void *)o187::RingATask);
 		register_port(o187::ORIG_RingATask, (void *)o187::RingATask, "O187 RingATask", 187);
+		own::note(o187::ORIG_RingBTask, (void *)o187::RingBTask);
 		register_port(o187::ORIG_RingBTask, (void *)o187::RingBTask, "O187 RingBTask", 187);
+		own::note(o187::ORIG_DustTask, (void *)o187::DustTask);
 		register_port(o187::ORIG_DustTask, (void *)o187::DustTask, "O187 DustTask", 187);
+		own::note(o187::ORIG_MistTask, (void *)o187::MistTask);
 		register_port(o187::ORIG_MistTask, (void *)o187::MistTask, "O187 MistTask", 187);
+		own::note(o187::ORIG_FadeInTask, (void *)o187::FadeInTask);
 		register_port(o187::ORIG_FadeInTask, (void *)o187::FadeInTask, "O187 FadeInTask", 187);
+		own::note(o187::ORIG_FlashTask, (void *)o187::FlashTask);
 		register_port(o187::ORIG_FlashTask, (void *)o187::FlashTask, "O187 FlashTask", 187);
+		own::note(o187::ORIG_MorphTask, (void *)o187::MorphTask);
 		register_port(o187::ORIG_MorphTask, (void *)o187::MorphTask, "O187 MorphTask", 187);
+		own::note(o187::ORIG_SparkTask, (void *)o187::SparkTask);
 		register_port(o187::ORIG_SparkTask, (void *)o187::SparkTask, "O187 SparkTask", 187);
+		own::note(o187::ORIG_Spark2Task, (void *)o187::Spark2Task);
 		register_port(o187::ORIG_Spark2Task, (void *)o187::Spark2Task, "O187 Spark2Task", 187);
+		own::note(o187::ORIG_BladeTask, (void *)o187::BladeTask);
 		register_port(o187::ORIG_BladeTask, (void *)o187::BladeTask, "O187 BladeTask", 187);
+		own::note(o187::ORIG_TrailTask, (void *)o187::TrailTask);
 		register_port(o187::ORIG_TrailTask, (void *)o187::TrailTask, "O187 TrailTask", 187);
+		own::note(o187::ORIG_SlashATask, (void *)o187::SlashATask);
 		register_port(o187::ORIG_SlashATask, (void *)o187::SlashATask, "O187 SlashATask", 187);
+		own::note(o187::ORIG_SlashBTask, (void *)o187::SlashBTask);
 		register_port(o187::ORIG_SlashBTask, (void *)o187::SlashBTask, "O187 SlashBTask", 187);
+		own::note(o187::ORIG_SlashCTask, (void *)o187::SlashCTask);
 		register_port(o187::ORIG_SlashCTask, (void *)o187::SlashCTask, "O187 SlashCTask", 187);
+		own::note(o187::ORIG_SlashDTask, (void *)o187::SlashDTask);
 		register_port(o187::ORIG_SlashDTask, (void *)o187::SlashDTask, "O187 SlashDTask", 187);
+		own::note(o187::ORIG_HideTask, (void *)o187::HideTask);
 		register_port(o187::ORIG_HideTask, (void *)o187::HideTask, "O187 HideTask", 187);
 		// 30 fps layer: see mag187_odin_held.inc
 		FX_HELD(register_mag187_held();)
 	}
+	FX_LAB_MODULE(register_mag187_odin);
 }
 
 #ifdef FF8_FX_HELD

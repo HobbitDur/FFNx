@@ -34,6 +34,9 @@
 // Module globals: 0x25561C8..0x2556253 (gf_study/gf_global_ranges.md).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -42,25 +45,42 @@ namespace m338
 	using namespace eng;
 
 	// --- module globals ---
-	inline uint8_t *&CastCtx() { return var<uint8_t *>(0x25561CC); }
-	inline uint8_t *&Attacker() { return var<uint8_t *>(0x25561D0); }      // BattleEntitySlotData of the caster
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25561D4); }        // BattleEntitySlotData of the first target
-	inline uint8_t *&SparkHint() { return var<uint8_t *>(0x25561D8); }     // next spark slot to try
-	inline TaskQueue &QueueDebris() { return var<TaskQueue>(0x25561E0); }  // pool ModelBuffer + 0x600 (64 x 0x24)
-	inline TaskQueue &QueuePrims() { return var<TaskQueue>(0x25561F0); }   // pool ModelBuffer + 0xF00 (8 x 0x198)
-	inline TaskQueue &QueueCreature() { return var<TaskQueue>(0x2556200); }// pool ModelBuffer + 0x1BC0 (1 x 0xD0)
-	inline TaskQueue &QueueRoot() { return var<TaskQueue>(0x2556210); }    // pool 0x2556220 (1 x 0x14)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556234); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x2556238); }  // the next arena (4th arg of the model draw)
-	inline uint32_t &Flag23C() { return var<uint32_t>(0x255623C); }       // zeroed by the master every tick and at the end
+	inline uint8_t *&CastCtx() { return var<uint8_t *>(own::R(0x25561CC)); }
+	inline uint8_t *&Attacker() { return var<uint8_t *>(own::R(0x25561D0)); }      // BattleEntitySlotData of the caster
+	inline uint8_t *&Target() { return var<uint8_t *>(own::R(0x25561D4)); }        // BattleEntitySlotData of the first target
+	inline uint8_t *&SparkHint() { return var<uint8_t *>(own::R(0x25561D8)); }     // next spark slot to try
+	inline TaskQueue &QueueDebris() { return var<TaskQueue>(own::R(0x25561E0)); }  // pool ModelBuffer + 0x600 (64 x 0x24)
+	inline TaskQueue &QueuePrims() { return var<TaskQueue>(own::R(0x25561F0)); }   // pool ModelBuffer + 0xF00 (8 x 0x198)
+	inline TaskQueue &QueueCreature() { return var<TaskQueue>(own::R(0x2556200)); }// pool ModelBuffer + 0x1BC0 (1 x 0xD0)
+	inline TaskQueue &QueueRoot() { return var<TaskQueue>(own::R(0x2556210)); }    // pool 0x2556220 (1 x 0x14)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2556234)); }
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(own::R(0x2556238)); }  // the next arena (4th arg of the model draw)
+	inline uint32_t &Flag23C() { return var<uint32_t>(own::R(0x255623C)); }       // zeroed by the master every tick and at the end
 	// position words: 0 x, 1 y, 2 z + depth/4 + 0x400 of the target; 4 x, 5 y + height, 6 z + depth/4
-	inline int16_t &W(int k) { return var<int16_t>(0x2556240 + 2 * k); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2556250); }  // = Magic_TextureOFF_ToEAX1()
+	inline int16_t &W(int k) { return var<int16_t>(own::R(0x2556240) + 2 * k); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(own::R(0x2556250)); }  // = Magic_TextureOFF_ToEAX1()
 
 	static const uint32_t ORIG_SequenceTask = 0x6EBE20;
 	static const uint32_t ORIG_CreatureTask = 0x6EC0F0;
 	static const uint32_t ORIG_PrimTask = 0x6ECC50;
 	static const uint32_t ORIG_DebrisTask = 0x6ED0C0;
+	static const uint32_t ORIG_FileLoader = 0x575590, ORIG_Setup = 0x6EBD50;   // (the file loader is the engine's nullsub)
+	static const uint32_t TIM_BODY = 0x1376698, TIM_ATLAS1 = 0x137A8B8, TIM_ATLAS2 = 0x139B8D8, CAMERA_ANIM = 0x1370900;   // (exe data)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MoombaParams
+	{
+		uint32_t voice;   // the voice slot claimed when the creature spawns
+		uint32_t sound;   // the creature's tick 0
+		struct { uint32_t spark_flash, spark_fly, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t debris, ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_body, tim_atlas1, tim_atlas2; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const MoombaParams GAME = { 0x13710CC, 0x13710C8, { 0x1371464, 0x13711FC, 0x137130C }, { 0x1372CE8, 0x1371640 }, { TIM_BODY, TIM_ATLAS1, TIM_ATLAS2 } };
+	static MoombaParams live = GAME;
+	static const MoombaParams &P() { return live; }
 	static const uint32_t CB_PrimObject = 0x6ECCE0;      // prim-model object callback (pure draw)
 	static const uint32_t MODEL_Ring = 0x1371640;        // ring prim model (0x7043B0 renderer)
 	static const uint32_t MODEL_Debris = 0x1372CE8;      // debris prim model
@@ -327,7 +347,7 @@ namespace m338
 		s->vel[1] = 0;
 		*(uint32_t *)s->acc = 0;
 		s->unused12 = 0xBB8;
-		s->seq = SEQ_SparkFlash;
+		s->seq = fxp::sequence(P().seqs.spark_flash, SEQ_SparkFlash);
 		for (int k = 7;;)
 		{
 			s = SparkAlloc();
@@ -349,7 +369,7 @@ namespace m338
 			s->vel[2] = 0;
 			s->acc[1] = (int8_t)DivNeg10Sar2(s->vel[1]);
 			s->unused12 = 0xC00;
-			s->seq = SEQ_SparkFly;
+			s->seq = fxp::sequence(P().seqs.spark_fly, SEQ_SparkFly);
 			if (--k == 0) return;
 		}
 	}
@@ -408,7 +428,7 @@ namespace m338
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_Debris);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x98);
@@ -430,6 +450,26 @@ namespace m338
 	// ------------------------------------------------------------------
 	// Master task (0x6EBE20)
 	// ------------------------------------------------------------------
+	// Setup (0x6EBD50 -> GF_338Moomba_SetupSummon 0x6EBD60; the file loader is the engine's nullsub): the game runs its
+	// own; Fujin's programs this (its memory may be a copy's): a rand() word, the three exe TIMs, the model buffer (the
+	// magic buffer), the cast, its caster's and its first target's entities, the master, the camera
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +4 the actions)
+	{
+		var<int32_t>(own::R(0x25561C8)) = fn<int32_t (__cdecl *)()>(0x55CBD2)();   // rand()
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_body, TIM_BODY));   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_atlas1, TIM_ATLAS1));
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_atlas2, TIM_ATLAS2));
+		ModelBuffer() = (uint8_t *)layouts::MagicBuffer();
+		CastCtx() = ctx;
+		Attacker() = (uint8_t *)(0x1D972C0 + 0x9C * ctx[0]);
+		const uint8_t *action = *(const uint8_t **)(ctx + 4);
+		Target() = (uint8_t *)(0x1D972C0 + 0x9C * (*(const uint8_t **)(action + 8))[0]);
+		InitTaskQueuePool(&QueueRoot(), (void *)own::R(0x2556220), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(&QueueRoot(), own::Fn(ORIG_SequenceTask)) + 0xC, 0, 2);
+		fn<void (__cdecl *)(const void *)>(0x5099A0)((const void *)CAMERA_ANIM);   // Battle_PlayCameraAnimation
+		return &QueueRoot();
+	}
+
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
@@ -456,11 +496,11 @@ namespace m338
 			InitTaskQueuePool(&QueueDebris(), ModelBuffer() + 0x600, 0x24, 0x40);
 			InitTaskQueuePool(&QueueCreature(), ModelBuffer() + 0x1BC0, 0xD0, 1);
 			InitTaskQueuePool(&QueuePrims(), ModelBuffer() + 0xF00, 0x198, 8);
-			CreatureNode *cn = (CreatureNode *)AddTaskToQueue(&QueueCreature(), ORIG_CreatureTask);
+			CreatureNode *cn = (CreatureNode *)AddTaskToQueue(&QueueCreature(), own::Fn(ORIG_CreatureTask));
 			Memset32(&cn->counter, 0, 0x31);
 			cn->attacker = Attacker();
 			x::Heights(Target(), &cn->h0);
-			cn->voice = ClaimVoiceSlot((const void *)0x13710CC, 1, 0x80);
+			cn->voice = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0x13710CC), 1, 0x80);
 			x::BindModel(cn->model, cn->sections, 0x136BB30);
 			x::SetAnim(cn->model, 0);
 			x::RotY(0, &Root(cn));
@@ -505,7 +545,7 @@ namespace m338
 	// 0x6ECBE0: prim-model task at a target-relative offset (vec + target, y + yoff)
 	static void SpawnPrim(uint32_t vec, uint32_t layout, int32_t yoff)
 	{
-		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), ORIG_PrimTask);
+		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), own::Fn(ORIG_PrimTask));
 		if (!p) return;
 		const int16_t *v = (const int16_t *)vec;
 		p->pos[0] = (int16_t)(v[0] + W(4));
@@ -518,7 +558,7 @@ namespace m338
 	// 0x6ECF80: burst prim model on the ground under a model vertex, 8 debris chunks there
 	static void SpawnBurst(uint32_t vertex)
 	{
-		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), ORIG_PrimTask);
+		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), own::Fn(ORIG_PrimTask));
 		if (!p) return;
 		int16_t at[4];
 		VertexPos((const int16_t *)vertex, at);
@@ -527,7 +567,7 @@ namespace m338
 		p->pos[2] = at[2];
 		p->yaw = 0;
 		x::Decode(0x13755B8, p->layout, 0xF8);
-		DebrisNode *d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), ORIG_DebrisTask);
+		DebrisNode *d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), own::Fn(ORIG_DebrisTask));
 		if (!d) return;
 		for (int k = 8;;)
 		{
@@ -551,7 +591,7 @@ namespace m338
 			d->spin[0] = (uint8_t)x::Rand();
 			d->spin[1] = (uint8_t)x::Rand();
 			if (--k == 0) return;
-			d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), ORIG_DebrisTask);
+			d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), own::Fn(ORIG_DebrisTask));
 			if (!d) return;
 		}
 	}
@@ -666,7 +706,7 @@ namespace m338
 					s->vel[2] = 0;
 					*(uint32_t *)s->acc = 0;
 					r = x::Rand();
-					s->seq = SEQ_Spark;
+					s->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 					s->unused12 = (int16_t)((r & 0xFFF) + 0x800);
 					if (--count == 0) break;
 					s = SparkAlloc();
@@ -680,7 +720,7 @@ namespace m338
 			{
 				int32_t s = ComputeSin(0x400 - (int32_t)((e32 << 10) >> 2));
 				int16_t out[4];
-				x::Blend((const void *)0x2556240, (const void *)0x2556248, 0x1000 - s, s, out);
+				x::Blend((const void *)own::R(0x2556240), (const void *)own::R(0x2556248), 0x1000 - s, s, out);
 				root.t[1] = out[1];
 				root.t[2] = out[2];
 			}
@@ -700,7 +740,7 @@ namespace m338
 				int32_t fade = 0x1000 - x::Cos((0x1000 - co) >> 2);
 				// 30 fps layer: see mag338_moomba_held.inc
 				FX_HELD(held_note_ring(root, (int32_t)(c << 8), fade);)
-				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(c << 8), fade, MODEL_Ring);
+				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(c << 8), fade, fxp::model(P().models.ring, MODEL_Ring));
 			}
 		}
 
@@ -733,7 +773,7 @@ namespace m338
 						s->acc[0] = 0;
 						s->life = 0xC;
 						int32_t r3 = x::Rand();
-						s->seq = SEQ_Spark;
+						s->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 						s->unused12 = (int16_t)((r3 & 0xFFF) + 0xBB8);
 						int old = count--;
 						if (old == 0) break;
@@ -769,7 +809,7 @@ namespace m338
 				int32_t fade = 0x1000 - ComputeSin(s);
 				// 30 fps layer: see mag338_moomba_held.inc
 				FX_HELD(held_note_ring(root, (int32_t)(ee << 8), fade);)
-				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(ee << 8), fade, MODEL_Ring);
+				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(ee << 8), fade, fxp::model(P().models.ring, MODEL_Ring));
 			}
 		}
 
@@ -796,7 +836,7 @@ namespace m338
 		SparksDraw(Sparks(ModelBuffer()));
 		SparksMove(Sparks(ModelBuffer()));
 
-		if (cn->counter == 0) x::PlaySE(0x13710C8, 0, 0x80);
+		if (cn->counter == 0) x::PlaySE(fxp::sound(P().sound, 0x13710C8), 0, 0x80);
 		{
 			int16_t c = cn->counter;
 			if (c == 8) x::SetAnim(e, 1);
@@ -810,17 +850,46 @@ namespace m338
 		x::Load(0x16A, (uint32_t)(ModelBuffer() + MB_ARENA0), 0);
 		return TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "creature", "Creature", "Moomba's Friendship: the screen flash, Moomba, the ring prim model, prim-model tasks and sparks at the target's and Moomba's vertices, the bursts with debris, the sprite sparks, the stream, the voice and the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "creature", "voice", "Voice", "The voice slot claimed when the creature spawns", (uint32_t)offsetof(MoombaParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sound", "Sound", "At the creature's tick 0", (uint32_t)offsetof(MoombaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "seqs.spark_flash", "Spark flash", "The sprite sequence spark flash (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark_flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "seqs.spark_fly", "Spark fly", "The sprite sequence spark fly (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark_fly), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(MoombaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "creature", "models.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoombaParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 128 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MoombaParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "creature", "res.tim_body", "TIM image body", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(MoombaParams, res.tim_body), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "creature", "res.tim_atlas1", "TIM image atlas1", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(MoombaParams, res.tim_atlas1), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "creature", "res.tim_atlas2", "TIM image atlas2", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(MoombaParams, res.tim_atlas2), fxp::Tim, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag338_moomba()
 	{
+		fxp::register_params({ 338, "Moomba", &m338::live, &m338::GAME, sizeof(m338::MoombaParams),
+		                       m338::table::PARTS, (int)(sizeof(m338::table::PARTS) / sizeof(m338::table::PARTS[0])),
+		                       m338::table::FIELDS, (int)(sizeof(m338::table::FIELDS) / sizeof(m338::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(m338::ORIG_Setup, (void *)m338::Setup);
+		own::note(m338::ORIG_SequenceTask, (void *)m338::SequenceTask);
 		register_port(m338::ORIG_SequenceTask, (void *)m338::SequenceTask, "M338 SequenceTask", 338);
+		own::note(m338::ORIG_CreatureTask, (void *)m338::CreatureTask);
 		register_port(m338::ORIG_CreatureTask, (void *)m338::CreatureTask, "M338 CreatureTask", 338);
+		own::note(m338::ORIG_PrimTask, (void *)m338::PrimTask);
 		register_port(m338::ORIG_PrimTask, (void *)m338::PrimTask, "M338 PrimTask", 338);
+		own::note(m338::ORIG_DebrisTask, (void *)m338::DebrisTask);
 		register_port(m338::ORIG_DebrisTask, (void *)m338::DebrisTask, "M338 DebrisTask", 338);
 		// 30 fps layer: see mag338_moomba_held.inc
 		FX_HELD(register_mag338_held();)
 	}
+	FX_LAB_MODULE(register_mag338_moomba);
 }
 
 #ifdef FF8_FX_HELD

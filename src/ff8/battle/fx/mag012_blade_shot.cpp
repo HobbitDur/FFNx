@@ -52,8 +52,13 @@
 // 0x2556120 (trails, pool 0x2545EF8 0x10 x 0x20), 0x2556130 (particles, pool 0x25451F0 0x40 x 0x34);
 // the streak reads the (never written) vector 0x2556108. The morph models' vertex tables
 // (0x1362E44 / 0x1363734, 49 vertices) are rewritten every tick.
+// Fujin's described Blade Shot (effect_012.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (BladeParams: the
+// sounds, the blade's tilt / spin, the after-images, the impact's sparks, glints and streaks).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -63,12 +68,14 @@ namespace blade012
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2545EF0); }          // caster entity (setup)
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25460F8); }          // first target's entity (setup)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25460FC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556100); }
-	inline TaskQueue *QTrails() { return (TaskQueue *)0x2556120; }
-	inline TaskQueue *QParts() { return (TaskQueue *)0x2556130; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2545EF0)); }          // caster entity (setup)
+	inline uint8_t *&Target() { return var<uint8_t *>(own::R(0x25460F8)); }          // first target's entity (setup)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25460FC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2556100)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2545EF4)); }      // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2556110); }      // pool: 0x2545188, 1 x 0x64
+	inline TaskQueue *QTrails() { return (TaskQueue *)own::R(0x2556120); }
+	inline TaskQueue *QParts() { return (TaskQueue *)own::R(0x2556130); }
 	static const uint32_t ARENA_A = 0x2546100, ARENA_B = 0x254E100;
 	static const uint32_t STATIC_V0 = 0x2556108;         // streak: vector never written by the module
 
@@ -76,6 +83,25 @@ namespace blade012
 	static const uint32_t ORIG_PartTask = 0x6E9B50;
 	static const uint32_t ORIG_StreakTask = 0x6E9C10;
 	static const uint32_t ORIG_TrailTask = 0x6E9D60;
+	static const uint32_t ORIG_FileLoader = 0x6E8AC0, ORIG_Setup = 0x6E8AE0;
+	static const uint32_t TEXTURE_NAME = 0x1365714;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BladeParams
+	{
+		struct { uint32_t throw_sound, catch_sound; int16_t throw_tick; } sound;
+		struct { int16_t tilt, spin, catch_lift, trails_until; } blade;   // out: tilt a tick; back: spin a tick; the catch sprite above it
+		struct { int16_t ticks, life, scale; } sparks;                     // at the impact, two a tick
+		struct { int16_t life, scale, spread; } fans;                      // glints and streaks thrown out of the impact
+		struct { uint32_t spark, streak, glint, hit, flash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t blade, ring, trail, wing_a, wing_b; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const BladeParams GAME = { { 0x136562C, 0x1365630, 5 }, { 0x20, 0x210, 0x64, 0x3E }, { 0xA, 0xF, 0xC00 }, { 0xD, 0x800, 0x313 }, { 0x1362AEC, 0x13627E4, 0x136298C, 0x1362C80, 0x13628FC }, { 0x13646EC, 0x136401C, 0x1364F14, 0x1362E3C, 0x136372C }, { TEXTURE_NAME, 0x1365634 } };
+	static BladeParams live = GAME;
+	static const BladeParams &P() { return live; }
 	static const uint32_t MODEL_Blade = 0x13646EC;       // prim models
 	static const uint32_t MODEL_Ring = 0x136401C;
 	static const uint32_t MODEL_Trail = 0x1364F14;
@@ -476,7 +502,7 @@ namespace blade012
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Blade;
+		*(uint32_t *)h = fxp::model(P().models.blade, MODEL_Blade);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 	}
@@ -515,7 +541,7 @@ namespace blade012
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		*(int32_t *)(h + 0xC) = ComputeSin((int32_t)s >> 2);
 		*(uint32_t *)(h + 0x1C) = 0xF0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
@@ -580,7 +606,7 @@ namespace blade012
 		d[1] = (int16_t)(p->pos[1] - p->dir[1]);
 		d[2] = (int16_t)(p->pos[2] - p->dir[2]);
 		TransformCameraByShadowRotation(d, 0x800, -0x200);
-		GteLoadV0((const void *)STATIC_V0);
+		GteLoadV0((const void *)own::R(STATIC_V0));
 		GteMVMVA_RotV0Tr();
 		int16_t a[3];
 		GteStoreIR123(a);
@@ -622,7 +648,7 @@ namespace blade012
 		h[8] = 0;
 		v = *(const int32_t *)(h + 0xC);
 		*(uint32_t *)(h + 0x1C) = 0xC0;
-		*(uint32_t *)h = MODEL_Trail;
+		*(uint32_t *)h = fxp::model(P().models.trail, MODEL_Trail);
 		h[0xA] = (uint8_t)((0x1000 - v) >> 5);
 		*(int32_t *)(h + 0xC) = (v >> 1) + 0x800;
 		PacketCursor() = DrawModel(h, RenderOT(), 2, PacketCursor());
@@ -679,7 +705,7 @@ namespace blade012
 	{
 		n->mot.end[1] = (int16_t)(n->mot.end[1] - 600);
 		MotionStep(&n->mot);
-		n->rot[0] = (int16_t)(n->rot[0] + 0x210);
+		n->rot[0] = (int16_t)(n->rot[0] + P().blade.spin);
 		n->accx = (int16_t)(n->accx + n->velx);
 		n->accz = (int16_t)(n->accz + n->velz);
 		const int32_t t = n->mot.t;
@@ -764,7 +790,7 @@ namespace blade012
 	{
 		for (int32_t i = 2; i != 0; i--)
 		{
-			PartNode *p = (PartNode *)AddTaskToQueue(QParts(), ORIG_PartTask);
+			PartNode *p = (PartNode *)AddTaskToQueue(QParts(), own::Fn(ORIG_PartTask));
 			if (!p) continue;
 			FillDwords(&p->counter, 0, 10);
 			const int32_t side = i & 1;
@@ -781,10 +807,10 @@ namespace blade012
 			p->acc[2] = (int16_t)(-(int32_t)v >> 5);
 			v = (int16_t)((int32_t)(0u - (uint32_t)CrtRand()) >> 10);
 			p->vel[1] = v;
-			p->seq = SEQ_Spark;
+			p->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 			p->acc[1] = (int16_t)(-(int32_t)v >> 5);
-			p->life = 0xF;
-			p->scale = (int16_t)((CrtRand() >> 4) + 0xC00);
+			p->life = P().sparks.life;
+			p->scale = (int16_t)((CrtRand() >> 4) + P().sparks.scale);
 		}
 	}
 
@@ -797,7 +823,7 @@ namespace blade012
 		ang[2] = (int16_t)(k * 17 * 8 + (streaks ? 0 : 0x44));
 		for (int32_t i = 5; i != 0; i--)
 		{
-			PartNode *p = (PartNode *)AddTaskToQueue(QParts(), streaks ? ORIG_StreakTask : ORIG_PartTask);
+			PartNode *p = (PartNode *)AddTaskToQueue(QParts(), own::Fn(streaks ? ORIG_StreakTask : ORIG_PartTask));
 			if (p)
 			{
 				FillDwords(&p->counter, 0, 10);
@@ -812,7 +838,7 @@ namespace blade012
 				p->vel[0] = (int16_t)(p->vel[0] >> sh);
 				p->vel[1] = (int16_t)(p->vel[1] >> sh);
 				p->vel[2] = (int16_t)(p->vel[2] >> sh);
-				p->seq = streaks ? SEQ_Streak : SEQ_Glint;
+				p->seq = streaks ? fxp::sequence(P().seqs.streak, SEQ_Streak) : fxp::sequence(P().seqs.glint, SEQ_Glint);
 				p->acc[0] = (int16_t)(-(int32_t)p->vel[0] >> 4);
 				p->acc[1] = (int16_t)(-(int32_t)p->vel[1] >> 4);
 				p->acc[2] = (int16_t)(-(int32_t)p->vel[2] >> 4);
@@ -823,11 +849,11 @@ namespace blade012
 				}
 				else
 				{
-					p->life = 0xD;
-					p->scale = 0x800;
+					p->life = P().fans.life;
+					p->scale = P().fans.scale;
 				}
 			}
-			ang[2] = (int16_t)(ang[2] + (CrtRand() >> 9) + 0x313);
+			ang[2] = (int16_t)(ang[2] + (CrtRand() >> 9) + P().fans.spread);
 		}
 	}
 
@@ -836,7 +862,7 @@ namespace blade012
 	{
 		for (int32_t i = 2; i != 0; i--)
 		{
-			TrailNode *t = (TrailNode *)AddTaskToQueue(QTrails(), ORIG_TrailTask);
+			TrailNode *t = (TrailNode *)AddTaskToQueue(QTrails(), own::Fn(ORIG_TrailTask));
 			if (!t) continue;
 			FillDwords(&t->counter, 0, 5);
 			memcpy(t->pos, n->blade, 8);
@@ -850,6 +876,42 @@ namespace blade012
 	// ------------------------------------------------------------------
 	// Root (0x6E8C90)
 	// ------------------------------------------------------------------
+	// File loader (0x6E8AC0) and setup (0x6E8AE0 -> 0x6E8AF0): the game runs its own; Fujin's programs these: the
+	// cast, the caster (its blade object hidden), the first target, the texture, the root with the blade's flight
+	// from the caster's hand to the target over 32 ticks, the trail and particle queues, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		*(uint32_t *)(Caster() + 0x7C) &= ~0x80u;
+		Target() = Entity(ctx->actions[0].targets[0]);
+		QueueTimUpload(TexFile());
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2545188), 0x64, 1);
+		RootNode *n = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask));
+		Memset32(&n->counter, 0, 0x16);
+		GetEffectSpawnPosition(Caster(), 7, 0, n->mot.start);
+		GetDefaultEffectPosition(Target(), n->mot.end);
+		n->dirx = (int16_t)(n->mot.end[0] - n->mot.start[0]);
+		n->dirz = (int16_t)(n->mot.end[2] - n->mot.start[2]);
+		const int32_t len = Sqrt(n->dirz * n->dirz + n->dirx * n->dirx);
+		const int32_t x = shl32(n->dirx, 12) / len, z = shl32(n->dirz, 12) / len;
+		n->dirx = (int16_t)x;
+		n->dirz = (int16_t)z;
+		n->rot[1] = (int16_t)CartesianToGameAngle((int16_t)x, (int16_t)z);
+		n->rot[2] = 0x400;
+		MotionInit(&n->mot, 32);
+		InitTaskQueuePool(QTrails(), (void *)own::R(0x2545EF8), 0x20, 16);
+		InitTaskQueuePool(QParts(), (void *)own::R(0x25451F0), 0x34, 64);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, 0x1365634));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		RootNode *n = (RootNode *)tn;
@@ -857,15 +919,15 @@ namespace blade012
 		FX_HELD(held_note_root(n);)
 		if (n->arena != 0)
 		{
-			PacketCursor() = ARENA_A;
+			PacketCursor() = own::R(ARENA_A);
 			n->arena = 0;
 		}
 		else
 		{
-			PacketCursor() = ARENA_B;
+			PacketCursor() = own::R(ARENA_B);
 			n->arena = 1;
 		}
-		if (n->counter == 5) BdPlaySE3D(SOUND_Throw, 0, n->mot.start);
+		if (n->counter == P().sound.throw_tick) BdPlaySE3D((const void *)fxp::sound(P().sound.throw_sound, (uint32_t)SOUND_Throw), 0, n->mot.start);
 		if ((uint16_t)n->counter < 0x20)
 		{
 			uint8_t *h = AllocHeader(0x58);
@@ -874,7 +936,7 @@ namespace blade012
 			FX_HELD(held_note_h(K_BLADE, n, h, 0x58, 0);)
 			BladeDraw(n, h);
 			FieldFree(0x58);
-			n->rot[2] = (int16_t)(n->rot[2] - 0x20);
+			n->rot[2] = (int16_t)(n->rot[2] - P().blade.tilt);
 		}
 		else
 			n->rot[2] = 0;
@@ -904,7 +966,7 @@ namespace blade012
 			}
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_HIT, n, h, 0xB4, k);)
-			SeqDraw(n->hit, h, SEQ_Hit, (int16_t)k);
+			SeqDraw(n->hit, h, fxp::sequence(P().seqs.hit, SEQ_Hit), (int16_t)k);
 			FieldFree(0xB4);
 		}
 		k = (int32_t)n->counter - 0x20;
@@ -914,7 +976,7 @@ namespace blade012
 			if (k == 0) memcpy(n->hit, n->blade, 8);
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_FLASH, n, h, 0xB4, k);)
-			SeqDraw(n->hit, h, SEQ_Flash, (int16_t)k);
+			SeqDraw(n->hit, h, fxp::sequence(P().seqs.flash, SEQ_Flash), (int16_t)k);
 			FieldFree(0xB4);
 		}
 		// 30 fps layer: see mag012_blade_shot_held.inc
@@ -928,35 +990,35 @@ namespace blade012
 		{
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_k(K_WING_A, n, k);)
-			WingPair(n, RingScale(k), MODEL_WingA, KEYS_WingA0, KEYS_WingA1, 0x71);
+			WingPair(n, RingScale(k), fxp::model(P().models.wing_a, MODEL_WingA), KEYS_WingA0, KEYS_WingA1, 0x71);
 		}
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 0x14)
 		{
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_k(K_WING_B, n, k);)
-			WingPair(n, RingScale(k), MODEL_WingB, KEYS_WingB0, KEYS_WingB1, 0x11C);
+			WingPair(n, RingScale(k), fxp::model(P().models.wing_b, MODEL_WingB), KEYS_WingB0, KEYS_WingB1, 0x11C);
 		}
 		k = (int32_t)n->counter - 0x20;
-		if ((uint32_t)k < 0xA) SpawnSparks(n);
+		if ((uint32_t)k < (uint32_t)P().sparks.ticks) SpawnSparks(n);
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 6 && !(k & 1)) SpawnFan(n, k, false);
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 6 && !(k & 1)) SpawnFan(n, k, true);
-		if (n->counter < 0x3E) SpawnTrails(n);
+		if (n->counter < P().blade.trails_until) SpawnTrails(n);
 		k = (int32_t)n->counter - 0x3C;
 		if ((uint32_t)k < 5)
 		{
 			uint8_t *h = AllocHeader(0xB4);
 			int16_t pos[4]; // pos[3] is never written
 			pos[0] = n->blade[0];
-			pos[1] = (int16_t)(n->blade[1] + 0x64);
+			pos[1] = (int16_t)(n->blade[1] + P().blade.catch_lift);
 			pos[2] = n->blade[2];
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_CATCH, n, h, 0xB4, k);)
-			SeqDraw(pos, h, SEQ_Hit, (int16_t)k);
+			SeqDraw(pos, h, fxp::sequence(P().seqs.hit, SEQ_Hit), (int16_t)k);
 			FieldFree(0xB4);
-			if (k == 0) BdPlaySE3D(SOUND_Catch, 0, pos);
+			if (k == 0) BdPlaySE3D((const void *)fxp::sound(P().sound.catch_sound, (uint32_t)SOUND_Catch), 0, pos);
 		}
 		const int trails = ExecuteTaskQueue(QTrails());
 		const int parts = ExecuteTaskQueue(QParts());
@@ -964,16 +1026,68 @@ namespace blade012
 		n->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define BS(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(BladeParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "blade", "Blade", "The blade thrown at the target and back to the caster's hand, its after-images, its sounds" },
+			{ 0, "impact", "Impact", "Sparks, glints and streaks thrown out of the impact" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sparks", "Sparks", "Two a tick for Ticks from the impact: life Life, scale Scale + rand" },
+			{ "fans", "Glints and streaks", "Five each at the impact: life Life, scale Scale, turned by Spread + rand between them" },
+		};
+		static const Field FIELDS[] = {
+			{ "blade", "sound.throw_sound", "Throw sound", "Played at the caster's hand at its tick", (uint32_t)offsetof(BladeParams, sound.throw_sound), fxp::Sound, 0, 0x7FFFFFFF },
+			BS("blade", sound.throw_tick, "Throw sound tick", "", 0, 100),
+			{ "blade", "sound.catch_sound", "Catch sound", "Played when the caster catches the blade", (uint32_t)offsetof(BladeParams, sound.catch_sound), fxp::Sound, 0, 0x7FFFFFFF },
+			BS("blade", blade.tilt, "Tilt", "Flying out, its tilt a tick (4096: a turn)", -0x1000, 0x1000),
+			BS("blade", blade.spin, "Spin", "Flying back, its spin a tick", -0x1000, 0x1000),
+			BS("blade", blade.catch_lift, "Catch height", "The catch sprite this above the blade", -0x1000, 0x1000),
+			BS("blade", blade.trails_until, "After-images until", "Two after-images a tick until this tick", 0, 100),
+			BS("impact", sparks.ticks, "Ticks", "", 0, 30),
+			BS("impact", sparks.life, "Life", "", 1, 100),
+			BS("impact", sparks.scale, "Scale", "", 0, 0x4000),
+			BS("impact", fans.life, "Life", "", 1, 100),
+			BS("impact", fans.scale, "Scale", "", 0, 0x4000),
+			BS("impact", fans.spread, "Spread", "", 0, 0x1000),
+			{ "blade", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.streak", "Streak", "The sprite sequence streak (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.streak), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.glint", "Glint", "The sprite sequence glint (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.glint), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BladeParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blade", "models.blade", "Blade model", "The prim model blade (a mesh of 144 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.blade), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.ring", "Ring model", "The prim model ring (a mesh of 69 vertices, 44 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.trail", "Trail model", "The prim model trail (a mesh of 110 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.wing_a", "Wing a model", "The prim model wing a (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.wing_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "models.wing_b", "Wing b model", "The prim model wing b (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BladeParams, models.wing_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "blade", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BladeParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "blade", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BladeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+#undef BS
+	}
 }
 
 	void register_mag012_blade_shot()
 	{
+		fxp::register_params({ 12, "Blade Shot", &blade012::live, &blade012::GAME, sizeof(blade012::BladeParams),
+		                       blade012::table::PARTS, (int)(sizeof(blade012::table::PARTS) / sizeof(blade012::table::PARTS[0])),
+		                       blade012::table::FIELDS, (int)(sizeof(blade012::table::FIELDS) / sizeof(blade012::table::FIELDS[0])),
+		                       blade012::table::GROUPS, (int)(sizeof(blade012::table::GROUPS) / sizeof(blade012::table::GROUPS[0])) });
+		own::note(blade012::ORIG_FileLoader, (void *)blade012::FileLoader);
+		own::note(blade012::ORIG_Setup, (void *)blade012::Setup);
+		own::note(blade012::ORIG_RootTask, (void *)blade012::RootTask);
+		own::note(blade012::ORIG_PartTask, (void *)blade012::PartTask);
+		own::note(blade012::ORIG_StreakTask, (void *)blade012::StreakTask);
+		own::note(blade012::ORIG_TrailTask, (void *)blade012::TrailTask);
 		register_port(blade012::ORIG_RootTask, (void *)blade012::RootTask, "B012 RootTask", 12);
 		register_port(blade012::ORIG_PartTask, (void *)blade012::PartTask, "B012 PartTask", 12);
 		register_port(blade012::ORIG_StreakTask, (void *)blade012::StreakTask, "B012 StreakTask", 12);
 		register_port(blade012::ORIG_TrailTask, (void *)blade012::TrailTask, "B012 TrailTask", 12);
 		FX_HELD(register_mag012_held();)
 	}
+	FX_LAB_MODULE(register_mag012_blade_shot);
 }
 
 #ifdef FF8_FX_HELD

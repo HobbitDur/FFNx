@@ -109,6 +109,9 @@
 //   file, ghost slots, counts, texture base, packet cursor, arc count).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -118,18 +121,21 @@ namespace armor197
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &EndTick() { return var<int32_t>(0x2260468); }      // afterimages end here (999999 until EndTask)
-	inline int32_t &ModuleTick() { return var<int32_t>(0x2260BB0); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x22636F0); }       // 1 ready, 2 ended, 4 a shot is busy
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2264518); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x2265B00); }
-	inline int32_t &IdCount() { return var<int32_t>(0x2265DA0); }       // the next particle id - 1
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2265DA4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2265DA8); }
-	inline int32_t &ArcCount() { return var<int32_t>(0x2265DAC); }      // the next arc record (% 8)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2261A10; }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2261A20; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x22636F8; }
+	inline int32_t &EndTick() { return var<int32_t>(own::R(0x2260468)); }      // afterimages end here (999999 until EndTask)
+	inline int32_t &ModuleTick() { return var<int32_t>(own::R(0x2260BB0)); }
+	inline uint32_t &Flags() { return var<uint32_t>(own::R(0x22636F0)); }       // 1 ready, 2 ended, 4 a shot is busy
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2264518)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x2265B00)); }
+	inline int32_t &IdCount() { return var<int32_t>(own::R(0x2265DA0)); }       // the next particle id - 1
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2265DA4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2265DA8)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2265B04)); }          // the effect's file (its TIM)
+	inline int32_t &ShotIndex() { return var<int32_t>(own::R(0x2260BB8)); }          // 0, 1, 2 cycling: chain 3 + it
+	inline int32_t &ShotCount() { return var<int32_t>(own::R(0x2265D9C)); }
+	inline int32_t &ArcCount() { return var<int32_t>(own::R(0x2265DAC)); }      // the next arc record (% 8)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2261A10); }
+	inline TaskQueue *QShots() { return (TaskQueue *)own::R(0x2261A20); }
+	inline TaskQueue *QAux() { return (TaskQueue *)own::R(0x22636F8); }
 	static const uint32_t PARTS_A = 0x2261A30, PARTS_B = 0x2262860;  // 150 x 0x18 each
 	static const int32_t PARTS_N = 150;
 	static const uint32_t SHOTS = 0x2264520;                         // 100 x 0x38 shot records
@@ -161,6 +167,23 @@ namespace armor197
 	static const uint32_t ORIG_TargetSparkTask = 0x5B0B90;
 	static const uint32_t ORIG_ArcTask = 0x5B0E80;
 	static const uint32_t ORIG_ArcSparkTask = 0x5B10C0;
+	static const uint32_t ORIG_FileLoader = 0x5AED10, ORIG_Setup = 0x5AED30;
+	static const uint32_t TEXTURE_NAME = 0xD0527C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ArmorShotParams
+	{
+		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t debris, spark, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ground_flash, path_ring, beam, beam_head, armor, muzzle_flash, cone, impact_ring, impact_spin; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const ArmorShotParams GAME = { 0xD05230, { 0xCFDC20, 0xCFD714, 0xCFDA74 }, { 0xD02180, 0xD04B88, 0xCFDD18, 0xCFEDE8, 0xCFF2F8, 0xD012B0, 0xD03940, 0xD02570, 0xD03298 }, { TEXTURE_NAME, 0xCFB348 }, { 0xD05268 } };
+	static ArmorShotParams live = GAME;
+	static const ArmorShotParams &P() { return live; }
 
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xCFB348;
@@ -249,12 +272,12 @@ namespace armor197
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Armor Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x38 && sizeof(ArcRec) == 0xE8 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Armor Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x38 * i); }
-	inline ArcRec *Arc(int32_t i) { return (ArcRec *)(ARCS + 0xE8 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(own::R(SHOTS) + 0x38 * i); }
+	inline ArcRec *Arc(int32_t i) { return (ArcRec *)(own::R(ARCS) + 0xE8 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(own::R(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
-	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? PARTS_B : PARTS_A); }
+	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, own::Fn(fn)); }   // (a copy: the port's thunk)
+	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? own::R(PARTS_B) : own::R(PARTS_A)); }
 	inline int32_t FindFree(const Particle *arr) { for (int32_t i = 0; i < PARTS_N; i++) if (arr[i].id == 0) return i; return -1; }
 }
 }
@@ -448,7 +471,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(MODEL_GroundFlash, faded, fade);
+		ModelDraw(fxp::model(P().models.ground_flash, MODEL_GroundFlash), faded, fade);
 	}
 
 	// a path ring at its point: rotation (0, 0, -0x1000) -> the shot direction x roll, scale (scale, scale, depth)
@@ -473,7 +496,7 @@ namespace armor197
 		const int32_t v[3] = { n->f1C, n->f1C, n->f20 };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(MODEL_PathRing, faded, fade);
+		ModelDraw(fxp::model(P().models.path_ring, MODEL_PathRing), faded, fade);
 	}
 
 	// the beam: the stretched model from the muzzle (length * 4096 / 6000 deep), then (same header) the head model camera facing
@@ -502,7 +525,7 @@ namespace armor197
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_Beam, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.beam, MODEL_Beam), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		int16_t p[4];
 		p[0] = (int16_t)((mul32(s->dir[0], n->f20) >> 12) + s->pos[0]);
@@ -512,7 +535,7 @@ namespace armor197
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_head(p[3]);)
 		TransformCameraByShadowRotation(p, p[3], -((int32_t)p[3] >> 3));
-		*(uint32_t *)h = MODEL_BeamHead;
+		*(uint32_t *)h = fxp::model(P().models.beam_head, MODEL_BeamHead);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 		return p[3];
@@ -558,7 +581,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
-		ModelDraw(MODEL_Armor, faded, fade);
+		ModelDraw(fxp::model(P().models.armor, MODEL_Armor), faded, fade);
 	}
 
 	// the bone smoke / target sparks: the light matrix / back colour = the camera (scratch 0x48, +8); a header (0xB4) with
@@ -593,7 +616,7 @@ namespace armor197
 	// the debris: a header (0xB4: sequence 0xCFDC20, +0x24 = 0x208) and the anchor's camera matrix (scratch 0x98: +8)
 	static void DebrisBegin(const Node *n, uint8_t *s, uint8_t *h)
 	{
-		*(uint32_t *)h = SEQ_Debris;
+		*(uint32_t *)h = fxp::sequence(P().seqs.debris, SEQ_Debris);
 		*(int16_t *)(h + 0x24) = 0x208;
 		int16_t *ang = (int16_t *)s;
 		ang[0] = 0;
@@ -647,7 +670,7 @@ namespace armor197
 	// the arc sparks: a header (0xB4: sequence 0xCFD714, +0x24 = 0)
 	static void ArcSparkBegin(uint8_t *h)
 	{
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 0x24) = 0;
 	}
 	// one arc spark: frame * 2 + 1, camera facing at its point (its size, depth -(size / 16))
@@ -662,12 +685,69 @@ namespace armor197
 	// Tasks
 	// ------------------------------------------------------------------
 	// MuzzleFlashTask (0x5AF7E0): 10 ticks, yaw, scale + step, step - step / 3, faded from counter 2
+	// File loader (0x5AED10) and setup (_Init 0x5AED30 + SetupByMode): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's). The setup runs again for each trigger press of the Shot window (the battle's
+	// BattleActionSequence_Tick_Shot 0x50BEE0: the cast context's sequence mode +8): 0 the opening - the root, the shot
+	// and aux queues, StartTask, the flags and counts cleared, both particle arrays freed, the camera's shots reset, the
+	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		const uint8_t mode = ((const uint8_t *)ctx)[8];
+		if (mode == 0)
+		{
+			InitTaskQueuePool(QRoot(), (void *)own::R(0x2260BC0), 0x10, 4);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+			InitTaskQueuePool(QAux(), (void *)own::R(0x2263708), 0x24, 100);
+			InitTaskQueuePool(QShots(), (void *)own::R(0x2260C00), 0x24, 100);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_StartTask)) + 0xC) = 0;
+			Flags() = 0;
+			ShotIndex() = 0;
+			ShotCount() = 0;
+			IdCount() = 0;
+			ArcCount() = 0;
+			ModuleTick() = 0;
+			for (int i = 0; i < 900; i += 6)
+			{
+				((int32_t *)own::R(PARTS_A))[i] = 0;
+				((int32_t *)own::R(PARTS_B))[i] = 0;
+			}
+			fn<void (__cdecl *)()>(0x5095F0)();   // BattleCamera_ResetShotsAndReturnToSavedView
+			QueueTimUpload(TexFile());
+		}
+		else if (mode == 1)
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_EndTask)) + 0xC) = 0;
+		else if (mode == 2)
+		{
+			uint8_t *t = (uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_ShotTask));
+			if (t)
+			{
+				const int32_t count = ShotCount();
+				*(uint16_t *)(t + 0xC) = 0;
+				ShotCount() = count + 1;
+				*(uint16_t *)(t + 0xE) = (uint16_t)(count % 100);
+				*(uint16_t *)(t + 0x18) = (uint16_t)(ShotIndex() + 3);
+				*(uint16_t *)(t + 0x1A) = ctx->actions[0].targets[0];
+				ShotIndex() = ShotIndex() < 2 ? ShotIndex() + 1 : 0;
+			}
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl MuzzleFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_MuzzleFlashTask, n);)
-		MuzzleModel(n, n->f18, 0, MODEL_MuzzleFlash, n->counter >= 2, FadeFrom2(n->counter));
+		MuzzleModel(n, n->f18, 0, fxp::model(P().models.muzzle_flash, MODEL_MuzzleFlash), n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -682,7 +762,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_MuzzleConeTask, n);)
-		MuzzleModel(n, 0, n->f18, MODEL_Cone, n->counter >= 6, FadeFrom6(n->counter));
+		MuzzleModel(n, 0, n->f18, fxp::model(P().models.cone, MODEL_Cone), n->counter >= 6, FadeFrom6(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -739,7 +819,7 @@ namespace armor197
 		FX_HELD(held_note_node(ORIG_BoneSmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_BoneSmoke);
+		SparkBegin(s, h, fxp::sequence(P().seqs.bone_smoke, SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -810,7 +890,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactRingTask, n);)
-		ImpactModelDraw(n, DIR_FRONT, MODEL_ImpactRing, n->counter >= 2, IringFade(n->counter));
+		ImpactModelDraw(n, DIR_FRONT, fxp::model(P().models.impact_ring, MODEL_ImpactRing), n->counter >= 2, IringFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -825,7 +905,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactSpinTask, n);)
-		ImpactModelDraw(n, DIR_BACK, MODEL_ImpactSpin, n->counter >= 6, Fade2AA(n->counter));
+		ImpactModelDraw(n, DIR_BACK, fxp::model(P().models.impact_spin, MODEL_ImpactSpin), n->counter >= 6, Fade2AA(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -947,7 +1027,7 @@ namespace armor197
 		FX_HELD(held_note_node(ORIG_TargetSparkTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Spark);
+		SparkBegin(s, h, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1226,7 +1306,7 @@ namespace armor197
 			}
 		}
 		if (n->counter == 6) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), (n->f0E & 1) ? 1 : 2, 0x80);
 		n->counter++;
 		return n->counter >= 25 ? TASK_END : 0;
 	}
@@ -1262,7 +1342,7 @@ namespace armor197
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)own::R(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -1276,11 +1356,11 @@ namespace armor197
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)own::R(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -1294,7 +1374,7 @@ namespace armor197
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1302,7 +1382,7 @@ namespace armor197
 			f->f18 = 0x800;
 			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = own::R(GHOSTS); a < own::R(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -1356,41 +1436,94 @@ namespace armor197
 		if (!(UpdateFlags() & 0x201)) ModuleTick()++;
 		if (aux == 0 && (Flags() & 2))
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_RestoreTask);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RestoreTask));
 			t->counter = 0;
 			t->done = 0;
 		}
 		r->counter++;
 		return (aux == 0 && shots == 0 && (Flags() & 2)) ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "Irvine's Armor Shot: his animation set and chains, the afterimages of his gun, per shot the muzzle flashes and smoke, the piercing arcs and the impact's burst, the action result and the gun sound; the closing action" },
+		};
+		static const Field FIELDS[] = {
+			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(ArmorShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ArmorShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.ground_flash", "Ground flash model", "The prim model ground flash (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.ground_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.path_ring", "Path ring model", "The prim model path ring (a mesh of 64 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.path_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam", "Beam model", "The prim model beam (a mesh of 155 vertices, 132 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam_head", "Beam head model", "The prim model beam head (a mesh of 49 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.beam_head), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.armor", "Armor model", "The prim model armor (a mesh of 242 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.armor), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.muzzle_flash", "Muzzle flash model", "The prim model muzzle flash (a mesh of 145 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.muzzle_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.cone", "Cone model", "The prim model cone (a mesh of 160 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.impact_ring", "Impact ring model", "The prim model impact ring (a mesh of 128 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.impact_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.impact_spin", "Impact spin model", "The prim model impact spin (a mesh of 64 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ArmorShotParams, models.impact_spin), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ArmorShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(ArmorShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(ArmorShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag197_armor_shot()
 	{
+		fxp::register_params({ 197, "Armor Shot", &armor197::live, &armor197::GAME, sizeof(armor197::ArmorShotParams),
+		                       armor197::table::PARTS, (int)(sizeof(armor197::table::PARTS) / sizeof(armor197::table::PARTS[0])),
+		                       armor197::table::FIELDS, (int)(sizeof(armor197::table::FIELDS) / sizeof(armor197::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(armor197::ORIG_FileLoader, (void *)armor197::FileLoader);
+		own::note(armor197::ORIG_Setup, (void *)armor197::Setup);
+		own::note(armor197::ORIG_RootTask, (void *)armor197::RootTask);
 		register_port(armor197::ORIG_RootTask, (void *)armor197::RootTask, "197 RootTask", 197);
+		own::note(armor197::ORIG_RestoreTask, (void *)armor197::RestoreTask);
 		register_port(armor197::ORIG_RestoreTask, (void *)armor197::RestoreTask, "197 RestoreTask", 197);
+		own::note(armor197::ORIG_StartTask, (void *)armor197::StartTask);
 		register_port(armor197::ORIG_StartTask, (void *)armor197::StartTask, "197 StartTask", 197);
+		own::note(armor197::ORIG_ShotTask, (void *)armor197::ShotTask);
 		register_port(armor197::ORIG_ShotTask, (void *)armor197::ShotTask, "197 ShotTask", 197);
+		own::note(armor197::ORIG_EndTask, (void *)armor197::EndTask);
 		register_port(armor197::ORIG_EndTask, (void *)armor197::EndTask, "197 EndTask", 197);
+		own::note(armor197::ORIG_FadeOutTask, (void *)armor197::FadeOutTask);
 		register_port(armor197::ORIG_FadeOutTask, (void *)armor197::FadeOutTask, "197 FadeOutTask", 197);
+		own::note(armor197::ORIG_FadeInTask, (void *)armor197::FadeInTask);
 		register_port(armor197::ORIG_FadeInTask, (void *)armor197::FadeInTask, "197 FadeInTask", 197);
+		own::note(armor197::ORIG_AfterimageTask, (void *)armor197::AfterimageTask);
 		register_port(armor197::ORIG_AfterimageTask, (void *)armor197::AfterimageTask, "197 AfterimageTask", 197);
+		own::note(armor197::ORIG_MuzzleFlashTask, (void *)armor197::MuzzleFlashTask);
 		register_port(armor197::ORIG_MuzzleFlashTask, (void *)armor197::MuzzleFlashTask, "197 MuzzleFlashTask", 197);
+		own::note(armor197::ORIG_MuzzleConeTask, (void *)armor197::MuzzleConeTask);
 		register_port(armor197::ORIG_MuzzleConeTask, (void *)armor197::MuzzleConeTask, "197 MuzzleConeTask", 197);
+		own::note(armor197::ORIG_GroundFlashTask, (void *)armor197::GroundFlashTask);
 		register_port(armor197::ORIG_GroundFlashTask, (void *)armor197::GroundFlashTask, "197 GroundFlashTask", 197);
+		own::note(armor197::ORIG_BoneSmokeTask, (void *)armor197::BoneSmokeTask);
 		register_port(armor197::ORIG_BoneSmokeTask, (void *)armor197::BoneSmokeTask, "197 BoneSmokeTask", 197);
+		own::note(armor197::ORIG_BeamTask, (void *)armor197::BeamTask);
 		register_port(armor197::ORIG_BeamTask, (void *)armor197::BeamTask, "197 BeamTask", 197);
+		own::note(armor197::ORIG_PathRingTask, (void *)armor197::PathRingTask);
 		register_port(armor197::ORIG_PathRingTask, (void *)armor197::PathRingTask, "197 PathRingTask", 197);
+		own::note(armor197::ORIG_ImpactRingTask, (void *)armor197::ImpactRingTask);
 		register_port(armor197::ORIG_ImpactRingTask, (void *)armor197::ImpactRingTask, "197 ImpactRingTask", 197);
+		own::note(armor197::ORIG_ImpactSpinTask, (void *)armor197::ImpactSpinTask);
 		register_port(armor197::ORIG_ImpactSpinTask, (void *)armor197::ImpactSpinTask, "197 ImpactSpinTask", 197);
+		own::note(armor197::ORIG_ArmorFlashTask, (void *)armor197::ArmorFlashTask);
 		register_port(armor197::ORIG_ArmorFlashTask, (void *)armor197::ArmorFlashTask, "197 ArmorFlashTask", 197);
+		own::note(armor197::ORIG_DebrisTask, (void *)armor197::DebrisTask);
 		register_port(armor197::ORIG_DebrisTask, (void *)armor197::DebrisTask, "197 DebrisTask", 197);
+		own::note(armor197::ORIG_TargetSparkTask, (void *)armor197::TargetSparkTask);
 		register_port(armor197::ORIG_TargetSparkTask, (void *)armor197::TargetSparkTask, "197 TargetSparkTask", 197);
+		own::note(armor197::ORIG_ArcTask, (void *)armor197::ArcTask);
 		register_port(armor197::ORIG_ArcTask, (void *)armor197::ArcTask, "197 ArcTask", 197);
+		own::note(armor197::ORIG_ArcSparkTask, (void *)armor197::ArcSparkTask);
 		register_port(armor197::ORIG_ArcSparkTask, (void *)armor197::ArcSparkTask, "197 ArcSparkTask", 197);
 		// 30 fps layer: see mag197_armor_shot_held.inc
 		FX_HELD(register_mag197_held();)
 	}
+	FX_LAB_MODULE(register_mag197_armor_shot);
 }
 
 #ifdef FF8_FX_HELD

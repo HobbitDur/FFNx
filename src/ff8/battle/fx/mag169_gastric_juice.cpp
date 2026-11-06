@@ -52,6 +52,9 @@
 // splash matrix 0x23B3BF0 whose translation the splash rewrites per droplet).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -70,12 +73,14 @@ namespace gastric169
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23B1370); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B1CF8; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23B2B18); }
-	inline int32_t &AttackerSlot() { return var<int32_t>(0x23B3070); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23B3BE4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23B3BE8); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x23B1370)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x23B1CF8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23B2B18)); }
+	inline int32_t &AttackerSlot() { return var<int32_t>(own::R(0x23B3070)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23B3BE4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23B3BE8)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23B3BE0)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23B1388); }             // 1 x 0x10
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	static const uint32_t DROPS = 0x23B1398, DROPS_END = 0x23B1CF8;   // 100 x 0x18 bytes
 	static const uint32_t STREAMS = 0x23B2B20;                        // 5 x 0x110 bytes
@@ -97,6 +102,23 @@ namespace gastric169
 	static const uint32_t MESH_A = 0xD6A8CC, MESH_B = 0xD6B2EC;       // 73 vertices of 8 bytes each
 	static const int32_t *const DRIP_COUNTS = (const int32_t *)0xD6BC24; // droplets per tick 0..11
 	static const void *const SOUND_Juice = (const void *)0xD6BC1C;
+	static const uint32_t ORIG_FileLoader = 0x5DEE40, ORIG_Setup = 0x5DEE60;
+	static const uint32_t TEXTURE_NAME = 0xD6BC64, CAMERA = 0xD6A3F8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GastricJuice169Params
+	{
+		uint32_t sound;                      // at the director's tick 1
+		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t blob, drip, splash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main, puddle; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const GastricJuice169Params GAME = { 0xD6BC1C, { 0x23 }, { SEQ_Blob, SEQ_Drip, SEQ_Splash }, { MODEL_Mesh, MODEL_Puddle }, { TEXTURE_NAME, CAMERA } };
+	static GastricJuice169Params live = GAME;
+	static const GastricJuice169Params &PJ() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -179,8 +201,8 @@ namespace gastric169
 	static_assert(sizeof(Node) == 0x24, "Gastric Juice nodes are 0x24 bytes");
 	static_assert(sizeof(Stream) == 0x110 && sizeof(Drop) == 0x18, "stream / droplet entries");
 
-	inline Stream *StreamOf(int32_t i) { return (Stream *)(STREAMS + (uint32_t)(i * 0x110)); }
-	inline Drop *Drops() { return (Drop *)DROPS; }
+	inline Stream *StreamOf(int32_t i) { return (Stream *)(own::R(STREAMS) + (uint32_t)(i * 0x110)); }
+	inline Drop *Drops() { return (Drop *)own::R(DROPS); }
 }
 }
 
@@ -469,6 +491,33 @@ namespace gastric169
 	// ------------------------------------------------------------------
 	// Tinted target (0x5DF030)
 	// ------------------------------------------------------------------
+	// File loader (0x5DEE40) and setup (0x5DEE60): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its attacker's slots, the root and the director, the
+	// droplets freed, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PJ().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		AttackerSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23B1378), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x23B1D08), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		for (uint32_t a = own::R(DROPS); a < own::R(DROPS_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(PJ().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl TintTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
@@ -782,7 +831,7 @@ namespace gastric169
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x5C));
-		U32(h, 0) = MODEL_Mesh;
+		U32(h, 0) = fxp::model(PJ().models.main, MODEL_Mesh);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0x2033;
 		for (int32_t k = 0; k < 0x49; k++)
@@ -816,7 +865,7 @@ namespace gastric169
 		Node *n = (Node *)tn;
 		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Mesh, n);)
-		MeshDraw(n, MESH_VERTS + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
+		MeshDraw(n, own::R(MESH_VERTS) + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
 		n->counter++;
 		return n->counter >= 0x20 ? TASK_END : 0;
@@ -841,7 +890,7 @@ namespace gastric169
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Puddle;
+		U32(h, 0) = fxp::model(PJ().models.puddle, MODEL_Puddle);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xF3;
 		S32(h, 0xC) = fade;
@@ -887,7 +936,7 @@ namespace gastric169
 		Node *n = (Node *)tn;
 		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Blob, n);)
-		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, SEQ_Blob);
+		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, fxp::sequence(PJ().seqs.blob, SEQ_Blob));
 		if (DrawOnly()) return 0;
 		const int16_t v = n->a1a;
 		n->a18 = (int16_t)(n->a18 + v);
@@ -913,9 +962,9 @@ namespace gastric169
 		FX_HELD(held_note_draw(ORIG_Drips, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Drip;
+		U32(h, 0) = fxp::sequence(PJ().seqs.drip, SEQ_Drip);
 		U16(h, 0x24) = 0;
-		for (Drop *e = Drops(); P(e) < DROPS_END; e++)
+		for (Drop *e = Drops(); P(e) < own::R(DROPS_END); e++)
 		{
 			if (!(e->flags & (uint32_t)(int32_t)n->idx)) continue;
 			DripDraw(h, e);
@@ -938,8 +987,8 @@ namespace gastric169
 			for (int32_t k = 0; k < DRIP_COUNTS[n->counter]; k++)
 			{
 				Drop *e = Drops();
-				while (P(e) < DROPS_END && e->flags) e++;
-				if (P(e) >= DROPS_END) break;
+				while (P(e) < own::R(DROPS_END) && e->flags) e++;
+				if (P(e) >= own::R(DROPS_END)) break;
 				e->flags = (uint32_t)(int32_t)n->idx;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x900 + 0x600);
@@ -976,7 +1025,7 @@ namespace gastric169
 		m.t[1] = s->curve[1][1];
 		m.t[2] = s->curve[1][2];
 		ComposeAffineTransform(&Camera(), &m, &m);
-		GteSetRotMatrixCtrl((const Mat4x3 *)SPLASH_MATRIX);
+		GteSetRotMatrixCtrl((const Mat4x3 *)own::R(SPLASH_MATRIX));
 		GteSetLightMatrix(&m);
 		GteSetBKFromMatrix(&m);
 	}
@@ -985,7 +1034,7 @@ namespace gastric169
 	// scale / 16 into the splash matrix's translation, the scale on the rotation diagonal
 	static void SplashDraw(uint32_t h, const Drop *e)
 	{
-		Mat4x3 &g = *(Mat4x3 *)SPLASH_MATRIX;
+		Mat4x3 &g = *(Mat4x3 *)own::R(SPLASH_MATRIX);
 		GteLoadV0(e->pos);
 		GteMVMVA_LightV0Bk();
 		GteSetRotDiagonal16(e->scale);
@@ -1008,10 +1057,10 @@ namespace gastric169
 		FX_HELD(held_note_draw(ORIG_Splash, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Splash;
+		U32(h, 0) = fxp::sequence(PJ().seqs.splash, SEQ_Splash);
 		U16(h, 0x24) = 0;
 		SplashSetup(StreamOf(n->idx));
-		for (Drop *e = Drops(); P(e) < DROPS_END; e++)
+		for (Drop *e = Drops(); P(e) < own::R(DROPS_END); e++)
 		{
 			if (!(e->flags & 0x100)) continue;
 			SplashDraw(h, e);
@@ -1033,8 +1082,8 @@ namespace gastric169
 			for (int32_t k = 0; k < 0xC; k++)
 			{
 				Drop *e = Drops();
-				while (P(e) < DROPS_END && e->flags) e++;
-				if (P(e) >= DROPS_END) break;
+				while (P(e) < own::R(DROPS_END) && e->flags) e++;
+				if (P(e) >= own::R(DROPS_END)) break;
 				e->flags = 0x100;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x180 + 0x200);
@@ -1098,7 +1147,7 @@ namespace gastric169
 		}
 		if (n->counter == 1)
 		{
-			Node *b = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Blob);
+			Node *b = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Blob));
 			b->counter = 0;
 			b->idx = n->idx;
 			b->a18 = 0;
@@ -1107,7 +1156,7 @@ namespace gastric169
 		}
 		if (n->counter == 0x16)
 		{
-			Node *m = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Mesh);
+			Node *m = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Mesh));
 			memcpy(m->pos, s->dst, 8);
 			m->counter = 0;
 			m->idx = n->idx;
@@ -1116,7 +1165,7 @@ namespace gastric169
 			m->a1c = (int16_t)(CrtRand() % 0x600 + 0x400);
 			if (n->counter == 0x16)
 			{
-				Node *d = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Drips);
+				Node *d = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Drips));
 				d->counter = 0;
 				d->idx = (int16_t)(1u << ((uint8_t)n->idx & 31));
 				memcpy(d->pos, s->dst, 8);
@@ -1124,7 +1173,7 @@ namespace gastric169
 		}
 		if (n->counter == 0x15)
 		{
-			Node *p = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Puddle);
+			Node *p = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Puddle));
 			memcpy(p->pos, s->dst, 8);
 			p->counter = 0;
 			p->a18 = (int16_t)(CrtRand() % 4096);
@@ -1147,7 +1196,7 @@ namespace gastric169
 		{
 			for (int k = 0; k < 5; k++)
 			{
-				Node *s = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Stream);
+				Node *s = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Stream));
 				const int16_t i = n->idx;
 				s->counter = 0;
 				s->idx = i;
@@ -1156,18 +1205,18 @@ namespace gastric169
 				n->idx++;
 				s->a1a = (int16_t)d;
 			}
-			Node *sp = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Splash);
+			Node *sp = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Splash));
 			sp->counter = 0;
 			sp->idx = 0;
 		}
 		if (n->counter == 0x1E)
 		{
-			Node *t = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Tint);
+			Node *t = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Tint));
 			t->counter = 0;
 			GetDefaultEffectPosition(Entity(TargetSlot()), t->pos);
 		}
-		if (n->counter == 0x23) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (n->counter == 1) BdPlaySE(SOUND_Juice, 0, 0x80);
+		if (n->counter == PJ().director.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(PJ().sound, (uint32_t)SOUND_Juice), 0, 0x80);
 		n->counter++;
 		return n->counter > 0x32 ? TASK_END : 0;
 	}
@@ -1186,22 +1235,56 @@ namespace gastric169
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The five juice streams with their blobs, mesh, drips and puddle, the splash, the tinted target, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(GastricJuice169Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(GastricJuice169Params, director.damage), fxp::I16, 0, 50 },
+			{ "director", "seqs.blob", "Blob", "The sprite sequence blob (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.blob), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.drip", "Drip", "The sprite sequence drip (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.splash", "Splash", "The sprite sequence splash (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(GastricJuice169Params, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.main", "Main model", "The prim model main (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GastricJuice169Params, models.main), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.puddle", "Puddle model", "The prim model puddle (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GastricJuice169Params, models.puddle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(GastricJuice169Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(GastricJuice169Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag169_gastric_juice()
 	{
+		fxp::register_params({ 169, "Gastric Juice (Grat)", &gastric169::live, &gastric169::GAME, sizeof(gastric169::GastricJuice169Params),
+		                       gastric169::table::PARTS, (int)(sizeof(gastric169::table::PARTS) / sizeof(gastric169::table::PARTS[0])),
+		                       gastric169::table::FIELDS, (int)(sizeof(gastric169::table::FIELDS) / sizeof(gastric169::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(gastric169::ORIG_FileLoader, (void *)gastric169::FileLoader);
+		own::note(gastric169::ORIG_Setup, (void *)gastric169::Setup);
+		own::note(gastric169::ORIG_Root, (void *)gastric169::RootTask);
 		register_port(gastric169::ORIG_Root, (void *)gastric169::RootTask, "G169 RootTask", 169);
+		own::note(gastric169::ORIG_Director, (void *)gastric169::DirectorTask);
 		register_port(gastric169::ORIG_Director, (void *)gastric169::DirectorTask, "G169 DirectorTask", 169);
+		own::note(gastric169::ORIG_Tint, (void *)gastric169::TintTask);
 		register_port(gastric169::ORIG_Tint, (void *)gastric169::TintTask, "G169 TintTask", 169);
+		own::note(gastric169::ORIG_Stream, (void *)gastric169::StreamTask);
 		register_port(gastric169::ORIG_Stream, (void *)gastric169::StreamTask, "G169 StreamTask", 169);
+		own::note(gastric169::ORIG_Blob, (void *)gastric169::BlobTask);
 		register_port(gastric169::ORIG_Blob, (void *)gastric169::BlobTask, "G169 BlobTask", 169);
+		own::note(gastric169::ORIG_Mesh, (void *)gastric169::MeshTask);
 		register_port(gastric169::ORIG_Mesh, (void *)gastric169::MeshTask, "G169 MeshTask", 169);
+		own::note(gastric169::ORIG_Drips, (void *)gastric169::DripTask);
 		register_port(gastric169::ORIG_Drips, (void *)gastric169::DripTask, "G169 DripTask", 169);
+		own::note(gastric169::ORIG_Puddle, (void *)gastric169::PuddleTask);
 		register_port(gastric169::ORIG_Puddle, (void *)gastric169::PuddleTask, "G169 PuddleTask", 169);
+		own::note(gastric169::ORIG_Splash, (void *)gastric169::SplashTask);
 		register_port(gastric169::ORIG_Splash, (void *)gastric169::SplashTask, "G169 SplashTask", 169);
 		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(register_mag169_held();)
 	}
+	FX_LAB_MODULE(register_mag169_gastric_juice);
 }
 
 #ifdef FF8_FX_HELD

@@ -45,8 +45,16 @@
 // 0x26D830C, arenas, actor state 0x26D9048, scratch stack pointer 0x26D9038), the module scratch
 // stack below the camera copy 0x2793E58, the fade layers 0x1D98992 + k * 0x2C (words) /
 // 0x1D989B8 + k * 0x2C (bytes).
+// Fujin's described Full-life (effect_027.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (FullLifeParams: the emitter's sound and ticks, the master's wait, the actor system, the stage fade) are set from
+// the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -70,6 +78,20 @@ namespace fulllife
 	static const uint32_t ORIG_StageOut = 0x888480;
 	static const uint32_t ORIG_ActorSystem = 0x883660;
 	static const void *const SOUND_FullLife = (const void *)0x160EC60;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct FullLifeParams
+	{
+		struct { uint32_t sound; int16_t release, result; } emitter;   // its sound; the master released / the result at these ticks
+		struct { int16_t wait; } master;                                // after the last action, the fade out after these ticks
+		struct { int16_t start, length, mode; } actors;                 // the actor system
+		struct { int16_t level, step; } fade;                           // the stage fade in and out: its level, a step a tick
+	};
+	static const FullLifeParams GAME = { { 0x160EC60, 0x1E, 0x1E }, { 0xA }, { 0, 0x2D, 0 }, { 0x400, 0x100 } };
+	static FullLifeParams live = GAME;
+	static const FullLifeParams &PF() { return live; }
 
 	// engine functions not in act::x
 	namespace flx
@@ -207,14 +229,15 @@ namespace fulllife
 	uint32_t __cdecl fl_883240(uint32_t a1)
 	{
 		g_mod = &MOD_027;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag027_fulllife_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x26D832C) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26D832C)) = 0x2793E58;
 		states[0] = 0x883380;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x883390;
@@ -229,24 +252,24 @@ namespace fulllife
 		states[10] = 0x8885A0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26D901C);
-			const uint32_t v2 = MEM<uint32_t>(0x26D8414);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26D8328) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26D901C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26D8414));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26D8328)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26D9018);
-			const uint32_t v2 = MEM<uint32_t>(0x26D8410);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26D8328) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26D9018));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26D8410));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26D8328)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x26D9032) = 0;
-		MEM<uint16_t>(0x26D9022) = 0;
-		static const uint32_t queues[3] = { Q_EMITTER, Q_ACTORS, Q_STAGE };
+		MEM<uint16_t>(R(0x26D9032)) = 0;
+		MEM<uint16_t>(R(0x26D9022)) = 0;
+		const uint32_t queues[3] = { R(Q_EMITTER), R(Q_ACTORS), R(Q_STAGE) };
 		for (int i = 0; i < 3; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -260,12 +283,12 @@ namespace fulllife
 	// counters
 	uint32_t __cdecl fl_8833F0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26D9024), 0x1518);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26D903C), 0x16F80);
-		MEM<uint16_t>(0x26D8408) = 0;
-		MEM<uint16_t>(0x26D9030) = 0;
-		MEM<uint16_t>(0x26D9020) = 0;
-		MEM<uint16_t>(0x26D8310) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26D9024)), 0x1518);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x26D903C)), 0x16F80);
+		MEM<uint16_t>(R(0x26D8408)) = 0;
+		MEM<uint16_t>(R(0x26D9030)) = 0;
+		MEM<uint16_t>(R(0x26D9020)) = 0;
+		MEM<uint16_t>(R(0x26D8310)) = 0;
 		return 0; // eax = 0 (xor eax, eax: the cleared words)
 	}
 
@@ -276,14 +299,14 @@ namespace fulllife
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x26D9044);
-		MEM<uint32_t>(0x26D9024) = p;
+		uint32_t p = MEM<uint32_t>(R(0x26D9044));
+		MEM<uint32_t>(R(0x26D9024)) = p;
 		p += 0x1518;
-		MEM<uint32_t>(0x26D903C) = p;
+		MEM<uint32_t>(R(0x26D903C)) = p;
 		p += 0x16F80;
-		MEM<uint32_t>(0x26D9044) = p;
+		MEM<uint32_t>(R(0x26D9044)) = p;
 		fl_8833F0();
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, ORIG_StageIn, 0x40, a1);
+		Spawn(R(Q_STAGE), ORIG_StageIn, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -303,7 +326,7 @@ namespace fulllife
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_FullLife), 0, 0x80);
+			x::BdPlaySE(fxp::sound(PF().emitter.sound, P(SOUND_FullLife)), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -320,8 +343,8 @@ namespace fulllife
 	// appends it to the particle list with state 0 (0x887DF0); returns the slot or 0
 	uint32_t __cdecl fl_886BC0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26D9024);
-		int32_t idx = (int32_t)MEM<int16_t>(0x26D8408);
+		const uint32_t pool = MEM<uint32_t>(R(0x26D9024));
+		int32_t idx = (int32_t)MEM<int16_t>(R(0x26D8408));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -331,7 +354,7 @@ namespace fulllife
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -346,9 +369,9 @@ namespace fulllife
 		} while (tries < 0x32);
 		idx++;
 		if (idx < 0x31)
-			MEM<uint16_t>(0x26D8408) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x26D8408)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x26D8408) = 0;
+			MEM<uint16_t>(R(0x26D8408)) = 0;
 		return slot;
 	}
 
@@ -359,12 +382,12 @@ namespace fulllife
 	// 0x8834D0 (MAG_027_sub_8834D0), written to the four stage fade words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl fl_8834D0(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
-		if (S16(a1, 0x1C) >= 0x400)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PF().fade.step);
+		if (S16(a1, 0x1C) >= PF().fade.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x400;
+			U16(a1, 0x1C) = (uint16_t)PF().fade.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -378,7 +401,7 @@ namespace fulllife
 	// 0x17DE100, start tick 0, mode 0x2D) through the engine spawner 0x883610, next state
 	uint32_t __cdecl fl_8835E0(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, 0x17DE100, 0, 0x2D, 0);
+		a_73C100(a1, ORIG_ActorSystem, 0x17DE100, (uint16_t)PF().actors.start, (uint16_t)PF().actors.length, (uint16_t)PF().actors.mode);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -410,7 +433,7 @@ namespace fulllife
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(0x26D9048) = st;
+		MEM<uint32_t>(R(0x26D9048)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -422,7 +445,7 @@ namespace fulllife
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x26D9048);
+			st = MEM<uint32_t>(R(0x26D9048));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -442,20 +465,20 @@ namespace fulllife
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		fl_883980();
-		st = MEM<uint32_t>(0x26D9048);
+		st = MEM<uint32_t>(R(0x26D9048));
 		if (U16(st, 0x24) == 4)
 			callp(0x8838A0, node);
 		fl_883CD0();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(0x26D9048);
+		st = MEM<uint32_t>(R(0x26D9048));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x883AE0, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(0x26D9048);
+			st = MEM<uint32_t>(R(0x26D9048));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x26D9048);
+			st = MEM<uint32_t>(R(0x26D9048));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -470,7 +493,7 @@ namespace fulllife
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x26D9048);
+		st = MEM<uint32_t>(R(0x26D9048));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -481,7 +504,7 @@ namespace fulllife
 	// the harness)
 	uint32_t __cdecl fl_8838A0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26D9048);
+		const uint32_t arena = MEM<uint32_t>(R(0x26D9048));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -502,7 +525,7 @@ namespace fulllife
 	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl fl_883980(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -511,7 +534,7 @@ namespace fulllife
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -524,7 +547,7 @@ namespace fulllife
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -532,7 +555,7 @@ namespace fulllife
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -550,7 +573,7 @@ namespace fulllife
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl fl_883AE0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26D9048);
+		const uint32_t arena = MEM<uint32_t>(R(0x26D9048));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -578,7 +601,7 @@ namespace fulllife
 	// position (the stack words keep what they held)
 	uint32_t __cdecl fl_883CD0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -592,7 +615,7 @@ namespace fulllife
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -605,7 +628,7 @@ namespace fulllife
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -613,7 +636,7 @@ namespace fulllife
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -661,7 +684,7 @@ namespace fulllife
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x26D9048, 0) = sys;
+		U32(R(0x26D9048), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -675,7 +698,7 @@ namespace fulllife
 			FX_HELD(held_note_system(sys);)
 			fl_885850();
 			fl_8841D0();
-			sys = U32(0x26D9048, 0);
+			sys = U32(R(0x26D9048), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -688,8 +711,8 @@ namespace fulllife
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x26D9032, 0) = (uint16_t)(U16(0x26D9032, 0) + c14);
-		U16(0x26D9022, 0) = (uint16_t)(U16(0x26D9022, 0) + c16);
+		U16(R(0x26D9032), 0) = (uint16_t)(U16(R(0x26D9032), 0) + c14);
+		U16(R(0x26D9022), 0) = (uint16_t)(U16(R(0x26D9022), 0) + c16);
 		return done;
 	}
 
@@ -698,12 +721,12 @@ namespace fulllife
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl fl_8841D0(void)
 	{
-		uint32_t act = U32(U32(0x26D9048, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x26D9048), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x26D9048, 0);
+				uint32_t sys = U32(R(0x26D9048), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -720,10 +743,10 @@ namespace fulllife
 	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl fl_884230(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -743,9 +766,9 @@ namespace fulllife
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -760,17 +783,17 @@ namespace fulllife
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1313,14 +1336,14 @@ namespace fulllife
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl fl_885850(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x26D9048), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x26D9048)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x26D9048);
+				uint32_t st = MEM<uint32_t>(R(0x26D9048));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1357,20 +1380,20 @@ namespace fulllife
 	uint32_t __cdecl fl_885910(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1378,7 +1401,7 @@ namespace fulllife
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl fl_885990(void)
 	{
-		uint32_t act = U32(U32(0x26D9048, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x26D9048), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1398,7 +1421,7 @@ namespace fulllife
 	uint32_t __cdecl fl_8859D0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x26D9048);
+		uint32_t st = MEM<uint32_t>(R(0x26D9048));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1419,7 +1442,7 @@ namespace fulllife
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x26D9048);
+			st = MEM<uint32_t>(R(0x26D9048));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1437,7 +1460,7 @@ namespace fulllife
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x26D9048, 0);                  // actor state block
+		uint32_t st = U32(R(0x26D9048), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1556,7 +1579,7 @@ namespace fulllife
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl fl_886CE0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x26D9048, 0);
+		uint32_t sys = U32(R(0x26D9048), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1591,9 +1614,9 @@ namespace fulllife
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x26D9038, 0) - 0x50;
+		uint32_t sp = U32(R(0x26D9038), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x26D9038, 0) = sp;
+		U32(R(0x26D9038), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = fl_887540(a1, (uint16_t)kind);
@@ -1605,7 +1628,7 @@ namespace fulllife
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x26D9048, 0);
+			uint32_t ctx = U32(R(0x26D9048), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1784,7 +1807,7 @@ namespace fulllife
 			}
 		}
 		fl_888250(node, desc);
-		U32(0x26D9038, 0) = U32(0x26D9038, 0) + 0x50;
+		U32(R(0x26D9038), 0) = U32(R(0x26D9038), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1793,8 +1816,8 @@ namespace fulllife
 	// index a2) with the module's pool of 0x8C records (cursor wraps at 0x8B)
 	uint32_t __cdecl fl_887540(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26D903C);
-		int32_t i = MEM<int16_t>(0x26D9030);
+		const uint32_t pool = MEM<uint32_t>(R(0x26D903C));
+		int32_t i = MEM<int16_t>(R(0x26D9030));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1807,7 +1830,7 @@ namespace fulllife
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1824,9 +1847,9 @@ namespace fulllife
 		}
 		i++;
 		if (i >= 0x8B)
-			MEM<uint16_t>(0x26D9030) = 0;
+			MEM<uint16_t>(R(0x26D9030)) = 0;
 		else
-			MEM<uint16_t>(0x26D9030) = (uint16_t)i;
+			MEM<uint16_t>(R(0x26D9030)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1840,7 +1863,7 @@ namespace fulllife
 	uint32_t __cdecl fl_887760(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x26D9048, 0);            // ecx
+		const uint32_t st = U32(R(0x26D9048), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -1904,7 +1927,7 @@ namespace fulllife
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x26D9048, 0);
+				uint32_t g = U32(R(0x26D9048), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1914,7 +1937,7 @@ namespace fulllife
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x26D9048, 0);
+				uint32_t g = U32(R(0x26D9048), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2002,7 +2025,7 @@ namespace fulllife
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl fl_8882E0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x26D9048);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x26D9048));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2027,14 +2050,14 @@ namespace fulllife
 				do
 				{
 					fl_886BC0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x26D9048);
+					dir = MEM<uint32_t>(R(0x26D9048));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				fl_886BC0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x26D9048);
+				dir = MEM<uint32_t>(R(0x26D9048));
 			}
 		}
 		return 0; // void
@@ -2057,7 +2080,7 @@ namespace fulllife
 	// 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl fl_8883A0(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x1E)
+		if (S16(a1, 0x24) == PF().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2070,7 +2093,7 @@ namespace fulllife
 	uint32_t __cdecl fl_8883C0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x1E)
+		if (S16(node, 0x24) < PF().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -2102,7 +2125,7 @@ namespace fulllife
 			return 0; // void
 		}
 		const uint8_t st = U8(node, 0x29);
-		U16(node, 0x60) = 0xA;
+		U16(node, 0x60) = (uint16_t)PF().master.wait;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
 	}
@@ -2114,7 +2137,7 @@ namespace fulllife
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x888480, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x888480, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -2123,7 +2146,7 @@ namespace fulllife
 	uint32_t __cdecl fl_8884E0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x1C) = 0x400;
+		U16(a1, 0x1C) = (uint16_t)PF().fade.level;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -2132,7 +2155,7 @@ namespace fulllife
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl fl_888500(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PF().fade.step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -2145,6 +2168,31 @@ namespace fulllife
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(FullLifeParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the actor system, the master's release, the result (the revive); the master's wait" },
+			{ 0, "stage", "Stage fade", "The stage fade in (once the master's children are gone) and out (after the wait)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "At the emitter's start: Start, Length (ticks), Mode (0: the targets' positions)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(FullLifeParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Result tick", "The action's result (the revive) from this tick", 0, 200),
+			DT("emitter", master.wait, "Wait", "After the last action, the fade out after these ticks", 1, 200),
+			DT("emitter", actors.start, "Start", "", 0, 200),
+			DT("emitter", actors.length, "Length", "", 0, 200),
+			DT("emitter", actors.mode, "Mode", "", 0, 4),
+			DT("stage", fade.level, "Level", "Its level (in: up to it, out: from it)", 0, 0x1000),
+			DT("stage", fade.step, "Step", "Up / down by this a tick", 1, 0x1000),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -2244,6 +2292,11 @@ namespace fulllife
 
 	void register_mag027_fulllife()
 	{
+		fxp::register_params({ 27, "Full-life", &act::fulllife::live, &act::fulllife::GAME, sizeof(act::fulllife::FullLifeParams),
+		                       act::fulllife::table::PARTS, (int)(sizeof(act::fulllife::table::PARTS) / sizeof(act::fulllife::table::PARTS[0])),
+		                       act::fulllife::table::FIELDS, (int)(sizeof(act::fulllife::table::FIELDS) / sizeof(act::fulllife::table::FIELDS[0])),
+		                       act::fulllife::table::GROUPS, (int)(sizeof(act::fulllife::table::GROUPS) / sizeof(act::fulllife::table::GROUPS[0])) });
+		act::register_mod(&act::fulllife::MOD_027);
 		act::register_module(27);
 		for (const act::fulllife::ModPort *p = act::fulllife::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(27, p->addr, p->port, p->name);
@@ -2252,6 +2305,7 @@ namespace fulllife
 		// 30 fps layer: see mag027_fulllife_held.inc
 		FX_HELD(register_mag027_held();)
 	}
+	FX_LAB_MODULE(register_mag027_fulllife);
 }
 
 #ifdef FF8_FX_HELD

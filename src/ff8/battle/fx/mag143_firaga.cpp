@@ -28,8 +28,14 @@
 // Module globals: 0x24BECC8..0x24BFB40 (queues, node pool, context, per-action anchors
 // 0x24BFB20 (3 x {x, y, z, fireball alive}), texture pointers, packet cursor 0x24BFB3C);
 // packets go to the magic buffer (0x20DFAB8 + 0 / + 0x10000).
+// Fujin's described Firaga (effect_143.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (FiragaParams: the sound, the damage
+// tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -39,11 +45,12 @@ namespace firaga143
 	using namespace magc;
 
 	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BECE0); } // .first = root, .second = effect queue
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24BFB10); }
-	inline int16_t *Anchor(int action) { return (int16_t *)(0x24BFB20 + 8 * action); } // x, y, z, fireball alive
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24BFB38); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24BFB3C); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(own::R(0x24BECE0)); } // .first = root, .second = effect queue
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24BFB10)); }
+	inline int16_t *Anchor(int action) { return (int16_t *)(own::R(0x24BFB20) + 8 * action); } // x, y, z, fireball alive
+	inline uint8_t *&TexBase() { return var<uint8_t *>(own::R(0x24BFB38)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24BFB3C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24BFB18)); }          // the effect's file (its TIM)
 
 	static const uint32_t ORIG_RootTask = 0x61CDA0;
 	static const uint32_t ORIG_Director = 0x61C0A0;
@@ -58,6 +65,23 @@ namespace firaga143
 	static const void *const MODEL_Fireball = (const void *)0xDDC578;
 	static const void *const MODEL_Spark = (const void *)0xDDCE48;
 	static const void *const SOUND_Firaga = (const void *)0xDDD8F0;
+	static const uint32_t ORIG_FileLoader = 0x61BFC0, ORIG_Setup = 0x61BFE0;
+	static const uint32_t TEXTURE_NAME = 0xDDD8F8, CAMERA = 0xDD9A4C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FiragaParams
+	{
+		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
+		struct { int16_t damage; } director; // the damage at this tick of an action's director
+		struct { uint32_t area_flame; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t burst, flame_swirl, fireball, spark; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const FiragaParams GAME = { 0xDDD8F0, { 0x30 }, { 0xDDA594 }, { 0xDDD208, 0xDDA740, 0xDDC578, 0xDDCE48 }, { TEXTURE_NAME, CAMERA } };
+	static FiragaParams live = GAME;
+	static const FiragaParams &P() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -125,6 +149,36 @@ namespace firaga143
 	// ------------------------------------------------------------------
 	// Root task (0x61CDA0): node +0x0C counter
 	// ------------------------------------------------------------------
+	// File loader (0x61BFC0) and setup (0x61BFE0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the first action's
+	// director (its target slot +0x20), the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint8_t *)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x24BECC8)) = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x24BFB14)) = ctx->attacker;
+		InitTaskQueuePool(&Queues().first, (void *)own::R(0x24BECD0), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&Queues().first, own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(&Queues().second, (void *)own::R(0x24BED00), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return &Queues().first;
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -172,7 +226,7 @@ namespace firaga143
 			int32_t count = d->counter / 6 + 1;
 			for (; count > 0; count--)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_SparkTask));
 				s->counter = 0;
 				s->action = d->action;
 				int32_t dir[4] = {}, axis[4] = {};
@@ -192,7 +246,7 @@ namespace firaga143
 		}
 		if (d->counter == 4)
 		{
-			ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FireballTask);
+			ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_FireballTask));
 			f->action = d->action;
 			f->counter = 0;
 			f->scale = 0;
@@ -203,7 +257,7 @@ namespace firaga143
 		if (d->counter == 0x21)
 		{
 			Anchor(d->action)[3] = 0;
-			ModelNode *s = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FlameSwirlTask);
+			ModelNode *s = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_FlameSwirlTask));
 			s->counter = 0;
 			memcpy(s->pos, Anchor(d->action), 8);
 			s->yaw = (int16_t)(CrtRand() % 4096);
@@ -211,7 +265,7 @@ namespace firaga143
 			s->scale = 0x355;
 			s->scale_vel = 0x355;
 			s->yaw_vel = (int16_t)(r + 0x3C);
-			s = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FlameSwirlTask);
+			s = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_FlameSwirlTask));
 			memcpy(s->pos, Anchor(d->action), 4);
 			s->counter = 0;
 			memcpy(&s->pos[2], &Anchor(d->action)[2], 4);
@@ -222,7 +276,7 @@ namespace firaga143
 		}
 		if (d->counter == 0x21)
 		{
-			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_BurstTask);
+			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_BurstTask));
 			b->counter = 0;
 			memcpy(b->pos, Anchor(d->action), 8);
 			b->scale = 0x555;
@@ -235,7 +289,7 @@ namespace firaga143
 			int32_t half = spread >> 1;
 			for (int k = 0; k < 2; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, ORIG_AreaFlameTask);
+				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_AreaFlameTask));
 				f->frame = 0;
 				f->delay = (int16_t)(CrtRand() % 6 + k);
 				memcpy(f->pos, Anchor(d->action), 8);
@@ -251,14 +305,14 @@ namespace firaga143
 				f->scale = (int16_t)(CrtRand() % 0xC00 + 0xB00);
 			}
 		}
-		if (d->counter == 0x30) ApplyActionResultToTarget(Ctx()->actions[d->action].targets);
+		if (d->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[d->action].targets);
 		if (d->counter == 0x2C)
 		{
 			ActionData *acts = Ctx()->actions;
 			int next = d->action + 1;
 			if (next <= acts[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, ORIG_Director);
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_Director));
 				t->counter = 0;
 				t->action = (int16_t)next;
 				t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];
@@ -272,7 +326,7 @@ namespace firaga143
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
-			BdPlaySE3D(SOUND_Firaga, 0, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Firaga), 0, pos);
 		}
 		d->counter++;
 		if (d->counter <= 0x3C) return 0;
@@ -288,7 +342,7 @@ namespace firaga143
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
 		uint8_t *h = AllocHeader(0xB4);
-		*(const void **)h = SEQ_AreaFlame;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.area_flame, (uint32_t)SEQ_AreaFlame));
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -356,7 +410,7 @@ namespace firaga143
 
 	static void BurstHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = ((const void *)fxp::model(P().models.burst, (uint32_t)MODEL_Burst));
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 0xA)
 		{
@@ -401,7 +455,7 @@ namespace firaga143
 
 	static void FlameSwirlHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_FlameSwirl;
+		*(const void **)h = ((const void *)fxp::model(P().models.flame_swirl, (uint32_t)MODEL_FlameSwirl));
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 0xE)
 		{
@@ -443,7 +497,7 @@ namespace firaga143
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 5));
 		uint8_t *h = AllocHeader(0x58);
-		*(const void **)h = MODEL_Fireball;
+		*(const void **)h = ((const void *)fxp::model(P().models.fireball, (uint32_t)MODEL_Fireball));
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -495,7 +549,7 @@ namespace firaga143
 
 	static void SparkHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Spark;
+		*(const void **)h = ((const void *)fxp::model(P().models.spark, (uint32_t)MODEL_Spark));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -532,20 +586,52 @@ namespace firaga143
 		SparkUpdate(p);
 		return p->counter >= 0x14 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action on its target: the area flames, the flame swirls, the fireball, the burst and sparks, the screen flash, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "", (uint32_t)offsetof(FiragaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(FiragaParams, director.damage), fxp::I16, 0, 100 },
+			{ "director", "seqs.area_flame", "Area flame", "The sprite sequence area flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FiragaParams, seqs.area_flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.burst", "Burst model", "The prim model burst (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flame_swirl", "Flame swirl model", "The prim model flame swirl (a mesh of 162 vertices, 320 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.flame_swirl), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.fireball", "Fireball model", "The prim model fireball (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.fireball), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.spark", "Spark model", "The prim model spark (a mesh of 31 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiragaParams, models.spark), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FiragaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FiragaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag143_firaga()
 	{
+		fxp::register_params({ 143, "Firaga", &firaga143::live, &firaga143::GAME, sizeof(firaga143::FiragaParams),
+		                       firaga143::table::PARTS, (int)(sizeof(firaga143::table::PARTS) / sizeof(firaga143::table::PARTS[0])),
+		                       firaga143::table::FIELDS, (int)(sizeof(firaga143::table::FIELDS) / sizeof(firaga143::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(firaga143::ORIG_FileLoader, (void *)firaga143::FileLoader);
+		own::note(firaga143::ORIG_Setup, (void *)firaga143::Setup);
+		own::note(firaga143::ORIG_RootTask, (void *)firaga143::RootTask);
 		register_port(firaga143::ORIG_RootTask, (void *)firaga143::RootTask, "F143 RootTask", 143);
+		own::note(firaga143::ORIG_Director, (void *)firaga143::DirectorTask);
 		register_port(firaga143::ORIG_Director, (void *)firaga143::DirectorTask, "F143 Director", 143);
+		own::note(firaga143::ORIG_AreaFlameTask, (void *)firaga143::AreaFlameTask);
 		register_port(firaga143::ORIG_AreaFlameTask, (void *)firaga143::AreaFlameTask, "F143 AreaFlameTask", 143);
+		own::note(firaga143::ORIG_BurstTask, (void *)firaga143::BurstTask);
 		register_port(firaga143::ORIG_BurstTask, (void *)firaga143::BurstTask, "F143 BurstTask", 143);
+		own::note(firaga143::ORIG_FlameSwirlTask, (void *)firaga143::FlameSwirlTask);
 		register_port(firaga143::ORIG_FlameSwirlTask, (void *)firaga143::FlameSwirlTask, "F143 FlameSwirlTask", 143);
+		own::note(firaga143::ORIG_FireballTask, (void *)firaga143::FireballTask);
 		register_port(firaga143::ORIG_FireballTask, (void *)firaga143::FireballTask, "F143 FireballTask", 143);
+		own::note(firaga143::ORIG_SparkTask, (void *)firaga143::SparkTask);
 		register_port(firaga143::ORIG_SparkTask, (void *)firaga143::SparkTask, "F143 SparkTask", 143);
 		// 30 fps layer: see mag143_firaga_held.inc
 		FX_HELD(register_mag143_held();)
 	}
+	FX_LAB_MODULE(register_mag143_firaga);
 }
 
 #ifdef FF8_FX_HELD

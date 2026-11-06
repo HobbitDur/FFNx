@@ -216,7 +216,7 @@ namespace raldo
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -385,7 +385,7 @@ namespace raldo
 	// the next tick draws the ball
 	static bool PredictBall(uint32_t node)
 	{
-		if (!live(node, ORIG_Raldo) || (U8(node, 0x26) & 8) == 0) return false;
+		if (!node_live(node, ORIG_Raldo) || (U8(node, 0x26) & 8) == 0) return false;
 		switch (S8(node, 0x29))
 		{
 		case 3: // 0x8AAC50 the throw
@@ -500,7 +500,7 @@ namespace raldo
 		const uint32_t c = P(cur), x1 = P(nxt);
 		const uint32_t task = U32(c, 8);
 		// (a node released after the real tick holds its last draw)
-		const bool next = live(n.node, task) && (U8(c, 0x26) & 4) == 0;
+		const bool next = node_live(n.node, task) && (U8(c, 0x26) & 4) == 0;
 		if (next)
 		{
 			// the node holds the positions the next tick draws; its next state step (flipbook frame)

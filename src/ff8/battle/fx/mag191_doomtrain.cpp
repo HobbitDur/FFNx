@@ -46,6 +46,9 @@
 // every ported module that queues it).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -140,6 +143,24 @@ namespace d191
 
 	static const uint32_t ORIG_SequenceTick = 0x6472C0;
 	static const uint32_t ORIG_TimelineTask = 0x63F2D0;
+	static const uint32_t ORIG_FileLoader = 0x575560, ORIG_Setup = 0x63E730;   // (the file loader is the engine's nullsub)
+	static const uint32_t TIM_DOOMTRAIN = 0xF78384;   // the setup's TIM (exe data)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DoomtrainParams
+	{
+		uint32_t voice;                                         // the voice slot claimed at the timeline's tick 0
+		struct { uint32_t start, horn, wheels, rush, end; } sounds; // at the timeline's ticks 4, 160, 294, 336, 417
+		struct { int16_t damage; } timeline;                    // the action result at this tick
+		struct { uint32_t at_e346b0, at_e33e40, at_e342a4, at_e3460c, at_e34548, at_e34404; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_e375bc, at_e38e78, at_e396b0, at_e3b83c, at_e3496c, at_e3a744, at_e3ad34, at_e3bd64; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_doomtrain; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const DoomtrainParams GAME = { 0xE3C774, { 0xE3C8A8, 0xE3C8AC, 0xE3C8B0, 0xE3C8B4, 0xE3C8B8 }, { 0x1A4 }, { 0xE346B0, 0xE33E40, 0xE342A4, 0xE3460C, 0xE34548, 0xE34404 }, { 0xE375BC, 0xE38E78, 0xE396B0, 0xE3B83C, 0xE3496C, 0xE3A744, 0xE3AD34, 0xE3BD64 }, { TIM_DOOMTRAIN } };
+	static DoomtrainParams live = GAME;
+	static const DoomtrainParams &P() { return live; }
 	static const uint32_t ORIG_CamScriptTask = 0x63E9C0;
 	static const uint32_t ORIG_FlashInTask = 0x63F7D0;
 	static const uint32_t ORIG_FlashOutTask = 0x63F880;
@@ -311,7 +332,7 @@ namespace d191
 	// the original, both do the same)
 	static void CameraScriptStart(uint32_t script, const Mat4x3 *frame, void *entity, TaskQueue *q, int32_t n)
 	{
-		CamNode *m = (CamNode *)AddTaskToQueue(q, ORIG_CamScriptTask);
+		CamNode *m = (CamNode *)AddTaskToQueue(q, own::Fn(ORIG_CamScriptTask));
 		m->script = (const int16_t *)script;
 		m->frame = frame;
 		m->c = 0;
@@ -581,12 +602,12 @@ namespace d191
 	// au_re_BdLinkTask_78 0x63F760 (no null check, as the original)
 	static Node24 *LinkTask(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
 	}
-	static Node24 *AddTask(uint32_t task_fn) { return (Node24 *)AddTaskToQueue(&SubQueue(), task_fn); }
+	static Node24 *AddTask(uint32_t task_fn) { return (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn)); }
 
 	// MAG_191_sub_63F780 / _63F830: stru_1D9898C[0..3].currentBsId |= 2 / &= ~2
 	static void BsFlagSet() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2; }
@@ -690,6 +711,56 @@ namespace d191
 	static void LinkSteamPuff();
 	static void LinkSteamPair();
 
+	// Setup (0x63E730; the file loader is the engine's nullsub): the game runs its own; Fujin's programs this (the module
+	// is shared: a copy runs on its memory - the camera-script interpreter's state lives in it too): the model buffer
+	// (the magic buffer) and the exe data pool pointers into it, the cast, its first target and its caster, the master
+	// and the timeline, the six record pools cleared, the exe's TIM, the effect frame (the target's yaw + 0x800, at
+	// the targets' centre)
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +2 target mask, +4 the actions)
+	{
+		const uint32_t mb = (uint32_t)layouts::MagicBuffer();
+		var<uint32_t>(0xE3C8C0) = mb + 0x2E000;
+		var<uint32_t>(0xE3C8C4) = mb + 0x2F000;
+		var<uint32_t>(0xE3C8C8) = mb + 0x30000;
+		var<uint32_t>(0xE3C8CC) = mb + 0x31000;
+		var<uint32_t>(0x24FD3A0) = mb;
+		var<uint32_t>(0xE3C8D8) = mb + 0x37000;
+		var<uint32_t>(0xE3C8D0) = mb + 0x32000;
+		var<uint32_t>(0xE3C8D4) = mb + 0x33000;
+		const uint8_t *action = *(uint8_t **)(ctx + 4);
+		var<uint8_t *>(0x24FD258) = ctx;
+		const int32_t target = (*(uint8_t **)(action + 8))[0];
+		var<int32_t>(0x24FBE7C) = target;
+		var<int32_t>(0x24FD25C) = ctx[0];
+		InitTaskQueuePool((TaskQueue *)0x24FBF80, (void *)0x24FBF60, 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue((TaskQueue *)0x24FBF80, own::Fn(ORIG_SequenceTick)) + 0xC) = 0;
+		InitTaskQueuePool(&SubQueue(), (void *)0x24FC340, 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TimelineTask)) + 0xC) = 0;
+		static const struct { uint32_t pool; int count; } POOLS[] = { { 0xE3C8C0, 170 }, { 0xE3C8C4, 170 }, { 0xE3C8C8, 150 },
+		                                                               { 0xE3C8CC, 120 }, { 0xE3C8D0, 130 }, { 0xE3C8D4, 590 } };
+		for (const auto &p : POOLS)
+			for (int i = 0; i < p.count; i++) *(uint32_t *)(var<uint32_t>(p.pool) + 0x18 * i) = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_doomtrain, TIM_DOOMTRAIN));   // Battle_QueueTIMUpload_GetEOF
+		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
+		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
+		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &Root());          // BuildRotationMatrixFromAngles
+		int16_t *centre = (int16_t *)0x24FBD68;
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)(ctx + 2), centre); // CalculateCenterPosition
+		int32_t *t = (int32_t *)0x24FBE9C;
+		t[2] = centre[2];
+		t[0] = 0;
+		t[1] = 0;
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = 0;
+		fn<uint32_t (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(e + 0x40, v, v);  // matrixMultiplyVector
+		t[0] += v[0];
+		StateFlags() = 0;
+		t[1] += v[1];
+		t[2] += v[2];
+		return (TaskQueue *)0x24FBF80;
+	}
+
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -707,12 +778,12 @@ namespace d191
 			BuildTargetList();
 			SaveTargets();
 			BdTransSummonStream(0xF78380, 0x24FC280);
-			VoiceSlot() = ClaimVoiceSlot((const void *)0xE3C774, 1, 0x80);
+			VoiceSlot() = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0xE3C774), 1, 0x80);
 		}
 		switch (n->c)
 		{
 		case 1: SpawnRigs(); break;
-		case 4: BdPlaySE(0xE3C8A8, 0, 0x80); break;
+		case 4: BdPlaySE(fxp::sound(P().sounds.start, 0xE3C8A8), 0, 0x80); break;
 		case 5: CharacterLoad(0x22B, MB() + 0x10000); break;
 		case 15:
 			if (LoadState() < 0) return 0;
@@ -745,30 +816,30 @@ namespace d191
 			BdPlaySummonStream(0x80, 0, 0x60);
 			LinkTask(ORIG_CreatureTask);
 			break;
-		case 160: BdPlaySE(0xE3C8AC, 0, 0x80); break;
+		case 160: BdPlaySE(fxp::sound(P().sounds.horn, 0xE3C8AC), 0, 0x80); break;
 		case 168: CharacterLoad(0x22F, SummonData()); break;
 		case 293: CharacterLoad(0x230, SummonData()); break;
 		case 294:
-			BdPlaySE(0xE3C8B0, 0, 0x80);
+			BdPlaySE(fxp::sound(P().sounds.wheels, 0xE3C8B0), 0, 0x80);
 			BdPlaySummonStream(0x80, 0, 0x60);
 			break;
 		case 335:
 			BdPlaySummonStream(0x80, 0, 0x60);
 			CharacterLoad(0x231, SummonData());
 			break;
-		case 336: BdPlaySE(0xE3C8B4, 0, 0x80); break;
+		case 336: BdPlaySE(fxp::sound(P().sounds.rush, 0xE3C8B4), 0, 0x80); break;
 		case 366: BdPlaySummonStream(0x80, 0, 0x60); break;
 		case 405:
 			LinkFlash(ORIG_FlashOutTask);
 			QueueTIMUpload(MB() + 0x10000);
 			break;
 		case 406: LinkTask(ORIG_EndTask); break;
-		case 417: BdPlaySE(0xE3C8B8, 0, 0x80); break;
+		case 417: BdPlaySE(fxp::sound(P().sounds.end, 0xE3C8B8), 0, 0x80); break;
 		case 420:
 			if (VoiceSlotBusy(VoiceSlot())) ReleaseVoiceSlot(VoiceSlot());
 			break;
 		}
-		if (n->c == 0x1A4)
+		if (n->c == P().timeline.damage)
 		{
 			uint8_t *t = *(uint8_t **)(CastCtx() + 4);
 			ApplyActionResultToTargets(*(uint32_t *)(t + 8), t[0x10]);
@@ -942,7 +1013,7 @@ namespace d191
 	{
 		int16_t ang[3] = { 0, 0, 0 };
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
-		PrimModel(0xE375BC, 2, 0x30);
+		PrimModel(fxp::model(P().models.at_e375bc, 0xE375BC), 2, 0x30);
 	}
 	static uint32_t __cdecl RigPrimATask(TaskNode *tn)
 	{
@@ -960,7 +1031,7 @@ namespace d191
 	{
 		int16_t ang[3] = { 0, 0, 0 };
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
-		PrimModel(0xE38E78, 3, 0);
+		PrimModel(fxp::model(P().models.at_e38e78, 0xE38E78), 3, 0);
 	}
 	static uint32_t __cdecl RigPrimBTask(TaskNode *tn)
 	{
@@ -979,7 +1050,7 @@ namespace d191
 	{
 		int16_t ang[3] = { 0, 0, roll };
 		RigMatrix(W, ang, n, n->f1C, n->f20, n->f20);
-		PrimModel(0xE396B0, 2, 0);
+		PrimModel(fxp::model(P().models.at_e396b0, 0xE396B0), 2, 0);
 	}
 	static uint32_t __cdecl RigRockTask(TaskNode *tn)
 	{
@@ -1014,7 +1085,7 @@ namespace d191
 		int16_t ang[3] = { 0, 0, 0 };
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3B83C;
+		*(uint32_t *)h = fxp::model(P().models.at_e3b83c, 0xE3B83C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c == 0)
@@ -1048,7 +1119,7 @@ namespace d191
 		RigMatrix(W, ang, n, n->f1C, n->f1C, n->f1C);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)(c & 7);
-		*(uint32_t *)h = 0xE346B0;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e346b0, 0xE346B0);
 		*(uint16_t *)(h + 0x24) = 8;
 		Cursor() = InitEffectSequenceFromData(h, OT(), 3, Cursor());
 		FieldFree(0xB4);
@@ -1126,7 +1197,7 @@ namespace d191
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x6C);
 		uint32_t mode = f1A ? 3 : 0xC;
-		*(uint32_t *)h = 0xE3496C;
+		*(uint32_t *)h = fxp::model(P().models.at_e3496c, 0xE3496C);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = mode | 0x20C0;
 		*(uint32_t *)(h + 0x20) = ((const uint32_t *)0xE3C8DC)[idx & 0x1F];
@@ -1255,7 +1326,7 @@ namespace d191
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		LitFrame(s, nullptr, &Frame(), 0, 0, 0);
 		for (int i = 0; i < 170; i++)
@@ -1793,7 +1864,7 @@ namespace d191
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		*(int16_t *)s = 0;
 		*(int16_t *)(s + 2) = 0;
@@ -1918,7 +1989,7 @@ namespace d191
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		LitFrame(s, nullptr, &Frame(), 0, 0, 0);
 		for (int i = 0; i < 170; i++)
@@ -1980,7 +2051,7 @@ namespace d191
 
 	static void PuffWallSetup(uint8_t *h, uint8_t *s, const Mat4x3 *frame, int16_t c, bool grey_override, uint32_t grey)
 	{
-		*(uint32_t *)h = 0xE33E40;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e33e40, 0xE33E40);
 		*(uint16_t *)(h + 0x24) = 8;
 		if (c < 0xB) *(uint16_t *)(h + 0x24) = 0x208;
 		*(int16_t *)s = 0;
@@ -2101,7 +2172,7 @@ namespace d191
 			ComposeAffineTransform(&Frame(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			PrimModel(0xE3A744, 2, 0x33);
+			PrimModel(fxp::model(P().models.at_e3a744, 0xE3A744), 2, 0x33);
 		}
 		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
@@ -2157,7 +2228,7 @@ namespace d191
 		GteSetRotMatrix(&m2);
 		GteSetTransVector(&m2);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3A744;
+		*(uint32_t *)h = fxp::model(P().models.at_e3a744, 0xE3A744);
 		*(int32_t *)(h + 0xC) = fade_override >= 0 ? fade_override : GlowFade();
 		if (*(int32_t *)(h + 0xC) < 0) *(int32_t *)(h + 0xC) = 0;
 		int32_t fade = *(int32_t *)(h + 0xC);
@@ -2169,7 +2240,7 @@ namespace d191
 		ComposeAffineTransform(frame, &m1, &m1);
 		GteSetRotMatrix(&m1);
 		GteSetTransVector(&m1);
-		*(uint32_t *)h = 0xE3AD34;
+		*(uint32_t *)h = fxp::model(P().models.at_e3ad34, 0xE3AD34);
 		*(uint32_t *)(h + 0xC) = 0;
 		Cursor() = RenderPrimModel(h, OT(), 3, Cursor());
 		FieldFree(0x58);
@@ -2205,7 +2276,7 @@ namespace d191
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE342A4;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e342a4, 0xE342A4);
 		*(uint16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
 		ChimneyFrame(s, &BoneWorld(), &Frame());
@@ -2367,7 +2438,7 @@ namespace d191
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		SteamHistory(s, n->c, false);
 		int32_t np = SteamCollect(n->c, false);
-		SteamSetup(h, s, 0xE342A4, true, 0xC);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), true, 0xC);
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = R(POOL_C, i);
@@ -2433,7 +2504,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, true, 0xC);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), true, 0xC);
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = R(POOL_C, i);
@@ -2481,7 +2552,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, true, 0xC);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), true, 0xC);
 		int32_t count = 0;
 		for (int i = 0; i < 150; i++)
 		{
@@ -2593,7 +2664,7 @@ namespace d191
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		WheelHistory(s, n->c, false);
 		int32_t np = SteamCollect(n->c, true);
-		SteamSetup(h, s, 0xE342A4, false, 8);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), false, 8);
 		WheelDrawLoop(n, h, s, 3, true, false, nullptr);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -2646,7 +2717,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, false, 8);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), false, 8);
 		WheelDrawLoop(n, h, s, 2, false, false, nullptr);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -2688,7 +2759,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		s = (uint8_t *)FieldAlloc(0x50);
-		SteamSetup(h, s, 0xE342A4, false, 8);
+		SteamSetup(h, s, fxp::sequence(P().seqs.at_e342a4, 0xE342A4), false, 8);
 		int32_t count = 0;
 		WheelDrawLoop(n, h, s, 2, true, true, &count);
 		FieldFree(0x50);
@@ -2753,7 +2824,7 @@ namespace d191
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE3BD64;
+		*(uint32_t *)h = fxp::model(P().models.at_e3bd64, 0xE3BD64);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		if (fade)
@@ -2873,7 +2944,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x98);
-		*(uint32_t *)h = 0xE3460C;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e3460c, 0xE3460C);
 		*(uint16_t *)(h + 0x24) = 0x208;
 		int32_t count = 0;
 		// 30 fps layer: see mag191_doomtrain_held.inc
@@ -2887,7 +2958,7 @@ namespace d191
 			*(int16_t *)(h + 4) = n->c;
 			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 		}
-		*(uint32_t *)h = 0xE34548;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e34548, 0xE34548);
 		ExplosionFrame(s, n, &Frame());
 		*(int32_t *)(s + 0x70) = 0x1000;
 		*(int32_t *)(s + 0x68) = 0x1000;
@@ -3102,7 +3173,7 @@ namespace d191
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		memcpy(s + 8, &Camera(), sizeof(Mat4x3));
-		*(uint32_t *)h = 0xE34404;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_e34404, 0xE34404);
 		*(uint32_t *)(h + 0x1C) = 0x586880;
 		*(uint16_t *)(h + 0x24) = 0xC;
 		int32_t count = 0;
@@ -3135,50 +3206,123 @@ namespace d191
 		n->c++;
 		return count ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Doomtrain's Runaway Train: the camera script, the summon stream's loads, the sky, the rails and rig, the train with its smoke, sparks and rain, the debris, the flashes, the voice and the sounds; the action result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the timeline's ticks 4, 160, 294, 336, 417" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "voice", "Voice", "The voice slot claimed at the timeline's tick 0", (uint32_t)offsetof(DoomtrainParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.start", "Start", "At the timeline's tick 4", (uint32_t)offsetof(DoomtrainParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.horn", "Horn", "At the timeline's tick 160", (uint32_t)offsetof(DoomtrainParams, sounds.horn), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.wheels", "Wheels", "At the timeline's tick 294", (uint32_t)offsetof(DoomtrainParams, sounds.wheels), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.rush", "Rush", "At the timeline's tick 336", (uint32_t)offsetof(DoomtrainParams, sounds.rush), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.end", "End", "At the timeline's tick 417", (uint32_t)offsetof(DoomtrainParams, sounds.end), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "timeline.damage", "Damage tick", "The action result at this tick of the timeline", (uint32_t)offsetof(DoomtrainParams, timeline.damage), fxp::I16, 0, 423 },
+			{ "timeline", "seqs.at_e346b0", "Flipbook E346B0", "The sprite sequence at 0xE346B0 (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e346b0), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e33e40", "Flipbook E33E40", "The sprite sequence at 0xE33E40 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e33e40), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e342a4", "Flipbook E342A4", "The sprite sequence at 0xE342A4 (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e342a4), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e3460c", "Flipbook E3460C", "The sprite sequence at 0xE3460C (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e3460c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e34548", "Flipbook E34548", "The sprite sequence at 0xE34548 (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e34548), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_e34404", "Flipbook E34404", "The sprite sequence at 0xE34404 (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomtrainParams, seqs.at_e34404), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e375bc", "Model E375BC", "The prim model at 0xE375BC (a mesh of 208 vertices, 183 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e375bc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e38e78", "Model E38E78", "The prim model at 0xE38E78 (a mesh of 48 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e38e78), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e396b0", "Model E396B0", "The prim model at 0xE396B0 (a mesh of 107 vertices, 119 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e396b0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3b83c", "Model E3B83C", "The prim model at 0xE3B83C (a mesh of 49 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3b83c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3496c", "Model E3496C", "The prim model at 0xE3496C (a mesh of 178 vertices, 352 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3496c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3a744", "Model E3A744", "The prim model at 0xE3A744 (a mesh of 49 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3a744), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3ad34", "Model E3AD34", "The prim model at 0xE3AD34 (a mesh of 96 vertices, 84 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3ad34), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_e3bd64", "Model E3BD64", "The prim model at 0xE3BD64 (a mesh of 63 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomtrainParams, models.at_e3bd64), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "res.tim_doomtrain", "TIM image doomtrain", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(DoomtrainParams, res.tim_doomtrain), fxp::Tim, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag191_doomtrain()
 	{
-		using namespace d191;
+		fxp::register_params({ 191, "Doomtrain", &d191::live, &d191::GAME, sizeof(d191::DoomtrainParams),
+		                       d191::table::PARTS, (int)(sizeof(d191::table::PARTS) / sizeof(d191::table::PARTS[0])),
+		                       d191::table::FIELDS, (int)(sizeof(d191::table::FIELDS) / sizeof(d191::table::FIELDS[0])),
+		                       d191::table::GROUPS, (int)(sizeof(d191::table::GROUPS) / sizeof(d191::table::GROUPS[0])) });
+		own::note(d191::ORIG_Setup, (void *)d191::Setup);
 		// the shared camera-script interpreter: registered once (lookup keys on the address, so
 		// it also serves Cactuar 199, Shiva 185 and any other ported module that queues it)
-		register_port(ORIG_CamScriptTask, (void *)CamScriptTask, "D191 CameraScriptTask (MAG_066, shared)", 191);
-		register_port(ORIG_SequenceTick, (void *)SequenceTick, "D191 SequenceTick", 191);
-		register_port(ORIG_TimelineTask, (void *)TimelineTask, "D191 TimelineTask", 191);
-		register_port(ORIG_FlashInTask, (void *)FlashInTask, "D191 FlashInTask", 191);
-		register_port(ORIG_FlashOutTask, (void *)FlashOutTask, "D191 FlashOutTask", 191);
-		register_port(ORIG_RigTask, (void *)RigTask, "D191 RigTask", 191);
-		register_port(ORIG_RigPrimATask, (void *)RigPrimATask, "D191 RigPrimATask", 191);
-		register_port(ORIG_RigPrimBTask, (void *)RigPrimBTask, "D191 RigPrimBTask", 191);
-		register_port(ORIG_RigRockTask, (void *)RigRockTask, "D191 RigRockTask", 191);
-		register_port(ORIG_RigFlashTask, (void *)RigFlashTask, "D191 RigFlashTask", 191);
-		register_port(ORIG_RigSpriteTask, (void *)RigSpriteTask, "D191 RigSpriteTask", 191);
-		register_port(ORIG_SkyTask, (void *)SkyTask, "D191 SkyTask", 191);
-		register_port(ORIG_SteamPuffTask, (void *)SteamPuffTask, "D191 SteamPuffTask", 191);
-		register_port(ORIG_SteamPairTask, (void *)SteamPairTask, "D191 SteamPairTask", 191);
-		register_port(ORIG_RainTask, (void *)RainTask, "D191 RainTask", 191);
-		register_port(ORIG_EndTask, (void *)EndTask, "D191 EndTask", 191);
-		register_port(ORIG_CreatureTask, (void *)CreatureTask, "D191 CreatureTask", 191);
-		register_port(ORIG_WheelTrailTask, (void *)WheelTrailTask, "D191 WheelTrailTask", 191);
-		register_port(ORIG_PuffLineTask, (void *)PuffLineTask, "D191 PuffLineTask", 191);
-		register_port(ORIG_PuffWallTask, (void *)PuffWallTask, "D191 PuffWallTask", 191);
-		register_port(ORIG_FlareTask, (void *)FlareTask, "D191 FlareTask", 191);
-		register_port(ORIG_GlowTask, (void *)GlowTask, "D191 GlowTask", 191);
-		register_port(ORIG_ChimneyTask, (void *)ChimneyTask, "D191 ChimneyTask", 191);
-		register_port(ORIG_SteamTrailTask, (void *)SteamTrailTask, "D191 SteamTrailTask", 191);
-		register_port(ORIG_SteamStillTask, (void *)SteamStillTask, "D191 SteamStillTask", 191);
-		register_port(ORIG_SteamBurstTask, (void *)SteamBurstTask, "D191 SteamBurstTask", 191);
-		register_port(ORIG_WheelSteamTask, (void *)WheelSteamTask, "D191 WheelSteamTask", 191);
-		register_port(ORIG_WheelStillTask, (void *)WheelStillTask, "D191 WheelStillTask", 191);
-		register_port(ORIG_WheelBurstTask, (void *)WheelBurstTask, "D191 WheelBurstTask", 191);
-		register_port(ORIG_DebrisSpawnTask, (void *)DebrisSpawnTask, "D191 DebrisSpawnTask", 191);
-		register_port(ORIG_DebrisTask, (void *)DebrisTask, "D191 DebrisTask", 191);
-		register_port(ORIG_ExplosionTask, (void *)ExplosionTask, "D191 ExplosionTask", 191);
-		register_port(ORIG_KnockTask, (void *)KnockTask, "D191 KnockTask", 191);
-		register_port(ORIG_LandDustTask, (void *)LandDustTask, "D191 LandDustTask", 191);
+		own::note(d191::ORIG_CamScriptTask, (void *)d191::CamScriptTask);
+		register_port(d191::ORIG_CamScriptTask, (void *)d191::CamScriptTask, "D191 CameraScriptTask (MAG_066, shared)", 191);
+		own::note(d191::ORIG_SequenceTick, (void *)d191::SequenceTick);
+		register_port(d191::ORIG_SequenceTick, (void *)d191::SequenceTick, "D191 SequenceTick", 191);
+		own::note(d191::ORIG_TimelineTask, (void *)d191::TimelineTask);
+		register_port(d191::ORIG_TimelineTask, (void *)d191::TimelineTask, "D191 TimelineTask", 191);
+		own::note(d191::ORIG_FlashInTask, (void *)d191::FlashInTask);
+		register_port(d191::ORIG_FlashInTask, (void *)d191::FlashInTask, "D191 FlashInTask", 191);
+		own::note(d191::ORIG_FlashOutTask, (void *)d191::FlashOutTask);
+		register_port(d191::ORIG_FlashOutTask, (void *)d191::FlashOutTask, "D191 FlashOutTask", 191);
+		own::note(d191::ORIG_RigTask, (void *)d191::RigTask);
+		register_port(d191::ORIG_RigTask, (void *)d191::RigTask, "D191 RigTask", 191);
+		own::note(d191::ORIG_RigPrimATask, (void *)d191::RigPrimATask);
+		register_port(d191::ORIG_RigPrimATask, (void *)d191::RigPrimATask, "D191 RigPrimATask", 191);
+		own::note(d191::ORIG_RigPrimBTask, (void *)d191::RigPrimBTask);
+		register_port(d191::ORIG_RigPrimBTask, (void *)d191::RigPrimBTask, "D191 RigPrimBTask", 191);
+		own::note(d191::ORIG_RigRockTask, (void *)d191::RigRockTask);
+		register_port(d191::ORIG_RigRockTask, (void *)d191::RigRockTask, "D191 RigRockTask", 191);
+		own::note(d191::ORIG_RigFlashTask, (void *)d191::RigFlashTask);
+		register_port(d191::ORIG_RigFlashTask, (void *)d191::RigFlashTask, "D191 RigFlashTask", 191);
+		own::note(d191::ORIG_RigSpriteTask, (void *)d191::RigSpriteTask);
+		register_port(d191::ORIG_RigSpriteTask, (void *)d191::RigSpriteTask, "D191 RigSpriteTask", 191);
+		own::note(d191::ORIG_SkyTask, (void *)d191::SkyTask);
+		register_port(d191::ORIG_SkyTask, (void *)d191::SkyTask, "D191 SkyTask", 191);
+		own::note(d191::ORIG_SteamPuffTask, (void *)d191::SteamPuffTask);
+		register_port(d191::ORIG_SteamPuffTask, (void *)d191::SteamPuffTask, "D191 SteamPuffTask", 191);
+		own::note(d191::ORIG_SteamPairTask, (void *)d191::SteamPairTask);
+		register_port(d191::ORIG_SteamPairTask, (void *)d191::SteamPairTask, "D191 SteamPairTask", 191);
+		own::note(d191::ORIG_RainTask, (void *)d191::RainTask);
+		register_port(d191::ORIG_RainTask, (void *)d191::RainTask, "D191 RainTask", 191);
+		own::note(d191::ORIG_EndTask, (void *)d191::EndTask);
+		register_port(d191::ORIG_EndTask, (void *)d191::EndTask, "D191 EndTask", 191);
+		own::note(d191::ORIG_CreatureTask, (void *)d191::CreatureTask);
+		register_port(d191::ORIG_CreatureTask, (void *)d191::CreatureTask, "D191 CreatureTask", 191);
+		own::note(d191::ORIG_WheelTrailTask, (void *)d191::WheelTrailTask);
+		register_port(d191::ORIG_WheelTrailTask, (void *)d191::WheelTrailTask, "D191 WheelTrailTask", 191);
+		own::note(d191::ORIG_PuffLineTask, (void *)d191::PuffLineTask);
+		register_port(d191::ORIG_PuffLineTask, (void *)d191::PuffLineTask, "D191 PuffLineTask", 191);
+		own::note(d191::ORIG_PuffWallTask, (void *)d191::PuffWallTask);
+		register_port(d191::ORIG_PuffWallTask, (void *)d191::PuffWallTask, "D191 PuffWallTask", 191);
+		own::note(d191::ORIG_FlareTask, (void *)d191::FlareTask);
+		register_port(d191::ORIG_FlareTask, (void *)d191::FlareTask, "D191 FlareTask", 191);
+		own::note(d191::ORIG_GlowTask, (void *)d191::GlowTask);
+		register_port(d191::ORIG_GlowTask, (void *)d191::GlowTask, "D191 GlowTask", 191);
+		own::note(d191::ORIG_ChimneyTask, (void *)d191::ChimneyTask);
+		register_port(d191::ORIG_ChimneyTask, (void *)d191::ChimneyTask, "D191 ChimneyTask", 191);
+		own::note(d191::ORIG_SteamTrailTask, (void *)d191::SteamTrailTask);
+		register_port(d191::ORIG_SteamTrailTask, (void *)d191::SteamTrailTask, "D191 SteamTrailTask", 191);
+		own::note(d191::ORIG_SteamStillTask, (void *)d191::SteamStillTask);
+		register_port(d191::ORIG_SteamStillTask, (void *)d191::SteamStillTask, "D191 SteamStillTask", 191);
+		own::note(d191::ORIG_SteamBurstTask, (void *)d191::SteamBurstTask);
+		register_port(d191::ORIG_SteamBurstTask, (void *)d191::SteamBurstTask, "D191 SteamBurstTask", 191);
+		own::note(d191::ORIG_WheelSteamTask, (void *)d191::WheelSteamTask);
+		register_port(d191::ORIG_WheelSteamTask, (void *)d191::WheelSteamTask, "D191 WheelSteamTask", 191);
+		own::note(d191::ORIG_WheelStillTask, (void *)d191::WheelStillTask);
+		register_port(d191::ORIG_WheelStillTask, (void *)d191::WheelStillTask, "D191 WheelStillTask", 191);
+		own::note(d191::ORIG_WheelBurstTask, (void *)d191::WheelBurstTask);
+		register_port(d191::ORIG_WheelBurstTask, (void *)d191::WheelBurstTask, "D191 WheelBurstTask", 191);
+		own::note(d191::ORIG_DebrisSpawnTask, (void *)d191::DebrisSpawnTask);
+		register_port(d191::ORIG_DebrisSpawnTask, (void *)d191::DebrisSpawnTask, "D191 DebrisSpawnTask", 191);
+		own::note(d191::ORIG_DebrisTask, (void *)d191::DebrisTask);
+		register_port(d191::ORIG_DebrisTask, (void *)d191::DebrisTask, "D191 DebrisTask", 191);
+		own::note(d191::ORIG_ExplosionTask, (void *)d191::ExplosionTask);
+		register_port(d191::ORIG_ExplosionTask, (void *)d191::ExplosionTask, "D191 ExplosionTask", 191);
+		own::note(d191::ORIG_KnockTask, (void *)d191::KnockTask);
+		register_port(d191::ORIG_KnockTask, (void *)d191::KnockTask, "D191 KnockTask", 191);
+		own::note(d191::ORIG_LandDustTask, (void *)d191::LandDustTask);
+		register_port(d191::ORIG_LandDustTask, (void *)d191::LandDustTask, "D191 LandDustTask", 191);
 		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(register_mag191_held();)
 	}
+	FX_LAB_MODULE(register_mag191_doomtrain);
 }
 
 #ifdef FF8_FX_HELD

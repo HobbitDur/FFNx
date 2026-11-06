@@ -49,8 +49,14 @@
 // Module globals: 0x25212C0..0x2521368 (flash level, caster entity, texture file, magic buffer
 // base, context, root pool, party tints, packet cursor 0x25212F8, queues 0x2521300..0x2521350, an
 // never-written zero vector 0x2521360). Exe data written: the screen-fade chance 0x124227C.
+// Fujin's described Electric Discharge (effect_126.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (DischargeParams: the sound,
+// the damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -61,17 +67,19 @@ namespace disch126
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &FlashLevel() { return var<uint32_t>(0x25212C0); }       // screen flash level
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25212C4); }          // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25212CC); }          // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25212D0); }
-	inline uint32_t *SavedTints() { return (uint32_t *)0x25212EC; }          // party entities +0x28 (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25212F8); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2521300; }          // pool: magic buffer, 8 x 0xD4
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521310; }           // + 0x6A0, 0x20 x 0x18
-	inline TaskQueue *QCrawlers() { return (TaskQueue *)0x2521320; }         // + 0x9A0, 0x40 x 0x28
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x2521330; }             // + 0x13A0, 0x40 x 0x3C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2521340; }             // + 0x22A0, 1 x 0x14
+	inline uint32_t &FlashLevel() { return var<uint32_t>(own::R(0x25212C0)); }       // screen flash level
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25212C4)); }          // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25212CC)); }          // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25212D0)); }
+	inline uint32_t *SavedTints() { return (uint32_t *)own::R(0x25212EC); }          // party entities +0x28 (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25212F8)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25212C8)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2521350); }             // 1 x 0x14
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x2521300); }          // pool: magic buffer, 8 x 0xD4
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2521310); }           // + 0x6A0, 0x20 x 0x18
+	inline TaskQueue *QCrawlers() { return (TaskQueue *)own::R(0x2521320); }         // + 0x9A0, 0x40 x 0x28
+	inline TaskQueue *QArcs() { return (TaskQueue *)own::R(0x2521330); }             // + 0x13A0, 0x40 x 0x3C
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2521340); }             // + 0x22A0, 1 x 0x14
 	static const uint32_t ZERO_VEC = 0x2521360;                             // 8 bytes, never written
 	inline int32_t &FadeChance() { return var<int32_t>(0x124227C); }         // exe data: screen fade threshold
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
@@ -90,6 +98,24 @@ namespace disch126
 	static const uint32_t SEQ_SparkB = 0x12416FC;     // ... of the free arcs' ground sparks
 	static const uint32_t MODEL_Glow = 0x12417D8;     // prim-model layout data (0xC8-byte layout)
 	static const void *const SOUND_Discharge = (const void *)0x1242278;
+	static const uint32_t ORIG_FileLoader = 0x6B9A20, ORIG_Setup = 0x6B9A10;
+	static const uint32_t TEXTURE_NAME = 0x10E298C, CAMERA = 0x12421E8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DischargeParams
+	{
+		uint32_t sound;                  // at the main task's tick 0 (3D, at the caster)
+		struct { int16_t damage; } main; // the damage (and the main task's end) from this tick
+		struct { uint32_t glow; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark_b, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t tint_colour; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const DischargeParams GAME = { 0x1242278, { 0x34 }, { MODEL_Glow }, { SEQ_SparkB, SEQ_Spark }, { TEXTURE_NAME, CAMERA }, { 0x1242280 } };
+	static DischargeParams live = GAME;
+	static const DischargeParams &P() { return live; }
 	static const void *const TINT_Colour = (const void *)0x1242280;
 	static const uint8_t *const BONES_Caster = (const uint8_t *)0x1242284;   // 5 effect bones
 	static const int16_t *const CRAWL_Scripts = (const int16_t *)0x124228C;  // [0] = count, [1 + i] = script offset (words)
@@ -498,7 +524,7 @@ namespace disch126
 	{
 		Point *pt = AllocArcPoint(from, (int16_t)width);
 		if (!pt) return nullptr;
-		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), ORIG_ArcTask);
+		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), own::Fn(ORIG_ArcTask));
 		if (!a)
 		{
 			pt->b = -1;
@@ -539,7 +565,7 @@ namespace disch126
 		script++;
 		Point *pt = AllocCrawlerPoint(bone, script[0], width, 0, fade, step);
 		if (!pt) return;
-		CrawlerNode *c = (CrawlerNode *)AddTaskToQueue(QCrawlers(), ORIG_CrawlerTask);
+		CrawlerNode *c = (CrawlerNode *)AddTaskToQueue(QCrawlers(), own::Fn(ORIG_CrawlerTask));
 		if (!c)
 		{
 			pt->a[0] = -1;
@@ -686,7 +712,7 @@ namespace disch126
 	{
 		TransformCameraByShadowRotation(s->pos, s->scale, -(s->scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = s->kind ? SEQ_SparkB : SEQ_Spark;
+		*(uint32_t *)h = s->kind ? fxp::sequence(P().seqs.spark_b, SEQ_SparkB) : fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -701,7 +727,7 @@ namespace disch126
 			uint8_t *e = Entity(s->slot);
 			e[1] |= 8;
 			const int32_t sn = ComputeSin(shl32(s->frame, 8));
-			BlendColour(&SavedTints()[s->slot], TINT_Colour, 0x1000 - sn, sn, e + 0x28);
+			BlendColour(&SavedTints()[s->slot], ((const void *)fxp::data(P().tables.tint_colour, (uint32_t)TINT_Colour, 4, 4)), 0x1000 - sn, sn, e + 0x28);
 		}
 		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_spark(s);)
@@ -751,7 +777,7 @@ namespace disch126
 						FadeChance() = 0x1000;
 					}
 					else FadeChance() += 0x1000;
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (s)
 					{
 						s->frame = 0;
@@ -763,7 +789,7 @@ namespace disch126
 				}
 				else if (p[1] >= 0)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (s)
 					{
 						s->frame = 0;
@@ -790,7 +816,7 @@ namespace disch126
 			GteLoadIR123(a->dir);
 			GteGPF();
 			GteSetIR0(0x1000 - blend);
-			GteLoadIR123((const void *)ZERO_VEC);
+			GteLoadIR123((const void *)own::R(ZERO_VEC));
 			GteGPL();
 			GteStoreIR123(pt->c);
 			pt->d = hold;
@@ -1009,7 +1035,7 @@ namespace disch126
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
-			BdPlaySE3D(SOUND_Discharge, 0x100, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Discharge), 0x100, pos);
 		}
 		const int32_t c8 = m->counter - 8;
 		if ((uint32_t)c8 < 0x34)
@@ -1035,7 +1061,7 @@ namespace disch126
 			vel[2] = (int16_t)((Rand() & 0x7F) - 0x40);
 			const int32_t style = Rand() & 1;
 			Point *pt = SpawnArc(vel, from, to, nullptr, -1, 0, 0x100, 0xFA, style, 3);
-			if (pt) memcpy(pt->c, (const void *)ZERO_VEC, 8);
+			if (pt) memcpy(pt->c, (const void *)own::R(ZERO_VEC), 8);
 		}
 		const int32_t c14 = m->counter - 0xE;
 		if ((uint32_t)c14 < 0x1E)
@@ -1065,15 +1091,15 @@ namespace disch126
 				const int32_t style = Rand() & 1;
 				const int32_t slot = (int32_t)(e - Entity(0)) / 0x9C;
 				Point *pt = SpawnArc(vel, from, to, nullptr, slot, 0, 0x100, 0xFA, style, 3);
-				if (pt) memcpy(pt->c, (const void *)ZERO_VEC, 8);
+				if (pt) memcpy(pt->c, (const void *)own::R(ZERO_VEC), 8);
 			}
 			if (!(c14 & 3))
 			{
-				LayoutNode *g = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
-				DecodeModelPrimLayout(MODEL_Glow, g->layout, 0xC8);
+				LayoutNode *g = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
+				DecodeModelPrimLayout(fxp::layout(P().layouts.glow, MODEL_Glow, 0xC8), g->layout, 0xC8);
 			}
 		}
-		if (m->counter >= 0x34)
+		if (m->counter >= P().main.damage)
 		{
 			const ActionData *act = Ctx()->actions;
 			ApplyActionResultToTargets(act->targets, act->target_count);
@@ -1086,6 +1112,29 @@ namespace disch126
 	// ------------------------------------------------------------------
 	// Root task (0x6B9AF0)
 	// ------------------------------------------------------------------
+	// File loader (0x6B9A20) and setup (0x6B9A10 -> 0x6B9A40): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the effect LCG seeded with 0, the cast and its caster,
+	// the root, the three party entities' tints (+0x28), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		fn<void (__cdecl *)(int)>(0x7059D0)(0);   // EffectLCG_Seed
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25212D8), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		for (int k = 0; k < 3; k++) SavedTints()[k] = *(const uint32_t *)(Entity(k) + 0x28);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1117,7 +1166,7 @@ namespace disch126
 			Memset32((void *)(TexBase() + ARC_POINTS), 0, 0x1400);
 			for (int i = 0; i < 0x200; i++) ((Point *)(TexBase() + CRAWL_POINTS))[i].a[0] = -1;
 			for (int i = 0; i < 0x200; i++) ((Point *)(TexBase() + ARC_POINTS))[i].b = -1;
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 2);
 			var<Point *>(TexBase() + ARC_FREE) = nullptr;
 			var<Point *>(TexBase() + CRAWL_FREE) = nullptr;
@@ -1141,19 +1190,49 @@ namespace disch126
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The screen flash, ribbons crawling over the caster, lightning arcs to the party members, their sparks and tints, the glow layouts, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "", (uint32_t)offsetof(DischargeParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "main.damage", "Damage tick", "The damage (and the main task's end) from this tick", (uint32_t)offsetof(DischargeParams, main.damage), fxp::I16, 0, 200 },
+			{ "main", "layouts.glow", "Glow", "The prim-model layout glow (its models' animation)", (uint32_t)offsetof(DischargeParams, layouts.glow), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark_b", "Spark b", "The sprite sequence spark b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DischargeParams, seqs.spark_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DischargeParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(DischargeParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(DischargeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "main", "tables.tint_colour", "Tint colour", "The colour the targets are tinted toward (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(DischargeParams, tables.tint_colour), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag126_electric_discharge()
 	{
+		fxp::register_params({ 126, "Electric Discharge", &disch126::live, &disch126::GAME, sizeof(disch126::DischargeParams),
+		                       disch126::table::PARTS, (int)(sizeof(disch126::table::PARTS) / sizeof(disch126::table::PARTS[0])),
+		                       disch126::table::FIELDS, (int)(sizeof(disch126::table::FIELDS) / sizeof(disch126::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(disch126::ORIG_FileLoader, (void *)disch126::FileLoader);
+		own::note(disch126::ORIG_Setup, (void *)disch126::Setup);
+		own::note(disch126::ORIG_RootTask, (void *)disch126::RootTask);
 		register_port(disch126::ORIG_RootTask, (void *)disch126::RootTask, "D126 RootTask", 126);
+		own::note(disch126::ORIG_MainTask, (void *)disch126::MainTask);
 		register_port(disch126::ORIG_MainTask, (void *)disch126::MainTask, "D126 MainTask", 126);
+		own::note(disch126::ORIG_ArcTask, (void *)disch126::ArcTask);
 		register_port(disch126::ORIG_ArcTask, (void *)disch126::ArcTask, "D126 ArcTask", 126);
+		own::note(disch126::ORIG_CrawlerTask, (void *)disch126::CrawlerTask);
 		register_port(disch126::ORIG_CrawlerTask, (void *)disch126::CrawlerTask, "D126 CrawlerTask", 126);
+		own::note(disch126::ORIG_SparkTask, (void *)disch126::SparkTask);
 		register_port(disch126::ORIG_SparkTask, (void *)disch126::SparkTask, "D126 SparkTask", 126);
+		own::note(disch126::ORIG_LayoutTask, (void *)disch126::LayoutTask);
 		register_port(disch126::ORIG_LayoutTask, (void *)disch126::LayoutTask, "D126 LayoutTask", 126);
 		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(register_mag126_held();)
 	}
+	FX_LAB_MODULE(register_mag126_electric_discharge);
 }
 
 #ifdef FF8_FX_HELD

@@ -53,6 +53,13 @@ namespace ff8fx
 {
 namespace act
 {
+namespace actors
+{
+	// (fx_actors.cpp) what the held frame draws and moves with the library's code
+	uint32_t __cdecl mf_8CF4C0(uint32_t a1, uint32_t a2);
+	uint32_t __cdecl mf_8D1780(uint32_t a1);
+	uint32_t __cdecl mf_8D35D0(uint32_t a1);
+}
 namespace megaphoenix
 {
 	static const uint32_t SCRATCH_LO = 0x2793B58, SCRATCH_HI = 0x2793E78; // module scratch stack + camera copy
@@ -195,7 +202,7 @@ namespace megaphoenix
 	}
 
 	// real tick: an actor system is about to draw (after its update pass)
-	static void held_note_system(uint32_t sys)
+	void held_note_system(uint32_t sys)
 	{
 		held_begin_tick();
 		if (g_nsys >= MAX_SYSTEMS) return;
@@ -298,7 +305,7 @@ namespace megaphoenix
 			U32(nxt, 0x5C) = owner;
 		}
 		else if (mode == 4)
-			mf_8D35D0(nxt);
+			actors::mf_8D35D0(nxt);
 		U16(nxt, 0x60) = (uint16_t)(U16(nxt, 0x60) + 1);
 	}
 
@@ -389,7 +396,7 @@ namespace megaphoenix
 			const uint32_t c = P(copies[i]);
 			const int8_t cnt = S8(c, 0x1D8);
 			if (cnt == 1)
-				mf_8D1780(c);
+				actors::mf_8D1780(c);
 			else if (cnt > 0)
 			{
 				uint32_t sub = c + 0x19E;
@@ -398,7 +405,7 @@ namespace megaphoenix
 					S32(c, 0xC0) = S16(sub, -2);
 					S32(c, 0xC4) = S16(sub, 0);
 					S32(c, 0xC8) = S16(sub, 2);
-					mf_8D1780(c);
+					actors::mf_8D1780(c);
 				}
 			}
 		}
@@ -407,7 +414,7 @@ namespace megaphoenix
 		{
 			const uint32_t def = DefOf(list[i]);
 			if ((U8(def, 0x16) == 4 || U8(def, 0x16) == 5) && !(cls[i] == P_ENDS && num >= den))
-				mf_8CF4C0(P(copies[i]), def);
+				actors::mf_8CF4C0(P(copies[i]), def);
 		}
 	}
 

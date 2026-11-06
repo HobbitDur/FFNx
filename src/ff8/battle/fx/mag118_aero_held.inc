@@ -39,7 +39,7 @@ namespace aero118
 	{
 		uint32_t kind;
 		prim::Layout *layout;     // play: the live layout (prim::play_held knows what it drew)
-		PrimArg arg;
+		AnchorArg arg;
 		LeafNode leaf;            // leaf, as drawn
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
@@ -73,7 +73,7 @@ namespace aero118
 		return &r;
 	}
 
-	static void held_note_play(uint8_t *layout, const PrimArg *arg)
+	static void held_note_play(uint8_t *layout, const AnchorArg *arg)
 	{
 		Rec *r = NewRec(REC_PLAY);
 		if (!r) return;
@@ -102,23 +102,23 @@ namespace aero118
 	{
 		const LeafNode &a = r.leaf;
 		// the next tick: its target task runs first (counter + 1 while it is alive)
-		const TargetNode *owner = (const TargetNode *)a.owner;
-		TargetNode next_owner;
-		next_owner.counter = owner->counter;
-		if (*(const uint8_t *)&owner->hdr.flags & 1) next_owner.counter = (int16_t)(next_owner.counter + 1);
+		const TargetNode *owner = (const TargetNode *)((const uint8_t *)a.leaf.owner_counter - offsetof(TargetNode, counter));
+		int16_t next_counter = owner->counter;
+		if (*(const uint8_t *)&owner->hdr.flags & 1) next_counter = (int16_t)(next_counter + 1);
 		LeafNode b = a;
-		b.owner = &next_owner;
+		b.leaf.owner_counter = &next_counter;
 		LeafNode m = a;
-		if (LeafMove(&b))
+		const AeroParams &pp = P();
+		if (WhirlLeafMove(&b.leaf, pp.leaves.climb, pp.leaves.speed_up))
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				m.pos[k] = lerp16(a.pos[k], b.pos[k], num, den);
-				m.ang[k] = lerp16(a.ang[k], b.ang[k], num, den);
+				m.leaf.pos[k] = lerp16(a.leaf.pos[k], b.leaf.pos[k], num, den);
+				m.leaf.ang[k] = lerp16(a.leaf.ang[k], b.leaf.ang[k], num, den);
 			}
-			m.scale = lerp16(a.scale, b.scale, num, den);
+			m.leaf.scale = lerp16(a.leaf.scale, b.leaf.scale, num, den);
 		}
-		LeafDraw(&m);
+		DrawTumblingModel(MODEL_Leaf, m.leaf.ang, m.leaf.scale, m.leaf.pos, 0, PacketCursor());
 	}
 
 	static void HeldFrame(int num, int den)
@@ -134,10 +134,10 @@ namespace aero118
 			{
 			case REC_PLAY:
 			{
-				PrimArg arg = r.arg;
+				AnchorArg arg = r.arg;
 				memcpy(g_held_morph, (const void *)r.arg.morph, sizeof(g_held_morph));
 				arg.morph = (uint32_t)g_held_morph;
-				prim::play_held(r.layout, WindPart, (int)&arg, num, den);
+				prim::play_held(r.layout, AnchorPrimCallback, (int)&arg, num, den);
 				break;
 			}
 			case REC_LEAF: LeafHeld(r, num, den); break;

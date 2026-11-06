@@ -155,7 +155,7 @@ namespace aqua72
 	alignas(4) static uint8_t g_orb_next[MAX_ORB][ORB_BYTES];
 	static bool g_orb_has_next[MAX_ORB];
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -215,7 +215,7 @@ namespace aqua72
 		{
 			const OrbNote &n = g_orb[i];
 			g_orb_has_next[i] = false;
-			if (!live(n.node, ORIG_Orb) || n.nverts == 0) continue;
+			if (!node_live(n.node, ORIG_Orb) || n.nverts == 0) continue;
 			uint8_t *nxt = g_orb_next[i];
 			memcpy(nxt, (const void *)n.node, ORB_BYTES);
 			const int32_t st = S8(P(nxt), 0x29);
@@ -281,7 +281,7 @@ namespace aqua72
 		const uint32_t c = P(cur);
 		const uint32_t task = U32(c, 8);
 		int16_t pos[3];
-		if (live(n.node, task) && DropNext(n.node, n.k, P(nxt), pos))
+		if (node_live(n.node, task) && DropNext(n.node, n.k, P(nxt), pos))
 		{
 			if (num >= den)
 				U16(c, 0x50) = U16(P(nxt), 0x50);

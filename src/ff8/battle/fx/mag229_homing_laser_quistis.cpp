@@ -175,12 +175,16 @@ namespace homing_laser_q
 	{
 		using namespace gfc;
 		homing_laser_q::describe(homing_laser_q::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<229>::Register("Homing Laser (Quistis)", homing_laser_q::g_c, 0xA7A9F0, 0x186B420, 0x186B42C,
+		                           (void *)homing_laser_q::SequenceTask);
 		init_clone(homing_laser_q::g_c, nullptr, 0);
 		homing_laser_q::apply_slots(homing_laser_q::g_c);
 		register_port(0xA7B090, (void *)homing_laser_q::SequenceTask, "MAG229 Homing Laser (Quistis) SequenceTick", 229);
 		// 30 fps layer: see mag229_homing_laser_quistis_held.inc
 		FX_HELD(register_mag229_homing_laser_quistis_held();)
 	}
+	FX_LAB_MODULE(register_mag229_homing_laser_quistis);
 }
 
 #ifdef FF8_FX_HELD

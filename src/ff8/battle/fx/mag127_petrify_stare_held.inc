@@ -32,6 +32,12 @@ namespace ff8fx
 {
 namespace petrify127
 {
+	using namespace petrifystare;
+	using Stare = PetrifyStare<LAYOUT>;
+	static constexpr uint32_t ORIG_TargetTask = LAYOUT.target;
+	static inline uint32_t &PacketCursor() { return Stare::PacketCursor(); }
+	static inline uint32_t &TexBase() { return Stare::TexBase(); }
+
 	static const uint32_t SCRATCH = 0x400;
 	static const uint32_t ARENA = 0x18000;  // module packet arena per tick
 	static const uint32_t BLEND = 0x3E8;    // blend buffer head before arena A
@@ -39,7 +45,7 @@ namespace petrify127
 	struct Rec
 	{
 		prim::Layout *layout;     // the live layout (prim::play_held knows what it drew)
-		PrimArg arg;
+		AnchorArg arg;
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
 	};
@@ -60,7 +66,7 @@ namespace petrify127
 		g_packets = 0;
 	}
 
-	static void held_note_play(prim::Layout *layout, const PrimArg *arg)
+	static void held_note_play(prim::Layout *layout, const AnchorArg *arg)
 	{
 		if (g_log_tick != g_real_tick || g_nrec >= (int)(sizeof(g_recs) / sizeof(g_recs[0]))) return;
 		if (g_nrec == 0) g_packets = PacketCursor();
@@ -87,9 +93,9 @@ namespace petrify127
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
 			memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
-			PrimArg arg = r.arg;
+			AnchorArg arg = r.arg;
 			arg.morph = morph;
-			prim::play_held(r.layout, PartCallback, (int)&arg, num, den);
+			prim::play_held(r.layout, AnchorPrimCallback, (int)&arg, num, den);
 		}
 	}
 }

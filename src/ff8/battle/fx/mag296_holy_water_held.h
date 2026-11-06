@@ -19,10 +19,19 @@
 
 namespace ff8fx
 {
-namespace holywater296
+namespace holy296
 {
 	static void held_note_root();
 	static void held_note_play(prim::Layout *layout, const int16_t *anchor);
+}
+namespace statusitem
+{
+	template<>
+	struct Held<holy296::LAYOUT>
+	{
+		static void note_root() { holy296::held_note_root(); }
+		static void note_play(prim::Layout *layout, const int16_t *anchor) { holy296::held_note_play(layout, anchor); }
+	};
 }
 	static void register_mag296_held();
 }

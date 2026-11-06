@@ -33,8 +33,13 @@
 // Module globals: 0x25214B0..0x25214F8 (texture file, magic buffer base, context, root pool,
 // packet cursor 0x25214D4, target / root queues). The target pool (3 x 0x4AC), the morph vertex
 // buffer (+0xE04) and the packet arenas are in the magic buffer.
+// Built from the parts library (fx_layouts.h): the anchor callback (AnchorPrimCallback, the record
+// flags 0x200 and 0x100 honoured, object 4 nearer), DepthFromSize. Parameters (SilenceParams,
+// fx_params.h): the numbers above, defaults = the game's; the layout is tagged (FX_PART).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -42,32 +47,49 @@ namespace silence122
 {
 	using namespace eng;
 	using namespace magc;
+	using namespace layouts;
 
 	// --- module globals ---
 	inline uint32_t &TexBase() { return var<uint32_t>(0x25214B4); }        // Magic_TextureOFF (magic buffer)
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25214B8); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25214D4); }
 	inline TaskQueue *QTargets() { return (TaskQueue *)0x25214D8; }         // pool: magic buffer, 3 x 0x4AC
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6BD980;
 	static const uint32_t ORIG_TargetTask = 0x6BDAC0;
 	static const uint32_t MODEL_Mute = 0x126E4C0;        // prim-model layout data (0x498-byte layout)
 	static const void *const SOUND_Silence = (const void *)0x1272690;
+	static const uint32_t HONOURED = ANCHOR_OFFSET_AS_IS | ANCHOR_DIAGONAL_SCALE;   // the record flags MutePart tests
+	static const uint16_t MARK = 0x2000;                 // the target entity's flags word bit set while it plays
 
-	// engine functions not in fx_port.h / mag_common.h
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (x, y, z)
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_sub_7043B0: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // sub_56C220: a = a * b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	// ------------------------------------------------------------------
+	// Parameters (fx_params.h): the game's values by default
+	// ------------------------------------------------------------------
+	struct SilenceParams
+	{
+		struct Timing
+		{
+			int16_t every;          // the root starts the next action's target task every this many ticks
+			uint32_t sound;         // sound block (FF8_EN.exe data): BdPlaySE3D reads its world sound id
+			int16_t sound_tick;     // the sound plays at the anchor (target counter)...
+			int16_t sound_volume;   // ...at this volume (BdPlaySE3D's 2nd argument)
+			int16_t damage_tick;    // the action's target takes the result
+			int16_t end_tick;       // the target task ends once its counter reaches this
+		} timing;
+		struct Layout
+		{
+			int16_t bone;           // the target's effect point the layout is at, every tick
+			struct { int16_t base, shift; } depth;  // depth = (base - the target's size word +0x26) >> shift
+			struct { int16_t object, by; } nearer;  // this object of the layout drawn `by` nearer (-1: none)
+		} layout;
+	};
+	static const SilenceParams DEFAULTS = {
+		{ 10, (uint32_t)SOUND_Silence, 0, 1, 0x32, 0x3C },
+		{ 0xF0, { -0x800, 5 }, { 4, 0x20 } },
+	};
+	static SilenceParams g_params = DEFAULTS;
+	static inline const SilenceParams &P() { return g_params; }
+	enum PartId { PART_LAYOUT = 1 };
 
 	// ------------------------------------------------------------------
 	// Node layouts
@@ -76,7 +98,7 @@ namespace silence122
 	struct RootNode // pool of 1 node of 0x14 bytes
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
+		int16_t counter;   // +0x0C 0..every - 1, a target spawn at 1
 		uint8_t action;    // +0x0E next action
 		uint8_t started;   // +0x0F pool set up
 		uint32_t arena;    // +0x10 packet arena parity
@@ -89,121 +111,8 @@ namespace silence122
 		uint8_t *entity;   // +0x10 target entity
 		uint8_t mute[0x498]; // +0x14 prim-model layout (prim::Layout: data, frame, state)
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
-	struct PrimArg
-	{
-		int16_t pos[4];    // +0x00 anchor x, y, z (+ a word never written)
-		int32_t depth;     // +0x08 prim header +0x18
-		uint32_t morph;    // +0x0C blended vertex frames
-	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x4AC, "Silence nodes");
-	static_assert(sizeof(PrimArg) == 0x10, "Silence prim block");
-
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6BDB90): one object of the layout
-	// ------------------------------------------------------------------
-	static void __cdecl MutePart(prim::Layout *l, prim::Record *r, int arg_)
-	{
-		const PrimArg *arg = (const PrimArg *)arg_;
-		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
-		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
-		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		const int32_t object = (int16_t)r->flags_lo;
-		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
-		*(uint8_t **)h = model;
-		const int16_t f0 = r->b0, f1 = r->b1;
-		const int32_t nverts = *(const int32_t *)(model + 4);
-		if (f0 == f1)
-		{
-			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-		}
-		else
-		{
-			const int16_t t = r->b;
-			if (t == 0)
-			{
-				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-			}
-			else if (t == 0x1000)
-			{
-				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
-			}
-			else
-			{
-				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
-				*(uint32_t *)(h + 4) = arg->morph;
-			}
-		}
-		Mat4x3 m = {};
-		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
-		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
-		if (r->flags & 0x200)
-		{
-			// the anchor through the camera, the offset added in screen axes
-			GteSetRotMatrixCtrl(&Camera());
-			GteLoadV0(arg->pos);
-			GteMVMVA_RotV0();
-			GteReadMAC123(m.t);
-			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(int32_t)off[0]);
-			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)(int32_t)off[1]);
-			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)(int32_t)off[2]);
-		}
-		else
-		{
-			// anchor + offset through the camera, rotation composed with the camera
-			off[0] = (int16_t)(off[0] + arg->pos[0]);
-			off[1] = (int16_t)(off[1] + arg->pos[1]);
-			off[2] = (int16_t)(off[2] + arg->pos[2]);
-			GteSetRotMatrixCtrl(&Camera());
-			GteLoadV0(off);
-			GteMVMVA_RotV0();
-			GteReadMAC123(m.t);
-			MatrixMultiply(&Camera(), &m);
-		}
-		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
-		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
-		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2]);
-		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
-		{
-			if (r->flags & 0x100)
-			{
-				// diagonal matrix product (sub_56C220)
-				Mat4x3 d = {};
-				d.m[0][0] = r->scale[0];
-				d.m[1][1] = r->scale[1];
-				d.m[2][2] = r->scale[2];
-				MatrixMultiply3(&m, &d);
-			}
-			else
-			{
-				const int32_t v[3] = { r->scale[0], r->scale[1], r->scale[2] };
-				Scale3DMatrix(&m, v);
-			}
-		}
-		GteSetRotMatrix(&m);
-		GteSetTransVector(&m);
-		*(uint32_t *)(h + 0x1C) = 0x2030;
-		*(int32_t *)(h + 0xC) = r->a;
-		if (r->a != 0)
-		{
-			*(uint32_t *)(h + 0x1C) = 0x20F0;
-			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
-		}
-		int32_t depth = arg->depth;
-		*(int32_t *)(h + 0x18) = depth;
-		if (r->flags_lo == 4)
-		{
-			depth = (int32_t)((uint32_t)depth - 0x20);
-			*(int32_t *)(h + 0x18) = depth;
-		}
-		PacketCursor() = RenderPrimModel2(h, RenderOT(0x44), 2, PacketCursor());
-		FieldFree(0x58);
-	}
 }
 }
 
@@ -221,23 +130,30 @@ namespace silence122
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
+		const SilenceParams &pp = P();
 		if (t->counter >= 0)
 		{
-			PrimArg arg;
-			GetEffectSpawnPosition(t->entity, 0xF0, 0, arg.pos);
+			FX_PART(PART_LAYOUT);
+			AnchorArg arg;
+			GetEffectSpawnPosition(t->entity, pp.layout.bone, 0, arg.anchor);
 			// never written by the original (stack word), only loaded into the GTE V0 pad
-			arg.pos[3] = 0;
-			if (t->counter == 0) BdPlaySE3D(SOUND_Silence, 1, arg.pos);
-			arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)(int32_t)*(const int16_t *)(t->entity + 0x26)) >> 5;
+			arg.anchor[3] = 0;
+			if (t->counter == pp.timing.sound_tick) BdPlaySE3D((const void *)fxp::sound(pp.timing.sound, (uint32_t)SOUND_Silence), pp.timing.sound_volume, arg.anchor);
+			arg.depth = DepthFromSize(t->entity, pp.layout.depth.base, pp.layout.depth.shift);
 			arg.morph = TexBase() + 0xE04;
+			arg.honoured = HONOURED;
+			arg.cursor = &PacketCursor();
+			arg.nearer_object = pp.layout.nearer.object;
+			arg.nearer_by = pp.layout.nearer.by;
 			// 30 fps layer: see mag122_silence_held.inc
 			FX_HELD(held_note_play(t, &arg);)
-			prim::play((prim::Layout *)t->mute, MutePart, (int)&arg, 0);
+			PlayAtAnchor(t->mute, &arg);
+			FX_PART(0);
 		}
-		if (t->counter == 0x32) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
-		if (t->counter >= 0x3C)
+		if (t->counter == pp.timing.damage_tick) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
+		if (t->counter >= pp.timing.end_tick)
 		{
-			*(uint16_t *)t->entity &= 0xDFFF;
+			*(uint16_t *)t->entity &= (uint16_t)~MARK;
 			return TASK_END;
 		}
 		t->counter++;
@@ -276,7 +192,7 @@ namespace silence122
 				t->action = (int16_t)(uint16_t)r->action;
 				uint8_t *entity = Entity(Ctx()->actions[t->action].targets[0]);
 				t->entity = entity;
-				*(uint8_t *)(entity + 1) |= 0x20;
+				*(uint8_t *)(entity + 1) |= MARK >> 8;
 				DecodeModelPrimLayout(MODEL_Mute, t->mute, 0x498);
 				r->action++;
 			}
@@ -286,18 +202,55 @@ namespace silence122
 		else a = (int)n;
 		if (r->started && a == 0) return TASK_END;
 		r->counter++;
-		if (r->counter >= 10) r->counter = 0;
+		if (r->counter >= P().timing.every) r->counter = 0;
 		return 0;
 	}
 }
 
+	// ------------------------------------------------------------------
+	// Parameter table (fx_params.h): what an editor shows of SilenceParams
+	// ------------------------------------------------------------------
+	namespace silence122
+	{
+		using fxp::Field;
+#define SILENCE_FIELD(part, member, label, doc, type, lo, hi) \
+		{ part, #member, label, doc, (uint32_t)offsetof(SilenceParams, member), fxp::type, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The root starts one target task per action, in turn; each target task's clock: its sound, its result, its end (draws nothing)" },
+			{ PART_LAYOUT, "layout", "Layout", "The layout played on the action's target, at one of its effect points every tick" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "layout.depth", "Depth", "Its drawing depth: (Base - the target's size word) >> Shift" },
+			{ "layout.nearer", "Nearer object", "This object of the layout is drawn By nearer (-1: none)" },
+		};
+		static const Field FIELDS[] = {
+			SILENCE_FIELD("timing", timing.every, "Every", "The root starts the next action's target task every this many ticks", I16, 1, 100),
+			SILENCE_FIELD("timing", timing.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
+			SILENCE_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays at the anchor when the target tick == this", I16, 0, 200),
+			SILENCE_FIELD("timing", timing.sound_volume, "Sound volume", "BdPlaySE3D's volume argument", I16, 0, 255),
+			SILENCE_FIELD("timing", timing.damage_tick, "Damage tick", "The action's target takes the result when the target tick == this", I16, 0, 200),
+			SILENCE_FIELD("timing", timing.end_tick, "End tick", "The target task ends when its tick reaches this", I16, 0, 200),
+			SILENCE_FIELD("layout", layout.bone, "Bone", "The target's effect point the layout is at (0xF0 and up: the engine's named points)", I16, 0, 0xFF),
+			SILENCE_FIELD("layout", layout.depth.base, "Base", "", I16, -0x4000, 0x4000),
+			SILENCE_FIELD("layout", layout.depth.shift, "Shift", "", I16, 0, 15),
+			SILENCE_FIELD("layout", layout.nearer.object, "Object", "", I16, -1, 63),
+			SILENCE_FIELD("layout", layout.nearer.by, "By", "", I16, -0x1000, 0x1000),
+		};
+#undef SILENCE_FIELD
+	}
+
 	void register_mag122_silence()
 	{
+		fxp::register_params({ 122, "Silence", &silence122::g_params, &silence122::DEFAULTS, sizeof(silence122::SilenceParams),
+		                       silence122::PARTS, (int)(sizeof(silence122::PARTS) / sizeof(silence122::PARTS[0])),
+		                       silence122::FIELDS, (int)(sizeof(silence122::FIELDS) / sizeof(silence122::FIELDS[0])),
+		                       silence122::GROUPS, (int)(sizeof(silence122::GROUPS) / sizeof(silence122::GROUPS[0])) });
 		register_port(silence122::ORIG_RootTask, (void *)silence122::RootTask, "S122 RootTask", 122);
 		register_port(silence122::ORIG_TargetTask, (void *)silence122::TargetTask, "S122 TargetTask", 122);
 		// 30 fps layer: see mag122_silence_held.inc
 		FX_HELD(register_mag122_held();)
 	}
+	FX_LAB_MODULE(register_mag122_silence);
 }
 
 #ifdef FF8_FX_HELD

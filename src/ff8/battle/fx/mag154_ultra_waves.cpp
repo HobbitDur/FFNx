@@ -47,8 +47,14 @@
 // pointers + one POLY_FT4 per display buffer), texture file, grid 0x241EF00 (28 x 41 x 0xC: sx, sy,
 // x, y, z, border flags), the draw offset 0x24224D0, the packet arenas and cursor 0x243A4D4).
 // Exe data written: the OT links of the static capture packets 0xDBAEE0 (2 x 0x18).
+// Fujin's described Ultra Waves (effect_154.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (UltraWavesParams: the sound, the
+// damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -58,12 +64,13 @@ namespace ultra154
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x2404238); }       // first target of action 0 (written by the setup)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2404260; }            // pool 0x2404240, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2404BD0; }         // pool 0x2404BE0, 0x64 x 0x24
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24059F0); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x24059F4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x243A4D4); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x2404238)); }       // first target of action 0 (written by the setup)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2404260); }            // pool 0x2404240, 2 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x2404BD0); }         // pool 0x2404BE0, 0x64 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24059F0)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x24059F4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x243A4D4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x241EEF8)); }          // the effect's file (its TIM)
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }     // battle frame packet arena
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint8_t DisplayBuffer() { return var<uint8_t>(0x1D96A80); }
@@ -93,6 +100,23 @@ namespace ultra154
 	static const uint32_t *const RingColours = (const uint32_t *)0xDBAE30;  // 16 x (code / rgb)
 	static const int32_t *const StageDraw = (const int32_t *)0xDBAE70;      // 4 x (OT word offset, RenderGeometry mode)
 	static const void *const SOUND_Waves = (const void *)0xDBAD38;
+	static const uint32_t ORIG_FileLoader = 0x607BF0, ORIG_Setup = 0x607C10;
+	static const uint32_t TEXTURE_NAME = 0xDBAF30, CAMERA = 0xDBA910;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct UltraWavesParams
+	{
+		uint32_t sound;                        // at the controller's tick 1
+		struct { int16_t damage; } controller; // the damage at this tick
+		struct { uint32_t ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ring_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const UltraWavesParams GAME = { 0xDBAD38, { 0x24 }, { MODEL_Ring }, { TEXTURE_NAME, CAMERA }, { 0xDBAE30 } };
+	static UltraWavesParams live = GAME;
+	static const UltraWavesParams &P() { return live; }
 	static const void *const CAMERA_Anim = (const void *)0xDBA910;          // (setup)
 
 	// engine functions not in fx_port.h / mag_common.h
@@ -212,7 +236,7 @@ namespace ultra154
 	static_assert(sizeof(ControllerNode) == 0x24 && sizeof(EmitterNode) == 0x24 && sizeof(WarpNode) == 0x24, "Ultra Waves nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(RenderHeader) == 0x6C && sizeof(EmitterWork) == 0x88, "Ultra Waves particle / render header / work");
 
-	inline Particle *Parts() { return (Particle *)PARTS; }
+	inline Particle *Parts() { return (Particle *)own::R(PARTS); }
 }
 }
 
@@ -597,17 +621,41 @@ namespace ultra154
 	// ------------------------------------------------------------------
 	// Root task (0x609590)
 	// ------------------------------------------------------------------
+	// File loader (0x607BF0) and setup (0x607C10): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the controller, the 100 ring
+	// particles freed, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2404240), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x2404BE0), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_Controller)) + 0xC) = 0;
+		for (uint32_t p = own::R(0x2404270); p < own::R(0x2404BD0); p += 0x18) *(uint16_t *)p = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
 		// 30 fps layer: see mag154_ultra_waves_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
-		if (!(r->counter & 1)) PacketCursor() = ARENA_EVEN;
+		PacketCursor() = own::R(ARENA_ODD);
+		if (!(r->counter & 1)) PacketCursor() = own::R(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(QEffects());
 		if (alive == 0)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), ORIG_WaitTexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -621,7 +669,7 @@ namespace ultra154
 	static uint32_t __cdecl WaitTexRestore(TaskNode *n)
 	{
 		RootNode *w = (RootNode *)n;
-		if (w->counter == 1) TextureRestoreTask((void *)ARENA_EVEN, &w->done);
+		if (w->counter == 1) TextureRestoreTask((void *)own::R(ARENA_EVEN), &w->done);
 		int16_t done = w->done;
 		w->counter++;
 		return done ? TASK_END : 0;
@@ -635,7 +683,7 @@ namespace ultra154
 	// ------------------------------------------------------------------
 	static void GridInit()
 	{
-		uint32_t v = GRID;
+		uint32_t v = own::R(GRID);
 		for (int32_t row = 0; row < 0x1C; row++)
 			for (int32_t col = 0; col < 0x29; col++, v += 0xC)
 			{
@@ -646,8 +694,8 @@ namespace ultra154
 				if (row == 0 || row == 0x1B) At<int16_t>(v, 0xA) = 1;
 				if (col == 0 || col == 0x28) At<int16_t>(v, 0xA) |= 2;
 			}
-		uint32_t vtx = GRID;
-		uint32_t rec = QUADS;
+		uint32_t vtx = own::R(GRID);
+		uint32_t rec = own::R(QUADS);
 		for (int32_t row = 0; row < 0x1B; row++)
 		{
 			const int32_t v0 = 8 * row;
@@ -759,7 +807,7 @@ namespace ultra154
 		int32_t s = ComputeSin(shl32(c, 10) / n);
 		s = shl32(mul32(s, n) >> 12, 12) / n;
 		const int32_t amp = mul32(ComputeSin(s), 48) >> 12;
-		uint32_t v = GRID;
+		uint32_t v = own::R(GRID);
 		for (int32_t rp = 0; rp < 0x7000; rp += 0x400)
 			for (int32_t ca = 0; ca < 0x3D800; ca += 0x1800, v += 0xC)
 			{
@@ -801,7 +849,7 @@ namespace ultra154
 		m.t[2] = var<int16_t>(0x1D8E038);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		for (uint32_t v = GRID; v < GRID_END; v += 0xC)
+		for (uint32_t v = own::R(GRID); v < own::R(GRID_END); v += 0xC)
 		{
 			GteLoadV0((const void *)(v + 4));
 			GteRTPS();
@@ -837,7 +885,7 @@ namespace ultra154
 			for (int k = 0; k < 4; k++)
 			{
 				const uint32_t vec = EMITTER_Vectors + 0x10 * (uint32_t)k;
-				EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEffects(), ORIG_Emitter);
+				EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEffects(), own::Fn(ORIG_Emitter));
 				e->counter = 0;
 				e->mask = (uint16_t)(1u << (2 * k));
 				GetEffectSpawnPosition(Entity(CasterSlot()), 0xF1, 0x1000, c->anchor);
@@ -857,11 +905,11 @@ namespace ultra154
 		}
 		if (c->counter == 8)
 		{
-			WarpNode *w = (WarpNode *)AddTaskToQueue(QEffects(), ORIG_ScreenWarp);
+			WarpNode *w = (WarpNode *)AddTaskToQueue(QEffects(), own::Fn(ORIG_ScreenWarp));
 			w->counter = 0;
 		}
-		if (c->counter == 0x24) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
-		if (c->counter == 1) BdPlaySE(SOUND_Waves, 0, 0x80);
+		if (c->counter == P().controller.damage) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
+		if (c->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Waves), 0, 0x80);
 		c->counter++;
 		return c->counter > 0x28 ? TASK_END : 0;
 	}
@@ -875,7 +923,7 @@ namespace ultra154
 		h->far_rgb[0] = h->far_rgb[1] = h->far_rgb[2] = h->far_rgb[3] = 0;
 		w->from[0] = 0;
 		w->from[1] = 0;
-		h->model = MODEL_Ring;
+		h->model = fxp::model(P().models.ring, MODEL_Ring);
 		h->flags = 0x33;
 		w->from[2] = -0x1000;
 		w->to[0] = e->dir[0];
@@ -980,7 +1028,7 @@ namespace ultra154
 		{
 			Particle &p = Parts()[i];
 			if (!(e->mask & p.mask)) continue;
-			ParticleDraw(h, w, p, RingColours[p.colour], ParticleFade(p.life));
+			ParticleDraw(h, w, p, ((const uint32_t *)fxp::data(P().tables.ring_colours, (uint32_t)RingColours, 64, 4))[p.colour], ParticleFade(p.life));
 			if (DrawOnly()) continue;
 			if (ParticleUpdate(p)) alive++;
 		}
@@ -1011,7 +1059,7 @@ namespace ultra154
 		{
 			// 30 fps layer: see mag154_ultra_waves_held.inc
 			FX_HELD(held_note_warp(w);)
-			WarpDraw(w->counter, PKT_Capture, OFFSET_XY, QUADS);
+			WarpDraw(w->counter, PKT_Capture, own::R(OFFSET_XY), own::R(QUADS));
 		}
 		if (DrawOnly()) return 0;
 		if (w->counter == 0) StageHide();
@@ -1019,18 +1067,45 @@ namespace ultra154
 		w->counter++;
 		return w->counter > WARP_TICKS ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "The four ring emitters around the caster, the screen warp, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "At the controller's tick 1", (uint32_t)offsetof(UltraWavesParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "controller.damage", "Damage tick", "The damage at this tick of the controller", (uint32_t)offsetof(UltraWavesParams, controller.damage), fxp::I16, 0, 40 },
+			{ "controller", "models.ring", "Ring model", "The prim model ring (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(UltraWavesParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(UltraWavesParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(UltraWavesParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "tables.ring_colours", "Particle colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (64 bytes: an edited one keeps its length)", (uint32_t)offsetof(UltraWavesParams, tables.ring_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag154_ultra_waves()
 	{
+		fxp::register_params({ 154, "Ultra Waves", &ultra154::live, &ultra154::GAME, sizeof(ultra154::UltraWavesParams),
+		                       ultra154::table::PARTS, (int)(sizeof(ultra154::table::PARTS) / sizeof(ultra154::table::PARTS[0])),
+		                       ultra154::table::FIELDS, (int)(sizeof(ultra154::table::FIELDS) / sizeof(ultra154::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(ultra154::ORIG_FileLoader, (void *)ultra154::FileLoader);
+		own::note(ultra154::ORIG_Setup, (void *)ultra154::Setup);
+		own::note(ultra154::ORIG_RootTask, (void *)ultra154::RootTask);
 		register_port(ultra154::ORIG_RootTask, (void *)ultra154::RootTask, "U154 RootTask", 154);
+		own::note(ultra154::ORIG_WaitTexRestore, (void *)ultra154::WaitTexRestore);
 		register_port(ultra154::ORIG_WaitTexRestore, (void *)ultra154::WaitTexRestore, "U154 WaitTexRestore", 154);
+		own::note(ultra154::ORIG_Controller, (void *)ultra154::Controller);
 		register_port(ultra154::ORIG_Controller, (void *)ultra154::Controller, "U154 Controller", 154);
+		own::note(ultra154::ORIG_Emitter, (void *)ultra154::Emitter);
 		register_port(ultra154::ORIG_Emitter, (void *)ultra154::Emitter, "U154 Emitter", 154);
+		own::note(ultra154::ORIG_ScreenWarp, (void *)ultra154::ScreenWarp);
 		register_port(ultra154::ORIG_ScreenWarp, (void *)ultra154::ScreenWarp, "U154 ScreenWarp", 154);
 		// 30 fps layer: see mag154_ultra_waves_held.inc
 		FX_HELD(register_mag154_held();)
 	}
+	FX_LAB_MODULE(register_mag154_ultra_waves);
 }
 
 #ifdef FF8_FX_HELD

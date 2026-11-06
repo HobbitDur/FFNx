@@ -39,10 +39,20 @@
 
 namespace ff8fx
 {
-namespace act
+namespace phoenixdown005
 {
-namespace phoenixdown
-{
+	using namespace revive;
+	using Rev = Revive<LAYOUT>;
+	static constexpr uint32_t ORIG_Fall = LAYOUT.fall, ORIG_Ring = LAYOUT.ring, ORIG_Sparkle = LAYOUT.sparkle;
+	static const uint32_t PACKET_CURSOR = LAYOUT.packet_cursor;
+	// node words at an address
+	template<typename T> static inline T &MEM(uint32_t a) { return *(T *)a; }
+	static inline uint8_t &U8(uint32_t n, uint32_t o) { return MEM<uint8_t>(n + o); }
+	static inline uint16_t &U16(uint32_t n, uint32_t o) { return MEM<uint16_t>(n + o); }
+	static inline int16_t &S16(uint32_t n, uint32_t o) { return MEM<int16_t>(n + o); }
+	static inline uint32_t &U32(uint32_t n, uint32_t o) { return MEM<uint32_t>(n + o); }
+	static inline uint32_t P(const void *p) { return (uint32_t)p; }
+
 	static const uint32_t SCRATCH = 0x400;
 	static const uint32_t NODE = 0x70;
 
@@ -115,9 +125,9 @@ namespace phoenixdown
 			{
 				const uint16_t w70c = MEM<uint16_t>(0x1D9770C);
 				pose_midpoint((void *)(entity + 0x60), (void *)(entity + 0x6C), 1, 1);
-				x::MAG_001_CURE_Emitter_UpdatePos(P(na->next));
-				x::MAG_001_CURE_Emitter_ComputeModelBounds(P(na->next));
-				x::BattleModel_BuildBoneMatricesFromPose(entity + 0x60);
+				Emitter_UpdatePos(na->next);
+				Emitter_ComputeModelBounds(na->next);
+				BuildBoneMatricesFromPose((void *)(entity + 0x60));
 				MEM<uint16_t>(0x1D9770C) = w70c;
 			}
 		}
@@ -136,8 +146,6 @@ namespace phoenixdown
 	static void HeldFrame(int num, int den)
 	{
 		if (!HeldReady()) return;
-		const Mod *saved_mod = g_mod;
-		g_mod = &MOD_005;
 		{
 			magc::HeldScope scope(MEM<uint32_t>(PACKET_CURSOR), g_held_packets, sizeof(g_held_packets), g_packets);
 			for (int i = 0; i < g_nrec; i++)
@@ -154,7 +162,7 @@ namespace phoenixdown
 				case ORIG_Fall:
 					// FallStep: y += +0x5A per tick
 					U16(n, 0x1E) = (uint16_t)(S16(n, 0x1E) + S16(n, 0x5A) * num / den);
-					DrawFall(n);
+					ReviveSparkleDraw((const uint8_t *)n, 0x1000, Rev::PacketCursor());
 					break;
 				case ORIG_Ring:
 				{
@@ -164,26 +172,26 @@ namespace phoenixdown
 					{
 						// first draw at the spawn point: straight to the first orbit point
 						const int32_t a1 = (U16(n, 0x42) + 0x80) & 0xFFF;
-						const int16_t x1 = (int16_t)(U16(n, 0x60) + (uint16_t)((int32_t)x::computeSin((uint32_t)a1) / (int32_t)S16(n, 0x6C)));
-						const int16_t z1 = (int16_t)(U16(n, 0x64) + (uint16_t)((int32_t)x::computeCosine((uint32_t)a1) / (int32_t)S16(n, 0x6C)));
+						const int16_t x1 = (int16_t)(U16(n, 0x60) + (uint16_t)((int32_t)ComputeSin(a1) / (int32_t)S16(n, 0x6C)));
+						const int16_t z1 = (int16_t)(U16(n, 0x64) + (uint16_t)((int32_t)parts::ComputeCos(a1) / (int32_t)S16(n, 0x6C)));
 						U16(n, 0x1C) = (uint16_t)magc::lerp16(x0, x1, num, den);
 						U16(n, 0x20) = (uint16_t)magc::lerp16(z0, z1, num, den);
 					}
 					else
 					{
 						const int32_t ah = (U16(n, 0x42) + 0x80 * num / den) & 0xFFF;
-						U16(n, 0x1C) = (uint16_t)(U16(n, 0x60) + (uint16_t)((int32_t)x::computeSin((uint32_t)ah) / (int32_t)S16(n, 0x6C)));
-						U16(n, 0x20) = (uint16_t)(U16(n, 0x64) + (uint16_t)((int32_t)x::computeCosine((uint32_t)ah) / (int32_t)S16(n, 0x6C)));
+						U16(n, 0x1C) = (uint16_t)(U16(n, 0x60) + (uint16_t)((int32_t)ComputeSin(ah) / (int32_t)S16(n, 0x6C)));
+						U16(n, 0x20) = (uint16_t)(U16(n, 0x64) + (uint16_t)((int32_t)parts::ComputeCos(ah) / (int32_t)S16(n, 0x6C)));
 					}
 					U16(n, 0x1E) = (uint16_t)(S16(n, 0x1E) - 0x40 * num / den);
 					U16(n, 0x68) = (uint16_t)(S16(n, 0x68) + S16(n, 0x6A) * num / den);
-					DrawScaled(n, U16(n, 0x68));
+					ReviveSparkleDraw((const uint8_t *)n, U16(n, 0x68), Rev::PacketCursor());
 					break;
 				}
 				case ORIG_Sparkle:
 					// the task: scale += +0x6A
 					U16(n, 0x68) = (uint16_t)(S16(n, 0x68) + S16(n, 0x6A) * num / den);
-					DrawScaled(n, U16(n, 0x68));
+					ReviveSparkleDraw((const uint8_t *)n, U16(n, 0x68), Rev::PacketCursor());
 					break;
 				}
 			}
@@ -191,16 +199,14 @@ namespace phoenixdown
 			g_nnext = 0;
 			glint::held_draw((const void *)g_master, num, den, NextGlintPos);
 		}
-		g_mod = saved_mod;
 	}
-}
 }
 
 	static void register_mag005_held()
 	{
-		mark_held(act::phoenixdown::ORIG_Fall);
-		mark_held(act::phoenixdown::ORIG_Ring);
-		mark_held(act::phoenixdown::ORIG_Sparkle);
-		register_module_held(5, act::phoenixdown::HeldReady, act::phoenixdown::HeldFrame);
+		mark_held(phoenixdown005::ORIG_Fall);
+		mark_held(phoenixdown005::ORIG_Ring);
+		mark_held(phoenixdown005::ORIG_Sparkle);
+		register_module_held(5, phoenixdown005::HeldReady, phoenixdown005::HeldFrame);
 	}
 }

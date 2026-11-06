@@ -68,7 +68,7 @@ namespace reflect106
 		g_packets = 0;
 	}
 
-	static Rec *NewRec(uint32_t kind, const BarrierNode *parent)
+	static Rec *NewRec(uint32_t kind, const Barrier *parent)
 	{
 		if (g_log_tick != g_real_tick || g_nrec >= (int)(sizeof(g_recs) / sizeof(g_recs[0]))) return nullptr;
 		if (g_nrec == 0) g_packets = PacketCursor();
@@ -83,7 +83,7 @@ namespace reflect106
 
 	static void held_note_wall(const BarrierNode *b, int32_t e)
 	{
-		Rec *r = NewRec(REC_WALL, b);
+		Rec *r = NewRec(REC_WALL, &b->b);
 		if (!r) return;
 		r->e = e;
 		r->frame = b->frame;
@@ -91,30 +91,32 @@ namespace reflect106
 
 	static void held_note_hexagon(const HexagonNode *x)
 	{
-		Rec *r = NewRec(REC_HEXAGON, x->parent);
+		Rec *r = NewRec(REC_HEXAGON, x->o.parent);
 		if (!r) return;
-		const BarrierNode *p = x->parent;
+		const Barrier *p = x->o.parent;
+		// (the barrier's frame is its node's, right before its Barrier b)
+		const int16_t frame = ((const BarrierNode *)((const uint8_t *)p - offsetof(BarrierNode, b)))->frame;
 		r->frame = x->counter;
-		r->a = x->angle;
-		r->b = x->tilt;
-		r->a1 = (int16_t)(x->angle + x->dangle);
-		r->b1 = (int16_t)(x->tilt + x->dtilt);
+		r->a = x->o.angle;
+		r->b = x->o.tilt;
+		r->a1 = (int16_t)(x->o.angle + x->o.dangle);
+		r->b1 = (int16_t)(x->o.tilt + x->o.dtilt);
 		memcpy(r->center, p->center, sizeof(r->center));
 		// the barrier ran before the hexagons this tick: its frame is already the next tick's
-		if ((uint32_t)(int32_t)p->frame < 0x14) BarrierCenter(p->frame, r->center1);
+		if ((uint32_t)(int32_t)frame < 0x14) BarrierCenter(MODEL_Wall, frame, P().hexagons.climb_steps, P().hexagons.climb_ticks, r->center1);
 		else memcpy(r->center1, p->center, sizeof(r->center1));
 	}
 
 	static void held_note_ring(const RingNode *g)
 	{
-		Rec *r = NewRec(REC_RING, g->parent);
+		Rec *r = NewRec(REC_RING, g->g.parent);
 		if (!r) return;
 		r->frame = g->counter;
-		r->a = g->height;
-		r->b = g->scale;
-		int16_t speed = (int16_t)(g->speed + g->accel);
+		r->a = g->g.height;
+		r->b = g->g.scale;
+		int16_t speed = (int16_t)(g->g.speed + g->g.accel);
 		if (speed < 0x10) speed = 0x10;
-		r->b1 = (int16_t)(g->scale + speed);
+		r->b1 = (int16_t)(g->g.scale + speed);
 	}
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
@@ -127,17 +129,122 @@ namespace reflect106
 		memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
 	}
 
+	// the draws at an in-between state: fx_barrier.h's WallDraw / OrbitDraw / GrowthDraw take a whole frame or
+	// counter; these take the V scroll (half steps) and the fade / squash directly, same writes in the same order
+	static uint16_t WallScroll(int32_t f8) { return (uint16_t)((uint8_t)(0u - (uint8_t)f8) & 0x7F); }
+	static void HeldWallDraw(uint16_t scroll, int32_t height, int32_t fade, const Mat4x3 *view)
+	{
+		int16_t base, span;
+		WallMeasure(MODEL_Wall, &base, &span);
+		uint8_t *h = (uint8_t *)FieldAlloc(0x60);
+		*(uint32_t *)h = MODEL_Wall;
+		*(uint16_t *)(h + 0x12) = 0;
+		*(uint16_t *)(h + 0x10) = 0;
+		*(uint16_t *)(h + 0x16) = 0x100;
+		*(uint16_t *)(h + 0x14) = 0x100;
+		*(uint16_t *)(h + 0x1A) = 0;
+		*(uint16_t *)(h + 0x18) = 0;
+		*(uint16_t *)(h + 0x1C) = 0x40;
+		*(uint16_t *)(h + 0x1E) = 0x80;
+		*(uint16_t *)(h + 0x0C) = 0;
+		*(uint16_t *)(h + 0x0E) = scroll;
+		*(int16_t *)(h + 0x5C) = base;
+		h[6] = 0;
+		h[5] = 0;
+		h[4] = 0;
+		*(int32_t *)(h + 8) = fade;
+		*(int16_t *)(h + 0x5E) = (int16_t)height;
+		GteSetRotMatrix(view);
+		GteSetTransVector(view);
+		PacketCursor() = barrier::RenderWall(h, RenderOT(), 2, PacketCursor());
+		FieldFree(0x60);
+	}
+	static void HexagonFade(int32_t c, int32_t &fade, int32_t &sx)
+	{
+		const ReflectParams::Hexagons &hp = P().hexagons;
+		if (c > hp.fade_from)
+		{
+			const int32_t q = shl32(c - hp.fade_from, 12) / hp.fade_ticks;
+			sx = (int16_t)(0x1000 - (int16_t)q);
+			fade = (q >> 1) + 0x800;
+		}
+		else
+		{
+			sx = 0x1000;
+			fade = 0x800;
+		}
+	}
+	static void HeldHexagonDraw(const int16_t *center, int16_t angle, int16_t tilt, int32_t fade, int16_t sx, const Mat4x3 *view)
+	{
+		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
+		int16_t p[4] = { 0, 0, 0, 0 }; // 4th word: vanilla stack garbage (GTE VZ0 high half only)
+		barrier::Rot2D(center, p, angle, TABLE_SinCos);
+		GteSetRotMatrix(view);
+		GteSetTransVector(view);
+		GteLoadV0(p);
+		GteMVMVA_RotV0Tr();
+		Mat4x3 X = {};  // its translation = the rotated point in view space
+		GteReadMAC123(X.t);
+		*(uint32_t *)(h + 0x1C) = 0xF3;
+		h[0xA] = 0;
+		h[9] = 0;
+		h[8] = 0;
+		*(int32_t *)(h + 0xC) = fade;
+		Mat4x3 S = {};  // pad / translation: vanilla stack garbage (never read)
+		S.m[0][0] = sx;
+		S.m[1][1] = 0x1000;
+		S.m[2][2] = 0x1000;
+		Mat4x3 R = {};
+		barrier::ZRotation((int16_t)-angle, &R);
+		barrier::MatMul56C220(&R, &S);
+		MatrixMultiply(view, &R);
+		barrier::XRotation(tilt, &X);
+		MatrixMultiply(&R, &X);
+		GteSetRotMatrix(&X);
+		GteSetTransVector(&X);
+		*(uint32_t *)h = MODEL_Hexagon;
+		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
+		FieldFree(0x58);
+	}
+	static int32_t RingFade(int32_t c) { return ComputeSin(shl32(c, 10) / P().rings.fade_ticks); }
+	static void HeldRingDraw(int16_t height, int16_t scale, int32_t fade, const Mat4x3 *view)
+	{
+		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
+		int16_t V[4] = { 0, 0, height, 0 }; // 4th word: vanilla stack garbage (GTE VZ0 high half only)
+		GteSetRotMatrix(view);
+		GteSetTransVector(view);
+		GteLoadV0(V);
+		GteMVMVA_RotV0Tr();
+		Mat4x3 T = {};
+		GteReadMAC123(T.t);
+		GteSetTransVector(&T);
+		Mat4x3 S = {};
+		S.m[0][0] = scale;
+		S.m[1][1] = scale;
+		S.m[2][2] = scale;
+		barrier::MatMul56C220(&S, view);
+		GteSetRotMatrix(&S);
+		*(uint32_t *)h = MODEL_Ring;
+		*(int32_t *)(h + 0xC) = fade;
+		h[0xA] = 0;
+		h[9] = 0;
+		h[8] = 0;
+		*(uint32_t *)(h + 0x1C) = 0xF3;
+		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
+		FieldFree(0x58);
+	}
+
 	static void WallHeld(const Rec &r, const Mat4x3 *view, int num, int den)
 	{
-		int32_t height = WallHeight(r.e), fade = WallFade(r.e), f8 = shl32(r.frame, 3);
+		const ReflectParams::Wall &wp = P().wall;
+		int32_t height = WallHeight(MODEL_Wall, r.e, wp.grow), fade = WallFade(r.e, wp.grow, wp.fade), f8 = shl32(r.frame, 3);
 		if ((uint32_t)(r.e + 1) < 0x23)
 		{
-			height = lerp_i(height, WallHeight(r.e + 1), num, den);
-			fade = lerp_i(fade, WallFade(r.e + 1), num, den);
+			height = lerp_i(height, WallHeight(MODEL_Wall, r.e + 1, wp.grow), num, den);
+			fade = lerp_i(fade, WallFade(r.e + 1, wp.grow, wp.fade), num, den);
 			f8 += 8 * num / den;
 		}
-		WallDraw(WallScroll(f8), height, fade, view);
-		FieldFree(0x60);
+		HeldWallDraw(WallScroll(f8), height, fade, view);
 	}
 
 	static void HexagonHeld(const Rec &r, const Mat4x3 *view, int num, int den)
@@ -157,7 +264,7 @@ namespace reflect106
 			tilt = lerp_angle(r.b, r.b1, num, den);
 			for (int k = 0; k < 3; k++) center[k] = (int16_t)lerp_i(r.center[k], r.center1[k], num, den);
 		}
-		HexagonDraw(center, angle, tilt, fade, (int16_t)sx, view);
+		HeldHexagonDraw(center, angle, tilt, fade, (int16_t)sx, view);
 	}
 
 	static void RingHeld(const Rec &r, const Mat4x3 *view, int num, int den)
@@ -168,7 +275,7 @@ namespace reflect106
 			fade = lerp_i(fade, RingFade(r.frame + 1), num, den);
 			scale = lerp_i(r.b, r.b1, num, den);
 		}
-		RingDraw(r.a, (int16_t)scale, fade, view);
+		HeldRingDraw(r.a, (int16_t)scale, fade, view);
 	}
 
 	static void HeldFrame(int num, int den)

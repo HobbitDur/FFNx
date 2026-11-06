@@ -123,11 +123,12 @@ namespace hypno133
 		int16_t pos[4] = {};
 		pose_midpoint(e + 0x60, e + 0x6C, num, den);
 		if (r.kind == PLAY_MAIN) GetDefaultEffectPosition(e, pos);
-		else BonePoint(((const RingNode *)r.node)->point, pos);
+		else BonePoint(e, ((const RingNode *)r.node)->point, pos);
 		BuildBoneMatricesFromPose(e + 0x60);
 		if (r.kind == PLAY_MAIN)
 		{
-			MainFrame(pos, arg);
+			const HypnotizeParams::Main &mp = P().main;
+			ViewFrame(pos, mp.basis_h, mp.depth_h, mp.offset_shift, mp.pixels != 0, &arg->m);
 			arg->depth = 0;
 		}
 		else
@@ -157,6 +158,7 @@ namespace hypno133
 		{
 			const Rec &r = g_recs[i];
 			PrimArg arg = {}; // (the matrix pad +0x12 is never read)
+			arg.cursor = &PacketCursor();
 			int k = 0;
 			if (r.kind != 0)
 			{

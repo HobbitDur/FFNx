@@ -66,8 +66,14 @@
 // 0x2720A18 / 0x2720A1C, sequencers 0x2720A30 / 0x2720A20 (40 x 0x40), flashes 0x2721430 /
 // 0x2721570 (4 x 0x50)); the morphing ring's vertex block in the exe data 0x1627978..0x1627BF8;
 // the TransformCameraByShadowRotation scratch 0x21DFED0.
+// Fujin's described Triple (effect_021.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (TripleParams: the
+// emitter's sound and release tick, the runes' steps, height, spin, fades and columns, the motes).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -195,12 +201,14 @@ namespace triple021
 	// ------------------------------------------------------------------
 	// Module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2714F2C); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2720898; }  // 4 x 0x5C
-	inline TaskQueue *QSequencers() { return (TaskQueue *)0x2720A20; }// 40 x 0x40
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2720880; }   // 200 x 0x70
-	inline TaskQueue *QModels() { return (TaskQueue *)0x271B010; }    // 200 x 0x7C
-	inline TaskQueue *QFlashes() { return (TaskQueue *)0x2721570; }   // 4 x 0x50
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2714F2C)); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)own::R(0x2720898); }  // 4 x 0x5C
+	inline TaskQueue *QSequencers() { return (TaskQueue *)own::R(0x2720A20); }// 40 x 0x40
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2720880); }   // 200 x 0x70
+	inline TaskQueue *QModels() { return (TaskQueue *)own::R(0x271B010); }    // 200 x 0x7C
+	inline TaskQueue *QFlashes() { return (TaskQueue *)own::R(0x2721570); }   // 4 x 0x50
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x271B0F0); }      // 2 x 0x64
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2714F28)); }   // the effect's file (its TIM)
 
 	static const uint32_t ORIG_Root = 0x89DFF0;
 	static const uint32_t ORIG_Emitter = 0x89E110;
@@ -222,6 +230,26 @@ namespace triple021
 	static const uint32_t SEQ_Sprite = 0x1626B3C, SEQ_Glow = 0x1626CC8, SEQ_Mote = 0x16269DC, SEQ_Spark = 0x1626C18;
 	static const uint32_t FADE_TABLE_A = 0x1629C2C, FADE_TABLE_B = 0x1629C14; // 12 words each (0..0x1000)
 	static const uint32_t ARENA_A = 0x2720A1C, ARENA_B = 0x2720A18;
+	static const uint32_t ORIG_FileLoader = 0x89DED0, ORIG_Setup = 0x89DEF0;
+	static const uint32_t TEXTURE_NAME = 0x1629C44, CAMERA = 0x1629288;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct TripleParams
+	{
+		struct { uint32_t sound; int16_t release; } emitter;                        // its sound; the root goes on, the flash, at this tick
+		struct { int16_t every, height, spin, fade_in, fade_out, shrink, column_tick; } runes;   // two opposite a step; their motion and fades
+		struct { int16_t until, radius; } motes;                                    // a mote a tick until this tick; spiral radius (+ rand)
+		struct { uint32_t sprite, spark, glow, mote; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t morph, big_rune1, big_rune2, column_flash, column, rune; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t from, to; } morphs; // a morph's vertex sets (data): what its code blends a model's vertices from and to
+		struct { uint32_t fade_table_a, fade_table_b; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const TripleParams GAME = { { 0x16269D8, 0x18 }, { 3, 0x280, 0x140, 0x200, 0x200, 0x200, 3 }, { 6, 0x200 }, { SEQ_Sprite, SEQ_Spark, SEQ_Glow, SEQ_Mote }, { MODEL_Morph, MODEL_BigRune1, MODEL_BigRune2, MODEL_ColumnFlash, MODEL_Column, MODEL_Rune }, { TEXTURE_NAME, CAMERA }, { 0x16276E8, 0x1629000 }, { 0x1629C2C, 0x1629C14 } };
+	static TripleParams live = GAME;
+	static const TripleParams &P() { return live; }
 
 	// ------------------------------------------------------------------
 	// Engine / effect-library functions (original addresses)
@@ -377,11 +405,11 @@ namespace triple021
 		for (int32_t i = 0; i < 4; i++)
 		{
 			const int32_t k = (i + (int32_t)n->h.counter * 4) % 4;
-			SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Sprite, 0x70, n);
+			SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), own::Fn(ORIG_Sprite), 0x70, n);
 			p->scale[0] = 0x1000;
 			p->scale[1] = 0x1000;
 			p->scale[2] = 0x1000;
-			p->seq = SEQ_Sprite;
+			p->seq = fxp::sequence(P().seqs.sprite, SEQ_Sprite);
 			p->last = 7;
 			int16_t v[4];
 			if (mode == 0)
@@ -415,11 +443,11 @@ namespace triple021
 	static void SpawnMorph(ModelNode *n)
 	{
 		if (n->h.counter != 0) return;
-		ModelNode *m = (ModelNode *)AddEffectTask(QModels(), ORIG_Morph, 0x7C, n);
+		ModelNode *m = (ModelNode *)AddEffectTask(QModels(), own::Fn(ORIG_Morph), 0x7C, n);
 		CopyAnchorXZFromSource(m, m->h.pos);
 		m->h.pos[1] = (int16_t)(m->h.pos[1] - 0x280);
 		m->angle[1] = 0;
-		m->model = MODEL_Morph;
+		m->model = fxp::model(P().models.morph, MODEL_Morph);
 		m->fade = 0;
 		m->scale[0] = 0x1000;
 		m->scale[1] = 0x1000;
@@ -432,14 +460,14 @@ namespace triple021
 	// MAG_021_sub_89E1E0 (the emitter's signal): the big rune on the target
 	static void SpawnBigRune(EmitterNode *e)
 	{
-		ModelNode *n = (ModelNode *)AddEffectTask(QModels(), ORIG_BigRune, 0x7C, e);
+		ModelNode *n = (ModelNode *)AddEffectTask(QModels(), own::Fn(ORIG_BigRune), 0x7C, e);
 		CopyAnchorXZFromSource(n, n->h.pos);
 		n->h.pos[1] = (int16_t)(n->h.pos[1] - 0x280);
 		n->scale[0] = 0x1000;
 		n->scale[1] = 0x1000;
 		n->scale[2] = 0x1000;
 		n->angle[1] = 0;
-		n->model = MODEL_BigRune1;
+		n->model = fxp::model(P().models.big_rune1, MODEL_BigRune1);
 		n->fade1 = 0x800;
 		n->fade2 = 0;
 		n->rgb1[0] = 0xFF;
@@ -471,10 +499,10 @@ namespace triple021
 		case 1:
 		{
 			n->step++;
-			const int16_t a = FadeTable(FADE_TABLE_A, n->step);
+			const int16_t a = FadeTable(fxp::data(P().tables.fade_table_a, FADE_TABLE_A, 24), n->step);
 			n->fade = a;
 			n->fade1 = a;
-			const int16_t b = FadeTable(FADE_TABLE_B, n->step);
+			const int16_t b = FadeTable(fxp::data(P().tables.fade_table_b, FADE_TABLE_B, 24), n->step);
 			n->fade = b;
 			n->fade2 = b;
 			if (n->step >= 0xB)
@@ -493,11 +521,11 @@ namespace triple021
 	{
 		memcpy(n->rgb, n->rgb1, 4);
 		n->fade = n->fade1;
-		n->model = MODEL_BigRune1;
+		n->model = fxp::model(P().models.big_rune1, MODEL_BigRune1);
 		DrawModel(n);
 		memcpy(n->rgb, n->rgb2, 4);
 		n->fade = n->fade2;
-		n->model = MODEL_BigRune2;
+		n->model = fxp::model(P().models.big_rune2, MODEL_BigRune2);
 		DrawModel(n);
 	}
 }
@@ -541,7 +569,7 @@ namespace triple021
 	{
 		if (n->h.phase != 0) return;
 		n->step++;
-		const int16_t a = FadeTable(FADE_TABLE_A, n->step);
+		const int16_t a = FadeTable(fxp::data(P().tables.fade_table_a, FADE_TABLE_A, 24), n->step);
 		n->fade = a;
 		n->morph = a;
 		if (n->step >= 0xB)
@@ -557,7 +585,7 @@ namespace triple021
 		MorphPhase(n);
 		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_MORPH, n);)
-		MorphVertices((const uint8_t *)MORPH_A, (const uint8_t *)MORPH_B, (uint8_t *)MODEL_Morph, n->morph);
+		MorphVertices((const uint8_t *)fxp::vertices(P().morphs.from, MORPH_A), (const uint8_t *)fxp::vertices(P().morphs.to, MORPH_B), (uint8_t *)fxp::model(P().models.morph, MODEL_Morph), n->morph);
 		DrawModel(n);
 		n->h.counter++;
 		if ((n->h.flags & 1) && n->h.children == 0)
@@ -760,8 +788,8 @@ namespace triple021
 			{
 				if (n->fade <= 0xA00 && spawn)
 				{
-					SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Spark, 0x70, n);
-					p->seq = SEQ_Spark;
+					SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), own::Fn(ORIG_Spark), 0x70, n);
+					p->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 				}
 				n->fade = (int16_t)(n->fade + 0x200);
 				if (n->fade >= 0x1000)
@@ -814,7 +842,7 @@ namespace triple021
 	static void ColumnMotion(ModelNode *n)
 	{
 		const int16_t orbit = (int16_t)((n->orbit_step + n->orbit) & 0xFFF);
-		n->angle[1] = (int16_t)((n->angle[1] + 0x140) & 0xFFF);
+		n->angle[1] = (int16_t)((n->angle[1] + P().runes.spin) & 0xFFF);
 		n->orbit = orbit;
 		const int32_t dx = mul32(ComputeSin(n->orbit), n->radius) / 0x4000;
 		const int32_t dz = mul32(ComputeCos(n->orbit), n->radius) / 0x4000;
@@ -828,9 +856,9 @@ namespace triple021
 	{
 		if (n->flash_on == 1)
 		{
-			n->model = MODEL_ColumnFlash;
+			n->model = fxp::model(P().models.column_flash, MODEL_ColumnFlash);
 			DrawModel(n);
-			n->model = MODEL_Column;
+			n->model = fxp::model(P().models.column, MODEL_Column);
 		}
 		DrawModel(n);
 	}
@@ -932,7 +960,7 @@ namespace triple021
 		GlowPlace(p);
 		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_GLOW, p);)
-		DrawGroundGlow(p, SEQ_Glow, (const uint32_t *)p->rgb);
+		DrawGroundGlow(p, fxp::sequence(P().seqs.glow, SEQ_Glow), (const uint32_t *)p->rgb);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -1005,18 +1033,18 @@ namespace triple021
 	// sub_89ED20: the rune's column
 	static void SpawnColumn(ModelNode *r)
 	{
-		ModelNode *c = (ModelNode *)AddEffectTask(QModels(), ORIG_Column, 0x7C, r);
+		ModelNode *c = (ModelNode *)AddEffectTask(QModels(), own::Fn(ORIG_Column), 0x7C, r);
 		c->radius = 0x1000;
 		c->flash_on = 0;
 		c->flagged = r->flagged;
 		c->arg = r->arg;
 		CopyAnchorXZFromSource(c, c->h.pos);
-		c->h.pos[1] = (int16_t)(c->h.pos[1] - 0x280);
+		c->h.pos[1] = (int16_t)(c->h.pos[1] - P().runes.height);
 		memcpy(c->base, c->h.pos, 8);
 		c->orbit = r->orbit;
 		c->angle[1] = r->orbit;
 		c->arg = r->arg;
-		c->model = MODEL_Column;
+		c->model = fxp::model(P().models.column, MODEL_Column);
 		c->fade = 0x1000;
 		c->scale[0] = 0x10;
 		c->scale[1] = 0x10;
@@ -1026,11 +1054,11 @@ namespace triple021
 	// sub_89ECA0: a mote per tick for ticks 0..6
 	static void SpawnMote(ModelNode *r)
 	{
-		if (r->h.counter < 0 || r->h.counter > 6) return;
-		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Mote, 0x70, r);
+		if (r->h.counter < 0 || r->h.counter > P().motes.until) return;
+		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), own::Fn(ORIG_Mote), 0x70, r);
 		memcpy(p->base, p->h.pos, 8);
-		p->seq = SEQ_Mote;
-		p->radius = (int16_t)((CrtRand() & 0x1FF) + 0x200);
+		p->seq = fxp::sequence(P().seqs.mote, SEQ_Mote);
+		p->radius = (int16_t)((CrtRand() & 0x1FF) + P().motes.radius);
 		p->last = 0xC;
 		p->ay = (int16_t)(CrtRand() & 0xFFF);
 		p->scale[0] = 0x1000;
@@ -1044,7 +1072,7 @@ namespace triple021
 		switch (n->h.phase)
 		{
 		case 0:
-			n->fade = (int16_t)(n->fade - 0x200);
+			n->fade = (int16_t)(n->fade - P().runes.fade_in);
 			*(uint8_t *)&n->h.flags |= 2;
 			if (n->fade <= 0)
 			{
@@ -1053,10 +1081,10 @@ namespace triple021
 			}
 			break;
 		case 1:
-			n->fade = (int16_t)(n->fade + 0x200);
-			n->scale[0] -= 0x200;
-			n->scale[1] -= 0x200;
-			n->scale[2] -= 0x200;
+			n->fade = (int16_t)(n->fade + P().runes.fade_out);
+			n->scale[0] -= P().runes.shrink;
+			n->scale[1] -= P().runes.shrink;
+			n->scale[2] -= P().runes.shrink;
 			if (n->fade >= 0x1000)
 			{
 				n->fade = 0x1000;
@@ -1074,7 +1102,7 @@ namespace triple021
 	// spin, and the place on the circle (radius 0x400: (sin, cos) / 4 of the orbit angle)
 	static void RuneMotion(ModelNode *n)
 	{
-		n->angle[1] = (int16_t)((n->angle[1] + 0x140) & 0xFFF);
+		n->angle[1] = (int16_t)((n->angle[1] + P().runes.spin) & 0xFFF);
 		memcpy(n->h.pos, n->base, 8);
 		n->h.pos[0] = (int16_t)(n->h.pos[0] + ComputeSin(n->orbit) / 4);
 		n->h.pos[2] = (int16_t)(n->h.pos[2] + ComputeCos(n->orbit) / 4);
@@ -1087,7 +1115,7 @@ namespace triple021
 		RuneMotion(n);
 		if (n->h.flags & 2)
 		{
-			if (n->h.counter == 3) SpawnColumn(n);
+			if (n->h.counter == P().runes.column_tick) SpawnColumn(n);
 			SpawnMote(n);
 		}
 		// 30 fps layer: see mag021_triple_held.inc
@@ -1108,20 +1136,20 @@ namespace triple021
 	// sub_89EB20: a rune at `angle` on the circle around the target (0x280 up) and its glow
 	static void SpawnRune(SeqNode *s, int32_t angle, int16_t arg, int16_t flagged)
 	{
-		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), ORIG_Rune, 0x7C, s);
+		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), own::Fn(ORIG_Rune), 0x7C, s);
 		CopyAnchorXZFromSource(r, r->h.pos);
-		r->h.pos[1] = (int16_t)(r->h.pos[1] - 0x280);
+		r->h.pos[1] = (int16_t)(r->h.pos[1] - P().runes.height);
 		memcpy(r->base, r->h.pos, 8);
 		const int16_t a = (int16_t)(angle & 0xFFF);
 		r->arg = arg;
 		r->flagged = flagged;
 		r->orbit = a;
-		r->model = MODEL_Rune;
+		r->model = fxp::model(P().models.rune, MODEL_Rune);
 		r->fade = 0x1000;
 		r->scale[0] = 0x1000;
 		r->scale[1] = 0x1000;
 		r->scale[2] = 0x1000;
-		SpriteNode *g = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Glow, 0x70, s);
+		SpriteNode *g = (SpriteNode *)AddEffectTask(QSprites(), own::Fn(ORIG_Glow), 0x70, s);
 		CopyAnchorXZFromSource(g, g->h.pos);
 		memcpy(g->base, g->h.pos, 8);
 		g->angle = a;
@@ -1141,7 +1169,7 @@ namespace triple021
 			}
 			break;
 		case 1: // 0x89F7D0
-			if (s->h.counter >= 3)
+			if (s->h.counter >= 1 * P().runes.every)
 			{
 				SpawnRune(s, 0x200, 0, 0);
 				SpawnRune(s, 0xA00, 0, 0);
@@ -1149,7 +1177,7 @@ namespace triple021
 			}
 			break;
 		case 2: // 0x89F810
-			if (s->h.counter >= 6)
+			if (s->h.counter >= 2 * P().runes.every)
 			{
 				SpawnRune(s, 0x400, 0, 0);
 				SpawnRune(s, 0xC00, 0, 0);
@@ -1157,7 +1185,7 @@ namespace triple021
 			}
 			break;
 		case 3: // 0x89F850: the flagged last rune, then done
-			if (s->h.counter >= 9)
+			if (s->h.counter >= 3 * P().runes.every)
 			{
 				SpawnRune(s, 0x600, 0, 0);
 				SpawnRune(s, 0xE00, 0, 1);
@@ -1184,7 +1212,7 @@ namespace triple021
 	{
 		const uint8_t *targets = e->h.ctx->actions[e->h.action].targets;
 		if (targets[3] & 4) return;
-		FlashNode *f = (FlashNode *)AddEffectTask(QFlashes(), ORIG_Flash, 0x50, e);
+		FlashNode *f = (FlashNode *)AddEffectTask(QFlashes(), own::Fn(ORIG_Flash), 0x50, e);
 		CopyAnchorTopFromSource(f, f->h.pos);
 		memcpy(f->target, f->h.pos, 8);
 		f->tx = 0x240;
@@ -1301,11 +1329,11 @@ namespace triple021
 		switch (e->h.phase)
 		{
 		case 0: // 0x89EA40: the rune sequencer
-			AddEffectTask(QSequencers(), ORIG_Sequencer, 0x40, e);
+			AddEffectTask(QSequencers(), own::Fn(ORIG_Sequencer), 0x40, e);
 			e->h.phase++;
 			break;
 		case 1: // 0x89F8A0: at 24 the root goes on, the flash
-			if (e->h.counter >= 0x18)
+			if (e->h.counter >= P().emitter.release)
 			{
 				((RootNode *)e->h.root)->busy = 0;
 				SpawnFlash(e);
@@ -1323,7 +1351,7 @@ namespace triple021
 		{
 			int16_t mid[4]; // read and not used
 			CopyMidpointFromSource(e, mid);
-			BdPlaySE(SOUND_Triple, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(P().emitter.sound, (uint32_t)SOUND_Triple), 0, 0x80);
 		}
 		switch (e->signal)
 		{
@@ -1358,7 +1386,7 @@ namespace triple021
 			break;
 		case 1: // 0x89E0E0: the emitter of the current action
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x5C, r);
+			AddEffectTask(QEmitters(), own::Fn(ORIG_Emitter), 0x5C, r);
 			r->h.phase++;
 			break;
 		case 2: // 0x89FB40: when the action is over, the next one (back to 1) or on
@@ -1384,11 +1412,45 @@ namespace triple021
 		}
 	}
 
+	// File loader (0x89DED0) and setup (0x89DEF0): the game runs its own; Fujin's programs these (its memory may be
+	// a copy's): the root with the cast, the first target's slot and the action counts, the camera and the
+	// texture, the two packet arenas in the magic buffer, the queues
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		const uint8_t slot = ctx->actions->targets[0];
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x271B028), 0x64, 2);
+		RootNode *r = (RootNode *)AddEffectTask(QRoot(), own::Fn(ORIG_Root), 0x64, nullptr);
+		r->h.ctx = ctx;
+		r->h.slot = slot;
+		r->target_count = ctx->actions->target_count;
+		r->last_action = ctx->actions->last_action;
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		const uint32_t buffer = layouts::MagicBuffer();
+		var<uint32_t>(own::R(ARENA_A)) = buffer;
+		var<uint32_t>(own::R(ARENA_B)) = buffer + 0x8000;
+		InitTaskQueuePool(QEmitters(), (void *)own::R(0x27208A8), 0x5C, 4);
+		InitTaskQueuePool(QSequencers(), (void *)own::R(0x2720A30), 0x40, 40);
+		InitTaskQueuePool(QSprites(), (void *)own::R(0x271B100), 0x70, 200);
+		InitTaskQueuePool(QModels(), (void *)own::R(0x2714F30), 0x7C, 200);
+		InitTaskQueuePool(QFlashes(), (void *)own::R(0x2721430), 0x50, 4);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *t)
 	{
 		RootNode *r = (RootNode *)t;
-		if (r->tick & 1) PacketCursor() = var<uint32_t>(ARENA_A);
-		else PacketCursor() = var<uint32_t>(ARENA_B);
+		if (r->tick & 1) PacketCursor() = var<uint32_t>(own::R(ARENA_A));
+		else PacketCursor() = var<uint32_t>(own::R(ARENA_B));
 		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
@@ -1407,10 +1469,70 @@ namespace triple021
 		}
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define TP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(TripleParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the root going on and the flash at its tick, the result" },
+			{ 0, "runes", "Runes", "Eight runes around the target, two opposite a step: their fades, spin, columns and motes" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "motes", "Motes", "A mote a tick spiralling in, until this tick of its rune; their spiral radius (+ rand 0..0x1FF)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(TripleParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			TP("emitter", emitter.release, "Release tick", "The root may start the next action, and the flash, at this tick", 0, 200),
+			TP("runes", runes.every, "Every", "Two opposite runes every these ticks (four steps)", 1, 30),
+			TP("runes", runes.height, "Height", "The runes and columns this above the target", -0x1000, 0x1000),
+			TP("runes", runes.spin, "Spin", "A rune's and its column's spin a tick (4096: a turn)", -0x800, 0x800),
+			TP("runes", runes.fade_in, "Fade in", "A tick (4096: shown)", 1, 0x1000),
+			TP("runes", runes.fade_out, "Fade out", "A tick, while it shrinks", 1, 0x1000),
+			TP("runes", runes.shrink, "Shrink", "Its scale down a tick while it fades out", 0, 0x1000),
+			TP("runes", runes.column_tick, "Column tick", "Its column at this tick", 0, 30),
+			TP("runes", motes.until, "Until", "", 0, 30),
+			TP("runes", motes.radius, "Radius", "", 0, 0x1000),
+			{ "emitter", "seqs.sprite", "Sprite", "The sprite sequence sprite (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(TripleParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.morph", "Morph model", "The prim model morph (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.morph), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.big_rune1", "Big rune1 model", "The prim model big rune1 (a mesh of 32 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.big_rune1), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.big_rune2", "Big rune2 model", "The prim model big rune2 (a mesh of 128 vertices, 104 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.big_rune2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.column_flash", "Column flash model", "The prim model column flash (a mesh of 24 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.column_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.column", "Column model", "The prim model column (a mesh of 24 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.rune", "Rune model", "The prim model rune (a mesh of 17 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TripleParams, models.rune), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(TripleParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "emitter", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(TripleParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "emitter", "morphs.from", "Morph from", "The vertices the morph model blends from (80 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(TripleParams, morphs.from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "morphs.to", "Morph to", "The vertices the morph model blends to (80 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(TripleParams, morphs.to), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.fade_table_a", "Fade a", "The runes' first fade by step (4096 = full) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(TripleParams, tables.fade_table_a), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.fade_table_b", "Fade b", "The runes' second fade by step (4096 = full) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(TripleParams, tables.fade_table_b), fxp::Data, 0, 0x7FFFFFFF },
+		};
+#undef TP
+	}
 }
 
 	void register_mag021_triple()
 	{
+		fxp::register_params({ 21, "Triple", &triple021::live, &triple021::GAME, sizeof(triple021::TripleParams),
+		                       triple021::table::PARTS, (int)(sizeof(triple021::table::PARTS) / sizeof(triple021::table::PARTS[0])),
+		                       triple021::table::FIELDS, (int)(sizeof(triple021::table::FIELDS) / sizeof(triple021::table::FIELDS[0])),
+		                       triple021::table::GROUPS, (int)(sizeof(triple021::table::GROUPS) / sizeof(triple021::table::GROUPS[0])) });
+		own::note(triple021::ORIG_FileLoader, (void *)triple021::FileLoader);
+		own::note(triple021::ORIG_Setup, (void *)triple021::Setup);
+		own::note(triple021::ORIG_Root, (void *)triple021::RootTask);
+		own::note(triple021::ORIG_Emitter, (void *)triple021::EmitterTask);
+		own::note(triple021::ORIG_Sequencer, (void *)triple021::SequencerTask);
+		own::note(triple021::ORIG_Rune, (void *)triple021::RuneTask);
+		own::note(triple021::ORIG_Column, (void *)triple021::ColumnTask);
+		own::note(triple021::ORIG_Spark, (void *)triple021::SparkTask);
+		own::note(triple021::ORIG_Glow, (void *)triple021::GlowTask);
+		own::note(triple021::ORIG_Mote, (void *)triple021::MoteTask);
+		own::note(triple021::ORIG_BigRune, (void *)triple021::BigRuneTask);
+		own::note(triple021::ORIG_Morph, (void *)triple021::MorphTask);
+		own::note(triple021::ORIG_Sprite, (void *)triple021::SpriteTask);
+		own::note(triple021::ORIG_Flash, (void *)triple021::FlashTask);
 		register_port(triple021::ORIG_Root, (void *)triple021::RootTask, "021 Root", 21);
 		register_port(triple021::ORIG_Emitter, (void *)triple021::EmitterTask, "021 Emitter", 21);
 		register_port(triple021::ORIG_Sequencer, (void *)triple021::SequencerTask, "021 Sequencer", 21);
@@ -1426,6 +1548,7 @@ namespace triple021
 		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(register_mag021_held();)
 	}
+	FX_LAB_MODULE(register_mag021_triple);
 }
 
 #ifdef FF8_FX_HELD

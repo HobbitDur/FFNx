@@ -19,10 +19,19 @@
 
 namespace ff8fx
 {
-namespace echoscreen295
+namespace echo295
 {
 	static void held_note_root();
 	static void held_note_play(prim::Layout *layout, const int16_t *anchor);
+}
+namespace statusitem
+{
+	template<>
+	struct Held<echo295::LAYOUT>
+	{
+		static void note_root() { echo295::held_note_root(); }
+		static void note_play(prim::Layout *layout, const int16_t *anchor) { echo295::held_note_play(layout, anchor); }
+	};
 }
 	static void register_mag295_held();
 }

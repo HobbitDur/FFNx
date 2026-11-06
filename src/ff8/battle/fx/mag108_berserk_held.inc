@@ -50,7 +50,7 @@ namespace berserk108
 		int32_t e;                // flash / glow step
 		int32_t copy;             // rays / swirl: index of the table copy
 		prim::Layout *layout;     // play: the live layout (prim::play_held knows what it drew)
-		PrimArg arg;
+		TableArg arg;
 		ParticleNode part;        // particle, as drawn
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
@@ -59,7 +59,7 @@ namespace berserk108
 	{
 		int16_t counter;
 		int32_t count;
-		SwirlEntry trail[32];
+		RibbonEntry trail[32];
 	};
 
 	static uint32_t g_ported_tick = 0xFFFFFFFF;
@@ -67,9 +67,9 @@ namespace berserk108
 	static int g_nrec = 0, g_nrays = 0, g_nswirls = 0;
 	static uint32_t g_packets = 0;       // module packet cursor at the tick's first draw
 	static Rec g_recs[160];
-	static Ray g_rays[8][32];            // ray tables as drawn (one per main task)
+	static LightRay g_rays[8][32];            // ray tables as drawn (one per main task)
 	static SwirlCopy g_swirls[16];       // ribbons as the draw found them (one per swirl task)
-	static SwirlEntry g_cur[32], g_next[32];
+	static RibbonEntry g_cur[32], g_next[32];
 	static uint8_t g_held_packets[0x20000]; // module arena (0x18000 per tick)
 	static uint8_t g_held_morph[0x1000];    // blended vertex frames (magic buffer + 0x52CC)
 
@@ -111,7 +111,7 @@ namespace berserk108
 		r->e = e;
 	}
 
-	static void held_note_play(const MainNode *m, const PrimArg *arg)
+	static void held_note_play(const MainNode *m, const TableArg *arg)
 	{
 		Rec *r = NewRec(REC_PLAY);
 		if (!r) return;
@@ -129,17 +129,19 @@ namespace berserk108
 		memcpy(g_rays[r->copy], m->rays, sizeof(m->rays));
 	}
 
-	static void held_note_swirl(const SwirlNode *s)
+	// (called by RibbonTick after this tick's pushes and the basis, right before the fade and the strip)
+	static void held_note_swirl(const Ribbon *ribbon)
 	{
+		const SwirlNode *s = (const SwirlNode *)((const uint8_t *)ribbon - offsetof(SwirlNode, r));
 		if (g_nswirls >= (int)(sizeof(g_swirls) / sizeof(g_swirls[0]))) return;
 		Rec *r = NewRec(REC_SWIRL);
 		if (!r) return;
-		memcpy(r->pos, s->owner->pos, sizeof(r->pos));
+		memcpy(r->pos, s->r.anchor, sizeof(r->pos));
 		r->copy = g_nswirls++;
 		SwirlCopy &c = g_swirls[r->copy];
 		c.counter = s->counter;
-		c.count = s->count;
-		memcpy(c.trail, s->trail, sizeof(c.trail));
+		c.count = s->r.count;
+		memcpy(c.trail, s->r.trail, sizeof(c.trail));
 	}
 
 	static void held_note_particle(const ParticleNode *p)
@@ -161,6 +163,34 @@ namespace berserk108
 
 	static inline uint8_t lerp8(uint8_t a, uint8_t b, int num, int den) { return (uint8_t)lerp_i(a, b, num, den); }
 
+	// PulseModelDraw at an in-between scale and fade (it computes them from a whole step)
+	static int32_t GlowScale(int32_t e) { return ComputeSin((int32_t)((uint32_t)shl32(e, 10) / (uint32_t)P().glow.ticks)) + P().glow.scale; }
+	static int32_t GlowFade(int32_t e) { return (int32_t)((uint32_t)shl32(e, 11) / (uint32_t)P().glow.ticks + (uint32_t)P().glow.fade); }
+	static void GlowDraw(const int16_t *pos, int32_t scale, int32_t fade)
+	{
+		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
+		// the matrix pad is never written by the original (stack)
+		Mat4x3 m = {};
+		m.m[0][0] = (int16_t)scale;
+		m.m[1][1] = (int16_t)scale;
+		m.m[2][2] = (int16_t)scale;
+		GteSetRotMatrix(&Camera());
+		GteSetTransVector(&Camera());
+		GteLoadV0(pos);
+		GteMVMVA_RotV0Tr();
+		GteReadMAC123(m.t);
+		GteSetRotMatrix(&m);
+		GteSetTransVector(&m);
+		*(uint32_t *)h = MODEL_Glow;
+		h[0xA] = 0;
+		h[9] = 0;
+		h[8] = 0;
+		*(int32_t *)(h + 0xC) = fade;
+		*(uint32_t *)(h + 0x1C) = 0xF0;
+		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
+		FieldFree(0x58);
+	}
+
 	static void GlowHeld(const Rec &r, int num, int den)
 	{
 		int32_t scale = GlowScale(r.e);
@@ -175,14 +205,14 @@ namespace berserk108
 
 	static void RaysHeld(const Rec &r, int num, int den)
 	{
-		Ray rays[32];
-		memcpy(rays, g_rays[r.copy], sizeof(rays));
+		LightRay table[32];
+		memcpy(table, g_rays[r.copy], sizeof(table));
 		for (int k = 0; k < 32; k++)
 		{
-			Ray &a = rays[k];
+			LightRay &a = table[k];
 			if (!a.alive) continue;
-			Ray b = a;
-			RayUpdate(&b);
+			LightRay b = a;
+			rays::RayUpdate(&b);
 			if (!b.alive) continue; // not drawn on the next tick: holds
 			a.spin = lerp16(a.spin, b.spin, num, den);
 			a.length = lerp16(a.length, b.length, num, den);
@@ -194,8 +224,7 @@ namespace berserk108
 				a.col2[i] = lerp8(a.col2[i], b.col2[i], num, den);
 			}
 		}
-		int32_t alive;
-		PacketCursor() = RayDraw(0x20, rays, r.pos, &alive, RenderOT(0x44), 2, PacketCursor());
+		RayDraw(0x20, table, r.pos, PacketCursor());
 	}
 
 	static void SwirlHeld(const Rec &r, int num, int den)
@@ -203,31 +232,43 @@ namespace berserk108
 		const SwirlCopy &c = g_swirls[r.copy];
 		int32_t n = c.count;
 		memcpy(g_cur, c.trail, sizeof(g_cur));
-		SwirlFade(n, g_cur, -0x28);       // brightness as drawn on the real tick
+		ribbon::RibbonFade(n, g_cur, P().swirls.fade);       // brightness as drawn on the real tick
 		memcpy(g_next, g_cur, sizeof(g_next));
-		SwirlFade(n, g_next, -0x28);      // as the next tick draws it
+		ribbon::RibbonFade(n, g_next, P().swirls.fade);      // as the next tick draws it
 		for (int32_t k = 0; k < n && k < 32; k++)
 		{
-			SwirlEntry &e = g_cur[k];
+			RibbonEntry &e = g_cur[k];
 			e.bright = lerp16(e.bright, g_next[k].bright, num, den);
 			const int16_t wave = (int16_t)(ComputeSin(e.phase) >> 6);
 			e.angle = lerp16(e.angle, (int16_t)(e.angle + wave), num, den);
 		}
-		SwirlFrame f = {};
-		SwirlAnchor(r.pos, &f);
-		SwirlBasis(&f);
-		PacketCursor() = SwirlStrip(&n, g_cur, shl32(c.counter, 5), RenderOT(0x44), 2, PacketCursor());
+		// the frame RibbonTick builds: the point in camera space, the basis facing the camera from it, loaded
+		RibbonFrame f = {};
+		GteSetRotMatrix(&Camera());
+		GteSetTransVector(&Camera());
+		GteLoadV0(r.pos);
+		GteMVMVA_RotV0Tr();
+		GteReadMAC123(f.basis.t);
+		f.v[0] = (int32_t)(0u - (uint32_t)f.basis.t[0]);
+		f.v[1] = (int32_t)(0u - (uint32_t)f.basis.t[1]);
+		f.v[2] = f.basis.t[2];
+		ribbon::BuildOrthonormalBasis(f.v, &f.basis);
+		barrier::ZRotation(0, &f.roll);
+		barrier::MatMul56C220(&f.basis, &f.roll);
+		GteSetRotMatrix(&f.basis);
+		GteSetTransVector(&f.basis);
+		PacketCursor() = ribbon::RibbonStrip(&n, g_cur, shl32(c.counter, 5), TEXWIN_Strip, TEXWIN_Reset, RenderOT(), 2, PacketCursor());
 	}
 
 	static void ParticleHeld(const Rec &r, int num, int den)
 	{
 		ParticleNode p = r.part;
-		if (p.seq == SEQ_Ember && (int8_t)(uint8_t)(p.counter + 1) < 0xE)
+		if (p.m.seq == SEQ_Ember && (int8_t)(uint8_t)(p.m.counter + 1) < 0xE)
 		{
-			const int16_t vel = (int16_t)(p.vel + p.accel);
-			p.pos[1] = lerp16(p.pos[1], (int16_t)(p.pos[1] + vel), num, den);
+			const int16_t vel = (int16_t)(p.m.vel + p.m.accel);
+			p.m.pos[1] = lerp16(p.m.pos[1], (int16_t)(p.m.pos[1] + vel), num, den);
 		}
-		ParticleDraw(&p);
+		MoteDraw(&p.m, PacketCursor());
 	}
 
 	static void HeldFrame(int num, int den)
@@ -239,14 +280,14 @@ namespace berserk108
 			Replay(r);
 			switch (r.kind)
 			{
-			case REC_FLASH: FlashDraw(r.pos, r.e); break;
+			case REC_FLASH: DrawSequenceSprite(r.pos, SEQ_Flash, (int16_t)r.e, 0x2000, (int32_t)0xFFFFF800, PacketCursor()); break;
 			case REC_GLOW: GlowHeld(r, num, den); break;
 			case REC_PLAY:
 			{
-				PrimArg arg = r.arg;
+				TableArg arg = r.arg;
 				memcpy(g_held_morph, (const void *)r.arg.morph, sizeof(g_held_morph));
 				arg.morph = (uint32_t)g_held_morph;
-				prim::play_held(r.layout, BurstPart, (int)&arg, num, den);
+				prim::play_held(r.layout, TablePrimCallback, (int)&arg, num, den);
 				break;
 			}
 			case REC_RAYS: RaysHeld(r, num, den); break;

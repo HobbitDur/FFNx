@@ -202,7 +202,7 @@ namespace dribble
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -371,7 +371,7 @@ namespace dribble
 	// its side effects; returns whether the next tick draws the ball
 	static bool PredictBall(uint32_t node)
 	{
-		if (!live(node, ORIG_Dribble)) return false;
+		if (!node_live(node, ORIG_Dribble)) return false;
 		switch (S8(node, 0x29))
 		{
 		case 1: db_84C610(node); break;
@@ -489,7 +489,7 @@ namespace dribble
 		alignas(4) static uint8_t cur[NODE_BYTES], nxt[NODE_BYTES];
 		memcpy(cur, n.bytes, NODE_BYTES);
 		const uint32_t c = P(cur), x1 = P(nxt);
-		if (live(n.node, ORIG_Dust) && S8(n.node, 0x29) == 1 && (U8(n.node, 0x26) & 4) == 0)
+		if (node_live(n.node, ORIG_Dust) && S8(n.node, 0x29) == 1 && (U8(n.node, 0x26) & 4) == 0)
 		{
 			// the next tick's motion step (0x84CB90) on a copy; drawn there unless it ends
 			memcpy(nxt, (const void *)n.node, NODE_BYTES);

@@ -369,6 +369,9 @@ namespace death232
 	{
 		using namespace gfc;
 		death232::describe(death232::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<232>::Register("Breath of Death", death232::g_c, 0xA5C2B0, 0x1869638, 0x1869644,
+		                           (void *)death232::SequenceTask);
 		init_clone(death232::g_c, nullptr, 0);
 		apply_shared_misc(death232::g_c);      // VM 0x042
 		death232::g_c.draw[2] = death232::dh_02_MeshScaled;
@@ -379,6 +382,7 @@ namespace death232
 		// 30 fps layer: see mag232_breath_of_death_held.inc
 		FX_HELD(register_mag232_breath_of_death_held();)
 	}
+	FX_LAB_MODULE(register_mag232_breath_of_death);
 }
 
 #ifdef FF8_FX_HELD

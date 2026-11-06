@@ -45,8 +45,14 @@
 // the vertices, the funnel and the dust pools draw, nothing moves, the director does nothing.
 // Module globals: 0x23F07F0..0x2404234 (path points, slots, queues, pools, spline table, funnel
 // vertices and records, packet arenas and cursor).
+// Fujin's described Sand Storm (effect_155.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (SandStormParams: the wind sound, the
+// damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -58,21 +64,21 @@ namespace sandstorm155
 	// ------------------------------------------------------------------
 	// module globals
 	// ------------------------------------------------------------------
-	inline int16_t *SideA() { return (int16_t *)0x23F07F0; }           // random side point (x, y, z, w)
-	inline int16_t *SideB() { return (int16_t *)0x23F07F8; }           // random side point
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x23F0800); } // first target's slot (setup, unused)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23F0818; }
-	inline TaskQueue *QEffect() { return (TaskQueue *)0x23F1AE8; }
-	inline int16_t *Spline() { return (int16_t *)0x23F2908; }          // 6 spline points of 8 bytes
-	inline int16_t *Centre() { return (int16_t *)0x23F2938; }          // targets' centre
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23F2940); }
-	inline uint32_t &PosX() { return var<uint32_t>(0x23F2948); }       // funnel position x (+ word 0x23F294A)
-	inline uint32_t &PosZ() { return var<uint32_t>(0x23F294C); }       // funnel position z (+ word 0x23F294E)
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23F2950); }
-	inline uint32_t &TexFile() { return var<uint32_t>(0x23F2954); }
-	inline int16_t *CasterPos() { return (int16_t *)0x23F2958; }       // caster's default position (y / h swapped)
-	inline int16_t *PathTable() { return (int16_t *)0x23F2960; }       // 34 spline samples of 8 bytes
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2404230); }
+	inline int16_t *SideA() { return (int16_t *)own::R(0x23F07F0); }           // random side point (x, y, z, w)
+	inline int16_t *SideB() { return (int16_t *)own::R(0x23F07F8); }           // random side point
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x23F0800)); } // first target's slot (setup, unused)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23F0818); }
+	inline TaskQueue *QEffect() { return (TaskQueue *)own::R(0x23F1AE8); }
+	inline int16_t *Spline() { return (int16_t *)own::R(0x23F2908); }          // 6 spline points of 8 bytes
+	inline int16_t *Centre() { return (int16_t *)own::R(0x23F2938); }          // targets' centre
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23F2940)); }
+	inline uint32_t &PosX() { return var<uint32_t>(own::R(0x23F2948)); }       // funnel position x (+ word 0x23F294A)
+	inline uint32_t &PosZ() { return var<uint32_t>(own::R(0x23F294C)); }       // funnel position z (+ word 0x23F294E)
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x23F2950)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23F2954)); }
+	inline int16_t *CasterPos() { return (int16_t *)own::R(0x23F2958); }       // caster's default position (y / h swapped)
+	inline int16_t *PathTable() { return (int16_t *)own::R(0x23F2960); }       // 34 spline samples of 8 bytes
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2404230)); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t POOL_A = 0x23F1188, POOL_B = 0x23F0828; // 100 x 0x18 each
@@ -82,6 +88,23 @@ namespace sandstorm155
 	static const uint32_t MODEL_Funnel = 0xDB8150;                 // prim model (vertices at +8)
 	static const uint32_t SEQ_DustA = 0xDB7E94, SEQ_DustB = 0xDB8040;
 	static const void *const SOUND_Wind = (const void *)0xDBA8F8;
+	static const uint32_t ORIG_FileLoader = 0x606CD0, ORIG_Setup = 0x606CF0;
+	static const uint32_t TEXTURE_NAME = 0xDBA900, CAMERA = 0xDB7DC4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct SandStormParams
+	{
+		uint32_t sound;                      // the wind at the director's tick 1
+		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t dust_a, dust_b; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t funnel; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const SandStormParams GAME = { 0xDBA8F8, { 0x32 }, { SEQ_DustA, SEQ_DustB }, { MODEL_Funnel }, { TEXTURE_NAME, CAMERA } };
+	static SandStormParams live = GAME;
+	static const SandStormParams &P() { return live; }
 
 	static const uint32_t ORIG_Root = 0x607BB0;
 	static const uint32_t ORIG_Director = 0x606DB0;
@@ -174,7 +197,7 @@ namespace sandstorm155
 	// the wave: ring k of the funnel moved by (radius + 15 k) along (angle + 300 k); dst + rebase
 	static void WaveVertices(int32_t angle, int32_t radius, uint32_t rebase)
 	{
-		Order *o = (Order *)ORDER;
+		Order *o = (Order *)own::R(ORDER);
 		for (int ring = 0x13; ring != 0; ring--)
 		{
 			const int32_t c = ComputeCos(angle) * radius >> 12;
@@ -254,7 +277,7 @@ namespace sandstorm155
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		*(int32_t *)(h + 0xC) = 0;
 		*(int32_t *)(h + 8) = 0;
-		*(uint32_t *)h = MODEL_Funnel;
+		*(uint32_t *)h = fxp::model(P().models.funnel, MODEL_Funnel);
 		*(uint32_t *)(h + 4) = verts;
 		*(uint32_t *)(h + 0x1C) = flags;
 		*(int32_t *)(h + 0xC) = fade;
@@ -316,8 +339,8 @@ namespace sandstorm155
 	// ------------------------------------------------------------------
 	static void VertexOrder()
 	{
-		Order *o = (Order *)ORDER;
-		uint32_t src = MODEL_Funnel + 8, dst = VERTS;
+		Order *o = (Order *)own::R(ORDER);
+		uint32_t src = fxp::model(P().models.funnel, MODEL_Funnel) + 8, dst = own::R(VERTS);
 		for (int ring = 0x13; ring != 0; ring--)
 			for (int i = 0x10; i != 0; i--, o++, src += 8, dst += 8)
 			{
@@ -325,7 +348,7 @@ namespace sandstorm155
 				o->dst = dst;
 				o->y = *(const int16_t *)(src + 2);
 			}
-		o = (Order *)ORDER;
+		o = (Order *)own::R(ORDER);
 		for (int i = 0; i + 1 < 0x130; i++)
 			for (int j = i + 1; j < 0x130; j++)
 				if (o[i].y < o[j].y)
@@ -339,6 +362,31 @@ namespace sandstorm155
 	// ------------------------------------------------------------------
 	// Wave (0x607130)
 	// ------------------------------------------------------------------
+	// File loader (0x606CD0) and setup (0x606CF0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the director, the two sprite pools
+	// cleared, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23F0808), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(QEffect(), (void *)own::R(0x23F1AF8), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t p = own::R(POOL_A); p < own::R(0x23F1AE8); p += 0x18) *(uint32_t *)p = 0;
+		for (uint32_t p = own::R(POOL_B); p < own::R(POOL_A); p += 0x18) *(uint32_t *)p = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		WaveNode *w = (WaveNode *)n;
@@ -363,7 +411,7 @@ namespace sandstorm155
 		FunnelFade(f->counter, &fade, &flags);
 		// 30 fps layer: see mag155_sand_storm_held.inc
 		FX_HELD(held_note_funnel(f);)
-		FunnelDraw(f->angle, f->height, (int16_t)PosX(), (int16_t)PosZ(), VERTS, fade, flags);
+		FunnelDraw(f->angle, f->height, (int16_t)PosX(), (int16_t)PosZ(), own::R(VERTS), fade, flags);
 		if (DrawOnly()) return 0;
 		const int16_t c = f->counter;
 		if (c < 0xA)
@@ -420,7 +468,7 @@ namespace sandstorm155
 			void *work = FieldAlloc(0x190);
 			SplineSetup(6, sp, work);
 			int32_t t = 0;
-			for (int16_t *out = PathTable(); out < (int16_t *)0x23F2A70; out += 4, t += 0x1000)
+			for (int16_t *out = PathTable(); out < (int16_t *)own::R(0x23F2A70); out += 4, t += 0x1000)
 				SplineEval(6, work, out, t / 33);
 			FieldFree(0x190);
 		}
@@ -435,10 +483,10 @@ namespace sandstorm155
 	{
 		DustNode *t = (DustNode *)n;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_DustA;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust_a, SEQ_DustA);
 		*(int16_t *)(h + 0x24) = 0;
 		int alive = 0;
-		for (Dust *d = (Dust *)POOL_A; d < (Dust *)POOL_A + 100; d++)
+		for (Dust *d = (Dust *)own::R(POOL_A); d < (Dust *)own::R(POOL_A) + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
 			// 30 fps layer: see mag155_sand_storm_held.inc
@@ -463,9 +511,9 @@ namespace sandstorm155
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				Dust *d = (Dust *)POOL_A;
+				Dust *d = (Dust *)own::R(POOL_A);
 				while (d->used != 0)
-					if (++d >= (Dust *)POOL_A + 100) goto spawned;
+					if (++d >= (Dust *)own::R(POOL_A) + 100) goto spawned;
 				d->used = 1;
 				d->frame = 0;
 				d->scale = (int16_t)(CrtRand() % 0xA00 + 0x700);
@@ -495,10 +543,10 @@ namespace sandstorm155
 	{
 		DustNode *t = (DustNode *)n;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_DustB;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust_b, SEQ_DustB);
 		*(int16_t *)(h + 0x24) = 0;
 		int alive = 0;
-		for (Dust *d = (Dust *)POOL_B; d < (Dust *)POOL_B + 100; d++)
+		for (Dust *d = (Dust *)own::R(POOL_B); d < (Dust *)own::R(POOL_B) + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
 			// 30 fps layer: see mag155_sand_storm_held.inc
@@ -524,9 +572,9 @@ namespace sandstorm155
 		{
 			for (int k = 0; k < 5; k++)
 			{
-				Dust *d = (Dust *)POOL_B;
+				Dust *d = (Dust *)own::R(POOL_B);
 				while (d->used != 0)
-					if (++d >= (Dust *)POOL_B + 100) goto spawned;
+					if (++d >= (Dust *)own::R(POOL_B) + 100) goto spawned;
 				d->used = 1;
 				d->frame = 0;
 				d->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
@@ -566,12 +614,12 @@ namespace sandstorm155
 		}
 		if (r->counter == 1)
 		{
-			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffect(), ORIG_Wave);
+			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Wave));
 			w->counter = 0;
 			w->angle = (int16_t)(CrtRand() % 4096);
 			w->spin = (int16_t)(-70 - CrtRand() % 70);
 			w->radius = 0;
-			FunnelNode *f = (FunnelNode *)AddTaskToQueue(QEffect(), ORIG_Funnel);
+			FunnelNode *f = (FunnelNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Funnel));
 			f->counter = 0;
 			f->grow = 0x400;
 			f->height = 0x400;
@@ -597,10 +645,10 @@ namespace sandstorm155
 			const int32_t mz = CrtRand() % 1300;
 			sp[14] = (int16_t)(mz + Centre()[2] + 600);
 		}
-		if (r->counter == 3) ((DustNode *)AddTaskToQueue(QEffect(), ORIG_DustA))->counter = 0;
-		if (r->counter == 4) ((DustNode *)AddTaskToQueue(QEffect(), ORIG_DustB))->counter = 0;
-		if (r->counter == 0x32) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (r->counter == 1) BdPlaySE(SOUND_Wind, 0, 0x80);
+		if (r->counter == 3) ((DustNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_DustA)))->counter = 0;
+		if (r->counter == 4) ((DustNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_DustB)))->counter = 0;
+		if (r->counter == P().director.damage) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+		if (r->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Wind), 0, 0x80);
 		r->counter++;
 		return r->counter > 0x3C ? TASK_END : 0;
 	}
@@ -613,24 +661,53 @@ namespace sandstorm155
 		RootNode *r = (RootNode *)n;
 		// 30 fps layer: see mag155_sand_storm_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = (r->counter & 1) ? ARENA_B : ARENA_A;
+		PacketCursor() = (r->counter & 1) ? own::R(ARENA_B) : own::R(ARENA_A);
 		const int a = ExecuteTaskQueue(QEffect());
 		r->counter++;
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The sand funnel (its waving vertices, its path from the caster to the targets), the two dust pools, the wind sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Wind", "At the director's tick 1", (uint32_t)offsetof(SandStormParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(SandStormParams, director.damage), fxp::I16, 0, 60 },
+			{ "director", "seqs.dust_a", "Dust a", "The sprite sequence dust a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStormParams, seqs.dust_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.dust_b", "Dust b", "The sprite sequence dust b (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStormParams, seqs.dust_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.funnel", "Funnel model", "The prim model funnel (a mesh of 304 vertices, 288 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SandStormParams, models.funnel), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SandStormParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SandStormParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
 	}
 }
 
 	void register_mag155_sand_storm()
 	{
+		fxp::register_params({ 155, "Sand Storm", &sandstorm155::live, &sandstorm155::GAME, sizeof(sandstorm155::SandStormParams),
+		                       sandstorm155::table::PARTS, (int)(sizeof(sandstorm155::table::PARTS) / sizeof(sandstorm155::table::PARTS[0])),
+		                       sandstorm155::table::FIELDS, (int)(sizeof(sandstorm155::table::FIELDS) / sizeof(sandstorm155::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(sandstorm155::ORIG_FileLoader, (void *)sandstorm155::FileLoader);
+		own::note(sandstorm155::ORIG_Setup, (void *)sandstorm155::Setup);
+		own::note(sandstorm155::ORIG_Root, (void *)sandstorm155::RootTask);
 		register_port(sandstorm155::ORIG_Root, (void *)sandstorm155::RootTask, "155 RootTask", 155);
+		own::note(sandstorm155::ORIG_Director, (void *)sandstorm155::DirectorTask);
 		register_port(sandstorm155::ORIG_Director, (void *)sandstorm155::DirectorTask, "155 DirectorTask", 155);
+		own::note(sandstorm155::ORIG_Wave, (void *)sandstorm155::WaveTask);
 		register_port(sandstorm155::ORIG_Wave, (void *)sandstorm155::WaveTask, "155 WaveTask", 155);
+		own::note(sandstorm155::ORIG_Funnel, (void *)sandstorm155::FunnelTask);
 		register_port(sandstorm155::ORIG_Funnel, (void *)sandstorm155::FunnelTask, "155 FunnelTask", 155);
+		own::note(sandstorm155::ORIG_DustA, (void *)sandstorm155::DustATask);
 		register_port(sandstorm155::ORIG_DustA, (void *)sandstorm155::DustATask, "155 DustATask", 155);
+		own::note(sandstorm155::ORIG_DustB, (void *)sandstorm155::DustBTask);
 		register_port(sandstorm155::ORIG_DustB, (void *)sandstorm155::DustBTask, "155 DustBTask", 155);
 		// 30 fps layer: see mag155_sand_storm_held.inc
 		FX_HELD(register_mag155_held();)
 	}
+	FX_LAB_MODULE(register_mag155_sand_storm);
 }
 
 #ifdef FF8_FX_HELD

@@ -63,6 +63,9 @@
 // scratch's +0x04 / +0x18 (and +0x08..+0x0C when it does not fade), as in the game.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -72,14 +75,16 @@ namespace laser277
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508200); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508208); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250820C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508224); }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2508228; }           // pool: magic buffer, 8 x 0xA8
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508238; }         // pool: + 0x540, 0x10 x 0x24
-	inline TaskQueue *QGlows() { return (TaskQueue *)0x2508248; }          // pool: + 0x780, 0x10 x 0x14
-	inline TaskQueue *QBeam() { return (TaskQueue *)0x2508258; }           // pool: + 0x8C0, 1 x 0x664
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2508200)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2508208)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250820C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2508224)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508204)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2508268); }           // 1 x 0x14
+	inline TaskQueue *QHits() { return (TaskQueue *)own::R(0x2508228); }           // pool: magic buffer, 8 x 0xA8
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2508238); }         // pool: + 0x540, 0x10 x 0x24
+	inline TaskQueue *QGlows() { return (TaskQueue *)own::R(0x2508248); }          // pool: + 0x780, 0x10 x 0x14
+	inline TaskQueue *QBeam() { return (TaskQueue *)own::R(0x2508258); }           // pool: + 0x8C0, 1 x 0x664
 
 	static const uint32_t ORIG_MasterTask = 0x683FC0;
 	static const uint32_t ORIG_BeamTask = 0x6841F0;
@@ -98,6 +103,23 @@ namespace laser277
 	static const uint32_t SEQ_Spark = 0x10CB838;         // sprite sequences
 	static const uint32_t SEQ_Glow = 0x10CB628;
 	static const void *const SOUND_Beam = (const void *)0x10D2E9C;
+	static const uint32_t ORIG_FileLoader = 0x683F20, ORIG_Setup = 0x683F10;
+	static const uint32_t TEXTURE_NAME = 0x103BBC8, CAMERA_ANIM = 0x10D2CCC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FunguarLaserParams
+	{
+		uint32_t sound;   // each beam's counter 0
+		struct { uint32_t hit, muzzle, ray, impact; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark, glow; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t beam; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const FunguarLaserParams GAME = { 0x10D2E9C, { MODEL_Hit, MODEL_Muzzle, MODEL_Ray, MODEL_Impact }, { SEQ_Spark, SEQ_Glow }, { PRIM_Beam }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static FunguarLaserParams live = GAME;
+	static const FunguarLaserParams &P() { return live; }
 	static const int16_t P_OBJECT = 0, P_VERTEX = 0x7B;  // the beam's start: caster model object 0, vertex 0x7B
 
 	// engine functions not in fx_port.h / mag_common.h
@@ -436,7 +458,7 @@ namespace laser277
 		s.m[2][2] = (int16_t)len;
 		MulMatrix3(M2, &s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Beam;
+		*(uint32_t *)h = fxp::model(P().model_data.beam, PRIM_Beam);
 		if (fade == 0) *(uint32_t *)(h + 0x1C) = 0x30;
 		else
 		{
@@ -486,12 +508,33 @@ namespace laser277
 	// ------------------------------------------------------------------
 	// Glow (0x684D60)
 	// ------------------------------------------------------------------
+	// File loader (0x683F20) and setup (0x683F10 -> _Init 0x683F40): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2508210), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
 		// 30 fps layer: see mag277_funguar_laser_held.inc
 		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, nullptr, g->counter);)
-		SpriteDraw(g->pos, g->counter, SEQ_Glow, 0xAF0, -0x400);
+		SpriteDraw(g->pos, g->counter, fxp::sequence(P().seqs.glow, SEQ_Glow), 0xAF0, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -504,7 +547,7 @@ namespace laser277
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag277_funguar_laser_held.inc
 		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->vel, s->counter);)
-		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0xC00, -0x300);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.spark, SEQ_Spark), 0xC00, -0x300);
 		s->counter++;
 		if (s->counter >= 0x10) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -542,7 +585,7 @@ namespace laser277
 		BeamNode *b = (BeamNode *)n;
 		BeamFrame f;
 		BuildFrame(b, &f);
-		if (b->counter == 0) BdPlaySE(SOUND_Beam, 0, 0x80);
+		if (b->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Beam), 0, 0x80);
 		const int32_t c = b->counter;
 		PrimArg arg;
 		if ((uint32_t)(c - 5) < 0x28)
@@ -576,7 +619,7 @@ namespace laser277
 				BeamShape(b, c, f.P, T, &d);
 				if (d.kind == 2)
 				{
-					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), ORIG_GlowTask);
+					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), own::Fn(ORIG_GlowTask));
 					if (g)
 					{
 						g->pos[0] = T[0];
@@ -587,14 +630,14 @@ namespace laser277
 				}
 				else if (d.kind == 1)
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), own::Fn(ORIG_HitTask));
 					if (h)
 					{
 						memcpy(&h->frame.m, &f.R.m, sizeof(h->frame.m));
 						h->frame.t[0] = T[0];
 						h->frame.t[1] = T[1];
 						h->frame.t[2] = T[2];
-						DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x7C);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x7C), h->layout, 0x7C);
 					}
 				}
 				FX_HELD(held_note_beam(n);)
@@ -614,7 +657,7 @@ namespace laser277
 		{
 			for (int k = 0; k < 8; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				if (!s) continue;
 				memcpy(s->pos, b->spawn, 4);
 				*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->spawn[2];
@@ -668,7 +711,7 @@ namespace laser277
 				if ((live->hdr.flags & 1) && live->ent == ent) m->counter = 0;
 				else
 				{
-					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), ORIG_BeamTask);
+					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), own::Fn(ORIG_BeamTask));
 					if (b)
 					{
 						Memset32(&b->counter, 0, 0x196);
@@ -676,9 +719,9 @@ namespace laser277
 						b->ent = ent;
 						GetEffectSpawnPosition(ent, 0xF1, 0, b->spawn);
 						m->index++;
-						DecodeModelPrimLayout(MODEL_Muzzle, b->muzzle, 0x3B0);
-						DecodeModelPrimLayout(MODEL_Ray, b->ray, 0xE8);
-						DecodeModelPrimLayout(MODEL_Impact, b->impact, 0x1B0);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.muzzle, MODEL_Muzzle, 0x3B0), b->muzzle, 0x3B0);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.ray, MODEL_Ray, 0xE8), b->ray, 0xE8);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.impact, MODEL_Impact, 0x1B0), b->impact, 0x1B0);
 					}
 				}
 			}
@@ -696,18 +739,49 @@ namespace laser277
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "beam", "Beam", "From a vertex of the caster's model to each target: the muzzle and aim layouts, the beam, the hit layouts, glows and sparks, the impact layout, the sound; the action result at 0x2B" },
+		};
+		static const Field FIELDS[] = {
+			{ "beam", "sound", "Sound", "Each beam's counter 0", (uint32_t)offsetof(FunguarLaserParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.ray", "Ray", "The prim-model layout ray (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.ray), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(FunguarLaserParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "beam", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FunguarLaserParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "beam", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FunguarLaserParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "beam", "model_data.beam", "Beam model", "The prim model beam (a mesh of 220 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FunguarLaserParams, model_data.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "beam", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FunguarLaserParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "beam", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FunguarLaserParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag277_funguar_laser()
 	{
+		fxp::register_params({ 277, "Funguar laser", &laser277::live, &laser277::GAME, sizeof(laser277::FunguarLaserParams),
+		                       laser277::table::PARTS, (int)(sizeof(laser277::table::PARTS) / sizeof(laser277::table::PARTS[0])),
+		                       laser277::table::FIELDS, (int)(sizeof(laser277::table::FIELDS) / sizeof(laser277::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(laser277::ORIG_FileLoader, (void *)laser277::FileLoader);
+		own::note(laser277::ORIG_Setup, (void *)laser277::Setup);
+		own::note(laser277::ORIG_MasterTask, (void *)laser277::MasterTask);
 		register_port(laser277::ORIG_MasterTask, (void *)laser277::MasterTask, "277 MasterTask", 277);
+		own::note(laser277::ORIG_BeamTask, (void *)laser277::BeamTask);
 		register_port(laser277::ORIG_BeamTask, (void *)laser277::BeamTask, "277 BeamTask", 277);
+		own::note(laser277::ORIG_HitTask, (void *)laser277::HitTask);
 		register_port(laser277::ORIG_HitTask, (void *)laser277::HitTask, "277 HitTask", 277);
+		own::note(laser277::ORIG_SparkTask, (void *)laser277::SparkTask);
 		register_port(laser277::ORIG_SparkTask, (void *)laser277::SparkTask, "277 SparkTask", 277);
+		own::note(laser277::ORIG_GlowTask, (void *)laser277::GlowTask);
 		register_port(laser277::ORIG_GlowTask, (void *)laser277::GlowTask, "277 GlowTask", 277);
 		// 30 fps layer: see mag277_funguar_laser_held.inc
 		FX_HELD(register_mag277_held();)
 	}
+	FX_LAB_MODULE(register_mag277_funguar_laser);
 }
 
 #ifdef FF8_FX_HELD

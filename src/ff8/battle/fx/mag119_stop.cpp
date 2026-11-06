@@ -35,8 +35,14 @@
 // packet cursor 0x25215B4, target / root queues). The target pool (3 x 0x504), the morph vertex
 // buffer (+0xF0C), the shard buffer (+0x15FC, 0x202 x 0x38, shared by all targets) and the packet
 // arenas are in the magic buffer.
+// Fujin's described Stop (effect_119.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (StopParams: the sound, the
+// status tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -46,16 +52,34 @@ namespace stop119
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521594); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521598); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25215B4); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25215B8; }         // pool: magic buffer, 3 x 0x504
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2521594)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2521598)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25215B4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2521590)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25215C8); }             // 1 x 0x14
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x25215B8); }         // pool: magic buffer, 3 x 0x504
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6BF070;
 	static const uint32_t ORIG_TargetTask = 0x6BF1B0;
 	static const uint32_t MODEL_Clock = 0x127DB5C;      // prim-model layout data (0x4E8-byte layout)
 	static const void *const SOUND_Stop = (const void *)0x1287C34;
+	static const uint32_t ORIG_FileLoader = 0x6BEFE0, ORIG_Setup = 0x6BEFD0;
+	static const uint32_t TEXTURE_NAME = 0x1287C38, CAMERA = 0x1286E04;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct StopParams
+	{
+		uint32_t sound;                    // at the target task's tick 0 (3D, at the clock)
+		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
+		struct { uint32_t clock; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const StopParams GAME = { 0x1287C34, { 0x35 }, { MODEL_Clock }, { TEXTURE_NAME, CAMERA } };
+	static StopParams live = GAME;
+	static const StopParams &P() { return live; }
 
 	// the shard groups: buffer offset (magic buffer), shard count, model object of the layout data
 	static const uint32_t SHARDS = 0x15FC;              // 0x202 shards of 0x38 bytes
@@ -722,7 +746,7 @@ namespace stop119
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
-		if (t->counter == 0) BdPlaySE3D(SOUND_Stop, 1, t->pos);
+		if (t->counter == 0) BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Stop), 1, t->pos);
 		if (t->counter >= 0)
 		{
 			// the clock stands in front of the target (along its facing, by its size)
@@ -754,7 +778,7 @@ namespace stop119
 			GteSetTransVector(&Camera());
 			ShardsDrawAll((uint8_t *)(TexBase() + SHARDS));
 		}
-		if (t->counter == 0x35) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
+		if (t->counter == P().target.status) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
 	end:
 		if (t->counter >= 0x46) return TASK_END;
 		t->counter++;
@@ -764,6 +788,28 @@ namespace stop119
 	// ------------------------------------------------------------------
 	// Root task (0x6BF070)
 	// ------------------------------------------------------------------
+	// File loader (0x6BEFE0) and setup (0x6BEFD0 -> 0x6BF000): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast, the root, the camera and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25215A0), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -788,12 +834,12 @@ namespace stop119
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x13E);
 				t->action = (int16_t)(uint16_t)r->action;
 				t->entity = Entity(Ctx()->actions[t->action].targets[0]);
 				GetDefaultEffectPosition(t->entity, t->pos);
-				DecodeModelPrimLayout(MODEL_Clock, t->clock, 0x4E8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.clock, MODEL_Clock, 0x4E8), t->clock, 0x4E8);
 				r->action++;
 			}
 		}
@@ -803,15 +849,38 @@ namespace stop119
 		if (r->counter >= 0x14) r->counter = 0;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "target", "Target", "One target task an action on its first target: the clock's keyframed prim-model play in front of the target, the screen fade, the clock pieces breaking into shards, the sound; the status" },
+		};
+		static const Field FIELDS[] = {
+			{ "target", "sound", "Sound", "", (uint32_t)offsetof(StopParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(StopParams, target.status), fxp::I16, 0, 69 },
+			{ "target", "layouts.clock", "Clock", "The prim-model layout clock (its models' animation)", (uint32_t)offsetof(StopParams, layouts.clock), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(StopParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(StopParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag119_stop()
 	{
+		fxp::register_params({ 119, "Stop", &stop119::live, &stop119::GAME, sizeof(stop119::StopParams),
+		                       stop119::table::PARTS, (int)(sizeof(stop119::table::PARTS) / sizeof(stop119::table::PARTS[0])),
+		                       stop119::table::FIELDS, (int)(sizeof(stop119::table::FIELDS) / sizeof(stop119::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(stop119::ORIG_FileLoader, (void *)stop119::FileLoader);
+		own::note(stop119::ORIG_Setup, (void *)stop119::Setup);
+		own::note(stop119::ORIG_RootTask, (void *)stop119::RootTask);
 		register_port(stop119::ORIG_RootTask, (void *)stop119::RootTask, "S119 RootTask", 119);
+		own::note(stop119::ORIG_TargetTask, (void *)stop119::TargetTask);
 		register_port(stop119::ORIG_TargetTask, (void *)stop119::TargetTask, "S119 TargetTask", 119);
 		// 30 fps layer: see mag119_stop_held.inc
 		FX_HELD(register_mag119_held();)
 	}
+	FX_LAB_MODULE(register_mag119_stop);
 }
 
 #ifdef FF8_FX_HELD

@@ -32,12 +32,18 @@ namespace ff8fx
 {
 namespace slow123
 {
+	using namespace clockspell;
+	using Spell = ClockSpell<LAYOUT>;
+	static constexpr uint32_t ORIG_TargetTask = LAYOUT.target;
+	static inline uint32_t &PacketCursor() { return Spell::PacketCursor(); }
+	static inline Mat4x3 *EffCam() { return Spell::EffCam(); }
+
 	static const uint32_t SCRATCH = 0x400;
 
 	struct Rec
 	{
 		prim::Layout *layout;     // the live layout (prim::play_held knows what it drew)
-		PrimArg arg;              // its block before the camera (+ scale, scaled, morph)
+		FrameArg arg;             // its block before the camera (+ scale, scaled, morph)
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
 	};
@@ -58,13 +64,18 @@ namespace slow123
 		g_packets = 0;
 	}
 
-	static void held_note_play(uint8_t *layout, const PrimArg *local)
+	static void held_note_play(uint8_t *layout, const FrameArg *local, const uint8_t *entity, const int32_t *point)
 	{
 		if (g_log_tick != g_real_tick || g_nrec >= (int)(sizeof(g_recs) / sizeof(g_recs[0]))) return;
 		if (g_nrec == 0) g_packets = PacketCursor();
 		Rec &r = g_recs[g_nrec++];
 		r.layout = (prim::Layout *)layout;
 		r.arg = *local;
+		// its frame before the camera (TargetFrame up to the camera: turned with the target, at the point)
+		RotationY((int16_t)-*(const int16_t *)(entity + 0xE), &r.arg.m);
+		r.arg.m.t[0] = point[0];
+		r.arg.m.t[1] = point[1];
+		r.arg.m.t[2] = point[2];
 		memcpy(r.gte, (const void *)GTE_DATA, GTE_DATA_SIZE);
 		memcpy(r.gte + GTE_DATA_SIZE, (const void *)GTE_CTRL, GTE_CTRL_SIZE);
 		memcpy(r.scratch, var<uint8_t *>(0x1D999C4), SCRATCH);
@@ -84,11 +95,11 @@ namespace slow123
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
 			memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
-			PrimArg arg = r.arg;
+			FrameArg arg = r.arg;
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			memcpy(g_held_morph, (const void *)r.arg.morph, 0x480);
 			arg.morph = (uint32_t)g_held_morph;
-			prim::play_held(r.layout, ClockPart, (int)&arg, num, den);
+			prim::play_held(r.layout, FramePrimCallback, (int)&arg, num, den);
 		}
 		*EffCam() = effcam;
 	}

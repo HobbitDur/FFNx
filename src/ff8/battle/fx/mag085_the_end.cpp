@@ -52,8 +52,15 @@
 // Module globals: 0x25BC390..0x25C234C (texture file 0x25BC390, cursors, queues and pools, the director block 0x25C1C60,
 // the loader block 0x25C21E0); data: 0x156C7F0.. (director / loader pointers, models, sounds), 0x1571E70 (load script),
 // layouts 0x1715D28 / 0x1718EE4 / 0x171C42C, actor data 0x17151EC.
+// Fujin's described The End (effect_085.json) runs this code as its pieces (Doom's kind): its module memory through R()
+// (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or thunks of their
+// ports (Spawn); its parameters (TheEndParams: the two sounds, the damage cue frame) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,6 +74,21 @@ namespace theend
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x784890, 0x784910, 0x0, 0x784C60, 0x784C90, 0x784CC0, 0x784CD0, 0x784CE0, 0x784CF0, 0x784D00, 0x0, 0x0, 0x785040, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x784FA0, 0x0, 0x785000, 0x785790, 0x0, 0x0, 0x0, 0x0, 0x0, 0x788DD0, 0x788EB0, 0x789050, 0x789120, 0x789240, 0x7894A0, 0x0, 0x0, 0x78A1C0, 0x78A210, 0x0, 0x0, 0x78AB00, 0x0, 0x0, 0x0, 0x78B4E0, 0x78B510, 0x78B5F0, 0x78B710, 0x78B860, 0x0, 0x78BF20, 0x78C100, 0x78C240, 0x0, 0x0, 0x78D600, 0x78D670, 0x78D690, 0x78D6B0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
 
 	// --- module globals ---
+	static const uint32_t SOUND_A = 0x156C7F4, SOUND_B = 0x156C7F8;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct TheEndParams
+	{
+		struct { uint32_t a, b; } sounds;        // the sounds at cut 1 and cut 3
+		struct { int16_t damage; } director;     // the damage cue (and the battle UI back) from this frame of its last cut
+		struct { uint32_t at_156c7fc, at_156c8bc, at_156c85c; } models; // the prim models drawn (meshes)
+	};
+	static const TheEndParams GAME = { { SOUND_A, SOUND_B }, { 0xA }, { 0x156C7FC, 0x156C8BC, 0x156C85C } };
+	static TheEndParams live = GAME;
+	static const TheEndParams &PT() { return live; }
+
 	static const uint32_t DIR_PTR = 0x156C7F0;        // pointer to the director block 0x25C1C60 (cut +0x40/+0x42/+0x44, frame +0x46)
 	static const uint32_t PHASE_DATA = DIR_PTR;       // (the library's name of the director pointer)
 	static const uint32_t SPRITE_CURSOR = 0x25BC394;  // module sprite packet cursor (tick parity: file + 0x8000 / + 0)
@@ -432,7 +454,7 @@ namespace theend
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -605,14 +627,15 @@ namespace theend
 	uint32_t __cdecl te_784630(uint32_t a1)
 	{
 		g_mod = &MOD_085;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag085_the_end_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25C21CC) = 0x2793E58;
-		MEM<uint32_t>(0x25BC4A0) = 0x2793E58;
+		MEM<uint32_t>(R(0x25C21CC)) = 0x2793E58;
+		MEM<uint32_t>(R(0x25BC4A0)) = 0x2793E58;
 		states[0] = 0x7847C0;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x7847D0;
@@ -627,24 +650,24 @@ namespace theend
 		states[10] = 0x78D780;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25C1B5C);
-			const uint32_t v2 = MEM<uint32_t>(0x25C0F54);
-			MEM<uint32_t>(0x25BC394) = v1;
-			MEM<uint32_t>(0x25BC49C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25C1B5C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25C0F54));
+			MEM<uint32_t>(R(0x25BC394)) = v1;
+			MEM<uint32_t>(R(0x25BC49C)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25C1B58);
-			const uint32_t v2 = MEM<uint32_t>(0x25C0F50);
-			MEM<uint32_t>(0x25BC394) = v1;
-			MEM<uint32_t>(0x25BC49C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25C1B58));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25C0F50));
+			MEM<uint32_t>(R(0x25BC394)) = v1;
+			MEM<uint32_t>(R(0x25BC49C)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x25C21B0) = 0;
-		MEM<uint16_t>(0x25C1CB4) = 0;
-		static const uint32_t queues[8] = { 0x25C19E8, 0x25BC478, 0x25C21B8, 0x25C1748, 0x25BC580, 0x25BC898, 0x25C0F40, 0x25C19D8 };
+		MEM<uint16_t>(R(0x25C21B0)) = 0;
+		MEM<uint16_t>(R(0x25C1CB4)) = 0;
+		const uint32_t queues[8] = { R(0x25C19E8), R(0x25BC478), R(0x25C21B8), R(0x25C1748), R(0x25BC580), R(0x25BC898), R(0x25C0F40), R(0x25C19D8) };
 		for (int i = 0; i < 8; i++)
 		{
 			// 30 fps layer: see mag085_the_end_held.inc
@@ -665,12 +688,12 @@ namespace theend
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x25C21D8);
-		MEM<uint32_t>(0x25C1CB8) = p;
+		uint32_t p = MEM<uint32_t>(R(0x25C21D8));
+		MEM<uint32_t>(R(0x25C1CB8)) = p;
 		p += 0x798;
-		MEM<uint32_t>(0x25C21D0) = p;
+		MEM<uint32_t>(R(0x25C21D0)) = p;
 		p += 0x9D80;
-		MEM<uint32_t>(0x25C21D8) = p;
+		MEM<uint32_t>(R(0x25C21D8)) = p;
 		te_784820();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -680,12 +703,12 @@ namespace theend
 	// 0x25C1CC4 / 0x25C1C54 / 0x25BC398
 	uint32_t __cdecl te_784820()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25C1CB8), 0x798);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25C21D0), 0x9D80);
-		MEM<uint16_t>(0x25BC890) = 0;
-		MEM<uint16_t>(0x25C1CC4) = 0;
-		MEM<uint16_t>(0x25C1C54) = 0;
-		MEM<uint16_t>(0x25BC398) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25C1CB8)), 0x798);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25C21D0)), 0x9D80);
+		MEM<uint16_t>(R(0x25BC890)) = 0;
+		MEM<uint16_t>(R(0x25C1CC4)) = 0;
+		MEM<uint16_t>(R(0x25C1C54)) = 0;
+		MEM<uint16_t>(R(0x25BC398)) = 0;
 		return 0;
 	}
 
@@ -696,8 +719,8 @@ namespace theend
 	{
 		te_784DC0(a1);
 		te_784960();
-		x::Effect_AddTaskAndInitFromCtx(0x25C21B8, 0x784A60, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25BC478, 0x784E30, 0x48, a1);
+		Spawn(R(0x25C21B8), 0x784A60, 0x30, a1);
+		Spawn(R(0x25BC478), 0x784E30, 0x48, a1);
 		t1_next_state(a1);
 		return 0; // void
 	}
@@ -707,14 +730,14 @@ namespace theend
 	// destinations (0x19CF018, +0x114 0x19EB018, +0x12C 0x19D2560), +0x164 / +0x166 loading / script-done words cleared
 	uint32_t __cdecl te_784960()
 	{
-		MEM<uint32_t>(0x25C1B60) = 0x1571E70;
-		MEM<uint32_t>(0x25C1C58) = 0x25C21E0;
-		x::MAG_007_sub_8DCC00(0x25C21E0, 0x16C);
-		const uint32_t b = MEM<uint32_t>(0x25C1C58);
-		uint32_t c = MEM<uint32_t>(0x25C21D8);
+		MEM<uint32_t>(R(0x25C1B60)) = 0x1571E70;
+		MEM<uint32_t>(R(0x25C1C58)) = R(0x25C21E0);
+		x::MAG_007_sub_8DCC00(R(0x25C21E0), 0x16C);
+		const uint32_t b = MEM<uint32_t>(R(0x25C1C58));
+		uint32_t c = MEM<uint32_t>(R(0x25C21D8));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(0x25C21D8) = c;
+		MEM<uint32_t>(R(0x25C21D8)) = c;
 		U32(b, 0x114) = 0x19EB018;
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
 			if (o != 0x114 && o != 0x12C) U32(b, o) = 0x19CF018;
@@ -729,8 +752,8 @@ namespace theend
 	uint32_t __cdecl te_784DC0(uint32_t a1)
 	{
 		(void)a1;
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x156C7F0), 0x54);
-		const uint32_t d = MEM<uint32_t>(0x156C7F0);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 8) = 0;
 		U16(d, 0xA) = 0;
 		U16(d, 0xC) = 0;
@@ -740,7 +763,7 @@ namespace theend
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const int16_t dz = (int16_t)(U16(d, 0xC) - 0x1000);
 		const uint32_t a = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(0x156C7F0), 0x4A) = (uint16_t)((a - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)((a - 0x800) & 0xFFF);
 		return 0; // void
 	}
 
@@ -822,7 +845,7 @@ namespace theend
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x156C7F4, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PT().sounds.a, SOUND_A), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -831,13 +854,13 @@ namespace theend
 	// 0x7850C0 (0) and next state; else from frame 0x4A the hook (1)
 	uint32_t __cdecl te_785080(uint32_t a1)
 	{
-		if (U16(MEM<uint32_t>(0x25C1C58), 0x166) == 0)
+		if (U16(MEM<uint32_t>(R(0x25C1C58)), 0x166) == 0)
 		{
 			a_73BB60(0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0; // void
 		}
-		if (S16(MEM<uint32_t>(0x156C7F0), 0x46) >= 0x4A)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= 0x4A)
 			a_73BB60(1);
 		return 0; // void
 	}
@@ -861,10 +884,10 @@ namespace theend
 	// 0x1571FE8) in the queue 0x25C19D8, next state
 	uint32_t __cdecl te_785170(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x156C7F0), 0x46) < 0xE)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) < 0xE)
 			return 0; // void
 		U16(a1, 0x44) = 6;
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25C19D8, 0x8DDC30, 0x40, a1);
+		const uint32_t t = Spawn(R(0x25C19D8), 0x8DDC30, 0x40, a1);
 		U32(t, 0x34) = 0x1571FE8;
 		U16(t, 0x38) = 0;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -876,7 +899,7 @@ namespace theend
 	{
 		if (a_73B7E0(3) != 0)
 		{
-			x::BdPlaySE(0x156C7F8, 0, 0x80);
+			x::BdPlaySE(fxp::sound(PT().sounds.b, SOUND_B), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -885,7 +908,7 @@ namespace theend
 	// 0x785230 (sub_785230): director state 11 - next state from frame 0x3C
 	uint32_t __cdecl te_785230(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x156C7F0), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -902,7 +925,7 @@ namespace theend
 	// 0x82B400 (sub_82B400): director state - next state from phase tick 0x36
 	uint32_t __cdecl te_785290(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(PHASE_DATA), 0x46) >= 0x2D)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= 0x2D)
 			next_state(a1);
 		return 0; // void
 	}
@@ -920,7 +943,7 @@ namespace theend
 	// 0x82B400 (sub_82B400): director state - next state from phase tick 0x36
 	uint32_t __cdecl te_7852F0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(PHASE_DATA), 0x46) >= 0x2D)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= 0x2D)
 			next_state(a1);
 		return 0; // void
 	}
@@ -950,8 +973,8 @@ namespace theend
 	// 0x785350 (sub_785350): director state 20 - from frame 0xA: director +0x48 = 1, battle UI on (0x4A8480(1)), next state
 	uint32_t __cdecl te_785350(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x156C7F0);
-		if (S16(d, 0x46) < 0xA)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) < PT().director.damage)
 			return 0; // void
 		U16(d, 0x48) = 1;
 		gx::sub_4A8480(1);
@@ -966,18 +989,18 @@ namespace theend
 	// letterbox 0x78D250
 	uint32_t __cdecl te_7853C0(uint32_t a1)
 	{
-		const int32_t cut = S16(MEM<uint32_t>(0x156C7F0), 0x40);
+		const int32_t cut = S16(MEM<uint32_t>(G(G_1533010)), 0x40);
 		switch (cut - 1)
 		{
 		case 0:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x787E20, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x7882E0, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x78D410, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x787FD0, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x788420, 0xE4, a1);
+			Spawn(R(0x25BC580), 0x787E20, 0x60, a1);
+			Spawn(R(0x25BC580), 0x7882E0, 0x60, a1);
+			Spawn(R(0x25BC580), 0x78D410, 0x60, a1);
+			Spawn(R(0x25BC580), 0x787FD0, 0x60, a1);
+			Spawn(R(0x25BC898), 0x788420, 0xE4, a1);
 			break;
 		case 1:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x78C4C0, 0xE4, a1);
+			Spawn(R(0x25BC898), 0x78C4C0, 0xE4, a1);
 			break;
 		case 2:
 		{
@@ -989,10 +1012,10 @@ namespace theend
 			break;
 		}
 		case 3:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x78CE80, 0xE4, a1);
+			Spawn(R(0x25BC898), 0x78CE80, 0xE4, a1);
 			break;
 		case 4:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x78D250, 0x60, a1);
+			Spawn(R(0x25BC580), 0x78D250, 0x60, a1);
 			break;
 		default:
 			break;
@@ -1004,7 +1027,7 @@ namespace theend
 	// size (sign-extended word), +0x80 / +0x82 = the two words; returns the node
 	uint32_t __cdecl te_785510(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25C0F40, a2, 0x2DC, a1);
+		const uint32_t t = Spawn(R(0x25C0F40), a2, 0x2DC, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -1037,12 +1060,12 @@ namespace theend
 	// 0x5088A0, OT + 0x44, mode 4) into the module sprite arena (cursor 0x25BC394)
 	uint32_t __cdecl te_785620()
 	{
-		uint32_t cur = MEM<uint32_t>(0x25BC394);
+		uint32_t cur = MEM<uint32_t>(R(0x25BC394));
 		for (uint32_t e = 0x1D97494; e < 0x1D97704; e += 0x9C)
 		{
 			if (!(U8(e, 0) & 2)) continue;
 			cur = x::sub_5088A0(e, MEM<uint32_t>(0x1D8E04C) + 0x44, 4, cur);
-			MEM<uint32_t>(0x25BC394) = cur;
+			MEM<uint32_t>(R(0x25BC394)) = cur;
 		}
 		return cur;
 	}
@@ -1083,12 +1106,12 @@ namespace theend
 				U32(h, 4) = U32(blk, 0x48);
 			}
 		}
-		const uint32_t R = s + 0x28;   // matrix (rotation +0, translation +0x14)
+		const uint32_t RM = s + 0x28;   // matrix (rotation +0, translation +0x14)
 		memset(sp + 0x28, 0, 0x20);    // (pad +0x12 never written in the original: GTE R33 word only)
 		uint32_t flags = U32(r, 4);
-		if (flags & 0x400) x::MAG_117_sub_701430(r + 0x10, R);
-		else if (flags & 0x40000) gx::MAG_063_sub_7015B0(r + 0x10, R);
-		else x::MAG_017_sub_701310(r + 0x10, R);
+		if (flags & 0x400) x::MAG_117_sub_701430(r + 0x10, RM);
+		else if (flags & 0x40000) gx::MAG_063_sub_7015B0(r + 0x10, RM);
+		else x::MAG_017_sub_701310(r + 0x10, RM);
 		flags = U32(r, 4);
 		U16(s, 0) = U16(r, 8);
 		U16(s, 2) = U16(r, 0xA);
@@ -1105,15 +1128,15 @@ namespace theend
 			x::GTE_SetRotMatrix(blk);
 			x::GTE_LoadV0(s);
 			x::GTE_MVMVA_RotV0();
-			x::GTE_ReadMAC123(R + 0x14);
-			x::GTE_MatrixMultiply(blk, R);
-			tx = S32(R, 0x14);
-			ty = S32(R, 0x18);
-			tz = S32(R, 0x1C);
+			x::GTE_ReadMAC123(RM + 0x14);
+			x::GTE_MatrixMultiply(blk, RM);
+			tx = S32(RM, 0x14);
+			ty = S32(RM, 0x18);
+			tz = S32(RM, 0x1C);
 		}
-		S32(R, 0x14) = add32(tx, S32(blk, 0x14));
-		S32(R, 0x18) = add32(ty, S32(blk, 0x18));
-		S32(R, 0x1C) = add32(tz, S32(blk, 0x1C));
+		S32(RM, 0x14) = add32(tx, S32(blk, 0x14));
+		S32(RM, 0x18) = add32(ty, S32(blk, 0x18));
+		S32(RM, 0x1C) = add32(tz, S32(blk, 0x1C));
 		if (!(U32(r, 0x18) == 0x10001000 && S16(r, 0x1C) == 0x1000))
 		{
 			if (U32(r, 4) & 0x100)
@@ -1128,18 +1151,18 @@ namespace theend
 				U16(D, 0xC) = 0;
 				U16(D, 6) = 0;
 				U16(D, 0x10) = U16(r, 0x1C);
-				x::sub_56C220(R, D);
+				x::sub_56C220(RM, D);
 			}
 			else
 			{
 				S32(s, 8) = S16(r, 0x18);
 				S32(s, 0xC) = S16(r, 0x1A);
 				S32(s, 0x10) = S16(r, 0x1C);
-				x::scale3DMatrix(R, s + 8);
+				x::scale3DMatrix(RM, s + 8);
 			}
 		}
-		x::GTE_SetRotMatrix_W(R);
-		x::GTE_SetTransVector_W(R);
+		x::GTE_SetRotMatrix_W(RM);
+		x::GTE_SetTransVector_W(RM);
 		const uint32_t fl = U32(r, 4);
 		U32(h, 0x14) = (fl & 0x4000) ? 0x2000u : 0x2030u;
 		if (fl & 0x2000) U32(h, 0x14) |= 0xC;
@@ -2146,7 +2169,7 @@ namespace theend
 	// bit 1: saves the flag word to director +0x20[i] and sets flag bit 2
 	uint32_t __cdecl te_7880A0(void)
 	{
-		uint32_t save = MEM<uint32_t>(0x156C7F0) + 0x20;
+		uint32_t save = MEM<uint32_t>(G(G_1533010)) + 0x20;
 		for (uint32_t e = 0x1D972C0; e < 0x1D97494; e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
@@ -2192,7 +2215,7 @@ namespace theend
 	// the words saved by 0x7B5750
 	uint32_t __cdecl te_788250(void)
 	{
-		uint32_t save = MEM<uint32_t>(0x156C7F0) + 0x20;
+		uint32_t save = MEM<uint32_t>(G(G_1533010)) + 0x20;
 		for (uint32_t e = 0x1D972C0; e < 0x1D97494; e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
@@ -2299,7 +2322,7 @@ namespace theend
 			}
 			kind = 0x7F;
 		}
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x788580, 0xE4, a1);
+		const uint32_t t = Spawn(R(0x25BC898), 0x788580, 0xE4, a1);
 		U16(a1, 0xDC) = (uint16_t)(U16(a1, 0xDC) + 1);
 		U16(t, 0xDE) = kind;
 		return 0; // void
@@ -2401,7 +2424,7 @@ namespace theend
 	uint32_t __cdecl te_788810(uint32_t a1)
 	{
 		const int32_t kind = S16(a1, 0xDE);
-		U32(a1, 0x4C) = 0x156C7FC;
+		U32(a1, 0x4C) = fxp::model(PT().models.at_156c7fc, 0x156C7FC);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -2549,7 +2572,7 @@ namespace theend
 	// the harness)
 	uint32_t __cdecl te_788DD0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25C21DC);
+		const uint32_t arena = MEM<uint32_t>(R(0x25C21DC));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -2569,7 +2592,7 @@ namespace theend
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl te_789050(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25C21DC);
+		const uint32_t arena = MEM<uint32_t>(R(0x25C21DC));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -2599,7 +2622,7 @@ namespace theend
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x25C21DC, 0) = sys;
+		U32(R(0x25C21DC), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2613,7 +2636,7 @@ namespace theend
 			FX_HELD(held_note_system(sys);)
 			te_789950();
 			te_789790();
-			sys = U32(0x25C21DC, 0);
+			sys = U32(R(0x25C21DC), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2626,8 +2649,8 @@ namespace theend
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x25C21B0, 0) = (uint16_t)(U16(0x25C21B0, 0) + c14);
-		U16(0x25C1CB4, 0) = (uint16_t)(U16(0x25C1CB4, 0) + c16);
+		U16(R(0x25C21B0), 0) = (uint16_t)(U16(R(0x25C21B0), 0) + c14);
+		U16(R(0x25C1CB4), 0) = (uint16_t)(U16(R(0x25C1CB4), 0) + c16);
 		return done;
 	}
 
@@ -2636,12 +2659,12 @@ namespace theend
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl te_789790(void)
 	{
-		uint32_t act = U32(U32(0x25C21DC, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x25C21DC), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x25C21DC, 0);
+				uint32_t sys = U32(R(0x25C21DC), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -2658,10 +2681,10 @@ namespace theend
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x8C5DD0 into the frame arena 0x1D8E054
 	uint32_t __cdecl te_7897F0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -2704,8 +2727,8 @@ namespace theend
 				MEM<uint32_t>(0x1D8E054) = te_785A90(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -2715,14 +2738,14 @@ namespace theend
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl te_789950(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x25C21DC), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x25C21DC)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x25C21DC);
+				uint32_t st = MEM<uint32_t>(R(0x25C21DC));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -2759,20 +2782,20 @@ namespace theend
 	uint32_t __cdecl te_789A10(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -2780,7 +2803,7 @@ namespace theend
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl te_789A90(void)
 	{
-		uint32_t act = U32(U32(0x25C21DC, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x25C21DC), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2801,7 +2824,7 @@ namespace theend
 	uint32_t __cdecl te_789AD0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x25C21DC);
+		uint32_t st = MEM<uint32_t>(R(0x25C21DC));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -2822,7 +2845,7 @@ namespace theend
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x25C21DC);
+			st = MEM<uint32_t>(R(0x25C21DC));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2840,7 +2863,7 @@ namespace theend
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x25C21DC, 0);                  // actor state block
+		uint32_t st = U32(R(0x25C21DC), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -2938,8 +2961,8 @@ namespace theend
 	// [0x25C21DC] + 0x14 + 1, 0x78BEF0 (slot, 0); the index moves past it; returns the slot (0: none)
 	uint32_t __cdecl te_78ACC0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25C1CB8);
-		int32_t i = MEM<int16_t>(0x25BC890);
+		const uint32_t pool = MEM<uint32_t>(R(0x25C1CB8));
+		int32_t i = MEM<int16_t>(R(0x25BC890));
 		uint32_t slot = 0;
 		for (int32_t k = 0; k < 0x12; k++)
 		{
@@ -2950,7 +2973,7 @@ namespace theend
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
 				U8(slot, 0x69) = 1;
-				U16(MEM<uint32_t>(0x25C21DC), 0x14) = (uint16_t)(U16(MEM<uint32_t>(0x25C21DC), 0x14) + 1);
+				U16(MEM<uint32_t>(R(0x25C21DC)), 0x14) = (uint16_t)(U16(MEM<uint32_t>(R(0x25C21DC)), 0x14) + 1);
 				U32(slot, 0x5C) = a1;
 				U8(slot, 0x6B) = (uint8_t)a3;
 				a_742CA0(slot, 0);
@@ -2960,8 +2983,8 @@ namespace theend
 			if (i >= 0x11) i = 0;
 		}
 		i++;
-		if (i >= 0x11) MEM<uint16_t>(0x25BC890) = 0;
-		else MEM<uint16_t>(0x25BC890) = (uint16_t)i;
+		if (i >= 0x11) MEM<uint16_t>(R(0x25BC890)) = 0;
+		else MEM<uint16_t>(R(0x25BC890)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2991,7 +3014,7 @@ namespace theend
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl te_78ADE0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x25C21DC, 0);
+		uint32_t sys = U32(R(0x25C21DC), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -3026,9 +3049,9 @@ namespace theend
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x25C21CC, 0) - 0x50;
+		uint32_t sp = U32(R(0x25C21CC), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x25C21CC, 0) = sp;
+		U32(R(0x25C21CC), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = te_78B640(a1, (uint16_t)kind);
@@ -3040,7 +3063,7 @@ namespace theend
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x25C21DC, 0);
+			uint32_t ctx = U32(R(0x25C21DC), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -3219,7 +3242,7 @@ namespace theend
 			}
 		}
 		te_78C350(node, desc);
-		U32(0x25C21CC, 0) = U32(0x25C21CC, 0) + 0x50;
+		U32(R(0x25C21CC), 0) = U32(R(0x25C21CC), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -3227,8 +3250,8 @@ namespace theend
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x3C records
 	uint32_t __cdecl te_78B640(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25C21D0);
-		int32_t i = MEM<int16_t>(0x25C1CC4);
+		const uint32_t pool = MEM<uint32_t>(R(0x25C21D0));
+		int32_t i = MEM<int16_t>(R(0x25C1CC4));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -3241,7 +3264,7 @@ namespace theend
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -3258,9 +3281,9 @@ namespace theend
 		}
 		i++;
 		if (i >= 0x3B)
-			MEM<uint16_t>(0x25C1CC4) = 0;
+			MEM<uint16_t>(R(0x25C1CC4)) = 0;
 		else
-			MEM<uint16_t>(0x25C1CC4) = (uint16_t)i;
+			MEM<uint16_t>(R(0x25C1CC4)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -3274,7 +3297,7 @@ namespace theend
 	uint32_t __cdecl te_78B860(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x25C21DC, 0);            // ecx
+		const uint32_t st = U32(R(0x25C21DC), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -3338,7 +3361,7 @@ namespace theend
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x25C21DC, 0);
+				uint32_t g = U32(R(0x25C21DC), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -3348,7 +3371,7 @@ namespace theend
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x25C21DC, 0);
+				uint32_t g = U32(R(0x25C21DC), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3436,7 +3459,7 @@ namespace theend
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl te_78C3E0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x25C21DC);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x25C21DC));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3461,14 +3484,14 @@ namespace theend
 				do
 				{
 					te_78ACC0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x25C21DC);
+					dir = MEM<uint32_t>(R(0x25C21DC));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				te_78ACC0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x25C21DC);
+				dir = MEM<uint32_t>(R(0x25C21DC));
 			}
 		}
 		return 0; // void
@@ -3680,7 +3703,7 @@ namespace theend
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
-		U32(a1, 0x4C) = 0x156C8BC;
+		U32(a1, 0x4C) = fxp::model(PT().models.at_156c8bc, 0x156C8BC);
 		U16(a1, 0xE0) = 0x80;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -3712,7 +3735,7 @@ namespace theend
 	// 0x400..0x13FF, swing +0xB8 + 8 k; count +0xDE; cut 6 current: finished
 	uint32_t __cdecl te_78CED0(uint32_t a1)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x78CFA0, 0xE4, a1);
+		const uint32_t t = Spawn(R(0x25BC898), 0x78CFA0, 0xE4, a1);
 		uint32_t st = t + 0xD4, p = t + 0x56;
 		for (int k = 0; k < 4; k++, st += 2, p += 8)
 		{
@@ -3800,7 +3823,7 @@ namespace theend
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = 0x156C85C;
+		U32(a1, 0x4C) = fxp::model(PT().models.at_156c85c, 0x156C85C);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -4022,6 +4045,25 @@ namespace theend
 	}
 
 	// ---- generated (desc85.py / cls85.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The load script (its battle files, the summon stream) and the director's six cuts: the stage fade, wobble and darkening, the music fade, the meteors, the ground, the prim plays and the shadows, the petals, the glow and the black bars; the sounds, the screen tint; the damage cue" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At cut 1 and cut 3" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.a", "Sound A", "", (uint32_t)offsetof(TheEndParams, sounds.a), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.b", "Sound B", "", (uint32_t)offsetof(TheEndParams, sounds.b), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage frame", "The damage cue and the battle UI back from this frame of its last cut", (uint32_t)offsetof(TheEndParams, director.damage), fxp::I16, 0, 0x200 },
+			{ "director", "models.at_156c7fc", "Model 156C7FC", "The prim model at 0x156C7FC (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TheEndParams, models.at_156c7fc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_156c8bc", "Model 156C8BC", "The prim model at 0x156C8BC (a mesh of 441 vertices, 400 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TheEndParams, models.at_156c8bc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_156c85c", "Model 156C85C", "The prim model at 0x156C85C (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(TheEndParams, models.at_156c85c), fxp::Model, 0, 0x7FFFFFFF },
+		};
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x7847C0, (void *)a_73A0D0, "085 MAG_085_sub_7847C0" },
@@ -4234,6 +4276,11 @@ namespace theend
 
 	void register_mag085_the_end()
 	{
+		fxp::register_params({ 85, "The End", &act::theend::live, &act::theend::GAME, sizeof(act::theend::TheEndParams),
+		                       act::theend::table::PARTS, (int)(sizeof(act::theend::table::PARTS) / sizeof(act::theend::table::PARTS[0])),
+		                       act::theend::table::FIELDS, (int)(sizeof(act::theend::table::FIELDS) / sizeof(act::theend::table::FIELDS[0])),
+		                       act::theend::table::GROUPS, (int)(sizeof(act::theend::table::GROUPS) / sizeof(act::theend::table::GROUPS[0])) });
+		act::register_mod(&act::theend::MOD_085);
 		act::register_module(85);
 		for (const act::theend::ModPort *p = act::theend::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(85, p->addr, p->port, p->name);
@@ -4242,6 +4289,7 @@ namespace theend
 		// 30 fps layer: see mag085_the_end_held.inc
 		FX_HELD(register_mag085_held();)
 	}
+	FX_LAB_MODULE(register_mag085_the_end);
 }
 
 #ifdef FF8_FX_HELD

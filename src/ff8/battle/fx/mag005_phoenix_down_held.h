@@ -21,13 +21,19 @@
 
 namespace ff8fx
 {
-namespace act
-{
-namespace phoenixdown
+namespace phoenixdown005
 {
 	static void held_note_master(uint32_t node);
 	static void held_note_sprite(uint32_t task, uint32_t node);
 }
+namespace revive
+{
+	template<>
+	struct Held<phoenixdown005::LAYOUT>
+	{
+		static void note_master(uint32_t node) { phoenixdown005::held_note_master(node); }
+		static void note_sprite(uint32_t task, uint32_t node) { phoenixdown005::held_note_sprite(task, node); }
+	};
 }
 	static void register_mag005_held();
 }

@@ -140,7 +140,7 @@ namespace norgpod
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -180,11 +180,11 @@ namespace norgpod
 		alignas(4) static uint8_t nxt[LID_BYTES];
 		const uint32_t node = n.node, x1 = P(nxt);
 		// (a lid finishing on the real tick is released: not drawn at fraction 1)
-		if (num >= den && ((U8(P(n.bytes), 0x26) & 1) != 0 || !live(node, ORIG_Lid))) return;
+		if (num >= den && ((U8(P(n.bytes), 0x26) & 1) != 0 || !node_live(node, ORIG_Lid))) return;
 		// the node as drawn (in place: the module globals are put back after the held frame)
 		memcpy((void *)node, n.bytes, LID_BYTES);
 		// in flight and not on its last tick: the next tick's flight step on the node as the real tick left it
-		if (S8(P(n.bytes), 0x29) == 2 && (U8(P(n.bytes), 0x26) & 1) == 0 && live(node, ORIG_Lid))
+		if (S8(P(n.bytes), 0x29) == 2 && (U8(P(n.bytes), 0x26) & 1) == 0 && node_live(node, ORIG_Lid))
 		{
 			memcpy(nxt, n.bytes, LID_BYTES);
 			LidFlight(x1);
@@ -204,7 +204,7 @@ namespace norgpod
 		alignas(4) static uint8_t nxt[DEBRIS_BYTES];
 		const uint32_t node = n.node, x1 = P(nxt);
 		// (a node finishing on the real tick is released: it holds its last draw, not drawn at fraction 1)
-		const bool next = (U8(P(n.bytes), 0x26) & 1) == 0 && live(node, ORIG_Debris);
+		const bool next = (U8(P(n.bytes), 0x26) & 1) == 0 && node_live(node, ORIG_Debris);
 		if (!next && num >= den) return;
 		if (next && num >= den)
 		{
@@ -228,7 +228,7 @@ namespace norgpod
 		alignas(4) static uint8_t nxt[CHUNK_BYTES];
 		const uint32_t node = n.node, x1 = P(nxt);
 		// (a chunk finishing on the real tick is released: it holds its last draw, not drawn at fraction 1)
-		const bool next = (U8(P(n.bytes), 0x26) & 1) == 0 && live(node, ORIG_Chunk);
+		const bool next = (U8(P(n.bytes), 0x26) & 1) == 0 && node_live(node, ORIG_Chunk);
 		if (!next && num >= den) return;
 		if (next)
 		{

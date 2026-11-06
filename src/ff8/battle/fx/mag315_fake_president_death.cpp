@@ -70,6 +70,9 @@
 // 0x223B658, voice slot 0x223B65C).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -86,13 +89,15 @@ namespace fp315
 	static inline uint8_t &U8(uint32_t p, int32_t o) { return F<uint8_t>(p, o); }
 
 	// --- module globals ---
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x2239558; }     // pool 0x2239538, 2 x 0x10
-	inline TaskQueue *FxQueue() { return (TaskQueue *)0x223A828; }       // pool 0x223A838, 0x64 x 0x24
-	inline CastContext *&Ctx() { return var<CastContext *>(0x223B648); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x223B64C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x223B654); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x223B658); }
-	inline uint32_t &Voice() { return var<uint32_t>(0x223B65C); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x2239558); }     // pool 0x2239538, 2 x 0x10
+	inline TaskQueue *FxQueue() { return (TaskQueue *)own::R(0x223A828); }       // pool 0x223A838, 0x64 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x223B648)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x223B64C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x223B654)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x223B658)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x223B650)); }          // the effect's file (its TIM)
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x2239530)); }         // the first target (setup)
+	inline uint32_t &Voice() { return var<uint32_t>(own::R(0x223B65C)); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t &VertexBuffer() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t OT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
@@ -125,6 +130,24 @@ namespace fp315
 	static const void *const SOUND_Voice = (const void *)0xCD57A0;
 	static const void *const SOUND_Start = (const void *)0xCD58BC;
 	static const void *const SOUND_Hit = (const void *)0xCD58C0;
+	static const uint32_t ORIG_FileLoader = 0x598D90, ORIG_Setup = 0x598DB0;
+	static const uint32_t TEXTURE_NAME = 0xCD59A0, CAMERA_ANIM = 0xCD2B08;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FakePresidentDeathParams
+	{
+		uint32_t voice;                       // the voice slot claimed at the master's tick 0
+		struct { uint32_t start, hit; } sounds; // at the master's ticks 1 and 0x70 (with the damage)
+		struct { uint32_t drop, bubble, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t splash, puddle, column, ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t drop_offsets; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const FakePresidentDeathParams GAME = { 0xCD57A0, { 0xCD58BC, 0xCD58C0 }, { SEQ_Drop, SEQ_Bubble, SEQ_Spark }, { MODEL_Splash, MODEL_Puddle, MODEL_Column, MODEL_Ring }, { TEXTURE_NAME, CAMERA_ANIM }, { 0xCD58C8 } };
+	static FakePresidentDeathParams live = GAME;
+	static const FakePresidentDeathParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint32_t entity, int32_t bone, int32_t flag, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(0x502170)(entity, bone, flag, out); }
@@ -169,13 +192,13 @@ namespace fp315
 	// first free pool entry (owner dword 0), or 0 when the pool is full
 	static uint32_t PoolFree()
 	{
-		uint32_t e = POOL;
+		uint32_t e = own::R(POOL);
 		int32_t i = 0;
 		while (S32(e, 0) != 0)
 		{
 			e += 0x18;
 			i++;
-			if (e >= POOL_END) return 0;
+			if (e >= own::R(POOL_END)) return 0;
 		}
 		return i < 200 ? e : 0;
 	}
@@ -270,8 +293,8 @@ namespace fp315
 	static void DropSpawn(uint32_t n, uint32_t w)
 	{
 		const int32_t bone = S16(n, 0x18);
-		U32(w, 0) = U32(DROP_OFFSETS + (uint32_t)(bone * 8), 0);
-		U32(w, 4) = U32(DROP_OFFSETS + (uint32_t)(bone * 8), 4);
+		U32(w, 0) = U32(fxp::data(P().tables.drop_offsets, DROP_OFFSETS, 24) + (uint32_t)(bone * 8), 0);
+		U32(w, 4) = U32(fxp::data(P().tables.drop_offsets, DROP_OFFSETS, 24) + (uint32_t)(bone * 8), 4);
 		MatrixMulVector(Ent(CasterSlot()) + 0x40, w, w);
 		S16(w, 2) = (int16_t)(S16(w, 2) + S16(n, 0x12));
 		S16(w, 0) = (int16_t)(S16(w, 0) + S16(n, 0x10));
@@ -298,6 +321,31 @@ namespace fp315
 		}
 	}
 
+	// File loader (0x598D90) and setup (0x598DB0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic texture offset, the cast, its first target's and its caster's slots, the root and the master,
+	// the particle pool cleared, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x2239538), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(FxQueue(), (void *)own::R(0x223A838), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Master)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return RootQueue();
+	}
+
 	static uint32_t __cdecl DropsTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
@@ -312,7 +360,7 @@ namespace fp315
 		if (!DrawOnly() && S16(n, 0xC) <= 0x14) DropSpawn(n, w);
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
-		U32(h, 0) = SEQ_Drop;
+		U32(h, 0) = fxp::sequence(P().seqs.drop, SEQ_Drop);
 		S16(h, 0x24) = 0xA;
 		S32(h, 0xC) = 0x1000;
 		S32(h, 0x10) = 0xA00;
@@ -322,7 +370,7 @@ namespace fp315
 		const int32_t mask = S16(n, 0x1A);
 		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_parts(ORIG_Drops, n, w, h, mask);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(S32(e, 0) & mask)) continue;
 			DropDraw(w, h, e);
@@ -387,13 +435,13 @@ namespace fp315
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		S16(h, 0x24) = 0;
 		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
-		U32(h, 0) = SEQ_Bubble;
+		U32(h, 0) = fxp::sequence(P().seqs.bubble, SEQ_Bubble);
 		GteSetLightMatrix(w + 8);
 		GteSetBkFromTranslation(w + 8);
 		int32_t count = 0;
 		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_parts(fn, n, w, h, owner);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & owner)) continue;
 			BubbleDraw(h, e);
@@ -446,7 +494,7 @@ namespace fp315
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		S16(h, 0x24) = 0;
 		memcpy((void *)(w + 0x10), (const void *)&Camera(), 0x20);
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		GteSetLightMatrix(w + 0x10);
 		GteSetBkFromTranslation(w + 0x10);
 		U32(w, 8) = U32(n, 0x10);
@@ -454,7 +502,7 @@ namespace fp315
 		int32_t count = 0;
 		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_parts(ORIG_Sparks, n, w, h, 0x20);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 0x20)) continue;
 			SparkDraw(w, h, e);
@@ -802,7 +850,7 @@ namespace fp315
 	{
 		PrimMatrix(n, S16(n, 0x1C), S16(n, 0x20), S16(n, 0x1C));
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Splash;
+		U32(h, 0) = fxp::model(P().models.splash, MODEL_Splash);
 		U32(h, 8) = 0;
 		ApplyCue(h, cue, 0x1C);
 		PacketCursor() = RenderPrimModel((void *)h, OT44(), 2, PacketCursor());
@@ -836,7 +884,7 @@ namespace fp315
 	{
 		PrimMatrix(n, S16(n, 0x1C), S16(n, 0x20), S16(n, 0x1C));
 		const uint32_t h = (uint32_t)FieldAlloc(0x7C);
-		U32(h, 0) = MODEL_Puddle;
+		U32(h, 0) = fxp::model(P().models.puddle, MODEL_Puddle);
 		U32(h, 8) = 0;
 		U32(h, 0x20) = 0x33;
 		U16(h, 0x18) = 0;
@@ -878,7 +926,7 @@ namespace fp315
 		const uint32_t h = (uint32_t)FieldAlloc(0x60);
 		U32(h, 0x58) = 0xE1000220;
 		U32(h, 0x5C) = 0xE1000220;
-		U32(h, 0) = MODEL_Column;
+		U32(h, 0) = fxp::model(P().models.column, MODEL_Column);
 		U32(h, 8) = 0;
 		ApplyCue(h, cue, 0x1C);
 		PacketCursor() = ColumnRender(h, OT44(), 2, PacketCursor());
@@ -919,7 +967,7 @@ namespace fp315
 	{
 		PrimMatrix(n, S16(n, 0x1C), S16(n, 0x1C), S16(n, 0x1C));
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Ring;
+		U32(h, 0) = fxp::model(P().models.ring, MODEL_Ring);
 		S32(h, 0xC) = fade;
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xF3;
@@ -1002,7 +1050,7 @@ namespace fp315
 	// ------------------------------------------------------------------
 	static uint32_t Spawn(uint32_t task)
 	{
-		const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), task);
+		const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(task));
 		S16(t, 0xC) = 0;
 		return t;
 	}
@@ -1024,7 +1072,7 @@ namespace fp315
 			U8(model, 2) = U8(model, 0);
 			S16(e, 0xB0) = S16(n, 0x10);
 			S16(e, 0xB4) = S16(n, 0x14);
-			Voice() = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			Voice() = ClaimVoiceSlot((const void *)fxp::sound(P().voice, (uint32_t)SOUND_Voice), 1, 0x80);
 		}
 		if (S16(n, 0xC) == 1)
 		{
@@ -1051,21 +1099,21 @@ namespace fp315
 		}
 		if (S16(n, 0xC) == 0x1C)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Bubbles);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Bubbles));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			U32(t, 0x14) = U32(n, 0x14);
 		}
 		if (S16(n, 0xC) == 0x5F)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Bubbles2);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Bubbles2));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			U32(t, 0x14) = U32(n, 0x14);
 		}
 		if (S16(n, 0xC) == 0x20)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Melt);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Melt));
 			const int16_t s = (int16_t)CasterSlot();
 			S16(t, 0xE) = s;
 			S16(t, 0x10) = S16(n, 0x10);
@@ -1078,7 +1126,7 @@ namespace fp315
 		}
 		if (S16(n, 0xC) == 0x52)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Rise);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Rise));
 			S16(t, 0xE) = (int16_t)(CasterSlot() + 1);
 			S16(t, 0x10) = S16(n, 0x10);
 			S16(t, 0xC) = 0;
@@ -1145,7 +1193,7 @@ namespace fp315
 			int32_t r = CrtRand();
 			S16(a, 0x1C) = 0x1A00;
 			S16(a, 0x1A) = (int16_t)(-20 - r % 0x2D);
-			const uint32_t b = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Ring);
+			const uint32_t b = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Ring));
 			U32(b, 0x10) = U32(a, 0x10);
 			S16(b, 0xC) = 0;
 			U32(b, 0x14) = U32(a, 0x14);
@@ -1155,8 +1203,8 @@ namespace fp315
 			S16(b, 0x1A) = (int16_t)(-20 - r % 0x2D);
 		}
 		if (S16(n, 0xC) == 0x70) ApplyActionResultToTarget(Ctx()->actions->targets);
-		if (S16(n, 0xC) == 1) BdPlaySE3D(SOUND_Start, 0, (const int16_t *)(n + 0x10));
-		if (S16(n, 0xC) == 0x70) BdPlaySE3D(SOUND_Hit, 0, (const int16_t *)(n + 0x10));
+		if (S16(n, 0xC) == 1) BdPlaySE3D((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_Start), 0, (const int16_t *)(n + 0x10));
+		if (S16(n, 0xC) == 0x70) BdPlaySE3D((const void *)fxp::sound(P().sounds.hit, (uint32_t)SOUND_Hit), 0, (const int16_t *)(n + 0x10));
 		if (S16(n, 0xC) == 0x9D && VoiceBusy(Voice())) VoiceRelease(Voice());
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		if (S16(n, 0xC) <= 0xA0) return 0;
@@ -1181,7 +1229,7 @@ namespace fp315
 		const int running = ExecuteTaskQueue(FxQueue());
 		if (!running)
 		{
-			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), own::Fn(ORIG_TexRestore));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}
@@ -1197,28 +1245,75 @@ namespace fp315
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return done ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The Fake President melting into a puddle (drops, bubbles, rings, sparks, splashes) and Gerogero rising out of it, the tints, the voice and the sounds; the action result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the master's ticks 1 and 0x70 (with the damage)" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "voice", "Voice", "The voice slot claimed at the master's tick 0", (uint32_t)offsetof(FakePresidentDeathParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.start", "Start", "At the master's tick 1", (uint32_t)offsetof(FakePresidentDeathParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.hit", "Hit", "At the master's tick 0x70 (with the damage)", (uint32_t)offsetof(FakePresidentDeathParams, sounds.hit), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "seqs.drop", "Drop", "The sprite sequence drop (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.drop), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.bubble", "Bubble", "The sprite sequence bubble (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.bubble), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 21 frames: an edited one keeps as many)", (uint32_t)offsetof(FakePresidentDeathParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "models.splash", "Splash model", "The prim model splash (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.splash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.puddle", "Puddle model", "The prim model puddle (a mesh of 121 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.puddle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.column", "Column model", "The prim model column (a mesh of 48 vertices, 33 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.ring", "Ring model", "The prim model ring (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FakePresidentDeathParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FakePresidentDeathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FakePresidentDeathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "master", "tables.drop_offsets", "Drop offsets", "Where each drop starts, by bone (x, y, z) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(FakePresidentDeathParams, tables.drop_offsets), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag315_fake_president_death()
 	{
+		fxp::register_params({ 315, "Fake President death", &fp315::live, &fp315::GAME, sizeof(fp315::FakePresidentDeathParams),
+		                       fp315::table::PARTS, (int)(sizeof(fp315::table::PARTS) / sizeof(fp315::table::PARTS[0])),
+		                       fp315::table::FIELDS, (int)(sizeof(fp315::table::FIELDS) / sizeof(fp315::table::FIELDS[0])),
+		                       fp315::table::GROUPS, (int)(sizeof(fp315::table::GROUPS) / sizeof(fp315::table::GROUPS[0])) });
+		own::note(fp315::ORIG_FileLoader, (void *)fp315::FileLoader);
+		own::note(fp315::ORIG_Setup, (void *)fp315::Setup);
+		own::note(fp315::ORIG_Root, (void *)fp315::RootTask);
 		register_port(fp315::ORIG_Root, (void *)fp315::RootTask, "315 RootTask", 315);
+		own::note(fp315::ORIG_TexRestore, (void *)fp315::TexRestoreTask);
 		register_port(fp315::ORIG_TexRestore, (void *)fp315::TexRestoreTask, "315 TexRestore", 315);
+		own::note(fp315::ORIG_Master, (void *)fp315::MasterTask);
 		register_port(fp315::ORIG_Master, (void *)fp315::MasterTask, "315 Master", 315);
+		own::note(fp315::ORIG_Drops, (void *)fp315::DropsTask);
 		register_port(fp315::ORIG_Drops, (void *)fp315::DropsTask, "315 Drops", 315);
+		own::note(fp315::ORIG_Bubbles, (void *)fp315::BubblesTask);
 		register_port(fp315::ORIG_Bubbles, (void *)fp315::BubblesTask, "315 Bubbles", 315);
+		own::note(fp315::ORIG_Bubbles2, (void *)fp315::Bubbles2Task);
 		register_port(fp315::ORIG_Bubbles2, (void *)fp315::Bubbles2Task, "315 Bubbles2", 315);
+		own::note(fp315::ORIG_Sparks, (void *)fp315::SparksTask);
 		register_port(fp315::ORIG_Sparks, (void *)fp315::SparksTask, "315 Sparks", 315);
+		own::note(fp315::ORIG_Melt, (void *)fp315::MeltTask);
 		register_port(fp315::ORIG_Melt, (void *)fp315::MeltTask, "315 Melt", 315);
+		own::note(fp315::ORIG_Rise, (void *)fp315::RiseTask);
 		register_port(fp315::ORIG_Rise, (void *)fp315::RiseTask, "315 Rise", 315);
+		own::note(fp315::ORIG_Splash, (void *)fp315::SplashTask);
 		register_port(fp315::ORIG_Splash, (void *)fp315::SplashTask, "315 Splash", 315);
+		own::note(fp315::ORIG_Puddle, (void *)fp315::PuddleTask);
 		register_port(fp315::ORIG_Puddle, (void *)fp315::PuddleTask, "315 Puddle", 315);
+		own::note(fp315::ORIG_Column, (void *)fp315::ColumnTask);
 		register_port(fp315::ORIG_Column, (void *)fp315::ColumnTask, "315 Column", 315);
+		own::note(fp315::ORIG_Ring, (void *)fp315::RingTask);
 		register_port(fp315::ORIG_Ring, (void *)fp315::RingTask, "315 Ring", 315);
+		own::note(fp315::ORIG_CasterTint, (void *)fp315::CasterTintTask);
 		register_port(fp315::ORIG_CasterTint, (void *)fp315::CasterTintTask, "315 CasterTint", 315);
+		own::note(fp315::ORIG_NextTint, (void *)fp315::NextTintTask);
 		register_port(fp315::ORIG_NextTint, (void *)fp315::NextTintTask, "315 NextTint", 315);
 		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(register_mag315_held();)
 	}
+	FX_LAB_MODULE(register_mag315_fake_president_death);
 }
 
 #ifdef FF8_FX_HELD

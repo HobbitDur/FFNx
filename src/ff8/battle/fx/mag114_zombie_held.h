@@ -22,8 +22,8 @@ namespace ff8fx
 namespace zombie114
 {
 	static void held_note_root();
-	static void held_note_play(const TargetNode *t, const PrimArg *arg);
-	static void held_note_overlay(const TargetNode *t, const OverlayArg *o, int32_t e, int32_t reach);
+	static void held_note_play(const TargetNode *t, const AnchorArg *arg);
+	static void held_note_overlay(const TargetNode *t, const SwayArg *o, int32_t e, int32_t reach);
 }
 	static void register_mag114_held();
 }

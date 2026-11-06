@@ -107,6 +107,9 @@
 
 #include "mag_common.h"
 #include <intrin.h>
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -116,18 +119,19 @@ namespace lion165
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23C32EC); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23C6870); }
-	inline CastContext *&Context() { return var<CastContext *>(0x23C6860); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23C6944); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23C6948); }
-	inline uint32_t &PacketArena() { return var<uint32_t>(0x23C694C); }
-	inline uint32_t &PoolCBase() { return var<uint32_t>(0x23C5680); }
-	inline int32_t &NextId() { return var<int32_t>(0x23C6940); }
-	inline int32_t &ResultIndex() { return var<int32_t>(0x23C6920); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x23C32EC)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x23C6870)); }
+	inline CastContext *&Context() { return var<CastContext *>(own::R(0x23C6860)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23C6944)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23C6948)); }
+	inline uint32_t &PacketArena() { return var<uint32_t>(own::R(0x23C694C)); }
+	inline uint32_t &PoolCBase() { return var<uint32_t>(own::R(0x23C5680)); }
+	inline int32_t &NextId() { return var<int32_t>(own::R(0x23C6940)); }
+	inline int32_t &ResultIndex() { return var<int32_t>(own::R(0x23C6920)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23C6874)); }          // the effect's file (its TIM)
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23C34B0; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23C5910; }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23C34B0); }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x23C5910); }
 	static const uint32_t POOL_A = 0x23C34C0, POOL_A_END = 0x23C4780;  // 200 x 0x18
 	static const uint32_t POOL_B = 0x23C4780, POOL_B_END = 0x23C5680;  // 120 x 0x20
 	static const uint32_t FINAL_SHARDS_END = 0x23C6080;                 // FinalShards' draw loop: 200 x 0x20
@@ -163,6 +167,23 @@ namespace lion165
 	static const void *const SOUND_A = (const void *)0xD886D4, *const SOUND_B = (const void *)0xD886D8,
 		*const SOUND_C = (const void *)0xD886DC, *const SOUND_D = (const void *)0xD886E0;
 	static const uint32_t REF_BACK = 0xD886E8;   // (0, 0, -0x1000): the models' reference direction
+	static const uint32_t ORIG_FileLoader = 0x5E9450, ORIG_Setup = 0x5E9470;
+	static const uint32_t TEXTURE_NAME = 0xD88A94;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct LionHeartParams
+	{
+		struct { uint32_t a, b, c, d; } sounds; // the director's four sounds, in order
+		struct { uint32_t spark, smoke, hita, hitb; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t groundring, tipflash, tipring, slasha, slashb, flatring, wave, tipflash2, streak, finalring, finalflash, rock, debris, tipshard, shard, tiprock; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t hit_times, hit_offsets, hit_heights, wave_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const LionHeartParams GAME = { { 0xD886D4, 0xD886D8, 0xD886DC, 0xD886E0 }, { 0xD7B1C8, 0xD7B4D4, 0xD7AFE0, 0xD7B340 }, { 0xD879EC, 0xD7F960, 0xD8392C, 0xD823E4, 0xD82B5C, 0xD84BE4, 0xD7B668, 0xD813B0, 0xD81B34, 0xD7D9A0, 0xD83E3C, 0xD83244, 0xD85D74, 0xD818A0, 0xD81620, 0xD80230 }, { TEXTURE_NAME, ANIM_DATA }, { 0xD88718, 0xD88758, 0xD887D0, 0xD88808 } };
+	static LionHeartParams live = GAME;
+	static const LionHeartParams &P() { return live; }
 	static const uint32_t REF_RIGHT = 0xD886F8;  // (0x1000, 0, 0): Streak's
 	static const uint32_t REF_UP = 0xD88708;     // (0, -0x1000, 0): FinalShards'
 	static const uint32_t HIT_TIMES = 0xD88718;  // 15 (+1) counters of the hits
@@ -335,10 +356,10 @@ namespace lion165
 	template<typename T> static inline T &At(uint32_t base, int32_t off) { return *(T *)(base + off); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline uint8_t *Target() { return Entity(TargetSlot()); }
-	inline PoolE *EntryA(int32_t i) { return (PoolE *)(POOL_A + 0x18 * i); }
-	inline PoolE2 *EntryB(int32_t i) { return (PoolE2 *)(POOL_B + 0x20 * i); }
-	inline HitRec *Hit(int32_t i) { return (HitRec *)(HITS + 28 * i); }
-	inline KeepBlock *Keep(int32_t slot) { return (KeepBlock *)(KEEP + 0x28 * slot); }
+	inline PoolE *EntryA(int32_t i) { return (PoolE *)(own::R(POOL_A) + 0x18 * i); }
+	inline PoolE2 *EntryB(int32_t i) { return (PoolE2 *)(own::R(POOL_B) + 0x20 * i); }
+	inline HitRec *Hit(int32_t i) { return (HitRec *)(own::R(HITS) + 28 * i); }
+	inline KeepBlock *Keep(int32_t slot) { return (KeepBlock *)(own::R(KEEP) + 0x28 * slot); }
 
 	// first free entry (id 0) of a pool, or -1 (none / index >= max)
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, uint32_t stride, int32_t max)
@@ -351,13 +372,13 @@ namespace lion165
 		}
 		return i >= max ? -1 : i;
 	}
-	static int32_t FreeA() { return FreeSlot(POOL_A, POOL_A_END, 0x18, 0xC8); }
-	static int32_t FreeB() { return FreeSlot(POOL_B, POOL_B_END, 0x20, 0x78); }
+	static int32_t FreeA() { return FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x18, 0xC8); }
+	static int32_t FreeB() { return FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x20, 0x78); }
 
 	// the entries of a node id freed (a pool task's end)
 	static void ClearIdA(int32_t id)
 	{
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 			if (*(const int32_t *)a == id) *(int32_t *)a = 0;
 	}
 
@@ -432,10 +453,10 @@ namespace lion165
 	static void SetTipPoint()
 	{
 		int32_t dir[4]; // (4th word never written)
-		WeaponBone(Caster(), 1, dir, (int16_t *)TIP);
-		var<int16_t>(TIP) = (int16_t)(var<int16_t>(TIP) + (int16_t)(mul32(dir[0], 380) >> 12));
-		var<int16_t>(TIP + 2) = (int16_t)(var<int16_t>(TIP + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
-		var<int16_t>(TIP + 4) = (int16_t)(var<int16_t>(TIP + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
+		WeaponBone(Caster(), 1, dir, (int16_t *)own::R(TIP));
+		var<int16_t>(own::R(TIP)) = (int16_t)(var<int16_t>(own::R(TIP)) + (int16_t)(mul32(dir[0], 380) >> 12));
+		var<int16_t>(own::R(TIP) + 2) = (int16_t)(var<int16_t>(own::R(TIP) + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
+		var<int16_t>(own::R(TIP) + 4) = (int16_t)(var<int16_t>(own::R(TIP) + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
 	}
 
 	// 0x5E9D00 / 0x5E9DB0: the four stage groups' flag bit 1 set / cleared (= Blasting Zone's 0x5F0950 / 0x5F0970)
@@ -781,8 +802,8 @@ namespace lion165
 			h->w0C = At<uint16_t>(s, 4);
 			h->w0E = At<uint16_t>(s, 6);
 			h->prims = s + 0xC;
-			GteSetRotMatrixCtrl((const Mat4x3 *)var<uint32_t>(CAM_PTR));
-			GteSetTransVectorCtrl((const Mat4x3 *)var<uint32_t>(CAM_PTR));
+			GteSetRotMatrixCtrl((const Mat4x3 *)var<uint32_t>(own::R(CAM_PTR)));
+			GteSetTransVectorCtrl((const Mat4x3 *)var<uint32_t>(own::R(CAM_PTR)));
 			cursor = ClipRenderPrims(h, ot, shift, cursor);
 		}
 		return cursor;
@@ -802,7 +823,7 @@ namespace lion165
 		uint8_t *b = (uint8_t *)h;
 		if (!(*ent & 0x20)) FrameArena() = DrawShadow(ent, OT0() + 0x4064, 0x10, FrameArena());
 		memcpy(b + 0xC8, ent + 0x40, 0x20);
-		var<uint32_t>(CAM_PTR) = 0x1D97778;
+		var<uint32_t>(own::R(CAM_PTR)) = 0x1D97778;
 		ComputeBonesWorldMatrices(ent + 0x60, b + 0xC8);
 		h->verts = var<uint32_t>(0x1D98B3C);
 		h->code = *(const uint32_t *)(ent + 0x28);
@@ -855,19 +876,19 @@ namespace lion165
 	// the trail's derived globals: the first tip, the unit direction tip 1 -> tip 0, the first point, the unit blade direction
 	static void TrailDirections(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(TIP0) = *(const uint32_t *)sb;
-		var<uint32_t>(TIP0 + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)TRAIL_DIR;
+		var<uint32_t>(own::R(TIP0)) = *(const uint32_t *)sb;
+		var<uint32_t>(own::R(TIP0) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)own::R(TRAIL_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE0) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE0 + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BLADE_DIR;
-		b[0] = (int32_t)var<int16_t>(TIP0) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(TIP0 + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(TIP0 + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(own::R(BASE0)) = *(const uint32_t *)sa;
+		var<uint32_t>(own::R(BASE0) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)own::R(BLADE_DIR);
+		b[0] = (int32_t)var<int16_t>(own::R(TIP0)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(own::R(TIP0) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(own::R(TIP0) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -934,21 +955,21 @@ namespace lion165
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 6;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(own::R(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, TrailWant(c), (uint8_t *)PTS_BASE, (uint8_t *)PTS_TIP);
+		const int32_t cnt = TrailGather((const uint8_t *)own::R(RING), idx, TrailWant(c), (uint8_t *)own::R(PTS_BASE), (uint8_t *)own::R(PTS_TIP));
 		if (cnt > 1)
 		{
-			SplineCurve(cnt, (const int16_t *)PTS_BASE, 0x20, (int16_t *)SPL_BASE);
-			SplineCurve(cnt, (const int16_t *)PTS_TIP, 0x20, (int16_t *)SPL_TIP);
-			TrailDirections((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP);
+			SplineCurve(cnt, (const int16_t *)own::R(PTS_BASE), 0x20, (int16_t *)own::R(SPL_BASE));
+			SplineCurve(cnt, (const int16_t *)own::R(PTS_TIP), 0x20, (int16_t *)own::R(SPL_TIP));
+			TrailDirections((const uint8_t *)own::R(SPL_BASE), (const uint8_t *)own::R(SPL_TIP));
 			// 30 fps layer: see mag165_lion_heart_held.inc
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP, w);
+			TrailDraw((const uint8_t *)own::R(SPL_BASE), (const uint8_t *)own::R(SPL_TIP), w);
 			g_trail_slot4 = 0x1E000;
 			g_trail_slot4_known = true;
 		}
@@ -962,7 +983,7 @@ namespace lion165
 	// ------------------------------------------------------------------
 	// Spawners (called by the director)
 	// ------------------------------------------------------------------
-	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
+	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), own::Fn(fn)); }   // (a copy: the port's thunk)
 
 	// 0x5E9CE0: a task with counter / word +0xE cleared
 	static void AddCleared(uint32_t fn)
@@ -987,18 +1008,18 @@ namespace lion165
 	{
 		Node24 *t = AddMain(ORIG_Trail);
 		t->c = 0;
-		for (uint32_t a = RING; a < RING + 6 * 0x14; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(RING); a < own::R(RING) + 6 * 0x14; a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	// 0x5EA850: the ground ring at the caster's effect bone 0xF1 (y 0)
 	static void AddGroundRing()
 	{
-		GetEffectSpawnPosition(Caster(), 0xF1, 0, (void *)BONE_F1);
+		GetEffectSpawnPosition(Caster(), 0xF1, 0, (void *)own::R(BONE_F1));
 		Node24 *t = AddMain(ORIG_GroundRing);
 		t->c = 0;
-		t->w10 = var<int16_t>(BONE_F1);
+		t->w10 = var<int16_t>(own::R(BONE_F1));
 		t->w12 = 0;
-		t->w14 = var<int16_t>(BONE_F1 + 4);
+		t->w14 = var<int16_t>(own::R(BONE_F1) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		t->w1C = 0x1800;
 		t->w22 = 0x100;
@@ -1011,14 +1032,14 @@ namespace lion165
 		Node24 *t = AddMain(ORIG_RockBurst);
 		t->e = TakeId();
 		t->c = 0;
-		t->w10 = var<int16_t>(BONE_F1);
+		t->w10 = var<int16_t>(own::R(BONE_F1));
 		t->w12 = 0;
-		t->w14 = var<int16_t>(BONE_F1 + 4);
+		t->w14 = var<int16_t>(own::R(BONE_F1) + 4);
 		t = AddMain(ORIG_Debris);
 		t->e = TakeId();
-		*(uint32_t *)&t->w10 = var<uint32_t>(BONE_F1);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(BONE_F1));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(BONE_F1 + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(BONE_F1) + 4);
 		t = AddMain(ORIG_BoneSparks);
 		t->e = TakeId();
 		t->c = 0;
@@ -1035,8 +1056,8 @@ namespace lion165
 	// the tip point copied into a new node
 	static void AtTip(Node24 *t)
 	{
-		*(uint32_t *)&t->w10 = var<uint32_t>(TIP);
-		*(uint32_t *)&t->w14 = var<uint32_t>(TIP + 4);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(TIP));
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(TIP) + 4);
 	}
 
 	// 0x5EB6D0
@@ -1226,10 +1247,57 @@ namespace lion165
 	// ------------------------------------------------------------------
 	// Director (0x5E9650)
 	// ------------------------------------------------------------------
+	// File loader (0x5E9450) and setup (0x5E9470, not a task): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer (pool C's base too), the packet arena, the node ids and the hit index, the
+	// cast, its first target and its caster, the root and the director, pools A / B freed, the TIM, the caster's
+	// rotation words kept, his effect bone 0xF1, the targets' centre, the effect frame (the rotation from 0xD886E8 to
+	// the direction bone -> centre, at the bone on the ground) and his yaw: Squall faces the targets
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		PacketArena() = fn<uint32_t (__cdecl *)()>(0x571B70)();
+		PoolCBase() = TexBase();
+		NextId() = 1;
+		ResultIndex() = 0;
+		Context() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23C34A0), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(0x23C5920), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20) *(int32_t *)a = 0;
+		QueueTimUpload(TexFile());
+		uint8_t *e = Caster();
+		var<uint32_t>(own::R(0x23C58B0)) = *(const uint32_t *)(e + 0x10);
+		var<uint32_t>(own::R(0x23C58B4)) = *(const uint32_t *)(e + 0x0C);
+		int16_t *bone = (int16_t *)own::R(0x23C6928), *centre = (int16_t *)own::R(0x23C6910);
+		fn<int32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, int16_t *)>(0x502170)(e, 0xF1, 0, bone);        // GetEffectSpawnPosition
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)((const uint8_t *)ctx + 2), centre); // CalculateCenterPosition
+		int32_t dir[4] = { centre[0] - bone[0], 0, centre[2] - bone[2], 0 };
+		NormalizeVector(dir, dir);
+		int32_t axis[4];
+		int32_t angle = RotationBetweenVectors((const int32_t *)REF_BACK, dir, axis);
+		BuildAxisAngleRotationMatrix(angle, (Mat4x3 *)own::R(FRAME), axis);
+		var<int32_t>(own::R(0x23C58F4)) = bone[0];
+		var<int32_t>(own::R(0x23C58F8)) = 0;
+		var<int32_t>(own::R(0x23C58FC)) = bone[2];
+		if (axis[1] < 0) angle = -angle;
+		*(int16_t *)(e + 0x0E) = (int16_t)angle;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)FRAME, (Mat4x3 *)CAM_FRAME);
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)own::R(FRAME), (Mat4x3 *)own::R(CAM_FRAME));
 		if (UpdateFlags() & 0x201)
 		{
 			if (UpdateFlags() & 1) return 0;
@@ -1238,26 +1306,26 @@ namespace lion165
 		if (n->c == 0)
 		{
 			StopSounds(-1, 0);
-			CameraScriptStart(CAMERA_SCRIPT, FRAME, Caster(), QMain(), 0);
+			CameraScriptStart(CAMERA_SCRIPT, own::R(FRAME), Caster(), QMain(), 0);
 			ArmCameraReturn();
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
-			var<uint32_t>(TARGET_KEPT) = *(const uint32_t *)(Target() + 0x1C);
-			var<uint32_t>(TARGET_KEPT + 4) = *(const uint32_t *)(Target() + 0x20);
-			var<uint32_t>(CASTER_KEPT) = *(const uint32_t *)(Caster() + 0x1C);
-			var<uint32_t>(CASTER_KEPT + 4) = *(const uint32_t *)(Caster() + 0x20);
+			BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
+			var<uint32_t>(own::R(TARGET_KEPT)) = *(const uint32_t *)(Target() + 0x1C);
+			var<uint32_t>(own::R(TARGET_KEPT) + 4) = *(const uint32_t *)(Target() + 0x20);
+			var<uint32_t>(own::R(CASTER_KEPT)) = *(const uint32_t *)(Caster() + 0x1C);
+			var<uint32_t>(own::R(CASTER_KEPT) + 4) = *(const uint32_t *)(Caster() + 0x20);
 			for (int32_t i = 0; i < 7; i++)
 			{
 				Keep(i)->pos[0] = *(const uint32_t *)(Entity(i) + 0x1C);
 				Keep(i)->pos[1] = *(const uint32_t *)(Entity(i) + 0x20);
 			}
-			GetDefaultEffectPosition(Target(), (int16_t *)TARGET_ANCHOR);
+			GetDefaultEffectPosition(Target(), (int16_t *)own::R(TARGET_ANCHOR));
 		}
 		int32_t c = n->c;
 		if (c < 0x4E)
 		{
 			if (c == 0xA)
 			{
-				BdPlaySE(SOUND_A, 0, 0x80);
+				BdPlaySE((const void *)fxp::sound(P().sounds.a, (uint32_t)SOUND_A), 0, 0x80);
 				AddRockTrio();
 			}
 			else if (c == 0) QueueChainTransformation(Caster(), 1);
@@ -1286,7 +1354,7 @@ namespace lion165
 			else if (c == 0xC)
 			{
 				GetDefaultEffectPosition(Caster(), &n->w10);
-				Mat4x3 *f = (Mat4x3 *)FRAME;
+				Mat4x3 *f = (Mat4x3 *)own::R(FRAME);
 				f->t[0] = n->w10;
 				f->t[1] = n->w12;
 				f->t[2] = n->w14;
@@ -1299,7 +1367,7 @@ namespace lion165
 		}
 		else if ((c -= 0xC) < 0x26)
 		{
-			if (c == 0x10) BdPlaySE(SOUND_B, 0, 0x80);
+			if (c == 0x10) BdPlaySE((const void *)fxp::sound(P().sounds.b, (uint32_t)SOUND_B), 0, 0x80);
 			else if (c == 0) *(uint16_t *)Caster() &= 0xFFF7;
 			else
 			{
@@ -1319,7 +1387,7 @@ namespace lion165
 		}
 		else if ((c -= 0x3C) < 0x2A)
 		{
-			if (c == 1) BdPlaySE(SOUND_C, 0, 0x80);
+			if (c == 1) BdPlaySE((const void *)fxp::sound(P().sounds.c, (uint32_t)SOUND_C), 0, 0x80);
 			else if (c == 0)
 			{
 				CharacterLoad(0x21E, TexBase());
@@ -1334,9 +1402,9 @@ namespace lion165
 			else if (c == 0x28) ScreenFadeTask(0, 4, 8, 0xFF);
 			else if (c == 0x29)
 			{
-				Mat4x3 *f = (Mat4x3 *)FRAME;
-				f->t[0] = var<int16_t>(TARGET_CENTRE);
-				f->t[2] = var<int16_t>(TARGET_CENTRE + 4);
+				Mat4x3 *f = (Mat4x3 *)own::R(FRAME);
+				f->t[0] = var<int16_t>(own::R(TARGET_CENTRE));
+				f->t[2] = var<int16_t>(own::R(TARGET_CENTRE) + 4);
 			}
 		}
 		else if ((c -= 0x2A) < 0x5A)
@@ -1345,9 +1413,9 @@ namespace lion165
 			if (c == 0)
 			{
 				QueueChainTransformation(Caster(), 3);
-				GetDefaultEffectPosition(Caster(), (int16_t *)CASTER_POS);
-				GetDefaultEffectPosition(Target(), (int16_t *)TARGET_POS);
-				const int32_t dz = (int32_t)var<int16_t>(TARGET_POS + 4) - var<int16_t>(CASTER_POS + 4);
+				GetDefaultEffectPosition(Caster(), (int16_t *)own::R(CASTER_POS));
+				GetDefaultEffectPosition(Target(), (int16_t *)own::R(TARGET_POS));
+				const int32_t dz = (int32_t)var<int16_t>(own::R(TARGET_POS) + 4) - var<int16_t>(own::R(CASTER_POS) + 4);
 				n->w22 = dz < -2200 ? (int16_t)((dz * 2 + 0x1130) / 16) : 0;
 				step = true;
 			}
@@ -1357,20 +1425,20 @@ namespace lion165
 			else if (c == 0x2D) AddFinal();
 			else if (c == 0x59)
 			{
-				Mat4x3 *f = (Mat4x3 *)FRAME;
-				f->t[0] = var<int16_t>(CASTER_KEPT);
-				f->t[1] = var<int16_t>(CASTER_KEPT + 2);
-				f->t[2] = var<int16_t>(CASTER_KEPT + 4);
+				Mat4x3 *f = (Mat4x3 *)own::R(FRAME);
+				f->t[0] = var<int16_t>(own::R(CASTER_KEPT));
+				f->t[1] = var<int16_t>(own::R(CASTER_KEPT) + 2);
+				f->t[2] = var<int16_t>(own::R(CASTER_KEPT) + 4);
 			}
 		}
 		else if ((c -= 0x5A) < 0x25)
 		{
-			if (c == 0xA) BdPlaySE(SOUND_D, 0, 0x80);
+			if (c == 0xA) BdPlaySE((const void *)fxp::sound(P().sounds.d, (uint32_t)SOUND_D), 0, 0x80);
 			else if (c == 0)
 			{
 				QueueChainTransformation(Caster(), 4);
-				*(uint32_t *)(Caster() + 0x1C) = var<uint32_t>(CASTER_KEPT);
-				*(uint32_t *)(Caster() + 0x20) = var<uint32_t>(CASTER_KEPT + 4);
+				*(uint32_t *)(Caster() + 0x1C) = var<uint32_t>(own::R(CASTER_KEPT));
+				*(uint32_t *)(Caster() + 0x20) = var<uint32_t>(own::R(CASTER_KEPT) + 4);
 				SetScreenFlash(0, 0);
 				StageGroupsHide();
 			}
@@ -1458,7 +1526,7 @@ namespace lion165
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_GROUNDRING;
+		*(uint32_t *)h = fxp::model(P().models.groundring, MODEL_GROUNDRING);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1491,7 +1559,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		FacingMatrix(&m, 0, s, &n->w10, 0, -(s >> 3));
-		uint8_t *h = ModelHeader(MODEL_TIPFLASH, false, 0);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tipflash, MODEL_TIPFLASH), false, 0);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1523,7 +1591,7 @@ namespace lion165
 		ang[1] = (int16_t)(n->e != 0 ? 0x300 : -0x300);
 		ang[2] = roll;
 		ComposeZYXRotationMatrix(ang, &m);
-		GteMatrixMultiply((const Mat4x3 *)FRAME, &m);
+		GteMatrixMultiply((const Mat4x3 *)own::R(FRAME), &m);
 		m.t[0] = n->w10;
 		m.t[1] = n->w12;
 		m.t[2] = n->w14;
@@ -1535,7 +1603,7 @@ namespace lion165
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_TIPRING, c >= 4, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tipring, MODEL_TIPRING), c >= 4, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1591,7 +1659,7 @@ namespace lion165
 		Node24 *n = (Node24 *)tn;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_HitSlashA, n);)
-		HitSlashDraw(n, MODEL_SLASHA, n->w1C, n->c >= 4, mul32(n->c - 4, 682));
+		HitSlashDraw(n, fxp::model(P().models.slasha, MODEL_SLASHA), n->w1C, n->c >= 4, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1605,7 +1673,7 @@ namespace lion165
 		Node24 *n = (Node24 *)tn;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_HitSlashB, n);)
-		HitSlashDraw(n, MODEL_SLASHB, n->w1C, n->c >= 2, shl32(n->c - 2, 9));
+		HitSlashDraw(n, fxp::model(P().models.slashb, MODEL_SLASHB), n->w1C, n->c >= 2, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1619,7 +1687,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, n->w18, 0, n->w10, 0, n->w14, n->w1C, sy, n->w1C, &Camera());
-		uint8_t *h = ModelHeader(MODEL_FLATRING, c >= 2, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flatring, MODEL_FLATRING), c >= 2, fade);
 		RenderToArena(h);
 		FieldFree(0x58);
 	}
@@ -1660,7 +1728,7 @@ namespace lion165
 	// scroll renderer into OT + 0x4068 (mode 6), v scroll w20 x counter, fade 0x1000 - 0x180 c (up to 8) / 0x400 / 0x180 c -
 	// 0x1A00 (from 0x14), colour 0xD88808[counter % 18]
 	static int32_t ScreenWaveFade(int32_t c) { return c < 8 ? 0x1000 - mul32(c, 0x180) : c >= 0x14 ? mul32(c, 0x180) - 0x1A00 : 0x400; }
-	static uint32_t ScreenWaveColour(int32_t c) { return var<uint32_t>(WAVE_COLOURS + 4 * (c % 0x12)); }
+	static uint32_t ScreenWaveColour(int32_t c) { return var<uint32_t>(fxp::data(P().tables.wave_colours, WAVE_COLOURS, 72, 4) + 4 * (c % 0x12)); }
 	static void ScreenWaveDraw(const Node24 *n, int32_t scroll, int32_t fade, uint32_t colour)
 	{
 		Mat4x3 m = {};
@@ -1684,7 +1752,7 @@ namespace lion165
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_WAVE;
+		*(uint32_t *)h = fxp::model(P().models.wave, MODEL_WAVE);
 		*(uint32_t *)(h + 0x20) = 0xF3;
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1E) = 0x80;
@@ -1712,7 +1780,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		FacingMatrix(&m, roll, s, &n->w10, 0x1000, -(s >> 3));
-		uint8_t *h = ModelHeader(MODEL_TIPFLASH2, c < 8 || c >= 0x20, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tipflash2, MODEL_TIPFLASH2), c < 8 || c >= 0x20, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1770,7 +1838,7 @@ namespace lion165
 		Scale3DMatrix(&m, sv);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_STREAK, c >= 0x20, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.streak, MODEL_STREAK), c >= 0x20, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1789,7 +1857,7 @@ namespace lion165
 		if (n->c == 0) SetTipPoint();
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_Streak, n);)
-		StreakDraw(n, (const int16_t *)TIP, n->w20, n->c, shl32(n->c - 0x20, 9));
+		StreakDraw(n, (const int16_t *)own::R(TIP), n->w20, n->c, shl32(n->c - 0x20, 9));
 		if (DrawOnly()) return 0;
 		n->w20 = StreakWidth(n->c);
 		n->c++;
@@ -1801,7 +1869,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, n->w18, 0, n->w10, n->w12, n->w14, s, s, s, &Camera());
-		uint8_t *h = ModelHeader(MODEL_FINALRING, c >= 0xC, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.finalring, MODEL_FINALRING), c >= 0xC, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1837,7 +1905,7 @@ namespace lion165
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(&n->w10, 0x1000, 0);
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_FINALFLASH, c >= 0x10, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.finalflash, MODEL_FINALFLASH), c >= 0x10, fade);
 		FrameArena() = RenderPrimModel(h, RenderOT(), 1, FrameArena());
 		FieldFree(0x58);
 	}
@@ -1845,7 +1913,7 @@ namespace lion165
 	static uint32_t __cdecl FinalFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		var<int16_t>(TIP + 6) = (int16_t)(mul32(n->w1C, 850) >> 12);
+		var<int16_t>(own::R(TIP) + 6) = (int16_t)(mul32(n->w1C, 850) >> 12);
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_FinalFlash, n);)
 		FinalFlashDraw(n, n->w1C, n->c, shl32(n->c - 0x10, 9));
@@ -1862,7 +1930,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, 0, 0, n->w10, 0, n->w14, s, s, s, &Camera());
-		uint8_t *h = ModelHeader(MODEL_ROCK, c >= 6, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.rock, MODEL_ROCK), c >= 6, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1935,14 +2003,14 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		w->m1 = Camera();
 		const int32_t id = n->e;
-		*(uint32_t *)h = MODEL_ROCK;
+		*(uint32_t *)h = fxp::model(P().models.rock, MODEL_ROCK);
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_RockBurst, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2023,13 +2091,13 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		w->m1 = Camera();
 		const int32_t id = n->e;
-		*(uint32_t *)h = MODEL_DEBRIS;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_DEBRIS);
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[0] = 0;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_Debris, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2115,7 +2183,7 @@ namespace lion165
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_TIPSHARD;
+		*(uint32_t *)h = fxp::model(P().models.tipshard, MODEL_TIPSHARD);
 		*(uint32_t *)(h + 8) = 0;
 		TipShardFrame(w, n, &Camera());
 		const int32_t id = n->e;
@@ -2125,7 +2193,7 @@ namespace lion165
 		w->v[2] = 0;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TipShards, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2233,12 +2301,12 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		HitShardFrame(w, n, r, &Camera());
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_HitShards, n, h);)
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
 			if (p->id != id) continue;
@@ -2316,12 +2384,12 @@ namespace lion165
 		int32_t count = 0;
 		*(uint32_t *)(h + 8) = 0;
 		w->m1 = Camera();
-		*(uint32_t *)h = MODEL_TIPROCK;
+		*(uint32_t *)h = fxp::model(P().models.tiprock, MODEL_TIPROCK);
 		w->ang[1] = 0;
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TipRocks, n, h);)
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
 			if (p->id != id) continue;
@@ -2419,14 +2487,14 @@ namespace lion165
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		FinalShardFrame(w, n, &Camera());
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_FinalShards, n, h);)
-		for (uint32_t a = POOL_B; a < FINAL_SHARDS_END; a += 0x20)
+		for (uint32_t a = own::R(POOL_B); a < own::R(FINAL_SHARDS_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
 			if (p->id != id) continue;
@@ -2525,13 +2593,13 @@ namespace lion165
 				if (i < 0xC8) BoneSpark(EntryA(i), n->e, 0x14);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 0);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.spark, SEQ_SPARK), 0);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_BoneSparks, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2581,14 +2649,14 @@ namespace lion165
 				}
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 0);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.spark, SEQ_SPARK), 0);
 		Mat4x3 *cam = (Mat4x3 *)((uint8_t *)w + 0x10);
 		*cam = Camera();
 		SpriteLight(cam);
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_BladeSparks, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2656,12 +2724,12 @@ namespace lion165
 				p->a[5] = (int16_t)(p->a[1] / t);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SMOKE, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.smoke, SEQ_SMOKE), 8);
 		TipSmokeFrame(w, n, &Camera());
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TipSmoke, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2697,7 +2765,7 @@ namespace lion165
 		(void)fn;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(fn, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2740,7 +2808,7 @@ namespace lion165
 				p->a[2] = (int16_t)(p->a[2] + (int16_t)(CrtRand() % 0x258 - 0x12C));
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITA, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hita, SEQ_HITA), 8);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		return SparkAPass(n, w, h, ORIG_HitSparkA);
@@ -2769,7 +2837,7 @@ namespace lion165
 				p->a[2] = (int16_t)(p->a[2] + (int16_t)(CrtRand() % 0x7D0 - 0x3E8));
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITA, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hita, SEQ_HITA), 8);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		return SparkAPass(n, w, h, ORIG_FinalSparkA);
@@ -2809,14 +2877,14 @@ namespace lion165
 				p->a[6] = (int16_t)(mul32(v[2], s2) >> 12);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITB, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hitb, SEQ_HITB), 8);
 		w->m1 = Camera();
 		int32_t count = 0;
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_HitSparkB, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2873,7 +2941,7 @@ namespace lion165
 				p->a[6] = (int16_t)(mul32(s2, sc[2]) >> 12);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.spark, SEQ_SPARK), 8);
 		int32_t count = 0;
 		w->ang[0] = 0;
 		w->ang[1] = 0;
@@ -2887,7 +2955,7 @@ namespace lion165
 		const int32_t id = n->e;
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TargetSparks, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2939,14 +3007,14 @@ namespace lion165
 				const int32_t ang = CrtRand() % 0x1000;
 				sc[0] = ComputeSin(ang);
 				sc[2] = ComputeCos(ang);
-				const int32_t r = var<int16_t>(TIP + 6) - CrtRand() % 0x64;
+				const int32_t r = var<int16_t>(own::R(TIP) + 6) - CrtRand() % 0x64;
 				p->a[0] = (int16_t)(mul32(sc[0], r) >> 12);
 				const int32_t y = CrtRand() % 0xC8;
 				p->a[2] = (int16_t)(mul32(r, sc[2]) >> 12);
 				p->a[1] = (int16_t)(y - 0x64);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITB, 8);
+		uint8_t *h = SequenceHeader(fxp::sequence(P().seqs.hitb, SEQ_HITB), 8);
 		int32_t count = 0;
 		w->ang[0] = 0x100;
 		w->ang[1] = 0;
@@ -3006,31 +3074,31 @@ namespace lion165
 	{
 		for (int32_t i = 0; i < 0xF; i++)
 		{
-			const int32_t t = var<int32_t>(HIT_TIMES + 4 * i);
+			const int32_t t = var<int32_t>(fxp::data(P().tables.hit_times, HIT_TIMES, 64, 4) + 4 * i);
 			if (n->c > t) continue;
 			if (n->c < t) break;
 			int16_t v[4];
 			v[3] = (int16_t)(slot4 >> 16);
-			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HIT_OFFSETS + 8 * i), v);
-			v[0] = (int16_t)(v[0] + var<int16_t>(TIP0));
-			v[1] = (int16_t)(v[1] + var<int16_t>(TIP0 + 2));
-			v[2] = (int16_t)(v[2] + var<int16_t>(TIP0 + 4));
+			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(fxp::data(P().tables.hit_offsets, HIT_OFFSETS, 120) + 8 * i), v);
+			v[0] = (int16_t)(v[0] + var<int16_t>(own::R(TIP0)));
+			v[1] = (int16_t)(v[1] + var<int16_t>(own::R(TIP0) + 2));
+			v[2] = (int16_t)(v[2] + var<int16_t>(own::R(TIP0) + 4));
 			if (i > 3)
 			{
-				v[0] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT) + v[0]) >> 1);
-				v[1] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT + 2) + v[1]) >> 1);
-				v[2] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT + 4) + v[2]) >> 1);
+				v[0] = (int16_t)(((int32_t)var<int16_t>(own::R(PREV_HIT)) + v[0]) >> 1);
+				v[1] = (int16_t)(((int32_t)var<int16_t>(own::R(PREV_HIT) + 2) + v[1]) >> 1);
+				v[2] = (int16_t)(((int32_t)var<int16_t>(own::R(PREV_HIT) + 4) + v[2]) >> 1);
 			}
 			const uint32_t p0 = *(const uint32_t *)&v[0], p1 = *(const uint32_t *)&v[2];
-			var<uint32_t>(PREV_HIT) = p0;
+			var<uint32_t>(own::R(PREV_HIT)) = p0;
 			HitRec *r = Hit(i);
 			*(uint32_t *)&r->pos[0] = p0;
 			*(uint32_t *)&r->pos[2] = p1;
-			var<uint32_t>(PREV_HIT + 4) = p1;
+			var<uint32_t>(own::R(PREV_HIT) + 4) = p1;
 			for (int k = 0; k < 4; k++)
 			{
-				const uint32_t d = var<uint32_t>(TRAIL_DIR + 4 * k);
-				var<uint32_t>(LAST_HIT + 4 * k) = d;
+				const uint32_t d = var<uint32_t>(own::R(TRAIL_DIR) + 4 * k);
+				var<uint32_t>(own::R(LAST_HIT) + 4 * k) = d;
 				((uint32_t *)r->dir)[k] = d;
 			}
 			Node24 *t1 = AddMain(ORIG_HitSparkA);
@@ -3069,8 +3137,8 @@ namespace lion165
 				Node24 *b = AddMain(ORIG_TargetBounce);
 				b->c = 0;
 				b->e = (int16_t)ts;
-				b->w1A = (int16_t)(i != 0 ? var<int32_t>(HIT_TIMES + 4 * (i + 1)) - var<int32_t>(HIT_TIMES + 4 * i) : 8);
-				b->w1C = (int16_t)(var<int16_t>(HIT_HEIGHTS + 4 * i) - 0xFA0);
+				b->w1A = (int16_t)(i != 0 ? var<int32_t>(fxp::data(P().tables.hit_times, HIT_TIMES, 64, 4) + 4 * (i + 1)) - var<int32_t>(fxp::data(P().tables.hit_times, HIT_TIMES, 64, 4) + 4 * i) : 8);
+				b->w1C = (int16_t)(var<int16_t>(fxp::data(P().tables.hit_heights, HIT_HEIGHTS, 56) + 4 * i) - 0xFA0);
 				uint8_t *e = *(uint8_t **)(tg + 0x8C);
 				if (e && e != tg)
 				{
@@ -3178,7 +3246,7 @@ namespace lion165
 		const int16_t c = n->c;
 		if (c <= 8)
 		{
-			const int16_t y = (int16_t)(n->w20 + var<int16_t>(TARGET_ANCHOR + 2));
+			const int16_t y = (int16_t)(n->w20 + var<int16_t>(own::R(TARGET_ANCHOR) + 2));
 			*(int16_t *)(ent + 0x10) = 0x800;
 			*(int16_t *)(ent + 0x1E) = y;
 		}
@@ -3190,13 +3258,13 @@ namespace lion165
 			t->c = 0;
 			t = AddMain(ORIG_TargetSparks);
 			t->e = TakeId();
-			*(uint32_t *)&t->w10 = var<uint32_t>(TARGET_KEPT);
+			*(uint32_t *)&t->w10 = var<uint32_t>(own::R(TARGET_KEPT));
 			t->c = 0;
-			*(uint32_t *)&t->w14 = var<uint32_t>(TARGET_KEPT + 4);
+			*(uint32_t *)&t->w14 = var<uint32_t>(own::R(TARGET_KEPT) + 4);
 			t = AddMain(ORIG_TargetRing);
-			*(uint32_t *)&t->w10 = var<uint32_t>(TARGET_KEPT);
+			*(uint32_t *)&t->w10 = var<uint32_t>(own::R(TARGET_KEPT));
 			t->c = 0;
-			*(uint32_t *)&t->w14 = var<uint32_t>(TARGET_KEPT + 4);
+			*(uint32_t *)&t->w14 = var<uint32_t>(own::R(TARGET_KEPT) + 4);
 			const int16_t s = (int16_t)((CrtRand() % 0x800 + 0x2000) / 4);
 			t->w1E = s;
 			t->w1C = s;
@@ -3268,50 +3336,134 @@ namespace lion165
 		r->c++;
 		return alive ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Squall's Lion Heart: his animation set and sequence (facing the targets), the hits on the targets with their results, the trails, rocks, flashes, rings and sparks, the final blow, the sounds" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The director's four sounds, in order" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.a", "Sound 1", "With the rock trio", (uint32_t)offsetof(LionHeartParams, sounds.a), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.b", "Sound 2", "", (uint32_t)offsetof(LionHeartParams, sounds.b), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.c", "Sound 3", "", (uint32_t)offsetof(LionHeartParams, sounds.c), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.d", "Sound 4", "", (uint32_t)offsetof(LionHeartParams, sounds.d), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.hita", "Hita", "The sprite sequence hita (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.hita), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.hitb", "Hitb", "The sprite sequence hitb (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(LionHeartParams, seqs.hitb), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.groundring", "Groundring model", "The prim model groundring (a mesh of 96 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.groundring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipflash", "Tipflash model", "The prim model tipflash (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipflash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipring", "Tipring model", "The prim model tipring (a mesh of 49 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slasha", "Slasha model", "The prim model slasha (a mesh of 72 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.slasha), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slashb", "Slashb model", "The prim model slashb (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.slashb), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flatring", "Flatring model", "The prim model flatring (a mesh of 185 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.flatring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wave", "Wave model", "The prim model wave (a mesh of 274 vertices, 288 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipflash2", "Tipflash2 model", "The prim model tipflash2 (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipflash2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.streak", "Streak model", "The prim model streak (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.streak), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.finalring", "Finalring model", "The prim model finalring (a mesh of 195 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.finalring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.finalflash", "Finalflash model", "The prim model finalflash (a mesh of 96 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.finalflash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.rock", "Rock model", "The prim model rock (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.debris", "Debris model", "The prim model debris (a mesh of 186 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tipshard", "Tipshard model", "The prim model tipshard (a mesh of 25 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tipshard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tiprock", "Tiprock model", "The prim model tiprock (a mesh of 147 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(LionHeartParams, models.tiprock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(LionHeartParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(LionHeartParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "tables.hit_times", "Hit ticks", "When each hit lands (64 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.hit_times), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.hit_offsets", "Hit offsets", "Where each hit lands from the caster (x, y, z) (120 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.hit_offsets), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.hit_heights", "Hit heights", "Each hit's height (- 0xFA0) (56 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.hit_heights), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.wave_colours", "Wave colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (72 bytes: an edited one keeps its length)", (uint32_t)offsetof(LionHeartParams, tables.wave_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag165_lion_heart()
 	{
-		using namespace lion165;
-		register_port(ORIG_Root, (void *)RootTask, "165 Root", 165);
-		register_port(ORIG_Director, (void *)DirectorTask, "165 Director", 165);
-		register_port(ORIG_Flash, (void *)FlashTask, "165 Flash", 165);
-		register_port(ORIG_Trail, (void *)TrailTask, "165 Trail", 165);
-		register_port(ORIG_GroundRing, (void *)GroundRingTask, "165 GroundRing", 165);
-		register_port(ORIG_RockBurst, (void *)RockBurstTask, "165 RockBurst", 165);
-		register_port(ORIG_Debris, (void *)DebrisTask, "165 Debris", 165);
-		register_port(ORIG_BoneSparks, (void *)BoneSparksTask, "165 BoneSparks", 165);
-		register_port(ORIG_BladeSparks, (void *)BladeSparksTask, "165 BladeSparks", 165);
-		register_port(ORIG_TipFlash, (void *)TipFlashTask, "165 TipFlash", 165);
-		register_port(ORIG_TipShards, (void *)TipShardsTask, "165 TipShards", 165);
-		register_port(ORIG_TipSmoke, (void *)TipSmokeTask, "165 TipSmoke", 165);
-		register_port(ORIG_TipRing, (void *)TipRingTask, "165 TipRing", 165);
-		register_port(ORIG_HitDirector, (void *)HitDirectorTask, "165 HitDirector", 165);
-		register_port(ORIG_HitSparkA, (void *)HitSparkATask, "165 HitSparkA", 165);
-		register_port(ORIG_HitSparkB, (void *)HitSparkBTask, "165 HitSparkB", 165);
-		register_port(ORIG_HitSlashA, (void *)HitSlashATask, "165 HitSlashA", 165);
-		register_port(ORIG_HitSlashB, (void *)HitSlashBTask, "165 HitSlashB", 165);
-		register_port(ORIG_HitShards, (void *)HitShardsTask, "165 HitShards", 165);
-		register_port(ORIG_TargetBounce, (void *)TargetBounceTask, "165 TargetBounce", 165);
-		register_port(ORIG_FlatRing, (void *)FlatRingTask, "165 FlatRing", 165);
-		register_port(ORIG_WaveSpawner, (void *)WaveSpawnerTask, "165 WaveSpawner", 165);
-		register_port(ORIG_ScreenWave, (void *)ScreenWaveTask, "165 ScreenWave", 165);
-		register_port(ORIG_TipFlash2, (void *)TipFlash2Task, "165 TipFlash2", 165);
-		register_port(ORIG_TipRocks, (void *)TipRocksTask, "165 TipRocks", 165);
-		register_port(ORIG_Streak, (void *)StreakTask, "165 Streak", 165);
-		register_port(ORIG_FinalRing, (void *)FinalRingTask, "165 FinalRing", 165);
-		register_port(ORIG_FinalSparkA, (void *)FinalSparkATask, "165 FinalSparkA", 165);
-		register_port(ORIG_FinalShards, (void *)FinalShardsTask, "165 FinalShards", 165);
-		register_port(ORIG_FinalFlash, (void *)FinalFlashTask, "165 FinalFlash", 165);
-		register_port(ORIG_FinalRingSparks, (void *)FinalRingSparksTask, "165 FinalRingSparks", 165);
-		register_port(ORIG_TargetSink, (void *)TargetSinkTask, "165 TargetSink", 165);
-		register_port(ORIG_TargetSparks, (void *)TargetSparksTask, "165 TargetSparks", 165);
-		register_port(ORIG_TargetRing, (void *)TargetRingTask, "165 TargetRing", 165);
-		register_port(ORIG_Shake, (void *)ShakeTask, "165 Shake", 165);
-		register_port(ORIG_Restore, (void *)RestoreTask, "165 Restore", 165);
+		fxp::register_params({ 165, "Lion Heart", &lion165::live, &lion165::GAME, sizeof(lion165::LionHeartParams),
+		                       lion165::table::PARTS, (int)(sizeof(lion165::table::PARTS) / sizeof(lion165::table::PARTS[0])),
+		                       lion165::table::FIELDS, (int)(sizeof(lion165::table::FIELDS) / sizeof(lion165::table::FIELDS[0])),
+		                       lion165::table::GROUPS, (int)(sizeof(lion165::table::GROUPS) / sizeof(lion165::table::GROUPS[0])) });
+		own::note(lion165::ORIG_FileLoader, (void *)lion165::FileLoader);
+		own::note(lion165::ORIG_Setup, (void *)lion165::Setup);
+		own::note(lion165::ORIG_Root, (void *)lion165::RootTask);
+		register_port(lion165::ORIG_Root, (void *)lion165::RootTask, "165 Root", 165);
+		own::note(lion165::ORIG_Director, (void *)lion165::DirectorTask);
+		register_port(lion165::ORIG_Director, (void *)lion165::DirectorTask, "165 Director", 165);
+		own::note(lion165::ORIG_Flash, (void *)lion165::FlashTask);
+		register_port(lion165::ORIG_Flash, (void *)lion165::FlashTask, "165 Flash", 165);
+		own::note(lion165::ORIG_Trail, (void *)lion165::TrailTask);
+		register_port(lion165::ORIG_Trail, (void *)lion165::TrailTask, "165 Trail", 165);
+		own::note(lion165::ORIG_GroundRing, (void *)lion165::GroundRingTask);
+		register_port(lion165::ORIG_GroundRing, (void *)lion165::GroundRingTask, "165 GroundRing", 165);
+		own::note(lion165::ORIG_RockBurst, (void *)lion165::RockBurstTask);
+		register_port(lion165::ORIG_RockBurst, (void *)lion165::RockBurstTask, "165 RockBurst", 165);
+		own::note(lion165::ORIG_Debris, (void *)lion165::DebrisTask);
+		register_port(lion165::ORIG_Debris, (void *)lion165::DebrisTask, "165 Debris", 165);
+		own::note(lion165::ORIG_BoneSparks, (void *)lion165::BoneSparksTask);
+		register_port(lion165::ORIG_BoneSparks, (void *)lion165::BoneSparksTask, "165 BoneSparks", 165);
+		own::note(lion165::ORIG_BladeSparks, (void *)lion165::BladeSparksTask);
+		register_port(lion165::ORIG_BladeSparks, (void *)lion165::BladeSparksTask, "165 BladeSparks", 165);
+		own::note(lion165::ORIG_TipFlash, (void *)lion165::TipFlashTask);
+		register_port(lion165::ORIG_TipFlash, (void *)lion165::TipFlashTask, "165 TipFlash", 165);
+		own::note(lion165::ORIG_TipShards, (void *)lion165::TipShardsTask);
+		register_port(lion165::ORIG_TipShards, (void *)lion165::TipShardsTask, "165 TipShards", 165);
+		own::note(lion165::ORIG_TipSmoke, (void *)lion165::TipSmokeTask);
+		register_port(lion165::ORIG_TipSmoke, (void *)lion165::TipSmokeTask, "165 TipSmoke", 165);
+		own::note(lion165::ORIG_TipRing, (void *)lion165::TipRingTask);
+		register_port(lion165::ORIG_TipRing, (void *)lion165::TipRingTask, "165 TipRing", 165);
+		own::note(lion165::ORIG_HitDirector, (void *)lion165::HitDirectorTask);
+		register_port(lion165::ORIG_HitDirector, (void *)lion165::HitDirectorTask, "165 HitDirector", 165);
+		own::note(lion165::ORIG_HitSparkA, (void *)lion165::HitSparkATask);
+		register_port(lion165::ORIG_HitSparkA, (void *)lion165::HitSparkATask, "165 HitSparkA", 165);
+		own::note(lion165::ORIG_HitSparkB, (void *)lion165::HitSparkBTask);
+		register_port(lion165::ORIG_HitSparkB, (void *)lion165::HitSparkBTask, "165 HitSparkB", 165);
+		own::note(lion165::ORIG_HitSlashA, (void *)lion165::HitSlashATask);
+		register_port(lion165::ORIG_HitSlashA, (void *)lion165::HitSlashATask, "165 HitSlashA", 165);
+		own::note(lion165::ORIG_HitSlashB, (void *)lion165::HitSlashBTask);
+		register_port(lion165::ORIG_HitSlashB, (void *)lion165::HitSlashBTask, "165 HitSlashB", 165);
+		own::note(lion165::ORIG_HitShards, (void *)lion165::HitShardsTask);
+		register_port(lion165::ORIG_HitShards, (void *)lion165::HitShardsTask, "165 HitShards", 165);
+		own::note(lion165::ORIG_TargetBounce, (void *)lion165::TargetBounceTask);
+		register_port(lion165::ORIG_TargetBounce, (void *)lion165::TargetBounceTask, "165 TargetBounce", 165);
+		own::note(lion165::ORIG_FlatRing, (void *)lion165::FlatRingTask);
+		register_port(lion165::ORIG_FlatRing, (void *)lion165::FlatRingTask, "165 FlatRing", 165);
+		own::note(lion165::ORIG_WaveSpawner, (void *)lion165::WaveSpawnerTask);
+		register_port(lion165::ORIG_WaveSpawner, (void *)lion165::WaveSpawnerTask, "165 WaveSpawner", 165);
+		own::note(lion165::ORIG_ScreenWave, (void *)lion165::ScreenWaveTask);
+		register_port(lion165::ORIG_ScreenWave, (void *)lion165::ScreenWaveTask, "165 ScreenWave", 165);
+		own::note(lion165::ORIG_TipFlash2, (void *)lion165::TipFlash2Task);
+		register_port(lion165::ORIG_TipFlash2, (void *)lion165::TipFlash2Task, "165 TipFlash2", 165);
+		own::note(lion165::ORIG_TipRocks, (void *)lion165::TipRocksTask);
+		register_port(lion165::ORIG_TipRocks, (void *)lion165::TipRocksTask, "165 TipRocks", 165);
+		own::note(lion165::ORIG_Streak, (void *)lion165::StreakTask);
+		register_port(lion165::ORIG_Streak, (void *)lion165::StreakTask, "165 Streak", 165);
+		own::note(lion165::ORIG_FinalRing, (void *)lion165::FinalRingTask);
+		register_port(lion165::ORIG_FinalRing, (void *)lion165::FinalRingTask, "165 FinalRing", 165);
+		own::note(lion165::ORIG_FinalSparkA, (void *)lion165::FinalSparkATask);
+		register_port(lion165::ORIG_FinalSparkA, (void *)lion165::FinalSparkATask, "165 FinalSparkA", 165);
+		own::note(lion165::ORIG_FinalShards, (void *)lion165::FinalShardsTask);
+		register_port(lion165::ORIG_FinalShards, (void *)lion165::FinalShardsTask, "165 FinalShards", 165);
+		own::note(lion165::ORIG_FinalFlash, (void *)lion165::FinalFlashTask);
+		register_port(lion165::ORIG_FinalFlash, (void *)lion165::FinalFlashTask, "165 FinalFlash", 165);
+		own::note(lion165::ORIG_FinalRingSparks, (void *)lion165::FinalRingSparksTask);
+		register_port(lion165::ORIG_FinalRingSparks, (void *)lion165::FinalRingSparksTask, "165 FinalRingSparks", 165);
+		own::note(lion165::ORIG_TargetSink, (void *)lion165::TargetSinkTask);
+		register_port(lion165::ORIG_TargetSink, (void *)lion165::TargetSinkTask, "165 TargetSink", 165);
+		own::note(lion165::ORIG_TargetSparks, (void *)lion165::TargetSparksTask);
+		register_port(lion165::ORIG_TargetSparks, (void *)lion165::TargetSparksTask, "165 TargetSparks", 165);
+		own::note(lion165::ORIG_TargetRing, (void *)lion165::TargetRingTask);
+		register_port(lion165::ORIG_TargetRing, (void *)lion165::TargetRingTask, "165 TargetRing", 165);
+		own::note(lion165::ORIG_Shake, (void *)lion165::ShakeTask);
+		register_port(lion165::ORIG_Shake, (void *)lion165::ShakeTask, "165 Shake", 165);
+		own::note(lion165::ORIG_Restore, (void *)lion165::RestoreTask);
+		register_port(lion165::ORIG_Restore, (void *)lion165::RestoreTask, "165 Restore", 165);
 		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(register_mag165_held();)
 	}
+	FX_LAB_MODULE(register_mag165_lion_heart);
 }
 
 #ifdef FF8_FX_HELD

@@ -306,6 +306,18 @@ namespace ff8fx
 		replace_function(EXEC_ORIG_RESUME, (void *)exec_resume);
 	}
 
+	// The game picks an effect's setup and file loader from MagicList_Logic (0xC81774) /
+	// MagicList_TextureLoad (0xC81DB8), 400 slots each (Magic_GetIDLoad 0x50AF20), and calls them
+	// directly, not through the executor: a module that ports them (register_port with their
+	// original address) gets its slots pointed at the ports.
+	static void install_entries()
+	{
+		for (uint32_t table : { 0xC81774u, 0xC81DB8u })
+			for (uint32_t slot = 0; slot < 400; slot++)
+				if (void *port = lookup(*(const uint32_t *)(table + 4 * slot)))
+					patch_code_dword(table + 4 * slot, (DWORD)port);
+	}
+
 	void install()
 	{
 		if (g_installed || !FF8_US_VERSION || !ff8_battle_fx_native) return;
@@ -313,6 +325,7 @@ namespace ff8fx
 		register_all();
 		install_executor();
 		g_active = true;
+		install_entries();
 		ffnx_info("FF8 battle fx: native effect code on%s\n", ff8_battle_fx_verify ? ", verified against the original" : "");
 		if (ff8_battle_fx_verify)
 		{

@@ -57,7 +57,9 @@ namespace fire002
 			{
 				FlameNode a;
 				memcpy(&a, r.node, sizeof(a));
-				FlameDraw(&a);
+				const FireParams::Flames &fp = P().flames;
+				const FlameLook look = { SEQ_Flame, SEQ_FlameGlow, fp.shade_shift, fp.glow.tilt, fp.glow.mode, fp.glow.high, fp.glow.span, fp.glow.base };
+				FlameDraw(&a.f, a.frame, look, PacketCursor());
 				break;
 			}
 			case ORIG_SparkTask:
@@ -65,11 +67,13 @@ namespace fire002
 				SparkNode a, b;
 				memcpy(&a, r.node, sizeof(a));
 				b = a;
-				if (moving) SparkUpdate(&b);
+				const FireParams::Sparks &s = P().sparks;
+				if (moving) FireSparkMove(&b.s, &b.life, s.drag, s.shrink);
 				SparkNode m = a;
-				for (int k = 0; k < 3; k++) m.pos[k] = lerp16(a.pos[k], b.pos[k], num, den);
-				m.scale = lerp16(a.scale, b.scale, num, den);
-				SparkDraw(&m);
+				for (int k = 0; k < 3; k++) m.s.pos[k] = lerp16(a.s.pos[k], b.s.pos[k], num, den);
+				m.s.scale = lerp16(a.s.scale, b.s.scale, num, den);
+				const SparkLook look = { s.sprite, s.last, s.flag20, s.mode, s.shade_shift };
+				FireSparkDraw(&m.s, m.life, look, PacketCursor());
 				break;
 			}
 			case ORIG_EmberTask:
@@ -77,11 +81,12 @@ namespace fire002
 				EmberNode a, b;
 				memcpy(&a, r.node, sizeof(a));
 				b = a;
-				if (moving) EmberUpdate(&b);
+				const FireParams::Embers &e = P().embers;
+				if (moving) { EmberRise(&b.e, e.accel, e.shrink); b.frame++; }
 				EmberNode m = a;
-				m.pos[1] = lerp16(a.pos[1], b.pos[1], num, den);
-				m.scale = lerp16(a.scale, b.scale, num, den);
-				EmberDraw(&m);
+				m.e.pos[1] = lerp16(a.e.pos[1], b.e.pos[1], num, den);
+				m.e.scale = lerp16(a.e.scale, b.e.scale, num, den);
+				EmberDraw(&m.e, m.frame, SEQ_Ember, e.shade_shift, PacketCursor());
 				break;
 			}
 			default:

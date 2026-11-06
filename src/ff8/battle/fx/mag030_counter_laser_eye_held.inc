@@ -378,7 +378,7 @@ namespace lasereye
 		}
 	}
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -387,7 +387,7 @@ namespace lasereye
 	static void PredictLaser(uint32_t node)
 	{
 		g_ncap = 0;
-		if (!live(node, ORIG_Laser)) return;
+		if (!node_live(node, ORIG_Laser)) return;
 		alignas(4) static uint8_t copy[LASER_BYTES];
 		memcpy(copy, (const void *)node, LASER_BYTES);
 		g_capturing = true;
@@ -435,7 +435,7 @@ namespace lasereye
 		alignas(4) static uint8_t cur[SPARK_BYTES], nxt[SPARK_BYTES];
 		memcpy(cur, n.bytes, SPARK_BYTES);
 		const uint32_t c = P(cur), x1 = P(nxt);
-		if (live(n.node, ORIG_Spark) && S8(n.node, 0x29) == 1 && (U8(n.node, 0x26) & 4) == 0)
+		if (node_live(n.node, ORIG_Spark) && S8(n.node, 0x29) == 1 && (U8(n.node, 0x26) & 4) == 0)
 		{
 			// the next tick's state 1 step (0x879050) on a copy; drawn there unless it ends
 			memcpy(nxt, (const void *)n.node, SPARK_BYTES);

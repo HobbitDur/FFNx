@@ -24,5 +24,14 @@ namespace soft292
 	static void held_note_root();
 	static void held_note_play(prim::Layout *layout, const int16_t *anchor);
 }
+namespace statusitem
+{
+	template<>
+	struct Held<soft292::LAYOUT>
+	{
+		static void note_root() { soft292::held_note_root(); }
+		static void note_play(prim::Layout *layout, const int16_t *anchor) { soft292::held_note_play(layout, anchor); }
+	};
+}
 	static void register_mag292_held();
 }

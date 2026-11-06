@@ -90,6 +90,9 @@
 // Module globals: 0x24F7A68..0x24FBD68 (MAG_209 Sorceress spawn's dword 0x24FBCE4 sits inside: never touched here).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -99,13 +102,13 @@ namespace mercy200
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Context() { return var<CastContext *>(0x24FBCC8); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x24FBCE0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x24FBD60); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24FBD64); }
+	inline CastContext *&Context() { return var<CastContext *>(own::R(0x24FBCC8)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x24FBCE0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x24FBD60)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24FBD64)); }
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x24F8D80; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x24F9990; }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x24F8D80); }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x24F9990); }
 	static const uint32_t POOL = 0x24F8DB0, POOL_END = 0x24F9710;      // 100 x 0x18
 	static const uint32_t PTS_BASE = 0x24F7A68, PTS_TIP = 0x24F8D20;  // trail spline input (6 x 8 each)
 	static const uint32_t SPL_BASE = 0x24F9730, SPL_TIP = 0x24F9830;  // trail splines (32 x 8 each)
@@ -128,10 +131,27 @@ namespace mercy200
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xE2B518, CAMERA_SCRIPT = 0xE33D8C;
 	static const void *const SOUND_A = (const void *)0xE33D30, *const SOUND_B = (const void *)0xE33D34;
+	static const uint32_t ORIG_FileLoader = 0x575530, ORIG_Setup = 0x6391D0;   // (the file loader is the engine's nullsub)
+	static const uint32_t TIM_NOMERCY = 0xF57D60;   // the setup's TIM (exe data)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct NoMercyParams
+	{
+		struct { uint32_t start, swing; } sounds; // at the director's ticks 6 and 0x23
+		struct { int16_t damage; } director;     // the action results at this tick
+		struct { uint32_t flame, flame_glow, ember, sparkburst, tspark, tburst; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, flash, slash_b, slash_a, frame, wavering, tring, shard, wavetrail; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_nomercy, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t shard_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const NoMercyParams GAME = { { 0xE33D30, 0xE33D34 }, { 0x8D }, { 0xE3382C, 0xE339D8, 0xE33B84, 0xE2DB40, 0xE2DC84, 0xE2DFE4 }, { 0xE316B4, 0xE2E15C, 0xE33074, 0xE328BC, 0xE2FFB4, 0xE3239C, 0xE3102C, 0xE2F8DC, 0xE3260C }, { TIM_NOMERCY, ANIM_DATA }, { 0xE33D50 } };
+	static NoMercyParams live = GAME;
+	static const NoMercyParams &P() { return live; }
 	static const uint32_t REF_DIR = 0xE33D40;      // (0, 0, -0x1000)-style reference direction of the wave records
 	static const uint32_t SHARD_COLOURS = 0xE33D50; // 8 colour words (TipShards)
-	static const void *const SEQ_Flame = (const void *)0xE3382C, *const SEQ_FlameGlow = (const void *)0xE339D8,
-		*const SEQ_Ember = (const void *)0xE33B84;
+	static const uint32_t SEQ_Flame = 0xE3382C, SEQ_FlameGlow = 0xE339D8, SEQ_Ember = 0xE33B84;
 	static const uint32_t SEQ_SPARKBURST = 0xE2DB40, SEQ_TSPARK = 0xE2DC84, SEQ_TBURST = 0xE2DFE4;
 	static const uint32_t MODEL_RING = 0xE316B4, MODEL_FLASH = 0xE2E15C, MODEL_SHARD = 0xE2F8DC, MODEL_SLASH_A = 0xE328BC,
 		MODEL_SLASH_B = 0xE33074, MODEL_FRAME = 0xE2FFB4, MODEL_WAVERING = 0xE3239C, MODEL_WAVETRAIL = 0xE3260C,
@@ -272,18 +292,18 @@ namespace mercy200
 
 	template<typename T> static inline T &At(uint32_t base, int32_t off) { return *(T *)(base + off); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline PoolE *Entry(int32_t i) { return (PoolE *)(POOL + 0x18 * i); }
-	inline WaveRec *Wave(int32_t i) { return (WaveRec *)(WAVES + 0x250 * i); }
+	inline PoolE *Entry(int32_t i) { return (PoolE *)(own::R(POOL) + 0x18 * i); }
+	inline WaveRec *Wave(int32_t i) { return (WaveRec *)(own::R(WAVES) + 0x250 * i); }
 	inline ActionData *Action0() { return Context()->actions; }
 
 	// first free entry (type 0) of the pool, or -1 (none / index >= 100)
 	static int32_t FreeSlot()
 	{
 		int32_t i = 0;
-		for (uint32_t a = POOL; *(const uint32_t *)a != 0; i++)
+		for (uint32_t a = own::R(POOL); *(const uint32_t *)a != 0; i++)
 		{
 			a += 0x18;
-			if (a >= POOL_END) return -1;
+			if (a >= own::R(POOL_END)) return -1;
 		}
 		return i >= 0x64 ? -1 : i;
 	}
@@ -1080,19 +1100,19 @@ namespace mercy200
 	// the trail's derived globals: the first tip, the unit direction tip 1 -> tip 0, the first point, the unit blade direction
 	static void TrailDirections(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(TIP0) = *(const uint32_t *)sb;
-		var<uint32_t>(TIP0 + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)TRAIL_DIR;
+		var<uint32_t>(own::R(TIP0)) = *(const uint32_t *)sb;
+		var<uint32_t>(own::R(TIP0) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)own::R(TRAIL_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE0) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE0 + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BLADE_DIR;
-		b[0] = (int32_t)var<int16_t>(TIP0) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(TIP0 + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(TIP0 + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(own::R(BASE0)) = *(const uint32_t *)sa;
+		var<uint32_t>(own::R(BASE0) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)own::R(BLADE_DIR);
+		b[0] = (int32_t)var<int16_t>(own::R(TIP0)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(own::R(TIP0) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(own::R(TIP0) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -1154,21 +1174,21 @@ namespace mercy200
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 6;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(own::R(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, TrailWant(c), (uint8_t *)PTS_BASE, (uint8_t *)PTS_TIP);
+		const int32_t cnt = TrailGather((const uint8_t *)own::R(RING), idx, TrailWant(c), (uint8_t *)own::R(PTS_BASE), (uint8_t *)own::R(PTS_TIP));
 		if (cnt > 1)
 		{
-			SplineCurve(cnt, (const int16_t *)PTS_BASE, 0x20, (int16_t *)SPL_BASE);
-			SplineCurve(cnt, (const int16_t *)PTS_TIP, 0x20, (int16_t *)SPL_TIP);
-			TrailDirections((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP);
+			SplineCurve(cnt, (const int16_t *)own::R(PTS_BASE), 0x20, (int16_t *)own::R(SPL_BASE));
+			SplineCurve(cnt, (const int16_t *)own::R(PTS_TIP), 0x20, (int16_t *)own::R(SPL_TIP));
+			TrailDirections((const uint8_t *)own::R(SPL_BASE), (const uint8_t *)own::R(SPL_TIP));
 			// 30 fps layer: see mag200_no_mercy_held.inc
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP, w);
+			TrailDraw((const uint8_t *)own::R(SPL_BASE), (const uint8_t *)own::R(SPL_TIP), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -1186,7 +1206,7 @@ namespace mercy200
 		const int16_t *pos = &p->w10;
 		TransformCameraByShadowRotation(pos, p->w1C, -(p->w1C >> 4));
 		uint8_t *h = AllocHeader(0xB4);
-		*(const void **)h = SEQ_Flame;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame, SEQ_Flame);
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1206,7 +1226,7 @@ namespace mercy200
 		int32_t q = (int32_t)(((int64_t)shl32(y, 12) * 0x10624DD3) >> 32) >> 7;
 		q += (int32_t)((uint32_t)q >> 31);                  // (y << 12) / 2000
 		uint8_t level = (uint8_t)((q * 160) / 4096 + 0xA0);
-		*(const void **)h = SEQ_FlameGlow;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame_glow, SEQ_FlameGlow);
 		*(uint16_t *)(h + 0x24) = 0xC;
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
 		h[0x1E] = level;
@@ -1233,7 +1253,7 @@ namespace mercy200
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				Node24 *e = (Node24 *)AddTaskToQueue(QMain(), ORIG_Ember);
+				Node24 *e = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Ember));
 				e->c = 0;
 				e->e = (int16_t)(CrtRand() % 6 + k);
 				memcpy(&e->w10, &p->w10, 8);
@@ -1245,7 +1265,7 @@ namespace mercy200
 			}
 			for (int k = 0; k < 10; k++)
 			{
-				Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Spark);
+				Node24 *s = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Spark));
 				s->c = (int16_t)(CrtRand() % 4 + 5);
 				s->e = (int16_t)(CrtRand() % 4 + k);
 				memcpy(&s->w10, &p->w10, 8);
@@ -1314,7 +1334,7 @@ namespace mercy200
 		TransformCameraByShadowRotation(&p->w10, p->w1C, -(p->w1C >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
-		*(const void **)h = SEQ_Ember;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ember, SEQ_Ember);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1360,13 +1380,13 @@ namespace mercy200
 		Node24 *t;
 		if (acts[next].target_count > 1)
 		{
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameMulti);
+			t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_FlameMulti));
 			t->c = 0;
 			t->e = (int16_t)next;
 		}
 		else
 		{
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameSingle);
+			t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_FlameSingle));
 			t->e = (int16_t)next;
 			t->c = 0;
 			t->w20 = (int16_t)(uint16_t)Context()->actions[next].targets[0];
@@ -1385,7 +1405,7 @@ namespace mercy200
 	static void AddFlame(int32_t slot, int32_t spread, const int16_t *pos, int32_t k)
 	{
 		const int32_t half = spread >> 1;
-		Node24 *f = (Node24 *)AddTaskToQueue(QMain(), ORIG_Flame);
+		Node24 *f = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Flame));
 		f->c = 0;
 		f->e = (int16_t)(CrtRand() % 6 + 2 * k);
 		memcpy(&f->w10, pos, 8);
@@ -1450,7 +1470,7 @@ namespace mercy200
 			const int32_t half = spread >> 1;
 			for (int32_t k = 0; k < 4; k++)
 			{
-				Node24 *f = (Node24 *)AddTaskToQueue(QMain(), ORIG_Flame);
+				Node24 *f = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Flame));
 				f->c = 0;
 				f->e = (int16_t)(CrtRand() % 6 + 2 * k);
 				memcpy(&f->w10, pos, 8);
@@ -1478,13 +1498,13 @@ namespace mercy200
 		ActionData *ad = Context()->actions;
 		if (ad->target_count > 1)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameMulti);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_FlameMulti));
 			t->c = 0;
 			t->e = 0;
 			t->w22 = 0;
 			return;
 		}
-		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameSingle);
+		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_FlameSingle));
 		t->c = 0;
 		t->e = 0;
 		t->w22 = 0;
@@ -1543,7 +1563,7 @@ namespace mercy200
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0x18) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_RING;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_RING);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1586,7 +1606,7 @@ namespace mercy200
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(&n->w10, scale, -(scale >> 3));
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_FLASH, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flash, MODEL_FLASH), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1611,9 +1631,9 @@ namespace mercy200
 	// its ticks 0x1E..0x23 (draw-only ticks too)
 	static void SlashPoint()
 	{
-		var<int16_t>(POINT) = (int16_t)((mul32(var<int32_t>(BLADE_DIR), 400) >> 12) + var<int32_t>(BASE0));
-		var<int16_t>(POINT + 2) = (int16_t)((int16_t)(mul32(var<int32_t>(BLADE_DIR + 4), 400) >> 12) + var<int16_t>(BASE0 + 2));
-		var<int16_t>(POINT + 4) = (int16_t)((mul32(var<int32_t>(BLADE_DIR + 8), 400) >> 12) + var<int32_t>(BASE0 + 4));
+		var<int16_t>(own::R(POINT)) = (int16_t)((mul32(var<int32_t>(own::R(BLADE_DIR)), 400) >> 12) + var<int32_t>(own::R(BASE0)));
+		var<int16_t>(own::R(POINT) + 2) = (int16_t)((int16_t)(mul32(var<int32_t>(own::R(BLADE_DIR) + 4), 400) >> 12) + var<int16_t>(own::R(BASE0) + 2));
+		var<int16_t>(own::R(POINT) + 4) = (int16_t)((mul32(var<int32_t>(own::R(BLADE_DIR) + 8), 400) >> 12) + var<int32_t>(own::R(BASE0) + 4));
 	}
 
 	static void SlashDraw(const Node24 *n, const int16_t *point, int16_t ax, int16_t az, int16_t scale, bool faded, int32_t fade)
@@ -1623,7 +1643,7 @@ namespace mercy200
 		ang[1] = 0;
 		ang[2] = az;
 		ModelMatrix(&Camera(), ang, point, scale, scale, scale);
-		uint8_t *h = ModelHeader((n->e & 1) ? MODEL_SLASH_B : MODEL_SLASH_A, faded, fade);
+		uint8_t *h = ModelHeader((n->e & 1) ? fxp::model(P().models.slash_b, MODEL_SLASH_B) : fxp::model(P().models.slash_a, MODEL_SLASH_A), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1634,7 +1654,7 @@ namespace mercy200
 		if (n->e == 0 && n->c >= 0x1E && n->c <= 0x23) SlashPoint();
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_node(ORIG_Slash, n);)
-		SlashDraw(n, (const int16_t *)POINT, n->w18, n->w20, n->w1C, n->c < 0xC, 0x1000 - mul32(n->c, 341));
+		SlashDraw(n, (const int16_t *)own::R(POINT), n->w18, n->w20, n->w1C, n->c < 0xC, 0x1000 - mul32(n->c, 341));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1654,7 +1674,7 @@ namespace mercy200
 		ang[1] = 0;
 		ang[2] = 0;
 		ModelMatrix(cam_frame, ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_FRAME, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.frame, MODEL_FRAME), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1664,7 +1684,7 @@ namespace mercy200
 		Node24 *n = (Node24 *)tn;
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_node(ORIG_FrameModel, n);)
-		FrameModelDraw((const Mat4x3 *)CAM_FRAME, n, n->w1C, n->c >= 8, shl32(n->c - 8, 9));
+		FrameModelDraw((const Mat4x3 *)own::R(CAM_FRAME), n, n->w1C, n->c >= 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1698,7 +1718,7 @@ namespace mercy200
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_WAVERING;
+		*(uint32_t *)h = fxp::model(P().models.wavering, MODEL_WAVERING);
 		*(int32_t *)(h + 0xC) = fade;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -1741,7 +1761,7 @@ namespace mercy200
 		ang[2] = 0;
 		ang[1] = n->w1A;
 		ModelMatrix(&Camera(), ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_FLASH, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.flash, MODEL_FLASH), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1769,7 +1789,7 @@ namespace mercy200
 		ang[1] = ay;
 		ang[2] = 0;
 		ModelMatrix(&Camera(), ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_TRING, faded, fade);
+		uint8_t *h = ModelHeader(fxp::model(P().models.tring, MODEL_TRING), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1832,7 +1852,7 @@ namespace mercy200
 			h->fade = fade;
 			h->flags = 0xF3;
 		}
-		h->colour = At<uint32_t>(SHARD_COLOURS, 4 * p->a[0]);
+		h->colour = At<uint32_t>(fxp::data(P().tables.shard_colours, SHARD_COLOURS, 32, 4), 4 * p->a[0]);
 		PacketCursor() = RenderModel(h, RenderOT(), 2, PacketCursor());
 	}
 
@@ -1842,17 +1862,17 @@ namespace mercy200
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && n->c <= 0x10) ShardSpawn();
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
-		h->model = MODEL_SHARD;
+		h->model = fxp::model(P().models.shard, MODEL_SHARD);
 		*(uint32_t *)h->far_rgb = 0;
 		int32_t count = 0;
-		TransformCameraByShadowRotation((const void *)POINT, 0x1000, 0);
+		TransformCameraByShadowRotation((const void *)own::R(POINT), 0x1000, 0);
 		w->v[2] = 0x1000;
 		w->v[1] = 0x1000;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_TipShards, n, (const uint8_t *)h);)
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->type & 1)) continue;
@@ -1915,8 +1935,8 @@ namespace mercy200
 		d[2] = CrtRand() % 0x2000 - 0x1000;
 		Normalize(d, d);
 		const int32_t dist = CrtRand() % 0x28 + n10 + 0x14;
-		*(uint32_t *)&p->a[0] = var<uint32_t>(POINT);
-		*(uint32_t *)&p->a[2] = var<uint32_t>(POINT + 4);
+		*(uint32_t *)&p->a[0] = var<uint32_t>(own::R(POINT));
+		*(uint32_t *)&p->a[2] = var<uint32_t>(own::R(POINT) + 4);
 		p->a[0] = (int16_t)(p->a[0] + (int16_t)(mul32(d[0], dist) >> 12));
 		p->a[1] = (int16_t)(p->a[1] + (int16_t)(mul32(d[1], dist) >> 12));
 		p->a[2] = (int16_t)(p->a[2] + (int16_t)(mul32(d[2], dist) >> 12));
@@ -1943,11 +1963,11 @@ namespace mercy200
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 0x24) = 8;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_SPARKBURST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sparkburst, SEQ_SPARKBURST);
 		int32_t count = 0;
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_SparkBurst, n, h);)
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->type & 2)) continue;
@@ -2034,7 +2054,7 @@ namespace mercy200
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		memcpy(&w->m1, &rec->mat, sizeof(Mat4x3));
-		*(uint32_t *)h = MODEL_WAVETRAIL;
+		*(uint32_t *)h = fxp::model(P().models.wavetrail, MODEL_WAVETRAIL);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->m1.t[0] = 0;
@@ -2043,7 +2063,7 @@ namespace mercy200
 		ComposeAffineTransform(&Camera(), &w->m1, &w->m1);
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_WaveTrail, n, h);)
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->type != type) continue;
@@ -2105,12 +2125,12 @@ namespace mercy200
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 0x24) = 8;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_TSPARK;
+		*(uint32_t *)h = fxp::sequence(P().seqs.tspark, SEQ_TSPARK);
 		int32_t count = 0;
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_TargetSparks, n, h);)
 		const int32_t pull = -n->w18;
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->type != type) continue;
@@ -2184,11 +2204,11 @@ namespace mercy200
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_TBURST;
+		*(uint32_t *)h = fxp::sequence(P().seqs.tburst, SEQ_TBURST);
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(held_note_pool(ORIG_TargetBurst, n, h);)
 		const int32_t pull = -n->w18;
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->type != type) continue;
@@ -2212,7 +2232,7 @@ namespace mercy200
 	// ------------------------------------------------------------------
 	// Spawners (called by the director)
 	// ------------------------------------------------------------------
-	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
+	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), own::Fn(fn)); }   // (a copy: the port's thunk)
 
 	// 0x63A200: a task with counter / word +0xE cleared
 	static void AddCleared(uint32_t fn)
@@ -2227,7 +2247,7 @@ namespace mercy200
 	{
 		Node24 *t = AddMain(ORIG_Trail);
 		t->c = 0;
-		for (uint32_t a = RING; a < RING_END; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(RING); a < own::R(RING_END); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	// 0x63ACB0: the caster ring at the caster's anchor (y 0)
@@ -2247,9 +2267,9 @@ namespace mercy200
 	{
 		SlashPoint();
 		Node24 *t = AddMain(ORIG_TipFlash);
-		*(uint32_t *)&t->w10 = var<uint32_t>(POINT);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(POINT));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(POINT + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(POINT) + 4);
 		t->w18 = RandMask(0x3FF);
 		t->w1A = 0x28;
 		t->w1E = 0x180;
@@ -2293,14 +2313,14 @@ namespace mercy200
 	// points, 64 spline points, rotation), 4 WaveRings and a WaveTrail
 	static void AddShockWaves()
 	{
-		var<int16_t>(POINT) = -400;
-		var<int16_t>(POINT + 2) = -500;
-		var<int16_t>(POINT + 4) = -500;
-		MatVec((const Mat4x3 *)FRAME, (const int16_t *)POINT, (int16_t *)POINT);
-		const Mat4x3 *fr = (const Mat4x3 *)FRAME;
-		var<int16_t>(POINT) = (int16_t)(var<int16_t>(POINT) + (int16_t)fr->t[0]);
-		var<int16_t>(POINT + 2) = (int16_t)(var<int16_t>(POINT + 2) + (int16_t)fr->t[1]);
-		var<int16_t>(POINT + 4) = (int16_t)(var<int16_t>(POINT + 4) + (int16_t)fr->t[2]);
+		var<int16_t>(own::R(POINT)) = -400;
+		var<int16_t>(own::R(POINT) + 2) = -500;
+		var<int16_t>(own::R(POINT) + 4) = -500;
+		MatVec((const Mat4x3 *)own::R(FRAME), (const int16_t *)own::R(POINT), (int16_t *)own::R(POINT));
+		const Mat4x3 *fr = (const Mat4x3 *)own::R(FRAME);
+		var<int16_t>(own::R(POINT)) = (int16_t)(var<int16_t>(own::R(POINT)) + (int16_t)fr->t[0]);
+		var<int16_t>(own::R(POINT) + 2) = (int16_t)(var<int16_t>(own::R(POINT) + 2) + (int16_t)fr->t[1]);
+		var<int16_t>(own::R(POINT) + 4) = (int16_t)(var<int16_t>(own::R(POINT) + 4) + (int16_t)fr->t[2]);
 		ActionData *ad = Context()->actions;
 		if (ad->target_count == 0) return;
 		int32_t off = 0;
@@ -2310,11 +2330,11 @@ namespace mercy200
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(ad->targets[off]), pos);
 			int32_t v[3]; // (the 4th dword: the axis' / never written)
-			v[0] = (int32_t)pos[0] - var<int16_t>(POINT);
+			v[0] = (int32_t)pos[0] - var<int16_t>(own::R(POINT));
 			v[1] = 0;
-			v[2] = (int32_t)pos[2] - var<int16_t>(POINT + 4);
+			v[2] = (int32_t)pos[2] - var<int16_t>(own::R(POINT) + 4);
 			Normalize(v, v);
-			const uint32_t p0 = var<uint32_t>(POINT), p1 = var<uint32_t>(POINT + 4);
+			const uint32_t p0 = var<uint32_t>(own::R(POINT)), p1 = var<uint32_t>(own::R(POINT) + 4);
 			*(uint32_t *)&rec->p0[0] = p0;
 			*(uint32_t *)&rec->p0[2] = p1;
 			*(uint32_t *)&rec->p1[0] = *(const uint32_t *)&pos[0];
@@ -2449,10 +2469,46 @@ namespace mercy200
 	// ------------------------------------------------------------------
 	static void Sequence(int32_t seq) { QueueChainTransformation(Caster(), seq); }
 
+	// Setup (0x6391D0; the file loader is the engine's nullsub): the game runs its own; Fujin's programs this (its memory
+	// may be a copy's): the magic buffer, the cast, its first target and its caster, the root and the director, the
+	// particle pool freed, the exe's TIM, the caster's rotation words kept, his effect bone 0xF1, the targets' centre,
+	// the effect frame (the rotation from 0xE33D40 to the direction bone -> centre, at the bone on the ground) and his
+	// yaw: Seifer faces the targets
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Context() = ctx;
+		var<int32_t>(own::R(0x24F8D58)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x24F8D60), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(0x24F99A0), 0x24, 250);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL); a < own::R(BIND_OUT); a += 0x18) *(int32_t *)a = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_nomercy, TIM_NOMERCY));   // Battle_QueueTIMUpload_GetEOF
+		uint8_t *e = Caster();
+		var<uint32_t>(own::R(0x24F9950)) = *(const uint32_t *)(e + 0x10);
+		var<uint32_t>(own::R(0x24F9954)) = *(const uint32_t *)(e + 0x0C);
+		int16_t *bone = (int16_t *)own::R(0x24FBCD0), *centre = (int16_t *)own::R(0x24F9978);
+		fn<int32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, int16_t *)>(0x502170)(e, 0xF1, 0, bone);        // GetEffectSpawnPosition
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)((const uint8_t *)ctx + 2), centre); // CalculateCenterPosition
+		int32_t dir[4] = { centre[0] - bone[0], 0, centre[2] - bone[2], 0 };
+		NormalizeVector(dir, dir);
+		int32_t axis[4];
+		int32_t angle = RotationBetweenVectors((const int32_t *)REF_DIR, dir, axis);
+		BuildAxisAngleRotationMatrix(angle, (Mat4x3 *)own::R(FRAME), axis);
+		var<int32_t>(own::R(0x24F8DA4)) = bone[0];
+		var<int32_t>(own::R(0x24F8DA8)) = 0;
+		var<int32_t>(own::R(0x24F8DAC)) = bone[2];
+		if (axis[1] < 0) angle = -angle;
+		*(int16_t *)(e + 0x0E) = (int16_t)angle;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)FRAME, (Mat4x3 *)CAM_FRAME);
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)own::R(FRAME), (Mat4x3 *)own::R(CAM_FRAME));
 		const uint32_t fl = UpdateFlags();
 		if (fl & 0x201)
 		{
@@ -2463,7 +2519,7 @@ namespace mercy200
 		FX_HELD(held_note_director(n);)
 		if (n->c == 0)
 		{
-			CameraScriptStart(CAMERA_SCRIPT, FRAME, Caster(), QMain(), 0);
+			CameraScriptStart(CAMERA_SCRIPT, own::R(FRAME), Caster(), QMain(), 0);
 			ArmCameraReturn();
 		}
 		const int32_t c = n->c;
@@ -2471,12 +2527,12 @@ namespace mercy200
 		{
 			if (c == 6)
 			{
-				BdPlaySE(SOUND_A, 0, 0x80);
+				BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_A), 0, 0x80);
 				TargetsSequence5();
 			}
 			else if (c == 3)
 			{
-				BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+				BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 				Sequence(4);
 			}
 			else if (c == 4) AddFlameDirector();
@@ -2489,7 +2545,7 @@ namespace mercy200
 		{
 			switch (c)
 			{
-			case 0x23: BdPlaySE(SOUND_B, 0, 0x80); break;
+			case 0x23: BdPlaySE((const void *)fxp::sound(P().sounds.swing, (uint32_t)SOUND_B), 0, 0x80); break;
 			case 0x15: Sequence(1); AddTrail(); break;
 			case 0x1F: CharacterLoad(0x232, TexBase() + 0x1C000); break;
 			case 0x2D:
@@ -2536,7 +2592,7 @@ namespace mercy200
 				Sequence(6);
 				AddTargetBursts();
 			}
-			else if (c == 0x8D)
+			else if (c == P().director.damage)
 			{
 				ActionData *ad = Context()->actions;
 				ApplyActionResultToTargets(ad->targets, ad->target_count);
@@ -2563,7 +2619,7 @@ namespace mercy200
 		const int alive = ExecuteTaskQueue(QMain());
 		if (!alive)
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_Restore);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Restore));
 			t->c = 0;
 			t->e = 0;
 		}
@@ -2580,35 +2636,94 @@ namespace mercy200
 		r->c++;
 		return done ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Seifer's No Mercy: the camera script, his animation set and sequences, the flames, sparks and embers, the targets' sequences, the gunblade's trail, the caster ring, the tip flash and shards, the slashes, the spark burst, the frame model and the shock waves, the impact flashes and target bursts, the screen flash and fade, the sounds; the action results" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the director's ticks 6 and 0x23" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start", "At the director's tick 6", (uint32_t)offsetof(NoMercyParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.swing", "Swing", "At the director's tick 0x23", (uint32_t)offsetof(NoMercyParams, sounds.swing), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The action results at this tick of the director", (uint32_t)offsetof(NoMercyParams, director.damage), fxp::I16, 0, 173 },
+			{ "director", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.flame_glow", "Flame glow", "The sprite sequence flame glow (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.flame_glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.sparkburst", "Sparkburst", "The sprite sequence sparkburst (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.sparkburst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.tspark", "Tspark", "The sprite sequence tspark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.tspark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.tburst", "Tburst", "The sprite sequence tburst (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(NoMercyParams, seqs.tburst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 96 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 195 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slash_b", "Slash b model", "The prim model slash b (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.slash_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.slash_a", "Slash a model", "The prim model slash a (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.slash_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.frame", "Frame model", "The prim model frame (a mesh of 144 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.frame), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wavering", "Wavering model", "The prim model wavering (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.wavering), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.tring", "Tring model", "The prim model tring (a mesh of 60 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.tring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 70 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wavetrail", "Wavetrail model", "The prim model wavetrail (a mesh of 27 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(NoMercyParams, models.wavetrail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.tim_nomercy", "TIM image nomercy", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(NoMercyParams, res.tim_nomercy), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(NoMercyParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "director", "tables.shard_colours", "Shard colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(NoMercyParams, tables.shard_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag200_no_mercy()
 	{
-		using namespace mercy200;
-		register_port(ORIG_Root, (void *)RootTask, "200 Root", 200);
-		register_port(ORIG_Director, (void *)DirectorTask, "200 Director", 200);
-		register_port(ORIG_FlameMulti, (void *)FlameMultiTask, "200 FlameDirectorMulti", 200);
-		register_port(ORIG_FlameSingle, (void *)FlameSingleTask, "200 FlameDirectorSingle", 200);
-		register_port(ORIG_Flame, (void *)FlameTask, "200 Flame", 200);
-		register_port(ORIG_Spark, (void *)SparkTask, "200 Spark", 200);
-		register_port(ORIG_Ember, (void *)EmberTask, "200 Ember", 200);
-		register_port(ORIG_Trail, (void *)TrailTask, "200 Trail", 200);
-		register_port(ORIG_CasterRing, (void *)CasterRingTask, "200 CasterRing", 200);
-		register_port(ORIG_TipFlash, (void *)TipFlashTask, "200 TipFlash", 200);
-		register_port(ORIG_TipShards, (void *)TipShardsTask, "200 TipShards", 200);
-		register_port(ORIG_Slash, (void *)SlashTask, "200 Slash", 200);
-		register_port(ORIG_SparkBurst, (void *)SparkBurstTask, "200 SparkBurst", 200);
-		register_port(ORIG_FrameModel, (void *)FrameModelTask, "200 FrameModel", 200);
-		register_port(ORIG_WaveRing, (void *)WaveRingTask, "200 WaveRing", 200);
-		register_port(ORIG_WaveTrail, (void *)WaveTrailTask, "200 WaveTrail", 200);
-		register_port(ORIG_ImpactFlash, (void *)ImpactFlashTask, "200 ImpactFlash", 200);
-		register_port(ORIG_TargetSparks, (void *)TargetSparksTask, "200 TargetSparks", 200);
-		register_port(ORIG_TargetBurst, (void *)TargetBurstTask, "200 TargetBurst", 200);
-		register_port(ORIG_TargetRing, (void *)TargetRingTask, "200 TargetRing", 200);
-		register_port(ORIG_Restore, (void *)RestoreTask, "200 Restore", 200);
+		fxp::register_params({ 200, "No Mercy", &mercy200::live, &mercy200::GAME, sizeof(mercy200::NoMercyParams),
+		                       mercy200::table::PARTS, (int)(sizeof(mercy200::table::PARTS) / sizeof(mercy200::table::PARTS[0])),
+		                       mercy200::table::FIELDS, (int)(sizeof(mercy200::table::FIELDS) / sizeof(mercy200::table::FIELDS[0])),
+		                       mercy200::table::GROUPS, (int)(sizeof(mercy200::table::GROUPS) / sizeof(mercy200::table::GROUPS[0])) });
+		own::note(mercy200::ORIG_Setup, (void *)mercy200::Setup);
+		own::note(mercy200::ORIG_Root, (void *)mercy200::RootTask);
+		register_port(mercy200::ORIG_Root, (void *)mercy200::RootTask, "200 Root", 200);
+		own::note(mercy200::ORIG_Director, (void *)mercy200::DirectorTask);
+		register_port(mercy200::ORIG_Director, (void *)mercy200::DirectorTask, "200 Director", 200);
+		own::note(mercy200::ORIG_FlameMulti, (void *)mercy200::FlameMultiTask);
+		register_port(mercy200::ORIG_FlameMulti, (void *)mercy200::FlameMultiTask, "200 FlameDirectorMulti", 200);
+		own::note(mercy200::ORIG_FlameSingle, (void *)mercy200::FlameSingleTask);
+		register_port(mercy200::ORIG_FlameSingle, (void *)mercy200::FlameSingleTask, "200 FlameDirectorSingle", 200);
+		own::note(mercy200::ORIG_Flame, (void *)mercy200::FlameTask);
+		register_port(mercy200::ORIG_Flame, (void *)mercy200::FlameTask, "200 Flame", 200);
+		own::note(mercy200::ORIG_Spark, (void *)mercy200::SparkTask);
+		register_port(mercy200::ORIG_Spark, (void *)mercy200::SparkTask, "200 Spark", 200);
+		own::note(mercy200::ORIG_Ember, (void *)mercy200::EmberTask);
+		register_port(mercy200::ORIG_Ember, (void *)mercy200::EmberTask, "200 Ember", 200);
+		own::note(mercy200::ORIG_Trail, (void *)mercy200::TrailTask);
+		register_port(mercy200::ORIG_Trail, (void *)mercy200::TrailTask, "200 Trail", 200);
+		own::note(mercy200::ORIG_CasterRing, (void *)mercy200::CasterRingTask);
+		register_port(mercy200::ORIG_CasterRing, (void *)mercy200::CasterRingTask, "200 CasterRing", 200);
+		own::note(mercy200::ORIG_TipFlash, (void *)mercy200::TipFlashTask);
+		register_port(mercy200::ORIG_TipFlash, (void *)mercy200::TipFlashTask, "200 TipFlash", 200);
+		own::note(mercy200::ORIG_TipShards, (void *)mercy200::TipShardsTask);
+		register_port(mercy200::ORIG_TipShards, (void *)mercy200::TipShardsTask, "200 TipShards", 200);
+		own::note(mercy200::ORIG_Slash, (void *)mercy200::SlashTask);
+		register_port(mercy200::ORIG_Slash, (void *)mercy200::SlashTask, "200 Slash", 200);
+		own::note(mercy200::ORIG_SparkBurst, (void *)mercy200::SparkBurstTask);
+		register_port(mercy200::ORIG_SparkBurst, (void *)mercy200::SparkBurstTask, "200 SparkBurst", 200);
+		own::note(mercy200::ORIG_FrameModel, (void *)mercy200::FrameModelTask);
+		register_port(mercy200::ORIG_FrameModel, (void *)mercy200::FrameModelTask, "200 FrameModel", 200);
+		own::note(mercy200::ORIG_WaveRing, (void *)mercy200::WaveRingTask);
+		register_port(mercy200::ORIG_WaveRing, (void *)mercy200::WaveRingTask, "200 WaveRing", 200);
+		own::note(mercy200::ORIG_WaveTrail, (void *)mercy200::WaveTrailTask);
+		register_port(mercy200::ORIG_WaveTrail, (void *)mercy200::WaveTrailTask, "200 WaveTrail", 200);
+		own::note(mercy200::ORIG_ImpactFlash, (void *)mercy200::ImpactFlashTask);
+		register_port(mercy200::ORIG_ImpactFlash, (void *)mercy200::ImpactFlashTask, "200 ImpactFlash", 200);
+		own::note(mercy200::ORIG_TargetSparks, (void *)mercy200::TargetSparksTask);
+		register_port(mercy200::ORIG_TargetSparks, (void *)mercy200::TargetSparksTask, "200 TargetSparks", 200);
+		own::note(mercy200::ORIG_TargetBurst, (void *)mercy200::TargetBurstTask);
+		register_port(mercy200::ORIG_TargetBurst, (void *)mercy200::TargetBurstTask, "200 TargetBurst", 200);
+		own::note(mercy200::ORIG_TargetRing, (void *)mercy200::TargetRingTask);
+		register_port(mercy200::ORIG_TargetRing, (void *)mercy200::TargetRingTask, "200 TargetRing", 200);
+		own::note(mercy200::ORIG_Restore, (void *)mercy200::RestoreTask);
+		register_port(mercy200::ORIG_Restore, (void *)mercy200::RestoreTask, "200 Restore", 200);
 		// 30 fps layer: see mag200_no_mercy_held.inc
 		FX_HELD(register_mag200_held();)
 	}
+	FX_LAB_MODULE(register_mag200_no_mercy);
 }
 
 #ifdef FF8_FX_HELD

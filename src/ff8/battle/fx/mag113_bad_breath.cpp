@@ -43,8 +43,14 @@
 // the main pool (+ 0x10B4), the morph vertex buffer (+ 0x11B8) and the packet arenas are in the
 // magic buffer. The overlay draws into the frame arena (battle_texture_data_ptr 0x1D8E054) with
 // the battle's bone workspace as its vertex buffer.
+// Fujin's described Bad Breath (effect_113.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BreathParams: the sound, the
+// targets' damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -54,13 +60,15 @@ namespace badbreath113
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2521870); }         // the caster's entity
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521878); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x252187C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521894); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521898; }         // pool: magic buffer, 3 x 0xFC
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25218A8; }       // pool: + 0x2F4, 0x50 x 0x2C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25218B8; }            // pool: + 0x10B4, 1 x 0x104
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2521870)); }         // the caster's entity
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2521878)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x252187C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2521894)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2521874)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25218C8); }             // 1 x 0x14
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2521898); }         // pool: magic buffer, 3 x 0xFC
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x25218A8); }       // pool: + 0x2F4, 0x50 x 0x2C
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25218B8); }            // pool: + 0x10B4, 1 x 0x104
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // overlay vertex buffer
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -77,6 +85,23 @@ namespace badbreath113
 	static const uint32_t ZERO_Vector = 0x25218D8;       // module global, never written (0, 0, 0)
 	static const uint32_t WAVE_Table = 0x12C1604;        // s16 [4096]
 	static const void *const SOUND_BadBreath = (const void *)0x12C1600;
+	static const uint32_t ORIG_FileLoader = 0x6CAC30, ORIG_Setup = 0x6CAC20;
+	static const uint32_t TEXTURE_NAME = 0x12C360C, CAMERA = 0x12C1590;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BreathParams
+	{
+		uint32_t sound;                    // at the breath's tick 0 (3D, at the caster)
+		struct { int16_t damage; } target; // the damage at this tick of a target's task
+		struct { uint32_t cloud; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t stream, rise, spray; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const BreathParams GAME = { 0x12C1600, { 0x1B }, { MODEL_Cloud }, { SEQ_Stream, SEQ_Rise, SEQ_Spray }, { TEXTURE_NAME, CAMERA } };
+	static BreathParams live = GAME;
+	static const BreathParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
@@ -428,7 +453,7 @@ namespace badbreath113
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		GteLoadV0((const void *)ZERO_Vector);
+		GteLoadV0((const void *)own::R(ZERO_Vector));
 		GteRTPS();
 		GteReadSXY2(h + 0x7C);
 		GteReadOTZ(h + 0x88);
@@ -498,7 +523,7 @@ namespace badbreath113
 	static void ParticleDraw(const ParticleNode *p)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		if (p->seq == SEQ_Stream && p->counter < 4) TransformCameraByShadowRotation(p->pos, p->scale, 0);
+		if (p->seq == fxp::sequence(P().seqs.stream, SEQ_Stream) && p->counter < 4) TransformCameraByShadowRotation(p->pos, p->scale, 0);
 		else TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->rot >> 2));
 		F<uint32_t>(h, 0) = p->seq;
 		F<int16_t>(h, 4) = p->counter;
@@ -520,7 +545,7 @@ namespace badbreath113
 
 	static ParticleNode *NewParticle()
 	{
-		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 		if (p) Memset32(&p->counter, 0, 8);
 		return p;
 	}
@@ -569,7 +594,7 @@ namespace badbreath113
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] << 2));
 				p->vel[1] = (int16_t)(-0x20 - (r & 0x1F));
 				const int32_t r2 = CrtRand();
-				p->seq = SEQ_Rise;
+				p->seq = fxp::sequence(P().seqs.rise, SEQ_Rise);
 				// y = rand * y, signed division by the magic 0x57619F1 (>> 41)
 				const int32_t prod = mul32(r2, p->pos[1]);
 				int32_t q = (int32_t)(((int64_t)prod * 0x57619F1) >> 32) >> 9;
@@ -603,7 +628,7 @@ namespace badbreath113
 			prim::play((prim::Layout *)t->cloud, PartCallback, (int)&arg, 0);
 		}
 		else *(uint16_t *)entity &= 0xFFFB;
-		if (t->counter == 0x1B) DamageEntity(entity);
+		if (t->counter == P().target.damage) DamageEntity(entity);
 		t->counter++;
 		return t->counter <= 0x26 ? 0 : TASK_END;
 	}
@@ -650,11 +675,11 @@ namespace badbreath113
 			{
 				if (m->mask & 1)
 				{
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 					if (t)
 					{
 						Memset32(&t->counter, 0, 0x3C);
-						DecodeModelPrimLayout(MODEL_Cloud, t->cloud, 0xEC);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.cloud, MODEL_Cloud, 0xEC), t->cloud, 0xEC);
 						t->slot = (int16_t)(uint16_t)m->slot;
 					}
 				}
@@ -674,7 +699,7 @@ namespace badbreath113
 				p->vel[1] = (int16_t)((r1 & 0x3F) + ((int32_t)m->pos[1] - sp[1]) / 16 - 0x20);
 				const int32_t r2 = CrtRand();
 				const int32_t vz = (r2 & 0x3F) + ((int32_t)m->pos[2] - sp[2]) / 16 - 0x20;
-				p->seq = SEQ_Stream;
+				p->seq = fxp::sequence(P().seqs.stream, SEQ_Stream);
 				p->end = 0x14;
 				p->rot = 0x800;
 				p->vel[2] = (int16_t)vz;
@@ -700,7 +725,7 @@ namespace badbreath113
 				q->acc[0] = (int16_t)(-(int32_t)q->vel[0] >> 4);
 				q->acc[2] = (int16_t)(-(int32_t)q->vel[2] >> 4);
 				q->acc[1] = (int16_t)(-(int32_t)q->vel[1] >> 4);
-				q->seq = SEQ_Spray;
+				q->seq = fxp::sequence(P().seqs.spray, SEQ_Spray);
 				q->end = 0xE;
 				const int32_t r = CrtRand();
 				q->rot = 0;
@@ -723,7 +748,7 @@ namespace badbreath113
 				p->acc[2] = 0;
 				p->acc[1] = 0;
 				p->acc[0] = 0;
-				p->seq = SEQ_Spray;
+				p->seq = fxp::sequence(P().seqs.spray, SEQ_Spray);
 				p->end = 0xE;
 				const int16_t s = (int16_t)((CrtRand() >> 4) + 0x800);
 				p->scale = s;
@@ -734,7 +759,7 @@ namespace badbreath113
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
-			BdPlaySE3D(SOUND_BadBreath, 0x100, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_BadBreath), 0x100, pos);
 		}
 		if (m->counter >= 0x3B) return TASK_END;
 		m->counter++;
@@ -744,6 +769,26 @@ namespace badbreath113
 	// ------------------------------------------------------------------
 	// Root task (0x6CACD0)
 	// ------------------------------------------------------------------
+	// File loader (0x6CAC30) and setup (0x6CAC20 -> 0x6CAC50): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the root, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2521880), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -765,7 +810,7 @@ namespace badbreath113
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + 0x10B4), 0x104, 1);
 			InitTaskQueuePool(QParticles(), (void *)(TexBase() + 0x2F4), 0x2C, 0x50);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0xFC, 3);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x3E);
@@ -784,17 +829,45 @@ namespace badbreath113
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "breath", "Breath", "The breath from the caster's mouth: puffs towards the swinging aim point and the spray, then a target task a party target: the rising cloud, the target swayed, the cloud layout, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "breath", "sound", "Sound", "", (uint32_t)offsetof(BreathParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "breath", "target.damage", "Damage tick", "The damage at this tick of a target's task", (uint32_t)offsetof(BreathParams, target.damage), fxp::I16, 0, 37 },
+			{ "breath", "layouts.cloud", "Cloud", "The prim-model layout cloud (its models' animation)", (uint32_t)offsetof(BreathParams, layouts.cloud), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "breath", "seqs.stream", "Stream", "The sprite sequence stream (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.stream), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "breath", "seqs.rise", "Rise", "The sprite sequence rise (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.rise), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "breath", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "breath", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BreathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "breath", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BreathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag113_bad_breath()
 	{
+		fxp::register_params({ 113, "Bad Breath", &badbreath113::live, &badbreath113::GAME, sizeof(badbreath113::BreathParams),
+		                       badbreath113::table::PARTS, (int)(sizeof(badbreath113::table::PARTS) / sizeof(badbreath113::table::PARTS[0])),
+		                       badbreath113::table::FIELDS, (int)(sizeof(badbreath113::table::FIELDS) / sizeof(badbreath113::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(badbreath113::ORIG_FileLoader, (void *)badbreath113::FileLoader);
+		own::note(badbreath113::ORIG_Setup, (void *)badbreath113::Setup);
+		own::note(badbreath113::ORIG_RootTask, (void *)badbreath113::RootTask);
 		register_port(badbreath113::ORIG_RootTask, (void *)badbreath113::RootTask, "113 RootTask", 113);
+		own::note(badbreath113::ORIG_MainTask, (void *)badbreath113::MainTask);
 		register_port(badbreath113::ORIG_MainTask, (void *)badbreath113::MainTask, "113 MainTask", 113);
+		own::note(badbreath113::ORIG_ParticleTask, (void *)badbreath113::ParticleTask);
 		register_port(badbreath113::ORIG_ParticleTask, (void *)badbreath113::ParticleTask, "113 ParticleTask", 113);
+		own::note(badbreath113::ORIG_TargetTask, (void *)badbreath113::TargetTask);
 		register_port(badbreath113::ORIG_TargetTask, (void *)badbreath113::TargetTask, "113 TargetTask", 113);
 		// 30 fps layer: see mag113_bad_breath_held.inc
 		FX_HELD(register_mag113_held();)
 	}
+	FX_LAB_MODULE(register_mag113_bad_breath);
 }
 
 #ifdef FF8_FX_HELD

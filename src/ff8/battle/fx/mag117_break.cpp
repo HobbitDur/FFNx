@@ -44,8 +44,14 @@
 // (+0x4AF0), the cut model's projected vertices (+0x4CF0), the dither table (+0x5CF0) and the packet
 // arenas are in the magic buffer. The target draws into the frame arena (battle_texture_data_ptr
 // 0x1D8E054) with the battle's bone workspace (0x1D98B3C) as its vertex buffer.
+// Fujin's described Break (effect_117.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BreakParams: the sound, the
+// status tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -55,13 +61,15 @@ namespace break117
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521654); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521658); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521674); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521678; }          // pool: magic buffer, 0x20 x 0x28
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2521688; }          // pool: + 0x500, 0x1E x 0x30
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521698; }         // pool: + 0xAA0, 3 x 0x1570
-	inline Mat4x3 *EffectCamera() { return (Mat4x3 *)0x25216B8; }          // camera composed with the effect frame
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2521654)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2521658)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2521674)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2521650)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25216A8); }             // 1 x 0x14
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2521678); }          // pool: magic buffer, 0x20 x 0x28
+	inline TaskQueue *QDebris() { return (TaskQueue *)own::R(0x2521688); }          // pool: + 0x500, 0x1E x 0x30
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2521698); }         // pool: + 0xAA0, 3 x 0x1570
+	inline Mat4x3 *EffectCamera() { return (Mat4x3 *)own::R(0x25216B8); }          // camera composed with the effect frame
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // target model vertex buffer
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -74,6 +82,24 @@ namespace break117
 	static const uint32_t MODEL_Debris = 0x1297928;
 	static const uint32_t SEQ_Spark = 0x1297B00;
 	static const void *const SOUND_Break = (const void *)0x1298C58;
+	static const uint32_t ORIG_FileLoader = 0x6C16B0, ORIG_Setup = 0x6C16A0;
+	static const uint32_t TEXTURE_NAME = 0x1298C5C, CAMERA = 0x1297C78;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BreakParams
+	{
+		uint32_t sound;                    // at the target task's tick 0 (3D, at the anchor)
+		struct { int16_t status; } target; // the status (the action's result) at this tick of the target task
+		struct { uint32_t shell; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t debris; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const BreakParams GAME = { 0x1298C58, { 0x4E }, { MODEL_Shell }, { SEQ_Spark }, { MODEL_Debris }, { TEXTURE_NAME, CAMERA } };
+	static BreakParams live = GAME;
+	static const BreakParams &P() { return live; }
 	static const uint32_t STONE_TPage = 0xB8, STONE_Clut = 0x3D54;
 	static const uint32_t BUF_Morph = 0x4AF0, BUF_Proj = 0x4CF0, BUF_Dither = 0x5CF0; // magic buffer offsets
 
@@ -854,7 +880,7 @@ namespace break117
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().model_data.debris, MODEL_Debris);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
@@ -882,7 +908,7 @@ namespace break117
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0x1000, (int32_t)0xFFFFFC00);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -984,13 +1010,13 @@ namespace break117
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(t->entity, pos);
-			BdPlaySE3D(SOUND_Break, 0x101, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Break), 0x101, pos);
 		}
 		// debris every other tick over 50..79, falling from above the target
 		const int32_t e3 = t->counter - 0x32;
 		if ((uint32_t)e3 < 0x1E && !(e3 & 1))
 		{
-			DebrisNode *d = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+			DebrisNode *d = (DebrisNode *)AddTaskToQueue(QDebris(), own::Fn(ORIG_DebrisTask));
 			if (d)
 			{
 				Memset32(&d->counter, 0, 9);
@@ -1015,7 +1041,7 @@ namespace break117
 		// a spark every tick over 50..69, out from the anchor, slowing down
 		if ((uint32_t)(t->counter - 0x32) < 0x14)
 		{
-			SparkNode *p = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			SparkNode *p = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 			if (p)
 			{
 				Memset32(&p->frame, 0, 7);
@@ -1033,7 +1059,7 @@ namespace break117
 				p->pos[1] = t->pos[1];
 			}
 		}
-		if (t->counter == 0x4E) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
+		if (t->counter == P().target.status) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
 		if (t->counter >= 0x54) return TASK_END;
 		t->counter++;
 		return 0;
@@ -1042,6 +1068,28 @@ namespace break117
 	// ------------------------------------------------------------------
 	// Root task (0x6C1740)
 	// ------------------------------------------------------------------
+	// File loader (0x6C16B0) and setup (0x6C16A0 -> 0x6C16D0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast, the root, the camera and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2521660), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1085,7 +1133,7 @@ namespace break117
 				if (busy) r->counter = 0;
 				else
 				{
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 					if (t)
 					{
 						Memset32(&t->counter, 0, 0x559);
@@ -1093,7 +1141,7 @@ namespace break117
 						t->entity = entity;
 						GetEffectSpawnPosition(entity, 0xF1, 0, t->pos);
 						t->pos[1] = *(const int16_t *)(entity + 0x24);
-						DecodeModelPrimLayout(MODEL_Shell, t->layout, 0x1554);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.shell, MODEL_Shell, 0x1554), t->layout, 0x1554);
 						r->action++;
 					}
 				}
@@ -1113,17 +1161,44 @@ namespace break117
 		if (r->counter >= 0x14) r->counter = 0;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "target", "Target", "One target task an action on its first target: the stone shell's prim-model play, the target drawn turning to stone, the debris and sparks, the sound; the status" },
+		};
+		static const Field FIELDS[] = {
+			{ "target", "sound", "Sound", "", (uint32_t)offsetof(BreakParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "target.status", "Status tick", "The status (the action's result) at this tick of the target task", (uint32_t)offsetof(BreakParams, target.status), fxp::I16, 0, 83 },
+			{ "target", "layouts.shell", "Shell", "The prim-model layout shell (its models' animation)", (uint32_t)offsetof(BreakParams, layouts.shell), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BreakParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "model_data.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreakParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BreakParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BreakParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag117_break()
 	{
+		fxp::register_params({ 117, "Break", &break117::live, &break117::GAME, sizeof(break117::BreakParams),
+		                       break117::table::PARTS, (int)(sizeof(break117::table::PARTS) / sizeof(break117::table::PARTS[0])),
+		                       break117::table::FIELDS, (int)(sizeof(break117::table::FIELDS) / sizeof(break117::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(break117::ORIG_FileLoader, (void *)break117::FileLoader);
+		own::note(break117::ORIG_Setup, (void *)break117::Setup);
+		own::note(break117::ORIG_RootTask, (void *)break117::RootTask);
 		register_port(break117::ORIG_RootTask, (void *)break117::RootTask, "B117 RootTask", 117);
+		own::note(break117::ORIG_TargetTask, (void *)break117::TargetTask);
 		register_port(break117::ORIG_TargetTask, (void *)break117::TargetTask, "B117 TargetTask", 117);
+		own::note(break117::ORIG_DebrisTask, (void *)break117::DebrisTask);
 		register_port(break117::ORIG_DebrisTask, (void *)break117::DebrisTask, "B117 DebrisTask", 117);
+		own::note(break117::ORIG_SparkTask, (void *)break117::SparkTask);
 		register_port(break117::ORIG_SparkTask, (void *)break117::SparkTask, "B117 SparkTask", 117);
 		// 30 fps layer: see mag117_break_held.inc
 		FX_HELD(register_mag117_held();)
 	}
+	FX_LAB_MODULE(register_mag117_break);
 }
 
 #ifdef FF8_FX_HELD

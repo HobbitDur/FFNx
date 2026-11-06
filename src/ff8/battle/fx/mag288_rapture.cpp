@@ -52,6 +52,9 @@
 // the GTE VZ0 / R33 high halves; the feather / sparkle headers keep the Field_Alloc scratch, as the port allocates the same way).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -61,12 +64,14 @@ namespace rapture288
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507C44); }
-	inline TaskQueue *QSparkle() { return (TaskQueue *)0x2507C48; }      // pool: magic buffer + 0x1F80, 0x30 x 0x14
-	inline TaskQueue *QFeather() { return (TaskQueue *)0x2507C58; }      // pool: magic buffer + 0x18C0, 0x30 x 0x24
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2507C68; }       // pool: magic buffer + 0, 6 x 0x420
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507CA0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507CA4); }      // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507C44)); }
+	inline TaskQueue *QSparkle() { return (TaskQueue *)own::R(0x2507C48); }      // pool: magic buffer + 0x1F80, 0x30 x 0x14
+	inline TaskQueue *QFeather() { return (TaskQueue *)own::R(0x2507C58); }      // pool: magic buffer + 0x18C0, 0x30 x 0x24
+	inline TaskQueue *QTarget() { return (TaskQueue *)own::R(0x2507C68); }       // pool: magic buffer + 0, 6 x 0x420
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507CA0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507C40)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2507C78); }             // 1 x 0x18
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507CA4)); }      // Magic_TextureOFF (magic buffer)
 
 	static const uint32_t ORIG_RootTask = 0x679290;
 	static const uint32_t ORIG_TargetTask = 0x679510;
@@ -77,6 +82,24 @@ namespace rapture288
 	static const uint32_t FEATHER_MODEL = 0x10747B0;
 	static const uint32_t SEQUENCE = 0x1074658;   // sparkle sequence
 	static const void *const SOUND = (const void *)0x1078970;
+	static const uint32_t ORIG_FileLoader = 0x679200, ORIG_Setup = 0x6791F0;
+	static const uint32_t TEXTURE_NAME = 0x1078998, CAMERA_ANIM = 0x10787F0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct RaptureParams
+	{
+		uint32_t sound;   // each target task's counter 0
+		struct { uint32_t a, b; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t sequence; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t feather; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const RaptureParams GAME = { 0x1078970, { LAYOUT_A, LAYOUT_B }, { SEQUENCE }, { FEATHER_MODEL }, { TEXTURE_NAME, CAMERA_ANIM }, { 0x1078980 } };
+	static RaptureParams live = GAME;
+	static const RaptureParams &P() { return live; }
 	static const uint32_t DEPTH_VEC = 0x1078978;  // 3 x int16: the layout B depth probe
 	static const uint32_t COLOURS = 0x1078980;    // the flash colour table (4-byte entries)
 	static const uint32_t ARENA_A = 0x2460;        // magic buffer: packet arenas
@@ -297,7 +320,7 @@ namespace rapture288
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = FEATHER_MODEL;
+		*(uint32_t *)h = fxp::model(P().model_data.feather, FEATHER_MODEL);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -306,7 +329,7 @@ namespace rapture288
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(s->pos, 0x1000, -0x400);
-		*(uint32_t *)h = SEQUENCE;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sequence, SEQUENCE);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -339,6 +362,25 @@ namespace rapture288
 	// ------------------------------------------------------------------
 	// Sparkle (0x679D90): sequence frame = counter at the point, rising, 12 frames
 	// ------------------------------------------------------------------
+	// File loader (0x679200) and setup (0x6791F0 -> 0x679220): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the TIM, the magic buffer, the cast, the root (it sets up the rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2507C88), 0x18, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 3);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
@@ -394,7 +436,7 @@ namespace rapture288
 			{
 				for (int k = 0; k < 2; k++)
 				{
-					FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeather(), ORIG_FeatherTask);
+					FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeather(), own::Fn(ORIG_FeatherTask));
 					if (!f) continue;
 					f->counter = 0;
 					f->scale = (int16_t)((CrtRand() & 0x7FF) + 0x800);
@@ -423,10 +465,10 @@ namespace rapture288
 			arg.morph = TexBase() + MORPH;
 			prim::play((prim::Layout *)t->layout_b, PrimCallback, (int)&arg, 0);
 		}
-		if (c == 0) BdPlaySE(SOUND, 0, 0x80);
+		if (c == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 		if ((uint32_t)c < 0x10 && !(c & 1))
 		{
-			SparkleNode *p = (SparkleNode *)AddTaskToQueue(QSparkle(), ORIG_SparkleTask);
+			SparkleNode *p = (SparkleNode *)AddTaskToQueue(QSparkle(), own::Fn(ORIG_SparkleTask));
 			if (p)
 			{
 				const int32_t a = CrtRand();
@@ -493,7 +535,7 @@ namespace rapture288
 			}
 			if (r->next < Ctx()->actions[0].target_count)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), own::Fn(ORIG_TargetTask));
 				if (t)
 				{
 					Memset32((uint8_t *)t + 0xC, 0, 0x105);
@@ -501,8 +543,8 @@ namespace rapture288
 					t->entity = Entity(rec[0]);
 					t->flag = rec[3] & 4;
 					t->saved_y = S16(t->entity, 0x1E);
-					DecodeModelPrimLayout(LAYOUT_A, t->layout_a, 0xFC);
-					DecodeModelPrimLayout(LAYOUT_B, t->layout_b, 0x30C);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.a, LAYOUT_A, 0xFC), t->layout_a, 0xFC);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.b, LAYOUT_B, 0x30C), t->layout_b, 0x30C);
 				}
 				r->next++;
 			}
@@ -519,7 +561,7 @@ namespace rapture288
 			const uint32_t q = mulhi_u(x, 0xBACF914Du);
 			const uint32_t w = (((x - q) >> 1) + q) >> 6;
 			const int32_t idx = (int32_t)w >> 12, frac = (int32_t)(w & 0xFFF);
-			BlendColour((const void *)(COLOURS + idx * 4), (const void *)(COLOURS + 4 + idx * 4), 0x1000 - frac, frac, &colour);
+			BlendColour((const void *)(fxp::data(P().tables.colours, COLOURS, 24, 4) + idx * 4), (const void *)(fxp::data(P().tables.colours, COLOURS, 24, 4) + 4 + idx * 4), 0x1000 - frac, frac, &colour);
 		}
 		int a;
 		if (r->started)
@@ -540,17 +582,45 @@ namespace rapture288
 		r->ticks++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "target", "Target", "Every 10 ticks the next target: its feathers, wings layouts, sparkles, rising away (or bouncing), the sound; the screen flash; its action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "target", "sound", "Sound", "Each target task's counter 0", (uint32_t)offsetof(RaptureParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "target", "layouts.a", "A", "The prim-model layout a (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(RaptureParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "seqs.sequence", "Sequence", "The sprite sequence sequence (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(RaptureParams, seqs.sequence), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "target", "model_data.feather", "Feather model", "The prim model feather (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RaptureParams, model_data.feather), fxp::Model, 0, 0x7FFFFFFF },
+			{ "target", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RaptureParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "target", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RaptureParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "target", "tables.colours", "Colours", "The colours it blends through (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(RaptureParams, tables.colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag288_rapture()
 	{
+		fxp::register_params({ 288, "Rapture", &rapture288::live, &rapture288::GAME, sizeof(rapture288::RaptureParams),
+		                       rapture288::table::PARTS, (int)(sizeof(rapture288::table::PARTS) / sizeof(rapture288::table::PARTS[0])),
+		                       rapture288::table::FIELDS, (int)(sizeof(rapture288::table::FIELDS) / sizeof(rapture288::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(rapture288::ORIG_FileLoader, (void *)rapture288::FileLoader);
+		own::note(rapture288::ORIG_Setup, (void *)rapture288::Setup);
+		own::note(rapture288::ORIG_RootTask, (void *)rapture288::RootTask);
 		register_port(rapture288::ORIG_RootTask, (void *)rapture288::RootTask, "288 RootTask", 288);
+		own::note(rapture288::ORIG_TargetTask, (void *)rapture288::TargetTask);
 		register_port(rapture288::ORIG_TargetTask, (void *)rapture288::TargetTask, "288 TargetTask", 288);
+		own::note(rapture288::ORIG_FeatherTask, (void *)rapture288::FeatherTask);
 		register_port(rapture288::ORIG_FeatherTask, (void *)rapture288::FeatherTask, "288 FeatherTask", 288);
+		own::note(rapture288::ORIG_SparkleTask, (void *)rapture288::SparkleTask);
 		register_port(rapture288::ORIG_SparkleTask, (void *)rapture288::SparkleTask, "288 SparkleTask", 288);
 		// 30 fps layer: see mag288_rapture_held.inc
 		FX_HELD(register_mag288_held();)
 	}
+	FX_LAB_MODULE(register_mag288_rapture);
 }
 
 #ifdef FF8_FX_HELD

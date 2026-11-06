@@ -30,8 +30,14 @@
 
 namespace ff8fx
 {
-namespace echoscreen295
+namespace echo295
 {
+	using namespace statusitem;
+	using Item = StatusItem<LAYOUT>;
+	static constexpr uint32_t ORIG_PlayTask = LAYOUT.play;
+	static inline uint32_t &PacketCursor() { return Item::PacketCursor(); }
+	static inline Mat4x3 &ModMatrix() { return var<Mat4x3>(LAYOUT.camera_matrix); }
+
 	static const uint32_t SCRATCH = 0x400;
 	static const uint32_t ARENA = 0x10000;  // module packet arena per tick
 
@@ -86,15 +92,18 @@ namespace echoscreen295
 		{
 			const Rec &r = g_recs[i];
 			// the play block, as the play task builds it
-			PrimArg arg;
+			AnchorArg arg;
 			memcpy(arg.anchor, r.anchor, sizeof(arg.anchor));
-			arg.depth = -0x80;
+			arg.depth = Item::P().layout.depth;
 			arg.morph = (uint32_t)g_held_morph;
+			arg.honoured = LAYOUT.honoured;
+			arg.cursor = &PacketCursor();
+			arg.matrix = LAYOUT.camera_matrix ? (const Mat4x3 *)LAYOUT.camera_matrix : &Camera();
 			// a replayed draw starts from the GTE state and scratch of the real one
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
 			memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
-			prim::play_held(r.layout, PrimCallback, (int)&arg, num, den);
+			prim::play_held(r.layout, AnchorPrimCallback, (int)&arg, num, den);
 		}
 		ModMatrix() = mod;
 		memcpy((void *)(GTE_DATA + GTE_DATA_SIZE), gte_hi, sizeof(gte_hi));
@@ -103,7 +112,7 @@ namespace echoscreen295
 
 	static void register_mag295_held()
 	{
-		mark_held(echoscreen295::ORIG_PlayTask);
-		register_module_held(295, echoscreen295::HeldReady, echoscreen295::HeldFrame);
+		mark_held(echo295::ORIG_PlayTask);
+		register_module_held(295, echo295::HeldReady, echo295::HeldFrame);
 	}
 }

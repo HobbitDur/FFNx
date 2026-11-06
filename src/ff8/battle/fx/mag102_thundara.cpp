@@ -32,8 +32,14 @@
 // Module globals: 0x2543F18..0x2544E10 (bolt pool 3 x 0x6C, texture file, flash pool 0x20 x 0x18,
 // texture base, context, root pool, packet cursor 0x254437C, spark pool 0x3C x 0x2C, queues
 // 0x2544DD0 (root / bolts) and 0x2544DF0 (sparks / flashes)).
+// Fujin's described Thundara (effect_102.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (ThundaraParams: the sound, the
+// bolt's damage frame).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -43,11 +49,12 @@ namespace thundara102
 	using namespace magc;
 
 	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x2544DD0); }    // .first = root, .second = bolts
-	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(0x2544DF0); } // .first = sparks, .second = flashes
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544360); }             // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2544364); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x254437C); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(own::R(0x2544DD0)); }    // .first = root, .second = bolts
+	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(own::R(0x2544DF0)); } // .first = sparks, .second = flashes
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2544360)); }             // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2544364)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x254437C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x254405C)); }          // the effect's file (its TIM)
 
 	static const uint32_t ORIG_RootTask = 0x6DC390;
 	static const uint32_t ORIG_BoltTask = 0x6DC510;
@@ -57,6 +64,24 @@ namespace thundara102
 	static const int BOLT_POOL_COUNT = 3;
 	static const void *const SOUND_Thundara = (const void *)0x1321BD8;
 	static const void *const FLASH_Colour = (const void *)0x1321BDC;  // flash quad colour word
+	static const uint32_t ORIG_FileLoader = 0x6DC2B0, ORIG_Setup = 0x6DC2D0;
+	static const uint32_t TEXTURE_NAME = 0x1321BE0, CAMERA = 0x1321588;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ThundaraParams
+	{
+		uint32_t sound;                  // at the bolt's frame 4 (3D, at the target)
+		struct { int16_t damage; } bolt; // the damage at this frame of the bolt
+		struct { uint32_t strike, upper_a, upper_b, core, arc, arc_low, glow, smoke, fade, spark, flash_sprite; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t tilted_glow, column, flash_ball; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t flash_colour; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const ThundaraParams GAME = { 0x1321BD8, { 0x1A }, { 0x131E878, 0x131EABC, 0x131ECB0, 0x131F0E8, 0x131FF74, 0x131EECC, 0x131F458, 0x131F5B4, 0x131FA68, 0x131F244, 0x131E760 }, { 0x13200D0, 0x13207B8, 0x1320EA0 }, { TEXTURE_NAME, CAMERA }, { 0x1321BDC } };
+	static ThundaraParams live = GAME;
+	static const ThundaraParams &P() { return live; }
 	// strike layers (sprite sequences)
 	static const uint32_t SEQ_Strike = 0x131E878;    // frames 0..7
 	static const uint32_t SEQ_UpperA = 0x131EABC;    // frames 2..9, 200 units lower
@@ -182,6 +207,32 @@ namespace thundara102
 	// ------------------------------------------------------------------
 	// Root task (0x6DC390)
 	// ------------------------------------------------------------------
+	// File loader (0x6DC2B0) and setup (0x6DC2D0 -> 0x6DC2E0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast, the root and the bolt / spark / flash pools, the camera
+	// and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(&Queues().first, (void *)own::R(0x2544368), 0x14, 1);
+		FillDwords(AddTaskToQueue(&Queues().first, own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		InitTaskQueuePool(&Queues().second, (void *)own::R(0x2543F18), 0x6C, 3);
+		InitTaskQueuePool(&Particles().first, (void *)own::R(0x2544380), 0x2C, 60);
+		InitTaskQueuePool(&Particles().second, (void *)own::R(0x2544060), 0x18, 32);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return &Queues().first;
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -209,7 +260,7 @@ namespace thundara102
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
 				// wait while a bolt of 26 frames or less runs on this target
-				BoltNode *pool = (BoltNode *)BOLT_POOL;
+				BoltNode *pool = (BoltNode *)own::R(BOLT_POOL);
 				bool busy = false;
 				for (int k = 0; k < BOLT_POOL_COUNT; k++)
 					if ((pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= 0x1A)
@@ -220,7 +271,7 @@ namespace thundara102
 				if (busy) r->counter = 0;
 				else
 				{
-					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, ORIG_BoltTask);
+					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_BoltTask));
 					FillDwords(&b->counter, 0, 0x18);
 					b->action = (int16_t)(uint16_t)r->action;
 					b->entity = Entity(Ctx()->actions[b->action].targets[0]);
@@ -283,7 +334,7 @@ namespace thundara102
 		Mat4x3 m = {};
 		BuildTiltMatrix((int16_t)tilt, &m, s);
 		ModelGte(&m, pos[0], pos[1], pos[2]);
-		*(uint32_t *)h = MODEL_TiltedGlow;
+		*(uint32_t *)h = fxp::model(P().models.tilted_glow, MODEL_TiltedGlow);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -317,7 +368,7 @@ namespace thundara102
 		m.m[2][2] = (int16_t)w;
 		m.m[1][1] = (int16_t)v;
 		ModelGte(&m, pos[0], height, pos[2]);
-		*(uint32_t *)h = MODEL_Column;
+		*(uint32_t *)h = fxp::model(P().models.column, MODEL_Column);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -342,7 +393,7 @@ namespace thundara102
 		m.m[1][1] = (int16_t)s;
 		m.m[2][2] = (int16_t)s;
 		ModelGte(&m, pos[0], height, pos[2]);
-		*(uint32_t *)h = MODEL_FlashBall;
+		*(uint32_t *)h = fxp::model(P().models.flash_ball, MODEL_FlashBall);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -370,7 +421,7 @@ namespace thundara102
 		if (f < 8)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, SEQ_Strike, f);
+			Layer(h, fxp::sequence(P().seqs.strike, SEQ_Strike), f);
 		}
 		if (f >= 2)
 		{
@@ -380,15 +431,15 @@ namespace thundara102
 				memcpy(low, p->pos, 8);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
-				Layer(h, SEQ_UpperA, f - 2);
+				Layer(h, fxp::sequence(P().seqs.upper_a, SEQ_UpperA), f - 2);
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				*(uint32_t *)h = SEQ_UpperB;
+				*(uint32_t *)h = fxp::sequence(P().seqs.upper_b, SEQ_UpperB);
 				PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 			}
 			if (f < 11)
 			{
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				Layer(h, SEQ_Core, f - 2);
+				Layer(h, fxp::sequence(P().seqs.core, SEQ_Core), f - 2);
 			}
 		}
 		if (f >= 1 && f < 13) PacketCursor() = TiltedGlow(p->pos, 0x200, f - 1, 0xC, RenderOT44(), 2, PacketCursor());
@@ -398,7 +449,7 @@ namespace thundara102
 			if (f < 14)
 			{
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				Layer(h, SEQ_Arc, f - 5);
+				Layer(h, fxp::sequence(P().seqs.arc, SEQ_Arc), f - 5);
 			}
 			if (f < 13)
 			{
@@ -406,7 +457,7 @@ namespace thundara102
 				memcpy(low, p->pos, 8);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
-				Layer(h, SEQ_ArcLow, f - 5);
+				Layer(h, fxp::sequence(P().seqs.arc_low, SEQ_ArcLow), f - 5);
 			}
 		}
 		if (f >= 3 && f < 15) PacketCursor() = TiltedGlow(p->pos, -0x200, f - 3, 0xC, RenderOT44(), 2, PacketCursor());
@@ -414,12 +465,12 @@ namespace thundara102
 		if (f >= 8 && f < 0x11)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, SEQ_Glow, f - 8);
+			Layer(h, fxp::sequence(P().seqs.glow, SEQ_Glow), f - 8);
 		}
 		if (f >= 0xB && f < 0x14)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, SEQ_Smoke, f - 0xB);
+			Layer(h, fxp::sequence(P().seqs.smoke, SEQ_Smoke), f - 0xB);
 		}
 		if (f >= 9 && f < 0x13)
 		{
@@ -432,7 +483,7 @@ namespace thundara102
 			q += (int32_t)((uint32_t)q >> 31);                // x / 10
 			// 30 fps layer: see mag102_thundara_held.inc
 			FX_HELD(q = held_frame_arg(q, k, 10, 10);)
-			*(uint32_t *)h = SEQ_Fade;
+			*(uint32_t *)h = fxp::sequence(P().seqs.fade, SEQ_Fade);
 			uint8_t level = (uint8_t)(0x80 - (uint8_t)(ComputeSin(q) >> 7));
 			*(uint16_t *)(h + 0x24) = 4;
 			h[0x1E] = level;
@@ -447,7 +498,7 @@ namespace thundara102
 	{
 		for (int k = 2; k; k--)
 		{
-			FlashNode *f = (FlashNode *)AddTaskToQueue(&Particles().second, ORIG_FlashTask);
+			FlashNode *f = (FlashNode *)AddTaskToQueue(&Particles().second, own::Fn(ORIG_FlashTask));
 			if (!f) continue;
 			FillDwords(&f->counter, 0, 3);
 			int32_t radius = (EntitySizeOf(p->entity) >> 1) + 0x12C;
@@ -463,13 +514,13 @@ namespace thundara102
 	static uint32_t __cdecl BoltTask(TaskNode *n)
 	{
 		BoltNode *p = (BoltNode *)n;
-		if (p->counter == 4) BdPlaySE3D(SOUND_Thundara, 0x101, p->pos);
+		if (p->counter == 4) BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Thundara), 0x101, p->pos);
 		if (p->counter == 0)
 		{
 			// 20 sparks on a ring around the target, 500 units lower than the anchor
 			for (int k = 0; k < 20; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Particles().first, ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Particles().first, own::Fn(ORIG_SparkTask));
 				if (!s) break;
 				p->sparks[19 - k] = s;
 				FillDwords(&s->counter, 0, 8);
@@ -502,17 +553,17 @@ namespace thundara102
 		}
 		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(held_note_draw(ORIG_BoltTask, p, sizeof(BoltNode));)
-		if (p->counter == 0xC) PacketCursor() = ScreenFlashQuad(FLASH_Colour, PacketCursor());
+		if (p->counter == 0xC) PacketCursor() = ScreenFlashQuad(((const void *)fxp::data(P().tables.flash_colour, (uint32_t)FLASH_Colour, 4, 4)), PacketCursor());
 		if (p->counter > 0xA)
 		{
 			int32_t f = p->counter - 0xB;
 			uint8_t *h = AllocHeader(0xB4);
 			BoltLayers(p, f, h);
-			if (f == 0xC) PacketCursor() = ScreenFlashQuad(FLASH_Colour, PacketCursor());
+			if (f == 0xC) PacketCursor() = ScreenFlashQuad(((const void *)fxp::data(P().tables.flash_colour, (uint32_t)FLASH_Colour, 4, 4)), PacketCursor());
 			if (f >= 4 && f < 0x14 && !(f & 1)) SpawnFlashes(p);
 			FieldFree(0xB4);
 		}
-		if (p->counter == 0x1A) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
+		if (p->counter == P().bolt.damage) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
 		if (p->counter >= 0x1F) return TASK_END;
 		p->counter++;
 		return 0;
@@ -525,7 +576,7 @@ namespace thundara102
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(uint16_t *)(h + 4) = (uint16_t)(p->anim % 20);
 		uint8_t level = (uint8_t)p->level;
 		h[0x1E] = level;
@@ -574,7 +625,7 @@ namespace thundara102
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0xC00, -0x300);
-		*(uint32_t *)h = SEQ_FlashSprite;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash_sprite, SEQ_FlashSprite);
 		*(uint16_t *)(h + 0x24) = 0;
 		*(uint16_t *)(h + 4) = (uint16_t)(*(const uint8_t *)&p->counter & 7);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -590,17 +641,56 @@ namespace thundara102
 		p->counter++;
 		return p->counter < 8 ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "bolt", "Bolt", "One bolt an action on its first target: the sparks thrown outwards, the screen flash, the strike's sprite layers and prim models, the flash sprites, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "bolt", "sound", "Sound", "", (uint32_t)offsetof(ThundaraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "bolt", "bolt.damage", "Damage frame", "The damage at this frame of the bolt", (uint32_t)offsetof(ThundaraParams, bolt.damage), fxp::I16, 0, 30 },
+			{ "bolt", "seqs.strike", "Strike", "The sprite sequence strike (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.strike), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.upper_a", "Upper a", "The sprite sequence upper a (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.upper_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.upper_b", "Upper b", "The sprite sequence upper b (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.upper_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.core", "Core", "The sprite sequence core (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.core), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.arc", "Arc", "The sprite sequence arc (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.arc), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.arc_low", "Arc low", "The sprite sequence arc low (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.arc_low), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.fade", "Fade", "The sprite sequence fade (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.fade), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 20 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.flash_sprite", "Flash sprite", "The sprite sequence flash sprite (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundaraParams, seqs.flash_sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "models.tilted_glow", "Tilted glow model", "The prim model tilted glow (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.tilted_glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "models.column", "Column model", "The prim model column (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "models.flash_ball", "Flash ball model", "The prim model flash ball (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundaraParams, models.flash_ball), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ThundaraParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "bolt", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ThundaraParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "bolt", "tables.flash_colour", "Flash colour", "The screen flash's colour (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(ThundaraParams, tables.flash_colour), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag102_thundara()
 	{
+		fxp::register_params({ 102, "Thundara", &thundara102::live, &thundara102::GAME, sizeof(thundara102::ThundaraParams),
+		                       thundara102::table::PARTS, (int)(sizeof(thundara102::table::PARTS) / sizeof(thundara102::table::PARTS[0])),
+		                       thundara102::table::FIELDS, (int)(sizeof(thundara102::table::FIELDS) / sizeof(thundara102::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(thundara102::ORIG_FileLoader, (void *)thundara102::FileLoader);
+		own::note(thundara102::ORIG_Setup, (void *)thundara102::Setup);
+		own::note(thundara102::ORIG_RootTask, (void *)thundara102::RootTask);
 		register_port(thundara102::ORIG_RootTask, (void *)thundara102::RootTask, "T102 RootTask", 102);
+		own::note(thundara102::ORIG_BoltTask, (void *)thundara102::BoltTask);
 		register_port(thundara102::ORIG_BoltTask, (void *)thundara102::BoltTask, "T102 BoltTask", 102);
+		own::note(thundara102::ORIG_SparkTask, (void *)thundara102::SparkTask);
 		register_port(thundara102::ORIG_SparkTask, (void *)thundara102::SparkTask, "T102 SparkTask", 102);
+		own::note(thundara102::ORIG_FlashTask, (void *)thundara102::FlashTask);
 		register_port(thundara102::ORIG_FlashTask, (void *)thundara102::FlashTask, "T102 FlashTask", 102);
 		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(register_mag102_held();)
 	}
+	FX_LAB_MODULE(register_mag102_thundara);
 }
 
 #ifdef FF8_FX_HELD

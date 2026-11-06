@@ -46,7 +46,16 @@
 // Not ported: 0x88F750 (the primitive-list kind 6 renderer, the Siren 0x73DCA0 copy): Esuna's
 // models have no kind-6 list, 0x88E240 calls it through its original address.
 
+// Fujin's described Esuna (effect_024.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (EsunaParams: the emitter's sound and ticks, the master's wait, the actor system, the stage wobble out) are set
+// from the program's.
+
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -68,6 +77,20 @@ namespace esuna
 	static const uint32_t ORIG_Emitter = 0x88D3B0;
 	static const uint32_t ORIG_ActorSystem = 0x88D4C0;
 	static const void *const SOUND_Esuna = (const void *)0x1613748;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct EsunaParams
+	{
+		struct { uint32_t sound; int16_t release, result; } emitter;   // its sound; the master released / the result at these ticks
+		struct { int16_t wait; } master;                                // after the last action, the wobble out after these ticks
+		struct { int16_t start, length, mode; } actors;                 // the actor system
+		struct { int16_t level, step; } wobble;                         // the stage wobble out: from this level down a step a tick
+	};
+	static const EsunaParams GAME = { { 0x1613748, 0x14, 0x1E }, { 0x14 }, { 0, 0x2D, 0 }, { 0x400, 0x100 } };
+	static EsunaParams live = GAME;
+	static const EsunaParams &PE() { return live; }
 
 	// engine functions not in act::x
 	namespace rx
@@ -344,13 +367,14 @@ namespace esuna
 	uint32_t __cdecl e_88D0A0(uint32_t a1)
 	{
 		g_mod = &MOD_024;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag024_esuna_held.inc
 		FX_HELD(held_note_master();)
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x2700494) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x2700494)) = 0x2793E58;
 		states[0] = 0x88D1E0;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x88D1F0;
@@ -365,24 +389,24 @@ namespace esuna
 		states[10] = 0x892FF0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2701184);
-			const uint32_t v2 = MEM<uint32_t>(0x270057C);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2700490) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2701184));
+			const uint32_t v2 = MEM<uint32_t>(R(0x270057C));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2700490)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2701180);
-			const uint32_t v2 = MEM<uint32_t>(0x2700578);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2700490) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2701180));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2700578));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2700490)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x270119A) = 0;
-		MEM<uint16_t>(0x270118A) = 0;
-		static const uint32_t queues[3] = { Q_EMITTER, Q_ACTORS, Q_STAGE };
+		MEM<uint16_t>(R(0x270119A)) = 0;
+		MEM<uint16_t>(R(0x270118A)) = 0;
+		const uint32_t queues[3] = { R(Q_EMITTER), R(Q_ACTORS), R(Q_STAGE) };
 		for (int i = 0; i < 3; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -398,14 +422,14 @@ namespace esuna
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x27011AC);
-		MEM<uint32_t>(0x270118C) = p;
+		uint32_t p = MEM<uint32_t>(R(0x27011AC));
+		MEM<uint32_t>(R(0x270118C)) = p;
 		p += 0x10E0;
-		MEM<uint32_t>(0x27011A4) = p;
+		MEM<uint32_t>(R(0x27011A4)) = p;
 		p += 0x10680;
-		MEM<uint32_t>(0x27011AC) = p;
+		MEM<uint32_t>(R(0x27011AC)) = p;
 		a_732160();
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x88D290, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x88D290, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -425,7 +449,7 @@ namespace esuna
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Esuna), 0, 0x80);
+			x::BdPlaySE(fxp::sound(PE().emitter.sound, P(SOUND_Esuna)), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -435,7 +459,7 @@ namespace esuna
 	// 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl e_892DF0(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x14)
+		if (S16(a1, 0x24) == PE().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -462,7 +486,7 @@ namespace esuna
 			return a1; // void
 		}
 		const uint8_t st = U8(node, 0x29);
-		U16(node, 0x60) = 0x14;
+		U16(node, 0x60) = (uint16_t)PE().master.wait;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return a1; // void
 	}
@@ -481,8 +505,8 @@ namespace esuna
 	uint32_t __cdecl e_88E090(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t act = a1;
-		const uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		const uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		U32(ctx, 0) = U32(act, 0x170);
 		U32(ctx, 0x14) = 0;
 		if (U16(a2, 0x3A) == 0)
@@ -503,7 +527,7 @@ namespace esuna
 		U16(ctx, 0x20) = 0x100;
 		if (def_idx == 1 || def_idx == 2)
 		{
-			const uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+			const uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 			U16(ctx, 0x28) = 0x80;
 			U16(ctx, 0x2A) = 0x80;
 			const uint16_t scroll = (uint16_t)((uint8_t)(U8(st, 0x2A) + 2) & 0x7F);
@@ -528,9 +552,9 @@ namespace esuna
 			const uint32_t m = act + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = e_88E240(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = e_88E240(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -544,16 +568,16 @@ namespace esuna
 				S32(act, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = e_88E240(ctx, ot, 2, cursor);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < S8(act, 0x1D8));
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -587,7 +611,7 @@ namespace esuna
 	// mode +0x29C = 0) through the engine spawner 0x88D470 (a_73C100), next state
 	uint32_t __cdecl e_88D440(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, 0x17E48E4, 0, 0x2D, 0);
+		a_73C100(a1, ORIG_ActorSystem, 0x17E48E4, (uint16_t)PE().actors.start, (uint16_t)PE().actors.length, (uint16_t)PE().actors.mode);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -621,7 +645,7 @@ namespace esuna
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;                    // eax: director state block
 		const uint32_t root = U32(node, 0x10);        // ebx
-		MEM<uint32_t>(ACTOR_STATE) = st;
+		MEM<uint32_t>(R(ACTOR_STATE)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
 		U16(st, 0x24) = w29c;                         // mode
@@ -633,7 +657,7 @@ namespace esuna
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -653,20 +677,20 @@ namespace esuna
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		e_88D7E0();
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(R(ACTOR_STATE));
 		if (U16(st, 0x24) == 4)
 			callp(0x88D700, node);
 		e_88DB30();   // (the original pushes node; the callee takes no argument)
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(R(ACTOR_STATE));
 		if (U16(st, 0x24) == 1)
 		{
 			callp(0x88D940, node);   // 0-arg function, node pushed like the original
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
@@ -681,7 +705,7 @@ namespace esuna
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(R(ACTOR_STATE));
 		U32(st, 0) = dist;
 		return 0; // void
 	}
@@ -691,7 +715,7 @@ namespace esuna
 	// reference points +0x204, +0x1F4, +0x1E4, +0x1D4, +0x1C4 (Esuna's data does not use mode 4)
 	uint32_t __cdecl e_88D700(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(ACTOR_STATE);
+		const uint32_t arena = MEM<uint32_t>(R(ACTOR_STATE));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -712,7 +736,7 @@ namespace esuna
 	// (16.16 each); mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl e_88D7E0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
 		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
@@ -721,7 +745,7 @@ namespace esuna
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -734,7 +758,7 @@ namespace esuna
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -742,7 +766,7 @@ namespace esuna
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(R(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -760,7 +784,7 @@ namespace esuna
 	// +0x154 + 0x10*i (Esuna's data does not use mode 1)
 	uint32_t __cdecl e_88D940(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(ACTOR_STATE);
+		const uint32_t arena = MEM<uint32_t>(R(ACTOR_STATE));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -788,7 +812,7 @@ namespace esuna
 	// position (the stack words keep what they held)
 	uint32_t __cdecl e_88DB30(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
@@ -802,7 +826,7 @@ namespace esuna
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -815,7 +839,7 @@ namespace esuna
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -823,7 +847,7 @@ namespace esuna
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(R(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -871,7 +895,7 @@ namespace esuna
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		MEM<uint32_t>(ACTOR_STATE) = sys;
+		MEM<uint32_t>(R(ACTOR_STATE)) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -885,7 +909,7 @@ namespace esuna
 			FX_HELD(held_note_system(sys);)
 			e_8902A0();
 			e_88E030();
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			sys = MEM<uint32_t>(R(ACTOR_STATE));
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -898,8 +922,8 @@ namespace esuna
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		MEM<uint16_t>(0x270119A) = (uint16_t)(MEM<uint16_t>(0x270119A) + c14);
-		MEM<uint16_t>(0x270118A) = (uint16_t)(MEM<uint16_t>(0x270118A) + c16);
+		MEM<uint16_t>(R(0x270119A)) = (uint16_t)(MEM<uint16_t>(R(0x270119A)) + c14);
+		MEM<uint16_t>(R(0x270118A)) = (uint16_t)(MEM<uint16_t>(R(0x270118A)) + c16);
 		return done;
 	}
 
@@ -908,12 +932,12 @@ namespace esuna
 	// table, index +0x1D6) has kind 4 or 5 and which has a model (+0x170), draws it (0x88E090)
 	uint32_t __cdecl e_88E030(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(ACTOR_STATE), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(ACTOR_STATE)), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1569,14 +1593,14 @@ namespace esuna
 	// sub-position (s16 x/y/z at +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x890360.
 	uint32_t __cdecl e_8902A0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(ACTOR_STATE), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(ACTOR_STATE)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+				uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1614,20 +1638,20 @@ namespace esuna
 	uint32_t __cdecl e_890360(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1641,7 +1665,7 @@ namespace esuna
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);                  // actor state block
+		uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1689,7 +1713,7 @@ namespace esuna
 	uint32_t __cdecl e_8921B0(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = MEM<uint32_t>(ACTOR_STATE);            // ecx
+		const uint32_t st = MEM<uint32_t>(R(ACTOR_STATE));            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -1753,7 +1777,7 @@ namespace esuna
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // (switch case)
-				uint32_t g = MEM<uint32_t>(ACTOR_STATE);
+				uint32_t g = MEM<uint32_t>(R(ACTOR_STATE));
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1763,7 +1787,7 @@ namespace esuna
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // (switch case)
-				uint32_t g = MEM<uint32_t>(ACTOR_STATE);
+				uint32_t g = MEM<uint32_t>(R(ACTOR_STATE));
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1827,7 +1851,7 @@ namespace esuna
 	uint32_t __cdecl e_892E10(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x1E)
+		if (S16(node, 0x24) < PE().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -1847,7 +1871,7 @@ namespace esuna
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0; // void
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x892ED0, 0x40, a1);
+		Spawn(R(Q_STAGE), 0x892ED0, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1857,7 +1881,7 @@ namespace esuna
 	uint32_t __cdecl e_892F30(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x1C) = 0x400;
+		U16(a1, 0x1C) = (uint16_t)PE().wobble.level;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -1867,7 +1891,7 @@ namespace esuna
 	// words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl e_892F50(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PE().wobble.step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -1880,6 +1904,31 @@ namespace esuna
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(EsunaParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the actor system, the master's release, the result; the master's wait" },
+			{ 0, "stage", "Stage wobble", "The stage wobble out after the last action" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor system", "At the emitter's start: Start, Length (ticks), Mode (0: the targets' positions)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(EsunaParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Result tick", "The action's result (the heal, the cure) from this tick", 0, 200),
+			DT("emitter", master.wait, "Wait", "After the last action, the wobble out after these ticks", 1, 200),
+			DT("emitter", actors.start, "Start", "", 0, 200),
+			DT("emitter", actors.length, "Length", "", 0, 200),
+			DT("emitter", actors.mode, "Mode", "", 0, 4),
+			DT("stage", wobble.level, "Level", "Its amplitude from this level", 0, 0x1000),
+			DT("stage", wobble.step, "Step", "Down by this a tick", 1, 0x1000),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -1978,6 +2027,11 @@ namespace esuna
 
 	void register_mag024_esuna()
 	{
+		fxp::register_params({ 24, "Esuna", &act::esuna::live, &act::esuna::GAME, sizeof(act::esuna::EsunaParams),
+		                       act::esuna::table::PARTS, (int)(sizeof(act::esuna::table::PARTS) / sizeof(act::esuna::table::PARTS[0])),
+		                       act::esuna::table::FIELDS, (int)(sizeof(act::esuna::table::FIELDS) / sizeof(act::esuna::table::FIELDS[0])),
+		                       act::esuna::table::GROUPS, (int)(sizeof(act::esuna::table::GROUPS) / sizeof(act::esuna::table::GROUPS[0])) });
+		act::register_mod(&act::esuna::MOD_024);
 		act::register_module(24);
 		for (const act::esuna::ModPort *p = act::esuna::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(24, p->addr, p->port, p->name);
@@ -1986,6 +2040,7 @@ namespace esuna
 		// 30 fps layer: see mag024_esuna_held.inc
 		FX_HELD(register_mag024_held();)
 	}
+	FX_LAB_MODULE(register_mag024_esuna);
 }
 
 #ifdef FF8_FX_HELD

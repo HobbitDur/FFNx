@@ -52,6 +52,9 @@
 // only reach the GTE VZ0 / R33 high halves).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -61,14 +64,16 @@ namespace fullcure280
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507FDC); }
-	inline TaskQueue *QSparkle() { return (TaskQueue *)0x2507FE8; }      // pool: magic buffer + 0, 16 x 0x14
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2507FF8; }       // pool: magic buffer + 0x140, 3 x 0x8DC
-	inline TaskQueue *QControl() { return (TaskQueue *)0x2508008; }      // pool: magic buffer + 0x1BD4, 1 x 0x1C
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250803C); }
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2508044); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508048); }      // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(0x2508050); }     // never written (zero)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507FDC)); }
+	inline TaskQueue *QSparkle() { return (TaskQueue *)own::R(0x2507FE8); }      // pool: magic buffer + 0, 16 x 0x14
+	inline TaskQueue *QTarget() { return (TaskQueue *)own::R(0x2507FF8); }       // pool: magic buffer + 0x140, 3 x 0x8DC
+	inline TaskQueue *QControl() { return (TaskQueue *)own::R(0x2508008); }      // pool: magic buffer + 0x1BD4, 1 x 0x1C
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250803C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507FD8)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508018); }             // 1 x 0x14
+	inline int32_t &FlashLevel() { return var<int32_t>(own::R(0x2508044)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2508048)); }      // Magic_TextureOFF (magic buffer)
+	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(own::R(0x2508050)); }     // never written (zero)
 
 	static const uint32_t ORIG_RootTask = 0x67E7F0;
 	static const uint32_t ORIG_ControlTask = 0x67E980;
@@ -77,6 +82,22 @@ namespace fullcure280
 	static const uint32_t LAYOUT = 0x10A7A64;     // prim-model layout data (0x8C4 bytes decoded)
 	static const uint32_t SEQUENCE = 0x10A7974;   // sparkle sequence
 	static const void *const SOUND = (const void *)0x10AB124;
+	static const uint32_t ORIG_FileLoader = 0x67E740, ORIG_Setup = 0x67E730;
+	static const uint32_t TEXTURE_NAME = 0x10AB128, CAMERA_ANIM = 0x10AAFEC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FullCureParams
+	{
+		uint32_t sound;   // at each target's layout start
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t sequence; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const FullCureParams GAME = { 0x10AB124, { LAYOUT }, { SEQUENCE }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static FullCureParams live = GAME;
+	static const FullCureParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x1DF0;        // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x11DF0;
 	static const uint32_t MORPH = 0x1BF0;          // magic buffer: blended vertex frames
@@ -293,6 +314,28 @@ namespace fullcure280
 	// ------------------------------------------------------------------
 	// Sparkle (0x67EF50): sequence frame = counter at the point through the camera, 8 frames
 	// ------------------------------------------------------------------
+	// File loader (0x67E740) and setup (0x67E730 -> 0x67E760): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the TIM, the magic buffer, a rand() word (never read), the cast and its caster's entity (never
+	// read), the root (it sets up the rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		var<int32_t>(own::R(0x2508040)) = CrtRand();
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x2507FE0)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508028), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
@@ -300,7 +343,7 @@ namespace fullcure280
 		FX_HELD(held_note_sparkle(s);)
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQUENCE;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sequence, SEQUENCE);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -325,7 +368,7 @@ namespace fullcure280
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter >= SPARKLE_FIRST && !(t->counter & 1))
 		{
-			SparkleNode *s = (SparkleNode *)AddTaskToQueue(QSparkle(), ORIG_SparkleTask);
+			SparkleNode *s = (SparkleNode *)AddTaskToQueue(QSparkle(), own::Fn(ORIG_SparkleTask));
 			if (s)
 			{
 				uint8_t *e = t->entity;
@@ -354,15 +397,15 @@ namespace fullcure280
 		const uint32_t k = (uint32_t)(int32_t)c->counter;
 		if (k < 0x3F && k % 20 == 0 && k / 20 < (uint32_t)(int32_t)c->count)
 		{
-			TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
+			TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), own::Fn(ORIG_TargetTask));
 			if (t)
 			{
 				uint8_t *e = c->Ent(k / 20);
 				t->entity = e;
 				GetEffectSpawnPosition(e, EFFECT_POINT, 0, t->anchor);
 				t->counter = 0;
-				DecodeModelPrimLayout(LAYOUT, t->layout, 0x8C4);
-				BdPlaySE(SOUND, 0, 0x80);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.main, LAYOUT, 0x8C4), t->layout, 0x8C4);
+				BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 			}
 		}
 		c->counter++;
@@ -399,7 +442,7 @@ namespace fullcure280
 			InitTaskQueuePool(QControl(), (void *)(TexBase() + 0x1BD4), 0x1C, 1);
 			InitTaskQueuePool(QTarget(), (void *)(TexBase() + 0x140), 0x8DC, 3);
 			InitTaskQueuePool(QSparkle(), (void *)TexBase(), 0x14, 0x10);
-			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), ORIG_ControlTask);
+			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), own::Fn(ORIG_ControlTask));
 			Memset32((uint8_t *)c + 0xC, 0, 4);
 			c->count = (int16_t)Ctx()->actions[0].target_count;
 			for (int32_t i = 0; i < c->count; i++) c->Ent((uint32_t)i) = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
@@ -417,17 +460,42 @@ namespace fullcure280
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "control", "Control", "The flash ramp, every 20 ticks the next target's layout at its effect point with the sound, the sparkles; each target's action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "control", "sound", "Sound", "At each target's layout start", (uint32_t)offsetof(FullCureParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "control", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(FullCureParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "control", "seqs.sequence", "Sequence", "The sprite sequence sequence (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(FullCureParams, seqs.sequence), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "control", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FullCureParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "control", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FullCureParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag280_full_cure()
 	{
+		fxp::register_params({ 280, "Full-cure", &fullcure280::live, &fullcure280::GAME, sizeof(fullcure280::FullCureParams),
+		                       fullcure280::table::PARTS, (int)(sizeof(fullcure280::table::PARTS) / sizeof(fullcure280::table::PARTS[0])),
+		                       fullcure280::table::FIELDS, (int)(sizeof(fullcure280::table::FIELDS) / sizeof(fullcure280::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(fullcure280::ORIG_FileLoader, (void *)fullcure280::FileLoader);
+		own::note(fullcure280::ORIG_Setup, (void *)fullcure280::Setup);
+		own::note(fullcure280::ORIG_RootTask, (void *)fullcure280::RootTask);
 		register_port(fullcure280::ORIG_RootTask, (void *)fullcure280::RootTask, "280 RootTask", 280);
+		own::note(fullcure280::ORIG_ControlTask, (void *)fullcure280::ControlTask);
 		register_port(fullcure280::ORIG_ControlTask, (void *)fullcure280::ControlTask, "280 ControlTask", 280);
+		own::note(fullcure280::ORIG_TargetTask, (void *)fullcure280::TargetTask);
 		register_port(fullcure280::ORIG_TargetTask, (void *)fullcure280::TargetTask, "280 TargetTask", 280);
+		own::note(fullcure280::ORIG_SparkleTask, (void *)fullcure280::SparkleTask);
 		register_port(fullcure280::ORIG_SparkleTask, (void *)fullcure280::SparkleTask, "280 SparkleTask", 280);
 		// 30 fps layer: see mag280_full_cure_held.inc
 		FX_HELD(register_mag280_held();)
 	}
+	FX_LAB_MODULE(register_mag280_full_cure);
 }
 
 #ifdef FF8_FX_HELD

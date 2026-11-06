@@ -58,6 +58,9 @@
 // fade), as in the game.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,15 +70,17 @@ namespace shotgun281
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507F2C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507F30); }        // caster entity (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507F8C); }
-	inline Mat4x3 &BasisM() { return var<Mat4x3>(0x2507F90); }             // caster -> target, t = muzzle point
-	inline Mat4x3 &BasisR() { return var<Mat4x3>(0x2507FB0); }             // target -> caster, t = a hit
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507FD0); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507F38; }         // pool: magic buffer, 0x80 x 0x28
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507F48; }           // pool: + 0x1400, 6 x 0x14C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507F58; }           // pool: + 0x1BC8, 1 x 0x220
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507F2C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507F30)); }        // caster entity (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507F8C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507F28)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2507F68); }           // 1 x 0x14
+	inline Mat4x3 &BasisM() { return var<Mat4x3>(own::R(0x2507F90)); }             // caster -> target, t = muzzle point
+	inline Mat4x3 &BasisR() { return var<Mat4x3>(own::R(0x2507FB0)); }             // target -> caster, t = a hit
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507FD0)); }        // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2507F38); }         // pool: magic buffer, 0x80 x 0x28
+	inline TaskQueue *QHits() { return (TaskQueue *)own::R(0x2507F48); }           // pool: + 0x1400, 6 x 0x14C
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2507F58); }           // pool: + 0x1BC8, 1 x 0x220
 
 	static const uint32_t ORIG_MasterTask = 0x67DD90;
 	static const uint32_t ORIG_MainTask = 0x67DF80;
@@ -92,6 +97,22 @@ namespace shotgun281
 	static const uint32_t SEQ_HitSpark = 0x10A3030;
 	static const int16_t *const MUZZLE = (const int16_t *)0x10A7960; // offset (-388, -2563, -1896), bone 23
 	static const void *const SOUND_Shot = (const void *)0x10A7958;
+	static const uint32_t ORIG_FileLoader = 0x67DCF0, ORIG_Setup = 0x67DCE0;
+	static const uint32_t TEXTURE_NAME = 0x10A7968, CAMERA_ANIM = 0x10A7824;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ShotgunParams
+	{
+		uint32_t sound;   // the main task's counter 2
+		struct { uint32_t hit, muzzle; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t muzzle_spark, hit_spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const ShotgunParams GAME = { 0x10A7958, { MODEL_Hit, MODEL_Muzzle }, { SEQ_MuzzleSpark, SEQ_HitSpark }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static ShotgunParams live = GAME;
+	static const ShotgunParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
@@ -312,6 +333,27 @@ namespace shotgun281
 	// ------------------------------------------------------------------
 	// Spark (0x67E5F0)
 	// ------------------------------------------------------------------
+	// File loader (0x67DCF0) and setup (0x67DCE0 -> _Init 0x67DD10): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507F78), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
@@ -365,7 +407,7 @@ namespace shotgun281
 			{
 				for (int k = 0; k < 0x10; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (!s) break;
 					s->pos[0] = (int16_t)BasisM().t[0];
 					s->pos[1] = (int16_t)BasisM().t[1];
@@ -378,7 +420,7 @@ namespace shotgun281
 					v[2] = (int16_t)(-0x80 - (CrtRand() & 0x7F));
 					s->counter = 0;
 					s->life = 8;
-					s->seq = SEQ_MuzzleSpark;
+					s->seq = fxp::sequence(P().seqs.muzzle_spark, SEQ_MuzzleSpark);
 					MatrixMulVector(&BasisM(), v, s->vel);
 					s->drag[0] = (int16_t)((int32_t)(0 - (int32_t)s->vel[0]) >> 3);
 					s->drag[1] = (int16_t)((int32_t)(0 - (int32_t)s->vel[1]) >> 3);
@@ -389,7 +431,7 @@ namespace shotgun281
 		if (c == 1) ScreenFadeTask(0, 1, 0, 0x60);
 		if ((uint32_t)(m->counter - 4) < 8)
 		{
-			HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+			HitNode *h = (HitNode *)AddTaskToQueue(QHits(), own::Fn(ORIG_HitTask));
 			if (h)
 			{
 				do
@@ -399,10 +441,10 @@ namespace shotgun281
 					if (!RandomBonePoint(ent, idx, h->pos)) break;
 				} while (true);
 				h->pad12 = 0;
-				DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x138);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x138), h->layout, 0x138);
 				for (int k = 0; k < 8; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (!s) break;
 					memcpy(s->pos, h->pos, 4);
 					memcpy(&s->pos[2], &h->pos[2], 4);
@@ -413,7 +455,7 @@ namespace shotgun281
 					s->counter = 0;
 					s->life = 0xA;
 					s->vel[0] = (int16_t)(mul32(s->vel[0], scale) >> 11);
-					s->seq = SEQ_HitSpark;
+					s->seq = fxp::sequence(P().seqs.hit_spark, SEQ_HitSpark);
 					s->vel[1] = (int16_t)(mul32(s->vel[1], scale) >> 11);
 					s->vel[2] = (int16_t)(mul32(s->vel[2], scale) >> 11);
 					s->drag[0] = (int16_t)((int32_t)(0 - (int32_t)s->vel[0]) >> 3);
@@ -422,7 +464,7 @@ namespace shotgun281
 				}
 			}
 		}
-		if (m->counter == 2) BdPlaySE(SOUND_Shot, 0, 0x80);
+		if (m->counter == 2) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Shot), 0, 0x80);
 		m->counter++;
 		if (m->counter >= 0xE)
 		{
@@ -456,10 +498,10 @@ namespace shotgun281
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x220, 1);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x14C, 6);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x28, 0x80);
-			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&mn->counter, 0, 0x85);
 			mn->ent = Entity(Ctx()->actions[0].targets[0]);
-			DecodeModelPrimLayout(MODEL_Muzzle, mn->muzzle, 0x20C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.muzzle, MODEL_Muzzle, 0x20C), mn->muzzle, 0x20C);
 			uint8_t *caster = Caster();
 			int32_t v[3];
 			v[0] = (int32_t)*(const int16_t *)(mn->ent + 0x1C) - *(const int16_t *)(caster + 0x1C);
@@ -485,17 +527,44 @@ namespace shotgun281
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The muzzle layout at the caster's gun and its sparks, the hits on random bones of the target with their layouts and sparks, the sound; the action result when it ends" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "The main task's counter 2", (uint32_t)offsetof(ShotgunParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.hit", "Hit", "The prim-model layout hit (its models' animation)", (uint32_t)offsetof(ShotgunParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.muzzle", "Muzzle", "The prim-model layout muzzle (its models' animation)", (uint32_t)offsetof(ShotgunParams, layouts.muzzle), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.muzzle_spark", "Muzzle spark", "The sprite sequence muzzle spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ShotgunParams, seqs.muzzle_spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.hit_spark", "Hit spark", "The sprite sequence hit spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(ShotgunParams, seqs.hit_spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ShotgunParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ShotgunParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag281_shotgun()
 	{
+		fxp::register_params({ 281, "Shotgun", &shotgun281::live, &shotgun281::GAME, sizeof(shotgun281::ShotgunParams),
+		                       shotgun281::table::PARTS, (int)(sizeof(shotgun281::table::PARTS) / sizeof(shotgun281::table::PARTS[0])),
+		                       shotgun281::table::FIELDS, (int)(sizeof(shotgun281::table::FIELDS) / sizeof(shotgun281::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(shotgun281::ORIG_FileLoader, (void *)shotgun281::FileLoader);
+		own::note(shotgun281::ORIG_Setup, (void *)shotgun281::Setup);
+		own::note(shotgun281::ORIG_MasterTask, (void *)shotgun281::MasterTask);
 		register_port(shotgun281::ORIG_MasterTask, (void *)shotgun281::MasterTask, "281 MasterTask", 281);
+		own::note(shotgun281::ORIG_MainTask, (void *)shotgun281::MainTask);
 		register_port(shotgun281::ORIG_MainTask, (void *)shotgun281::MainTask, "281 MainTask", 281);
+		own::note(shotgun281::ORIG_HitTask, (void *)shotgun281::HitTask);
 		register_port(shotgun281::ORIG_HitTask, (void *)shotgun281::HitTask, "281 HitTask", 281);
+		own::note(shotgun281::ORIG_SparkTask, (void *)shotgun281::SparkTask);
 		register_port(shotgun281::ORIG_SparkTask, (void *)shotgun281::SparkTask, "281 SparkTask", 281);
 		// 30 fps layer: see mag281_shotgun_held.inc
 		FX_HELD(register_mag281_held();)
 	}
+	FX_LAB_MODULE(register_mag281_shotgun);
 }
 
 #ifdef FF8_FX_HELD

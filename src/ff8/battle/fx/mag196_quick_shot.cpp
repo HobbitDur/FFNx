@@ -68,6 +68,9 @@
 //   texture base, packet cursor).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -77,16 +80,20 @@ namespace quick196
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &EndTick() { return var<int32_t>(0x2265DB0); }      // afterimages end here (999999 until EndTask)
-	inline int32_t &ModuleTick() { return var<int32_t>(0x2265DB4); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x22688F0); }       // 1 ready, 2 ended, 4 a shot is busy
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2269718); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x226A6C0); }
-	inline int32_t &ImpactCount() { return var<int32_t>(0x226A960); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x226A964); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x226A968); }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2266C20; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x22688F8; }
+	inline int32_t &EndTick() { return var<int32_t>(own::R(0x2265DB0)); }      // afterimages end here (999999 until EndTask)
+	inline int32_t &ModuleTick() { return var<int32_t>(own::R(0x2265DB4)); }
+	inline uint32_t &Flags() { return var<uint32_t>(own::R(0x22688F0)); }       // 1 ready, 2 ended, 4 a shot is busy
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2269718)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x226A6C0)); }
+	inline int32_t &ImpactCount() { return var<int32_t>(own::R(0x226A960)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x226A964)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x226A968)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x226A6C4)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2266C10); }             // 4 x 0x10
+	inline int32_t &ShotIndex() { return var<int32_t>(own::R(0x2265DBC)); }          // 0, 1, 2 cycling: chain 3 + it
+	inline int32_t &ShotCount() { return var<int32_t>(own::R(0x226A95C)); }
+	inline TaskQueue *QShots() { return (TaskQueue *)own::R(0x2266C20); }
+	inline TaskQueue *QAux() { return (TaskQueue *)own::R(0x22688F8); }
 	static const uint32_t PARTS_A = 0x2266C30, PARTS_B = 0x2267A60;  // 150 x 0x18 each
 	static const uint32_t SHOTS = 0x2269720;                         // 100 x 0x28 shot records
 	static const uint32_t BIND_OUT = 0x2267A40;
@@ -104,6 +111,23 @@ namespace quick196
 	static const uint32_t ORIG_FlashTask = 0x5B1ED0;
 	static const uint32_t ORIG_Flash2Task = 0x5B2010;
 	static const uint32_t ORIG_ImpactTask = 0x5B2130;
+	static const uint32_t ORIG_FileLoader = 0x5B18E0, ORIG_Setup = 0x5B1900;
+	static const uint32_t TEXTURE_NAME = 0xD073F4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct QuickShotParams
+	{
+		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t impact, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t flash, flash2; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const QuickShotParams GAME = { 0xD073C4, { 0xD05DB0, 0xD05FC0 }, { 0xD0609C, 0xD06FD4 }, { TEXTURE_NAME, 0xD05288 }, { 0xD073E0 } };
+	static QuickShotParams live = GAME;
+	static const QuickShotParams &P() { return live; }
 
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xD05288;
@@ -168,10 +192,10 @@ namespace quick196
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Normal Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x28 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Normal Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x28 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(own::R(SHOTS) + 0x28 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(own::R(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
+	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, own::Fn(fn)); }   // (a copy: the port's thunk)
 }
 }
 
@@ -334,7 +358,7 @@ namespace quick196
 	static void ImpactFlashDraw(const Node *n, uint8_t *h)
 	{
 		*(int16_t *)(h + 4) = n->counter;
-		*(uint32_t *)h = SEQ_Impact;
+		*(uint32_t *)h = fxp::sequence(P().seqs.impact, SEQ_Impact);
 		*(int16_t *)(h + 0x24) = 8;
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -356,18 +380,74 @@ namespace quick196
 		e->vel[1] = (int16_t)(e->vel[1] - (int16_t)(e->vel[1] >> 2));
 		e->vel[2] = (int16_t)(e->vel[2] - (int16_t)(e->vel[2] >> 2));
 	}
-	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? PARTS_B : PARTS_A); }
+	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? own::R(PARTS_B) : own::R(PARTS_A)); }
 
 	// ------------------------------------------------------------------
 	// Tasks
 	// ------------------------------------------------------------------
 	// FlashTask (0x5B1ED0): 2 ticks, faded 0xC00 on counter 1
+	// File loader (0x5B18E0) and setup (_Init 0x5B1900 + SetupByMode): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's). The setup runs again for each trigger press of the Shot window (the battle's
+	// BattleActionSequence_Tick_Shot 0x50BEE0: the cast context's sequence mode +8): 0 the opening - the root, the shot
+	// and aux queues, StartTask, the flags and counts cleared, both particle arrays freed, the camera's shots reset, the
+	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		const uint8_t mode = ((const uint8_t *)ctx)[8];
+		if (mode == 0)
+		{
+			InitTaskQueuePool(QRoot(), (void *)own::R(0x2265DC0), 0x10, 4);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+			InitTaskQueuePool(QAux(), (void *)own::R(0x2268908), 0x24, 100);
+			InitTaskQueuePool(QShots(), (void *)own::R(0x2265E00), 0x24, 100);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_StartTask)) + 0xC) = 0;
+			Flags() = 0;
+			ShotIndex() = 0;
+			ShotCount() = 0;
+			ImpactCount() = 0;
+			ModuleTick() = 0;
+			for (int i = 0; i < 900; i += 6)
+			{
+				((int32_t *)own::R(PARTS_A))[i] = 0;
+				((int32_t *)own::R(PARTS_B))[i] = 0;
+			}
+			fn<void (__cdecl *)()>(0x5095F0)();   // BattleCamera_ResetShotsAndReturnToSavedView
+			QueueTimUpload(TexFile());
+		}
+		else if (mode == 1)
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_EndTask)) + 0xC) = 0;
+		else if (mode == 2)
+		{
+			uint8_t *t = (uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_ShotTask));
+			if (t)
+			{
+				const int32_t count = ShotCount();
+				*(uint16_t *)(t + 0xC) = 0;
+				ShotCount() = count + 1;
+				*(uint16_t *)(t + 0xE) = (uint16_t)(count % 100);
+				*(uint16_t *)(t + 0x18) = (uint16_t)(ShotIndex() + 3);
+				*(uint16_t *)(t + 0x1A) = ctx->actions[0].targets[0];
+				ShotIndex() = ShotIndex() < 2 ? ShotIndex() + 1 : 0;
+			}
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag196_quick_shot_held.inc
 		FX_HELD(held_note_node(ORIG_FlashTask, n);)
-		MuzzleModel(n, MODEL_Flash, n->counter == 1, 0xC00);
+		MuzzleModel(n, fxp::model(P().models.flash, MODEL_Flash), n->counter == 1, 0xC00);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -379,7 +459,7 @@ namespace quick196
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag196_quick_shot_held.inc
 		FX_HELD(held_note_node(ORIG_Flash2Task, n);)
-		YawModel(n, MODEL_Flash2, n->counter == 1, 0x800);
+		YawModel(n, fxp::model(P().models.flash2, MODEL_Flash2), n->counter == 1, 0x800);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -395,7 +475,7 @@ namespace quick196
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		int32_t alive = 0;
 		const int32_t id = n->f0E + 1;
 		for (Particle *e = arr; e < arr + 150; e++)
@@ -505,7 +585,7 @@ namespace quick196
 			i->pos[3] = (int16_t)(mul32(*(const int16_t *)(Entity(n->f1A) + 0x26), 2000) >> 12);
 			i->f1C = (int16_t)(CrtRand() % 0xC00 + 0x800);
 			ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-			BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+			BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), (n->f0E & 1) ? 1 : 2, 0x80);
 		}
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -542,7 +622,7 @@ namespace quick196
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)own::R(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -556,11 +636,11 @@ namespace quick196
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)own::R(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -574,7 +654,7 @@ namespace quick196
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -582,7 +662,7 @@ namespace quick196
 			f->f18 = 0x800;
 			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = own::R(GHOSTS); a < own::R(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -628,23 +708,57 @@ namespace quick196
 		r->counter++;
 		return (aux == 0 && shots == 0 && (Flags() & 2)) ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "Irvine's Quick Shot: his animation set and chains, the afterimages of his gun, per shot the muzzle flashes, smoke and ground smoke, the impact with its particles, the action result and the gun sound; the closing action" },
+		};
+		static const Field FIELDS[] = {
+			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(QuickShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(QuickShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(QuickShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash", "Flash model", "The prim model flash (a mesh of 149 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(QuickShotParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash2", "Flash2 model", "The prim model flash2 (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(QuickShotParams, models.flash2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(QuickShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(QuickShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(QuickShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag196_quick_shot()
 	{
+		fxp::register_params({ 196, "Quick Shot", &quick196::live, &quick196::GAME, sizeof(quick196::QuickShotParams),
+		                       quick196::table::PARTS, (int)(sizeof(quick196::table::PARTS) / sizeof(quick196::table::PARTS[0])),
+		                       quick196::table::FIELDS, (int)(sizeof(quick196::table::FIELDS) / sizeof(quick196::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(quick196::ORIG_FileLoader, (void *)quick196::FileLoader);
+		own::note(quick196::ORIG_Setup, (void *)quick196::Setup);
+		own::note(quick196::ORIG_RootTask, (void *)quick196::RootTask);
 		register_port(quick196::ORIG_RootTask, (void *)quick196::RootTask, "196 RootTask", 196);
+		own::note(quick196::ORIG_StartTask, (void *)quick196::StartTask);
 		register_port(quick196::ORIG_StartTask, (void *)quick196::StartTask, "196 StartTask", 196);
+		own::note(quick196::ORIG_ShotTask, (void *)quick196::ShotTask);
 		register_port(quick196::ORIG_ShotTask, (void *)quick196::ShotTask, "196 ShotTask", 196);
+		own::note(quick196::ORIG_EndTask, (void *)quick196::EndTask);
 		register_port(quick196::ORIG_EndTask, (void *)quick196::EndTask, "196 EndTask", 196);
+		own::note(quick196::ORIG_FadeOutTask, (void *)quick196::FadeOutTask);
 		register_port(quick196::ORIG_FadeOutTask, (void *)quick196::FadeOutTask, "196 FadeOutTask", 196);
+		own::note(quick196::ORIG_FadeInTask, (void *)quick196::FadeInTask);
 		register_port(quick196::ORIG_FadeInTask, (void *)quick196::FadeInTask, "196 FadeInTask", 196);
+		own::note(quick196::ORIG_AfterimageTask, (void *)quick196::AfterimageTask);
 		register_port(quick196::ORIG_AfterimageTask, (void *)quick196::AfterimageTask, "196 AfterimageTask", 196);
+		own::note(quick196::ORIG_FlashTask, (void *)quick196::FlashTask);
 		register_port(quick196::ORIG_FlashTask, (void *)quick196::FlashTask, "196 FlashTask", 196);
+		own::note(quick196::ORIG_Flash2Task, (void *)quick196::Flash2Task);
 		register_port(quick196::ORIG_Flash2Task, (void *)quick196::Flash2Task, "196 Flash2Task", 196);
+		own::note(quick196::ORIG_ImpactTask, (void *)quick196::ImpactTask);
 		register_port(quick196::ORIG_ImpactTask, (void *)quick196::ImpactTask, "196 ImpactTask", 196);
 		// 30 fps layer: see mag196_quick_shot_held.inc
 		FX_HELD(register_mag196_held();)
 	}
+	FX_LAB_MODULE(register_mag196_quick_shot);
 }
 
 #ifdef FF8_FX_HELD

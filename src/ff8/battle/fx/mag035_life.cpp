@@ -46,8 +46,15 @@
 // No task tests the draw-only flags (battle_to_update_flags 0x201).
 // Module globals: 0x26AC780..0x26BA9C8 (file pointer, packet cursor 0x26AC784, pools, queues, arena
 // pointers 0x26B7170 / 0x26B7174); engine global 0x2792E74 (glint packet cursor pointer).
+// Fujin's described Life (effect_035.json) runs this code as its pieces (Doom's kind, Double's short root): its
+// module memory through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn);
+// its parameters (LifeParams: the emitter's sound, its phases' ticks and steps) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -77,6 +84,20 @@ namespace life
 	static const uint32_t ORIG_Sparkle = 0x8653E0;    // static sparkle task
 	static const uint32_t ORIG_Glint = 0x8DCC20;      // Effect_Glint_Tick (engine)
 	static const void *const SOUND_Life = (const void *)0x15E6388;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct LifeParams
+	{
+		struct { uint32_t sound; int16_t result; } emitter;            // its sound; the result (and the master's release) after this tick
+		struct { int16_t until, scale, radius; } grow;                  // phase 1: until this tick, the sparkles' scale and radius up a tick
+		struct { int16_t until, radius, spread, ring; } spread;         // phase 2: until this tick, radius down, height spread up, ring height down a tick
+		struct { uint32_t rise_a, rise_b, revive, ring, fall; } seqs; // the sprite sequences drawn (flipbooks)
+	};
+	static const LifeParams GAME = { { 0x15E6388, 0x1E }, { 0xA, 0x180, 0x66 }, { 0x14, 0x4C, 0x40, 0x26 }, { 0x15E638C, 0x15E6538, 0x15E6890, 0x15E66E4, 0x15E68EC } };
+	static LifeParams live = GAME;
+	static const LifeParams &PL() { return live; }
 	// sprite sequences in the file
 	static const uint32_t SEQ_Revive = 0x15E6890;
 	static const uint32_t SEQ_RiseA = 0x15E638C;
@@ -119,6 +140,7 @@ namespace life
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_035;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		const uint32_t node = a1;
 		uint32_t states[5];
 		states[0] = 0x864B80;
@@ -127,17 +149,17 @@ namespace life
 		states[3] = 0x8655B0;
 		states[4] = 0x8655D0; // nullsub (ret)
 		if ((U8(node, 0x5C) & 1) != 0)
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_ODD);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = MEM<uint32_t>(R(ARENA_ODD));
 		else
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_EVEN);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = MEM<uint32_t>(R(ARENA_EVEN));
 		// 30 fps layer: see mag035_life_held.inc
 		FX_HELD(held_note_master(node);)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(Q_EMITTER);
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_UNUSED));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPRITE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_GLINT));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_UNUSED)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_GLINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -149,7 +171,7 @@ namespace life
 	static uint32_t __cdecl SpawnEmitter(uint32_t a1)
 	{
 		U8(a1, 0x63) = 1;
-		x::Effect_AddTaskAndInitFromCtx(Q_EMITTER, ORIG_Emitter, 0x64, a1);
+		Spawn(R(Q_EMITTER), ORIG_Emitter, 0x64, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -187,7 +209,7 @@ namespace life
 	// parent's anchor: +0x4C sequence, +0x52 last frame, +0x54 camera offset, +0x68 scale 0x1000
 	static uint32_t SpawnSparkle(uint32_t parent, uint32_t seq, uint32_t last, uint32_t offset)
 	{
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Sparkle, 0x70, parent);
+		const uint32_t s = Spawn(R(Q_SPRITE), ORIG_Sparkle, 0x70, parent);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x54) = (uint16_t)offset;
 		U32(s, 0x4C) = seq;
@@ -219,7 +241,7 @@ namespace life
 				radius = S16(node, 0x58);
 			if (radius == 0)
 				radius = 1;
-			const uint32_t seq = (x::CrtRand() & 1) != 0 ? SEQ_RiseA : SEQ_RiseB;
+			const uint32_t seq = (x::CrtRand() & 1) != 0 ? fxp::sequence(PL().seqs.rise_a, SEQ_RiseA) : fxp::sequence(PL().seqs.rise_b, SEQ_RiseB);
 			const uint32_t s = SpawnSparkle(node, seq, 0xF, 0xFFFFFE00);
 			const int32_t angle = (int32_t)(x::CrtRand() & 0xFFF);
 			const int32_t dist = (int16_t)((int32_t)x::CrtRand() % (int32_t)radius);
@@ -238,11 +260,11 @@ namespace life
 	static void SpawnRevive(uint32_t node)
 	{
 		if (U16(node, 0x24) == 0)
-			SpawnSparkle(node, SEQ_Revive, 2, 0xFFFFFC00);
+			SpawnSparkle(node, fxp::sequence(PL().seqs.revive, SEQ_Revive), 2, 0xFFFFFC00);
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x16 || (t & 1) != 0)
 			return;
-		const uint32_t s = SpawnSparkle(node, SEQ_Revive, 2, 0xFFFFFC00);
+		const uint32_t s = SpawnSparkle(node, fxp::sequence(PL().seqs.revive, SEQ_Revive), 2, 0xFFFFFC00);
 		int16_t dx = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
 		const int16_t dy = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x5A) + 1));
 		int16_t dz = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
@@ -263,12 +285,12 @@ namespace life
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x1E)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Ring, 0x70, node);
+		const uint32_t s = Spawn(R(Q_SPRITE), ORIG_Ring, 0x70, node);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x1E) = (uint16_t)(U16(s, 0x1E) + U16(node, 0x62));
 		U32(s, 0x60) = U32(s, 0x1C);
 		U32(s, 0x64) = U32(s, 0x20);
-		U32(s, 0x4C) = SEQ_Ring;
+		U32(s, 0x4C) = fxp::sequence(PL().seqs.ring, SEQ_Ring);
 		U16(s, 0x52) = 0xF;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -283,8 +305,8 @@ namespace life
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0x14 || t >= 0x25)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Fall, 0x70, node);
-		U32(s, 0x4C) = SEQ_Fall;
+		const uint32_t s = Spawn(R(Q_SPRITE), ORIG_Fall, 0x70, node);
+		U32(s, 0x4C) = fxp::sequence(PL().seqs.fall, SEQ_Fall);
 		U16(s, 0x52) = 9;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -315,8 +337,8 @@ namespace life
 			return;
 		do
 		{
-			MEM<uint32_t>(GLINT_CURSOR_PTR) = PACKET_CURSOR;
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_GLINT, ORIG_Glint, 0x5C, node);
+			MEM<uint32_t>(GLINT_CURSOR_PTR) = R(PACKET_CURSOR);
+			const uint32_t s = Spawn(R(Q_GLINT), ORIG_Glint, 0x5C, node);
 			U16(s, 0x56) = 8;
 			U8(s, 0x4C) = 0x10;
 			U8(s, 0x4D) = 0x10;
@@ -359,7 +381,7 @@ namespace life
 			SpawnGlints(node);
 		}
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Life), 0, 0x80);
+			x::BdPlaySE(fxp::sound(PL().emitter.sound, P(SOUND_Life)), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -385,9 +407,9 @@ namespace life
 	// tick 10 next state
 	static uint32_t __cdecl EmitterGrow(uint32_t a1)
 	{
-		U16(a1, 0x5E) = (uint16_t)(U16(a1, 0x5E) + 0x180);
-		U16(a1, 0x58) = (uint16_t)(U16(a1, 0x58) + 0x66);
-		if (S16(a1, 0x24) > 0xA)
+		U16(a1, 0x5E) = (uint16_t)(U16(a1, 0x5E) + PL().grow.scale);
+		U16(a1, 0x58) = (uint16_t)(U16(a1, 0x58) + PL().grow.radius);
+		if (S16(a1, 0x24) > PL().grow.until)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -396,10 +418,10 @@ namespace life
 	// -= 0x26; after tick 20: count 1, scale end 0x10, next state
 	static uint32_t __cdecl EmitterSpread(uint32_t a1)
 	{
-		U16(a1, 0x58) = (uint16_t)(U16(a1, 0x58) - 0x4C);
-		U16(a1, 0x5A) = (uint16_t)(U16(a1, 0x5A) + 0x40);
-		U16(a1, 0x62) = (uint16_t)(U16(a1, 0x62) - 0x26);
-		if (S16(a1, 0x24) > 0x14)
+		U16(a1, 0x58) = (uint16_t)(U16(a1, 0x58) - PL().spread.radius);
+		U16(a1, 0x5A) = (uint16_t)(U16(a1, 0x5A) + PL().spread.spread);
+		U16(a1, 0x62) = (uint16_t)(U16(a1, 0x62) - PL().spread.ring);
+		if (S16(a1, 0x24) > PL().spread.until)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x5C) = 1;
@@ -416,7 +438,7 @@ namespace life
 	{
 		const uint32_t node = a1;
 		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + 0xFF01);
-		if (S16(node, 0x24) <= 0x1E)
+		if (S16(node, 0x24) <= PL().emitter.result)
 			return 0; // void
 		U8(U32(node, 0x10), 0x63) = 0;
 		const int32_t action = S8(node, 0x2A);
@@ -440,7 +462,7 @@ namespace life
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -456,7 +478,7 @@ namespace life
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -554,6 +576,36 @@ namespace life
 		return task_end(node, status);
 	}
 
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(LifeParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the sparkles (rising, reviving, ring, falling) and glints it spawns, the result" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "grow", "Grow", "Phase 1, until its tick: the sparkles' scale and the radius up a tick" },
+			{ "spread", "Spread", "Phase 2, until its tick: the radius down, the height spread up, the ring height down a tick" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(LifeParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.result, "Result after", "The action's result (and the master's release) after this tick", 0, 200),
+			DT("emitter", grow.until, "Until", "", 0, 200),
+			DT("emitter", grow.scale, "Scale", "", -0x1000, 0x1000),
+			DT("emitter", grow.radius, "Radius", "", -0x1000, 0x1000),
+			DT("emitter", spread.until, "Until", "", 0, 200),
+			DT("emitter", spread.radius, "Radius down", "", -0x1000, 0x1000),
+			DT("emitter", spread.spread, "Spread", "", -0x1000, 0x1000),
+			DT("emitter", spread.ring, "Ring down", "", -0x1000, 0x1000),
+			{ "emitter", "seqs.rise_a", "Rise a", "The sprite sequence rise a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.rise_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.rise_b", "Rise b", "The sprite sequence rise b (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.rise_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.revive", "Revive", "The sprite sequence revive (a flipbook of 3 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.revive), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.ring", "Ring", "The sprite sequence ring (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.ring), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.fall", "Fall", "The sprite sequence fall (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(LifeParams, seqs.fall), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef DT
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	// the module's functions served by the engine's ports (identical code up to module addresses)
 	static const ModPort ENGINE_PORTS[] = {
@@ -593,6 +645,11 @@ namespace life
 
 	void register_mag035_life()
 	{
+		fxp::register_params({ 35, "Life", &act::life::live, &act::life::GAME, sizeof(act::life::LifeParams),
+		                       act::life::table::PARTS, (int)(sizeof(act::life::table::PARTS) / sizeof(act::life::table::PARTS[0])),
+		                       act::life::table::FIELDS, (int)(sizeof(act::life::table::FIELDS) / sizeof(act::life::table::FIELDS[0])),
+		                       act::life::table::GROUPS, (int)(sizeof(act::life::table::GROUPS) / sizeof(act::life::table::GROUPS[0])) });
+		act::register_mod(&act::life::MOD_035);
 		act::register_module(35);
 		for (const act::life::ModPort *p = act::life::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(35, p->addr, p->port, p->name);
@@ -601,6 +658,7 @@ namespace life
 		// 30 fps layer: see mag035_life_held.inc
 		FX_HELD(register_mag035_held();)
 	}
+	FX_LAB_MODULE(register_mag035_life);
 }
 
 #ifdef FF8_FX_HELD

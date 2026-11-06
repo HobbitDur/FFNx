@@ -51,6 +51,10 @@
 //
 // Draw 22 EntityDisintegrate: see mag077_final_form_death.cpp (the same code): the slot entity's
 // model copy falls apart polygon by polygon (pieces, dots, particles).
+//
+// Fujin's described Elvoret's death (effect_018.json) calls the clone's own setup (the engine's state block is
+// shared), its root re-pointed at the ported tick; the file loader is ProgramFiles' (gfc_engine.h): its two
+// script files are its parameters.
 
 #include "gfc_engine.h"
 
@@ -1297,12 +1301,15 @@ namespace elvoret018
 	{
 		using namespace gfc;
 		elvoret018::describe(elvoret018::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<18>::Register("Elvoret's death", elvoret018::g_c, 0xB4A500, 0x1877254, 0x1877260, (void *)elvoret018::SequenceTask);
 		init_clone(elvoret018::g_c, nullptr, 0);
 		elvoret018::apply_slots(elvoret018::g_c);
 		register_port(0xB4ABA0, (void *)elvoret018::SequenceTask, "MAG018 Elvoret Death SequenceTick", 18);
 		// 30 fps layer: see mag018_elvoret_death_held.inc
 		FX_HELD(register_mag018_elvoret_death_held();)
 	}
+	FX_LAB_MODULE(register_mag018_elvoret_death);
 }
 
 #ifdef FF8_FX_HELD

@@ -67,7 +67,6 @@ namespace rave212
 	static const uint32_t FLASH_LO = 0x1D9898C, FLASH_HI = 0x1D98A68; // the screen flash words (0x5713E0)
 	enum : uint8_t { REC_LAYOUT = 1, REC_GHOSTS, REC_GLOW, REC_CAPTURE, REC_ENTITY = 6, REC_SPRITE, REC_ROCK };
 	enum : int { ENT_CASTER = 1, ENT_STILL, ENT_SPIN };
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2510238; }
 
 	struct Rec
 	{

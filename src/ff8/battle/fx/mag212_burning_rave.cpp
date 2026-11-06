@@ -56,6 +56,9 @@
 //   written), entity flag copy 0x25102A0 (7 x 4)).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -65,19 +68,21 @@ namespace rave212
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25101FC); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2510200); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2510208; }          // sprites (0x18)
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x2510218; }            // rocks / pieces (0x24)
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2510228; }         // the director (1 x 0xCD0)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2510258); }
-	inline uint32_t &CaptureCursor() { return var<uint32_t>(0x251025C); }    // the stage capture's geometry packets
-	inline uint32_t *CamAnchor() { return (uint32_t *)0x2510260; }          // Zell's +0x1C / +0x20 dwords at the start
-	inline int16_t *Centre() { return (int16_t *)0x2510268; }               // the box centre x, 0, far z
-	inline const int16_t *ZeroAngles() { return (const int16_t *)0x2510270; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2510278); }          // Magic_TextureOFF (magic buffer)
-	inline const Mat4x3 *ZeroMatrix() { return (const Mat4x3 *)0x2510280; }
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x25102A0; }          // the 7 entities' flag words
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25101FC)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2510200)); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2510208); }          // sprites (0x18)
+	inline TaskQueue *QRocks() { return (TaskQueue *)own::R(0x2510218); }            // rocks / pieces (0x24)
+	inline TaskQueue *QDirector() { return (TaskQueue *)own::R(0x2510228); }         // the director (1 x 0xCD0)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2510258)); }
+	inline uint32_t &CaptureCursor() { return var<uint32_t>(own::R(0x251025C)); }    // the stage capture's geometry packets
+	inline uint32_t *CamAnchor() { return (uint32_t *)own::R(0x2510260); }          // Zell's +0x1C / +0x20 dwords at the start
+	inline int16_t *Centre() { return (int16_t *)own::R(0x2510268); }               // the box centre x, 0, far z
+	inline const int16_t *ZeroAngles() { return (const int16_t *)own::R(0x2510270); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2510278)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25101F8)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2510238); }             // 1 x 0x10 (the director queue pair's second)
+	inline const Mat4x3 *ZeroMatrix() { return (const Mat4x3 *)own::R(0x2510280); }
+	inline uint32_t *SavedFlags() { return (uint32_t *)own::R(0x25102A0); }          // the 7 entities' flag words
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t *CamEye() { return (int16_t *)0xB8B7F0; }
@@ -105,6 +110,24 @@ namespace rave212
 	static const int16_t *const FIST_A = (const int16_t *)0x11AC240, *const FIST_B = (const int16_t *)0x11AC248; // offset + bone
 	static const void *const SOUND_A = (const void *)0x1181070;
 	static const void *const SOUND_B = (const void *)0x1181074;
+	static const uint32_t ORIG_FileLoader = 0x6A0D30, ORIG_Setup = 0x6A0D20;
+	static const uint32_t TEXTURE_NAME = 0x11AC250;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BurningRaveParams
+	{
+		struct { uint32_t start, burn; } sounds; // at the director's ticks 5 and 0x43
+		struct { int16_t damage; } director;    // the damage at this tick
+		struct { uint32_t ground, bone, front, burn; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t ember, flame; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t rock, rock_a, rock_b, rock_c, glow; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const BurningRaveParams GAME = { { 0x1181070, 0x1181074 }, { 0xAE }, { LAYOUT_Ground, LAYOUT_Bone, LAYOUT_Front, LAYOUT_Burn }, { SEQ_Ember, SEQ_Flame }, { MODEL_Rock, MODEL_RockA, MODEL_RockB, MODEL_RockC, MODEL_Glow }, { TEXTURE_NAME, COM_Anim } };
+	static BurningRaveParams live = GAME;
+	static const BurningRaveParams &P() { return live; }
 
 	// layout sites (director node offsets of the decoded layouts)
 	enum : int { SITE_GROUND = 1, SITE_BONE, SITE_FRONT, SITE_BURN };
@@ -827,10 +850,29 @@ namespace rave212
 	}
 
 	// 0x6A30F0
+	// File loader (0x6A0D30) and setup (0x6A0D20 -> _Init 0x6A0D50): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2510248), 0x10, 1);
+		*(uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		RockDraw(k, MODEL_Rock);
+		RockDraw(k, fxp::model(P().model_data.rock, MODEL_Rock));
 		if (--k->life == 0) return TASK_END;
 		RockMoveBounce(k);
 		return 0;
@@ -847,22 +889,22 @@ namespace rave212
 	// 0x6A3280 / 0x6A33C0 / 0x6A33E0: the three falling rock models
 	static uint32_t __cdecl RockATask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, MODEL_RockA);
+		return RockModelTask((RockNode *)n, fxp::model(P().model_data.rock_a, MODEL_RockA));
 	}
 	static uint32_t __cdecl RockBTask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, MODEL_RockB);
+		return RockModelTask((RockNode *)n, fxp::model(P().model_data.rock_b, MODEL_RockB));
 	}
 	static uint32_t __cdecl RockCTask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, MODEL_RockC);
+		return RockModelTask((RockNode *)n, fxp::model(P().model_data.rock_c, MODEL_RockC));
 	}
 
 	// 0x6A3630: a debris piece of the burning layout
 	static uint32_t __cdecl PieceTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		RockDraw(k, MODEL_Rock);
+		RockDraw(k, fxp::model(P().model_data.rock, MODEL_Rock));
 		if (--k->life == 0) return TASK_END;
 		RockMove(k);
 		return 0;
@@ -899,25 +941,25 @@ namespace rave212
 	// 0x6A3750: a spark (a fixed depth -0x89)
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
-		return SpriteTaskStep((SpriteNode *)n, SEQ_Ember, -0x89);
+		return SpriteTaskStep((SpriteNode *)n, fxp::sequence(P().seqs.ember, SEQ_Ember), -0x89);
 	}
 	// 0x6A3800 / 0x6A38B0: an ember / a flame (depth -size / 4)
 	static uint32_t __cdecl EmberTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		return SpriteTaskStep(s, SEQ_Ember, -((int32_t)s->size >> 2));
+		return SpriteTaskStep(s, fxp::sequence(P().seqs.ember, SEQ_Ember), -((int32_t)s->size >> 2));
 	}
 	static uint32_t __cdecl FlameTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		return SpriteTaskStep(s, SEQ_Flame, -((int32_t)s->size >> 2));
+		return SpriteTaskStep(s, fxp::sequence(P().seqs.flame, SEQ_Flame), -((int32_t)s->size >> 2));
 	}
 
 	// 0x6A3400: count + 1 rocks of task `fn` around (x, y, z) at radius (rand * rs >> 15) + rb, scale (rand * ss >> 15) + sb,
 	// life (rand * ls >> 15) + lb, gravity -20
 	static void SpawnRocks(int32_t count, int32_t x, int32_t y, int32_t z, int32_t ls, int32_t lb, int32_t rs, int32_t rb, int32_t ss, int32_t sb, uint32_t fn)
 	{
-		RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), fn);
+		RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(fn));
 		while (k)
 		{
 			*(uint32_t *)k->acc = 0;
@@ -939,7 +981,7 @@ namespace rave212
 			k->spin[0] = (int8_t)CrtRand();
 			k->spin[1] = (int8_t)CrtRand();
 			if (count-- == 0) break;
-			k = (RockNode *)AddTaskToQueue(QRocks(), fn);
+			k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(fn));
 		}
 	}
 
@@ -947,7 +989,7 @@ namespace rave212
 	// (rand * ss >> 15) + sb, `life` frames
 	static void SpawnSprites(int32_t count, int32_t life, int32_t x, int32_t y, int32_t z, int32_t spread, int32_t off, int32_t vx, int32_t vy, int32_t vz, int32_t ss, int32_t sb, uint32_t fn)
 	{
-		SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), fn);
+		SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(fn));
 		while (s)
 		{
 			s->pos[0] = (int16_t)((mul32(CrtRand(), spread) >> 15) + off + x);
@@ -959,7 +1001,7 @@ namespace rave212
 			s->vel[2] = (int8_t)vz;
 			s->life = (uint8_t)life;
 			if (count-- == 0) break;
-			s = (SpriteNode *)AddTaskToQueue(QSprites(), fn);
+			s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(fn));
 		}
 	}
 
@@ -968,7 +1010,7 @@ namespace rave212
 	static void SpawnPiece(prim::Layout *l, prim::Record *r, uint8_t *h)
 	{
 		if (l->frame >= 0x20) return;
-		RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_PieceTask);
+		RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_PieceTask));
 		if (!k) return;
 		const uint8_t *verts = *(uint8_t **)(h + 4);
 		const uint8_t *tab = PIECE_Table + (int32_t)(int16_t)r->flags_lo * 0x20;
@@ -1197,7 +1239,7 @@ namespace rave212
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		uint8_t *p = h + 0x20;
-		U32(p, 0) = MODEL_Glow;
+		U32(p, 0) = fxp::model(P().model_data.glow, MODEL_Glow);
 		if (g.mode == 0xF0)
 		{
 			U32(p, 8) = 0;
@@ -1292,7 +1334,7 @@ namespace rave212
 		FX_HELD(held_note_director(d);)
 		const int16_t c = ++d->counter;
 		if (c == 0xB6) return TASK_END;
-		if (c == 0xAE)
+		if (c == P().director.damage)
 		{
 			// the damage; the targets put back (position, bits 0x0C), the enemies' bit 4, Zell's position / angles, the streams
 			ApplyActionResultToTargets(Targets(), (uint32_t)TargetCount());
@@ -1326,7 +1368,7 @@ namespace rave212
 		{
 			if (s == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Ground, d->burn_l, 0x190);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.ground, LAYOUT_Ground, 0x190), d->burn_l, 0x190);
 				GetDefaultEffectPosition(Caster(), d->anchor);
 			}
 			RotationY(0, &arg.m);
@@ -1366,7 +1408,7 @@ namespace rave212
 		// 0x51..0x68: a layout at his bone 0x16
 		if ((uint32_t)(c - 0x51) < 0x18)
 		{
-			if (c == 0x51) DecodeModelPrimLayout(LAYOUT_Bone, d->bone_l, 0x44);
+			if (c == 0x51) DecodeModelPrimLayout(fxp::layout(P().layouts.bone, LAYOUT_Bone, 0x44), d->bone_l, 0x44);
 			int16_t p[4];
 			GetEffectSpawnPosition(Caster(), 0x16, 0, p);
 			RotationY(0, &arg.m);
@@ -1385,7 +1427,7 @@ namespace rave212
 		// 0x54..0x6D: a layout before him
 		if ((uint32_t)(c - 0x54) < 0x1A)
 		{
-			if (c == 0x54) DecodeModelPrimLayout(LAYOUT_Front, d->front_l, 0x230);
+			if (c == 0x54) DecodeModelPrimLayout(fxp::layout(P().layouts.front, LAYOUT_Front, 0x230), d->front_l, 0x230);
 			RotationY(0, &arg.m);
 			arg.m.t[1] = 0;
 			arg.m.t[0] = *(const int16_t *)(Caster() + 0x1C) - 0xC3;
@@ -1402,7 +1444,7 @@ namespace rave212
 		const int32_t f = c - 0x5E;
 		if ((uint32_t)f < 0x46)
 		{
-			if (f == 0) DecodeModelPrimLayout(LAYOUT_Burn, d->burn_l, 0x484);
+			if (f == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.burn, LAYOUT_Burn, 0x484), d->burn_l, 0x484);
 			RotationY(0x800, &arg.m);
 			if ((uint32_t)f < 0xF)
 			{
@@ -1422,7 +1464,7 @@ namespace rave212
 					box_a[3] = box_b[3];
 					CaptureStage(&d->box[4], box_a);
 					B8(Caster(), 0) |= 4;
-					DecodeModelPrimLayout(LAYOUT_Burn, d->burn_l, 0x484);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.burn, LAYOUT_Burn, 0x484), d->burn_l, 0x484);
 				}
 				arg.m.t[0] = d->box[4];
 				arg.m.t[1] = 0;
@@ -1496,7 +1538,7 @@ namespace rave212
 				for (int32_t i = 0; i < TargetCount(); i++)
 				{
 					uint8_t *e = d->recs[i].e;
-					SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_EmberTask);
+					SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_EmberTask));
 					if (!sp) break;
 					const int32_t r = SharedRand();
 					const uint8_t bones = (**(uint8_t ***)(e + 0x64))[0];
@@ -1513,8 +1555,8 @@ namespace rave212
 		// the afterimages of Zell: drawn 0x41..0x50, recorded 0x40..0x4A (274's 0x68ADF0)
 		if (c > 0x40 && c <= 0x50) GhostDraw(Caster(), d->ghosts);
 		if (c >= 0x40 && c <= 0x4A) GhostRecord(Caster(), d->ghosts);
-		if (c == 5) BdPlaySE(SOUND_A, 0, 0x80);
-		else if (c == 0x43) BdPlaySE(SOUND_B, 0, 0x80);
+		if (c == 5) BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_A), 0, 0x80);
+		else if (c == 0x43) BdPlaySE((const void *)fxp::sound(P().sounds.burn, (uint32_t)SOUND_B), 0, 0x80);
 		// 0x86..0x8F: rocks falling at the far end (the rock pool reset at 0x86), an ember and a flame rising there
 		if ((uint32_t)t < 0xA)
 		{
@@ -1529,7 +1571,7 @@ namespace rave212
 				case 1: fn = ORIG_RockBTask; break;
 				case 2: fn = ORIG_RockCTask; break;
 				}
-				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), fn);
+				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(fn));
 				if (!k) break;
 				*(uint32_t *)k->acc = 0;
 				k->acc[1] = 0x32;
@@ -1549,7 +1591,7 @@ namespace rave212
 			}
 			for (int pass = 0; pass < 2; pass++)
 			{
-				SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), pass == 0 ? ORIG_EmberTask : ORIG_FlameTask);
+				SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(pass == 0 ? ORIG_EmberTask : ORIG_FlameTask));
 				if (!sp) continue;
 				sp->pos[0] = (int16_t)(CrtRand() * 4700 / 0x8000 + d->box[4] - 0x92E);
 				sp->pos[1] = 0;
@@ -1628,7 +1670,7 @@ namespace rave212
 		Centre()[2] = d->centre[2];
 		static const int32_t bones[3] = { 0xE, 0x12, 0x16 };
 		GhostInit(d->ghosts, 3, bones);
-		BindExternalAnimSet(z, d->bind, COM_Anim);
+		BindExternalAnimSet(z, d->bind, fxp::anim_set(P().res.anim, COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x1BD0));
 	}
@@ -1660,7 +1702,7 @@ namespace rave212
 				InitTaskQueuePool(QSprites(), (void *)(TexBase() + 0x15D0), 0x18, 0x40);
 				SaveFlags();
 			}
-			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), ORIG_DirectorTask);
+			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), own::Fn(ORIG_DirectorTask));
 			if (d) StartDirector(d);
 		}
 		if (r->state == 0)
@@ -1696,23 +1738,68 @@ namespace rave212
 		}
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Zell's Burning Rave: his animation set and placement, the stage captured, the ground and burning layouts, rocks, sparks and debris, the targets drawn, thrown and spun, his afterimages, the camera's moves, the screen flash, the sounds; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the director's ticks 5 and 0x43" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start", "At the director's tick 5", (uint32_t)offsetof(BurningRaveParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.burn", "Burn", "At the director's tick 0x43", (uint32_t)offsetof(BurningRaveParams, sounds.burn), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(BurningRaveParams, director.damage), fxp::I16, 0, 181 },
+			{ "director", "layouts.ground", "Ground", "The prim-model layout ground (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.ground), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.bone", "Bone", "The prim-model layout bone (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.bone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.front", "Front", "The prim-model layout front (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.front), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.burn", "Burn", "The prim-model layout burn (its models' animation)", (uint32_t)offsetof(BurningRaveParams, layouts.burn), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BurningRaveParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BurningRaveParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock", "Rock model", "The prim model rock (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock_a", "Rock a model", "The prim model rock a (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock_b", "Rock b model", "The prim model rock b (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock_c", "Rock c model", "The prim model rock c (a mesh of 18 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.rock_c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.glow", "Glow model", "The prim model glow (a mesh of 225 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BurningRaveParams, model_data.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BurningRaveParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(BurningRaveParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag212_burning_rave()
 	{
+		fxp::register_params({ 212, "Burning Rave", &rave212::live, &rave212::GAME, sizeof(rave212::BurningRaveParams),
+		                       rave212::table::PARTS, (int)(sizeof(rave212::table::PARTS) / sizeof(rave212::table::PARTS[0])),
+		                       rave212::table::FIELDS, (int)(sizeof(rave212::table::FIELDS) / sizeof(rave212::table::FIELDS[0])),
+		                       rave212::table::GROUPS, (int)(sizeof(rave212::table::GROUPS) / sizeof(rave212::table::GROUPS[0])) });
+		own::note(rave212::ORIG_FileLoader, (void *)rave212::FileLoader);
+		own::note(rave212::ORIG_Setup, (void *)rave212::Setup);
+		own::note(rave212::ORIG_RootTask, (void *)rave212::RootTask);
 		register_port(rave212::ORIG_RootTask, (void *)rave212::RootTask, "212 RootTask", 212);
+		own::note(rave212::ORIG_DirectorTask, (void *)rave212::DirectorTask);
 		register_port(rave212::ORIG_DirectorTask, (void *)rave212::DirectorTask, "212 DirectorTask", 212);
+		own::note(rave212::ORIG_RockTask, (void *)rave212::RockTask);
 		register_port(rave212::ORIG_RockTask, (void *)rave212::RockTask, "212 RockTask", 212);
+		own::note(rave212::ORIG_RockATask, (void *)rave212::RockATask);
 		register_port(rave212::ORIG_RockATask, (void *)rave212::RockATask, "212 RockATask", 212);
+		own::note(rave212::ORIG_RockBTask, (void *)rave212::RockBTask);
 		register_port(rave212::ORIG_RockBTask, (void *)rave212::RockBTask, "212 RockBTask", 212);
+		own::note(rave212::ORIG_RockCTask, (void *)rave212::RockCTask);
 		register_port(rave212::ORIG_RockCTask, (void *)rave212::RockCTask, "212 RockCTask", 212);
+		own::note(rave212::ORIG_PieceTask, (void *)rave212::PieceTask);
 		register_port(rave212::ORIG_PieceTask, (void *)rave212::PieceTask, "212 PieceTask", 212);
+		own::note(rave212::ORIG_SparkTask, (void *)rave212::SparkTask);
 		register_port(rave212::ORIG_SparkTask, (void *)rave212::SparkTask, "212 SparkTask", 212);
+		own::note(rave212::ORIG_EmberTask, (void *)rave212::EmberTask);
 		register_port(rave212::ORIG_EmberTask, (void *)rave212::EmberTask, "212 EmberTask", 212);
+		own::note(rave212::ORIG_FlameTask, (void *)rave212::FlameTask);
 		register_port(rave212::ORIG_FlameTask, (void *)rave212::FlameTask, "212 FlameTask", 212);
 		// 30 fps layer: see mag212_burning_rave_held.inc
 		FX_HELD(register_mag212_held();)
 	}
+	FX_LAB_MODULE(register_mag212_burning_rave);
 }
 
 #ifdef FF8_FX_HELD

@@ -61,6 +61,9 @@
 // ComposeZYXRotationMatrix / BuildRotationMatrixFromAngles / matrixMultiplyVector; every matrix is fully written).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -70,11 +73,12 @@ namespace wall189
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &FirstTarget() { return var<int32_t>(0x2293F4C); }      // first target slot of action 0 (setup)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2293F80; }             // pool 0x2293F60, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2295C00; }          // pool 0x2295C10, 100 x 0x24
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2296A20); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x22B2A30); }
+	inline int32_t &FirstTarget() { return var<int32_t>(own::R(0x2293F4C)); }      // first target slot of action 0 (setup)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2293F80); }             // pool 0x2293F60, 2 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x2295C00); }          // pool 0x2295C10, 100 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2296A20)); }
+	inline uint32_t &Cursor() { return var<uint32_t>(own::R(0x22B2A30)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2296A28)); }          // the effect's file (its TIM)
 	inline int16_t &CameraShakeY() { return var<int16_t>(0x1D97712); }      // battle camera shake word (y)
 	inline uint8_t DisplayBuffer() { return var<uint8_t>(0x1D96A80); }
 
@@ -100,6 +104,23 @@ namespace wall189
 	static const uint32_t SEQ_Dust = 0xD19658;
 	static const uint32_t CLIP_TABLE = 0xD1B3AC;       // 7 x 8 vertex-slot indices of the clipper
 	static const void *const SOUND_Wall = (const void *)0xD1B3A4;
+	static const uint32_t ORIG_FileLoader = 0x5BC940, ORIG_Setup = 0x5BC960;
+	static const uint32_t TEXTURE_NAME = 0xD1B4A8, CAMERA_ANIM = 0xD19580;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct WallParams
+	{
+		uint32_t sound;                  // at the main task's tick 1
+		struct { int16_t result; } main; // the action results at this tick
+		struct { uint32_t dust; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t wall, shard, debris; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const WallParams GAME = { 0xD1B3A4, { 0x41 }, { SEQ_Dust }, { MODEL_Wall, MODEL_Shard, MODEL_Debris }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static WallParams live = GAME;
+	static const WallParams &P() { return live; }
 	static const int DUST_COUNT = 150, DEBRIS_COUNT = 100;
 	static const int32_t WALL_TICKS = 0x3C, WALL_CLIPPED = 0x14, WALL_SHAKE = 0x1A, WALL_FADE = 0x30;
 	static const int32_t SHARD_TICKS = 0x18, SHARD_GROW = 6, SHARD_FADE = 0x10;
@@ -212,10 +233,10 @@ namespace wall189
 	static_assert(sizeof(Dust) == 0x18 && sizeof(Debris) == 0x18, "Wall particles");
 	static_assert(sizeof(ClipHeader) == 0x1A8, "Wall clip header");
 
-	inline Dust *Dusts() { return (Dust *)0x2294DB0; }
-	inline Debris *Pieces() { return (Debris *)0x2293F90; }
+	inline Dust *Dusts() { return (Dust *)own::R(0x2294DB0); }
+	inline Debris *Pieces() { return (Debris *)own::R(0x2293F90); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
-	inline Node *AddTask(uint32_t f) { return (Node *)AddTaskToQueue(QEffects(), f); }
+	inline Node *AddTask(uint32_t f) { return (Node *)AddTaskToQueue(QEffects(), own::Fn(f)); }   // (a copy: the port's thunk)
 
 	// the wall: clip-plane height (model space) and fade of counter c
 	static int16_t WallPlane(int32_t c) { return (int16_t)(c * 2013 / 20 - 0x7DD); }
@@ -483,7 +504,7 @@ namespace wall189
 		if (c < WALL_CLIPPED)
 		{
 			ClipHeader *h = (ClipHeader *)FieldAlloc(0x1A8);
-			h->model = (uint8_t *)MODEL_Wall;
+			h->model = (uint8_t *)fxp::model(P().models.wall, MODEL_Wall);
 			h->flags = 0;
 			h->slot[0].v[0] = 0;
 			h->slot[0].v[2] = 0;
@@ -498,7 +519,7 @@ namespace wall189
 		else
 		{
 			uint8_t *h = (uint8_t *)FieldAlloc(0x60);
-			*(uint32_t *)h = MODEL_Wall;
+			*(uint32_t *)h = fxp::model(P().models.wall, MODEL_Wall);
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x1C) = 0;
 			*(uint32_t *)(h + 0x58) = 0xE1000020;
@@ -531,7 +552,7 @@ namespace wall189
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Shard;
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_Shard);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= SHARD_FADE)
@@ -593,8 +614,8 @@ namespace wall189
 		v[0] = 0x1000000 / (0x1162000 / (int32_t)rect[2]);
 		v[2] = 0x1000000 / (0xAF0000 / (int32_t)rect[3]);
 		Scale3DMatrix(&m, v);
-		SetDrawEnvPrim(PKT_DrawEnv, DRAWENV + 0x5C * ((uint32_t)DisplayBuffer() ^ 1));
-		InsertPrimAutoDepth(RenderOT(), (void *)PKT_DrawEnv);
+		SetDrawEnvPrim(own::R(PKT_DrawEnv), DRAWENV + 0x5C * ((uint32_t)DisplayBuffer() ^ 1));
+		InsertPrimAutoDepth(RenderOT(), (void *)own::R(PKT_DrawEnv));
 		int32_t ofx, ofy;
 		GetScreenOffset(&ofx, &ofy);
 		SetScreenOffset((int32_t)rect[2] / 2, (int32_t)rect[3] / 2);
@@ -623,18 +644,43 @@ namespace wall189
 		FieldFree(0x2C);
 		SetScreenOffset(ofx, ofy);
 		InsertPrimAltViewport(RenderOT(), PKT_AltViewport);
-		SetDrawAreaPrim(PKT_DrawArea, rect);
-		InsertPrimAutoDepth(RenderOT(), (void *)PKT_DrawArea);
-		var<int16_t>(OFFSET_XY) = rect[0];
-		var<int16_t>(OFFSET_XY + 2) = rect[1];
-		SetDrawOffsetPrim(PKT_DrawOffset, OFFSET_XY);
-		InsertPrimAutoDepth(RenderOT(), (void *)PKT_DrawOffset);
+		SetDrawAreaPrim(own::R(PKT_DrawArea), rect);
+		InsertPrimAutoDepth(RenderOT(), (void *)own::R(PKT_DrawArea));
+		var<int16_t>(own::R(OFFSET_XY)) = rect[0];
+		var<int16_t>(own::R(OFFSET_XY) + 2) = rect[1];
+		SetDrawOffsetPrim(own::R(PKT_DrawOffset), own::R(OFFSET_XY));
+		InsertPrimAutoDepth(RenderOT(), (void *)own::R(PKT_DrawOffset));
 	}
 
 	// ------------------------------------------------------------------
 	// Tasks
 	// ------------------------------------------------------------------
 	// Debris (0x5BDF60)
+	// File loader (0x5BC940) and setup (0x5BC960): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its attacker's slots, the root and the main task, the dust and debris
+	// pools freed, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		FirstTarget() = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x2296A24)) = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2293F60), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x2295C10), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_MainTask)) + 0xC) = 0;
+		for (uint32_t a = own::R(0x2294DB0); a < own::R(PKT_DrawEnv); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(0x2293F90); a < own::R(0x22948F0); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	static uint32_t __cdecl DebrisTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -643,7 +689,7 @@ namespace wall189
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *w = (uint8_t *)FieldAlloc(0x88);
 		memcpy(w + 0x28, &Camera(), 0x20);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_Debris);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t alive = 0;
@@ -716,7 +762,7 @@ namespace wall189
 		FX_HELD(held_begin(ORIG_DustTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_Dust);
 		*(int16_t *)(h + 0x24) = 8;
 		for (Dust *p = Dusts(); p < Dusts() + DUST_COUNT; p++)
 		{
@@ -881,8 +927,8 @@ namespace wall189
 			w->scale = 0x1000;
 			w->step = 0x64;
 		}
-		if (n->counter == 0x41) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (n->counter == 1) BdPlaySE(SOUND_Wall, 0, 0x80);
+		if (n->counter == P().main.result) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Wall), 0, 0x80);
 		n->counter++;
 		return n->counter > 0x46 ? TASK_END : 0;
 	}
@@ -891,7 +937,7 @@ namespace wall189
 	static uint32_t __cdecl RestoreTask(TaskNode *n_)
 	{
 		RootNode *t = (RootNode *)n_;
-		if (t->counter == 1) TextureRestoreTask((void *)ARENA_EVEN, &t->done);
+		if (t->counter == 1) TextureRestoreTask((void *)own::R(ARENA_EVEN), &t->done);
 		const int16_t done = t->done;
 		t->counter++;
 		return done ? TASK_END : 0;
@@ -903,32 +949,63 @@ namespace wall189
 		RootNode *r = (RootNode *)n_;
 		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(held_note_root();)
-		Cursor() = ARENA_ODD;
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_EVEN;
+		Cursor() = own::R(ARENA_ODD);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = own::R(ARENA_EVEN);
 		const int a = ExecuteTaskQueue(QEffects());
 		if (a == 0)
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_RestoreTask);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RestoreTask));
 			t->counter = 0;
 			t->done = 0;
 		}
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The stage captured, the 24 shards on an ellipse, the wall rising through its plane (the camera shake), the dust and debris, the sound; the action results" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "At the main task's tick 1", (uint32_t)offsetof(WallParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "main.result", "Result tick", "The action results at this tick of the main task", (uint32_t)offsetof(WallParams, main.result), fxp::I16, 0, 70 },
+			{ "main", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(WallParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "models.wall", "Wall model", "The prim model wall (a mesh of 144 vertices, 250 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.wall), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "models.shard", "Shard model", "The prim model shard (a mesh of 28 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "models.debris", "Debris model", "The prim model debris (a mesh of 6 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(WallParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(WallParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(WallParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag189_wall()
 	{
+		fxp::register_params({ 189, "Wall", &wall189::live, &wall189::GAME, sizeof(wall189::WallParams),
+		                       wall189::table::PARTS, (int)(sizeof(wall189::table::PARTS) / sizeof(wall189::table::PARTS[0])),
+		                       wall189::table::FIELDS, (int)(sizeof(wall189::table::FIELDS) / sizeof(wall189::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(wall189::ORIG_FileLoader, (void *)wall189::FileLoader);
+		own::note(wall189::ORIG_Setup, (void *)wall189::Setup);
+		own::note(wall189::ORIG_RootTask, (void *)wall189::RootTask);
 		register_port(wall189::ORIG_RootTask, (void *)wall189::RootTask, "189 RootTask", 189);
+		own::note(wall189::ORIG_RestoreTask, (void *)wall189::RestoreTask);
 		register_port(wall189::ORIG_RestoreTask, (void *)wall189::RestoreTask, "189 RestoreTask", 189);
+		own::note(wall189::ORIG_MainTask, (void *)wall189::MainTask);
 		register_port(wall189::ORIG_MainTask, (void *)wall189::MainTask, "189 MainTask", 189);
+		own::note(wall189::ORIG_WallTask, (void *)wall189::WallTask);
 		register_port(wall189::ORIG_WallTask, (void *)wall189::WallTask, "189 WallTask", 189);
+		own::note(wall189::ORIG_ShardTask, (void *)wall189::ShardTask);
 		register_port(wall189::ORIG_ShardTask, (void *)wall189::ShardTask, "189 ShardTask", 189);
+		own::note(wall189::ORIG_DustTask, (void *)wall189::DustTask);
 		register_port(wall189::ORIG_DustTask, (void *)wall189::DustTask, "189 DustTask", 189);
+		own::note(wall189::ORIG_DebrisTask, (void *)wall189::DebrisTask);
 		register_port(wall189::ORIG_DebrisTask, (void *)wall189::DebrisTask, "189 DebrisTask", 189);
 		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(register_mag189_held();)
 	}
+	FX_LAB_MODULE(register_mag189_wall);
 }
 
 #ifdef FF8_FX_HELD

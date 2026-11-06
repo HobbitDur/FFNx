@@ -34,8 +34,15 @@
 // No task tests the draw-only flags (battle_to_update_flags 0x201).
 // Module globals: 0x26BA9E0..0x26C0380 (file pointer, packet cursor 0x26BA9E4, pools, queues,
 // the player's vertex blend buffer 0x26C0298), camera copy 0x2793E58 (0x20 bytes).
+// Fujin's described Pain (effect_034.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters
+// (PainParams: the emitter's sound and ticks) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -61,6 +68,17 @@ namespace pain
 	static const uint32_t ORIG_ModelPlayer = 0x865DB0;
 	static const uint32_t ORIG_DrawCallback = 0x865AE0;
 	static const void *const SOUND_Pain = (const void *)0x15E703C;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct PainParams
+	{
+		struct { uint32_t sound; int16_t release, result; } emitter;   // its sound; the master released / the damage at these ticks
+	};
+	static const PainParams GAME = { { 0x15E703C, 0x14, 0x14 } };
+	static PainParams live = GAME;
+	static const PainParams &PN() { return live; }
 
 	// engine prim renderer variant (glow pass): same header as Effect_RenderPrimModel
 	inline uint32_t RenderPrimModelGlow(uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x8DE9D0)(hdr, ot, mode, cursor); }
@@ -95,14 +113,15 @@ namespace pain
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_034;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag034_pain_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x26C0374) = 0x2793E58;
-		MEM<uint32_t>(0x26BAA00) = 0x2793E58;
+		MEM<uint32_t>(R(0x26C0374)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26BAA00)) = 0x2793E58;
 		states[0] = 0x865840;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x865850;
@@ -117,25 +136,25 @@ namespace pain
 		states[10] = 0x865FE0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26C028C);
-			const uint32_t v2 = MEM<uint32_t>(0x26C0114);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26BA9FC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26C028C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26C0114));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26BA9FC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26C0288);
-			const uint32_t v2 = MEM<uint32_t>(0x26C0110);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26BA9FC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26C0288));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26C0110));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26BA9FC)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
 		// the emitter pass leaves a non-1 word at the players' block +0x40 stack slot (see PlayerPlay)
 		g_block40 = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PLAYER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_PLAYER)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -165,7 +184,7 @@ namespace pain
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Pain), 0, 0x80);
+			x::BdPlaySE(fxp::sound(PN().emitter.sound, P(SOUND_Pain)), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -175,7 +194,7 @@ namespace pain
 	// under `parent`: +0x74 model data, +0x78 animation word (sign-extended), +0x80 / +0x82 modes
 	static uint32_t SpawnPlayer(uint32_t parent, uint32_t fn_addr, uint32_t model, uint32_t anim, uint32_t w80, uint32_t w82)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, fn_addr, 0x89C, parent);
+		const uint32_t t = Spawn(R(Q_PLAYER), fn_addr, 0x89C, parent);
 		U16(t, 0x80) = (uint16_t)w80;
 		U32(t, 0x74) = model;
 		S32(t, 0x78) = (int16_t)anim;
@@ -231,7 +250,7 @@ namespace pain
 		// +0x40 of the second player (+0x82 == 0) is the stack residue (g_block40, see the note above)
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
-		U32(L, 0x48) = BLEND_BUFFER;
+		U32(L, 0x48) = R(BLEND_BUFFER);
 		U32(L, 0x20) = U32(node, 0x1C);
 		U32(L, 0x24) = U32(node, 0x20);
 		U32(L, 0x40) = U16(node, 0x82) == 1 ? 1 : g_block40;
@@ -353,10 +372,10 @@ namespace pain
 		{
 			U32(hdr, 0x1C) |= 0x400;
 			U32(hdr, 0x10) = 0;
-			MEM<uint32_t>(PACKET_CURSOR) = RenderPrimModelGlow(hdr, ot, 2, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = RenderPrimModelGlow(hdr, ot, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		}
 		else
-			MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 		return 0; // void (prim player callback)
 	}
@@ -365,7 +384,7 @@ namespace pain
 	// 0: its action loop may spawn the next emitter), next state
 	static uint32_t __cdecl ReleaseMaster(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x14)
+		if (S16(a1, 0x24) == PN().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -378,7 +397,7 @@ namespace pain
 	static uint32_t __cdecl Damage(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x14)
+		if (S16(node, 0x24) < PN().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -389,6 +408,21 @@ namespace pain
 		U8(node, 0x26) |= 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(PainParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the two model players on the target, the master's release, the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(PainParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 200),
+			DT("emitter", emitter.result, "Damage tick", "The damage of its target from this tick", 0, 200),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -431,6 +465,11 @@ namespace pain
 
 	void register_mag034_pain()
 	{
+		fxp::register_params({ 34, "Pain", &act::pain::live, &act::pain::GAME, sizeof(act::pain::PainParams),
+		                       act::pain::table::PARTS, (int)(sizeof(act::pain::table::PARTS) / sizeof(act::pain::table::PARTS[0])),
+		                       act::pain::table::FIELDS, (int)(sizeof(act::pain::table::FIELDS) / sizeof(act::pain::table::FIELDS[0])),
+		                       nullptr, 0 });
+		act::register_mod(&act::pain::MOD_034);
 		act::register_module(34);
 		for (const act::pain::ModPort *p = act::pain::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(34, p->addr, p->port, p->name);
@@ -439,6 +478,7 @@ namespace pain
 		// 30 fps layer: see mag034_pain_held.inc
 		FX_HELD(register_mag034_held();)
 	}
+	FX_LAB_MODULE(register_mag034_pain);
 }
 
 #ifdef FF8_FX_HELD

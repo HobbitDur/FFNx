@@ -158,6 +158,41 @@ namespace ff8fx
 	const char *port_name(uint32_t orig);
 	extern bool g_active;               // ports dispatched (fx_dispatch.cpp / fx_verify.cpp)
 	void register_all();                // every module's register function (fx_port.cpp), once
+
+	// --- a described copy: Fujin's programs running a port's code on memory of their own ---
+	namespace own
+	{
+		inline bool active = false;                            // a program's port code runs now
+		inline uint32_t reloc = 0;                             // its module memory moved by this (0: the module's own)
+		inline uint32_t (*task_of)(uint32_t orig) = nullptr;   // the program's own task for an original (0: none)
+		inline uint32_t R(uint32_t a) { return a + reloc; }    // a module address, where the running copy has it
+		// the ports a program may run, by original (the modules note theirs, their setups and loaders too)
+		inline uint32_t g_orig[4096];
+		inline void *g_port[4096];
+		inline int g_count = 0;
+		inline void note(uint32_t orig, void *port)
+		{
+			for (int k = 0; k < g_count; k++)
+				if (g_orig[k] == orig) { g_port[k] = port; return; }
+			if (g_count < 4096) { g_orig[g_count] = orig; g_port[g_count++] = port; }
+		}
+		inline void *find(uint32_t orig)
+		{
+			for (int k = 0; k < g_count; k++)
+				if (g_orig[k] == orig) return g_port[k];
+			return nullptr;
+		}
+		// the task function a port's code gives a node for an original: in a program the program's own task,
+		// else its port; outside a program the original (the game's dispatch, FFNx's ports)
+		inline uint32_t Fn(uint32_t orig)
+		{
+			if (!active) return orig;
+			if (task_of)
+				if (const uint32_t t = task_of(orig)) return t;
+			void *port = find(orig);
+			return port ? (uint32_t)port : orig;
+		}
+	}
 	void install();                     // FFNx hook installation (fx_dispatch.cpp), once
 	extern void (*g_queue_seen)(TaskQueue *q); // verifier callback: a queue runs
 

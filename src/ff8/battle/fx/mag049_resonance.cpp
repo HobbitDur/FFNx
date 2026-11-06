@@ -62,8 +62,14 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (rs_XXXXXX), the library ones
 // the text of the matching Stare / Granaldo / Doom / Curse / Tonberry / Siren port with this
 // module's addresses.
+// Fujin's described Resonance (effect_049.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the director block through its exe word (G), the warp block's exe word moved with
+// R(), the tasks it spawns the program's or thunks of their ports (Spawn); its parameters (ResonanceParams: the
+// director's sound, the screen warp, the targets' cues, the prim models' placing) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -81,6 +87,20 @@ namespace resonance
 	static const uint32_t DIR_PTR = 0x15ADAF0;         // director block pointer (-> 0x26478A0, 0x54 bytes)
 	static const uint32_t WARP_PTR = 0x15ADC18;        // warp block pointer (-> 0x26466B0, 0x10 bytes; +0 amplitude)
 	static const uint32_t SOUND = 0x15ADAF4;           // the sound of the phase
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct ResonanceParams
+	{
+		struct { uint32_t sound; int16_t sound_tick; } director;          // its sound, this many ticks into the phase
+		struct { int16_t start, step_in, hold, step_out; } warp;          // the screen warp: from its tick, its amplitude up a tick, held until its tick, down a tick
+		struct { int16_t react, second, last; } hit;                       // the targets' reaction, its second and last cues (ticks into the phase)
+		struct { int16_t place; } prims;                                   // the two prim models placed at their entities at this tick
+	};
+	static const ResonanceParams GAME = { { 0x15ADAF4, 0xE }, { 0x20, 0x100, 0x38, 0x80 }, { 0x1C, 0x37, 0x4B }, { 0x14 } };
+	static ResonanceParams live = GAME;
+	static const ResonanceParams &PR() { return live; }
 	static const uint32_t BLEND_BUF = 0x2647D20;       // vertex blend buffer of the prim callback
 	static const uint32_t PRIM_CB = 0x821E70;          // the prim-model player's object callback
 	static const uint32_t GRID = 0x2647900;            // warp grid (11 x 8 entries of 0xC bytes)
@@ -427,7 +447,7 @@ namespace resonance
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [DIR_PTR])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
@@ -505,14 +525,15 @@ namespace resonance
 	uint32_t __cdecl rs_821690(uint32_t a1)
 	{
 		g_mod = &MOD_049;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag049_resonance_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x26480E4) = 0x2793E58;
-		MEM<uint32_t>(0x26465E0) = 0x2793E58;
+		MEM<uint32_t>(R(0x26480E4)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26465E0)) = 0x2793E58;
 		states[0] = 0x8217E0;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x8217F0;
@@ -527,26 +548,26 @@ namespace resonance
 		states[10] = 0x824CC0;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x264781C);
-			const uint32_t v2 = MEM<uint32_t>(0x26472D4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26465DC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x264781C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26472D4));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26465DC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2647818);
-			const uint32_t v2 = MEM<uint32_t>(0x26472D0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26465DC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2647818));
+			const uint32_t v2 = MEM<uint32_t>(R(0x26472D0));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26465DC)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_MISC));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PRIM));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TINT));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_MISC)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_TINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -557,9 +578,9 @@ namespace resonance
 	// phase has run 0xE ticks, next state
 	uint32_t __cdecl rs_821AC0(uint32_t a1)
 	{
-		if (S16(t1_data(), 0x46) >= 0xE)
+		if (S16(t1_data(), 0x46) >= PR().director.sound_tick)
 		{
-			x::BdPlaySE(SOUND, 0, 0x80);
+			x::BdPlaySE(fxp::sound(PR().director.sound, SOUND), 0, 0x80);
 			next_state(a1);
 		}
 		return 0; // void
@@ -583,7 +604,7 @@ namespace resonance
 		if ((int32_t)S16(t1_data(), 0x40) - 1 != 0)
 			return 0; // void
 		const uint32_t node = a1;
-		x::Effect_AddTaskAndInitFromCtx(Q_MISC, ORIG_Warp, 0x80, node);
+		Spawn(R(Q_MISC), ORIG_Warp, 0x80, node);
 		const uint32_t p1 = rs_821C00(node, ORIG_Prim1, 0x17B329C, 0x2D4, 0, 0);
 		U8(p1, 0x2C) = 3;
 		const uint32_t p2 = rs_821C00(node, ORIG_Prim2, 0x17B656C, 0x2C8, 1, 0);
@@ -595,7 +616,7 @@ namespace resonance
 		uint32_t act;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_MISC, ORIG_Hit, 0x80, node);
+			const uint32_t t = Spawn(R(Q_MISC), ORIG_Hit, 0x80, node);
 			act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 			const uint8_t slot = U8(U32(act, 8), k * 0x18);
 			U8(t, 0x2B) = (uint8_t)k;
@@ -609,7 +630,7 @@ namespace resonance
 	// +0x74 = layout a3, +0x78 = (int16) a4, +0x80 = a5, +0x82 = a6; returns it
 	uint32_t __cdecl rs_821C00(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, a2, 0x368, a1);
+		const uint32_t t = Spawn(R(Q_PRIM), a2, 0x368, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -624,7 +645,7 @@ namespace resonance
 	static uint32_t rs_place_and_play(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x14)
+		if (S16(node, 0x24) < PR().prims.place)
 			return 0; // void
 		const uint32_t ent = ENT(U8(node, 0x2C));
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
@@ -725,7 +746,7 @@ namespace resonance
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);   // colour
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
@@ -738,7 +759,7 @@ namespace resonance
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = rs_8220B0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = rs_8220B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -771,7 +792,7 @@ namespace resonance
 	// 0x8242E0 (sub_8242E0): warp state 0 - from its tick 0x20: initialises the warp (0x824300), next state
 	uint32_t __cdecl rs_8242E0(uint32_t a1)
 	{
-		if (S16(a1, 0x24) >= 0x20)
+		if (S16(a1, 0x24) >= PR().warp.start)
 		{
 			rs_824300();
 			next_state(a1);
@@ -786,15 +807,15 @@ namespace resonance
 	// j * 0x20 .. + 0x20, 8-bit)
 	uint32_t __cdecl rs_824300()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(WARP_PTR), 0x10);
+		x::MAG_007_sub_8DCC00(R(MEM<uint32_t>(WARP_PTR)), 0x10);
 		const uint32_t r0 = x::CrtRand();
-		U16(MEM<uint32_t>(WARP_PTR), 6) = (uint16_t)((r0 & 0x3F) + 0x20);
+		U16(R(MEM<uint32_t>(WARP_PTR)), 6) = (uint16_t)((r0 & 0x3F) + 0x20);
 		const uint32_t r1 = x::CrtRand();
-		U16(MEM<uint32_t>(WARP_PTR), 8) = (uint16_t)(r1 & 0xFFF);
+		U16(R(MEM<uint32_t>(WARP_PTR)), 8) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t r2 = x::CrtRand();
-		U16(MEM<uint32_t>(WARP_PTR), 0xC) = (uint16_t)(r2 & 0xFFF);
-		uint32_t e = GRID + 4;
-		for (uint32_t i = 0; e < GRID + 4 + 88 * 12; i++)
+		U16(R(MEM<uint32_t>(WARP_PTR)), 0xC) = (uint16_t)(r2 & 0xFFF);
+		uint32_t e = R(GRID) + 4;
+		for (uint32_t i = 0; e < R(GRID) + 4 + 88 * 12; i++)
 		{
 			const uint8_t u0 = (uint8_t)(i << 5);
 			const uint8_t u1 = (uint8_t)(u0 + 0x20);
@@ -849,11 +870,11 @@ namespace resonance
 	uint32_t __cdecl rs_824410()
 	{
 		const uint32_t k = (uint32_t)(MEM<uint8_t>(0x1D96A80) - 1) & 1;
-		const uint32_t pkt_scene = 0x26472D8 + (k << 6);
-		const uint32_t pkt_back = 0x2647820 + (k << 6);
-		const uint32_t env_back = 0x2646700 + k * 0x5C;
+		const uint32_t pkt_scene = R(0x26472D8) + (k << 6);
+		const uint32_t pkt_back = R(0x2647820) + (k << 6);
+		const uint32_t env_back = R(0x2646700) + k * 0x5C;
 		const uint32_t env_disp = 0x1D969C8 + k * 0x5C;
-		const uint32_t env_scene = 0x2647760 + k * 0x5C;
+		const uint32_t env_scene = R(0x2647760) + k * 0x5C;
 		memcpy((void *)env_back, (const void *)env_disp, 0x5C);
 		memcpy((void *)env_scene, (const void *)env_disp, 0x5C);
 		U16(env_scene, 0) = 0x240;
@@ -902,19 +923,19 @@ namespace resonance
 			uint16_t by = 0;
 			for (uint32_t j = 0; j < 8; j++)
 			{
-				const uint32_t e = GRID + (j + i * 8) * 0xC;
+				const uint32_t e = R(GRID) + (j + i * 8) * 0xC;
 				if (i == 0)
 					U16(e, 0) = 0;
 				else if (i == 0xA)
 					U16(e, 0) = 0x140;
 				else
-					U16(e, 0) = (uint16_t)(U16(XWAVE + (r + j * 2) * 2, 0) + bx);
+					U16(e, 0) = (uint16_t)(U16(R(XWAVE) + (r + j * 2) * 2, 0) + bx);
 				if (j == 0)
 					U16(e, 2) = 0;
 				else if (j == 7)
 					U16(e, 2) = 0xF0;
 				else
-					U16(e, 2) = (uint16_t)(U16(YWAVE + (r + i * 2) * 2, 0) + by);
+					U16(e, 2) = (uint16_t)(U16(R(YWAVE) + (r + i * 2) * 2, 0) + by);
 				by = (uint16_t)(by + 0x20);
 			}
 		}
@@ -938,7 +959,7 @@ namespace resonance
 		{
 			if (i == 8)
 				tpage = 0x11D;
-			uint32_t e = GRID + i * 0x60 + 6;   // the entry (i, j) + 6
+			uint32_t e = R(GRID) + i * 0x60 + 6;   // the entry (i, j) + 6
 			for (int j = 0; j < 7; j++)
 			{
 				U8(pkt, 7) = code;
@@ -988,8 +1009,8 @@ namespace resonance
 			for (uint32_t k = 0; k < 8; k++)
 			{
 				const int32_t s = (int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)ph);
-				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(WARP_PTR), 0));
-				U16(XWAVE + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
+				const int32_t v = mul32(s, (int32_t)S16(R(MEM<uint32_t>(WARP_PTR)), 0));
+				U16(R(XWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
 				ph = (ph + step) & 0xFFF;
 			}
 		}
@@ -1001,8 +1022,8 @@ namespace resonance
 			{
 				const int32_t s = (int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)ph);
 				ph = (ph + step) & 0xFFF;
-				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(WARP_PTR), 0));
-				U16(YWAVE + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
+				const int32_t v = mul32(s, (int32_t)S16(R(MEM<uint32_t>(WARP_PTR)), 0));
+				U16(R(YWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
 			}
 		}
 		return 0; // void
@@ -1011,8 +1032,8 @@ namespace resonance
 	// 0x8248A0 (sub_8248A0): warp state 2 - amplitude += 0x100 up to 0x1000 (then next state), draws
 	uint32_t __cdecl rs_8248A0(uint32_t a1)
 	{
-		const uint32_t w = MEM<uint32_t>(WARP_PTR);
-		U16(w, 0) = (uint16_t)(U16(w, 0) + 0x100);
+		const uint32_t w = R(MEM<uint32_t>(WARP_PTR));
+		U16(w, 0) = (uint16_t)(U16(w, 0) + PR().warp.step_in);
 		if (S16(w, 0) >= 0x1000)
 		{
 			U16(w, 0) = 0x1000;
@@ -1025,7 +1046,7 @@ namespace resonance
 	// 0x8248E0 (sub_8248E0): warp state 3 - next state after its tick 0x38, draws
 	uint32_t __cdecl rs_8248E0(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x38)
+		if (S16(a1, 0x24) > PR().warp.hold)
 			next_state(a1);
 		rs_8244E0(a1, 5);
 		return rs_824410();
@@ -1034,8 +1055,8 @@ namespace resonance
 	// 0x824900 (sub_824900): warp state 4 - amplitude -= 0x80 down to 0 (then next state), draws
 	uint32_t __cdecl rs_824900(uint32_t a1)
 	{
-		const uint32_t w = MEM<uint32_t>(WARP_PTR);
-		U16(w, 0) = (uint16_t)(U16(w, 0) - 0x80);
+		const uint32_t w = R(MEM<uint32_t>(WARP_PTR));
+		U16(w, 0) = (uint16_t)(U16(w, 0) - PR().warp.step_out);
 		if (S16(w, 0) <= 0)
 		{
 			U16(w, 0) = 0;
@@ -1052,7 +1073,7 @@ namespace resonance
 	// 0x8249E0 (sub_8249E0): hit state 0 - once the phase has run 0x1C ticks: 0x824A10, next state
 	uint32_t __cdecl rs_8249E0(uint32_t a1)
 	{
-		if (S16(t1_data(), 0x46) >= 0x1C)
+		if (S16(t1_data(), 0x46) >= PR().hit.react)
 		{
 			rs_824A10(a1);
 			next_state(a1);
@@ -1097,13 +1118,13 @@ namespace resonance
 	// run 0x37 / 0x4B ticks
 	uint32_t __cdecl rs_824AE0(uint32_t a1)
 	{
-		if (S16(t1_data(), 0x46) >= 0x37)
+		if (S16(t1_data(), 0x46) >= PR().hit.second)
 			next_state(a1);
 		return 0; // void
 	}
 	uint32_t __cdecl rs_824B00(uint32_t a1)
 	{
-		if (S16(t1_data(), 0x46) >= 0x4B)
+		if (S16(t1_data(), 0x46) >= PR().hit.last)
 			next_state(a1);
 		return 0; // void
 	}
@@ -1150,7 +1171,7 @@ namespace resonance
 	uint32_t __cdecl rs_8218C0(uint32_t a1)
 	{
 		rs_8218F0(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x26465B8, 0x821970, 0x48, a1);
+		Spawn(R(0x26465B8), 0x821970, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1160,8 +1181,8 @@ namespace resonance
 	// the target seen from the origin - 0x800 (12 bits)
 	uint32_t __cdecl rs_8218F0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -1171,7 +1192,7 @@ namespace resonance
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -1262,7 +1283,7 @@ namespace resonance
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
 		// 30 fps layer: see mag049_resonance_held.inc
@@ -2047,6 +2068,32 @@ namespace resonance
 	}
 
 	// ---- generated (gendesc.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(ResonanceParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its phase: the sound, the two prim models at the monsters of slots 3 and 4, the targets' reactions and damage" },
+			{ 0, "warp", "Screen warp", "The scene drawn off-screen and copied back through a waving grid" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "hit", "Targets", "Ticks into the phase: their reaction (animation 4 or 5), then 6 after the second cue, the damage once it ended after the last" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "", (uint32_t)offsetof(ResonanceParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("director", director.sound_tick, "Sound tick", "Played this many ticks into the phase", 0, 200),
+			DT("director", prims.place, "Models tick", "The two prim models placed at their entities from this tick", 0, 200),
+			DT("director", hit.react, "React", "", 0, 200),
+			DT("director", hit.second, "Second", "", 0, 200),
+			DT("director", hit.last, "Last", "", 0, 200),
+			DT("warp", warp.start, "Start tick", "", 0, 200),
+			DT("warp", warp.step_in, "Step in", "Its amplitude up by this a tick (4096: all of it)", 1, 0x1000),
+			DT("warp", warp.hold, "Hold until", "Held until this tick of its task", 0, 200),
+			DT("warp", warp.step_out, "Step out", "Down by this a tick", 1, 0x1000),
+		};
+#undef DT
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x8217E0, (void *)a_73A0D0, "049 MAG_049_sub_8217E0" },
@@ -2133,6 +2180,11 @@ namespace resonance
 
 	void register_mag049_resonance()
 	{
+		fxp::register_params({ 49, "Resonance", &act::resonance::live, &act::resonance::GAME, sizeof(act::resonance::ResonanceParams),
+		                       act::resonance::table::PARTS, (int)(sizeof(act::resonance::table::PARTS) / sizeof(act::resonance::table::PARTS[0])),
+		                       act::resonance::table::FIELDS, (int)(sizeof(act::resonance::table::FIELDS) / sizeof(act::resonance::table::FIELDS[0])),
+		                       act::resonance::table::GROUPS, (int)(sizeof(act::resonance::table::GROUPS) / sizeof(act::resonance::table::GROUPS[0])) });
+		act::register_mod(&act::resonance::MOD_049);
 		act::register_module(49);
 		for (const act::resonance::ModPort *p = act::resonance::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(49, p->addr, p->port, p->name);
@@ -2141,6 +2193,7 @@ namespace resonance
 		// 30 fps layer: see mag049_resonance_held.inc
 		FX_HELD(register_mag049_held();)
 	}
+	FX_LAB_MODULE(register_mag049_resonance);
 }
 
 #ifdef FF8_FX_HELD

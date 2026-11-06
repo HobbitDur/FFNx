@@ -147,7 +147,7 @@ namespace aqua
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -161,7 +161,7 @@ namespace aqua
 		const uint32_t c = P(cur);
 		const uint32_t model = U32(c, 0x4C);
 		bool next = false;
-		if (live(n.node, ORIG_Orb) && n.nverts != 0)
+		if (node_live(n.node, ORIG_Orb) && n.nverts != 0)
 		{
 			// the next tick's state step (the states only write the node)
 			memcpy(nxt, (const void *)n.node, ORB_BYTES);
@@ -248,7 +248,7 @@ namespace aqua
 		const uint32_t c = P(cur);
 		const uint32_t task = U32(c, 8);
 		int16_t pos[3];
-		if (live(n.node, task) && DropNext(n.node, n.k, P(nxt), pos))
+		if (node_live(n.node, task) && DropNext(n.node, n.k, P(nxt), pos))
 		{
 			if (num >= den)
 				U16(c, 0x50) = U16(P(nxt), 0x50);

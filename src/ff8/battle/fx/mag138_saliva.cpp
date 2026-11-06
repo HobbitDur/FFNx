@@ -62,6 +62,9 @@
 // Module globals: 0x2520C48..0x2520CC0 (caster entity 0x2520C48, texture file 0x2520C4C, magic
 // buffer base 0x2520C50, context 0x2520C54, master pool 0x2520C58, packet cursor 0x2520C6C, the
 // queues 0x2520C70 splats / 0x2520C80 sprays / 0x2520C90 strings / 0x2520CA0 main / 0x2520CB0 master).
+// Fujin's described Saliva (effect_138.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (SalivaParams: the sound, the damage
+// tick).
 // NEVER-WRITTEN STACK WORDS (the game's executor 0x508420 calls every task of a queue at one esp; the
 // master pushes its four queue arguments without popping: main entry esp E, strings E - 4, sprays
 // E - 8, splats E - 0xC):
@@ -80,6 +83,9 @@
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -90,14 +96,16 @@ namespace saliva138
 	using namespace icec;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520C48); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520C50); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520C54); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520C6C); }
-	inline TaskQueue *QSplats() { return (TaskQueue *)0x2520C70; }         // pool: magic buffer, 8 x 0x14
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520C80; }         // pool: + 0xA0, 8 x 0x20
-	inline TaskQueue *QStrings() { return (TaskQueue *)0x2520C90; }        // pool: + 0x1A0, 3 x 0x30
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2520CA0; }           // pool: + 0x230, 1 x 0x380
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2520C48)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2520C50)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2520C54)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2520C6C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2520C4C)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2520CB0); }           // 1 x 0x14
+	inline TaskQueue *QSplats() { return (TaskQueue *)own::R(0x2520C70); }         // pool: magic buffer, 8 x 0x14
+	inline TaskQueue *QSprays() { return (TaskQueue *)own::R(0x2520C80); }         // pool: + 0xA0, 8 x 0x20
+	inline TaskQueue *QStrings() { return (TaskQueue *)own::R(0x2520C90); }        // pool: + 0x1A0, 3 x 0x30
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2520CA0); }           // pool: + 0x230, 1 x 0x380
 
 	static const uint32_t ORIG_MasterTask = 0x6A9FC0;
 	static const uint32_t ORIG_MainTask = 0x6AA1A0;
@@ -121,6 +129,25 @@ namespace saliva138
 	static const int32_t *const WOBBLE = (const int32_t *)0x11E3190;  // 0x801 x s32, by vertex w / 2
 	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x11E5194; // 128 x 128 screen lengths
 	static const void *const SOUND_Spit = (const void *)0x11E3134;
+	static const uint32_t ORIG_FileLoader = 0x6A9F20, ORIG_Setup = 0x6A9F10;
+	static const uint32_t TEXTURE_NAME = 0x11E9194, CAMERA = 0x11E3024;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct SalivaParams
+	{
+		uint32_t sound;                  // at the main task's tick 0x19
+		struct { int16_t damage; } main; // the damage at this tick of the main task
+		struct { uint32_t a, b, c; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spray, splat; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t main; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t drip; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const SalivaParams GAME = { 0x11E3134, { 0x28 }, { MODEL_A, MODEL_B, MODEL_C }, { SEQ_Spray, SEQ_Splat }, { 0x11DF764 }, { TEXTURE_NAME, CAMERA }, { 0x11E3158 } };
+	static SalivaParams live = GAME;
+	static const SalivaParams &PS() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -551,7 +578,7 @@ namespace saliva138
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
-		*(uint8_t **)h = MESH;
+		*(uint8_t **)h = ((uint8_t *)fxp::model(PS().model_data.main, (uint32_t)MESH));
 		*(uint32_t *)(h + 4) = verts;
 		*(uint16_t *)(h + 0x16) = 0;
 		*(uint16_t *)(h + 0x14) = 0;
@@ -763,12 +790,32 @@ namespace saliva138
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spray;
+		*(uint32_t *)h = fxp::sequence(PS().seqs.spray, SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int32_t *)(h + 8) = angle;
 		*(int16_t *)(h + 0x24) = 1;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
+	}
+
+	// File loader (0x6A9F20) and setup (0x6A9F10 -> 0x6A9F40): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PS().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520C58), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PS().res.camera, CAMERA));
+		return QMaster();
 	}
 
 	static uint32_t __cdecl SprayTask(TaskNode *n)
@@ -791,7 +838,7 @@ namespace saliva138
 	{
 		TransformCameraByShadowRotation(pos, 0xC00, -0x300);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Splat;
+		*(uint32_t *)h = fxp::sequence(PS().seqs.splat, SEQ_Splat);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -834,7 +881,7 @@ namespace saliva138
 				GteSetRotMatrix(&M);
 				GteZeroTrans();
 				const int32_t wave = mul32(s->amp, sine);
-				WobbleMesh(MESH, wave >> 13, (int16_t *)(TexBase() + VERTS));
+				WobbleMesh(((uint8_t *)fxp::model(PS().model_data.main, (uint32_t)MESH)), wave >> 13, (int16_t *)(TexBase() + VERTS));
 				int16_t P[4];  // entry esp - 0x38
 				P[3] = StringResidue();
 				StringPoint(s, t, wave, P);
@@ -871,7 +918,7 @@ namespace saliva138
 			Point *p = s->head;
 			do
 			{
-				p->pos[1] = (int16_t)(p->pos[1] + DRIP[p->idx]);
+				p->pos[1] = (int16_t)(p->pos[1] + ((const int16_t *)fxp::data(PS().tables.drip, (uint32_t)DRIP, 48))[p->idx]);
 				p = p->next;
 			} while (p);
 		}
@@ -929,7 +976,7 @@ namespace saliva138
 			{
 				for (int i = 2; i; i--)
 				{
-					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), ORIG_SprayTask);
+					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), own::Fn(ORIG_SprayTask));
 					if (!s) continue;
 					s->angle = (int16_t)CrtRand();
 					s->spin = (int16_t)((CrtRand() & 0x1FF) - 0x100);
@@ -961,7 +1008,7 @@ namespace saliva138
 			Play(w->layB, &arg);
 			if ((uint32_t)e < 3)
 			{
-				StringNode *s = (StringNode *)AddTaskToQueue(QStrings(), ORIG_StringTask);
+				StringNode *s = (StringNode *)AddTaskToQueue(QStrings(), own::Fn(ORIG_StringTask));
 				s->counter = 0;
 				memcpy(s->target, w->pos, 8);
 				const int32_t r = CrtRand();
@@ -980,7 +1027,7 @@ namespace saliva138
 			Play(w->layC, &arg);
 			if ((uint32_t)h >= 4 && (uint32_t)h < 0xC && !(h & 1))
 			{
-				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), ORIG_SplatTask);
+				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), own::Fn(ORIG_SplatTask));
 				if (s)
 				{
 					memcpy(s->pos, w->pos, 8);
@@ -992,8 +1039,8 @@ namespace saliva138
 				}
 			}
 		}
-		if (w->counter == 0x19) BdPlaySE(SOUND_Spit, 0, 0x80);
-		if (w->counter == 0x28) ApplyActionResultToTarget(Ctx()->actions->targets);
+		if (w->counter == 0x19) BdPlaySE((const void *)fxp::sound(PS().sound, (uint32_t)SOUND_Spit), 0, 0x80);
+		if (w->counter == PS().main.damage) ApplyActionResultToTarget(Ctx()->actions->targets);
 		if (w->counter >= 0x37) return TASK_END;
 		w->counter++;
 		return 0;
@@ -1010,14 +1057,14 @@ namespace saliva138
 		InitTaskQueuePool(QStrings(), (void *)(TexBase() + 0x1A0), 0x30, 3);
 		InitTaskQueuePool(QSprays(), (void *)(TexBase() + 0xA0), 0x20, 8);
 		InitTaskQueuePool(QSplats(), (void *)TexBase(), 0x14, 8);
-		MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+		MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 		Memset32(&w->counter, 0, 0xDD);
 		w->target = target;
 		GetEffectSpawnPosition(target, 0xF1, 0, w->pos);
-		DecodeModelPrimLayout(MODEL_A, w->layA, 0xA8);
-		DecodeModelPrimLayout(MODEL_B, w->layB, 0x194);
-		DecodeModelPrimLayout(MODEL_C, w->layC, 0x118);
-		NormalizeMesh(MESH);
+		DecodeModelPrimLayout(fxp::layout(PS().layouts.a, MODEL_A, 0xA8), w->layA, 0xA8);
+		DecodeModelPrimLayout(fxp::layout(PS().layouts.b, MODEL_B, 0x194), w->layB, 0x194);
+		DecodeModelPrimLayout(fxp::layout(PS().layouts.c, MODEL_C, 0x118), w->layC, 0x118);
+		NormalizeMesh(((uint8_t *)fxp::model(PS().model_data.main, (uint32_t)MESH)));
 		Point *p = (Point *)(TexBase() + POINTS);
 		for (int i = 0x60; i; i--, p++) p->width = -1;
 	}
@@ -1051,18 +1098,50 @@ namespace saliva138
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The saliva spat from the caster's mouth: its mesh, strings, sprays and splats, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "", (uint32_t)offsetof(SalivaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "main.damage", "Damage tick", "The damage at this tick of the main task", (uint32_t)offsetof(SalivaParams, main.damage), fxp::I16, 0, 200 },
+			{ "main", "layouts.a", "A", "The prim-model layout a (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.b", "B", "The prim-model layout b (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.c", "C", "The prim-model layout c (its models' animation)", (uint32_t)offsetof(SalivaParams, layouts.c), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spray", "Spray", "The sprite sequence spray (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(SalivaParams, seqs.spray), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(SalivaParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "model_data.main", "Main model", "The prim model main (a mesh of 108 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(SalivaParams, model_data.main), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SalivaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SalivaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "main", "tables.drip", "Drip steps", "Each drop's y step by its point (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(SalivaParams, tables.drip), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag138_saliva()
 	{
+		fxp::register_params({ 138, "Saliva", &saliva138::live, &saliva138::GAME, sizeof(saliva138::SalivaParams),
+		                       saliva138::table::PARTS, (int)(sizeof(saliva138::table::PARTS) / sizeof(saliva138::table::PARTS[0])),
+		                       saliva138::table::FIELDS, (int)(sizeof(saliva138::table::FIELDS) / sizeof(saliva138::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(saliva138::ORIG_FileLoader, (void *)saliva138::FileLoader);
+		own::note(saliva138::ORIG_Setup, (void *)saliva138::Setup);
+		own::note(saliva138::ORIG_MasterTask, (void *)saliva138::MasterTask);
 		register_port(saliva138::ORIG_MasterTask, (void *)saliva138::MasterTask, "138 MasterTask", 138);
+		own::note(saliva138::ORIG_MainTask, (void *)saliva138::MainTask);
 		register_port(saliva138::ORIG_MainTask, (void *)saliva138::MainTask, "138 MainTask", 138);
+		own::note(saliva138::ORIG_StringTask, (void *)saliva138::StringTask);
 		register_port(saliva138::ORIG_StringTask, (void *)saliva138::StringTask, "138 StringTask", 138);
+		own::note(saliva138::ORIG_SprayTask, (void *)saliva138::SprayTask);
 		register_port(saliva138::ORIG_SprayTask, (void *)saliva138::SprayTask, "138 SprayTask", 138);
+		own::note(saliva138::ORIG_SplatTask, (void *)saliva138::SplatTask);
 		register_port(saliva138::ORIG_SplatTask, (void *)saliva138::SplatTask, "138 SplatTask", 138);
 		// 30 fps layer: see mag138_saliva_held.inc
 		FX_HELD(register_mag138_held();)
 	}
+	FX_LAB_MODULE(register_mag138_saliva);
 }
 
 #ifdef FF8_FX_HELD

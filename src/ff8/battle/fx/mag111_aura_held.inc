@@ -38,7 +38,7 @@ namespace aura111
 	{
 		uint32_t kind;
 		prim::Layout *layout;     // play: the live layout (prim::play_held knows what it drew)
-		PrimArg arg;              // play: its block before the camera (+ flags, morph)
+		TableArg arg;             // play: its block before the camera (+ flags, morph)
 		int16_t pos[4];           // glow
 		int32_t step;
 		FlameNode flame;          // flame, as drawn
@@ -82,6 +82,7 @@ namespace aura111
 		r->arg.m = *local;
 		r->arg.flags = PART_Flags;
 		r->arg.morph = TexBase() + 0xE20;
+		r->arg.cursor = &PacketCursor();
 	}
 
 	static void held_note_glow(const int16_t *pos, int32_t e)
@@ -113,8 +114,8 @@ namespace aura111
 	{
 		const FlameNode &a = r.flame;
 		FlameNode m = a;
-		uint8_t *h = AllocHeader(0x58);
-		FlameHeader(h, &a);
+		const AuraParams::Flames &pf = P().flames;
+		int32_t fade = FadeInOut(a.counter, a.fade, pf.fade.in, pf.fade.from, pf.fade.out);
 		if (a.counter < 0x14)
 		{
 			// the next tick's draw: angle + speed, counter + 1
@@ -122,10 +123,9 @@ namespace aura111
 			b.angle = (int16_t)(b.angle + b.speed);
 			b.counter++;
 			m.angle = lerp16(a.angle, b.angle, num, den);
-			*(int32_t *)(h + 0xC) = lerp_i(FlameFade(&a), FlameFade(&b), num, den);
+			fade = lerp_i(fade, FadeInOut(b.counter, b.fade, pf.fade.in, pf.fade.from, pf.fade.out), num, den);
 		}
-		FlameDraw(&m, h);
-		FieldFree(0x58);
+		DrawSpinningModel(MODEL_Flame, m.pos, m.angle, m.radius, fade, (uint32_t)(uint16_t)pf.mode, pf.nearer, PacketCursor());
 	}
 
 	static void HeldFrame(int num, int den)
@@ -139,14 +139,14 @@ namespace aura111
 			{
 			case REC_PLAY:
 			{
-				PrimArg arg = r.arg;
+				TableArg arg = r.arg;
 				ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 				memcpy(g_held_morph, (const void *)r.arg.morph, sizeof(g_held_morph));
 				arg.morph = (uint32_t)g_held_morph;
-				prim::play_held(r.layout, AuraPart, (int)&arg, num, den);
+				prim::play_held(r.layout, TablePrimCallback, (int)&arg, num, den);
 				break;
 			}
-			case REC_GLOW: GlowDraw(r.pos, r.step); break;
+			case REC_GLOW: DrawSequenceSprite(r.pos, SEQ_Glow, (int16_t)r.step, P().glow.rot_a, P().glow.rot_b, PacketCursor()); break;
 			case REC_FLAME: FlameHeld(r, num, den); break;
 			}
 		}

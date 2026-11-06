@@ -40,9 +40,9 @@ namespace zombie114
 	{
 		uint32_t kind;
 		prim::Layout *layout;     // play: the live layout (prim::play_held knows what it drew)
-		PrimArg arg;
+		AnchorArg arg;
 		uint8_t *entity;          // overlay
-		OverlayArg now, next;     // overlay: drawn / next tick's parameters
+		SwayArg now, next;     // overlay: drawn / next tick's parameters
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
 	};
@@ -76,7 +76,7 @@ namespace zombie114
 		return &r;
 	}
 
-	static void held_note_play(const TargetNode *t, const PrimArg *arg)
+	static void held_note_play(const TargetNode *t, const AnchorArg *arg)
 	{
 		Rec *r = NewRec(REC_PLAY);
 		if (!r) return;
@@ -85,13 +85,16 @@ namespace zombie114
 	}
 
 	// the overlay's parameters of the next step are pure math (ComputeSin only reads its table)
-	static void held_note_overlay(const TargetNode *t, const OverlayArg *o, int32_t e, int32_t reach)
+	static void held_note_overlay(const TargetNode *t, const SwayArg *o, int32_t e, int32_t reach)
 	{
 		Rec *r = NewRec(REC_OVERLAY);
 		if (!r) return;
 		r->entity = t->entity;
 		r->now = *o;
-		if (e + 1 < 0x1E) OverlayParams(e + 1, reach, &r->next);
+		const ZombieParams &pp = P();
+		if (e + 1 < pp.overlay.window.ticks)
+			SwayOverlayParams(e + 1, pp.overlay.window.ticks, reach, pp.overlay.lift_shift, pp.overlay.amp.base, pp.overlay.amp.step,
+			                  pp.overlay.phase_step, &r->next);
 		else r->next = *o;
 	}
 
@@ -99,17 +102,17 @@ namespace zombie114
 
 	static void OverlayHeld(const Rec &r, int num, int den)
 	{
-		OverlayArg m = r.now;
+		SwayArg m = r.now;
 		m.lift[1] = lerp16(r.now.lift[1], r.next.lift[1], num, den);
 		m.weight = lerp_i(r.now.weight, r.next.weight, num, den);
 		m.amp = lerp_i(r.now.amp, r.next.amp, num, den);
 		m.phase = lerp_i(r.now.phase, r.next.phase, num, den);
 		uint8_t *entity = r.entity;
 		pose_midpoint(entity + 0x60, entity + 0x6C, num, den);
-		const uint32_t bones = BoneWorkspace();
-		BoneWorkspace() = (uint32_t)g_held_verts;
-		DrawOverlay(entity, &m);
-		BoneWorkspace() = bones;
+		const uint32_t bones = sway::BoneWorkspace();
+		sway::BoneWorkspace() = (uint32_t)g_held_verts;
+		DrawSwayOverlay(entity, &m, WAVE_Table, PacketCursor());
+		sway::BoneWorkspace() = bones;
 	}
 
 	static void HeldFrame(int num, int den)
@@ -126,10 +129,10 @@ namespace zombie114
 			{
 			case REC_PLAY:
 			{
-				PrimArg arg = r.arg;
+				AnchorArg arg = r.arg;
 				memcpy(g_held_morph, (const void *)r.arg.morph, sizeof(g_held_morph));
 				arg.morph = (uint32_t)g_held_morph;
-				prim::play_held(r.layout, MistPart, (int)&arg, num, den);
+				prim::play_held(r.layout, AnchorPrimCallback, (int)&arg, num, den);
 				break;
 			}
 			case REC_OVERLAY: OverlayHeld(r, num, den); break;

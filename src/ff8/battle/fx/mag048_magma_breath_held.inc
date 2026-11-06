@@ -265,7 +265,7 @@ namespace magmabreath
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -295,7 +295,7 @@ namespace magmabreath
 	static void DrawFlash(const FlashNote &n, int num, int den)
 	{
 		uint32_t col = U32(P(n.bytes), 0x34), next = 0;
-		const bool drawn = live(n.node, ORIG_Flash) && FlashNext(P(n.bytes), next);
+		const bool drawn = node_live(n.node, ORIG_Flash) && FlashNext(P(n.bytes), next);
 		if (!drawn)
 		{
 			if (num >= den) return;

@@ -24,7 +24,7 @@ namespace act
 {
 namespace megaphoenix
 {
-	static void held_note_system(uint32_t sys);
+	void held_note_system(uint32_t sys);   // (called from the library, fx_actors.cpp, on Mega Phoenix's own memory)
 }
 }
 	static void register_mag007_held();

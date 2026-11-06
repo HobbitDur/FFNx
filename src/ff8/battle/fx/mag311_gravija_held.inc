@@ -141,7 +141,7 @@ namespace gravija311
 		const int32_t fade = f0 + (f1 - f0) * num / den;
 		GteSetRotMatrix(&frame);
 		GteSetTransVector(&frame);
-		Warp(MESH, MESH + 8, (z >> 2) + 0x11, fade, g_held_vbuf);
+		Warp(Mesh(), Mesh() + 8, (z >> 2) + 0x11, fade, g_held_vbuf);
 	}
 
 	static void HeldFrame(int num, int den)

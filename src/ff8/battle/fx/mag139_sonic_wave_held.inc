@@ -114,7 +114,7 @@ namespace sonic139
 		const uint32_t k = (phase >> 12) & 3;
 		BlendFrames((const uint8_t *)(FRAMES + k * FRAME_BYTES), (const uint8_t *)(FRAMES + ((k + 1) & 3) * FRAME_BYTES), g_held_verts, (int32_t)(phase & 0xFFF));
 		const int32_t s2 = ComputeSin(half);
-		ScreenWarp(MESH, g_held_verts, (((int16_t)(z - 0x200)) >> 2) + 0x11, 0x1000 - s2, s + s, t, g_held_vbuf);
+		ScreenWarp(MESH(), g_held_verts, (((int16_t)(z - 0x200)) >> 2) + 0x11, 0x1000 - s2, s + s, t, g_held_vbuf);
 	}
 
 	static void HeldWarpB(const Rec &r, int num, int den)
@@ -128,7 +128,7 @@ namespace sonic139
 		const int32_t half = t >> 1;
 		const int32_t s = ComputeSin(half);
 		const int32_t s2 = ComputeSin(half);
-		ScreenWarp(MESH, MESH + 8, (z >> 2) + 0x11, 0x1000 - s2, s, t, g_held_vbuf);
+		ScreenWarp(MESH(), MESH() + 8, (z >> 2) + 0x11, 0x1000 - s2, s, t, g_held_vbuf);
 	}
 
 	static void HeldFrame(int num, int den)

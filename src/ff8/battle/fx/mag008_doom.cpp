@@ -71,8 +71,17 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (dm_XXXXXX), most of them
 // the text of the matching Tonberry / Death / Magma Breath / Siren / Boko port with this module's
 // addresses.
+//
+// Fujin's described Doom (effect_008.json) runs this code as its pieces: the module's memory goes
+// through R() (act_engine.h: a copy's block of its own), the phase data through the descriptor
+// (G_1533010), the clock block's pointer moved with it; the tasks it spawns are the program's or
+// thunks of their ports (Spawn). Its parameters (DoomParams: the director's sound and ticks, the
+// reaper's rise / turn / fade, the aura's actor system, the dust, the smoke, the scythe and its
+// clock, the stage wobble, the tint) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -96,6 +105,34 @@ namespace doom
 	static const uint32_t ORIG_Reaper = 0x8CC3A0;
 	static const uint32_t ORIG_Prim = 0x8C58B0;        // scythe prim-model task (engine task)
 	static const uint32_t DUST_FLIPBOOK = 0x1634F28;
+	static const uint32_t SOUND = 0x1634F24;            // the director's sound
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct DoomParams
+	{
+		struct { uint32_t sound; int16_t texture_wait, phase_tick; } timing;   // the director: its sound, ticks
+		struct { int16_t rise, low, turn, hold, fade; } reaper;                  // rising from the ground, turning, fading out
+		struct { int16_t start, length, mode; } aura;                           // its actor system
+		struct { uint32_t flipbook; int16_t last, ticks, radius, radius_mask, lift, lift_mask, speed, speed_mask; } dust;
+		struct { int16_t ticks, scale, scale_rand, tilt, fade_in, fade_out; } smoke;
+		struct { int16_t tick, x, y, z, clock_step; } scythe;                   // in front of the caster; the doom clock from its model step
+		struct { int16_t after, step, level, out_step; } wobble;               // the stage's fade layers while the reaper stands
+		struct { int16_t delay; } tint;                                         // the screen tint's start
+		struct { uint32_t at_16350f0; } models; // the prim models drawn (meshes)
+	};
+	static const DoomParams GAME = {
+		{ SOUND, 0xC, 0x2D },
+		{ 0x48, -0x500, 0x10, 7, 0x100 },
+		{ 0, 0x2D, 2 },
+		{ DUST_FLIPBOOK, 0x10, 0x28, 0x100, 0xFF, -0x80, 0xFF, -0x200, 0x3FF },
+		{ 0x23, 0xC00, 0x3FF, 0x300, 0x400, 0x400 },
+		{ 0xB, -17, -1076, -409, 0x13 },
+		{ 0x2D, 0xA0, 0x600, 0x100 },
+		{ 0x1A }, { 0x16350F0 } };
+	static DoomParams live = GAME;
+	static const DoomParams &PD() { return live; }
 
 	// engine functions not in act::x
 	namespace dx
@@ -177,7 +214,7 @@ namespace doom
 	}
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	// the names of the ports the adapted texts come from
-	static inline uint32_t t1_data() { return MEM<uint32_t>(PHASE_DATA); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { next_state(node); }
 	static inline void t4_next_state(uint32_t node) { next_state(node); }
 	static inline void b103_next_state(uint32_t node) { next_state(node); }
@@ -370,12 +407,12 @@ namespace doom
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x275F9D8);
-		MEM<uint32_t>(0x275F3EC) = p;
+		uint32_t p = MEM<uint32_t>(R(0x275F9D8));
+		MEM<uint32_t>(R(0x275F3EC)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x275F980) = p;
+		MEM<uint32_t>(R(0x275F980)) = p;
 		p += 0x6900;
-		MEM<uint32_t>(0x275F9D8) = p;
+		MEM<uint32_t>(R(0x275F9D8)) = p;
 		dm_8C4D20();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -385,12 +422,12 @@ namespace doom
 	// at [0x275F980]) and the pool cursors / counters
 	uint32_t __cdecl dm_8C4D20(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x275F3EC), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x275F980), 0x6900);
-		MEM<uint16_t>(0x275ABD8) = 0;
-		MEM<uint16_t>(0x275F508) = 0;
-		MEM<uint16_t>(0x275F238) = 0;
-		MEM<uint16_t>(0x2758508) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x275F3EC)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x275F980)), 0x6900);
+		MEM<uint16_t>(R(0x275ABD8)) = 0;
+		MEM<uint16_t>(R(0x275F508)) = 0;
+		MEM<uint16_t>(R(0x275F238)) = 0;
+		MEM<uint16_t>(R(0x2758508)) = 0;
 		return 0; // void
 	}
 
@@ -401,8 +438,8 @@ namespace doom
 	{
 		dm_8C52C0(a1);
 		dm_8C4E60();
-		x::Effect_AddTaskAndInitFromCtx(0x275F918, 0x8C4F60, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2758860, 0x8C5350, 0x48, a1);
+		Spawn(R(0x275F918), 0x8C4F60, 0x30, a1);
+		Spawn(R(0x2758860), 0x8C5350, 0x48, a1);
 		t1_next_state(a1);
 		return 0; // void
 	}
@@ -437,7 +474,7 @@ namespace doom
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x1634F24, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PD().timing.sound, SOUND), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -445,8 +482,8 @@ namespace doom
 	// 0x8C5610 (copy of s_73BA30 0x73BA30: module; Siren sub_73BA30): director state: advances after cut frame 0x2D
 	uint32_t __cdecl dm_8C5610(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1634F20, 0);
-		if (S16(blk, 0x46) <= 0x2D) return blk;
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
+		if (S16(blk, 0x46) <= PD().timing.phase_tick) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -468,7 +505,7 @@ namespace doom
 	// sets its model data +0x74 = a3, +0x78 = (s16)a4, +0x80 = a5, +0x82 = a6; returns the node.
 	uint32_t __cdecl dm_8C5860(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x275DF38, a2, 0x458, a1);
+		const uint32_t t = Spawn(R(0x275DF38), a2, 0x458, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -1263,7 +1300,7 @@ namespace doom
 	// the harness)
 	uint32_t __cdecl dm_8C8B10(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x275F9DC);
+		const uint32_t arena = MEM<uint32_t>(R(0x275F9DC));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1283,7 +1320,7 @@ namespace doom
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl dm_8C8D90(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x275F9DC);
+		const uint32_t arena = MEM<uint32_t>(R(0x275F9DC));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -1313,7 +1350,7 @@ namespace doom
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x275F9DC, 0) = sys;
+		U32(R(0x275F9DC), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1327,7 +1364,7 @@ namespace doom
 			FX_HELD(held_note_system(sys);)
 			dm_8C9690();
 			dm_8C94D0();
-			sys = U32(0x275F9DC, 0);
+			sys = U32(R(0x275F9DC), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1340,8 +1377,8 @@ namespace doom
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x275F910, 0) = (uint16_t)(U16(0x275F910, 0) + c14);
-		U16(0x275F3E8, 0) = (uint16_t)(U16(0x275F3E8, 0) + c16);
+		U16(R(0x275F910), 0) = (uint16_t)(U16(R(0x275F910), 0) + c14);
+		U16(R(0x275F3E8), 0) = (uint16_t)(U16(R(0x275F3E8), 0) + c16);
 		return done;
 	}
 
@@ -1350,12 +1387,12 @@ namespace doom
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl dm_8C94D0(void)
 	{
-		uint32_t act = U32(U32(0x275F9DC, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x275F9DC), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x275F9DC, 0);
+				uint32_t sys = U32(R(0x275F9DC), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1372,10 +1409,10 @@ namespace doom
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x8C5DD0 into the frame arena 0x1D8E054
 	uint32_t __cdecl dm_8C9530(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1418,8 +1455,8 @@ namespace doom
 				MEM<uint32_t>(0x1D8E054) = dm_8C5DD0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1429,14 +1466,14 @@ namespace doom
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl dm_8C9690(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x275F9DC), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x275F9DC)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x275F9DC);
+				uint32_t st = MEM<uint32_t>(R(0x275F9DC));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1473,20 +1510,20 @@ namespace doom
 	uint32_t __cdecl dm_8C9750(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1494,7 +1531,7 @@ namespace doom
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl dm_8C97D0(void)
 	{
-		uint32_t act = U32(U32(0x275F9DC, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x275F9DC), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1515,7 +1552,7 @@ namespace doom
 	uint32_t __cdecl dm_8C9810(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x275F9DC);
+		uint32_t st = MEM<uint32_t>(R(0x275F9DC));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1536,7 +1573,7 @@ namespace doom
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x275F9DC);
+			st = MEM<uint32_t>(R(0x275F9DC));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1554,7 +1591,7 @@ namespace doom
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x275F9DC, 0);                  // actor state block
+		uint32_t st = U32(R(0x275F9DC), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1651,8 +1688,8 @@ namespace doom
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 10 records
 	uint32_t __cdecl dm_8CAA00(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x275F3EC);
-		int32_t idx = MEM<int16_t>(0x275ABD8);
+		const uint32_t pool = MEM<uint32_t>(R(0x275F3EC));
+		int32_t idx = MEM<int16_t>(R(0x275ABD8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1662,7 +1699,7 @@ namespace doom
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1677,9 +1714,9 @@ namespace doom
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x275ABD8) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x275ABD8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x275ABD8) = 0;
+			MEM<uint16_t>(R(0x275ABD8)) = 0;
 		return slot;
 	}
 
@@ -1709,7 +1746,7 @@ namespace doom
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl dm_8CAB20(uint32_t a1)
 	{
-		uint32_t sys = U32(0x275F9DC, 0);
+		uint32_t sys = U32(R(0x275F9DC), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1744,9 +1781,9 @@ namespace doom
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x275F92C, 0) - 0x50;
+		uint32_t sp = U32(R(0x275F92C), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x275F92C, 0) = sp;
+		U32(R(0x275F92C), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = dm_8CB380(a1, (uint16_t)kind);
@@ -1758,7 +1795,7 @@ namespace doom
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x275F9DC, 0);
+			uint32_t ctx = U32(R(0x275F9DC), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1937,7 +1974,7 @@ namespace doom
 			}
 		}
 		dm_8CC090(node, desc);
-		U32(0x275F92C, 0) = U32(0x275F92C, 0) + 0x50;
+		U32(R(0x275F92C), 0) = U32(R(0x275F92C), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -1945,8 +1982,8 @@ namespace doom
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x28 records
 	uint32_t __cdecl dm_8CB380(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x275F980);
-		int32_t i = MEM<int16_t>(0x275F508);
+		const uint32_t pool = MEM<uint32_t>(R(0x275F980));
+		int32_t i = MEM<int16_t>(R(0x275F508));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1959,7 +1996,7 @@ namespace doom
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1976,9 +2013,9 @@ namespace doom
 		}
 		i++;
 		if (i >= 0x27)
-			MEM<uint16_t>(0x275F508) = 0;
+			MEM<uint16_t>(R(0x275F508)) = 0;
 		else
-			MEM<uint16_t>(0x275F508) = (uint16_t)i;
+			MEM<uint16_t>(R(0x275F508)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1992,7 +2029,7 @@ namespace doom
 	uint32_t __cdecl dm_8CB5A0(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x275F9DC, 0);            // ecx
+		const uint32_t st = U32(R(0x275F9DC), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2056,7 +2093,7 @@ namespace doom
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x275F9DC, 0);
+				uint32_t g = U32(R(0x275F9DC), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2066,7 +2103,7 @@ namespace doom
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x275F9DC, 0);
+				uint32_t g = U32(R(0x275F9DC), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2154,7 +2191,7 @@ namespace doom
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl dm_8CC120(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x275F9DC);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x275F9DC));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2179,14 +2216,14 @@ namespace doom
 				do
 				{
 					dm_8CAA00(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x275F9DC);
+					dir = MEM<uint32_t>(R(0x275F9DC));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				dm_8CAA00(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x275F9DC);
+				dir = MEM<uint32_t>(R(0x275F9DC));
 			}
 		}
 		return 0; // void
@@ -2209,12 +2246,12 @@ namespace doom
 	// finished, next state), written to the four stage wobble words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl dm_8CC280(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xA0);
-		if (S16(a1, 0x1C) >= 0x600)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PD().wobble.step);
+		if (S16(a1, 0x1C) >= PD().wobble.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x600;
+			U16(a1, 0x1C) = (uint16_t)PD().wobble.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -2228,7 +2265,7 @@ namespace doom
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl dm_8CC350(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PD().wobble.out_step);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -2258,9 +2295,9 @@ namespace doom
 			S32(a1, 0x88) = S16(a1, 0x4E);
 			S32(a1, 0x8C) = S16(a1, 0x50);
 			x::scale3DMatrix(a1 + 0x70, a1 + 0x114);
-			return dm_8CC6B0(REAPER_CTX);
+			return dm_8CC6B0(R(REAPER_CTX));
 		}
-		MEM<uint32_t>(PACKET_CURSOR) = a_746C10(a1, 0x275E838, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = a_746C10(a1, R(0x275E838), MEM<uint32_t>(R(PACKET_CURSOR)));
 		return 0; // void
 	}
 
@@ -2307,8 +2344,8 @@ namespace doom
 		x::MAG_007_sub_8DCC00(a1, 0x278);
 		U32(a1, 0x48) = a4;
 		U32(a1, 0x40) = a2;
-		U32(a1, 0x4C) = PACKET_CURSOR;
-		U32(a1, 0x50) = PACKET_CURSOR;
+		U32(a1, 0x4C) = R(PACKET_CURSOR);
+		U32(a1, 0x50) = R(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(a1, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -2344,7 +2381,7 @@ namespace doom
 		if (x::au_re_Battle_ReadAnimation_8(a1) != 1)
 			return 0;
 		x::au_re_Battle_ReadAnimation_7(a1, 4);
-		U16(a1, 0x134) = 7;
+		U16(a1, 0x134) = (uint16_t)PD().reaper.hold;
 		b103_next_state(a1);
 		return 0; // void
 	}
@@ -2364,7 +2401,7 @@ namespace doom
 	// and applies the colour (0x717770)
 	uint32_t __cdecl dm_8CD2B0(uint32_t a1)
 	{
-		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) + 0x100);
+		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) + PD().reaper.fade);
 		if (S16(a1, 0x13A) >= 0x1000)
 		{
 			U8(a1, 0x26) |= 5;
@@ -2480,11 +2517,11 @@ namespace doom
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x2758504);
+		const uint32_t cursor = MEM<uint32_t>(R(0x2758504));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x2758504) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(0x2758504)) = callo(0x8CD890, blk, ot, 2u, cursor);   // (the module's own sprite reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -2493,8 +2530,8 @@ namespace doom
 	uint32_t __cdecl dm_8CDE40(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = DUST_FLIPBOOK;
-		U16(a1, 0x52) = 0x10;
+		U32(a1, 0x4C) = fxp::sequence(PD().dust.flipbook, DUST_FLIPBOOK);
+		U16(a1, 0x52) = (uint16_t)PD().dust.last;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
 	}
@@ -2569,7 +2606,7 @@ namespace doom
 	// next state
 	uint32_t __cdecl dm_8CE200(uint32_t a1)
 	{
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0x400);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + PD().smoke.fade_out);
 		if (S16(a1, 0x50) >= 0x1000)
 		{
 			int8_t st = S8(a1, 0x29);
@@ -2584,7 +2621,7 @@ namespace doom
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl dm_8CE250(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1634F20);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2608,36 +2645,37 @@ namespace doom
 	uint32_t __cdecl dm_8C4B30(uint32_t a1)
 	{
 		g_mod = &MOD_008;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see act_engine_held.inc
 		FX_HELD(held_note_master();)
 
 		const uint32_t node = a1;
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
-		MEM<uint32_t>(0x275F92C) = 0x2793E58;
-		MEM<uint32_t>(0x2758888) = 0x2793E58;
+		MEM<uint32_t>(R(0x275F92C)) = 0x2793E58;
+		MEM<uint32_t>(R(0x2758888)) = 0x2793E58;
 		const uint32_t states[11] = { 0x8C4CC0, 0x8C4CD0, 0x8C4CE0, 0x8C4D60, 0x8CE2E0, 0x8CE320,
 			0x8CE330, 0x8CE340, 0x8CE370, 0x8CE380, 0x8CE3A0 };
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x275E82C);
-			const uint32_t v2 = MEM<uint32_t>(0x275DF4C);
-			MEM<uint32_t>(0x2758504) = v1;
-			MEM<uint32_t>(0x2758884) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x275E82C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x275DF4C));
+			MEM<uint32_t>(R(0x2758504)) = v1;
+			MEM<uint32_t>(R(0x2758884)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x275E828);
-			const uint32_t v2 = MEM<uint32_t>(0x275DF48);
-			MEM<uint32_t>(0x2758504) = v1;
-			MEM<uint32_t>(0x2758884) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x275E828));
+			const uint32_t v2 = MEM<uint32_t>(R(0x275DF48));
+			MEM<uint32_t>(R(0x2758504)) = v1;
+			MEM<uint32_t>(R(0x2758884)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x275F910) = 0;
-		MEM<uint16_t>(0x275F3E8) = 0;
-		static const uint32_t queues[9] = { 0x275E498, 0x2758860, 0x275F918, 0x275F3D8, 0x275E1F8,
-			0x2758968, 0x275ABE0, 0x275DF38, 0x275E488 };
+		MEM<uint16_t>(R(0x275F910)) = 0;
+		MEM<uint16_t>(R(0x275F3E8)) = 0;
+		const uint32_t queues[9] = { R(0x275E498), R(0x2758860), R(0x275F918), R(0x275F3D8), R(0x275E1F8),
+			R(0x2758968), R(0x275ABE0), R(0x275DF38), R(0x275E488) };
 		for (int i = 0; i < 9; i++)
 		{
 			// 30 fps layer: see mag008_doom_held.inc
@@ -2657,15 +2695,15 @@ namespace doom
 	// 0x19ECBB8 / 0x19ED83C), +0x164 / +0x166 = 0; [0x275E830] = 0x1636C78
 	uint32_t __cdecl dm_8C4E60(void)
 	{
-		MEM<uint32_t>(0x275E830) = 0x1636C78;
-		MEM<uint32_t>(0x275F23C) = 0x275FA10;
-		x::MAG_007_sub_8DCC00(0x275FA10, 0x16C);
-		const uint32_t t = MEM<uint32_t>(0x275F23C);
-		uint32_t c = MEM<uint32_t>(0x275F9D8);
+		MEM<uint32_t>(R(0x275E830)) = 0x1636C78;
+		MEM<uint32_t>(R(0x275F23C)) = R(0x275FA10);
+		x::MAG_007_sub_8DCC00(R(0x275FA10), 0x16C);
+		const uint32_t t = MEM<uint32_t>(R(0x275F23C));
+		uint32_t c = MEM<uint32_t>(R(0x275F9D8));
 		U32(t, 0x100) = c;
 		c += 0xA000;
 		U32(t, 0x114) = 0x19EB018;
-		MEM<uint32_t>(0x275F9D8) = c;
+		MEM<uint32_t>(R(0x275F9D8)) = c;
 		U32(t, 0x118) = 0x19EB018;
 		U32(t, 0x11C) = 0x19EB018;
 		U32(t, 0x120) = 0x19EB018;
@@ -2689,8 +2727,8 @@ namespace doom
 	// about y by that angle
 	uint32_t __cdecl dm_8C52C0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(PHASE_DATA), 0x54);
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t ent = 0x1D972C0u + (uint32_t)U8(a1, 0x2D) * 0x9Cu;
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -2699,10 +2737,10 @@ namespace doom
 		U16(d, 4) = 0;
 		const int16_t dx_ = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx_, (uint32_t)(int32_t)S16(d, 0xC));
-		const uint32_t d2 = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d2 = MEM<uint32_t>(G(G_1533010));
 		U16(d2, 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		x::MAG_022_sub_8DD770(0x1D99AB0);
-		return x::MAG_022_sub_8DD8A0(0x1D99AB0, (uint32_t)(int32_t)S16(MEM<uint32_t>(PHASE_DATA), 0x4A));
+		return x::MAG_022_sub_8DD8A0(0x1D99AB0, (uint32_t)(int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x4A));
 	}
 
 	// 0x8C5350 (MAG_008_sub_8C5350): DIRECTOR task - phase bookkeeping (0x8C5410), then its
@@ -2726,7 +2764,7 @@ namespace doom
 	{
 		x::Battle_QueueTIMUpload_GetEOF(0x181CFAC);
 		x::Battle_QueueTIMUpload_GetEOF(0x18253CC);
-		U16(a1, 0x44) = 0xC;
+		U16(a1, 0x44) = (uint16_t)PD().timing.texture_wait;
 		next_state(a1);
 		return a1;
 	}
@@ -2737,7 +2775,7 @@ namespace doom
 	{
 		if (a_73B640(6) == 0)
 			return 0;
-		U16(MEM<uint32_t>(PHASE_DATA), 0x48) = 1;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x48) = 1;
 		next_state(a1);
 		return a1;
 	}
@@ -2750,23 +2788,23 @@ namespace doom
 	// delay 0x1A) and the stage wobble out 0x8CC2D0
 	uint32_t __cdecl dm_8C5710(uint32_t a1)
 	{
-		const int32_t k = S16(MEM<uint32_t>(PHASE_DATA), 0x40);
+		const int32_t k = S16(MEM<uint32_t>(G(G_1533010)), 0x40);
 		if (k == 2)
 		{
-			a_73C100(a1, 0x8C88D0, 0x1818B78, 0, 0x2D, 2);
-			const uint32_t reaper = x::Effect_AddTaskAndInitFromCtx(0x275F3D8, 0x8CC3A0, 0x140, a1);
+			a_73C100(a1, 0x8C88D0, 0x1818B78, (uint16_t)PD().aura.start, (uint16_t)PD().aura.length, (uint16_t)PD().aura.mode);
+			const uint32_t reaper = Spawn(R(0x275F3D8), 0x8CC3A0, 0x140, a1);
 			x::Effect_BindModelContainerSetAnim(reaper, 0x1636CE8, 3);
-			x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CD4B0, 0xB0, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x275ABE0, 0x8CDED0, 0x58, a1);
-			return x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CC1E0, 0xB0, a1);
+			Spawn(R(0x2758968), 0x8CD4B0, 0xB0, a1);
+			Spawn(R(0x275ABE0), 0x8CDED0, 0x58, a1);
+			return Spawn(R(0x2758968), 0x8CC1E0, 0xB0, a1);
 		}
 		if (k == 4)
 		{
-			dm_8C5860(a1, 0x8C58B0, U32(MEM<uint32_t>(0x275F23C), 0x124), 0xC0, 0, 0);
-			const uint32_t w = x::Effect_AddTaskAndInitFromCtx(0x275E488, 0x8DDC30, 0x40, a1);
+			dm_8C5860(a1, 0x8C58B0, U32(MEM<uint32_t>(R(0x275F23C)), 0x124), 0xC0, 0, 0);
+			const uint32_t w = Spawn(R(0x275E488), 0x8DDC30, 0x40, a1);
 			U32(w, 0x34) = 0x163ACB4;
-			U16(w, 0x38) = 0x1A;
-			return x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CC2D0, 0xB0, a1);
+			U16(w, 0x38) = (uint16_t)PD().tint.delay;
+			return Spawn(R(0x2758968), 0x8CC2D0, 0xB0, a1);
 		}
 		return (uint32_t)(k - 4);
 	}
@@ -2778,10 +2816,10 @@ namespace doom
 	uint32_t __cdecl dm_8C5910(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (U16(node, 0x24) != 0xB)
+		if (S16(node, 0x24) != PD().scythe.tick)
 			return 0;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(node, 0x62) = U16(d, 0x4A);
 		U32(node, 0x1C) = U32(d, 0);
 		U32(node, 0x20) = U32(d, 4);
@@ -2790,9 +2828,9 @@ namespace doom
 		const uint32_t L = P(loc);
 		x::MAG_022_sub_8DD770(L + 0x10);
 		x::MAG_022_sub_8DD8A0(L + 0x10, (uint32_t)(int32_t)S16(node, 0x62));
-		U16(L, 0) = 0xFFEF;
-		U16(L, 2) = 0xFBCC;
-		U16(L, 4) = 0xFE67;
+		U16(L, 0) = (uint16_t)PD().scythe.x;
+		U16(L, 2) = (uint16_t)PD().scythe.y;
+		U16(L, 4) = (uint16_t)PD().scythe.z;
 		x::matrixMultiplyVector(L + 0x10, L, L + 8);
 		U16(node, 0x20) = (uint16_t)(U16(node, 0x20) + U16(L, 0xC));
 		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) + U16(L, 8));
@@ -2938,13 +2976,13 @@ namespace doom
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);   // depth offset
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(PACKET_CURSOR) = dm_8C5DD0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = dm_8C5DD0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -2957,9 +2995,9 @@ namespace doom
 		const uint32_t r = a_73C280(a1);
 		// 30 fps layer: see mag008_doom_held.inc
 		FX_HELD(held_note_play(a1);)
-		if ((uint16_t)r == 0x13)
+		if ((uint16_t)r == (uint16_t)PD().scythe.clock_step)
 		{
-			const uint32_t t = dm_8C5860(a1, 0x8C8050, U32(MEM<uint32_t>(0x275F23C), 0x128), 0x8C, 1, 0);
+			const uint32_t t = dm_8C5860(a1, 0x8C8050, U32(MEM<uint32_t>(R(0x275F23C)), 0x128), 0x8C, 1, 0);
 			U32(t, 0x1C) = U32(a1, 0x1C);
 			U32(t, 0x20) = U32(a1, 0x20);
 			return t;
@@ -3004,8 +3042,8 @@ namespace doom
 		// [esp+0x10] rotation matrix
 		alignas(4) uint8_t loc[0x30] = {};
 		const uint32_t L = P(loc);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(CLOCK_BLOCK), 0x58);
-		uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+		x::MAG_007_sub_8DCC00(R(MEM<uint32_t>(CLOCK_BLOCK)), 0x58);
+		uint32_t b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		U8(b, 0x48) = 0x60;
 		U8(b, 0x49) = 0;
 		U8(b, 0x4A) = 0x20;
@@ -3019,13 +3057,13 @@ namespace doom
 		U32(b, 0x34) = U32(a1, 4);
 		const uint32_t ent = 0x1D972C0u + (uint32_t)((int32_t)(int16_t)a2 * 0x9C);
 		x::GetEffectSpawnPosition(ent, 0xF1, 0, b + 0x38);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		const int32_t ddx = sub32(S16(b, 0x38), S16(b, 0x30));
 		const int32_t ddy = sub32(S16(b, 0x3A), S16(b, 0x32));
 		const int32_t ddz = sub32(S16(b, 0x3C), S16(b, 0x34));
 		const int32_t sq = add32(add32(mul32(ddz, ddz), mul32(ddy, ddy)), mul32(ddx, ddx));
 		U32(b, 0x4C) = x::Sqrt((uint32_t)sq);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		U16(L, 0) = 0;
 		U32(b, 0x20) = 0x1000;
 		U32(b, 0x24) = 0x1000;
@@ -3036,12 +3074,12 @@ namespace doom
 		U16(L, 0xA) = (uint16_t)(U16(b, 0x3A) - U16(b, 0x32));
 		U16(L, 0xC) = (uint16_t)(U16(b, 0x3C) - U16(b, 0x34));
 		Effect_BuildMatrixFromDirAndUp(b, L + 8, L);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		S32(b, 0x14) = S16(b, 0x30);
 		S32(b, 0x18) = S16(b, 0x32);
 		S32(b, 0x1C) = S16(b, 0x34);
 		// ring template: 17 rows x 4 points (x from 0x1636C08, y 0, z = row * 0xF0; 4th word kept)
-		uint32_t p = 0x275E4A8;
+		uint32_t p = R(0x275E4A8);
 		for (int32_t row = 0; row < 0x11; row++)
 		{
 			const uint16_t z = (uint16_t)(row * 0xF0);
@@ -3057,7 +3095,7 @@ namespace doom
 		{
 			x::MAG_022_sub_8DD770(M);
 			x::sub_8DD960(M, 0);
-			uint32_t src = 0x275E4A8, dst = 0x275D010;
+			uint32_t src = R(0x275E4A8), dst = R(0x275D010);
 			for (uint32_t w = 0x1636C10; w < 0x1636C32; w += 2)
 				for (int k = 4; k != 0; k--)
 				{
@@ -3070,12 +3108,12 @@ namespace doom
 		{
 			x::MAG_022_sub_8DD770(M);
 			x::sub_8DD960(M, 0x400);
-			uint32_t src = 0x275E4A8, dst = 0x275CDF0;
+			uint32_t src = R(0x275E4A8), dst = R(0x275CDF0);
 			for (uint32_t w = 0x1636C10; w < 0x1636C32; w += 2)
 				for (int k = 4; k != 0; k--)
 				{
 					x::matrixMultiplyVector(M, src, dst);
-					const int32_t sc = mul32(S32(MEM<uint32_t>(CLOCK_BLOCK), 0x28), (int32_t)MEM<int16_t>(w));
+					const int32_t sc = mul32(S32(R(MEM<uint32_t>(CLOCK_BLOCK)), 0x28), (int32_t)MEM<int16_t>(w));
 					src += 8;
 					dst += 8;
 					U16(dst, -6) = (uint16_t)(U16(dst, -6) + (uint16_t)(sc / 4096));
@@ -3092,16 +3130,16 @@ namespace doom
 		// stack: [esp] vector (+6 pad unwritten), [esp+8] Mat4x3
 		alignas(4) uint8_t loc[0x28] = {};
 		const uint32_t L = P(loc);
-		const uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+		const uint32_t b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		U16(L, 0) = 0;
 		const int32_t y = mul32((int32_t)MEM<int16_t>(0x1636C10 + (uint32_t)((int32_t)(int16_t)a2 * 2)), S32(b, 0x28)) / 4096;
 		U16(L, 2) = (uint16_t)y;
 		U16(L, 4) = (uint16_t)(a2 * 0xF0);
 		x::MAG_022_sub_8DD770(L + 8);
-		memcpy((void *)(L + 8), (const void *)MEM<uint32_t>(CLOCK_BLOCK), 8 * 4);
-		x::scale3DMatrix(L + 8, MEM<uint32_t>(CLOCK_BLOCK) + 0x20);
+		memcpy((void *)(L + 8), (const void *)R(MEM<uint32_t>(CLOCK_BLOCK)), 8 * 4);
+		x::scale3DMatrix(L + 8, R(MEM<uint32_t>(CLOCK_BLOCK)) + 0x20);
 		x::matrixMultiplyVector(L + 8, L, a1);
-		const uint32_t b2 = MEM<uint32_t>(CLOCK_BLOCK);
+		const uint32_t b2 = R(MEM<uint32_t>(CLOCK_BLOCK));
 		U16(a1, 0) = (uint16_t)(U16(a1, 0) + U16(b2, 0x30));
 		U16(a1, 2) = (uint16_t)(U16(a1, 2) + U16(b2, 0x32));
 		U16(a1, 4) = (uint16_t)(U16(a1, 4) + U16(b2, 0x34));
@@ -3122,11 +3160,11 @@ namespace doom
 		if ((int16_t)step >= 0x7F)
 		{
 			U32(node, 0x1C) = U32(node, 0x44C);
-			const uint32_t layout = U32(MEM<uint32_t>(0x275F23C), 0x12C);
+			const uint32_t layout = U32(MEM<uint32_t>(R(0x275F23C)), 0x12C);
 			U16(node, 0x454) = 0x11;
 			U32(node, 0x20) = U32(node, 0x450);
 			const uint32_t t = dm_8C5860(node, 0x8C8790, layout, 0x3B0, 2, 0);
-			const uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+			const uint32_t b = R(MEM<uint32_t>(CLOCK_BLOCK));
 			U32(t, 0x1C) = U32(b, 0x38);
 			U32(t, 0x20) = U32(b, 0x3C);
 			next_state(node);
@@ -3144,15 +3182,15 @@ namespace doom
 	// (0x8C8500), ++n, returns 1
 	uint32_t __cdecl dm_8C84A0(void)
 	{
-		uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+		uint32_t b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		const uint16_t first = MEM<uint16_t>(0x1636C40 + (uint32_t)((int32_t)S16(b, 0x54) * 4));
 		if (first == 0x7F)
 			return 0;
 		U16(b, 0x50) = first;
 		U16(b, 0x52) = MEM<uint16_t>(0x1636C42 + (uint32_t)((int32_t)S16(b, 0x54) * 4));
-		dm_8C8500(0x275D010);
-		dm_8C8500(0x275CDF0);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		dm_8C8500(R(0x275D010));
+		dm_8C8500(R(0x275CDF0));
+		b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		U16(b, 0x54) = (uint16_t)(U16(b, 0x54) + 1);
 		return 1;
 	}
@@ -3169,11 +3207,11 @@ namespace doom
 		alignas(4) uint8_t loc[0x30] = {};
 		const uint32_t L = P(loc);
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C);
-		uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+		uint32_t b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		const int32_t first = S16(b, 0x50);
 		const int32_t last1 = S16(b, 0x52) + 1;
 		uint32_t pkt = MEM<uint32_t>(0x1D8E054);
-		uint32_t col = (uint32_t)(first << 4) + 0x275F3F8;
+		uint32_t col = (uint32_t)(first << 4) + R(0x275F3F8);
 		U8(L, 0) = 0;
 		U8(L, 1) = 0;
 		U8(L, 2) = 0;
@@ -3220,9 +3258,9 @@ namespace doom
 		x::GTE_ReadMAC123(M + 0x14);
 		x::GTE_SetRotMatrix(M);
 		x::GTE_SetTransVector(M);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = R(MEM<uint32_t>(CLOCK_BLOCK));
 		int32_t row = S16(b, 0x50);
-		uint32_t crow = (uint32_t)(row << 4) + 0x275F3F8;
+		uint32_t crow = (uint32_t)(row << 4) + R(0x275F3F8);
 		uint32_t vrow = a1 + (uint32_t)(row << 5);
 		if (row < S16(b, 0x52))
 		{
@@ -3266,7 +3304,7 @@ namespace doom
 				crow += 4;
 				vrow = v + 8;
 				row++;
-			} while (row < S16(MEM<uint32_t>(CLOCK_BLOCK), 0x52));
+			} while (row < S16(R(MEM<uint32_t>(CLOCK_BLOCK)), 0x52));
 		}
 		MEM<uint32_t>(0x1D8E054) = pkt;
 		return 0; // void
@@ -3321,9 +3359,9 @@ namespace doom
 	// 0x8CC330 (sub_8CC330): stage wobble state 0 - after tick 0x2D: level +0x1C = 0x600, next state
 	uint32_t __cdecl dm_8CC330(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x2D)
+		if (S16(a1, 0x24) > PD().wobble.after)
 		{
-			U16(a1, 0x1C) = 0x600;
+			U16(a1, 0x1C) = (uint16_t)PD().wobble.level;
 			next_state(a1);
 		}
 		return 0; // void
@@ -3389,17 +3427,17 @@ namespace doom
 			const uint32_t g = (uint32_t)grey;
 			const uint32_t rgb = ((g << 8) + g) << 8 | 0;
 			const uint32_t w = rgb + g;
-			MEM<uint32_t>(0x275F984 + k * 4) = w;
-			MEM<uint32_t>(0x275F930 + k * 4) = w;
+			MEM<uint32_t>(R(0x275F984) + k * 4) = w;
+			MEM<uint32_t>(R(0x275F930) + k * 4) = w;
 			if (k == 0x13)
 			{
-				MEM<uint32_t>(0x275F9D0) |= 0x24000000;
-				MEM<uint32_t>(0x275F97C) = w | 0x2C000000;
+				MEM<uint32_t>(R(0x275F9D0)) |= 0x24000000;
+				MEM<uint32_t>(R(0x275F97C)) = w | 0x2C000000;
 			}
 			else
 			{
-				MEM<uint32_t>(0x275F984 + k * 4) = w | 0x26000000;
-				MEM<uint32_t>(0x275F930 + k * 4) = w | 0x2E000000;
+				MEM<uint32_t>(R(0x275F984) + k * 4) = w | 0x26000000;
+				MEM<uint32_t>(R(0x275F930) + k * 4) = w | 0x2E000000;
 			}
 			grey = (uint8_t)(grey + 8);
 			if (grey > 0x80)
@@ -3527,7 +3565,7 @@ namespace doom
 				U32(pkt, 0x14) = U32(rec, 0xC);
 				U32(pkt, 0xC) = U32(rec, 8);
 				U16(pkt, 0x1C) = U16(rec, 6);
-				U32(pkt, 4) = MEM<uint32_t>(0x275F984 + (uint32_t)U8(face, 0) * 4);
+				U32(pkt, 4) = MEM<uint32_t>(R(0x275F984) + (uint32_t)U8(face, 0) * 4);
 				x::SSIGPU_InsertPrimAutoDepth(a2 + U32(hdr, 0xF0) * 4, pkt);
 				pkt += 0x20;
 			}
@@ -3602,7 +3640,7 @@ namespace doom
 					U16(pkt, 0x1C) = U16(rec, 0xC);
 					U16(pkt, 0x24) = U16(rec, 0xE);
 					U32(pkt, 0) = 0x9000000;
-					U32(pkt, 4) = MEM<uint32_t>(0x275F930 + (uint32_t)U8(face, 0) * 4);
+					U32(pkt, 4) = MEM<uint32_t>(R(0x275F930) + (uint32_t)U8(face, 0) * 4);
 					x::SSIGPU_InsertPrimAutoDepth(a2 + z * 4, pkt);
 					pkt += 0x28;
 				}
@@ -3620,7 +3658,7 @@ namespace doom
 	uint32_t __cdecl dm_8CCF80(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(node, 0x4C) = U32(d, 0);
 		const uint32_t w4 = U32(d, 4);
 		U16(node, 0x3E) = U16(d, 0x4A);
@@ -3640,10 +3678,10 @@ namespace doom
 	// rising height 0x2758564 = 0, spiral step 0x275856A = 0x100
 	uint32_t __cdecl dm_8CCFE0(uint32_t a1)
 	{
-		dm_8CD020(REAPER_CTX, 0x275ABF0, 0x275F9E0, a1 + 0x30);
+		dm_8CD020(R(REAPER_CTX), R(0x275ABF0), R(0x275F9E0), a1 + 0x30);
 		U8(a1, 0x26) |= 8;
-		MEM<uint16_t>(0x2758564) = 0;
-		MEM<uint16_t>(0x275856A) = 0x100;
+		MEM<uint16_t>(R(0x2758564)) = 0;
+		MEM<uint16_t>(R(0x275856A)) = 0x100;
 		return 0; // void
 	}
 
@@ -3652,13 +3690,13 @@ namespace doom
 	// next state
 	uint32_t __cdecl dm_8CD090(uint32_t a1)
 	{
-		const uint16_t a = (uint16_t)(MEM<uint16_t>(0x2758568) + MEM<uint16_t>(0x275856A));
-		const uint16_t h = (uint16_t)(MEM<uint16_t>(0x2758564) - 0x48);
-		MEM<uint16_t>(0x2758564) = h;
-		MEM<uint16_t>(0x2758568) = (uint16_t)(a & 0xFFF);
-		if ((int16_t)h <= (int16_t)0xFB00)
+		const uint16_t a = (uint16_t)(MEM<uint16_t>(R(0x2758568)) + MEM<uint16_t>(R(0x275856A)));
+		const uint16_t h = (uint16_t)(MEM<uint16_t>(R(0x2758564)) - PD().reaper.rise);
+		MEM<uint16_t>(R(0x2758564)) = h;
+		MEM<uint16_t>(R(0x2758568)) = (uint16_t)(a & 0xFFF);
+		if ((int16_t)h <= PD().reaper.low)
 		{
-			U16(a1, 0x134) = 0x10;
+			U16(a1, 0x134) = (uint16_t)PD().reaper.turn;
 			next_state(a1);
 		}
 		return 0; // void
@@ -3668,7 +3706,7 @@ namespace doom
 	// dark draw ends (+0x26 bit 3 cleared), next state
 	uint32_t __cdecl dm_8CD0E0(uint32_t a1)
 	{
-		MEM<uint16_t>(0x2758568) = (uint16_t)((MEM<uint16_t>(0x2758568) + MEM<uint16_t>(0x275856A)) & 0xFFF);
+		MEM<uint16_t>(R(0x2758568)) = (uint16_t)((MEM<uint16_t>(R(0x2758568)) + MEM<uint16_t>(R(0x275856A))) & 0xFFF);
 		U16(a1, 0x134) = (uint16_t)(U16(a1, 0x134) - 1);
 		if (S16(a1, 0x134) <= 0)
 		{
@@ -3721,7 +3759,7 @@ namespace doom
 	// position (+0x1C / +0x20, height +0x1E = 0), next state
 	uint32_t __cdecl dm_8CD510(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(a1, 0x1C) = U32(d, 0);
 		U32(a1, 0x20) = U32(d, 4);
 		U16(a1, 0x1E) = 0;
@@ -3730,7 +3768,7 @@ namespace doom
 	}
 	uint32_t __cdecl dm_8CDF30(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(a1, 0x1C) = U32(d, 0);
 		U32(a1, 0x20) = U32(d, 4);
 		U16(a1, 0x1E) = 0;
@@ -3745,18 +3783,18 @@ namespace doom
 	uint32_t __cdecl dm_8CD540(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint16_t h = (uint16_t)(MEM<uint32_t>(0x2758564) + 0x100);
+		const uint16_t h = (uint16_t)(MEM<uint32_t>(R(0x2758564)) + 0x100);
 		U16(node, 0x1E) = h;
 		if ((int16_t)h >= 0)
 			U16(node, 0x1E) = 0;
 		if ((U8(node, 0x24) & 1) == 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CD670, 0xB0, node);
+			const uint32_t t = Spawn(R(0x2758968), 0x8CD670, 0xB0, node);
 			uint32_t p = t + 0x6C;
 			for (int32_t n = 4; n != 0; n--)
 			{
 				const int32_t r1 = (int32_t)x::CrtRand();
-				const int32_t radius = (int16_t)((r1 & 0xFF) + 0x100);
+				const int32_t radius = (int16_t)((r1 & PD().dust.radius_mask) + PD().dust.radius);
 				const int32_t r2 = (int32_t)x::CrtRand();
 				U32(p, 0) = U32(node, 0x1C);
 				const int32_t angle = (int16_t)(r2 & 0xFFF);
@@ -3764,19 +3802,19 @@ namespace doom
 				const int32_t s = mul32((int32_t)x::computeSin((uint32_t)angle), radius);
 				U16(p, 0) = (uint16_t)(U16(p, 0) + (uint16_t)(s / 4096));
 				const int32_t r3 = (int32_t)x::CrtRand();
-				U16(p, 2) = (uint16_t)(U16(p, 2) + (uint16_t)((r3 & 0xFF) - 0x80));
+				U16(p, 2) = (uint16_t)(U16(p, 2) + (uint16_t)((r3 & PD().dust.lift_mask) + PD().dust.lift));
 				const int32_t c = mul32((int32_t)x::computeCosine((uint32_t)angle), radius);
 				U16(p, 4) = (uint16_t)(U16(p, 4) + (uint16_t)(c / 4096));
 				const int32_t r4 = (int32_t)x::CrtRand();
-				U16(p, 0x20) = (uint16_t)((r4 & 0x3FF) - 0x200);
+				U16(p, 0x20) = (uint16_t)((r4 & PD().dust.speed_mask) + PD().dust.speed);
 				const int32_t r5 = (int32_t)x::CrtRand();
-				U16(p, 0x22) = (uint16_t)((r5 & 0x3FF) - 0x200);
+				U16(p, 0x22) = (uint16_t)((r5 & PD().dust.speed_mask) + PD().dust.speed);
 				const int32_t r6 = (int32_t)x::CrtRand();
 				p += 8;
-				U16(p, 0x1C) = (uint16_t)((r6 & 0x3FF) - 0x200);
+				U16(p, 0x1C) = (uint16_t)((r6 & PD().dust.speed_mask) + PD().dust.speed);
 			}
 		}
-		if (S16(node, 0x24) >= 0x28)
+		if (S16(node, 0x24) >= PD().dust.ticks)
 		{
 			U8(node, 0x26) |= 1;
 			next_state(node);
@@ -3790,14 +3828,14 @@ namespace doom
 	uint32_t __cdecl dm_8CDF60(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x1E) = (uint16_t)(MEM<uint32_t>(0x2758564) + 0x100);
+		U16(node, 0x1E) = (uint16_t)(MEM<uint32_t>(R(0x2758564)) + 0x100);
 		if ((U8(node, 0x24) & 1) == 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x275ABE0, 0x8CDFB0, 0x58, node);
+			const uint32_t t = Spawn(R(0x275ABE0), 0x8CDFB0, 0x58, node);
 			U32(t, 0x1C) = U32(node, 0x1C);
 			U32(t, 0x20) = U32(node, 0x20);
 		}
-		if (S16(node, 0x24) >= 0x23)
+		if (S16(node, 0x24) >= PD().smoke.ticks)
 		{
 			U8(node, 0x26) |= 1;
 			next_state(node);
@@ -3827,19 +3865,19 @@ namespace doom
 	uint32_t __cdecl dm_8CE130(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = 0x16350F0;
+		U32(node, 0x4C) = fxp::model(PD().models.at_16350f0, 0x16350F0);
 		const int32_t r1 = (int32_t)x::CrtRand();
 		U16(node, 0x50) = 0x1000;
-		const int32_t sc = r1 % 0x3FF + 0xC00;
+		const int32_t sc = r1 % PD().smoke.scale_rand + PD().smoke.scale;
 		U32(node, 0x38) = (uint32_t)sc;
 		U32(node, 0x34) = (uint32_t)sc;
 		U32(node, 0x30) = (uint32_t)sc;
 		const int32_t r2 = (int32_t)x::CrtRand();
 		U16(node, 0x46) = (uint16_t)(r2 & 0xFFF);
 		const int32_t r3 = (int32_t)x::CrtRand();
-		U16(node, 0x44) = (uint16_t)(r3 % 0x300 - 0x180);
+		U16(node, 0x44) = (uint16_t)(r3 % PD().smoke.tilt - PD().smoke.tilt / 2);
 		const int32_t r4 = (int32_t)x::CrtRand();
-		U16(node, 0x48) = (uint16_t)(r4 % 0x300 - 0x180);
+		U16(node, 0x48) = (uint16_t)(r4 % PD().smoke.tilt - PD().smoke.tilt / 2);
 		next_state(node);
 		return 0; // void
 	}
@@ -3848,7 +3886,7 @@ namespace doom
 	// +0x54 = 1, next state
 	uint32_t __cdecl dm_8CE1B0(uint32_t a1)
 	{
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0xFC00);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) - PD().smoke.fade_in);
 		if (S16(a1, 0x50) <= 0)
 		{
 			U16(a1, 0x50) = 0;
@@ -3859,6 +3897,69 @@ namespace doom
 	}
 
 	// ---- generated (gendesc.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+#define DM_FIELD(part, member, label, doc, type, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(DoomParams, member), fxp::type, lo, hi }
+#define DM_I16(part, member, label, doc, lo, hi) DM_FIELD(part, member, label, doc, I16, lo, hi)
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The phase director: its sound, the reaper's textures, its phases' ticks (draws nothing)" },
+			{ 0, "reaper", "Reaper", "The reaper rising from the ground in the dark, turning, then fading out" },
+			{ 0, "aura", "Aura", "The reaper's aura: an actor system of the engine (its actor data the exe's)" },
+			{ 0, "dust", "Dust", "Dust sparkles round the reaper's feet while it rises" },
+			{ 0, "smoke", "Smoke", "Smoke puffs round the reaper's feet" },
+			{ 0, "scythe", "Scythe", "The scythe in front of the caster; the doom clock round the target from its model step" },
+			{ 0, "wobble", "Stage wobble", "The stage's fade layers while the reaper stands" },
+			{ 0, "tint", "Screen tint", "The screen tint with the scythe (the engine's colour script)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "dust.radius", "Distance", "Each sparkle starts Base + (rand & Mask) from the reaper" },
+			{ "dust.lift", "Height", "Up or down by Base + (rand & Mask)" },
+			{ "dust.speed", "Speed", "Each axis Base + (rand & Mask) (it slows by 1/16 a tick)" },
+		};
+		static const Field FIELDS[] = {
+			DM_FIELD("timing", timing.sound, "Sound", "The sound block played once the first phase starts (its world sound id)", Sound, 0, 0x7FFFFFFF),
+			DM_I16("timing", timing.texture_wait, "Texture wait", "Ticks after the reaper's textures go up before the director goes on", 0, 200),
+			DM_I16("timing", timing.phase_tick, "Phase tick", "The director goes on once its phase has run more than this many ticks", 0, 500),
+			DM_I16("reaper", reaper.rise, "Rise", "The reaper rises by this a tick...", 0, 0x400),
+			DM_I16("reaper", reaper.low, "Rise to", "...until its height is this or lower", -0x2000, 0),
+			DM_I16("reaper", reaper.turn, "Turn ticks", "Then it turns for this many ticks, its dark draw ending", 0, 200),
+			DM_I16("reaper", reaper.hold, "Hold ticks", "After its last animation, it stays this many ticks...", 0, 200),
+			DM_I16("reaper", reaper.fade, "Fade", "...then fades out by this a tick (4096: gone)", 1, 0x1000),
+			DM_I16("aura", aura.start, "Start tick", "The aura's actor system starts at its tick", 0, 200),
+			DM_I16("aura", aura.length, "Ticks", "It spawns its actors for this many ticks, then ends once they are gone", 0, 1000),
+			DM_I16("aura", aura.mode, "Mode", "Where it takes its reference points: 2 the phase data's fixed positions, 0 the bones", 0, 4),
+			DM_FIELD("dust", dust.flipbook, "Flipbook", "The sparkles' sprite sequence", Seq, 0, 0x7FFFFFFF),
+			DM_I16("dust", dust.last, "Last frame", "Their flipbook's last frame", 0, 100),
+			DM_I16("dust", dust.ticks, "Ticks", "The dust spawns 4 sparkles every other tick until this tick", 0, 200),
+			DM_I16("dust", dust.radius, "Base", "", 0, 0x2000),
+			DM_I16("dust", dust.radius_mask, "Mask", "", 0, 0x7FFF),
+			DM_I16("dust", dust.lift, "Base", "", -0x2000, 0x2000),
+			DM_I16("dust", dust.lift_mask, "Mask", "", 0, 0x7FFF),
+			DM_I16("dust", dust.speed, "Base", "", -0x2000, 0x2000),
+			DM_I16("dust", dust.speed_mask, "Mask", "", 0, 0x7FFF),
+			DM_I16("smoke", smoke.ticks, "Ticks", "A puff every other tick until this tick", 0, 200),
+			DM_I16("smoke", smoke.scale, "Scale", "Each puff's scale: this + rand % Scale spread (4096: its own size)", 0, 0x4000),
+			DM_I16("smoke", smoke.scale_rand, "Scale spread", "", 1, 0x4000),
+			DM_I16("smoke", smoke.tilt, "Tilt", "Its tilts at random within this (4096: a turn)", 1, 0x1000),
+			DM_I16("smoke", smoke.fade_in, "Fade in", "It appears by this a tick (4096: fully)...", 1, 0x1000),
+			DM_I16("smoke", smoke.fade_out, "Fade out", "...then disappears by this a tick", 1, 0x1000),
+			DM_I16("scythe", scythe.tick, "Tick", "The scythe appears at its tick", 0, 200),
+			DM_I16("scythe", scythe.x, "X", "", -0x4000, 0x4000),
+			DM_I16("scythe", scythe.y, "Y", "", -0x4000, 0x4000),
+			DM_I16("scythe", scythe.z, "Z", "", -0x4000, 0x4000),
+			DM_I16("scythe", scythe.clock_step, "Clock step", "The doom clock starts at this step of the scythe's model", 0, 200),
+			DM_I16("wobble", wobble.after, "After", "The stage's layers go to Level after this tick...", 0, 200),
+			DM_I16("wobble", wobble.step, "Step", "...up by this a tick (in)", 1, 0x1000),
+			DM_I16("wobble", wobble.level, "Level", "", 0, 0x1000),
+			DM_I16("wobble", wobble.out_step, "Out step", "Down by this a tick at the end", 1, 0x1000),
+			DM_I16("tint", tint.delay, "Delay", "The tint's colour script starts after this many ticks", 0, 200),
+			{ "timing", "models.at_16350f0", "Model 16350F0", "The prim model at 0x16350F0 (a mesh of 59 vertices, 42 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DoomParams, models.at_16350f0), fxp::Model, 0, 0x7FFFFFFF },
+		};
+#undef DM_I16
+#undef DM_FIELD
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x8C4CC0, (void *)a_73A0D0, "008 MAG_008_sub_8C4CC0" },
@@ -4057,6 +4158,11 @@ namespace doom
 
 	void register_mag008_doom()
 	{
+		fxp::register_params({ 8, "Doom", &act::doom::live, &act::doom::GAME, sizeof(act::doom::DoomParams),
+		                       act::doom::table::PARTS, (int)(sizeof(act::doom::table::PARTS) / sizeof(act::doom::table::PARTS[0])),
+		                       act::doom::table::FIELDS, (int)(sizeof(act::doom::table::FIELDS) / sizeof(act::doom::table::FIELDS[0])),
+		                       act::doom::table::GROUPS, (int)(sizeof(act::doom::table::GROUPS) / sizeof(act::doom::table::GROUPS[0])) });
+		act::register_mod(&act::doom::MOD_008);
 		act::register_module(8);
 		for (const act::doom::ModPort *p = act::doom::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(8, p->addr, p->port, p->name);
@@ -4065,6 +4171,7 @@ namespace doom
 		// 30 fps layer: see mag008_doom_held.inc
 		FX_HELD(register_mag008_held();)
 	}
+	FX_LAB_MODULE(register_mag008_doom);
 }
 
 #ifdef FF8_FX_HELD

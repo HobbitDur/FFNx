@@ -24,5 +24,14 @@ namespace eyedrops293
 	static void held_note_root();
 	static void held_note_play(prim::Layout *layout, const int16_t *anchor);
 }
+namespace statusitem
+{
+	template<>
+	struct Held<eyedrops293::LAYOUT>
+	{
+		static void note_root() { eyedrops293::held_note_root(); }
+		static void note_play(prim::Layout *layout, const int16_t *anchor) { eyedrops293::held_note_play(layout, anchor); }
+	};
+}
 	static void register_mag293_held();
 }

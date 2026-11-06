@@ -66,8 +66,14 @@
 // cursor 0x25219EC, actor / debris / ring / sprite / stream / root queues, the sound position
 // 0x2521A50 and the wobble translation 0x2521A58 (zero, never written)). Pools, the vertex table
 // and the packet arenas are in the magic buffer.
+// Fujin's described Biggs and Wedge's first death (effect_110.json) runs this code: its memory through own::R()
+// (fx_port.h), its spawns through own::Fn(), the setup and the file loader ported below; its parameters
+// (StormParams: the wind's sound).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -77,15 +83,17 @@ namespace bw110
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25219CC); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25219D0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25219EC); }
-	inline TaskQueue *QActors() { return (TaskQueue *)0x25219F0; }          // pool: magic buffer, 2 x 0x2C
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2521A00; }          // pool: + 0x58, 0x10 x 0x30
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2521A10; }           // pool: + 0x358, 0x10 x 0x14
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2521A20; }         // pool: + 0x498, 0x80 x 0x20
-	inline TaskQueue *QStream() { return (TaskQueue *)0x2521A30; }          // pool: + 0x1498, 1 x 0x64
-	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)0x2521A44; } // translation = words at 0x2521A58
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25219CC)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25219D0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25219EC)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25219C8)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2521A40); }             // 1 x 0x14
+	inline TaskQueue *QActors() { return (TaskQueue *)own::R(0x25219F0); }          // pool: magic buffer, 2 x 0x2C
+	inline TaskQueue *QDebris() { return (TaskQueue *)own::R(0x2521A00); }          // pool: + 0x58, 0x10 x 0x30
+	inline TaskQueue *QRings() { return (TaskQueue *)own::R(0x2521A10); }           // pool: + 0x358, 0x10 x 0x14
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2521A20); }         // pool: + 0x498, 0x80 x 0x20
+	inline TaskQueue *QStream() { return (TaskQueue *)own::R(0x2521A30); }          // pool: + 0x1498, 1 x 0x64
+	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)own::R(0x2521A44); } // translation = words at 0x2521A58
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6CE2A0;
@@ -103,7 +111,23 @@ namespace bw110
 	static const uint32_t SEQ_Spark = 0x12E3130;        // sprite sequences
 	static const uint32_t SEQ_Hit = 0x12E3290;
 	static const void *const SOUND_Wind = (const void *)0x12E336C;
-	static const int16_t *const SOUND_Pos = (const int16_t *)0x2521A50; // module global, never written (0, 0, 0)
+	static const uint32_t ORIG_FileLoader = 0x6CE220, ORIG_Setup = 0x6CE210;
+	static const uint32_t TEXTURE_NAME = 0x12E3370;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct StormParams
+	{
+		uint32_t sound;   // the wind at the stream's tick 0
+		struct { uint32_t spark, hit; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t stream, debris, ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const StormParams GAME = { 0x12E336C, { SEQ_Spark, SEQ_Hit }, { MODEL_Stream, MODEL_Debris, MODEL_Ring }, { TEXTURE_NAME } };
+	static StormParams live = GAME;
+	static const StormParams &P() { return live; }
+	inline const int16_t *SOUND_Pos() { return (const int16_t *)own::R(0x2521A50); } // module global, never written (0, 0, 0)
 	static const int16_t MOUTH_YZ = (int16_t)0xF060;    // the stream's source: (aim x, -4000, -4000)
 
 	// engine functions not in fx_port.h / mag_common.h
@@ -460,7 +484,7 @@ namespace bw110
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1C) = 0x80;
 		*(int16_t *)(h + 0xC) = (int16_t)r.scroll;
-		*(uint32_t *)h = MODEL_Stream;
+		*(uint32_t *)h = fxp::model(P().models.stream, MODEL_Stream);
 		PacketCursor() = DrawStream(h, RenderOT(0x44), 2, PacketCursor(), verts);
 		FieldFree(0x5C);
 	}
@@ -509,7 +533,7 @@ namespace bw110
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_Debris);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -565,7 +589,7 @@ namespace bw110
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -588,7 +612,7 @@ namespace bw110
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag110_biggs_wedge_death_held.inc
 		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Spark);
+		SpriteDraw(p, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
 
@@ -597,7 +621,7 @@ namespace bw110
 		SpriteNode *p = (SpriteNode *)n;
 		// 30 fps layer: see mag110_biggs_wedge_death_held.inc
 		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Hit);
+		SpriteDraw(p, fxp::sequence(P().seqs.hit, SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
 
@@ -626,7 +650,7 @@ namespace bw110
 	// ------------------------------------------------------------------
 	static void StartActor(StreamNode *s, int32_t idx)
 	{
-		ActorNode *a = (ActorNode *)AddTaskToQueue(QActors(), ORIG_ActorTask);
+		ActorNode *a = (ActorNode *)AddTaskToQueue(QActors(), own::Fn(ORIG_ActorTask));
 		if (!a) return;
 		FillDwords(&a->counter, 0, 8);
 		a->sn = s;
@@ -681,7 +705,7 @@ namespace bw110
 			int32_t v = mul32(CrtRand(), a->vc) >> 16;
 			for (int k = 0; k < 2; k++)
 			{
-				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_HitTask);
+				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_HitTask));
 				if (!p) continue;
 				FillDwords(&p->counter, 0, 5);
 				VertexPosition(a->ent, v, p->pos);
@@ -727,7 +751,7 @@ namespace bw110
 			// 30 fps layer: see mag110_biggs_wedge_death_held.inc
 			FX_HELD(held_note_stream(s);)
 			uint8_t *h = AllocHeader(0x5C);
-			if (c == 0) BdPlaySE3D(SOUND_Wind, 0, SOUND_Pos);
+			if (c == 0) BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Wind), 0, SOUND_Pos());
 			StreamWobble(s->a, s->b, (uint8_t *)STREAM_VERTS);
 			if (c >= 0xF)
 			{
@@ -769,7 +793,7 @@ namespace bw110
 				if (w[1] < 0) continue;
 				if (CrtRand() < 0x800)
 				{
-					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SparkTask);
+					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SparkTask));
 					if (p)
 					{
 						FillDwords(&p->counter, 0, 5);
@@ -784,7 +808,7 @@ namespace bw110
 				}
 				if (sweep >= 0x32) continue;
 				if (CrtRand() >= 0x800) continue;
-				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), own::Fn(ORIG_DebrisTask));
 				if (!e) continue;
 				FillDwords(&e->counter, 0, 9);
 				e->pos[0] = w[0];
@@ -801,7 +825,7 @@ namespace bw110
 		}
 		if (c < 0x25 && (c & 3) == 0)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), own::Fn(ORIG_RingTask));
 			if (g)
 			{
 				FillDwords(&g->pad0C, 0, 2);
@@ -819,6 +843,24 @@ namespace bw110
 	// ------------------------------------------------------------------
 	// Root task (0x6CE2A0)
 	// ------------------------------------------------------------------
+	// File loader (0x6CE220) and setup (0x6CE210 -> 0x6CE240): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast, the root (no camera animation)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25219D8), 0x14, 1);
+		FillDwords(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -860,7 +902,7 @@ namespace bw110
 				InitTaskQueuePool(QDebris(), (void *)(TexBase() + 0x58), 0x30, 0x10);
 				InitTaskQueuePool(QActors(), (void *)TexBase(), 0x2C, 2);
 			}
-			StreamNode *s = (StreamNode *)AddTaskToQueue(QStream(), ORIG_StreamTask);
+			StreamNode *s = (StreamNode *)AddTaskToQueue(QStream(), own::Fn(ORIG_StreamTask));
 			if (s)
 			{
 				FillDwords(&s->counter, 0, 0x16);
@@ -889,20 +931,50 @@ namespace bw110
 		if (r->counter >= 10) r->counter = 10;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "storm", "Storm", "The stream from above sweeping the targets, its sparks, debris and rings, the targets hit, pushed and blown away (their reactions and texts), the wind's sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "storm", "sound", "Sound", "The wind", (uint32_t)offsetof(StormParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "storm", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "storm", "seqs.hit", "Hit", "The sprite sequence hit (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(StormParams, seqs.hit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "storm", "models.stream", "Stream model", "The prim model stream (a mesh of 308 vertices, 240 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, models.stream), fxp::Model, 0, 0x7FFFFFFF },
+			{ "storm", "models.debris", "Debris model", "The prim model debris (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "storm", "models.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(StormParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "storm", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(StormParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag110_biggs_wedge_death()
 	{
+		fxp::register_params({ 110, "Biggs and Wedge's first death", &bw110::live, &bw110::GAME, sizeof(bw110::StormParams),
+		                       bw110::table::PARTS, (int)(sizeof(bw110::table::PARTS) / sizeof(bw110::table::PARTS[0])),
+		                       bw110::table::FIELDS, (int)(sizeof(bw110::table::FIELDS) / sizeof(bw110::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(bw110::ORIG_FileLoader, (void *)bw110::FileLoader);
+		own::note(bw110::ORIG_Setup, (void *)bw110::Setup);
+		own::note(bw110::ORIG_RootTask, (void *)bw110::RootTask);
 		register_port(bw110::ORIG_RootTask, (void *)bw110::RootTask, "110 RootTask", 110);
+		own::note(bw110::ORIG_StreamTask, (void *)bw110::StreamTask);
 		register_port(bw110::ORIG_StreamTask, (void *)bw110::StreamTask, "110 StreamTask", 110);
+		own::note(bw110::ORIG_ActorTask, (void *)bw110::ActorTask);
 		register_port(bw110::ORIG_ActorTask, (void *)bw110::ActorTask, "110 ActorTask", 110);
+		own::note(bw110::ORIG_HitTask, (void *)bw110::HitTask);
 		register_port(bw110::ORIG_HitTask, (void *)bw110::HitTask, "110 HitTask", 110);
+		own::note(bw110::ORIG_DebrisTask, (void *)bw110::DebrisTask);
 		register_port(bw110::ORIG_DebrisTask, (void *)bw110::DebrisTask, "110 DebrisTask", 110);
+		own::note(bw110::ORIG_RingTask, (void *)bw110::RingTask);
 		register_port(bw110::ORIG_RingTask, (void *)bw110::RingTask, "110 RingTask", 110);
+		own::note(bw110::ORIG_SparkTask, (void *)bw110::SparkTask);
 		register_port(bw110::ORIG_SparkTask, (void *)bw110::SparkTask, "110 SparkTask", 110);
 		// 30 fps layer: see mag110_biggs_wedge_death_held.inc
 		FX_HELD(register_mag110_held();)
 	}
+	FX_LAB_MODULE(register_mag110_biggs_wedge_death);
 }
 
 #ifdef FF8_FX_HELD

@@ -62,7 +62,16 @@
 // 0x26F6BA0, light block 0x2700328, vertex blend buffer pointer 0x2700360, overlay state
 // 0x2700378..0x2700470); the shared battle light words 0x1D98992 + k * 0x2C.
 
+// Fujin's described Cura (effect_025.json) runs this code as its pieces (Doom's kind, Double's short root): its
+// module memory through R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn);
+// its parameters (CuraParams: the emitter's sound and ticks, the aura players' fades, the glow, the sparkles)
+// are set from the program's.
+
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -93,6 +102,22 @@ namespace cura
 	static const uint32_t SEQ_Glow = 0x1610948, SEQ_Swirl = 0x16109BC, SEQ_SwirlEnd = 0x1610A10, SEQ_Mote = 0x1610AD4;
 	static const uint32_t SEQ_SparkleA = 0x161079C, SEQ_SparkleA2 = 0x1610DAC, SEQ_SparkleB = 0x1610C00, SEQ_SparkleB2 = 0x1610F58;
 	static const uint32_t SOUND_Cura = 0x1610798;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct CuraParams
+	{
+		struct { uint32_t sound; int16_t particles, heal; } emitter;   // its sound; the particle emitter / the heal after these ticks
+		struct { int16_t second, third, fourth; } aura;                 // the later aura players' fade bases
+		struct { int16_t lift, sparks; } glow;                          // the glow this above the anchor; its swirl sparks
+		struct { int16_t spread; } sparkles;                            // the sparkles' and particles' random offset
+		struct { uint32_t glow, swirl, swirl_end, mote, sparkle_a, sparkle_a2, sparkle_b, sparkle_b2; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t rings, sparkles, particles; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const CuraParams GAME = { { SOUND_Cura, 0xB, 0x1E }, { 0x800, 0xC00, 0xE00 }, { 0x600, 8 }, { 0x200 }, { SEQ_Glow, SEQ_Swirl, SEQ_SwirlEnd, SEQ_Mote, SEQ_SparkleA, SEQ_SparkleA2, SEQ_SparkleB, SEQ_SparkleB2 }, { 0x1613684, 0x16136C0, 0x16136FC } };
+	static CuraParams live = GAME;
+	static const CuraParams &PC() { return live; }
 
 	static const uint32_t ORIG_Master = 0x889E40;
 	static const uint32_t ORIG_Emitter = 0x889F40;
@@ -205,7 +230,7 @@ namespace cura
 		U32(h, 0) = U32(node, 0x4C);
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -231,7 +256,7 @@ namespace cura
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -261,7 +286,7 @@ namespace cura
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -475,7 +500,7 @@ namespace cura
 		}
 		if (U32(fp, 0) & 0x20000000)
 			ScrollModelV(U32(h, 0), S16(U32(blk, 0xC), index * 2));
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 	}
 
@@ -493,7 +518,7 @@ namespace cura
 		U16(st, 0xDA) = (uint16_t)slot;
 		U32(st, 4) = light;
 		U32(st, 0xC) = FRAME_CURSOR;
-		U32(st, 0x10) = PACKET_CURSOR;
+		U32(st, 0x10) = R(PACKET_CURSOR);
 		U16(st, 0xB4) = 0;
 		U16(st, 0xB6) = 0;
 		U16(st, 0xB8) = 0;
@@ -907,6 +932,7 @@ namespace cura
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_025;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag025_cura_held.inc
 		FX_HELD(held_note_master();)
 		const uint32_t node = a1;
@@ -917,14 +943,14 @@ namespace cura
 		states[3] = 0x88CF20;
 		states[4] = 0x88CF40; // nullsub (ret)
 		if (U8(node, 0x5C) & 1)
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_ODD);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = MEM<uint32_t>(R(ARENA_ODD));
 		else
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_EVEN);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = MEM<uint32_t>(R(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(Q_EMITTER);
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PLAYER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPRITE));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_PLAYER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_SPRITE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -977,7 +1003,7 @@ namespace cura
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(SOUND_Cura, 0, 0x80);
+			x::BdPlaySE(fxp::sound(PC().emitter.sound, SOUND_Cura), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -987,12 +1013,12 @@ namespace cura
 	// 0), the ring and sparkle spawners and the light task
 	static uint32_t __cdecl SpawnFirst(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Glow, 0x84, a1);
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
+		Spawn(R(Q_SPRITE), ORIG_Glow, 0x84, a1);
+		const uint32_t aura = Spawn(R(Q_PLAYER), ORIG_Aura, 0xC8, a1);
 		U16(aura, 0xC4) = 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_RingSpawner, 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_SparkleSpawner, 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_LightTask, 0xC8, a1);
+		Spawn(R(Q_PLAYER), ORIG_RingSpawner, 0xC8, a1);
+		Spawn(R(Q_PLAYER), ORIG_SparkleSpawner, 0xC8, a1);
+		Spawn(R(Q_PLAYER), ORIG_LightTask, 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1001,9 +1027,9 @@ namespace cura
 	// overlay
 	static uint32_t __cdecl SpawnOverlay(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
-		U16(aura, 0xC4) = 0x800;
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Overlay, 0xC8, a1);
+		const uint32_t aura = Spawn(R(Q_PLAYER), ORIG_Aura, 0xC8, a1);
+		U16(aura, 0xC4) = (uint16_t)PC().aura.second;
+		Spawn(R(Q_PLAYER), ORIG_Overlay, 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1012,15 +1038,15 @@ namespace cura
 	// bases 0xC00 / 0xE00)
 	static uint32_t __cdecl SpawnAuraC00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
-		U16(aura, 0xC4) = 0xC00;
+		const uint32_t aura = Spawn(R(Q_PLAYER), ORIG_Aura, 0xC8, a1);
+		U16(aura, 0xC4) = (uint16_t)PC().aura.third;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
 	static uint32_t __cdecl SpawnAuraE00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
-		U16(aura, 0xC4) = 0xE00;
+		const uint32_t aura = Spawn(R(Q_PLAYER), ORIG_Aura, 0xC8, a1);
+		U16(aura, 0xC4) = (uint16_t)PC().aura.fourth;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1028,9 +1054,9 @@ namespace cura
 	// 0x88CC40 (MAG_025_sub_88CC40): emitter state 4 - after tick 11 the particle emitter
 	static uint32_t __cdecl SpawnParticleEmitter(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0xB)
+		if (S16(a1, 0x24) > PC().emitter.particles)
 		{
-			x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_ParticleEmitter, 0xC8, a1);
+			Spawn(R(Q_PLAYER), ORIG_ParticleEmitter, 0xC8, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return a1;
@@ -1040,7 +1066,7 @@ namespace cura
 	// target(s), finished
 	static uint32_t __cdecl Heal(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x1E)
+		if (S16(a1, 0x24) > PC().emitter.heal)
 		{
 			const int32_t action = S8(a1, 0x2A);
 			const uint32_t acts = U32(U32(a1, 0xC), 4);
@@ -1078,13 +1104,13 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		cx::CopyAnchorFromSource(node, node + 0x1C);
-		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
-		U32(node, 0x4C) = SEQ_Glow;
+		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) - PC().glow.lift);
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.glow, SEQ_Glow);
 		U16(node, 0x52) = 3;
 		uint32_t angle = x::CrtRand() & 0xFFF;
-		for (int i = 8; i != 0; i--)
+		for (int i = PC().glow.sparks; i > 0; i--)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Swirl, 0x84, node);
+			const uint32_t t = Spawn(R(Q_SPRITE), ORIG_Swirl, 0x84, node);
 			S32(t, 0x30) = 0x1000;
 			S32(t, 0x34) = 0x1000;
 			S32(t, 0x38) = 0x1000;
@@ -1124,7 +1150,7 @@ namespace cura
 		U16(node, 0x1C) = xw;
 		if ((U8(node, 0x26) & 0x10) == 0 && (U8(node, 0x24) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Mote, 0x84, node);
+			const uint32_t t = Spawn(R(Q_SPRITE), ORIG_Mote, 0x84, node);
 			RandomOffset(t, 0x80);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
@@ -1151,7 +1177,7 @@ namespace cura
 		const uint32_t w20 = U32(node, 0x20);
 		U16(node, 0x78) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t w1c = U32(node, 0x1C);
-		U32(node, 0x4C) = SEQ_Swirl;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.swirl, SEQ_Swirl);
 		U32(node, 0x68) = w1c;
 		U32(node, 0x6C) = w20;
 		U16(node, 0x52) = 1;
@@ -1177,7 +1203,7 @@ namespace cura
 		if (S16(node, 0x24) >= 0x10)
 		{
 			U16(node, 0x26) |= 0x10;
-			U32(node, 0x4C) = SEQ_SwirlEnd;
+			U32(node, 0x4C) = fxp::sequence(PC().seqs.swirl_end, SEQ_SwirlEnd);
 			U16(node, 0x50) = 0;
 			U16(node, 0x52) = 6;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1208,7 +1234,7 @@ namespace cura
 	static uint32_t __cdecl MoteStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = SEQ_Mote;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.mote, SEQ_Mote);
 		U16(node, 0x50) = 0;
 		U16(node, 0x52) = 0xA;
 		const uint32_t r = x::CrtRand();
@@ -1254,7 +1280,7 @@ namespace cura
 	{
 		U32(fr, FR_BLOCK) = fr + FR_MATRIX;
 		U32(fr, FR_BLOCK + 4) = fr + FR_FLAGS;
-		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(BLEND_BUFFER);
+		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(R(BLEND_BUFFER));
 	}
 
 	// 0x88A8D0 (sub_88A8D0): aura player state 1 - anchor (+0x1C) from the emitter, matrix =
@@ -1296,11 +1322,11 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		int32_t i = 0;
-		if (S16(TAB_RINGS, S16(node, 0x24) * 2) > 0)
+		if (S16(fxp::data(PC().tables.rings, TAB_RINGS, 60), S16(node, 0x24) * 2) > 0)
 		{
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Ring, 0xC8, node);
+				const uint32_t t = Spawn(R(Q_PLAYER), ORIG_Ring, 0xC8, node);
 				S32(t, 0x30) = 0x1000;
 				S32(t, 0x34) = 0x1000;
 				S32(t, 0x38) = 0x1000;
@@ -1313,7 +1339,7 @@ namespace cura
 				if (x::CrtRand() & 1)
 					U16(t, 0x5C) = (uint16_t)(0x1000 - U16(t, 0x5C));
 				i++;
-			} while (i < S16(TAB_RINGS, S16(node, 0x24) * 2));
+			} while (i < S16(fxp::data(PC().tables.rings, TAB_RINGS, 60), S16(node, 0x24) * 2));
 		}
 		if (S16(node, 0x24) >= 0x12)
 		{
@@ -1411,10 +1437,10 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(TAB_SPARKLES, S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(fxp::data(PC().tables.sparkles, TAB_SPARKLES, 60), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Sparkle, 0x84, node);
-			RandomOffset(t, 0x200);
+			const uint32_t t = Spawn(R(Q_SPRITE), ORIG_Sparkle, 0x84, node);
+			RandomOffset(t, (uint32_t)PC().sparkles.spread);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
 			S32(t, 0x34) = 0x1000;
@@ -1457,13 +1483,13 @@ namespace cura
 		const uint32_t node = a1;
 		if (x::CrtRand() & 1)
 		{
-			U32(node, 0x4C) = SEQ_SparkleA;
-			U32(node, 0x70) = SEQ_SparkleA2;
+			U32(node, 0x4C) = fxp::sequence(PC().seqs.sparkle_a, SEQ_SparkleA);
+			U32(node, 0x70) = fxp::sequence(PC().seqs.sparkle_a2, SEQ_SparkleA2);
 		}
 		else
 		{
-			U32(node, 0x4C) = SEQ_SparkleB;
-			U32(node, 0x70) = SEQ_SparkleB2;
+			U32(node, 0x4C) = fxp::sequence(PC().seqs.sparkle_b, SEQ_SparkleB);
+			U32(node, 0x70) = fxp::sequence(PC().seqs.sparkle_b2, SEQ_SparkleB2);
 		}
 		const uint32_t r = x::CrtRand();
 		U16(node, 0x52) = 0xF;
@@ -1492,11 +1518,11 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(TAB_PARTICLES, S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(fxp::data(PC().tables.particles, TAB_PARTICLES, 60), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Particle, 0x84, node);
+			const uint32_t t = Spawn(R(Q_SPRITE), ORIG_Particle, 0x84, node);
 			U16(t, 0x1E) = (uint16_t)(U16(node, 0x1E) - 0x180);
-			RandomOffset(t, 0x200);
+			RandomOffset(t, (uint32_t)PC().sparkles.spread);
 		}
 		if (S16(node, 0x24) >= 0x14)
 		{
@@ -1529,7 +1555,7 @@ namespace cura
 	static uint32_t __cdecl ParticleStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = SEQ_Mote;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.mote, SEQ_Mote);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0xFC00;
 		const uint32_t r = x::CrtRand();
@@ -1624,11 +1650,11 @@ namespace cura
 			U16(node, 0x1C) = (uint16_t)(s / 4096 + S32(P(anchor), 0));
 			const int32_t c = shl32((int32_t)x::computeCosine((uint32_t)(int32_t)S16(node, 0x52)), 0xA);
 			U16(node, 0x20) = (uint16_t)(c / 4096 + S32(P(anchor), 4));
-			U16(OVL_STATE, 0xB6) = U16(node, 0x1E);
-			OverlayParams(OVL_STATE, node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
+			U16(R(OVL_STATE), 0xB6) = U16(node, 0x1E);
+			OverlayParams(R(OVL_STATE), node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
 			// 30 fps layer: see mag025_cura_held.inc
 			FX_HELD(held_note_overlay(node);)
-			DrawOverlay(OVL_STATE);
+			DrawOverlay(R(OVL_STATE));
 			FX_HELD(held_note_overlay_end();)
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -1646,12 +1672,12 @@ namespace cura
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
 		U16(node, 0x42) = (uint16_t)Div18(0x100 - (int32_t)S16(node, 0x1E));
-		OverlayInit(OVL_STATE, OVL_FIRST, OVL_LIGHT, LIT_VERTICES, entity, U8(node, 0x2D));
+		OverlayInit(R(OVL_STATE), R(OVL_FIRST), R(OVL_LIGHT), R(LIT_VERTICES), entity, U8(node, 0x2D));
 		U8(node, 0x26) |= 8;
 		U8(entity, 0) |= 4;
-		U8(OVL_STATE, 0xC4) = 0x40;
-		U8(OVL_STATE, 0xC5) = 0x40;
-		U8(OVL_STATE, 0xC6) = 0x40;
+		U8(R(OVL_STATE), 0xC4) = 0x40;
+		U8(R(OVL_STATE), 0xC5) = 0x40;
+		U8(R(OVL_STATE), 0xC6) = 0x40;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -1671,6 +1697,42 @@ namespace cura
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(CuraParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: its sound, the aura players, the particle emitter, the heal" },
+			{ 0, "glow", "Glow", "The glow over the target with its swirl sparks; the sparkles" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "aura", "Aura players", "The second to fourth aura players' fade bases (the first's: 0)" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its first tick", (uint32_t)offsetof(CuraParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.particles, "Particles after", "The particle emitter after this tick", 0, 200),
+			DT("emitter", emitter.heal, "Heal after", "The heal after this tick", 0, 200),
+			DT("emitter", aura.second, "Second", "", 0, 0x1000),
+			DT("emitter", aura.third, "Third", "", 0, 0x1000),
+			DT("emitter", aura.fourth, "Fourth", "", 0, 0x1000),
+			DT("glow", glow.lift, "Lift", "The glow this above the anchor", -0x1000, 0x1000),
+			DT("glow", glow.sparks, "Swirl sparks", "Thrown out at its start, an eighth of a turn apart", 0, 16),
+			DT("glow", sparkles.spread, "Spread", "The sparkles' and the particles' random offset", 0, 0x1000),
+			{ "emitter", "seqs.glow", "Glow", "The sprite sequence glow (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.swirl", "Swirl", "The sprite sequence swirl (a flipbook of 2 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.swirl), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.swirl_end", "Swirl end", "The sprite sequence swirl end (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.swirl_end), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.mote", "Mote", "The sprite sequence mote (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.mote), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_a", "Sparkle a", "The sprite sequence sparkle a (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_a2", "Sparkle a2", "The sprite sequence sparkle a2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_a2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_b", "Sparkle b", "The sprite sequence sparkle b (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.sparkle_b2", "Sparkle b2", "The sprite sequence sparkle b2 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CuraParams, seqs.sparkle_b2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.rings", "Rings a tick", "How many rings spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.rings), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.sparkles", "Sparkles a tick", "How many sparkles spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.sparkles), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.particles", "Particles a tick", "How many particles spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.particles), fxp::Data, 0, 0x7FFFFFFF },
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -1754,6 +1816,11 @@ namespace cura
 
 	void register_mag025_cura()
 	{
+		fxp::register_params({ 25, "Cura", &act::cura::live, &act::cura::GAME, sizeof(act::cura::CuraParams),
+		                       act::cura::table::PARTS, (int)(sizeof(act::cura::table::PARTS) / sizeof(act::cura::table::PARTS[0])),
+		                       act::cura::table::FIELDS, (int)(sizeof(act::cura::table::FIELDS) / sizeof(act::cura::table::FIELDS[0])),
+		                       act::cura::table::GROUPS, (int)(sizeof(act::cura::table::GROUPS) / sizeof(act::cura::table::GROUPS[0])) });
+		act::register_mod(&act::cura::MOD_025);
 		act::register_module(25);
 		for (const act::cura::ModPort *p = act::cura::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(25, p->addr, p->port, p->name);
@@ -1762,6 +1829,7 @@ namespace cura
 		// 30 fps layer: see mag025_cura_held.inc
 		FX_HELD(register_mag025_held();)
 	}
+	FX_LAB_MODULE(register_mag025_cura);
 }
 
 #ifdef FF8_FX_HELD

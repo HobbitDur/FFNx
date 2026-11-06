@@ -79,6 +79,9 @@
 //   +0x10 / +0x11 = new-move flag / mode), saved party heights 0x25084E0).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -88,20 +91,22 @@ namespace duel274
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x2508414; }           // the 7 entities' flag words (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508430); }          // Magic_TextureOFF (magic buffer)
-	inline uint32_t &Alloc() { return var<uint32_t>(0x2508434); }            // magic buffer allocation cursor
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508438); }
-	inline Mat4x3 *CamCopy() { return (Mat4x3 *)0x2508440; }                // orthonormal copy of the battle view
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250846C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508470); }
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x2508478; }           // Meteor Strike rocks (0x2C)
-	inline TaskQueue *QFlashes() { return (TaskQueue *)0x2508488; }         // hit flashes (0x14)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508498; }          // sparks (0x24)
-	inline TaskQueue *QMoves() { return (TaskQueue *)0x25084A8; }           // the move task (1 x 0x74)
-	inline uint8_t &NewMove() { return var<uint8_t>(0x25084D8); }            // root node +0x10: a move was posted
-	inline uint8_t &PostedMode() { return var<uint8_t>(0x25084D9); }         // root node +0x11: the posted mode
-	inline int16_t *SavedPartyY() { return (int16_t *)0x25084E0; }            // party +0x20 before the 0x54 lift
+	inline uint32_t *SavedFlags() { return (uint32_t *)own::R(0x2508414); }           // the 7 entities' flag words (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2508430)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &Alloc() { return var<uint32_t>(own::R(0x2508434)); }            // magic buffer allocation cursor
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2508438)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508410)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25084B8); }             // 1 x 0x18
+	inline Mat4x3 *CamCopy() { return (Mat4x3 *)own::R(0x2508440); }                // orthonormal copy of the battle view
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250846C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2508470)); }
+	inline TaskQueue *QRocks() { return (TaskQueue *)own::R(0x2508478); }           // Meteor Strike rocks (0x2C)
+	inline TaskQueue *QFlashes() { return (TaskQueue *)own::R(0x2508488); }         // hit flashes (0x14)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2508498); }          // sparks (0x24)
+	inline TaskQueue *QMoves() { return (TaskQueue *)own::R(0x25084A8); }           // the move task (1 x 0x74)
+	inline uint8_t &NewMove() { return var<uint8_t>(own::R(0x25084D8)); }            // root node +0x10: a move was posted
+	inline uint8_t &PostedMode() { return var<uint8_t>(own::R(0x25084D9)); }         // root node +0x11: the posted mode
+	inline int16_t *SavedPartyY() { return (int16_t *)own::R(0x25084E0); }            // party +0x20 before the 0x54 lift
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }     // the frame's own packet cursor
 
@@ -130,6 +135,28 @@ namespace duel274
 	static const void *const SOUND_Kick = (const void *)0x110BE64;
 	static const void *const SOUND_Dolphin = (const void *)0x110BE68;
 	static const void *const SOUND_Meteor = (const void *)0x110BE6C;
+	static const uint32_t ORIG_FileLoader = 0x6897F0, ORIG_Setup = 0x6897E0;
+	static const uint32_t TEXTURE_NAME = 0x110E5D0, ORIG_StreamTimChunk = 0x689810;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DuelParams
+	{
+		uint32_t sound_punch;   // Punch Rush's (its tick 8)
+		uint32_t sound_booya;   // Booya's (its tick 0xD)
+		uint32_t sound_heel;   // Heel Drop's (its tick 0x1E)
+		uint32_t sound_kick;   // Mach Kick's (its tick 0x1B)
+		uint32_t sound_dolphin;   // Dolphin Blow's (its tick 0x18)
+		uint32_t sound_meteor;   // Meteor Strike's (its tick 0x2B)
+		struct { uint32_t punch, punch_b, booya, heel, heel_b, kick, dolphin, dolphin_b, meteor, meteor_b; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t flash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t rock, kick, wave; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const DuelParams GAME = { 0x110BE58, 0x110BE5C, 0x110BE60, 0x110BE64, 0x110BE68, 0x110BE6C, { LAYOUT_Punch, LAYOUT_PunchB, LAYOUT_Booya, LAYOUT_Heel, LAYOUT_HeelB, LAYOUT_Kick, LAYOUT_Dolphin, LAYOUT_DolphinB, LAYOUT_Meteor, LAYOUT_MeteorB }, { SEQ_Flash }, { MODEL_Rock, MODEL_Kick, MODEL_Wave }, { TEXTURE_NAME, COM_Anim } };
+	static DuelParams live = GAME;
+	static const DuelParams &P() { return live; }
 
 	// ---- engine functions not in fx_port.h / mag_common.h
 	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }  // Effect_SharedLcg_Rand
@@ -1021,6 +1048,41 @@ namespace duel274
 		PacketCursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0xB4);
 	}
+	// File loader (0x6897F0: the TIM, the stream callback 0x689810 for the files the first move streams) and setup
+	// (0x6897E0 -> _Init 0x6898B0): the game runs its own; Fujin's programs these (its memory may be a copy's). The
+	// setup runs again for every Duel action (BattleActionSequence_Tick_Duel 0x50BDC0: the cast context's sequence mode
+	// +8): 0 the cast - the entities' flags saved, the TIM, the magic buffer, the cast and its caster, the root; else
+	// the move posted to the root node (its mode and the new-move flag), no task
+	static uint32_t __cdecl FileLoader()
+	{
+		var<uint32_t>(0x1DCD6E8) = ORIG_StreamTimChunk;   // completion_callback (the engine's copy: no module memory)
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		const uint8_t mode = ((const uint8_t *)ctx)[8];
+		if (mode)
+		{
+			PostedMode() = mode;
+			NewMove() = 1;
+			return nullptr;
+		}
+		for (int i = 0; i < 7; i++) SavedFlags()[i] = U16((void *)(0x1D972C0 + 0x9C * i), 0);
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25084C8), 0x18, 1);
+		uint8_t *r = (uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask));
+		Memset32(r + 0xC, 0, 3);
+		r[0xC] = 0;
+		r[0xD] = mode;
+		var<uint32_t>(own::R(0x2508468)) = 0;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
@@ -1043,7 +1105,7 @@ namespace duel274
 		int16_t pos[4];
 		GetEffectSpawnPosition(Caster(), bone, 0, pos);
 		pos[3] = 0;
-		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 		while (s)
 		{
 			memcpy(s->pos, pos, 8); // (+0x12 frame = pos[3] = 0)
@@ -1111,7 +1173,7 @@ namespace duel274
 			}
 			s->seq = (int16_t)seq;
 			if (--n == 0) break;
-			s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 		}
 	}
 
@@ -1121,7 +1183,7 @@ namespace duel274
 		int16_t pos[4];
 		GetEffectSpawnPosition(entity, bone, 0, pos);
 		int32_t n = 2;
-		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 		while (s)
 		{
 			const int32_t r = ((int32_t)*(const int16_t *)(entity + 0x26) + 0x1000) >> 4;
@@ -1140,7 +1202,7 @@ namespace duel274
 			s->vel[1] = 0;
 			s->vel[0] = 0;
 			if (--n == 0) break;
-			s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 		}
 	}
 
@@ -1153,7 +1215,7 @@ namespace duel274
 		FX_HELD(held_note_flash(f);)
 		TransformCameraByShadowRotation(f->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash, SEQ_Flash);
 		*(int16_t *)(h + 4) = f->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, PacketCursor());
@@ -1173,7 +1235,7 @@ namespace duel274
 		int16_t pos[4];
 		GetEffectSpawnPosition(Caster(), bone, 0, pos);
 		pos[3] = 0;
-		FlashNode *f = (FlashNode *)AddTaskToQueue(QFlashes(), ORIG_FlashTask);
+		FlashNode *f = (FlashNode *)AddTaskToQueue(QFlashes(), own::Fn(ORIG_FlashTask));
 		if (!f) return;
 		memcpy(f->pos, pos, 8);
 		if (far_ == 0) f->pos[2] = (int16_t)(f->pos[2] - 0x80);
@@ -1196,7 +1258,7 @@ namespace duel274
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Rock;
+		*(uint32_t *)h = fxp::model(P().model_data.rock, MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x58);
@@ -1473,8 +1535,8 @@ namespace duel274
 			Alloc() += 0x64;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Punch, m->layout_a, 0x14C);
-			DecodeModelPrimLayout(LAYOUT_PunchB, m->layout_b, 0x64);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.punch, LAYOUT_Punch, 0x14C), m->layout_a, 0x14C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.punch_b, LAYOUT_PunchB, 0x64), m->layout_b, 0x64);
 			static const int32_t bones[6] = { 0xD, 0x11, 0x15, 0xE, 0x12, 0x16 };
 			GhostInit((uint8_t *)m->ghosts, 6, bones);
 		}
@@ -1537,7 +1599,7 @@ namespace duel274
 		default:
 			break;
 		}
-		if (m->counter == 8) BdPlaySE(SOUND_Punch, 0, 0x80);
+		if (m->counter == 8) BdPlaySE((const void *)fxp::sound(P().sound_punch, (uint32_t)SOUND_Punch), 0, 0x80);
 	}
 
 	// 0x68B2F0 Booya (45 ticks): the target follows his fist (bone 0x16) on 10..31, put back at 32 (damage); a layout at
@@ -1554,7 +1616,7 @@ namespace duel274
 			Alloc() += 0x5C8;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Booya, m->layout_a, 0x5C8);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.booya, LAYOUT_Booya, 0x5C8), m->layout_a, 0x5C8);
 			static const int32_t bones[1] = { 9 };
 			GhostInit((uint8_t *)m->ghosts, 1, bones);
 		}
@@ -1600,7 +1662,7 @@ namespace duel274
 			SparkRing(c, 9);
 			SparkRing(m->target, 0xF0);
 		}
-		if (m->counter == 0xD) BdPlaySE(SOUND_Booya, 0, 0x80);
+		if (m->counter == 0xD) BdPlaySE((const void *)fxp::sound(P().sound_booya, (uint32_t)SOUND_Booya), 0, 0x80);
 	}
 
 	// 0x68B700 Heel Drop (42 ticks): two layouts at his foot (bone 0x14, taken at 32) on 32..45 (the second one on the
@@ -1618,8 +1680,8 @@ namespace duel274
 			Alloc() += 0x64;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Heel, m->layout_a, 0x360);
-			DecodeModelPrimLayout(LAYOUT_HeelB, m->layout_b, 0x64);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.heel, LAYOUT_Heel, 0x360), m->layout_a, 0x360);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.heel_b, LAYOUT_HeelB, 0x64), m->layout_b, 0x64);
 			static const int32_t bones[3] = { 0xC, 0x10, 0x14 };
 			GhostInit((uint8_t *)m->ghosts, 3, bones);
 		}
@@ -1645,7 +1707,7 @@ namespace duel274
 		if (m->counter >= 0x19 && m->counter <= 0x20) GhostRecord(c, (uint8_t *)m->ghosts);
 		if (m->counter == 0x20) Damage(m);
 		if (m->counter == 0x21) ScreenFadeTask(0, 1, 1, 0x80);
-		if (m->counter == 0x1E) BdPlaySE(SOUND_Heel, 0, 0x80);
+		if (m->counter == 0x1E) BdPlaySE((const void *)fxp::sound(P().sound_heel, (uint32_t)SOUND_Heel), 0, 0x80);
 	}
 
 	// 0x68B950 Mach Kick (42 ticks): the wave model (0x10E9530) backed up at 0, bent on 28..31 (grow / roll by the
@@ -1667,8 +1729,8 @@ namespace duel274
 			Alloc() += 0x23C;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			CopyDwords(backup, MODEL_Kick + 8, 0x9A);
-			DecodeModelPrimLayout(LAYOUT_Kick, m->layout_a, 0x23C);
+			CopyDwords(backup, fxp::model(P().model_data.kick, MODEL_Kick) + 8, 0x9A);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.kick, LAYOUT_Kick, 0x23C), m->layout_a, 0x23C);
 			static const int32_t bones[3] = { 0xC, 0x10, 0x14 };
 			GhostInit((uint8_t *)m->ghosts, 3, bones);
 		}
@@ -1706,7 +1768,7 @@ namespace duel274
 			GteSetRotMatrix(&b);
 			GteSetTransVector(&b);
 			uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-			*(uint32_t *)h = MODEL_Kick;
+			*(uint32_t *)h = fxp::model(P().model_data.kick, MODEL_Kick);
 			if (v >= 4)
 			{
 				*(uint32_t *)(h + 0x1C) = 0xF0;
@@ -1724,16 +1786,16 @@ namespace duel274
 		if (w < 4)
 		{
 			if (m->counter == 0x1C) GetEffectSpawnPosition(c, 0x14, 0, from);
-			BendWave(MODEL_Kick, (const uint8_t *)backup, (int32_t)(w << 10) + 0x100, (int32_t)(w << 10));
+			BendWave(fxp::model(P().model_data.kick, MODEL_Kick), (const uint8_t *)backup, (int32_t)(w << 10) + 0x100, (int32_t)(w << 10));
 		}
-		if (m->counter == 0x25) CopyDwords(MODEL_Kick + 8, backup, 0x9A);
+		if (m->counter == 0x25) CopyDwords(fxp::model(P().model_data.kick, MODEL_Kick) + 8, backup, 0x9A);
 		if (m->counter >= 0x19 && m->counter <= 0x20) GhostRecord(c, (uint8_t *)m->ghosts);
 		if (m->counter == 0x20)
 		{
 			Damage(m);
 			if (m->counter == 0x20) ScreenFadeTask(0, 1, 1, 0x80);
 		}
-		if (m->counter == 0x1B) BdPlaySE(SOUND_Kick, 0, 0x80);
+		if (m->counter == 0x1B) BdPlaySE((const void *)fxp::sound(P().sound_kick, (uint32_t)SOUND_Kick), 0, 0x80);
 	}
 
 	// 0x68C7B0 Dolphin Blow (49 ticks): a layout under him on 0..15 (renderer 0x68BD50), the water spout layout on 20..69
@@ -1753,8 +1815,8 @@ namespace duel274
 			Alloc() += 0x388;
 			InitTaskQueuePool(QSparks(), (void *)Alloc(), 0x24, 0x40);
 			Alloc() += 0x900;
-			DecodeModelPrimLayout(LAYOUT_Dolphin, m->layout_a, 0xE0);
-			DecodeModelPrimLayout(LAYOUT_DolphinB, m->layout_b, 0x388);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.dolphin, LAYOUT_Dolphin, 0xE0), m->layout_a, 0xE0);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.dolphin_b, LAYOUT_DolphinB, 0x388), m->layout_b, 0x388);
 		}
 		if (m->counter < 0x10)
 		{
@@ -1791,7 +1853,7 @@ namespace duel274
 			if (m->counter == 0x21) Damage(m);
 			W16(m->target, 0x20) -= 0xC8;
 		}
-		if (m->counter == 0x18) BdPlaySE(SOUND_Dolphin, 0, 0x80);
+		if (m->counter == 0x18) BdPlaySE((const void *)fxp::sound(P().sound_dolphin, (uint32_t)SOUND_Dolphin), 0, 0x80);
 	}
 
 	// Meteor Strike's rising wave (0x10E7E18): turned by w (RotationY by the counter), stretched by -2 * his hip's height,
@@ -1808,7 +1870,7 @@ namespace duel274
 		GteSetRotMatrix(w);
 		GteSetTransVector(w);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Wave;
+		*(uint32_t *)h = fxp::model(P().model_data.wave, MODEL_Wave);
 		if (counter < 0x2C)
 		{
 			*(uint32_t *)(h + 0x1C) = 0x30;
@@ -1847,8 +1909,8 @@ namespace duel274
 			Alloc() += 0x9E4;
 			InitTaskQueuePool(QRocks(), (void *)Alloc(), 0x2C, 0x20);
 			Alloc() += 0x580;
-			DecodeModelPrimLayout(LAYOUT_Meteor, m->layout_a, 0x128);
-			DecodeModelPrimLayout(LAYOUT_MeteorB, m->layout_b, 0x9E4);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.meteor, LAYOUT_Meteor, 0x128), m->layout_a, 0x128);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.meteor_b, LAYOUT_MeteorB, 0x9E4), m->layout_b, 0x9E4);
 		}
 		int16_t pos[4];       // (the wave's place, then the module draw's offset)
 		int16_t ang[4];       // (the hip, then the module draw's angles)
@@ -1873,7 +1935,7 @@ namespace duel274
 				if (m->counter < 0x32)
 				{
 					int32_t n = 2;
-					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask));
 					while (k)
 					{
 						memcpy(k->pos, pos, 8);
@@ -1891,7 +1953,7 @@ namespace duel274
 						k->spin[1] = (int16_t)((Rand() & 0xFF) - 0x80);
 						k->spin[2] = (int16_t)((Rand() & 0xFF) - 0x80);
 						if (--n == 0) break;
-						k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+						k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask));
 					}
 				}
 			}
@@ -1920,7 +1982,7 @@ namespace duel274
 			if (u < 4)
 			{
 				int32_t n = 4;
-				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask));
 				while (k)
 				{
 					U32(k->pos, 0) = U32(t, 0x1C);
@@ -1937,7 +1999,7 @@ namespace duel274
 					k->spin[1] = (int16_t)((Rand() & 0xFF) - 0x80);
 					k->spin[2] = (int16_t)((Rand() & 0xFF) - 0x80);
 					if (--n == 0) break;
-					k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+					k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask));
 				}
 			}
 		}
@@ -2015,7 +2077,7 @@ namespace duel274
 			} while (e != t && e != nullptr);
 		}
 		ExecuteTaskQueue(QRocks());
-		if (m->counter == 0x2B) BdPlaySE(SOUND_Meteor, 0, 0x80);
+		if (m->counter == 0x2B) BdPlaySE((const void *)fxp::sound(P().sound_meteor, (uint32_t)SOUND_Meteor), 0, 0x80);
 	}
 
 	// ------------------------------------------------------------------
@@ -2101,7 +2163,7 @@ namespace duel274
 					m->anchor[2] = (int16_t)(m->anchor[2] - 0x7D0);
 				}
 				m->anchor[1] = W16(m->target_pos, 2);
-				BindExternalAnimSet(c, (uint32_t)m->bind, COM_Anim);
+				BindExternalAnimSet(c, (uint32_t)m->bind, fxp::anim_set(P().res.anim, COM_Anim));
 				StreamStateInit((void *)Alloc());
 				Alloc() += 0x18;
 				StreamQueueLoad(0x2CB, Alloc(), 1);
@@ -2220,7 +2282,7 @@ namespace duel274
 				r->started = 1;
 				InitTaskQueuePool(QMoves(), (void *)TexBase(), 0x74, 1);
 			}
-			MoveNode *m = (MoveNode *)AddTaskToQueue(QMoves(), ORIG_MoveTask);
+			MoveNode *m = (MoveNode *)AddTaskToQueue(QMoves(), own::Fn(ORIG_MoveTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x1A);
@@ -2238,18 +2300,66 @@ namespace duel274
 		if (r->counter >= 10) r->counter = 10;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "punch", "Punch Rush", "Punch Rush: its sound" },
+			{ 1, "booya", "Booya", "Booya: its sound" },
+			{ 2, "heel", "Heel Drop", "Heel Drop: its sound" },
+			{ 3, "kick", "Mach Kick", "Mach Kick: its sound" },
+			{ 4, "dolphin", "Dolphin Blow", "Dolphin Blow: its sound" },
+			{ 5, "meteor", "Meteor Strike", "Meteor Strike: its sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "punch", "sound_punch", "Sound", "On its tick 8", (uint32_t)offsetof(DuelParams, sound_punch), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "booya", "sound_booya", "Sound", "On its tick 0xD", (uint32_t)offsetof(DuelParams, sound_booya), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "heel", "sound_heel", "Sound", "On its tick 0x1E", (uint32_t)offsetof(DuelParams, sound_heel), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "kick", "sound_kick", "Sound", "On its tick 0x1B", (uint32_t)offsetof(DuelParams, sound_kick), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "dolphin", "sound_dolphin", "Sound", "On its tick 0x18", (uint32_t)offsetof(DuelParams, sound_dolphin), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "meteor", "sound_meteor", "Sound", "On its tick 0x2B", (uint32_t)offsetof(DuelParams, sound_meteor), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.punch", "Punch", "The prim-model layout punch (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.punch), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.punch_b", "Punch b", "The prim-model layout punch b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.punch_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.booya", "Booya", "The prim-model layout booya (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.booya), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.heel", "Heel", "The prim-model layout heel (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.heel), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.heel_b", "Heel b", "The prim-model layout heel b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.heel_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.kick", "Kick", "The prim-model layout kick (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.kick), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.dolphin", "Dolphin", "The prim-model layout dolphin (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.dolphin), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.dolphin_b", "Dolphin b", "The prim-model layout dolphin b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.dolphin_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.meteor", "Meteor", "The prim-model layout meteor (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "layouts.meteor_b", "Meteor b", "The prim-model layout meteor b (its models' animation)", (uint32_t)offsetof(DuelParams, layouts.meteor_b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "punch", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DuelParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "punch", "model_data.rock", "Rock model", "The prim model rock (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DuelParams, model_data.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "punch", "model_data.kick", "Kick model", "The prim model kick (a mesh of 77 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DuelParams, model_data.kick), fxp::Model, 0, 0x7FFFFFFF },
+			{ "punch", "model_data.wave", "Wave model", "The prim model wave (a mesh of 208 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DuelParams, model_data.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "punch", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(DuelParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "punch", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(DuelParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag274_duel()
 	{
+		fxp::register_params({ 274, "Duel", &duel274::live, &duel274::GAME, sizeof(duel274::DuelParams),
+		                       duel274::table::PARTS, (int)(sizeof(duel274::table::PARTS) / sizeof(duel274::table::PARTS[0])),
+		                       duel274::table::FIELDS, (int)(sizeof(duel274::table::FIELDS) / sizeof(duel274::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(duel274::ORIG_FileLoader, (void *)duel274::FileLoader);
+		own::note(duel274::ORIG_Setup, (void *)duel274::Setup);
+		own::note(duel274::ORIG_RootTask, (void *)duel274::RootTask);
 		register_port(duel274::ORIG_RootTask, (void *)duel274::RootTask, "274 RootTask", 274);
+		own::note(duel274::ORIG_MoveTask, (void *)duel274::MoveTask);
 		register_port(duel274::ORIG_MoveTask, (void *)duel274::MoveTask, "274 MoveTask", 274);
+		own::note(duel274::ORIG_SparkTask, (void *)duel274::SparkTask);
 		register_port(duel274::ORIG_SparkTask, (void *)duel274::SparkTask, "274 SparkTask", 274);
+		own::note(duel274::ORIG_FlashTask, (void *)duel274::FlashTask);
 		register_port(duel274::ORIG_FlashTask, (void *)duel274::FlashTask, "274 FlashTask", 274);
+		own::note(duel274::ORIG_RockTask, (void *)duel274::RockTask);
 		register_port(duel274::ORIG_RockTask, (void *)duel274::RockTask, "274 RockTask", 274);
 		// 30 fps layer: see mag274_duel_held.inc
 		FX_HELD(register_mag274_held();)
 	}
+	FX_LAB_MODULE(register_mag274_duel);
 }
 
 #ifdef FF8_FX_HELD

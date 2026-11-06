@@ -46,7 +46,7 @@ namespace flare124
 	{
 		uint32_t kind;
 		prim::Layout *layout;     // play: the live layout (prim::play_held knows what it drew)
-		PrimArg arg;
+		AnchorArg arg;
 		uint8_t *entity;          // silhouette
 		int16_t pos[4];
 		int32_t radius, step;
@@ -89,7 +89,7 @@ namespace flare124
 		return &r;
 	}
 
-	static void held_note_play(const TargetNode *t, uint8_t *layout, const PrimArg *arg)
+	static void held_note_play(const TargetNode *t, uint8_t *layout, const AnchorArg *arg)
 	{
 		(void)t;
 		Rec *r = NewRec(REC_PLAY);
@@ -102,7 +102,7 @@ namespace flare124
 	{
 		Rec *r = NewRec(REC_SILHOUETTE);
 		if (!r) return;
-		if (!g_frame_packets) g_frame_packets = FrameCursor();
+		if (!g_frame_packets) g_frame_packets = ripple::FrameCursor();
 		r->entity = t->entity;
 		memcpy(r->pos, t->pos, sizeof(r->pos));
 		r->radius = t->radius;
@@ -138,20 +138,20 @@ namespace flare124
 		FrameScope()
 		{
 			camera = EffectCamera();
-			bones = BoneWorkspace();
-			cursor = FrameCursor();
+			bones = sway::BoneWorkspace();
+			cursor = ripple::FrameCursor();
 			if (g_frame_packets && cursor > g_frame_packets)
 			{
 				uint32_t used = cursor - g_frame_packets;
 				memcpy(g_held_frame, (const void *)g_frame_packets, used < sizeof(g_held_frame) ? used : sizeof(g_held_frame));
 			}
-			FrameCursor() = (uint32_t)g_held_frame;
-			BoneWorkspace() = (uint32_t)g_held_verts;
+			ripple::FrameCursor() = (uint32_t)g_held_frame;
+			sway::BoneWorkspace() = (uint32_t)g_held_verts;
 		}
 		~FrameScope()
 		{
-			BoneWorkspace() = bones;
-			FrameCursor() = cursor;
+			sway::BoneWorkspace() = bones;
+			ripple::FrameCursor() = cursor;
 			EffectCamera() = camera;
 		}
 	};
@@ -183,7 +183,7 @@ namespace flare124
 		const uint32_t now = colour;
 		colour = r.colour;
 		pose_midpoint(entity + 0x60, entity + 0x6C, num, den);
-		DrawSilhouette(entity, sxy[0], sxy[1], (int16_t)r.radius, (int32_t)step, amplitude, phase);
+		ripple::DrawSilhouette(entity, sxy[0], sxy[1], (int16_t)r.radius, (int32_t)step, amplitude, phase, RIPPLE);
 		colour = now;
 	}
 
@@ -192,17 +192,17 @@ namespace flare124
 		const ParticleNode &a = r.part;
 		// the next tick on a copy: its move, then its size / brightness steps
 		ParticleNode b = a;
-		ParticleMove(&b);
-		const int next = ParticlePrepare(&b);
+		CollapseSparkMove(&b.spark);
+		const int next = CollapseSparkPrepare(&b.spark, P().sparks.burst, P().sparks.fade);
 		ParticleNode m = a;
-		for (int k = 0; k < 3; k++) m.ang[k] = lerp16(a.ang[k], b.ang[k], num, den);
-		m.size = lerp16(a.size, b.size < 0 ? (int16_t)0 : b.size, num, den);
+		for (int k = 0; k < 3; k++) m.spark.ang[k] = lerp16(a.spark.ang[k], b.spark.ang[k], num, den);
+		m.spark.size = lerp16(a.spark.size, b.spark.size < 0 ? (int16_t)0 : b.spark.size, num, den);
 		if (r.mode == 4)
 		{
-			if (next == 4) m.alpha = lerp16(a.alpha, b.alpha, num, den);
-			else if (next == -2) m.alpha = lerp16(a.alpha, 0, num, den);
+			if (next == 4) m.spark.alpha = lerp16(a.spark.alpha, b.spark.alpha, num, den);
+			else if (next == -2) m.spark.alpha = lerp16(a.spark.alpha, 0, num, den);
 		}
-		ParticleDraw(&m, r.mode);
+		CollapseSparkDraw(&m.spark, r.mode, SEQ_Particle, PacketCursor());
 	}
 
 	static void HeldFrame(int num, int den)
@@ -218,10 +218,10 @@ namespace flare124
 			{
 			case REC_PLAY:
 			{
-				PrimArg arg = r.arg;
+				AnchorArg arg = r.arg;
 				memcpy(g_held_morph, (const void *)r.arg.morph, sizeof(g_held_morph));
 				arg.morph = (uint32_t)g_held_morph;
-				prim::play_held(r.layout, PrimPart, (int)&arg, num, den);
+				prim::play_held(r.layout, AnchorPrimCallback, (int)&arg, num, den);
 				break;
 			}
 			case REC_SILHOUETTE: SilhouetteHeld(r, num, den); break;

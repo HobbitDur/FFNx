@@ -78,6 +78,9 @@
 // 0x23CE580, packet cursor 0x23CE584).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -87,13 +90,14 @@ namespace rough163
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23CE274); }
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23CA1A0); }
-	inline CastContext *&Context() { return var<CastContext *>(0x23CE270); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23CE580); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23CE584); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x23CA1C8; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23CD348; }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x23CE274)); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x23CA1A0)); }
+	inline CastContext *&Context() { return var<CastContext *>(own::R(0x23CE270)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23CE580)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23CE584)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23CE278)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x23CA1C8); }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x23CD348); }
 	static const uint32_t POOL_A = 0x23CA1D8, POOL_A_END = 0x23CAB38;  // 100 x 0x18 sprites
 	static const uint32_t POOL_B = 0x23CAB38, POOL_B_END = 0x23CBDF8;  // 150 x 0x20 models
 	static const uint32_t POOL_C = 0x23CBDF8, POOL_C_END = 0x23CD0B8;  // 150 x 0x20 models
@@ -116,6 +120,23 @@ namespace rough163
 
 	// data (FF8_EN.exe)
 	static const void *const SOUND = (const void *)0xDA00A8;
+	static const uint32_t ORIG_FileLoader = 0x5F5B60, ORIG_Setup = 0x5F5B80;
+	static const uint32_t TEXTURE_NAME = 0xDA00F0, CAMERA = 0xD9AC04;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct RoughDivideParams
+	{
+		uint32_t sound;                      // at the director's tick 1
+		struct { int16_t damage; } director; // the action result at this tick
+		struct { uint32_t spark, pillar; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t glow, shard, chip, pillar, blade, flash, ring, shock, flare, wave; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const RoughDivideParams GAME = { 0xDA00A8, { 0x41 }, { 0xD9B458, 0xD9B2AC }, { 0xD9E2D4, 0xD9D314, 0xD9E1DC, 0xD9CE04, 0xD9FE54, 0xD9EC8C, 0xD9B5D0, 0xD9D594, 0xD9DD34, 0xD9CB38 }, { TEXTURE_NAME, CAMERA, 0xD99DC8 } };
+	static RoughDivideParams live = GAME;
+	static const RoughDivideParams &P() { return live; }
 	static const uint32_t ANIM_DATA = 0xD99DC8;
 	static const uint32_t SEQ_SPARK = 0xD9B458, SEQ_PILLAR = 0xD9B2AC;
 	static const uint32_t MODEL_GLOW = 0xD9E2D4, MODEL_SHARD = 0xD9D314, MODEL_CHIP = 0xD9E1DC, MODEL_FLASH = 0xD9EC8C,
@@ -269,7 +290,7 @@ namespace rough163
 	static_assert(sizeof(ModelWork) == 0x68 && sizeof(PillarWork) == 0x68 && sizeof(StreakWork) == 0x90, "Rough Divide blocks");
 
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline StreakRec *Rec(int32_t i) { return (StreakRec *)(STREAK_REC + 0x38 * i); }
+	inline StreakRec *Rec(int32_t i) { return (StreakRec *)(own::R(STREAK_REC) + 0x38 * i); }
 
 	// ------------------------------------------------------------------
 	// Weapon bone (0x5F6500 / 0x5F6480: Renzokuken's 0x5FFF60 / 0x5FFEE0)
@@ -329,7 +350,7 @@ namespace rough163
 	// ------------------------------------------------------------------
 	// Spawners (called by the director)
 	// ------------------------------------------------------------------
-	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
+	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), own::Fn(fn)); }   // (a copy: the port's thunk)
 
 	// 0x5F5F90: a task with counter / word +0xE cleared
 	static void AddCleared(uint32_t fn)
@@ -343,7 +364,7 @@ namespace rough163
 	static void AddTrail()
 	{
 		AddMain(ORIG_Trail)->c = 0;
-		for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
+		for (uint32_t a = own::R(RING); a < own::R(RING_END); a += 0x14) var<int32_t>(a) = 0;
 	}
 
 	// 0x5F6580: the blade glow at the caster's effect bone 0xF1
@@ -395,20 +416,20 @@ namespace rough163
 		Node24 *t = AddMain(ORIG_Pillar);
 		t->c = 0;
 		t->w12 = 0;
-		t->w14 = var<int16_t>(HIT_POS + 4);
+		t->w14 = var<int16_t>(own::R(HIT_POS) + 4);
 		t->e = 1;
 		t->w10 = *(const int16_t *)(Entity(TargetSlot()) + 0x1C);
-		var<uint32_t>(PILLAR_POS) = *(const uint32_t *)&t->w10;
-		var<uint32_t>(PILLAR_POS + 4) = *(const uint32_t *)&t->w14;
+		var<uint32_t>(own::R(PILLAR_POS)) = *(const uint32_t *)&t->w10;
+		var<uint32_t>(own::R(PILLAR_POS) + 4) = *(const uint32_t *)&t->w14;
 	}
 
 	// 0x5F84A0: the impact ring
 	static void AddRing()
 	{
 		Node24 *t = AddMain(ORIG_Ring);
-		*(uint32_t *)&t->w10 = var<uint32_t>(PILLAR_POS);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(PILLAR_POS));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(PILLAR_POS + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(PILLAR_POS) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		t->w1C = (int16_t)(CrtRand() % 0x200 + 0xE00);
 		const int16_t s = (int16_t)((CrtRand() % 0x400 + 0x1400) / 3);
@@ -426,9 +447,9 @@ namespace rough163
 			Node24 *t = AddMain(ORIG_Shock);
 			t->c = 0;
 			t->e = (int16_t)i;
-			t->w10 = var<int16_t>(PILLAR_POS);
+			t->w10 = var<int16_t>(own::R(PILLAR_POS));
 			const int32_t r = CrtRand() % 0x190;
-			t->w14 = var<int16_t>(PILLAR_POS + 4);
+			t->w14 = var<int16_t>(own::R(PILLAR_POS) + 4);
 			t->w12 = (int16_t)(-1000 * i - r + 0xC8);
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			t->w1A = (int16_t)(CrtRand() % 0x64 + 0x1E);
@@ -446,9 +467,9 @@ namespace rough163
 	static void AddFlare()
 	{
 		Node24 *t = AddMain(ORIG_Flare);
-		*(uint32_t *)&t->w10 = var<uint32_t>(PILLAR_POS);
+		*(uint32_t *)&t->w10 = var<uint32_t>(own::R(PILLAR_POS));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(PILLAR_POS + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(own::R(PILLAR_POS) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		const int16_t s = (int16_t)((CrtRand() % 0x300 + 0x1400) / 3);
 		t->w1E = s;
@@ -463,8 +484,8 @@ namespace rough163
 			Node24 *t = AddMain(ORIG_Wave);
 			t->c = 0;
 			t->e = (int16_t)(CrtRand() % 4 + i);
-			*(uint32_t *)&t->w10 = var<uint32_t>(PILLAR_POS);
-			*(uint32_t *)&t->w14 = var<uint32_t>(PILLAR_POS + 4);
+			*(uint32_t *)&t->w10 = var<uint32_t>(own::R(PILLAR_POS));
+			*(uint32_t *)&t->w14 = var<uint32_t>(own::R(PILLAR_POS) + 4);
 			t->w10 = (int16_t)(t->w10 + (int16_t)(CrtRand() % 0xFA0 - 0x7D0));
 			t->w14 = (int16_t)(t->w14 + (int16_t)(CrtRand() % 0xFA0 - 0x7D0));
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
@@ -477,19 +498,47 @@ namespace rough163
 	// ------------------------------------------------------------------
 	// Director (0x5F5C80)
 	// ------------------------------------------------------------------
+	// File loader (0x5F5B60) and setup (0x5F5B80, not a task): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer, the cast, its first target and its caster, the master and the director, the
+	// three particle pools freed, the camera, the TIM, a copy of the caster's matrix
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Context() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x23CA1A8), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Master)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(0x23CD358), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x20) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		memcpy((void *)own::R(CASTER_MAT), Caster() + 0x40, 0x20);
+		return QMaster();
+	}
+
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)CASTER_MAT, (Mat4x3 *)CAM_CASTER);
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)own::R(CASTER_MAT), (Mat4x3 *)own::R(CAM_CASTER));
 		if (DrawOnly()) return 0;
 		Node24 *n = (Node24 *)tn;
-		if (n->c == 0) BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+		if (n->c == 0) BindEntityModelFromComData(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 		int32_t c = n->c;
 		if (c < 7)
 		{
 			if (c == 0) QueueChainTransformation(Caster(), 1);
 			else if (c == 1)
 			{
-				BdPlaySE(SOUND, 0, 0x80);
+				BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 				AddTrail();
 				AddCleared(ORIG_Sparkle);
 			}
@@ -560,7 +609,7 @@ namespace rough163
 			}
 			*(int16_t *)(Caster() + 0x20) = (int16_t)(n->w14 - (int16_t)(c * 1000 / 6) + 0x3E8);
 		}
-		if (n->c == 0x41) ApplyActionResultToTarget(Context()->actions->targets);
+		if (n->c == P().director.damage) ApplyActionResultToTarget(Context()->actions->targets);
 		if (n->c >= 0x4D) SetScreenFlash((uint32_t)shl32(0x55 - n->c, 8), 0);
 		n->c++;
 		if (n->c <= 0x55) return 0;
@@ -616,19 +665,19 @@ namespace rough163
 	// first point and the unit direction from it to the hit point
 	static void TrailHitPoint(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(HIT_POS) = *(const uint32_t *)sb;
-		var<uint32_t>(HIT_POS + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)HIT_DIR;
+		var<uint32_t>(own::R(HIT_POS)) = *(const uint32_t *)sb;
+		var<uint32_t>(own::R(HIT_POS) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)own::R(HIT_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE_POS) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE_POS + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BASE_DIR;
-		b[0] = (int32_t)var<int16_t>(HIT_POS) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(HIT_POS + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(HIT_POS + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(own::R(BASE_POS)) = *(const uint32_t *)sa;
+		var<uint32_t>(own::R(BASE_POS) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)own::R(BASE_DIR);
+		b[0] = (int32_t)var<int16_t>(own::R(HIT_POS)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(own::R(HIT_POS) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(own::R(HIT_POS) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -686,21 +735,21 @@ namespace rough163
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(own::R(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c >= TRAIL_LENGTH - 7 ? TRAIL_LENGTH - c : 7;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)own::R(RING), idx, want, (uint8_t *)own::R(PTS_A), (uint8_t *)own::R(PTS_B));
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_A, (const uint8_t *)SPL_B);
+			TrailSplines(cnt, (const uint8_t *)own::R(PTS_A), (const uint8_t *)own::R(PTS_B), (uint8_t *)own::R(SPL_A), (uint8_t *)own::R(SPL_B));
+			TrailHitPoint((const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B));
 			// 30 fps layer: see mag163_rough_divide_held.inc
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
+			TrailDraw((const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -734,7 +783,7 @@ namespace rough163
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_GLOW;
+		*(uint32_t *)h = fxp::model(P().models.glow, MODEL_GLOW);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 7)
@@ -786,11 +835,11 @@ namespace rough163
 		uint8_t *h = AllocHeader(0xB4);
 		w->cam = Camera();
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_SPARK);
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
 		int32_t count = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0x18)
 		{
 			SpriteP *p = (SpriteP *)a;
 			if (!(p->flags & type)) continue;
@@ -834,9 +883,9 @@ namespace rough163
 			{
 				GetEffectSpawnPosition(Caster(), j != 0 ? 0x13 : 0x14, 0x1000, w->spawn);
 				if (w->spawn[1] <= -0x28) continue;
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x18, 0x64);
 				if (i < 0) break;
-				SpriteP *p = (SpriteP *)(POOL_A + 0x18 * i);
+				SpriteP *p = (SpriteP *)(own::R(POOL_A) + 0x18 * i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x500);
@@ -856,16 +905,16 @@ namespace rough163
 		SpriteWork *w = (SpriteWork *)FieldAlloc(0x48);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			memcpy(w->spawn, (const void *)HIT_POS, 8);
+			memcpy(w->spawn, (const void *)own::R(HIT_POS), 8);
 			for (int32_t j = 0; j < 2; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x18, 0x64);
 				if (i < 0) break;
-				SpriteP *p = (SpriteP *)(POOL_A + 0x18 * i);
+				SpriteP *p = (SpriteP *)(own::R(POOL_A) + 0x18 * i);
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				memcpy(p->pos, (const void *)own::R(HIT_POS), 8);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x50 - 0x28));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x50 - 0x28));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x50 - 0x28));
@@ -885,9 +934,9 @@ namespace rough163
 			memcpy(w->spawn, &n->w10, 8);
 			for (int32_t j = 0; j < 8; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0x18, 0x64);
 				if (i < 0) break;
-				SpriteP *p = (SpriteP *)(POOL_A + 0x18 * i);
+				SpriteP *p = (SpriteP *)(own::R(POOL_A) + 0x18 * i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x580 + 0x580);
@@ -949,12 +998,12 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			memcpy(w->ang, (const void *)HIT_POS, 8);
+			memcpy(w->ang, (const void *)own::R(HIT_POS), 8);
 			for (int32_t j = 0; j < 4; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(own::R(POOL_B) + 0x20 * i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x280 + 0x280);
@@ -983,8 +1032,8 @@ namespace rough163
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_SHARD;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		*(uint32_t *)h = fxp::model(P().models.shard, MODEL_SHARD);
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 1)) continue;
@@ -1038,12 +1087,12 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			memcpy(w->ang, (const void *)HIT_POS, 8);
+			memcpy(w->ang, (const void *)own::R(HIT_POS), 8);
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(own::R(POOL_B) + 0x20 * i);
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x200);
@@ -1070,12 +1119,12 @@ namespace rough163
 		FX_HELD(held_note_pool(ORIG_Chip, (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_CHIP;
+		*(uint32_t *)h = fxp::model(P().models.chip, MODEL_CHIP);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t count = 0;
 		w->ang[1] = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 2)) continue;
@@ -1111,12 +1160,12 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 5)
 		{
-			memcpy(w->ang, (const void *)PILLAR_POS, 8);
+			memcpy(w->ang, (const void *)own::R(PILLAR_POS), 8);
 			for (int32_t j = 0; j < 6; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(own::R(POOL_C), own::R(POOL_C_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_C + 0x20 * i);
+				ModelP *p = (ModelP *)(own::R(POOL_C) + 0x20 * i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xA00 + 0x100);
@@ -1141,9 +1190,9 @@ namespace rough163
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_CHIP;
+		*(uint32_t *)h = fxp::model(P().models.chip, MODEL_CHIP);
 		w->ang[1] = 0;
-		for (uint32_t a = POOL_C; a < POOL_C_END; a += 0x20)
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 4)) continue;
@@ -1211,9 +1260,9 @@ namespace rough163
 			const int32_t amp = (mul32(ComputeSin((int32_t)shl32(n->c, 11) / 10), 1500) >> 12) + 100;
 			for (int32_t j = 0; j < 2; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(own::R(POOL_B) + 0x20 * i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xA00 + 0x500);
@@ -1230,7 +1279,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_pool(ORIG_Pillar, n);)
 		uint8_t *hs = AllocHeader(0xB4);
-		*(uint32_t *)hs = SEQ_PILLAR;
+		*(uint32_t *)hs = fxp::sequence(P().seqs.pillar, SEQ_PILLAR);
 		*(int16_t *)(hs + 0x24) = 8;
 		int32_t count = 0;
 		uint8_t *hm = (uint8_t *)FieldAlloc(0x58);
@@ -1238,12 +1287,12 @@ namespace rough163
 		FX_HELD(held_note_header2(hm, 0x58);)
 		*(uint32_t *)(hm + 8) = 0;
 		w->cam = Camera();
-		*(uint32_t *)hm = MODEL_PILLAR;
+		*(uint32_t *)hm = fxp::model(P().models.pillar, MODEL_PILLAR);
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
 		w->ang[0] = 0x200;
 		w->ang[1] = (int16_t)0xFE00;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 4)) continue;
@@ -1292,10 +1341,10 @@ namespace rough163
 		const int32_t c = ((Node24 *)tn)->c;
 		if (!DrawOnly() && c < 0xA)
 		{
-			const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+			const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_END), 0x20, 0x96);
 			if (i >= 0)
 			{
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(own::R(POOL_B) + 0x20 * i);
 				const StreakRec *r = Rec(c);
 				p->flags = 8;
 				p->life = 0;
@@ -1316,12 +1365,12 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_pool(ORIG_Blade, (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_BLADE;
+		*(uint32_t *)h = fxp::model(P().models.blade, MODEL_BLADE);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->v[2] = 0;
 		w->cam = Camera();
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 8)) continue;
@@ -1463,16 +1512,16 @@ namespace rough163
 		else
 		{
 			StreakRec *r = Rec(n->c);
-			memcpy(r->pos, (const void *)HIT_POS, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			memcpy(r->pos, (const void *)own::R(HIT_POS), 8);
+			memcpy(r->dir, (const void *)own::R(HIT_DIR), 16);
 			count = n->c + 1;
 		}
 		if (count >= 2)
 		{
 			// 30 fps layer: see mag163_rough_divide_held.inc
 			FX_HELD(held_note_streak(n, w);)
-			StreakBuild(w, count, n->w1C, (uint8_t *)STREAK_VTX);
-			StreakDraw(w, count, n->c, shl32(n->c - 0x20, 9), (const uint8_t *)STREAK_VTX);
+			StreakBuild(w, count, n->w1C, (uint8_t *)own::R(STREAK_VTX));
+			StreakDraw(w, count, n->c, shl32(n->c - 0x20, 9), (const uint8_t *)own::R(STREAK_VTX));
 		}
 		FieldFree(0x90);
 		if (DrawOnly()) return 0;
@@ -1528,7 +1577,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Flash, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_FLASH, n->c, 1, mul32(n->c - 1, 682));
+		ModelRender(fxp::model(P().models.flash, MODEL_FLASH), n->c, 1, mul32(n->c - 1, 682));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w22;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1544,7 +1593,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Ring, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_RING, n->c, 0xC, shl32(n->c - 0xC, 9));
+		ModelRender(fxp::model(P().models.ring, MODEL_RING), n->c, 0xC, shl32(n->c - 0xC, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w22;
 		n->w20 = (int16_t)(n->w20 + rate);
@@ -1565,7 +1614,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Shock, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_SHOCK, n->c, 8, shl32(n->c - 8, 9));
+		ModelRender(fxp::model(P().models.shock, MODEL_SHOCK), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1581,7 +1630,7 @@ namespace rough163
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(held_note_node(ORIG_Flare, n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w1C);
-		ModelRender(MODEL_FLARE, n->c, 8, shl32(n->c - 8, 9));
+		ModelRender(fxp::model(P().models.flare, MODEL_FLARE), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
 		n->w1C = (int16_t)(n->w1C + rate);
@@ -1596,7 +1645,7 @@ namespace rough163
 	{
 		uint8_t *h = AllocHeader(0x7C);
 		*(int32_t *)(h + 0x10) = scroll;
-		*(uint32_t *)h = MODEL_WAVE;
+		*(uint32_t *)h = fxp::model(P().models.wave, MODEL_WAVE);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x18) = 0;
@@ -1649,7 +1698,7 @@ namespace rough163
 		const int alive = ExecuteTaskQueue(QMain());
 		if (!alive)
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QMaster(), ORIG_Restore);
+			RootNode *t = (RootNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Restore));
 			t->counter = 0;
 			t->done = 0;
 		}
@@ -1664,32 +1713,84 @@ namespace rough163
 		r->counter++;
 		return r->done != 0 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Squall's Rough Divide: his animation set and sequence (his position moved), the gunblade's trail, the glow, sparkles and hit sparks, the burst, shards, chips and debris, the pillar, the blade, the streaks, the flash, ring, shock, flare and wave, the screen flash, the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(RoughDivideParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The action result at this tick of the director", (uint32_t)offsetof(RoughDivideParams, director.damage), fxp::I16, 0, 85 },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(RoughDivideParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.pillar", "Pillar", "The sprite sequence pillar (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RoughDivideParams, seqs.pillar), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.glow", "Glow model", "The prim model glow (a mesh of 99 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shard", "Shard model", "The prim model shard (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.shard), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.chip", "Chip model", "The prim model chip (a mesh of 6 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.chip), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 37 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.blade", "Blade model", "The prim model blade (a mesh of 20 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.blade), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flash", "Flash model", "The prim model flash (a mesh of 186 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 176 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shock", "Shock model", "The prim model shock (a mesh of 65 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.shock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.flare", "Flare model", "The prim model flare (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.flare), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.wave", "Wave model", "The prim model wave (a mesh of 32 vertices, 15 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RoughDivideParams, models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RoughDivideParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RoughDivideParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(RoughDivideParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag163_rough_divide()
 	{
+		fxp::register_params({ 163, "Rough Divide", &rough163::live, &rough163::GAME, sizeof(rough163::RoughDivideParams),
+		                       rough163::table::PARTS, (int)(sizeof(rough163::table::PARTS) / sizeof(rough163::table::PARTS[0])),
+		                       rough163::table::FIELDS, (int)(sizeof(rough163::table::FIELDS) / sizeof(rough163::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(rough163::ORIG_FileLoader, (void *)rough163::FileLoader);
+		own::note(rough163::ORIG_Setup, (void *)rough163::Setup);
+		own::note(rough163::ORIG_Master, (void *)rough163::MasterTask);
 		register_port(rough163::ORIG_Master, (void *)rough163::MasterTask, "163 Master", 163);
+		own::note(rough163::ORIG_Restore, (void *)rough163::RestoreTask);
 		register_port(rough163::ORIG_Restore, (void *)rough163::RestoreTask, "163 Restore", 163);
+		own::note(rough163::ORIG_Director, (void *)rough163::DirectorTask);
 		register_port(rough163::ORIG_Director, (void *)rough163::DirectorTask, "163 Director", 163);
+		own::note(rough163::ORIG_Trail, (void *)rough163::TrailTask);
 		register_port(rough163::ORIG_Trail, (void *)rough163::TrailTask, "163 Trail", 163);
+		own::note(rough163::ORIG_Glow, (void *)rough163::GlowTask);
 		register_port(rough163::ORIG_Glow, (void *)rough163::GlowTask, "163 Glow", 163);
+		own::note(rough163::ORIG_Sparkle, (void *)rough163::SparkleTask);
 		register_port(rough163::ORIG_Sparkle, (void *)rough163::SparkleTask, "163 Sparkle", 163);
+		own::note(rough163::ORIG_HitSpark, (void *)rough163::HitSparkTask);
 		register_port(rough163::ORIG_HitSpark, (void *)rough163::HitSparkTask, "163 HitSpark", 163);
+		own::note(rough163::ORIG_Shard, (void *)rough163::ShardTask);
 		register_port(rough163::ORIG_Shard, (void *)rough163::ShardTask, "163 Shard", 163);
+		own::note(rough163::ORIG_Chip, (void *)rough163::ChipTask);
 		register_port(rough163::ORIG_Chip, (void *)rough163::ChipTask, "163 Chip", 163);
+		own::note(rough163::ORIG_Streak, (void *)rough163::StreakTask);
 		register_port(rough163::ORIG_Streak, (void *)rough163::StreakTask, "163 Streak", 163);
+		own::note(rough163::ORIG_Flash, (void *)rough163::FlashTask);
 		register_port(rough163::ORIG_Flash, (void *)rough163::FlashTask, "163 Flash", 163);
+		own::note(rough163::ORIG_Burst, (void *)rough163::BurstTask);
 		register_port(rough163::ORIG_Burst, (void *)rough163::BurstTask, "163 Burst", 163);
+		own::note(rough163::ORIG_Pillar, (void *)rough163::PillarTask);
 		register_port(rough163::ORIG_Pillar, (void *)rough163::PillarTask, "163 Pillar", 163);
+		own::note(rough163::ORIG_Blade, (void *)rough163::BladeTask);
 		register_port(rough163::ORIG_Blade, (void *)rough163::BladeTask, "163 Blade", 163);
+		own::note(rough163::ORIG_Ring, (void *)rough163::RingTask);
 		register_port(rough163::ORIG_Ring, (void *)rough163::RingTask, "163 Ring", 163);
+		own::note(rough163::ORIG_Shock, (void *)rough163::ShockTask);
 		register_port(rough163::ORIG_Shock, (void *)rough163::ShockTask, "163 Shock", 163);
+		own::note(rough163::ORIG_Flare, (void *)rough163::FlareTask);
 		register_port(rough163::ORIG_Flare, (void *)rough163::FlareTask, "163 Flare", 163);
+		own::note(rough163::ORIG_Wave, (void *)rough163::WaveTask);
 		register_port(rough163::ORIG_Wave, (void *)rough163::WaveTask, "163 Wave", 163);
+		own::note(rough163::ORIG_Debris, (void *)rough163::DebrisTask);
 		register_port(rough163::ORIG_Debris, (void *)rough163::DebrisTask, "163 Debris", 163);
 		// 30 fps layer: see mag163_rough_divide_held.inc
 		FX_HELD(register_mag163_held();)
 	}
+	FX_LAB_MODULE(register_mag163_rough_divide);
 }
 
 #ifdef FF8_FX_HELD

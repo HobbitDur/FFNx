@@ -66,8 +66,14 @@
 // functions.json); the others are ported below (rj_XXXXXX), the library ones the text of the
 // matching Heartbreak / Psycho Blast / Raldo Throw / Doom / Wind Blast / Aqua Breath / Curse port with this
 // module's addresses.
+// Fujin's described Raijin's strike (effect_060.json) runs this code as its pieces (Doom's kind): its module
+// memory through R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the
+// program's or thunks of their ports (Spawn); its parameters (RaijinParams: the director's sound and damage cue,
+// the actor systems, the strike, the debris, the stage darkening) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -82,6 +88,22 @@ namespace raijin
 	// --- module globals ---
 	static const uint32_t PACKET_CURSOR = 0x260407C;   // module packet cursor (tick parity: file + 0x8000 / + 0x10000)
 	static const uint32_t DIR_PTR = 0x1597358;         // director block pointer (0x54 bytes)
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct RaijinParams
+	{
+		struct { uint32_t sound; int16_t damage; } director;               // its sound (once cue 1 runs); the damage cue at this phase tick
+		struct { int16_t first, second, length, mode; } actors;            // the two actor systems' starts, their ticks, mode
+		struct { int16_t push, push_by, hit; } strike;                     // the target pushed back at this tick by this much; the strike at the hit tick
+		struct { int16_t start, level, step, hold; } darken;               // the stage darkening: from its tick up a step to its level, held until its tick
+		struct { int16_t from, until; } debris;                            // debris thrown off the target from / until these ticks
+		struct { uint32_t at_1597360; } seqs; // the sprite sequences drawn (flipbooks)
+	};
+	static const RaijinParams GAME = { { 0x159735C, 0x24 }, { 6, 0x24, 0x28, 4 }, { 6, 0x200, 0x24 }, { 5, 0x600, 0x100, 0x36 }, { 0x24, 0x2C }, { 0x1597360 } };
+	static RaijinParams live = GAME;
+	static const RaijinParams &PJ() { return live; }
 	static const uint32_t SCRATCH_SP = 0x2607048;      // module scratch stack pointer
 	static const uint32_t ACTOR_STATE = 0x2607058;     // current actor system state block
 	static const uint32_t BLEND_BUF = 0x2606C78;       // vertex blend buffer of the prim callback
@@ -439,7 +461,7 @@ namespace raijin
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -529,8 +551,8 @@ namespace raijin
 	// (director block +0x48 = 1, read by the emitter's 0x7F2720), next state
 	uint32_t __cdecl rj_7EB710(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		if (S16(d, 0x46) < 0x24)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) < PJ().director.damage)
 			return d;
 		U16(d, 0x48) = 1;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -543,22 +565,22 @@ namespace raijin
 	// the debris spawner 0x7F1C70 and the stage darkening 0x7F1B20 (0x8C bytes, task queue)
 	uint32_t __cdecl rj_7EB790(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(DIR_PTR), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x40) - 1;
 		if (ph != 0)
 			return (uint32_t)ph;
 		const uint32_t node = a1;
-		a_73C100(node, ORIG_ActorsA, 0x1797CC0, 6, 0x28, 4);
-		a_73C100(node, ORIG_ActorsB, 0x179C998, 0x24, 0x28, 4);
+		a_73C100(node, ORIG_ActorsA, 0x1797CC0, (uint16_t)PJ().actors.first, (uint16_t)PJ().actors.length, (uint16_t)PJ().actors.mode);
+		a_73C100(node, ORIG_ActorsB, 0x179C998, (uint16_t)PJ().actors.second, (uint16_t)PJ().actors.length, (uint16_t)PJ().actors.mode);
 		rj_7EB870(node, ORIG_Strike, 0x17A0D04, 0xE4, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_DebrisSpawner, 0x8C, node);
-		return x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Darken, 0x8C, node);
+		Spawn(R(Q_TASKS), ORIG_DebrisSpawner, 0x8C, node);
+		return Spawn(R(Q_TASKS), ORIG_Darken, 0x8C, node);
 	}
 
 	// 0x7EB870 (sub_7EB870): spawns model task a2 (0x18C bytes, model queue) as a child of a1 with
 	// +0x74 = prim layout a3, +0x78 = (s16) a4, +0x80 = a5, +0x82 = a6 (words); returns the node
 	uint32_t __cdecl rj_7EB870(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_MODELS, a2, 0x18C, a1);
+		const uint32_t t = Spawn(R(Q_MODELS), a2, 0x18C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -573,7 +595,7 @@ namespace raijin
 	uint32_t __cdecl rj_7EB920(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 6)
+		if (S16(node, 0x24) < PJ().strike.push)
 			return 0; // void
 		// stack: +0 SVECTOR (+6 pad never written; matrixMultiplyVector reads and writes 3 words),
 		// +8 the 0x20-byte matrix
@@ -581,9 +603,9 @@ namespace raijin
 		const uint32_t L = P(fr);
 		const uint32_t M = L + 8;
 		const uint32_t ent = ENT(U8(node, 0x2D));
-		MEM<uint32_t>(TGT_WORD10) = U32(ent, 0x10);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		MEM<uint32_t>(TGT_WORD0C) = U32(ent, 0xC);
+		MEM<uint32_t>(R(TGT_WORD10)) = U32(ent, 0x10);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		MEM<uint32_t>(R(TGT_WORD0C)) = U32(ent, 0xC);
 		U32(node, 0x180) = U32(ent, 0x1C);
 		U32(node, 0x184) = U32(ent, 0x20);
 		U16(ent, 0xE) = (uint16_t)((U16(d, 0x4A) - 0x800) & 0xFFF);
@@ -591,7 +613,7 @@ namespace raijin
 		x::MAG_022_sub_8DD8A0(M, (uint32_t)(int32_t)S16(ent, 0xE));
 		U16(L, 0) = 0;
 		U16(L, 2) = 0;
-		U16(L, 4) = 0xFE00;
+		U16(L, 4) = (uint16_t)-PJ().strike.push_by;
 		x::matrixMultiplyVector(M, L, L);
 		U16(ent, 0x1C) = (uint16_t)(U16(ent, 0x1C) + U16(L, 0));
 		U16(ent, 0x1E) = (uint16_t)(U16(ent, 0x1E) + U16(L, 2));
@@ -609,7 +631,7 @@ namespace raijin
 	uint32_t __cdecl rj_7EBA10(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x24)
+		if (S16(node, 0x24) < PJ().strike.hit)
 			return 0; // void
 		const uint32_t ent = ENT(U8(node, 0x2C));
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
@@ -684,8 +706,8 @@ namespace raijin
 		if (rj_7EBAC0(node) == 0)
 		{
 			U8(node, 0x26) |= 1;
-			U32(ent, 0xC) = MEM<uint32_t>(TGT_WORD0C);
-			U32(ent, 0x10) = MEM<uint32_t>(TGT_WORD10);
+			U32(ent, 0xC) = MEM<uint32_t>(R(TGT_WORD0C));
+			U32(ent, 0x10) = MEM<uint32_t>(R(TGT_WORD10));
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		return 0; // void
@@ -724,7 +746,7 @@ namespace raijin
 	uint32_t __cdecl rj_7F1B90(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 5)
+		if (S16(node, 0x24) < PJ().darken.start)
 			return 0; // void
 		U16(node, 0x1C) = 0;
 		uint32_t p = STAGE_LIGHT + 0x28;
@@ -745,10 +767,10 @@ namespace raijin
 	uint32_t __cdecl rj_7F1BD0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) + 0x100);
-		if (S16(node, 0x1C) >= 0x600)
+		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) + PJ().darken.step);
+		if (S16(node, 0x1C) >= PJ().darken.level)
 		{
-			U16(node, 0x1C) = 0x600;
+			U16(node, 0x1C) = (uint16_t)PJ().darken.level;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		const uint16_t v = U16(node, 0x1C);
@@ -761,7 +783,7 @@ namespace raijin
 	// 0x8CC350: level -= 0x100 down to 0, finished)
 	uint32_t __cdecl rj_7F1C10(uint32_t a1)
 	{
-		if (S16(a1, 0x24) >= 0x36)
+		if (S16(a1, 0x24) >= PJ().darken.hold)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -774,7 +796,7 @@ namespace raijin
 	{
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2D));
-		if (S16(node, 0x24) < 0x24)
+		if (S16(node, 0x24) < PJ().debris.from)
 			return 0; // void
 		x::MAG_022_sub_8DD770(node + 0x58);
 		x::MAG_022_sub_8DD8A0(node + 0x58, (uint32_t)(int32_t)S16(ent, 0xE));
@@ -802,7 +824,7 @@ namespace raijin
 		int32_t n = 2;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Debris, 0x8C, node);
+			const uint32_t t = Spawn(R(Q_TASKS), ORIG_Debris, 0x8C, node);
 			U32(t, 0x1C) = U32(node, 0x1C);
 			U32(t, 0x20) = U32(node, 0x20);
 			const uint32_t r0 = x::CrtRand();
@@ -824,7 +846,7 @@ namespace raijin
 			x::matrixMultiplyVector(M, t + 0x78, t + 0x78);
 			n--;
 		} while (n != 0);
-		if (S16(node, 0x24) >= 0x2C)
+		if (S16(node, 0x24) >= PJ().debris.until)
 		{
 			U8(node, 0x26) |= 1;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -969,7 +991,7 @@ namespace raijin
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);   // colour
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
@@ -982,7 +1004,7 @@ namespace raijin
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = rj_7EBDF0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = rj_7EBDF0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -1002,14 +1024,15 @@ namespace raijin
 	uint32_t __cdecl rj_7EB200(uint32_t a1)
 	{
 		g_mod = &MOD_060;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag060_raijin_attack_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x2604188) = 0x2793E58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = 0x2793E58;
+		MEM<uint32_t>(R(0x2604188)) = 0x2793E58;
 		states[0] = 0x7EB370;
 		states[1] = 0x7EB380;
 		const uint8_t parity = U8(node, 0x5C);
@@ -1024,29 +1047,29 @@ namespace raijin
 		states[10] = 0x7F27E0; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2606BF4);
-			const uint32_t v2 = MEM<uint32_t>(0x2606294);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2604184) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2606BF4));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2606294));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2604184)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2606BF0);
-			const uint32_t v2 = MEM<uint32_t>(0x2606290);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2604184) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2606BF0));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2606290));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2604184)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x2607040) = 0;
-		MEM<uint16_t>(0x2606C60) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TASKS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_MODELS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(R(0x2607040)) = 0;
+		MEM<uint16_t>(R(0x2606C60)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_TASKS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_MODELS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1059,12 +1082,12 @@ namespace raijin
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x2607054);
-		MEM<uint32_t>(0x2606C64) = p;
+		uint32_t p = MEM<uint32_t>(R(0x2607054));
+		MEM<uint32_t>(R(0x2606C64)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x260704C) = p;
+		MEM<uint32_t>(R(0x260704C)) = p;
 		p += 0xD200;
-		MEM<uint32_t>(0x2607054) = p;
+		MEM<uint32_t>(R(0x2607054)) = p;
 		rj_7EB3D0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -1074,12 +1097,12 @@ namespace raijin
 	// at [0x27044CC]) and the pool cursors / counters
 	uint32_t __cdecl rj_7EB3D0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2606C64), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x260704C), 0xD200);
-		MEM<uint16_t>(0x2605DD0) = 0;
-		MEM<uint16_t>(0x2606C70) = 0;
-		MEM<uint16_t>(0x2606BF8) = 0;
-		MEM<uint16_t>(0x2604080) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2606C64)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x260704C)), 0xD200);
+		MEM<uint16_t>(R(0x2605DD0)) = 0;
+		MEM<uint16_t>(R(0x2606C70)) = 0;
+		MEM<uint16_t>(R(0x2606BF8)) = 0;
+		MEM<uint16_t>(R(0x2604080)) = 0;
 		return 0; // void
 	}
 
@@ -1088,7 +1111,7 @@ namespace raijin
 	uint32_t __cdecl rj_7EB4C0(uint32_t a1)
 	{
 		rj_7EB4F0(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2604160, 0x7EB580, 0x48, a1);
+		Spawn(R(0x2604160), 0x7EB580, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1099,8 +1122,8 @@ namespace raijin
 	// - 0x800, 12 bits) in +0x4A
 	uint32_t __cdecl rj_7EB4F0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -1110,7 +1133,7 @@ namespace raijin
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0; // void
 	}
 
@@ -1165,7 +1188,7 @@ namespace raijin
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x159735C, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PJ().director.sound, 0x159735C), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -1174,7 +1197,7 @@ namespace raijin
 	// (+0x46) reaches 4
 	uint32_t __cdecl rj_7EB6F0(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1597358, 0);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		if (S16(blk, 0x46) < 4) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -1215,7 +1238,7 @@ namespace raijin
 		U16(L, 0x4E) = U16(a1, 0x8E);
 		U16(L, 0x52) = U16(a1, 0x92);
 		U16(L, 0x50) = U16(a1, 0x90);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		U16(L, 0x56) = U16(a1, 0x80);
 		U16(L, 0x58) = U16(a1, 0x88);
 		// 30 fps layer: see mag060_raijin_attack_held.inc
@@ -1980,7 +2003,7 @@ namespace raijin
 	// the harness)
 	uint32_t __cdecl rj_7EE360(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2607058);
+		const uint32_t arena = MEM<uint32_t>(R(0x2607058));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -2000,7 +2023,7 @@ namespace raijin
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl rj_7EE5E0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2607058);
+		const uint32_t arena = MEM<uint32_t>(R(0x2607058));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -2030,7 +2053,7 @@ namespace raijin
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x2607058, 0) = sys;
+		U32(R(0x2607058), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2044,7 +2067,7 @@ namespace raijin
 			FX_HELD(held_note_system(sys);)
 			rj_7EEEE0();
 			rj_7EED20();
-			sys = U32(0x2607058, 0);
+			sys = U32(R(0x2607058), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2057,8 +2080,8 @@ namespace raijin
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x2607040, 0) = (uint16_t)(U16(0x2607040, 0) + c14);
-		U16(0x2606C60, 0) = (uint16_t)(U16(0x2606C60, 0) + c16);
+		U16(R(0x2607040), 0) = (uint16_t)(U16(R(0x2607040), 0) + c14);
+		U16(R(0x2606C60), 0) = (uint16_t)(U16(R(0x2606C60), 0) + c16);
 		return done;
 	}
 
@@ -2067,12 +2090,12 @@ namespace raijin
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl rj_7EED20(void)
 	{
-		uint32_t act = U32(U32(0x2607058, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2607058), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x2607058, 0);
+				uint32_t sys = U32(R(0x2607058), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -2089,10 +2112,10 @@ namespace raijin
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x8C5DD0 into the frame arena 0x1D8E054
 	uint32_t __cdecl rj_7EED80(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -2135,8 +2158,8 @@ namespace raijin
 				MEM<uint32_t>(0x1D8E054) = rj_7EBDF0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -2146,14 +2169,14 @@ namespace raijin
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl rj_7EEEE0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x2607058), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x2607058)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x2607058);
+				uint32_t st = MEM<uint32_t>(R(0x2607058));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -2190,20 +2213,20 @@ namespace raijin
 	uint32_t __cdecl rj_7EEFA0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -2211,7 +2234,7 @@ namespace raijin
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl rj_7EF020(void)
 	{
-		uint32_t act = U32(U32(0x2607058, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2607058), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2232,7 +2255,7 @@ namespace raijin
 	uint32_t __cdecl rj_7EF060(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x2607058);
+		uint32_t st = MEM<uint32_t>(R(0x2607058));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -2253,7 +2276,7 @@ namespace raijin
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x2607058);
+			st = MEM<uint32_t>(R(0x2607058));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2271,7 +2294,7 @@ namespace raijin
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2607058, 0);                  // actor state block
+		uint32_t st = U32(R(0x2607058), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -2368,8 +2391,8 @@ namespace raijin
 	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 10 records
 	uint32_t __cdecl rj_7F0250(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2606C64);
-		int32_t idx = MEM<int16_t>(0x2605DD0);
+		const uint32_t pool = MEM<uint32_t>(R(0x2606C64));
+		int32_t idx = MEM<int16_t>(R(0x2605DD0));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -2379,7 +2402,7 @@ namespace raijin
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -2394,9 +2417,9 @@ namespace raijin
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x2605DD0) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x2605DD0)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x2605DD0) = 0;
+			MEM<uint16_t>(R(0x2605DD0)) = 0;
 		return slot;
 	}
 
@@ -2426,7 +2449,7 @@ namespace raijin
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl rj_7F0370(uint32_t a1)
 	{
-		uint32_t sys = U32(0x2607058, 0);
+		uint32_t sys = U32(R(0x2607058), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2461,9 +2484,9 @@ namespace raijin
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x2607048, 0) - 0x50;
+		uint32_t sp = U32(R(0x2607048), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x2607048, 0) = sp;
+		U32(R(0x2607048), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = rj_7F0BD0(a1, (uint16_t)kind);
@@ -2475,7 +2498,7 @@ namespace raijin
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x2607058, 0);
+			uint32_t ctx = U32(R(0x2607058), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2654,7 +2677,7 @@ namespace raijin
 			}
 		}
 		rj_7F18E0(node, desc);
-		U32(0x2607048, 0) = U32(0x2607048, 0) + 0x50;
+		U32(R(0x2607048), 0) = U32(R(0x2607048), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -2664,8 +2687,8 @@ namespace raijin
 	// cursor wraps at 0x4F)
 	uint32_t __cdecl rj_7F0BD0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x260704C);
-		int32_t i = MEM<int16_t>(0x2606C70);
+		const uint32_t pool = MEM<uint32_t>(R(0x260704C));
+		int32_t i = MEM<int16_t>(R(0x2606C70));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2678,7 +2701,7 @@ namespace raijin
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2695,9 +2718,9 @@ namespace raijin
 		}
 		i++;
 		if (i >= 0x4F)
-			MEM<uint16_t>(0x2606C70) = 0;
+			MEM<uint16_t>(R(0x2606C70)) = 0;
 		else
-			MEM<uint16_t>(0x2606C70) = (uint16_t)i;
+			MEM<uint16_t>(R(0x2606C70)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2711,7 +2734,7 @@ namespace raijin
 	uint32_t __cdecl rj_7F0DF0(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2607058, 0);            // ecx
+		const uint32_t st = U32(R(0x2607058), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2775,7 +2798,7 @@ namespace raijin
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x2607058, 0);
+				uint32_t g = U32(R(0x2607058), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2785,7 +2808,7 @@ namespace raijin
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x2607058, 0);
+				uint32_t g = U32(R(0x2607058), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2873,7 +2896,7 @@ namespace raijin
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl rj_7F1970(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2607058);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x2607058));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2898,14 +2921,14 @@ namespace raijin
 				do
 				{
 					rj_7F0250(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x2607058);
+					dir = MEM<uint32_t>(R(0x2607058));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				rj_7F0250(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x2607058);
+				dir = MEM<uint32_t>(R(0x2607058));
 			}
 		}
 		return 0; // void
@@ -2995,11 +3018,11 @@ namespace raijin
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x260407C);
+		const uint32_t cursor = MEM<uint32_t>(R(0x260407C));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x260407C) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(0x260407C)) = callo(0x7F2050, blk, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -3009,7 +3032,7 @@ namespace raijin
 	uint32_t __cdecl rj_7F2600(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x1597360;
+		U32(a1, 0x4C) = fxp::sequence(PJ().seqs.at_1597360, 0x1597360);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -3033,7 +3056,7 @@ namespace raijin
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl rj_7F2690(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1597358);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -3048,6 +3071,39 @@ namespace raijin
 	}
 
 	// ---- generated (gendesc.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(RaijinParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its phase: the sound, two actor systems at the caster, the strike, the debris, the stage darkening; the damage cue" },
+			{ 0, "strike", "Strike", "The target pushed back, the strike and its impact, the target sliding back, its debris" },
+			{ 0, "stage", "Stage darkening", "The stage light words darkened, held, back" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "actors", "Actor systems", "Their start ticks (the first, the second), their ticks, their placement mode" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "Played once cue 1 runs", (uint32_t)offsetof(RaijinParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("director", director.damage, "Damage cue", "The damage of the target at this tick of the phase", 0, 200),
+			DT("director", actors.first, "First", "", 0, 200),
+			DT("director", actors.second, "Second", "", 0, 200),
+			DT("director", actors.length, "Length", "", 0, 200),
+			DT("director", actors.mode, "Mode", "", 0, 4),
+			DT("strike", strike.push, "Push tick", "The target turned to the caster and pushed back at this tick", 0, 200),
+			DT("strike", strike.push_by, "Push", "How far", 0, 0x1000),
+			DT("strike", strike.hit, "Hit tick", "The strike at the caster's bone and its impact at this tick", 0, 200),
+			DT("strike", debris.from, "Debris from", "", 0, 200),
+			DT("strike", debris.until, "Debris until", "", 0, 200),
+			DT("stage", darken.start, "Start", "", 0, 200),
+			DT("stage", darken.level, "Level", "", 0, 0x1000),
+			DT("stage", darken.step, "Step", "Up by this a tick", 1, 0x1000),
+			DT("stage", darken.hold, "Hold until", "", 0, 200),
+			{ "director", "seqs.at_1597360", "Flipbook 1597360", "The sprite sequence at 0x1597360 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RaijinParams, seqs.at_1597360), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef DT
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x7EB370, (void *)a_73A0D0, "060 MAG_060_sub_7EB370" },
@@ -3185,6 +3241,11 @@ namespace raijin
 
 	void register_mag060_raijin_attack()
 	{
+		fxp::register_params({ 60, "Raijin's strike", &act::raijin::live, &act::raijin::GAME, sizeof(act::raijin::RaijinParams),
+		                       act::raijin::table::PARTS, (int)(sizeof(act::raijin::table::PARTS) / sizeof(act::raijin::table::PARTS[0])),
+		                       act::raijin::table::FIELDS, (int)(sizeof(act::raijin::table::FIELDS) / sizeof(act::raijin::table::FIELDS[0])),
+		                       act::raijin::table::GROUPS, (int)(sizeof(act::raijin::table::GROUPS) / sizeof(act::raijin::table::GROUPS[0])) });
+		act::register_mod(&act::raijin::MOD_060);
 		act::register_module(60);
 		for (const act::raijin::ModPort *p = act::raijin::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(60, p->addr, p->port, p->name);
@@ -3193,6 +3254,7 @@ namespace raijin
 		// 30 fps layer: see mag060_raijin_attack_held.inc
 		FX_HELD(register_mag060_held();)
 	}
+	FX_LAB_MODULE(register_mag060_raijin_attack);
 }
 
 #ifdef FF8_FX_HELD

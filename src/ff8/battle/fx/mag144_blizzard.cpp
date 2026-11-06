@@ -29,8 +29,14 @@
 // (3 x 0xA00), queues, node pool, context, texture pointers, packet cursor 0x24BECC0); packets
 // go to the magic buffer (0x20DFAB8 + 0 / + 0xC000). The crystal's slam adds 0x20 to the battle
 // camera word 0x1D97712.
+// Fujin's described Blizzard (effect_144.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BlizzardParams: the sound, the
+// damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -40,11 +46,12 @@ namespace blizzard144
 	using namespace magc;
 
 	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BD778); } // .first = root, .second = effect queue
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24BECB0); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24BECBC); }        // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24BECC0); }
-	inline uint8_t *ShardBuffer(int action) { return (uint8_t *)(0x24BB968 + 0xA00 * action); } // 80 shards x 0x20
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(own::R(0x24BD778)); } // .first = root, .second = effect queue
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24BECB0)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(own::R(0x24BECBC)); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24BECC0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24BECB8)); }          // the effect's file (its TIM)
+	inline uint8_t *ShardBuffer(int action) { return (uint8_t *)(own::R(0x24BB968) + 0xA00 * action); } // 80 shards x 0x20
 	inline int16_t &CameraShake() { return var<int16_t>(0x1D97712); }
 
 	static const uint32_t ORIG_RootTask = 0x61BF70;
@@ -60,6 +67,23 @@ namespace blizzard144
 	static const void *const SEQ_Ice = (const void *)0xDD83E4;              // debris and falling ice
 	static const void *const SEQ_Mist = (const void *)0xDD82F0;
 	static const void *const SOUND_Blizzard = (const void *)0xDD9A38;
+	static const uint32_t ORIG_FileLoader = 0x61AB80, ORIG_Setup = 0x61ABA0;
+	static const uint32_t TEXTURE_NAME = 0xDD9A40, CAMERA = 0xDD7918;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BlizzardParams
+	{
+		uint32_t sound;                      // at the director's tick 1 (3D, at the target)
+		struct { int16_t damage; } director; // the shockwave and the damage at this tick of an action's director
+		struct { uint32_t ice, mist; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t crystal, shockwave, crystal_uv; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const BlizzardParams GAME = { 0xDD9A38, { 0x25 }, { 0xDD83E4, 0xDD82F0 }, { 0xDD8590, 0xDD8D48, 0xDD9280 }, { TEXTURE_NAME, CAMERA } };
+	static BlizzardParams live = GAME;
+	static const BlizzardParams &P() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -225,6 +249,36 @@ namespace blizzard144
 	// ------------------------------------------------------------------
 	// Root task (0x61BF70): node +0x0C counter
 	// ------------------------------------------------------------------
+	// File loader (0x61AB80) and setup (0x61ABA0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the first action's
+	// director (its target slot +0x20), the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint8_t *)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x24BB960)) = ctx->actions[0].targets[0];
+		var<int32_t>(own::R(0x24BECB4)) = ctx->attacker;
+		InitTaskQueuePool(&Queues().first, (void *)own::R(0x24BD768), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&Queues().first, own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(&Queues().second, (void *)own::R(0x24BD798), 0x24, 150);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		*(uint16_t *)(d + 0x20) = ctx->actions[0].targets[0];
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return &Queues().first;
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -324,7 +378,7 @@ namespace blizzard144
 			GetEffectSpawnPosition(Entity(d->slot), 0xF0, 0x1000, d->pos);
 			d->height = EntityHeight(d->slot);
 			CrystalHeader *h = (CrystalHeader *)FieldAlloc(0xD0);
-			h->model = MODEL_Crystal;
+			h->model = ((const uint8_t *)fxp::model(P().models.crystal, (uint32_t)MODEL_Crystal));
 			h->flags = 0;
 			h->shards = ShardBuffer(d->action);
 			ShatterPrep(h);
@@ -332,7 +386,7 @@ namespace blizzard144
 		}
 		if (d->counter == 1)
 		{
-			CrystalNode *c = (CrystalNode *)AddTaskToQueue(&Queues().second, ORIG_CrystalTask);
+			CrystalNode *c = (CrystalNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_CrystalTask));
 			memcpy(c->pos, d->pos, 8);
 			c->pos[1] = (int16_t)(c->pos[1] - 900);
 			c->counter = 0;
@@ -347,7 +401,7 @@ namespace blizzard144
 		}
 		if (d->counter >= 2 && d->counter <= 0x1B && (d->counter & 1))
 		{
-			MistNode *m = (MistNode *)AddTaskToQueue(&Queues().second, ORIG_MistPuffTask);
+			MistNode *m = (MistNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_MistPuffTask));
 			m->frame = 0;
 			m->delay = (int16_t)(CrtRand() % 4);
 			memcpy(m->pos, d->pos, 8);
@@ -362,7 +416,7 @@ namespace blizzard144
 			int32_t count = d->counter / 16 + 1;
 			for (int32_t k = count; k > 0; k--)
 			{
-				FallingIceNode *f = (FallingIceNode *)AddTaskToQueue(&Queues().second, ORIG_FallingIceTask);
+				FallingIceNode *f = (FallingIceNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_FallingIceTask));
 				memcpy(f->pos, d->pos, 8);
 				f->pos[1] = (int16_t)(f->pos[1] - 600);
 				f->frame = 0;
@@ -377,7 +431,7 @@ namespace blizzard144
 		{
 			for (int k = 0; k < 20; k++)
 			{
-				DebrisNode *b = (DebrisNode *)AddTaskToQueue(&Queues().second, ORIG_DebrisTask);
+				DebrisNode *b = (DebrisNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_DebrisTask));
 				b->frame = 0;
 				b->pos[0] = d->pos[0];
 				b->pos[1] = d->height;
@@ -396,9 +450,9 @@ namespace blizzard144
 				b->scale = (int16_t)(CrtRand() % 0x600 + 0x900);
 			}
 		}
-		if (d->counter == 0x25)
+		if (d->counter == P().director.damage)
 		{
-			ShockwaveNode *s = (ShockwaveNode *)AddTaskToQueue(&Queues().second, ORIG_ShockwaveTask);
+			ShockwaveNode *s = (ShockwaveNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_ShockwaveTask));
 			s->pos[0] = d->pos[0];
 			s->pos[1] = d->height;
 			s->pos[2] = d->pos[2];
@@ -412,7 +466,7 @@ namespace blizzard144
 			int next = d->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, ORIG_Director);
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_Director));
 				t->counter = 0;
 				t->action = (int16_t)next;
 				t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];
@@ -422,7 +476,7 @@ namespace blizzard144
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
-			BdPlaySE3D(SOUND_Blizzard, 0x100, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Blizzard), 0x100, pos);
 		}
 		d->counter++;
 		return d->counter > 0x2C ? TASK_END : 0;
@@ -448,7 +502,7 @@ namespace blizzard144
 
 	static void ShockwaveHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Shockwave;
+		*(const void **)h = ((const void *)fxp::model(P().models.shockwave, (uint32_t)MODEL_Shockwave));
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c >= 8)
 		{
@@ -492,7 +546,7 @@ namespace blizzard144
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -528,7 +582,7 @@ namespace blizzard144
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -559,7 +613,7 @@ namespace blizzard144
 	// ------------------------------------------------------------------
 	static void MistHeader(uint8_t *h, int16_t frame)
 	{
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.mist, (uint32_t)SEQ_Mist));
 		*(uint16_t *)(h + 4) = (uint16_t)(frame > 4 ? 4 : frame);
 		*(uint16_t *)(h + 0x24) = 8;
 		if (frame >= 4)
@@ -790,8 +844,8 @@ namespace blizzard144
 	static void CrystalHeaderInit(CrystalHeader *h, const CrystalNode *p, const Mat4x3 *m)
 	{
 		h->limit = p->counter;
-		h->model = MODEL_Crystal;
-		h->uvmodel = MODEL_CrystalUV;
+		h->model = ((const uint8_t *)fxp::model(P().models.crystal, (uint32_t)MODEL_Crystal));
+		h->uvmodel = ((const uint8_t *)fxp::model(P().models.crystal_uv, (uint32_t)MODEL_CrystalUV));
 		h->flags = 0;
 		h->shards = ShardBuffer(p->action);
 		ComposeAffineTransform(&Camera(), m, &h->base);
@@ -851,20 +905,52 @@ namespace blizzard144
 		p->counter++;
 		return p->counter >= 0x30 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action on its target: the crystal rising and slamming (the camera shake), the shards, falling ice, mist puffs and debris, the shockwave, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "", (uint32_t)offsetof(BlizzardParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The shockwave and the damage at this tick of an action's director", (uint32_t)offsetof(BlizzardParams, director.damage), fxp::I16, 0, 100 },
+			{ "director", "seqs.ice", "Ice", "The sprite sequence ice (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzardParams, seqs.ice), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 5 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzardParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.crystal", "Crystal model", "The prim model crystal (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.crystal), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.shockwave", "Shockwave model", "The prim model shockwave (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.shockwave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.crystal_uv", "Crystal uv model", "The prim model crystal uv (a mesh of 42 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzardParams, models.crystal_uv), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BlizzardParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BlizzardParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag144_blizzard()
 	{
+		fxp::register_params({ 144, "Blizzard", &blizzard144::live, &blizzard144::GAME, sizeof(blizzard144::BlizzardParams),
+		                       blizzard144::table::PARTS, (int)(sizeof(blizzard144::table::PARTS) / sizeof(blizzard144::table::PARTS[0])),
+		                       blizzard144::table::FIELDS, (int)(sizeof(blizzard144::table::FIELDS) / sizeof(blizzard144::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(blizzard144::ORIG_FileLoader, (void *)blizzard144::FileLoader);
+		own::note(blizzard144::ORIG_Setup, (void *)blizzard144::Setup);
+		own::note(blizzard144::ORIG_RootTask, (void *)blizzard144::RootTask);
 		register_port(blizzard144::ORIG_RootTask, (void *)blizzard144::RootTask, "B144 RootTask", 144);
+		own::note(blizzard144::ORIG_Director, (void *)blizzard144::DirectorTask);
 		register_port(blizzard144::ORIG_Director, (void *)blizzard144::DirectorTask, "B144 Director", 144);
+		own::note(blizzard144::ORIG_ShockwaveTask, (void *)blizzard144::ShockwaveTask);
 		register_port(blizzard144::ORIG_ShockwaveTask, (void *)blizzard144::ShockwaveTask, "B144 ShockwaveTask", 144);
+		own::note(blizzard144::ORIG_DebrisTask, (void *)blizzard144::DebrisTask);
 		register_port(blizzard144::ORIG_DebrisTask, (void *)blizzard144::DebrisTask, "B144 DebrisTask", 144);
+		own::note(blizzard144::ORIG_FallingIceTask, (void *)blizzard144::FallingIceTask);
 		register_port(blizzard144::ORIG_FallingIceTask, (void *)blizzard144::FallingIceTask, "B144 FallingIceTask", 144);
+		own::note(blizzard144::ORIG_MistPuffTask, (void *)blizzard144::MistPuffTask);
 		register_port(blizzard144::ORIG_MistPuffTask, (void *)blizzard144::MistPuffTask, "B144 MistPuffTask", 144);
+		own::note(blizzard144::ORIG_CrystalTask, (void *)blizzard144::CrystalTask);
 		register_port(blizzard144::ORIG_CrystalTask, (void *)blizzard144::CrystalTask, "B144 CrystalTask", 144);
 		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(register_mag144_held();)
 	}
+	FX_LAB_MODULE(register_mag144_blizzard);
 }
 
 #ifdef FF8_FX_HELD

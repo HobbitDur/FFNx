@@ -91,6 +91,9 @@
 //     what the packet arena held there (the same packets two ticks before) is not used.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -101,13 +104,15 @@ namespace sonic139
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2517B50); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2517B58); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520BDC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520BF4); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520BF8; }        // pool: magic buffer, 4 x 0x298
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2520C08; }           // pool: + 0xA60, 1 x 0x4DC
-	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(0x2520C28); }          // m[0][0], m[1][1], TX, TY written
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2517B50)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2517B58)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2520BDC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2520BF4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2517B54)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2520C18); }           // 1 x 0x14
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2520BF8); }        // pool: magic buffer, 4 x 0x298
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2520C08); }           // pool: + 0xA60, 1 x 0x4DC
+	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(own::R(0x2520C28)); }          // m[0][0], m[1][1], TX, TY written
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_MasterTask = 0x6A88F0;
@@ -119,7 +124,7 @@ namespace sonic139
 	static const uint32_t VERTS_BYTES = VBUF - VERTS;
 	static const uint32_t ARENA_A = 0x1EF0;              // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x11EF0;
-	static uint8_t *const MESH = (uint8_t *)0x2517B5C;   // the wave mesh (module copy): size, count, vertices, triangles
+	inline uint8_t *MESH() { return (uint8_t *)own::R(0x2517B5C); }   // the wave mesh (module copy): size, count, vertices, triangles
 	static const uint32_t FRAMES = 0x11D72B0;            // 4 wave frames of 0x650 bytes (same layout, no triangles)
 	static const uint32_t FRAME_BYTES = 0x650;
 	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x11DD2C8;
@@ -129,6 +134,23 @@ namespace sonic139
 	static const uint32_t MODEL_Target = 0x11D8BF0;
 	static const uint8_t *const COLOURS = (const uint8_t *)0x11DF4C8;    // tint steps (RGBx)
 	static const void *const SOUND_Wave = (const void *)0x11DD338;
+	static const uint32_t ORIG_FileLoader = 0x6A8840, ORIG_Setup = 0x6A8830;
+	static const uint32_t TEXTURE_NAME = 0x11DF4D4, CAMERA = 0x11DD21C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct SonicParams
+	{
+		uint32_t sound;   // at the main task's tick 0
+		struct { uint32_t target, main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t at_11d4e90; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const SonicParams GAME = { 0x11DD338, { MODEL_Target, MODEL_Main }, { 0x11D4E90 }, { TEXTURE_NAME, CAMERA }, { 0x11DF4C8 } };
+	static SonicParams live = GAME;
+	static const SonicParams &P() { return live; }
 	static const uint32_t OT_CAPTURE = 0x4484;           // OT entry 0x1121: the capture area's clearing environment
 
 	// engine functions not in fx_port.h / mag_common.h
@@ -775,6 +797,28 @@ namespace sonic139
 	// ------------------------------------------------------------------
 	// Target (0x6A98E0)
 	// ------------------------------------------------------------------
+	// File loader (0x6A8840) and setup (0x6A8830 -> 0x6A8860): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the module's data block copy (0x11D4E90, 0x9080 bytes),
+	// the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		memcpy(MESH(), (const void *)fxp::model(P().model_data.at_11d4e90, 0x11D4E90, true), 0x9080);
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520BE0), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		return QMaster();
+	}
+
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *p = (TargetNode *)n;
@@ -797,7 +841,7 @@ namespace sonic139
 		const int32_t f = u & 0xFFF;
 		const int32_t k = u >> 12;
 		uint8_t c[4]; // (byte 3 never written nor read)
-		BlendColour(COLOURS + k * 4, COLOURS + k * 4 + 4, 0x1000 - f, f, c);
+		BlendColour(((const uint8_t *)fxp::data(P().tables.colours, (uint32_t)COLOURS, 20, 4)) + k * 4, ((const uint8_t *)fxp::data(P().tables.colours, (uint32_t)COLOURS, 20, 4)) + k * 4 + 4, 0x1000 - f, f, c);
 		BlendColour(&p->colour, c, 0x1000 - s, s, p->entity + 0x28);
 		p->counter++;
 		return 0;
@@ -848,7 +892,7 @@ namespace sonic139
 				const uint32_t k = (phase >> 12) & 3;
 				BlendFrames((const uint8_t *)(FRAMES + k * FRAME_BYTES), (const uint8_t *)(FRAMES + ((k + 1) & 3) * FRAME_BYTES), (uint8_t *)(TexBase() + VERTS), (int32_t)(phase & 0xFFF));
 				const int32_t s2 = ComputeSin(half);
-				ScreenWarp(MESH, (const uint8_t *)(TexBase() + VERTS), (((int16_t)(z - 0x200)) >> 2) + 0x11, 0x1000 - s2, s + s, t, (uint8_t *)(TexBase() + VBUF));
+				ScreenWarp(MESH(), (const uint8_t *)(TexBase() + VERTS), (((int16_t)(z - 0x200)) >> 2) + 0x11, 0x1000 - s2, s + s, t, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
 		const uint32_t b = (uint32_t)(c - 0x1E);
@@ -863,14 +907,14 @@ namespace sonic139
 				const int32_t half = t >> 1;
 				const int32_t s = ComputeSin(half);
 				const int32_t s2 = ComputeSin(half);
-				ScreenWarp(MESH, MESH + 8, (z >> 2) + 0x11, 0x1000 - s2, s, t, (uint8_t *)(TexBase() + VBUF));
+				ScreenWarp(MESH(), MESH() + 8, (z >> 2) + 0x11, 0x1000 - s2, s, t, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
-		if (w->counter == 0) BdPlaySE(SOUND_Wave, 0, 0x80);
+		if (w->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Wave), 0, 0x80);
 		const uint32_t e = (uint32_t)(w->counter - 0x1E);
 		if (e < 0x10 && !(e & 3) && (e >> 2) < (uint32_t)(int32_t)w->count)
 		{
-			TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+			TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 			if (p)
 			{
 				const uint32_t i = e >> 2;
@@ -879,7 +923,7 @@ namespace sonic139
 				p->entity = w->ents[i];
 				p->colour = *(const uint32_t *)(p->entity + 0x28);
 				GetDefaultEffectPosition(p->entity, p->pos);
-				DecodeModelPrimLayout(MODEL_Target, p->layout, 0x278);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.target, MODEL_Target, 0x278), p->layout, 0x278);
 			}
 		}
 		if (w->counter < 0x46)
@@ -916,14 +960,14 @@ namespace sonic139
 		}
 		if (m->counter == 1 && !m->started)
 		{
-			PrepareMesh(MESH);
+			PrepareMesh(MESH());
 			for (uint32_t f = FRAMES + 3 * FRAME_BYTES; f != FRAMES; f -= FRAME_BYTES) NormaliseMesh((uint8_t *)f);
 			m->started = 1;
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + 0xA60), 0x4DC, 1);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0x298, 4);
-			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&w->counter, 0, 0x134);
-			DecodeModelPrimLayout(MODEL_Main, w->layout, 0x4AC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_Main, 0x4AC), w->layout, 0x4AC);
 			w->count = (int16_t)Ctx()->actions[0].target_count;
 			w->avg[2] = 0;
 			w->avg[1] = 0;
@@ -958,16 +1002,42 @@ namespace sonic139
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The sonic wave from the caster's bone point to the targets: its layout, the screen warps, the target tasks tinting the targets, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "", (uint32_t)offsetof(SonicParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(SonicParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(SonicParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "model_data.at_11d4e90", "Model 11D4E90", "The prim model at 0x11D4E90 (a mesh of 201 vertices, 380 primitives: its code copies it whole into a block of its size: an edited one keeps its vertices and its size (move vertices, change colours and texture corners))", (uint32_t)offsetof(SonicParams, model_data.at_11d4e90), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SonicParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SonicParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "main", "tables.colours", "Colours", "The colours it blends through: three, then the two its last steps read past them (its texture name's first bytes) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(SonicParams, tables.colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag139_sonic_wave()
 	{
+		fxp::register_params({ 139, "Sonic Wave", &sonic139::live, &sonic139::GAME, sizeof(sonic139::SonicParams),
+		                       sonic139::table::PARTS, (int)(sizeof(sonic139::table::PARTS) / sizeof(sonic139::table::PARTS[0])),
+		                       sonic139::table::FIELDS, (int)(sizeof(sonic139::table::FIELDS) / sizeof(sonic139::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(sonic139::ORIG_FileLoader, (void *)sonic139::FileLoader);
+		own::note(sonic139::ORIG_Setup, (void *)sonic139::Setup);
+		own::note(sonic139::ORIG_MasterTask, (void *)sonic139::MasterTask);
 		register_port(sonic139::ORIG_MasterTask, (void *)sonic139::MasterTask, "139 MasterTask", 139);
+		own::note(sonic139::ORIG_MainTask, (void *)sonic139::MainTask);
 		register_port(sonic139::ORIG_MainTask, (void *)sonic139::MainTask, "139 MainTask", 139);
+		own::note(sonic139::ORIG_TargetTask, (void *)sonic139::TargetTask);
 		register_port(sonic139::ORIG_TargetTask, (void *)sonic139::TargetTask, "139 TargetTask", 139);
 		// 30 fps layer: see mag139_sonic_wave_held.inc
 		FX_HELD(register_mag139_held();)
 	}
+	FX_LAB_MODULE(register_mag139_sonic_wave);
 }
 
 #ifdef FF8_FX_HELD

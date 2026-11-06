@@ -68,6 +68,9 @@
 //     half; the callback's matrix pad +0x12 only the GTE R33 word's high half.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -78,10 +81,12 @@ namespace holywar310
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507434); }
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x2507440; }             // pool: magic buffer, 6 x 0x3D0
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507474); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507478); }          // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507434)); }
+	inline TaskQueue *QPlay() { return (TaskQueue *)own::R(0x2507440); }             // pool: magic buffer, 6 x 0x3D0
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507474)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507430)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2507450); }           // 1 x 0x14
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507478)); }          // Magic_TextureOFF (magic buffer)
 
 	static const uint32_t ORIG_RootTask = 0x666540;
 	static const uint32_t ORIG_PlayTask = 0x666730;
@@ -91,6 +96,22 @@ namespace holywar310
 	static const uint32_t NODE_BYTES = 0x3D0;     // play node
 	static const uint32_t MORPH = 0x16E0;          // magic buffer: blended vertex frames
 	static const void *const SOUND = (const void *)0x10244D4;
+	static const uint32_t ORIG_FileLoader = 0x6664B0, ORIG_Setup = 0x6664A0;
+	static const uint32_t TEXTURE_NAME = 0x10244D8;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct HolyWarParams
+	{
+		uint32_t sound;   // the play task's counter 1
+		struct { uint32_t main, orbit; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t debris; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const HolyWarParams GAME = { 0x10244D4, { MODEL_MAIN, MODEL_ORBIT }, { MODEL_DEBRIS }, { TEXTURE_NAME } };
+	static HolyWarParams live = GAME;
+	static const HolyWarParams &P() { return live; }
 	static const uint32_t ARENA_A = 0x16E8;         // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x116E8;
 	static const int32_t MAIN_TICKS = 0x28, ORBIT_TICKS = 0x12, DEBRIS_FIRST = 0x10, DEBRIS_TICKS = 0x14;
@@ -355,7 +376,7 @@ namespace holywar310
 		if ((uint32_t)k < (uint32_t)DEBRIS_TICKS)
 		{
 			ShardDraw *d = (ShardDraw *)FieldAlloc(0x88);
-			*(uint32_t *)(d->h + 0) = MODEL_DEBRIS;
+			*(uint32_t *)(d->h + 0) = fxp::model(P().model_data.debris, MODEL_DEBRIS);
 			*(uint32_t *)(d->h + 8) = 0;
 			*(int32_t *)(d->h + 0xC) = ShardFade(k);
 			*(uint32_t *)(d->h + 0x1C) = 0xF0;
@@ -381,7 +402,7 @@ namespace holywar310
 			}
 			FieldFree(0x88);
 		}
-		if (p->counter == 1) BdPlaySE(SOUND, 0, 0x80);
+		if (p->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0, 0x80);
 		if (p->counter == 0x20)
 		{
 			// 0x666A20: every target record of action 0 whose slot is this entity's
@@ -395,6 +416,25 @@ namespace holywar310
 		p->counter++;
 		return p->counter < MAIN_TICKS ? 0 : TASK_END;
 	}
+	// File loader (0x6664B0) and setup (0x6664A0 -> _Init 0x6664D0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x2507438)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2507460), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl PlayTask(TaskNode *n)
 	{
 		// the original's block word +0x14 (entry esp - 0xC), read before anything is written below this entry
@@ -431,7 +471,7 @@ namespace holywar310
 		}
 		if (r->counter == 1 && r->next < Ctx()->actions[0].target_count)
 		{
-			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
+			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), own::Fn(ORIG_PlayTask));
 			g_spawned = true;
 			g_spawn_word = (int32_t)p->orbit[0];
 			uint8_t *e = Entity(Ctx()->actions[0].targets[r->next * TARGET_STRIDE]);
@@ -442,9 +482,9 @@ namespace holywar310
 			// y: h / 8 + h / 2 above the target's +0x24 (h = its +0x92)
 			const int32_t h = *(const int16_t *)(e + 0x92);
 			p->anchor[1] = (int16_t)(h / 8 + h / 2 + *(const int16_t *)(e + 0x24));
-			DecodeModelPrimLayout(MODEL_MAIN, p->main, 0x13C);
-			DecodeModelPrimLayout(MODEL_ORBIT, p->orbit[0], 0xBC);
-			DecodeModelPrimLayout(MODEL_ORBIT, p->orbit[1], 0xBC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_MAIN, 0x13C), p->main, 0x13C);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.orbit, MODEL_ORBIT, 0xBC), p->orbit[0], 0xBC);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.orbit, MODEL_ORBIT, 0xBC), p->orbit[1], 0xBC);
 			for (int i = 0; i < 16; i++)
 			{
 				Shard &s = p->shard[i];
@@ -465,15 +505,38 @@ namespace holywar310
 		if (r->counter > 4) r->counter = 0;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "play", "Play", "One target every 5 ticks: the orbit layouts spiralling in, the main layout and the shards at it, the sound; its action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "play", "sound", "Sound", "The play task's counter 1", (uint32_t)offsetof(HolyWarParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "play", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(HolyWarParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "play", "layouts.orbit", "Orbit", "The prim-model layout orbit (its models' animation)", (uint32_t)offsetof(HolyWarParams, layouts.orbit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "play", "model_data.debris", "Debris model", "The prim model debris (a mesh of 28 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HolyWarParams, model_data.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "play", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(HolyWarParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag310_holy_war()
 	{
+		fxp::register_params({ 310, "Holy War", &holywar310::live, &holywar310::GAME, sizeof(holywar310::HolyWarParams),
+		                       holywar310::table::PARTS, (int)(sizeof(holywar310::table::PARTS) / sizeof(holywar310::table::PARTS[0])),
+		                       holywar310::table::FIELDS, (int)(sizeof(holywar310::table::FIELDS) / sizeof(holywar310::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(holywar310::ORIG_FileLoader, (void *)holywar310::FileLoader);
+		own::note(holywar310::ORIG_Setup, (void *)holywar310::Setup);
+		own::note(holywar310::ORIG_RootTask, (void *)holywar310::RootTask);
 		register_port(holywar310::ORIG_RootTask, (void *)holywar310::RootTask, "310 RootTask", 310);
+		own::note(holywar310::ORIG_PlayTask, (void *)holywar310::PlayTask);
 		register_port(holywar310::ORIG_PlayTask, (void *)holywar310::PlayTask, "310 PlayTask", 310);
 		// 30 fps layer: see mag310_holy_war_held.inc
 		FX_HELD(register_mag310_held();)
 	}
+	FX_LAB_MODULE(register_mag310_holy_war);
 }
 
 #ifdef FF8_FX_HELD

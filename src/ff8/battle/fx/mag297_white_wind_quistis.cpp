@@ -58,6 +58,9 @@
 // offset 4th word (GTE VZ0 high half only), as in 226.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,13 +70,15 @@ namespace whitewind297
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250790C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507910); }          // caster entity (setup)
-	inline TaskQueue *QScene() { return (TaskQueue *)0x2507918; }            // pool: magic buffer + 0x7B0, 1 x 0x33C
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2507938; }          // pool: magic buffer, 3 x 0x290
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250795C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507960); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(0x2507968); }            // camera matrix of the effect (every tick)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250790C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507910)); }          // caster entity (setup)
+	inline TaskQueue *QScene() { return (TaskQueue *)own::R(0x2507918); }            // pool: magic buffer + 0x7B0, 1 x 0x33C
+	inline TaskQueue *QTargets() { return (TaskQueue *)own::R(0x2507938); }          // pool: magic buffer, 3 x 0x290
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250795C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507960)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507908)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2507928); }             // 1 x 0x14
+	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(own::R(0x2507968)); }            // camera matrix of the effect (every tick)
 
 	static const uint32_t ORIG_RootTask = 0x6730D0;
 	static const uint32_t ORIG_SceneTask = 0x6731D0;
@@ -82,6 +87,21 @@ namespace whitewind297
 	static const uint32_t MODEL_Sweep = 0x105A494;       // prim-model layout data (0x194-byte layout)
 	static const uint32_t MODEL_Target = 0x10583FC;      // prim-model layout data (0x278-byte layout)
 	static const void *const SOUND_Wind = (const void *)0x105BA94;
+	static const uint32_t ORIG_FileLoader = 0x673010, ORIG_Setup = 0x673000;
+	static const uint32_t TEXTURE_NAME = 0x105BA98, CAMERA_ANIM = 0x105B92C, COM_Anim = 0x1056888;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct WhiteWind297Params
+	{
+		uint32_t sound;   // at the scene task's tick 1
+		struct { uint32_t caster, sweep, target; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const WhiteWind297Params GAME = { 0x105BA94, { MODEL_Caster, MODEL_Sweep, MODEL_Target }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static WhiteWind297Params live = GAME;
+	static const WhiteWind297Params &P() { return live; }
 	static const uint32_t MORPH = 0xAEC;                 // magic buffer: blended vertex frames
 	static const uint32_t ARENA_A = 0xECC;               // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x10ECC;
@@ -287,6 +307,30 @@ namespace whitewind297
 	// Target (0x673880): the layout at the target's anchor, camera billboard (no size scale); when the play returns 0xA (10
 	// frames before the layout's end): ApplyResult and the task end (the layout's last 10 frames are never drawn)
 	// ------------------------------------------------------------------
+	// File loader (0x673010) and setup (0x673000 -> _Init 0x673030): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the module's animation set
+	// bound to her (block at magic buffer + 0xEAC) and her chain 1 queued (the cast animation), the root (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(Caster(), TexBase() + 0xEAC, COM_Anim);   // BattleEntity_BindExternalAnimSet
+		fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(Caster(), 1);                                        // QueueChainTransformation
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2507948), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QRoot();
+	}
+
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -322,7 +366,7 @@ namespace whitewind297
 			{
 				GetDefaultEffectPosition(Caster(), s->caster);
 				s->caster[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(MODEL_Caster, s->lay_caster, 0x188);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.caster, MODEL_Caster, 0x188), s->lay_caster, 0x188);
 			}
 			arg.m.t[0] = s->caster[0];
 			arg.m.t[1] = s->caster[1];
@@ -348,7 +392,7 @@ namespace whitewind297
 				s->sweep[0] = 0;
 				s->sweep[2] = (int16_t)((int32_t)s->sweep[2] / (int32_t)a->target_count);
 				s->sweep[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(MODEL_Sweep, s->lay_sweep, 0x194);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.sweep, MODEL_Sweep, 0x194), s->lay_sweep, 0x194);
 			}
 			arg.m.t[0] = s->sweep[0];
 			arg.m.t[1] = s->sweep[1];
@@ -369,21 +413,21 @@ namespace whitewind297
 			FX_HELD(held_note_play((prim::Layout *)s->lay_sweep, PLAY_SWEEP, s->sweep);)
 			prim::play((prim::Layout *)s->lay_sweep, PrimCallback, (int)&arg, 0);
 		}
-		if (s->counter == 1) BdPlaySE(SOUND_Wind, 0, 0x80);
+		if (s->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Wind), 0, 0x80);
 		const int32_t k = (int32_t)s->counter - 0x13;
 		if ((uint32_t)k < 0xC && (k & 3) == 0)
 		{
 			const uint32_t i = (uint32_t)k >> 2;
 			if (i < Ctx()->actions[0].target_count)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), own::Fn(ORIG_TargetTask));
 				if (t)
 				{
 					uint8_t *e = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
 					t->entity = e;
 					GetDefaultEffectPosition(e, t->pos);
 					t->pos[1] = AnchorY(e);
-					DecodeModelPrimLayout(MODEL_Target, t->layout, 0x278);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.target, MODEL_Target, 0x278), t->layout, 0x278);
 				}
 			}
 		}
@@ -414,7 +458,7 @@ namespace whitewind297
 			r->started = 1;
 			InitTaskQueuePool(QScene(), (void *)(TexBase() + 0x7B0), 0x33C, 1);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0x290, 3);
-			((SceneNode *)AddTaskToQueue(QScene(), ORIG_SceneTask))->counter = 0;
+			((SceneNode *)AddTaskToQueue(QScene(), own::Fn(ORIG_SceneTask)))->counter = 0;
 		}
 		int a, b;
 		if (r->started)
@@ -428,16 +472,41 @@ namespace whitewind297
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "scene", "Scene", "The healing wind at the caster and across the party, one sparkle layout per target with its result, the sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "scene", "sound", "Sound", "At the scene task's tick 1", (uint32_t)offsetof(WhiteWind297Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "scene", "layouts.caster", "Caster", "The prim-model layout caster (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.caster), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "scene", "layouts.sweep", "Sweep", "The prim-model layout sweep (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.sweep), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "scene", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(WhiteWind297Params, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "scene", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(WhiteWind297Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "scene", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(WhiteWind297Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag297_white_wind_quistis()
 	{
+		fxp::register_params({ 297, "White Wind (Quistis)", &whitewind297::live, &whitewind297::GAME, sizeof(whitewind297::WhiteWind297Params),
+		                       whitewind297::table::PARTS, (int)(sizeof(whitewind297::table::PARTS) / sizeof(whitewind297::table::PARTS[0])),
+		                       whitewind297::table::FIELDS, (int)(sizeof(whitewind297::table::FIELDS) / sizeof(whitewind297::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(whitewind297::ORIG_FileLoader, (void *)whitewind297::FileLoader);
+		own::note(whitewind297::ORIG_Setup, (void *)whitewind297::Setup);
+		own::note(whitewind297::ORIG_RootTask, (void *)whitewind297::RootTask);
 		register_port(whitewind297::ORIG_RootTask, (void *)whitewind297::RootTask, "297 RootTask", 297);
+		own::note(whitewind297::ORIG_SceneTask, (void *)whitewind297::SceneTask);
 		register_port(whitewind297::ORIG_SceneTask, (void *)whitewind297::SceneTask, "297 SceneTask", 297);
+		own::note(whitewind297::ORIG_TargetTask, (void *)whitewind297::TargetTask);
 		register_port(whitewind297::ORIG_TargetTask, (void *)whitewind297::TargetTask, "297 TargetTask", 297);
 		// 30 fps layer: see mag297_white_wind_quistis_held.inc
 		FX_HELD(register_mag297_held();)
 	}
+	FX_LAB_MODULE(register_mag297_white_wind_quistis);
 }
 
 #ifdef FF8_FX_HELD

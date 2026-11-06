@@ -95,6 +95,9 @@
 //   base, packet cursor).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -104,17 +107,20 @@ namespace canister195
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &EndTick() { return var<int32_t>(0x226A970); }      // afterimages end here (999999 until EndTask)
-	inline int32_t &ModuleTick() { return var<int32_t>(0x226A974); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x226EDB0); }       // 1 ready, 2 ended, 4 a shot is busy
-	inline CastContext *&Ctx() { return var<CastContext *>(0x226FBD8); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x22711C0); }
-	inline int32_t &PartCount() { return var<int32_t>(0x2271460); }     // particle ids
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2271464); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2271468); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x226B7D0; }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x226B7E0; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x226EDB8; }
+	inline int32_t &EndTick() { return var<int32_t>(own::R(0x226A970)); }      // afterimages end here (999999 until EndTask)
+	inline int32_t &ModuleTick() { return var<int32_t>(own::R(0x226A974)); }
+	inline uint32_t &Flags() { return var<uint32_t>(own::R(0x226EDB0)); }       // 1 ready, 2 ended, 4 a shot is busy
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x226FBD8)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x22711C0)); }
+	inline int32_t &PartCount() { return var<int32_t>(own::R(0x2271460)); }     // particle ids
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2271464)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2271468)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x22711C4)); }          // the effect's file (its TIM)
+	inline int32_t &ShotIndex() { return var<int32_t>(own::R(0x226A97C)); }          // 0, 1, 2 cycling: chain 3 + it
+	inline int32_t &ShotCount() { return var<int32_t>(own::R(0x227145C)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x226B7D0); }
+	inline TaskQueue *QShots() { return (TaskQueue *)own::R(0x226B7E0); }
+	inline TaskQueue *QAux() { return (TaskQueue *)own::R(0x226EDB8); }
 	static const uint32_t PARTS_A = 0x226B7F0, PARTS_B = 0x226DF20;  // 150 x 0x18 each (steam, bone smoke)
 	static const int32_t PARTS_N = 150;
 	static const uint32_t DEBRIS_ODD = 0x226C600, DEBRIS_EVEN = 0x226D280; // 100 x 0x20 each
@@ -143,6 +149,23 @@ namespace canister195
 	static const uint32_t ORIG_ImpactFlashTask = 0x5B3FF0;
 	static const uint32_t ORIG_DebrisTask = 0x5B4140;
 	static const uint32_t ORIG_ImpactConeTask = 0x5B44C0;
+	static const uint32_t ORIG_FileLoader = 0x5B2A20, ORIG_Setup = 0x5B2A40;
+	static const uint32_t TEXTURE_NAME = 0xD0BD6C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct CanisterShotParams
+	{
+		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t smoke, impact, impact_smoke, steam, bone_smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ground_flash, cone, ring, debris, impact_flash; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const CanisterShotParams GAME = { 0xD0BD30, { 0xD099F0, 0xD09E0C, 0xD097CC, 0xD09AB4, 0xD09C60 }, { 0xD0A978, 0xD0AFE0, 0xD0B488, 0xD0AD68, 0xD09FB8 }, { TEXTURE_NAME, 0xD07400 }, { 0xD0BD58 } };
+	static CanisterShotParams live = GAME;
+	static const CanisterShotParams &P() { return live; }
 
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xD07400;
@@ -227,12 +250,12 @@ namespace canister195
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Canister Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x38 && sizeof(Particle) == 0x18 && sizeof(Debris) == 0x20 && sizeof(Ghost) == 0x84, "Canister Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x38 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(own::R(SHOTS) + 0x38 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(own::R(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
-	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? PARTS_B : PARTS_A); }
-	inline Debris *DebrisArray(int16_t k) { return (Debris *)((k & 1) ? DEBRIS_ODD : DEBRIS_EVEN); }
+	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, own::Fn(fn)); }   // (a copy: the port's thunk)
+	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? own::R(PARTS_B) : own::R(PARTS_A)); }
+	inline Debris *DebrisArray(int16_t k) { return (Debris *)((k & 1) ? own::R(DEBRIS_ODD) : own::R(DEBRIS_EVEN)); }
 	inline int32_t FindFree(const Particle *arr) { for (int32_t i = 0; i < PARTS_N; i++) if (arr[i].id == 0) return i; return -1; }
 }
 }
@@ -374,7 +397,7 @@ namespace canister195
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_GroundFlash;
+		*(uint32_t *)h = fxp::model(P().models.ground_flash, MODEL_GroundFlash);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (faded)
@@ -407,7 +430,7 @@ namespace canister195
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Cone, faded, fade);
+		ModelDraw(fxp::model(P().models.cone, MODEL_Cone), faded, fade);
 	}
 
 	// the muzzle ring: (-0x1000, 0, 0) turned onto the muzzle direction x ZYX(pitch, yaw, 0), uniform scale
@@ -434,7 +457,7 @@ namespace canister195
 		ComposeAffineTransform(&Camera(), &a, &a);
 		GteSetRotMatrix(&a);
 		GteSetTransVector(&a);
-		ModelDraw(MODEL_Ring, faded, fade);
+		ModelDraw(fxp::model(P().models.ring, MODEL_Ring), faded, fade);
 	}
 
 	// the impact models: rotation = the shot record's x roll, scaled; the translation is TransformCameraByShadowRotation's at
@@ -470,9 +493,9 @@ namespace canister195
 		FieldFree(0xB4);
 		return *(const int16_t *)(h + 0x28);
 	}
-	static int16_t SmokeDraw(const Node *n) { return SeqDraw(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3), SEQ_Smoke, n->counter, 0); }
-	static int16_t ImpactDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], SEQ_Impact, n->counter, 0); }
-	static int16_t ImpactSmokeDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], SEQ_ImpactSmoke, n->counter, 8); }
+	static int16_t SmokeDraw(const Node *n) { return SeqDraw(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3), fxp::sequence(P().seqs.smoke, SEQ_Smoke), n->counter, 0); }
+	static int16_t ImpactDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], fxp::sequence(P().seqs.impact, SEQ_Impact), n->counter, 0); }
+	static int16_t ImpactSmokeDraw(const Node *n) { return SeqDraw(n->pos, n->f1C, -(int32_t)n->pos[3], fxp::sequence(P().seqs.impact_smoke, SEQ_ImpactSmoke), n->counter, 8); }
 
 	// the GTE-positioned particles (steam / bone smoke): the light matrix and back colour = the camera (scratch 0x48, +8)
 	static void PartLight(uint8_t *s)
@@ -530,7 +553,7 @@ namespace canister195
 	static void DebrisBegin(uint8_t *s, uint8_t *h)
 	{
 		memcpy(s + 8, &Camera(), 0x20);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = fxp::model(P().models.debris, MODEL_Debris);
 		*(uint32_t *)(h + 8) = 0;
 	}
 
@@ -538,6 +561,67 @@ namespace canister195
 	// Tasks
 	// ------------------------------------------------------------------
 	// SmokeTask (0x5B32A0): ends with its sequence
+	// File loader (0x5B2A20) and setup (_Init 0x5B2A40 + SetupByMode): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's). The setup runs again for each trigger press of the Shot window (the battle's
+	// BattleActionSequence_Tick_Shot 0x50BEE0: the cast context's sequence mode +8): 0 the opening - the root, the shot
+	// and aux queues, StartTask, the flags and counts cleared, both particle arrays freed, the camera's shots reset, the
+	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		const uint8_t mode = ((const uint8_t *)ctx)[8];
+		if (mode == 0)
+		{
+			InitTaskQueuePool(QRoot(), (void *)own::R(0x226A980), 0x10, 4);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+			InitTaskQueuePool(QAux(), (void *)own::R(0x226EDC8), 0x24, 100);
+			InitTaskQueuePool(QShots(), (void *)own::R(0x226A9C0), 0x24, 100);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_StartTask)) + 0xC) = 0;
+			Flags() = 0;
+			ShotIndex() = 0;
+			ShotCount() = 0;
+			PartCount() = 0;
+			ModuleTick() = 0;
+			for (int i = 0; i < 900; i += 6)
+			{
+				((int32_t *)own::R(PARTS_A))[i] = 0;
+				((int32_t *)own::R(PARTS_B))[i] = 0;
+			}
+			for (int j = 0; j < 800; j += 8)
+			{
+				((int32_t *)own::R(DEBRIS_EVEN))[j] = 0;
+				((int32_t *)own::R(DEBRIS_ODD))[j] = 0;
+			}
+			fn<void (__cdecl *)()>(0x5095F0)();   // BattleCamera_ResetShotsAndReturnToSavedView
+			QueueTimUpload(TexFile());
+		}
+		else if (mode == 1)
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_EndTask)) + 0xC) = 0;
+		else if (mode == 2)
+		{
+			uint8_t *t = (uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_ShotTask));
+			if (t)
+			{
+				const int32_t count = ShotCount();
+				*(uint16_t *)(t + 0xC) = 0;
+				ShotCount() = count + 1;
+				*(uint16_t *)(t + 0xE) = (uint16_t)(count % 100);
+				*(uint16_t *)(t + 0x18) = (uint16_t)(ShotIndex() + 3);
+				*(uint16_t *)(t + 0x1A) = ctx->actions[0].targets[0];
+				ShotIndex() = ShotIndex() < 2 ? ShotIndex() + 1 : 0;
+			}
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -630,7 +714,7 @@ namespace canister195
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		PartLight(s);
-		*(uint32_t *)h = SEQ_Steam;
+		*(uint32_t *)h = fxp::sequence(P().seqs.steam, SEQ_Steam);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -695,7 +779,7 @@ namespace canister195
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 0x24) = 8;
 		PartLight(s);
-		*(uint32_t *)h = SEQ_BoneSmoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.bone_smoke, SEQ_BoneSmoke);
 		int32_t alive = 0;
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
@@ -785,7 +869,7 @@ namespace canister195
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag195_canister_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactFlashTask, n);)
-		ImpactModelDraw(n, 0, MODEL_ImpactFlash, n->counter >= 4, ImpactFlashFade(n->counter));
+		ImpactModelDraw(n, 0, fxp::model(P().models.impact_flash, MODEL_ImpactFlash), n->counter >= 4, ImpactFlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -881,7 +965,7 @@ namespace canister195
 		}
 		// 30 fps layer: see mag195_canister_shot_held.inc
 		FX_HELD(held_note_node(ORIG_ImpactConeTask, n);)
-		ImpactModelDraw(n, n->f18, MODEL_Cone, n->counter >= 0, ImpactConeFade(n->counter));
+		ImpactModelDraw(n, n->f18, fxp::model(P().models.cone, MODEL_Cone), n->counter >= 0, ImpactConeFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -1006,7 +1090,7 @@ namespace canister195
 			}
 		}
 		if (n->counter == 0x12) ApplyActionResultToTarget(Ctx()->actions->targets);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), (n->f0E & 1) ? 1 : 2, 0x80);
 		n->counter++;
 		return n->counter >= 25 ? TASK_END : 0;
 	}
@@ -1042,7 +1126,7 @@ namespace canister195
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)own::R(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -1056,11 +1140,11 @@ namespace canister195
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)own::R(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -1074,7 +1158,7 @@ namespace canister195
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1082,7 +1166,7 @@ namespace canister195
 			f->f18 = 0x800;
 			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = own::R(GHOSTS); a < own::R(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -1127,31 +1211,79 @@ namespace canister195
 		r->counter++;
 		return (aux == 0 && shots == 0 && (Flags() & 2)) ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "Irvine's Canister Shot: his animation set and chains, the afterimages of his gun, per shot the muzzle flashes and smoke, the canister's steam, bone smoke and debris, the action result and the gun sound; the closing action" },
+		};
+		static const Field FIELDS[] = {
+			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(CanisterShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact", "Impact", "The sprite sequence impact (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.impact), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.impact_smoke", "Impact smoke", "The sprite sequence impact smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.impact_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.steam", "Steam", "The sprite sequence steam (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.steam), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CanisterShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.ground_flash", "Ground flash model", "The prim model ground flash (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.ground_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.cone", "Cone model", "The prim model cone (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.ring", "Ring model", "The prim model ring (a mesh of 80 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.debris", "Debris model", "The prim model debris (a mesh of 14 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.debris), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.impact_flash", "Impact flash model", "The prim model impact flash (a mesh of 91 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CanisterShotParams, models.impact_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(CanisterShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(CanisterShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(CanisterShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag195_canister_shot()
 	{
+		fxp::register_params({ 195, "Canister Shot", &canister195::live, &canister195::GAME, sizeof(canister195::CanisterShotParams),
+		                       canister195::table::PARTS, (int)(sizeof(canister195::table::PARTS) / sizeof(canister195::table::PARTS[0])),
+		                       canister195::table::FIELDS, (int)(sizeof(canister195::table::FIELDS) / sizeof(canister195::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(canister195::ORIG_FileLoader, (void *)canister195::FileLoader);
+		own::note(canister195::ORIG_Setup, (void *)canister195::Setup);
+		own::note(canister195::ORIG_RootTask, (void *)canister195::RootTask);
 		register_port(canister195::ORIG_RootTask, (void *)canister195::RootTask, "195 RootTask", 195);
+		own::note(canister195::ORIG_StartTask, (void *)canister195::StartTask);
 		register_port(canister195::ORIG_StartTask, (void *)canister195::StartTask, "195 StartTask", 195);
+		own::note(canister195::ORIG_ShotTask, (void *)canister195::ShotTask);
 		register_port(canister195::ORIG_ShotTask, (void *)canister195::ShotTask, "195 ShotTask", 195);
+		own::note(canister195::ORIG_EndTask, (void *)canister195::EndTask);
 		register_port(canister195::ORIG_EndTask, (void *)canister195::EndTask, "195 EndTask", 195);
+		own::note(canister195::ORIG_FadeOutTask, (void *)canister195::FadeOutTask);
 		register_port(canister195::ORIG_FadeOutTask, (void *)canister195::FadeOutTask, "195 FadeOutTask", 195);
+		own::note(canister195::ORIG_FadeInTask, (void *)canister195::FadeInTask);
 		register_port(canister195::ORIG_FadeInTask, (void *)canister195::FadeInTask, "195 FadeInTask", 195);
+		own::note(canister195::ORIG_AfterimageTask, (void *)canister195::AfterimageTask);
 		register_port(canister195::ORIG_AfterimageTask, (void *)canister195::AfterimageTask, "195 AfterimageTask", 195);
+		own::note(canister195::ORIG_SmokeTask, (void *)canister195::SmokeTask);
 		register_port(canister195::ORIG_SmokeTask, (void *)canister195::SmokeTask, "195 SmokeTask", 195);
+		own::note(canister195::ORIG_GroundFlashTask, (void *)canister195::GroundFlashTask);
 		register_port(canister195::ORIG_GroundFlashTask, (void *)canister195::GroundFlashTask, "195 GroundFlashTask", 195);
+		own::note(canister195::ORIG_MuzzleConeTask, (void *)canister195::MuzzleConeTask);
 		register_port(canister195::ORIG_MuzzleConeTask, (void *)canister195::MuzzleConeTask, "195 MuzzleConeTask", 195);
+		own::note(canister195::ORIG_MuzzleRingTask, (void *)canister195::MuzzleRingTask);
 		register_port(canister195::ORIG_MuzzleRingTask, (void *)canister195::MuzzleRingTask, "195 MuzzleRingTask", 195);
+		own::note(canister195::ORIG_SteamTask, (void *)canister195::SteamTask);
 		register_port(canister195::ORIG_SteamTask, (void *)canister195::SteamTask, "195 SteamTask", 195);
+		own::note(canister195::ORIG_BoneSmokeTask, (void *)canister195::BoneSmokeTask);
 		register_port(canister195::ORIG_BoneSmokeTask, (void *)canister195::BoneSmokeTask, "195 BoneSmokeTask", 195);
+		own::note(canister195::ORIG_ImpactTask, (void *)canister195::ImpactTask);
 		register_port(canister195::ORIG_ImpactTask, (void *)canister195::ImpactTask, "195 ImpactTask", 195);
+		own::note(canister195::ORIG_ImpactSmokeTask, (void *)canister195::ImpactSmokeTask);
 		register_port(canister195::ORIG_ImpactSmokeTask, (void *)canister195::ImpactSmokeTask, "195 ImpactSmokeTask", 195);
+		own::note(canister195::ORIG_ImpactFlashTask, (void *)canister195::ImpactFlashTask);
 		register_port(canister195::ORIG_ImpactFlashTask, (void *)canister195::ImpactFlashTask, "195 ImpactFlashTask", 195);
+		own::note(canister195::ORIG_DebrisTask, (void *)canister195::DebrisTask);
 		register_port(canister195::ORIG_DebrisTask, (void *)canister195::DebrisTask, "195 DebrisTask", 195);
+		own::note(canister195::ORIG_ImpactConeTask, (void *)canister195::ImpactConeTask);
 		register_port(canister195::ORIG_ImpactConeTask, (void *)canister195::ImpactConeTask, "195 ImpactConeTask", 195);
 		// 30 fps layer: see mag195_canister_shot_held.inc
 		FX_HELD(register_mag195_held();)
 	}
+	FX_LAB_MODULE(register_mag195_canister_shot);
 }
 
 #ifdef FF8_FX_HELD

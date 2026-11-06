@@ -63,6 +63,9 @@
 // buffer base 0x2520DD8, context 0x2520DDC, master pool 0x2520DE0, packet cursor 0x2520DF4, the
 // queues 0x2520DF8 sprites / 0x2520E08 reflections / 0x2520E18 shots / 0x2520E28 sweep / 0x2520E38
 // master, the beam scale matrix 0x2520E48).
+// Fujin's described Reflect Beam (effect_135.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (ReflectBeamParams: the sound, the
+// damage tick).
 // NEVER-WRITTEN STACK WORDS: ShotTask's end point word +6 (entry esp - 0x42) is copied into the hit
 // point's 4th word (node +0x1A, 0x6AFF04) on a floor hit: the high half of the caster entity + 0x40
 // (see ShotResidue); that word then only reaches the GTE V0 pad. The 4th words of the
@@ -71,6 +74,9 @@
 // pad words are never read.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -80,15 +86,17 @@ namespace reflect135
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520DD0); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520DD8); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520DDC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520DF4); }
-	inline Mat4x3 &Scale() { return var<Mat4x3>(0x2520E48); }              // beam scale (diagonal only written)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2520DF8; }        // pool: magic buffer, 0x60 x 0x24
-	inline TaskQueue *QReflects() { return (TaskQueue *)0x2520E08; }       // pool: + 0xD80, 3 x 0x32C
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2520E18; }          // pool: + 0x1704, 8 x 0x26C
-	inline TaskQueue *QSweep() { return (TaskQueue *)0x2520E28; }          // pool: + 0x2A64, 1 x 0x2E0
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2520DD0)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2520DD8)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2520DDC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2520DF4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2520DD4)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2520E38); }           // 1 x 0x14
+	inline Mat4x3 &Scale() { return var<Mat4x3>(own::R(0x2520E48)); }              // beam scale (diagonal only written)
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2520DF8); }        // pool: magic buffer, 0x60 x 0x24
+	inline TaskQueue *QReflects() { return (TaskQueue *)own::R(0x2520E08); }       // pool: + 0xD80, 3 x 0x32C
+	inline TaskQueue *QShots() { return (TaskQueue *)own::R(0x2520E18); }          // pool: + 0x1704, 8 x 0x26C
+	inline TaskQueue *QSweep() { return (TaskQueue *)own::R(0x2520E28); }          // pool: + 0x2A64, 1 x 0x2E0
 
 	static const uint32_t ORIG_MasterTask = 0x6AEF50;
 	static const uint32_t ORIG_SweepTask = 0x6AF230;
@@ -110,6 +118,24 @@ namespace reflect135
 	static const uint32_t SEQ_Spark = 0x11FA2CC;
 	static const uint32_t SHOT_Bones = 0x1201EA8;        // 3 caster bones (29, 30, 32)
 	static const void *const SOUND_Beam = (const void *)0x1201D88;
+	static const uint32_t ORIG_FileLoader = 0x6AEEB0, ORIG_Setup = 0x6AEEA0;
+	static const uint32_t TEXTURE_NAME = 0x1201EB0, CAMERA = 0x1201D8C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ReflectBeamParams
+	{
+		uint32_t sound;                     // at the sweep's tick 0
+		struct { int16_t damage; } reflect; // the damage at this tick of a reflection task
+		struct { uint32_t reflect, shot, shot_hit, sweep; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t burst, glint, spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t beam; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const ReflectBeamParams GAME = { 0x1201D88, { 0x19 }, { MODEL_Reflect, MODEL_Shot, MODEL_ShotHit, MODEL_Sweep }, { SEQ_Burst, SEQ_Glint, SEQ_Spark }, { PRIM_Beam }, { TEXTURE_NAME, CAMERA } };
+	static ReflectBeamParams live = GAME;
+	static const ReflectBeamParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -310,7 +336,7 @@ namespace reflect135
 		Scale().m[0][0] = w;
 		Scale().m[2][2] = L;
 		MulMatrix3(M, &Scale());
-		*(uint32_t *)h = PRIM_Beam;
+		*(uint32_t *)h = fxp::model(P().model_data.beam, PRIM_Beam);
 		ComposeAffineTransform(&Camera(), M, M);
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
@@ -379,12 +405,32 @@ namespace reflect135
 		FieldFree(0xB4);
 	}
 
+	// File loader (0x6AEEB0) and setup (0x6AEEA0 -> 0x6AEED0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the texture, the magic buffer, the cast and its caster, the master, the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2520DE0), 0x14, 1);
+		Memset32(AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 1, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		return QMaster();
+	}
+
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_BURST, n);)
-		SpriteDraw(s->pos, s->counter, SEQ_Burst, 0x1770, -0x400);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.burst, SEQ_Burst), 0x1770, -0x400);
 		s->counter++;
 		return s->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -394,7 +440,7 @@ namespace reflect135
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_GLINT, n);)
-		SpriteDraw(s->pos, s->counter, SEQ_Glint, 0x800, -0x400);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.glint, SEQ_Glint), 0x800, -0x400);
 		s->counter++;
 		return s->counter < 7 ? 0 : TASK_END;
 	}
@@ -404,7 +450,7 @@ namespace reflect135
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_SPARK, n);)
-		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0x800, -0x200);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(P().seqs.spark, SEQ_Spark), 0x800, -0x200);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
 		s->vel[1] = (int16_t)(s->vel[1] + s->drag[1]);
 		s->vel[2] = (int16_t)(s->vel[2] + s->drag[2]);
@@ -437,7 +483,7 @@ namespace reflect135
 		{
 			if (!(r->counter & 1))
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_GlintTask);
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_GlintTask));
 				if (s)
 				{
 					s->counter = 0;
@@ -451,7 +497,7 @@ namespace reflect135
 		{
 			if (r->counter < 0x20 && !(r->counter & 3))
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_BurstTask);
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_BurstTask));
 				if (s)
 				{
 					s->counter = 0;
@@ -464,7 +510,7 @@ namespace reflect135
 			{
 				for (int k = 0; k < 4; k++)
 				{
-					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SparkTask);
+					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SparkTask));
 					if (!s) continue;
 					memcpy(s->pos, r->pos, 4);
 					memcpy(&s->pos[2], &r->pos[2], 4);
@@ -486,7 +532,7 @@ namespace reflect135
 			arg.morph = TexBase() + MORPH;
 			if (!prim::play((prim::Layout *)r->layout, PrimCallback, (int)&arg, 0)) return TASK_END;
 		}
-		if (r->counter == 0x19) DamageEntity(r->ent);
+		if (r->counter == P().reflect.damage) DamageEntity(r->ent);
 		r->counter++;
 		return 0;
 	}
@@ -564,7 +610,7 @@ namespace reflect135
 		Scale().m[2][2] = L;
 		MulMatrix3(m, &Scale());
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Beam;
+		*(uint32_t *)h = fxp::model(P().model_data.beam, PRIM_Beam);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
@@ -651,7 +697,7 @@ namespace reflect135
 						uint8_t *ent = w->ents[w->next];
 						if (X < *(const int16_t *)(ent + 0x1C))
 						{
-							ReflectNode *r = (ReflectNode *)AddTaskToQueue(QReflects(), ORIG_ReflectTask);
+							ReflectNode *r = (ReflectNode *)AddTaskToQueue(QReflects(), own::Fn(ORIG_ReflectTask));
 							if (r)
 							{
 								r->counter = 0;
@@ -659,7 +705,7 @@ namespace reflect135
 								r->ent = ent;
 								GetEffectSpawnPosition(ent, 0xF1, 0, r->pos);
 								r->pos[1] = (int16_t)(r->pos[1] + 0x80);
-								DecodeModelPrimLayout(MODEL_Reflect, r->layout, 0x310);
+								DecodeModelPrimLayout(fxp::layout(reflect135::P().layouts.reflect, MODEL_Reflect, 0x310), r->layout, 0x310);
 							}
 							w->next++;
 						}
@@ -671,18 +717,18 @@ namespace reflect135
 			FX_HELD(held_note_play(PLAY_SWEEP, n, (prim::Layout *)w->layout);)
 			Play(w->layout, P, -0x80);
 		}
-		if (w->counter == 0) BdPlaySE(SOUND_Beam, 0, 0x80);
+		if (w->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Beam), 0, 0x80);
 		const int32_t c = w->counter;
 		if ((uint32_t)c < 0x14 && !(c & 3))
 		{
-			ShotNode *s = (ShotNode *)AddTaskToQueue(QShots(), ORIG_ShotTask);
+			ShotNode *s = (ShotNode *)AddTaskToQueue(QShots(), own::Fn(ORIG_ShotTask));
 			if (s)
 			{
 				s->hit = 0;
 				s->counter = 0;
 				s->bone = (const int16_t *)SHOT_Bones + ((uint32_t)c >> 2) % 3u;
-				DecodeModelPrimLayout(MODEL_Shot, s->layout, 0x1F8);
-				DecodeModelPrimLayout(MODEL_ShotHit, s->hitlayout, 0x58);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.shot, MODEL_Shot, 0x1F8), s->layout, 0x1F8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.shot_hit, MODEL_ShotHit, 0x58), s->hitlayout, 0x58);
 			}
 		}
 		if (w->counter >= 0x39)
@@ -699,7 +745,7 @@ namespace reflect135
 	// ------------------------------------------------------------------
 	static void StartSweep()
 	{
-		SweepNode *w = (SweepNode *)AddTaskToQueue(QSweep(), ORIG_SweepTask);
+		SweepNode *w = (SweepNode *)AddTaskToQueue(QSweep(), own::Fn(ORIG_SweepTask));
 		Memset32(&w->counter, 0, 0xB5);
 		const ActionData *act = Ctx()->actions;
 		w->count = act->target_count;
@@ -737,7 +783,7 @@ namespace reflect135
 				}
 			}
 		}
-		DecodeModelPrimLayout(MODEL_Sweep, w->layout, 0x2B8);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.sweep, MODEL_Sweep, 0x2B8), w->layout, 0x2B8);
 	}
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)
@@ -779,20 +825,55 @@ namespace reflect135
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "sweep", "Sweep", "The beam sweeping from the caster, its shots, reflections, bursts, glints and sparks, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "sweep", "sound", "Sound", "", (uint32_t)offsetof(ReflectBeamParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "sweep", "reflect.damage", "Damage tick", "The damage at this tick of a reflection task", (uint32_t)offsetof(ReflectBeamParams, reflect.damage), fxp::I16, 0, 200 },
+			{ "sweep", "layouts.reflect", "Reflect", "The prim-model layout reflect (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.reflect), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "layouts.shot", "Shot", "The prim-model layout shot (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.shot), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "layouts.shot_hit", "Shot hit", "The prim-model layout shot hit (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.shot_hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "layouts.sweep", "Sweep", "The prim-model layout sweep (its models' animation)", (uint32_t)offsetof(ReflectBeamParams, layouts.sweep), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sweep", "seqs.burst", "Burst", "The sprite sequence burst (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sweep", "seqs.glint", "Glint", "The sprite sequence glint (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.glint), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sweep", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 9 frames: an edited one keeps as many)", (uint32_t)offsetof(ReflectBeamParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sweep", "model_data.beam", "Beam model", "The prim model beam (a mesh of 220 vertices, 160 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ReflectBeamParams, model_data.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "sweep", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ReflectBeamParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "sweep", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ReflectBeamParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag135_reflect_beam()
 	{
+		fxp::register_params({ 135, "Reflect Beam", &reflect135::live, &reflect135::GAME, sizeof(reflect135::ReflectBeamParams),
+		                       reflect135::table::PARTS, (int)(sizeof(reflect135::table::PARTS) / sizeof(reflect135::table::PARTS[0])),
+		                       reflect135::table::FIELDS, (int)(sizeof(reflect135::table::FIELDS) / sizeof(reflect135::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(reflect135::ORIG_FileLoader, (void *)reflect135::FileLoader);
+		own::note(reflect135::ORIG_Setup, (void *)reflect135::Setup);
+		own::note(reflect135::ORIG_MasterTask, (void *)reflect135::MasterTask);
 		register_port(reflect135::ORIG_MasterTask, (void *)reflect135::MasterTask, "135 MasterTask", 135);
+		own::note(reflect135::ORIG_SweepTask, (void *)reflect135::SweepTask);
 		register_port(reflect135::ORIG_SweepTask, (void *)reflect135::SweepTask, "135 SweepTask", 135);
+		own::note(reflect135::ORIG_ShotTask, (void *)reflect135::ShotTask);
 		register_port(reflect135::ORIG_ShotTask, (void *)reflect135::ShotTask, "135 ShotTask", 135);
+		own::note(reflect135::ORIG_ReflectTask, (void *)reflect135::ReflectTask);
 		register_port(reflect135::ORIG_ReflectTask, (void *)reflect135::ReflectTask, "135 ReflectTask", 135);
+		own::note(reflect135::ORIG_BurstTask, (void *)reflect135::BurstTask);
 		register_port(reflect135::ORIG_BurstTask, (void *)reflect135::BurstTask, "135 BurstTask", 135);
+		own::note(reflect135::ORIG_GlintTask, (void *)reflect135::GlintTask);
 		register_port(reflect135::ORIG_GlintTask, (void *)reflect135::GlintTask, "135 GlintTask", 135);
+		own::note(reflect135::ORIG_SparkTask, (void *)reflect135::SparkTask);
 		register_port(reflect135::ORIG_SparkTask, (void *)reflect135::SparkTask, "135 SparkTask", 135);
 		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(register_mag135_held();)
 	}
+	FX_LAB_MODULE(register_mag135_reflect_beam);
 }
 
 #ifdef FF8_FX_HELD

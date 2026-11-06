@@ -71,6 +71,9 @@
 //     it is written: no residue is modelled.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -80,12 +83,14 @@ namespace gravija311
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25055E8); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25073BC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25073D4); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25073D8; }      // pool: magic buffer, 0x40 x 0x1C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25073E8; }           // pool: + 0x700, 1 x 0x348
-	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(0x2507408); }          // m[0][0], m[1][1], TX, TY written
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25055E8)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25073BC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25073D4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25055E4)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25073F8); }           // 1 x 0x14
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x25073D8); }      // pool: magic buffer, 0x40 x 0x1C
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25073E8); }           // pool: + 0x700, 1 x 0x348
+	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(own::R(0x2507408)); }          // m[0][0], m[1][1], TX, TY written
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_MasterTask = 0x665380;
@@ -98,12 +103,29 @@ namespace gravija311
 	static const uint32_t MORPH_BYTES = VBUF - MORPH;
 	static const uint32_t ARENA_A = 0x1994;              // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x11994;
-	static uint8_t *const MESH = (uint8_t *)0x25055EC;   // the warp mesh (module copy): size, count, vertices, triangles, quads
+	inline uint8_t *Mesh() { return (uint8_t *)own::R(0x25055EC); }   // the warp mesh (module copy): size, count, vertices, triangles, quads
 	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x1020FC8;
 	static const int16_t *const LEN_TABLE = (const int16_t *)0x10211C8;  // 0x400 x s16
 	static const uint32_t MODEL_Main = 0x101CEB8;        // prim-model layout
 	static const uint32_t SEQ_Particle = 0x101AF28;      // sprite sequence
 	static const void *const SOUND_Gravija = (const void *)0x1021044;
+	static const uint32_t ORIG_FileLoader = 0x6652D0, ORIG_Setup = 0x6652C0;
+	static const uint32_t TEXTURE_NAME = 0x10231C8, CAMERA_ANIM = 0x1020D20;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GravijaParams
+	{
+		uint32_t sound;   // the main task's counter 0
+		struct { uint32_t main; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t particle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_101b0e8; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const GravijaParams GAME = { 0x1021044, { MODEL_Main }, { SEQ_Particle }, { 0x101B0E8 }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static GravijaParams live = GAME;
+	static const GravijaParams &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
@@ -688,7 +710,7 @@ namespace gravija311
 		v[2] = (int16_t)(v[2] + avg[2]);
 		TransformCameraByShadowRotation(v, 0x800, (int32_t)0xFFFFFE00);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = fxp::sequence(P().seqs.particle, SEQ_Particle);
 		*(uint16_t *)(h + 4) = 1;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -698,6 +720,27 @@ namespace gravija311
 	// ------------------------------------------------------------------
 	// Particle (0x665C30)
 	// ------------------------------------------------------------------
+	// File loader (0x6652D0) and setup (0x6652C0 -> _Init 0x6652F0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		memcpy((void *)own::R(0x25055EC), (const void *)fxp::model(P().model_data.at_101b0e8, 0x101B0E8, true), 0x1DD0);   // the warp mesh (the module's copy of its data block)
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x25055E0)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x25073C0), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
@@ -752,10 +795,10 @@ namespace gravija311
 				const int32_t fade = WarpFade(b);
 				GteSetRotMatrix(&WarpFrame());
 				GteSetTransVector(&WarpFrame());
-				Warp(MESH, MESH + 8, (z >> 2) + 0x11, fade, (uint8_t *)(TexBase() + VBUF));
+				Warp(Mesh(), Mesh() + 8, (z >> 2) + 0x11, fade, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
-		if (w->counter == 0) BdPlaySE(SOUND_Gravija, 0, 0x80);
+		if (w->counter == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gravija), 0, 0x80);
 		b = (int32_t)w->counter - 0x12;
 		if ((uint32_t)b < 0x32)
 		{
@@ -764,7 +807,7 @@ namespace gravija311
 			{
 				for (int i = 0; i < 0x40; i++)
 				{
-					ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+					ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 					if (!p) continue;
 					p->counter = 0;
 					p->life = (int16_t)(0x32 - (CrtRand() & 7));
@@ -813,13 +856,13 @@ namespace gravija311
 		}
 		if (m->counter == 1 && !m->started)
 		{
-			PrepareMesh(MESH);
+			PrepareMesh(Mesh());
 			m->started = 1;
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + MAIN), 0x348, 1);
 			InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x40);
-			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&w->counter, 0, 0xCF);
-			DecodeModelPrimLayout(MODEL_Main, w->layout, 0x2F4);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.main, MODEL_Main, 0x2F4), w->layout, 0x2F4);
 			w->count = (int16_t)Ctx()->actions[0].target_count;
 			w->avg[2] = 0;
 			w->avg[1] = 0;
@@ -848,16 +891,41 @@ namespace gravija311
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The grey screen flash, the layout at the targets' average point, the screen warp around every target, the particles, the sound; the action results" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "The main task's counter 0", (uint32_t)offsetof(GravijaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.main", "Main", "The prim-model layout main (its models' animation)", (uint32_t)offsetof(GravijaParams, layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.particle", "Particle", "The sprite sequence particle (a flipbook of 50 frames: an edited one keeps as many)", (uint32_t)offsetof(GravijaParams, seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "model_data.at_101b0e8", "Model 101B0E8", "The prim model at 0x101B0E8 (a mesh of 241 vertices, 240 primitives: its code copies it whole into a block of its size: an edited one keeps its vertices and its size (move vertices, change colours and texture corners))", (uint32_t)offsetof(GravijaParams, model_data.at_101b0e8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(GravijaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(GravijaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag311_gravija()
 	{
+		fxp::register_params({ 311, "Gravija", &gravija311::live, &gravija311::GAME, sizeof(gravija311::GravijaParams),
+		                       gravija311::table::PARTS, (int)(sizeof(gravija311::table::PARTS) / sizeof(gravija311::table::PARTS[0])),
+		                       gravija311::table::FIELDS, (int)(sizeof(gravija311::table::FIELDS) / sizeof(gravija311::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(gravija311::ORIG_FileLoader, (void *)gravija311::FileLoader);
+		own::note(gravija311::ORIG_Setup, (void *)gravija311::Setup);
+		own::note(gravija311::ORIG_MasterTask, (void *)gravija311::MasterTask);
 		register_port(gravija311::ORIG_MasterTask, (void *)gravija311::MasterTask, "311 MasterTask", 311);
+		own::note(gravija311::ORIG_MainTask, (void *)gravija311::MainTask);
 		register_port(gravija311::ORIG_MainTask, (void *)gravija311::MainTask, "311 MainTask", 311);
+		own::note(gravija311::ORIG_ParticleTask, (void *)gravija311::ParticleTask);
 		register_port(gravija311::ORIG_ParticleTask, (void *)gravija311::ParticleTask, "311 ParticleTask", 311);
 		// 30 fps layer: see mag311_gravija_held.inc
 		FX_HELD(register_mag311_held();)
 	}
+	FX_LAB_MODULE(register_mag311_gravija);
 }
 
 #ifdef FF8_FX_HELD

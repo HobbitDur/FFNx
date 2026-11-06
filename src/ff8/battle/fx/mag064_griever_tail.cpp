@@ -52,8 +52,14 @@
 // Module globals: 0x2545018..0x254509C (file, context, caster entity, sprite / layout / script /
 // master / root queues, root pool, packet cursor 0x254508C, magic buffer base 0x2545098). The pools,
 // the packet arenas and the layout vertex blend buffer (+ 0x26F20) are in the magic buffer.
+// Fujin's described model breaking apart (effect_064.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the setup and the file loader ported below; its parameters (TailParams: the
+// sound and its tick, the voice release and end ticks, the flashes' ticks).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -63,14 +69,16 @@ namespace gtail064
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2545020); }          // caster entity (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x254508C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2545098); }          // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2545020)); }          // caster entity (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x254508C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2545098)); }          // Magic_TextureOFF (magic buffer)
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }       // battle_texture_data_ptr (frame packet arena)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2545028; }          // pool: magic buffer + 0x6120, 128 x 0x1C
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2545038; }          // pool: magic buffer + 0x7A0, 16 x 0x598
-	inline TaskQueue *QScripts() { return (TaskQueue *)0x2545048; }          // pool: magic buffer, 18 x 0x2C
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2545058; }           // pool: magic buffer + 0x318, 1 x 0x488
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2545028); }          // pool: magic buffer + 0x6120, 128 x 0x1C
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x2545038); }          // pool: magic buffer + 0x7A0, 16 x 0x598
+	inline TaskQueue *QScripts() { return (TaskQueue *)own::R(0x2545048); }          // pool: magic buffer, 18 x 0x2C
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2545058); }           // pool: magic buffer + 0x318, 1 x 0x488
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2545068); }             // 1 x 0x14
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2545018)); }          // the effect's file (its TIM)
 	inline uint32_t OT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6E5260;
@@ -82,6 +90,22 @@ namespace gtail064
 	static const uint32_t SEQUENCES = 0x13433C0;      // sprite sequence pointers
 	static const void *const SOUND_Voice = (const void *)0x1342EF8;
 	static const void *const SOUND_Start = (const void *)0x1342EF4;
+	static const uint32_t ORIG_FileLoader = 0x6E5190, ORIG_Setup = 0x6E5180;
+	static const uint32_t TEXTURE_NAME = 0x134BF90, CAMERA = 0x1342D40;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct TailParams
+	{
+		struct { uint32_t sound; int16_t sound_tick, voice, end; } master;   // its sound at its tick; the voice slot released / the end at these ticks
+		struct { int16_t a, b, c; } flashes;                                  // the white screen flashes' first ticks (4 ticks each)
+		struct { uint32_t l0, l1; } layouts;                                  // the bone scripts' prim-model layouts (LAYOUTS entries 0, 1)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const TailParams GAME = { { 0x1342EF4, 10, 0xA6, 0xAA }, { 0x13, 0x18, 0x2B }, { 0x13433C8, 0x1343C30 }, { TEXTURE_NAME, CAMERA } };
+	static TailParams live = GAME;
+	static const TailParams &PT() { return live; }
 	// the 18 bone scripts started at counter 0 (first word: pose entry)
 	static const uint32_t SCRIPTS[18] = {
 		0x134B560, 0x134B7FC, 0x134B880, 0x134B904, 0x134B988, 0x134BA0C, 0x134BA90, 0x134BB14, 0x134BB98,
@@ -668,7 +692,7 @@ namespace gtail064
 		const int32_t turn = ip[4];
 		const int32_t depth = ip[5];
 		ip += 6;
-		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
+		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
 		if (!L) return ip;
 		uint8_t *anim = entity + 0x60;
 		PoseBones(anim, pose);
@@ -684,7 +708,10 @@ namespace gtail064
 		L->depth = (int16_t)depth;
 		L->objs = LAYOUTS + mul32(layout, 12) + 8;
 		BuildBoneMatricesFromPose(anim);
-		DecodeModelPrimLayout(*(const uint32_t *)(LAYOUTS + mul32(layout, 12)), L->layout, *(const int32_t *)(LAYOUTS + mul32(layout, 12) + 4));
+		const uint32_t game = *(const uint32_t *)(LAYOUTS + mul32(layout, 12));
+		const int32_t size = *(const int32_t *)(LAYOUTS + mul32(layout, 12) + 4);
+		const uint32_t data = layout == 0 ? fxp::layout(PT().layouts.l0, game, size) : layout == 1 ? fxp::layout(PT().layouts.l1, game, size) : game;
+		DecodeModelPrimLayout(data, L->layout, size);
 		return ip;
 	}
 
@@ -694,7 +721,7 @@ namespace gtail064
 	{
 		const int32_t mode = *ip++;
 		SpriteNode *s;
-		if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+		if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 		else s = (SpriteNode *)entity;
 		if (!s) return ip + 10;
 		PoseBones(entity + 0x60, pose);
@@ -746,7 +773,7 @@ namespace gtail064
 		while (count-- != 0)
 		{
 			SpriteNode *s = (SpriteNode *)entity;
-			if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+			if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 			if (!s) break;
 			s->pos[0] = (int16_t)(Spread(r[0], r[1]) + at[0]);
 			s->pos[1] = (int16_t)(Spread(r[2], r[3]) + at[1]);
@@ -901,7 +928,7 @@ namespace gtail064
 	// 0x6E5D80: a bone script moving pose entry script[0]
 	static void StartScript(uint8_t *entity, PoseEntry *pose, const int16_t *script)
 	{
-		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), ORIG_ScriptTask);
+		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), own::Fn(ORIG_ScriptTask));
 		// (8 dwords from +0x14: the last 8 bytes are the next pool node's header - for the last node
 		// of the pool the master node's flags / next words)
 		Memset32(&s->cur, 0, 8);
@@ -917,7 +944,7 @@ namespace gtail064
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		if (m->counter >= 0xAA)
+		if (m->counter >= PT().master.end)
 		{
 			*(uint16_t *)Caster() &= 0xFFF7;
 			*(uint32_t *)(Caster() + 0x7C) = 3;
@@ -932,7 +959,7 @@ namespace gtail064
 		{
 			for (int i = 0; i < 18; i++) StartScript(Caster(), m->pose, (const int16_t *)SCRIPTS[i]);
 		}
-		static const int16_t TILES[3] = { 0x13, 0x18, 0x2B };
+		const int16_t TILES[3] = { PT().flashes.a, PT().flashes.b, PT().flashes.c };
 		for (int i = 0; i < 3; i++)
 		{
 			const int32_t t = m->counter - TILES[i];
@@ -950,10 +977,38 @@ namespace gtail064
 			CasterDraw(Caster(), m->pose);
 			*Caster() |= 4;
 		}
-		if (m->counter == 10) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (m->counter == 0xA6) ReleaseVoice(m->voice);
+		if (m->counter == PT().master.sound_tick) BdPlaySE((const void *)fxp::sound(PT().master.sound, (uint32_t)SOUND_Start), 0, 0x80);
+		if (m->counter == PT().master.voice) ReleaseVoice(m->voice);
 		m->counter++;
 		return 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x6E5190) and setup (0x6E5180 -> 0x6E51B0): the game runs its own; Fujin's programs these
+	// (its memory may be a copy's): the texture, the magic buffer, the cast, its caster (its flags 0x0C off, all
+	// its objects shown), the root, the party's normal draw hidden, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PT().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x254501C)) = (uint32_t)ctx;
+		Caster() = Entity(ctx->attacker);
+		*(uint16_t *)Caster() &= 0xFFF3;
+		*(uint32_t *)(Caster() + 0x7C) = 0xFFFFFFFF;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2545078), 0x14, 1);
+		Memset32(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1, 0, 2);
+		*(uint16_t *)Entity(0) |= 4;
+		*(uint16_t *)Entity(1) |= 4;
+		*(uint16_t *)Entity(2) |= 4;
+		PlayCameraAnimation((const void *)fxp::camera(PT().res.camera, CAMERA));
+		return QRoot();
 	}
 
 	// ------------------------------------------------------------------
@@ -981,7 +1036,7 @@ namespace gtail064
 			InitTaskQueuePool(QScripts(), (void *)TexBase(), 0x2C, 0x12);
 			InitTaskQueuePool(QLayouts(), (void *)(TexBase() + 0x7A0), 0x598, 0x10);
 			InitTaskQueuePool(QSprites(), (void *)(TexBase() + 0x6120), 0x1C, 0x80);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x11F);
 			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
 		}
@@ -1000,18 +1055,55 @@ namespace gtail064
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define TP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(TailParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "Its sound, the 18 bone scripts breaking the caster's model apart (layouts, sprites), the white flashes, the caster drawn with its pose offsets; the end" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flashes", "Flashes", "The three white screen flashes' first ticks (each fades over 4 ticks)" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "master.sound", "Sound", "", (uint32_t)offsetof(TailParams, master.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			TP("master", master.sound_tick, "Sound tick", "", 0, 400),
+			TP("master", master.voice, "Voice release", "The voice slot released at this tick", 0, 400),
+			TP("master", master.end, "End tick", "The caster shown whole again and the party drawn at this tick", 0, 400),
+			TP("master", flashes.a, "First", "", 0, 400),
+			TP("master", flashes.b, "Second", "", 0, 400),
+			TP("master", flashes.c, "Third", "", 0, 400),
+			{ "master", "layouts.l0", "Layout 0", "The bone scripts' prim-model layout 0 (its models' animation)", (uint32_t)offsetof(TailParams, layouts.l0), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "layouts.l1", "Layout 1", "The bone scripts' prim-model layout 1 (its models' animation)", (uint32_t)offsetof(TailParams, layouts.l1), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(TailParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(TailParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+#undef TP
+	}
 }
 
 	void register_mag064_griever_tail()
 	{
+		fxp::register_params({ 64, "Model breaking apart", &gtail064::live, &gtail064::GAME, sizeof(gtail064::TailParams),
+		                       gtail064::table::PARTS, (int)(sizeof(gtail064::table::PARTS) / sizeof(gtail064::table::PARTS[0])),
+		                       gtail064::table::FIELDS, (int)(sizeof(gtail064::table::FIELDS) / sizeof(gtail064::table::FIELDS[0])),
+		                       gtail064::table::GROUPS, (int)(sizeof(gtail064::table::GROUPS) / sizeof(gtail064::table::GROUPS[0])) });
+		own::note(gtail064::ORIG_FileLoader, (void *)gtail064::FileLoader);
+		own::note(gtail064::ORIG_Setup, (void *)gtail064::Setup);
+		own::note(gtail064::ORIG_RootTask, (void *)gtail064::RootTask);
 		register_port(gtail064::ORIG_RootTask, (void *)gtail064::RootTask, "T064 RootTask", 64);
+		own::note(gtail064::ORIG_MasterTask, (void *)gtail064::MasterTask);
 		register_port(gtail064::ORIG_MasterTask, (void *)gtail064::MasterTask, "T064 MasterTask", 64);
+		own::note(gtail064::ORIG_ScriptTask, (void *)gtail064::ScriptTask);
 		register_port(gtail064::ORIG_ScriptTask, (void *)gtail064::ScriptTask, "T064 ScriptTask", 64);
+		own::note(gtail064::ORIG_LayoutTask, (void *)gtail064::LayoutTask);
 		register_port(gtail064::ORIG_LayoutTask, (void *)gtail064::LayoutTask, "T064 LayoutTask", 64);
+		own::note(gtail064::ORIG_SpriteTask, (void *)gtail064::SpriteTask);
 		register_port(gtail064::ORIG_SpriteTask, (void *)gtail064::SpriteTask, "T064 SpriteTask", 64);
 		// 30 fps layer: see mag064_griever_tail_held.inc
 		FX_HELD(register_mag064_held();)
 	}
+	FX_LAB_MODULE(register_mag064_griever_tail);
 }
 
 #ifdef FF8_FX_HELD

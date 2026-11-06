@@ -92,6 +92,9 @@
 //   texture base, packet cursor).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -109,17 +112,20 @@ namespace hyper198
 	inline int16_t S16v(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 
 	// --- module globals ---
-	inline int32_t &EndTick() { return var<int32_t>(0x225A908); }      // afterimages end here (999999 until EndTask)
-	inline int32_t &ModuleTick() { return var<int32_t>(0x225A90C); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x225DDA8); }       // 1 ready, 2 ended, 4 a shot is busy
-	inline CastContext *&Ctx() { return var<CastContext *>(0x225EBD0); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x22601B8); }
-	inline int32_t &IdCount() { return var<int32_t>(0x2260458); }       // the next particle id - 1
-	inline uint32_t &TexBase() { return var<uint32_t>(0x226045C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2260460); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x225B768; }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x225B778; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x225DDB0; }
+	inline int32_t &EndTick() { return var<int32_t>(own::R(0x225A908)); }      // afterimages end here (999999 until EndTask)
+	inline int32_t &ModuleTick() { return var<int32_t>(own::R(0x225A90C)); }
+	inline uint32_t &Flags() { return var<uint32_t>(own::R(0x225DDA8)); }       // 1 ready, 2 ended, 4 a shot is busy
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x225EBD0)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x22601B8)); }
+	inline int32_t &IdCount() { return var<int32_t>(own::R(0x2260458)); }       // the next particle id - 1
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x226045C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2260460)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x22601BC)); }          // the effect's file (its TIM)
+	inline int32_t &ShotIndex() { return var<int32_t>(own::R(0x225A914)); }          // 0, 1, 2 cycling: chain 3 + it
+	inline int32_t &ShotCount() { return var<int32_t>(own::R(0x2260454)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x225B768); }
+	inline TaskQueue *QShots() { return (TaskQueue *)own::R(0x225B778); }
+	inline TaskQueue *QAux() { return (TaskQueue *)own::R(0x225DDB0); }
 	static const uint32_t PARTS_A = 0x225B788, PARTS_B = 0x225CA68;  // 200 x 0x18 each
 	static const int32_t PARTS_N = 200;
 	static const uint32_t SHOTS = 0x225EBD8;                         // 100 x 0x38 shot records
@@ -143,6 +149,23 @@ namespace hyper198
 	static const uint32_t ORIG_ImpactSparkTask = 0x5ADE70;
 	static const uint32_t ORIG_ImpactSmokeTask = 0x5AE240;
 	static const uint32_t ORIG_GroundRingTask = 0x5AE590;
+	static const uint32_t ORIG_FileLoader = 0x5AA3C0, ORIG_Setup = 0x5AA3E0;
+	static const uint32_t TEXTURE_NAME = 0xCFB33C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct HyperShotParams
+	{
+		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t bone_smoke, spark, smoke; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t muzzle_flash, cone, beam, beam_shadow, ground_ring; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const HyperShotParams GAME = { 0xCFB2FC, { 0xCF6054, 0xCF6200, 0xCF5E44 }, { 0xCF9834, 0xCFA52C, 0xCF6394, 0xCF8D2C, 0xCFAE64 }, { TEXTURE_NAME, 0xCF3A78 }, { 0xCFB328 } };
+	static HyperShotParams live = GAME;
+	static const HyperShotParams &P() { return live; }
 
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xCF3A78;
@@ -238,11 +261,11 @@ namespace hyper198
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Hyper Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x38 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Hyper Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x38 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(own::R(SHOTS) + 0x38 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(own::R(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
-	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? PARTS_B : PARTS_A); }
+	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, own::Fn(fn)); }   // (a copy: the port's thunk)
+	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? own::R(PARTS_B) : own::R(PARTS_A)); }
 	inline int32_t FindFree(const Particle *arr) { for (int32_t i = 0; i < PARTS_N; i++) if (arr[i].id == 0) return i; return -1; }
 }
 }
@@ -1129,7 +1152,7 @@ namespace hyper198
 		uint8_t *h = (uint8_t *)FieldAlloc(0x7C);
 		*(uint16_t *)(h + 0x1A) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
-		*(uint32_t *)h = MODEL_MuzzleFlash;
+		*(uint32_t *)h = fxp::model(P().models.muzzle_flash, MODEL_MuzzleFlash);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(uint16_t *)(h + 0x18) = 0;
@@ -1150,7 +1173,7 @@ namespace hyper198
 	{
 		Mat4x3 m;
 		MuzzleMatrix(n, &m);
-		uint8_t *h = ModelHeader(0x5C, MODEL_Cone, faded, fade);
+		uint8_t *h = ModelHeader(0x5C, fxp::model(P().models.cone, MODEL_Cone), faded, fade);
 		PacketCursor() = PrimRender((uint32_t)h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x5C);
 	}
@@ -1182,7 +1205,7 @@ namespace hyper198
 		s->m.t[2] = n->f20;
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(0x58, MODEL_Beam, faded, fade);
+		uint8_t *h = ModelHeader(0x58, fxp::model(P().models.beam, MODEL_Beam), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		int32_t d[4];
 		d[0] = s->dir[0];
@@ -1204,7 +1227,7 @@ namespace hyper198
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_BeamShadow;
+		*(uint32_t *)h = fxp::model(P().models.beam_shadow, MODEL_BeamShadow);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1232,7 +1255,7 @@ namespace hyper198
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		uint8_t *h = ModelHeader(0x58, MODEL_GroundRing, faded, fade);
+		uint8_t *h = ModelHeader(0x58, fxp::model(P().models.ground_ring, MODEL_GroundRing), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1288,6 +1311,62 @@ namespace hyper198
 	// Tasks
 	// ------------------------------------------------------------------
 	// MuzzleFlashTask (0x5AABE0): 16 ticks, roll, scale + step, step - step / 4, faded from counter 8, v scroll -16 * counter
+	// File loader (0x5AA3C0) and setup (_Init 0x5AA3E0 + SetupByMode): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's). The setup runs again for each trigger press of the Shot window (the battle's
+	// BattleActionSequence_Tick_Shot 0x50BEE0: the cast context's sequence mode +8): 0 the opening - the root, the shot
+	// and aux queues, StartTask, the flags and counts cleared, both particle arrays freed, the camera's shots reset, the
+	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		const uint8_t mode = ((const uint8_t *)ctx)[8];
+		if (mode == 0)
+		{
+			InitTaskQueuePool(QRoot(), (void *)own::R(0x225A918), 0x10, 4);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+			InitTaskQueuePool(QAux(), (void *)own::R(0x225DDC0), 0x24, 100);
+			InitTaskQueuePool(QShots(), (void *)own::R(0x225A958), 0x24, 100);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_StartTask)) + 0xC) = 0;
+			Flags() = 0;
+			ShotIndex() = 0;
+			ShotCount() = 0;
+			IdCount() = 0;
+			ModuleTick() = 0;
+			for (int i = 0; i < 1200; i += 6)
+			{
+				((int32_t *)own::R(PARTS_A))[i] = 0;
+				((int32_t *)own::R(PARTS_B))[i] = 0;
+			}
+			fn<void (__cdecl *)()>(0x5095F0)();   // BattleCamera_ResetShotsAndReturnToSavedView
+			QueueTimUpload(TexFile());
+		}
+		else if (mode == 1)
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_EndTask)) + 0xC) = 0;
+		else if (mode == 2)
+		{
+			uint8_t *t = (uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_ShotTask));
+			if (t)
+			{
+				const int32_t count = ShotCount();
+				*(uint16_t *)(t + 0xC) = 0;
+				ShotCount() = count + 1;
+				*(uint16_t *)(t + 0xE) = (uint16_t)(count % 100);
+				*(uint16_t *)(t + 0x18) = (uint16_t)(ShotIndex() + 3);
+				*(uint16_t *)(t + 0x1A) = ctx->actions[0].targets[0];
+				ShotIndex() = ShotIndex() < 2 ? ShotIndex() + 1 : 0;
+			}
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl MuzzleFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -1387,7 +1466,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_BoneSmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_BoneSmoke);
+		SparkBegin(s, h, fxp::sequence(P().seqs.bone_smoke, SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1460,7 +1539,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_SprayTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Spark);
+		SparkBegin(s, h, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1544,7 +1623,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_ImpactSparkTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Spark);
+		SparkBegin(s, h, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1611,7 +1690,7 @@ namespace hyper198
 		FX_HELD(held_note_node(ORIG_ImpactSmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Smoke);
+		SparkBegin(s, h, fxp::sequence(P().seqs.smoke, SEQ_Smoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1746,7 +1825,7 @@ namespace hyper198
 			r->f1C = third;
 		}
 		if (n->counter == 0xA) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), (n->f0E & 1) ? 1 : 2, 0x80);
 		n->counter++;
 		return n->counter >= 25 ? TASK_END : 0;
 	}
@@ -1782,7 +1861,7 @@ namespace hyper198
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)own::R(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -1796,11 +1875,11 @@ namespace hyper198
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)own::R(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -1814,7 +1893,7 @@ namespace hyper198
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1822,7 +1901,7 @@ namespace hyper198
 			f->f18 = 0x800;
 			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = own::R(GHOSTS); a < own::R(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -1867,28 +1946,71 @@ namespace hyper198
 		r->counter++;
 		return (aux == 0 && shots == 0 && (Flags() & 2)) ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "Irvine's Hyper Shot: his animation set and chains, the afterimages of his gun, per shot the muzzle flashes and smoke, the hyper beam and its blast, the action result and the gun sound; the closing action" },
+		};
+		static const Field FIELDS[] = {
+			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(HyperShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.bone_smoke", "Bone smoke", "The sprite sequence bone smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.bone_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(HyperShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.muzzle_flash", "Muzzle flash model", "The prim model muzzle flash (a mesh of 98 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.muzzle_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.cone", "Cone model", "The prim model cone (a mesh of 80 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam", "Beam model", "The prim model beam (a mesh of 350 vertices, 328 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.beam_shadow", "Beam shadow model", "The prim model beam shadow (a mesh of 104 vertices, 82 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.beam_shadow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.ground_ring", "Ground ring model", "The prim model ground ring (a mesh of 43 vertices, 30 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(HyperShotParams, models.ground_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(HyperShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(HyperShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(HyperShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag198_hyper_shot()
 	{
+		fxp::register_params({ 198, "Hyper Shot", &hyper198::live, &hyper198::GAME, sizeof(hyper198::HyperShotParams),
+		                       hyper198::table::PARTS, (int)(sizeof(hyper198::table::PARTS) / sizeof(hyper198::table::PARTS[0])),
+		                       hyper198::table::FIELDS, (int)(sizeof(hyper198::table::FIELDS) / sizeof(hyper198::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(hyper198::ORIG_FileLoader, (void *)hyper198::FileLoader);
+		own::note(hyper198::ORIG_Setup, (void *)hyper198::Setup);
+		own::note(hyper198::ORIG_RootTask, (void *)hyper198::RootTask);
 		register_port(hyper198::ORIG_RootTask, (void *)hyper198::RootTask, "198 RootTask", 198);
+		own::note(hyper198::ORIG_StartTask, (void *)hyper198::StartTask);
 		register_port(hyper198::ORIG_StartTask, (void *)hyper198::StartTask, "198 StartTask", 198);
+		own::note(hyper198::ORIG_ShotTask, (void *)hyper198::ShotTask);
 		register_port(hyper198::ORIG_ShotTask, (void *)hyper198::ShotTask, "198 ShotTask", 198);
+		own::note(hyper198::ORIG_EndTask, (void *)hyper198::EndTask);
 		register_port(hyper198::ORIG_EndTask, (void *)hyper198::EndTask, "198 EndTask", 198);
+		own::note(hyper198::ORIG_FadeOutTask, (void *)hyper198::FadeOutTask);
 		register_port(hyper198::ORIG_FadeOutTask, (void *)hyper198::FadeOutTask, "198 FadeOutTask", 198);
+		own::note(hyper198::ORIG_FadeInTask, (void *)hyper198::FadeInTask);
 		register_port(hyper198::ORIG_FadeInTask, (void *)hyper198::FadeInTask, "198 FadeInTask", 198);
+		own::note(hyper198::ORIG_AfterimageTask, (void *)hyper198::AfterimageTask);
 		register_port(hyper198::ORIG_AfterimageTask, (void *)hyper198::AfterimageTask, "198 AfterimageTask", 198);
+		own::note(hyper198::ORIG_MuzzleFlashTask, (void *)hyper198::MuzzleFlashTask);
 		register_port(hyper198::ORIG_MuzzleFlashTask, (void *)hyper198::MuzzleFlashTask, "198 MuzzleFlashTask", 198);
+		own::note(hyper198::ORIG_BoneSmokeTask, (void *)hyper198::BoneSmokeTask);
 		register_port(hyper198::ORIG_BoneSmokeTask, (void *)hyper198::BoneSmokeTask, "198 BoneSmokeTask", 198);
+		own::note(hyper198::ORIG_BeamTask, (void *)hyper198::BeamTask);
 		register_port(hyper198::ORIG_BeamTask, (void *)hyper198::BeamTask, "198 BeamTask", 198);
+		own::note(hyper198::ORIG_SprayTask, (void *)hyper198::SprayTask);
 		register_port(hyper198::ORIG_SprayTask, (void *)hyper198::SprayTask, "198 SprayTask", 198);
+		own::note(hyper198::ORIG_MuzzleConeTask, (void *)hyper198::MuzzleConeTask);
 		register_port(hyper198::ORIG_MuzzleConeTask, (void *)hyper198::MuzzleConeTask, "198 MuzzleConeTask", 198);
+		own::note(hyper198::ORIG_ImpactSparkTask, (void *)hyper198::ImpactSparkTask);
 		register_port(hyper198::ORIG_ImpactSparkTask, (void *)hyper198::ImpactSparkTask, "198 ImpactSparkTask", 198);
+		own::note(hyper198::ORIG_ImpactSmokeTask, (void *)hyper198::ImpactSmokeTask);
 		register_port(hyper198::ORIG_ImpactSmokeTask, (void *)hyper198::ImpactSmokeTask, "198 ImpactSmokeTask", 198);
+		own::note(hyper198::ORIG_GroundRingTask, (void *)hyper198::GroundRingTask);
 		register_port(hyper198::ORIG_GroundRingTask, (void *)hyper198::GroundRingTask, "198 GroundRingTask", 198);
 		// 30 fps layer: see mag198_hyper_shot_held.inc
 		FX_HELD(register_mag198_held();)
 	}
+	FX_LAB_MODULE(register_mag198_hyper_shot);
 }
 
 #ifdef FF8_FX_HELD

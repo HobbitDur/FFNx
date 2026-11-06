@@ -27,8 +27,13 @@
 // No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
 // Module globals: 0x2557000..0x2557098 (bolt pool 3 x 0x1C, texture base, context, root pool
 // 1 x 0x14, packet cursor 0x2557074, queues 0x2557078).
+// Built from the parts library (fx_bolt.h: the screen quad, the layers at the target's point, the
+// ground layer). Parameters (ThunderParams, fx_params.h): the numbers above, defaults = the game's;
+// the parts are tagged (FX_PART).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_bolt.h"
 
 namespace ff8fx
 {
@@ -36,6 +41,7 @@ namespace thunder003
 {
 	using namespace eng;
 	using namespace magc;
+	using namespace layouts;
 
 	// --- module globals ---
 	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x2557078); } // .first = root, .second = bolts
@@ -49,23 +55,65 @@ namespace thunder003
 	static const int BOLT_POOL_COUNT = 3;
 	static const void *const SOUND_Thunder = (const void *)0x15244D0;
 	static const void *const FLASH_Colour = (const void *)0x15244D4; // flash quad colour word
-	static const uint32_t SEQ_Strike = 0x1522FB0;   // frames 0..6
-	static const uint32_t SEQ_Upper = 0x1523204;    // frames 2..8, 200 units lower
-	static const uint32_t SEQ_Core = 0x1523458;     // frames 1..9
-	static const uint32_t SEQ_Arc = 0x1523578;      // frames 3..11
-	static const uint32_t SEQ_Glow = 0x1523684;     // frames 6..14
-	static const uint32_t SEQ_Flash = 0x15237A4;    // frames 1..9
-	static const uint32_t SEQ_Ground = 0x1523DE0;   // frames 1..13, tilted plane at the target's feet
-	static const uint32_t SEQ_Smoke = 0x1523928;    // frames 5..23
+	static const uint32_t SEQ_Strike = 0x1522FB0;
+	static const uint32_t SEQ_Upper = 0x1523204;
+	static const uint32_t SEQ_Core = 0x1523458;
+	static const uint32_t SEQ_Arc = 0x1523578;
+	static const uint32_t SEQ_Glow = 0x1523684;
+	static const uint32_t SEQ_Flash = 0x15237A4;
+	static const uint32_t SEQ_Ground = 0x1523DE0;
+	static const uint32_t SEQ_Smoke = 0x1523928;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-
-	// engine functions not in fx_port.h / mag_common.h
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (0xF1 = centre)
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); } // IR = MAC = R * V0 (no translation)
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
+	// ------------------------------------------------------------------
+	// Parameters (fx_params.h): the game's values by default
+	// ------------------------------------------------------------------
+	struct ThunderParams
+	{
+		struct Window { int16_t from, frames; };   // a layer drawn over bolt ticks from .. from + frames - 1, its frame = tick - from
+		struct Timing
+		{
+			int16_t every;          // the root starts the next action's bolt every this many ticks...
+			int16_t busy_tick;      // ...not while a bolt at this tick or before runs on that target (-1: never)
+			int16_t bone;           // the target's effect point the bolt is at
+			struct { int16_t base, shift; } offset;   // the layers' camera offset: (base - the target's size) >> shift
+			uint32_t sound;         // sound block (FF8_EN.exe data): BdPlaySE3D reads its world sound id
+			int16_t sound_tick;     // the sound plays at the bolt's point...
+			int16_t sound_volume;   // ...at this volume
+			int16_t damage_tick;    // the action's target takes the result
+			int16_t end_tick;       // the bolt ends
+		} timing;
+		struct Flash
+		{
+			Window window;          // a flat semi-transparent quad over the whole screen
+		} flash;
+		struct Strike
+		{
+			int16_t rot;            // the layers' camera scale (4096: the sequences' own size)
+			Window strike, upper;   // the strike, its upper copy...
+			int16_t lift;           // ...that one lowered by this (y + lift)
+			Window core, arc, glow, spark;
+		} strike;
+		struct Ground
+		{
+			Window window;          // a layer on a plane at the target's feet...
+			int16_t tilt;           // ...turned about x...
+			int16_t push;           // ...pushed this far from the camera
+		} ground;
+		struct Smoke
+		{
+			Window window;
+		} smoke;
+	};
+	static const ThunderParams DEFAULTS = {
+		{ 5, 0xF, 0xF1, { -0x1000, 2 }, (uint32_t)SOUND_Thunder, 1, 0x101, 5, 0x19 },
+		{ { 0, 1 } },
+		{ 0x1000, { 1, 7 }, { 3, 7 }, 0xC8, { 2, 9 }, { 4, 9 }, { 7, 9 }, { 2, 9 } },
+		{ { 2, 13 }, 0x5A, 0x1F4 },
+		{ { 6, 19 } },
+	};
+	static ThunderParams g_params = DEFAULTS;
+	static inline const ThunderParams &P() { return g_params; }
+	enum PartId { PART_FLASH = 1, PART_STRIKE = 2, PART_GROUND = 3, PART_SMOKE = 4 };
 
 	// ------------------------------------------------------------------
 	// Node layouts
@@ -86,7 +134,7 @@ namespace thunder003
 		int16_t action;   // +0x0E action index
 		uint8_t *entity;  // +0x10 target entity
 		int16_t pos[3];   // +0x14 effect anchor (x, y, z)
-		int16_t size;     // +0x1A (-0x1000 - target size) / 4: sprite size argument
+		int16_t size;     // +0x1A (-0x1000 - target size) / 4: the layers' camera offset (pos's 4th word)
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(BoltNode) == 0x1C, "Thunder nodes");
@@ -98,40 +146,11 @@ namespace thunder003
 		for (uint32_t k = 0; k < count; k++) d[k] = value;
 	}
 
-	// MAG_003_EmitScreenFlashQuad (0x7011A0): semi-transparent flat quad over the whole screen
-	// (320 x 216) in the colour word at `colour`, in the header bucket render list + 0x20
-	static uint32_t ScreenFlashQuad(const void *colour, uint32_t cursor)
+	// the frame of a window at `tick` (-1: not drawn)
+	static inline int32_t FrameOf(const ThunderParams::Window &w, int32_t tick)
 	{
-		uint8_t *p = (uint8_t *)cursor;
-		*(uint16_t *)(p + 8) = 0;
-		*(uint16_t *)(p + 0x10) = 0;
-		*(uint16_t *)(p + 0xE) = 0;
-		*(uint16_t *)(p + 0xA) = 0;
-		*(uint16_t *)(p + 0x14) = 0x140;
-		*(uint16_t *)(p + 0x16) = 0xD8;
-		*(uint16_t *)(p + 0x12) = 0xD8;
-		*(uint16_t *)(p + 0xC) = 0x140;
-		*(uint32_t *)p = 0x5000000;
-		*(uint32_t *)(p + 4) = *(const uint32_t *)colour;
-		p[7] = 0x2A;
-		InsertPrimAltViewport(var<uint32_t>(0x1D8E04C) + 0x20, p);
-		return cursor + 0x18;
-	}
-
-	// MAG_003_sub_6D5940: rotation about the X axis (translation and pad untouched)
-	static void RotX(int16_t angle, Mat4x3 *m)
-	{
-		int32_t s = ComputeSin(angle);
-		int32_t c = ComputeCos(angle);
-		m->m[1][2] = (int16_t)-s;
-		m->m[2][1] = (int16_t)s;
-		m->m[0][0] = 0x1000;
-		m->m[0][1] = 0;
-		m->m[0][2] = 0;
-		m->m[1][0] = 0;
-		m->m[1][1] = (int16_t)c;
-		m->m[2][0] = 0;
-		m->m[2][2] = (int16_t)c;
+		const int32_t e = tick - w.from;
+		return (uint32_t)e < (uint32_t)w.frames ? e : -1;
 	}
 }
 }
@@ -150,6 +169,7 @@ namespace thunder003
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
+		const ThunderParams::Timing &tp = P().timing;
 		// 30 fps layer: see mag003_thunder_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
@@ -169,11 +189,11 @@ namespace thunder003
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				// wait while a bolt of 15 frames or less runs on this target
+				// wait while a young bolt runs on this target
 				BoltNode *pool = (BoltNode *)BOLT_POOL;
 				bool busy = false;
-				for (int k = 0; k < BOLT_POOL_COUNT; k++)
-					if ((pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= 0xF)
+				for (int k = 0; k < BOLT_POOL_COUNT && tp.busy_tick >= 0; k++)
+					if ((pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= tp.busy_tick)
 					{
 						busy = true;
 						break;
@@ -185,8 +205,8 @@ namespace thunder003
 					FillDwords(&b->counter, 0, 4);
 					b->action = (int16_t)(uint16_t)r->action;
 					b->entity = entity;
-					GetEffectSpawnPosition(entity, 0xF1, 0, b->pos);
-					b->size = (int16_t)((-0x1000 - (int32_t)*(int16_t *)(b->entity + 0x26)) >> 2);
+					GetEffectSpawnPosition(entity, tp.bone, 0, b->pos);
+					b->size = (int16_t)((tp.offset.base - (int32_t)*(int16_t *)(b->entity + 0x26)) >> tp.offset.shift);
 					r->action++;
 				}
 			}
@@ -194,120 +214,123 @@ namespace thunder003
 		int alive = ExecuteTaskQueue(&Queues().second);
 		if (r->started && !alive) return TASK_END;
 		r->counter++;
-		if (r->counter >= 5) r->counter = 0;
+		if (r->counter >= tp.every) r->counter = 0;
 		return 0;
 	}
 
 	// ------------------------------------------------------------------
 	// Bolt (0x700DE0)
 	// ------------------------------------------------------------------
-	static void Layer(uint8_t *h, uint32_t seq, int32_t frame)
-	{
-		*(uint32_t *)h = seq;
-		*(uint16_t *)(h + 4) = (uint16_t)frame;
-		*(uint16_t *)(h + 0x24) = 0;
-		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
-	}
-
-	// frame f >= 0 of the strike (bolt counter - 1)
-	static void BoltLayers(const BoltNode *p, int32_t f)
-	{
-		uint8_t *h = AllocHeader(0xB4);
-		// the stack slot of the lowered copy of the anchor is reused by the ground layer's vector:
-		// its 4th word is the size when the lowered layer ran this tick (only the GTE's unused
-		// VZ0 high half sees it)
-		int16_t local[4] = { 0, 0, 0, 0 };
-		if (f < 7)
-		{
-			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, SEQ_Strike, f);
-		}
-		if (f >= 2 && f < 9)
-		{
-			int32_t size = p->size;
-			memcpy(local, p->pos, 8);
-			local[1] = (int16_t)(local[1] + 0xC8);
-			TransformCameraByShadowRotation(local, 0x1000, size);
-			Layer(h, SEQ_Upper, f - 2);
-		}
-		if (f >= 1 && f < 10)
-		{
-			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, SEQ_Core, f - 1);
-		}
-		if (f >= 3 && f < 12)
-		{
-			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, SEQ_Arc, f - 3);
-		}
-		if (f >= 6 && f < 15)
-		{
-			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, SEQ_Glow, f - 6);
-		}
-		if (f >= 1)
-		{
-			if (f < 10)
-			{
-				TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-				Layer(h, SEQ_Flash, f - 1);
-			}
-			if (f < 14)
-			{
-				// plane tilted 0x5A about X at (x, target height, z) in camera space, pushed 500 away
-				Mat4x3 m = {};
-				RotX(0x5A, &m);
-				local[0] = p->pos[0];
-				local[1] = *(int16_t *)(p->entity + 0x24);
-				local[2] = p->pos[2];
-				GteSetRotMatrixCtrl(&Camera());
-				GteLoadV0(local);
-				GteMVMVA_RotV0();
-				GteReadMAC123(m.t);
-				m.t[0] += Camera().t[0];
-				m.t[1] += Camera().t[1];
-				m.t[2] = m.t[2] + Camera().t[2] + 0x1F4;
-				GteSetRotMatrix(&m);
-				GteSetTransVector(&m);
-				Layer(h, SEQ_Ground, f - 1);
-			}
-		}
-		if (f >= 5 && f < 0x18)
-		{
-			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, SEQ_Smoke, f - 5);
-		}
-		FieldFree(0xB4);
-	}
-
-	// what the bolt draws at its counter (frame 0 = the flash quad)
 	static void BoltDraw(const BoltNode *p)
 	{
-		if (p->counter == 0) PacketCursor() = ScreenFlashQuad(FLASH_Colour, PacketCursor());
-		if (p->counter >= 1) BoltLayers(p, p->counter - 1);
+		const ThunderParams &pp = P();
+		const int32_t c = p->counter;
+		int32_t f;
+		FX_PART(PART_FLASH);
+		if (FrameOf(pp.flash.window, c) >= 0) PacketCursor() = ScreenQuad(FLASH_Colour, 0x20, PacketCursor());
+		// the stack slot of the lowered copy of the anchor is reused by the ground layer's vector
+		int16_t local[4] = { 0, 0, 0, 0 };
+		const ThunderParams::Strike &s = pp.strike;
+		FX_PART(PART_STRIKE);
+		if ((f = FrameOf(s.strike, c)) >= 0) PointLayer(p->pos, 0, s.rot, SEQ_Strike, (int16_t)f, local, PacketCursor());
+		if ((f = FrameOf(s.upper, c)) >= 0) PointLayer(p->pos, s.lift, s.rot, SEQ_Upper, (int16_t)f, local, PacketCursor());
+		if ((f = FrameOf(s.core, c)) >= 0) PointLayer(p->pos, 0, s.rot, SEQ_Core, (int16_t)f, local, PacketCursor());
+		if ((f = FrameOf(s.arc, c)) >= 0) PointLayer(p->pos, 0, s.rot, SEQ_Arc, (int16_t)f, local, PacketCursor());
+		if ((f = FrameOf(s.glow, c)) >= 0) PointLayer(p->pos, 0, s.rot, SEQ_Glow, (int16_t)f, local, PacketCursor());
+		if ((f = FrameOf(s.spark, c)) >= 0) PointLayer(p->pos, 0, s.rot, SEQ_Flash, (int16_t)f, local, PacketCursor());
+		FX_PART(PART_GROUND);
+		if ((f = FrameOf(pp.ground.window, c)) >= 0)
+			GroundLayer(p->pos, p->entity, pp.ground.tilt, pp.ground.push, SEQ_Ground, (int16_t)f, local, PacketCursor());
+		FX_PART(PART_SMOKE);
+		if ((f = FrameOf(pp.smoke.window, c)) >= 0) PointLayer(p->pos, 0, s.rot, SEQ_Smoke, (int16_t)f, local, PacketCursor());
+		FX_PART(0);
 	}
 
 	static uint32_t __cdecl BoltTask(TaskNode *n)
 	{
 		BoltNode *p = (BoltNode *)n;
-		// (the flash is drawn at counter 0 only, the sound plays at counter 1 before the layers)
-		if (p->counter == 1) BdPlaySE3D(SOUND_Thunder, 0x101, p->pos);
+		const ThunderParams::Timing &tp = P().timing;
+		// (the sound plays before the layers)
+		if (p->counter == tp.sound_tick) BdPlaySE3D((const void *)fxp::sound(tp.sound, (uint32_t)SOUND_Thunder), tp.sound_volume, p->pos);
 		// 30 fps layer: see mag003_thunder_held.inc
 		FX_HELD(held_note_draw(ORIG_BoltTask, p);)
 		BoltDraw(p);
-		if (p->counter == 5) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
+		if (p->counter == tp.damage_tick) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
 		p->counter++;
-		return p->counter < 0x19 ? 0 : TASK_END;
+		return p->counter < tp.end_tick ? 0 : TASK_END;
 	}
 }
 
+	// ------------------------------------------------------------------
+	// Parameter table (fx_params.h): what an editor shows of ThunderParams
+	// ------------------------------------------------------------------
+	namespace thunder003
+	{
+		using fxp::Field;
+#define THUNDER_FIELD(part, member, label, doc, type, lo, hi) \
+		{ part, #member, label, doc, (uint32_t)offsetof(ThunderParams, member), fxp::type, lo, hi }
+#define THUNDER_WINDOW(part, member) \
+		THUNDER_FIELD(part, member.from, "From tick", "", I16, 0, 200), THUNDER_FIELD(part, member.frames, "Frames", "", I16, 0, 200)
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The root starts one bolt per action, in turn (not while a young one runs on that target); each bolt's clock: its sound, its result, its end" },
+			{ PART_FLASH, "flash", "Screen flash", "A flat semi-transparent quad over the whole screen" },
+			{ PART_STRIKE, "strike", "Strike", "Sprite sequence layers at the target's effect point: the strike, its lowered copy, the core, the arc, the glow, the spark" },
+			{ PART_GROUND, "ground", "Ground", "A sprite sequence on a plane at the target's feet" },
+			{ PART_SMOKE, "smoke", "Smoke", "A sprite sequence at the target's effect point, after the strike" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing.offset", "Camera offset", "The layers' camera offset: (Base - the target's size) >> Shift" },
+			{ "flash.window", "Drawn", "Over bolt ticks From tick .. From tick + Frames - 1" },
+			{ "strike.strike", "Strike", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+			{ "strike.upper", "Lowered strike", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+			{ "strike.core", "Core", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+			{ "strike.arc", "Arc", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+			{ "strike.glow", "Glow", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+			{ "strike.spark", "Spark", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+			{ "ground.window", "Drawn", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+			{ "smoke.window", "Drawn", "Over bolt ticks From tick .. From tick + Frames - 1, its frame = the tick - From tick" },
+		};
+		static const Field FIELDS[] = {
+			THUNDER_FIELD("timing", timing.every, "Every", "The root starts the next action's bolt every this many ticks", I16, 1, 100),
+			THUNDER_FIELD("timing", timing.busy_tick, "Busy tick", "Not while a bolt at this tick or before runs on that target (the cycle restarts; -1: never)", I16, -1, 200),
+			THUNDER_FIELD("timing", timing.bone, "Bone", "The target's effect point the bolt is at (0xF0 and up: the engine's named points)", I16, 0, 0xFF),
+			THUNDER_FIELD("timing", timing.offset.base, "Base", "", I16, -0x4000, 0x4000),
+			THUNDER_FIELD("timing", timing.offset.shift, "Shift", "", I16, 0, 15),
+			THUNDER_FIELD("timing", timing.sound, "Sound", "The sound block played (its world sound id: an audio.dat entry)", Sound, 0, 0x7FFFFFFF),
+			THUNDER_FIELD("timing", timing.sound_tick, "Sound tick", "The sound plays at the bolt's point when the bolt tick == this", I16, 0, 200),
+			THUNDER_FIELD("timing", timing.sound_volume, "Sound volume", "BdPlaySE3D's volume argument", I16, 0, 0x7FFF),
+			THUNDER_FIELD("timing", timing.damage_tick, "Damage tick", "The action's target takes the result when the bolt tick == this", I16, 0, 200),
+			THUNDER_FIELD("timing", timing.end_tick, "End tick", "The bolt ends when its tick reaches this", I16, 1, 200),
+			THUNDER_WINDOW("flash", flash.window),
+			THUNDER_FIELD("strike", strike.rot, "Size", "The layers' camera scale (4096: the sequences' own size)", I16, 0, 0x7FFF),
+			THUNDER_WINDOW("strike", strike.strike),
+			THUNDER_WINDOW("strike", strike.upper),
+			THUNDER_FIELD("strike", strike.lift, "Lowered by", "The lowered strike is this much lower (y + this)", I16, -0x4000, 0x4000),
+			THUNDER_WINDOW("strike", strike.core),
+			THUNDER_WINDOW("strike", strike.arc),
+			THUNDER_WINDOW("strike", strike.glow),
+			THUNDER_WINDOW("strike", strike.spark),
+			THUNDER_WINDOW("ground", ground.window),
+			THUNDER_FIELD("ground", ground.tilt, "Tilt", "The plane turned about x by this (1024: flat)", I16, -0x1000, 0x1000),
+			THUNDER_FIELD("ground", ground.push, "Push", "The plane pushed this far from the camera", I16, -0x4000, 0x4000),
+			THUNDER_WINDOW("smoke", smoke.window),
+		};
+#undef THUNDER_WINDOW
+#undef THUNDER_FIELD
+	}
+
 	void register_mag003_thunder()
 	{
+		fxp::register_params({ 3, "Thunder", &thunder003::g_params, &thunder003::DEFAULTS, sizeof(thunder003::ThunderParams),
+		                       thunder003::PARTS, (int)(sizeof(thunder003::PARTS) / sizeof(thunder003::PARTS[0])),
+		                       thunder003::FIELDS, (int)(sizeof(thunder003::FIELDS) / sizeof(thunder003::FIELDS[0])),
+		                       thunder003::GROUPS, (int)(sizeof(thunder003::GROUPS) / sizeof(thunder003::GROUPS[0])) });
 		register_port(thunder003::ORIG_RootTask, (void *)thunder003::RootTask, "T003 RootTask", 3);
 		register_port(thunder003::ORIG_BoltTask, (void *)thunder003::BoltTask, "T003 BoltTask", 3);
 		// 30 fps layer: see mag003_thunder_held.inc
 		FX_HELD(register_mag003_held();)
 	}
+	FX_LAB_MODULE(register_mag003_thunder);
 }
 
 #ifdef FF8_FX_HELD

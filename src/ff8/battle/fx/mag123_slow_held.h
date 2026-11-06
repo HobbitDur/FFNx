@@ -22,7 +22,16 @@ namespace ff8fx
 namespace slow123
 {
 	static void held_note_root();
-	static void held_note_play(uint8_t *layout, const PrimArg *local);
+	static void held_note_play(uint8_t *layout, const layouts::FrameArg *local, const uint8_t *entity, const int32_t *point);
+}
+namespace clockspell
+{
+	template<>
+	struct Held<slow123::LAYOUT>
+	{
+		static void note_root() { slow123::held_note_root(); }
+		static void note_play(uint8_t *layout, const FrameArg *local, const uint8_t *entity, const int32_t *point) { slow123::held_note_play(layout, local, entity, point); }
+	};
 }
 	static void register_mag123_held();
 }

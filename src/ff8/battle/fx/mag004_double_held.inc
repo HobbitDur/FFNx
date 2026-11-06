@@ -148,7 +148,7 @@ namespace double004
 			SpritePhase(&b);
 			for (int k = 0; k < 3; k++) m.rgb[k] = Lerp8(a.rgb[k], b.rgb[k], num, den);
 		}
-		DrawSpriteTurned(&m);
+		EffectSpriteTurned(m.h.pos, (m.h.flags & 4) != 0, m.ax, m.ay, m.scale, m.seq, m.frame, *(const uint32_t *)m.rgb, PacketCursor());
 	}
 
 	static void ColumnHeld(const ModelNode &a, int num, int den)
@@ -160,18 +160,23 @@ namespace double004
 			ModelNode b = a;
 			b.h.emitter = PredictedEmitter(a.h.emitter, &fake);
 			ColumnPhase(&b);
-			ColumnFlash(&b);
-			ColumnMotion(&b);
+			const DoubleParams::Columns &c = P().columns;
+			const FadePulse pulse = { c.flash.first, c.flash.second, c.flash.step_first, c.flash.step_second, c.flash.grey };
+			FadePulseStep(&b.flash, &b.flash_on, &b.fade, b.rgb, pulse);
+			const int16_t orbit = (int16_t)((c.orbit_speed + b.orbit) & 0xFFF);
+			b.angle[1] = (int16_t)((b.angle[1] + c.spin) & 0xFFF);
+			b.orbit = orbit;
+			CirclePlace(b.h.pos, b.base, b.orbit, b.radius, 0x4000);
 			for (int k = 0; k < 3; k++) m.scale[k] = lerp_i(a.scale[k], b.scale[k], num, den);
 			m.angle[1] = Angle12(a.angle[1], b.angle[1], num, den);
 			if (a.flash_on == b.flash_on) m.fade = lerp16(a.fade, b.fade, num, den);
-			// the place on the circle at the in-between orbit angle (ColumnMotion's formula)
+			// the place on the circle at the in-between orbit angle (the task's formula)
 			m.orbit = Angle12(a.orbit, b.orbit, num, den);
-			memcpy(m.h.pos, m.base, 8);
-			m.h.pos[0] = (int16_t)(m.h.pos[0] + mul32(ComputeSin(m.orbit), m.radius) / 0x4000);
-			m.h.pos[2] = (int16_t)(m.h.pos[2] + mul32(ComputeCos(m.orbit), m.radius) / 0x4000);
+			CirclePlace(m.h.pos, m.base, m.orbit, m.radius, 0x4000);
 		}
-		ColumnDraw(&m);
+		if (m.flash_on == 1)
+			EffectModelDraw(m.h.pos, (m.h.flags & 4) != 0, m.angle, m.scale, *(const uint32_t *)m.rgb, m.fade, MODEL_ColumnFlash, PacketCursor());
+		DrawModel(&m);
 	}
 
 	static void GlowHeld(const SpriteNode &a, int num, int den)
@@ -183,8 +188,9 @@ namespace double004
 			SpriteNode b = a;
 			b.h.emitter = PredictedEmitter(a.h.emitter, &fake);
 			GlowPhase(&b);
-			GlowPulse(&b);
-			GlowPlace(&b);
+			const DoubleParams &pp = P();
+			GreyPulseStep(&b.pulse, b.rgb, pp.glows.pulse.peak, pp.glows.pulse.step, pp.glows.level);
+			CirclePlace(b.h.pos, b.base, b.angle, pp.runes.radius, 0x4000);
 			bool ramp = !(b.h.flags & 4);
 			for (int k = 0; k < 3; k++)
 			{
@@ -197,7 +203,7 @@ namespace double004
 				for (int k = 0; k < 3; k++) m.h.pos[k] = lerp16(a.h.pos[k], b.h.pos[k], num, den);
 			}
 		}
-		DrawGroundGlow(&m, SEQ_Glow, (const uint32_t *)m.rgb);
+		parts::DrawGroundFlipbook(m.h.pos, (m.h.flags & 4) != 0, SEQ_Glow, 0x400, 0, 0, *(const uint32_t *)m.rgb, PacketCursor());
 	}
 
 	static void MoteHeld(const SpriteNode &a, int num, int den)
@@ -206,13 +212,21 @@ namespace double004
 		if (!(a.h.flags & 1))
 		{
 			SpriteNode b = a;
-			MoteUpdate(&b);
+			const DoubleParams::Motes &mp = P().motes;
+			b.ay = (int16_t)((b.ay + mp.spin) & 0xFFF);
+			if (b.rgb[0] < mp.brightest) AddGrey(b.rgb, (uint8_t)mp.brighten);
+			b.radius = (int16_t)(b.radius - mp.shrink);
+			if (b.radius <= 0)
+			{
+				*(uint8_t *)&b.h.flags |= 1;
+				b.h.phase++;
+			}
 			m.ay = Angle12(a.ay, b.ay, num, den);
 			m.radius = lerp16(a.radius, b.radius, num, den);
 			for (int k = 0; k < 3; k++) m.rgb[k] = Lerp8(a.rgb[k], b.rgb[k], num, den);
-			MotePlace(&m);
+			CirclePlace(m.h.pos, m.base, m.ay, m.radius, 4096);
 		}
-		DrawSpriteFacing(&m);
+		parts::DrawSprite(m.h.pos, m.seq, m.frame, m.shade, (m.h.flags & 4) != 0, fxp::Colour{ 0x80, 0x80, 0x80, 0 }, 0x1000, PacketCursor());
 	}
 
 	static void RuneHeld(const ModelNode &a, int num, int den)
@@ -220,7 +234,9 @@ namespace double004
 		ModelNode m = a;
 		ModelNode b = a;
 		RunePhase(&b);
-		RuneMotion(&b);
+		const DoubleParams &pp = P();
+		b.angle[1] = (int16_t)((b.angle[1] + pp.runes.spin) & 0xFFF);
+		CirclePlace(b.h.pos, b.base, b.orbit, pp.runes.radius, 0x4000);
 		if (!(a.h.flags & 1) && !(b.h.flags & 4))
 		{
 			m.fade = lerp16(a.fade, b.fade, num, den);
@@ -240,7 +256,8 @@ namespace double004
 			FlashPhase(&b);
 			m.h.pos[1] = lerp16(a.h.pos[1], b.h.pos[1], num, den);
 		}
-		FlashDraw(&m);
+		const TexQuad q = { m.tx, m.ty, m.cx, m.cy, m.u, m.v, m.tw, m.th };
+		PacketCursor() = ScreenTexQuad(m.h.pos, q, PacketCursor());
 	}
 
 	static void HeldFrame(int num, int den)

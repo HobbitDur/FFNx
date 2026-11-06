@@ -448,6 +448,9 @@ namespace ochu_quake
 	{
 		using namespace gfc;
 		ochu_quake::describe(ochu_quake::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<240>::Register("Ochu Earthquake", ochu_quake::g_c, 0xA0B330, 0x1864748, 0x1864754,
+		                           (void *)ochu_quake::SequenceTask);
 		init_clone(ochu_quake::g_c, nullptr, 0);
 		ochu_quake::g_c.draw[33] = ochu_quake::dh_33_ShatterSpin;                 // 0xA0E800
 		ochu_quake::g_c.draw[34] = ochu_quake::dh_34_MeshOnNode;                  // 0xA0E3D0
@@ -457,6 +460,7 @@ namespace ochu_quake
 		// 30 fps layer: see mag240_ochu_earthquake_held.inc
 		FX_HELD(register_mag240_ochu_earthquake_held();)
 	}
+	FX_LAB_MODULE(register_mag240_ochu_earthquake);
 }
 
 #ifdef FF8_FX_HELD

@@ -61,6 +61,9 @@
 // funnel matrix translation 0xD4516C..0xD45177.
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -82,16 +85,16 @@ namespace sandstorm176
 	// ------------------------------------------------------------------
 	// module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &RingSel() { return var<uint32_t>(0x2368580); }      // rings of the funnel being updated / drawn
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2368584); }   // first target's slot (setup, unused)
-	inline uint32_t &PacketSel() { return var<uint32_t>(0x2374560); }    // packets of the funnel being drawn
-	inline uint32_t &HeadSel() { return var<uint32_t>(0x2374564); }      // wander point of the funnel being updated
-	inline CastContext *&Ctx() { return var<CastContext *>(0x237454C); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2374550); }
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2374554); }
-	inline uint32_t &Parity() { return var<uint32_t>(0x2374568); }       // root counter & 1
-	inline uint32_t &ArenaBase() { return var<uint32_t>(0x237456C); }    // Magic_TextureOFF_ToEAX1 (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2374570); }
+	inline uint32_t &RingSel() { return var<uint32_t>(own::R(0x2368580)); }      // rings of the funnel being updated / drawn
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x2368584)); }   // first target's slot (setup, unused)
+	inline uint32_t &PacketSel() { return var<uint32_t>(own::R(0x2374560)); }    // packets of the funnel being drawn
+	inline uint32_t &HeadSel() { return var<uint32_t>(own::R(0x2374564)); }      // wander point of the funnel being updated
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x237454C)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x2374550)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2374554)); }
+	inline uint32_t &Parity() { return var<uint32_t>(own::R(0x2374568)); }       // root counter & 1
+	inline uint32_t &ArenaBase() { return var<uint32_t>(own::R(0x237456C)); }    // Magic_TextureOFF_ToEAX1 (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2374570)); }
 	static const uint32_t Q_ROOT = 0x2368598, Q_FX = 0x23733E8;
 	static const uint32_t POINT_A = 0x23685A8, POINT_B = 0x23685B0;     // funnel base: x, y (0), z, radius
 	static const uint32_t POOL = 0x23685B8, POOL_END = 0x23693C8;       // 150 x 0x18 sprites
@@ -108,6 +111,21 @@ namespace sandstorm176
 	static const uint32_t SEQ_Sand = 0xD44FA0;
 	static const void *const SOUND_Wind = (const void *)0xD4514C;
 	static const void *const SOUND_Land = (const void *)0xD45150;
+	static const uint32_t ORIG_FileLoader = 0x5D00D0, ORIG_Setup = 0x5D00F0;
+	static const uint32_t TEXTURE_NAME = 0xD45178, CAMERA_ANIM = 0xD44EB0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct SandStorm176Params
+	{
+		struct { uint32_t wind, land; } sounds; // the wind at the director's tick 14, a target landing
+		struct { uint32_t sand; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const SandStorm176Params GAME = { { 0xD4514C, 0xD45150 }, { SEQ_Sand }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static SandStorm176Params live = GAME;
+	static const SandStorm176Params &P() { return live; }
 
 	// battle
 	static const uint32_t ENTITY0 = 0x1D972C0, ENTITY_SIZE = 0x9C;
@@ -123,7 +141,7 @@ namespace sandstorm176
 	static const uint32_t ORIG_Landing = 0x5D1820;
 
 	// engine functions (original addresses)
-	inline uint32_t Add(uint32_t q, uint32_t task) { return (uint32_t)AddTaskToQueue((TaskQueue *)q, task); }
+	inline uint32_t Add(uint32_t q, uint32_t task) { return (uint32_t)AddTaskToQueue((TaskQueue *)q, own::Fn(task)); }   // (a copy: the port's thunk)
 	inline uint32_t Alloc(int size) { return (uint32_t)FieldAlloc(size); }
 	inline uint32_t Entity(int slot) { return ENTITY0 + ENTITY_SIZE * slot; }
 	inline int32_t Sin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D130)(a); }   // computeSin
@@ -232,8 +250,8 @@ namespace sandstorm176
 			return;
 		}
 		const int32_t t = shl32(c - 0x1A, 12) / 38;
-		*x = (int16_t)((mul32((int32_t)S16(CENTRE, 0) - S16(f, 0x10), t) >> 12) + S16(f, 0x10));
-		*z = (int16_t)((mul32((int32_t)S16(CENTRE, 4) - S16(f, 0x14), t) >> 12) + S16(f, 0x14));
+		*x = (int16_t)((mul32((int32_t)S16(own::R(CENTRE), 0) - S16(f, 0x10), t) >> 12) + S16(f, 0x10));
+		*z = (int16_t)((mul32((int32_t)S16(own::R(CENTRE), 4) - S16(f, 0x14), t) >> 12) + S16(f, 0x14));
 		int16_t v[4];
 		v[0] = (int16_t)(mul32(Sin(S16(f, 0x20)), S16(f, 0x1C)) >> 12);
 		v[1] = 0;
@@ -476,6 +494,31 @@ namespace sandstorm176
 	// Funnel (0x5D0740): node +0x0C counter, +0x0E funnel (0 = A, 1 = B), +0x10 bone position,
 	// +0x1C sway amplitude, +0x1E its growth, +0x20 sway phase, +0x22 its speed
 	// ------------------------------------------------------------------
+	// File loader (0x5D00D0) and setup (0x5D00F0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the packet arena base (the magic buffer), the cast, its first target's and its caster's slots, the root
+	// and the director, the sand pool cleared, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		ArenaBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool((TaskQueue *)own::R(Q_ROOT), (void *)own::R(0x2368588), 0x10, 1);
+		S16(Add(own::R(Q_ROOT), ORIG_Root), 0xC) = 0;
+		InitTaskQueuePool((TaskQueue *)own::R(Q_FX), (void *)own::R(0x23733F8), 0x24, 100);
+		S16(Add(own::R(Q_FX), ORIG_Director), 0xC) = 0;
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return (TaskQueue *)own::R(Q_ROOT);
+	}
+
 	static uint32_t __cdecl FunnelTask(TaskNode *n)
 	{
 		const uint32_t f = (uint32_t)n;
@@ -491,21 +534,21 @@ namespace sandstorm176
 		}
 		if (S16(f, 0xE) != 0)
 		{
-			RingSel() = RINGS_B;
-			PacketSel() = PACKETS_B;
-			HeadSel() = HEAD_B;
-			S16(POINT_B, 0) = x;
-			S16(POINT_B, 4) = z;
-			S16(POINT_B, 6) = (int16_t)P.p[1];
+			RingSel() = own::R(RINGS_B);
+			PacketSel() = own::R(PACKETS_B);
+			HeadSel() = own::R(HEAD_B);
+			S16(own::R(POINT_B), 0) = x;
+			S16(own::R(POINT_B), 4) = z;
+			S16(own::R(POINT_B), 6) = (int16_t)P.p[1];
 		}
 		else
 		{
-			RingSel() = RINGS_A;
-			PacketSel() = PACKETS_A;
-			HeadSel() = HEAD_A;
-			S16(POINT_A, 0) = x;
-			S16(POINT_A, 4) = z;
-			S16(POINT_A, 6) = (int16_t)P.p[1];
+			RingSel() = own::R(RINGS_A);
+			PacketSel() = own::R(PACKETS_A);
+			HeadSel() = own::R(HEAD_A);
+			S16(own::R(POINT_A), 0) = x;
+			S16(own::R(POINT_A), 4) = z;
+			S16(own::R(POINT_A), 6) = (int16_t)P.p[1];
 		}
 		FunnelRings(P);
 		S32(FUNNEL_Matrix, 0x14) = x;
@@ -520,16 +563,16 @@ namespace sandstorm176
 		int32_t angle = c * 100;
 		if (S16(f, 0xE) != 0)
 		{
-			RingSel() = RINGS_B;
-			PacketSel() = PACKETS_B;
-			HeadSel() = HEAD_B;
+			RingSel() = own::R(RINGS_B);
+			PacketSel() = own::R(PACKETS_B);
+			HeadSel() = own::R(HEAD_B);
 			angle = -angle;
 		}
 		else
 		{
-			RingSel() = RINGS_A;
-			PacketSel() = PACKETS_A;
-			HeadSel() = HEAD_A;
+			RingSel() = own::R(RINGS_A);
+			PacketSel() = own::R(PACKETS_A);
+			HeadSel() = own::R(HEAD_A);
 		}
 		// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
 		FX_HELD(held_note_funnel(f, x, z);)
@@ -543,14 +586,14 @@ namespace sandstorm176
 	static uint32_t FreeSand()
 	{
 		int32_t i = 0;
-		uint32_t e = POOL;
+		uint32_t e = own::R(POOL);
 		while (U32(e, 0) != 0)
 		{
 			e += 0x18;
 			i++;
-			if (e >= POOL_END) return 0;
+			if (e >= own::R(POOL_END)) return 0;
 		}
-		return i < 0x96 ? POOL + (uint32_t)i * 0x18 : 0;
+		return i < 0x96 ? own::R(POOL) + (uint32_t)i * 0x18 : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -560,10 +603,10 @@ namespace sandstorm176
 	{
 		const uint32_t t = (uint32_t)n;
 		const uint32_t h = Alloc(0xB4);
-		U32(h, 0) = SEQ_Sand;
+		U32(h, 0) = fxp::sequence(P().seqs.sand, SEQ_Sand);
 		S16(h, 0x24) = 0;
 		int32_t alive = 0;
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
 			// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
@@ -590,7 +633,7 @@ namespace sandstorm176
 		if (c >= 0 && c <= 0x50)
 		{
 			const int32_t count = (c >> 5) + 1;
-			const uint32_t pt = S16(t, 0xE) == 1 ? POINT_A : POINT_B;
+			const uint32_t pt = S16(t, 0xE) == 1 ? own::R(POINT_A) : own::R(POINT_B);
 			for (int32_t k = 0; k < count; k++)
 			{
 				const uint32_t e = FreeSand();
@@ -633,7 +676,7 @@ namespace sandstorm176
 		}
 		const int16_t c = S16(l, 0xC);
 		const int32_t slot = S16(l, 0xE);
-		const uint32_t ent = Entity(slot), save = SAVE + (uint32_t)slot * SAVE_SIZE;
+		const uint32_t ent = Entity(slot), save = own::R(SAVE) + (uint32_t)slot * SAVE_SIZE;
 		if (c == 0)
 		{
 			U16(save, 0) = (uint16_t)(U16(ent, 0) & 0x1020);
@@ -657,7 +700,7 @@ namespace sandstorm176
 			S16(ent, 0x1C) = (int16_t)(S16(l, 0x10) - v[0]);
 			S16(ent, 0x1E) = (int16_t)(S16(l, 0x12) - v[1]);
 			S16(ent, 0x20) = (int16_t)(S16(l, 0x14) - v[2]);
-			const uint32_t pt = S16(l, 0x1C) != 0 ? POINT_B : POINT_A;
+			const uint32_t pt = S16(l, 0x1C) != 0 ? own::R(POINT_B) : own::R(POINT_A);
 			const int32_t frac = S16(ent, 0xE);
 			S16(ent, 0x1C) = (int16_t)(S16(ent, 0x1C) + (int16_t)(mul32((int32_t)S16(pt, 0) - S16(l, 0x10), frac) >> 12));
 			S16(ent, 0x1E) = (int16_t)(S16(ent, 0x1E) + S16(l, 0x20));
@@ -689,14 +732,14 @@ namespace sandstorm176
 		U32(ent, 0x20) = U32(save, 0x10);
 		U32(ent, 0xC) = U32(save, 4);
 		U32(ent, 0x10) = U32(save, 8);
-		const uint32_t d = Add(Q_FX, ORIG_Landing);
+		const uint32_t d = Add(own::R(Q_FX), ORIG_Landing);
 		const int16_t index = S16(l, 0x1A);
 		U32(d, 0x10) = U32(save, 0xC);
 		U32(d, 0x14) = U32(save, 0x10);
 		S16(d, 0xC) = 0;
 		S16(d, 0xE) = (int16_t)(0x100 << (index & 0x1F));
 		S16(d, 0x1A) = index;
-		BdPlaySE(SOUND_Land, 0, 0x80);
+		BdPlaySE((const void *)fxp::sound(P().sounds.land, (uint32_t)SOUND_Land), 0, 0x80);
 		return TASK_END;
 	}
 
@@ -709,9 +752,9 @@ namespace sandstorm176
 		const uint32_t t = (uint32_t)n;
 		const uint32_t h = Alloc(0xB4);
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Sand;
+		U32(h, 0) = fxp::sequence(P().seqs.sand, SEQ_Sand);
 		S16(h, 0x24) = 0;
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
 			// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
@@ -765,23 +808,23 @@ namespace sandstorm176
 		const uint32_t d = (uint32_t)n;
 		if (S16(d, 0xC) == 0)
 		{
-			GetDefaultEffectPosition((uint8_t *)Entity(CasterSlot()), (int16_t *)CASTER_POS);
-			const int16_t y = S16(CASTER_POS, 2);
-			S16(CASTER_POS, 2) = S16(CASTER_POS, 6);
-			S16(CASTER_POS, 6) = y;
-			CalculateCenterPosition(Ctx()->target_mask, CENTRE);
-			RingSel() = RINGS_A;
-			PacketSel() = PACKETS_A;
-			HeadSel() = HEAD_A;
+			GetDefaultEffectPosition((uint8_t *)Entity(CasterSlot()), (int16_t *)own::R(CASTER_POS));
+			const int16_t y = S16(own::R(CASTER_POS), 2);
+			S16(own::R(CASTER_POS), 2) = S16(own::R(CASTER_POS), 6);
+			S16(own::R(CASTER_POS), 6) = y;
+			CalculateCenterPosition(Ctx()->target_mask, own::R(CENTRE));
+			RingSel() = own::R(RINGS_A);
+			PacketSel() = own::R(PACKETS_A);
+			HeadSel() = own::R(HEAD_A);
 			FunnelInit();
-			RingSel() = RINGS_B;
-			PacketSel() = PACKETS_B;
-			HeadSel() = HEAD_B;
+			RingSel() = own::R(RINGS_B);
+			PacketSel() = own::R(PACKETS_B);
+			HeadSel() = own::R(HEAD_B);
 			FunnelInit();
 		}
 		if (S16(d, 0xC) == 0xC)
 		{
-			const uint32_t a = Add(Q_FX, ORIG_Funnel);
+			const uint32_t a = Add(own::R(Q_FX), ORIG_Funnel);
 			S16(a, 0xC) = 0;
 			S16(a, 0xE) = 0;
 			S16(a, 0x1C) = (int16_t)(CrtRand() % 100 - 50);
@@ -791,7 +834,7 @@ namespace sandstorm176
 			S16(a, 0x20) = 0;
 			S16(a, 0x22) = (int16_t)(CrtRand() % 150 + 0x96);
 			SpawnPosition(Entity(CasterSlot()), 0x15, 0x1000, a + 0x10);
-			const uint32_t b = Add(Q_FX, ORIG_Funnel);
+			const uint32_t b = Add(own::R(Q_FX), ORIG_Funnel);
 			S16(b, 0x1C) = (int16_t)-S16(a, 0x1C);
 			S16(b, 0xC) = 0;
 			S16(b, 0xE) = 1;
@@ -799,16 +842,16 @@ namespace sandstorm176
 			S16(b, 0x20) = 0;
 			S16(b, 0x22) = S16(a, 0x22);
 			SpawnPosition(Entity(CasterSlot()), 0x16, 0x1000, b + 0x10);
-			S16(POINT_B, 2) = 0;
-			S16(POINT_A, 2) = 0;
-			S16(POINT_B, 6) = 0x12C;
-			S16(POINT_A, 6) = 0x12C;
+			S16(own::R(POINT_B), 2) = 0;
+			S16(own::R(POINT_A), 2) = 0;
+			S16(own::R(POINT_B), 6) = 0x12C;
+			S16(own::R(POINT_A), 6) = 0x12C;
 			if (S16(d, 0xC) == 0xC)
 			{
-				const uint32_t s1 = Add(Q_FX, ORIG_Sand);
+				const uint32_t s1 = Add(own::R(Q_FX), ORIG_Sand);
 				S16(s1, 0xC) = 0;
 				S16(s1, 0xE) = 1;
-				const uint32_t s2 = Add(Q_FX, ORIG_Sand);
+				const uint32_t s2 = Add(own::R(Q_FX), ORIG_Sand);
 				S16(s2, 0xC) = 0;
 				S16(s2, 0xE) = 2;
 			}
@@ -818,7 +861,7 @@ namespace sandstorm176
 			for (int32_t i = 0; i < (int32_t)Ctx()->actions->target_count; i++)
 			{
 				const int32_t slot = Ctx()->actions->targets[i * TARGET_STRIDE];
-				const uint32_t l = Add(Q_FX, ORIG_Lift);
+				const uint32_t l = Add(own::R(Q_FX), ORIG_Lift);
 				S16(l, 0xC) = 0;
 				S16(l, 0xE) = (int16_t)slot;
 				const int32_t r = CrtRand() % 2 + 1;
@@ -828,16 +871,16 @@ namespace sandstorm176
 				const int32_t r2 = CrtRand() % 65;
 				S16(l, 0x22) = (int16_t)(-45 - r2);
 				SpawnPosition(Entity(slot), 0xF1, 0, l + 0x10);
-				int32_t dx = (int32_t)S16(POINT_A, 0) - S16(l, 0x10), dz = (int32_t)S16(POINT_A, 4) - S16(l, 0x14);
+				int32_t dx = (int32_t)S16(own::R(POINT_A), 0) - S16(l, 0x10), dz = (int32_t)S16(own::R(POINT_A), 4) - S16(l, 0x14);
 				const int32_t da = Sqrt(mul32(dz, dz) + mul32(dx, dx));
-				dx = (int32_t)S16(POINT_B, 0) - S16(l, 0x10);
-				dz = (int32_t)S16(POINT_B, 4) - S16(l, 0x14);
+				dx = (int32_t)S16(own::R(POINT_B), 0) - S16(l, 0x10);
+				dz = (int32_t)S16(own::R(POINT_B), 4) - S16(l, 0x14);
 				const int32_t db = Sqrt(mul32(dz, dz) + mul32(dx, dx));
 				S16(l, 0x1C) = (int16_t)(da < db ? 1 : 0);
 				S16(l, 0x1E) = (int16_t)(CrtRand() % 6);
 			}
 		}
-		if (S16(d, 0xC) == 0xE) BdPlaySE(SOUND_Wind, 0, 0x80);
+		if (S16(d, 0xC) == 0xE) BdPlaySE((const void *)fxp::sound(P().sounds.wind, (uint32_t)SOUND_Wind), 0, 0x80);
 		S16(d, 0xC) = (int16_t)(S16(d, 0xC) + 1);
 		return S16(d, 0xC) > 0x78 ? TASK_END : 0;
 	}
@@ -852,23 +895,53 @@ namespace sandstorm176
 		FX_HELD(held_note_root();)
 		Parity() = U8(r, 0xC) & 1;
 		PacketCursor() = Parity() ? ArenaBase() + ARENA_HALF : ArenaBase();
-		const int a = ExecuteTaskQueue((TaskQueue *)Q_FX);
+		const int a = ExecuteTaskQueue((TaskQueue *)own::R(Q_FX));
 		S16(r, 0xC) = (int16_t)(S16(r, 0xC) + 1);
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The two sand funnels walking to the targets, the sand emitters, the targets lifted and landing (their results), the sounds" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The wind, a target landing" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.wind", "Wind", "At the director's tick 14", (uint32_t)offsetof(SandStorm176Params, sounds.wind), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.land", "Land", "A target landing (its result)", (uint32_t)offsetof(SandStorm176Params, sounds.land), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "seqs.sand", "Sand", "The sprite sequence sand (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(SandStorm176Params, seqs.sand), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SandStorm176Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SandStorm176Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
 	}
 }
 
 	void register_mag176_sand_storm_adamantoise()
 	{
+		fxp::register_params({ 176, "Sand Storm (Adamantoise)", &sandstorm176::live, &sandstorm176::GAME, sizeof(sandstorm176::SandStorm176Params),
+		                       sandstorm176::table::PARTS, (int)(sizeof(sandstorm176::table::PARTS) / sizeof(sandstorm176::table::PARTS[0])),
+		                       sandstorm176::table::FIELDS, (int)(sizeof(sandstorm176::table::FIELDS) / sizeof(sandstorm176::table::FIELDS[0])),
+		                       sandstorm176::table::GROUPS, (int)(sizeof(sandstorm176::table::GROUPS) / sizeof(sandstorm176::table::GROUPS[0])) });
+		own::note(sandstorm176::ORIG_FileLoader, (void *)sandstorm176::FileLoader);
+		own::note(sandstorm176::ORIG_Setup, (void *)sandstorm176::Setup);
+		own::note(sandstorm176::ORIG_Root, (void *)sandstorm176::RootTask);
 		register_port(sandstorm176::ORIG_Root, (void *)sandstorm176::RootTask, "176 RootTask", 176);
+		own::note(sandstorm176::ORIG_Director, (void *)sandstorm176::DirectorTask);
 		register_port(sandstorm176::ORIG_Director, (void *)sandstorm176::DirectorTask, "176 DirectorTask", 176);
+		own::note(sandstorm176::ORIG_Funnel, (void *)sandstorm176::FunnelTask);
 		register_port(sandstorm176::ORIG_Funnel, (void *)sandstorm176::FunnelTask, "176 FunnelTask", 176);
+		own::note(sandstorm176::ORIG_Sand, (void *)sandstorm176::SandTask);
 		register_port(sandstorm176::ORIG_Sand, (void *)sandstorm176::SandTask, "176 SandTask", 176);
+		own::note(sandstorm176::ORIG_Lift, (void *)sandstorm176::LiftTask);
 		register_port(sandstorm176::ORIG_Lift, (void *)sandstorm176::LiftTask, "176 LiftTask", 176);
+		own::note(sandstorm176::ORIG_Landing, (void *)sandstorm176::LandingTask);
 		register_port(sandstorm176::ORIG_Landing, (void *)sandstorm176::LandingTask, "176 LandingTask", 176);
 		// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
 		FX_HELD(register_mag176_held();)
 	}
+	FX_LAB_MODULE(register_mag176_sand_storm_adamantoise);
 }
 
 #ifdef FF8_FX_HELD

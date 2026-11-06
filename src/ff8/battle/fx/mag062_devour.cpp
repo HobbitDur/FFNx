@@ -50,8 +50,14 @@
 // No task tests the draw-only flags (battle_to_update_flags 0x201); the module does not write the battle camera (the
 // camera animation is the setup's 0x5099A0 call) nor an entity's position.
 // Module globals: 0x2601318..0x2601920 (file pointers, packet cursors, pools, queues), camera copy 0x2793E58 (0x20).
+// Fujin's described Devour (effect_062.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn), the four pictures loaded by
+// the program's file loader (its "files"); its parameters (DevourParams: the emitter's ticks, the picture, the
+// darkening, the music fade) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -93,6 +99,20 @@ namespace devour
 	static const uint32_t ORIG_Darken = 0x7E5290;
 	static const uint32_t ORIG_Music = 0x7E55F0;
 
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct DevourParams
+	{
+		struct { int16_t release, result, sound; } emitter;           // the master released / the result / the outcome's sound at these ticks
+		struct { int16_t start, scroll, fade_from, fade; } picture;    // the picture and title strip: from its tick, scrolling a tick, fading from its tick by a step
+		struct { int16_t start, hold, step; } darken;                  // the darkening: at its tick, held until its tick, back by a step a tick
+		struct { int16_t start, step, back; } music;                   // the music fade: from its tick down by a step, back up after its tick
+	};
+	static const DevourParams GAME = { { 0x4B, 0x53, 0x23 }, { 7, 4, 0x4B, 0x10 }, { 0xA, 0x53, 0x200 }, { 0xA, 8, 0x53 } };
+	static DevourParams live = GAME;
+	static const DevourParams &PD() { return live; }
+
 	// common task tail (frame counter already incremented): end (release the linked task, return 2)
 	// when finished (status read before the increment) and no children are alive
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
@@ -130,12 +150,13 @@ namespace devour
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_062;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x2601914) = 0x2793E58;
-		MEM<uint32_t>(0x2601338) = 0x2793E58;
+		MEM<uint32_t>(R(0x2601914)) = 0x2793E58;
+		MEM<uint32_t>(R(0x2601338)) = 0x2793E58;
 		states[0] = 0x7E4D30;
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = 0x7E4D40;
@@ -150,25 +171,25 @@ namespace devour
 		states[10] = 0x7E5890; // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26018F4);
-			const uint32_t v2 = MEM<uint32_t>(0x2601778);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2601334) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26018F4));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2601778));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2601334)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26018F0);
-			const uint32_t v2 = MEM<uint32_t>(0x2601774);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2601334) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26018F0));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2601774));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x2601334)) = v2;
 		}
 		// 30 fps layer: see mag062_devour_held.inc
 		FX_HELD(held_note_master();)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TASKS));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_TASKS)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -205,7 +226,7 @@ namespace devour
 	// the emitter, next state
 	static uint32_t __cdecl StartCast(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Cast, 0x54, a1);
+		Spawn(R(Q_TASKS), ORIG_Cast, 0x54, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -214,7 +235,7 @@ namespace devour
 	// loop may start the next emitter), next state
 	static uint32_t __cdecl ReleaseMaster(uint32_t a1)
 	{
-		if (U16(a1, 0x24) == 0x4B)
+		if (S16(a1, 0x24) == PD().emitter.release)
 		{
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -227,7 +248,7 @@ namespace devour
 	static uint32_t __cdecl Damage(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x53)
+		if (S16(node, 0x24) < PD().emitter.result)
 			return 0; // void
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
@@ -260,7 +281,7 @@ namespace devour
 	// uploads it (0: mag061_1, 1: mag061_2, 2: mag061_3), next state
 	static uint32_t __cdecl LoadTextures(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_TITLE));
+		x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(R(TIM_TITLE)));
 		const int32_t r = (int32_t)x::CrtRand();
 		const uint32_t node = a1;
 		const int16_t pick = (int16_t)(r % 3);
@@ -268,13 +289,13 @@ namespace devour
 		switch (pick)
 		{
 		case 0:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_PIC1));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(R(TIM_PIC1)));
 			break;
 		case 1:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_PIC2));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(R(TIM_PIC2)));
 			break;
 		case 2:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_PIC3));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(R(TIM_PIC3)));
 			break;
 		}
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -285,9 +306,9 @@ namespace devour
 	// 0x7E4F60 (0x54 bytes each, task queue) under the cast task, next state
 	static uint32_t __cdecl StartParts(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Darken, 0x54, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Music, 0x54, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Picture, 0x54, a1);
+		Spawn(R(Q_TASKS), ORIG_Darken, 0x54, a1);
+		Spawn(R(Q_TASKS), ORIG_Music, 0x54, a1);
+		Spawn(R(Q_TASKS), ORIG_Picture, 0x54, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -297,7 +318,7 @@ namespace devour
 	static uint32_t __cdecl Sound(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		if (S16(node, 0x24) < 0x23)
+		if (S16(node, 0x24) < PD().emitter.sound)
 			return 0; // void
 		int16_t k = S16(first_target(node), 6);
 		if (k < 0)
@@ -319,7 +340,7 @@ namespace devour
 	static uint32_t Quad(uint32_t x, uint32_t y, uint32_t vx, uint32_t vy, uint32_t w, uint32_t h, uint32_t u, uint32_t v,
 		uint32_t cx, uint32_t cy, uint32_t colour, uint32_t semi)
 	{
-		const uint32_t p = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t p = MEM<uint32_t>(R(PACKET_CURSOR));
 		U8(p, 7) = 0x2C;
 		U8(p, 7) = (uint8_t)((uint16_t)semi == 1 ? 0x2E : 0x2C);
 		const int32_t vys = (int16_t)vy;
@@ -368,7 +389,7 @@ namespace devour
 		U8(p, 5) = c;
 		U8(p, 4) = c;
 		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(0x1D8E04C) + 0x14, p);
-		MEM<uint32_t>(PACKET_CURSOR) = p + 0x28;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = p + 0x28;
 		return 0; // void
 	}
 
@@ -413,7 +434,7 @@ namespace devour
 	// 0x7E4FC0 (sub_7E4FC0): picture state 0 - from tick 7: scroll +0x1C = 0, brightness +0x50 = 0x80, next state
 	static uint32_t __cdecl PictureWait(uint32_t a1)
 	{
-		if (S16(a1, 0x24) >= 7)
+		if (S16(a1, 0x24) >= PD().picture.start)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x1C) = 0;
@@ -427,10 +448,10 @@ namespace devour
 	static uint32_t __cdecl PictureScroll(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) - 4);
+		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) - PD().picture.scroll);
 		Strip(node);
 		Picture(node);
-		if (S16(node, 0x24) >= 0x4B)
+		if (S16(node, 0x24) >= PD().picture.fade_from)
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
 	}
@@ -440,7 +461,7 @@ namespace devour
 	static uint32_t __cdecl PictureFade(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x50) = (uint16_t)(U16(node, 0x50) - 0x10);
+		U16(node, 0x50) = (uint16_t)(U16(node, 0x50) - PD().picture.fade);
 		if (S16(node, 0x50) <= 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -449,7 +470,7 @@ namespace devour
 			U8(node, 0x29) = (uint8_t)(st + 1);
 			return 0; // void
 		}
-		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) - 4);
+		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) - PD().picture.scroll);
 		Strip(node);
 		Picture(node);
 		return 0; // void
@@ -508,7 +529,7 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t e = ENTITIES;
-		if (S16(node, 0x24) < 0xA)
+		if (S16(node, 0x24) < PD().darken.start)
 			return node;
 		for (int k = 0; k < 7; k++, e += 0x9C)
 			U32(node, 0x30 + 4 * k) = U16(e, 0);
@@ -539,7 +560,7 @@ namespace devour
 	// 0x7E54F0 (sub_7E54F0): darkening state 2 - after tick 0x53: level +0x4C = 0x1000, next state
 	static uint32_t __cdecl DarkenWait(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x53)
+		if (S16(a1, 0x24) > PD().darken.hold)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x4C) = 0x1000;
@@ -553,7 +574,7 @@ namespace devour
 	static uint32_t __cdecl DarkenOut(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) + 0xFE00);
+		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) - PD().darken.step);
 		if (S16(node, 0x4C) <= 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -609,7 +630,7 @@ namespace devour
 	// 0x7E5660 (sub_7E5660): music state 0 - from tick 10: volume +0x4C = 0x7F, next state
 	static uint32_t __cdecl MusicWait(uint32_t a1)
 	{
-		if (S16(a1, 0x24) >= 0xA)
+		if (S16(a1, 0x24) >= PD().music.start)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x4C) = 0x7F;
@@ -622,7 +643,7 @@ namespace devour
 	static uint32_t __cdecl MusicDown(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) - 8);
+		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) - PD().music.step);
 		if (S16(node, 0x4C) <= 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -635,7 +656,7 @@ namespace devour
 	// 0x7E56B0 (sub_7E56B0): music state 2 - after tick 0x53 next state
 	static uint32_t __cdecl MusicWait2(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x53)
+		if (S16(a1, 0x24) > PD().music.back)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -645,7 +666,7 @@ namespace devour
 	static uint32_t __cdecl MusicUp(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) + 8);
+		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) + PD().music.step);
 		if (S16(node, 0x4C) >= 0x7F)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -654,6 +675,36 @@ namespace devour
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		return x::Music_SetVolumeImmediate(0, (uint32_t)(int32_t)S16(node, 0x4C));
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(DevourParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per action: the cast (its picture, darkening, music fade), the outcome's sound, the master's release, the result" },
+			{ 0, "picture", "Picture", "One of the three pictures and the title strip, scrolling, fading" },
+			{ 0, "darken", "Darkening", "The stage and the entities darkened, the devoured target hidden; the music faded" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "music", "Music", "Its volume down from its tick by a step a tick, back up after its tick" },
+		};
+		static const Field FIELDS[] = {
+			DT("emitter", emitter.release, "Release tick", "The master may start the next action at this tick", 0, 400),
+			DT("emitter", emitter.result, "Result tick", "The result of its target from this tick", 0, 400),
+			DT("emitter", emitter.sound, "Outcome sound tick", "The outcome's sound (the exe's table by the result) at this tick of the cast", 0, 400),
+			DT("picture", picture.start, "Start", "", 0, 200),
+			DT("picture", picture.scroll, "Scroll", "Pixels a tick to the left", -64, 64),
+			DT("picture", picture.fade_from, "Fade from", "", 0, 400),
+			DT("picture", picture.fade, "Fade", "Brightness down a tick (0x80: all of it)", 1, 0x80),
+			DT("darken", darken.start, "Start", "", 0, 200),
+			DT("darken", darken.hold, "Hold until", "", 0, 400),
+			DT("darken", darken.step, "Step", "Back by this a tick (4096: all of it)", 1, 0x1000),
+			DT("darken", music.start, "Start", "", 0, 200),
+			DT("darken", music.step, "Step", "", 1, 0x7F),
+			DT("darken", music.back, "Back after", "", 0, 400),
+		};
+#undef DT
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -710,6 +761,11 @@ namespace devour
 
 	void register_mag062_devour()
 	{
+		fxp::register_params({ 62, "Devour", &act::devour::live, &act::devour::GAME, sizeof(act::devour::DevourParams),
+		                       act::devour::table::PARTS, (int)(sizeof(act::devour::table::PARTS) / sizeof(act::devour::table::PARTS[0])),
+		                       act::devour::table::FIELDS, (int)(sizeof(act::devour::table::FIELDS) / sizeof(act::devour::table::FIELDS[0])),
+		                       act::devour::table::GROUPS, (int)(sizeof(act::devour::table::GROUPS) / sizeof(act::devour::table::GROUPS[0])) });
+		act::register_mod(&act::devour::MOD_062);
 		act::register_module(62);
 		for (const act::devour::ModPort *p = act::devour::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(62, p->addr, p->port, p->name);
@@ -718,6 +774,7 @@ namespace devour
 		// 30 fps layer: see mag062_devour_held.inc
 		FX_HELD(register_mag062_held();)
 	}
+	FX_LAB_MODULE(register_mag062_devour);
 }
 
 #ifdef FF8_FX_HELD

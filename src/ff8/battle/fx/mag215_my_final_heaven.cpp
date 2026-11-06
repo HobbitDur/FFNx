@@ -56,6 +56,9 @@
 //   dwords), magic buffer 0x25089A8).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -65,17 +68,18 @@ namespace heaven215
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250893C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508940); }
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2508948; }            // rings (0x294)
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2508958; }         // the director (1 x 0x1400)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2508968; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508988); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x250898C); }    // (set by the root, never used)
-	inline const int16_t *ZeroAngles() { return (const int16_t *)0x2508990; }
-	inline uint32_t *CamAnchor() { return (uint32_t *)0x2508998; }          // Zell's +0x1C / +0x20 dwords at the start
-	inline uint32_t *CentreWords() { return (uint32_t *)0x25089A0; }        // the centre's +0x180 / +0x184 dwords
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25089A8); }          // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250893C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2508940)); }
+	inline TaskQueue *QRings() { return (TaskQueue *)own::R(0x2508948); }            // rings (0x294)
+	inline TaskQueue *QDirector() { return (TaskQueue *)own::R(0x2508958); }         // the director (1 x 0x1400)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508968); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2508988)); }
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(own::R(0x250898C)); }    // (set by the root, never used)
+	inline const int16_t *ZeroAngles() { return (const int16_t *)own::R(0x2508990); }
+	inline uint32_t *CamAnchor() { return (uint32_t *)own::R(0x2508998); }          // Zell's +0x1C / +0x20 dwords at the start
+	inline uint32_t *CentreWords() { return (uint32_t *)own::R(0x25089A0); }        // the centre's +0x180 / +0x184 dwords
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25089A8)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508938)); }          // the effect's file (its TIM)
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t *CamEye() { return (int16_t *)0xB8B7F0; }
@@ -99,6 +103,23 @@ namespace heaven215
 	static const int16_t *const SINCOS = (const int16_t *)0x116EB1C; // 4096 pairs (sin, cos)
 	static const void *const SOUND_A = (const void *)0x1154F48;
 	static const void *const SOUND_B = (const void *)0x1154F4C;
+	static const uint32_t ORIG_FileLoader = 0x69AB70, ORIG_Setup = 0x69AB60;
+	static const uint32_t TEXTURE_NAME = 0x1172B1C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MyFinalHeavenParams
+	{
+		struct { uint32_t start, jump; } sounds; // at the director's ticks 5 and 0xA2
+		struct { int16_t damage; } director;    // the damage at this tick
+		struct { uint32_t ring, anchor, back, run, screen, far, jump, jump_bone, target_ring, crater, bone; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t at_1154f50; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const MyFinalHeavenParams GAME = { { 0x1154F48, 0x1154F4C }, { 0x108 }, { LAYOUT_Ring, LAYOUT_Anchor, LAYOUT_Back, LAYOUT_Run, LAYOUT_Screen, LAYOUT_Far, LAYOUT_Jump, LAYOUT_JumpBone, LAYOUT_TargetRing, LAYOUT_Crater, LAYOUT_Bone }, { 0x1154F50 }, { TEXTURE_NAME, COM_Anim } };
+	static MyFinalHeavenParams live = GAME;
+	static const MyFinalHeavenParams &P() { return live; }
 
 	// ---- engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
@@ -655,8 +676,9 @@ namespace heaven215
 		GteReadMAC123(m->t);
 		GteSetRotMatrixCtrl(m);
 		GteSetTransVectorCtrl(m);
-		U32(h, 0x40) = MODEL_Debris;
-		U32(h, 0x44) = *(const uint32_t *)0x1154F50 + 0x1154F60;
+		const uint32_t debris = fxp::model(P().model_data.at_1154f50, 0x1154F50);   // (MODEL_Debris = its vertices)
+		U32(h, 0x40) = debris + 8;
+		U32(h, 0x44) = *(const uint32_t *)debris + debris + 0x10;
 		FramePackets() = TriRender(h + 0x40, OTBase() + 0x44, 2, FramePackets());
 	}
 
@@ -866,6 +888,25 @@ namespace heaven215
 	// ------------------------------------------------------------------
 	// RingTask (0x69CB10): node 0x294, a layout at its point turned / scaled about Y; ends with its layout
 	// ------------------------------------------------------------------
+	// File loader (0x69AB70) and setup (0x69AB60 -> _Init 0x69AB90): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the root (it sets up the rest)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508978), 0x10, 1);
+		*(uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *k = (RingNode *)n;
@@ -889,13 +930,13 @@ namespace heaven215
 	// 0x69CBB0: a ring at Zell's bone `bone` (0x502170 with `flag`), Y scale `scale`, layout 0x115C4C8
 	static void SpawnBoneRing(int32_t bone, int32_t flag, int32_t scale)
 	{
-		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), own::Fn(ORIG_RingTask));
 		if (!k) return;
 		GetEffectSpawnPosition(Caster(), bone, flag, k->pos);
 		k->pos[1] = 0;
 		k->scale = (int16_t)scale;
 		*(uint32_t *)&k->angle = 0;
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0x40);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.ring, LAYOUT_Ring, 0x40), k->layout, 0x40);
 	}
 
 	// ------------------------------------------------------------------
@@ -1010,7 +1051,7 @@ namespace heaven215
 	// a ring at Zell's feet (x +- 0xC8 alternately), Y scale 0x2000, layout 0x115C4C8 (the jump 0xB6..0xD2)
 	static void SpawnSideRing(int32_t b)
 	{
-		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), own::Fn(ORIG_RingTask));
 		if (!k) return;
 		const int16_t x = W16(Caster(), 0x1C);
 		k->pos[0] = x;
@@ -1019,7 +1060,7 @@ namespace heaven215
 		k->scale = 0x2000;
 		*(uint32_t *)&k->angle = 0;
 		k->pos[2] = (int16_t)(W16(Caster(), 0x20) + 0x400);
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0x40);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.ring, LAYOUT_Ring, 0x40), k->layout, 0x40);
 	}
 
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
@@ -1041,7 +1082,7 @@ namespace heaven215
 		int32_t s = c - 1;
 		if ((uint32_t)s < 0x3D)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Anchor, d->layout_a, 0x370);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.anchor, LAYOUT_Anchor, 0x370), d->layout_a, 0x370);
 			GetDefaultEffectPosition(z, argb.pos);
 			argb.pos[1] = 0;
 			argb.morph = morph;
@@ -1055,7 +1096,7 @@ namespace heaven215
 		s = c - 0x3E;
 		if ((uint32_t)s < 0xE)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Back, d->layout_b, 0xB0);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.back, LAYOUT_Back, 0xB0), d->layout_b, 0xB0);
 			W16(z, 0x20) = (int16_t)(W16(z, 0x20) - 0x100);
 			RotationY(0, &arga.m);
 			arga.m.t[0] = W16(z, 0x1C);
@@ -1080,7 +1121,7 @@ namespace heaven215
 			{
 				QRings()->tail = nullptr;
 				QRings()->head = nullptr;
-				DecodeModelPrimLayout(LAYOUT_Run, d->layout_b, 0x188);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.run, LAYOUT_Run, 0x188), d->layout_b, 0x188);
 				W16(z, 0x20) = (int16_t)(d->centre[2] + 0x1800);
 				W32(z, 0x5C) = W16(z, 0x20);
 				W16(z, 0x20) = (int16_t)(W16(z, 0x20) - 0x4CC);
@@ -1132,7 +1173,7 @@ namespace heaven215
 					U32(r.e, 0xC) = r.rot01;
 					U32(r.e, 0x10) = r.rot23;
 				}
-				DecodeModelPrimLayout(LAYOUT_Screen, d->layout_b, 0x94);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.screen, LAYOUT_Screen, 0x94), d->layout_b, 0x94);
 			}
 			RotationY(0, &arga.m);
 			arga.morph = morph;
@@ -1150,7 +1191,7 @@ namespace heaven215
 		s = c - 0xA4;
 		if ((uint32_t)s < 0x12)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Far, d->layout_b, 0x154);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.far, LAYOUT_Far, 0x154), d->layout_b, 0x154);
 			RotationY(0, &arga.m);
 			arga.m.t[0] = W16(z, 0x1C);
 			arga.m.t[1] = 0;
@@ -1172,8 +1213,8 @@ namespace heaven215
 			if (b == 0)
 			{
 				W16(z, 0x20) = (int16_t)(d->centre[2] + 0x5AA0);
-				DecodeModelPrimLayout(LAYOUT_Jump, d->layout_b, 0xBC);
-				DecodeModelPrimLayout(LAYOUT_JumpBone, d->layout_c, 0x27C);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.jump, LAYOUT_Jump, 0xBC), d->layout_b, 0xBC);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.jump_bone, LAYOUT_JumpBone, 0x27C), d->layout_c, 0x27C);
 				InitTaskQueuePool(QRings(), (void *)(TexBase() + 0x1400), 0x294, 0x24);
 			}
 			if ((uint32_t)b < 0x1E)
@@ -1197,12 +1238,12 @@ namespace heaven215
 					for (int32_t i = 0; i < TargetCount(); i++)
 					{
 						uint8_t *e = Entity(Targets()[i * 0x18]);
-						RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+						RingNode *k = (RingNode *)AddTaskToQueue(QRings(), own::Fn(ORIG_RingTask));
 						if (!k) break;
 						GetDefaultEffectPosition(e, k->pos);
 						*(uint32_t *)&k->angle = 0x800;
 						k->scale = (int16_t)(((int32_t)W16(e, 0x26) / 2) * 2 + 0x800);
-						DecodeModelPrimLayout(LAYOUT_TargetRing, k->layout, 0x160);
+						DecodeModelPrimLayout(fxp::layout(P().layouts.target_ring, LAYOUT_TargetRing, 0x160), k->layout, 0x160);
 					}
 				}
 				else if ((uint32_t)b < 0x19)
@@ -1266,7 +1307,7 @@ namespace heaven215
 		s = c - 0xDE;
 		if ((uint32_t)s < 0x20)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Crater, d->layout_a, 0x154);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.crater, LAYOUT_Crater, 0x154), d->layout_a, 0x154);
 			RotationY(0x800, &arga.m);
 			arga.m.t[0] = d->centre[0];
 			arga.m.t[1] = 0;
@@ -1301,7 +1342,7 @@ namespace heaven215
 			off[0] = 0;
 			if (t == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Crater, d->layout_a, 0x154);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.crater, LAYOUT_Crater, 0x154), d->layout_a, 0x154);
 				for (int32_t i = 0; i < TargetCount(); i++)
 				{
 					uint8_t *e = d->recs[i].e;
@@ -1351,7 +1392,7 @@ namespace heaven215
 		s = c - 0x18;
 		if ((uint32_t)s < 0x5C)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Bone, d->layout_c, 0x1B4);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.bone, LAYOUT_Bone, 0x1B4), d->layout_c, 0x1B4);
 			GetEffectSpawnPosition(z, 0x16, 0, argb.pos);
 			argb.morph = morph;
 			argb.depth = -0x80;
@@ -1361,9 +1402,9 @@ namespace heaven215
 		}
 		DebrisDraw(d);
 		DebrisMove(d);
-		if (c == 5) BdPlaySE(SOUND_A, 0, 0x80);
-		else if (c == 0xA2) BdPlaySE(SOUND_B, 0, 0x80);
-		else if (c == 0x108) ApplyActionResultToTargets(Targets(), (uint32_t)TargetCount());
+		if (c == 5) BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_A), 0, 0x80);
+		else if (c == 0xA2) BdPlaySE((const void *)fxp::sound(P().sounds.jump, (uint32_t)SOUND_B), 0, 0x80);
+		else if (c == P().director.damage) ApplyActionResultToTargets(Targets(), (uint32_t)TargetCount());
 		if (c == 0xA3)
 		{
 			// the targets shown and moved by the centre's -z
@@ -1433,7 +1474,7 @@ namespace heaven215
 		CentreWords()[0] = *(const uint32_t *)&d->centre[0];
 		CentreWords()[1] = *(const uint32_t *)&d->centre[2];
 		DebrisInit(d);
-		BindExternalAnimSet(z, d->bind, COM_Anim);
+		BindExternalAnimSet(z, d->bind, fxp::anim_set(P().res.anim, COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x70D0));
 		*(uint16_t *)Entity(0) |= 4;
@@ -1467,7 +1508,7 @@ namespace heaven215
 				InitTaskQueuePool(QDirector(), (void *)TexBase(), 0x1400, 1);
 				InitTaskQueuePool(QRings(), (void *)(TexBase() + 0x1400), 0x294, 0x24);
 			}
-			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), ORIG_DirectorTask);
+			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), own::Fn(ORIG_DirectorTask));
 			if (d) StartDirector(d);
 		}
 		int a = 1;
@@ -1508,16 +1549,55 @@ namespace heaven215
 		if (old > 0x100) r->counter = 0x100;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Zell's My Final Heaven: his animation set, the layouts as he walks back, runs and jumps, the rings, the debris, the targets turned, thrown and spun, the crater, the white flash, the camera's moves, the screen flash, the sounds; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the director's ticks 5 and 0xA2" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start", "At the director's tick 5", (uint32_t)offsetof(MyFinalHeavenParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.jump", "Jump", "At the director's tick 0xA2", (uint32_t)offsetof(MyFinalHeavenParams, sounds.jump), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(MyFinalHeavenParams, director.damage), fxp::I16, 0, 281 },
+			{ "director", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.anchor", "Anchor", "The prim-model layout anchor (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.anchor), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.back", "Back", "The prim-model layout back (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.back), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.run", "Run", "The prim-model layout run (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.run), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.screen", "Screen", "The prim-model layout screen (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.screen), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.far", "Far", "The prim-model layout far (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.far), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.jump", "Jump", "The prim-model layout jump (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.jump), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.jump_bone", "Jump bone", "The prim-model layout jump bone (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.jump_bone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.target_ring", "Target ring", "The prim-model layout target ring (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.target_ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.crater", "Crater", "The prim-model layout crater (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.crater), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.bone", "Bone", "The prim-model layout bone (its models' animation)", (uint32_t)offsetof(MyFinalHeavenParams, layouts.bone), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "model_data.at_1154f50", "Model 1154F50", "The prim model at 0x1154F50 (a mesh of 8 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MyFinalHeavenParams, model_data.at_1154f50), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MyFinalHeavenParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(MyFinalHeavenParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag215_my_final_heaven()
 	{
+		fxp::register_params({ 215, "My Final Heaven", &heaven215::live, &heaven215::GAME, sizeof(heaven215::MyFinalHeavenParams),
+		                       heaven215::table::PARTS, (int)(sizeof(heaven215::table::PARTS) / sizeof(heaven215::table::PARTS[0])),
+		                       heaven215::table::FIELDS, (int)(sizeof(heaven215::table::FIELDS) / sizeof(heaven215::table::FIELDS[0])),
+		                       heaven215::table::GROUPS, (int)(sizeof(heaven215::table::GROUPS) / sizeof(heaven215::table::GROUPS[0])) });
+		own::note(heaven215::ORIG_FileLoader, (void *)heaven215::FileLoader);
+		own::note(heaven215::ORIG_Setup, (void *)heaven215::Setup);
+		own::note(heaven215::ORIG_RootTask, (void *)heaven215::RootTask);
 		register_port(heaven215::ORIG_RootTask, (void *)heaven215::RootTask, "215 RootTask", 215);
+		own::note(heaven215::ORIG_DirectorTask, (void *)heaven215::DirectorTask);
 		register_port(heaven215::ORIG_DirectorTask, (void *)heaven215::DirectorTask, "215 DirectorTask", 215);
+		own::note(heaven215::ORIG_RingTask, (void *)heaven215::RingTask);
 		register_port(heaven215::ORIG_RingTask, (void *)heaven215::RingTask, "215 RingTask", 215);
 		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(register_mag215_held();)
 	}
+	FX_LAB_MODULE(register_mag215_my_final_heaven);
 }
 
 #ifdef FF8_FX_HELD

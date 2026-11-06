@@ -501,7 +501,7 @@ namespace laser_eye_quistis
 
 	// ---- laser beams (task 0x7DB5C0) and sparks (task 0x7DBC10)
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -529,7 +529,7 @@ namespace laser_eye_quistis
 			LaserNext &L = g_lnext[g_nlnext++];
 			L.node = node;
 			L.n = 0;
-			if (!live(node, ORIG_Laser)) continue;
+			if (!node_live(node, ORIG_Laser)) continue;
 			memcpy(copy, (const void *)node, LASER_BYTES);
 			const uint32_t entity = 0x1D972C0 + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C;
 			const bool pose = (U8(entity, 0) & 2) != 0 && U32(entity, 0x64) != 0;
@@ -597,7 +597,7 @@ namespace laser_eye_quistis
 		alignas(4) static uint8_t cur[SPARK_BYTES], nxt[SPARK_BYTES];
 		memcpy(cur, n.bytes, SPARK_BYTES);
 		const uint32_t c = P(cur), x1 = P(nxt);
-		const bool next = live(n.node, ORIG_Spark) && (U8(n.node, 0x26) & 1) == 0 && S8(n.node, 0x29) == 1;
+		const bool next = node_live(n.node, ORIG_Spark) && (U8(n.node, 0x26) & 1) == 0 && S8(n.node, 0x29) == 1;
 		if (!next && num >= den) return;
 		if (next)
 		{

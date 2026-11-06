@@ -60,8 +60,15 @@
 // vertices) and 0x15CE1DC (0xA0 vertices); battle entities (flags, colours, positions, matrices,
 // angles, +0x30 scale pointer), stage wobble words 0x1D98991 + k * 0x2C, the battle camera and the
 // text layers.
+// Fujin's described Scan (effect_040.json) runs this code: its memory through own::R() (fx_port.h; the camera
+// state too, through its exe pointer 0x15CDDE8), its spawns through own::Fn(), the setup and the file loader
+// ported below; its parameters (ScanParams: the sound, the camera's blend steps and projection, the brackets,
+// the scan bars).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -195,20 +202,22 @@ namespace scan040
 	// ------------------------------------------------------------------
 	// Module globals
 	// ------------------------------------------------------------------
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x269A1B8); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x269CE50; }  // 4 x 0x58
-	inline TaskQueue *QControls() { return (TaskQueue *)0x269CFC8; }  // 20 x 0x78
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x269CE18; }   // 100 x 0x58
-	inline TaskQueue *QModels() { return (TaskQueue *)0x269AA68; }    // 20 x 0x6C
-	inline CamState &Cam() { return **(CamState **)0x15CDDE8; }
-	inline int32_t &Scanned(int k) { return ((int32_t *)0x269A1BC)[k]; }   // entity k is scanned
-	inline uint32_t &SavedWord(int k) { return ((uint32_t *)0x269A1D8)[k]; }
-	inline uint32_t &SavedColour(int k) { return ((uint32_t *)0x269CE34)[k]; }
-	inline int16_t &HudActive() { return var<int16_t>(0x269AA90); }
-	inline int16_t &Closing() { return var<int16_t>(0x269CE2C); }
-	inline int16_t &Confirmed() { return var<int16_t>(0x269D938); }
-	inline int16_t &TextDone() { return var<int16_t>(0x269D93A); }
-	inline uint8_t *MainEntity() { return var<uint8_t *>(0x269CE30); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x269A1B8)); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)own::R(0x269CE50); }  // 4 x 0x58
+	inline TaskQueue *QControls() { return (TaskQueue *)own::R(0x269CFC8); }  // 20 x 0x78
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x269CE18); }   // 100 x 0x58
+	inline TaskQueue *QModels() { return (TaskQueue *)own::R(0x269AA68); }    // 20 x 0x6C
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x269ABA8); }      // 2 x 0x64
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x269A160)); }   // the effect's file (its TIM)
+	inline CamState &Cam() { return *(CamState *)own::R(*(uint32_t *)0x15CDDE8); }
+	inline int32_t &Scanned(int k) { return ((int32_t *)own::R(0x269A1BC))[k]; }   // entity k is scanned
+	inline uint32_t &SavedWord(int k) { return ((uint32_t *)own::R(0x269A1D8))[k]; }
+	inline uint32_t &SavedColour(int k) { return ((uint32_t *)own::R(0x269CE34))[k]; }
+	inline int16_t &HudActive() { return var<int16_t>(own::R(0x269AA90)); }
+	inline int16_t &Closing() { return var<int16_t>(own::R(0x269CE2C)); }
+	inline int16_t &Confirmed() { return var<int16_t>(own::R(0x269D938)); }
+	inline int16_t &TextDone() { return var<int16_t>(own::R(0x269D93A)); }
+	inline uint8_t *MainEntity() { return var<uint8_t *>(own::R(0x269CE30)); }
 	inline int16_t &InW(uint32_t addr) { return var<int16_t>(addr); }       // pad / analog / view words 0x269AAxx
 	inline uint32_t LinesOT() { return var<uint32_t>(0x1D8E04C) + 0x14; }
 
@@ -221,6 +230,26 @@ namespace scan040
 	static const uint32_t ORIG_AltBoard = 0x850EB0, ORIG_AltText = 0x850FD0;
 
 	static const void *const SOUND_Scan = (const void *)0x15D0B3C;
+	static const uint32_t ORIG_FileLoader = 0x84D010, ORIG_Setup = 0x84D030;
+	static const uint32_t TEXTURE_NAME = 0x15D18EC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ScanParams
+	{
+		uint32_t sound;                                    // the emitter's sound at its first tick
+		struct { int16_t approach, view, back, proj; } camera;   // its blend steps a tick (to the target, the close view, the next action's); the projection
+		struct { int16_t follow, grow; } brackets;         // the sliding brackets: ticks on the reticle, then their growth a tick
+		struct { int16_t step, level; } bars;              // the scan bars' fade a tick, their brightness
+		struct { uint32_t at_15d07d4, at_15d0af8; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_15ce93c, at_15ce9b8, at_15cddec, at_15ce1d4, at_15cf37c, at_15cf5b4, at_15cf614, at_15cea34, at_15cf674; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t small_from, small_to, big_from, big_to; } morphs; // a morph's vertex sets (data): what its code blends a model's vertices from and to
+	};
+	static const ScanParams GAME = { 0x15D0B3C, { 0x100, 0x2AA, 0x200, 0x240 }, { 0x1E, 0x400 }, { 8, 0x80 }, { 0x15D07D4, 0x15D0AF8 }, { 0x15CE93C, 0x15CE9B8, 0x15CDDEC, 0x15CE1D4, 0x15CF37C, 0x15CF5B4, 0x15CF614, 0x15CEA34, 0x15CF674 }, { TEXTURE_NAME }, { 0x15CFAB4, 0x15CFC3C, 0x15CFDC4, 0x15D02CC } };
+	static ScanParams live = GAME;
+	static const ScanParams &P() { return live; }
 	static const uint32_t INFO_TABLE = 0x15D0B40;   // 16 bytes per entity class
 	static const uint32_t RETICLE_PATH = 0x15D1898; // (x, y) per tick, 0x7FFF ends
 
@@ -305,7 +334,7 @@ namespace scan040
 	static void FindScannedEntities(int16_t slot)
 	{
 		uint8_t *e = Entity(slot);
-		var<uint8_t *>(0x269CE30) = MainPartOf(e);
+		var<uint8_t *>(own::R(0x269CE30)) = MainPartOf(e);
 		uint8_t *list[8];
 		if (EntityClass(slot) == 0x54)
 		{
@@ -615,22 +644,22 @@ namespace scan040
 		case 2:
 			c.dist1 = (int16_t)((int32_t)F<int16_t>(info, 0) * 3 / 4);
 			c.h1 = (int16_t)(c.dist1 / 2);
-			c.step = 0x100;
+			c.step = P().camera.approach;
 			break;
 		case 1:
 			c.dist1 = F<int16_t>(info, 0);
 			c.h1 = 0;
-			c.step = 0x2AA;
+			c.step = P().camera.view;
 			break;
 		case 3:
 			c.dist1 = (int16_t)((int32_t)F<int16_t>(info, 0) * 3 / 4);
 			c.h1 = (int16_t)(c.dist1 / 2);
-			c.step = 0x200;
+			c.step = P().camera.back;
 			break;
 		default: break;
 		}
 		c.proj0 = var<int16_t>(0x1D8E038);
-		c.proj1 = 0x240;
+		c.proj1 = P().camera.proj;
 		const int32_t ex = (int32_t)var<int16_t>(0xB8B7F0) - var<int16_t>(0xB8B7F8);
 		const int32_t ez = (int32_t)var<int16_t>(0xB8B7F4) - var<int16_t>(0xB8B7FC);
 		const int32_t d = Sqrt((int32_t)((uint32_t)mul32(ez, ez) + (uint32_t)mul32(ex, ex)));
@@ -809,7 +838,7 @@ namespace scan040
 			default: break;
 			}
 			n->size = 0x1000;
-			n->timer = 0x1E;
+			n->timer = P().brackets.follow;
 			n->h.phase++;
 			break;
 		case 1: // 0x84E140: follows the reticle
@@ -827,7 +856,7 @@ namespace scan040
 		case 2: // 0x84E180: slides out and grows
 			n->h.pos[0] = (int16_t)(n->h.pos[0] + n->dx);
 			n->h.pos[1] = (int16_t)(n->h.pos[1] + n->dy);
-			n->size = (int16_t)(n->size + 0x400);
+			n->size = (int16_t)(n->size + P().brackets.grow);
 			n->timer--;
 			if (n->timer < 0) n->h.phase++;
 			// 30 fps layer: see mag040_scan_held.inc
@@ -878,7 +907,7 @@ namespace scan040
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			const int16_t p[2] = { (int16_t)(out[0] + 0x18), (int16_t)(out[1] + 0x18) };
 			Line(out, p);
-			AddEffectTask(QSprites(), ORIG_Sprite, 0x58, n);
+			AddEffectTask(QSprites(), own::Fn(ORIG_Sprite), 0x58, n);
 			n->h.phase++;
 			break;
 		}
@@ -915,10 +944,10 @@ namespace scan040
 			const int16_t *path = (const int16_t *)RETICLE_PATH + 2 * n->h.counter;
 			n->h.pos[0] = path[0];
 			n->h.pos[1] = path[1];
-			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), ORIG_Bracket, 0x78, n))->index = i;
-			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), ORIG_Corner, 0x78, n))->index = i;
-			AddEffectTask(QModels(), ORIG_Morph, 0x6C, n);
-			AddEffectTask(QModels(), ORIG_Pair, 0x6C, n);
+			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Bracket), 0x78, n))->index = i;
+			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Corner), 0x78, n))->index = i;
+			AddEffectTask(QModels(), own::Fn(ORIG_Morph), 0x6C, n);
+			AddEffectTask(QModels(), own::Fn(ORIG_Pair), 0x6C, n);
 			// 30 fps layer: see mag040_scan_held.inc
 			FX_HELD(held_note(REC_RETICLE, n);)
 			Fan(&n->h, 8, 0, 0x20, out);
@@ -958,7 +987,7 @@ namespace scan040
 			else n->h.phase++;
 			break;
 		case 3: // 0x84E3A0
-			AddEffectTask(QControls(), ORIG_Ring, 0x78, n);
+			AddEffectTask(QControls(), own::Fn(ORIG_Ring), 0x78, n);
 			n->h.phase++;
 			break;
 		case 4: // 0x84E7E0
@@ -981,10 +1010,10 @@ namespace scan040
 		{
 		case 0: n->h.phase++; break; // 0x84F060
 		case 1: // 0x84F070: fade in
-			n->fade = (int16_t)(n->fade + 8);
-			if (n->fade >= 0x80)
+			n->fade = (int16_t)(n->fade + P().bars.step);
+			if (n->fade >= P().bars.level)
 			{
-				n->fade = 0x80;
+				n->fade = P().bars.level;
 				n->h.phase++;
 			}
 			// 30 fps layer: see mag040_scan_held.inc
@@ -998,7 +1027,7 @@ namespace scan040
 			if (Confirmed() == 1) n->h.phase++;
 			break;
 		case 3: // 0x84F1F0: fade out
-			n->fade = (int16_t)(n->fade - 8);
+			n->fade = (int16_t)(n->fade - P().bars.step);
 			if (n->fade <= 0)
 			{
 				*(uint8_t *)&n->h.flags |= 1;
@@ -1196,10 +1225,10 @@ namespace scan040
 	static void PairDraw(ModelNode *n)
 	{
 		n->fade = n->fade1;
-		n->model = 0x15CE93C;
+		n->model = fxp::model(P().models.at_15ce93c, 0x15CE93C);
 		DrawHudModel(n, false);
 		n->fade = n->fade2;
-		n->model = 0x15CE9B8;
+		n->model = fxp::model(P().models.at_15ce9b8, 0x15CE9B8);
 		DrawHudModel(n, false);
 	}
 
@@ -1228,9 +1257,9 @@ namespace scan040
 			n->angle[0] = 0x5DC;
 			n->angle[1] = 0x2A0;
 			n->angle[2] = (int16_t)0xF808;
-			n->model = 0x15CDDEC;
-			n->morph_a = 0x15CFAB4;
-			n->morph_b = 0x15CFC3C;
+			n->model = fxp::model(P().models.at_15cddec, 0x15CDDEC);
+			n->morph_a = fxp::vertices(P().morphs.small_from, 0x15CFAB4);
+			n->morph_b = fxp::vertices(P().morphs.small_to, 0x15CFC3C);
 			n->fade = 0x1000;
 			n->h.phase++;
 			break;
@@ -1261,9 +1290,9 @@ namespace scan040
 			if (n->blend >= 0x1000)
 			{
 				n->blend = 0;
-				n->model = 0x15CE1D4;
-				n->morph_a = 0x15CFDC4;
-				n->morph_b = 0x15D02CC;
+				n->model = fxp::model(P().models.at_15ce1d4, 0x15CE1D4);
+				n->morph_a = fxp::vertices(P().morphs.big_from, 0x15CFDC4);
+				n->morph_b = fxp::vertices(P().morphs.big_to, 0x15D02CC);
 				n->h.phase++;
 			}
 			break;
@@ -1311,7 +1340,7 @@ namespace scan040
 			n->h.pos[0] = (int16_t)-0x80;
 			n->h.pos[1] = (int16_t)-0xA0;
 			n->h.pos[2] = 0x480;
-			n->model = 0x15CF37C;
+			n->model = fxp::model(P().models.at_15cf37c, 0x15CF37C);
 			n->h.phase++;
 			break;
 		case 1: // 0x84F3D0
@@ -1464,13 +1493,13 @@ namespace scan040
 			n->h.pos[0] = (int16_t)-0x40;
 			n->h.pos[1] = (int16_t)-0x58;
 			n->h.pos[2] = 0x240;
-			n->model = 0x15CF5B4;
+			n->model = fxp::model(P().models.at_15cf5b4, 0x15CF5B4);
 			n->h.phase++;
 			break;
 		case 1: // 0x84F4E0
 			for (int16_t i = 0; i < 8; i++)
 			{
-				ModelNode *b = (ModelNode *)AddEffectTask(QModels(), ORIG_StatBar, 0x6C, n);
+				ModelNode *b = (ModelNode *)AddEffectTask(QModels(), own::Fn(ORIG_StatBar), 0x6C, n);
 				b->which = i;
 				b->table = 0;
 			}
@@ -1503,13 +1532,13 @@ namespace scan040
 			n->h.pos[0] = (int16_t)-0x88;
 			n->h.pos[1] = (int16_t)-0x3C;
 			n->h.pos[2] = 0x240;
-			n->model = 0x15CF614;
+			n->model = fxp::model(P().models.at_15cf614, 0x15CF614);
 			n->h.phase++;
 			break;
 		case 1: // 0x850F60: bars 1..7 of table 1
 			for (int16_t i = 1; i < 8; i++)
 			{
-				ModelNode *b = (ModelNode *)AddEffectTask(QModels(), ORIG_StatBar, 0x6C, n);
+				ModelNode *b = (ModelNode *)AddEffectTask(QModels(), own::Fn(ORIG_StatBar), 0x6C, n);
 				b->which = i;
 				b->table = 1;
 			}
@@ -1542,7 +1571,7 @@ namespace scan040
 			n->h.pos[0] = (int16_t)0xF080;
 			n->h.pos[1] = 0xF00;
 			n->h.pos[2] = 0x7FFF;
-			n->model = 0x15CEA34;
+			n->model = fxp::model(P().models.at_15cea34, 0x15CEA34);
 			n->fade = 0x1000;
 			n->h.phase++;
 			break;
@@ -1587,7 +1616,7 @@ namespace scan040
 			n->h.pos[0] = (int16_t)-0x200;
 			n->h.pos[1] = 0;
 			n->h.pos[2] = 0x6C0;
-			n->model = 0x15CF674;
+			n->model = fxp::model(P().models.at_15cf674, 0x15CF674);
 			n->angle[1] = 0x400;
 			n->h.phase++;
 			break;
@@ -1630,7 +1659,7 @@ namespace scan040
 			n->h.pos[0] = 0x190;
 			n->h.pos[1] = 0xC0;
 			n->h.pos[2] = 0x900;
-			n->seq = 0x15D07D4;
+			n->seq = fxp::sequence(P().seqs.at_15d07d4, 0x15D07D4);
 			n->last = 0x1F;
 			n->h.phase++;
 			break;
@@ -1641,7 +1670,7 @@ namespace scan040
 				*(uint8_t *)&n->h.flags |= 4;
 				n->frame = n->last;
 				*(uint8_t *)&n->h.flags &= 0xFB;
-				n->seq = 0x15D0AF8;
+				n->seq = fxp::sequence(P().seqs.at_15d0af8, 0x15D0AF8);
 				n->frame = 0;
 				n->last = 3;
 				n->h.phase++;
@@ -1766,84 +1795,84 @@ namespace scan040
 	// L / R modifiers (bits 0-1 / 2-3) move them to the offsets / zoom
 	static void ReadViewInput()
 	{
-		static const uint32_t CLEAR[] = { 0x269AABA, 0x269AAB8, 0x269AAB6, 0x269AAB4, 0x269AAC2, 0x269AAC0, 0x269AABE, 0x269AABC,
-			0x269AACE, 0x269AACC, 0x269AACA, 0x269AAC8, 0x269AAD6, 0x269AAD4, 0x269AAD2, 0x269AAD0, 0x269AAC6, 0x269AAC4 };
+		static const uint32_t CLEAR[] = { own::R(0x269AABA), own::R(0x269AAB8), own::R(0x269AAB6), own::R(0x269AAB4), own::R(0x269AAC2), own::R(0x269AAC0), own::R(0x269AABE), own::R(0x269AABC),
+			own::R(0x269AACE), own::R(0x269AACC), own::R(0x269AACA), own::R(0x269AAC8), own::R(0x269AAD6), own::R(0x269AAD4), own::R(0x269AAD2), own::R(0x269AAD0), own::R(0x269AAC6), own::R(0x269AAC4) };
 		for (uint32_t a : CLEAR) InW(a) = 0;
 		const uint32_t pad = RemapPadInput(ReadPadHeldRaw(0, 0)) & 0xFFFF;
-		var<uint32_t>(0x269AAA8) = pad;
+		var<uint32_t>(own::R(0x269AAA8)) = pad;
 		if (pad & 0xF000)
 		{
 			// D-pad: 8 per tick
 			const uint8_t m = (uint8_t)pad;
 			if (m & 3)
 			{
-				if (pad & 0x1000) InW(0x269AAD4) = 8;
-				else if (pad & 0x4000) InW(0x269AAD6) = 8;
-				if (pad & 0x8000) InW(0x269AAD0) = 8;
-				else if (pad & 0x2000) InW(0x269AAD2) = 8;
+				if (pad & 0x1000) InW(own::R(0x269AAD4)) = 8;
+				else if (pad & 0x4000) InW(own::R(0x269AAD6)) = 8;
+				if (pad & 0x8000) InW(own::R(0x269AAD0)) = 8;
+				else if (pad & 0x2000) InW(own::R(0x269AAD2)) = 8;
 			}
 			else if (m & 0xC)
 			{
-				if (pad & 0x1000) InW(0x269AAC6) = 8;
-				else if (pad & 0x4000) InW(0x269AAC4) = 8;
-				if (pad & 0x8000) InW(0x269AAD0) = 8;
-				else if (pad & 0x2000) InW(0x269AAD2) = 8;
+				if (pad & 0x1000) InW(own::R(0x269AAC6)) = 8;
+				else if (pad & 0x4000) InW(own::R(0x269AAC4)) = 8;
+				if (pad & 0x8000) InW(own::R(0x269AAD0)) = 8;
+				else if (pad & 0x2000) InW(own::R(0x269AAD2)) = 8;
 			}
 			else
 			{
-				if (pad & 0x1000) InW(0x269AACC) = 8;
-				else if (pad & 0x4000) InW(0x269AACE) = 8;
-				if (pad & 0x8000) InW(0x269AAC8) = 8;
-				else if (pad & 0x2000) InW(0x269AACA) = 8;
+				if (pad & 0x1000) InW(own::R(0x269AACC)) = 8;
+				else if (pad & 0x4000) InW(own::R(0x269AACE)) = 8;
+				if (pad & 0x8000) InW(own::R(0x269AAC8)) = 8;
+				else if (pad & 0x2000) InW(own::R(0x269AACA)) = 8;
 			}
 			return;
 		}
 		// analog: outside the dead zone 0x61..0x9E, (distance * 16) / 96
-		InW(0x269AAAC) = (int16_t)ReadAnalog(0, 2, 0);
-		if (InW(0x269AAAC) < 0)
+		InW(own::R(0x269AAAC)) = (int16_t)ReadAnalog(0, 2, 0);
+		if (InW(own::R(0x269AAAC)) < 0)
 		{
-			InW(0x269AAB2) = 0x80;
-			InW(0x269AAB0) = 0x80;
-			InW(0x269AAAE) = 0x80;
-			InW(0x269AAAC) = 0x80;
+			InW(own::R(0x269AAB2)) = 0x80;
+			InW(own::R(0x269AAB0)) = 0x80;
+			InW(own::R(0x269AAAE)) = 0x80;
+			InW(own::R(0x269AAAC)) = 0x80;
 		}
 		else
 		{
-			InW(0x269AAAE) = (int16_t)ReadAnalog(0, 3, 0);
-			InW(0x269AAB0) = (int16_t)ReadAnalog(0, 0, 0);
-			InW(0x269AAB2) = (int16_t)ReadAnalog(0, 1, 0);
+			InW(own::R(0x269AAAE)) = (int16_t)ReadAnalog(0, 3, 0);
+			InW(own::R(0x269AAB0)) = (int16_t)ReadAnalog(0, 0, 0);
+			InW(own::R(0x269AAB2)) = (int16_t)ReadAnalog(0, 1, 0);
 			auto axis = [](uint32_t in, uint32_t lo, uint32_t hi)
 			{
 				const int16_t v = InW(in);
 				if (v <= 0x60) InW(lo) = Div96((int32_t)(int16_t)(0x60 - v) << 4);
 				else if (v >= 0x9F) InW(hi) = Div96((int32_t)(int16_t)(v - 0x9F) << 4);
 			};
-			axis(0x269AAAC, 0x269AAB4, 0x269AAB6);
-			axis(0x269AAAE, 0x269AAB8, 0x269AABA);
-			axis(0x269AAB0, 0x269AABC, 0x269AABE);
-			axis(0x269AAB2, 0x269AAC0, 0x269AAC2);
+			axis(own::R(0x269AAAC), own::R(0x269AAB4), own::R(0x269AAB6));
+			axis(own::R(0x269AAAE), own::R(0x269AAB8), own::R(0x269AABA));
+			axis(own::R(0x269AAB0), own::R(0x269AABC), own::R(0x269AABE));
+			axis(own::R(0x269AAB2), own::R(0x269AAC0), own::R(0x269AAC2));
 		}
-		const uint8_t m = var<uint8_t>(0x269AAA8);
+		const uint8_t m = var<uint8_t>(own::R(0x269AAA8));
 		if (m & 3)
 		{
-			InW(0x269AAD0) = InW(0x269AAB4);
-			InW(0x269AAD2) = InW(0x269AAB6);
-			InW(0x269AAD4) = InW(0x269AAB8);
-			InW(0x269AAD6) = InW(0x269AABA);
+			InW(own::R(0x269AAD0)) = InW(own::R(0x269AAB4));
+			InW(own::R(0x269AAD2)) = InW(own::R(0x269AAB6));
+			InW(own::R(0x269AAD4)) = InW(own::R(0x269AAB8));
+			InW(own::R(0x269AAD6)) = InW(own::R(0x269AABA));
 		}
 		else if (m & 0xC)
 		{
-			InW(0x269AAC6) = InW(0x269AAB8);
-			InW(0x269AAC4) = InW(0x269AABA);
-			InW(0x269AAD0) = InW(0x269AAB4);
-			InW(0x269AAD2) = InW(0x269AAB6);
+			InW(own::R(0x269AAC6)) = InW(own::R(0x269AAB8));
+			InW(own::R(0x269AAC4)) = InW(own::R(0x269AABA));
+			InW(own::R(0x269AAD0)) = InW(own::R(0x269AAB4));
+			InW(own::R(0x269AAD2)) = InW(own::R(0x269AAB6));
 		}
 		else
 		{
-			InW(0x269AAC8) = InW(0x269AAB4);
-			InW(0x269AACA) = InW(0x269AAB6);
-			InW(0x269AACE) = InW(0x269AABA);
-			InW(0x269AACC) = InW(0x269AAB8);
+			InW(own::R(0x269AAC8)) = InW(own::R(0x269AAB4));
+			InW(own::R(0x269AACA)) = InW(own::R(0x269AAB6));
+			InW(own::R(0x269AACE)) = InW(own::R(0x269AABA));
+			InW(own::R(0x269AACC)) = InW(own::R(0x269AAB8));
 		}
 	}
 
@@ -1897,7 +1926,7 @@ namespace scan040
 	{
 		const uint8_t *info = InfoOf(&n->h);
 		ReadViewInput();
-		const uint8_t m = var<uint8_t>(0x269AAA8);
+		const uint8_t m = var<uint8_t>(own::R(0x269AAA8));
 		if ((m & 4) && (m & 1)) ResetView(n);
 		uint8_t *ent;
 		if (n->moved == 0)
@@ -1912,35 +1941,35 @@ namespace scan040
 			if (n->idle <= 0) ResetView(n);
 			ent = MainEntity();
 		}
-		int16_t v = InW(0x269AAC8);
+		int16_t v = InW(own::R(0x269AAC8));
 		if (v > 0)
 		{
 			n->moved = 1;
 			n->idle = 0x4B;
 			if (info[0xD] == 1) F<int16_t>(ent, 0xE) = (int16_t)(F<int16_t>(ent, 0xE) + (int16_t)(v << 4));
 		}
-		v = InW(0x269AACA);
+		v = InW(own::R(0x269AACA));
 		if (v > 0)
 		{
 			n->moved = 1;
 			n->idle = 0x4B;
 			if (info[0xD] == 1) F<int16_t>(ent, 0xE) = (int16_t)(F<int16_t>(ent, 0xE) + (int16_t)(v * -0x10));
 		}
-		v = InW(0x269AACC);
+		v = InW(own::R(0x269AACC));
 		if (v > 0)
 		{
 			n->moved = 1;
 			n->idle = 0x4B;
 			if (info[0xC] == 1) F<int16_t>(ent, 0xC) = (int16_t)(F<int16_t>(ent, 0xC) + (int16_t)shl32(-v, 4));
 		}
-		v = InW(0x269AACE);
+		v = InW(own::R(0x269AACE));
 		if (v > 0)
 		{
 			n->moved = 1;
 			n->idle = 0x4B;
 			if (info[0xC] == 1) F<int16_t>(ent, 0xC) = (int16_t)(F<int16_t>(ent, 0xC) + (int16_t)(v << 4));
 		}
-		v = InW(0x269AAC4);
+		v = InW(own::R(0x269AAC4));
 		if (v > 0)
 		{
 			n->moved = 1;
@@ -1952,7 +1981,7 @@ namespace scan040
 		}
 		else
 		{
-			v = InW(0x269AAC6);
+			v = InW(own::R(0x269AAC6));
 			if (v > 0)
 			{
 				n->moved = 1;
@@ -1963,28 +1992,28 @@ namespace scan040
 				n->scale[1] = n->scale[0];
 			}
 		}
-		v = InW(0x269AAD0);
+		v = InW(own::R(0x269AAD0));
 		if (v > 0)
 		{
 			n->rot[0] = (int16_t)(n->rot[0] + (int16_t)shl32(-v, 3));
 			n->moved = 1;
 			n->idle = 0x4B;
 		}
-		v = InW(0x269AAD2);
+		v = InW(own::R(0x269AAD2));
 		if (v > 0)
 		{
 			n->rot[0] = (int16_t)(n->rot[0] + (int16_t)(v << 3));
 			n->moved = 1;
 			n->idle = 0x4B;
 		}
-		v = InW(0x269AAD4);
+		v = InW(own::R(0x269AAD4));
 		if (v > 0)
 		{
 			n->rot[1] = (int16_t)(n->rot[1] + (int16_t)shl32(-v, 3));
 			n->moved = 1;
 			n->idle = 0x4B;
 		}
-		v = InW(0x269AAD6);
+		v = InW(own::R(0x269AAD6));
 		if (v > 0)
 		{
 			n->rot[1] = (int16_t)(n->rot[1] + (int16_t)(v << 3));
@@ -2091,9 +2120,9 @@ namespace scan040
 		case 0: // 0x84F8D0: name and info text, the pager, the backdrop
 		{
 			const void *name = n->h.slot <= 2 ? CharacterName(n->h.slot) : MonsterName(n->h.slot);
-			memcpy((void *)0x269AA78, name, 0x18);
+			memcpy((void *)own::R(0x269AA78), name, 0x18);
 			int16_t rect[4] = { 0xAA, 0x1E, 0x88, 0x1C };
-			TextSetLayerText(2, (const void *)0x269AA78);
+			TextSetLayerText(2, (const void *)own::R(0x269AA78));
 			TextLayer4A0700(2, 0);
 			TextSetPosition(2, rect);
 			TextLayer4A0640(2);
@@ -2103,8 +2132,8 @@ namespace scan040
 			TextLayer4A0700(0, 0);
 			TextSetPosition(0, rect);
 			TextLayer4A0640(0);
-			((CtlNode *)AddEffectTask(QControls(), ORIG_Text, 0x78, n))->timer = 0;
-			AddEffectTask(QModels(), ORIG_Backdrop, 0x6C, n);
+			((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Text), 0x78, n))->timer = 0;
+			AddEffectTask(QModels(), own::Fn(ORIG_Backdrop), 0x6C, n);
 			ViewerSetup(n);
 			n->h.phase++;
 			break;
@@ -2157,9 +2186,9 @@ namespace scan040
 		{
 		case 0: // 0x84D540
 			MarkTarget(n);
-			((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 0;
+			((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Camera), 0x78, n))->mode = 0;
 			HudActive() = 1;
-			AddEffectTask(QControls(), ORIG_Reticle, 0x78, n);
+			AddEffectTask(QControls(), own::Fn(ORIG_Reticle), 0x78, n);
 			n->timer = 0xF;
 			n->h.phase++;
 			break;
@@ -2167,7 +2196,7 @@ namespace scan040
 			n->timer--;
 			if (n->timer < 0)
 			{
-				AddEffectTask(QControls(), ORIG_Dimmer, 0x78, n);
+				AddEffectTask(QControls(), own::Fn(ORIG_Dimmer), 0x78, n);
 				n->timer = 0x10;
 				n->h.phase++;
 			}
@@ -2176,7 +2205,7 @@ namespace scan040
 			n->timer--;
 			if (n->timer < 0)
 			{
-				AddEffectTask(QControls(), ORIG_Bars, 0x78, n);
+				AddEffectTask(QControls(), own::Fn(ORIG_Bars), 0x78, n);
 				n->timer = 0x20;
 				n->h.phase++;
 			}
@@ -2190,7 +2219,7 @@ namespace scan040
 			}
 			break;
 		case 4: // 0x84F270
-			((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 1;
+			((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Camera), 0x78, n))->mode = 1;
 			n->timer = 8;
 			n->h.phase++;
 			break;
@@ -2198,9 +2227,9 @@ namespace scan040
 			n->timer--;
 			if (n->timer < 0)
 			{
-				AddEffectTask(QControls(), ORIG_Viewer, 0x78, n);
-				AddEffectTask(QModels(), ORIG_Spinner, 0x6C, n);
-				AddEffectTask(QModels(), ORIG_Board, 0x6C, n);
+				AddEffectTask(QControls(), own::Fn(ORIG_Viewer), 0x78, n);
+				AddEffectTask(QModels(), own::Fn(ORIG_Spinner), 0x6C, n);
+				AddEffectTask(QModels(), own::Fn(ORIG_Board), 0x6C, n);
 				n->h.phase++;
 			}
 			break;
@@ -2208,9 +2237,9 @@ namespace scan040
 			if (n->h.children == 0)
 			{
 				uint8_t *e = Entity(n->h.slot);
-				if ((int16_t)n->h.action == ((RootNode *)n->h.root)->last_action) AddEffectTask(QControls(), ORIG_CamRestore, 0x78, n);
-				else if (Cam().dist <= (int16_t)0xE000) ((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 3;
-				AddEffectTask(QControls(), ORIG_Restorer, 0x78, n);
+				if ((int16_t)n->h.action == ((RootNode *)n->h.root)->last_action) AddEffectTask(QControls(), own::Fn(ORIG_CamRestore), 0x78, n);
+				else if (Cam().dist <= (int16_t)0xE000) ((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Camera), 0x78, n))->mode = 3;
+				AddEffectTask(QControls(), own::Fn(ORIG_Restorer), 0x78, n);
 				F<uint16_t>(e, 0) &= 0x87FF;
 				n->h.phase++;
 			}
@@ -2234,9 +2263,9 @@ namespace scan040
 		{
 		case 0: // 0x850BC0
 			MarkTarget(n);
-			((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 2;
+			((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Camera), 0x78, n))->mode = 2;
 			HudActive() = 1;
-			AddEffectTask(QControls(), ORIG_Reticle, 0x78, n);
+			AddEffectTask(QControls(), own::Fn(ORIG_Reticle), 0x78, n);
 			n->timer = 0x2D;
 			n->h.phase++;
 			break;
@@ -2244,7 +2273,7 @@ namespace scan040
 			n->timer--;
 			if (n->timer < 0)
 			{
-				AddEffectTask(QModels(), ORIG_AltSpinner, 0x6C, n);
+				AddEffectTask(QModels(), own::Fn(ORIG_AltSpinner), 0x6C, n);
 				n->timer = 8;
 				n->h.phase++;
 			}
@@ -2253,8 +2282,8 @@ namespace scan040
 			n->timer--;
 			if (n->timer < 0)
 			{
-				AddEffectTask(QControls(), ORIG_AltText, 0x78, n);
-				AddEffectTask(QModels(), ORIG_AltBoard, 0x6C, n);
+				AddEffectTask(QControls(), own::Fn(ORIG_AltText), 0x78, n);
+				AddEffectTask(QModels(), own::Fn(ORIG_AltBoard), 0x6C, n);
 				n->h.phase++;
 			}
 			break;
@@ -2285,12 +2314,12 @@ namespace scan040
 				uint8_t *e = Entity(n->h.slot);
 				if ((int16_t)n->h.action == ((RootNode *)n->h.root)->last_action)
 				{
-					AddEffectTask(QControls(), ORIG_CamRestore, 0x78, n);
+					AddEffectTask(QControls(), own::Fn(ORIG_CamRestore), 0x78, n);
 					F<uint16_t>(e, 0) &= 0x87FF;
 					n->h.phase++;
 					break;
 				}
-				if (Cam().dist <= (int16_t)0xE000) ((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 3;
+				if (Cam().dist <= (int16_t)0xE000) ((CtlNode *)AddEffectTask(QControls(), own::Fn(ORIG_Camera), 0x78, n))->mode = 3;
 				F<uint16_t>(e, 0) &= 0x87FF;
 				n->h.phase++;
 			}
@@ -2317,7 +2346,7 @@ namespace scan040
 		{
 			int16_t mid[4]; // read and not used
 			CopyMidpointFromSource(e, mid);
-			BdPlaySE(SOUND_Scan, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Scan), 0, 0x80);
 		}
 		EmitterUpdatePos(e);
 		ComputeModelBounds(e);
@@ -2329,7 +2358,7 @@ namespace scan040
 			Closing() = 0;
 			FindScannedEntities((int16_t)(uint16_t)e->h.slot);
 			const uint8_t *rec = e->h.ctx->actions[0].targets + 24 * (int32_t)e->h.action;
-			AddEffectTask(QControls(), (rec[2] & 2) ? ORIG_AltScanner : ORIG_Scanner, 0x78, e);
+			AddEffectTask(QControls(), own::Fn((rec[2] & 2) ? ORIG_AltScanner : ORIG_Scanner), 0x78, e);
 			e->h.phase++;
 			break;
 		}
@@ -2356,7 +2385,7 @@ namespace scan040
 			break;
 		case 1: // 0x84D1F0
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
+			AddEffectTask(QEmitters(), own::Fn(ORIG_Emitter), 0x58, r);
 			CameraArmReturn();
 			BattleMenuShow(0);
 			r->h.phase++;
@@ -2385,11 +2414,40 @@ namespace scan040
 		}
 	}
 
+	// File loader (0x84D010) and setup (0x84D030): the game runs its own; Fujin's programs these (its memory may be
+	// a copy's): the root with the cast, the first target's slot and the action counts, the texture, the two
+	// packet arenas in the magic buffer, the queues
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		const uint8_t slot = ctx->actions->targets[0];
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x269AAE0), 0x64, 2);
+		RootNode *r = (RootNode *)AddEffectTask(QRoot(), own::Fn(ORIG_Root), 0x64, nullptr);
+		r->h.ctx = ctx;
+		r->h.slot = slot;
+		r->target_count = ctx->actions->target_count;
+		r->last_action = ctx->actions->last_action;
+		if ((ctx->flags & 1) == 0)
+			QueueTimUpload(TexFile());
+		var<uint32_t>(own::R(0x269CFC4)) = layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x269CFC0)) = var<uint32_t>(own::R(0x269CFC4)) + 0x4000;
+		InitTaskQueuePool(QEmitters(), (void *)own::R(0x269CE60), 0x58, 4);
+		InitTaskQueuePool(QControls(), (void *)own::R(0x269CFD8), 0x78, 20);
+		InitTaskQueuePool(QSprites(), (void *)own::R(0x269ABB8), 0x58, 100);
+		InitTaskQueuePool(QModels(), (void *)own::R(0x269A1F8), 0x6C, 20);
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *t)
 	{
 		RootNode *r = (RootNode *)t;
-		if (r->tick & 1) PacketCursor() = var<uint32_t>(0x269CFC4);
-		else PacketCursor() = var<uint32_t>(0x269CFC0);
+		if (r->tick & 1) PacketCursor() = var<uint32_t>(own::R(0x269CFC4));
+		else PacketCursor() = var<uint32_t>(own::R(0x269CFC0));
 		// 30 fps layer: see mag040_scan_held.inc
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
@@ -2401,39 +2459,112 @@ namespace scan040
 		r->tick++;
 		return TaskEnd(&r->h);
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define SP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(ScanParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "scanner", "Scanner", "One emitter per action: its sound, the reticle and its brackets, the screen dimmer, the scan bars, the camera to the target, the viewer and its text" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "camera", "Camera", "Its blend a tick (4096: all of it): to the target, to the close view, to the next action's target; the projection there" },
+			{ "brackets", "Brackets", "The four sliding brackets on the reticle" },
+			{ "bars", "Scan bars", "Their fade in and out a tick, their brightness" },
+		};
+		static const Field FIELDS[] = {
+			{ "scanner", "sound", "Sound", "Played at the emitter's first tick", (uint32_t)offsetof(ScanParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			SP("scanner", camera.approach, "To the target", "", 1, 0x1000),
+			SP("scanner", camera.view, "To the view", "", 1, 0x1000),
+			SP("scanner", camera.back, "To the next", "", 1, 0x1000),
+			SP("scanner", camera.proj, "Projection", "The projection distance of the view", 0x80, 0x1000),
+			SP("scanner", brackets.follow, "Follow", "Ticks on the reticle before they slide out", 0, 200),
+			SP("scanner", brackets.grow, "Grow", "Their growth a tick when sliding out (4096: their size)", 0, 0x2000),
+			SP("scanner", bars.step, "Step", "", 1, 0x80),
+			SP("scanner", bars.level, "Level", "", 0, 0xFF),
+			{ "scanner", "seqs.at_15d07d4", "Flipbook 15D07D4", "The sprite sequence at 0x15D07D4 (a flipbook of 32 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_15d07d4), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "scanner", "seqs.at_15d0af8", "Flipbook 15D0AF8", "The sprite sequence at 0x15D0AF8 (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(ScanParams, seqs.at_15d0af8), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15ce93c", "Model 15CE93C", "The prim model at 0x15CE93C (a mesh of 5 vertices, 3 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15ce93c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15ce9b8", "Model 15CE9B8", "The prim model at 0x15CE9B8 (a mesh of 5 vertices, 3 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15ce9b8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15cddec", "Model 15CDDEC", "The prim model at 0x15CDDEC (a mesh of 48 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cddec), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15ce1d4", "Model 15CE1D4", "The prim model at 0x15CE1D4 (a mesh of 160 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15ce1d4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15cf37c", "Model 15CF37C", "The prim model at 0x15CF37C (a mesh of 24 vertices, 28 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cf37c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15cf5b4", "Model 15CF5B4", "The prim model at 0x15CF5B4 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cf5b4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15cf614", "Model 15CF614", "The prim model at 0x15CF614 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cf614), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15cea34", "Model 15CEA34", "The prim model at 0x15CEA34 (a mesh of 84 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cea34), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "models.at_15cf674", "Model 15CF674", "The prim model at 0x15CF674 (a mesh of 6 vertices, 2 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ScanParams, models.at_15cf674), fxp::Model, 0, 0x7FFFFFFF },
+			{ "scanner", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ScanParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.small_from", "Small morph from", "The vertices the small scan model blends from (48 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.small_from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.small_to", "Small morph to", "The vertices the small scan model blends to (48 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.small_to), fxp::Data, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.big_from", "Big morph from", "The vertices the big scan model blends from (160 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.big_from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "scanner", "morphs.big_to", "Big morph to", "The vertices the big scan model blends to (160 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(ScanParams, morphs.big_to), fxp::Data, 0, 0x7FFFFFFF },
+		};
+#undef SP
+	}
 }
 
 	void register_mag040_scan()
 	{
+		fxp::register_params({ 40, "Scan", &scan040::live, &scan040::GAME, sizeof(scan040::ScanParams),
+		                       scan040::table::PARTS, (int)(sizeof(scan040::table::PARTS) / sizeof(scan040::table::PARTS[0])),
+		                       scan040::table::FIELDS, (int)(sizeof(scan040::table::FIELDS) / sizeof(scan040::table::FIELDS[0])),
+		                       scan040::table::GROUPS, (int)(sizeof(scan040::table::GROUPS) / sizeof(scan040::table::GROUPS[0])) });
+		own::note(scan040::ORIG_FileLoader, (void *)scan040::FileLoader);
+		own::note(scan040::ORIG_Setup, (void *)scan040::Setup);
 		using namespace scan040;
+		own::note(scan040::ORIG_Root, (void *)scan040::RootTask);
 		register_port(ORIG_Root, (void *)RootTask, "040 Root", 40);
+		own::note(scan040::ORIG_Emitter, (void *)scan040::EmitterTask);
 		register_port(ORIG_Emitter, (void *)EmitterTask, "040 Emitter", 40);
+		own::note(scan040::ORIG_Scanner, (void *)scan040::ScannerTask);
 		register_port(ORIG_Scanner, (void *)ScannerTask, "040 Scanner", 40);
+		own::note(scan040::ORIG_AltScanner, (void *)scan040::AltScannerTask);
 		register_port(ORIG_AltScanner, (void *)AltScannerTask, "040 AltScanner", 40);
+		own::note(scan040::ORIG_Reticle, (void *)scan040::ReticleTask);
 		register_port(ORIG_Reticle, (void *)ReticleTask, "040 Reticle", 40);
+		own::note(scan040::ORIG_Pair, (void *)scan040::PairTask);
 		register_port(ORIG_Pair, (void *)PairTask, "040 Pair", 40);
+		own::note(scan040::ORIG_Morph, (void *)scan040::MorphTask);
 		register_port(ORIG_Morph, (void *)MorphTask, "040 Morph", 40);
+		own::note(scan040::ORIG_Corner, (void *)scan040::CornerTask);
 		register_port(ORIG_Corner, (void *)CornerTask, "040 Corner", 40);
+		own::note(scan040::ORIG_Bracket, (void *)scan040::BracketTask);
 		register_port(ORIG_Bracket, (void *)BracketTask, "040 Bracket", 40);
+		own::note(scan040::ORIG_Ring, (void *)scan040::RingTask);
 		register_port(ORIG_Ring, (void *)RingTask, "040 Ring", 40);
+		own::note(scan040::ORIG_Sprite, (void *)scan040::SpriteTask);
 		register_port(ORIG_Sprite, (void *)SpriteTask, "040 Sprite", 40);
+		own::note(scan040::ORIG_Camera, (void *)scan040::CameraTask);
 		register_port(ORIG_Camera, (void *)CameraTask, "040 Camera", 40);
+		own::note(scan040::ORIG_Dimmer, (void *)scan040::DimmerTask);
 		register_port(ORIG_Dimmer, (void *)DimmerTask, "040 Dimmer", 40);
+		own::note(scan040::ORIG_Bars, (void *)scan040::BarsTask);
 		register_port(ORIG_Bars, (void *)BarsTask, "040 Bars", 40);
+		own::note(scan040::ORIG_Spinner, (void *)scan040::SpinnerTask);
 		register_port(ORIG_Spinner, (void *)SpinnerTask, "040 Spinner", 40);
+		own::note(scan040::ORIG_Board, (void *)scan040::BoardTask);
 		register_port(ORIG_Board, (void *)BoardTask, "040 Board", 40);
+		own::note(scan040::ORIG_StatBar, (void *)scan040::StatBarTask);
 		register_port(ORIG_StatBar, (void *)StatBarTask, "040 StatBar", 40);
+		own::note(scan040::ORIG_Viewer, (void *)scan040::ViewerTask);
 		register_port(ORIG_Viewer, (void *)ViewerTask, "040 Viewer", 40);
+		own::note(scan040::ORIG_Backdrop, (void *)scan040::BackdropTask);
 		register_port(ORIG_Backdrop, (void *)BackdropTask, "040 Backdrop", 40);
+		own::note(scan040::ORIG_Text, (void *)scan040::TextTask);
 		register_port(ORIG_Text, (void *)TextTask, "040 Text", 40);
+		own::note(scan040::ORIG_Restorer, (void *)scan040::RestorerTask);
 		register_port(ORIG_Restorer, (void *)RestorerTask, "040 Restorer", 40);
+		own::note(scan040::ORIG_CamRestore, (void *)scan040::CamRestoreTask);
 		register_port(ORIG_CamRestore, (void *)CamRestoreTask, "040 CamRestore", 40);
+		own::note(scan040::ORIG_AltSpinner, (void *)scan040::AltSpinnerTask);
 		register_port(ORIG_AltSpinner, (void *)AltSpinnerTask, "040 AltSpinner", 40);
+		own::note(scan040::ORIG_AltBoard, (void *)scan040::AltBoardTask);
 		register_port(ORIG_AltBoard, (void *)AltBoardTask, "040 AltBoard", 40);
+		own::note(scan040::ORIG_AltText, (void *)scan040::AltTextTask);
 		register_port(ORIG_AltText, (void *)AltTextTask, "040 AltText", 40);
 		// 30 fps layer: see mag040_scan_held.inc
 		FX_HELD(register_mag040_held();)
 	}
+	FX_LAB_MODULE(register_mag040_scan);
 }
 
 #ifdef FF8_FX_HELD

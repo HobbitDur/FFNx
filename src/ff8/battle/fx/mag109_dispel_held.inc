@@ -38,7 +38,7 @@ namespace dispel109
 	{
 		uint32_t kind;
 		prim::Layout *layout;     // play: the live layout (prim::play_held knows what it drew)
-		PrimArg arg;
+		AnchorArg arg;
 		ParticleNode part;        // particle, as drawn
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
@@ -72,7 +72,7 @@ namespace dispel109
 		return &r;
 	}
 
-	static void held_note_play(const TargetNode *t, const PrimArg *arg)
+	static void held_note_play(const TargetNode *t, const AnchorArg *arg)
 	{
 		Rec *r = NewRec(REC_PLAY);
 		if (!r) return;
@@ -108,13 +108,13 @@ namespace dispel109
 			{
 			case REC_PLAY:
 			{
-				PrimArg arg = r.arg;
+				AnchorArg arg = r.arg;
 				memcpy(g_held_morph, (const void *)r.arg.morph, sizeof(g_held_morph));
 				arg.morph = (uint32_t)g_held_morph;
-				prim::play_held(r.layout, RingPart, (int)&arg, num, den);
+				prim::play_held(r.layout, AnchorPrimCallback, (int)&arg, num, den);
 				break;
 			}
-			case REC_PARTICLE: ParticleDraw(&r.part); break;
+			case REC_PARTICLE: DrawSequenceSprite(r.part.pos, r.part.seq, r.part.counter, r.part.scale, (int32_t)0xFFFFF800, PacketCursor()); break;
 			}
 		}
 	}

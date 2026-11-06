@@ -575,6 +575,9 @@ namespace disease231
 	{
 		using namespace gfc;
 		disease231::describe(disease231::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<231>::Register("Disease Breath", disease231::g_c, 0xA66470, 0x186A014, 0x186A020,
+		                           (void *)disease231::SequenceTask);
 		init_clone(disease231::g_c, nullptr, 0);
 		disease231::g_c.bone[4] = disease231::bh_04_OrbitBetweenBones;
 		disease231::g_c.prim[58] = disease231::pr_58_TintedFT4Abr;
@@ -583,6 +586,7 @@ namespace disease231
 		// 30 fps layer: see mag231_disease_breath_held.inc
 		FX_HELD(register_mag231_disease_breath_held();)
 	}
+	FX_LAB_MODULE(register_mag231_disease_breath);
 }
 
 #ifdef FF8_FX_HELD

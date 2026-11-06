@@ -216,7 +216,7 @@ namespace psycho
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -417,7 +417,7 @@ namespace psycho
 	// move it
 	static bool PredictOrb(uint32_t node, uint32_t nxt)
 	{
-		if (!live(node, ORIG_Orb)) return false;
+		if (!node_live(node, ORIG_Orb)) return false;
 		memcpy((void *)nxt, (const void *)node, PRIM_BYTES);
 		switch (S8(node, 0x29))
 		{
@@ -503,7 +503,7 @@ namespace psycho
 		memcpy(cur, n.bytes, DEBRIS_BYTES);
 		const uint32_t c = P(cur), x1 = P(nxt);
 		// (a node released after the real tick holds its last draw)
-		const bool next = live(n.node, ORIG_Debris) && (U8(c, 0x26) & 4) == 0;
+		const bool next = node_live(n.node, ORIG_Debris) && (U8(c, 0x26) & 4) == 0;
 		if (next)
 		{
 			// the next tick's state step (flipbook frame) and motion on a copy; hidden by its last

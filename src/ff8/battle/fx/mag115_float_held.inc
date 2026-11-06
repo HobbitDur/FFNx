@@ -38,7 +38,7 @@ namespace float115
 		prim::Layout *layout;     // the live layout (prim::play_held knows what it drew)
 		bool upper;               // the upper layout (depth offset from the block)
 		const uint8_t *entity;
-		PrimArg arg;              // its block before the camera (+ scale, scaled)
+		FrameArg arg;             // its block before the camera (+ scale, scaled)
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
 	};
@@ -59,7 +59,7 @@ namespace float115
 		g_packets = 0;
 	}
 
-	static void held_note_play(const TargetNode *t, uint8_t *layout, const PrimArg *local)
+	static void held_note_play(const TargetNode *t, uint8_t *layout, const FrameArg *local, const int32_t *point)
 	{
 		if (g_log_tick != g_real_tick || g_nrec >= (int)(sizeof(g_recs) / sizeof(g_recs[0]))) return;
 		if (g_nrec == 0) g_packets = PacketCursor();
@@ -68,6 +68,11 @@ namespace float115
 		r.upper = layout == t->upper;
 		r.entity = t->entity;
 		r.arg = *local;
+		// its frame before the camera (TargetFrame up to the camera: turned with the target, at the point)
+		RotationY((int16_t)-*(const int16_t *)(t->entity + 0xE), &r.arg.m);
+		r.arg.m.t[0] = point[0];
+		r.arg.m.t[1] = point[1];
+		r.arg.m.t[2] = point[2];
 		memcpy(r.gte, (const void *)GTE_DATA, GTE_DATA_SIZE);
 		memcpy(r.gte + GTE_DATA_SIZE, (const void *)GTE_CTRL, GTE_CTRL_SIZE);
 		memcpy(r.scratch, var<uint8_t *>(0x1D999C4), SCRATCH);
@@ -85,17 +90,17 @@ namespace float115
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
 			memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
-			PrimArg arg = r.arg;
+			FrameArg arg = r.arg;
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			memcpy(g_held_morph, (const void *)(TexBase() + 0x1038), 0x120);
 			arg.morph = (uint32_t)g_held_morph;
 			if (r.upper)
 			{
-				arg.depth = UpperDepth(&arg.m, r.entity);
+				arg.depth = PointDepth(&arg.m, r.entity, DEPTH_Point);
 				GteSetTransVector(&arg.m);
 			}
 			else arg.depth = 0;
-			prim::play_held(r.layout, FloatPart, (int)&arg, num, den);
+			prim::play_held(r.layout, FramePrimCallback, (int)&arg, num, den);
 		}
 	}
 }

@@ -22,7 +22,7 @@ namespace ff8fx
 namespace dispel109
 {
 	static void held_note_root();
-	static void held_note_play(const TargetNode *t, const PrimArg *arg);
+	static void held_note_play(const TargetNode *t, const AnchorArg *arg);
 	static void held_note_particle(const ParticleNode *p);
 }
 	static void register_mag109_held();

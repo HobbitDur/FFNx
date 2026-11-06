@@ -50,8 +50,14 @@
 // Module globals: 0x24C91D8..0x24CA810 (root pool, root queue, particles, effect queue + pool,
 // saved entity states, targets' centre 0x24CA7E8, context 0x24CA7F0, caster slot 0x24CA7F4, texture
 // file, muzzle 0x24CA800, magic buffer base 0x24CA808, packet cursor 0x24CA80C).
+// Fujin's described Ray-Bomb (effect_010.json) runs this code: its memory through own::R() (fx_port.h: a
+// copy's block of its own), its spawns through own::Fn(), the setup and the file loader ported below; its
+// parameters (RayBombParams: the director's timeline, sounds, sizes and speeds) are set from the program's.
 
 #include "mag_common.h"
+#include "fx_layouts.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -61,15 +67,16 @@ namespace raybomb010
 	using namespace magc;
 
 	// --- module globals ---
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x24C91F8; }
-	inline TaskQueue *QEffect() { return (TaskQueue *)0x24C9988; }
-	inline int16_t *Centre() { return (int16_t *)0x24CA7E8; }             // targets' centre (x, y, z, pad)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24CA7F0); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x24CA7F4); }
-	inline int16_t *Muzzle() { return (int16_t *)0x24CA800; }             // x, y, z, pad
-	inline uint32_t &TexBase() { return var<uint32_t>(0x24CA808); }       // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24CA80C); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x24C91F8); }
+	inline TaskQueue *QEffect() { return (TaskQueue *)own::R(0x24C9988); }
+	inline int16_t *Centre() { return (int16_t *)own::R(0x24CA7E8); }             // targets' centre (x, y, z, pad)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24CA7F0)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x24CA7F4)); }
+	inline int16_t *Muzzle() { return (int16_t *)own::R(0x24CA800); }             // x, y, z, pad
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x24CA808)); }       // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24CA80C)); }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24CA7F8)); }    // the effect's file (its TIM)
 
 	static const uint32_t ORIG_Director = 0x627F10;
 	static const uint32_t ORIG_Debris = 0x628700;
@@ -83,6 +90,36 @@ namespace raybomb010
 	static const uint32_t ORIG_Restore = 0x6296F0;
 	static const uint32_t ORIG_RootTask = 0x629730;
 	static const uint32_t ORIG_Particles = 0x629780;   // not a task: called by the root
+	static const uint32_t ORIG_FileLoader = 0x627E40, ORIG_Setup = 0x627E60;
+	static const uint32_t TEXTURE_NAME = 0xDED5F0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct RayBombParams
+	{
+		struct { uint32_t muzzle, blast; int16_t muzzle_tick; } sound;                 // at the muzzle; with the shockwave
+		struct { int16_t up, back; } muzzle;                                           // from the caster's effect point, turned with it
+		struct { int16_t tick, count, scale_step, size, size_rand; } charge;           // the charge glows
+		struct { int16_t first, last, count, speed, speed_rand; } dust;                // from the muzzle
+		struct { int16_t tick, scale, scale_step; } flash;                             // the muzzle flash
+		struct { int16_t tick, spin, spin_step, width; } beam;
+		struct { int16_t first, last, scale, scale_rand; } puffs;                      // smoke at the targets
+		struct { int16_t tick, width, rise; } ring;                                    // the shockwave
+		struct { int16_t first, last, speed, speed_rand; } debris;
+		struct { int16_t tick, height, height_rand; } bounce;                          // the party thrown up
+		struct { int16_t in, out, end; } screen;                                       // the screen flash ramps, the end
+		struct { uint32_t dust, puff, spark, charge; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, beam, flash; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t dust_offset, dust_dir, puff_x, puff_z, debris_x, debris_z; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const RayBombParams GAME = {
+		{ 0xDED524, 0xDED528, 0xA }, { 0x320, 0x3A2 }, { 1, 2, 0x66, 0x190, 0x320 }, { 1, 0x1E, 6, 0x96, 0x8C },
+		{ 0x10, 0x3333, 0x1D4 }, { 0x22, 0x46, 0xA0, 0x800 }, { 0x3B, 0x40, 0x800, 0xE00 }, { 0x51, 0x3924, 0x130C },
+		{ 0x51, 0x54, 30, 0x1F4 }, { 0x52, 2500, 1000 }, { 8, 0x98, 0xA0 }, { 0xDEABB8, 0xDEA9E4, 0xDEAA0C, 0xDEA838 }, { 0xDEAD64, 0xDED00C, 0xDEC964 }, { TEXTURE_NAME, 0xDEA5C8 }, { 0xDED590, 0xDED5C0, 0xDED530, 0xDED558, 0xDED544, 0xDED56C } };
+	static RayBombParams live = GAME;
+	static const RayBombParams &P() { return live; }
 
 	static const uint32_t SEQ_Dust = 0xDEABB8, SEQ_Puff = 0xDEA9E4, SEQ_Spark = 0xDEAA0C, SEQ_Charge = 0xDEA838;
 	static const uint32_t MODEL_Ring = 0xDEAD64, MODEL_Beam = 0xDED00C, MODEL_Flash = 0xDEC964;
@@ -235,9 +272,9 @@ namespace raybomb010
 	static_assert(sizeof(ChargeNode) == 0x24 && sizeof(BounceNode) == 0x24, "Ray-Bomb nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(SavedEntity) == 0x14, "Ray-Bomb particles / saved entities");
 
-	inline Particle *Particles() { return (Particle *)0x24C9208; }
+	inline Particle *Particles() { return (Particle *)own::R(0x24C9208); }
 	static const int PARTICLES = 80;
-	inline SavedEntity *Saved(int slot) { return (SavedEntity *)(0x24CA7A8 + 0x14 * slot); }
+	inline SavedEntity *Saved(int slot) { return (SavedEntity *)(own::R(0x24CA7A8) + 0x14 * slot); }
 }
 }
 
@@ -273,7 +310,7 @@ namespace raybomb010
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		uint32_t count = 0;
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(P().seqs.dust, SEQ_Dust);
 		*(int16_t *)(h + 0x24) = 0;
 		for (int i = 0; i < PARTICLES; i++)
 		{
@@ -398,7 +435,7 @@ namespace raybomb010
 	// ------------------------------------------------------------------
 	static void RingHeader(uint8_t *h, const RingNode *p)
 	{
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = fxp::model(P().models.ring, MODEL_Ring);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (p->counter >= 10)
 		{
@@ -458,7 +495,7 @@ namespace raybomb010
 	static void PuffHeader(uint8_t *h, const PuffNode *p)
 	{
 		*(uint16_t *)(h + 4) = 0;
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = fxp::sequence(P().seqs.puff, SEQ_Puff);
 		int32_t q = 0x80 / (int32_t)p->life;
 		*(uint16_t *)(h + 0x24) = 0xC;
 		uint8_t level = (uint8_t)(0x80 - (uint8_t)(q * p->counter));
@@ -513,7 +550,7 @@ namespace raybomb010
 	// ------------------------------------------------------------------
 	static void BeamHeader(uint8_t *h, const BeamNode *p)
 	{
-		*(uint32_t *)h = MODEL_Beam;
+		*(uint32_t *)h = fxp::model(P().models.beam, MODEL_Beam);
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (p->counter >= 3)
 		{
@@ -611,7 +648,7 @@ namespace raybomb010
 			{
 				do
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QEffect(), ORIG_Spark);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Spark));
 					s->frame = 0;
 					int32_t r = CrtRand() & 7;
 					memcpy(s->pos, end, 4);
@@ -643,7 +680,7 @@ namespace raybomb010
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_Spark);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -672,7 +709,7 @@ namespace raybomb010
 		h[9] = 0;
 		h[8] = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Flash;
+		*(uint32_t *)h = fxp::model(P().models.flash, MODEL_Flash);
 		if (p->counter < 0x10)
 		{
 			*(int32_t *)(h + 0xC) = (0x10 - p->counter) << 8;
@@ -726,7 +763,7 @@ namespace raybomb010
 	static void ChargeHeader(uint8_t *h, const ChargeNode *p)
 	{
 		*(int32_t *)(h + 8) = p->size;
-		*(uint32_t *)h = SEQ_Charge;
+		*(uint32_t *)h = fxp::sequence(P().seqs.charge, SEQ_Charge);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 1;
 		if (p->counter < 8 || p->counter >= 0x16)
@@ -871,6 +908,32 @@ namespace raybomb010
 	}
 
 	// ------------------------------------------------------------------
+	// File loader (0x627E40) and setup (0x627E60): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the magic buffer, the cast, the caster, the root, the effect queue with the director,
+	// the camera, the texture, the dust cleared
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x24C91D8), 0x10, 2);
+		*(uint16_t *)(AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 1) = 0;
+		InitTaskQueuePool(QEffect(), (void *)own::R(0x24C9998), 0x24, 100);
+		*(uint16_t *)(AddTaskToQueue(QEffect(), own::Fn(ORIG_Director)) + 1) = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, 0xDEA5C8));
+		QueueTimUpload(TexFile());
+		for (int i = 0; i < PARTICLES; i++) Particles()[i].flag = 0;
+		return QRoot();
+	}
+
+	// ------------------------------------------------------------------
 	// Director (0x627F10)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
@@ -882,31 +945,31 @@ namespace raybomb010
 		if (d->counter == 0)
 		{
 			GetEffectSpawnPosition(caster, 0xF0, 0x680, Muzzle());
-			int16_t v[4] = { 0, 0x320, (int16_t)0xFC5E, 0 };
+			int16_t v[4] = { 0, P().muzzle.up, (int16_t)-P().muzzle.back, 0 };
 			MatrixMulVector(crot, v, v);
 			Muzzle()[0] = (int16_t)(Muzzle()[0] + v[0]);
 			Muzzle()[1] = (int16_t)(Muzzle()[1] + v[1]);
 			Muzzle()[2] = (int16_t)(Muzzle()[2] + v[2]);
 			CalculateCenterPosition(Ctx()->target_mask, Centre());
 		}
-		if (d->counter == 1)
+		if (d->counter == P().charge.tick)
 		{
-			for (int k = 0; k < 2; k++)
+			for (int k = 0; k < P().charge.count; k++)
 			{
-				ChargeNode *c = (ChargeNode *)AddTaskToQueue(QEffect(), ORIG_Charge);
+				ChargeNode *c = (ChargeNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Charge));
 				c->counter = 0;
 				c->delay = (int16_t)(CrtRand() % 6 + k);
-				int32_t r = CrtRand() % 0x320;
+				int32_t r = CrtRand() % P().charge.size_rand;
 				c->scale = 0x1000;
-				c->scale_step = 0x66;
+				c->scale_step = P().charge.scale_step;
 				c->frame = 0;
-				c->size = (int16_t)(r + 0x190);
+				c->size = (int16_t)(r + P().charge.size);
 			}
 		}
-		if (d->counter >= 1 && d->counter <= 0x1E)
+		if (d->counter >= P().dust.first && d->counter <= P().dust.last)
 		{
 			// 6 dust particles from the muzzle, one per table entry
-			for (int k = 0; k < 6; k++)
+			for (int k = 0; k < P().dust.count && k < 6; k++)
 			{
 				int i = FreeParticle();
 				if (i < 0) break;
@@ -915,32 +978,32 @@ namespace raybomb010
 				p->counter = 0;
 				p->scale = (int16_t)((CrtRand() & 0x3FF) + 0x1000);
 				int16_t off[4];
-				memcpy(off, (const void *)(TABLE_DustOffset + 8 * k), 8);
+				memcpy(off, (const void *)(fxp::data(P().tables.dust_offset, TABLE_DustOffset, 48) + 8 * k), 8);
 				MatrixMulVector(crot, off, off);
 				memcpy(p->pos, Muzzle(), 8);
 				p->pos[0] = (int16_t)(p->pos[0] + off[0]);
 				p->pos[1] = (int16_t)(p->pos[1] + off[1]);
 				int16_t dir[4];
 				p->pos[2] = (int16_t)(p->pos[2] + off[2]);
-				memcpy(dir, (const void *)(TABLE_DustDir + 8 * k), 8);
+				memcpy(dir, (const void *)(fxp::data(P().tables.dust_dir, TABLE_DustDir, 48) + 8 * k), 8);
 				MatrixMulVector(crot, dir, dir);
 				NormalizeSVector(dir, dir);
-				int32_t speed = CrtRand() % 0x8C + 0x96;
+				int32_t speed = CrtRand() % P().dust.speed_rand + P().dust.speed;
 				p->vel[0] = (int16_t)(mul32(dir[0], speed) >> 12);
 				p->vel[1] = (int16_t)(mul32(dir[1], speed) >> 12);
 				p->vel[2] = (int16_t)(mul32(dir[2], speed) >> 12);
 			}
 		}
-		if (d->counter == 0x10)
+		if (d->counter == P().flash.tick)
 		{
-			FlashNode *f = (FlashNode *)AddTaskToQueue(QEffect(), ORIG_Flash);
+			FlashNode *f = (FlashNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Flash));
 			f->counter = 0;
-			f->scale = 0x3333;
-			f->scale_step = 0x1D4;
+			f->scale = P().flash.scale;
+			f->scale_step = P().flash.scale_step;
 		}
-		if (d->counter == 0x22)
+		if (d->counter == P().beam.tick)
 		{
-			BeamNode *b = (BeamNode *)AddTaskToQueue(QEffect(), ORIG_Beam);
+			BeamNode *b = (BeamNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Beam));
 			int16_t v[4];
 			v[0] = (int16_t)(Centre()[0] - Muzzle()[0]);
 			b->counter = 0;
@@ -954,18 +1017,18 @@ namespace raybomb010
 			b->pos[0] = (int16_t)(b->pos[0] + Muzzle()[0]);
 			b->pos[2] = (int16_t)(b->pos[2] + Muzzle()[2]);
 			b->pos[1] = Centre()[1];
-			b->angle = 0x46;
-			b->angle_step = 0xA0;
-			b->scale = 0x800;
+			b->angle = P().beam.spin;
+			b->angle_step = P().beam.spin_step;
+			b->scale = P().beam.width;
 		}
-		if (d->counter >= 0x3B && d->counter <= 0x40)
+		if (d->counter >= P().puffs.first && d->counter <= P().puffs.last)
 		{
 			for (int k = 0; k < 5; k++)
 			{
 				int32_t cnt = (CrtRand() & 1) + 1;
 				for (int j = cnt; j > 0; j--)
 				{
-					PuffNode *p = (PuffNode *)AddTaskToQueue(QEffect(), ORIG_Puff);
+					PuffNode *p = (PuffNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Puff));
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
 					memcpy(p->pos, Centre(), 4);
@@ -973,27 +1036,27 @@ namespace raybomb010
 					memcpy(&p->pos[2], &Centre()[2], 4);
 					r = CrtRand() % 0x320;
 					p->pos[1] = 0;
-					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_PuffX + 4 * k)) - 0x190);
+					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.puff_x, TABLE_PuffX, 20) + 4 * k)) - 0x190);
 					r = CrtRand() % 0x320;
-					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(TABLE_PuffZ + 4 * k)) - 0x12C);
+					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.puff_z, TABLE_PuffZ, 20) + 4 * k)) - 0x12C);
 					p->angle = (int16_t)(CrtRand() & 0xFFF);
-					r = CrtRand() % 0xE00;
-					p->scale = (int16_t)(r + 0x800);
+					r = CrtRand() % P().puffs.scale_rand;
+					p->scale = (int16_t)(r + P().puffs.scale);
 					p->life = (int16_t)((CrtRand() & 3) + 4);
 				}
 			}
 		}
-		if (d->counter == 0x51)
+		if (d->counter == P().ring.tick)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QEffect(), ORIG_Ring);
+			RingNode *g = (RingNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Ring));
 			memcpy(g->pos, Centre(), 4);
 			g->counter = 0;
 			memcpy(&g->pos[2], &Centre()[2], 4);
-			g->sxz = 0x3924;
+			g->sxz = P().ring.width;
 			g->sy = 0;
-			g->sy_step = 0x130C;
+			g->sy_step = P().ring.rise;
 		}
-		if (d->counter >= 0x51 && d->counter <= 0x54)
+		if (d->counter >= P().debris.first && d->counter <= P().debris.last)
 		{
 			for (int k = 0; k < 5; k++)
 			{
@@ -1001,20 +1064,20 @@ namespace raybomb010
 				int32_t scale = cnt * 400;
 				for (int j = 0; j < cnt; j++)
 				{
-					DebrisNode *p = (DebrisNode *)AddTaskToQueue(QEffect(), ORIG_Debris);
+					DebrisNode *p = (DebrisNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Debris));
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
 					p->life = (int16_t)(r + j + 0xB);
 					memcpy(p->pos, Centre(), 4);
 					memcpy(&p->pos[2], &Centre()[2], 4);
 					r = CrtRand() % 0xE10;
-					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_DebrisX + 4 * k)) - 0x708);
+					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.debris_x, TABLE_DebrisX, 20) + 4 * k)) - 0x708);
 					r = CrtRand() % 0x3C;
 					p->pos[1] = (int16_t)-r;
 					r = CrtRand() % 0xE10;
-					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(TABLE_DebrisZ + 4 * k)) - 0x708);
-					r = CrtRand() % 0x1F4;
-					p->vy = (int16_t)(-30 - r);
+					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(fxp::data(P().tables.debris_z, TABLE_DebrisZ, 20) + 4 * k)) - 0x708);
+					r = CrtRand() % P().debris.speed_rand;
+					p->vy = (int16_t)(-P().debris.speed - r);
 					p->model = (int16_t)(CrtRand() & 1);
 					r = CrtRand() % 0x500;
 					p->rx_step = p->vy;
@@ -1026,24 +1089,24 @@ namespace raybomb010
 				}
 			}
 		}
-		if (d->counter == 0x3B)
+		if (d->counter == P().puffs.first)   // (the texture restored with the first puffs)
 		{
-			RestoreNode *t = (RestoreNode *)AddTaskToQueue(QRoot(), ORIG_Restore);
+			RestoreNode *t = (RestoreNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Restore));
 			t->counter = 0;
 		}
-		if (d->counter == 0x52)
+		if (d->counter == P().bounce.tick)
 		{
 			// one bounce per party entity with a model
 			for (int slot = 0; slot < 3; slot++)
 			{
 				if (!(*Entity(slot) & 2)) continue;
-				BounceNode *b = (BounceNode *)AddTaskToQueue(QEffect(), ORIG_Bounce);
+				BounceNode *b = (BounceNode *)AddTaskToQueue(QEffect(), own::Fn(ORIG_Bounce));
 				b->counter = 0;
 				b->slot = (int16_t)slot;
 				b->spin = (int16_t)((CrtRand() % 3 + 1) << 12);
-				int32_t r = CrtRand() % 1000;
+				int32_t r = CrtRand() % P().bounce.height_rand;
 				int16_t target = -1;
-				int16_t amp = (int16_t)(-2500 - r);
+				int16_t amp = (int16_t)(-P().bounce.height - r);
 				b->amp = amp;
 				ActionData *a0 = Ctx()->actions;
 				int count = a0->target_count;
@@ -1053,19 +1116,114 @@ namespace raybomb010
 				if (target < 0) b->amp = (int16_t)(amp >> 1);
 			}
 		}
-		if (d->counter <= 8) SetScreenFlash((uint32_t)shl32(d->counter, 8), 0);
-		else if (d->counter >= 0x98) SetScreenFlash((uint32_t)shl32(0xA0 - d->counter, 8), 0);
-		if (d->counter == 0xA) BdPlaySE3D(SOUND_Muzzle, 0, Muzzle());
-		if (d->counter == 0x51) BdPlaySE3D(SOUND_Blast, 0x100, Centre());
+		if (d->counter <= P().screen.in) SetScreenFlash((uint32_t)shl32(d->counter, 8), 0);
+		else if (d->counter >= P().screen.out) SetScreenFlash((uint32_t)shl32(P().screen.end - d->counter, 8), 0);
+		if (d->counter == P().sound.muzzle_tick) BdPlaySE3D((const void *)fxp::sound(P().sound.muzzle, (uint32_t)SOUND_Muzzle), 0, Muzzle());
+		if (d->counter == P().ring.tick) BdPlaySE3D((const void *)fxp::sound(P().sound.blast, (uint32_t)SOUND_Blast), 0x100, Centre());
 		d->counter++;
-		if (d->counter <= 0xA0) return 0;
+		if (d->counter <= P().screen.end) return 0;
 		SetScreenFlash(0, 0);
 		return TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+#define RB(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(RayBombParams, member), fxp::I16, lo, hi }
+#define RB_SOUND(part, member, label, doc) { part, #member, label, doc, (uint32_t)offsetof(RayBombParams, member), fxp::Sound, 0, 0x7FFFFFFF }
+		static const fxp::Part PARTS[] = {
+			{ 0, "timing", "Timing", "The director's timeline: its sounds, the screen flash, its end (draws nothing)" },
+			{ 0, "charge", "Charge", "The muzzle in front of the caster, its charge glows and the dust blown from it" },
+			{ 0, "flash", "Muzzle flash", "A prim model at the muzzle, shrinking" },
+			{ 0, "beam", "Beam", "The beam from the muzzle to the targets, spinning, its sparks" },
+			{ 0, "blast", "Blast", "Smoke puffs, the shockwave ring and debris at the targets" },
+			{ 0, "bounce", "Bounce", "The party thrown up and bounced back (the damage on the targets)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "muzzle", "Muzzle", "From the caster's effect point, turned with it: Up, Back" },
+			{ "dust", "Dust", "From the muzzle, ticks First to Last: Count a tick (at most 6), speed Speed + rand % Spread" },
+			{ "puffs", "Smoke", "Ticks First to Last: 1-2 puffs at 5 spots, scale Scale + rand % Spread (the texture restored at First)" },
+			{ "debris", "Debris", "Ticks First to Last: 2-3 pieces at 5 spots thrown up by Speed + rand % Spread" },
+		};
+		static const Field FIELDS[] = {
+			RB_SOUND("timing", sound.muzzle, "Muzzle sound", "Played at the muzzle at its tick"),
+			RB("timing", sound.muzzle_tick, "Muzzle sound tick", "", 0, 160),
+			RB_SOUND("timing", sound.blast, "Blast sound", "Played at the targets with the shockwave"),
+			RB("timing", screen.in, "Flash in", "The screen flashes up until this tick...", 0, 160),
+			RB("timing", screen.out, "Flash out", "...and down from this one to the end", 0, 400),
+			RB("timing", screen.end, "End", "The attack ends after this tick", 1, 400),
+			RB("charge", muzzle.up, "Up", "", -0x2000, 0x2000),
+			RB("charge", muzzle.back, "Back", "", -0x2000, 0x2000),
+			RB("charge", charge.tick, "Glows tick", "The charge glows start at this tick...", 0, 160),
+			RB("charge", charge.count, "Glows", "...this many", 0, 10),
+			RB("charge", charge.scale_step, "Glow growth", "Each glow grows by this a tick", -0x1000, 0x1000),
+			RB("charge", charge.size, "Glow size", "Its size: this + rand % Glow size spread", 0, 0x2000),
+			RB("charge", charge.size_rand, "Glow size spread", "", 1, 0x2000),
+			RB("charge", dust.first, "First", "", 0, 160),
+			RB("charge", dust.last, "Last", "", 0, 160),
+			RB("charge", dust.count, "Count", "", 0, 6),
+			RB("charge", dust.speed, "Speed", "", 0, 0x1000),
+			RB("charge", dust.speed_rand, "Spread", "", 1, 0x1000),
+			RB("flash", flash.tick, "Tick", "The muzzle flash at this tick", 0, 160),
+			RB("flash", flash.scale, "Scale", "Its scale (4096: its own size)...", 0, 0x7FFF),
+			RB("flash", flash.scale_step, "Shrink", "...down by this a tick", 0, 0x2000),
+			RB("beam", beam.tick, "Tick", "The beam at this tick", 0, 160),
+			RB("beam", beam.spin, "Spin", "Its spin (4096: a turn)...", -0x1000, 0x1000),
+			RB("beam", beam.spin_step, "Spin step", "...up by this a tick", -0x1000, 0x1000),
+			RB("beam", beam.width, "Width", "Its width (4096: its own)", 0, 0x7FFF),
+			RB("blast", puffs.first, "First", "", 0, 160),
+			RB("blast", puffs.last, "Last", "", 0, 160),
+			RB("blast", puffs.scale, "Scale", "", 0, 0x7FFF),
+			RB("blast", puffs.scale_rand, "Spread", "", 1, 0x7FFF),
+			RB("blast", ring.tick, "Shockwave tick", "The shockwave ring (and the blast sound) at this tick", 0, 160),
+			RB("blast", ring.width, "Shockwave width", "Its width (4096: its own)", 0, 0x7FFF),
+			RB("blast", ring.rise, "Shockwave rise", "Its height up by this, halving a tick", 0, 0x7FFF),
+			RB("blast", debris.first, "First", "", 0, 160),
+			RB("blast", debris.last, "Last", "", 0, 160),
+			RB("blast", debris.speed, "Speed", "", 0, 0x2000),
+			RB("blast", debris.speed_rand, "Spread", "", 1, 0x2000),
+			RB("bounce", bounce.tick, "Tick", "The party thrown up at this tick", 0, 160),
+			RB("bounce", bounce.height, "Height", "Each one up by this + rand % Height spread (half for those not hit)", 0, 0x4000),
+			RB("bounce", bounce.height_rand, "Height spread", "", 1, 0x4000),
+			{ "timing", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "seqs.charge", "Charge", "The sprite sequence charge (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RayBombParams, seqs.charge), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timing", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 108 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBombParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "models.beam", "Beam model", "The prim model beam (a mesh of 50 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBombParams, models.beam), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "models.flash", "Flash model", "The prim model flash (a mesh of 55 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RayBombParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timing", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RayBombParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "timing", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RayBombParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "timing", "tables.dust_offset", "Dust offsets", "Where each dust puff starts from the impact (x, y, z) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBombParams, tables.dust_offset), fxp::Data, 0, 0x7FFFFFFF },
+			{ "timing", "tables.dust_dir", "Dust directions", "Each dust puff's direction (x, y, z) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBombParams, tables.dust_dir), fxp::Data, 0, 0x7FFFFFFF },
+			{ "timing", "tables.puff_x", "Puff x offsets", "Each puff's x offset (+ a random 0..0x31F, - 0x190) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBombParams, tables.puff_x), fxp::Data, 0, 0x7FFFFFFF },
+			{ "timing", "tables.puff_z", "Puff z offsets", "Each puff's z offset (+ a random, - 0x12C) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBombParams, tables.puff_z), fxp::Data, 0, 0x7FFFFFFF },
+			{ "timing", "tables.debris_x", "Debris x offsets", "Each debris' x offset (+ a random, - 0x708) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBombParams, tables.debris_x), fxp::Data, 0, 0x7FFFFFFF },
+			{ "timing", "tables.debris_z", "Debris z offsets", "Each debris' z offset (+ a random, - 0x708) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(RayBombParams, tables.debris_z), fxp::Data, 0, 0x7FFFFFFF },
+		};
+#undef RB_SOUND
+#undef RB
 	}
 }
 
 	void register_mag010_ray_bomb()
 	{
+		fxp::register_params({ 10, "Ray-Bomb", &raybomb010::live, &raybomb010::GAME, sizeof(raybomb010::RayBombParams),
+		                       raybomb010::table::PARTS, (int)(sizeof(raybomb010::table::PARTS) / sizeof(raybomb010::table::PARTS[0])),
+		                       raybomb010::table::FIELDS, (int)(sizeof(raybomb010::table::FIELDS) / sizeof(raybomb010::table::FIELDS[0])),
+		                       raybomb010::table::GROUPS, (int)(sizeof(raybomb010::table::GROUPS) / sizeof(raybomb010::table::GROUPS[0])) });
+		own::note(raybomb010::ORIG_FileLoader, (void *)raybomb010::FileLoader);
+		own::note(raybomb010::ORIG_Setup, (void *)raybomb010::Setup);
+		own::note(raybomb010::ORIG_RootTask, (void *)raybomb010::RootTask);
+		own::note(raybomb010::ORIG_Director, (void *)raybomb010::DirectorTask);
+		own::note(raybomb010::ORIG_Debris, (void *)raybomb010::DebrisTask);
+		own::note(raybomb010::ORIG_Ring, (void *)raybomb010::RingTask);
+		own::note(raybomb010::ORIG_Puff, (void *)raybomb010::PuffTask);
+		own::note(raybomb010::ORIG_Beam, (void *)raybomb010::BeamTask);
+		own::note(raybomb010::ORIG_Spark, (void *)raybomb010::SparkTask);
+		own::note(raybomb010::ORIG_Flash, (void *)raybomb010::FlashTask);
+		own::note(raybomb010::ORIG_Charge, (void *)raybomb010::ChargeTask);
+		own::note(raybomb010::ORIG_Bounce, (void *)raybomb010::BounceTask);
+		own::note(raybomb010::ORIG_Restore, (void *)raybomb010::RestoreTask);
 		register_port(raybomb010::ORIG_RootTask, (void *)raybomb010::RootTask, "R010 RootTask", 10);
 		register_port(raybomb010::ORIG_Director, (void *)raybomb010::DirectorTask, "R010 Director", 10);
 		register_port(raybomb010::ORIG_Debris, (void *)raybomb010::DebrisTask, "R010 Debris", 10);
@@ -1080,6 +1238,7 @@ namespace raybomb010
 		// 30 fps layer: see mag010_ray_bomb_held.inc
 		FX_HELD(register_mag010_held();)
 	}
+	FX_LAB_MODULE(register_mag010_ray_bomb);
 }
 
 #ifdef FF8_FX_HELD

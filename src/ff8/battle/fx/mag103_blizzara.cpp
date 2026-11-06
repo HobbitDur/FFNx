@@ -32,8 +32,14 @@
 // Module globals: 0x2543E90..0x2543F18 (file, texture pointer, context, packet cursor
 // 0x2543EB4, the six queues); every node pool and the model copies live in the magic buffer.
 // None of these tasks tests the battle's draw-only flag.
+// Fujin's described Blizzara (effect_103.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BlizzaraParams: the sound, the
+// ice block's damage tick).
 
 #include "mag_ice_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -44,10 +50,12 @@ namespace blizzara103
 	using namespace icec;
 
 	// --- module globals ---
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543E94); }       // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2543E98); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543EB4); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543EC8 + 0x10 * i); } // 0 blocks, 1 pillars, 2 bursts, 3 chunks, 4 mist
+	inline uint8_t *&TexBase() { return var<uint8_t *>(own::R(0x2543E94)); }       // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2543E98)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2543EB4)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2543E90)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2543EB8); }             // 1 x 0x14
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(own::R(0x2543EC8) + 0x10 * i); } // 0 blocks, 1 pillars, 2 bursts, 3 chunks, 4 mist
 
 	static const uint32_t ORIG_Director = 0x6DA3A0;
 	static const uint32_t ORIG_IceBlockTask = 0x6DAA30;
@@ -61,6 +69,23 @@ namespace blizzara103
 	static const void *const MODEL_Burst = (const void *)0x131A678;
 	static const void *const SEQ_Ice = (const void *)0x13197E4;
 	static const void *const SOUND_Blizzara = (const void *)0x131E750;
+	static const uint32_t ORIG_FileLoader = 0x6DA2E0, ORIG_Setup = 0x6DA300;
+	static const uint32_t TEXTURE_NAME = 0x131E754, CAMERA = 0x131DA00;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BlizzaraParams
+	{
+		uint32_t sound;                   // at the ice block's tick 6 (3D, at the target)
+		struct { int16_t damage; } block; // the damage at this tick of the ice block
+		struct { uint32_t ice; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t block, pillar, burst; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const BlizzaraParams GAME = { 0x131E750, { 0x3C }, { 0x13197E4 }, { 0x131ABB0, 0x1319990, 0x131A678 }, { TEXTURE_NAME, CAMERA } };
+	static BlizzaraParams live = GAME;
+	static const BlizzaraParams &P() { return live; }
 	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };   // per action, in the magic buffer
 	static const uint32_t MODEL_UV_OFFSET[3] = { 0x128A0, 0x156F0, 0x18540 };
 	static const int SHARDS = 0xDF;
@@ -178,6 +203,28 @@ namespace blizzara103
 	// ------------------------------------------------------------------
 	// Director (0x6DA3A0)
 	// ------------------------------------------------------------------
+	// File loader (0x6DA2E0) and setup (0x6DA300 -> 0x6DA310): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast, the root (the director), the camera and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint8_t *)layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2543EA0), 0x14, 1);
+		FillDwords(AddTaskToQueue(QRoot(), own::Fn(ORIG_Director)) + 1, 0, 2);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
@@ -222,7 +269,7 @@ namespace blizzara103
 				if (busy) d->counter = 0;
 				else
 				{
-					IceBlockNode *b = (IceBlockNode *)AddTaskToQueue(Queue(0), ORIG_IceBlockTask);
+					IceBlockNode *b = (IceBlockNode *)AddTaskToQueue(Queue(0), own::Fn(ORIG_IceBlockTask));
 					FillDwords(&b->counter, 0, 0x14F0);
 					int16_t action = (int16_t)(uint16_t)d->action;
 					b->action = action;
@@ -230,7 +277,7 @@ namespace blizzara103
 					b->clip_y = 0x7FFF;
 					if (action >= 0 && action < 3)
 					{
-						CopyDwords(TexBase() + MODEL_OFFSET[action], MODEL_Block, 0x72F);
+						CopyDwords(TexBase() + MODEL_OFFSET[action], ((const uint8_t *)fxp::model(P().models.block, (uint32_t)MODEL_Block)), 0x72F);
 						CopyDwords(TexBase() + MODEL_UV_OFFSET[action], MODEL_BlockUV, 0x465);
 						b->model = TexBase() + MODEL_OFFSET[action];
 						b->model2 = TexBase() + MODEL_UV_OFFSET[action];
@@ -393,10 +440,10 @@ namespace blizzara103
 		if (b->counter >= 0 && b->counter <= 0xC)
 		{
 			int32_t c = b->counter;
-			if (c == 6) BdPlaySE3D(SOUND_Blizzara, 0x101, b->pos);
+			if (c == 6) BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Blizzara), 0x101, b->pos);
 			if (!(c & 3))
 			{
-				PillarNode *p = (PillarNode *)AddTaskToQueue(Queue(1), ORIG_PillarTask);
+				PillarNode *p = (PillarNode *)AddTaskToQueue(Queue(1), own::Fn(ORIG_PillarTask));
 				FillDwords(&p->counter, 0, 7);
 				p->block = b;
 				GetEffectSpawnPosition(b->entity, 0xF1, 0, p->pos);
@@ -417,7 +464,7 @@ namespace blizzara103
 		}
 		if (b->counter == 0x14)
 		{
-			BurstNode *u = (BurstNode *)AddTaskToQueue(Queue(2), ORIG_BurstTask);
+			BurstNode *u = (BurstNode *)AddTaskToQueue(Queue(2), own::Fn(ORIG_BurstTask));
 			FillDwords(&u->counter, 0, 5);
 			GetEffectSpawnPosition(b->entity, 0xF1, 0, u->pos);
 			u->scale = 0x64;
@@ -528,7 +575,7 @@ namespace blizzara103
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 2; k++)
 			{
-				ChunkNode *c = (ChunkNode *)AddTaskToQueue(Queue(3), ORIG_ChunkTask);
+				ChunkNode *c = (ChunkNode *)AddTaskToQueue(Queue(3), own::Fn(ORIG_ChunkTask));
 				if (!c) continue;
 				FillDwords(&c->counter, 0, 6);
 				c->entity = b->entity;
@@ -558,7 +605,7 @@ namespace blizzara103
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 4; k++)
 			{
-				MistNode *m = (MistNode *)AddTaskToQueue(Queue(4), ORIG_MistTask);
+				MistNode *m = (MistNode *)AddTaskToQueue(Queue(4), own::Fn(ORIG_MistTask));
 				if (!m) continue;
 				FillDwords(&m->counter, 0, 7);
 				int32_t r1 = CrtRand();
@@ -590,7 +637,7 @@ namespace blizzara103
 				m->acc_z = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
 			}
 		}
-		if (b->counter == 0x3C) ApplyActionResultToTarget(Ctx()->actions[b->action].targets);
+		if (b->counter == P().block.damage) ApplyActionResultToTarget(Ctx()->actions[b->action].targets);
 		if (b->counter >= 0x46) return TASK_END;
 		b->counter++;
 		return 0;
@@ -643,7 +690,7 @@ namespace blizzara103
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(const void **)h = MODEL_Pillar;
+		*(const void **)h = ((const void *)fxp::model(P().models.pillar, (uint32_t)MODEL_Pillar));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -705,7 +752,7 @@ namespace blizzara103
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = ((const void *)fxp::model(P().models.burst, (uint32_t)MODEL_Burst));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -745,7 +792,7 @@ namespace blizzara103
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(c->pos, c->scale, -(c->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 4) = (uint16_t)(c->counter & 0xF);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -789,7 +836,7 @@ namespace blizzara103
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(m->pos, m->scale, -(m->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ice, (uint32_t)SEQ_Ice));
 		*(uint16_t *)(h + 4) = (uint16_t)(m->counter & 0xF);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -814,19 +861,49 @@ namespace blizzara103
 		MistUpdate(m);
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "block", "Ice block", "One ice block an action on its first target: the ice pillars, the burst, the block growing out of the ground with falling chunks and mist, then breaking into shards, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "block", "sound", "Sound", "", (uint32_t)offsetof(BlizzaraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "block", "block.damage", "Damage tick", "The damage at this tick of the ice block", (uint32_t)offsetof(BlizzaraParams, block.damage), fxp::I16, 0, 70 },
+			{ "block", "seqs.ice", "Ice", "The sprite sequence ice (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzaraParams, seqs.ice), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "block", "models.block", "Block model", "The prim model block (a mesh of 134 vertices, 223 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.block), fxp::Model, 0, 0x7FFFFFFF },
+			{ "block", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "block", "models.burst", "Burst model", "The prim model burst (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzaraParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "block", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BlizzaraParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "block", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BlizzaraParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag103_blizzara()
 	{
+		fxp::register_params({ 103, "Blizzara", &blizzara103::live, &blizzara103::GAME, sizeof(blizzara103::BlizzaraParams),
+		                       blizzara103::table::PARTS, (int)(sizeof(blizzara103::table::PARTS) / sizeof(blizzara103::table::PARTS[0])),
+		                       blizzara103::table::FIELDS, (int)(sizeof(blizzara103::table::FIELDS) / sizeof(blizzara103::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(blizzara103::ORIG_FileLoader, (void *)blizzara103::FileLoader);
+		own::note(blizzara103::ORIG_Setup, (void *)blizzara103::Setup);
+		own::note(blizzara103::ORIG_Director, (void *)blizzara103::DirectorTask);
 		register_port(blizzara103::ORIG_Director, (void *)blizzara103::DirectorTask, "B103 Director", 103);
+		own::note(blizzara103::ORIG_IceBlockTask, (void *)blizzara103::IceBlockTask);
 		register_port(blizzara103::ORIG_IceBlockTask, (void *)blizzara103::IceBlockTask, "B103 IceBlockTask", 103);
+		own::note(blizzara103::ORIG_PillarTask, (void *)blizzara103::PillarTask);
 		register_port(blizzara103::ORIG_PillarTask, (void *)blizzara103::PillarTask, "B103 PillarTask", 103);
+		own::note(blizzara103::ORIG_BurstTask, (void *)blizzara103::BurstTask);
 		register_port(blizzara103::ORIG_BurstTask, (void *)blizzara103::BurstTask, "B103 BurstTask", 103);
+		own::note(blizzara103::ORIG_ChunkTask, (void *)blizzara103::ChunkTask);
 		register_port(blizzara103::ORIG_ChunkTask, (void *)blizzara103::ChunkTask, "B103 ChunkTask", 103);
+		own::note(blizzara103::ORIG_MistTask, (void *)blizzara103::MistTask);
 		register_port(blizzara103::ORIG_MistTask, (void *)blizzara103::MistTask, "B103 MistTask", 103);
 		// 30 fps layer: see mag103_blizzara_held.inc
 		FX_HELD(register_mag103_held();)
 	}
+	FX_LAB_MODULE(register_mag103_blizzara);
 }
 
 #ifdef FF8_FX_HELD

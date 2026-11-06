@@ -443,12 +443,16 @@ namespace breath
 	{
 		using namespace gfc;
 		breath::describe(breath::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<235>::Register("Breath", breath::g_c, 0xA3E340, 0x186793C, 0x1867948,
+		                           (void *)breath::SequenceTask);
 		init_clone(breath::g_c, nullptr, 0);
 		breath::g_c.draw[32] = breath::dh_32_EntityGlow;
 		register_port(0xA3E9E0, (void *)breath::SequenceTask, "MAG235 Breath SequenceTick", 235);
 		// 30 fps layer: see mag235_breath_held.inc
 		FX_HELD(register_mag235_breath_held();)
 	}
+	FX_LAB_MODULE(register_mag235_breath);
 }
 
 #ifdef FF8_FX_HELD

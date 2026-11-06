@@ -95,6 +95,9 @@
 //   counts, texture base, packet cursor, flight count).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -104,18 +107,21 @@ namespace flame194
 	using namespace magc;
 
 	// --- module globals ---
-	inline int32_t &EndTick() { return var<int32_t>(0x2271470); }      // afterimages end here (999999 until EndTask)
-	inline int32_t &ModuleTick() { return var<int32_t>(0x2271BB8); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x22746F8); }       // 1 ready, 2 ended, 4 a shot is busy
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2275520); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x22764C8); }
-	inline int32_t &PartCount() { return var<int32_t>(0x2276768); }     // particle ids (+ 1)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x227676C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2276770); }
-	inline int32_t &FlightCount() { return var<int32_t>(0x2276774); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2272A18; }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2272A28; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x2274700; }
+	inline int32_t &EndTick() { return var<int32_t>(own::R(0x2271470)); }      // afterimages end here (999999 until EndTask)
+	inline int32_t &ModuleTick() { return var<int32_t>(own::R(0x2271BB8)); }
+	inline uint32_t &Flags() { return var<uint32_t>(own::R(0x22746F8)); }       // 1 ready, 2 ended, 4 a shot is busy
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2275520)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x22764C8)); }
+	inline int32_t &PartCount() { return var<int32_t>(own::R(0x2276768)); }     // particle ids (+ 1)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x227676C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2276770)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x22764CC)); }          // the effect's file (its TIM)
+	inline int32_t &ShotIndex() { return var<int32_t>(own::R(0x2271BC0)); }          // 0, 1, 2 cycling: chain 3 + it
+	inline int32_t &ShotCount() { return var<int32_t>(own::R(0x2276764)); }
+	inline int32_t &FlightCount() { return var<int32_t>(own::R(0x2276774)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2272A18); }
+	inline TaskQueue *QShots() { return (TaskQueue *)own::R(0x2272A28); }
+	inline TaskQueue *QAux() { return (TaskQueue *)own::R(0x2274700); }
 	static const uint32_t PARTS_A = 0x2272A38, PARTS_B = 0x2273868;  // 150 x 0x18 each
 	static const int32_t PARTS_N = 150;
 	static const uint32_t FLIGHTS = 0x2271478;                       // 8 x 0xE8 flight records
@@ -146,6 +152,23 @@ namespace flame194
 	static const uint32_t ORIG_RingTask = 0x5B6580;
 	static const uint32_t ORIG_PillarTask = 0x5B66F0;
 	static const uint32_t ORIG_FireTask = 0x5B6880;
+	static const uint32_t ORIG_FileLoader = 0x5B4C40, ORIG_Setup = 0x5B4C60;
+	static const uint32_t TEXTURE_NAME = 0xD12EB4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FlameShotParams
+	{
+		uint32_t sound;   // the gun at each shot (with its action result)
+		struct { uint32_t smoke, ground_smoke, head, flame; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, pillar, burst, flash, spin; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t ember_colours, ghost_colours; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const FlameShotParams GAME = { 0xD12E64, { 0xD0DB5C, 0xD0DC34, 0xD0DCA8, 0xD0D938 }, { 0xD0DCE4, 0xD1283C, 0xD0FB0C, 0xD106DC, 0xD11B54 }, { TEXTURE_NAME, 0xD0BD78 }, { 0xD12E94, 0xD12E80 } };
+	static FlameShotParams live = GAME;
+	static const FlameShotParams &P() { return live; }
 
 	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xD0BD78;
@@ -235,12 +258,12 @@ namespace flame194
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Flame Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x28 && sizeof(Flight) == 0xE8 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Flame Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x28 * i); }
-	inline Flight *FlightRec(int32_t k) { return (Flight *)(FLIGHTS + 0xE8 * k); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(own::R(SHOTS) + 0x28 * i); }
+	inline Flight *FlightRec(int32_t k) { return (Flight *)(own::R(FLIGHTS) + 0xE8 * k); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(own::R(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
-	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? PARTS_B : PARTS_A); }
+	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, own::Fn(fn)); }   // (a copy: the port's thunk)
+	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? own::R(PARTS_B) : own::R(PARTS_A)); }
 	inline Particle *FindFree(Particle *arr) { for (int32_t i = 0; i < PARTS_N; i++) if (arr[i].id == 0) return &arr[i]; return nullptr; }
 }
 }
@@ -424,14 +447,14 @@ namespace flame194
 	static void RingDraw(const Node *n, bool faded, int32_t fade)
 	{
 		AimMatrix(n);
-		ModelDraw(MODEL_Ring, faded, fade);
+		ModelDraw(fxp::model(P().models.ring, MODEL_Ring), faded, fade);
 	}
 	// the pillar: MAG_151's renderer, v scroll -12 * counter
 	static void PillarDraw(const Node *n, int32_t scroll, bool faded, int32_t fade)
 	{
 		AimMatrix(n);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x7C);
-		*(uint32_t *)h = MODEL_Pillar;
+		*(uint32_t *)h = fxp::model(P().models.pillar, MODEL_Pillar);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x18) = 0;
@@ -452,7 +475,7 @@ namespace flame194
 	static void BurstDraw(const Node *n, bool faded, int32_t fade)
 	{
 		TransformCameraByShadowRotation(n->pos, n->f1C, -((int32_t)n->f1C >> 3));
-		ModelDraw(MODEL_Burst, faded, fade);
+		ModelDraw(fxp::model(P().models.burst, MODEL_Burst), faded, fade);
 	}
 
 	// the smoke at the shot record (camera facing): returns the sequence's +0x28 (< 0: ended)
@@ -460,7 +483,7 @@ namespace flame194
 	{
 		TransformCameraByShadowRotation(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -489,7 +512,7 @@ namespace flame194
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_GroundSmoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.ground_smoke, SEQ_GroundSmoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -504,7 +527,7 @@ namespace flame194
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 0;
-		*(uint32_t *)h = SEQ_Head;
+		*(uint32_t *)h = fxp::sequence(P().seqs.head, SEQ_Head);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -606,12 +629,69 @@ namespace flame194
 	// Tasks
 	// ------------------------------------------------------------------
 	// FlashTask (0x5B5640): 6 ticks, scale + step, step - step / 4, faded from counter 2
+	// File loader (0x5B4C40) and setup (_Init 0x5B4C60 + SetupByMode): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's). The setup runs again for each trigger press of the Shot window (the battle's
+	// BattleActionSequence_Tick_Shot 0x50BEE0: the cast context's sequence mode +8): 0 the opening - the root, the shot
+	// and aux queues, StartTask, the flags and counts cleared, both particle arrays freed, the camera's shots reset, the
+	// TIM; 1 the closing action (EndTask); 2 a shot (ShotTask: its shot record, chain 3 + the shot index, the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		CasterSlot() = ctx->attacker;
+		const uint8_t mode = ((const uint8_t *)ctx)[8];
+		if (mode == 0)
+		{
+			InitTaskQueuePool(QRoot(), (void *)own::R(0x2271BC8), 0x10, 4);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+			InitTaskQueuePool(QAux(), (void *)own::R(0x2274710), 0x24, 100);
+			InitTaskQueuePool(QShots(), (void *)own::R(0x2271C08), 0x24, 100);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_StartTask)) + 0xC) = 0;
+			Flags() = 0;
+			ShotIndex() = 0;
+			ShotCount() = 0;
+			PartCount() = 0;
+			FlightCount() = 0;
+			ModuleTick() = 0;
+			for (int i = 0; i < 900; i += 6)
+			{
+				((int32_t *)own::R(PARTS_A))[i] = 0;
+				((int32_t *)own::R(PARTS_B))[i] = 0;
+			}
+			fn<void (__cdecl *)()>(0x5095F0)();   // BattleCamera_ResetShotsAndReturnToSavedView
+			QueueTimUpload(TexFile());
+		}
+		else if (mode == 1)
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_EndTask)) + 0xC) = 0;
+		else if (mode == 2)
+		{
+			uint8_t *t = (uint8_t *)AddTaskToQueue(QShots(), own::Fn(ORIG_ShotTask));
+			if (t)
+			{
+				const int32_t count = ShotCount();
+				*(uint16_t *)(t + 0xC) = 0;
+				ShotCount() = count + 1;
+				*(uint16_t *)(t + 0xE) = (uint16_t)(count % 100);
+				*(uint16_t *)(t + 0x18) = (uint16_t)(ShotIndex() + 3);
+				*(uint16_t *)(t + 0x1A) = ctx->actions[0].targets[0];
+				ShotIndex() = ShotIndex() < 2 ? ShotIndex() + 1 : 0;
+			}
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag194_flame_shot_held.inc
 		FX_HELD(held_note_node(ORIG_FlashTask, n);)
-		MuzzleModel(n, MODEL_Flash, n->counter >= 2, FlashFade(n->counter));
+		MuzzleModel(n, fxp::model(P().models.flash, MODEL_Flash), n->counter >= 2, FlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -626,7 +706,7 @@ namespace flame194
 		Node *n = (Node *)n_;
 		// 30 fps layer: see mag194_flame_shot_held.inc
 		FX_HELD(held_note_node(ORIG_SpinTask, n);)
-		MuzzleModel(n, MODEL_Spin, n->counter >= 2, SpinFade(n->counter));
+		MuzzleModel(n, fxp::model(P().models.spin, MODEL_Spin), n->counter >= 2, SpinFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A, step = n->f1E;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -750,7 +830,7 @@ namespace flame194
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		const int32_t id = n->pos[3] + 1;
-		*(uint32_t *)h = SEQ_Flame;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame, SEQ_Flame);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -814,7 +894,7 @@ namespace flame194
 			// 30 fps layer: see mag194_flame_shot_held.inc
 			FX_HELD(held_note_part(e);)
 			EmberLoad(e->pos);
-			const uint32_t colour = EMBER_COLOURS[frame];
+			const uint32_t colour = ((const uint32_t *)fxp::data(P().tables.ember_colours, (uint32_t)EMBER_COLOURS, 32, 4))[frame];
 			if (!(UpdateFlags() & 0x201))
 			{
 				e->frame = (int16_t)(frame + 1);
@@ -984,7 +1064,7 @@ namespace flame194
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		FireLight(s);
-		*(uint32_t *)h = SEQ_Flame;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flame, SEQ_Flame);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -1135,7 +1215,7 @@ namespace flame194
 			fi->counter = 0;
 		}
 		if (n->counter == 0xB) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), (n->f0E & 1) ? 1 : 2, 0x80);
 		n->counter++;
 		return n->counter >= 20 ? TASK_END : 0;
 	}
@@ -1171,7 +1251,7 @@ namespace flame194
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)own::R(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -1185,11 +1265,11 @@ namespace flame194
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = ((const uint32_t *)fxp::data(P().tables.ghost_colours, (uint32_t)GHOST_COLOURS, 20, 4))[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)own::R(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -1203,7 +1283,7 @@ namespace flame194
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), own::R(BIND_OUT), fxp::anim_set(P().res.anim, ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 			Node *f = AddTask(QAux(), ORIG_FadeInTask);
 			f->counter = 0;
@@ -1211,7 +1291,7 @@ namespace flame194
 			f->f18 = 0x800;
 			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = own::R(GHOSTS); a < own::R(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -1265,40 +1345,90 @@ namespace flame194
 		if (!(UpdateFlags() & 0x201)) ModuleTick()++;
 		if (aux == 0 && (Flags() & 2))
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_RestoreTask);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RestoreTask));
 			t->counter = 0;
 			t->done = 0;
 		}
 		r->counter++;
 		return (aux == 0 && shots == 0 && (Flags() & 2)) ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "Irvine's Flame Shot: his animation set and chains, the afterimages of his gun, per shot the muzzle flashes and smoke, the flaming bullet's flight and its fire burst, the action result and the gun sound; the closing action" },
+		};
+		static const Field FIELDS[] = {
+			{ "shot", "sound", "Gun", "At each shot (with its action result)", (uint32_t)offsetof(FlameShotParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.ground_smoke", "Ground smoke", "The sprite sequence ground smoke (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.ground_smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.head", "Head", "The sprite sequence head (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.head), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "seqs.flame", "Flame", "The sprite sequence flame (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FlameShotParams, seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shot", "models.ring", "Ring model", "The prim model ring (a mesh of 240 vertices, 224 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.burst", "Burst model", "The prim model burst (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.flash", "Flash model", "The prim model flash (a mesh of 200 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "models.spin", "Spin model", "The prim model spin (a mesh of 120 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FlameShotParams, models.spin), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FlameShotParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(FlameShotParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ember_colours", "Ember colours", "its colour words (red, green, blue, the GPU code byte), picked in turn (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(FlameShotParams, tables.ember_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "shot", "tables.ghost_colours", "Ghost colours", "The caster's tint words in turn (its ghosts) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(FlameShotParams, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag194_flame_shot()
 	{
+		fxp::register_params({ 194, "Flame Shot", &flame194::live, &flame194::GAME, sizeof(flame194::FlameShotParams),
+		                       flame194::table::PARTS, (int)(sizeof(flame194::table::PARTS) / sizeof(flame194::table::PARTS[0])),
+		                       flame194::table::FIELDS, (int)(sizeof(flame194::table::FIELDS) / sizeof(flame194::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(flame194::ORIG_FileLoader, (void *)flame194::FileLoader);
+		own::note(flame194::ORIG_Setup, (void *)flame194::Setup);
+		own::note(flame194::ORIG_RootTask, (void *)flame194::RootTask);
 		register_port(flame194::ORIG_RootTask, (void *)flame194::RootTask, "194 RootTask", 194);
+		own::note(flame194::ORIG_RestoreTask, (void *)flame194::RestoreTask);
 		register_port(flame194::ORIG_RestoreTask, (void *)flame194::RestoreTask, "194 RestoreTask", 194);
+		own::note(flame194::ORIG_StartTask, (void *)flame194::StartTask);
 		register_port(flame194::ORIG_StartTask, (void *)flame194::StartTask, "194 StartTask", 194);
+		own::note(flame194::ORIG_ShotTask, (void *)flame194::ShotTask);
 		register_port(flame194::ORIG_ShotTask, (void *)flame194::ShotTask, "194 ShotTask", 194);
+		own::note(flame194::ORIG_EndTask, (void *)flame194::EndTask);
 		register_port(flame194::ORIG_EndTask, (void *)flame194::EndTask, "194 EndTask", 194);
+		own::note(flame194::ORIG_FadeOutTask, (void *)flame194::FadeOutTask);
 		register_port(flame194::ORIG_FadeOutTask, (void *)flame194::FadeOutTask, "194 FadeOutTask", 194);
+		own::note(flame194::ORIG_FadeInTask, (void *)flame194::FadeInTask);
 		register_port(flame194::ORIG_FadeInTask, (void *)flame194::FadeInTask, "194 FadeInTask", 194);
+		own::note(flame194::ORIG_AfterimageTask, (void *)flame194::AfterimageTask);
 		register_port(flame194::ORIG_AfterimageTask, (void *)flame194::AfterimageTask, "194 AfterimageTask", 194);
+		own::note(flame194::ORIG_FlashTask, (void *)flame194::FlashTask);
 		register_port(flame194::ORIG_FlashTask, (void *)flame194::FlashTask, "194 FlashTask", 194);
+		own::note(flame194::ORIG_SmokeTask, (void *)flame194::SmokeTask);
 		register_port(flame194::ORIG_SmokeTask, (void *)flame194::SmokeTask, "194 SmokeTask", 194);
+		own::note(flame194::ORIG_SpinTask, (void *)flame194::SpinTask);
 		register_port(flame194::ORIG_SpinTask, (void *)flame194::SpinTask, "194 SpinTask", 194);
+		own::note(flame194::ORIG_GroundSmokeTask, (void *)flame194::GroundSmokeTask);
 		register_port(flame194::ORIG_GroundSmokeTask, (void *)flame194::GroundSmokeTask, "194 GroundSmokeTask", 194);
+		own::note(flame194::ORIG_FlightTask, (void *)flame194::FlightTask);
 		register_port(flame194::ORIG_FlightTask, (void *)flame194::FlightTask, "194 FlightTask", 194);
+		own::note(flame194::ORIG_HeadTask, (void *)flame194::HeadTask);
 		register_port(flame194::ORIG_HeadTask, (void *)flame194::HeadTask, "194 HeadTask", 194);
+		own::note(flame194::ORIG_TrailTask, (void *)flame194::TrailTask);
 		register_port(flame194::ORIG_TrailTask, (void *)flame194::TrailTask, "194 TrailTask", 194);
+		own::note(flame194::ORIG_EmberTask, (void *)flame194::EmberTask);
 		register_port(flame194::ORIG_EmberTask, (void *)flame194::EmberTask, "194 EmberTask", 194);
+		own::note(flame194::ORIG_BurstTask, (void *)flame194::BurstTask);
 		register_port(flame194::ORIG_BurstTask, (void *)flame194::BurstTask, "194 BurstTask", 194);
+		own::note(flame194::ORIG_RingTask, (void *)flame194::RingTask);
 		register_port(flame194::ORIG_RingTask, (void *)flame194::RingTask, "194 RingTask", 194);
+		own::note(flame194::ORIG_PillarTask, (void *)flame194::PillarTask);
 		register_port(flame194::ORIG_PillarTask, (void *)flame194::PillarTask, "194 PillarTask", 194);
+		own::note(flame194::ORIG_FireTask, (void *)flame194::FireTask);
 		register_port(flame194::ORIG_FireTask, (void *)flame194::FireTask, "194 FireTask", 194);
 		// 30 fps layer: see mag194_flame_shot_held.inc
 		FX_HELD(register_mag194_held();)
 	}
+	FX_LAB_MODULE(register_mag194_flame_shot);
 }
 
 #ifdef FF8_FX_HELD

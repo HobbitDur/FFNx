@@ -22,7 +22,7 @@ namespace ff8fx
 namespace float115
 {
 	static void held_note_root();
-	static void held_note_play(const TargetNode *t, uint8_t *layout, const PrimArg *local);
+	static void held_note_play(const TargetNode *t, uint8_t *layout, const FrameArg *local, const int32_t *point);
 }
 	static void register_mag115_held();
 }

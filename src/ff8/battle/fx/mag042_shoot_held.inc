@@ -247,7 +247,7 @@ namespace shoot
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -457,7 +457,7 @@ namespace shoot
 	// kick effects, landing dust and sound); returns whether the next tick draws the ball
 	static bool PredictBall(uint32_t node)
 	{
-		if (!live(node, ORIG_Ball)) return false;
+		if (!node_live(node, ORIG_Ball)) return false;
 		switch (S8(node, 0x29))
 		{
 		case 1: sh_845340(node); break;
@@ -508,7 +508,7 @@ namespace shoot
 	// 3..6, ball tick <= 76), else the current one
 	static uint16_t NextPrimAngle(uint32_t ball, uint16_t cur)
 	{
-		if (!live(ball, ORIG_Ball)) return cur;
+		if (!node_live(ball, ORIG_Ball)) return cur;
 		const int8_t st = S8(ball, 0x29);
 		if (st == 1 || st == 2 || st > 6) return cur;
 		const int16_t t = S16(ball, 0x24);
@@ -570,7 +570,7 @@ namespace shoot
 		// the motion state: burst state 0 (0x844F30), dust state 1 (0x845BE0)
 		const int8_t motion = task == ORIG_Burst ? 0 : 1;
 		// (a node released after the real tick holds its last draw)
-		if (live(n.node, task) && S8(n.node, 0x29) == motion && (U8(n.node, 0x26) & 4) == 0)
+		if (node_live(n.node, task) && S8(n.node, 0x29) == motion && (U8(n.node, 0x26) & 4) == 0)
 		{
 			memcpy(nxt, (const void *)n.node, NODE_BYTES);
 			if (task == ORIG_Burst)
@@ -685,7 +685,7 @@ namespace shoot
 		{
 			const int8_t st = S8(g_ball[b].node, 0x29);
 			const int16_t t = S16(g_ball[b].node, 0x24);
-			g_next_spin[b] = live(g_ball[b].node, ORIG_Ball) && st >= 1 && st <= 4 && t > 0x1E && t <= 0x27;
+			g_next_spin[b] = node_live(g_ball[b].node, ORIG_Ball) && st >= 1 && st <= 4 && t > 0x1E && t <= 0x27;
 			g_next_draw[b] = PredictBall(g_ball[b].node);
 			memcpy(g_next_blk[b], (const void *)BLK, BLK_BYTES);
 			g_next_any = true;

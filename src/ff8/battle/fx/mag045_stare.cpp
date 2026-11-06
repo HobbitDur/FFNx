@@ -52,8 +52,14 @@
 // are served by that port (ENGINE_PORTS); the others are ported below (st_XXXXXX), the library ones
 // the text of the matching Tonberry / Doom / Psycho Blast / Boko / Curaga port with this module's
 // addresses.
+// Fujin's described Stare (effect_045.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the tasks it spawns the program's or thunks of their ports (Spawn), the master's view-axis
+// matrix a call before its prim-model queue; its parameters (StareParams: the director's sound and damage cue, the
+// eyes, the stage darkening) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -70,6 +76,19 @@ namespace stare
 	static const uint32_t PACKET_CURSOR = 0x26543B4;   // module packet cursor (tick parity; unused by the draws)
 	static const uint32_t FRAME_CURSOR = 0x1D8E054;    // frame arena cursor (the prim draws' packets)
 	static const uint32_t DIR_PTR = 0x15C357C;         // director block pointer (-> 0x26553C8, 0x54 bytes)
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct StareParams
+	{
+		struct { uint32_t sound; int16_t damage; } director;             // its sound (once phase 1 runs); the damage cue's ticks into the phase
+		struct { int16_t forward; } eyes;                                 // the eye stares: this far in front of the caster's eyes
+		struct { int16_t level, step_in, hold, step_out; } darken;       // the stage darkening: its level, up a tick, held until its tick, down a tick
+	};
+	static const StareParams GAME = { { 0x15C3580, 0x20 }, { 0x40 }, { 0x600, 0x200, 0x28, 0x100 } };
+	static StareParams live = GAME;
+	static const StareParams &PS() { return live; }
 	static const uint32_t VIEW_MATRIX = 0x2655758;     // view-axis matrix (0x836840)
 	static const uint32_t BLEND_BUF = 0x2655428;       // vertex blend buffer of the prim callback
 	static const uint32_t PRIM_CB = 0x836FE0;          // the prim-model player's object callback
@@ -229,14 +248,15 @@ namespace stare
 	uint32_t __cdecl st_8366E0(uint32_t a1)
 	{
 		g_mod = &MOD_045;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag045_stare_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x265574C) = 0x2793E58;
-		MEM<uint32_t>(0x26544B8) = 0x2793E58;
+		MEM<uint32_t>(R(0x265574C)) = 0x2793E58;
+		MEM<uint32_t>(R(0x26544B8)) = 0x2793E58;
 		states[0] = 0x836930;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x836940;
@@ -251,27 +271,27 @@ namespace stare
 		states[10] = 0x839910;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26553C4);
-			const uint32_t v2 = MEM<uint32_t>(0x2654FB4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26544B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26553C4));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2654FB4));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26544B4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26553C0);
-			const uint32_t v2 = MEM<uint32_t>(0x2654FB0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26544B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x26553C0));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2654FB0));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(R(0x26544B4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
-		st_836840(0x1D97778, VIEW_MATRIX);
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PRIM));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TINT));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_STAGE)));
+		st_836840(0x1D97778, R(VIEW_MATRIX));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(R(Q_TINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -344,8 +364,8 @@ namespace stare
 	// (director block +0x48 = 1, read by the emitter's state 0x8397E0), next state
 	uint32_t __cdecl st_836C20(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		if (S16(d, 0x46) < 0x20)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) < PS().director.damage)
 			return d; // void
 		U16(d, 0x48) = 1;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -358,7 +378,7 @@ namespace stare
 	// +0x80 = 1) and the stage darkening task 0x839690 (0x30 B, stage queue 0x2654598)
 	uint32_t __cdecl st_836C80(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(DIR_PTR), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x40) - 1;
 		if (ph != 0)
 			return (uint32_t)ph;
 		const uint32_t node = a1;
@@ -367,7 +387,7 @@ namespace stare
 		const uint32_t e1 = st_836D10(node, ORIG_Eye, 0x17C4DA0, 0x1C4, 0, 0);
 		U16(e1, 0x8A) = 1;
 		st_836D10(node, ORIG_Mark, 0x17C6A14, 0x23C, 1, 0);
-		return x::Effect_AddTaskAndInitFromCtx(Q_STAGE, ORIG_Darken, 0x30, node);
+		return Spawn(R(Q_STAGE), ORIG_Darken, 0x30, node);
 	}
 
 	// 0x836D10 (sub_836D10; Doom dm_8C5860 with this module's pool): spawns task a2 (0x2D0 B, prim
@@ -375,7 +395,7 @@ namespace stare
 	// +0x82 = a6; returns the node.
 	uint32_t __cdecl st_836D10(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, a2, 0x2D0, a1);
+		const uint32_t t = Spawn(R(Q_PRIM), a2, 0x2D0, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -397,7 +417,7 @@ namespace stare
 		x::MAG_022_sub_8DD8A0(M, (uint32_t)(int32_t)S16(node, 0x62));
 		U16(V, 0) = 0;
 		U16(V, 2) = 0;
-		U16(V, 4) = 0xFFC0;
+		U16(V, 4) = (uint16_t)-PS().eyes.forward;
 		x::matrixMultiplyVector(M, V, V);
 		const uint16_t vx = U16(V, 0);
 		const uint16_t vy = U16(V, 2);
@@ -462,7 +482,7 @@ namespace stare
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
 		// 30 fps layer: see mag045_stare_held.inc
@@ -538,7 +558,7 @@ namespace stare
 		if ((flags0 & 0x1000) != 0)
 		{
 			// record flag 0x1000: position turned by the view-axis matrix, which is then applied
-			x::GTE_SetRotMatrix(VIEW_MATRIX);
+			x::GTE_SetRotMatrix(R(VIEW_MATRIX));
 			x::GTE_LoadV0(V);
 			x::GTE_MVMVA_RotV0();
 			x::GTE_ReadMAC123(S);
@@ -548,7 +568,7 @@ namespace stare
 			S32(M, 0x14) = t0;
 			S32(M, 0x18) = t1;
 			S32(M, 0x1C) = t2;
-			x::GTE_MatrixMultiply(VIEW_MATRIX, M);
+			x::GTE_MatrixMultiply(R(VIEW_MATRIX), M);
 		}
 		else if ((flags0 & 0x200) != 0)
 		{
@@ -641,11 +661,11 @@ namespace stare
 	// 0x200 up to 0x600 (then next state); writes the level to the 4 words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl st_839740(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x200);
-		if (S16(a1, 0x1C) >= 0x600)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PS().darken.step_in);
+		if (S16(a1, 0x1C) >= PS().darken.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
-			U16(a1, 0x1C) = 0x600;
+			U16(a1, 0x1C) = (uint16_t)PS().darken.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -659,7 +679,7 @@ namespace stare
 	// next state
 	uint32_t __cdecl st_839780(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x28)
+		if (S16(a1, 0x24) > PS().darken.hold)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -682,7 +702,7 @@ namespace stare
 	uint32_t __cdecl st_836A10(uint32_t a1)
 	{
 		st_836A40(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2654490, 0x836AC0, 0x48, a1);
+		Spawn(R(0x2654490), 0x836AC0, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -692,8 +712,8 @@ namespace stare
 	// the target seen from the origin - 0x800 (12 bits)
 	uint32_t __cdecl st_836A40(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -703,7 +723,7 @@ namespace stare
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -712,7 +732,7 @@ namespace stare
 	// the queued phase (+0x44) becomes the requested one.
 	uint32_t __cdecl st_836B30(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(DIR_PTR);
+		uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -720,7 +740,7 @@ namespace stare
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			st_836C80(a1);
-			d = MEM<uint32_t>(DIR_PTR);
+			d = MEM<uint32_t>(G(G_1533010));
 		}
 		const uint16_t next = U16(d, 0x44);
 		if (U16(d, 0x42) != next)
@@ -737,7 +757,7 @@ namespace stare
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x15C3580, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PS().director.sound, 0x15C3580), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -1513,7 +1533,7 @@ namespace stare
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl st_839790(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PS().darken.step_out);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -1532,7 +1552,7 @@ namespace stare
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl st_8397E0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -1544,6 +1564,26 @@ namespace stare
 		x::ApplyActionResultToTarget(arr + (uint32_t)(sub * 24));
 		t4_next_state(node);
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define SP(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(StareParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its phase: the sound, the two eye stares at the caster, the target's mark, the stage darkening, the damage cue" },
+			{ 0, "stage", "Stage darkening", "The stage group darkened, held, back" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "Played once phase 1 runs", (uint32_t)offsetof(StareParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			SP("director", director.damage, "Damage cue", "The damage of the target this many ticks into the phase", 0, 200),
+			SP("director", eyes.forward, "Eyes forward", "The eye stares this far in front of the caster's eyes, along its facing", -0x400, 0x400),
+			SP("stage", darken.level, "Level", "", 0, 0x1000),
+			SP("stage", darken.step_in, "Step in", "Up by this a tick", 1, 0x1000),
+			SP("stage", darken.hold, "Hold until", "Held until this tick of its task", 0, 200),
+			SP("stage", darken.step_out, "Step out", "Down by this a tick", 1, 0x1000),
+		};
+#undef SP
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
@@ -1617,6 +1657,11 @@ namespace stare
 
 	void register_mag045_stare()
 	{
+		fxp::register_params({ 45, "Stare", &act::stare::live, &act::stare::GAME, sizeof(act::stare::StareParams),
+		                       act::stare::table::PARTS, (int)(sizeof(act::stare::table::PARTS) / sizeof(act::stare::table::PARTS[0])),
+		                       act::stare::table::FIELDS, (int)(sizeof(act::stare::table::FIELDS) / sizeof(act::stare::table::FIELDS[0])),
+		                       nullptr, 0 });
+		act::register_mod(&act::stare::MOD_045);
 		act::register_module(45);
 		for (const act::stare::ModPort *p = act::stare::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(45, p->addr, p->port, p->name);
@@ -1625,6 +1670,7 @@ namespace stare
 		// 30 fps layer: see mag045_stare_held.inc
 		FX_HELD(register_mag045_held();)
 	}
+	FX_LAB_MODULE(register_mag045_stare);
 }
 
 #ifdef FF8_FX_HELD

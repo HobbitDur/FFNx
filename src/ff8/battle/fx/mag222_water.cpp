@@ -104,6 +104,9 @@ namespace water
 	{
 		using namespace gfc;
 		water::describe(water::g_water);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<222>::Register("Water", water::g_water, 0xA9B1D0, 0x186D21C, 0x186D228,
+		                           (void *)water::SequenceTask);
 		init_clone(water::g_water, nullptr, 0);
 		apply_shared_misc(water::g_water);      // VM 0x0CF (and VM 0x022, see the engine)
 		water::apply_draw38(water::g_water);
@@ -111,6 +114,7 @@ namespace water
 		// 30 fps layer: see mag222_water_held.inc
 		FX_HELD(register_mag222_water_held();)
 	}
+	FX_LAB_MODULE(register_mag222_water);
 }
 
 #ifdef FF8_FX_HELD

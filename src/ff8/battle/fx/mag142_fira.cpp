@@ -28,8 +28,13 @@
 //   Ember (0x61D5D0) flipbook.
 // Module globals: 0x24BFB48..0x24C10B4 (queues, node pool, context, texture pointers, packet
 // cursor 0x24C10B0); packets go to the magic buffer (0x20DFAB8 + 0 / + 0x10000).
+// Fujin's described Fira (effect_142.json) runs this code: its memory through own::R() (fx_port.h), its spawns through
+// own::Fn(), the setup and the file loader ported below; its parameters (FiraParams: the sound, the damage tick).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -39,10 +44,11 @@ namespace fira142
 	using namespace magc;
 
 	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BFB68); } // .first = root, .second = effect queue
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24C10A0); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24C10AC); }       // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24C10B0); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(own::R(0x24BFB68)); } // .first = root, .second = effect queue
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x24C10A0)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(own::R(0x24C10AC)); }       // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x24C10B0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x24C10A8)); }          // the effect's file (its TIM)
 
 	static const uint32_t ORIG_RootTask = 0x61DD90;
 	static const uint32_t ORIG_WaitTexRestore = 0x61DE10;
@@ -61,6 +67,23 @@ namespace fira142
 	static const void *const MODEL_Trail = (const void *)0xDDE2AC;
 	static const uint32_t *const TRAIL_TABLE = (const uint32_t *)0xDDF454; // [frame] header +0x18 of a trail puff
 	static const void *const SOUND_Fira = (const void *)0xDDF44C;
+	static const uint32_t ORIG_FileLoader = 0x61CDF0, ORIG_Setup = 0x61CE10;
+	static const uint32_t TEXTURE_NAME = 0xDDF494, CAMERA = 0xDDD904;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct FiraParams
+	{
+		uint32_t sound;                      // at the director's tick 3 (3D, at the target)
+		struct { int16_t damage; } director; // the damage at this tick of an action's director
+		struct { uint32_t ember, shock_ring; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t flame_column, burst, trail; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const FiraParams GAME = { 0xDDF44C, { 0xE }, { 0xDDE100, 0xDDE0D8 }, { 0xDDEF14, 0xDDE6C4, 0xDDE2AC }, { TEXTURE_NAME, CAMERA } };
+	static FiraParams live = GAME;
+	static const FiraParams &P() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -139,6 +162,36 @@ namespace fira142
 	// ------------------------------------------------------------------
 	// Root task (0x61DD90): node +0x0C counter
 	// ------------------------------------------------------------------
+	// File loader (0x61CDF0) and setup (0x61CE10): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, the root and the first action's director (its target slot +0x20, the
+	// action's first byte +0x22), the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint8_t *)layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(&Queues().first, (void *)own::R(0x24BFB48), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&Queues().first, own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(&Queues().second, (void *)own::R(0x24BFB88), 0x24, 150);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(uint16_t *)(d + 0xE) = 0;
+		const uint8_t *act = (const uint8_t *)ctx->actions;
+		*(uint16_t *)(d + 0x20) = (*(uint8_t *const *)(act + 8))[0];
+		*(uint16_t *)(d + 0x22) = act[0];
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return &Queues().first;
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -149,7 +202,7 @@ namespace fira142
 		int alive = ExecuteTaskQueue(&Queues().second);
 		if (alive == 0 && !(Ctx()->flags & 2))
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(&Queues().first, ORIG_WaitTexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(&Queues().first, own::Fn(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -214,7 +267,7 @@ namespace fira142
 		}
 		if (d->counter == 1)
 		{
-			ProjectileNode *p = (ProjectileNode *)AddTaskToQueue(&Queues().second, ORIG_ProjectileTask);
+			ProjectileNode *p = (ProjectileNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_ProjectileTask));
 			memcpy(p->pos, d->caster, 8);
 			p->counter = 0;
 			p->vel[0] = (int16_t)((d->target[0] - d->caster[0]) / 8);
@@ -223,7 +276,7 @@ namespace fira142
 		}
 		if (d->counter == 9)
 		{
-			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_BurstTask);
+			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_BurstTask));
 			memcpy(b->pos, d->target, 4);
 			b->counter = 0;
 			memcpy((uint8_t *)b + 0x14, &d->target[2], 4);
@@ -238,7 +291,7 @@ namespace fira142
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FlameColumnTask);
+				ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_FlameColumnTask));
 				f->counter = 0;
 				int32_t r = CrtRand() % 6;
 				f->pos[1] = (int16_t)(d->target[1] - (int16_t)(600 * k + 600));
@@ -257,7 +310,7 @@ namespace fira142
 		}
 		if (d->counter == 9)
 		{
-			ModelNode *g = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_ShockRingTask);
+			ModelNode *g = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_ShockRingTask));
 			memcpy(g->pos, d->target, 4);
 			g->counter = 0;
 			memcpy((uint8_t *)g + 0x14, &d->target[2], 4);
@@ -268,7 +321,7 @@ namespace fira142
 		{
 			for (int k = 0; k < 10; k++)
 			{
-				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, ORIG_EmberTask);
+				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_EmberTask));
 				e->frame = 0;
 				e->delay = (int16_t)(CrtRand() % 6 + k);
 				memcpy(e->pos, d->target, 8);
@@ -283,7 +336,7 @@ namespace fira142
 		{
 			for (int k = 0; k < 12; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_SparkTask));
 				s->life = (int16_t)(CrtRand() % 8 + 10);
 				int32_t r = CrtRand() % 6;
 				s->pos[1] = d->target[3];
@@ -299,14 +352,14 @@ namespace fira142
 				s->scale = (int16_t)(CrtRand() % 0x500 + 0xF00);
 			}
 		}
-		if (d->counter == 0xE) ApplyActionResultToTarget(Ctx()->actions[d->action].targets);
+		if (d->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[d->action].targets);
 		if (d->counter == 0x15)
 		{
 			ActionData *acts = Ctx()->actions;
 			int next = d->action + 1;
 			if (next <= acts[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, ORIG_Director);
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_Director));
 				ActionData *ad = &Ctx()->actions[next];
 				t->counter = 0;
 				t->action = (int16_t)next;
@@ -322,7 +375,7 @@ namespace fira142
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
-			BdPlaySE3D(SOUND_Fira, 0x100, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Fira), 0x100, pos);
 		}
 		d->counter++;
 		if (d->counter <= 0x1A) return 0;
@@ -386,7 +439,7 @@ namespace fira142
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ember;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.ember, (uint32_t)SEQ_Ember));
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -449,7 +502,7 @@ namespace fira142
 
 	static void ShockRingHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = SEQ_ShockRing;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.shock_ring, (uint32_t)SEQ_ShockRing));
 		*(uint16_t *)(h + 4) = 0;
 		*(uint16_t *)(h + 0x24) = 0;
 		uint8_t level;
@@ -486,7 +539,7 @@ namespace fira142
 
 	static void FlameColumnHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_FlameColumn;
+		*(const void **)h = ((const void *)fxp::model(P().models.flame_column, (uint32_t)MODEL_FlameColumn));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -548,7 +601,7 @@ namespace fira142
 
 	static void BurstHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = ((const void *)fxp::model(P().models.burst, (uint32_t)MODEL_Burst));
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 0xE)
 		{
@@ -602,7 +655,7 @@ namespace fira142
 			int32_t size_range = count * 80;
 			for (int32_t left = count; left; left--)
 			{
-				ModelNode *t = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_TrailTask);
+				ModelNode *t = (ModelNode *)AddTaskToQueue(&Queues().second, own::Fn(ORIG_TrailTask));
 				memcpy(t->pos, p->pos, 4);
 				t->counter = 0;
 				memcpy((uint8_t *)t + 0x14, &p->pos[2], 4);
@@ -633,7 +686,7 @@ namespace fira142
 
 	static void TrailHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Trail;
+		*(const void **)h = ((const void *)fxp::model(P().models.trail, (uint32_t)MODEL_Trail));
 		*(uint32_t *)(h + 0x1C) = 0x1033;
 		*(uint32_t *)(h + 0x18) = TRAIL_TABLE[c];
 		if (c >= 8)
@@ -674,23 +727,58 @@ namespace fira142
 		TrailUpdate(p);
 		return p->counter >= 0x10 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "One director an action on its target: the fireball projectile and its trail, the flame column, the shock ring, the burst, sparks and embers, the screen flash, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "", (uint32_t)offsetof(FiraParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of an action's director", (uint32_t)offsetof(FiraParams, director.damage), fxp::I16, 0, 100 },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(FiraParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.shock_ring", "Shock ring", "The sprite sequence shock ring (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(FiraParams, seqs.shock_ring), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.flame_column", "Flame column model", "The prim model flame column (a mesh of 54 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.flame_column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.burst", "Burst model", "The prim model burst (a mesh of 72 vertices, 54 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.trail", "Trail model", "The prim model trail (a mesh of 26 vertices, 40 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(FiraParams, models.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(FiraParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(FiraParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag142_fira()
 	{
+		fxp::register_params({ 142, "Fira", &fira142::live, &fira142::GAME, sizeof(fira142::FiraParams),
+		                       fira142::table::PARTS, (int)(sizeof(fira142::table::PARTS) / sizeof(fira142::table::PARTS[0])),
+		                       fira142::table::FIELDS, (int)(sizeof(fira142::table::FIELDS) / sizeof(fira142::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(fira142::ORIG_FileLoader, (void *)fira142::FileLoader);
+		own::note(fira142::ORIG_Setup, (void *)fira142::Setup);
+		own::note(fira142::ORIG_RootTask, (void *)fira142::RootTask);
 		register_port(fira142::ORIG_RootTask, (void *)fira142::RootTask, "F142 RootTask", 142);
+		own::note(fira142::ORIG_WaitTexRestore, (void *)fira142::WaitTexRestore);
 		register_port(fira142::ORIG_WaitTexRestore, (void *)fira142::WaitTexRestore, "F142 WaitTexRestore", 142);
+		own::note(fira142::ORIG_Director, (void *)fira142::DirectorTask);
 		register_port(fira142::ORIG_Director, (void *)fira142::DirectorTask, "F142 Director", 142);
+		own::note(fira142::ORIG_SparkTask, (void *)fira142::SparkTask);
 		register_port(fira142::ORIG_SparkTask, (void *)fira142::SparkTask, "F142 SparkTask", 142);
+		own::note(fira142::ORIG_EmberTask, (void *)fira142::EmberTask);
 		register_port(fira142::ORIG_EmberTask, (void *)fira142::EmberTask, "F142 EmberTask", 142);
+		own::note(fira142::ORIG_ShockRingTask, (void *)fira142::ShockRingTask);
 		register_port(fira142::ORIG_ShockRingTask, (void *)fira142::ShockRingTask, "F142 ShockRingTask", 142);
+		own::note(fira142::ORIG_FlameColumnTask, (void *)fira142::FlameColumnTask);
 		register_port(fira142::ORIG_FlameColumnTask, (void *)fira142::FlameColumnTask, "F142 FlameColumnTask", 142);
+		own::note(fira142::ORIG_BurstTask, (void *)fira142::BurstTask);
 		register_port(fira142::ORIG_BurstTask, (void *)fira142::BurstTask, "F142 BurstTask", 142);
+		own::note(fira142::ORIG_ProjectileTask, (void *)fira142::ProjectileTask);
 		register_port(fira142::ORIG_ProjectileTask, (void *)fira142::ProjectileTask, "F142 ProjectileTask", 142);
+		own::note(fira142::ORIG_TrailTask, (void *)fira142::TrailTask);
 		register_port(fira142::ORIG_TrailTask, (void *)fira142::TrailTask, "F142 TrailTask", 142);
 		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(register_mag142_held();)
 	}
+	FX_LAB_MODULE(register_mag142_fira);
 }
 
 #ifdef FF8_FX_HELD

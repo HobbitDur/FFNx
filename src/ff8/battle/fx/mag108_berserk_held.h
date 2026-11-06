@@ -24,9 +24,9 @@ namespace berserk108
 	static void held_note_root();
 	static void held_note_flash(const MainNode *m, int32_t e);
 	static void held_note_glow(const MainNode *m, int32_t e);
-	static void held_note_play(const MainNode *m, const PrimArg *arg);
+	static void held_note_play(const MainNode *m, const TableArg *arg);
 	static void held_note_rays(const MainNode *m);
-	static void held_note_swirl(const SwirlNode *s);
+	static void held_note_swirl(const Ribbon *ribbon);
 	static void held_note_particle(const ParticleNode *p);
 }
 	static void register_mag108_held();

@@ -72,6 +72,9 @@
 
 #include "fx_port.h"
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include "mag_ice_common.h"
 
 namespace ff8fx
@@ -83,13 +86,15 @@ namespace brr289
 	using namespace icec;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507BD4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507BD8); }        // caster entity (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507C34); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507C38); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2507BE0; }        // pool: magic buffer, 0x40 x 0x24
-	inline TaskQueue *QSplashes() { return (TaskQueue *)0x2507BF0; }       // pool: + 0x900, 0x20 x 0x54
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507C00; }           // pool: + 0x1380, 1 x 0x1A0
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507BD4)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507BD8)); }        // caster entity (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507C34)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507BD0)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2507C10); }           // 1 x 0x14
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507C38)); }        // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2507BE0); }        // pool: magic buffer, 0x40 x 0x24
+	inline TaskQueue *QSplashes() { return (TaskQueue *)own::R(0x2507BF0); }       // pool: + 0x900, 0x20 x 0x54
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2507C00); }           // pool: + 0x1380, 1 x 0x1A0
 
 	static const uint32_t ORIG_MasterTask = 0x677890;
 	static const uint32_t ORIG_MainTask = 0x677A30;
@@ -108,6 +113,23 @@ namespace brr289
 	static const int16_t *const POINT = (const int16_t *)0x1072640;   // caster bone point (x, y, z, bone 9)
 	static const int16_t *const WAVE = (const int16_t *)0x1072648;    // 0x1001 x s16, by vertex w and w / 2
 	static const void *const SOUND_Roar = (const void *)0x1072638;
+	static const uint32_t ORIG_FileLoader = 0x6777F0, ORIG_Setup = 0x6777E0;
+	static const uint32_t TEXTURE_NAME = 0x1074648, CAMERA_ANIM = 0x10724E0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BrrawghhParams
+	{
+		uint32_t sound;   // the main task's counter 0
+		struct { uint32_t splash, target; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t drip, splat, spit; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t tube_a, tube_b; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const BrrawghhParams GAME = { 0x1072638, { LAYOUT_Splash, LAYOUT_Target }, { SEQ_Drip, SEQ_Splat, SEQ_Spit }, { 0x106EDE4, 0x106FAF4 }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static BrrawghhParams live = GAME;
+	static const BrrawghhParams &PB() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -679,6 +701,27 @@ namespace brr289
 		FieldFree(0xB4);
 	}
 
+	// File loader (0x6777F0) and setup (0x6777E0 -> _Init 0x677810): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the
+	// rest), the camera
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PB().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507C20), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PB().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
@@ -753,7 +796,7 @@ namespace brr289
 				TubeArgs(c, k, x);
 				// 30 fps layer: see mag289_brrawghh_held.inc
 				FX_HELD(held_note_tube(n, k, B, P);)
-				TubeDraw(&CM, TUBE_MESH[k], x[0], x[1], x[2], x[3], x[4], x[5], TexBase() + VERTS);
+				TubeDraw(&CM, (const uint8_t *)fxp::model(k ? PB().model_data.tube_b : PB().model_data.tube_a, (uint32_t)TUBE_MESH[k]), x[0], x[1], x[2], x[3], x[4], x[5], TexBase() + VERTS);
 			}
 		}
 		const int32_t e = c - 0xA;
@@ -762,10 +805,10 @@ namespace brr289
 			if ((uint32_t)e >= 4 && (uint32_t)e < 0xC)
 			{
 				GteSetRotMatrix(&M);
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 				if (s)
 				{
-					SpawnAtTarget(s, w, SEQ_Drip, 0x1FF, 0x100);
+					SpawnAtTarget(s, w, fxp::sequence(PB().seqs.drip, SEQ_Drip), 0x1FF, 0x100);
 					s->vel[1] = 0;
 					s->vel[2] = 0;
 					s->vel[0] = 0;
@@ -773,10 +816,10 @@ namespace brr289
 					s->frame = 0;
 					s->scale = (CrtRand() & 0x1FF) + 0x5DC;
 				}
-				s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+				s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 				if (s)
 				{
-					SpawnAtTarget(s, w, SEQ_Splat, 0xFF, 0x80);
+					SpawnAtTarget(s, w, fxp::sequence(PB().seqs.splat, SEQ_Splat), 0xFF, 0x80);
 					s->vel[0] = 0;
 					s->vel[2] = (int16_t)(-0x20 - (CrtRand() & 0xF));
 					s->vel[1] = (int16_t)(-0x20 - (CrtRand() & 0xF));
@@ -792,15 +835,15 @@ namespace brr289
 			FX_HELD(held_note_play(TARGET, n, (prim::Layout *)w->layout);)
 			Play(w->layout, &arg);
 		}
-		if (c == 0) BdPlaySE(SOUND_Roar, 0, 0x80);
+		if (c == 0) BdPlaySE((const void *)fxp::sound(PB().sound, (uint32_t)SOUND_Roar), 0, 0x80);
 		if ((uint32_t)(c - 2) < 0xA)
 		{
 			GteSetRotMatrix(&M);
 			for (int i = 4; i; i--)
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 				if (!s) continue;
-				s->seq = SEQ_Spit;
+				s->seq = fxp::sequence(PB().seqs.spit, SEQ_Spit);
 				memcpy(s->pos, B, 8);
 				const int32_t a = CrtRand();
 				const int32_t r = (CrtRand() & 0xF) + 0x20;
@@ -812,18 +855,18 @@ namespace brr289
 		}
 		if ((uint32_t)(c - 8) < 0xE)
 		{
-			SplashNode *l = (SplashNode *)AddTaskToQueue(QSplashes(), ORIG_SplashTask);
+			SplashNode *l = (SplashNode *)AddTaskToQueue(QSplashes(), own::Fn(ORIG_SplashTask));
 			if (l)
 			{
 				memcpy(l->pos, P, 8);
-				DecodeModelPrimLayout(LAYOUT_Splash, l->layout, 0x40);
+				DecodeModelPrimLayout(fxp::layout(PB().layouts.splash, LAYOUT_Splash, 0x40), l->layout, 0x40);
 			}
 			GteSetRotMatrix(&M);
-			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 			if (s)
 			{
 				memcpy(s->pos, P, 8);
-				s->seq = SEQ_Splat;
+				s->seq = fxp::sequence(PB().seqs.splat, SEQ_Splat);
 				s->vel[0] = 0;
 				s->vel[2] = (int16_t)(-0x10 - (CrtRand() & 0xF));
 				s->vel[1] = (int16_t)(-0x20 - (CrtRand() & 0xF));
@@ -844,13 +887,13 @@ namespace brr289
 		InitTaskQueuePool(QMain(), (void *)(TexBase() + 0x1380), 0x1A0, 1);
 		InitTaskQueuePool(QSprites(), (void *)TexBase(), 0x24, 0x40);
 		InitTaskQueuePool(QSplashes(), (void *)(TexBase() + 0x900), 0x54, 0x20);
-		MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+		MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 		Memset32(&w->counter, 0, 0x65);
 		w->target = Entity(Ctx()->actions->targets[0]);
-		DecodeModelPrimLayout(LAYOUT_Target, w->layout, 0x184);
+		DecodeModelPrimLayout(fxp::layout(PB().layouts.target, LAYOUT_Target, 0x184), w->layout, 0x184);
 		GetDefaultEffectPosition(w->target, w->pos);
-		NegateZ(TUBE_A);
-		NegateZ(TUBE_B);
+		NegateZ(((uint8_t *)fxp::model(PB().model_data.tube_a, (uint32_t)TUBE_A)));
+		NegateZ(((uint8_t *)fxp::model(PB().model_data.tube_b, (uint32_t)TUBE_B)));
 	}
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)
@@ -881,17 +924,47 @@ namespace brr289
 		m->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The spit tubes from the caster's mouth to the target, the spit, drip and splat sprites, the splash layouts, the layout at the target, the sound; the action result at 0xF" },
+		};
+		static const Field FIELDS[] = {
+			{ "main", "sound", "Sound", "The main task's counter 0", (uint32_t)offsetof(BrrawghhParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "layouts.splash", "Splash", "The prim-model layout splash (its models' animation)", (uint32_t)offsetof(BrrawghhParams, layouts.splash), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "layouts.target", "Target", "The prim-model layout target (its models' animation)", (uint32_t)offsetof(BrrawghhParams, layouts.target), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "main", "seqs.drip", "Drip", "The sprite sequence drip (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BrrawghhParams, seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.splat", "Splat", "The sprite sequence splat (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BrrawghhParams, seqs.splat), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "seqs.spit", "Spit", "The sprite sequence spit (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(BrrawghhParams, seqs.spit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "main", "model_data.tube_a", "Tube a model", "The prim model tube a (a mesh of 164 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BrrawghhParams, model_data.tube_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "model_data.tube_b", "Tube b model", "The prim model tube b (a mesh of 164 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BrrawghhParams, model_data.tube_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BrrawghhParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BrrawghhParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag289_brrawghh()
 	{
+		fxp::register_params({ 289, "Brrawghh", &brr289::live, &brr289::GAME, sizeof(brr289::BrrawghhParams),
+		                       brr289::table::PARTS, (int)(sizeof(brr289::table::PARTS) / sizeof(brr289::table::PARTS[0])),
+		                       brr289::table::FIELDS, (int)(sizeof(brr289::table::FIELDS) / sizeof(brr289::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(brr289::ORIG_FileLoader, (void *)brr289::FileLoader);
+		own::note(brr289::ORIG_Setup, (void *)brr289::Setup);
+		own::note(brr289::ORIG_MasterTask, (void *)brr289::MasterTask);
 		register_port(brr289::ORIG_MasterTask, (void *)brr289::MasterTask, "289 MasterTask", 289);
+		own::note(brr289::ORIG_MainTask, (void *)brr289::MainTask);
 		register_port(brr289::ORIG_MainTask, (void *)brr289::MainTask, "289 MainTask", 289);
+		own::note(brr289::ORIG_SpriteTask, (void *)brr289::SpriteTask);
 		register_port(brr289::ORIG_SpriteTask, (void *)brr289::SpriteTask, "289 SpriteTask", 289);
+		own::note(brr289::ORIG_SplashTask, (void *)brr289::SplashTask);
 		register_port(brr289::ORIG_SplashTask, (void *)brr289::SplashTask, "289 SplashTask", 289);
 		// 30 fps layer: see mag289_brrawghh_held.inc
 		FX_HELD(register_mag289_held();)
 	}
+	FX_LAB_MODULE(register_mag289_brrawghh);
 }
 
 #ifdef FF8_FX_HELD

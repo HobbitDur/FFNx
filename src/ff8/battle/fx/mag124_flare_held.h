@@ -22,7 +22,7 @@ namespace ff8fx
 namespace flare124
 {
 	static void held_note_root();
-	static void held_note_play(const TargetNode *t, uint8_t *layout, const PrimArg *arg);
+	static void held_note_play(const TargetNode *t, uint8_t *layout, const AnchorArg *arg);
 	static void held_note_silhouette(const TargetNode *t, int32_t e);
 	static void held_note_particle(const ParticleNode *p, int mode);
 }

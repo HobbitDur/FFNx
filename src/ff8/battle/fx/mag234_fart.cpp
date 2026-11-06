@@ -310,12 +310,16 @@ namespace fart
 	{
 		using namespace gfc;
 		fart::describe(fart::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<234>::Register("Fart", fart::g_c, 0xA488C0, 0x18682E0, 0x18682EC,
+		                           (void *)fart::SequenceTask);
 		init_clone(fart::g_c, nullptr, 0);
 		fart::g_c.draw[30] = fart::dh_30_WobbleEntity;
 		register_port(0xA48F60, (void *)fart::SequenceTask, "MAG234 Fart SequenceTick", 234);
 		// 30 fps layer: see mag234_fart_held.inc
 		FX_HELD(register_mag234_fart_held();)
 	}
+	FX_LAB_MODULE(register_mag234_fart);
 }
 
 #ifdef FF8_FX_HELD

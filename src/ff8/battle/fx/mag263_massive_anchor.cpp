@@ -154,12 +154,16 @@ namespace anchor263
 	{
 		using namespace gfc;
 		anchor263::describe(anchor263::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<263>::Register("Massive Anchor", anchor263::g_c, 0x9457E0, 0x1858190, 0x185819C,
+		                           (void *)anchor263::SequenceTask);
 		init_clone(anchor263::g_c, nullptr, 0);
 		anchor263::apply_slots(anchor263::g_c);
 		register_port(0x945E80, (void *)anchor263::SequenceTask, "MAG263 Massive Anchor SequenceTick", 263);
 		// 30 fps layer: see mag263_massive_anchor_held.inc
 		FX_HELD(register_mag263_massive_anchor_held();)
 	}
+	FX_LAB_MODULE(register_mag263_massive_anchor);
 }
 
 #ifdef FF8_FX_HELD

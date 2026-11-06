@@ -68,6 +68,9 @@
 //   orthonormalized view 0x2508910).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -77,24 +80,25 @@ namespace beat216
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508874); }
-	inline uint32_t &CaptureCursor() { return var<uint32_t>(0x2508878); }    // the stage capture's geometry packets
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250887C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508880); }
-	inline uint8_t *&Target() { return var<uint8_t *>(0x2508884); }          // the lowest entity of the target's chain
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2508888; }          // sprites (0x1C)
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x2508898; }            // rocks (0x24)
-	inline TaskQueue *QRings() { return (TaskQueue *)0x25088A8; }            // rings (0x104)
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x25088B8; }         // the director (1 x 0x17F0)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x25088C8; }
-	inline int32_t &Flash() { return var<int32_t>(0x25088E8); }               // the screen flash level of the tick
-	inline int32_t &FlashLast() { return var<int32_t>(0x25088EC); }
-	inline const int16_t *ZeroWords() { return (const int16_t *)0x25088F0; } // (never written)
-	inline uint32_t *CamAnchor() { return (uint32_t *)0x25088F8; }          // Zell's +0x1C / +0x20 dwords at the start
-	inline uint32_t *Anchor() { return (uint32_t *)0x2508900; }             // Zell's place before the target (x | y, z | pad): the camera's reference
-	inline int32_t &Height() { return var<int32_t>(0x2508908); }              // the target's model height + 0x4E1
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250890C); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 *View() { return (Mat4x3 *)0x2508910; }                   // the orthonormalized view of the tick
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2508874)); }
+	inline uint32_t &CaptureCursor() { return var<uint32_t>(own::R(0x2508878)); }    // the stage capture's geometry packets
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250887C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2508880)); }
+	inline uint8_t *&Target() { return var<uint8_t *>(own::R(0x2508884)); }          // the lowest entity of the target's chain
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2508888); }          // sprites (0x1C)
+	inline TaskQueue *QRocks() { return (TaskQueue *)own::R(0x2508898); }            // rocks (0x24)
+	inline TaskQueue *QRings() { return (TaskQueue *)own::R(0x25088A8); }            // rings (0x104)
+	inline TaskQueue *QDirector() { return (TaskQueue *)own::R(0x25088B8); }         // the director (1 x 0x17F0)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25088C8); }
+	inline int32_t &Flash() { return var<int32_t>(own::R(0x25088E8)); }               // the screen flash level of the tick
+	inline int32_t &FlashLast() { return var<int32_t>(own::R(0x25088EC)); }
+	inline const int16_t *ZeroWords() { return (const int16_t *)own::R(0x25088F0); } // (never written)
+	inline uint32_t *CamAnchor() { return (uint32_t *)own::R(0x25088F8); }          // Zell's +0x1C / +0x20 dwords at the start
+	inline uint32_t *Anchor() { return (uint32_t *)own::R(0x2508900); }             // Zell's place before the target (x | y, z | pad): the camera's reference
+	inline int32_t &Height() { return var<int32_t>(own::R(0x2508908)); }              // the target's model height + 0x4E1
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x250890C)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508870)); }          // the effect's file (its TIM)
+	inline Mat4x3 *View() { return (Mat4x3 *)own::R(0x2508910); }                   // the orthonormalized view of the tick
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t *CamEye() { return (int16_t *)0xB8B7F0; }
@@ -119,6 +123,23 @@ namespace beat216
 	static const uint32_t MODEL_Twist = 0x113C3CC, MODEL_Rock = 0x1140AA4;
 	static const uint32_t SEQ_Spark = 0x113C1AC, SEQ_Ember = 0x113C2F0;
 	static const void *const SOUND_Start = (const void *)0x113C1A8;
+	static const uint32_t ORIG_FileLoader = 0x6959F0, ORIG_Setup = 0x6959E0;
+	static const uint32_t TEXTURE_NAME = 0x1154F28;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct DifferentBeatParams
+	{
+		uint32_t sound;   // at the director's tick 0
+		struct { uint32_t ring, rise, fly, drop, impact, crater, pillar; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark, ember; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t rock, twist; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const DifferentBeatParams GAME = { 0x113C1A8, { LAYOUT_Ring, LAYOUT_Rise, LAYOUT_Fly, LAYOUT_Drop, LAYOUT_Impact, LAYOUT_Crater, LAYOUT_Pillar }, { SEQ_Spark, SEQ_Ember }, { MODEL_Rock, MODEL_Twist }, { TEXTURE_NAME, COM_Anim } };
+	static DifferentBeatParams live = GAME;
+	static const DifferentBeatParams &P() { return live; }
 	static const uint32_t MORPH = 0x2CD8;   // magic buffer: twisted / blended vertices
 
 	// ---- engine functions not in fx_port.h / mag_common.h
@@ -1588,6 +1609,27 @@ namespace beat216
 	// Rings, rocks, sprites (DRAW THEN UPDATE)
 	// ------------------------------------------------------------------
 	// RingTask (0x69A5D0): node 0x104, the layout 0x115049C at its point turned / scaled about Y; ends with its layout
+	// File loader (0x6959F0) and setup (0x6959E0 -> _Init 0x695A10): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast, its caster's entity and the target's (the lowest
+	// entity of its chain), the root (it sets up the rest)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		Target() = fn<uint8_t *(__cdecl *)(uint8_t *)>(0x501FF0)((uint8_t *)(0x1D972C0 + 0x9C * ctx->actions[0].targets[0]));   // Battle_EntityChainLowest
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25088D8), 0x10, 1);
+		*(uint32_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		return QRoot();
+	}
+
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *k = (RingNode *)n;
@@ -1611,14 +1653,14 @@ namespace beat216
 	// 0x69A550: a ring at Zell's position + (x, y, z), Y scale `scale`
 	static void SpawnRing(int32_t x, int32_t y, int32_t z, int32_t scale)
 	{
-		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), own::Fn(ORIG_RingTask));
 		if (!k) return;
 		k->scale = (int16_t)scale;
 		k->pos[0] = (int16_t)(W16(Caster(), 0x1C) + x);
 		k->pos[1] = (int16_t)(W16(Caster(), 0x1E) + y);
 		k->angle = 0;
 		k->pos[2] = (int16_t)(W16(Caster(), 0x20) + z);
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0xEC);
+		DecodeModelPrimLayout(fxp::layout(P().layouts.ring, LAYOUT_Ring, 0xEC), k->layout, 0xEC);
 	}
 
 	// 0x69A410: a rock (the model 0x1140AA4) at its position, angles x / y (x 16), scale; life--: ends at 0, else it moves
@@ -1637,7 +1679,7 @@ namespace beat216
 		GteSetRotMatrix(ma);
 		GteSetTransVector(ma);
 		U32(h, 0x1C) = 0;
-		U32(h, 0) = MODEL_Rock;
+		U32(h, 0) = fxp::model(P().model_data.rock, MODEL_Rock);
 		PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x98);
 	}
@@ -1683,7 +1725,7 @@ namespace beat216
 		for (;;)
 		{
 			const uint32_t task = (CrtRand() & 1) ? ORIG_RockATask : ORIG_RockBTask;
-			RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), task);
+			RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(task));
 			if (!k) return;
 			U32(k, 0x18) = 0;
 			k->acc[1] = 0x14;
@@ -1726,8 +1768,8 @@ namespace beat216
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag216_different_beat_held.inc
-		FX_HELD(held_note_sprite(s, SEQ_Spark);)
-		SpriteDraw(s, SEQ_Spark);
+		FX_HELD(held_note_sprite(s, fxp::sequence(P().seqs.spark, SEQ_Spark));)
+		SpriteDraw(s, fxp::sequence(P().seqs.spark, SEQ_Spark));
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(s->vel[0] << 2));
 		s->pos[1] = (int16_t)(s->pos[1] + (int16_t)(s->vel[1] << 2));
 		s->pos[2] = (int16_t)(s->pos[2] + (int16_t)(s->vel[2] << 2));
@@ -1739,8 +1781,8 @@ namespace beat216
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag216_different_beat_held.inc
-		FX_HELD(held_note_sprite(s, SEQ_Ember);)
-		SpriteDraw(s, SEQ_Ember);
+		FX_HELD(held_note_sprite(s, fxp::sequence(P().seqs.ember, SEQ_Ember));)
+		SpriteDraw(s, fxp::sequence(P().seqs.ember, SEQ_Ember));
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(s->vel[0] << 2));
 		s->pos[1] = (int16_t)(s->pos[1] + (int16_t)(s->vel[1] << 2));
 		s->pos[2] = (int16_t)(s->pos[2] + (int16_t)(s->vel[2] << 2));
@@ -1757,7 +1799,7 @@ namespace beat216
 	{
 		for (;;)
 		{
-			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SparkTask);
+			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SparkTask));
 			if (!s) return;
 			s->size = (int16_t)((mul32(CrtRand(), s0) >> 15) + s1);
 			const int32_t dist = (mul32(CrtRand(), d0) >> 15) + d1;
@@ -1781,7 +1823,7 @@ namespace beat216
 	{
 		for (;;)
 		{
-			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_EmberTask);
+			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_EmberTask));
 			if (!s) return;
 			s->size = 0x800;
 			s->pos[0] = (int16_t)(W16(Caster(), 0x1C) + x);
@@ -1830,9 +1872,9 @@ namespace beat216
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		U32(h, 0) = MODEL_Twist;
+		U32(h, 0) = fxp::model(P().model_data.twist, MODEL_Twist);
 		U32(h, 4) = morph;
-		TwistVertices(MODEL_Twist, (uint8_t *)morph, scale, angle);
+		TwistVertices(fxp::model(P().model_data.twist, MODEL_Twist), (uint8_t *)morph, scale, angle);
 		U32(h, 0x1C) = 0x2030;
 		if (last)
 		{
@@ -1951,7 +1993,7 @@ namespace beat216
 				W16(z, 0xE) = 0;
 				U32(z, 0x1C) = *(const uint32_t *)&d->place[0];
 				U32(z, 0x20) = *(const uint32_t *)&d->place[2];
-				DecodeModelPrimLayout(LAYOUT_Rise, d->layout_a, 0x40);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.rise, LAYOUT_Rise, 0x40), d->layout_a, 0x40);
 				d->lift = 0xC40;
 				d->ghosts[3] = 0;
 				d->ghosts[2] = 0;
@@ -2021,7 +2063,7 @@ namespace beat216
 		{
 			if (s == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Fly, d->layout_a, 0x484);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.fly, LAYOUT_Fly, 0x484), d->layout_a, 0x484);
 				ForChain([](uint8_t *e) { if (B8(e, 0) & 2) U16(e, 0) = (uint16_t)((U16(e, 0) & 0xFFFB) | 8); });
 				MeasureHeight(Target(), d->height);
 				d->height[0] = (int16_t)(d->height[0] - W16(Target(), 0x1E));
@@ -2081,7 +2123,7 @@ namespace beat216
 		s = c - 0x67;
 		if ((uint32_t)s < 0x12)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Drop, d->layout_b, 0x160);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.drop, LAYOUT_Drop, 0x160), d->layout_b, 0x160);
 			if ((uint32_t)s < 0xA)
 			{
 				RotationX(-0x200, &arg.m);
@@ -2124,8 +2166,8 @@ namespace beat216
 			const int32_t e24 = (int32_t)(((uint32_t)s << 12) / 24);
 			if (s == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Impact, d->layout_c, 0xA8);
-				DecodeModelPrimLayout(LAYOUT_Crater, d->layout_d, 0x684);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.impact, LAYOUT_Impact, 0xA8), d->layout_c, 0xA8);
+				DecodeModelPrimLayout(fxp::layout(P().layouts.crater, LAYOUT_Crater, 0x684), d->layout_d, 0x684);
 				W16(Target(), 0x1E) = (int16_t)(W16(&d->target_pos[0], 2) - d->height[0]);
 				U32(z, 0xC) = d->saved_rot[0];
 				U32(z, 0x10) = d->saved_rot[1];
@@ -2214,7 +2256,7 @@ namespace beat216
 		s = c - 0x29;
 		if ((uint32_t)s < 0x48)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Pillar, d->layout_e, 0xEC);
+			if (s == 0) DecodeModelPrimLayout(fxp::layout(P().layouts.pillar, LAYOUT_Pillar, 0xEC), d->layout_e, 0xEC);
 			RotationY(0, &arg.m);
 			arg.m.t[0] = d->place[0];
 			arg.m.t[1] = d->lift - 0x3A80;
@@ -2236,7 +2278,7 @@ namespace beat216
 		// the afterimages: drawn 1..0xC, 0x7C..0x82, 0x18..0x46; recorded 0..0xA, 0x7B..0x80, 0x17..0x23
 		if ((c > 0 && c <= 0xC) || (c > 0x7B && c <= 0x82) || (c > 0x17 && c < 0x47)) GhostDraw(z, d->ghosts);
 		if ((c >= 0 && c <= 0xA) || (c >= 0x7B && c <= 0x80) || (c >= 0x17 && c <= 0x23)) GhostRecord(z, d->ghosts);
-		if (c == 0) BdPlaySE(SOUND_Start, 0, 0x80);
+		if (c == 0) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Start), 0, 0x80);
 		DirectorCamera(c, true);
 		d->counter = (int16_t)(c + 1);
 		if (d->counter < 0x8B) return 0;
@@ -2279,7 +2321,7 @@ namespace beat216
 		CamAnchor()[1] = U32(z, 0x20);
 		Anchor()[0] = *(const uint32_t *)&d->place[0];
 		Anchor()[1] = *(const uint32_t *)&d->place[2];
-		BindExternalAnimSet(z, d->bind, COM_Anim);
+		BindExternalAnimSet(z, d->bind, fxp::anim_set(P().res.anim, COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x2C90));
 		U16(z, 0) &= 0xFFFB;
@@ -2321,7 +2363,7 @@ namespace beat216
 				InitTaskQueuePool(QRocks(), (void *)(TexBase() + 0x2010), 0x24, 0x40);
 				InitTaskQueuePool(QSprites(), (void *)(TexBase() + 0x2910), 0x1C, 0x20);
 			}
-			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), ORIG_DirectorTask);
+			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), own::Fn(ORIG_DirectorTask));
 			if (d) StartDirector(d);
 		}
 		OrthonormalizeCamera(&Camera(), View());
@@ -2366,20 +2408,57 @@ namespace beat216
 		r->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Zell's Different Beat: his animation set and moves, the stage captured, the rings, rocks, sparks and embers, the target's chain moved and hit, the two flash envelopes, the camera's moves, the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 0", (uint32_t)offsetof(DifferentBeatParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "layouts.ring", "Ring", "The prim-model layout ring (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.rise", "Rise", "The prim-model layout rise (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.fly", "Fly", "The prim-model layout fly (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.fly), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.drop", "Drop", "The prim-model layout drop (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.drop), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.impact", "Impact", "The prim-model layout impact (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.impact), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.crater", "Crater", "The prim-model layout crater (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.crater), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "layouts.pillar", "Pillar", "The prim-model layout pillar (its models' animation)", (uint32_t)offsetof(DifferentBeatParams, layouts.pillar), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(DifferentBeatParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.ember", "Ember", "The sprite sequence ember (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(DifferentBeatParams, seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "model_data.rock", "Rock model", "The prim model rock (a mesh of 8 vertices, 12 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DifferentBeatParams, model_data.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "model_data.twist", "Twist model", "The prim model twist (a mesh of 123 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(DifferentBeatParams, model_data.twist), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(DifferentBeatParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(DifferentBeatParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag216_different_beat()
 	{
+		fxp::register_params({ 216, "Different Beat", &beat216::live, &beat216::GAME, sizeof(beat216::DifferentBeatParams),
+		                       beat216::table::PARTS, (int)(sizeof(beat216::table::PARTS) / sizeof(beat216::table::PARTS[0])),
+		                       beat216::table::FIELDS, (int)(sizeof(beat216::table::FIELDS) / sizeof(beat216::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(beat216::ORIG_FileLoader, (void *)beat216::FileLoader);
+		own::note(beat216::ORIG_Setup, (void *)beat216::Setup);
+		own::note(beat216::ORIG_RootTask, (void *)beat216::RootTask);
 		register_port(beat216::ORIG_RootTask, (void *)beat216::RootTask, "216 RootTask", 216);
+		own::note(beat216::ORIG_DirectorTask, (void *)beat216::DirectorTask);
 		register_port(beat216::ORIG_DirectorTask, (void *)beat216::DirectorTask, "216 DirectorTask", 216);
+		own::note(beat216::ORIG_RingTask, (void *)beat216::RingTask);
 		register_port(beat216::ORIG_RingTask, (void *)beat216::RingTask, "216 RingTask", 216);
+		own::note(beat216::ORIG_RockATask, (void *)beat216::RockATask);
 		register_port(beat216::ORIG_RockATask, (void *)beat216::RockATask, "216 RockATask", 216);
+		own::note(beat216::ORIG_RockBTask, (void *)beat216::RockBTask);
 		register_port(beat216::ORIG_RockBTask, (void *)beat216::RockBTask, "216 RockBTask", 216);
+		own::note(beat216::ORIG_SparkTask, (void *)beat216::SparkTask);
 		register_port(beat216::ORIG_SparkTask, (void *)beat216::SparkTask, "216 SparkTask", 216);
+		own::note(beat216::ORIG_EmberTask, (void *)beat216::EmberTask);
 		register_port(beat216::ORIG_EmberTask, (void *)beat216::EmberTask, "216 EmberTask", 216);
 		// 30 fps layer: see mag216_different_beat_held.inc
 		FX_HELD(register_mag216_held();)
 	}
+	FX_LAB_MODULE(register_mag216_different_beat);
 }
 
 #ifdef FF8_FX_HELD

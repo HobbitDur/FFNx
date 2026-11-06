@@ -22,7 +22,7 @@ namespace ff8fx
 namespace silence122
 {
 	static void held_note_root();
-	static void held_note_play(const TargetNode *t, const PrimArg *arg);
+	static void held_note_play(const TargetNode *t, const AnchorArg *arg);
 }
 	static void register_mag122_held();
 }

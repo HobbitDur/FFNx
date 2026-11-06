@@ -22,9 +22,19 @@ namespace ff8fx
 {
 namespace potion050
 {
-	static void held_note_root(const RootNode *r);
-	static void held_note_ring(const Particle *r);
-	static void held_note_particle(const Particle *p);
+	static void held_note_root(const healring::RootNode *r);
+	static void held_note_ring(const healring::Particle *r);
+	static void held_note_particle(const healring::Particle *p, const fxp::Colour &colour, int16_t size);
+}
+namespace healring
+{
+	template<>
+	struct Held<potion050::LAYOUT>
+	{
+		static void note_root(const RootNode *r) { potion050::held_note_root(r); }
+		static void note_ring(const Particle *r) { potion050::held_note_ring(r); }
+		static void note_particle(const Particle *p, const fxp::Colour &colour, int16_t size) { potion050::held_note_particle(p, colour, size); }
+	};
 }
 	static void register_mag050_held();
 }

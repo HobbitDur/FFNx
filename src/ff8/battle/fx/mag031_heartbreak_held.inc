@@ -225,7 +225,7 @@ namespace heartbreak
 
 	static bool HeldReady() { return held_ready() && g_note_tick == g_real_tick; }
 
-	static bool live(uint32_t node, uint32_t task)
+	static bool node_live(uint32_t node, uint32_t task)
 	{
 		return (U16(node, 0) & 1) != 0 && U32(node, 8) == task;
 	}
@@ -255,7 +255,7 @@ namespace heartbreak
 	static void DrawFlash(const FlashNote &n, int num, int den)
 	{
 		uint32_t col = n.colour, next = 0;
-		const bool drawn = live(n.node, ORIG_Flash) && FlashNext(n.node, next);
+		const bool drawn = node_live(n.node, ORIG_Flash) && FlashNext(n.node, next);
 		if (!drawn)
 		{
 			if (num >= den) return; // (the next tick draws nothing)
@@ -470,7 +470,7 @@ namespace heartbreak
 	// next tick runs (the node as the real tick left it); false = the next tick does not play it
 	static bool PredictArrow(uint32_t node, uint32_t nxt)
 	{
-		if (!live(node, ORIG_Arrow) || S8(node, 0x29) != 2 || (U8(node, 0x26) & 1) != 0) return false;
+		if (!node_live(node, ORIG_Arrow) || S8(node, 0x29) != 2 || (U8(node, 0x26) & 1) != 0) return false;
 		memcpy((void *)nxt, (const void *)node, PRIM_BYTES);
 		const int32_t k = S16(nxt, 0x1AE);
 		const int16_t t = MEM<int16_t>(FLIGHT_T + (uint32_t)k * 2);
@@ -537,7 +537,7 @@ namespace heartbreak
 		memcpy(cur, n.bytes, SPARK_BYTES);
 		const uint32_t c = P(cur), x1 = P(nxt);
 		// (a node released after the real tick holds its last draw)
-		if (live(n.node, U32(c, 8)) && (U8(n.node, 0x26) & 4) == 0)
+		if (node_live(n.node, U32(c, 8)) && (U8(n.node, 0x26) & 4) == 0)
 		{
 			memcpy(nxt, (const void *)n.node, SPARK_BYTES);
 			if (StepSpark(x1))

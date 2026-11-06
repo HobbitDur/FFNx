@@ -33,6 +33,8 @@
 #pragma once
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -188,6 +190,43 @@ namespace gfc
 	// engine entry points (gfc_engine.cpp)
 	// ------------------------------------------------------------------------------------
 	uint32_t SequenceTick(Clone &c);     // the task function (0xB25DF0 for Ifrit)
+
+	// Fujin's programs: a clone's file loader with its two script files as parameters (empty: the game's
+	// .00 / .01), noted with its tick for the programs that run it (they call the clone's own setup: the
+	// engine's state block is shared, one clone at a time)
+	template<int EFFECT> struct ProgramFiles
+	{
+		struct Params { fxp::FileName file00, file01; };
+		inline static Params live = {};
+		inline static const Params GAME = {};
+		inline static uint32_t name00 = 0, name01 = 0, slot00 = 0, slot01 = 0;
+		static uint32_t __cdecl Loader()
+		{
+			MEM<uint32_t>(slot00) = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)(fxp::file(live.file00, (const char *)name00));
+			const uint32_t r = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)(fxp::file(live.file01, (const char *)name01));
+			MEM<uint32_t>(slot01) = r;
+			return r;
+		}
+		static void Register(const char *title, const Clone &c, uint32_t loader, uint32_t file00_name, uint32_t file01_name,
+		                     void *tick_port)
+		{
+			static const fxp::Part PARTS[] = {
+				{ 0, "files", "Files", "The cinematic's two script files in the magic folder (empty: the game's)" },
+			};
+			static const fxp::Field FIELDS[] = {
+				{ "files", "files.file00", "Script .00", "The first file (.00; empty: the game's)", (uint32_t)offsetof(Params, file00), fxp::File, 0, 15 },
+				{ "files", "files.file01", "Script .01", "The second file (.01; empty: the game's)", (uint32_t)offsetof(Params, file01), fxp::File, 0, 15 },
+			};
+			name00 = file00_name;
+			name01 = file01_name;
+			slot00 = c.file00;
+			slot01 = c.file01;
+			fxp::register_params({ EFFECT, title, &live, &GAME, sizeof(Params), PARTS, 1, FIELDS, 2, nullptr, 0 });
+			register_port(loader, (void *)Loader, title, EFFECT);   // (its files: the game's while left empty)
+			own::note(loader, (void *)Loader);
+			own::note(c.tick, tick_port);
+		}
+	};
 	void BindContext();                  // 0xB25830: scratch alloc RT/WS + pointer block
 	void ReleaseContext();               // 0xB258C0
 	void AnimChannelsNeg();              // 0xB2FCF0

@@ -37,8 +37,14 @@
 // sparkles write the translation of the static matrix 0x13197B0; the block's shape step writes
 // the vertex indices of the static UV model 0x1315760. None of these tasks tests the battle's
 // draw-only flag.
+// Fujin's described Blizzaga (effect_104.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BlizzagaParams: the sound, the
+// freeze's damage tick).
 
 #include "mag_ice_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -49,14 +55,16 @@ namespace blizzaga104
 	using namespace icec;
 
 	// --- module globals ---
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2543DF0); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2543DF4); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543DFC); }       // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2543E00); }
-	inline int16_t &BandBase() { return var<int16_t>(0x2543E04); }
-	inline int16_t &BandRange() { return var<int16_t>(0x2543E06); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543E1C); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543E30 + 0x10 * i); } // 0 freezes, 1 ribbons, 2 spirals, 3 sparkles, 4 mist, 5 flakes
+	inline int32_t &FlashLevel() { return var<int32_t>(own::R(0x2543DF0)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2543DF4)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(own::R(0x2543DFC)); }       // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2543E00)); }
+	inline int16_t &BandBase() { return var<int16_t>(own::R(0x2543E04)); }
+	inline int16_t &BandRange() { return var<int16_t>(own::R(0x2543E06)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2543E1C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2543DF8)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2543E20); }             // 1 x 0x14
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(own::R(0x2543E30) + 0x10 * i); } // 0 freezes, 1 ribbons, 2 spirals, 3 sparkles, 4 mist, 5 flakes
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }   // frame packet cursor (battle models)
 
 	static const uint32_t ORIG_Director = 0x6D6400;
@@ -76,6 +84,24 @@ namespace blizzaga104
 	static const void *const SEQ_Flake = (const void *)0x13127A0;
 	static const uint32_t SPARKLE_MATRIX = 0x13197B0;
 	static const void *const SOUND_Blizzaga = (const void *)0x13197A8;
+	static const uint32_t ORIG_FileLoader = 0x6D62F0, ORIG_Setup = 0x6D6310;
+	static const uint32_t TEXTURE_NAME = 0x13197D8, CAMERA = 0x1318B78;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BlizzagaParams
+	{
+		uint32_t sound;                    // at the freeze's tick 0 (3D, at the target)
+		struct { int16_t damage; } freeze; // the damage at this tick of the freeze
+		struct { uint32_t mist, flake; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, flash; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t from, to; } morphs; // a morph's vertex sets (data): what its code blends a model's vertices from and to
+	};
+	static const BlizzagaParams GAME = { 0x13197A8, { 0x44 }, { 0x1312690, 0x13127A0 }, { 0x1317088, 0x1318490 }, { TEXTURE_NAME, CAMERA }, { 0x1314C40, 0x13151D0 } };
+	static BlizzagaParams live = GAME;
+	static const BlizzagaParams &P() { return live; }
 	static const uint32_t MODEL_OFFSET[3] = { 0x11FB0, 0x142D8, 0x16600 };   // per action, in the magic buffer
 	static const int SHARDS = 0x140;
 
@@ -241,6 +267,42 @@ namespace blizzaga104
 	// ------------------------------------------------------------------
 	// Director (0x6D6400)
 	// ------------------------------------------------------------------
+	// File loader (0x6D62F0) and setup (0x6D6310 -> 0x6D6320): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast and its caster, the root (the director), the freeze band
+	// (the ice block's lowest vertex and its height + 1/16), the camera and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint8_t *)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2543E08), 0x14, 1);
+		FillDwords(AddTaskToQueue(QRoot(), own::Fn(ORIG_Director)) + 1, 0, 2);
+		// the block's vertex y range (count - 1 vertices from the second, the first one's y as the start)
+		const int16_t *v = (const int16_t *)0x13151E2;
+		int32_t n = *(const int32_t *)0x13151D4 - 1;
+		int16_t hi = *(const int16_t *)0x13151DC, lo = hi;
+		do
+		{
+			if (lo <= *v) { if (hi < *v) hi = *v; }
+			else lo = *v;
+			v += 4;
+		} while (--n);
+		BandBase() = lo;
+		BandRange() = (int16_t)(((int16_t)(hi - lo) >> 4) + hi - lo);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return QRoot();
+	}
+
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
@@ -292,7 +354,7 @@ namespace blizzaga104
 				}
 				else
 				{
-					FreezeNode *f = (FreezeNode *)AddTaskToQueue(Queue(0), ORIG_FreezeTask);
+					FreezeNode *f = (FreezeNode *)AddTaskToQueue(Queue(0), own::Fn(ORIG_FreezeTask));
 					FillDwords(&f->counter, 0, 0x1907);
 					f->action = (int16_t)(uint16_t)d->action;
 					f->entity = entity;
@@ -927,7 +989,7 @@ namespace blizzaga104
 		int32_t t = c - 0x2E;
 		*(uint16_t *)(h + 0x16) = 0x100;
 		*(uint16_t *)(h + 0x14) = 0x100;
-		*(const void **)h = MODEL_Ring;
+		*(const void **)h = ((const void *)fxp::model(P().models.ring, (uint32_t)MODEL_Ring));
 		*(uint16_t *)(h + 0x12) = 0;
 		*(uint16_t *)(h + 0x10) = 0;
 		*(uint16_t *)(h + 0x18) = 0;
@@ -981,7 +1043,7 @@ namespace blizzaga104
 		m.t[1] = f->pos[1];
 		m.t[2] = f->pos[2];
 		ComposeAffineTransform(&Camera(), &m, &m);
-		*(const void **)h = MODEL_Flash;
+		*(const void **)h = ((const void *)fxp::model(P().models.flash, (uint32_t)MODEL_Flash));
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1063,7 +1125,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)c < 3)
 		{
-			RibbonNode *r = (RibbonNode *)AddTaskToQueue(Queue(1), ORIG_RibbonTask);
+			RibbonNode *r = (RibbonNode *)AddTaskToQueue(Queue(1), own::Fn(ORIG_RibbonTask));
 			if (r)
 			{
 				FillDwords(&r->counter, 0, 0x11B);
@@ -1076,7 +1138,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)c < 2)
 		{
-			SpiralNode *s = (SpiralNode *)AddTaskToQueue(Queue(2), ORIG_SpiralTask);
+			SpiralNode *s = (SpiralNode *)AddTaskToQueue(Queue(2), own::Fn(ORIG_SpiralTask));
 			if (s)
 			{
 				FillDwords(&s->counter, 0, 0x116);
@@ -1106,7 +1168,8 @@ namespace blizzaga104
 			{
 				uint32_t v = MorphStep(t);
 				uint32_t idx = v >> 12;
-				MorphVertices(h, (const uint8_t *)MORPH_TABLE[idx], (const uint8_t *)MORPH_TABLE[idx + 1], v & 0xFFF);
+				MorphVertices(h, (const uint8_t *)(idx == 0 ? fxp::vertices(P().morphs.from, MORPH_TABLE[0]) : MORPH_TABLE[idx]),
+					(const uint8_t *)(idx == 0 ? fxp::vertices(P().morphs.to, MORPH_TABLE[1]) : MORPH_TABLE[idx + 1]), v & 0xFFF);
 			}
 			else if (t == 3) CopyDwords(f->verts, BLOCK_VERTS + 8, *(uint32_t *)(Cursor(h, 0) + 4) * 2);
 			// 30 fps layer: see mag104_blizzaga_held.inc
@@ -1212,7 +1275,7 @@ namespace blizzaga104
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 8; k++)
 			{
-				FlakeNode *fl = (FlakeNode *)AddTaskToQueue(Queue(5), ORIG_FlakeTask);
+				FlakeNode *fl = (FlakeNode *)AddTaskToQueue(Queue(5), own::Fn(ORIG_FlakeTask));
 				if (!fl) continue;
 				FillDwords(&fl->counter, 0, 8);
 				int32_t r1 = CrtRand();
@@ -1245,7 +1308,7 @@ namespace blizzaga104
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 8; k++)
 			{
-				MistNode *mi = (MistNode *)AddTaskToQueue(Queue(4), ORIG_MistTask);
+				MistNode *mi = (MistNode *)AddTaskToQueue(Queue(4), own::Fn(ORIG_MistTask));
 				if (!mi) continue;
 				FillDwords(&mi->counter, 0, 7);
 				int32_t r1 = CrtRand();
@@ -1273,9 +1336,9 @@ namespace blizzaga104
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(f->entity, pos);
-			BdPlaySE3D(SOUND_Blizzaga, 0x101, pos);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Blizzaga), 0x101, pos);
 		}
-		if (c == 0x44) ApplyActionResultToTarget(Ctx()->actions[f->action].targets);
+		if (c == P().freeze.damage) ApplyActionResultToTarget(Ctx()->actions[f->action].targets);
 		if (c >= 0x62) return TASK_END;
 		f->counter = (int16_t)(c + 1);
 		return 0;
@@ -1396,7 +1459,7 @@ namespace blizzaga104
 	// 0x6D9D40
 	static void SpawnSparkle(const int16_t *v, Mat4x3 *m)
 	{
-		SparkleNode *s = (SparkleNode *)AddTaskToQueue(Queue(3), ORIG_SparkleTask);
+		SparkleNode *s = (SparkleNode *)AddTaskToQueue(Queue(3), own::Fn(ORIG_SparkleTask));
 		if (!s) return;
 		FillDwords(&s->counter, 0, 8);
 		s->pos[0] = v[0];
@@ -1553,7 +1616,7 @@ namespace blizzaga104
 		GteReadMAC123((void *)(SPARKLE_MATRIX + 0x14));
 		GteSetRotMatrix((const Mat4x3 *)SPARKLE_MATRIX);
 		GteSetTransVector((const Mat4x3 *)SPARKLE_MATRIX);
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.mist, (uint32_t)SEQ_Mist));
 		*(uint16_t *)(h + 4) = (uint16_t)s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -1585,7 +1648,7 @@ namespace blizzaga104
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(m->pos, m->scale, -(m->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.mist, (uint32_t)SEQ_Mist));
 		*(uint16_t *)(h + 4) = (uint16_t)m->counter;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1616,7 +1679,7 @@ namespace blizzaga104
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(fl->pos, fl->scale, -(fl->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Flake;
+		*(const void **)h = ((const void *)fxp::sequence(P().seqs.flake, (uint32_t)SEQ_Flake));
 		*(uint16_t *)(h + 4) = (uint16_t)fl->counter;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1649,20 +1712,53 @@ namespace blizzaga104
 		FlakeUpdate(fl);
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "freeze", "Freeze", "One freeze an action on its first target: the target frozen from the bottom up, the ribbons and spirals, the ice block growing then breaking into falling shards, the ring, the flash model, mist and flakes, the screen flash, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "freeze", "sound", "Sound", "", (uint32_t)offsetof(BlizzagaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "freeze", "freeze.damage", "Damage tick", "The damage at this tick of the freeze", (uint32_t)offsetof(BlizzagaParams, freeze.damage), fxp::I16, 0, 98 },
+			{ "freeze", "seqs.mist", "Mist", "The sprite sequence mist (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzagaParams, seqs.mist), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "freeze", "seqs.flake", "Flake", "The sprite sequence flake (a flipbook of 14 frames: an edited one keeps as many)", (uint32_t)offsetof(BlizzagaParams, seqs.flake), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "freeze", "models.ring", "Ring model", "The prim model ring (a mesh of 144 vertices, 132 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzagaParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "freeze", "models.flash", "Flash model", "The prim model flash (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BlizzagaParams, models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "freeze", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BlizzagaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "freeze", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BlizzagaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "freeze", "morphs.from", "Growth from", "The vertices the ice block's growth blends from (177 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(BlizzagaParams, morphs.from), fxp::Data, 0, 0x7FFFFFFF },
+			{ "freeze", "morphs.to", "Growth to", "The vertices the ice block's growth blends to (177 vertices x, y, z after its size and count: an edited one keeps the count)", (uint32_t)offsetof(BlizzagaParams, morphs.to), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag104_blizzaga()
 	{
+		fxp::register_params({ 104, "Blizzaga", &blizzaga104::live, &blizzaga104::GAME, sizeof(blizzaga104::BlizzagaParams),
+		                       blizzaga104::table::PARTS, (int)(sizeof(blizzaga104::table::PARTS) / sizeof(blizzaga104::table::PARTS[0])),
+		                       blizzaga104::table::FIELDS, (int)(sizeof(blizzaga104::table::FIELDS) / sizeof(blizzaga104::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(blizzaga104::ORIG_FileLoader, (void *)blizzaga104::FileLoader);
+		own::note(blizzaga104::ORIG_Setup, (void *)blizzaga104::Setup);
+		own::note(blizzaga104::ORIG_Director, (void *)blizzaga104::DirectorTask);
 		register_port(blizzaga104::ORIG_Director, (void *)blizzaga104::DirectorTask, "B104 Director", 104);
+		own::note(blizzaga104::ORIG_FreezeTask, (void *)blizzaga104::FreezeTask);
 		register_port(blizzaga104::ORIG_FreezeTask, (void *)blizzaga104::FreezeTask, "B104 FreezeTask", 104);
+		own::note(blizzaga104::ORIG_MistTask, (void *)blizzaga104::MistTask);
 		register_port(blizzaga104::ORIG_MistTask, (void *)blizzaga104::MistTask, "B104 MistTask", 104);
+		own::note(blizzaga104::ORIG_FlakeTask, (void *)blizzaga104::FlakeTask);
 		register_port(blizzaga104::ORIG_FlakeTask, (void *)blizzaga104::FlakeTask, "B104 FlakeTask", 104);
+		own::note(blizzaga104::ORIG_RibbonTask, (void *)blizzaga104::RibbonTask);
 		register_port(blizzaga104::ORIG_RibbonTask, (void *)blizzaga104::RibbonTask, "B104 RibbonTask", 104);
+		own::note(blizzaga104::ORIG_SparkleTask, (void *)blizzaga104::SparkleTask);
 		register_port(blizzaga104::ORIG_SparkleTask, (void *)blizzaga104::SparkleTask, "B104 SparkleTask", 104);
+		own::note(blizzaga104::ORIG_SpiralTask, (void *)blizzaga104::SpiralTask);
 		register_port(blizzaga104::ORIG_SpiralTask, (void *)blizzaga104::SpiralTask, "B104 SpiralTask", 104);
 		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(register_mag104_held();)
 	}
+	FX_LAB_MODULE(register_mag104_blizzaga);
 }
 
 #ifdef FF8_FX_HELD

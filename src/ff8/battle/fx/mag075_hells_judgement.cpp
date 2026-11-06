@@ -47,6 +47,9 @@
 // spin angles += spin speed) then rotated about its centroid, colour = table[state], state - 1;
 // state 0 -> gone.
 // The draw advances the pieces on every draw (it is not gated by the engine's freeze flag).
+// Fujin's described Hell's Judgement (effect_075.json) calls the clone's own setup (the engine's state block is
+// shared), its root re-pointed at the ported tick; the file loader is ProgramFiles' (gfc_engine.h): its two
+// script files are its parameters.
 //
 // Piece (0x30 bytes): +0 / +4 / +8 position (x256), +0x0C / +0x10 / +0x14 velocity x / y / z,
 // +0x0E / +0x12 / +0x16 acceleration, +0x18 / +0x1A / +0x1C spin angles (x16), +0x1E / +0x20 /
@@ -587,6 +590,9 @@ namespace hells_judgement
 	{
 		using namespace gfc;
 		hells_judgement::describe(hells_judgement::g_hj);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<75>::Register("Hell's Judgement", hells_judgement::g_hj, 0xB3E8B0, 0x1876858, 0x1876864,
+		                           (void *)hells_judgement::SequenceTask);
 		init_clone(hells_judgement::g_hj, nullptr, 0);
 		hells_judgement::apply_draw61(hells_judgement::g_hj);
 		hells_judgement::g_hj.draw[66] = hells_judgement::dh_66_ShatterMesh;   // 0xB429A0
@@ -594,6 +600,7 @@ namespace hells_judgement
 		// 30 fps layer: see mag075_hells_judgement_held.inc
 		FX_HELD(register_mag075_hells_judgement_held();)
 	}
+	FX_LAB_MODULE(register_mag075_hells_judgement);
 }
 
 #ifdef FF8_FX_HELD

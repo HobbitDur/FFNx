@@ -51,11 +51,17 @@
 //   Screen flash (0x888F80): colour script (colour words, 0xFE000000 | t = wait for tick t,
 //     0xFF...... = end), a full-screen flat quad at OT bucket + 0x1C.
 // No task tests the draw-only flags (battle_to_update_flags 0x201).
+// Fujin's described Clash (effect_026.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (ClashParams: the emitter's sound
+// and ticks, the dust, the bursts at the caster's bones, the knock-back's gravity).
 // Module globals: 0x26D9050..0x26E58F0 (flash queue + pool, file pointer 0x26D90D8, packet cursor
 // 0x26D90DC, prim pool, master / sprite / emitter pools and queues, arena pointers, knock-back
 // queue + pool). The target entity (position, angles, flags) is engine state.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -89,6 +95,26 @@ namespace clash026
 	static const uint32_t ORIG_LandRing = 0x8897A0;
 	static const uint32_t ORIG_LandSpark = 0x8898B0;
 	static const uint32_t ORIG_WalkDust = 0x889BF0;
+	static const uint32_t ORIG_FileLoader = 0x8885B0, ORIG_Setup = 0x8885D0;
+	static const uint32_t TEXTURE_NAME = 0x161078C;
+	static const uint32_t FILE_PTR = 0x26D90D8, Q_MASTER = 0x26DBC00;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct ClashParams
+	{
+		struct { uint32_t sound; int16_t sound_tick, start, end, dust; } emitter;   // its sound; the waves, knock-back and dust from start; done after end
+		struct { int16_t first, last, a, b, sparks, radius; } bursts;              // at the caster's bones: their ticks, sparks, sparks' radius
+		struct { int16_t gravity; } knock;                                          // the target's knock-back
+		struct { uint32_t spark, dust; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, wave_a, wave_b; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { uint32_t fade_table; } tables; // its small tables (data): colours, fades, counts, offsets
+	};
+	static const ClashParams GAME = { { SOUND_Clash, 4, 4, 0x1E, 4 }, { 4, 0x28, 0x11, 0x14, 8, 0x100 }, { 0x30 }, { SEQ_Spark, SEQ_Dust }, { MODEL_Ring, MODEL_WaveA, MODEL_WaveB }, { TEXTURE_NAME }, { 0x161075C } };
+	static ClashParams live = GAME;
+	static const ClashParams &PC() { return live; }
 
 	// engine / effect-library functions not in act::x (original addresses)
 	namespace cx
@@ -156,7 +182,7 @@ namespace clash026
 		U32(h, 8) = U32(node, 0x40);
 		S32(h, 0xC) = S16(node, 0x50);
 		U32(h, 0x1C) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(h, RenderOT(0x44), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(own::R(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT(0x44), 2, MEM<uint32_t>(own::R(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 	}
 
@@ -177,7 +203,7 @@ namespace clash026
 		U32(h, 0) = U32(node, 0x4C);
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT(0x44), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(own::R(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT(0x44), 2, MEM<uint32_t>(own::R(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -186,7 +212,7 @@ namespace clash026
 	static void FlashDraw(uint32_t colour)
 	{
 		const uint32_t bucket = RenderOT(0x1C);
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		uint32_t pkt = MEM<uint32_t>(own::R(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -199,7 +225,7 @@ namespace clash026
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(own::R(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	// ------------------------------------------------------------------------------------
@@ -210,7 +236,7 @@ namespace clash026
 	{
 		if (i > 0xB) i = 0xB;
 		else if (i < 0) i = 0;
-		return MEM<int16_t>(FADE_TABLE + 2 * (int32_t)i);
+		return MEM<int16_t>(fxp::data(PC().tables.fade_table, FADE_TABLE, 24) + 2 * (int32_t)i);
 	}
 
 	// 0x888E70 (sub_888E70): next sequence frame; past the last one (+0x52): hidden, last frame, 1
@@ -249,7 +275,7 @@ namespace clash026
 		RandomOffset(node, U16(node, 0x6C), U16(node, 0x6A));
 		const int32_t dx = S16(node, 0x1C) - S16(node, 0x58);
 		U8(node, 0x26) |= 4;
-		U32(node, 0x4C) = SEQ_Spark;
+		U32(node, 0x4C) = fxp::sequence(PC().seqs.spark, SEQ_Spark);
 		U16(node, 0x52) = 0xF;
 		const int32_t dy = S16(node, 0x1E) - S16(node, 0x5A);
 		const int32_t dz = S16(node, 0x20) - S16(node, 0x5C);
@@ -322,7 +348,7 @@ namespace clash026
 		S32(a1, 0x38) = 0x100;
 		S32(a1, 0x34) = 0x100;
 		S32(a1, 0x30) = 0x100;
-		U32(a1, 0x4C) = MODEL_Ring;
+		U32(a1, 0x4C) = fxp::model(PC().models.ring, MODEL_Ring);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -361,8 +387,8 @@ namespace clash026
 		U32(a1, 0x4C) = model;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 	}
-	static uint32_t __cdecl WaveAStart(uint32_t a1) { WaveStart(a1, MODEL_WaveA); return 0; }
-	static uint32_t __cdecl WaveBStart(uint32_t a1) { WaveStart(a1, MODEL_WaveB); return 0; }
+	static uint32_t __cdecl WaveAStart(uint32_t a1) { WaveStart(a1, fxp::model(PC().models.wave_a, MODEL_WaveA)); return 0; }
+	static uint32_t __cdecl WaveBStart(uint32_t a1) { WaveStart(a1, fxp::model(PC().models.wave_b, MODEL_WaveB)); return 0; }
 
 	// 0x889110: fade in 0x200 per tick, grow 0x400; at full fade hidden and finished
 	static uint32_t __cdecl WaveAGrow(uint32_t a1)
@@ -429,7 +455,7 @@ namespace clash026
 		U16(a1, 0x1E) = (uint16_t)(U16(a1, 0x1E) + 0xFD00);
 		DustOffset(a1, 0x180);
 		U8(a1, 0x26) |= 4;
-		U32(a1, 0x4C) = SEQ_Dust;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.dust, SEQ_Dust);
 		U16(a1, 0x52) = 7;
 		U16(a1, 0x54) = 0xFE00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -440,7 +466,7 @@ namespace clash026
 	static uint32_t __cdecl WalkDustStart(uint32_t a1)
 	{
 		cx::CopyAnchorFromSource(a1, a1 + 0x1C);
-		U32(a1, 0x4C) = SEQ_Spark;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.spark, SEQ_Spark);
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -559,17 +585,17 @@ namespace clash026
 		{
 		case 0:
 			U16(a1, 0x32) = 0xFEB0;
-			U16(a1, 0x3A) = 0x30;
+			U16(a1, 0x3A) = (uint16_t)PC().knock.gravity;
 			U16(a1, 0x5E) = 0xC;
 			break;
 		case 1:
 			U16(a1, 0x32) = 0xFE80;
-			U16(a1, 0x3A) = 0x30;
+			U16(a1, 0x3A) = (uint16_t)PC().knock.gravity;
 			U16(a1, 0x5E) = 0xE;
 			break;
 		default:
 			U16(a1, 0x32) = 0xFE40;
-			U16(a1, 0x3A) = 0x30;
+			U16(a1, 0x3A) = (uint16_t)PC().knock.gravity;
 			U16(a1, 0x5E) = 0x10;
 			break;
 		}
@@ -580,7 +606,7 @@ namespace clash026
 	// one landing spark (0x8898B0) of the three: delay, angle base + random 0..0x1FF, scale
 	static void LandSparkSpawn(uint32_t node, int16_t delay, uint16_t angle)
 	{
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_LandSpark, 0x70, node);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(own::R(Q_SPRITE), own::Fn(ORIG_LandSpark), 0x70, node);
 		U16(s, 0x68) = (uint16_t)delay;
 		const uint32_t r = x::CrtRand() & 0x3FF;
 		U16(s, 0x6C) = 0xC0;
@@ -612,7 +638,7 @@ namespace clash026
 		{
 			U16(a1, 0x1E) = (uint16_t)ground;
 			cx::QueueChainTransformation(e, 6);
-			x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_LandRing, 0x6C, a1);
+			x::Effect_AddTaskAndInitFromCtx(own::R(Q_PRIM), own::Fn(ORIG_LandRing), 0x6C, a1);
 			const uint32_t base = x::CrtRand() & 0xFFF;
 			LandSparkSpawn(a1, 0, (uint16_t)base);
 			LandSparkSpawn(a1, 2, (uint16_t)(base + 0x500));
@@ -671,7 +697,7 @@ namespace clash026
 		}
 		if ((U8(a1, 0x24) & 3) == 0)
 		{
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_WalkDust, 0x70, a1);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(own::R(Q_SPRITE), own::Fn(ORIG_WalkDust), 0x70, a1);
 			U16(s, 0x6E) = (uint16_t)((x::CrtRand() & 0x1FF) + 0x400);
 		}
 		return 0;
@@ -704,19 +730,19 @@ namespace clash026
 		pos[1] = 0;
 		if (flag == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_BurstRing, 0x6C, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(own::R(Q_PRIM), own::Fn(ORIG_BurstRing), 0x6C, node);
 			U32(t, 0x1C) = U32(P(pos), 0);
 			U32(t, 0x20) = U32(P(pos), 4);
 		}
 		uint32_t angle = x::CrtRand() & 0xFFF;
-		for (int i = 0; i < 8; i++)
+		for (int i = 0; i < PC().bursts.sparks; i++)
 		{
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Spark, 0x70, node);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(own::R(Q_SPRITE), own::Fn(ORIG_Spark), 0x70, node);
 			U32(s, 0x1C) = U32(P(pos), 0);
 			U32(s, 0x20) = U32(P(pos), 4);
 			U16(s, 0x68) = (uint16_t)(x::CrtRand() & 3);
 			const uint32_t r = x::CrtRand() & 0x3FF;
-			U16(s, 0x6C) = 0x100;
+			U16(s, 0x6C) = (uint16_t)PC().bursts.radius;
 			U16(s, 0x6A) = (uint16_t)angle;
 			U16(s, 0x6E) = (uint16_t)(r + 0x600);
 			const uint32_t r2 = x::CrtRand() & 0xFF;
@@ -737,20 +763,20 @@ namespace clash026
 	// 4 dust sprites (delays 0 / 2 / 4 / 6) and, for target 0, the screen flash
 	static uint32_t __cdecl EmitterSpawn(uint32_t a1)
 	{
-		if (S16(a1, 0x24) < 4)
+		if (S16(a1, 0x24) < PC().emitter.start)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_WaveA, 0x6C, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_WaveB, 0x6C, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_CHARGE, ORIG_Charge, 0x60, a1);
-		for (int i = 0; i < 4; i++)
+		x::Effect_AddTaskAndInitFromCtx(own::R(Q_PRIM), own::Fn(ORIG_WaveA), 0x6C, a1);
+		x::Effect_AddTaskAndInitFromCtx(own::R(Q_PRIM), own::Fn(ORIG_WaveB), 0x6C, a1);
+		x::Effect_AddTaskAndInitFromCtx(own::R(Q_CHARGE), own::Fn(ORIG_Charge), 0x60, a1);
+		for (int i = 0; i < PC().emitter.dust; i++)
 		{
-			const uint32_t d = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Dust, 0x70, a1);
+			const uint32_t d = x::Effect_AddTaskAndInitFromCtx(own::R(Q_SPRITE), own::Fn(ORIG_Dust), 0x70, a1);
 			U16(d, 0x68) = (uint16_t)(i * 2);
 			U16(d, 0x6E) = (uint16_t)((x::CrtRand() & 0x3FF) + 0x600);
 		}
 		if (U8(a1, 0x2B) == 0)
 		{
-			const uint32_t f = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, a1);
+			const uint32_t f = x::Effect_AddTaskAndInitFromCtx(own::R(Q_FLASH), own::Fn(ORIG_Flash), 0x3C, a1);
 			U32(f, 0x30) = FLASH_SCRIPT;
 		}
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -760,7 +786,7 @@ namespace clash026
 	// 0x889CD0 (MAG_026_sub_889CD0): emitter state 2 - finished after tick 30
 	static uint32_t __cdecl EmitterWait(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x1E)
+		if (S16(a1, 0x24) > PC().emitter.end)
 		{
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -779,27 +805,27 @@ namespace clash026
 		T_Emitter[S8(node, 0x29)](node);
 		if (U8(node, 0x2B) == 0)
 		{
-			if (U16(node, 0x24) == 4)
-				x::BdPlaySE(SOUND_Clash, 0, 0x80);
+			if (S16(node, 0x24) == PC().emitter.sound_tick)
+				x::BdPlaySE(fxp::sound(PC().emitter.sound, SOUND_Clash), 0, 0x80);
 			if (U8(node, 0x2B) == 0)
 			{
-				const uint16_t c = U16(node, 0x24);
+				const int16_t c = S16(node, 0x24);
 				// the 4th word of a burst's position (never written, see Burst): the original makes
 				// the four calls without popping their arguments, so the 2nd..4th burst's word is the
 				// high half of the ebp the previous burst saved = the executor's queue pointer (the
 				// emitter queue 0x26E3F68); for the first / a single burst it is the stack left by the
 				// emitter's earlier calls (0)
-				const uint16_t queue_hi = (uint16_t)(Q_EMITTER >> 16);
-				if (c == 4 || c == 0x28)
+				const uint16_t queue_hi = (uint16_t)(own::R(Q_EMITTER) >> 16);
+				if (c == PC().bursts.first || c == PC().bursts.last)
 				{
 					Burst(node, 0x34, 1, 0);
 					Burst(node, 0x35, 1, queue_hi);
 					Burst(node, 0x36, 1, queue_hi);
 					Burst(node, 0x33, 1, queue_hi);
 				}
-				else if (c == 0x11)
+				else if (c == PC().bursts.a)
 					Burst(node, 0x36, 0, 0);
-				else if (c == 0x14)
+				else if (c == PC().bursts.b)
 					Burst(node, 0x34, 0, 0);
 			}
 		}
@@ -823,7 +849,7 @@ namespace clash026
 	{
 		for (int32_t i = 0; i < (int32_t)S16(a1, 0x5A); i++)
 		{
-			x::Effect_AddTaskAndInitFromCtx(Q_EMITTER, ORIG_Emitter, 0x58, a1);
+			x::Effect_AddTaskAndInitFromCtx(own::R(Q_EMITTER), own::Fn(ORIG_Emitter), 0x58, a1);
 			U8(a1, 0x2B) = (uint8_t)(U8(a1, 0x2B) + 1);
 		}
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -843,6 +869,37 @@ namespace clash026
 
 	static const StateFn T_Master[] = { NextState, SpawnEmitters, NextState, WaitQueues, Nop }; // 0x8887A0 0x8887B0 0x889D00 0x889D10 0x889D30
 
+	// File loader (0x8885B0) and setup (0x8885D0): the game runs its own; Fujin's programs these (its memory may be
+	// a copy's): the master with the cast, the first target's slot and action 0's counts, the texture (always:
+	// no camera), the two packet arenas in the magic buffer, the queues
+	static uint32_t __cdecl FileLoader()
+	{
+		MEM<uint32_t>(own::R(FILE_PTR)) = x::IO_GetFile_MAGIC(fxp::name(PC().res.texture_name, TEXTURE_NAME));
+		return MEM<uint32_t>(own::R(FILE_PTR));
+	}
+
+	static uint32_t __cdecl Setup(uint32_t ctx)
+	{
+		const uint32_t acts = U32(ctx, 4);
+		const uint8_t slot = U8(U32(acts, 8), 0);
+		x::BdLink_InitTaskQueuePool(own::R(Q_MASTER), own::R(0x26DBB38), 0x64, 2);
+		const uint32_t m = x::Effect_AddTaskAndInitFromCtx(own::R(Q_MASTER), own::Fn(ORIG_Master), 0x64, 0);
+		U32(m, 0xC) = ctx;
+		U8(m, 0x2D) = slot;
+		U16(m, 0x58) = U8(acts, 0x11);
+		U16(m, 0x5A) = U8(acts, 0x10);
+		x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(own::R(FILE_PTR)));
+		const uint32_t buffer = layouts::MagicBuffer();
+		MEM<uint32_t>(own::R(ARENA_ODD)) = buffer;
+		MEM<uint32_t>(own::R(ARENA_EVEN)) = buffer + 0xC000;
+		x::BdLink_InitTaskQueuePool(own::R(Q_EMITTER), own::R(0x26E3F78), 0x58, 4);
+		x::BdLink_InitTaskQueuePool(own::R(Q_CHARGE), own::R(0x26E40F0), 0x60, 64);
+		x::BdLink_InitTaskQueuePool(own::R(Q_SPRITE), own::R(0x26DBC10), 0x70, 300);
+		x::BdLink_InitTaskQueuePool(own::R(Q_PRIM), own::R(0x26D90E0), 0x6C, 100);
+		x::BdLink_InitTaskQueuePool(own::R(Q_FLASH), own::R(0x26D9060), 0x3C, 2);
+		return own::R(Q_MASTER);
+	}
+
 	// 0x8886C0 (MAG_026_sub_8886C0): MASTER task
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
@@ -850,26 +907,78 @@ namespace clash026
 		// 30 fps layer: see mag026_clash_held.inc
 		FX_HELD(held_note_master();)
 		if (U8(node, 0x5C) & 1)
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_ODD);
+			MEM<uint32_t>(own::R(PACKET_CURSOR)) = MEM<uint32_t>(own::R(ARENA_ODD));
 		else
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_EVEN);
+			MEM<uint32_t>(own::R(PACKET_CURSOR)) = MEM<uint32_t>(own::R(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		T_Master[S8(node, 0x29)](node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(Q_EMITTER);
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_CHARGE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPRITE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PRIM));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_FLASH));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(own::R(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(own::R(Q_CHARGE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(own::R(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(own::R(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(own::R(Q_FLASH)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
+	}
+	namespace table
+	{
+		using fxp::Field;
+#define DT(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(ClashParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "emitter", "Emitter", "One per target: its sound, the shock waves, the knock-back, the dust, the screen flash" },
+			{ 0, "bursts", "Bursts", "Rings and sparks at the caster's bones (target 0's emitter)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "bursts", "Bursts", "Ticks: First and Last (bones 0x34, 0x35, 0x36, 0x33 with rings), A (bone 0x36), B (bone 0x34); sparks each, their radius" },
+		};
+		static const Field FIELDS[] = {
+			{ "emitter", "emitter.sound", "Sound", "Played at its tick (target 0's emitter)", (uint32_t)offsetof(ClashParams, emitter.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DT("emitter", emitter.sound_tick, "Sound tick", "", 0, 200),
+			DT("emitter", emitter.start, "Start tick", "The shock waves, the knock-back, the dust and the flash from this tick", 0, 200),
+			DT("emitter", emitter.end, "End after", "Done after this tick", 0, 200),
+			DT("emitter", emitter.dust, "Dust", "Dust sprites at its start", 0, 16),
+			DT("emitter", knock.gravity, "Knock-back gravity", "Added to the target's upward speed a tick", -0x200, 0x200),
+			DT("bursts", bursts.first, "First", "", 0, 200),
+			DT("bursts", bursts.last, "Last", "", 0, 200),
+			DT("bursts", bursts.a, "A", "", 0, 200),
+			DT("bursts", bursts.b, "B", "", 0, 200),
+			DT("bursts", bursts.sparks, "Sparks", "", 0, 32),
+			DT("bursts", bursts.radius, "Radius", "", 0, 0x1000),
+			{ "emitter", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(ClashParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "seqs.dust", "Dust", "The sprite sequence dust (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(ClashParams, seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "emitter", "models.ring", "Ring model", "The prim model ring (a mesh of 32 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.wave_a", "Wave a model", "The prim model wave a (a mesh of 48 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.wave_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "models.wave_b", "Wave b model", "The prim model wave b (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ClashParams, models.wave_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "emitter", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ClashParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "emitter", "tables.fade_table", "Fade", "The fade by tick (4096 = full) (24 bytes: an edited one keeps its length)", (uint32_t)offsetof(ClashParams, tables.fade_table), fxp::Data, 0, 0x7FFFFFFF },
+		};
+#undef DT
 	}
 }
 }
 
 	void register_mag026_clash()
 	{
+		fxp::register_params({ 26, "Clash", &act::clash026::live, &act::clash026::GAME, sizeof(act::clash026::ClashParams),
+		                       act::clash026::table::PARTS, (int)(sizeof(act::clash026::table::PARTS) / sizeof(act::clash026::table::PARTS[0])),
+		                       act::clash026::table::FIELDS, (int)(sizeof(act::clash026::table::FIELDS) / sizeof(act::clash026::table::FIELDS[0])),
+		                       act::clash026::table::GROUPS, (int)(sizeof(act::clash026::table::GROUPS) / sizeof(act::clash026::table::GROUPS[0])) });
+		own::note(act::clash026::ORIG_FileLoader, (void *)act::clash026::FileLoader);
+		own::note(act::clash026::ORIG_Setup, (void *)act::clash026::Setup);
+		own::note(act::clash026::ORIG_Master, (void *)act::clash026::Master);
+		own::note(act::clash026::ORIG_Emitter, (void *)act::clash026::Emitter);
+		own::note(act::clash026::ORIG_Charge, (void *)act::clash026::Charge);
+		own::note(act::clash026::ORIG_BurstRing, (void *)act::clash026::BurstRing);
+		own::note(act::clash026::ORIG_WaveA, (void *)act::clash026::WaveA);
+		own::note(act::clash026::ORIG_WaveB, (void *)act::clash026::WaveB);
+		own::note(act::clash026::ORIG_LandRing, (void *)act::clash026::LandRing);
+		own::note(act::clash026::ORIG_Spark, (void *)act::clash026::Spark);
+		own::note(act::clash026::ORIG_Dust, (void *)act::clash026::Dust);
+		own::note(act::clash026::ORIG_LandSpark, (void *)act::clash026::LandSpark);
+		own::note(act::clash026::ORIG_WalkDust, (void *)act::clash026::WalkDust);
+		own::note(act::clash026::ORIG_Flash, (void *)act::clash026::Flash);
 		register_port(act::clash026::ORIG_Master, (void *)act::clash026::Master, "026 Clash Master", 26);
 		register_port(act::clash026::ORIG_Emitter, (void *)act::clash026::Emitter, "026 Emitter", 26);
 		register_port(act::clash026::ORIG_Charge, (void *)act::clash026::Charge, "026 KnockBack", 26);
@@ -885,6 +994,7 @@ namespace clash026
 		// 30 fps layer: see mag026_clash_held.inc
 		FX_HELD(register_mag026_held();)
 	}
+	FX_LAB_MODULE(register_mag026_clash);
 }
 
 #ifdef FF8_FX_HELD

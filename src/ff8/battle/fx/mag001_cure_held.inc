@@ -43,6 +43,14 @@ namespace ff8fx
 {
 namespace cure001
 {
+	using namespace healring;
+	using Ring = HealRing<LAYOUT>;
+	static constexpr uint32_t ORIG_Ring = LAYOUT.ring, ORIG_Mote = LAYOUT.mote, ORIG_Sparkle = LAYOUT.sparkle;
+	static const uint32_t OVERLAY_SPRITE = LAYOUT.overlay_sprite, OVERLAY_VERTS = LAYOUT.overlay_verts;
+	static inline uint32_t &PacketCursor() { return Ring::PacketCursor(); }
+	static inline OverlayCtx &Overlay() { return Ring::Overlay(); }
+	static inline const HealRingParams &P() { return Ring::P(); }
+
 	static const uint32_t SCRATCH = 0x400;
 	static const uint32_t VERTS_SIZE = 0x6400; // overlay vertex buffer 0x2783E28..0x278A228
 	enum : uint32_t { REC_RING = 1, REC_PARTICLE = 2 };
@@ -52,6 +60,8 @@ namespace cure001
 		uint32_t kind;
 		const Particle *live;         // the node itself (the ring's glow colour byte is its address)
 		Particle node;                // as drawn
+		fxp::Colour colour;           // mote / sparkle: the draw's colour and size
+		int16_t size;
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
 		uint8_t scratch[SCRATCH];
 	};
@@ -96,10 +106,13 @@ namespace cure001
 		if ((r->h.flags & 8) && !g_frame_packets) g_frame_packets = var<uint32_t>(0x1D8E054);
 	}
 
-	static void held_note_particle(const Particle *p)
+	static void held_note_particle(const Particle *p, const fxp::Colour &colour, int16_t size)
 	{
 		if (p->h.flags & 4) return; // hidden: nothing drawn
-		NewRec(REC_PARTICLE, p);
+		Rec *r = NewRec(REC_PARTICLE, p);
+		if (!r) return;
+		r->colour = colour;
+		r->size = size;
 	}
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
@@ -146,7 +159,7 @@ namespace cure001
 	{
 		OverlayCtx *c = &Overlay();
 		uint8_t *entity = c->entity;
-		UpdateMatrices(c, entity);
+		overlay::Overlay_UpdateMatrices(c, entity);
 		const bool posed = c->slot != 0xFF; // (0xFF: the overlay advances the animation: pose held)
 		uint8_t *weapon = *(uint8_t *const *)(entity + 0x78);
 		// the weapon (a party member's, entity +0x78) animates with the body (AdvanceAnimationBy1 0x5094F0):
@@ -154,10 +167,11 @@ namespace cure001
 		if (posed) pose_midpoint(entity + 0x60, entity + 0x6C, num, den);
 		if (posed && weapon) pose_midpoint(weapon, weapon + 0xC, num, den);
 		ComposeAffineTransform(&Camera(), &c->world, &c->view);
-		if (!(entity[0] & 0x20)) *c->frame_cursor = DrawShadow(entity, RenderOT(0x4040), 0x10, *c->frame_cursor);
-		BuildProjectorMatrix(c);
-		RenderModel(*(const uint8_t *const *)(entity + 0x64), RenderOT(0x44), 4, c);
-		if (weapon) RenderModel(*(const uint8_t *const *)(weapon + 4), RenderOT(0x44), 4, c);
+		if (!(entity[0] & 0x20)) *c->frame_cursor = BattleEntity_DrawShadow(entity, RenderOTAt(0x4040), 0x10, *c->frame_cursor);
+		overlay::Overlay_BuildProjectorMatrix(c);
+		const bool skip_back_faces = P().overlay.skip_back_faces != 0;
+		overlay::Overlay_RenderModel(*(const uint8_t *const *)(entity + 0x64), RenderOTAt(0x44), 4, c, skip_back_faces);
+		if (weapon) overlay::Overlay_RenderModel(*(const uint8_t *const *)(weapon + 4), RenderOTAt(0x44), 4, c, skip_back_faces);
 		if (posed) BuildBoneMatricesFromPose(entity + 0x60);
 		if (posed && weapon) BuildBoneMatricesFromPose(weapon);
 	}
@@ -192,8 +206,8 @@ namespace cure001
 			{
 				const uint16_t w70c = var<uint16_t>(0x1D9770C);
 				pose_midpoint(entity + 0x60, entity + 0x6C, 1, 1);
-				EmitterUpdatePos(&na->next);
-				ComputeModelBounds(&na->next);
+				Emitter_UpdatePos(&na->next);
+				Emitter_ComputeModelBounds(&na->next);
 				BuildBoneMatricesFromPose(entity + 0x60);
 				var<uint16_t>(0x1D9770C) = w70c;
 			}
@@ -216,12 +230,13 @@ namespace cure001
 		// the next tick: its phase function first (phase 2 may end the ring: then everything holds)
 		Particle b = m;
 		bool ends = false;
-		if (b.h.phase == 2) ends = LifetimeExpired(&b) != 0;
-		if (!ends) RingPlace(&m, (uint32_t)(uint16_t)(m.h.counter << 2) + 3 + (uint32_t)(4 * num / den));
+		if (b.h.phase == 2) ends = FlipbookExpired(b.frame, b.last, b.h.flags);
+		if (!ends) Ring::RingPlace(&m, (uint32_t)(uint16_t)(m.h.counter << 2) + 3 + (uint32_t)(4 * num / den));
 		if (m.h.flags & 8)
 		{
 			Overlay().offset[1] = m.h.pos[1];
-			SetOverlayTexturePage(&Overlay(), m.h.pos, 0x200, 0x180, 0x140, 0xF1, 0x80, 0x80);
+			const HealRingParams::Overlay &op = P().overlay;
+			overlay::SetOverlayTexturePage(&Overlay(), m.h.pos, op.image.tex_x, op.image.tex_y, op.image.clut_x, op.image.clut_y, op.image.width, op.image.height);
 			OverlayHeld(num, den);
 		}
 		if (m.h.counter < 0x14)
@@ -230,10 +245,11 @@ namespace cure001
 			const int32_t g1 = (uint8_t)(0x3C - (uint8_t)((m.h.counter + 1) * 3));
 			const uint32_t grey = (uint8_t)(ends ? g0 : lerp_i(g0, g1, num, den));
 			const uint32_t colour = grey | grey << 8 | grey << 16 | ((uint32_t)r.live & 0xFF000000u);
-			DrawSprite(&m);
-			DrawAdditiveGlow(&m, SEQ_Glow, &colour);
+			Ring::DrawSprite(&m, P().ring.colour, P().ring.size);
+			const HealRingParams::Glow::Placement &gp = P().glow.placement;
+			DrawGroundFlipbook(m.h.pos, (m.h.flags & 4) != 0, fxp::sequence(P().glow.seq, LAYOUT.seq_glow), gp.tilt, gp.height, gp.frame, colour, PacketCursor());
 		}
-		else DrawSprite(&m);
+		else Ring::DrawSprite(&m, P().ring.colour, P().ring.size);
 	}
 
 	static void ParticleHeld(const Rec &r, int num, int den)
@@ -243,11 +259,11 @@ namespace cure001
 		if (a.h.phase == 1)
 		{
 			Particle b = a;
-			Integrate(&b);
+			Ring::Integrate(&b);
 			if (!(b.h.flags & 4))
 				for (int k = 0; k < 3; k++) m.h.pos[k] = lerp16(a.h.pos[k], b.h.pos[k], num, den);
 		}
-		DrawSprite(&m);
+		Ring::DrawSprite(&m, r.colour, r.size);
 	}
 
 	static void HeldFrame(int num, int den)

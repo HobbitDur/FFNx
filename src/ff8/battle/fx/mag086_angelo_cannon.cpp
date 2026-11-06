@@ -44,8 +44,16 @@
 // back by his state 5), the root-matrix slot 0x1D99AB0 (Angelo), the camera copy 0x2793E58, action results (0x506690). No
 // camera word is written (the setup's engine camera animation; the muzzle glow reads the eye's z 0xB8B7F4).
 // Module globals: 0x25B4CC8..0x25BC38C (+ camera copy 0x2793E58, 0x20 bytes).
+// Fujin's described Angelo Cannon (effect_086.json) runs this code as its pieces (Doom's kind): its module memory
+// through R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or thunks
+// of their ports (Spawn); its parameters (CannonParams: the two sounds, the done flag's frame) are set from the
+// program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -59,6 +67,23 @@ namespace cannon86
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x77F5B0, 0x77F630, 0x0, 0x77F980, 0x77F9B0, 0x77F9E0, 0x77F9F0, 0x77FA00, 0x77FA10, 0x77FA20, 0x0, 0x0, 0x77FDB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x77FD20, 0x0, 0x77FD70, 0x7838C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x782BF0, 0x0, 0x7842F0, 0x784360, 0x784380, 0x7843A0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
 
 	// --- module globals ---
+	static const uint32_t SOUND_A = 0x1561774, SOUND_B = 0x1561778;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct CannonParams
+	{
+		struct { uint32_t load, fire; } sounds;   // Angelo loaded into the launcher (his 4th step), fired (his dash)
+		struct { int16_t damage; } director;      // the done flag (the damage) from this frame of the director
+		struct { uint32_t at_156177c; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_15618c0, at_1561920, at_15638c8; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const CannonParams GAME = { { SOUND_A, SOUND_B }, { 0x32 }, { 0x156177C }, { 0x15618C0, 0x1561920, 0x15638C8 }, { 0x156AA60 } };
+	static CannonParams live = GAME;
+	static const CannonParams &PC() { return live; }
+
 	static const uint32_t DIR_PTR = 0x1561770;        // pointer to the director block (phase +0x40 / requested +0x42 / next +0x44, frame +0x46, done +0x48)
 	static const uint32_t PHASE_DATA = DIR_PTR;       // (the library's name of the director pointer)
 	static const uint32_t PACKET_CURSOR = 0x25B4CCC;  // module packet cursor (tick parity: [0x25BB234] / [0x25BB230])
@@ -402,7 +427,7 @@ namespace cannon86
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -502,14 +527,15 @@ namespace cannon86
 	uint32_t __cdecl ac_77F3E0(uint32_t a1)
 	{
 		g_mod = &MOD_086;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25BC1F4) = 0x2793E58;
-		MEM<uint32_t>(0x25B4DD0) = 0x2793E58;
+		MEM<uint32_t>(R(0x25BC1F4)) = 0x2793E58;
+		MEM<uint32_t>(R(0x25B4DD0)) = 0x2793E58;
 		states[0] = 0x77F550;
 		states[1] = 0x77F560;
 		states[2] = 0x77F570;
@@ -523,18 +549,18 @@ namespace cannon86
 		states[10] = 0x784470; // nullsub (ret)
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(0x25B4CCC) = MEM<uint32_t>(0x25BB234);
-			MEM<uint32_t>(0x25B4DCC) = MEM<uint32_t>(0x25BAE2C);
+			MEM<uint32_t>(R(0x25B4CCC)) = MEM<uint32_t>(R(0x25BB234));
+			MEM<uint32_t>(R(0x25B4DCC)) = MEM<uint32_t>(R(0x25BAE2C));
 		}
 		else
 		{
-			MEM<uint32_t>(0x25B4CCC) = MEM<uint32_t>(0x25BB230);
-			MEM<uint32_t>(0x25B4DCC) = MEM<uint32_t>(0x25BAE28);
+			MEM<uint32_t>(R(0x25B4CCC)) = MEM<uint32_t>(R(0x25BB230));
+			MEM<uint32_t>(R(0x25B4DCC)) = MEM<uint32_t>(R(0x25BAE28));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		static const uint32_t queues[8] = { 0x25BB0C0, 0x25B4DA8, 0x25BC1E0, 0x25BBEE8, 0x25B4EB0, 0x25B7088, 0x25BAE18, 0x25BB0B0 };
+		const uint32_t queues[8] = { R(0x25BB0C0), R(0x25B4DA8), R(0x25BC1E0), R(0x25BBEE8), R(0x25B4EB0), R(0x25B7088), R(0x25BAE18), R(0x25BB0B0) };
 		for (int i = 0; i < 8; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -564,8 +590,8 @@ namespace cannon86
 	{
 		ac_77FAE0(a1);
 		ac_77F680();
-		x::Effect_AddTaskAndInitFromCtx(0x25BC1E0, 0x77F780, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25B4DA8, 0x77FBF0, 0x48, a1);
+		Spawn(R(0x25BC1E0), 0x77F780, 0x30, a1);
+		Spawn(R(0x25B4DA8), 0x77FBF0, 0x48, a1);
 		t1_next_state(a1);
 		return 0; // void
 	}
@@ -575,14 +601,14 @@ namespace cannon86
 	// destinations (0x19CF018, +0x114 0x19EB018, +0x12C 0x19D2560), +0x164 / +0x166 loading / script-done words cleared
 	uint32_t __cdecl ac_77F680()
 	{
-		MEM<uint32_t>(0x25BB238) = 0x1565EB0;
-		MEM<uint32_t>(0x25BBD2C) = 0x25BC220;
-		x::MAG_007_sub_8DCC00(0x25BC220, 0x16C);
-		const uint32_t b = MEM<uint32_t>(0x25BBD2C);
-		uint32_t c = MEM<uint32_t>(0x25BC21C);
+		MEM<uint32_t>(R(0x25BB238)) = 0x1565EB0;
+		MEM<uint32_t>(R(0x25BBD2C)) = R(0x25BC220);
+		x::MAG_007_sub_8DCC00(R(0x25BC220), 0x16C);
+		const uint32_t b = MEM<uint32_t>(R(0x25BBD2C));
+		uint32_t c = MEM<uint32_t>(R(0x25BC21C));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(0x25BC21C) = c;
+		MEM<uint32_t>(R(0x25BC21C)) = c;
 		U32(b, 0x114) = 0x19EB018;
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
 			if (o != 0x114 && o != 0x12C) U32(b, o) = 0x19CF018;
@@ -597,9 +623,9 @@ namespace cannon86
 	// facing +0x4A = the angle from the caster to that centre - 0x800 (12 bits)
 	uint32_t __cdecl ac_77FAE0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		a_73A720(MEM<uint32_t>(DIR_PTR) + 8);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		a_73A720(MEM<uint32_t>(G(G_1533010)) + 8);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t c = ENT(U8(a1, 0x2C));
 		U16(d, 0xA) = 0;
 		U32(d, 0) = U32(c, 0x1C);
@@ -608,7 +634,7 @@ namespace cannon86
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -687,7 +713,7 @@ namespace cannon86
 	// 0x77FDF0 (sub_77FDF0): director state 3 - next state from the director's frame +0x46 = 0xF
 	uint32_t __cdecl ac_77FDF0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0xF)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= 0xF)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -704,8 +730,8 @@ namespace cannon86
 	// library's finish states), next state
 	uint32_t __cdecl ac_77FEB0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		if (S16(d, 0x46) >= 0x32)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) >= PC().director.damage)
 		{
 			U16(d, 0x48) = 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -716,7 +742,7 @@ namespace cannon86
 	// 0x785230 (sub_785230): director state 11 - next state from frame 0x3C
 	uint32_t __cdecl ac_77FED0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x1561770), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -745,9 +771,9 @@ namespace cannon86
 	// 0x77FF90 (queue 0x25BBEE8, node 0x160) bound to the model container 0x1565EF4 animation 3
 	uint32_t __cdecl ac_77FF50(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x40) == 1)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x40) == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BBEE8, 0x77FF90, 0x160, a1);
+			const uint32_t t = Spawn(R(0x25BBEE8), 0x77FF90, 0x160, a1);
 			x::Effect_BindModelContainerSetAnim(t, 0x1565EF4, 3);
 		}
 		return 0; // void
@@ -787,7 +813,7 @@ namespace cannon86
 		{
 			// 30 fps layer: see mag086_angelo_cannon_held.inc
 			FX_HELD(held_note_draw(HK_ANGELO, node);)
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, CREATURE_ARG, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_746C10(node, R(CREATURE_ARG), MEM<uint32_t>(R(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
 				const uint8_t anim = U8(node, 0x9C), frame = U8(node, 0xA2);
@@ -851,7 +877,7 @@ namespace cannon86
 		const int n = k > 3 ? 2 : 4;
 		for (int i = 0; i < n; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B4EB0, 0x782930, 0x90, a1);
+			const uint32_t t = Spawn(R(0x25B4EB0), 0x782930, 0x90, a1);
 			if ((uint32_t)(int32_t)k <= 5)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			if (k <= 3)
@@ -895,7 +921,7 @@ namespace cannon86
 			return 0; // void
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x780640, 0x98, a1);
+			const uint32_t t = Spawn(R(0x25B7088), 0x780640, 0x98, a1);
 			if ((uint32_t)(int32_t)k <= 3)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
@@ -1729,7 +1755,7 @@ namespace cannon86
 	// 0x761090 (sub_761090): dust puff state 0 - model 0x154322C, scale 0x1000^3, random roll +0x48, next state
 	uint32_t __cdecl ac_782810(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x15618C0;
+		U32(a1, 0x4C) = fxp::model(PC().models.at_15618c0, 0x15618C0);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -1832,11 +1858,11 @@ namespace cannon86
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x25B4CCC);
+		const uint32_t cursor = MEM<uint32_t>(R(0x25B4CCC));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x25B4CCC) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(R(0x25B4CCC)) = callo(0x782AB0, blk, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -1844,7 +1870,7 @@ namespace cannon86
 	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl ac_783060(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x156177C;
+		U32(a1, 0x4C) = fxp::sequence(PC().seqs.at_156177c, 0x156177C);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -1883,7 +1909,7 @@ namespace cannon86
 		const uint32_t M = P(m);
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B4EB0, 0x782930, 0x90, a1);
+			const uint32_t t = Spawn(R(0x25B4EB0), 0x782930, 0x90, a1);
 			x::GetEffectSpawnPosition(a1 + 0x30, 0xF1, 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
 			const int32_t r1 = (int32_t)x::CrtRand();
@@ -1912,9 +1938,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		const uint32_t e = ENT(U8(node, 0x2C));
-		gx::BindEntityModelFromComData(e, 0x25BC1F8, 0x156AA60);
+		gx::BindEntityModelFromComData(e, R(0x25BC1F8), fxp::anim_set(PC().res.anim, 0x156AA60));
 		gx::QueueChainTransformation(e, 1);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 4);
 		U32(node, 0x4C) = U32(d, 0);
 		U32(node, 0x50) = U32(d, 4);
@@ -1939,10 +1965,10 @@ namespace cannon86
 		const uint32_t node = a1;
 		U16(node, 0x134) = (uint16_t)(U16(node, 0x134) + 1);
 		if (U16(node, 0x134) == 4)
-			x::BdPlaySE(0x1561774, 1, 0x80);
+			x::BdPlaySE(fxp::sound(PC().sounds.load, SOUND_A), 1, 0x80);
 		if (a_73B7E0(2) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x783350, 0x98, node);
+			const uint32_t t = Spawn(R(0x25B7088), 0x783350, 0x98, node);
 			U8(node, 0x26) = (uint8_t)(U8(node, 0x26) & 0xFB);
 			U32(t, 0x8C) = node + 0x30;
 			U16(node, 0x128) = 0xFF00;
@@ -2021,7 +2047,7 @@ namespace cannon86
 		ac_783550(node);
 		U16(node, 0x56) = 0;
 		U16(node, 0x54) = 0;
-		U32(node, 0x4C) = 0x1561920;
+		U32(node, 0x4C) = fxp::model(PC().models.at_1561920, 0x1561920);
 		U16(node, 0x58) = 0x80;
 		U16(node, 0x5A) = 0x80;
 		S32(node, 0x38) = 0x1000;
@@ -2097,7 +2123,7 @@ namespace cannon86
 	// +0x78 = (s16) a4 (its count), +0x80 = a5 (the callback's mode word), +0x82 = a6; returns the node
 	uint32_t __cdecl ac_783690(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BAE18, a2, 0x450, a1);
+		const uint32_t t = Spawn(R(0x25BAE18), a2, 0x450, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -2245,9 +2271,9 @@ namespace cannon86
 			U16(hdr, 0x2A) = 0x100;
 			U16(hdr, 0x28) = 0x100;
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		MEM<uint32_t>(PACKET_CURSOR) = ac_7807B0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = ac_7807B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -2283,10 +2309,10 @@ namespace cannon86
 			return 0; // void
 		}
 		a_73BB60(0);
-		x::BdPlaySE(0x1561778, 1, 0x80);
+		x::BdPlaySE(fxp::sound(PC().sounds.fire, SOUND_B), 1, 0x80);
 		x::au_re_Battle_ReadAnimation_7(node, 2);
 		U32(node, 0x140) = U32(mdl, 0x1C);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(node, 0x148) = U32(d, 8);
 		U32(node, 0x144) = U32(mdl, 0x20);
 		U32(node, 0x14C) = U32(d, 0xC);
@@ -2294,7 +2320,7 @@ namespace cannon86
 		U16(node, 0x156) = 0x201;
 		const uint32_t t = ac_783690(node, 0x783C90, 0x1706CC0, 0x1A0, 1, 0);
 		x::GetEffectSpawnPosition(mdl, 0xF1, 0, t + 0x1C);
-		const uint32_t g = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x783DC0, 0x98, node);
+		const uint32_t g = Spawn(R(0x25B7088), 0x783DC0, 0x98, node);
 		U32(g, 0x8C) = mdl;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
@@ -2363,7 +2389,7 @@ namespace cannon86
 		S32(node, 0x38) = 0x1000;
 		S32(node, 0x34) = 0x1000;
 		S32(node, 0x30) = 0x1000;
-		U32(node, 0x4C) = 0x15638C8;
+		U32(node, 0x4C) = fxp::model(PC().models.at_15638c8, 0x15638C8);
 		U16(node, 0x46) = 0x800;
 		U16(node, 0x54) = 0;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -2434,7 +2460,7 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		U32(node, 0x1C) = U32(d, 8);
 		U32(node, 0x20) = U32(d, 0xC);
 		U32(node, 0x58) = 0x1000;
@@ -2557,6 +2583,27 @@ namespace cannon86
 	}
 
 	// ---- generated (desc86.py / cls86.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Angelo loaded into Rinoa's launcher (her chains, the dust rings and puffs), the muzzle glow, the dash, the three prim plays, the strike at the monsters' centre; the done flag" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "Angelo loaded, fired" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.load", "Load", "", (uint32_t)offsetof(CannonParams, sounds.load), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.fire", "Fire", "", (uint32_t)offsetof(CannonParams, sounds.fire), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage frame", "The done flag (the damage) from this frame of the director", (uint32_t)offsetof(CannonParams, director.damage), fxp::I16, 0, 0x200 },
+			{ "director", "seqs.at_156177c", "Flipbook 156177C", "The sprite sequence at 0x156177C (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(CannonParams, seqs.at_156177c), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.at_15618c0", "Model 15618C0", "The prim model at 0x15618C0 (a mesh of 4 vertices, 1 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_15618c0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_1561920", "Model 1561920", "The prim model at 0x1561920 (a mesh of 216 vertices, 192 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_1561920), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.at_15638c8", "Model 15638C8", "The prim model at 0x15638C8 (a mesh of 180 vertices, 320 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CannonParams, models.at_15638c8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.anim", "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(CannonParams, res.anim), fxp::AnimSet, 0, 0x7FFFFFFF },
+		};
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x77F550, (void *)a_73A0D0, "086 MAG_086_sub_77F550" },
@@ -2688,6 +2735,11 @@ namespace cannon86
 
 	void register_mag086_angelo_cannon()
 	{
+		fxp::register_params({ 86, "Angelo Cannon", &act::cannon86::live, &act::cannon86::GAME, sizeof(act::cannon86::CannonParams),
+		                       act::cannon86::table::PARTS, (int)(sizeof(act::cannon86::table::PARTS) / sizeof(act::cannon86::table::PARTS[0])),
+		                       act::cannon86::table::FIELDS, (int)(sizeof(act::cannon86::table::FIELDS) / sizeof(act::cannon86::table::FIELDS[0])),
+		                       act::cannon86::table::GROUPS, (int)(sizeof(act::cannon86::table::GROUPS) / sizeof(act::cannon86::table::GROUPS[0])) });
+		act::register_mod(&act::cannon86::MOD_086);
 		act::register_module(86);
 		for (const act::cannon86::ModPort *p = act::cannon86::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(86, p->addr, p->port, p->name);
@@ -2696,6 +2748,7 @@ namespace cannon86
 		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(register_mag086_held();)
 	}
+	FX_LAB_MODULE(register_mag086_angelo_cannon);
 }
 
 #ifdef FF8_FX_HELD

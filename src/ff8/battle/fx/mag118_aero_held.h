@@ -22,7 +22,7 @@ namespace ff8fx
 namespace aero118
 {
 	static void held_note_root();
-	static void held_note_play(uint8_t *layout, const PrimArg *arg);
+	static void held_note_play(uint8_t *layout, const AnchorArg *arg);
 	static void held_note_leaf(const LeafNode *f);
 }
 	static void register_mag118_held();

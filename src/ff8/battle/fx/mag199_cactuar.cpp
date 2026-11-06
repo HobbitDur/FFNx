@@ -34,6 +34,9 @@
 // (gf_study/gf_global_ranges.md).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -93,16 +96,17 @@ namespace c199
 
 	// --- module globals ---
 	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x2259950); }   // effect frame (setup: rotation, centroid 0x2259964/68/6C)
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x2259978); }        // Camera o RootMatrix, rebuilt by the timeline every tick
-	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x2259A08); }
-	inline uint32_t &RootQueueFlag() { return var<uint32_t>(0x2259A00); } // root queue pair .second.head, used as a done flag
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x225A828); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x225A834); }
-	inline uint8_t *Creature() { return (uint8_t *)0x225A838; }        // BattleAnimHeader at +0x60, BattleAnimCmd at +0x6C
-	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(0x225A878); }  // creature +0x40
-	inline int32_t &CreatureY() { return var<int32_t>(0x225A890); }  // CreatureMat.t[1]
-	inline uint8_t *ModelBuffer() { return var<uint8_t *>(0x225A8E0); }
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(own::R(0x2259950)); }   // effect frame (setup: rotation, centroid 0x2259964/68/6C)
+	inline Mat4x3 &Frame() { return var<Mat4x3>(own::R(0x2259978)); }        // Camera o RootMatrix, rebuilt by the timeline every tick
+	inline TaskQueue &SubQueue() { return var<TaskQueue>(own::R(0x2259A08)); }
+	inline uint32_t &RootQueueFlag() { return var<uint32_t>(own::R(0x2259A00)); } // root queue pair .second.head, used as a done flag
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x225A828)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(own::R(0x225A834)); }
+	inline uint8_t *Creature() { return (uint8_t *)own::R(0x225A838); }        // BattleAnimHeader at +0x60, BattleAnimCmd at +0x6C
+	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(own::R(0x225A878)); }  // creature +0x40
+	inline int32_t &CreatureY() { return var<int32_t>(own::R(0x225A890)); }  // CreatureMat.t[1]
+	inline uint8_t *ModelBuffer() { return var<uint8_t *>(own::R(0x225A8E0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x225A82C)); }          // the effect's file (its TIM)
 	inline uint8_t *DustPool() { return var<uint8_t *>(0xCF3588); }   // modelBuffer + 0x2A000, 100 x 0x1C
 	inline uint8_t *NeedlePool() { return var<uint8_t *>(0xCF358C); } // modelBuffer + 0x2B000, 800 x 0x3C
 	inline uint8_t *AimTable() { return var<uint8_t *>(0xCF3590); }   // modelBuffer + 0x20000, 512 x 0x30
@@ -114,6 +118,23 @@ namespace c199
 
 	static const uint32_t ORIG_SequenceTick = 0x5AA3A0;
 	static const uint32_t ORIG_TimelineTask = 0x5A8940;
+	static const uint32_t ORIG_FileLoader = 0x5A8730, ORIG_Setup = 0x5A8750;
+	static const uint32_t TEXTURE_NAME = 0xCF3A6C, MODEL_CONTAINER = 0xE94918, BODY_TIM = 0xE96B00;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct CactuarParams
+	{
+		uint32_t voice;                          // the voice slot claimed at the timeline's tick 0
+		struct { uint32_t start, flash; } sounds; // at the timeline's ticks 15, 53
+		struct { uint32_t at_cf0740; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_cf26f8, at_cf08ec, at_cf11bc; } models; // the prim models drawn (meshes)
+		struct { uint32_t tim_body_tim; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const CactuarParams GAME = { 0xCF3318, { 0xCF3558, 0xCF355C }, { 0xCF0740 }, { 0xCF26F8, 0xCF08EC, 0xCF11BC }, { BODY_TIM } };
+	static CactuarParams live = GAME;
+	static const CactuarParams &P() { return live; }
 	static const uint32_t ORIG_CreatureTask = 0x5A8C20;
 	static const uint32_t ORIG_FlashInTask = 0x5A8B40;
 	static const uint32_t ORIG_FlashOutTask = 0x5A8BC0;
@@ -171,7 +192,7 @@ namespace c199
 	// au_re_BdLinkTask_24 0x5A8AF0 (no null check, as the original)
 	static Node24 *LinkTask(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
@@ -207,10 +228,63 @@ namespace c199
 	// ------------------------------------------------------------------
 	static void LinkFlash(uint32_t task_fn, int16_t length) // au_re_BdLinkTask_25 0x5A8B10 / _26 0x5A8B90
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = length;
 		n->a = 0x800;
+	}
+
+	// File loader (0x5A8730) and setup (0x5A8750): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the model buffer (the magic buffer: the module's model container copied in, dwords 1..2170), the dust,
+	// aim and needle pointers into it, the vertex workspace cell, the cast, its first target and its caster, the master
+	// and the timeline, the dust and needle pools cleared, the TIM and the body's TIM, the effect frame (the target's
+	// yaw + 0x800, at the targets' centre 4500 in front of the target)
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = fn<uint32_t (__cdecl *)(const char *)>(0x5718E0)((const char *)TEXTURE_NAME);   // au_re_Magic_LoadTexture_IO_GetsFile
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +2 target mask, +4 the actions)
+	{
+		uint32_t *mb = (uint32_t *)layouts::MagicBuffer();
+		var<uint32_t *>(own::R(0x225A8E0)) = mb;
+		for (int k = 2170; k > 0; k--) mb[k] = ((const uint32_t *)MODEL_CONTAINER)[k];
+		var<uint32_t>(0xCF3588) = (uint32_t)(mb + 43008);   // the dust pool
+		var<uint32_t>(0xCF3590) = (uint32_t)(mb + 0x8000);  // the aim table
+		var<uint32_t>(0xCF3564) = var<uint32_t>(0x1D98B3C);  // g_BattleVertexWorkspace
+		var<uint32_t>(0xCF358C) = (uint32_t)(mb + 44032);   // the needle pool
+		const uint8_t *action = *(uint8_t **)(ctx + 4);
+		var<uint8_t *>(own::R(0x225A828)) = ctx;
+		const int32_t target = (*(uint8_t **)(action + 8))[0];
+		var<int32_t>(own::R(0x2259970)) = target;
+		var<int32_t>(own::R(0x225A830)) = ctx[0];
+		InitTaskQueuePool((TaskQueue *)own::R(0x22599F0), (void *)own::R(0x22599D0), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue((TaskQueue *)own::R(0x22599F0), own::Fn(ORIG_SequenceTick)) + 0xC) = 0;
+		InitTaskQueuePool(&SubQueue(), (void *)own::R(0x2259A18), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TimelineTask)) + 0xC) = 0;
+		for (int i = 0; i < 100; i++) *(uint32_t *)(var<uint32_t>(0xCF3588) + 0x1C * i) = 0;
+		for (int i = 0; i < 800; i++) *(uint32_t *)(var<uint32_t>(0xCF358C) + 0x3C * i) = 0;
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(TexFile());   // Battle_QueueTIMUpload_GetEOF
+		fn<void (__cdecl *)(uint32_t)>(0x505E30)(fxp::tim(P().res.tim_body_tim, BODY_TIM));
+		uint8_t *e = (uint8_t *)(0x1D972C0 + 0x9C * target);
+		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
+		fn<void (__cdecl *)(int16_t *, Mat4x3 *)>(0x56CD50)(v, &RootMatrix());          // BuildRotationMatrixFromAngles
+		int16_t *centre = (int16_t *)own::R(0x225A8D8);
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)(ctx + 2), centre); // CalculateCenterPosition
+		int32_t *t = (int32_t *)own::R(0x2259964);
+		t[2] = centre[2];
+		t[0] = 0;
+		t[1] = 0;
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = -4500;
+		fn<uint32_t (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(e + 0x40, v, v);  // matrixMultiplyVector
+		t[1] += v[1];
+		t[0] += v[0];
+		t[2] += v[2];
+		RootQueueFlag() = 0;
+		return (TaskQueue *)own::R(0x22599F0);
 	}
 
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
@@ -221,9 +295,9 @@ namespace c199
 		if (n->c == 0)
 		{
 			CameraScriptStart((const void *)0xCF35BC, &RootMatrix(), Creature(), &SubQueue(), 0);
-			BdTransSummonStream((const void *)0xE94910, (void *)0x225A8D4);
+			BdTransSummonStream((const void *)0xE94910, (void *)own::R(0x225A8D4));
 			SeedTableRand();
-			VoiceSlot() = ClaimVoiceSlot((const void *)0xCF3318, 1, 0x80);
+			VoiceSlot() = ClaimVoiceSlot((const void *)fxp::sound(P().voice, 0xCF3318), 1, 0x80);
 		}
 		switch (n->c)
 		{
@@ -231,12 +305,12 @@ namespace c199
 			LinkTask(ORIG_CreatureTask);
 			break;
 		case 15:
-			BdPlaySE((const void *)0xCF3558, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(P().sounds.start, 0xCF3558), 0, 0x80);
 			BdPlaySummonStream(0x80, 0, 0x60);
 			break;
 		case 53:
-			BdPlaySE((const void *)0xCF355C, 0, 0x80);
-			BdTransSummonStream((const void *)0xE94914, (void *)0x225A8D4);
+			BdPlaySE((const void *)fxp::sound(P().sounds.flash, 0xCF355C), 0, 0x80);
+			BdTransSummonStream((const void *)0xE94914, (void *)own::R(0x225A8D4));
 			LinkFlash(ORIG_FlashInTask, 0xC);
 			break;
 		case 76:
@@ -342,7 +416,7 @@ namespace c199
 	static void CreatureDraw(const Mat4x3 *frame)
 	{
 		ResetRotation(&CreatureMat());
-		int32_t s = var<int16_t>(0x225A85E);
+		int32_t s = var<int16_t>(own::R(0x225A85E));
 		int32_t vec[3] = { s, s, s };
 		Scale3DMatrix(&CreatureMat(), vec);
 		int32_t d[3];
@@ -361,11 +435,11 @@ namespace c199
 	// 0x5A90E0: rising prim under the creature
 	static void SpawnRisePrim()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RisePrimTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_RisePrimTask));
 		n->c = 0;
-		n->p[0] = (int16_t)var<int32_t>(0x225A88C);
+		n->p[0] = (int16_t)var<int32_t>(own::R(0x225A88C));
 		n->p[1] = 0;
-		n->p[2] = (int16_t)var<int32_t>(0x225A894);
+		n->p[2] = (int16_t)var<int32_t>(own::R(0x225A894));
 		n->a = (int16_t)(CrtRand() % 0x1000);
 		n->s = 0x1000;
 	}
@@ -373,11 +447,11 @@ namespace c199
 	// au_re_BdLinkTask_27 0x5A9520: shrinking billboard
 	static void SpawnShrinkPrim()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_ShrinkPrimTask);
-		n->p[0] = (int16_t)var<int32_t>(0x225A88C);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_ShrinkPrimTask));
+		n->p[0] = (int16_t)var<int32_t>(own::R(0x225A88C));
 		n->c = 0;
 		n->p[1] = (int16_t)(CreatureY() - 0x17C);
-		n->p[2] = (int16_t)(var<int32_t>(0x225A894) + 0x64);
+		n->p[2] = (int16_t)(var<int32_t>(own::R(0x225A894)) + 0x64);
 		n->s = 0x3000;
 		n->ds = 0x266;
 	}
@@ -385,11 +459,11 @@ namespace c199
 	// MAG_199_sub_5A96C0: spinning billboard
 	static void SpawnSpinPrim()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SpinPrimTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SpinPrimTask));
 		n->c = 0;
-		n->p[0] = (int16_t)var<int32_t>(0x225A88C);
+		n->p[0] = (int16_t)var<int32_t>(own::R(0x225A88C));
 		n->p[1] = (int16_t)(CreatureY() - 0x17C);
-		n->p[2] = (int16_t)(var<int32_t>(0x225A894) + 0x64);
+		n->p[2] = (int16_t)(var<int32_t>(own::R(0x225A894)) + 0x64);
 		n->a = (int16_t)(CrtRand() % 0x1000);
 		n->b = 0x1E;
 		n->s = 0x2000;
@@ -403,14 +477,14 @@ namespace c199
 		if (n->c == 0)
 		{
 			ResetRotation(&CreatureMat());
-			var<uint16_t>(0x225A888) = 0x1800;
-			var<uint16_t>(0x225A880) = 0x1800;
-			var<uint16_t>(0x225A878) = 0x1800;
-			var<uint16_t>(0x225A85E) = 0x1800;
-			var<int32_t>(0x225A890) = 0;
-			var<int32_t>(0x225A88C) = 0;
-			var<int32_t>(0x225A894) = 0;
-			ModelInit(E, (uint8_t *)0x2259998, ModelBuffer(), 1);
+			var<uint16_t>(own::R(0x225A888)) = 0x1800;
+			var<uint16_t>(own::R(0x225A880)) = 0x1800;
+			var<uint16_t>(own::R(0x225A878)) = 0x1800;
+			var<uint16_t>(own::R(0x225A85E)) = 0x1800;
+			var<int32_t>(own::R(0x225A890)) = 0;
+			var<int32_t>(own::R(0x225A88C)) = 0;
+			var<int32_t>(own::R(0x225A894)) = 0;
+			ModelInit(E, (uint8_t *)own::R(0x2259998), ModelBuffer(), 1);
 		}
 		if (!Paused())
 		{
@@ -529,7 +603,7 @@ namespace c199
 		scale[0] = n->s;
 		scale[2] = n->s;
 		scale[1] = shl32((int32_t)(0u - (uint32_t)y), 12) / 1590;
-		PrimDraw(frame, angles, n->p, scale, false, 0xCF26F8, fade, fade_value);
+		PrimDraw(frame, angles, n->p, scale, false, fxp::model(P().models.at_cf26f8, 0xCF26F8), fade, fade_value);
 	}
 
 	static uint32_t __cdecl RisePrimTask(TaskNode *tn)
@@ -550,7 +624,7 @@ namespace c199
 	{
 		int16_t angles[4] = { 0, 0, 0, 0 };
 		int32_t scale[3] = { s, s, s };
-		PrimDraw(frame, angles, n->p, scale, true, 0xCF08EC, fade, fade_value);
+		PrimDraw(frame, angles, n->p, scale, true, fxp::model(P().models.at_cf08ec, 0xCF08EC), fade, fade_value);
 	}
 
 	static uint32_t __cdecl ShrinkPrimTask(TaskNode *tn)
@@ -578,7 +652,7 @@ namespace c199
 	{
 		int16_t angles[4] = { 0, 0, angle, 0 };
 		int32_t scale[3] = { n->s, n->s, n->s };
-		PrimDraw(frame, angles, n->p, scale, true, 0xCF11BC, fade, fade_value);
+		PrimDraw(frame, angles, n->p, scale, true, fxp::model(P().models.at_cf11bc, 0xCF11BC), fade, fade_value);
 	}
 
 	static int32_t SpinFade(int32_t c) { return c < 8 ? shl32(8 - c, 9) : 409 * (c - 14); }
@@ -660,7 +734,7 @@ namespace c199
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		memcpy(scratch + 8, &Frame(), sizeof(Mat4x3));
-		*(uint32_t *)h = 0xCF0740;
+		*(uint32_t *)h = fxp::sequence(P().seqs.at_cf0740, 0xCF0740);
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		GteSetLightMatrix(scratch + 8);
@@ -767,9 +841,9 @@ namespace c199
 			n->p[2] = (int16_t)(n->p[2] + 900);
 			int16_t origin[4] = { 0, 0, 0, 0 }, center[4] = { 0, 0, 0, 0 };
 			uint32_t r = MatrixMultiplyVector(&RootMatrix(), n->p, origin);
-			origin[1] = (int16_t)(origin[1] + (int16_t)var<int32_t>(0x2259968));
-			origin[0] = (int16_t)(origin[0] + (int16_t)var<int32_t>(0x2259964));
-			origin[2] = (int16_t)(origin[2] + (int16_t)var<int32_t>(0x225996C));
+			origin[1] = (int16_t)(origin[1] + (int16_t)var<int32_t>(own::R(0x2259968)));
+			origin[0] = (int16_t)(origin[0] + (int16_t)var<int32_t>(own::R(0x2259964)));
+			origin[2] = (int16_t)(origin[2] + (int16_t)var<int32_t>(own::R(0x225996C)));
 			// the original passes eax with only its low word loaded (high word = the return
 			// value of matrixMultiplyVector); CalculateCenterPosition masks it to 16 bits
 			CalculateCenterPosition((r & 0xFFFF0000) | *(uint16_t *)(CastCtx() + 2), center);
@@ -777,12 +851,12 @@ namespace c199
 		}
 		if (n->c == 1)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_NeedleTask);
+			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_NeedleTask));
 			t->c = 0;
 			for (uint32_t i = 0; i < Targets()[0x10]; i++)
 			{
 				uint8_t slot = (*(uint8_t **)(Targets() + 8))[24 * i];
-				Node24 *d = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_DamageTask);
+				Node24 *d = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_DamageTask));
 				d->c = 0;
 				d->e = (int16_t)(CrtRand() % 8);
 				d->a = (int16_t)i;
@@ -1075,26 +1149,66 @@ namespace c199
 		return count ? 0 : TASK_END;
 	}
 
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "Cactuar's 1000 Needles: the camera script, the summon stream's loads, the creature rising out of the ground, the ground prims and dust, the needle launcher, the needles and their per-target results, the screen flashes, the voice and the sounds" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the timeline's ticks 15, 53" },
+		};
+		static const Field FIELDS[] = {
+			{ "timeline", "voice", "Voice", "The voice slot claimed at the timeline's tick 0", (uint32_t)offsetof(CactuarParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.start", "Start", "At the timeline's tick 15", (uint32_t)offsetof(CactuarParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.flash", "Flash", "At the timeline's tick 53 (the flash in)", (uint32_t)offsetof(CactuarParams, sounds.flash), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "seqs.at_cf0740", "Flipbook CF0740", "The sprite sequence at 0xCF0740 (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(CactuarParams, seqs.at_cf0740), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cf26f8", "Model CF26F8", "The prim model at 0xCF26F8 (a mesh of 125 vertices, 80 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf26f8), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cf08ec", "Model CF08EC", "The prim model at 0xCF08EC (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf08ec), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "models.at_cf11bc", "Model CF11BC", "The prim model at 0xCF11BC (a mesh of 240 vertices, 145 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(CactuarParams, models.at_cf11bc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "timeline", "res.tim_body_tim", "TIM image body tim", "The TIM image it uploads as it is (a palette when the game's has one)", (uint32_t)offsetof(CactuarParams, res.tim_body_tim), fxp::Tim, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag199_cactuar()
 	{
+		fxp::register_params({ 199, "Cactuar", &c199::live, &c199::GAME, sizeof(c199::CactuarParams),
+		                       c199::table::PARTS, (int)(sizeof(c199::table::PARTS) / sizeof(c199::table::PARTS[0])),
+		                       c199::table::FIELDS, (int)(sizeof(c199::table::FIELDS) / sizeof(c199::table::FIELDS[0])),
+		                       c199::table::GROUPS, (int)(sizeof(c199::table::GROUPS) / sizeof(c199::table::GROUPS[0])) });
+		own::note(c199::ORIG_FileLoader, (void *)c199::FileLoader);
+		own::note(c199::ORIG_Setup, (void *)c199::Setup);
+		own::note(c199::ORIG_SequenceTick, (void *)c199::SequenceTick);
 		register_port(c199::ORIG_SequenceTick, (void *)c199::SequenceTick, "C199 SequenceTick", 199);
+		own::note(c199::ORIG_TimelineTask, (void *)c199::TimelineTask);
 		register_port(c199::ORIG_TimelineTask, (void *)c199::TimelineTask, "C199 TimelineTask", 199);
+		own::note(c199::ORIG_CreatureTask, (void *)c199::CreatureTask);
 		register_port(c199::ORIG_CreatureTask, (void *)c199::CreatureTask, "C199 CreatureTask", 199);
+		own::note(c199::ORIG_FlashInTask, (void *)c199::FlashInTask);
 		register_port(c199::ORIG_FlashInTask, (void *)c199::FlashInTask, "C199 FlashInTask", 199);
+		own::note(c199::ORIG_FlashOutTask, (void *)c199::FlashOutTask);
 		register_port(c199::ORIG_FlashOutTask, (void *)c199::FlashOutTask, "C199 FlashOutTask", 199);
+		own::note(c199::ORIG_RisePrimTask, (void *)c199::RisePrimTask);
 		register_port(c199::ORIG_RisePrimTask, (void *)c199::RisePrimTask, "C199 RisePrimTask", 199);
+		own::note(c199::ORIG_DustTask, (void *)c199::DustTask);
 		register_port(c199::ORIG_DustTask, (void *)c199::DustTask, "C199 DustTask", 199);
+		own::note(c199::ORIG_ShrinkPrimTask, (void *)c199::ShrinkPrimTask);
 		register_port(c199::ORIG_ShrinkPrimTask, (void *)c199::ShrinkPrimTask, "C199 ShrinkPrimTask", 199);
+		own::note(c199::ORIG_SpinPrimTask, (void *)c199::SpinPrimTask);
 		register_port(c199::ORIG_SpinPrimTask, (void *)c199::SpinPrimTask, "C199 SpinPrimTask", 199);
+		own::note(c199::ORIG_LauncherTask, (void *)c199::LauncherTask);
 		register_port(c199::ORIG_LauncherTask, (void *)c199::LauncherTask, "C199 LauncherTask", 199);
+		own::note(c199::ORIG_NeedleTask, (void *)c199::NeedleTask);
 		register_port(c199::ORIG_NeedleTask, (void *)c199::NeedleTask, "C199 NeedleTask", 199);
+		own::note(c199::ORIG_DamageTask, (void *)c199::DamageTask);
 		register_port(c199::ORIG_DamageTask, (void *)c199::DamageTask, "C199 DamageTask", 199);
+		own::note(c199::ORIG_EndTask, (void *)c199::EndTask);
 		register_port(c199::ORIG_EndTask, (void *)c199::EndTask, "C199 EndTask", 199);
 		// 30 fps layer: see mag199_cactuar_held.inc
 		FX_HELD(register_mag199_held();)
 	}
+	FX_LAB_MODULE(register_mag199_cactuar);
 }
 
 #ifdef FF8_FX_HELD

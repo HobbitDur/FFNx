@@ -85,12 +85,16 @@ namespace ochu_dance
 	{
 		using namespace gfc;
 		ochu_dance::describe(ochu_dance::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<239>::Register("Ochu Dance", ochu_dance::g_c, 0xA15A00, 0x186513C, 0x1865148,
+		                           (void *)ochu_dance::SequenceTask);
 		init_clone(ochu_dance::g_c, nullptr, 0);
 		apply_breath_glow(ochu_dance::g_c);                                   // draw 32 0xA16E80
 		register_port(0xA160A0, (void *)ochu_dance::SequenceTask, "MAG239 Ochu Dance SequenceTick", 239);
 		// 30 fps layer: see mag239_ochu_dance_held.inc
 		FX_HELD(register_mag239_ochu_dance_held();)
 	}
+	FX_LAB_MODULE(register_mag239_ochu_dance);
 }
 
 #ifdef FF8_FX_HELD

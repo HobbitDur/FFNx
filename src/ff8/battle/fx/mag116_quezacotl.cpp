@@ -21,8 +21,15 @@
 //   CreatureTask (0x6C3940) - 355-tick timeline: Quezacotl model, camera moves, loads, sounds.
 //   particle tasks: debris 0x6C6660, bolts 0x6C7EA0, 0x6C7800, 0x6C8850.
 // Module globals: 0x25216D8..0x25217D0 (gf_study/gf_global_ranges.md).
+// Fujin's described Quezacotl (effect_116.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup, the file loader and its stream callback ported below; its parameters
+// (QuezacotlParams: the voice, the four sounds, the damage tick).
 
 #include "fx_port.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
+#include <string.h>
 
 #ifdef FF8_FX_HELD
 #include "mag116_quezacotl_held.h"
@@ -35,21 +42,39 @@ namespace q116
 	using namespace eng;
 
 	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x25216DC); }          // debug pause, never set by the game
-	inline TaskQueuePair &QueueDebris() { return var<TaskQueuePair>(0x25216E8); }
-	inline TaskQueuePair &QueueBolts() { return var<TaskQueuePair>(0x2521708); }
-	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(0x2521728); } // .first = creature parts, .second = creature
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252176C); }
-	inline Mat4x3 &BoltFrame() { return var<Mat4x3>(0x2521780); }
-	inline uint32_t &ScreenFlash() { return var<uint32_t>(0x25217A4); }
-	inline uint8_t &DoneFlag() { return var<uint8_t>(0x25217A8); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x25217AC); }   // = MAGIC_TEXTURE_BUFFER_BASE
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x25217B0); }
+	inline uint32_t &Pause() { return var<uint32_t>(own::R(0x25216DC)); }          // debug pause, never set by the game
+	inline TaskQueuePair &QueueDebris() { return var<TaskQueuePair>(own::R(0x25216E8)); }
+	inline TaskQueuePair &QueueBolts() { return var<TaskQueuePair>(own::R(0x2521708)); }
+	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(own::R(0x2521728)); } // .first = creature parts, .second = creature
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x252176C)); }
+	inline Mat4x3 &BoltFrame() { return var<Mat4x3>(own::R(0x2521780)); }
+	inline uint32_t &ScreenFlash() { return var<uint32_t>(own::R(0x25217A4)); }
+	inline uint8_t &DoneFlag() { return var<uint8_t>(own::R(0x25217A8)); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(own::R(0x25217AC)); }   // = MAGIC_TEXTURE_BUFFER_BASE
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(own::R(0x25217B0)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25216D8)); }          // the effect's file (its TIM)
+	inline TaskQueuePair &QueueRoot() { return var<TaskQueuePair>(own::R(0x2521748)); } // .first = the root (1 x 0x14)
 
 	static const uint32_t ORIG_SequenceTask = 0x6C3760;
 	static const uint32_t ORIG_CreatureTask = 0x6C3940;
 	static const uint32_t ORIG_DebrisTask = 0x6C6660;
 	static const void *SOUND_CreatureVoice = (const void *)0x12AE500;
+	static const uint32_t ORIG_FileLoader = 0x6C3560, ORIG_Setup = 0x6C3550, ORIG_StreamScriptStep = 0x6C3580;
+	static const uint32_t TEXTURE_NAME = 0x12B5774;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct QuezacotlParams
+	{
+		uint32_t voice;                                    // the creature's voice slot (claimed at its spawn)
+		struct { uint32_t arrive, rise, charge, strike; } sounds;   // at the creature's ticks 0, 0x41, 0xD1, 0x115
+		struct { int16_t damage; } creature;               // the damage at this tick of the creature's timeline
+		struct { uint32_t impact_flash; } seqs; // the sprite sequences drawn (flipbooks)
+	};
+	static const QuezacotlParams GAME = { 0x12AE500, { 0x12AE4F0, 0x12AE4F4, 0x12AE4F8, 0x12AE4FC }, { 345 }, { 0x12AE400 } };
+	static QuezacotlParams live = GAME;
+	static const QuezacotlParams &P() { return live; }
 	static void *const MODEL_Debris = (void *)0x12AC8B8; // prim model (off_12AC8B8)
 
 	// ------------------------------------------------------------------
@@ -64,6 +89,80 @@ namespace q116
 		uint8_t spawned;  // +0x0F
 		uint32_t parity;  // +0x10
 	};
+
+	// Stream callback (0x6C3580, the file loader's completion callback: one step of the summon stream script at
+	// [0x1DCD6E4]), file loader (0x6C3560) and setup (0x6C3550 -> 0x6C3640): the game runs its own; Fujin's programs
+	// these (its memory may be a copy's): the random seed, the texture, the model buffer, the summon data copies, the
+	// cast and its caster, the root, the targets' mean z (the creature's base 0x2521770, + 0xE6A at 0x2521778)
+	inline uint32_t QueueTim(uint32_t tim) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x505E30)(tim); }   // Battle_QueueTIMUpload_GetEOF
+	inline uint8_t *EntityOf(int slot) { return (uint8_t *)(0x1D972C0 + 0x9C * slot); }
+
+	static uint32_t __cdecl StreamScriptStep()
+	{
+		uint8_t *st = (uint8_t *)var<uint32_t>(0x1DCD6E4);
+		uint8_t *cmd = st + 8 * st[4] + 8;
+		const int16_t op = *(const int16_t *)cmd;
+		if (op > 2)
+		{
+			if (op > 4)
+			{
+				if (op == 16)
+				{
+					QueueTim((uint32_t)(ModelBuffer() + 0x2C6A4));
+					QueueTim((uint32_t)(ModelBuffer() + 0x348C4));
+					QueueTim((uint32_t)(ModelBuffer() + 0x38AE4));
+				}
+				st[1] = 0;
+				st[0] = 0;
+				st[4] = (uint8_t)(st[4] + 1);
+			}
+			else
+			{
+				st[2] = 0;
+				fn<void (__cdecl *)(uint32_t, uint8_t *)>(0x501860)(*(uint32_t *)(cmd + 4), st + 2);   // BdTransSummonStream
+				st[1] = (uint8_t)(*cmd - 3);
+				st[4] = (uint8_t)(st[4] + 1);
+				st[0] = 0;
+			}
+		}
+		else
+		{
+			QueueTim(*(uint32_t *)(st + 8 * st[4] + 12));
+			st[1] = *cmd;
+			st[4] = (uint8_t)(st[4] + 1);
+			st[0] = 0;
+		}
+		return st[4];
+	}
+
+	static uint32_t __cdecl FileLoader()
+	{
+		var<uint32_t>(0x1DCD6E8) = own::Fn(ORIG_StreamScriptStep);   // completion_callback
+		TexFile() = fn<uint32_t (__cdecl *)(const char *)>(0x571B80)((const char *)TEXTURE_NAME);
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)   // MagicCastContext (+0 attacker, +4 the actions)
+	{
+		var<uint32_t>(own::R(0x25217A0)) = (uint32_t)fn<int32_t (__cdecl *)()>(0x55CBD2)();   // rand()
+		QueueTim(TexFile());
+		ModelBuffer() = (uint8_t *)layouts::MagicBuffer();
+		DoneFlag() = 0;
+		uint8_t *const summon = fn<uint8_t *(__cdecl *)()>(0x571B70)();   // the summon data (cx::SummonData)
+		memcpy(summon, (const void *)0x1298C68, 0x427F * 4);
+		memcpy(summon + 0x109FC, (const void *)0x12A9664, 0x1367 * 4);
+		var<uint8_t *>(own::R(0x25216E0)) = ctx;
+		var<uint8_t *>(own::R(0x25216E4)) = EntityOf(ctx[0]);
+		InitTaskQueuePool(&QueueRoot().first, (void *)own::R(0x2521758), 0x14, 1);
+		Memset32(AddTaskToQueue(&QueueRoot().first, own::Fn(ORIG_SequenceTask)) + 1, 0, 2);
+		const uint8_t *act = *(uint8_t *const *)(ctx + 4);   // action 0 (+8 the targets, stride 24; +0x10 their count)
+		const int32_t count = act[0x10];
+		int32_t sum = 0;
+		for (int32_t i = 0; i < count; i++) sum += *(const int16_t *)(EntityOf((*(uint8_t *const *)(act + 8))[i * 24]) + 0x20);
+		var<int32_t>(own::R(0x2521770)) = sum / count;
+		var<int32_t>(own::R(0x2521778)) = sum / count + 0xE6A;
+		return &QueueRoot().first;
+	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
@@ -88,9 +187,9 @@ namespace q116
 		{
 			node->spawned = 1;
 			InitTaskQueuePool(&QueueCreature().second, ModelBuffer(), 0x8D0, 1);
-			TaskNode *creature = AddTaskToQueue(&QueueCreature().second, ORIG_CreatureTask);
+			TaskNode *creature = AddTaskToQueue(&QueueCreature().second, own::Fn(ORIG_CreatureTask));
 			Memset32((uint8_t *)creature + 0x0C, 0, 0x231);
-			*(uint32_t *)((uint8_t *)creature + 0x10) = ClaimVoiceSlot(SOUND_CreatureVoice, 1, 0x80);
+			*(uint32_t *)((uint8_t *)creature + 0x10) = ClaimVoiceSlot((const void *)fxp::sound(P().voice, (uint32_t)SOUND_CreatureVoice), 1, 0x80);
 			StreamStateInit(ModelBuffer() + 0x28E54);
 			*(uint32_t *)(ModelBuffer() + 0x28E50) = 1;
 		}
@@ -195,7 +294,7 @@ namespace q116
 	// ------------------------------------------------------------------
 	static int32_t Rand()
 	{
-		uint32_t &seed = var<uint32_t>(0x25217A0);
+		uint32_t &seed = var<uint32_t>(own::R(0x25217A0));
 		seed = (seed * 125 + 14) & 0x7FFF;
 		return (int32_t)seed;
 	}
@@ -272,7 +371,7 @@ namespace q116
 		int16_t decay = (int16_t)-(intensity >> 3);
 		BoltSeg *s = SegAlloc(script[0], width, intensity, decay);
 		if (!s) return;
-		BranchNode *b = (BranchNode *)AddTaskToQueue(&QueueBolts().first, ORIG_BranchTask);
+		BranchNode *b = (BranchNode *)AddTaskToQueue(&QueueBolts().first, own::Fn(ORIG_BranchTask));
 		if (!b) return;
 		Memset32(&b->count, 0, 5);
 		b->tail = s;
@@ -577,7 +676,7 @@ namespace q116
 	{
 		BoltVert *v = VertAlloc(pos, width);
 		if (!v) return nullptr;
-		BoltNode *b = (BoltNode *)AddTaskToQueue(&QueueBolts().second, ORIG_BoltTask);
+		BoltNode *b = (BoltNode *)AddTaskToQueue(&QueueBolts().second, own::Fn(ORIG_BoltTask));
 		if (!b) { v->width = -1; return nullptr; }
 		b->unk0C = 0;
 		memcpy(b->pos, pos, 8);
@@ -640,7 +739,7 @@ namespace q116
 					b->t = 0x1000;
 					if (b->kind != 0 && *(uint32_t *)(ModelBuffer() + 0x28E50) != 0)
 					{
-						FlashNode *f = (FlashNode *)AddTaskToQueue(&QueueDebris().second, ORIG_FlashTask);
+						FlashNode *f = (FlashNode *)AddTaskToQueue(&QueueDebris().second, own::Fn(ORIG_FlashTask));
 						if (f)
 						{
 							memcpy(f->pos, at, 8);
@@ -749,7 +848,7 @@ namespace q116
 		FlashNode *f = (FlashNode *)n;
 		TransformCameraByShadowRotation(f->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(void **)h = SEQ_ImpactFlash;
+		*(void **)h = ((void *)fxp::sequence(P().seqs.impact_flash, (uint32_t)SEQ_ImpactFlash));
 		*(int16_t *)(h + 4) = f->age;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1178,8 +1277,8 @@ namespace q116
 				cx::Sub508500();
 				cx::RotMatrixY(0, nd + 0x68);
 				D32(0x80) = 0; W16(0x46) = 0; D32(0x7C) = 0; W16(0x44) = 0;
-				D32(0x84) = G32(BASE_Y3);
-				W16(0x48) = G16(BASE_Y3);
+				D32(0x84) = G32(own::R(BASE_Y3));
+				W16(0x48) = G16(own::R(BASE_Y3));
 				W16(0x36) = 0; W16(0x38) = 0; W16(0x34) = 0;
 				cx::BindModel(model, nd + 0xC4, MB + 0x3169C);
 				cx::SetAnim(model, 0);
@@ -1206,12 +1305,12 @@ namespace q116
 			{
 				F16(0x18) = G16(CAM_EYE);
 				F16(0x1A) = G16(CAM_EYE + 2);
-				F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(BASE_Y));
+				F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(own::R(BASE_Y)));
 				int32_t s = ComputeSin((int32_t)((v5 << 12) / 40));
 				cx::RotMatrixY(s >> 7, FP(0x44));
 				cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_EYE);
 				G16(0x1D977A2) += 8; // roll
-				G16(CAM_EYE + 4) += G16(BASE_Y);
+				G16(CAM_EYE + 4) += G16(own::R(BASE_Y));
 				cx::AdvanceAnim(model);
 			}
 			// 30 fps layer: see mag116_quezacotl_held.inc
@@ -1242,7 +1341,7 @@ namespace q116
 			}
 			F32(0x8C) = (int32_t)(MB + 0x8D0);
 			F32(0x84) = 0; F16(0x88) = 0;
-			F32(0x78) = 500; F32(0x7C) = 0; F32(0x80) = G32(BASE_Y3);
+			F32(0x78) = 500; F32(0x7C) = 0; F32(0x80) = G32(own::R(BASE_Y3));
 			cx::RotMatrixY(-2048, FP(0x64));
 			// 30 fps layer: see mag116_quezacotl_held.inc
 			FX_HELD(held_note_uncomposed(FP(0x64));)
@@ -1277,31 +1376,31 @@ namespace q116
 				int32_t v10 = (int32_t)((v7 << 12) / 76);
 				W16(0x1A) -= 17;
 				W16(0x22) -= 5;
-				W16(0x24) -= G16(BASE_Y3);
+				W16(0x24) -= G16(own::R(BASE_Y3));
 				int32_t s = ComputeSin(v10 >> 1);
 				cx::RotMatrixY(s / 90, FP(0x44));
 				cx::MatVec(FP(0x44), nd + 0x20, nd + 0x20);
-				W16(0x24) += G16(BASE_Y3);
+				W16(0x24) += G16(own::R(BASE_Y3));
 				if (v7 == 31)
 				{
 					G16(CAM_AT) = (int16_t)0xEBF9; G16(CAM_AT + 2) = (int16_t)0xF9BA; G16(CAM_EYE) = 0x5FB;
-					G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y3) + 0x606);
+					G16(CAM_AT + 4) = (int16_t)(G32(own::R(BASE_Y3)) + 0x606);
 					G16(CAM_EYE + 2) = (int16_t)0xF665;
-					G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) - 0x206);
+					G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y3)) - 0x206);
 				}
 				else if (v7 > 31 && v7 <= 40)
 				{
 					F16(0x18) = G16(CAM_EYE);
 					F16(0x1A) = G16(CAM_EYE + 2);
-					F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(BASE_Y3));
+					F16(0x1C) = (int16_t)(G32(CAM_EYE + 4) - G32(own::R(BASE_Y3)));
 					cx::RotMatrixY(0x40, FP(0x44));
 					cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_EYE);
-					G16(CAM_EYE + 4) += (int16_t)G32(BASE_Y3);
+					G16(CAM_EYE + 4) += (int16_t)G32(own::R(BASE_Y3));
 					F16(0x18) = G16(CAM_AT);
 					F16(0x1A) = G16(CAM_AT + 2);
-					F16(0x1C) = (int16_t)(G32(CAM_AT + 4) - G32(BASE_Y3));
+					F16(0x1C) = (int16_t)(G32(CAM_AT + 4) - G32(own::R(BASE_Y3)));
 					cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_AT);
-					G16(CAM_AT + 4) += G16(BASE_Y3);
+					G16(CAM_AT + 4) += G16(own::R(BASE_Y3));
 				}
 				else if (v10 < 0x800)
 				{
@@ -1313,9 +1412,9 @@ namespace q116
 				else
 				{
 					int32_t v12 = 2 * v10 - 0x1000;
-					F16(0x2C) = (int16_t)(G32(BASE_Y3) - 0xA14);
+					F16(0x2C) = (int16_t)(G32(own::R(BASE_Y3)) - 0xA14);
 					F32(0x10) = 0x1000 - v12;
-					F16(0x20) = (int16_t)0xFD69; F16(0x22) = (int16_t)0xF544; F16(0x24) = (int16_t)(G32(BASE_Y3) + 0x6F7);
+					F16(0x20) = (int16_t)0xFD69; F16(0x22) = (int16_t)0xF544; F16(0x24) = (int16_t)(G32(own::R(BASE_Y3)) + 0x6F7);
 					F16(0x28) = 0x547; F16(0x2A) = (int16_t)0xF9F4;
 					cx::Blend(nd + 0x18, FP(0x20), 0x1000 - v12, v12, (void *)CAM_AT);
 					cx::Blend(nd + 0x20, FP(0x28), F32(0x10), v12, (void *)CAM_EYE);
@@ -1350,7 +1449,7 @@ namespace q116
 		{
 			if (W16(0x0C) == 101) cx::Decode(0x1298C68, L, 0x158);
 			F32(0x40) = (int32_t)(MB + 0x8D0);
-			F16(0x34) = G16(BASE_Y3);
+			F16(0x34) = G16(own::R(BASE_Y3));
 			F32(0x38) = 0; F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
 			Play(L, CB_PrimDraw, FP(0x30));
 		}
@@ -1388,7 +1487,7 @@ namespace q116
 				{
 					G16(CAM_EYE) = 0x2A5;
 					G16(CAM_EYE + 2) = (int16_t)0xF20D;
-					G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) - 200);
+					G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y3)) - 200);
 				}
 				cx::VertexPos(ModelBuffer() + 0x28, 0, 0x32, (void *)CAM_AT);
 				if (!Pause())
@@ -1465,8 +1564,8 @@ namespace q116
 				}
 				if (t == 0) cx::Decode(0x1299718, L, 0xB4);
 				F32(0x40) = (int32_t)(MB + 0x8D0);
-				F16(0x32) = G16(BASE_Y2);
-				F16(0x34) = G16(BASE_Y);
+				F16(0x32) = G16(own::R(BASE_Y2));
+				F16(0x34) = G16(own::R(BASE_Y));
 				F32(0x38) = -128; F16(0x3C) = 1; F16(0x3E) = (int16_t)t; F16(0x30) = 0;
 				Play(L, CB_PrimDraw, FP(0x30));
 				if (t >= 0x14)
@@ -1483,8 +1582,8 @@ namespace q116
 					F32(0x8C) = (int32_t)(MB + 0x8D0);
 					F32(0x40) = (int32_t)(MB + 0x8D0);
 					F16(0x30) = 0;
-					F16(0x34) = G16(BASE_Y);
-					F16(0x32) = (int16_t)(G32(BASE_Y2) - 3000);
+					F16(0x34) = G16(own::R(BASE_Y));
+					F16(0x32) = (int16_t)(G32(own::R(BASE_Y2)) - 3000);
 					Play((prim::Layout *)0x129F4E8, CB_PrimDraw, FP(0x30));
 				}
 			}
@@ -1502,13 +1601,13 @@ namespace q116
 				}
 				for (int k = 0; k < 2; k++)
 				{
-					uint8_t *d = (uint8_t *)AddTaskToQueue(&QueueDebris().first, ORIG_DebrisTask);
+					uint8_t *d = (uint8_t *)AddTaskToQueue(&QueueDebris().first, own::Fn(ORIG_DebrisTask));
 					if (!d) continue;
 					*(int16_t *)(d + 0x0C) = 0;
 					*(int16_t *)(d + 0x10) = (int16_t)((cx::SharedRand() & 0xFFF) - 0x800);
 					int32_t r = cx::SharedRand();
 					*(int16_t *)(d + 0x12) = 0;
-					*(int16_t *)(d + 0x14) = (int16_t)((r & 0xFFF) + G32(BASE_Y) - 0x800);
+					*(int16_t *)(d + 0x14) = (int16_t)((r & 0xFFF) + G32(own::R(BASE_Y)) - 0x800);
 					*(int16_t *)(d + 0x18) = (int16_t)((cx::SharedRand() & 0x3F) - 0x20);
 					*(int16_t *)(d + 0x1C) = (int16_t)((cx::SharedRand() & 0x3F) - 0x20);
 					*(int16_t *)(d + 0x1A) = (int16_t)(-0x80 - (cx::SharedRand() & 0x7F));
@@ -1519,7 +1618,7 @@ namespace q116
 					d[0x29] = (uint8_t)cx::SharedRand();
 					d[0x2A] = (uint8_t)cx::SharedRand();
 				}
-				F16(0x34) = G16(BASE_Y);
+				F16(0x34) = G16(own::R(BASE_Y));
 				F32(0x40) = (int32_t)(MB + 0x8D0);
 				F32(0x8C) = (int32_t)(MB + 0x8D0);
 				F32(0x38) = -256; F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
@@ -1533,7 +1632,7 @@ namespace q116
 			if (t < 0x24)
 			{
 				if (t == 0) cx::Decode((uint32_t)(ModelBuffer() + 0x28E9C), L, 0x354);
-				F16(0x34) = G16(BASE_Y);
+				F16(0x34) = G16(own::R(BASE_Y));
 				F32(0x40) = (int32_t)(ModelBuffer() + 0x8D0);
 				F32(0x8C) = (int32_t)(ModelBuffer() + 0x8D0);
 				F32(0x38) = -1024;
@@ -1582,13 +1681,13 @@ namespace q116
 			case 0x100: if (cx::LoadBusy()) return 0; cx::Load(0x20B, D, 1); cx::Load(0x20C, (uint32_t)(ModelBuffer() + 0x28E9C), 3); break;
 			case 0x114:
 				if (cx::LoadBusy()) return 0;
-				G32(0x25216FC) = 0; G32(0x25216F8) = 0;
+				G32(own::R(0x25216FC)) = 0; G32(own::R(0x25216F8)) = 0;
 				*(int32_t *)(ModelBuffer() + 0x28E50) = 0;
 				cx::Load(0x20D, 0x12A9664, 5); cx::Load(0x20E, (uint32_t)(ModelBuffer() + 0x28E9C), 2);
 				break;
 			case 0x12E:
 				if (cx::LoadBusy()) return 0;
-				G32(0x252172C) = 0; G32(0x2521728) = 0; G32(0x252171C) = 0; G32(0x2521718) = 0; G32(0x252170C) = 0; G32(0x2521708) = 0;
+				G32(own::R(0x252172C)) = 0; G32(own::R(0x2521728)) = 0; G32(own::R(0x252171C)) = 0; G32(own::R(0x2521718)) = 0; G32(own::R(0x252170C)) = 0; G32(own::R(0x2521708)) = 0;
 				cx::Load(0x20F, D, 0x10);
 				break;
 			case 0x13E: if (cx::LoadBusy()) return 0; break;
@@ -1609,7 +1708,7 @@ namespace q116
 				F16(0x2A) = 0;
 				F16(0x28) = (int16_t)((r & 0x7FF) - 0x3FF);
 				r = Rand();
-				F16(0x2C) = (int16_t)((r & 0x3FF) + G32(BASE_Y) - 0x200);
+				F16(0x2C) = (int16_t)((r & 0x3FF) + G32(own::R(BASE_Y)) - 0x200);
 				r = Rand();
 				F16(0x20) = (int16_t)((r & 0xFF) - 0x80);
 				r = Rand();
@@ -1625,60 +1724,60 @@ namespace q116
 		{
 		case 0:
 			cx::Sub6C5300();
-			cx::PlaySE(0x12AE4F0, 1, 0x80);
+			cx::PlaySE(fxp::sound(P().sounds.arrive, 0x12AE4F0), 1, 0x80);
 			G16(0x1D977A2) = 0;
 			G16(0x1D8E038) = 0x120;
 			G16(CAM_AT) = 0; G16(CAM_AT + 2) = (int16_t)0xEBE2; G16(CAM_AT + 4) = (int16_t)0xFD2D;
 			G16(CAM_EYE) = 0; G16(CAM_EYE + 2) = (int16_t)0xF10D; G16(CAM_EYE + 4) = (int16_t)0xF841;
 			break;
-		case 0x41: cx::PlaySE(0x12AE4F4, 1, 0x80); break;
+		case 0x41: cx::PlaySE(fxp::sound(P().sounds.rise, 0x12AE4F4), 1, 0x80); break;
 		case 0x45: cx::Sub6C5350(); cx::PlayStream(0x80, 1, 0x7F); break;
 		case 0x4C:
-			G16(CAM_AT) = 0; G16(CAM_AT + 4) = (int16_t)G32(BASE_Y3); G16(CAM_AT + 2) = (int16_t)0xFD74;
-			G16(CAM_EYE) = (int16_t)0xF8EF; G16(CAM_EYE + 2) = (int16_t)0xFE9C; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) + 0x8E4);
+			G16(CAM_AT) = 0; G16(CAM_AT + 4) = (int16_t)G32(own::R(BASE_Y3)); G16(CAM_AT + 2) = (int16_t)0xFD74;
+			G16(CAM_EYE) = (int16_t)0xF8EF; G16(CAM_EYE + 2) = (int16_t)0xFE9C; G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y3)) + 0x8E4);
 			break;
 		case 0x7E: cx::Sub6C5300(); break;
-		case 0xD1: cx::PlaySE(0x12AE4F8, 1, 0x80); break;
+		case 0xD1: cx::PlaySE(fxp::sound(P().sounds.charge, 0x12AE4F8), 1, 0x80); break;
 		case 0xD4: cx::Sub6C5350(); break;
 		case 0xF6:
 			G16(CAM_AT) = (int16_t)0xFB92; G16(CAM_AT + 2) = (int16_t)0xFD39; G16(CAM_EYE) = 0x10D9;
-			G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y) - 0x108);
-			G16(CAM_EYE + 2) = (int16_t)0xFC8B; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) + 0xCA4);
+			G16(CAM_AT + 4) = (int16_t)(G32(own::R(BASE_Y)) - 0x108);
+			G16(CAM_EYE + 2) = (int16_t)0xFC8B; G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y)) + 0xCA4);
 			break;
 		case 0xE2:
 			G16(CAM_AT) = (int16_t)0xFFAD; G16(CAM_AT + 2) = (int16_t)0xF9BC; G16(CAM_EYE) = 0xB29; G16(CAM_EYE + 2) = (int16_t)0xFDD7;
-			G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y3) - 0x832);
-			G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) + 0xA08);
+			G16(CAM_AT + 4) = (int16_t)(G32(own::R(BASE_Y3)) - 0x832);
+			G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y3)) + 0xA08);
 			cx::PlayStream(0x80, 1, 0x7F);
 			break;
 		case 0x100:
-			G16(CAM_AT + 4) = (int16_t)G32(BASE_Y);
+			G16(CAM_AT + 4) = (int16_t)G32(own::R(BASE_Y));
 			G16(CAM_AT) = 0; G16(CAM_AT + 2) = 0; G16(CAM_EYE) = (int16_t)0xF060; G16(CAM_EYE + 2) = (int16_t)0xF060;
-			G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) + 0xFA0);
+			G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y)) + 0xFA0);
 			break;
 		case 0x114:
-			G32(BASE_Y2) = -4096;
+			G32(own::R(BASE_Y2)) = -4096;
 			G16(0x1D977A2) = G16(0x1D9771C);
-			G16(CAM_AT) = (int16_t)0xFFEF; G16(CAM_AT + 2) = (int16_t)0xEAF5; G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y) + 0x130);
-			G16(CAM_EYE) = (int16_t)0xFE52; G16(CAM_EYE + 2) = (int16_t)0xEFA4; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) + 0x498);
+			G16(CAM_AT) = (int16_t)0xFFEF; G16(CAM_AT + 2) = (int16_t)0xEAF5; G16(CAM_AT + 4) = (int16_t)(G32(own::R(BASE_Y)) + 0x130);
+			G16(CAM_EYE) = (int16_t)0xFE52; G16(CAM_EYE + 2) = (int16_t)0xEFA4; G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y)) + 0x498);
 			break;
-		case 0x115: cx::PlaySE(0x12AE4FC, 1, 0x80); break;
+		case 0x115: cx::PlaySE(fxp::sound(P().sounds.strike, 0x12AE4FC), 1, 0x80); break;
 		case 0x12E:
-			G32(BASE_Y2) = 0;
-			G16(CAM_AT) = 0; G16(CAM_AT + 2) = (int16_t)0xFAF5; G16(CAM_AT + 4) = (int16_t)(G32(BASE_Y3) - 0x93A);
-			G16(CAM_EYE) = 0; G16(CAM_EYE + 2) = (int16_t)0xF6B6; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y3) + 0xDE3);
+			G32(own::R(BASE_Y2)) = 0;
+			G16(CAM_AT) = 0; G16(CAM_AT + 2) = (int16_t)0xFAF5; G16(CAM_AT + 4) = (int16_t)(G32(own::R(BASE_Y3)) - 0x93A);
+			G16(CAM_EYE) = 0; G16(CAM_EYE + 2) = (int16_t)0xF6B6; G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y3)) + 0xDE3);
 			break;
 		case 0x13E:
-			G16(CAM_AT) = 0; G16(CAM_AT + 4) = (int16_t)G32(BASE_Y); G16(CAM_AT + 2) = 0;
-			G16(CAM_EYE) = 0x1000; G16(CAM_EYE + 2) = (int16_t)0xF000; G16(CAM_EYE + 4) = (int16_t)(G32(BASE_Y) - 0x1000);
+			G16(CAM_AT) = 0; G16(CAM_AT + 4) = (int16_t)G32(own::R(BASE_Y)); G16(CAM_AT + 2) = 0;
+			G16(CAM_EYE) = 0x1000; G16(CAM_EYE + 2) = (int16_t)0xF000; G16(CAM_EYE + 4) = (int16_t)(G32(own::R(BASE_Y)) - 0x1000);
 			cx::PlayStream(0x80, 1, 0x7F);
 			break;
 		default: break;
 		}
 
-		if (W16(0x0C) == 345)
+		if (W16(0x0C) == P().creature.damage)
 		{
-			uint8_t *ctx = *(uint8_t **)(*(uint8_t **)0x25216E0 + 4);
+			uint8_t *ctx = *(uint8_t **)(*(uint8_t **)own::R(0x25216E0) + 4);
 			cx::ApplyResult(*(uint32_t *)(ctx + 8), ctx[0x10]);
 		}
 		if (W16(0x0C) >= 355)
@@ -1696,7 +1795,7 @@ namespace q116
 	// 0x6C87B0: new arc (called by the creature timeline)
 	[[maybe_unused]] static void SpawnArc(uint8_t **bones, const int16_t *strips, const uint8_t *faces, uint8_t reach_shift, uint8_t fade_shift, int16_t speed)
 	{
-		ArcNode *arc = (ArcNode *)AddTaskToQueue(&QueueCreature().first, ORIG_ArcTask);
+		ArcNode *arc = (ArcNode *)AddTaskToQueue(&QueueCreature().first, own::Fn(ORIG_ArcTask));
 		if (!arc) return;
 		arc->reach_shift = reach_shift;
 		arc->fade_shift = fade_shift;
@@ -1714,20 +1813,54 @@ namespace q116
 			arc->pts[i].pad = 0;
 		}
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "creature", "Creature", "Quezacotl's 355-tick timeline: the model materialising, the camera's moves, the loads, the lightning bolts, arcs, branches and debris, the screen flash, the sounds and streams; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "At the creature's ticks 0, 0x41, 0xD1, 0x115" },
+		};
+		static const Field FIELDS[] = {
+			{ "creature", "voice", "Voice", "The creature's voice slot", (uint32_t)offsetof(QuezacotlParams, voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.arrive", "Arrive", "", (uint32_t)offsetof(QuezacotlParams, sounds.arrive), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.rise", "Rise", "", (uint32_t)offsetof(QuezacotlParams, sounds.rise), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.charge", "Charge", "", (uint32_t)offsetof(QuezacotlParams, sounds.charge), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "sounds.strike", "Strike", "", (uint32_t)offsetof(QuezacotlParams, sounds.strike), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "creature", "creature.damage", "Damage tick", "The damage at this tick of the creature's timeline", (uint32_t)offsetof(QuezacotlParams, creature.damage), fxp::I16, 0, 354 },
+			{ "creature", "seqs.impact_flash", "Impact flash", "The sprite sequence impact flash (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(QuezacotlParams, seqs.impact_flash), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag116_quezacotl()
 	{
+		fxp::register_params({ 116, "Quezacotl", &q116::live, &q116::GAME, sizeof(q116::QuezacotlParams),
+		                       q116::table::PARTS, (int)(sizeof(q116::table::PARTS) / sizeof(q116::table::PARTS[0])),
+		                       q116::table::FIELDS, (int)(sizeof(q116::table::FIELDS) / sizeof(q116::table::FIELDS[0])),
+		                       q116::table::GROUPS, (int)(sizeof(q116::table::GROUPS) / sizeof(q116::table::GROUPS[0])) });
+		own::note(q116::ORIG_FileLoader, (void *)q116::FileLoader);
+		own::note(q116::ORIG_Setup, (void *)q116::Setup);
+		own::note(q116::ORIG_StreamScriptStep, (void *)q116::StreamScriptStep);
+		own::note(q116::ORIG_SequenceTask, (void *)q116::SequenceTask);
 		register_port(q116::ORIG_SequenceTask, (void *)q116::SequenceTask, "Q116 SequenceTask", 116);
+		own::note(q116::ORIG_CreatureTask, (void *)q116::CreatureTask);
 		register_port(q116::ORIG_CreatureTask, (void *)q116::CreatureTask, "Q116 CreatureTask", 116);
+		own::note(q116::ORIG_DebrisTask, (void *)q116::DebrisTask);
 		register_port(q116::ORIG_DebrisTask, (void *)q116::DebrisTask, "Q116 DebrisTask", 116);
+		own::note(q116::ORIG_BranchTask, (void *)q116::BranchTask);
 		register_port(q116::ORIG_BranchTask, (void *)q116::BranchTask, "Q116 BranchTask", 116);
+		own::note(q116::ORIG_BoltTask, (void *)q116::BoltTask);
 		register_port(q116::ORIG_BoltTask, (void *)q116::BoltTask, "Q116 BoltTask", 116);
+		own::note(q116::ORIG_FlashTask, (void *)q116::FlashTask);
 		register_port(q116::ORIG_FlashTask, (void *)q116::FlashTask, "Q116 FlashTask", 116);
+		own::note(q116::ORIG_ArcTask, (void *)q116::ArcTask);
 		register_port(q116::ORIG_ArcTask, (void *)q116::ArcTask, "Q116 ArcTask", 116);
 		// 30 fps layer: see mag116_quezacotl_held.inc
 		FX_HELD(register_mag116_held();)
 	}
+	FX_LAB_MODULE(register_mag116_quezacotl);
 }
 
 #ifdef FF8_FX_HELD

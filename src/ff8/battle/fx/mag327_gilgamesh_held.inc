@@ -166,10 +166,10 @@ namespace g327
 	{
 		uint32_t a = (uint32_t)E;
 		if (a >= 0x21FF4F0 && a < 0x21FF760 && (a - 0x21FF4F0) % 0x9C == 0) return (int)((a - 0x21FF4F0) / 0x9C);
-		if (E == GIL1) return 4;
-		if (E == GIL2) return 5;
+		if (E == GIL1()) return 4;
+		if (E == GIL2()) return 5;
 		if (a >= 0x21FF800 && a < 0x21FFA70 && (a - 0x21FF800) % 0x9C == 0) return 6 + (int)((a - 0x21FF800) / 0x9C);
-		if (E == GIL3) return 10;
+		if (E == GIL3()) return 10;
 		return -1;
 	}
 
@@ -711,13 +711,13 @@ namespace g327
 			for (int i = 0; i < 4; i++) ModelHeld(Sword(i), n, num, den);
 			break;
 		case ORIG_Gil1Task:
-		case ORIG_Gil1DrawTask: ModelHeld(GIL1, n, num, den); break;
+		case ORIG_Gil1DrawTask: ModelHeld(GIL1(), n, num, den); break;
 		case ORIG_Gil2DrawTask:
-			ModelHeld(GIL2, n, num, den);
+			ModelHeld(GIL2(), n, num, den);
 			for (int j = 0; j < 4; j++) ModelHeld(Arm(j), n, num, den);
 			break;
 		case ORIG_Gil3DrawTask:
-			ModelHeld(GIL3, n, num, den);
+			ModelHeld(GIL3(), n, num, den);
 			for (int i = 0; i < 4; i++) ModelHeld(Sword(i), n, num, den);
 			break;
 		default: break;

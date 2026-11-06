@@ -171,12 +171,16 @@ namespace fire_breath_q
 	{
 		using namespace gfc;
 		fire_breath_q::describe(fire_breath_q::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<230>::Register("Fire Breath (Quistis)", fire_breath_q::g_c, 0xA70B40, 0x186AA28, 0x186AA34,
+		                           (void *)fire_breath_q::SequenceTask);
 		init_clone(fire_breath_q::g_c, nullptr, 0);
 		fire_breath_q::apply_slots(fire_breath_q::g_c);
 		register_port(0xA711E0, (void *)fire_breath_q::SequenceTask, "MAG230 Fire Breath (Quistis) SequenceTick", 230);
 		// 30 fps layer: see mag230_fire_breath_quistis_held.inc
 		FX_HELD(register_mag230_fire_breath_quistis_held();)
 	}
+	FX_LAB_MODULE(register_mag230_fire_breath_quistis);
 }
 
 #ifdef FF8_FX_HELD

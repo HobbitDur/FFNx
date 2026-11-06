@@ -44,8 +44,15 @@
 // root-matrix slot 0x1D99AB0 (creature), the camera copy 0x2793E58, action results (0x506690); the camera itself is the
 // engine's camera animation (started by the setup) - the module writes no camera word.
 // Module globals: 0x258FCF8..0x2592544 (+ camera copy 0x2793E58, 0x20 bytes, and the module scratch stack below it).
+// Fujin's described Angelo Reverse (effect_094.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the director block through its exe word (G), the tasks it spawns the program's or thunks of
+// their ports (Spawn); its parameters (ReverseParams: the two sounds, the director's frames) are set from the program's.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -59,6 +66,20 @@ namespace angelo94
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7479E0, 0x747A60, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x747C20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x748010, 0x7480F0, 0x748290, 0x748360, 0x748480, 0x7486E0, 0x0, 0x0, 0x74B460, 0x74B4B0, 0x0, 0x0, 0x74BDA0, 0x0, 0x0, 0x0, 0x74C780, 0x74C7B0, 0x74C890, 0x74C9B0, 0x74CB00, 0x0, 0x74D1C0, 0x74D3A0, 0x74D4E0, 0x0, 0x0, 0x74E210, 0x74E250, 0x74E270, 0x74E290, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
 
 	// --- module globals ---
+	static const uint32_t SOUND_A = 0x1533E80, SOUND_B = 0x1533E84;
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct ReverseParams
+	{
+		struct { uint32_t jump, revive; } sounds;   // Angelo jumping in, the revival (at the director's frame)
+		struct { int16_t sound, damage; } director;   // the revival's sound, the done flag (the revival) from these frames of the director
+	};
+	static const ReverseParams GAME = { { SOUND_A, SOUND_B }, { 0x2C, 0x4B } };
+	static ReverseParams live = GAME;
+	static const ReverseParams &PV() { return live; }
+
 	static const uint32_t DIR_PTR = 0x1533E7C;        // pointer to the director block (phase +0x40 / requested +0x42 / next +0x44, frame +0x46, done +0x48)
 	static const uint32_t PHASE_DATA = DIR_PTR;       // (the library's name of the director pointer)
 	static const uint32_t SPRITE_CURSOR = 0x258FCFC;  // module packet cursor (tick parity: [0x259195C] / [0x2591958] = file / file + 0x8000)
@@ -407,7 +428,7 @@ namespace angelo94
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -498,14 +519,15 @@ namespace angelo94
 	uint32_t __cdecl av_747780(uint32_t a1)
 	{
 		g_mod = &MOD_094;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag094_angelo_reverse_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x2592530) = 0x2793E58;
-		MEM<uint32_t>(0x258FE08) = 0x2793E58;
+		MEM<uint32_t>(R(0x2592530)) = 0x2793E58;
+		MEM<uint32_t>(R(0x258FE08)) = 0x2793E58;
 		states[0] = 0x747910;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x747920;
@@ -520,24 +542,24 @@ namespace angelo94
 		states[10] = 0x74E360;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x259195C);
-			const uint32_t v2 = MEM<uint32_t>(0x259129C);
-			MEM<uint32_t>(0x258FCFC) = v1;
-			MEM<uint32_t>(0x258FE04) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x259195C));
+			const uint32_t v2 = MEM<uint32_t>(R(0x259129C));
+			MEM<uint32_t>(R(0x258FCFC)) = v1;
+			MEM<uint32_t>(R(0x258FE04)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2591958);
-			const uint32_t v2 = MEM<uint32_t>(0x2591298);
-			MEM<uint32_t>(0x258FCFC) = v1;
-			MEM<uint32_t>(0x258FE04) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x2591958));
+			const uint32_t v2 = MEM<uint32_t>(R(0x2591298));
+			MEM<uint32_t>(R(0x258FCFC)) = v1;
+			MEM<uint32_t>(R(0x258FE04)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x2592528) = 0;
-		MEM<uint16_t>(0x2592510) = 0;
-		static const uint32_t queues[8] = { 0x25917E8, 0x258FDE0, 0x2592500, 0x2591548, 0x258FEE8, 0x2590CC0, 0x2591288, 0x25917D8 };
+		MEM<uint16_t>(R(0x2592528)) = 0;
+		MEM<uint16_t>(R(0x2592510)) = 0;
+		const uint32_t queues[8] = { R(0x25917E8), R(0x258FDE0), R(0x2592500), R(0x2591548), R(0x258FEE8), R(0x2590CC0), R(0x2591288), R(0x25917D8) };
 		for (int i = 0; i < 8; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -557,12 +579,12 @@ namespace angelo94
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x259253C);
-		MEM<uint32_t>(0x2592514) = p;
+		uint32_t p = MEM<uint32_t>(R(0x259253C));
+		MEM<uint32_t>(R(0x2592514)) = p;
 		p += 0xCA8;
-		MEM<uint32_t>(0x2592534) = p;
+		MEM<uint32_t>(R(0x2592534)) = p;
 		p += 0xEC40;
-		MEM<uint32_t>(0x259253C) = p;
+		MEM<uint32_t>(R(0x259253C)) = p;
 		av_747970();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
@@ -572,12 +594,12 @@ namespace angelo94
 	// 0x2592520 / 0x2592360 / 0x258FD00
 	uint32_t __cdecl av_747970()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2592514), 0xCA8);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2592534), 0xEC40);
-		MEM<uint16_t>(0x2590CB8) = 0;
-		MEM<uint16_t>(0x2592520) = 0;
-		MEM<uint16_t>(0x2592360) = 0;
-		MEM<uint16_t>(0x258FD00) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2592514)), 0xCA8);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x2592534)), 0xEC40);
+		MEM<uint16_t>(R(0x2590CB8)) = 0;
+		MEM<uint16_t>(R(0x2592520)) = 0;
+		MEM<uint16_t>(R(0x2592360)) = 0;
+		MEM<uint16_t>(R(0x258FD00)) = 0;
 		return 0;
 	}
 
@@ -586,7 +608,7 @@ namespace angelo94
 	uint32_t __cdecl av_747A60(uint32_t a1)
 	{
 		av_747A90(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x258FDE0, 0x747B10, 0x48, a1);
+		Spawn(R(0x258FDE0), 0x747B10, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -596,8 +618,8 @@ namespace angelo94
 	// the target seen from the origin - 0x800 (12 bits)
 	uint32_t __cdecl av_747A90(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -607,7 +629,7 @@ namespace angelo94
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -675,9 +697,9 @@ namespace angelo94
 	// 0x74EA30 (sub_74EA30): director state - from director frame 0x2C: sound 0x1538724, next state
 	uint32_t __cdecl av_747C90(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0x2C)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PV().director.sound)
 		{
-			x::BdPlaySE(0x1533E84, 0, 0x80);
+			x::BdPlaySE(fxp::sound(PV().sounds.revive, SOUND_B), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -687,8 +709,8 @@ namespace angelo94
 	// (+0x26 |= 1), next state
 	uint32_t __cdecl av_747CC0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		if (S16(d, 0x46) >= 0x4B)
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
+		if (S16(d, 0x46) >= PV().director.damage)
 		{
 			U16(d, 0x48) = 1;
 			U16(a1, 0x26) = (uint16_t)(U16(a1, 0x26) | 1);
@@ -702,12 +724,12 @@ namespace angelo94
 	// (a_73C100: data 0x16B62B8, 0x2C / 0x1E / 0) and the stage-light task 0x754E60 (queue 0x2592738, node 0xB0)
 	uint32_t __cdecl av_747D10(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x40) != 1)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x40) != 1)
 			return 0; // void
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2592500, 0x74D740, 0x140, a1);
+		const uint32_t t = Spawn(R(0x2592500), 0x74D740, 0x140, a1);
 		x::Effect_BindModelContainerSetAnim(t, 0x153407C, 3);
 		a_73C100(a1, 0x747DD0, 0x16AAD80, 0x2C, 0x1E, 0);
-		x::Effect_AddTaskAndInitFromCtx(0x258FEE8, 0x74E0C0, 0xB0, a1);
+		Spawn(R(0x258FEE8), 0x74E0C0, 0xB0, a1);
 		return 0; // void
 	}
 
@@ -730,7 +752,7 @@ namespace angelo94
 	// the harness)
 	uint32_t __cdecl av_748010(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2592540);
+		const uint32_t arena = MEM<uint32_t>(R(0x2592540));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -750,7 +772,7 @@ namespace angelo94
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl av_748290(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2592540);
+		const uint32_t arena = MEM<uint32_t>(R(0x2592540));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -780,7 +802,7 @@ namespace angelo94
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x2592540, 0) = sys;
+		U32(R(0x2592540), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -794,7 +816,7 @@ namespace angelo94
 			FX_HELD(held_note_system(sys);)
 			av_74ABF0();
 			av_7489D0();
-			sys = U32(0x2592540, 0);
+			sys = U32(R(0x2592540), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -807,8 +829,8 @@ namespace angelo94
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x2592528, 0) = (uint16_t)(U16(0x2592528, 0) + c14);
-		U16(0x2592510, 0) = (uint16_t)(U16(0x2592510, 0) + c16);
+		U16(R(0x2592528), 0) = (uint16_t)(U16(R(0x2592528), 0) + c14);
+		U16(R(0x2592510), 0) = (uint16_t)(U16(R(0x2592510), 0) + c16);
 		return done;
 	}
 
@@ -817,12 +839,12 @@ namespace angelo94
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl av_7489D0(void)
 	{
-		uint32_t act = U32(U32(0x2592540, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2592540), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x2592540, 0);
+				uint32_t sys = U32(R(0x2592540), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -839,10 +861,10 @@ namespace angelo94
 	// +0x16C, scale words 0x100), one copy or one per sub-position +0x19C.., module renderer 0x8C5DD0 into the frame arena 0x1D8E054
 	uint32_t __cdecl av_748A30(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(R(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(R(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -885,8 +907,8 @@ namespace angelo94
 				MEM<uint32_t>(0x1D8E054) = av_748B90(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1657,14 +1679,14 @@ namespace angelo94
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl av_74ABF0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x2592540), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x2592540)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x2592540);
+				uint32_t st = MEM<uint32_t>(R(0x2592540));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -1701,20 +1723,20 @@ namespace angelo94
 	uint32_t __cdecl av_74ACB0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -1722,7 +1744,7 @@ namespace angelo94
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl av_74AD30(void)
 	{
-		uint32_t act = U32(U32(0x2592540, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x2592540), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1743,7 +1765,7 @@ namespace angelo94
 	uint32_t __cdecl av_74AD70(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x2592540);
+		uint32_t st = MEM<uint32_t>(R(0x2592540));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -1764,7 +1786,7 @@ namespace angelo94
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x2592540);
+			st = MEM<uint32_t>(R(0x2592540));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1782,7 +1804,7 @@ namespace angelo94
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2592540, 0);                  // actor state block
+		uint32_t st = U32(R(0x2592540), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -1882,8 +1904,8 @@ namespace angelo94
 	// appends it to the particle list with state 0 (0x8642D0); returns the slot or 0
 	uint32_t __cdecl av_74BF60(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2592514);
-		int32_t idx = (int32_t)MEM<int16_t>(0x2590CB8);
+		const uint32_t pool = MEM<uint32_t>(R(0x2592514));
+		int32_t idx = (int32_t)MEM<int16_t>(R(0x2590CB8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1893,7 +1915,7 @@ namespace angelo94
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1908,9 +1930,9 @@ namespace angelo94
 		} while (tries < 0x1E);
 		idx++;
 		if (idx < 0x1D)
-			MEM<uint16_t>(0x2590CB8) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x2590CB8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x2590CB8) = 0;
+			MEM<uint16_t>(R(0x2590CB8)) = 0;
 		return slot;
 	}
 
@@ -1940,7 +1962,7 @@ namespace angelo94
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl av_74C080(uint32_t a1)
 	{
-		uint32_t sys = U32(0x2592540, 0);
+		uint32_t sys = U32(R(0x2592540), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1975,9 +1997,9 @@ namespace angelo94
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(0x2592530, 0) - 0x50;
+		uint32_t sp = U32(R(0x2592530), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x2592530, 0) = sp;
+		U32(R(0x2592530), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = av_74C8E0(a1, (uint16_t)kind);
@@ -1989,7 +2011,7 @@ namespace angelo94
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x2592540, 0);
+			uint32_t ctx = U32(R(0x2592540), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2168,7 +2190,7 @@ namespace angelo94
 			}
 		}
 		av_74D5F0(node, desc);
-		U32(0x2592530, 0) = U32(0x2592530, 0) + 0x50;
+		U32(R(0x2592530), 0) = U32(R(0x2592530), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -2176,8 +2198,8 @@ namespace angelo94
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x5A records
 	uint32_t __cdecl av_74C8E0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2592534);
-		int32_t i = MEM<int16_t>(0x2592520);
+		const uint32_t pool = MEM<uint32_t>(R(0x2592534));
+		int32_t i = MEM<int16_t>(R(0x2592520));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2190,7 +2212,7 @@ namespace angelo94
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2207,9 +2229,9 @@ namespace angelo94
 		}
 		i++;
 		if (i >= 0x59)
-			MEM<uint16_t>(0x2592520) = 0;
+			MEM<uint16_t>(R(0x2592520)) = 0;
 		else
-			MEM<uint16_t>(0x2592520) = (uint16_t)i;
+			MEM<uint16_t>(R(0x2592520)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2223,7 +2245,7 @@ namespace angelo94
 	uint32_t __cdecl av_74CB00(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2592540, 0);            // ecx
+		const uint32_t st = U32(R(0x2592540), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -2287,7 +2309,7 @@ namespace angelo94
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x2592540, 0);
+				uint32_t g = U32(R(0x2592540), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2297,7 +2319,7 @@ namespace angelo94
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x2592540, 0);
+				uint32_t g = U32(R(0x2592540), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2385,7 +2407,7 @@ namespace angelo94
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl av_74D680(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2592540);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x2592540));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2410,14 +2432,14 @@ namespace angelo94
 				do
 				{
 					av_74BF60(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x2592540);
+					dir = MEM<uint32_t>(R(0x2592540));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				av_74BF60(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x2592540);
+				dir = MEM<uint32_t>(R(0x2592540));
 			}
 		}
 		return 0; // void
@@ -2459,7 +2481,7 @@ namespace angelo94
 		{
 			// 30 fps layer: see mag094_angelo_reverse_held.inc
 			FX_HELD(held_note_draw(HK_ANGELO, node);)
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, 0x2591960, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_746C10(node, R(0x2591960), MEM<uint32_t>(R(PACKET_CURSOR)));
 		}
 		const int32_t py = S16(node, 0x4E);
 		const int32_t px = S16(node, 0x4C);
@@ -2492,7 +2514,7 @@ namespace angelo94
 		U32(node, 0x118) = 0x1000;
 		U32(node, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(node, 0);
-		x::BdPlaySE(0x1533E80, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PV().sounds.jump, SOUND_A), 0, 0x80);
 		gx::BdPlayStream(0x16B62B0, 0x80, 1, 0x7F);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0; // void
@@ -2538,7 +2560,7 @@ namespace angelo94
 	// +0x78 = (s16) a4, +0x80 = a5, +0x82 = a6; returns the node
 	uint32_t __cdecl av_74DB60(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2591288, a2, 0x17C, a1);
+		const uint32_t t = Spawn(R(0x2591288), a2, 0x17C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -2599,7 +2621,7 @@ namespace angelo94
 		S32(L, 0x1C) = S16(node, 0x20);
 		x::ComposeAffineTransform(0x1D97778, L, L);
 		U16(L, 0x54) = U16(node, 0x86);
-		U32(L, 0x48) = MEM<uint32_t>(0x2592524);
+		U32(L, 0x48) = MEM<uint32_t>(R(0x2592524));
 		U32(L, 0x44) = U32(node, 0x7C);
 		U16(L, 0x4C) = U16(node, 0x8C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -2711,7 +2733,7 @@ namespace angelo94
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);   // colour
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
@@ -2724,7 +2746,7 @@ namespace angelo94
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = av_748B90(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = av_748B90(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -2831,7 +2853,7 @@ namespace angelo94
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl av_74E210(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1533E7C);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2846,6 +2868,23 @@ namespace angelo94
 	}
 
 	// ---- generated (desc94.py / cls94.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Angelo jumping in by the target, the actor system, the stage light, the particles falling onto the target; the revival" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "Angelo jumping in, the revival" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.jump", "Jump", "", (uint32_t)offsetof(ReverseParams, sounds.jump), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.revive", "Revive", "", (uint32_t)offsetof(ReverseParams, sounds.revive), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.sound", "Revive sound frame", "The revival's sound from this frame of the director", (uint32_t)offsetof(ReverseParams, director.sound), fxp::I16, 0, 0x200 },
+			{ "director", "director.damage", "Revive frame", "The done flag (the revival) from this frame of the director", (uint32_t)offsetof(ReverseParams, director.damage), fxp::I16, 0, 0x200 },
+		};
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x747910, (void *)a_73A0D0, "094 MAG_094_sub_747910" },
@@ -2968,6 +3007,11 @@ namespace angelo94
 
 	void register_mag094_angelo_reverse()
 	{
+		fxp::register_params({ 94, "Angelo Reverse", &act::angelo94::live, &act::angelo94::GAME, sizeof(act::angelo94::ReverseParams),
+		                       act::angelo94::table::PARTS, (int)(sizeof(act::angelo94::table::PARTS) / sizeof(act::angelo94::table::PARTS[0])),
+		                       act::angelo94::table::FIELDS, (int)(sizeof(act::angelo94::table::FIELDS) / sizeof(act::angelo94::table::FIELDS[0])),
+		                       act::angelo94::table::GROUPS, (int)(sizeof(act::angelo94::table::GROUPS) / sizeof(act::angelo94::table::GROUPS[0])) });
+		act::register_mod(&act::angelo94::MOD_094);
 		act::register_module(94);
 		for (const act::angelo94::ModPort *p = act::angelo94::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(94, p->addr, p->port, p->name);
@@ -2976,6 +3020,7 @@ namespace angelo94
 		// 30 fps layer: see mag094_angelo_reverse_held.inc
 		FX_HELD(register_mag094_held();)
 	}
+	FX_LAB_MODULE(register_mag094_angelo_reverse);
 }
 
 #ifdef FF8_FX_HELD

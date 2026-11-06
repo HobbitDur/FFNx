@@ -36,8 +36,14 @@
 // texture file / base, effect camera, context, root pool, packet cursor 0x2543DAC, queues);
 // pools, debris and the morph vertex buffer are in the magic buffer; the shard meshes are exe
 // data (0x130E55C..0x131159C) rewritten at frame 28.
+// Fujin's described Thundaga (effect_105.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (ThundagaParams: the sound, the
+// bolt's damage frame).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -47,20 +53,21 @@ namespace thundaga105
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543D4C); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2543D88); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543DAC); }
-	inline uint32_t &Arena2() { return var<uint32_t>(0x2543CF0); }          // second arena (offscreen model render)
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2543CF4); }        // screen flash, max of the bolts
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2543D68); }
-	inline TaskQueue &RootQueue() { return var<TaskQueue>(0x2543DE0); }
-	inline TaskQueue &BoltQueue() { return var<TaskQueue>(0x2543DD0); }     // pool: magic buffer, 3 x 0x884
-	inline TaskQueue &ShardQueue() { return var<TaskQueue>(0x2543DC0); }    // pool: + 0x198C, 0xE x 0x3C
-	inline TaskQueue &SparkQueue() { return var<TaskQueue>(0x2543DB0); }    // pool: + 0x1CD4, 0x20 x 0x2C
-	static uint8_t *const PRIM_Env = (uint8_t *)0x2543CF8;    // DR_ENV of the offscreen render
-	static uint8_t *const PRIM_Offset = (uint8_t *)0x2543D40; // draw offset
-	static int16_t *const RECT_Offset = (int16_t *)0x2543D50;
-	static uint8_t *const PRIM_Area = (uint8_t *)0x2543D58;   // draw area
+	inline uint8_t *&TexBase() { return var<uint8_t *>(own::R(0x2543D4C)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2543D88)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2543DAC)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2543D38)); }          // the effect's file (its TIM)
+	inline uint32_t &Arena2() { return var<uint32_t>(own::R(0x2543CF0)); }          // second arena (offscreen model render)
+	inline int32_t &FlashLevel() { return var<int32_t>(own::R(0x2543CF4)); }        // screen flash, max of the bolts
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(own::R(0x2543D68)); }
+	inline TaskQueue &RootQueue() { return var<TaskQueue>(own::R(0x2543DE0)); }
+	inline TaskQueue &BoltQueue() { return var<TaskQueue>(own::R(0x2543DD0)); }     // pool: magic buffer, 3 x 0x884
+	inline TaskQueue &ShardQueue() { return var<TaskQueue>(own::R(0x2543DC0)); }    // pool: + 0x198C, 0xE x 0x3C
+	inline TaskQueue &SparkQueue() { return var<TaskQueue>(own::R(0x2543DB0)); }    // pool: + 0x1CD4, 0x20 x 0x2C
+	inline uint8_t *PRIM_Env() { return (uint8_t *)own::R(0x2543CF8); }    // DR_ENV of the offscreen render
+	inline uint8_t *PRIM_Offset() { return (uint8_t *)own::R(0x2543D40); } // draw offset
+	inline int16_t *RECT_Offset() { return (int16_t *)own::R(0x2543D50); }
+	inline uint8_t *PRIM_Area() { return (uint8_t *)own::R(0x2543D58); }   // draw area
 
 	static const uint32_t ORIG_RootTask = 0x6D3E50;
 	static const uint32_t ORIG_BoltTask = 0x6D43B0;
@@ -71,6 +78,24 @@ namespace thundaga105
 	static const uint32_t MODEL_Bolt = 0x13009C0;          // prim-model layout of the lightning
 	static const uint8_t *const BOLT_QuadParts = (const uint8_t *)0x1312660; // [object] != 0: UV-scrolled quads
 	static const void *const SOUND_Thundaga = (const void *)0x131265C;
+	static const uint32_t ORIG_FileLoader = 0x6D3DC0, ORIG_Setup = 0x6D3DB0;
+	static const uint32_t TEXTURE_NAME = 0x1312680, CAMERA = 0x1311720;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct ThundagaParams
+	{
+		uint32_t sound;                  // at the bolt's frame 0 (3D, at the target)
+		struct { int16_t damage; } bolt; // the damage (and the bolt's end) from this frame of the bolt
+		struct { uint32_t bolt; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark, flash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t at_130e55c, at_130e8e4, at_130ecb4, at_130eed4, at_130f18c, at_130f55c, at_130f824, at_130fadc, at_130fd94, at_131002c, at_131052c, at_13109dc, at_1310cdc, at_1310f8c; } model_data; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const ThundagaParams GAME = { 0x131265C, { 0x40 }, { MODEL_Bolt }, { 0x13115DC, 0x131136C }, { 0x130E55C, 0x130E8E4, 0x130ECB4, 0x130EED4, 0x130F18C, 0x130F55C, 0x130F824, 0x130FADC, 0x130FD94, 0x131002C, 0x131052C, 0x13109DC, 0x1310CDC, 0x1310F8C }, { TEXTURE_NAME, CAMERA } };
+	static ThundagaParams live = GAME;
+	static const ThundagaParams &P() { return live; }
 	static const uint32_t SEQ_Spark = 0x13115DC;
 	static const uint32_t SEQ_Flash = 0x131136C;
 	static const int DEBRIS_COUNT = 0x136;
@@ -473,6 +498,28 @@ namespace thundaga105
 	// ------------------------------------------------------------------
 	// Root task (0x6D3E50)
 	// ------------------------------------------------------------------
+	// File loader (0x6D3DC0) and setup (0x6D3DB0 -> 0x6D3DE0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the magic buffer, the cast, the root, the camera and the texture
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint8_t *)layouts::MagicBuffer();
+		Ctx() = ctx;
+		InitTaskQueuePool(&RootQueue(), (void *)own::R(0x2543D90), 0x1C, 1);
+		Memset32(AddTaskToQueue(&RootQueue(), own::Fn(ORIG_RootTask)) + 1, 0, 4);
+		if ((ctx->flags & 1) == 0)
+		{
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+			QueueTimUpload(TexFile());
+		}
+		return &RootQueue();
+	}
+
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -506,7 +553,7 @@ namespace thundaga105
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				BoltNode *b = (BoltNode *)AddTaskToQueue(&BoltQueue(), ORIG_BoltTask);
+				BoltNode *b = (BoltNode *)AddTaskToQueue(&BoltQueue(), own::Fn(ORIG_BoltTask));
 				if (b)
 				{
 					FillDwords(&b->counter, 0, 0x21E);
@@ -514,7 +561,7 @@ namespace thundaga105
 					b->entity = entity;
 					b->colour = *(uint32_t *)(entity + 0x28);
 					b->scale = (((int32_t)*(int16_t *)(entity + 0x26) >> 1) + 0xE86) >> 1;
-					DecodeModelPrimLayout(MODEL_Bolt, b->layout, 0x868);
+					DecodeModelPrimLayout(fxp::layout(P().layouts.bolt, MODEL_Bolt, 0x868), b->layout, 0x868);
 					r->last_bolt = b;
 					r->action++;
 				}
@@ -543,7 +590,7 @@ namespace thundaga105
 			if (!bolts && !shards && !sparks && !debris && r->action > Ctx()->actions[0].last_action)
 			{
 				if (Ctx()->flags & 2) return TASK_END;
-				WaitNode *w = (WaitNode *)AddTaskToQueue(&SparkQueue(), ORIG_WaitTexRestore);
+				WaitNode *w = (WaitNode *)AddTaskToQueue(&SparkQueue(), own::Fn(ORIG_WaitTexRestore));
 				FillDwords(&w->counter, (uint32_t)shards, 8);
 				r->state = 2;
 			}
@@ -929,7 +976,7 @@ namespace thundaga105
 	// the anchor + its centre, falling
 	static void ShardSpawn(const int16_t *anchor, uint8_t *dst, const uint8_t *src, int16_t *all)
 	{
-		ShardNode *s = (ShardNode *)AddTaskToQueue(&ShardQueue(), ORIG_ShardTask);
+		ShardNode *s = (ShardNode *)AddTaskToQueue(&ShardQueue(), own::Fn(ORIG_ShardTask));
 		if (!s) return;
 		FillDwords(&s->life, 0, 0xC);
 		uint32_t left = *(uint32_t *)(dst + 4);
@@ -1087,7 +1134,7 @@ namespace thundaga105
 		{
 			int16_t q[4];
 			GetDefaultEffectPosition(p->entity, q);
-			BdPlaySE3D(SOUND_Thundaga, 0x101, q);
+			BdPlaySE3D((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Thundaga), 0x101, q);
 		}
 		if (p->counter == 3) ScreenFadeTask(0, 1, 0, 0x80);
 		else if (p->counter == 0x1E) ScreenFadeTask(1, 1, 6, 0x80);
@@ -1102,11 +1149,11 @@ namespace thundaga105
 			m.m[0][0] = s;
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			for (int k = 0; k < 14; k++) ShardSpawn(arg.pos, (uint8_t *)SHARD_MESH[k][0], (const uint8_t *)SHARD_MESH[k][1], all);
+			for (int k = 0; k < 14; k++) ShardSpawn(arg.pos, (uint8_t *)fxp::model((&P().model_data.at_130e55c)[k], SHARD_MESH[k][0]), (const uint8_t *)SHARD_MESH[k][1], all);
 			SetScreenFlash(0, 0);
 			// 30 fps layer: see mag105_thundaga_held.inc
 			FX_HELD(held_note_capture(arg.pos, all);)
-			CapturePrims prims = { PRIM_Env, PRIM_Area, PRIM_Offset, RECT_Offset, Arena2() };
+			CapturePrims prims = { PRIM_Env(), PRIM_Area(), PRIM_Offset(), RECT_Offset(), Arena2() };
 			CaptureDraw(arg.pos, all, prims);
 		}
 		if ((uint32_t)(p->counter - 0x22) < 8 && !((p->counter - 0x22) & 1))
@@ -1115,10 +1162,10 @@ namespace thundaga105
 			int32_t a = CrtRand();
 			for (int k = 8; k; k--, a += 0x200)
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(&SparkQueue(), ORIG_SparkTask);
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(&SparkQueue(), own::Fn(ORIG_SparkTask));
 				if (!s) continue;
 				FillDwords(&s->counter, 0, 8);
-				s->seq = SEQ_Spark;
+				s->seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
 				s->pos[0] = (int16_t)ComputeCos(a);
 				int16_t sn = (int16_t)ComputeSin(a);
 				s->pos[2] = sn;
@@ -1140,11 +1187,11 @@ namespace thundaga105
 			// a flash sprite somewhere in 0x800 around the target's centre
 			int16_t q[4];
 			GetDefaultEffectPosition(p->entity, q);
-			SpriteNode *f = (SpriteNode *)AddTaskToQueue(&SparkQueue(), ORIG_FlashTask);
+			SpriteNode *f = (SpriteNode *)AddTaskToQueue(&SparkQueue(), own::Fn(ORIG_FlashTask));
 			if (f)
 			{
 				FillDwords(&f->counter, 0, 8);
-				f->seq = SEQ_Flash;
+				f->seq = fxp::sequence(P().seqs.flash, SEQ_Flash);
 				f->pos[0] = (int16_t)((CrtRand() & 0x7FF) + q[0] - 0x400);
 				f->pos[1] = (int16_t)((CrtRand() & 0x7FF) + q[1] - 0x400);
 				int32_t rz = CrtRand() & 0x7FF;
@@ -1153,7 +1200,7 @@ namespace thundaga105
 				f->pos[2] = (int16_t)(rz + q[2] - 0x400);
 			}
 		}
-		if (p->counter >= 0x40)
+		if (p->counter >= P().bolt.damage)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
 			return TASK_END;
@@ -1267,19 +1314,62 @@ namespace thundaga105
 		p->counter++;
 		return p->counter < p->end ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "bolt", "Bolt", "One bolt an action on its first target: the lightning's prim-model play, the target flashed white, the screen flash, the screen shattering into shards and debris, the spark rings and flash sprites, the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "bolt", "sound", "Sound", "", (uint32_t)offsetof(ThundagaParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "bolt", "bolt.damage", "Damage frame", "The damage (and the bolt's end) from this frame of the bolt", (uint32_t)offsetof(ThundagaParams, bolt.damage), fxp::I16, 0, 200 },
+			{ "bolt", "layouts.bolt", "Bolt", "The prim-model layout bolt (its models' animation)", (uint32_t)offsetof(ThundagaParams, layouts.bolt), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 12 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundagaParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(ThundagaParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130e55c", "Model 130E55C", "The prim model at 0x130E55C (a mesh of 14 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130e55c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130e8e4", "Model 130E8E4", "The prim model at 0x130E8E4 (a mesh of 15 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130e8e4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130ecb4", "Model 130ECB4", "The prim model at 0x130ECB4 (a mesh of 9 vertices, 14 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130ecb4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130eed4", "Model 130EED4", "The prim model at 0x130EED4 (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130eed4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130f18c", "Model 130F18C", "The prim model at 0x130F18C (a mesh of 15 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130f18c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130f55c", "Model 130F55C", "The prim model at 0x130F55C (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130f55c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130f824", "Model 130F824", "The prim model at 0x130F824 (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130f824), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130fadc", "Model 130FADC", "The prim model at 0x130FADC (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130fadc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_130fd94", "Model 130FD94", "The prim model at 0x130FD94 (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_130fd94), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_131002c", "Model 131002C", "The prim model at 0x131002C (a mesh of 19 vertices, 34 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_131002c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_131052c", "Model 131052C", "The prim model at 0x131052C (a mesh of 18 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_131052c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_13109dc", "Model 13109DC", "The prim model at 0x13109DC (a mesh of 12 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_13109dc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_1310cdc", "Model 1310CDC", "The prim model at 0x1310CDC (a mesh of 11 vertices, 18 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_1310cdc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "model_data.at_1310f8c", "Model 1310F8C", "The prim model at 0x1310F8C (a mesh of 15 vertices, 26 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(ThundagaParams, model_data.at_1310f8c), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolt", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(ThundagaParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "bolt", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(ThundagaParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag105_thundaga()
 	{
+		fxp::register_params({ 105, "Thundaga", &thundaga105::live, &thundaga105::GAME, sizeof(thundaga105::ThundagaParams),
+		                       thundaga105::table::PARTS, (int)(sizeof(thundaga105::table::PARTS) / sizeof(thundaga105::table::PARTS[0])),
+		                       thundaga105::table::FIELDS, (int)(sizeof(thundaga105::table::FIELDS) / sizeof(thundaga105::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(thundaga105::ORIG_FileLoader, (void *)thundaga105::FileLoader);
+		own::note(thundaga105::ORIG_Setup, (void *)thundaga105::Setup);
+		own::note(thundaga105::ORIG_RootTask, (void *)thundaga105::RootTask);
 		register_port(thundaga105::ORIG_RootTask, (void *)thundaga105::RootTask, "T105 RootTask", 105);
+		own::note(thundaga105::ORIG_WaitTexRestore, (void *)thundaga105::WaitTexRestore);
 		register_port(thundaga105::ORIG_WaitTexRestore, (void *)thundaga105::WaitTexRestore, "T105 WaitTexRestore", 105);
+		own::note(thundaga105::ORIG_BoltTask, (void *)thundaga105::BoltTask);
 		register_port(thundaga105::ORIG_BoltTask, (void *)thundaga105::BoltTask, "T105 BoltTask", 105);
+		own::note(thundaga105::ORIG_ShardTask, (void *)thundaga105::ShardTask);
 		register_port(thundaga105::ORIG_ShardTask, (void *)thundaga105::ShardTask, "T105 ShardTask", 105);
+		own::note(thundaga105::ORIG_SparkTask, (void *)thundaga105::SparkTask);
 		register_port(thundaga105::ORIG_SparkTask, (void *)thundaga105::SparkTask, "T105 SparkTask", 105);
+		own::note(thundaga105::ORIG_FlashTask, (void *)thundaga105::FlashTask);
 		register_port(thundaga105::ORIG_FlashTask, (void *)thundaga105::FlashTask, "T105 FlashTask", 105);
 		// 30 fps layer: see mag105_thundaga_held.inc
 		FX_HELD(register_mag105_held();)
 	}
+	FX_LAB_MODULE(register_mag105_thundaga);
 }
 
 #ifdef FF8_FX_HELD
