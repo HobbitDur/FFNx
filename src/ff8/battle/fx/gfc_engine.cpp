@@ -282,6 +282,9 @@ namespace part_core
 	// matrix, back colour, light matrix [x parent node if bit 7] scaled by the bone colour
 	// bytes x 32), alternate packet pool when bone+0x4C & 1, then DrawHandlerTable[bone+0x1C].
 	// ----------------------------------------------------------------------------------------
+#ifdef FF8_FX_LAB
+	int g_bone_program[256];    // lab: each bone's program, as an offset in the .00 (SpawnBone)
+#endif
 	static void Dispatch()
 	{
 		U32(WS(), 0) = 0;
@@ -295,6 +298,9 @@ namespace part_core
 			uint8_t *b = PTR(CTX(), 0x90) + ((uint32_t)U8(rt, 0x42) << 8);
 			CUR() = b;
 			U32(rt, 0x4C) = U32(rt, 0x38) + 4 * (U16(b, 0x48) & 0xFFF);
+#ifdef FF8_FX_LAB
+			if (C().tag_parts) FX_PART(g_bone_program[id]);
+#endif
 			if (C().lit_dispatcher)
 			{
 				int32_t slot = S8(CUR(), 0xE1);
@@ -341,6 +347,9 @@ namespace part_core
 			id = DRAWORDER()[U32(WS(), 0)];
 			if (id == 0xFF) break;
 		}
+#ifdef FF8_FX_LAB
+		if (C().tag_parts) FX_PART(0);
+#endif
 	}
 }
 
@@ -2830,6 +2839,9 @@ namespace part_vm_c
 		ORDER()[pos] = (uint8_t)id; // overwrites the terminator (no new 0xFF is written)
 		uint8_t *st = STREAM();
 		PTR(bone, 0) = st + S16(st, 2);
+#ifdef FF8_FX_LAB
+		part_core::g_bone_program[id & 0xFF] = (int)(st + S16(st, 2) - RESFILE()[0]);
+#endif
 		U16(SCENE(), 0x18) = (uint16_t)(U16(SCENE(), 0x18) + 1);
 		blob::InitBone(id);
 		U32(bone, 0x5C) = U32(CUR(), 0x5C);

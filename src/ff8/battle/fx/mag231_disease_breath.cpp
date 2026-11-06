@@ -79,6 +79,7 @@ namespace disease231
 		c.load_cb = 0xA6C5F0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------
