@@ -16,8 +16,7 @@
 
 #include "battle_memory.h"
 
-#include "../../patch.h"
-#include "../../log.h"
+#include "battle_host.h"
 
 #include <stdint.h>
 #include <string.h>

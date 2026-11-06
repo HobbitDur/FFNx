@@ -41,9 +41,7 @@
 
 #include "fx_port.h"
 #include "fx_modules.h"
-#include "../../../patch.h"
-#include "../../../log.h"
-#include "../../../cfg.h"
+#include "../battle_host.h"
 
 #include <windows.h>
 #include <dbghelp.h>

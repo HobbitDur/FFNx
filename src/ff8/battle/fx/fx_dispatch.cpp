@@ -38,10 +38,7 @@
 // runs exec_plain, the same executor in plain C++ on the current stack.
 
 #include "fx_port.h"
-#include "../../../patch.h"
-#include "../../../log.h"
-#include "../../../cfg.h"
-#include "../../../common.h"
+#include "../battle_host.h"
 
 namespace ff8fx
 {

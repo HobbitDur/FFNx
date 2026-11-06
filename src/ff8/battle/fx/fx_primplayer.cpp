@@ -36,8 +36,7 @@
 // For every object the player fills a 44-byte record and calls cb(layout, record, arg).
 
 #include "fx_port.h"
-#include "../../../patch.h"
-#include "../../../log.h"
+#include "../battle_host.h"
 
 #ifdef FF8_FX_HELD
 #include "fx_primplayer_held.h"

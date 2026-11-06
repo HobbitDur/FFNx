@@ -23,7 +23,7 @@
 #include "act_engine.h"
 #include <utility>
 #if __has_include("../../../log.h")
-#include "../../../log.h"
+#include "../battle_host.h"
 #else
 #define ffnx_error(...) ((void)0)   // (built outside FFNx: Fujin's effect lab and host)
 #endif
