@@ -2,6 +2,19 @@
 
 - Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.1...master
 
+## FF7
+
+- Core: Preserve timer and numeric-display window geometry when `ff7_field_autosize_text_box` is enabled
+- Core: Fix FMV model culling with `enable_uncrop` disabled in 4:3 mode ( https://github.com/julianxhokaxhiu/FFNx/issues/830 )
+
+## FF8
+
+- External textures: Reduce battle and magic loading hitches by loading classic palettes on demand and avoiding repeated virtual archive metadata checks ( https://github.com/julianxhokaxhiu/FFNx/issues/778 )
+- External textures: Fix custom controller icons not loading with `ff8_use_gamepad_icons` enabled due to an incorrect fallback to low-resolution icons
+- Core: Fix learned abilities past ID 127 being lost when loading a save ( https://github.com/julianxhokaxhiu/FFNx/pull/1058 )
+- Core: Fix world map draw points saying no one can draw when kernel.bin moves the Draw command ability ( https://github.com/julianxhokaxhiu/FFNx/pull/1058 )
+- Core: Fix AddMoreItems never starting since BattleAnimSetFiles, kernel.bin extensions now start without checking the game code ( https://github.com/julianxhokaxhiu/FFNx/pull/1064 )
+
 # 1.25.1
 
 - Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.0...1.25.1

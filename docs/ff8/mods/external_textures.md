@@ -86,12 +86,21 @@ Path: `{mod_path}\battle\{filename with extension in FS archive}-0_00`
 
 Example: `.\mods\Textures\battle\A0STG101.X-0_00.dds`
 
-Decoded filesystem images used by battle and magic texture replacements are
-cached with a 128 MiB least-recently-used limit. Cache eviction does not unload
-active textures, and VRAM animation copies do not modify cached originals.
-The cache distinguishes source dimensions, resolution/LOD settings, color
-modifiers, and file size/timestamps. Remastered archive images retain their
-existing loading path.
+Battle and magic texture replacements using the classic palette layout load
+the first usable palette as a fallback, then resolve and decode other palettes
+only when used. VRAM animation copies still load all palettes they modify.
+Remastered atlas images retain their existing loading path.
+
+Decoded filesystem images are cached with a 128 MiB least-recently-used limit.
+Cache eviction does not unload active textures, and VRAM animation copies do not
+modify cached originals. The cache distinguishes paths, source dimensions,
+resolution/LOD settings, edition, and color modifiers.
+
+Battle and magic file lookup results are also cached, with a 4096-path limit.
+Cache hits do not check file timestamps: metadata probes can extract entire
+files through virtual mod archives. Restart the game after adding, removing,
+or replacing mod textures. A first use or an evicted image can still require
+synchronous decoding; this does not preload every spell.
 
 ## Worldmap
 
@@ -167,7 +176,7 @@ Some mobile models.
 | texture11_00 | Galbadia military car   |
 | texture12_00 | Unknown                 |
 | texture13_00 | Unknown                 |
-| texture14_00 | Unknown                 |
+| texture14_00 | Dollet assault boat     |
 | texture15_00 | Unknown                 |
 | texture16_00 | Unknown                 |
 | texture17_00 | Green car               |
@@ -186,6 +195,10 @@ Some mobile models.
 | texture30_00 | Jumbo Cactuar           |
 | texture31_00 | Rocks                   |
 | texture32_00 | City barrier disk 4     |
+
+In Remastered, the Dollet assault boat uses `textures\field.fs\field_hd_new\wmset_014_0.png`
+as a replacement for the entire 256x256 VRAM page 15, not just the original `texture14`
+TIM rectangle. Its updated model uses UV coordinates outside that original rectangle.
 
 ### texl.obj
 
@@ -214,6 +227,12 @@ Path: `{mod_path}\world\esk\chara_one\model{model number}-{texture number}_00`
 Path: `{mod_path}\data\{lang}\menu`
 
 **Note:** this can change in the future for more consistency with other modules.
+
+With `ff8_use_gamepad_icons = true`, high-resolution controller replacements use
+`hires\iconfl01_04.dds` and `hires\iconfl03_04.dds` under this path.
+All four original high-resolution icon pages must load successfully; otherwise
+FFNx logs a warning and falls back to low-resolution icons, which do not use
+these replacements.
 
 ## Field
 
