@@ -401,6 +401,8 @@ namespace ff8fx { void fx_part(int id); }   // the lab records where each part s
 // the lab with its tick for the tools to show (Fujin's geometry view); nothing in the game
 namespace ff8fx { void fx_note(const char *name, int32_t value); }
 #define FX_NOTE(name, value) ff8fx::fx_note(name, (int32_t)(value))
+// where something of a part is on screen this tick (id: which one of the part), for the tools to draw its path
+namespace ff8fx { void fx_place(int part, uint32_t id, int x, int y); }
 namespace ff8fx
 {
 namespace fxp

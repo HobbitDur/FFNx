@@ -284,6 +284,17 @@ namespace part_core
 	// ----------------------------------------------------------------------------------------
 #ifdef FF8_FX_LAB
 	int g_bone_program[256];    // lab: each bone's program, as an offset in the .00 (SpawnBone)
+	// lab: where a position of the parent matrix `m` lands on screen (GTE state: what draws next loads its own)
+	void LabPlace(int part, uint32_t id, const uint8_t *m, const uint8_t *position)
+	{
+		int16_t screen[2];
+		x::SetRotMatrix((uint8_t *)m);
+		x::SetTransVector((uint8_t *)m);
+		x::GteLoadV0((uint8_t *)position);
+		x::GteRTPS();
+		x::GteReadSXY2(screen);
+		ff8fx::fx_place(part, id, screen[0], screen[1]);
+	}
 #endif
 	static void Dispatch()
 	{
@@ -299,7 +310,11 @@ namespace part_core
 			CUR() = b;
 			U32(rt, 0x4C) = U32(rt, 0x38) + 4 * (U16(b, 0x48) & 0xFFF);
 #ifdef FF8_FX_LAB
-			if (C().tag_parts) FX_PART(g_bone_program[id]);
+			if (C().tag_parts)
+			{
+				FX_PART(g_bone_program[id]);
+				LabPlace(g_bone_program[id] | 0x10000, id, (const uint8_t *)blob::GetParentMatrix(U16(b, 0x9C)), b + 0x94); // the bone itself: 0x10000 + its part
+			}
 #endif
 			if (C().lit_dispatcher)
 			{
@@ -6636,6 +6651,16 @@ namespace part_draw_sprite
 					C().ptype[S8(p, 0x37)]();
 				}
 				if (U32(p, 0x30) == 0) goto next;
+#ifdef FF8_FX_LAB
+				if (C().tag_parts)
+				{
+					// which particle: its slot's last emission (the pool's counter, EmitParticle)
+					const int32_t count = U16(pool, 0), last = (int32_t)U16(pool, 2) - 1, at = (int32_t)((p - pool - 0x10) / 0x50);
+					const uint8_t id = U8(RT(), 0x42);
+					part_core::LabPlace(part_core::g_bone_program[id], ((uint32_t)id << 16) | (uint32_t)(last - ((last - at) % count)),
+					                    PTR(WS(), 0x30), WS() + 0xA0);
+				}
+#endif
 				// --- draw ---
 				{
 					uint8_t *m = PTR(WS(), 0x30);
