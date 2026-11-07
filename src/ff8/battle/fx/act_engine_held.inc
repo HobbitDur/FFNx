@@ -496,14 +496,20 @@ namespace act
 	static uint8_t g_nt_pool_pk[0x40000];
 	static void held_draw_node_tasks(const HeldDesc &d, int num, int den)
 	{
+		// one position for all the tasks: a packet in the frame's chain twice can loop the chain and hang the draw
+		uint32_t pool_pk = P(g_nt_pool_pk);
 		for (const HeldNodeTask *t = d.node_tasks; t && t->task; t++)
 		{
 			const uint32_t pool = t->cursor ? MEM<uint32_t>(t->cursor) : 0;
-			if (t->cursor) MEM<uint32_t>(t->cursor) = P(g_nt_pool_pk);
+			if (t->cursor) MEM<uint32_t>(t->cursor) = pool_pk;
 			for (uint32_t node = t->queue() ? MEM<uint32_t>(t->queue()) : 0; node; node = U32(node, 4))
 				if (U32(node, 8) == t->task && U16(node, 0x24) != 0)
 					held_draw_node_task(*t, node, num, den);
-			if (t->cursor) MEM<uint32_t>(t->cursor) = pool;
+			if (t->cursor)
+			{
+				pool_pk = MEM<uint32_t>(t->cursor);
+				MEM<uint32_t>(t->cursor) = pool;
+			}
 		}
 	}
 

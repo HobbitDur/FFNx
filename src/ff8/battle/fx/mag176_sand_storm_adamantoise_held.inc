@@ -72,7 +72,7 @@ namespace sandstorm176
 	static uint8_t g_held_arena[ARENA];
 	static uint8_t g_held_rings[RINGS_BYTES];
 	static uint8_t g_next_rings[RINGS_BYTES];
-	static uint8_t g_held_packets[PACKETS_BYTES];
+	static uint8_t g_held_packets[2][PACKETS_BYTES]; // one per funnel: a packet in the frame's chain twice can loop the chain and hang the draw
 
 	static void held_save_gte(HeldItem &it)
 	{
@@ -244,8 +244,9 @@ namespace sandstorm176
 		SetRotW((uint32_t)&m);
 		SetTransW((uint32_t)&m);
 		memcpy(var<uint8_t *>(0x1D999C4), it.scratch, SCRATCH);
-		memcpy(g_held_packets, (const void *)(S16(f, 0xE) != 0 ? PACKETS_B : PACKETS_A), PACKETS_BYTES);
-		FunnelDraw((uint32_t)g_held_rings, (uint32_t)g_held_packets, angle, alpha);
+		uint8_t *packets = g_held_packets[S16(f, 0xE) != 0 ? 1 : 0];
+		memcpy(packets, (const void *)(S16(f, 0xE) != 0 ? PACKETS_B : PACKETS_A), PACKETS_BYTES);
+		FunnelDraw((uint32_t)g_held_rings, (uint32_t)packets, angle, alpha);
 	}
 
 	static void HeldSand(const HeldItem &it, int num, int den)
