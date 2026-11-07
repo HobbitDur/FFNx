@@ -49,9 +49,10 @@
 // Built from the parts library (fx_barrier.h): the barrier's frame (BarrierFrame), the hexagons'
 // climbing centre (BarrierCenter), the scrolling wall (WallDraw, WallHeight, WallFade, its height
 // range measured from the model as _Init does), the orbiting hexagons (OrbitDraw), the growing
-// rings (GrowthDraw, GrowthStep), the dead beams' shared rands (DeadBeams: the beam task and its
-// list executor are not ported, they never run anything). Parameters (ReflectParams, fx_params.h):
-// the numbers above, defaults = the game's; the parts are tagged (FX_PART).
+// rings (GrowthDraw, GrowthStep), the dead beams (DeadBeams, DeadBeamsRun: their nodes and the list's
+// sprite header are written as the original does, the beam task is not ported, it never runs).
+// Parameters (ReflectParams, fx_params.h): the numbers above, defaults = the game's; the parts are
+// tagged (FX_PART).
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -69,11 +70,12 @@ namespace reflect106
 	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2523B78); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543C98); }
+	inline uint8_t *&BeamHeader() { return var<uint8_t *>(0x2523C94); }     // sprite header of the beam list (per tick)
 	inline TaskQueue *QBarriers() { return (TaskQueue *)0x2543CB0; }        // pool 0x2521BB8, 3 x 0x5C
+	inline TaskQueue *QBeams() { return (TaskQueue *)0x2543CC0; }           // pool 0x2521F78, 0x100 x 0x1C (never linked)
 	inline TaskQueue *QHexagons() { return (TaskQueue *)0x2543CD0; }        // pool 0x2521CD0, 0x18 x 0x1C
 	inline TaskQueue *QRings() { return (TaskQueue *)0x2543CE0; }           // pool 0x2523B80, 9 x 0x1C
 	static const uint32_t POOL_Barriers = 0x2521BB8;
-	static const uint32_t POOL_Beams = 0x2521F78;      // 0x100 x 0x1C (the dead beams' nodes)
 	static const uint32_t ARENA_0 = 0x2523C98;
 	static const uint32_t ARENA_1 = 0x2533C98;
 
@@ -81,6 +83,8 @@ namespace reflect106
 	static const uint32_t ORIG_HexagonTask = 0x6D2F30;
 	static const uint32_t ORIG_BarrierTask = 0x6D3160;
 	static const uint32_t ORIG_RingTask = 0x6D3AF0;
+	static const uint32_t ORIG_BeamTask = 0x6D3C50;   // stored in the beams' nodes, never run
+	static const uint32_t SEQ_Beam = 0x12F99D4;
 	static const uint32_t MODEL_Wall = 0x12F9B80;     // +4 vertex count, +8 vertices (8 bytes: x, y, z, pad)
 	static const uint32_t MODEL_Hexagon = 0x12FBAA0;
 	static const uint32_t MODEL_Ring = 0x12FBB78;
@@ -157,19 +161,11 @@ namespace reflect106
 		uint8_t pad0F;
 		uint32_t arena;   // +0x10 packet arena parity
 	};
-	struct BarrierNode // pool 0x2521BB8, 3 x 0x5C
-	{
-		TaskNode hdr;
-		int16_t frame;      // +0x0C
-		int16_t action;     // +0x0E action index
-		uint8_t *entity;    // +0x10 first target of the action
-		Barrier b;          // +0x14 its frame, view and the hexagons' centre
-	};
 	struct HexagonNode // pool 0x2521CD0, 0x18 x 0x1C
 	{
 		TaskNode hdr;
 		int16_t counter;  // +0x0C
-		Orbit o;          // +0x0E (its parent: the barrier's frame, the original's node)
+		Orbit o;          // +0x0E
 	};
 	struct RingNode // pool 0x2523B80, 9 x 0x1C
 	{
@@ -178,7 +174,7 @@ namespace reflect106
 		Growth g;         // +0x0E
 	};
 #pragma pack(pop)
-	static_assert(sizeof(DirectorNode) == 0x14 && sizeof(BarrierNode) == 0x5C, "Reflect nodes");
+	static_assert(sizeof(DirectorNode) == 0x14, "Reflect nodes");
 	static_assert(sizeof(HexagonNode) == 0x1C && sizeof(RingNode) == 0x1C, "Reflect nodes");
 
 	// Thunder_InitBoltTask (0x6DA380): fill `count` dwords
@@ -247,7 +243,7 @@ namespace reflect106
 		{
 			BarrierCenter(MODEL_Wall, b->frame, pp.hexagons.climb_steps, pp.hexagons.climb_ticks, b->b.center);
 			// the beams: vanilla dead code (their nodes never linked: see fx_barrier.h DeadBeams)
-			DeadBeams(POOL_Beams, 0x1C, 0x100, pp.beams.count);
+			DeadBeams(QBeams(), ORIG_BeamTask, pp.beams.count, b);
 		}
 		const int32_t e = b->frame - pp.wall.from;
 		if ((uint32_t)e < (uint32_t)pp.wall.ticks)
@@ -264,7 +260,7 @@ namespace reflect106
 				if (g)
 				{
 					FillDwords(&g->counter, 0, 4);
-					g->g.parent = &b->b;
+					g->g.parent = b;
 					g->g.height = (int16_t)(mul32((int16_t)height, scale) >> 12);
 					g->g.scale = pp.rings.scale;
 					g->g.speed = pp.rings.speed;
@@ -339,7 +335,7 @@ namespace reflect106
 						HexagonNode *x = (HexagonNode *)AddTaskToQueue(QHexagons(), ORIG_HexagonTask);
 						if (!x) continue;
 						FillDwords(&x->counter, 0, 4);
-						x->o.parent = &b->b;
+						x->o.parent = b;
 						x->o.tilt = hp.tilt;
 						x->o.angle = (int16_t)angle;
 						x->o.dangle = hp.turn;
@@ -353,7 +349,7 @@ namespace reflect106
 		const int barriers = ExecuteTaskQueue(QBarriers());
 		const int hexagons = ExecuteTaskQueue(QHexagons());
 		const int rings = ExecuteTaskQueue(QRings());
-		// (the beam list, never linked, runs nothing: its executor 0x6D2E50 only allocates a sprite header)
+		DeadBeamsRun(BeamHeader(), SEQ_Beam, QBeams());
 		if (barriers == 0 && hexagons == 0 && rings == 0) return TASK_END;
 		d->counter++;
 		if (d->counter >= pp.timing.every) d->counter = 0;

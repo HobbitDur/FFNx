@@ -102,11 +102,11 @@ namespace aero118
 	{
 		const LeafNode &a = r.leaf;
 		// the next tick: its target task runs first (counter + 1 while it is alive)
-		const TargetNode *owner = (const TargetNode *)((const uint8_t *)a.leaf.owner_counter - offsetof(TargetNode, counter));
-		int16_t next_counter = owner->counter;
-		if (*(const uint8_t *)&owner->hdr.flags & 1) next_counter = (int16_t)(next_counter + 1);
+		const TargetNode *owner = (const TargetNode *)a.leaf.owner;
+		struct { TaskNode hdr; int16_t counter; } next_owner = { owner->hdr, owner->counter };
+		if (*(const uint8_t *)&owner->hdr.flags & 1) next_owner.counter = (int16_t)(next_owner.counter + 1);
 		LeafNode b = a;
-		b.leaf.owner_counter = &next_counter;
+		b.leaf.owner = &next_owner.hdr;
 		LeafNode m = a;
 		const AeroParams &pp = P();
 		if (WhirlLeafMove(&b.leaf, pp.leaves.climb, pp.leaves.speed_up))

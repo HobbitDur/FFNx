@@ -283,6 +283,25 @@ namespace part_core
 	// matrix, back colour, light matrix [x parent node if bit 7] scaled by the bone colour
 	// bytes x 32), alternate packet pool when bone+0x4C & 1, then DrawHandlerTable[bone+0x1C].
 	// ----------------------------------------------------------------------------------------
+#ifdef FF8_FX_LAB
+	int g_bone_program[256];    // lab: each bone's program, as an offset in the .00 (SpawnBone)
+	// lab: where a position of the parent matrix `m` lands on screen (GTE state: what draws next loads its own)
+	void LabPlace(int part, uint32_t id, const uint8_t *m, const uint8_t *position)
+	{
+		int16_t screen[2];
+		x::SetRotMatrix((uint8_t *)m);
+		x::SetTransVector((uint8_t *)m);
+		x::GteLoadV0((uint8_t *)position);
+		x::GteRTPS();
+		x::GteReadSXY2(screen);
+		const Mat4x3 *matrix = (const Mat4x3 *)m;
+		const int16_t *v = (const int16_t *)position;
+		int32_t view[3];
+		for (int i = 0; i < 3; i++)
+			view[i] = (int32_t)(((int64_t)matrix->m[i][0] * v[0] + (int64_t)matrix->m[i][1] * v[1] + (int64_t)matrix->m[i][2] * v[2]) >> 12) + matrix->t[i];
+		ff8fx::fx_place(part, id, screen[0], screen[1], view);
+	}
+#endif
 	static void Dispatch()
 	{
 		U32(WS(), 0) = 0;
@@ -296,6 +315,13 @@ namespace part_core
 			uint8_t *b = PTR(CTX(), 0x90) + ((uint32_t)U8(rt, 0x42) << 8);
 			CUR() = b;
 			U32(rt, 0x4C) = U32(rt, 0x38) + 4 * (U16(b, 0x48) & 0xFFF);
+#ifdef FF8_FX_LAB
+			if (C().tag_parts)
+			{
+				FX_PART(g_bone_program[id]);
+				LabPlace(g_bone_program[id] | 0x10000, id, (const uint8_t *)blob::GetParentMatrix(U16(b, 0x9C)), b + 0x94); // the bone itself: 0x10000 + its part
+			}
+#endif
 			if (C().lit_dispatcher)
 			{
 				int32_t slot = S8(CUR(), 0xE1);
@@ -342,6 +368,9 @@ namespace part_core
 			id = DRAWORDER()[U32(WS(), 0)];
 			if (id == 0xFF) break;
 		}
+#ifdef FF8_FX_LAB
+		if (C().tag_parts) FX_PART(0);
+#endif
 	}
 }
 
@@ -510,6 +539,15 @@ namespace part_core
 			m0[2] = v2; m0[3] = v3; m0[7] = v7; ma[2] = v2; ma[3] = v3; ma[6] = v6; ma[7] = v7;
 			U32(CTX(), 0x7C) = PKTCUR();
 		}
+#ifdef FF8_FX_LAB
+		if (C().tag_parts)
+		{
+			int32_t ofx, ofy;
+			x::GteReadCtrl(&ofx, 24);
+			x::GteReadCtrl(&ofy, 25);
+			ff8fx::fx_view(NODEMAT(), PROJH(), ofx >> 16, ofy >> 16);
+		}
+#endif
 		U32(CTX(), 0xD8) = U32(CTX(), 0xD4);
 		U32(CTX(), 0x88) = add32(mul32(S8(RT(), 0x40), S32(CTX(), 0x8C)), S32(CTX(), 0x84));
 		if (U8(CTX(), 1) & 0x80) x::ClearOT(U32(RT(), 0x38), 0x1000);
@@ -2839,6 +2877,9 @@ namespace part_vm_c
 		ORDER()[pos] = (uint8_t)id; // overwrites the terminator (no new 0xFF is written)
 		uint8_t *st = STREAM();
 		PTR(bone, 0) = st + S16(st, 2);
+#ifdef FF8_FX_LAB
+		part_core::g_bone_program[id & 0xFF] = (int)(st + S16(st, 2) - RESFILE()[0]);
+#endif
 		U16(SCENE(), 0x18) = (uint16_t)(U16(SCENE(), 0x18) + 1);
 		blob::InitBone(id);
 		U32(bone, 0x5C) = U32(CUR(), 0x5C);
@@ -6661,6 +6702,16 @@ namespace part_draw_sprite
 					C().ptype[S8(p, 0x37)]();
 				}
 				if (U32(p, 0x30) == 0) goto next;
+#ifdef FF8_FX_LAB
+				if (C().tag_parts)
+				{
+					// which particle: its slot's last emission (the pool's counter, EmitParticle)
+					const int32_t count = U16(pool, 0), last = (int32_t)U16(pool, 2) - 1, at = (int32_t)((p - pool - 0x10) / 0x50);
+					const uint8_t id = U8(RT(), 0x42);
+					part_core::LabPlace(part_core::g_bone_program[id], ((uint32_t)id << 16) | (uint32_t)(last - ((last - at) % count)),
+					                    PTR(WS(), 0x30), WS() + 0xA0);
+				}
+#endif
 				// --- draw ---
 				{
 					uint8_t *m = PTR(WS(), 0x30);

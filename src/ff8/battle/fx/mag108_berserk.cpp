@@ -194,7 +194,7 @@ namespace berserk108
 	{
 		TaskNode hdr;
 		int16_t counter;   // +0x0C
-		Ribbon r;          // +0x0E (its anchor: its main task's effect position, the original's main node)
+		Ribbon r;          // +0x0E (its owner: its main task, its point: that task's effect position)
 	};
 	struct ParticleNode // pool of 0x40 nodes of 0x1C bytes
 	{
@@ -238,7 +238,7 @@ namespace berserk108
 		const RibbonMotion mo = { sp.push_ticks, sp.per_tick, sp.step, sp.fade };
 		FX_PART(PART_SWIRLS);
 		// 30 fps layer: see mag108_berserk_held.inc
-		RibbonTick(&s->r, s->counter, mo, TEXWIN_Strip, TEXWIN_Reset, PacketCursor() FX_HELD(, held_note_swirl));
+		RibbonTick(&s->r, offsetof(MainNode, pos), s->counter, mo, TEXWIN_Strip, TEXWIN_Reset, PacketCursor() FX_HELD(, held_note_swirl));
 		FX_PART(0);
 		s->counter++;
 		if (s->counter > sp.end_after && s->r.count < 2) return TASK_END;
@@ -259,7 +259,7 @@ namespace berserk108
 			if (s)
 			{
 				Memset32(&s->counter, 0, 0x105);
-				RibbonStart(&s->r, m->pos, c0 * pp.swirls.angle_step + pp.swirls.angle, pp.swirls.amp);
+				RibbonStart(&s->r, &m->hdr, c0 * pp.swirls.angle_step + pp.swirls.angle, pp.swirls.amp);
 			}
 		}
 		int32_t e = m->counter - pp.flash.from;

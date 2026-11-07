@@ -136,7 +136,7 @@ namespace berserk108
 		if (g_nswirls >= (int)(sizeof(g_swirls) / sizeof(g_swirls[0]))) return;
 		Rec *r = NewRec(REC_SWIRL);
 		if (!r) return;
-		memcpy(r->pos, s->r.anchor, sizeof(r->pos));
+		memcpy(r->pos, ((const MainNode *)s->r.owner)->pos, sizeof(r->pos));
 		r->copy = g_nswirls++;
 		SwirlCopy &c = g_swirls[r->copy];
 		c.counter = s->counter;

@@ -54,7 +54,7 @@ namespace layouts
 		int16_t pad14;
 		int16_t amp;       // +0x08 radius wave amplitude
 		int32_t count;     // +0x0A positions
-		const int16_t *anchor; // +0x0E the point (the original: its main task, its point at +0x20)
+		const TaskNode *owner; // +0x0E its spawner's node (the original keeps this, not the point inside it)
 		RibbonEntry trail[32]; // +0x12
 	};
 	// the ribbon's stack frame (0x6D0C20 esp+0x10..): the basis's translation is the point
@@ -242,10 +242,10 @@ namespace layouts
 		}
 	}
 
-	// a new ribbon around `anchor`: its first angle, the wave amplitude of its radius
-	inline void RibbonStart(Ribbon *r, const int16_t *anchor, int32_t angle, int32_t amp)
+	// a new ribbon of `owner`: its first angle, the wave amplitude of its radius
+	inline void RibbonStart(Ribbon *r, const TaskNode *owner, int32_t angle, int32_t amp)
 	{
-		r->anchor = anchor;
+		r->owner = owner;
 		r->angle = (int16_t)angle;
 		r->pad12 = 0;
 		r->amp = (int16_t)amp;
@@ -253,15 +253,16 @@ namespace layouts
 
 	// one tick (`counter`) of a ribbon: over its first push_ticks + 1 ticks per_tick new positions a
 	// tick (position e: w = 1 - e / 24 of the way out, its radius waving with sin(w / 2)), then the
-	// ribbon drawn in a basis facing the camera from its point, its texture shifted by counter << 5
-	inline void RibbonTick(Ribbon *r, int32_t counter, const RibbonMotion &mo, const uint8_t *strip, const uint8_t *reset, uint32_t &cursor
+	// ribbon drawn in a basis facing the camera from its point (`point_at` bytes into its owner), its
+	// texture shifted by counter << 5
+	inline void RibbonTick(Ribbon *r, uint32_t point_at, int32_t counter, const RibbonMotion &mo, const uint8_t *strip, const uint8_t *reset, uint32_t &cursor
 	                       FX_HELD(, void (*held_note)(const Ribbon *) = nullptr))
 	{
 		RibbonFrame f = {};
 		// the point in camera space (the basis's translation)
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
-		GteLoadV0(r->anchor);
+		GteLoadV0((const int16_t *)((const uint8_t *)r->owner + point_at));
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123(f.basis.t);
 		for (int32_t i = 0; i < mo.per_tick; i++)

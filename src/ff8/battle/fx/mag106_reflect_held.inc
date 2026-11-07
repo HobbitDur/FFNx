@@ -91,11 +91,10 @@ namespace reflect106
 
 	static void held_note_hexagon(const HexagonNode *x)
 	{
-		Rec *r = NewRec(REC_HEXAGON, x->o.parent);
+		Rec *r = NewRec(REC_HEXAGON, &x->o.parent->b);
 		if (!r) return;
-		const Barrier *p = x->o.parent;
-		// (the barrier's frame is its node's, right before its Barrier b)
-		const int16_t frame = ((const BarrierNode *)((const uint8_t *)p - offsetof(BarrierNode, b)))->frame;
+		const Barrier *p = &x->o.parent->b;
+		const int16_t frame = x->o.parent->frame;
 		r->frame = x->counter;
 		r->a = x->o.angle;
 		r->b = x->o.tilt;
@@ -109,7 +108,7 @@ namespace reflect106
 
 	static void held_note_ring(const RingNode *g)
 	{
-		Rec *r = NewRec(REC_RING, g->g.parent);
+		Rec *r = NewRec(REC_RING, &g->g.parent->b);
 		if (!r) return;
 		r->frame = g->counter;
 		r->a = g->g.height;

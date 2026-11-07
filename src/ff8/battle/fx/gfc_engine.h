@@ -124,6 +124,7 @@ namespace gfc
 		                        // 0x2798219), passed to pre_LoadBattleFile by VM op 0x006
 		bool lit_dispatcher;    // BuildMatricesAndDraw loads the light sets (Ifrit, Leviathan)
 		int bone_count;         // BoneHandlerTable entries (Ifrit 18 = 13 handlers + data bytes; Eden 32)
+		bool tag_parts;         // lab: FX_PART(program offset in .00 of the bone drawing): a tool edits its script part by part
 		// port tables (filled by init_clone). The five handler tables are sub-ranges of one
 		// memory block (bone_table .. draw_table) exactly like the original, so an index past
 		// one sub-table reads the next one as vanilla does; entries that are not code keep the
