@@ -293,7 +293,12 @@ namespace part_core
 		x::GteLoadV0((uint8_t *)position);
 		x::GteRTPS();
 		x::GteReadSXY2(screen);
-		ff8fx::fx_place(part, id, screen[0], screen[1]);
+		const Mat4x3 *matrix = (const Mat4x3 *)m;
+		const int16_t *v = (const int16_t *)position;
+		int32_t view[3];
+		for (int i = 0; i < 3; i++)
+			view[i] = (int32_t)(((int64_t)matrix->m[i][0] * v[0] + (int64_t)matrix->m[i][1] * v[1] + (int64_t)matrix->m[i][2] * v[2]) >> 12) + matrix->t[i];
+		ff8fx::fx_place(part, id, screen[0], screen[1], view);
 	}
 #endif
 	static void Dispatch()
@@ -533,6 +538,15 @@ namespace part_core
 			m0[2] = v2; m0[3] = v3; m0[7] = v7; ma[2] = v2; ma[3] = v3; ma[6] = v6; ma[7] = v7;
 			U32(CTX(), 0x7C) = PKTCUR();
 		}
+#ifdef FF8_FX_LAB
+		if (C().tag_parts)
+		{
+			int32_t ofx, ofy;
+			x::GteReadCtrl(&ofx, 24);
+			x::GteReadCtrl(&ofy, 25);
+			ff8fx::fx_view(NODEMAT(), PROJH(), ofx >> 16, ofy >> 16);
+		}
+#endif
 		U32(CTX(), 0xD8) = U32(CTX(), 0xD4);
 		U32(CTX(), 0x88) = add32(mul32(S8(RT(), 0x40), S32(CTX(), 0x8C)), S32(CTX(), 0x84));
 		if (U8(CTX(), 1) & 0x80) x::ClearOT(U32(RT(), 0x38), 0x1000);
