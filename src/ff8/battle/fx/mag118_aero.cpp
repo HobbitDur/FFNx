@@ -206,7 +206,7 @@ namespace aero118
 			if (f)
 			{
 				Memset32(&f->leaf, 0, 0xC);
-				WhirlLeafStart(&f->leaf, t->action, t->pos, reach, &t->counter, pp.leaves.scale, pp.leaves.speed, pp.leaves.vy);
+				WhirlLeafStart(&f->leaf, t->action, t->pos, reach, &t->hdr, pp.leaves.scale, pp.leaves.speed, pp.leaves.vy);
 			}
 		}
 		t->counter++;

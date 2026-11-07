@@ -392,6 +392,14 @@ namespace layouts
 		int16_t center[3];  // +0x40 the hexagons' centre (x = 0, y / z along the wall model's vertices)
 		int16_t pad;
 	};
+	struct BarrierNode // a whole barrier node (0x5C): what its hexagons, rings and beams point at
+	{
+		TaskNode hdr;
+		int16_t frame;      // +0x0C
+		int16_t action;     // +0x0E action index
+		uint8_t *entity;    // +0x10 first target of the action
+		Barrier b;          // +0x14 its frame, view and the hexagons' centre
+	};
 	struct Orbit // a hexagon's fields after its counter (0x0E bytes)
 	{
 		int16_t tilt;       // X rotation
@@ -399,7 +407,7 @@ namespace layouts
 		int16_t dangle;
 		int16_t dtilt;
 		int16_t pad;
-		const Barrier *parent;
+		const BarrierNode *parent;
 	};
 	struct Growth // a ring's fields after its counter (0x0E bytes)
 	{
@@ -408,10 +416,21 @@ namespace layouts
 		int16_t speed;
 		int16_t accel;
 		int16_t pad;
-		const Barrier *parent;
+		const BarrierNode *parent;
+	};
+	struct DeadBeam // a beam's node (0x1C), filled in and never run
+	{
+		TaskNode hdr;
+		int16_t counter;    // +0x0C sequence frame
+		int16_t angle;      // +0x0E
+		int16_t scale;      // +0x10
+		int16_t y;          // +0x12
+		int16_t vy;         // +0x14
+		int16_t pad16;
+		const BarrierNode *parent; // +0x18
 	};
 #pragma pack(pop)
-	static_assert(sizeof(Barrier) == 0x48 && sizeof(Orbit) == 0x0E && sizeof(Growth) == 0x0E, "barrier parts");
+	static_assert(sizeof(Barrier) == 0x48 && sizeof(BarrierNode) == 0x5C && sizeof(Orbit) == 0x0E && sizeof(Growth) == 0x0E && sizeof(DeadBeam) == 0x1C, "barrier parts");
 
 	// MAG_106_sub_6D2DE0: middle of the entity's effect points 0xF1 and 0xF0
 	inline void EffectCentre(uint8_t *entity, int16_t *out)
@@ -450,22 +469,60 @@ namespace layouts
 		out[2] = (int16_t)((mul32((int32_t)var<int16_t>(v + 0xC) - a, w) >> 12) + a);
 	}
 
-	// Reflect's beams (vanilla dead code: allocated in a pool, never linked, never run): one shared
-	// rand for their angle, then one for each of `count` beams while the pool (`storage`, `size` x
-	// `capacity`) has a free node (marked used, as the original's append by value does)
-	inline void DeadBeams(uint32_t storage, uint32_t size, int32_t capacity, int32_t count)
+	// Reflect's beams (vanilla dead code: MAG_106_sub_705A00 appends to a queue passed by value and
+	// never writes the real header back, so their nodes are filled in, never linked, never run, and
+	// the pool fills up): one shared rand for their first angle, then one for each of `count` beams
+	// while the pool has a free node
+	inline void DeadBeams(const TaskQueue *q, uint32_t task, int32_t count, const BarrierNode *parent)
 	{
-		SharedRand();
+		int32_t angle = SharedRand();
 		for (int32_t i = count; i; i--)
 		{
-			uint8_t *p = (uint8_t *)storage, *free = nullptr;
-			for (int32_t k = 0; k < capacity && !free; k++, p += size)
+			uint8_t *p = (uint8_t *)q->pool, *free = nullptr;
+			for (int32_t k = 0; k < q->capacity && !free; k++, p += q->node_size)
 				if (!(*p & 1)) free = p;
 			if (!free) continue;
 			*free |= 1;
-			((TaskNode *)free)->next = nullptr;
-			SharedRand();
+			DeadBeam *b = (DeadBeam *)free;
+			b->hdr.func = (TaskFn)task;
+			b->hdr.sequence = 0;
+			b->hdr.next = nullptr;
+			if (q->tail) q->tail->next = &b->hdr;
+			b->vy = 0;
+			b->y = 0;
+			b->counter = 0;
+			b->parent = parent;
+			b->angle = (int16_t)angle;
+			angle += 0x155;
+			b->scale = (int16_t)((SharedRand() & 0x3FF) + 0x200);
 		}
+	}
+
+	// MAG_106_sub_6D2E50 + MAG_106_sub_6D2EE0, the beam list's executor: a per-tick sprite header on
+	// the scratch stack, published in `header`, then the list, which is empty (see DeadBeams), so its
+	// tail stays 0 and nothing is left
+	inline void DeadBeamsRun(uint8_t *&header, uint32_t seq, TaskQueue *q)
+	{
+		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
+		header = h;
+		*(uint32_t *)h = seq;
+		const uint8_t *s = (const uint8_t *)seq;
+		*(uint16_t *)(h + 0x92) = 0;
+		*(uint16_t *)(h + 0x90) = 0;
+		*(uint16_t *)(h + 0x8E) = 0;
+		*(uint16_t *)(h + 0x8A) = 0;
+		*(uint16_t *)(h + 0x88) = 0;
+		*(uint16_t *)(h + 0x86) = 0;
+		*(uint16_t *)(h + 0x60) = 0;
+		*(uint16_t *)(h + 0x58) = 0;
+		*(uint16_t *)(h + 0x50) = 0;
+		*(uint16_t *)(h + 0x48) = 0;
+		h[0x20] = s[4];
+		h[0x21] = s[5];
+		h[0x22] = s[6];
+		h[0x23] = s[7];
+		q->tail = nullptr;
+		FieldFree(0xB4);
 	}
 
 	// the wall's top (its vertices drawn up to it) and fog at wall step e of a wall growing over
@@ -529,10 +586,10 @@ namespace layouts
 			sx = 0x1000;
 			fade = 0x800;
 		}
-		const Mat4x3 *view = &o->parent->view;
+		const Mat4x3 *view = &o->parent->b.view;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int16_t p[4] = { 0, 0, 0, 0 }; // 4th word: vanilla stack garbage (GTE VZ0 high half only)
-		barrier::Rot2D(o->parent->center, p, o->angle, sincos);
+		barrier::Rot2D(o->parent->b.center, p, o->angle, sincos);
 		GteSetRotMatrix(view);
 		GteSetTransVector(view);
 		GteLoadV0(p);
@@ -566,7 +623,7 @@ namespace layouts
 	inline void GrowthDraw(uint32_t model, const Growth *g, int32_t c, int32_t ticks, uint32_t mode, uint32_t &cursor)
 	{
 		const int32_t fade = ComputeSin(shl32(c, 10) / (ticks ? ticks : 1));
-		const Mat4x3 *view = &g->parent->view;
+		const Mat4x3 *view = &g->parent->b.view;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int16_t V[4] = { 0, 0, g->height, 0 }; // 4th word: vanilla stack garbage (GTE VZ0 high half only)
 		GteSetRotMatrix(view);

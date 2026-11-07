@@ -962,21 +962,21 @@ namespace layouts
 		int16_t fall;      // +0x24 ticks since the fall started
 		int8_t spin[3];    // +0x26 tumbling speeds (x 8)
 		uint8_t pad29[3];
-		const int16_t *owner_counter; // +0x2C its spawner's counter (Aero: its target task's)
+		const TaskNode *owner; // +0x2C its spawner's node (Aero: its target task), its counter right after the header
 	};
 #pragma pack(pop)
 	static_assert(sizeof(WhirlLeaf) == 0x30, "whirl leaf");
 
 	// a new leaf around `anchor` (CRT rand in the original's order: its height, its angle, its three
 	// tumbling angles and speeds)
-	inline void WhirlLeafStart(WhirlLeaf *f, int16_t action, const int16_t *anchor, int32_t reach, const int16_t *owner_counter,
+	inline void WhirlLeafStart(WhirlLeaf *f, int16_t action, const int16_t *anchor, int32_t reach, const TaskNode *owner,
 	                           int32_t scale, int32_t speed, int32_t vy)
 	{
 		f->action = action;
 		f->cx = anchor[0];
 		f->cz = anchor[2];
 		const int32_t y = CrtRand() & 0xFF;
-		f->owner_counter = owner_counter;
+		f->owner = owner;
 		f->pos[1] = (int16_t)y;
 		f->reach = (int16_t)reach;
 		f->scale = (int16_t)scale;
@@ -996,7 +996,7 @@ namespace layouts
 	// below `climb` (faster from `speed_up`), then falls.
 	inline bool WhirlLeafMove(WhirlLeaf *f, int32_t climb, int32_t speed_up)
 	{
-		const int16_t oc = *f->owner_counter;
+		const int16_t oc = *(const int16_t *)(f->owner + 1);
 		if (oc < climb)
 		{
 			if (oc >= speed_up)
