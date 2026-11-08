@@ -5499,6 +5499,37 @@ static void ff8_bgate_battle_reset()
 //   0x50A1C0 pulse, 0x50A370 Confuse spin, 0x50A5F0 Float bob, 0x5711C0 overlay, 0x50C110 A8 fades
 //                                      CODE  status visuals (A8 left unconverted by the converter)
 //   0x50ACB4 magic cast timeout        CODE  x n host frames = native 60 s
+//   battle stage code (the stage task draws every host frame and counts those calls): sky angle,
+//   texture flipbooks, stage 19 / 37 / 44-46 / 92 / 137 / 142 effects = the 30FPS Battle mod's
+//   30FPSBattleStage.hext (steps halved / frame counts doubled, 30 fps only); here:
+//   0x50CB90 texture scroll            CODE  real frames only (a VRAM shift cannot be halved)
+//   0x511EF0 stage 147 scripted task   CODE  state machine on real frames, held frames draw only
+
+// A texture scroll (texture animation entry with 0 frames: waterfalls...) moves its VRAM rectangle by
+// `speed` rows per call (BS_UpdateTextureAnimation 0x50CB20 -> BS_TextureAnim_ScrollBlit 0x50CA80):
+// at 30 fps it scrolled twice as fast. Real frames only.
+static void (__cdecl *ff8_bgate_texscroll_orig)(void *, int, int) = nullptr;
+static void __cdecl ff8_bgate_texscroll_hook(void *block, int index, int speed)
+{
+	if (ff8_bgate_phase == 0) ff8_bgate_texscroll_orig(block, index, speed);
+}
+
+// Stage 147 (encounters 136 / 195 / 947 / 1000 / 1014): its second stage task 0x511EF0 runs a scripted
+// state machine that moves battle entities by frame counts (task +0xE state, +0x10 frame counter), then
+// draws the stage like the first task 0x511EB0 (texture animations 0 and 1, the stage groups). On held
+// frames in state 1: only that drawing part.
+static uint32_t (__cdecl *ff8_bgate_stage147_orig)(uint8_t *) = (uint32_t(__cdecl *)(uint8_t *))0x511EF0;
+static uint32_t __cdecl ff8_bgate_stage147_hook(uint8_t *task)
+{
+	if (ff8_bgate_phase != 0 && *(int16_t *)(task + 0xC) == 1)
+	{
+		((void(__cdecl *)(int))0x51B0D0)(0); // BS_TickTextureAnimation (stage texture animation 0)
+		((void(__cdecl *)(int))0x51B0D0)(1);
+		((char(__cdecl *)())0x500FD0)();     // BattleStage_AnimateAndRenderGroups
+		return 0;
+	}
+	return ff8_bgate_stage147_orig(task);
+}
 
 // Exported for test tools (AutoTest): the phase of the battle loop iteration in progress, read before its BdLink
 // (e.g. at the input pump). 1 = this iteration's BdLink is a real frame (the battle logic runs in it: a pad read
@@ -5681,6 +5712,11 @@ void ff8_bgate_install_hooks()
 	ff8_bgate_ovl_ri = replace_function(0x5711C0, (void *)ff8_bgate_ovl_hook);
 	ff8_bgate_fade_orig = (int(__cdecl *)(uint8_t *))0x50C110;
 	ff8_bgate_fade_ri = replace_function(0x50C110, (void *)ff8_bgate_fade_hook);
+
+	// battle stage code at native pace (the rest is the 30FPS Battle mod's 30FPSBattleStage.hext)
+	ff8_bgate_texscroll_orig = (void(__cdecl *)(void *, int, int))get_relative_call(0x50CB90, 0);
+	replace_call(0x50CB90, (void *)ff8_bgate_texscroll_hook);
+	patch_code_dword(0x511E1A, (DWORD)ff8_bgate_stage147_hook); // push 0x511EF0 (AddTaskToQueue callback)
 
 	// (Magic cast safety timeout "++MAGIC_EFFECT_TIMEOUT_CTR < 0x384" @0x50ACB4: no patch any more, the battle-stage
 	// queue that runs BattleActionSequence_Tick_MagicCast is paced to real frames: 0x384 calls = the native 60 s)
