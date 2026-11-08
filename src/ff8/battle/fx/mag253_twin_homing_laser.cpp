@@ -1,0 +1,159 @@
+/****************************************************************************/
+//    Copyright (C) 2026 HobbitDur                                          //
+//                                                                          //
+//    This file is part of FFNx                                             //
+//                                                                          //
+//    FFNx is free software: you can redistribute it and/or modify          //
+//    it under the terms of the GNU General Public License as published by  //
+//    the Free Software Foundation, either version 3 of the License         //
+//                                                                          //
+//    FFNx is distributed in the hope that it will be useful,               //
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+//    GNU General Public License for more details.                          //
+/****************************************************************************/
+
+// Effect 253: Twin Homing Laser (enemy attack 283 of kernel.bin, Mobile Type 8 c0m105; no other kernel.bin entry uses effect 253),
+// cinematic-engine module MAG_253 0x997CE0..0x9A2840, script data magic/mag252_b.00/.01 (loaded by
+// MAG_253_UNKNOWN_FL 0x997CE0; setup MAG_253_UNKNOWN 0x997D10 = effect table index 252).
+//
+// The module is one more compile of the GF cinematic engine (gfc_engine.cpp) with the standard
+// table layout (draw table 0x185CAE4; its descriptor block 0x185C7D0 sits 0x314 below the draw
+// table: the engine reads it through c.desc), a copy of Quistis' Homing Laser 229
+// (mag229_homing_laser_quistis.cpp) without its VM 0x0AB. Instruction-level comparison against the
+// ported clones (module-relative addresses normalised, table regions symbolic, jump tables and
+// callee trees hashed; work\gfcC\tools\cmpall.py / best.py):
+//   - SetupSummon 0x997D70, BindContext 0x997DC0, the section pointers 0x997E60, InitSequenceState
+//     0x9A1E50, SequenceTick 0x998380 (the unlit BuildMatricesAndDraw) and the initial frame limit
+//     0x9A2820 are byte clones of the engine's (Sand Shake 256 / Homing Laser 229); lit_dispatcher false;
+//   - every table handler is a byte clone of Homing Laser 229's slot (the generic (Ifrit) handler, a
+//     `ret` stub or one of the two below), VM 0x0AB being a stub here:
+//       VM 0x006 LoadBattleFile 0x99E0E0: same code, own load callback 0x99E210 (c.load_cb),
+//       draw 37 0x998E80 = 229's 0xA7BBD0 / Bahamut 0xB1A130 RibbonTrail (apply_shared_ribbon),
+//       VM 0x0AD 0x9A1A30 = 229's 0xA84780 / Mad Cow Special 258's 0x96E450 PosFromPosedEntityJoint
+//         (static there: same code below), with its 30 fps prediction at the entity's next pose.
+// The effect's queue (0x27965F8) holds one task, the engine tick 0x998380.
+// ENTITY / CAMERA writes: VM 0x0AD rebuilds the slot entity's bone matrices from its pose (0x508C90:
+// the matrices the battle renderer builds anyway); the battle camera words through the engine's
+// camera ops (VM 0x039, as every clone).
+
+#include "gfc_engine.h"
+
+namespace ff8fx
+{
+namespace gfc
+{
+namespace twinlaser253
+{
+	static Clone g_c = {};
+}
+}
+}
+
+#ifdef FF8_FX_HELD
+#include "mag253_twin_homing_laser_held.h"
+#endif
+
+namespace ff8fx
+{
+namespace gfc
+{
+namespace twinlaser253
+{
+	static void describe(Clone &c)
+	{
+		c.name = "253 Twin Homing Laser";
+		c.effect_id = 253;
+		c.vm_table = 0x185CC88;      // MAG_253 VmOpcodeTable (draw_table + 0x1A4)
+		c.bone_table = 0x185C8F8;    // MAG_253 BoneHandlerTable (draw_table - 0x1EC)
+		c.prim_table = 0x185C940;    // bone_table + 0x48
+		c.prim_size = 0x185CA30;     // bone_table + 0x138
+		c.spr_table = 0x185CA44;     // bone_table + 0x14C
+		c.ptype_table = 0x185CA70;   // bone_table + 0x178
+		c.pop_table = 0x185CA84;     // bone_table + 0x18C
+		c.draw_table = 0x185CAE4;    // MAG_253 DrawHandlerTable
+		c.attr_16A = 0x185CC4E;
+		c.attr_184 = 0x185CC68;
+		c.attr_186 = 0x185CC6A;
+		c.attr_194 = 0x185CC78;
+		c.attr_19C = 0x185CC80;
+		c.desc = 0x185C7D0;          // draw_table - 0x314 (read by 0x997E60)
+		c.ptr_block = 0x185C8D0;     // draw_table - 0x214 (read by 0x997DC0)
+		c.queue = 0x27965F8;
+		c.file00 = 0x27965F0;
+		c.file01 = 0x27965F4;
+		c.tick = 0x998380;
+		c.load_cb = 0x99E210;        // passed by VM 0x006 0x99E0E0
+		c.lit_dispatcher = false;
+		c.bone_count = 18;
+	}
+
+	// 0xB66B80 (blob): matrix of joint `joint` of the model whose BattleAnimHeader is `hdr`,
+	// composed with m; joint origin -> ws+0xF0..0xF8. Returns ws+0xD0. Writes only ws + GTE.
+	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
+	{
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+	}
+
+	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
+
+	// ------------------------------------------------------------------------------------
+	// 0x9A1A30 (VM 0x0AD PosFromPosedEntityJoint, = Homing Laser 229's 0xA84780): the slot
+	// entity's bone matrices rebuilt from its pose (header entity+0x60, or *(entity+0x78) when op
+	// bit 15 is set), joint w0 of that model (blob 0xB66B80, composed with the entity matrix +0x40)
+	// applied to outPos -> accumPos = the camera-space point << 16. Then the bone handler. Length 4.
+	// 30 fps: while the held layer predicts the next tick, the joint comes from the entity's NEXT
+	// pose (see mag253_twin_homing_laser_held.inc).
+	// ------------------------------------------------------------------------------------
+	static void __cdecl op_0AD_PosFromPosedEntityJoint()
+	{
+		uint8_t *ent = SlotEntity();                                          // edi
+		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
+		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;                  // esi
+		x::BuildBoneMatricesFromPose(hdr);
+		// 30 fps layer: see mag253_twin_homing_laser_held.inc
+		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
+		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
+		x::SetRotMatrix(m);
+		x::SetTransVector(m);
+		uint8_t *w = WS();
+		x::TransformToCamera(CUR() + 0x94, w + 0xF0, w + 0xFC);
+		S32(CUR(), 0x5C) = shl32(S32(WS(), 0xF0), 16);
+		S32(CUR(), 0x60) = shl32(S32(WS(), 0xF4), 16);
+		S32(CUR(), 0x64) = shl32(S32(WS(), 0xF8), 16);
+		C().bone[U8(CUR(), 0x18)]();
+		STREAM() += 4;
+	}
+
+	static void apply_slots(Clone &c)
+	{
+		apply_shared_ribbon(c);                            // draw 37 0x998E80
+		c.vm[0x0AD] = op_0AD_PosFromPosedEntityJoint;      // 0x9A1A30
+	}
+
+	static uint32_t __cdecl SequenceTask(TaskNode *)
+	{
+		return SequenceTick(g_c);
+	}
+}
+}
+
+	void register_mag253_twin_homing_laser()
+	{
+		using namespace gfc;
+		twinlaser253::describe(twinlaser253::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<253>::Register("Twin Homing Laser", twinlaser253::g_c, 0x997CE0, 0x185D1A8, 0x185D1B4,
+		                           (void *)twinlaser253::SequenceTask);
+		init_clone(twinlaser253::g_c, nullptr, 0);
+		twinlaser253::apply_slots(twinlaser253::g_c);
+		register_port(0x998380, (void *)twinlaser253::SequenceTask, "MAG253 Twin Homing Laser SequenceTick", 253);
+		// 30 fps layer: see mag253_twin_homing_laser_held.inc
+		FX_HELD(register_mag253_twin_homing_laser_held();)
+	}
+	FX_LAB_MODULE(register_mag253_twin_homing_laser);
+}
+
+#ifdef FF8_FX_HELD
+#include "mag253_twin_homing_laser_held.inc"
+#endif
