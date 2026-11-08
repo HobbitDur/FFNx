@@ -362,6 +362,13 @@ namespace ff8fx
 	void register_mag253_twin_homing_laser();
 	void register_mag254_homing_laser_281();
 	void register_mag255_homing_laser_282();
+	void register_mag249_bgh_attack();
+	void register_mag250_beam_cannon();
+	void register_mag248_unknown_248();
+	void register_mag266_tiamat_death();
+	void register_mag268_tri_point_death();
+	void register_mag270_ultima_weapon_death();
+	void register_mag228_ice_strike();
 	void register_mag176_sand_storm_adamantoise();
 	void register_mag226_white_wind();
 	void register_mag139_sonic_wave();
