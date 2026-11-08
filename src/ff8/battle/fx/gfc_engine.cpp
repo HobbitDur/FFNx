@@ -144,10 +144,14 @@ namespace part_core
 	// 4 * bone[0x1B]; per axis (mask bits 0x1000/0x800/0x400 of *(s16 *)bone+0xA0) outPos =
 	// HIWORD(accumPos) + joint[axis] * scale / 256 (joint words at +8/+A/+C, scale at +2 of
 	// the first record of entity+0x64), else HIWORD(accumPos)
+	// 30 fps: while the held layer predicts the next tick, the joint words are those of the entity's
+	// NEXT animation frame (held_entity_next_root)
 	static void __cdecl bh_09_EntityJoint()
 	{
 		uint8_t *bone = CUR();
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * U8(bone, 0x1B));
+		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_root)
+		FX_HELD(if (held_predicting()) held_entity_next_root(ent);)
 		int32_t px = S32(bone, 0x5C) >> 16;
 		uint8_t *rec = PTR(PTR(ent, 0x64), 0);
 		int32_t mask = S16(PTR(bone, 0xA0), 0);

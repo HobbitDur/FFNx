@@ -357,6 +357,11 @@ namespace ff8fx
 	void register_mag311_gravija();
 	void register_mag258_mad_cow_special();
 	void register_mag256_sand_shake();
+	void register_mag244_bgh_turret_explode();
+	void register_mag220_light_pillar();
+	void register_mag253_twin_homing_laser();
+	void register_mag254_homing_laser_281();
+	void register_mag255_homing_laser_282();
 	void register_mag176_sand_storm_adamantoise();
 	void register_mag226_white_wind();
 	void register_mag139_sonic_wave();
