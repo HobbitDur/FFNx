@@ -21,6 +21,7 @@
 // address; listings: gf_study/tools/ff8dis.py.
 
 #include "gfc_engine.h"
+#include <intrin.h>
 
 // ============================================================================================
 // part core
@@ -2533,10 +2534,14 @@ namespace part_vm_b
 	// (blob B66B80 -> ws+0xF0/F4/F8). op bit15: orbit, s16 w1 radius mul, s16 w2 angle/16:
 	// Z = F8 + ((cos(16*w2)*e26 >> 4) * w1) / 65536, X = F0 + (sin...), Y = F4; cursor 8.
 	// Else accumPos = F0/F4/F8 << 16, cursor 4. Then bone handler.
+	// 30 fps: while the held layer predicts the next tick, the joint comes from the entity's NEXT
+	// pose (held_entity_next_pose; the same in 0x06E / 0x075 / 0x05B).
 	static void __cdecl op_060_PosFromEntityJoint()
 	{
 		uint8_t *e = Entity();
 		int32_t joint = S16(STREAM(), 2);
+		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+		FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 		blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 		if (U8(RT(), 0x4B) & 0x80)
 		{
@@ -2579,6 +2584,8 @@ namespace part_vm_b
 			do
 			{
 				uint8_t *e = PTR(scene, 0x60 + 4 * (int32_t)S8(scene, 0x48 + i));
+				// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+				FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 				blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 				uint8_t *ws = WS();
 				int32_t fx = S32(ws, 0xF0), fy = S32(ws, 0xF4), fz = S32(ws, 0xF8);
@@ -2619,6 +2626,8 @@ namespace part_vm_b
 		int32_t size = S16(e, 0x26);
 		if (ops & 0x200)
 		{
+			// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+			FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 			blob::Blob_B66B80(e + 0x60, 0, 0x1000, e + 0x40);
 			int32_t f4 = S32(WS(), 0xF4);
 			int32_t a = sub32(f4, S16(e, 0x36));
@@ -3738,6 +3747,29 @@ namespace part_vm_d
 	{
 		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
 	}
+	// fn(a, b) called with its return-address slot at ret_mod8 (0 / 4) mod 8. 0xB65590 RotMatrixOrder
+	// reaches Matrix3x3_MultiplyPSX 0x56C090 (and esp, -8) whose temporaries' pad words (+0x12, never
+	// written) end up in ws+0xB2 / ws+0xF2: the stack words they read depend on that alignment only
+	// (order 1: return slot mod 8 = 0 -> ws+0xF2 = high half of ws+0xA0 (0x56C270's saved esi), else
+	// m[0][1] of 0x56C270's product), so the call keeps the original's alignment.
+	static __declspec(naked) uint32_t __cdecl xl_call2_aligned(uint32_t fn, uint32_t a, uint32_t b, uint32_t ret_mod8)
+	{
+		__asm
+		{
+			push ebp
+			mov ebp, esp
+			lea eax, [esp - 0xC]          // return slot without padding (2 args + return address)
+			sub eax, [ebp + 0x14]
+			and eax, 4
+			sub esp, eax
+			push dword ptr [ebp + 0x10]
+			push dword ptr [ebp + 0xC]
+			call dword ptr [ebp + 8]
+			mov esp, ebp
+			pop ebp
+			ret
+		}
+	}
 	// 30 fps layer: writes outside the engine state block (light / aux slot indices from data,
 	// fog state) are preceded by FX_HELD(guard_...), see gfc_engine_held.h
 
@@ -3800,13 +3832,16 @@ namespace part_vm_d
 
 	// 0xB2E950 (VM 0x067 NodeCamRotTranslate): node.trans = Cam * outPos, node.rot = Cam.rot *
 	// RotOrder(outAngle, op>>12), node.H = 0. Length 4.
+	// The original keeps every cdecl argument on the stack (one add esp, 0x28 at the end): it calls
+	// RotMatrixOrder with the return slot at entry - 0x24 (the C++ frame is deeper), see xl_call2_aligned.
 	static void __cdecl op_067_NodeCamRotTranslate()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
 		x::SetRotMatrix(NODEMAT());
 		x::SetTransVector(NODEMAT());
 		x::TransformToCamera(CUR() + 0x94, node + 0x14, WS() + 0xF0);
-		Mat4x3 *r = blob::RotMatrixOrder(CUR() + 0x8C, (int32_t)((uint32_t)U16(RT(), 0x4A) >> 12));
+		Mat4x3 *r = (Mat4x3 *)xl_call2_aligned(0xB65590, (uint32_t)(CUR() + 0x8C), (uint32_t)U16(RT(), 0x4A) >> 12,
+			((uint32_t)_AddressOfReturnAddress() - 0x24) & 7);
 		x::MulMatrix3(NODEMAT(), r, node);
 		U16(node, 0x12) = 0;
 		STREAM() += 4;
@@ -4089,6 +4124,8 @@ namespace part_vm_d
 		}
 		// writes the model skeleton
 		x::BuildBoneMatricesFromPose(hdr);
+		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
+		FX_HELD(if (held_predicting() && (U8(RT(), 0x4B) & 4)) held_entity_next_pose(hdr - 0x60);)
 		uint8_t *jm = xl_B66B80(hdr, joint, scale, base);
 		switch ((uint32_t)U16(RT(), 0x4A) >> 12)
 		{

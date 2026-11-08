@@ -23,7 +23,6 @@
 
 #include <windows.h>
 #include <windowsx.h>
-#include <dwmapi.h>
 #include <stdio.h>
 #include <sys/timeb.h>
 #include <hwinfo/hwinfo.h>
@@ -47,6 +46,7 @@
 #include "ff7.h"
 #include "ff8.h"
 #include "ff8/file.h"
+#include "ff8/mod.h"
 #include "patch.h"
 #include "gl.h"
 #include "movies.h"
@@ -396,6 +396,26 @@ struct game_mode *getmode()
 	VOBJ(game_obj, game_object, common_externals.get_game_object());
 	uint32_t i;
 
+	// Card setup, play and teardown share the battle main loop; states 1 and 2 are still Card mode.
+	if (ff8 && *ff8_externals.is_card_game != 0
+		&& (*common_externals._mode == FF8_MODE_CARDGAME
+			|| (uint32_t)VREF(game_object, game_loop_obj).main_loop == ff8_externals.battle_main_loop))
+	{
+		for (i = 0; i < num_modes; ++i)
+		{
+			struct game_mode *m = &modes[i];
+			if (m->driver_mode != MODE_CARDGAME) continue;
+			if (last_mode != m->mode)
+			{
+				if (m->trace) ffnx_trace("%s\n", m->name);
+				last_mode = m->mode;
+			}
+			if (trace_all) ffnx_trace("getmode: active card module - state: %u - mode: %u\n",
+				*ff8_externals.is_card_game, *common_externals._mode);
+			return m;
+		}
+	}
+
 	// find exact match, mode and main loop both match
 	for(i = 0; i < num_modes; i++)
 	{
@@ -412,23 +432,6 @@ struct game_mode *getmode()
 			if (trace_all) ffnx_trace("getmode: exact match - driver_mode: %u - mode: %u - name: %s\n", m->driver_mode, m->mode, m->name);
 
 			return m;
-		}
-	}
-
-	// FF8 has BATTLE and CARDGAME baked inside the same module
-	// Only for this case use a custom match logic
-	if (ff8)
-	{
-		for(i = 0; i < num_modes; i++)
-		{
-			struct game_mode *m = &modes[i];
-
-			if (*ff8_externals.is_card_game == 1 && *common_externals._mode == m->mode)
-			{
-				if (trace_all) ffnx_trace("getmode: exact match - driver_mode: %u - mode: %u - name: %s\n", m->driver_mode, m->mode, m->name);
-
-				return m;
-			}
 		}
 	}
 
@@ -494,18 +497,19 @@ struct game_mode *getmode()
 	else return &modes[11];
 }
 
-// game mode usually doesn't change in the middle of a frame and even if it
-// does we usually don't care until the next frame so we can safely cache it to
-// avoid constant lookups
+// Card module transitions can happen within a frame while retaining the battle main loop.
 struct game_mode *getmode_cached()
 {
 	static uint32_t last_frame = -1;
+	static uint32_t last_card_state = 0;
 	static struct game_mode *last_mode;
+	const uint32_t card_state = ff8 ? *ff8_externals.is_card_game : 0;
 
-	if(frame_counter != last_frame)
+	if(frame_counter != last_frame || card_state != last_card_state)
 	{
 		last_mode = getmode();
 		last_frame = frame_counter;
+		last_card_state = card_state;
 	}
 
 	return last_mode;
@@ -522,106 +526,6 @@ char* get_current_field_name()
 	if (ret) ret += 1;
 
 	return ret;
-}
-
-bool maximized(HWND hwnd) {
-	WINDOWPLACEMENT placement;
-	if (!GetWindowPlacement(hwnd, &placement)) {
-				return false;
-	}
-
-	return placement.showCmd == SW_MAXIMIZE;
-}
-
-/* Adjust client rect to not spill over monitor edges when maximized.
-* rect(in/out): in: proposed window rect, out: calculated client rect
-* Does nothing if the window is not maximized.
-*/
-void adjust_maximized_client_rect(HWND window, RECT& rect) {
-	if (!maximized(window)) {
-			return;
-	}
-
-	auto monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONULL);
-	if (!monitor) {
-			return;
-	}
-
-	MONITORINFO monitor_info{};
-	monitor_info.cbSize = sizeof(monitor_info);
-	if (!GetMonitorInfoW(monitor, &monitor_info)) {
-			return;
-	}
-
-	// when maximized, make the client area fill just the monitor (without task bar) rect,
-	// not the whole window rect which extends beyond the monitor.
-	rect = monitor_info.rcWork;
-}
-
-bool composition_enabled() {
-	BOOL composition_enabled = FALSE;
-	bool success = DwmIsCompositionEnabled(&composition_enabled) == S_OK;
-	return composition_enabled && success;
-}
-
-LRESULT window_hit_test(HWND hwnd, POINT cursor) {
-	// identify borders and corners to allow resizing the window.
-	// Note: On Windows 10, windows behave differently and
-	// allow resizing outside the visible window frame.
-	// This implementation does not replicate that behavior.
-	const POINT border{
-			::GetSystemMetrics(SM_CXFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER),
-			::GetSystemMetrics(SM_CYFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER)
-	};
-	SetRectEmpty(&gameWindowRect);
-	if (!::GetWindowRect(hwnd, &gameWindowRect)) {
-			return HTNOWHERE;
-	}
-
-	enum region_mask {
-			client = 0b0000,
-			left   = 0b0001,
-			right  = 0b0010,
-			top    = 0b0100,
-			bottom = 0b1000,
-	};
-
-	const auto result =
-			left    * (cursor.x <  (gameWindowRect.left   + border.x)) |
-			right   * (cursor.x >= (gameWindowRect.right  - border.x)) |
-			top     * (cursor.y <  (gameWindowRect.top    + border.y)) |
-			bottom  * (cursor.y >= (gameWindowRect.bottom - border.y));
-
-	switch (result) {
-			case left          : return HTLEFT;
-			case right         : return HTRIGHT;
-			case top           : return HTTOP;
-			case bottom        : return HTBOTTOM;
-			case top | left    : return HTTOPLEFT;
-			case top | right   : return HTTOPRIGHT;
-			case bottom | left : return HTBOTTOMLEFT;
-			case bottom | right: return HTBOTTOMRIGHT;
-			case client        : return HTCAPTION;
-			default            : return HTNOWHERE;
-	}
-}
-
-void set_window_shadow() {
-	if (composition_enabled()) {
-		static const MARGINS shadow_state{1,1,1,1};
-		::DwmExtendFrameIntoClientArea(gameHwnd, &shadow_state);
-	}
-}
-
-void toggle_borderless() {
-	DWORD style = borderless ? WS_POPUP | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX : WS_OVERLAPPEDWINDOW;
-
-	SetWindowLongPtr(gameHwnd, GWL_STYLE, style | WS_VISIBLE);
-
-	set_window_shadow();
-
-	SetWindowPos(gameHwnd, HWND_TOP, 0, 0, borderless ? window_size_x : gameWindow[GameWindowState::CURRENT].w, borderless ? window_size_y : gameWindow[GameWindowState::CURRENT].h, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
-	ShowWindow(gameHwnd, SW_SHOW);
 }
 
 void calc_window_size(uint32_t width, uint32_t height) {
@@ -645,30 +549,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (uMsg)
 		{
-		case WM_NCCALCSIZE:
-			if (wParam == TRUE && borderless) {
-					auto& params = *reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-					adjust_maximized_client_rect(hwnd, params.rgrc[0]);
-					return 0;
-			}
-			break;
-		case WM_NCHITTEST:
-			// When we have no border or title bar, we need to perform our
-			// own hit testing to allow resizing and moving.
-			if (borderless) {
-					return window_hit_test(gameHwnd, POINT{
-							GET_X_LPARAM(lParam),
-							GET_Y_LPARAM(lParam)
-					});
-			}
-			break;
-		case WM_NCACTIVATE:
-			if (!composition_enabled()) {
-					// Prevents window frame reappearing on window activation
-					// in "basic" theme, where no aero shadow is present.
-					return 1;
-			}
-			break;
 		case WM_KEYDOWN:
 			if ((::GetKeyState(VK_CONTROL) & 0x8000) != 0)
 			{
@@ -705,24 +585,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						newRenderer.reset();
 					}
 					break;
-				case VK_RETURN:
-					if (!fullscreen)
-					{
-						borderless = !borderless;
-						toggle_borderless();
-						newRenderer.reset();
-					}
-					break;
 				}
 			}
 			break;
 		case WM_SIZE:
+			if (wParam == SIZE_MINIMIZED) break;
+
 			window_size_x = (long)LOWORD(lParam);
 			window_size_y = (long)HIWORD(lParam);
 
-			calc_window_size(window_size_x, window_size_y);
+			if (!borderless) calc_window_size(window_size_x, window_size_y);
 
-			if (wParam != SIZE_MINIMIZED) newRenderer.reset();
+			newRenderer.reset();
 
 			if (wParam == SIZE_MAXIMIZED) gameWindowWasMaximized = true;
 			else if (wParam == SIZE_RESTORED && gameWindowWasMaximized) gameWindowWasMaximized = false;
@@ -744,6 +618,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_MENUCHAR:
 			if (LOWORD(wParam) == VK_RETURN)
 			{
+				if (borderless) return MAKELRESULT(0, MNC_CLOSE);
+
 				const auto& targetMonitor = monitors[display_index-1];
 				if (fullscreen)
 				{
@@ -960,19 +836,25 @@ int common_create_window(HINSTANCE hInstance, struct game_obj* game_object)
 			gameWindow[GameWindowState::PRE_FULLSCREEN] = gameWindow[GameWindowState::CURRENT];
 		}
 		// Otherwise if windowed mode is requested on start, use the given resolution as a starting point
-		else
+		else if (!borderless)
 			calc_window_size(window_size_x, window_size_y);
 
 		const RECT& monitorRect = targetMonitor.rcMonitor;
+		if (borderless)
+		{
+			window_size_x = monitorRect.right - monitorRect.left;
+			window_size_y = monitorRect.bottom - monitorRect.top;
+		}
+
 		hWnd = CreateWindowExA(
 			WS_EX_APPWINDOW,
 			VREF(game_object, window_class),
 			VREF(game_object, window_title),
-			fullscreen ? WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_OVERLAPPEDWINDOW,
-			monitorRect.left + (fullscreen ? 0 : gameWindow[GameWindowState::CURRENT].x),
-			monitorRect.top + (fullscreen ? 0 : gameWindow[GameWindowState::CURRENT].y),
-			fullscreen ? window_size_x : gameWindow[GameWindowState::CURRENT].w,
-			fullscreen ? window_size_y : gameWindow[GameWindowState::CURRENT].h,
+			(fullscreen || borderless) ? WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_OVERLAPPEDWINDOW,
+			monitorRect.left + ((fullscreen || borderless) ? 0 : gameWindow[GameWindowState::CURRENT].x),
+			monitorRect.top + ((fullscreen || borderless) ? 0 : gameWindow[GameWindowState::CURRENT].y),
+			(fullscreen || borderless) ? window_size_x : gameWindow[GameWindowState::CURRENT].w,
+			(fullscreen || borderless) ? window_size_y : gameWindow[GameWindowState::CURRENT].h,
 			0,
 			0,
 			hInstance,
@@ -1097,8 +979,6 @@ int common_create_window(HINSTANCE hInstance, struct game_obj* game_object)
 
 					nxAudioEngine.init();
 
-					if (borderless) toggle_borderless();
-
 					if (VREF(game_object, engine_loop_obj.enter_main))
 						VREF(game_object, engine_loop_obj.enter_main)(game_object);
 				}
@@ -1166,6 +1046,7 @@ void common_cleanup(struct game_obj *game_object)
 		SteamAPI_Shutdown();
 
 	nxAudioEngine.cleanup();
+	if (ff8) TextureImage::clearCache();
 	newRenderer.shutdown();
 }
 
@@ -1426,7 +1307,6 @@ void common_flip(struct game_obj *game_object)
 		ff7_handle_ambient_playback();
 		ff7_handle_voice_playback();
 		ff7_handle_wmode_reset();
-		ff7::field::ff7_handle_KAWAI_reset();
 	}
 
 	// Steamworks SDK API run callbacks
@@ -1662,6 +1542,27 @@ uint32_t load_external_texture(void* image_data, uint32_t dataSize, struct textu
 	uint32_t texture = 0;
 	struct gl_texture_set *gl_set = VREF(texture_set, ogl.gl_set);
 	struct texture_format* tex_format = VREFP(tex_header, tex_format);
+	char remasteredFilename[MAX_PATH] = {};
+	const bool hasRemasteredName = ff8_remastered_edition && !save_textures
+		&& (uint32_t)VREF(tex_header, file.pc_name) > 32
+		&& *(VREF(tex_header, file.pc_name) + 512) != '\0';
+
+	if (hasRemasteredName)
+	{
+		if (VREF(tex_header, palettes) > 1
+				&& ff8_is_remastered_font_asset()
+				&& _strnicmp(VREF(tex_header, file.pc_name) + 512, "hires\\sysfnt00.tex", sizeof("hires\\sysfnt00.tex") - 1) == 0) {
+			_snprintf(remasteredFilename, sizeof(remasteredFilename), "zzz://textures\\%s\\%d_hd.png", VREF(tex_header, file.pc_name) + 512, VREF(tex_header, palette_index));
+		} else if (VREF(tex_header, palettes) > 1
+				&& _strnicmp(VREF(tex_header, file.pc_name) + 512, "cards\\", sizeof("cards\\") - 1) != 0
+				&& _strnicmp(VREF(tex_header, file.pc_name) + 512, "field.fs\\field_hd_new\\wmset_014_0", sizeof("field.fs\\field_hd_new\\wmset_014_0") - 1) != 0) {
+			_snprintf(remasteredFilename, sizeof(remasteredFilename), "zzz://textures\\%s\\%d.png", VREF(tex_header, file.pc_name) + 512, VREF(tex_header, palette_index));
+		} else if (VREF(tex_header, palette_index) == 0 && _strnicmp(VREF(tex_header, file.pc_name) + 512, "cards\\text_1", sizeof("cards\\text_1") - 1) == 0) {
+			_snprintf(remasteredFilename, sizeof(remasteredFilename), "zzz://textures\\cards\\text_1_mask%s.png", VREF(tex_header, file.pc_name) + 512 + sizeof("cards\\text_1") - 1);
+		} else {
+			_snprintf(remasteredFilename, sizeof(remasteredFilename), "zzz://textures\\%s.png", VREF(tex_header, file.pc_name) + 512);
+		}
+	}
 
 	if((uint32_t)VREF(tex_header, file.pc_name) > 32 && !save_textures)
 	{
@@ -1670,7 +1571,15 @@ uint32_t load_external_texture(void* image_data, uint32_t dataSize, struct textu
 		// Don't use palette index on fallback (for keeping compatibility with Tonberry mods)
 		if(ff8 && _strnicmp(VREF(tex_header, file.pc_name), "field/mapdata/", strlen("field/mapdata/") - 1) == 0) saveload_palette_index |= 0x80000000;
 
-		texture = load_texture(image_data, dataSize, VREF(tex_header, file.pc_name), saveload_palette_index, VREFP(texture_set, ogl.width), VREFP(texture_set, ogl.height), gl_set);
+		if (hasRemasteredName && ModdedTexture::hasRemasteredArchiveTextureOverride(remasteredFilename + 6))
+		{
+			texture = newRenderer.createTextureLibPng(remasteredFilename, VREFP(texture_set, ogl.width), VREFP(texture_set, ogl.height));
+		}
+
+		if (texture == 0)
+		{
+			texture = load_texture(image_data, dataSize, VREF(tex_header, file.pc_name), saveload_palette_index, VREFP(texture_set, ogl.width), VREFP(texture_set, ogl.height), gl_set);
+		}
 
 		if (!ff8)
 		{
@@ -1696,15 +1605,6 @@ uint32_t load_external_texture(void* image_data, uint32_t dataSize, struct textu
 			if(!_strnicmp(VREF(tex_header, file.pc_name), "menu/btl_win", strlen("menu/btl_win") - 1)) gl_set->force_zsort = true;
 
 			if(!_strnicmp(VREF(tex_header, file.pc_name), "flevel/hand_1", strlen("flevel/hand_1") - 1)) gl_set->force_filter = true;
-		}
-		else if (*(VREF(tex_header, file.pc_name) + 512) != '\0') // has secondary hd path
-		{
-			if(trace_all || trace_loaders) ffnx_trace("texture file name (alternative): %s\n", VREF(tex_header, file.pc_name) + 512);
-
-			if (texture == 0)
-			{
-				texture = load_texture(image_data, dataSize, VREF(tex_header, file.pc_name) + 512, VREF(tex_header, palettes) > 1 ? VREF(tex_header, palette_index) | 0xC0000000 : -1, VREFP(texture_set, ogl.width), VREFP(texture_set, ogl.height), gl_set);
-			}
 		}
 	}
 
@@ -1736,25 +1636,9 @@ uint32_t load_external_texture(void* image_data, uint32_t dataSize, struct textu
 		}
 	}
 
-	if (ff8_remastered_edition && texture == 0 && !save_textures
-		&& (uint32_t)VREF(tex_header, file.pc_name) > 32
-		&& *(VREF(tex_header, file.pc_name) + 512) != '\0')
+	if (hasRemasteredName && texture == 0)
 	{
-		char filename[MAX_PATH] = {};
-		if (VREF(tex_header, palettes) > 1
-				&& ff8_is_remastered_font_asset()
-				&& _strnicmp(VREF(tex_header, file.pc_name) + 512, "hires\\sysfnt00.tex", sizeof("hires\\sysfnt00.tex") - 1) == 0) {
-			_snprintf(filename, sizeof(filename), "zzz://textures\\%s\\%d_hd.png", VREF(tex_header, file.pc_name) + 512, VREF(tex_header, palette_index));
-		} else if (VREF(tex_header, palettes) > 1
-				&& _strnicmp(VREF(tex_header, file.pc_name) + 512, "cards\\", sizeof("cards\\") - 1) != 0
-				&& _strnicmp(VREF(tex_header, file.pc_name) + 512, "field.fs\\field_hd_new\\wmset_014_0", sizeof("field.fs\\field_hd_new\\wmset_014_0") - 1) != 0) {
-			_snprintf(filename, sizeof(filename), "zzz://textures\\%s\\%d.png", VREF(tex_header, file.pc_name) + 512, VREF(tex_header, palette_index));
-		} else if (VREF(tex_header, palette_index) == 0 && _strnicmp(VREF(tex_header, file.pc_name) + 512, "cards\\text_1", sizeof("cards\\text_1") - 1) == 0) {
-			_snprintf(filename, sizeof(filename), "zzz://textures\\cards\\text_1_mask%s.png", VREF(tex_header, file.pc_name) + 512 + sizeof("cards\\text_1") - 1);
-		} else {
-			_snprintf(filename, sizeof(filename), "zzz://textures\\%s.png", VREF(tex_header, file.pc_name) + 512);
-		}
-		texture = newRenderer.createTextureLibPng(filename, VREFP(texture_set, ogl.width), VREFP(texture_set, ogl.height));
+		texture = newRenderer.createTextureLibPng(remasteredFilename, VREFP(texture_set, ogl.width), VREFP(texture_set, ogl.height));
 	}
 
 	if(texture)
@@ -2004,10 +1888,16 @@ struct texture_set *common_load_texture(struct texture_set *_texture_set, struct
 			}
 			else if(memcmp(VREF(tex_header, old_palette_data), tex_format->palette_data, 4 * tex_format->palette_size) != 0)
 			{
+				const uint32_t entries = VREF(tex_header, palette_entries);
+				if (entries == 0) ffnx_warning("%s: FF8 palette has no entries; invalidating all textures\n", __func__);
 				for (uint32_t idx = 0; idx < VREF(texture_set, ogl.gl_set->textures); idx++)
-					newRenderer.deleteTexture(VREF(texture_set, texturehandle[idx]));
-
-				memset(VREF(texture_set, texturehandle), 0, VREF(texture_set, ogl.gl_set->textures) * sizeof(uint32_t));
+				{
+					if (!TexturePacker::isPaletteDataChanged(
+						reinterpret_cast<const uint32_t *>(VREF(tex_header, old_palette_data)),
+						tex_format->palette_data, tex_format->palette_size, entries, idx)) continue;
+					newRenderer.deleteTexture(TexturePacker::releasePaletteTexture(
+						VREF(texture_set, texturehandle), VREF(texture_set, ogl.gl_set->textures), idx));
+				}
 				VREF(texture_set, ogl.gl_set->default_texture_id) = 0;
 
 				memcpy(VREF(tex_header, old_palette_data), tex_format->palette_data, 4 * tex_format->palette_size);
@@ -2250,9 +2140,9 @@ uint32_t common_write_palette(uint32_t source_offset, uint32_t size, void *sourc
 			if(palettes)
 			{
 				for (uint32_t idx = 0; idx < palettes; idx++)
-					newRenderer.deleteTexture(VREF(texture_set, texturehandle[palette_index + idx]));
+					newRenderer.deleteTexture(TexturePacker::releasePaletteTexture(
+						VREF(texture_set, texturehandle), VREF(texture_set, ogl.gl_set->textures), palette_index + idx));
 
-				memset(VREFP(texture_set, texturehandle[palette_index]), 0, palettes * sizeof(uint32_t));
 				VREF(texture_set, ogl.gl_set->default_texture_id) = 0;
 			}
 

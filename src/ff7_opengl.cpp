@@ -37,6 +37,18 @@
 unsigned char midi_fix[] = {0x8B, 0x4D, 0x14};
 WORD snowboard_fix[] = {0x0F, 0x10, 0x0F};
 
+static int ff7_query_repeatable_input(int mask)
+{
+	if (*ff7_externals.input_repeat_interval == 0)
+		return ff7_externals.get_button_held(mask);
+
+	// A fresh press opens the shared gate, but must not repeat other held buttons.
+	if (*ff7_externals.input_repeat_active == 0)
+		return ff7_externals.get_button_pressed(mask);
+
+	return ff7_externals.get_button_held(mask) ? *ff7_externals.input_repeat_gate : 0;
+}
+
 static ff7_polygon_set *ff7_swirl_update_60fps(ff7_game_obj *game_object, int update)
 {
 	const auto native_update = reinterpret_cast<ff7_polygon_set *(*)(ff7_game_obj *, int)>(ff7_externals.swirl_loop_sub_4026D4);
@@ -133,6 +145,12 @@ void ff7_init_hooks(struct game_obj *_game_object)
 
 	ff7_data(game_object);
 
+	replace_function(ff7_externals.input_query_repeatable, ff7_query_repeatable_input);
+
+	// Fix CTRL button status check
+	const unsigned char quit_modifier_fix[] = {0xC1, 0xE9, 0x1F};
+	memcpy_code((uint32_t)common_externals.engine_wndproc + 0x1D7, quit_modifier_fix, sizeof(quit_modifier_fix));
+
 	if (game_width == 1280)
 		MessageBoxA(gameHwnd, "Using this driver with the old high-res patch is NOT recommended, there will be glitches.", "Warning", 0);
 
@@ -212,6 +230,7 @@ void ff7_init_hooks(struct game_obj *_game_object)
 	replace_function(ff7_externals.lgp_seek_file, lgp_seek_file);
 
 	replace_function(ff7_externals.magic_thread_start, ff7::battle::magic_thread_start);
+	ff7::battle::battle_hook_init();
 
 	replace_function(ff7_externals.kernel2_reset_counters, kernel2_reset_counters);
 	replace_function(ff7_externals.kernel2_add_section, kernel2_add_section);
@@ -560,12 +579,6 @@ void ff7_init_hooks(struct game_obj *_game_object)
 	{
 		replace_call_function(ff7_externals.battle_draw_text_ui_graphics_objects_call, ff7::battle::draw_ui_graphics_objects_wrapper);
 		replace_call_function(ff7_externals.battle_draw_box_ui_graphics_objects_call, ff7::battle::draw_ui_graphics_objects_wrapper);
-	}
-
-	if (game_lighting != GAME_LIGHTING_ORIGINAL)
-	{
-		// Disables unnecessary lighting in temple of the ancients rolling rocks
-		replace_function(ff7_externals.sub_64EC60, noop);
 	}
 
 	//#############################################

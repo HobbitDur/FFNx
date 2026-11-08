@@ -29,6 +29,7 @@
 #include "../../log.h"
 #include "../../patch.h"
 #include "../../common.h"
+#include "../../gl.h"
 #include "../widescreen.h"
 #include "../defs.h"
 
@@ -37,9 +38,32 @@
 #include "defs.h"
 #include "enter.h"
 #include "model.h"
+#include "kawai.h"
+
+#include <bit>
 
 namespace ff7::field
 {
+    static int (*field_draw_effect_pages_original)(ff7_game_obj*, uint16_t, uint16_t);
+
+    static int field_draw_effect_pages(ff7_game_obj* game_object, uint16_t first_page, uint16_t end_page)
+    {
+        const char* field_name = get_current_field_name();
+        if (!field_name || strcmp(field_name, "mogu_1") != 0 || first_page != 15 || end_page != 26)
+            return field_draw_effect_pages_original(game_object, first_page, end_page);
+
+        // PSX draws the water at depth 4094 before the screen lighting at depth 1.
+        const int result = field_draw_effect_pages_original(game_object, 24, end_page);
+        const uint32_t depthtest = current_state.depthtest;
+        const uint32_t depthmask = current_state.depthmask;
+        internal_set_renderstate(V_DEPTHTEST, false, (game_obj*)game_object);
+        internal_set_renderstate(V_DEPTHMASK, false, (game_obj*)game_object);
+        field_draw_effect_pages_original(game_object, first_page, 24);
+        internal_set_renderstate(V_DEPTHTEST, depthtest, (game_obj*)game_object);
+        internal_set_renderstate(V_DEPTHMASK, depthmask, (game_obj*)game_object);
+        return result;
+    }
+
     // helper function initializes page dst, copies texture from src and applies
     // blend_mode
     void field_load_textures_helper(struct ff7_game_obj *game_object, struct struc_3 *struc_3, uint32_t src, uint32_t dst, uint32_t blend_mode)
@@ -178,86 +202,79 @@ namespace ff7::field
 
     void field_animate_3d_models()
     {
-        field_event_data* field_event_data = (*ff7_externals.field_event_data_ptr);
-        field_animation_data* field_animation_data = *ff7_externals.field_animation_data_ptr;
-
-        for (int i = 0; i < FF7_MAX_NUM_MODEL_ENTITIES; i++)
-        {
-            if (
-                ff7::field::ff7_model_data[i].is_kawai_active
-                && (
-                    (ff7::field::ff7_model_data[i].do_kawai_repeat && field_animation_data[i].kawai_opcode != 0x6)
-                    || (ff7::field::ff7_model_data[i].do_kawai_repeat && field_animation_data[i].kawai_opcode == 0x6)
-                )
-            )
-            {
-                if (
-                    field_event_data[i].opcode_params == ff7::field::ff7_model_data[i].exec_kawai_params
-                    && field_event_data[i].apply_kawai == 2
-                )
-                {
-                    field_event_data[i].apply_kawai = 1;
-                    field_event_data[i].opcode_params = ff7::field::ff7_model_data[i].init_kawai_params;
-                    field_animation_data[i].kawai_opcode = ff7::field::ff7_model_data[i].init_kawai_opcode;
-
-                    if (trace_all || trace_opcodes) ffnx_trace("opcode[KAWAI]: curr_model_id=%d,reinit_subcode=%u,reinit_opcode_params=0x%X\n", i, field_animation_data[i].kawai_opcode, field_event_data[i].opcode_params);
-                }
-                else if (
-                    field_event_data[i].opcode_params == ff7::field::ff7_model_data[i].init_kawai_params
-                    && field_event_data[i].apply_kawai == 2
-                )
-                {
-                    field_event_data[i].apply_kawai = 1;
-                    field_event_data[i].opcode_params = ff7::field::ff7_model_data[i].exec_kawai_params;
-                    field_animation_data[i].kawai_opcode = ff7::field::ff7_model_data[i].exec_kawai_opcode;
-
-                    if (trace_all || trace_opcodes) ffnx_trace("opcode[KAWAI]: curr_model_id=%d,reinit_subcode=%u,reinit_opcode_params=0x%X\n", i, field_animation_data[i].kawai_opcode, field_event_data[i].opcode_params);
-                }
-            }
-        }
-
         ff7_externals.field_animate_3d_models_6392BB();
+        advance_kawai_effects(common_frame_multiplier);
     }
 
     int ff7_apply_KAWAI_op_code(int sub_code, ff7_hrc_polygon_data *ff7_hrc_polygon_data, ff7_kawai_opcode_params *opcode_params, int model_pos_xy, int model_pos_z, int model_id, int *sub_code_ret)
     {
         ff7::field::ff7_kawai_current_model_id = model_id;
 
+        int complete = 0;
+        if (apply_kawai_effect(model_id, sub_code, ff7_hrc_polygon_data, sub_code_ret, &complete))
+            return complete;
         return ff7_externals.field_apply_kawai_op_64A070(sub_code, ff7_hrc_polygon_data, opcode_params, model_pos_xy, model_pos_z, model_id, sub_code_ret);
     }
 
-    void ff7_field_apply_model_light(ff7_light *global_light, ff7_light *cb_light_polygon_set, hrc_data *hrc_data)
+    static int (*native_below_level_color)(ff7_hrc_polygon_data*, int16_t*);
+
+    static void field_draw_kawai_model(uint32_t frame, anim_header* animation, struc_110* instance,
+        hrc_data* model, ff7_game_obj* game)
     {
-        if (hrc_data)
+        KawaiModelScope scope(instance);
+        ((void (*)(uint32_t, anim_header*, struc_110*, hrc_data*, ff7_game_obj*))ff7_externals.draw_3d_model)
+            (frame, animation, instance, model, game);
+    }
+
+    static int splash_below_level_color(ff7_hrc_polygon_data* model, int16_t* params)
+    {
+        // KAWAI 09's particles still use the game's splash renderer.
+        return has_kawai_splash_color() ? 1 : native_below_level_color(model, params);
+    }
+
+    static bool recalculate_background_depths = false;
+
+    void field_load_tut_file(ff7_game_obj* game_object)
+    {
+        ff7_externals.field_load_tut_file_60DAD4(game_object);
+
+        // The loader must copy the original near plane to the foreground-depth threshold first.
+        const float near_plane = std::bit_cast<float>(game_object->field_9A0);
+        recalculate_background_depths = near_plane > 50.0f;
+        if (recalculate_background_depths)
         {
-            struct hrc_bone *bones = hrc_data->bones;
-            for (int i = 0; i < (signed int)hrc_data->num_bones; ++i)
+            game_object->field_9A0 = std::bit_cast<uint32_t>(50.0f);
+        }
+    }
+
+    void field_initialize_background_depths(int world_x, int world_y)
+    {
+        ((void (*)(int, int))ff7_externals.field_sub_661B68)(world_x, world_y);
+
+        if (recalculate_background_depths)
+        {
+            // PC field files contain baked Z values; rebuild them from the retained raw tile depths.
+            field_tile* tiles = *ff7_externals.field_layer2_tiles;
+            for (int i = 0; i < *ff7_externals.field_layer2_tiles_num; ++i)
             {
-                if (bones->num_rsd > 0)
-                {
-                    struct rsd_array_member *rsd_array = bones->rsd_array;
-                    if (rsd_array)
-                    {
-                        for (int j = 0; j < (signed int)bones->num_rsd; ++j)
-                        {
-                            if (rsd_array->rsd_data)
-                            {
-                                if (ff7::field::ff7_model_data[ff7::field::ff7_kawai_current_model_id].init_kawai_opcode == 0x6 || ff7::field::ff7_model_data[ff7::field::ff7_kawai_current_model_id].exec_kawai_opcode == 0x6)
-                                    rsd_array->rsd_data->polygon_set->light = nullptr;
-                                else
-                                    ((void (__cdecl *)(ff7_light *, struct ff7_polygon_set *))cb_light_polygon_set)(global_light, rsd_array->rsd_data->polygon_set);
-                            }
-                            ++rsd_array;
-                        }
-                    }
-                }
-                ++bones;
+                tiles[i].z = ff7_externals.field_layer_sub_623C0F(
+                    ff7_externals.field_camera_rotation_matrix_CFF3D8, tiles[i].flags,
+                    2 * tiles[i].x + 320, 2 * tiles[i].y + 240);
             }
         }
     }
 
     void ff7_field_hook_init()
     {
+        field_draw_effect_pages_original = (decltype(field_draw_effect_pages_original))get_relative_call(ff7_externals.field_draw_everything, 0x348);
+        replace_call_function(ff7_externals.field_draw_everything + 0x348, field_draw_effect_pages);
+
+        // Fix camera model clipping in various fields
+        replace_call_function(ff7_externals.open_field_file + 0x9E, field_load_tut_file);
+        replace_call_function(ff7_externals.enter_field + 0xB5, field_load_tut_file);
+        replace_call_function(ff7_externals.enter_field + 0x2CA, field_load_tut_file);
+        replace_call_function(ff7_externals.field_sub_60DCED + 0x94, field_initialize_background_depths);
+
         std::copy(common_externals.execute_opcode_table, &common_externals.execute_opcode_table[OPCODE_COUNT - 1], &original_opcode_table[0]);
         // Init stuff
         replace_call_function(ff7_externals.field_sub_60DCED + 0x178, ff7_field_initialize_variables);
@@ -363,7 +380,11 @@ namespace ff7::field
         // Fix KAWAI LIGHT opcode animation
         replace_call_function(ff7_externals.field_main_loop + 0xF6, field_animate_3d_models);
         replace_call_function((uint32_t)ff7_externals.field_animate_3d_models_6392BB + 0x726, ff7_apply_KAWAI_op_code);
-        replace_function(ff7_externals.field_apply_model_light_sub_685028, ff7_field_apply_model_light);
+        replace_call_function(ff7_externals.field_draw_everything + 0x17F, field_draw_kawai_model);
+        replace_call_function(ff7_externals.field_draw_everything + 0x2EC, field_draw_kawai_model);
+        const auto splash = get_relative_call((uint32_t)ff7_externals.field_apply_kawai_op_64A070, 0x594);
+        native_below_level_color = (int (*)(ff7_hrc_polygon_data*, int16_t*))get_relative_call(splash, 0x27F);
+        replace_call_function(splash + 0x27F, splash_below_level_color);
 
         // Fix FF7 2026 rerelease crash after battle
         patch_code_dword((uint32_t)&common_externals.execute_opcode_table[VISI], (DWORD)&opcode_script_VISI);

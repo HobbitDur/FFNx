@@ -175,12 +175,18 @@ namespace final_form_death
 	// its pose (header entity+0x60, or *(entity+0x78) when op bit 15 is set), joint w0 of that
 	// model (blob 0xB66B80, composed with the entity matrix +0x40) applied to outPos ->
 	// accumPos = the camera-space point << 16. Then the bone handler. Length 4.
+	// 30 fps: while the held layer predicts the next tick, the joint comes from the entity's NEXT
+	// pose (pose_midpoint at 1: the bone matrices of the animation reader's next frame, as the
+	// next real tick rebuilds them after the entity's animation step); the skeleton block (pose
+	// + matrices) is journaled (guard) and put back when the prediction ends.
 	// ------------------------------------------------------------------------------------
 	static void __cdecl op_0AD_PosFromPosedEntityJoint()
 	{
 		uint8_t *ent = SlotEntity();                                          // edi
 		uint8_t *hdr = (U8(RT(), 0x4B) & 0x80) ? PTR(ent, 0x78) : ent + 0x60; // esi
 		x::BuildBoneMatricesFromPose(hdr);
+		// 30 fps layer: see mag077_final_form_death_held.inc
+		FX_HELD(if (held_predicting()) held_next_pose(hdr, hdr == ent + 0x60 ? ent + 0x6C : hdr + 0xC);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);

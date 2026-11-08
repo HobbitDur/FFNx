@@ -26,6 +26,7 @@
 #include "log.h"
 #include "gamehacks.h"
 #include "utils.h"
+#include "sfx.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -295,45 +296,18 @@ void NxAudioEngine::unloadSFXChannel(int channel)
 	}
 }
 
-bool NxAudioEngine::playSFX(const char* name, int id, int channel, float panning, bool loop, float volume)
+bool NxAudioEngine::playSFX(const char* name, int id, int channel, float panning, bool loop, float volume, bool fallbackToOriginal)
 {
+	if (!_engineInitialized)
+	{
+		ffnx_error("NxAudioEngine::%s: Audio engine is not initialized\n", __func__);
+		return false;
+	}
+
 	NxAudioEngineSFX *options = &_sfxChannels[channel - 1];
 	int _curId = id;
 	bool skipPlay = false;
 	std::string _id(name);
-
-	// If channel is known to be reusable
-	if (channel <= _sfxReusableChannels)
-	{
-		// Stop the current channel is already used and the track to be played is different that the one currently playing
-		if (options->stream != nullptr && options->id != id)
-		{
-			stopSFX(channel);
-			unloadSFXChannel(channel);
-		}
-		// If the engine is asking us to play again the same id on the same channel, and is a looping effect...
-		else if (options->stream != nullptr && options->id == id && loop)
-		{
-			// ...simply skip it since it's already playing
-			skipPlay = true;
-		}
-	}
-	// If channel is known to lazy unload what is currently playing, save the handler for later
-	else if (std::find(_sfxLazyUnloadChannels.begin(), _sfxLazyUnloadChannels.end(), channel) != _sfxLazyUnloadChannels.end())
-	{
-		_sfxEffectsHandler[options->game_id] = options->stream;
-
-		// invalidate the old channel stream in order to continue loading this new ID
-		options->stream = nullptr;
-	}
-	// Otherwise just unload the channel and allow to load a new track immediately
-	else if (channel <= _sfxTotalChannels)
-	{
-		unloadSFXChannel(channel);
-	}
-
-	// Reset state
-	options->volume = volume;
 
 	auto node = nxAudioEngineConfig[NxAudioEngineLayer::NXAUDIOENGINE_SFX][name];
 	if (node)
@@ -370,20 +344,54 @@ bool NxAudioEngine::playSFX(const char* name, int id, int channel, float panning
 		}
 	}
 
-	// Try to load the new ID if it's not already cached
-	if (options->stream == nullptr)
-	{
-		options->game_id = id;
-		options->id = _curId;
-		// Avoid loading a stream if it is meant to be skipped
-		options->stream = skipPlay ? nullptr : loadSFX(_id, loop);
-	}
-
 	if (skipPlay)
 	{
-		// Make the game think everything went fine but instead just be silent
+		stopSFX(channel);
 		return true;
 	}
+
+	const bool reusable = channel <= _sfxReusableChannels;
+	const bool matching = reusable && options->stream != nullptr && options->game_id == id &&
+		options->id == _curId && options->sourceName == _id;
+	bool original = false;
+	SoLoud::VGMStream* stream = matching && !options->original ? options->stream : loadSFX(_id, loop);
+	if (stream == nullptr && fallbackToOriginal)
+	{
+		original = true;
+		loop = nxAudioEngineConfig[NxAudioEngineLayer::NXAUDIOENGINE_SFX][_id]["loop"].value_or(loop);
+		stream = matching && options->original ? options->stream : sfx_load_original(_curId, loop);
+	}
+	if (stream == nullptr)
+	{
+		if (fallbackToOriginal && reusable) stopSFX(channel);
+		return false;
+	}
+
+	const bool cached = stream == options->stream;
+	if (cached && stream->mStream->loop_flag && _engine.isValidVoiceHandle(options->handle)) return true;
+	if (!cached)
+	{
+		// Resolve a candidate before replacing the channel so missing layers cannot evict its cached source.
+		if (reusable)
+		{
+			stopSFX(channel);
+			unloadSFXChannel(channel);
+		}
+		else if (std::find(_sfxLazyUnloadChannels.begin(), _sfxLazyUnloadChannels.end(), channel) != _sfxLazyUnloadChannels.end())
+		{
+			_sfxEffectsHandler[options->game_id] = options->stream;
+		}
+		else
+		{
+			unloadSFXChannel(channel);
+		}
+		options->stream = stream;
+		options->game_id = id;
+		options->id = _curId;
+		options->sourceName = _id;
+		options->original = original;
+	}
+	options->volume = volume;
 
 	if (external_sfx_always_centered)
 	{
@@ -691,15 +699,17 @@ bool NxAudioEngine::playMusic(const char* name, uint32_t id, int channel, MusicO
 	if (!options.useNameAsFullPath) {
 		overloadPlayArgumentsFromConfig(overloadedName, &id, &options);
 	}
+	const bool sameMusic = currentMusicId(channel) == id && (!options.matchName || _musics[channel].sourceName == name);
 	// Same music is already playing on this channel
-	if (isMusicPlaying(channel) && currentMusicId(channel) == id) {
+	if (isMusicPlaying(channel) && sameMusic) {
 		if (trace_all || trace_music) ffnx_trace("NxAudioEngine::%s: %s is already playing on channel %d\n", __func__, overloadedName, channel);
 
 		return false;
 	}
 	// Same music is paused on this channel or in backup channel
-	bool restore = !_musicStack.empty() && _musicStack.top().id == id;
-	if ((isChannelValid(channel) && currentMusicId(channel) == id) || restore) {
+	bool restore = !_musicStack.empty() && _musicStack.top().id == id
+		&& (!options.matchName || _musicStack.top().sourceName == name);
+	if ((isChannelValid(channel) && sameMusic) || restore) {
 		resumeMusic(channel, options.fadetime == 0.0 ? 1.0 : options.fadetime, restore); // Slight fade
 
 		return true;
@@ -722,6 +732,7 @@ bool NxAudioEngine::playMusic(const char* name, uint32_t id, int channel, MusicO
 		const float initialVolume = options.fadetime > 0.0 || offsetSeconds > 0.0 ? 0.0f : music.wantedMusicVolume * _musicMasterVolume;
 		music.handle = _engine.playBackground(*audioSource, initialVolume, offsetSeconds > 0.0);
 		music.id = id;
+		music.sourceName = name;
 		music.sync = options.sync;
 
 		// Keep audioSource pointer somewhere to delete it after musicHandle is stopped
@@ -919,6 +930,7 @@ void NxAudioEngine::backupMusic(int channelSource)
 	// Save for later usage
 	backup.id = music.id;
 	backup.handle = music.handle;
+	backup.sourceName = music.sourceName;
 	backup.sync = music.sync;
 
 	_musicStack.push(backup);
@@ -944,6 +956,7 @@ void NxAudioEngine::restoreMusic(int channelDest, double stopTime)
 	// Restore
 	music.id = backup.id;
 	music.handle = backup.handle;
+	music.sourceName = backup.sourceName;
 	music.sync = backup.sync;
 
 	_musicStack.pop();

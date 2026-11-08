@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include "./file.h"
+#include "input.h"
 #include "../globals.h"
 #include "../patch.h"
 #include "../log.h"
@@ -207,21 +208,12 @@ ff8_draw_menu_sprite_texture_infos *ff8_jp_font_transform_icon_to_text(int a1, f
 
 int ff8_draw_gamepad_icon_or_keyboard_key(int a1, ff8_draw_menu_sprite_texture_infos *draw_infos, int icon_id, uint16_t x, uint16_t y)
 {
-    // Keep the "keys" if it is a keyboard and not a gamepad
     if (icon_id >= 128 && icon_id < 140)
     {
-        BYTE is_gamepad = *ff8_externals.engine_gamepad_button_pressed != 0;
-        
-        if (ff8_use_gamepad_icons && is_gamepad)
+        if (ff8_use_gamepad_icons)
         {
-            int val = ((int(*)(int,int,int))ff8_externals.get_command_key)(is_gamepad, icon_id - 128, 0);
-            
-            if (val == 0) {
-                val = ((int(*)(int,int,int))ff8_externals.get_command_key)(!is_gamepad, icon_id - 128, 0);
-            }
-            
-            int rgbButton = val - 224;
-            
+            const int rgbButton = ff8_externals.get_command_key(1, icon_id - 128, 0) - 224;
+
             switch (rgbButton)
             {
             case 0: // Cross (Steam)/Square
@@ -245,29 +237,32 @@ int ff8_draw_gamepad_icon_or_keyboard_key(int a1, ff8_draw_menu_sprite_texture_i
             case 9: // R2 (Steam)/START
                 return steam_stock_launcher ? 129 : 139;
             }
+
+            // Unmapped buttons keep the command's default controller icon.
+            return icon_id;
         }
-        
+
         ((void(*)(int, ff8_draw_menu_sprite_texture_infos*, int, uint16_t, uint16_t))ff8_externals.draw_controller_or_keyboard_icons)(a1, draw_infos, icon_id, x, y);
-        
+
         return -1;
     }
-    
+
     return icon_id;
 }
 
 unsigned int *ff8_draw_icon_get_icon_sp1_infos(int icon_id, int &states_count)
 {
     int *icon_sp1_data = ((int*(*)())ff8_externals.get_icon_sp1_data)();
-    
+
     if (icon_id >= icon_sp1_data[0])
     {
         states_count = 0;
-        
+
         return nullptr;
     }
-    
+
     states_count = HIWORD(icon_sp1_data[icon_id + 1]);
-    
+
     return (unsigned int *)((char *)icon_sp1_data + uint16_t(icon_sp1_data[icon_id + 1]));
 }
 
@@ -289,15 +284,15 @@ ff8_draw_menu_sprite_texture_infos *ff8_draw_icon_or_key(
     {
         return ret;
     }
-    
+
     int states_count = 0;
     unsigned int *sp1_section_data = ff8_draw_icon_get_icon_sp1_infos(icon_id, states_count);
-    
+
     if (sp1_section_data == nullptr)
     {
         return draw_infos;
     }
-    
+
     for (int i = states_count; i > 0; --i)
     {
         draw_infos->command = 0x5000000;
@@ -324,7 +319,7 @@ ff8_draw_menu_sprite_texture_infos *ff8_draw_icon_or_key(
         }
         sp1_section_data += 2;
     }
-    
+
     return draw_infos;
 }
 
@@ -360,15 +355,15 @@ ff8_draw_menu_sprite_texture_infos_short *ff8_draw_icon_or_key6(int a1, ff8_draw
     {
         return draw_infos;
     }
-    
+
     int states_count = 0;
     unsigned int *sp1_section_data = ff8_draw_icon_get_icon_sp1_infos(icon_id, states_count);
-    
+
     if (sp1_section_data == nullptr)
     {
         return draw_infos;
     }
-    
+
     for (int i = states_count; i > 0; --i)
     {
         draw_infos->texID = 0x4000000;
@@ -381,7 +376,7 @@ ff8_draw_menu_sprite_texture_infos_short *ff8_draw_icon_or_key6(int a1, ff8_draw
         draw_infos += 1;
         sp1_section_data += 2;
     }
-    
+
     return draw_infos;
 }
 
@@ -689,7 +684,7 @@ void ff8_fonts_jp_build_icon_graphic_object_font8(ff8_draw_menu_sprite_texture_i
             texture_infos_short->u += 128; // u >= 256
             texture_infos_short->v += 104; // v >= 256 && v < 304
             texture_infos_short->palID = (((ff8_tex_header *)(((ff8_texture_set *)(graphic_object->hundred_data->texture_set))->tex_header))->field_DC >> 4) & 0x3F | ((LOWORD(((ff8_tex_header *)(((ff8_texture_set *)(graphic_object->hundred_data->texture_set))->tex_header))->field_E0) + uint16_t(v4 / 2)) << 6);
-            
+
             return ((void(*)(ff8_draw_menu_sprite_texture_infos_short*,ff8_graphics_object*))ff8_externals.sub_49B300)(texture_infos_short, graphic_object);
         }
     }
@@ -786,17 +781,31 @@ void fill_texture_infos_for_font(ff8_draw_menu_sprite_texture_infos *texture_inf
     }
 }
 
-int get_icon_id(uint8_t icon_param, bool bound_icon_param_to_63 = false)
+int ff8_get_text_button_key(int key_id)
+{
+    if (!JP_VERSION && key_id >= 4 && key_id <= 6) {
+        if (game_language == GAME_LANGUAGE_JP) {
+            key_id = ff8_japanese_action_to_engine(key_id);
+        } else if (ff8_remastered_edition) {
+            constexpr int action_keys[] = {5, 4, 6}; // Menu, Cancel, Confirm
+            key_id = action_keys[key_id - 4];
+        }
+    }
+
+    return ((int(*)(int))ff8_externals.sub_4A2DF0)(key_id);
+}
+
+int get_icon_id(int icon_param)
 {
     int icon_id = 0;
     if (icon_param >= 64) {
         icon_id = ff8_externals.word_B86D84[icon_param];
     } else if (icon_param < 32 || icon_param > 47) {
-        if (icon_param >= 48 && (!bound_icon_param_to_63 || icon_param <= 63)) {
+        if (icon_param >= 48) {
             icon_id = icon_param + 80;
         }
     } else {
-        int key_from_key_id = ((int(*)(int))ff8_externals.sub_4A2DF0)(icon_param - 32);
+        int key_from_key_id = ff8_get_text_button_key(icon_param - 32);
         if (key_from_key_id >= 0) {
             icon_id = key_from_key_id + 128;
         }
@@ -1090,7 +1099,7 @@ void ff8_fonts_parse_and_render_field_texts(int *a1, ff8_win_obj *win)
 
             if (current_byte == 5) { // Icons
                 // x is modified
-                texture_infos = fill_texture_infos_for_icon(a1, texture_infos, x, y, get_icon_id(*text_data++, true));
+                texture_infos = fill_texture_infos_for_icon(a1, texture_infos, x, y, get_icon_id(*text_data++));
             } else if (current_byte == 6) { // Color
                 current_color = (*text_data++) & 0xF;
             } else if (current_byte <= 15) {
@@ -1322,7 +1331,7 @@ void ff8_jp_menu_name_controller(int a1)
     const bool lastPage = tab == 2;
     const uint8_t last_row = lastPage ? 3 : 5;
     const uint16_t *rowlist = tab == 0 ? ff8_jp_name_grid_page0 : (tab == 1 ? ff8_jp_name_grid_page1 : ff8_jp_name_grid_page2);
-    int16_t dword_1D76A9A = *(int16_t *)(ff8_externals.menu_data_1D76A9C - 2);
+    int16_t dword_1D76A9A = *(reinterpret_cast<int16_t *>(ff8_externals.menu_data_1D76A9C) - 1);
     int16_t dword_1D76A9C = *(int16_t *)ff8_externals.menu_data_1D76A9C;
 
     switch (*(WORD *)(a1 + 16)) {
@@ -1639,94 +1648,6 @@ void ff8_fonts_copy_name_griever(char *dst, const char *src)
     strcpy(dst, ((char *(*)(int, int, int, int))ff8_externals.get_text_data)(1, 5, 79, 0));
 }
 
-int16_t ff8_jp_key_invert_controls(int16_t keys)
-{
-    if ((ff8_externals.savemap->config.flags & 0x20) != 0) {
-        int custom_keys = 0;
-        uint8_t *key_mapping = &ff8_externals.savemap->config.l2;
-
-        for (int i = 0; i < 12; ++i) {
-            if (((1 << i) & keys & 0xFFF) != 0) {
-                char key = key_mapping[i];
-                if (key) {
-                    custom_keys |= 1 << (key - 1);
-                }
-            }
-        }
-
-        keys = keys & 0xF000 | custom_keys;
-    }
-
-    int16_t keys_new = keys;
-
-    // Invert keys for jp version
-    if ((keys & 0x10) != 0) {
-        keys_new &= ~0x10; // Clear
-        keys_new |= 0x20;
-    }
-
-    if ((keys & 0x20) != 0) {
-        keys_new &= ~0x20; // Clear
-        keys_new |= 0x40;
-    }
-
-    if ((keys & 0x40) != 0) {
-        keys_new &= ~0x40; // Clear
-        keys_new |= 0x10;
-    }
-
-    return keys_new;
-}
-
-int ff8_jp_cancel_controls_invertion(int keys)
-{
-    int16_t keys_new = keys;
-
-    // Bring back normal keys
-    if ((keys & 0x10) != 0) {
-        keys_new &= ~0x10; // Clear
-        keys_new |= 0x40;
-    }
-
-    if ((keys & 0x20) != 0) {
-        keys_new &= ~0x20; // Clear
-        keys_new |= 0x10;
-    }
-
-    if ((keys & 0x40) != 0) {
-        keys_new &= ~0x40; // Clear
-        keys_new |= 0x20;
-    }
-
-    return keys_new;
-}
-
-int ff8_jp_keyscan_cancel_controls_invertion(void *a1)
-{
-    uint32_t *keyscan = ff8_externals.field_keys_scanned, keyscan_bak = *keyscan;
-
-    *keyscan = ff8_jp_cancel_controls_invertion(*keyscan);
-
-    int ret = ff8_externals.opcode_keyscan(a1);
-
-    *keyscan = keyscan_bak;
-
-    return ret;
-}
-
-int ff8_jp_keyon_cancel_controls_invertion(void *a1)
-{
-    uint32_t *keyon = ff8_externals.field_keys_pressed, keyon_bak = *keyon;
-
-    *keyon = ff8_jp_cancel_controls_invertion(*keyon);
-
-    int ret = ff8_externals.opcode_keyon(a1);
-
-    *keyon = keyon_bak;
-
-    return ret;
-}
-
 void fonts_init_jp()
 {
     if (trace_all) ffnx_trace("%s: jp_fonts_initialized=%d is_japanese_font_loaded=%d\n", __func__, jp_fonts_initialized, fonts_sysevn->graphics_object48 != nullptr);
@@ -1823,10 +1744,6 @@ void fonts_init_jp()
     replace_call(ff8_externals.main_menu_controller + 0x13B2, ff8_fonts_copy_name_boko);
     replace_call(ff8_externals.main_menu_controller + 0x13C1, ff8_fonts_copy_name_griever);
 
-    // Invert controls X/O
-    replace_function(ff8_externals.input_get_key_using_savemap_sub_4A2D60, ff8_jp_key_invert_controls); // Replace everywhere
-    common_externals.execute_opcode_table[0x6D] = uint32_t(ff8_jp_keyscan_cancel_controls_invertion); // Except for field script parsing
-    common_externals.execute_opcode_table[0x6E] = uint32_t(ff8_jp_keyon_cancel_controls_invertion);
 }
 
 void ff8_load_fonts_jp(ff8_file_container *file_container, int is_exit_menu)
@@ -2014,6 +1931,13 @@ void ff8_cleanup_fonts_jp()
 void fonts_init()
 {
     bool ff8_enable_japanese_font = game_language == GAME_LANGUAGE_JP;
+
+    if (!JP_VERSION && (ff8_remastered_edition || ff8_enable_japanese_font)) {
+        replace_function(get_relative_call(ff8_externals.menu_draw_text_sub_4BDE30, 0xBA), get_icon_id);
+        replace_call(ff8_externals.font_text_size_calculation_sub_4A0D10 + 0x6F, ff8_get_text_button_key);
+        replace_call(ff8_externals.font_parse_and_render_menu_2_sub_4A1200 + 0x246, ff8_get_text_button_key);
+        replace_call(ff8_externals.render_text_field_sub_4A1570 + 0x30D, ff8_get_text_button_key);
+    }
 
     // Use hardcoded values for remastered edition
     if (ff8_remastered_edition && !ff8_enable_japanese_font) {
