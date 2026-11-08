@@ -142,12 +142,16 @@ namespace laser255
 	{
 		using namespace gfc;
 		laser255::describe(laser255::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<255>::Register("Homing Laser (attack 282)", laser255::g_c, 0x982620, 0x185BDD8, 0x185BDE4,
+		                           (void *)laser255::SequenceTask);
 		init_clone(laser255::g_c, nullptr, 0);
 		laser255::apply_slots(laser255::g_c);
 		register_port(0x982CC0, (void *)laser255::SequenceTask, "MAG255 Homing Laser (attack 282) SequenceTick", 255);
 		// 30 fps layer: see mag255_homing_laser_282_held.inc
 		FX_HELD(register_mag255_homing_laser_282_held();)
 	}
+	FX_LAB_MODULE(register_mag255_homing_laser_282);
 }
 
 #ifdef FF8_FX_HELD

@@ -142,12 +142,16 @@ namespace twinlaser253
 	{
 		using namespace gfc;
 		twinlaser253::describe(twinlaser253::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<253>::Register("Twin Homing Laser", twinlaser253::g_c, 0x997CE0, 0x185D1A8, 0x185D1B4,
+		                           (void *)twinlaser253::SequenceTask);
 		init_clone(twinlaser253::g_c, nullptr, 0);
 		twinlaser253::apply_slots(twinlaser253::g_c);
 		register_port(0x998380, (void *)twinlaser253::SequenceTask, "MAG253 Twin Homing Laser SequenceTick", 253);
 		// 30 fps layer: see mag253_twin_homing_laser_held.inc
 		FX_HELD(register_mag253_twin_homing_laser_held();)
 	}
+	FX_LAB_MODULE(register_mag253_twin_homing_laser);
 }
 
 #ifdef FF8_FX_HELD

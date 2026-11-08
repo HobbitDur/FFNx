@@ -114,12 +114,16 @@ namespace pillar220
 	{
 		using namespace gfc;
 		pillar220::describe(pillar220::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<220>::Register("Light Pillar", pillar220::g_c, 0xAB32F0, 0x186E6B8, 0x186E6C4,
+		                           (void *)pillar220::SequenceTask);
 		init_clone(pillar220::g_c, nullptr, 0);
 		pillar220::apply_slots(pillar220::g_c);
 		register_port(0xAB3990, (void *)pillar220::SequenceTask, "MAG220 Light Pillar SequenceTick", 220);
 		// 30 fps layer: see mag220_light_pillar_held.inc
 		FX_HELD(register_mag220_light_pillar_held();)
 	}
+	FX_LAB_MODULE(register_mag220_light_pillar);
 }
 
 #ifdef FF8_FX_HELD
