@@ -441,6 +441,8 @@ namespace gfc
 
 	// runs the VM part of the next tick (preamble + Neg/Integrator/Pos) on the real state with
 	// every out-of-state side effect disabled, captures the result and puts everything back
+	static uint32_t g_pred_pass = 0;   // prediction passes run (held_entity_next_root: once per entity and pass)
+
 	static void PredictPass(Clone &c)
 	{
 		region_save(g_r_gte, (void *)0x1CA8A00, 0xA00);
@@ -454,6 +456,7 @@ namespace gfc
 		BindHeld();
 		SaveEngine(true);
 		g_predict = true;
+		g_pred_pass++;
 		g_njr = 0; g_jr_used = 0; g_jr_overflow = false; g_cam_written = false;
 		guard((void *)0xB8B7F0, 0x20);  // camera words + saved copy (op 0x39 sub-op 4)
 		guard((void *)0x1D8E038, 2);
@@ -862,6 +865,43 @@ namespace gfc
 		if (!sk || U8(sk, 0) == 0) return;
 		guard(sk, 16 + 48 * (int)U8(sk, 0));
 		pose_midpoint(hdr, ent + 0x6C, 1, 1);
+	}
+
+	// Bone handler 9 (bh_09_EntityJoint) adds the root words of the slot entity's skeleton block (+8 /
+	// +A / +C, the root offset of the animation frame) to accumPos; the battle's animation step of the
+	// entity (the engine reader 0x508F90 on the animation command +0x6C) rewrites them before the next
+	// tick, and pose_midpoint keeps the real tick's root. While predicting: the root of the entity's
+	// NEXT frame, read by that reader on the real skeleton / command (both put back at once), written
+	// into the root words (journaled by guard, put back when the prediction ends). A completed
+	// animation (command +6 >= +7) holds its root. Without it a bone on an animating entity's root
+	// lags half a tick (220 Light Pillar on Omega Weapon c0m114). Same registration as the joint ops.
+	// Once per entity and prediction pass: the reader steps from the root words it finds (a second
+	// call would step from the already advanced root).
+	void held_entity_next_root(uint8_t *ent)
+	{
+		if (!ent || !held_entity_joints_on()) return;
+		static uint8_t *done[8];
+		static uint32_t done_pass = 0;
+		static int ndone = 0;
+		if (done_pass != g_pred_pass) { done_pass = g_pred_pass; ndone = 0; }
+		for (int i = 0; i < ndone; i++) if (done[i] == ent) return;
+		if (ndone < 8) done[ndone++] = ent;
+		uint8_t *com = PTR(ent, 0x64);
+		uint8_t *sk = com ? PTR(com, 0) : nullptr;
+		uint8_t *cmd = ent + 0x6C;
+		if (!sk || U8(sk, 0) == 0 || U8(cmd, 6) >= U8(cmd, 7)) return;
+		static uint8_t save[16 + 48 * 256];
+		const size_t n = 16 + 48 * (size_t)U8(sk, 0);
+		uint8_t cs[8];
+		int16_t root[3];
+		memcpy(save, sk, n);
+		memcpy(cs, cmd, sizeof(cs));
+		x::f<int32_t (__cdecl *)(void *, void *)>(0x508F90)(ent + 0x60, cmd);   // Battle_ReadAnimation
+		memcpy(root, sk + 8, sizeof(root));
+		memcpy(sk, save, n);
+		memcpy(cmd, cs, sizeof(cs));
+		guard(sk + 8, sizeof(root));
+		memcpy(sk + 8, root, sizeof(root));
 	}
 
 	bool HeldReady(Clone &c)
