@@ -136,12 +136,16 @@ namespace ultima270
 	{
 		using namespace gfc;
 		ultima270::describe(ultima270::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<270>::Register("Ultima Weapon Death", ultima270::g_c, 0x8E9C00, 0x18539F4, 0x1853A00,
+		                           (void *)ultima270::SequenceTask);
 		init_clone(ultima270::g_c, nullptr, 0);
 		ultima270::apply_slots(ultima270::g_c);
 		register_port(0x8EA2A0, (void *)ultima270::SequenceTask, "MAG270 Ultima Weapon Death SequenceTick", 270);
 		// 30 fps layer: see mag270_ultima_weapon_death_held.inc
 		FX_HELD(register_mag270_ultima_weapon_death_held();)
 	}
+	FX_LAB_MODULE(register_mag270_ultima_weapon_death);
 }
 
 #ifdef FF8_FX_HELD

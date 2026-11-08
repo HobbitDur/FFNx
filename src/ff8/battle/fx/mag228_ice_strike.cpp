@@ -283,12 +283,16 @@ namespace icestrike228
 	{
 		using namespace gfc;
 		icestrike228::describe(icestrike228::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<228>::Register("Ice Strike (Edea)", icestrike228::g_c, 0xA85590, 0x186BE1C, 0x186BE28,
+		                           (void *)icestrike228::SequenceTask);
 		init_clone(icestrike228::g_c, nullptr, 0);
 		icestrike228::apply_slots(icestrike228::g_c);
 		register_port(0xA85C30, (void *)icestrike228::SequenceTask, "MAG228 Ice Strike SequenceTick", 228);
 		// 30 fps layer: see mag228_ice_strike_held.inc
 		FX_HELD(register_mag228_ice_strike_held();)
 	}
+	FX_LAB_MODULE(register_mag228_ice_strike);
 }
 
 #ifdef FF8_FX_HELD

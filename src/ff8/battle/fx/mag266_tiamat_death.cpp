@@ -136,12 +136,16 @@ namespace tiamat266
 	{
 		using namespace gfc;
 		tiamat266::describe(tiamat266::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<266>::Register("Tiamat death", tiamat266::g_c, 0x91F5B0, 0x18562EC, 0x18562F8,
+		                           (void *)tiamat266::SequenceTask);
 		init_clone(tiamat266::g_c, nullptr, 0);
 		tiamat266::apply_slots(tiamat266::g_c);
 		register_port(0x91FC50, (void *)tiamat266::SequenceTask, "MAG266 Tiamat death SequenceTick", 266);
 		// 30 fps layer: see mag266_tiamat_death_held.inc
 		FX_HELD(register_mag266_tiamat_death_held();)
 	}
+	FX_LAB_MODULE(register_mag266_tiamat_death);
 }
 
 #ifdef FF8_FX_HELD

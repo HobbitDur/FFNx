@@ -117,12 +117,16 @@ namespace beam250
 	{
 		using namespace gfc;
 		beam250::describe(beam250::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<250>::Register("Beam Cannon", beam250::g_c, 0x9ABFC0, 0x185E504, 0x185E510,
+		                           (void *)beam250::SequenceTask);
 		init_clone(beam250::g_c, nullptr, 0);
 		beam250::apply_slots(beam250::g_c);
 		register_port(0x9AC660, (void *)beam250::SequenceTask, "MAG250 Beam Cannon SequenceTick", 250);
 		// 30 fps layer: see mag250_beam_cannon_held.inc
 		FX_HELD(register_mag250_beam_cannon_held();)
 	}
+	FX_LAB_MODULE(register_mag250_beam_cannon);
 }
 
 #ifdef FF8_FX_HELD

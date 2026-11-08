@@ -136,12 +136,16 @@ namespace eff248
 	{
 		using namespace gfc;
 		eff248::describe(eff248::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<248>::Register("Effect 248", eff248::g_c, 0x9C08A0, 0x185F884, 0x185F890,
+		                           (void *)eff248::SequenceTask);
 		init_clone(eff248::g_c, nullptr, 0);
 		eff248::apply_slots(eff248::g_c);
 		register_port(0x9C0F40, (void *)eff248::SequenceTask, "MAG248 effect 248 SequenceTick", 248);
 		// 30 fps layer: see mag248_unknown_248_held.inc
 		FX_HELD(register_mag248_unknown_248_held();)
 	}
+	FX_LAB_MODULE(register_mag248_unknown_248);
 }
 
 #ifdef FF8_FX_HELD

@@ -136,12 +136,16 @@ namespace tripoint268
 	{
 		using namespace gfc;
 		tripoint268::describe(tripoint268::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<268>::Register("Tri-Point death", tripoint268::g_c, 0x9049D0, 0x1854E6C, 0x1854E78,
+		                           (void *)tripoint268::SequenceTask);
 		init_clone(tripoint268::g_c, nullptr, 0);
 		tripoint268::apply_slots(tripoint268::g_c);
 		register_port(0x905070, (void *)tripoint268::SequenceTask, "MAG268 Tri-Point death SequenceTick", 268);
 		// 30 fps layer: see mag268_tri_point_death_held.inc
 		FX_HELD(register_mag268_tri_point_death_held();)
 	}
+	FX_LAB_MODULE(register_mag268_tri_point_death);
 }
 
 #ifdef FF8_FX_HELD

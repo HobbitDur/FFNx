@@ -94,11 +94,15 @@ namespace bgh249
 	{
 		using namespace gfc;
 		bgh249::describe(bgh249::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<249>::Register("Attack (BGH251F2)", bgh249::g_c, 0x9B7350, 0x185EEE4, 0x185EEF0,
+		                           (void *)bgh249::SequenceTask);
 		init_clone(bgh249::g_c, nullptr, 0);
 		register_port(0x9B79F0, (void *)bgh249::SequenceTask, "MAG249 Attack (BGH251F2) SequenceTick", 249);
 		// 30 fps layer: see mag249_bgh_attack_held.inc
 		FX_HELD(register_mag249_bgh_attack_held();)
 	}
+	FX_LAB_MODULE(register_mag249_bgh_attack);
 }
 
 #ifdef FF8_FX_HELD
