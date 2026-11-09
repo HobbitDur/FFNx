@@ -114,8 +114,9 @@ namespace cura
 		struct { int16_t spread; } sparkles;                            // the sparkles' and particles' random offset
 		struct { uint32_t glow, swirl, swirl_end, mote, sparkle_a, sparkle_a2, sparkle_b, sparkle_b2; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t rings, sparkles, particles; } tables; // its small tables (data): colours, fades, counts, offsets
+		struct { uint32_t aura, ring; } layouts;                 // the prim-model layouts played (data: models + keys)
 	};
-	static const CuraParams GAME = { { SOUND_Cura, 0xB, 0x1E }, { 0x800, 0xC00, 0xE00 }, { 0x600, 8 }, { 0x200 }, { SEQ_Glow, SEQ_Swirl, SEQ_SwirlEnd, SEQ_Mote, SEQ_SparkleA, SEQ_SparkleA2, SEQ_SparkleB, SEQ_SparkleB2 }, { 0x1613684, 0x16136C0, 0x16136FC } };
+	static const CuraParams GAME = { { SOUND_Cura, 0xB, 0x1E }, { 0x800, 0xC00, 0xE00 }, { 0x600, 8 }, { 0x200 }, { SEQ_Glow, SEQ_Swirl, SEQ_SwirlEnd, SEQ_Mote, SEQ_SparkleA, SEQ_SparkleA2, SEQ_SparkleB, SEQ_SparkleB2 }, { 0x1613684, 0x16136C0, 0x16136FC }, { LAYOUT_Aura, LAYOUT_Ring } };
 	static CuraParams live = GAME;
 	static const CuraParams &PC() { return live; }
 
@@ -1270,7 +1271,7 @@ namespace cura
 		S32(a1, 0x30) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x38) = 0x1000;
-		DecodeLayout(LAYOUT_Aura, a1 + 0x60, 0x64);
+		DecodeLayout(fxp::layout(PC().layouts.aura, LAYOUT_Aura, 0x64), a1 + 0x60, 0x64);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1379,7 +1380,7 @@ namespace cura
 	// 0x88B710 (sub_88B710): ring player state 0 - layout 0x161194C into +0x60
 	static uint32_t __cdecl RingStart(uint32_t a1)
 	{
-		DecodeLayout(LAYOUT_Ring, a1 + 0x60, 0x34);
+		DecodeLayout(fxp::layout(PC().layouts.ring, LAYOUT_Ring, 0x34), a1 + 0x60, 0x34);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1731,6 +1732,8 @@ namespace cura
 			{ "emitter", "tables.rings", "Rings a tick", "How many rings spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.rings), fxp::Data, 0, 0x7FFFFFFF },
 			{ "emitter", "tables.sparkles", "Sparkles a tick", "How many sparkles spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.sparkles), fxp::Data, 0, 0x7FFFFFFF },
 			{ "emitter", "tables.particles", "Particles a tick", "How many particles spawn at each tick (60 bytes: an edited one keeps its length)", (uint32_t)offsetof(CuraParams, tables.particles), fxp::Data, 0, 0x7FFFFFFF },
+			{ "emitter", "layouts.aura", "Aura model", "The prim-model layout of the aura players (the rings on the ground and the band, their animation)", (uint32_t)offsetof(CuraParams, layouts.aura), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "emitter", "layouts.ring", "Ring model", "The prim-model layout of the ring players (the two crossed blades, their animation)", (uint32_t)offsetof(CuraParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
 		};
 #undef DT
 	}
