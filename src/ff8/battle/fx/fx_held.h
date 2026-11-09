@@ -62,6 +62,23 @@ namespace ff8fx
 			else if (j < nheld) emit(false, j++);
 		while (j < nheld) emit(false, j++);
 	}
+	// HIT-EFFECT QUEUE (TASK_QUEUE 0x209FAA8, ticked by the battle loop at 0x500923): it belongs to no effect (hit sparks,
+	// fades, the magic-cast glow, Renzokuken parts...), so its tasks are ported and drawn on held frames per TASK FUNCTION.
+	// register_eq_task(orig, draw): the port of orig (register_port) runs in that queue on its real ticks (the frame gate
+	// sets g_eq_active around the queue's real tick: lookup() then answers for the registered functions only, every other
+	// task of the queue runs its original code); draw (nullptr: none) draws one node of orig at its in-between state num/den
+	// of the way to its next tick, from what the port noted on the last real tick (g_eq_tick), without changing any state
+	// (the packets go to a buffer of the module's own: the gate keeps the frame's packets alive). It returns false when it
+	// has nothing for that node: the gate then links what the node drew on the real tick, as drawn. On a held frame the
+	// gate replays the queue's real-tick draws in order and calls draw at the first draw of each such node instead of
+	// linking that node's packets (nodes that ended on the tick keep their packets when keep_ended(orig)).
+	extern uint32_t g_eq_tick;  // real ticks of the hit-effect queue (the frame gate increments it before each)
+	extern bool g_eq_active;    // the hit-effect queue's real tick runs now (fx_port.cpp lookup)
+	typedef bool (*EqHeldFn)(uint32_t orig, const void *node, int num, int den);
+	void register_eq_task(uint32_t orig, EqHeldFn draw);
+	bool eq_native(uint32_t orig);   // registered with register_eq_task (its port runs in the queue)
+	bool eq_has_draw(uint32_t orig); // ... with a held draw
+	bool eq_held_draw(uint32_t orig, const void *node, int num, int den);
 	// held-frame camera of an effect that writes the battle camera itself (eye / look-at words
 	// at 0xB8B7F0 / 0xB8B7F8): the module predicts the next tick's camera and returns the
 	// in-between one; false = it does not drive the camera now

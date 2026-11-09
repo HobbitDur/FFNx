@@ -157,6 +157,48 @@ namespace ff8fx
 		}
 	}
 
+	// ------------------------------------------------------------------ hit-effect queue tasks
+	uint32_t g_eq_tick = 0;
+	bool g_eq_active = false;
+	static const int EQ_TASKS_SIZE = 256; // power of two, > 2 x the registered functions
+	static struct { uint32_t orig; EqHeldFn draw; } g_eq_tasks[EQ_TASKS_SIZE];
+	static int g_neq_tasks = 0;
+
+	static inline uint32_t eq_slot(uint32_t orig) { return (orig * 2654435761u) >> 24; }
+
+	void register_eq_task(uint32_t orig, EqHeldFn draw)
+	{
+		if (!orig || g_neq_tasks >= EQ_TASKS_SIZE / 2) return;
+		uint32_t h = eq_slot(orig);
+		while (g_eq_tasks[h & (EQ_TASKS_SIZE - 1)].orig && g_eq_tasks[h & (EQ_TASKS_SIZE - 1)].orig != orig) h++;
+		if (!g_eq_tasks[h & (EQ_TASKS_SIZE - 1)].orig) g_neq_tasks++;
+		g_eq_tasks[h & (EQ_TASKS_SIZE - 1)] = { orig, draw };
+	}
+
+	static int eq_find(uint32_t orig)
+	{
+		for (uint32_t h = eq_slot(orig);; h++)
+		{
+			const uint32_t v = g_eq_tasks[h & (EQ_TASKS_SIZE - 1)].orig;
+			if (!v) return -1;
+			if (v == orig) return (int)(h & (EQ_TASKS_SIZE - 1));
+		}
+	}
+
+	bool eq_native(uint32_t orig) { return g_neq_tasks && eq_find(orig) >= 0; }
+
+	bool eq_has_draw(uint32_t orig)
+	{
+		const int i = g_neq_tasks ? eq_find(orig) : -1;
+		return i >= 0 && g_eq_tasks[i].draw;
+	}
+
+	bool eq_held_draw(uint32_t orig, const void *node, int num, int den)
+	{
+		const int i = g_neq_tasks ? eq_find(orig) : -1;
+		return i >= 0 && g_eq_tasks[i].draw && g_eq_tasks[i].draw(orig, node, num, den);
+	}
+
 	// ------------------------------------------------------------------ shared registrations
 	// the shared camera-script task 0x63E9C0 (Doomtrain's code file, mag191_doomtrain_held.inc)
 	// drives the camera of several modules (191 registers it itself)

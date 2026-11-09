@@ -62,7 +62,8 @@ namespace ff8fx
 
 	void *lookup(uint32_t orig)
 	{
-		if (!g_active) return nullptr;
+		// 30 fps layer: the hit-effect queue's real tick dispatches its registered tasks only (fx_held.h register_eq_task)
+		if (!g_active FX_HELD(&& !(g_eq_active && eq_native(orig)))) return nullptr;
 		const Port *p = find(orig);
 		return p ? p->port : nullptr;
 	}

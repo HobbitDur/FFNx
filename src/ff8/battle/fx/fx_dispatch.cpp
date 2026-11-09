@@ -39,6 +39,9 @@
 
 #include "fx_port.h"
 #include "../battle_host.h"
+#ifdef FF8_FX_HELD
+#include "fx_held.h"
+#endif
 
 namespace ff8fx
 {
@@ -63,7 +66,7 @@ static int __cdecl exec_plain(ff8fx::TaskQueue *q)
 		uint32_t cookie = 0;
 		if (obs && obs->task_before && !obs->task_before(q, cur, index, &cookie)) break;
 		TaskFn fn = (TaskFn)cur->func;
-		if (g_active)
+		if (g_active FX_HELD(|| g_eq_active)) // (30 fps layer: the hit-effect queue's registered tasks, fx_held.h)
 			if (void *port = lookup((uint32_t)fn)) fn = (TaskFn)port;
 		uint32_t r = fn(cur);
 		if (obs && obs->task_after) obs->task_after(q, cur, r, cookie);
@@ -128,7 +131,7 @@ static uint32_t __cdecl exec_before(uint32_t esp, ff8fx::TaskQueue *q, ff8fx::Ta
 		if (f->obs && f->obs->task_before && !f->obs->task_before(q, n, f->index, &f->cookie)) return EXEC_STOP;
 	}
 	uint32_t fn = (uint32_t)n->func;
-	if (g_active)
+	if (g_active FX_HELD(|| g_eq_active)) // (30 fps layer: the hit-effect queue's registered tasks, fx_held.h)
 		if (void *port = lookup(fn)) fn = (uint32_t)port;
 	return fn;
 }
