@@ -69,9 +69,16 @@
 // table, director queue + pool, centre, direction, context, swept direction 0x2398A80, midpoint,
 // caster slot, texture file, anchor, the five polygon state tables 0x2398AA8..0x239A8C8, texture
 // base, packet cursor, crystal player queue).
+// Fujin's described Ice Breath (effect_173.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the setup and the file loader ported below; its parameters
+// (IceBreathParams: the sounds, the director's ticks, the mouth, the screen flash, each part's counts,
+// sizes, spreads, speeds and sweeps, its data: flipbooks, meshes, the crystal layout, tables, resources);
+// FX_PART tags its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -88,19 +95,21 @@ namespace ib173
 	static inline uint8_t &U8(uint32_t p, int32_t o) { return F<uint8_t>(p, o); }
 
 	// --- module globals ---
-	inline int32_t &FloorLength() { return var<int32_t>(0x2397278); }          // |anchor -> midpoint|
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23972D0; }           // pool 0x23972B0, 2 x 0x10
-	inline TaskQueue *FxQueue() { return (TaskQueue *)0x2397C40; }             // pool 0x2397C50, 0x64 x 0x24
-	inline TaskQueue *PlayerQueue() { return (TaskQueue *)0x239A8D0; }         // pool texture base + 0x18000, 0x40 x 0x11C
+	inline int32_t &FloorLength() { return var<int32_t>(own::R(0x2397278)); }          // |anchor -> midpoint|
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x23972D0); }           // pool 0x23972B0, 2 x 0x10
+	inline TaskQueue *FxQueue() { return (TaskQueue *)own::R(0x2397C40); }             // pool 0x2397C50, 0x64 x 0x24
+	inline TaskQueue *PlayerQueue() { return (TaskQueue *)own::R(0x239A8D0); }         // pool texture base + 0x18000, 0x40 x 0x11C
 	static const uint32_t CENTRE = 0x2398A60;      // targets' centre (x, y, z words)
 	static const uint32_t DIR = 0x2398A68;         // anchor -> midpoint on the floor (3 x int32, normalised)
 	static const uint32_t SWEPT = 0x2398A80;       // DIR turned by the puff task's sweep (3 x int32)
 	static const uint32_t MID = 0x2398A90;         // midpoint (x, 0, z, pad words)
 	static const uint32_t ANCHOR = 0x2398AA0;      // caster's mouth (x, y, z, pad words)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2398A78); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x2398A98); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x239A8C8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x239A8CC); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2398A78)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x2398A98)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x239A8C8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x239A8CC)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2398A9C)); }          // the effect's file (its TIM)
+	inline int32_t &FirstTarget() { return var<int32_t>(own::R(0x239727C)); }        // the first target's slot
 	inline uint32_t OT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint32_t Ent(int32_t slot) { return 0x1D972C0 + (uint32_t)(slot * 0x9C); }
 	inline bool PlayerPaused() { return (var<uint8_t>(0x1D96A9C) & 1) != 0; } // the module's player tests bit 0 only
@@ -130,6 +139,70 @@ namespace ib173
 	static const uint32_t TRAIL_STATES = 0xD61E04;   // 5 polygon state tables (0x20 per polygon)
 	static const void *const SOUND_Start = (const void *)0xD61D84;
 	static const void *const SOUND_Blast = (const void *)0xD61D88;
+	static const uint32_t ORIG_FileLoader = 0x5D7490, ORIG_Setup = 0x5D74B0;
+	static const uint32_t TEXTURE_NAME = 0xD61E1C, CAMERA = 0xD5E67C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_SWIRL = 1, PART_CONES = 2, PART_GLOW = 3, PART_PUFFS = 4, PART_CRYSTALS = 5, PART_TRAIL = 6, PART_SHARDS = 7 };
+	struct IceBreathParams
+	{
+		struct { uint32_t start, blast; } sounds;  // the director's tick 1, its blast tick
+		struct { int16_t swirl, glow, cones, puffs, crystals, trail, shards, damage, blast, end; } director; // its ticks
+		struct { int16_t mouth; } anchor;          // the mouth: this far along the caster's z from its bone 0xF0
+		struct { int32_t colour; int16_t in_end, in_step, out_start, out_step; } flash; // the screen flash
+		struct { int16_t spawn_last, per_tick, life, size_min, size_rand, radius_min, radius_rand, shrink_min, shrink_rand, spin_min, spin_rand; } swirl;
+		struct { int16_t count, size, shrink, fade_from, life; } cones;
+		struct { int16_t size, growth, speedup_from, fade_from, life; } glow;
+		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor; } puffs;
+		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
+		struct { int16_t size, grow_ticks, full, speed_min, speed_rand; } trail;
+		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand; } shards;
+		struct { uint32_t mesh0, mesh1, mesh2, mesh3, mesh4; } trail_meshes; // the ice trail's five meshes (prim models)
+		struct { uint32_t swirl, puff, shard; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t crystal; } layouts; // the prim-model layouts played (their models' animation)
+		struct { uint32_t cone, glow; } models; // the prim models drawn (meshes)
+		struct { uint32_t cone_delays, cone_angles, puff_colours, crystal_flags; } tables; // its small tables (data): colours, fades, counts, offsets
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+	};
+	static const IceBreathParams GAME = {
+		{ 0xD61D84, 0xD61D88 },
+		{ 2, 8, 0xE, 0x25, 0x26, 0x46, 0x4A, 0x55, 0x24, 0x5F },
+		{ -0x96 },
+		{ 0x502020, 0x10, 0xC0, 0x57, 0x180 },
+		{ 0xC, 3, 0x24, 0x600, 0x600, 0x190, 0x4B0, 0x12, 0xE, 0x19, 0x32 },
+		{ 4, 0x1400, 0x16D, 0xC, 0x10 },
+		{ 0x280, 0xA0, 0x18, 0x20, 0x24 },
+		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300 },
+		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
+		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA },
+		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46 },
+		{ 0xD5FB00, 0xD60AFC, 0xD6108C, 0xD6161C, 0xD61878 },
+		{ SEQ_Swirl, SEQ_Puff, SEQ_Shard },
+		{ LAYOUT_Crystal },
+		{ MODEL_Cone, MODEL_Glow },
+		{ CONE_DELAYS, CONE_ANGLES, PUFF_COLOURS, CRYSTAL_FLAGS },
+		{ TEXTURE_NAME, CAMERA } };
+	static IceBreathParams live = GAME;
+	static const IceBreathParams &P() { return live; }
+
+	// a trail mesh (its index 0..4): a prim model of the game's vertex count whose only primitives are its
+	// gouraud textured triangles (its code reads the GT3 list at lists + 0x18 and keeps a state per triangle in
+	// a table of the game's count: no more of them) - else the game's
+	static uint32_t TrailMesh(int32_t k)
+	{
+		const uint32_t game = *(const uint32_t *)(TRAIL_MESHES + (uint32_t)k * 4);
+		const uint32_t m = fxp::model((&P().trail_meshes.mesh0)[k], game);
+		if (m == game) return game;
+		const uint32_t lists = m + *(const uint32_t *)m;
+		for (uint32_t l = 0; l < 6; l++)
+			if (*(const uint32_t *)(lists + l * 4)) return game;
+		return *(const uint32_t *)(lists + 0x18) <= *(const uint32_t *)(game + *(const uint32_t *)game + 0x18) ? m : game;
+	}
+	// a trail mesh's polygon state table (0xD61E04: the module's own words, where the running copy has them)
+	inline uint32_t TrailStates(int32_t k) { return own::R(*(const uint32_t *)(TRAIL_STATES + (uint32_t)k * 4)); }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint32_t entity, int32_t bone, int32_t flag, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(0x502170)(entity, bone, flag, out); }
@@ -159,13 +232,13 @@ namespace ib173
 	// first free table entry (kind dword 0), or 0 when the table is full
 	static uint32_t PoolFree()
 	{
-		uint32_t e = POOL;
+		uint32_t e = own::R(POOL);
 		int32_t i = 0;
 		while (S32(e, 0) != 0)
 		{
 			e += 0x18;
 			i++;
-			if (e >= POOL_END) return 0;
+			if (e >= own::R(POOL_END)) return 0;
 		}
 		return i < 100 ? e : 0;
 	}
@@ -202,7 +275,9 @@ namespace ib173
 		S16(w, 4) = (int16_t)(S16(w, 4) + S16(w, 0xC));
 		const int16_t size = S16(e, 6);
 		TransformCameraByShadowRotation((const void *)w, size, -(size >> 4));
+		FX_PART(PART_SWIRL);
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
+		FX_PART(0);
 	}
 
 	// a breath puff (0x5D80C0): colour by frame, position +8, pushed toward the camera by size / 16
@@ -210,10 +285,12 @@ namespace ib173
 	{
 		const uint16_t frame = U16(e, 4);
 		S16(h, 4) = (int16_t)frame;
-		U32(h, 0x1C) = U32(PUFF_COLOURS + (uint32_t)frame * 4, 0);
+		U32(h, 0x1C) = U32(fxp::data(P().tables.puff_colours, PUFF_COLOURS, 64, 4) + (uint32_t)frame * 4, 0);
 		const int16_t size = S16(e, 6);
 		TransformCameraByShadowRotation((const void *)(e + 8), size, -(size >> 4));
+		FX_PART(PART_PUFFS);
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
+		FX_PART(0);
 	}
 
 	// an ice shard (0x5D8B40): w + 8 = identity, w + 0x58 = (-0x1000, 0, 0); the sprite turned from
@@ -238,7 +315,9 @@ namespace ib173
 		GteSetRotMatrix((const Mat4x3 *)(w + 0x28));
 		GteSetTransVector((const Mat4x3 *)(w + 0x28));
 		S16(h, 4) = S16(e, 4);
+		FX_PART(PART_SHARDS);
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
+		FX_PART(0);
 	}
 
 	// motion after a draw (frame + 1 first; the entry ends when its sequence did: header +0x28 < 0)
@@ -259,7 +338,7 @@ namespace ib173
 		const int16_t vz = S16(e, 0x14);
 		S16(e, 0x14) = (int16_t)(vz - (int16_t)(vz >> 5));
 		const int16_t y = S16(e, 0xA);
-		if (y < -300)
+		if (y < P().puffs.floor)
 		{
 			S16(e, 0xA) = (int16_t)(y + S16(e, 0x12));
 			const int16_t vy = S16(e, 0x12);
@@ -282,13 +361,13 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		const uint32_t w = (uint32_t)FieldAlloc(0x40);
-		U32(w, 8) = U32(ANCHOR, 0);
-		U32(h, 0) = SEQ_Swirl;
+		U32(w, 8) = U32(own::R(ANCHOR), 0);
+		U32(h, 0) = fxp::sequence(P().seqs.swirl, SEQ_Swirl);
 		S16(h, 0x24) = 0;
-		U32(w, 0xC) = U32(ANCHOR, 4);
+		U32(w, 0xC) = U32(own::R(ANCHOR), 4);
 		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_pool(ORIG_Swirl, n, h);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 1)) continue;
 			SwirlDraw(h, w, e);
@@ -301,29 +380,29 @@ namespace ib173
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0xC)
+		if (c >= 0 && c <= P().swirl.spawn_last)
 		{
-			for (int k = 0; k < 3; k++)
+			for (int k = 0; k < P().swirl.per_tick; k++)
 			{
 				const uint32_t e = PoolFree();
 				if (!e) break;
 				U32(e, 0) = 1;
 				S16(e, 4) = 0;
-				S16(e, 6) = (int16_t)(CrtRand() % 0x600 + 0x600);
+				S16(e, 6) = (int16_t)(CrtRand() % P().swirl.size_rand + P().swirl.size_min);
 				S16(e, 8) = (int16_t)(CrtRand() % 0x1000 - 0x800);
 				S16(e, 0xA) = (int16_t)(CrtRand() % 0x1000 - 0x800);
 				S16(e, 0xC) = (int16_t)(CrtRand() % 0x1000 - 0x800);
 				VectorNormalS16(e + 8, e + 8);
 				S16(e, 0xE) = (int16_t)(CrtRand() % 0x1000);
-				S16(e, 0x10) = (int16_t)(CrtRand() % 0x4B0 + 0x190);
-				const int32_t div = CrtRand() % 0xE + 0x12;
+				S16(e, 0x10) = (int16_t)(CrtRand() % P().swirl.radius_rand + P().swirl.radius_min);
+				const int32_t div = CrtRand() % P().swirl.shrink_rand + P().swirl.shrink_min;
 				S16(e, 0x12) = (int16_t)(S16(e, 0x10) / div);
-				S16(e, 0x16) = (int16_t)(CrtRand() % 0x32 + 0x19);
+				S16(e, 0x16) = (int16_t)(CrtRand() % P().swirl.spin_rand + P().swirl.spin_min);
 			}
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) < 0x24) return 0;
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		if (S16(n, 0xC) < P().swirl.life) return 0;
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 			if (U8(e, 0) & 1) U32(e, 0) = 0;
 		return TASK_END;
 	}
@@ -334,8 +413,8 @@ namespace ib173
 	// ------------------------------------------------------------------
 	// a depth cue of a prim-model header: flags 0xF3 + level, or 0x33 (no cue: the level is not written)
 	struct Cue { uint32_t flags; int32_t fade; };
-	static Cue ConeCue(int32_t c) { return c >= 0xC ? Cue{ 0xF3u, shl32(c - 0xC, 10) } : Cue{ 0x33u, 0 }; }
-	static Cue GlowCue(int32_t c) { return c >= 0x20 ? Cue{ 0xF3u, shl32(c - 0x20, 10) } : Cue{ 0x33u, 0 }; }
+	static Cue ConeCue(int32_t c) { const int32_t f = P().cones.fade_from; return c >= f ? Cue{ 0xF3u, shl32(c - f, 10) } : Cue{ 0x33u, 0 }; }
+	static Cue GlowCue(int32_t c) { const int32_t f = P().glow.fade_from; return c >= f ? Cue{ 0xF3u, shl32(c - f, 10) } : Cue{ 0x33u, 0 }; }
 
 	static void ConeDraw(uint32_t n, Cue cue)
 	{
@@ -352,11 +431,13 @@ namespace ib173
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Cone;
+		U32(h, 0) = fxp::model(P().models.cone, MODEL_Cone);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = cue.flags;
 		if (cue.flags == 0xF3) S32(h, 0xC) = cue.fade;
+		FX_PART(PART_CONES);
 		PacketCursor() = RenderPrimModel((void *)h, OT44(), 2, PacketCursor());
+		FX_PART(0);
 		FieldFree(0x58);
 	}
 
@@ -384,7 +465,7 @@ namespace ib173
 		ConeDraw(n, ConeCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		ConeMove(n);
-		return S16(n, 0xC) >= 0x10 ? TASK_END : 0;
+		return S16(n, 0xC) >= P().cones.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -395,11 +476,13 @@ namespace ib173
 		const int16_t s = S16(n, 0x1C);
 		TransformCameraByShadowRotation((const void *)anchor, s, -(s >> 3));
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Glow;
+		U32(h, 0) = fxp::model(P().models.glow, MODEL_Glow);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = cue.flags;
 		if (cue.flags == 0xF3) S32(h, 0xC) = cue.fade;
+		FX_PART(PART_GLOW);
 		PacketCursor() = RenderPrimModel((void *)h, OT44(), 2, PacketCursor());
+		FX_PART(0);
 		FieldFree(0x58);
 	}
 
@@ -409,7 +492,7 @@ namespace ib173
 		const int16_t g = S16(n, 0x1E);
 		const int16_t c = S16(n, 0xC);
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) + g);
-		if (c >= 0x18)
+		if (c >= P().glow.speedup_from)
 		{
 			const int16_t a = (int16_t)(g + 0x20);
 			S16(n, 0x1E) = (int16_t)(a + (int16_t)(a / 3));
@@ -422,10 +505,10 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_node(ORIG_Glow, n);)
-		GlowDraw(n, ANCHOR, GlowCue(S16(n, 0xC)));
+		GlowDraw(n, own::R(ANCHOR), GlowCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		GlowMove(n);
-		return S16(n, 0xC) >= 0x24 ? TASK_END : 0;
+		return S16(n, 0xC) >= P().glow.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -436,11 +519,11 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		int32_t live = 0;
-		U32(h, 0) = SEQ_Puff;
+		U32(h, 0) = fxp::sequence(P().seqs.puff, SEQ_Puff);
 		S16(h, 0x24) = 4;
 		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_pool(ORIG_Puffs, n, h);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 2)) continue;
 			PuffDraw(h, e);
@@ -457,35 +540,36 @@ namespace ib173
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0x1E)
+		if (c >= 0 && c <= P().puffs.spawn_last)
 		{
 			const int16_t a = S16(n, 0x18);
 			int16_t angles[3] = { 0, a, 0 };
 			S16(n, 0x18) = (int16_t)(S16(n, 0x1A) + a);
 			Mat4x3 m;
 			BuildRotationMatrixFromAngles(angles, &m);
-			TransformVectorBy3x3Matrix(&m, (const int32_t *)DIR, (int32_t *)SWEPT);
-			for (int k = 0; k < 2; k++)
+			TransformVectorBy3x3Matrix(&m, (const int32_t *)own::R(DIR), (int32_t *)own::R(SWEPT));
+			for (int k = 0; k < P().puffs.per_tick; k++)
 			{
 				const uint32_t e = PoolFree();
 				if (!e) break;
 				U32(e, 0) = 2;
 				S16(e, 4) = 0;
-				S16(e, 6) = (int16_t)(CrtRand() % 0x600 + 0xA00);
-				U32(e, 8) = U32(ANCHOR, 0);
-				U32(e, 0xC) = U32(ANCHOR, 4);
-				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % 200 - 100));
-				const int32_t ry = CrtRand() % 200;
+				S16(e, 6) = (int16_t)(CrtRand() % P().puffs.size_rand + P().puffs.size_min);
+				U32(e, 8) = U32(own::R(ANCHOR), 0);
+				U32(e, 0xC) = U32(own::R(ANCHOR), 4);
+				const int32_t spread = P().puffs.spread;
+				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % spread - spread / 2));
+				const int32_t ry = CrtRand() % spread;
 				S16(e, 0xA) = (int16_t)(S16(e, 0xA) + (int16_t)(ry - (int16_t)(S16(n, 0xC) << 2)));
-				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % 200 - 100));
-				const int32_t speed = CrtRand() % 0x96 + 0x122;
+				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % spread - spread / 2));
+				const int32_t speed = CrtRand() % P().puffs.speed_rand + P().puffs.speed_min;
 				const int32_t jx = CrtRand() % 20;
-				S16(e, 0x10) = (int16_t)(jx + (mul32(S32(SWEPT, 0), speed) >> 12) - 10);
-				const int32_t up = CrtRand() % 0x78;
+				S16(e, 0x10) = (int16_t)(jx + (mul32(S32(own::R(SWEPT), 0), speed) >> 12) - 10);
+				const int32_t up = CrtRand() % P().puffs.rise_rand;
 				const int32_t jy = CrtRand() % 20;
-				S16(e, 0x12) = (int16_t)(up + jy + (mul32(S32(SWEPT, 4), speed) >> 12) - 10);
+				S16(e, 0x12) = (int16_t)(up + jy + (mul32(S32(own::R(SWEPT), 4), speed) >> 12) - 10);
 				const int32_t jz = CrtRand() % 20;
-				S16(e, 0x14) = (int16_t)(jz + (mul32(S32(SWEPT, 8), speed) >> 12) - 10);
+				S16(e, 0x14) = (int16_t)(jz + (mul32(S32(own::R(SWEPT), 8), speed) >> 12) - 10);
 			}
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -501,7 +585,7 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		const uint32_t w = (uint32_t)FieldAlloc(0x88);
-		U32(h, 0) = SEQ_Shard;
+		U32(h, 0) = fxp::sequence(P().seqs.shard, SEQ_Shard);
 		S16(h, 0x24) = 8;
 		int32_t live = 0;
 		S32(w, 0x58) = -0x1000;
@@ -513,7 +597,7 @@ namespace ib173
 		BuildRotationMatrixFromAngles((const int16_t *)w, (Mat4x3 *)(w + 8));
 		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_pool(ORIG_Shards, n, h);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 4)) continue;
 			ShardDraw(h, w, e);
@@ -531,20 +615,20 @@ namespace ib173
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 2)
+		if (c >= 0 && c <= P().shards.spawn_last)
 		{
-			for (int k = 0; k < 7; k++)
+			for (int k = 0; k < P().shards.per_tick; k++)
 			{
 				const uint32_t e = PoolFree();
 				if (!e) break;
 				U32(e, 0) = 4;
 				S16(e, 4) = 0;
-				S16(e, 6) = (int16_t)(CrtRand() % 0x1000 + 0x1000);
-				U32(e, 8) = U32(MID, 0);
-				U32(e, 0xC) = U32(MID, 4);
-				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % 0x1518 - 0xA8C));
-				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % 0xA8C - 0x546));
-				S16(e, 0xE) = (int16_t)(CrtRand() % 0x46 + 0x1E);
+				S16(e, 6) = (int16_t)(CrtRand() % P().shards.size_rand + P().shards.size_min);
+				U32(e, 8) = U32(own::R(MID), 0);
+				U32(e, 0xC) = U32(own::R(MID), 4);
+				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % P().shards.spread_x - P().shards.spread_x / 2));
+				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % P().shards.spread_z - P().shards.spread_z / 2));
+				S16(e, 0xE) = (int16_t)(CrtRand() % P().shards.speed_rand + P().shards.speed_min);
 				S16(e, 0x10) = (int16_t)(S16(e, 8) - S16(n, 0x10));
 				S16(e, 0x12) = 0;
 				S16(e, 0x14) = (int16_t)(S16(e, 0xC) - S16(n, 0x14));
@@ -603,7 +687,7 @@ namespace ib173
 				S16(st, 8) = 0;
 				S16(st, 6) = (int16_t)delay;
 				S16(st, 4) = (int16_t)cz;
-				const int32_t speed = r % 0xAA + 0x5A;
+				const int32_t speed = r % P().trail.speed_rand + P().trail.speed_min;
 				poly += 0x1C;
 				st += 0x20;
 				S16(st, -0x10) = (int16_t)(mul32(S16(h, 0x58), speed) >> 12);
@@ -623,7 +707,7 @@ namespace ib173
 	static void TrailInitStates(uint32_t h)
 	{
 		const uint32_t mesh = U32(h, 0);
-		U32(h, 0x28) = U32(TRAIL_STATES + (uint32_t)S32(h, 0x24) * 4, 0);
+		U32(h, 0x28) = TrailStates(S32(h, 0x24));
 		U32(h, 4) = mesh + 8;
 		U32(h, 0x2C) = U32(mesh, 0) + mesh + 0x18;
 		TrailBuildStates(h, mesh + 8, FloorLength());
@@ -767,7 +851,7 @@ namespace ib173
 		{
 			for (int32_t k = count; k != 0; k--, poly += 0x1C, st += 0x20)
 			{
-				if (S16(st, 6) >= t && t < 0xC) continue;
+				if (S16(st, 6) >= t && t < P().trail.full) continue;
 				TrailVerts(h, poly, verts);
 				GteSetRotMatrixCtrl((const Mat4x3 *)(h + 0x6C));
 				GteSetTransVectorCtrl((const Mat4x3 *)(h + 0x6C));
@@ -789,8 +873,10 @@ namespace ib173
 		U32(h, 0x2C) = U32(mesh, 0) + mesh;
 		GteSetFarColour(U8(h, 8), U8(h, 9), U8(h, 0xA));
 		U32(h, 0x2C) = U32(h, 0x2C) + 0x18;
-		U32(h, 0x28) = U32(TRAIL_STATES + (uint32_t)S32(h, 0x24) * 4, 0);
+		U32(h, 0x28) = TrailStates(S32(h, 0x24));
+		FX_PART(PART_TRAIL);
 		const uint32_t r = fly ? TrailFlyPolys(h, ot, mode, cursor) : TrailGrowPolys(h, ot, mode, cursor);
+		FX_PART(0);
 		S32(h, 0x24) = cursor != r ? 1 : 0;
 		return r;
 	}
@@ -810,15 +896,15 @@ namespace ib173
 		const uint32_t h = (uint32_t)FieldAlloc(0xAC);
 		S32(h, 0x24) = S16(n, 0xE);
 		U32(h, 0x1C) = 0x30;
-		U32(h, 0) = U32(TRAIL_MESHES + (uint32_t)S16(n, 0xE) * 4, 0);
+		U32(h, 0) = TrailMesh(S16(n, 0xE));
 		U32(h, 8) = 0;
 		ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
 		const int16_t c = S16(n, 0xC);
 		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_trail(n, h);)
-		if (c >= 0xA)
+		if (c >= P().trail.grow_ticks)
 		{
-			S32(h, 0x20) = c - 0xA;
+			S32(h, 0x20) = c - P().trail.grow_ticks;
 			PacketCursor() = TrailDraw(h, OT44(), 2, PacketCursor(), true);
 		}
 		else
@@ -829,7 +915,7 @@ namespace ib173
 		FieldFree(0xAC);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) > 0xA && S32(h, 0x24) == 0) return TASK_END; // (the freed header still holds it)
+		if (S16(n, 0xC) > P().trail.grow_ticks && S32(h, 0x24) == 0) return TASK_END; // (the freed header still holds it)
 		return 0;
 	}
 
@@ -1032,7 +1118,9 @@ namespace ib173
 			U32(h, 8) = U32(rec, 0x20);
 			U32(h, 0x1C) = f | 0xC0;
 		}
+		FX_PART(PART_CRYSTALS);
 		PacketCursor() = RenderPrimModel((void *)h, OT44(), 2, PacketCursor());
+		FX_PART(0);
 		FieldFree(0x58);
 	}
 
@@ -1042,7 +1130,7 @@ namespace ib173
 	// ------------------------------------------------------------------
 	static void CrystalBlock(uint32_t n, uint32_t blk)
 	{
-		U32(blk, 8) = CRYSTAL_FLAGS;
+		U32(blk, 8) = fxp::data(P().tables.crystal_flags, CRYSTAL_FLAGS, 4, 4);
 		U32(blk, 0) = U32(n, 0x10);
 		U32(blk, 0xC) = TexBase() + 0x1C700;
 		U32(blk, 4) = U32(n, 0x14);
@@ -1076,7 +1164,7 @@ namespace ib173
 		if (DrawOnly()) return 0;
 		const uint32_t n = (uint32_t)nd;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0x1E)
+		if (c >= 0 && c <= P().crystals.spawn_last)
 		{
 			const int16_t a = S16(n, 0x18);
 			int16_t angles[3] = { 0, a, 0 };
@@ -1084,22 +1172,23 @@ namespace ib173
 			Mat4x3 m;
 			BuildRotationMatrixFromAngles(angles, &m);
 			int32_t d[3];
-			TransformVectorBy3x3Matrix(&m, (const int32_t *)SWEPT, d);
-			const int32_t r = CrtRand() % 0x1000 + 0x300;
+			TransformVectorBy3x3Matrix(&m, (const int32_t *)own::R(SWEPT), d);
+			const int32_t r = CrtRand() % P().crystals.dist_rand + P().crystals.dist_min;
 			const int32_t dist = shl32(mul32(r, FloorLength()), 1) >> 12;
-			const uint32_t t = (uint32_t)AddTaskToQueue(PlayerQueue(), ORIG_Crystal);
-			DecodeLayout(LAYOUT_Crystal, t + 0x1C, 0x40);
-			const int32_t rx = CrtRand() % 0x320;
-			S16(t, 0x10) = (int16_t)((mul32(d[0], dist) >> 12) + (int32_t)(U32(ANCHOR, 0) + (uint32_t)rx) - 0x190);
-			const int32_t ry = CrtRand() % 0x320;
-			S16(t, 0x12) = (int16_t)((int16_t)(ry + (mul32(d[1], dist) >> 12)) + S16(ANCHOR, 2) - 0x190);
-			const int32_t rz = CrtRand() % 0x320;
-			S16(t, 0x14) = (int16_t)((mul32(d[2], dist) >> 12) + (int32_t)(U32(ANCHOR, 4) + (uint32_t)rz) - 0x190);
-			S16(t, 0x1A) = (int16_t)(CrtRand() % 0x400);
-			S16(t, 0x18) = (int16_t)(CrtRand() % 0xA00 + 0x600);
+			const uint32_t t = (uint32_t)AddTaskToQueue(PlayerQueue(), own::Fn(ORIG_Crystal));
+			DecodeLayout(fxp::layout(P().layouts.crystal, LAYOUT_Crystal, 0x40), t + 0x1C, 0x40);
+			const int32_t off = P().crystals.offset, half = off / 2;
+			const int32_t rx = CrtRand() % off;
+			S16(t, 0x10) = (int16_t)((mul32(d[0], dist) >> 12) + (int32_t)(U32(own::R(ANCHOR), 0) + (uint32_t)rx) - half);
+			const int32_t ry = CrtRand() % off;
+			S16(t, 0x12) = (int16_t)((int16_t)(ry + (mul32(d[1], dist) >> 12)) + S16(own::R(ANCHOR), 2) - half);
+			const int32_t rz = CrtRand() % off;
+			S16(t, 0x14) = (int16_t)((mul32(d[2], dist) >> 12) + (int32_t)(U32(own::R(ANCHOR), 4) + (uint32_t)rz) - half);
+			S16(t, 0x1A) = (int16_t)(CrtRand() % P().crystals.spin_rand);
+			S16(t, 0x18) = (int16_t)(CrtRand() % P().crystals.scale_rand + P().crystals.scale_min);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) > 0x1E ? TASK_END : 0;
+		return S16(n, 0xC) > P().crystals.spawn_last ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -1111,7 +1200,7 @@ namespace ib173
 	{
 		const int32_t slot = CasterSlot();
 		GetEffectSpawnPosition(Ent(slot), 0xF0, 0x1000, out);
-		int32_t v[3] = { 0, 0, -0x96 };
+		int32_t v[3] = { 0, 0, P().anchor.mouth };
 		TransformVectorBy3x3Matrix((const Mat4x3 *)(Ent(CasterSlot()) + 0x40), v, v);
 		const int16_t x = (int16_t)(S16(out, 0) + (int16_t)v[0]);
 		const int16_t z = (int16_t)(S16(out, 4) + (int16_t)v[2]);
@@ -1123,103 +1212,131 @@ namespace ib173
 	static uint32_t __cdecl DirectorTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		ComputeAnchor(ANCHOR);
-		const int32_t ax = S16(ANCHOR, 0), az = S16(ANCHOR, 4);
-		S16(MID, 2) = 0;
-		S16(MID, 0) = (int16_t)((S16(CENTRE, 0) + ax) / 2);
-		S32(DIR, 4) = 0;
-		S16(MID, 4) = (int16_t)((S16(CENTRE, 4) + az) / 2);
-		S32(DIR, 0) = S16(MID, 0) - ax;
-		S32(DIR, 8) = S16(MID, 4) - az;
-		FloorLength() = Sqrt(NormalizeVectorToFixedPoint(DIR, DIR));
+		ComputeAnchor(own::R(ANCHOR));
+		const int32_t ax = S16(own::R(ANCHOR), 0), az = S16(own::R(ANCHOR), 4);
+		S16(own::R(MID), 2) = 0;
+		S16(own::R(MID), 0) = (int16_t)((S16(own::R(CENTRE), 0) + ax) / 2);
+		S32(own::R(DIR), 4) = 0;
+		S16(own::R(MID), 4) = (int16_t)((S16(own::R(CENTRE), 4) + az) / 2);
+		S32(own::R(DIR), 0) = S16(own::R(MID), 0) - ax;
+		S32(own::R(DIR), 8) = S16(own::R(MID), 4) - az;
+		FloorLength() = Sqrt(NormalizeVectorToFixedPoint(own::R(DIR), own::R(DIR)));
 		if (DrawOnly()) return 0;
 		if (S16(n, 0xC) == 1)
 		{
-			CalculateCenterPosition(U16((uint32_t)Ctx(), 2), CENTRE);
+			CalculateCenterPosition(U16((uint32_t)Ctx(), 2), own::R(CENTRE));
 			InitTaskQueuePool(PlayerQueue(), (void *)(TexBase() + 0x18000), 0x11C, 0x40);
 		}
-		if (S16(n, 0xC) == 2)
+		if (S16(n, 0xC) == P().director.swirl)
 		{
-			TaskNode *t = AddTaskToQueue(FxQueue(), ORIG_Swirl);
+			TaskNode *t = AddTaskToQueue(FxQueue(), own::Fn(ORIG_Swirl));
 			S16((uint32_t)t, 0xC) = 0;
 		}
-		if (S16(n, 0xC) == 0xE)
+		if (S16(n, 0xC) == P().director.cones)
 		{
-			for (int k = 0; k < 4; k++)
+			for (int k = 0; k < P().cones.count; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Cone);
-				S16(t, 0xE) = S16(CONE_DELAYS + (uint32_t)k * 4, 0);
-				U32(t, 0x10) = U32(ANCHOR, 0);
-				U32(t, 0x14) = U32(ANCHOR, 4);
+				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Cone));
+				S16(t, 0xE) = S16(fxp::data(P().tables.cone_delays, CONE_DELAYS, 16) + (uint32_t)k * 4, 0);
+				U32(t, 0x10) = U32(own::R(ANCHOR), 0);
+				U32(t, 0x14) = U32(own::R(ANCHOR), 4);
 				S16(t, 0xC) = 0;
-				S16(t, 0x1C) = 0x1400;
-				S16(t, 0x1E) = 0x16D;
+				S16(t, 0x1C) = P().cones.size;
+				S16(t, 0x1E) = P().cones.shrink;
 				S16(t, 0x18) = S16(Ent(CasterSlot()), 0xE);
-				S16(t, 0x1A) = S16(CONE_ANGLES + (uint32_t)k * 4, 0);
+				S16(t, 0x1A) = S16(fxp::data(P().tables.cone_angles, CONE_ANGLES, 16) + (uint32_t)k * 4, 0);
 			}
 		}
-		if (S16(n, 0xC) == 8)
+		if (S16(n, 0xC) == P().director.glow)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Glow);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Glow));
 			S16(t, 0xC) = 0;
-			S16(t, 0x1C) = 0x280;
-			S16(t, 0x1E) = 0xA0;
+			S16(t, 0x1C) = P().glow.size;
+			S16(t, 0x1E) = P().glow.growth;
 		}
-		if (S16(n, 0xC) == 0x25)
+		if (S16(n, 0xC) == P().director.puffs)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Puffs);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Puffs));
 			S16(t, 0xC) = 0;
-			S16(t, 0x18) = 0x200;
-			S16(t, 0x1A) = -0x22;
+			S16(t, 0x18) = P().puffs.sweep_start;
+			S16(t, 0x1A) = P().puffs.sweep_step;
 		}
-		if (S16(n, 0xC) == 0x26)
+		if (S16(n, 0xC) == P().director.crystals)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Spawner);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Spawner));
 			S16(t, 0xC) = 0;
-			S16(t, 0x1A) = -0x10;
-			S16(t, 0x18) = 0x1A0;
+			S16(t, 0x1A) = P().crystals.sweep_step;
+			S16(t, 0x18) = P().crystals.sweep_start;
 		}
-		if (S16(n, 0xC) == 0x46)
+		if (S16(n, 0xC) == P().director.trail)
 		{
 			const uint32_t h = (uint32_t)FieldAlloc(0xAC);
 			for (int k = 0; k < 5; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Trail);
-				U32(t, 0x10) = U32(ANCHOR, 0);
-				U32(t, 0x14) = U32(ANCHOR, 4);
+				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Trail));
+				U32(t, 0x10) = U32(own::R(ANCHOR), 0);
+				U32(t, 0x14) = U32(own::R(ANCHOR), 4);
 				S16(t, 0xC) = 0;
 				S16(t, 0xE) = (int16_t)k;
 				S16(t, 0x12) = 0;
-				S16(t, 0x1C) = 0x1000;
+				S16(t, 0x1C) = P().trail.size;
 				const int16_t ry = S16(Ent(CasterSlot()), 0xE);
-				U32(h, 0) = U32(TRAIL_MESHES + (uint32_t)k * 4, 0);
+				U32(h, 0) = TrailMesh(k);
 				S32(h, 0x24) = k;
 				S16(t, 0x18) = (int16_t)((ry - 0x800) & 0xFFF);
 				TrailInitStates(h);
 			}
 			FieldFree(0xAC);
 		}
-		if (S16(n, 0xC) == 0x4A)
+		if (S16(n, 0xC) == P().director.shards)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Shards);
-			U32(t, 0x10) = U32(ANCHOR, 0);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Shards));
+			U32(t, 0x10) = U32(own::R(ANCHOR), 0);
 			S16(t, 0xC) = 0;
-			U32(t, 0x14) = U32(ANCHOR, 4);
+			U32(t, 0x14) = U32(own::R(ANCHOR), 4);
 		}
-		if (S16(n, 0xC) == 0x55)
+		if (S16(n, 0xC) == P().director.damage)
 		{
 			ActionData *a = Ctx()->actions;
 			ApplyActionResultToTargets(a->targets, a->target_count);
 		}
 		const int16_t c = S16(n, 0xC);
-		if (c <= 0x10) SetScreenFlash((uint32_t)(c * 0xC0), 0x502020);
-		else if (c >= 0x57) SetScreenFlash((uint32_t)((0x5F - c) * 0x180), 0x502020);
-		if (S16(n, 0xC) == 1) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (S16(n, 0xC) == 0x24) BdPlaySE(SOUND_Blast, 0, 0x80);
+		const auto &fl = P().flash;
+		if (c <= fl.in_end) SetScreenFlash((uint32_t)(c * fl.in_step), (uint32_t)fl.colour);
+		else if (c >= fl.out_start) SetScreenFlash((uint32_t)((P().director.end - c) * fl.out_step), (uint32_t)fl.colour);
+		if (S16(n, 0xC) == 1) BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		if (S16(n, 0xC) == P().director.blast) BdPlaySE((const void *)fxp::sound(P().sounds.blast, (uint32_t)SOUND_Blast), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) <= 0x5F) return 0;
+		if (S16(n, 0xC) <= P().director.end) return 0;
 		SetScreenFlash(0, 0);
 		return TASK_END;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x5D7490) and setup (0x5D74B0): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the
+	// root and the director, the particle table freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		FirstTarget() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x23972B0), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(FxQueue(), (void *)own::R(0x2397C50), 0x24, 0x64);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return RootQueue();
 	}
 
 	// ------------------------------------------------------------------
@@ -1236,7 +1353,7 @@ namespace ib173
 		ExecuteTaskQueue(PlayerQueue());
 		if (!running)
 		{
-			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), own::Fn(ORIG_TexRestore));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}
@@ -1252,20 +1369,146 @@ namespace ib173
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return done ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The timeline: when each part starts, the mouth anchor (the caster's bone 0xF0 and an offset, retaken every tick), the screen flash in and out, the sounds; the damage" },
+			{ PART_SWIRL, "swirl", "Mouth swirl", "Frost sprites swirling about the caster's mouth: a few a tick, each on a random axis, its radius shrinking as it spins; cleared at its end" },
+			{ PART_CONES, "cones", "Breath cones", "Cone models blown from the mouth along the caster's facing, each after its delay and turned on its z axis, shrinking, fading at their end" },
+			{ PART_GLOW, "glow", "Mouth glow", "A glow model at the mouth facing the camera, growing (faster from a tick), fading at its end" },
+			{ PART_PUFFS, "puffs", "Breath puffs", "Frost puffs blown from the mouth along a sweep of the way to the targets, growing, slowing, falling to a floor, coloured by frame" },
+			{ PART_CRYSTALS, "crystals", "Crystals", "Crystal layouts (prim-model players) placed along a sweep of the breath, one a tick, each spun and scaled at random" },
+			{ PART_TRAIL, "trail", "Ice trail", "Five ice meshes on the floor from the caster toward the targets: their triangles appear outward, then fly apart spinning and darkening" },
+			{ PART_SHARDS, "shards", "Ice shards", "Shard sprites around the midpoint flying away from the mouth, stretched along their way" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The start, the blast" },
+			{ "flash", "Screen flash", "Its colour, up to a tick its level rising by a step, from a tick falling by a step to the director's end" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start", "At the director's tick 1", (uint32_t)offsetof(IceBreathParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.blast", "Blast", "At the director's blast tick", (uint32_t)offsetof(IceBreathParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.swirl", "Swirl tick", "The mouth swirl starts at this tick of the director", (uint32_t)offsetof(IceBreathParams, director.swirl), fxp::I16, 0, 300 },
+			{ "director", "director.glow", "Glow tick", "The mouth glow starts at this tick", (uint32_t)offsetof(IceBreathParams, director.glow), fxp::I16, 0, 300 },
+			{ "director", "director.cones", "Cones tick", "The breath cones start at this tick (at the mouth of then)", (uint32_t)offsetof(IceBreathParams, director.cones), fxp::I16, 0, 300 },
+			{ "director", "director.puffs", "Puffs tick", "The breath puffs start at this tick", (uint32_t)offsetof(IceBreathParams, director.puffs), fxp::I16, 0, 300 },
+			{ "director", "director.crystals", "Crystals tick", "The crystal spawner starts at this tick (from 1: their pool is made at tick 1)", (uint32_t)offsetof(IceBreathParams, director.crystals), fxp::I16, 1, 300 },
+			{ "director", "director.trail", "Trail tick", "The ice trail starts at this tick (at the mouth of then, turned away from the caster's facing)", (uint32_t)offsetof(IceBreathParams, director.trail), fxp::I16, 0, 300 },
+			{ "director", "director.shards", "Shards tick", "The ice shards start at this tick (flying away from the mouth of then)", (uint32_t)offsetof(IceBreathParams, director.shards), fxp::I16, 0, 300 },
+			{ "director", "director.damage", "Damage tick", "The damage (every target of the action) at this tick", (uint32_t)offsetof(IceBreathParams, director.damage), fxp::I16, 0, 300 },
+			{ "director", "director.blast", "Blast tick", "The blast sound at this tick", (uint32_t)offsetof(IceBreathParams, director.blast), fxp::I16, 0, 300 },
+			{ "director", "director.end", "End tick", "The director's last tick (the screen flash fades out toward it; the effect ends once every part has)", (uint32_t)offsetof(IceBreathParams, director.end), fxp::I16, 1, 300 },
+			{ "director", "anchor.mouth", "Mouth offset", "The mouth: this far along the caster's facing (its z, negative = ahead) from its bone 0xF0", (uint32_t)offsetof(IceBreathParams, anchor.mouth), fxp::I16, -4000, 4000 },
+			{ "director", "flash.colour", "Colour", "The screen flash's colour (0xBBGGRR)", (uint32_t)offsetof(IceBreathParams, flash.colour), fxp::I32, 0, 0xFFFFFF },
+			{ "director", "flash.in_end", "Rise until", "The flash level rises up to this tick", (uint32_t)offsetof(IceBreathParams, flash.in_end), fxp::I16, -1, 300 },
+			{ "director", "flash.in_step", "Rise step", "Its level: the tick x this (4096 = full)", (uint32_t)offsetof(IceBreathParams, flash.in_step), fxp::I16, 0, 0x1000 },
+			{ "director", "flash.out_start", "Fall from", "From this tick the level falls", (uint32_t)offsetof(IceBreathParams, flash.out_start), fxp::I16, 0, 300 },
+			{ "director", "flash.out_step", "Fall step", "Its level: (the end tick - the tick) x this", (uint32_t)offsetof(IceBreathParams, flash.out_step), fxp::I16, 0, 0x1000 },
+			{ "swirl", "swirl.spawn_last", "Last spawn tick", "Sprites spawn from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, swirl.spawn_last), fxp::I16, -1, 300 },
+			{ "swirl", "swirl.per_tick", "A tick", "How many spawn a tick (100 particles at most, shared with the puffs and the shards)", (uint32_t)offsetof(IceBreathParams, swirl.per_tick), fxp::I16, 0, 100 },
+			{ "swirl", "swirl.life", "End tick", "At this tick of its own the swirl ends (its sprites cleared)", (uint32_t)offsetof(IceBreathParams, swirl.life), fxp::I16, 1, 300 },
+			{ "swirl", "swirl.size_min", "Size", "A sprite's size: this + a random below the next", (uint32_t)offsetof(IceBreathParams, swirl.size_min), fxp::I16, 0, 0x7FFF },
+			{ "swirl", "swirl.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, swirl.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "swirl", "swirl.radius_min", "Radius", "Its distance from the mouth: this + a random below the next", (uint32_t)offsetof(IceBreathParams, swirl.radius_min), fxp::I16, 0, 0x7FFF },
+			{ "swirl", "swirl.radius_rand", "Radius random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, swirl.radius_rand), fxp::I16, 1, 0x7FFF },
+			{ "swirl", "swirl.shrink_min", "Shrink divisor", "Its radius shrinks a tick by the radius / (this + a random below the next)", (uint32_t)offsetof(IceBreathParams, swirl.shrink_min), fxp::I16, 1, 0x7FFF },
+			{ "swirl", "swirl.shrink_rand", "Shrink random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, swirl.shrink_rand), fxp::I16, 1, 0x7FFF },
+			{ "swirl", "swirl.spin_min", "Spin", "Its angle about its axis a tick: this + a random below the next", (uint32_t)offsetof(IceBreathParams, swirl.spin_min), fxp::I16, 0, 0x1000, fxp::Angle },
+			{ "swirl", "swirl.spin_rand", "Spin random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, swirl.spin_rand), fxp::I16, 1, 0x1000, fxp::Angle },
+			{ "cones", "cones.count", "Count", "How many cones (their delays and z angles: the tables, 4 at most)", (uint32_t)offsetof(IceBreathParams, cones.count), fxp::I16, 0, 4 },
+			{ "cones", "cones.size", "Size", "A cone's starting size (4096 = its model's)", (uint32_t)offsetof(IceBreathParams, cones.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "cones", "cones.shrink", "Shrink", "Its size shrinks a tick by this (which loses 1/20 a tick)", (uint32_t)offsetof(IceBreathParams, cones.shrink), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "cones", "cones.fade_from", "Fade from", "From this tick of its own it fades (1024 a tick)", (uint32_t)offsetof(IceBreathParams, cones.fade_from), fxp::I16, 0, 300 },
+			{ "cones", "cones.life", "Life", "A cone ends at this tick of its own (after its delay)", (uint32_t)offsetof(IceBreathParams, cones.life), fxp::I16, 1, 300 },
+			{ "glow", "glow.size", "Size", "The glow's starting size (4096 = its model's)", (uint32_t)offsetof(IceBreathParams, glow.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "glow", "glow.growth", "Growth", "Its size grows a tick by this", (uint32_t)offsetof(IceBreathParams, glow.growth), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "glow", "glow.speedup_from", "Faster from", "From this tick of its own the growth speeds up ((growth + 32) x 4 / 3 a tick)", (uint32_t)offsetof(IceBreathParams, glow.speedup_from), fxp::I16, 0, 300 },
+			{ "glow", "glow.fade_from", "Fade from", "From this tick of its own it fades (1024 a tick)", (uint32_t)offsetof(IceBreathParams, glow.fade_from), fxp::I16, 0, 300 },
+			{ "glow", "glow.life", "Life", "The glow ends at this tick of its own", (uint32_t)offsetof(IceBreathParams, glow.life), fxp::I16, 1, 300 },
+			{ "puffs", "puffs.spawn_last", "Last spawn tick", "Puffs spawn from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, puffs.spawn_last), fxp::I16, -1, 300 },
+			{ "puffs", "puffs.per_tick", "A tick", "How many spawn a tick (100 particles at most, shared)", (uint32_t)offsetof(IceBreathParams, puffs.per_tick), fxp::I16, 0, 100 },
+			{ "puffs", "puffs.size_min", "Size", "A puff's size: this + a random below the next (it grows 1/16 a tick)", (uint32_t)offsetof(IceBreathParams, puffs.size_min), fxp::I16, 0, 0x7FFF },
+			{ "puffs", "puffs.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, puffs.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "puffs", "puffs.spread", "Spread", "Where it starts: the mouth + a random below this (x, z: centred; y: minus 4 a tick of its own)", (uint32_t)offsetof(IceBreathParams, puffs.spread), fxp::I16, 1, 0x7FFF },
+			{ "puffs", "puffs.speed_min", "Speed", "Its speed along the swept way: this + a random below the next (losing 1/32 a tick)", (uint32_t)offsetof(IceBreathParams, puffs.speed_min), fxp::I16, 0, 0x7FFF },
+			{ "puffs", "puffs.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, puffs.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "puffs", "puffs.rise_rand", "Fall random", "Its downward speed: a random below this (+ the way's)", (uint32_t)offsetof(IceBreathParams, puffs.rise_rand), fxp::I16, 1, 0x7FFF },
+			{ "puffs", "puffs.sweep_start", "Sweep start", "The way to the targets turned about y by this at its tick 0", (uint32_t)offsetof(IceBreathParams, puffs.sweep_start), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "puffs", "puffs.sweep_step", "Sweep step", "and by this more each tick", (uint32_t)offsetof(IceBreathParams, puffs.sweep_step), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "puffs", "puffs.floor", "Floor", "A puff moves up or down only while above this height (y, negative = up)", (uint32_t)offsetof(IceBreathParams, puffs.floor), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "crystals", "crystals.spawn_last", "Last spawn tick", "One crystal a tick from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, crystals.spawn_last), fxp::I16, -1, 63 },
+			{ "crystals", "crystals.sweep_start", "Sweep start", "The swept breath way turned about y by this at its tick 0", (uint32_t)offsetof(IceBreathParams, crystals.sweep_start), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "crystals", "crystals.sweep_step", "Sweep step", "and by this more each tick", (uint32_t)offsetof(IceBreathParams, crystals.sweep_step), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "crystals", "crystals.dist_min", "Distance", "How far along it: (this + a random below the next) x twice the mouth-to-midpoint length / 4096", (uint32_t)offsetof(IceBreathParams, crystals.dist_min), fxp::I16, 0, 0x7FFF },
+			{ "crystals", "crystals.dist_rand", "Distance random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, crystals.dist_rand), fxp::I16, 1, 0x7FFF },
+			{ "crystals", "crystals.offset", "Offset", "Moved by a random below this on each axis (centred)", (uint32_t)offsetof(IceBreathParams, crystals.offset), fxp::I16, 1, 0x7FFF },
+			{ "crystals", "crystals.spin_rand", "Spin random", "Its z spin a frame: a random below this", (uint32_t)offsetof(IceBreathParams, crystals.spin_rand), fxp::I16, 1, 0x1000, fxp::Angle },
+			{ "crystals", "crystals.scale_min", "Scale", "Its scale: this + a random below the next (4096 = the layout's)", (uint32_t)offsetof(IceBreathParams, crystals.scale_min), fxp::I16, 0, 0x7FFF },
+			{ "crystals", "crystals.scale_rand", "Scale random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, crystals.scale_rand), fxp::I16, 1, 0x7FFF },
+			{ "trail", "trail.size", "Size", "The meshes' scale (4096 = theirs)", (uint32_t)offsetof(IceBreathParams, trail.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "trail", "trail.grow_ticks", "Appear ticks", "Its triangles appear for this many ticks (each by its distance), then fly apart", (uint32_t)offsetof(IceBreathParams, trail.grow_ticks), fxp::I16, 0, 300 },
+			{ "trail", "trail.full", "All shown at", "While appearing, from this tick every triangle is shown", (uint32_t)offsetof(IceBreathParams, trail.full), fxp::I16, 0, 300 },
+			{ "trail", "trail.speed_min", "Speed", "A flying triangle's speed outward: this + a random below the next (losing 1/16 a tick)", (uint32_t)offsetof(IceBreathParams, trail.speed_min), fxp::I16, 0, 0x7FFF },
+			{ "trail", "trail.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, trail.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "shards", "shards.spawn_last", "Last spawn tick", "Shards spawn from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, shards.spawn_last), fxp::I16, -1, 300 },
+			{ "shards", "shards.per_tick", "A tick", "How many spawn a tick (100 particles at most, shared)", (uint32_t)offsetof(IceBreathParams, shards.per_tick), fxp::I16, 0, 100 },
+			{ "shards", "shards.size_min", "Size", "A shard's size: this + a random below the next", (uint32_t)offsetof(IceBreathParams, shards.size_min), fxp::I16, 0, 0x7FFF },
+			{ "shards", "shards.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, shards.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "shards", "shards.spread_x", "Spread x", "Around the midpoint: a random below this on x (centred)", (uint32_t)offsetof(IceBreathParams, shards.spread_x), fxp::I16, 1, 0x7FFF },
+			{ "shards", "shards.spread_z", "Spread z", "and below this on z (centred)", (uint32_t)offsetof(IceBreathParams, shards.spread_z), fxp::I16, 1, 0x7FFF },
+			{ "shards", "shards.speed_min", "Speed", "Its speed away from the mouth: this + a random below the next", (uint32_t)offsetof(IceBreathParams, shards.speed_min), fxp::I16, 0, 0x7FFF },
+			{ "shards", "shards.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, shards.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "trail", "trail_meshes.mesh0", "Mesh 0", "The ice trail's mesh 0 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "trail", "trail_meshes.mesh1", "Mesh 1", "The ice trail's mesh 1 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh1), fxp::Model, 0, 0x7FFFFFFF },
+			{ "trail", "trail_meshes.mesh2", "Mesh 2", "The ice trail's mesh 2 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "trail", "trail_meshes.mesh3", "Mesh 3", "The ice trail's mesh 3 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh3), fxp::Model, 0, 0x7FFFFFFF },
+			{ "trail", "trail_meshes.mesh4", "Mesh 4", "The ice trail's mesh 4 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "swirl", "seqs.swirl", "Swirl", "The sprite sequence swirl (a flipbook of 24 frames: an edited one keeps as many)", (uint32_t)offsetof(IceBreathParams, seqs.swirl), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "puffs", "seqs.puff", "Puff", "The sprite sequence puff (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(IceBreathParams, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "shards", "seqs.shard", "Shard", "The sprite sequence shard (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(IceBreathParams, seqs.shard), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "crystals", "layouts.crystal", "Crystal", "The prim-model layout crystal (its models' animation)", (uint32_t)offsetof(IceBreathParams, layouts.crystal), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "cones", "models.cone", "Cone model", "The prim model cone (a mesh of 73 vertices, 72 primitives: an edited one keeps at least as many vertices)", (uint32_t)offsetof(IceBreathParams, models.cone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "glow", "models.glow", "Glow model", "The prim model glow (a mesh of 33 vertices, 32 primitives: an edited one keeps at least as many vertices)", (uint32_t)offsetof(IceBreathParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "cones", "tables.cone_delays", "Cone delays", "Each breath cone's delay (ticks before it shows and starts its clock) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(IceBreathParams, tables.cone_delays), fxp::Data, 0, 0x7FFFFFFF },
+			{ "cones", "tables.cone_angles", "Cone z angles", "Each breath cone's turn about its z axis (4096 = a full turn) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(IceBreathParams, tables.cone_angles), fxp::Data, 0, 0x7FFFFFFF },
+			{ "puffs", "tables.puff_colours", "Puff colours", "A breath puff's colour words by its frame (red, green, blue, the GPU code byte) (64 bytes: an edited one keeps its length)", (uint32_t)offsetof(IceBreathParams, tables.puff_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "crystals", "tables.crystal_flags", "Crystal flags", "The crystal layout's object flag word (0x10000000: its position through the camera; its draw flags, the semi-transparency bit forced on) (4 bytes: an edited one keeps its length)", (uint32_t)offsetof(IceBreathParams, tables.crystal_flags), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(IceBreathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(IceBreathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag173_ice_breath()
 	{
+		fxp::register_params({ 173, "Ice Breath", &ib173::live, &ib173::GAME, sizeof(ib173::IceBreathParams),
+		                       ib173::table::PARTS, (int)(sizeof(ib173::table::PARTS) / sizeof(ib173::table::PARTS[0])),
+		                       ib173::table::FIELDS, (int)(sizeof(ib173::table::FIELDS) / sizeof(ib173::table::FIELDS[0])),
+		                       ib173::table::GROUPS, (int)(sizeof(ib173::table::GROUPS) / sizeof(ib173::table::GROUPS[0])) });
+		own::note(ib173::ORIG_FileLoader, (void *)ib173::FileLoader);
+		own::note(ib173::ORIG_Setup, (void *)ib173::Setup);
+		own::note(ib173::ORIG_Root, (void *)ib173::RootTask);
 		register_port(ib173::ORIG_Root, (void *)ib173::RootTask, "173 RootTask", 173);
+		own::note(ib173::ORIG_TexRestore, (void *)ib173::TexRestoreTask);
 		register_port(ib173::ORIG_TexRestore, (void *)ib173::TexRestoreTask, "173 TexRestore", 173);
+		own::note(ib173::ORIG_Director, (void *)ib173::DirectorTask);
 		register_port(ib173::ORIG_Director, (void *)ib173::DirectorTask, "173 Director", 173);
+		own::note(ib173::ORIG_Swirl, (void *)ib173::SwirlTask);
 		register_port(ib173::ORIG_Swirl, (void *)ib173::SwirlTask, "173 MouthSwirl", 173);
+		own::note(ib173::ORIG_Cone, (void *)ib173::ConeTask);
 		register_port(ib173::ORIG_Cone, (void *)ib173::ConeTask, "173 BreathCone", 173);
+		own::note(ib173::ORIG_Glow, (void *)ib173::GlowTask);
 		register_port(ib173::ORIG_Glow, (void *)ib173::GlowTask, "173 MouthGlow", 173);
+		own::note(ib173::ORIG_Puffs, (void *)ib173::PuffsTask);
 		register_port(ib173::ORIG_Puffs, (void *)ib173::PuffsTask, "173 BreathPuffs", 173);
+		own::note(ib173::ORIG_Trail, (void *)ib173::TrailTask);
 		register_port(ib173::ORIG_Trail, (void *)ib173::TrailTask, "173 IceTrail", 173);
+		own::note(ib173::ORIG_Shards, (void *)ib173::ShardsTask);
 		register_port(ib173::ORIG_Shards, (void *)ib173::ShardsTask, "173 IceShards", 173);
+		own::note(ib173::ORIG_Spawner, (void *)ib173::SpawnerTask);
 		register_port(ib173::ORIG_Spawner, (void *)ib173::SpawnerTask, "173 CrystalSpawner", 173);
+		own::note(ib173::ORIG_Crystal, (void *)ib173::CrystalTask);
 		register_port(ib173::ORIG_Crystal, (void *)ib173::CrystalTask, "173 Crystal", 173);
 		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(register_mag173_held();)
