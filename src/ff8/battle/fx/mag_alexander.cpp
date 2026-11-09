@@ -644,6 +644,7 @@ namespace alexander
 		c.load_cb = 0xB07C20;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)

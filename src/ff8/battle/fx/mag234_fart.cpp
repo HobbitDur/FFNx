@@ -80,6 +80,7 @@ namespace fart
 		c.load_cb = 0xA4D9C0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

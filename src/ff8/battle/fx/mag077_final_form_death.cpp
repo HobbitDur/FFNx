@@ -129,6 +129,7 @@ namespace final_form_death
 		c.load_cb = 0xB3A150;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

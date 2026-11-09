@@ -473,6 +473,7 @@ namespace cerberus
 		c.load_cb = 0xB143F0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)

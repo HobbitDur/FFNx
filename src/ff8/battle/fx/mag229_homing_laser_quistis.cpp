@@ -85,6 +85,7 @@ namespace homing_laser_q
 		c.load_cb = 0xA80F60;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

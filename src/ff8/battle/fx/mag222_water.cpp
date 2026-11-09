@@ -74,6 +74,7 @@ namespace water
 		c.load_cb = 0xAA0ED0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// draw 38 (AttachBattleEntity) is the only Brothers handler Water carries: take that one slot

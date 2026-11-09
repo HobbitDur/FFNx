@@ -86,6 +86,7 @@ namespace death232
 		c.load_cb = 0xA61EA0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 }
 }

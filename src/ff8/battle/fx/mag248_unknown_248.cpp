@@ -88,6 +88,7 @@ namespace eff248
 		c.load_cb = 0x9C5240;        // passed by VM 0x006 0x9C5110
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

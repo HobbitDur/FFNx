@@ -86,6 +86,7 @@ namespace laser254
 		c.load_cb = 0x9936B0;        // passed by VM 0x006 0x993580
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// 0xB66B80 (blob): matrix of joint `joint` of the model whose BattleAnimHeader is `hdr`,

@@ -84,6 +84,7 @@ namespace sand_shake
 		c.load_cb = 0x97E0A0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)

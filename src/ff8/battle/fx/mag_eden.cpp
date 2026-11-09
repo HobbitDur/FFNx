@@ -2839,6 +2839,7 @@ namespace eden
 		c.load_cb = 0xAEFAE0;
 		c.lit_dispatcher = false;
 		c.bone_count = 32;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
