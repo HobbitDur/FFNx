@@ -63,6 +63,7 @@
 // task reuses its argument slot for the trail frame counter (the executor never reads that slot again).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -633,6 +634,7 @@ namespace micromissiles284
 		// 30 fps layer: see mag284_micro_missiles_held.inc
 		FX_HELD(register_mag284_held();)
 	}
+	FX_LAB_MODULE(register_mag284_micro_missiles);
 }
 
 #ifdef FF8_FX_HELD

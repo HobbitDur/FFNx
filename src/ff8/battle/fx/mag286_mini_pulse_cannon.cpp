@@ -50,6 +50,7 @@
 // (0x1CA8A16) only.
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -478,6 +479,7 @@ namespace minipulse286
 		// 30 fps layer: see mag286_mini_pulse_cannon_held.inc
 		FX_HELD(register_mag286_held();)
 	}
+	FX_LAB_MODULE(register_mag286_mini_pulse_cannon);
 }
 
 #ifdef FF8_FX_HELD

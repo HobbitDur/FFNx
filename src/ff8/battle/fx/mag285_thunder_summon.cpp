@@ -54,6 +54,7 @@
 // VZ0 high half (0x1CA8A16) only; 0x67B5C0's matrices / vector pads are never read.
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -626,6 +627,7 @@ namespace thunder285
 		// 30 fps layer: see mag285_thunder_summon_held.inc
 		FX_HELD(register_mag285_held();)
 	}
+	FX_LAB_MODULE(register_mag285_thunder_summon);
 }
 
 #ifdef FF8_FX_HELD

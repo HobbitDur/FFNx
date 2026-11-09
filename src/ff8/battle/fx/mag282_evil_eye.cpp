@@ -48,6 +48,7 @@
 // its spark loop counter (the executor never reads that slot again).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -450,6 +451,7 @@ namespace evileye282
 		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(register_mag282_held();)
 	}
+	FX_LAB_MODULE(register_mag282_evil_eye);
 }
 
 #ifdef FF8_FX_HELD
