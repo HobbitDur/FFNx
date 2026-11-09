@@ -40,6 +40,7 @@
 // 0x21F71B0, length 0x21F723C, finisher 0x21F7240, texture base 0x21F7244, packet cursor 0x21F7248.
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -179,6 +180,7 @@ namespace renzo335
 		// 30 fps layer: see mag335_renzokuken_norg_held.inc
 		FX_HELD(register_mag335_held();)
 	}
+	FX_LAB_MODULE(register_mag335_renzokuken_norg);
 }
 
 #ifdef FF8_FX_HELD

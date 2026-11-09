@@ -41,6 +41,7 @@
 // (exe data, zero).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -264,6 +265,7 @@ namespace renzo342
 		// 30 fps layer: see mag342_renzokuken_ultimecia_griever_held.inc
 		FX_HELD(register_mag342_held();)
 	}
+	FX_LAB_MODULE(register_mag342_renzokuken_ultimecia_griever);
 }
 
 #ifdef FF8_FX_HELD

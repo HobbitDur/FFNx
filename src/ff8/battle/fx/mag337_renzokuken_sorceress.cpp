@@ -39,6 +39,7 @@
 // (8 x 8 bytes, zero).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -157,6 +158,7 @@ namespace renzo337
 		// 30 fps layer: see mag337_renzokuken_sorceress_held.inc
 		FX_HELD(register_mag337_held();)
 	}
+	FX_LAB_MODULE(register_mag337_renzokuken_sorceress);
 }
 
 #ifdef FF8_FX_HELD

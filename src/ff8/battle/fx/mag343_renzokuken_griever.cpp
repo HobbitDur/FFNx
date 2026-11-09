@@ -41,6 +41,7 @@
 // cursor 0x21E2D40, hit offsets 0x21E2D48 (8 x 8 bytes, zero).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -170,6 +171,7 @@ namespace renzo343
 		// 30 fps layer: see mag343_renzokuken_griever_held.inc
 		FX_HELD(register_mag343_held();)
 	}
+	FX_LAB_MODULE(register_mag343_renzokuken_griever);
 }
 
 #ifdef FF8_FX_HELD
