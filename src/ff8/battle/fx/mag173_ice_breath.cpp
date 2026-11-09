@@ -165,8 +165,8 @@ namespace ib173
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
 		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
 		struct { int16_t size, grow_ticks, full, speed_min, speed_rand; } trail;
-		// (swirl, rise, widen: not the game's - on each target, a small tornado)
-		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand, swirl, rise, widen; } shards;
+		// (swirl, rise, widen, ground: not the game's - on each target, a small tornado)
+		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand, swirl, rise, widen, ground; } shards;
 		struct { uint32_t mesh0, mesh1, mesh2, mesh3, mesh4; } trail_meshes; // the ice trail's five meshes (prim models)
 		struct { uint32_t swirl, puff, shard; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t crystal; } layouts; // the prim-model layouts played (their models' animation)
@@ -185,7 +185,7 @@ namespace ib173
 		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
 		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA },
-		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46, 0, 40, 64 },
+		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46, 0, 40, 64, 0 },
 		{ 0xD5FB00, 0xD60AFC, 0xD6108C, 0xD6161C, 0xD61878 },
 		{ SEQ_Swirl, SEQ_Puff, SEQ_Shard },
 		{ LAYOUT_Crystal },
@@ -694,7 +694,8 @@ namespace ib173
 				{
 					// (not the game's) around a target's effect point, flying away from it
 					S16(e, 8) = (int16_t)(at[0] + (int16_t)(CrtRand() % P().shards.spread_x - P().shards.spread_x / 2));
-					S16(e, 0xA) = at[1];
+					// a tornado from the ground: on the floor under it
+					S16(e, 0xA) = (P().shards.swirl && P().shards.ground) ? (int16_t)0 : at[1];
 					S16(e, 0xC) = (int16_t)(at[2] + (int16_t)(CrtRand() % P().shards.spread_z - P().shards.spread_z / 2));
 					S16(e, 0xE) = (int16_t)(CrtRand() % P().shards.speed_rand + P().shards.speed_min);
 					S16(e, 0x10) = (int16_t)(S16(e, 8) - at[0]);
@@ -1575,6 +1576,7 @@ namespace ib173
 			{ "shards", "shards.swirl", "Tornado turn", "On each target: 0 = the shards fly straight away from it (the game); else they turn round it this much a tick (4096 a turn; negative: the other way), a small tornado", (uint32_t)offsetof(IceBreathParams, shards.swirl), fxp::I16, -2048, 2048 },
 			{ "shards", "shards.rise", "Tornado rise", "A tornado's shards rise this much a tick", (uint32_t)offsetof(IceBreathParams, shards.rise), fxp::I16, -400, 400 },
 			{ "shards", "shards.widen", "Tornado widening", "A tornado's radius grows by this / 4096 a tick (0: a column)", (uint32_t)offsetof(IceBreathParams, shards.widen), fxp::I16, -1024, 1024 },
+			{ "shards", "shards.ground", "Tornado from the ground", "A tornado's shards: 1 = start on the floor under their target and rise from there; 0 = start at the target's point", (uint32_t)offsetof(IceBreathParams, shards.ground), fxp::I16, 0, 1 },
 			{ "trail", "trail_meshes.mesh0", "Mesh 0", "The ice trail's mesh 0 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh0), fxp::Model, 0, 0x7FFFFFFF },
 			{ "trail", "trail_meshes.mesh1", "Mesh 1", "The ice trail's mesh 1 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh1), fxp::Model, 0, 0x7FFFFFFF },
 			{ "trail", "trail_meshes.mesh2", "Mesh 2", "The ice trail's mesh 2 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh2), fxp::Model, 0, 0x7FFFFFFF },
