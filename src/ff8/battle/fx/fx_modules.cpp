@@ -239,6 +239,15 @@ namespace ff8fx::mod
 	static const Region streams_r259[] = { { 0x24FEB68, 0x20 } }; // Renzokuken 6 hits: the caster bind block
 	static const Region streams_r332[] = { { 0x24FEB38, 0x20 } }; // Renzokuken 7 hits: the caster bind block
 	static const Region streams_r333[] = { { 0x24FEB08, 0x20 } }; // Renzokuken 8 hits: the caster bind block
+	static const Region streams_r334[] = { { 0x24FEAD8, 0x30 } }; // Renzokuken vs Bahamut: the caster and boss bind blocks
+	static const Region streams_r335[] = { { 0x24FEAA8, 0x30 } }; // Renzokuken vs NORG: the caster and boss bind blocks
+	static const Region streams_r336[] = { { 0x24FEA78, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs Ultima Weapon: the caster and boss bind blocks, the camera shake word
+	static const Region streams_r337[] = { { 0x24FEA48, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs the Sorceress (wormlike): the caster and boss bind blocks, the camera shake word
+	static const Region streams_r339[] = { { 0x24FEA08, 0x40 } }; // Renzokuken vs Adel: the caster, boss and Rinoa bind blocks
+	static const Region streams_r340[] = { { 0x24FE9D8, 0x30 } }; // Renzokuken vs Ultimecia (final form): the caster and boss bind blocks
+	static const Region streams_r341[] = { { 0x24FE9A8, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs Jumbo Cactuar: the caster and boss bind blocks, the camera shake word
+	static const Region streams_r342[] = { { 0x24FE978, 0x30 } }; // Renzokuken vs Ultimecia + Griever: the caster and boss bind blocks
+	static const Region streams_r343[] = { { 0x24FE948, 0x30 } }; // Renzokuken vs Griever: the caster and boss bind blocks
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
 	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
@@ -519,6 +528,15 @@ namespace ff8fx::mod
 		{ 259, 0x2257798, 0x225994C, 0, 0, false, "Renzokuken 6 hits (Squall; crisis level 2 / 3)", streams_r259, 1 },
 		{ 332, 0x21FC2C0, 0x21FF2A4, 0, 0, false, "Renzokuken 7 hits (Squall; crisis level 3 / 4)", streams_r332, 1 },
 		{ 333, 0x21FA0E8, 0x21FC2BC, 0, 0, false, "Renzokuken 8 hits (Squall; crisis level 4)", streams_r333, 1 },
+		{ 334, 0x21F7250, 0x21FA0C8, 0, 0, false, "Renzokuken vs Bahamut (Squall; target c0m067)", streams_r334, 1 },
+		{ 335, 0x21F4418, 0x21F724C, 0, 0, false, "Renzokuken vs NORG (Squall; target c0m077)", streams_r335, 1 },
+		{ 336, 0x21F15E0, 0x21F4414, 0, 0, false, "Renzokuken vs Ultima Weapon (Squall; target c0m090)", streams_r336, 2 },
+		{ 337, 0x21EE748, 0x21F15C0, 0, 0, false, "Renzokuken vs the Sorceress, wormlike (Squall; target c0m117)", streams_r337, 2 },
+		{ 339, 0x21EB8B0, 0x21EE728, 0, 0, false, "Renzokuken vs Adel (Squall; target c0m112)", streams_r339, 1 },
+		{ 340, 0x21E8A78, 0x21EB8AC, 0, 0, false, "Renzokuken vs Ultimecia, final form (Squall; target c0m126)", streams_r340, 1 },
+		{ 341, 0x21E5BE0, 0x21E8A58, 0, 0, false, "Renzokuken vs Jumbo Cactuar (Squall; target c0m084)", streams_r341, 2 },
+		{ 342, 0x21E2DA8, 0x21E5BDC, 0, 0, false, "Renzokuken vs Ultimecia + Griever (Squall; target c0m124)", streams_r342, 1 },
+		{ 343, 0x21DFEF0, 0x21E2D88, 0, 0, false, "Renzokuken vs Griever (Squall; target c0m122)", streams_r343, 1 },
 	};
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
