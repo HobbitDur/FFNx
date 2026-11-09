@@ -36,6 +36,7 @@
 // packet cursor 0x2341924, the sprite transform matrix 0x2341928).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -435,6 +436,7 @@ namespace needles178
 		// 30 fps layer: see mag178_10000_needles_held.inc
 		FX_HELD(register_mag178_held();)
 	}
+	FX_LAB_MODULE(register_mag178_10000_needles);
 }
 
 #ifdef FF8_FX_HELD

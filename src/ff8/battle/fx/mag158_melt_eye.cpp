@@ -53,6 +53,7 @@
 // texture file 0x23DB5B8, the two packet arenas, packet cursor 0x23EB5BC).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -657,6 +658,7 @@ namespace melteye158
 		// 30 fps layer: see mag158_melt_eye_held.inc
 		FX_HELD(register_mag158_held();)
 	}
+	FX_LAB_MODULE(register_mag158_melt_eye);
 }
 
 #ifdef FF8_FX_HELD

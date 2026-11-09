@@ -65,6 +65,7 @@
 // packet cursor, sprite frame 0x23ECE20).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -884,6 +885,7 @@ namespace breath157
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(register_mag157_held();)
 	}
+	FX_LAB_MODULE(register_mag157_breath);
 }
 
 #ifdef FF8_FX_HELD
