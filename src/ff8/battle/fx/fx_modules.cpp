@@ -170,8 +170,8 @@ namespace ff8fx::mod
 	static const Region streams_b304[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_g311[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_s176[] = { { 0xD4516C, 0xC }, { 0x21DFED0, 0x20 } };
-	// Ice Breath: shadow-camera scratch
-	static const Region streams_i173[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_b157[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_m158[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_s139[] = { { 0x11D7900, 0x12F0 } };
 	static const Region streams_i050[] = { { 0x2792E74, 4 }, { 0x2793E58, 0x20 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_i051[] = { { 0x21DFED0, 0x20 } };
@@ -439,8 +439,11 @@ namespace ff8fx::mod
 		{ 268, 0x2795C88, 0x2798C40, 0, 0, false, "Tri-Point death (attack 260, Tri-Point)", streams_gfc, 5 },
 		{ 270, 0x2795C18, 0x2798C40, 0, 0, false, "Ultima Weapon Death (attack 312, Omega Weapon / Ultima Weapon)", streams_gfc, 5 },
 		{ 228, 0x2796B38, 0x2798C40, 0, 0, false, "Ice Strike (Edea temporary limit break)", streams_gfc, 5 },
-		{ 173, 0x2397278, 0x239A8E0, 0, 0, false, "Ice Breath (attack 38, Snow Lion)", streams_i173, 1 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
+		{ 157, 0x23EB5C0, 0x23ECE40, 0, 0, false, "Breath (attack 37, Hexadragon)", streams_b157, 4 },
+		{ 158, 0x23D7B08, 0x23EB5C0, 0, 0, false, "Melt-Eye (attack 36, Hexadragon)", streams_m158, 1 },
+		{ 178, 0x231AD10, 0x2341948, 0, 0, false, "10,000 Needles (attack 230, Jumbo Cactuar)", nullptr, 0 },
+		{ 177, 0x2341948, 0x2368580, 0, 0, false, "1000 Needles (attack 25, Cactuar)", nullptr, 0 },
 		{ 226, 0x2508770, 0x25087F0, 0, 0, false, "White Wind (attack 276, Adamantoise)", nullptr, 0 },
 		{ 139, 0x2517B50, 0x2520C48, 0, 0, false, "Sonic Wave (attack 182)", streams_s139, 1 },
 		{ 50, 0x2634AB8, 0x26464D8, 0, 0, false, "Potion (items Potion / Potion+)", streams_i050, 3 },
