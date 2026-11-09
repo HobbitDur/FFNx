@@ -856,6 +856,24 @@ namespace gfc
 		return false;
 	}
 
+	// entities whose root words held_entity_next_root (below) already advanced in this prediction pass,
+	// with the real tick's root
+	struct NextRoot { uint8_t *ent; int16_t root0[3]; };
+	static NextRoot g_next_root[8];
+	static int g_next_root_n = 0;
+	static uint32_t g_next_root_pass = 0;
+	static const NextRoot *next_root_of(const uint8_t *ent)
+	{
+		if (g_next_root_pass != g_pred_pass) return nullptr;
+		for (int i = 0; i < g_next_root_n; i++) if (g_next_root[i].ent == ent) return &g_next_root[i];
+		return nullptr;
+	}
+
+	// The animation reader adds each frame's root delta to the root words it finds (0x509022..0x509047):
+	// when a bone handler 9 of this pass already put the entity's NEXT root there (held_entity_next_root),
+	// pose_midpoint's look-ahead would step from it and build the matrices one root delta too far (250
+	// Beam Cannon: VM 0x05B joint 7 units off after a bh 9 bone on the caster). The look-ahead runs from
+	// the real tick's root; the next root goes back in afterwards (the words the rest of the pass reads).
 	void held_entity_next_pose(uint8_t *ent)
 	{
 		if (!ent || !held_entity_joints_on()) return;
@@ -864,7 +882,15 @@ namespace gfc
 		uint8_t *sk = com ? PTR(com, 0) : nullptr;
 		if (!sk || U8(sk, 0) == 0) return;
 		guard(sk, 16 + 48 * (int)U8(sk, 0));
+		const NextRoot *nr = next_root_of(ent);
+		int16_t root1[3];
+		if (nr)
+		{
+			memcpy(root1, sk + 8, sizeof(root1));
+			memcpy(sk + 8, nr->root0, sizeof(root1));
+		}
 		pose_midpoint(hdr, ent + 0x6C, 1, 1);
+		if (nr) memcpy(sk + 8, root1, sizeof(root1));
 	}
 
 	// Bone handler 9 (bh_09_EntityJoint) adds the root words of the slot entity's skeleton block (+8 /
@@ -901,6 +927,13 @@ namespace gfc
 		memcpy(sk, save, n);
 		memcpy(cmd, cs, sizeof(cs));
 		guard(sk + 8, sizeof(root));
+		if (g_next_root_pass != g_pred_pass) { g_next_root_pass = g_pred_pass; g_next_root_n = 0; }
+		if (g_next_root_n < 8)
+		{
+			g_next_root[g_next_root_n].ent = ent;
+			memcpy(g_next_root[g_next_root_n].root0, sk + 8, sizeof(root));
+			g_next_root_n++;
+		}
 		memcpy(sk + 8, root, sizeof(root));
 	}
 
@@ -1199,6 +1232,12 @@ namespace gfc
 	//   * VXY0 before SetupParentXform is set to the value the real tick had there (vanilla
 	//     leaves V0.xy of the previous GTE user in the translation; in a held draw that is
 	//     another handler's frozen-path value, which would shift the whole ribbon);
+	//   * a real tick that built a cross-section (growth step) left its last cross-section
+	//     point in VXY0, the next tick that does not grow (tail retire, -2 hold) draws with the
+	//     previous GTE user's residue again: the held draw takes VXY0 at the in-between of the
+	//     real tick's value and that residue (the one found at the real draw's entry,
+	//     held_ribbon_entry, or the chained predecessor's next value below); 250 Beam Cannon's
+	//     first tail-retire tick moved the whole ribbon by the growth residue (0, -3w/8);
 	//   * chained ribbons: when that previous GTE user was the ribbon drawn just before (its last
 	//     loaded point: point 8 of its oldest drawn section), the translation moves with that
 	//     ribbon's tail every tick it retires (Cerberus: three ribbons chained, each one moving by
@@ -1213,8 +1252,10 @@ namespace gfc
 	// software GTE data register 0 (VXY0, packed)
 	static inline uint32_t &GTE_VXY0() { return MEM<uint32_t>(0x1CA8A10); }
 	// VXY0 the real tick had when it reached SetupParentXform (see B1ADD0), per node; chain: it
-	// was the last point loaded by the ribbon drawn just before
-	struct V0Memo { uint32_t v0; bool chain; };
+	// was the last point loaded by the ribbon drawn just before; entry / entry_chain: the same
+	// at the draw's entry, before its growth step (= v0 / chain when it did not grow)
+	struct V0Memo { uint32_t v0; bool chain; uint32_t entry; bool entry_chain; };
+	static uint32_t g_rib_entry_v0 = 0;
 	static NodeMemo<V0Memo, 64> g_v0memo;
 	// (g_rib_last_v0 / g_rib_next_v0: top of the file)
 	// the arena scratch above ctx+0x74 this handler writes (projections + colour table)
@@ -1389,13 +1430,19 @@ namespace gfc
 		}
 	}
 
+	// real tick: VXY0 at the draw's entry (the previous GTE user's residue, before the growth step)
+	void held_ribbon_entry()
+	{
+		if (!g_held.active) g_rib_entry_v0 = GTE_VXY0();
+	}
+
 	// real tick: memo of VXY0 before SetupParentXform; held: VXY0 of the real tick put back
 	void held_ribbon_v0()
 	{
 		if (!g_held.active)
 		{
 			V0Memo *m = g_v0memo.put(CUR());
-			if (m) *m = { GTE_VXY0(), g_rib_last_ok && GTE_VXY0() == g_rib_last_v0 };
+			if (m) *m = { GTE_VXY0(), g_rib_last_ok && GTE_VXY0() == g_rib_last_v0, g_rib_entry_v0, g_rib_last_ok && g_rib_entry_v0 == g_rib_last_v0 };
 		}
 		else if (!g_rib_adv)
 		{
@@ -1403,12 +1450,15 @@ namespace gfc
 			if (m)
 			{
 				uint32_t v = m->v0;
-				// chained to the ribbon drawn before: in-between of the real tick's value and the
-				// one that ribbon leaves on the next tick
-				if (m->chain && g_rib_next_ok)
+				// the next tick does not grow: it draws with the previous GTE user's residue, as
+				// this tick found it at its entry; chained to the ribbon drawn before: the one that
+				// ribbon leaves on the next tick. In-between of the real tick's value and that one
+				// (the real tick's value itself when it did not grow and is not chained)
+				uint32_t nx = m->entry_chain && g_rib_next_ok ? g_rib_next_v0 : m->entry;
+				if (nx != v)
 				{
 					int16_t x0 = (int16_t)(v & 0xFFFF), y0 = (int16_t)(v >> 16);
-					int16_t x1 = (int16_t)(g_rib_next_v0 & 0xFFFF), y1 = (int16_t)(g_rib_next_v0 >> 16);
+					int16_t x1 = (int16_t)(nx & 0xFFFF), y1 = (int16_t)(nx >> 16);
 					int16_t x = (int16_t)lerp_i(x0, x1, g_held.num, g_held.den), y = (int16_t)lerp_i(y0, y1, g_held.num, g_held.den);
 					v = (uint32_t)(uint16_t)x | ((uint32_t)(uint16_t)y << 16);
 				}

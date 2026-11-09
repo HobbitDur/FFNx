@@ -116,7 +116,9 @@ namespace gfc
 	bool held_model_pose(uint8_t *blk, uint8_t *hdr, uint8_t *cmd);
 	// Draw 6 particle system (frozen path): held-frame position type + draw of particle p
 	void held_particle_draw(uint8_t *p);
-	// Draw 37 ribbon trail: scratch save / VXY0 of the real tick / scratch restore
+	// Draw 37 ribbon trail: VXY0 at the draw's entry / scratch save / VXY0 of the real tick /
+	// scratch restore
+	void held_ribbon_entry();
 	void held_ribbon_save(uint8_t *ring);
 	void held_ribbon_v0();
 	void held_ribbon_restore();
