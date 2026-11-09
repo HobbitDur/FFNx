@@ -191,12 +191,16 @@ namespace megaflare257
 	{
 		using namespace gfc;
 		megaflare257::describe(megaflare257::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<257>::Register("Mega Flare (Bahamut)", megaflare257::g_c, 0x96F260, 0x185AA84, 0x185AA90,
+		                           (void *)megaflare257::SequenceTask);
 		init_clone(megaflare257::g_c, nullptr, 0);
 		megaflare257::apply_slots(megaflare257::g_c);
 		register_port(0x96F900, (void *)megaflare257::SequenceTask, "MAG257 Mega Flare (Bahamut) SequenceTick", 257);
 		// 30 fps layer: see mag257_mega_flare_held.inc
 		FX_HELD(register_mag257_mega_flare_held();)
 	}
+	FX_LAB_MODULE(register_mag257_mega_flare);
 }
 
 #ifdef FF8_FX_HELD

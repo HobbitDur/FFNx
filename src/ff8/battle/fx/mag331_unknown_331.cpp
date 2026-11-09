@@ -175,12 +175,16 @@ namespace eff331
 	{
 		using namespace gfc;
 		eff331::describe(eff331::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<331>::Register("Effect 331", eff331::g_c, 0x8DFF70, 0x1852FB8, 0x1852FC4,
+		                           (void *)eff331::SequenceTask);
 		init_clone(eff331::g_c, nullptr, 0);
 		eff331::apply_slots(eff331::g_c);
 		register_port(0x8E0610, (void *)eff331::SequenceTask, "MAG331 effect 331 (attack 313) SequenceTick", 331);
 		// 30 fps layer: see mag331_unknown_331_held.inc
 		FX_HELD(register_mag331_unknown_331_held();)
 	}
+	FX_LAB_MODULE(register_mag331_unknown_331);
 }
 
 #ifdef FF8_FX_HELD

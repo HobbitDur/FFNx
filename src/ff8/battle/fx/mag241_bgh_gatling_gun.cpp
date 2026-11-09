@@ -94,11 +94,15 @@ namespace gatling241
 	{
 		using namespace gfc;
 		gatling241::describe(gatling241::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<241>::Register("Gatling Gun (BGH251F2)", gatling241::g_c, 0xA01DE0, 0x1863D50, 0x1863D5C,
+		                           (void *)gatling241::SequenceTask);
 		init_clone(gatling241::g_c, nullptr, 0);
 		register_port(0xA02480, (void *)gatling241::SequenceTask, "MAG241 Gatling Gun (BGH251F2) SequenceTick", 241);
 		// 30 fps layer: see mag241_bgh_gatling_gun_held.inc
 		FX_HELD(register_mag241_bgh_gatling_gun_held();)
 	}
+	FX_LAB_MODULE(register_mag241_bgh_gatling_gun);
 }
 
 #ifdef FF8_FX_HELD

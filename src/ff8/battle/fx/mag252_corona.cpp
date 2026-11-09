@@ -115,12 +115,16 @@ namespace corona252
 	{
 		using namespace gfc;
 		corona252::describe(corona252::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<252>::Register("Corona (Mobile Type 8)", corona252::g_c, 0x9A2840, 0x185DB20, 0x185DB2C,
+		                           (void *)corona252::SequenceTask);
 		init_clone(corona252::g_c, nullptr, 0);
 		corona252::apply_slots(corona252::g_c);
 		register_port(0x9A2EE0, (void *)corona252::SequenceTask, "MAG252 Corona (Mobile Type 8) SequenceTick", 252);
 		// 30 fps layer: see mag252_corona_held.inc
 		FX_HELD(register_mag252_corona_held();)
 	}
+	FX_LAB_MODULE(register_mag252_corona);
 }
 
 #ifdef FF8_FX_HELD

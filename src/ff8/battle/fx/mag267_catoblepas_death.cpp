@@ -136,12 +136,16 @@ namespace catoblepas267
 	{
 		using namespace gfc;
 		catoblepas267::describe(catoblepas267::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<267>::Register("Catoblepas death", catoblepas267::g_c, 0x911FC0, 0x18558B0, 0x18558BC,
+		                           (void *)catoblepas267::SequenceTask);
 		init_clone(catoblepas267::g_c, nullptr, 0);
 		catoblepas267::apply_slots(catoblepas267::g_c);
 		register_port(0x912660, (void *)catoblepas267::SequenceTask, "MAG267 Catoblepas death SequenceTick", 267);
 		// 30 fps layer: see mag267_catoblepas_death_held.inc
 		FX_HELD(register_mag267_catoblepas_death_held();)
 	}
+	FX_LAB_MODULE(register_mag267_catoblepas_death);
 }
 
 #ifdef FF8_FX_HELD

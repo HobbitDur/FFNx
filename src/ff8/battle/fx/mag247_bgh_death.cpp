@@ -95,11 +95,15 @@ namespace bghdeath247
 	{
 		using namespace gfc;
 		bghdeath247::describe(bghdeath247::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<247>::Register("BGH251F2 Death", bghdeath247::g_c, 0x9C9860, 0x186027C, 0x1860288,
+		                           (void *)bghdeath247::SequenceTask);
 		init_clone(bghdeath247::g_c, nullptr, 0);
 		register_port(0x9C9F00, (void *)bghdeath247::SequenceTask, "MAG247 BGH251F2 Death SequenceTick", 247);
 		// 30 fps layer: see mag247_bgh_death_held.inc
 		FX_HELD(register_mag247_bgh_death_held();)
 	}
+	FX_LAB_MODULE(register_mag247_bgh_death);
 }
 
 #ifdef FF8_FX_HELD

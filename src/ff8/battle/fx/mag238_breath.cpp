@@ -140,12 +140,16 @@ namespace breath238
 	{
 		using namespace gfc;
 		breath238::describe(breath238::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<238>::Register("Breath (Ruby Dragon)", breath238::g_c, 0xA1FD90, 0x1865B50, 0x1865B5C,
+		                           (void *)breath238::SequenceTask);
 		init_clone(breath238::g_c, nullptr, 0);
 		breath238::apply_slots(breath238::g_c);
 		register_port(0xA20430, (void *)breath238::SequenceTask, "MAG238 Breath (Ruby Dragon) SequenceTick", 238);
 		// 30 fps layer: see mag238_breath_held.inc
 		FX_HELD(register_mag238_breath_held();)
 	}
+	FX_LAB_MODULE(register_mag238_breath);
 }
 
 #ifdef FF8_FX_HELD

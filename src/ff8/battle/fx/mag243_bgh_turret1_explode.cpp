@@ -94,11 +94,15 @@ namespace turret243
 	{
 		using namespace gfc;
 		turret243::describe(turret243::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<243>::Register("1st turret exploding (BGH251F2)", turret243::g_c, 0x9EEA60, 0x186298C, 0x1862998,
+		                           (void *)turret243::SequenceTask);
 		init_clone(turret243::g_c, nullptr, 0);
 		register_port(0x9EF100, (void *)turret243::SequenceTask, "MAG243 BGH251F2 1st turret explosion SequenceTick", 243);
 		// 30 fps layer: see mag243_bgh_turret1_explode_held.inc
 		FX_HELD(register_mag243_bgh_turret1_explode_held();)
 	}
+	FX_LAB_MODULE(register_mag243_bgh_turret1_explode);
 }
 
 #ifdef FF8_FX_HELD

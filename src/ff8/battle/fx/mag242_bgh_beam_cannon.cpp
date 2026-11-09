@@ -118,12 +118,16 @@ namespace beam242
 	{
 		using namespace gfc;
 		beam242::describe(beam242::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<242>::Register("Beam Cannon (BGH251F2)", beam242::g_c, 0x9F7CE0, 0x1863370, 0x186337C,
+		                           (void *)beam242::SequenceTask);
 		init_clone(beam242::g_c, nullptr, 0);
 		beam242::apply_slots(beam242::g_c);
 		register_port(0x9F8380, (void *)beam242::SequenceTask, "MAG242 Beam Cannon (BGH251F2) SequenceTick", 242);
 		// 30 fps layer: see mag242_bgh_beam_cannon_held.inc
 		FX_HELD(register_mag242_bgh_beam_cannon_held();)
 	}
+	FX_LAB_MODULE(register_mag242_bgh_beam_cannon);
 }
 
 #ifdef FF8_FX_HELD
