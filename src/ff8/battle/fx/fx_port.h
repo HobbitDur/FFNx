@@ -300,6 +300,7 @@ namespace ff8fx
 	void register_mag033_shell();
 	void register_fx_glint();
 	void register_fx_cast();
+	void register_fx_sprite();
 	void register_mag035_life();
 	void register_mag027_fulllife();
 	void register_mag028_curaga();

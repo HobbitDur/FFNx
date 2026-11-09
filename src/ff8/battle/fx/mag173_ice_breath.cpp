@@ -159,14 +159,17 @@ namespace ib173
 		struct { int16_t mouth, at_targets, x, y, z, each_target, bone; } anchor;
 		struct { int32_t colour; int16_t in_end, in_step, out_start, out_step; } flash; // the screen flash
 		struct { int16_t spawn_last, per_tick, life, size_min, size_rand, radius_min, radius_rand, shrink_min, shrink_rand, spin_min, spin_rand; } swirl;
-		struct { int16_t count, size, shrink, fade_from, life; } cones;
+		// (spin, rise: not the game's - a cone turning about y and rising, on each target)
+		struct { int16_t count, size, shrink, fade_from, life, spin, rise; } cones;
 		struct { int16_t size, growth, speedup_from, fade_from, life; } glow;
 		// (ahead, depth: not the game's - where a new effect's puffs start along the way, their spread's depth along it)
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
 		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
-		struct { int16_t size, grow_ticks, full, speed_min, speed_rand; } trail;
-		// (swirl, rise, widen: not the game's - on each target, a small tornado)
-		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand, swirl, rise, widen; } shards;
+		// (each, back, count, reach: not the game's - the trail drawn on each target, its middle there, how many
+		// meshes, how far into a flying target its stretched tip reaches)
+		struct { int16_t size, grow_ticks, full, speed_min, speed_rand, each, back, count, reach; } trail;
+		// (swirl, rise, widen, ground: not the game's - on each target, a small tornado)
+		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand, swirl, rise, widen, ground; } shards;
 		struct { uint32_t mesh0, mesh1, mesh2, mesh3, mesh4; } trail_meshes; // the ice trail's five meshes (prim models)
 		struct { uint32_t swirl, puff, shard; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t crystal; } layouts; // the prim-model layouts played (their models' animation)
@@ -180,12 +183,12 @@ namespace ib173
 		{ -0x96, 0, 0, -600, 2000, 0, 0xF1 },
 		{ 0x502020, 0x10, 0xC0, 0x57, 0x180 },
 		{ 0xC, 3, 0x24, 0x600, 0x600, 0x190, 0x4B0, 0x12, 0xE, 0x19, 0x32 },
-		{ 4, 0x1400, 0x16D, 0xC, 0x10 },
+		{ 4, 0x1400, 0x16D, 0xC, 0x10, 0, 0 },
 		{ 0x280, 0xA0, 0x18, 0x20, 0x24 },
 		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
-		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA },
-		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46, 0, 40, 64 },
+		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA, 0, 0, 5, 0 },
+		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46, 0, 40, 64, 0 },
 		{ 0xD5FB00, 0xD60AFC, 0xD6108C, 0xD6161C, 0xD61878 },
 		{ SEQ_Swirl, SEQ_Puff, SEQ_Shard },
 		{ LAYOUT_Crystal },
@@ -480,6 +483,8 @@ namespace ib173
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - d);
 		S16(n, 0x1E) = (int16_t)(d - (int16_t)(d / 20));
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
+		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + P().cones.spin);    // (not the game's: 0)
+		S16(n, 0x12) = (int16_t)(S16(n, 0x12) - P().cones.rise);
 	}
 
 	static uint32_t __cdecl ConeTask(TaskNode *nd)
@@ -694,7 +699,8 @@ namespace ib173
 				{
 					// (not the game's) around a target's effect point, flying away from it
 					S16(e, 8) = (int16_t)(at[0] + (int16_t)(CrtRand() % P().shards.spread_x - P().shards.spread_x / 2));
-					S16(e, 0xA) = at[1];
+					// a tornado from the ground: on the floor under it
+					S16(e, 0xA) = (P().shards.swirl && P().shards.ground) ? (int16_t)0 : at[1];
 					S16(e, 0xC) = (int16_t)(at[2] + (int16_t)(CrtRand() % P().shards.spread_z - P().shards.spread_z / 2));
 					S16(e, 0xE) = (int16_t)(CrtRand() % P().shards.speed_rand + P().shards.speed_min);
 					S16(e, 0x10) = (int16_t)(S16(e, 8) - at[0]);
@@ -733,6 +739,20 @@ namespace ib173
 	// Polygon state (0x20 bytes): +0 centroid (words), +6 delay, +8 offset, +0xE phase (-1 =
 	// gone), +0x10 velocity, +0x18 / +0x1C x / z angles, +0x1A / +0x1E their steps.
 	// ------------------------------------------------------------------
+	// (not the game's) trail.each: drawing the trail again on another target - its polygons do not move again
+	static bool g_trail_copy = false;
+
+	// (not the game's) trail.each: the action's targets (slot order) into slots, their count (0: not asked)
+	static int32_t TrailTargets(int32_t slots[8])
+	{
+		if (!P().trail.each || !P().anchor.at_targets || !P().anchor.each_target) return 0;
+		const uint32_t mask = U16((uint32_t)Ctx(), 2);
+		int32_t count = 0;
+		for (int32_t s = 0; s < 8; s++)
+			if (mask & (1u << s)) slots[count++] = s;
+		return count;
+	}
+
 	// 0x5D79C0: the polygon states of a mesh from its polygons (header +0x2C) and vertices; the
 	// delay = (|centroid + (0, 0, length)| - length) * 12 / 6300, the velocity along that vector
 	// (0x5A..0x103), random spin steps
@@ -893,7 +913,7 @@ namespace ib173
 					S32(h, 0xA8) = S16(st, 0xC) + S16(h, 0x68);
 					const int16_t ph = S16(st, 0xE);
 					S32(h, 0xC) = ph != 0 ? shl32(ph, 8) : -0x1000;
-					if (!DrawOnly()) TrailPolyMove(st);
+					if (!DrawOnly() && !g_trail_copy) TrailPolyMove(st);
 					S16(h, 0x66) = 0;
 					S16(h, 0x68) = S16(st, 0x1C);
 					S16(h, 0x64) = S16(st, 0x18);
@@ -962,9 +982,105 @@ namespace ib173
 		return r;
 	}
 
+	// (not the game's) trail.each: a target's lowest point - the lowest end of its bones in its live pose (its
+	// skeleton: entity +0x64 -> section, +0 bone count), never below the floor: 0 for a monster standing, a flying
+	// one's hover height
+	static int32_t TargetFloorY(uint32_t ent)
+	{
+		if (!(U8(ent, 0) & 2)) return 0;
+		const uint32_t skeleton = U32(U32(ent, 0x64), 0);
+		const int32_t bones = U8(skeleton, 0) < 0xF0 ? U8(skeleton, 0) : 0xEF;
+		int32_t low = -0x8000;
+		for (int32_t b = 0; b < bones; b++)
+		{
+			int16_t p[4];
+			GetEffectSpawnPosition(ent, b, 0, (uint32_t)p);
+			if (p[1] > low) low = p[1];
+		}
+		return low > 0 || low == -0x8000 ? 0 : low;
+	}
+
+	// (not the game's) trail.each: where the ice stands on each target, taken once when the trail starts (it stays
+	// there whatever the targets do afterwards): the target's x / z (its effect point) and its lowest point
+	struct TrailSpot { int16_t x, z, low; };
+	static TrailSpot g_trail_spots[8];
+	static int32_t g_trail_spot_count = 0;
+	static void TrailTakeSpots()
+	{
+		int32_t slots[8];
+		g_trail_spot_count = TrailTargets(slots);
+		for (int32_t i = 0; i < g_trail_spot_count; i++)
+		{
+			int16_t at[4];
+			GetEffectSpawnPosition(Ent(slots[i]), P().anchor.bone, 0, (uint32_t)at);
+			g_trail_spots[i] = { at[0], at[2], (int16_t)TargetFloorY(Ent(slots[i])) };
+		}
+	}
+
+	// (not the game's) trail.each: the trail task on every target (its mesh's middle on the target's x / z, on the
+	// floor, stretched up so its tip reaches trail.reach above the target's lowest point: taller under a flying
+	// monster), each copy drawn while the packet arena has room for it
+	static uint32_t TrailTaskEach(uint32_t n)
+	{
+		const int32_t count = g_trail_spot_count;
+		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
+		Mat4x3 r;
+		ComposeZYXRotationMatrix(angles, &r);
+		const int32_t s = S16(n, 0x1C);
+		const int32_t back = mul32(P().trail.back, s) >> 12;
+		const uint32_t h = (uint32_t)FieldAlloc(0xAC);
+		const int16_t c = S16(n, 0xC);
+		const uint32_t mesh = TrailMesh(S16(n, 0xE));
+		const uint32_t need = (uint32_t)S32(U32(mesh, 0) + mesh + 0x18, 0) * 0x28;
+		const uint32_t end = PacketCursor() < TexBase() + 0xC000 ? TexBase() + 0xC000 : TexBase() + 0x18000;
+		int32_t top = 0;     // the mesh's highest vertex (y up is negative)
+		for (uint32_t v = 0; v < U32(mesh, 4); v++)
+			if (S16(mesh + 8 + v * 8, 2) < top) top = S16(mesh + 8 + v * 8, 2);
+		int32_t drew = 0;
+		FX_HELD(held_note_trail(n, h);)
+		for (int32_t i = 0; i < count; i++)
+		{
+			if (PacketCursor() + need > end) break;
+			const TrailSpot &at = g_trail_spots[i];
+			Mat4x3 m = r;
+			m.t[0] = at.x - (mul32(back, r.m[0][2]) >> 12);
+			m.t[1] = 0;
+			m.t[2] = at.z - (mul32(back, r.m[2][2]) >> 12);
+			// its height: the size, or taller so its tip (the highest vertex) reaches trail.reach above the lowest point
+			int32_t sy = s;
+			const int32_t low = at.low;
+			if (low < 0 && top < 0)
+			{
+				const int32_t want = (int32_t)(((int64_t)(P().trail.reach - low) << 12) / -top);
+				if (want > sy) sy = want > 0x7FFF ? 0x7FFF : want;
+			}
+			const int32_t sv[3] = { s, sy, s };
+			Scale3DMatrix(&m, sv);
+			S32(h, 0x24) = S16(n, 0xE);
+			U32(h, 0x1C) = 0x30;
+			U32(h, 0) = mesh;
+			U32(h, 8) = 0;
+			ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
+			g_trail_copy = i > 0;
+			const bool fly = c >= P().trail.grow_ticks;
+			S32(h, 0x20) = fly ? c - P().trail.grow_ticks : c;
+			PacketCursor() = TrailDraw(h, OT44(), 2, PacketCursor(), fly);
+			drew |= S32(h, 0x24);
+		}
+		g_trail_copy = false;
+		FieldFree(0xAC);
+		if (DrawOnly()) return 0;
+		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
+		if (S16(n, 0xC) > P().trail.grow_ticks && drew == 0) return TASK_END;
+		return 0;
+	}
+
 	static uint32_t __cdecl TrailTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
+		int32_t slots[8];
+		const int32_t targets = TrailTargets(slots);
+		if (targets) return TrailTaskEach(n);
 		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(angles, &m);
@@ -1350,6 +1466,16 @@ namespace ib173
 				S16(t, 0x1E) = P().cones.shrink;
 				S16(t, 0x18) = S16(Ent(CasterSlot()), 0xE);
 				S16(t, 0x1A) = S16(fxp::data(P().tables.cone_angles, CONE_ANGLES, 16) + (uint32_t)k * 4, 0);
+				int16_t at[4];
+				if (TargetPoint(k, at))
+				{
+					// (not the game's) on the floor under a target, upright, its table angle turning it about y
+					S16(t, 0x10) = at[0];
+					S16(t, 0x12) = 0;
+					S16(t, 0x14) = at[2];
+					S16(t, 0x18) = S16(t, 0x1A);
+					S16(t, 0x1A) = 0;
+				}
 			}
 		}
 		if (S16(n, 0xC) == P().director.glow)
@@ -1375,8 +1501,9 @@ namespace ib173
 		}
 		if (S16(n, 0xC) == P().director.trail)
 		{
+			TrailTakeSpots();                             // (not the game's: trail.each)
 			const uint32_t h = (uint32_t)FieldAlloc(0xAC);
-			for (int k = 0; k < 5; k++)
+			for (int k = 0; k < P().trail.count; k++)     // (the game: 5)
 			{
 				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Trail));
 				U32(t, 0x10) = U32(own::R(ANCHOR), 0);
@@ -1532,6 +1659,8 @@ namespace ib173
 			{ "cones", "cones.shrink", "Shrink", "Its size shrinks a tick by this (which loses 1/20 a tick)", (uint32_t)offsetof(IceBreathParams, cones.shrink), fxp::I16, -0x7FFF, 0x7FFF },
 			{ "cones", "cones.fade_from", "Fade from", "From this tick of its own it fades (1024 a tick)", (uint32_t)offsetof(IceBreathParams, cones.fade_from), fxp::I16, 0, 300 },
 			{ "cones", "cones.life", "Life", "A cone ends at this tick of its own (after its delay)", (uint32_t)offsetof(IceBreathParams, cones.life), fxp::I16, 1, 300 },
+			{ "cones", "cones.spin", "Spin", "Its turn about y a tick (4096 a turn; 0: none, the game). On each target a cone stands on the floor under its target, upright, its table angle its first turn", (uint32_t)offsetof(IceBreathParams, cones.spin), fxp::I16, -2048, 2048 },
+			{ "cones", "cones.rise", "Rise", "It rises this much a tick (0: the game)", (uint32_t)offsetof(IceBreathParams, cones.rise), fxp::I16, -400, 400 },
 			{ "glow", "glow.size", "Size", "The glow's starting size (4096 = its model's)", (uint32_t)offsetof(IceBreathParams, glow.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
 			{ "glow", "glow.growth", "Growth", "Its size grows a tick by this", (uint32_t)offsetof(IceBreathParams, glow.growth), fxp::I16, -0x7FFF, 0x7FFF },
 			{ "glow", "glow.speedup_from", "Faster from", "From this tick of its own the growth speeds up ((growth + 32) x 4 / 3 a tick)", (uint32_t)offsetof(IceBreathParams, glow.speedup_from), fxp::I16, 0, 300 },
@@ -1564,6 +1693,10 @@ namespace ib173
 			{ "trail", "trail.full", "All shown at", "While appearing, from this tick every triangle is shown", (uint32_t)offsetof(IceBreathParams, trail.full), fxp::I16, 0, 300 },
 			{ "trail", "trail.speed_min", "Speed", "A flying triangle's speed outward: this + a random below the next (losing 1/16 a tick)", (uint32_t)offsetof(IceBreathParams, trail.speed_min), fxp::I16, 0, 0x7FFF },
 			{ "trail", "trail.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, trail.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "trail", "trail.each", "On each target", "With On each target (Director): 1 = the ice drawn on every target, its middle (the next value) on it, on the floor - taller under a flying monster (Reach); 0: once, from the anchor (the game)", (uint32_t)offsetof(IceBreathParams, trail.each), fxp::I16, 0, 1 },
+			{ "trail", "trail.back", "Middle", "On each target: the meshes moved back this far along their length (in their units) so their middle sits on the target (0: their start)", (uint32_t)offsetof(IceBreathParams, trail.back), fxp::I16, -8000, 8000 },
+			{ "trail", "trail.count", "Meshes", "How many of the five ice meshes (the first ones: mesh 0 is the big one; 5: the game)", (uint32_t)offsetof(IceBreathParams, trail.count), fxp::I16, 0, 5 },
+			{ "trail", "trail.reach", "Reach", "On each target: under a flying monster the ice grows taller (pointier), its tip this far above the monster's lowest point (its bones' lowest end); a monster standing keeps its size", (uint32_t)offsetof(IceBreathParams, trail.reach), fxp::I16, -4000, 4000 },
 			{ "shards", "shards.spawn_last", "Last spawn tick", "Shards spawn from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, shards.spawn_last), fxp::I16, -1, 300 },
 			{ "shards", "shards.per_tick", "A tick", "How many spawn a tick (100 particles at most, shared)", (uint32_t)offsetof(IceBreathParams, shards.per_tick), fxp::I16, 0, 100 },
 			{ "shards", "shards.size_min", "Size", "A shard's size: this + a random below the next", (uint32_t)offsetof(IceBreathParams, shards.size_min), fxp::I16, 0, 0x7FFF },
@@ -1575,6 +1708,7 @@ namespace ib173
 			{ "shards", "shards.swirl", "Tornado turn", "On each target: 0 = the shards fly straight away from it (the game); else they turn round it this much a tick (4096 a turn; negative: the other way), a small tornado", (uint32_t)offsetof(IceBreathParams, shards.swirl), fxp::I16, -2048, 2048 },
 			{ "shards", "shards.rise", "Tornado rise", "A tornado's shards rise this much a tick", (uint32_t)offsetof(IceBreathParams, shards.rise), fxp::I16, -400, 400 },
 			{ "shards", "shards.widen", "Tornado widening", "A tornado's radius grows by this / 4096 a tick (0: a column)", (uint32_t)offsetof(IceBreathParams, shards.widen), fxp::I16, -1024, 1024 },
+			{ "shards", "shards.ground", "Tornado from the ground", "A tornado's shards: 1 = start on the floor under their target and rise from there; 0 = start at the target's point", (uint32_t)offsetof(IceBreathParams, shards.ground), fxp::I16, 0, 1 },
 			{ "trail", "trail_meshes.mesh0", "Mesh 0", "The ice trail's mesh 0 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh0), fxp::Model, 0, 0x7FFFFFFF },
 			{ "trail", "trail_meshes.mesh1", "Mesh 1", "The ice trail's mesh 1 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh1), fxp::Model, 0, 0x7FFFFFFF },
 			{ "trail", "trail_meshes.mesh2", "Mesh 2", "The ice trail's mesh 2 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh2), fxp::Model, 0, 0x7FFFFFFF },
