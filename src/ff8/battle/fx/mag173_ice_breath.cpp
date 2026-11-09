@@ -151,7 +151,9 @@ namespace ib173
 	{
 		struct { uint32_t start, blast; } sounds;  // the director's tick 1, its blast tick
 		struct { int16_t swirl, glow, cones, puffs, crystals, trail, shards, damage, blast, end; } director; // its ticks
-		struct { int16_t mouth; } anchor;          // the mouth: this far along the caster's z from its bone 0xF0
+		// the mouth: this far along the caster's z from its bone 0xF0; or (at_targets) the targets' centre + (x, z) through
+		// the caster's rotation, at height y (not the game's: a new effect that happens on the monsters)
+		struct { int16_t mouth, at_targets, x, y, z; } anchor;
 		struct { int32_t colour; int16_t in_end, in_step, out_start, out_step; } flash; // the screen flash
 		struct { int16_t spawn_last, per_tick, life, size_min, size_rand, radius_min, radius_rand, shrink_min, shrink_rand, spin_min, spin_rand; } swirl;
 		struct { int16_t count, size, shrink, fade_from, life; } cones;
@@ -170,7 +172,7 @@ namespace ib173
 	static const IceBreathParams GAME = {
 		{ 0xD61D84, 0xD61D88 },
 		{ 2, 8, 0xE, 0x25, 0x26, 0x46, 0x4A, 0x55, 0x24, 0x5F },
-		{ -0x96 },
+		{ -0x96, 0, 0, -600, 2000 },
 		{ 0x502020, 0x10, 0xC0, 0x57, 0x180 },
 		{ 0xC, 3, 0x24, 0x600, 0x600, 0x190, 0x4B0, 0x12, 0xE, 0x19, 0x32 },
 		{ 4, 0x1400, 0x16D, 0xC, 0x10 },
@@ -1199,6 +1201,18 @@ namespace ib173
 	static void ComputeAnchor(uint32_t out)
 	{
 		const int32_t slot = CasterSlot();
+		if (P().anchor.at_targets)
+		{
+			// (not the game's) on the targets: their centre (the game takes it at tick 1 only) + (x, z) through the caster's
+			// rotation (z > 0: toward the caster), at height y
+			CalculateCenterPosition(U16((uint32_t)Ctx(), 2), own::R(CENTRE));
+			int32_t v[3] = { P().anchor.x, 0, P().anchor.z };
+			TransformVectorBy3x3Matrix((const Mat4x3 *)(Ent(slot) + 0x40), v, v);
+			S16(out, 0) = (int16_t)(S16(own::R(CENTRE), 0) + (int16_t)v[0]);
+			S16(out, 2) = P().anchor.y;
+			S16(out, 4) = (int16_t)(S16(own::R(CENTRE), 4) + (int16_t)v[2]);
+			return;
+		}
 		GetEffectSpawnPosition(Ent(slot), 0xF0, 0x1000, out);
 		int32_t v[3] = { 0, 0, P().anchor.mouth };
 		TransformVectorBy3x3Matrix((const Mat4x3 *)(Ent(CasterSlot()) + 0x40), v, v);
@@ -1400,6 +1414,10 @@ namespace ib173
 			{ "director", "director.blast", "Blast tick", "The blast sound at this tick", (uint32_t)offsetof(IceBreathParams, director.blast), fxp::I16, 0, 300 },
 			{ "director", "director.end", "End tick", "The director's last tick (the screen flash fades out toward it; the effect ends once every part has)", (uint32_t)offsetof(IceBreathParams, director.end), fxp::I16, 1, 300 },
 			{ "director", "anchor.mouth", "Mouth offset", "The mouth: this far along the caster's facing (its z, negative = ahead) from its bone 0xF0", (uint32_t)offsetof(IceBreathParams, anchor.mouth), fxp::I16, -4000, 4000 },
+			{ "director", "anchor.at_targets", "On the targets", "0: everything starts at the caster's mouth (the game). 1: at the targets instead, nothing launched from the caster - the anchor is their centre moved by the next values (a new effect's choice)", (uint32_t)offsetof(IceBreathParams, anchor.at_targets), fxp::I16, 0, 1 },
+			{ "director", "anchor.x", "Targets: sideways", "On the targets: the anchor this far sideways of their centre (the caster's x)", (uint32_t)offsetof(IceBreathParams, anchor.x), fxp::I16, -8000, 8000 },
+			{ "director", "anchor.y", "Targets: height", "On the targets: the anchor's height (y, negative = up; the floor is 0)", (uint32_t)offsetof(IceBreathParams, anchor.y), fxp::I16, -4000, 0 },
+			{ "director", "anchor.z", "Targets: before them", "On the targets: the anchor this far before their centre, toward the caster (the way it blows is from there to the centre and on; at least 1)", (uint32_t)offsetof(IceBreathParams, anchor.z), fxp::I16, -8000, 8000 },
 			{ "director", "flash.colour", "Colour", "The screen flash's colour (0xBBGGRR)", (uint32_t)offsetof(IceBreathParams, flash.colour), fxp::I32, 0, 0xFFFFFF },
 			{ "director", "flash.in_end", "Rise until", "The flash level rises up to this tick", (uint32_t)offsetof(IceBreathParams, flash.in_end), fxp::I16, -1, 300 },
 			{ "director", "flash.in_step", "Rise step", "Its level: the tick x this (4096 = full)", (uint32_t)offsetof(IceBreathParams, flash.in_step), fxp::I16, 0, 0x1000 },
