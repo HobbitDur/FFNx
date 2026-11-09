@@ -253,6 +253,7 @@ namespace ff8fx
 		register_mag268_tri_point_death();
 		register_mag270_ultima_weapon_death();
 		register_mag228_ice_strike();
+		register_mag173_ice_breath();
 		register_mag176_sand_storm_adamantoise();
 		register_mag226_white_wind();
 		register_mag139_sonic_wave();

@@ -81,6 +81,7 @@ namespace ochu_quake
 		c.load_cb = 0xA114B0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// the two piece tables of the bone-side handler block (indexed by the prim type of the mesh's

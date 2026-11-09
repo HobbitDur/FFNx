@@ -94,6 +94,7 @@ namespace tripoint268
 		c.load_cb = 0x90DA70;        // passed by VM 0x006 0x90D940
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// draw 22 EntityDisintegrate (gfc_disintegrate.inc): this module's depth-key cells and the low

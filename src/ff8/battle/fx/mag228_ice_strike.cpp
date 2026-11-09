@@ -95,6 +95,7 @@ namespace icestrike228
 		c.load_cb = 0xA8B230;        // passed by VM 0x006 0xA8B100
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static const uint32_t COMDATA = 0x18821A0;   // the module's animation set (VM 0x0AB)

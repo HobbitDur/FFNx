@@ -94,6 +94,7 @@ namespace ultima270
 		c.load_cb = 0x8F2CA0;        // passed by VM 0x006 0x8F2B70
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// draw 22 EntityDisintegrate (gfc_disintegrate.inc): this module's depth-key cells and the low

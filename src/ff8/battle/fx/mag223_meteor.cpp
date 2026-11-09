@@ -70,6 +70,7 @@ namespace meteor
 		c.load_cb = 0xA96AF0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// prim 6 (TintedF3) is the only Eden handler Meteor carries: take that one slot from

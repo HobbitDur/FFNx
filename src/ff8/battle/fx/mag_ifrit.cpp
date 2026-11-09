@@ -61,6 +61,7 @@ namespace ifrit
 		c.load_cb = 0xB2BB40;
 		c.lit_dispatcher = true;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)

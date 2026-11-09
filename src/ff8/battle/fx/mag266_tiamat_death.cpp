@@ -94,6 +94,7 @@ namespace tiamat266
 		c.load_cb = 0x928650;        // passed by VM 0x006 0x928520
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// draw 22 EntityDisintegrate (gfc_disintegrate.inc): this module's depth-key cells and the low

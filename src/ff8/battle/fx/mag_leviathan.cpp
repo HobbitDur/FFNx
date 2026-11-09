@@ -1286,6 +1286,7 @@ namespace leviathan
 		c.load_cb = 0xB60530;
 		c.lit_dispatcher = true;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)

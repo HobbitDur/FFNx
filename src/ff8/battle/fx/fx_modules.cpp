@@ -170,6 +170,8 @@ namespace ff8fx::mod
 	static const Region streams_b304[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_g311[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_s176[] = { { 0xD4516C, 0xC }, { 0x21DFED0, 0x20 } };
+	// Ice Breath: shadow-camera scratch
+	static const Region streams_i173[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_s139[] = { { 0x11D7900, 0x12F0 } };
 	static const Region streams_i050[] = { { 0x2792E74, 4 }, { 0x2793E58, 0x20 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_i051[] = { { 0x21DFED0, 0x20 } };
@@ -428,6 +430,7 @@ namespace ff8fx::mod
 		{ 268, 0x2795C88, 0x2798C40, 0, 0, false, "Tri-Point death (attack 260, Tri-Point)", streams_gfc, 5 },
 		{ 270, 0x2795C18, 0x2798C40, 0, 0, false, "Ultima Weapon Death (attack 312, Omega Weapon / Ultima Weapon)", streams_gfc, 5 },
 		{ 228, 0x2796B38, 0x2798C40, 0, 0, false, "Ice Strike (Edea temporary limit break)", streams_gfc, 5 },
+		{ 173, 0x2397278, 0x239A8E0, 0, 0, false, "Ice Breath (attack 38, Snow Lion)", streams_i173, 1 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 		{ 226, 0x2508770, 0x25087F0, 0, 0, false, "White Wind (attack 276, Adamantoise)", nullptr, 0 },
 		{ 139, 0x2517B50, 0x2520C48, 0, 0, false, "Sonic Wave (attack 182)", streams_s139, 1 },

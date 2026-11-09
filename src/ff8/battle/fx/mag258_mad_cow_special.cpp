@@ -90,6 +90,7 @@ namespace mad_cow_special
 		c.load_cb = 0x96AC00;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

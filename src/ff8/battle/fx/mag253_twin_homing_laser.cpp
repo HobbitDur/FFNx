@@ -86,6 +86,7 @@ namespace twinlaser253
 		c.load_cb = 0x99E210;        // passed by VM 0x006 0x99E0E0
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// 0xB66B80 (blob): matrix of joint `joint` of the model whose BattleAnimHeader is `hdr`,

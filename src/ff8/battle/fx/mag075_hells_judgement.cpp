@@ -97,6 +97,7 @@ namespace hells_judgement
 		c.load_cb = 0xB45FB0;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

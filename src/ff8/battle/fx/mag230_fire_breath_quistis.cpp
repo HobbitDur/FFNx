@@ -83,6 +83,7 @@ namespace fire_breath_q
 		c.load_cb = 0xA76420;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

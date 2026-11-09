@@ -77,6 +77,7 @@ namespace breath
 		c.load_cb = 0xA44370;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------
