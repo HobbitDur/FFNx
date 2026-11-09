@@ -38,6 +38,7 @@ namespace ff8fx::mod
 	static const Region streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } };
 	// GF cinematic engine (Ifrit family): mesh depth scale, fog words, camera-related word
 	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C } }; // + tail of the per-vertex depth array 0x2798C18 (Breath reaches 0x2798F9A)
+	static const Region streams_ps[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C }, { 0xB8BA00, 8 } }; // streams_gfc + the two colour words draw 47 PaletteHsvShift writes (gfc_palshift.inc: 211, 269)
 	// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
 	// static cells the modules write, Siren's load destinations outside the 1 MB buffer
 	static const Region streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
@@ -454,6 +455,11 @@ namespace ff8fx::mod
 		{ 257, 0x2796508, 0x2798C40, 0, 0, false, "Mega Flare (attack 234, Bahamut)", streams_gfc, 5 },
 		{ 267, 0x2795CC0, 0x2798C40, 0, 0, false, "Catoblepas death (attack 241, Catoblepas)", streams_gfc, 5 },
 		{ 331, 0x2795BE0, 0x2798C40, 0, 0, false, "effect 331 (attack 313, c0m118)", streams_gfc, 5 },
+		{ 269, 0x2795C50, 0x2798C40, 0, 0, false, "effect 269 (attack 266, Gargantua)", streams_ps, 6 },
+		{ 236, 0x2796978, 0x2798C40, 0, 0, false, "Gas (attack 127, Death Claw)", streams_gfc, 5 },
+		{ 237, 0x2796940, 0x2798C40, 0, 0, false, "Explosion (attacks 128 / 129 / 130, Death Claw)", streams_gfc, 5 },
+		{ 211, 0x2796C88, 0x2798C40, 0, 0, false, "Adel Death (attack 317, Adel)", streams_ps, 6 },
+		{ 219, 0x2796C50, 0x2798C40, 0, 0, false, "Terra Break (attack 311, Omega Weapon)", streams_gfc, 5 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 		{ 157, 0x23EB5C0, 0x23ECE40, 0, 0, false, "Breath (attack 37, Hexadragon)", streams_b157, 4 },
 		{ 158, 0x23D7B08, 0x23EB5C0, 0, 0, false, "Melt-Eye (attack 36, Hexadragon)", streams_m158, 1 },
