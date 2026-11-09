@@ -370,6 +370,10 @@ namespace ff8fx
 	void register_mag268_tri_point_death();
 	void register_mag270_ultima_weapon_death();
 	void register_mag228_ice_strike();
+	void register_mag284_micro_missiles();
+	void register_mag282_evil_eye();
+	void register_mag285_thunder_summon();
+	void register_mag286_mini_pulse_cannon();
 	void register_mag176_sand_storm_adamantoise();
 	void register_mag157_breath();
 	void register_mag158_melt_eye();
