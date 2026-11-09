@@ -159,7 +159,8 @@ namespace ib173
 		struct { int16_t mouth, at_targets, x, y, z, each_target, bone; } anchor;
 		struct { int32_t colour; int16_t in_end, in_step, out_start, out_step; } flash; // the screen flash
 		struct { int16_t spawn_last, per_tick, life, size_min, size_rand, radius_min, radius_rand, shrink_min, shrink_rand, spin_min, spin_rand; } swirl;
-		struct { int16_t count, size, shrink, fade_from, life; } cones;
+		// (spin, rise: not the game's - a cone turning about y and rising, on each target)
+		struct { int16_t count, size, shrink, fade_from, life, spin, rise; } cones;
 		struct { int16_t size, growth, speedup_from, fade_from, life; } glow;
 		// (ahead, depth: not the game's - where a new effect's puffs start along the way, their spread's depth along it)
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
@@ -180,7 +181,7 @@ namespace ib173
 		{ -0x96, 0, 0, -600, 2000, 0, 0xF1 },
 		{ 0x502020, 0x10, 0xC0, 0x57, 0x180 },
 		{ 0xC, 3, 0x24, 0x600, 0x600, 0x190, 0x4B0, 0x12, 0xE, 0x19, 0x32 },
-		{ 4, 0x1400, 0x16D, 0xC, 0x10 },
+		{ 4, 0x1400, 0x16D, 0xC, 0x10, 0, 0 },
 		{ 0x280, 0xA0, 0x18, 0x20, 0x24 },
 		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
@@ -480,6 +481,8 @@ namespace ib173
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - d);
 		S16(n, 0x1E) = (int16_t)(d - (int16_t)(d / 20));
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
+		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + P().cones.spin);    // (not the game's: 0)
+		S16(n, 0x12) = (int16_t)(S16(n, 0x12) - P().cones.rise);
 	}
 
 	static uint32_t __cdecl ConeTask(TaskNode *nd)
@@ -1351,6 +1354,16 @@ namespace ib173
 				S16(t, 0x1E) = P().cones.shrink;
 				S16(t, 0x18) = S16(Ent(CasterSlot()), 0xE);
 				S16(t, 0x1A) = S16(fxp::data(P().tables.cone_angles, CONE_ANGLES, 16) + (uint32_t)k * 4, 0);
+				int16_t at[4];
+				if (TargetPoint(k, at))
+				{
+					// (not the game's) on the floor under a target, upright, its table angle turning it about y
+					S16(t, 0x10) = at[0];
+					S16(t, 0x12) = 0;
+					S16(t, 0x14) = at[2];
+					S16(t, 0x18) = S16(t, 0x1A);
+					S16(t, 0x1A) = 0;
+				}
 			}
 		}
 		if (S16(n, 0xC) == P().director.glow)
@@ -1533,6 +1546,8 @@ namespace ib173
 			{ "cones", "cones.shrink", "Shrink", "Its size shrinks a tick by this (which loses 1/20 a tick)", (uint32_t)offsetof(IceBreathParams, cones.shrink), fxp::I16, -0x7FFF, 0x7FFF },
 			{ "cones", "cones.fade_from", "Fade from", "From this tick of its own it fades (1024 a tick)", (uint32_t)offsetof(IceBreathParams, cones.fade_from), fxp::I16, 0, 300 },
 			{ "cones", "cones.life", "Life", "A cone ends at this tick of its own (after its delay)", (uint32_t)offsetof(IceBreathParams, cones.life), fxp::I16, 1, 300 },
+			{ "cones", "cones.spin", "Spin", "Its turn about y a tick (4096 a turn; 0: none, the game). On each target a cone stands on the floor under its target, upright, its table angle its first turn", (uint32_t)offsetof(IceBreathParams, cones.spin), fxp::I16, -2048, 2048 },
+			{ "cones", "cones.rise", "Rise", "It rises this much a tick (0: the game)", (uint32_t)offsetof(IceBreathParams, cones.rise), fxp::I16, -400, 400 },
 			{ "glow", "glow.size", "Size", "The glow's starting size (4096 = its model's)", (uint32_t)offsetof(IceBreathParams, glow.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
 			{ "glow", "glow.growth", "Growth", "Its size grows a tick by this", (uint32_t)offsetof(IceBreathParams, glow.growth), fxp::I16, -0x7FFF, 0x7FFF },
 			{ "glow", "glow.speedup_from", "Faster from", "From this tick of its own the growth speeds up ((growth + 32) x 4 / 3 a tick)", (uint32_t)offsetof(IceBreathParams, glow.speedup_from), fxp::I16, 0, 300 },
