@@ -75,6 +75,7 @@
 // sizes, spreads, speeds and sweeps, its data: flipbooks, meshes, the crystal layout, tables, resources);
 // FX_PART tags its parts in the lab.
 
+#include <algorithm>
 #include "mag_common.h"
 #include "fx_params.h"
 #include "fx_layouts.h"
@@ -158,7 +159,8 @@ namespace ib173
 		struct { int16_t spawn_last, per_tick, life, size_min, size_rand, radius_min, radius_rand, shrink_min, shrink_rand, spin_min, spin_rand; } swirl;
 		struct { int16_t count, size, shrink, fade_from, life; } cones;
 		struct { int16_t size, growth, speedup_from, fade_from, life; } glow;
-		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor; } puffs;
+		// (ahead, depth: not the game's - where a new effect's puffs start along the way, their spread's depth along it)
+		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
 		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
 		struct { int16_t size, grow_ticks, full, speed_min, speed_rand; } trail;
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand; } shards;
@@ -177,7 +179,7 @@ namespace ib173
 		{ 0xC, 3, 0x24, 0x600, 0x600, 0x190, 0x4B0, 0x12, 0xE, 0x19, 0x32 },
 		{ 4, 0x1400, 0x16D, 0xC, 0x10 },
 		{ 0x280, 0xA0, 0x18, 0x20, 0x24 },
-		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300 },
+		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
 		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA },
 		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46 },
@@ -560,10 +562,17 @@ namespace ib173
 				U32(e, 8) = U32(own::R(ANCHOR), 0);
 				U32(e, 0xC) = U32(own::R(ANCHOR), 4);
 				const int32_t spread = P().puffs.spread;
+				if (P().puffs.ahead)        // (not the game's) moved along the way, onto the targets
+				{
+					S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(mul32(S32(own::R(DIR), 0), P().puffs.ahead) >> 12));
+					S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(mul32(S32(own::R(DIR), 8), P().puffs.ahead) >> 12));
+				}
+				// the spread along z: its depth (4096 = the spread, the game's)
+				const int32_t depth = P().puffs.depth == 0x1000 ? spread : std::max<int32_t>(1, mul32(spread, P().puffs.depth) >> 12);
 				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % spread - spread / 2));
 				const int32_t ry = CrtRand() % spread;
 				S16(e, 0xA) = (int16_t)(S16(e, 0xA) + (int16_t)(ry - (int16_t)(S16(n, 0xC) << 2)));
-				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % spread - spread / 2));
+				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % depth - depth / 2));
 				const int32_t speed = CrtRand() % P().puffs.speed_rand + P().puffs.speed_min;
 				const int32_t jx = CrtRand() % 20;
 				S16(e, 0x10) = (int16_t)(jx + (mul32(S32(own::R(SWEPT), 0), speed) >> 12) - 10);
@@ -1455,6 +1464,8 @@ namespace ib173
 			{ "puffs", "puffs.sweep_start", "Sweep start", "The way to the targets turned about y by this at its tick 0", (uint32_t)offsetof(IceBreathParams, puffs.sweep_start), fxp::I16, -0x1000, 0x1000, fxp::Angle },
 			{ "puffs", "puffs.sweep_step", "Sweep step", "and by this more each tick", (uint32_t)offsetof(IceBreathParams, puffs.sweep_step), fxp::I16, -0x1000, 0x1000, fxp::Angle },
 			{ "puffs", "puffs.floor", "Floor", "A puff moves up or down only while above this height (y, negative = up)", (uint32_t)offsetof(IceBreathParams, puffs.floor), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "puffs", "puffs.ahead", "Ahead", "Where they start: this far from the anchor along the way to the targets (0: at the anchor, the game; a new effect on the targets: onto them)", (uint32_t)offsetof(IceBreathParams, puffs.ahead), fxp::I16, -8000, 8000 },
+			{ "puffs", "puffs.depth", "Depth", "Their spread along z, for the spread's (4096 = the same as x and y, the game; less: a thinner cloud toward the caster)", (uint32_t)offsetof(IceBreathParams, puffs.depth), fxp::I16, 1, 4096 },
 			{ "crystals", "crystals.spawn_last", "Last spawn tick", "One crystal a tick from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, crystals.spawn_last), fxp::I16, -1, 63 },
 			{ "crystals", "crystals.sweep_start", "Sweep start", "The swept breath way turned about y by this at its tick 0", (uint32_t)offsetof(IceBreathParams, crystals.sweep_start), fxp::I16, -0x1000, 0x1000, fxp::Angle },
 			{ "crystals", "crystals.sweep_step", "Sweep step", "and by this more each tick", (uint32_t)offsetof(IceBreathParams, crystals.sweep_step), fxp::I16, -0x1000, 0x1000, fxp::Angle },
