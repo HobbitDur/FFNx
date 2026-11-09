@@ -390,7 +390,9 @@ namespace act
 	// finished, next state); sets the music volume every tick (Music_SetVolumeImmediate(0, vol)).
 	uint32_t __cdecl m_733780(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 8);
+		// step = the exe's own operand (add word [eax+1Ch], 8 at 0x733784): a mod that patches it
+		// (Cronos MoogleCharm.dll) changes this port too
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + (int8_t)MEM<uint8_t>(0x733788));
 		if (S16(a1, 0x1C) >= 0x7F)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -486,7 +488,9 @@ namespace act
 		m1_add_task(0x257B930, 0x733BE0, 0x70, a1);
 		m1_add_task(0x257B930, 0x733CE0, 0x70, a1);
 		const uint8_t st = U8(a1, 0x29);
-		U16(a1, 0x44) = 0x1E;
+		// 0x1E = the exe's own operand (mov word [esi+44h], 1Eh at 0x733BCF): a mod that patches it
+		// (Cronos MoogleCharm.dll) changes this port too
+		U16(a1, 0x44) = MEM<uint16_t>(0x733BD3);
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0; // void
 	}
