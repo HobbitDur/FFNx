@@ -342,6 +342,15 @@ namespace ff8fx
 		register_mag259_renzokuken_6hits();
 		register_mag332_renzokuken_7hits();
 		register_mag333_renzokuken_8hits();
+		register_mag334_renzokuken_bahamut();
+		register_mag335_renzokuken_norg();
+		register_mag336_renzokuken_ultima_weapon();
+		register_mag337_renzokuken_sorceress();
+		register_mag339_renzokuken_adel();
+		register_mag340_renzokuken_ultimecia();
+		register_mag341_renzokuken_jumbo_cactuar();
+		register_mag342_renzokuken_ultimecia_griever();
+		register_mag343_renzokuken_griever();
 		register_gfc_ifrit();
 		register_gfc_leviathan();
 		register_gfc_bahamut();
