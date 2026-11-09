@@ -1000,11 +1000,29 @@ namespace ib173
 		return low > 0 || low == -0x8000 ? 0 : low;
 	}
 
+	// (not the game's) trail.each: where the ice stands on each target, taken once when the trail starts (it stays
+	// there whatever the targets do afterwards): the target's x / z (its effect point) and its lowest point
+	struct TrailSpot { int16_t x, z, low; };
+	static TrailSpot g_trail_spots[8];
+	static int32_t g_trail_spot_count = 0;
+	static void TrailTakeSpots()
+	{
+		int32_t slots[8];
+		g_trail_spot_count = TrailTargets(slots);
+		for (int32_t i = 0; i < g_trail_spot_count; i++)
+		{
+			int16_t at[4];
+			GetEffectSpawnPosition(Ent(slots[i]), P().anchor.bone, 0, (uint32_t)at);
+			g_trail_spots[i] = { at[0], at[2], (int16_t)TargetFloorY(Ent(slots[i])) };
+		}
+	}
+
 	// (not the game's) trail.each: the trail task on every target (its mesh's middle on the target's x / z, on the
 	// floor, stretched up so its tip reaches trail.reach above the target's lowest point: taller under a flying
 	// monster), each copy drawn while the packet arena has room for it
-	static uint32_t TrailTaskEach(uint32_t n, const int32_t slots[8], int32_t count)
+	static uint32_t TrailTaskEach(uint32_t n)
 	{
+		const int32_t count = g_trail_spot_count;
 		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
 		Mat4x3 r;
 		ComposeZYXRotationMatrix(angles, &r);
@@ -1023,15 +1041,14 @@ namespace ib173
 		for (int32_t i = 0; i < count; i++)
 		{
 			if (PacketCursor() + need > end) break;
-			int16_t at[4];
-			GetEffectSpawnPosition(Ent(slots[i]), P().anchor.bone, 0, (uint32_t)at);
+			const TrailSpot &at = g_trail_spots[i];
 			Mat4x3 m = r;
-			m.t[0] = at[0] - (mul32(back, r.m[0][2]) >> 12);
+			m.t[0] = at.x - (mul32(back, r.m[0][2]) >> 12);
 			m.t[1] = 0;
-			m.t[2] = at[2] - (mul32(back, r.m[2][2]) >> 12);
+			m.t[2] = at.z - (mul32(back, r.m[2][2]) >> 12);
 			// its height: the size, or taller so its tip (the highest vertex) reaches trail.reach above the lowest point
 			int32_t sy = s;
-			const int32_t low = TargetFloorY(Ent(slots[i]));
+			const int32_t low = at.low;
 			if (low < 0 && top < 0)
 			{
 				const int32_t want = (int32_t)(((int64_t)(P().trail.reach - low) << 12) / -top);
@@ -1063,7 +1080,7 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		int32_t slots[8];
 		const int32_t targets = TrailTargets(slots);
-		if (targets) return TrailTaskEach(n, slots, targets);
+		if (targets) return TrailTaskEach(n);
 		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(angles, &m);
@@ -1484,6 +1501,7 @@ namespace ib173
 		}
 		if (S16(n, 0xC) == P().director.trail)
 		{
+			TrailTakeSpots();                             // (not the game's: trail.each)
 			const uint32_t h = (uint32_t)FieldAlloc(0xAC);
 			for (int k = 0; k < P().trail.count; k++)     // (the game: 5)
 			{
