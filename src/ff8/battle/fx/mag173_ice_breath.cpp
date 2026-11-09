@@ -165,7 +165,8 @@ namespace ib173
 		// (ahead, depth: not the game's - where a new effect's puffs start along the way, their spread's depth along it)
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
 		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
-		struct { int16_t size, grow_ticks, full, speed_min, speed_rand; } trail;
+		// (each, back, count: not the game's - the trail drawn on each target, its middle there, how many meshes)
+		struct { int16_t size, grow_ticks, full, speed_min, speed_rand, each, back, count; } trail;
 		// (swirl, rise, widen, ground: not the game's - on each target, a small tornado)
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand, swirl, rise, widen, ground; } shards;
 		struct { uint32_t mesh0, mesh1, mesh2, mesh3, mesh4; } trail_meshes; // the ice trail's five meshes (prim models)
@@ -185,7 +186,7 @@ namespace ib173
 		{ 0x280, 0xA0, 0x18, 0x20, 0x24 },
 		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
-		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA },
+		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA, 0, 0, 5 },
 		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46, 0, 40, 64, 0 },
 		{ 0xD5FB00, 0xD60AFC, 0xD6108C, 0xD6161C, 0xD61878 },
 		{ SEQ_Swirl, SEQ_Puff, SEQ_Shard },
@@ -737,6 +738,20 @@ namespace ib173
 	// Polygon state (0x20 bytes): +0 centroid (words), +6 delay, +8 offset, +0xE phase (-1 =
 	// gone), +0x10 velocity, +0x18 / +0x1C x / z angles, +0x1A / +0x1E their steps.
 	// ------------------------------------------------------------------
+	// (not the game's) trail.each: drawing the trail again on another target - its polygons do not move again
+	static bool g_trail_copy = false;
+
+	// (not the game's) trail.each: the action's targets (slot order) into slots, their count (0: not asked)
+	static int32_t TrailTargets(int32_t slots[8])
+	{
+		if (!P().trail.each || !P().anchor.at_targets || !P().anchor.each_target) return 0;
+		const uint32_t mask = U16((uint32_t)Ctx(), 2);
+		int32_t count = 0;
+		for (int32_t s = 0; s < 8; s++)
+			if (mask & (1u << s)) slots[count++] = s;
+		return count;
+	}
+
 	// 0x5D79C0: the polygon states of a mesh from its polygons (header +0x2C) and vertices; the
 	// delay = (|centroid + (0, 0, length)| - length) * 12 / 6300, the velocity along that vector
 	// (0x5A..0x103), random spin steps
@@ -897,7 +912,7 @@ namespace ib173
 					S32(h, 0xA8) = S16(st, 0xC) + S16(h, 0x68);
 					const int16_t ph = S16(st, 0xE);
 					S32(h, 0xC) = ph != 0 ? shl32(ph, 8) : -0x1000;
-					if (!DrawOnly()) TrailPolyMove(st);
+					if (!DrawOnly() && !g_trail_copy) TrailPolyMove(st);
 					S16(h, 0x66) = 0;
 					S16(h, 0x68) = S16(st, 0x1C);
 					S16(h, 0x64) = S16(st, 0x18);
@@ -966,9 +981,76 @@ namespace ib173
 		return r;
 	}
 
+	// (not the game's) trail.each: a target's lowest point - the lowest end of its bones in its live pose (its
+	// skeleton: entity +0x64 -> section, +0 bone count), never below the floor: 0 for a monster standing, a flying
+	// one's hover height
+	static int32_t TargetFloorY(uint32_t ent)
+	{
+		if (!(U8(ent, 0) & 2)) return 0;
+		const uint32_t skeleton = U32(U32(ent, 0x64), 0);
+		const int32_t bones = U8(skeleton, 0) < 0xF0 ? U8(skeleton, 0) : 0xEF;
+		int32_t low = -0x8000;
+		for (int32_t b = 0; b < bones; b++)
+		{
+			int16_t p[4];
+			GetEffectSpawnPosition(ent, b, 0, (uint32_t)p);
+			if (p[1] > low) low = p[1];
+		}
+		return low > 0 || low == -0x8000 ? 0 : low;
+	}
+
+	// (not the game's) trail.each: the trail task on every target (its mesh's middle on the target's x / z, at the
+	// target's lowest point), each copy drawn while the packet arena has room for it
+	static uint32_t TrailTaskEach(uint32_t n, const int32_t slots[8], int32_t count)
+	{
+		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
+		Mat4x3 r;
+		ComposeZYXRotationMatrix(angles, &r);
+		const int32_t s = S16(n, 0x1C);
+		const int32_t back = mul32(P().trail.back, s) >> 12;
+		const uint32_t h = (uint32_t)FieldAlloc(0xAC);
+		const int16_t c = S16(n, 0xC);
+		const uint32_t mesh = TrailMesh(S16(n, 0xE));
+		const uint32_t need = (uint32_t)S32(U32(mesh, 0) + mesh + 0x18, 0) * 0x28;
+		const uint32_t end = PacketCursor() < TexBase() + 0xC000 ? TexBase() + 0xC000 : TexBase() + 0x18000;
+		int32_t drew = 0;
+		FX_HELD(held_note_trail(n, h);)
+		for (int32_t i = 0; i < count; i++)
+		{
+			if (PacketCursor() + need > end) break;
+			int16_t at[4];
+			GetEffectSpawnPosition(Ent(slots[i]), P().anchor.bone, 0, (uint32_t)at);
+			Mat4x3 m = r;
+			m.t[0] = at[0] - (mul32(back, r.m[0][2]) >> 12);
+			m.t[1] = TargetFloorY(Ent(slots[i]));
+			m.t[2] = at[2] - (mul32(back, r.m[2][2]) >> 12);
+			const int32_t sv[3] = { s, s, s };
+			Scale3DMatrix(&m, sv);
+			S32(h, 0x24) = S16(n, 0xE);
+			U32(h, 0x1C) = 0x30;
+			U32(h, 0) = mesh;
+			U32(h, 8) = 0;
+			ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
+			g_trail_copy = i > 0;
+			const bool fly = c >= P().trail.grow_ticks;
+			S32(h, 0x20) = fly ? c - P().trail.grow_ticks : c;
+			PacketCursor() = TrailDraw(h, OT44(), 2, PacketCursor(), fly);
+			drew |= S32(h, 0x24);
+		}
+		g_trail_copy = false;
+		FieldFree(0xAC);
+		if (DrawOnly()) return 0;
+		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
+		if (S16(n, 0xC) > P().trail.grow_ticks && drew == 0) return TASK_END;
+		return 0;
+	}
+
 	static uint32_t __cdecl TrailTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
+		int32_t slots[8];
+		const int32_t targets = TrailTargets(slots);
+		if (targets) return TrailTaskEach(n, slots, targets);
 		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(angles, &m);
@@ -1390,7 +1472,7 @@ namespace ib173
 		if (S16(n, 0xC) == P().director.trail)
 		{
 			const uint32_t h = (uint32_t)FieldAlloc(0xAC);
-			for (int k = 0; k < 5; k++)
+			for (int k = 0; k < P().trail.count; k++)     // (the game: 5)
 			{
 				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), own::Fn(ORIG_Trail));
 				U32(t, 0x10) = U32(own::R(ANCHOR), 0);
@@ -1580,6 +1662,9 @@ namespace ib173
 			{ "trail", "trail.full", "All shown at", "While appearing, from this tick every triangle is shown", (uint32_t)offsetof(IceBreathParams, trail.full), fxp::I16, 0, 300 },
 			{ "trail", "trail.speed_min", "Speed", "A flying triangle's speed outward: this + a random below the next (losing 1/16 a tick)", (uint32_t)offsetof(IceBreathParams, trail.speed_min), fxp::I16, 0, 0x7FFF },
 			{ "trail", "trail.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, trail.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "trail", "trail.each", "On each target", "With On each target (Director): 1 = the ice drawn on every target, its middle (the next value) on it, at the target's lowest point (its bones' lowest end, never below the floor) - under a flying monster's body; 0: once, from the anchor (the game)", (uint32_t)offsetof(IceBreathParams, trail.each), fxp::I16, 0, 1 },
+			{ "trail", "trail.back", "Middle", "On each target: the meshes moved back this far along their length (in their units) so their middle sits on the target (0: their start)", (uint32_t)offsetof(IceBreathParams, trail.back), fxp::I16, -8000, 8000 },
+			{ "trail", "trail.count", "Meshes", "How many of the five ice meshes (the first ones: mesh 0 is the big one; 5: the game)", (uint32_t)offsetof(IceBreathParams, trail.count), fxp::I16, 0, 5 },
 			{ "shards", "shards.spawn_last", "Last spawn tick", "Shards spawn from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, shards.spawn_last), fxp::I16, -1, 300 },
 			{ "shards", "shards.per_tick", "A tick", "How many spawn a tick (100 particles at most, shared)", (uint32_t)offsetof(IceBreathParams, shards.per_tick), fxp::I16, 0, 100 },
 			{ "shards", "shards.size_min", "Size", "A shard's size: this + a random below the next", (uint32_t)offsetof(IceBreathParams, shards.size_min), fxp::I16, 0, 0x7FFF },
