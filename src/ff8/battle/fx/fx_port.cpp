@@ -258,6 +258,17 @@ namespace ff8fx
 		register_mag282_evil_eye();
 		register_mag285_thunder_summon();
 		register_mag286_mini_pulse_cannon();
+		register_mag241_bgh_gatling_gun();
+		register_mag242_bgh_beam_cannon();
+		register_mag243_bgh_turret1_explode();
+		register_mag245_bgh_turret3_explode();
+		register_mag246_bgh_turret4_explode();
+		register_mag247_bgh_death();
+		register_mag238_breath();
+		register_mag252_corona();
+		register_mag257_mega_flare();
+		register_mag267_catoblepas_death();
+		register_mag331_unknown_331();
 		register_mag176_sand_storm_adamantoise();
 		register_mag157_breath();
 		register_mag158_melt_eye();
