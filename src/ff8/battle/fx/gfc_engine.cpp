@@ -289,15 +289,30 @@ namespace part_core
 	// ----------------------------------------------------------------------------------------
 #ifdef FF8_FX_LAB
 	int g_bone_program[256];    // lab: each bone's program, as an offset in the .00 (SpawnBone)
-	// lab: where a position of the parent matrix `m` lands on screen (GTE state: what draws next loads its own)
+	// lab: where a position of the parent matrix `m` lands on screen. The GTE is left as it was: a draw handler may read a
+	// register the original never writes (Beam Cannon's ribbon, 0xB1ADD0 on its retire tick: VXY0 from the draw before)
 	void LabPlace(int part, uint32_t id, const uint8_t *m, const uint8_t *position)
 	{
+		uint32_t *const data = (uint32_t *)0x1CA8A10, *const control = (uint32_t *)0x1CA927C;   // GTE data / control registers
+		uint32_t saved_data[32], saved_flag = control[31];
+		memcpy(saved_data, data, sizeof(saved_data));
+		Mat4x3 saved;   // R (control 0-4) and TR (5-7), put back through the setters: they refresh R's float mirror
+		const int16_t *r = (const int16_t *)control;
+		for (int k = 0; k < 9; k++)
+			saved.m[k / 3][k % 3] = r[k];
+		saved.pad = 0;
+		for (int k = 0; k < 3; k++)
+			saved.t[k] = (int32_t)control[5 + k];
 		int16_t screen[2];
 		x::SetRotMatrix((uint8_t *)m);
 		x::SetTransVector((uint8_t *)m);
 		x::GteLoadV0((uint8_t *)position);
 		x::GteRTPS();
 		x::GteReadSXY2(screen);
+		x::SetRotMatrix(&saved);
+		x::SetTransVector(&saved);
+		memcpy(data, saved_data, sizeof(saved_data));
+		control[31] = saved_flag;
 		const Mat4x3 *matrix = (const Mat4x3 *)m;
 		const int16_t *v = (const int16_t *)position;
 		int32_t view[3];
