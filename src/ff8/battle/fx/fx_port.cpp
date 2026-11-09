@@ -270,6 +270,11 @@ namespace ff8fx
 		register_mag257_mega_flare();
 		register_mag267_catoblepas_death();
 		register_mag331_unknown_331();
+		register_mag269_gargantua_269();
+		register_mag236_gas();
+		register_mag237_explosion();
+		register_mag211_adel_death();
+		register_mag219_terra_break();
 		register_mag176_sand_storm_adamantoise();
 		register_mag157_breath();
 		register_mag158_melt_eye();
