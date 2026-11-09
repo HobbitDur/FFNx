@@ -165,8 +165,9 @@ namespace ib173
 		// (ahead, depth: not the game's - where a new effect's puffs start along the way, their spread's depth along it)
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
 		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
-		// (each, back, count: not the game's - the trail drawn on each target, its middle there, how many meshes)
-		struct { int16_t size, grow_ticks, full, speed_min, speed_rand, each, back, count; } trail;
+		// (each, back, count, reach: not the game's - the trail drawn on each target, its middle there, how many
+		// meshes, how far into a flying target its stretched tip reaches)
+		struct { int16_t size, grow_ticks, full, speed_min, speed_rand, each, back, count, reach; } trail;
 		// (swirl, rise, widen, ground: not the game's - on each target, a small tornado)
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand, swirl, rise, widen, ground; } shards;
 		struct { uint32_t mesh0, mesh1, mesh2, mesh3, mesh4; } trail_meshes; // the ice trail's five meshes (prim models)
@@ -186,7 +187,7 @@ namespace ib173
 		{ 0x280, 0xA0, 0x18, 0x20, 0x24 },
 		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
-		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA, 0, 0, 5 },
+		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA, 0, 0, 5, 0 },
 		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46, 0, 40, 64, 0 },
 		{ 0xD5FB00, 0xD60AFC, 0xD6108C, 0xD6161C, 0xD61878 },
 		{ SEQ_Swirl, SEQ_Puff, SEQ_Shard },
@@ -999,8 +1000,9 @@ namespace ib173
 		return low > 0 || low == -0x8000 ? 0 : low;
 	}
 
-	// (not the game's) trail.each: the trail task on every target (its mesh's middle on the target's x / z, at the
-	// target's lowest point), each copy drawn while the packet arena has room for it
+	// (not the game's) trail.each: the trail task on every target (its mesh's middle on the target's x / z, on the
+	// floor, stretched up so its tip reaches trail.reach above the target's lowest point: taller under a flying
+	// monster), each copy drawn while the packet arena has room for it
 	static uint32_t TrailTaskEach(uint32_t n, const int32_t slots[8], int32_t count)
 	{
 		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
@@ -1013,6 +1015,9 @@ namespace ib173
 		const uint32_t mesh = TrailMesh(S16(n, 0xE));
 		const uint32_t need = (uint32_t)S32(U32(mesh, 0) + mesh + 0x18, 0) * 0x28;
 		const uint32_t end = PacketCursor() < TexBase() + 0xC000 ? TexBase() + 0xC000 : TexBase() + 0x18000;
+		int32_t top = 0;     // the mesh's highest vertex (y up is negative)
+		for (uint32_t v = 0; v < U32(mesh, 4); v++)
+			if (S16(mesh + 8 + v * 8, 2) < top) top = S16(mesh + 8 + v * 8, 2);
 		int32_t drew = 0;
 		FX_HELD(held_note_trail(n, h);)
 		for (int32_t i = 0; i < count; i++)
@@ -1022,9 +1027,17 @@ namespace ib173
 			GetEffectSpawnPosition(Ent(slots[i]), P().anchor.bone, 0, (uint32_t)at);
 			Mat4x3 m = r;
 			m.t[0] = at[0] - (mul32(back, r.m[0][2]) >> 12);
-			m.t[1] = TargetFloorY(Ent(slots[i]));
+			m.t[1] = 0;
 			m.t[2] = at[2] - (mul32(back, r.m[2][2]) >> 12);
-			const int32_t sv[3] = { s, s, s };
+			// its height: the size, or taller so its tip (the highest vertex) reaches trail.reach above the lowest point
+			int32_t sy = s;
+			const int32_t low = TargetFloorY(Ent(slots[i]));
+			if (low < 0 && top < 0)
+			{
+				const int32_t want = (int32_t)(((int64_t)(P().trail.reach - low) << 12) / -top);
+				if (want > sy) sy = want > 0x7FFF ? 0x7FFF : want;
+			}
+			const int32_t sv[3] = { s, sy, s };
 			Scale3DMatrix(&m, sv);
 			S32(h, 0x24) = S16(n, 0xE);
 			U32(h, 0x1C) = 0x30;
@@ -1662,9 +1675,10 @@ namespace ib173
 			{ "trail", "trail.full", "All shown at", "While appearing, from this tick every triangle is shown", (uint32_t)offsetof(IceBreathParams, trail.full), fxp::I16, 0, 300 },
 			{ "trail", "trail.speed_min", "Speed", "A flying triangle's speed outward: this + a random below the next (losing 1/16 a tick)", (uint32_t)offsetof(IceBreathParams, trail.speed_min), fxp::I16, 0, 0x7FFF },
 			{ "trail", "trail.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, trail.speed_rand), fxp::I16, 1, 0x7FFF },
-			{ "trail", "trail.each", "On each target", "With On each target (Director): 1 = the ice drawn on every target, its middle (the next value) on it, at the target's lowest point (its bones' lowest end, never below the floor) - under a flying monster's body; 0: once, from the anchor (the game)", (uint32_t)offsetof(IceBreathParams, trail.each), fxp::I16, 0, 1 },
+			{ "trail", "trail.each", "On each target", "With On each target (Director): 1 = the ice drawn on every target, its middle (the next value) on it, on the floor - taller under a flying monster (Reach); 0: once, from the anchor (the game)", (uint32_t)offsetof(IceBreathParams, trail.each), fxp::I16, 0, 1 },
 			{ "trail", "trail.back", "Middle", "On each target: the meshes moved back this far along their length (in their units) so their middle sits on the target (0: their start)", (uint32_t)offsetof(IceBreathParams, trail.back), fxp::I16, -8000, 8000 },
 			{ "trail", "trail.count", "Meshes", "How many of the five ice meshes (the first ones: mesh 0 is the big one; 5: the game)", (uint32_t)offsetof(IceBreathParams, trail.count), fxp::I16, 0, 5 },
+			{ "trail", "trail.reach", "Reach", "On each target: under a flying monster the ice grows taller (pointier), its tip this far above the monster's lowest point (its bones' lowest end); a monster standing keeps its size", (uint32_t)offsetof(IceBreathParams, trail.reach), fxp::I16, -4000, 4000 },
 			{ "shards", "shards.spawn_last", "Last spawn tick", "Shards spawn from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, shards.spawn_last), fxp::I16, -1, 300 },
 			{ "shards", "shards.per_tick", "A tick", "How many spawn a tick (100 particles at most, shared)", (uint32_t)offsetof(IceBreathParams, shards.per_tick), fxp::I16, 0, 100 },
 			{ "shards", "shards.size_min", "Size", "A shard's size: this + a random below the next", (uint32_t)offsetof(IceBreathParams, shards.size_min), fxp::I16, 0, 0x7FFF },
