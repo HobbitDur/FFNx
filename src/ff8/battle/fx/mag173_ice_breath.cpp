@@ -75,6 +75,7 @@
 // sizes, spreads, speeds and sweeps, its data: flipbooks, meshes, the crystal layout, tables, resources);
 // FX_PART tags its parts in the lab.
 
+#include <cmath>
 #include <algorithm>
 #include "mag_common.h"
 #include "fx_params.h"
@@ -164,7 +165,8 @@ namespace ib173
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
 		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
 		struct { int16_t size, grow_ticks, full, speed_min, speed_rand; } trail;
-		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand; } shards;
+		// (swirl, rise, widen: not the game's - on each target, a small tornado)
+		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand, swirl, rise, widen; } shards;
 		struct { uint32_t mesh0, mesh1, mesh2, mesh3, mesh4; } trail_meshes; // the ice trail's five meshes (prim models)
 		struct { uint32_t swirl, puff, shard; } seqs; // the sprite sequences drawn (flipbooks)
 		struct { uint32_t crystal; } layouts; // the prim-model layouts played (their models' animation)
@@ -183,7 +185,7 @@ namespace ib173
 		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
 		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA },
-		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46 },
+		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46, 0, 40, 64 },
 		{ 0xD5FB00, 0xD60AFC, 0xD6108C, 0xD6161C, 0xD61878 },
 		{ SEQ_Swirl, SEQ_Puff, SEQ_Shard },
 		{ LAYOUT_Crystal },
@@ -349,6 +351,31 @@ namespace ib173
 			const int16_t vy = S16(e, 0x12);
 			S16(e, 0x12) = (int16_t)(vy - (int16_t)(vy >> 5));
 		}
+	}
+
+	static bool TargetPoint(int32_t k, int16_t p[4]);
+
+	// (not the game's) a shard of a small tornado: turned about its target's point (+0x16: which target) by shards.swirl
+	// a tick (4096 a turn), rising by shards.rise, its radius widening by shards.widen / 4096; drawn along its way round
+	static void ShardSpin(uint32_t e)
+	{
+		int16_t at[4];
+		if (!TargetPoint(S16(e, 0x16), at)) return;
+		const double a = P().shards.swirl * 3.14159265358979 / 2048.0, grow = 1.0 + P().shards.widen / 4096.0;
+		const double x = (S16(e, 8) - at[0]) * grow, z = (S16(e, 0xC) - at[2]) * grow;
+		const double nx = x * std::cos(a) - z * std::sin(a), nz = x * std::sin(a) + z * std::cos(a);
+		S16(e, 8) = (int16_t)(at[0] + std::lround(nx));
+		S16(e, 0xC) = (int16_t)(at[2] + std::lround(nz));
+		S16(e, 0xA) = (int16_t)(S16(e, 0xA) - P().shards.rise);
+		// its way: the tangent of the turn, tilted up by the rise
+		const double len = std::max(1.0, std::sqrt(nx * nx + nz * nz));
+		const double step = len * std::fabs(a);
+		const double sign = a < 0 ? -1.0 : 1.0;
+		S16(e, 0x10) = (int16_t)std::lround(-nz / len * step * sign);
+		S16(e, 0x12) = (int16_t)(-P().shards.rise);
+		S16(e, 0x14) = (int16_t)std::lround(nx / len * step * sign);
+		if (!S16(e, 0x10) && !S16(e, 0x12) && !S16(e, 0x14)) S16(e, 0x10) = 1;
+		VectorNormalS16(e + 0x10, e + 0x10);
 	}
 
 	static void ShardMove(uint32_t w, uint32_t e)
@@ -645,7 +672,8 @@ namespace ib173
 				U32(e, 0) = 0;
 				continue;
 			}
-			ShardMove(w, e);
+			if (P().shards.swirl && P().anchor.at_targets && P().anchor.each_target) ShardSpin(e);
+			else ShardMove(w, e);
 			live++;
 		}
 		FieldFree(0x88);
@@ -674,6 +702,7 @@ namespace ib173
 					S16(e, 0x14) = (int16_t)(S16(e, 0xC) - at[2]);
 					if (!S16(e, 0x10) && !S16(e, 0x14)) S16(e, 0x10) = 1;
 					VectorNormalS16(e + 0x10, e + 0x10);
+					S16(e, 0x16) = (int16_t)(k + c * P().shards.per_tick);      // its target (a tornado turns round it)
 					continue;
 				}
 				U32(e, 8) = U32(own::R(MID), 0);
@@ -1543,6 +1572,9 @@ namespace ib173
 			{ "shards", "shards.spread_z", "Spread z", "and below this on z (centred)", (uint32_t)offsetof(IceBreathParams, shards.spread_z), fxp::I16, 1, 0x7FFF },
 			{ "shards", "shards.speed_min", "Speed", "Its speed away from the mouth: this + a random below the next", (uint32_t)offsetof(IceBreathParams, shards.speed_min), fxp::I16, 0, 0x7FFF },
 			{ "shards", "shards.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(IceBreathParams, shards.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "shards", "shards.swirl", "Tornado turn", "On each target: 0 = the shards fly straight away from it (the game); else they turn round it this much a tick (4096 a turn; negative: the other way), a small tornado", (uint32_t)offsetof(IceBreathParams, shards.swirl), fxp::I16, -2048, 2048 },
+			{ "shards", "shards.rise", "Tornado rise", "A tornado's shards rise this much a tick", (uint32_t)offsetof(IceBreathParams, shards.rise), fxp::I16, -400, 400 },
+			{ "shards", "shards.widen", "Tornado widening", "A tornado's radius grows by this / 4096 a tick (0: a column)", (uint32_t)offsetof(IceBreathParams, shards.widen), fxp::I16, -1024, 1024 },
 			{ "trail", "trail_meshes.mesh0", "Mesh 0", "The ice trail's mesh 0 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh0), fxp::Model, 0, 0x7FFFFFFF },
 			{ "trail", "trail_meshes.mesh1", "Mesh 1", "The ice trail's mesh 1 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh1), fxp::Model, 0, 0x7FFFFFFF },
 			{ "trail", "trail_meshes.mesh2", "Mesh 2", "The ice trail's mesh 2 (a prim model: an edited one keeps its vertices and has only gouraud textured triangles, no more than the game's)", (uint32_t)offsetof(IceBreathParams, trail_meshes.mesh2), fxp::Model, 0, 0x7FFFFFFF },
