@@ -33,6 +33,7 @@
 // packet arenas 0x24E0BC8 / 0x24E8BC8 (0x8000 each), packet cursor 0x24F0BC8).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -137,6 +138,7 @@ namespace griever344
 		// 30 fps layer: see mag344_griever_368_held.inc
 		FX_HELD(register_mag344_held();)
 	}
+	FX_LAB_MODULE(register_mag344_griever_368);
 }
 
 #ifdef FF8_FX_HELD

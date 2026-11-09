@@ -54,6 +54,7 @@
 // fade)); 0x66D810's MAC output is never read.
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -659,6 +660,7 @@ namespace snipe302
 		// 30 fps layer: see mag302_snipe_laser_held.inc
 		FX_HELD(register_mag302_held();)
 	}
+	FX_LAB_MODULE(register_mag302_snipe_laser);
 }
 
 #ifdef FF8_FX_HELD
