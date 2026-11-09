@@ -7164,6 +7164,8 @@ namespace part_shared_ribbon
 	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_37_RibbonTrail()
 	{
+		// 30 fps layer: see gfc_engine_held.inc
+		FX_HELD(held_ribbon_entry();)
 		uint8_t *cur = CUR();
 		uint8_t *ring = PTR(cur, 0xBC);                   // esi
 		uint8_t *edi;
