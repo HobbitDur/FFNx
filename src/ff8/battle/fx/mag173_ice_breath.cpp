@@ -71,6 +71,7 @@
 // base, packet cursor, crystal player queue).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -1269,6 +1270,7 @@ namespace ib173
 		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(register_mag173_held();)
 	}
+	FX_LAB_MODULE(register_mag173_ice_breath);
 }
 
 #ifdef FF8_FX_HELD
