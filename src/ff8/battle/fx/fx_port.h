@@ -425,6 +425,8 @@ namespace ff8fx
 	void register_mag237_explosion();
 	void register_mag211_adel_death();
 	void register_mag219_terra_break();
+	void register_mag344_griever_368();
+	void register_mag302_snipe_laser();
 	void register_mag176_sand_storm_adamantoise();
 	void register_mag157_breath();
 	void register_mag158_melt_eye();
