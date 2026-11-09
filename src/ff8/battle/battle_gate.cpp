@@ -5215,40 +5215,14 @@ DWORD __cdecl ff8_bgate_ta6_hook(uint8_t *n)
 	return 0;
 }
 
-// --- status-effect timers + Gilgamesh/Angelo countdown: native rate ---
-// FFBattleDirector_battleLoop (0x47CCB0) calls computeTimerStatus (0x483470) and
-// summonGilgaAngelStartFight (0x482F80) once per LOOP ITERATION = once per host frame:
-//  - computeTimerStatus: *timer -= speed (1/2/3 by Slow/normal/Haste) for every status
-//    timer (regen/poison/doom/petrify/stop/sleep/shell/protect/reflect...), fires the
-//    Regen heal each 60/speed, handles expiry -> every timed status lasted HALF as long;
-//  - summonGilgaAngelStartFight: --DEAD_TIMER_TO_SUMMON_GILGA, and every frame it sits
-//    at 0 rolls Gilgamesh (12/255) and the Angelo auto-actions -> twice as frequent.
-// Both are pure per-tick counters with no cross-frame handshake, so running them on
-// real frames only reproduces vanilla exactly. (The old 60fps build disabled the timer
-// gate after an Odin crash that was never isolated; the camera-VM gate active in the
-// same build - since replaced by the safe camera task gate - is the likelier culprit.)
-static void (__cdecl *ff8_bgate_timerstatus_orig)() = nullptr;
-static uint32_t ff8_bgate_timerstatus_ri = 0;
-static void (__cdecl *ff8_bgate_gilga_orig)() = nullptr;
-static uint32_t ff8_bgate_gilga_ri = 0;
-
-void __cdecl ff8_bgate_gilga_hook()
-{
-	if (ff8_bgate_phase != 0)
-		return;
-	unreplace_function(ff8_bgate_gilga_ri);
-	ff8_bgate_gilga_orig();
-	rereplace_function(ff8_bgate_gilga_ri);
-}
-
-void __cdecl ff8_bgate_timerstatus_hook()
-{
-	if (ff8_bgate_phase != 0)
-		return;
-	unreplace_function(ff8_bgate_timerstatus_ri);
-	ff8_bgate_timerstatus_orig();
-	rereplace_function(ff8_bgate_timerstatus_ri);
-}
+// --- status-effect timers + Gilgamesh/Angelo countdown: no hook ---
+// computeTimerStatus (0x483470: *timer -= speed for every status timer, Regen heal, expiry) and
+// summonGilgaAngelStartFight (0x482F80: Gilgamesh/Angelo countdown and rolls) are called only by
+// FFBattleDirector_battleLoop (0x47D7F1 / 0x47D7F6). The battle loop gate runs that loop once per real tick
+// (ff8_bgate_battleloop_mode), so both already run at the vanilla rate, the same at 15 and 30 fps. Their old
+// hooks returned unless ff8_bgate_phase == 0, which is never the case inside the loop since it runs on the
+// iteration BEFORE the real BdLink: every timed status lasted forever. No hook: the game's own code runs, with
+// whatever a mod patched in it (e.g. Cronos TimedSilenceBlind.hext).
 
 // --- entity task visuals at native pace ---
 // The per-entity task (pre_pre_linkedToAnimationSequence 0x502AB0) runs every host frame - only its
@@ -5825,12 +5799,6 @@ void ff8_bgate_install_hooks()
 	ff8_bgate_tdrag_ri = replace_function(0x50F500, (void *)ff8_bgate_tdrag_hook);
 	ff8_bgate_t81_ri = replace_function(0x50F0E0, (void *)ff8_bgate_t81_hook);
 	ff8_bgate_ta6_ri = replace_function(0x50F2E0, (void *)ff8_bgate_ta6_hook);
-
-	// Status-effect timers + Gilgamesh/Angelo countdown at native rate
-	ff8_bgate_timerstatus_orig = (void(__cdecl *)())0x483470;
-	ff8_bgate_timerstatus_ri = replace_function(0x483470, (void *)ff8_bgate_timerstatus_hook);
-	ff8_bgate_gilga_orig = (void(__cdecl *)())0x482F80;
-	ff8_bgate_gilga_ri = replace_function(0x482F80, (void *)ff8_bgate_gilga_hook);
 
 	// Entity task visuals at native pace: status pulse / Confuse spin / Float bob, status sprites, A8 fades
 	ff8_bgate_pulse_orig = (int(__cdecl *)(uint8_t *))0x50A1C0;
