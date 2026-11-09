@@ -1,0 +1,44 @@
+/****************************************************************************/
+//    Copyright (C) 2026 HobbitDur                                          //
+//                                                                          //
+//    This file is part of FFNx                                             //
+//                                                                          //
+//    FFNx is free software: you can redistribute it and/or modify          //
+//    it under the terms of the GNU General Public License as published by  //
+//    the Free Software Foundation, either version 3 of the License         //
+//                                                                          //
+//    FFNx is distributed in the hope that it will be useful,               //
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+//    GNU General Public License for more details.                          //
+/****************************************************************************/
+
+// 30 fps part of mag241_bgh_gatling_gun.cpp: the held frames are the cinematic engine's
+// (gfc_engine_held.inc): the node poses / matrix nodes interpolated between two real ticks, every
+// draw handler re-run in its frozen (boneSkipFlag) form on the saved engine state. Camera:
+// HeldCamera interpolates the battle camera words the VM writes (op 0x039). The module carries no
+// handler of its own (every live slot is the generic engine's).
+
+namespace ff8fx
+{
+namespace gfc
+{
+namespace gatling241
+{
+	static bool Ready() { return HeldReady(g_c); }
+	static void Frame(int num, int den) { HeldFrame(g_c, num, den); }
+	static bool Camera(int num, int den, int16_t world[3], int16_t lookat[3]) { return HeldCamera(g_c, num, den, world, lookat); }
+}
+}
+
+	static void register_mag241_bgh_gatling_gun_held()
+	{
+		using namespace gfc;
+		mark_held(0xA02480);
+		// the entity-joint VM ops (0x05B / 0x060 / 0x06E / 0x075) read a joint of an animating battle
+		// entity: at its next pose while predicting (gfc_engine_held.inc held_entity_next_pose)
+		held_entity_joints(gatling241::g_c);
+		register_module_held(241, gatling241::Ready, gatling241::Frame);
+		register_module_camera(241, gatling241::Camera);
+	}
+}
