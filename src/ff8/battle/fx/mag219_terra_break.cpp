@@ -733,12 +733,16 @@ namespace terra219
 	{
 		using namespace gfc;
 		terra219::describe(terra219::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<219>::Register("Terra Break (Omega Weapon)", terra219::g_c, 0xABD3F0, 0x186F198, 0x186F1A4,
+		                           (void *)terra219::SequenceTask);
 		init_clone(terra219::g_c, nullptr, 0);
 		terra219::apply_slots(terra219::g_c);
 		register_port(0xABDA90, (void *)terra219::SequenceTask, "MAG219 Terra Break SequenceTick", 219);
 		// 30 fps layer: see mag219_terra_break_held.inc
 		FX_HELD(register_mag219_terra_break_held();)
 	}
+	FX_LAB_MODULE(register_mag219_terra_break);
 }
 
 #ifdef FF8_FX_HELD

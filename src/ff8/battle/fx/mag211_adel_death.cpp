@@ -146,12 +146,16 @@ namespace adel211
 	{
 		using namespace gfc;
 		adel211::describe(adel211::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<211>::Register("Adel Death", adel211::g_c, 0xACA0F0, 0x186FBD4, 0x186FBE0,
+		                           (void *)adel211::SequenceTask);
 		init_clone(adel211::g_c, nullptr, 0);
 		adel211::apply_slots(adel211::g_c);
 		register_port(0xACA790, (void *)adel211::SequenceTask, "MAG211 Adel Death SequenceTick", 211);
 		// 30 fps layer: see mag211_adel_death_held.inc
 		FX_HELD(register_mag211_adel_death_held();)
 	}
+	FX_LAB_MODULE(register_mag211_adel_death);
 }
 
 #ifdef FF8_FX_HELD

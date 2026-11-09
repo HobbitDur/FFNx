@@ -146,12 +146,16 @@ namespace gargantua269
 	{
 		using namespace gfc;
 		gargantua269::describe(gargantua269::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<269>::Register("Gargantua (attack 266)", gargantua269::g_c, 0x8F71F0, 0x1854428, 0x1854434,
+		                           (void *)gargantua269::SequenceTask);
 		init_clone(gargantua269::g_c, nullptr, 0);
 		gargantua269::apply_slots(gargantua269::g_c);
 		register_port(0x8F7890, (void *)gargantua269::SequenceTask, "MAG269 Gargantua 269 SequenceTick", 269);
 		// 30 fps layer: see mag269_gargantua_269_held.inc
 		FX_HELD(register_mag269_gargantua_269_held();)
 	}
+	FX_LAB_MODULE(register_mag269_gargantua_269);
 }
 
 #ifdef FF8_FX_HELD

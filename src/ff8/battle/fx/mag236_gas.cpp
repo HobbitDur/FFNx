@@ -100,6 +100,9 @@ namespace gas236
 	{
 		using namespace gfc;
 		gas236::describe(gas236::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<236>::Register("Gas (Death Claw)", gas236::g_c, 0xA34210, 0x1866F48, 0x1866F54,
+		                           (void *)gas236::SequenceTask);
 		init_clone(gas236::g_c, nullptr, 0);
 		gas236::g_c.bone[4] = gas236::bh_04_OrbitBetweenBones;     // 0xA34F60
 		gas236::g_c.bone[8] = gas236::bh_08_VertexAtHeight;        // 0xA37770
@@ -109,6 +112,7 @@ namespace gas236
 		// 30 fps layer: see mag236_gas_held.inc
 		FX_HELD(register_mag236_gas_held();)
 	}
+	FX_LAB_MODULE(register_mag236_gas);
 }
 
 #ifdef FF8_FX_HELD

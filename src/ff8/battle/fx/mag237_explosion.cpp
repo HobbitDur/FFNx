@@ -248,6 +248,9 @@ namespace explosion237
 	{
 		using namespace gfc;
 		explosion237::describe(explosion237::g_c);
+		// (first: init_clone reads the exe, absent when the lab only lists the parameters)
+		ProgramFiles<237>::Register("Explosion (Death Claw)", explosion237::g_c, 0xA29C00, 0x186654C, 0x1866558,
+		                           (void *)explosion237::SequenceTask);
 		init_clone(explosion237::g_c, nullptr, 0);
 		explosion237::g_c.bone[4] = explosion237::bh_04_OrbitBetweenBones;     // 0xA2A950
 		explosion237::g_c.bone[8] = explosion237::bh_08_VertexAtHeight;        // 0xA2D400
@@ -258,6 +261,7 @@ namespace explosion237
 		// 30 fps layer: see mag237_explosion_held.inc
 		FX_HELD(register_mag237_explosion_held();)
 	}
+	FX_LAB_MODULE(register_mag237_explosion);
 }
 
 #ifdef FF8_FX_HELD
