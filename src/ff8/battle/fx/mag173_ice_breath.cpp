@@ -75,6 +75,7 @@
 // sizes, spreads, speeds and sweeps, its data: flipbooks, meshes, the crystal layout, tables, resources);
 // FX_PART tags its parts in the lab.
 
+#include <algorithm>
 #include "mag_common.h"
 #include "fx_params.h"
 #include "fx_layouts.h"
@@ -153,12 +154,14 @@ namespace ib173
 		struct { int16_t swirl, glow, cones, puffs, crystals, trail, shards, damage, blast, end; } director; // its ticks
 		// the mouth: this far along the caster's z from its bone 0xF0; or (at_targets) the targets' centre + (x, z) through
 		// the caster's rotation, at height y (not the game's: a new effect that happens on the monsters)
-		struct { int16_t mouth, at_targets, x, y, z; } anchor;
+		// (each_target, bone: the puffs, crystals and shards around each target's effect point instead)
+		struct { int16_t mouth, at_targets, x, y, z, each_target, bone; } anchor;
 		struct { int32_t colour; int16_t in_end, in_step, out_start, out_step; } flash; // the screen flash
 		struct { int16_t spawn_last, per_tick, life, size_min, size_rand, radius_min, radius_rand, shrink_min, shrink_rand, spin_min, spin_rand; } swirl;
 		struct { int16_t count, size, shrink, fade_from, life; } cones;
 		struct { int16_t size, growth, speedup_from, fade_from, life; } glow;
-		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor; } puffs;
+		// (ahead, depth: not the game's - where a new effect's puffs start along the way, their spread's depth along it)
+		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread, speed_min, speed_rand, rise_rand, sweep_start, sweep_step, floor, ahead, depth; } puffs;
 		struct { int16_t spawn_last, sweep_start, sweep_step, dist_min, dist_rand, offset, spin_rand, scale_min, scale_rand; } crystals;
 		struct { int16_t size, grow_ticks, full, speed_min, speed_rand; } trail;
 		struct { int16_t spawn_last, per_tick, size_min, size_rand, spread_x, spread_z, speed_min, speed_rand; } shards;
@@ -172,12 +175,12 @@ namespace ib173
 	static const IceBreathParams GAME = {
 		{ 0xD61D84, 0xD61D88 },
 		{ 2, 8, 0xE, 0x25, 0x26, 0x46, 0x4A, 0x55, 0x24, 0x5F },
-		{ -0x96, 0, 0, -600, 2000 },
+		{ -0x96, 0, 0, -600, 2000, 0, 0xF1 },
 		{ 0x502020, 0x10, 0xC0, 0x57, 0x180 },
 		{ 0xC, 3, 0x24, 0x600, 0x600, 0x190, 0x4B0, 0x12, 0xE, 0x19, 0x32 },
 		{ 4, 0x1400, 0x16D, 0xC, 0x10 },
 		{ 0x280, 0xA0, 0x18, 0x20, 0x24 },
-		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300 },
+		{ 0x1E, 2, 0xA00, 0x600, 200, 0x122, 0x96, 0x78, 0x200, -0x22, -300, 0, 0x1000 },
 		{ 0x1E, 0x1A0, -0x10, 0x300, 0x1000, 0x320, 0x400, 0x600, 0xA00 },
 		{ 0x1000, 0xA, 0xC, 0x5A, 0xAA },
 		{ 2, 7, 0x1000, 0x1000, 0x1518, 0xA8C, 0x1E, 0x46 },
@@ -516,6 +519,20 @@ namespace ib173
 	// ------------------------------------------------------------------
 	// Breath puffs (0x5D80C0): node +0xC counter, +0x18 sweep angle, +0x1A sweep step
 	// ------------------------------------------------------------------
+	// (not the game's) anchor.each_target: the k-th of the action's targets (slot order, cycling), its effect point
+	// anchor.bone (0xF1: its body - the live pose, so a flying monster's hover too) into p; false: not asked, no target
+	static bool TargetPoint(int32_t k, int16_t p[4])
+	{
+		if (!P().anchor.at_targets || !P().anchor.each_target) return false;
+		const uint32_t mask = U16((uint32_t)Ctx(), 2);
+		int32_t slots[8], count = 0;
+		for (int32_t s = 0; s < 8; s++)
+			if (mask & (1u << s)) slots[count++] = s;
+		if (!count) return false;
+		GetEffectSpawnPosition(Ent(slots[(k < 0 ? -k : k) % count]), P().anchor.bone, 0, (uint32_t)p);
+		return true;
+	}
+
 	static uint32_t __cdecl PuffsTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
@@ -560,10 +577,28 @@ namespace ib173
 				U32(e, 8) = U32(own::R(ANCHOR), 0);
 				U32(e, 0xC) = U32(own::R(ANCHOR), 4);
 				const int32_t spread = P().puffs.spread;
-				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % spread - spread / 2));
-				const int32_t ry = CrtRand() % spread;
-				S16(e, 0xA) = (int16_t)(S16(e, 0xA) + (int16_t)(ry - (int16_t)(S16(n, 0xC) << 2)));
-				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % spread - spread / 2));
+				if (P().puffs.ahead)        // (not the game's) moved along the way, onto the targets
+				{
+					S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(mul32(S32(own::R(DIR), 0), P().puffs.ahead) >> 12));
+					S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(mul32(S32(own::R(DIR), 8), P().puffs.ahead) >> 12));
+				}
+				// the spread along z: its depth (4096 = the spread, the game's)
+				const int32_t depth = P().puffs.depth == 0x1000 ? spread : std::max<int32_t>(1, mul32(spread, P().puffs.depth) >> 12);
+				int16_t at[4];
+				if (TargetPoint(k + S16(n, 0xC) * P().puffs.per_tick, at))
+				{
+					// (not the game's) around a target's effect point, centred on it in y too
+					S16(e, 8) = (int16_t)(at[0] + (int16_t)(CrtRand() % spread - spread / 2));
+					S16(e, 0xA) = (int16_t)(at[1] + (int16_t)(CrtRand() % spread - spread / 2));
+					S16(e, 0xC) = (int16_t)(at[2] + (int16_t)(CrtRand() % depth - depth / 2));
+				}
+				else
+				{
+					S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % spread - spread / 2));
+					const int32_t ry = CrtRand() % spread;
+					S16(e, 0xA) = (int16_t)(S16(e, 0xA) + (int16_t)(ry - (int16_t)(S16(n, 0xC) << 2)));
+					S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % depth - depth / 2));
+				}
 				const int32_t speed = CrtRand() % P().puffs.speed_rand + P().puffs.speed_min;
 				const int32_t jx = CrtRand() % 20;
 				S16(e, 0x10) = (int16_t)(jx + (mul32(S32(own::R(SWEPT), 0), speed) >> 12) - 10);
@@ -626,6 +661,21 @@ namespace ib173
 				U32(e, 0) = 4;
 				S16(e, 4) = 0;
 				S16(e, 6) = (int16_t)(CrtRand() % P().shards.size_rand + P().shards.size_min);
+				int16_t at[4];
+				if (TargetPoint(k + c * P().shards.per_tick, at))
+				{
+					// (not the game's) around a target's effect point, flying away from it
+					S16(e, 8) = (int16_t)(at[0] + (int16_t)(CrtRand() % P().shards.spread_x - P().shards.spread_x / 2));
+					S16(e, 0xA) = at[1];
+					S16(e, 0xC) = (int16_t)(at[2] + (int16_t)(CrtRand() % P().shards.spread_z - P().shards.spread_z / 2));
+					S16(e, 0xE) = (int16_t)(CrtRand() % P().shards.speed_rand + P().shards.speed_min);
+					S16(e, 0x10) = (int16_t)(S16(e, 8) - at[0]);
+					S16(e, 0x12) = 0;
+					S16(e, 0x14) = (int16_t)(S16(e, 0xC) - at[2]);
+					if (!S16(e, 0x10) && !S16(e, 0x14)) S16(e, 0x10) = 1;
+					VectorNormalS16(e + 0x10, e + 0x10);
+					continue;
+				}
 				U32(e, 8) = U32(own::R(MID), 0);
 				U32(e, 0xC) = U32(own::R(MID), 4);
 				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % P().shards.spread_x - P().shards.spread_x / 2));
@@ -1180,6 +1230,18 @@ namespace ib173
 			const uint32_t t = (uint32_t)AddTaskToQueue(PlayerQueue(), own::Fn(ORIG_Crystal));
 			DecodeLayout(fxp::layout(P().layouts.crystal, LAYOUT_Crystal, 0x40), t + 0x1C, 0x40);
 			const int32_t off = P().crystals.offset, half = off / 2;
+			int16_t at[4];
+			if (TargetPoint(c, at))
+			{
+				// (not the game's) around a target's effect point
+				S16(t, 0x10) = (int16_t)(at[0] + CrtRand() % off - half);
+				S16(t, 0x12) = (int16_t)(at[1] + CrtRand() % off - half);
+				S16(t, 0x14) = (int16_t)(at[2] + CrtRand() % off - half);
+				S16(t, 0x1A) = (int16_t)(CrtRand() % P().crystals.spin_rand);
+				S16(t, 0x18) = (int16_t)(CrtRand() % P().crystals.scale_rand + P().crystals.scale_min);
+				S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
+				return S16(n, 0xC) > P().crystals.spawn_last ? TASK_END : 0;
+			}
 			const int32_t rx = CrtRand() % off;
 			S16(t, 0x10) = (int16_t)((mul32(d[0], dist) >> 12) + (int32_t)(U32(own::R(ANCHOR), 0) + (uint32_t)rx) - half);
 			const int32_t ry = CrtRand() % off;
@@ -1418,6 +1480,8 @@ namespace ib173
 			{ "director", "anchor.x", "Targets: sideways", "On the targets: the anchor this far sideways of their centre (the caster's x)", (uint32_t)offsetof(IceBreathParams, anchor.x), fxp::I16, -8000, 8000 },
 			{ "director", "anchor.y", "Targets: height", "On the targets: the anchor's height (y, negative = up; the floor is 0)", (uint32_t)offsetof(IceBreathParams, anchor.y), fxp::I16, -4000, 0 },
 			{ "director", "anchor.z", "Targets: before them", "On the targets: the anchor this far before their centre, toward the caster (the way it blows is from there to the centre and on; at least 1)", (uint32_t)offsetof(IceBreathParams, anchor.z), fxp::I16, -8000, 8000 },
+			{ "director", "anchor.each_target", "On each target", "On the targets: 1 = the puffs, the crystals and the ice shards around each target's effect point (the next value), cycling through the targets - a flying monster's height too; the floor ice stays under them", (uint32_t)offsetof(IceBreathParams, anchor.each_target), fxp::I16, 0, 1 },
+			{ "director", "anchor.bone", "Target point", "On each target: which point of it (0xF1: its body; 0xF0 and up: the model's named points, below: a bone)", (uint32_t)offsetof(IceBreathParams, anchor.bone), fxp::I16, 0, 0xFF },
 			{ "director", "flash.colour", "Colour", "The screen flash's colour (0xBBGGRR)", (uint32_t)offsetof(IceBreathParams, flash.colour), fxp::I32, 0, 0xFFFFFF },
 			{ "director", "flash.in_end", "Rise until", "The flash level rises up to this tick", (uint32_t)offsetof(IceBreathParams, flash.in_end), fxp::I16, -1, 300 },
 			{ "director", "flash.in_step", "Rise step", "Its level: the tick x this (4096 = full)", (uint32_t)offsetof(IceBreathParams, flash.in_step), fxp::I16, 0, 0x1000 },
@@ -1455,6 +1519,8 @@ namespace ib173
 			{ "puffs", "puffs.sweep_start", "Sweep start", "The way to the targets turned about y by this at its tick 0", (uint32_t)offsetof(IceBreathParams, puffs.sweep_start), fxp::I16, -0x1000, 0x1000, fxp::Angle },
 			{ "puffs", "puffs.sweep_step", "Sweep step", "and by this more each tick", (uint32_t)offsetof(IceBreathParams, puffs.sweep_step), fxp::I16, -0x1000, 0x1000, fxp::Angle },
 			{ "puffs", "puffs.floor", "Floor", "A puff moves up or down only while above this height (y, negative = up)", (uint32_t)offsetof(IceBreathParams, puffs.floor), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "puffs", "puffs.ahead", "Ahead", "Where they start: this far from the anchor along the way to the targets (0: at the anchor, the game; a new effect on the targets: onto them)", (uint32_t)offsetof(IceBreathParams, puffs.ahead), fxp::I16, -8000, 8000 },
+			{ "puffs", "puffs.depth", "Depth", "Their spread along z, for the spread's (4096 = the same as x and y, the game; less: a thinner cloud toward the caster)", (uint32_t)offsetof(IceBreathParams, puffs.depth), fxp::I16, 1, 4096 },
 			{ "crystals", "crystals.spawn_last", "Last spawn tick", "One crystal a tick from its tick 0 to this one", (uint32_t)offsetof(IceBreathParams, crystals.spawn_last), fxp::I16, -1, 63 },
 			{ "crystals", "crystals.sweep_start", "Sweep start", "The swept breath way turned about y by this at its tick 0", (uint32_t)offsetof(IceBreathParams, crystals.sweep_start), fxp::I16, -0x1000, 0x1000, fxp::Angle },
 			{ "crystals", "crystals.sweep_step", "Sweep step", "and by this more each tick", (uint32_t)offsetof(IceBreathParams, crystals.sweep_step), fxp::I16, -0x1000, 0x1000, fxp::Angle },
