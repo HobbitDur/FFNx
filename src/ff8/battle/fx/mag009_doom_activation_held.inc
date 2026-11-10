@@ -34,8 +34,10 @@
 //                    to the next step of its colour script; a tint the next tick does not draw holds, and is not drawn at 1.
 // The sinking anchor's next height: the sinking task's next state (2..4 move it by +0x6E; it runs before the particles and the
 // prim models in the master's queue order).
-// The stage darkening (the stage group words 0x1D98992 + k * 0x2C, read by the stage renderer, not drawn here) holds, as in
-// Stare 45. Spawns, sounds, random numbers and the target's entity word stay on the real ticks.
+//   Stage darkening - the stage group words 0x1D98992 + k * 0x2C (read by the stage renderer, not drawn here) written at
+//                    the level half way to the next tick's while the darkening in / out ramps (StageHeld; left in place for
+//                    the frame's stage draw, the next real tick writes its own value).
+// Spawns, sounds, random numbers and the target's entity word stay on the real ticks.
 // Camera: the module writes no camera word (the camera is the engine's camera animation of the setup): every part is placed
 // through the frame's camera (0x1D97778, the frame gate's: the next tick's view at 1).
 // The packets go to private copies of the three packet arenas (module cursors 0x274EFEC / 0x274F14C, frame arena 0x1D8E054)
@@ -399,6 +401,34 @@ namespace doomact
 		}
 	}
 
+	// ---------------------------------------------------------------------------------------------------------------
+	// the stage darkening (the 4 stage group words 0x1D98992 + k * 0x2C, read by the stage renderer): the darkening in
+	// (0x8C32D0, state 1 0x8C3370: + 0x180 a tick up to 0x800) and out (0x8C33C0, state 1 0x8C3440: - 0x100 a tick down to 0)
+	// write them on every real tick of their ramp state. A held frame writes the level num / den of the way from what the
+	// real tick wrote to what the next one writes (the ramp state's step from the task's level +0x1C); the next real tick
+	// writes its own value again (as the frame gate's VM task 0x84 does with the same words). Outside a ramp nothing is
+	// written (the words hold).
+	// ---------------------------------------------------------------------------------------------------------------
+	static const uint32_t STAGE_WORDS = 0x1D98992, STAGE_STRIDE = 0x2C;
+	static void StageHeld(int num, int den)
+	{
+		for (uint32_t node = MEM<uint32_t>(Q_PHASE); node; node = U32(node, 4))
+		{
+			const uint32_t f = U32(node, 8);
+			if (f != ORIG_DarkenIn && f != ORIG_DarkenOut) continue;
+			if ((U8(node, 0x26) & 1) && U8(node, 0x28) == 0) continue; // ended on the tick (released by its task tail)
+			if (S8(node, 0x29) != 1) continue;                        // the next tick does not run the ramp
+			const int32_t lvl = S16(node, 0x1C);
+			int32_t next;
+			if (f == ORIG_DarkenIn) { next = lvl + 0x180; if (next >= 0x800) next = 0x800; }
+			else { next = (int16_t)(lvl - 0x100); if (next <= 0) next = 0; }
+			const int32_t cur = MEM<int16_t>(STAGE_WORDS);
+			const int16_t v = (int16_t)lerp_i(cur, next, num, den);
+			for (uint32_t k = 0; k < 4; k++) MEM<int16_t>(STAGE_WORDS + k * STAGE_STRIDE) = v;
+			return;
+		}
+	}
+
 	static bool fits()
 	{
 		if (g_full) return false;
@@ -459,6 +489,7 @@ namespace doomact
 			}
 		}
 		TintsHeld(num, den);
+		StageHeld(num, den); // (the stage words are left at the in-between level: the stage renderer reads them)
 		for (int i = 0; i < 3; i++) MEM<uint32_t>(CURSORS[i]) = cur[i];
 		*crt_seed() = seed;
 		memcpy((void *)0x21DFEE4, sprite_cam, sizeof(sprite_cam));
