@@ -50,6 +50,7 @@
 // 0x2307D80, caster slot 0x2307D84, texture file 0x2307D88, magic buffer base 0x2307D8C, packet cursor 0x2307D90).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -736,6 +737,7 @@ namespace kamikaze181
 		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(register_mag181_held();)
 	}
+	FX_LAB_MODULE(register_mag181_kamikaze);
 }
 
 #ifdef FF8_FX_HELD

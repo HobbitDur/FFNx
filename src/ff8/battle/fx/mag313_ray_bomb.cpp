@@ -58,6 +58,7 @@
 // buffer base 0x223CC98, packet cursor 0x223CC9C).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -1101,6 +1102,7 @@ namespace raybomb313
 		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(register_mag313_held();)
 	}
+	FX_LAB_MODULE(register_mag313_ray_bomb);
 }
 
 #ifdef FF8_FX_HELD

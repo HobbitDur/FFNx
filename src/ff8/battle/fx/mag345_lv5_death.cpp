@@ -61,6 +61,7 @@
 // 0x164A338..) in exe data are rewritten in place (skeleton, relocation, fade).
 
 #include "act_engine.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -3173,6 +3174,7 @@ namespace lv5_death
 		// 30 fps layer: see mag345_lv5_death_held.inc
 		FX_HELD(register_mag345_held();)
 	}
+	FX_LAB_MODULE(register_mag345_lv5_death);
 }
 
 #ifdef FF8_FX_HELD

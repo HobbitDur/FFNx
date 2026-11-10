@@ -36,8 +36,8 @@
 //     sound 0x11355D0 at 0, the target's action result at 0x4E; ends at 0x56 (the flash off).
 //   SparkTask (0x695930) - node 0x20, 0xC ticks, DRAWS THEN UPDATES: sprite sequence 0x1135900 through the
 //     shadow-rotation camera (0x800, -0x200), flipbook frame = its counter; velocity += drag, position += velocity.
-//   PrimCallback (0x695690, Holy Water 296's 0x673BD0 on this module's cursor; record flags 0x40000 and 0x200) draws
-//     every layout object.
+//   PrimCallback (0x695690, Holy Water 296's 0x673BD0: layouts::AnchorPrimCallback with the record flags 0x40000 and
+//     0x200) draws every layout object.
 // No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
 // DRAW ORDER: the main task updates the ball, then draws the layout, the trail, the burst; the sparks draw then update.
 // ENTITY / CAMERA: no task writes an entity or the camera words (the camera animation is the engine's); the screen
@@ -51,6 +51,8 @@
 // setup's GetDefaultEffectPosition 0x571400 call left there (0x01D9), later 0 (verified under the game executor, oe).
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -85,14 +87,8 @@ namespace bomber217
 	static const uint32_t FLASH = 0x8FC;                 // screen flash level
 
 	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply: b = a x b
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
+	using layouts::GetEffectSpawnPosition;
+	using layouts::DecodeModelPrimLayout;
 	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); } // (a wa + b wb) >> 12, 3 words
 	inline void Apply3D(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); } // apply3DTransform (rotation only)
 	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); } // MAG_063_sub_6A6020
@@ -134,118 +130,24 @@ namespace bomber217
 		int16_t vel[3];    // +0x14
 		int16_t drag[3];   // +0x1A -velocity / 16, added to the velocity every tick
 	};
-	// the prim-player callback's parameter block (a stack block of the main task)
-	struct PrimArg
-	{
-		int16_t anchor[4]; // +0x00 the point (8 bytes)
-		int32_t depth;     // +0x08 the prim header's +0x18
-		uint32_t morph;    // +0x0C blended vertex frames
-	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MainNode) == 0x684 && sizeof(SparkNode) == 0x20, "217 nodes");
-	static_assert(sizeof(PrimArg) == 0x10, "217 prim block");
 
 	// the ball point's 4th word: never written (stack residue in the original). Counter 0 runs in the root's setup tick: the
 	// word holds what that setup's calls left there, the high half of a battle-entity pointer (0x1D972C0 + slot x 0x9C: 0x01D9,
 	// the target pushed for GetDefaultEffectPosition 0x571400); later counters: the tick-start residue, 0 (game executor)
 	static int16_t PointPad(int32_t c) { return c == 0 ? (int16_t)((uint32_t)Target() >> 16) : 0; }
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x695690, Holy Water 296's 0x673BD0): one object of a layout. Vertex frame (or blend into the
-	// block's morph buffer), rotation from the record's angles (flag 0x40000: 0x7015B0, else 0x701310); flag 0x200: the
-	// block's point through the camera rotation + the record's offset as the translation (rotation as is); else the
-	// record's offset + the point through the camera rotation, the camera composed with the rotation; + the camera
-	// translation; scale (scale3DMatrix), fade, drawn by 0x7043B0 at the block's depth on the module's cursor.
-	// ------------------------------------------------------------------
-	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
-	{
-		const PrimArg *arg = (const PrimArg *)arg_;
-		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
-		if (r->a >= 0x1000 && *(const uint32_t *)r->rgb == 0) return;
-		uint8_t *h = AllocHeader(0x58);
-		const int32_t object = (int16_t)r->flags_lo;
-		uint8_t *model = l->data + *(const int32_t *)(l->data + object * 4 + 8);
-		*(uint8_t **)h = model;
-		const int16_t f0 = r->b0, f1 = r->b1;
-		const int32_t nverts = *(const int32_t *)(model + 4);
-		if (f0 == f1)
-		{
-			if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-			else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-		}
-		else
-		{
-			const int16_t t = r->b;
-			if (t == 0)
-			{
-				if (f0 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f0) * 8 + 0xC;
-			}
-			else if (t == 0x1000)
-			{
-				if (f1 == 0) *(uint8_t **)(h + 4) = model + 0xC;
-				else *(uint8_t **)(h + 4) = model + (uint32_t)mul32(nverts, f1) * 8 + 0xC;
-			}
-			else
-			{
-				BlendVertexFrames((uint32_t)model, f0, f1, t, arg->morph);
-				*(uint32_t *)(h + 4) = arg->morph;
-			}
-		}
-		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 word only)
-		if (r->flags & 0x40000) RotationFromAnglesYXZ(r->rot, &m);
-		else RotationFromAngles(r->rot, &m);
-		if (r->flags & 0x200)
-		{
-			// the point through the camera (its 4th word goes to the GTE V0 pad only) + the record's offset
-			GteSetRotMatrixCtrl(&Camera());
-			GteLoadV0(arg->anchor);
-			GteMVMVA_RotV0();
-			GteReadMAC123(m.t);
-			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(int32_t)r->pos[0]);
-			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)(int32_t)r->pos[1]);
-			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)(int32_t)r->pos[2]);
-		}
-		else
-		{
-			// the record's offset + the point (4th word never written: only loaded into the GTE V0 pad)
-			const int16_t off[4] = { (int16_t)(r->pos[0] + arg->anchor[0]), (int16_t)(r->pos[1] + arg->anchor[1]), (int16_t)(r->pos[2] + arg->anchor[2]), 0 };
-			GteSetRotMatrixCtrl(&Camera());
-			GteLoadV0(off);
-			GteMVMVA_RotV0();
-			GteReadMAC123(m.t);
-			MatrixMultiply(&Camera(), &m);
-		}
-		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
-		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
-		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2]);
-		if (!(*(const uint32_t *)r->scale == 0x10001000 && r->scale[2] == 0x1000))
-		{
-			const int32_t sv[3] = { r->scale[0], r->scale[1], r->scale[2] };
-			Scale3DMatrix(&m, sv);
-		}
-		GteSetRotMatrix(&m);
-		GteSetTransVector(&m);
-		*(uint32_t *)(h + 0x1C) = 0x2030;
-		*(int32_t *)(h + 0xC) = r->a;
-		if (r->a != 0)
-		{
-			*(uint32_t *)(h + 0x1C) = 0x20F0;
-			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
-		}
-		*(int32_t *)(h + 0x18) = arg->depth;
-		PacketCursor() = RenderPrim2(h, RenderOT(), 2, PacketCursor());
-		FieldFree(0x58);
-	}
-
 	// the play of a layout at a point (the callback block: point, depth -0x80, blended frames)
 	static void Play(uint8_t *layout, const int16_t *point)
 	{
-		PrimArg arg;
+		layouts::AnchorArg arg;
 		memcpy(arg.anchor, point, 8);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		prim::play((prim::Layout *)layout, PrimCallback, (int)&arg, 0);
+		arg.honoured = layouts::ANCHOR_ROT_YXZ | layouts::ANCHOR_OFFSET_AS_IS;
+		arg.cursor = &PacketCursor();
+		prim::play((prim::Layout *)layout, layouts::AnchorPrimCallback, (int)&arg, 0);
 	}
 
 	// the hop weight of step k: four nested sines
@@ -530,6 +432,7 @@ namespace bomber217
 		// 30 fps layer: see mag217_energy_bomber_held.inc
 		FX_HELD(register_mag217_held();)
 	}
+	FX_LAB_MODULE(register_mag217_energy_bomber);
 }
 
 #ifdef FF8_FX_HELD
