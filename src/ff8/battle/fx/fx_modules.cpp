@@ -187,6 +187,10 @@ namespace ff8fx::mod
 	static const Region streams_i067[] = { { 0x2793DA4, 0xD4 }, { 0x178F3F4, 0x9C }, { 0x17948B8, 0x738 } };
 	static const Region streams_f162[] = { { 0x21DFED0, 0x20 }, { 0xDA2654, 0x1110 } };
 	static const Region streams_b164[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } };
+	static const Region streams_m166[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_m312[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_d174[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_s213[] = { { 0x117ADE0, 0x9A0 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_l165[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c182[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t057[] = { { 0x2793DA4, 0xD4 }, { 0x17A3DD0, 0xA0 }, { 0x17A9A64, 0x890 } };
@@ -442,6 +446,10 @@ namespace ff8fx::mod
 		{ 268, 0x2795C88, 0x2798C40, 0, 0, false, "Tri-Point death (attack 260, Tri-Point)", streams_gfc, 5 },
 		{ 270, 0x2795C18, 0x2798C40, 0, 0, false, "Ultima Weapon Death (attack 312, Omega Weapon / Ultima Weapon)", streams_gfc, 5 },
 		{ 228, 0x2796B38, 0x2798C40, 0, 0, false, "Ice Strike (Edea temporary limit break)", streams_gfc, 5 },
+		{ 166, 0x23BF038, 0x23C3278, 0, 0, false, "Megiddo Flame (attack 310, Omega Weapon)", streams_m166, 1 },
+		{ 312, 0x223CCA0, 0x2240EE0, 0, 0, false, "Megiddo Flame (attack 285, Mobile Type 8)", streams_m312, 1 },
+		{ 174, 0x2394208, 0x2397274, 0, 0, false, "Degenerator (attack 72, Gesper)", streams_d174, 4 },
+		{ 213, 0x2510170, 0x25101F8, 0, 0, false, "Storm Breath (attack 233, Elnoyle)", streams_s213, 2 },
 		{ 284, 0x2507DB0, 0x2507E1C, 0, 0, false, "Micro Missiles (attack 201, GIM52A)", streams_q299, 4 },
 		{ 282, 0x2507E90, 0x2507F28, 0, 0, false, "Evil-Eye (attack 152, Gargantua)", streams_q299, 4 },
 		{ 285, 0x2507D08, 0x2507DAC, 0, 0, false, "Thunder Summon (attack 242, Catoblepas)", streams_q299, 4 },
