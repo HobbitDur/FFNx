@@ -509,7 +509,9 @@ namespace act
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl m_733C90(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		// step = the exe's own operand (add word [eax+1Ch], 0FF00h at 0x733C94): a mod that patches it
+		// (Cronos MoogleCharm.dll) changes this port too
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + MEM<uint16_t>(0x733C98));
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -538,7 +540,9 @@ namespace act
 	// (then finished, next state); applies the level to the visible entities with mode 3 (m_733910).
 	uint32_t __cdecl m_733DA0(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		// step = the exe's own operand (add word [eax+1Ch], 0FF00h at 0x733DA4): a mod that patches it
+		// (Cronos MoogleCharm.dll) changes this port too
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + MEM<uint16_t>(0x733DA8));
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
