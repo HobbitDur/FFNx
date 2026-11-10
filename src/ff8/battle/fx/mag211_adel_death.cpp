@@ -97,6 +97,7 @@ namespace adel211
 		c.load_cb = 0xAD3300;        // passed by VM 0x006 0xAD31D0
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// draw 22 EntityDisintegrate (gfc_disintegrate.inc): this module's depth-key cells and the low

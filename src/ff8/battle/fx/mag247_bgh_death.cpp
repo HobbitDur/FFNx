@@ -82,6 +82,7 @@ namespace bghdeath247
 		c.load_cb = 0x9CED90;        // passed by VM 0x006 0x9CEC60
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)

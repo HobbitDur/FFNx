@@ -83,6 +83,7 @@ namespace corona252
 		c.load_cb = 0x9A7A70;        // passed by VM 0x006 0x9A7940
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

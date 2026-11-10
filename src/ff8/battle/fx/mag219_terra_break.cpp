@@ -97,6 +97,7 @@ namespace terra219
 		c.load_cb = 0xAC5950;        // passed by VM 0x006 0xAC5820
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

@@ -86,6 +86,7 @@ namespace beam242
 		c.load_cb = 0x9FD890;        // passed by VM 0x006 0x9FD760
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// ------------------------------------------------------------------------------------

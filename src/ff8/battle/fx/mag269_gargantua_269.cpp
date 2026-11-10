@@ -97,6 +97,7 @@ namespace gargantua269
 		c.load_cb = 0x900400;        // passed by VM 0x006 0x9002D0
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// draw 22 EntityDisintegrate (gfc_disintegrate.inc): this module's depth-key cells and the low

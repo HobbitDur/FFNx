@@ -83,6 +83,7 @@ namespace megaflare257
 		c.load_cb = 0x974E80;        // passed by VM 0x006 0x974D50
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	// GTE data registers (0x1CA8A10 + 4 * reg)
