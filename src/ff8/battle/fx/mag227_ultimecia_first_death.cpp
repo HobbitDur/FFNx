@@ -63,6 +63,7 @@
 // scale matrix pad / translation and the matrices' pads are read by nothing that draws.
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -670,6 +671,7 @@ namespace ultimecia227
 		// 30 fps layer: see mag227_ultimecia_first_death_held.inc
 		FX_HELD(register_mag227_held();)
 	}
+	FX_LAB_MODULE(register_mag227_ultimecia_first_death);
 }
 
 #ifdef FF8_FX_HELD
