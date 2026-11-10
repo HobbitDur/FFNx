@@ -177,17 +177,19 @@ namespace overlay
 		FieldFree(0x70);
 	}
 
-	// the projected vertices inside the window (x0..x1, y0..y1) move by the texel offset; false = out
+	// the projected vertices inside the window (x0..x1, y0..y1) move by the texel offset; false = out.
+	// PC SCREEN UNITS: the window is in PSX pixels, the PC's GTE gives eighths of a pixel (PsxPixels);
+	// the light then goes after its polygon with that polygon's depth keys, over it as on PSX.
 	inline bool ProjectedUV(uint8_t *s, int count)
 	{
 		for (int v = 0; v < count; v++)
 		{
-			const int16_t x = F<int16_t>(s, 0x40 + 4 * v);
+			const int16_t x = PsxPixels(F<int16_t>(s, 0x40 + 4 * v));      // PC SCREEN UNITS
 			if (x < F<int16_t>(s, 0xC0) || x > F<int16_t>(s, 0xC2)) return false;
-			const int16_t y = F<int16_t>(s, 0x42 + 4 * v);
+			const int16_t y = PsxPixels(F<int16_t>(s, 0x42 + 4 * v));
 			if (y < F<int16_t>(s, 0xC4) || y > F<int16_t>(s, 0xC6)) return false;
 			F<int16_t>(s, 0x40 + 4 * v) = (int16_t)(F<int16_t>(s, 0xC8) + x);
-			F<int16_t>(s, 0x42 + 4 * v) = (int16_t)(F<int16_t>(s, 0x42 + 4 * v) + F<int16_t>(s, 0xCA));
+			F<int16_t>(s, 0x42 + 4 * v) = (int16_t)(y + F<int16_t>(s, 0xCA));
 		}
 		return true;
 	}
@@ -293,6 +295,7 @@ namespace overlay
 			uint8_t *fp = (uint8_t *)fcur;
 			for (int32_t t = tris; t > 0; t--, poly += 0x10)
 			{
+				uint8_t *light = nullptr;     // PC SCREEN UNITS: inserted after its triangle
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
@@ -330,7 +333,7 @@ namespace overlay
 						F<uint32_t>(gp, 0x10) = F<uint32_t>(s, 0xA8);
 						F<uint32_t>(gp, 4) = F<uint32_t>(s, 0xA8);
 						F<uint32_t>(gp, 0) = 0x9000000;
-						InsertPrimAutoDepth(ot + F<uint32_t>(s, 0x90) * 4, gp);
+						light = gp;
 						gp += 0x28;
 					}
 				}
@@ -342,12 +345,14 @@ namespace overlay
 				F<uint32_t>(fp, 0) = 0x7000000;
 				if (poly[0xF] & 2) fp[7] |= 2;
 				InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, fp, z1, z2, z3, 0);
+				if (light) InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, light, z1, z2, z3, 0);
 				fp += 0x20;
 				GteSetRotMatrixCtrl((const Mat4x3 *)s);
 				GteSetTransVectorCtrl((const Mat4x3 *)s);
 			}
 			for (int32_t q = quads; q > 0; q--, poly += 0x14)
 			{
+				uint8_t *light = nullptr;     // PC SCREEN UNITS: inserted after its quad
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
@@ -397,7 +402,7 @@ namespace overlay
 						F<uint32_t>(gp, 4) = F<uint32_t>(s, 0xAC);
 						F<uint16_t>(gp, 0xE) = F<uint16_t>(s, 0xBE);
 						F<uint32_t>(gp, 0) = 0xC000000;
-						InsertPrimAutoDepth(ot + F<uint32_t>(s, 0x90) * 4, gp);
+						light = gp;
 						gp += 0x34;
 					}
 				}
@@ -409,6 +414,7 @@ namespace overlay
 				F<uint32_t>(fp, 0) = 0x9000000;
 				if (poly[0xF] & 2) fp[7] |= 2;
 				InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, fp, z1, z2, z3, z4);
+				if (light) InsertPrimDepthKeys(ot + F<uint32_t>(s, 0x90) * 4, light, z1, z2, z3, z4);
 				fp += 0x28;
 				GteSetRotMatrixCtrl((const Mat4x3 *)s);
 				GteSetTransVectorCtrl((const Mat4x3 *)s);

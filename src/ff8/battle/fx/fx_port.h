@@ -151,6 +151,9 @@ namespace ff8fx
 	inline int32_t mul32(int32_t a, int32_t b) { return (int32_t)((uint32_t)a * (uint32_t)b); }
 	inline int32_t shl32(int32_t a, int n) { return (int32_t)((uint32_t)a << n); }
 
+	// the PC GTE gives screen coordinates in 1/8 pixel, PSX code tests them as pixels
+	inline int16_t PsxPixels(int16_t pc) { return (int16_t)(pc >> 3); }
+
 	// --- port registry ---
 	void register_port(uint32_t orig, void *port, const char *name, int effect_id);
 	void *lookup(uint32_t orig);        // ported twin, or nullptr (only while ports are active)
