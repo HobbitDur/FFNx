@@ -58,6 +58,8 @@
 // block 0x27584D0) + camera copy 0x2793E58.
 
 #include "act_engine.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -2401,6 +2403,7 @@ namespace doomact
 		// 30 fps layer: see mag009_doom_activation_held.inc
 		FX_HELD(register_mag009_held();)
 	}
+	FX_LAB_MODULE(register_mag009_doom_activation);
 }
 
 #ifdef FF8_FX_HELD
