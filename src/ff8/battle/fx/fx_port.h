@@ -463,6 +463,7 @@ namespace ff8fx
 	void register_mag274_duel();
 	void register_mag189_wall();
 	void register_mag085_the_end();
+	void register_mag084_angel_wing();
 	void register_mag112_meteor_barret();
 	void register_mag212_burning_rave();
 	void register_mag093_angelo_recover();
