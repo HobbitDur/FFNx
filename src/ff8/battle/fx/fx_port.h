@@ -410,6 +410,11 @@ namespace ff8fx
 	void register_mag312_megiddo_flame();
 	void register_mag174_degenerator();
 	void register_mag213_storm_breath();
+	void register_mag217_energy_bomber();
+	void register_mag345_lv5_death();
+	void register_mag150_gatling_gun();
+	void register_mag181_kamikaze();
+	void register_mag313_ray_bomb();
 	void register_mag284_micro_missiles();
 	void register_mag282_evil_eye();
 	void register_mag285_thunder_summon();
