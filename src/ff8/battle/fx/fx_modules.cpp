@@ -191,6 +191,13 @@ namespace ff8fx::mod
 	static const Region streams_m312[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_d174[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_s213[] = { { 0x117ADE0, 0x9A0 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_e217[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	// LV5 Death 345 (LV?Death 74 relocated): the module scratch stack below the camera copy, the reaper model container's
+	// rewritten skeleton / fade, the actor data files (relocated in place)
+	static const Region streams_l345[] = { {0x2793DA4,0xD4}, {0x1D99C18,8}, {0x1525774,0x548}, {0x1643698,0x6FD0} };
+	static const Region streams_g150[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_k181[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_r313[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_l165[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c182[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t057[] = { { 0x2793DA4, 0xD4 }, { 0x17A3DD0, 0xA0 }, { 0x17A9A64, 0x890 } };
@@ -450,6 +457,11 @@ namespace ff8fx::mod
 		{ 312, 0x223CCA0, 0x2240EE0, 0, 0, false, "Megiddo Flame (attack 285, Mobile Type 8)", streams_m312, 1 },
 		{ 174, 0x2394208, 0x2397274, 0, 0, false, "Degenerator (attack 72, Gesper)", streams_d174, 4 },
 		{ 213, 0x2510170, 0x25101F8, 0, 0, false, "Storm Breath (attack 233, Elnoyle)", streams_s213, 2 },
+		{ 217, 0x25087F0, 0x2508870, 0, 0, false, "Energy Bomber (attack 316, Adel c0m112)", streams_e217, 4 },
+		{ 345, 0x25570A0, 0x255EAC0, 0, 0, false, "LV5 Death (attack 124)", streams_l345, 4 },
+		{ 150, 0x244FD60, 0x2461E84, 0, 0, false, "Gatling Gun (attack 68)", streams_g150, 1 },
+		{ 181, 0x23065D8, 0x2307D94, 0, 0, false, "Kamikaze", streams_k181, 1 },
+		{ 313, 0x223B668, 0x223CCA0, 0, 0, false, "Ray-Bomb (attack 200)", streams_r313, 1 },
 		{ 284, 0x2507DB0, 0x2507E1C, 0, 0, false, "Micro Missiles (attack 201, GIM52A)", streams_q299, 4 },
 		{ 282, 0x2507E90, 0x2507F28, 0, 0, false, "Evil-Eye (attack 152, Gargantua)", streams_q299, 4 },
 		{ 285, 0x2507D08, 0x2507DAC, 0, 0, false, "Thunder Summon (attack 242, Catoblepas)", streams_q299, 4 },
