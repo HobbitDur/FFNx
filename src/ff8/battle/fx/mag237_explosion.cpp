@@ -87,6 +87,7 @@ namespace explosion237
 		c.load_cb = 0xA2FA80;        // passed by VM 0x006 0xA2F950
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 

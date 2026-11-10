@@ -84,6 +84,7 @@ namespace gas236
 		c.load_cb = 0xA39DF0;        // passed by VM 0x006 0xA39CC0
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 

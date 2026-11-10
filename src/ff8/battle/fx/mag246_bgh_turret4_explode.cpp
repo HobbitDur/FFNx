@@ -81,6 +81,7 @@ namespace turret246
 		c.load_cb = 0x9D8010;        // passed by VM 0x006 0x9D7EE0
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
+		c.tag_parts = true;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
