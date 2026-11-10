@@ -226,6 +226,9 @@ namespace ff8fx::mod
 	static const Region streams_z274[] = { { 0x10E9538, 0x268 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_s189[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0xD1B490, 0x18 } };
 	static const Region streams_s085[] = { { 0x2793DA4, 0xD4 } };
+	// Angel Wing 84: the model container's skeleton block (rewritten pose), the module scratch stack below the camera copy,
+	// RenderGeometry's last packet, the sprite draws' camera scratch, the shadow scratch
+	static const Region streams_r084[] = { { 0x1572BC8, 0x430 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_z112[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_z212[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_r093[] = { { 0x1538B58, 0x670 }, { 0x16B62B8, 0x90 }, { 0x16B7E90, 0x5E0 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
@@ -547,6 +550,7 @@ namespace ff8fx::mod
 		{ 274, 0x2508410, 0x25084E8, 0, 0, false, "Duel (Zell limit break)", streams_z274, 5 },
 		{ 189, 0x2293F4C, 0x22B2A34, 0, 0, false, "Wall (Selphie slot)", streams_s189, 5 },
 		{ 85, 0x25BC390, 0x25C2350, 0, 0, false, "The End (Selphie slot)", streams_s085, 1 },
+		{ 84, 0x25C2350, 0x25C9F70, 0, 0, false, "Angel Wing (Rinoa limit break)", streams_r084, 6 },
 		{ 112, 0x25218E0, 0x2521970, 0, 0, false, "Meteor Barret (Zell finisher)", streams_z112, 3 },
 		{ 212, 0x25101F8, 0x25102C0, 0, 0, false, "Burning Rave (Zell finisher)", streams_z212, 4 },
 		{ 93, 0x2592548, 0x2594D98, 0, 0, false, "Angelo Recover (Rinoa Angelo command)", streams_r093, 8 },
