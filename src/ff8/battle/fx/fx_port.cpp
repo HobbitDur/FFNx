@@ -284,6 +284,7 @@ namespace ff8fx
 		register_mag178_10000_needles();
 		register_mag177_1000_needles();
 		register_mag226_white_wind();
+		register_mag227_ultimecia_first_death();
 		register_mag139_sonic_wave();
 		register_mag050_potion();
 		register_mag051_hipotion();
