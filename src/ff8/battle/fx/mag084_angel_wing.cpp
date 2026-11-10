@@ -57,6 +57,7 @@
 // data 0x171DE1C, the camera scripts 0x1575DE0.., the bone table 0x1572B90.
 
 #include "act_engine.h"
+#include "fx_params.h"
 #include <stddef.h>
 
 namespace ff8fx
@@ -613,14 +614,15 @@ namespace angelwing
 	uint32_t __cdecl te_78D940(uint32_t a1)
 	{
 		g_mod = &MOD_084;
+		g_reloc = 0;
 		// 30 fps layer: see mag084_angel_wing_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25C9F08) = 0x2793E58;
-		MEM<uint32_t>(0x25C24B8) = 0x2793E58;
+		MEM<uint32_t>(R(0x25C9F08)) = 0x2793E58;
+		MEM<uint32_t>(R(0x25C24B8)) = 0x2793E58;
 		states[0] = 0x78DAD0;
 		const uint8_t parity = U8(node, 0x5C);  // low byte of the tick counter +0x5C
 		states[1] = 0x78DAE0;
@@ -635,24 +637,24 @@ namespace angelwing
 		states[10] = 0x797690;  // nullsub (ret)
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25C9234);
-			const uint32_t v2 = MEM<uint32_t>(0x25C838C);
-			MEM<uint32_t>(0x25C2354) = v1;
-			MEM<uint32_t>(0x25C24B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25C9234));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25C838C));
+			MEM<uint32_t>(R(0x25C2354)) = v1;
+			MEM<uint32_t>(R(0x25C24B4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25C9230);
-			const uint32_t v2 = MEM<uint32_t>(0x25C8388);
-			MEM<uint32_t>(0x25C2354) = v1;
-			MEM<uint32_t>(0x25C24B4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(R(0x25C9230));
+			const uint32_t v2 = MEM<uint32_t>(R(0x25C8388));
+			MEM<uint32_t>(R(0x25C2354)) = v1;
+			MEM<uint32_t>(R(0x25C24B4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		MEM<uint16_t>(0x25C9F00) = 0;
-		MEM<uint16_t>(0x25C9EE8) = 0;
-		const uint32_t queues[8] = { 0x25C90C0, 0x25C2490, 0x25C9ED8, 0x25C8E20, 0x25C2598, 0x25C3938, 0x25C8378, 0x25C90B0 };
+		MEM<uint16_t>(R(0x25C9F00)) = 0;
+		MEM<uint16_t>(R(0x25C9EE8)) = 0;
+		const uint32_t queues[8] = { R(0x25C90C0), R(0x25C2490), R(0x25C9ED8), R(0x25C8E20), R(0x25C2598), R(0x25C3938), R(0x25C8378), R(0x25C90B0) };
 		for (int i = 0; i < 8; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -673,12 +675,12 @@ namespace angelwing
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0; // void
-		uint32_t p = MEM<uint32_t>(0x25C9F38);
-		MEM<uint32_t>(0x25C9EEC) = p;
+		uint32_t p = MEM<uint32_t>(R(0x25C9F38));
+		MEM<uint32_t>(R(0x25C9EEC)) = p;
 		p += 0x1B0;
-		MEM<uint32_t>(0x25C9F30) = p;
+		MEM<uint32_t>(R(0x25C9F30)) = p;
 		p += 0x6900;
-		MEM<uint32_t>(0x25C9F38) = p;
+		MEM<uint32_t>(R(0x25C9F38)) = p;
 		te_78DB30();
 		next_state(a1);
 		return 0; // void
@@ -688,12 +690,12 @@ namespace angelwing
 	// 0x25C9EF8 / 0x25C9D24 / 0x25C2358
 	uint32_t __cdecl te_78DB30()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25C9EEC), 0x1B0);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25C9F30), 0x6900);
-		MEM<uint16_t>(0x25C3930) = 0;
-		MEM<uint16_t>(0x25C9EF8) = 0;
-		MEM<uint16_t>(0x25C9D24) = 0;
-		MEM<uint16_t>(0x25C2358) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25C9EEC)), 0x1B0);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(R(0x25C9F30)), 0x6900);
+		MEM<uint16_t>(R(0x25C3930)) = 0;
+		MEM<uint16_t>(R(0x25C9EF8)) = 0;
+		MEM<uint16_t>(R(0x25C9D24)) = 0;
+		MEM<uint16_t>(R(0x25C2358)) = 0;
 		return 0;
 	}
 
@@ -702,7 +704,7 @@ namespace angelwing
 	uint32_t __cdecl te_78DC20(uint32_t a1)
 	{
 		te_78DC50(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25C2490, 0x78DCE0, 0x48, a1);
+		Spawn(R(0x25C2490), 0x78DCE0, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -791,7 +793,7 @@ namespace angelwing
 	{
 		x::Battle_QueueTIMUpload_GetEOF(0x17243F8);
 		gx::BS_Camera_ArmReturnAfterEffect();
-		x::Effect_AddTaskAndInitFromCtx(0x25C2598, 0x78DE40, 0x64, a1);
+		Spawn(R(0x25C2598), 0x78DE40, 0x64, a1);
 		next_state(a1);
 		return 0; // void
 	}
@@ -1024,11 +1026,11 @@ namespace angelwing
 		const int32_t cut = S16(MEM<uint32_t>(DIR_PTR), 0x40);
 		if (cut == 1)
 		{
-			const uint32_t n = x::Effect_AddTaskAndInitFromCtx(0x25C9ED8, 0x7961E0, 0x154, a1);
+			const uint32_t n = Spawn(R(0x25C9ED8), 0x7961E0, 0x154, a1);
 			x::Effect_BindModelContainerSetAnim(n, 0x1572BB0, 3);
 			te_78EC80(a1, 0x78ECD0, 0x171F2B0, 0x4A0, 0, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x25C3938, 0x796FD0, 0x58, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25C3938, 0x7972B0, 0x58, a1);
+			Spawn(R(0x25C3938), 0x796FD0, 0x58, a1);
+			Spawn(R(0x25C3938), 0x7972B0, 0x58, a1);
 		}
 		else if (cut == 2)
 			a_73C100(a1, 0x7913C0, 0x171DE1C, 8, 0xF, 0);
@@ -1044,7 +1046,7 @@ namespace angelwing
 	// a3, +0x78 = (s16) a4, +0x80 = a5, +0x82 = a6
 	uint32_t __cdecl te_78EC80(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(0x25C8378, a2, 0x830, a1);
+		const uint32_t n = Spawn(R(0x25C8378), a2, 0x830, a1);
 		U16(n, 0x80) = (uint16_t)a5;
 		U32(n, 0x74) = a3;
 		S32(n, 0x78) = (int16_t)(uint16_t)a4;
@@ -1103,7 +1105,7 @@ namespace angelwing
 		S32(L, 0x1C) = S16(node, 0x20);
 		x::ComposeAffineTransform(0x1D97778, L, L);
 		U16(L, 0x54) = U16(node, 0x86);
-		U32(L, 0x48) = MEM<uint32_t>(0x25C9EFC);
+		U32(L, 0x48) = MEM<uint32_t>(R(0x25C9EFC));
 		U32(L, 0x44) = U32(node, 0x7C);
 		U16(L, 0x4C) = U16(node, 0x8C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -1229,7 +1231,7 @@ namespace angelwing
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		// depth offset; the second model (+2 = 1) of a block of kind +0x56 = 2 is pulled 0x7000 forward
 		if (S16(blk, 0x56) == 2 && S16(rec, 2) == 1)
 			S32(hdr, 0x10) = S16(blk, 0x58) - 0x7000;
@@ -1239,7 +1241,7 @@ namespace angelwing
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(PACKET_CURSOR) = te_78F1B0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = te_78F1B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0; // void (prim player callback)
 	}
@@ -2080,7 +2082,7 @@ namespace angelwing
 	// the harness)
 	uint32_t __cdecl te_791600(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25C9F3C);
+		const uint32_t arena = MEM<uint32_t>(R(0x25C9F3C));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -2100,7 +2102,7 @@ namespace angelwing
 	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl te_791880(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25C9F3C);
+		const uint32_t arena = MEM<uint32_t>(R(0x25C9F3C));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena; // void (eax = arena)
@@ -2130,7 +2132,7 @@ namespace angelwing
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x25C9F3C, 0) = sys;
+		U32(R(0x25C9F3C), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2144,7 +2146,7 @@ namespace angelwing
 			FX_HELD(held_note_system(sys);)
 			te_793640();
 			te_791FC0();
-			sys = U32(0x25C9F3C, 0);
+			sys = U32(R(0x25C9F3C), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2157,8 +2159,8 @@ namespace angelwing
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x25C9F00, 0) = (uint16_t)(U16(0x25C9F00, 0) + c14);
-		U16(0x25C9EE8, 0) = (uint16_t)(U16(0x25C9EE8, 0) + c16);
+		U16(R(0x25C9F00), 0) = (uint16_t)(U16(R(0x25C9F00), 0) + c14);
+		U16(R(0x25C9EE8), 0) = (uint16_t)(U16(R(0x25C9EE8), 0) + c16);
 		return done;
 	}
 
@@ -2167,12 +2169,12 @@ namespace angelwing
 	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl te_791FC0(void)
 	{
-		uint32_t act = U32(U32(0x25C9F3C, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x25C9F3C), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x25C9F3C, 0);
+				uint32_t sys = U32(R(0x25C9F3C), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -2189,10 +2191,10 @@ namespace angelwing
 	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl te_792020(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(R(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(R(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -2212,9 +2214,9 @@ namespace angelwing
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+			const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			MEM<uint32_t>(R(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -2229,17 +2231,17 @@ namespace angelwing
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+				const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(R(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(R(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(R(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -2782,14 +2784,14 @@ namespace angelwing
 	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl te_793640(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x25C9F3C), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(R(0x25C9F3C)), 0x2C);
 		if (act == 0)
 			return 0; // void
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x25C9F3C);
+				uint32_t st = MEM<uint32_t>(R(0x25C9F3C));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
 				uint8_t kind = U8(bone, 0x16);
@@ -2826,20 +2828,20 @@ namespace angelwing
 	uint32_t __cdecl te_793700(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(R(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(R(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(R(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(R(SCRATCH_SP)) = MEM<uint32_t>(R(SCRATCH_SP)) + 0xB4;
 		return 0; // void
 	}
 
@@ -2847,7 +2849,7 @@ namespace angelwing
 	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl te_793780(void)
 	{
-		uint32_t act = U32(U32(0x25C9F3C, 0), 0x2C);
+		uint32_t act = U32(U32(R(0x25C9F3C), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2868,7 +2870,7 @@ namespace angelwing
 	uint32_t __cdecl te_7937C0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x25C9F3C);
+		uint32_t st = MEM<uint32_t>(R(0x25C9F3C));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
 		int32_t phase = S16(act, 0x1CC);
@@ -2889,7 +2891,7 @@ namespace angelwing
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x25C9F3C);
+			st = MEM<uint32_t>(R(0x25C9F3C));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2907,7 +2909,7 @@ namespace angelwing
 		const uint32_t data = a2;                              // edi
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x25C9F3C, 0);                  // actor state block
+		uint32_t st = U32(R(0x25C9F3C), 0);                  // actor state block
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
@@ -3004,8 +3006,8 @@ namespace angelwing
 	// 0x6C bytes from the pool [0x25C9EEC], cursor 0x25C3930) with the module's pool of 3 records
 	uint32_t __cdecl te_7949B0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25C9EEC);
-		int32_t idx = MEM<int16_t>(0x25C3930);
+		const uint32_t pool = MEM<uint32_t>(R(0x25C9EEC));
+		int32_t idx = MEM<int16_t>(R(0x25C3930));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -3015,7 +3017,7 @@ namespace angelwing
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -3030,9 +3032,9 @@ namespace angelwing
 		} while (tries < 4);
 		idx++;
 		if (idx < 3)
-			MEM<uint16_t>(0x25C3930) = (uint16_t)idx;
+			MEM<uint16_t>(R(0x25C3930)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x25C3930) = 0;
+			MEM<uint16_t>(R(0x25C3930)) = 0;
 		return slot;
 	}
 
@@ -3062,7 +3064,7 @@ namespace angelwing
 	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl te_794AD0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x25C9F3C, 0);
+		uint32_t sys = U32(R(0x25C9F3C), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -3097,9 +3099,9 @@ namespace angelwing
 	{
 		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
 		// +0x4E key index
-		uint32_t sp = U32(SCRATCH_SP, 0) - 0x50;
+		uint32_t sp = U32(R(SCRATCH_SP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(SCRATCH_SP, 0) = sp;
+		U32(R(SCRATCH_SP), 0) = sp;
 		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
 		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = te_795380(a1, (uint16_t)kind);
@@ -3111,7 +3113,7 @@ namespace angelwing
 		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(ACTOR_STATE, 0);
+			uint32_t ctx = U32(R(ACTOR_STATE), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -3299,7 +3301,7 @@ namespace angelwing
 			}
 		}
 		te_796090(node, desc);
-		U32(SCRATCH_SP, 0) = U32(SCRATCH_SP, 0) + 0x50;
+		U32(R(SCRATCH_SP), 0) = U32(R(SCRATCH_SP), 0) + 0x50;
 		return 0; // void
 	}
 
@@ -3307,8 +3309,8 @@ namespace angelwing
 	// from the pool [0x2742868], cursor 0x2742830) with the module's pool of 0x28 records
 	uint32_t __cdecl te_795380(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25C9F30);
-		int32_t i = MEM<int16_t>(0x25C9EF8);
+		const uint32_t pool = MEM<uint32_t>(R(0x25C9F30));
+		int32_t i = MEM<int16_t>(R(0x25C9EF8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -3321,7 +3323,7 @@ namespace angelwing
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(R(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -3338,9 +3340,9 @@ namespace angelwing
 		}
 		i++;
 		if (i >= 0x27)
-			MEM<uint16_t>(0x25C9EF8) = 0;
+			MEM<uint16_t>(R(0x25C9EF8)) = 0;
 		else
-			MEM<uint16_t>(0x25C9EF8) = (uint16_t)i;
+			MEM<uint16_t>(R(0x25C9EF8)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -3354,7 +3356,7 @@ namespace angelwing
 	uint32_t __cdecl te_7955A0(uint32_t a1)
 	{
 		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x25C9F3C, 0);            // ecx
+		const uint32_t st = U32(R(0x25C9F3C), 0);            // ecx
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);                          // ebx
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
@@ -3418,7 +3420,7 @@ namespace angelwing
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
-				uint32_t g = U32(0x25C9F3C, 0);
+				uint32_t g = U32(R(0x25C9F3C), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -3428,7 +3430,7 @@ namespace angelwing
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
-				uint32_t g = U32(0x25C9F3C, 0);
+				uint32_t g = U32(R(0x25C9F3C), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3516,7 +3518,7 @@ namespace angelwing
 	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl te_796120(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x25C9F3C);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(R(0x25C9F3C));  // eax (re-read only after the calls)
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3541,14 +3543,14 @@ namespace angelwing
 				do
 				{
 					te_7949B0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x25C9F3C);
+					dir = MEM<uint32_t>(R(0x25C9F3C));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				te_7949B0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x25C9F3C);
+				dir = MEM<uint32_t>(R(0x25C9F3C));
 			}
 		}
 		return 0; // void
@@ -3644,11 +3646,11 @@ namespace angelwing
 			S32(mdl, 0x5C) = S16(mdl, 0x20);
 			x::scale3DMatrix(m, a1 + 0x114);
 			x::GetEffectSpawnPosition(mdl, 0xF1, 0, P(pt));
-			MEM<uint16_t>(0x25C23B6) = U16(P(pt), 2);
-			te_796620(0x25C2360);
+			MEM<uint16_t>(R(0x25C23B6)) = U16(P(pt), 2);
+			te_796620(R(0x25C2360));
 			return 0; // void
 		}
-		MEM<uint32_t>(0x25C2354) = a_746C10(a1, 0x25C9238, MEM<uint32_t>(0x25C2354));
+		MEM<uint32_t>(R(0x25C2354)) = a_746C10(a1, R(0x25C9238), MEM<uint32_t>(R(0x25C2354)));
 		return 0; // void
 	}
 
@@ -3878,7 +3880,7 @@ namespace angelwing
 		S32(a1, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(a1, 0);
 		te_796C70(a1);
-		gx::BS_BindEntityModelFromComData(ent, 0x25C9F10, 0x1576020);
+		gx::BS_BindEntityModelFromComData(ent, R(0x25C9F10), 0x1576020);
 		gx::QueueChainTransformation(ent, 1);
 		next_state(a1);
 		return 0; // void
@@ -3901,8 +3903,8 @@ namespace angelwing
 		x::MAG_007_sub_8DCC00(a1, 0x58);
 		U32(a1, 0x48) = a4;
 		U32(a1, 0x40) = a2;
-		U32(a1, 0x4C) = PACKET_CURSOR;
-		U32(a1, 0x50) = PACKET_CURSOR;
+		U32(a1, 0x4C) = R(PACKET_CURSOR);
+		U32(a1, 0x50) = R(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(a1, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -3927,10 +3929,10 @@ namespace angelwing
 			x::BdPlaySE(0x15720AC, 0, 0x80);
 			if (S16(a1, 0x136) >= 0x15)
 			{
-				const uint16_t r = (uint16_t)(MEM<uint16_t>(0x25C23B4) + 0x20);
-				MEM<uint16_t>(0x25C23B4) = r;
+				const uint16_t r = (uint16_t)(MEM<uint16_t>(R(0x25C23B4)) + 0x20);
+				MEM<uint16_t>(R(0x25C23B4)) = r;
 				if ((int16_t)r >= 0x500)
-					MEM<uint16_t>(0x25C23B4) = 0x500;
+					MEM<uint16_t>(R(0x25C23B4)) = 0x500;
 			}
 		}
 		if (a_73B7E0(2) != 0)
@@ -4060,7 +4062,7 @@ namespace angelwing
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
 		U32(hdr, 0x14) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = te_78F1B0(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = te_78F1B0(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0; // void
 	}
@@ -4196,7 +4198,7 @@ namespace angelwing
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
 		U32(hdr, 0x14) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = te_78F1B0(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(R(PACKET_CURSOR)) = te_78F1B0(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(R(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0; // void
 	}
@@ -4491,6 +4493,7 @@ namespace angelwing
 
 	void register_mag084_angel_wing()
 	{
+		act::register_mod(&act::angelwing::MOD_084);
 		act::register_module(84);
 		for (const act::angelwing::ModPort *p = act::angelwing::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(84, p->addr, p->port, p->name);
@@ -4499,6 +4502,7 @@ namespace angelwing
 		// 30 fps layer: see mag084_angel_wing_held.inc
 		FX_HELD(register_mag084_held();)
 	}
+	FX_LAB_MODULE(register_mag084_angel_wing);
 }
 
 #ifdef FF8_FX_HELD
