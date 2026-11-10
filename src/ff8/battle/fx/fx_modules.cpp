@@ -120,6 +120,8 @@ namespace ff8fx::mod
 	static const Region streams_c190[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_m048[] = { { 0x15AE4FC, 0x9790 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_m008[] = { { 0x1636C94, 0x5BC }, { 0x1818B78, 0x12BC }, { 0x181CB14, 0x488 }, { 0x19EB018, 0x530C }, { 0x2793DA4, 0xD4 }, { 0x2795110, 0x68 }, { 0x1D99C18, 8 } };
+	// Doom Activation: shared scratch + camera copy, the tint packets, RenderGeometry / shadow temporaries, the sprite camera words
+	static const Region streams_d009[] = { { 0x2793DA4, 0xD4 }, { 0x2795110, 0x68 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_b012[] = { { 0x1362E44, 0x188 }, { 0x1363734, 0x188 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d015[] = { { 0x17FC68C, 0x5944 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d037[] = { { 0x15D62F4, 0x8A0 }, { 0x17C8420, 0x4300 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
@@ -384,6 +386,7 @@ namespace ff8fx::mod
 		{ 190, 0x2281B18, 0x2293F44, 0, 0, false, "Chain Gun", streams_c190, 1 },
 		{ 48, 0x26480F0, 0x26495EC, 0, 0, false, "Magma Breath", streams_m048, 3 },
 		{ 8, 0x2758500, 0x275FB80, 0, 0, false, "Doom", streams_m008, 7 },
+		{ 9, 0x274EFE8, 0x27584F8, 0, 0, false, "Doom Activation (a Doom countdown at 0)", streams_d009, 6 },
 		{ 12, 0x2545188, 0x2556140, 0, 0, false, "Blade Shot", streams_b012, 3 },
 		{ 15, 0x2732BF8, 0x273AE7C, 0, 0, false, "Draw", streams_d015, 3 },
 		{ 37, 0x26A05C8, 0x26A8DB4, 0, 0, false, "Drink Magic", streams_d037, 4 },

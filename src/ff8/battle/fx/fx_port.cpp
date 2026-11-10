@@ -187,6 +187,7 @@ namespace ff8fx
 		register_mag190_chain_gun();
 		register_mag048_magma_breath();
 		register_mag008_doom();
+		register_mag009_doom_activation();
 		register_mag012_blade_shot();
 		register_mag015_draw();
 		register_mag037_drink_magic();
