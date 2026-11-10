@@ -2,6 +2,10 @@
 
 - Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.1...master
 
+## FF8
+
+- Battle: Fix the missing light on Cure, Cura, Potion and Hi-Potion, and the missing swirl on Hypnotize
+
 # 1.25.1
 
 - Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.0...1.25.1
