@@ -66,6 +66,7 @@
 // Module globals: 0x2394208..0x2397274.
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -1565,6 +1566,7 @@ namespace degen174
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(register_mag174_held();)
 	}
+	FX_LAB_MODULE(register_mag174_degenerator);
 }
 
 #ifdef FF8_FX_HELD

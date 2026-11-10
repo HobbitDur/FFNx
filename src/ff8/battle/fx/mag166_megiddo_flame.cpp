@@ -18,6 +18,7 @@
 // tasks and globals, written with 166's addresses); this file gives its descriptor and registers its tasks.
 
 #include "fx_megiddo.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -49,6 +50,7 @@ namespace ff8fx
 		// 30 fps layer: see mag166_megiddo_flame_held.inc
 		FX_HELD(register_mag166_held();)
 	}
+	FX_LAB_MODULE(register_mag166_megiddo_flame);
 }
 
 #ifdef FF8_FX_HELD
