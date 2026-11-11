@@ -15,6 +15,9 @@
 - Core: Fix learned abilities past ID 127 being lost when loading a save ( https://github.com/julianxhokaxhiu/FFNx/pull/1058 )
 - Core: Fix world map draw points saying no one can draw when kernel.bin moves the Draw command ability ( https://github.com/julianxhokaxhiu/FFNx/pull/1058 )
 - Core: Fix AddMoreItems never starting since BattleAnimSetFiles, kernel.bin extensions now start without checking the game code ( https://github.com/julianxhokaxhiu/FFNx/pull/1064 )
+- Core: Fix battle sounds playing almost all on the right and field footsteps jumping from one side to the other, they are panned from the screen position like on PSX ( https://github.com/julianxhokaxhiu/FFNx/pull/1084 )
+- Core: Fix lightning and acid streams drawn as thin or crossed lines (Quezacotl, Breath, Electric Discharge, Gastric Juice, Electrocute, Acid, Saliva, Dissolving Acid, Mega Spark, Mega Pulse Cannon, X-ATM092, Ultimecia), they are as wide as on PSX ( https://github.com/julianxhokaxhiu/FFNx/pull/1085 )
+- Core: Fix the Doom countdown drawn lower than on PSX and overlapping the second status countdown above battle models ( https://github.com/julianxhokaxhiu/FFNx/pull/1086 )
 
 # 1.25.1
 

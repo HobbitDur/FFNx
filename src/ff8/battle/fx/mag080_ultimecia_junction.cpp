@@ -2389,8 +2389,8 @@ namespace ujunct
 		{
 			if (S16(n, 4) < 0)
 				return 0; // void
-			const int32_t dx = (int32_t)S16(n, 0) - (int32_t)S16(s, 0);
-			const int32_t ndy = (int32_t)S16(s, 2) - (int32_t)S16(n, 2);
+			const int32_t dx = ScreenPx(S16(n, 0)) - ScreenPx(S16(s, 0));
+			const int32_t ndy = ScreenPx(S16(s, 2)) - ScreenPx(S16(n, 2));
 			int32_t adx = dx < 0 ? -dx : dx;
 			if (adx >= 0x80)
 				adx = 0x7F;
@@ -2442,8 +2442,8 @@ namespace ujunct
 				U16(dir, 2) = (uint16_t)py;
 			}
 			const int32_t w = (int32_t)S16(n, 6) / ((int32_t)S16(s, 4) + 0x80);
-			ox = mul32(w, px) >> 12;
-			oy = mul32(w, py) >> 12;
+			ox = ScreenEighths(mul32(w, px) >> 12);
+			oy = ScreenEighths(mul32(w, py) >> 12);
 		}
 		const uint16_t x0 = U16(s, 0);
 		U16(s, 0) = (uint16_t)(x0 - (uint16_t)ox);

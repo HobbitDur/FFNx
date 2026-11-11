@@ -48,6 +48,9 @@
 #include "ff8/battle/battle_gate.h"
 #include "ff8/battle/anim_set.h"
 #include "ff8/field/movie.h"
+#include "ff8/sound_pan.h"
+#include "ff8/battle/effects_ribbons.h"
+#include "ff8/battle/status_countdown.h"
 #include "ff8/kernel_magic.h"
 #include "ff8/kernel_ability.h"
 #include "ff8/battle/monsters.h"
@@ -2461,6 +2464,21 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// Field scripts and models in sync with movies above 15 FPS
 	// #####################
 	ff8_field_movie_init();
+
+	// #####################
+	// Battle sounds and field footsteps panned like on PSX
+	// #####################
+	ff8_sound_pan_init();
+
+	// #####################
+	// Lightning and acid ribbons as wide as on PSX
+	// #####################
+	ff8_battle_effects_ribbons_init();
+
+	// #####################
+	// Status countdown numbers placed like on PSX
+	// #####################
+	ff8_battle_status_countdown_init();
 
 	// #####################
 	// native battle effect code
