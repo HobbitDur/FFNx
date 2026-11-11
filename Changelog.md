@@ -9,7 +9,7 @@
 
 ## FF8
 
-- Battle: Fix the missing light on Cure, Cura, Potion and Hi-Potion, and the missing swirl on Hypnotize
+- Battle: Fix the missing light on Cure, Cura, Potion and Hi-Potion, and the missing swirl on Hypnotize and the missing flash on ChocoBocle
 - External textures: Reduce battle and magic loading hitches by loading classic palettes on demand and avoiding repeated virtual archive metadata checks ( https://github.com/julianxhokaxhiu/FFNx/issues/778 )
 - External textures: Fix custom controller icons not loading with `ff8_use_gamepad_icons` enabled due to an incorrect fallback to low-resolution icons
 - Core: Fix learned abilities past ID 127 being lost when loading a save ( https://github.com/julianxhokaxhiu/FFNx/pull/1058 )

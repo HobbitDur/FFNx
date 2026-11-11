@@ -4578,6 +4578,11 @@ namespace
 	{
 		// screen clip test of the renderers of this module: outside 0..hi (signed 16-bit)
 		inline bool b101_out(int16_t v, int16_t hi) { return v < 0 || v > hi; }
+		// PC SCREEN UNITS: the exe tests 320 x 216 (0x140, 0xD8), PSX pixels, while the PC's GTE gives
+		// eighths of a pixel, so the flash and ring around the falling chocobo never drew; the other
+		// copies of these renderers use 320 * 8 and 216 * 8 on PC, as here (FFNx PR 1083 patches the exe)
+		constexpr int16_t B101_X_LIMIT = 0x140 * 8;
+		constexpr int16_t B101_Y_LIMIT = 0xD8 * 8;
 
 		// common tail of every renderer: OTZ (ctx+0x2C) += (int16)a5, clamped to >= 0x10,
 		// InsertPrim at OT a2 [otz >> a3]
@@ -4686,12 +4691,12 @@ namespace
 				{
 					x::GTE_ReadSXY012_Split(pkt + 8, pkt + 0xC, pkt + 0x10);
 					x::GTE_AVSZ3();
-					uint32_t clip = b101_out(S16(pkt, 8), 0x140) ? 1 : zero;
-					if (b101_out(S16(pkt, 0xC), 0x140)) clip |= 2;
-					if (b101_out(S16(pkt, 0x10), 0x140)) clip |= 4;
-					if (b101_out(S16(pkt, 0xA), 0xD8)) clip |= 0x10;
-					if (b101_out(S16(pkt, 0xE), 0xD8)) clip |= 0x20;
-					if (b101_out(S16(pkt, 0x12), 0xD8)) clip |= 0x40;
+					uint32_t clip = b101_out(S16(pkt, 8), B101_X_LIMIT) ? 1 : zero;
+					if (b101_out(S16(pkt, 0xC), B101_X_LIMIT)) clip |= 2;
+					if (b101_out(S16(pkt, 0x10), B101_X_LIMIT)) clip |= 4;
+					if (b101_out(S16(pkt, 0xA), B101_Y_LIMIT)) clip |= 0x10;
+					if (b101_out(S16(pkt, 0xE), B101_Y_LIMIT)) clip |= 0x20;
+					if (b101_out(S16(pkt, 0x12), B101_Y_LIMIT)) clip |= 0x40;
 					if ((clip & 7) != 7 && (clip & 0x70) != 0x70)
 					{
 						x::GTE_ReadOTZ(ctx + 0x2C);
@@ -4756,16 +4761,16 @@ namespace
 					x::GTE_ReadSXY012_Split(pkt + 8, pkt + 0xC, pkt + 0x10);
 					x::GTE_LoadV0(vtx + (uint32_t)U16(rec, 0xA) * 4);
 					x::GTE_RTPS();
-					if (b101_out(S16(pkt, 8), 0x140)) clip = 1;
-					if (b101_out(S16(pkt, 0xC), 0x140)) clip |= 2;
-					if (b101_out(S16(pkt, 0x10), 0x140)) clip |= 4;
-					if (b101_out(S16(pkt, 0xA), 0xD8)) clip |= 0x10;
-					if (b101_out(S16(pkt, 0xE), 0xD8)) clip |= 0x20;
-					if (b101_out(S16(pkt, 0x12), 0xD8)) clip |= 0x40;
+					if (b101_out(S16(pkt, 8), B101_X_LIMIT)) clip = 1;
+					if (b101_out(S16(pkt, 0xC), B101_X_LIMIT)) clip |= 2;
+					if (b101_out(S16(pkt, 0x10), B101_X_LIMIT)) clip |= 4;
+					if (b101_out(S16(pkt, 0xA), B101_Y_LIMIT)) clip |= 0x10;
+					if (b101_out(S16(pkt, 0xE), B101_Y_LIMIT)) clip |= 0x20;
+					if (b101_out(S16(pkt, 0x12), B101_Y_LIMIT)) clip |= 0x40;
 					x::GTE_ReadSXY2(pkt + 0x14);
 					x::GTE_AVSZ4();
-					if (b101_out(S16(pkt, 0x14), 0x140)) clip |= 8;
-					if (b101_out(S16(pkt, 0x16), 0xD8)) clip |= 0x80;
+					if (b101_out(S16(pkt, 0x14), B101_X_LIMIT)) clip |= 8;
+					if (b101_out(S16(pkt, 0x16), B101_Y_LIMIT)) clip |= 0x80;
 					if ((clip & 0xF) != 0xF && (clip & 0xF0) != 0xF0)
 					{
 						x::GTE_ReadOTZ(ctx + 0x2C);
@@ -4845,12 +4850,12 @@ namespace
 				{
 					x::GTE_ReadSXY012_Split(pkt + 8, pkt + 0x10, pkt + 0x18);
 					x::GTE_AVSZ3();
-					uint32_t clip = b101_out(S16(pkt, 8), 0x140) ? 1 : zero;
-					if (b101_out(S16(pkt, 0x10), 0x140)) clip |= 2;
-					if (b101_out(S16(pkt, 0x18), 0x140)) clip |= 4;
-					if (b101_out(S16(pkt, 0xA), 0xD8)) clip |= 0x10;
-					if (b101_out(S16(pkt, 0x12), 0xD8)) clip |= 0x20;
-					if (b101_out(S16(pkt, 0x1A), 0xD8)) clip |= 0x40;
+					uint32_t clip = b101_out(S16(pkt, 8), B101_X_LIMIT) ? 1 : zero;
+					if (b101_out(S16(pkt, 0x10), B101_X_LIMIT)) clip |= 2;
+					if (b101_out(S16(pkt, 0x18), B101_X_LIMIT)) clip |= 4;
+					if (b101_out(S16(pkt, 0xA), B101_Y_LIMIT)) clip |= 0x10;
+					if (b101_out(S16(pkt, 0x12), B101_Y_LIMIT)) clip |= 0x20;
+					if (b101_out(S16(pkt, 0x1A), B101_Y_LIMIT)) clip |= 0x40;
 					if ((clip & 7) != 7 && (clip & 0x70) != 0x70)
 					{
 						x::GTE_ReadOTZ(ctx + 0x2C);
@@ -4934,16 +4939,16 @@ namespace
 					x::GTE_ReadSXY012_Split(pkt + 8, pkt + 0x10, pkt + 0x18);
 					x::GTE_LoadV0(vtx + (uint32_t)U16(rec, 0xA) * 4);
 					x::GTE_RTPS();
-					uint32_t clip = b101_out(S16(pkt, 8), 0x140) ? 1 : zero;
-					if (b101_out(S16(pkt, 0x10), 0x140)) clip |= 2;
-					if (b101_out(S16(pkt, 0x18), 0x140)) clip |= 4;
-					if (b101_out(S16(pkt, 0xA), 0xD8)) clip |= 0x10;
-					if (b101_out(S16(pkt, 0x12), 0xD8)) clip |= 0x20;
-					if (b101_out(S16(pkt, 0x1A), 0xD8)) clip |= 0x40;
+					uint32_t clip = b101_out(S16(pkt, 8), B101_X_LIMIT) ? 1 : zero;
+					if (b101_out(S16(pkt, 0x10), B101_X_LIMIT)) clip |= 2;
+					if (b101_out(S16(pkt, 0x18), B101_X_LIMIT)) clip |= 4;
+					if (b101_out(S16(pkt, 0xA), B101_Y_LIMIT)) clip |= 0x10;
+					if (b101_out(S16(pkt, 0x12), B101_Y_LIMIT)) clip |= 0x20;
+					if (b101_out(S16(pkt, 0x1A), B101_Y_LIMIT)) clip |= 0x40;
 					x::GTE_ReadSXY2(pkt + 0x20);
 					x::GTE_AVSZ4();
-					if (b101_out(S16(pkt, 0x20), 0x140)) clip |= 8;
-					if (b101_out(S16(pkt, 0x22), 0xD8)) clip |= 0x80;
+					if (b101_out(S16(pkt, 0x20), B101_X_LIMIT)) clip |= 8;
+					if (b101_out(S16(pkt, 0x22), B101_Y_LIMIT)) clip |= 0x80;
 					if ((clip & 0xF) != 0xF && (clip & 0xF0) != 0xF0)
 					{
 						x::GTE_ReadOTZ(ctx + 0x2C);
@@ -5007,12 +5012,12 @@ namespace
 				{
 					x::GTE_ReadSXY012_Split(pkt + 8, pkt + 0x10, pkt + 0x18);
 					x::GTE_AVSZ3();
-					uint32_t clip = b101_out(S16(pkt, 8), 0x140) ? 1 : zero;
-					if (b101_out(S16(pkt, 0x10), 0x140)) clip |= 2;
-					if (b101_out(S16(pkt, 0x18), 0x140)) clip |= 4;
-					if (b101_out(S16(pkt, 0xA), 0xD8)) clip |= 0x10;
-					if (b101_out(S16(pkt, 0x12), 0xD8)) clip |= 0x20;
-					if (b101_out(S16(pkt, 0x1A), 0xD8)) clip |= 0x40;
+					uint32_t clip = b101_out(S16(pkt, 8), B101_X_LIMIT) ? 1 : zero;
+					if (b101_out(S16(pkt, 0x10), B101_X_LIMIT)) clip |= 2;
+					if (b101_out(S16(pkt, 0x18), B101_X_LIMIT)) clip |= 4;
+					if (b101_out(S16(pkt, 0xA), B101_Y_LIMIT)) clip |= 0x10;
+					if (b101_out(S16(pkt, 0x12), B101_Y_LIMIT)) clip |= 0x20;
+					if (b101_out(S16(pkt, 0x1A), B101_Y_LIMIT)) clip |= 0x40;
 					if ((clip & 7) != 7 && (clip & 0x70) != 0x70)
 					{
 						x::GTE_ReadOTZ(ctx + 0x2C);
@@ -5082,16 +5087,16 @@ namespace
 					x::GTE_ReadSXY012_Split(pkt + 8, pkt + 0x10, pkt + 0x18);
 					x::GTE_LoadV0(vtx + (uint32_t)U16(rec, 0xA) * 4);
 					x::GTE_RTPS();
-					if (b101_out(S16(pkt, 8), 0x140)) clip = 1;
-					if (b101_out(S16(pkt, 0x10), 0x140)) clip |= 2;
-					if (b101_out(S16(pkt, 0x18), 0x140)) clip |= 4;
-					if (b101_out(S16(pkt, 0xA), 0xD8)) clip |= 0x10;
-					if (b101_out(S16(pkt, 0x12), 0xD8)) clip |= 0x20;
-					if (b101_out(S16(pkt, 0x1A), 0xD8)) clip |= 0x40;
+					if (b101_out(S16(pkt, 8), B101_X_LIMIT)) clip = 1;
+					if (b101_out(S16(pkt, 0x10), B101_X_LIMIT)) clip |= 2;
+					if (b101_out(S16(pkt, 0x18), B101_X_LIMIT)) clip |= 4;
+					if (b101_out(S16(pkt, 0xA), B101_Y_LIMIT)) clip |= 0x10;
+					if (b101_out(S16(pkt, 0x12), B101_Y_LIMIT)) clip |= 0x20;
+					if (b101_out(S16(pkt, 0x1A), B101_Y_LIMIT)) clip |= 0x40;
 					x::GTE_ReadSXY2(pkt + 0x20);
 					x::GTE_AVSZ4();
-					if (b101_out(S16(pkt, 0x20), 0x140)) clip |= 8;
-					if (b101_out(S16(pkt, 0x22), 0xD8)) clip |= 0x80;
+					if (b101_out(S16(pkt, 0x20), B101_X_LIMIT)) clip |= 8;
+					if (b101_out(S16(pkt, 0x22), B101_Y_LIMIT)) clip |= 0x80;
 					if ((clip & 0xF) != 0xF && (clip & 0xF0) != 0xF0)
 					{
 						x::GTE_ReadOTZ(ctx + 0x2C);
