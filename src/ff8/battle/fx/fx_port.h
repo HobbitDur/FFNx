@@ -423,6 +423,7 @@ namespace ff8fx
 	void register_mag282_evil_eye();
 	void register_mag285_thunder_summon();
 	void register_mag286_mini_pulse_cannon();
+	void register_mag283_magic_summon();
 	void register_mag241_bgh_gatling_gun();
 	void register_mag242_bgh_beam_cannon();
 	void register_mag243_bgh_turret1_explode();
