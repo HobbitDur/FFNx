@@ -5,6 +5,7 @@
 ## FF8
 
 - Battle: Fix the missing light on Cure, Cura, Potion and Hi-Potion, and the missing swirl on Hypnotize
+- Core: Fix battle sounds playing almost all on the right and field footsteps jumping from one side to the other, they are panned from the screen position like on PSX ( https://github.com/julianxhokaxhiu/FFNx/pull/1084 )
 
 # 1.25.1
 
