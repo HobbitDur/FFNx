@@ -442,10 +442,10 @@ namespace megaspark279
 		else
 		{
 			if (S16(next, sxy + 4) < 0) return;
-			const int32_t dx = (int32_t)S16(next, sxy) - S16(p, sxy);
+			const int32_t dx = ScreenPx(S16(next, sxy)) - ScreenPx(S16(p, sxy));
 			int32_t ax = dx < 0 ? -dx : dx;
 			if (ax >= 0x80) ax = 0x7F;
-			const int32_t dy = (int32_t)S16(p, sxy + 2) - S16(next, sxy + 2);
+			const int32_t dy = ScreenPx(S16(p, sxy + 2)) - ScreenPx(S16(next, sxy + 2));
 			int32_t ay = dy < 0 ? -dy : dy;
 			if (ay >= 0x80) ay = 0x7F;
 			const int32_t dist = U8(TBL_Distance, ay * 128 + ax);
@@ -490,8 +490,8 @@ namespace megaspark279
 				out[1] = (int16_t)ny;
 			}
 			const int32_t w = num / ((int32_t)S16(p, sxy + 4) + den);
-			oy = mul32(w, ny) >> 12;
-			ox = mul32(w, nx) >> 12;
+			oy = ScreenEighths(mul32(w, ny) >> 12);
+			ox = ScreenEighths(mul32(w, nx) >> 12);
 		}
 		const int16_t x = S16(p, sxy), y = S16(p, sxy + 2);
 		S16(p, sxy) = (int16_t)(x - ox);

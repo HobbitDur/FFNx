@@ -789,10 +789,10 @@ namespace xatm276
 		else
 		{
 			if (S16(next, 4) < 0) return;
-			const int32_t dx = (int32_t)S16(next, 0) - S16(p, 0);
+			const int32_t dx = ScreenPx(S16(next, 0)) - ScreenPx(S16(p, 0));
 			int32_t ax = dx < 0 ? -dx : dx;
 			if (ax >= 0x80) ax = 0x7F;
-			const int32_t dy = (int32_t)S16(p, 2) - S16(next, 2);
+			const int32_t dy = ScreenPx(S16(p, 2)) - ScreenPx(S16(next, 2));
 			int32_t ay = dy < 0 ? -dy : dy;
 			if (ay >= 0x80) ay = 0x7F;
 			const int32_t dist = U8(ARC_Distance, ay * 128 + ax);
@@ -837,8 +837,8 @@ namespace xatm276
 				out[1] = (int16_t)ny;
 			}
 			const int32_t w = shl32(S16(next, 6), 5) / ((int32_t)S16(p, 4) + 0x400);
-			oy = mul32(w, ny) >> 12;
-			ox = mul32(w, nx) >> 12;
+			oy = ScreenEighths(mul32(w, ny) >> 12);
+			ox = ScreenEighths(mul32(w, nx) >> 12);
 		}
 		const int16_t x = S16(p, 0), y = S16(p, 2);
 		S16(p, 0) = (int16_t)(x - ox);

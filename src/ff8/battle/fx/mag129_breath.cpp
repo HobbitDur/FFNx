@@ -644,8 +644,8 @@ namespace breath129
 		if (n)
 		{
 			if (n->otz < 0) return;
-			int32_t dx = n->sx - s->sx;
-			int32_t ndy = s->sy - n->sy;
+			int32_t dx = ScreenPx(n->sx) - ScreenPx(s->sx);
+			int32_t ndy = ScreenPx(s->sy) - ScreenPx(n->sy);
 			int32_t adx = dx < 0 ? -dx : dx, ady = ndy < 0 ? -ndy : ndy;
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
@@ -682,8 +682,8 @@ namespace breath129
 				dir[1] = (int16_t)py;
 			}
 			int32_t w = shl32(n->width, 5) / (s->otz + 0x400);
-			ox = mul32(w, px) >> 12;
-			oy = mul32(w, py) >> 12;
+			ox = ScreenEighths(mul32(w, px) >> 12);
+			oy = ScreenEighths(mul32(w, py) >> 12);
 		}
 		int16_t x = s->sx, y = s->sy;
 		s->sx = (int16_t)(x - ox);
