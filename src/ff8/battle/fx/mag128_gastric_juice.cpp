@@ -638,8 +638,8 @@ namespace gastric128
 		if (n)
 		{
 			if (n->otz < 0) return;
-			const int32_t dx = n->sx - p->sx;
-			const int32_t ndy = p->sy - n->sy;
+			const int32_t dx = ScreenPx(n->sx) - ScreenPx(p->sx);
+			const int32_t ndy = ScreenPx(p->sy) - ScreenPx(n->sy);
 			int32_t adx = dx < 0 ? -dx : dx, ady = ndy < 0 ? -ndy : ndy;
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
@@ -684,8 +684,8 @@ namespace gastric128
 				dir[1] = (int16_t)py;
 			}
 			const int32_t w = shl32(n->width, 5) / (p->otz + 0x200);
-			ox = mul32(w, px) >> 12;
-			oy = mul32(w, py) >> 12;
+			ox = ScreenEighths(mul32(w, px) >> 12);
+			oy = ScreenEighths(mul32(w, py) >> 12);
 		}
 		const int16_t x = p->sx, y = p->sy;
 		p->sx = (int16_t)(x - ox);

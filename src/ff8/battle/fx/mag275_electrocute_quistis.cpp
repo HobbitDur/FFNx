@@ -267,10 +267,10 @@ namespace elec275
 		else
 		{
 			if (next->otz < 0) return;
-			const int32_t dx = (int32_t)next->sxy[0] - p->sxy[0];
+			const int32_t dx = ScreenPx(next->sxy[0]) - ScreenPx(p->sxy[0]);
 			int32_t ax = dx < 0 ? -dx : dx;
 			if (ax >= 0x80) ax = 0x7F;
-			const int32_t dy = (int32_t)p->sxy[1] - next->sxy[1];
+			const int32_t dy = ScreenPx(p->sxy[1]) - ScreenPx(next->sxy[1]);
 			int32_t ay = dy < 0 ? -dy : dy;
 			if (ay >= 0x80) ay = 0x7F;
 			const int32_t len = LEN_Table[ay * 128 + ax];
@@ -315,8 +315,8 @@ namespace elec275
 				out[1] = (int16_t)uy;
 			}
 			const int32_t w = shl32(width, 5) / ((int32_t)p->otz + bias);
-			ox = mul32(w, ux) >> 12;
-			oy = mul32(w, uy) >> 12;
+			ox = ScreenEighths(mul32(w, ux) >> 12);
+			oy = ScreenEighths(mul32(w, uy) >> 12);
 		}
 		const int16_t x = p->sxy[0], y = p->sxy[1];
 		p->sxy[0] = (int16_t)(x - ox);
