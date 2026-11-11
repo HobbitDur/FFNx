@@ -473,6 +473,7 @@ namespace ff8fx::mod
 		{ 285, 0x2507D08, 0x2507DAC, 0, 0, false, "Thunder Summon (attack 242, Catoblepas)", streams_q299, 4 },
 		{ 286, 0x2507CA8, 0x2507D04, 0, 0, false, "Mini Pulse Cannon (attack 293, Droma)", streams_q299, 4 },
 		{ 279, 0x2508070, 0x2508110, 0, 0, false, "Mega Spark (attack 106, Tri-Point)", streams_q299, 4 },
+		{ 287, 0x25562F8, 0x2556384, 0, 0, false, "Mega Pulse Cannon (attack 292, Trauma)", streams_q299, 4 },
 		{ 283, 0x2507E20, 0x2507E90, 0, 0, false, "Magic Summon (attack 261, Sphinxara)", streams_q299, 4 },
 		{ 241, 0x2796860, 0x2798C40, 0, 0, false, "Gatling Gun (attack 138, BGH251F2)", streams_gfc, 5 },
 		{ 242, 0x2796828, 0x2798C40, 0, 0, false, "Beam Cannon (attack 139, BGH251F2)", streams_gfc, 5 },
