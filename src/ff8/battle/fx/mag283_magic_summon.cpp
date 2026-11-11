@@ -53,6 +53,7 @@
 // pixels (distance clamp 0x80, the distance table, the radius): the warp reaches ~16 px (the clip window is already x 8).
 
 #include "mag_common.h"
+#include "fx_params.h"
 
 namespace ff8fx
 {
@@ -712,6 +713,7 @@ namespace magicsummon283
 		// 30 fps layer: see mag283_magic_summon_held.inc
 		FX_HELD(register_mag283_held();)
 	}
+	FX_LAB_MODULE(register_mag283_magic_summon);
 }
 
 #ifdef FF8_FX_HELD
