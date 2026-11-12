@@ -50,9 +50,15 @@
 // nothing that draws - modelled by PointPad: on counter 0 (the root's setup tick) the high half of the entity pointer the
 // setup's GetDefaultEffectPosition 0x571400 call left there (0x01D9), later 0 (verified under the game executor, oe).
 
+// Fujin's described Energy Bomber (effect_217.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (BomberParams: the sound and the damage,
+// the screen flash, the ball's way, the burst, the sparks, the two layouts, the trail mesh, the spark
+// flipbook, the texture name and the camera track). FX_PART tags its parts in the lab.
+
 #include "mag_common.h"
 #include "fx_params.h"
 #include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -62,14 +68,15 @@ namespace bomber217
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x25087F0); }               // the effect's file (its TIM)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25087F4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25087F8); }               // caster entity (setup)
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25087FC); }               // target 0 of action 0 (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508800; }                // pool: + 0, 0x40 x 0x20
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2508810; }                  // pool: + 0x800, 1 x 0x684
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508844); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250886C); }               // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25087F0)); }               // the effect's file (its TIM)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25087F4)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25087F8)); }               // caster entity (setup)
+	inline uint8_t *&Target() { return var<uint8_t *>(own::R(0x25087FC)); }               // target 0 of action 0 (setup)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2508800); }                // pool: + 0, 0x40 x 0x20
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2508810); }                  // pool: + 0x800, 1 x 0x684
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2508844)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x250886C)); }               // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2508820); }                 // 1 x 0x14 (pool 0x2508830)
 
 	static const uint32_t ORIG_RootTask = 0x694F30;
 	static const uint32_t ORIG_MainTask = 0x695050;
@@ -85,6 +92,34 @@ namespace bomber217
 	static const uint32_t SEQ_Spark = 0x1135900;         // sprite sequence
 	static const void *const SOUND_Start = (const void *)0x11355D0;
 	static const uint32_t FLASH = 0x8FC;                 // screen flash level
+	static const uint32_t ORIG_FileLoader = 0x694E70, ORIG_Setup = 0x694E60;
+	static const uint32_t TEXTURE_NAME = 0x113C19C, CAMERA_ANIM = 0x11355D4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_BALL = 1, PART_TRAIL = 2, PART_BURST = 3, PART_SPARKS = 4 };
+	struct BomberParams
+	{
+		uint32_t sound;                                     // at the main task's sound tick
+		struct { int16_t sound, damage, end; } timing;      // the main task's ticks
+		struct { int16_t level, rise, fall; } flash;        // the screen flash: up over rise ticks, down over the last fall
+		// the ball: at the caster's bone (lift higher) until the throw tick, thrown along its last step until the hop
+		// tick, then three eased hops of 4 ticks (a random point spread around the target, height up; its mirror; the target)
+		struct { int16_t bone, lift, throw_tick, hop_tick, height, spread; } ball;
+		struct { int16_t tick, ticks; } burst;              // the burst layout at the target: its first tick, how long
+		struct { int16_t ticks, per_tick, speed, speed_rand, drag, life, size, depth; } sparks; // from the burst's ticks 1..ticks
+		struct { uint32_t ball, burst; } layouts;           // the prim-model layouts played (their models' animation)
+		struct { uint32_t trail; } models;                  // the prim model drawn (mesh)
+		struct { uint32_t spark; } seqs;                    // the sprite sequence drawn (flipbook)
+		struct { uint32_t texture_name, camera; } res;      // its resources (data): texture file name, camera track
+	};
+	static const BomberParams GAME = { 0x11355D0, { 0, 0x4E, 0x56 }, { (int16_t)FLASH, 12, 12 }, { 0x27, 0x200, 0x2F, 0x37, 0x7D0, 0x800 },
+		{ 0x3F, 0x17 }, { 4, 0x10, 0x200, 0x200, 4, 0xC, 0x800, -0x200 },
+		{ LAYOUT_Ball, LAYOUT_Burst }, { MODEL_Trail }, { SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static BomberParams live = GAME;
+	static const BomberParams &PB() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	using layouts::GetEffectSpawnPosition;
@@ -164,11 +199,12 @@ namespace bomber217
 	// (false)
 	static bool BallPoint(MainNode *m, int32_t c, int16_t *P, bool rand_hop)
 	{
-		if (c < 0x2F)
+		const int32_t T = PB().ball.throw_tick, H = PB().ball.hop_tick;
+		if (c < T)
 		{
-			GetEffectSpawnPosition(Caster(), 0x27, 0, P);
-			P[1] = (int16_t)(P[1] - 0x200);
-			if (c == 0x2E)
+			GetEffectSpawnPosition(Caster(), PB().ball.bone, 0, P);
+			P[1] = (int16_t)(P[1] - PB().ball.lift);
+			if (c == T - 1)
 			{
 				m->vel[0] = (int16_t)(P[0] - m->pos[0]);
 				m->vel[1] = (int16_t)(P[1] - m->pos[1]);
@@ -177,7 +213,7 @@ namespace bomber217
 			memcpy(m->pos, P, 8);
 			return true;
 		}
-		if (c < 0x37)
+		if (c < H)
 		{
 			m->pos[0] = (int16_t)(m->pos[0] + m->vel[0]);
 			m->pos[1] = (int16_t)(m->pos[1] + m->vel[1]);
@@ -186,22 +222,22 @@ namespace bomber217
 			return true;
 		}
 		int32_t s;
-		if (c < 0x3B)
+		if (c < H + 4)
 		{
-			s = HopWeight(c - 0x37);
-			if (c == 0x37)
+			s = HopWeight(c - H);
+			if (c == H)
 			{
 				if (!rand_hop) return false;
 				const int32_t r = CrtRand();
-				m->hop[1] = (int16_t)(m->target[1] - 0x7D0);
-				m->hop[0] = (int16_t)((int16_t)((r & 0xFFF) + m->target[0]) - 0x800);
+				m->hop[1] = (int16_t)(m->target[1] - PB().ball.height);
+				m->hop[0] = (int16_t)((int16_t)(r % (2 * PB().ball.spread) + m->target[0]) - PB().ball.spread);
 				m->hop[2] = (int16_t)(((int32_t)m->pos[2] - m->target[2]) * 3 / 4 + m->target[2]);
 			}
 		}
-		else if (c < 0x3F)
+		else if (c < H + 8)
 		{
-			s = HopWeight(c - 0x3B);
-			if (c == 0x3B)
+			s = HopWeight(c - (H + 4));
+			if (c == H + 4)
 			{
 				memcpy(m->pos, m->hop, 8);
 				m->hop[0] = (int16_t)-m->hop[0];
@@ -211,8 +247,8 @@ namespace bomber217
 		}
 		else
 		{
-			s = HopWeight(c - 0x3F);
-			if (c == 0x3F)
+			s = HopWeight(c - (H + 8));
+			if (c == H + 8)
 			{
 				memcpy(m->pos, m->hop, 8);
 				m->hop[0] = m->target[0];
@@ -243,7 +279,7 @@ namespace bomber217
 		m->m[0][1] = 0;
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Trail;
+		*(uint32_t *)h = fxp::model(PB().models.trail, MODEL_Trail);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		*(uint32_t *)(h + 8) = 0;
 		*(int32_t *)(h + 0xC) = shl32(i, 10) / 2 + 0xC00;
@@ -253,9 +289,9 @@ namespace bomber217
 	// the spark (0x695930..0x69598F): sequence frame at pos through the shadow-rotation camera
 	static void SparkDraw(int16_t *pos, int16_t frame)
 	{
-		TransformCameraByShadowRotation(pos, 0x800, -0x200);
+		TransformCameraByShadowRotation(pos, PB().sparks.size, PB().sparks.depth);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(PB().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, OT() + 0x44, 2, PacketCursor());
@@ -264,9 +300,10 @@ namespace bomber217
 
 	static int32_t FlashLevel(int32_t c)
 	{
-		if (c < 0xC) return mul32(c, FLASH) / 12;
-		if (c >= 0x4A) return mul32(0x56 - c, FLASH) / 12;
-		return FLASH;
+		const int32_t level = PB().flash.level, end = PB().timing.end;
+		if (c < PB().flash.rise) return mul32(c, level) / PB().flash.rise;
+		if (c >= end - PB().flash.fall) return mul32(end - c, level) / PB().flash.fall;
+		return level;
 	}
 }
 }
@@ -280,6 +317,30 @@ namespace ff8fx
 namespace bomber217
 {
 	// ------------------------------------------------------------------
+	// File loader (0x694E70) and setup (0x694E60 -> _Init 0x694E90): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast, its caster's and first target's entities, the root
+	// (it sets up the rest), the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PB().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		Target() = Entity(ctx->actions[0].targets[0]);
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2508830), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PB().res.camera, CAMERA_ANIM));
+		return QRoot();
+	}
+
+	// ------------------------------------------------------------------
 	// Spark (0x695930)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTask(TaskNode *n)
@@ -287,6 +348,7 @@ namespace bomber217
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag217_energy_bomber_held.inc
 		FX_HELD(held_note_spark(n);)
+		FX_PART(PART_SPARKS);
 		SparkDraw(s->pos, s->counter);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
 		s->vel[1] = (int16_t)(s->vel[1] + s->drag[1]);
@@ -295,7 +357,7 @@ namespace bomber217
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
 		s->counter++;
-		return s->counter < 0xC ? 0 : TASK_END;
+		return s->counter < PB().sparks.life ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -306,24 +368,27 @@ namespace bomber217
 		MainNode *m = (MainNode *)n;
 		SetScreenFlash(FlashLevel(m->counter), 0);
 		const int32_t c = m->counter;
-		if ((uint32_t)c < 0x43)
+		const int32_t H = PB().ball.hop_tick;
+		if ((uint32_t)c < (uint32_t)(H + 12))
 		{
 			int16_t P[4];
 			P[3] = PointPad(c);
 			BallPoint(m, c, P, true);
 			// 30 fps layer: see mag217_energy_bomber_held.inc
 			FX_HELD(held_note_ball(m, P);)
+			FX_PART(PART_BALL);
 			Play(m->layout_ball, P);
 			if (m->count > 0)
 			{
 				// 30 fps layer: see mag217_energy_bomber_held.inc
 				FX_HELD(held_note_trail(m);)
+				FX_PART(PART_TRAIL);
 				uint8_t *h = (uint8_t *)FieldAlloc(0x78);
 				for (int32_t i = m->index; i < m->count; i++) TrailDraw(h, m->trail[i], i);
 				FieldFree(0x78);
 				m->index++;
 			}
-			if ((uint32_t)c >= 0x37)
+			if ((uint32_t)c >= (uint32_t)H)
 			{
 				memcpy(m->trail[1], m->trail[0], 8);
 				m->count++;
@@ -332,14 +397,14 @@ namespace bomber217
 				m->index = 0;
 			}
 		}
-		const int32_t k = m->counter - 0x3F;
-		if ((uint32_t)k < 0x17)
+		const int32_t k = m->counter - PB().burst.tick;
+		if ((uint32_t)k < (uint32_t)PB().burst.ticks)
 		{
-			if (k == 0) DecodeModelPrimLayout(LAYOUT_Burst, m->layout_burst, 0x2A8);
-			else if (k < 5)
+			if (k == 0) DecodeModelPrimLayout(fxp::layout(PB().layouts.burst, LAYOUT_Burst, 0x2A8), m->layout_burst, 0x2A8);
+			else if (k <= PB().sparks.ticks)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
-				for (int left = 0x10; s; )
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
+				for (int left = PB().sparks.per_tick; s; )
 				{
 					s->counter = 0;
 					s->pos[0] = m->target[0];
@@ -349,26 +414,27 @@ namespace bomber217
 					const int32_t yaw = CrtRand();
 					const int32_t pitch = CrtRand();
 					DirectionFromAngles(pitch, yaw, s->vel);
-					const int32_t speed = (CrtRand() & 0x1FF) + 0x200;
+					const int32_t speed = CrtRand() % PB().sparks.speed_rand + PB().sparks.speed;
 					s->vel[0] = (int16_t)(mul32(s->vel[0], speed) >> 12);
 					s->vel[1] = (int16_t)(mul32(s->vel[1], speed) >> 12);
 					s->vel[2] = (int16_t)(mul32(s->vel[2], speed) >> 12);
-					s->drag[0] = (int16_t)(-(int32_t)s->vel[0] >> 4);
-					s->drag[1] = (int16_t)(-(int32_t)s->vel[1] >> 4);
-					s->drag[2] = (int16_t)(-(int32_t)s->vel[2] >> 4);
+					s->drag[0] = (int16_t)(-(int32_t)s->vel[0] >> PB().sparks.drag);
+					s->drag[1] = (int16_t)(-(int32_t)s->vel[1] >> PB().sparks.drag);
+					s->drag[2] = (int16_t)(-(int32_t)s->vel[2] >> PB().sparks.drag);
 					if (--left == 0) break;
-					s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				}
 			}
 			// 30 fps layer: see mag217_energy_bomber_held.inc
 			FX_HELD(held_note_burst(m);)
+			FX_PART(PART_BURST);
 			Play(m->layout_burst, m->target);
 		}
-		if (m->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (m->counter == 0x4E) ApplyActionResultToTarget(Ctx()->actions->targets);
-		if (m->counter >= 0x56)
+		if (m->counter == PB().timing.sound) BdPlaySE((const void *)fxp::sound(PB().sound, (uint32_t)SOUND_Start), 0, 0x80);
+		if (m->counter == PB().timing.damage) ApplyActionResultToTarget(Ctx()->actions->targets);
+		if (m->counter >= PB().timing.end)
 		{
-			if (m->counter == 0x56)
+			if (m->counter == PB().timing.end)
 			{
 				SetScreenFlash(0, 0);
 				m->counter++;
@@ -402,9 +468,9 @@ namespace bomber217
 			rt->started = 1;
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x684, 1);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x20, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x19E);
-			DecodeModelPrimLayout(LAYOUT_Ball, m->layout_ball, 0x398);
+			DecodeModelPrimLayout(fxp::layout(PB().layouts.ball, LAYOUT_Ball, 0x398), m->layout_ball, 0x398);
 			GetDefaultEffectPosition(Target(), m->target);
 		}
 		int main = (int)n;
@@ -422,12 +488,66 @@ namespace bomber217
 		rt->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The main task's timeline: the sound, the damage, its end; the screen flash rising and falling; the texture and the camera" },
+			{ PART_BALL, "ball", "Energy ball", "The ball layout forming at the caster's bone, thrown, then hopping three times to the target" },
+			{ PART_TRAIL, "trail", "Trail", "Two trail meshes behind the ball once it hops (their fade words are never read: the renderer's draw mode 0x30 has no fade)" },
+			{ PART_BURST, "burst", "Burst", "The burst layout at the target" },
+			{ PART_SPARKS, "sparks", "Sparks", "Sparks flying off the target from the burst's first ticks, slowing" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flash", "Screen flash", "Its level, rising over the first ticks, falling over the last ones" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the main task's sound tick", (uint32_t)offsetof(BomberParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.sound", "Sound tick", "The sound at this tick of the main task", (uint32_t)offsetof(BomberParams, timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.damage", "Damage tick", "The damage at this tick of the main task", (uint32_t)offsetof(BomberParams, timing.damage), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End tick", "The main task's last tick (the screen flash falls toward it; sparks still alive then are dropped)", (uint32_t)offsetof(BomberParams, timing.end), fxp::I16, 1, 200 },
+			{ "director", "flash.level", "Level", "The screen flash's level (4096 = full white)", (uint32_t)offsetof(BomberParams, flash.level), fxp::I16, 0, 0x1000 },
+			{ "director", "flash.rise", "Rise ticks", "It rises over the main task's first ticks (at least 1)", (uint32_t)offsetof(BomberParams, flash.rise), fxp::I16, 1, 200 },
+			{ "director", "flash.fall", "Fall ticks", "It falls over its last ticks, to 0 at the end tick (at least 1)", (uint32_t)offsetof(BomberParams, flash.fall), fxp::I16, 1, 200 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BomberParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BomberParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "ball", "ball.bone", "Bone", "The caster's bone the ball forms at", (uint32_t)offsetof(BomberParams, ball.bone), fxp::I16, 0, 0xFF },
+			{ "ball", "ball.lift", "Lift", "The ball this much above the bone (y up)", (uint32_t)offsetof(BomberParams, ball.lift), fxp::I16, -4000, 4000 },
+			{ "ball", "ball.throw_tick", "Throw tick", "The ball follows the bone until this tick, then flies on along its last step", (uint32_t)offsetof(BomberParams, ball.throw_tick), fxp::I16, 1, 200 },
+			{ "ball", "ball.hop_tick", "Hop tick", "From this tick three eased hops of 4 ticks each to the target (the trail from then)", (uint32_t)offsetof(BomberParams, ball.hop_tick), fxp::I16, 1, 200 },
+			{ "ball", "ball.height", "Hop height", "The first hop's point this high above the target", (uint32_t)offsetof(BomberParams, ball.height), fxp::I16, -8000, 8000 },
+			{ "ball", "ball.spread", "Hop spread", "The first hop's point: a random x up to this either side of the target (the second hop mirrors it; at least 1)", (uint32_t)offsetof(BomberParams, ball.spread), fxp::I16, 1, 0x3FFF },
+			{ "ball", "layouts.ball", "Ball", "The prim-model layout of the ball (its models' animation)", (uint32_t)offsetof(BomberParams, layouts.ball), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "trail", "models.trail", "Trail model", "The prim model of each trail point (a mesh: an edited one keeps its vertices)", (uint32_t)offsetof(BomberParams, models.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "burst", "burst.tick", "Tick", "The burst starts at this tick of the main task, at the target", (uint32_t)offsetof(BomberParams, burst.tick), fxp::I16, 0, 200 },
+			{ "burst", "burst.ticks", "Ticks", "It plays this many ticks", (uint32_t)offsetof(BomberParams, burst.ticks), fxp::I16, 0, 200 },
+			{ "burst", "layouts.burst", "Burst", "The prim-model layout of the burst (its models' animation)", (uint32_t)offsetof(BomberParams, layouts.burst), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.ticks", "Spawn ticks", "Sparks spawn at the burst's ticks 1 to this", (uint32_t)offsetof(BomberParams, sparks.ticks), fxp::I16, 0, 200 },
+			{ "sparks", "sparks.per_tick", "A tick", "How many a tick (64 at most alive; at least 1)", (uint32_t)offsetof(BomberParams, sparks.per_tick), fxp::I16, 1, 64 },
+			{ "sparks", "sparks.speed", "Speed", "A spark's speed: this + a random below the next, in a random direction", (uint32_t)offsetof(BomberParams, sparks.speed), fxp::I16, 0, 0x7FFF },
+			{ "sparks", "sparks.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(BomberParams, sparks.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "sparks", "sparks.drag", "Drag", "Each tick its first speed / 2^this is taken off (4: 1/16)", (uint32_t)offsetof(BomberParams, sparks.drag), fxp::I16, 0, 15 },
+			{ "sparks", "sparks.life", "Life", "A spark's ticks (its flipbook frame = its tick)", (uint32_t)offsetof(BomberParams, sparks.life), fxp::I16, 1, 200 },
+			{ "sparks", "sparks.size", "Size", "Its sprite's size", (uint32_t)offsetof(BomberParams, sparks.size), fxp::I16, 0, 0x7FFF },
+			{ "sparks", "sparks.depth", "Depth", "Its sprite's depth offset (negative = nearer)", (uint32_t)offsetof(BomberParams, sparks.depth), fxp::I16, -8192, 0x2000 },
+			{ "sparks", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook: an edited one keeps as many frames)", (uint32_t)offsetof(BomberParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag217_energy_bomber()
 	{
+		fxp::register_params({ 217, "Energy Bomber", &bomber217::live, &bomber217::GAME, sizeof(bomber217::BomberParams),
+		                       bomber217::table::PARTS, (int)(sizeof(bomber217::table::PARTS) / sizeof(bomber217::table::PARTS[0])),
+		                       bomber217::table::FIELDS, (int)(sizeof(bomber217::table::FIELDS) / sizeof(bomber217::table::FIELDS[0])),
+		                       bomber217::table::GROUPS, (int)(sizeof(bomber217::table::GROUPS) / sizeof(bomber217::table::GROUPS[0])) });
+		own::note(bomber217::ORIG_FileLoader, (void *)bomber217::FileLoader);
+		own::note(bomber217::ORIG_Setup, (void *)bomber217::Setup);
+		own::note(bomber217::ORIG_RootTask, (void *)bomber217::RootTask);
 		register_port(bomber217::ORIG_RootTask, (void *)bomber217::RootTask, "217 RootTask", 217);
+		own::note(bomber217::ORIG_MainTask, (void *)bomber217::MainTask);
 		register_port(bomber217::ORIG_MainTask, (void *)bomber217::MainTask, "217 MainTask", 217);
+		own::note(bomber217::ORIG_SparkTask, (void *)bomber217::SparkTask);
 		register_port(bomber217::ORIG_SparkTask, (void *)bomber217::SparkTask, "217 SparkTask", 217);
 		// 30 fps layer: see mag217_energy_bomber_held.inc
 		FX_HELD(register_mag217_held();)
