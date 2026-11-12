@@ -63,9 +63,15 @@
 // / queue, particle table, mouth B, effect queue / pool, frame A, target position, direction A,
 // length root A, context, caster slot, texture file, mouth A, cloud positions, texture-off buffer,
 // packet cursor, sprite frame 0x23ECE20).
+// Fujin's described Breath (effect_157.json) runs this code: its memory through own::R() (fx_port.h), its spawns through
+// own::Fn(), the setup and the file loader ported below; its parameters (BreathParams: the director's and each cloud's
+// ticks, the mouth offsets, each part's sizes, spins, spreads and lives, the two sounds, four flipbooks, five meshes,
+// the texture name, the camera track) are set from the program's. FX_PART tags its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,24 +81,25 @@ namespace breath157
 	using namespace magc;
 
 	// --- module globals ---
-	inline Mat4x3 &FrameB() { return var<Mat4x3>(0x23EB5C0); }
-	inline int32_t *DirB() { return (int32_t *)0x23EB5E0; }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x23EB5F0); }
-	inline int32_t &LenB() { return var<int32_t>(0x23EB5F4); }
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23EB618; }
-	inline int16_t *MouthB() { return (int16_t *)0x23EBF88; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23EBF90; }
-	inline Mat4x3 &FrameA() { return var<Mat4x3>(0x23ECDB0); }
-	inline int16_t *TargetPos() { return (int16_t *)0x23ECDD0; }
-	inline int32_t *DirA() { return (int32_t *)0x23ECDD8; }
-	inline int32_t &LenA() { return var<int32_t>(0x23ECDE8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23ECDEC); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23ECDF0); }
-	inline int16_t *MouthA() { return (int16_t *)0x23ECDF8; }
-	inline int16_t *CloudPos(int16_t i) { return (int16_t *)(0x23ECE00 + (uint32_t)(int32_t)i * 8); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23ECE18); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23ECE1C); }
-	inline Mat4x3 &SpriteFrame() { return var<Mat4x3>(0x23ECE20); }  // rotation never written (0); translation per sprite
+	inline Mat4x3 &FrameB() { return var<Mat4x3>(own::R(0x23EB5C0)); }
+	inline int32_t *DirB() { return (int32_t *)own::R(0x23EB5E0); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x23EB5F0)); }
+	inline int32_t &LenB() { return var<int32_t>(own::R(0x23EB5F4)); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x23EB618); }
+	inline int16_t *MouthB() { return (int16_t *)own::R(0x23EBF88); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x23EBF90); }
+	inline Mat4x3 &FrameA() { return var<Mat4x3>(own::R(0x23ECDB0)); }
+	inline int16_t *TargetPos() { return (int16_t *)own::R(0x23ECDD0); }
+	inline int32_t *DirA() { return (int32_t *)own::R(0x23ECDD8); }
+	inline int32_t &LenA() { return var<int32_t>(own::R(0x23ECDE8)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23ECDEC)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x23ECDF0)); }
+	inline int16_t *MouthA() { return (int16_t *)own::R(0x23ECDF8); }
+	inline int16_t *CloudPos(int16_t i) { return (int16_t *)(own::R(0x23ECE00) + (uint32_t)(int32_t)i * 8); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23ECE18)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23ECE1C)); }
+	inline Mat4x3 &SpriteFrame() { return var<Mat4x3>(own::R(0x23ECE20)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23ECDF4)); }          // the effect's file (its TIM)  // rotation never written (0); translation per sprite
 	static const uint32_t PARTS = 0x23EB628, PARTS_END = 0x23EBF88;  // 100 x 0x18
 	static const int PART_COUNT = 100;
 	static const uint32_t ARENA_SIZE = 0xC000;
@@ -114,6 +121,48 @@ namespace breath157
 	static const uint32_t SEQ_Breath = 0xDB0B34, SEQ_Puff = 0xDB0AC0, SEQ_PuffPart = 0xDB0CE0, SEQ_Splatter = 0xDB0914;
 	static const void *const SOUND_Start = (const void *)0xDB4CAC;
 	static const void *const SOUND_Cloud = (const void *)0xDB4CB0;
+	static const uint32_t ORIG_FileLoader = 0x603E70, ORIG_Setup = 0x603E90;
+	static const uint32_t TEXTURE_NAME = 0xDB4CC8, CAMERA_ANIM = 0xDB0828;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct BreathParams
+	{
+		struct { uint32_t start, cloud; } sounds;
+		struct { int16_t swirl, breath, mouth_b, cloud1, cloud2, cloud3, start_sound, cloud_sound, damage, end; } director;
+		struct { int16_t a_y, a_z, b_y, b_z; } mouth;                     // the mouths' offsets in the caster's frame
+		struct { int16_t size_a, spin_a_min, spin_a_rand, size_b, spin_b_min, spin_b_rand, fade_in, fade_out, life; } swirl;
+		struct { int16_t last_tick, per_tick, size_min, size_rand, turn_min, turn_rand, depth_min, depth_rand, radius_min, radius_rand; } breath;
+		struct { int16_t burst, puff, puff_parts, models, splatter, life; } cloud;   // each cloud's ticks
+		struct { int16_t size, shrink, fade_in, life; } burst;
+		struct { int16_t size, speed, life; } puff;
+		struct { int16_t last_tick, per_tick, spread, spread_step, size_min, size_rand; } puff_parts;
+		struct { int16_t roll_min, roll_rand, spin_min, spin_rand, size_min, size_rand, outer, fade_from, life; } clouds;
+		struct { int16_t spin_min, spin_rand, size, fade_from, life; } rings;
+		struct { int16_t last_tick, per_tick, spread, size_min, size_rand; } splatter;
+		struct { uint32_t breath, puff, puff_part, splatter; } seqs;      // the sprite sequences drawn (flipbooks)
+		struct { uint32_t swirl, burst, cloud1, cloud2, ring; } models;   // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res;                    // its resources (data): texture file name, camera track
+	};
+	static const BreathParams GAME = { { 0xDB4CAC, 0xDB4CB0 },
+		{ 1, 2, 0x13, 0x14, 0x20, 0x2B, 1, 0x14, 0x41, 0x46 },
+		{ 0x226, -0x280, 0x384, -0x546 },
+		{ 0x1400, 0x1E, 0x32, 0xF00, 0x14, 0x3C, 4, 0x16, 0x1E },
+		{ 0x1E, 3, 0x300, 0x400, 0xA, 0x32, 10, 0x258, 0x12C, 0x514 },
+		{ 0, 8, 9, 0xC, 0xF, 0x16 },
+		{ 0x4000, 0x800, 8, 0xA },
+		{ 0xD00, 11, 5 },
+		{ 4, 6, 0x15E, 30, 0x200, 0x380 },
+		{ 0x19, 0x46, 0x19, 0x46, 0x700, 0x600, 0x2A0, 8, 0x10 },
+		{ 0x14, 0x32, 0xA00, 8, 0x12 },
+		{ 4, 6, 0x4B0, 0x600, 0xB00 },
+		{ SEQ_Breath, SEQ_Puff, SEQ_PuffPart, SEQ_Splatter }, { MODEL_Swirl, MODEL_Burst, MODEL_Cloud1, MODEL_Cloud2, MODEL_Ring },
+		{ TEXTURE_NAME, CAMERA_ANIM } };
+	static BreathParams live = GAME;
+	static const BreathParams &P() { return live; }
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum { PART_SWIRL = 1, PART_BREATH, PART_BURST, PART_PUFF, PART_CLOUDS, PART_RINGS, PART_SPLATTER };
 
 	// ---- engine functions (original addresses)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
@@ -156,14 +205,14 @@ namespace breath157
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Breath nodes");
 	static_assert(sizeof(Part) == 0x18, "Breath particle");
 
-	inline Part *Parts() { return (Part *)PARTS; }
+	inline Part *Parts() { return (Part *)own::R(PARTS); }
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 
 	static int FreePart()
 	{
 		int i = 0;
-		for (uint32_t a = PARTS; a < PARTS_END; a += sizeof(Part), i++)
+		for (uint32_t a = own::R(PARTS); a < own::R(PARTS_END); a += sizeof(Part), i++)
 			if (*(uint32_t *)a == 0) return i < PART_COUNT ? i : -1;
 		return -1;
 	}
@@ -212,15 +261,15 @@ namespace breath157
 	}
 	static uint8_t *SwirlHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Swirl, 0x33);
-		if (c < 4)
+		uint8_t *h = ModelHeader(fxp::model(P().models.swirl, MODEL_Swirl), 0x33);
+		if (c < P().swirl.fade_in)
 		{
-			*(int32_t *)(h + 0xC) = (4 - (int32_t)c) << 10;
+			*(int32_t *)(h + 0xC) = (P().swirl.fade_in - (int32_t)c) << 10;
 			*(int32_t *)(h + 0x1C) = 0xF3;
 		}
-		else if (c >= 0x16)
+		else if (c >= P().swirl.fade_out)
 		{
-			*(int32_t *)(h + 0xC) = ((int32_t)c - 0x16) << 9;
+			*(int32_t *)(h + 0xC) = ((int32_t)c - P().swirl.fade_out) << 9;
 			*(int32_t *)(h + 0x1C) = 0xF3;
 		}
 		return h;
@@ -241,11 +290,11 @@ namespace breath157
 	}
 	static uint8_t *BurstHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Burst, 0x33);
-		if (c < 8)
+		uint8_t *h = ModelHeader(fxp::model(P().models.burst, MODEL_Burst), 0x33);
+		if (c < P().burst.fade_in)
 		{
 			*(int32_t *)(h + 0x1C) = 0xF3;
-			*(int32_t *)(h + 0xC) = (8 - (int32_t)c) << 9;
+			*(int32_t *)(h + 0xC) = (P().burst.fade_in - (int32_t)c) << 9;
 		}
 		return h;
 	}
@@ -280,11 +329,11 @@ namespace breath157
 	}
 	static uint8_t *CloudHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Cloud1, 3);
-		if (c >= 8)
+		uint8_t *h = ModelHeader(fxp::model(P().models.cloud1, MODEL_Cloud1), 3);
+		if (c >= P().clouds.fade_from)
 		{
 			*(int32_t *)(h + 0x1C) = 0xC3;
-			*(int32_t *)(h + 0xC) = ((int32_t)c - 8) << 9;
+			*(int32_t *)(h + 0xC) = ((int32_t)c - P().clouds.fade_from) << 9;
 		}
 		return h;
 	}
@@ -295,7 +344,7 @@ namespace breath157
 		ang[1] = t->w10;
 		ang[2] = 0;
 		ComposeZYXRotationMatrix(ang, &m);
-		const int32_t s2 = t->w1C + 0x2A0;
+		const int32_t s2 = t->w1C + P().clouds.outer;
 		int32_t sc[3];
 		sc[2] = s2;
 		sc[1] = s2;
@@ -303,7 +352,7 @@ namespace breath157
 		Scale3DMatrix(&m, sc);
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
-		*(uint32_t *)h = MODEL_Cloud2;
+		*(uint32_t *)h = fxp::model(P().models.cloud2, MODEL_Cloud2);
 		Render(h);
 	}
 	static void CloudModelsDraw(const EffectNode *t)
@@ -329,7 +378,7 @@ namespace breath157
 		m.t[2] = c[2];
 		m.t[0] = c[0];
 		m.t[1] = c[1];
-		const int32_t s = t->w1C + 0xA00;
+		const int32_t s = t->w1C + P().rings.size;
 		int32_t sc[3];
 		sc[2] = s;
 		sc[1] = s;
@@ -341,11 +390,11 @@ namespace breath157
 	}
 	static uint8_t *RingHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Ring, 0x33);
-		if (c >= 8)
+		uint8_t *h = ModelHeader(fxp::model(P().models.ring, MODEL_Ring), 0x33);
+		if (c >= P().rings.fade_from)
 		{
 			*(int32_t *)(h + 0x1C) = 0xF3;
-			*(int32_t *)(h + 0xC) = ((int32_t)c - 8) * 409;
+			*(int32_t *)(h + 0xC) = ((int32_t)c - P().rings.fade_from) * 409;
 		}
 		return h;
 	}
@@ -356,7 +405,7 @@ namespace breath157
 		ang[1] = 0;
 		ang[2] = t->w18;
 		ComposeZYXRotationMatrix(ang, &m);
-		const int32_t s = t->w1C + 0xA00;
+		const int32_t s = t->w1C + P().rings.size;
 		int32_t sc[3];
 		sc[2] = s;
 		sc[1] = s;
@@ -433,7 +482,7 @@ namespace breath157
 		LitSpritePull(t->w1C);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = (int16_t)(t->counter & 3);
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = fxp::sequence(P().seqs.puff, SEQ_Puff);
 		*(int16_t *)(h + 0x24) = 0;
 		SeqDraw(h);
 		FieldFree(0xB4);
@@ -475,11 +524,13 @@ namespace breath157
 		EffectNode *t = (EffectNode *)nd;
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_SWIRL, t);)
+		FX_PART(PART_SWIRL);
 		SwirlDraw(t);
+		FX_PART(0);
 		if (DrawOnly()) return 0;
 		t->w18 = (int16_t)(t->w18 + t->w1A);
 		t->counter++;
-		return t->counter >= 0x1E ? TASK_END : 0;
+		return t->counter >= P().swirl.life ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl BurstTask(TaskNode *nd)
@@ -487,13 +538,15 @@ namespace breath157
 		EffectNode *t = (EffectNode *)nd;
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_BURST, t);)
+		FX_PART(PART_BURST);
 		BurstDraw(t);
+		FX_PART(0);
 		if (DrawOnly()) return 0;
 		const int16_t d = t->w1E;
 		t->w1C = (int16_t)(t->w1C - d);
 		t->w1E = (int16_t)(d - (int16_t)(d / 24));
 		t->counter++;
-		return t->counter >= 0xA ? TASK_END : 0;
+		return t->counter >= P().burst.life ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl PuffTask(TaskNode *nd)
@@ -501,12 +554,14 @@ namespace breath157
 		EffectNode *t = (EffectNode *)nd;
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_PUFF, t);)
+		FX_PART(PART_PUFF);
 		PuffDraw(t);
+		FX_PART(0);
 		if (DrawOnly()) return 0;
 		int16_t *c = CloudPos(t->w0E);
 		c[2] = (int16_t)(c[2] - t->w14);
 		t->counter++;
-		return t->counter >= 5 ? TASK_END : 0;
+		return t->counter >= P().puff.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -517,7 +572,9 @@ namespace breath157
 		EffectNode *t = (EffectNode *)nd;
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_CLOUDMODELS, t);)
+		FX_PART(PART_CLOUDS);
 		CloudModelsDraw(t);
+		FX_PART(0);
 		if (DrawOnly()) return 0;
 		int16_t *c = CloudPos(t->w0E);
 		const int16_t v = t->w14;
@@ -529,7 +586,7 @@ namespace breath157
 		t->w1C = (int16_t)(t->w1C + g);
 		t->w1E = (int16_t)(g - (int16_t)(g / 8));
 		t->counter++;
-		return t->counter >= 0x10 ? TASK_END : 0;
+		return t->counter >= P().clouds.life ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl RingsTask(TaskNode *nd)
@@ -537,7 +594,9 @@ namespace breath157
 		EffectNode *t = (EffectNode *)nd;
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_RINGS, t);)
+		FX_PART(PART_RINGS);
 		RingsDraw(t);
+		FX_PART(0);
 		if (DrawOnly()) return 0;
 		const int16_t a = t->w1A;
 		t->w18 = (int16_t)(t->w18 + a);
@@ -546,7 +605,7 @@ namespace breath157
 		t->w1C = (int16_t)(t->w1C + g);
 		t->w1E = (int16_t)(g - (int16_t)(g / 8));
 		t->counter++;
-		return t->counter >= 0x12 ? TASK_END : 0;
+		return t->counter >= P().rings.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -559,13 +618,15 @@ namespace breath157
 		FX_HELD(held_note(REC_BREATHPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
-		*(uint32_t *)h = SEQ_Breath;
+		*(uint32_t *)h = fxp::sequence(P().seqs.breath, SEQ_Breath);
 		*(int16_t *)(h + 0x24) = 0;
 		LitSpriteSetup(&FrameA());
-		for (Part *p = Parts(); (uint32_t)p < PARTS_END; p++)
+		for (Part *p = Parts(); (uint32_t)p < own::R(PARTS_END); p++)
 		{
 			if (!(p->type & 1)) continue;
+			FX_PART(PART_BREATH);
 			BreathPartDraw(h, p);
+			FX_PART(0);
 			if (DrawOnly()) continue;
 			p->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
@@ -578,20 +639,20 @@ namespace breath157
 		}
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
-		if (t->counter >= 0 && t->counter <= 0x1E)
+		if (t->counter >= 0 && t->counter <= P().breath.last_tick)
 		{
-			for (int k = 0; k < 3; k++)
+			for (int k = 0; k < P().breath.per_tick; k++)
 			{
 				const int i = FreePart();
 				if (i < 0) break;
 				Part *p = &Parts()[i];
 				p->type = 1;
 				p->frame = 0;
-				p->size = (int16_t)(CrtRand() % 0x400 + 0x300);
+				p->size = (int16_t)(CrtRand() % P().breath.size_rand + P().breath.size_min);
 				p->v[0] = (int16_t)(CrtRand() % 0x1000);
-				p->v[1] = (int16_t)(CrtRand() % 0x32 + 0xA);
-				p->v[2] = (int16_t)(-10 - CrtRand() % 0x258);
-				p->v[3] = (int16_t)(CrtRand() % 0x514 + 0x12C);
+				p->v[1] = (int16_t)(CrtRand() % P().breath.turn_rand + P().breath.turn_min);
+				p->v[2] = (int16_t)(-P().breath.depth_min - CrtRand() % P().breath.depth_rand);
+				p->v[3] = (int16_t)(CrtRand() % P().breath.radius_rand + P().breath.radius_min);
 			}
 		}
 		t->counter++;
@@ -609,13 +670,15 @@ namespace breath157
 		FX_HELD(held_note(REC_PUFFPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
-		*(uint32_t *)h = SEQ_PuffPart;
+		*(uint32_t *)h = fxp::sequence(P().seqs.puff_part, SEQ_PuffPart);
 		*(int16_t *)(h + 0x24) = 0;
 		LitSpriteSetup(&FrameB());
-		for (Part *p = Parts(); (uint32_t)p < PARTS_END; p++)
+		for (Part *p = Parts(); (uint32_t)p < own::R(PARTS_END); p++)
 		{
 			if (!(p->type & 2)) continue;
+			FX_PART(PART_PUFF);
 			PuffPartDraw(h, p);
+			FX_PART(0);
 			if (DrawOnly()) continue;
 			p->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0) p->type = 0;
@@ -623,11 +686,11 @@ namespace breath157
 		}
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
-		if (t->counter >= 0 && t->counter <= 4)
+		if (t->counter >= 0 && t->counter <= P().puff_parts.last_tick)
 		{
-			const int32_t spread = (int32_t)t->counter * 30 + 0x15E;
+			const int32_t spread = (int32_t)t->counter * P().puff_parts.spread_step + P().puff_parts.spread;
 			const int16_t *c = CloudPos(t->w0E);
-			for (int k = 0; k < 6; k++)
+			for (int k = 0; k < P().puff_parts.per_tick; k++)
 			{
 				const int i = FreePart();
 				if (i < 0) break;
@@ -635,12 +698,12 @@ namespace breath157
 				p->type = 2;
 				p->frame = 0;
 				const int32_t half = spread >> 1;
-				p->size = (int16_t)(CrtRand() % 0x380 + 0x200);
+				p->size = (int16_t)(CrtRand() % P().puff_parts.size_rand + P().puff_parts.size_min);
 				*(uint32_t *)&p->v[0] = *(const uint32_t *)&c[0];
 				*(uint32_t *)&p->v[2] = *(const uint32_t *)&c[2];
 				p->v[0] = (int16_t)(p->v[0] + (CrtRand() % spread - half));
 				p->v[1] = (int16_t)(p->v[1] + (CrtRand() % spread - half));
-				p->v[2] = (int16_t)(p->v[2] + CrtRand() % (int32_t)t->w14);
+				p->v[2] = (int16_t)(p->v[2] + CrtRand() % (t->w14 ? (int32_t)t->w14 : 1));   // (0: no depth - the game's divides by it)
 			}
 		}
 		t->counter++;
@@ -656,12 +719,14 @@ namespace breath157
 		EffectNode *t = (EffectNode *)nd;
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_SPLATTER, t);)
-		uint8_t *h = SeqHeader(SEQ_Splatter);
+		uint8_t *h = SeqHeader(fxp::sequence(P().seqs.splatter, SEQ_Splatter));
 		int alive = 0;
-		for (Part *p = Parts(); (uint32_t)p < PARTS_END; p++)
+		for (Part *p = Parts(); (uint32_t)p < own::R(PARTS_END); p++)
 		{
 			if (!(p->type & 4)) continue;
+			FX_PART(PART_SPLATTER);
 			SplatterDraw(h, p);
+			FX_PART(0);
 			if (DrawOnly()) continue;
 			p->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0) p->type = 0;
@@ -669,21 +734,22 @@ namespace breath157
 		}
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
-		if (t->counter >= 0 && t->counter <= 4)
+		if (t->counter >= 0 && t->counter <= P().splatter.last_tick)
 		{
-			for (int k = 0; k < 6; k++)
+			for (int k = 0; k < P().splatter.per_tick; k++)
 			{
 				const int i = FreePart();
 				if (i < 0) break;
 				Part *p = &Parts()[i];
 				p->type = 4;
 				p->frame = 0;
-				p->size = (int16_t)(CrtRand() % 0xB00 + 0x600);
+				p->size = (int16_t)(CrtRand() % P().splatter.size_rand + P().splatter.size_min);
 				*(uint32_t *)&p->v[0] = *(const uint32_t *)&TargetPos()[0];
 				*(uint32_t *)&p->v[2] = *(const uint32_t *)&TargetPos()[2];
-				p->v[0] = (int16_t)(p->v[0] + (CrtRand() % 0x4B0 - 0x258));
-				p->v[1] = (int16_t)(p->v[1] + (CrtRand() % 0x4B0 - 0x258));
-				p->v[2] = (int16_t)(p->v[2] + (CrtRand() % 0x4B0 - 0x258));
+				const int32_t sp = P().splatter.spread, half = sp / 2;
+				p->v[0] = (int16_t)(p->v[0] + (CrtRand() % sp - half));
+				p->v[1] = (int16_t)(p->v[1] + (CrtRand() % sp - half));
+				p->v[2] = (int16_t)(p->v[2] + (CrtRand() % sp - half));
 			}
 		}
 		t->counter++;
@@ -704,59 +770,62 @@ namespace breath157
 			c[2] = 0;
 			c[1] = 0;
 			c[0] = 0;
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Burst);
-			n->counter = 0;
-			n->w1C = 0x4000;
-			n->w1E = 0x800;
 		}
-		if (t->counter == 8)
+		if (t->counter == P().cloud.burst)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Puff);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Burst));
+			n->counter = 0;
+			n->w1C = P().burst.size;
+			n->w1E = P().burst.shrink;
+		}
+		if (t->counter == P().cloud.puff)
+		{
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Puff));
 			n->w0E = t->w0E;
 			n->counter = 0;
-			n->w1C = 0xD00;
-			const int16_t v = (int16_t)((shl32(mul32(LenB(), 11), 8) >> 12) / 4);
+			n->w1C = P().puff.size;
+			const int16_t v = (int16_t)((shl32(mul32(LenB(), P().puff.speed), 8) >> 12) / 4);
 			n->w14 = v;
 			t->w14 = v;
 		}
-		if (t->counter == 9)
+		if (t->counter == P().cloud.puff_parts)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_PuffParticles);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_PuffParticles));
 			n->counter = 0;
 			n->w0E = t->w0E;
 			n->w14 = t->w14;
 		}
-		if (t->counter == 0xC)
+		if (t->counter == P().cloud.models)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_CloudModels);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_CloudModels));
 			n->counter = 0;
 			n->w0E = t->w0E;
 			n->w10 = (int16_t)(CrtRand() % 0x1000);
-			n->w12 = (int16_t)(CrtRand() % 0x46 + 0x19);
+			n->w12 = (int16_t)(CrtRand() % P().clouds.roll_rand + P().clouds.roll_min);
 			const int32_t r = CrtRand() % 0x258;
 			n->w14 = (int16_t)((shl32(mul32(r + LenB() - 0x12C, 5), 8) >> 12) / 5);
 			n->w18 = (int16_t)(CrtRand() % 0x1000);
-			n->w1A = (int16_t)(CrtRand() % 0x46 + 0x19);
-			const int16_t g = (int16_t)((CrtRand() % 0x600 + 0x700) / 8);
+			n->w1A = (int16_t)(CrtRand() % P().clouds.spin_rand + P().clouds.spin_min);
+			const int16_t g = (int16_t)((CrtRand() % P().clouds.size_rand + P().clouds.size_min) / 8);
 			n->w1E = g;
 			n->w1C = g;
-			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Rings);
+			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Rings));
 			m->counter = 0;
 			m->w0E = t->w0E;
 			m->w18 = (int16_t)(CrtRand() % 0x1000);
-			const int32_t spin = CrtRand() % 0x32;
+			const int32_t spin = CrtRand() % P().rings.spin_rand;
 			m->w1E = n->w1E;
 			m->w1C = n->w1E;
-			m->w1A = (int16_t)(spin + 0x14);
+			m->w1A = (int16_t)(spin + P().rings.spin_min);
 			m->w20 = (int16_t)(CrtRand() % 0x1000);
 		}
-		if (t->counter == 0xF)
+		if (t->counter == P().cloud.splatter)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Splatter);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Splatter));
 			n->counter = 0;
 		}
 		t->counter++;
-		return t->counter >= 0x16 ? TASK_END : 0;
+		return t->counter >= P().cloud.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -800,41 +869,70 @@ namespace breath157
 		if (t->counter == 0)
 		{
 			GetDefaultEffectPosition(Target(), TargetPos());
-			Mouth(MouthA(), DirA(), LenA(), 0x226, -0x280);
+			Mouth(MouthA(), DirA(), LenA(), P().mouth.a_y, P().mouth.a_z);
 		}
-		if (t->counter == 1)
+		if (t->counter == P().director.swirl)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Swirl);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Swirl));
 			n->counter = 0;
 			n->w18 = (int16_t)(CrtRand() % 0x1000);
-			const int32_t r = CrtRand() % 0x32;
-			n->w1C = 0x1400;
-			n->w1A = (int16_t)(r + 0x1E);
-			n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Swirl);
+			const int32_t r = CrtRand() % P().swirl.spin_a_rand;
+			n->w1C = P().swirl.size_a;
+			n->w1A = (int16_t)(r + P().swirl.spin_a_min);
+			n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Swirl));
 			n->counter = 0;
 			n->w18 = (int16_t)(CrtRand() % 0x1000);
-			const int32_t r2 = CrtRand() % 0x3C;
-			n->w1C = 0xF00;
-			n->w1A = (int16_t)(-0x14 - r2);
+			const int32_t r2 = CrtRand() % P().swirl.spin_b_rand;
+			n->w1C = P().swirl.size_b;
+			n->w1A = (int16_t)(-P().swirl.spin_b_min - r2);
 		}
-		if (t->counter == 2)
+		if (t->counter == P().director.breath)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_BreathParticles);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_BreathParticles));
 			n->counter = 0;
 		}
-		if (t->counter == 0x13) Mouth(MouthB(), DirB(), LenB(), 0x384, -0x546);
-		if (t->counter == 0x14 || t->counter == 0x20 || t->counter == 0x2B)
+		if (t->counter == P().director.mouth_b) Mouth(MouthB(), DirB(), LenB(), P().mouth.b_y, P().mouth.b_z);
+		if (t->counter == P().director.cloud1 || t->counter == P().director.cloud2 || t->counter == P().director.cloud3)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Cloud);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Cloud));
 			n->w0E = t->w0E;
 			n->counter = 0;
 			t->w0E++;
 		}
-		if (t->counter == 0x41) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (t->counter == 1) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (t->counter == 0x14) BdPlaySE(SOUND_Cloud, 0, 0x80);
+		if (t->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (t->counter == P().director.start_sound) BdPlaySE((const void *)fxp::sound(P().sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		if (t->counter == P().director.cloud_sound) BdPlaySE((const void *)fxp::sound(P().sounds.cloud, (uint32_t)SOUND_Cloud), 0, 0x80);
 		t->counter++;
-		return t->counter > 0x46 ? TASK_END : 0;
+		return t->counter > P().director.end ? TASK_END : 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x603E70) and setup (0x603E90): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the director, the
+	// particle table cleared, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x23EB5F8), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x23EBFA0), 0x24, 0x64);
+		uint8_t *director = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(director + 0xC) = 0;
+		*(uint16_t *)(director + 0xE) = 0;
+		for (uint32_t a = own::R(PARTS); a < own::R(PARTS_END); a += 0x18) *(uint32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return RootQueue();
 	}
 
 	// ------------------------------------------------------------------
@@ -850,7 +948,7 @@ namespace breath157
 		const int a = ExecuteTaskQueue(EffectQueue());
 		if (!a)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_TexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -866,21 +964,140 @@ namespace breath157
 		r->counter++;
 		return done ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The timeline: the two mouths (the caster's effect point and an offset, aimed at the target), when the swirls, the breath and the three clouds start, the sounds; the damage" },
+			{ PART_SWIRL, "swirl", "Swirls", "Two swirl models at mouth A spinning both ways, fading in and out" },
+			{ PART_BREATH, "breath", "Breath", "Lit particles circling the breath's axis at mouth A" },
+			{ 0, "cloud", "Clouds", "Each cloud's timeline: its burst, puff, puff particles, model and ring pairs, the splatter on the target (draws nothing itself)" },
+			{ PART_BURST, "burst", "Burst", "A shrinking burst model at mouth B, fading in" },
+			{ PART_PUFF, "puff", "Puff", "The lit puff rolling the cloud forward and its particles" },
+			{ PART_CLOUDS, "clouds", "Cloud models", "Two cloud models rolling, growing, fading, moving forward" },
+			{ PART_RINGS, "rings", "Rings", "A ring model pair turning, growing, fading" },
+			{ PART_SPLATTER, "splatter", "Splatter", "Sprites around the target's effect position" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start sound", "At the director's start sound tick", (uint32_t)offsetof(BreathParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.cloud", "Cloud sound", "At the director's cloud sound tick", (uint32_t)offsetof(BreathParams, sounds.cloud), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.swirl", "Swirl tick", "The two mouth swirls start at this tick of the director (mouth A is taken at tick 0)", (uint32_t)offsetof(BreathParams, director.swirl), fxp::I16, 0, 300 },
+			{ "director", "director.breath", "Breath tick", "The breath particles start at this tick", (uint32_t)offsetof(BreathParams, director.breath), fxp::I16, 0, 300 },
+			{ "director", "director.mouth_b", "Mouth B tick", "Mouth B (the clouds' frame) is taken at this tick", (uint32_t)offsetof(BreathParams, director.mouth_b), fxp::I16, 0, 300 },
+			{ "director", "director.cloud1", "Cloud 1 tick", "The first cloud starts at this tick", (uint32_t)offsetof(BreathParams, director.cloud1), fxp::I16, 0, 300 },
+			{ "director", "director.cloud2", "Cloud 2 tick", "The second cloud", (uint32_t)offsetof(BreathParams, director.cloud2), fxp::I16, 0, 300 },
+			{ "director", "director.cloud3", "Cloud 3 tick", "The third cloud", (uint32_t)offsetof(BreathParams, director.cloud3), fxp::I16, 0, 300 },
+			{ "director", "director.start_sound", "Start sound tick", "The start sound at this tick", (uint32_t)offsetof(BreathParams, director.start_sound), fxp::I16, 0, 300 },
+			{ "director", "director.cloud_sound", "Cloud sound tick", "The cloud sound at this tick", (uint32_t)offsetof(BreathParams, director.cloud_sound), fxp::I16, 0, 300 },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick", (uint32_t)offsetof(BreathParams, director.damage), fxp::I16, 0, 300 },
+			{ "director", "director.end", "End tick", "The director's last tick (the effect ends once every part has)", (uint32_t)offsetof(BreathParams, director.end), fxp::I16, 0, 300 },
+			{ "director", "mouth.a_y", "Mouth A height", "Mouth A (the swirls and the breath): the caster's effect point 0xF0 moved by this along its y (negative = up)...", (uint32_t)offsetof(BreathParams, mouth.a_y), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "director", "mouth.a_z", "Mouth A ahead", "...and this along its z (negative = ahead)", (uint32_t)offsetof(BreathParams, mouth.a_z), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "director", "mouth.b_y", "Mouth B height", "Mouth B (the clouds): likewise", (uint32_t)offsetof(BreathParams, mouth.b_y), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "director", "mouth.b_z", "Mouth B ahead", "", (uint32_t)offsetof(BreathParams, mouth.b_z), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "swirl", "swirl.size_a", "Size A", "The first swirl's size (4096 = its model's)", (uint32_t)offsetof(BreathParams, swirl.size_a), fxp::I16, 0, 0x7FFF },
+			{ "swirl", "swirl.spin_a_min", "Spin A", "Its spin a tick: this + a random below the next", (uint32_t)offsetof(BreathParams, swirl.spin_a_min), fxp::I16, 0, 4096, fxp::Angle },
+			{ "swirl", "swirl.spin_a_rand", "Spin A random", "(at least 1)", (uint32_t)offsetof(BreathParams, swirl.spin_a_rand), fxp::I16, 1, 4096, fxp::Angle },
+			{ "swirl", "swirl.size_b", "Size B", "The second swirl's size", (uint32_t)offsetof(BreathParams, swirl.size_b), fxp::I16, 0, 0x7FFF },
+			{ "swirl", "swirl.spin_b_min", "Spin B", "Its spin a tick, the other way: this + a random below the next", (uint32_t)offsetof(BreathParams, swirl.spin_b_min), fxp::I16, 0, 4096, fxp::Angle },
+			{ "swirl", "swirl.spin_b_rand", "Spin B random", "(at least 1)", (uint32_t)offsetof(BreathParams, swirl.spin_b_rand), fxp::I16, 1, 4096, fxp::Angle },
+			{ "swirl", "swirl.fade_in", "Fade in until", "It fades in up to this tick of its own", (uint32_t)offsetof(BreathParams, swirl.fade_in), fxp::I16, 0, 300 },
+			{ "swirl", "swirl.fade_out", "Fade out from", "From this tick it fades out", (uint32_t)offsetof(BreathParams, swirl.fade_out), fxp::I16, 0, 300 },
+			{ "swirl", "swirl.life", "End tick", "The swirl ends at this tick of its own", (uint32_t)offsetof(BreathParams, swirl.life), fxp::I16, 1, 300 },
+			{ "breath", "breath.last_tick", "Last spawn tick", "Particles spawn from its tick 0 to this one", (uint32_t)offsetof(BreathParams, breath.last_tick), fxp::I16, -1, 300 },
+			{ "breath", "breath.per_tick", "A tick", "How many spawn a tick (100 particles at most, shared with the puffs and the splatter)", (uint32_t)offsetof(BreathParams, breath.per_tick), fxp::I16, 0, 100 },
+			{ "breath", "breath.size_min", "Size", "A particle's size: this + a random below the next", (uint32_t)offsetof(BreathParams, breath.size_min), fxp::I16, 0, 0x7FFF },
+			{ "breath", "breath.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(BreathParams, breath.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "breath", "breath.turn_min", "Turn", "It turns about the breath's axis a tick by this + a random below the next", (uint32_t)offsetof(BreathParams, breath.turn_min), fxp::I16, 0, 4096, fxp::Angle },
+			{ "breath", "breath.turn_rand", "Turn random", "(at least 1)", (uint32_t)offsetof(BreathParams, breath.turn_rand), fxp::I16, 1, 4096, fxp::Angle },
+			{ "breath", "breath.depth_min", "Depth", "It lies this far along the breath (toward the target) + a random below the next", (uint32_t)offsetof(BreathParams, breath.depth_min), fxp::I16, 0, 0x7FFF },
+			{ "breath", "breath.depth_rand", "Depth random", "(at least 1)", (uint32_t)offsetof(BreathParams, breath.depth_rand), fxp::I16, 1, 0x7FFF },
+			{ "breath", "breath.radius_min", "Radius", "Its distance from the axis: this + a random below the next", (uint32_t)offsetof(BreathParams, breath.radius_min), fxp::I16, 0, 0x7FFF },
+			{ "breath", "breath.radius_rand", "Radius random", "(at least 1)", (uint32_t)offsetof(BreathParams, breath.radius_rand), fxp::I16, 1, 0x7FFF },
+			{ "cloud", "cloud.burst", "Burst tick", "At this tick of each cloud its burst (the cloud's position is reset at 0)", (uint32_t)offsetof(BreathParams, cloud.burst), fxp::I16, 0, 300 },
+			{ "cloud", "cloud.puff", "Puff tick", "Its puff (it sets the cloud's speed)", (uint32_t)offsetof(BreathParams, cloud.puff), fxp::I16, 0, 300 },
+			{ "cloud", "cloud.puff_parts", "Puff particles tick", "Its puff particles (spread along the cloud's speed: after the puff)", (uint32_t)offsetof(BreathParams, cloud.puff_parts), fxp::I16, 0, 300 },
+			{ "cloud", "cloud.models", "Models tick", "Its cloud model pair and ring pair", (uint32_t)offsetof(BreathParams, cloud.models), fxp::I16, 0, 300 },
+			{ "cloud", "cloud.splatter", "Splatter tick", "Its splatter on the target", (uint32_t)offsetof(BreathParams, cloud.splatter), fxp::I16, 0, 300 },
+			{ "cloud", "cloud.life", "End tick", "The cloud ends at this tick of its own", (uint32_t)offsetof(BreathParams, cloud.life), fxp::I16, 1, 300 },
+			{ "burst", "burst.size", "Size", "The burst's starting size (4096 = its model's)", (uint32_t)offsetof(BreathParams, burst.size), fxp::I16, 0, 0x7FFF },
+			{ "burst", "burst.shrink", "Shrink", "It shrinks a tick by this (which loses 1/24 a tick)", (uint32_t)offsetof(BreathParams, burst.shrink), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "burst", "burst.fade_in", "Fade in until", "It fades in up to this tick of its own", (uint32_t)offsetof(BreathParams, burst.fade_in), fxp::I16, 0, 300 },
+			{ "burst", "burst.life", "End tick", "The burst ends at this tick of its own", (uint32_t)offsetof(BreathParams, burst.life), fxp::I16, 1, 300 },
+			{ "puff", "puff.size", "Size", "The puff sprite's size", (uint32_t)offsetof(BreathParams, puff.size), fxp::I16, 0, 0x7FFF },
+			{ "puff", "puff.speed", "Speed", "The cloud's speed: the root of the mouth-target distance x this / 64 (11: the game's)", (uint32_t)offsetof(BreathParams, puff.speed), fxp::I16, 0, 0x7FFF },
+			{ "puff", "puff.life", "End tick", "The puff ends at this tick of its own", (uint32_t)offsetof(BreathParams, puff.life), fxp::I16, 1, 300 },
+			{ "puff", "puff_parts.last_tick", "Particles: last spawn tick", "Puff particles spawn from their tick 0 to this one", (uint32_t)offsetof(BreathParams, puff_parts.last_tick), fxp::I16, -1, 300 },
+			{ "puff", "puff_parts.per_tick", "Particles: a tick", "How many a tick", (uint32_t)offsetof(BreathParams, puff_parts.per_tick), fxp::I16, 0, 100 },
+			{ "puff", "puff_parts.spread", "Particles: spread", "Their spread across the breath: this + the tick x the next", (uint32_t)offsetof(BreathParams, puff_parts.spread), fxp::I16, 1, 0x7FFF },
+			{ "puff", "puff_parts.spread_step", "Particles: spread step", "", (uint32_t)offsetof(BreathParams, puff_parts.spread_step), fxp::I16, 0, 0x7FFF },
+			{ "puff", "puff_parts.size_min", "Particles: size", "A puff particle's size: this + a random below the next", (uint32_t)offsetof(BreathParams, puff_parts.size_min), fxp::I16, 0, 0x7FFF },
+			{ "puff", "puff_parts.size_rand", "Particles: size random", "(at least 1)", (uint32_t)offsetof(BreathParams, puff_parts.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "clouds", "clouds.roll_min", "Roll", "The cloud models' roll a tick: this + a random below the next", (uint32_t)offsetof(BreathParams, clouds.roll_min), fxp::I16, 0, 4096, fxp::Angle },
+			{ "clouds", "clouds.roll_rand", "Roll random", "(at least 1)", (uint32_t)offsetof(BreathParams, clouds.roll_rand), fxp::I16, 1, 4096, fxp::Angle },
+			{ "clouds", "clouds.spin_min", "Spin", "Their spin a tick: this + a random below the next", (uint32_t)offsetof(BreathParams, clouds.spin_min), fxp::I16, 0, 4096, fxp::Angle },
+			{ "clouds", "clouds.spin_rand", "Spin random", "(at least 1)", (uint32_t)offsetof(BreathParams, clouds.spin_rand), fxp::I16, 1, 4096, fxp::Angle },
+			{ "clouds", "clouds.size_min", "Size", "Their size and growth: (this + a random below the next) / 8 (the growth loses 1/8 a tick; the ring pair's too)", (uint32_t)offsetof(BreathParams, clouds.size_min), fxp::I16, 0, 0x7FFF },
+			{ "clouds", "clouds.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(BreathParams, clouds.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "clouds", "clouds.outer", "Outer model size", "The second model's size: the first's + this", (uint32_t)offsetof(BreathParams, clouds.outer), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "clouds", "clouds.fade_from", "Fade from", "From this tick of its own the pair fades", (uint32_t)offsetof(BreathParams, clouds.fade_from), fxp::I16, 0, 300 },
+			{ "clouds", "clouds.life", "End tick", "The pair ends at this tick of its own", (uint32_t)offsetof(BreathParams, clouds.life), fxp::I16, 1, 300 },
+			{ "rings", "rings.spin_min", "Spin", "The ring pair's spin a tick: this + a random below the next (it loses 1/16 a tick)", (uint32_t)offsetof(BreathParams, rings.spin_min), fxp::I16, 0, 4096, fxp::Angle },
+			{ "rings", "rings.spin_rand", "Spin random", "(at least 1)", (uint32_t)offsetof(BreathParams, rings.spin_rand), fxp::I16, 1, 4096, fxp::Angle },
+			{ "rings", "rings.size", "Size", "Their size: the cloud pair's size + this", (uint32_t)offsetof(BreathParams, rings.size), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "rings", "rings.fade_from", "Fade from", "From this tick of its own the pair fades", (uint32_t)offsetof(BreathParams, rings.fade_from), fxp::I16, 0, 300 },
+			{ "rings", "rings.life", "End tick", "The pair ends at this tick of its own", (uint32_t)offsetof(BreathParams, rings.life), fxp::I16, 1, 300 },
+			{ "splatter", "splatter.last_tick", "Last spawn tick", "Splatter sprites spawn from its tick 0 to this one", (uint32_t)offsetof(BreathParams, splatter.last_tick), fxp::I16, -1, 300 },
+			{ "splatter", "splatter.per_tick", "A tick", "How many a tick", (uint32_t)offsetof(BreathParams, splatter.per_tick), fxp::I16, 0, 100 },
+			{ "splatter", "splatter.spread", "Spread", "Around the target's effect position: a random of this width on each axis (at least 1)", (uint32_t)offsetof(BreathParams, splatter.spread), fxp::I16, 1, 0x7FFF },
+			{ "splatter", "splatter.size_min", "Size", "A splatter sprite's size: this + a random below the next", (uint32_t)offsetof(BreathParams, splatter.size_min), fxp::I16, 0, 0x7FFF },
+			{ "splatter", "splatter.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(BreathParams, splatter.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "breath", "seqs.breath", "Breath flipbook", "The sprite sequence of the breath particles (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.breath), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "puff", "seqs.puff", "Puff flipbook", "The sprite sequence of the puff (a flipbook of 4 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "puff", "seqs.puff_part", "Puff particle flipbook", "The sprite sequence of the puff particles (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.puff_part), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "splatter", "seqs.splatter", "Splatter flipbook", "The sprite sequence of the splatter (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(BreathParams, seqs.splatter), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "swirl", "models.swirl", "Swirl model", "The prim model of the swirls (a mesh of 145 vertices, 144 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, models.swirl), fxp::Model, 0, 0x7FFFFFFF },
+			{ "burst", "models.burst", "Burst model", "The prim model of the burst (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, models.burst), fxp::Model, 0, 0x7FFFFFFF },
+			{ "clouds", "models.cloud1", "Cloud model", "The prim model of the first cloud model (a mesh of 110 vertices, 120 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, models.cloud1), fxp::Model, 0, 0x7FFFFFFF },
+			{ "clouds", "models.cloud2", "Outer cloud model", "The prim model of the second one (a mesh of 108 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, models.cloud2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "rings", "models.ring", "Ring model", "The prim model of the rings (a mesh of 72 vertices, 48 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(BreathParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(BreathParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(BreathParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag157_breath()
 	{
+		fxp::register_params({ 157, "Breath", &breath157::live, &breath157::GAME, sizeof(breath157::BreathParams),
+		                       breath157::table::PARTS, (int)(sizeof(breath157::table::PARTS) / sizeof(breath157::table::PARTS[0])),
+		                       breath157::table::FIELDS, (int)(sizeof(breath157::table::FIELDS) / sizeof(breath157::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(breath157::ORIG_FileLoader, (void *)breath157::FileLoader);
+		own::note(breath157::ORIG_Setup, (void *)breath157::Setup);
+		own::note(breath157::ORIG_RootTask, (void *)breath157::RootTask);
 		register_port(breath157::ORIG_RootTask, (void *)breath157::RootTask, "B157 RootTask", 157);
+		own::note(breath157::ORIG_TexRestore, (void *)breath157::TexRestoreTask);
 		register_port(breath157::ORIG_TexRestore, (void *)breath157::TexRestoreTask, "B157 TexRestore", 157);
+		own::note(breath157::ORIG_Director, (void *)breath157::DirectorTask);
 		register_port(breath157::ORIG_Director, (void *)breath157::DirectorTask, "B157 Director", 157);
+		own::note(breath157::ORIG_Swirl, (void *)breath157::SwirlTask);
 		register_port(breath157::ORIG_Swirl, (void *)breath157::SwirlTask, "B157 Swirl", 157);
+		own::note(breath157::ORIG_BreathParticles, (void *)breath157::BreathParticlesTask);
 		register_port(breath157::ORIG_BreathParticles, (void *)breath157::BreathParticlesTask, "B157 BreathParticles", 157);
+		own::note(breath157::ORIG_Cloud, (void *)breath157::CloudTask);
 		register_port(breath157::ORIG_Cloud, (void *)breath157::CloudTask, "B157 Cloud", 157);
+		own::note(breath157::ORIG_Burst, (void *)breath157::BurstTask);
 		register_port(breath157::ORIG_Burst, (void *)breath157::BurstTask, "B157 Burst", 157);
+		own::note(breath157::ORIG_Puff, (void *)breath157::PuffTask);
 		register_port(breath157::ORIG_Puff, (void *)breath157::PuffTask, "B157 Puff", 157);
+		own::note(breath157::ORIG_PuffParticles, (void *)breath157::PuffParticlesTask);
 		register_port(breath157::ORIG_PuffParticles, (void *)breath157::PuffParticlesTask, "B157 PuffParticles", 157);
+		own::note(breath157::ORIG_CloudModels, (void *)breath157::CloudModelsTask);
 		register_port(breath157::ORIG_CloudModels, (void *)breath157::CloudModelsTask, "B157 CloudModels", 157);
+		own::note(breath157::ORIG_Rings, (void *)breath157::RingsTask);
 		register_port(breath157::ORIG_Rings, (void *)breath157::RingsTask, "B157 Rings", 157);
+		own::note(breath157::ORIG_Splatter, (void *)breath157::SplatterTask);
 		register_port(breath157::ORIG_Splatter, (void *)breath157::SplatterTask, "B157 Splatter", 157);
 		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(register_mag157_held();)
