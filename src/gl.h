@@ -36,6 +36,13 @@
 
 class ExternalMesh;
 
+enum class PSXWorldDitherMode : uint8_t
+{
+	Off,
+	Native,
+	Average
+};
+
 enum DrawCallType
 {
 	DCT_CLEAR = 0,
@@ -70,6 +77,10 @@ struct driver_state
 	struct matrix d3dprojection_matrix;
 	ff7::field::kawai::Effect kawai_effect;
 	struct matrix kawai_camera_matrix;
+	bool psx_world;
+	bool psx_world_radar;
+	bool psx_world_meteor;
+	PSXWorldDitherMode psx_world_dither;
 };
 
 static_assert(std::is_trivially_copyable_v<driver_state>);
@@ -114,6 +125,7 @@ struct gl_texture_set
 	uint32_t force_zsort;
 	uint32_t disable_lighting;
 	uint32_t default_texture_id;
+	bool world_terrain = false;
 	// ANIMATED TEXTURES
 	uint32_t is_animated;
 	std::map<std::string, uint32_t> animated_textures;

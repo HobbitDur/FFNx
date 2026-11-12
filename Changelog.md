@@ -1,6 +1,54 @@
 # Next
 
-- Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.1...master
+- Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.2...master
+
+## FF7
+
+- Core: Add support for the PSX Star Field loop in post-credits, instead of closing the game. Thanks to the https://github.com/Xeeynamo/ff7-decomp project for the PSX source.
+- Core: World rendering now matches the PSX edition of the game when run vanilla
+- Core: Fix KAWAI TRNSP behavior when using lighting on the GPU, instead of on the CPU, preventing a double lighting bug
+- Cheats: Add support to skip credits using the Skip FMV cheat shortcut
+
+## FF8
+
+- Core: Fix battle menu windows disappearing for a few frames while another window opens, like the Magic or Item list when choosing an ally target ( https://github.com/julianxhokaxhiu/FFNx/pull/1076 )
+- Core: Fix battle sounds playing almost all on the right and field footsteps jumping from one side to the other, they are panned from the screen position like on PSX ( https://github.com/julianxhokaxhiu/FFNx/pull/1084 )
+- Core: Fix Eden's summon showing the pit and the sky in flat blue for one frame: a triangle with a vertex far off screen covered the screen, the PS1 never draws it ( https://github.com/julianxhokaxhiu/FFNx/pull/1091 )
+- Core: Fix lightning and acid streams drawn as thin or crossed lines (Quezacotl, Breath, Electric Discharge, Gastric Juice, Electrocute, Acid, Saliva, Dissolving Acid, Mega Spark, Mega Pulse Cannon, X-ATM092, Ultimecia), they are as wide as on PSX ( https://github.com/julianxhokaxhiu/FFNx/pull/1085 )
+- Core: Fix Scan not saving scanned enemies in the vanilla savemap field when no loose scene.out is found ( https://github.com/julianxhokaxhiu/FFNx/issues/1077 )
+- Core: Fix the Doom countdown drawn lower than on PSX and overlapping the second status countdown above battle models ( https://github.com/julianxhokaxhiu/FFNx/pull/1086 )
+- Core: Fix the missing light on Cure, Cura, Potion and Hi-Potion, the missing swirl on Hypnotize, and the missing flash on Boko's ChocoBocle ( https://github.com/julianxhokaxhiu/FFNx/pull/1083 )
+- Core: Fix the missing sword slash on Gilgamesh's Masamune, the Eden sparkles drawn off screen and the long spikes Magic Summon throws across the screen ( https://github.com/julianxhokaxhiu/FFNx/pull/1088 )
+- Core: Fix the world map check that lifts the camera when terrain hides the player: it tested a point near the top-left corner of the screen instead of the player ( https://github.com/julianxhokaxhiu/FFNx/pull/1089 )
+- Direct mode: Add the chunk feature for the character and weapon battle files (dXcNNN.dat, dXwNNN.dat), see [Direct mode](docs/mods/direct_mode.md) ( https://github.com/julianxhokaxhiu/FFNx/pull/1074 )
+- Renderer: Preserve PSX texture-page coordinates, fixing battle effects sampling past their image edges, including Tonberry's Doink bubble ( https://github.com/julianxhokaxhiu/FFNx/issues/1073 )
+- Renderer: Restore world-map UV precision automatically without affecting unrelated polygons. The `ff8_fix_uv_coords_precision` option is no longer needed and is ignored.
+- Renderer: Fix UV gemotry for Roads and Rail tracks in World
+
+# 1.25.2
+
+- Full commit list since last stable release: https://github.com/julianxhokaxhiu/FFNx/compare/1.25.1...1.25.2
+
+## FF7
+
+- Core: Match the 2026 universal L1/R1 button prompts on the Chocobo betting screen ( https://github.com/julianxhokaxhiu/FFNx/issues/1067 )
+- Core: Apply the Chocobo gift-text vertical alignment correction to every game language
+- Core: Preserve timer and numeric-display window geometry when `ff7_field_autosize_text_box` is enabled
+- Core: Fix FMV model culling with `enable_uncrop` disabled in 4:3 mode ( https://github.com/julianxhokaxhiu/FFNx/issues/830 )
+- Renderer: Render field model eyes and mouths without lighting or shadows, preserving their texture colors
+
+## FF8
+
+- Core: Fix learned abilities past ID 127 being lost when loading a save ( https://github.com/julianxhokaxhiu/FFNx/pull/1058 )
+- Core: Fix world map draw points saying no one can draw when kernel.bin moves the Draw command ability ( https://github.com/julianxhokaxhiu/FFNx/pull/1058 )
+- Core: Fix AddMoreItems never starting since BattleAnimSetFiles, kernel.bin extensions now start without checking the game code ( https://github.com/julianxhokaxhiu/FFNx/pull/1064 )
+- External textures: Reduce battle and magic loading hitches by loading classic palettes on demand and avoiding repeated virtual archive metadata checks ( https://github.com/julianxhokaxhiu/FFNx/issues/778 )
+- External textures: Fix custom controller icons not loading with `ff8_use_gamepad_icons` enabled due to an incorrect fallback to low-resolution icons
+
+## FF8 Remastered
+
+- Core: Fix Dollet boat texture
+- Core: Fix Carbuncle summon textures
 
 ## FF8
 
@@ -69,8 +117,8 @@
 ## FF8
 
 - Achievements: Add support for remastered achievements
-- Core: Preserve per-vertex depth in the world-map vehicle renderer while retaining native polygon sorting ( https://github.com/julianxhokaxhiu/FFNx/issues/879 )
 - Audio: Add a Sound screen to the Config menu, to set the sound effects, music, voice, ambient and movie volumes in game ( https://github.com/julianxhokaxhiu/FFNx/pull/1015 )
+- Core: Preserve per-vertex depth in the world-map vehicle renderer while retaining native polygon sorting ( https://github.com/julianxhokaxhiu/FFNx/issues/879 )
 - Core: Add extended item definitions and 24 inventory pages, with persistent save-tail inventory storage (see [item documentation](docs/ff8/items.md)) ( https://github.com/julianxhokaxhiu/FFNx/pull/1051 )
 - Core: Extend the battle actor sound table through c0m199 ( https://github.com/julianxhokaxhiu/FFNx/pull/999 )
 - Core: Give monsters c0m144-c0m199 their own Scan camera framing, editable through the `battle_scan_cameras.bin` exe data file ( https://github.com/julianxhokaxhiu/FFNx/pull/1045 )

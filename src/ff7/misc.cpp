@@ -25,6 +25,7 @@
 #include <unordered_map>
 
 #include "defs.h"
+#include "starfield.h"
 #include "battle/camera.h"
 #include "field/camera.h"
 #include "world/camera.h"
@@ -59,6 +60,10 @@ static void autosize_text_box_window(short WINDOW_ID, byte* buffer_text,
 	std::unordered_map<short, autosize_window_state>& autosize_state)
 {
 	auto& window = ff7_externals.text_box_window_data_array_CFF5B8[WINDOW_ID];
+	// WSPCL timer and numeric displays use fixed-size sprites, not dialog glyphs.
+	if (window.do_draw_menu_win_b_blend_4)
+		return;
+
 	const bool firstOpeningFrame =
 		window.current_window_width == std::max<int16_t>(window.window_width / 4, 8)
 		&& window.current_window_height == std::max<int16_t>(window.window_height / 4, 8);
@@ -77,8 +82,8 @@ static void autosize_text_box_window(short WINDOW_ID, byte* buffer_text,
 
 	int16_t W = 0, H = 0;
 	auto_resize_text_box(WINDOW_ID, buffer_text, &W, &H);
-	if (!ff7_japanese_edition)
-		H = std::min(H, state.authored_height);
+	if (ff7_field_autosize_text_box == 1)
+		H = state.authored_height;
 	window.window_width = std::clamp<int16_t>(W, 0, 320);
 	window.window_height = std::clamp<int16_t>(H, 0, 224);
 	state.applied_width = window.window_width;
@@ -727,6 +732,18 @@ bool ff7_skip_movies()
 {
 	uint32_t mode = getmode_cached()->driver_mode;
 
+	constexpr int last_credits_row = 528;
+	constexpr int credits_row_words = 16;
+	if (mode == MODE_CREDITS && *common_externals._mode == FF7_MODE_UNKNOWN28
+		&& !ff7::starfield::is_active() && !ff7_externals.movie_object->is_playing
+		&& *ff7_externals.credits_scroll_active && *ff7_externals.credits_scroll_row < last_credits_row)
+	{
+		// Let native code finish the roll, fade the music, and continue to ending3.
+		*ff7_externals.credits_scroll_row = last_credits_row;
+		*ff7_externals.credits_scroll_position = -(*ff7_externals.credits_entries)[last_credits_row * credits_row_words + 15];
+		return true;
+	}
+
 	// Prevent game acting weird or wrong if movie is skipped
 	if (
 		*ff7_externals.field_id == 399 ||
@@ -855,6 +872,9 @@ void ff7_limit_fps()
 			*ff7_externals.submarine_minigame_status = 1;
 		break;
 	}
+
+	if (ff7_fps_limiter >= FPS_LIMITER_60FPS && ff7::starfield::is_active())
+		framerate = 60.0f;
 
 	framerate *= gamehacks.getCurrentSpeedhack();
 	double frame_time = game_object->countspersecond / framerate;
