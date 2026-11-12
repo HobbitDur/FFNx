@@ -68,10 +68,7 @@
 #define FF8_FIRST_NEW_FILE_INDEX (FF8_FIRST_NEW_COM_ID + 150) // 310
 #define FF8_LAST_NEW_FILE_INDEX  (FF8_LAST_NEW_COM_ID + 150)  // 365
 
-// SG_ENEMY_SCANNED_ONCE sits 0x54 bytes before field_vars_stack_1CFE9B8 in the
-// savemap globals. Only used to sanity-check the address we read from the code.
-#define FF8_SG_ENEMY_SCANNED_ONCE_OFFSET (-0x54)
-// Where we move the field: field vars 785..816 (8 DWORDs, enough for all 256
+// Where we move SG_ENEMY_SCANNED_ONCE: field vars 785..816 (8 DWORDs, enough for all 256
 // com_ids), in free savemap space. 753..784 are taken by AddMoreMagic.
 #define FF8_SCANNED_ONCE_RELOCATE_VAR  785
 #define FF8_SCANNED_ONCE_RELOCATE_SIZE 32
@@ -127,13 +124,14 @@ static bool ff8_get_battle_file_size_on_disk(const char *relative_path, uint32_t
 // True if any encounter in scene.out uses a new monster (com_id >= 160) - the
 // Scan relocation below is only needed then. Read through sm_pc_read so file
 // overrides count, and sized from the real file so a modded scene.out works. If
-// the size can't be found, assume it's needed rather than skip a real fix.
+// the size can't be found (retail keeps scene.out in battle.fs), assume it's not
+// needed so vanilla keeps its scanned-once field where save editors expect it.
 static bool ff8_scene_out_uses_new_monsters()
 {
 	char scene_out_filename[] = "battle/scene.out";
 	uint32_t file_size;
 	if (!ff8_get_battle_file_size_on_disk(scene_out_filename, &file_size))
-		return true;
+		return false;
 
 	uint8_t *scene_out = new uint8_t[file_size];
 	uint32_t read_size = ff8_externals.sm_pc_read(scene_out_filename, scene_out);
@@ -169,18 +167,7 @@ static void ff8_relocate_enemy_scanned_once()
 		|| !ff8_externals.battle_enemy_scanned_write_operand)
 		return;
 
-	// Read the field's address straight out of the instruction that indexes it.
-	// Then guard against a bad resolve before patching: the writer must use the
-	// same address, and it must match the savemap layout.
-	uint32_t from = *(uint32_t *)ff8_externals.battle_enemy_scanned_read_operand;
-	uint32_t expected = ff8_externals.field_vars_stack_1CFE9B8 + FF8_SG_ENEMY_SCANNED_ONCE_OFFSET;
 	uint32_t to = ff8_externals.field_vars_stack_1CFE9B8 + FF8_SCANNED_ONCE_RELOCATE_VAR;
-
-	if (from != *(uint32_t *)ff8_externals.battle_enemy_scanned_write_operand || from != expected)
-	{
-		if (trace_all) ffnx_warning("Extra battle monsters: Scan scanned-once operands do not agree with the savemap layout (read 0x%08X, expected 0x%08X), skipping relocation - scanning c0m144-c0m199 may corrupt the savemap!\n", from, expected);
-		return;
-	}
 
 	patch_code_dword(ff8_externals.battle_enemy_scanned_read_operand, to);
 	patch_code_dword(ff8_externals.battle_enemy_scanned_write_operand, to);
@@ -193,15 +180,6 @@ static void ff8_extend_battle_actor_sounds()
 	static uint32_t extended_actor_sounds[FF8_BATTLE_ACTOR_SOUND_ROWS][FF8_BATTLE_ACTOR_SOUND_SLOTS] = {};
 	if (ff8_externals.battle_actor_sounds == nullptr || ff8_externals.battle_actor_sounds == extended_actor_sounds)
 		return;
-
-	if ((uint8_t)get_absolute_value(ff8_externals.battle_actor_sound, 0x13) != FF8_FIRST_NEW_COM_ID
-		|| get_absolute_value(ff8_externals.battle_actor_sound_3d, 0x9E) != (uint32_t)ff8_externals.battle_actor_sounds
-		|| get_absolute_value(ff8_externals.battle_actor_sound_3d, 0xDC) != (uint32_t)ff8_externals.battle_actor_sounds)
-	{
-		if (trace_all) ffnx_warning("Extra battle monster sounds: unsupported sound table layout.\n");
-		ff8_externals.battle_actor_sounds = nullptr;
-		return;
-	}
 
 	memcpy_code((uint32_t)extended_actor_sounds, ff8_externals.battle_actor_sounds, FF8_FIRST_NEW_COM_ID * sizeof(extended_actor_sounds[0]));
 	patch_code_dword(ff8_externals.battle_actor_sound + 0x81, (uint32_t)extended_actor_sounds);

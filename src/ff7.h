@@ -143,6 +143,23 @@ enum class cmd_id
 	CMD_POISONTICK = 0x23
 };
 
+struct chocobo_ui_quad
+{
+	uint32_t texture;
+	bgra_byte color;
+	uint16_t u, v;
+	float normalized_u, normalized_v;
+	uint16_t corners[4][2];
+	float z;
+	int width, height;
+	int palette;
+	float normalized_width, normalized_height;
+	float texture_width, texture_height;
+	int unused;
+};
+
+static_assert(sizeof(chocobo_ui_quad) == 72);
+
 // internal structure for menu sprites (global values, may not be a structure at all)
 struct menu_objects
 {
@@ -1237,6 +1254,27 @@ struct hrc_data
 	struct matrix field_64;
 	uint32_t *field_A4;
 };
+
+struct world_model_animation
+{
+	struct anim_header **animations;
+	struct hrc_data *model;
+	uint8_t reserved[0xB0];
+};
+
+static_assert(sizeof(world_model_animation) == 0xB8);
+
+struct world_light_point
+{
+	vector4<int> position;
+	uint8_t light_color[4];
+	uint8_t sky_top_color[4];
+	uint8_t sky_bottom_color[4];
+	int fade_range;
+	int core_range;
+};
+
+static_assert(sizeof(world_light_point) == 0x24);
 
 struct hrc_bone
 {
@@ -3737,7 +3775,21 @@ struct ff7_externals
 	void (*world_wm0_overworld_draw_all_74C179)();
 	void (*world_wm2_underwater_draw_all_74C3F0)();
 	void (*world_wm3_snowstorm_draw_all_74C589)();
+	ff7_graphics_object** world_terrain_graphics_objects;
+	uint32_t* world_terrain_graphics_object_count;
+	ff7_graphics_object** world_radar_graphics_object;
+	ff7_graphics_object** world_sky_graphics_object;
+	ff7_graphics_object** world_meteor_graphics_object;
+	int16_t (*world_update_terrain_lighting)(vector4<int>*);
+	int (*world_set_terrain_light_color)(const int16_t*);
+	int (*world_get_distance_to_light_point)(vector4<int>*, world_light_point*);
 	uint32_t world_draw_all_3d_model_74C6B0;
+	hrc_data** world_player_hrc;
+	anim_header*** world_player_animations;
+	world_model_animation* world_other_model_animations;
+	int (*world_get_model_count)();
+	uint32_t world_recolor_model;
+	int (*world_add_model_color)(const bgra_color*, hrc_data*);
 	uint32_t world_draw_fade_quad_75551A;
 	uint32_t world_sub_75079D;
 	uint32_t world_sub_751EFC;
@@ -3749,6 +3801,7 @@ struct ff7_externals
 	uint32_t world_culling_bg_meshes_75F263;
 	uint32_t world_submit_draw_bg_meshes_75F68C;
 	uint32_t world_compute_skybox_data_754100;
+	int* world_sky_horizon;
 	uint32_t world_submit_draw_clouds_and_meteor_7547A6;
 	int (*sub_74C9A5)();
 	int* is_meteor_flag_on_E2AAE4;
@@ -3795,6 +3848,10 @@ struct ff7_externals
 	uint32_t menu_submit_draw_fade_quad_6CD64E;
 	int (*get_button_pressed)(int);
 	uint32_t credits_main_loop;
+	int *credits_scroll_active;
+	int *credits_scroll_row;
+	int *credits_scroll_position;
+	int **credits_entries;
 	uint32_t highway_submit_fade_quad_659532;
 
 	// chocobo mode
@@ -3813,6 +3870,13 @@ struct ff7_externals
 	uint32_t chocobo_name_text_call_776B76;
 	uint32_t chocobo_gift_text_call_addresses[3];
 	int (*chocobo_draw_text_77941B)(byte*, int, int, int);
+	uint32_t chocobo_betting_ui_quad_call;
+	int (*chocobo_submit_ui_quad)(chocobo_ui_quad*);
+	chocobo_ui_quad** chocobo_betting_ui_quads;
+	int* chocobo_ui_scale;
+	int* chocobo_ui_x_offset;
+	int* chocobo_ui_y_offset;
+	int* chocobo_ui_y_adjustment;
 	void(*chocobo_switch_mode_76DB33)(void* ff7_game_obj);
 	void(*generic_submit_quad_graphics_object_671D2A)(int, int, int, int, int, int, float, DWORD*) ;
 	byte* chocobo_fade_quad_data_97A498;

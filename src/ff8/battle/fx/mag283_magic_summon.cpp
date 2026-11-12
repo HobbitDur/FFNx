@@ -51,6 +51,7 @@
 // VZ0 high half (0x1CA8A16) only. The warp keeps its counters / bucket in its argument slots (not re-read by the callers).
 // SCREEN UNITS (PC): the warp's centre (0x67C7B8) and its vertices (0x67D297) are the GTE's SXY in eighths of a pixel, used as
 // pixels (distance clamp 0x80, the distance table, the radius): the warp reaches ~16 px (the clip window is already x 8).
+// PC screen units fix (FFNx PR 1088): WarpVertices takes the offset in pixels and pushes it back in eighths.
 
 // Fujin's described Magic Summon (effect_283.json) runs this code: its memory through own::R() (fx_port.h), its spawns
 // through own::Fn(), the setup and the file loader ported below; its parameters (SummonParams: the sound, the timeline,
@@ -220,8 +221,9 @@ namespace magicsummon283
 			{
 				const int16_t cx = F<int16_t>(s, 0x52);
 				const int16_t cy = F<int16_t>(s, 0x54);
-				const int32_t dx = (int16_t)(F<int16_t>(s, 0x1C) - cx);
-				const int32_t dy = (int16_t)(F<int16_t>(s, 0x1E) - cy);
+				// PC screen units fix: the offset from the centre in pixels, the pushed offset back in eighths
+				const int32_t dx = (int32_t)(int16_t)(F<int16_t>(s, 0x1C) - cx) >> 3;
+				const int32_t dy = (int32_t)(int16_t)(F<int16_t>(s, 0x1E) - cy) >> 3;
 				int32_t adx = dx;
 				if ((int16_t)dx < 0) adx = -adx;
 				if ((int16_t)adx >= 0x80) adx = 0x80;
@@ -238,8 +240,8 @@ namespace magicsummon283
 					{
 						const int32_t q = (int32_t)(d << 7) / radius;
 						const uint32_t w = *(const uint16_t *)(F<uint32_t>(s, 0x4C) + q * 2);
-						F<int16_t>(s, 0x1C) = (int16_t)((mul32(dx, (int32_t)w) >> 12) + cx);
-						F<int16_t>(s, 0x1E) = (int16_t)((mul32(dy, (int32_t)w) >> 12) + cy);
+						F<int16_t>(s, 0x1C) = (int16_t)((mul32(dx, (int32_t)w) >> 9) + cx);
+						F<int16_t>(s, 0x1E) = (int16_t)((mul32(dy, (int32_t)w) >> 9) + cy);
 					}
 				}
 				const int32_t vx = F<int16_t>(s, 0x1C);

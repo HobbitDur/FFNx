@@ -42,10 +42,13 @@
 #include "ff8/battle/ai.h"
 #include "ff8/battle/effect_camera.h"
 #include "ff8/battle/anim_set.h"
+#include "ff8/battle/ui_window.h"
+#include "ff8/battle/effects_screen_units.h"
+#include "ff8/battle/status_countdown.h"
+#include "ff8/battle/effects_ribbons.h"
+#include "ff8/worldmap_camera_lift.h"
 #include "ff8/field/movie.h"
 #include "ff8/sound_pan.h"
-#include "ff8/battle/effects_ribbons.h"
-#include "ff8/battle/status_countdown.h"
 #include "ff8/kernel_magic.h"
 #include "ff8/kernel_ability.h"
 #include "ff8/battle/monsters.h"
@@ -738,7 +741,7 @@ static void ff8_swirl_draw_wipe(ff8_graphics_object *graphics_object, ff8_game_o
 		vertices[base + 3]._.y += 1.0f;
 	}
 
-	ff8_externals.swirl_submit_graphics_object(graphics_object, game_object);
+	ff8_externals.graphics_setrendererstate_draw_sub_4178D7(graphics_object, game_object);
 }
 
 void ff8_set_render_to_vram_current_screen_flag_before_battle()
@@ -2431,6 +2434,31 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	ff8_battle_anim_set_init();
 
 	// #####################
+	// Battle menu windows kept on screen while another window opens
+	// #####################
+	ff8_battle_ui_window_init();
+
+	// #####################
+	// Battle effects that test screen coordinates in PSX pixels (Cure, Cura, Potion, Hi-Potion, Hypnotize, ChocoBocle)
+	// #####################
+	ff8_battle_effects_screen_units_init();
+
+	// #####################
+	// Status countdown numbers placed like on PSX
+	// #####################
+	ff8_battle_status_countdown_init();
+
+	// #####################
+	// Lightning and acid ribbons as wide as on PSX
+	// #####################
+	ff8_battle_effects_ribbons_init();
+
+	// #####################
+	// World map camera lifted when terrain hides the player, as on PSX
+	// #####################
+	ff8_worldmap_camera_lift_init();
+
+	// #####################
 	// Field scripts and models in sync with movies above 15 FPS
 	// #####################
 	ff8_field_movie_init();
@@ -2439,16 +2467,6 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// Battle sounds and field footsteps panned like on PSX
 	// #####################
 	ff8_sound_pan_init();
-
-	// #####################
-	// Lightning and acid ribbons as wide as on PSX
-	// #####################
-	ff8_battle_effects_ribbons_init();
-
-	// #####################
-	// Status countdown numbers placed like on PSX
-	// #####################
-	ff8_battle_status_countdown_init();
 
 	// #####################
 	// native battle effect code

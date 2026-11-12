@@ -86,12 +86,21 @@ Path: `{mod_path}\battle\{filename with extension in FS archive}-0_00`
 
 Example: `.\mods\Textures\battle\A0STG101.X-0_00.dds`
 
-Decoded filesystem images used by battle and magic texture replacements are
-cached with a 128 MiB least-recently-used limit. Cache eviction does not unload
-active textures, and VRAM animation copies do not modify cached originals.
-The cache distinguishes source dimensions, resolution/LOD settings, color
-modifiers, and file size/timestamps. Remastered archive images retain their
-existing loading path.
+Battle and magic texture replacements using the classic palette layout load
+the first usable palette as a fallback, then resolve and decode other palettes
+only when used. VRAM animation copies still load all palettes they modify.
+Remastered atlas images retain their existing loading path.
+
+Decoded filesystem images are cached with a 128 MiB least-recently-used limit.
+Cache eviction does not unload active textures, and VRAM animation copies do not
+modify cached originals. The cache distinguishes paths, source dimensions,
+resolution/LOD settings, edition, and color modifiers.
+
+Battle and magic file lookup results are also cached, with a 4096-path limit.
+Cache hits do not check file timestamps: metadata probes can extract entire
+files through virtual mod archives. Restart the game after adding, removing,
+or replacing mod textures. A first use or an evicted image can still require
+synchronous decoding; this does not preload every spell.
 
 ## Worldmap
 
@@ -141,6 +150,32 @@ Worldmap texture animations, replace `section38/texture21` and `section38/textur
 
 Rails and roads.
 
+##### Road and rail UV alignment
+
+FFNx corrects road/rail UV joins and interior rail cuts for both original and
+external textures without moving the geometry. Keep replacement artwork aligned
+with the original atlas and tile proportions; do not compensate for older UV
+precision patches in the image.
+
+The original straight road/rail tiles are 32x16 texels. Their cross-track UV
+direction can reverse as `V -> 16 - V`. Border and steel-rail bands must therefore
+line up when the replacement tile is flipped vertically. Gravel, sleepers and
+other surface detail do not have to be mirrored.
+
+For a replacement tile `H` pixels high, pixel row `y` has its center at `y + 0.5`.
+Its mirrored row is `H - 1 - y`. Two one-pixel rail lines must have row indices
+adding up to `H - 1`; wider or antialiased bands should have matching mirrored
+positions and widths.
+
+For example, in a 64-pixel-high tile, rows 13 and 50 are a mirrored pair, but
+rows 12 and 50 are not. To preserve the original steel-rail centers exactly,
+scale their positions at 3.5 and 12.5 source texels with the image resolution,
+then rasterize both bands symmetrically.
+
+Check both repeating ends and reversed joins in-game. A remaining mismatch in
+the artwork should be corrected in the texture, not with a pack-specific UV
+offset in FFNx.
+
 #### Section 40
 
 | File name   | Description           | Animated | Multi palettes |
@@ -167,7 +202,7 @@ Some mobile models.
 | texture11_00 | Galbadia military car   |
 | texture12_00 | Unknown                 |
 | texture13_00 | Unknown                 |
-| texture14_00 | Unknown                 |
+| texture14_00 | Dollet assault boat     |
 | texture15_00 | Unknown                 |
 | texture16_00 | Unknown                 |
 | texture17_00 | Green car               |
@@ -186,6 +221,10 @@ Some mobile models.
 | texture30_00 | Jumbo Cactuar           |
 | texture31_00 | Rocks                   |
 | texture32_00 | City barrier disk 4     |
+
+In Remastered, the Dollet assault boat uses `textures\field.fs\field_hd_new\wmset_014_0.png`
+as a replacement for the entire 256x256 VRAM page 15, not just the original `texture14`
+TIM rectangle. Its updated model uses UV coordinates outside that original rectangle.
 
 ### texl.obj
 
@@ -214,6 +253,12 @@ Path: `{mod_path}\world\esk\chara_one\model{model number}-{texture number}_00`
 Path: `{mod_path}\data\{lang}\menu`
 
 **Note:** this can change in the future for more consistency with other modules.
+
+With `ff8_use_gamepad_icons = true`, high-resolution controller replacements use
+`hires\iconfl01_04.dds` and `hires\iconfl03_04.dds` under this path.
+All four original high-resolution icon pages must load successfully; otherwise
+FFNx logs a warning and falls back to low-resolution icons, which do not use
+these replacements.
 
 ## Field
 
