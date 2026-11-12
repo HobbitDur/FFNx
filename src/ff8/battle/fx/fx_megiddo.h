@@ -61,10 +61,17 @@
 //     while the entity's sequence 6 runs).
 // Every task but the root / restore tests the draw-only flags (battle_to_update_flags 0x1D96A9C & 0x201).
 // Module globals (166): 0x23BF038..0x23C3278.
+// Fujin's described Megiddo Flames (effect_166.json, effect_312.json) run this code: its memory through own::R() (fx_port.h,
+// G()), its spawns through own::Fn(), the setup and the file loader ported below; their parameters (MegiddoParams, one
+// layout for both, each module's game values from its own addresses: the sounds, the director's ticks, the effect
+// point's bone, the glow, spins, rings, bolts and flames' sizes, counts and spreads; its data: 12 meshes, the spark
+// flipbook, the sheet colours, the effect point's offset, the texture name, the camera track). FX_PART tags its parts.
 
 #pragma once
 
 #include "mag_common.h"
+#include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -780,6 +787,92 @@ namespace megiddo
 	}
 	}
 
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h): one layout for 166 and 312, the game values each module's
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_GLOW = 1, PART_SPINS = 2, PART_RINGS = 3, PART_BOLTS = 4, PART_COLUMN = 5, PART_PILLAR = 6, PART_FLAMES = 7,
+	             PART_SPARKS = 8, PART_DEBRIS = 9, PART_LANDING = 10 };
+	struct MegiddoParams
+	{
+		struct { uint32_t start, blast; } sounds;     // the director's glow tick, its blast tick
+		// its ticks: the glow, the spins and bolts, the rings (every 6th from..to), the stage capture (the tick before the
+		// column), the column, the blast sound, the pillar, the sparks and debris, the end
+		struct { int16_t glow, bolts, rings_from, rings_to, column, blast, pillar, sparks, end; } director;
+		struct { int16_t bone; } point;               // the caster's bone of the effect point
+		struct { int16_t size, shrink; } glow;
+		struct { int16_t size, spin_min, spin_rand; } spins;
+		struct { int16_t size; } rings;
+		struct { int16_t count, spread; } bolts;
+		struct { int16_t count, spread_x, spread_z; } flames;
+		struct { uint32_t glow, spin, ring, arc, column, column_flash, pillar, flame_a, flame_b, debris0, debris1, debris2; } models; // the prim models drawn (meshes)
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t sheet_colours, point_offset; } tables; // its small tables (data)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The timeline: the effect point at the caster's bone and the frame toward the targets' centre (every tick), when each part starts, the stage captured from above for the column, the screen flashes and fades, the sounds" },
+			{ PART_GLOW, "glow", "Glow", "A glow model at the effect point, shrinking, fading at its end" },
+			{ PART_SPINS, "spins", "Spins", "Two models at the effect point spinning (slowing down), fading in and out" },
+			{ PART_RINGS, "rings", "Rings", "Ring models at the effect point every 6th tick, growing and fading" },
+			{ PART_BOLTS, "bolts", "Bolts", "Bolts round the targets' centre (random splines): each an arc model from the effect point along it, a gouraud sheet between them and a widened ribbon on it" },
+			{ PART_COLUMN, "column", "Column", "The column at the centre (textured with the stage drawn from above) and its flash, stretched up" },
+			{ PART_PILLAR, "pillar", "Pillar", "The pillar model at the centre, growing up, fading" },
+			{ PART_FLAMES, "flames", "Flames", "Flame models round the centre (two kinds, scrolled), each after a delay, spinning, fading" },
+			{ PART_SPARKS, "sparks", "Sparks", "Spark sprites thrown round the centre (two a tick)" },
+			{ PART_DEBRIS, "debris", "Debris", "Debris models thrown round the centre (three a tick), falling and turning" },
+			{ PART_LANDING, "landing", "Knock-down and landing", "Each present party member knocked down, then thrown up, turned and landing (a ring model where it lands); the action result at the end" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The start, the blast" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sounds.start", "Start", "At the director's glow tick", (uint32_t)offsetof(MegiddoParams, sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.blast", "Blast", "At the director's blast tick", (uint32_t)offsetof(MegiddoParams, sounds.blast), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.glow", "Glow tick", "The glow (and the start sound) at this tick of the director", (uint32_t)offsetof(MegiddoParams, director.glow), fxp::I16, 0, 300 },
+			{ "director", "director.bolts", "Bolts tick", "The two spins and the bolts start at this tick", (uint32_t)offsetof(MegiddoParams, director.bolts), fxp::I16, 0, 300 },
+			{ "director", "director.rings_from", "Rings from", "Rings start on the ticks from this one to the next (each tick whose remainder by 6 is 2)", (uint32_t)offsetof(MegiddoParams, director.rings_from), fxp::I16, 0, 300 },
+			{ "director", "director.rings_to", "Rings until", "(the last tick a ring may start)", (uint32_t)offsetof(MegiddoParams, director.rings_to), fxp::I16, -1, 300 },
+			{ "director", "director.column", "Column tick", "The column, its flash and the knock-downs start at this tick (the stage is captured the tick before)", (uint32_t)offsetof(MegiddoParams, director.column), fxp::I16, 1, 300 },
+			{ "director", "director.blast", "Blast tick", "The blast sound at this tick", (uint32_t)offsetof(MegiddoParams, director.blast), fxp::I16, 0, 300 },
+			{ "director", "director.pillar", "Pillar tick", "The pillar, the flames and the throws start at this tick", (uint32_t)offsetof(MegiddoParams, director.pillar), fxp::I16, 0, 300 },
+			{ "director", "director.sparks", "Sparks tick", "The sparks and the debris start at this tick", (uint32_t)offsetof(MegiddoParams, director.sparks), fxp::I16, 0, 300 },
+			{ "director", "director.end", "End tick", "The director's last tick (the white flash fades out from 0x5A to 0x62; the effect ends once every part has)", (uint32_t)offsetof(MegiddoParams, director.end), fxp::I16, 0, 300 },
+			{ "director", "point.bone", "Effect point bone", "The caster's bone the effect point is on (0xF0 and up: the model's named points; below: a bone)", (uint32_t)offsetof(MegiddoParams, point.bone), fxp::I16, 0, 0xFF },
+			{ "director", "tables.point_offset", "Effect point offset", "The effect point's offset in that bone's frame (x, y, z, pad) (8 bytes: an edited one keeps its length)", (uint32_t)offsetof(MegiddoParams, tables.point_offset), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MegiddoParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(MegiddoParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "glow", "glow.size", "Size", "Its scale at the start (4096 = the model's own)", (uint32_t)offsetof(MegiddoParams, glow.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "glow", "glow.shrink", "Shrink", "Taken from its scale on its first tick, 5/6 of that the next, and so on for 8 ticks", (uint32_t)offsetof(MegiddoParams, glow.shrink), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "glow", "models.glow", "Glow model", "The prim model glow (a mesh of 73 vertices: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MegiddoParams, models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "spins", "spins.size", "Size", "Their scale (4096 = the model's own)", (uint32_t)offsetof(MegiddoParams, spins.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "spins", "spins.spin_min", "Spin", "The first one's turn a tick: this + a random below the next (4096 = a full turn; 7/8 of it the next tick...; the second turns the other way by its first angle)", (uint32_t)offsetof(MegiddoParams, spins.spin_min), fxp::I16, -0x7FFF, 0x7FFF, fxp::Angle },
+			{ "spins", "spins.spin_rand", "Spin random", "(at least 1)", (uint32_t)offsetof(MegiddoParams, spins.spin_rand), fxp::I16, 1, 0x7FFF },
+			{ "spins", "models.spin", "Spin model", "The prim model spin (a mesh of 9 vertices: an edited one keeps its vertices)", (uint32_t)offsetof(MegiddoParams, models.spin), fxp::Model, 0, 0x7FFFFFFF },
+			{ "rings", "rings.size", "Size", "Its scale at the start and its first growth (5/6 of it the next tick, and so on)", (uint32_t)offsetof(MegiddoParams, rings.size), fxp::I16, 0, 0x7FFF },
+			{ "rings", "models.ring", "Ring model", "The prim model ring (a mesh of 72 vertices: an edited one keeps its vertices; the landing rings draw it too)", (uint32_t)offsetof(MegiddoParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolts", "bolts.count", "Count", "How many bolts (6 records: 6 at most)", (uint32_t)offsetof(MegiddoParams, bolts.count), fxp::I16, 0, 6 },
+			{ "bolts", "bolts.spread", "Spread", "Each bolt's two ends: the centre moved by a random below this on x and z, centred", (uint32_t)offsetof(MegiddoParams, bolts.spread), fxp::I16, 1, 0x7FFF },
+			{ "bolts", "models.arc", "Arc model", "The prim model arc (a mesh of 65 vertices: an edited one keeps its vertices)", (uint32_t)offsetof(MegiddoParams, models.arc), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolts", "tables.sheet_colours", "Sheet colours", "The sheet's colour words by its tick (12, in turn: red, green, blue, the GPU code byte) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(MegiddoParams, tables.sheet_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "column", "models.column", "Column model", "The prim model column (a mesh of 176 vertices: an edited one keeps its vertices; its own renderer textures it with the captured stage)", (uint32_t)offsetof(MegiddoParams, models.column), fxp::Model, 0, 0x7FFFFFFF },
+			{ "column", "models.column_flash", "Column flash model", "The prim model column flash (a mesh of 110 vertices: an edited one keeps its vertices)", (uint32_t)offsetof(MegiddoParams, models.column_flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "pillar", "models.pillar", "Pillar model", "The prim model pillar (a mesh of 192 vertices: an edited one keeps its vertices)", (uint32_t)offsetof(MegiddoParams, models.pillar), fxp::Model, 0, 0x7FFFFFFF },
+			{ "flames", "flames.count", "Count", "How many flames (each delayed by its number + a random below 4; the task pool holds 100 tasks: 64 at most)", (uint32_t)offsetof(MegiddoParams, flames.count), fxp::I16, 0, 64 },
+			{ "flames", "flames.spread_x", "Spread x", "A flame's place: the centre moved by a random below this on x, centred", (uint32_t)offsetof(MegiddoParams, flames.spread_x), fxp::I16, 1, 0x7FFF },
+			{ "flames", "flames.spread_z", "Spread z", "... and below this on z", (uint32_t)offsetof(MegiddoParams, flames.spread_z), fxp::I16, 1, 0x7FFF },
+			{ "flames", "models.flame_a", "Flame model a", "The prim model flame a (a mesh of 16 vertices: an edited one keeps its vertices; drawn by the shared scrolling renderer)", (uint32_t)offsetof(MegiddoParams, models.flame_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "flames", "models.flame_b", "Flame model b", "The prim model flame b (a mesh of 16 vertices: an edited one keeps its vertices)", (uint32_t)offsetof(MegiddoParams, models.flame_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "sparks", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(MegiddoParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "debris", "models.debris0", "Debris model 0", "The prim model debris 0 (a mesh of 12 vertices: an edited one keeps its vertices; a debris piece is one of the three at random)", (uint32_t)offsetof(MegiddoParams, models.debris0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "debris", "models.debris1", "Debris model 1", "The prim model debris 1 (a mesh of 12 vertices: an edited one keeps its vertices)", (uint32_t)offsetof(MegiddoParams, models.debris1), fxp::Model, 0, 0x7FFFFFFF },
+			{ "debris", "models.debris2", "Debris model 2", "The prim model debris 2 (a mesh of 12 vertices: an edited one keeps its vertices)", (uint32_t)offsetof(MegiddoParams, models.debris2), fxp::Model, 0, 0x7FFFFFFF },
+		};
+	}
+
 #ifdef FF8_FX_HELD
 	template<class D> struct MegiddoHeld; // 30 fps layer: see fx_megiddo_held.inc
 #endif
@@ -789,7 +882,7 @@ namespace megiddo
 	struct Megiddo
 	{
 		static constexpr uint32_t C(uint32_t a) { return a - D::CODE; }   // code
-		static constexpr uint32_t G(uint32_t a) { return a - D::GLOB; }   // module globals
+		static uint32_t G(uint32_t a) { return own::R(a - D::GLOB); }     // module globals (where the running copy has them)
 		static constexpr uint32_t X(uint32_t a) { return a - D::DATA; }   // data
 
 		// --- module globals ---
@@ -823,8 +916,32 @@ namespace megiddo
 			SHEET_COLOURS = 0xD78060, DEBRIS_MODELS = 0xD78090, ALT_VIEWPORT = 0xD780A0, SEQ_SPARK = 0xD718AC,
 			MODEL_GLOW = 0xD7688C, MODEL_SPIN = 0xD767BC, MODEL_RING = 0xD7712C, MODEL_ARC = 0xD719E4, MODEL_COLUMN = 0xD7398C,
 			MODEL_COLUMN_FLASH = 0xD756A4, MODEL_PILLAR = 0xD722E4, MODEL_FLAME_A = 0xD7217C, MODEL_FLAME_B = 0xD72014;
+		static const uint32_t MODEL_DEBRIS0 = 0xD77814, MODEL_DEBRIS1 = 0xD77ACC, MODEL_DEBRIS2 = 0xD77D84;   // DEBRIS_MODELS' three
+		static const uint32_t TEXTURE_NAME = 0xD780B8;
+		static const uint32_t ORIG_FileLoader = 0x5E4E70, ORIG_Setup = 0x5E4E90;
 
-		static Node24 *AddMain(uint32_t f) { return (Node24 *)AddTaskToQueue(QMain(), C(f)); }
+		// --- parameters (MegiddoParams): this module's game values ---
+		static MegiddoParams Game()
+		{
+			return { { X(SOUND_START), X(SOUND_BLAST) },
+			         { 1, 8, 6, 0x1E, 0x2C, 0x30, 0x36, 0x37, 0x62 },
+			         { (int16_t)D::BONE },
+			         { 0x6800, 0x14CC },
+			         { 0x2000, 0x14, 0x28 },
+			         { 0x340 },
+			         { 6, 0x1CE8 },
+			         { 0x10, 0x15E0, 0xAF0 },
+			         { X(MODEL_GLOW), X(MODEL_SPIN), X(MODEL_RING), X(MODEL_ARC), X(MODEL_COLUMN), X(MODEL_COLUMN_FLASH), X(MODEL_PILLAR),
+			           X(MODEL_FLAME_A), X(MODEL_FLAME_B), X(MODEL_DEBRIS0), X(MODEL_DEBRIS1), X(MODEL_DEBRIS2) },
+			         { X(SEQ_SPARK) },
+			         { X(SHEET_COLOURS), X(BONE_OFFSET) },
+			         { X(TEXTURE_NAME), D::CAMERA } };
+		}
+		static inline const MegiddoParams GAME = Game();
+		static inline MegiddoParams live = Game();
+		static const MegiddoParams &P() { return live; }
+
+		static Node24 *AddMain(uint32_t f) { return (Node24 *)AddTaskToQueue(QMain(), own::Fn(C(f))); }
 		static inline uint32_t EndAt(int16_t c, int16_t limit) { return c >= limit ? TASK_END : 0; }
 
 		// a prim-model header's fade by counter: wf = the fade word +0x0C is written (else the scratch keeps its bytes)
@@ -861,9 +978,9 @@ namespace megiddo
 		{
 			const uint32_t ent = 0x1D972C0 + 0x9C * (uint32_t)CasterSlot();
 			Mat4x3 m;
-			BoneMatrix(ent + 0x60, D::BONE, &m);
+			BoneMatrix(ent + 0x60, P().point.bone, &m);
 			ComposeAffineTransform((const Mat4x3 *)(ent + 0x40), &m, &m);
-			MatVec(&m, (const void *)X(BONE_OFFSET), point);
+			MatVec(&m, (const void *)fxp::data(P().tables.point_offset, X(BONE_OFFSET), 8), point);
 			point[0] = (int16_t)(point[0] + (int16_t)m.t[0]);
 			point[1] = (int16_t)(point[1] + (int16_t)m.t[1]);
 			point[2] = (int16_t)(point[2] + (int16_t)m.t[2]);
@@ -908,44 +1025,44 @@ namespace megiddo
 				CalculateCenterPosition(Context()->target_mask, Centre());
 				FlashColour() = 0;
 			}
-			if (n->c == 0x2B) StageCapture(Centre());
-			if (n->c == 1)
+			if (n->c == P().director.column - 1) { FX_PART(PART_COLUMN); StageCapture(Centre()); FX_PART(0); }
+			if (n->c == P().director.glow)
 			{
 				Node24 *t = AddMain(ORIG_Glow);
 				t->c = 0;
-				t->w1C = 0x6800;
-				t->w1E = 0x14CC;
+				t->w1C = P().glow.size;
+				t->w1E = P().glow.shrink;
 			}
-			if (n->c == 8)
+			if (n->c == P().director.bolts)
 			{
 				Node24 *a = AddMain(ORIG_Spin);
 				a->c = 0;
 				a->w18 = (int16_t)(CrtRand() % 0x1000);
-				const int32_t r = CrtRand() % 0x28;
-				a->w1C = 0x2000;
-				a->w1A = (int16_t)(r + 0x14);
+				const int32_t r = CrtRand() % P().spins.spin_rand;
+				a->w1C = P().spins.size;
+				a->w1A = (int16_t)(r + P().spins.spin_min);
 				Node24 *b = AddMain(ORIG_Spin);
 				b->c = 0;
 				const int16_t ang = (int16_t)(CrtRand() % 0x1000);
 				b->w18 = ang;
 				b->w1A = (int16_t)-a->w18; // (the first spin's angle, as the original)
-				b->w1C = 0x2000;
+				b->w1C = P().spins.size;
 			}
-			if (n->c >= 6 && n->c <= 0x1E && n->c % 6 == 2)
+			if (n->c >= P().director.rings_from && n->c <= P().director.rings_to && n->c % 6 == 2)
 			{
 				Node24 *t = AddMain(ORIG_Ring);
 				t->c = 0;
-				t->w1E = 0x340;
-				t->w1C = 0x340;
+				t->w1E = P().rings.size;
+				t->w1C = P().rings.size;
 			}
-			if (n->c == 8)
-				for (int i = 0; i < 6; i++)
+			if (n->c == P().director.bolts)
+				for (int i = 0; i < P().bolts.count && i < 6; i++)
 				{
 					Node24 *t = AddMain(ORIG_BoltDir);
 					t->e = (int16_t)i;
 					t->c = 0;
 				}
-			if (n->c == 0x2C)
+			if (n->c == P().director.column)
 			{
 				Node24 *t = AddMain(ORIG_ColumnFlash);
 				*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
@@ -953,7 +1070,7 @@ namespace megiddo
 				*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
 				t->w1C = 0;
 				t->w1E = 0x200;
-				if (n->c == 0x2C)
+				if (n->c == P().director.column)
 				{
 					t = AddMain(ORIG_Column);
 					*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
@@ -965,7 +1082,7 @@ namespace megiddo
 			}
 			if (n->c == 6) ScreenFadeTask(2, 1, 0xA, 0xFF);
 			if (n->c == 0x33) ScreenFadeTask(0, 2, 4, 0xFF);
-			if (n->c == 0x36)
+			if (n->c == P().director.pillar)
 			{
 				Node24 *t = AddMain(ORIG_Pillar);
 				*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
@@ -974,16 +1091,16 @@ namespace megiddo
 				t->w1C = 0x1000;
 				t->w22 = 0x555;
 				t->w20 = 0x555;
-				if (n->c == 0x36)
-					for (int i = 0; i < 0x10; i++)
+				if (n->c == P().director.pillar)
+					for (int i = 0; i < P().flames.count; i++)
 					{
 						Node24 *f = AddMain(ORIG_Flame);
 						f->c = 0;
 						f->e = (int16_t)(CrtRand() % 4 + i);
 						*(uint32_t *)&f->w10 = *(const uint32_t *)Centre();
 						*(uint32_t *)&f->w14 = *(const uint32_t *)(Centre() + 2);
-						f->w10 = (int16_t)(f->w10 + (int16_t)(CrtRand() % 0x15E0 - 0xAF0));
-						f->w14 = (int16_t)(f->w14 + (int16_t)(CrtRand() % 0xAF0 - 0x578));
+						f->w10 = (int16_t)(f->w10 + (int16_t)(CrtRand() % P().flames.spread_x - P().flames.spread_x / 2));
+						f->w14 = (int16_t)(f->w14 + (int16_t)(CrtRand() % P().flames.spread_z - P().flames.spread_z / 2));
 						const int32_t r = CrtRand() % 0x1000;
 						f->w18 = (int16_t)r;
 						f->w1A = (int16_t)(r & 1);
@@ -992,13 +1109,13 @@ namespace megiddo
 						f->w22 = (int16_t)(CrtRand() % 10 + 6);
 					}
 			}
-			if (n->c == 0x37)
+			if (n->c == P().director.sparks)
 			{
 				Node24 *t = AddMain(ORIG_Sparks);
 				*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
 				*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
 				t->c = 0;
-				if (n->c == 0x37)
+				if (n->c == P().director.sparks)
 				{
 					t = AddMain(ORIG_Debris);
 					*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
@@ -1006,7 +1123,7 @@ namespace megiddo
 					*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
 				}
 			}
-			if (n->c == 0x2C)
+			if (n->c == P().director.column)
 				for (int32_t slot = 0; slot < 3; slot++)
 				{
 					if (!(*Entity(slot) & 2)) continue;
@@ -1018,7 +1135,7 @@ namespace megiddo
 					t->w1A = (int16_t)idx;
 					if (idx < 0) t->w20 = 0xFA;
 				}
-			if (n->c == 0x36)
+			if (n->c == P().director.pillar)
 				for (int32_t slot = 0; slot < 3; slot++)
 				{
 					if (!(*Entity(slot) & 2)) continue;
@@ -1046,10 +1163,10 @@ namespace megiddo
 				SetScreenFlash((uint32_t)shl32(n->c - 0xB, 7), FlashColour());
 			}
 			else if (c >= 0x5A) SetScreenFlash((uint32_t)shl32((0x62 - c) * 3, 7), 0x101030);
-			if (n->c == 1) BdPlaySE((const void *)X(SOUND_START), 0, 0x80);
-			if (n->c == 0x30) BdPlaySE((const void *)X(SOUND_BLAST), 0, 0x80);
+			if (n->c == P().director.glow) BdPlaySE((const void *)fxp::sound(P().sounds.start, X(SOUND_START)), 0, 0x80);
+			if (n->c == P().director.blast) BdPlaySE((const void *)fxp::sound(P().sounds.blast, X(SOUND_BLAST)), 0, 0x80);
 			n->c = (int16_t)(n->c + 1);
-			return n->c > 0x62 ? TASK_END : 0;
+			return n->c > P().director.end ? TASK_END : 0;
 		}
 
 		// 0x5E5700: the shown stage groups (0x1D989BD / 0x1D98991, flags 1 and 2) drawn from above (rotation (0x400, 0, 0),
@@ -1138,7 +1255,7 @@ namespace megiddo
 			ComposeAffineTransform(&Camera(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			uint8_t *h = PrimHeader(X(MODEL_GLOW), 0x58);
+			uint8_t *h = PrimHeader(fxp::model(P().models.glow, X(MODEL_GLOW)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, D::RMODE, 0x58);
 		}
@@ -1147,7 +1264,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Glow, n);)
+			FX_PART(PART_GLOW);
 			GlowDraw(n, Frame(), GlowPF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			const int16_t c = n->c;
 			if (c < 8)
@@ -1174,7 +1293,7 @@ namespace megiddo
 			ComposeAffineTransform(&Camera(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			uint8_t *h = PrimHeader(X(MODEL_SPIN), 0x58);
+			uint8_t *h = PrimHeader(fxp::model(P().models.spin, X(MODEL_SPIN)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, D::RMODE, 0x58);
 		}
@@ -1183,7 +1302,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Spin, n);)
+			FX_PART(PART_SPINS);
 			SpinDraw(n, Frame(), SpinPF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1A;
 			n->w18 = (int16_t)(n->w18 + r);
@@ -1200,7 +1321,7 @@ namespace megiddo
 			ComposeAffineTransform(&Camera(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			uint8_t *h = PrimHeader(X(MODEL_RING), 0x58);
+			uint8_t *h = PrimHeader(fxp::model(P().models.ring, X(MODEL_RING)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, D::RMODE, 0x58);
 		}
@@ -1209,7 +1330,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Ring, n);)
+			FX_PART(PART_RINGS);
 			RingDraw(n, Frame(), RingPF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1E;
 			n->w1C = (int16_t)(n->w1C + r);
@@ -1233,10 +1356,10 @@ namespace megiddo
 				At<uint32_t>(rec, 0xC) = c23;
 				At<uint32_t>(rec, 0) = c01;
 				At<uint32_t>(rec, 4) = c23;
-				At<int16_t>(rec, 0) = (int16_t)(At<int16_t>(rec, 0) + (int16_t)(CrtRand() % 0x1CE8 - 0xE74));
-				At<int16_t>(rec, 4) = (int16_t)(At<int16_t>(rec, 4) + (int16_t)(CrtRand() % 0x1CE8 - 0xE74));
-				At<int16_t>(rec, 8) = (int16_t)(At<int16_t>(rec, 8) + (int16_t)(CrtRand() % 0x1CE8 - 0xE74));
-				At<int16_t>(rec, 0xC) = (int16_t)(At<int16_t>(rec, 0xC) + (int16_t)(CrtRand() % 0x1CE8 - 0xE74));
+				At<int16_t>(rec, 0) = (int16_t)(At<int16_t>(rec, 0) + (int16_t)(CrtRand() % P().bolts.spread - P().bolts.spread / 2));
+				At<int16_t>(rec, 4) = (int16_t)(At<int16_t>(rec, 4) + (int16_t)(CrtRand() % P().bolts.spread - P().bolts.spread / 2));
+				At<int16_t>(rec, 8) = (int16_t)(At<int16_t>(rec, 8) + (int16_t)(CrtRand() % P().bolts.spread - P().bolts.spread / 2));
+				At<int16_t>(rec, 0xC) = (int16_t)(At<int16_t>(rec, 0xC) + (int16_t)(CrtRand() % P().bolts.spread - P().bolts.spread / 2));
 				const int32_t dx = At<int16_t>(rec, 8) - At<int16_t>(rec, 0);
 				const int32_t dz = At<int16_t>(rec, 0xC) - At<int16_t>(rec, 4);
 				const int32_t len = Sqrt(mul32(dz, dz) + mul32(dx, dx));
@@ -1311,7 +1434,7 @@ namespace megiddo
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
 			RenderHeader *h = (RenderHeader *)AllocHeader(0x6C);
-			h->model = X(MODEL_ARC);
+			h->model = fxp::model(P().models.arc, X(MODEL_ARC));
 			*(uint32_t *)h->far_rgb = 0;
 			h->colour = 0x30307F;
 			ApplyPF((uint8_t *)h, f, 0x1C);
@@ -1323,7 +1446,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Arc, n);)
+			FX_PART(PART_BOLTS);
 			ArcDraw(n, Point(), (const int16_t *)(Bolt(n->e) + 0x38 + 8 * n->w18), ArcPF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			const int16_t s = n->w1A;
 			n->w18 = (int16_t)(n->w18 + s);
@@ -1370,7 +1495,7 @@ namespace megiddo
 			for (int32_t i = 0; i < 0x10; i++) SplineEval(k, work, (void *)(rec + 0x2B4 + 8 * i), shl32(i, 12) / 15);
 			FieldFree(0x190);
 		}
-		static uint32_t SheetColour(int32_t c) { return *(const uint32_t *)(X(SHEET_COLOURS) + 4 * (c % 12)); }
+		static uint32_t SheetColour(int32_t c) { return *(const uint32_t *)(fxp::data(P().tables.sheet_colours, X(SHEET_COLOURS), 48, 4) + 4 * (c % 12)); }
 		static void SheetDraw(uint32_t colour, uint32_t rec, uint8_t *blk)
 		{
 			GteSetRotMatrix(&Camera());
@@ -1433,7 +1558,9 @@ namespace megiddo
 				SheetCurves(rec, k);
 				// 30 fps layer: see fx_megiddo_held.inc
 				FX_HELD(MegiddoHeld<D>::note_sheet(n, rec, k);)
+				FX_PART(PART_BOLTS);
 				SheetDraw(SheetColour(n->c), rec, blk);
+				FX_PART(0);
 			}
 			FieldFree(0x40);
 			if (DrawOnly()) return 0;
@@ -1576,7 +1703,9 @@ namespace megiddo
 				// 30 fps layer: see fx_megiddo_held.inc
 				FX_HELD(MegiddoHeld<D>::note_node(ORIG_Ribbon, n);)
 				RibbonTable(rec, blk, cnt);
+				FX_PART(PART_BOLTS);
 				RibbonDraw(n->c >= 0x18, RibbonFade(n->c), blk, cnt);
+				FX_PART(0);
 			}
 			FieldFree(0x90);
 			if (DrawOnly()) return 0;
@@ -1621,7 +1750,7 @@ namespace megiddo
 		{
 			CentreMatrix(n, 0, 0, 0x1000, sy, 0x1000);
 			uint8_t *h = AllocHeader(0x60);
-			*(uint32_t *)h = X(MODEL_COLUMN);
+			*(uint32_t *)h = fxp::model(P().models.column, X(MODEL_COLUMN));
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x1C) = 0;
 			*(uint32_t *)(h + 0x58) = 0xE1000020;
@@ -1634,7 +1763,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Column, n);)
+			FX_PART(PART_COLUMN);
 			ColumnDraw(n, n->w1C);
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			return StepScale(n, 8);
 		}
@@ -1643,7 +1774,7 @@ namespace megiddo
 		{
 			CentreMatrix(n, 0, 0, 0x1000, sy, 0x1000);
 			uint8_t *h = AllocHeader(0x58);
-			*(uint32_t *)h = X(MODEL_COLUMN_FLASH);
+			*(uint32_t *)h = fxp::model(P().models.column_flash, X(MODEL_COLUMN_FLASH));
 			*(uint32_t *)(h + 8) = 0;
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, 2, 0x58);
@@ -1653,7 +1784,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_ColumnFlash, n);)
+			FX_PART(PART_COLUMN);
 			ColumnFlashDraw(n, n->w1C, ColumnFlashPF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			return StepScale(n, 8);
 		}
@@ -1661,7 +1794,7 @@ namespace megiddo
 		static void PillarDraw(const Node24 *n, int16_t sx, int16_t sy, const PF &f)
 		{
 			CentreMatrix(n, 0, 0, sx, sy, sx);
-			uint8_t *h = PrimHeader(X(MODEL_PILLAR), 0x58);
+			uint8_t *h = PrimHeader(fxp::model(P().models.pillar, X(MODEL_PILLAR)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, 2, 0x58);
 		}
@@ -1670,7 +1803,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Pillar, n);)
+			FX_PART(PART_PILLAR);
 			PillarDraw(n, n->w1C, n->w20, PillarPF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w22;
 			n->w20 = (int16_t)(n->w20 + r);
@@ -1690,8 +1825,8 @@ namespace megiddo
 			*(int16_t *)(h + 0x1C) = 0x40;
 			*(int16_t *)(h + 0x1E) = 0x80;
 			*(uint32_t *)(h + 0x10) = 0;
-			if (n->w1A != 0) { *(uint32_t *)h = X(MODEL_FLAME_A); *(int16_t *)(h + 0x18) = 0x40; }
-			else { *(uint32_t *)h = X(MODEL_FLAME_B); *(int16_t *)(h + 0x18) = 0; }
+			if (n->w1A != 0) { *(uint32_t *)h = fxp::model(P().models.flame_a, X(MODEL_FLAME_A)); *(int16_t *)(h + 0x18) = 0x40; }
+			else { *(uint32_t *)h = fxp::model(P().models.flame_b, X(MODEL_FLAME_B)); *(int16_t *)(h + 0x18) = 0; }
 			ApplyPF(h, f, 0x20);
 			PacketCursor() = Mag151Render(h, OT0() + 0x44, 2, PacketCursor());
 			FieldFree(0x7C);
@@ -1707,7 +1842,9 @@ namespace megiddo
 			}
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Flame, n);)
+			FX_PART(PART_FLAMES);
 			FlameDraw(n, mul32(n->w22, n->c), FlamePF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			n->c = (int16_t)(n->c + 1);
 			return EndAt(n->c, 0x12);
@@ -1716,7 +1853,7 @@ namespace megiddo
 		static void Ring2Draw(const Node24 *n, int16_t s, const PF &f)
 		{
 			CentreMatrix(n, 0x400, 0, s, s, s);
-			uint8_t *h = PrimHeader(X(MODEL_RING), 0x58);
+			uint8_t *h = PrimHeader(fxp::model(P().models.ring, X(MODEL_RING)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, 2, 0x58);
 		}
@@ -1725,7 +1862,9 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Ring2, n);)
+			FX_PART(PART_LANDING);
 			Ring2Draw(n, n->w1C, Ring2PF(n->c));
+			FX_PART(0);
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1E;
 			n->w1C = (int16_t)(n->w1C + r);
@@ -1773,7 +1912,7 @@ namespace megiddo
 			*(int16_t *)(h + 0x24) = 0;
 			int32_t live = 0;
 			memcpy(blk + 8, &Camera(), 0x20);
-			*(uint32_t *)h = X(SEQ_SPARK);
+			*(uint32_t *)h = fxp::sequence(P().seqs.spark, X(SEQ_SPARK));
 			GteSetLightMatrix(blk + 8);
 			GteSetBackColorFromTrans(blk + 8);
 			for (uint32_t e = pool; e < pool_end; e += 0x18)
@@ -1800,7 +1939,9 @@ namespace megiddo
 			if (!DrawOnly() && n->c <= 0x10) SparksSpawn(n);
 			// 30 fps layer: see fx_megiddo_held.inc
 			FX_HELD(MegiddoHeld<D>::note_pool(ORIG_Sparks, n);)
+			FX_PART(PART_SPARKS);
 			const int32_t live = SparksDraw(blk, G(POOL_A), G(POOL_A_END), !DrawOnly());
+			FX_PART(0);
 			FieldFree(0x48);
 			if (DrawOnly()) return 0;
 			n->c = (int16_t)(n->c + 1);
@@ -1812,7 +1953,8 @@ namespace megiddo
 		{
 			const uint32_t w = (uint32_t)blk;
 			At<int16_t>(w, 0) = ax;
-			*(uint32_t *)hdr = *(const uint32_t *)(X(DEBRIS_MODELS) + 4 * At<int32_t>(e, 8));
+			const int32_t kind = At<int32_t>(e, 8);
+			*(uint32_t *)hdr = fxp::model((&P().models.debris0)[kind], *(const uint32_t *)(X(DEBRIS_MODELS) + 4 * kind));
 			At<int16_t>(w, 4) = az;
 			ComposeZYXRotationMatrix((const int16_t *)w, (Mat4x3 *)(w + 8));
 			At<int32_t>(w, 0x1C) = x;
@@ -1825,7 +1967,9 @@ namespace megiddo
 			ComposeAffineTransform((const Mat4x3 *)(w + 0x28), (const Mat4x3 *)(w + 8), (Mat4x3 *)(w + 8));
 			GteSetRotMatrix((const Mat4x3 *)(w + 8));
 			GteSetTransVector((const Mat4x3 *)(w + 8));
+			FX_PART(PART_DEBRIS);
 			PacketCursor() = RenderPrimModel(hdr, OT0() + 0x44, 2, PacketCursor());
+			FX_PART(0);
 		}
 		static void DebrisSpawn(const Node24 *n)
 		{
@@ -2001,6 +2145,34 @@ namespace megiddo
 		}
 
 		// ------------------------------------------------------------------
+		// File loader (0x5E4E70) and setup (0x5E4E90) (166 addresses): the game runs its own; Fujin's programs these (its
+		// memory may be a copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the
+		// root and the director, pools A / B freed, the camera and the TIM
+		// ------------------------------------------------------------------
+		static uint32_t __cdecl FileLoader()
+		{
+			TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, X(TEXTURE_NAME)));
+			return TexFile();
+		}
+
+		static TaskQueue *__cdecl Setup(CastContext *ctx)
+		{
+			TexBase() = fn<uint32_t (__cdecl *)()>(0x571B50)();   // Magic_TextureOFF_ToEAX1
+			Context() = ctx;
+			TargetSlot() = ctx->actions[0].targets[0];
+			CasterSlot() = ctx->attacker;
+			InitTaskQueuePool(QRoot(), (void *)G(0x23BF050), 0x10, 2);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(C(ORIG_Root))) + 0xC) = 0;
+			InitTaskQueuePool(QMain(), (void *)G(0x23C0550), 0x24, 100);
+			*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(C(ORIG_Director))) + 0xC) = 0;
+			for (uint32_t a = G(POOL_A); a < G(POOL_A_END); a += 0x18) *(uint32_t *)a = 0;
+			for (uint32_t a = G(POOL_B); a < G(POOL_B_END); a += 0x1C) *(uint32_t *)a = 0;
+			PlayCameraAnimation((const void *)fxp::camera(P().res.camera, D::CAMERA));
+			QueueTimUpload(TexFile());
+			return QRoot();
+		}
+
+		// ------------------------------------------------------------------
 		// Root (0x5E93A0) and texture restore (0x5E9410)
 		// ------------------------------------------------------------------
 		static uint32_t __cdecl RootTask(TaskNode *tn)
@@ -2013,7 +2185,7 @@ namespace megiddo
 			const int running = ExecuteTaskQueue(QMain());
 			if (!running)
 			{
-				RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), C(ORIG_Restore));
+				RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), own::Fn(C(ORIG_Restore)));
 				t->c = 0;
 				t->e = 0;
 			}
@@ -2031,24 +2203,49 @@ namespace megiddo
 
 		static void Register(const char *const names[19])
 		{
+			fxp::register_params({ D::EFFECT, "Megiddo Flame", &live, &GAME, sizeof(MegiddoParams),
+			                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+			                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+			                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+			own::note(C(ORIG_FileLoader), (void *)FileLoader);
+			own::note(C(ORIG_Setup), (void *)Setup);
+			own::note(C(ORIG_Root), (void *)RootTask);
 			register_port(C(ORIG_Root), (void *)RootTask, names[0], D::EFFECT);
+			own::note(C(ORIG_Restore), (void *)RestoreTask);
 			register_port(C(ORIG_Restore), (void *)RestoreTask, names[1], D::EFFECT);
+			own::note(C(ORIG_Director), (void *)DirectorTask);
 			register_port(C(ORIG_Director), (void *)DirectorTask, names[2], D::EFFECT);
+			own::note(C(ORIG_Glow), (void *)GlowTask);
 			register_port(C(ORIG_Glow), (void *)GlowTask, names[3], D::EFFECT);
+			own::note(C(ORIG_Spin), (void *)SpinTask);
 			register_port(C(ORIG_Spin), (void *)SpinTask, names[4], D::EFFECT);
+			own::note(C(ORIG_Ring), (void *)RingTask);
 			register_port(C(ORIG_Ring), (void *)RingTask, names[5], D::EFFECT);
+			own::note(C(ORIG_BoltDir), (void *)BoltDirTask);
 			register_port(C(ORIG_BoltDir), (void *)BoltDirTask, names[6], D::EFFECT);
+			own::note(C(ORIG_Arc), (void *)ArcTask);
 			register_port(C(ORIG_Arc), (void *)ArcTask, names[7], D::EFFECT);
+			own::note(C(ORIG_Sheet), (void *)SheetTask);
 			register_port(C(ORIG_Sheet), (void *)SheetTask, names[8], D::EFFECT);
+			own::note(C(ORIG_Ribbon), (void *)RibbonTask);
 			register_port(C(ORIG_Ribbon), (void *)RibbonTask, names[9], D::EFFECT);
+			own::note(C(ORIG_Column), (void *)ColumnTask);
 			register_port(C(ORIG_Column), (void *)ColumnTask, names[10], D::EFFECT);
+			own::note(C(ORIG_ColumnFlash), (void *)ColumnFlashTask);
 			register_port(C(ORIG_ColumnFlash), (void *)ColumnFlashTask, names[11], D::EFFECT);
+			own::note(C(ORIG_Pillar), (void *)PillarTask);
 			register_port(C(ORIG_Pillar), (void *)PillarTask, names[12], D::EFFECT);
+			own::note(C(ORIG_Flame), (void *)FlameTask);
 			register_port(C(ORIG_Flame), (void *)FlameTask, names[13], D::EFFECT);
+			own::note(C(ORIG_Sparks), (void *)SparksTask);
 			register_port(C(ORIG_Sparks), (void *)SparksTask, names[14], D::EFFECT);
+			own::note(C(ORIG_Debris), (void *)DebrisTask);
 			register_port(C(ORIG_Debris), (void *)DebrisTask, names[15], D::EFFECT);
+			own::note(C(ORIG_Knock), (void *)KnockTask);
 			register_port(C(ORIG_Knock), (void *)KnockTask, names[16], D::EFFECT);
+			own::note(C(ORIG_Throw), (void *)ThrowTask);
 			register_port(C(ORIG_Throw), (void *)ThrowTask, names[17], D::EFFECT);
+			own::note(C(ORIG_Ring2), (void *)Ring2Task);
 			register_port(C(ORIG_Ring2), (void *)Ring2Task, names[18], D::EFFECT);
 		}
 	};
