@@ -81,6 +81,54 @@ vec3 ApplyKawaiColorOffset(vec3 color, vec4 offset)
 	return color;
 }
 
+vec3 ExpandPSXWorldColor(vec3 color5)
+{
+	return toLinear((color5 * 8.0 + floor(color5 / 4.0)) / 255.0);
+}
+
+float GetPSXWorldDither(vec2 screenPosition, vec4 settings)
+{
+	if (settings.w < 0.5 || settings.w > 1.5) return 0.0;
+	if (settings.z > 0.0) screenPosition.y = settings.z - screenPosition.y;
+	vec2 pixel = mod(floor(screenPosition / settings.xy), vec2_splat(4.0));
+	vec4 row = pixel.y < 1.0 ? vec4(-4.0, 0.0, -3.0, 1.0) :
+		pixel.y < 2.0 ? vec4(2.0, -2.0, 3.0, -1.0) :
+		pixel.y < 3.0 ? vec4(-3.0, 1.0, -4.0, 0.0) : vec4(3.0, -1.0, 2.0, -2.0);
+	return row[int(pixel.x)] / 8.0;
+}
+
+vec3 ApplyPSXWorldColorPrecision(vec3 encodedColor, float dither)
+{
+	return ExpandPSXWorldColor(clamp(floor(saturate(encodedColor) * (255.0 / 8.0) + dither + 0.00001),
+		vec3_splat(0.0), vec3_splat(31.0)));
+}
+
+vec3 ApplyPSXWorldAverageDither(vec3 encodedColor)
+{
+	// Each value from -4 to 3 occurs twice in PSX's 4x4 matrix.
+	vec3 color8 = vec3_splat(0.0);
+	for (int d = -4; d < 4; ++d)
+	{
+		vec3 color5 = clamp(floor(saturate(encodedColor) * (255.0 / 8.0) + float(d) / 8.0 + 0.00001),
+			vec3_splat(0.0), vec3_splat(31.0));
+		color8 += color5 * 8.0 + floor(color5 / 4.0);
+	}
+	return toLinear(color8 / (8.0 * 255.0));
+}
+
+vec3 ApplyPSXWorldModulation(vec3 lightingColor, vec3 textureColor, float dither, float ditherMode, bool fractionalTexture)
+{
+	// Recover the 5-bit texel before modulation; expanded 8-bit colors change the product.
+	// Generated terrain mips store linear texture5 * 8 and retain filtered fractional values.
+	vec3 texture5 = fractionalTexture ? textureColor * (255.0 / 8.0) :
+		floor(floor(toGamma(textureColor) * 255.0 + 0.5) / 8.0);
+	vec3 lighting8 = floor(saturate(lightingColor) * 255.0 + 0.0001);
+	if (ditherMode > 1.5)
+		return ApplyPSXWorldAverageDither(texture5 * lighting8 / (16.0 * 255.0));
+	vec3 color5 = clamp(floor(texture5 * lighting8 / 128.0 + dither), vec3_splat(0.0), vec3_splat(31.0));
+	return ExpandPSXWorldColor(color5);
+}
+
 // Fog ---------------------------------------------
 vec3 ApplyWorldFog(vec3 color, vec3 viewPosition)
 {

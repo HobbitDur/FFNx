@@ -1,6 +1,6 @@
 {
   "name": "ffnx",
-  "version": "1.25.1",
+  "version": "1.25.2",
   "builtin-baseline": "9eec002df1cd109f8f104cd966a763daf9751489",
   "dependencies": [
     "bgfx",
@@ -70,6 +70,11 @@
     "sdl3"
   ],
   "overrides": [
+    {
+      "name": "dav1d",
+      "version": "1.5.4",
+      "port-version": 1
+    },
     {
       "name": "bgfx",
       "version": "1.0.0",

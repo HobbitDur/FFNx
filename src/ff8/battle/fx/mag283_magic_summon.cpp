@@ -51,9 +51,17 @@
 // VZ0 high half (0x1CA8A16) only. The warp keeps its counters / bucket in its argument slots (not re-read by the callers).
 // SCREEN UNITS (PC): the warp's centre (0x67C7B8) and its vertices (0x67D297) are the GTE's SXY in eighths of a pixel, used as
 // pixels (distance clamp 0x80, the distance table, the radius): the warp reaches ~16 px (the clip window is already x 8).
+// PC screen units fix (FFNx PR 1088): WarpVertices takes the offset in pixels and pushes it back in eighths.
+
+// Fujin's described Magic Summon (effect_283.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (SummonParams: the sound, the timeline,
+// the screen flash and its colours, the layouts' ticks, depth and scroll, the warp's start, the two layouts, the texture
+// name and the camera track). FX_PART tags its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -63,11 +71,14 @@ namespace magicsummon283
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507E24); }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507E30; }           // pool: magic buffer, 1 x 0x648
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507E64); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507E68); }        // Magic_TextureOFF (magic buffer)
-	static const Mat4x3 *const MATRIX_Flag1000 = (const Mat4x3 *)0x2507E70; // the callback's flag 0x1000 frame (never written)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507E24)); }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2507E30); }           // pool: magic buffer, 1 x 0x648
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507E64)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507E68)); }        // Magic_TextureOFF (magic buffer)
+	inline const Mat4x3 *MatrixFlag1000() { return (const Mat4x3 *)own::R(0x2507E70); } // the callback's flag 0x1000 frame (never written)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507E20)); }          // the effect's file (its TIM)
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507E28)); }          // caster entity (setup; never read again)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2507E40); }           // 1 x 0x14 (pool 0x2507E50)
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // warp vertex buffer
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -79,10 +90,35 @@ namespace magicsummon283
 	static const uint32_t ARENA_A = 0x650, ARENA_B = 0x10650; // magic buffer: packet arenas
 	static const uint32_t MODEL_A = 0x1095178;           // prim-model layouts
 	static const uint32_t MODEL_B = 0x1098A18;
-	static const uint32_t FLASH_Colours = 0x109968C;     // 8 + 1 colours (3 bytes used)
+	static const uint32_t FLASH_Colours = 0x109968C;     // 8 colours read (r, g, b, -): entries 0..7 (counter x 7 / 60 < 7)
 	static const uint32_t WARP_Weights = 0x10996AC;      // u16 [20][128]: the offset's weight by distance (4.12), per step
 	static const uint32_t WARP_Distance = 0x109AAAC;     // u8 [128][128]: the distance of (|dy|, |dx|) (row 20 of the weights)
 	static const void *const SOUND_Summon = (const void *)0x1099688;
+	static const uint32_t ORIG_FileLoader = 0x67C410, ORIG_Setup = 0x67C400;
+	static const uint32_t TEXTURE_NAME = 0x109EAAC, CAMERA_ANIM = 0x1094FC0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_CIRCLE = 1, PART_WARP = 2, PART_SUMMON = 3 };
+	struct SummonParams
+	{
+		uint32_t sound;                                  // at the main task's sound tick
+		struct { int16_t sound, end; } timing;           // the main task's ticks (layout A plays until the end)
+		// the screen flash: up over rise ticks and down over the last fall ticks by step a tick, black; between: level in the
+		// colours blended along the 8 colours over the main task
+		struct { int16_t level, rise, fall, step; } flash;
+		struct { int16_t depth, scroll; } circle;        // layout A at the target's feet: its depth, its object 1's texture scroll a tick
+		struct { int16_t tick, ticks, depth; } summon;   // from tick: the target warped away (20 ticks), layout B for ticks
+		struct { uint32_t a, b; } layouts;               // the prim-model layouts played (their models' animation)
+		struct { uint32_t flash_colours; } tables;       // the screen flash's colours (r, g, b, -)
+		struct { uint32_t texture_name, camera; } res;   // its resources (data): texture file name, camera track
+	};
+	static const SummonParams GAME = { 0x1099688, { 0xA, 0x3C }, { 0x898, 8, 8, 275 }, { -0x200, 8 }, { 0x18, 0x24, -0x200 },
+		{ MODEL_A, MODEL_B }, { FLASH_Colours }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static SummonParams live = GAME;
+	static const SummonParams &PM() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -185,8 +221,9 @@ namespace magicsummon283
 			{
 				const int16_t cx = F<int16_t>(s, 0x52);
 				const int16_t cy = F<int16_t>(s, 0x54);
-				const int32_t dx = (int16_t)(F<int16_t>(s, 0x1C) - cx);
-				const int32_t dy = (int16_t)(F<int16_t>(s, 0x1E) - cy);
+				// PC screen units fix: the offset from the centre in pixels, the pushed offset back in eighths
+				const int32_t dx = (int32_t)(int16_t)(F<int16_t>(s, 0x1C) - cx) >> 3;
+				const int32_t dy = (int32_t)(int16_t)(F<int16_t>(s, 0x1E) - cy) >> 3;
 				int32_t adx = dx;
 				if ((int16_t)dx < 0) adx = -adx;
 				if ((int16_t)adx >= 0x80) adx = 0x80;
@@ -203,8 +240,8 @@ namespace magicsummon283
 					{
 						const int32_t q = (int32_t)(d << 7) / radius;
 						const uint32_t w = *(const uint16_t *)(F<uint32_t>(s, 0x4C) + q * 2);
-						F<int16_t>(s, 0x1C) = (int16_t)((mul32(dx, (int32_t)w) >> 12) + cx);
-						F<int16_t>(s, 0x1E) = (int16_t)((mul32(dy, (int32_t)w) >> 12) + cy);
+						F<int16_t>(s, 0x1C) = (int16_t)((mul32(dx, (int32_t)w) >> 9) + cx);
+						F<int16_t>(s, 0x1E) = (int16_t)((mul32(dy, (int32_t)w) >> 9) + cy);
 					}
 				}
 				const int32_t vx = F<int16_t>(s, 0x1C);
@@ -459,14 +496,14 @@ namespace magicsummon283
 	}
 
 	// the layout block (A: at the anchor with the texture scroll, B: at the position)
-	static void SetBlock(PrimArg *arg, const MainNode *m, const int16_t *point, int16_t scroll)
+	static void SetBlock(PrimArg *arg, const MainNode *m, const int16_t *point, int16_t scroll, int16_t depth = -0x200)
 	{
 		memcpy(arg->anchor, point, sizeof(arg->anchor));
 		arg->scale[0] = m->size;
 		arg->scale[1] = m->size;
 		arg->scale[2] = m->size;
 		arg->scaled = 1;
-		arg->depth = -0x200;
+		arg->depth = depth;
 		arg->scroll = scroll;
 		arg->morph = TexBase() + MORPH;
 	}
@@ -541,14 +578,14 @@ namespace magicsummon283
 			GteLoadV0(arg->anchor);
 			GteMVMVA_RotV0();
 			GteReadMAC123(m.t);
-			GteSetRotMatrixCtrl(MATRIX_Flag1000);
+			GteSetRotMatrixCtrl(MatrixFlag1000());
 			GteLoadV0(off);
 			GteMVMVA_RotV0();
 			GteReadMAC123(v);
 			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)v[0]);
 			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)v[1]);
 			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)v[2]);
-			if (!(r->flags & 0x8000)) MatrixMultiply(MATRIX_Flag1000, &m);
+			if (!(r->flags & 0x8000)) MatrixMultiply(MatrixFlag1000(), &m);
 		}
 		else
 		{
@@ -598,6 +635,29 @@ namespace magicsummon283
 	}
 
 	// ------------------------------------------------------------------
+	// File loader (0x67C410) and setup (0x67C400 -> _Init 0x67C430): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the cast and its caster's entity, the master (it sets up the
+	// rest), the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PM().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507E50), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PM().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
+	// ------------------------------------------------------------------
 	// Main (0x67C610)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
@@ -605,29 +665,33 @@ namespace magicsummon283
 		MainNode *m = (MainNode *)n;
 		// the flash colour: blended (3 bytes) over the task's argument slot, its 4th byte = the node pointer's high byte
 		uint32_t colour = (uint32_t)(uintptr_t)n;
-		const int32_t t = shl32(m->counter * 7, 12) / 60;
+		const int32_t end = PM().timing.end;
+		const uint32_t colours = fxp::data(PM().tables.flash_colours, FLASH_Colours, 32);
+		const int32_t t = shl32(m->counter * 7, 12) / end;
 		const int32_t i = t >> 12, frac = t & 0xFFF;
-		BlendColour((const void *)(FLASH_Colours + i * 4), (const void *)(FLASH_Colours + 4 + i * 4), 0x1000 - frac, frac, &colour);
+		FX_PART(PART_CIRCLE);
+		if ((uint32_t)i < 8) BlendColour((const void *)(colours + i * 4), (const void *)(colours + 4 + i * 4), 0x1000 - frac, frac, &colour);
 		int32_t level;
-		if (m->counter < 8 || m->counter >= 0x34)
+		if (m->counter < PM().flash.rise || m->counter >= end - PM().flash.fall)
 		{
-			const int32_t c = m->counter < 8 ? m->counter : 0x3C - m->counter;
-			level = shl32(c * 275, 3) >> 3;
+			const int32_t c = m->counter < PM().flash.rise ? m->counter : end - m->counter;
+			level = shl32(c * PM().flash.step, 3) >> 3;
 			colour = 0;
 		}
-		else level = 0x898;
+		else level = PM().flash.level;
 		SetScreenFlash((uint32_t)level, colour);
 		PrimArg arg;
-		if ((uint32_t)(int32_t)m->counter < 0x3C)
+		if ((uint32_t)(int32_t)m->counter < (uint32_t)end)
 		{
-			SetBlock(&arg, m, m->anchor, (int16_t)((m->counter & 0xF) << 3));
+			SetBlock(&arg, m, m->anchor, (int16_t)((m->counter & 0xF) * PM().circle.scroll), PM().circle.depth);
 			// 30 fps layer: see mag283_magic_summon_held.inc
 			FX_HELD(held_note_play(m, PLAY_A, &arg);)
 			prim::play((prim::Layout *)m->layoutA, PrimCallback, (int)&arg, 0);
 		}
-		const int32_t e = m->counter - 0x18;
-		if ((uint32_t)e < 0x24)
+		const int32_t e = m->counter - PM().summon.tick;
+		if ((uint32_t)e < (uint32_t)PM().summon.ticks)
 		{
+			FX_PART(PART_WARP);
 			if ((uint32_t)e < 0x14)
 			{
 				const int32_t step = 0x14 - e;
@@ -650,14 +714,16 @@ namespace magicsummon283
 				*(uint16_t *)m->ent &= 0xFFFB;
 				*(uint32_t *)(m->ent + 0x2C) = m->colour;
 			}
-			SetBlock(&arg, m, m->pos, 0);
+			FX_PART(PART_SUMMON);
+			SetBlock(&arg, m, m->pos, 0, PM().summon.depth);
 			// 30 fps layer: see mag283_magic_summon_held.inc
 			FX_HELD(held_note_play(m, PLAY_B, &arg);)
 			prim::play((prim::Layout *)m->layoutB, PrimCallback, (int)&arg, 0);
 		}
-		if (m->counter == 0xA) BdPlaySE(SOUND_Summon, 0, 0x80);
+		FX_PART(0);
+		if (m->counter == PM().timing.sound) BdPlaySE((const void *)fxp::sound(PM().sound, (uint32_t)SOUND_Summon), 0, 0x80);
 		m->counter++;
-		return m->counter < 0x3C ? 0 : TASK_END;
+		return m->counter < end ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -682,12 +748,12 @@ namespace magicsummon283
 		{
 			mn->started = 1;
 			InitTaskQueuePool(QMain(), (void *)TexBase(), 0x648, 1);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x18F);
 			m->ent = Entity(Ctx()->actions[0].targets[0]);
 			m->ent[0] |= 4;
-			DecodeModelPrimLayout(MODEL_A, m->layoutA, 0x4BC);
-			DecodeModelPrimLayout(MODEL_B, m->layoutB, 0x160);
+			DecodeModelPrimLayout(fxp::layout(PM().layouts.a, MODEL_A, 0x4BC), m->layoutA, 0x4BC);
+			DecodeModelPrimLayout(fxp::layout(PM().layouts.b, MODEL_B, 0x160), m->layoutB, 0x160);
 			GetDefaultEffectPosition(m->ent, m->pos);
 			m->anchor[0] = m->pos[0];
 			m->anchor[2] = m->pos[2];
@@ -704,11 +770,51 @@ namespace magicsummon283
 		mn->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The main task's timeline: the sound, its end; the screen flash and its colours; the texture and the camera" },
+			{ PART_CIRCLE, "circle", "Circle", "Layout A at the target's feet, its texture scrolling" },
+			{ PART_WARP, "warp", "Warp", "The target redrawn warped away from its middle on screen, its colour fading (not a parameter: the warp's tables are code)" },
+			{ PART_SUMMON, "summon", "Summon", "Layout B at the target, from the warp's start" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flash", "Screen flash", "Its rise and fall (black), its level between them in the colours" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the main task's sound tick", (uint32_t)offsetof(SummonParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.sound", "Sound tick", "The sound at this tick of the main task", (uint32_t)offsetof(SummonParams, timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End tick", "The main task's ticks (layout A plays until then; the flash colours span them)", (uint32_t)offsetof(SummonParams, timing.end), fxp::I16, 1, 200 },
+			{ "director", "flash.level", "Level", "The screen flash's level between its rise and its fall (4096 = full), in the colours", (uint32_t)offsetof(SummonParams, flash.level), fxp::I16, 0, 0x1000 },
+			{ "director", "flash.rise", "Rise ticks", "It first rises over this many ticks, black (the tick x the step)", (uint32_t)offsetof(SummonParams, flash.rise), fxp::I16, 0, 200 },
+			{ "director", "flash.fall", "Fall ticks", "It falls over the last ticks, black ((the end - the tick) x the step)", (uint32_t)offsetof(SummonParams, flash.fall), fxp::I16, 0, 200 },
+			{ "director", "flash.step", "Step", "", (uint32_t)offsetof(SummonParams, flash.step), fxp::I16, 0, 0x1000 },
+			{ "director", "tables.flash_colours", "Flash colours", "The colours the flash goes through over the main task: 8 x (red, green, blue, -), blended from each to the next (32 bytes)", (uint32_t)offsetof(SummonParams, tables.flash_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SummonParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SummonParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "circle", "circle.depth", "Depth", "Layout A's depth offset (negative = nearer)", (uint32_t)offsetof(SummonParams, circle.depth), fxp::I16, -8192, 0x2000 },
+			{ "circle", "circle.scroll", "Scroll", "Its object 1's texture scrolls this much a tick (16 ticks a cycle; 0: none)", (uint32_t)offsetof(SummonParams, circle.scroll), fxp::I16, -64, 64 },
+			{ "circle", "layouts.a", "Layout A", "The prim-model layout at the target's feet (its models' animation), scaled by the target's size", (uint32_t)offsetof(SummonParams, layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "summon", "summon.tick", "Tick", "From this tick the target is warped away (20 ticks: its colour fading out, redrawn pushed from its middle on screen) and layout B plays", (uint32_t)offsetof(SummonParams, summon.tick), fxp::I16, 0, 200 },
+			{ "summon", "summon.ticks", "Ticks", "Layout B plays this many ticks (the target is put back after the warp's 20)", (uint32_t)offsetof(SummonParams, summon.ticks), fxp::I16, 0, 200 },
+			{ "summon", "summon.depth", "Depth", "Layout B's depth offset (negative = nearer)", (uint32_t)offsetof(SummonParams, summon.depth), fxp::I16, -8192, 0x2000 },
+			{ "summon", "layouts.b", "Layout B", "The prim-model layout at the target (its models' animation), scaled by the target's size", (uint32_t)offsetof(SummonParams, layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag283_magic_summon()
 	{
+		fxp::register_params({ 283, "Magic Summon", &magicsummon283::live, &magicsummon283::GAME, sizeof(magicsummon283::SummonParams),
+		                       magicsummon283::table::PARTS, (int)(sizeof(magicsummon283::table::PARTS) / sizeof(magicsummon283::table::PARTS[0])),
+		                       magicsummon283::table::FIELDS, (int)(sizeof(magicsummon283::table::FIELDS) / sizeof(magicsummon283::table::FIELDS[0])),
+		                       magicsummon283::table::GROUPS, (int)(sizeof(magicsummon283::table::GROUPS) / sizeof(magicsummon283::table::GROUPS[0])) });
+		own::note(magicsummon283::ORIG_FileLoader, (void *)magicsummon283::FileLoader);
+		own::note(magicsummon283::ORIG_Setup, (void *)magicsummon283::Setup);
+		own::note(magicsummon283::ORIG_MasterTask, (void *)magicsummon283::MasterTask);
 		register_port(magicsummon283::ORIG_MasterTask, (void *)magicsummon283::MasterTask, "283 MasterTask", 283);
+		own::note(magicsummon283::ORIG_MainTask, (void *)magicsummon283::MainTask);
 		register_port(magicsummon283::ORIG_MainTask, (void *)magicsummon283::MainTask, "283 MainTask", 283);
 		// 30 fps layer: see mag283_magic_summon_held.inc
 		FX_HELD(register_mag283_held();)

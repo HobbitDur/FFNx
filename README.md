@@ -1,4 +1,4 @@
-![License](https://img.shields.io/github/license/julianxhokaxhiu/FFNx) ![Overall Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/total?label=Overall%20Downloads) ![Latest Stable Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/latest/total?label=Latest%20Stable%20Downloads&sort=semver) ![Latest Canary Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/canary/total?label=Latest%20Canary%20Downloads) ![GitHub Actions Workflow Status](https://github.com/julianxhokaxhiu/FFNx/actions/workflows/main-1.25.1.yml/badge.svg?branch=master)
+![License](https://img.shields.io/github/license/julianxhokaxhiu/FFNx) ![Overall Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/total?label=Overall%20Downloads) ![Latest Stable Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/latest/total?label=Latest%20Stable%20Downloads&sort=semver) ![Latest Canary Downloads](https://img.shields.io/github/downloads/julianxhokaxhiu/FFNx/canary/total?label=Latest%20Canary%20Downloads) ![GitHub Actions Workflow Status](https://github.com/julianxhokaxhiu/FFNx/actions/workflows/main-1.25.2.yml/badge.svg?branch=master)
 
 <div align="center">
   <img src="https://github.com/julianxhokaxhiu/FFNx/blob/master/.logo/logo_nobg.png" alt="">
@@ -68,6 +68,7 @@ We are always open for contributions via PRs, and in case you want to join the c
 - SFX volume change applies in real-time, instead of requiring a game reload
 - Support for animated textures (like Aerith's waterfall, light fading, etc.)
 - Support for soft-reset while you're playing, just like the PSX
+- Post-credits starfield with The Prelude music ( thanks to the https://github.com/Xeeynamo/ff7-decomp project for the PSX source )
 - Support for battle toggle (enable/disable at your own pleasure)
 - **Voice acting**! [Echo-S](https://www.tsunamods.com/echo-s-7/) was the first mod to take advantage of this!
 - Support for external SFX audio effects

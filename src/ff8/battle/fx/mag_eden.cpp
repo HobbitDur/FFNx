@@ -1534,6 +1534,9 @@ namespace part_eden_c
 					U8(pkt, 3) = 2;
 					U32(pkt, 4) = U32(PTR(WS(), 0xE4), cidx * 4) | 0x6A000000;
 					int32_t z = xl_TransformToScreen(WS() + 0xF0, pkt + 8, WS() + 0xFC, WS() + 0xFC);
+					// PC screen units fix (FFNx PR 1088): the dot goes through the pixel inserter, so its point in pixels
+					S16(pkt, 8) = PsxPixels(S16(pkt, 8));
+					S16(pkt, 0xA) = PsxPixels(S16(pkt, 0xA));
 					uint32_t ot = U32(WS(), 0x64);
 					if (ot == 0) ot = U32(RT(), 0x4C) + ((uint32_t)z & ~3u);    // `and al, 0xfc`
 					x::InsertPrimAltViewport(ot, pkt);

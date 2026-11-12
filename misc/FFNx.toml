@@ -738,9 +738,13 @@ ff7_field_center = true
 
 # FIELD field autosize text box
 #~~~~~~~~~~~~~~~~~~~~~~~~
-# This flag will automatically size text boxes in FIELD mode.
+# Automatically size dialogue text boxes in FIELD and WORLDMAP modes.
+# 0: No autosize; use the authored window dimensions.
+# 1: Resize width only; preserve the authored height in all editions.
+# 2: Resize both width and height to fit the text, ignoring the authored dimensions.
+# Autosized windows remain limited to the screen dimensions.
 #~~~~~~~~~~~~~~~~~~~~~~~~
-ff7_field_autosize_text_box = false
+ff7_field_autosize_text_box = 0
 
 # Native Japanese edition
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -774,10 +778,6 @@ ff7_advanced_blinking = false
 # Load higher resolution textures on worldmap
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ff8_worldmap_internal_highres_textures = true
-
-# Attempt to fix texturing holes by restoring full precision from the game data
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ff8_fix_uv_coords_precision = true
 
 # Use icon textures for gamepad buttons instead of "B1", "B2", etc...
 # By default the PS1 icons are used from the game data.

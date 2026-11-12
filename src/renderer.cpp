@@ -33,6 +33,7 @@
 
 #include "lighting.h"
 #include "ff7/widescreen.h"
+#include "ff7/world/world.h"
 #include "image/image.h"
 #include "gl.h"
 #include "log.h"
@@ -225,10 +226,21 @@ void Renderer::setCommonUniforms()
     internalState.WMFlags = {
         (float)internalState.sphericalWorldRate,
         (float)internalState.bIsFogEnabled,
-        NULL,
-        NULL
+        !ff8 && !enable_worldmap_external_mesh && current_state.psx_world ?
+            (worldTerrainTextures.count(internalState.texHandlers[RendererTextureSlot::TEX_Y].idx) ? 2.0f : 1.0f) : 0.0f,
+        !ff8 && !enable_worldmap_external_mesh ?
+            (current_state.psx_world_radar ? 1.0f :
+                (current_state.psx_world_meteor && !internalState.bIsExternalTexture ? 2.0f : 0.0f)) : 0.0f
     };
-    if (uniform_log) ffnx_trace("%s: WMFlags XYZW(sphericalWorldRate %f, bIsFogEnabled %f, NULL, NULL)\n", __func__, internalState.WMFlags[0], internalState.WMFlags[1]);
+    if (uniform_log) ffnx_trace("%s: WMFlags XYZW(sphericalWorldRate %f, bIsFogEnabled %f, psxWorld %f, psxWorldOverlay %f)\n", __func__, internalState.WMFlags[0], internalState.WMFlags[1], internalState.WMFlags[2], internalState.WMFlags[3]);
+
+    internalState.PSXWorldDither = {
+        2.0f * scalingFactor,
+        2.0f * scalingFactor,
+        getCaps()->originBottomLeft ? static_cast<float>(framebufferHeight) : 0.0f,
+        static_cast<float>(!ff8 && !enable_worldmap_external_mesh ?
+            current_state.psx_world_dither : PSXWorldDitherMode::Off)
+    };
 
     internalState.FSMovieFlags = {
         (float)internalState.bIsMovieColorMatrix,
@@ -261,6 +273,7 @@ void Renderer::setCommonUniforms()
     setUniform(RendererUniform::FS_MOVIE_FLAGS, internalState.FSMovieFlags.data());
     setUniform(RendererUniform::FS_MORE_MOVIE_FLAGS, internalState.FSMoreMovieFlags.data());
     setUniform(RendererUniform::WM_FLAGS, internalState.WMFlags.data());
+    setUniform(RendererUniform::PSX_WORLD_DITHER, internalState.PSXWorldDither.data());
     setUniform(RendererUniform::TIME_COLOR, internalState.TimeColor.data());
     setUniform(RendererUniform::TIME_DATA, internalState.TimeData.data());
 
@@ -938,6 +951,11 @@ void Renderer::bindTextures()
                             if (internalState.bIsMovie && (idx > RendererTextureSlot::TEX_Y)){
                               flags = BGFX_SAMPLER_MIN_ANISOTROPIC | BGFX_SAMPLER_MAG_ANISOTROPIC;
                             }
+                            else if (idx == RendererTextureSlot::TEX_Y && worldTerrainTextures.count(handle.idx))
+                            {
+                                if (enable_anisotropic) flags |= BGFX_SAMPLER_MIN_ANISOTROPIC;
+                                if (!internalState.bDoTextureFiltering) flags |= BGFX_SAMPLER_MAG_POINT;
+                            }
                             else if (!internalState.bDoTextureFiltering) flags |= BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
                         }
                         break;
@@ -1232,6 +1250,7 @@ void Renderer::init()
     bgfxUniformHandles[RendererUniform::FS_MOVIE_FLAGS] = createUniform("FSMovieFlags", bgfx::UniformType::Vec4);
     bgfxUniformHandles[RendererUniform::FS_MORE_MOVIE_FLAGS] = createUniform("FSMoreMovieFlags", bgfx::UniformType::Vec4);
     bgfxUniformHandles[RendererUniform::WM_FLAGS] = createUniform("WMFlags", bgfx::UniformType::Vec4);
+    bgfxUniformHandles[RendererUniform::PSX_WORLD_DITHER] = createUniform("PSXWorldDither", bgfx::UniformType::Vec4);
     bgfxUniformHandles[RendererUniform::TIME_COLOR] = createUniform("TimeColor", bgfx::UniformType::Vec4);
     bgfxUniformHandles[RendererUniform::TIME_DATA] = createUniform("TimeData", bgfx::UniformType::Vec4);
 
@@ -1380,6 +1399,7 @@ void Renderer::prepareEnvBrdf()
 void Renderer::shutdown()
 {
     destroyAll();
+    worldTerrainTextures.clear();
 
     bgfx::shutdown();
 }
@@ -1951,9 +1971,17 @@ void Renderer::setBackgroundColor(float r, float g, float b, float a)
     internalState.clearColorValue = createBGRA(r * 255, g * 255, b * 255, a * 255);
 }
 
-uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int stride, RendererTextureType type, bool isSrgb, bool copyData, const char* debugName)
+uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int stride, RendererTextureType type, bool isSrgb, bool copyData, const char* debugName, bool worldTerrainMipmaps)
 {
     bgfx::TextureHandle ret = FFNX_RENDERER_INVALID_HANDLE;
+
+    if (worldTerrainMipmaps && (!data || !width || !height ||
+        width > UINT16_MAX || height > UINT16_MAX ||
+        stride != 0 || type != RendererTextureType::BGRA || !copyData))
+    {
+        ffnx_error("Cannot generate world terrain mipmaps: invalid dimensions, format or upload ownership\n");
+        return ret.idx;
+    }
 
     // use 16-bits for movies so we can accomodate 10-bit inputs
     bgfx::TextureFormat::Enum texFormat = bgfx::TextureFormat::R16;
@@ -1981,7 +2009,12 @@ uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int
     }
 
     bimg::TextureInfo texInfo;
-    bimg::imageGetSize(&texInfo, width, height, 0, false, false, 1, imgFormat);
+    const uint64_t storageSize = bimg::imageGetSize(&texInfo, width, height, 0, false, worldTerrainMipmaps, 1, imgFormat);
+    if (worldTerrainMipmaps && storageSize > UINT32_MAX)
+    {
+        ffnx_error("World terrain mipmap upload exceeds supported memory size\n");
+        return ret.idx;
+    }
 	uint32_t uploadSize = stride > 0 ? uint32_t(stride * height) : texInfo.storageSize;
 
     // If the texture we are going to create does not fit in memory, return an empty one.
@@ -1995,7 +2028,14 @@ uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int
             mem = bgfx::alloc(uploadSize);
             // Protect from crashes
             if (mem != NULL) {
-                bx::memCopy(mem->data, data, uploadSize);
+                if (worldTerrainMipmaps)
+                    ff7::world::buildPSXWorldMipmaps(mem->data, data, uint32_t(width), uint32_t(height));
+                else
+                    bx::memCopy(mem->data, data, uploadSize);
+            }
+            else if (worldTerrainMipmaps) {
+                ffnx_error("Cannot allocate world terrain mipmap upload (%u bytes)\n", uploadSize);
+                return ret.idx;
             }
         }
         else
@@ -2005,13 +2045,13 @@ uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int
 
         uint64_t flags = BGFX_SAMPLER_NONE;
 
-        if (isSrgb) flags |= BGFX_TEXTURE_SRGB;
+        if (isSrgb && !worldTerrainMipmaps) flags |= BGFX_TEXTURE_SRGB;
         else flags |= BGFX_TEXTURE_NONE;
 
         ret = bgfx::createTexture2D(
             width,
             height,
-            false,
+            worldTerrainMipmaps,
             1,
             texFormat,
             flags,
@@ -2031,10 +2071,22 @@ uint32_t Renderer::createTexture(uint8_t* data, size_t width, size_t height, int
                 stride
             );
 
+        if (worldTerrainMipmaps)
+        {
+            if (!bgfx::isValid(ret))
+                ffnx_error("Cannot create world terrain texture with mipmaps\n");
+            else
+                worldTerrainTextures.insert(ret.idx);
+        }
+
         if (bgfx::isValid(ret) && debugName != nullptr && debugName[0] != '\0')
             bgfx::setName(ret, debugName);
 
         if (trace_all || trace_renderer) ffnx_trace("Renderer::%s: %u => %ux%u from data with stride %u\n", __func__, ret.idx, width, height, stride);
+    }
+    else if (worldTerrainMipmaps)
+    {
+        ffnx_error("Cannot upload world terrain mipmaps: insufficient memory for %u bytes\n", uploadSize);
     }
 
     return ret.idx;
@@ -2234,6 +2286,7 @@ bool Renderer::saveTexture(const char* filename, uint32_t width, uint32_t height
 
 void Renderer::deleteTexture(uint16_t rt)
 {
+    worldTerrainTextures.erase(rt);
     if (rt > 0)
     {
         bgfx::TextureHandle handle = { rt };

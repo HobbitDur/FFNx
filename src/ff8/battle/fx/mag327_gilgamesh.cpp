@@ -1320,6 +1320,9 @@ namespace g327
 				GteRTPS();
 				int16_t sxy[2];
 				GteReadSXY2(sxy);
+				// PC screen units fix (FFNx PR 1088): the slash is placed from a screen position in pixels
+				sxy[0] = PsxPixels(sxy[0]);
+				sxy[1] = PsxPixels(sxy[1]);
 				p->p10 = (int16_t)(sxy[0] - 0x168);
 				p->p12 = (int16_t)(sxy[1] - 0x134);
 				p->a18 = 0xA00;

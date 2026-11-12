@@ -47,10 +47,13 @@
 #include "ff8/battle/battle_memory.h"
 #include "ff8/battle/battle_gate.h"
 #include "ff8/battle/anim_set.h"
+#include "ff8/battle/ui_window.h"
+#include "ff8/battle/effects_screen_units.h"
+#include "ff8/battle/status_countdown.h"
+#include "ff8/battle/effects_ribbons.h"
+#include "ff8/worldmap_camera_lift.h"
 #include "ff8/field/movie.h"
 #include "ff8/sound_pan.h"
-#include "ff8/battle/effects_ribbons.h"
-#include "ff8/battle/status_countdown.h"
 #include "ff8/kernel_magic.h"
 #include "ff8/kernel_ability.h"
 #include "ff8/battle/monsters.h"
@@ -2461,6 +2464,31 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	ff8_battle_anim_set_init();
 
 	// #####################
+	// Battle menu windows kept on screen while another window opens
+	// #####################
+	ff8_battle_ui_window_init();
+
+	// #####################
+	// Battle effects that test screen coordinates in PSX pixels (Cure, Cura, Potion, Hi-Potion, Hypnotize, ChocoBocle)
+	// #####################
+	ff8_battle_effects_screen_units_init();
+
+	// #####################
+	// Status countdown numbers placed like on PSX
+	// #####################
+	ff8_battle_status_countdown_init();
+
+	// #####################
+	// Lightning and acid ribbons as wide as on PSX
+	// #####################
+	ff8_battle_effects_ribbons_init();
+
+	// #####################
+	// World map camera lifted when terrain hides the player, as on PSX
+	// #####################
+	ff8_worldmap_camera_lift_init();
+
+	// #####################
 	// Field scripts and models in sync with movies above 15 FPS
 	// #####################
 	ff8_field_movie_init();
@@ -2469,16 +2497,6 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// Battle sounds and field footsteps panned like on PSX
 	// #####################
 	ff8_sound_pan_init();
-
-	// #####################
-	// Lightning and acid ribbons as wide as on PSX
-	// #####################
-	ff8_battle_effects_ribbons_init();
-
-	// #####################
-	// Status countdown numbers placed like on PSX
-	// #####################
-	ff8_battle_status_countdown_init();
 
 	// #####################
 	// native battle effect code

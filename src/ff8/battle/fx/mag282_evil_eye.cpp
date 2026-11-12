@@ -47,8 +47,15 @@
 // offset table entry = its bone) reach the GTE's VZ0 high half (0x1CA8A16) only. The hit task reuses its argument slot as
 // its spark loop counter (the executor never reads that slot again).
 
+// Fujin's described Evil-Eye (effect_282.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (EvilEyeParams: the sound, the timeline,
+// the screen flash, the eye's point, the hits' sparks, the eye and hit layouts, the spark flipbook, the texture name and
+// the camera track). FX_PART tags its parts in the lab.
+
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -58,15 +65,17 @@ namespace evileye282
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507E94); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507E98); }        // caster entity (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507EA0; }         // pool: magic buffer, 0x80 x 0x14
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507EB0; }           // pool: + 0xA00, 3 x 0x198
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507EC0; }           // pool: + 0xEC8, 1 x 0x564
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507EF4); }
-	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2507EFC); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507F00); }        // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2507F08); }             // the battle camera orthonormalised (0x67AAE0)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2507E94)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507E98)); }        // caster entity (setup)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2507EA0); }         // pool: magic buffer, 0x80 x 0x14
+	inline TaskQueue *QHits() { return (TaskQueue *)own::R(0x2507EB0); }           // pool: + 0xA00, 3 x 0x198
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2507EC0); }           // pool: + 0xEC8, 1 x 0x564
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507EF4)); }
+	inline uint32_t &FlashLevel() { return var<uint32_t>(own::R(0x2507EFC)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507F00)); }        // Magic_TextureOFF (magic buffer)
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(own::R(0x2507F08)); }             // the battle camera orthonormalised (0x67AAE0)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507E90)); }          // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2507ED0); }           // 1 x 0x14 (pool 0x2507EE0)
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x67D4C0;
@@ -82,6 +91,31 @@ namespace evileye282
 	static const uint32_t SEQ_Spark = 0x109EAB8;         // sprite sequence
 	static const int16_t *const EYE = (const int16_t *)0x10A3018; // the eye point (offset, bone)
 	static const void *const SOUND_Eye = (const void *)0x10A2F50;
+	static const uint32_t ORIG_FileLoader = 0x67D410, ORIG_Setup = 0x67D400;
+	static const uint32_t TEXTURE_NAME = 0x10A3020, CAMERA_ANIM = 0x10A2F54;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_EYE = 1, PART_HITS = 2, PART_SPARKS = 3 };
+	struct EvilEyeParams
+	{
+		uint32_t sound;                                    // at the main task's sound tick
+		struct { int16_t sound, fade, hits, end; } timing; // the main task's ticks (the damage at its end)
+		struct { int16_t level, fall, fall_step; } flash;  // the screen flash: level, then down over the last fall ticks by fall_step a tick
+		struct { int16_t tick, ticks, depth; } eye;        // the eye layout at the caster's eye point: its ticks, its depth
+		struct { int16_t until, every, count, depth; } hits; // a hit's sparks: while its layout has under until frames left, every so many
+		struct { int16_t rise, life, size, depth; } sparks;
+		struct { uint32_t eye, hit; } layouts;             // the prim-model layouts played (their models' animation)
+		struct { uint32_t spark; } seqs;                   // the sprite sequence drawn (flipbook)
+		struct { uint32_t eye; } tables;                   // the eye point on the caster (x, y, z, bone)
+		struct { uint32_t texture_name, camera; } res;     // its resources (data): texture file name, camera track
+	};
+	static const EvilEyeParams GAME = { 0x10A2F50, { 2, 5, 0xA, 0x31 }, { 0x898, 8, 0x113 }, { 2, 0x1A, -0x80 }, { 0x1C, 4, 1, -0x80 },
+		{ 0xA, 0x10, 0x800, -0x200 }, { MODEL_Eye, MODEL_Hit }, { SEQ_Spark }, { (uint32_t)EYE }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static EvilEyeParams live = GAME;
+	static const EvilEyeParams &PE() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -178,10 +212,10 @@ namespace evileye282
 	static void EyeArg(PrimArg *arg)
 	{
 		RotY(-*(const int16_t *)(Caster() + 0xE), &arg->m);
-		BonePoint(EYE, arg->m.t);
+		BonePoint((const int16_t *)fxp::data(PE().tables.eye, (uint32_t)EYE, 8), arg->m.t);
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		arg->morph = TexBase() + MORPH;
-		arg->depth = -0x80;
+		arg->depth = PE().eye.depth;
 	}
 
 	// the hit layout's parameter block: RotY(0) at the hit's point, composed with the camera
@@ -193,14 +227,14 @@ namespace evileye282
 		arg->m.t[2] = h->pos[2];
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		arg->morph = TexBase() + MORPH;
-		arg->depth = -0x80;
+		arg->depth = PE().hits.depth;
 	}
 
 	static void SparkDraw(const SparkNode *s)
 	{
-		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
+		TransformCameraByShadowRotation(s->pos, PE().sparks.size, PE().sparks.depth);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(PE().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -312,6 +346,30 @@ namespace evileye282
 	}
 
 	// ------------------------------------------------------------------
+	// File loader (0x67D410) and setup (0x67D400 -> _Init 0x67D430): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, one CRT rand (kept, never read), the cast and its caster's
+	// entity, the master (it sets up the rest), the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PE().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = layouts::MagicBuffer();
+		var<int32_t>(own::R(0x2507EF8)) = CrtRand();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2507EE0), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PE().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
+	// ------------------------------------------------------------------
 	// Spark (0x67DC60)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTask(TaskNode *n)
@@ -319,10 +377,11 @@ namespace evileye282
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(held_note_spark(s);)
+		FX_PART(PART_SPARKS);
 		SparkDraw(s);
-		s->pos[1] = (int16_t)(s->pos[1] - 0xA);
+		s->pos[1] = (int16_t)(s->pos[1] - PE().sparks.rise);
 		s->counter++;
-		return s->counter < 0x10 ? 0 : TASK_END;
+		return s->counter < PE().sparks.life ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -335,19 +394,20 @@ namespace evileye282
 		HitArg(h, &arg);
 		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(held_note_hit(h);)
+		FX_PART(PART_HITS);
 		const int left = prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0);
 		if (!left) return TASK_END;
-		if (left < 0x1C && !(left & 3))
+		if (left < PE().hits.until && !(left % PE().hits.every))
 		{
-			int32_t count = 1;
-			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			int32_t count = PE().hits.count;
+			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 			while (s)
 			{
 				uint8_t *ent = h->ent;
 				while (RandomBonePoint(ent, mul32(CrtRand(), ***(const uint8_t *const *const *)(ent + 0x64)) >> 15, s->pos)) ent = h->ent;
 				s->counter = 0;
 				if (--count == 0) break;
-				s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 			}
 		}
 		return 0;
@@ -359,34 +419,36 @@ namespace evileye282
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
-		if (m->counter > 0x29) FlashLevel() = (uint32_t)((int32_t)((uint32_t)mul32(0x31 - m->counter, 0x113) << 3) >> 3);
-		else FlashLevel() = 0x898;
-		const int32_t c = m->counter - 2;
-		if ((uint32_t)c < 0x1A)
+		const int32_t end = PE().timing.end;
+		if (m->counter > end - PE().flash.fall) FlashLevel() = (uint32_t)((int32_t)((uint32_t)mul32(end - m->counter, PE().flash.fall_step) << 3) >> 3);
+		else FlashLevel() = (uint32_t)PE().flash.level;
+		const int32_t c = m->counter - PE().eye.tick;
+		if ((uint32_t)c < (uint32_t)PE().eye.ticks)
 		{
 			PrimArg arg;
 			EyeArg(&arg);
 			// 30 fps layer: see mag282_evil_eye_held.inc
 			FX_HELD(held_note_eye(m);)
+			FX_PART(PART_EYE);
 			prim::play((prim::Layout *)m->eye, PrimCallback, (int)&arg, 0);
 		}
-		if (c == 3) ScreenFadeTask(0, 1, 0, 0x60);
-		if (m->counter == 2) BdPlaySE(SOUND_Eye, 0, 0x80);
-		if (m->counter == 0xA)
+		if (m->counter == PE().timing.fade) ScreenFadeTask(0, 1, 0, 0x60);
+		if (m->counter == PE().timing.sound) BdPlaySE((const void *)fxp::sound(PE().sound, (uint32_t)SOUND_Eye), 0, 0x80);
+		if (m->counter == PE().timing.hits)
 		{
 			for (int i = 0; i < m->ntargets; i++)
 			{
-				HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+				HitNode *h = (HitNode *)AddTaskToQueue(QHits(), own::Fn(ORIG_HitTask));
 				if (!h) continue;
 				uint8_t *ent = m->ent[i];
 				h->ent = ent;
 				GetEffectSpawnPosition(ent, 0xF1, 0, h->pos);
 				h->pad12 = 0;
-				DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x180);
+				DecodeModelPrimLayout(fxp::layout(PE().layouts.hit, MODEL_Hit, 0x180), h->layout, 0x180);
 			}
 		}
 		m->counter++;
-		if (m->counter >= 0x31)
+		if (m->counter >= end)
 		{
 			ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 			FlashLevel() = 0;
@@ -420,11 +482,11 @@ namespace evileye282
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x564, 1);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x198, 3);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x14, 0x80);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x156);
 			m->ntargets = Ctx()->actions[0].target_count;
 			for (int i = 0; i < m->ntargets; i++) m->ent[i] = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
-			DecodeModelPrimLayout(MODEL_Eye, m->eye, 0x548);
+			DecodeModelPrimLayout(fxp::layout(PE().layouts.eye, MODEL_Eye, 0x548), m->eye, 0x548);
 		}
 		int a0, a1, a2;
 		if (mn->started)
@@ -440,13 +502,63 @@ namespace evileye282
 		mn->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The main task's timeline: the sound, a screen fade, the hits, the damage at its end; the screen flash; the texture and the camera" },
+			{ PART_EYE, "eye", "Eye", "The eye layout at a point of the caster, turned with it" },
+			{ PART_HITS, "hits", "Hits", "A hit layout on each target, with sparks at its bones" },
+			{ PART_SPARKS, "sparks", "Sparks", "Sparks rising from the targets' bones" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flash", "Screen flash", "Its level, then its fall over the last ticks" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the main task's sound tick", (uint32_t)offsetof(EvilEyeParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.sound", "Sound tick", "The sound at this tick of the main task", (uint32_t)offsetof(EvilEyeParams, timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.fade", "Fade tick", "A screen fade at this tick", (uint32_t)offsetof(EvilEyeParams, timing.fade), fxp::I16, 0, 200 },
+			{ "director", "timing.hits", "Hits tick", "A hit on each target at this tick", (uint32_t)offsetof(EvilEyeParams, timing.hits), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End tick", "The main task's last tick: the damage (every target), the flash off", (uint32_t)offsetof(EvilEyeParams, timing.end), fxp::I16, 1, 200 },
+			{ "director", "flash.level", "Level", "The screen flash's level until it falls (4096 = full white)", (uint32_t)offsetof(EvilEyeParams, flash.level), fxp::I16, 0, 0x1000 },
+			{ "director", "flash.fall", "Fall ticks", "Over the last ticks it is (the end tick - the tick) x the next", (uint32_t)offsetof(EvilEyeParams, flash.fall), fxp::I16, 0, 200 },
+			{ "director", "flash.fall_step", "Fall step", "", (uint32_t)offsetof(EvilEyeParams, flash.fall_step), fxp::I16, 0, 0x1000 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(EvilEyeParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(EvilEyeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "eye", "eye.tick", "Tick", "The eye layout plays from this tick of the main task", (uint32_t)offsetof(EvilEyeParams, eye.tick), fxp::I16, 0, 200 },
+			{ "eye", "eye.ticks", "Ticks", "For this many ticks", (uint32_t)offsetof(EvilEyeParams, eye.ticks), fxp::I16, 0, 200 },
+			{ "eye", "eye.depth", "Depth", "Its depth offset (negative = nearer)", (uint32_t)offsetof(EvilEyeParams, eye.depth), fxp::I16, -8192, 0x2000 },
+			{ "eye", "tables.eye", "Eye point", "Where on the caster: a point (x, y, z) and the caster's bone it is on (8 bytes)", (uint32_t)offsetof(EvilEyeParams, tables.eye), fxp::Data, 0, 0x7FFFFFFF },
+			{ "eye", "layouts.eye", "Eye", "The prim-model layout of the eye (its models' animation), turned with the caster", (uint32_t)offsetof(EvilEyeParams, layouts.eye), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "hits", "hits.until", "Sparks under", "While its layout has fewer frames left than this", (uint32_t)offsetof(EvilEyeParams, hits.until), fxp::I16, 0, 1000 },
+			{ "hits", "hits.every", "Sparks every", "... and a multiple of this (at least 1)", (uint32_t)offsetof(EvilEyeParams, hits.every), fxp::I16, 1, 100 },
+			{ "hits", "hits.count", "Sparks", "This many sparks at random bones of its target (128 at most alive)", (uint32_t)offsetof(EvilEyeParams, hits.count), fxp::I16, 0, 128 },
+			{ "hits", "hits.depth", "Depth", "Its layout's depth offset (negative = nearer)", (uint32_t)offsetof(EvilEyeParams, hits.depth), fxp::I16, -8192, 0x2000 },
+			{ "hits", "layouts.hit", "Hit", "The prim-model layout of a hit (its models' animation), at its target's body", (uint32_t)offsetof(EvilEyeParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.rise", "Rise", "A spark rises this much a tick", (uint32_t)offsetof(EvilEyeParams, sparks.rise), fxp::I16, -1000, 1000 },
+			{ "sparks", "sparks.life", "Life", "Its ticks (its flipbook frame = its tick)", (uint32_t)offsetof(EvilEyeParams, sparks.life), fxp::I16, 1, 200 },
+			{ "sparks", "sparks.size", "Size", "Its sprite's size", (uint32_t)offsetof(EvilEyeParams, sparks.size), fxp::I16, 0, 0x7FFF },
+			{ "sparks", "sparks.depth", "Depth", "Its sprite's depth offset (negative = nearer)", (uint32_t)offsetof(EvilEyeParams, sparks.depth), fxp::I16, -8192, 0x2000 },
+			{ "sparks", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook: an edited one keeps as many frames)", (uint32_t)offsetof(EvilEyeParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag282_evil_eye()
 	{
+		fxp::register_params({ 282, "Evil-Eye", &evileye282::live, &evileye282::GAME, sizeof(evileye282::EvilEyeParams),
+		                       evileye282::table::PARTS, (int)(sizeof(evileye282::table::PARTS) / sizeof(evileye282::table::PARTS[0])),
+		                       evileye282::table::FIELDS, (int)(sizeof(evileye282::table::FIELDS) / sizeof(evileye282::table::FIELDS[0])),
+		                       evileye282::table::GROUPS, (int)(sizeof(evileye282::table::GROUPS) / sizeof(evileye282::table::GROUPS[0])) });
+		own::note(evileye282::ORIG_FileLoader, (void *)evileye282::FileLoader);
+		own::note(evileye282::ORIG_Setup, (void *)evileye282::Setup);
+		own::note(evileye282::ORIG_MasterTask, (void *)evileye282::MasterTask);
 		register_port(evileye282::ORIG_MasterTask, (void *)evileye282::MasterTask, "282 MasterTask", 282);
+		own::note(evileye282::ORIG_MainTask, (void *)evileye282::MainTask);
 		register_port(evileye282::ORIG_MainTask, (void *)evileye282::MainTask, "282 MainTask", 282);
+		own::note(evileye282::ORIG_HitTask, (void *)evileye282::HitTask);
 		register_port(evileye282::ORIG_HitTask, (void *)evileye282::HitTask, "282 HitTask", 282);
+		own::note(evileye282::ORIG_SparkTask, (void *)evileye282::SparkTask);
 		register_port(evileye282::ORIG_SparkTask, (void *)evileye282::SparkTask, "282 SparkTask", 282);
 		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(register_mag282_held();)
