@@ -275,6 +275,13 @@ namespace ff8fx
 		register_mag287_mega_pulse_cannon();
 		register_mag214_omega_gravija();
 		register_mag207_maelstrom();
+		register_mag172_morph();
+		register_mag171_poison_gas();
+		register_mag170_acid();
+		register_mag156_wild_cannon_blow();
+		register_mag151_cannon_blow();
+		register_mag186_blaster();
+		register_mag321_ker_plunk();
 		register_mag283_magic_summon();
 		register_mag241_bgh_gatling_gun();
 		register_mag242_bgh_beam_cannon();
