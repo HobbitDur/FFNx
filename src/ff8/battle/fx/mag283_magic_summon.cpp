@@ -89,7 +89,7 @@ namespace magicsummon283
 	static const uint32_t ARENA_A = 0x650, ARENA_B = 0x10650; // magic buffer: packet arenas
 	static const uint32_t MODEL_A = 0x1095178;           // prim-model layouts
 	static const uint32_t MODEL_B = 0x1098A18;
-	static const uint32_t FLASH_Colours = 0x109968C;     // 8 + 1 colours (3 bytes used)
+	static const uint32_t FLASH_Colours = 0x109968C;     // 8 colours read (r, g, b, -): entries 0..7 (counter x 7 / 60 < 7)
 	static const uint32_t WARP_Weights = 0x10996AC;      // u16 [20][128]: the offset's weight by distance (4.12), per step
 	static const uint32_t WARP_Distance = 0x109AAAC;     // u8 [128][128]: the distance of (|dy|, |dx|) (row 20 of the weights)
 	static const void *const SOUND_Summon = (const void *)0x1099688;
@@ -664,7 +664,7 @@ namespace magicsummon283
 		// the flash colour: blended (3 bytes) over the task's argument slot, its 4th byte = the node pointer's high byte
 		uint32_t colour = (uint32_t)(uintptr_t)n;
 		const int32_t end = PM().timing.end;
-		const uint32_t colours = fxp::data(PM().tables.flash_colours, FLASH_Colours, 36);
+		const uint32_t colours = fxp::data(PM().tables.flash_colours, FLASH_Colours, 32);
 		const int32_t t = shl32(m->counter * 7, 12) / end;
 		const int32_t i = t >> 12, frac = t & 0xFFF;
 		FX_PART(PART_CIRCLE);
@@ -788,7 +788,7 @@ namespace magicsummon283
 			{ "director", "flash.rise", "Rise ticks", "It first rises over this many ticks, black (the tick x the step)", (uint32_t)offsetof(SummonParams, flash.rise), fxp::I16, 0, 200 },
 			{ "director", "flash.fall", "Fall ticks", "It falls over the last ticks, black ((the end - the tick) x the step)", (uint32_t)offsetof(SummonParams, flash.fall), fxp::I16, 0, 200 },
 			{ "director", "flash.step", "Step", "", (uint32_t)offsetof(SummonParams, flash.step), fxp::I16, 0, 0x1000 },
-			{ "director", "tables.flash_colours", "Flash colours", "The colours the flash goes through over the main task: 9 x (red, green, blue, -), the 9th the 8th's end (36 bytes)", (uint32_t)offsetof(SummonParams, tables.flash_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "tables.flash_colours", "Flash colours", "The colours the flash goes through over the main task: 8 x (red, green, blue, -), blended from each to the next (32 bytes)", (uint32_t)offsetof(SummonParams, tables.flash_colours), fxp::Data, 0, 0x7FFFFFFF },
 			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(SummonParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
 			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(SummonParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
 			{ "circle", "circle.depth", "Depth", "Layout A's depth offset (negative = nearer)", (uint32_t)offsetof(SummonParams, circle.depth), fxp::I16, -8192, 0x2000 },
