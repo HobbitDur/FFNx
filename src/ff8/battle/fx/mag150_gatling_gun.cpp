@@ -59,9 +59,15 @@
 // Module globals: 0x244FD60..0x2461E84 (target slot, root pool/queue, particle array B, particle array A, effect queue
 // + pool, context 0x2451E68, caster slot 0x2451E6C, texture 0x2451E70, muzzle 0x2451E78, the two packet arenas, packet
 // cursor 0x2461E80).
+// Fujin's described Gatling Gun (effect_150.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (GatlingGun150Params: Gatling Gun 305's
+// - the sound, the damage tick, three flipbooks, three meshes, the texture name, the camera track; no animation set)
+// are set from the program's.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -71,12 +77,14 @@ namespace gg150
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x244FD60); }  // the first target
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2451E68); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2451E6C); }
-	inline int16_t *Muzzle() { return (int16_t *)0x2451E78; }            // caster effect point 0xF0
-	inline uint32_t &Cursor() { return var<uint32_t>(0x2461E80); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2451048; }     // pool 0x2451058, 100 x 0x24
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x244FD60)); }  // the first target
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2451E68)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x2451E6C)); }
+	inline int16_t *Muzzle() { return (int16_t *)own::R(0x2451E78); }            // caster effect point 0xF0
+	inline uint32_t &Cursor() { return var<uint32_t>(own::R(0x2461E80)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2451E70)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x244FD78); }             // pool 0x244FD68, 1 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x2451048); }     // pool 0x2451058, 100 x 0x24
 	static const uint32_t ARENA_A = 0x2459E80, ARENA_B = 0x2451E80;     // 0x8000 bytes each
 
 	static const uint32_t ORIG_RootTask = 0x60F630;
@@ -97,6 +105,23 @@ namespace gg150
 	static const uint32_t SEQ_Flash = 0xDC1FA4;
 	static const uint32_t SEQ_Sparks = 0xDC234C;
 	static const void *const SOUND_Gun = (const void *)0xDC2D70;
+	static const uint32_t ORIG_FileLoader = 0x60E320, ORIG_Setup = 0x60E340;
+	static const uint32_t TEXTURE_NAME = 0xDC2D78, CAMERA_ANIM = 0xDC1DD4;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct GatlingGun150Params
+	{
+		uint32_t sound;                    // at the director's tick 1
+		struct { int16_t damage; } master; // the damage at this tick
+		struct { uint32_t smoke, flash, sparks; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t muzzle, impact, spark; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	static const GatlingGun150Params GAME = { 0xDC2D70, { 0x1E }, { SEQ_Smoke, SEQ_Flash, SEQ_Sparks }, { MODEL_Muzzle, MODEL_Impact, MODEL_Spark }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static GatlingGun150Params live = GAME;
+	static const GatlingGun150Params &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	// GetEffectSpawnPosition (0x502170): position of an entity's effect point `bone`
@@ -142,11 +167,11 @@ namespace gg150
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Gatling Gun nodes");
 	static_assert(sizeof(Particle) == 0x18, "Gatling Gun records");
 
-	inline Particle *PartsA() { return (Particle *)0x24506E8; }
-	inline Particle *PartsB() { return (Particle *)0x244FD88; }
+	inline Particle *PartsA() { return (Particle *)own::R(0x24506E8); }
+	inline Particle *PartsB() { return (Particle *)own::R(0x244FD88); }
 	inline int16_t *EntPos(int32_t slot) { return (int16_t *)(Entity(slot) + 0x1C); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
-	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), fn); }
+	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), own::Fn(fn)); }   // (a copy: the port's thunk)
 }
 }
 
@@ -196,7 +221,7 @@ namespace gg150
 		ComposeAffineTransform(&Camera(), &m, &m);
 		TransformCameraByShadowRotation(&n->f10, 0, -((int32_t)n->f1C >> 3));
 		GteSetRotMatrix(&m);
-		ModelDraw(MODEL_Muzzle, faded, fade, 2);
+		ModelDraw(fxp::model(P().models.muzzle, MODEL_Muzzle), faded, fade, 2);
 	}
 	static int32_t MuzzleFade(int32_t c) { return shl32(c, 11); }
 
@@ -219,7 +244,7 @@ namespace gg150
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Impact, faded, fade, 1);
+		ModelDraw(fxp::model(P().models.impact, MODEL_Impact), faded, fade, 1);
 	}
 	static int32_t ImpactFade(int32_t c) { return shl32(c, 9); }
 
@@ -248,7 +273,7 @@ namespace gg150
 		MatrixMultiply3(&m, &roll);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Spark, faded, fade, 1);
+		ModelDraw(fxp::model(P().models.spark, MODEL_Spark), faded, fade, 1);
 	}
 	static int32_t SparkFade(int32_t c) { return shl32(c, 10) - 0x400; }
 
@@ -258,7 +283,7 @@ namespace gg150
 		TransformCameraByShadowRotation(&n->f10, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = frame;
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash, SEQ_Flash);
 		*(int16_t *)(h + 0x24) = 0;
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 		FieldFree(0xB4);
@@ -310,6 +335,31 @@ namespace gg150
 	// ------------------------------------------------------------------
 	// Tasks
 	// ------------------------------------------------------------------
+	// File loader (0x60E320) and setup (0x60E340): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the director, both particle arrays
+	// cleared, the camera and the TIM
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x244FD68), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x2451058), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_MasterTask)) + 0xC) = 0;
+		for (uint32_t a = own::R(0x24506E8); a < own::R(0x2451048); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(0x244FD88); a < own::R(0x24506E8); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
 	// Muzzle flash (0x60E6D0)
 	static uint32_t __cdecl MuzzleTask(TaskNode *n_)
 	{
@@ -330,7 +380,7 @@ namespace gg150
 		FX_HELD(held_begin(ORIG_SmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(int16_t *)(h + 0x24) = 0;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
@@ -451,7 +501,7 @@ namespace gg150
 		FX_HELD(held_begin(ORIG_DustTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = fxp::sequence(P().seqs.smoke, SEQ_Smoke);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
@@ -565,7 +615,7 @@ namespace gg150
 		FX_HELD(held_begin(ORIG_SparksTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Sparks;
+		*(uint32_t *)h = fxp::sequence(P().seqs.sparks, SEQ_Sparks);
 		*(int16_t *)(h + 0x24) = 1;
 		for (Particle *e = PartsB(); e < PartsB() + 100; e++)
 		{
@@ -679,8 +729,8 @@ namespace gg150
 				h->f14 = t[2];
 			}
 		}
-		if (n->counter == 0x1E) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, 0, 0x80);
+		if (n->counter == P().master.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (n->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Gun), 0, 0x80);
 		n->counter++;
 		if (n->counter <= 0x24) return 0;
 		return TASK_END;
@@ -692,26 +742,62 @@ namespace gg150
 		RootNode *r = (RootNode *)n_;
 		// 30 fps layer: see mag150_gatling_gun_held.inc
 		FX_HELD(held_note_root();)
-		Cursor() = ARENA_A;
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_B;
+		Cursor() = own::R(ARENA_A);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = own::R(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
 		r->counter++;
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The muzzle flashes, the smoke, five misses on the line to the target and seven hits on it (with their dust and sparks), the sound; the damage" },
+		};
+		static const Field FIELDS[] = {
+			{ "master", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(GatlingGun150Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "master.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(GatlingGun150Params, master.damage), fxp::I16, 0, 36 },
+			{ "master", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GatlingGun150Params, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(GatlingGun150Params, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "seqs.sparks", "Sparks", "The sprite sequence sparks (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(GatlingGun150Params, seqs.sparks), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "master", "models.muzzle", "Muzzle model", "The prim model muzzle (a mesh of 25 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GatlingGun150Params, models.muzzle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.impact", "Impact model", "The prim model impact (a mesh of 24 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GatlingGun150Params, models.impact), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "models.spark", "Spark model", "The prim model spark (a mesh of 24 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(GatlingGun150Params, models.spark), fxp::Model, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(GatlingGun150Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(GatlingGun150Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
 	}
 }
 
 	void register_mag150_gatling_gun()
 	{
+		fxp::register_params({ 150, "Gatling Gun", &gg150::live, &gg150::GAME, sizeof(gg150::GatlingGun150Params),
+		                       gg150::table::PARTS, (int)(sizeof(gg150::table::PARTS) / sizeof(gg150::table::PARTS[0])),
+		                       gg150::table::FIELDS, (int)(sizeof(gg150::table::FIELDS) / sizeof(gg150::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(gg150::ORIG_FileLoader, (void *)gg150::FileLoader);
+		own::note(gg150::ORIG_Setup, (void *)gg150::Setup);
+		own::note(gg150::ORIG_RootTask, (void *)gg150::RootTask);
 		register_port(gg150::ORIG_RootTask, (void *)gg150::RootTask, "G150 RootTask", 150);
+		own::note(gg150::ORIG_MasterTask, (void *)gg150::MasterTask);
 		register_port(gg150::ORIG_MasterTask, (void *)gg150::MasterTask, "G150 MasterTask", 150);
+		own::note(gg150::ORIG_MuzzleTask, (void *)gg150::MuzzleTask);
 		register_port(gg150::ORIG_MuzzleTask, (void *)gg150::MuzzleTask, "G150 MuzzleTask", 150);
+		own::note(gg150::ORIG_SmokeTask, (void *)gg150::SmokeTask);
 		register_port(gg150::ORIG_SmokeTask, (void *)gg150::SmokeTask, "G150 SmokeTask", 150);
+		own::note(gg150::ORIG_MissTask, (void *)gg150::MissTask);
 		register_port(gg150::ORIG_MissTask, (void *)gg150::MissTask, "G150 MissTask", 150);
+		own::note(gg150::ORIG_ImpactTask, (void *)gg150::ImpactTask);
 		register_port(gg150::ORIG_ImpactTask, (void *)gg150::ImpactTask, "G150 ImpactTask", 150);
+		own::note(gg150::ORIG_FlashTask, (void *)gg150::FlashTask);
 		register_port(gg150::ORIG_FlashTask, (void *)gg150::FlashTask, "G150 FlashTask", 150);
+		own::note(gg150::ORIG_DustTask, (void *)gg150::DustTask);
 		register_port(gg150::ORIG_DustTask, (void *)gg150::DustTask, "G150 DustTask", 150);
+		own::note(gg150::ORIG_HitTask, (void *)gg150::HitTask);
 		register_port(gg150::ORIG_HitTask, (void *)gg150::HitTask, "G150 HitTask", 150);
+		own::note(gg150::ORIG_SparkTask, (void *)gg150::SparkTask);
 		register_port(gg150::ORIG_SparkTask, (void *)gg150::SparkTask, "G150 SparkTask", 150);
+		own::note(gg150::ORIG_SparksTask, (void *)gg150::SparksTask);
 		register_port(gg150::ORIG_SparksTask, (void *)gg150::SparksTask, "G150 SparksTask", 150);
 		// 30 fps layer: see mag150_gatling_gun_held.inc
 		FX_HELD(register_mag150_held();)

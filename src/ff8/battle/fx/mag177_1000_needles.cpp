@@ -42,8 +42,15 @@
 // pool, context 0x2348550, caster slot 0x2348554, texture file 0x2348558, the two packet arenas,
 // packet cursor 0x236855C, the sprite transform matrix 0x2368560).
 
+// Fujin's described 1000 Needles (effect_177.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup and the file loader ported below; its parameters (NeedlesParams, one layout
+// for 1000 and 10,000 Needles: the sound, the director's ticks, the needles' spawns, steps, spread and scale, the
+// sparks' life and size; its data: the needle's vertices and triangles, the spark flipbook and its lift table, the
+// texture name, the camera track). FX_PART tags its parts in the lab.
+
 #include "mag_common.h"
 #include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -53,11 +60,13 @@ namespace needles177
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2348550); }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2341948); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2348554); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x236855C); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2347730; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2348550)); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x2341948)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x2348554)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x236855C)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2348558)); }          // the effect's file (its TIM)
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x2341960); }           // 1 x 0x10
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x2347730); }
 	static const uint32_t ARENA0 = 0x234855C, ARENA1 = 0x235855C, ARENA_SIZE = 0x10000;
 	static const uint32_t SPRITE_MATRIX = 0x2368560;                          // Mat4x3 of the sprite transform
 	static const uint32_t NEEDLES = 0x2341970, NEEDLES_END = 0x2345B10;       // 300 x 0x38
@@ -72,9 +81,34 @@ namespace needles177
 	static const uint32_t SEQ_Spark = 0xD44DC0;       // sprite sequence (0x28 bytes, copied to the scratch)
 	static const uint32_t SPARK_LIFT = 0xD44E88;      // int32 y offsets by the ticks left
 	static const void *const SOUND_Needles = (const void *)0xD44E10;
-	// timing and needle scale of this module (1000 Needles)
-	static const int16_t TICK_SPAWN = 1, TICK_DAMAGE = 0x32, TICK_LAST = 0x37;
-	static const int32_t SCALE_RANGE = 0x400, SCALE_BASE = 0x300;
+	static const uint32_t ORIG_FileLoader = 0x5CF740, ORIG_Setup = 0x5CF760;
+	static const uint32_t TEXTURE_NAME = 0xD44EA4, CAMERA = 0xD44C5C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h); one layout for 1000 Needles (177) and 10,000 Needles (178)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_NEEDLES = 1, PART_SPARKS = 2 };
+	struct NeedlesParams
+	{
+		uint32_t sound;                                    // at the director's spawn tick
+		struct { int16_t spawn, damage, end; } director;  // its ticks
+		struct { int16_t spawn_last, per_tick, steps_min, steps_rand, spread, scale_min, scale_rand; } needles;
+		struct { int16_t life, size; } sparks;
+		struct { uint32_t spark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t needle_vertices, needle_triangles, spark_lift; } tables; // its small tables (data)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	static const NeedlesParams GAME = {
+		0xD44E10,
+		{ 1, 0x32, 0x37 },
+		{ 0x27, 0x19, 4, 4, 200, 0x300, 0x400 },
+		{ 6, 0x100 },
+		{ SEQ_Spark },
+		{ NEEDLE_VERTS, NEEDLE_POLYS, SPARK_LIFT },
+		{ TEXTURE_NAME, CAMERA } };
+	static NeedlesParams live = GAME;
+	static const NeedlesParams &P() { return live; }
 
 	// ---- engine functions (original addresses)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
@@ -139,8 +173,8 @@ namespace needles177
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "1000 Needles nodes");
 	static_assert(sizeof(Needle) == 0x38 && sizeof(Spark) == 0x18 && sizeof(PolyRec) == 0x14, "1000 Needles tables");
 
-	inline Needle *Needles() { return (Needle *)NEEDLES; }
-	inline Spark *Sparks() { return (Spark *)SPARKS; }
+	inline Needle *Needles() { return (Needle *)own::R(NEEDLES); }
+	inline Spark *Sparks() { return (Spark *)own::R(SPARKS); }
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 	inline int32_t EffectBones(uint8_t *entity) { return **(const uint8_t *const *)*(const uint32_t *)(entity + 0x64); }
@@ -213,7 +247,7 @@ namespace needles177
 	// y / 8 - 0x6C, projection distance + z), the rotation part loaded into the GTE
 	static Mat4x3 *SpriteTransform(const int16_t *pos, int16_t scale, int32_t z)
 	{
-		Mat4x3 *m = (Mat4x3 *)SPRITE_MATRIX;
+		Mat4x3 *m = (Mat4x3 *)own::R(SPRITE_MATRIX);
 		m->m[2][2] = scale;
 		m->m[1][1] = scale;
 		m->m[0][0] = scale;
@@ -236,28 +270,30 @@ namespace needles177
 	static void DrawSpark(uint8_t *h, const Spark *s, int32_t lift)
 	{
 		*(int16_t *)(h + 4) = 0;
-		Mat4x3 *m = SpriteTransform(s->pos, 0x100, 0);
+		Mat4x3 *m = SpriteTransform(s->pos, P().sparks.size, 0);
 		m->t[1] += lift;
 		GteSetTransVectorCtrl(m);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
-	inline int32_t SparkLift(int16_t left) { return var<int32_t>(SPARK_LIFT + (uint32_t)(int32_t)left * 4); }
+	inline int32_t SparkLift(int16_t left) { return var<int32_t>(fxp::data(P().tables.spark_lift, SPARK_LIFT, 0x1C, 4) + (uint32_t)(int32_t)left * 4); }
 
 	// draw blocks (Field_Alloc): the needles' (0xDC) and the sparks' sequence copy (0x28) + header (0xB4)
 	static uint8_t *NeedleBlock()
 	{
 		uint8_t *b = (uint8_t *)FieldAlloc(0xDC);
-		memcpy(b + 0x6C, (const void *)NEEDLE_VERTS, 0x20);
-		memcpy(b + 0x8C, (const void *)NEEDLE_POLYS, 0x50);
+		memcpy(b + 0x6C, (const void *)fxp::data(P().tables.needle_vertices, NEEDLE_VERTS, 0x20), 0x20);
+		memcpy(b + 0x8C, (const void *)fxp::data(P().tables.needle_triangles, NEEDLE_POLYS, 0x50, 4), 0x50);
 		memcpy(b + 0x2C, &Camera(), 0x20);
 		return b;
 	}
 	static uint8_t *SparkHeader()
 	{
+		// (an edited flipbook is drawn where it is: the game's copy holds 0x28 bytes, its one frame)
 		uint8_t *seq = (uint8_t *)FieldAlloc(0x28);
-		memcpy(seq, (const void *)SEQ_Spark, 0x28);
+		const uint32_t spark = fxp::sequence(P().seqs.spark, SEQ_Spark);
+		if (spark == SEQ_Spark) memcpy(seq, (const void *)SEQ_Spark, 0x28);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint8_t **)h = seq;
+		*(uint8_t **)h = spark == SEQ_Spark ? seq : (uint8_t *)spark;
 		*(int16_t *)(h + 0x24) = 0;
 		return h;
 	}
@@ -265,14 +301,14 @@ namespace needles177
 	static int FreeNeedle()
 	{
 		int i = 0;
-		for (uint32_t a = NEEDLES; a < NEEDLES_END; a += sizeof(Needle), i++)
+		for (uint32_t a = own::R(NEEDLES); a < own::R(NEEDLES_END); a += sizeof(Needle), i++)
 			if (*(uint32_t *)a == 0) return i < NEEDLE_COUNT ? i : -1;
 		return -1;
 	}
 	static int FreeSpark()
 	{
 		int i = 0;
-		for (uint32_t a = SPARKS; a < SPARKS_END; a += sizeof(Spark), i++)
+		for (uint32_t a = own::R(SPARKS); a < own::R(SPARKS_END); a += sizeof(Spark), i++)
 			if (*(uint32_t *)a == 0) return i < SPARK_COUNT ? i : -1;
 		return -1;
 	}
@@ -284,24 +320,25 @@ namespace needles177
 		int32_t *scale = (int32_t *)(s + 0x10), *ref = (int32_t *)(s + 0x20), *dir = (int32_t *)(s + 0x30), *axis = (int32_t *)(s + 0x40);
 		const int32_t caster_bones = EffectBones(Caster());
 		const int32_t target_bones = EffectBones(Target());
-		for (int k = 0; k < 0x19; k++)
+		for (int k = 0; k < P().needles.per_tick; k++)
 		{
 			const int i = FreeNeedle();
 			if (i < 0) return;
 			Needle *n = &Needles()[i];
 			n->active = 1;
-			const int32_t steps = CrtRand() % 4 + 4;
+			const int32_t steps = CrtRand() % P().needles.steps_rand + P().needles.steps_min;
+			const int32_t spread = P().needles.spread;
 			n->steps = (int16_t)steps;
 			int32_t r = CrtRand();
 			GetEffectSpawnPosition(Caster(), r % caster_bones, r % 0x1000, from);
-			from[0] = (int16_t)(from[0] + (CrtRand() % 200 - 100));
-			from[1] = (int16_t)(from[1] + (CrtRand() % 200 - 100));
-			from[2] = (int16_t)(from[2] + (CrtRand() % 200 - 100));
+			from[0] = (int16_t)(from[0] + (CrtRand() % spread - spread / 2));
+			from[1] = (int16_t)(from[1] + (CrtRand() % spread - spread / 2));
+			from[2] = (int16_t)(from[2] + (CrtRand() % spread - spread / 2));
 			r = CrtRand();
 			GetEffectSpawnPosition(Target(), r % target_bones, r % 0x1000, to);
-			to[0] = (int16_t)(to[0] + (CrtRand() % 200 - 100));
-			to[1] = (int16_t)(to[1] + (CrtRand() % 200 - 100));
-			to[2] = (int16_t)(to[2] + (CrtRand() % 200 - 100));
+			to[0] = (int16_t)(to[0] + (CrtRand() % spread - spread / 2));
+			to[1] = (int16_t)(to[1] + (CrtRand() % spread - spread / 2));
+			to[2] = (int16_t)(to[2] + (CrtRand() % spread - spread / 2));
 			dir[0] = to[0] - from[0];
 			dir[1] = to[1] - from[1];
 			dir[2] = to[2] - from[2];
@@ -311,7 +348,7 @@ namespace needles177
 			NormalizeVector(dir, dir);
 			const int32_t angle = RotationBetweenVectors(ref, dir, axis);
 			BuildAxisAngleRotationMatrix(angle, &n->m, axis);
-			const int32_t sc = CrtRand() % SCALE_RANGE + SCALE_BASE;
+			const int32_t sc = CrtRand() % P().needles.scale_rand + P().needles.scale_min;
 			scale[2] = sc;
 			scale[1] = sc;
 			scale[0] = sc;
@@ -342,13 +379,14 @@ namespace needles177
 		*(int32_t *)(s + 0x20) = 0;
 		*(int32_t *)(s + 0x24) = 0;
 		*(int32_t *)(s + 0x28) = -0x1000;
-		if (!DrawOnly() && t->counter >= 0 && t->counter <= 0x27) SpawnNeedles(s);
+		if (!DrawOnly() && t->counter >= 0 && t->counter <= P().needles.spawn_last) SpawnNeedles(s);
 		FieldFree(0x50);
 		// 30 fps layer: see mag177_1000_needles_held.inc
 		FX_HELD(held_note_needles(t);)
 		uint8_t *b = NeedleBlock();
 		int moved = 0;
-		for (Needle *n = Needles(); (uint32_t)n < NEEDLES_END; n++)
+		FX_PART(PART_NEEDLES);
+		for (Needle *n = Needles(); (uint32_t)n < own::R(NEEDLES_END); n++)
 		{
 			if (!(n->active & 1)) continue;
 			DrawNeedle(b, n);
@@ -367,17 +405,19 @@ namespace needles177
 			if (i < 0) continue;
 			Spark *sp = &Sparks()[i];
 			sp->active = 1;
-			sp->left = 6;
+			sp->left = P().sparks.life;
 			sp->pos[0] = (int16_t)n->m.t[0];
 			sp->pos[1] = (int16_t)n->m.t[1];
 			sp->pos[2] = (int16_t)n->m.t[2];
 		}
+		FX_PART(0);
 		FieldFree(0xDC);
 		// 30 fps layer: see mag177_1000_needles_held.inc
 		FX_HELD(held_note_sparks();)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
-		for (Spark *sp = Sparks(); (uint32_t)sp < SPARKS_END; sp++)
+		FX_PART(PART_SPARKS);
+		for (Spark *sp = Sparks(); (uint32_t)sp < own::R(SPARKS_END); sp++)
 		{
 			if (!(sp->active & 1)) continue;
 			const int16_t left = sp->left;
@@ -391,6 +431,7 @@ namespace needles177
 			}
 			else sp->active = 0;
 		}
+		FX_PART(0);
 		FieldFree(0xB4);
 		FieldFree(0x28);
 		if (DrawOnly()) return 0;
@@ -406,17 +447,44 @@ namespace needles177
 		if (DrawOnly()) return 0;
 		EffectNode *t = (EffectNode *)nd;
 		if (t->counter == 0) GetEffectSpawnPosition(Target(), 0xF0, 0x1000, t->pos);
-		if (t->counter == TICK_SPAWN)
+		if (t->counter == P().director.spawn)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_NeedleTask);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_NeedleTask));
 			*(uint32_t *)&n->pos[0] = *(const uint32_t *)&t->pos[0];
 			n->counter = 0;
 			*(uint32_t *)&n->pos[2] = *(const uint32_t *)&t->pos[2];
 		}
-		if (t->counter == TICK_DAMAGE) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (t->counter == TICK_SPAWN) BdPlaySE(SOUND_Needles, 0, 0x80);
+		if (t->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (t->counter == P().director.spawn) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Needles), 0, 0x80);
 		t->counter++;
-		return t->counter > TICK_LAST ? TASK_END : 0;
+		return t->counter > P().director.end ? TASK_END : 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x5CF740) and setup (0x5CF760): the game runs its own; Fujin's programs these (its memory
+	// may be a copy's): the texture, the cast, its first target's and its caster's slots, the root and the director,
+	// the needle and spark tables freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x2341950), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x2347740), 0x24, 0x64);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(SPARKS); a < own::R(SPARKS_END); a += sizeof(Spark)) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(NEEDLES); a < own::R(NEEDLES_END); a += sizeof(Needle)) *(uint32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return RootQueue();
 	}
 
 	// ------------------------------------------------------------------
@@ -427,18 +495,57 @@ namespace needles177
 		RootNode *r = (RootNode *)nd;
 		// 30 fps layer: see mag177_1000_needles_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA1;
-		if (!(r->counter & 1)) PacketCursor() = ARENA0;
+		PacketCursor() = own::R(ARENA1);
+		if (!(r->counter & 1)) PacketCursor() = own::R(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The timeline: the needles start at a tick with the sound, the damage (every target of the action) at a tick, the end" },
+			{ PART_NEEDLES, "needles", "Needles", "Needles fly from random effect points of the caster to random ones of the target (both moved at random), a few steps each, a flat-shaded tetrahedron turned along its way and scaled at random" },
+			{ PART_SPARKS, "sparks", "Sparks", "A spark sprite where each needle arrives, lifted by its table as its ticks run out" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's spawn tick", (uint32_t)offsetof(NeedlesParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.spawn", "Needles tick", "The needles start at this tick of the director (with the sound)", (uint32_t)offsetof(NeedlesParams, director.spawn), fxp::I16, 0, 300 },
+			{ "director", "director.damage", "Damage tick", "The damage (every target of the action) at this tick", (uint32_t)offsetof(NeedlesParams, director.damage), fxp::I16, 0, 300 },
+			{ "director", "director.end", "End tick", "The director's last tick (the effect ends once every needle and spark has)", (uint32_t)offsetof(NeedlesParams, director.end), fxp::I16, 0, 300 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(NeedlesParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(NeedlesParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "needles", "needles.spawn_last", "Last spawn tick", "Needles spawn from the needle task's tick 0 to this one", (uint32_t)offsetof(NeedlesParams, needles.spawn_last), fxp::I16, -1, 300 },
+			{ "needles", "needles.per_tick", "A tick", "How many spawn a tick (300 needles at most at once)", (uint32_t)offsetof(NeedlesParams, needles.per_tick), fxp::I16, 0, 300 },
+			{ "needles", "needles.steps_min", "Steps", "A needle's flight in ticks: this + a random below the next", (uint32_t)offsetof(NeedlesParams, needles.steps_min), fxp::I16, 1, 100 },
+			{ "needles", "needles.steps_rand", "Steps random", "(at least 1)", (uint32_t)offsetof(NeedlesParams, needles.steps_rand), fxp::I16, 1, 100 },
+			{ "needles", "needles.spread", "Spread", "Its start and its end each moved by a random below this on each axis, centred", (uint32_t)offsetof(NeedlesParams, needles.spread), fxp::I16, 1, 0x7FFF },
+			{ "needles", "needles.scale_min", "Scale", "Its size: this + a random below the next (4096 = the model's own)", (uint32_t)offsetof(NeedlesParams, needles.scale_min), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "needles", "needles.scale_rand", "Scale random", "(at least 1)", (uint32_t)offsetof(NeedlesParams, needles.scale_rand), fxp::I16, 1, 0x7FFF },
+			{ "needles", "tables.needle_vertices", "Needle vertices", "The needle's four vertices (x, y, z; it points along -z) (32 bytes: an edited one keeps its length)", (uint32_t)offsetof(NeedlesParams, tables.needle_vertices), fxp::Data, 0, 0x7FFFFFFF },
+			{ "needles", "tables.needle_triangles", "Needle triangles", "The needle's four gouraud triangles: the first corner's colour and GPU code, three vertex numbers (x 2), the other two corners' colours (80 bytes: an edited one keeps its length)", (uint32_t)offsetof(NeedlesParams, tables.needle_triangles), fxp::Data, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.life", "Life", "A spark's ticks (its lift table holds 7 rows, read by the ticks left: 6 at most)", (uint32_t)offsetof(NeedlesParams, sparks.life), fxp::I16, 1, 6 },
+			{ "sparks", "sparks.size", "Size", "The spark sprite's scale (256 = the game's)", (uint32_t)offsetof(NeedlesParams, sparks.size), fxp::I16, 0, 0x7FFF },
+			{ "sparks", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 1 frame: an edited one keeps as many)", (uint32_t)offsetof(NeedlesParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sparks", "tables.spark_lift", "Spark lift", "The spark's screen y offset by its ticks left (rows 0..6; negative = up) (28 bytes: an edited one keeps its length)", (uint32_t)offsetof(NeedlesParams, tables.spark_lift), fxp::Data, 0, 0x7FFFFFFF },
+		};
 	}
 }
 
 	void register_mag177_1000_needles()
 	{
+		fxp::register_params({ 177, "1000 Needles", &needles177::live, &needles177::GAME, sizeof(needles177::NeedlesParams),
+		                       needles177::table::PARTS, (int)(sizeof(needles177::table::PARTS) / sizeof(needles177::table::PARTS[0])),
+		                       needles177::table::FIELDS, (int)(sizeof(needles177::table::FIELDS) / sizeof(needles177::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(needles177::ORIG_FileLoader, (void *)needles177::FileLoader);
+		own::note(needles177::ORIG_Setup, (void *)needles177::Setup);
+		own::note(needles177::ORIG_RootTask, (void *)needles177::RootTask);
 		register_port(needles177::ORIG_RootTask, (void *)needles177::RootTask, "N177 RootTask", 177);
+		own::note(needles177::ORIG_Director, (void *)needles177::DirectorTask);
 		register_port(needles177::ORIG_Director, (void *)needles177::DirectorTask, "N177 Director", 177);
+		own::note(needles177::ORIG_NeedleTask, (void *)needles177::NeedleTask);
 		register_port(needles177::ORIG_NeedleTask, (void *)needles177::NeedleTask, "N177 NeedleTask", 177);
 		// 30 fps layer: see mag177_1000_needles_held.inc
 		FX_HELD(register_mag177_held();)

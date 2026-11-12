@@ -64,9 +64,15 @@
 // and put back); target - flags |= 4 (Swallow, Controller 0xAF), flags 0x1020 / rotation / position (Pull,
 // saved at 0x2395DC0 + 0x14 slot, restored), its action result; the other visible models - the fades.
 // Module globals: 0x2394208..0x2397274.
+// Fujin's described Degenerator (effect_174.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (Degenerator174Params: Degenerator
+// 306's - the sound, two flipbooks, five meshes, the texture name, the camera track; no animation set - and its own
+// sparkle flipbook, afterimage colours and vortex colours) are set from the program's.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -83,13 +89,14 @@ namespace degen174
 	static inline uint8_t &U8(uint32_t p, int32_t o) { return F<uint8_t>(p, o); }
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x2394208); }        // first target of action 0 (written by the setup)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2394230; }             // pool 0x2394210, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2394FA0; }          // pool 0x2394FB0, 0x64 x 0x24
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2395E4C); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x2395E50); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x239726C); }          // Magic_TextureOFF_ToEAX1 (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2397270); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x2394208)); }        // first target of action 0 (written by the setup)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2394230); }             // pool 0x2394210, 2 x 0x10
+	inline TaskQueue *QEffects() { return (TaskQueue *)own::R(0x2394FA0); }          // pool 0x2394FB0, 0x64 x 0x24
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2395E4C)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x2395E50)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x239726C)); }          // Magic_TextureOFF_ToEAX1 (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2397270)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2395E54)); }          // the effect's file (its TIM)
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }      // battle frame packet arena
 	inline uint32_t &VertexBuffer() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
@@ -125,6 +132,25 @@ namespace degen174
 	static const uint32_t *const VortexColours = (const uint32_t *)0xD5E640; // 12 colours, counter % 12
 	static const void *const SOUND_Cast = (const void *)0xD5E624;
 	static const void *const CAMERA_Anim = (const void *)0xD592FC;          // (setup)
+	static const uint32_t ORIG_FileLoader = 0x5D4580, ORIG_Setup = 0x5D45A0;
+	static const uint32_t TEXTURE_NAME = 0xD5E670, CAMERA_ANIM = 0xD592FC, VORTEX_COLOURS = 0xD5E640;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct Degenerator174Params
+	{
+		uint32_t sound;   // the controller's counter 1
+		struct { uint32_t flicker, debris, sparkle; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t core, pulse, screen_ring, target_ring, vortex; } models; // the prim models drawn (meshes)
+		struct { uint32_t ghost_colours, vortex_colours; } tables; // the afterimages' colours (5), the vortex's (12)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	static const Degenerator174Params GAME = { 0xD5E624, { SEQ_Flicker, SEQ_Debris, SEQ_Sparkle },
+		{ MODEL_Core, MODEL_Pulse, MODEL_ScreenRing, MODEL_TargetRing, MODEL_Vortex }, { GHOST_COLOURS, VORTEX_COLOURS },
+		{ TEXTURE_NAME, CAMERA_ANIM } };
+	static Degenerator174Params live = GAME;
+	static const Degenerator174Params &P() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void BindEntityModelFromComData(uint32_t entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); } // BS_BindEntityModelFromComData
@@ -584,14 +610,14 @@ namespace degen174
 		for (int k = 0; k < 3; k++)
 		{
 			int32_t i = 0;
-			uint32_t p = PARTS;
+			uint32_t p = own::R(PARTS);
 			for (; U32(p, 0) != 0; i++)
 			{
 				p += 0x18;
-				if (p >= PARTS_END) return;
+				if (p >= own::R(PARTS_END)) return;
 			}
 			if (i >= PART_COUNT) return;
-			p = PARTS + 0x18 * (uint32_t)i;
+			p = own::R(PARTS) + 0x18 * (uint32_t)i;
 			U32(p, 0) = 1;
 			S16(p, 4) = 0;
 			const int32_t r = CrtRand() % 0x280;
@@ -609,12 +635,12 @@ namespace degen174
 	{
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
-		U32(h, 0) = SEQ_Sparkle;
+		U32(h, 0) = fxp::sequence(P().seqs.sparkle, SEQ_Sparkle);
 		U16(h, 0x24) = 0;
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(held_note_sparkles(n, h);)
 		int32_t alive = 0;
-		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, 0) & 1)) continue;
 			SparkleDraw(h, p);
@@ -683,21 +709,21 @@ namespace degen174
 	static void AfterimagesDraw(int16_t c)
 	{
 		const uint32_t e = Ent(CasterSlot());
-		BoneSave(e + 0x60, BONES);
+		BoneSave(e + 0x60, own::R(BONES));
 		const uint32_t keep7c = U32(e, 0x7C), keep28 = U32(e, 0x28);
 		U32(e, 0x7C) = 8;
 		int32_t k = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t count = c >= 0x3D ? 0x42 - c : 5;
 		for (int32_t i = 0; i < count; i++)
 		{
-			const uint32_t g = GHOSTS + 0x404 * (uint32_t)k;
+			const uint32_t g = own::R(GHOSTS) + 0x404 * (uint32_t)k;
 			if (U32(g, 0) == 0) break;
 			BoneLoad(e + 0x60, g + 4);
-			U32(e, 0x28) = U32(GHOST_COLOURS + 4 * (uint32_t)i, 0);
+			U32(e, 0x28) = U32(fxp::data(P().tables.ghost_colours, GHOST_COLOURS, 20, 4) + 4 * (uint32_t)i, 0);
 			GhostDraw(e);
 			if (--k < 0) k = 4;
 		}
-		BoneLoad(e + 0x60, BONES);
+		BoneLoad(e + 0x60, own::R(BONES));
 		U32(e, 0x7C) = keep7c;
 		U32(e, 0x28) = keep28;
 	}
@@ -705,14 +731,41 @@ namespace degen174
 	{
 		const uint32_t n = (uint32_t)nd;
 		const int32_t j = S16(n, 0xC) % 5;
-		U32(GHOSTS + 0x404 * (uint32_t)j, 0) = 1;
-		BoneSave(Ent(CasterSlot()) + 0x60, GHOSTS + 0x404 * (uint32_t)j + 4);
+		U32(own::R(GHOSTS) + 0x404 * (uint32_t)j, 0) = 1;
+		BoneSave(Ent(CasterSlot()) + 0x60, own::R(GHOSTS) + 0x404 * (uint32_t)j + 4);
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(held_note_afterimages(n);)
 		AfterimagesDraw(S16(n, 0xC));
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return S16(n, 0xC) >= 0x42 ? TASK_END : 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x5D4580) and setup (0x5D45A0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic texture offset, the cast, its first target's and its caster's slots, the root and the
+	// controller, the particles freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2394210), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(QEffects(), (void *)own::R(0x2394FB0), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QEffects(), own::Fn(ORIG_Controller)) + 0xC) = 0;
+		for (uint32_t a = own::R(PARTS); a < own::R(PARTS_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return QRoot();
 	}
 
 	// ------------------------------------------------------------------
@@ -809,7 +862,7 @@ namespace degen174
 		{
 			const uint32_t e = Ent(k);
 			if (!(U8(e, 0) & 2) || k == CasterSlot() || k == TargetSlot()) continue;
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), fn);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(fn));
 			S16(t, 0xC) = 0;
 			S16(t, 0xE) = (int16_t)k;
 			S16(t, 0x18) = (int16_t)duration;
@@ -840,21 +893,21 @@ namespace degen174
 		const uint32_t n = (uint32_t)nd;
 		if (S16(n, 0xC) == 0xA)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Sparkles);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Sparkles));
 			S16(t, 0xC) = 0;
 			U32(Ent(CasterSlot()), 0x7C) = 0x1F;
 		}
 		if (S16(n, 0xC) == 9)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Afterimages);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Afterimages));
 			S16(t, 0xC) = 0;
-			for (uint32_t a = GHOSTS; a < 0x239726C; a += 0x404) U32(a, 0) = 0;
+			for (uint32_t a = own::R(GHOSTS); a < own::R(0x239726C); a += 0x404) U32(a, 0) = 0;
 		}
 		if (S16(n, 0xC) == 0x44)
 		{
 			GetEffectSpawnPosition(Ent(CasterSlot()), 0x19, 0x2C00, n + 0x10);
 			S16(n, 0x12) = (int16_t)(S16(n, 0x12) - 0x50);
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Core);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Core));
 			U32(t, 0x10) = U32(n, 0x10);
 			U32(t, 0x14) = U32(n, 0x14);
 			S16(t, 0xC) = 0;
@@ -866,7 +919,7 @@ namespace degen174
 			const int16_t c = S16(n, 0xC);
 			if (c >= 0x44 && c <= 0x62 && c % 3 == 1)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Pulse);
+				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Pulse));
 				U32(t, 0x10) = U32(n, 0x10);
 				U32(t, 0x14) = U32(n, 0x14);
 				S16(t, 0xC) = 0;
@@ -877,19 +930,19 @@ namespace degen174
 		}
 		if (S16(n, 0xC) == 0x44)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Flicker);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Flicker));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			U32(t, 0x14) = U32(n, 0x14);
 		}
 		if (S16(n, 0xC) == 0x5A)
 		{
-			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_ScreenRing);
+			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_ScreenRing));
 			S16(t, 0xC) = 0;
 			S16(t, 0x18) = (int16_t)(CrtRand() % 0x1000);
 			S16(t, 0x1A) = 0x10;
 			S16(t, 0x1C) = 0x2E0;
-			t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_ScreenRing);
+			t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_ScreenRing));
 			S16(t, 0xC) = 0;
 			S16(t, 0x18) = (int16_t)(CrtRand() % 0x1000);
 			S16(t, 0x1A) = -0x20;
@@ -901,7 +954,7 @@ namespace degen174
 			else GetDefaultEffectPosition((uint8_t *)Ent(TargetSlot()), (int16_t *)(n + 0x10));
 			for (int k = 0; k < 2; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_TargetRing);
+				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_TargetRing));
 				U32(t, 0x10) = U32(n, 0x10);
 				S16(t, 0xC) = 0;
 				U32(t, 0x14) = U32(n, 0x14);
@@ -916,7 +969,7 @@ namespace degen174
 		{
 			for (int k = 0; k < 2; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Vortex);
+				const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Vortex));
 				U32(t, 0x10) = U32(n, 0x10);
 				S16(t, 0xC) = 0;
 				U32(t, 0x14) = U32(n, 0x14);
@@ -930,11 +983,11 @@ namespace degen174
 		}
 		if (S16(n, 0xC) == 0x82 && !(Targets()[3] & 4))
 		{
-			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Swallow);
+			uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Swallow));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			U32(t, 0x14) = U32(n, 0x14);
-			t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Pull);
+			t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Pull));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			S16(t, 0xE) = (int16_t)TargetSlot();
@@ -943,7 +996,7 @@ namespace degen174
 		}
 		if (S16(n, 0xC) == 0x9F && !(Targets()[3] & 4))
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), ORIG_Debris);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QEffects(), own::Fn(ORIG_Debris));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			U32(t, 0x14) = U32(n, 0x14);
@@ -956,7 +1009,7 @@ namespace degen174
 		}
 		if (S16(n, 0xC) == 0x81)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(QRoot(), ORIG_TexRestore);
+			const uint32_t t = (uint32_t)AddTaskToQueue(QRoot(), own::Fn(ORIG_TexRestore));
 			S16(t, 0xC) = 0;
 		}
 		if (S16(n, 0xC) == 0) FadeOutOthers(0x20);
@@ -970,7 +1023,7 @@ namespace degen174
 			FadeInAll(8);
 		}
 		if (c >= 0xAC) SetScreenFlash((uint32_t)shl32(0xB4 - c, 9), 0);
-		if (c == 1) BdPlaySE(SOUND_Cast, 0, 0x80);
+		if (c == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Cast), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(c + 1);
 		if (S16(n, 0xC) <= 0xB4) return 0;
 		SetScreenFlash(0, 0);
@@ -1029,7 +1082,7 @@ namespace degen174
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(held_note_draw(ORIG_Core, n);)
-		HandModelDraw(n, MODEL_Core, CoreCue(S16(n, 0xC)));
+		HandModelDraw(n, fxp::model(P().models.core, MODEL_Core), CoreCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - S16(n, 0x1E));
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -1048,7 +1101,7 @@ namespace degen174
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(held_note_draw(ORIG_Pulse, n);)
-		HandModelDraw(n, MODEL_Pulse, PulseCue(S16(n, 0xC)));
+		HandModelDraw(n, fxp::model(P().models.pulse, MODEL_Pulse), PulseCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) + d);
@@ -1077,7 +1130,7 @@ namespace degen174
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
-		U32(h, 0) = SEQ_Flicker;
+		U32(h, 0) = fxp::sequence(P().seqs.flicker, SEQ_Flicker);
 		U16(h, 4) = 0;
 		U16(h, 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OTBase() + 0x44, 0xE, PacketCursor());
@@ -1122,7 +1175,7 @@ namespace degen174
 		Scale3DMatrix(&m, s);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_ScreenRing, cue, OTBase() + 0x4068, -0xF2);
+		PrimDraw(fxp::model(P().models.screen_ring, MODEL_ScreenRing), cue, OTBase() + 0x4068, -0xF2);
 	}
 
 	static uint32_t __cdecl ScreenRingTask(TaskNode *nd)
@@ -1169,7 +1222,7 @@ namespace degen174
 		m.t[2] += Camera().t[2];
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_TargetRing, cue, OTBase() + 0x44, 2);
+		PrimDraw(fxp::model(P().models.target_ring, MODEL_TargetRing), cue, OTBase() + 0x44, 2);
 	}
 
 	static uint32_t __cdecl TargetRingTask(TaskNode *nd)
@@ -1214,7 +1267,7 @@ namespace degen174
 		GteSetTransVector(&m);
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		*(uint32_t *)h->far_rgb = 0;
-		h->model = MODEL_Vortex;
+		h->model = fxp::model(P().models.vortex, MODEL_Vortex);
 		h->flags = 0x33;
 		h->colour = colour;
 		if (cue.flags == 0xF3)
@@ -1232,7 +1285,7 @@ namespace degen174
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(held_note_draw(ORIG_Vortex, n);)
 		const int32_t c = S16(n, 0xC);
-		VortexDraw(n, VortexColours[c % 12], VortexCue(c));
+		VortexDraw(n, ((const uint32_t *)fxp::data(P().tables.vortex_colours, VORTEX_COLOURS, 48, 4))[c % 12], VortexCue(c));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - S16(n, 0x1E));
@@ -1426,7 +1479,7 @@ namespace degen174
 		const uint32_t n = (uint32_t)nd;
 		const int16_t c = S16(n, 0xC);
 		const int32_t slot = S16(n, 0xE);
-		const uint32_t e = Ent(slot), sv = SAVE + 0x14 * (uint32_t)slot;
+		const uint32_t e = Ent(slot), sv = own::R(SAVE) + 0x14 * (uint32_t)slot;
 		if (c == 0)
 		{
 			U16(sv, 0) = (uint16_t)(U16(e, 0) & 0x1020);
@@ -1477,13 +1530,13 @@ namespace degen174
 	{
 		for (int k = 0; k < 20; k++)
 		{
-			uint32_t p = PARTS;
+			uint32_t p = own::R(PARTS);
 			int32_t i = 0;
 			while (U32(p, 0) != 0)
 			{
 				p += 0x18;
 				i++;
-				if (p >= PARTS_END) return;
+				if (p >= own::R(PARTS_END)) return;
 			}
 			if (i >= PART_COUNT) return;
 			U32(p, 0) = 2;
@@ -1507,12 +1560,12 @@ namespace degen174
 	{
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
-		U32(h, 0) = SEQ_Debris;
+		U32(h, 0) = fxp::sequence(P().seqs.debris, SEQ_Debris);
 		U16(h, 0x24) = 0;
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(held_note_debris(n, h);)
 		int32_t alive = 0;
-		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, 0) & 2)) continue;
 			DebrisDraw(h, p);
@@ -1543,25 +1596,69 @@ namespace degen174
 		if (S16(n, 0xC) < 4) return 0;
 		return alive == 0 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "The black vortex: the caster's afterimages and sparkles, the core, pulses, flicker, screen and target rings, the fades, the target pulled in and swallowed, the debris, the texture restore, the sound; the action result" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "At the controller's counter 1", (uint32_t)offsetof(Degenerator174Params, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.flicker", "Flicker", "The sprite sequence flicker (a flipbook of 1 frames: an edited one keeps as many)", (uint32_t)offsetof(Degenerator174Params, seqs.flicker), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(Degenerator174Params, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.sparkle", "Sparkles", "The sprite sequence of the sparkles rising round the caster (a flipbook of 15 frames: an edited one keeps as many)", (uint32_t)offsetof(Degenerator174Params, seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "models.core", "Core model", "The prim model core (a mesh of 26 vertices, 36 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Degenerator174Params, models.core), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.pulse", "Pulse model", "The prim model pulse (a mesh of 30 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Degenerator174Params, models.pulse), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.screen_ring", "Screen ring model", "The prim model screen ring (a mesh of 169 vertices, 168 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Degenerator174Params, models.screen_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.target_ring", "Target ring model", "The prim model target ring (a mesh of 81 vertices, 64 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Degenerator174Params, models.target_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.vortex", "Vortex model", "The prim model vortex (a mesh of 314 vertices, 336 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(Degenerator174Params, models.vortex), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "tables.ghost_colours", "Afterimage colours", "The caster's afterimages' colour words, newest first (5: red, green, blue, the GPU code byte) (20 bytes: an edited one keeps its length)", (uint32_t)offsetof(Degenerator174Params, tables.ghost_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.vortex_colours", "Vortex colours", "The vortex's colour words by its tick (12, cycling: red, green, blue, the GPU code byte) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(Degenerator174Params, tables.vortex_colours), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(Degenerator174Params, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(Degenerator174Params, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag174_degenerator()
 	{
+		fxp::register_params({ 174, "Degenerator", &degen174::live, &degen174::GAME, sizeof(degen174::Degenerator174Params),
+		                       degen174::table::PARTS, (int)(sizeof(degen174::table::PARTS) / sizeof(degen174::table::PARTS[0])),
+		                       degen174::table::FIELDS, (int)(sizeof(degen174::table::FIELDS) / sizeof(degen174::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(degen174::ORIG_FileLoader, (void *)degen174::FileLoader);
+		own::note(degen174::ORIG_Setup, (void *)degen174::Setup);
+		own::note(degen174::ORIG_RootTask, (void *)degen174::RootTask);
 		register_port(degen174::ORIG_RootTask, (void *)degen174::RootTask, "174 RootTask", 174);
+		own::note(degen174::ORIG_TexRestore, (void *)degen174::TexRestore);
 		register_port(degen174::ORIG_TexRestore, (void *)degen174::TexRestore, "174 TexRestore", 174);
+		own::note(degen174::ORIG_Controller, (void *)degen174::Controller);
 		register_port(degen174::ORIG_Controller, (void *)degen174::Controller, "174 Controller", 174);
+		own::note(degen174::ORIG_Core, (void *)degen174::CoreTask);
 		register_port(degen174::ORIG_Core, (void *)degen174::CoreTask, "174 Core", 174);
+		own::note(degen174::ORIG_Sparkles, (void *)degen174::SparklesTask);
 		register_port(degen174::ORIG_Sparkles, (void *)degen174::SparklesTask, "174 Sparkles", 174);
+		own::note(degen174::ORIG_Afterimages, (void *)degen174::AfterimagesTask);
 		register_port(degen174::ORIG_Afterimages, (void *)degen174::AfterimagesTask, "174 Afterimages", 174);
+		own::note(degen174::ORIG_Pulse, (void *)degen174::PulseTask);
 		register_port(degen174::ORIG_Pulse, (void *)degen174::PulseTask, "174 Pulse", 174);
+		own::note(degen174::ORIG_Flicker, (void *)degen174::FlickerTask);
 		register_port(degen174::ORIG_Flicker, (void *)degen174::FlickerTask, "174 Flicker", 174);
+		own::note(degen174::ORIG_ScreenRing, (void *)degen174::ScreenRingTask);
 		register_port(degen174::ORIG_ScreenRing, (void *)degen174::ScreenRingTask, "174 ScreenRing", 174);
+		own::note(degen174::ORIG_Vortex, (void *)degen174::VortexTask);
 		register_port(degen174::ORIG_Vortex, (void *)degen174::VortexTask, "174 Vortex", 174);
+		own::note(degen174::ORIG_Swallow, (void *)degen174::SwallowTask);
 		register_port(degen174::ORIG_Swallow, (void *)degen174::SwallowTask, "174 Swallow", 174);
+		own::note(degen174::ORIG_Debris, (void *)degen174::DebrisTask);
 		register_port(degen174::ORIG_Debris, (void *)degen174::DebrisTask, "174 Debris", 174);
+		own::note(degen174::ORIG_FadeIn, (void *)degen174::FadeInTask);
 		register_port(degen174::ORIG_FadeIn, (void *)degen174::FadeInTask, "174 FadeIn", 174);
+		own::note(degen174::ORIG_FadeOut, (void *)degen174::FadeOutTask);
 		register_port(degen174::ORIG_FadeOut, (void *)degen174::FadeOutTask, "174 FadeOut", 174);
+		own::note(degen174::ORIG_TargetRing, (void *)degen174::TargetRingTask);
 		register_port(degen174::ORIG_TargetRing, (void *)degen174::TargetRingTask, "174 TargetRing", 174);
+		own::note(degen174::ORIG_Pull, (void *)degen174::PullTask);
 		register_port(degen174::ORIG_Pull, (void *)degen174::PullTask, "174 Pull", 174);
 		// 30 fps layer: see mag174_degenerator_held.inc
 		FX_HELD(register_mag174_held();)

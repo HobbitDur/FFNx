@@ -51,9 +51,15 @@
 // Module globals: 0x23D7B08..0x23EB5C0 (target slot, root pool / queue, drop table, trail-spark
 // table, effect queue / pool, the 15 beam records, context 0x23DB5B0, caster slot 0x23DB5B4,
 // texture file 0x23DB5B8, the two packet arenas, packet cursor 0x23EB5BC).
+// Fujin's described Melt-Eye (effect_158.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (MeltEyeParams: the director's ticks,
+// each part's sizes, spreads, speeds and lives, the sound, three flipbooks, two meshes, the eye table, the texture name,
+// the camera track) are set from the program's. FX_PART tags its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -63,10 +69,13 @@ namespace melteye158
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23DB5B0); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23DB5B4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23EB5BC); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23D8C10; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23DB5B0)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x23DB5B4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23EB5BC)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x23D8C10); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(own::R(0x23D7B08)); }       // the first target (setup)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23DB5B8)); }          // the effect's file (its TIM)
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x23D7B20); }         // pool 0x23D7B10, 1 x 0x10
 	static const uint32_t ARENA0 = 0x23DB5BC, ARENA1 = 0x23E35BC, ARENA_SIZE = 0x8000;
 	static const uint32_t DROPS = 0x23D7B30, DROPS_END = 0x23D82B0;   // 80 x 0x18
 	static const uint32_t SPARKS = 0x23D82B0, SPARKS_END = 0x23D8C10; // 100 x 0x18
@@ -85,6 +94,40 @@ namespace melteye158
 	static const uint32_t MODEL_Ring = 0xDB0158, MODEL_Splash = 0xDB0548;
 	static const uint32_t SEQ_Trail = 0xDB007C, SEQ_Splash = 0xDAFCAC, SEQ_Drop = 0xDAFED0;
 	static const void *const SOUND_MeltEye = (const void *)0xDB07B8;
+	static const uint32_t ORIG_FileLoader = 0x602EB0, ORIG_Setup = 0x602ED0;
+	static const uint32_t TEXTURE_NAME = 0xDB0818, CAMERA_ANIM = 0xDAFBF8;
+	static const int BEAM_COUNT = 15;                                  // the module's beam records
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct MeltEyeParams
+	{
+		uint32_t sound;                                                  // at the director's sound tick
+		struct { int16_t beams, sound_tick, damage, end; } director;     // the timeline
+		struct { int16_t eye_first, eyes, end_x, end_z, lift_rand, lift_min, lift2_rand, lift2_min, ring_tick, trail_tick, splash_tick, life; } beam;
+		struct { int16_t size_min, size_rand, shrink_div, fade_from, fade_step, life; } ring;
+		struct { int16_t size_min, size_rand, speed; } trail;
+		struct { int16_t height_min, height_rand, size_min, size_rand; } splash;
+		struct { int16_t spin_min, spin_rand, size_min, size_rand, fade_from, fade_step, life; } splash_model;
+		struct { int16_t last_tick, per_tick, eye_a, eye_b, size_min, size_rand, speed_min, speed_rand, scatter; } drops;
+		struct { uint32_t trail, splash, drop; } seqs;                   // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, splash; } models;                        // the prim models drawn (meshes)
+		struct { uint32_t eyes; } tables;                                // the eye offsets (11 x {x, y, z, pad})
+		struct { uint32_t texture_name, camera; } res;                   // its resources (data): texture file name, camera track
+	};
+	static const MeltEyeParams GAME = { 0xDB07B8, { 15, 1, 0x28, 0x2A },
+		{ 1, 6, 0x1450, 0x7D0, 0xAF0, 0x1F4, 0x258, 0x32, 1, 7, 0x10, 0x1E },
+		{ 0x600, 0x400, 7, 8, 682, 0xE },
+		{ 0x900, 0x200, 7 },
+		{ 0x64, 0x190, 0xE00, 0x600 },
+		{ 0x78, 0x64, 0x2000, 0x800, 6, 0x200, 0xE },
+		{ 0x10, 2, 7, 9, 0x700, 0x600, 0x1E, 0x4B, 0x28 },
+		{ SEQ_Trail, SEQ_Splash, SEQ_Drop }, { MODEL_Ring, MODEL_Splash }, { EYES }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static MeltEyeParams live = GAME;
+	static const MeltEyeParams &P() { return live; }
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum { PART_RING = 1, PART_TRAIL, PART_SPLASH, PART_DROPS };
 
 	// ---- engine functions (original addresses)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
@@ -141,12 +184,12 @@ namespace melteye158
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Melt-Eye nodes");
 	static_assert(sizeof(Beam) == 0x1B8 && sizeof(Drop) == 0x18 && sizeof(Spark) == 0x18, "Melt-Eye tables");
 
-	inline Beam *BeamRec(int16_t i) { return (Beam *)(BEAMS + (uint32_t)(int32_t)i * sizeof(Beam)); }
-	inline Drop *Drops() { return (Drop *)DROPS; }
-	inline Spark *Sparks() { return (Spark *)SPARKS; }
+	inline Beam *BeamRec(int16_t i) { return (Beam *)(own::R(BEAMS) + (uint32_t)(int32_t)i * sizeof(Beam)); }
+	inline Drop *Drops() { return (Drop *)own::R(DROPS); }
+	inline Spark *Sparks() { return (Spark *)own::R(SPARKS); }
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 	inline const void *CasterMatrix() { return Caster() + 0x40; }
-	inline const int16_t *Eye(int32_t i) { return (const int16_t *)(EYES + (uint32_t)i * 8); }
+	inline const int16_t *Eye(int32_t i) { return (const int16_t *)(fxp::data(P().tables.eyes, EYES, 88) + (uint32_t)i * 8); }
 
 	// ------------------------------------------------------------------
 	// Draws (each one task's draw, from its node)
@@ -209,7 +252,9 @@ namespace melteye158
 	static void RingDraw(const EffectNode *t)
 	{
 		RingMatrix(t);
-		RenderModel(ModelHeader(MODEL_Ring, t->counter, 8, 682), -2);
+		FX_PART(PART_RING);
+		RenderModel(ModelHeader(fxp::model(P().models.ring, MODEL_Ring), t->counter, P().ring.fade_from, P().ring.fade_step), -2);
+		FX_PART(0);
 	}
 
 	// SplashModel (0x6039B0): turned by +0x18 about y (x 0x400), scaled by +0x1C, at its position
@@ -236,7 +281,9 @@ namespace melteye158
 	static void SplashModelDraw(const EffectNode *t)
 	{
 		SplashModelMatrix(t);
-		RenderModel(ModelHeader(MODEL_Splash, t->counter, 6, 0x200), 2);
+		FX_PART(PART_SPLASH);
+		RenderModel(ModelHeader(fxp::model(P().models.splash, MODEL_Splash), t->counter, P().splash_model.fade_from, P().splash_model.fade_step), 2);
+		FX_PART(0);
 	}
 
 	// one sprite of a sequence header h at pos, size s, depth offset -(s >> shift)
@@ -258,8 +305,10 @@ namespace melteye158
 	static uint8_t *SplashDraw(const EffectNode *t)
 	{
 		TransformCameraByShadowRotation(t->pos, t->w1C, -((int32_t)t->w1C >> 3));
-		uint8_t *h = SeqHeader(SEQ_Splash, t->counter);
+		uint8_t *h = SeqHeader(fxp::sequence(P().seqs.splash, SEQ_Splash), t->counter);
+		FX_PART(PART_SPLASH);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
+		FX_PART(0);
 		FieldFree(0xB4);
 		return h;
 	}
@@ -284,7 +333,7 @@ namespace melteye158
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 0x24) = 0;
-		*(uint32_t *)h = SEQ_Trail;
+		*(uint32_t *)h = fxp::sequence(P().seqs.trail, SEQ_Trail);
 		*(int16_t *)(h + 4) = (int16_t)(t->counter & 3);
 		return h;
 	}
@@ -292,14 +341,14 @@ namespace melteye158
 	static int FreeSpark()
 	{
 		int i = 0;
-		for (uint32_t a = SPARKS; a < SPARKS_END; a += sizeof(Spark), i++)
+		for (uint32_t a = own::R(SPARKS); a < own::R(SPARKS_END); a += sizeof(Spark), i++)
 			if (*(uint32_t *)a == 0) return i < SPARK_COUNT ? i : -1;
 		return -1;
 	}
 	static int FreeDrop()
 	{
 		int i = 0;
-		for (uint32_t a = DROPS; a < DROPS_END; a += sizeof(Drop), i++)
+		for (uint32_t a = own::R(DROPS); a < own::R(DROPS_END); a += sizeof(Drop), i++)
 			if (*(uint32_t *)a == 0) return i < DROP_COUNT ? i : -1;
 		return -1;
 	}
@@ -328,7 +377,7 @@ namespace melteye158
 		t->w1C = (int16_t)(t->w1C - d);
 		t->w1E = (int16_t)(d - (int16_t)(d / 8));
 		t->counter++;
-		return t->counter >= 0xE ? TASK_END : 0;
+		return t->counter >= P().ring.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -347,7 +396,7 @@ namespace melteye158
 		t->w1A = (int16_t)(a - (int16_t)(a >> 4));
 		t->w1E = (int16_t)(g - (int16_t)(g / 8));
 		t->counter++;
-		return t->counter >= 0xE ? TASK_END : 0;
+		return t->counter >= P().splash_model.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -375,6 +424,7 @@ namespace melteye158
 		int alive = 0;
 		const uint32_t mask = 1u << (t->w0E & 31);
 		uint8_t *h = TrailHeader(t);
+		FX_PART(PART_TRAIL);
 		int32_t j, size;
 		const int walked = TrailPathDraw(h, t, j, size);
 		if (!DrawOnly() && t->w18 < 0x37)
@@ -395,8 +445,8 @@ namespace melteye158
 			}
 		}
 		// 30 fps layer: see mag158_melt_eye_held.inc
-		FX_HELD(held_note_table(SPARKS);)
-		for (Spark *sp = Sparks(); (uint32_t)sp < SPARKS_END; sp++)
+		FX_HELD(held_note_table(own::R(SPARKS));)
+		for (Spark *sp = Sparks(); (uint32_t)sp < own::R(SPARKS_END); sp++)
 		{
 			if (!(sp->mask & mask)) continue;
 			*(int16_t *)(h + 4) = sp->frame;
@@ -406,6 +456,7 @@ namespace melteye158
 			if (sp->frame >= 8) sp->mask = 0;
 			else alive++;
 		}
+		FX_PART(0);
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
 		const int16_t v = t->w1A;
@@ -431,17 +482,19 @@ namespace melteye158
 		EffectNode *t = (EffectNode *)nd;
 		// 30 fps layer: see mag158_melt_eye_held.inc
 		FX_HELD(held_note(REC_DROPS, t);)
-		FX_HELD(held_note_table(DROPS);)
+		FX_HELD(held_note_table(own::R(DROPS));)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
-		*(uint32_t *)h = SEQ_Drop;
+		*(uint32_t *)h = fxp::sequence(P().seqs.drop, SEQ_Drop);
 		*(int16_t *)(h + 0x24) = 0;
 		const uint32_t mask = (uint32_t)(int32_t)t->w0E;
-		for (Drop *d = Drops(); (uint32_t)d < DROPS_END; d++)
+		for (Drop *d = Drops(); (uint32_t)d < own::R(DROPS_END); d++)
 		{
 			if (!(d->mask & mask)) continue;
 			*(int16_t *)(h + 4) = d->frame;
+			FX_PART(PART_DROPS);
 			SpriteAt(h, d->pos, d->size, 4);
+			FX_PART(0);
 			if (DrawOnly()) continue;
 			d->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
@@ -460,7 +513,7 @@ namespace melteye158
 		}
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
-		if (t->counter >= 0 && t->counter <= 0x10)
+		if (t->counter >= 0 && t->counter <= P().drops.last_tick)
 		{
 			int16_t p1[4], p2[4];
 			MatrixMultiplyVector(CasterMatrix(), Eye(t->w18), p1);
@@ -477,23 +530,24 @@ namespace melteye158
 			dir[1] = p2[1] - p1[1];
 			dir[2] = p2[2] - p1[2];
 			NormalizeVector(dir, dir);
-			for (int k = 0; k < 2; k++)
+			for (int k = 0; k < P().drops.per_tick; k++)
 			{
 				const int i = FreeDrop();
 				if (i < 0) break;
 				Drop *d = &Drops()[i];
 				d->mask = (uint32_t)(int32_t)t->w0E;
 				d->frame = 0;
-				d->size = (int16_t)(CrtRand() % 0x600 + 0x700);
+				d->size = (int16_t)(CrtRand() % P().drops.size_rand + P().drops.size_min);
 				*(uint32_t *)&d->pos[0] = *(const uint32_t *)&p1[0];
 				*(uint32_t *)&d->pos[2] = *(const uint32_t *)&p1[2];
-				const int32_t speed = CrtRand() % 0x4B + 0x1E;
-				int32_t r = CrtRand() % 0x28;
-				d->vel[0] = (int16_t)(r + (mul32(speed, dir[0]) >> 12) - 0x14);
-				r = CrtRand() % 0x28;
-				d->vel[1] = (int16_t)(r + (mul32(speed, dir[1]) >> 12) - 0x14);
-				r = CrtRand() % 0x28;
-				d->vel[2] = (int16_t)(r + (mul32(speed, dir[2]) >> 12) - 0x14);
+				const int32_t speed = CrtRand() % P().drops.speed_rand + P().drops.speed_min;
+				const int32_t sc = P().drops.scatter, half = sc / 2;
+				int32_t r = CrtRand() % sc;
+				d->vel[0] = (int16_t)(r + (mul32(speed, dir[0]) >> 12) - half);
+				r = CrtRand() % sc;
+				d->vel[1] = (int16_t)(r + (mul32(speed, dir[1]) >> 12) - half);
+				r = CrtRand() % sc;
+				d->vel[2] = (int16_t)(r + (mul32(speed, dir[2]) >> 12) - half);
 			}
 		}
 		t->counter++;
@@ -514,8 +568,8 @@ namespace melteye158
 		b->start[1] = (int16_t)(b->start[1] + b->bone[1]);
 		b->start[2] = (int16_t)(b->start[2] + b->bone[2]);
 		CalculateCenterPosition(Ctx()->target_mask, b->end);
-		b->end[0] = (int16_t)(b->end[0] + (CrtRand() % 0x1450 - 0xA28));
-		b->end[2] = (int16_t)(b->end[2] + (CrtRand() % 0x7D0 - 0x3E8));
+		b->end[0] = (int16_t)(b->end[0] + (CrtRand() % P().beam.end_x - P().beam.end_x / 2));
+		b->end[2] = (int16_t)(b->end[2] + (CrtRand() % P().beam.end_z - P().beam.end_z / 2));
 		*(uint32_t *)&b->ctrl[0][0] = *(const uint32_t *)&b->start[0];
 		*(uint32_t *)&b->ctrl[0][2] = *(const uint32_t *)&b->start[2];
 		*(uint32_t *)&b->ctrl[3][0] = *(const uint32_t *)&b->end[0];
@@ -524,12 +578,12 @@ namespace melteye158
 		const int32_t dx = ((int32_t)b->end[0] - x0) / 3;
 		const int32_t dz = ((int32_t)b->end[2] - b->start[2]) / 3;
 		b->ctrl[1][0] = (int16_t)(x0 + dx);
-		const int32_t r1 = CrtRand() % 0xAF0;
-		b->ctrl[1][1] = (int16_t)((int16_t)(b->start[1] - r1) - 0x1F4);
+		const int32_t r1 = CrtRand() % P().beam.lift_rand;
+		b->ctrl[1][1] = (int16_t)((int16_t)(b->start[1] - r1) - P().beam.lift_min);
 		b->ctrl[1][2] = (int16_t)(b->start[2] + dz);
 		b->ctrl[2][0] = (int16_t)(dx * 2 + b->start[0]);
-		const int32_t r2 = CrtRand() % 0x258;
-		b->ctrl[2][1] = (int16_t)((int16_t)(b->ctrl[1][1] - r2) - 0x32);
+		const int32_t r2 = CrtRand() % P().beam.lift2_rand;
+		b->ctrl[2][1] = (int16_t)((int16_t)(b->ctrl[1][1] - r2) - P().beam.lift2_min);
 		b->ctrl[2][2] = (int16_t)(dz * 2 + b->start[2]);
 		void *work = FieldAlloc(0x190);
 		SplineSetup(4, b->ctrl, work);
@@ -544,10 +598,10 @@ namespace melteye158
 		Beam *b = BeamRec(t->w0E);
 		if (DrawOnly()) return 0;
 		if (t->counter == 0) BeamPath(t, b);
-		if (t->counter == 1)
+		if (t->counter == P().beam.ring_tick)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
-			const uint32_t e0 = *(const uint32_t *)EYES, e1 = *(const uint32_t *)(EYES + 4);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring));
+			const uint32_t e0 = *(const uint32_t *)Eye(0), e1 = *(const uint32_t *)(Eye(0) + 2);
 			n->counter = 0;
 			n->w0E = t->w0E;
 			*(uint32_t *)&n->pos[0] = e0;
@@ -556,42 +610,42 @@ namespace melteye158
 			n->pos[0] = (int16_t)(n->pos[0] + b->bone[0]);
 			n->pos[1] = (int16_t)(n->pos[1] + b->bone[1]);
 			n->pos[2] = (int16_t)(n->pos[2] + b->bone[2]);
-			const int16_t s = (int16_t)(CrtRand() % 0x400 + 0x600);
+			const int16_t s = (int16_t)(CrtRand() % P().ring.size_rand + P().ring.size_min);
 			n->w1C = s;
-			n->w1E = (int16_t)(s / 7);
+			n->w1E = (int16_t)(s / P().ring.shrink_div);
 		}
-		if (t->counter == 7)
+		if (t->counter == P().beam.trail_tick)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Trail);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Trail));
 			n->counter = 0;
 			n->w0E = t->w0E;
 			n->w18 = 0;
-			n->w1A = 7;
-			n->w1C = (int16_t)(CrtRand() % 0x200 + 0x900);
+			n->w1A = P().trail.speed;
+			n->w1C = (int16_t)(CrtRand() % P().trail.size_rand + P().trail.size_min);
 		}
-		if (t->counter == 0x10)
+		if (t->counter == P().beam.splash_tick)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Splash);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Splash));
 			n->counter = 0;
 			n->pos[0] = b->end[0];
-			const int32_t r = CrtRand() % 0x190;
+			const int32_t r = CrtRand() % P().splash.height_rand;
 			n->pos[2] = b->end[2];
-			n->pos[1] = (int16_t)(-0x64 - r);
-			n->w1C = (int16_t)(CrtRand() % 0x600 + 0xE00);
-			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_SplashModel);
+			n->pos[1] = (int16_t)(-P().splash.height_min - r);
+			n->w1C = (int16_t)(CrtRand() % P().splash.size_rand + P().splash.size_min);
+			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_SplashModel));
 			*(uint32_t *)&m->pos[0] = *(const uint32_t *)&n->pos[0];
 			m->counter = 0;
 			*(uint32_t *)&m->pos[2] = *(const uint32_t *)&n->pos[2];
 			m->w18 = (int16_t)(CrtRand() % 0x1000);
-			const int16_t spin = (int16_t)(CrtRand() % 0x64 + 0x78);
+			const int16_t spin = (int16_t)(CrtRand() % P().splash_model.spin_rand + P().splash_model.spin_min);
 			m->w1A = spin;
 			if (m->w18 & 1) m->w1A = (int16_t)-spin;
-			const int16_t g = (int16_t)((CrtRand() % 0x800 + 0x2000) / 6);
+			const int16_t g = (int16_t)((CrtRand() % P().splash_model.size_rand + P().splash_model.size_min) / 6);
 			m->w1E = g;
 			m->w1C = g;
 		}
 		t->counter++;
-		return t->counter >= 0x1E ? TASK_END : 0;
+		return t->counter >= P().beam.life ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -601,12 +655,12 @@ namespace melteye158
 	{
 		if (DrawOnly()) return 0;
 		EffectNode *t = (EffectNode *)nd;
-		if (t->counter >= 1 && t->counter <= 0xF)
+		if (t->counter >= 1 && t->counter <= (P().director.beams < BEAM_COUNT ? P().director.beams : BEAM_COUNT))
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Beam);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Beam));
 			n->counter = 0;
 			n->w0E = t->w0E;
-			const int32_t eye = CrtRand() % 6 + 1;
+			const int32_t eye = CrtRand() % P().beam.eyes + P().beam.eye_first;
 			t->w0E++;
 			n->w18 = (int16_t)eye;
 		}
@@ -615,18 +669,47 @@ namespace melteye158
 			GetEffectSpawnPosition(Caster(), 0xF0, 0, t->pos);
 			for (int k = 0; k < 2; k++)
 			{
-				EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Drops);
+				EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Drops));
 				*(uint32_t *)&n->pos[0] = *(const uint32_t *)&t->pos[0];
 				n->counter = 0;
 				n->w0E = (int16_t)(k + 1);
 				*(uint32_t *)&n->pos[2] = *(const uint32_t *)&t->pos[2];
-				n->w18 = (int16_t)(k ? 9 : 7);
+				n->w18 = (int16_t)(k ? P().drops.eye_b : P().drops.eye_a);
 			}
 		}
-		if (t->counter == 0x28) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (t->counter == 1) BdPlaySE(SOUND_MeltEye, 0, 0x80);
+		if (t->counter == P().director.damage) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+		if (t->counter == P().director.sound_tick) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_MeltEye), 0, 0x80);
 		t->counter++;
-		return t->counter > 0x2A ? TASK_END : 0;
+		return t->counter > P().director.end ? TASK_END : 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x602EB0) and setup (0x602ED0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the director, the spark and drop
+	// tables cleared, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x23D7B10), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x23D8C20), 0x24, 0x64);
+		uint8_t *director = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(director + 0xC) = 0;
+		*(uint16_t *)(director + 0xE) = 0;
+		for (uint32_t a = own::R(SPARKS); a < own::R(SPARKS_END); a += 0x18) *(uint32_t *)a = 0;
+		for (uint32_t a = own::R(DROPS); a < own::R(DROPS_END); a += 0x18) *(uint32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return RootQueue();
 	}
 
 	// ------------------------------------------------------------------
@@ -637,23 +720,105 @@ namespace melteye158
 		RootNode *r = (RootNode *)nd;
 		// 30 fps layer: see mag158_melt_eye_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA1;
-		if (!(r->counter & 1)) PacketCursor() = ARENA0;
+		PacketCursor() = own::R(ARENA1);
+		if (!(r->counter & 1)) PacketCursor() = own::R(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;
+	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The timeline: one beam a tick from tick 1, the drops at the two eyes, the sound; the damage" },
+			{ 0, "beams", "Beams", "Each beam's path from one of the caster's eyes to near the targets' centre (a curve lifted at random) and when its ring, trail and splash start (draws nothing itself)" },
+			{ PART_RING, "ring", "Ring", "A shrinking ring model at the beam's start, turned along its path, fading at its end" },
+			{ PART_TRAIL, "trail", "Trail", "Sprites running along the beam's path, the head slowing, sparks left behind" },
+			{ PART_SPLASH, "splash", "Splash", "A splash sprite where the beam lands and a spinning splash model growing, fading" },
+			{ PART_DROPS, "drops", "Drops", "Drops flying off the caster's two eyes, shrinking, slowing" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's sound tick", (uint32_t)offsetof(MeltEyeParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.beams", "Beams", "One beam a tick from tick 1, this many (15 at most: the module's beam records)", (uint32_t)offsetof(MeltEyeParams, director.beams), fxp::I16, 0, 15 },
+			{ "director", "director.sound_tick", "Sound tick", "The sound at this tick of the director", (uint32_t)offsetof(MeltEyeParams, director.sound_tick), fxp::I16, 0, 300 },
+			{ "director", "director.damage", "Damage tick", "The damage (every target of the action) at this tick", (uint32_t)offsetof(MeltEyeParams, director.damage), fxp::I16, 0, 300 },
+			{ "director", "director.end", "End tick", "The director's last tick (the effect ends once every part has)", (uint32_t)offsetof(MeltEyeParams, director.end), fxp::I16, 0, 300 },
+			{ "beams", "beam.eye_first", "First eye", "A beam leaves eye (this + a random below the next) of the eye table (0-10; the caster's frame)", (uint32_t)offsetof(MeltEyeParams, beam.eye_first), fxp::I16, 0, 10 },
+			{ "beams", "beam.eyes", "Eyes", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, beam.eyes), fxp::I16, 1, 11 },
+			{ "beams", "beam.end_x", "End spread x", "Its end: the targets' centre moved by a random of this width sideways (at least 1)", (uint32_t)offsetof(MeltEyeParams, beam.end_x), fxp::I16, 1, 0x7FFF },
+			{ "beams", "beam.end_z", "End spread z", "...and of this depth (at least 1)", (uint32_t)offsetof(MeltEyeParams, beam.end_z), fxp::I16, 1, 0x7FFF },
+			{ "beams", "beam.lift_rand", "Lift random", "Its path's first control point: up from its start by a random below this (at least 1)...", (uint32_t)offsetof(MeltEyeParams, beam.lift_rand), fxp::I16, 1, 0x7FFF },
+			{ "beams", "beam.lift_min", "Lift", "...plus this", (uint32_t)offsetof(MeltEyeParams, beam.lift_min), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "beams", "beam.lift2_rand", "Second lift random", "Its second control point: up from the first by a random below this (at least 1)...", (uint32_t)offsetof(MeltEyeParams, beam.lift2_rand), fxp::I16, 1, 0x7FFF },
+			{ "beams", "beam.lift2_min", "Second lift", "...plus this", (uint32_t)offsetof(MeltEyeParams, beam.lift2_min), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "beams", "beam.ring_tick", "Ring tick", "Its ring starts at this tick of the beam (its path is made at 0)", (uint32_t)offsetof(MeltEyeParams, beam.ring_tick), fxp::I16, 1, 300 },
+			{ "beams", "beam.trail_tick", "Trail tick", "Its trail starts at this tick", (uint32_t)offsetof(MeltEyeParams, beam.trail_tick), fxp::I16, 1, 300 },
+			{ "beams", "beam.splash_tick", "Splash tick", "Its splash and splash model at this tick", (uint32_t)offsetof(MeltEyeParams, beam.splash_tick), fxp::I16, 1, 300 },
+			{ "beams", "beam.life", "End tick", "The beam ends at this tick of its own", (uint32_t)offsetof(MeltEyeParams, beam.life), fxp::I16, 1, 300 },
+			{ "ring", "ring.size_min", "Size", "The ring's size: this + a random below the next (4096 = its model's)", (uint32_t)offsetof(MeltEyeParams, ring.size_min), fxp::I16, 0, 0x7FFF },
+			{ "ring", "ring.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, ring.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "ring", "ring.shrink_div", "Shrink divisor", "It shrinks a tick by its size / this (which loses 1/8 a tick)", (uint32_t)offsetof(MeltEyeParams, ring.shrink_div), fxp::I16, 1, 0x7FFF },
+			{ "ring", "ring.fade_from", "Fade from", "From this tick of its own it fades...", (uint32_t)offsetof(MeltEyeParams, ring.fade_from), fxp::I16, 0, 300 },
+			{ "ring", "ring.fade_step", "Fade step", "...by this a tick", (uint32_t)offsetof(MeltEyeParams, ring.fade_step), fxp::I16, 0, 4096 },
+			{ "ring", "ring.life", "End tick", "The ring ends at this tick of its own", (uint32_t)offsetof(MeltEyeParams, ring.life), fxp::I16, 1, 300 },
+			{ "trail", "trail.size_min", "Size", "The trail's head sprite size: this + a random below the next (each one behind 48 smaller)", (uint32_t)offsetof(MeltEyeParams, trail.size_min), fxp::I16, 0, 0x7FFF },
+			{ "trail", "trail.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, trail.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "trail", "trail.speed", "Speed", "Path points its head runs a tick at first (one less each tick, down to 5; the path has 48)", (uint32_t)offsetof(MeltEyeParams, trail.speed), fxp::I16, 0, 48 },
+			{ "splash", "splash.height_min", "Height", "The splash: this high above the floor + a random below the next", (uint32_t)offsetof(MeltEyeParams, splash.height_min), fxp::I16, -0x7FFF, 0x7FFF },
+			{ "splash", "splash.height_rand", "Height random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, splash.height_rand), fxp::I16, 1, 0x7FFF },
+			{ "splash", "splash.size_min", "Size", "The splash sprite's size: this + a random below the next", (uint32_t)offsetof(MeltEyeParams, splash.size_min), fxp::I16, 0, 0x7FFF },
+			{ "splash", "splash.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, splash.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "splash", "splash_model.spin_min", "Model spin", "The splash model's spin a tick: this + a random below the next (either way; it loses 1/16 a tick)", (uint32_t)offsetof(MeltEyeParams, splash_model.spin_min), fxp::I16, 0, 4096, fxp::Angle },
+			{ "splash", "splash_model.spin_rand", "Model spin random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, splash_model.spin_rand), fxp::I16, 1, 4096, fxp::Angle },
+			{ "splash", "splash_model.size_min", "Model size", "Its size and growth: (this + a random below the next) / 6 (its growth loses 1/8 a tick)", (uint32_t)offsetof(MeltEyeParams, splash_model.size_min), fxp::I16, 0, 0x7FFF },
+			{ "splash", "splash_model.size_rand", "Model size random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, splash_model.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "splash", "splash_model.fade_from", "Model fade from", "From this tick of its own it fades...", (uint32_t)offsetof(MeltEyeParams, splash_model.fade_from), fxp::I16, 0, 300 },
+			{ "splash", "splash_model.fade_step", "Model fade step", "...by this a tick", (uint32_t)offsetof(MeltEyeParams, splash_model.fade_step), fxp::I16, 0, 4096 },
+			{ "splash", "splash_model.life", "Model end tick", "The splash model ends at this tick of its own", (uint32_t)offsetof(MeltEyeParams, splash_model.life), fxp::I16, 1, 300 },
+			{ "drops", "drops.last_tick", "Last spawn tick", "Drops spawn from its tick 0 to this one", (uint32_t)offsetof(MeltEyeParams, drops.last_tick), fxp::I16, -1, 300 },
+			{ "drops", "drops.per_tick", "A tick", "How many spawn a tick at each eye (80 drops at most)", (uint32_t)offsetof(MeltEyeParams, drops.per_tick), fxp::I16, 0, 80 },
+			{ "drops", "drops.eye_a", "First eye", "The first drop task's eye in the eye table (it flies along to the next entry)", (uint32_t)offsetof(MeltEyeParams, drops.eye_a), fxp::I16, 0, 9 },
+			{ "drops", "drops.eye_b", "Second eye", "The second one's", (uint32_t)offsetof(MeltEyeParams, drops.eye_b), fxp::I16, 0, 9 },
+			{ "drops", "drops.size_min", "Size", "A drop's size: this + a random below the next (4 less a tick)", (uint32_t)offsetof(MeltEyeParams, drops.size_min), fxp::I16, 0, 0x7FFF },
+			{ "drops", "drops.size_rand", "Size random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, drops.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "drops", "drops.speed_min", "Speed", "Its speed along its eye's direction: this + a random below the next (it loses 1/32 a tick)", (uint32_t)offsetof(MeltEyeParams, drops.speed_min), fxp::I16, 0, 0x7FFF },
+			{ "drops", "drops.speed_rand", "Speed random", "(at least 1)", (uint32_t)offsetof(MeltEyeParams, drops.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "drops", "drops.scatter", "Scatter", "Plus a random of this width on each axis (at least 1)", (uint32_t)offsetof(MeltEyeParams, drops.scatter), fxp::I16, 1, 0x7FFF },
+			{ "trail", "seqs.trail", "Trail flipbook", "The sprite sequence of the trail and its sparks (a flipbook of 8 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltEyeParams, seqs.trail), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "splash", "seqs.splash", "Splash flipbook", "The sprite sequence of the splash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltEyeParams, seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "drops", "seqs.drop", "Drop flipbook", "The sprite sequence of the drops (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(MeltEyeParams, seqs.drop), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "ring", "models.ring", "Ring model", "The prim model of the ring (a mesh of 33 vertices, 32 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltEyeParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "splash", "models.splash", "Splash model", "The prim model of the splash model (a mesh of 25 vertices, 16 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(MeltEyeParams, models.splash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "beams", "tables.eyes", "Eye table", "The eye offsets in the caster's frame (11 x {x, y, z, pad}: 0 the rings', 1-6 the beams', 7-10 the drops' pairs) (88 bytes: an edited one keeps its length)", (uint32_t)offsetof(MeltEyeParams, tables.eyes), fxp::Data, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MeltEyeParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(MeltEyeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
 	}
 }
 
 	void register_mag158_melt_eye()
 	{
+		fxp::register_params({ 158, "Melt-Eye", &melteye158::live, &melteye158::GAME, sizeof(melteye158::MeltEyeParams),
+		                       melteye158::table::PARTS, (int)(sizeof(melteye158::table::PARTS) / sizeof(melteye158::table::PARTS[0])),
+		                       melteye158::table::FIELDS, (int)(sizeof(melteye158::table::FIELDS) / sizeof(melteye158::table::FIELDS[0])),
+		                       nullptr, 0 });
+		own::note(melteye158::ORIG_FileLoader, (void *)melteye158::FileLoader);
+		own::note(melteye158::ORIG_Setup, (void *)melteye158::Setup);
+		own::note(melteye158::ORIG_RootTask, (void *)melteye158::RootTask);
 		register_port(melteye158::ORIG_RootTask, (void *)melteye158::RootTask, "M158 RootTask", 158);
+		own::note(melteye158::ORIG_Director, (void *)melteye158::DirectorTask);
 		register_port(melteye158::ORIG_Director, (void *)melteye158::DirectorTask, "M158 Director", 158);
+		own::note(melteye158::ORIG_Beam, (void *)melteye158::BeamTask);
 		register_port(melteye158::ORIG_Beam, (void *)melteye158::BeamTask, "M158 Beam", 158);
+		own::note(melteye158::ORIG_Ring, (void *)melteye158::RingTask);
 		register_port(melteye158::ORIG_Ring, (void *)melteye158::RingTask, "M158 Ring", 158);
+		own::note(melteye158::ORIG_Trail, (void *)melteye158::TrailTask);
 		register_port(melteye158::ORIG_Trail, (void *)melteye158::TrailTask, "M158 Trail", 158);
+		own::note(melteye158::ORIG_Splash, (void *)melteye158::SplashTask);
 		register_port(melteye158::ORIG_Splash, (void *)melteye158::SplashTask, "M158 Splash", 158);
+		own::note(melteye158::ORIG_SplashModel, (void *)melteye158::SplashModelTask);
 		register_port(melteye158::ORIG_SplashModel, (void *)melteye158::SplashModelTask, "M158 SplashModel", 158);
+		own::note(melteye158::ORIG_Drops, (void *)melteye158::DropsTask);
 		register_port(melteye158::ORIG_Drops, (void *)melteye158::DropsTask, "M158 Drops", 158);
 		// 30 fps layer: see mag158_melt_eye_held.inc
 		FX_HELD(register_mag158_held();)
