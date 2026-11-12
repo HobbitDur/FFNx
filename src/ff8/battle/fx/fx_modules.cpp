@@ -40,6 +40,9 @@ namespace ff8fx::mod
 	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C } }; // + tail of the per-vertex depth array 0x2798C18 (Breath reaches 0x2798F9A)
 	static const Region streams_ps[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C }, { 0xB8BA00, 8 } }; // streams_gfc + the two colour words draw 47 PaletteHsvShift writes (gfc_palshift.inc: 211, 269)
 	static const Region streams_s302[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_c318[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_t324[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_c319[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
 	// static cells the modules write, Siren's load destinations outside the 1 MB buffer
 	static const Region streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
@@ -521,6 +524,9 @@ namespace ff8fx::mod
 		{ 221, 0x2796BE0, 0x2798C40, 0, 0, false, "Apocalypse (magic; attack 373, Ultimecia final form)", streams_gfc, 5 },
 		{ 344, 0x24DFD70, 0x24F0BCC, 0, 0, false, "effect 344 (attack 368, Griever)", nullptr, 0 },
 		{ 302, 0x2507660, 0x25076D8, 0, 0, false, "Snipe Laser (attack 155, GIM47N)", streams_s302, 3 },
+		{ 318, 0x2505418, 0x2505490, 0, 0, false, "Strong counter-attack (Krysta)", streams_c318, 3 },
+		{ 324, 0x2201080, 0x221BC68, 0, 0, false, "Tonberry King death (Tonberry King)", streams_t324, 4 },
+		{ 319, 0x25053A0, 0x2505418, 0, 0, false, "Counter-attack (Krysta)", streams_c319, 3 },
 		{ 316, 0x2505520, 0x2505578, 0, 0, false, "effect 316 (attack 203, Red Giant)", streams_r316, 1 },
 		{ 314, 0x2505578, 0x25055E0, 0, 0, false, "effect 314 (attack 191, Abadon)", streams_a314, 2 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
