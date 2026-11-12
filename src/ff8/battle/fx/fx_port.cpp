@@ -315,6 +315,8 @@ namespace ff8fx
 		register_mag316_red_giant();
 		register_mag314_abadon();
 		register_mag308_mobile_type8();
+		register_mag320_dark_flare();
+		register_mag303_remove_mask();
 		register_mag176_sand_storm_adamantoise();
 		register_mag157_breath();
 		register_mag158_melt_eye();
