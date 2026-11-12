@@ -49,8 +49,14 @@
 // Module globals: 0x23065D8..0x2307D94 (target slot, root pool / queue, particle pool, effect queue / pool, context
 // 0x2307D80, caster slot 0x2307D84, texture file 0x2307D88, magic buffer base 0x2307D8C, packet cursor 0x2307D90).
 
+// Fujin's described Kamikaze (effect_181.json) runs this code: its memory through own::R() (fx_port.h), its spawns through
+// own::Fn(), the setup and the file loader ported below; its parameters (KamikazeParams: Suicide 180's - the sound, the
+// damage tick, the flipbooks and ring meshes, the texture, the camera - and the flares) are set from the program's.
+
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,11 +73,13 @@ namespace kamikaze181
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2307D80); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2307D84); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2307D8C); }          // Magic_TextureOFF (magic buffer)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2307D90); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2306F60; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2307D80)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(own::R(0x2307D84)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2307D8C)); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2307D90)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2307D88)); }          // the effect's file (its TIM)
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23065F0); }             // 1 x 0x10
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x2306F60); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }       // frame packet arena cursor
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }     // transformed model vertices
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -88,6 +96,25 @@ namespace kamikaze181
 	static const uint32_t MODEL_Ring = 0xD3E5C4, MODEL_Ring2 = 0xD405FC;
 	static const uint32_t SEQ_Spark = 0xD3E3A0, SEQ_Smoke = 0xD3E1F4, SEQ_Flare = 0xD3E500;
 	static const void *const SOUND_Start = (const void *)0xD413A4;    // at the director's counter 1
+	static const uint32_t ORIG_FileLoader = 0x5CB530, ORIG_Setup = 0x5CB550;
+	static const uint32_t TEXTURE_NAME = 0xD413AC, CAMERA_ANIM = 0xD3D3F0;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	struct KamikazeParams
+	{
+		uint32_t sound;                      // at the director's tick 1
+		struct { int16_t damage; } director; // the damage at this tick
+		struct { uint32_t spark, smoke, flare; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, ring2; } models; // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track, TIMs, animation sets
+		struct { int16_t count, speed, speed_rand, scale, scale_rand; } flares; // module 181's flares (ticks 4 and 5: count, count - 1)
+	};
+	static const KamikazeParams GAME = { 0xD413A4, { 0x26 }, { SEQ_Spark, SEQ_Smoke, SEQ_Flare }, { MODEL_Ring, MODEL_Ring2 }, { TEXTURE_NAME, CAMERA_ANIM },
+		{ 5, 0x19, 0x4B, 0x800, 0x100 } };
+	static KamikazeParams live = GAME;
+	static const KamikazeParams &P() { return live; }
 
 	// ---- engine functions (original addresses)
 	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
@@ -160,7 +187,7 @@ namespace kamikaze181
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Kamikaze nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(FlareNode) == 0x24, "Kamikaze particle / flare");
 
-	inline Particle *Pool() { return (Particle *)POOL; }
+	inline Particle *Pool() { return (Particle *)own::R(POOL); }
 	static const int POOL_COUNT = 0x64;
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
@@ -168,10 +195,10 @@ namespace kamikaze181
 	static int FreeParticle()
 	{
 		int i = 0;
-		for (uint32_t p = POOL; ; p += 0x18, i++)
+		for (uint32_t p = own::R(POOL); ; p += 0x18, i++)
 		{
 			if (U32(p, 0) == 0) break;
-			if (p + 0x18 >= POOL_END) return -1;
+			if (p + 0x18 >= own::R(POOL_END)) return -1;
 		}
 		if (i >= 0x64) return -1;
 		return i;
@@ -367,7 +394,7 @@ namespace kamikaze181
 	{
 		TransformCameraByShadowRotation(f->pos, (uint16_t)f->scale, -((int32_t)f->scale >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)(h + 0) = SEQ_Flare;
+		*(uint32_t *)(h + 0) = fxp::sequence(P().seqs.flare, SEQ_Flare);
 		*(int16_t *)(h + 4) = f->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -472,7 +499,7 @@ namespace kamikaze181
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_ring(ORIG_Ring, t);)
-		DrawRing(t, MODEL_Ring, 8, shl32(t->counter - 8, 9));
+		DrawRing(t, fxp::model(P().models.ring, MODEL_Ring), 8, shl32(t->counter - 8, 9));
 		if (DrawOnly()) return 0;
 		RingUpdate(t);
 		return t->counter >= 0x10 ? TASK_END : 0;
@@ -483,7 +510,7 @@ namespace kamikaze181
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_ring(ORIG_Ring2, t);)
-		DrawRing(t, MODEL_Ring2, 0xA, shl32(t->counter - 0xA, 9));
+		DrawRing(t, fxp::model(P().models.ring2, MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
 		if (DrawOnly()) return 0;
 		Ring2Update(t);
 		return t->counter >= 0x12 ? TASK_END : 0;
@@ -506,9 +533,9 @@ namespace kamikaze181
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_pool(ORIG_Sparks, t);)
-		uint8_t *h = SpriteHeader(SEQ_Spark);
+		uint8_t *h = SpriteHeader(fxp::sequence(P().seqs.spark, SEQ_Spark));
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < POOL_END; p++)
+		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
 			if (!(p->type & 2)) continue;
 			DrawSpriteParticle(h, p);
@@ -569,9 +596,9 @@ namespace kamikaze181
 		EffectNode *t = (EffectNode *)n;
 		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_pool(ORIG_Smoke, t);)
-		uint8_t *h = SpriteHeader(SEQ_Smoke);
+		uint8_t *h = SpriteHeader(fxp::sequence(P().seqs.smoke, SEQ_Smoke));
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < POOL_END; p++)
+		for (Particle *p = Pool(); (uint32_t)p < own::R(POOL_END); p++)
 		{
 			if (!(p->type & 4)) continue;
 			DrawSpriteParticle(h, p);
@@ -622,6 +649,35 @@ namespace kamikaze181
 		return next < 0 ? TASK_END : 0;
 	}
 	// ------------------------------------------------------------------
+	// File loader (0x5CB530) and setup (0x5CB550): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the magic buffer, the cast, its first target's and its caster's slots, the root and the director (its
+	// flare count), the particle pool cleared, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		var<int32_t>(own::R(0x23065D8)) = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23065E0), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x2306F70), 0x24, 100);
+		uint8_t *d = (uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		*(uint16_t *)(d + 0xC) = 0;
+		*(int16_t *)(d + 0xE) = P().flares.count;
+		for (uint32_t a = own::R(POOL); a < own::R(POOL_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
+	// ------------------------------------------------------------------
 	// Director (0x5CB610)
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
@@ -629,9 +685,11 @@ namespace kamikaze181
 		if (DrawOnly()) return 0;
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter == 0) GetEffectSpawnPosition(Caster(), 0xF0, 0xA00, t->pos);
+		if (t->counter == 0) t->zero = P().flares.count; // (the game's setup wrote 5 there: the flare count, set again so the
+		                                                 // game's own setup takes the parameter too)
 		if (t->counter == 1)
 		{
-			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_CasterGlow);
+			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_CasterGlow));
 			g->counter = 0;
 		}
 		if (t->counter >= 4 && t->counter <= 5)
@@ -646,22 +704,22 @@ namespace kamikaze181
 			NormalizeVector(v, v);
 			for (int k = 0; k < t->zero; k++)
 			{
-				FlareNode *f = (FlareNode *)AddTaskToQueue(EffectQueue(), ORIG_Flare);
+				FlareNode *f = (FlareNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Flare));
 				f->counter = 0;
 				f->pos[0] = p[0];
 				const int32_t r = CrtRand() % 0xA;
 				f->pos[1] = (int16_t)(r + t->pos[1] - 5);
 				f->pos[2] = p[2];
-				const int32_t s = CrtRand() % 0x4B + 0x19;
+				const int32_t s = CrtRand() % P().flares.speed_rand + P().flares.speed;
 				f->vel_x = (int16_t)(mul32(s, v[0]) >> 12);
 				f->vel_z = (int16_t)(mul32(s, v[2]) >> 12);
-				f->scale = (int16_t)(CrtRand() % 0x100 + 0x800);
+				f->scale = (int16_t)(CrtRand() % P().flares.scale_rand + P().flares.scale);
 			}
 			t->zero = (int16_t)(t->zero - 1);
 		}
 		if (t->counter == 0x10)
 		{
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring));
 			memcpy(r->pos, t->pos, 8);
 			r->counter = 0;
 			r->zero = 0;
@@ -670,7 +728,7 @@ namespace kamikaze181
 			r->scale_speed = 0x1CC;
 			r->scale = 0x1CC;
 			r->spin_speed = (int16_t)(s + 0x3C);
-			r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+			r = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring));
 			memcpy(r->pos, t->pos, 8);
 			r->counter = 0;
 			r->zero = 0;
@@ -684,7 +742,7 @@ namespace kamikaze181
 		if (t->counter == 0xF)
 		{
 			GetDefaultEffectPosition(Caster(), t->pos);
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring2);
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Ring2));
 			memcpy(r->pos, t->pos, 8);
 			r->counter = 0;
 			r->spin = (int16_t)(CrtRand() % 0x1000);
@@ -693,18 +751,18 @@ namespace kamikaze181
 		}
 		if (t->counter == 0xF)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Sparks);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Sparks));
 			memcpy(s->pos, t->pos, 8);
 			s->counter = 0;
 		}
 		if (t->counter == 0x10)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Smoke);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Smoke));
 			memcpy(s->pos, t->pos, 8);
 			s->counter = 0;
 		}
-		if (t->counter == 0x26) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (t->counter == 1) BdPlaySE(SOUND_Start, 0, 0x80);
+		if (t->counter == P().director.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (t->counter == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Start), 0, 0x80);
 		t->counter++;
 		return t->counter > 0x32 ? TASK_END : 0;
 	}
@@ -722,17 +780,59 @@ namespace kamikaze181
 		r->counter++;
 		return a ? 0 : TASK_END;
 	}
+	namespace table
+	{
+		using fxp::Field;
+#define KF(member, label, doc, lo, hi) { "director", #member, label, doc, (uint32_t)offsetof(KamikazeParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "A party member's self-destruct: its glow, the flares flying off it, the screen fade, the rings, the sparks, the smoke, the sound; the damage" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "flares", "Flares", "Ticks 4 and 5: Count, then Count - 1 flares flying off the caster at Speed + rand % Speed spread, size Size + rand % Size spread" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's tick 1", (uint32_t)offsetof(KamikazeParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.damage", "Damage tick", "The damage at this tick of the director", (uint32_t)offsetof(KamikazeParams, director.damage), fxp::I16, 0, 50 },
+			{ "director", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 13 frames: an edited one keeps as many)", (uint32_t)offsetof(KamikazeParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.smoke", "Smoke", "The sprite sequence smoke (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(KamikazeParams, seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "seqs.flare", "Flare", "The sprite sequence flare (a flipbook of 7 frames: an edited one keeps as many)", (uint32_t)offsetof(KamikazeParams, seqs.flare), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "director", "models.ring", "Ring model", "The prim model ring (a mesh of 234 vertices, 216 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(KamikazeParams, models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "models.ring2", "Ring2 model", "The prim model ring2 (a mesh of 144 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(KamikazeParams, models.ring2), fxp::Model, 0, 0x7FFFFFFF },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(KamikazeParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(KamikazeParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			KF(flares.count, "Count", "", 0, 50),
+			KF(flares.speed, "Speed", "", 0, 0x1000),
+			KF(flares.speed_rand, "Speed spread", "", 1, 0x1000),
+			KF(flares.scale, "Size", "", 0, 0x4000),
+			KF(flares.scale_rand, "Size spread", "", 1, 0x4000),
+		};
+#undef KF
+	}
 }
 
 	void register_mag181_kamikaze()
 	{
+		fxp::register_params({ 181, "Kamikaze", &kamikaze181::live, &kamikaze181::GAME, sizeof(kamikaze181::KamikazeParams),
+		                       kamikaze181::table::PARTS, (int)(sizeof(kamikaze181::table::PARTS) / sizeof(kamikaze181::table::PARTS[0])),
+		                       kamikaze181::table::FIELDS, (int)(sizeof(kamikaze181::table::FIELDS) / sizeof(kamikaze181::table::FIELDS[0])),
+		                       kamikaze181::table::GROUPS, (int)(sizeof(kamikaze181::table::GROUPS) / sizeof(kamikaze181::table::GROUPS[0])) });
+		own::note(kamikaze181::ORIG_FileLoader, (void *)kamikaze181::FileLoader);
+		own::note(kamikaze181::ORIG_Setup, (void *)kamikaze181::Setup);
+		own::note(kamikaze181::ORIG_RootTask, (void *)kamikaze181::RootTask);
 		register_port(kamikaze181::ORIG_RootTask, (void *)kamikaze181::RootTask, "K181 RootTask", 181);
+		own::note(kamikaze181::ORIG_Director, (void *)kamikaze181::DirectorTask);
 		register_port(kamikaze181::ORIG_Director, (void *)kamikaze181::DirectorTask, "K181 Director", 181);
+		own::note(kamikaze181::ORIG_CasterGlow, (void *)kamikaze181::CasterGlowTask);
 		register_port(kamikaze181::ORIG_CasterGlow, (void *)kamikaze181::CasterGlowTask, "K181 CasterGlow", 181);
+		own::note(kamikaze181::ORIG_Ring, (void *)kamikaze181::RingTask);
 		register_port(kamikaze181::ORIG_Ring, (void *)kamikaze181::RingTask, "K181 Ring", 181);
+		own::note(kamikaze181::ORIG_Ring2, (void *)kamikaze181::Ring2Task);
 		register_port(kamikaze181::ORIG_Ring2, (void *)kamikaze181::Ring2Task, "K181 Ring2", 181);
+		own::note(kamikaze181::ORIG_Sparks, (void *)kamikaze181::SparksTask);
 		register_port(kamikaze181::ORIG_Sparks, (void *)kamikaze181::SparksTask, "K181 Sparks", 181);
+		own::note(kamikaze181::ORIG_Smoke, (void *)kamikaze181::SmokeTask);
 		register_port(kamikaze181::ORIG_Smoke, (void *)kamikaze181::SmokeTask, "K181 Smoke", 181);
+		own::note(kamikaze181::ORIG_Flare, (void *)kamikaze181::FlareTask);
 		register_port(kamikaze181::ORIG_Flare, (void *)kamikaze181::FlareTask, "K181 Flare", 181);
 		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(register_mag181_held();)
