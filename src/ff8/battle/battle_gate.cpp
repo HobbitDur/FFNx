@@ -1013,6 +1013,13 @@ static bool ff8_bgate_ent_last_ok = false, ff8_bgate_ent_prev_ok = false, ff8_bg
 static uint8_t ff8_bgate_ent_live[0x20];                    // the entity's own matrix while swapped out
 static uint8_t *ff8_bgate_ent_swapped = nullptr;
 static uint32_t ff8_bgate_ent_frames = 0, ff8_bgate_ent_handsoff = 0; // stats
+// bone matrices the effect scales in place (fx_held.h HeldBoneScale): listed on a held frame, applied around the render
+#define FF8_BGATE_BSCALE_MAX 16
+static ff8fx::HeldBoneScale ff8_bgate_bs_req[FF8_BGATE_BSCALE_MAX];
+static int ff8_bgate_nbs_req = 0;
+static int16_t ff8_bgate_bs_live[FF8_BGATE_BSCALE_MAX][9]; // the matrices' own 3x3 while scaled
+static int ff8_bgate_bs_applied[FF8_BGATE_BSCALE_MAX], ff8_bgate_nbs_applied = 0;
+static uint8_t *ff8_bgate_bs_slot = nullptr;
 
 static int ff8_bgate_ent_index(const void *slot)
 {
@@ -1034,6 +1041,7 @@ static void ff8_bgate_ent_read(uint8_t *e, int16_t v[9])
 static void ff8_bgate_ent_frame_start()
 {
 	ff8_bgate_nent_req = 0;
+	ff8_bgate_nbs_req = 0;
 	if (ff8_bgate_phase == 0)
 	{
 		memcpy(ff8_bgate_ent_prev, ff8_bgate_ent_last, sizeof(ff8_bgate_ent_prev));
@@ -1046,6 +1054,7 @@ static void ff8_bgate_ent_frame_start()
 static void ff8_bgate_ent_collect(int eid)
 {
 	ff8_bgate_nent_req = ff8fx::held_entities(eid, ff8_bgate_ent_req, FF8_BGATE_ENT_MAX);
+	ff8_bgate_nbs_req = ff8fx::held_bonescales(eid, ff8_bgate_bs_req, FF8_BGATE_BSCALE_MAX);
 }
 
 // the effect listed this entity on this held frame (the extrapolation keeps off it)
@@ -1141,10 +1150,39 @@ static bool ff8_bgate_ent_display(uint8_t *slot, uint8_t *out)
 	return true;
 }
 
+// held frame, right before the entity's render: its listed bone matrices scaled by the in-between scale (the 3x3 kept)
+static void ff8_bgate_bs_begin(uint8_t *slot)
+{
+	if (ff8_bgate_phase == 0 || ff8_bgate_bs_slot || ff8_bgate_nbs_req == 0) return;
+	ff8_bgate_nbs_applied = 0;
+	for (int i = 0; i < ff8_bgate_nbs_req; i++)
+	{
+		const ff8fx::HeldBoneScale &b = ff8_bgate_bs_req[i];
+		if (b.ent != slot || !b.matrix || IsBadWritePtr(b.matrix, 0x12)) continue;
+		int32_t sc[3];
+		for (int c = 0; c < 3; c++) sc[c] = ff8_bgate_ent_lerp(9, b.from[c], b.next[c]);
+		memcpy(ff8_bgate_bs_live[ff8_bgate_nbs_applied], b.matrix, 0x12);
+		ff8_bgate_bs_applied[ff8_bgate_nbs_applied++] = i;
+		((void (__cdecl *)(void *, void *))0x56BEF0)(b.matrix, sc); // scale3DMatrix
+	}
+	if (ff8_bgate_nbs_applied) ff8_bgate_bs_slot = slot;
+}
+
+// right after it: the matrices put back (last scaled first)
+static void ff8_bgate_bs_end(uint8_t *slot)
+{
+	if (ff8_bgate_bs_slot != slot) return;
+	for (int k = ff8_bgate_nbs_applied - 1; k >= 0; k--)
+		memcpy(ff8_bgate_bs_req[ff8_bgate_bs_applied[k]].matrix, ff8_bgate_bs_live[k], 0x12);
+	ff8_bgate_nbs_applied = 0;
+	ff8_bgate_bs_slot = nullptr;
+}
+
 // around BS_RenderBattleEntity (called by the entity task): held frames only, this render only
 static void ff8_bgate_ent_render_begin(uint8_t *slot)
 {
 	alignas(4) uint8_t m[0x20];
+	ff8_bgate_bs_begin(slot);
 	if (ff8_bgate_ent_swapped || !ff8_bgate_ent_display(slot, m)) return;
 	memcpy(ff8_bgate_ent_live, slot + 0x40, sizeof(ff8_bgate_ent_live));
 	memcpy(slot + 0x40, m, sizeof(m));
@@ -1154,6 +1192,7 @@ static void ff8_bgate_ent_render_begin(uint8_t *slot)
 
 static void ff8_bgate_ent_render_end(uint8_t *slot)
 {
+	ff8_bgate_bs_end(slot);
 	if (ff8_bgate_ent_swapped != slot) return;
 	memcpy(slot + 0x40, ff8_bgate_ent_live, sizeof(ff8_bgate_ent_live));
 	ff8_bgate_ent_swapped = nullptr;
@@ -4569,7 +4608,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			ff8_bgate_fx_keep_ended(ctx, held_h0, FF8_BGATE_EXEC_CUR);
 			// the entities the effect moves: their next real tick's state (ff8_bgate_ent_*)
 			__try { ff8_bgate_ent_collect(eid); }
-			__except (EXCEPTION_EXECUTE_HANDLER) { ff8_bgate_nent_req = 0; }
+			__except (EXCEPTION_EXECUTE_HANDLER) { ff8_bgate_nent_req = 0; ff8_bgate_nbs_req = 0; }
 			memcpy((void *)0x1D999C4, fa_tmp, sizeof(fa_tmp)); // pointer + temporaries
 			if (fa_ok) memcpy((void *)pool, fa_scr, sizeof(fa_scr));
 			memcpy((void *)0x1D99C18, t_c18, sizeof(t_c18));
@@ -5557,6 +5596,8 @@ static void ff8_bgate_battle_reset()
 	ff8_bgate_cam_held_moved = false;
 	memset(ff8_bgate_move, 0, sizeof(ff8_bgate_move));
 	ff8_bgate_nent_req = 0;
+	ff8_bgate_nbs_req = ff8_bgate_nbs_applied = 0;
+	ff8_bgate_bs_slot = nullptr;
 	ff8_bgate_ent_last_ok = ff8_bgate_ent_prev_ok = ff8_bgate_ent_real_ok = false;
 	ff8_bgate_ent_swapped = nullptr;
 	for (ff8_bgate_vis_t &v : ff8_bgate_vis) v = {};

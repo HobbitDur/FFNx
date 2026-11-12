@@ -66,9 +66,17 @@
 //     as 0, as the main's.
 //   - the 4th words of the arc's end points (arc entry esp - 0x2A / - 0x1A) land in the Field_Alloc block's +6 / +0x76
 //     (never read).
+// Fujin's described Mega Spark (effect_279.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the setup and the file loader ported below; its parameters (MegaSparkParams: the sound, the main
+// task's ticks, the caster's approach, the rings, the orb, the arcs (their ribbon shared with Mega Pulse Cannon 287),
+// the bolts and their points, the strike and hit layouts, the sparks; its data: the four layouts, the spark flipbook,
+// the caster's anchor points, the orb's point and the arcs' triangle rows, the texture name and the camera track).
+// FX_PART tags its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 #include <intrin.h>
 
 namespace ff8fx
@@ -79,17 +87,19 @@ namespace megaspark279
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2508074); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508078); }        // caster entity (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508080; }         // pool: magic buffer, 0x10 x 0x14
-	inline TaskQueue *QPrimA() { return (TaskQueue *)0x2508090; }          // pool: + 0x140, 3 x 0x13C
-	inline TaskQueue *QPrimB() { return (TaskQueue *)0x25080A0; }          // pool: + 0x4F4, 0x10 x 0x13C
-	inline TaskQueue *QBolts() { return (TaskQueue *)0x25080B0; }          // pool: + 0x18B4, 0x30 x 0x38
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x25080C0; }           // pool: + 0x2334, 0x40 x 0x40
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25080D0; }           // pool: + 0x3334, 1 x 0xB34
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508104); }
-	inline uint32_t &Seed() { return var<uint32_t>(0x2508108); }           // module LCG
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250810C); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2508074)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2508078)); }        // caster entity (setup)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2508080); }         // pool: magic buffer, 0x10 x 0x14
+	inline TaskQueue *QPrimA() { return (TaskQueue *)own::R(0x2508090); }          // pool: + 0x140, 3 x 0x13C
+	inline TaskQueue *QPrimB() { return (TaskQueue *)own::R(0x25080A0); }          // pool: + 0x4F4, 0x10 x 0x13C
+	inline TaskQueue *QBolts() { return (TaskQueue *)own::R(0x25080B0); }          // pool: + 0x18B4, 0x30 x 0x38
+	inline TaskQueue *QArcs() { return (TaskQueue *)own::R(0x25080C0); }           // pool: + 0x2334, 0x40 x 0x40
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25080D0); }           // pool: + 0x3334, 1 x 0xB34
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2508104)); }
+	inline uint32_t &Seed() { return var<uint32_t>(own::R(0x2508108)); }           // module LCG
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x250810C)); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2508070)); }        // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25080E0); }         // pool 0x25080F0, 1 x 0x14
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // the frame's packet arena
 
@@ -120,6 +130,69 @@ namespace megaspark279
 	static const void *const SOUND_Spark = (const void *)0x10B1B9C;
 	static const uint32_t QUAD_UV0 = 0x3D948048, QUAD_UV1 = 0xB68078; // ribbon quads: uv0 + clut, uv1 + tpage, uv2, uv3
 	static const uint16_t QUAD_UV2 = 0x8048, QUAD_UV3 = 0x8078;
+	static const uint32_t ORIG_FileLoader = 0x67EFE0, ORIG_Setup = 0x67EFD0;
+	static const uint32_t TEXTURE_NAME = 0x10B6F88, CAMERA_ANIM = 0x10B1A2C;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h); the arcs and their ribbon read as Mega Pulse Cannon's (287)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_RINGS = 1, PART_ORB = 2, PART_ARCS = 3, PART_BOLTS = 4, PART_HITS = 5, PART_SPARKS = 6 };
+	struct Fade { int16_t tick, a, b, c, d; };           // a screen fade (ScreenFadeTask 0x5712C0's four values) at a tick
+	struct MegaSparkParams
+	{
+		uint32_t sound;                                   // at the main task's sound tick
+		struct { int16_t sound, damage, end; } director;  // the main task's ticks
+		struct { Fade flash, white, dim; } fades;
+		struct { int16_t ticks, back_ticks, stop, tilt; } approach;   // the caster moved toward the targets and back
+		struct { int16_t from, until, depth; } rings;
+		struct { int16_t from, until, depth; } orb;
+		struct { int16_t every, until, amp_shift, orb_from, orb_until, orb_every, orb_amp_shift, anchor_amp, bright,
+		         fade_from, fade_base, fade_shift; int32_t width, width_depth; } arcs;
+		struct { int16_t clut, tpage; uint8_t u_left, u_right, v_from, v_to; } ribbon;   // the arcs' and bolts' quads
+		struct { int16_t first, count, strike_from, dt, branches, steps, rise, rise_rand; fxp::Range vel_x, vel_z, drift;
+		         int16_t jump_chance; fxp::Range jump, bend; int16_t branch_until, branch_chance; fxp::Range branch_x,
+		         branch_y, branch_z, branch_vel; int16_t branch_dt; int32_t width, width_depth; } bolts;
+		struct { int16_t bright, rise, hold, fall, fall_min; } points;   // the bolts' points' brightness
+		struct { int16_t depth; fxp::Range scale; } hits;
+		struct { int16_t life, shadow, shadow_y; } sparks;
+		struct { uint32_t spark; } seqs;                  // the sprite sequences drawn (flipbooks)
+		struct { uint32_t ring, orb, strike, hit; } layouts;   // the prim-model layouts played
+		struct { uint32_t anchors, orb_point, triangles; } tables;   // its small tables (data)
+		struct { uint32_t texture_name, camera; } res;    // its resources (data): texture file name, camera track
+	};
+	static const MegaSparkParams GAME = {
+		0x10B1B9C,
+		{ 0, 0x3A, 0x55 },
+		{ { 0x28, 0, 1, 2, 0x80 }, { 0x30, 0, 1, 0, 0x80 }, { 0x32, 0, 1, 0, 0x40 } },
+		{ 0x20, 0x10, 0x1388, 0x80 },
+		{ 0xF, 0x1E, -0x80 },
+		{ 0x18, 0x3B, -0x80 },
+		{ 4, 0x1F, 0xC, 0x14, 0x3B, 8, 0xE, 0x800, 0x80, 0xA, 0x1400, 7, 0x2080, 0x400 },
+		{ 0x3D94, 0xB6, 0x48, 0x78, 0x80, 0x80 },
+		{ 0x28, 0xF, 4, 0x200, 2, 8, 0x40, 0x80, { -0x80, 0x7F }, { 0x40, 0x7F }, { -0x40, 0x3F },
+		  0x1000, { -0x100, 0xFF }, { -0x80, 0x7F }, 0xC00, 0x2000, { -0x800, 0x7FF },
+		  { -0x400, 0x3FF }, { 0x100, 0x2FF }, { -0x100, 0xFF }, 0x200, 0x1F40, 0x200 },
+		{ 0x200, 0x300, 2, 0x140, -0x180 },
+		{ -0x80, { 0x800, 0x17FF } },
+		{ 8, 0x800, -0x200 },
+		{ SEQ_Spark },
+		{ MODEL_Ring, MODEL_Orb, MODEL_Strike, MODEL_Hit },
+		{ ANCHOR_0, POINT_Orb, TRI_Rows },
+		{ TEXTURE_NAME, CAMERA_ANIM } };
+	static MegaSparkParams live = GAME;
+	static const MegaSparkParams &P() { return live; }
+	// a random in a range (the game's `rand() & mask` + min for its power-of-two spans); an empty range: its min
+	inline int32_t Roll(const fxp::Range &r, int32_t random)
+	{
+		const int32_t span = (int32_t)r.max - r.min + 1;
+		return span > 0 ? r.min + random % span : r.min;
+	}
+	inline int32_t Below(int32_t n, int32_t random) { return n > 0 ? random % n : 0; }
+	inline void FadeAt(const Fade &f) { ScreenFadeTask(f.a, f.b, f.c, f.d); }
+	inline uint32_t Anchors() { return fxp::data(P().tables.anchors, ANCHOR_0, 0x18); }
+	inline uint32_t OrbPoint() { return fxp::data(P().tables.orb_point, POINT_Orb, 8); }
+	inline uint32_t Triangles() { return fxp::data(P().tables.triangles, TRI_Rows, 0x240); }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -271,9 +344,9 @@ namespace megaspark279
 		}
 		U32(p, 0) = *(const uint32_t *)src;
 		U32(p, 4) = *(const uint32_t *)(src + 2);
-		S16(p, 0xE) = 2;
-		S16(p, 0x20) = 0x200;
-		S16(p, 0x22) = 0x300;
+		S16(p, 0xE) = P().points.hold;
+		S16(p, 0x20) = P().points.bright;
+		S16(p, 0x22) = P().points.rise;
 		U32(p, 0x24) = 0;
 		return p;
 	}
@@ -284,7 +357,7 @@ namespace megaspark279
 	{
 		const uint32_t p = AllocPoint(src);
 		if (!p) return 0;
-		BoltNode *b = (BoltNode *)AddTaskToQueue(QBolts(), ORIG_BoltTask);
+		BoltNode *b = (BoltNode *)AddTaskToQueue(QBolts(), own::Fn(ORIG_BoltTask));
 		if (!b)
 		{
 			S16(p, 6) = -1;
@@ -308,9 +381,9 @@ namespace megaspark279
 			S16(p, 0xC) = 0;
 			S16(p, 0xA) = 0;
 			S16(p, 8) = 0;
-			b->bend[0] = (int16_t)((Lcg() & 0xFF) - 0x80);
-			b->bend[1] = (int16_t)((Lcg() & 0xFF) - 0x80);
-			b->bend[2] = (int16_t)((Lcg() & 0xFF) - 0x80);
+			b->bend[0] = (int16_t)Roll(P().bolts.bend, Lcg());
+			b->bend[1] = (int16_t)Roll(P().bolts.bend, Lcg());
+			b->bend[2] = (int16_t)Roll(P().bolts.bend, Lcg());
 			b->bend3 = bend3;
 			return p;
 		}
@@ -501,19 +574,20 @@ namespace megaspark279
 		S16(p, sxy + 2) = (int16_t)(y - oy);
 	}
 	// 0x680330: bolt point edge (screen point at +0x10, z at +0x14)
-	static void BoltEdge(uint32_t p, uint32_t next, const int16_t *prev, int16_t *out) { RibbonEdge(p, next, prev, out, 0x10, 0x1F40, 0x200); }
+	static void BoltEdge(uint32_t p, uint32_t next, const int16_t *prev, int16_t *out) { RibbonEdge(p, next, prev, out, 0x10, P().bolts.width, P().bolts.width_depth); }
 	// 0x680A80: arc point edge (screen point at +0, z at +4)
-	static void ArcEdge(uint32_t p, uint32_t next, const int16_t *prev, int16_t *out) { RibbonEdge(p, next, prev, out, 0, 0x2080, 0x400); }
+	static void ArcEdge(uint32_t p, uint32_t next, const int16_t *prev, int16_t *out) { RibbonEdge(p, next, prev, out, 0, P().arcs.width, P().arcs.width_depth); }
 
 	// one gouraud textured quad (0x34 bytes) of a ribbon: xy0 / xy1 of a point and of the next one, grey levels c0 / c1
 	static void RibbonQuad(uint32_t pk, uint32_t a0, uint32_t a1, uint32_t b0, uint32_t b1, int32_t c0, int32_t c1, uint32_t bucket)
 	{
 		U32(pk, 8) = a0;
 		U32(pk, 0x14) = a1;
-		U32(pk, 0xC) = QUAD_UV0;
-		U32(pk, 0x18) = QUAD_UV1;
-		U16(pk, 0x24) = QUAD_UV2;
-		U16(pk, 0x30) = QUAD_UV3;
+		const auto &q = P().ribbon;
+		U32(pk, 0xC) = (uint32_t)(uint16_t)q.clut << 16 | (uint32_t)q.v_from << 8 | q.u_left;      // QUAD_UV0
+		U32(pk, 0x18) = (uint32_t)(uint16_t)q.tpage << 16 | (uint32_t)q.v_from << 8 | q.u_right;   // QUAD_UV1
+		U16(pk, 0x24) = (uint16_t)(q.v_to << 8 | q.u_left);                             // QUAD_UV2
+		U16(pk, 0x30) = (uint16_t)(q.v_to << 8 | q.u_right);                            // QUAD_UV3
 		U32(pk, 0x20) = b0;
 		U32(pk, 0x2C) = b1;
 		const uint32_t col0 = (uint32_t)((((c0 << 8) | c0) << 8) | c0);
@@ -591,10 +665,11 @@ namespace megaspark279
 	// ------------------------------------------------------------------
 	static void SparkDraw(const SparkNode *s)
 	{
-		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
+		TransformCameraByShadowRotation(s->pos, P().sparks.shadow, P().sparks.shadow_y);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
-		*(int16_t *)(h + 4) = s->frame;
+		const uint32_t seq = fxp::sequence(P().seqs.spark, SEQ_Spark);
+		*(uint32_t *)h = seq;
+		*(int16_t *)(h + 4) = fxp::last_frame(seq, s->frame);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -605,9 +680,11 @@ namespace megaspark279
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_spark(s);)
+		FX_PART(PART_SPARKS);
 		SparkDraw(s);
+		FX_PART(0);
 		s->frame++;
-		return s->frame < 8 ? 0 : TASK_END;
+		return s->frame < P().sparks.life ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -619,10 +696,13 @@ namespace megaspark279
 		PrimArg arg;
 		ComposeAffineTransform(&Camera(), &p->m, &arg.m);
 		arg.morph = TexBase() + BUF_Morph;
-		arg.depth = -0x80;
+		arg.depth = P().hits.depth;
 		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_prim(p, &arg);)
-		return prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
+		FX_PART(PART_HITS);
+		const int playing = prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0);
+		FX_PART(0);
+		return playing ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -638,24 +718,24 @@ namespace megaspark279
 		{
 			if (b->dst[1] < 0)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				if (!s) return;
 				*(uint32_t *)&s->pos[0] = *(const uint32_t *)&b->dst[0];
 				*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->dst[2];
 				s->frame = 0;
 				return;
 			}
-			p = (PrimNode *)AddTaskToQueue(QPrimB(), ORIG_PrimTask);
+			p = (PrimNode *)AddTaskToQueue(QPrimB(), own::Fn(ORIG_PrimTask));
 			if (!p) return;
-			DecodeModelPrimLayout(MODEL_Hit, p->layout, 0x88);
-			scale = (CrtRand() & 0xFFF) + 0x800;
+			DecodeModelPrimLayout(fxp::layout(P().layouts.hit, MODEL_Hit, 0x88), p->layout, 0x88);
+			scale = Roll(P().hits.scale, CrtRand());
 		}
 		else
 		{
 			if (b->strike == 0) return;
-			p = (PrimNode *)AddTaskToQueue(QPrimA(), ORIG_PrimTask);
+			p = (PrimNode *)AddTaskToQueue(QPrimA(), own::Fn(ORIG_PrimTask));
 			if (!p) return;
-			DecodeModelPrimLayout(MODEL_Strike, p->layout, 0x110);
+			DecodeModelPrimLayout(fxp::layout(P().layouts.strike, MODEL_Strike, 0x110), p->layout, 0x110);
 		}
 		const uint8_t *caster = Caster();
 		int32_t v[3] = { (int32_t)b->dst[0] - *(const int16_t *)(caster + 0x1C), 0, (int32_t)b->dst[2] - *(const int16_t *)(caster + 0x20) };
@@ -673,21 +753,22 @@ namespace megaspark279
 	static uint32_t __cdecl BoltTask(TaskNode *n)
 	{
 		BoltNode *b = (BoltNode *)n;
-		for (int step = 8; step; step--)
+		const auto &B = P().bolts;
+		for (int step = B.steps; step > 0; step--)
 		{
 			if (b->t >= 0x1000) continue;
 			b->cur[0] = (int16_t)(b->cur[0] + b->dir[0]);
 			b->t = (int16_t)(b->dt + b->t);
 			b->cur[1] = (int16_t)(b->cur[1] + b->dir[1]);
 			b->cur[2] = (int16_t)(b->cur[2] + b->dir[2]);
-			b->dir[0] = (int16_t)(b->dir[0] + ((Lcg() & 0x7F) - 0x40));
-			b->dir[1] = (int16_t)(b->dir[1] + ((Lcg() & 0x7F) - 0x40));
-			b->dir[2] = (int16_t)(b->dir[2] + ((Lcg() & 0x7F) - 0x40));
-			if (Lcg() < 0x1000)
+			b->dir[0] = (int16_t)(b->dir[0] + Roll(B.drift, Lcg()));
+			b->dir[1] = (int16_t)(b->dir[1] + Roll(B.drift, Lcg()));
+			b->dir[2] = (int16_t)(b->dir[2] + Roll(B.drift, Lcg()));
+			if (Lcg() < B.jump_chance)
 			{
-				b->cur[0] = (int16_t)(b->cur[0] + ((Lcg() & 0x1FF) - 0x100));
-				b->cur[1] = (int16_t)(b->cur[1] + ((Lcg() & 0x1FF) - 0x100));
-				b->cur[2] = (int16_t)(b->cur[2] + ((Lcg() & 0x1FF) - 0x100));
+				b->cur[0] = (int16_t)(b->cur[0] + Roll(B.jump, Lcg()));
+				b->cur[1] = (int16_t)(b->cur[1] + Roll(B.jump, Lcg()));
+				b->cur[2] = (int16_t)(b->cur[2] + Roll(B.jump, Lcg()));
 			}
 			int16_t pt[4];
 			if (b->t >= 0x1000)
@@ -722,18 +803,18 @@ namespace megaspark279
 			GteGPF();
 			b->count++;
 			GteStoreIR123((void *)(p + 8));
-			if (b->t >= 0xC00) continue;
-			if (Lcg() >= shl32(b->branches, 13)) continue;
+			if (b->t >= B.branch_until) continue;
+			if (Lcg() >= mul32(b->branches, B.branch_chance)) continue;
 			int16_t nd[4], nv[4];
-			nd[0] = (int16_t)((Lcg() & 0xFFF) + b->dst[0] - 0x800);
-			nd[1] = (int16_t)((Lcg() & 0x7FF) + b->dst[1] - 0x400);
-			nd[2] = (int16_t)((Lcg() & 0x1FF) + b->dst[2] + 0x100);
-			nv[0] = (int16_t)((Lcg() & 0x1FF) + b->dir[0] - 0x100);
-			nv[1] = (int16_t)((Lcg() & 0x1FF) + b->dir[1] - 0x100);
-			nv[2] = (int16_t)((Lcg() & 0x1FF) + b->dir[2] - 0x100);
+			nd[0] = (int16_t)(Roll(B.branch_x, Lcg()) + b->dst[0]);
+			nd[1] = (int16_t)(Roll(B.branch_y, Lcg()) + b->dst[1]);
+			nd[2] = (int16_t)(Roll(B.branch_z, Lcg()) + b->dst[2]);
+			nv[0] = (int16_t)(Roll(B.branch_vel, Lcg()) + b->dir[0]);
+			nv[1] = (int16_t)(Roll(B.branch_vel, Lcg()) + b->dir[1]);
+			nv[2] = (int16_t)(Roll(B.branch_vel, Lcg()) + b->dir[2]);
 			nd[3] = 0;   // copied into the branch's dst 4th word, then replaced by its dt
 			nv[3] = 0;   // copied into the branch's dir 4th word, then replaced by its branches
-			const uint32_t q = SpawnBolt(nv, pt, nd, b->bend, -1, b->t, 0x200, 0, -1);
+			const uint32_t q = SpawnBolt(nv, pt, nd, b->bend, -1, b->t, B.branch_dt, 0, -1);
 			if (q)
 			{
 				U32(q, 8) = U32(p, 8);
@@ -750,7 +831,7 @@ namespace megaspark279
 				S16(p, 0x20) = (int16_t)(S16(p, 0x20) + S16(p, 0x22));
 				if (S16(p, 0x20) <= 0) S16(p, 0x20) = 0;
 				else if (S16(p, 0xE) != 0 && S16(p, 0x22) <= 0) S16(p, 0xE) = (int16_t)(S16(p, 0xE) - 1);
-				else if (S16(p, 0x22) > -0x180) S16(p, 0x22) = (int16_t)(S16(p, 0x22) - 0x140);
+				else if (S16(p, 0x22) > P().points.fall_min) S16(p, 0x22) = (int16_t)(S16(p, 0x22) - P().points.fall);
 			}
 			p = U32(p, 0x24);
 		} while (p);
@@ -765,7 +846,9 @@ namespace megaspark279
 		} while (p);
 		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_bolt(b);)
+		FX_PART(PART_BOLTS);
 		if (b->count >= 2) BoltRibbon(b->head, b->count);
+		FX_PART(0);
 		p = b->head;
 		do
 		{
@@ -797,7 +880,7 @@ namespace megaspark279
 	// 0x6804B0: an arc of the caster's skeleton from the triangle row / anchor `from` to the bone offset `to`
 	static void SpawnArc(uint32_t model, uint32_t from, uint32_t to, uint8_t anchor, uint8_t amp_shift, uint8_t fade_shift)
 	{
-		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), ORIG_ArcTask);
+		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), own::Fn(ORIG_ArcTask));
 		if (!a) return;
 		a->amp_shift = amp_shift;
 		a->fade_shift = fade_shift;
@@ -809,7 +892,7 @@ namespace megaspark279
 		a->model = model;
 		for (int k = 0; k < 8; k++)
 		{
-			a->bright[k][0] = 0x80;
+			a->bright[k][0] = P().arcs.bright;
 			a->bright[k][1] = 0;
 		}
 	}
@@ -873,7 +956,7 @@ namespace megaspark279
 			GteLoadV0(a->off);
 			GteMVMVA_RotV0Tr();
 			GteStoreIR123(p2);
-			amp = 0x800;
+			amp = P().arcs.anchor_amp;
 		}
 		const uint32_t b = (uint32_t)FieldAlloc(0x80);
 		U32(b, 0) = *(const uint32_t *)&c[0];
@@ -913,14 +996,16 @@ namespace megaspark279
 		}
 		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_arc(a, b, ArcResidue());)
+		FX_PART(PART_ARCS);
 		ArcDraw(b, ArcResidue());
+		FX_PART(0);
 		FieldFree(0x80);
-		if (a->counter >= 0xA)
+		if (a->counter >= P().arcs.fade_from)
 		{
 			int32_t lit = 0;
 			for (int k = 0; k < 8; k++)
 			{
-				const int32_t dec = (0x1400 - S16(TexBase(), BUF_Profile + 2 * k)) >> a->fade_shift;
+				const int32_t dec = (P().arcs.fade_base - S16(TexBase(), BUF_Profile + 2 * k)) >> a->fade_shift;
 				a->bright[k][0] = (int16_t)(a->bright[k][0] - dec);
 				if (a->bright[k][0] < 0) a->bright[k][0] = 0;
 				else lit++;
@@ -936,81 +1021,87 @@ namespace megaspark279
 	// ------------------------------------------------------------------
 	static void ArcSet(uint32_t from_or_table, uint32_t to, uint8_t anchor, uint8_t amp_shift)
 	{
-		SpawnArc(U32((uint32_t)Caster(), 0x64), from_or_table, to, anchor, amp_shift, 7);
+		SpawnArc(U32((uint32_t)Caster(), 0x64), from_or_table, to, anchor, amp_shift, (uint8_t)P().arcs.fade_shift);
 	}
 
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
 		*(Caster() + 1) |= 0x10;
-		*(int16_t *)(Caster() + 0xC) = 0x80;
+		*(int16_t *)(Caster() + 0xC) = P().approach.tilt;
 		PrimArg arg;
 		arg.depth = 0;   // (written before every play)
 		arg.morph = 0;
 		int32_t c = m->counter;
-		if ((uint32_t)c < 0x20)
+		const int32_t ticks = P().approach.ticks;
+		if (ticks > 0 && (uint32_t)c < (uint32_t)ticks)
 		{
 			const int16_t saved = (int16_t)m->saved20;
-			const uint32_t d = ((uint32_t)((int32_t)saved - (int32_t)m->mean + 0x1388) * (uint32_t)c) >> 5;
+			const uint32_t d = ((uint32_t)((int32_t)saved - (int32_t)m->mean + P().approach.stop) * (uint32_t)c) / (uint32_t)ticks;
 			*(int16_t *)(Caster() + 0x20) = (int16_t)(saved - (int16_t)d);
-			*(int16_t *)(Caster() + 0xC) = (int16_t)(((uint32_t)c << 7) >> 5);
-			if ((uint32_t)c >= 0xF && (uint32_t)c < 0x1F)
-			{
-				if (c == 0xF)
-					for (int i = 2; i >= 0; i--) DecodeModelPrimLayout(MODEL_Ring, m->ring[i], 0x148);
-				arg.depth = -0x80;
-				arg.morph = TexBase() + BUF_Morph;
-				for (int i = 2; i >= 0; i--)
-				{
-					BonePoint((const int16_t *)(ANCHOR_0 + 8 * i), arg.m.t);
-					RotX(*(const int16_t *)(Caster() + 0xC), &arg.m);
-					ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-					// 30 fps layer: see mag279_mega_spark_held.inc
-					FX_HELD(held_note_main(m, REC_RING, i, &arg);)
-					prim::play((prim::Layout *)m->ring[i], PrimCallback, (int)&arg, 0);
-				}
-			}
-			if ((c & 3) == 0)
-			{
-				const uint32_t row = (((uint32_t)c >> 2) & 7) * 0x18;
-				ArcSet(TRI_Rows + row, ANCHOR_0, 0, 0xC);
-				ArcSet(TRI_Rows + 0xC0 + row, ANCHOR_0 + 8, 0, 0xC);
-				ArcSet(TRI_Rows + 0x180 + row, ANCHOR_0 + 0x10, 0, 0xC);
-			}
+			*(int16_t *)(Caster() + 0xC) = (int16_t)(((uint32_t)c * (uint32_t)(int32_t)P().approach.tilt) / (uint32_t)ticks);
 		}
-		c = m->counter - 0x14;
-		if ((uint32_t)c < 0x28)
+		if (c >= P().rings.from && c <= P().rings.until)
 		{
-			if ((uint32_t)c >= 4)
+			if (c == P().rings.from)
+				for (int i = 2; i >= 0; i--) DecodeModelPrimLayout(fxp::layout(P().layouts.ring, MODEL_Ring, 0x148), m->ring[i], 0x148);
+			arg.depth = P().rings.depth;
+			arg.morph = TexBase() + BUF_Morph;
+			FX_PART(PART_RINGS);
+			for (int i = 2; i >= 0; i--)
 			{
-				if (c == 4) DecodeModelPrimLayout(MODEL_Orb, m->orb, 0x734);
-				BonePoint((const int16_t *)POINT_Orb, arg.m.t);
-				RotY(0, &arg.m);
+				BonePoint((const int16_t *)(Anchors() + 8 * i), arg.m.t);
+				RotX(*(const int16_t *)(Caster() + 0xC), &arg.m);
 				ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-				arg.morph = TexBase() + BUF_Morph;
-				arg.depth = -0x80;
 				// 30 fps layer: see mag279_mega_spark_held.inc
-				FX_HELD(held_note_main(m, REC_ORB, 0, &arg);)
-				prim::play((prim::Layout *)m->orb, PrimCallback, (int)&arg, 0);
+				FX_HELD(held_note_main(m, REC_RING, i, &arg);)
+				prim::play((prim::Layout *)m->ring[i], PrimCallback, (int)&arg, 0);
 			}
-			if ((c & 7) == 0)
-			{
-				ArcSet(ANCHOR_0, POINT_Orb, 1, 0xE);
-				ArcSet(ANCHOR_0 + 8, POINT_Orb, 1, 0xE);
-				ArcSet(ANCHOR_0 + 0x10, POINT_Orb, 1, 0xE);
-			}
+			FX_PART(0);
 		}
-		c = m->counter - 0x28;
-		if ((uint32_t)c < 0xF)
+		const int32_t every = P().arcs.every;
+		if (every > 0 && c <= P().arcs.until && c % every == 0)
+		{
+			const uint32_t row = (((uint32_t)c / (uint32_t)every) & 7) * 0x18;
+			const uint8_t amp = (uint8_t)P().arcs.amp_shift;
+			ArcSet(Triangles() + row, Anchors(), 0, amp);
+			ArcSet(Triangles() + 0xC0 + row, Anchors() + 8, 0, amp);
+			ArcSet(Triangles() + 0x180 + row, Anchors() + 0x10, 0, amp);
+		}
+		if (c >= P().orb.from && c <= P().orb.until)
+		{
+			if (c == P().orb.from) DecodeModelPrimLayout(fxp::layout(P().layouts.orb, MODEL_Orb, 0x734), m->orb, 0x734);
+			BonePoint((const int16_t *)OrbPoint(), arg.m.t);
+			RotY(0, &arg.m);
+			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
+			arg.morph = TexBase() + BUF_Morph;
+			arg.depth = P().orb.depth;
+			// 30 fps layer: see mag279_mega_spark_held.inc
+			FX_HELD(held_note_main(m, REC_ORB, 0, &arg);)
+			FX_PART(PART_ORB);
+			prim::play((prim::Layout *)m->orb, PrimCallback, (int)&arg, 0);
+			FX_PART(0);
+		}
+		const int32_t orb_every = P().arcs.orb_every;
+		if (orb_every > 0 && c >= P().arcs.orb_from && c <= P().arcs.orb_until && (c - P().arcs.orb_from) % orb_every == 0)
+		{
+			const uint8_t amp = (uint8_t)P().arcs.orb_amp_shift;
+			ArcSet(Anchors(), OrbPoint(), 1, amp);
+			ArcSet(Anchors() + 8, OrbPoint(), 1, amp);
+			ArcSet(Anchors() + 0x10, OrbPoint(), 1, amp);
+		}
+		if (m->counter == P().fades.flash.tick) FadeAt(P().fades.flash);
+		c = m->counter - P().bolts.first;
+		if ((uint32_t)c < (uint32_t)P().bolts.count)
 		{
 			uint8_t *tgt = m->targets[(uint32_t)c % (uint32_t)(int32_t)m->ntargets];
-			if (c == 0) ScreenFadeTask(0, 1, 2, 0x80);
 			int32_t tmp[3];
-			BonePoint((const int16_t *)POINT_Orb, tmp);
+			BonePoint((const int16_t *)OrbPoint(), tmp);
 			int16_t src[4] = { (int16_t)tmp[0], (int16_t)tmp[1], (int16_t)tmp[2], (int16_t)MainSrcPad() };
 			int16_t dst[4] = { 0, 0, 0, 0 };   // 4th word: replaced by the bolt's dt
 			int16_t strike;
-			if ((uint32_t)c >= 4 && (uint32_t)c <= (uint32_t)((int32_t)m->ntargets + 4))
+			const int32_t from = P().bolts.strike_from;
+			if ((uint32_t)c >= (uint32_t)from && (uint32_t)c <= (uint32_t)((int32_t)m->ntargets + from))
 			{
 				strike = 1;
 				GetDefaultEffectPosition(tgt, dst);
@@ -1022,30 +1113,55 @@ namespace megaspark279
 				GetEffectSpawnPosition(tgt, mul32(r, ***(const uint8_t *const *const *)(tgt + 0x64)) >> 15, 0, dst);
 			}
 			int16_t vel[4];
-			vel[0] = (int16_t)((CrtRand() & 0xFF) - 0x80);
-			vel[1] = (int16_t)(-0x40 - (CrtRand() & 0x7F));
-			vel[2] = (int16_t)((CrtRand() & 0x3F) + 0x40);
+			vel[0] = (int16_t)Roll(P().bolts.vel_x, CrtRand());
+			vel[1] = (int16_t)(-P().bolts.rise - Below(P().bolts.rise_rand, CrtRand()));
+			vel[2] = (int16_t)Roll(P().bolts.vel_z, CrtRand());
 			vel[3] = 0;   // replaced by the bolt's branches
-			SpawnBolt(vel, src, dst, nullptr, 0, 0, 0x200, strike, 2);
+			SpawnBolt(vel, src, dst, nullptr, 0, 0, P().bolts.dt, strike, P().bolts.branches);
 		}
-		if (m->counter == 0) BdPlaySE(SOUND_Spark, 0, 0x80);
-		if (m->counter == 0x30) ScreenFadeTask(0, 1, 0, 0x80);
-		else if (m->counter == 0x32) ScreenFadeTask(0, 1, 0, 0x40);
-		else if (m->counter == 0x3A) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		const int32_t e = 0x55 - m->counter;
-		if ((uint32_t)e < 0x10)
+		if (m->counter == P().director.sound) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND_Spark), 0, 0x80);
+		if (m->counter == P().fades.white.tick) FadeAt(P().fades.white);
+		if (m->counter == P().fades.dim.tick) FadeAt(P().fades.dim);
+		if (m->counter == P().director.damage) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+		const int32_t back = P().approach.back_ticks;
+		const int32_t e = P().director.end - m->counter;
+		if (back > 0 && (uint32_t)e < (uint32_t)back)
 		{
 			const int16_t saved = (int16_t)m->saved20;
-			const uint32_t d = ((uint32_t)((int32_t)saved - (int32_t)m->mean + 0x1388) * (uint32_t)e) >> 4;
+			const uint32_t d = ((uint32_t)((int32_t)saved - (int32_t)m->mean + P().approach.stop) * (uint32_t)e) / (uint32_t)back;
 			*(int16_t *)(Caster() + 0x20) = (int16_t)(saved - (int16_t)d);
-			*(int16_t *)(Caster() + 0xC) = (int16_t)(((uint32_t)e << 7) >> 4);
+			*(int16_t *)(Caster() + 0xC) = (int16_t)(((uint32_t)e * (uint32_t)(int32_t)P().approach.tilt) / (uint32_t)back);
 		}
 		m->counter++;
-		if (m->counter < 0x55) return 0;
+		if (m->counter < P().director.end) return 0;
 		*(uint16_t *)Caster() &= 0xEFFF;
 		*(int16_t *)(Caster() + 0xC) = 0;
 		*(int16_t *)(Caster() + 0x20) = (int16_t)m->saved20;
 		return TASK_END;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x67EFE0) and setup (0x67EFD0 -> _Init 0x67F000): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the module LCG's seed, the cast and its caster's entity, the
+	// master (it sets up the rest), the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Seed() = (uint32_t)CrtRand();
+		Ctx() = ctx;
+		Caster() = (uint8_t *)(0x1D972C0 + 0x9C * ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x25080F0), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA_ANIM));
+		return QMaster();
 	}
 
 	// ------------------------------------------------------------------
@@ -1078,7 +1194,7 @@ namespace megaspark279
 			InitTaskQueuePool(QPrimA(), (void *)(TexBase() + POOL_PrimA), 0x13C, 3);
 			InitTaskQueuePool(QPrimB(), (void *)(TexBase() + POOL_PrimB), 0x13C, 0x10);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x14, 0x10);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x2CA);
 			for (int32_t k = 0; k < 8; k++)
 				S16(TexBase(), BUF_Profile + 2 * k) = (int16_t)ComputeSin(shl32(k, 11) / 7);
@@ -1116,15 +1232,159 @@ namespace megaspark279
 		mn->counter++;
 		return 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The main task's timeline: the caster moves toward the targets leaning forward and back at the end, the sound, the screen fades, the damage (every target of action 0), the end" },
+			{ PART_RINGS, "rings", "Rings", "A ring layout at each of the caster's three anchor points, leaning with it" },
+			{ PART_ORB, "orb", "Orb", "The orb layout at the caster's orb point" },
+			{ PART_ARCS, "arcs", "Arcs", "Electric arcs (screen-space ribbons, jittered): over the caster's body from triangles of its skeleton to the anchor points, then from the anchor points to the orb point; each fades out after a while" },
+			{ PART_BOLTS, "bolts", "Bolts", "Lightning bolts from the orb point to the targets in turn: a ribbon of points drifting and jumping at random, growing branches, its points fading" },
+			{ PART_HITS, "hits", "Strikes and hits", "A strike layout where a striking bolt ends, a hit layout where a branch ends at or below the ground" },
+			{ PART_SPARKS, "sparks", "Sparks", "A spark where a branch ends above the ground" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "fades.flash", "Flash", "A screen fade with the first bolt" },
+			{ "fades.white", "Fade", "A screen fade" },
+			{ "fades.dim", "Fade out", "A screen fade" },
+			{ "bolts.vel_x", "Velocity x", "A bolt's start velocity's x, at random" },
+			{ "bolts.vel_z", "Velocity z", "A bolt's start velocity's z, at random" },
+			{ "bolts.drift", "Drift", "Added to a bolt's velocity each step, at random" },
+			{ "bolts.jump", "Jump", "A jump aside, at random" },
+			{ "bolts.bend", "Bend", "The points' drift, at random" },
+			{ "bolts.branch_x", "Branch end x", "A branch's end x, at random" },
+			{ "bolts.branch_y", "Branch end y", "A branch's end y, at random" },
+			{ "bolts.branch_z", "Branch end z", "A branch's end z, at random" },
+			{ "bolts.branch_vel", "Branch velocity", "A branch's velocity, at random" },
+			{ "hits.scale", "Hit scale", "A hit's size, at random" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the main task's sound tick", (uint32_t)offsetof(MegaSparkParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "director.sound", "Sound tick", "The sound at this tick of the main task", (uint32_t)offsetof(MegaSparkParams, director.sound), fxp::I16, -1, 300 },
+			{ "director", "director.damage", "Damage tick", "The damage (every target of action 0) at this tick", (uint32_t)offsetof(MegaSparkParams, director.damage), fxp::I16, -1, 300 },
+			{ "director", "director.end", "End tick", "The main task's last tick + 1: the caster is back in place (the effect ends once its arcs have too)", (uint32_t)offsetof(MegaSparkParams, director.end), fxp::I16, 1, 300 },
+			{ "director", "fades.flash.tick", "Flash tick", "A screen fade at this tick (with the first bolt)", (uint32_t)offsetof(MegaSparkParams, fades.flash.tick), fxp::I16, -1, 300 },
+			{ "director", "fades.flash.a", "Flash: first", "ScreenFadeTask's first value", (uint32_t)offsetof(MegaSparkParams, fades.flash.a), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.flash.b", "Flash: second", "Its second value", (uint32_t)offsetof(MegaSparkParams, fades.flash.b), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.flash.c", "Flash: third", "Its third value (the game's mode)", (uint32_t)offsetof(MegaSparkParams, fades.flash.c), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.flash.d", "Flash: level", "Its fourth value (the game's level, 128 = full)", (uint32_t)offsetof(MegaSparkParams, fades.flash.d), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.white.tick", "Fade tick", "A screen fade at this tick", (uint32_t)offsetof(MegaSparkParams, fades.white.tick), fxp::I16, -1, 300 },
+			{ "director", "fades.white.a", "Fade: first", "ScreenFadeTask's first value", (uint32_t)offsetof(MegaSparkParams, fades.white.a), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.white.b", "Fade: second", "Its second value", (uint32_t)offsetof(MegaSparkParams, fades.white.b), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.white.c", "Fade: third", "Its third value (the game's mode)", (uint32_t)offsetof(MegaSparkParams, fades.white.c), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.white.d", "Fade: level", "Its fourth value (the game's level, 128 = full)", (uint32_t)offsetof(MegaSparkParams, fades.white.d), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.dim.tick", "Fade out tick", "A screen fade at this tick", (uint32_t)offsetof(MegaSparkParams, fades.dim.tick), fxp::I16, -1, 300 },
+			{ "director", "fades.dim.a", "Fade out: first", "ScreenFadeTask's first value", (uint32_t)offsetof(MegaSparkParams, fades.dim.a), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.dim.b", "Fade out: second", "Its second value", (uint32_t)offsetof(MegaSparkParams, fades.dim.b), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.dim.c", "Fade out: third", "Its third value (the game's mode)", (uint32_t)offsetof(MegaSparkParams, fades.dim.c), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "fades.dim.d", "Fade out: level", "Its fourth value (the game's level, 128 = full)", (uint32_t)offsetof(MegaSparkParams, fades.dim.d), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "approach.ticks", "Approach ticks", "On the main task's first ticks the caster moves toward the targets and leans forward", (uint32_t)offsetof(MegaSparkParams, approach.ticks), fxp::I16, 0, 300 },
+			{ "director", "approach.back_ticks", "Back ticks", "On its last ticks it moves back and straightens", (uint32_t)offsetof(MegaSparkParams, approach.back_ticks), fxp::I16, 0, 300 },
+			{ "director", "approach.stop", "Stop short", "It stops this far short of the targets' mean depth", (uint32_t)offsetof(MegaSparkParams, approach.stop), fxp::I16, -0x8000, 0x7FFF },
+			{ "director", "approach.tilt", "Lean", "Its lean (an x angle) when it is there (4096 = a full turn)", (uint32_t)offsetof(MegaSparkParams, approach.tilt), fxp::I16, -0x8000, 0x7FFF, fxp::Angle },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(MegaSparkParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(MegaSparkParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "rings", "layouts.ring", "Ring", "The prim-model layout ring at each of the caster's three anchor points, leaning with it (its models' animation)", (uint32_t)offsetof(MegaSparkParams, layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "rings", "rings.from", "From", "From this tick of the main task (the layout starts over then)", (uint32_t)offsetof(MegaSparkParams, rings.from), fxp::I16, 0, 300 },
+			{ "rings", "rings.until", "Until", "Until this tick", (uint32_t)offsetof(MegaSparkParams, rings.until), fxp::I16, -1, 300 },
+			{ "rings", "rings.depth", "Depth", "Their depth offset (the prim header's +0x18)", (uint32_t)offsetof(MegaSparkParams, rings.depth), fxp::I16, -0x8000, 0x7FFF },
+			{ "rings", "tables.anchors", "Anchor points", "The caster's three anchor points: an offset (x, y, z) on a bone each (24 bytes: x, y, z, bone; an edited one keeps its length)", (uint32_t)offsetof(MegaSparkParams, tables.anchors), fxp::Data, 0, 0x7FFFFFFF },
+			{ "orb", "layouts.orb", "Orb", "The prim-model layout orb at the caster's orb point (its models' animation)", (uint32_t)offsetof(MegaSparkParams, layouts.orb), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "orb", "orb.from", "From", "From this tick of the main task (the layout starts then)", (uint32_t)offsetof(MegaSparkParams, orb.from), fxp::I16, 0, 300 },
+			{ "orb", "orb.until", "Until", "Until this tick", (uint32_t)offsetof(MegaSparkParams, orb.until), fxp::I16, -1, 300 },
+			{ "orb", "orb.depth", "Depth", "Its depth offset", (uint32_t)offsetof(MegaSparkParams, orb.depth), fxp::I16, -0x8000, 0x7FFF },
+			{ "orb", "tables.orb_point", "Orb point", "The orb point: an offset (x, y, z) on a bone of the caster - the bolts start there (8 bytes: x, y, z, bone; an edited one keeps its length)", (uint32_t)offsetof(MegaSparkParams, tables.orb_point), fxp::Data, 0, 0x7FFFFFFF },
+			{ "arcs", "arcs.every", "Body arcs every", "Three arcs over the caster's body (from a triangle of each set to its anchor point) every this many ticks", (uint32_t)offsetof(MegaSparkParams, arcs.every), fxp::I16, 0, 300 },
+			{ "arcs", "arcs.until", "Body arcs until", "Up to this tick (each next one takes the next triangle row of its set: 8 rows)", (uint32_t)offsetof(MegaSparkParams, arcs.until), fxp::I16, -1, 300 },
+			{ "arcs", "arcs.amp_shift", "Body arcs bend", "How far a body arc bows out: its length >> this", (uint32_t)offsetof(MegaSparkParams, arcs.amp_shift), fxp::I16, 0, 31 },
+			{ "arcs", "arcs.orb_from", "Orb arcs from", "Three arcs from the anchor points to the orb point from this tick", (uint32_t)offsetof(MegaSparkParams, arcs.orb_from), fxp::I16, 0, 300 },
+			{ "arcs", "arcs.orb_until", "Orb arcs until", "Until this tick", (uint32_t)offsetof(MegaSparkParams, arcs.orb_until), fxp::I16, -1, 300 },
+			{ "arcs", "arcs.orb_every", "Orb arcs every", "Every this many ticks", (uint32_t)offsetof(MegaSparkParams, arcs.orb_every), fxp::I16, 0, 300 },
+			{ "arcs", "arcs.orb_amp_shift", "Orb arcs bend", "Kept on each orb arc, never read: an orb arc is straight, its jitter is Orb arcs jitter (no change shows)", (uint32_t)offsetof(MegaSparkParams, arcs.orb_amp_shift), fxp::I16, 0, 31 },
+			{ "arcs", "arcs.anchor_amp", "Orb arcs jitter", "The orb arcs' jitter size (a body arc's is its length)", (uint32_t)offsetof(MegaSparkParams, arcs.anchor_amp), fxp::I16, -0x8000, 0x7FFF },
+			{ "arcs", "arcs.bright", "Brightness", "An arc's brightness when it starts (128 = the texture's)", (uint32_t)offsetof(MegaSparkParams, arcs.bright), fxp::I16, 0, 255 },
+			{ "arcs", "arcs.fade_from", "Fade from", "From this tick of its own an arc fades (its ends faster) and ends when one point is left lit", (uint32_t)offsetof(MegaSparkParams, arcs.fade_from), fxp::I16, 0, 255 },
+			{ "arcs", "arcs.fade_base", "Fade", "A point's fade a tick: (this - its profile) >> Fade shift", (uint32_t)offsetof(MegaSparkParams, arcs.fade_base), fxp::I16, -0x8000, 0x7FFF },
+			{ "arcs", "arcs.fade_shift", "Fade shift", "(the game's 7)", (uint32_t)offsetof(MegaSparkParams, arcs.fade_shift), fxp::I16, 0, 31 },
+			{ "arcs", "arcs.width", "Width", "The ribbon's half width on screen: this / (depth + Width depth)", (uint32_t)offsetof(MegaSparkParams, arcs.width), fxp::I32, 0, 0x7FFFFFFF },
+			{ "arcs", "arcs.width_depth", "Width depth", "(its depth offset)", (uint32_t)offsetof(MegaSparkParams, arcs.width_depth), fxp::I32, -32768, 0x7FFFFFFF },
+			{ "arcs", "ribbon.clut", "Ribbon palette", "The arcs' and bolts' ribbon quads: their palette (CLUT word)", (uint32_t)offsetof(MegaSparkParams, ribbon.clut), fxp::I16, 0, 0x7FFF },
+			{ "arcs", "ribbon.tpage", "Ribbon page", "Their texture page word", (uint32_t)offsetof(MegaSparkParams, ribbon.tpage), fxp::I16, 0, 0x7FFF },
+			{ "arcs", "ribbon.u_left", "Ribbon u left", "The texture's u across the ribbon: on its one side", (uint32_t)offsetof(MegaSparkParams, ribbon.u_left), fxp::U8, 0, 255 },
+			{ "arcs", "ribbon.u_right", "Ribbon u right", "On its other side", (uint32_t)offsetof(MegaSparkParams, ribbon.u_right), fxp::U8, 0, 255 },
+			{ "arcs", "ribbon.v_from", "Ribbon v from", "The texture's v at a quad's first point", (uint32_t)offsetof(MegaSparkParams, ribbon.v_from), fxp::U8, 0, 255 },
+			{ "arcs", "ribbon.v_to", "Ribbon v to", "At its next point", (uint32_t)offsetof(MegaSparkParams, ribbon.v_to), fxp::U8, 0, 255 },
+			{ "arcs", "tables.triangles", "Triangle rows", "The body arcs' starts: three sets of 8 triangles on the caster's bones, each three offsets (x, y, z, bone) - an arc leaves its centre along its normal (576 bytes; an edited one keeps its length)", (uint32_t)offsetof(MegaSparkParams, tables.triangles), fxp::Data, 0, 0x7FFFFFFF },
+			{ "bolts", "bolts.first", "First tick", "A bolt a tick from the orb point to the targets in turn from this tick of the main task", (uint32_t)offsetof(MegaSparkParams, bolts.first), fxp::I16, 0, 300 },
+			{ "bolts", "bolts.count", "Count", "This many (48 at most at once, branches included)", (uint32_t)offsetof(MegaSparkParams, bolts.count), fxp::I16, 0, 48 },
+			{ "bolts", "bolts.strike_from", "Strikes from", "The bolts from this one on (as many as the targets, + 1) strike each target's effect point and leave a strike layout; the others a random bone of it", (uint32_t)offsetof(MegaSparkParams, bolts.strike_from), fxp::I16, 0, 300 },
+			{ "bolts", "bolts.dt", "Speed", "Its progress a step (4096 = there)", (uint32_t)offsetof(MegaSparkParams, bolts.dt), fxp::I16, 1, 0x7FFF },
+			{ "bolts", "bolts.branches", "Branches", "How many branches it may grow (a branch grows none)", (uint32_t)offsetof(MegaSparkParams, bolts.branches), fxp::I16, 0, 16 },
+			{ "bolts", "bolts.steps", "Steps a tick", "Its steps (points) a tick", (uint32_t)offsetof(MegaSparkParams, bolts.steps), fxp::I16, 0, 100 },
+			{ "bolts", "bolts.rise", "Rise", "Its start velocity's y: -this - a random below Rise random", (uint32_t)offsetof(MegaSparkParams, bolts.rise), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.rise_rand", "Rise random", "(the random's span)", (uint32_t)offsetof(MegaSparkParams, bolts.rise_rand), fxp::I16, 0, 0x7FFF },
+			{ "bolts", "bolts.vel_x.min", "Velocity x", "Its start velocity's x, at random: from", (uint32_t)offsetof(MegaSparkParams, bolts.vel_x.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.vel_x.max", "Velocity x to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.vel_x.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.vel_z.min", "Velocity z", "Its start velocity's z, at random: from", (uint32_t)offsetof(MegaSparkParams, bolts.vel_z.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.vel_z.max", "Velocity z to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.vel_z.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.drift.min", "Drift", "Added to its velocity each step on each axis, at random (the module's LCG): from", (uint32_t)offsetof(MegaSparkParams, bolts.drift.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.drift.max", "Drift to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.drift.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.jump_chance", "Jump chance", "A step jumps aside when the LCG (0..32767) is below this", (uint32_t)offsetof(MegaSparkParams, bolts.jump_chance), fxp::I16, 0, 0x7FFF },
+			{ "bolts", "bolts.jump.min", "Jump", "The jump on each axis, at random: from", (uint32_t)offsetof(MegaSparkParams, bolts.jump.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.jump.max", "Jump to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.jump.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.bend.min", "Bend", "Its points' drift (x the sine of its progress), at random on each axis: from", (uint32_t)offsetof(MegaSparkParams, bolts.bend.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.bend.max", "Bend to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.bend.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_until", "Branch until", "A step may grow a branch until its progress reaches this (4096 = there)", (uint32_t)offsetof(MegaSparkParams, bolts.branch_until), fxp::I16, 0, 0x7FFF },
+			{ "bolts", "bolts.branch_chance", "Branch chance", "When the LCG (0..32767) is below this x its branches left", (uint32_t)offsetof(MegaSparkParams, bolts.branch_chance), fxp::I16, 0, 0x7FFF },
+			{ "bolts", "bolts.branch_x.min", "Branch end x", "A branch's end: the bolt's end + a random on x: from", (uint32_t)offsetof(MegaSparkParams, bolts.branch_x.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_x.max", "Branch end x to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.branch_x.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_y.min", "Branch end y", "On y: from", (uint32_t)offsetof(MegaSparkParams, bolts.branch_y.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_y.max", "Branch end y to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.branch_y.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_z.min", "Branch end z", "On z: from", (uint32_t)offsetof(MegaSparkParams, bolts.branch_z.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_z.max", "Branch end z to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.branch_z.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_vel.min", "Branch velocity", "Its velocity: the bolt's + a random on each axis: from", (uint32_t)offsetof(MegaSparkParams, bolts.branch_vel.min), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_vel.max", "Branch velocity to", "(to)", (uint32_t)offsetof(MegaSparkParams, bolts.branch_vel.max), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "bolts.branch_dt", "Branch speed", "A branch's progress a step", (uint32_t)offsetof(MegaSparkParams, bolts.branch_dt), fxp::I16, 1, 0x7FFF },
+			{ "bolts", "bolts.width", "Width", "The ribbon's half width on screen: this / (depth + Width depth)", (uint32_t)offsetof(MegaSparkParams, bolts.width), fxp::I32, 0, 0x7FFFFFFF },
+			{ "bolts", "bolts.width_depth", "Width depth", "(its depth offset)", (uint32_t)offsetof(MegaSparkParams, bolts.width_depth), fxp::I32, -32768, 0x7FFFFFFF },
+			{ "bolts", "points.bright", "Point brightness", "A new point's brightness (x 16: 2048 = the texture's)", (uint32_t)offsetof(MegaSparkParams, points.bright), fxp::I16, 0, 0x7FFF },
+			{ "bolts", "points.rise", "Point rise", "Added a tick, while it lasts", (uint32_t)offsetof(MegaSparkParams, points.rise), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "points.hold", "Point hold", "Its ticks at full brightness once it stops rising", (uint32_t)offsetof(MegaSparkParams, points.hold), fxp::I16, 0, 255 },
+			{ "bolts", "points.fall", "Point fall", "Then its step falls by this a tick", (uint32_t)offsetof(MegaSparkParams, points.fall), fxp::I16, -0x8000, 0x7FFF },
+			{ "bolts", "points.fall_min", "Point fall to", "Down to this step", (uint32_t)offsetof(MegaSparkParams, points.fall_min), fxp::I16, -0x8000, 0x7FFF },
+			{ "hits", "layouts.strike", "Strike", "The prim-model layout strike where a striking bolt ends (its models' animation)", (uint32_t)offsetof(MegaSparkParams, layouts.strike), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "hits", "layouts.hit", "Hit", "The prim-model layout hit where a branch ends at or below the ground; above it a spark (its models' animation)", (uint32_t)offsetof(MegaSparkParams, layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "hits", "hits.depth", "Depth", "Their depth offset", (uint32_t)offsetof(MegaSparkParams, hits.depth), fxp::I16, -0x8000, 0x7FFF },
+			{ "hits", "hits.scale.min", "Hit scale", "A hit's size, at random: from (4096 = the layout's)", (uint32_t)offsetof(MegaSparkParams, hits.scale.min), fxp::I16, -0x8000, 0x7FFF, fxp::Scale },
+			{ "hits", "hits.scale.max", "Hit scale to", "(to)", (uint32_t)offsetof(MegaSparkParams, hits.scale.max), fxp::I16, -0x8000, 0x7FFF, fxp::Scale },
+			{ "sparks", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 8 frames: an edited one keeps as many; a spark holds its last past it)", (uint32_t)offsetof(MegaSparkParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.life", "Life", "A spark's ticks (a frame a tick)", (uint32_t)offsetof(MegaSparkParams, sparks.life), fxp::I16, 1, 100 },
+			{ "sparks", "sparks.shadow", "Distance", "Its sprite's camera (the shadow-rotation camera): its distance", (uint32_t)offsetof(MegaSparkParams, sparks.shadow), fxp::I16, -0x8000, 0x7FFF },
+			{ "sparks", "sparks.shadow_y", "Height", "Its height", (uint32_t)offsetof(MegaSparkParams, sparks.shadow_y), fxp::I16, -0x8000, 0x7FFF },
+		};
+	}
 }
 
 	void register_mag279_mega_spark()
 	{
+		fxp::register_params({ 279, "Mega Spark", &megaspark279::live, &megaspark279::GAME, sizeof(megaspark279::MegaSparkParams),
+		                       megaspark279::table::PARTS, (int)(sizeof(megaspark279::table::PARTS) / sizeof(megaspark279::table::PARTS[0])),
+		                       megaspark279::table::FIELDS, (int)(sizeof(megaspark279::table::FIELDS) / sizeof(megaspark279::table::FIELDS[0])),
+		                       megaspark279::table::GROUPS, (int)(sizeof(megaspark279::table::GROUPS) / sizeof(megaspark279::table::GROUPS[0])) });
+		own::note(megaspark279::ORIG_FileLoader, (void *)megaspark279::FileLoader);
+		own::note(megaspark279::ORIG_Setup, (void *)megaspark279::Setup);
+		own::note(megaspark279::ORIG_MasterTask, (void *)megaspark279::MasterTask);
 		register_port(megaspark279::ORIG_MasterTask, (void *)megaspark279::MasterTask, "279 MasterTask", 279);
+		own::note(megaspark279::ORIG_MainTask, (void *)megaspark279::MainTask);
 		register_port(megaspark279::ORIG_MainTask, (void *)megaspark279::MainTask, "279 MainTask", 279);
+		own::note(megaspark279::ORIG_BoltTask, (void *)megaspark279::BoltTask);
 		register_port(megaspark279::ORIG_BoltTask, (void *)megaspark279::BoltTask, "279 BoltTask", 279);
+		own::note(megaspark279::ORIG_ArcTask, (void *)megaspark279::ArcTask);
 		register_port(megaspark279::ORIG_ArcTask, (void *)megaspark279::ArcTask, "279 ArcTask", 279);
+		own::note(megaspark279::ORIG_PrimTask, (void *)megaspark279::PrimTask);
 		register_port(megaspark279::ORIG_PrimTask, (void *)megaspark279::PrimTask, "279 PrimTask", 279);
+		own::note(megaspark279::ORIG_SparkTask, (void *)megaspark279::SparkTask);
 		register_port(megaspark279::ORIG_SparkTask, (void *)megaspark279::SparkTask, "279 SparkTask", 279);
 		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(megaspark279::register_mag279_held();)

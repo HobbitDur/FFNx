@@ -84,6 +84,26 @@ namespace ff8fx
 		return 0;
 	}
 
+	// ------------------------------------------------------------------ held-frame bone scales
+	static struct { int effect_id; HeldBoneScaleFn fn; } g_bscale[MODULES_MAX];
+	static int g_nbscale = 0;
+
+	void register_module_bonescale(int effect_id, HeldBoneScaleFn fn)
+	{
+		if (g_nbscale < MODULES_MAX) g_bscale[g_nbscale++] = { effect_id, fn };
+	}
+
+	int held_bonescales(int effect_id, HeldBoneScale *out, int max)
+	{
+		for (int i = 0; i < g_nbscale; i++)
+			if (g_bscale[i].effect_id == effect_id)
+			{
+				const int n = g_bscale[i].fn(out, max);
+				return n < 0 ? 0 : (n > max ? max : n);
+			}
+		return 0;
+	}
+
 	// ------------------------------------------------------------------ held tasks
 	// open-addressed set of task function addresses (the replay asks for every primitive)
 	static const int HELD_TASKS_SIZE = 4096; // power of two, > 2 x the marked tasks (967 marked)

@@ -112,6 +112,16 @@ namespace ff8fx
 	typedef int (*HeldEntityFn)(HeldEntity *out, int max);
 	void register_module_entity(int effect_id, HeldEntityFn fn);
 	int held_entities(int effect_id, HeldEntity *out, int max);
+	// held frame: bone matrices of a battle entity's skeleton that the effect scales in place on its real ticks
+	// (scale3DMatrix 0x56BEF0 on a skeleton record's matrix, after the engine built the matrices from the pose and before
+	// the entity's render: Krysta's counter-attacks 318 / 319). The real frame of tick N renders the bones scaled by what
+	// tick N applied (from); a held frame renders the matrices the engine built since, unscaled: the gate scales each
+	// listed matrix by lerp(from, next, phase / n) (next = what tick N + 1 applies, the effect predicts it; 0x1000 =
+	// unscaled) right before the entity's render and puts the matrix back right after it.
+	struct HeldBoneScale { uint8_t *ent; void *matrix; int32_t from[3], next[3]; };
+	typedef int (*HeldBoneScaleFn)(HeldBoneScale *out, int max);
+	void register_module_bonescale(int effect_id, HeldBoneScaleFn fn);
+	int held_bonescales(int effect_id, HeldBoneScale *out, int max);
 	// module helpers: field c of an entity (nullptr: no state block); an entry for ent (nothing marked);
 	// a discrete change of tick N; a direct translation (9..11) continuous or held
 	inline int16_t *held_entity_field(uint8_t *ent, int c)
