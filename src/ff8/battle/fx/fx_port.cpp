@@ -314,6 +314,7 @@ namespace ff8fx
 		register_mag319_counter_attack();
 		register_mag316_red_giant();
 		register_mag314_abadon();
+		register_mag308_mobile_type8();
 		register_mag176_sand_storm_adamantoise();
 		register_mag157_breath();
 		register_mag158_melt_eye();
