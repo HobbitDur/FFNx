@@ -179,6 +179,7 @@ namespace ff8fx::mod
 	static const Region streams_g311[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_r316[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_a314[] = { { 0x21DFED0, 0x20 }, { 0x1DCD6E4, 0xC } };
+	static const Region streams_m308[] = { { 0x21DFED0, 0x20 }, { 0x1DCD6E4, 0xC } };
 	// Gargantua burrow: the spawn stream pointer in exe data (never put back) + the sprite / shadow-camera engine words
 	static const Region streams_g301[] = { { 0x103DC9C, 4 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	// BGH251F2 destruction: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
@@ -529,6 +530,7 @@ namespace ff8fx::mod
 		{ 319, 0x25053A0, 0x2505418, 0, 0, false, "Counter-attack (Krysta)", streams_c319, 3 },
 		{ 316, 0x2505520, 0x2505578, 0, 0, false, "effect 316 (attack 203, Red Giant)", streams_r316, 1 },
 		{ 314, 0x2505578, 0x25055E0, 0, 0, false, "effect 314 (attack 191, Abadon)", streams_a314, 2 },
+		{ 308, 0x25074D0, 0x2507558, 0, 0, false, "effect 308 (attack 286, Mobile Type 8)", streams_m308, 2 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 		{ 157, 0x23EB5C0, 0x23ECE40, 0, 0, false, "Breath (attack 37, Hexadragon)", streams_b157, 4 },
 		{ 158, 0x23D7B08, 0x23EB5C0, 0, 0, false, "Melt-Eye (attack 36, Hexadragon)", streams_m158, 1 },
