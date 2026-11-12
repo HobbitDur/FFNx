@@ -405,6 +405,9 @@ namespace ff8fx
 	void register_mag151_cannon_blow();
 	void register_mag186_blaster();
 	void register_mag321_ker_plunk();
+	void register_mag301_gargantua_burrow();
+	void register_mag298_bgh251f2_destruction();
+	void register_mag290_trauma_shatter();
 	void register_mag283_magic_summon();
 	void register_mag241_bgh_gatling_gun();
 	void register_mag242_bgh_beam_cannon();
@@ -422,8 +425,14 @@ namespace ff8fx
 	void register_mag237_explosion();
 	void register_mag211_adel_death();
 	void register_mag219_terra_break();
+	void register_mag265_sphinxara_265();
+	void register_mag208_final_sorceress_death();
+	void register_mag264_krysta_264();
+	void register_mag221_apocalypse();
 	void register_mag344_griever_368();
 	void register_mag302_snipe_laser();
+	void register_mag316_red_giant();
+	void register_mag314_abadon();
 	void register_mag176_sand_storm_adamantoise();
 	void register_mag157_breath();
 	void register_mag158_melt_eye();
