@@ -28,6 +28,59 @@
 // Tasks: Controller (the choreography frame: caster flag 0x800, both animation sets, length, trail / spark spawner / hit
 // scheduler, hit spark, Events, flash, tint, sound, the end), HitSpark / Sparkle (hit-effect queue, with a finisher), Trail,
 // SparkSpawn, Hit, Slash, Master and its ParticleDraws, AddSlotTask (the module's SLOTS records).
+// Fujin's programs also run the file loader and the setup (FileLoader / Setup: the game runs its own) and read the
+// parameters (P(): the module's GAME unless edited); Port() notes a port for them and registers it.
+
+	// ------------------------------------------------------------------
+	// Parameters: the live ones (the module's GAME until edited) and the data they name (an edited one when it reads as
+	// one, else the game's)
+	// ------------------------------------------------------------------
+	static RenzoBossParams live = GAME;
+	static const RenzoBossParams &P() { return live; }
+	// a module's own model (by its game address: the parameter in its own[] slot)
+	static uint32_t OwnModel(uint32_t game)
+	{
+		for (int k = 0; k < 4; k++)
+			if (GAME.models.own[k] == game) return fxp::model(P().models.own[k], game);
+		return game;
+	}
+	// the emitters' sprite sequence (by its game address)
+	static uint32_t EmitSeq(uint32_t game) { return game == GAME.seqs.emit ? fxp::sequence(P().seqs.emit, game) : game; }
+	// the hit offsets (8 bytes a hit): the parameter, or the module's own zero table (GAME 0)
+	static uint32_t HitOffs() { return GAME.tables.hit_offs ? fxp::data(P().tables.hit_offs, GAME.tables.hit_offs, 96) : own::R(HIT_OFFS); }
+	static uint32_t AnimSets() { return fxp::anim_set(P().res.anim_sets, ANIM_SETS); }
+
+	// ------------------------------------------------------------------
+	// File loader and setup (not a task): the game runs its own; Fujin's programs these (their memory may be a copy's):
+	// the texture file; the magic buffer, the cast, its first target and its caster, the master and the controller, the
+	// length (4 until the sequence's tick 2), the finisher flag, the three particle pools and SLOTS freed, the camera, the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		var<CastContext *>(own::R(CONTEXT)) = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(MASTER_POOL), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_Master)) + 0xC) = 0;
+		InitTaskQueuePool(QMain(), (void *)own::R(MAIN_POOL), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QMain(), own::Fn(ORIG_Controller)) + 0xC) = 0;
+		Length() = 4;
+		Finisher() = *(const uint16_t *)((const uint8_t *)ctx->actions + 4) == 0xFFFE;
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10) *(int16_t *)a = -1;
+		for (uint32_t a = own::R(SLOTS); a < own::R(SLOTS_END); a += 0x20) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QMaster();
+	}
 
 	// ------------------------------------------------------------------
 	// BindBoth: the animation container's two com-data blocks bound to the caster and to the boss, both sequences
@@ -59,10 +112,10 @@
 	static int32_t FreeRecord()
 	{
 		int32_t i = 0;
-		for (uint32_t a = SLOTS; *(const int32_t *)a != 0; i++)
+		for (uint32_t a = own::R(SLOTS); *(const int32_t *)a != 0; i++)
 		{
 			a += 0x20;
-			if (a >= SLOTS_END) return -1;
+			if (a >= own::R(SLOTS_END)) return -1;
 		}
 		return i >= 100 ? -1 : i;
 	}
@@ -74,7 +127,7 @@
 		const int32_t i = FreeRecord();
 		if (i < 0) return nullptr;
 		Slot(i)->alive = -1;
-		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), orig);
+		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(orig));
 		t->e = (int16_t)i;
 		t->c = 0;
 		return t;
@@ -91,13 +144,13 @@
 	// the trail (its ring cleared), the spark spawner (frame phase rand % 24) and the hit scheduler
 	static void StartTasks()
 	{
-		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Trail);
+		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Trail));
 		t->c = 0;
-		for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
-		t = (Node24 *)AddTaskToQueue(QMain(), ORIG_SparkSpawn);
+		for (uint32_t a = own::R(RING); a < own::R(RING_END); a += 0x14) var<int32_t>(a) = 0;
+		t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_SparkSpawn));
 		t->c = 0;
 		t->e = (int16_t)(CrtRand() % 0x18);
-		t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Hit);
+		t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Hit));
 		t->c = 0;
 	}
 
@@ -116,7 +169,7 @@
 			*flags = (uint16_t)(f | 0x800);
 		}
 #ifndef RENZO_CUSTOM_START
-		if (n->c == 1) BindBoth(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
+		if (n->c == 1) BindBoth(Caster(), Target(), BIND_OUT, AnimSets(), (Finisher() != 0) + 1);
 		if (n->c == 2)
 		{
 			ComputeLength();
@@ -130,7 +183,7 @@
 #endif
 		if (Finisher() != 0 && (int32_t)n->c == Length())
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), ORIG_HitSpark);
+			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), own::Fn(ORIG_HitSpark));
 			t->c = 0;
 			t->w1A = (int16_t)CasterSlot();
 		}
@@ -163,7 +216,7 @@
 			GteDPCS();
 			GteStoreRGB2(Caster() + 0x28);
 		}
-		if (n->c == 1) BdPlaySE(SOUND, 0x8000, 0x80);
+		if (n->c == 1) BdPlaySE((const void *)fxp::sound(P().sound, (uint32_t)SOUND), 0x8000, 0x80);
 #ifdef RENZO_LATE_EVENTS
 		LateEvents(n); // (341: the caster's flag 8 around the finisher)
 #endif
@@ -193,7 +246,7 @@
 			p[1] = h;
 			for (int32_t i = 0; i < 6; i++)
 			{
-				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), ORIG_Sparkle);
+				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), own::Fn(ORIG_Sparkle));
 #ifdef RENZO_HITSPARK_NULLCHECK
 				if (!s) continue; // (343 tests the queue's answer)
 #endif
@@ -287,10 +340,10 @@
 		GteSetRotMatrix(&m1);
 		GteSetTransVector(&m1);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SPARKLE;
+		*(uint32_t *)h = fxp::model(P().models.sparkle, MODEL_SPARKLE);
 		*(uint32_t *)(h + 8) = 0;
-		*(uint32_t *)(h + 0xC) = var<uint16_t>(SPARKLE_FADE + 2 * n->c);
-		*(uint32_t *)(h + 0x18) = var<uint16_t>(SPARKLE_DEPTH + 2 * n->w1C);
+		*(uint32_t *)(h + 0xC) = var<uint16_t>(fxp::data(P().tables.sparkle_fade, SPARKLE_FADE, 16) + 2 * n->c);
+		*(uint32_t *)(h + 0x18) = var<uint16_t>(fxp::data(P().tables.sparkle_depth, SPARKLE_DEPTH, 16) + 2 * n->w1C);
 		*(uint32_t *)(h + 0x1C) = 0x10F3;
 		var<uint32_t>(0x1D8E054) = RenderPrimModel(h, RenderOT(), 2, var<uint32_t>(0x1D8E054));
 		FieldFree(0x58);
@@ -347,8 +400,8 @@
 	// 2nd point) and the unit direction from it to the 1st
 	static void TrailHitPoint(const uint8_t *sb, uint8_t *pos, int32_t *dir)
 	{
-		memcpy((void *)PREV_HIT, pos, 8);
-		memcpy((void *)(PREV_HIT + 8), dir, 16);
+		memcpy((void *)own::R(PREV_HIT), pos, 8);
+		memcpy((void *)(own::R(PREV_HIT) + 8), dir, 16);
 		*(uint32_t *)pos = *(const uint32_t *)(sb + 8);
 		*(uint32_t *)(pos + 4) = *(const uint32_t *)(sb + 0xC);
 		dir[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
@@ -412,21 +465,21 @@
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(own::R(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c < Length() - 7 ? 7 : Length() - c;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)own::R(RING), idx, want, (uint8_t *)own::R(PTS_A), (uint8_t *)own::R(PTS_B));
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
+			TrailSplines(cnt, (const uint8_t *)own::R(PTS_A), (const uint8_t *)own::R(PTS_B), (uint8_t *)own::R(SPL_A), (uint8_t *)own::R(SPL_B));
+			TrailHitPoint((const uint8_t *)own::R(SPL_B), (uint8_t *)own::R(HIT_POS), (int32_t *)own::R(HIT_DIR));
 			// 30 fps layer: see renzo_boss_held.inc
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
+			TrailDraw((const uint8_t *)own::R(SPL_A), (const uint8_t *)own::R(SPL_B), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -445,9 +498,9 @@
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_SPAWN_END, 0x10);
+				const int32_t i = FreeSlot(own::R(POOL_B), own::R(POOL_B_SPAWN_END), 0x10);
 				if (i < 0) break;
-				SparkP *p = (SparkP *)(POOL_B + 0x10 * i);
+				SparkP *p = (SparkP *)(own::R(POOL_B) + 0x10 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
 				const uint8_t *sk = **(uint8_t ***)(Caster() + 0x64);
@@ -464,7 +517,7 @@
 	}
 
 	// ------------------------------------------------------------------
-	// Hits: per hit, a slash, 3 flashes and 12 debris at the trail's hit point + the hit's offset (HIT_OFFS: all zero)
+	// Hits: per hit, a slash, 3 flashes and 12 debris at the trail's hit point + the hit's offset (HitOffs: zero in most)
 	// through the caster's matrix
 	// ------------------------------------------------------------------
 	static uint32_t __cdecl HitTask(TaskNode *tn)
@@ -474,10 +527,10 @@
 		int32_t sum = 0;
 		for (int32_t b = 0; b < (int32_t)StageCount(); b++)
 		{
-			const int32_t lead = var<int32_t>(HIT_LEAD + 4 * b);
+			const int32_t lead = var<int32_t>(fxp::data(P().tables.hit_lead, HIT_LEAD, 48, 4) + 4 * b);
 			sum += StageLen(b);
 			if ((int32_t)n->c != sum - lead) continue;
-			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Slash);
+			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Slash));
 			s->c = 0;
 			s->e = (int16_t)b;
 			const int16_t sc = (int16_t)(CrtRand() % 0x280 + 0x400);
@@ -488,14 +541,14 @@
 			// spark spawner, pushed first: the game executor 0x508420's ebx = the count of tasks kept so far in this pass, a
 			// small number): 0 (as effects 332 / 333).
 			int16_t hp[4];
-			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HIT_OFFS + 8 * b), hp);
-			hp[0] = (int16_t)(hp[0] + var<int16_t>(HIT_POS));
-			hp[1] = (int16_t)(hp[1] + var<int16_t>(HIT_POS + 2));
-			hp[2] = (int16_t)(hp[2] + var<int16_t>(HIT_POS + 4));
+			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HitOffs() + 8 * b), hp);
+			hp[0] = (int16_t)(hp[0] + var<int16_t>(own::R(HIT_POS)));
+			hp[1] = (int16_t)(hp[1] + var<int16_t>(own::R(HIT_POS) + 2));
+			hp[2] = (int16_t)(hp[2] + var<int16_t>(own::R(HIT_POS) + 4));
 			hp[3] = 0;
-			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
+			HitRec *r = (HitRec *)(own::R(HIT_REC) + 0x9C * b);
 			memcpy(r->pos, hp, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			memcpy(r->dir, (const void *)own::R(HIT_DIR), 16);
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -508,9 +561,9 @@
 			// 3 flashes at the hit point
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0xC);
+				const int32_t i = FreeSlot(own::R(POOL_A), own::R(POOL_A_END), 0xC);
 				if (i < 0) break;
-				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
+				FlashP *p = (FlashP *)(own::R(POOL_A) + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xA00);
 				memcpy(p->pos, hp, 8);
@@ -521,14 +574,14 @@
 			// 12 debris thrown along the direction (back the other way on hit 3)
 			for (int32_t j = 0; j < 0xC; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x14);
+				const int32_t i = FreeSlot(own::R(POOL_C), own::R(POOL_C_END), 0x14);
 				if (i < 0) break;
-				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
+				DebrisP *p = (DebrisP *)(own::R(POOL_C) + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xC00);
 				memcpy(p->pos, hp, 8);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
-				const int32_t *d = (const int32_t *)HIT_DIR;
+				const int32_t *d = (const int32_t *)own::R(HIT_DIR);
 				const int32_t r0 = CrtRand() % 200;
 				p->vel[0] = (int16_t)(r0 + (mul32(d[0], sp) >> 12) - 0x64);
 				const int32_t r1 = CrtRand() % 200;
@@ -556,7 +609,7 @@
 	static uint32_t __cdecl SlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
+		HitRec *r = (HitRec *)(own::R(HIT_REC) + 0x9C * n->e);
 		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
@@ -582,7 +635,7 @@
 		GteSetRotMatrix(&m3);
 		GteSetTransVector(&m3);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SLASH;
+		*(uint32_t *)h = fxp::model(P().models.slash, MODEL_SLASH);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (n->c >= 2)
 		{
@@ -593,7 +646,7 @@
 			*(int32_t *)(h + 0xC) = mul32(n->c - 2, 682);
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
-		*(uint32_t *)h = MODEL_STREAK;
+		*(uint32_t *)h = fxp::model(P().models.streak, MODEL_STREAK);
 		*(uint32_t *)(h + 0x1C) |= 3;
 		for (int32_t k = 0; k < r->count; k++)
 		{
@@ -639,9 +692,9 @@
 		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_FLASH;
+		*(uint32_t *)h = fxp::sequence(P().seqs.flash, SEQ_FLASH);
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0xC)
+		for (uint32_t a = own::R(POOL_A); a < own::R(POOL_A_END); a += 0xC)
 		{
 			FlashP *p = (FlashP *)a;
 			if (p->life < 0) continue;
@@ -652,8 +705,8 @@
 			p->life++;
 			if (*(const int16_t *)(h + 0x28) < 0) p->life = -1;
 		}
-		*(uint32_t *)h = SEQ_DEBRIS;
-		for (uint32_t a = POOL_C; a < POOL_C_END; a += 0x14)
+		*(uint32_t *)h = fxp::sequence(P().seqs.debris, SEQ_DEBRIS);
+		for (uint32_t a = own::R(POOL_C); a < own::R(POOL_C_END); a += 0x14)
 		{
 			DebrisP *p = (DebrisP *)a;
 			if (p->life < 0) continue;
@@ -675,9 +728,9 @@
 			p->vel[1] = (int16_t)(p->vel[1] - (int16_t)(p->vel[1] >> 3));
 			p->vel[2] = (int16_t)(p->vel[2] - (int16_t)(p->vel[2] >> 3));
 		}
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = fxp::sequence(P().seqs.spark, SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 4;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x10)
+		for (uint32_t a = own::R(POOL_B); a < own::R(POOL_B_END); a += 0x10)
 		{
 			SparkP *p = (SparkP *)a;
 			if (p->life < 0) continue;
@@ -757,10 +810,10 @@
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t alive = 0;
 		memcpy(&w->cam, &Camera(), sizeof(Mat4x3));
-		*(uint32_t *)h = seq;
+		*(uint32_t *)h = EmitSeq(seq);
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
-		for (uint32_t a = SLOTS; a < SLOTS_END; a += 0x20)
+		for (uint32_t a = own::R(SLOTS); a < own::R(SLOTS_END); a += 0x20)
 		{
 			SlotRec *p = (SlotRec *)a;
 			if (p->alive != kind) continue;
@@ -858,7 +911,7 @@
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = d.model;
+		*(uint32_t *)h = OwnModel(d.model);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= d.fade_from)
@@ -904,7 +957,7 @@
 		Node24 *t = AddSlotTask(orig);
 		t->w1A = kind;
 		SlotRec *r = Slot(t->e);
-		memcpy(r->pos, (const void *)HIT_POS, 8);
+		memcpy(r->pos, (const void *)own::R(HIT_POS), 8);
 		r->w18 = dx;
 		r->w1A = dy;
 		r->w1C = dz;
@@ -914,10 +967,10 @@
 	static void HitPointRecord(Node24 *t)
 	{
 		SlotRec *r = Slot(t->e);
-		memcpy(r->pos, (const void *)HIT_POS, 8);
-		r->w18 = var<int16_t>(HIT_DIR);
-		r->w1A = var<int16_t>(HIT_DIR + 4);
-		r->w1C = var<int16_t>(HIT_DIR + 8);
+		memcpy(r->pos, (const void *)own::R(HIT_POS), 8);
+		r->w18 = var<int16_t>(own::R(HIT_DIR));
+		r->w1A = var<int16_t>(own::R(HIT_DIR) + 4);
+		r->w1C = var<int16_t>(own::R(HIT_DIR) + 8);
 	}
 
 	// ------------------------------------------------------------------
@@ -1014,7 +1067,7 @@
 		uint8_t *h = AllocHeader(0xB4);
 		int32_t alive = 0;
 		DustBegin(w, h, n);
-		for (uint32_t a = SLOTS; a < SLOTS_END; a += 0x20)
+		for (uint32_t a = own::R(SLOTS); a < own::R(SLOTS_END); a += 0x20)
 		{
 			SlotRec *p = (SlotRec *)a;
 			if (p->alive != 4) continue;
@@ -1165,7 +1218,7 @@
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = d.model;
+		*(uint32_t *)h = OwnModel(d.model);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= d.fade_from)
@@ -1203,15 +1256,24 @@
 		return TASK_END;
 	}
 
-	// the common ports (the module registers its own tasks after these)
+	// a port: noted for Fujin's programs (own::Fn), registered for the game
+	static void Port(uint32_t orig, void *port, const char *name)
+	{
+		own::note(orig, port);
+		register_port(orig, port, name, RENZO_ID);
+	}
+
+	// the common ports (the module registers its own tasks after these); the file loader and the setup for the programs
 	static void RegisterCommon()
 	{
-		register_port(ORIG_Master, (void *)MasterTask, RENZO_IDS " Master", RENZO_ID);
-		register_port(ORIG_Controller, (void *)ControllerTask, RENZO_IDS " Controller", RENZO_ID);
-		register_port(ORIG_Trail, (void *)TrailTask, RENZO_IDS " Trail", RENZO_ID);
-		register_port(ORIG_SparkSpawn, (void *)SparkSpawnTask, RENZO_IDS " SparkSpawn", RENZO_ID);
-		register_port(ORIG_Hit, (void *)HitTask, RENZO_IDS " Hit", RENZO_ID);
-		register_port(ORIG_Slash, (void *)SlashTask, RENZO_IDS " Slash", RENZO_ID);
-		register_port(ORIG_HitSpark, (void *)HitSparkTask, RENZO_IDS " HitSpark", RENZO_ID);
-		register_port(ORIG_Sparkle, (void *)SparkleTask, RENZO_IDS " Sparkle", RENZO_ID);
+		own::note(ORIG_FileLoader, (void *)FileLoader);
+		own::note(ORIG_Setup, (void *)Setup);
+		Port(ORIG_Master, (void *)MasterTask, RENZO_IDS " Master");
+		Port(ORIG_Controller, (void *)ControllerTask, RENZO_IDS " Controller");
+		Port(ORIG_Trail, (void *)TrailTask, RENZO_IDS " Trail");
+		Port(ORIG_SparkSpawn, (void *)SparkSpawnTask, RENZO_IDS " SparkSpawn");
+		Port(ORIG_Hit, (void *)HitTask, RENZO_IDS " Hit");
+		Port(ORIG_Slash, (void *)SlashTask, RENZO_IDS " Slash");
+		Port(ORIG_HitSpark, (void *)HitSparkTask, RENZO_IDS " HitSpark");
+		Port(ORIG_Sparkle, (void *)SparkleTask, RENZO_IDS " Sparkle");
 	}

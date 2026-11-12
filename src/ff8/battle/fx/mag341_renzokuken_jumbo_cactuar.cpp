@@ -42,6 +42,8 @@
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,6 +77,8 @@ namespace renzo341
 		ORIG_Ring = 0x57B330, ORIG_Dust = 0x57B520, ORIG_Shake = 0x57B880, ORIG_Master = 0x57B970;
 
 #include "renzo_boss_defs.inc"
+	// the game's data: the defaults of its parameters (renzo_boss_defs.inc's RenzoBossParams)
+	static const RenzoBossParams GAME = { 0xE4EA18, { SEQ_FLASH, SEQ_DEBRIS, SEQ_SPARK, 0 }, { MODEL_SPARKLE, MODEL_SLASH, MODEL_STREAK, { 0xC91DF4, 0, 0, 0 } }, { TEXTURE_NAME, CAMERA, ANIM_SETS }, { HIT_LEAD, 0, SPARKLE_FADE, SPARKLE_DEPTH } };
 }
 }
 
@@ -124,10 +128,10 @@ namespace renzo341
 		}
 		if (n->c == 0x57)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Dust);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Dust));
 			t->c = 0;
 			t->e = 0xF;
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Shake);
+			t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Shake));
 			t->c = 0;
 			t->e = 0xF;
 		}
@@ -141,14 +145,41 @@ namespace renzo341
 
 	// Ring (0x57B330)
 	static uint32_t __cdecl RingTask(TaskNode *tn) { return SlotModelTask(SLOTMODELS[0], 0, (Node24 *)tn); }
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "Squall's Renzokuken on Jumbo Cactuar: both animation sets and sequences, the gunblade's trail, the sparks, the hits' slashes with their flashes and debris, the ring, the dust and the camera shake, the screen flash and tint, the sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "", (uint32_t)offsetof(RenzoBossParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "models.sparkle", "Sparkle model", "The prim model sparkle (a mesh of 18 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.sparkle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.slash", "Slash model", "The prim model slash (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.slash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.streak", "Streak model", "The prim model streak (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.streak), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring", "Ring model", "The prim model ring (a mesh of 112 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)(offsetof(RenzoBossParams, models.own) + 0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RenzoBossParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RenzoBossParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "res.anim_sets", "Animation sets", "The animation sets it binds to Squall and to the boss: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(RenzoBossParams, res.anim_sets), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "controller", "tables.hit_lead", "Hit leads", "Each hit's lead (how far ahead of its slash) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.hit_lead), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.sparkle_fade", "Sparkle fades", "The finisher sparkles' fade by tick (8 ticks) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.sparkle_fade), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.sparkle_depth", "Sparkle depths", "The finisher sparkles' depth word by frame (8 frames) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.sparkle_depth), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag341_renzokuken_jumbo_cactuar()
 	{
+		fxp::register_params({ 341, "Renzokuken (vs Jumbo Cactuar)", &renzo341::live, &renzo341::GAME, sizeof(renzo341::RenzoBossParams),
+		                       renzo341::table::PARTS, (int)(sizeof(renzo341::table::PARTS) / sizeof(renzo341::table::PARTS[0])),
+		                       renzo341::table::FIELDS, (int)(sizeof(renzo341::table::FIELDS) / sizeof(renzo341::table::FIELDS[0])),
+		                       nullptr, 0 });
 		renzo341::RegisterCommon();
-		register_port(renzo341::ORIG_Ring, (void *)renzo341::RingTask, "341 Ring", 341);
-		register_port(renzo341::ORIG_Dust, (void *)renzo341::DustTask, "341 Dust", 341);
-		register_port(renzo341::ORIG_Shake, (void *)renzo341::ShakeTask, "341 Shake", 341);
+		renzo341::Port(renzo341::ORIG_Ring, (void *)renzo341::RingTask, "341 Ring");
+		renzo341::Port(renzo341::ORIG_Dust, (void *)renzo341::DustTask, "341 Dust");
+		renzo341::Port(renzo341::ORIG_Shake, (void *)renzo341::ShakeTask, "341 Shake");
 		// 30 fps layer: see mag341_renzokuken_jumbo_cactuar_held.inc
 		FX_HELD(register_mag341_held();)
 	}

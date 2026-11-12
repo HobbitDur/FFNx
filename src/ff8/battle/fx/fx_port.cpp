@@ -242,6 +242,8 @@ namespace ff8fx
 		register_mag240_ochu_earthquake();
 		register_mag281_shotgun();
 		register_mag304_boomerang_sword();
+		register_mag322_zan();
+		register_mag323_metsu();
 		register_mag311_gravija();
 		register_mag258_mad_cow_special();
 		register_mag256_sand_shake();
@@ -273,6 +275,7 @@ namespace ff8fx
 		register_mag279_mega_spark();
 		register_mag287_mega_pulse_cannon();
 		register_mag214_omega_gravija();
+		register_mag207_maelstrom();
 		register_mag283_magic_summon();
 		register_mag241_bgh_gatling_gun();
 		register_mag242_bgh_beam_cannon();
