@@ -55,6 +55,11 @@
 // director block 0x25C9D28, the reveal draw context 0x25C2360); data: 0x15720A8.. (director / camera pointers, models, sound),
 // the model container 0x1572BB0 (its skeleton block 0x1572BC8 is rewritten), layouts 0x171F2B0 / 0x17217A8 / 0x1720570, actor
 // data 0x171DE1C, the camera scripts 0x1575DE0.., the bone table 0x1572B90.
+// Fujin's described Angel Wing (effect_084.json) runs this code as its pieces (MiniMog's kind): its module memory through
+// R() (act_engine.h), the director block and the camera block through the descriptor (G_1533010 / G_15339D0), the tasks it
+// spawns the program's or thunks of their ports (Spawn); its parameters (AngelWingParams: the director's cut frames, the
+// angel's reveal and fade, the prim plays, the feathers, the glows, the three layouts, the two glow models, the caster's
+// animation set, the wings' TIM) are set from the program's.
 
 #include "act_engine.h"
 #include "fx_params.h"
@@ -79,6 +84,36 @@ namespace angelwing
 	static const uint32_t FA_CURSOR = 0x1D8E054;      // frame arena packet cursor
 	static const uint32_t SCRATCH_SP = 0x25C9F08;     // module scratch stack pointer (the camera copy 0x2793E58)
 	static const uint32_t ACTOR_STATE = 0x25C9F3C;    // current actor system state block (pool header)
+	static const uint32_t SOUND = 0x15720AC;          // the angel's reveal sound
+	static const uint32_t WINGS_TIM = 0x17243F8;      // the TIM the director uploads (exe data)
+	static const uint32_t ANGEL_ANIMS = 0x1576020;    // the animation set bound to the caster (the model swap)
+	static const uint32_t LAYOUT_WINGS = 0x171F2B0, LAYOUT_HALO = 0x17217A8, LAYOUT_GROUND = 0x1720570;   // the prim plays' layouts
+	static const uint32_t GLOW_A_MODEL = 0x15720B0, GLOW_B_MODEL = 0x1572810;                            // the glows' prim models
+	static const uint32_t FEATHER_BONES = 0x1572B90;  // the 14 bones of the angel model the feathers are born at
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct AngelWingParams
+	{
+		struct { int16_t cut2, cut3, cut4, cut5; } director;                          // each cut after this many frames of the one before
+		struct { uint32_t sound; int16_t reveal_frame, reveal_step, reveal_radius, fade_out, ground_a, ground_b; } angel;   // the angel model: its reveal, its fade out, the ground plays' ticks
+		struct { int16_t start, y, z, depth; } wings;                                 // the prim play at the caster (cut 1)
+		struct { int16_t turn; } halo;                                                // the prim play at the caster (cut 3)
+		struct { int16_t start, length, mode; } feathers, feathers2;                  // the two feather actor systems (cuts 2 and 3)
+		struct { int16_t frame, fade_out, hold, fade_in, depth; } glow_a;             // the glow at the caster's point
+		struct { int16_t frame, fade_out, fade_in, depth; } glow_b;                   // the glow at the camera block's height
+		struct { uint32_t at_171f2b0, at_17217a8, at_1720570; } layouts; // the prim-model layouts
+		struct { uint32_t at_15720b0, at_1572810; } models; // the prim models drawn (meshes)
+		struct { uint32_t anim, tim; } res; // its resources (data): the caster's animation set, the wings' TIM
+		struct { uint32_t bones; } tables; // the feathers' bones
+	};
+	static const AngelWingParams GAME = { { 0x2D, 0x19, 0x41, 0x3C }, { SOUND, 0x15, 0x20, 0x500, 0x100, 0x32, 0x64 },
+		{ 0x18, -0x400, 0x200, -0x200 }, { -0x80 }, { 8, 0xF, 0 }, { 8, 0xF, 0 }, { 0x20, 0x80, 0x18, 0x200, -0x200 },
+		{ 0x20, 0x80, 0x80, -0x200 }, { LAYOUT_WINGS, LAYOUT_HALO, LAYOUT_GROUND }, { GLOW_A_MODEL, GLOW_B_MODEL },
+		{ ANGEL_ANIMS, WINGS_TIM }, { FEATHER_BONES } };
+	static AngelWingParams live = GAME;
+	static const AngelWingParams &PA() { return live; }
 
 	// engine functions not in act::x
 	namespace gx
@@ -715,8 +750,8 @@ namespace angelwing
 	// - 0x800, 12 bits) in +0x4A
 	uint32_t __cdecl te_78DC50(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x15720A8), 0x54);
-		const uint32_t d = MEM<uint32_t>(0x15720A8);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -726,7 +761,7 @@ namespace angelwing
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(0x15720A8), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0; // void
 	}
 
@@ -791,7 +826,7 @@ namespace angelwing
 	// next state
 	uint32_t __cdecl te_78DE00(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(0x17243F8);
+		x::Battle_QueueTIMUpload_GetEOF(fxp::tim(PA().res.tim, WINGS_TIM));
 		gx::BS_Camera_ArmReturnAfterEffect();
 		Spawn(R(0x25C2598), 0x78DE40, 0x64, a1);
 		next_state(a1);
@@ -834,7 +869,7 @@ namespace angelwing
 	{
 		if (a_73AAE0(1) != 0)
 		{
-			a_73AB20(0x1575DE0, MEM<uint32_t>(DIR_PTR), 0);
+			a_73AB20(0x1575DE0, MEM<uint32_t>(G(G_1533010)), 0);
 			next_state(a1);
 		}
 		return 0; // void
@@ -844,7 +879,7 @@ namespace angelwing
 	uint32_t __cdecl te_78E700(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, 0x1575E28, MEM<uint32_t>(0x15720A8));
+			ak_cam_chain(a1, 0x1575E28, MEM<uint32_t>(G(G_1533010)));
 		return 0; // void
 	}
 
@@ -855,7 +890,7 @@ namespace angelwing
 		a_73AE10();
 		if (a_73AAE0(2) != 0)
 		{
-			a_73AB20(0x1575E70, MEM<uint32_t>(0x15720A8), 0);
+			a_73AB20(0x1575E70, MEM<uint32_t>(G(G_1533010)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0; // void
@@ -869,7 +904,7 @@ namespace angelwing
 		a_73AE10();
 		uint32_t r = a_73AAE0(3);
 		if (r == 0) return 0;
-		uint32_t blk = MEM<uint32_t>(0x15720A8);
+		uint32_t blk = MEM<uint32_t>(G(G_1533010));
 		a_73AB20(0x1575F20, blk, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -879,7 +914,7 @@ namespace angelwing
 	uint32_t __cdecl te_78E790(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, 0x1575F90, MEM<uint32_t>(0x15720A8));
+			ak_cam_chain(a1, 0x1575F90, MEM<uint32_t>(G(G_1533010)));
 		return 0; // void
 	}
 
@@ -910,7 +945,7 @@ namespace angelwing
 	uint32_t __cdecl te_78E8F0(uint32_t a1)
 	{
 		const int32_t keep = (int16_t)(uint16_t)a1;
-		uint32_t saved = MEM<uint32_t>(DIR_PTR) + 0x20;
+		uint32_t saved = MEM<uint32_t>(G(G_1533010)) + 0x20;
 		int32_t i = 0;
 		for (uint32_t e = 0x1D972C0; e < 0x1D97704; e += 0x9C, i++, saved += 4)
 		{
@@ -928,7 +963,7 @@ namespace angelwing
 	// 0x82B400 (sub_82B400): director state - next state from phase tick 0x36
 	uint32_t __cdecl te_78E940(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x15720A8), 0x46) >= 0x2D)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PA().director.cut2)
 			next_state(a1);
 		return 0; // void
 	}
@@ -936,7 +971,7 @@ namespace angelwing
 	// 0x78E9A0 (MAG_084_sub_78E9A0): director state 6 - next state from frame 0x19 of the cut
 	uint32_t __cdecl te_78E9A0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0x19)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PA().director.cut3)
 			next_state(a1);
 		return 0; // void
 	}
@@ -952,7 +987,7 @@ namespace angelwing
 	// 0x78EA00 (MAG_084_sub_78EA00): director state 9 - next state from frame 0x41 of the cut
 	uint32_t __cdecl te_78EA00(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0x41)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PA().director.cut4)
 			next_state(a1);
 		return 0; // void
 	}
@@ -983,7 +1018,7 @@ namespace angelwing
 	uint32_t __cdecl te_78EA70(uint32_t a1)
 	{
 		const int32_t keep = (int16_t)(uint16_t)a1;
-		uint32_t saved = MEM<uint32_t>(DIR_PTR) + 0x20;
+		uint32_t saved = MEM<uint32_t>(G(G_1533010)) + 0x20;
 		int32_t i = 0;
 		for (uint32_t e = 0x1D972C0; e < 0x1D97704; e += 0x9C, i++, saved += 4)
 		{
@@ -1000,7 +1035,7 @@ namespace angelwing
 	// 0x785230 (sub_785230): director state 11 - next state from frame 0x3C
 	uint32_t __cdecl te_78EAC0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x15720A8), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PA().director.cut5)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1011,7 +1046,7 @@ namespace angelwing
 	{
 		if (a_73B640(5) != 0)
 		{
-			U16(MEM<uint32_t>(DIR_PTR), 0x48) = 1;
+			U16(MEM<uint32_t>(G(G_1533010)), 0x48) = 1;
 			next_state(a1);
 		}
 		return 0; // void
@@ -1023,21 +1058,21 @@ namespace angelwing
 	// 3 - the prim play 0x791260 (layout 0x17217A8) and a second feather actor system
 	uint32_t __cdecl te_78EB50(uint32_t a1)
 	{
-		const int32_t cut = S16(MEM<uint32_t>(DIR_PTR), 0x40);
+		const int32_t cut = S16(MEM<uint32_t>(G(G_1533010)), 0x40);
 		if (cut == 1)
 		{
 			const uint32_t n = Spawn(R(0x25C9ED8), 0x7961E0, 0x154, a1);
 			x::Effect_BindModelContainerSetAnim(n, 0x1572BB0, 3);
-			te_78EC80(a1, 0x78ECD0, 0x171F2B0, 0x4A0, 0, 0);
+			te_78EC80(a1, 0x78ECD0, fxp::layout(PA().layouts.at_171f2b0, LAYOUT_WINGS, 0x4A0), 0x4A0, 0, 0);
 			Spawn(R(0x25C3938), 0x796FD0, 0x58, a1);
 			Spawn(R(0x25C3938), 0x7972B0, 0x58, a1);
 		}
 		else if (cut == 2)
-			a_73C100(a1, 0x7913C0, 0x171DE1C, 8, 0xF, 0);
+			a_73C100(a1, 0x7913C0, 0x171DE1C, (uint16_t)PA().feathers.start, (uint16_t)PA().feathers.length, (uint16_t)PA().feathers.mode);
 		else if (cut == 3)
 		{
-			te_78EC80(a1, 0x791260, 0x17217A8, 0x788, 2, 0);
-			a_73C100(a1, 0x7913C0, 0x171DE1C, 8, 0xF, 0);
+			te_78EC80(a1, 0x791260, fxp::layout(PA().layouts.at_17217a8, LAYOUT_HALO, 0x788), 0x788, 2, 0);
+			a_73C100(a1, 0x7913C0, 0x171DE1C, (uint16_t)PA().feathers2.start, (uint16_t)PA().feathers2.length, (uint16_t)PA().feathers2.mode);
 		}
 		return 0; // void
 	}
@@ -1059,18 +1094,18 @@ namespace angelwing
 	// (0x78EDB0), next state
 	uint32_t __cdecl te_78ED30(uint32_t a1)
 	{
-		if (S16(a1, 0x24) < 0x18)
+		if (S16(a1, 0x24) < PA().wings.start)
 			return 0; // void
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C;
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
 		U32(a1, 0x1C) = U32(ent, 0x1C);
 		U32(a1, 0x20) = U32(ent, 0x20);
-		U16(a1, 0x1E) = (uint16_t)(U16(a1, 0x1E) + 0xFC00);
-		U16(a1, 0x20) = (uint16_t)(U16(a1, 0x20) + 0x200);
+		U16(a1, 0x1E) = (uint16_t)(U16(a1, 0x1E) + PA().wings.y);
+		U16(a1, 0x20) = (uint16_t)(U16(a1, 0x20) + PA().wings.z);
 		S32(a1, 0x58) = 0x1000;
 		S32(a1, 0x54) = 0x1000;
 		S32(a1, 0x50) = 0x1000;
-		U16(a1, 0x88) = 0xFE00;
+		U16(a1, 0x88) = (uint16_t)PA().wings.depth;
 		te_78EDB0(a1);
 		next_state(a1);
 		return 0; // void
@@ -2042,7 +2077,7 @@ namespace angelwing
 		S32(a1, 0x58) = 0x1000;
 		S32(a1, 0x54) = 0x1000;
 		S32(a1, 0x50) = 0x1000;
-		U16(a1, 0x60) = 0xFF80;
+		U16(a1, 0x60) = (uint16_t)PA().halo.turn;
 		te_78EDB0(a1);
 		next_state(a1);
 		return 0; // void
@@ -3143,9 +3178,9 @@ namespace angelwing
 				// 0x794C2F (Angel Wing): the emitter position +0x4C.. = a random point of Rinoa's model (director +0x18:
 				// the model container, its model +0x30): one of the 14 bones of the table 0x1572B90 (rand() % 14)
 				alignas(4) uint8_t pt[8] = {};
-				const uint32_t mdl = U32(MEM<uint32_t>(DIR_PTR), 0x18) + 0x30;
+				const uint32_t mdl = U32(MEM<uint32_t>(G(G_1533010)), 0x18) + 0x30;
 				const int32_t r = (int32_t)x::CrtRand();
-				x::GetEffectSpawnPosition(mdl, (uint32_t)(int32_t)MEM<int16_t>(0x1572B90 + (uint32_t)(r % 14) * 2), 0, P(pt));
+				x::GetEffectSpawnPosition(mdl, (uint32_t)(int32_t)MEM<int16_t>(fxp::data(PA().tables.bones, FEATHER_BONES, 28) + (uint32_t)(r % 14) * 2), 0, P(pt));
 				S32(a1, 0x4C) = shl32(S16(P(pt), 0), 16);
 				S32(a1, 0x50) = shl32(S16(P(pt), 2), 16);
 				S32(a1, 0x54) = shl32(S16(P(pt), 4), 16);
@@ -3586,8 +3621,8 @@ namespace angelwing
 		if ((U8(node, 0x26) & 4) == 0)
 			te_796390(node);
 		const uint16_t t = U16(node, 0x24);
-		if (t == 0x32 || t == 0x64)
-			te_78EC80(node, 0x796290, 0x1720570, 0x158, 1, 0);
+		if (t == (uint16_t)PA().angel.ground_a || t == (uint16_t)PA().angel.ground_b)
+			te_78EC80(node, 0x796290, fxp::layout(PA().layouts.at_1720570, LAYOUT_GROUND, 0x158), 0x158, 1, 0);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -3637,7 +3672,7 @@ namespace angelwing
 		if ((fl & 8) != 0)
 		{
 			alignas(4) uint8_t pt[8] = {};
-			U32(MEM<uint32_t>(DIR_PTR), 0x18) = a1;
+			U32(MEM<uint32_t>(G(G_1533010)), 0x18) = a1;
 			const uint32_t mdl = a1 + 0x30;
 			const uint32_t m = mdl + 0x40;
 			x::ComposeZYXRotationMatrix(mdl + 0xC, m);
@@ -3880,7 +3915,7 @@ namespace angelwing
 		S32(a1, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(a1, 0);
 		te_796C70(a1);
-		gx::BS_BindEntityModelFromComData(ent, R(0x25C9F10), 0x1576020);
+		gx::BS_BindEntityModelFromComData(ent, R(0x25C9F10), fxp::anim_set(PA().res.anim, ANGEL_ANIMS));
 		gx::QueueChainTransformation(ent, 1);
 		next_state(a1);
 		return 0; // void
@@ -3890,7 +3925,7 @@ namespace angelwing
 	// object block 0x255EA98, model block = the reaper node +0x30); dark flag +0x26 bit 3
 	uint32_t __cdecl te_796C70(uint32_t a1)
 	{
-		te_796CA0(REAPER_CTX, 0x25C3948, 0x25C9F40, a1 + 0x30);
+		te_796CA0(R(REAPER_CTX), R(0x25C3948), R(0x25C9F40), a1 + 0x30);
 		U8(a1, 0x26) |= 8;
 		return 0; // void
 	}
@@ -3924,15 +3959,15 @@ namespace angelwing
 	// reveal ends (+0x26 bit 3 cleared), next state; animation step
 	uint32_t __cdecl te_796D00(uint32_t a1)
 	{
-		if (S16(a1, 0x136) >= 0x15)
+		if (S16(a1, 0x136) >= PA().angel.reveal_frame)
 		{
-			x::BdPlaySE(0x15720AC, 0, 0x80);
-			if (S16(a1, 0x136) >= 0x15)
+			x::BdPlaySE(fxp::sound(PA().angel.sound, SOUND), 0, 0x80);
+			if (S16(a1, 0x136) >= PA().angel.reveal_frame)
 			{
-				const uint16_t r = (uint16_t)(MEM<uint16_t>(R(0x25C23B4)) + 0x20);
+				const uint16_t r = (uint16_t)(MEM<uint16_t>(R(0x25C23B4)) + PA().angel.reveal_step);
 				MEM<uint16_t>(R(0x25C23B4)) = r;
-				if ((int16_t)r >= 0x500)
-					MEM<uint16_t>(R(0x25C23B4)) = 0x500;
+				if ((int16_t)r >= PA().angel.reveal_radius)
+					MEM<uint16_t>(R(0x25C23B4)) = (uint16_t)PA().angel.reveal_radius;
 			}
 		}
 		if (a_73B7E0(2) != 0)
@@ -3958,7 +3993,7 @@ namespace angelwing
 	uint32_t __cdecl te_796DD0(uint32_t a1)
 	{
 		x::au_re_Battle_ReadAnimation_8(a1); // (0x8DD220; the source text 0x79EC40 calls 0x8DD1C0)
-		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) + 0x100);
+		U16(a1, 0x13A) = (uint16_t)(U16(a1, 0x13A) + PA().angel.fade_out);
 		if (S16(a1, 0x13A) >= 0x1000)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -4082,15 +4117,15 @@ namespace angelwing
 	// +0x50 = 0x1000, model 0x15720B0, depth +0x52 = 0xFE00, next state
 	uint32_t __cdecl te_7971B0(uint32_t a1)
 	{
-		if (S16(a1, 0x24) < 0x20)
+		if (S16(a1, 0x24) < PA().glow_a.frame)
 			return 0; // void
 		U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) & 0xFB);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = 0x15720B0;
-		U16(a1, 0x52) = 0xFE00;
+		U32(a1, 0x4C) = fxp::model(PA().models.at_15720b0, GLOW_A_MODEL);
+		U16(a1, 0x52) = (uint16_t)PA().glow_a.depth;
 		next_state(a1);
 		return 0; // void
 	}
@@ -4098,7 +4133,7 @@ namespace angelwing
 	// 0x7971F0 (MAG_084_sub_7971F0): glow state - fade +0x50 down by 0x80; at 0 next state
 	uint32_t __cdecl te_7971F0(uint32_t a1)
 	{
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) - 0x80);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) - PA().glow_a.fade_out);
 		if (S16(a1, 0x50) <= 0)
 		{
 			U16(a1, 0x50) = 0;
@@ -4112,7 +4147,7 @@ namespace angelwing
 	{
 		if (a_73B7E0(4) != 0)
 		{
-			U16(a1, 0x54) = 0x18;
+			U16(a1, 0x54) = (uint16_t)PA().glow_a.hold;
 			next_state(a1);
 		}
 		return 0; // void
@@ -4132,7 +4167,7 @@ namespace angelwing
 	// next state
 	uint32_t __cdecl te_797270(uint32_t a1)
 	{
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0x200);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + PA().glow_a.fade_in);
 		if (S16(a1, 0x50) >= 0x1000)
 		{
 			int8_t st = S8(a1, 0x29);
@@ -4218,28 +4253,28 @@ namespace angelwing
 	// 0x1000, fade 0x1000, model 0x1572810, depth 0xFE00, next state
 	uint32_t __cdecl te_797430(uint32_t a1)
 	{
-		if (S16(a1, 0x24) < 0x20)
+		if (S16(a1, 0x24) < PA().glow_b.frame)
 			return 0; // void
 		U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) & 0xFB);
 		U16(a1, 0x1C) = 0;
 		U16(a1, 0x1E) = 0;
-		const uint32_t cam = MEM<uint32_t>(0x1572BAC);
+		const uint32_t cam = MEM<uint32_t>(G(G_15339D0));
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		const uint16_t h = U16(cam, 0xE0);
 		U16(a1, 0x50) = 0x1000;
 		next_state(a1);
-		U32(a1, 0x4C) = 0x1572810;
+		U32(a1, 0x4C) = fxp::model(PA().models.at_1572810, GLOW_B_MODEL);
 		U16(a1, 0x20) = h;
-		U16(a1, 0x52) = 0xFE00;
+		U16(a1, 0x52) = (uint16_t)PA().glow_b.depth;
 		return 0; // void
 	}
 
 	// 0x797490 (MAG_084_sub_797490): glow B state 2 - fade +0x50 down by 0x80; at 0 next state
 	uint32_t __cdecl te_797490(uint32_t a1)
 	{
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) - 0x80);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) - PA().glow_b.fade_out);
 		if (S16(a1, 0x50) <= 0)
 		{
 			U16(a1, 0x50) = 0;
@@ -4273,7 +4308,7 @@ namespace angelwing
 	// 0x797500 (MAG_084_sub_797500): glow B state 5 - fade +0x50 up by 0x80; at 0x1000 finished (+0x26 |= 1), next state
 	uint32_t __cdecl te_797500(uint32_t a1)
 	{
-		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + 0x80);
+		U16(a1, 0x50) = (uint16_t)(U16(a1, 0x50) + PA().glow_b.fade_in);
 		if (S16(a1, 0x50) >= 0x1000)
 		{
 			U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) | 1);
@@ -4287,7 +4322,7 @@ namespace angelwing
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl te_797540(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x15720A8);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -4302,6 +4337,69 @@ namespace angelwing
 	}
 
 	// ---- generated (desc84.py / cls84.py): the module's functions served by engine ports ----
+	namespace table
+	{
+		using fxp::Field;
+#define AW(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(AngelWingParams, member), fxp::I16, lo, hi }
+#define AWD(part, member, label, doc, type) { part, #member, label, doc, (uint32_t)offsetof(AngelWingParams, member), fxp::type, 0, 0x7FFFFFFF }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its cuts: 1 the angel, the wings, the glows (the other battle entities hidden), 2 the feathers, 3 the halo and more feathers, 4 the entities back, 5 done; the wings' TIM" },
+			{ 0, "angel", "Angel", "Rinoa's angel model: revealed from its centre with its sound, the caster's model swapped, faded out at cut 4; its ground plays" },
+			{ 0, "plays", "Prim plays", "The wings at the caster (cut 1), the halo (cut 3, to cut 4), the ground plays of the angel" },
+			{ 0, "feathers", "Feathers", "The two feather actor systems (cuts 2 and 3: particles born at the angel model's bones; their actor data the exe's)" },
+			{ 0, "glows", "Glows", "Glow A at the caster's point (camera-facing), glow B at the camera block's height (hidden from cut 3 to cut 4)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "feathers", "Cut 2", "Its actor system at cut 2: Start tick, Ticks, Mode (0: the bones)" },
+			{ "feathers2", "Cut 3", "Its actor system at cut 3: Start tick, Ticks, Mode" },
+			{ "glow_a", "Glow A", "From its frame shown, faded out, held until cut 4 and this many ticks, faded in" },
+			{ "glow_b", "Glow B", "From its frame shown, faded out, hidden at cut 3, shown at cut 4, faded in" },
+		};
+		static const Field FIELDS[] = {
+			AW("director", director.cut2, "Cut 2 after", "Cut 2 (the feathers) once cut 1 has run this many frames", 0, 500),
+			AW("director", director.cut3, "Cut 3 after", "Cut 3 (the halo) once cut 2 has run this many frames", 0, 500),
+			AW("director", director.cut4, "Cut 4 after", "Cut 4 (the entities back, the angel fading out) once cut 3 has run this many frames", 0, 500),
+			AW("director", director.cut5, "Cut 5 after", "Cut 5 (done) once cut 4 has run this many frames", 0, 500),
+			AWD("director", res.tim, "TIM image", "The TIM image it uploads as it is (a palette when the game's has one)", Tim),
+			AWD("angel", angel.sound, "Sound", "Played every tick of its reveal", Sound),
+			AW("angel", angel.reveal_frame, "Reveal from frame", "Its reveal grows from this frame of its animation", 0, 200),
+			AW("angel", angel.reveal_step, "Reveal step", "The reveal radius up by this a tick...", 0, 0x400),
+			AW("angel", angel.reveal_radius, "Reveal radius", "...to this", 0, 0x4000),
+			AW("angel", angel.fade_out, "Fade out", "At cut 4 it fades out by this a tick (4096: gone)", 1, 0x1000),
+			AW("angel", angel.ground_a, "Ground play A", "A ground play at this tick of the angel", 0, 500),
+			AW("angel", angel.ground_b, "Ground play B", "Another at this tick", 0, 500),
+			AWD("angel", res.anim, "Animation set", "The animation set it binds to its caster: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", AnimSet),
+			AW("plays", wings.start, "Wings start", "The wings' play from this tick of its task", 0, 200),
+			AW("plays", wings.y, "Wings Y", "Above the caster by this (negative: up)", -0x2000, 0x2000),
+			AW("plays", wings.z, "Wings Z", "", -0x2000, 0x2000),
+			AW("plays", wings.depth, "Wings depth", "Its depth (OT) offset", -0x1000, 0x1000),
+			AWD("plays", layouts.at_171f2b0, "Wings layout", "The wings' prim-model layout (its models' animation)", Layout),
+			AW("plays", halo.turn, "Halo turn", "The halo's X angle (4096: a turn)", -0x800, 0x800),
+			AWD("plays", layouts.at_17217a8, "Halo layout", "The halo's prim-model layout (its models' animation)", Layout),
+			AWD("plays", layouts.at_1720570, "Ground layout", "The angel's ground plays' prim-model layout (its models' animation)", Layout),
+			AW("feathers", feathers.start, "Start tick", "", 0, 200),
+			AW("feathers", feathers.length, "Ticks", "", 0, 1000),
+			AW("feathers", feathers.mode, "Mode", "", 0, 4),
+			AW("feathers", feathers2.start, "Start tick", "", 0, 200),
+			AW("feathers", feathers2.length, "Ticks", "", 0, 1000),
+			AW("feathers", feathers2.mode, "Mode", "", 0, 4),
+			AWD("feathers", tables.bones, "Bones", "The 14 bones of the angel model a feather is born at, one at random (28 bytes: an edited one keeps its length)", Data),
+			AW("glows", glow_a.frame, "From tick", "", 0, 200),
+			AW("glows", glow_a.fade_out, "Fade out", "Down by this a tick", 1, 0x1000),
+			AW("glows", glow_a.hold, "Hold", "Ticks after cut 4", 0, 200),
+			AW("glows", glow_a.fade_in, "Fade in", "Up by this a tick", 1, 0x1000),
+			AW("glows", glow_a.depth, "Depth", "Its depth (OT) offset", -0x1000, 0x1000),
+			AW("glows", glow_b.frame, "From tick", "", 0, 200),
+			AW("glows", glow_b.fade_out, "Fade out", "Down by this a tick", 1, 0x1000),
+			AW("glows", glow_b.fade_in, "Fade in", "Up by this a tick", 1, 0x1000),
+			AW("glows", glow_b.depth, "Depth", "Its depth (OT) offset", -0x1000, 0x1000),
+			AWD("glows", models.at_15720b0, "Glow A model", "The prim model at 0x15720B0 (a mesh of 61 vertices, 60 primitives: an edited one keeps its vertices (its code reads them by number))", Model),
+			AWD("glows", models.at_1572810, "Glow B model", "The prim model at 0x1572810 (a mesh of 35 vertices, 24 primitives: an edited one keeps its vertices (its code reads them by number))", Model),
+		};
+#undef AWD
+#undef AW
+	}
+
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x78DAD0, (void *)a_73A0D0, "084 MAG_084_sub_78DAD0" },
@@ -4493,6 +4591,10 @@ namespace angelwing
 
 	void register_mag084_angel_wing()
 	{
+		fxp::register_params({ 84, "Angel Wing", &act::angelwing::live, &act::angelwing::GAME, sizeof(act::angelwing::AngelWingParams),
+		                       act::angelwing::table::PARTS, (int)(sizeof(act::angelwing::table::PARTS) / sizeof(act::angelwing::table::PARTS[0])),
+		                       act::angelwing::table::FIELDS, (int)(sizeof(act::angelwing::table::FIELDS) / sizeof(act::angelwing::table::FIELDS[0])),
+		                       act::angelwing::table::GROUPS, (int)(sizeof(act::angelwing::table::GROUPS) / sizeof(act::angelwing::table::GROUPS[0])) });
 		act::register_mod(&act::angelwing::MOD_084);
 		act::register_module(84);
 		for (const act::angelwing::ModPort *p = act::angelwing::ENGINE_PORTS; p->addr; p++)
