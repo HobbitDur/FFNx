@@ -174,6 +174,7 @@ namespace ff8fx::mod
 	static const Region streams_b304[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_u227[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_g311[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_m207[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } }; // Maelstrom 207: as Gravija 214
 	static const Region streams_g214[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } }; // Gravija 214: 311's sprite cells + the screen-copy request (0x45B5E0) and the VRAM-emulation flag (0x45BEE0)
 	static const Region streams_s176[] = { { 0xD4516C, 0xC }, { 0x21DFED0, 0x20 } };
 	static const Region streams_b157[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
@@ -445,6 +446,8 @@ namespace ff8fx::mod
 		{ 240, 0x2796898, 0x2798C40, 0, 0, false, "Earthquake (attack 193, Ochu)", streams_gfc, 5 },
 		{ 281, 0x2507F28, 0x2507FD4, 0, 0, false, "Shotgun (attack 61)", streams_s281, 4 },
 		{ 304, 0x2507558, 0x25075D0, 0, 0, false, "Boomerang Sword (attack 159)", streams_b304, 4 },
+		{ 322, 0x25052B0, 0x2505344, 0, 0, false, "Zan (attack 214, Fujin c0m119 / c0m136)", streams_b304, 4 },
+		{ 323, 0x2505230, 0x25052AC, 0, 0, false, "Metsu (attack 215, Fujin c0m119 / c0m136)", streams_b304, 4 },
 		{ 311, 0x25055E0, 0x2507428, 0, 0, false, "Gravija (attack 257)", streams_g311, 4 },
 		{ 258, 0x27964D0, 0x2798C40, 0, 0, false, "Mad Cow Special (attack 213, Sacred / Minotaur)", streams_gfc, 5 },
 		{ 256, 0x2796540, 0x2798C40, 0, 0, false, "Sand Shake (attack 174, Abyss Worm)", streams_gfc, 5 },
@@ -476,6 +479,7 @@ namespace ff8fx::mod
 		{ 279, 0x2508070, 0x2508110, 0, 0, false, "Mega Spark (attack 106, Tri-Point)", streams_q299, 4 },
 		{ 287, 0x25562F8, 0x2556384, 0, 0, false, "Mega Pulse Cannon (attack 292, Trauma)", streams_q299, 4 },
 		{ 214, 0x25089B0, 0x2510168, 0, 0, false, "Gravija (attack 309, Omega Weapon / Ultima Weapon)", streams_g214, 8 },
+		{ 207, 0x25102C0, 0x2517AA0, 0, 0, false, "Maelstrom (Edea)", streams_m207, 8 },
 		{ 283, 0x2507E20, 0x2507E90, 0, 0, false, "Magic Summon (attack 261, Sphinxara)", streams_q299, 4 },
 		{ 241, 0x2796860, 0x2798C40, 0, 0, false, "Gatling Gun (attack 138, BGH251F2)", streams_gfc, 5 },
 		{ 242, 0x2796828, 0x2798C40, 0, 0, false, "Beam Cannon (attack 139, BGH251F2)", streams_gfc, 5 },
