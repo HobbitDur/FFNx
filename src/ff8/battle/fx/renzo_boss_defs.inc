@@ -23,9 +23,15 @@
 //     the trail's previous tick, 0x18 bytes), RING / RING_END (trail ring), SLOTS / SLOTS_END (100 x 0x20 records), HIT_OFFS;
 //   data: SOUND, TEXTURE_NAME, CAMERA, ANIM_SETS, BIND_OUT, MODEL_SPARKLE, SPARKLE_FADE, SPARKLE_DEPTH, MODEL_SLASH,
 //     MODEL_STREAK, SEQ_FLASH, SEQ_DEBRIS, SEQ_SPARK, SPARK_FRAMES, SLASH_REF, HIT_LEAD;
-//   tasks: ORIG_Controller, ORIG_HitSpark, ORIG_Sparkle, ORIG_Trail, ORIG_SparkSpawn, ORIG_Hit, ORIG_Slash, ORIG_Master;
+//   tasks: ORIG_FileLoader, ORIG_Setup, ORIG_Controller, ORIG_HitSpark, ORIG_Sparkle, ORIG_Trail, ORIG_SparkSpawn, ORIG_Hit,
+//     ORIG_Slash, ORIG_Master;
 //   PARITY (the packet arena's odd-tick offset).
+// After it the module defines GAME, its RenzoBossParams (below): its own data, the defaults of its parameters.
 // The second half (the common tasks) is renzo_boss.inc, its 30 fps part renzo_boss_held.inc.
+//
+// Fujin (FF8UltimateEditor's effect tool) runs these modules from their descriptions: every module address goes through
+// own::R and every task the code starts through own::Fn (a program runs them on a memory block of its own), the data
+// through the parameters (fx_params.h: the game's data unless edited).
 //
 // The common code is effect 332's (mag332_renzokuken_7hits.cpp: hit points through the caster's matrix + the module's
 // offset table, which is all zero in these modules: a zero-initialised table in the module's bss) with 161's second
@@ -36,15 +42,16 @@
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline int32_t &CasterSlot() { return var<int32_t>(CASTER_SLOT); }
-	inline int32_t &TargetSlot() { return var<int32_t>(TARGET_SLOT); }  // the boss (first target)
-	inline int32_t &Length() { return var<int32_t>(LENGTH); }          // sum of the stage durations (4 until tick 2)
-	inline int32_t &Finisher() { return var<int32_t>(FINISHER); }      // a finisher follows (action 0 word +4 == 0xFFFE)
-	inline uint32_t &TexBase() { return var<uint32_t>(TEX_BASE); }     // Magic_TextureOFF
-	inline uint32_t &PacketCursor() { return var<uint32_t>(PACKET_CURSOR); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)Q_MASTER; }
-	inline TaskQueue *QMain() { return (TaskQueue *)Q_MAIN; }
+	// --- module globals (own::R: where the running copy has them) ---
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(CASTER_SLOT)); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(TARGET_SLOT)); }  // the boss (first target)
+	inline int32_t &Length() { return var<int32_t>(own::R(LENGTH)); }          // sum of the stage durations (4 until tick 2)
+	inline int32_t &Finisher() { return var<int32_t>(own::R(FINISHER)); }      // a finisher follows (action 0 word +4 == 0xFFFE)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(TEX_BASE)); }     // Magic_TextureOFF
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(PACKET_CURSOR)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(TEX_FILE)); }     // the effect's file (its TIM)
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(Q_MASTER); }
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(Q_MAIN); }
 	inline TaskQueue *QHit() { return (TaskQueue *)0x209FAA8; }      // the battle's hit-effect queue
 	// stage durations of the caster's sequence (AnimSeq opcode AB: 0x1D98214 = n, n + 1 frame counts from 0x1D98215)
 	inline uint8_t StageCount() { return var<uint8_t>(0x1D98214); }
@@ -170,7 +177,22 @@
 
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline uint8_t *Target() { return Entity(TargetSlot()); }
-	inline SlotRec *Slot(int32_t i) { return (SlotRec *)(SLOTS + 0x20 * i); }
+	inline SlotRec *Slot(int32_t i) { return (SlotRec *)(own::R(SLOTS) + 0x20 * i); }
+
+	// ------------------------------------------------------------------
+	// Parameters (Fujin's effect lab: fx_params.h): one layout for the nine modules; each module's GAME holds its own
+	// data (the game's values: the game draws the same until one is edited)
+	// ------------------------------------------------------------------
+	struct RenzoBossParams
+	{
+		uint32_t sound;   // at the controller's tick 1
+		struct { uint32_t flash, debris, spark, emit; } seqs; // the sprite sequences drawn (flipbooks; emit: the module's emitters', 0 none)
+		struct { uint32_t sparkle, slash, streak, own[4]; } models; // the prim models drawn (meshes; own: the module's own, 0 none)
+		struct { uint32_t texture_name, camera, anim_sets; } res; // its resources (data): texture file name, camera track, animation sets
+		// its small tables (data): the hit leads, the hit offsets (0: the module's own zero table), the finisher sparkles'
+		// fade by tick and depth word by frame
+		struct { uint32_t hit_lead, hit_offs, sparkle_fade, sparkle_depth; } tables;
+	};
 
 	// ------------------------------------------------------------------
 	// Weapon bone (the module's BoneFrame / WeaponBone)

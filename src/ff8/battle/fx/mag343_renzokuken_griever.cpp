@@ -42,6 +42,8 @@
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -75,6 +77,8 @@ namespace renzo343
 		ORIG_Emitter = 0x576EC0, ORIG_Final = 0x577240, ORIG_Master = 0x577440;
 
 #include "renzo_boss_defs.inc"
+	// the game's data: the defaults of its parameters (renzo_boss_defs.inc's RenzoBossParams)
+	static const RenzoBossParams GAME = { 0xE4214C, { SEQ_FLASH, SEQ_DEBRIS, SEQ_SPARK, SEQ_EMIT }, { MODEL_SPARKLE, MODEL_SLASH, MODEL_STREAK, { MODEL_FINAL, 0, 0, 0 } }, { TEXTURE_NAME, CAMERA, ANIM_SETS }, { HIT_LEAD, 0, SPARKLE_FADE, SPARKLE_DEPTH } };
 }
 }
 
@@ -101,13 +105,13 @@ namespace renzo343
 		if (n->c == 0x2C) AddRecordEmitter(ORIG_Emitter, 8, -0x200, -0x800, 0x700);
 		if (n->c == 0x37)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Final);
-			memcpy(&t->w10, (const void *)HIT_POS, 8);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), own::Fn(ORIG_Final));
+			memcpy(&t->w10, (const void *)own::R(HIT_POS), 8);
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0xC00 + 0x1C00) / 3);
 			t->w1E = s;
 			t->w1C = s;
-			memcpy((void *)SAVED_MAT, Caster() + 0x40, 0x20);
+			memcpy((void *)own::R(SAVED_MAT), Caster() + 0x40, 0x20);
 		}
 	}
 
@@ -122,7 +126,7 @@ namespace renzo343
 		int16_t ang[3] = { 0, 0, 0x400 };
 		Mat4x3 m; // (pad +0x12 never written in the original: GTE R33 high half only)
 		ComposeZYXRotationMatrix(ang, &m);
-		MatrixMultiply((const Mat4x3 *)SAVED_MAT, &m);
+		MatrixMultiply((const Mat4x3 *)own::R(SAVED_MAT), &m);
 		m.t[0] = n->w10;
 		m.t[1] = n->w12;
 		int32_t sv[3];
@@ -135,7 +139,7 @@ namespace renzo343
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_FINAL;
+		*(uint32_t *)h = OwnModel(MODEL_FINAL);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= 6)
@@ -161,13 +165,41 @@ namespace renzo343
 		n->c++;
 		return n->c >= 0x12 ? TASK_END : 0;
 	}
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "Squall's Renzokuken on Griever: both animation sets and sequences, the gunblade's trail, the sparks, the hits' slashes with their flashes and debris, two particle emitters, the closing model, the screen flash and tint, the sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "", (uint32_t)offsetof(RenzoBossParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.emit", "Emitter particles", "The sprite sequence of the emitters' particles (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.emit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "models.sparkle", "Sparkle model", "The prim model sparkle (a mesh of 18 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.sparkle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.slash", "Slash model", "The prim model slash (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.slash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.streak", "Streak model", "The prim model streak (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.streak), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.final", "Final model", "The prim model final (a mesh of 97 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)(offsetof(RenzoBossParams, models.own) + 0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RenzoBossParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RenzoBossParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "res.anim_sets", "Animation sets", "The animation sets it binds to Squall and to the boss: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(RenzoBossParams, res.anim_sets), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "controller", "tables.hit_lead", "Hit leads", "Each hit's lead (how far ahead of its slash) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.hit_lead), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.sparkle_fade", "Sparkle fades", "The finisher sparkles' fade by tick (8 ticks) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.sparkle_fade), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.sparkle_depth", "Sparkle depths", "The finisher sparkles' depth word by frame (8 frames) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.sparkle_depth), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag343_renzokuken_griever()
 	{
+		fxp::register_params({ 343, "Renzokuken (vs Griever)", &renzo343::live, &renzo343::GAME, sizeof(renzo343::RenzoBossParams),
+		                       renzo343::table::PARTS, (int)(sizeof(renzo343::table::PARTS) / sizeof(renzo343::table::PARTS[0])),
+		                       renzo343::table::FIELDS, (int)(sizeof(renzo343::table::FIELDS) / sizeof(renzo343::table::FIELDS[0])),
+		                       nullptr, 0 });
 		renzo343::RegisterCommon();
-		register_port(renzo343::ORIG_Emitter, (void *)renzo343::EmitterTask, "343 Emitter", 343);
-		register_port(renzo343::ORIG_Final, (void *)renzo343::FinalTask, "343 Final", 343);
+		renzo343::Port(renzo343::ORIG_Emitter, (void *)renzo343::EmitterTask, "343 Emitter");
+		renzo343::Port(renzo343::ORIG_Final, (void *)renzo343::FinalTask, "343 Final");
 		// 30 fps layer: see mag343_renzokuken_griever_held.inc
 		FX_HELD(register_mag343_held();)
 	}

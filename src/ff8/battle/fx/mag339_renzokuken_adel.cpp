@@ -39,6 +39,8 @@
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -72,6 +74,8 @@ namespace renzo339
 		ORIG_Emitter = 0x57FF90, ORIG_RingA = 0x580310, ORIG_RingB = 0x5804A0, ORIG_Master = 0x580700;
 
 #include "renzo_boss_defs.inc"
+	// the game's data: the defaults of its parameters (renzo_boss_defs.inc's RenzoBossParams)
+	static const RenzoBossParams GAME = { 0xE55D74, { SEQ_FLASH, SEQ_DEBRIS, SEQ_SPARK, SEQ_EMIT }, { MODEL_SPARKLE, MODEL_SLASH, MODEL_STREAK, { 0xC9FA74, 0xCA1C2C, 0, 0 } }, { TEXTURE_NAME, CAMERA, ANIM_SETS }, { HIT_LEAD, 0, SPARKLE_FADE, SPARKLE_DEPTH } };
 }
 }
 
@@ -118,8 +122,8 @@ namespace renzo339
 
 	static void Start(Node24 *n)
 	{
-		if (n->c == 1) StartBoss(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
-		if (n->c == 2) Bind3(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
+		if (n->c == 1) StartBoss(Caster(), Target(), BIND_OUT, AnimSets(), (Finisher() != 0) + 1);
+		if (n->c == 2) Bind3(Caster(), Target(), BIND_OUT, AnimSets(), (Finisher() != 0) + 1);
 		if (n->c == 3) ComputeLength();
 		if (n->c == 2) StartTasks();
 	}
@@ -150,14 +154,43 @@ namespace renzo339
 	// RingA (0x580310) / RingB (0x5804A0)
 	static uint32_t __cdecl RingATask(TaskNode *tn) { return SlotModelTask(SLOTMODELS[0], 0, (Node24 *)tn); }
 	static uint32_t __cdecl RingBTask(TaskNode *tn) { return SlotModelTask(SLOTMODELS[1], 1, (Node24 *)tn); }
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "controller", "Controller", "Squall's Renzokuken on Adel: the animation sets bound to Squall, Adel and Rinoa, the sequences, the gunblade's trail, the sparks, the hits' slashes with their flashes and debris, three particle emitters, the two rings, the screen flash and tint, the sound" },
+		};
+		static const Field FIELDS[] = {
+			{ "controller", "sound", "Sound", "", (uint32_t)offsetof(RenzoBossParams, sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.flash", "Flash", "The sprite sequence flash (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.flash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.debris", "Debris", "The sprite sequence debris (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.debris), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.spark", "Spark", "The sprite sequence spark (a flipbook of 10 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "seqs.emit", "Emitter particles", "The sprite sequence of the emitters' particles (a flipbook of 16 frames: an edited one keeps as many)", (uint32_t)offsetof(RenzoBossParams, seqs.emit), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "controller", "models.sparkle", "Sparkle model", "The prim model sparkle (a mesh of 18 vertices, 8 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.sparkle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.slash", "Slash model", "The prim model slash (a mesh of 96 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.slash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.streak", "Streak model", "The prim model streak (a mesh of 21 vertices, 20 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)offsetof(RenzoBossParams, models.streak), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring_a", "Ring a model", "The prim model ring a (a mesh of 112 vertices, 96 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)(offsetof(RenzoBossParams, models.own) + 0), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "models.ring_b", "Ring b model", "The prim model ring b (a mesh of 73 vertices, 72 primitives: an edited one keeps its vertices (its code reads them by number))", (uint32_t)(offsetof(RenzoBossParams, models.own) + 4), fxp::Model, 0, 0x7FFFFFFF },
+			{ "controller", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", (uint32_t)offsetof(RenzoBossParams, res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "controller", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", (uint32_t)offsetof(RenzoBossParams, res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "controller", "res.anim_sets", "Animation sets", "The animation sets it binds to Squall and to the boss and Rinoa: body animations, sequence scripts, weapon animations ({count, offsets, end}, the game's count)", (uint32_t)offsetof(RenzoBossParams, res.anim_sets), fxp::AnimSet, 0, 0x7FFFFFFF },
+			{ "controller", "tables.hit_lead", "Hit leads", "Each hit's lead (how far ahead of its slash) (48 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.hit_lead), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.sparkle_fade", "Sparkle fades", "The finisher sparkles' fade by tick (8 ticks) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.sparkle_fade), fxp::Data, 0, 0x7FFFFFFF },
+			{ "controller", "tables.sparkle_depth", "Sparkle depths", "The finisher sparkles' depth word by frame (8 frames) (16 bytes: an edited one keeps its length)", (uint32_t)offsetof(RenzoBossParams, tables.sparkle_depth), fxp::Data, 0, 0x7FFFFFFF },
+		};
+	}
 }
 
 	void register_mag339_renzokuken_adel()
 	{
+		fxp::register_params({ 339, "Renzokuken (vs Adel)", &renzo339::live, &renzo339::GAME, sizeof(renzo339::RenzoBossParams),
+		                       renzo339::table::PARTS, (int)(sizeof(renzo339::table::PARTS) / sizeof(renzo339::table::PARTS[0])),
+		                       renzo339::table::FIELDS, (int)(sizeof(renzo339::table::FIELDS) / sizeof(renzo339::table::FIELDS[0])),
+		                       nullptr, 0 });
 		renzo339::RegisterCommon();
-		register_port(renzo339::ORIG_Emitter, (void *)renzo339::EmitterTask, "339 Emitter", 339);
-		register_port(renzo339::ORIG_RingA, (void *)renzo339::RingATask, "339 RingA", 339);
-		register_port(renzo339::ORIG_RingB, (void *)renzo339::RingBTask, "339 RingB", 339);
+		renzo339::Port(renzo339::ORIG_Emitter, (void *)renzo339::EmitterTask, "339 Emitter");
+		renzo339::Port(renzo339::ORIG_RingA, (void *)renzo339::RingATask, "339 RingA");
+		renzo339::Port(renzo339::ORIG_RingB, (void *)renzo339::RingBTask, "339 RingB");
 		// 30 fps layer: see mag339_renzokuken_adel_held.inc
 		FX_HELD(register_mag339_held();)
 	}
