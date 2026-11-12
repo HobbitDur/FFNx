@@ -308,6 +308,9 @@ namespace ff8fx
 		register_mag221_apocalypse();
 		register_mag344_griever_368();
 		register_mag302_snipe_laser();
+		register_mag318_strong_counter_attack();
+		register_mag324_tonberry_king_death();
+		register_mag319_counter_attack();
 		register_mag316_red_giant();
 		register_mag314_abadon();
 		register_mag176_sand_storm_adamantoise();
