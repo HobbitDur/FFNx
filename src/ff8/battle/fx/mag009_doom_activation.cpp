@@ -56,6 +56,10 @@
 // Module globals: 0x274EFE8..0x27584F8 (file pointer 0x274EFE8, packet cursors 0x274EFEC / 0x274F14C, render context
 // 0x274EFF0, vertex scratch 0x274F638, pools, queues, arena pointers, sinking anchor 0x27571B8, blend buffer 0x2758178, render
 // block 0x27584D0) + camera copy 0x2793E58.
+// Fujin's described Doom Activation (effect_009.json) runs this code as its pieces (Doom's kind): its module memory through
+// R() (act_engine.h), the director block through the descriptor (G_1533010), the tasks it spawns the program's or thunks of
+// their ports (Spawn); its parameters (DoomActParams: the director's sound and frames, the stage darkening, the doom model,
+// the sinking, the particles, the two layouts, the flipbook, the particle counts) are set from the program's.
 
 #include "act_engine.h"
 #include "fx_params.h"
@@ -93,6 +97,29 @@ namespace doomact
 	static const uint32_t ORIG_SinkModel = 0x8C3C30;  // the prim model following the sinking anchor (engine task a_73A380)
 	static const uint32_t ORIG_Spawner = 0x8C3D40;    // the particle spawner
 	static const uint32_t ORIG_Particle = 0x8C3E00;   // a particle
+	static const uint32_t DOOM_LAYOUT = 0x18155F0, SINK_LAYOUT = 0x1817EE8;   // the two prim-model layouts
+	static const uint32_t PARTICLE_SEQ = 0x1634B84;   // the particles' sprite sequence
+	static const uint32_t PARTICLE_COUNTS = 0x1634EF4; // particles spawned per tick of the spawner (0xFF: the end)
+
+	// ------------------------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------------------------
+	struct DoomActParams
+	{
+		struct { uint32_t sound; int16_t doom_frame, sink_frame; } director;   // its sound (once phase 2 runs); the frames of its phase it waits for
+		struct { int16_t level, step_in, hold, step_out; } darken;              // the stage darkening: its level, up a tick, held until its tick, down a tick
+		struct { int16_t depth, tint_delay; } doom;                             // the doom prim model's depth offset; the screen tint's start
+		struct { int16_t speed, ticks, level, fade, after, depth; } sink;       // the target sinking: down a tick, ticks, its grey level and fade, ticks after; its prim model's depth
+		struct { int16_t radius, spin, depth; } particles;                      // round the sinking anchor: distance, turn a tick, depth
+		struct { uint32_t at_18155f0, at_1817ee8; } layouts; // the prim-model layouts
+		struct { uint32_t at_1634b84; } seqs; // the flipbooks
+		struct { uint32_t counts; } tables; // the particle counts per tick
+	};
+	static const DoomActParams GAME = { { SOUND, 5, 0x20 }, { 0x800, 0x180, 0x18, 0x100 }, { -0x200, 0x11 },
+		{ 0x28, 0x10, 0x40, 0x10, 0xA, -0x200 }, { 0xC0, 0x100, 0xA }, { DOOM_LAYOUT, SINK_LAYOUT }, { PARTICLE_SEQ },
+		{ PARTICLE_COUNTS } };
+	static DoomActParams live = GAME;
+	static const DoomActParams &PD() { return live; }
 	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; } // battle entity record of a slot
 
 	// engine functions not in act::x
@@ -434,7 +461,7 @@ namespace doomact
 	}
 
 	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(G(G_1533010)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -446,8 +473,8 @@ namespace doomact
 	static inline void da_sink_step(uint32_t node)
 	{
 		const uint16_t v = U16(node, 0x6E);
-		MEM<uint16_t>(BODY_CTX + 0x54) = (uint16_t)(MEM<uint16_t>(BODY_CTX + 0x54) + v);
-		MEM<uint16_t>(ANCHOR + 2) = (uint16_t)(MEM<uint16_t>(ANCHOR + 2) + v);
+		MEM<uint16_t>(R(BODY_CTX) + 0x54) = (uint16_t)(MEM<uint16_t>(R(BODY_CTX) + 0x54) + v);
+		MEM<uint16_t>(R(ANCHOR) + 2) = (uint16_t)(MEM<uint16_t>(R(ANCHOR) + 2) + v);
 	}
 	// a particle's place (0x8C3E29..0x8C3EBA): the anchor + (0, 0, 0xC0) turned by Rz(+0x44) Rx(+0x40) Ry(+0x42)
 	// (frame of 0x8C3E00: matrix at +0x18, in-vector +4 (its pad never written), out-vector +0xC)
@@ -462,11 +489,11 @@ namespace doomact
 		x::MAG_022_sub_8DD8A0(M, (uint32_t)(int32_t)S16(node, 0x42));
 		U16(vin, 0) = 0;
 		U16(vin, 2) = 0;
-		U16(vin, 4) = 0xC0;
+		U16(vin, 4) = (uint16_t)PD().particles.radius;
 		x::matrixMultiplyVector(M, vin, vout);
-		U16(node, 0x1C) = (uint16_t)(MEM<uint16_t>(ANCHOR) + U16(vout, 0));
-		U16(node, 0x1E) = (uint16_t)(MEM<uint16_t>(ANCHOR + 2) + U16(vout, 2));
-		U16(node, 0x20) = (uint16_t)(MEM<uint16_t>(ANCHOR + 4) + U16(vout, 4));
+		U16(node, 0x1C) = (uint16_t)(MEM<uint16_t>(R(ANCHOR)) + U16(vout, 0));
+		U16(node, 0x1E) = (uint16_t)(MEM<uint16_t>(R(ANCHOR) + 2) + U16(vout, 2));
+		U16(node, 0x20) = (uint16_t)(MEM<uint16_t>(R(ANCHOR) + 4) + U16(vout, 4));
 	}
 
 	// module ports of this file (32-bit words in and out, cdecl, like the originals)
@@ -543,14 +570,15 @@ namespace doomact
 	uint32_t __cdecl da_8C0500(uint32_t a1)
 	{
 		g_mod = &MOD_009;
+		g_reloc = 0;   // (its own memory: Fujin's described copies move it)
 		// 30 fps layer: see mag009_doom_activation_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x27584C4) = 0x2793E58;
-		MEM<uint32_t>(0x274F150) = 0x2793E58;
+		MEM<uint32_t>(R(0x27584C4)) = 0x2793E58;
+		MEM<uint32_t>(R(0x274F150)) = 0x2793E58;
 		states[0] = 0x8C0670;
 		states[1] = 0x8C0680;
 		states[2] = 0x8C0690;
@@ -564,18 +592,18 @@ namespace doomact
 		states[10] = 0x8C4950; // nullsub (ret)
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(0x274EFEC) = MEM<uint32_t>(0x27575C4);
-			MEM<uint32_t>(0x274F14C) = MEM<uint32_t>(0x27571B4);
+			MEM<uint32_t>(R(0x274EFEC)) = MEM<uint32_t>(R(0x27575C4));
+			MEM<uint32_t>(R(0x274F14C)) = MEM<uint32_t>(R(0x27571B4));
 		}
 		else
 		{
-			MEM<uint32_t>(0x274EFEC) = MEM<uint32_t>(0x27575C0);
-			MEM<uint32_t>(0x274F14C) = MEM<uint32_t>(0x27571B0);
+			MEM<uint32_t>(R(0x274EFEC)) = MEM<uint32_t>(R(0x27575C0));
+			MEM<uint32_t>(R(0x274F14C)) = MEM<uint32_t>(R(0x27571B0));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;               // live task count of this tick
-		static const uint32_t queues[7] = { 0x2757450, 0x274F128, 0x2758160, 0x274F230, 0x274F628, 0x27571A0, 0x2757440 };
+		const uint32_t queues[7] = { R(0x2757450), R(0x274F128), R(0x2758160), R(0x274F230), R(0x274F628), R(0x27571A0), R(0x2757440) };
 		for (int i = 0; i < 7; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -603,7 +631,7 @@ namespace doomact
 	uint32_t __cdecl da_8C0750(uint32_t a1)
 	{
 		da_8C0780(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x274F128, 0x8C0800, 0x48, a1);
+		Spawn(R(0x274F128), 0x8C0800, 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -613,8 +641,8 @@ namespace doomact
 	// the target seen from the origin - 0x800 (12 bits)
 	uint32_t __cdecl da_8C0780(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(G(G_1533010)), 0x54);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -624,7 +652,7 @@ namespace doomact
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -682,7 +710,7 @@ namespace doomact
 	// 0x8C0940 (sub_8C0940): director state 1 - when the phase frame +0x46 reaches 5: next state
 	uint32_t __cdecl da_8C0940(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 5)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PD().director.doom_frame)
 			next_state(a1);
 		return 0; // void
 	}
@@ -692,7 +720,7 @@ namespace doomact
 	{
 		if (a_73B7E0(2) == 0)
 			return 0; // void
-		x::BdPlaySE(SOUND, 0, 0x80);
+		x::BdPlaySE(fxp::sound(PD().director.sound, SOUND), 0, 0x80);
 		next_state(a1);
 		return 0; // void
 	}
@@ -700,7 +728,7 @@ namespace doomact
 	// 0x8C09D0 (sub_8C09D0): director state 4 - when the phase frame +0x46 reaches 0x20: next state
 	uint32_t __cdecl da_8C09D0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0x20)
+		if (S16(MEM<uint32_t>(G(G_1533010)), 0x46) >= PD().director.sink_frame)
 			next_state(a1);
 		return 0; // void
 	}
@@ -719,23 +747,23 @@ namespace doomact
 	// stage darkening out (0x8C33C0); the phase tasks (0x7C bytes) go to the queue 0x274F230
 	uint32_t __cdecl da_8C0AB0(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(DIR_PTR), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(G(G_1533010)), 0x40) - 1;
 		switch (ph)
 		{
 		case 0:
-			return x::Effect_AddTaskAndInitFromCtx(Q_PHASE, ORIG_DarkenIn, 0x7C, a1);
+			return Spawn(R(Q_PHASE), ORIG_DarkenIn, 0x7C, a1);
 		case 1:
 		{
-			da_8C0B70(a1, ORIG_DoomModel, 0x18155F0, 0x348, 0, 0);
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TINT, 0x8DDC30, 0x40, a1);
+			da_8C0B70(a1, ORIG_DoomModel, fxp::layout(PD().layouts.at_18155f0, DOOM_LAYOUT, 0x348), 0x348, 0, 0);
+			const uint32_t t = Spawn(R(Q_TINT), 0x8DDC30, 0x40, a1);
 			U32(t, 0x34) = 0x1634F00;
-			U16(t, 0x38) = 0x11;
+			U16(t, 0x38) = (uint16_t)PD().doom.tint_delay;
 			return t;
 		}
 		case 2:
-			return x::Effect_AddTaskAndInitFromCtx(Q_PHASE, ORIG_Sink, 0x7C, a1);
+			return Spawn(R(Q_PHASE), ORIG_Sink, 0x7C, a1);
 		case 3:
-			return x::Effect_AddTaskAndInitFromCtx(Q_PHASE, ORIG_DarkenOut, 0x7C, a1);
+			return Spawn(R(Q_PHASE), ORIG_DarkenOut, 0x7C, a1);
 		default:
 			return (uint32_t)ph;
 		}
@@ -746,7 +774,7 @@ namespace doomact
 	// returns the node
 	uint32_t __cdecl da_8C0B70(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, a2, 0x3E4, a1);
+		const uint32_t t = Spawn(R(Q_PRIM), a2, 0x3E4, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -765,7 +793,7 @@ namespace doomact
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
-		U16(node, 0x88) = 0xFE00;
+		U16(node, 0x88) = (uint16_t)PD().doom.depth;
 		da_8C0C90(node);
 		next_state(node);
 		return 0; // void
@@ -806,7 +834,7 @@ namespace doomact
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = R(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
 		// 30 fps layer: see mag009_doom_activation_held.inc
@@ -1725,12 +1753,12 @@ namespace doomact
 	// stays dark until phase 4), written to the 4 stage words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl da_8C3370(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x180);
-		if (S16(a1, 0x1C) >= 0x800)
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + PD().darken.step_in);
+		if (S16(a1, 0x1C) >= PD().darken.level)
 		{
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
-			U16(a1, 0x1C) = 0x800;
+			U16(a1, 0x1C) = (uint16_t)PD().darken.level;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
@@ -1744,9 +1772,9 @@ namespace doomact
 	// (0x8C3440 brings it back to 0 by 0x100 a tick)
 	uint32_t __cdecl da_8C3420(uint32_t a1)
 	{
-		if (S16(a1, 0x24) > 0x18)
+		if (S16(a1, 0x24) > PD().darken.hold)
 		{
-			U16(a1, 0x1C) = 0x800;
+			U16(a1, 0x1C) = (uint16_t)PD().darken.level;
 			next_state(a1);
 		}
 		return 0; // void
@@ -1756,7 +1784,7 @@ namespace doomact
 	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl da_8C3440(uint32_t a1)
 	{
-		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
+		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) - PD().darken.step_out);
 		if (S16(a1, 0x1C) <= 0)
 		{
 			const uint8_t st = U8(a1, 0x29);
@@ -1784,7 +1812,7 @@ namespace doomact
 		{
 			// 30 fps layer: see mag009_doom_activation_held.inc
 			FX_HELD(held_note_draw(HK_BODY, node);)
-			da_8C3520(BODY_CTX);
+			da_8C3520(R(BODY_CTX));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2017,7 +2045,7 @@ namespace doomact
 		const uint16_t w = U16(ent, 0);
 		U32(node, 0x74) = w;
 		U16(ent, 0) = (uint16_t)(w | 8);
-		x::GetEffectSpawnPosition(ent, 0xF1, 0, ANCHOR);
+		x::GetEffectSpawnPosition(ent, 0xF1, 0, R(ANCHOR));
 		next_state(node);
 		return 0; // void
 	}
@@ -2030,17 +2058,17 @@ namespace doomact
 	{
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2D));
-		da_8C4690(BODY_CTX, BODY_VERTS, BODY_BLOCK, ent);
+		da_8C4690(R(BODY_CTX), R(BODY_VERTS), R(BODY_BLOCK), ent);
 		const uint16_t top = U16(ent, 0x3C);
 		U8(node, 0x26) |= 8;
 		const int32_t sum = (int32_t)S16(ent, 0x36) + (int32_t)(int16_t)top;
-		MEM<uint16_t>(BODY_CTX + 0x5A) = (uint16_t)(top - U16(ent, 0x1E));
-		MEM<uint16_t>(BODY_CTX + 0x58) = (uint16_t)(sum / 2);
-		MEM<uint16_t>(BODY_CTX + 0x56) = 0x40;
-		U16(node, 0x6E) = 0xFFD8;
-		da_8C0B70(node, ORIG_SinkModel, 0x1817EE8, 0x80, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_PARTICLE, ORIG_Spawner, 0x5C, node);
-		U16(node, 0x78) = 0x10;
+		MEM<uint16_t>(R(BODY_CTX) + 0x5A) = (uint16_t)(top - U16(ent, 0x1E));
+		MEM<uint16_t>(R(BODY_CTX) + 0x58) = (uint16_t)(sum / 2);
+		MEM<uint16_t>(R(BODY_CTX) + 0x56) = (uint16_t)PD().sink.level;
+		U16(node, 0x6E) = (uint16_t)-PD().sink.speed;
+		da_8C0B70(node, ORIG_SinkModel, fxp::layout(PD().layouts.at_1817ee8, SINK_LAYOUT, 0x80), 0x80, 0, 0);
+		Spawn(R(Q_PARTICLE), ORIG_Spawner, 0x5C, node);
+		U16(node, 0x78) = (uint16_t)PD().sink.ticks;
 		next_state(node);
 		return 0; // void
 	}
@@ -2057,7 +2085,7 @@ namespace doomact
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
-		U16(node, 0x88) = 0xFE00;
+		U16(node, 0x88) = (uint16_t)PD().sink.depth;
 		da_8C0C90(node);
 		next_state(node);
 		return 0; // void
@@ -2068,8 +2096,8 @@ namespace doomact
 	uint32_t __cdecl da_8C3CF0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t w1c = MEM<uint32_t>(0x27571B8);
-		const uint32_t w20 = MEM<uint32_t>(0x27571BC);
+		const uint32_t w1c = MEM<uint32_t>(R(0x27571B8));
+		const uint32_t w20 = MEM<uint32_t>(R(0x27571BC));
 		U32(node, 0x1C) = w1c;
 		U32(node, 0x20) = w20;
 		const uint32_t r = da_8C0C90(node);
@@ -2094,7 +2122,9 @@ namespace doomact
 	uint32_t __cdecl da_8C3D90(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		int32_t n = MEM<uint8_t>(0x1634EF4 + (uint32_t)(int32_t)S16(node, 0x24));
+		// (an edited table is read within its 12 bytes: past them, the end - the game's ends at its 11th)
+		const int32_t at = (int32_t)S16(node, 0x24);
+		int32_t n = at >= 0 && at < 12 ? MEM<uint8_t>(fxp::data(PD().tables.counts, PARTICLE_COUNTS, 12, 1) + (uint32_t)at) : 0xFF;
 		if (a_73B7E0(4) != 0 || n == 0xFF)
 		{
 			U8(node, 0x26) |= 1;
@@ -2102,7 +2132,7 @@ namespace doomact
 			return 0; // void
 		}
 		for (; n > 0; n--)
-			x::Effect_AddTaskAndInitFromCtx(Q_PARTICLE, ORIG_Particle, 0x5C, node);
+			Spawn(R(Q_PARTICLE), ORIG_Particle, 0x5C, node);
 		return 0; // void
 	}
 
@@ -2114,7 +2144,7 @@ namespace doomact
 		const uint32_t node = a1;
 		const uint32_t states[3] = { 0x8C45D0, 0x8C4620, 0x8C4670 };
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x42) = (uint16_t)(U16(node, 0x42) + 0x100);
+		U16(node, 0x42) = (uint16_t)(U16(node, 0x42) + PD().particles.spin);
 		da_particle_place(node);
 		da_8C3F00(node);
 		const uint8_t status = U8(node, 0x26);
@@ -2167,7 +2197,7 @@ namespace doomact
 		uint32_t ot = U32(0x1D8E04C, 0) + 0x44;
 		U16(hdr, 0x24) = 0;
 		U16(hdr, 0xB4) = depth;
-		U32(0x1D8E054, 0) = a_7435E0(hdr, ot, 2, cursor);
+		U32(0x1D8E054, 0) = callo(0x8C4020, hdr, ot, 2u, cursor);   // (the module's own sequence reader, as the game calls it)
 		x::Field_Free(0xD8);
 		return 0; // void
 	}
@@ -2177,8 +2207,8 @@ namespace doomact
 	uint32_t __cdecl da_8C45D0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = 0x1634B84;
-		U16(node, 0x52) = 0xA;
+		U32(node, 0x4C) = fxp::sequence(PD().seqs.at_1634b84, PARTICLE_SEQ);
+		U16(node, 0x52) = (uint16_t)PD().particles.depth;
 		U16(node, 0x40) = (uint16_t)(x::CrtRand() & 0xFFF);
 		U16(node, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
 		U16(node, 0x44) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -2207,8 +2237,8 @@ namespace doomact
 		x::MAG_007_sub_8DCC00(ctx, 0x5C);
 		U32(ctx, 0x48) = a4;
 		U32(ctx, 0x40) = a2;
-		U32(ctx, 0x4C) = PACKET_CURSOR;
-		U32(ctx, 0x50) = PACKET_CURSOR;
+		U32(ctx, 0x4C) = R(PACKET_CURSOR);
+		U32(ctx, 0x50) = R(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(ctx, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -2242,17 +2272,17 @@ namespace doomact
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2D));
 		da_sink_step(node);
-		const int16_t level = (int16_t)(MEM<uint16_t>(BODY_CTX + 0x56) - 0x10);
-		MEM<uint16_t>(BODY_CTX + 0x56) = (uint16_t)level;
+		const int16_t level = (int16_t)(MEM<uint16_t>(R(BODY_CTX) + 0x56) - PD().sink.fade);
+		MEM<uint16_t>(R(BODY_CTX) + 0x56) = (uint16_t)level;
 		if (level > 0)
 			return 0; // void
 		const uint16_t keep = (uint16_t)((U8(node, 0x74) ^ U8(ent, 0)) & 8);
 		U8(node, 0x26) &= 0xF7;
-		MEM<uint16_t>(BODY_CTX + 0x56) = 0;
-		U16(node, 0x78) = 0xA;
+		MEM<uint16_t>(R(BODY_CTX) + 0x56) = 0;
+		U16(node, 0x78) = (uint16_t)PD().sink.after;
 		U16(ent, 0) = (uint16_t)(U16(ent, 0) ^ keep);
 		next_state(node);
-		U16(MEM<uint32_t>(DIR_PTR), 0x48) = 1;
+		U16(MEM<uint32_t>(G(G_1533010)), 0x48) = 1;
 		return 0; // void
 	}
 
@@ -2281,7 +2311,7 @@ namespace doomact
 	// the action result of (action +0x2A, subtarget +0x2B) of the cast context (0x506690), next state.
 	uint32_t __cdecl da_8C4800(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1634B7C);
+		const uint32_t d = MEM<uint32_t>(G(G_1533010));
 		if (U16(d, 0x48) != 1)
 			return 0; // void
 		const uint32_t node = a1;
@@ -2293,6 +2323,44 @@ namespace doomact
 		x::ApplyActionResultToTarget(arr + (uint32_t)(sub * 24));
 		t4_next_state(node);
 		return 0; // void
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+#define DA(part, member, label, doc, lo, hi) { part, #member, label, doc, (uint32_t)offsetof(DoomActParams, member), fxp::I16, lo, hi }
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "Its phases: the stage darkening, the doom model and its sound, the target sinking; the frames it waits for" },
+			{ 0, "stage", "Stage darkening", "The stage group darkened, held, back" },
+			{ 0, "doom", "Doom model", "The doom prim model at the target's anchor and the screen tint" },
+			{ 0, "sink", "Sinking", "The target drawn by the effect, sinking with a grey level fading out; the KO at its end; the prim model following it" },
+			{ 0, "particles", "Particles", "Sprites turning round the sinking anchor" },
+		};
+		static const Field FIELDS[] = {
+			{ "director", "director.sound", "Sound", "Played once phase 2 (the doom model) runs", (uint32_t)offsetof(DoomActParams, director.sound), fxp::Sound, 0, 0x7FFFFFFF },
+			DA("director", director.doom_frame, "Doom model after", "Phase 2 (the doom model, the tint) once phase 1 has run this many frames", 0, 200),
+			DA("director", director.sink_frame, "Sinking after", "Phase 3 (the sinking) once phase 2 has run this many frames", 0, 200),
+			DA("stage", darken.level, "Level", "", 0, 0x1000),
+			DA("stage", darken.step_in, "Step in", "Up by this a tick", 1, 0x1000),
+			DA("stage", darken.hold, "Hold until", "Back from this tick of its task (phase 4)", 0, 200),
+			DA("stage", darken.step_out, "Step out", "Down by this a tick", 1, 0x1000),
+			DA("doom", doom.depth, "Depth offset", "Its depth (OT) offset", -0x1000, 0x1000),
+			DA("doom", doom.tint_delay, "Tint delay", "The tint's colour script starts after this many ticks", 0, 200),
+			{ "doom", "layouts.at_18155f0", "Layout", "The doom model's prim-model layout (its models' animation)", (uint32_t)offsetof(DoomActParams, layouts.at_18155f0), fxp::Layout, 0, 0x7FFFFFFF },
+			DA("sink", sink.speed, "Speed", "Down by this a tick", -0x200, 0x200),
+			DA("sink", sink.ticks, "Ticks", "It sinks this many ticks before its grey level fades", 0, 200),
+			DA("sink", sink.level, "Grey level", "Its grey level (fading out across a band above its middle)", 0, 0xFF),
+			DA("sink", sink.fade, "Fade", "Then its level down by this a tick while it sinks on; at 0 the KO", 1, 0xFF),
+			DA("sink", sink.after, "Ticks after", "Its anchor (the prim model, the particles) sinks on this many ticks", 0, 200),
+			DA("sink", sink.depth, "Depth offset", "Its prim model's depth (OT) offset", -0x1000, 0x1000),
+			{ "sink", "layouts.at_1817ee8", "Layout", "The prim-model layout following the sinking anchor (its models' animation)", (uint32_t)offsetof(DoomActParams, layouts.at_1817ee8), fxp::Layout, 0, 0x7FFFFFFF },
+			DA("particles", particles.radius, "Distance", "From the sinking anchor", 0, 0x2000),
+			DA("particles", particles.spin, "Spin", "Turned about Y by this a tick (4096: a turn)", -0x1000, 0x1000),
+			DA("particles", particles.depth, "Depth", "Their depth word", 0, 0x100),
+			{ "particles", "seqs.at_1634b84", "Flipbook", "The sprite sequence at 0x1634B84 (a flipbook of 11 frames: an edited one keeps as many)", (uint32_t)offsetof(DoomActParams, seqs.at_1634b84), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "particles", "tables.counts", "Counts", "Particles spawned at each tick of the spawner, 0xFF its end (12 bytes: an edited one keeps its length)", (uint32_t)offsetof(DoomActParams, tables.counts), fxp::Data, 0, 0x7FFFFFFF },
+		};
+#undef DA
 	}
 
 	// ---- generated (desc9.py / cls9.txt): the module's functions served by engine ports ----
@@ -2395,6 +2463,11 @@ namespace doomact
 
 	void register_mag009_doom_activation()
 	{
+		fxp::register_params({ 9, "Doom Activation", &act::doomact::live, &act::doomact::GAME, sizeof(act::doomact::DoomActParams),
+		                       act::doomact::table::PARTS, (int)(sizeof(act::doomact::table::PARTS) / sizeof(act::doomact::table::PARTS[0])),
+		                       act::doomact::table::FIELDS, (int)(sizeof(act::doomact::table::FIELDS) / sizeof(act::doomact::table::FIELDS[0])),
+		                       nullptr, 0 });
+		act::register_mod(&act::doomact::MOD_009);
 		act::register_module(9);
 		for (const act::doomact::ModPort *p = act::doomact::ENGINE_PORTS; p->addr; p++)
 			act::register_module_port(9, p->addr, p->port, p->name);

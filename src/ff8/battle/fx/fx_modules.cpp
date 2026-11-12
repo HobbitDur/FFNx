@@ -174,6 +174,14 @@ namespace ff8fx::mod
 	static const Region streams_b304[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_u227[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_g311[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_r316[] = { { 0x21DFED0, 0x20 } };
+	static const Region streams_a314[] = { { 0x21DFED0, 0x20 }, { 0x1DCD6E4, 0xC } };
+	// Gargantua burrow: the spawn stream pointer in exe data (never put back) + the sprite / shadow-camera engine words
+	static const Region streams_g301[] = { { 0x103DC9C, 4 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	// BGH251F2 destruction: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
+	static const Region streams_b298[] = { { 0x1056560, 0x31C }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	// Trauma shatter: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
+	static const Region streams_t290[] = { { 0x106E648, 0x24C }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_m207[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } }; // Maelstrom 207: as Gravija 214
 	static const Region streams_g214[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } }; // Gravija 214: 311's sprite cells + the screen-copy request (0x45B5E0) and the VRAM-emulation flag (0x45BEE0)
 	static const Region streams_s176[] = { { 0xD4516C, 0xC }, { 0x21DFED0, 0x20 } };
@@ -487,6 +495,9 @@ namespace ff8fx::mod
 		{ 151, 0x244D670, 0x244FD60, 0, 0, false, "Cannon Blow (attack 69, SAM08G)", streams_q299, 4 },
 		{ 186, 0x22B7600, 0x22BC128, 0, 0, false, "Blaster (attacks 122-123, Torama)", streams_q299, 4 },
 		{ 321, 0x221BC68, 0x2239530, 0, 0, false, "Ker Plunk (attack 231, Jumbo Cactuar)", streams_q299, 4 },
+		{ 301, 0x25076D8, 0x2507758, 0, 0, false, "Gargantua burrow (attack 265, Gargantua)", streams_g301, 5 },
+		{ 298, 0x2507880, 0x2507904, 0, 0, false, "BGH251F2 destruction (attack 119, BGH251F2 second fight)", streams_b298, 5 },
+		{ 290, 0x2507B38, 0x2507BCC, 0, 0, false, "Trauma shatter (attack 291, Trauma)", streams_t290, 5 },
 		{ 283, 0x2507E20, 0x2507E90, 0, 0, false, "Magic Summon (attack 261, Sphinxara)", streams_q299, 4 },
 		{ 241, 0x2796860, 0x2798C40, 0, 0, false, "Gatling Gun (attack 138, BGH251F2)", streams_gfc, 5 },
 		{ 242, 0x2796828, 0x2798C40, 0, 0, false, "Beam Cannon (attack 139, BGH251F2)", streams_gfc, 5 },
@@ -504,8 +515,14 @@ namespace ff8fx::mod
 		{ 237, 0x2796940, 0x2798C40, 0, 0, false, "Explosion (attacks 128 / 129 / 130, Death Claw)", streams_gfc, 5 },
 		{ 211, 0x2796C88, 0x2798C40, 0, 0, false, "Adel Death (attack 317, Adel)", streams_ps, 6 },
 		{ 219, 0x2796C50, 0x2798C40, 0, 0, false, "Terra Break (attack 311, Omega Weapon)", streams_gfc, 5 },
+		{ 265, 0x2795D30, 0x2798C40, 0, 0, false, "effect 265 (attack 259, Sphinxara)", streams_gfc, 5 },
+		{ 208, 0x2796CC0, 0x2798C40, 0, 0, false, "Final Sorceress Death (attack 328, Sorceress (Wormlike))", streams_ps, 6 },
+		{ 264, 0x2795D68, 0x2798C40, 0, 0, false, "effect 264 (attack 277, Krysta)", streams_gfc, 5 },
+		{ 221, 0x2796BE0, 0x2798C40, 0, 0, false, "Apocalypse (magic; attack 373, Ultimecia final form)", streams_gfc, 5 },
 		{ 344, 0x24DFD70, 0x24F0BCC, 0, 0, false, "effect 344 (attack 368, Griever)", nullptr, 0 },
 		{ 302, 0x2507660, 0x25076D8, 0, 0, false, "Snipe Laser (attack 155, GIM47N)", streams_s302, 3 },
+		{ 316, 0x2505520, 0x2505578, 0, 0, false, "effect 316 (attack 203, Red Giant)", streams_r316, 1 },
+		{ 314, 0x2505578, 0x25055E0, 0, 0, false, "effect 314 (attack 191, Abadon)", streams_a314, 2 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 		{ 157, 0x23EB5C0, 0x23ECE40, 0, 0, false, "Breath (attack 37, Hexadragon)", streams_b157, 4 },
 		{ 158, 0x23D7B08, 0x23EB5C0, 0, 0, false, "Melt-Eye (attack 36, Hexadragon)", streams_m158, 1 },
@@ -729,6 +746,13 @@ namespace ff8fx::mod
 		{ 0x487750, 2, "printMonsterRelatedText0" },
 		// Renzokuken (160 / 161 / 159): the hit sparks' AnimSeq task on the caster (finisher)
 		{ 0x571840, 2, "AddTaskToQueueAnimSeq_99_B0_B1_B4_A5" },
+		// Gargantua burrow (301) / Trauma shatter (290) / BGH251F2 destruction (298): the caster's shadow
+		{ 0x5088A0, 4, "BattleEntity_DrawShadow" },
+		// Zan (322) / Metsu (323): the battle file streamer
+		{ 0x534110, 1, "BattleFile_StreamState_Init" },
+		{ 0x5341D0, 3, "Stream_QueueLoad" },
+		{ 0x534210, 0, "Stream_Pump" },
+		{ 0x5342C0, 1, "BattleFile_PreLoad_IsLoaded" },
 	};
 	const int ext_site_count = (int)(sizeof(ext_sites) / sizeof(ext_sites[0]));
 
