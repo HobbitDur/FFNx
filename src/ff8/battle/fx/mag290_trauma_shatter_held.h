@@ -23,6 +23,7 @@ namespace shatter290
 {
 	enum DrawKind { PLAY_A = 1, PLAY_B = 2, PLAY_C = 3, UNDER = 4, BODY = 5, FRAGS = 6, MARKS = 7, SPRITE_A = 8, SPRITE_B = 9, LAYOUT = 10 };
 	static void held_note_root();
+	static void held_note_frame(const Mat4x3 *frame);
 	static void held_note_play(const MasterNode *m, int kind, const PrimArg *arg);
 	static void held_note_under(const MasterNode *m, const int16_t *pos);
 	static void held_note_body(const MasterNode *m);

@@ -20,8 +20,10 @@
 // tick, then moves the fragments; the scripts run after it). A real tick records every draw in order with the GTE registers and
 // the Field_Alloc scratch it started from; a held frame replays them in the same order on private packets, with the current
 // camera (the frame gate's):
-//   layouts A / B / C, layout tasks - prim::play_held (every object's exact in-between record), the block as the real play
-//             read it (anchors fixed at their spawn); blended vertex frames go to a private buffer.
+//   layouts A / B / C, layout tasks - prim::play_held (every object's exact in-between record); the block's frame (the
+//             master's RotY at the caster's spawn point, noted before its camera compose; a layout task's node position) composed
+//             with the current camera, the rest of the block as the real play read it (anchors fixed at their spawn); blended
+//             vertex frames go to a private buffer.
 //   under sprite - holds (fixed point, flipbook frame N).
 //   body    - the pose entries half way to the ones the scripts left for the next tick (translations linearly, rotations the
 //             short way round on 12 bits; the visibility words hold), drawn with the module's own caster draw (shadow + body)
@@ -53,6 +55,7 @@ namespace shatter290
 		int16_t counter;          // master: the counter as drawn
 		int16_t pos[4];           // under sprite: its point
 		PrimArg arg;              // plays: the block as the play read it
+		Mat4x3 cam_frame;         // plays: the block's frame before the camera compose
 		SpriteNode sprite;        // sprites: the node as drawn
 		uint32_t frame;           // body: the frame arena at the draw
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
@@ -96,12 +99,17 @@ namespace shatter290
 		return &r;
 	}
 
+	// the master's frame before its camera compose (PLAY_A; PLAY_B and PLAY_C share one)
+	static Mat4x3 g_frame_pending;
+	static void held_note_frame(const Mat4x3 *frame) { g_frame_pending = *frame; }
+
 	static void held_note_play(const MasterNode *m, int kind, const PrimArg *arg)
 	{
 		Rec *r = NewRec(kind, m);
 		if (!r) return;
 		r->counter = m->counter;
 		r->arg = *arg;
+		r->cam_frame = g_frame_pending;
 	}
 
 	static void held_note_under(const MasterNode *m, const int16_t *pos)
@@ -149,9 +157,25 @@ namespace shatter290
 		Rec *r = NewRec(LAYOUT, L);
 		if (!r) return;
 		r->arg = *arg;
+		// the layout task's frame: identity at the node's position (fixed at spawn)
+		memset(&r->cam_frame, 0, sizeof(r->cam_frame));
+		r->cam_frame.m[0][0] = r->cam_frame.m[1][1] = r->cam_frame.m[2][2] = 0x1000;
+		r->cam_frame.t[0] = L->pos[0];
+		r->cam_frame.t[1] = L->pos[1];
+		r->cam_frame.t[2] = L->pos[2];
 	}
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
+
+	// a play's block at the current camera (the frame gate's): its frame composed with the camera, as the task builds it; then
+	// the GTE state and scratch the real play started from
+	static void HeldFrame(const Rec &r, PrimArg *arg)
+	{
+		ComposeAffineTransform(&Camera(), &r.cam_frame, &arg->m);
+		memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
+		memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
+		memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
+	}
 
 	// 12-bit angle half way the short way round
 	static int16_t LerpAngle12(int16_t a, int16_t b, int num, int den)
@@ -275,6 +299,7 @@ namespace shatter290
 			{
 				const bool next = r.kind == PLAY_A ? r.counter + 1 < 0x10 : (uint32_t)(r.counter + 1 - 0x14) < 0x16;
 				PrimArg arg = r.arg;
+				HeldFrame(r, &arg);
 				arg.morph = (uint32_t)g_held_morph;
 				const uint8_t *l = r.kind == PLAY_A ? m->layoutA : r.kind == PLAY_B ? m->layoutB : m->layoutC;
 				prim::play_held((prim::Layout *)l, PrimCallback, (int)&arg, next ? num : 0, den);
@@ -306,6 +331,7 @@ namespace shatter290
 			default:
 			{
 				PrimArg arg = r.arg;
+				HeldFrame(r, &arg);
 				arg.morph = (uint32_t)g_held_morph;
 				prim::play_held((prim::Layout *)((LayoutNode *)r.node)->layout, PrimCallback, (int)&arg, num, den);
 				break;

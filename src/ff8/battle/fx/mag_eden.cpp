@@ -2856,6 +2856,9 @@ namespace eden
 	{
 		using namespace gfc;
 		eden::describe(eden::g_c);
+		// its two script files: parameters (first: init_clone reads the exe, absent when the lab only
+		// lists the parameters)
+		ProgramFiles<206>::Register("Eden", eden::g_c, 0xAE2DA0, 0x1871860, 0x187186C, (void *)eden::SequenceTask);
 		init_clone(eden::g_c, nullptr, 0);
 		apply_eden_a(eden::g_c);
 		apply_eden_b(eden::g_c);
@@ -2867,6 +2870,7 @@ namespace eden
 		// 30 fps layer: see mag_eden_held.inc
 		FX_HELD(register_gfc_eden_held();)
 	}
+	FX_LAB_MODULE(register_gfc_eden);
 }
 
 #ifdef FF8_FX_HELD

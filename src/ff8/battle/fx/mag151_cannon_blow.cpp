@@ -60,12 +60,23 @@
 // theirs); the order of the shot queue.
 // ENTITY WRITES: none. CAMERA: the camera animation 0xDBEC8C (engine) and the shake word 0x1D97712 (MainTask).
 // Module globals: 0x244D670..0x244FD60.
+// FUJIN: the file loader (0x60C9A0) and the setup (0x60C9C0) are ported too, for Fujin's programs (their memory may be a
+// copy's: own::R). Parameters (CannonBlowParams): the shot sound, the texture name, the camera track, and the SMOKE
+// GRENADE options - not the game's (smoke.on 0 = the game's effect, every value below unused): a new effect's look
+// (Cronos's Smoke Grenade, effect 360): no flash, burst, ring, fire ball or fire trails at the caster; a canister
+// spinning along the shot's curve leaving a thin smoke trail; at the landing (counter 14) no impact, debris or camera
+// shake but a smoke cloud billowing out of the landing point, hanging, thinning out. Its puffs are the debris
+// flipbook's frames redrawn with their palette row moved to smoke.row (the smoke texture's grey ramp: brightness =
+// opacity) and drawn twice, subtracting then adding (soft, see-through smoke), in static memory (one cast at a time).
 // NEVER-WRITTEN STACK WORDS: the 4th word of MainTask's local point (entry esp - 0x32): the effect point 0xF1
 // (GetEffectSpawnPosition writes 3 words) is copied with it into the DebrisTasks' +0x16 (only ever loaded into the GTE VZ0
 // pad: never read); modelled 0 (DebrisPad).
 
 #include "mag_common.h"
+#include <algorithm>
+#include <cstring>
 #include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -83,18 +94,18 @@ namespace cannonblow151
 	inline int16_t S16v(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x244F928); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x244F92C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x244FD58); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x244FD5C); }
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x244D698; }
-	inline TaskQueue *ShotQueue() { return (TaskQueue *)0x244E9E8; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x244F928)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x244F92C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x244FD58)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x244FD5C)); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x244D698); }
+	inline TaskQueue *ShotQueue() { return (TaskQueue *)own::R(0x244E9E8); }
 	static const uint32_t PARTS_A = 0x244D6A8, PARTS_B = 0x244E008, PARTS_END = 0x244E968; // 100 x 0x18 each
-	inline uint32_t Ctrl(int i) { return 0x244F808 + (uint32_t)i * 0x20; }   // 4 control points (8 bytes)
-	inline uint32_t Target(int i) { return 0x244F888 + (uint32_t)i * 8; }
-	inline Mat4x3 *Rot(int i) { return (Mat4x3 *)(0x244F8A8 + (uint32_t)i * 0x20); }
-	inline uint32_t Start(int i) { return 0x244F938 + (uint32_t)i * 8; }
-	inline uint32_t Point(int i, int k) { return 0x244F958 + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; } // 32 curve points
+	inline uint32_t Ctrl(int i) { return own::R(0x244F808) + (uint32_t)i * 0x20; }   // 4 control points (8 bytes)
+	inline uint32_t Target(int i) { return own::R(0x244F888) + (uint32_t)i * 8; }
+	inline Mat4x3 *Rot(int i) { return (Mat4x3 *)(own::R(0x244F8A8) + (uint32_t)i * 0x20); }
+	inline uint32_t Start(int i) { return own::R(0x244F938) + (uint32_t)i * 8; }
+	inline uint32_t Point(int i, int k) { return own::R(0x244F958) + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; } // 32 curve points
 
 	static const uint32_t ORIG_Root = 0x60E270, ORIG_TexRestore = 0x60E2E0, ORIG_Main = 0x60CA90, ORIG_Flash = 0x60D260,
 		ORIG_Burst = 0x60D3B0, ORIG_Ring = 0x60D670, ORIG_Ball = 0x60D790, ORIG_Trail = 0x60D850, ORIG_Trail2 = 0x60DA10,
@@ -103,6 +114,36 @@ namespace cannonblow151
 		MODEL_ImpactRing = 0xDC1498;
 	static const uint32_t SEQ_Burst = 0xDBF314, SEQ_Ball = 0xDBF2A0, SEQ_Trail = 0xDBEF48, SEQ_Trail2 = 0xDBF0F4, SEQ_Debris = 0xDBED9C;
 	static const uint32_t SOUND_Shot = 0xDC1DC0;
+	static const uint32_t ORIG_FileLoader = 0x60C9A0, ORIG_Setup = 0x60C9C0;
+	static const uint32_t TEXTURE_NAME = 0xDC1DC8, CAMERA = 0xDBEC8C;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x244F930)); }
+	inline int32_t &FirstTarget() { return var<int32_t>(own::R(0x244D670)); }
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_CANISTER = 1, PART_TRAIL = 2, PART_CLOUD = 3 };
+	struct CannonBlowParams
+	{
+		struct { uint32_t shot; } sounds;  // MainTask's counter 1
+		// the smoke grenade (not the game's: on 0 = the game's effect)
+		struct { int16_t on, row, hold, thin_rand, thin_ticks; } smoke;
+		struct { int16_t count, delay, jitter, speed_min, speed_rand, rise_min, rise_rand, brake, size_start, size_min, size_rand,
+		         grow, frame_min, frame_rand, spin, drift_up, turb, swell, r, g, b, sub, shade_rand, top_light; } cloud;
+		struct { int16_t size, spin, shade, sub, frame; } canister;
+		struct { int16_t per_point, jitter, size, size_rand, grow, life, rise, shade, sub; } trail;
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	static const CannonBlowParams GAME = {
+		{ SOUND_Shot },
+		{ 0, 249, 14, 6, 8 },
+		{ 110, 5, 60, 60, 200, 20, 170, 5, 0x500, 0x1000, 0x1000, 4, 2, 14, 6, 4, 6, 4, 118, 118, 120, 150, 60, 40 },
+		{ 0x400, 300, 40, 255, 9 },
+		{ 2, 60, 0x500, 0x300, 0x50, 12, 6, 110, 120 },
+		{ TEXTURE_NAME, CAMERA } };
+	static CannonBlowParams live = GAME;
+	static const CannonBlowParams &P() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
@@ -490,7 +531,7 @@ namespace cannonblow151
 		const int running = ExecuteTaskQueue(ShotQueue());
 		if (!running)
 		{
-			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), own::Fn(ORIG_TexRestore));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}
@@ -752,7 +793,7 @@ namespace cannonblow151
 		U32(h, 0) = SEQ_Burst;
 		U16(h, 0x24) = 0;
 		const int i = S16(n, 0xE);
-		for (uint32_t p = PARTS_B; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS_B); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
 			// 30 fps layer: see mag151_cannon_blow_held.inc
@@ -783,7 +824,7 @@ namespace cannonblow151
 		{
 			for (int k = 0; k < 0xC; k++)
 			{
-				const uint32_t p = FreeParticle(PARTS_B, PARTS_END);
+				const uint32_t p = FreeParticle(own::R(PARTS_B), own::R(PARTS_END));
 				if (!p) break;
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
 				S16(p, P_FRAME) = 0;
@@ -835,7 +876,7 @@ namespace cannonblow151
 	{
 		// 30 fps layer: see mag151_cannon_blow_held.inc
 		FX_HELD(held_note_parts(jitter ? REC_TRAIL2 : REC_TRAIL, n);)
-		const int alive = TrailParticles(n, PARTS_A, PARTS_B, jitter ? SEQ_Trail2 : SEQ_Trail, jitter ? 8 : 0, 4);
+		const int alive = TrailParticles(n, own::R(PARTS_A), own::R(PARTS_B), jitter ? SEQ_Trail2 : SEQ_Trail, jitter ? 8 : 0, 4);
 		if (DrawOnly()) return 0;
 		TrailStep(n);
 		const int32_t at = S16(n, 0x1C);
@@ -843,7 +884,7 @@ namespace cannonblow151
 		{
 			for (int32_t k = at; k >= S16(n, 0x1C) - S16(n, 0x1E); k--)
 			{
-				const uint32_t p = FreeParticle(PARTS_A, PARTS_B);
+				const uint32_t p = FreeParticle(own::R(PARTS_A), own::R(PARTS_B));
 				if (!p) break;
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
 				S16(p, P_FRAME) = 0;
@@ -871,7 +912,7 @@ namespace cannonblow151
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag151_cannon_blow_held.inc
 		FX_HELD(held_note_parts(REC_TRAIL3, n);)
-		const int alive = TrailParticles(n, PARTS_B, PARTS_END, SEQ_Burst, 0, 3);
+		const int alive = TrailParticles(n, own::R(PARTS_B), own::R(PARTS_END), SEQ_Burst, 0, 3);
 		if (DrawOnly()) return 0;
 		TrailStep(n);
 		const int32_t at = S16(n, 0x1C);
@@ -881,7 +922,7 @@ namespace cannonblow151
 			{
 				for (int j = 0; j < 2; j++)
 				{
-					const uint32_t p = FreeParticle(PARTS_B, PARTS_END);
+					const uint32_t p = FreeParticle(own::R(PARTS_B), own::R(PARTS_END));
 					if (!p) break;
 					U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
 					S16(p, P_FRAME) = 0;
@@ -898,12 +939,234 @@ namespace cannonblow151
 		return S16(n, 0xC) >= 4 && !alive ? TASK_END : 0;
 	}
 
+
+	// ------------------------------------------------------------------
+	// The smoke grenade (smoke.on; not the game's): the canister, its trail, the cloud - puffs in static memory
+	// ------------------------------------------------------------------
+	// a puff: cloud (life 0: thins out from thin_at) or trail (life > 0: fades as its ticks run out)
+	struct Puff { int32_t x, y, z, vx, vy, vz; int16_t size, target, frame, angle, spin, wait, thin_at, alive, shade, life, left, grow; };
+	enum { MAX_PUFFS = 256 };
+	static Puff g_puffs[MAX_PUFFS];
+	static int g_tick;   // the puffs task's tick
+	static uint8_t g_seq_sub[0x800], g_seq_add[0x800];
+	static inline int Rnd(int n) { return n > 0 ? (int)(CrtRand() % (uint32_t)n) : 0; }
+
+	// the debris flipbook copied with its pieces' palette row moved to smoke.row and their blend mode set (2 subtract, 1 add)
+	static void SmokeSequence(uint8_t *out, int mode)
+	{
+		const uint8_t *src = (const uint8_t *)SEQ_Debris;
+		const uint16_t frames = *(const uint16_t *)(src + 8);
+		const uint16_t *offs = (const uint16_t *)(src + 10);
+		uint32_t end = 0;
+		for (int i = 0; i < frames; i++)
+		{
+			const uint32_t at = offs[i];
+			end = std::max(end, at + 4 + 20 * (*(const uint32_t *)(src + at) & 0x7FFFFFFF));
+		}
+		if (end > sizeof(g_seq_sub)) end = sizeof(g_seq_sub);
+		memcpy(out, src, end);
+		for (int i = 0; i < frames; i++)
+		{
+			const uint32_t at = offs[i];
+			const uint32_t n = *(const uint32_t *)(out + at) & 0x7FFFFFFF;
+			for (uint32_t k = 0; k < n && at + 4 + 20 * (k + 1) <= end; k++)
+			{
+				uint8_t *pc = out + at + 4 + 20 * k;
+				uint16_t &clut = *(uint16_t *)(pc + 6);
+				clut = (uint16_t)((clut & 0x3F) | ((P().smoke.row & 0x1FF) << 6));
+				uint16_t &fl = *(uint16_t *)(pc + 14);
+				fl = (uint16_t)((fl & ~0x60) | ((mode & 3) << 5));
+				pc[3] |= 2;   // semi-transparent
+			}
+		}
+	}
+
+	static void SmokeInit()
+	{
+		SmokeSequence(g_seq_sub, 2);
+		SmokeSequence(g_seq_add, 1);
+		memset(g_puffs, 0, sizeof(g_puffs));
+		g_tick = 0;
+	}
+
+	static Puff *NewPuff()
+	{
+		for (int k = 0; k < MAX_PUFFS; k++)
+			if (!g_puffs[k].alive)
+			{
+				memset(&g_puffs[k], 0, sizeof(Puff));
+				g_puffs[k].alive = 1;
+				return &g_puffs[k];
+			}
+		return nullptr;
+	}
+
+	static void PuffPass(int32_t x, int32_t y, int32_t z, int16_t size, int16_t frame, int16_t angle, const uint8_t *seq, int rr, int gg, int bb)
+	{
+		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
+		U32(h, 0) = (uint32_t)seq;
+		U16(h, 4) = (uint16_t)frame;
+		U8(h, 0x1C) = (uint8_t)std::min(std::max(rr, 0), 255);
+		U8(h, 0x1D) = (uint8_t)std::min(std::max(gg, 0), 255);
+		U8(h, 0x1E) = (uint8_t)std::min(std::max(bb, 0), 255);
+		S32(h, 8) = angle;
+		U16(h, 0x24) = 0x5;   // own z angle, own colour
+		const int16_t pos[4] = { (int16_t)x, (int16_t)y, (int16_t)z, 0 };
+		TransformCameraByShadowRotation(pos, (int32_t)(uint16_t)size, -(size >> 4));
+		PacketCursor() = InitEffectSequenceFromData((void *)h, RenderOT44(), 2, PacketCursor());
+		FieldFree(0xB4);
+	}
+
+	// subtract (the background darkened by the texel's brightness: its opacity), then add the grey (the ordering table
+	// draws what is inserted last first)
+	static void SoftDraw(int32_t x, int32_t y, int32_t z, int16_t size, int16_t frame, int16_t angle, int rr, int gg, int bb, int sub)
+	{
+		PuffPass(x, y, z, size, frame, angle, g_seq_add, rr, gg, bb);
+		PuffPass(x, y, z, size, frame, angle, g_seq_sub, sub, sub, sub);
+	}
+
+	static void PuffDraw(const Puff &q)
+	{
+		const CannonBlowParams &v = P();
+		int k = 256;   // 256 = whole
+		int rr, gg, bb, sub;
+		if (q.life > 0)
+		{
+			FX_PART(PART_TRAIL);
+			k = 256 * q.left / q.life;
+			rr = gg = bb = v.trail.shade;
+			sub = v.trail.sub;
+		}
+		else
+		{
+			FX_PART(PART_CLOUD);
+			if (g_tick >= q.thin_at) k = 256 * std::max(0, q.thin_at + v.smoke.thin_ticks - g_tick) / std::max(1, (int)v.smoke.thin_ticks);
+			int sh = q.shade + (v.cloud.top_light * (0 - (q.y >> 4)) / 1000);
+			sh = std::min(std::max(sh, 64), 400);
+			rr = v.cloud.r * sh >> 8; gg = v.cloud.g * sh >> 8; bb = v.cloud.b * sh >> 8;
+			sub = v.cloud.sub;
+		}
+		SoftDraw(q.x >> 4, q.y >> 4, q.z >> 4, q.size, q.frame, q.angle, rr * k >> 8, gg * k >> 8, bb * k >> 8, sub * k >> 8);
+		FX_PART(0);
+	}
+
+	// the cloud's puffs at the landing point of shot i (on the floor)
+	static void CloudStart(int i)
+	{
+		const CannonBlowParams &v = P();
+		for (int k = 0; k < v.cloud.count; k++)
+		{
+			Puff *q = NewPuff();
+			if (!q) break;
+			q->shade = (int16_t)(256 - Rnd(v.cloud.shade_rand + 1));
+			q->x = (S16(Target(i), 0) + Rnd(2 * v.cloud.jitter + 1) - v.cloud.jitter) << 4;
+			q->z = (S16(Target(i), 4) + Rnd(2 * v.cloud.jitter + 1) - v.cloud.jitter) << 4;
+			q->y = -40 << 4;
+			const int32_t a = CrtRand() & 0xFFF;
+			const int32_t speed = v.cloud.speed_min + Rnd(v.cloud.speed_rand);
+			q->vx = (ComputeCos(a) * speed) >> 8;
+			q->vz = (ComputeSin(a) * speed) >> 8;
+			q->vy = -((v.cloud.rise_min + Rnd(v.cloud.rise_rand)) << 4);
+			q->size = v.cloud.size_start;
+			q->target = (int16_t)(v.cloud.size_min + Rnd(v.cloud.size_rand));
+			q->frame = (int16_t)(v.cloud.frame_min + Rnd(v.cloud.frame_rand));
+			q->angle = (int16_t)(CrtRand() & 0xFFF);
+			q->spin = (int16_t)(Rnd(2 * v.cloud.spin + 1) - v.cloud.spin);
+			q->wait = (int16_t)Rnd(v.cloud.delay + 1);
+			q->thin_at = (int16_t)(g_tick + v.smoke.hold + Rnd(v.smoke.thin_rand + 1));
+		}
+	}
+
+	// a trail puff about a point
+	static void TrailPuff(const int16_t *pt)
+	{
+		const CannonBlowParams &v = P();
+		Puff *q = NewPuff();
+		if (!q) return;
+		const int j = v.trail.jitter;
+		q->x = (pt[0] + Rnd(2 * j + 1) - j) << 4;
+		q->y = (pt[1] + Rnd(2 * j + 1) - j) << 4;
+		q->z = (pt[2] + Rnd(2 * j + 1) - j) << 4;
+		q->vy = -(v.trail.rise << 4);
+		q->size = q->target = (int16_t)(v.trail.size + Rnd(v.trail.size_rand));
+		q->grow = v.trail.grow;
+		q->frame = (int16_t)(v.cloud.frame_min + Rnd(v.cloud.frame_rand));
+		q->angle = (int16_t)(CrtRand() & 0xFFF);
+		q->spin = (int16_t)(Rnd(2 * v.cloud.spin + 1) - v.cloud.spin);
+		q->life = q->left = (int16_t)std::max(1, (int)v.trail.life);
+	}
+
+	// every puff (trail and cloud): node +0xC its tick; ends once no puff is left (after counter 16)
+	static uint32_t __cdecl PuffsTask(TaskNode *nd)
+	{
+		const uint32_t n = (uint32_t)nd;
+		const CannonBlowParams &v = P();
+		int alive = 0;
+		for (int k = 0; k < MAX_PUFFS; k++)
+		{
+			Puff &q = g_puffs[k];
+			if (!q.alive) continue;
+			alive++;
+			if (q.wait > 0) { if (!DrawOnly()) q.wait--; continue; }
+			PuffDraw(q);
+			if (DrawOnly()) continue;
+			q.x += q.vx; q.y += q.vy; q.z += q.vz;
+			q.angle = (int16_t)((q.angle + q.spin) & 0xFFF);
+			if (q.life > 0)
+			{
+				q.size = (int16_t)std::min(0x7000, q.size + q.grow);
+				if (--q.left <= 0) q.alive = 0;
+				continue;
+			}
+			const int brake = std::max(1, (int)v.cloud.brake);
+			q.vx -= q.vx / brake;
+			q.vz -= q.vz / brake;
+			q.vy -= q.vy / brake;
+			if (q.vy > -(v.cloud.drift_up << 4)) q.vy = -(v.cloud.drift_up << 4);
+			q.size = (int16_t)(q.size + (q.target - q.size) / std::max(1, (int)v.cloud.grow));
+			if (v.cloud.turb > 0)
+			{
+				q.vx += (Rnd(2 * v.cloud.turb + 1) - v.cloud.turb) << 3;
+				q.vz += (Rnd(2 * v.cloud.turb + 1) - v.cloud.turb) << 3;
+			}
+			q.target = (int16_t)std::min(0x7000, q.target + v.cloud.swell * 16);
+			if (g_tick >= q.thin_at + v.smoke.thin_ticks) q.alive = 0;
+		}
+		if (DrawOnly()) return 0;
+		g_tick++;
+		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
+		return (S16(n, 0xC) > 0x10 && !alive) ? TASK_END : 0;
+	}
+
+	// the canister on shot i's curve (node +0x18 the point, +0x1A the step: the fire ball's), leaving trail puffs
+	static uint32_t __cdecl CanisterTask(TaskNode *nd)
+	{
+		const uint32_t n = (uint32_t)nd;
+		const CannonBlowParams &v = P();
+		const int i = S16(n, 0xE);
+		const int16_t at = S16(n, 0x18);
+		const int16_t *pt = (const int16_t *)Point(i, std::min<int>(at, 0x1F));
+		const int16_t angle = (int16_t)((S16(n, 0xC) * v.canister.spin) & 0xFFF);
+		FX_PART(PART_CANISTER);
+		SoftDraw(pt[0], pt[1], pt[2], v.canister.size, v.canister.frame, angle, v.canister.shade, v.canister.shade, v.canister.shade,
+		         v.canister.sub);
+		FX_PART(0);
+		if (DrawOnly()) return 0;
+		const int16_t d = S16(n, 0x1A);
+		for (int k = std::max(0, at - d + 1); k <= std::min<int>(at, 0x1F); k++)
+			for (int j = 0; j < v.trail.per_point; j++) TrailPuff((const int16_t *)Point(i, k));
+		S16(n, 0x18) = (int16_t)(at + d);
+		if (d > 2) S16(n, 0x1A) = (int16_t)(d - 1);
+		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
+		return S16(n, 0x18) >= 0x20 ? TASK_END : 0;
+	}
+
 	// ------------------------------------------------------------------
 	// Main (0x60CA90)
 	// ------------------------------------------------------------------
 	static uint32_t NewTask(uint32_t f, int16_t index)
 	{
-		const uint32_t t = (uint32_t)AddTaskToQueue(ShotQueue(), f);
+		const uint32_t t = (uint32_t)AddTaskToQueue(ShotQueue(), own::Fn(f));
 		S16(t, 0xC) = 0;
 		S16(t, 0xE) = index;
 		return t;
@@ -964,7 +1227,15 @@ namespace cannonblow151
 		const uint32_t n = (uint32_t)nd;
 		const int16_t i = S16(n, 0xE);
 		if (S16(n, 0xC) == 0) ShotSetup(i);
-		if (S16(n, 0xC) == 1)
+		if (S16(n, 0xC) == 1 && P().smoke.on)
+		{
+			SmokeInit();
+			NewTask((uint32_t)PuffsTask, i);
+			const uint32_t c = NewTask((uint32_t)CanisterTask, i);
+			S16(c, 0x18) = 0;
+			S16(c, 0x1A) = 5;
+		}
+		if (S16(n, 0xC) == 1 && !P().smoke.on)
 		{
 			uint32_t t = NewTask(ORIG_Flash, i);
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
@@ -991,7 +1262,8 @@ namespace cannonblow151
 			S16(t, 0x1E) = 5;
 			S16(t, 0x18) = (int16_t)(0x100 << i);
 		}
-		if (S16(n, 0xC) == 0xE)
+		if (S16(n, 0xC) == 0xE && P().smoke.on) CloudStart(i);
+		if (S16(n, 0xC) == 0xE && !P().smoke.on)
 		{
 			uint32_t t = NewTask(ORIG_Impact, i);
 			U32(t, 0x10) = U32(Target(i), 0);
@@ -1012,7 +1284,7 @@ namespace cannonblow151
 				SpawnPosition(Entity(a->targets[j * TARGET_STRIDE]), 0xF1, 0, pt);
 				for (int k = 0; k < 5; k++)
 				{
-					const uint32_t d = (uint32_t)AddTaskToQueue(ShotQueue(), ORIG_Debris);
+					const uint32_t d = (uint32_t)AddTaskToQueue(ShotQueue(), own::Fn(ORIG_Debris));
 					S16(d, 0xC) = 0;
 					S16(d, 0xE) = (int16_t)(CrtRand() % 6 + 2 * k);
 					memcpy((void *)(d + 0x10), pt, 8);
@@ -1024,27 +1296,143 @@ namespace cannonblow151
 			}
 		}
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0xE && c <= 0x11) var<int16_t>(0x1D97712) = (int16_t)(var<int16_t>(0x1D97712) + ((c & 1) ? 0x40 : -0x40));
+		if (!P().smoke.on && c >= 0xE && c <= 0x11) var<int16_t>(0x1D97712) = (int16_t)(var<int16_t>(0x1D97712) + ((c & 1) ? 0x40 : -0x40));
 		if (c == 0x1E) ApplyActionResultToTarget(Ctx()->actions->targets);
-		if (S16(n, 0xC) == 1) BdPlaySE((const void *)SOUND_Shot, 0, 0x80);
+		if (S16(n, 0xC) == 1) BdPlaySE((const void *)fxp::sound(P().sounds.shot, SOUND_Shot), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return S16(n, 0xC) > 0x28 ? TASK_END : 0;
 	}
 
+
+	// ------------------------------------------------------------------
+	// File loader (0x60C9A0) and setup (0x60C9C0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the root and the
+	// main task, both particle arrays freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(P().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		FirstTarget() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x244D678), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(ShotQueue(), (void *)own::R(0x244E9F8), 0x24, 0x64);
+		const uint32_t t = (uint32_t)AddTaskToQueue(ShotQueue(), own::Fn(ORIG_Main));
+		S16(t, 0xC) = 0;
+		S16(t, 0xE) = 0;
+		for (uint32_t a = own::R(PARTS_B); a < own::R(PARTS_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(PARTS_A); a < own::R(PARTS_B); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(P().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return RootQueue();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "shot", "Shot", "The game's Cannon Blow: a fire ball shot on a curve from in front of the caster to near the targets' centre, "
+			  "its flash, burst, ring and fire trails, an impact, rings and debris at the targets, the camera shake; the damage at counter 30; "
+			  "its sound and texture, the camera track. The smoke grenade's switch and timing" },
+			{ PART_CANISTER, "canister", "Canister", "Smoke grenade: a small dark canister spinning along the shot's curve in place of the fire ball" },
+			{ PART_TRAIL, "trail", "Smoke trail", "Smoke grenade: puffs the canister leaves along its way, growing, rising and fading out" },
+			{ PART_CLOUD, "cloud", "Smoke cloud", "Smoke grenade: puffs billowing out of the landing point, slowing, swelling, rising, then thinning out" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "The shot" },
+		};
+#define CB(member) (uint32_t)offsetof(CannonBlowParams, member)
+		static const Field FIELDS[] = {
+			{ "shot", "sounds.shot", "Shot", "At the main task's counter 1", CB(sounds.shot), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "shot", "smoke.on", "Smoke grenade", "0: the game's Cannon Blow. 1: a smoke grenade - no fire, flash or explosion: a canister, its smoke trail, a smoke cloud at the landing (a new effect's look; the next values)", CB(smoke.on), fxp::I16, 0, 1 },
+			{ "shot", "smoke.row", "Smoke palette row", "The puffs' palette row (VRAM y): the smoke texture's grey ramp, brightness = opacity (the game's texture has no such row: row 249 of a smoke texture)", CB(smoke.row), fxp::I16, 0, 511 },
+			{ "cloud", "smoke.hold", "Holds for", "Ticks after the landing before a cloud puff starts thinning out (+ the next random)", CB(smoke.hold), fxp::I16, 0, 300 },
+			{ "cloud", "smoke.thin_rand", "Holds, random", "Up to this many more ticks, each puff its own", CB(smoke.thin_rand), fxp::I16, 0, 300 },
+			{ "cloud", "smoke.thin_ticks", "Thins out over", "Ticks a puff takes to vanish", CB(smoke.thin_ticks), fxp::I16, 1, 300 },
+			{ "cloud", "cloud.count", "Puffs", "How many puffs the cloud has (256 at most, shared with the trail)", CB(cloud.count), fxp::I16, 0, 256 },
+			{ "cloud", "cloud.delay", "Released over", "The puffs come out over this many ticks after the landing, at random", CB(cloud.delay), fxp::I16, 0, 100 },
+			{ "cloud", "cloud.jitter", "Start spread", "Each puff starts this far (at most) from the landing point, sideways", CB(cloud.jitter), fxp::I16, 0, 4000 },
+			{ "cloud", "cloud.speed_min", "Speed", "Outward speed at the start (units a tick; + the next random)", CB(cloud.speed_min), fxp::I16, 0, 2000 },
+			{ "cloud", "cloud.speed_rand", "Speed, random", "", CB(cloud.speed_rand), fxp::I16, 0, 2000 },
+			{ "cloud", "cloud.rise_min", "Rise", "Upward speed at the start (units a tick; + the next random)", CB(cloud.rise_min), fxp::I16, 0, 2000 },
+			{ "cloud", "cloud.rise_rand", "Rise, random", "", CB(cloud.rise_rand), fxp::I16, 0, 2000 },
+			{ "cloud", "cloud.brake", "Slows by", "A tick the speeds lose 1 / this of themselves (small = stops fast)", CB(cloud.brake), fxp::I16, 1, 100 },
+			{ "cloud", "cloud.size_start", "Size at the start", "4096 = the puff picture's own size (64 texels x 16 units)", CB(cloud.size_start), fxp::I16, 0, 0x7000, fxp::Scale },
+			{ "cloud", "cloud.size_min", "Size", "The size a puff grows to (+ the next random)", CB(cloud.size_min), fxp::I16, 0, 0x7000, fxp::Scale },
+			{ "cloud", "cloud.size_rand", "Size, random", "", CB(cloud.size_rand), fxp::I16, 0, 0x7000, fxp::Scale },
+			{ "cloud", "cloud.grow", "Grows by", "A tick a puff grows 1 / this of what it still lacks", CB(cloud.grow), fxp::I16, 1, 100 },
+			{ "cloud", "cloud.frame_min", "Picture", "The flipbook frame a puff shows (+ the next random; the frame stays)", CB(cloud.frame_min), fxp::I16, 0, 15 },
+			{ "cloud", "cloud.frame_rand", "Picture, random", "", CB(cloud.frame_rand), fxp::I16, 0, 16 },
+			{ "cloud", "cloud.spin", "Spin", "A puff turns up to this much a tick, either way (the trail's too)", CB(cloud.spin), fxp::I16, 0, 0x400, fxp::Angle },
+			{ "cloud", "cloud.drift_up", "Drifts up", "Once slowed, a puff still rises this much a tick", CB(cloud.drift_up), fxp::I16, 0, 200 },
+			{ "cloud", "cloud.turb", "Sway", "A random push sideways a tick (the cloud churning)", CB(cloud.turb), fxp::I16, 0, 200 },
+			{ "cloud", "cloud.swell", "Swells", "A puff keeps growing this much a tick (x 16)", CB(cloud.swell), fxp::I16, 0, 200 },
+			{ "cloud", "cloud.r", "Red", "The grey added (128 = the texture as it is)", CB(cloud.r), fxp::I16, 0, 255 },
+			{ "cloud", "cloud.g", "Green", "", CB(cloud.g), fxp::I16, 0, 255 },
+			{ "cloud", "cloud.b", "Blue", "", CB(cloud.b), fxp::I16, 0, 255 },
+			{ "cloud", "cloud.sub", "Thickness", "How much of what is behind a puff it hides (x the texel / 128; at least the grey, or the puffs pile up to white)", CB(cloud.sub), fxp::I16, 0, 255 },
+			{ "cloud", "cloud.shade_rand", "Shade, random", "A puff is up to this much darker (256 = black)", CB(cloud.shade_rand), fxp::I16, 0, 255 },
+			{ "cloud", "cloud.top_light", "Lighter on top", "A puff is this much lighter for every 1000 units over the floor (256 = twice)", CB(cloud.top_light), fxp::I16, 0, 256 },
+			{ "canister", "canister.size", "Size", "4096 = the puff picture's own size", CB(canister.size), fxp::I16, 0, 0x7000, fxp::Scale },
+			{ "canister", "canister.spin", "Spin", "Its turn a tick", CB(canister.spin), fxp::I16, 0, 0x800, fxp::Angle },
+			{ "canister", "canister.shade", "Grey", "Its colour (128 = the texture as it is)", CB(canister.shade), fxp::I16, 0, 255 },
+			{ "canister", "canister.sub", "Thickness", "How much of what is behind it it hides", CB(canister.sub), fxp::I16, 0, 255 },
+			{ "canister", "canister.frame", "Picture", "The flipbook frame it shows", CB(canister.frame), fxp::I16, 0, 15 },
+			{ "trail", "trail.per_point", "Puffs a point", "Puffs left at each point of the curve the canister passes", CB(trail.per_point), fxp::I16, 0, 8 },
+			{ "trail", "trail.jitter", "Spread", "Each puff this far (at most) from the curve, on each axis", CB(trail.jitter), fxp::I16, 0, 2000 },
+			{ "trail", "trail.size", "Size", "(+ the next random)", CB(trail.size), fxp::I16, 0, 0x7000, fxp::Scale },
+			{ "trail", "trail.size_rand", "Size, random", "", CB(trail.size_rand), fxp::I16, 0, 0x7000, fxp::Scale },
+			{ "trail", "trail.grow", "Grows", "Its size grows this much a tick", CB(trail.grow), fxp::I16, 0, 0x1000, fxp::Scale },
+			{ "trail", "trail.life", "Lives for", "Ticks; it fades out over them", CB(trail.life), fxp::I16, 1, 300 },
+			{ "trail", "trail.rise", "Rise", "It rises this much a tick", CB(trail.rise), fxp::I16, 0, 200 },
+			{ "trail", "trail.shade", "Grey", "Its colour (128 = the texture as it is)", CB(trail.shade), fxp::I16, 0, 255 },
+			{ "trail", "trail.sub", "Thickness", "How much of what is behind it it hides", CB(trail.sub), fxp::I16, 0, 255 },
+			{ "shot", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters; a smoke grenade's: one with the smoke puffs and their grey row)", CB(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "shot", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", CB(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+		};
+#undef CB
+	}
+
 	void register_mag151_cannon_blow_ports()
 	{
+		fxp::register_params({ 151, "Cannon Blow", &live, &GAME, sizeof(CannonBlowParams),
+		                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+		                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+		                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+		own::note(ORIG_FileLoader, (void *)FileLoader);
+		own::note(ORIG_Setup, (void *)Setup);
+		own::note(ORIG_Root, (void *)RootTask);
 		register_port(ORIG_Root, (void *)RootTask, "151 RootTask", 151);
+		own::note(ORIG_TexRestore, (void *)TexRestoreTask);
 		register_port(ORIG_TexRestore, (void *)TexRestoreTask, "151 TexRestoreTask", 151);
+		own::note(ORIG_Main, (void *)MainTask);
 		register_port(ORIG_Main, (void *)MainTask, "151 MainTask", 151);
+		own::note(ORIG_Flash, (void *)FlashTask);
 		register_port(ORIG_Flash, (void *)FlashTask, "151 FlashTask", 151);
+		own::note(ORIG_Burst, (void *)BurstTask);
 		register_port(ORIG_Burst, (void *)BurstTask, "151 BurstTask", 151);
+		own::note(ORIG_Ring, (void *)RingTask);
 		register_port(ORIG_Ring, (void *)RingTask, "151 RingTask", 151);
+		own::note(ORIG_Ball, (void *)BallTask);
 		register_port(ORIG_Ball, (void *)BallTask, "151 BallTask", 151);
+		own::note(ORIG_Trail, (void *)TrailTask);
 		register_port(ORIG_Trail, (void *)TrailTask, "151 TrailTask", 151);
+		own::note(ORIG_Trail2, (void *)Trail2Task);
 		register_port(ORIG_Trail2, (void *)Trail2Task, "151 Trail2Task", 151);
+		own::note(ORIG_Trail3, (void *)Trail3Task);
 		register_port(ORIG_Trail3, (void *)Trail3Task, "151 Trail3Task", 151);
+		own::note(ORIG_Impact, (void *)ImpactTask);
 		register_port(ORIG_Impact, (void *)ImpactTask, "151 ImpactTask", 151);
+		own::note(ORIG_ImpactRing, (void *)ImpactRingTask);
 		register_port(ORIG_ImpactRing, (void *)ImpactRingTask, "151 ImpactRingTask", 151);
+		own::note(ORIG_Debris, (void *)DebrisTask);
 		register_port(ORIG_Debris, (void *)DebrisTask, "151 DebrisTask", 151);
 		// 30 fps layer: see mag151_cannon_blow_held.inc
 		FX_HELD(register_mag151_held();)

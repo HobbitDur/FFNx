@@ -658,6 +658,9 @@ namespace alexander
 	{
 		using namespace gfc;
 		alexander::describe(alexander::g_c);
+		// its two script files: parameters (first: init_clone reads the exe, absent when the lab only
+		// lists the parameters)
+		ProgramFiles<204>::Register("Alexander", alexander::g_c, 0xAFFC70, 0x1872EE0, 0x1872EEC, (void *)alexander::SequenceTask);
 		init_clone(alexander::g_c, nullptr, 0);
 		apply_alexander(alexander::g_c);
 		apply_shared_ribbon(alexander::g_c);
@@ -666,6 +669,7 @@ namespace alexander
 		// 30 fps layer: see mag_alexander_held.inc
 		FX_HELD(register_gfc_alexander_held();)
 	}
+	FX_LAB_MODULE(register_gfc_alexander);
 }
 
 #ifdef FF8_FX_HELD

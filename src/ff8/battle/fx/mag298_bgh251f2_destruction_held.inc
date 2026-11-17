@@ -28,7 +28,9 @@
 //   fragments - position and angles half way to the moved ones, the fade half way to the next tick's; a fragment that ends
 //             holds; one born by this tick's scripts appears at the next tick.
 //   marks   - position half way along their velocity, flipbook frame N held; a mark that ends holds.
-//   layouts - prim::play_held (every object's exact in-between record), the block as the real play read it.
+//   layouts - prim::play_held (every object's exact in-between record); the block as the layout task builds it (RotY(turn) at
+//             the node's position, kept in the record) composed with the current camera, the rest of the block as the real
+//             play read it.
 //   sprites - position half way along their velocity (the update adds 4 x velocity), flipbook frame N held; a sprite on its
 //             last frame holds.
 // A part the next tick no longer draws holds its picture (state N). Spawns (shared LCG, module LCG), the shatters and the
@@ -53,6 +55,8 @@ namespace destruct298
 		int16_t z;                // body: the caster's position word +0x20 at the draw
 		int32_t wz;               // body: its world translation +0x5C at the draw
 		PrimArg arg;              // plays: the block as the play read it
+		int16_t frame_pos[3];     // layouts: the node's position and turn (fixed at spawn)
+		int16_t frame_turn;
 		SpriteNode sprite;        // sprites: the node as drawn
 		uint32_t frame;           // body: the frame arena at the draw
 		uint8_t gte[GTE_DATA_SIZE + GTE_CTRL_SIZE];
@@ -135,6 +139,8 @@ namespace destruct298
 		Rec *r = NewRec(LAYOUT, L);
 		if (!r) return;
 		r->arg = *arg;
+		memcpy(r->frame_pos, L->pos, sizeof(r->frame_pos));
+		r->frame_turn = L->turn;
 	}
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
@@ -283,8 +289,17 @@ namespace destruct298
 			}
 			default:
 			{
+				// the block as the layout task builds it, at the current camera; then the GTE state and scratch of the real play
 				PrimArg arg = r.arg;
+				RotY(r.frame_turn, &arg.m);
+				arg.m.t[0] = r.frame_pos[0];
+				arg.m.t[1] = r.frame_pos[1];
+				arg.m.t[2] = r.frame_pos[2];
+				ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 				arg.morph = (uint32_t)g_held_morph;
+				memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
+				memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
+				memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
 				prim::play_held((prim::Layout *)((LayoutNode *)r.node)->layout, PrimCallback, (int)&arg, num, den);
 				break;
 			}
