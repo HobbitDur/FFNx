@@ -1551,6 +1551,8 @@ namespace shatter290
 			arg.m.t[0] = pos[0];
 			arg.m.t[1] = pos[1] - 0x3E8;
 			arg.m.t[2] = pos[2];
+			// 30 fps layer: see mag290_trauma_shatter_held.inc
+			FX_HELD(held_note_frame(&arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = -0x200;
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
@@ -1567,6 +1569,8 @@ namespace shatter290
 			arg.m.t[0] = pos[0];
 			arg.m.t[1] = 0;
 			arg.m.t[2] = pos[2];
+			// 30 fps layer: see mag290_trauma_shatter_held.inc
+			FX_HELD(held_note_frame(&arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = 0;
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
