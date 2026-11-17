@@ -184,6 +184,7 @@ namespace ff8fx::mod
 	static const Region streams_r303[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_s209[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x209FAB8, 0x40000 }, { 0x1D97708, 0x20 }, { 0x1B47810, 4 } }; // "Sorceress" spawn 209: camera animation cells, the grid cells in the summon data, the camera shake word, the VRAM-emulation flag (0x45BEE0)
 	static const Region streams_z167[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } }; // Zantetsuken 167 (Odin c0m070): as 227 (setup camera animation)
+	static const Region streams_g218[] = { { 0xF1DD54, 0xBCC }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } }; // Gilgamesh kills Seifer 218: the sword model in .data (its skeleton is rebuilt), summon data (load 0x2C5), the shared camera script cells
 	// Gargantua burrow: the spawn stream pointer in exe data (never put back) + the sprite / shadow-camera engine words
 	static const Region streams_g301[] = { { 0x103DC9C, 4 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	// BGH251F2 destruction: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
@@ -539,6 +540,7 @@ namespace ff8fx::mod
 		{ 303, 0x25075D0, 0x2507660, 0, 0, false, "Remove mask (Sphinxaur)", streams_r303, 4 },
 		{ 209, 0x24F3618, 0x24F7A68, 0, 0, false, "Sorceress spawn (attacks 319 / 327, c0m115 / c0m116 / c0m117)", streams_s209, 6 },
 		{ 167, 0x23BD350, 0x23BF034, 0, 0, false, "Zantetsuken (attack 274, Odin c0m070)", streams_z167, 3 },
+		{ 218, 0x24F2340, 0x24F3618, 0, 0, false, "Gilgamesh kills Seifer (attack 330, Seifer c0m128)", streams_g218, 3 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 		{ 157, 0x23EB5C0, 0x23ECE40, 0, 0, false, "Breath (attack 37, Hexadragon)", streams_b157, 4 },
 		{ 158, 0x23D7B08, 0x23EB5C0, 0, 0, false, "Melt-Eye (attack 36, Hexadragon)", streams_m158, 1 },
