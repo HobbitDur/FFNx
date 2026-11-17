@@ -766,6 +766,9 @@ namespace bahamut
 	{
 		using namespace gfc;
 		bahamut::describe(bahamut::g_c);
+		// its two script files: parameters (first: init_clone reads the exe, absent when the lab only
+		// lists the parameters)
+		ProgramFiles<202>::Register("Bahamut", bahamut::g_c, 0xB18970, 0x187487C, 0x1874888, (void *)bahamut::SequenceTask);
 		init_clone(bahamut::g_c, nullptr, 0);
 		apply_bahamut(bahamut::g_c);
 		apply_shared_ribbon(bahamut::g_c);
@@ -774,6 +777,7 @@ namespace bahamut
 		// 30 fps layer: see mag_bahamut_held.inc
 		FX_HELD(register_gfc_bahamut_held();)
 	}
+	FX_LAB_MODULE(register_gfc_bahamut);
 }
 
 #ifdef FF8_FX_HELD

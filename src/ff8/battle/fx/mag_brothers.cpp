@@ -707,6 +707,9 @@ namespace brothers
 	{
 		using namespace gfc;
 		brothers::describe(brothers::g_c);
+		// its two script files: parameters (first: init_clone reads the exe, absent when the lab only
+		// lists the parameters)
+		ProgramFiles<205>::Register("Brothers", brothers::g_c, 0xAF44F0, 0x187236C, 0x1872378, (void *)brothers::SequenceTask);
 		init_clone(brothers::g_c, nullptr, 0);
 		apply_brothers(brothers::g_c);
 		apply_shared_misc(brothers::g_c);
@@ -714,6 +717,7 @@ namespace brothers
 		// 30 fps layer: see mag_brothers_held.inc
 		FX_HELD(register_gfc_brothers_held();)
 	}
+	FX_LAB_MODULE(register_gfc_brothers);
 }
 
 #ifdef FF8_FX_HELD

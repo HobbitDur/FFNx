@@ -487,6 +487,9 @@ namespace cerberus
 	{
 		using namespace gfc;
 		cerberus::describe(cerberus::g_c);
+		// its two script files: parameters (first: init_clone reads the exe, absent when the lab only
+		// lists the parameters)
+		ProgramFiles<203>::Register("Cerberus", cerberus::g_c, 0xB0C170, 0x1873A48, 0x1873A54, (void *)cerberus::SequenceTask);
 		init_clone(cerberus::g_c, nullptr, 0);
 		apply_cerberus(cerberus::g_c);
 		apply_shared_ribbon(cerberus::g_c);
@@ -495,6 +498,7 @@ namespace cerberus
 		// 30 fps layer: see mag_cerberus_held.inc
 		FX_HELD(register_gfc_cerberus_held();)
 	}
+	FX_LAB_MODULE(register_gfc_cerberus);
 }
 
 #ifdef FF8_FX_HELD

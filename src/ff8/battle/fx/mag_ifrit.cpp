@@ -75,11 +75,15 @@ namespace ifrit
 	{
 		using namespace gfc;
 		ifrit::describe(ifrit::g_ifrit);
+		// its two script files: parameters (first: init_clone reads the exe, absent when the lab only
+		// lists the parameters)
+		ProgramFiles<201>::Register("Ifrit", ifrit::g_ifrit, 0xB25750, 0x1875430, 0x187543C, (void *)ifrit::SequenceTask);
 		init_clone(ifrit::g_ifrit, nullptr, 0);
 		register_port(0xB25DF0, (void *)ifrit::SequenceTask, "GFC201 Ifrit SequenceTick", 201);
 		// 30 fps layer: see mag_ifrit_held.inc
 		FX_HELD(register_gfc_ifrit_held();)
 	}
+	FX_LAB_MODULE(register_gfc_ifrit);
 }
 
 #ifdef FF8_FX_HELD

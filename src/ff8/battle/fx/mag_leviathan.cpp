@@ -1300,6 +1300,9 @@ namespace leviathan
 	{
 		using namespace gfc;
 		leviathan::describe(leviathan::g_c);
+		// its two script files: parameters (first: init_clone reads the exe, absent when the lab only
+		// lists the parameters)
+		ProgramFiles<6>::Register("Leviathan", leviathan::g_c, 0xB58050, 0x1877D84, 0x1877D90, (void *)leviathan::SequenceTask);
 		init_clone(leviathan::g_c, nullptr, 0);
 		apply_lev_a(leviathan::g_c);
 		apply_lev_b(leviathan::g_c);
@@ -1308,6 +1311,7 @@ namespace leviathan
 		// 30 fps layer: see mag_leviathan_held.inc
 		FX_HELD(register_gfc_leviathan_held();)
 	}
+	FX_LAB_MODULE(register_gfc_leviathan);
 }
 
 #ifdef FF8_FX_HELD
