@@ -441,6 +441,7 @@ namespace ff8fx
 	void register_mag303_remove_mask();
 	void register_mag209_sorceress_spawn();
 	void register_mag167_zantetsuken();
+	void register_mag218_gilgamesh_kills_seifer();
 	void register_mag176_sand_storm_adamantoise();
 	void register_mag157_breath();
 	void register_mag158_melt_eye();
