@@ -182,6 +182,8 @@ namespace ff8fx::mod
 	static const Region streams_m308[] = { { 0x21DFED0, 0x20 }, { 0x1DCD6E4, 0xC } };
 	static const Region streams_d320[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0xFF12A8, 2 } };
 	static const Region streams_r303[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_s209[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x209FAB8, 0x40000 }, { 0x1D97708, 0x20 }, { 0x1B47810, 4 } }; // "Sorceress" spawn 209: camera animation cells, the grid cells in the summon data, the camera shake word, the VRAM-emulation flag (0x45BEE0)
+	static const Region streams_z167[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } }; // Zantetsuken 167 (Odin c0m070): as 227 (setup camera animation)
 	// Gargantua burrow: the spawn stream pointer in exe data (never put back) + the sprite / shadow-camera engine words
 	static const Region streams_g301[] = { { 0x103DC9C, 4 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	// BGH251F2 destruction: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
@@ -535,6 +537,8 @@ namespace ff8fx::mod
 		{ 308, 0x25074D0, 0x2507558, 0, 0, false, "effect 308 (attack 286, Mobile Type 8)", streams_m308, 2 },
 		{ 320, 0x2505348, 0x25053A0, 0, 0, false, "Dark Flare (Tiamat)", streams_d320, 4 },
 		{ 303, 0x25075D0, 0x2507660, 0, 0, false, "Remove mask (Sphinxaur)", streams_r303, 4 },
+		{ 209, 0x24F3618, 0x24F7A68, 0, 0, false, "Sorceress spawn (attacks 319 / 327, c0m115 / c0m116 / c0m117)", streams_s209, 6 },
+		{ 167, 0x23BD350, 0x23BF034, 0, 0, false, "Zantetsuken (attack 274, Odin c0m070)", streams_z167, 3 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 		{ 157, 0x23EB5C0, 0x23ECE40, 0, 0, false, "Breath (attack 37, Hexadragon)", streams_b157, 4 },
 		{ 158, 0x23D7B08, 0x23EB5C0, 0, 0, false, "Melt-Eye (attack 36, Hexadragon)", streams_m158, 1 },
