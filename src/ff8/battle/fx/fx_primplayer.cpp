@@ -316,17 +316,17 @@ namespace ff8fx::prim
 		else if (!ff8fx::same_bytes(g_rec_orig, g_rec_native, sizeof(Record) * ncount)) what = "records";
 		else if (!ff8fx::same_bytes(l->state, g_state_native, size)) what = "state";
 		if (what && g_mismatch++ < 20)
-			ffnx_error("30fps primplayer: MISMATCH (%s) data=%p frame=%d paused=%d objects=%d ret=%d/%d\n",
+			ffnx_error("FF8 battle fx: prim player MISMATCH (%s) data=%p frame=%d paused=%d objects=%d ret=%d/%d\n",
 				what, l->data, frame0, paused, count, r, nret);
 		if ((g_checked & 0x3FFF) == 0)
-			ffnx_info("30fps primplayer: %u plays checked, %u mismatches\n", g_checked, g_mismatch);
+			ffnx_info("FF8 battle fx: prim player %u plays checked, %u mismatches\n", g_checked, g_mismatch);
 		return r;
 	}
 
 	void install_verify()
 	{
 		g_verify_ri = replace_function(0x701970, (void *)VerifyHook);
-		ffnx_info("30fps primplayer: live self-check of the native prim-model player installed\n");
+		ffnx_info("FF8 battle fx: prim player checked against the original\n");
 	}
 }
 

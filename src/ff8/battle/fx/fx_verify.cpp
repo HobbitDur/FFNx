@@ -48,6 +48,7 @@
 
 #include <windows.h>
 #include <dbghelp.h>
+#include <float.h>
 #include <stdio.h>
 #include <utility>
 
@@ -221,19 +222,20 @@ namespace
 	}
 
 	// ------------------------------------------------------------------ x87 / stack
-	inline uint16_t x87_cw()
+	// x87 control word (precision, rounding, exception masks) through the CRT, x87 only (no SSE)
+	inline unsigned int x87_cw()
 	{
-		uint16_t cw;
-		__asm fnstcw cw
+		unsigned int cw = 0;
+		__control87_2(0, 0, &cw, nullptr);
 		return cw;
 	}
-	inline void x87_set_cw(uint16_t cw)
+	inline void x87_set_cw(unsigned int cw)
 	{
-		__asm fldcw cw
+		__control87_2(cw, _MCW_EM | _MCW_IC | _MCW_RC | _MCW_PC, nullptr, nullptr);
 	}
 	inline void x87_reset()
 	{
-		__asm fninit
+		_fpreset();
 	}
 
 	// Original code reads some locals it never initialised (padding of vectors, unused 4th
@@ -249,7 +251,7 @@ namespace
 	enum { EXT_OFF = 0, EXT_RECORD, EXT_REPLAY };
 	enum { OBS_NONE = 0, OBS_ADD_TASK, OBS_INIT_POOL };
 	struct Site { uint32_t addr; int arity; const char *name; int observe; void *stub; uint8_t saved[5]; bool patched; };
-	struct Call { int site; uint32_t args[6]; uint32_t ret; uint32_t w_off, w_len; uint16_t cw_after; };
+	struct Call { int site; uint32_t args[6]; uint32_t ret; uint32_t w_off, w_len; unsigned int cw_after; };
 	const int SITES_MAX = 128; // (70 ext sites registered)
 	const int CALLS_MAX = 256;
 	const uint32_t WLOG_SIZE = 0x100000;
@@ -655,9 +657,9 @@ namespace
 		g_active = false;
 		patch_all(true);
 		scrub_stack();
-		uint16_t cw_a0 = x87_cw();
+		unsigned int cw_a0 = x87_cw();
 		int ra = g_tick_orig(q);
-		uint16_t cw_a1 = x87_cw();
+		unsigned int cw_a1 = x87_cw();
 		patch_all(false);
 		g_mode = EXT_OFF;
 		g_queue_seen = nullptr;
@@ -696,7 +698,7 @@ namespace
 		int rb = 0;
 		bool ok = run_guarded(q, &rb);
 		if (!ok) x87_reset(); // a fault can leave values on the x87 stack
-		uint16_t cw_b1 = x87_cw();
+		unsigned int cw_b1 = x87_cw();
 		x87_set_cw(cw_a1); // leave the FPU as the original run left it
 		patch_all(false);
 		g_mode = EXT_OFF;
