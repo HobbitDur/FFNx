@@ -24,19 +24,19 @@ namespace m338
 {
 	using namespace eng;
 
-	inline uint8_t *&CastCtx() { return var<uint8_t *>(0x25561CC); }
-	inline uint8_t *&Attacker() { return var<uint8_t *>(0x25561D0); }
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25561D4); }
-	inline uint8_t *&SparkHint() { return var<uint8_t *>(0x25561D8); }
-	inline TaskQueue &QueueDebris() { return var<TaskQueue>(0x25561E0); }
-	inline TaskQueue &QueuePrims() { return var<TaskQueue>(0x25561F0); }
-	inline TaskQueue &QueueCreature() { return var<TaskQueue>(0x2556200); }
-	inline TaskQueue &QueueRoot() { return var<TaskQueue>(0x2556210); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556234); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x2556238); }
-	inline uint32_t &Flag23C() { return var<uint32_t>(0x255623C); }
-	inline int16_t &W(int k) { return var<int16_t>(0x2556240 + 2 * k); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2556250); }
+	inline uint8_t *&CastCtx() { return var<uint8_t *>(us(0x25561CC)); }
+	inline uint8_t *&Attacker() { return var<uint8_t *>(us(0x25561D0)); }
+	inline uint8_t *&Target() { return var<uint8_t *>(us(0x25561D4)); }
+	inline uint8_t *&SparkHint() { return var<uint8_t *>(us(0x25561D8)); }
+	inline TaskQueue &QueueDebris() { return var<TaskQueue>(us(0x25561E0)); }
+	inline TaskQueue &QueuePrims() { return var<TaskQueue>(us(0x25561F0)); }
+	inline TaskQueue &QueueCreature() { return var<TaskQueue>(us(0x2556200)); }
+	inline TaskQueue &QueueRoot() { return var<TaskQueue>(us(0x2556210)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2556234)); }
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(us(0x2556238)); }
+	inline uint32_t &Flag23C() { return var<uint32_t>(us(0x255623C)); }
+	inline int16_t &W(int k) { return var<int16_t>(us(0x2556240) + 2 * k); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(us(0x2556250)); }
 
 	static const uint32_t ORIG_SequenceTask = 0x6EBE20;
 	static const uint32_t ORIG_CreatureTask = 0x6EC0F0;
@@ -58,28 +58,28 @@ namespace m338
 
 	namespace x
 	{
-		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
-		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		inline void RotY(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(angle, out); }
-		inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(angle, out); }
-		inline void Blend(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
-		inline void MulMatrix(void *a, const void *b) { fn<void (__cdecl *)(void *, const void *)>(0x56C220)(a, b); }
-		inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-		inline uint32_t SpriteDraw(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); }
-		inline void Decode(uint32_t src, void *layout, int size) { fn<void (__cdecl *)(uint32_t, void *, int)>(0x7016B0)(src, layout, size); }
-		inline void SetAnim(void *e, int id) { fn<void (__cdecl *)(void *, int)>(0x6574D0)(e, id); }
-		inline void AdvanceAnim(void *e) { fn<void (__cdecl *)(void *)>(0x6FBDB0)(e); }
-		inline uint32_t DrawModel(void *e, void *buf, uint32_t cursor, uint32_t a4) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(0x6A79B0)(e, buf, cursor, a4); }
-		inline void BindModel(void *e, void *sections, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x6EC060)(e, sections, data); }
-		inline void Heights(void *entity, void *out) { fn<void (__cdecl *)(void *, void *)>(0x6DFD90)(entity, out); }
-		inline void SpawnPosition(void *entity, int bone, int a, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(0x502170)(entity, bone, a, out); }
-		inline void ChainTransformation(void *entity, int kind) { fn<void (__cdecl *)(void *, int)>(0x505C00)(entity, kind); }
-		inline void ApplyResultToTarget(void *targets) { fn<void (__cdecl *)(void *)>(0x506690)(targets); }
-		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(0x501330)(se, a, b); }
-		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(0x5341D0)(id, dst, n); }
-		inline void PreLoad() { fn<void (__cdecl *)()>(0x534210)(); }
-		inline int PreLoad0(int a) { return fn<int (__cdecl *)(int)>(0x5342C0)(a); }
+		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
+		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+		inline void RotY(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(us(0x701270))(angle, out); }
+		inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(us(0x701220))(angle, out); }
+		inline void Blend(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
+		inline void MulMatrix(void *a, const void *b) { fn<void (__cdecl *)(void *, const void *)>(us(0x56C220))(a, b); }
+		inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+		inline uint32_t SpriteDraw(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x6FC9E0))(h, ot, mode, cursor); }
+		inline void Decode(uint32_t src, void *layout, int size) { fn<void (__cdecl *)(uint32_t, void *, int)>(us(0x7016B0))(src, layout, size); }
+		inline void SetAnim(void *e, int id) { fn<void (__cdecl *)(void *, int)>(us(0x6574D0))(e, id); }
+		inline void AdvanceAnim(void *e) { fn<void (__cdecl *)(void *)>(us(0x6FBDB0))(e); }
+		inline uint32_t DrawModel(void *e, void *buf, uint32_t cursor, uint32_t a4) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(us(0x6A79B0))(e, buf, cursor, a4); }
+		inline void BindModel(void *e, void *sections, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(us(0x6EC060))(e, sections, data); }
+		inline void Heights(void *entity, void *out) { fn<void (__cdecl *)(void *, void *)>(us(0x6DFD90))(entity, out); }
+		inline void SpawnPosition(void *entity, int bone, int a, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(us(0x502170))(entity, bone, a, out); }
+		inline void ChainTransformation(void *entity, int kind) { fn<void (__cdecl *)(void *, int)>(us(0x505C00))(entity, kind); }
+		inline void ApplyResultToTarget(void *targets) { fn<void (__cdecl *)(void *)>(us(0x506690))(targets); }
+		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(us(0x501330))(se, a, b); }
+		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(us(0x5341D0))(id, dst, n); }
+		inline void PreLoad() { fn<void (__cdecl *)()>(us(0x534210))(); }
+		inline int PreLoad0(int a) { return fn<int (__cdecl *)(int)>(us(0x5342C0))(a); }
 	}
 
 #pragma pack(push, 1)
@@ -279,7 +279,7 @@ namespace m338
 		s->vel[1] = 0;
 		*(uint32_t *)s->acc = 0;
 		s->unused12 = 0xBB8;
-		s->seq = SEQ_SparkFlash;
+		s->seq = us(SEQ_SparkFlash);
 		for (int k = 7;;)
 		{
 			s = SparkAlloc();
@@ -301,7 +301,7 @@ namespace m338
 			s->vel[2] = 0;
 			s->acc[1] = (int8_t)DivNeg10Sar2(s->vel[1]);
 			s->unused12 = 0xC00;
-			s->seq = SEQ_SparkFly;
+			s->seq = us(SEQ_SparkFly);
 			if (--k == 0) return;
 		}
 	}
@@ -353,7 +353,7 @@ namespace m338
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = us(MODEL_Debris);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x98);
@@ -396,12 +396,12 @@ namespace m338
 			InitTaskQueuePool(&QueueDebris(), ModelBuffer() + 0x600, 0x24, 0x40);
 			InitTaskQueuePool(&QueueCreature(), ModelBuffer() + 0x1BC0, 0xD0, 1);
 			InitTaskQueuePool(&QueuePrims(), ModelBuffer() + 0xF00, 0x198, 8);
-			CreatureNode *cn = (CreatureNode *)AddTaskToQueue(&QueueCreature(), ORIG_CreatureTask);
+			CreatureNode *cn = (CreatureNode *)AddTaskToQueue(&QueueCreature(), us(ORIG_CreatureTask));
 			Memset32(&cn->counter, 0, 0x31);
 			cn->attacker = Attacker();
 			x::Heights(Target(), &cn->h0);
-			cn->voice = ClaimVoiceSlot((const void *)0x13710CC, 1, 0x80);
-			x::BindModel(cn->model, cn->sections, 0x136BB30);
+			cn->voice = ClaimVoiceSlot((const void *)us(0x13710CC), 1, 0x80);
+			x::BindModel(cn->model, cn->sections, us(0x136BB30));
 			x::SetAnim(cn->model, 0);
 			x::RotY(0, &Root(cn));
 			uint8_t *t = Target();
@@ -440,7 +440,7 @@ namespace m338
 
 	static void SpawnPrim(uint32_t vec, uint32_t layout, int32_t yoff)
 	{
-		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), ORIG_PrimTask);
+		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), us(ORIG_PrimTask));
 		if (!p) return;
 		const int16_t *v = (const int16_t *)vec;
 		p->pos[0] = (int16_t)(v[0] + W(4));
@@ -452,7 +452,7 @@ namespace m338
 
 	static void SpawnBurst(uint32_t vertex)
 	{
-		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), ORIG_PrimTask);
+		PrimNode *p = (PrimNode *)AddTaskToQueue(&QueuePrims(), us(ORIG_PrimTask));
 		if (!p) return;
 		int16_t at[4];
 		VertexPos((const int16_t *)vertex, at);
@@ -460,8 +460,8 @@ namespace m338
 		p->pos[0] = at[0];
 		p->pos[2] = at[2];
 		p->yaw = 0;
-		x::Decode(0x13755B8, p->layout, 0xF8);
-		DebrisNode *d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), ORIG_DebrisTask);
+		x::Decode(us(0x13755B8), p->layout, 0xF8);
+		DebrisNode *d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), us(ORIG_DebrisTask));
 		if (!d) return;
 		for (int k = 8;;)
 		{
@@ -485,7 +485,7 @@ namespace m338
 			d->spin[0] = (uint8_t)x::Rand();
 			d->spin[1] = (uint8_t)x::Rand();
 			if (--k == 0) return;
-			d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), ORIG_DebrisTask);
+			d = (DebrisNode *)AddTaskToQueue(&QueueDebris(), us(ORIG_DebrisTask));
 			if (!d) return;
 		}
 	}
@@ -496,7 +496,7 @@ namespace m338
 		FX_HELD(held_note_prim(p);)
 		uint8_t ctx[0x28];
 		PrimCtx(p, ctx);
-		int r = prim::play((prim::Layout *)p->layout, (prim::Callback)CB_PrimObject, (int)ctx, 0);
+		int r = prim::play((prim::Layout *)p->layout, (prim::Callback)us(CB_PrimObject), (int)ctx, 0);
 		return r ? 0 : TASK_END;
 	}
 
@@ -547,7 +547,7 @@ namespace m338
 
 		if (cn->counter == 7)
 		{
-			SpawnPrim(0x1376678, 0x1372E60, cn->h1);
+			SpawnPrim(us(0x1376678), us(0x1372E60), cn->h1);
 			Chain();
 		}
 
@@ -556,17 +556,17 @@ namespace m338
 		{
 			switch ((int32_t)e8 - 4)
 			{
-			case 0: SpawnPrim(0x1376680, 0x137420C, cn->h1); Chain(); break;
-			case 3: SpawnPrim(0x1376688, 0x1372E60, cn->h1); Chain(); break;
-			case 6: SpawnPrim(0x1376690, 0x137420C, cn->h1); Chain(); break;
-			case 11: case 17: SpawnSparksAt(0x1376670); Chain(); break;
-			case 14: case 20: SpawnSparksAt(0x1376668); Chain(); break;
-			case 27: Chain(); SpawnBurst(0x1376660); break;
-			case 30: SpawnBurst(0x1376658); break;
-			case 33: SpawnBurst(0x1376660); break;
+			case 0: SpawnPrim(us(0x1376680), us(0x137420C), cn->h1); Chain(); break;
+			case 3: SpawnPrim(us(0x1376688), us(0x1372E60), cn->h1); Chain(); break;
+			case 6: SpawnPrim(us(0x1376690), us(0x137420C), cn->h1); Chain(); break;
+			case 11: case 17: SpawnSparksAt(us(0x1376670)); Chain(); break;
+			case 14: case 20: SpawnSparksAt(us(0x1376668)); Chain(); break;
+			case 27: Chain(); SpawnBurst(us(0x1376660)); break;
+			case 30: SpawnBurst(us(0x1376658)); break;
+			case 33: SpawnBurst(us(0x1376660)); break;
 			case 36:
 				x::ApplyResultToTarget(*(void **)(*(uint8_t **)(CastCtx() + 4) + 8));
-				SpawnBurst(0x1376658);
+				SpawnBurst(us(0x1376658));
 				break;
 			default: break;
 			}
@@ -588,7 +588,7 @@ namespace m338
 					s->vel[2] = 0;
 					*(uint32_t *)s->acc = 0;
 					r = x::Rand();
-					s->seq = SEQ_Spark;
+					s->seq = us(SEQ_Spark);
 					s->unused12 = (int16_t)((r & 0xFFF) + 0x800);
 					if (--count == 0) break;
 					s = SparkAlloc();
@@ -601,7 +601,7 @@ namespace m338
 			{
 				int32_t s = ComputeSin(0x400 - (int32_t)((e32 << 10) >> 2));
 				int16_t out[4];
-				x::Blend((const void *)0x2556240, (const void *)0x2556248, 0x1000 - s, s, out);
+				x::Blend((const void *)us(0x2556240), (const void *)us(0x2556248), 0x1000 - s, s, out);
 				root.t[1] = out[1];
 				root.t[2] = out[2];
 			}
@@ -619,7 +619,7 @@ namespace m338
 				int32_t co = x::Cos((int32_t)q7);
 				int32_t fade = 0x1000 - x::Cos((0x1000 - co) >> 2);
 				FX_HELD(held_note_ring(root, (int32_t)(c << 8), fade);)
-				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(c << 8), fade, MODEL_Ring);
+				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(c << 8), fade, us(MODEL_Ring));
 			}
 		}
 
@@ -651,7 +651,7 @@ namespace m338
 						s->acc[0] = 0;
 						s->life = 0xC;
 						int32_t r3 = x::Rand();
-						s->seq = SEQ_Spark;
+						s->seq = us(SEQ_Spark);
 						s->unused12 = (int16_t)((r3 & 0xFFF) + 0xBB8);
 						int old = count--;
 						if (old == 0) break;
@@ -684,7 +684,7 @@ namespace m338
 				int32_t s = ComputeSin((int32_t)q) >> 2;
 				int32_t fade = 0x1000 - ComputeSin(s);
 				FX_HELD(held_note_ring(root, (int32_t)(ee << 8), fade);)
-				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(ee << 8), fade, MODEL_Ring);
+				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(ee << 8), fade, us(MODEL_Ring));
 			}
 		}
 
@@ -696,16 +696,16 @@ namespace m338
 			FX_HELD(held_note_built(cn);)
 		}
 
-		x::RotY(0, (void *)0x1D99AB0);
-		var<int32_t>(0x1D99AC4) = root.t[0];
-		var<int32_t>(0x1D99AC8) = root.t[1];
-		var<int32_t>(0x1D99ACC) = root.t[2];
+		x::RotY(0, (void *)us(0x1D99AB0));
+		var<int32_t>(us(0x1D99AC4)) = root.t[0];
+		var<int32_t>(us(0x1D99AC8)) = root.t[1];
+		var<int32_t>(us(0x1D99ACC)) = root.t[2];
 
 		FX_HELD(held_note_sparks();)
 		SparksDraw(Sparks(ModelBuffer()));
 		SparksMove(Sparks(ModelBuffer()));
 
-		if (cn->counter == 0) x::PlaySE(0x13710C8, 0, 0x80);
+		if (cn->counter == 0) x::PlaySE(us(0x13710C8), 0, 0x80);
 		{
 			int16_t c = cn->counter;
 			if (c == 8) x::SetAnim(e, 1);

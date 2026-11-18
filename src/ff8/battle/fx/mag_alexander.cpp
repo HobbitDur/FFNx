@@ -29,12 +29,12 @@ namespace gfc
 namespace part_alexander
 {
 	static const uint32_t BATTLE_DRAWENV_1D969C8 = 0x1D969C8;
-	static inline uint8_t DISP_PARITY_1D96A80() { return MEM<uint8_t>(0x1D96A80); }
+	static inline uint8_t DISP_PARITY_1D96A80() { return MEM<uint8_t>(us(0x1D96A80)); }
 
-	static inline void xl_SetDrawEnv_45C0F0(void *prim, const void *env) { x::f<void (__cdecl *)(void *, const void *)>(0x45C0F0)(prim, env); }
-	static inline void xl_InsertPrimAutoDepth_45C7A0(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(0xB65150)(); }
-	static inline void xl_ScaleColour_B66840() { blob::f<int32_t (__cdecl *)()>(0xB66840)(); }
+	static inline void xl_SetDrawEnv_45C0F0(void *prim, const void *env) { x::f<void (__cdecl *)(void *, const void *)>(us(0x45C0F0))(prim, env); }
+	static inline void xl_InsertPrimAutoDepth_45C7A0(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(us(0xB65150))(); }
+	static inline void xl_ScaleColour_B66840() { blob::f<int32_t (__cdecl *)()>(us(0xB66840))(); }
 
 	static inline int32_t div256(int32_t v) { return add32(v, (v >> 31) & 0xFF) >> 8; }
 	static inline int32_t neg32(int32_t v) { return (int32_t)(0u - (uint32_t)v); }
@@ -52,7 +52,7 @@ namespace part_alexander
 		S32(WS(), 0x64) = S16(prm, 2);
 		uint32_t idx = ((uint32_t)DISP_PARITY_1D96A80() - 1u) & 1u;
 		uint8_t *env = PTR(CTX(), 0x74);
-		const uint8_t *src = (const uint8_t *)(BATTLE_DRAWENV_1D969C8 + idx * 23u * 4u);
+		const uint8_t *src = (const uint8_t *)(us(BATTLE_DRAWENV_1D969C8) + idx * 23u * 4u);
 		U32(env, 0) = U32(src, 0);
 		U32(env, 4) = U32(src, 4);
 		U32(env, 8) = U32(src, 8);
@@ -530,26 +530,26 @@ namespace alexander
 	{
 		c.name = "204 Alexander";
 		c.effect_id = 204;
-		c.vm_table = 0x18729C0;
-		c.bone_table = 0x1872630;
-		c.prim_table = 0x1872678;
-		c.prim_size = 0x1872768;
-		c.spr_table = 0x187277C;
-		c.ptype_table = 0x18727A8;
-		c.pop_table = 0x18727BC;
-		c.draw_table = 0x187281C;
-		c.attr_16A = 0x1872986;
-		c.attr_184 = 0x18729A0;
-		c.attr_186 = 0x18729A2;
-		c.attr_194 = 0x18729B0;
-		c.attr_19C = 0x18729B8;
-		c.desc = 0x1872384;
-		c.ptr_block = 0x1872608;
-		c.queue = 0x2796D70;
-		c.file00 = 0x2796DA4;
-		c.file01 = 0x2796DA0;
-		c.tick = 0xB00310;
-		c.load_cb = 0xB07C20;
+		c.vm_table = us(0x18729C0);
+		c.bone_table = us(0x1872630);
+		c.prim_table = us(0x1872678);
+		c.prim_size = us(0x1872768);
+		c.spr_table = us(0x187277C);
+		c.ptype_table = us(0x18727A8);
+		c.pop_table = us(0x18727BC);
+		c.draw_table = us(0x187281C);
+		c.attr_16A = us(0x1872986);
+		c.attr_184 = us(0x18729A0);
+		c.attr_186 = us(0x18729A2);
+		c.attr_194 = us(0x18729B0);
+		c.attr_19C = us(0x18729B8);
+		c.desc = us(0x1872384);
+		c.ptr_block = us(0x1872608);
+		c.queue = us(0x2796D70);
+		c.file00 = us(0x2796DA4);
+		c.file01 = us(0x2796DA0);
+		c.tick = us(0xB00310);
+		c.load_cb = us(0xB07C20);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}

@@ -25,24 +25,24 @@ namespace breath157
 	using namespace eng;
 	using namespace magc;
 
-	inline Mat4x3 &FrameB() { return var<Mat4x3>(0x23EB5C0); }
-	inline int32_t *DirB() { return (int32_t *)0x23EB5E0; }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x23EB5F0); }
-	inline int32_t &LenB() { return var<int32_t>(0x23EB5F4); }
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23EB618; }
-	inline int16_t *MouthB() { return (int16_t *)0x23EBF88; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23EBF90; }
-	inline Mat4x3 &FrameA() { return var<Mat4x3>(0x23ECDB0); }
-	inline int16_t *TargetPos() { return (int16_t *)0x23ECDD0; }
-	inline int32_t *DirA() { return (int32_t *)0x23ECDD8; }
-	inline int32_t &LenA() { return var<int32_t>(0x23ECDE8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23ECDEC); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23ECDF0); }
-	inline int16_t *MouthA() { return (int16_t *)0x23ECDF8; }
-	inline int16_t *CloudPos(int16_t i) { return (int16_t *)(0x23ECE00 + (uint32_t)(int32_t)i * 8); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23ECE18); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23ECE1C); }
-	inline Mat4x3 &SpriteFrame() { return var<Mat4x3>(0x23ECE20); }
+	inline Mat4x3 &FrameB() { return var<Mat4x3>(us(0x23EB5C0)); }
+	inline int32_t *DirB() { return (int32_t *)us(0x23EB5E0); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x23EB5F0)); }
+	inline int32_t &LenB() { return var<int32_t>(us(0x23EB5F4)); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)us(0x23EB618); }
+	inline int16_t *MouthB() { return (int16_t *)us(0x23EBF88); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23EBF90); }
+	inline Mat4x3 &FrameA() { return var<Mat4x3>(us(0x23ECDB0)); }
+	inline int16_t *TargetPos() { return (int16_t *)us(0x23ECDD0); }
+	inline int32_t *DirA() { return (int32_t *)us(0x23ECDD8); }
+	inline int32_t &LenA() { return var<int32_t>(us(0x23ECDE8)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23ECDEC)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x23ECDF0)); }
+	inline int16_t *MouthA() { return (int16_t *)us(0x23ECDF8); }
+	inline int16_t *CloudPos(int16_t i) { return (int16_t *)(us(0x23ECE00) + (uint32_t)(int32_t)i * 8); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23ECE18)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23ECE1C)); }
+	inline Mat4x3 &SpriteFrame() { return var<Mat4x3>(us(0x23ECE20)); }
 	static const uint32_t PARTS = 0x23EB628, PARTS_END = 0x23EBF88;
 	static const int PART_COUNT = 100;
 	static const uint32_t ARENA_SIZE = 0xC000;
@@ -62,20 +62,20 @@ namespace breath157
 	static const uint32_t REF_DIR = 0xDB4CB8;
 	static const uint32_t MODEL_Swirl = 0xDB0DBC, MODEL_Burst = 0xDB42C4, MODEL_Cloud1 = 0xDB20DC, MODEL_Cloud2 = 0xDB2F54, MODEL_Ring = 0xDB3BDC;
 	static const uint32_t SEQ_Breath = 0xDB0B34, SEQ_Puff = 0xDB0AC0, SEQ_PuffPart = 0xDB0CE0, SEQ_Splatter = 0xDB0914;
-	static const void *const SOUND_Start = (const void *)0xDB4CAC;
-	static const void *const SOUND_Cloud = (const void *)0xDB4CB0;
+	static const void *SOUND_Start() { return (const void *)us(0xDB4CAC); }
+	static const void *SOUND_Cloud() { return (const void *)us(0xDB4CB0); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-	inline int32_t NormalizeVectorLen(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t ComputeSin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D130)(a); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetRotDiag(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
-	inline void GteTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }
-	inline void RestoreDefaultEffectTexture(uint32_t tex, void *done) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(tex, done); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
+	inline int32_t NormalizeVectorLen(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t ComputeSin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D130))(a); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetRotDiag(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DDD0))(s); }
+	inline void GteTransFromIR() { fn<void (__cdecl *)()>(us(0x64DE90))(); }
+	inline void RestoreDefaultEffectTexture(uint32_t tex, void *done) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x508630))(tex, done); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -102,14 +102,14 @@ namespace breath157
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Breath nodes");
 	static_assert(sizeof(Part) == 0x18, "Breath particle");
 
-	inline Part *Parts() { return (Part *)PARTS; }
+	inline Part *Parts() { return (Part *)us(PARTS); }
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 
 	static int FreePart()
 	{
 		int i = 0;
-		for (uint32_t a = PARTS; a < PARTS_END; a += sizeof(Part), i++)
+		for (uint32_t a = us(PARTS); a < us(PARTS_END); a += sizeof(Part), i++)
 			if (*(uint32_t *)a == 0) return i < PART_COUNT ? i : -1;
 		return -1;
 	}
@@ -153,7 +153,7 @@ namespace breath157
 	}
 	static uint8_t *SwirlHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Swirl, 0x33);
+		uint8_t *h = ModelHeader(us(MODEL_Swirl), 0x33);
 		if (c < 4)
 		{
 			*(int32_t *)(h + 0xC) = (4 - (int32_t)c) << 10;
@@ -181,7 +181,7 @@ namespace breath157
 	}
 	static uint8_t *BurstHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Burst, 0x33);
+		uint8_t *h = ModelHeader(us(MODEL_Burst), 0x33);
 		if (c < 8)
 		{
 			*(int32_t *)(h + 0x1C) = 0xF3;
@@ -218,7 +218,7 @@ namespace breath157
 	}
 	static uint8_t *CloudHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Cloud1, 3);
+		uint8_t *h = ModelHeader(us(MODEL_Cloud1), 3);
 		if (c >= 8)
 		{
 			*(int32_t *)(h + 0x1C) = 0xC3;
@@ -241,7 +241,7 @@ namespace breath157
 		Scale3DMatrix(&m, sc);
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
-		*(uint32_t *)h = MODEL_Cloud2;
+		*(uint32_t *)h = us(MODEL_Cloud2);
 		Render(h);
 	}
 	static void CloudModelsDraw(const EffectNode *t)
@@ -277,7 +277,7 @@ namespace breath157
 	}
 	static uint8_t *RingHeader(int16_t c)
 	{
-		uint8_t *h = ModelHeader(MODEL_Ring, 0x33);
+		uint8_t *h = ModelHeader(us(MODEL_Ring), 0x33);
 		if (c >= 8)
 		{
 			*(int32_t *)(h + 0x1C) = 0xF3;
@@ -365,7 +365,7 @@ namespace breath157
 		LitSpritePull(t->w1C);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = (int16_t)(t->counter & 3);
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = us(SEQ_Puff);
 		*(int16_t *)(h + 0x24) = 0;
 		SeqDraw(h);
 		FieldFree(0xB4);
@@ -474,10 +474,10 @@ namespace breath157
 		FX_HELD(held_note(REC_BREATHPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
-		*(uint32_t *)h = SEQ_Breath;
+		*(uint32_t *)h = us(SEQ_Breath);
 		*(int16_t *)(h + 0x24) = 0;
 		LitSpriteSetup(&FrameA());
-		for (Part *p = Parts(); (uint32_t)p < PARTS_END; p++)
+		for (Part *p = Parts(); (uint32_t)p < us(PARTS_END); p++)
 		{
 			if (!(p->type & 1)) continue;
 			BreathPartDraw(h, p);
@@ -520,10 +520,10 @@ namespace breath157
 		FX_HELD(held_note(REC_PUFFPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
-		*(uint32_t *)h = SEQ_PuffPart;
+		*(uint32_t *)h = us(SEQ_PuffPart);
 		*(int16_t *)(h + 0x24) = 0;
 		LitSpriteSetup(&FrameB());
-		for (Part *p = Parts(); (uint32_t)p < PARTS_END; p++)
+		for (Part *p = Parts(); (uint32_t)p < us(PARTS_END); p++)
 		{
 			if (!(p->type & 2)) continue;
 			PuffPartDraw(h, p);
@@ -563,9 +563,9 @@ namespace breath157
 	{
 		EffectNode *t = (EffectNode *)nd;
 		FX_HELD(held_note(REC_SPLATTER, t);)
-		uint8_t *h = SeqHeader(SEQ_Splatter);
+		uint8_t *h = SeqHeader(us(SEQ_Splatter));
 		int alive = 0;
-		for (Part *p = Parts(); (uint32_t)p < PARTS_END; p++)
+		for (Part *p = Parts(); (uint32_t)p < us(PARTS_END); p++)
 		{
 			if (!(p->type & 4)) continue;
 			SplatterDraw(h, p);
@@ -608,14 +608,14 @@ namespace breath157
 			c[2] = 0;
 			c[1] = 0;
 			c[0] = 0;
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Burst);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Burst));
 			n->counter = 0;
 			n->w1C = 0x4000;
 			n->w1E = 0x800;
 		}
 		if (t->counter == 8)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Puff);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Puff));
 			n->w0E = t->w0E;
 			n->counter = 0;
 			n->w1C = 0xD00;
@@ -625,14 +625,14 @@ namespace breath157
 		}
 		if (t->counter == 9)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_PuffParticles);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_PuffParticles));
 			n->counter = 0;
 			n->w0E = t->w0E;
 			n->w14 = t->w14;
 		}
 		if (t->counter == 0xC)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_CloudModels);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_CloudModels));
 			n->counter = 0;
 			n->w0E = t->w0E;
 			n->w10 = (int16_t)(CrtRand() % 0x1000);
@@ -644,7 +644,7 @@ namespace breath157
 			const int16_t g = (int16_t)((CrtRand() % 0x600 + 0x700) / 8);
 			n->w1E = g;
 			n->w1C = g;
-			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Rings);
+			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Rings));
 			m->counter = 0;
 			m->w0E = t->w0E;
 			m->w18 = (int16_t)(CrtRand() % 0x1000);
@@ -656,7 +656,7 @@ namespace breath157
 		}
 		if (t->counter == 0xF)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Splatter);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Splatter));
 			n->counter = 0;
 		}
 		t->counter++;
@@ -682,7 +682,7 @@ namespace breath157
 	static void BreathFrame(Mat4x3 &f, const int32_t *dir, const int16_t *mouth)
 	{
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)REF_DIR, dir, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(REF_DIR), dir, axis);
 		BuildAxisAngleRotationMatrix(angle, &f, axis);
 		f.t[0] = mouth[0];
 		f.t[1] = mouth[1];
@@ -703,13 +703,13 @@ namespace breath157
 		}
 		if (t->counter == 1)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Swirl);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Swirl));
 			n->counter = 0;
 			n->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int32_t r = CrtRand() % 0x32;
 			n->w1C = 0x1400;
 			n->w1A = (int16_t)(r + 0x1E);
-			n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Swirl);
+			n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Swirl));
 			n->counter = 0;
 			n->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int32_t r2 = CrtRand() % 0x3C;
@@ -718,20 +718,20 @@ namespace breath157
 		}
 		if (t->counter == 2)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_BreathParticles);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_BreathParticles));
 			n->counter = 0;
 		}
 		if (t->counter == 0x13) Mouth(MouthB(), DirB(), LenB(), 0x384, -0x546);
 		if (t->counter == 0x14 || t->counter == 0x20 || t->counter == 0x2B)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Cloud);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Cloud));
 			n->w0E = t->w0E;
 			n->counter = 0;
 			t->w0E++;
 		}
 		if (t->counter == 0x41) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (t->counter == 1) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (t->counter == 0x14) BdPlaySE(SOUND_Cloud, 0, 0x80);
+		if (t->counter == 1) BdPlaySE(SOUND_Start(), 0, 0x80);
+		if (t->counter == 0x14) BdPlaySE(SOUND_Cloud(), 0, 0x80);
 		t->counter++;
 		return t->counter > 0x46 ? TASK_END : 0;
 	}
@@ -745,7 +745,7 @@ namespace breath157
 		const int a = ExecuteTaskQueue(EffectQueue());
 		if (!a)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(RootQueue(), us(ORIG_TexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}

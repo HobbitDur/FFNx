@@ -25,13 +25,13 @@ namespace aero118
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25215DC); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25215E0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25215FC); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2521600); }
-	inline TaskQueue *QLeaves() { return (TaskQueue *)0x2521620; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521630; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25215DC)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25215E0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25215FC)); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x2521600)); }
+	inline TaskQueue *QLeaves() { return (TaskQueue *)us(0x2521620); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2521630); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6C0D20;
 	static const uint32_t ORIG_TargetTask = 0x6C0EC0;
@@ -39,16 +39,16 @@ namespace aero118
 	static const uint32_t MODEL_Whirl = 0x1287DBC;
 	static const uint32_t MODEL_Gust = 0x128C110;
 	static const uint32_t MODEL_Leaf = 0x1287C44;
-	static const void *const SOUND_Aero = (const void *)0x128D5AC;
+	static const void *SOUND_Aero() { return (const void *)us(0x128D5AC); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -269,7 +269,7 @@ namespace aero118
 	static void LeafDraw(const LeafNode *f)
 	{
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_Leaf;
+		*(uint32_t *)h = us(MODEL_Leaf);
 		Mat4x3 m = {};
 		BuildRotationMatrixFromAngles(f->ang, &m);
 		const int32_t v[3] = { f->scale, f->scale, f->scale };
@@ -308,7 +308,7 @@ namespace aero118
 	{
 		TargetNode *t = (TargetNode *)n;
 		int alive = 1;
-		if (t->counter == 8) BdPlaySE3D(SOUND_Aero, 1, t->pos);
+		if (t->counter == 8) BdPlaySE3D(SOUND_Aero(), 1, t->pos);
 		const int32_t reach = (*(const int16_t *)(t->entity + 0x26) >> 1) + 0x800;
 		if (t->counter > 0xA)
 		{
@@ -331,7 +331,7 @@ namespace aero118
 		}
 		if ((uint16_t)t->counter < 0x14)
 		{
-			LeafNode *f = (LeafNode *)AddTaskToQueue(QLeaves(), ORIG_LeafTask);
+			LeafNode *f = (LeafNode *)AddTaskToQueue(QLeaves(), us(ORIG_LeafTask));
 			if (f)
 			{
 				Memset32(&f->action, 0, 0xC);
@@ -390,13 +390,13 @@ namespace aero118
 			ActionData *acts = Ctx()->actions;
 			if (r->action <= acts[0].last_action)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x1A0);
 				t->action = (int16_t)(uint16_t)r->action;
 				t->entity = Entity(Ctx()->actions[t->action].targets[0]);
 				GetDefaultEffectPosition(t->entity, t->pos);
-				DecodeModelPrimLayout(MODEL_Whirl, t->whirl, 0x4EC);
-				DecodeModelPrimLayout(MODEL_Gust, t->gust, 0x184);
+				DecodeModelPrimLayout(us(MODEL_Whirl), t->whirl, 0x4EC);
+				DecodeModelPrimLayout(us(MODEL_Gust), t->gust, 0x184);
 				r->action++;
 			}
 		}

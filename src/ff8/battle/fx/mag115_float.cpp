@@ -25,28 +25,28 @@ namespace float115
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25217D4); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25217D8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25217F4); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25217F8; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25217D4)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25217D8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25217F4)); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x25217F8); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6C9420;
 	static const uint32_t ORIG_TargetTask = 0x6C9580;
 	static const uint32_t MODEL_Glyph = 0x12B5780;
 	static const uint32_t MODEL_Upper = 0x12B7768;
-	static const int16_t *const DEPTH_Point = (const int16_t *)0x12BA2F8;
-	static const void *const SOUND_Float = (const void *)0x12BA2F4;
+	static const int16_t *DEPTH_Point() { return (const int16_t *)us(0x12BA2F8); }
+	static const void *SOUND_Float() { return (const void *)us(0x12BA2F4); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)((int32_t)(uint16_t)angle, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))((int32_t)(uint16_t)angle, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -160,7 +160,7 @@ namespace float115
 	static int32_t UpperDepth(const Mat4x3 *m, const uint8_t *entity)
 	{
 		int16_t out[4];
-		MatrixMultiplyVector(m, DEPTH_Point, out);
+		MatrixMultiplyVector(m, DEPTH_Point(), out);
 		return mul32(*(const int16_t *)(entity + 0x26) + 0x800, out[2]) >> 15;
 	}
 }
@@ -181,7 +181,7 @@ namespace float115
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(t->entity, pos);
-			BdPlaySE3D(SOUND_Float, 1, pos);
+			BdPlaySE3D(SOUND_Float(), 1, pos);
 		}
 		PrimArg arg;
 		const int32_t s = ((*(const int16_t *)(t->entity + 0x26) >> 1) + 0x800) >> 2;
@@ -244,14 +244,14 @@ namespace float115
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 				if (t)
 				{
 					Memset32(&t->counter, 0, 0x157);
 					t->action = (int16_t)(uint16_t)r->action;
 					t->entity = entity;
-					DecodeModelPrimLayout(MODEL_Glyph, t->glyph, 0x2E8);
-					DecodeModelPrimLayout(MODEL_Upper, t->upper, 0x26C);
+					DecodeModelPrimLayout(us(MODEL_Glyph), t->glyph, 0x2E8);
+					DecodeModelPrimLayout(us(MODEL_Upper), t->upper, 0x26C);
 					r->action++;
 				}
 			}

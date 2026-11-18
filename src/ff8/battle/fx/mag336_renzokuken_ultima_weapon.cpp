@@ -32,7 +32,7 @@ namespace renzo336
 	static const uint32_t RING = 0x21F4378, RING_END = 0x21F4404, LENGTH = 0x21F4404, FINISHER = 0x21F4408;
 	static const uint32_t TEX_BASE = 0x21F440C, PACKET_CURSOR = 0x21F4410;
 	static const uint32_t PARITY = 0xC000;
-	static const void *const SOUND = (const void *)0xE63B38;
+	static const void *SOUND() { return (const void *)us(0xE63B38); }
 	static const uint32_t TEXTURE_NAME = 0xCB2760, CAMERA = 0xE63CD4, ANIM_SETS = 0xE640EC, BIND_OUT = 0x24FEA78;
 	static const uint32_t MODEL_SPARKLE = 0xE63B3C, SPARKLE_FADE = 0xE63CC4, SPARKLE_DEPTH = 0xE63CB4;
 	static const uint32_t MODEL_SLASH = 0xCAC044, MODEL_STREAK = 0xCACA2C;
@@ -75,7 +75,7 @@ namespace renzo336
 	static void AddCasterModel(uint32_t orig, int32_t s0)
 	{
 		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), orig);
-		ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
+		ff8fx::copy<(8)>(&t->w10, (const void *)us(HIT_POS));
 		t->c = 0;
 		const int16_t s = (int16_t)((CrtRand() % 0x800 + s0) / 3);
 		t->w1E = s;
@@ -84,21 +84,21 @@ namespace renzo336
 
 	static void Events(Node24 *n)
 	{
-		if (n->c == 0x3C) AddCasterModel(ORIG_CasterModelA, 0x1600);
-		if (n->c == 0x5B) ((Node24 *)AddTaskToQueue(QMain(), ORIG_BoneEmitter))->c = 0;
-		if (n->c == 0x69) AddCasterModel(ORIG_CasterModelB, 0x2000);
+		if (n->c == 0x3C) AddCasterModel(us(ORIG_CasterModelA), 0x1600);
+		if (n->c == 0x5B) ((Node24 *)AddTaskToQueue(QMain(), us(ORIG_BoneEmitter)))->c = 0;
+		if (n->c == 0x69) AddCasterModel(us(ORIG_CasterModelB), 0x2000);
 		if (n->c == 0x78)
 		{
-			Node24 *d = (Node24 *)AddTaskToQueue(QMain(), ORIG_Dust);
+			Node24 *d = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Dust));
 			d->c = 0;
 			GetEffectSpawnPosition(Target(), 0xF1, 0, &d->w10);
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_GroundModel);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_GroundModel));
 			ff8fx::copy<(8)>(&t->w10, &d->w10);
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0xA00 + 0x1E00) / 3);
 			t->w1E = s;
 			t->w1C = s;
-			((Node24 *)AddTaskToQueue(QMain(), ORIG_Shake))->c = 0;
+			((Node24 *)AddTaskToQueue(QMain(), us(ORIG_Shake)))->c = 0;
 		}
 	}
 

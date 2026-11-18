@@ -34,7 +34,7 @@ namespace renzo339
 	static const uint32_t RING = 0x21EE648, RING_END = 0x21EE6D4, LENGTH = 0x21EE6D4, FINISHER = 0x21EE6D8;
 	static const uint32_t TEX_BASE = 0x21EE6DC, PACKET_CURSOR = 0x21EE6E0, HIT_OFFS = 0x21EE6E8;
 	static const uint32_t PARITY = 0xC000;
-	static const void *const SOUND = (const void *)0xE55D74;
+	static const void *SOUND() { return (const void *)us(0xE55D74); }
 	static const uint32_t TEXTURE_NAME = 0xCA4AF0, CAMERA = 0xE55F10, ANIM_SETS = 0xE56798, BIND_OUT = 0x24FEA08;
 	static const uint32_t MODEL_SPARKLE = 0xE55D78, SPARKLE_FADE = 0xE55F00, SPARKLE_DEPTH = 0xE55EF0;
 	static const uint32_t MODEL_SLASH = 0xC9E424, MODEL_STREAK = 0xC9EE0C;
@@ -89,25 +89,25 @@ namespace renzo339
 
 	static void Start(Node24 *n)
 	{
-		if (n->c == 1) StartBoss(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
-		if (n->c == 2) Bind3(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
+		if (n->c == 1) StartBoss(Caster(), Target(), us(BIND_OUT), us(ANIM_SETS), (Finisher() != 0) + 1);
+		if (n->c == 2) Bind3(Caster(), Target(), us(BIND_OUT), us(ANIM_SETS), (Finisher() != 0) + 1);
 		if (n->c == 3) ComputeLength();
 		if (n->c == 2) StartTasks();
 	}
 
 	static void Events(Node24 *n)
 	{
-		if (n->c == 0x16) AddRecordEmitter(ORIG_Emitter, 2, 0, -0xA00, 0x500);
-		if (n->c == 0x1D) AddRecordEmitter(ORIG_Emitter, 4, 0, -0x800, 0x600);
+		if (n->c == 0x16) AddRecordEmitter(us(ORIG_Emitter), 2, 0, -0xA00, 0x500);
+		if (n->c == 0x1D) AddRecordEmitter(us(ORIG_Emitter), 4, 0, -0x800, 0x600);
 		if (n->c == 0x48)
 		{
-			AddRecordEmitter(ORIG_Emitter, 8, 0, -0xB00, 0x400);
-			Node24 *t = AddSlotTask(ORIG_RingA);
+			AddRecordEmitter(us(ORIG_Emitter), 8, 0, -0xB00, 0x400);
+			Node24 *t = AddSlotTask(us(ORIG_RingA));
 			const int16_t s = (int16_t)((CrtRand() % 0x400 + 0xA00) / 3);
 			t->w1E = s;
 			t->w1C = s;
 			HitPointRecord(t);
-			t = AddSlotTask(ORIG_RingB);
+			t = AddSlotTask(us(ORIG_RingB));
 			t->w1C = 0x1600;
 			const int16_t sy = (int16_t)((CrtRand() % 0x400 + 0xA00) / 3);
 			t->w22 = sy;
@@ -116,7 +116,7 @@ namespace renzo339
 		}
 	}
 
-	static uint32_t __cdecl EmitterTask(TaskNode *tn) { return RecordEmitter(tn, 0x10, SEQ_EMIT); }
+	static uint32_t __cdecl EmitterTask(TaskNode *tn) { return RecordEmitter(tn, 0x10, us(SEQ_EMIT)); }
 	static uint32_t __cdecl RingATask(TaskNode *tn) { return SlotModelTask(SLOTMODELS[0], 0, (Node24 *)tn); }
 	static uint32_t __cdecl RingBTask(TaskNode *tn) { return SlotModelTask(SLOTMODELS[1], 1, (Node24 *)tn); }
 }

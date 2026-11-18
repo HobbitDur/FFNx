@@ -38,15 +38,15 @@ namespace magmabreath
 	static const uint32_t ORIG_Flash = 0x825220;
 	static const uint32_t ORIG_ActorSystem = 0x8253B0;
 	static const uint32_t ORIG_Shake = 0x82A540;
-	static const void *const SOUND_Magma = (const void *)0x15ADC68;
+	static const void *SOUND_Magma() { return (const void *)us(0x15ADC68); }
 	static const uint32_t ACTOR_DATA = 0x15B7C88;
 	static const uint32_t FLASH_SCRIPT = 0x15ADC28;
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -112,7 +112,7 @@ namespace magmabreath
 		U32(node, 0xA0) = (uint32_t)e4_div65536(S32(src, 0));
 		U32(node, 0xA4) = (uint32_t)e4_div65536(S32(src, 4));
 		U32(node, 0xA8) = (uint32_t)e4_div65536(S32(src, 8));
-		x::GTE_SetRotMatrix(MEM<uint32_t>(0x26481D8));
+		x::GTE_SetRotMatrix(MEM<uint32_t>(us(0x26481D8)));
 		x::GTE_LoadIRFromMatrixColumn(node + 0x8C);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(node + 0xAC);
@@ -122,7 +122,7 @@ namespace magmabreath
 		x::GTE_LoadIRFromMatrixColumn(node + 0x90);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(node + 0xB0);
-		x::GTE_SetTransVector(MEM<uint32_t>(0x26481D8));
+		x::GTE_SetTransVector(MEM<uint32_t>(us(0x26481D8)));
 		x::GTE_LoadV0FromDwords(node + 0xA0);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(node + 0xC0);
@@ -151,13 +151,13 @@ namespace magmabreath
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				break;
 			case 2:
-				x::UnpackRotationMatrix(MEM<uint32_t>(0x26481D8), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(us(0x26481D8)), m);
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				break;
 			case 3:
-				x::UnpackRotationMatrix(MEM<uint32_t>(0x26481D8), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(us(0x26481D8)), m);
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
@@ -169,8 +169,8 @@ namespace magmabreath
 
 	static void FlashDraw(uint32_t colour)
 	{
-		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t bucket = MEM<uint32_t>(us(0x1D8E04C)) + 0x1C;
+		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -183,7 +183,7 @@ namespace magmabreath
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	uint32_t __cdecl mb_824E40(uint32_t a1);
@@ -251,46 +251,46 @@ namespace magmabreath
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x26481D8) = 0x2793E58;
-		states[0] = 0x824FA0;
-		states[1] = 0x824FB0;
+		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x26481D8)) = us(0x2793E58);
+		states[0] = us(0x824FA0);
+		states[1] = us(0x824FB0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = 0x824FC0;
-		states[3] = 0x825140;
-		states[4] = 0x82A630;
-		states[5] = 0x82A670;
-		states[6] = 0x82A770;
-		states[7] = 0x82A780;
-		states[8] = 0x82A790;
-		states[9] = 0x82A7A0;
-		states[10] = 0x82A7C0;
+		states[2] = us(0x824FC0);
+		states[3] = us(0x825140);
+		states[4] = us(0x82A630);
+		states[5] = us(0x82A670);
+		states[6] = us(0x82A770);
+		states[7] = us(0x82A780);
+		states[8] = us(0x82A790);
+		states[9] = us(0x82A7A0);
+		states[10] = us(0x82A7C0);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26495BC);
-			const uint32_t v2 = MEM<uint32_t>(0x26489B4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26481D4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26495BC));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26489B4));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26481D4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26495B8);
-			const uint32_t v2 = MEM<uint32_t>(0x26489B0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26481D4) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26495B8));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26489B0));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26481D4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x26495D2) = 0;
-		MEM<uint16_t>(0x26495C2) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_FLASH));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SHAKE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(us(0x26495D2)) = 0;
+		MEM<uint16_t>(us(0x26495C2)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_FLASH)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SHAKE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -308,7 +308,7 @@ namespace magmabreath
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -366,7 +366,7 @@ namespace magmabreath
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(0x26495E8) = st;
+		MEM<uint32_t>(us(0x26495E8)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -378,7 +378,7 @@ namespace magmabreath
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x26495E8);
+			st = MEM<uint32_t>(us(0x26495E8));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -398,41 +398,41 @@ namespace magmabreath
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		mb_8256D0();
-		st = MEM<uint32_t>(0x26495E8);
+		st = MEM<uint32_t>(us(0x26495E8));
 		if (U16(st, 0x24) == 4)
-			callp(0x8255F0, node);
+			callp(us(0x8255F0), node);
 		mb_825A20();
-		st = MEM<uint32_t>(0x26495E8);
+		st = MEM<uint32_t>(us(0x26495E8));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(0x825830, node);
-			st = MEM<uint32_t>(0x26495E8);
+			callp(us(0x825830), node);
+			st = MEM<uint32_t>(us(0x26495E8));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x26495E8);
+			st = MEM<uint32_t>(us(0x26495E8));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = 0x1D972C0 + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = 0x1D972C0 + s2 * 0x9C;
+		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x26495E8);
+		st = MEM<uint32_t>(us(0x26495E8));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl mb_8255F0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26495E8);
+		const uint32_t arena = MEM<uint32_t>(us(0x26495E8));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -449,15 +449,15 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_8256D0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -470,7 +470,7 @@ namespace magmabreath
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -478,7 +478,7 @@ namespace magmabreath
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -493,7 +493,7 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_825830(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26495E8);
+		const uint32_t arena = MEM<uint32_t>(us(0x26495E8));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -514,7 +514,7 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_825A20(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -523,11 +523,11 @@ namespace magmabreath
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = 0x1D972C0 + slot * 0x9C;
+				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -540,7 +540,7 @@ namespace magmabreath
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -548,7 +548,7 @@ namespace magmabreath
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -588,12 +588,12 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_825FD0(void)
 	{
-		uint32_t act = U32(U32(0x26495E8, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x26495E8), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x26495E8, 0);
+				uint32_t sys = U32(us(0x26495E8), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -607,10 +607,10 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_826030(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -630,9 +630,9 @@ namespace magmabreath
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+			MEM<uint32_t>(us(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -647,17 +647,17 @@ namespace magmabreath
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(us(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1162,14 +1162,14 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_827650(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x26495E8), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(us(0x26495E8)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x26495E8);
+				uint32_t st = MEM<uint32_t>(us(0x26495E8));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1204,26 +1204,26 @@ namespace magmabreath
 	uint32_t __cdecl mb_827710(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl mb_827790(void)
 	{
-		uint32_t act = U32(U32(0x26495E8, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x26495E8), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1239,7 +1239,7 @@ namespace magmabreath
 	uint32_t __cdecl mb_8277D0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x26495E8);
+		uint32_t st = MEM<uint32_t>(us(0x26495E8));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1260,7 +1260,7 @@ namespace magmabreath
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x26495E8);
+			st = MEM<uint32_t>(us(0x26495E8));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1272,7 +1272,7 @@ namespace magmabreath
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x26495E8, 0);
+		uint32_t st = U32(us(0x26495E8), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1355,8 +1355,8 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_828D60(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26495C4);
-		int32_t idx = MEM<int16_t>(0x26489A8);
+		const uint32_t pool = MEM<uint32_t>(us(0x26495C4));
+		int32_t idx = MEM<int16_t>(us(0x26489A8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1366,7 +1366,7 @@ namespace magmabreath
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1381,9 +1381,9 @@ namespace magmabreath
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(0x26489A8) = (uint16_t)idx;
+			MEM<uint16_t>(us(0x26489A8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x26489A8) = 0;
+			MEM<uint16_t>(us(0x26489A8)) = 0;
 		return slot;
 	}
 
@@ -1396,9 +1396,9 @@ namespace magmabreath
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(0x8297B0, a1);
+			callp(us(0x8297B0), a1);
 		else if (mode == 4)
-			callp(0x829900, a1);
+			callp(us(0x829900), a1);
 		mb_828E80(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1407,7 +1407,7 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_828E80(uint32_t a1)
 	{
-		uint32_t sys = U32(0x26495E8, 0);
+		uint32_t sys = U32(us(0x26495E8), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1434,9 +1434,9 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_828F00(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(0x26495D8, 0) - 0x50;
+		uint32_t sp = U32(us(0x26495D8), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x26495D8, 0) = sp;
+		U32(us(0x26495D8), 0) = sp;
 		uint32_t node = a_7387B0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1446,7 +1446,7 @@ namespace magmabreath
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x26495E8, 0);
+			uint32_t ctx = U32(us(0x26495E8), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1614,14 +1614,14 @@ namespace magmabreath
 			}
 		}
 		mb_82A3F0(node, desc);
-		U32(0x26495D8, 0) = U32(0x26495D8, 0) + 0x50;
+		U32(us(0x26495D8), 0) = U32(us(0x26495D8), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl mb_829900(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(0x26495E8, 0);
+		const uint32_t st = U32(us(0x26495E8), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1681,7 +1681,7 @@ namespace magmabreath
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(0x26495E8, 0);
+				uint32_t g = U32(us(0x26495E8), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1691,7 +1691,7 @@ namespace magmabreath
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(0x26495E8, 0);
+				uint32_t g = U32(us(0x26495E8), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1766,7 +1766,7 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_82A480(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x26495E8);
+		uint32_t dir = MEM<uint32_t>(us(0x26495E8));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1791,14 +1791,14 @@ namespace magmabreath
 				do
 				{
 					mb_828D60(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x26495E8);
+					dir = MEM<uint32_t>(us(0x26495E8));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				mb_828D60(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x26495E8);
+				dir = MEM<uint32_t>(us(0x26495E8));
 			}
 		}
 		return 0;
@@ -1819,8 +1819,8 @@ namespace magmabreath
 	{
 		const uint32_t node = a1;
 		uint32_t states[2];
-		states[0] = 0x82A590;
-		states[1] = 0x82A5B0;
+		states[0] = us(0x82A590);
+		states[1] = us(0x82A5B0);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1832,7 +1832,7 @@ namespace magmabreath
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x82A6A0, 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x82A6A0), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1856,7 +1856,7 @@ namespace magmabreath
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1866,26 +1866,26 @@ namespace magmabreath
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(0x26495E4);
-		MEM<uint32_t>(0x26495C4) = p;
+		uint32_t p = MEM<uint32_t>(us(0x26495E4));
+		MEM<uint32_t>(us(0x26495C4)) = p;
 		p += 0x870;
-		MEM<uint32_t>(0x26495DC) = p;
+		MEM<uint32_t>(us(0x26495DC)) = p;
 		p += 0x10680;
-		MEM<uint32_t>(0x26495E4) = p;
+		MEM<uint32_t>(us(0x26495E4)) = p;
 		mb_825010();
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x825050, 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x825050), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl mb_825010(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26495C4), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26495DC), 0x10680);
-		MEM<uint16_t>(0x26489A8) = 0;
-		MEM<uint16_t>(0x26495D0) = 0;
-		MEM<uint16_t>(0x26495C0) = 0;
-		MEM<uint16_t>(0x26481BC) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26495C4)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26495DC)), 0x10680);
+		MEM<uint16_t>(us(0x26489A8)) = 0;
+		MEM<uint16_t>(us(0x26495D0)) = 0;
+		MEM<uint16_t>(us(0x26495C0)) = 0;
+		MEM<uint16_t>(us(0x26481BC)) = 0;
 		return 0;
 	}
 
@@ -1893,19 +1893,19 @@ namespace magmabreath
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x825320;
-		states[1] = 0x82A5C0;
-		states[2] = 0x82A5E0;
-		states[3] = 0x82A620;
+		states[0] = us(0x825320);
+		states[1] = us(0x82A5C0);
+		states[2] = us(0x82A5E0);
+		states[3] = us(0x82A620);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Magma), 0, 0x80);
+			x::BdPlaySE(P(SOUND_Magma()), 0, 0x80);
 		if (U16(node, 0x24) == 4)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
-			U32(t, 0x30) = FLASH_SCRIPT;
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_FLASH), us(ORIG_Flash), 0x3C, node);
+			U32(t, 0x30) = us(FLASH_SCRIPT);
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1914,8 +1914,8 @@ namespace magmabreath
 
 	uint32_t __cdecl mb_825320(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0xF, 0x28, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_SHAKE, ORIG_Shake, 0x58, a1);
+		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0xF, 0x28, 0);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_SHAKE), us(ORIG_Shake), 0x58, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1971,13 +1971,13 @@ namespace magmabreath
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		MEM<uint32_t>(ACTOR_STATE) = sys;
+		MEM<uint32_t>(us(ACTOR_STATE)) = sys;
 		int16_t pos[4] = { 0, 0, 0, 0 };
 		const uint32_t pp = P(pos);
 		if (U16(sys, 0x24) != 2)
 		{
-			x::GetEffectSpawnPosition(0x1D972C0 + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x15, 0, pp);
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			x::GetEffectSpawnPosition(us(0x1D972C0) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x15, 0, pp);
+			sys = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x1F4) = shl32(S16(pp, 0), 16);
@@ -1985,8 +1985,8 @@ namespace magmabreath
 		S32(sys, 0x1FC) = shl32(S16(pp, 4), 16);
 		if (U16(sys, 0x24) != 2)
 		{
-			x::GetEffectSpawnPosition(0x1D972C0 + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x15, 0, pp);
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			x::GetEffectSpawnPosition(us(0x1D972C0) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x15, 0, pp);
+			sys = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x204) = shl32(S16(pp, 0), 16);
@@ -2004,7 +2004,7 @@ namespace magmabreath
 			FX_HELD(held_note_system(sys);)
 			mb_827650();
 			mb_825FD0();
-			sys = MEM<uint32_t>(ACTOR_STATE);
+			sys = MEM<uint32_t>(us(ACTOR_STATE));
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2017,8 +2017,8 @@ namespace magmabreath
 		}
 		const uint16_t c14 = U16(sys, 0x14);
 		const uint16_t c16 = U16(sys, 0x16);
-		MEM<uint16_t>(0x26495D2) = (uint16_t)(MEM<uint16_t>(0x26495D2) + c14);
-		MEM<uint16_t>(0x26495C2) = (uint16_t)(MEM<uint16_t>(0x26495C2) + c16);
+		MEM<uint16_t>(us(0x26495D2)) = (uint16_t)(MEM<uint16_t>(us(0x26495D2)) + c14);
+		MEM<uint16_t>(us(0x26495C2)) = (uint16_t)(MEM<uint16_t>(us(0x26495C2)) + c16);
 		return done;
 	}
 
@@ -2031,7 +2031,7 @@ namespace magmabreath
 		{
 			int32_t frame = (int32_t)S16(node, 0x1CA);
 			uint32_t tex = U8(U32(desc, 0x12C) + frame, 0);
-			uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+			uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
 			U32(node, 0x170) = U32(U32(dir, 0x22C) + tex * 4, 0);
 			if (mode == 5)
 				mb_828BA0(node, desc);
@@ -2046,7 +2046,7 @@ namespace magmabreath
 		switch ((uint32_t)rot_mode)
 		{
 			case 0:
-				x::UnpackRotationMatrix(MEM<uint32_t>(0x26481D8), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(us(0x26481D8)), m);
 				if (U16(node, 0xD0) != 0)
 					x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				break;
@@ -2056,7 +2056,7 @@ namespace magmabreath
 				break;
 			case 2:
 			{
-				uint32_t yaw = x::sub_8DD7B0(MEM<uint32_t>(0x26481D8));
+				uint32_t yaw = x::sub_8DD7B0(MEM<uint32_t>(us(0x26481D8)));
 				x::MAG_022_sub_8DD770(m);
 				if ((uint16_t)yaw != 0)
 					x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)(int16_t)yaw);
@@ -2084,7 +2084,7 @@ namespace magmabreath
 			U16(node, 0x1CE) = U16(U32(desc, 0xFC) + frame * 2, 0);
 			U16(node, 0xD4) = U16(U32(desc, 0xE4) + frame * 2, 0);
 			if (U8(node, 0x1D6) == 0)
-				U16(node, 0xD4) = (uint16_t)(mul32(S32(MEM<uint32_t>(ACTOR_STATE), 0), 0x700) / 4096);
+				U16(node, 0xD4) = (uint16_t)(mul32(S32(MEM<uint32_t>(us(ACTOR_STATE)), 0), 0x700) / 4096);
 			U16(node, 0xD6) = U16(U32(desc, 0xE8) + frame * 2, 0);
 			uint16_t sz = U16(U32(desc, 0xEC) + frame * 2, 0);
 			int32_t scale[4];

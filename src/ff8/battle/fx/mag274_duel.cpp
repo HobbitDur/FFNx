@@ -25,22 +25,22 @@ namespace duel274
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x2508414; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508430); }
-	inline uint32_t &Alloc() { return var<uint32_t>(0x2508434); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508438); }
-	inline Mat4x3 *CamCopy() { return (Mat4x3 *)0x2508440; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250846C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508470); }
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x2508478; }
-	inline TaskQueue *QFlashes() { return (TaskQueue *)0x2508488; }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508498; }
-	inline TaskQueue *QMoves() { return (TaskQueue *)0x25084A8; }
-	inline uint8_t &NewMove() { return var<uint8_t>(0x25084D8); }
-	inline uint8_t &PostedMode() { return var<uint8_t>(0x25084D9); }
-	inline int16_t *SavedPartyY() { return (int16_t *)0x25084E0; }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t *SavedFlags() { return (uint32_t *)us(0x2508414); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2508430)); }
+	inline uint32_t &Alloc() { return var<uint32_t>(us(0x2508434)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2508438)); }
+	inline Mat4x3 *CamCopy() { return (Mat4x3 *)us(0x2508440); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x250846C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2508470)); }
+	inline TaskQueue *QRocks() { return (TaskQueue *)us(0x2508478); }
+	inline TaskQueue *QFlashes() { return (TaskQueue *)us(0x2508488); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2508498); }
+	inline TaskQueue *QMoves() { return (TaskQueue *)us(0x25084A8); }
+	inline uint8_t &NewMove() { return var<uint8_t>(us(0x25084D8)); }
+	inline uint8_t &PostedMode() { return var<uint8_t>(us(0x25084D9)); }
+	inline int16_t *SavedPartyY() { return (int16_t *)us(0x25084E0); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
 
 	static const uint32_t ORIG_RootTask = 0x689990;
 	static const uint32_t ORIG_MoveTask = 0x689AC0;
@@ -57,69 +57,69 @@ namespace duel274
 	static const uint32_t LAYOUT_Kick = 0x10F10F8, LAYOUT_Heel = 0x10F3808, LAYOUT_HeelB = 0x10F6BE0;
 	static const uint32_t LAYOUT_Meteor = 0x10F73B0, LAYOUT_MeteorB = 0x10F89F4, LAYOUT_Dolphin = 0x10FE310, LAYOUT_DolphinB = 0x110198C;
 	static const uint32_t CAMERA_Data = 0x110BE70;
-	static const int16_t *const BEND_Table = (const int16_t *)0x110D3B0;
-	static const uint8_t *const SPARK_Table = (const uint8_t *)0x110E3B8;
-	static const uint8_t *const LENGTH_Table = (const uint8_t *)0x110E3E0;
-	static const int16_t *const THROW_Table = (const int16_t *)0x110E3F0;
-	static const void *const SOUND_Punch = (const void *)0x110BE58;
-	static const void *const SOUND_Booya = (const void *)0x110BE5C;
-	static const void *const SOUND_Heel = (const void *)0x110BE60;
-	static const void *const SOUND_Kick = (const void *)0x110BE64;
-	static const void *const SOUND_Dolphin = (const void *)0x110BE68;
-	static const void *const SOUND_Meteor = (const void *)0x110BE6C;
+	static const int16_t *BEND_Table() { return (const int16_t *)us(0x110D3B0); }
+	static const uint8_t *SPARK_Table() { return (const uint8_t *)us(0x110E3B8); }
+	static const uint8_t *LENGTH_Table() { return (const uint8_t *)us(0x110E3E0); }
+	static const int16_t *THROW_Table() { return (const int16_t *)us(0x110E3F0); }
+	static const void *SOUND_Punch() { return (const void *)us(0x110BE58); }
+	static const void *SOUND_Booya() { return (const void *)us(0x110BE5C); }
+	static const void *SOUND_Heel() { return (const void *)us(0x110BE60); }
+	static const void *SOUND_Kick() { return (const void *)us(0x110BE64); }
+	static const void *SOUND_Dolphin() { return (const void *)us(0x110BE68); }
+	static const void *SOUND_Meteor() { return (const void *)us(0x110BE6C); }
 
-	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline void CameraAnimation(uint32_t data, uint32_t id) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x503520)(data, id); }
-	inline uint8_t *EntityChainLowest(uint8_t *e) { return fn<uint8_t *(__cdecl *)(uint8_t *)>(0x501FF0)(e); }
-	inline void MeasureModelHeight(uint8_t *e, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int16_t *)>(0x6DFD90)(e, out); }
-	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamIsBusy() { return fn<int32_t (__cdecl *)()>(0x534270)(); }
-	inline void DecodeModelPrimLayout(uint32_t data, uint32_t layout, int32_t size) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(a, out); }
-	inline void RotationZ(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(a, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MultiplyPSX(const void *a, const void *b, Mat4x3 *out) { fn<void (__cdecl *)(const void *, const void *, Mat4x3 *)>(0x56C090)(a, b, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); }
-	inline void BuildOrthonormalBasis(const int32_t *dir, Mat4x3 *out) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(dir, out); }
-	inline void CopyDwords(uint32_t dst, uint32_t src, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(0x6D67B0)(dst, src, n); }
-	inline uint32_t RenderPrimModel070(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(e, ot, a, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, ctx, ot, a, cursor); }
-	inline void ScreenFadeTask(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E180)(p); }
-	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(0x45E470)(p); }
-	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E060)(p); }
-	inline void GteLoadIR123FromBytes(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(p); }
-	inline void GteStoreIR123LowBytes(void *p) { fn<void (__cdecl *)(void *)>(0x45E410)(p); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(0x45E3C0)(p); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(0x45E3D0)(p); }
-	inline void GteReadOTZdiv4(void *p) { fn<void (__cdecl *)(void *)>(0x45E250)(p); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(uint32_t *p) { fn<void (__cdecl *)(uint32_t *)>(0x45E210)(p); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteLoadRGBC(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E110)(p); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *p) { fn<void (__cdecl *)(void *)>(0x45E360)(p); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void GteStoreIR123s(void *p) { fn<void (__cdecl *)(void *)>(0x45E3E0)(p); }
+	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline void CameraAnimation(uint32_t data, uint32_t id) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x503520))(data, id); }
+	inline uint8_t *EntityChainLowest(uint8_t *e) { return fn<uint8_t *(__cdecl *)(uint8_t *)>(us(0x501FF0))(e); }
+	inline void MeasureModelHeight(uint8_t *e, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int16_t *)>(us(0x6DFD90))(e, out); }
+	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
+	inline int32_t StreamIsBusy() { return fn<int32_t (__cdecl *)()>(us(0x534270))(); }
+	inline void DecodeModelPrimLayout(uint32_t data, uint32_t layout, int32_t size) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(a, out); }
+	inline void RotationZ(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(a, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MultiplyPSX(const void *a, const void *b, Mat4x3 *out) { fn<void (__cdecl *)(const void *, const void *, Mat4x3 *)>(us(0x56C090))(a, b, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(us(0x56C3D0))(m, in, out); }
+	inline void BuildOrthonormalBasis(const int32_t *dir, Mat4x3 *out) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(dir, out); }
+	inline void CopyDwords(uint32_t dst, uint32_t src, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(us(0x6D67B0))(dst, src, n); }
+	inline uint32_t RenderPrimModel070(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(e, ot, a, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
+	inline void ScreenFadeTask(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(us(0x5712C0))(a, b, c, d); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
+	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(p); }
+	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E470))(p); }
+	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(p); }
+	inline void GteLoadIR123FromBytes(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(p); }
+	inline void GteStoreIR123LowBytes(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E410))(p); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(us(0x45E3C0))(p); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(us(0x45E3D0))(p); }
+	inline void GteReadOTZdiv4(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E250))(p); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(uint32_t *p) { fn<void (__cdecl *)(uint32_t *)>(us(0x45E210))(p); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteLoadRGBC(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(p); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E360))(p); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void GteStoreIR123s(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E3E0))(p); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -235,7 +235,7 @@ namespace duel274
 	inline uint32_t &U32(void *p, int off) { return *(uint32_t *)((uint8_t *)p + off); }
 	inline uint8_t &B8(void *p, int off) { return *((uint8_t *)p + off); }
 
-	inline int SlotOf(const uint8_t *e) { return (int)((e - (const uint8_t *)0x1D972C0) / 0x9C); }
+	inline int SlotOf(const uint8_t *e) { return (int)((e - (const uint8_t *)us(0x1D972C0)) / 0x9C); }
 	inline uint8_t *ActionTargets(int i) { return Ctx()->actions[i].targets; }
 
 	static void GhostInit(uint8_t *g, int32_t n, const int32_t *bones)
@@ -459,7 +459,7 @@ namespace duel274
 		FX_HELD(held_note_ghosts(entity, g);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
-		c->verts = var<uint32_t>(0x1D98B3C);
+		c->verts = var<uint32_t>(us(0x1D98B3C));
 		c->clip[0] = 0;
 		c->clip[1] = 0;
 		c->clip[2] = 0x140;
@@ -899,7 +899,7 @@ namespace duel274
 	static void SparkDraw(SparkNode *s)
 	{
 		FX_HELD(held_note_spark(s);)
-		const uint8_t *e = SPARK_Table + s->seq * 8;
+		const uint8_t *e = SPARK_Table() + s->seq * 8;
 		const int16_t scale = *(const int16_t *)(e + 6);
 		const uint32_t a = ((uint32_t)(int32_t)s->seq & 0xFFFF0000u) | (uint16_t)scale;
 		TransformCameraByShadowRotation(s->pos, (int32_t)a, -((int32_t)scale >> 2));
@@ -915,7 +915,7 @@ namespace duel274
 		SparkNode *s = (SparkNode *)n;
 		SparkDraw(s);
 		s->frame++;
-		if (s->frame >= *(const int16_t *)(SPARK_Table + s->seq * 8 + 4)) return TASK_END;
+		if (s->frame >= *(const int16_t *)(SPARK_Table() + s->seq * 8 + 4)) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
@@ -930,7 +930,7 @@ namespace duel274
 		int16_t pos[4];
 		GetEffectSpawnPosition(Caster(), bone, 0, pos);
 		pos[3] = 0;
-		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 		while (s)
 		{
 			ff8fx::copy<(8)>(s->pos, pos);
@@ -998,7 +998,7 @@ namespace duel274
 			}
 			s->seq = (int16_t)seq;
 			if (--n == 0) break;
-			s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 		}
 	}
 
@@ -1007,7 +1007,7 @@ namespace duel274
 		int16_t pos[4];
 		GetEffectSpawnPosition(entity, bone, 0, pos);
 		int32_t n = 2;
-		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 		while (s)
 		{
 			const int32_t r = ((int32_t)*(const int16_t *)(entity + 0x26) + 0x1000) >> 4;
@@ -1026,7 +1026,7 @@ namespace duel274
 			s->vel[1] = 0;
 			s->vel[0] = 0;
 			if (--n == 0) break;
-			s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 		}
 	}
 
@@ -1035,7 +1035,7 @@ namespace duel274
 		FX_HELD(held_note_flash(f);)
 		TransformCameraByShadowRotation(f->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = us(SEQ_Flash);
 		*(int16_t *)(h + 4) = f->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, PacketCursor());
@@ -1054,7 +1054,7 @@ namespace duel274
 		int16_t pos[4];
 		GetEffectSpawnPosition(Caster(), bone, 0, pos);
 		pos[3] = 0;
-		FlashNode *f = (FlashNode *)AddTaskToQueue(QFlashes(), ORIG_FlashTask);
+		FlashNode *f = (FlashNode *)AddTaskToQueue(QFlashes(), us(ORIG_FlashTask));
 		if (!f) return;
 		ff8fx::copy<(8)>(f->pos, pos);
 		if (far_ == 0) f->pos[2] = (int16_t)(f->pos[2] - 0x80);
@@ -1072,7 +1072,7 @@ namespace duel274
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Rock;
+		*(uint32_t *)h = us(MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x58);
@@ -1122,7 +1122,7 @@ namespace duel274
 			src += 8;
 			GteStoreIR123s(v);
 			const int32_t z = v[2];
-			const int32_t bend = mul32(BEND_Table[z >> 1], grow) >> 13;
+			const int32_t bend = mul32(BEND_Table()[z >> 1], grow) >> 13;
 			v[0] = (int16_t)(v[0] - (int16_t)bend);
 			v[2] = (int16_t)(mul32(z, grow) >> 10);
 			v += 4;
@@ -1156,7 +1156,7 @@ namespace duel274
 		m->t[0] = (int32_t)((uint32_t)m->t[0] - U32(h, 0x20));
 		m->t[2] = (int32_t)((uint32_t)m->t[2] - U32(h, 0x28));
 		ComputeBonesWorldMatrices(e + 0x60, m);
-		U32(h, 0x34) = var<uint32_t>(0x1D98B3C);
+		U32(h, 0x34) = var<uint32_t>(us(0x1D98B3C));
 		U16(h, 0x44) = 0;
 		U16(h, 0x46) = 0;
 		U16(h, 0x48) = 0x140;
@@ -1164,7 +1164,7 @@ namespace duel274
 		U32(h, 0x4C) = U32(e, 0x28);
 		U32(h, 0x58) = 0;
 		U32(h, 0x50) = U32(e, 0x7C);
-		U32(h, 0x40) = var<uint32_t>(0x1D969A8);
+		U32(h, 0x40) = var<uint32_t>(us(0x1D969A8));
 		FramePackets() = RenderGeometry(U32(e, 0x64), h + 0x30, OTBase() + 0x44, 4, FramePackets());
 		BuildBoneMatricesFromPose(e + 0x60);
 		uint8_t *w = *(uint8_t **)(e + 0x78);
@@ -1230,12 +1230,12 @@ namespace duel274
 
 	static void PauseEntities()
 	{
-		for (uint8_t *e = (uint8_t *)0x1D972C0; e < (uint8_t *)0x1D97704; e += 0x9C)
+		for (uint8_t *e = (uint8_t *)us(0x1D972C0); e < (uint8_t *)us(0x1D97704); e += 0x9C)
 			if (e[0] & 2) U16(e, 0) |= 8;
 	}
 	static void ResumeEntities()
 	{
-		for (uint8_t *e = (uint8_t *)0x1D972C0; e < (uint8_t *)0x1D97704; e += 0x9C)
+		for (uint8_t *e = (uint8_t *)us(0x1D972C0); e < (uint8_t *)us(0x1D97704); e += 0x9C)
 			if (e[0] & 2) U16(e, 0) &= 0xFFF7;
 	}
 
@@ -1265,7 +1265,7 @@ namespace duel274
 		GetEffectSpawnPosition(c, 0x16, 0, pos);
 		if (site == SITE_PUNCH_B)
 		{
-			MultiplyPSX((const void *)0x1D97300, BoneMatrix(c, 0x12), f);
+			MultiplyPSX((const void *)us(0x1D97300), BoneMatrix(c, 0x12), f);
 			f->t[0] = pos[0];
 			f->t[1] = pos[1];
 			f->t[2] = pos[2];
@@ -1315,8 +1315,8 @@ namespace duel274
 			Alloc() += 0x64;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Punch, m->layout_a, 0x14C);
-			DecodeModelPrimLayout(LAYOUT_PunchB, m->layout_b, 0x64);
+			DecodeModelPrimLayout(us(LAYOUT_Punch), m->layout_a, 0x14C);
+			DecodeModelPrimLayout(us(LAYOUT_PunchB), m->layout_b, 0x64);
 			static const int32_t bones[6] = { 0xD, 0x11, 0x15, 0xE, 0x12, 0x16 };
 			GhostInit((uint8_t *)m->ghosts, 6, bones);
 		}
@@ -1379,7 +1379,7 @@ namespace duel274
 		default:
 			break;
 		}
-		if (m->counter == 8) BdPlaySE(SOUND_Punch, 0, 0x80);
+		if (m->counter == 8) BdPlaySE(SOUND_Punch(), 0, 0x80);
 	}
 
 	static void MoveBooya(MoveNode *m)
@@ -1394,7 +1394,7 @@ namespace duel274
 			Alloc() += 0x5C8;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Booya, m->layout_a, 0x5C8);
+			DecodeModelPrimLayout(us(LAYOUT_Booya), m->layout_a, 0x5C8);
 			static const int32_t bones[1] = { 9 };
 			GhostInit((uint8_t *)m->ghosts, 1, bones);
 		}
@@ -1440,7 +1440,7 @@ namespace duel274
 			SparkRing(c, 9);
 			SparkRing(m->target, 0xF0);
 		}
-		if (m->counter == 0xD) BdPlaySE(SOUND_Booya, 0, 0x80);
+		if (m->counter == 0xD) BdPlaySE(SOUND_Booya(), 0, 0x80);
 	}
 
 	static void MoveHeelDrop(MoveNode *m)
@@ -1456,8 +1456,8 @@ namespace duel274
 			Alloc() += 0x64;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			DecodeModelPrimLayout(LAYOUT_Heel, m->layout_a, 0x360);
-			DecodeModelPrimLayout(LAYOUT_HeelB, m->layout_b, 0x64);
+			DecodeModelPrimLayout(us(LAYOUT_Heel), m->layout_a, 0x360);
+			DecodeModelPrimLayout(us(LAYOUT_HeelB), m->layout_b, 0x64);
 			static const int32_t bones[3] = { 0xC, 0x10, 0x14 };
 			GhostInit((uint8_t *)m->ghosts, 3, bones);
 		}
@@ -1483,7 +1483,7 @@ namespace duel274
 		if (m->counter >= 0x19 && m->counter <= 0x20) GhostRecord(c, (uint8_t *)m->ghosts);
 		if (m->counter == 0x20) Damage(m);
 		if (m->counter == 0x21) ScreenFadeTask(0, 1, 1, 0x80);
-		if (m->counter == 0x1E) BdPlaySE(SOUND_Heel, 0, 0x80);
+		if (m->counter == 0x1E) BdPlaySE(SOUND_Heel(), 0, 0x80);
 	}
 
 	static void MoveMachKick(MoveNode *m)
@@ -1502,8 +1502,8 @@ namespace duel274
 			Alloc() += 0x23C;
 			m->ghosts = Alloc();
 			Alloc() += 0x488;
-			CopyDwords(backup, MODEL_Kick + 8, 0x9A);
-			DecodeModelPrimLayout(LAYOUT_Kick, m->layout_a, 0x23C);
+			CopyDwords(backup, us(MODEL_Kick) + 8, 0x9A);
+			DecodeModelPrimLayout(us(LAYOUT_Kick), m->layout_a, 0x23C);
 			static const int32_t bones[3] = { 0xC, 0x10, 0x14 };
 			GhostInit((uint8_t *)m->ghosts, 3, bones);
 		}
@@ -1540,7 +1540,7 @@ namespace duel274
 			GteSetRotMatrix(&b);
 			GteSetTransVector(&b);
 			uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-			*(uint32_t *)h = MODEL_Kick;
+			*(uint32_t *)h = us(MODEL_Kick);
 			if (v >= 4)
 			{
 				*(uint32_t *)(h + 0x1C) = 0xF0;
@@ -1558,16 +1558,16 @@ namespace duel274
 		if (w < 4)
 		{
 			if (m->counter == 0x1C) GetEffectSpawnPosition(c, 0x14, 0, from);
-			BendWave(MODEL_Kick, (const uint8_t *)backup, (int32_t)(w << 10) + 0x100, (int32_t)(w << 10));
+			BendWave(us(MODEL_Kick), (const uint8_t *)backup, (int32_t)(w << 10) + 0x100, (int32_t)(w << 10));
 		}
-		if (m->counter == 0x25) CopyDwords(MODEL_Kick + 8, backup, 0x9A);
+		if (m->counter == 0x25) CopyDwords(us(MODEL_Kick) + 8, backup, 0x9A);
 		if (m->counter >= 0x19 && m->counter <= 0x20) GhostRecord(c, (uint8_t *)m->ghosts);
 		if (m->counter == 0x20)
 		{
 			Damage(m);
 			if (m->counter == 0x20) ScreenFadeTask(0, 1, 1, 0x80);
 		}
-		if (m->counter == 0x1B) BdPlaySE(SOUND_Kick, 0, 0x80);
+		if (m->counter == 0x1B) BdPlaySE(SOUND_Kick(), 0, 0x80);
 	}
 
 	static void MoveDolphinBlow(MoveNode *m)
@@ -1585,8 +1585,8 @@ namespace duel274
 			Alloc() += 0x388;
 			InitTaskQueuePool(QSparks(), (void *)Alloc(), 0x24, 0x40);
 			Alloc() += 0x900;
-			DecodeModelPrimLayout(LAYOUT_Dolphin, m->layout_a, 0xE0);
-			DecodeModelPrimLayout(LAYOUT_DolphinB, m->layout_b, 0x388);
+			DecodeModelPrimLayout(us(LAYOUT_Dolphin), m->layout_a, 0xE0);
+			DecodeModelPrimLayout(us(LAYOUT_DolphinB), m->layout_b, 0x388);
 		}
 		if (m->counter < 0x10)
 		{
@@ -1623,7 +1623,7 @@ namespace duel274
 			if (m->counter == 0x21) Damage(m);
 			W16(m->target, 0x20) -= 0xC8;
 		}
-		if (m->counter == 0x18) BdPlaySE(SOUND_Dolphin, 0, 0x80);
+		if (m->counter == 0x18) BdPlaySE(SOUND_Dolphin(), 0, 0x80);
 	}
 
 	static void DrawPillar(Mat4x3 *w, const int16_t *pos, int16_t counter)
@@ -1637,7 +1637,7 @@ namespace duel274
 		GteSetRotMatrix(w);
 		GteSetTransVector(w);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Wave;
+		*(uint32_t *)h = us(MODEL_Wave);
 		if (counter < 0x2C)
 		{
 			*(uint32_t *)(h + 0x1C) = 0x30;
@@ -1672,8 +1672,8 @@ namespace duel274
 			Alloc() += 0x9E4;
 			InitTaskQueuePool(QRocks(), (void *)Alloc(), 0x2C, 0x20);
 			Alloc() += 0x580;
-			DecodeModelPrimLayout(LAYOUT_Meteor, m->layout_a, 0x128);
-			DecodeModelPrimLayout(LAYOUT_MeteorB, m->layout_b, 0x9E4);
+			DecodeModelPrimLayout(us(LAYOUT_Meteor), m->layout_a, 0x128);
+			DecodeModelPrimLayout(us(LAYOUT_MeteorB), m->layout_b, 0x9E4);
 		}
 		int16_t pos[4];
 		int16_t ang[4];
@@ -1696,7 +1696,7 @@ namespace duel274
 				if (m->counter < 0x32)
 				{
 					int32_t n = 2;
-					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_RockTask));
 					while (k)
 					{
 						ff8fx::copy<(8)>(k->pos, pos);
@@ -1714,7 +1714,7 @@ namespace duel274
 						k->spin[1] = (int16_t)((Rand() & 0xFF) - 0x80);
 						k->spin[2] = (int16_t)((Rand() & 0xFF) - 0x80);
 						if (--n == 0) break;
-						k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+						k = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_RockTask));
 					}
 				}
 			}
@@ -1743,7 +1743,7 @@ namespace duel274
 			if (u < 4)
 			{
 				int32_t n = 4;
-				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_RockTask));
 				while (k)
 				{
 					U32(k->pos, 0) = U32(t, 0x1C);
@@ -1760,7 +1760,7 @@ namespace duel274
 					k->spin[1] = (int16_t)((Rand() & 0xFF) - 0x80);
 					k->spin[2] = (int16_t)((Rand() & 0xFF) - 0x80);
 					if (--n == 0) break;
-					k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+					k = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_RockTask));
 				}
 			}
 		}
@@ -1768,7 +1768,7 @@ namespace duel274
 		{
 			GetEffectSpawnPosition(c, 0x15, 0, ang);
 			ang[3] = g_pad_meteor;
-			const int16_t *path = THROW_Table + m->counter * 4;
+			const int16_t *path = THROW_Table() + m->counter * 4;
 			int16_t x = (int16_t)(m->anchor[0] + path[0]);
 			W16(t, 0x1C) = x;
 			W32(t, 0x54) = x;
@@ -1838,7 +1838,7 @@ namespace duel274
 			} while (e != t && e != nullptr);
 		}
 		ExecuteTaskQueue(QRocks());
-		if (m->counter == 0x2B) BdPlaySE(SOUND_Meteor, 0, 0x80);
+		if (m->counter == 0x2B) BdPlaySE(SOUND_Meteor(), 0, 0x80);
 	}
 
 	static uint32_t __cdecl MoveTask(TaskNode *n)
@@ -1918,7 +1918,7 @@ namespace duel274
 					m->anchor[2] = (int16_t)(m->anchor[2] - 0x7D0);
 				}
 				m->anchor[1] = W16(m->target_pos, 2);
-				BindExternalAnimSet(c, (uint32_t)m->bind, COM_Anim);
+				BindExternalAnimSet(c, (uint32_t)m->bind, us(COM_Anim));
 				StreamStateInit((void *)Alloc());
 				Alloc() += 0x18;
 				StreamQueueLoad(0x2CB, Alloc(), 1);
@@ -1935,8 +1935,8 @@ namespace duel274
 			U32(m->target, 0x20) = m->target_pos[1];
 			RestoreChainFlags(m->target, 0x1004);
 			QueueChainTransformation(Caster(), m->mode);
-			CameraAnimation(CAMERA_Data + var<uint16_t>(0x110BE74), (((uint32_t)m->mode - 2) << 4) + m->target[0x91]);
-			m->length = LENGTH_Table[m->mode];
+			CameraAnimation(us(CAMERA_Data) + var<uint16_t>(us(0x110BE74)), (((uint32_t)m->mode - 2) << 4) + m->target[0x91]);
+			m->length = LENGTH_Table()[m->mode];
 			NewMove() = 0;
 			m->counter = 0;
 		}
@@ -2031,7 +2031,7 @@ namespace duel274
 				r->started = 1;
 				InitTaskQueuePool(QMoves(), (void *)TexBase(), 0x74, 1);
 			}
-			MoveNode *m = (MoveNode *)AddTaskToQueue(QMoves(), ORIG_MoveTask);
+			MoveNode *m = (MoveNode *)AddTaskToQueue(QMoves(), us(ORIG_MoveTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x1A);

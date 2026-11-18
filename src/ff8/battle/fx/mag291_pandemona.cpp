@@ -24,27 +24,27 @@ namespace p291
 {
 	using namespace eng;
 
-	inline uint32_t &Pause() { return var<uint32_t>(0x2556258); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x255625C); }
-	inline TaskQueue &QLand() { return var<TaskQueue>(0x2556268); }
-	inline TaskQueue &QFall() { return var<TaskQueue>(0x2556278); }
-	inline TaskQueue &QTrail() { return var<TaskQueue>(0x2556288); }
-	inline TaskQueue &QFlip() { return var<TaskQueue>(0x2556298); }
-	inline TaskQueue &QCreature() { return var<TaskQueue>(0x25562A8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25562DC); }
-	inline int32_t &Ground() { return var<int32_t>(0x25562E0); }
-	inline int32_t &Center() { return var<int32_t>(0x25562E8); }
-	inline int32_t &Flash() { return var<int32_t>(0x25562F0); }
-	inline uint8_t *MB() { return var<uint8_t *>(0x25562F4); }
-	inline int32_t &LoadState() { return var<int32_t>(0x13BBBE8); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline int16_t &CamW(int i) { return var<int16_t>(0xB8B7F0 + 2 * i); }
-	inline int16_t &CamL(int i) { return var<int16_t>(0xB8B7F8 + 2 * i); }
-	inline int16_t &ShakeY() { return var<int16_t>(0x1D97712); }
-	inline int16_t &Roll() { return var<int16_t>(0x1D977A2); }
-	inline int16_t &W1D8E038() { return var<int16_t>(0x1D8E038); }
-	inline int16_t SinT(int i) { return *(const int16_t *)(0x13B7BB8 + 4 * i); }
-	inline int16_t CosT(int i) { return *(const int16_t *)(0x13B7BBA + 4 * i); }
+	inline uint32_t &Pause() { return var<uint32_t>(us(0x2556258)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(us(0x255625C)); }
+	inline TaskQueue &QLand() { return var<TaskQueue>(us(0x2556268)); }
+	inline TaskQueue &QFall() { return var<TaskQueue>(us(0x2556278)); }
+	inline TaskQueue &QTrail() { return var<TaskQueue>(us(0x2556288)); }
+	inline TaskQueue &QFlip() { return var<TaskQueue>(us(0x2556298)); }
+	inline TaskQueue &QCreature() { return var<TaskQueue>(us(0x25562A8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25562DC)); }
+	inline int32_t &Ground() { return var<int32_t>(us(0x25562E0)); }
+	inline int32_t &Center() { return var<int32_t>(us(0x25562E8)); }
+	inline int32_t &Flash() { return var<int32_t>(us(0x25562F0)); }
+	inline uint8_t *MB() { return var<uint8_t *>(us(0x25562F4)); }
+	inline int32_t &LoadState() { return var<int32_t>(us(0x13BBBE8)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline int16_t &CamW(int i) { return var<int16_t>(us(0xB8B7F0) + 2 * i); }
+	inline int16_t &CamL(int i) { return var<int16_t>(us(0xB8B7F8) + 2 * i); }
+	inline int16_t &ShakeY() { return var<int16_t>(us(0x1D97712)); }
+	inline int16_t &Roll() { return var<int16_t>(us(0x1D977A2)); }
+	inline int16_t &W1D8E038() { return var<int16_t>(us(0x1D8E038)); }
+	inline int16_t SinT(int i) { return *(const int16_t *)(us(0x13B7BB8) + 4 * i); }
+	inline int16_t CosT(int i) { return *(const int16_t *)(us(0x13B7BBA) + 4 * i); }
 
 	inline int Count() { return *(uint8_t *)(*(uint32_t *)(CastCtx() + 4) + 0x10); }
 	inline uint8_t *TargetIds() { return *(uint8_t **)(*(uint32_t *)(CastCtx() + 4) + 8); }
@@ -63,54 +63,54 @@ namespace p291
 
 	namespace w
 	{
-		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
-		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(0x7016B0)(src, layout, n); }
-		inline void RotY(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(a, m); }
-		inline void RotX(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(a, m); }
-		inline void Scale3D(void *m, const void *v) { fn<void (__cdecl *)(void *, const void *)>(0x56BEF0)(m, v); }
-		inline void Basis(const void *v, void *m) { fn<void (__cdecl *)(const void *, void *)>(0x50CBA0)(v, m); }
-		inline void Billboard(void *m) { fn<void (__cdecl *)(void *)>(0x673810)(m); }
-		inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
-		inline uint32_t PrimSet(void *hdr, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x701DD0)(hdr, ot, mode, cursor); }
-		inline void CamRotate(int32_t angle, int32_t scale) { fn<void (__cdecl *)(int32_t, int32_t)>(0x683D10)(angle, scale); }
-		inline void DefaultPos(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(0x571400)(ent, out); }
-		inline void Load(int id, uint32_t dst, int kind) { fn<void (__cdecl *)(int, uint32_t, int)>(0x5341D0)(id, dst, kind); }
-		inline int LoadBusy() { return fn<int (__cdecl *)()>(0x534270)(); }
-		inline void LoadPump() { fn<void (__cdecl *)()>(0x534210)(); }
-		inline int PreLoad1(int a) { return fn<int (__cdecl *)(int)>(0x534300)(a); }
-		inline void LoadFile(int id, uint32_t dst, int a, int b) { fn<void (__cdecl *)(int, uint32_t, int, int)>(0x48D0A0)(id, dst, a, b); }
-		inline void TimUpload(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(p); }
-		inline void PlaySE(uint32_t snd) { fn<void (__cdecl *)(uint32_t, int, int)>(0x501330)(snd, 1, 0x80); }
-		inline void PlayStream() { fn<void (__cdecl *)(int, int, int)>(0x5018C0)(0x80, 1, 0x7F); }
-		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline void StreamStateInit(void *s) { fn<void (__cdecl *)(void *)>(0x534110)(s); }
-		inline void ReadAnim6(void *e, int id) { fn<void (__cdecl *)(void *, int)>(0x6574D0)(e, id); }
-		inline void Advance(void *e) { fn<void (__cdecl *)(void *)>(0x6FBDB0)(e); }
-		inline void Pivot(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(0x6ED770)(ent, out); }
-		inline void Bind(void *e, void *sec, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x6F0A70)(e, sec, data); }
-		inline uint32_t DrawCreature(void *e, int a2, uint32_t a3, uint32_t cursor, uint32_t a5) { return fn<uint32_t (__cdecl *)(void *, int, uint32_t, uint32_t, uint32_t)>(0x6F0AE0)(e, a2, a3, cursor, a5); }
-		inline void BonePos(void *e, uint32_t data, void *out) { fn<void (__cdecl *)(void *, uint32_t, void *)>(0x6F0CC0)(e, data, out); }
-		inline void HitTarget(void *ent) { fn<void (__cdecl *)(void *)>(0x6F0D20)(ent); }
-		inline void Flatten(uint32_t mesh) { fn<void (__cdecl *)(uint32_t)>(0x6F2E40)(mesh); }
-		inline void Flatten2(uint32_t mesh) { fn<void (__cdecl *)(uint32_t)>(0x6F2E60)(mesh); }
-		inline void PartReset(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1520)(nd); }
-		inline int16_t *PartAlloc(void *nd) { return fn<int16_t *(__cdecl *)(void *)>(0x6F1550)(nd); }
-		inline void PartFall(void *nd) { fn<void (__cdecl *)(void *)>(0x6F19C0)(nd); }
-		inline void PartOrbit(void *nd, int32_t a, int32_t b) { fn<void (__cdecl *)(void *, int32_t, int32_t)>(0x6F1A30)(nd, a, b); }
-		inline void PartBounce(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1B20)(nd); }
-		inline void PartDrift(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1BA0)(nd); }
-		inline void PartDraw(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1650)(nd); }
-		inline void Scale3(int32_t a, int32_t s, void *out) { fn<void (__cdecl *)(int32_t, int32_t, void *)>(0x6F15E0)(a, s, out); }
-		inline void MatY(int32_t a, int32_t s, int32_t sy, void *m) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, void *)>(0x6F29D0)(a, s, sy, m); }
-		inline void Morph(uint32_t a, uint32_t b, int32_t t) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(0x6F2D20)(a, b, t); }
+		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
+		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(us(0x7016B0))(src, layout, n); }
+		inline void RotY(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(us(0x701270))(a, m); }
+		inline void RotX(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(us(0x701220))(a, m); }
+		inline void Scale3D(void *m, const void *v) { fn<void (__cdecl *)(void *, const void *)>(us(0x56BEF0))(m, v); }
+		inline void Basis(const void *v, void *m) { fn<void (__cdecl *)(const void *, void *)>(us(0x50CBA0))(v, m); }
+		inline void Billboard(void *m) { fn<void (__cdecl *)(void *)>(us(0x673810))(m); }
+		inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
+		inline uint32_t PrimSet(void *hdr, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x701DD0))(hdr, ot, mode, cursor); }
+		inline void CamRotate(int32_t angle, int32_t scale) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x683D10))(angle, scale); }
+		inline void DefaultPos(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(us(0x571400))(ent, out); }
+		inline void Load(int id, uint32_t dst, int kind) { fn<void (__cdecl *)(int, uint32_t, int)>(us(0x5341D0))(id, dst, kind); }
+		inline int LoadBusy() { return fn<int (__cdecl *)()>(us(0x534270))(); }
+		inline void LoadPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
+		inline int PreLoad1(int a) { return fn<int (__cdecl *)(int)>(us(0x534300))(a); }
+		inline void LoadFile(int id, uint32_t dst, int a, int b) { fn<void (__cdecl *)(int, uint32_t, int, int)>(us(0x48D0A0))(id, dst, a, b); }
+		inline void TimUpload(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x505E30))(p); }
+		inline void PlaySE(uint32_t snd) { fn<void (__cdecl *)(uint32_t, int, int)>(us(0x501330))(snd, 1, 0x80); }
+		inline void PlayStream() { fn<void (__cdecl *)(int, int, int)>(us(0x5018C0))(0x80, 1, 0x7F); }
+		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+		inline void StreamStateInit(void *s) { fn<void (__cdecl *)(void *)>(us(0x534110))(s); }
+		inline void ReadAnim6(void *e, int id) { fn<void (__cdecl *)(void *, int)>(us(0x6574D0))(e, id); }
+		inline void Advance(void *e) { fn<void (__cdecl *)(void *)>(us(0x6FBDB0))(e); }
+		inline void Pivot(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(us(0x6ED770))(ent, out); }
+		inline void Bind(void *e, void *sec, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(us(0x6F0A70))(e, sec, data); }
+		inline uint32_t DrawCreature(void *e, int a2, uint32_t a3, uint32_t cursor, uint32_t a5) { return fn<uint32_t (__cdecl *)(void *, int, uint32_t, uint32_t, uint32_t)>(us(0x6F0AE0))(e, a2, a3, cursor, a5); }
+		inline void BonePos(void *e, uint32_t data, void *out) { fn<void (__cdecl *)(void *, uint32_t, void *)>(us(0x6F0CC0))(e, data, out); }
+		inline void HitTarget(void *ent) { fn<void (__cdecl *)(void *)>(us(0x6F0D20))(ent); }
+		inline void Flatten(uint32_t mesh) { fn<void (__cdecl *)(uint32_t)>(us(0x6F2E40))(mesh); }
+		inline void Flatten2(uint32_t mesh) { fn<void (__cdecl *)(uint32_t)>(us(0x6F2E60))(mesh); }
+		inline void PartReset(void *nd) { fn<void (__cdecl *)(void *)>(us(0x6F1520))(nd); }
+		inline int16_t *PartAlloc(void *nd) { return fn<int16_t *(__cdecl *)(void *)>(us(0x6F1550))(nd); }
+		inline void PartFall(void *nd) { fn<void (__cdecl *)(void *)>(us(0x6F19C0))(nd); }
+		inline void PartOrbit(void *nd, int32_t a, int32_t b) { fn<void (__cdecl *)(void *, int32_t, int32_t)>(us(0x6F1A30))(nd, a, b); }
+		inline void PartBounce(void *nd) { fn<void (__cdecl *)(void *)>(us(0x6F1B20))(nd); }
+		inline void PartDrift(void *nd) { fn<void (__cdecl *)(void *)>(us(0x6F1BA0))(nd); }
+		inline void PartDraw(void *nd) { fn<void (__cdecl *)(void *)>(us(0x6F1650))(nd); }
+		inline void Scale3(int32_t a, int32_t s, void *out) { fn<void (__cdecl *)(int32_t, int32_t, void *)>(us(0x6F15E0))(a, s, out); }
+		inline void MatY(int32_t a, int32_t s, int32_t sy, void *m) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, void *)>(us(0x6F29D0))(a, s, sy, m); }
+		inline void Morph(uint32_t a, uint32_t b, int32_t t) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(us(0x6F2D20))(a, b, t); }
 		typedef void (__cdecl *Fn12)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
-		inline void Tornado(const int32_t *a) { fn<Fn12>(0x6F2A30)(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]); }
+		inline void Tornado(const int32_t *a) { fn<Fn12>(us(0x6F2A30))(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]); }
 		typedef void (__cdecl *Fn10)(void *, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
-		inline void Ribbon(void *m, const int32_t *a) { fn<Fn10>(0x6F1C10)(m, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9]); }
-		inline void EntDraw(void *ent, void *ang, void *pivot, void *scale) { fn<void (__cdecl *)(void *, void *, void *, void *)>(0x68D1D0)(ent, ang, pivot, scale); }
-		inline int TrailPush(int max, int count, void *entries, void *a, void *b, int c0, int c1, int c2) { return fn<int (__cdecl *)(int, int, void *, void *, void *, int, int, int)>(0x6D99D0)(max, count, entries, a, b, c0, c1, c2); }
-		inline uint32_t TrailDraw(int32_t *count, void *entries, int d, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t *, void *, int, uint32_t, int, uint32_t)>(0x6F1290)(count, entries, d, ot, mode, cursor); }
+		inline void Ribbon(void *m, const int32_t *a) { fn<Fn10>(us(0x6F1C10))(m, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9]); }
+		inline void EntDraw(void *ent, void *ang, void *pivot, void *scale) { fn<void (__cdecl *)(void *, void *, void *, void *)>(us(0x68D1D0))(ent, ang, pivot, scale); }
+		inline int TrailPush(int max, int count, void *entries, void *a, void *b, int c0, int c1, int c2) { return fn<int (__cdecl *)(int, int, void *, void *, void *, int, int, int)>(us(0x6D99D0))(max, count, entries, a, b, c0, c1, c2); }
+		inline uint32_t TrailDraw(int32_t *count, void *entries, int d, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t *, void *, int, uint32_t, int, uint32_t)>(us(0x6F1290))(count, entries, d, ot, mode, cursor); }
 	}
 
 }
@@ -149,14 +149,14 @@ namespace p291
 			InitTaskQueuePool(&QTrail(), MB() + 0xD90, 0x45C, 3);
 			InitTaskQueuePool(&QFall(), MB() + 0x640, 0x9C, 0xC);
 			InitTaskQueuePool(&QLand(), MB(), 0x190, 4);
-			uint8_t *cr = (uint8_t *)AddTaskToQueue(&QCreature(), ORIG_TimelineTask);
+			uint8_t *cr = (uint8_t *)AddTaskToQueue(&QCreature(), us(ORIG_TimelineTask));
 			Memset32(cr + 0xC, 0, 0x409);
-			At<uint32_t>(cr, 0x10) = ClaimVoiceSlot((const void *)0x13B7A5C, 1, 0x80);
+			At<uint32_t>(cr, 0x10) = ClaimVoiceSlot((const void *)us(0x13B7A5C), 1, 0x80);
 			At<uint32_t>(cr, 0x102C) = (uint32_t)(cr + 0x42C);
 			for (int i = 0; i < Count(); i++)
 			{
 				uint8_t *rec = cr + 0x14 + 0x20 * i;
-				uint8_t *ent = (uint8_t *)(0x1D972C0 + 0x9C * (int32_t)TargetIds()[0x18 * i]);
+				uint8_t *ent = (uint8_t *)(us(0x1D972C0) + 0x9C * (int32_t)TargetIds()[0x18 * i]);
 				At<uint8_t *>(rec, 0) = ent;
 				At<uint32_t>(rec, 0xC) = At<uint32_t>(ent, 0x1C);
 				At<uint32_t>(rec, 0x10) = At<uint32_t>(ent, 0x20);
@@ -211,13 +211,13 @@ namespace p291
 				}
 				if (!found) rec[0x1E] = 1;
 			}
-			w::Flatten(0x13A0E58);
-			w::Flatten(0x13A4F88);
-			w::Flatten(0x13A6508);
-			w::Flatten2(0x13A8508);
-			w::Flatten2(0x13AB5C0);
-			w::Flatten2(0x13AC1B8);
-			w::Flatten2(0x13ACDB0);
+			w::Flatten(us(0x13A0E58));
+			w::Flatten(us(0x13A4F88));
+			w::Flatten(us(0x13A6508));
+			w::Flatten2(us(0x13A8508));
+			w::Flatten2(us(0x13AB5C0));
+			w::Flatten2(us(0x13AC1B8));
+			w::Flatten2(us(0x13ACDB0));
 			w::StreamStateInit(MB() + 0x231D4);
 		}
 		uint32_t left = (uint32_t)nd;
@@ -255,7 +255,7 @@ namespace p291
 	{
 		prim::Layout *l = (prim::Layout *)(p.nd + 0x1F0);
 		FX_HELD(if (held_play(p, l, ctx)) return;)
-		prim::play(l, (prim::Callback)CB_Prim, (int)ctx, Pause());
+		prim::play(l, (prim::Callback)us(CB_Prim), (int)ctx, Pause());
 	}
 
 	static void DrawA(const Pass &p, int32_t v)
@@ -270,7 +270,7 @@ namespace p291
 		ComposeAffineTransform(&Camera(), (Mat4x3 *)(fr + 0x44), (Mat4x3 *)(fr + 0x44));
 		F16(fr, 0x66) = (int16_t)scroll;
 		F32(fr, 0x6C) = (int32_t)(MB() + 0x31D4);
-		F32(fr, 0x68) = 0x13EF440;
+		F32(fr, 0x68) = us(0x13EF440);
 		F16(fr, 0x64) = 0;
 		Play(p, fr + 0x44);
 	}
@@ -281,9 +281,9 @@ namespace p291
 		int32_t e = (int32_t)((uint32_t)shl32(v, 12) / 14u);
 		int32_t y = Center() + 0x7D0;
 		int32_t a[3][12] = {
-			{ y, 0x13A0E58, 0x13A4280, shl32(v, 6), 0, 0, 0, e, e + 0x1000, 0, shl32(v, 5), 0x1000 - (e >> 1) },
-			{ y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, shl32(v, 5), 0x1000 - (e >> 2) },
-			{ y, 0x13A6508, 0x13A7BF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, v * 40, 0x1000 - (e >> 2) } };
+			{ y, us(0x13A0E58), us(0x13A4280), shl32(v, 6), 0, 0, 0, e, e + 0x1000, 0, shl32(v, 5), 0x1000 - (e >> 1) },
+			{ y, us(0x13A4F88), us(0x13A5EF0), shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, shl32(v, 5), 0x1000 - (e >> 2) },
+			{ y, us(0x13A6508), us(0x13A7BF0), shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, v * 40, 0x1000 - (e >> 2) } };
 		ff8fx::copy<(sizeof(a))>(r.t, a);
 	}
 	static void DrawB(const Pass &p, int32_t v)
@@ -300,9 +300,9 @@ namespace p291
 		int32_t e = (int32_t)((uint32_t)shl32(v, 12) / 60u);
 		int32_t y = Center();
 		int32_t a[3][12] = {
-			{ y, 0x13A0E58, 0x13A4280, shl32(v, 6), e, shl32(v, 7), e >> 2, shl32(v + 0x20, 7), 0x2000, 0, shl32(v, 5), 0 },
-			{ y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), e, shl32(v + 2, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, shl32(v, 5), 0 },
-			{ y, 0x13A6508, 0x13A7BF0, shl32(v, 6), e, shl32(v + 4, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, v * 40, 0 } };
+			{ y, us(0x13A0E58), us(0x13A4280), shl32(v, 6), e, shl32(v, 7), e >> 2, shl32(v + 0x20, 7), 0x2000, 0, shl32(v, 5), 0 },
+			{ y, us(0x13A4F88), us(0x13A5EF0), shl32(v, 6), e, shl32(v + 2, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, shl32(v, 5), 0 },
+			{ y, us(0x13A6508), us(0x13A7BF0), shl32(v, 6), e, shl32(v + 4, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, v * 40, 0 } };
 		ff8fx::copy<(sizeof(a))>(r.t, a);
 		r.e = e;
 		r.ang2 = v * 100;
@@ -316,7 +316,7 @@ namespace p291
 		FX_HELD(held_par_c(p, v, r);)
 		for (int k = 0; k < 3; k++) w::Tornado(r.t[k]);
 		uint8_t *ws = (uint8_t *)FieldAlloc(0x8C);
-		w::Morph(0x139FFE8, 0x13A0790, r.e);
+		w::Morph(us(0x139FFE8), us(0x13A0790), r.e);
 		w::MatY(r.t[0][3], 0x2000, 0x1000, ws);
 		At<int32_t>(ws, 0x14) = 0;
 		At<int32_t>(ws, 0x18) = -0x2000;
@@ -329,7 +329,7 @@ namespace p291
 		At<int16_t>(ws, 0x40) = 0;
 		At<int32_t>(ws, 0x38) = 0x100;
 		At<uint32_t>(ws, 0x24) = (uint32_t)(MB() + 0x31D4);
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x20) = us(0x139FFE8);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		w::MatY(r.ang2, 0x1388, 0x1000, ws);
 		At<int32_t>(ws, 0x14) = 0;
@@ -339,7 +339,7 @@ namespace p291
 		GteSetRotMatrix((Mat4x3 *)ws);
 		GteSetTransVector((Mat4x3 *)ws);
 		At<int32_t>(ws, 0x38) = 0x80;
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x20) = us(0x139FFE8);
 		At<uint32_t>(ws, 0x24) = (uint32_t)(MB() + 0x31D4);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		if (r.third)
@@ -354,7 +354,7 @@ namespace p291
 			At<int32_t>(ws, 0x28) = 0;
 			At<int32_t>(ws, 0x2C) = r.fade;
 			At<int32_t>(ws, 0x38) = 0;
-			At<uint32_t>(ws, 0x20) = 0x13A0978;
+			At<uint32_t>(ws, 0x20) = us(0x13A0978);
 			PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		}
 		FieldFree(0x8C);
@@ -368,13 +368,13 @@ namespace p291
 		if (v35 > 0x1000) return;
 		r.on = 1;
 		int32_t y = Center();
-		int32_t a0[12] = { y, 0x13A0E58, 0x13A4280, shl32(v, 6), 0x1000, 0, 0, 0x2E00, 0x2000, 0, shl32(v, 5), v35 };
+		int32_t a0[12] = { y, us(0x13A0E58), us(0x13A4280), shl32(v, 6), 0x1000, 0, 0, 0x2E00, 0x2000, 0, shl32(v, 5), v35 };
 		ff8fx::copy<(sizeof(a0))>(r.t[0], a0);
 		int32_t v36 = (uint32_t)v < 0x18 ? 0 : (int32_t)((uint32_t)shl32(v - 0x18, 12) / 30u);
 		if (v36 > 0x1000) return;
 		r.more = 1;
-		int32_t a1[12] = { y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, shl32(v, 5), v36 };
-		int32_t a2[12] = { y, 0x13A6508, 0x13A7BF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, v * 40, v36 };
+		int32_t a1[12] = { y, us(0x13A4F88), us(0x13A5EF0), shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, shl32(v, 5), v36 };
+		int32_t a2[12] = { y, us(0x13A6508), us(0x13A7BF0), shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, v * 40, v36 };
 		ff8fx::copy<(sizeof(a1))>(r.t[1], a1);
 		ff8fx::copy<(sizeof(a2))>(r.t[2], a2);
 		r.v36 = v36;
@@ -408,8 +408,8 @@ namespace p291
 		GteSetRotMatrix((Mat4x3 *)ws);
 		GteSetTransVector((Mat4x3 *)ws);
 		At<int32_t>(ws, 0x38) = 0x100;
-		At<uint32_t>(ws, 0x24) = 0x13A0798;
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x24) = us(0x13A0798);
+		At<uint32_t>(ws, 0x20) = us(0x139FFE8);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		w::MatY(r.ang2, 0x1388, 0x1000, ws);
 		At<int32_t>(ws, 0x14) = 0;
@@ -419,8 +419,8 @@ namespace p291
 		GteSetRotMatrix((Mat4x3 *)ws);
 		GteSetTransVector((Mat4x3 *)ws);
 		At<int32_t>(ws, 0x38) = 0x80;
-		At<uint32_t>(ws, 0x24) = 0x13A0798;
-		At<uint32_t>(ws, 0x20) = 0x139FFE8;
+		At<uint32_t>(ws, 0x24) = us(0x13A0798);
+		At<uint32_t>(ws, 0x20) = us(0x139FFE8);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		At<int32_t>(ws, 0x14) = 0;
 		At<int32_t>(ws, 0x18) = -0x2000;
@@ -430,7 +430,7 @@ namespace p291
 		GteSetTransVector((Mat4x3 *)ws);
 		At<uint32_t>(ws, 0x3C) &= ~0x2000u;
 		At<int32_t>(ws, 0x38) = 0;
-		At<uint32_t>(ws, 0x20) = 0x13A0978;
+		At<uint32_t>(ws, 0x20) = us(0x13A0978);
 		PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		FieldFree(0x8C);
 	}
@@ -452,7 +452,7 @@ namespace p291
 	static void DrawBonePrim(const Pass &p, int bo, int32_t scroll, int32_t scroll1, bool next_in, int16_t bias, uint32_t table)
 	{
 		uint8_t *fr = p.fr;
-		w::BonePos(E(p.nd), 0x13B7BB0, fr + bo);
+		w::BonePos(E(p.nd), us(0x13B7BB0), fr + bo);
 		F32(fr, 0x58) = F16(fr, bo);
 		F32(fr, 0x5C) = F16(fr, bo + 2);
 		F32(fr, 0x60) = F16(fr, bo + 4);
@@ -481,7 +481,7 @@ namespace p291
 		F32(fr, 0x2C) = s;
 		FX_HELD(held_lerp(p, (uint32_t)(p.c + 1 - 224) < 0x1E, s, shl32(v + 1, 5));)
 		F16(fr, 0x66) = (int16_t)s;
-		F32(fr, 0x68) = 0x13EF430;
+		F32(fr, 0x68) = us(0x13EF430);
 		F16(fr, 0x64) = -128;
 		F32(fr, 0x6C) = (int32_t)(MB() + 0x31D4);
 		Play(p, fr + 0x44);
@@ -517,8 +517,8 @@ namespace p291
 			At<int16_t>(ws, 0x40) = 0;
 			At<int16_t>(ws, 0x42) = (int16_t)(scroll & 0x7F);
 			At<int32_t>(ws, 0x38) = 0;
-			At<uint32_t>(ws, 0x24) = 0x13AEBC8;
-			At<uint32_t>(ws, 0x20) = 0x13AEBC0;
+			At<uint32_t>(ws, 0x24) = us(0x13AEBC8);
+			At<uint32_t>(ws, 0x20) = us(0x13AEBC0);
 			PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		}
 		FieldFree(0x8C);
@@ -532,10 +532,10 @@ namespace p291
 		if (f > 0x2000) f = 0x2000;
 		int32_t g = v * 93 + 0x1000, s = shl32(v, 5), b = shl32(v + 4, 9);
 		int32_t a[4][10] = {
-			{ 0, 0x13A8508, shl32(v, 6), 0x1400, q, b, 0x2000, 2, s, f },
-			{ 0, 0x13AB5C0, shl32(v, 6), shl32(v, 7), q, b, 0x2000, 0, s, g },
-			{ 0, 0x13AC1B8, shl32(-v, 6), shl32(v, 7), q, b, 0x2000, 1, s, g },
-			{ 0, 0x13ACDB0, shl32(v, 6), shl32(v, 7), q, b, 0x2000, 2, s, g } };
+			{ 0, us(0x13A8508), shl32(v, 6), 0x1400, q, b, 0x2000, 2, s, f },
+			{ 0, us(0x13AB5C0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 0, s, g },
+			{ 0, us(0x13AC1B8), shl32(-v, 6), shl32(v, 7), q, b, 0x2000, 1, s, g },
+			{ 0, us(0x13ACDB0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 2, s, g } };
 		ff8fx::copy<(sizeof(a))>(p.r, a);
 	}
 	static void DrawJ(const Pass &p, int32_t v)
@@ -570,14 +570,14 @@ namespace p291
 		int32_t f = (uint32_t)v <= 0x18 ? 0x2000 : shl32(v - 8, 9);
 		int32_t s = shl32(v, 5);
 		int32_t a[4][10] = {
-			{ 0, 0x13A8508, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, 0x13AB5C0, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, 0x13AC1B8, shl32(-v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, 0x13ACDB0, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f } };
+			{ 0, us(0x13A8508), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, us(0x13AB5C0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, us(0x13AC1B8), shl32(-v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, us(0x13ACDB0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f } };
 		ff8fx::copy<(sizeof(a))>(p.r, a);
 		for (int k = 0; k < 4; k++)
 		{
-			const int16_t *t = (const int16_t *)(0x13BBBE4 - 0xC * k);
+			const int16_t *t = (const int16_t *)(us(0x13BBBE4) - 0xC * k);
 			int32_t start = t[0], end = t[1];
 			ParK::Tb &b = p.tb[k];
 			if ((uint32_t)v <= (uint32_t)start || (uint32_t)v >= (uint32_t)(end + 8)) continue;
@@ -620,7 +620,7 @@ namespace p291
 			GteSetRotMatrix((Mat4x3 *)ws);
 			GteSetTransVector((Mat4x3 *)ws);
 			At<int32_t>(ws, 0x38) = 0;
-			At<uint32_t>(ws, 0x20) = 0x13AE0F8;
+			At<uint32_t>(ws, 0x20) = us(0x13AE0F8);
 			PacketCursor() = w::PrimSet(ws + 0x20, RenderOT(), 2, PacketCursor());
 		}
 		FieldFree(0x8C);
@@ -774,7 +774,7 @@ namespace p291
 			At<int16_t>(ent, 0x1E) = (int16_t)a;
 			int32_t a2 = (int16_t)(a << 1);
 			int32_t b = (base + a2) & 0xFFF;
-			int32_t r = (int16_t)(*(const int16_t *)(0x13B7BB8 + 2 * (a2 & 0xFFE)) >> 2);
+			int32_t r = (int16_t)(*(const int16_t *)(us(0x13B7BB8) + 2 * (a2 & 0xFFE)) >> 2);
 			At<int16_t>(ent, 0x1C) = (int16_t)(mul32(SinT(b), r) >> 12);
 			At<int16_t>(ent, 0x20) = (int16_t)((mul32(CosT(b), r) >> 12) + Ground());
 		}
@@ -806,7 +806,7 @@ namespace p291
 			{
 				if (real && (v & 3) == 0)
 				{
-					uint8_t *t = (uint8_t *)AddTaskToQueue(&QFall(), ORIG_FallPrimTask);
+					uint8_t *t = (uint8_t *)AddTaskToQueue(&QFall(), us(ORIG_FallPrimTask));
 					if (t)
 					{
 						At<uint8_t *>(t, 0xC) = rec;
@@ -817,7 +817,7 @@ namespace p291
 			}
 			if (real)
 			{
-				uint8_t *t = (uint8_t *)AddTaskToQueue(&QLand(), ORIG_LandPrimTask);
+				uint8_t *t = (uint8_t *)AddTaskToQueue(&QLand(), us(ORIG_LandPrimTask));
 				if (t)
 				{
 					At<uint8_t *>(t, 0xC) = rec;
@@ -887,7 +887,7 @@ namespace p291
 	{
 		for (int32_t k = n; k != 0; k--)
 		{
-			uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), ORIG_SwirlFlipTask);
+			uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), us(ORIG_SwirlFlipTask));
 			if (!t) break;
 			At<int16_t>(t, 0xC) = 0;
 			At<int16_t>(t, 0x16) = va;
@@ -908,7 +908,7 @@ namespace p291
 			if (c == 0)
 			{
 				cut = true;
-				if (real) w::PlaySE(0x13B7A48);
+				if (real) w::PlaySE(us(0x13B7A48));
 				Roll() = 0;
 				W1D8E038() = 0xF0;
 				CamL(0) = 0;
@@ -963,7 +963,7 @@ namespace p291
 			CamW(0) = 0;
 			CamW(1) = (int16_t)0xF976;
 			CamW(2) = (int16_t)(Center() - 0x936);
-			if (real) w::PlaySE(0x13B7A4C);
+			if (real) w::PlaySE(us(0x13B7A4C));
 		}
 		y8 = Center();
 		if (c == 0x6B && real) w::PlayStream();
@@ -1034,7 +1034,7 @@ namespace p291
 		if (c == 0xDF)
 		{
 			cut = true;
-			if (real) w::PlaySE(0x13B7A50);
+			if (real) w::PlaySE(us(0x13B7A50));
 			int32_t g = Ground();
 			CamL(0) = 0x34F;
 			CamL(1) = (int16_t)0xF9F4;
@@ -1104,7 +1104,7 @@ namespace p291
 		if (c == 0x178)
 		{
 			cut = true;
-			if (real) w::PlaySE(0x13B7A54);
+			if (real) w::PlaySE(us(0x13B7A54));
 			CamL(0) = 0;
 			uint8_t *ent = Ent(nd, 0);
 			int32_t g = Ground();
@@ -1122,7 +1122,7 @@ namespace p291
 		}
 		if ((uint32_t)(c - 0x1B8) < 0x28)
 		{
-			if (c - 0x1B8 == 8 && real) w::PlaySE(0x13B7A58);
+			if (c - 0x1B8 == 8 && real) w::PlaySE(us(0x13B7A58));
 			if (Rec(nd, 0)[0x1C] <= 2)
 			{
 				uint8_t *ent = Ent(nd, 0);
@@ -1156,7 +1156,7 @@ namespace p291
 			uint32_t v = (uint32_t)(c - 10);
 			if (v < 0x1E)
 			{
-				if (v == 0) w::Decode(0x13AFF48, nd + 0x1F0, 0x12C);
+				if (v == 0) w::Decode(us(0x13AFF48), nd + 0x1F0, 0x12C);
 				else if (v >= 8) DrawA(p, (int32_t)v);
 				if (!Pause())
 				{
@@ -1252,7 +1252,7 @@ namespace p291
 						{
 							for (int32_t k = 2;; k--)
 							{
-								uint8_t *t = (uint8_t *)AddTaskToQueue(&QTrail(), ORIG_TrailTask);
+								uint8_t *t = (uint8_t *)AddTaskToQueue(&QTrail(), us(ORIG_TrailTask));
 								At<int16_t>(t, 0xC) = 0;
 								At<int32_t>(t, 0x20) = 0;
 								At<int16_t>(t, 0x10) = (int16_t)(shl32(k, 11) - 0x1770);
@@ -1282,7 +1282,7 @@ namespace p291
 			uint32_t v = (uint32_t)(c - 0x90);
 			if (v < 0x1E)
 			{
-				if (v == 0) w::Decode(0x13B0C9C, nd + 0x1F0, 0xE0);
+				if (v == 0) w::Decode(us(0x13B0C9C), nd + 0x1F0, 0xE0);
 				DrawE(p);
 			}
 		}
@@ -1293,7 +1293,7 @@ namespace p291
 			if (v < 0x28)
 			{
 				if (v == 0) w::Decode((uint32_t)(MB() + 0x23220), nd + 0x1F0, 0x22C);
-				DrawBonePrim(p, 0x1C, (int32_t)(v * v), (int32_t)((v + 1) * (v + 1)), (uint32_t)(c + 1 - 0xB8) < 0x28, -128, 0x13EF438);
+				DrawBonePrim(p, 0x1C, (int32_t)(v * v), (int32_t)((v + 1) * (v + 1)), (uint32_t)(c + 1 - 0xB8) < 0x28, -128, us(0x13EF438));
 				if (!Pause())
 				{
 					SpawnHandParticles(nd, fr, 0x1C, (int32_t)(v >> 3), true);
@@ -1309,7 +1309,7 @@ namespace p291
 				if (v == 0)
 				{
 					w::PartReset(nd);
-					w::Decode(0x13B17AC, nd + 0x1F0, 0x1D8);
+					w::Decode(us(0x13B17AC), nd + 0x1F0, 0x1D8);
 				}
 				DrawG(p, (int32_t)v);
 				if (!Pause())
@@ -1344,14 +1344,14 @@ namespace p291
 					w::Decode((uint32_t)(MB() + 0x23220), nd + 0x1F0, 0x8C);
 				}
 				bool nx = (uint32_t)(c + 1 - 0xFE) < 0x1E;
-				DrawBonePrim(p, 0x2C, shl32(v, 5), shl32(v + 1, 5), nx, 0x40, 0x13EF42C);
+				DrawBonePrim(p, 0x2C, shl32(v, 5), shl32(v + 1, 5), nx, 0x40, us(0x13EF42C));
 				DrawRing(shl32(v, 5), false, 0);
 				if (!Pause())
 				{
 					SpawnHandParticles(nd, fr, 0x2C, (int32_t)(v >> 2), false);
 					for (int32_t k = 3;; k--)
 					{
-						uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), ORIG_RiseFlipTask);
+						uint8_t *t = (uint8_t *)AddTaskToQueue(&QFlip(), us(ORIG_RiseFlipTask));
 						if (!t) break;
 						At<int16_t>(t, 0x12) = 0;
 						At<int16_t>(t, 0x18) = 0x2000;
@@ -1391,7 +1391,7 @@ namespace p291
 					w::Decode((uint32_t)(MB() + 0x2786C), nd + 0x1F0, 0x11C);
 				}
 				bool nx = (uint32_t)(c + 1 - 0x11C) < 0x24;
-				DrawBonePrim(p, 0x1C, shl32(v, 5), shl32(v + 1, 5), nx, 0x80, 0x13EF42C);
+				DrawBonePrim(p, 0x1C, shl32(v, 5), shl32(v + 1, 5), nx, 0x80, us(0x13EF42C));
 				DrawRing(shl32(v, 5), true, (int32_t)((uint32_t)shl32(v, 12) >> 4));
 				if (!Pause()) w::PartBounce(nd);
 			}
@@ -1406,7 +1406,7 @@ namespace p291
 					w::PartReset(nd);
 					w::Decode((uint32_t)(MB() + 0x2C074), nd + 0x1F0, 0x1C0);
 				}
-				w::BonePos(E(nd), 0x13B7BB0, fr + 0x1C);
+				w::BonePos(E(nd), us(0x13B7BB0), fr + 0x1C);
 				if (!Pause())
 				{
 					int k = 4;
@@ -1502,7 +1502,7 @@ namespace p291
 		w::PartDraw(nd);
 		if (c >= 0xE0) DrawTargets(p);
 		if (CreatureDrawn(c))
-			FrameCursor() = w::DrawCreature(E(nd), 0x2000, (uint32_t)(MB() + 0x31D4), FrameCursor(), var<uint32_t>(0x1D969A8));
+			FrameCursor() = w::DrawCreature(E(nd), 0x2000, (uint32_t)(MB() + 0x31D4), FrameCursor(), var<uint32_t>(us(0x1D969A8)));
 
 		{
 			uint32_t D = (uint32_t)(MB() + 0x2321C);
@@ -1606,7 +1606,7 @@ namespace p291
 		uint8_t *rec = At<uint8_t *>(nd, 0xC);
 		uint8_t ctx[0x2C];
 		TargetPrimCtx(ctx, rec, &At<int16_t>(At<uint8_t *>(rec, 0), 0x1C));
-		int left = prim::play((prim::Layout *)(nd + 0x10), (prim::Callback)CB_Prim, (int)ctx, Pause());
+		int left = prim::play((prim::Layout *)(nd + 0x10), (prim::Callback)us(CB_Prim), (int)ctx, Pause());
 		return left != 0 ? 0 : TASK_END;
 	}
 
@@ -1620,7 +1620,7 @@ namespace p291
 		pos[2] = (int16_t)((int16_t)(mul32(CosT(i), r) >> 12) + At<int16_t>(nd, 0x14));
 		TransformCameraByShadowRotation(pos, At<int16_t>(nd, 0x16), -(At<int16_t>(nd, 0x18) >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0x13AFCC0;
+		*(uint32_t *)h = us(0x13AFCC0);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1642,7 +1642,7 @@ namespace p291
 	{
 		TransformCameraByShadowRotation(pos, At<int16_t>(nd, 0x18), -(At<int16_t>(nd, 0x1A) >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0x13AFE04;
+		*(uint32_t *)h = us(0x13AFE04);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());

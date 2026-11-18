@@ -25,12 +25,12 @@ namespace gg150
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x244FD60); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2451E68); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2451E6C); }
-	inline int16_t *Muzzle() { return (int16_t *)0x2451E78; }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x2461E80); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2451048; }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x244FD60)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2451E68)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x2451E6C)); }
+	inline int16_t *Muzzle() { return (int16_t *)us(0x2451E78); }
+	inline uint32_t &Cursor() { return var<uint32_t>(us(0x2461E80)); }
+	inline TaskQueue *QEffects() { return (TaskQueue *)us(0x2451048); }
 	static const uint32_t ARENA_A = 0x2459E80, ARENA_B = 0x2451E80;
 
 	static const uint32_t ORIG_RootTask = 0x60F630;
@@ -50,11 +50,11 @@ namespace gg150
 	static const uint32_t SEQ_Smoke = 0xDC21A0;
 	static const uint32_t SEQ_Flash = 0xDC1FA4;
 	static const uint32_t SEQ_Sparks = 0xDC234C;
-	static const void *const SOUND_Gun = (const void *)0xDC2D70;
+	static const void *SOUND_Gun() { return (const void *)us(0xDC2D70); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -91,8 +91,8 @@ namespace gg150
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Gatling Gun nodes");
 	static_assert(sizeof(Particle) == 0x18, "Gatling Gun records");
 
-	inline Particle *PartsA() { return (Particle *)0x24506E8; }
-	inline Particle *PartsB() { return (Particle *)0x244FD88; }
+	inline Particle *PartsA() { return (Particle *)us(0x24506E8); }
+	inline Particle *PartsB() { return (Particle *)us(0x244FD88); }
 	inline int16_t *EntPos(int32_t slot) { return (int16_t *)(Entity(slot) + 0x1C); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
 	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), fn); }
@@ -140,7 +140,7 @@ namespace gg150
 		ComposeAffineTransform(&Camera(), &m, &m);
 		TransformCameraByShadowRotation(&n->f10, 0, -((int32_t)n->f1C >> 3));
 		GteSetRotMatrix(&m);
-		ModelDraw(MODEL_Muzzle, faded, fade, 2);
+		ModelDraw(us(MODEL_Muzzle), faded, fade, 2);
 	}
 	static int32_t MuzzleFade(int32_t c) { return shl32(c, 11); }
 
@@ -162,7 +162,7 @@ namespace gg150
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Impact, faded, fade, 1);
+		ModelDraw(us(MODEL_Impact), faded, fade, 1);
 	}
 	static int32_t ImpactFade(int32_t c) { return shl32(c, 9); }
 
@@ -190,7 +190,7 @@ namespace gg150
 		MatrixMultiply3(&m, &roll);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(MODEL_Spark, faded, fade, 1);
+		ModelDraw(us(MODEL_Spark), faded, fade, 1);
 	}
 	static int32_t SparkFade(int32_t c) { return shl32(c, 10) - 0x400; }
 
@@ -199,7 +199,7 @@ namespace gg150
 		TransformCameraByShadowRotation(&n->f10, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = frame;
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = us(SEQ_Flash);
 		*(int16_t *)(h + 0x24) = 0;
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 		FieldFree(0xB4);
@@ -249,7 +249,7 @@ namespace gg150
 	static uint32_t __cdecl MuzzleTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_MuzzleTask, n);)
+		FX_HELD(held_begin(us(ORIG_MuzzleTask), n);)
 		MuzzleDraw(n, n->counter >= 0, MuzzleFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -259,10 +259,10 @@ namespace gg150
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_SmokeTask, n);)
+		FX_HELD(held_begin(us(ORIG_SmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = us(SEQ_Smoke);
 		*(int16_t *)(h + 0x24) = 0;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
@@ -324,20 +324,20 @@ namespace gg150
 			n->f0E--;
 			return 0;
 		}
-		Node *a = AddTask(ORIG_ImpactTask);
+		Node *a = AddTask(us(ORIG_ImpactTask));
 		*(uint32_t *)&a->f10 = rd32(&n->f10);
 		a->counter = 0;
 		*(uint32_t *)&a->f14 = rd32(&n->f14);
 		a->f18 = (int16_t)(CrtRand() % 0x800);
 		a->f1C = 0x400;
 		a->f1E = 0x100;
-		Node *f = AddTask(ORIG_FlashTask);
+		Node *f = AddTask(us(ORIG_FlashTask));
 		*(uint32_t *)&f->f10 = rd32(&n->f10);
 		*(uint32_t *)&f->f14 = rd32(&n->f14);
 		f->counter = 0;
 		f->f12 = (int16_t)0xFF38;
 		f->f1C = (int16_t)(CrtRand() % 0x900 + 0xC00);
-		Node *d = AddTask(ORIG_DustTask);
+		Node *d = AddTask(us(ORIG_DustTask));
 		d->f0E = (int16_t)(1 << (n->f18 & 31));
 		*(uint32_t *)&d->f10 = rd32(&n->f10);
 		d->counter = 0;
@@ -348,7 +348,7 @@ namespace gg150
 	static uint32_t __cdecl ImpactTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_ImpactTask, n);)
+		FX_HELD(held_begin(us(ORIG_ImpactTask), n);)
 		ImpactDraw(n, n->counter >= 0, ImpactFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -361,7 +361,7 @@ namespace gg150
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_FlashTask, n);)
+		FX_HELD(held_begin(us(ORIG_FlashTask), n);)
 		FlashDraw(n, n->counter);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -371,10 +371,10 @@ namespace gg150
 	static uint32_t __cdecl DustTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_DustTask, n);)
+		FX_HELD(held_begin(us(ORIG_DustTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = us(SEQ_Smoke);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
@@ -439,7 +439,7 @@ namespace gg150
 		TransformVectorBy3x3Matrix((const Mat4x3 *)(Entity(TargetSlot()) + 0x40), v, v);
 		NormalizeVector(v, v);
 		const int32_t r = CrtRand() % 0xD2 + 0x3C;
-		Node *s = AddTask(ORIG_SparkTask);
+		Node *s = AddTask(us(ORIG_SparkTask));
 		s->counter = 0;
 		s->f10 = (int16_t)((mul32(r, v[0]) >> 12) + n->f10);
 		s->f12 = n->f12;
@@ -449,12 +449,12 @@ namespace gg150
 		const int16_t scale = (int16_t)(CrtRand() % 0x360 + 0x440);
 		s->f1C = scale;
 		s->f1E = (int16_t)((int32_t)scale / 4);
-		Node *f = AddTask(ORIG_FlashTask);
+		Node *f = AddTask(us(ORIG_FlashTask));
 		*(uint32_t *)&f->f10 = rd32(&s->f10);
 		f->counter = 0;
 		*(uint32_t *)&f->f14 = rd32(&s->f14);
 		f->f1C = (int16_t)(CrtRand() % 0xC00 + 0x1100);
-		Node *g = AddTask(ORIG_SparksTask);
+		Node *g = AddTask(us(ORIG_SparksTask));
 		g->f0E = (int16_t)(1 << (n->f18 & 31));
 		g->counter = 0;
 		*(uint32_t *)&g->f10 = rd32(&s->f10);
@@ -465,7 +465,7 @@ namespace gg150
 	static uint32_t __cdecl SparkTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_SparkTask, n);)
+		FX_HELD(held_begin(us(ORIG_SparkTask), n);)
 		SparkDraw(n, n->counter >= 1, SparkFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -478,10 +478,10 @@ namespace gg150
 	static uint32_t __cdecl SparksTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_SparksTask, n);)
+		FX_HELD(held_begin(us(ORIG_SparksTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Sparks;
+		*(uint32_t *)h = us(SEQ_Sparks);
 		*(int16_t *)(h + 0x24) = 1;
 		for (Particle *e = PartsB(); e < PartsB() + 100; e++)
 		{
@@ -542,7 +542,7 @@ namespace gg150
 		GetEffectSpawnPosition(Entity(CasterSlot()), 0xF0, 0, Muzzle());
 		if (n->counter >= 2 && n->counter <= 0x19 && (n->counter & 1))
 		{
-			Node *m = AddTask(ORIG_MuzzleTask);
+			Node *m = AddTask(us(ORIG_MuzzleTask));
 			*(uint32_t *)&m->f10 = rd32(&Muzzle()[0]);
 			m->counter = 0;
 			*(uint32_t *)&m->f14 = rd32(&Muzzle()[2]);
@@ -550,7 +550,7 @@ namespace gg150
 			m->f1A = (int16_t)(CrtRand() % 0x800);
 			m->f1C = (int16_t)(CrtRand() % 0x500 + 0xA00);
 		}
-		if (n->counter == 2) AddTask(ORIG_SmokeTask)->counter = 0;
+		if (n->counter == 2) AddTask(us(ORIG_SmokeTask))->counter = 0;
 		if (n->counter == 1)
 		{
 			int16_t t[4];
@@ -559,7 +559,7 @@ namespace gg150
 			const int16_t dz = (int16_t)(((int32_t)t[2] - Muzzle()[2]) / 6);
 			for (int k = 1; k <= 5; k++)
 			{
-				Node *a = AddTask(ORIG_MissTask);
+				Node *a = AddTask(us(ORIG_MissTask));
 				a->counter = 0;
 				a->f0E = (int16_t)(2 * k);
 				a->f12 = 0;
@@ -576,7 +576,7 @@ namespace gg150
 			const int16_t dy = (int16_t)(((int32_t)*(const int16_t *)(e + 0x36) - *(const int16_t *)(e + 0x3C)) / 8);
 			for (int k = 1; k <= 7; k++)
 			{
-				Node *h = AddTask(ORIG_HitTask);
+				Node *h = AddTask(us(ORIG_HitTask));
 				h->counter = 0;
 				h->f0E = (int16_t)(2 * k);
 				h->f10 = t[0];
@@ -588,7 +588,7 @@ namespace gg150
 			}
 		}
 		if (n->counter == 0x1E) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, 0, 0x80);
+		if (n->counter == 1) BdPlaySE(SOUND_Gun(), 0, 0x80);
 		n->counter++;
 		if (n->counter <= 0x24) return 0;
 		return TASK_END;
@@ -598,8 +598,8 @@ namespace gg150
 	{
 		RootNode *r = (RootNode *)n_;
 		FX_HELD(held_note_root();)
-		Cursor() = ARENA_A;
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_B;
+		Cursor() = us(ARENA_A);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
 		r->counter++;
 		return a ? 0 : TASK_END;

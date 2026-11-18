@@ -26,14 +26,14 @@ namespace circle162
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23D0798); }
-	inline CastContext *&Context() { return var<CastContext *>(0x23D0250); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23D0D84); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23D0D88); }
-	inline int32_t &Length() { return var<int32_t>(0x23D0D74); }
-	inline int32_t &SwirlFlag() { return var<int32_t>(0x23D0D80); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x23CE640; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23CF430; }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x23D0798)); }
+	inline CastContext *&Context() { return var<CastContext *>(us(0x23D0250)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23D0D84)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23D0D88)); }
+	inline int32_t &Length() { return var<int32_t>(us(0x23D0D74)); }
+	inline int32_t &SwirlFlag() { return var<int32_t>(us(0x23D0D80)); }
+	inline TaskQueue *QMaster() { return (TaskQueue *)us(0x23CE640); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x23CF430); }
 	static const uint32_t POOL_A = 0x23CE650, POOL_A_END = 0x23CEA10;
 	static const uint32_t POOL_B = 0x23CEA40, POOL_B_END = 0x23CF1C0;
 	static const uint32_t BIND_OUT = 0x23CEA20;
@@ -61,46 +61,46 @@ namespace circle162
 	static const uint32_t ALT_VIEWPORT = 0xDA8D00;
 	static const int32_t TRAIL_LAST_QUAD_V3 = 0x23CF2C8 + 0xE8;
 
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline void VectorNormalS16(int16_t *in, int16_t *out) { fn<void (__cdecl *)(int16_t *, int16_t *)>(0x56BDE0)(in, out); }
-	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteSetRotMatrixC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(0x45DE00)(m); }
-	inline void GteSetTransVectorC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(0x45DEF0)(m); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline int32_t BattleFileLoadStatus() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
-	inline void BattleFileLoad(int32_t file, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(file, dst); }
-	inline void QueueTIMUpload(uint32_t file) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(file); }
-	inline void SetDrawEnv(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(prim, env); }
-	inline void InsertPrimAltViewport(uint32_t ot, uint32_t viewport) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(ot, viewport); }
-	inline void SetDrawArea(uint32_t prim, const void *rect) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C940)(prim, rect); }
-	inline void SetDrawOffset(uint32_t prim, const void *xy) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C9B0)(prim, xy); }
-	inline void GteReadScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
-	inline void GteSetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
-	inline uint32_t RenderGeometry(uint32_t model, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, h, ot, mode, cursor); }
-	inline void ComputeBonesWorldMatricesM(uint32_t anim_header, const Mat4x3 *root) { fn<void (__cdecl *)(uint32_t, const Mat4x3 *)>(0x5095B0)(anim_header, root); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline void VectorNormalS16(int16_t *in, int16_t *out) { fn<void (__cdecl *)(int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
+	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
+	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DDA0))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteSetRotMatrixC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(us(0x45DE00))(m); }
+	inline void GteSetTransVectorC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(us(0x45DEF0))(m); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, seq); }
+	inline int32_t BattleFileLoadStatus() { return fn<int32_t (__cdecl *)()>(us(0x508500))(); }
+	inline void BattleFileLoad(int32_t file, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(us(0x508480))(file, dst); }
+	inline void QueueTIMUpload(uint32_t file) { fn<void (__cdecl *)(uint32_t)>(us(0x505E30))(file); }
+	inline void SetDrawEnv(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(prim, env); }
+	inline void InsertPrimAltViewport(uint32_t ot, uint32_t viewport) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C8E0))(ot, viewport); }
+	inline void SetDrawArea(uint32_t prim, const void *rect) { fn<void (__cdecl *)(uint32_t, const void *)>(us(0x45C940))(prim, rect); }
+	inline void SetDrawOffset(uint32_t prim, const void *xy) { fn<void (__cdecl *)(uint32_t, const void *)>(us(0x45C9B0))(prim, xy); }
+	inline void GteReadScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
+	inline void GteSetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
+	inline uint32_t RenderGeometry(uint32_t model, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, h, ot, mode, cursor); }
+	inline void ComputeBonesWorldMatricesM(uint32_t anim_header, const Mat4x3 *root) { fn<void (__cdecl *)(uint32_t, const Mat4x3 *)>(us(0x5095B0))(anim_header, root); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -244,7 +244,7 @@ namespace circle162
 
 	static void MorphDeltas(const int16_t *from, const int16_t *to, int32_t n, int32_t steps)
 	{
-		int16_t *d = (int16_t *)MORPH_DELTA;
+		int16_t *d = (int16_t *)us(MORPH_DELTA);
 		for (; n > 0; n--, from += 4, to += 4, d += 4)
 		{
 			d[0] = (int16_t)(((int32_t)to[0] - from[0]) / steps);
@@ -266,13 +266,13 @@ namespace circle162
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 1)
 		{
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+			BindEntityModelFromComData(Caster(), us(BIND_OUT), us(ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
 		}
 		if (n->c == 2)
 		{
-			AddMain(ORIG_Trail)->c = 0;
-			for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
+			AddMain(us(ORIG_Trail))->c = 0;
+			for (uint32_t a = us(RING); a < us(RING_END); a += 0x14) var<int32_t>(a) = 0;
 		}
 		if (n->c == 6)
 		{
@@ -281,17 +281,17 @@ namespace circle162
 			const int16_t h = q[3];
 			q[3] = q[1];
 			q[1] = h;
-			Node24 *t = AddMain(ORIG_Swipe);
+			Node24 *t = AddMain(us(ORIG_Swipe));
 			t->c = 0;
 			ff8fx::copy<(8)>(&t->w10, q);
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int32_t r = CrtRand() % 0x28;
 			t->w1C = 0xD00;
 			t->w1A = (int16_t)(-0x32 - r);
-			t = AddMain(ORIG_Dust);
+			t = AddMain(us(ORIG_Dust));
 			t->c = 0;
 			ff8fx::copy<(8)>(&t->w10, q);
-			t = AddMain(ORIG_Shock);
+			t = AddMain(us(ORIG_Shock));
 			t->c = 0;
 			ff8fx::copy<(8)>(&t->w10, q);
 			t->w1E = 0x400;
@@ -300,34 +300,34 @@ namespace circle162
 		if (n->c == 0x12)
 		{
 			int16_t q[4];
-			ff8fx::copy<(8)>(q, (const void *)BASE_POS);
-			const int32_t *d = (const int32_t *)BASE_DIR;
+			ff8fx::copy<(8)>(q, (const void *)us(BASE_POS));
+			const int32_t *d = (const int32_t *)us(BASE_DIR);
 			q[0] = (int16_t)((mul32(d[0], 444) >> 12) + q[0]);
 			q[1] = (int16_t)(q[1] + (int16_t)(mul32(d[1], 444) >> 12));
 			q[2] = (int16_t)(q[2] + (int16_t)(mul32(d[2], 444) >> 12));
 			ff8fx::copy<(8)>(&n->w10, q);
-			Node24 *t = AddMain(ORIG_Glow);
+			Node24 *t = AddMain(us(ORIG_Glow));
 			t->c = 0;
 			ff8fx::copy<(8)>(&t->w10, q);
 			t->w1C = 0xC0;
 			t->w1E = 0x60;
-			t = AddMain(ORIG_Shard);
+			t = AddMain(us(ORIG_Shard));
 			t->c = 0;
 			ff8fx::copy<(8)>(&t->w10, q);
-			t = AddMain(ORIG_Orbit);
+			t = AddMain(us(ORIG_Orbit));
 			t->c = 0;
 			ff8fx::copy<(8)>(&t->w10, q);
 		}
 		if (n->c == 0x1F)
 		{
-			Node24 *t = AddMain(ORIG_Burst);
+			Node24 *t = AddMain(us(ORIG_Burst));
 			ff8fx::copy<(4)>(&t->w10, &n->w10);
 			t->c = 0;
 			ff8fx::copy<(4)>(&t->w14, &n->w14);
 		}
 		if (n->c == 0x28)
 		{
-			Node24 *t = AddMain(ORIG_Rain);
+			Node24 *t = AddMain(us(ORIG_Rain));
 			t->c = 0;
 			GetEffectSpawnPosition(Caster(), 0xF0, 0, &t->w10);
 			int16_t v[3];
@@ -341,13 +341,13 @@ namespace circle162
 		}
 		if (n->c == 0x39)
 		{
-			Node24 *t = AddMain(ORIG_Shell);
+			Node24 *t = AddMain(us(ORIG_Shell));
 			t->c = 0;
 			GetDefaultEffectPosition(Caster(), &t->w10);
 			t->w1C = 0x500;
 			t->w1E = 0xD5;
 			t->w18 = *(const int16_t *)(Caster() + 0xE);
-			t = AddMain(ORIG_Dome);
+			t = AddMain(us(ORIG_Dome));
 			t->c = 0;
 			t->e = 0x16;
 			CalculateCenterPosition(Context()->target_mask, &t->w10);
@@ -366,7 +366,7 @@ namespace circle162
 		}
 		if (n->c == 0x5D)
 		{
-			Node24 *t = AddMain(ORIG_Swirl);
+			Node24 *t = AddMain(us(ORIG_Swirl));
 			ff8fx::copy<(4)>(&t->w10, &n->w10);
 			t->c = 0;
 			ff8fx::copy<(4)>(&t->w14, &n->w14);
@@ -377,22 +377,22 @@ namespace circle162
 		{
 			if (BattleFileLoadStatus() < 0) return 0;
 			QueueTIMUpload(TexBase() + 0x10000);
-			((RootNode *)AddTaskToQueue(QMaster(), ORIG_Restore))->counter = 0;
+			((RootNode *)AddTaskToQueue(QMaster(), us(ORIG_Restore)))->counter = 0;
 		}
 		if (n->c == 0x6F)
 		{
-			Node24 *t = AddMain(ORIG_Circle);
+			Node24 *t = AddMain(us(ORIG_Circle));
 			ff8fx::copy<(4)>(&t->w10, &n->w10);
 			ff8fx::copy<(4)>(&t->w14, &n->w14);
 			t->w14 = (int16_t)(t->w14 + 0x8FC);
 			t->c = 0;
 			t->w1E = 0x380;
 			t->w1C = 0x380;
-			MorphDeltas((const int16_t *)CIRCLE_FROM, (const int16_t *)CIRCLE_TO, 0x5D, 0x18);
+			MorphDeltas((const int16_t *)us(CIRCLE_FROM), (const int16_t *)us(CIRCLE_TO), 0x5D, 0x18);
 			SwirlFlag() = 0;
 			for (int32_t i = 0; i < 8; i++)
 			{
-				Node24 *p = AddMain(ORIG_Pillar);
+				Node24 *p = AddMain(us(ORIG_Pillar));
 				ff8fx::copy<(4)>(&p->w10, &n->w10);
 				p->c = 0;
 				p->e = (int16_t)i;
@@ -409,14 +409,14 @@ namespace circle162
 				const int32_t s = CrtRand() % 0x1E + 0x23;
 				p->w22 = (int16_t)s;
 				if (p->w1E & 0x801) p->w22 = (int16_t)-s;
-				Node24 *g = AddMain(ORIG_Ring);
+				Node24 *g = AddMain(us(ORIG_Ring));
 				g->e = (int16_t)i;
 				ff8fx::copy<(4)>(&g->w10, &n->w10);
 				g->c = 0;
 				ff8fx::copy<(4)>(&g->w14, &n->w14);
 				g->w1A = p->w1A;
 			}
-			Node24 *u = AddMain(ORIG_Ember);
+			Node24 *u = AddMain(us(ORIG_Ember));
 			ff8fx::copy<(4)>(&u->w10, &n->w10);
 			ff8fx::copy<(4)>(&u->w14, &n->w14);
 			u->w14 = (int16_t)(u->w14 + 0xA8C);
@@ -428,7 +428,7 @@ namespace circle162
 			for (int32_t i = 0; i < a->target_count; i++)
 			{
 				const uint8_t slot = a->targets[0x18 * i];
-				Node24 *t = AddMain(ORIG_Spark);
+				Node24 *t = AddMain(us(ORIG_Spark));
 				t->c = 0;
 				GetDefaultEffectPosition(Entity(slot), &t->w10);
 				t->w1C = (int16_t)(mul32(*(const int16_t *)(Entity(slot) + 0x26), 2200) >> 12);
@@ -483,19 +483,19 @@ namespace circle162
 
 	static void TrailHitPoint(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(HIT_POS) = *(const uint32_t *)sb;
-		var<uint32_t>(HIT_POS + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)HIT_DIR;
+		var<uint32_t>(us(HIT_POS)) = *(const uint32_t *)sb;
+		var<uint32_t>(us(HIT_POS) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)us(HIT_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE_POS) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE_POS + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BASE_DIR;
-		b[0] = (int32_t)var<int16_t>(HIT_POS) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(HIT_POS + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(HIT_POS + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(us(BASE_POS)) = *(const uint32_t *)sa;
+		var<uint32_t>(us(BASE_POS) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)us(BASE_DIR);
+		b[0] = (int32_t)var<int16_t>(us(HIT_POS)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(us(HIT_POS) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(us(HIT_POS) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -531,7 +531,7 @@ namespace circle162
 			GteStoreRGB2(&w->col1);
 			pk[5] = pk[1] = w->col0;
 			pk[7] = pk[3] = w->col1;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
 			pk2[5] = w->col0;
 			pk2[3] = pk2[1] = 0x3A000000;
 			pk2[7] = w->col1;
@@ -540,7 +540,7 @@ namespace circle162
 			pk2[6] = pk[6];
 			pk2[8] = pk[8];
 			pk2[0] = 0x8000000;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
 			pk += 0x12;
 			pk2 += 0x12;
 		}
@@ -555,21 +555,21 @@ namespace circle162
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(us(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c >= Length() - 7 ? Length() - c : 7;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)us(RING), idx, want, (uint8_t *)us(PTS_A), (uint8_t *)us(PTS_B));
 		g_slot28 = 1;
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_A, (const uint8_t *)SPL_B);
+			TrailSplines(cnt, (const uint8_t *)us(PTS_A), (const uint8_t *)us(PTS_B), (uint8_t *)us(SPL_A), (uint8_t *)us(SPL_B));
+			TrailHitPoint((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B));
 			FX_HELD(held_note_trail(n);)
-			g_slot28 = TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w) ? (uint32_t)&w->flag : (uint32_t)TRAIL_LAST_QUAD_V3;
+			g_slot28 = TrailDraw((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B), w) ? (uint32_t)&w->flag : (uint32_t)us(TRAIL_LAST_QUAD_V3);
 		}
 		g_slot28_known = true;
 		FieldFree(0x40);
@@ -604,7 +604,7 @@ namespace circle162
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SWIPE;
+		*(uint32_t *)h = us(MODEL_SWIPE);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 3)
 		{
@@ -622,7 +622,7 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(ORIG_Swipe, n);)
+		FX_HELD(held_note_node(us(ORIG_Swipe), n);)
 		SwipeDraw(n, n->w18, n->c, mul32(n->c - 3, 409));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1A;
@@ -652,7 +652,7 @@ namespace circle162
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHOCK;
+		*(uint32_t *)h = us(MODEL_SHOCK);
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c >= 4)
 		{
@@ -670,7 +670,7 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(ORIG_Shock, n);)
+		FX_HELD(held_note_node(us(ORIG_Shock), n);)
 		ShockDraw(n, n->w1C, n->c, shl32(n->c - 4, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
@@ -684,7 +684,7 @@ namespace circle162
 	{
 		TransformCameraByShadowRotation(&n->w10, s, -0x100);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_GLOW;
+		*(uint32_t *)h = us(MODEL_GLOW);
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (c >= 0x1C)
 		{
@@ -700,7 +700,7 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(ORIG_Glow, n);)
+		FX_HELD(held_note_node(us(ORIG_Glow), n);)
 		GlowDraw(n, n->w1C, n->c, shl32(n->c - 0x1C, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
@@ -721,12 +721,12 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(ORIG_Dust, n);)
+		FX_HELD(held_note_pool(us(ORIG_Dust), n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_DUST;
+		*(uint32_t *)h = us(SEQ_DUST);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -750,9 +750,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 0xA; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(us(POOL_B), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x500 + 0x900);
@@ -820,9 +820,9 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(ORIG_Shard, n);)
+		FX_HELD(held_note_pool(us(ORIG_Shard), n);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = us(MODEL_SHARD);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -832,7 +832,7 @@ namespace circle162
 		w.ref[0] = 0;
 		w.ref[1] = -0x1000;
 		w.ref[2] = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 2)) continue;
@@ -856,9 +856,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(us(POOL_B), i);
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
@@ -907,11 +907,11 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(ORIG_Orbit, n);)
+		FX_HELD(held_note_pool(us(ORIG_Orbit), n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_ORBIT;
+		*(uint32_t *)h = us(SEQ_ORBIT);
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -932,9 +932,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 6; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x28);
+				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0x28);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_A, i);
+				Part *p = PartAt(us(POOL_A), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x180);
@@ -951,7 +951,7 @@ namespace circle162
 		}
 		n->c++;
 		if (n->c < 0x17) return 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 			if (*(const uint8_t *)a & 1) *(uint32_t *)a = 0;
 		return TASK_END;
 	}
@@ -1006,9 +1006,9 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(ORIG_Burst, n);)
+		FX_HELD(held_note_pool(us(ORIG_Burst), n);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_BURST;
+		*(uint32_t *)h = us(MODEL_BURST);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1018,7 +1018,7 @@ namespace circle162
 		w.ref[0] = 0;
 		w.ref[1] = -0x1000;
 		w.ref[2] = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 4)) continue;
@@ -1040,9 +1040,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 0xA; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(us(POOL_B), i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
@@ -1100,9 +1100,9 @@ namespace circle162
 
 	static void RainLook(RainWork *w)
 	{
-		w->look[0] = (int32_t)var<int16_t>(0xB8B7F8) - var<int16_t>(0xB8B7F0);
-		w->look[1] = (int32_t)var<int16_t>(0xB8B7FA) - var<int16_t>(0xB8B7F2);
-		w->look[2] = (int32_t)var<int16_t>(0xB8B7FC) - var<int16_t>(0xB8B7F4);
+		w->look[0] = (int32_t)var<int16_t>(us(0xB8B7F8)) - var<int16_t>(us(0xB8B7F0));
+		w->look[1] = (int32_t)var<int16_t>(us(0xB8B7FA)) - var<int16_t>(us(0xB8B7F2));
+		w->look[2] = (int32_t)var<int16_t>(us(0xB8B7FC)) - var<int16_t>(us(0xB8B7F4));
 		Normalize(w->look, w->look);
 	}
 
@@ -1110,10 +1110,10 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(ORIG_Rain, n);)
+		FX_HELD(held_note_pool(us(ORIG_Rain), n);)
 		uint8_t *h = AllocHeader(0x58);
 		RainWork w;
-		*(uint32_t *)h = MODEL_RAIN;
+		*(uint32_t *)h = us(MODEL_RAIN);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1125,7 +1125,7 @@ namespace circle162
 		w.ref[1] = 0;
 		w.ref[2] = 0;
 		RainLook(&w);
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 8)) continue;
@@ -1156,9 +1156,9 @@ namespace circle162
 			MatVec((const Mat4x3 *)(Caster() + 0x40), u, u);
 			for (int32_t j = 0; j < 8; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(us(POOL_B), i);
 				p->flags = 8;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1400 + 0x800);
@@ -1187,12 +1187,12 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(ORIG_Ember, n);)
+		FX_HELD(held_note_pool(us(ORIG_Ember), n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_EMBER;
+		*(uint32_t *)h = us(SEQ_EMBER);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -1218,9 +1218,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 2; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x28);
+				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0x28);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_A, i);
+				Part *p = PartAt(us(POOL_A), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1000 + 0x900);
@@ -1247,12 +1247,12 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(ORIG_Spark, n);)
+		FX_HELD(held_note_pool(us(ORIG_Spark), n);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = us(SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 8;
 		int32_t count = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 1)) continue;
@@ -1273,9 +1273,9 @@ namespace circle162
 		{
 			for (int32_t j = 0; j < 5; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(us(POOL_B), i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xE00 + 0x800);
@@ -1325,9 +1325,9 @@ namespace circle162
 	{
 		FX_HELD(held_note_swirl(n, residue);)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_SWIRL;
+		*(uint32_t *)h = us(SEQ_SWIRL);
 		*(int16_t *)(h + 0x24) = 8;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
 			Part *p = (Part *)a;
 			if (!(p->flags & 2)) continue;
@@ -1343,9 +1343,9 @@ namespace circle162
 			const int32_t k = n->c / 7 + 2;
 			for (int32_t j = 0; j < k; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x50);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x50);
 				if (i < 0) break;
-				Part *p = PartAt(POOL_B, i);
+				Part *p = PartAt(us(POOL_B), i);
 				p->flags = 2;
 				p->life = 0x13;
 				p->scale = (int16_t)(CrtRand() % 0x1400 + 0x900);
@@ -1394,7 +1394,7 @@ namespace circle162
 	static void ShellMorph(int16_t *dst, int32_t angle)
 	{
 		const int32_t s = ComputeSin(angle);
-		const int16_t *from = (const int16_t *)SHELL_FROM, *to = (const int16_t *)SHELL_TO;
+		const int16_t *from = (const int16_t *)us(SHELL_FROM), *to = (const int16_t *)us(SHELL_TO);
 		for (int32_t i = 0; i < 168; i++, from += 4, to += 4, dst += 4)
 		{
 			dst[0] = (int16_t)((mul32((int32_t)to[0] - from[0], s) >> 12) + from[0]);
@@ -1407,7 +1407,7 @@ namespace circle162
 	{
 		ShellMatrix(n, n->w18, 0x1F4, s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHELL;
+		*(uint32_t *)h = us(MODEL_SHELL);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1432,9 +1432,9 @@ namespace circle162
 	static uint32_t __cdecl ShellTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_Shell, n);)
+		FX_HELD(held_note_node(us(ORIG_Shell), n);)
 		const int32_t c = n->c;
-		ShellDraw(n, n->w1C, c, ShellFade(c), mul32(c - 8, 56), (int16_t *)MORPH_VTX);
+		ShellDraw(n, n->w1C, c, ShellFade(c), mul32(c - 8, 56), (int16_t *)us(MORPH_VTX));
 		g_slot28 = (uint32_t)(int32_t)n->w1C;
 		g_slot28_known = true;
 		if (DrawOnly()) return 0;
@@ -1447,8 +1447,8 @@ namespace circle162
 	{
 		ShellMatrix(n, n->w18, 0x29, s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHELL;
-		*(uint32_t *)(h + 4) = SHELL_TO;
+		*(uint32_t *)h = us(MODEL_SHELL);
+		*(uint32_t *)(h + 4) = us(SHELL_TO);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -1471,7 +1471,7 @@ namespace circle162
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Dome, n);)
+		FX_HELD(held_note_node(us(ORIG_Dome), n);)
 		DomeDraw(n, n->w1C, n->c, shl32(n->c - 0xE, 9));
 		g_slot28 = (uint32_t)(int32_t)n->w1C;
 		g_slot28_known = true;
@@ -1601,7 +1601,7 @@ namespace circle162
 
 	static void CircleMorph(int16_t *dst, int32_t k)
 	{
-		const int16_t *d = (const int16_t *)MORPH_DELTA, *from = (const int16_t *)CIRCLE_FROM;
+		const int16_t *d = (const int16_t *)us(MORPH_DELTA), *from = (const int16_t *)us(CIRCLE_FROM);
 		for (int32_t i = 0; i < 0x5D; i++, d += 4, from += 4, dst += 4)
 		{
 			dst[0] = (int16_t)(d[0] * k + from[0]);
@@ -1632,7 +1632,7 @@ namespace circle162
 		MeshHeader *h = (MeshHeader *)AllocHeader(0xCC);
 		h->tpage[0] = 0x40;
 		h->tpage[2] = 0x40;
-		h->model = MODEL_CIRCLE;
+		h->model = us(MODEL_CIRCLE);
 		h->mode = 0x30;
 		h->tpage[1] = 0;
 		h->tpage[3] = 0x80;
@@ -1649,8 +1649,8 @@ namespace circle162
 		{
 			if (!vtx)
 			{
-				CircleMorph((int16_t *)MORPH_VTX, (int16_t)(c - 0x10));
-				vtx = (const int16_t *)MORPH_VTX;
+				CircleMorph((int16_t *)us(MORPH_VTX), (int16_t)(c - 0x10));
+				vtx = (const int16_t *)us(MORPH_VTX);
 			}
 			h->verts = (uint32_t)vtx;
 			h->mode |= 0x2000;
@@ -1663,7 +1663,7 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(ORIG_Circle, n);)
+		FX_HELD(held_note_node(us(ORIG_Circle), n);)
 		const int32_t c = n->c;
 		CircleDraw(n, n->w1C, c, mul32(c, 10), shl32(c - 0x20, 9), nullptr);
 		if (DrawOnly()) return 0;
@@ -1821,10 +1821,10 @@ namespace circle162
 		const int32_t i = n->e;
 		h->mode = 0;
 		h->off[1] = 0;
-		h->model = var<uint32_t>(PILLAR_MODEL + 4 * i);
-		h->off[0] = var<int16_t>(PILLAR_OFFX + 4 * i);
+		h->model = var<uint32_t>(us(PILLAR_MODEL) + 4 * i);
+		h->off[0] = var<int16_t>(us(PILLAR_OFFX) + 4 * i);
 		h->ang[0] = n->w1C;
-		h->off[2] = var<int16_t>(PILLAR_OFFZ + 4 * i);
+		h->off[2] = var<int16_t>(us(PILLAR_OFFZ) + 4 * i);
 		h->ang[1] = n->w20;
 		h->ang[2] = ang2;
 		ComposeAffineTransform(&Camera(), &m, &h->cam);
@@ -1842,7 +1842,7 @@ namespace circle162
 			n->w1A--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Pillar, n);)
+		FX_HELD(held_note_node(us(ORIG_Pillar), n);)
 		PillarDraw(n, (int16_t)(n->c << 1));
 		if (DrawOnly()) return 0;
 		const int16_t vy = n->w16;
@@ -1882,13 +1882,13 @@ namespace circle162
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
 		h[0xA] = 0;
-		*(uint32_t *)h = var<uint32_t>(PILLAR_MODEL + 4 * n->e);
+		*(uint32_t *)h = var<uint32_t>(us(PILLAR_MODEL) + 4 * n->e);
 		h[9] = 0;
 		h[8] = 0;
 		*(int32_t *)(h + 0xC) = 0xC00;
 		*(uint32_t *)(h + 0x1C) = 0xC0;
 		if (c >= 0xC) *(int32_t *)(h + 0xC) = fade;
-		PacketCursor() = RenderPrimModel(h, var<uint32_t>(0x1D8E04C) + 0x4068, 0xD, PacketCursor());
+		PacketCursor() = RenderPrimModel(h, var<uint32_t>(us(0x1D8E04C)) + 0x4068, 0xD, PacketCursor());
 		FieldFree(0x58);
 	}
 
@@ -1902,7 +1902,7 @@ namespace circle162
 			n->w1A--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Ring, n);)
+		FX_HELD(held_note_node(us(ORIG_Ring), n);)
 		RingDraw(n, n->c, mul32(0x14 - n->c, 384));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1935,45 +1935,45 @@ namespace circle162
 		Mat4x3 m;
 		m.t[0] = -6 - Div39(pos[0]);
 		m.t[1] = Div18(pos[2]) + 0x15;
-		m.t[2] = var<int16_t>(0x1D8E038);
+		m.t[2] = var<int16_t>(us(0x1D8E038));
 		BuildRotationMatrixFromAngles(ang, &m);
 		int32_t sv[3];
 		sv[1] = 0;
 		sv[0] = 0x1000000 / (0x130E000 / rect[2]);
 		sv[2] = 0x1000000 / (0x1143000 / rect[3]);
 		Scale3DMatrix(&m, sv);
-		SetDrawEnv(PRIM_ENV, 0x1D969C8 + 92 * ((uint32_t)var<uint8_t>(0x1D96A80) ^ 1));
-		InsertPrimAutoDepth(RenderOT(), (void *)PRIM_ENV);
+		SetDrawEnv(us(PRIM_ENV), us(0x1D969C8) + 92 * ((uint32_t)var<uint8_t>(us(0x1D96A80)) ^ 1));
+		InsertPrimAutoDepth(RenderOT(), (void *)us(PRIM_ENV));
 		int32_t ox, oy;
 		GteReadScreenOffset(&ox, &oy);
 		GteSetScreenOffset(rect[2] / 2, rect[3] / 2);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x2C);
-		*(uint32_t *)(h + 0x1C) = var<uint32_t>(0x1D989E4);
+		*(uint32_t *)(h + 0x1C) = var<uint32_t>(us(0x1D989E4));
 		*(int32_t *)(h + 0x10) = -1;
 		*(int32_t *)(h + 0x20) = -1;
 		*(int16_t *)(h + 0x14) = 0;
 		*(int16_t *)(h + 0x16) = 0;
 		*(int16_t *)(h + 0x18) = 0x140;
 		*(int16_t *)(h + 0x1A) = 0xD8;
-		*(int16_t *)(h + 0x24) = var<int16_t>(0x1D989BE);
-		*(uint32_t *)(h + 4) = var<uint32_t>(0x1D98B3C);
-		if (var<uint8_t>(0x1D989BD) & 1)
+		*(int16_t *)(h + 0x24) = var<int16_t>(us(0x1D989BE));
+		*(uint32_t *)(h + 4) = var<uint32_t>(us(0x1D98B3C));
+		if (var<uint8_t>(us(0x1D989BD)) & 1)
 		{
-			BuildBoneMatricesFromPose((void *)0x1D989D0);
-			ComputeBonesWorldMatricesM(0x1D989D0, &m);
-			PacketCursor() = RenderGeometry(0x1D989C0, h, RenderOT(), 0x10, PacketCursor());
+			BuildBoneMatricesFromPose((void *)us(0x1D989D0));
+			ComputeBonesWorldMatricesM(us(0x1D989D0), &m);
+			PacketCursor() = RenderGeometry(us(0x1D989C0), h, RenderOT(), 0x10, PacketCursor());
 		}
 		FieldFree(0x2C);
 		GteSetScreenOffset(ox, oy);
-		InsertPrimAltViewport(RenderOT(), ALT_VIEWPORT);
-		SetDrawArea(PRIM_AREA, rect);
-		InsertPrimAutoDepth(RenderOT(), (void *)PRIM_AREA);
-		var<int16_t>(OFFSET_WORDS) = rect[0];
-		var<int16_t>(OFFSET_WORDS + 2) = rect[1];
-		SetDrawOffset(PRIM_OFFSET, (const void *)OFFSET_WORDS);
-		InsertPrimAutoDepth(RenderOT(), (void *)PRIM_OFFSET);
+		InsertPrimAltViewport(RenderOT(), us(ALT_VIEWPORT));
+		SetDrawArea(us(PRIM_AREA), rect);
+		InsertPrimAutoDepth(RenderOT(), (void *)us(PRIM_AREA));
+		var<int16_t>(us(OFFSET_WORDS)) = rect[0];
+		var<int16_t>(us(OFFSET_WORDS) + 2) = rect[1];
+		SetDrawOffset(us(PRIM_OFFSET), (const void *)us(OFFSET_WORDS));
+		InsertPrimAutoDepth(RenderOT(), (void *)us(PRIM_OFFSET));
 	}
 
 	static uint32_t __cdecl RestoreTask(TaskNode *tn)

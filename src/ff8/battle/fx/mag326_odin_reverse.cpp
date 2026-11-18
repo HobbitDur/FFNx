@@ -26,90 +26,90 @@ namespace o326
 
 	namespace x
 	{
-		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
-		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x56CE30)(angles, out); }
-		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
-		inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-		inline int32_t NormalizeVectorToFixedPoint(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-		inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
-		inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-		inline uint32_t MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { return fn<uint32_t (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-		inline void TransformVectorBy3x3Matrix(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); }
-		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-		inline int32_t GetDefaultEffectPosition(void *entity, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int16_t *)>(0x571400)(entity, out); }
-		inline int32_t RotationBetweenVectors(uint32_t from, const int32_t *to, int32_t *axis) { return fn<int32_t (__cdecl *)(uint32_t, const int32_t *, int32_t *)>(0x571480)(from, to, axis); }
-		inline void AxisAngleMatrix(int32_t angle, Mat4x3 *out, const int32_t *axis) { fn<void (__cdecl *)(int32_t, Mat4x3 *, const int32_t *)>(0x5714F0)(angle, out, axis); }
-		inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(0x571620)(n, points, work); }
-		inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(0x571690)(n, work, out, t); }
-		inline int32_t PreReadAnimation(void *header, void *cmd, int32_t id) { return fn<int32_t (__cdecl *)(void *, void *, int32_t)>(0x509440)(header, cmd, id); }
-		inline int32_t ReadAnimation(void *header, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(header, cmd); }
-		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(geom, hdr, ot, shift, cursor); }
-		inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); }
-		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x501330)(se, a, b); }
-		inline void BdPlaySummonStream(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x5018C0)(a, b, c); }
-		inline void BdTransSummonStream(uint32_t src, uint32_t state) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x501860)(src, state); }
-		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(slot); }
-		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline void CameraScriptStart(uint32_t script, const void *frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, const void *, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); }
-		inline void CameraShake(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
-		inline void ApplyActionResultToTargets(uint32_t list, uint32_t count) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x506BA0)(list, count); }
-		inline void QueueChainTransformation(void *entity, int32_t id) { fn<void (__cdecl *)(void *, int32_t)>(0x505C00)(entity, id); }
-		inline void WaitAnimSeq(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(buffer, flag); }
-		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
-		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }
-		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
-		inline void QueueVramUpload(uint32_t rect, const void *data) { fn<void (__cdecl *)(uint32_t, const void *)>(0x505DF0)(rect, data); }
-		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }
-		inline uint32_t Mag066Draw(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); }
-		inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-		inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
-		inline void GteTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }
-		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
-		inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-		inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-		inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-		inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-		inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-		inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
-		inline void GridRender(void *h, uint32_t ot, int32_t shift) { fn<void (__cdecl *)(void *, uint32_t, int32_t)>(0x62B1C0)(h, ot, shift); }
-		inline uint32_t SliceRender(void *geom, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x62D6C0)(geom, h, ot, mode, cursor); }
-		inline uint32_t SlashRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6314A0)(h, ot, mode, cursor); }
-		inline void ScreenTile(int32_t r, int32_t g, int32_t b, int32_t otz) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x62CE20)(r, g, b, otz); }
-		inline int32_t BonePosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x631050)(entity, bone, frac, out); }
+		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
+		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x56CE30))(angles, out); }
+		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(us(0x56BEF0))(m, v); }
+		inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+		inline int32_t NormalizeVectorToFixedPoint(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+		inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
+		inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+		inline uint32_t MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { return fn<uint32_t (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+		inline void TransformVectorBy3x3Matrix(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(us(0x56C600))(m, in, out); }
+		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
+		inline int32_t GetDefaultEffectPosition(void *entity, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int16_t *)>(us(0x571400))(entity, out); }
+		inline int32_t RotationBetweenVectors(uint32_t from, const int32_t *to, int32_t *axis) { return fn<int32_t (__cdecl *)(uint32_t, const int32_t *, int32_t *)>(us(0x571480))(from, to, axis); }
+		inline void AxisAngleMatrix(int32_t angle, Mat4x3 *out, const int32_t *axis) { fn<void (__cdecl *)(int32_t, Mat4x3 *, const int32_t *)>(us(0x5714F0))(angle, out, axis); }
+		inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(us(0x571620))(n, points, work); }
+		inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(us(0x571690))(n, work, out, t); }
+		inline int32_t PreReadAnimation(void *header, void *cmd, int32_t id) { return fn<int32_t (__cdecl *)(void *, void *, int32_t)>(us(0x509440))(header, cmd, id); }
+		inline int32_t ReadAnimation(void *header, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(us(0x508F90))(header, cmd); }
+		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(geom, hdr, ot, shift, cursor); }
+		inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, shift, cursor); }
+		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(us(0x501330))(se, a, b); }
+		inline void BdPlaySummonStream(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x5018C0))(a, b, c); }
+		inline void BdTransSummonStream(uint32_t src, uint32_t state) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x501860))(src, state); }
+		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(us(0x4A2900))(slot); }
+		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+		inline void CameraScriptStart(uint32_t script, const void *frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, const void *, void *, TaskQueue *, int32_t)>(us(0x63E960))(script, frame, entity, q, n); }
+		inline void CameraShake(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(us(0x5712C0))(a, b, c, d); }
+		inline void ApplyActionResultToTargets(uint32_t list, uint32_t count) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x506BA0))(list, count); }
+		inline void QueueChainTransformation(void *entity, int32_t id) { fn<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(entity, id); }
+		inline void WaitAnimSeq(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x508630))(buffer, flag); }
+		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(us(0x508500))(); }
+		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(us(0x508480))(id, dst); }
+		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(us(0x505E30))(tim); }
+		inline void QueueVramUpload(uint32_t rect, const void *data) { fn<void (__cdecl *)(uint32_t, const void *)>(us(0x505DF0))(rect, data); }
+		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(us(0x571B70))(); }
+		inline uint32_t Mag066Draw(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x650720))(h, ot, mode, cursor); }
+		inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+		inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
+		inline void GteTransFromIR() { fn<void (__cdecl *)()>(us(0x64DE90))(); }
+		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(us(0x64DE40))(); }
+		inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+		inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+		inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+		inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+		inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+		inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+		inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DDA0))(r, g, b); }
+		inline void GridRender(void *h, uint32_t ot, int32_t shift) { fn<void (__cdecl *)(void *, uint32_t, int32_t)>(us(0x62B1C0))(h, ot, shift); }
+		inline uint32_t SliceRender(void *geom, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(us(0x62D6C0))(geom, h, ot, mode, cursor); }
+		inline uint32_t SlashRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x6314A0))(h, ot, mode, cursor); }
+		inline void ScreenTile(int32_t r, int32_t g, int32_t b, int32_t otz) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(us(0x62CE20))(r, g, b, otz); }
+		inline int32_t BonePosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x631050))(entity, bone, frac, out); }
 	}
 	using namespace x;
 
-	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; }
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x24F2248); }
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x24F2268); }
-	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x24F1320); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x24F2174); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x24F1060); }
-	inline uint32_t CasterSlot() { return var<uint32_t>(0x24F0C80); }
-	inline uint8_t *Creature() { return (uint8_t *)0x24F1268; }
-	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(0x24F12A8); }
-	inline uint8_t *Model2() { return (uint8_t *)0x24F0EE8; }
-	inline Mat4x3 &Model2Mat() { return var<Mat4x3>(0x24F0F28); }
-	inline uint8_t *Model3() { return (uint8_t *)0x24F0D50; }
-	inline Mat4x3 &BoneCopy() { return var<Mat4x3>(0x24F2288); }
-	inline int16_t *BladeP0() { return (int16_t *)0x24F1310; }
-	inline int16_t *BladeP1() { return (int16_t *)0x24F1318; }
-	inline uint32_t &DoneFlags() { return var<uint32_t>(0x24F0C84); }
-	inline uint32_t MB() { return var<uint32_t>(0x24F22DC); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-	inline uint8_t *PoolA() { return var<uint8_t *>(0xE19668); }
-	inline uint8_t *PoolB() { return var<uint8_t *>(0xE1966C); }
-	inline uint8_t *PoolC() { return var<uint8_t *>(0xE19670); }
-	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(0x1D972C0 + 156 * slot); }
+	inline bool Paused() { return (var<uint32_t>(us(0x1D96A9C)) & 0x201) != 0; }
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(us(0x24F2248)); }
+	inline Mat4x3 &Frame() { return var<Mat4x3>(us(0x24F2268)); }
+	inline TaskQueue &SubQueue() { return var<TaskQueue>(us(0x24F1320)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(us(0x24F2174)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(us(0x24F1060)); }
+	inline uint32_t CasterSlot() { return var<uint32_t>(us(0x24F0C80)); }
+	inline uint8_t *Creature() { return (uint8_t *)us(0x24F1268); }
+	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(us(0x24F12A8)); }
+	inline uint8_t *Model2() { return (uint8_t *)us(0x24F0EE8); }
+	inline Mat4x3 &Model2Mat() { return var<Mat4x3>(us(0x24F0F28)); }
+	inline uint8_t *Model3() { return (uint8_t *)us(0x24F0D50); }
+	inline Mat4x3 &BoneCopy() { return var<Mat4x3>(us(0x24F2288)); }
+	inline int16_t *BladeP0() { return (int16_t *)us(0x24F1310); }
+	inline int16_t *BladeP1() { return (int16_t *)us(0x24F1318); }
+	inline uint32_t &DoneFlags() { return var<uint32_t>(us(0x24F0C84)); }
+	inline uint32_t MB() { return var<uint32_t>(us(0x24F22DC)); }
+	inline uint32_t &Cursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t OT() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint8_t *PoolA() { return var<uint8_t *>(us(0xE19668)); }
+	inline uint8_t *PoolB() { return var<uint8_t *>(us(0xE1966C)); }
+	inline uint8_t *PoolC() { return var<uint8_t *>(us(0xE19670)); }
+	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(us(0x1D972C0) + 156 * slot); }
 	static const uint32_t HIST_A = 0x24F0BD0;
 	static const uint32_t HIST_B = 0x24F0C28;
 	static const uint32_t SPLINE_A = 0x24F1068;
@@ -226,19 +226,19 @@ namespace o326
 		return left ? 0 : TASK_END;
 	}
 
-	static void HideParty() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) *(uint8_t *)a |= 2; }
-	static void ShowParty() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) *(uint8_t *)a &= 0xFD; }
+	static void HideParty() { for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) *(uint8_t *)a |= 2; }
+	static void ShowParty() { for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) *(uint8_t *)a &= 0xFD; }
 
 	static void SpawnGrids()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_GridATask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xE4A8;
 		n->p14 = (int16_t)0xEE6C;
 		n->a18 = 0x400;
 		n->s1C = 0x3000;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridBTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_GridBTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xE570;
@@ -249,14 +249,14 @@ namespace o326
 
 	static void SpawnGrids2()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridCTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_GridCTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xCD38;
 		n->p14 = (int16_t)0xEE6C;
 		n->a18 = 0;
 		n->s1C = 0x3000;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GridDTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_GridDTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->a18 = 0;
@@ -267,17 +267,17 @@ namespace o326
 
 	static void SpawnIntro()
 	{
-		Node24 *w = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_WarpTask);
+		Node24 *w = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_WarpTask));
 		w->c = 0;
 		int32_t r = CrtRand() % 0x1000;
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GlowTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_GlowTask));
 		w->a18 = (int16_t)r;
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
 		n->p14 = 0;
 		n->s1C = 0xB00;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_StreakTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_StreakTask));
 		n->c = 0;
 		n->e = 1;
 		n->p10 = -50;
@@ -286,7 +286,7 @@ namespace o326
 		n->s1C = 0xC00;
 		n->s1E = -4;
 		n->s20 = 0x500;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_StreakTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_StreakTask));
 		n->e = 1;
 		n->c = 0;
 		n->p10 = 0x5A;
@@ -303,7 +303,7 @@ namespace o326
 		static const int16_t z[4] = { (int16_t)0xEE6C, (int16_t)0xFBB4, (int16_t)0xEE6C, (int16_t)0xFBB4 };
 		for (int i = 0; i < 4; i++)
 		{
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_WallTask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_WallTask));
 			bool odd = (i & 1) != 0;
 			n->c = 0;
 			n->e = odd ? 1 : 0;
@@ -317,7 +317,7 @@ namespace o326
 			n->s1E = odd ? (int16_t)0x21 : (int16_t)-33;
 			n->s20 = n->s1E;
 		}
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_ShockTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_ShockTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->a18 = 0;
@@ -334,7 +334,7 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		ComposeAffineTransform(&Camera(), &RootMatrix(), &Frame());
-		uint32_t flags = var<uint32_t>(0x1D96A9C);
+		uint32_t flags = var<uint32_t>(us(0x1D96A9C));
 		if (flags & 0x201)
 		{
 			if (flags & 1) return 0;
@@ -342,20 +342,20 @@ namespace o326
 		}
 		if (n->c == 0)
 		{
-			CameraScriptStart(0xE197D0, &RootMatrix(), Creature(), &SubQueue(), 0);
-			BdTransSummonStream(0xEECC2C, STREAM_STATE);
-			VoiceSlot() = ClaimVoiceSlot((const void *)0xE194E4, 1, 0x80);
+			CameraScriptStart(us(0xE197D0), &RootMatrix(), Creature(), &SubQueue(), 0);
+			BdTransSummonStream(us(0xEECC2C), us(STREAM_STATE));
+			VoiceSlot() = ClaimVoiceSlot((const void *)us(0xE194E4), 1, 0x80);
 		}
 		int32_t c = n->c;
 		if (c < 12)
 		{
 			if (c == 1)
 			{
-				BdPlaySE(0xE1964C, 0, 0x80);
+				BdPlaySE(us(0xE1964C), 0, 0x80);
 				CharacterLoad(0x2E1, MB() + 0x14800);
 			}
 			else if (c == 6) SpawnGrids();
-			else if (c == 10) LinkTask(ORIG_DebrisTask);
+			else if (c == 10) LinkTask(us(ORIG_DebrisTask));
 		}
 		else if ((c -= 12) < 0x1C)
 		{
@@ -368,25 +368,25 @@ namespace o326
 			else if (c == 10)
 			{
 				if (LoadState() < 0) return 0;
-				CharacterLoad(0x2E3, 0xEECC2C);
+				CharacterLoad(0x2E3, us(0xEECC2C));
 			}
 		}
 		else if ((c -= 0x1C) < 0x17)
 		{
 			if (c == 0x10) Stream();
 			else if (c == 0) SpawnIntro();
-			else if (c == 0xC) LinkTask(ORIG_CreatureTask);
+			else if (c == 0xC) LinkTask(us(ORIG_CreatureTask));
 		}
 		else if ((c -= 0x17) >= 0x1C)
 		{
 			c -= 0x1C;
 			if (c < 0x19)
 			{
-				if (c == 0x14) BdPlaySE(0xE19650, 0, 0x80);
+				if (c == 0x14) BdPlaySE(us(0xE19650), 0, 0x80);
 			}
 			else if ((c -= 0x19) < 0x23)
 			{
-				if (c == 0x11) BdTransSummonStream(0xEECC2C, STREAM_STATE);
+				if (c == 0x11) BdTransSummonStream(us(0xEECC2C), us(STREAM_STATE));
 				else if (c == 0x16) Stream();
 				else if (c == 1)
 				{
@@ -406,12 +406,12 @@ namespace o326
 				else if (c == 0xC)
 				{
 					if (LoadState() < 0) return 0;
-					BdTransSummonStream(SummonData(), STREAM_STATE);
+					BdTransSummonStream(SummonData(), us(STREAM_STATE));
 				}
 			}
 			else if ((c -= 0x14) < 0xC)
 			{
-				if (c == 0) BdPlaySE(0xE19654, 0, 0x80);
+				if (c == 0) BdPlaySE(us(0xE19654), 0, 0x80);
 			}
 			else if ((c -= 0xC) < 0xC) {}
 			else if ((c -= 0xC) < 0x17)
@@ -432,17 +432,17 @@ namespace o326
 			{
 				if (c == 0)
 				{
-					BdPlaySE(0xE19658, 0, 0x80);
+					BdPlaySE(us(0xE19658), 0, 0x80);
 					if (LoadState() < 0) return 0;
-					BdTransSummonStream(SummonData(), STREAM_STATE);
-					CharacterLoad(0x2E8, var<uint32_t>(0x24F22E4));
+					BdTransSummonStream(SummonData(), us(STREAM_STATE));
+					CharacterLoad(0x2E8, var<uint32_t>(us(0x24F22E4)));
 				}
 			}
 			else if ((c -= 0x46) < 0x3C)
 			{
 				if (c == 0)
 				{
-					BdPlaySE(0xE1965C, 0, 0x80);
+					BdPlaySE(us(0xE1965C), 0, 0x80);
 					QueueTIMUpload(MB() + 0x14800);
 					QueueChainTransformation(Entity(CasterSlot()), 1);
 					SpawnGrids2();
@@ -454,8 +454,8 @@ namespace o326
 				}
 				else if (c == 1)
 				{
-					LinkTask(ORIG_GhostTask);
-					LinkTask(ORIG_SwordTask);
+					LinkTask(us(ORIG_GhostTask));
+					LinkTask(us(ORIG_SwordTask));
 				}
 				else if (c == 0x1B) CameraShake(2, 1, 2, 0xFF);
 			}
@@ -463,10 +463,10 @@ namespace o326
 			{
 				if (c == 0)
 				{
-					BdPlaySE(0xE19660, 0, 0x80);
-					LinkTask(ORIG_FadeATask);
-					LinkTask(ORIG_FadeBTask);
-					LinkTask(ORIG_TintTask);
+					BdPlaySE(us(0xE19660), 0, 0x80);
+					LinkTask(us(ORIG_FadeATask));
+					LinkTask(us(ORIG_FadeBTask));
+					LinkTask(us(ORIG_TintTask));
 					ShowParty();
 				}
 			}
@@ -494,7 +494,7 @@ namespace o326
 		}
 		n->c++;
 		if (n->c < 0x19A) return 0;
-		LinkTask(ORIG_EndTask);
+		LinkTask(us(ORIG_EndTask));
 		HideParty();
 		SetScreenFlash(0, 0);
 		return TASK_END;
@@ -674,7 +674,7 @@ namespace o326
 		*(uint32_t *)(h + 0x14) = 0x1000;
 		*(uint32_t *)(h + 0xC) = 0x1000;
 		ff8fx::copy<(0x20)>(s + 8, &Camera());
-		*(uint32_t *)h = 0xE10C80;
+		*(uint32_t *)h = us(0xE10C80);
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 2;
 		GteSetLightMatrix(s + 8);
@@ -683,7 +683,7 @@ namespace o326
 
 	static void DebrisSetupB(uint8_t *h, uint8_t *s)
 	{
-		*(uint32_t *)h = 0xE10CA8;
+		*(uint32_t *)h = us(0xE10CA8);
 		*(int16_t *)(h + 0x24) = 0x200;
 		*(int16_t *)(s + 0) = 0x400;
 		*(int16_t *)(s + 2) = 0;
@@ -774,7 +774,7 @@ namespace o326
 	static uint32_t __cdecl WarpTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		uint8_t *src = var<uint8_t *>(0x24F22E4);
+		uint8_t *src = var<uint8_t *>(us(0x24F22E4));
 		uint8_t *dst = src + 0x4000;
 		int32_t a1 = n->a18, a2 = n->a18;
 		uint8_t *row = dst;
@@ -792,7 +792,7 @@ namespace o326
 			int32_t base = (0x7F - sy) << 7;
 			for (int32_t x = 0; x < 0x80; x++) row[x] = src[((x - off) & 0x7F) + base];
 		}
-		QueueVramUpload(0xE196B8, dst);
+		QueueVramUpload(us(0xE196B8), dst);
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + 0x20);
 		n->c++;
@@ -813,7 +813,7 @@ namespace o326
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x90);
-		*(uint32_t *)h = 0xE163F8;
+		*(uint32_t *)h = us(0xE163F8);
 		*(uint16_t *)(h + 0x1C) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = c;
@@ -847,14 +847,14 @@ namespace o326
 		m.t[1] = n->p12;
 		int32_t sc[3];
 		sc[0] = n->s1C;
-		m.t[2] = var<int16_t>(0x1D8E038);
+		m.t[2] = var<int16_t>(us(0x1D8E038));
 		sc[2] = n->s20;
 		sc[1] = n->s20;
 		Scale3DMatrix(&m, sc);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE15D10;
+		*(uint32_t *)h = us(0xE15D10);
 		*(uint32_t *)(h + 0xC) = 0x800;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -893,7 +893,7 @@ namespace o326
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = n->e != 0 ? 0xE17450 : 0xE16CF0;
+		*(uint32_t *)h = n->e != 0 ? us(0xE17450) : us(0xE16CF0);
 		*(int32_t *)(h + 0xC) = n->p16;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -930,7 +930,7 @@ namespace o326
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE17BB0;
+		*(uint32_t *)h = us(0xE17BB0);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		Cursor() = RenderPrimModel(h, OT(), 2, Cursor());
@@ -995,7 +995,7 @@ namespace o326
 		uint8_t *h = (uint8_t *)FieldAlloc(0x4C);
 		ComposeAffineTransform(frame, (const Mat4x3 *)(E + 0x40), (Mat4x3 *)h);
 		ComputeBonesWorldMatrices(E + 0x60, h);
-		*(uint32_t *)(h + 0x30) = var<uint32_t>(0x1D969A8);
+		*(uint32_t *)(h + 0x30) = var<uint32_t>(us(0x1D969A8));
 		*(uint32_t *)(h + 0x24) = scratch;
 		*(uint16_t *)(h + 0x34) = 0;
 		*(uint16_t *)(h + 0x36) = 0;
@@ -1010,11 +1010,11 @@ namespace o326
 		FieldFree(0x4C);
 	}
 
-	static uint32_t Scratch() { return var<uint32_t>(0xE196B0); }
+	static uint32_t Scratch() { return var<uint32_t>(us(0xE196B0)); }
 
 	static void SpawnRings()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RingATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_RingATask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
@@ -1023,7 +1023,7 @@ namespace o326
 		n->s1C = 0xE00;
 		n->s22 = 0x555;
 		n->s20 = 0x555;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_RingBTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_RingBTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = 0;
@@ -1036,14 +1036,14 @@ namespace o326
 
 	static void SpawnFadeIn()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_FadeInTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_FadeInTask));
 		n->c = 0;
 		n->e = 0;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_FlashTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_FlashTask));
 		n->c = 0;
 		n->e = 0xA10;
 		n->s1C = 0xFF;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_MorphTask);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_MorphTask));
 		n->c = 0;
 		n->s1C = 0x400;
 		n->s20 = 0x400;
@@ -1051,39 +1051,39 @@ namespace o326
 
 	static void SpawnSparks()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SparkTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_SparkTask));
 		n->c = 0;
-		for (uint32_t a = 0x24F0C88; a < 0x24F0CC4; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = us(0x24F0C88); a < us(0x24F0CC4); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	static void SpawnSparks2()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_Spark2Task);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_Spark2Task));
 		n->c = 0;
 		n->e = 0x1E;
 		n->a18 = 1;
-		n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_Spark2Task);
+		n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_Spark2Task));
 		n->c = 0;
 		n->e = 0x34;
 		n->a18 = 2;
-		for (uint32_t a = TRAIL_RECS; a < 0x24F2248; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = us(TRAIL_RECS); a < us(0x24F2248); a += 0x14) *(uint32_t *)a = 0;
 		for (uint32_t k = 0; k < 0x3C; k += 0x14)
 		{
-			*(uint32_t *)(0x24F0C88 + k) = 0;
-			*(uint32_t *)(0x24F0DF0 + k) = 0;
+			*(uint32_t *)(us(0x24F0C88) + k) = 0;
+			*(uint32_t *)(us(0x24F0DF0) + k) = 0;
 		}
 	}
 
 	static void SpawnTrail()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_TrailTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_TrailTask));
 		n->c = 0;
-		for (uint32_t a = TRAIL_RECS; a < 0x24F2248; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = us(TRAIL_RECS); a < us(0x24F2248); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	static void SpawnBurstA()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BurstATask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_BurstATask));
 		n->c = 0;
 		GetDefaultEffectPosition(Entity(CasterSlot()), &n->p10);
 		n->a18 = (int16_t)(CrtRand() % 0x1000);
@@ -1093,7 +1093,7 @@ namespace o326
 
 	static void SpawnBurstB()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BurstBTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_BurstBTask));
 		n->c = 0;
 		n->a18 = (int16_t)(CrtRand() % 0x1000);
 		n->s1C = 0x600;
@@ -1102,13 +1102,13 @@ namespace o326
 
 	static void SpawnBlood()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BloodTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_BloodTask));
 		n->c = 0;
 		n->e = 4;
 		GetEffectSpawnPosition(Creature(), 0xF1, 0, &n->p10);
 		n->p10 = 0x320;
 		n->p12 = 0;
-		Node24 *m = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_BloodTask);
+		Node24 *m = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_BloodTask));
 		int16_t x = n->p10, z = n->p14;
 		m->c = 0;
 		m->p12 = 0;
@@ -1119,10 +1119,10 @@ namespace o326
 
 	static void SpawnSlashes()
 	{
-		for (uint32_t e = 0xE19710; e < 0xE19728; e += 8)
+		for (uint32_t e = us(0xE19710); e < us(0xE19728); e += 8)
 		{
 			const int16_t *t = (const int16_t *)e;
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashATask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_SlashATask));
 			n->e = t[3];
 			int16_t z = t[2];
 			n->p10 = t[0];
@@ -1136,7 +1136,7 @@ namespace o326
 			n->s22 = z;
 			for (int i = 0; i < 2; i++)
 			{
-				Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashBTask);
+				Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_SlashBTask));
 				u->e = n->e;
 				*(uint32_t *)&u->p10 = *(const uint32_t *)&n->p10;
 				*(uint32_t *)&u->p14 = *(const uint32_t *)&n->p14;
@@ -1150,8 +1150,8 @@ namespace o326
 				u->s22 = cc;
 			}
 		}
-		const int16_t *t = (const int16_t *)0xE19728;
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashCTask);
+		const int16_t *t = (const int16_t *)us(0xE19728);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_SlashCTask));
 		n->e = t[3];
 		int16_t z = t[2];
 		n->p10 = t[0];
@@ -1165,7 +1165,7 @@ namespace o326
 		n->s22 = z;
 		for (int i = 0; i < 4; i++)
 		{
-			Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SlashDTask);
+			Node24 *u = (Node24 *)AddTaskToQueue(&SubQueue(), us(ORIG_SlashDTask));
 			u->e = n->e;
 			*(uint32_t *)&u->p10 = *(const uint32_t *)&n->p10;
 			*(uint32_t *)&u->p14 = *(const uint32_t *)&n->p14;
@@ -1216,7 +1216,7 @@ namespace o326
 	static void CreatureSliceDraw(uint8_t *h, uint8_t *E, const Mat4x3 *m1, const Mat4x3 *m2, const Mat4x3 *frame, uint32_t scratch)
 	{
 		if (!(E[0] & 0x20))
-			Cursor() = DrawShadow(E, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, Cursor());
+			Cursor() = DrawShadow(E, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, Cursor());
 		ComposeAffineTransform(frame, m1, (Mat4x3 *)(h + 0x190));
 		ComposeAffineTransform(frame, m2, (Mat4x3 *)(h + 0x1B0));
 		*(uint32_t *)(h + 4) = scratch;
@@ -1290,17 +1290,17 @@ namespace o326
 		uint8_t *E = Creature();
 		if (n->c == 0)
 		{
-			ResetRotation((void *)0x24F12A8);
-			var<uint16_t>(0x24F12B8) = 0x2000;
-			var<uint16_t>(0x24F12B0) = 0x2000;
-			var<uint16_t>(0x24F12A8) = 0x2000;
-			var<int32_t>(0x24F12C0) = 0;
-			var<int32_t>(0x24F12BC) = 0;
-			var<int32_t>(0x24F12C4) = 0x708;
-			ModelInit(E, (uint8_t *)0x24F22E8, (uint8_t *)MB(), 0xF);
+			ResetRotation((void *)us(0x24F12A8));
+			var<uint16_t>(us(0x24F12B8)) = 0x2000;
+			var<uint16_t>(us(0x24F12B0)) = 0x2000;
+			var<uint16_t>(us(0x24F12A8)) = 0x2000;
+			var<int32_t>(us(0x24F12C0)) = 0;
+			var<int32_t>(us(0x24F12BC)) = 0;
+			var<int32_t>(us(0x24F12C4)) = 0x708;
+			ModelInit(E, (uint8_t *)us(0x24F22E8), (uint8_t *)MB(), 0xF);
 			E[0] |= 1;
-			LinkTask(ORIG_BladeTask);
-			var<uint32_t>(0x24F12E4) = 7;
+			LinkTask(us(ORIG_BladeTask));
+			var<uint32_t>(us(0x24F12E4)) = 7;
 		}
 		FX_HELD(held_note_slice_clear();)
 		int32_t c = n->c;
@@ -1310,20 +1310,20 @@ namespace o326
 			if (c == 0) SetAnim(E, 0);
 			else if (c == 3)
 			{
-				LinkTask(ORIG_SmokeTask);
+				LinkTask(us(ORIG_SmokeTask));
 				SpawnRings();
-				LinkTask(ORIG_DustTask);
+				LinkTask(us(ORIG_DustTask));
 			}
 			goto draw_advance;
 		}
 		if ((c -= 12) < 0x1C)
 		{
-			var<uint16_t>(0x24F12B8) = 0x1000;
-			var<uint16_t>(0x24F12B0) = 0x1000;
-			var<uint16_t>(0x24F12A8) = 0x1000;
+			var<uint16_t>(us(0x24F12B8)) = 0x1000;
+			var<uint16_t>(us(0x24F12B0)) = 0x1000;
+			var<uint16_t>(us(0x24F12A8)) = 0x1000;
 			if (Paused()) goto draw;
 			if (c == 0) SetAnim(E, 1);
-			else if (c == 9) LinkTask(ORIG_MistTask);
+			else if (c == 9) LinkTask(us(ORIG_MistTask));
 			goto advance_draw;
 		}
 		if ((c -= 0x1C) < 0xD)
@@ -1376,16 +1376,16 @@ namespace o326
 			if (Paused()) goto draw_advance;
 			if (c == 0)
 			{
-				var<int32_t>(0x24F12BC) = 0xD2;
-				var<int32_t>(0x24F12C4) = (int32_t)n->p14 + 0x4B0;
+				var<int32_t>(us(0x24F12BC)) = 0xD2;
+				var<int32_t>(us(0x24F12C4)) = (int32_t)n->p14 + 0x4B0;
 				SetAnim(E, 5);
 				CameraShake(4, 6, 0xC, 0xFF);
-				var<int32_t>(0x24F12C4) = (int32_t)((uint32_t)var<int32_t>(0x24F12C4) - 0x1C2u);
+				var<int32_t>(us(0x24F12C4)) = (int32_t)((uint32_t)var<int32_t>(us(0x24F12C4)) - 0x1C2u);
 			}
-			else if (c == 0xA) var<uint32_t>(0x24F12E4) = 3;
+			else if (c == 0xA) var<uint32_t>(us(0x24F12E4)) = 3;
 			else if (c < 0xA)
 			{
-				var<int32_t>(0x24F12C4) = (int32_t)((uint32_t)var<int32_t>(0x24F12C4) - 0x1C2u);
+				var<int32_t>(us(0x24F12C4)) = (int32_t)((uint32_t)var<int32_t>(us(0x24F12C4)) - 0x1C2u);
 				if (c == 3) SpawnTrail();
 			}
 			goto draw_advance;
@@ -1451,11 +1451,11 @@ namespace o326
 		}
 		int16_t c = n->c;
 		int32_t v = c >= 1 ? (int32_t)c * 12 - 12 : 0;
-		var<uint32_t>(0x24F1290) = Rgb(v);
+		var<uint32_t>(us(0x24F1290)) = Rgb(v);
 		if (Paused()) return 0;
 		n->c = (int16_t)(c + 1);
 		if (n->c < 0xB) return 0;
-		var<uint32_t>(0x24F1290) = 0x808080;
+		var<uint32_t>(us(0x24F1290)) = 0x808080;
 		return TASK_END;
 	}
 
@@ -1475,12 +1475,12 @@ namespace o326
 	static int32_t FlashDepth()
 	{
 		int32_t d[3];
-		d[0] = (int32_t)var<int16_t>(0xB8B7F8) - (int32_t)var<int16_t>(0xB8B7F0);
-		d[1] = (int32_t)var<int16_t>(0xB8B7FA) - (int32_t)var<int16_t>(0xB8B7F2);
-		d[2] = (int32_t)var<int16_t>(0xB8B7FC) - (int32_t)var<int16_t>(0xB8B7F4);
+		d[0] = (int32_t)var<int16_t>(us(0xB8B7F8)) - (int32_t)var<int16_t>(us(0xB8B7F0));
+		d[1] = (int32_t)var<int16_t>(us(0xB8B7FA)) - (int32_t)var<int16_t>(us(0xB8B7F2));
+		d[2] = (int32_t)var<int16_t>(us(0xB8B7FC)) - (int32_t)var<int16_t>(us(0xB8B7F4));
 		NormalizeVectorToFixedPoint(d, d);
 		int16_t p[4];
-		ff8fx::copy<(8)>(p, (const void *)0xB8B7F8);
+		ff8fx::copy<(8)>(p, (const void *)us(0xB8B7F8));
 		p[0] = (int16_t)(p[0] + (int16_t)(mul32(d[0], 200) >> 12));
 		p[1] = (int16_t)(p[1] + (int16_t)(mul32(d[1], 200) >> 12));
 		p[2] = (int16_t)(p[2] + (int16_t)(mul32(d[2], 200) >> 12));
@@ -1514,12 +1514,12 @@ namespace o326
 		sc[0] = n->s1C;
 		Scale3DMatrix(&m, sc);
 		int32_t d[3];
-		d[0] = (int32_t)var<int16_t>(0xB8B7F8) - (int32_t)var<int16_t>(0xB8B7F0);
-		d[1] = (int32_t)var<int16_t>(0xB8B7FA) - (int32_t)var<int16_t>(0xB8B7F2);
-		d[2] = (int32_t)var<int16_t>(0xB8B7FC) - (int32_t)var<int16_t>(0xB8B7F4);
+		d[0] = (int32_t)var<int16_t>(us(0xB8B7F8)) - (int32_t)var<int16_t>(us(0xB8B7F0));
+		d[1] = (int32_t)var<int16_t>(us(0xB8B7FA)) - (int32_t)var<int16_t>(us(0xB8B7F2));
+		d[2] = (int32_t)var<int16_t>(us(0xB8B7FC)) - (int32_t)var<int16_t>(us(0xB8B7F4));
 		NormalizeVectorToFixedPoint(d, d);
 		int16_t p[4];
-		ff8fx::copy<(8)>(p, (const void *)0xB8B7F8);
+		ff8fx::copy<(8)>(p, (const void *)us(0xB8B7F8));
 		p[0] = (int16_t)(p[0] + (int16_t)(mul32(d[0], 200) >> 13));
 		p[1] = (int16_t)(p[1] + (int16_t)(mul32(d[1], 200) >> 13));
 		p[2] = (int16_t)(p[2] + (int16_t)(mul32(d[2], 200) >> 13));
@@ -1530,7 +1530,7 @@ namespace o326
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE148E8;
+		*(uint32_t *)h = us(0xE148E8);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		if (fade)
@@ -1539,7 +1539,7 @@ namespace o326
 			*(int32_t *)(h + 0xC) = fade_value;
 		}
 		int32_t w = ComputeSin(sin_arg);
-		const int16_t *a = (const int16_t *)0xE148F0, *b = (const int16_t *)0xE15668;
+		const int16_t *a = (const int16_t *)us(0xE148F0), *b = (const int16_t *)us(0xE15668);
 		int16_t *o = (int16_t *)vbuf;
 		for (int j = 0; j < 0x7E; j++, a += 4, b += 4, o += 4)
 		{
@@ -1585,7 +1585,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE10FB0;
+		*(uint32_t *)h = us(0xE10FB0);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		LitSetup(&Frame(), s, 0, 0, 0x28);
@@ -1655,7 +1655,7 @@ namespace o326
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE18150;
+		*(uint32_t *)h = us(0xE18150);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (fade)
@@ -1703,7 +1703,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE108E8;
+		*(uint32_t *)h = us(0xE108E8);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		LitSetup(&Frame(), s, 0, -40, 0x28);
@@ -1760,7 +1760,7 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		*(uint32_t *)h = 0xE108E8;
+		*(uint32_t *)h = us(0xE108E8);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		int32_t count = 0;
@@ -1852,10 +1852,10 @@ namespace o326
 		{
 			const uint32_t *e = (const uint32_t *)(table + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * n) = e[1];
-			var<uint32_t>(HIST_A + 8 * n + 4) = e[2];
-			var<uint32_t>(HIST_B + 8 * n) = e[3];
-			var<uint32_t>(HIST_B + 8 * n + 4) = e[4];
+			var<uint32_t>(us(HIST_A) + 8 * n) = e[1];
+			var<uint32_t>(us(HIST_A) + 8 * n + 4) = e[2];
+			var<uint32_t>(us(HIST_B) + 8 * n) = e[3];
+			var<uint32_t>(us(HIST_B) + 8 * n + 4) = e[4];
 			if (--j < 0) j = 2;
 		}
 		return n;
@@ -1897,10 +1897,10 @@ namespace o326
 	static void SplineRails(int32_t n, int32_t points, int32_t div)
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x190);
-		SplineSetup(n, HIST_A, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_A + 8 * i, t / div);
-		SplineSetup(n, HIST_B, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_B + 8 * i, t / div);
+		SplineSetup(n, us(HIST_A), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, us(SPLINE_A) + 8 * i, t / div);
+		SplineSetup(n, us(HIST_B), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, us(SPLINE_B) + 8 * i, t / div);
 		FieldFree(0x190);
 	}
 
@@ -1909,8 +1909,8 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
-		int32_t hist = BoneHistory(0x24F0C88, 0x28, n->c, s);
-		SparkSetup(&Frame(), h, s, 0xE108E8, 0x404040);
+		int32_t hist = BoneHistory(us(0x24F0C88), 0x28, n->c, s);
+		SparkSetup(&Frame(), h, s, us(0xE108E8), 0x404040);
 		int32_t count = SparkDrawPool(n, h, 1, INT_GROW5_DRAG8);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -1927,7 +1927,7 @@ namespace o326
 				r->alive = 1;
 				r->age = 0;
 				int32_t sz = CrtRand() % 0x480;
-				uint32_t pa = var<uint32_t>(SPLINE_A + 8 * j), pb = var<uint32_t>(SPLINE_A + 8 * j + 4);
+				uint32_t pa = var<uint32_t>(us(SPLINE_A) + 8 * j), pb = var<uint32_t>(us(SPLINE_A) + 8 * j + 4);
 				r->size = (int16_t)(sz + 0x380);
 				*(uint32_t *)&r->x = pa;
 				*(uint32_t *)&r->z = pb;
@@ -1935,7 +1935,7 @@ namespace o326
 				r->y = (int16_t)(r->y + (int16_t)(CrtRand() % 10 - 5));
 				r->z = (int16_t)(r->z + (int16_t)(CrtRand() % 10 - 5));
 				int32_t sp = CrtRand() % 0xF + 0x19;
-				const int16_t *d = (const int16_t *)(SPLINE_B + 8 * j);
+				const int16_t *d = (const int16_t *)(us(SPLINE_B) + 8 * j);
 				int32_t k = CrtRand() % 10;
 				r->vx = (int16_t)(k + (mul32(d[0], sp) >> 12) - 5);
 				k = CrtRand() % 10;
@@ -1954,9 +1954,9 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
-		uint32_t table = var<uint32_t>(0xE196A4 + 4 * (int32_t)n->a18);
+		uint32_t table = var<uint32_t>(us(0xE196A4) + 4 * (int32_t)n->a18);
 		int32_t hist = BoneHistory(table, n->e, n->c, s);
-		SparkSetup(&Frame(), h, s, 0xE10E04, 0x202020);
+		SparkSetup(&Frame(), h, s, us(0xE10E04), 0x202020);
 		int32_t count = SparkDrawPool(n, h, 2, INT_GROW6_DRAG8);
 		FieldFree(0x50);
 		FieldFree(0xB4);
@@ -1973,7 +1973,7 @@ namespace o326
 				r->alive = 2;
 				r->age = 0;
 				int32_t sz = CrtRand() % 0x400;
-				uint32_t pa = var<uint32_t>(SPLINE_A + 8 * j), pb = var<uint32_t>(SPLINE_A + 8 * j + 4);
+				uint32_t pa = var<uint32_t>(us(SPLINE_A) + 8 * j), pb = var<uint32_t>(us(SPLINE_A) + 8 * j + 4);
 				r->size = (int16_t)(sz + 0x100);
 				*(uint32_t *)&r->x = pa;
 				*(uint32_t *)&r->z = pb;
@@ -1981,7 +1981,7 @@ namespace o326
 				r->y = (int16_t)(r->y + (int16_t)(CrtRand() % 20 - 10));
 				r->z = (int16_t)(r->z + (int16_t)(CrtRand() % 20 - 10));
 				int32_t sp = CrtRand() % 0xF + 0x19;
-				const int16_t *d = (const int16_t *)(SPLINE_B + 8 * j);
+				const int16_t *d = (const int16_t *)(us(SPLINE_B) + 8 * j);
 				int32_t k = CrtRand() % 20;
 				r->vx = (int16_t)(k + (mul32(d[0], sp) >> 12) - 10);
 				k = CrtRand() % 20;
@@ -2048,21 +2048,21 @@ namespace o326
 		if (o < 0) o = 0;
 		if (!draw) return;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE18B38;
+		*(uint32_t *)h = us(0xE18B38);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
-		Cursor() = RenderPrimModel(h, var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)o, 0xE, Cursor());
+		Cursor() = RenderPrimModel(h, var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)o, 0xE, Cursor());
 		FieldFree(0x58);
 	}
 
 	static uint32_t __cdecl BladeTask(TaskNode *tn)
 	{
-		if (!(var<uint8_t>(0x24F12E4) & 4)) return TASK_END;
+		if (!(var<uint8_t>(us(0x24F12E4)) & 4)) return TASK_END;
 		Node24 *n = (Node24 *)tn;
 		FX_HELD(held_note_blade(n);)
 		BladeDraw(&Frame(), &CreatureMat(), &BoneCopy(), BladeP0(), BladeP1(), n->c > 0);
 		if (Paused()) return 0;
-		uint8_t *sk = **(uint8_t ***)(0x24F12CC);
+		uint8_t *sk = **(uint8_t ***)(us(0x24F12CC));
 		n->c++;
 		ff8fx::copy<(0x20)>(&BoneCopy(), sk + 0xB30);
 		return 0;
@@ -2102,7 +2102,7 @@ namespace o326
 			a[1] = c0;
 			a[7] = c1;
 			a[3] = c1;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(*(int32_t *)(s + 8) >> 2) + 0x44, a);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(*(int32_t *)(s + 8) >> 2) + 0x44, a);
 			b[5] = *(uint32_t *)(s + 0x10);
 			b[3] = 0x3A000000;
 			b[1] = 0x3A000000;
@@ -2112,7 +2112,7 @@ namespace o326
 			b[6] = a[6];
 			b[8] = a[8];
 			b[0] = 0x8000000;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(*(int32_t *)(s + 8) >> 2) + 0x44, b);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(*(int32_t *)(s + 8) >> 2) + 0x44, b);
 			pk += 0x48;
 			pk2 += 0x48;
 		}
@@ -2124,19 +2124,19 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		uint8_t *s = (uint8_t *)FieldAlloc(0x40);
 		const int16_t *p0 = BladeP0(), *p1 = BladeP1();
-		int32_t k = var<int32_t>(0xE19674 + 4 * (int32_t)n->c);
+		int32_t k = var<int32_t>(us(0xE19674) + 4 * (int32_t)n->c);
 		int32_t *d = (int32_t *)(s + 0x30);
 		d[0] = (int32_t)p1[0] - (int32_t)p0[0];
 		d[1] = (int32_t)p1[1] - (int32_t)p0[1];
 		d[2] = (int32_t)p1[2] - (int32_t)p0[2];
 		int32_t len = Sqrt(NormalizeVectorToFixedPoint(d, d));
 		len = mul32(len, k) >> 12;
-		uint32_t w0 = var<uint32_t>(0x24F1310), w1 = var<uint32_t>(0x24F1314);
+		uint32_t w0 = var<uint32_t>(us(0x24F1310)), w1 = var<uint32_t>(us(0x24F1314));
 		*(int16_t *)(s + 0x28) = (int16_t)((mul32(d[0], len) >> 12) + (int32_t)w0);
 		*(int16_t *)(s + 0x2A) = (int16_t)((int16_t)(mul32(len, d[1]) >> 12) + p0[1]);
 		*(int16_t *)(s + 0x2C) = (int16_t)((mul32(d[2], len) >> 12) + (int32_t)w1);
 		int32_t idx = (int32_t)n->c % 10;
-		uint32_t *rec = (uint32_t *)(TRAIL_RECS + 0x14 * idx);
+		uint32_t *rec = (uint32_t *)(us(TRAIL_RECS) + 0x14 * idx);
 		rec[0] = 1;
 		rec[1] = w0;
 		rec[2] = w1;
@@ -2145,20 +2145,20 @@ namespace o326
 		int32_t cnt = 0;
 		for (int32_t j = idx; cnt < 10; cnt++)
 		{
-			const uint32_t *e = (const uint32_t *)(TRAIL_RECS + 0x14 * j);
+			const uint32_t *e = (const uint32_t *)(us(TRAIL_RECS) + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * cnt) = e[1];
-			var<uint32_t>(HIST_A + 8 * cnt + 4) = e[2];
-			const uint32_t *src = cnt == 0 ? (const uint32_t *)0x24F1318 : e + 3;
-			var<uint32_t>(HIST_B + 8 * cnt) = src[0];
-			var<uint32_t>(HIST_B + 8 * cnt + 4) = src[1];
+			var<uint32_t>(us(HIST_A) + 8 * cnt) = e[1];
+			var<uint32_t>(us(HIST_A) + 8 * cnt + 4) = e[2];
+			const uint32_t *src = cnt == 0 ? (const uint32_t *)us(0x24F1318) : e + 3;
+			var<uint32_t>(us(HIST_B) + 8 * cnt) = src[0];
+			var<uint32_t>(us(HIST_B) + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
 		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
 			SplineRails(cnt, 32, 31);
-			TrailDraw(&Frame(), SPLINE_A, SPLINE_B, s);
+			TrailDraw(&Frame(), us(SPLINE_A), us(SPLINE_B), s);
 			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
@@ -2180,10 +2180,10 @@ namespace o326
 		uint32_t col = 0x2606060;
 		for (int32_t i = 0, j = k; i < 6; i++)
 		{
-			const uint32_t *r = (const uint32_t *)(GHOST_RECS + 0x24 * j);
+			const uint32_t *r = (const uint32_t *)(us(GHOST_RECS) + 0x24 * j);
 			if (!r[0]) break;
 			ff8fx::copy<(0x20)>(&Model2Mat(), r + 1);
-			var<uint32_t>(0x24F0F10) = col;
+			var<uint32_t>(us(0x24F0F10)) = col;
 			DrawModel(E, frame, scratch);
 			col -= 0xC0C0C;
 			if (--j < 0) j = 5;
@@ -2196,21 +2196,21 @@ namespace o326
 		uint8_t *E = Model2();
 		if (n->c == 0)
 		{
-			ResetRotation((void *)0x24F0F28);
-			var<uint16_t>(0x24F0F38) = 0x1000;
-			var<uint16_t>(0x24F0F30) = 0x1000;
-			var<uint16_t>(0x24F0F28) = 0x1000;
-			var<int32_t>(0x24F0F3C) = 0xEA6;
-			var<int32_t>(0x24F0F40) = (int32_t)0xFFFFEC78;
-			var<int32_t>(0x24F0F44) = 0x1518;
-			ModelInit(E, (uint8_t *)0x24F2140, (uint8_t *)0xE18CF8, 0x10);
+			ResetRotation((void *)us(0x24F0F28));
+			var<uint16_t>(us(0x24F0F38)) = 0x1000;
+			var<uint16_t>(us(0x24F0F30)) = 0x1000;
+			var<uint16_t>(us(0x24F0F28)) = 0x1000;
+			var<int32_t>(us(0x24F0F3C)) = 0xEA6;
+			var<int32_t>(us(0x24F0F40)) = (int32_t)0xFFFFEC78;
+			var<int32_t>(us(0x24F0F44)) = 0x1518;
+			ModelInit(E, (uint8_t *)us(0x24F2140), (uint8_t *)us(0xE18CF8), 0x10);
 			SetAnim(E, 1);
 			n->p10 = (int16_t)0xFE89;
 			n->p12 = (int16_t)0xFD3C;
 			n->p14 = (int16_t)0xFD1B;
 			n->a18 = (int16_t)(CrtRand() % 0x1000);
 			n->s1A = 0x300;
-			for (uint32_t a = GHOST_RECS; a < 0x24F1060; a += 0x24) *(uint32_t *)a = 0;
+			for (uint32_t a = us(GHOST_RECS); a < us(0x24F1060); a += 0x24) *(uint32_t *)a = 0;
 		}
 		if (!Paused())
 		{
@@ -2224,14 +2224,14 @@ namespace o326
 		GhostPose(&Model2Mat(), n->a18);
 		DrawModel(E, &Frame(), Scratch());
 		int32_t k = (int32_t)n->c % 6;
-		uint32_t *rec = (uint32_t *)(GHOST_RECS + 0x24 * k);
+		uint32_t *rec = (uint32_t *)(us(GHOST_RECS) + 0x24 * k);
 		rec[0] = 1;
 		ff8fx::copy<(0x20)>(rec + 1, &Model2Mat());
 		Mat4x3 save = Model2Mat();
 		FX_HELD(held_note_ghost(n, k, save);)
 		GhostEchoes(E, k, &Frame(), Scratch());
 		Model2Mat() = save;
-		var<uint32_t>(0x24F0F10) = 0x808080;
+		var<uint32_t>(us(0x24F0F10)) = 0x808080;
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
@@ -2245,7 +2245,7 @@ namespace o326
 		m1.t[1] = 0;
 		m1.t[2] = 0;
 		Scale3DMatrix(&m1, sc);
-		uint8_t *sk = **(uint8_t ***)(0x24F0F4C);
+		uint8_t *sk = **(uint8_t ***)(us(0x24F0F4C));
 		ff8fx::copy<(0x20)>(&BoneCopy(), sk + 0x20);
 		ComposeAffineTransform(emat, &BoneCopy(), &m2);
 		GteMatrixMultiply(&m2, &m1);
@@ -2261,7 +2261,7 @@ namespace o326
 		GteSetTransVector(&m1);
 		if (!draw) return;
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE18B38;
+		*(uint32_t *)h = us(0xE18B38);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		Cursor() = RenderPrimModel(h, OT(), 3, Cursor());
@@ -2285,7 +2285,7 @@ namespace o326
 		if (n->c == 0)
 		{
 			ResetRotation((void *)mat);
-			uint8_t *buf = buf_ptr ? var<uint8_t *>(buf_ptr) : (uint8_t *)0xE18CF8;
+			uint8_t *buf = buf_ptr ? var<uint8_t *>(buf_ptr) : (uint8_t *)us(0xE18CF8);
 			var<uint16_t>(mat + 0x10) = 0x1000;
 			var<uint16_t>(mat + 8) = 0x1000;
 			var<uint16_t>(mat + 0) = 0x1000;
@@ -2311,8 +2311,8 @@ namespace o326
 		return n->c >= 0x1B ? TASK_END : 0;
 	}
 
-	static uint32_t __cdecl FadeATask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model2(), 0x24F0F28, 0x24F2140, 0); }
-	static uint32_t __cdecl FadeBTask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model3(), 0x24F0D90, 0x24F22A8, 0x24F22E4); }
+	static uint32_t __cdecl FadeATask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model2(), us(0x24F0F28), us(0x24F2140), 0); }
+	static uint32_t __cdecl FadeBTask(TaskNode *tn) { return FadeTask((Node24 *)tn, Model3(), us(0x24F0D90), us(0x24F22A8), us(0x24F22E4)); }
 
 	static void TintColor(int32_t c, uint8_t *L)
 	{
@@ -2346,9 +2346,9 @@ namespace o326
 		int32_t px, py, pz;
 		if (b)
 		{
-			px = var<int16_t>(0x24FD250);
-			py = var<int16_t>(0x24FD252);
-			pz = var<int16_t>(0x24FD254);
+			px = var<int16_t>(us(0x24FD250));
+			py = var<int16_t>(us(0x24FD252));
+			pz = var<int16_t>(us(0x24FD254));
 		}
 		else
 		{
@@ -2356,12 +2356,12 @@ namespace o326
 			py = n->p12;
 			pz = n->p14;
 		}
-		d[0] = (int32_t)var<int16_t>(0x24FD358) - px;
-		d[1] = (int32_t)var<int16_t>(0x24FD35A) - py;
-		d[2] = (int32_t)var<int16_t>(0x24FD35C) - pz;
+		d[0] = (int32_t)var<int16_t>(us(0x24FD358)) - px;
+		d[1] = (int32_t)var<int16_t>(us(0x24FD35A)) - py;
+		d[2] = (int32_t)var<int16_t>(us(0x24FD35C)) - pz;
 		NormalizeVectorToFixedPoint(d, d);
 		int32_t axis[4];
-		int32_t angle = RotationBetweenVectors(0xE19740, d, axis);
+		int32_t angle = RotationBetweenVectors(us(0xE19740), d, axis);
 		Mat4x3 m1, m2;
 		AxisAngleMatrix(angle, &m1, axis);
 		int16_t ang[4] = { 0, 0, n->a18, 0 };
@@ -2369,9 +2369,9 @@ namespace o326
 		GteMatrixMultiply(&m1, &m2);
 		if (b)
 		{
-			m2.t[1] = var<int16_t>(0x24FD252);
-			m2.t[0] = var<int16_t>(0x24FD250);
-			m2.t[2] = var<int16_t>(0x24FD254);
+			m2.t[1] = var<int16_t>(us(0x24FD252));
+			m2.t[0] = var<int16_t>(us(0x24FD250));
+			m2.t[2] = var<int16_t>(us(0x24FD254));
 		}
 		else
 		{
@@ -2388,7 +2388,7 @@ namespace o326
 		GteSetRotMatrix(&m2);
 		GteSetTransVector(&m2);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x90);
-		*(uint32_t *)h = b ? 0xE13040 : 0xE11798;
+		*(uint32_t *)h = b ? us(0xE13040) : us(0xE11798);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint16_t *)(h + 0x18) = 0;
 		*(uint16_t *)(h + 0x1A) = 0;
@@ -2397,7 +2397,7 @@ namespace o326
 		*(int32_t *)(h + 0x14) = scroll;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(uint16_t *)(h + 0x1E) = 0x80;
-		*(uint32_t *)(h + 0x24) = var<uint32_t>((b ? 0xE197B0 : 0xE19790) + 4 * (c % 8));
+		*(uint32_t *)(h + 0x24) = var<uint32_t>((b ? us(0xE197B0) : us(0xE19790)) + 4 * (c % 8));
 		if (c >= (b ? 7 : 6))
 		{
 			*(uint32_t *)(h + 0x20) = 0xF3;
@@ -2435,7 +2435,7 @@ namespace o326
 	{
 		*(int16_t *)(h + 0x24) = 8;
 		ff8fx::copy<(0x20)>(s + 8, frame);
-		*(uint32_t *)h = 0xE10E04;
+		*(uint32_t *)h = us(0xE10E04);
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -2523,17 +2523,17 @@ namespace o326
 		m.t[1] = n->p12;
 		m.t[0] = n->p10;
 		int32_t sc[3] = { scale, scale, scale };
-		m.t[2] = var<int16_t>(0x1D8E038);
+		m.t[2] = var<int16_t>(us(0x1D8E038));
 		Scale3DMatrix(&m, sc);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x6C);
 		int32_t e = n->e;
-		*(uint32_t *)h = var<uint32_t>(0xE196C0 + 4 * e);
+		*(uint32_t *)h = var<uint32_t>(us(0xE196C0) + 4 * e);
 		*(uint32_t *)(h + 8) = 0;
 		*(int32_t *)(h + 0xC) = fade_value;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
-		*(uint32_t *)(h + 0x20) = var<uint32_t>(0xE19730 + 4 * e);
+		*(uint32_t *)(h + 0x20) = var<uint32_t>(us(0xE19730) + 4 * e);
 		Cursor() = SlashRender(h, OT(), 3, Cursor());
 		FieldFree(0x6C);
 	}

@@ -25,12 +25,12 @@ namespace madrush273
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25084F4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25084F0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250850C); }
-	inline TaskQueue *QDust() { return (TaskQueue *)0x2508510; }
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x2508520; }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25084F4)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25084F0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x250850C)); }
+	inline TaskQueue *QDust() { return (TaskQueue *)us(0x2508510); }
+	inline TaskQueue *QPlay() { return (TaskQueue *)us(0x2508520); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_RootTask = 0x68D700;
 	static const uint32_t ORIG_PlayTask = 0x68D8B0;
@@ -44,12 +44,12 @@ namespace madrush273
 	static const uint32_t ARENA_B = 0x11250;
 	static const uint32_t SEQ_DUST = 0x110E5DC;
 	static const int DUST_FRAMES = 0xD;
-	static const void *const SOUND = (const void *)0x11110CC;
+	static const void *SOUND() { return (const void *)us(0x11110CC); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -149,7 +149,7 @@ namespace madrush273
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(d->pos, d->scale, -((int32_t)d->scale >> 2));
-		*(uint32_t *)h = SEQ_DUST;
+		*(uint32_t *)h = us(SEQ_DUST);
 		*(int16_t *)(h + 4) = d->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -196,7 +196,7 @@ namespace madrush273
 			const int32_t s = ComputeSin((int32_t)((uint32_t)shl32(c, 11) / 10u)) >> 11;
 			for (int32_t k = s + 1; k; k--)
 			{
-				DustNode *d = (DustNode *)AddTaskToQueue(QDust(), ORIG_DustTask);
+				DustNode *d = (DustNode *)AddTaskToQueue(QDust(), us(ORIG_DustTask));
 				if (!d) continue;
 				d->counter = 0;
 				d->scale = (int16_t)((CrtRand() & 0x400) + 0x400);
@@ -239,7 +239,7 @@ namespace madrush273
 			}
 			for (int32_t k = 0; k < (int32_t)Ctx()->actions[0].target_count; k++)
 			{
-				PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
+				PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), us(ORIG_PlayTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 0xC1);
 				p->index = (int16_t)k;
@@ -247,8 +247,8 @@ namespace madrush273
 				p->entity = Entity(Ctx()->actions[0].targets[TARGET_STRIDE * k]);
 				GetEffectSpawnPosition(p->entity, 0xF1, 0, p->anchor);
 				p->anchor[1] = *(const int16_t *)(p->entity + 0x24);
-				DecodeModelPrimLayout(MODEL_LAYOUT, p->layout, LAYOUT_BYTES);
-				BdPlaySE(SOUND, 0, 0x80);
+				DecodeModelPrimLayout(us(MODEL_LAYOUT), p->layout, LAYOUT_BYTES);
+				BdPlaySE(SOUND(), 0, 0x80);
 			}
 		}
 		int a, b;

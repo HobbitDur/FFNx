@@ -26,18 +26,18 @@ namespace megapulse287
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25562F8); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25562FC); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2556300; }
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x2556310; }
-	inline TaskQueue *QSpots() { return (TaskQueue *)0x2556320; }
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x2556330; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2556340; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556374); }
-	inline uint32_t &Flash() { return var<uint32_t>(0x255637C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556380); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25562F8)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25562FC)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2556300); }
+	inline TaskQueue *QRocks() { return (TaskQueue *)us(0x2556310); }
+	inline TaskQueue *QSpots() { return (TaskQueue *)us(0x2556320); }
+	inline TaskQueue *QArcs() { return (TaskQueue *)us(0x2556330); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2556340); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2556374)); }
+	inline uint32_t &Flash() { return var<uint32_t>(us(0x255637C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2556380)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
 
 	static const uint32_t ORIG_MasterTask = 0x6F2F20;
 	static const uint32_t ORIG_MainTask = 0x6F31A0;
@@ -64,26 +64,26 @@ namespace megapulse287
 	static const uint32_t TBL_Distance = 0x13FAFE8;
 	static const uint32_t TBL_Lengths = 0x13FEF68;
 	static const int32_t STREAM_File = 0x168;
-	static const void *const SOUND_Cannon = (const void *)0x13FAE98;
+	static const void *SOUND_Cannon() { return (const void *)us(0x13FAE98); }
 	static const uint32_t QUAD_UV0 = 0x3E14C048, QUAD_UV1 = 0xB9C078;
 	static const uint16_t QUAD_UV2 = 0xC048, QUAD_UV3 = 0xC078;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(0x704130)(bones, tri, centre, normal); }
-	inline void TransformCoordinateToCameraSpace(const void *v, int32_t *out, void *flag) { fn<void (__cdecl *)(const void *, int32_t *, void *)>(0x56C820)(v, out, flag); }
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(us(0x704130))(bones, tri, centre, normal); }
+	inline void TransformCoordinateToCameraSpace(const void *v, int32_t *out, void *flag) { fn<void (__cdecl *)(const void *, int32_t *, void *)>(us(0x56C820))(v, out, flag); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
+	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
 
 	template<typename T> inline T &AT(uint32_t a, int32_t off = 0) { return *(T *)(a + (uint32_t)off); }
 	inline int16_t &S16(uint32_t a, int32_t off) { return AT<int16_t>(a, off); }
@@ -329,7 +329,7 @@ namespace megapulse287
 			const int32_t dy = (int32_t)S16(p, sxy + 2) - S16(next, sxy + 2);
 			int32_t ay = dy < 0 ? -dy : dy;
 			if (ay >= 0x80) ay = 0x7F;
-			const int32_t dist = U8(TBL_Distance, ay * 128 + ax);
+			const int32_t dist = U8(us(TBL_Distance), ay * 128 + ax);
 			int32_t nx, ny;
 			if (prev)
 			{
@@ -466,7 +466,7 @@ namespace megapulse287
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Rock;
+		*(uint32_t *)h = us(MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -505,7 +505,7 @@ namespace megapulse287
 
 	static void SpawnArc(uint32_t model, uint32_t from, uint32_t to, uint8_t anchor, uint8_t amp_shift, uint8_t fade_shift)
 	{
-		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), ORIG_ArcTask);
+		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), us(ORIG_ArcTask));
 		if (!a) return;
 		a->amp_shift = amp_shift;
 		a->fade_shift = fade_shift;
@@ -554,7 +554,7 @@ namespace megapulse287
 			const int32_t norm = lz - 0x18;
 			if (norm > 0) sum = shl32(sum, norm);
 			else sum >>= (0x18 - lz);
-			const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(TBL_Lengths, sum * 2) << shift);
+			const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(us(TBL_Lengths), sum * 2) << shift);
 			amp = len >> 12;
 			GteSetIR0(len >> a->amp_shift);
 			GteLoadIR123(ctrl);
@@ -654,7 +654,7 @@ namespace megapulse287
 			int32_t pt[4];
 			if ((uint32_t)c < 0x24)
 			{
-				BonePoint((const int16_t *)POINT_Muzzle, pt);
+				BonePoint((const int16_t *)us(POINT_Muzzle), pt);
 				pt[3] = MainPointPad();
 				for (int k = 0; k < 4; k++) m->point[k] = pt[k];
 			}
@@ -662,7 +662,7 @@ namespace megapulse287
 				for (int k = 0; k < 4; k++) pt[k] = m->point[k];
 			if ((uint32_t)c < 0x1E)
 			{
-				SpawnArc(U32((uint32_t)Caster(), 0x64), TRI_Rows + ((uint32_t)c % 0xD) * 0x18, POINT_Muzzle, 0, 0xC, 7);
+				SpawnArc(U32((uint32_t)Caster(), 0x64), us(TRI_Rows) + ((uint32_t)c % 0xD) * 0x18, us(POINT_Muzzle), 0, 0xC, 7);
 				*Caster() |= 8;
 			}
 			else if ((uint32_t)c < 0x3C)
@@ -670,9 +670,9 @@ namespace megapulse287
 				if ((uint32_t)c >= 0x20 && (uint32_t)c < 0x26)
 					for (int32_t i = 5; i >= 0; i--)
 					{
-						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 						if (!s) continue;
-						s->seq = SEQ_Spark;
+						s->seq = us(SEQ_Spark);
 						BoneTipPoint(Caster(), i + 0x16, s->pos);
 						s->vel[2] = 0;
 						s->vel[0] = 0;
@@ -688,7 +688,7 @@ namespace megapulse287
 				}
 				if ((c & 1) == 0)
 				{
-					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_RockTask));
 					if (k)
 					{
 						const int32_t a = CrtRand() & 0x7FF;
@@ -718,11 +718,11 @@ namespace megapulse287
 			if ((uint32_t)c < 8)
 			{
 				GteSetRotMatrix(&M);
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 				int32_t base = shl32(c + 0x20, 7);
 				for (int32_t left = 4; s; )
 				{
-					s->seq = SEQ_Charge;
+					s->seq = us(SEQ_Charge);
 					const int32_t a = (CrtRand() & 0x3F) + base - 0x20;
 					const int32_t r = (CrtRand() & 0x7FF) + 0x400;
 					s->pos[0] = (int16_t)(mul32(ComputeSin(a), r) >> 12);
@@ -743,7 +743,7 @@ namespace megapulse287
 					s->shadow = 0x7D0;
 					base -= 0x400;
 					if (--left == 0) break;
-					s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 				}
 			}
 			PrimArg arg;
@@ -764,19 +764,19 @@ namespace megapulse287
 		const int32_t e = m->counter - 0x28;
 		if ((uint32_t)e < 0xC && (e & 3) == 0)
 		{
-			const int32_t idx = U8(TBL_SpotTargets, (int32_t)((uint32_t)e >> 2));
+			const int32_t idx = U8(us(TBL_SpotTargets), (int32_t)((uint32_t)e >> 2));
 			if (idx < m->ntargets)
 			{
-				SpotNode *p = (SpotNode *)AddTaskToQueue(QSpots(), ORIG_SpotTask);
+				SpotNode *p = (SpotNode *)AddTaskToQueue(QSpots(), us(ORIG_SpotTask));
 				if (p)
 				{
 					GetDefaultEffectPosition(m->targets[idx], p->pos);
 					p->pos[2] = (int16_t)(p->pos[2] - 0x1F4);
-					DecodeModelPrimLayout(MODEL_Spot, p->layout, 0x1BC);
+					DecodeModelPrimLayout(us(MODEL_Spot), p->layout, 0x1BC);
 				}
 			}
 		}
-		if (m->counter == 0) BdPlaySE(SOUND_Cannon, 0, 0x80);
+		if (m->counter == 0) BdPlaySE(SOUND_Cannon(), 0, 0x80);
 		if (m->counter == 0x37) StreamQueueLoad(STREAM_File, TexBase() + BUF_StreamDst, 0);
 		StreamPump();
 		if (m->counter == 0x41) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
@@ -810,10 +810,10 @@ namespace megapulse287
 			InitTaskQueuePool(QSpots(), (void *)(TexBase() + POOL_Spots), 0x1D0, 3);
 			InitTaskQueuePool(QRocks(), (void *)(TexBase() + POOL_Rocks), 0x20, 0x10);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x24, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x267);
-			DecodeModelPrimLayout(MODEL_Cannon, m->cannon, 0x8C4);
-			DecodeModelPrimLayout(MODEL_Beam, m->beam, 0xB8);
+			DecodeModelPrimLayout(us(MODEL_Cannon), m->cannon, 0x8C4);
+			DecodeModelPrimLayout(us(MODEL_Beam), m->beam, 0xB8);
 			for (int32_t k = 0; k < 8; k++)
 				S16(TexBase(), BUF_Profile + 2 * k) = (int16_t)ComputeSin(shl32(k, 11) / 7);
 			m->ntargets = Ctx()->actions->target_count;

@@ -25,13 +25,13 @@ namespace rough163
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23CE274); }
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23CA1A0); }
-	inline CastContext *&Context() { return var<CastContext *>(0x23CE270); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23CE580); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23CE584); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x23CA1C8; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23CD348; }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x23CE274)); }
+	inline int32_t &TargetSlot() { return var<int32_t>(us(0x23CA1A0)); }
+	inline CastContext *&Context() { return var<CastContext *>(us(0x23CE270)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23CE580)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23CE584)); }
+	inline TaskQueue *QMaster() { return (TaskQueue *)us(0x23CA1C8); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x23CD348); }
 	static const uint32_t POOL_A = 0x23CA1D8, POOL_A_END = 0x23CAB38;
 	static const uint32_t POOL_B = 0x23CAB38, POOL_B_END = 0x23CBDF8;
 	static const uint32_t POOL_C = 0x23CBDF8, POOL_C_END = 0x23CD0B8;
@@ -52,7 +52,7 @@ namespace rough163
 		ORIG_Burst = 0x5F7A80, ORIG_Pillar = 0x5F7E00, ORIG_Blade = 0x5F81D0, ORIG_Ring = 0x5F8540, ORIG_Shock = 0x5F8770,
 		ORIG_Flare = 0x5F8960, ORIG_Wave = 0x5F8B80, ORIG_Debris = 0x5F8D10, ORIG_Master = 0x5F9020, ORIG_Restore = 0x5F9090;
 
-	static const void *const SOUND = (const void *)0xDA00A8;
+	static const void *SOUND() { return (const void *)us(0xDA00A8); }
 	static const uint32_t ANIM_DATA = 0xD99DC8;
 	static const uint32_t SEQ_SPARK = 0xD9B458, SEQ_PILLAR = 0xD9B2AC;
 	static const uint32_t MODEL_GLOW = 0xD9E2D4, MODEL_SHARD = 0xD9D314, MODEL_CHIP = 0xD9E1DC, MODEL_FLASH = 0xD9EC8C,
@@ -61,35 +61,35 @@ namespace rough163
 	static const uint32_t STREAK_REF = 0xDA00B0;
 	static const uint32_t GLOW_REF = 0xDA00C0, SHARD_REF = 0xDA00D0, BLADE_REF = 0xDA00E0;
 
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
-	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DDA0))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
+	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x64E080))(h, ot, mode, cursor); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, seq); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -201,7 +201,7 @@ namespace rough163
 	static_assert(sizeof(ModelWork) == 0x68 && sizeof(PillarWork) == 0x68 && sizeof(StreakWork) == 0x90, "Rough Divide blocks");
 
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline StreakRec *Rec(int32_t i) { return (StreakRec *)(STREAK_REC + 0x38 * i); }
+	inline StreakRec *Rec(int32_t i) { return (StreakRec *)(us(STREAK_REC) + 0x38 * i); }
 
 	static void BoneFrame(uint8_t *anim_header, int32_t bone, int32_t *dir, int16_t *pos)
 	{
@@ -265,13 +265,13 @@ namespace rough163
 
 	static void AddTrail()
 	{
-		AddMain(ORIG_Trail)->c = 0;
-		for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
+		AddMain(us(ORIG_Trail))->c = 0;
+		for (uint32_t a = us(RING); a < us(RING_END); a += 0x14) var<int32_t>(a) = 0;
 	}
 
 	static void AddGlow()
 	{
-		Node24 *t = AddMain(ORIG_Glow);
+		Node24 *t = AddMain(us(ORIG_Glow));
 		t->c = 0;
 		GetEffectSpawnPosition(Caster(), 0xF1, 0, &t->w10);
 		t->w12 = 0;
@@ -282,14 +282,14 @@ namespace rough163
 
 	static void AddStreak()
 	{
-		Node24 *t = AddMain(ORIG_Streak);
+		Node24 *t = AddMain(us(ORIG_Streak));
 		t->c = 0;
 		t->w1C = 0x14;
 	}
 
 	static void AddFlash()
 	{
-		Node24 *t = AddMain(ORIG_Flash);
+		Node24 *t = AddMain(us(ORIG_Flash));
 		t->c = 0;
 		GetEffectSpawnPosition(Caster(), 0xF1, 0, &t->w10);
 		t->w12 = 0;
@@ -302,7 +302,7 @@ namespace rough163
 
 	static void AddBurst()
 	{
-		Node24 *t = AddMain(ORIG_Burst);
+		Node24 *t = AddMain(us(ORIG_Burst));
 		t->c = 0;
 		GetEffectSpawnPosition(Caster(), 0xF1, 0, &t->w10);
 		t->w12 = 0;
@@ -310,22 +310,22 @@ namespace rough163
 
 	static void AddPillar()
 	{
-		Node24 *t = AddMain(ORIG_Pillar);
+		Node24 *t = AddMain(us(ORIG_Pillar));
 		t->c = 0;
 		t->w12 = 0;
-		t->w14 = var<int16_t>(HIT_POS + 4);
+		t->w14 = var<int16_t>(us(HIT_POS) + 4);
 		t->e = 1;
 		t->w10 = *(const int16_t *)(Entity(TargetSlot()) + 0x1C);
-		var<uint32_t>(PILLAR_POS) = *(const uint32_t *)&t->w10;
-		var<uint32_t>(PILLAR_POS + 4) = *(const uint32_t *)&t->w14;
+		var<uint32_t>(us(PILLAR_POS)) = *(const uint32_t *)&t->w10;
+		var<uint32_t>(us(PILLAR_POS) + 4) = *(const uint32_t *)&t->w14;
 	}
 
 	static void AddRing()
 	{
-		Node24 *t = AddMain(ORIG_Ring);
-		*(uint32_t *)&t->w10 = var<uint32_t>(PILLAR_POS);
+		Node24 *t = AddMain(us(ORIG_Ring));
+		*(uint32_t *)&t->w10 = var<uint32_t>(us(PILLAR_POS));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(PILLAR_POS + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(us(PILLAR_POS) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		t->w1C = (int16_t)(CrtRand() % 0x200 + 0xE00);
 		const int16_t s = (int16_t)((CrtRand() % 0x400 + 0x1400) / 3);
@@ -339,12 +339,12 @@ namespace rough163
 		int32_t base = 0x1000;
 		do
 		{
-			Node24 *t = AddMain(ORIG_Shock);
+			Node24 *t = AddMain(us(ORIG_Shock));
 			t->c = 0;
 			t->e = (int16_t)i;
-			t->w10 = var<int16_t>(PILLAR_POS);
+			t->w10 = var<int16_t>(us(PILLAR_POS));
 			const int32_t r = CrtRand() % 0x190;
-			t->w14 = var<int16_t>(PILLAR_POS + 4);
+			t->w14 = var<int16_t>(us(PILLAR_POS) + 4);
 			t->w12 = (int16_t)(-1000 * i - r + 0xC8);
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			t->w1A = (int16_t)(CrtRand() % 0x64 + 0x1E);
@@ -360,10 +360,10 @@ namespace rough163
 
 	static void AddFlare()
 	{
-		Node24 *t = AddMain(ORIG_Flare);
-		*(uint32_t *)&t->w10 = var<uint32_t>(PILLAR_POS);
+		Node24 *t = AddMain(us(ORIG_Flare));
+		*(uint32_t *)&t->w10 = var<uint32_t>(us(PILLAR_POS));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(PILLAR_POS + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(us(PILLAR_POS) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		const int16_t s = (int16_t)((CrtRand() % 0x300 + 0x1400) / 3);
 		t->w1E = s;
@@ -374,11 +374,11 @@ namespace rough163
 	{
 		for (int32_t i = 0; i < 0xC; i++)
 		{
-			Node24 *t = AddMain(ORIG_Wave);
+			Node24 *t = AddMain(us(ORIG_Wave));
 			t->c = 0;
 			t->e = (int16_t)(CrtRand() % 4 + i);
-			*(uint32_t *)&t->w10 = var<uint32_t>(PILLAR_POS);
-			*(uint32_t *)&t->w14 = var<uint32_t>(PILLAR_POS + 4);
+			*(uint32_t *)&t->w10 = var<uint32_t>(us(PILLAR_POS));
+			*(uint32_t *)&t->w14 = var<uint32_t>(us(PILLAR_POS) + 4);
 			t->w10 = (int16_t)(t->w10 + (int16_t)(CrtRand() % 0xFA0 - 0x7D0));
 			t->w14 = (int16_t)(t->w14 + (int16_t)(CrtRand() % 0xFA0 - 0x7D0));
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
@@ -390,19 +390,19 @@ namespace rough163
 
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)CASTER_MAT, (Mat4x3 *)CAM_CASTER);
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)us(CASTER_MAT), (Mat4x3 *)us(CAM_CASTER));
 		if (DrawOnly()) return 0;
 		Node24 *n = (Node24 *)tn;
-		if (n->c == 0) BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+		if (n->c == 0) BindEntityModelFromComData(Caster(), us(BIND_OUT), us(ANIM_DATA));
 		int32_t c = n->c;
 		if (c < 7)
 		{
 			if (c == 0) QueueChainTransformation(Caster(), 1);
 			else if (c == 1)
 			{
-				BdPlaySE(SOUND, 0, 0x80);
+				BdPlaySE(SOUND(), 0, 0x80);
 				AddTrail();
-				AddCleared(ORIG_Sparkle);
+				AddCleared(us(ORIG_Sparkle));
 			}
 			else if (c == 4) AddGlow();
 		}
@@ -415,9 +415,9 @@ namespace rough163
 			if (c == 0) QueueChainTransformation(Caster(), 3);
 			else if (c == 7)
 			{
-				AddCleared(ORIG_HitSpark);
-				AddCleared(ORIG_Shard);
-				AddCleared(ORIG_Chip);
+				AddCleared(us(ORIG_HitSpark));
+				AddCleared(us(ORIG_Shard));
+				AddCleared(us(ORIG_Chip));
 				AddStreak();
 			}
 			else if (c == 0x12)
@@ -443,7 +443,7 @@ namespace rough163
 			if (c == 0)
 			{
 				QueueChainTransformation(Caster(), 4);
-				AddCleared(ORIG_Blade);
+				AddCleared(us(ORIG_Blade));
 			}
 		}
 		else if ((c -= 5) < 0x22)
@@ -452,7 +452,7 @@ namespace rough163
 			{
 				AddRing();
 				AddWaves();
-				AddCleared(ORIG_Debris);
+				AddCleared(us(ORIG_Debris));
 			}
 			else if (c == 7)
 			{
@@ -519,19 +519,19 @@ namespace rough163
 
 	static void TrailHitPoint(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(HIT_POS) = *(const uint32_t *)sb;
-		var<uint32_t>(HIT_POS + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)HIT_DIR;
+		var<uint32_t>(us(HIT_POS)) = *(const uint32_t *)sb;
+		var<uint32_t>(us(HIT_POS) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)us(HIT_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE_POS) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE_POS + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BASE_DIR;
-		b[0] = (int32_t)var<int16_t>(HIT_POS) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(HIT_POS + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(HIT_POS + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(us(BASE_POS)) = *(const uint32_t *)sa;
+		var<uint32_t>(us(BASE_POS) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)us(BASE_DIR);
+		b[0] = (int32_t)var<int16_t>(us(HIT_POS)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(us(HIT_POS) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(us(HIT_POS) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -565,7 +565,7 @@ namespace rough163
 			GteStoreRGB2(&w->col1);
 			pk[5] = pk[1] = w->col0;
 			pk[7] = pk[3] = w->col1;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
 			pk2[5] = w->col0;
 			pk2[3] = pk2[1] = 0x3A000000;
 			pk2[7] = w->col1;
@@ -574,7 +574,7 @@ namespace rough163
 			pk2[6] = pk[6];
 			pk2[8] = pk[8];
 			pk2[0] = 0x8000000;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
 			pk += 0x12;
 			pk2 += 0x12;
 		}
@@ -588,20 +588,20 @@ namespace rough163
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(us(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c >= TRAIL_LENGTH - 7 ? TRAIL_LENGTH - c : 7;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)us(RING), idx, want, (uint8_t *)us(PTS_A), (uint8_t *)us(PTS_B));
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_A, (const uint8_t *)SPL_B);
+			TrailSplines(cnt, (const uint8_t *)us(PTS_A), (const uint8_t *)us(PTS_B), (uint8_t *)us(SPL_A), (uint8_t *)us(SPL_B));
+			TrailHitPoint((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B));
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
+			TrailDraw((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -617,7 +617,7 @@ namespace rough163
 		d[2] = (int32_t)n->w14 - q[2];
 		const int32_t len = SqrtInt(Normalize(d, d));
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)GLOW_REF, d, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(GLOW_REF), d, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = q[0];
@@ -632,7 +632,7 @@ namespace rough163
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_GLOW;
+		*(uint32_t *)h = us(MODEL_GLOW);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 7)
@@ -678,11 +678,11 @@ namespace rough163
 		uint8_t *h = AllocHeader(0xB4);
 		w->cam = Camera();
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = us(SEQ_SPARK);
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
 		int32_t count = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			SpriteP *p = (SpriteP *)a;
 			if (!(p->flags & type)) continue;
@@ -726,9 +726,9 @@ namespace rough163
 			{
 				GetEffectSpawnPosition(Caster(), j != 0 ? 0x13 : 0x14, 0x1000, w->spawn);
 				if (w->spawn[1] <= -0x28) continue;
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
+				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0x18, 0x64);
 				if (i < 0) break;
-				SpriteP *p = (SpriteP *)(POOL_A + 0x18 * i);
+				SpriteP *p = (SpriteP *)(us(POOL_A) + 0x18 * i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x500);
@@ -738,7 +738,7 @@ namespace rough163
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x64 - 0x32));
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_Sparkle, (const Node24 *)tn);)
+		FX_HELD(held_note_pool(us(ORIG_Sparkle), (const Node24 *)tn);)
 		return SpritePoolEnd(tn, SpritePool(w, 1, false));
 	}
 
@@ -747,22 +747,22 @@ namespace rough163
 		SpriteWork *w = (SpriteWork *)FieldAlloc(0x48);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			ff8fx::copy<(8)>(w->spawn, (const void *)HIT_POS);
+			ff8fx::copy<(8)>(w->spawn, (const void *)us(HIT_POS));
 			for (int32_t j = 0; j < 2; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
+				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0x18, 0x64);
 				if (i < 0) break;
-				SpriteP *p = (SpriteP *)(POOL_A + 0x18 * i);
+				SpriteP *p = (SpriteP *)(us(POOL_A) + 0x18 * i);
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
-				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
+				ff8fx::copy<(8)>(p->pos, (const void *)us(HIT_POS));
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x50 - 0x28));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x50 - 0x28));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x50 - 0x28));
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_HitSpark, (const Node24 *)tn);)
+		FX_HELD(held_note_pool(us(ORIG_HitSpark), (const Node24 *)tn);)
 		return SpritePoolEnd(tn, SpritePool(w, 2, false));
 	}
 
@@ -775,9 +775,9 @@ namespace rough163
 			ff8fx::copy<(8)>(w->spawn, &n->w10);
 			for (int32_t j = 0; j < 8; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
+				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0x18, 0x64);
 				if (i < 0) break;
-				SpriteP *p = (SpriteP *)(POOL_A + 0x18 * i);
+				SpriteP *p = (SpriteP *)(us(POOL_A) + 0x18 * i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x580 + 0x580);
@@ -793,7 +793,7 @@ namespace rough163
 				p->vel[2] = (int16_t)(mul32(ComputeCos(a), r) >> 12);
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_Burst, n);)
+		FX_HELD(held_note_pool(us(ORIG_Burst), n);)
 		return SpritePoolEnd(tn, SpritePool(w, 4, true));
 	}
 
@@ -812,7 +812,7 @@ namespace rough163
 		w->v[0] = p->w18;
 		w->v[1] = p->w1A;
 		w->v[2] = p->w1C;
-		const int32_t angle = RotationBetweenVectors((const int32_t *)SHARD_REF, w->v, w->axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(SHARD_REF), w->v, w->axis);
 		BuildAxisAngleRotationMatrix(angle, &w->m, w->axis);
 		w->m.t[2] = p->pos[2];
 		w->m.t[0] = p->pos[0];
@@ -833,12 +833,12 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			ff8fx::copy<(8)>(w->ang, (const void *)HIT_POS);
+			ff8fx::copy<(8)>(w->ang, (const void *)us(HIT_POS));
 			for (int32_t j = 0; j < 4; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(us(POOL_B) + 0x20 * i);
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x280 + 0x280);
@@ -861,13 +861,13 @@ namespace rough163
 				p->w1C = (int16_t)v[2];
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_Shard, (const Node24 *)tn);)
+		FX_HELD(held_note_pool(us(ORIG_Shard), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_SHARD;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		*(uint32_t *)h = us(MODEL_SHARD);
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 1)) continue;
@@ -919,12 +919,12 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			ff8fx::copy<(8)>(w->ang, (const void *)HIT_POS);
+			ff8fx::copy<(8)>(w->ang, (const void *)us(HIT_POS));
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(us(POOL_B) + 0x20 * i);
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x200);
@@ -947,15 +947,15 @@ namespace rough163
 				p->w1E = (int16_t)(CrtRand() % 0x3C + 0x14);
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_Chip, (const Node24 *)tn);)
+		FX_HELD(held_note_pool(us(ORIG_Chip), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_CHIP;
+		*(uint32_t *)h = us(MODEL_CHIP);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t count = 0;
 		w->ang[1] = 0;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 2)) continue;
@@ -991,12 +991,12 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 5)
 		{
-			ff8fx::copy<(8)>(w->ang, (const void *)PILLAR_POS);
+			ff8fx::copy<(8)>(w->ang, (const void *)us(PILLAR_POS));
 			for (int32_t j = 0; j < 6; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(us(POOL_C), us(POOL_C_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_C + 0x20 * i);
+				ModelP *p = (ModelP *)(us(POOL_C) + 0x20 * i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xA00 + 0x100);
@@ -1014,15 +1014,15 @@ namespace rough163
 				p->w1E = (int16_t)(CrtRand() % 0x82 + 0x3C);
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_Debris, (const Node24 *)tn);)
+		FX_HELD(held_note_pool(us(ORIG_Debris), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		int32_t count = 0;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		w->cam = Camera();
-		*(uint32_t *)h = MODEL_CHIP;
+		*(uint32_t *)h = us(MODEL_CHIP);
 		w->ang[1] = 0;
-		for (uint32_t a = POOL_C; a < POOL_C_END; a += 0x20)
+		for (uint32_t a = us(POOL_C); a < us(POOL_C_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 4)) continue;
@@ -1088,9 +1088,9 @@ namespace rough163
 			const int32_t amp = (mul32(ComputeSin((int32_t)shl32(n->c, 11) / 10), 1500) >> 12) + 100;
 			for (int32_t j = 0; j < 2; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x20, 0x96);
 				if (i < 0) break;
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(us(POOL_B) + 0x20 * i);
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xA00 + 0x500);
@@ -1104,21 +1104,21 @@ namespace rough163
 				p->w16 = (int16_t)(CrtRand() % 0x46 + 0x32);
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_Pillar, n);)
+		FX_HELD(held_note_pool(us(ORIG_Pillar), n);)
 		uint8_t *hs = AllocHeader(0xB4);
-		*(uint32_t *)hs = SEQ_PILLAR;
+		*(uint32_t *)hs = us(SEQ_PILLAR);
 		*(int16_t *)(hs + 0x24) = 8;
 		int32_t count = 0;
 		uint8_t *hm = (uint8_t *)FieldAlloc(0x58);
 		FX_HELD(held_note_header2(hm, 0x58);)
 		*(uint32_t *)(hm + 8) = 0;
 		w->cam = Camera();
-		*(uint32_t *)hm = MODEL_PILLAR;
+		*(uint32_t *)hm = us(MODEL_PILLAR);
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
 		w->ang[0] = 0x200;
 		w->ang[1] = (int16_t)0xFE00;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 4)) continue;
@@ -1165,10 +1165,10 @@ namespace rough163
 		const int32_t c = ((Node24 *)tn)->c;
 		if (!DrawOnly() && c < 0xA)
 		{
-			const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
+			const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_END), 0x20, 0x96);
 			if (i >= 0)
 			{
-				ModelP *p = (ModelP *)(POOL_B + 0x20 * i);
+				ModelP *p = (ModelP *)(us(POOL_B) + 0x20 * i);
 				const StreakRec *r = Rec(c);
 				p->flags = 8;
 				p->life = 0;
@@ -1181,19 +1181,19 @@ namespace rough163
 				w->v[0] = (int32_t)Rec(c + 1)->pos[0] - r->pos[0];
 				w->v[2] = (int32_t)Rec(c + 1)->pos[2] - r->pos[2];
 				const int32_t len = SqrtInt(Normalize(w->v, w->v));
-				const int32_t angle = RotationBetweenVectors((const int32_t *)BLADE_REF, w->v, w->axis);
+				const int32_t angle = RotationBetweenVectors((const int32_t *)us(BLADE_REF), w->v, w->axis);
 				BuildAxisAngleRotationMatrix(angle, &Rec(c)->mat, w->axis);
 				p->w10 = (int16_t)(shl32(len, 12) / 700);
 			}
 		}
-		FX_HELD(held_note_pool(ORIG_Blade, (const Node24 *)tn);)
+		FX_HELD(held_note_pool(us(ORIG_Blade), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_BLADE;
+		*(uint32_t *)h = us(MODEL_BLADE);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->v[2] = 0;
 		w->cam = Camera();
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			ModelP *p = (ModelP *)a;
 			if (!(p->flags & 8)) continue;
@@ -1218,7 +1218,7 @@ namespace rough163
 
 	static void StreakBuild(StreakWork *w, int32_t count, int16_t width, uint8_t *vtx)
 	{
-		ff8fx::copy<(16)>(w->ref, (const void *)STREAK_REF);
+		ff8fx::copy<(16)>(w->ref, (const void *)us(STREAK_REF));
 		w->width[0] = width;
 		w->width[1] = 0;
 		w->width[2] = 0;
@@ -1313,8 +1313,8 @@ namespace rough163
 				pk2[5] = pk2[1] = w->col[0];
 				pk2[7] = pk2[3] = w->col[1];
 			}
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk1);
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk1);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
 			pk1 += 0x12;
 			pk2 += 0x12;
 		}
@@ -1330,15 +1330,15 @@ namespace rough163
 		else
 		{
 			StreakRec *r = Rec(n->c);
-			ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
-			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
+			ff8fx::copy<(8)>(r->pos, (const void *)us(HIT_POS));
+			ff8fx::copy<(16)>(r->dir, (const void *)us(HIT_DIR));
 			count = n->c + 1;
 		}
 		if (count >= 2)
 		{
 			FX_HELD(held_note_streak(n, w);)
-			StreakBuild(w, count, n->w1C, (uint8_t *)STREAK_VTX);
-			StreakDraw(w, count, n->c, shl32(n->c - 0x20, 9), (const uint8_t *)STREAK_VTX);
+			StreakBuild(w, count, n->w1C, (uint8_t *)us(STREAK_VTX));
+			StreakDraw(w, count, n->c, shl32(n->c - 0x20, 9), (const uint8_t *)us(STREAK_VTX));
 		}
 		FieldFree(0x90);
 		if (DrawOnly()) return 0;
@@ -1386,9 +1386,9 @@ namespace rough163
 	static uint32_t __cdecl FlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_Flash, n);)
+		FX_HELD(held_note_node(us(ORIG_Flash), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_FLASH, n->c, 1, mul32(n->c - 1, 682));
+		ModelRender(us(MODEL_FLASH), n->c, 1, mul32(n->c - 1, 682));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w22;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1401,9 +1401,9 @@ namespace rough163
 	static uint32_t __cdecl RingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_Ring, n);)
+		FX_HELD(held_note_node(us(ORIG_Ring), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_RING, n->c, 0xC, shl32(n->c - 0xC, 9));
+		ModelRender(us(MODEL_RING), n->c, 0xC, shl32(n->c - 0xC, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w22;
 		n->w20 = (int16_t)(n->w20 + rate);
@@ -1421,9 +1421,9 @@ namespace rough163
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Shock, n);)
+		FX_HELD(held_note_node(us(ORIG_Shock), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
-		ModelRender(MODEL_SHOCK, n->c, 8, shl32(n->c - 8, 9));
+		ModelRender(us(MODEL_SHOCK), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1436,9 +1436,9 @@ namespace rough163
 	static uint32_t __cdecl FlareTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_Flare, n);)
+		FX_HELD(held_note_node(us(ORIG_Flare), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w1C);
-		ModelRender(MODEL_FLARE, n->c, 8, shl32(n->c - 8, 9));
+		ModelRender(us(MODEL_FLARE), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
 		n->w1C = (int16_t)(n->w1C + rate);
@@ -1451,7 +1451,7 @@ namespace rough163
 	{
 		uint8_t *h = AllocHeader(0x7C);
 		*(int32_t *)(h + 0x10) = scroll;
-		*(uint32_t *)h = MODEL_WAVE;
+		*(uint32_t *)h = us(MODEL_WAVE);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x18) = 0;
@@ -1482,7 +1482,7 @@ namespace rough163
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Wave, n);)
+		FX_HELD(held_note_node(us(ORIG_Wave), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
 		WaveRender(n->c, mul32(n->w22, n->c), n->c < 4 ? shl32(4 - n->c, 0xA) : shl32(n->c - 0xA, 9));
 		if (DrawOnly()) return 0;
@@ -1499,7 +1499,7 @@ namespace rough163
 		const int alive = ExecuteTaskQueue(QMain());
 		if (!alive)
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QMaster(), ORIG_Restore);
+			RootNode *t = (RootNode *)AddTaskToQueue(QMaster(), us(ORIG_Restore));
 			t->counter = 0;
 			t->done = 0;
 		}

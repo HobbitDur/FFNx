@@ -23,31 +23,31 @@ namespace grab101
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t *ScaleVector() { return (int32_t *)0x2544E18; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2544E28); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2544E2C); }
-	inline uint8_t *&Target() { return var<uint8_t *>(0x2544E30); }
-	inline TaskQueue *QGrab() { return (TaskQueue *)0x2544E38; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2544E6C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544E70); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline int32_t *ScaleVector() { return (int32_t *)us(0x2544E18); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2544E28)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2544E2C)); }
+	inline uint8_t *&Target() { return var<uint8_t *>(us(0x2544E30)); }
+	inline TaskQueue *QGrab() { return (TaskQueue *)us(0x2544E38); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2544E6C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2544E70)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6DD1A0;
 	static const uint32_t ORIG_GrabTask = 0x6DD300;
 	static const uint32_t MODEL_Grab = 0x1321BEC;
-	static const void *const SOUND_Grab = (const void *)0x13249DC;
+	static const void *SOUND_Grab() { return (const void *)us(0x13249DC); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteLoadIRBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(rgb); }
-	inline void GteStoreIRBytes(void *rgb) { fn<void (__cdecl *)(void *)>(0x45E410)(rgb); }
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteLoadIRBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(rgb); }
+	inline void GteStoreIRBytes(void *rgb) { fn<void (__cdecl *)(void *)>(us(0x45E410))(rgb); }
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -211,7 +211,7 @@ namespace grab101
 			FX_HELD(held_note_play((prim::Layout *)g->layout, &arg);)
 			prim::play((prim::Layout *)g->layout, PartCallback, (int)&arg, 0);
 		}
-		if (g->counter == 0) BdPlaySE(SOUND_Grab, 0, 0x80);
+		if (g->counter == 0) BdPlaySE(SOUND_Grab(), 0, 0x80);
 		const int32_t e = (int32_t)g->counter - 0x26;
 		if (e < 0x10)
 		{
@@ -272,9 +272,9 @@ namespace grab101
 		{
 			r->started = 1;
 			InitTaskQueuePool(QGrab(), (void *)TexBase(), 0x2D0, 1);
-			GrabNode *g = (GrabNode *)AddTaskToQueue(QGrab(), ORIG_GrabTask);
+			GrabNode *g = (GrabNode *)AddTaskToQueue(QGrab(), us(ORIG_GrabTask));
 			Memset32(&g->counter, 0, 0xB1);
-			DecodeModelPrimLayout(MODEL_Grab, g->layout, 0x2B0);
+			DecodeModelPrimLayout(us(MODEL_Grab), g->layout, 0x2B0);
 			g->pos_xy = *(const uint32_t *)(Target() + 0x1C);
 			g->pos_z = *(const uint32_t *)(Target() + 0x20);
 			g->colour = *(const uint32_t *)(Target() + 0x2C);

@@ -31,20 +31,20 @@ namespace xatm276
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 
-	inline uint32_t &Caster() { return var<uint32_t>(0x2508278); }
-	inline uint32_t &Buffer() { return var<uint32_t>(0x2508280); }
-	inline uint32_t &Seed() { return var<uint32_t>(0x2508284); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25082A4); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
-	inline TaskQueue *QSmoke() { return (TaskQueue *)0x25082A8; }
-	inline TaskQueue *QFall() { return (TaskQueue *)0x25082B8; }
-	inline TaskQueue *QSpark() { return (TaskQueue *)0x25082C8; }
-	inline TaskQueue *QPrim() { return (TaskQueue *)0x25082D8; }
-	inline TaskQueue *QArc() { return (TaskQueue *)0x25082E8; }
-	inline TaskQueue *QEvent() { return (TaskQueue *)0x25082F8; }
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2508308; }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2508328); }
+	inline uint32_t &Caster() { return var<uint32_t>(us(0x2508278)); }
+	inline uint32_t &Buffer() { return var<uint32_t>(us(0x2508280)); }
+	inline uint32_t &Seed() { return var<uint32_t>(us(0x2508284)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25082A4)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline TaskQueue *QSmoke() { return (TaskQueue *)us(0x25082A8); }
+	inline TaskQueue *QFall() { return (TaskQueue *)us(0x25082B8); }
+	inline TaskQueue *QSpark() { return (TaskQueue *)us(0x25082C8); }
+	inline TaskQueue *QPrim() { return (TaskQueue *)us(0x25082D8); }
+	inline TaskQueue *QArc() { return (TaskQueue *)us(0x25082E8); }
+	inline TaskQueue *QEvent() { return (TaskQueue *)us(0x25082F8); }
+	inline TaskQueue *QDirector() { return (TaskQueue *)us(0x2508308); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x2508328)); }
 
 	static const uint32_t ORIG_RootTask = 0x684FA0;
 	static const uint32_t ORIG_Director = 0x6851F0;
@@ -60,8 +60,8 @@ namespace xatm276
 	static const uint32_t DEBRIS_Shapes = 0x10D4DA0;
 	static const uint32_t ARC_Lengths = 0x10D9728;
 	static const uint32_t ARC_Distance = 0x10D57A8;
-	static const void *const SOUND_Start = (const void *)0x10D4C58;
-	static const void *const SOUND_Voice = (const void *)0x10D4C5C;
+	static const void *SOUND_Start() { return (const void *)us(0x10D4C58); }
+	static const void *SOUND_Voice() { return (const void *)us(0x10D4C5C); }
 	static const uint32_t EVENTS[5] = { 0x10D56A8, 0x10D55A8, 0x10D5528, 0x10D5628, 0x10D5728 };
 
 	static const uint32_t BUF_PROFILE = 0x4304, BUF_PROFILE_END = 0x4314;
@@ -69,39 +69,39 @@ namespace xatm276
 	static const uint32_t BUF_MORPH = 0x4084;
 	static const uint32_t BUF_DIRECTOR = 0x1C30;
 
-	inline void Music_47E3C0(int32_t v) { fn<void (__cdecl *)(int32_t)>(0x47E3C0)(v); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }
-	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void GteStoreIRVertex(void *after) { fn<void (__cdecl *)(void *)>(0x703EF0)(after); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteSetRotMatrixW(const void *m) { fn<void (__cdecl *)(const void *)>(0x56BAE0)(m); }
-	inline void GteSetTransVectorW(const void *m) { fn<void (__cdecl *)(const void *)>(0x56BB30)(m); }
-	inline void GteSetRotCtrl(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x45DE00)(m); }
-	inline void GteSetTransCtrl(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x45DEF0)(m); }
-	inline void TransformGroupScreen(uint32_t *objp, uint32_t *outp, uint32_t s) { fn<void (__cdecl *)(uint32_t *, uint32_t *, uint32_t)>(0x6A2A90)(objp, outp, s); }
-	inline void TriangleFrame(uint32_t bones, uint32_t tri, void *centre, void *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, void *)>(0x704130)(bones, tri, centre, normal); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
+	inline void Music_47E3C0(int32_t v) { fn<void (__cdecl *)(int32_t)>(us(0x47E3C0))(v); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
+	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFA0))(v); }
+	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFC0))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void GteStoreIRVertex(void *after) { fn<void (__cdecl *)(void *)>(us(0x703EF0))(after); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteSetRotMatrixW(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x56BAE0))(m); }
+	inline void GteSetTransVectorW(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x56BB30))(m); }
+	inline void GteSetRotCtrl(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(us(0x45DE00))(m); }
+	inline void GteSetTransCtrl(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(us(0x45DEF0))(m); }
+	inline void TransformGroupScreen(uint32_t *objp, uint32_t *outp, uint32_t s) { fn<void (__cdecl *)(uint32_t *, uint32_t *, uint32_t)>(us(0x6A2A90))(objp, outp, s); }
+	inline void TriangleFrame(uint32_t bones, uint32_t tri, void *centre, void *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, void *)>(us(0x704130))(bones, tri, centre, normal); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
 
 	static int32_t Rnd()
 	{
@@ -290,7 +290,7 @@ namespace xatm276
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)b);
 		FrameCursor() = DrawShadow(entity, OTBase() + 0x4040, 0x10, FrameCursor());
 		ComputeBonesWorldMatrices((void *)(entity + 0x60), (void *)b);
-		U32(b, 0x24) = var<uint32_t>(0x1D98B3C);
+		U32(b, 0x24) = var<uint32_t>(us(0x1D98B3C));
 		S16(b, 0x2C) = 0;
 		S16(b, 0x2E) = 0;
 		S16(b, 0x30) = 0x140;
@@ -549,8 +549,8 @@ namespace xatm276
 		U32(B, 0x38) = Buffer() + BUF_DIRECTOR;
 		for (int i = 0; i < 7; i++)
 		{
-			U32(B, 0x6C + 8 * i) = U32(DEBRIS_Shapes, 8 * i);
-			U32(B, 0x70 + 8 * i) = U32(DEBRIS_Shapes, 8 * i + 4);
+			U32(B, 0x6C + 8 * i) = U32(us(DEBRIS_Shapes), 8 * i);
+			U32(B, 0x70 + 8 * i) = U32(us(DEBRIS_Shapes), 8 * i + 4);
 		}
 		uint32_t m = PacketCursor();
 		U32(B, 0xA4) = m;
@@ -579,7 +579,7 @@ namespace xatm276
 			S32(B, 8) = k;
 			Scale3DMatrix((Mat4x3 *)m, (const int32_t *)(B + 8));
 		}
-		U32(B, 0x1C) = var<uint32_t>(0x1D98B3C);
+		U32(B, 0x1C) = var<uint32_t>(us(0x1D98B3C));
 		U32(B, 0x24) = U32(entity, 0x28);
 		U32(B, 0x28) = U32(entity, 0x7C);
 		const uint32_t sk = U32(U32(entity, 0x64), 0);
@@ -695,7 +695,7 @@ namespace xatm276
 			const int32_t dy = ScreenPx(S16(p, 2)) - ScreenPx(S16(next, 2));
 			int32_t ay = dy < 0 ? -dy : dy;
 			if (ay >= 0x80) ay = 0x7F;
-			const int32_t dist = U8(ARC_Distance, ay * 128 + ax);
+			const int32_t dist = U8(us(ARC_Distance), ay * 128 + ax);
 			int32_t nx, ny;
 			if (prev)
 			{
@@ -816,7 +816,7 @@ namespace xatm276
 		const int32_t norm = lz - 0x18;
 		if (norm > 0) sum = shl32(sum, norm);
 		else sum >>= (0x18 - lz);
-		const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(ARC_Lengths, sum * 2) << shift);
+		const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(us(ARC_Lengths), sum * 2) << shift);
 		const int32_t amp = len >> 12;
 		GteSetIR0(len >> U8(n, 0xE));
 		GteLoadIR123(n1);
@@ -910,7 +910,7 @@ namespace xatm276
 		int32_t dy = ((int32_t)S16(a, 0x14) + S16(a, 0xC) + S16(a, 4)) - ((int32_t)S16(b, 0x14) + S16(b, 0xC) + S16(b, 4));
 		if (dy < 0) dy = -dy;
 		if (dz < 0x100 && dx < 0x100 && dy < 0x100) return 0;
-		const uint32_t n = (uint32_t)AddTaskToQueue(QArc(), ORIG_ArcTask);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QArc(), us(ORIG_ArcTask));
 		if (n)
 		{
 			U8(n, 0xE) = amp_shift;
@@ -947,7 +947,7 @@ namespace xatm276
 	{
 		const uint32_t n = (uint32_t)t;
 		FX_HELD(held_note_sprite(SPR_SMOKE, n);)
-		DrawMoving(n, SEQ_Smoke);
+		DrawMoving(n, us(SEQ_Smoke));
 		const int16_t vy = S16(n, 0x16);
 		S16(n, 0xE) = (int16_t)(S16(n, 0xE) + vy);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + S16(n, 0x14));
@@ -960,7 +960,7 @@ namespace xatm276
 	{
 		const uint32_t n = (uint32_t)t;
 		FX_HELD(held_note_sprite(SPR_FALL, n);)
-		DrawMoving(n, SEQ_Fall);
+		DrawMoving(n, us(SEQ_Fall));
 		const int16_t vy = S16(n, 0x16);
 		S16(n, 0xE) = (int16_t)(S16(n, 0xE) + vy);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + S16(n, 0x14));
@@ -975,7 +975,7 @@ namespace xatm276
 		const uint32_t h = (uint32_t)AllocHeader(0xB4);
 		const int16_t size = S16(n, 0x16);
 		TransformCameraByShadowRotation((const void *)(n + 0x10), size, -((int32_t)size >> 2));
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = us(SEQ_Spark);
 		S16(h, 4) = S16(n, 0xC);
 		S16(h, 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OTBase() + 0x44, 2, PacketCursor());
@@ -993,7 +993,7 @@ namespace xatm276
 			const int16_t first = (int16_t)(spec >> 4);
 			for (uint32_t k = spec & 0xF; k != 0; k--)
 			{
-				const uint32_t c = (uint32_t)AddTaskToQueue(QFall(), ORIG_FallTask);
+				const uint32_t c = (uint32_t)AddTaskToQueue(QFall(), us(ORIG_FallTask));
 				if (!c) continue;
 				U32(c, 0xC) = U32(n, 0x10);
 				U32(c, 0x10) = U32(n, 0x14);
@@ -1016,7 +1016,7 @@ namespace xatm276
 		const int32_t n = BoneVertexCount(Caster(), bone);
 		for (int32_t k = count; k != 0; k--)
 		{
-			const uint32_t s = (uint32_t)AddTaskToQueue(QSpark(), ORIG_SparkTask);
+			const uint32_t s = (uint32_t)AddTaskToQueue(QSpark(), us(ORIG_SparkTask));
 			if (!s) return;
 			const int32_t idx = mul32(SharedRand(), n) >> 15;
 			BoneVertex(Caster(), bone, idx, (void *)(s + 0x10));
@@ -1203,7 +1203,7 @@ namespace xatm276
 				pos[3] = 0;
 				do
 				{
-					const uint32_t s = (uint32_t)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
+					const uint32_t s = (uint32_t)AddTaskToQueue(QSmoke(), us(ORIG_SmokeTask));
 					if (s)
 					{
 						U32(s, 0xC) = *(const uint32_t *)pos;
@@ -1232,13 +1232,13 @@ namespace xatm276
 		}
 		if (S32(n, 0xC) == (int32_t)U8(e, 8))
 		{
-			const uint32_t p = (uint32_t)AddTaskToQueue(QPrim(), ORIG_PrimTask);
+			const uint32_t p = (uint32_t)AddTaskToQueue(QPrim(), us(ORIG_PrimTask));
 			if (p)
 			{
 				BonePosition(U8(e, 9), S16(e, 0xA), (void *)(p + 0xE));
 				S16(p, 0xC) = 0;
 				S16(p, 0x14) = S16(e, 0xC);
-				DecodeModelPrimLayout(PRIM_Model, (void *)(p + 0x18), 0x124);
+				DecodeModelPrimLayout(us(PRIM_Model), (void *)(p + 0x18), 0x124);
 			}
 		}
 		if (U8(e, 3) != 0xFF && S32(n, 0xC) == (int32_t)U8(e, 3)) ScreenFadeTask(U8(e, 4), U8(e, 5), U8(e, 6), 0x80);
@@ -1248,7 +1248,7 @@ namespace xatm276
 
 	static void SpawnEvent(uint32_t table)
 	{
-		const uint32_t n = (uint32_t)AddTaskToQueue(QEvent(), ORIG_EventTask);
+		const uint32_t n = (uint32_t)AddTaskToQueue(QEvent(), us(ORIG_EventTask));
 		if (!n) return;
 		U32(n, 0xC) = 0;
 		U32(n, 0x10) = table;
@@ -1384,16 +1384,16 @@ namespace xatm276
 		if (S16(n, 0xC) <= 0x6C) DrawCaster(Caster(), n + 0xE);
 		U8(Caster(), 0) |= 4;
 		const int16_t c = S16(n, 0xC);
-		if (c == 0) BdPlaySE(SOUND_Start, 0, 0x80);
+		if (c == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
 		else if (c == 0x8C) ReleaseVoiceSlot(U32(n, 0x4C));
 		MoveDebris(n);
 		switch (c)
 		{
-		case 0: SpawnEvent(EVENTS[0]); break;
-		case 0xC: SpawnEvent(EVENTS[1]); break;
-		case 0x26: SpawnEvent(EVENTS[2]); break;
-		case 0x32: SpawnEvent(EVENTS[3]); break;
-		case 0x41: SpawnEvent(EVENTS[4]); break;
+		case 0: SpawnEvent(us(EVENTS[0])); break;
+		case 0xC: SpawnEvent(us(EVENTS[1])); break;
+		case 0x26: SpawnEvent(us(EVENTS[2])); break;
+		case 0x32: SpawnEvent(us(EVENTS[3])); break;
+		case 0x41: SpawnEvent(us(EVENTS[4])); break;
 		}
 		S16(n, 0xC)++;
 		return 0;
@@ -1409,9 +1409,9 @@ namespace xatm276
 		InitTaskQueuePool(QDirector(), (void *)(Buffer() + BUF_DIRECTOR), 0x2454, 1);
 		InitTaskQueuePool(QEvent(), (void *)(Buffer() + 0x1BCC), 0x14, 5);
 		InitTaskQueuePool(QArc(), (void *)(Buffer() + 0x124C), 0x4C, 0x20);
-		const uint32_t d = (uint32_t)AddTaskToQueue(QDirector(), ORIG_Director);
+		const uint32_t d = (uint32_t)AddTaskToQueue(QDirector(), us(ORIG_Director));
 		Memset32((void *)(d + 0xC), 0, 0x912);
-		U32(d, 0x4C) = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+		U32(d, 0x4C) = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 		U32(d, 0x50) = d + 0x54;
 		U32(d, 0x48) = d + 0xE;
 		ff8fx::fill<(0x37)>((void *)(d + 0xE), 0xFF);

@@ -25,23 +25,23 @@ namespace heaven215
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250893C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508940); }
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2508948; }
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2508958; }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2508968; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508988); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x250898C); }
-	inline const int16_t *ZeroAngles() { return (const int16_t *)0x2508990; }
-	inline uint32_t *CamAnchor() { return (uint32_t *)0x2508998; }
-	inline uint32_t *CentreWords() { return (uint32_t *)0x25089A0; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25089A8); }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
-	inline int16_t *CamEye() { return (int16_t *)0xB8B7F0; }
-	inline int16_t *CamLookAt() { return (int16_t *)0xB8B7F8; }
-	inline int16_t &CamRoll() { return var<int16_t>(0x1D977A2); }
-	inline int16_t &ViewWord() { return var<int16_t>(0x1D8E038); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x250893C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2508940)); }
+	inline TaskQueue *QRings() { return (TaskQueue *)us(0x2508948); }
+	inline TaskQueue *QDirector() { return (TaskQueue *)us(0x2508958); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x2508968); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2508988)); }
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(us(0x250898C)); }
+	inline const int16_t *ZeroAngles() { return (const int16_t *)us(0x2508990); }
+	inline uint32_t *CamAnchor() { return (uint32_t *)us(0x2508998); }
+	inline uint32_t *CentreWords() { return (uint32_t *)us(0x25089A0); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25089A8)); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
+	inline int16_t *CamEye() { return (int16_t *)us(0xB8B7F0); }
+	inline int16_t *CamLookAt() { return (int16_t *)us(0xB8B7F8); }
+	inline int16_t &CamRoll() { return var<int16_t>(us(0x1D977A2)); }
+	inline int16_t &ViewWord() { return var<int16_t>(us(0x1D8E038)); }
 
 	static const uint32_t ORIG_RootTask = 0x69AC00;
 	static const uint32_t ORIG_DirectorTask = 0x69B070;
@@ -56,47 +56,47 @@ namespace heaven215
 	static const uint32_t KIND_Anchor = 0x1172B34, KIND_Walk = 0xFE0FC8, KIND_Screen = 0x1172B2C, KIND_Plain = 0x1154F44;
 	static const uint32_t KIND_Jump = 0x1172B28, KIND_Crater = 0x1154F40, KIND_Ring = 0xFE0FB4;
 	static const uint32_t MODEL_Debris = 0x1154F58;
-	static const int16_t *const SINCOS = (const int16_t *)0x116EB1C;
-	static const void *const SOUND_A = (const void *)0x1154F48;
-	static const void *const SOUND_B = (const void *)0x1154F4C;
+	static const int16_t *SINCOS() { return (const int16_t *)us(0x116EB1C); }
+	static const void *SOUND_A() { return (const void *)us(0x1154F48); }
+	static const void *SOUND_B() { return (const void *)us(0x1154F4C); }
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(a, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(0x56C090)(a, b, out); }
-	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
-	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(e, ot, a, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, ctx, ot, a, cursor); }
-	inline int32_t SqrtScaled(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BED0)(v); }
-	inline void CamLerp(const int16_t *a, const int16_t *b, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t)>(0x657DF0)(a, b, t); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
-	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E180)(p); }
-	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(0x45E470)(p); }
-	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E060)(p); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *p) { fn<void (__cdecl *)(void *)>(0x45E210)(p); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteReadMAC0(void *p) { fn<void (__cdecl *)(void *)>(0x45E3C0)(p); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteReadOTZ32(void *p) { fn<void (__cdecl *)(void *)>(0x45E3D0)(p); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void GteReadIR2Word(void *p) { fn<void (__cdecl *)(void *)>(0x703F90)(p); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(a, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(us(0x56C090))(a, b, out); }
+	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(us(0x56C3D0))(m, in, out); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
+	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(e, ot, a, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
+	inline int32_t SqrtScaled(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BED0))(v); }
+	inline void CamLerp(const int16_t *a, const int16_t *b, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t)>(us(0x657DF0))(a, b, t); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(us(0x50A730))(); }
+	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
+	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
+	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(p); }
+	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E470))(p); }
+	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(p); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E210))(p); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteReadMAC0(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(p); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteReadOTZ32(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(p); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void GteReadIR2Word(void *p) { fn<void (__cdecl *)(void *)>(us(0x703F90))(p); }
 
 	enum : int { SITE_ANCHOR = 1, SITE_BACK, SITE_RUN, SITE_SCREEN, SITE_FAR, SITE_JUMP, SITE_JUMPBONE, SITE_CRATER, SITE_BONE };
 
@@ -218,7 +218,7 @@ namespace heaven215
 	static void ScaledRotX(int32_t angle, int32_t scale, Mat4x3 *out)
 	{
 		ff8fx::fill<(0x14)>(out, 0);
-		const int16_t *sc = SINCOS + (angle & 0xFFF) * 2;
+		const int16_t *sc = SINCOS() + (angle & 0xFFF) * 2;
 		const int32_t s = (int16_t)scale;
 		const int32_t a = mul32(sc[0], s) >> 12;
 		const int32_t b = mul32(sc[1], s) >> 12;
@@ -232,7 +232,7 @@ namespace heaven215
 	static void RotYTable(int32_t angle, Mat4x3 *out)
 	{
 		ff8fx::fill<(0x14)>(out, 0);
-		const int16_t *sc = SINCOS + (angle & 0xFFF) * 2;
+		const int16_t *sc = SINCOS() + (angle & 0xFFF) * 2;
 		out->m[2][0] = sc[0];
 		out->m[0][0] = sc[1];
 		out->m[1][1] = 0x1000;
@@ -580,8 +580,8 @@ namespace heaven215
 		GteReadMAC123(m->t);
 		GteSetRotMatrixCtrl(m);
 		GteSetTransVectorCtrl(m);
-		U32(h, 0x40) = MODEL_Debris;
-		U32(h, 0x44) = *(const uint32_t *)0x1154F50 + 0x1154F60;
+		U32(h, 0x40) = us(MODEL_Debris);
+		U32(h, 0x44) = *(const uint32_t *)us(0x1154F50) + us(0x1154F60);
 		FramePackets() = TriRender(h + 0x40, OTBase() + 0x44, 2, FramePackets());
 	}
 
@@ -628,14 +628,14 @@ namespace heaven215
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(e + 0x40), (Mat4x3 *)h);
 		ComputeBonesWorldMatrices(e + 0x60, h);
 		U16(h, 0x38) = 0x140;
-		U32(h, 0x24) = var<uint32_t>(0x1D98B3C);
+		U32(h, 0x24) = var<uint32_t>(us(0x1D98B3C));
 		U16(h, 0x34) = 0;
 		U16(h, 0x36) = 0;
 		U16(h, 0x3A) = 0xD8;
 		U32(h, 0x3C) = U32(e, 0x28);
 		U32(h, 0x48) = 0;
 		U32(h, 0x40) = U32(e, 0x7C);
-		U32(h, 0x30) = var<uint32_t>(0x1D969A8);
+		U32(h, 0x30) = var<uint32_t>(us(0x1D969A8));
 		FramePackets() = RenderGeometry(U32(e, 0x64), h + 0x20, OTBase() + 0x44, 6, FramePackets());
 		BuildBoneMatricesFromPose(e + 0x60);
 		uint8_t *w = *(uint8_t **)(e + 0x78);
@@ -666,7 +666,7 @@ namespace heaven215
 		m->t[1] = (int32_t)((uint32_t)m->t[1] - U32(h, 0x24));
 		m->t[2] = (int32_t)((uint32_t)m->t[2] - U32(h, 0x28));
 		ComputeBonesWorldMatrices(e + 0x60, m);
-		U32(h, 0x34) = var<uint32_t>(0x1D98B3C);
+		U32(h, 0x34) = var<uint32_t>(us(0x1D98B3C));
 		U16(h, 0x44) = 0;
 		U16(h, 0x46) = 0;
 		U16(h, 0x48) = 0x140;
@@ -674,7 +674,7 @@ namespace heaven215
 		U32(h, 0x4C) = U32(e, 0x28);
 		U32(h, 0x58) = 0;
 		U32(h, 0x50) = U32(e, 0x7C);
-		U32(h, 0x40) = var<uint32_t>(0x1D969A8);
+		U32(h, 0x40) = var<uint32_t>(us(0x1D969A8));
 		FramePackets() = RenderGeometry(U32(e, 0x64), h + 0x30, OTBase() + 0x44, 4, FramePackets());
 		BuildBoneMatricesFromPose(e + 0x60);
 		uint8_t *w = *(uint8_t **)(e + 0x78);
@@ -781,7 +781,7 @@ namespace heaven215
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		arg.morph = TexBase() + 0xF918;
 		arg.depth = -0x80;
-		arg.kind = (const uint8_t *)KIND_Ring;
+		arg.kind = (const uint8_t *)us(KIND_Ring);
 		arg.fade = 0;
 		arg.scroll = 0;
 		const int r = prim::play((prim::Layout *)k->layout, CallbackA, (int)&arg, 0);
@@ -790,13 +790,13 @@ namespace heaven215
 
 	static void SpawnBoneRing(int32_t bone, int32_t flag, int32_t scale)
 	{
-		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), us(ORIG_RingTask));
 		if (!k) return;
 		GetEffectSpawnPosition(Caster(), bone, flag, k->pos);
 		k->pos[1] = 0;
 		k->scale = (int16_t)scale;
 		*(uint32_t *)&k->angle = 0;
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0x40);
+		DecodeModelPrimLayout(us(LAYOUT_Ring), k->layout, 0x40);
 	}
 
 	static void PlayA(DirectorNode *d, int site, uint8_t *layout, ArgA *arg, bool view)
@@ -897,7 +897,7 @@ namespace heaven215
 
 	static void SpawnSideRing(int32_t b)
 	{
-		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), us(ORIG_RingTask));
 		if (!k) return;
 		const int16_t x = W16(Caster(), 0x1C);
 		k->pos[0] = x;
@@ -906,7 +906,7 @@ namespace heaven215
 		k->scale = 0x2000;
 		*(uint32_t *)&k->angle = 0;
 		k->pos[2] = (int16_t)(W16(Caster(), 0x20) + 0x400);
-		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0x40);
+		DecodeModelPrimLayout(us(LAYOUT_Ring), k->layout, 0x40);
 	}
 
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
@@ -925,12 +925,12 @@ namespace heaven215
 		int32_t s = c - 1;
 		if ((uint32_t)s < 0x3D)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Anchor, d->layout_a, 0x370);
+			if (s == 0) DecodeModelPrimLayout(us(LAYOUT_Anchor), d->layout_a, 0x370);
 			GetDefaultEffectPosition(z, argb.pos);
 			argb.pos[1] = 0;
 			argb.morph = morph;
 			argb.depth = -0x80;
-			argb.kind = (const uint8_t *)KIND_Anchor;
+			argb.kind = (const uint8_t *)us(KIND_Anchor);
 			argb.scroll = (int16_t)(s << 5);
 			argb.fade = 0;
 			PlayB(d, SITE_ANCHOR, d->layout_a, &argb);
@@ -938,7 +938,7 @@ namespace heaven215
 		s = c - 0x3E;
 		if ((uint32_t)s < 0xE)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Back, d->layout_b, 0xB0);
+			if (s == 0) DecodeModelPrimLayout(us(LAYOUT_Back), d->layout_b, 0xB0);
 			W16(z, 0x20) = (int16_t)(W16(z, 0x20) - 0x100);
 			RotationY(0, &arga.m);
 			arga.m.t[0] = W16(z, 0x1C);
@@ -946,7 +946,7 @@ namespace heaven215
 			arga.m.t[2] = W16(z, 0x20);
 			arga.morph = morph;
 			arga.depth = -0x80;
-			arga.kind = (const uint8_t *)KIND_Walk;
+			arga.kind = (const uint8_t *)us(KIND_Walk);
 			arga.scroll = (int16_t)(s << 5);
 			arga.fade = 0;
 			PlayA(d, SITE_BACK, d->layout_b, &arga, true);
@@ -961,7 +961,7 @@ namespace heaven215
 			{
 				QRings()->tail = nullptr;
 				QRings()->head = nullptr;
-				DecodeModelPrimLayout(LAYOUT_Run, d->layout_b, 0x188);
+				DecodeModelPrimLayout(us(LAYOUT_Run), d->layout_b, 0x188);
 				W16(z, 0x20) = (int16_t)(d->centre[2] + 0x1800);
 				W32(z, 0x5C) = W16(z, 0x20);
 				W16(z, 0x20) = (int16_t)(W16(z, 0x20) - 0x4CC);
@@ -993,7 +993,7 @@ namespace heaven215
 			arga.m.t[2] = W16(z, 0x20);
 			arga.morph = morph;
 			arga.depth = -0x80;
-			arga.kind = (const uint8_t *)KIND_Walk;
+			arga.kind = (const uint8_t *)us(KIND_Walk);
 			arga.scroll = (int16_t)(s << 6);
 			arga.fade = 0;
 			PlayA(d, SITE_RUN, d->layout_b, &arga, true);
@@ -1003,7 +1003,7 @@ namespace heaven215
 		{
 			if (s == 0)
 			{
-				for (int k = 0; k < 4; k++) var<uint8_t>(0x1D98991 + k * 0x2C) &= 0xFD;
+				for (int k = 0; k < 4; k++) var<uint8_t>(us(0x1D98991) + k * 0x2C) &= 0xFD;
 				for (int32_t i = 0; i < TargetCount(); i++)
 				{
 					TargetRec &r = d->recs[i];
@@ -1011,7 +1011,7 @@ namespace heaven215
 					U32(r.e, 0xC) = r.rot01;
 					U32(r.e, 0x10) = r.rot23;
 				}
-				DecodeModelPrimLayout(LAYOUT_Screen, d->layout_b, 0x94);
+				DecodeModelPrimLayout(us(LAYOUT_Screen), d->layout_b, 0x94);
 			}
 			RotationY(0, &arga.m);
 			arga.morph = morph;
@@ -1020,7 +1020,7 @@ namespace heaven215
 			arga.m.t[1] = 0;
 			arga.m.t[2] = 0xAF0;
 			arga.depth = 0;
-			arga.kind = (const uint8_t *)KIND_Screen;
+			arga.kind = (const uint8_t *)us(KIND_Screen);
 			arga.scroll = (int16_t)(k + 0x4D);
 			arga.fade = (uint32_t)s > 0x2C ? (int16_t)((s << 10) + 0x5200) : (int16_t)0;
 			PlayA(d, SITE_SCREEN, d->layout_b, &arga, false);
@@ -1028,14 +1028,14 @@ namespace heaven215
 		s = c - 0xA4;
 		if ((uint32_t)s < 0x12)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Far, d->layout_b, 0x154);
+			if (s == 0) DecodeModelPrimLayout(us(LAYOUT_Far), d->layout_b, 0x154);
 			RotationY(0, &arga.m);
 			arga.m.t[0] = W16(z, 0x1C);
 			arga.m.t[1] = 0;
 			arga.m.t[2] = (int32_t)d->centre[2] + 0x5DC0;
 			arga.morph = morph;
 			arga.depth = 0;
-			arga.kind = (const uint8_t *)KIND_Plain;
+			arga.kind = (const uint8_t *)us(KIND_Plain);
 			arga.fade = 0;
 			PlayA(d, SITE_FAR, d->layout_b, &arga, true);
 		}
@@ -1049,8 +1049,8 @@ namespace heaven215
 			if (b == 0)
 			{
 				W16(z, 0x20) = (int16_t)(d->centre[2] + 0x5AA0);
-				DecodeModelPrimLayout(LAYOUT_Jump, d->layout_b, 0xBC);
-				DecodeModelPrimLayout(LAYOUT_JumpBone, d->layout_c, 0x27C);
+				DecodeModelPrimLayout(us(LAYOUT_Jump), d->layout_b, 0xBC);
+				DecodeModelPrimLayout(us(LAYOUT_JumpBone), d->layout_c, 0x27C);
 				InitTaskQueuePool(QRings(), (void *)(TexBase() + 0x1400), 0x294, 0x24);
 			}
 			if ((uint32_t)b < 0x1E)
@@ -1072,12 +1072,12 @@ namespace heaven215
 					for (int32_t i = 0; i < TargetCount(); i++)
 					{
 						uint8_t *e = Entity(Targets()[i * 0x18]);
-						RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+						RingNode *k = (RingNode *)AddTaskToQueue(QRings(), us(ORIG_RingTask));
 						if (!k) break;
 						GetDefaultEffectPosition(e, k->pos);
 						*(uint32_t *)&k->angle = 0x800;
 						k->scale = (int16_t)(((int32_t)W16(e, 0x26) / 2) * 2 + 0x800);
-						DecodeModelPrimLayout(LAYOUT_TargetRing, k->layout, 0x160);
+						DecodeModelPrimLayout(us(LAYOUT_TargetRing), k->layout, 0x160);
 					}
 				}
 				else if ((uint32_t)b < 0x19)
@@ -1103,7 +1103,7 @@ namespace heaven215
 				}
 				if ((uint32_t)b < 0x1D) SpawnSideRing(b);
 				if (b == 0xA)
-					for (int k = 0; k < 4; k++) var<uint8_t>(0x1D98991 + k * 0x2C) |= 2;
+					for (int k = 0; k < 4; k++) var<uint8_t>(us(0x1D98991) + k * 0x2C) |= 2;
 				if ((uint32_t)b >= 0xA && (uint32_t)b <= 0x1A) SetScreenFlash((uint32_t)JumpFlash(b), 0);
 			}
 			else if (b == 0x1E)
@@ -1121,7 +1121,7 @@ namespace heaven215
 				arga.m.t[1] = 0;
 				arga.m.t[2] = W16(z, 0x20);
 				arga.morph = morph;
-				arga.kind = (const uint8_t *)KIND_Jump;
+				arga.kind = (const uint8_t *)us(KIND_Jump);
 				arga.scroll = (int16_t)(b << 5);
 				PlayA(d, SITE_JUMP, d->layout_b, &arga, true);
 				if ((uint32_t)b >= 0xA)
@@ -1132,7 +1132,7 @@ namespace heaven215
 					arga.m.t[0] = p[0];
 					arga.m.t[1] = p[1];
 					arga.m.t[2] = p[2];
-					arga.kind = (const uint8_t *)KIND_Plain;
+					arga.kind = (const uint8_t *)us(KIND_Plain);
 					PlayA(d, SITE_JUMPBONE, d->layout_c, &arga, true);
 				}
 			}
@@ -1140,14 +1140,14 @@ namespace heaven215
 		s = c - 0xDE;
 		if ((uint32_t)s < 0x20)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Crater, d->layout_a, 0x154);
+			if (s == 0) DecodeModelPrimLayout(us(LAYOUT_Crater), d->layout_a, 0x154);
 			RotationY(0x800, &arga.m);
 			arga.m.t[0] = d->centre[0];
 			arga.m.t[1] = 0;
 			arga.m.t[2] = (int32_t)d->centre[2] + 0x400;
 			arga.morph = morph;
 			arga.depth = -0x80;
-			arga.kind = (const uint8_t *)KIND_Crater;
+			arga.kind = (const uint8_t *)us(KIND_Crater);
 			arga.scroll = (int16_t)(s << 5);
 			arga.fade = 0;
 			PlayA(d, SITE_CRATER, d->layout_a, &arga, true);
@@ -1173,7 +1173,7 @@ namespace heaven215
 			off[0] = 0;
 			if (t == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Crater, d->layout_a, 0x154);
+				DecodeModelPrimLayout(us(LAYOUT_Crater), d->layout_a, 0x154);
 				for (int32_t i = 0; i < TargetCount(); i++)
 				{
 					uint8_t *e = d->recs[i].e;
@@ -1221,18 +1221,18 @@ namespace heaven215
 		s = c - 0x18;
 		if ((uint32_t)s < 0x5C)
 		{
-			if (s == 0) DecodeModelPrimLayout(LAYOUT_Bone, d->layout_c, 0x1B4);
+			if (s == 0) DecodeModelPrimLayout(us(LAYOUT_Bone), d->layout_c, 0x1B4);
 			GetEffectSpawnPosition(z, 0x16, 0, argb.pos);
 			argb.morph = morph;
 			argb.depth = -0x80;
-			argb.kind = (const uint8_t *)KIND_Plain;
+			argb.kind = (const uint8_t *)us(KIND_Plain);
 			argb.fade = 0;
 			PlayB(d, SITE_BONE, d->layout_c, &argb);
 		}
 		DebrisDraw(d);
 		DebrisMove(d);
-		if (c == 5) BdPlaySE(SOUND_A, 0, 0x80);
-		else if (c == 0xA2) BdPlaySE(SOUND_B, 0, 0x80);
+		if (c == 5) BdPlaySE(SOUND_A(), 0, 0x80);
+		else if (c == 0xA2) BdPlaySE(SOUND_B(), 0, 0x80);
 		else if (c == 0x108) ApplyActionResultToTargets(Targets(), (uint32_t)TargetCount());
 		if (c == 0xA3)
 		{
@@ -1299,7 +1299,7 @@ namespace heaven215
 		CentreWords()[0] = *(const uint32_t *)&d->centre[0];
 		CentreWords()[1] = *(const uint32_t *)&d->centre[2];
 		DebrisInit(d);
-		BindExternalAnimSet(z, d->bind, COM_Anim);
+		BindExternalAnimSet(z, d->bind, us(COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x70D0));
 		*(uint16_t *)Entity(0) |= 4;
@@ -1332,7 +1332,7 @@ namespace heaven215
 				InitTaskQueuePool(QDirector(), (void *)TexBase(), 0x1400, 1);
 				InitTaskQueuePool(QRings(), (void *)(TexBase() + 0x1400), 0x294, 0x24);
 			}
-			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), ORIG_DirectorTask);
+			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), us(ORIG_DirectorTask));
 			if (d) StartDirector(d);
 		}
 		int a = 1;
@@ -1362,8 +1362,8 @@ namespace heaven215
 				U32(Caster(), 0xC) = d->saved_rot[0];
 				U32(Caster(), 0x10) = d->saved_rot[1];
 				*(uint16_t *)Caster() &= 0xFFF7;
-				ff8fx::copy<(0x10)>((void *)0xB8B7F0, (const void *)0xB8B800);
-				ViewWord() = var<int16_t>(0x1D977A0);
+				ff8fx::copy<(0x10)>((void *)us(0xB8B7F0), (const void *)us(0xB8B800));
+				ViewWord() = var<int16_t>(us(0x1D977A0));
 				return TASK_END;
 			}
 		}

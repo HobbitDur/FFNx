@@ -23,14 +23,14 @@ namespace micromissiles299
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507814); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507818); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507820; }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507830; }
-	inline TaskQueue *QMissiles() { return (TaskQueue *)0x2507840; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507874); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507878); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507814)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507818)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507820); }
+	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2507830); }
+	inline TaskQueue *QMissiles() { return (TaskQueue *)us(0x2507840); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507874)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507878)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x66FD70;
 	static const uint32_t ORIG_MissileTask = 0x6700C0;
@@ -49,21 +49,21 @@ namespace micromissiles299
 	static const uint32_t SEQ_Trail = 0x1048DD8;
 	static const uint32_t SEQ_Flash = 0x1048F1C;
 	static const uint32_t SEQ_Spark = 0x1048C94;
-	static const void *const SOUND_Launch = (const void *)0x104E2FC;
+	static const void *SOUND_Launch() { return (const void *)us(0x104E2FC); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
-	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(0x56C090)(a, b, out); }
-	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *v, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, v, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
+	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(us(0x56C090))(a, b, out); }
+	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *v, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(us(0x56C3D0))(m, v, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -186,7 +186,7 @@ namespace micromissiles299
 		view.t[2] = (int32_t)((uint32_t)view.t[2] + (uint32_t)Camera().t[2]);
 		GteSetRotMatrixCtrl(&view);
 		GteSetTransVectorCtrl(&view);
-		*(uint32_t *)h = SEQ_Trail;
+		*(uint32_t *)h = us(SEQ_Trail);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -237,7 +237,7 @@ namespace micromissiles299
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Flash;
+		*(uint32_t *)h = us(SEQ_Flash);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -248,7 +248,7 @@ namespace micromissiles299
 	{
 		TransformCameraByShadowRotation(s->pos, 0x400, -0x100);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -415,7 +415,7 @@ namespace micromissiles299
 		m->t = (int16_t)(m->t + m->step);
 		if (m->t >= 0x1000 && m->type != -1)
 		{
-			HitNode *hit = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+			HitNode *hit = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
 			if (hit)
 			{
 				hit->counter = 0;
@@ -426,15 +426,15 @@ namespace micromissiles299
 				hit->m.t[2] = m->cur[2];
 				if (m->type <= 1)
 				{
-					DecodeModelPrimLayout(MODEL_Hit, hit->layout, 0xA0);
+					DecodeModelPrimLayout(us(MODEL_Hit), hit->layout, 0xA0);
 					if (m->type == 0) QueueChainTransformation(Entity(Ctx()->actions[0].targets[0]), 5);
 					else ApplyActionResultToTarget(Ctx()->actions[0].targets);
 				}
-				else DecodeModelPrimLayout(MODEL_Miss, hit->layout, 0x114);
+				else DecodeModelPrimLayout(us(MODEL_Miss), hit->layout, 0x114);
 			}
 			for (int k = 0; k < 0x10; k++)
 			{
-				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 				if (!sp) continue;
 				ff8fx::copy<(4)>(sp->pos, m->cur);
 				ff8fx::copy<(4)>(&sp->pos[2], &m->cur[2]);
@@ -466,7 +466,7 @@ namespace micromissiles299
 		pos[0] = (int16_t)(pos[0] + off[0]);
 		pos[2] = (int16_t)(pos[2] + off[2]);
 		pos[1] = (int16_t)(*(const int16_t *)(caster + 0x24) - 0x26C);
-		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), ORIG_MissileTask);
+		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), us(ORIG_MissileTask));
 		ff8fx::copy<(4)>(m->cur, pos);
 		ff8fx::copy<(4)>(&m->cur[2], &pos[2]);
 		ff8fx::copy<(4)>(m->start, pos);
@@ -487,7 +487,7 @@ namespace micromissiles299
 		int32_t v[3] = { (int32_t)pos[0] - aim[0], (int32_t)aim[1] - pos[1], (int32_t)aim[2] - pos[2] };
 		Mat4x3 basis;
 		m->dist = (int16_t)BuildOrthonormalBasis(v, &basis);
-		DecodeModelPrimLayout(MODEL_Missile, m->layout, 0x7D8);
+		DecodeModelPrimLayout(us(MODEL_Missile), m->layout, 0x7D8);
 		RotZ(shl32(k, 8) - 0x280, Frame(m));
 		Matrix3x3MultiplyPSX(&basis, Frame(m), Frame(m));
 		m->pad1E = (int16_t)((uint32_t)m >> 16);
@@ -512,7 +512,7 @@ namespace micromissiles299
 			InitTaskQueuePool(QMissiles(), (void *)(TexBase() + POOL_Missiles), 0x80C, 6);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x144, 6);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x24, 0x60);
-			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, COM_Anim);
+			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, us(COM_Anim));
 			QueueChainTransformation(Caster(), 2);
 		}
 		const int32_t c = mn->counter - 0xA;
@@ -524,7 +524,7 @@ namespace micromissiles299
 			if (a0 == 0 && mn->done == 0) mn->done = 1;
 			a1 = ExecuteTaskQueue(QHits());
 			a2 = ExecuteTaskQueue(QSparks());
-			if (mn->counter == 0xA) BdPlaySE(SOUND_Launch, 0, 0x80);
+			if (mn->counter == 0xA) BdPlaySE(SOUND_Launch(), 0, 0x80);
 		}
 		else a0 = a1 = a2 = (int)n;
 		if (mn->done && !a0 && !a1 && !a2) return TASK_END;

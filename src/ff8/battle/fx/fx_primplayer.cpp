@@ -276,7 +276,7 @@ namespace ff8fx::prim
 		VerifyCtx *outer = g_vctx;
 		g_vctx = &ctx;
 		unreplace_function(g_verify_ri);
-		int r = ((int(__cdecl *)(Layout *, Callback, int, int))0x701970)(l, RecordCb, arg, paused);
+		int r = ((int(__cdecl *)(Layout *, Callback, int, int))us(0x701970))(l, RecordCb, arg, paused);
 		rereplace_function(g_verify_ri);
 		g_vctx = outer;
 		if (!check) return r;
@@ -297,7 +297,7 @@ namespace ff8fx::prim
 
 	void install_verify()
 	{
-		g_verify_ri = replace_function(0x701970, (void *)VerifyHook);
+		g_verify_ri = replace_function(us(0x701970), (void *)VerifyHook);
 		ffnx_info("FF8 battle fx: prim player checked against the original\n");
 	}
 }

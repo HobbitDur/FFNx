@@ -27,13 +27,13 @@ namespace oil137
 	using namespace magc;
 	using namespace icec;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520CC0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520CC8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520CCC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520CE4); }
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520CE8; }
-	inline TaskQueue *QChunks() { return (TaskQueue *)0x2520CF8; }
-	inline TaskQueue *QBlast() { return (TaskQueue *)0x2520D08; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2520CC0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2520CC8)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520CCC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520CE4)); }
+	inline TaskQueue *QSprays() { return (TaskQueue *)us(0x2520CE8); }
+	inline TaskQueue *QChunks() { return (TaskQueue *)us(0x2520CF8); }
+	inline TaskQueue *QBlast() { return (TaskQueue *)us(0x2520D08); }
 
 	static const uint32_t ORIG_MasterTask = 0x6AB900;
 	static const uint32_t ORIG_BlastTask = 0x6ABA50;
@@ -48,24 +48,24 @@ namespace oil137
 	static const uint32_t MODEL_Blast = 0x11ECDC0;
 	static const uint32_t MODEL_Chunk = 0x11EACC0;
 	static const uint32_t SEQ_Spray = 0x11E91A0;
-	static const void *const SCALE_MAT = (const void *)0x11F0360;
-	static int16_t *const SCALE_DIAG = (int16_t *)0x11F0360;
-	static const void *const SOUND_Blast = (const void *)0x11F035C;
+	static const void *SCALE_MAT() { return (const void *)us(0x11F0360); }
+	static int16_t *SCALE_DIAG() { return (int16_t *)us(0x11F0360); }
+	static const void *SOUND_Blast() { return (const void *)us(0x11F035C); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const void *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const void *, Mat4x3 *)>(0x56C090)(a, b, out); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const void *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const void *, Mat4x3 *)>(us(0x56C090))(a, b, out); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(us(0x56BEF0))(m, v); }
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(us(0x6A6020))(pitch, yaw, out); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -437,10 +437,10 @@ namespace oil137
 	static void MeshAt(const BlastNode *w, int32_t s, Mat4x3 *M, int16_t *Q)
 	{
 		const int16_t sc = (int16_t)(ComputeSin(s >> 2) + 0x400);
-		SCALE_DIAG[8] = sc;
-		SCALE_DIAG[4] = sc;
-		SCALE_DIAG[0] = sc;
-		Matrix3x3MultiplyPSX(&w->basisC, SCALE_MAT, M);
+		SCALE_DIAG()[8] = sc;
+		SCALE_DIAG()[4] = sc;
+		SCALE_DIAG()[0] = sc;
+		Matrix3x3MultiplyPSX(&w->basisC, SCALE_MAT(), M);
 		Q[0] = w->aim[0];
 		Q[2] = w->aim[2];
 		Q[1] = 0;
@@ -456,7 +456,7 @@ namespace oil137
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x54);
-		*(uint32_t *)h = MESH;
+		*(uint32_t *)h = us(MESH);
 		*(uint16_t *)(h + 0xA) = 0;
 		*(uint16_t *)(h + 8) = 0;
 		*(uint16_t *)(h + 0xE) = 0x100;
@@ -502,7 +502,7 @@ namespace oil137
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Spray;
+		*(uint32_t *)h = us(SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -540,7 +540,7 @@ namespace oil137
 		GteSetRotMatrix(&M);
 		GteSetTransVector(&M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Chunk;
+		*(uint32_t *)h = us(MODEL_Chunk);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -578,8 +578,8 @@ namespace oil137
 				w->puddle1[1] = 0;
 				GetEffectSpawnPosition(Caster(), 0x1C, 0, w->puddle2);
 				w->puddle2[1] = 0;
-				DecodeModelPrimLayout(MODEL_Puddle, w->lay1, 0x40);
-				DecodeModelPrimLayout(MODEL_Puddle, w->lay2, 0x40);
+				DecodeModelPrimLayout(us(MODEL_Puddle), w->lay1, 0x40);
+				DecodeModelPrimLayout(us(MODEL_Puddle), w->lay2, 0x40);
 			}
 			BlockAt(&arg, w->puddle1);
 			arg.mode = 0;
@@ -597,7 +597,7 @@ namespace oil137
 			{
 				GetEffectSpawnPosition(Caster(), 0x13, 0, w->spout);
 				w->spout[1] = 0;
-				DecodeModelPrimLayout(MODEL_Spout, w->layS, 0x1A0);
+				DecodeModelPrimLayout(us(MODEL_Spout), w->layS, 0x1A0);
 			}
 			SpoutBlock(&arg, w->spout);
 			arg.mode = 0;
@@ -623,7 +623,7 @@ namespace oil137
 			MeshRender(&M, (uint16_t)((k & 3) << 5));
 			for (int i = 2; i; i--)
 			{
-				ChunkNode *c = (ChunkNode *)AddTaskToQueue(QChunks(), ORIG_ChunkTask);
+				ChunkNode *c = (ChunkNode *)AddTaskToQueue(QChunks(), us(ORIG_ChunkTask));
 				if (!c) continue;
 				ff8fx::copy<(8)>(c->pos, Q);
 				c->frame = 0;
@@ -642,7 +642,7 @@ namespace oil137
 			if (kd == 0)
 			{
 				FloorBasis(w->spout, w->aim, &w->basisD);
-				DecodeModelPrimLayout(MODEL_Blast, w->layB, 0x2FC);
+				DecodeModelPrimLayout(us(MODEL_Blast), w->layB, 0x2FC);
 			}
 			w->basisD.t[1] = 0;
 			w->basisD.t[0] = w->aim[0] - (w->basisD.m[0][2] >> 2);
@@ -651,7 +651,7 @@ namespace oil137
 			{
 				for (int i = 0xA; i; i--)
 				{
-					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), ORIG_SprayTask);
+					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), us(ORIG_SprayTask));
 					s->pos[0] = (int16_t)w->basisD.t[0];
 					s->pos[2] = (int16_t)w->basisD.t[2];
 					s->pos[1] = 0;
@@ -670,7 +670,7 @@ namespace oil137
 			FX_HELD(held_note_play(PLAY_BLAST, n, (prim::Layout *)w->layB);)
 			Play(w->layB, &arg);
 		}
-		if (w->counter == 0xA) BdPlaySE(SOUND_Blast, 0, 0x80);
+		if (w->counter == 0xA) BdPlaySE(SOUND_Blast(), 0, 0x80);
 		if (w->counter == 0x2D) ApplyActionResultToTarget(Ctx()->actions->targets);
 		if (w->counter >= 0x3C) return TASK_END;
 		w->counter++;
@@ -683,7 +683,7 @@ namespace oil137
 		InitTaskQueuePool(QBlast(), (void *)(TexBase() + 0xDF0), 0x5A0, 1);
 		InitTaskQueuePool(QChunks(), (void *)(TexBase() + 0x870), 0x2C, 0x20);
 		InitTaskQueuePool(QSprays(), (void *)TexBase(), 0x24, 0x3C);
-		BlastNode *w = (BlastNode *)AddTaskToQueue(QBlast(), ORIG_BlastTask);
+		BlastNode *w = (BlastNode *)AddTaskToQueue(QBlast(), us(ORIG_BlastTask));
 		Memset32(&w->counter, 0, 0x165);
 		w->target = target;
 		GetEffectSpawnPosition(target, 0xF1, 0, w->aim);

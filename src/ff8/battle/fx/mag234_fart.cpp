@@ -32,33 +32,33 @@ namespace fart
 	{
 		c.name = "234 Fart";
 		c.effect_id = 234;
-		c.vm_table = 0x1867DC0;
-		c.bone_table = 0x1867A30;
-		c.prim_table = 0x1867A78;
-		c.prim_size = 0x1867B68;
-		c.spr_table = 0x1867B7C;
-		c.ptype_table = 0x1867BA8;
-		c.pop_table = 0x1867BBC;
-		c.draw_table = 0x1867C1C;
-		c.attr_16A = 0x1867D86;
-		c.attr_184 = 0x1867DA0;
-		c.attr_186 = 0x1867DA2;
-		c.attr_194 = 0x1867DB0;
-		c.attr_19C = 0x1867DB8;
-		c.desc = 0x1867954;
-		c.ptr_block = 0x1867A08;
-		c.queue = 0x27969E8;
-		c.file00 = 0x27969FC;
-		c.file01 = 0x27969F8;
-		c.tick = 0xA48F60;
-		c.load_cb = 0xA4D9C0;
+		c.vm_table = us(0x1867DC0);
+		c.bone_table = us(0x1867A30);
+		c.prim_table = us(0x1867A78);
+		c.prim_size = us(0x1867B68);
+		c.spr_table = us(0x1867B7C);
+		c.ptype_table = us(0x1867BA8);
+		c.pop_table = us(0x1867BBC);
+		c.draw_table = us(0x1867C1C);
+		c.attr_16A = us(0x1867D86);
+		c.attr_184 = us(0x1867DA0);
+		c.attr_186 = us(0x1867DA2);
+		c.attr_194 = us(0x1867DB0);
+		c.attr_19C = us(0x1867DB8);
+		c.desc = us(0x1867954);
+		c.ptr_block = us(0x1867A08);
+		c.queue = us(0x27969E8);
+		c.file00 = us(0x27969FC);
+		c.file01 = us(0x27969F8);
+		c.tick = us(0xA48F60);
+		c.load_cb = us(0xA4D9C0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static inline void xl_RotTransIR_56C850(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(v, out, flag); }
-	static inline int32_t xl_Project_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	static inline uint32_t xl_RenderProjectedObject_5106E0(void *desc, uint32_t ot, int32_t mode, uint32_t cursor) { return x::f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5106E0)(desc, ot, mode, cursor); }
+	static inline void xl_RotTransIR_56C850(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
+	static inline int32_t xl_Project_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
+	static inline uint32_t xl_RenderProjectedObject_5106E0(void *desc, uint32_t ot, int32_t mode, uint32_t cursor) { return x::f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x5106E0))(desc, ot, mode, cursor); }
 	static inline uint32_t xl_Render_5088A0(void *ent, uint32_t ot, int32_t mode, uint32_t cursor) { return x::Render_5088A0(ent, ot, mode, cursor); }
 
 	static void SyncEntityModelCopy(uint8_t *blk)
@@ -119,7 +119,7 @@ namespace fart
 			}
 		}
 		x::SetRotMatrix(BBMAT());
-		x::SetTransVector((const void *)0x27971E4);
+		x::SetTransVector((const void *)us(0x27971E4));
 		if (n > 0)
 		{
 			for (int32_t k = n; k > 0; k--)

@@ -34,21 +34,21 @@ namespace part_brothers
 	static const uint32_t DWORD_1D98A4C = 0x1D98A4C;
 	static const uint32_t WORD_1D974B0 = 0x1D974B0;
 	static const uint32_t WORD_1D97494 = 0x1D97494;
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
 
-	static inline void *xl_ComposeZYXRotation(const void *angles, void *out) { return x::f<void *(__cdecl *)(const void *, void *)>(0x56CE30)(angles, out); }
-	static inline void xl_Apply3DTransform(const void *m, const void *v, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56C3D0)(m, v, out); }
-	static inline void xl_RotTransIR(const void *v, void *ir, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(v, ir, flag); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	static inline int32_t xl_NormalClip(int32_t a, int32_t b, int32_t c) { return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(0x56CB30)(a, b, c); }
+	static inline void *xl_ComposeZYXRotation(const void *angles, void *out) { return x::f<void *(__cdecl *)(const void *, void *)>(us(0x56CE30))(angles, out); }
+	static inline void xl_Apply3DTransform(const void *m, const void *v, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C3D0))(m, v, out); }
+	static inline void xl_RotTransIR(const void *v, void *ir, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, ir, flag); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
+	static inline int32_t xl_NormalClip(int32_t a, int32_t b, int32_t c) { return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CB30))(a, b, c); }
 	static inline void xl_ModelShadow_B67040(void *hdr, void *root, int32_t ot, int32_t y, int32_t level)
 	{
-		x::f<int32_t (__cdecl *)(void *, void *, int32_t, int32_t, int32_t)>(0xB67040)(hdr, root, ot, y, level);
+		x::f<int32_t (__cdecl *)(void *, void *, int32_t, int32_t, int32_t)>(us(0xB67040))(hdr, root, ot, y, level);
 	}
 	static inline void xl_OffscreenModelRender_B65F30(void *desc, const void *pos, const void *angles)
 	{
 		FX_HELD(if (held_predicting()) return;)
-		x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(0xB65F30)(desc, pos, angles);
+		x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(us(0xB65F30))(desc, pos, angles);
 	}
 
 	static void __cdecl dh_03_AnimatedModelWithShadow()
@@ -423,7 +423,7 @@ namespace part_brothers
 	static void __cdecl op_0C5_JumpIfBattleStage()
 	{
 		uint8_t *s = STREAM();
-		int32_t stage = (int32_t)(MEM<uint32_t>(COMBAT_SCENE_ID_1CFF6E0) & 0xFFFF);
+		int32_t stage = (int32_t)(MEM<uint32_t>(us(COMBAT_SCENE_ID_1CFF6E0)) & 0xFFFF);
 		if (stage == (int32_t)S16(s, 2))
 			STREAM() = s + S16(s, 4);
 		else
@@ -432,7 +432,7 @@ namespace part_brothers
 
 	static void __cdecl op_0D1_JumpIfModelSlot0FileId()
 	{
-		uint16_t id = MEM<uint8_t>(MODEL_SLOT0_FILEID_1D98990);
+		uint16_t id = MEM<uint8_t>(us(MODEL_SLOT0_FILEID_1D98990));
 		uint8_t *s = STREAM();
 		if (id == U16(s, 2))
 			STREAM() = s + S16(s, 4);
@@ -442,8 +442,8 @@ namespace part_brothers
 
 	static void __cdecl op_0D5_NorgBossTargetFixup()
 	{
-		uint8_t &flag = MEM<uint8_t>(BROTHERS_FLAG_2796D40);
-		if (MEM<uint16_t>(COMBAT_SCENE_ID_1CFF6E0) != 0x3F)
+		uint8_t &flag = MEM<uint8_t>(us(BROTHERS_FLAG_2796D40));
+		if (MEM<uint16_t>(us(COMBAT_SCENE_ID_1CFF6E0)) != 0x3F)
 		{
 			STREAM() += 4;
 			return;
@@ -464,11 +464,11 @@ namespace part_brothers
 			U8(sc, 0x41) = 4;
 			U8(SCENE(), 0x4B) = 3;
 			uint8_t *p = SCENE() + 0x9C;
-			U16(p, 0) = MEM<uint16_t>(WORD_1D974B0);
-			U16(p, 2) = MEM<uint16_t>(WORD_1D974B0 + 2);
-			U16(p, 4) = MEM<uint16_t>(WORD_1D974B0 + 4);
-			U16(SCENE(), 0x54) = MEM<uint16_t>(WORD_1D97494);
-			U32(SCENE(), 0x6C) = WORD_1D97494;
+			U16(p, 0) = MEM<uint16_t>(us(WORD_1D974B0));
+			U16(p, 2) = MEM<uint16_t>(us(WORD_1D974B0) + 2);
+			U16(p, 4) = MEM<uint16_t>(us(WORD_1D974B0) + 4);
+			U16(SCENE(), 0x54) = MEM<uint16_t>(us(WORD_1D97494));
+			U32(SCENE(), 0x6C) = us(WORD_1D97494);
 			STREAM() += 4;
 			return;
 		}
@@ -488,7 +488,7 @@ namespace part_brothers
 	{
 		if (U8(RT(), 0x4B) & 0x10)
 		{
-			uint32_t lv = MEM<uint32_t>(DWORD_1D98A4C) & 0xFF;
+			uint32_t lv = MEM<uint32_t>(us(DWORD_1D98A4C)) & 0xFF;
 			uint8_t *b = CUR();
 			int32_t d = (int32_t)(lv + lv - 0xA0u);
 			int32_t hi = (int32_t)(((int64_t)d * (int64_t)0x55555556) >> 32);
@@ -548,26 +548,26 @@ namespace brothers
 	{
 		c.name = "205 Brothers";
 		c.effect_id = 205;
-		c.vm_table = 0x1871E4C;
-		c.bone_table = 0x1871ABC;
-		c.prim_table = 0x1871B04;
-		c.prim_size = 0x1871BF4;
-		c.spr_table = 0x1871C08;
-		c.ptype_table = 0x1871C34;
-		c.pop_table = 0x1871C48;
-		c.draw_table = 0x1871CA8;
-		c.attr_16A = 0x1871E12;
-		c.attr_184 = 0x1871E2C;
-		c.attr_186 = 0x1871E2E;
-		c.attr_194 = 0x1871E3C;
-		c.attr_19C = 0x1871E44;
-		c.desc = 0x1871878;
-		c.ptr_block = 0x1871A94;
-		c.queue = 0x2796D30;
-		c.file00 = 0x2796D6C;
-		c.file01 = 0x2796D68;
-		c.tick = 0xAF4B90;
-		c.load_cb = 0xAFAD70;
+		c.vm_table = us(0x1871E4C);
+		c.bone_table = us(0x1871ABC);
+		c.prim_table = us(0x1871B04);
+		c.prim_size = us(0x1871BF4);
+		c.spr_table = us(0x1871C08);
+		c.ptype_table = us(0x1871C34);
+		c.pop_table = us(0x1871C48);
+		c.draw_table = us(0x1871CA8);
+		c.attr_16A = us(0x1871E12);
+		c.attr_184 = us(0x1871E2C);
+		c.attr_186 = us(0x1871E2E);
+		c.attr_194 = us(0x1871E3C);
+		c.attr_19C = us(0x1871E44);
+		c.desc = us(0x1871878);
+		c.ptr_block = us(0x1871A94);
+		c.queue = us(0x2796D30);
+		c.file00 = us(0x2796D6C);
+		c.file01 = us(0x2796D68);
+		c.tick = us(0xAF4B90);
+		c.load_cb = us(0xAFAD70);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}

@@ -25,18 +25,18 @@ namespace armor197
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &EndTick() { return var<int32_t>(0x2260468); }
-	inline int32_t &ModuleTick() { return var<int32_t>(0x2260BB0); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x22636F0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2264518); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x2265B00); }
-	inline int32_t &IdCount() { return var<int32_t>(0x2265DA0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2265DA4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2265DA8); }
-	inline int32_t &ArcCount() { return var<int32_t>(0x2265DAC); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2261A10; }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2261A20; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x22636F8; }
+	inline int32_t &EndTick() { return var<int32_t>(us(0x2260468)); }
+	inline int32_t &ModuleTick() { return var<int32_t>(us(0x2260BB0)); }
+	inline uint32_t &Flags() { return var<uint32_t>(us(0x22636F0)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2264518)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x2265B00)); }
+	inline int32_t &IdCount() { return var<int32_t>(us(0x2265DA0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2265DA4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2265DA8)); }
+	inline int32_t &ArcCount() { return var<int32_t>(us(0x2265DAC)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x2261A10); }
+	inline TaskQueue *QShots() { return (TaskQueue *)us(0x2261A20); }
+	inline TaskQueue *QAux() { return (TaskQueue *)us(0x22636F8); }
 	static const uint32_t PARTS_A = 0x2261A30, PARTS_B = 0x2262860;
 	static const int32_t PARTS_N = 150;
 	static const uint32_t SHOTS = 0x2264520;
@@ -74,28 +74,28 @@ namespace armor197
 	static const uint32_t MODEL_Beam = 0xCFDD18, MODEL_BeamHead = 0xCFEDE8, MODEL_ImpactRing = 0xD02570, MODEL_ImpactSpin = 0xD03298;
 	static const uint32_t MODEL_Armor = 0xCFF2F8;
 	static const uint32_t SEQ_BoneSmoke = 0xCFDA74, SEQ_Debris = 0xCFDC20, SEQ_Spark = 0xCFD714;
-	static const void *const SOUND_Gun = (const void *)0xD05230;
-	static const int32_t *const DIR_BACK = (const int32_t *)0xD05238;
-	static const int32_t *const DIR_FRONT = (const int32_t *)0xD05248;
-	static const int32_t *const DIR_DOWN = (const int32_t *)0xD05258;
-	static const uint32_t *const GHOST_COLOURS = (const uint32_t *)0xD05268;
+	static const void *SOUND_Gun() { return (const void *)us(0xD05230); }
+	static const int32_t *DIR_BACK() { return (const int32_t *)us(0xD05238); }
+	static const int32_t *DIR_FRONT() { return (const int32_t *)us(0xD05248); }
+	static const int32_t *DIR_DOWN() { return (const int32_t *)us(0xD05258); }
+	static const uint32_t *GHOST_COLOURS() { return (const uint32_t *)us(0xD05268); }
 
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, angle, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, ctx, ot, a, cursor); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, angle, out); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -149,12 +149,12 @@ namespace armor197
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Armor Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x38 && sizeof(ArcRec) == 0xE8 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Armor Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x38 * i); }
-	inline ArcRec *Arc(int32_t i) { return (ArcRec *)(ARCS + 0xE8 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(us(SHOTS) + 0x38 * i); }
+	inline ArcRec *Arc(int32_t i) { return (ArcRec *)(us(ARCS) + 0xE8 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(us(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
-	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? PARTS_B : PARTS_A); }
+	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? us(PARTS_B) : us(PARTS_A)); }
 	inline int32_t FindFree(const Particle *arr) { for (int32_t i = 0; i < PARTS_N; i++) if (arr[i].id == 0) return i; return -1; }
 }
 }
@@ -241,11 +241,11 @@ namespace armor197
 			ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), m);
 			*(uint16_t *)(h + 0x34) = 0;
 			*(uint16_t *)(h + 0x36) = 0;
-			*(uint32_t *)(h + 0x24) = var<uint32_t>(0x1D98B3C);
+			*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
 			*(uint32_t *)(h + 0x3C) = *(const uint32_t *)(entity + 0x28);
 			*(uint16_t *)(h + 0x38) = 0x140;
 			*(uint16_t *)(h + 0x3A) = 0xD8;
-			*(uint32_t *)(h + 0x30) = var<uint32_t>(0x1D969A8);
+			*(uint32_t *)(h + 0x30) = var<uint32_t>(us(0x1D969A8));
 			*(uint32_t *)(h + 0x40) = 0xFFFFFFFF;
 			const uint8_t c = entity[7];
 			h[0x4A] = c;
@@ -328,7 +328,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(MODEL_GroundFlash, faded, fade);
+		ModelDraw(us(MODEL_GroundFlash), faded, fade);
 	}
 
 	static void PathRingDraw(const Node *n, bool faded, int32_t fade)
@@ -342,7 +342,7 @@ namespace armor197
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors(DIR_BACK, s->dir, axis);
+		const int32_t angle = RotationBetweenVectors(DIR_BACK(), s->dir, axis);
 		Mat4x3 r;
 		BuildAxisAngleRotationMatrix(angle, &r, axis);
 		GteMatrixMultiply(&r, &m);
@@ -352,7 +352,7 @@ namespace armor197
 		const int32_t v[3] = { n->f1C, n->f1C, n->f20 };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(MODEL_PathRing, faded, fade);
+		ModelDraw(us(MODEL_PathRing), faded, fade);
 	}
 
 	static int16_t BeamDraw(const Node *n, bool faded, int32_t fade, int32_t head_size)
@@ -366,7 +366,7 @@ namespace armor197
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors(DIR_BACK, s->dir, axis);
+		const int32_t angle = RotationBetweenVectors(DIR_BACK(), s->dir, axis);
 		Mat4x3 r;
 		BuildAxisAngleRotationMatrix(angle, &r, axis);
 		GteMatrixMultiply(&r, &m);
@@ -378,7 +378,7 @@ namespace armor197
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_Beam, faded, fade);
+		uint8_t *h = ModelHeader(us(MODEL_Beam), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		int16_t p[4];
 		p[0] = (int16_t)((mul32(s->dir[0], n->f20) >> 12) + s->pos[0]);
@@ -387,7 +387,7 @@ namespace armor197
 		p[3] = (int16_t)(head_size < 0 ? CrtRand() % 0x300 + 0x800 : head_size);
 		FX_HELD(held_note_head(p[3]);)
 		TransformCameraByShadowRotation(p, p[3], -((int32_t)p[3] >> 3));
-		*(uint32_t *)h = MODEL_BeamHead;
+		*(uint32_t *)h = us(MODEL_BeamHead);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 		return p[3];
@@ -430,7 +430,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
-		ModelDraw(MODEL_Armor, faded, fade);
+		ModelDraw(us(MODEL_Armor), faded, fade);
 	}
 
 	static void SparkBegin(uint8_t *s, uint8_t *h, uint32_t seq)
@@ -461,7 +461,7 @@ namespace armor197
 
 	static void DebrisBegin(const Node *n, uint8_t *s, uint8_t *h)
 	{
-		*(uint32_t *)h = SEQ_Debris;
+		*(uint32_t *)h = us(SEQ_Debris);
 		*(int16_t *)(h + 0x24) = 0x208;
 		int16_t *ang = (int16_t *)s;
 		ang[0] = 0;
@@ -492,7 +492,7 @@ namespace armor197
 		v[1] = e->vel[1];
 		v[2] = e->vel[2];
 		Normalize(v, v);
-		const int32_t angle = RotationBetweenVectors(DIR_DOWN, v, (int32_t *)(s + 0x88));
+		const int32_t angle = RotationBetweenVectors(DIR_DOWN(), v, (int32_t *)(s + 0x88));
 		BuildAxisAngleRotationMatrix(angle, (Mat4x3 *)(s + 0x48), (const int32_t *)(s + 0x88));
 		GteMatrixMultiply((const Mat4x3 *)(s + 0x48), m);
 		ComposeAffineTransform((const Mat4x3 *)(s + 8), m, m);
@@ -513,7 +513,7 @@ namespace armor197
 
 	static void ArcSparkBegin(uint8_t *h)
 	{
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		*(int16_t *)(h + 0x24) = 0;
 	}
 	static void ArcSparkDraw(const Particle *e, uint8_t *h)
@@ -526,8 +526,8 @@ namespace armor197
 	static uint32_t __cdecl MuzzleFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_MuzzleFlashTask, n);)
-		MuzzleModel(n, n->f18, 0, MODEL_MuzzleFlash, n->counter >= 2, FadeFrom2(n->counter));
+		FX_HELD(held_note_node(us(ORIG_MuzzleFlashTask), n);)
+		MuzzleModel(n, n->f18, 0, us(MODEL_MuzzleFlash), n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -539,8 +539,8 @@ namespace armor197
 	static uint32_t __cdecl MuzzleConeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_MuzzleConeTask, n);)
-		MuzzleModel(n, 0, n->f18, MODEL_Cone, n->counter >= 6, FadeFrom6(n->counter));
+		FX_HELD(held_note_node(us(ORIG_MuzzleConeTask), n);)
+		MuzzleModel(n, 0, n->f18, us(MODEL_Cone), n->counter >= 6, FadeFrom6(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -552,7 +552,7 @@ namespace armor197
 	static uint32_t __cdecl GroundFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_GroundFlashTask, n);)
+		FX_HELD(held_note_node(us(ORIG_GroundFlashTask), n);)
 		GroundFlashDraw(n, n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -589,10 +589,10 @@ namespace armor197
 				e2->pos[2] = (int16_t)(e2->pos[2] + (CrtRand() % 0x32 - 0x19));
 			}
 		}
-		FX_HELD(held_note_node(ORIG_BoneSmokeTask, n);)
+		FX_HELD(held_note_node(us(ORIG_BoneSmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_BoneSmoke);
+		SparkBegin(s, h, us(SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -620,7 +620,7 @@ namespace armor197
 	static uint32_t __cdecl BeamTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_BeamTask, n);)
+		FX_HELD(held_note_node(us(ORIG_BeamTask), n);)
 		BeamDraw(n, n->counter >= 4, FadeFrom4(n->counter), -1);
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter < 4) n->f20 = (int16_t)(n->f20 + n->f22);
@@ -637,7 +637,7 @@ namespace armor197
 			n->pos[3]--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_PathRingTask, n);)
+		FX_HELD(held_note_node(us(ORIG_PathRingTask), n);)
 		PathRingDraw(n, n->counter >= 4, FadeFrom4(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -653,8 +653,8 @@ namespace armor197
 	static uint32_t __cdecl ImpactRingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_ImpactRingTask, n);)
-		ImpactModelDraw(n, DIR_FRONT, MODEL_ImpactRing, n->counter >= 2, IringFade(n->counter));
+		FX_HELD(held_note_node(us(ORIG_ImpactRingTask), n);)
+		ImpactModelDraw(n, DIR_FRONT(), us(MODEL_ImpactRing), n->counter >= 2, IringFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -666,8 +666,8 @@ namespace armor197
 	static uint32_t __cdecl ImpactSpinTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_ImpactSpinTask, n);)
-		ImpactModelDraw(n, DIR_BACK, MODEL_ImpactSpin, n->counter >= 6, Fade2AA(n->counter));
+		FX_HELD(held_note_node(us(ORIG_ImpactSpinTask), n);)
+		ImpactModelDraw(n, DIR_BACK(), us(MODEL_ImpactSpin), n->counter >= 6, Fade2AA(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -682,7 +682,7 @@ namespace armor197
 	static uint32_t __cdecl ArmorFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_ArmorFlashTask, n);)
+		FX_HELD(held_note_node(us(ORIG_ArmorFlashTask), n);)
 		ArmorFlashDraw(n, n->counter >= 6, Fade2AA(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -696,7 +696,7 @@ namespace armor197
 	{
 		Node *n = (Node *)n_;
 		Particle *arr = PartArray(n->f0E);
-		FX_HELD(held_note_node(ORIG_DebrisTask, n);)
+		FX_HELD(held_note_node(us(ORIG_DebrisTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x98);
 		int32_t alive = 0;
@@ -777,10 +777,10 @@ namespace armor197
 				e->pos[2] = (int16_t)(e->pos[2] + (CrtRand() % 1000 - 500));
 			}
 		}
-		FX_HELD(held_note_node(ORIG_TargetSparkTask, n);)
+		FX_HELD(held_note_node(us(ORIG_TargetSparkTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, SEQ_Spark);
+		SparkBegin(s, h, us(SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -837,7 +837,7 @@ namespace armor197
 		}
 		if (n->counter == 0)
 		{
-			Node *k = AddTask(QAux(), ORIG_ArcSparkTask);
+			Node *k = AddTask(QAux(), us(ORIG_ArcSparkTask));
 			k->f0E = n->f18;
 			const int32_t num = IdCount();
 			k->pos[3] = (int16_t)num;
@@ -855,7 +855,7 @@ namespace armor197
 		Node *n = (Node *)n_;
 		*(volatile uint32_t *)&n_ = (uint32_t)PartArray(n->pos[3]);
 		const ArcRec *a = Arc(n->f0E);
-		FX_HELD(held_note_node(ORIG_ArcSparkTask, n);)
+		FX_HELD(held_note_node(us(ORIG_ArcSparkTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		const int32_t id = n->pos[3] + 1;
 		ArcSparkBegin(h);
@@ -926,7 +926,7 @@ namespace armor197
 			s->pos[1] = (int16_t)((mul32(dir[1], 350) >> 12) + pos[1]);
 			s->pos[2] = (int16_t)((mul32(dir[2], 350) >> 12) + pos[2]);
 			int32_t axis[3];
-			const int32_t angle = RotationBetweenVectors(DIR_BACK, dir, axis);
+			const int32_t angle = RotationBetweenVectors(DIR_BACK(), dir, axis);
 			BuildAxisAngleRotationMatrix(angle, &s->m, axis);
 			GetDefaultEffectPosition(Entity(n->f1A), n->pos);
 			if (n->pos[1] > s->pos[1]) n->pos[1] = s->pos[1];
@@ -937,26 +937,26 @@ namespace armor197
 			uint8_t *t = Entity(n->f1A);
 			n->pos[3] = (int16_t)(mul32(*(const int16_t *)(t + 0x26), 2000) >> 12);
 			n->f1C = (int16_t)(mul32(ClampedSize(t), 2000) >> 12);
-			Node *f = AddTask(QAux(), ORIG_MuzzleFlashTask);
+			Node *f = AddTask(QAux(), us(ORIG_MuzzleFlashTask));
 			f->counter = 0;
 			f->f0E = n->f0E;
 			f->f18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t third = (int16_t)((CrtRand() % 0x380 + 0xA80) / 3);
 			f->f1E = third;
 			f->f1C = third;
-			Node *c = AddTask(QAux(), ORIG_MuzzleConeTask);
+			Node *c = AddTask(QAux(), us(ORIG_MuzzleConeTask));
 			c->counter = 0;
 			c->f0E = n->f0E;
 			c->f18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t third2 = (int16_t)((CrtRand() % 0x200 + 0xA00) / 3);
 			c->f1E = third2;
 			c->f1C = third2;
-			Node *g = AddTask(QAux(), ORIG_GroundFlashTask);
+			Node *g = AddTask(QAux(), us(ORIG_GroundFlashTask));
 			g->counter = 0;
 			g->f0E = n->f0E;
 			g->f18 = (int16_t)(CrtRand() % 0x1000);
 			g->f1C = (int16_t)(CrtRand() % 0x480 + 0x980);
-			Node *b = AddTask(QAux(), ORIG_BoneSmokeTask);
+			Node *b = AddTask(QAux(), us(ORIG_BoneSmokeTask));
 			const int32_t num = IdCount();
 			b->counter = 0;
 			b->f0E = (int16_t)num;
@@ -964,7 +964,7 @@ namespace armor197
 			const int32_t sixth = *(volatile int32_t *)&n_ / 6;
 			for (int32_t k = 1, frac = 0x200; frac <= 0xA00; k++, frac += 0x200)
 			{
-				Node *r = AddTask(QAux(), ORIG_PathRingTask);
+				Node *r = AddTask(QAux(), us(ORIG_PathRingTask));
 				ff8fx::copy<(8)>(r->pos, s->pos);
 				r->f0E = n->f0E;
 				r->pos[0] = (int16_t)(r->pos[0] + (mul32(mul32(k, sixth), s->dir[0]) >> 12));
@@ -980,7 +980,7 @@ namespace armor197
 				r->f1C = sc;
 				r->f20 = (int16_t)(CrtRand() % 0x600 + 0x1100);
 			}
-			Node *m = AddTask(QAux(), ORIG_BeamTask);
+			Node *m = AddTask(QAux(), us(ORIG_BeamTask));
 			m->f0E = n->f0E;
 			m->counter = 0;
 			const int16_t half = (int16_t)(*(volatile int32_t *)&n_ / 2);
@@ -990,7 +990,7 @@ namespace armor197
 		}
 		if (n->counter == 1)
 		{
-			Node *r = AddTask(QAux(), ORIG_ImpactRingTask);
+			Node *r = AddTask(QAux(), us(ORIG_ImpactRingTask));
 			ff8fx::copy<(8)>(r->pos, n->pos);
 			r->counter = 0;
 			r->f0E = n->f0E;
@@ -999,7 +999,7 @@ namespace armor197
 			const int16_t third = (int16_t)(*(volatile int32_t *)&n_ / 3);
 			r->f1E = third;
 			r->f1C = third;
-			Node *p = AddTask(QAux(), ORIG_ImpactSpinTask);
+			Node *p = AddTask(QAux(), us(ORIG_ImpactSpinTask));
 			ff8fx::copy<(8)>(p->pos, r->pos);
 			p->counter = 0;
 			p->f0E = n->f0E;
@@ -1011,7 +1011,7 @@ namespace armor197
 		}
 		if (n->counter == 6)
 		{
-			Node *f = AddTask(QAux(), ORIG_ArmorFlashTask);
+			Node *f = AddTask(QAux(), us(ORIG_ArmorFlashTask));
 			ff8fx::copy<(8)>(f->pos, n->pos);
 			f->counter = 0;
 			f->f0E = n->f0E;
@@ -1020,14 +1020,14 @@ namespace armor197
 			const int16_t third = (int16_t)((mul32(CrtRand() % 0x480 + 0xA00, k) >> 12) / 3);
 			f->f1E = third;
 			f->f1C = third;
-			Node *d = AddTask(QAux(), ORIG_DebrisTask);
+			Node *d = AddTask(QAux(), us(ORIG_DebrisTask));
 			const int32_t num = IdCount();
 			d->f0E = (int16_t)num;
 			IdCount() = num + 1;
 			ff8fx::copy<(4)>(d->pos, n->pos);
 			d->counter = 0;
 			ff8fx::copy<(4)>(d->pos + 2, n->pos + 2);
-			Node *sp = AddTask(QAux(), ORIG_TargetSparkTask);
+			Node *sp = AddTask(QAux(), us(ORIG_TargetSparkTask));
 			const int32_t num2 = IdCount();
 			sp->f0E = (int16_t)num2;
 			IdCount() = num2 + 1;
@@ -1036,7 +1036,7 @@ namespace armor197
 			sp->f1A = n->f1A;
 			for (int32_t j = 0; j < 3; j++)
 			{
-				Node *a = AddTask(QAux(), ORIG_ArcTask);
+				Node *a = AddTask(QAux(), us(ORIG_ArcTask));
 				ff8fx::copy<(8)>(a->pos, n->pos);
 				const int32_t arc = ArcCount();
 				a->counter = 0;
@@ -1046,7 +1046,7 @@ namespace armor197
 			}
 		}
 		if (n->counter == 6) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+		if (n->counter == 1) BdPlaySE(SOUND_Gun(), (n->f0E & 1) ? 1 : 2, 0x80);
 		n->counter++;
 		return n->counter >= 25 ? TASK_END : 0;
 	}
@@ -1079,7 +1079,7 @@ namespace armor197
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)us(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -1091,11 +1091,11 @@ namespace armor197
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS()[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)us(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -1108,15 +1108,15 @@ namespace armor197
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), us(BIND_OUT), us(ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
-			Node *f = AddTask(QAux(), ORIG_FadeInTask);
+			Node *f = AddTask(QAux(), us(ORIG_FadeInTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
-			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
+			AddTask(QAux(), us(ORIG_AfterimageTask))->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = us(GHOSTS); a < us(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -1133,7 +1133,7 @@ namespace armor197
 		if (n->counter == 0)
 		{
 			QueueChainTransformation(Caster(), 2);
-			Node *f = AddTask(QAux(), ORIG_FadeOutTask);
+			Node *f = AddTask(QAux(), us(ORIG_FadeOutTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
@@ -1166,7 +1166,7 @@ namespace armor197
 		if (!(UpdateFlags() & 0x201)) ModuleTick()++;
 		if (aux == 0 && (Flags() & 2))
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_RestoreTask);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), us(ORIG_RestoreTask));
 			t->counter = 0;
 			t->done = 0;
 		}

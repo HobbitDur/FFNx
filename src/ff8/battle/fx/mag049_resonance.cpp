@@ -40,11 +40,11 @@ namespace resonance
 	static const uint32_t ORIG_Warp = 0x824260;
 	static const uint32_t ORIG_Hit = 0x824970;
 	static const uint32_t ORIG_Prim1 = 0x821C50, ORIG_Prim2 = 0x824140;
-	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
+	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
 
 	namespace rx
 	{
-		static inline uint32_t SetDrawEnv(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(a1, a2); }
+		static inline uint32_t SetDrawEnv(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(a1, a2); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -342,7 +342,7 @@ namespace resonance
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
@@ -414,44 +414,44 @@ namespace resonance
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x26480E4) = 0x2793E58;
-		MEM<uint32_t>(0x26465E0) = 0x2793E58;
-		states[0] = 0x8217E0;
+		MEM<uint32_t>(us(0x26480E4)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x26465E0)) = us(0x2793E58);
+		states[0] = us(0x8217E0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = 0x8217F0;
-		states[2] = 0x821800;
-		states[3] = 0x821810;
-		states[4] = 0x824C00;
-		states[5] = 0x824C40;
-		states[6] = 0x824C50;
-		states[7] = 0x824C60;
-		states[8] = 0x824C90;
-		states[9] = 0x824CA0;
-		states[10] = 0x824CC0;
+		states[1] = us(0x8217F0);
+		states[2] = us(0x821800);
+		states[3] = us(0x821810);
+		states[4] = us(0x824C00);
+		states[5] = us(0x824C40);
+		states[6] = us(0x824C50);
+		states[7] = us(0x824C60);
+		states[8] = us(0x824C90);
+		states[9] = us(0x824CA0);
+		states[10] = us(0x824CC0);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x264781C);
-			const uint32_t v2 = MEM<uint32_t>(0x26472D4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26465DC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x264781C));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26472D4));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26465DC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2647818);
-			const uint32_t v2 = MEM<uint32_t>(0x26472D0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26465DC) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x2647818));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26472D0));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26465DC)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_MISC));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PRIM));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TINT));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_MISC)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -462,7 +462,7 @@ namespace resonance
 	{
 		if (S16(t1_data(), 0x46) >= 0xE)
 		{
-			x::BdPlaySE(SOUND, 0, 0x80);
+			x::BdPlaySE(us(SOUND), 0, 0x80);
 			next_state(a1);
 		}
 		return 0;
@@ -481,10 +481,10 @@ namespace resonance
 		if ((int32_t)S16(t1_data(), 0x40) - 1 != 0)
 			return 0;
 		const uint32_t node = a1;
-		x::Effect_AddTaskAndInitFromCtx(Q_MISC, ORIG_Warp, 0x80, node);
-		const uint32_t p1 = rs_821C00(node, ORIG_Prim1, 0x17B329C, 0x2D4, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_MISC), us(ORIG_Warp), 0x80, node);
+		const uint32_t p1 = rs_821C00(node, us(ORIG_Prim1), us(0x17B329C), 0x2D4, 0, 0);
 		U8(p1, 0x2C) = 3;
-		const uint32_t p2 = rs_821C00(node, ORIG_Prim2, 0x17B656C, 0x2C8, 1, 0);
+		const uint32_t p2 = rs_821C00(node, us(ORIG_Prim2), us(0x17B656C), 0x2C8, 1, 0);
 		U8(p2, 0x2C) = 4;
 		const uint32_t act0 = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 		if (U8(act0, 0x10) == 0)
@@ -493,7 +493,7 @@ namespace resonance
 		uint32_t act;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_MISC, ORIG_Hit, 0x80, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_MISC), us(ORIG_Hit), 0x80, node);
 			act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 			const uint8_t slot = U8(U32(act, 8), k * 0x18);
 			U8(t, 0x2B) = (uint8_t)k;
@@ -505,7 +505,7 @@ namespace resonance
 
 	uint32_t __cdecl rs_821C00(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, a2, 0x368, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), a2, 0x368, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -607,12 +607,12 @@ namespace resonance
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
@@ -620,7 +620,7 @@ namespace resonance
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = rs_8220B0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = rs_8220B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -629,13 +629,13 @@ namespace resonance
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = 0x8242E0;
-		states[1] = 0x8243B0;
-		states[2] = 0x8248A0;
-		states[3] = 0x8248E0;
-		states[4] = 0x824900;
-		states[5] = 0x824940;
-		states[6] = 0x824960;
+		states[0] = us(0x8242E0);
+		states[1] = us(0x8243B0);
+		states[2] = us(0x8248A0);
+		states[3] = us(0x8248E0);
+		states[4] = us(0x824900);
+		states[5] = us(0x824940);
+		states[6] = us(0x824960);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -654,15 +654,15 @@ namespace resonance
 
 	uint32_t __cdecl rs_824300()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(WARP_PTR), 0x10);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(WARP_PTR)), 0x10);
 		const uint32_t r0 = x::CrtRand();
-		U16(MEM<uint32_t>(WARP_PTR), 6) = (uint16_t)((r0 & 0x3F) + 0x20);
+		U16(MEM<uint32_t>(us(WARP_PTR)), 6) = (uint16_t)((r0 & 0x3F) + 0x20);
 		const uint32_t r1 = x::CrtRand();
-		U16(MEM<uint32_t>(WARP_PTR), 8) = (uint16_t)(r1 & 0xFFF);
+		U16(MEM<uint32_t>(us(WARP_PTR)), 8) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t r2 = x::CrtRand();
-		U16(MEM<uint32_t>(WARP_PTR), 0xC) = (uint16_t)(r2 & 0xFFF);
-		uint32_t e = GRID + 4;
-		for (uint32_t i = 0; e < GRID + 4 + 88 * 12; i++)
+		U16(MEM<uint32_t>(us(WARP_PTR)), 0xC) = (uint16_t)(r2 & 0xFFF);
+		uint32_t e = us(GRID) + 4;
+		for (uint32_t i = 0; e < us(GRID) + 4 + 88 * 12; i++)
 		{
 			const uint8_t u0 = (uint8_t)(i << 5);
 			const uint8_t u1 = (uint8_t)(u0 + 0x20);
@@ -708,12 +708,12 @@ namespace resonance
 
 	uint32_t __cdecl rs_824410()
 	{
-		const uint32_t k = (uint32_t)(MEM<uint8_t>(0x1D96A80) - 1) & 1;
-		const uint32_t pkt_scene = 0x26472D8 + (k << 6);
-		const uint32_t pkt_back = 0x2647820 + (k << 6);
-		const uint32_t env_back = 0x2646700 + k * 0x5C;
-		const uint32_t env_disp = 0x1D969C8 + k * 0x5C;
-		const uint32_t env_scene = 0x2647760 + k * 0x5C;
+		const uint32_t k = (uint32_t)(MEM<uint8_t>(us(0x1D96A80)) - 1) & 1;
+		const uint32_t pkt_scene = us(0x26472D8) + (k << 6);
+		const uint32_t pkt_back = us(0x2647820) + (k << 6);
+		const uint32_t env_back = us(0x2646700) + k * 0x5C;
+		const uint32_t env_disp = us(0x1D969C8) + k * 0x5C;
+		const uint32_t env_scene = us(0x2647760) + k * 0x5C;
 		ff8fx::copy<(0x5C)>((void *)env_back, (const void *)env_disp);
 		ff8fx::copy<(0x5C)>((void *)env_scene, (const void *)env_disp);
 		U16(env_scene, 0) = 0x240;
@@ -728,9 +728,9 @@ namespace resonance
 		U8(env_scene, 0x1B) = 0;
 		U8(env_back, 0x18) = 0;
 		rx::SetDrawEnv(pkt_scene, env_scene);
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(0x1D8E04C) + 0x4484, pkt_scene);
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x4484, pkt_scene);
 		rx::SetDrawEnv(pkt_back, env_back);
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(0x1D8E04C) + 0x14, pkt_back);
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x14, pkt_back);
 		return 0;
 	}
 
@@ -754,19 +754,19 @@ namespace resonance
 			uint16_t by = 0;
 			for (uint32_t j = 0; j < 8; j++)
 			{
-				const uint32_t e = GRID + (j + i * 8) * 0xC;
+				const uint32_t e = us(GRID) + (j + i * 8) * 0xC;
 				if (i == 0)
 					U16(e, 0) = 0;
 				else if (i == 0xA)
 					U16(e, 0) = 0x140;
 				else
-					U16(e, 0) = (uint16_t)(U16(XWAVE + (r + j * 2) * 2, 0) + bx);
+					U16(e, 0) = (uint16_t)(U16(us(XWAVE) + (r + j * 2) * 2, 0) + bx);
 				if (j == 0)
 					U16(e, 2) = 0;
 				else if (j == 7)
 					U16(e, 2) = 0xF0;
 				else
-					U16(e, 2) = (uint16_t)(U16(YWAVE + (r + i * 2) * 2, 0) + by);
+					U16(e, 2) = (uint16_t)(U16(us(YWAVE) + (r + i * 2) * 2, 0) + by);
 				by = (uint16_t)(by + 0x20);
 			}
 		}
@@ -776,15 +776,15 @@ namespace resonance
 	uint32_t __cdecl rs_8245B0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
 		(void)a1;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + a2 * 4;
-		uint32_t pkt = MEM<uint32_t>(FRAME_CURSOR);
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + a2 * 4;
+		uint32_t pkt = MEM<uint32_t>(us(FRAME_CURSOR));
 		const uint8_t code = ((uint16_t)a3 == 1) ? 0x2F : 0x2D;
 		uint16_t tpage = 0x119;
 		for (uint32_t i = 0; i < 0xA; i++)
 		{
 			if (i == 8)
 				tpage = 0x11D;
-			uint32_t e = GRID + i * 0x60 + 6;
+			uint32_t e = us(GRID) + i * 0x60 + 6;
 			for (int j = 0; j < 7; j++)
 			{
 				U8(pkt, 7) = code;
@@ -807,7 +807,7 @@ namespace resonance
 				pkt = mode + 0xC;
 			}
 		}
-		MEM<uint32_t>(FRAME_CURSOR) = pkt;
+		MEM<uint32_t>(us(FRAME_CURSOR)) = pkt;
 		return 0;
 	}
 
@@ -828,8 +828,8 @@ namespace resonance
 			for (uint32_t k = 0; k < 8; k++)
 			{
 				const int32_t s = (int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)ph);
-				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(WARP_PTR), 0));
-				U16(XWAVE + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
+				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(us(WARP_PTR)), 0));
+				U16(us(XWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
 				ph = (ph + step) & 0xFFF;
 			}
 		}
@@ -841,8 +841,8 @@ namespace resonance
 			{
 				const int32_t s = (int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)ph);
 				ph = (ph + step) & 0xFFF;
-				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(WARP_PTR), 0));
-				U16(YWAVE + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
+				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(us(WARP_PTR)), 0));
+				U16(us(YWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
 			}
 		}
 		return 0;
@@ -850,7 +850,7 @@ namespace resonance
 
 	uint32_t __cdecl rs_8248A0(uint32_t a1)
 	{
-		const uint32_t w = MEM<uint32_t>(WARP_PTR);
+		const uint32_t w = MEM<uint32_t>(us(WARP_PTR));
 		U16(w, 0) = (uint16_t)(U16(w, 0) + 0x100);
 		if (S16(w, 0) >= 0x1000)
 		{
@@ -871,7 +871,7 @@ namespace resonance
 
 	uint32_t __cdecl rs_824900(uint32_t a1)
 	{
-		const uint32_t w = MEM<uint32_t>(WARP_PTR);
+		const uint32_t w = MEM<uint32_t>(us(WARP_PTR));
 		U16(w, 0) = (uint16_t)(U16(w, 0) - 0x80);
 		if (S16(w, 0) <= 0)
 		{
@@ -963,15 +963,15 @@ namespace resonance
 	uint32_t __cdecl rs_8218C0(uint32_t a1)
 	{
 		rs_8218F0(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x26465B8, 0x821970, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x26465B8), us(0x821970), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl rs_8218F0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -981,7 +981,7 @@ namespace resonance
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -989,11 +989,11 @@ namespace resonance
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = 0x821A30;
-		states[1] = 0x821A80;
-		states[2] = 0x821AC0;
-		states[3] = 0x821AF0;
-		states[4] = 0x821B10;
+		states[0] = us(0x821A30);
+		states[1] = us(0x821A80);
+		states[2] = us(0x821AC0);
+		states[3] = us(0x821AF0);
+		states[4] = us(0x821B10);
 		rs_8219E0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -1048,7 +1048,7 @@ namespace resonance
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(0x1D97778, L, L);
+		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
 		U32(L, 0x44) = U32(node, 0x7C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -1056,11 +1056,11 @@ namespace resonance
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
 		FX_HELD(held_note_play(node);)
-		return prim_play(node + 0x94, PRIM_CB, L, 0);
+		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl rs_8220B0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
@@ -1776,7 +1776,7 @@ namespace resonance
 
 	uint32_t __cdecl rs_824970(uint32_t a1)
 	{
-		const uint32_t tab[6] = { 0x8249E0, 0x824A70, 0x824AE0, 0x824B00, 0x824B20, 0x824B80 };
+		const uint32_t tab[6] = { us(0x8249E0), us(0x824A70), us(0x824AE0), us(0x824B00), us(0x824B20), us(0x824B80) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;

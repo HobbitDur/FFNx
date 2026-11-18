@@ -26,14 +26,14 @@ namespace sonic139
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2517B50); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2517B58); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520BDC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520BF4); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520BF8; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2520C08; }
-	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(0x2520C28); }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2517B50)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2517B58)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520BDC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520BF4)); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2520BF8); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2520C08); }
+	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(us(0x2520C28)); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
 
 	static const uint32_t ORIG_MasterTask = 0x6A88F0;
 	static const uint32_t ORIG_MainTask = 0x6A8AE0;
@@ -44,35 +44,35 @@ namespace sonic139
 	static const uint32_t VERTS_BYTES = VBUF - VERTS;
 	static const uint32_t ARENA_A = 0x1EF0;
 	static const uint32_t ARENA_B = 0x11EF0;
-	static uint8_t *const MESH = (uint8_t *)0x2517B5C;
+	static uint8_t *MESH() { return (uint8_t *)us(0x2517B5C); }
 	static const uint32_t FRAMES = 0x11D72B0;
 	static const uint32_t FRAME_BYTES = 0x650;
-	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x11DD2C8;
-	static const int16_t *const WAVE_TABLE = (const int16_t *)0x11DD4C8;
-	static const int16_t *const BONE_ENTRY = (const int16_t *)0x11DD340;
+	static const uint16_t *SQRT_TABLE() { return (const uint16_t *)us(0x11DD2C8); }
+	static const int16_t *WAVE_TABLE() { return (const int16_t *)us(0x11DD4C8); }
+	static const int16_t *BONE_ENTRY() { return (const int16_t *)us(0x11DD340); }
 	static const uint32_t MODEL_Main = 0x11DAB70;
 	static const uint32_t MODEL_Target = 0x11D8BF0;
-	static const uint8_t *const COLOURS = (const uint8_t *)0x11DF4C8;
-	static const void *const SOUND_Wave = (const void *)0x11DD338;
+	static const uint8_t *COLOURS() { return (const uint8_t *)us(0x11DF4C8); }
+	static const void *SOUND_Wave() { return (const void *)us(0x11DD338); }
 	static const uint32_t OT_CAPTURE = 0x4484;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline void GteWriteData(int32_t value, int reg) { fn<void (__cdecl *)(int32_t, int)>(0x45D7C0)(value, reg); }
-	inline void GteWriteData2(int reg, uint32_t value) { fn<void (__cdecl *)(int, uint32_t)>(0x45DB90)(reg, value); }
-	inline void GteSetRGBC(const void *rgbc) { fn<void (__cdecl *)(const void *)>(0x45E110)(rgbc); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void InsertPrimAltViewport(uint32_t ot, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(ot, packet); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
+	inline void GteWriteData(int32_t value, int reg) { fn<void (__cdecl *)(int32_t, int)>(us(0x45D7C0))(value, reg); }
+	inline void GteWriteData2(int reg, uint32_t value) { fn<void (__cdecl *)(int, uint32_t)>(us(0x45DB90))(reg, value); }
+	inline void GteSetRGBC(const void *rgbc) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(rgbc); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void InsertPrimAltViewport(uint32_t ot, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(ot, packet); }
 
 #pragma pack(push, 1)
 	struct DrawEnv
@@ -87,10 +87,10 @@ namespace sonic139
 	};
 #pragma pack(pop)
 	static_assert(sizeof(DrawEnv) == 0x5C, "DRAWENV");
-	inline void GetDrawEnv(DrawEnv *env) { fn<void (__cdecl *)(DrawEnv *)>(0x45B640)(env); }
-	inline void SetDefDrawEnv(DrawEnv *env, int32_t x, int32_t y, int32_t w, int32_t h) { fn<void (__cdecl *)(DrawEnv *, int32_t, int32_t, int32_t, int32_t)>(0x45C2A0)(env, x, y, w, h); }
-	inline void SetDrawEnv(void *packet, const DrawEnv *env) { fn<void (__cdecl *)(void *, const DrawEnv *)>(0x45C0F0)(packet, env); }
-	inline void SetDrawMode(void *packet, int32_t dfe, int32_t dtd, int32_t tpage, const void *rect) { fn<void (__cdecl *)(void *, int32_t, int32_t, int32_t, const void *)>(0x45BFC0)(packet, dfe, dtd, tpage, rect); }
+	inline void GetDrawEnv(DrawEnv *env) { fn<void (__cdecl *)(DrawEnv *)>(us(0x45B640))(env); }
+	inline void SetDefDrawEnv(DrawEnv *env, int32_t x, int32_t y, int32_t w, int32_t h) { fn<void (__cdecl *)(DrawEnv *, int32_t, int32_t, int32_t, int32_t)>(us(0x45C2A0))(env, x, y, w, h); }
+	inline void SetDrawEnv(void *packet, const DrawEnv *env) { fn<void (__cdecl *)(void *, const DrawEnv *)>(us(0x45C0F0))(packet, env); }
+	inline void SetDrawMode(void *packet, int32_t dfe, int32_t dtd, int32_t tpage, const void *rect) { fn<void (__cdecl *)(void *, int32_t, int32_t, int32_t, const void *)>(us(0x45BFC0))(packet, dfe, dtd, tpage, rect); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -328,12 +328,12 @@ namespace sonic139
 				uint32_t idx;
 				if (c > 0) idx = (uint32_t)sq << (c & 31);
 				else idx = (uint32_t)(sq >> ((0x18 - e) & 31));
-				int32_t len = (int32_t)((uint32_t)SQRT_TABLE[idx] << (sh & 31)) >> 12;
+				int32_t len = (int32_t)((uint32_t)SQRT_TABLE()[idx] << (sh & 31)) >> 12;
 				*(uint32_t *)(v + 4) = ((uint32_t)(len & ~1) << 19) | (*(const uint32_t *)(v + 4) & 0xFFFFF);
 				int32_t a = 0x400 - (len >> 2);
 				if (a < 0) a = 0;
 				else if (a > 0x3FF) a = 0x3FF;
-				const int32_t s = WAVE_TABLE[a] >> 2;
+				const int32_t s = WAVE_TABLE()[a] >> 2;
 				if (len == 0) len = 1;
 				const int32_t dx = mul32(x, s) / len;
 				const int32_t dy = mul32(y, s) / len;
@@ -497,7 +497,7 @@ namespace sonic139
 		{
 			const uint32_t pk = *(const uint32_t *)(v + 4);
 			const int32_t idx = ((((int32_t)pk >> 18) & ~3) + phase) & 0xFFF;
-			const int32_t a = mul32(WAVE_TABLE[idx], amp) >> 12;
+			const int32_t a = mul32(WAVE_TABLE()[idx], amp) >> 12;
 			const int32_t dx = (int32_t)(pk << 22) >> 22, dy = (int32_t)(pk << 12) >> 22;
 			const uint16_t vx = (uint16_t)((mul32(dx, a) >> 12) + *(const int16_t *)v);
 			const uint16_t vy = (uint16_t)((mul32(dy, a) >> 12) + *(const int16_t *)(v + 2));
@@ -671,7 +671,7 @@ namespace sonic139
 		const int32_t f = u & 0xFFF;
 		const int32_t k = u >> 12;
 		uint8_t c[4];
-		BlendColour(COLOURS + k * 4, COLOURS + k * 4 + 4, 0x1000 - f, f, c);
+		BlendColour(COLOURS() + k * 4, COLOURS() + k * 4 + 4, 0x1000 - f, f, c);
 		BlendColour(&p->colour, c, 0x1000 - s, s, p->entity + 0x28);
 		p->counter++;
 		return 0;
@@ -687,7 +687,7 @@ namespace sonic139
 		{
 			int16_t pos[4];
 			pos[3] = StartResidue();
-			BonePoint(BONE_ENTRY, pos);
+			BonePoint(BONE_ENTRY(), pos);
 			if (w->counter == 0) ff8fx::copy<(8)>(w->start, pos);
 			PrimArg arg;
 			MainBlock(pos, &arg);
@@ -708,9 +708,9 @@ namespace sonic139
 				const int32_t s = ComputeSin(half);
 				const uint32_t phase = (uint32_t)c << 9;
 				const uint32_t k = (phase >> 12) & 3;
-				BlendFrames((const uint8_t *)(FRAMES + k * FRAME_BYTES), (const uint8_t *)(FRAMES + ((k + 1) & 3) * FRAME_BYTES), (uint8_t *)(TexBase() + VERTS), (int32_t)(phase & 0xFFF));
+				BlendFrames((const uint8_t *)(us(FRAMES) + k * FRAME_BYTES), (const uint8_t *)(us(FRAMES) + ((k + 1) & 3) * FRAME_BYTES), (uint8_t *)(TexBase() + VERTS), (int32_t)(phase & 0xFFF));
 				const int32_t s2 = ComputeSin(half);
-				ScreenWarp(MESH, (const uint8_t *)(TexBase() + VERTS), (((int16_t)(z - 0x200)) >> 2) + 0x11, 0x1000 - s2, s + s, t, (uint8_t *)(TexBase() + VBUF));
+				ScreenWarp(MESH(), (const uint8_t *)(TexBase() + VERTS), (((int16_t)(z - 0x200)) >> 2) + 0x11, 0x1000 - s2, s + s, t, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
 		const uint32_t b = (uint32_t)(c - 0x1E);
@@ -724,14 +724,14 @@ namespace sonic139
 				const int32_t half = t >> 1;
 				const int32_t s = ComputeSin(half);
 				const int32_t s2 = ComputeSin(half);
-				ScreenWarp(MESH, MESH + 8, (z >> 2) + 0x11, 0x1000 - s2, s, t, (uint8_t *)(TexBase() + VBUF));
+				ScreenWarp(MESH(), MESH() + 8, (z >> 2) + 0x11, 0x1000 - s2, s, t, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
-		if (w->counter == 0) BdPlaySE(SOUND_Wave, 0, 0x80);
+		if (w->counter == 0) BdPlaySE(SOUND_Wave(), 0, 0x80);
 		const uint32_t e = (uint32_t)(w->counter - 0x1E);
 		if (e < 0x10 && !(e & 3) && (e >> 2) < (uint32_t)(int32_t)w->count)
 		{
-			TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+			TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 			if (p)
 			{
 				const uint32_t i = e >> 2;
@@ -740,7 +740,7 @@ namespace sonic139
 				p->entity = w->ents[i];
 				p->colour = *(const uint32_t *)(p->entity + 0x28);
 				GetDefaultEffectPosition(p->entity, p->pos);
-				DecodeModelPrimLayout(MODEL_Target, p->layout, 0x278);
+				DecodeModelPrimLayout(us(MODEL_Target), p->layout, 0x278);
 			}
 		}
 		if (w->counter < 0x46)
@@ -773,14 +773,14 @@ namespace sonic139
 		}
 		if (m->counter == 1 && !m->started)
 		{
-			PrepareMesh(MESH);
-			for (uint32_t f = FRAMES + 3 * FRAME_BYTES; f != FRAMES; f -= FRAME_BYTES) NormaliseMesh((uint8_t *)f);
+			PrepareMesh(MESH());
+			for (uint32_t f = us(FRAMES) + 3 * FRAME_BYTES; f != us(FRAMES); f -= FRAME_BYTES) NormaliseMesh((uint8_t *)f);
 			m->started = 1;
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + 0xA60), 0x4DC, 1);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0x298, 4);
-			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&w->counter, 0, 0x134);
-			DecodeModelPrimLayout(MODEL_Main, w->layout, 0x4AC);
+			DecodeModelPrimLayout(us(MODEL_Main), w->layout, 0x4AC);
 			w->count = (int16_t)Ctx()->actions[0].target_count;
 			w->avg[2] = 0;
 			w->avg[1] = 0;

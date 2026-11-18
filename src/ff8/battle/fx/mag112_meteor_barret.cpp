@@ -25,18 +25,18 @@ namespace meteor112
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25218E0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25218E8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25218EC); }
-	inline int16_t &ColumnTop() { return var<int16_t>(0x25218F0); }
-	inline int16_t &ColumnSpan() { return var<int16_t>(0x25218F2); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521914); }
-	inline const void *Black() { return (const void *)0x2521918; }
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2521920; }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521930; }
-	inline TaskQueue *QSmoke() { return (TaskQueue *)0x2521940; }
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2521950; }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25218E0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25218E8)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25218EC)); }
+	inline int16_t &ColumnTop() { return var<int16_t>(us(0x25218F0)); }
+	inline int16_t &ColumnSpan() { return var<int16_t>(us(0x25218F2)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2521914)); }
+	inline const void *Black() { return (const void *)us(0x2521918); }
+	inline TaskQueue *QDebris() { return (TaskQueue *)us(0x2521920); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2521930); }
+	inline TaskQueue *QSmoke() { return (TaskQueue *)us(0x2521940); }
+	inline TaskQueue *QDirector() { return (TaskQueue *)us(0x2521950); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
 
 	static const uint32_t ORIG_RootTask = 0x6CBCF0;
 	static const uint32_t ORIG_DirectorTask = 0x6CBF90;
@@ -55,26 +55,26 @@ namespace meteor112
 	static const uint32_t FLAGS_Ground = 0x12DB65C, FLAGS_HandA = 0x12DB664, FLAGS_HandB = 0x12DB67C, FLAGS_Fist = 0x12DB6AC;
 	static const uint32_t FLAGS_Impact = 0x12DB6D8, FLAGS_Billboard = 0x12DB6E0, FLAGS_Target = 0x12DB720;
 	static const uint32_t CAMERA_Blob = 0x12DAFA8;
-	static const int16_t *const SPARK_Dirs = (const int16_t *)0x12DB730;
-	static const void *const SOUND_Start = (const void *)0x12DB654;
-	static const void *const SOUND_Hit = (const void *)0x12DB658;
+	static const int16_t *SPARK_Dirs() { return (const int16_t *)us(0x12DB730); }
+	static const void *SOUND_Start() { return (const void *)us(0x12DB654); }
+	static const void *SOUND_Hit() { return (const void *)us(0x12DB658); }
 
 	enum : int { SITE_GROUND = 0xB4, SITE_HAND_A = 0x174, SITE_HAND_B = 0x284, SITE_FIST = 0x5BC, SITE_TARGET = 0x90C,
 		SITE_BILLBOARD = 0xA18, SITE_IMPACT_A = 0xD98, SITE_IMPACT_B = 0xE78 };
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t CartesianToGameAngle(int32_t x, int32_t z) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(x, z); }
-	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline void PlayCameraBlob(uint32_t blob) { fn<void (__cdecl *)(uint32_t)>(0x5099A0)(blob); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void MorphVertices(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x6D5580)(model, f0, f1, t, out); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void ScreenFadeTask(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t CartesianToGameAngle(int32_t x, int32_t z) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(x, z); }
+	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline void PlayCameraBlob(uint32_t blob) { fn<void (__cdecl *)(uint32_t)>(us(0x5099A0))(blob); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void MorphVertices(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x6D5580))(model, f0, f1, t, out); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void ScreenFadeTask(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(us(0x5712C0))(a, b, c, d); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -411,7 +411,7 @@ namespace meteor112
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = us(MODEL_Debris);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x58);
@@ -469,10 +469,10 @@ namespace meteor112
 			int32_t angle = CrtRand();
 			for (int32_t i = 8; i != 0; i--, angle += 0x200)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 				if (!s) continue;
 				Memset32(&s->counter, 0, 6);
-				s->seq = SEQ_Smoke;
+				s->seq = us(SEQ_Smoke);
 				s->end = 0xC;
 				s->depth = 0x1000;
 				s->size = 0x1000;
@@ -491,14 +491,14 @@ namespace meteor112
 		{
 			for (int32_t i = 0xC; i != 0; i--)
 			{
-				SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
+				SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), us(ORIG_SmokeTask));
 				if (!s) continue;
 				Memset32(&s->counter, 0, 4);
 				ff8fx::copy<(8)>(s->pos, L.spawn);
 				s->pos[0] = (int16_t)(s->pos[0] + (int16_t)((CrtRand() & 0x1FF) - 0x100));
 				s->pos[2] = (int16_t)(s->pos[2] + (int16_t)((CrtRand() & 0x1FF) - 0x100));
 				const int32_t r = CrtRand() & 0x7FF;
-				s->seq = SEQ_Smoke;
+				s->seq = us(SEQ_Smoke);
 				s->end = 0xC;
 				s->size = (int16_t)(r + 0x1000);
 			}
@@ -516,7 +516,7 @@ namespace meteor112
 		GteSetTransVector(&L.m);
 		int32_t len = SqrtInt(mul32(L.delta[0], L.delta[0]) + mul32(L.delta[2], L.delta[2]));
 		if (L.delta[2] > 0) len = -len;
-		ColumnBend(MODEL_Column, (int16_t *)(TexBase() + 0x1808), len);
+		ColumnBend(us(MODEL_Column), (int16_t *)(TexBase() + 0x1808), len);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		YawMatrix(W16(caster, 0xE), &L.m);
 		L.m.m[1][1] = (int16_t)shl32(-*(const int32_t *)&L.delta[1], 2);
@@ -526,7 +526,7 @@ namespace meteor112
 		ComposeAffineTransform(&Camera(), &L.m, &L.m);
 		GteSetRotMatrix(&L.m);
 		GteSetTransVector(&L.m);
-		*(uint32_t *)h = MODEL_Column;
+		*(uint32_t *)h = us(MODEL_Column);
 		*(uint32_t *)(h + 4) = TexBase() + 0x1808;
 		if ((uint32_t)k >= 7)
 		{
@@ -544,7 +544,7 @@ namespace meteor112
 		const uint32_t dxy = *(const uint32_t *)&L.delta[0], dz = *(const uint32_t *)&L.delta[2];
 		for (int32_t i = 2; i != 0; i--)
 		{
-			DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+			DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), us(ORIG_DebrisTask));
 			if (!p) continue;
 			Memset32(&p->counter, 0, 9);
 			*(uint32_t *)&p->pos[0] = dxy;
@@ -600,10 +600,10 @@ namespace meteor112
 		if ((uint32_t)e >= 0x20) PacketCursor() = ScreenTile(0x28, 0x37, 0x32, e - 0x20, 3, PacketCursor());
 		if (e == 0)
 		{
-			DecodeModelPrimLayout(LAYOUT_Target, d->target_l, 0x10C);
-			DecodeModelPrimLayout(LAYOUT_Billboard, d->billboard, 0x380);
-			DecodeModelPrimLayout(LAYOUT_ImpactA, d->impact_a, 0xE0);
-			DecodeModelPrimLayout(LAYOUT_ImpactB, d->impact_b, 0xD0);
+			DecodeModelPrimLayout(us(LAYOUT_Target), d->target_l, 0x10C);
+			DecodeModelPrimLayout(us(LAYOUT_Billboard), d->billboard, 0x380);
+			DecodeModelPrimLayout(us(LAYOUT_ImpactA), d->impact_a, 0xE0);
+			DecodeModelPrimLayout(us(LAYOUT_ImpactB), d->impact_b, 0xD0);
 			int32_t f = W16(caster, 0xE);
 			if (f > 0x800) f -= 0x1000;
 			W16(caster, 0xE) = (int16_t)(f >> 1);
@@ -624,7 +624,7 @@ namespace meteor112
 		d->impact_m.t[2] = d->impact[2];
 		ComposeAffineTransform(&Camera(), &d->impact_m, &L.m);
 		L.arg.m = &L.m;
-		L.arg.flags = (const uint32_t *)FLAGS_Impact;
+		L.arg.flags = (const uint32_t *)us(FLAGS_Impact);
 		L.arg.morph = TexBase() + 0x1808;
 		PlayLayout(d, SITE_IMPACT_A, &L.arg);
 		if ((uint32_t)e >= 0x29) PlayLayout(d, SITE_IMPACT_B, &L.arg);
@@ -645,14 +645,14 @@ namespace meteor112
 		L.m.t[2] = (int32_t)((uint32_t)L.m.t[2] + (uint32_t)Camera().t[2]);
 		L.arg.radial = (int16_t)(d->lift + 0xC8);
 		L.arg.m = &L.m;
-		L.arg.flags = (const uint32_t *)FLAGS_Billboard;
+		L.arg.flags = (const uint32_t *)us(FLAGS_Billboard);
 		L.arg.morph = TexBase() + 0x1808;
 		PlayLayout(d, SITE_BILLBOARD, &L.arg);
 		if (e == 2)
 		{
 			for (*(int32_t *)&L.spawn[0] = 0x10; *(int32_t *)&L.spawn[0] != 0; (*(int32_t *)&L.spawn[0])--)
 			{
-				DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+				DebrisNode *p = (DebrisNode *)AddTaskToQueue(QDebris(), us(ORIG_DebrisTask));
 				if (!p) continue;
 				int32_t spread = CrtRand();
 				spread -= CrtRand();
@@ -694,7 +694,7 @@ namespace meteor112
 				ComposeAffineTransform(&Camera(), &d->impact_m, &L.m);
 				L.arg.radial = (int16_t)(d->lift + 0xC8);
 				L.arg.m = &L.m;
-				L.arg.flags = (const uint32_t *)FLAGS_Target;
+				L.arg.flags = (const uint32_t *)us(FLAGS_Target);
 				L.arg.morph = TexBase() + 0x1808;
 				PlayLayout(d, SITE_TARGET, &L.arg);
 			}
@@ -709,13 +709,13 @@ namespace meteor112
 				L.m.t[0] = 0;
 				GteSetRotMatrix(&L.m);
 				GteSetTransVector(&L.m);
-				for (*(uint32_t *)&L.delta[0] = (uint32_t)(SPARK_Dirs + 12); ; )
+				for (*(uint32_t *)&L.delta[0] = (uint32_t)(SPARK_Dirs() + 12); ; )
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 					if (s)
 					{
 						Memset32(&s->counter, 0, 6);
-						s->seq = SEQ_Spark;
+						s->seq = us(SEQ_Spark);
 						s->end = 0xF;
 						GteLoadV0((const void *)*(const uint32_t *)&L.delta[0]);
 						GteMVMVA_RotV0Tr();
@@ -734,7 +734,7 @@ namespace meteor112
 					}
 					const uint32_t at = *(const uint32_t *)&L.delta[0];
 					*(uint32_t *)&L.delta[0] = at - 8;
-					if (at == (uint32_t)SPARK_Dirs) break;
+					if (at == (uint32_t)SPARK_Dirs()) break;
 				}
 			}
 		}
@@ -752,8 +752,8 @@ namespace meteor112
 		DirectorNode *d = (DirectorNode *)n;
 		uint8_t *caster = Caster();
 		DirLocals L;
-		if (d->counter == 2) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (d->counter == 0x49) BdPlaySE(SOUND_Hit, 0, 0x80);
+		if (d->counter == 2) BdPlaySE(SOUND_Start(), 0, 0x80);
+		if (d->counter == 0x49) BdPlaySE(SOUND_Hit(), 0, 0x80);
 		int32_t flash = (int32_t)0xFFFFD8F1;
 		const int16_t c0 = d->counter;
 		if (c0 < 4) { const int32_t v = shl32(c0, 8); if (v > flash) flash = v; }
@@ -770,7 +770,7 @@ namespace meteor112
 		{
 			if (k == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Ground, d->ground_l, 0xC0);
+				DecodeModelPrimLayout(us(LAYOUT_Ground), d->ground_l, 0xC0);
 				GetEffectSpawnPosition(caster, 0xF1, 0, d->ground);
 			}
 			else
@@ -778,7 +778,7 @@ namespace meteor112
 				L.arg.pos[0] = d->ground[0];
 				L.arg.pos[1] = W16(caster, 0x24);
 				L.arg.pos[2] = d->ground[2];
-				L.arg.flags = (const uint32_t *)FLAGS_Ground;
+				L.arg.flags = (const uint32_t *)us(FLAGS_Ground);
 				L.arg.morph = TexBase() + 0x1808;
 				PlayLayout(d, SITE_GROUND, &L.arg);
 				if ((uint32_t)(k - 1) <= 6)
@@ -795,17 +795,17 @@ namespace meteor112
 		{
 			if (h == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_HandA, d->hand_a, 0x110);
-				DecodeModelPrimLayout(LAYOUT_HandB, d->hand_b, 0x338);
+				DecodeModelPrimLayout(us(LAYOUT_HandA), d->hand_a, 0x110);
+				DecodeModelPrimLayout(us(LAYOUT_HandB), d->hand_b, 0x338);
 			}
 			HandsMidpoint(caster, L.arg.pos);
 			L.arg.radial = (uint32_t)h < 0x16 ? 0 : (int16_t)-0x400;
-			L.arg.flags = (const uint32_t *)FLAGS_HandA;
+			L.arg.flags = (const uint32_t *)us(FLAGS_HandA);
 			L.arg.morph = TexBase() + 0x1808;
 			PlayLayout(d, SITE_HAND_A, &L.arg);
 			if ((uint32_t)h > 4)
 			{
-				L.arg.flags = (const uint32_t *)FLAGS_HandB;
+				L.arg.flags = (const uint32_t *)us(FLAGS_HandB);
 				L.arg.morph = TexBase() + 0x1808;
 				PlayLayout(d, SITE_HAND_B, &L.arg);
 			}
@@ -819,7 +819,7 @@ namespace meteor112
 		{
 			if (f == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Fist, d->fist_l, 0x350);
+				DecodeModelPrimLayout(us(LAYOUT_Fist), d->fist_l, 0x350);
 				int16_t *ang = &L.arg.pos[2];
 				ang[0] = 0x12C;
 				ang[1] = W16(caster, 0xE);
@@ -832,7 +832,7 @@ namespace meteor112
 			d->fist_m.t[2] = d->fist[2];
 			ComposeAffineTransform(&Camera(), &d->fist_m, &L.m);
 			L.arg.m = &L.m;
-			L.arg.flags = (const uint32_t *)FLAGS_Fist;
+			L.arg.flags = (const uint32_t *)us(FLAGS_Fist);
 			L.arg.morph = TexBase() + 0x1808;
 			PlayLayout(d, SITE_FIST, &L.arg);
 			if ((uint32_t)f >= 4)
@@ -901,7 +901,7 @@ namespace meteor112
 		}
 		if (d->counter == 0x89)
 		{
-			TaskNode *w = AddTaskToQueue(QDebris(), ORIG_TexRestoreTask);
+			TaskNode *w = AddTaskToQueue(QDebris(), us(ORIG_TexRestoreTask));
 			if (w) Memset32((uint8_t *)w + 0xC, 0, 9);
 		}
 		if (d->counter >= 0x98)
@@ -939,7 +939,7 @@ namespace meteor112
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), ORIG_DirectorTask);
+				DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), us(ORIG_DirectorTask));
 				if (d)
 				{
 					uint8_t *caster = Caster();
@@ -947,7 +947,7 @@ namespace meteor112
 					B8(caster, 1) |= 0x10;
 					d->action = r->action;
 					d->target = Entity(ActionTargets(r->action)[0]);
-					BindExternalAnimSet(caster, d->bind, COM_Anim);
+					BindExternalAnimSet(caster, d->bind, us(COM_Anim));
 					QueueChainTransformation(caster, 1);
 					W16(caster, 0xE) = (int16_t)CartesianToGameAngle((int32_t)W16(caster, 0x1C) - (int32_t)W16(d->target, 0x1C), (int32_t)W16(caster, 0x20) - (int32_t)W16(d->target, 0x20));
 					d->lift = (int32_t)W16(d->target, 0x26) - 0x190;
@@ -960,7 +960,7 @@ namespace meteor112
 					d->colour_b = U32(caster, 0x2C);
 					B8(d, 0x37) = B8(caster, 7);
 					r->action++;
-					PlayCameraBlob(CAMERA_Blob);
+					PlayCameraBlob(us(CAMERA_Blob));
 				}
 			}
 		}

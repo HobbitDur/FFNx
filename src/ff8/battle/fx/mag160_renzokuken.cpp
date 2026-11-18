@@ -25,13 +25,13 @@ namespace renzo160
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23D559C); }
-	inline int32_t &Length() { return var<int32_t>(0x23D5634); }
-	inline int32_t &Finisher() { return var<int32_t>(0x23D5638); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23D563C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23D5640); }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23D4778; }
-	inline TaskQueue *QHit() { return (TaskQueue *)0x209FAA8; }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x23D559C)); }
+	inline int32_t &Length() { return var<int32_t>(us(0x23D5634)); }
+	inline int32_t &Finisher() { return var<int32_t>(us(0x23D5638)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23D563C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23D5640)); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x23D4778); }
+	inline TaskQueue *QHit() { return (TaskQueue *)us(0x209FAA8); }
 	static const uint32_t POOL_A = 0x23D3530, POOL_A_END = 0x23D3710;
 	static const uint32_t POOL_B = 0x23D3710, POOL_B_SPAWN_END = 0x23D3990, POOL_B_END = 0x23D3AD0;
 	static const uint32_t POOL_C = 0x23D4240, POOL_C_END = 0x23D4560;
@@ -41,14 +41,14 @@ namespace renzo160
 	static const uint32_t HIT_POS = 0x23D4760;
 	static const uint32_t HIT_DIR = 0x23D4768;
 	static const uint32_t RING = 0x23D55A8, RING_END = 0x23D5634;
-	inline uint8_t StageCount() { return var<uint8_t>(0x1D98214); }
-	inline uint8_t StageLen(int i) { return var<uint8_t>(0x1D98215 + i); }
+	inline uint8_t StageCount() { return var<uint8_t>(us(0x1D98214)); }
+	inline uint8_t StageLen(int i) { return var<uint8_t>(us(0x1D98215) + i); }
 
 	static const uint32_t ORIG_Controller = 0x5FF180, ORIG_HitSpark = 0x5FF4E0, ORIG_Sparkle = 0x5FF770,
 		ORIG_Trail = 0x5FFAA0, ORIG_SparkSpawn = 0x5FFFE0, ORIG_Hit = 0x600110, ORIG_Slash = 0x6004A0,
 		ORIG_Final = 0x600780, ORIG_Master = 0x600930;
 
-	static const void *const SOUND = (const void *)0xEA0FCC;
+	static const void *SOUND() { return (const void *)us(0xEA0FCC); }
 	static const uint32_t MODEL_SPARKLE = 0xEA0FD0, SPARKLE_FADE = 0xEA1158, SPARKLE_DEPTH = 0xEA1148;
 	static const uint32_t ANIM_DATA = 0xEA1BA0, BIND_OUT = 0x24FEBC8;
 	static const uint32_t MODEL_SLASH = 0xDAACB8, MODEL_STREAK = 0xDAB6A0, MODEL_RING = 0xDAB970;
@@ -56,28 +56,28 @@ namespace renzo160
 	static const uint32_t SLASH_REF = 0xDAC270;
 	static const uint32_t HIT_LEAD = 0xDAC280;
 
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline void AddAnimSeqTask(uint8_t *entity, int32_t type) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x571840)(entity, type); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DDA0))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, seq); }
+	inline void AddAnimSeqTask(uint8_t *entity, int32_t type) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x571840))(entity, type); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -209,34 +209,34 @@ namespace renzo160
 		}
 		if (n->c == 1)
 		{
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+			BindEntityModelFromComData(Caster(), us(BIND_OUT), us(ANIM_DATA));
 			QueueChainTransformation(Caster(), (Finisher() != 0) + 1);
 		}
 		if (n->c == 2)
 		{
 			const int32_t last = (int32_t)StageCount() + 1;
 			Length() = 0;
-			for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(0x1D98214 + i);
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Trail);
+			for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(us(0x1D98214) + i);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Trail));
 			t->c = 0;
-			for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_SparkSpawn);
+			for (uint32_t a = us(RING); a < us(RING_END); a += 0x14) var<int32_t>(a) = 0;
+			t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_SparkSpawn));
 			t->c = 0;
 			t->e = (int16_t)(CrtRand() % 0x18);
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Hit);
+			t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Hit));
 			t->c = 0;
 		}
 		if (Finisher() != 0 && (int32_t)n->c == Length())
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), ORIG_HitSpark);
+			Node24 *t = (Node24 *)AddTaskToQueue(QHit(), us(ORIG_HitSpark));
 			t->c = 0;
 			t->w1A = (int16_t)CasterSlot();
 		}
 		if (n->c == 0x2D)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Final);
-			t->w10 = var<int16_t>(HIT_POS);
-			t->w14 = var<int16_t>(HIT_POS + 4);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Final));
+			t->w10 = var<int16_t>(us(HIT_POS));
+			t->w14 = var<int16_t>(us(HIT_POS) + 4);
 			t->c = 0;
 			t->w12 = 0;
 			t->w20 = 0x1000;
@@ -263,17 +263,17 @@ namespace renzo160
 		}
 		if (tint)
 		{
-			uint32_t colour = var<uint32_t>(0xB8B7D8);
+			uint32_t colour = var<uint32_t>(us(0xB8B7D8));
 			GteLoadRGBC(&colour);
 			GteSetIR0(shl32(k, 9));
 			GteDPCS();
 			GteStoreRGB2(Caster() + 0x28);
 		}
-		if (n->c == 1) BdPlaySE(SOUND, 0x8000, 0x80);
+		if (n->c == 1) BdPlaySE(SOUND(), 0x8000, 0x80);
 		n->c++;
 		if ((int32_t)n->c <= Length()) return 0;
 		if (Finisher() == 0) SetScreenFlash(0, 0);
-		*(uint32_t *)(Caster() + 0x28) = var<uint32_t>(0xB8B7D8);
+		*(uint32_t *)(Caster() + 0x28) = var<uint32_t>(us(0xB8B7D8));
 		uint16_t *flags = (uint16_t *)Caster();
 		*flags = (uint16_t)((*flags & 0xF7FF) | (uint16_t)n->e);
 		return TASK_END;
@@ -292,7 +292,7 @@ namespace renzo160
 			p[1] = h;
 			for (int32_t i = 0; i < 6; i++)
 			{
-				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), ORIG_Sparkle);
+				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), us(ORIG_Sparkle));
 				s->c = 0;
 				s->e = (int16_t)(CrtRand() % 6 + i);
 				const uint8_t *sk = **(uint8_t ***)(Entity(n->w1A) + 0x64);
@@ -340,7 +340,7 @@ namespace renzo160
 		}
 		int16_t q[4];
 		GetEffectSpawnPosition(Entity(n->w1A), n->w18, shl32(n->c, 9), q);
-		int32_t d[3] = { (int32_t)var<int16_t>(0xB8B7F0) - q[0], 0, (int32_t)var<int16_t>(0xB8B7F4) - q[2] };
+		int32_t d[3] = { (int32_t)var<int16_t>(us(0xB8B7F0)) - q[0], 0, (int32_t)var<int16_t>(us(0xB8B7F4)) - q[2] };
 		int32_t u[3] = { 0, 0, -0x1000 };
 		Normalize(d, d);
 		int32_t axis[3];
@@ -378,12 +378,12 @@ namespace renzo160
 		GteSetRotMatrix(&m1);
 		GteSetTransVector(&m1);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SPARKLE;
+		*(uint32_t *)h = us(MODEL_SPARKLE);
 		*(uint32_t *)(h + 8) = 0;
-		*(uint32_t *)(h + 0xC) = var<uint16_t>(SPARKLE_FADE + 2 * n->c);
-		*(uint32_t *)(h + 0x18) = var<uint16_t>(SPARKLE_DEPTH + 2 * n->w1C);
+		*(uint32_t *)(h + 0xC) = var<uint16_t>(us(SPARKLE_FADE) + 2 * n->c);
+		*(uint32_t *)(h + 0x18) = var<uint16_t>(us(SPARKLE_DEPTH) + 2 * n->w1C);
 		*(uint32_t *)(h + 0x1C) = 0x10F3;
-		var<uint32_t>(0x1D8E054) = RenderPrimModel(h, RenderOT(), 2, var<uint32_t>(0x1D8E054));
+		var<uint32_t>(us(0x1D8E054)) = RenderPrimModel(h, RenderOT(), 2, var<uint32_t>(us(0x1D8E054)));
 		FieldFree(0x58);
 		if (DrawOnly()) return 0;
 		n->w1C++;
@@ -469,7 +469,7 @@ namespace renzo160
 			GteStoreRGB2(&w->col1);
 			pk[5] = pk[1] = w->col0;
 			pk[7] = pk[3] = w->col1;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
 			pk2[5] = w->col0;
 			pk2[3] = pk2[1] = 0x3A000000;
 			pk2[7] = w->col1;
@@ -478,7 +478,7 @@ namespace renzo160
 			pk2[6] = pk[6];
 			pk2[8] = pk[8];
 			pk2[0] = 0x8000000;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
 			pk += 0x12;
 			pk2 += 0x12;
 		}
@@ -492,20 +492,20 @@ namespace renzo160
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(us(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c < Length() - 7 ? 7 : Length() - c;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)us(RING), idx, want, (uint8_t *)us(PTS_A), (uint8_t *)us(PTS_B));
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
+			TrailSplines(cnt, (const uint8_t *)us(PTS_A), (const uint8_t *)us(PTS_B), (uint8_t *)us(SPL_A), (uint8_t *)us(SPL_B));
+			TrailHitPoint((const uint8_t *)us(SPL_B), (uint8_t *)us(HIT_POS), (int32_t *)us(HIT_DIR));
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
+			TrailDraw((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -532,9 +532,9 @@ namespace renzo160
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_SPAWN_END, 0x10);
+				const int32_t i = FreeSlot(us(POOL_B), us(POOL_B_SPAWN_END), 0x10);
 				if (i < 0) break;
-				SparkP *p = (SparkP *)(POOL_B + 0x10 * i);
+				SparkP *p = (SparkP *)(us(POOL_B) + 0x10 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
 				const uint8_t *sk = **(uint8_t ***)(Caster() + 0x64);
@@ -557,18 +557,18 @@ namespace renzo160
 		int32_t sum = 0;
 		for (int32_t b = 0; b < (int32_t)StageCount(); b++)
 		{
-			const int32_t lead = var<int32_t>(HIT_LEAD + 4 * b);
+			const int32_t lead = var<int32_t>(us(HIT_LEAD) + 4 * b);
 			sum += StageLen(b);
 			if ((int32_t)n->c != sum - lead) continue;
-			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Slash);
+			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Slash));
 			s->c = 0;
 			s->e = (int16_t)b;
 			const int16_t sc = (int16_t)(CrtRand() % 0x280 + 0x400);
 			s->w1E = sc;
 			s->w1C = sc;
-			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
-			ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
-			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
+			HitRec *r = (HitRec *)(us(HIT_REC) + 0x9C * b);
+			ff8fx::copy<(8)>(r->pos, (const void *)us(HIT_POS));
+			ff8fx::copy<(16)>(r->dir, (const void *)us(HIT_DIR));
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -580,26 +580,26 @@ namespace renzo160
 			}
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0xC);
+				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0xC);
 				if (i < 0) break;
-				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
+				FlashP *p = (FlashP *)(us(POOL_A) + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xA00);
-				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
+				ff8fx::copy<(8)>(p->pos, (const void *)us(HIT_POS));
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 			}
 			for (int32_t j = 0; j < 0xC; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x14);
+				const int32_t i = FreeSlot(us(POOL_C), us(POOL_C_END), 0x14);
 				if (i < 0) break;
-				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
+				DebrisP *p = (DebrisP *)(us(POOL_C) + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xC00);
-				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
+				ff8fx::copy<(8)>(p->pos, (const void *)us(HIT_POS));
 				const int32_t sp = CrtRand() % 200 + 0x8C;
-				const int32_t *d = (const int32_t *)HIT_DIR;
+				const int32_t *d = (const int32_t *)us(HIT_DIR);
 				const int32_t r0 = CrtRand() % 200;
 				p->vel[0] = (int16_t)(r0 + (mul32(d[0], sp) >> 12) - 0x64);
 				const int32_t r1 = CrtRand() % 200;
@@ -621,10 +621,10 @@ namespace renzo160
 	static uint32_t __cdecl SlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
+		HitRec *r = (HitRec *)(us(HIT_REC) + 0x9C * n->e);
 		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)SLASH_REF, r->dir, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(SLASH_REF), r->dir, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = r->pos[0];
@@ -646,7 +646,7 @@ namespace renzo160
 		GteSetRotMatrix(&m3);
 		GteSetTransVector(&m3);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SLASH;
+		*(uint32_t *)h = us(MODEL_SLASH);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (n->c >= 2)
 		{
@@ -657,7 +657,7 @@ namespace renzo160
 			*(int32_t *)(h + 0xC) = mul32(n->c - 2, 682);
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
-		*(uint32_t *)h = MODEL_STREAK;
+		*(uint32_t *)h = us(MODEL_STREAK);
 		*(uint32_t *)(h + 0x1C) |= 3;
 		for (int32_t k = 0; k < r->count; k++)
 		{
@@ -725,7 +725,7 @@ namespace renzo160
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_RING;
+		*(uint32_t *)h = us(MODEL_RING);
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (n->c >= 6)
 		{
@@ -749,9 +749,9 @@ namespace renzo160
 	{
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_FLASH;
+		*(uint32_t *)h = us(SEQ_FLASH);
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0xC)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0xC)
 		{
 			FlashP *p = (FlashP *)a;
 			if (p->life < 0) continue;
@@ -762,8 +762,8 @@ namespace renzo160
 			p->life++;
 			if (*(const int16_t *)(h + 0x28) < 0) p->life = -1;
 		}
-		*(uint32_t *)h = SEQ_DEBRIS;
-		for (uint32_t a = POOL_C; a < POOL_C_END; a += 0x14)
+		*(uint32_t *)h = us(SEQ_DEBRIS);
+		for (uint32_t a = us(POOL_C); a < us(POOL_C_END); a += 0x14)
 		{
 			DebrisP *p = (DebrisP *)a;
 			if (p->life < 0) continue;
@@ -785,14 +785,14 @@ namespace renzo160
 			p->vel[1] = (int16_t)(p->vel[1] - (int16_t)(p->vel[1] >> 3));
 			p->vel[2] = (int16_t)(p->vel[2] - (int16_t)(p->vel[2] >> 3));
 		}
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = us(SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 4;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x10)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x10)
 		{
 			SparkP *p = (SparkP *)a;
 			if (p->life < 0) continue;
 			*(int16_t *)(h + 4) = p->life;
-			*(uint32_t *)(h + 0x1C) = var<uint32_t>(SPARK_FRAMES + 4 * p->frame);
+			*(uint32_t *)(h + 0x1C) = var<uint32_t>(us(SPARK_FRAMES) + 4 * p->frame);
 			TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
 			PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 			if (UpdateFlags() & 0x201) continue;

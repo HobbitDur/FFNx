@@ -30,13 +30,13 @@ namespace part_lev_a
 {
 	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C8C0)(v, sxy, p, flag);
+		return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C8C0))(v, sxy, p, flag);
 	}
 
 	static inline void xl_OffscreenRender_B65810()
 	{
 		FX_HELD(if (held_predicting()) return;)
-		x::f<int32_t (__cdecl *)()>(0xB65810)();
+		x::f<int32_t (__cdecl *)()>(us(0xB65810))();
 	}
 
 	static inline int32_t Div3(int32_t v)
@@ -530,7 +530,7 @@ namespace part_lev_b
 {
 	static int32_t xl_NormalClip_56CB30(int32_t a, int32_t b, int32_t c)
 	{
-		return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(0x56CB30)(a, b, c);
+		return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CB30))(a, b, c);
 	}
 
 	static void MorphTableBuild_B5A760()
@@ -1068,26 +1068,26 @@ namespace leviathan
 	{
 		c.name = "006 Leviathan";
 		c.effect_id = 6;
-		c.vm_table = 0x1877864;
-		c.bone_table = 0x18774D4;
-		c.prim_table = 0x187751C;
-		c.prim_size = 0x187760C;
-		c.spr_table = 0x1877620;
-		c.ptype_table = 0x187764C;
-		c.pop_table = 0x1877660;
-		c.draw_table = 0x18776C0;
-		c.attr_16A = 0x187782A;
-		c.attr_184 = 0x1877844;
-		c.attr_186 = 0x1877846;
-		c.attr_194 = 0x1877854;
-		c.attr_19C = 0x187785C;
-		c.desc = 0x187726C;
-		c.ptr_block = 0x18774AC;
-		c.queue = 0x2796EF8;
-		c.file00 = 0x2796F0C;
-		c.file01 = 0x2796F08;
-		c.tick = 0xB586F0;
-		c.load_cb = 0xB60530;
+		c.vm_table = us(0x1877864);
+		c.bone_table = us(0x18774D4);
+		c.prim_table = us(0x187751C);
+		c.prim_size = us(0x187760C);
+		c.spr_table = us(0x1877620);
+		c.ptype_table = us(0x187764C);
+		c.pop_table = us(0x1877660);
+		c.draw_table = us(0x18776C0);
+		c.attr_16A = us(0x187782A);
+		c.attr_184 = us(0x1877844);
+		c.attr_186 = us(0x1877846);
+		c.attr_194 = us(0x1877854);
+		c.attr_19C = us(0x187785C);
+		c.desc = us(0x187726C);
+		c.ptr_block = us(0x18774AC);
+		c.queue = us(0x2796EF8);
+		c.file00 = us(0x2796F0C);
+		c.file01 = us(0x2796F08);
+		c.tick = us(0xB586F0);
+		c.load_cb = us(0xB60530);
 		c.lit_dispatcher = true;
 		c.bone_count = 18;
 	}

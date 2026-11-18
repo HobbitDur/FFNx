@@ -43,22 +43,22 @@ namespace drinkmagic
 	static const uint32_t ORIG_Spark = 0x85F060;
 	static const uint32_t NODE_SIZE = 0x130;
 	static const uint32_t ACTOR_DATA = 0x17C8420;
-	static const void *const SOUND_Drink = (const void *)0x15D62E8;
+	static const void *SOUND_Drink() { return (const void *)us(0x15D62E8); }
 	static const uint32_t RIBBON_FLIPBOOK = 0x15D92F4, SPARK_FLIPBOOK = 0x15D9504, STREAK_FLIPBOOK = 0x15D9624;
 	static const uint32_t ORB_MODEL = 0x15D62EC, ORB_TEMPLATE = 0x15D860C;
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E220)(a1); }
-		static inline uint32_t BdPlaySy(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x501740)(a1, a2, a3); }
-		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x571BC0)(a1, a2, a3); }
-		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x571C80)(a1, a2, a3, a4); }
-		static inline uint32_t Effect_CopyMidpointFromSource(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DC700)(a1, a2); }
-		static inline uint32_t MAG_037_render(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x85D990)(a1, a2, a3, a4); }
-		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x8DDA50)(a1, a2, a3); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
+		static inline uint32_t BdPlaySy(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x501740))(a1, a2, a3); }
+		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(a1, a2, a3); }
+		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(a1, a2, a3, a4); }
+		static inline uint32_t Effect_CopyMidpointFromSource(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC700))(a1, a2); }
+		static inline uint32_t MAG_037_render(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x85D990))(a1, a2, a3, a4); }
+		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDA50))(a1, a2, a3); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -452,46 +452,46 @@ namespace drinkmagic
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x26A05EC) = 0x2793E58;
-		states[0] = 0x856CA0;
-		states[1] = 0x856CB0;
+		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x26A05EC)) = us(0x2793E58);
+		states[0] = us(0x856CA0);
+		states[1] = us(0x856CB0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = 0x856CC0;
-		states[3] = 0x856D40;
-		states[4] = 0x85F410;
-		states[5] = 0x85F450;
-		states[6] = 0x85F460;
-		states[7] = 0x85F470;
-		states[8] = 0x85F480;
-		states[9] = 0x85F490;
-		states[10] = 0x85F4B0;
+		states[2] = us(0x856CC0);
+		states[3] = us(0x856D40);
+		states[4] = us(0x85F410);
+		states[5] = us(0x85F450);
+		states[6] = us(0x85F460);
+		states[7] = us(0x85F470);
+		states[8] = us(0x85F480);
+		states[9] = us(0x85F490);
+		states[10] = us(0x85F4B0);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26A8D7C);
-			const uint32_t v2 = MEM<uint32_t>(0x26A8174);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26A05E8) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26A8D7C));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26A8174));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26A05E8)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26A8D78);
-			const uint32_t v2 = MEM<uint32_t>(0x26A8170);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26A05E8) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26A8D78));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26A8170));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26A05E8)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x26A8D9A) = 0;
-		MEM<uint16_t>(0x26A8D8A) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_RIBBON));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ORB));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(us(0x26A8D9A)) = 0;
+		MEM<uint16_t>(us(0x26A8D8A)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_RIBBON)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ORB)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -502,12 +502,12 @@ namespace drinkmagic
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(0x26A8DAC);
-		MEM<uint32_t>(0x26A8D8C) = p;
+		uint32_t p = MEM<uint32_t>(us(0x26A8DAC));
+		MEM<uint32_t>(us(0x26A8D8C)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x26A8DA4) = p;
+		MEM<uint32_t>(us(0x26A8DA4)) = p;
 		p += 0x6900;
-		MEM<uint32_t>(0x26A8DAC) = p;
+		MEM<uint32_t>(us(0x26A8DAC)) = p;
 		dk_856D00();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -515,12 +515,12 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_856D00(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26A8D8C), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26A8DA4), 0x6900);
-		MEM<uint16_t>(0x26A7D98) = 0;
-		MEM<uint16_t>(0x26A8D98) = 0;
-		MEM<uint16_t>(0x26A8D88) = 0;
-		MEM<uint16_t>(0x26A05D0) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26A8D8C)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26A8DA4)), 0x6900);
+		MEM<uint16_t>(us(0x26A7D98)) = 0;
+		MEM<uint16_t>(us(0x26A8D98)) = 0;
+		MEM<uint16_t>(us(0x26A8D88)) = 0;
+		MEM<uint16_t>(us(0x26A05D0)) = 0;
 		return 0;
 	}
 
@@ -528,15 +528,15 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x856E00;
-		states[1] = 0x85F3A0;
-		states[2] = 0x85F3C0;
-		states[3] = 0x85F400;
+		states[0] = us(0x856E00);
+		states[1] = us(0x85F3A0);
+		states[2] = us(0x85F3C0);
+		states[3] = us(0x85F400);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Drink), 0, 0x80);
+			x::BdPlaySE(P(SOUND_Drink()), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -561,7 +561,7 @@ namespace drinkmagic
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(0x26A8DB0) = st;
+		MEM<uint32_t>(us(0x26A8DB0)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -573,7 +573,7 @@ namespace drinkmagic
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(0x26A8DB0);
+			st = MEM<uint32_t>(us(0x26A8DB0));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -593,41 +593,41 @@ namespace drinkmagic
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		dk_8571B0();
-		st = MEM<uint32_t>(0x26A8DB0);
+		st = MEM<uint32_t>(us(0x26A8DB0));
 		if (U16(st, 0x24) == 4)
-			callp(0x8570D0, node);
+			callp(us(0x8570D0), node);
 		dk_857500();
-		st = MEM<uint32_t>(0x26A8DB0);
+		st = MEM<uint32_t>(us(0x26A8DB0));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(0x857310, node);
-			st = MEM<uint32_t>(0x26A8DB0);
+			callp(us(0x857310), node);
+			st = MEM<uint32_t>(us(0x26A8DB0));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(0x26A8DB0);
+			st = MEM<uint32_t>(us(0x26A8DB0));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = 0x1D972C0 + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = 0x1D972C0 + s2 * 0x9C;
+		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(0x26A8DB0);
+		st = MEM<uint32_t>(us(0x26A8DB0));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_8570D0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26A8DB0);
+		const uint32_t arena = MEM<uint32_t>(us(0x26A8DB0));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -644,15 +644,15 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_8571B0(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -665,7 +665,7 @@ namespace drinkmagic
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -673,7 +673,7 @@ namespace drinkmagic
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -688,7 +688,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_857310(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x26A8DB0);
+		const uint32_t arena = MEM<uint32_t>(us(0x26A8DB0));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -709,7 +709,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_857500(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -718,11 +718,11 @@ namespace drinkmagic
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = 0x1D972C0 + slot * 0x9C;
+				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -735,7 +735,7 @@ namespace drinkmagic
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -743,7 +743,7 @@ namespace drinkmagic
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -785,7 +785,7 @@ namespace drinkmagic
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x26A8DB0, 0) = sys;
+		U32(us(0x26A8DB0), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -798,7 +798,7 @@ namespace drinkmagic
 			FX_HELD(held_note_system(sys);)
 			dk_859080();
 			a_735440();
-			sys = U32(0x26A8DB0, 0);
+			sys = U32(us(0x26A8DB0), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -811,8 +811,8 @@ namespace drinkmagic
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x26A8D9A, 0) = (uint16_t)(U16(0x26A8D9A, 0) + c14);
-		U16(0x26A8D8A, 0) = (uint16_t)(U16(0x26A8D8A, 0) + c16);
+		U16(us(0x26A8D9A), 0) = (uint16_t)(U16(us(0x26A8D9A), 0) + c14);
+		U16(us(0x26A8D8A), 0) = (uint16_t)(U16(us(0x26A8D8A), 0) + c16);
 		return done;
 	}
 
@@ -1317,14 +1317,14 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_859080(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x26A8DB0), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(us(0x26A8DB0)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x26A8DB0);
+				uint32_t st = MEM<uint32_t>(us(0x26A8DB0));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1359,26 +1359,26 @@ namespace drinkmagic
 	uint32_t __cdecl dk_859140(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_8591C0(void)
 	{
-		uint32_t act = U32(U32(0x26A8DB0, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x26A8DB0), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1394,7 +1394,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_859200(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x26A8DB0);
+		uint32_t st = MEM<uint32_t>(us(0x26A8DB0));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1415,7 +1415,7 @@ namespace drinkmagic
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x26A8DB0);
+			st = MEM<uint32_t>(us(0x26A8DB0));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1427,7 +1427,7 @@ namespace drinkmagic
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x26A8DB0, 0);
+		uint32_t st = U32(us(0x26A8DB0), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1510,8 +1510,8 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85A3F0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26A8D8C);
-		int32_t idx = MEM<int16_t>(0x26A7D98);
+		const uint32_t pool = MEM<uint32_t>(us(0x26A8D8C));
+		int32_t idx = MEM<int16_t>(us(0x26A7D98));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1521,7 +1521,7 @@ namespace drinkmagic
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1536,9 +1536,9 @@ namespace drinkmagic
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x26A7D98) = (uint16_t)idx;
+			MEM<uint16_t>(us(0x26A7D98)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x26A7D98) = 0;
+			MEM<uint16_t>(us(0x26A7D98)) = 0;
 		return slot;
 	}
 
@@ -1551,9 +1551,9 @@ namespace drinkmagic
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(0x85AE40, a1);
+			callp(us(0x85AE40), a1);
 		else if (mode == 4)
-			callp(0x85AF90, a1);
+			callp(us(0x85AF90), a1);
 		dk_85A510(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1562,7 +1562,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85A510(uint32_t a1)
 	{
-		uint32_t sys = U32(0x26A8DB0, 0);
+		uint32_t sys = U32(us(0x26A8DB0), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1589,9 +1589,9 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85A590(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(0x26A8DA0, 0) - 0x50;
+		uint32_t sp = U32(us(0x26A8DA0), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x26A8DA0, 0) = sp;
+		U32(us(0x26A8DA0), 0) = sp;
 		uint32_t node = dk_85AD70(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1601,7 +1601,7 @@ namespace drinkmagic
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x26A8DB0, 0);
+			uint32_t ctx = U32(us(0x26A8DB0), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1769,14 +1769,14 @@ namespace drinkmagic
 			}
 		}
 		dk_85BA80(node, desc);
-		U32(0x26A8DA0, 0) = U32(0x26A8DA0, 0) + 0x50;
+		U32(us(0x26A8DA0), 0) = U32(us(0x26A8DA0), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_85AD70(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x26A8DA4);
-		int32_t i = MEM<int16_t>(0x26A8D98);
+		const uint32_t pool = MEM<uint32_t>(us(0x26A8DA4));
+		int32_t i = MEM<int16_t>(us(0x26A8D98));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1789,7 +1789,7 @@ namespace drinkmagic
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1806,16 +1806,16 @@ namespace drinkmagic
 		}
 		i++;
 		if (i >= 0x27)
-			MEM<uint16_t>(0x26A8D98) = 0;
+			MEM<uint16_t>(us(0x26A8D98)) = 0;
 		else
-			MEM<uint16_t>(0x26A8D98) = (uint16_t)i;
+			MEM<uint16_t>(us(0x26A8D98)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl dk_85AF90(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(0x26A8DB0, 0);
+		const uint32_t st = U32(us(0x26A8DB0), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1875,7 +1875,7 @@ namespace drinkmagic
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(0x26A8DB0, 0);
+				uint32_t g = U32(us(0x26A8DB0), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1885,7 +1885,7 @@ namespace drinkmagic
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(0x26A8DB0, 0);
+				uint32_t g = U32(us(0x26A8DB0), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1960,7 +1960,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85BB10(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x26A8DB0);
+		uint32_t dir = MEM<uint32_t>(us(0x26A8DB0));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1985,14 +1985,14 @@ namespace drinkmagic
 				do
 				{
 					dk_85A3F0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x26A8DB0);
+					dir = MEM<uint32_t>(us(0x26A8DB0));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				dk_85A3F0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x26A8DB0);
+				dir = MEM<uint32_t>(us(0x26A8DB0));
 			}
 		}
 		return 0;
@@ -2040,10 +2040,10 @@ namespace drinkmagic
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
@@ -2647,9 +2647,9 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x85EF20;
-		states[1] = 0x85F020;
-		states[2] = 0x85F250;
+		states[0] = us(0x85EF20);
+		states[1] = us(0x85F020);
+		states[2] = us(0x85F250);
 		callp(states[S8(node, 0x29)], node);
 		dk_85EA30(node);
 		FX_HELD(held_note_ribbon(node);)
@@ -2715,8 +2715,8 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85EB60(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t bucket = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
 		const int16_t last = S16(node, 0x12A);
 		if (last == 0 || S16(node, 0x128) >= 0xA)
 			return 0;
@@ -2768,8 +2768,8 @@ namespace drinkmagic
 			U16(pb, 4) = (uint16_t)(U16(pb, 4) + U16(P(o), 4));
 			roll += 0x120;
 		}
-		x::GTE_SetTransVector(0x1D97778);
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		uint32_t sxy[22];
 		int32_t sz[22];
 		for (int32_t j = first * 2; j < S16(node, 0x12A) * 2 + 2; j++)
@@ -2834,14 +2834,14 @@ namespace drinkmagic
 			x::SSIGPU_InsertPrimAutoDepth(bucket + (uint32_t)(z * 4), pkt);
 			pkt += 0x28;
 		}
-		MEM<uint32_t>(PACKET_CURSOR) = pkt;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_85F020(uint32_t a1)
 	{
 		if (S16(a1, 0x124) < 0xA)
-			return x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Spark, NODE_SIZE, a1);
+			return x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Spark), NODE_SIZE, a1);
 		U8(a1, 0x26) |= 5;
 		U16(a1, 0x124) = 0xA;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2852,9 +2852,9 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x85F1B0;
-		states[1] = 0x85F1F0;
-		states[2] = 0x85F240;
+		states[0] = us(0x85F1B0);
+		states[1] = us(0x85F1F0);
+		states[2] = us(0x85F240);
 		const uint32_t owner = U32(node, 0x18);
 		U32(node, 0x1C) = U32(owner, 0x1C);
 		U32(node, 0x20) = U32(owner, 0x20);
@@ -2878,22 +2878,22 @@ namespace drinkmagic
 		S32(P(m), 0x14) = S16(a1, 0x1C);
 		S32(P(m), 0x18) = S16(a1, 0x1E);
 		S32(P(m), 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(0x1D97778, P(m), P(m));
+		x::ComposeAffineTransform(us(0x1D97778), P(m), P(m));
 		x::GTE_SetRotMatrix_W(P(m));
 		x::GTE_SetTransVector_W(P(m));
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
 
 	uint32_t __cdecl dk_85F1B0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = SPARK_FLIPBOOK;
+		U32(a1, 0x4C) = us(SPARK_FLIPBOOK);
 		U16(a1, 0x52) = 5;
 		U16(a1, 0x54) = 0;
 		U16(a1, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -2930,8 +2930,8 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_856E00(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0x28, 0xF, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Spawner, NODE_SIZE, a1);
+		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0x28, 0xF, 0);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Spawner), NODE_SIZE, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2959,10 +2959,10 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85C110(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t caster = 0x1D972C0 + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C;
-		spawn_point_up(caster, 0, GATHER);
+		const uint32_t caster = us(0x1D972C0) + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C;
+		spawn_point_up(caster, 0, us(GATHER));
 		gx::Effect_CopyMidpointFromSource(node, node + 0x1C);
-		x::Effect_AddTaskAndInitFromCtx(Q_ORB, ORIG_Orb, 0x60, node);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_ORB), us(ORIG_Orb), 0x60, node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -2971,7 +2971,7 @@ namespace drinkmagic
 	{
 		if (U16(a1, 0x24) != tick)
 			return 0;
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Ribbon, NODE_SIZE, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Ribbon), NODE_SIZE, a1);
 		dk_85BC90(t, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		U16(t, 0x120) = number;
@@ -2985,10 +2985,10 @@ namespace drinkmagic
 	{
 		if (U16(a1, 0x24) != 0x2E)
 			return 0;
-		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Ribbon, NODE_SIZE, a1);
+		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Ribbon), NODE_SIZE, a1);
 		dk_85BC90(t1, 0x80);
 		U16(t1, 0x120) = 3;
-		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Ribbon, NODE_SIZE, a1);
+		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Ribbon), NODE_SIZE, a1);
 		dk_85BC90(t2, 0x80);
 		U16(a1, 0x26) |= 1;
 		U16(t2, 0x122) = 1;
@@ -3003,7 +3003,7 @@ namespace drinkmagic
 		const int16_t t = S16(a1, 0x24);
 		if (t <= 0xD || t >= 0x3F)
 			return 0;
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(Q_RIBBON, ORIG_Streak, NODE_SIZE, a1);
+		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Streak), NODE_SIZE, a1);
 		dk_85BC90(n, 0x80);
 		return 0;
 	}
@@ -3012,12 +3012,12 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = 0x85C110;
-		states[1] = 0x85E8E0;
-		states[2] = 0x85F260;
-		states[3] = 0x85F2B0;
-		states[4] = 0x85F300;
-		states[5] = 0x85F390;
+		states[0] = us(0x85C110);
+		states[1] = us(0x85E8E0);
+		states[2] = us(0x85F260);
+		states[3] = us(0x85F2B0);
+		states[4] = us(0x85F300);
+		states[5] = us(0x85F390);
 		callp(states[S8(node, 0x29)], node);
 		dk_85BC50(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3028,16 +3028,16 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85BFD0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = STREAK_FLIPBOOK;
+		U32(node, 0x4C) = us(STREAK_FLIPBOOK);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
-		const uint32_t g0 = MEM<uint32_t>(GATHER);
+		const uint32_t g0 = MEM<uint32_t>(us(GATHER));
 		const uint32_t z0 = U32(node, 0x20);
 		U32(node, 0x80) = g0;
 		U16(node, 0x126) = (uint16_t)(r & 0xFFF);
 		U32(node, 0x88) = U32(node, 0x1C);
-		const uint32_t g1 = MEM<uint32_t>(GATHER + 4);
+		const uint32_t g1 = MEM<uint32_t>(us(GATHER) + 4);
 		U32(node, 0x8C) = z0;
 		U32(node, 0x84) = g1;
 		alignas(4) uint8_t up[8];
@@ -3096,9 +3096,9 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x85BFD0;
-		states[1] = 0x85C0C0;
-		states[2] = 0x85C100;
+		states[0] = us(0x85BFD0);
+		states[1] = us(0x85C0C0);
+		states[2] = us(0x85C100);
 		callp(states[S8(node, 0x29)], node);
 		dk_85BEC0(node);
 		FX_HELD(held_note_streak(node);)
@@ -3131,16 +3131,16 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85EF20(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = RIBBON_FLIPBOOK;
+		U32(node, 0x4C) = us(RIBBON_FLIPBOOK);
 		U16(node, 0x52) = 5;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
-		const uint32_t g0 = MEM<uint32_t>(GATHER);
+		const uint32_t g0 = MEM<uint32_t>(us(GATHER));
 		const uint32_t z0 = U32(node, 0x20);
 		U32(node, 0x80) = g0;
 		U16(node, 0x126) = (uint16_t)(r & 0xFFF);
 		U32(node, 0x88) = U32(node, 0x1C);
-		const uint32_t g1 = MEM<uint32_t>(GATHER + 4);
+		const uint32_t g1 = MEM<uint32_t>(us(GATHER) + 4);
 		U32(node, 0x8C) = z0;
 		U32(node, 0x84) = g1;
 		alignas(4) uint8_t up[8];
@@ -3165,7 +3165,7 @@ namespace drinkmagic
 	static uint16_t g_85E780_m2 = 0;
 	uint32_t __cdecl dk_85E780(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t ent = 0x1D972C0 + (uint32_t)((int32_t)(int16_t)a2 * 0x9C);
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)((int32_t)(int16_t)a2 * 0x9C);
 		g_85E780_m2 = spawn_point_up(ent, 0x400, a1);
 		return 0;
 	}
@@ -3173,14 +3173,14 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85E6C0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(node, 0x2C) * 0x9C;
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(node, 0x2C) * 0x9C;
 		int32_t best = 0;
 		uint32_t act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 		if (U8(act, 0x10) == 0)
 			return 0;
 		for (uint32_t i = 0; ; )
 		{
-			const uint32_t t = 0x1D972C0 + (uint32_t)U8(U32(act, 8), (int32_t)(i * 0x18)) * 0x9C;
+			const uint32_t t = us(0x1D972C0) + (uint32_t)U8(U32(act, 8), (int32_t)(i * 0x18)) * 0x9C;
 			const int32_t dx = sub32(S16(t, 0x1C), S16(ent, 0x1C));
 			const int32_t dz = sub32(S16(t, 0x20), S16(ent, 0x20));
 			const int32_t d = (int32_t)x::Sqrt((uint32_t)add32(mul32(dz, dz), mul32(dx, dx)));
@@ -3200,8 +3200,8 @@ namespace drinkmagic
 		if (S16(node, 0x24) < 0xF)
 			return 0;
 		U8(node, 0x26) &= 0xFB;
-		U32(node, 0x4C) = ORB_MODEL;
-		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(node, 0x2C) * 0x9C;
+		U32(node, 0x4C) = us(ORB_MODEL);
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(node, 0x2C) * 0x9C;
 		U32(node, 0x30) = 0x1400;
 		U32(node, 0x34) = 0x1400;
 		U32(node, 0x38) = dk_85E6C0(node);
@@ -3324,7 +3324,7 @@ namespace drinkmagic
 		S32(P(m), 0x18) = S16(node, 0x1E);
 		S32(P(m), 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(P(m), node + 0x30);
-		x::ComposeAffineTransform(0x1D97778, P(m), P(m));
+		x::ComposeAffineTransform(us(0x1D97778), P(m), P(m));
 		x::GTE_SetRotMatrix_W(P(m));
 		x::GTE_SetTransVector_W(P(m));
 		const uint32_t hdr = x::Field_Alloc(0x68);
@@ -3343,7 +3343,7 @@ namespace drinkmagic
 		S32(hdr, 0x10) = S16(node, 0x52);
 		U32(hdr, 0x14) = 0xF0;
 		U16(hdr, 0x28) = 0x80;
-		MEM<uint32_t>(0x1D8E054) = dk_85C480(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = dk_85C480(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3352,12 +3352,12 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = 0x85E620;
-		states[1] = 0x85E640;
-		states[2] = 0x85E820;
-		states[3] = 0x85E860;
-		states[4] = 0x85E890;
-		states[5] = 0x85E8D0;
+		states[0] = us(0x85E620);
+		states[1] = us(0x85E640);
+		states[2] = us(0x85E820);
+		states[3] = us(0x85E860);
+		states[4] = us(0x85E890);
+		states[5] = us(0x85E8D0);
 		const int32_t st = S8(node, 0x29);
 		callp(states[st], node);
 		if ((U8(node, 0x26) & 4) == 0)
@@ -3367,7 +3367,7 @@ namespace drinkmagic
 			const uint32_t a = (uint32_t)(uint16_t)(U16(node, 0x54) + 0xA0) & 0xFFF;
 			U16(node, 0x58) = (uint16_t)b;
 			U16(node, 0x54) = (uint16_t)a;
-			dk_85E4E0(ORB_TEMPLATE, U32(node, 0x4C), a, b);
+			dk_85E4E0(us(ORB_TEMPLATE), U32(node, 0x4C), a, b);
 			U16(node, 0x5E) = (uint16_t)((uint8_t)(U8(node, 0x5E) + 8) & 0x7F);
 			FX_HELD(held_note_orb(node);)
 			dk_85C350(node);

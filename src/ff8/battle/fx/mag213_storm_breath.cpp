@@ -25,16 +25,16 @@ namespace storm213
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2510170); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2510178); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x251017C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2510194); }
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2510198; }
-	inline TaskQueue *QRings() { return (TaskQueue *)0x25101A8; }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x25101B8; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25101C8; }
-	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)0x25101D4; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2510170)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2510178)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x251017C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2510194)); }
+	inline TaskQueue *QDebris() { return (TaskQueue *)us(0x2510198); }
+	inline TaskQueue *QRings() { return (TaskQueue *)us(0x25101A8); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x25101B8); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x25101C8); }
+	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)us(0x25101D4); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x69EB70;
 	static const uint32_t ORIG_TargetTask = 0x69EF60;
@@ -57,17 +57,17 @@ namespace storm213
 	static const uint32_t SEQ_Puff = 0x117DC38;
 	static const uint32_t SEQ_Mist = 0x117DAF4;
 	static const uint32_t SEQ_Hit = 0x117DA18;
-	static const void *const SOUND_Breath = (const void *)0x1181028;
-	static const void *const SOUND_Start = (const void *)0x1181028;
+	static const void *SOUND_Breath() { return (const void *)us(0x1181028); }
+	static const void *SOUND_Start() { return (const void *)us(0x1181028); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *out) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x6D5580)(model, f0, f1, t, out); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *out) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x6D5580))(model, f0, f1, t, out); }
 	static int32_t CountMaskedVertices(uint32_t model, const uint32_t *mask)
 	{
 		const uint32_t base = *(const uint32_t *)(model + 4);
@@ -92,24 +92,24 @@ namespace storm213
 		}
 		return total;
 	}
-	inline int32_t FindMaskedVertex(uint32_t model, void *state) { return fn<int32_t (__cdecl *)(uint32_t, void *)>(0x6CE880)(model, state); }
+	inline int32_t FindMaskedVertex(uint32_t model, void *state) { return fn<int32_t (__cdecl *)(uint32_t, void *)>(us(0x6CE880))(model, state); }
 
-	inline void GteLoadV012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPTw() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAGw(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(d); }
-	inline void GteReadSXY012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
-	inline void GteLoadV0w(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
-	inline void GteRTPSw() { fn<void (__cdecl *)()>(0x45FAA0)(); }
-	inline void GteReadSXY2w(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(d); }
-	inline void GteAVSZ4w() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZw(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(d); }
-	inline void GteSetFarColorw(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBCw(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
-	inline void GteDPCSw() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2w(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(d); }
-	inline void GteLoadRGB012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
-	inline void GteDPCTw() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
+	inline void GteLoadV012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPTw() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAGw(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(d); }
+	inline void GteReadSXY012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
+	inline void GteLoadV0w(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
+	inline void GteRTPSw() { fn<void (__cdecl *)()>(us(0x45FAA0))(); }
+	inline void GteReadSXY2w(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(d); }
+	inline void GteAVSZ4w() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZw(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(d); }
+	inline void GteSetFarColorw(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBCw(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E110))(c); }
+	inline void GteDPCSw() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2w(uint32_t d) { fn<void (__cdecl *)(uint32_t)>(us(0x45E360))(d); }
+	inline void GteLoadRGB012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCTw() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB012w(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E370))(a, b, c); }
 
 	static inline bool OutX16(uint32_t a) { const int16_t v = *(const int16_t *)a; return v < 0 || v > 0xA00; }
 	static inline bool OutY16(uint32_t a) { const int16_t v = *(const int16_t *)a; return v < 0 || v > 0x6C0; }
@@ -547,7 +547,7 @@ namespace storm213
 		*(int16_t *)(h + 0x1C) = 0x80;
 		*(int16_t *)(h + 0x1E) = 0x100;
 		*(int16_t *)(h + 0xC) = (int16_t)r.scroll;
-		*(uint32_t *)h = MODEL_Stream;
+		*(uint32_t *)h = us(MODEL_Stream);
 		PacketCursor() = DrawStream(h, RenderOT(0x44), 2, PacketCursor(), verts);
 		FieldFree(0x5C);
 	}
@@ -599,7 +599,7 @@ namespace storm213
 		pos[3] = 0;
 		GteStoreIR123(pos);
 		TransformCameraByShadowRotation(pos, p->scale, -((int32_t)p->scale >> 2));
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = us(SEQ_Puff);
 		*(int16_t *)(h + 4) = p->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -627,7 +627,7 @@ namespace storm213
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = us(MODEL_Debris);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -681,7 +681,7 @@ namespace storm213
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = us(MODEL_Ring);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -700,7 +700,7 @@ namespace storm213
 	{
 		SpriteNode *p = (SpriteNode *)n;
 		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Spark);
+		SpriteDraw(p, us(SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
 
@@ -708,7 +708,7 @@ namespace storm213
 	{
 		SpriteNode *p = (SpriteNode *)n;
 		FX_HELD(held_note(K_MIST, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Mist);
+		SpriteDraw(p, us(SEQ_Mist));
 		return SpriteMove(p, 0xC);
 	}
 
@@ -716,7 +716,7 @@ namespace storm213
 	{
 		SpriteNode *p = (SpriteNode *)n;
 		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Hit);
+		SpriteDraw(p, us(SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
 
@@ -759,7 +759,7 @@ namespace storm213
 		int32_t angle = CrtRand();
 		for (int k = 0; k < 2; k++)
 		{
-			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_MistTask);
+			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_MistTask));
 			if (!p) continue;
 			Memset32(&p->counter, 0, 5);
 			int16_t v[4];
@@ -788,7 +788,7 @@ namespace storm213
 	{
 		TargetNode *t = (TargetNode *)n;
 		GetEffectSpawnPosition(Caster(), 0x1D, 0x400, t->mouth);
-		if (t->counter == 8) BdPlaySE3D(SOUND_Breath, 0, t->mouth);
+		if (t->counter == 8) BdPlaySE3D(SOUND_Breath(), 0, t->mouth);
 		const uint32_t phase = (uint32_t)((int32_t)t->counter - 0x19);
 		Mat4x3 m1;
 		int32_t d[3];
@@ -796,7 +796,7 @@ namespace storm213
 		{
 			FX_HELD(held_note_stream(t);)
 			uint8_t *h = AllocHeader(0x5C);
-			StreamWobble(t->a, t->b, (uint8_t *)STREAM_VERTS);
+			StreamWobble(t->a, t->b, (uint8_t *)us(STREAM_VERTS));
 			int16_t p0[4], p1[4];
 			GetEffectSpawnPosition(t->ent[t->cur], 0xF1, 0, p0);
 			GetEffectSpawnPosition(t->ent[t->next], 0xF1, 0, p1);
@@ -804,11 +804,11 @@ namespace storm213
 			int16_t aim[3];
 			StreamAim(p0, p1, t->t, aim);
 			if (phase >= 5) SweepStep(t);
-			StreamDraw(h, phase, nullptr, aim, t->mouth, &t->dist, &t->basis, &m1, d, STREAM_VERTS);
+			StreamDraw(h, phase, nullptr, aim, t->mouth, &t->dist, &t->basis, &m1, d, us(STREAM_VERTS));
 		}
 		if ((uint32_t)(int32_t)t->counter < 0x18)
 		{
-			if (t->counter == 0) DecodeModelPrimLayout(MODEL_Mouth, t->layout, 0x4A0);
+			if (t->counter == 0) DecodeModelPrimLayout(us(MODEL_Mouth), t->layout, 0x4A0);
 			const int16_t angles[3] = { (int16_t)0xFF80, (int16_t)(*(const int16_t *)(Caster() + 0xE) + 0x800), 0 };
 			Mat4x3 m2, m3;
 			BuildRotationMatrixFromAngles(angles, &m2);
@@ -818,7 +818,7 @@ namespace storm213
 			ComposeAffineTransform(&Camera(), &m2, &m3);
 			PrimArg arg;
 			arg.m = &m3;
-			arg.flags = FLAGS_Mouth;
+			arg.flags = us(FLAGS_Mouth);
 			arg.morph = TexBase() + 0x24B8;
 			FX_HELD(held_note_play(K_MOUTH, t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
@@ -828,7 +828,7 @@ namespace storm213
 			GteSetTransVector(&m2);
 			for (int k = 0; k < 2; k++)
 			{
-				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_PuffTask);
+				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_PuffTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
 				int16_t v[4];
@@ -849,7 +849,7 @@ namespace storm213
 			if (t->counter == 0x1D)
 			{
 				ff8fx::copy<(8)>(t->frozen, t->mouth);
-				DecodeModelPrimLayout(MODEL_Cone, t->layout, 0x140);
+				DecodeModelPrimLayout(us(MODEL_Cone), t->layout, 0x140);
 			}
 			m2.t[0] = t->frozen[0];
 			m2.t[1] = t->frozen[1];
@@ -857,7 +857,7 @@ namespace storm213
 			ComposeAffineTransform(&Camera(), &m2, &m2);
 			PrimArg arg;
 			arg.m = &m2;
-			arg.flags = FLAGS_Cone;
+			arg.flags = us(FLAGS_Cone);
 			arg.morph = TexBase() + 0x24B8;
 			FX_HELD(held_note_play(K_CONE, t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
@@ -868,7 +868,7 @@ namespace storm213
 			v = mul32(v, t->vc) >> 16;
 			for (int k = 0; k < 2; k++)
 			{
-				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_HitTask);
+				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_HitTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
 				VertexPosition(t->ent[t->cur], v, p->pos);
@@ -884,7 +884,7 @@ namespace storm213
 		{
 			GteSetRotMatrix(&m1);
 			GteSetTransVector(&m1);
-			const uint8_t *vtx = (const uint8_t *)STREAM_VERTS;
+			const uint8_t *vtx = (const uint8_t *)us(STREAM_VERTS);
 			for (int i = 0; i < STREAM_NVERTS; i++, vtx += 8)
 			{
 				int16_t w[3];
@@ -894,7 +894,7 @@ namespace storm213
 				if (w[1] < 0) continue;
 				if (CrtRand() < 0x800)
 				{
-					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SparkTask);
+					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SparkTask));
 					if (p)
 					{
 						Memset32(&p->counter, 0, 5);
@@ -909,7 +909,7 @@ namespace storm213
 				}
 				if (sweep >= 0x1E) continue;
 				if (CrtRand() >= 0x800) continue;
-				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), us(ORIG_DebrisTask));
 				if (!e) continue;
 				Memset32(&e->counter, 0, 9);
 				e->pos[0] = w[0];
@@ -929,14 +929,14 @@ namespace storm213
 		const uint32_t ring = (uint32_t)((int32_t)t->counter - 0x19);
 		if (ring < 0x11 && (ring & 3) == 0)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), us(ORIG_RingTask));
 			if (g)
 			{
 				Memset32(&g->pad0C, 0, 2);
 				g->tn = t;
 			}
 		}
-		if (t->counter == 1) BdPlaySE(SOUND_Start, 0, 0x80);
+		if (t->counter == 1) BdPlaySE(SOUND_Start(), 0, 0x80);
 		const int16_t c = t->counter;
 		t->a = (int16_t)(t->a - 100);
 		t->b = (int16_t)(t->b + 100);
@@ -964,10 +964,10 @@ namespace storm213
 			if (!r->started)
 			{
 				r->started = 1;
-				int32_t lo = *(const int16_t *)(STREAM_VERTS + 4), hi = lo;
+				int32_t lo = *(const int16_t *)(us(STREAM_VERTS) + 4), hi = lo;
 				for (int i = 1; i < STREAM_NVERTS; i++)
 				{
-					const int32_t z = *(const int16_t *)(STREAM_VERTS + i * 8 + 4);
+					const int32_t z = *(const int16_t *)(us(STREAM_VERTS) + i * 8 + 4);
 					if (lo > z) lo = z;
 					else if (hi < z) hi = z;
 				}
@@ -975,7 +975,7 @@ namespace storm213
 				uint8_t *dst = (uint8_t *)(TexBase() + 0x1B18);
 				for (int i = 0; i < STREAM_NVERTS; i++, dst += 8)
 				{
-					ff8fx::copy<(8)>(dst, (const void *)(STREAM_VERTS + i * 8));
+					ff8fx::copy<(8)>(dst, (const void *)(us(STREAM_VERTS) + i * 8));
 					*(int16_t *)(dst + 6) = (int16_t)(shl32(*(const int16_t *)(dst + 4), 12) / range);
 				}
 				InitTaskQueuePool(QTargets(), (void *)(TexBase() + 0x1614), 0x504, 1);
@@ -983,7 +983,7 @@ namespace storm213
 				InitTaskQueuePool(QRings(), (void *)(TexBase() + 0x4D4), 0x14, 0x10);
 				InitTaskQueuePool(QDebris(), (void *)(TexBase() + 0x1D4), 0x30, 0x10);
 			}
-			TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+			TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 			if (t)
 			{
 				Memset32(&t->counter, 0, 0x13E);

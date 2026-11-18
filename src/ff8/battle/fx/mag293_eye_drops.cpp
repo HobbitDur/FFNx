@@ -25,29 +25,29 @@ namespace eyedrops293
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507A9C); }
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x2507AA8; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507ADC); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507AE0); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507A9C)); }
+	inline TaskQueue *QPlay() { return (TaskQueue *)us(0x2507AA8); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507ADC)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507AE0)); }
 
 	static const uint32_t ORIG_RootTask = 0x674910;
 	static const uint32_t ORIG_PlayTask = 0x674A30;
 	static const uint32_t MODEL = 0x10637AC;
 	static const int32_t LAYOUT_BYTES = 0x4D0;
 	static const uint32_t NODE_BYTES = 0x4E4;
-	static const void *const SOUND = (const void *)0x1065130;
+	static const void *SOUND() { return (const void *)us(0x1065130); }
 	static const uint32_t ARENA_A = 0x4EC;
 	static const uint32_t ARENA_B = 0x104EC;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -208,16 +208,16 @@ namespace eyedrops293
 		{
 			r->started = 1;
 			InitTaskQueuePool(QPlay(), (void *)TexBase(), NODE_BYTES, 1);
-			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
+			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), us(ORIG_PlayTask));
 			uint8_t *e = Entity(Ctx()->actions[0].targets[0]);
 			GetEffectSpawnPosition(e, 0xF0, 0, p->anchor);
-			DecodeModelPrimLayout(MODEL, p->layout, LAYOUT_BYTES);
+			DecodeModelPrimLayout(us(MODEL), p->layout, LAYOUT_BYTES);
 		}
 		int a;
 		if (r->started)
 		{
 			a = ExecuteTaskQueue(QPlay());
-			if (r->counter == 1) BdPlaySE(SOUND, 0, 0x80);
+			if (r->counter == 1) BdPlaySE(SOUND(), 0, 0x80);
 		}
 		else a = (int)n;
 		if (r->started && a == 0) return TASK_END;

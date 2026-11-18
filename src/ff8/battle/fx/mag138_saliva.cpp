@@ -27,14 +27,14 @@ namespace saliva138
 	using namespace magc;
 	using namespace icec;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520C48); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520C50); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520C54); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520C6C); }
-	inline TaskQueue *QSplats() { return (TaskQueue *)0x2520C70; }
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520C80; }
-	inline TaskQueue *QStrings() { return (TaskQueue *)0x2520C90; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2520CA0; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2520C48)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2520C50)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520C54)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520C6C)); }
+	inline TaskQueue *QSplats() { return (TaskQueue *)us(0x2520C70); }
+	inline TaskQueue *QSprays() { return (TaskQueue *)us(0x2520C80); }
+	inline TaskQueue *QStrings() { return (TaskQueue *)us(0x2520C90); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2520CA0); }
 
 	static const uint32_t ORIG_MasterTask = 0x6A9FC0;
 	static const uint32_t ORIG_MainTask = 0x6AA1A0;
@@ -45,36 +45,36 @@ namespace saliva138
 	static const uint32_t VERTS = 0x11B0;
 	static const uint32_t ARENA_A = 0x1510;
 	static const uint32_t ARENA_B = 0x11510;
-	static uint8_t *const MESH = (uint8_t *)0x11DF764;
+	static uint8_t *MESH() { return (uint8_t *)us(0x11DF764); }
 	static const uint32_t MODEL_A = 0x11E1034;
 	static const uint32_t MODEL_B = 0x11E0434;
 	static const uint32_t MODEL_C = 0x11E21CC;
 	static const uint32_t SEQ_Spray = 0x11DF4E0;
 	static const uint32_t SEQ_Splat = 0x11DF604;
-	static const int16_t *const POINT = (const int16_t *)0x11E3188;
-	static const void *const SCALE_Z = (const void *)0x11E3138;
-	static int16_t &ScaleZ() { return *(int16_t *)0x11E3148; }
-	static const int16_t *const DRIP = (const int16_t *)0x11E3158;
-	static const int32_t *const WOBBLE = (const int32_t *)0x11E3190;
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x11E5194;
-	static const void *const SOUND_Spit = (const void *)0x11E3134;
+	static const int16_t *POINT() { return (const int16_t *)us(0x11E3188); }
+	static const void *SCALE_Z() { return (const void *)us(0x11E3138); }
+	static int16_t &ScaleZ() { return *(int16_t *)us(0x11E3148); }
+	static const int16_t *DRIP() { return (const int16_t *)us(0x11E3158); }
+	static const int32_t *WOBBLE() { return (const int32_t *)us(0x11E3190); }
+	static const uint8_t *DIST_TABLE() { return (const uint8_t *)us(0x11E5194); }
+	static const void *SOUND_Spit() { return (const void *)us(0x11E3134); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }
-	inline void GteReadSZ3Quarter(void *dst) { fn<void (__cdecl *)(void *)>(0x704090)(dst); }
-	inline uint32_t GteSZ3() { return *(const uint32_t *)0x1CA8A5C; }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(us(0x704070))(); }
+	inline void GteReadSZ3Quarter(void *dst) { fn<void (__cdecl *)(void *)>(us(0x704090))(dst); }
+	inline uint32_t GteSZ3() { return *(const uint32_t *)us(0x1CA8A5C); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -424,7 +424,7 @@ namespace saliva138
 			GteMVMVA_RotV0Tr();
 			GteStoreIR123(out);
 			const int32_t w = v[3] >> 1;
-			out[1] = (int16_t)(out[1] - (int16_t)(mul32(WOBBLE[w], amp) >> 0x10));
+			out[1] = (int16_t)(out[1] - (int16_t)(mul32(WOBBLE()[w], amp) >> 0x10));
 			out += 4;
 			v += 4;
 		} while (--count);
@@ -450,7 +450,7 @@ namespace saliva138
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
-		*(uint8_t **)h = MESH;
+		*(uint8_t **)h = MESH();
 		*(uint32_t *)(h + 4) = verts;
 		*(uint16_t *)(h + 0x16) = 0;
 		*(uint16_t *)(h + 0x14) = 0;
@@ -494,7 +494,7 @@ namespace saliva138
 			int32_t adx = dx < 0 ? -dx : dx, ady = ndy < 0 ? -ndy : ndy;
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
-			const int32_t len = DIST_TABLE[ady * 128 + adx];
+			const int32_t len = DIST_TABLE()[ady * 128 + adx];
 			int32_t px, py;
 			if (prev)
 			{
@@ -640,7 +640,7 @@ namespace saliva138
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spray;
+		*(uint32_t *)h = us(SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int32_t *)(h + 8) = angle;
 		*(int16_t *)(h + 0x24) = 1;
@@ -665,7 +665,7 @@ namespace saliva138
 	{
 		TransformCameraByShadowRotation(pos, 0xC00, -0x300);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Splat;
+		*(uint32_t *)h = us(SEQ_Splat);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -686,7 +686,7 @@ namespace saliva138
 		StringNode *s = (StringNode *)n;
 		if (s->counter == 0)
 		{
-			BonePoint(POINT, s->start);
+			BonePoint(POINT(), s->start);
 			const int16_t c = s->counter;
 			s->counter++;
 			ff8fx::copy<(6)>(s->prev, s->start);
@@ -704,13 +704,13 @@ namespace saliva138
 				GteSetRotMatrix(&M);
 				GteZeroTrans();
 				const int32_t wave = mul32(s->amp, sine);
-				WobbleMesh(MESH, wave >> 13, (int16_t *)(TexBase() + VERTS));
+				WobbleMesh(MESH(), wave >> 13, (int16_t *)(TexBase() + VERTS));
 				int16_t P[4];
 				P[3] = StringResidue();
 				StringPoint(s, t, wave, P);
 				StringBasis(P, s->prev, &M);
 				ScaleZ() = (int16_t)(sine + 0x800);
-				MulMatrix3(&M, SCALE_Z);
+				MulMatrix3(&M, SCALE_Z());
 				M.t[0] = P[0];
 				M.t[1] = P[1];
 				M.t[2] = P[2];
@@ -740,7 +740,7 @@ namespace saliva138
 			Point *p = s->head;
 			do
 			{
-				p->pos[1] = (int16_t)(p->pos[1] + DRIP[p->idx]);
+				p->pos[1] = (int16_t)(p->pos[1] + DRIP()[p->idx]);
 				p = p->next;
 			} while (p);
 		}
@@ -788,13 +788,13 @@ namespace saliva138
 		const int32_t e = w->counter - 0x17;
 		if ((uint32_t)e < 0xE)
 		{
-			BonePoint(POINT, M4);
+			BonePoint(POINT(), M4);
 			RotY((int16_t)-*(const int16_t *)(Caster() + 0xE), &arg.m);
 			if ((uint32_t)e < 7)
 			{
 				for (int i = 2; i; i--)
 				{
-					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), ORIG_SprayTask);
+					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), us(ORIG_SprayTask));
 					if (!s) continue;
 					s->angle = (int16_t)CrtRand();
 					s->spin = (int16_t)((CrtRand() & 0x1FF) - 0x100);
@@ -824,7 +824,7 @@ namespace saliva138
 			Play(w->layB, &arg);
 			if ((uint32_t)e < 3)
 			{
-				StringNode *s = (StringNode *)AddTaskToQueue(QStrings(), ORIG_StringTask);
+				StringNode *s = (StringNode *)AddTaskToQueue(QStrings(), us(ORIG_StringTask));
 				s->counter = 0;
 				ff8fx::copy<(8)>(s->target, w->pos);
 				const int32_t r = CrtRand();
@@ -842,7 +842,7 @@ namespace saliva138
 			Play(w->layC, &arg);
 			if ((uint32_t)h >= 4 && (uint32_t)h < 0xC && !(h & 1))
 			{
-				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), ORIG_SplatTask);
+				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), us(ORIG_SplatTask));
 				if (s)
 				{
 					ff8fx::copy<(8)>(s->pos, w->pos);
@@ -854,7 +854,7 @@ namespace saliva138
 				}
 			}
 		}
-		if (w->counter == 0x19) BdPlaySE(SOUND_Spit, 0, 0x80);
+		if (w->counter == 0x19) BdPlaySE(SOUND_Spit(), 0, 0x80);
 		if (w->counter == 0x28) ApplyActionResultToTarget(Ctx()->actions->targets);
 		if (w->counter >= 0x37) return TASK_END;
 		w->counter++;
@@ -869,14 +869,14 @@ namespace saliva138
 		InitTaskQueuePool(QStrings(), (void *)(TexBase() + 0x1A0), 0x30, 3);
 		InitTaskQueuePool(QSprays(), (void *)(TexBase() + 0xA0), 0x20, 8);
 		InitTaskQueuePool(QSplats(), (void *)TexBase(), 0x14, 8);
-		MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+		MainNode *w = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 		Memset32(&w->counter, 0, 0xDD);
 		w->target = target;
 		GetEffectSpawnPosition(target, 0xF1, 0, w->pos);
-		DecodeModelPrimLayout(MODEL_A, w->layA, 0xA8);
-		DecodeModelPrimLayout(MODEL_B, w->layB, 0x194);
-		DecodeModelPrimLayout(MODEL_C, w->layC, 0x118);
-		NormalizeMesh(MESH);
+		DecodeModelPrimLayout(us(MODEL_A), w->layA, 0xA8);
+		DecodeModelPrimLayout(us(MODEL_B), w->layB, 0x194);
+		DecodeModelPrimLayout(us(MODEL_C), w->layC, 0x118);
+		NormalizeMesh(MESH());
 		Point *p = (Point *)(TexBase() + POINTS);
 		for (int i = 0x60; i; i--, p++) p->width = -1;
 	}

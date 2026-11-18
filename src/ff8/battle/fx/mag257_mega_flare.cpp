@@ -41,31 +41,31 @@ namespace megaflare257
 	{
 		c.name = "257 Mega Flare (Bahamut)";
 		c.effect_id = 257;
-		c.vm_table = 0x185A564;
-		c.bone_table = 0x185A1D4;
-		c.prim_table = 0x185A21C;
-		c.prim_size = 0x185A30C;
-		c.spr_table = 0x185A320;
-		c.ptype_table = 0x185A34C;
-		c.pop_table = 0x185A360;
-		c.draw_table = 0x185A3C0;
-		c.attr_16A = 0x185A52A;
-		c.attr_184 = 0x185A544;
-		c.attr_186 = 0x185A546;
-		c.attr_194 = 0x185A554;
-		c.attr_19C = 0x185A55C;
-		c.desc = 0x185A064;
-		c.ptr_block = 0x185A1AC;
-		c.queue = 0x2796510;
-		c.file00 = 0x279650C;
-		c.file01 = 0x2796508;
-		c.tick = 0x96F900;
-		c.load_cb = 0x974E80;
+		c.vm_table = us(0x185A564);
+		c.bone_table = us(0x185A1D4);
+		c.prim_table = us(0x185A21C);
+		c.prim_size = us(0x185A30C);
+		c.spr_table = us(0x185A320);
+		c.ptype_table = us(0x185A34C);
+		c.pop_table = us(0x185A360);
+		c.draw_table = us(0x185A3C0);
+		c.attr_16A = us(0x185A52A);
+		c.attr_184 = us(0x185A544);
+		c.attr_186 = us(0x185A546);
+		c.attr_194 = us(0x185A554);
+		c.attr_19C = us(0x185A55C);
+		c.desc = us(0x185A064);
+		c.ptr_block = us(0x185A1AC);
+		c.queue = us(0x2796510);
+		c.file00 = us(0x279650C);
+		c.file01 = us(0x2796508);
+		c.tick = us(0x96F900);
+		c.load_cb = us(0x974E80);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(0x1CA8A10 + 4 * reg); }
+	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
 
 	static inline int32_t DepthKey(uint32_t off)
 	{

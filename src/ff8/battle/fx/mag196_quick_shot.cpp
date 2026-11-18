@@ -25,16 +25,16 @@ namespace quick196
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &EndTick() { return var<int32_t>(0x2265DB0); }
-	inline int32_t &ModuleTick() { return var<int32_t>(0x2265DB4); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x22688F0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2269718); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x226A6C0); }
-	inline int32_t &ImpactCount() { return var<int32_t>(0x226A960); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x226A964); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x226A968); }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2266C20; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x22688F8; }
+	inline int32_t &EndTick() { return var<int32_t>(us(0x2265DB0)); }
+	inline int32_t &ModuleTick() { return var<int32_t>(us(0x2265DB4)); }
+	inline uint32_t &Flags() { return var<uint32_t>(us(0x22688F0)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2269718)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x226A6C0)); }
+	inline int32_t &ImpactCount() { return var<int32_t>(us(0x226A960)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x226A964)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x226A968)); }
+	inline TaskQueue *QShots() { return (TaskQueue *)us(0x2266C20); }
+	inline TaskQueue *QAux() { return (TaskQueue *)us(0x22688F8); }
 	static const uint32_t PARTS_A = 0x2266C30, PARTS_B = 0x2267A60;
 	static const uint32_t SHOTS = 0x2269720;
 	static const uint32_t BIND_OUT = 0x2267A40;
@@ -56,18 +56,18 @@ namespace quick196
 	static const uint32_t ANIM_DATA = 0xD05288;
 	static const uint32_t MODEL_Flash = 0xD0609C, MODEL_Flash2 = 0xD06FD4;
 	static const uint32_t SEQ_Impact = 0xD05DB0, SEQ_Spark = 0xD05FC0;
-	static const void *const SOUND_Gun = (const void *)0xD073C4;
-	static const int32_t *const MUZZLE_REF = (const int32_t *)0xD073D0;
-	static const uint32_t *const GHOST_COLOURS = (const uint32_t *)0xD073E0;
+	static const void *SOUND_Gun() { return (const void *)us(0xD073C4); }
+	static const int32_t *MUZZLE_REF() { return (const int32_t *)us(0xD073D0); }
+	static const uint32_t *GHOST_COLOURS() { return (const uint32_t *)us(0xD073E0); }
 
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, angle, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, ctx, ot, a, cursor); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, angle, out); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -111,8 +111,8 @@ namespace quick196
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Normal Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x28 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Normal Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x28 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(us(SHOTS) + 0x28 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(us(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
 }
@@ -180,11 +180,11 @@ namespace quick196
 			ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), m);
 			*(uint16_t *)(h + 0x34) = 0;
 			*(uint16_t *)(h + 0x36) = 0;
-			*(uint32_t *)(h + 0x24) = var<uint32_t>(0x1D98B3C);
+			*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
 			*(uint32_t *)(h + 0x3C) = *(const uint32_t *)(entity + 0x28);
 			*(uint16_t *)(h + 0x38) = 0x140;
 			*(uint16_t *)(h + 0x3A) = 0xD8;
-			*(uint32_t *)(h + 0x30) = var<uint32_t>(0x1D969A8);
+			*(uint32_t *)(h + 0x30) = var<uint32_t>(us(0x1D969A8));
 			*(uint32_t *)(h + 0x40) = 0xFFFFFFFF;
 			const uint8_t c = entity[7];
 			h[0x4A] = c;
@@ -259,7 +259,7 @@ namespace quick196
 	static void ImpactFlashDraw(const Node *n, uint8_t *h)
 	{
 		*(int16_t *)(h + 4) = n->counter;
-		*(uint32_t *)h = SEQ_Impact;
+		*(uint32_t *)h = us(SEQ_Impact);
 		*(int16_t *)(h + 0x24) = 8;
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -280,13 +280,13 @@ namespace quick196
 		e->vel[1] = (int16_t)(e->vel[1] - (int16_t)(e->vel[1] >> 2));
 		e->vel[2] = (int16_t)(e->vel[2] - (int16_t)(e->vel[2] >> 2));
 	}
-	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? PARTS_B : PARTS_A); }
+	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? us(PARTS_B) : us(PARTS_A)); }
 
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_FlashTask, n);)
-		MuzzleModel(n, MODEL_Flash, n->counter == 1, 0xC00);
+		FX_HELD(held_note_node(us(ORIG_FlashTask), n);)
+		MuzzleModel(n, us(MODEL_Flash), n->counter == 1, 0xC00);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -295,8 +295,8 @@ namespace quick196
 	static uint32_t __cdecl Flash2Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_Flash2Task, n);)
-		YawModel(n, MODEL_Flash2, n->counter == 1, 0x800);
+		FX_HELD(held_note_node(us(ORIG_Flash2Task), n);)
+		YawModel(n, us(MODEL_Flash2), n->counter == 1, 0x800);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -306,11 +306,11 @@ namespace quick196
 	{
 		Node *n = (Node *)n_;
 		Particle *arr = Sparks(n);
-		FX_HELD(held_note_node(ORIG_ImpactTask, n);)
+		FX_HELD(held_note_node(us(ORIG_ImpactTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		int32_t alive = 0;
 		const int32_t id = n->f0E + 1;
 		for (Particle *e = arr; e < arr + 150; e++)
@@ -389,14 +389,14 @@ namespace quick196
 			s->pos[1] = (int16_t)((mul32(dir[1], 350) >> 12) + pos[1]);
 			s->pos[2] = (int16_t)((mul32(dir[2], 350) >> 12) + pos[2]);
 			int32_t axis[3];
-			const int32_t angle = RotationBetweenVectors(MUZZLE_REF, dir, axis);
+			const int32_t angle = RotationBetweenVectors(MUZZLE_REF(), dir, axis);
 			BuildAxisAngleRotationMatrix(angle, &s->m, axis);
-			Node *f = AddTask(QAux(), ORIG_FlashTask);
+			Node *f = AddTask(QAux(), us(ORIG_FlashTask));
 			f->counter = 0;
 			f->f0E = n->f0E;
 			f->f18 = (int16_t)(CrtRand() % 0x1000);
 			f->f1C = (int16_t)(CrtRand() % 0x500 + 0x900);
-			Node *g = AddTask(QAux(), ORIG_Flash2Task);
+			Node *g = AddTask(QAux(), us(ORIG_Flash2Task));
 			g->counter = 0;
 			g->f0E = n->f0E;
 			g->f18 = (int16_t)(CrtRand() % 0x1000);
@@ -408,7 +408,7 @@ namespace quick196
 			int32_t bone = 0;
 			const uint8_t anchors = ***(const uint8_t ***)(t + 0x64);
 			if (anchors) bone = CrtRand() % anchors;
-			Node *i = AddTask(QAux(), ORIG_ImpactTask);
+			Node *i = AddTask(QAux(), us(ORIG_ImpactTask));
 			i->f0E = (int16_t)ImpactCount();
 			ImpactCount()++;
 			i->counter = 0;
@@ -416,7 +416,7 @@ namespace quick196
 			i->pos[3] = (int16_t)(mul32(*(const int16_t *)(Entity(n->f1A) + 0x26), 2000) >> 12);
 			i->f1C = (int16_t)(CrtRand() % 0xC00 + 0x800);
 			ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-			BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+			BdPlaySE(SOUND_Gun(), (n->f0E & 1) ? 1 : 2, 0x80);
 		}
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -450,7 +450,7 @@ namespace quick196
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)us(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -462,11 +462,11 @@ namespace quick196
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS()[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)us(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -479,15 +479,15 @@ namespace quick196
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), us(BIND_OUT), us(ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
-			Node *f = AddTask(QAux(), ORIG_FadeInTask);
+			Node *f = AddTask(QAux(), us(ORIG_FadeInTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
-			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
+			AddTask(QAux(), us(ORIG_AfterimageTask))->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = us(GHOSTS); a < us(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -504,7 +504,7 @@ namespace quick196
 		if (n->counter == 0)
 		{
 			QueueChainTransformation(Caster(), 2);
-			Node *f = AddTask(QAux(), ORIG_FadeOutTask);
+			Node *f = AddTask(QAux(), us(ORIG_FadeOutTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;

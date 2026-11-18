@@ -25,10 +25,10 @@ namespace regen147
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24774A8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2491BB8); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2476688; }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24774A8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2491BB8)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x2476688); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_Root = 0x614D10;
 	static const uint32_t ORIG_Director = 0x614350;
@@ -36,12 +36,12 @@ namespace regen147
 	static const uint32_t ORIG_Leaf = 0x6148E0;
 	static const uint32_t MODEL_Envelope = 0xDCFC64;
 	static const uint32_t SEQ_Leaf = 0xDCEFD0;
-	static const void *const SOUND_Regen = (const void *)0xDD05CC;
+	static const void *SOUND_Regen() { return (const void *)us(0xDD05CC); }
 	static const uint32_t TRAILS = 0x24774B8;
 	static const uint32_t ARENA_EVEN = 0x2479BB8, ARENA_ODD = 0x2485BB8;
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -102,7 +102,7 @@ namespace regen147
 
 	static inline TrailPart *TrailOf(int32_t action, int32_t leaf)
 	{
-		return (TrailPart *)(TRAILS + (uint32_t)mul32(leaf + action * 8, 0x140));
+		return (TrailPart *)(us(TRAILS) + (uint32_t)mul32(leaf + action * 8, 0x140));
 	}
 
 	static inline int32_t DivMagic(int32_t x, int32_t magic, int sh)
@@ -137,7 +137,7 @@ namespace regen147
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
-		*(uint32_t *)h = MODEL_Envelope;
+		*(uint32_t *)h = us(MODEL_Envelope);
 		*(int32_t *)(h + 0xC) = fade;
 		*(uint32_t *)(h + 0x1C) = 0xF0;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
@@ -180,7 +180,7 @@ namespace regen147
 	{
 		TransformCameraByShadowRotation(p->pos, p->size, -(p->size >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Leaf;
+		*(uint32_t *)h = us(SEQ_Leaf);
 		if (p->counter < 0xE)
 		{
 			*(int16_t *)(h + 4) = p->counter >= 8 ? (int16_t)(p->counter - 8) : 0;
@@ -327,7 +327,7 @@ namespace regen147
 		{
 			for (int kind = 0; kind < 2; kind++)
 			{
-				EnvelopeNode *e = (EnvelopeNode *)AddTaskToQueue(EffectQueue(), ORIG_Envelope);
+				EnvelopeNode *e = (EnvelopeNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Envelope));
 				*(uint32_t *)&e->pos[0] = *(const uint32_t *)&d->pos[0];
 				*(uint32_t *)&e->pos[2] = *(const uint32_t *)&d->pos[2];
 				e->counter = 0;
@@ -352,7 +352,7 @@ namespace regen147
 			const int32_t half = radius / 2;
 			for (int leaf = 0; leaf < 8; leaf++)
 			{
-				LeafNode *p = (LeafNode *)AddTaskToQueue(EffectQueue(), ORIG_Leaf);
+				LeafNode *p = (LeafNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Leaf));
 				angle += 0x200;
 				p->counter = 0;
 				p->pos[0] = d->pos[0];
@@ -376,7 +376,7 @@ namespace regen147
 			const int32_t next = d->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *nd = (DirectorNode *)AddTaskToQueue(EffectQueue(), ORIG_Director);
+				DirectorNode *nd = (DirectorNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Director));
 				nd->counter = 0;
 				nd->action = (int16_t)next;
 				nd->slot = Ctx()->actions[next].targets[0];
@@ -385,7 +385,7 @@ namespace regen147
 		if (d->counter == 1)
 		{
 			GetDefaultEffectPosition(Entity(d->slot), local);
-			BdPlaySE3D(SOUND_Regen, 0, local);
+			BdPlaySE3D(SOUND_Regen(), 0, local);
 		}
 		d->counter++;
 		return d->counter > 0x30 ? TASK_END : 0;
@@ -395,8 +395,8 @@ namespace regen147
 	{
 		RootNode *r = (RootNode *)n;
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
-		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = ARENA_EVEN;
+		PacketCursor() = us(ARENA_ODD);
+		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
 		const int alive = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return alive ? 0 : TASK_END;

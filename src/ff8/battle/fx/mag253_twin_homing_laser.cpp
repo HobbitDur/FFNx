@@ -41,33 +41,33 @@ namespace twinlaser253
 	{
 		c.name = "253 Twin Homing Laser";
 		c.effect_id = 253;
-		c.vm_table = 0x185CC88;
-		c.bone_table = 0x185C8F8;
-		c.prim_table = 0x185C940;
-		c.prim_size = 0x185CA30;
-		c.spr_table = 0x185CA44;
-		c.ptype_table = 0x185CA70;
-		c.pop_table = 0x185CA84;
-		c.draw_table = 0x185CAE4;
-		c.attr_16A = 0x185CC4E;
-		c.attr_184 = 0x185CC68;
-		c.attr_186 = 0x185CC6A;
-		c.attr_194 = 0x185CC78;
-		c.attr_19C = 0x185CC80;
-		c.desc = 0x185C7D0;
-		c.ptr_block = 0x185C8D0;
-		c.queue = 0x27965F8;
-		c.file00 = 0x27965F0;
-		c.file01 = 0x27965F4;
-		c.tick = 0x998380;
-		c.load_cb = 0x99E210;
+		c.vm_table = us(0x185CC88);
+		c.bone_table = us(0x185C8F8);
+		c.prim_table = us(0x185C940);
+		c.prim_size = us(0x185CA30);
+		c.spr_table = us(0x185CA44);
+		c.ptype_table = us(0x185CA70);
+		c.pop_table = us(0x185CA84);
+		c.draw_table = us(0x185CAE4);
+		c.attr_16A = us(0x185CC4E);
+		c.attr_184 = us(0x185CC68);
+		c.attr_186 = us(0x185CC6A);
+		c.attr_194 = us(0x185CC78);
+		c.attr_19C = us(0x185CC80);
+		c.desc = us(0x185C7D0);
+		c.ptr_block = us(0x185C8D0);
+		c.queue = us(0x27965F8);
+		c.file00 = us(0x27965F0);
+		c.file01 = us(0x27965F4);
+		c.tick = us(0x998380);
+		c.load_cb = us(0x99E210);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }

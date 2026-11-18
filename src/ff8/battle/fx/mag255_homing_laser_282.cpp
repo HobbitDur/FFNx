@@ -41,33 +41,33 @@ namespace laser255
 	{
 		c.name = "255 Homing Laser (attack 282)";
 		c.effect_id = 255;
-		c.vm_table = 0x185B8B8;
-		c.bone_table = 0x185B528;
-		c.prim_table = 0x185B570;
-		c.prim_size = 0x185B660;
-		c.spr_table = 0x185B674;
-		c.ptype_table = 0x185B6A0;
-		c.pop_table = 0x185B6B4;
-		c.draw_table = 0x185B714;
-		c.attr_16A = 0x185B87E;
-		c.attr_184 = 0x185B898;
-		c.attr_186 = 0x185B89A;
-		c.attr_194 = 0x185B8A8;
-		c.attr_19C = 0x185B8B0;
-		c.desc = 0x185B410;
-		c.ptr_block = 0x185B500;
-		c.queue = 0x2796580;
-		c.file00 = 0x2796590;
-		c.file01 = 0x2796594;
-		c.tick = 0x982CC0;
-		c.load_cb = 0x988B50;
+		c.vm_table = us(0x185B8B8);
+		c.bone_table = us(0x185B528);
+		c.prim_table = us(0x185B570);
+		c.prim_size = us(0x185B660);
+		c.spr_table = us(0x185B674);
+		c.ptype_table = us(0x185B6A0);
+		c.pop_table = us(0x185B6B4);
+		c.draw_table = us(0x185B714);
+		c.attr_16A = us(0x185B87E);
+		c.attr_184 = us(0x185B898);
+		c.attr_186 = us(0x185B89A);
+		c.attr_194 = us(0x185B8A8);
+		c.attr_19C = us(0x185B8B0);
+		c.desc = us(0x185B410);
+		c.ptr_block = us(0x185B500);
+		c.queue = us(0x2796580);
+		c.file00 = us(0x2796590);
+		c.file01 = us(0x2796594);
+		c.tick = us(0x982CC0);
+		c.load_cb = us(0x988B50);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }

@@ -24,25 +24,25 @@ namespace g069
 {
 	using namespace eng;
 
-	inline uint8_t *&SparkHint() { return var<uint8_t *>(0x2556628); }
-	inline uint8_t *&ShardHint() { return var<uint8_t *>(0x255662C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556630); }
-	inline uint8_t *&Attacker() { return var<uint8_t *>(0x2556638); }
-	inline TaskQueue &QueueTimeline() { return var<TaskQueue>(0x2556650); }
-	inline uint32_t &LcgSeed() { return var<uint32_t>(0x2556F70); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2556F74); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2556F78); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t RenderList() { return var<uint32_t>(0x1D8E04C); }
+	inline uint8_t *&SparkHint() { return var<uint8_t *>(us(0x2556628)); }
+	inline uint8_t *&ShardHint() { return var<uint8_t *>(us(0x255662C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2556630)); }
+	inline uint8_t *&Attacker() { return var<uint8_t *>(us(0x2556638)); }
+	inline TaskQueue &QueueTimeline() { return var<TaskQueue>(us(0x2556650)); }
+	inline uint32_t &LcgSeed() { return var<uint32_t>(us(0x2556F70)); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(us(0x2556F74)); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x2556F78)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t RenderList() { return var<uint32_t>(us(0x1D8E04C)); }
 
 	static const uint32_t ORIG_SequenceTask = 0x6FE0D0;
 	static const uint32_t ORIG_TimelineTask = 0x6FE5D0;
 	static const uint32_t CB_PrimObject = 0x6FE9D0;
 
-	static uint8_t *const MODEL_1 = (uint8_t *)0x1D989BC;
-	static uint8_t *const MODEL_2 = (uint8_t *)0x1D989E8;
-	static uint8_t *const MODEL_1_FLAGS = (uint8_t *)0x1D989BD;
-	static uint8_t *const MODEL_2_FLAGS = (uint8_t *)0x1D989E9;
+	static uint8_t *MODEL_1() { return (uint8_t *)us(0x1D989BC); }
+	static uint8_t *MODEL_2() { return (uint8_t *)us(0x1D989E8); }
+	static uint8_t *MODEL_1_FLAGS() { return (uint8_t *)us(0x1D989BD); }
+	static uint8_t *MODEL_2_FLAGS() { return (uint8_t *)us(0x1D989E9); }
 
 	static const uint32_t MB_SHARDS = 0x0;
 	static const uint32_t MB_SPIN = 0x5550;
@@ -53,37 +53,37 @@ namespace g069
 
 	namespace w
 	{
-		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
-		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(0x7016B0)(src, layout, n); }
-		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(0x501330)(se, a, b); }
-		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline int32_t Sub508500() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
-		inline void LoadBS(int a, void *dst) { fn<void (__cdecl *)(int, void *)>(0x512AA0)(a, dst); }
-		inline void SwapBS(int a, uint32_t src) { fn<void (__cdecl *)(int, uint32_t)>(0x512AC0)(a, src); }
-		inline uint32_t Tile(int r, int g, int b, int level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-		inline uint32_t Flipbook(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); }
-		inline void InitSparks() { fn<void (__cdecl *)()>(0x6FE5A0)(); }
-		inline void InitShards() { fn<void (__cdecl *)()>(0x6FE250)(); }
-		inline uint8_t *FaceDistances(void *model, const Mat4x3 *m, void *out) { return fn<uint8_t *(__cdecl *)(void *, const Mat4x3 *, void *)>(0x6FE300)(model, m, out); }
-		inline uint8_t *SparkAlloc() { return fn<uint8_t *(__cdecl *)()>(0x700310)(); }
-		inline void SparkUpdate() { fn<void (__cdecl *)()>(0x700370)(); }
-		inline void ShardUpdate() { fn<void (__cdecl *)()>(0x6FF5F0)(); }
-		inline void AttackerDraw(void *ent, int32_t y, uint32_t verts) { fn<void (__cdecl *)(void *, int32_t, uint32_t)>(0x6FECF0)(ent, y, verts); }
-		inline void LoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-		inline void StoreIRm8(void *p) { fn<void (__cdecl *)(void *)>(0x703EF0)(p); }
-		inline void SetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
-		inline void NCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-		inline void ReadMAC0(void *p) { fn<void (__cdecl *)(void *)>(0x45E3C0)(p); }
-		inline void SetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
-		inline void SetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-		inline void AVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-		inline void AVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-		inline void ReadOTZ(void *p) { fn<void (__cdecl *)(void *)>(0x45E3D0)(p); }
-		inline void LoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }
-		inline void LoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }
-		inline void RTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-		inline void ReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
+		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
+		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(us(0x7016B0))(src, layout, n); }
+		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(us(0x501330))(se, a, b); }
+		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+		inline int32_t Sub508500() { return fn<int32_t (__cdecl *)()>(us(0x508500))(); }
+		inline void LoadBS(int a, void *dst) { fn<void (__cdecl *)(int, void *)>(us(0x512AA0))(a, dst); }
+		inline void SwapBS(int a, uint32_t src) { fn<void (__cdecl *)(int, uint32_t)>(us(0x512AC0))(a, src); }
+		inline uint32_t Tile(int r, int g, int b, int level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
+		inline uint32_t Flipbook(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x6FC9E0))(h, ot, mode, cursor); }
+		inline void InitSparks() { fn<void (__cdecl *)()>(us(0x6FE5A0))(); }
+		inline void InitShards() { fn<void (__cdecl *)()>(us(0x6FE250))(); }
+		inline uint8_t *FaceDistances(void *model, const Mat4x3 *m, void *out) { return fn<uint8_t *(__cdecl *)(void *, const Mat4x3 *, void *)>(us(0x6FE300))(model, m, out); }
+		inline uint8_t *SparkAlloc() { return fn<uint8_t *(__cdecl *)()>(us(0x700310))(); }
+		inline void SparkUpdate() { fn<void (__cdecl *)()>(us(0x700370))(); }
+		inline void ShardUpdate() { fn<void (__cdecl *)()>(us(0x6FF5F0))(); }
+		inline void AttackerDraw(void *ent, int32_t y, uint32_t verts) { fn<void (__cdecl *)(void *, int32_t, uint32_t)>(us(0x6FECF0))(ent, y, verts); }
+		inline void LoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+		inline void StoreIRm8(void *p) { fn<void (__cdecl *)(void *)>(us(0x703EF0))(p); }
+		inline void SetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
+		inline void NCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+		inline void ReadMAC0(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(p); }
+		inline void SetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
+		inline void SetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
+		inline void AVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+		inline void AVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+		inline void ReadOTZ(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(p); }
+		inline void LoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFA0))(v); }
+		inline void LoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFC0))(v); }
+		inline void RTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+		inline void ReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
 	}
 
 	inline int16_t &S16(uint8_t *p, int o) { return *(int16_t *)(p + o); }
@@ -612,10 +612,10 @@ namespace g069
 			node->spawned = 1;
 			w::InitSparks();
 			w::InitShards();
-			InitTaskQueuePool(&QueueTimeline(), (void *)0x2556680, 0x8F0, 1);
-			TaskNode *t = AddTaskToQueue(&QueueTimeline(), ORIG_TimelineTask);
+			InitTaskQueuePool(&QueueTimeline(), (void *)us(0x2556680), 0x8F0, 1);
+			TaskNode *t = AddTaskToQueue(&QueueTimeline(), us(ORIG_TimelineTask));
 			Memset32((uint8_t *)t + 0xC, 0, 0x239);
-			*(uint32_t *)((uint8_t *)t + 0x10) = ClaimVoiceSlot((const void *)0x14D0740, 1, 0x80);
+			*(uint32_t *)((uint8_t *)t + 0x10) = ClaimVoiceSlot((const void *)us(0x14D0740), 1, 0x80);
 			uint8_t *a = Attacker();
 			Mat4x3 m;
 			m.m[0][0] = 0x400; m.m[0][1] = 0; m.m[0][2] = 0;
@@ -625,8 +625,8 @@ namespace g069
 			m.t[0] = -((int32_t)*(int16_t *)(a + 0x1C) / 4);
 			m.t[1] = 0;
 			m.t[2] = -((int32_t)*(int16_t *)(a + 0x20) / 4);
-			uint8_t *r = w::FaceDistances(MODEL_1, &m, ModelBuffer() + MB_FACE_DIST);
-			w::FaceDistances(MODEL_2, &m, r);
+			uint8_t *r = w::FaceDistances(MODEL_1(), &m, ModelBuffer() + MB_FACE_DIST);
+			w::FaceDistances(MODEL_2(), &m, r);
 		}
 
 		int left = 1;
@@ -650,19 +650,19 @@ namespace g069
 
 		if ((uint32_t)c < 0x5C)
 		{
-			if (c == 0) w::Decode(0x14D0C2C, node->prim, 0x8D4);
+			if (c == 0) w::Decode(us(0x14D0C2C), node->prim, 0x8D4);
 			PrimCtx ctx;
 			uint8_t *a = Attacker();
 			ctx.pos[0] = *(int16_t *)(a + 0x1C);
 			ctx.pos[1] = 0;
 			ctx.pos[2] = *(int16_t *)(a + 0x20);
 			ctx.pad06 = 0;
-			ctx.modes = 0x14D71E0;
+			ctx.modes = us(0x14D71E0);
 			ctx.bias = -128;
 			ctx.scratch = (uint32_t)(MB + MB_SCRATCH);
 			ctx.scroll = (int16_t)(c << 4);
 			FX_HELD(held_note_prim(ctx);)
-			prim::play((prim::Layout *)node->prim, (prim::Callback)CB_PrimObject, (int)&ctx, 0);
+			prim::play((prim::Layout *)node->prim, (prim::Callback)us(CB_PrimObject), (int)&ctx, 0);
 		}
 
 		{
@@ -678,7 +678,7 @@ namespace g069
 			if (draw)
 			{
 				FX_HELD(held_note_attacker();)
-				w::AttackerDraw(Attacker(), 0, var<uint32_t>(0x1D98B3C));
+				w::AttackerDraw(Attacker(), 0, var<uint32_t>(us(0x1D98B3C)));
 				*Attacker() |= 4;
 			}
 		}
@@ -691,15 +691,15 @@ namespace g069
 				if (q > 6000) q = 6000;
 				int32_t thr = (q * q) >> 12;
 				FX_HELD(held_note_models(thr);)
-				uint8_t *r = ShatterDraw(MODEL_1, MB + MB_FACE_DIST, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x4068, 0x10);
-				ShatterDraw(MODEL_2, r, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x44, 0);
-				*MODEL_1_FLAGS &= 0xFD;
-				*MODEL_2_FLAGS &= 0xFD;
+				uint8_t *r = ShatterDraw(MODEL_1(), MB + MB_FACE_DIST, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x4068, 0x10);
+				ShatterDraw(MODEL_2(), r, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x44, 0);
+				*MODEL_1_FLAGS() &= 0xFD;
+				*MODEL_2_FLAGS() &= 0xFD;
 			}
 			else
 			{
-				*MODEL_1_FLAGS |= 2;
-				*MODEL_2_FLAGS |= 2;
+				*MODEL_1_FLAGS() |= 2;
+				*MODEL_2_FLAGS() |= 2;
 			}
 		}
 
@@ -720,12 +720,12 @@ namespace g069
 			}
 		}
 
-		if (node->counter == 0) w::PlaySE(0x14D0A48, 0, 0x80);
+		if (node->counter == 0) w::PlaySE(us(0x14D0A48), 0, 0x80);
 		if (node->counter == 0x7A) w::ReleaseVoice(node->voice);
 		if (node->counter < 0x2F) w::SparkUpdate();
 		w::ShardUpdate();
 
-		uint32_t flags = var<uint32_t>(0x1D96A9C);
+		uint32_t flags = var<uint32_t>(us(0x1D96A9C));
 		if (flags & 0x201)
 		{
 			if (flags & 1) return 0;
@@ -738,8 +738,8 @@ namespace g069
 			if (w::Sub508500() < 0) return 0;
 			w::SwapBS(0, (uint32_t)(ModelBuffer() + MB_SPARKS));
 			*Attacker() |= 0x20;
-			uint32_t pal = var<uint32_t>(0xB8B9A8);
-			for (uint32_t a = 0x1D972EC; a < 0x1D97730; a += 0x9C) var<uint32_t>(a) = pal;
+			uint32_t pal = var<uint32_t>(us(0xB8B9A8));
+			for (uint32_t a = us(0x1D972EC); a < us(0x1D97730); a += 0x9C) var<uint32_t>(a) = pal;
 		}
 
 		{
@@ -764,7 +764,7 @@ namespace g069
 				int32_t cs = w::Cos(angle);
 				int16_t z = (int16_t)(mul32(cs, r) / 4096 + *(int16_t *)(Attacker() + 0x20));
 				*(int16_t *)(s + 6) = 0;
-				*(uint32_t *)s = 0x14D0A4C;
+				*(uint32_t *)s = us(0x14D0A4C);
 				*(int16_t *)(s + 8) = z;
 				s[0xC] = (uint8_t)((w::Rand() & 3) - 2);
 				s[0xE] = (uint8_t)((w::Rand() & 3) - 2);

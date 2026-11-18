@@ -27,44 +27,44 @@ namespace badbreath131
 	using namespace magc;
 	using namespace icec;
 
-	inline Mat4x3 &MeshFrame() { return var<Mat4x3>(0x2520FF0); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2521010); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x252103C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521040); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252105C); }
-	static const void *const FADE_COLOUR = (const void *)0x2521060;
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2521068; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521078; }
-	inline TaskQueue *QEmitter() { return (TaskQueue *)0x2521088; }
-	inline uint32_t RenderOT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline Mat4x3 &MeshFrame() { return var<Mat4x3>(us(0x2520FF0)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2521010)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x252103C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2521040)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x252105C)); }
+	static const void *FADE_COLOUR() { return (const void *)us(0x2521060); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2521068); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2521078); }
+	inline TaskQueue *QEmitter() { return (TaskQueue *)us(0x2521088); }
+	inline uint32_t RenderOT() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x6B2C80;
 	static const uint32_t ORIG_EmitterTask = 0x6B2EC0;
 	static const uint32_t ORIG_TargetTask = 0x6B3D70;
 	static const uint32_t ORIG_SpriteTask = 0x6B40B0;
-	static uint8_t *const MESH1 = (uint8_t *)0x1219258;
-	static uint8_t *const MESH2 = (uint8_t *)0x121A6D8;
+	static uint8_t *MESH1() { return (uint8_t *)us(0x1219258); }
+	static uint8_t *MESH2() { return (uint8_t *)us(0x121A6D8); }
 	static const uint32_t MODEL_Target = 0x121BB58;
 	static const uint32_t SEQ_Bubble = 0x1219078;
-	static const uint8_t *const COLOURS = (const uint8_t *)0x121C97C;
-	static const void *const TINT = (const void *)0x121C98C;
-	static const int16_t *const SWIRL_TABLE = (const int16_t *)0x121C990;
-	static const void *const SOUND_Breath = (const void *)0x121C978;
+	static const uint8_t *COLOURS() { return (const uint8_t *)us(0x121C97C); }
+	static const void *TINT() { return (const void *)us(0x121C98C); }
+	static const int16_t *SWIRL_TABLE() { return (const int16_t *)us(0x121C990); }
+	static const void *SOUND_Breath() { return (const void *)us(0x121C978); }
 	static const uint32_t VERTS = 0xA00;
 
-	inline uint32_t FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x700150)(t, r, g, b, in, hold, out, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void GteLoadRGBBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(rgb); }
-	inline void GteStoreRGBBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
+	inline uint32_t FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x700150))(t, r, g, b, in, hold, out, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(us(0x704070))(); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void GteLoadRGBBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(rgb); }
+	inline void GteStoreRGBBytes(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E410))(dst); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -149,9 +149,9 @@ namespace badbreath131
 			GteStoreIR123(out);
 			const int32_t w = v[3];
 			const int32_t a = (phase + w * 2) & 0xFFF;
-			const int32_t amp = (int32_t)SWIRL_TABLE[w & 0xFFE] >> 4;
-			out[1] = (int16_t)(out[1] - (int16_t)(mul32(SWIRL_TABLE[a * 2], amp) >> 12));
-			out[0] = (int16_t)(out[0] + (int16_t)(mul32(SWIRL_TABLE[a * 2 + 1], amp) >> 12));
+			const int32_t amp = (int32_t)SWIRL_TABLE()[w & 0xFFE] >> 4;
+			out[1] = (int16_t)(out[1] - (int16_t)(mul32(SWIRL_TABLE()[a * 2], amp) >> 12));
+			out[0] = (int16_t)(out[0] + (int16_t)(mul32(SWIRL_TABLE()[a * 2 + 1], amp) >> 12));
 			out += 4;
 			v += 4;
 		} while (--count);
@@ -316,16 +316,16 @@ namespace badbreath131
 	{
 		const int32_t v = shl32(t, 10);
 		const int32_t i = (v >> 12) % 3, f = v & 0xFFF;
-		BlendColour(COLOURS + i * 4, COLOURS + i * 4 + 4, 0x1000 - f, f, h4);
+		BlendColour(COLOURS() + i * 4, COLOURS() + i * 4 + 4, 0x1000 - f, f, h4);
 		if ((uint32_t)t < 8)
 		{
 			const int32_t s = ComputeSin((t & 0x3FFFFF) << 7);
-			BlendColour(FADE_COLOUR, h4, 0x1000 - s, s, h4);
+			BlendColour(FADE_COLOUR(), h4, 0x1000 - s, s, h4);
 		}
 		else if ((uint32_t)t > 0x2A)
 		{
 			const int32_t s = ComputeSin(((t << 7) - 0x1481) & 0x1FFFFF80);
-			BlendColour(FADE_COLOUR, h4, s, 0x1000 - s, h4);
+			BlendColour(FADE_COLOUR(), h4, s, 0x1000 - s, h4);
 		}
 	}
 }
@@ -402,7 +402,7 @@ namespace badbreath131
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
-		*(uint32_t *)h = SEQ_Bubble;
+		*(uint32_t *)h = us(SEQ_Bubble);
 		*(uint16_t *)(h + 4) = p->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -433,18 +433,18 @@ namespace badbreath131
 		if ((uint32_t)c < 8)
 		{
 			const int32_t w = shl32(c, 9);
-			BlendColour(TINT, &t->colour, w, 0x1000 - w, entity + 0x28);
+			BlendColour(TINT(), &t->colour, w, 0x1000 - w, entity + 0x28);
 		}
 		else if ((uint32_t)(c - 0x1E) <= 8)
 		{
 			const int32_t w = shl32(c - 0x1E, 9);
-			BlendColour(TINT, &t->colour, 0x1000 - w, w, entity + 0x28);
+			BlendColour(TINT(), &t->colour, 0x1000 - w, w, entity + 0x28);
 		}
-		else if (t->counter >= 0 && t->counter <= 0x1E) *(uint32_t *)(entity + 0x28) = *(const uint32_t *)TINT;
+		else if (t->counter >= 0 && t->counter <= 0x1E) *(uint32_t *)(entity + 0x28) = *(const uint32_t *)TINT();
 		else *(uint32_t *)(entity + 0x28) = t->colour;
 		if (t->counter <= 0x10)
 		{
-			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SpriteTask));
 			if (s)
 			{
 				const int32_t bone = (int32_t)((uint32_t)CrtRand() * (uint32_t)***(uint8_t ***)(entity + 0x64)) >> 15;
@@ -478,7 +478,7 @@ namespace badbreath131
 			GteSetRotMatrix(&rot);
 			GteZeroTrans();
 			const uint32_t verts = TexBase() + VERTS;
-			SwirlVertices(MESH1, e->phase, (int16_t *)verts);
+			SwirlVertices(MESH1(), e->phase, (int16_t *)verts);
 			const int16_t x = WalkX(t);
 			const int16_t z = e->z;
 			if (t >= 0x19 && e->next < e->count)
@@ -486,7 +486,7 @@ namespace badbreath131
 				uint8_t *target = e->ents[e->next];
 				if ((int32_t)x >= (int32_t)*(const int16_t *)(target + 0x1C) - 1000)
 				{
-					TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *p = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 					if (p)
 					{
 						p->counter = 0;
@@ -495,7 +495,7 @@ namespace badbreath131
 						p->slot = (uint8_t)((int32_t)((uint32_t)target - 0x1D972C0u) / 0x9C);
 						GetDefaultEffectPosition(target, p->pos);
 						p->pos[1] = (int16_t)(*(const int16_t *)(target + 0x24) - 0xC8);
-						DecodeModelPrimLayout(MODEL_Target, p->layout, 0x128);
+						DecodeModelPrimLayout(us(MODEL_Target), p->layout, 0x128);
 					}
 					e->next++;
 				}
@@ -526,20 +526,20 @@ namespace badbreath131
 			*(uint16_t *)(h + 0x1A) = 0;
 			*(uint16_t *)(h + 0x1C) = 0x80;
 			*(uint16_t *)(h + 0xC) = (uint16_t)((uint8_t)t * 10 & 0x7F);
-			*(uint8_t **)h = MESH1;
+			*(uint8_t **)h = MESH1();
 			*(uint32_t *)(h + 0x20) = verts;
 			PacketCursor() = MeshDraw(h, RenderOT(), 2, PacketCursor());
 			RotZ((int16_t)-e->angle, &rot);
 			GteSetRotMatrix(&rot);
 			GteZeroTrans();
-			SwirlVertices(MESH2, (int32_t)e->phase + 0x400, (int16_t *)verts);
+			SwirlVertices(MESH2(), (int32_t)e->phase + 0x400, (int16_t *)verts);
 			GteSetRotMatrix(&MeshFrame());
 			GteSetTransVector(&MeshFrame());
-			*(uint8_t **)h = MESH2;
+			*(uint8_t **)h = MESH2();
 			PacketCursor() = MeshDraw(h, RenderOT(), 2, PacketCursor());
 			FieldFree(0x5C);
 		}
-		if (e->counter == 0x14) BdPlaySE(SOUND_Breath, 0, 0x80);
+		if (e->counter == 0x14) BdPlaySE(SOUND_Breath(), 0, 0x80);
 		e->angle = (int16_t)(e->angle - 0x32);
 		e->phase = (int16_t)(e->phase + 0xC8);
 		if (e->counter >= 0x41) return TASK_END;
@@ -567,7 +567,7 @@ namespace badbreath131
 			InitTaskQueuePool(QEmitter(), (void *)(TexBase() + 0x9CC), 0x34, 1);
 			InitTaskQueuePool(QTargets(), (void *)(TexBase() + 0x600), 0x144, 3);
 			InitTaskQueuePool(QSprites(), (void *)TexBase(), 0x18, 0x40);
-			EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEmitter(), ORIG_EmitterTask);
+			EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEmitter(), us(ORIG_EmitterTask));
 			Memset32(&e->counter, 0, 0xA);
 			uint8_t *const b = (uint8_t *)e;
 			e->count = (int16_t)Ctx()->actions[0].target_count;
@@ -597,8 +597,8 @@ namespace badbreath131
 					}
 				}
 			}
-			NormalizeMesh(MESH1);
-			NormalizeMesh(MESH2);
+			NormalizeMesh(MESH1());
+			NormalizeMesh(MESH2());
 		}
 		int a0, a1, a2;
 		if (m->started)

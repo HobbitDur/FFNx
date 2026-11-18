@@ -63,7 +63,7 @@
 	{
 		const int32_t last = (int32_t)StageCount() + 1;
 		Length() = 0;
-		for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(0x1D98214 + i);
+		for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(us(0x1D98214) + i);
 	}
 
 	static void StartTasks()
@@ -129,7 +129,7 @@
 		}
 		if (tint)
 		{
-			uint32_t colour = var<uint32_t>(0xB8B7D8);
+			uint32_t colour = var<uint32_t>(us(0xB8B7D8));
 			GteLoadRGBC(&colour);
 			GteSetIR0(shl32(k, 9));
 			GteDPCS();
@@ -142,7 +142,7 @@
 		n->c++;
 		if ((int32_t)n->c <= Length()) return 0;
 		if (Finisher() == 0) SetScreenFlash(0, 0);
-		*(uint32_t *)(Caster() + 0x28) = var<uint32_t>(0xB8B7D8);
+		*(uint32_t *)(Caster() + 0x28) = var<uint32_t>(us(0xB8B7D8));
 		uint16_t *flags = (uint16_t *)Caster();
 		*flags = (uint16_t)((*flags & 0xF7FF) | (uint16_t)n->e);
 		return TASK_END;
@@ -212,7 +212,7 @@
 		}
 		int16_t q[4];
 		GetEffectSpawnPosition(Entity(n->w1A), n->w18, shl32(n->c, 9), q);
-		int32_t d[3] = { (int32_t)var<int16_t>(0xB8B7F0) - q[0], 0, (int32_t)var<int16_t>(0xB8B7F4) - q[2] };
+		int32_t d[3] = { (int32_t)var<int16_t>(us(0xB8B7F0)) - q[0], 0, (int32_t)var<int16_t>(us(0xB8B7F4)) - q[2] };
 		int32_t u[3] = { 0, 0, -0x1000 };
 		Normalize(d, d);
 		int32_t axis[3];
@@ -255,7 +255,7 @@
 		*(uint32_t *)(h + 0xC) = var<uint16_t>(SPARKLE_FADE + 2 * n->c);
 		*(uint32_t *)(h + 0x18) = var<uint16_t>(SPARKLE_DEPTH + 2 * n->w1C);
 		*(uint32_t *)(h + 0x1C) = 0x10F3;
-		var<uint32_t>(0x1D8E054) = RenderPrimModel(h, RenderOT(), 2, var<uint32_t>(0x1D8E054));
+		var<uint32_t>(us(0x1D8E054)) = RenderPrimModel(h, RenderOT(), 2, var<uint32_t>(us(0x1D8E054)));
 		FieldFree(0x58);
 		if (DrawOnly()) return 0;
 		n->w1C++;
@@ -343,7 +343,7 @@
 			GteStoreRGB2(&w->col1);
 			pk[5] = pk[1] = w->col0;
 			pk[7] = pk[3] = w->col1;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
 			pk2[5] = w->col0;
 			pk2[3] = pk2[1] = 0x3A000000;
 			pk2[7] = w->col1;
@@ -352,7 +352,7 @@
 			pk2[6] = pk[6];
 			pk2[8] = pk[8];
 			pk2[0] = 0x8000000;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
 			pk += 0x12;
 			pk2 += 0x12;
 		}
@@ -395,9 +395,9 @@
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_B, POOL_B_SPAWN_END, 0x10);
+				const int32_t i = FreeSlot(us(POOL_B), POOL_B_SPAWN_END, 0x10);
 				if (i < 0) break;
-				SparkP *p = (SparkP *)(POOL_B + 0x10 * i);
+				SparkP *p = (SparkP *)(us(POOL_B) + 0x10 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
 				const uint8_t *sk = **(uint8_t ***)(Caster() + 0x64);
@@ -449,9 +449,9 @@
 			}
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0xC);
+				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0xC);
 				if (i < 0) break;
-				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
+				FlashP *p = (FlashP *)(us(POOL_A) + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xA00);
 				ff8fx::copy<(8)>(p->pos, hp);
@@ -573,7 +573,7 @@
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_FLASH;
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0xC)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0xC)
 		{
 			FlashP *p = (FlashP *)a;
 			if (p->life < 0) continue;
@@ -607,9 +607,9 @@
 			p->vel[1] = (int16_t)(p->vel[1] - (int16_t)(p->vel[1] >> 3));
 			p->vel[2] = (int16_t)(p->vel[2] - (int16_t)(p->vel[2] >> 3));
 		}
-		*(uint32_t *)h = SEQ_SPARK;
+		*(uint32_t *)h = us(SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 4;
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x10)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x10)
 		{
 			SparkP *p = (SparkP *)a;
 			if (p->life < 0) continue;
@@ -752,7 +752,7 @@
 	{
 		int32_t v[3] = { r->w18, r->w1A, r->w1C };
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)d.ref, v, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(d.ref), v, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[1] = r->pos[1];
@@ -767,7 +767,7 @@
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = d.model;
+		*(uint32_t *)h = us(d.model);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= d.fade_from)
@@ -826,7 +826,7 @@
 		r->w1C = var<int16_t>(HIT_DIR + 8);
 	}
 
-	inline int32_t ComputeCosine(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
+	inline int32_t ComputeCosine(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
 	struct DustDef { uint32_t orig; bool delayed; int16_t last; int32_t count, scale_n, scale0, r_n, r0, sp_n, sp0; };
 #pragma pack(push, 1)
 	struct DustWork
@@ -946,7 +946,7 @@
 		}
 		int32_t v = mul32(ComputeSin(shl32(n->c, 10) / d.div + 0x400), d.amp) >> 12;
 		if (!(n->c & 1)) v = -v;
-		var<int16_t>(0x1D97712) = (int16_t)v;
+		var<int16_t>(us(0x1D97712)) = (int16_t)v;
 		if (DrawOnly()) return 0;
 		n->c++;
 		return n->c >= d.ticks ? TASK_END : 0;
@@ -992,7 +992,7 @@
 				p->w14 = (int16_t)(mul32(w->dir[2], sp) >> 12);
 			}
 		}
-		const int32_t alive = EmitterDraw(n, w, 2, d.seq);
+		const int32_t alive = EmitterDraw(n, w, 2, us(d.seq));
 		FieldFree(0x50);
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1043,7 +1043,7 @@
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = d.model;
+		*(uint32_t *)h = us(d.model);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= d.fade_from)

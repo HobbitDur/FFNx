@@ -25,13 +25,13 @@ namespace wall189
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &FirstTarget() { return var<int32_t>(0x2293F4C); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2293F80; }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2295C00; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2296A20); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x22B2A30); }
-	inline int16_t &CameraShakeY() { return var<int16_t>(0x1D97712); }
-	inline uint8_t DisplayBuffer() { return var<uint8_t>(0x1D96A80); }
+	inline int32_t &FirstTarget() { return var<int32_t>(us(0x2293F4C)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x2293F80); }
+	inline TaskQueue *QEffects() { return (TaskQueue *)us(0x2295C00); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2296A20)); }
+	inline uint32_t &Cursor() { return var<uint32_t>(us(0x22B2A30)); }
+	inline int16_t &CameraShakeY() { return var<int16_t>(us(0x1D97712)); }
+	inline uint8_t DisplayBuffer() { return var<uint8_t>(us(0x1D96A80)); }
 
 	static const uint32_t ARENA_ODD = 0x22A4A30, ARENA_EVEN = 0x2296A30;
 	static const uint32_t PKT_DrawEnv = 0x2295BC0;
@@ -54,35 +54,35 @@ namespace wall189
 	static const uint32_t MODEL_Debris = 0xD19ABC;
 	static const uint32_t SEQ_Dust = 0xD19658;
 	static const uint32_t CLIP_TABLE = 0xD1B3AC;
-	static const void *const SOUND_Wall = (const void *)0xD1B3A4;
+	static const void *SOUND_Wall() { return (const void *)us(0xD1B3A4); }
 	static const int DUST_COUNT = 150, DEBRIS_COUNT = 100;
 	static const int32_t WALL_TICKS = 0x3C, WALL_CLIPPED = 0x14, WALL_SHAKE = 0x1A, WALL_FADE = 0x30;
 	static const int32_t SHARD_TICKS = 0x18, SHARD_GROW = 6, SHARD_FADE = 0x10;
 
-	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void NormalizeVectorFixed(const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline void SetDrawEnvPrim(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(prim, env); }
-	inline void SetDrawAreaPrim(uint32_t prim, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(0x45C940)(prim, rect); }
-	inline void SetDrawOffsetPrim(uint32_t prim, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C9B0)(prim, xy); }
-	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t prim) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(bucket, prim); }
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
-	inline void SetProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
-	inline uint32_t RenderGeometry(uint32_t group, void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(group, header, ot, mode, cursor); }
-	inline uint32_t ColumnRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteWriteControlReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D7F0)(value, reg); }
-	inline void GteLightV0() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteLightV1() { fn<void (__cdecl *)()>(0x4607F0)(); }
-	inline void GteLightV2() { fn<void (__cdecl *)()>(0x460800)(); }
+	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void NormalizeVectorFixed(const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline void SetDrawEnvPrim(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(prim, env); }
+	inline void SetDrawAreaPrim(uint32_t prim, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(us(0x45C940))(prim, rect); }
+	inline void SetDrawOffsetPrim(uint32_t prim, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C9B0))(prim, xy); }
+	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t prim) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C8E0))(bucket, prim); }
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
+	inline void SetProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(us(0x56CD00))(h); }
+	inline uint32_t RenderGeometry(uint32_t group, void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(group, header, ot, mode, cursor); }
+	inline uint32_t ColumnRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x64F0A0))(h, ot, mode, cursor); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteWriteControlReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(us(0x45D7F0))(value, reg); }
+	inline void GteLightV0() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteLightV1() { fn<void (__cdecl *)()>(us(0x4607F0))(); }
+	inline void GteLightV2() { fn<void (__cdecl *)()>(us(0x460800))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -161,8 +161,8 @@ namespace wall189
 	static_assert(sizeof(Dust) == 0x18 && sizeof(Debris) == 0x18, "Wall particles");
 	static_assert(sizeof(ClipHeader) == 0x1A8, "Wall clip header");
 
-	inline Dust *Dusts() { return (Dust *)0x2294DB0; }
-	inline Debris *Pieces() { return (Debris *)0x2293F90; }
+	inline Dust *Dusts() { return (Dust *)us(0x2294DB0); }
+	inline Debris *Pieces() { return (Debris *)us(0x2293F90); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
 	inline Node *AddTask(uint32_t f) { return (Node *)AddTaskToQueue(QEffects(), f); }
 
@@ -376,7 +376,7 @@ namespace wall189
 		GteWriteControlReg(rd32(&h->plane[0]), 8);
 		GteWriteControlReg(w, 9);
 		GteWriteControlReg((uint32_t)((int32_t)w >> 16), 0xD);
-		for (int k = 0; k < 56; k++) h->ptr[k] = (Slot *)((uint8_t *)h->slot + (var<uint32_t>(CLIP_TABLE + 4 * k) << 4));
+		for (int k = 0; k < 56; k++) h->ptr[k] = (Slot *)((uint8_t *)h->slot + (var<uint32_t>(us(CLIP_TABLE) + 4 * k) << 4));
 		h->cursor = cursor;
 		h->ot = ot;
 		h->shift = mode;
@@ -412,7 +412,7 @@ namespace wall189
 		if (c < WALL_CLIPPED)
 		{
 			ClipHeader *h = (ClipHeader *)FieldAlloc(0x1A8);
-			h->model = (uint8_t *)MODEL_Wall;
+			h->model = (uint8_t *)us(MODEL_Wall);
 			h->flags = 0;
 			h->slot[0].v[0] = 0;
 			h->slot[0].v[2] = 0;
@@ -427,7 +427,7 @@ namespace wall189
 		else
 		{
 			uint8_t *h = (uint8_t *)FieldAlloc(0x60);
-			*(uint32_t *)h = MODEL_Wall;
+			*(uint32_t *)h = us(MODEL_Wall);
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x1C) = 0;
 			*(uint32_t *)(h + 0x58) = 0xE1000020;
@@ -459,7 +459,7 @@ namespace wall189
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = MODEL_Shard;
+		*(uint32_t *)h = us(MODEL_Shard);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= SHARD_FADE)
@@ -517,8 +517,8 @@ namespace wall189
 		v[0] = 0x1000000 / (0x1162000 / (int32_t)rect[2]);
 		v[2] = 0x1000000 / (0xAF0000 / (int32_t)rect[3]);
 		Scale3DMatrix(&m, v);
-		SetDrawEnvPrim(PKT_DrawEnv, DRAWENV + 0x5C * ((uint32_t)DisplayBuffer() ^ 1));
-		InsertPrimAutoDepth(RenderOT(), (void *)PKT_DrawEnv);
+		SetDrawEnvPrim(us(PKT_DrawEnv), us(DRAWENV) + 0x5C * ((uint32_t)DisplayBuffer() ^ 1));
+		InsertPrimAutoDepth(RenderOT(), (void *)us(PKT_DrawEnv));
 		int32_t ofx, ofy;
 		GetScreenOffset(&ofx, &ofy);
 		SetScreenOffset((int32_t)rect[2] / 2, (int32_t)rect[3] / 2);
@@ -529,11 +529,11 @@ namespace wall189
 		*(int16_t *)(h + 0x16) = 0;
 		*(int16_t *)(h + 0x18) = 0x140;
 		*(int16_t *)(h + 0x1A) = 0xD8;
-		*(uint32_t *)(h + 4) = var<uint32_t>(0x1D98B3C);
+		*(uint32_t *)(h + 4) = var<uint32_t>(us(0x1D98B3C));
 		*(int32_t *)(h + 0x10) = -1;
 		*(int32_t *)(h + 0x20) = -1;
 		SetProjectionH(0x7FFF);
-		for (uint32_t e = STAGE_Entry1; e >= STAGE_Entry1 - 0x2C; e -= 0x2C)
+		for (uint32_t e = us(STAGE_Entry1); e >= us(STAGE_Entry1) - 0x2C; e -= 0x2C)
 		{
 			const uint8_t f = var<uint8_t>(e);
 			if (!(f & 1) || !(f & 2)) continue;
@@ -543,26 +543,26 @@ namespace wall189
 			ComputeBonesWorldMatrices((void *)(e + 0x13), &m);
 			Cursor() = RenderGeometry(e + 3, h, RenderOT(), 0x10, Cursor());
 		}
-		SetProjectionH(var<int16_t>(0x1D8E038));
+		SetProjectionH(var<int16_t>(us(0x1D8E038)));
 		FieldFree(0x2C);
 		SetScreenOffset(ofx, ofy);
-		InsertPrimAltViewport(RenderOT(), PKT_AltViewport);
-		SetDrawAreaPrim(PKT_DrawArea, rect);
-		InsertPrimAutoDepth(RenderOT(), (void *)PKT_DrawArea);
-		var<int16_t>(OFFSET_XY) = rect[0];
-		var<int16_t>(OFFSET_XY + 2) = rect[1];
-		SetDrawOffsetPrim(PKT_DrawOffset, OFFSET_XY);
-		InsertPrimAutoDepth(RenderOT(), (void *)PKT_DrawOffset);
+		InsertPrimAltViewport(RenderOT(), us(PKT_AltViewport));
+		SetDrawAreaPrim(us(PKT_DrawArea), rect);
+		InsertPrimAutoDepth(RenderOT(), (void *)us(PKT_DrawArea));
+		var<int16_t>(us(OFFSET_XY)) = rect[0];
+		var<int16_t>(us(OFFSET_XY) + 2) = rect[1];
+		SetDrawOffsetPrim(us(PKT_DrawOffset), us(OFFSET_XY));
+		InsertPrimAutoDepth(RenderOT(), (void *)us(PKT_DrawOffset));
 	}
 
 	static uint32_t __cdecl DebrisTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_DebrisTask, n);)
+		FX_HELD(held_begin(us(ORIG_DebrisTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *w = (uint8_t *)FieldAlloc(0x88);
 		ff8fx::copy<(0x20)>(w + 0x28, &Camera());
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = us(MODEL_Debris);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		int32_t alive = 0;
@@ -628,10 +628,10 @@ namespace wall189
 	static uint32_t __cdecl DustTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_DustTask, n);)
+		FX_HELD(held_begin(us(ORIG_DustTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = us(SEQ_Dust);
 		*(int16_t *)(h + 0x24) = 8;
 		for (Dust *p = Dusts(); p < Dusts() + DUST_COUNT; p++)
 		{
@@ -697,7 +697,7 @@ namespace wall189
 			n->delay--;
 			return 0;
 		}
-		FX_HELD(held_begin(ORIG_ShardTask, n);)
+		FX_HELD(held_begin(us(ORIG_ShardTask), n);)
 		ShardDraw(n, n->counter, ShardFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter < SHARD_GROW) n->scale_y = (int16_t)(n->scale_y + n->step);
@@ -708,7 +708,7 @@ namespace wall189
 	static uint32_t __cdecl WallTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(ORIG_WallTask, n);)
+		FX_HELD(held_begin(us(ORIG_WallTask), n);)
 		WallDraw(n, n->counter, WallPlane(n->counter), WallFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t c = n->counter;
@@ -747,7 +747,7 @@ namespace wall189
 			int32_t i = 0, acc = 0;
 			for (int32_t k = 0x20; k > 8; k--)
 			{
-				Node *s = AddTask(ORIG_ShardTask);
+				Node *s = AddTask(us(ORIG_ShardTask));
 				s->counter = 0;
 				const int32_t r = CrtRand();
 				*(uint32_t *)&s->x = rd32(&n->x);
@@ -767,13 +767,13 @@ namespace wall189
 		}
 		if (n->counter == 0xE)
 		{
-			Node *d = AddTask(ORIG_DustTask);
+			Node *d = AddTask(us(ORIG_DustTask));
 			*(uint32_t *)&d->x = rd32(&n->x);
 			d->counter = 0;
 			*(uint32_t *)&d->z = rd32(&n->z);
 			if (n->counter == 0xE)
 			{
-				Node *b = AddTask(ORIG_DebrisTask);
+				Node *b = AddTask(us(ORIG_DebrisTask));
 				*(uint32_t *)&b->x = rd32(&n->x);
 				b->counter = 0;
 				*(uint32_t *)&b->z = rd32(&n->z);
@@ -781,7 +781,7 @@ namespace wall189
 		}
 		if (n->counter == 0x10)
 		{
-			Node *w = AddTask(ORIG_WallTask);
+			Node *w = AddTask(us(ORIG_WallTask));
 			w->counter = 0;
 			w->x = n->x;
 			w->y = 0x7DD;
@@ -790,7 +790,7 @@ namespace wall189
 			w->step = 0x64;
 		}
 		if (n->counter == 0x41) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (n->counter == 1) BdPlaySE(SOUND_Wall, 0, 0x80);
+		if (n->counter == 1) BdPlaySE(SOUND_Wall(), 0, 0x80);
 		n->counter++;
 		return n->counter > 0x46 ? TASK_END : 0;
 	}
@@ -798,7 +798,7 @@ namespace wall189
 	static uint32_t __cdecl RestoreTask(TaskNode *n_)
 	{
 		RootNode *t = (RootNode *)n_;
-		if (t->counter == 1) TextureRestoreTask((void *)ARENA_EVEN, &t->done);
+		if (t->counter == 1) TextureRestoreTask((void *)us(ARENA_EVEN), &t->done);
 		const int16_t done = t->done;
 		t->counter++;
 		return done ? TASK_END : 0;
@@ -808,12 +808,12 @@ namespace wall189
 	{
 		RootNode *r = (RootNode *)n_;
 		FX_HELD(held_note_root();)
-		Cursor() = ARENA_ODD;
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_EVEN;
+		Cursor() = us(ARENA_ODD);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_EVEN);
 		const int a = ExecuteTaskQueue(QEffects());
 		if (a == 0)
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_RestoreTask);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), us(ORIG_RestoreTask));
 			t->counter = 0;
 			t->done = 0;
 		}

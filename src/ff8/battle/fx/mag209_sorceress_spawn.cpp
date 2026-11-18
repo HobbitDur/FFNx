@@ -25,56 +25,56 @@ namespace s209
 
 	namespace x
 	{
-		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
-		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x56CE30)(angles, out); }
-		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
-		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-		inline void GetDefaultEffectPosition(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x571400)(entity, out); }
-		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
-		inline void SetScreenFlash2(int32_t level, int32_t mode) { fn<void (__cdecl *)(int32_t, int32_t)>(0x5713E0)(level, mode); }
-		inline void ScreenFade(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
-		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(geom, hdr, ot, shift, cursor); }
-		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x501330)(se, a, b); }
-		inline uint32_t ClaimVoiceSlot2(uint32_t sound, int32_t a, int32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, int32_t, int32_t)>(0x4A29A0)(sound, a, b); }
-		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(slot); }
-		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
-		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }
-		inline void WitchGetNewStage(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x50E3A0)(dst); }
-		inline void ChangeStage(uint32_t src) { fn<void (__cdecl *)(uint32_t)>(0x50E3C0)(src); }
-		inline void ApplyActionResultToTarget(uint32_t rec) { fn<void (__cdecl *)(uint32_t)>(0x506690)(rec); }
-		inline void RestoreTexture(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(buffer, flag); }
-		inline void ClearImage(const int16_t *rect, int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(const int16_t *, int32_t, int32_t, int32_t)>(0x45BEE0)(rect, r, g, b); }
-		inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(0x45B640)(env); }
-		inline void SetDefDrawEnv(void *env, int32_t x, int32_t y, int32_t w, int32_t h) { fn<void (__cdecl *)(void *, int32_t, int32_t, int32_t, int32_t)>(0x45C2A0)(env, x, y, w, h); }
-		inline void SetDrawEnvPacket(void *packet, const void *env) { fn<void (__cdecl *)(void *, const void *)>(0x45C0F0)(packet, env); }
-		inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-		inline uint32_t PrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); }
-		inline uint32_t ScrollPrimModel(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); }
+		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
+		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+		inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x56CE30))(angles, out); }
+		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(us(0x56BEF0))(m, v); }
+		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
+		inline void GetDefaultEffectPosition(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x571400))(entity, out); }
+		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(us(0x56CD00))(h); }
+		inline void SetScreenFlash2(int32_t level, int32_t mode) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x5713E0))(level, mode); }
+		inline void ScreenFade(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(us(0x5712C0))(a, b, c, d); }
+		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(geom, hdr, ot, shift, cursor); }
+		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(us(0x501330))(se, a, b); }
+		inline uint32_t ClaimVoiceSlot2(uint32_t sound, int32_t a, int32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, int32_t, int32_t)>(us(0x4A29A0))(sound, a, b); }
+		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(us(0x4A2900))(slot); }
+		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(us(0x508500))(); }
+		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(us(0x571B70))(); }
+		inline void WitchGetNewStage(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x50E3A0))(dst); }
+		inline void ChangeStage(uint32_t src) { fn<void (__cdecl *)(uint32_t)>(us(0x50E3C0))(src); }
+		inline void ApplyActionResultToTarget(uint32_t rec) { fn<void (__cdecl *)(uint32_t)>(us(0x506690))(rec); }
+		inline void RestoreTexture(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x508630))(buffer, flag); }
+		inline void ClearImage(const int16_t *rect, int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(const int16_t *, int32_t, int32_t, int32_t)>(us(0x45BEE0))(rect, r, g, b); }
+		inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(us(0x45B640))(env); }
+		inline void SetDefDrawEnv(void *env, int32_t x, int32_t y, int32_t w, int32_t h) { fn<void (__cdecl *)(void *, int32_t, int32_t, int32_t, int32_t)>(us(0x45C2A0))(env, x, y, w, h); }
+		inline void SetDrawEnvPacket(void *packet, const void *env) { fn<void (__cdecl *)(void *, const void *)>(us(0x45C0F0))(packet, env); }
+		inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
+		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+		inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+		inline uint32_t PrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x64F0A0))(h, ot, mode, cursor); }
+		inline uint32_t ScrollPrimModel(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x650720))(h, ot, mode, cursor); }
 	}
 	using namespace x;
 
-	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; }
-	inline TaskQueue &RootQueue() { return var<TaskQueue>(0x24F3640); }
-	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x24F3658); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x24F4478); }
-	inline uint32_t CasterSlot() { return var<uint32_t>(0x24F4480); }
-	inline uint8_t *Caster() { return (uint8_t *)(0x1D972C0 + 156 * CasterSlot()); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
+	inline bool Paused() { return (var<uint32_t>(us(0x1D96A9C)) & 0x201) != 0; }
+	inline TaskQueue &RootQueue() { return var<TaskQueue>(us(0x24F3640)); }
+	inline TaskQueue &SubQueue() { return var<TaskQueue>(us(0x24F3658)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(us(0x24F4478)); }
+	inline uint32_t CasterSlot() { return var<uint32_t>(us(0x24F4480)); }
+	inline uint8_t *Caster() { return (uint8_t *)(us(0x1D972C0) + 156 * CasterSlot()); }
+	inline uint32_t &Cursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
 	static const uint32_t GRID = 0x24F4488;
 	static const uint32_t GRID_END = 0x24F7A58;
-	inline uint8_t *Cells() { return var<uint8_t *>(0x24F4484); }
-	inline uint32_t &ColA() { return var<uint32_t>(0x24F7A58); }
-	inline uint32_t &ColB() { return var<uint32_t>(0x24F3650); }
-	inline uint32_t &StageColA() { return var<uint32_t>(0x24F3618); }
-	inline uint32_t &StageColB() { return var<uint32_t>(0x24F447C); }
+	inline uint8_t *Cells() { return var<uint8_t *>(us(0x24F4484)); }
+	inline uint32_t &ColA() { return var<uint32_t>(us(0x24F7A58)); }
+	inline uint32_t &ColB() { return var<uint32_t>(us(0x24F3650)); }
+	inline uint32_t &StageColA() { return var<uint32_t>(us(0x24F3618)); }
+	inline uint32_t &StageColB() { return var<uint32_t>(us(0x24F447C)); }
 
 	static const uint32_t ORIG_Master = 0x639100;
 	static const uint32_t ORIG_EndTask = 0x639170;
@@ -114,13 +114,13 @@ namespace s209
 	static uint32_t __cdecl Master(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		uint32_t arena = var<uint32_t>(0x24F7A5C);
-		var<uint32_t>(0x24F7A60) = (*(const uint8_t *)&n->c & 1) ? arena + 0x10000 : arena;
+		uint32_t arena = var<uint32_t>(us(0x24F7A5C));
+		var<uint32_t>(us(0x24F7A60)) = (*(const uint8_t *)&n->c & 1) ? arena + 0x10000 : arena;
 		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		if (!left)
 		{
-			Node24 *e = (Node24 *)AddTaskToQueue(&RootQueue(), ORIG_EndTask);
+			Node24 *e = (Node24 *)AddTaskToQueue(&RootQueue(), us(ORIG_EndTask));
 			e->c = 0;
 			e->e = 0;
 		}
@@ -131,19 +131,19 @@ namespace s209
 	static uint32_t __cdecl EndTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		if (n->c == 1) RestoreTexture(var<uint32_t>(0x24F7A5C), &n->e);
+		if (n->c == 1) RestoreTexture(var<uint32_t>(us(0x24F7A5C)), &n->e);
 		int16_t done = n->e;
 		n->c++;
 		return done ? TASK_END : 0;
 	}
 
-	static void HideStage() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2; }
-	static void ShowStage() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD; }
+	static void HideStage() { for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) |= 2; }
+	static void ShowStage() { for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) &= 0xFD; }
 
 	static void SetAmbient(uint32_t c)
 	{
-		var<uint32_t>(0xB8B9A8) = c;
-		for (uint32_t a = 0x1D972EC; a < 0x1D97730; a += 0x9C)
+		var<uint32_t>(us(0xB8B9A8)) = c;
+		for (uint32_t a = us(0x1D972EC); a < us(0x1D97730); a += 0x9C)
 			if (var<uint8_t>(a - 0x2C) & 2) var<uint32_t>(a) = c;
 	}
 
@@ -187,21 +187,21 @@ namespace s209
 		*(int16_t *)(h + 0x14) = 0;
 		*(int16_t *)(h + 0x16) = 0;
 		*(int16_t *)(h + 0x1A) = 0xD8;
-		*(uint32_t *)(h + 0x10) = var<uint32_t>(0x1D969A8);
+		*(uint32_t *)(h + 0x10) = var<uint32_t>(us(0x1D969A8));
 		*(int16_t *)(h + 0x18) = 0x140;
-		*(uint32_t *)(h + 4) = var<uint32_t>(0x1D98B3C);
+		*(uint32_t *)(h + 4) = var<uint32_t>(us(0x1D98B3C));
 		*(uint32_t *)(h + 0x20) = 0xFFFFFFFF;
 		for (int i = 0; i < 4; i++)
 		{
-			if (!(var<uint8_t>(0x1D98991 + 0x2C * i) & 1)) continue;
-			int32_t o = var<int32_t>(0xE2B4F8 + 8 * i);
+			if (!(var<uint8_t>(us(0x1D98991) + 0x2C * i) & 1)) continue;
+			int32_t o = var<int32_t>(us(0xE2B4F8) + 8 * i);
 			if (o < lo) lo = o;
 		}
 		DrawEnvAt(0, 0, lo);
 		for (int i = 0; i < 4; i++)
 		{
-			uint8_t *p = (uint8_t *)(0x1D989A4 + 0x2C * i);
-			const int32_t *tb = (const int32_t *)(0xE2B4F8 + 8 * i);
+			uint8_t *p = (uint8_t *)(us(0x1D989A4) + 0x2C * i);
+			const int32_t *tb = (const int32_t *)(us(0xE2B4F8) + 8 * i);
 			BuildBoneMatricesFromPose(p);
 			ComputeBonesWorldMatrices(p, &Camera());
 			if (!(p[-0x13] & 1)) continue;
@@ -243,7 +243,7 @@ namespace s209
 
 	static void GridInit()
 	{
-		uint8_t *g = (uint8_t *)GRID;
+		uint8_t *g = (uint8_t *)us(GRID);
 		for (int32_t row = 0; row < 0x1C; row++)
 			for (int32_t col = 0; col < 0x29; col++, g += 0xC)
 			{
@@ -255,7 +255,7 @@ namespace s209
 				if (col == 0 || col == 0x28) *(uint16_t *)(g + 0xA) |= 2;
 			}
 		uint8_t *cell = Cells();
-		uint32_t pt = GRID;
+		uint32_t pt = us(GRID);
 		int32_t v0 = 0;
 		for (int32_t row = 0; row < 0x1B; row++)
 		{
@@ -317,7 +317,7 @@ namespace s209
 		const int32_t phase = 385 * i;
 		const int32_t amp = (500 * ComputeSin(shl32(i, 11) / n)) >> 12;
 		const int32_t range = 0x258 - 9 * i;
-		uint8_t *g = (uint8_t *)GRID;
+		uint8_t *g = (uint8_t *)us(GRID);
 		for (int32_t k = 0; k < 0x1C * 0x29; k++, g += 0xC)
 		{
 			if (*(uint8_t *)(g + 0xA) & 3) continue;
@@ -341,7 +341,7 @@ namespace s209
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		SetProjection(0x800);
-		for (uint32_t g = GRID; g < GRID_END; g += 0xC)
+		for (uint32_t g = us(GRID); g < us(GRID_END); g += 0xC)
 		{
 			GteLoadV0((const void *)(g + 4));
 			GteRTPS();
@@ -349,7 +349,7 @@ namespace s209
 			*(int16_t *)g = (int16_t)(*(int16_t *)g >> 3);
 			*(int16_t *)(g + 2) = (int16_t)(*(int16_t *)(g + 2) >> 3);
 		}
-		SetProjection(var<int16_t>(0x1D8E038));
+		SetProjection(var<int16_t>(us(0x1D8E038)));
 		const uint32_t col = c | 0x2C000000;
 		uint8_t *cell = Cells();
 		for (int32_t k = 0; k < 0x1B * 0x28; k++, cell += 0x60)
@@ -365,7 +365,7 @@ namespace s209
 		}
 	}
 
-	static uint32_t ScreenColour(int32_t c) { return c < 8 ? var<uint32_t>(0xE2B430 + 4 * c) : var<uint32_t>(0xE2B450 + 4 * ((c - 8) % 24)); }
+	static uint32_t ScreenColour(int32_t c) { return c < 8 ? var<uint32_t>(us(0xE2B430) + 4 * c) : var<uint32_t>(us(0xE2B450) + 4 * ((c - 8) % 24)); }
 
 	static void ScreenDraw(int32_t c)
 	{
@@ -393,7 +393,7 @@ namespace s209
 			bg = ColA();
 			amb = ColB();
 			GridRipple(i, 0x3C);
-			GridDraw(var<uint8_t>(0x1D96A80), col);
+			GridDraw(var<uint8_t>(us(0x1D96A80)), col);
 			SetScreenFlash2(0x1000, 0);
 			stage = false;
 		}
@@ -408,16 +408,16 @@ namespace s209
 			GteSetIR0(w);
 			GteDPCS();
 			GteStoreRGB2(&gcol);
-			GteSetFarColor(var<uint8_t>(0x24F3618), var<uint8_t>(0x24F3619), var<uint8_t>(0x24F361A));
+			GteSetFarColor(var<uint8_t>(us(0x24F3618)), var<uint8_t>(us(0x24F3619)), var<uint8_t>(us(0x24F361A)));
 			GteLoadRGBC(&ColA());
 			GteDPCS();
 			GteStoreRGB2(&bg);
-			GteSetFarColor(var<uint8_t>(0x24F447C), var<uint8_t>(0x24F447D), var<uint8_t>(0x24F447E));
+			GteSetFarColor(var<uint8_t>(us(0x24F447C)), var<uint8_t>(us(0x24F447D)), var<uint8_t>(us(0x24F447E)));
 			GteLoadRGBC(&ColB());
 			GteDPCS();
 			GteStoreRGB2(&amb);
 			GridRipple(c - 0x26, 0x3C);
-			GridDraw(var<uint8_t>(0x1D96A80), gcol);
+			GridDraw(var<uint8_t>(us(0x1D96A80)), gcol);
 			SetScreenFlash2(0x1000 - ((5 * w * 512) >> 12), 0);
 		}
 		else
@@ -427,7 +427,7 @@ namespace s209
 			SetScreenFlash2(0x600, 0);
 		}
 		if (stage) StageToVram();
-		var<uint32_t>(0xB8B7D8) = bg;
+		var<uint32_t>(us(0xB8B7D8)) = bg;
 		SetAmbient(amb);
 	}
 
@@ -466,7 +466,7 @@ namespace s209
 	{
 		PrimMatrix(n, 0, s, s, n->p12);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x60);
-		*(uint32_t *)h = 0xE288F0;
+		*(uint32_t *)h = us(0xE288F0);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		*(uint32_t *)(h + 0x58) = 0xE1000240;
@@ -506,7 +506,7 @@ namespace s209
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		const int32_t end = PrimBEnd(n);
-		*(uint32_t *)h = var<uint32_t>(0xE2B400 + 4 * (int32_t)n->e);
+		*(uint32_t *)h = var<uint32_t>(us(0xE2B400) + 4 * (int32_t)n->e);
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		const int32_t c = n->c;
 		if (c >= end - 8)
@@ -564,13 +564,13 @@ namespace s209
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = 0xE26340;
+		*(uint32_t *)h = us(0xE26340);
 		*(uint32_t *)(h + 0xC) = 0x600;
 		*(uint32_t *)(h + 0x20) = 0xF3;
 		*(int32_t *)(h + 0x14) = c * 8;
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1E) = 0x80;
-		*(uint32_t *)(h + 0x24) = var<uint32_t>(0xE2B4B0 + 4 * (c % 0x12));
+		*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0xE2B4B0) + 4 * (c % 0x12));
 		if (c >= 0x66) *(int32_t *)(h + 0xC) = 320 * c - 0x7980;
 		Cursor() = ScrollPrimModel(h, OTBase() + 0x44, 2, Cursor());
 		FieldFree(0x90);
@@ -592,7 +592,7 @@ namespace s209
 		PrimMatrix(n, a, s, s, n->p12);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		const int32_t c = n->c;
-		*(uint32_t *)h = 0xE277B8;
+		*(uint32_t *)h = us(0xE277B8);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c < 2)
@@ -632,7 +632,7 @@ namespace s209
 		PrimMatrix(n, a, s, s, n->p12);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		const int32_t c = n->c;
-		*(uint32_t *)h = 0xE290E0;
+		*(uint32_t *)h = us(0xE290E0);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 4)
@@ -672,7 +672,7 @@ namespace s209
 		const int16_t a = (int16_t)(r % 4096);
 		for (int16_t k = 0; k < 0xC; k++)
 		{
-			Node24 *n = Spawn(ORIG_PrimBTask);
+			Node24 *n = Spawn(us(ORIG_PrimBTask));
 			*(uint32_t *)&n->p10 = *(const uint32_t *)&t->p10;
 			*(uint32_t *)&n->p14 = *(const uint32_t *)&t->p14;
 			n->c = 0;
@@ -690,7 +690,7 @@ namespace s209
 
 	static void SpawnD()
 	{
-		Node24 *n = Spawn(ORIG_PrimDTask);
+		Node24 *n = Spawn(us(ORIG_PrimDTask));
 		n->c = 0;
 		GetEffectSpawnPosition(Caster(), 0xF1, 0, &n->p10);
 		n->p12 = (int16_t)(n->p12 + (int16_t)(CrtRand() % 0x258));
@@ -706,7 +706,7 @@ namespace s209
 
 	static void SpawnE(bool b)
 	{
-		Node24 *n = Spawn(ORIG_PrimETask);
+		Node24 *n = Spawn(us(ORIG_PrimETask));
 		n->c = 0;
 		GetEffectSpawnPosition(Caster(), 0xF1, 0, &n->p10);
 		n->p12 = 0;
@@ -727,7 +727,7 @@ namespace s209
 
 	static int32_t TimelineStart(Node24 *t, bool b)
 	{
-		const uint32_t f = var<uint32_t>(0x1D96A9C);
+		const uint32_t f = var<uint32_t>(us(0x1D96A9C));
 		if (f & 0x201)
 		{
 			if (f & 1) return -1;
@@ -736,26 +736,26 @@ namespace s209
 		if (t->c == 0)
 		{
 			GetDefaultEffectPosition(Caster(), &t->p10);
-			uint32_t a = var<uint32_t>(0xB8B7D8), c = var<uint32_t>(0xB8B9A8);
+			uint32_t a = var<uint32_t>(us(0xB8B7D8)), c = var<uint32_t>(us(0xB8B9A8));
 			t->p12 = (int16_t)(t->p12 + (int16_t)0xF8F8);
 			ColA() = a;
 			ColB() = c;
-			if (b) var<uint32_t>(0x24F7A64) = ClaimVoiceSlot2(0xE2B2C8, 1, 0x80);
+			if (b) var<uint32_t>(us(0x24F7A64)) = ClaimVoiceSlot2(us(0xE2B2C8), 1, 0x80);
 		}
 		if (t->c == 2) WitchGetNewStage(SummonData());
 		if (t->c == 0x34)
 		{
 			if (LoadState() < 0) return -1;
 			ChangeStage(SummonData());
-			StageColA() = var<uint32_t>(0xB8B7D8);
-			StageColB() = var<uint32_t>(0xB8B9A8);
+			StageColA() = var<uint32_t>(us(0xB8B7D8));
+			StageColB() = var<uint32_t>(us(0xB8B9A8));
 		}
-		if (t->c == 0x10) Spawn(ORIG_ScreenTask)->c = 0;
+		if (t->c == 0x10) Spawn(us(ORIG_ScreenTask))->c = 0;
 		if (t->c == 0) Caster()[0] |= 8;
 		if (t->c == (b ? 0x41 : 0x14)) *(uint16_t *)Caster() &= 0xFFF7;
 		if (t->c == 1)
 		{
-			Node24 *n = Spawn(ORIG_PrimATask);
+			Node24 *n = Spawn(us(ORIG_PrimATask));
 			*(uint32_t *)&n->p10 = *(const uint32_t *)&t->p10;
 			*(uint32_t *)&n->p14 = *(const uint32_t *)&t->p14;
 			n->c = 0;
@@ -780,7 +780,7 @@ namespace s209
 		if (t->c == 1)
 		{
 			SpawnBursts(t, 0);
-			Node24 *n = Spawn(ORIG_PrimCTask);
+			Node24 *n = Spawn(us(ORIG_PrimCTask));
 			*(uint32_t *)&n->p10 = *(const uint32_t *)&t->p10;
 			n->c = 0;
 			*(uint32_t *)&n->p14 = *(const uint32_t *)&t->p14;
@@ -791,7 +791,7 @@ namespace s209
 		if (t->c == 0x73) SpawnE(false);
 		Flash(t->c);
 		if (t->c == 0x7C) ApplyActionResultToTarget(*(uint32_t *)(*(uint8_t **)(CastCtx() + 4) + 8));
-		if (t->c == 1) BdPlaySE(0xE2B3F4, 0, 0x80);
+		if (t->c == 1) BdPlaySE(us(0xE2B3F4), 0, 0x80);
 		return TimelineEnd(t);
 	}
 
@@ -813,13 +813,13 @@ namespace s209
 			int32_t s = ComputeSin(shl32(c - 0x30, 10) / 8 + 0x400);
 			int32_t v = (60 * s) >> 12;
 			if (!(t->c & 1)) v = -v;
-			var<int16_t>(0x1D97712) = (int16_t)v;
+			var<int16_t>(us(0x1D97712)) = (int16_t)v;
 		}
 		Flash(t->c);
 		if (t->c == 0x7C) ApplyActionResultToTarget(*(uint32_t *)(*(uint8_t **)(CastCtx() + 4) + 8));
-		if (t->c == 1) BdPlaySE(0xE2B3F8, 0, 0x80);
+		if (t->c == 1) BdPlaySE(us(0xE2B3F8), 0, 0x80);
 		if (t->c == 0x7F)
-			if (VoiceSlotBusy(var<uint32_t>(0x24F7A64))) ReleaseVoiceSlot(var<uint32_t>(0x24F7A64));
+			if (VoiceSlotBusy(var<uint32_t>(us(0x24F7A64)))) ReleaseVoiceSlot(var<uint32_t>(us(0x24F7A64)));
 		return TimelineEnd(t);
 	}
 }

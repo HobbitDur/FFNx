@@ -28,7 +28,7 @@ namespace gfc
 {
 namespace part_cerberus
 {
-	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(0xB65150)(); }
+	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(us(0xB65150))(); }
 
 	static inline int32_t DepthKey(uint32_t off)
 	{
@@ -382,26 +382,26 @@ namespace cerberus
 	{
 		c.name = "203 Cerberus";
 		c.effect_id = 203;
-		c.vm_table = 0x1873528;
-		c.bone_table = 0x1873198;
-		c.prim_table = 0x18731E0;
-		c.prim_size = 0x18732D0;
-		c.spr_table = 0x18732E4;
-		c.ptype_table = 0x1873310;
-		c.pop_table = 0x1873324;
-		c.draw_table = 0x1873384;
-		c.attr_16A = 0x18734EE;
-		c.attr_184 = 0x1873508;
-		c.attr_186 = 0x187350A;
-		c.attr_194 = 0x1873518;
-		c.attr_19C = 0x1873520;
-		c.desc = 0x1872EF8;
-		c.ptr_block = 0x1873170;
-		c.queue = 0x2796DA8;
-		c.file00 = 0x2796DDC;
-		c.file01 = 0x2796DD8;
-		c.tick = 0xB0C820;
-		c.load_cb = 0xB143F0;
+		c.vm_table = us(0x1873528);
+		c.bone_table = us(0x1873198);
+		c.prim_table = us(0x18731E0);
+		c.prim_size = us(0x18732D0);
+		c.spr_table = us(0x18732E4);
+		c.ptype_table = us(0x1873310);
+		c.pop_table = us(0x1873324);
+		c.draw_table = us(0x1873384);
+		c.attr_16A = us(0x18734EE);
+		c.attr_184 = us(0x1873508);
+		c.attr_186 = us(0x187350A);
+		c.attr_194 = us(0x1873518);
+		c.attr_19C = us(0x1873520);
+		c.desc = us(0x1872EF8);
+		c.ptr_block = us(0x1873170);
+		c.queue = us(0x2796DA8);
+		c.file00 = us(0x2796DDC);
+		c.file01 = us(0x2796DD8);
+		c.tick = us(0xB0C820);
+		c.load_cb = us(0xB143F0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}

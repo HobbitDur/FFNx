@@ -32,7 +32,7 @@ namespace renzo343
 	static const uint32_t RING = 0x21E2CA8, RING_END = 0x21E2D34, LENGTH = 0x21E2D34, FINISHER = 0x21E2D38;
 	static const uint32_t TEX_BASE = 0x21E2D3C, PACKET_CURSOR = 0x21E2D40, HIT_OFFS = 0x21E2D48;
 	static const uint32_t PARITY = 0xC000;
-	static const void *const SOUND = (const void *)0xE4214C;
+	static const void *SOUND() { return (const void *)us(0xE4214C); }
 	static const uint32_t TEXTURE_NAME = 0xC891F0, CAMERA = 0xE422E8, ANIM_SETS = 0xE426C0, BIND_OUT = 0x24FE948;
 	static const uint32_t MODEL_SPARKLE = 0xE42150, SPARKLE_FADE = 0xE422D8, SPARKLE_DEPTH = 0xE422C8;
 	static const uint32_t MODEL_SLASH = 0xC82B34, MODEL_STREAK = 0xC8351C;
@@ -67,28 +67,28 @@ namespace renzo343
 
 	static void Events(Node24 *n)
 	{
-		if (n->c == 0x24) AddRecordEmitter(ORIG_Emitter, 4, 0x600, -0xB00, 0x500);
-		if (n->c == 0x2C) AddRecordEmitter(ORIG_Emitter, 8, -0x200, -0x800, 0x700);
+		if (n->c == 0x24) AddRecordEmitter(us(ORIG_Emitter), 4, 0x600, -0xB00, 0x500);
+		if (n->c == 0x2C) AddRecordEmitter(us(ORIG_Emitter), 8, -0x200, -0x800, 0x700);
 		if (n->c == 0x37)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Final);
-			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Final));
+			ff8fx::copy<(8)>(&t->w10, (const void *)us(HIT_POS));
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0xC00 + 0x1C00) / 3);
 			t->w1E = s;
 			t->w1C = s;
-			ff8fx::copy<(0x20)>((void *)SAVED_MAT, Caster() + 0x40);
+			ff8fx::copy<(0x20)>((void *)us(SAVED_MAT), Caster() + 0x40);
 		}
 	}
 
-	static uint32_t __cdecl EmitterTask(TaskNode *tn) { return RecordEmitter(tn, 0xE, SEQ_EMIT); }
+	static uint32_t __cdecl EmitterTask(TaskNode *tn) { return RecordEmitter(tn, 0xE, us(SEQ_EMIT)); }
 
 	static void FinalDraw(const Node24 *n, int32_t scale, int32_t fade)
 	{
 		int16_t ang[3] = { 0, 0, 0x400 };
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
-		MatrixMultiply((const Mat4x3 *)SAVED_MAT, &m);
+		MatrixMultiply((const Mat4x3 *)us(SAVED_MAT), &m);
 		m.t[0] = n->w10;
 		m.t[1] = n->w12;
 		int32_t sv[3];
@@ -101,7 +101,7 @@ namespace renzo343
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_FINAL;
+		*(uint32_t *)h = us(MODEL_FINAL);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= 6)

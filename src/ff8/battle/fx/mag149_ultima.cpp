@@ -25,15 +25,15 @@ namespace ultima149
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &RingScale() { return var<int32_t>(0x2461E88); }
-	inline TaskQueue &RootQueue() { return var<TaskQueue>(0x2461EB0); }
-	inline TaskQueue &FxQueue() { return var<TaskQueue>(0x2463180); }
-	inline uint32_t *SideFlags() { return (uint32_t *)0x2463FA0; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2464048); }
-	inline uint8_t *CoreVertices() { return (uint8_t *)0x2464418; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2464B9C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2464BA0); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x2464BA4); }
+	inline int32_t &RingScale() { return var<int32_t>(us(0x2461E88)); }
+	inline TaskQueue &RootQueue() { return var<TaskQueue>(us(0x2461EB0)); }
+	inline TaskQueue &FxQueue() { return var<TaskQueue>(us(0x2463180)); }
+	inline uint32_t *SideFlags() { return (uint32_t *)us(0x2463FA0); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2464048)); }
+	inline uint8_t *CoreVertices() { return (uint8_t *)us(0x2464418); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2464B9C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2464BA0)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(us(0x2464BA4)); }
 
 	static const uint32_t ORIG_Director = 0x60F770;
 	static const uint32_t ORIG_Orbit = 0x60FC90;
@@ -51,9 +51,9 @@ namespace ultima149
 
 	static const uint32_t ARRAY_A = 0x2461EC0, ARRAY_B = 0x2462820;
 	static const int ARRAY_COUNT = 0x64;
-	static const void *const SOUND_Voice = (const void *)0xDC9ABC;
-	static const void *const SOUND_Start = (const void *)0xDC9BD0;
-	static const void *const SOUND_Blast = (const void *)0xDC9BD4;
+	static const void *SOUND_Voice() { return (const void *)us(0xDC9ABC); }
+	static const void *SOUND_Start() { return (const void *)us(0xDC9BD0); }
+	static const void *SOUND_Blast() { return (const void *)us(0xDC9BD4); }
 	static const uint32_t SEQ_Orbit = 0xDC333C;
 	static const uint32_t SEQ_Dust = 0xDC312C;
 	static const uint32_t SEQ_Spark = 0xDC35B8;
@@ -65,32 +65,32 @@ namespace ultima149
 	static const uint32_t MODEL_Core = 0xDC6EA4;
 	static const uint32_t CORE_Shape1 = 0xDC7B94;
 	static const int CORE_VERTS = 0x78;
-	static const int32_t *const RING_Fades = (const int32_t *)0xDC9BDC;
+	static const int32_t *RING_Fades() { return (const int32_t *)us(0xDC9BDC); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline Mat4x3 *ShadowCamera(const void *pos, int32_t scale, int32_t c) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(0x571BC0)(pos, scale, c); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C4F0)(m, in, out); }
-	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
-	inline uint32_t VoiceSlotBusy(uint32_t slot) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x4A2900)(slot); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline Mat4x3 *ShadowCamera(const void *pos, int32_t scale, int32_t c) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(us(0x571BC0))(pos, scale, c); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C4F0))(m, in, out); }
+	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
+	inline uint32_t VoiceSlotBusy(uint32_t slot) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x4A2900))(slot); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -182,8 +182,8 @@ namespace ultima149
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(DirectorNode) == 0x24 && sizeof(PartNode) == 0x24, "Ultima nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(StreakWork) == 0x88 && sizeof(ShardWork) == 0xA0 && sizeof(MeshHeader) == 0x80, "Ultima structs");
 
-	inline Particle *ArrayA() { return (Particle *)ARRAY_A; }
-	inline Particle *ArrayB() { return (Particle *)ARRAY_B; }
+	inline Particle *ArrayA() { return (Particle *)us(ARRAY_A); }
+	inline Particle *ArrayB() { return (Particle *)us(ARRAY_B); }
 
 	static Particle *FreeParticle(Particle *a)
 	{
@@ -247,11 +247,11 @@ namespace ultima149
 
 	static void FlashLayersSetBit()
 	{
-		for (uint8_t *p = (uint8_t *)0x1D98991; p < (uint8_t *)0x1D98A41; p += 0x2C) *p |= 2;
+		for (uint8_t *p = (uint8_t *)us(0x1D98991); p < (uint8_t *)us(0x1D98A41); p += 0x2C) *p |= 2;
 	}
 	static void FlashLayersClearBit()
 	{
-		for (uint8_t *p = (uint8_t *)0x1D98991; p < (uint8_t *)0x1D98A41; p += 0x2C) *p &= 0xFD;
+		for (uint8_t *p = (uint8_t *)us(0x1D98991); p < (uint8_t *)us(0x1D98A41); p += 0x2C) *p &= 0xFD;
 	}
 
 	static void SideRange(int32_t slot, int *first, int *end)
@@ -267,7 +267,7 @@ namespace ultima149
 		for (; i < end; i++)
 		{
 			if (SideFlags()[i * 6] == 0) continue;
-			PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), ORIG_SideFadeIn);
+			PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), us(ORIG_SideFadeIn));
 			n->counter = 0;
 			n->index = (int16_t)i;
 			n->rot = (int16_t)duration;
@@ -285,7 +285,7 @@ namespace ultima149
 			if ((f & 2) && !(f & 4))
 			{
 				SideFlags()[i * 6] = 1;
-				PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), ORIG_SideFadeOut);
+				PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), us(ORIG_SideFadeOut));
 				n->counter = 0;
 				n->index = (int16_t)i;
 				n->rot = (int16_t)duration;
@@ -298,7 +298,7 @@ namespace ultima149
 	static void SideColours(uint8_t *e, int32_t level, uint32_t r, uint32_t g, uint32_t b)
 	{
 		uint32_t col = 0x32000000;
-		GteSetFarColour(var<uint8_t>(0xB8B9A8), var<uint8_t>(0xB8B9A9), var<uint8_t>(0xB8B9AA));
+		GteSetFarColour(var<uint8_t>(us(0xB8B9A8)), var<uint8_t>(us(0xB8B9A9)), var<uint8_t>(us(0xB8B9AA)));
 		GteLoadRGBC(&col);
 		GteSetIR0(level);
 		GteDPCS();
@@ -315,13 +315,13 @@ namespace ultima149
 		PartNode *n = (PartNode *)nd;
 		int32_t level = shl32(n->counter, 12) / n->rot;
 		uint8_t *e = EntityOf(n->index);
-		SideColours(e, level, var<uint8_t>(0xB8B7D8), var<uint8_t>(0xB8B7D9), var<uint8_t>(0xB8B7DA));
+		SideColours(e, level, var<uint8_t>(us(0xB8B7D8)), var<uint8_t>(us(0xB8B7D9)), var<uint8_t>(us(0xB8B7DA)));
 		e[0x2B] = 2;
 		if (DrawOnly()) return 0;
 		if (n->counter == 0) *(uint16_t *)e = (uint16_t)((*(uint16_t *)e & 0xFFFB) | 0x800);
 		n->counter++;
 		if (n->counter < n->rot) return 0;
-		*(uint32_t *)(e + 0x28) = var<uint32_t>(0xB8B7D8);
+		*(uint32_t *)(e + 0x28) = var<uint32_t>(us(0xB8B7D8));
 		*(uint16_t *)e = (uint16_t)((*(uint16_t *)e & 0xF7FF) | (uint16_t)n->rotvel);
 		return TASK_END;
 	}
@@ -332,7 +332,7 @@ namespace ultima149
 		int32_t level = 0x1000 - shl32(n->counter, 12) / n->rot;
 		uint8_t *e = EntityOf(n->index);
 		e[7] = 0;
-		SideColours(e, level, var<uint8_t>(0xB8B7D8) >> 1, var<uint8_t>(0xB8B7D9) >> 1, var<uint8_t>(0xB8B7DA) >> 1);
+		SideColours(e, level, var<uint8_t>(us(0xB8B7D8)) >> 1, var<uint8_t>(us(0xB8B7D9)) >> 1, var<uint8_t>(us(0xB8B7DA)) >> 1);
 		e[0x2B] = 2;
 		if (DrawOnly()) return 0;
 		if (n->counter == 0) e[1] |= 8;
@@ -368,19 +368,19 @@ namespace ultima149
 			d->pos[3] = (int16_t)0xF95C;
 			d->target = (int16_t)Ctx()->actions[d->action].targets[0];
 			d->pad22 = 0;
-			VoiceSlot() = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			VoiceSlot() = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 		}
-		if (d->counter == 1) SpawnPart(ORIG_Orbit, d, false);
-		if (d->counter == 0xA) SpawnPart(ORIG_Streaks, d, true);
-		if (d->counter == 0x23) SpawnPart(ORIG_Shards, d, true);
+		if (d->counter == 1) SpawnPart(us(ORIG_Orbit), d, false);
+		if (d->counter == 0xA) SpawnPart(us(ORIG_Streaks), d, true);
+		if (d->counter == 0x23) SpawnPart(us(ORIG_Shards), d, true);
 		if (d->counter == 1)
 		{
-			PartNode *n = SpawnPart(ORIG_Energy, d, true);
+			PartNode *n = SpawnPart(us(ORIG_Energy), d, true);
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->rotvel = 0x28;
 			n->scale = 0;
 			n->dscale = 0xC;
-			n = SpawnPart(ORIG_Energy, d, true);
+			n = SpawnPart(us(ORIG_Energy), d, true);
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->rotvel = -0x28;
 			n->scale = 0;
@@ -388,20 +388,20 @@ namespace ultima149
 		}
 		if (d->counter == 0x5E)
 		{
-			PartNode *n = SpawnPart(ORIG_Ring, d, false);
+			PartNode *n = SpawnPart(us(ORIG_Ring), d, false);
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->scale = 0x1000;
 			n->dscale = 0x249;
 		}
 		if (d->counter == 0x64)
 		{
-			PartNode *n = SpawnPart(ORIG_Core, d, false);
+			PartNode *n = SpawnPart(us(ORIG_Core), d, false);
 			n->index = 0;
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->rotvel = 0xC8;
 		}
-		if (d->counter == 0x5E) SpawnPart(ORIG_Dust, d, false);
-		if (d->counter == 0x5F) SpawnPart(ORIG_Sparks, d, false);
+		if (d->counter == 0x5E) SpawnPart(us(ORIG_Dust), d, false);
+		if (d->counter == 0x5F) SpawnPart(us(ORIG_Sparks), d, false);
 		if (d->counter == 0) SpawnSideFadeOut(0x18, d->target);
 		if (d->counter == 0xA0) SpawnSideFadeIn(8, d->target);
 		if (d->action == 0 && d->counter <= 0x18)
@@ -426,7 +426,7 @@ namespace ultima149
 			int32_t next = d->action + 1;
 			if (next <= (int32_t)Ctx()->actions[0].last_action)
 			{
-				DirectorNode *n = (DirectorNode *)AddTaskToQueue(&FxQueue(), ORIG_Director);
+				DirectorNode *n = (DirectorNode *)AddTaskToQueue(&FxQueue(), us(ORIG_Director));
 				n->counter = 0;
 				n->action = (int16_t)next;
 			}
@@ -436,13 +436,13 @@ namespace ultima149
 		{
 			ActionData *a = &Ctx()->actions[d->action];
 			AverageTargetPosition(a->targets, a->target_count, at);
-			BdPlaySE3D(SOUND_Start, 1, at);
+			BdPlaySE3D(SOUND_Start(), 1, at);
 		}
 		if (d->counter == 0x5E)
 		{
 			ActionData *a = &Ctx()->actions[d->action];
 			AverageTargetPosition(a->targets, a->target_count, at);
-			BdPlaySE3D(SOUND_Blast, 1, at);
+			BdPlaySE3D(SOUND_Blast(), 1, at);
 		}
 		if (d->counter == 0xA5)
 		{
@@ -489,7 +489,7 @@ namespace ultima149
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int16_t *p = (int16_t *)FieldAlloc(0x10);
 		ff8fx::copy<(8)>(p, n->pos);
-		H32(h, 0) = SEQ_Orbit;
+		H32(h, 0) = us(SEQ_Orbit);
 		*(uint16_t *)(h + 0x24) = 0;
 		*pos = p;
 		return h;
@@ -498,7 +498,7 @@ namespace ultima149
 	static uint32_t __cdecl OrbitTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Orbit, n);)
+		FX_HELD(held_note_draw(us(ORIG_Orbit), n);)
 		int16_t *p;
 		uint8_t *h = OrbitBegin(n, &p);
 		int alive = 0;
@@ -598,7 +598,7 @@ namespace ultima149
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		StreakWork *w = (StreakWork *)FieldAlloc(0x88);
-		H32(h, 0) = MODEL_Streak;
+		H32(h, 0) = us(MODEL_Streak);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x33;
 		w->up[0] = 0;
@@ -611,7 +611,7 @@ namespace ultima149
 	static uint32_t __cdecl StreaksTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Streaks, n);)
+		FX_HELD(held_note_draw(us(ORIG_Streaks), n);)
 		StreakWork *w;
 		uint8_t *h = StreakBegin(&w);
 		int alive = 0;
@@ -675,16 +675,16 @@ namespace ultima149
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		ShardWork *w = (ShardWork *)FieldAlloc(0xA0);
-		H32(h, 0) = MODEL_Shard;
+		H32(h, 0) = us(MODEL_Shard);
 		ff8fx::copy<(4)>(&w->pos[0], &n->pos[0]);
 		H32(h, 8) = 0;
 		ff8fx::copy<(4)>(&w->pos[2], &n->pos[2]);
 		w->ref[0] = 0;
 		w->ref[2] = 0;
-		w->view[0] = var<int16_t>(0xB8B7F0) - w->pos[0];
-		w->view[1] = var<int16_t>(0xB8B7F2) - w->pos[1];
+		w->view[0] = var<int16_t>(us(0xB8B7F0)) - w->pos[0];
+		w->view[1] = var<int16_t>(us(0xB8B7F2)) - w->pos[1];
 		w->ref[1] = -0x1000;
-		w->view[2] = var<int16_t>(0xB8B7F4) - w->pos[2];
+		w->view[2] = var<int16_t>(us(0xB8B7F4)) - w->pos[2];
 		NormalizeVector(w->view, w->view);
 		*work = w;
 		return h;
@@ -693,7 +693,7 @@ namespace ultima149
 	static uint32_t __cdecl ShardsTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Shards, n);)
+		FX_HELD(held_note_draw(us(ORIG_Shards), n);)
 		ShardWork *w;
 		uint8_t *h = ShardBegin(n, &w);
 		int alive = 0;
@@ -756,7 +756,7 @@ namespace ultima149
 		MatrixMultiply(shadow, &m);
 		GteSetRotMatrix(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Energy;
+		H32(h, 0) = us(MODEL_Energy);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x33;
 		if (n->counter >= 0x5B)
@@ -783,7 +783,7 @@ namespace ultima149
 	static uint32_t __cdecl EnergyTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Energy, n);)
+		FX_HELD(held_note_draw(us(ORIG_Energy), n);)
 		EnergyDraw(n);
 		if (DrawOnly()) return 0;
 		EnergyMove(n);
@@ -998,14 +998,14 @@ namespace ultima149
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = MODEL_Ring;
+		H32(h, 0) = us(MODEL_Ring);
 		H32(h, 8) = 0xCEE8CE;
 		H32(h, 0x1C) = 0xC0;
-		*(int32_t *)(h + 0xC) = RING_Fades[n->counter & 0xF];
+		*(int32_t *)(h + 0xC) = RING_Fades()[n->counter & 0xF];
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 		MeshHeader *g = (MeshHeader *)FieldAlloc(0x80);
-		g->model = MODEL_Dome;
+		g->model = us(MODEL_Dome);
 		*(uint32_t *)g->far_rgb = 0;
 		g->flags = 0;
 		if (n->counter >= 0x36)
@@ -1030,7 +1030,7 @@ namespace ultima149
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Ring, n);)
+		FX_HELD(held_note_draw(us(ORIG_Ring), n);)
 		RingDraw(n);
 		if (DrawOnly()) return 0;
 		int16_t ds = n->dscale;
@@ -1061,7 +1061,7 @@ namespace ultima149
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int16_t c = n->counter;
-		H32(h, 0) = MODEL_Core;
+		H32(h, 0) = us(MODEL_Core);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x2033;
 		if (c < 4 || c >= 0x20)
@@ -1074,8 +1074,8 @@ namespace ultima149
 		int32_t t = Div40(shl32(c, 10));
 		FX_HELD(t = held_frame_arg(t, c, 10, 40);)
 		int32_t w = ComputeSin(t);
-		const int16_t *v0 = (const int16_t *)(MODEL_Core + 8);
-		const int16_t *v1 = (const int16_t *)CORE_Shape1;
+		const int16_t *v0 = (const int16_t *)(us(MODEL_Core) + 8);
+		const int16_t *v1 = (const int16_t *)us(CORE_Shape1);
 		int16_t *out = (int16_t *)(CoreVertices() + n->index * 0x3C0);
 		for (int k = 0; k < CORE_VERTS; k++, v0 += 4, v1 += 4, out += 4)
 		{
@@ -1091,7 +1091,7 @@ namespace ultima149
 	static uint32_t __cdecl CoreTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Core, n);)
+		FX_HELD(held_note_draw(us(ORIG_Core), n);)
 		CoreDraw(n);
 		if (DrawOnly()) return 0;
 		int16_t spin = n->rotvel;
@@ -1142,7 +1142,7 @@ namespace ultima149
 	static uint8_t *DustBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = SEQ_Dust;
+		H32(h, 0) = us(SEQ_Dust);
 		*(uint16_t *)(h + 0x24) = 0;
 		return h;
 	}
@@ -1150,7 +1150,7 @@ namespace ultima149
 	static uint8_t *SparkBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = SEQ_Spark;
+		H32(h, 0) = us(SEQ_Spark);
 		h[0x21] = 0;
 		*(uint16_t *)(h + 0x24) = 0x20;
 		return h;
@@ -1159,7 +1159,7 @@ namespace ultima149
 	static uint32_t __cdecl DustTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Dust, n);)
+		FX_HELD(held_note_draw(us(ORIG_Dust), n);)
 		uint8_t *h = DustBegin();
 		int alive = 0;
 		Particle *e = ArrayB();
@@ -1212,7 +1212,7 @@ namespace ultima149
 	static uint32_t __cdecl SparksTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(ORIG_Sparks, n);)
+		FX_HELD(held_note_draw(us(ORIG_Sparks), n);)
 		uint8_t *h = SparkBegin();
 		int alive = 0;
 		Particle *e = ArrayA();
@@ -1270,7 +1270,7 @@ namespace ultima149
 		int running = ExecuteTaskQueue(&FxQueue());
 		if (!running)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(&RootQueue(), ORIG_WaitTexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(&RootQueue(), us(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}

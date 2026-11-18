@@ -25,29 +25,29 @@ namespace echoscreen295
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25079DC); }
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x25079E8; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507A1C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507A20); }
-	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(0x2507A28); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25079DC)); }
+	inline TaskQueue *QPlay() { return (TaskQueue *)us(0x25079E8); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507A1C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507A20)); }
+	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(us(0x2507A28)); }
 
 	static const uint32_t ORIG_RootTask = 0x673F10;
 	static const uint32_t ORIG_PlayTask = 0x674030;
 	static const uint32_t MODEL = 0x105DAC0;
 	static const int32_t LAYOUT_BYTES = 0x9CC;
 	static const uint32_t NODE_BYTES = 0x9E0;
-	static const void *const SOUND = (const void *)0x1060C40;
+	static const void *SOUND() { return (const void *)us(0x1060C40); }
 	static const uint32_t ARENA_A = 0x9E8;
 	static const uint32_t ARENA_B = 0x109E8;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesZYX(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesZYX(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701430))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -215,17 +215,17 @@ namespace echoscreen295
 		{
 			r->started = 1;
 			InitTaskQueuePool(QPlay(), (void *)TexBase(), NODE_BYTES, 1);
-			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), ORIG_PlayTask);
+			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), us(ORIG_PlayTask));
 			uint8_t *e = Entity(Ctx()->actions[0].targets[0]);
 			GetDefaultEffectPosition(e, p->anchor);
-			DecodeModelPrimLayout(MODEL, p->layout, LAYOUT_BYTES);
+			DecodeModelPrimLayout(us(MODEL), p->layout, LAYOUT_BYTES);
 		}
 		int a;
 		if (r->started)
 		{
 			EffectCameraMatrix(&Camera(), &ModMatrix());
 			a = ExecuteTaskQueue(QPlay());
-			if (r->counter == 1) BdPlaySE(SOUND, 0, 0x80);
+			if (r->counter == 1) BdPlaySE(SOUND(), 0, 0x80);
 		}
 		else a = (int)n;
 		if (r->started && a == 0) return TASK_END;

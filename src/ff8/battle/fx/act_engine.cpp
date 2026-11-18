@@ -979,7 +979,7 @@ namespace act
 	void set_mod_by_code(uint32_t code_addr)
 	{
 		for (const Mod *m : MODS)
-			if (code_addr >= m->lo && code_addr < m->hi) { g_mod = m; return; }
+			if (code_addr >= us(m->lo) && code_addr < us(m->hi)) { g_mod = m; return; }
 	}
 
 	static const int DISPATCH_BITS = 14;
@@ -1045,7 +1045,7 @@ namespace act
 
 	void register_module_port(int effect_id, uint32_t orig, void *port, const char *name)
 	{
-		add_port(orig, port);
+		add_port(us(orig), port);
 		ff8fx::register_port(orig, port, name, effect_id);
 	}
 
@@ -1055,9 +1055,9 @@ namespace act
 		if (!global_done)
 		{
 			global_done = true;
-			add_port(0x8DDC30, (void *)a_8DDC30);
-			add_port(0x8DDCA0, (void *)a_8DDCA0);
-			add_port(0x8DDCD0, (void *)a_8DDCD0);
+			add_port(us(0x8DDC30), (void *)a_8DDC30);
+			add_port(us(0x8DDCA0), (void *)a_8DDCA0);
+			add_port(us(0x8DDCD0), (void *)a_8DDCD0);
 		}
 		ff8fx::register_port(0x8DDC30, (void *)a_8DDC30, "act 8DDC30 shared engine task", effect_id);
 		for (const AddrPort *p = engine_ports(effect_id); p && p->addr; p++)
@@ -1067,7 +1067,7 @@ namespace act
 	uint32_t orig_of_port(void *port)
 	{
 		for (const AddrPort *p = engine_ports(g_mod->effect_id); p && p->addr; p++)
-			if (p->port == port) return p->addr;
+			if (p->port == port) return us(p->addr);
 		return 0;
 	}
 
@@ -1201,7 +1201,7 @@ namespace act
 		U32(st, 0x100) = cur;
 		cur += 0xA000;
 		U32(G(G_257F728), 0) = cur;
-		const uint32_t def = 0x19DB018;
+		const uint32_t def = us(0x19DB018);
 		U32(st, 0x114) = def;
 		U32(st, 0x118) = def;
 		U32(st, 0x11C) = def;
@@ -1275,7 +1275,7 @@ namespace act
 	uint32_t __cdecl a_7335D0(uint32_t a1)
 	{
 		U16(a1, 0x1C) = 0;
-		uint32_t p = 0x1D989BA;
+		uint32_t p = us(0x1D989BA);
 		for (int n = 4; n != 0; n--)
 		{
 			U16(p, -0x28) = 0;
@@ -1298,7 +1298,7 @@ namespace act
 	uint32_t __cdecl a_733950(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
 		uint8_t c[4];
-		uint32_t base = U32(0xB8B7D8, 0);
+		uint32_t base = U32(us(0xB8B7D8), 0);
 		ff8fx::copy<(4)>(c, &base);
 		int16_t amount = (int16_t)a2;
 		if (amount == 0)
@@ -1505,10 +1505,10 @@ namespace act
 			uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			uint32_t cursor = U32(0x1D8E054, 0);
-			uint32_t ot = U32(0x1D8E04C, 0) + 0x44;
+			uint32_t cursor = U32(us(0x1D8E054), 0);
+			uint32_t ot = U32(us(0x1D8E04C), 0) + 0x44;
 			uint32_t r = a_7355E0(ctx, ot, 2, cursor);
-			U32(0x1D8E054, 0) = r;
+			U32(us(0x1D8E054), 0) = r;
 		}
 		else if (copies > 0)
 		{
@@ -1523,13 +1523,13 @@ namespace act
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				uint32_t cursor = U32(0x1D8E054, 0);
-				uint32_t ot = U32(0x1D8E04C, 0) + 0x44;
+				uint32_t cursor = U32(us(0x1D8E054), 0);
+				uint32_t ot = U32(us(0x1D8E04C), 0) + 0x44;
 				uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				U32(0x1D8E054, 0) = r;
+				U32(us(0x1D8E054), 0) = r;
 			} while (i < n);
 		}
 		uint32_t top = U32(G(G_258FB68), 0) + 0x58;
@@ -1972,11 +1972,11 @@ namespace act
 	uint32_t __cdecl a_8DDC30(uint32_t a1)
 	{
 		uint32_t tab[3];
-		tab[0] = 0x8DDCA0;
-		tab[1] = 0x8DDCD0;
-		tab[2] = 0x8DDEB0;
+		tab[0] = us(0x8DDCA0);
+		tab[1] = us(0x8DDCD0);
+		tab[2] = us(0x8DDEB0);
 		callp(tab[(int32_t)S8(a1, 0x29)], a1);
-		if (U32(0x2795914, 0) == 0)
+		if (U32(us(0x2795914), 0) == 0)
 			U16(a1, 0x3C) = (uint16_t)(U16(a1, 0x3C) + 1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24) = (uint16_t)(U16(a1, 0x24) + 1);
@@ -1990,7 +1990,7 @@ namespace act
 
 	uint32_t __cdecl a_8DDCA0(uint32_t a1)
 	{
-		if (U32(0x2795914, 0) == 0)
+		if (U32(us(0x2795914), 0) == 0)
 		{
 			U16(a1, 0x38) = (uint16_t)(U16(a1, 0x38) - 1);
 			if (S16(a1, 0x38) <= 0)
@@ -2017,7 +2017,7 @@ namespace act
 		}
 		if (op == 0xFE)
 		{
-			if (S16(a1, 0x24) >= (int16_t)(uint16_t)b2 && U32(0x2795914, 0) == 0)
+			if (S16(a1, 0x24) >= (int16_t)(uint16_t)b2 && U32(us(0x2795914), 0) == 0)
 			{
 				uint16_t ni = (uint16_t)(idx + 1);
 				U16(a1, 0x3A) = ni;
@@ -2027,52 +2027,52 @@ namespace act
 		else
 		{
 			U32(a1, 0x30) = ent;
-			if (U32(0x2795914, 0) == 0)
+			if (U32(us(0x2795914), 0) == 0)
 				U16(a1, 0x3A) = (uint16_t)(idx + 1);
 		}
-		uint32_t ot = U32(0x1D8E04C, 0) + 0x1C;
+		uint32_t ot = U32(us(0x1D8E04C), 0) + 0x1C;
 		const uint8_t code = 0x2A;
 		const uint32_t v_mid = 0x7800A0;
 
-		U32(0x2795114, 0) = U32(a1, 0x30);
-		U32(0x2795110, 0) = 0x5000000;
-		U8(0x2795117, 0) = code;
-		U32(0x2795118, 0) = 0;
-		U32(0x279511C, 0) = 0xA0;
-		U32(0x2795120, 0) = 0x780000;
-		U32(0x2795124, 0) = v_mid;
-		x::SSIGPU_InsertPrimAltViewport(ot, 0x2795110);
+		U32(us(0x2795114), 0) = U32(a1, 0x30);
+		U32(us(0x2795110), 0) = 0x5000000;
+		U8(us(0x2795117), 0) = code;
+		U32(us(0x2795118), 0) = 0;
+		U32(us(0x279511C), 0) = 0xA0;
+		U32(us(0x2795120), 0) = 0x780000;
+		U32(us(0x2795124), 0) = v_mid;
+		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795110));
 
-		U32(0x279512C, 0) = U32(a1, 0x30);
-		U32(0x2795128, 0) = 0x5000000;
-		U8(0x279512F, 0) = code;
-		U32(0x2795130, 0) = 0xA0;
-		U32(0x2795134, 0) = 0x140;
-		U32(0x2795138, 0) = v_mid;
-		U32(0x279513C, 0) = 0x780140;
-		x::SSIGPU_InsertPrimAltViewport(ot, 0x2795128);
+		U32(us(0x279512C), 0) = U32(a1, 0x30);
+		U32(us(0x2795128), 0) = 0x5000000;
+		U8(us(0x279512F), 0) = code;
+		U32(us(0x2795130), 0) = 0xA0;
+		U32(us(0x2795134), 0) = 0x140;
+		U32(us(0x2795138), 0) = v_mid;
+		U32(us(0x279513C), 0) = 0x780140;
+		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795128));
 
-		U32(0x2795144, 0) = U32(a1, 0x30);
-		U32(0x2795140, 0) = 0x5000000;
-		U8(0x2795147, 0) = code;
-		U32(0x2795148, 0) = 0x780000;
-		U32(0x279514C, 0) = v_mid;
-		U32(0x2795150, 0) = 0xF00000;
-		U32(0x2795154, 0) = 0xF000A0;
-		x::SSIGPU_InsertPrimAltViewport(ot, 0x2795140);
+		U32(us(0x2795144), 0) = U32(a1, 0x30);
+		U32(us(0x2795140), 0) = 0x5000000;
+		U8(us(0x2795147), 0) = code;
+		U32(us(0x2795148), 0) = 0x780000;
+		U32(us(0x279514C), 0) = v_mid;
+		U32(us(0x2795150), 0) = 0xF00000;
+		U32(us(0x2795154), 0) = 0xF000A0;
+		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795140));
 
-		U32(0x279515C, 0) = U32(a1, 0x30);
-		U32(0x2795158, 0) = 0x5000000;
-		U8(0x279515F, 0) = code;
-		U32(0x2795160, 0) = v_mid;
-		U32(0x2795164, 0) = 0x780140;
-		U32(0x2795168, 0) = 0xF000A0;
-		U32(0x279516C, 0) = 0xF00140;
-		x::SSIGPU_InsertPrimAltViewport(ot, 0x2795158);
+		U32(us(0x279515C), 0) = U32(a1, 0x30);
+		U32(us(0x2795158), 0) = 0x5000000;
+		U8(us(0x279515F), 0) = code;
+		U32(us(0x2795160), 0) = v_mid;
+		U32(us(0x2795164), 0) = 0x780140;
+		U32(us(0x2795168), 0) = 0xF000A0;
+		U32(us(0x279516C), 0) = 0xF00140;
+		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795158));
 
 		uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
-		x::sub_45BFC0(0x2795170, 0, 0, tpage, 0);
-		x::SSIGPU_InsertPrimAltViewport(ot, 0x2795170);
+		x::sub_45BFC0(us(0x2795170), 0, 0, tpage, 0);
+		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795170));
 		return 0;
 	}
 
@@ -2117,9 +2117,9 @@ namespace act
 		set_mod_by_code(U32(a1, 8));
 		FX_HELD(held_note_master();)
 
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
-		MEM<uint32_t>(G(G_258FB68)) = 0x2793E58;
-		MEM<uint32_t>(G(G_257F9B0)) = 0x2793E58;
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		MEM<uint32_t>(G(G_258FB68)) = us(0x2793E58);
+		MEM<uint32_t>(G(G_257F9B0)) = us(0x2793E58);
 		uint32_t states[11] = {
 			F(F_73A0D0), F(F_73A0E0), F(F_73A0F0), F(F_73A170), F(F_747500), F(F_747540),
 			F(F_747550), F(F_747560), F(F_747590), F(F_7475A0), F(F_7475C0),
@@ -2335,7 +2335,7 @@ namespace act
 	{
 		uint32_t count = 0;
 		int16_t max_z = 0, min_z = 0, max_x = 0, min_x = 0;
-		for (uint32_t e = 0x1D974B4; e < 0x1D97724; e += 0x9C)
+		for (uint32_t e = us(0x1D974B4); e < us(0x1D97724); e += 0x9C)
 		{
 			if (!(U8(e, -0x20) & 2))
 				continue;
@@ -2557,10 +2557,10 @@ namespace act
 	{
 		alignas(4) uint8_t fr[0x38] = {};
 		uint32_t L = P(fr);
-		U16(L, 0) = MEM<uint16_t>(0xB8B7F0);
-		U16(L, 2) = MEM<uint16_t>(0xB8B7F2);
-		U16(L, 4) = MEM<uint16_t>(0xB8B7F4);
-		U16(L, 6) = MEM<uint16_t>(0xB8B7F6);
+		U16(L, 0) = MEM<uint16_t>(us(0xB8B7F0));
+		U16(L, 2) = MEM<uint16_t>(us(0xB8B7F2));
+		U16(L, 4) = MEM<uint16_t>(us(0xB8B7F4));
+		U16(L, 6) = MEM<uint16_t>(us(0xB8B7F6));
 		uint32_t mat = L + 0x18;
 		x::MAG_022_sub_8DD770(mat);
 		uint32_t c = e2_cam();
@@ -2596,14 +2596,14 @@ namespace act
 		}
 		uint32_t look_xy = U32(c, 0x5C);
 		uint32_t look_z = U32(c, 0x60);
-		MEM<uint32_t>(0xB8B7F8) = look_xy;
-		MEM<uint32_t>(0xB8B7F0) = U32(L, 0);
+		MEM<uint32_t>(us(0xB8B7F8)) = look_xy;
+		MEM<uint32_t>(us(0xB8B7F0)) = U32(L, 0);
 		uint16_t e0 = U16(c, 0xE0);
 		uint16_t dc = U16(c, 0xDC);
-		MEM<uint32_t>(0xB8B7FC) = look_z;
-		MEM<uint16_t>(0x1D8E038) = e0;
-		MEM<uint32_t>(0xB8B7F4) = U32(L, 4);
-		MEM<uint16_t>(0x1D977A2) = dc;
+		MEM<uint32_t>(us(0xB8B7FC)) = look_z;
+		MEM<uint16_t>(us(0x1D8E038)) = e0;
+		MEM<uint32_t>(us(0xB8B7F4)) = U32(L, 4);
+		MEM<uint16_t>(us(0x1D977A2)) = dc;
 		return 0;
 	}
 
@@ -2811,7 +2811,7 @@ namespace act
 	uint32_t __cdecl a_73B9F0(void)
 	{
 		uint32_t save = e2_dir() + 0x2C;
-		for (uint32_t e = 0x1D97494; e < 0x1D97704; e += 0x9C, save += 4)
+		for (uint32_t e = us(0x1D97494); e < us(0x1D97704); e += 0x9C, save += 4)
 		{
 			uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -2826,7 +2826,7 @@ namespace act
 	uint32_t __cdecl a_73BA90(void)
 	{
 		uint32_t save = e2_dir() + 0x2C;
-		for (uint32_t e = 0x1D97494; e < 0x1D97704; e += 0x9C, save += 4)
+		for (uint32_t e = us(0x1D97494); e < us(0x1D97704); e += 0x9C, save += 4)
 		{
 			uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -2913,7 +2913,7 @@ namespace act
 		S32(L, 0x14) = S16(a1, 0x1C);
 		S32(L, 0x18) = S16(a1, 0x1E);
 		S32(L, 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(0x1D97778, L, L);
+		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U16(L, 0x54) = U16(a1, 0x86);
 		U32(L, 0x44) = U32(a1, 0x7C);
 		U16(L, 0x4C) = U16(a1, 0x8C);
@@ -3172,11 +3172,11 @@ namespace act
 			st = MEM<uint32_t>(G(G_258FB78));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = 0x1D972C0 + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = 0x1D972C0 + s2 * 0x9C;
+		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
@@ -3192,7 +3192,7 @@ namespace act
 	{
 		uint32_t st = MEM<uint32_t>(G(G_258FB78));
 		int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) == 2)
@@ -3294,7 +3294,7 @@ namespace act
 			do
 			{
 				uint32_t slot = U32(sofs + st, 0);
-				const uint32_t ent = 0x1D972C0 + slot * 0x9C;
+				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
 				if (U16(st, 0x24) == 2)
 				{
 					U32(pp, 0) = U32(fixed, 8);
@@ -3467,14 +3467,14 @@ namespace act
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		uint32_t seq = U32(act, 0x170);
-		uint32_t cursor = MEM<uint32_t>(0x1D8E054);
+		uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
 		int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
 		uint32_t r = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(0x1D8E054) = r;
+		MEM<uint32_t>(us(0x1D8E054)) = r;
 		MEM<uint32_t>(G(G_258FB68)) = MEM<uint32_t>(G(G_258FB68)) + 0xB4;
 		return 0;
 	}
@@ -4265,7 +4265,7 @@ namespace act
 				x::MAG_022_sub_8DD770(m);
 				uint32_t d = U32(G(G_258FB78), 0);
 				int32_t ent = (int32_t)S16(d, 0x1E);
-				int32_t yaw = (int32_t)S16(0x1D972CE + (uint32_t)(ent * 39) * 4, 0);
+				int32_t yaw = (int32_t)S16(us(0x1D972CE) + (uint32_t)(ent * 39) * 4, 0);
 				if (yaw != 0)
 					x::MAG_022_sub_8DD8A0(m, (uint32_t)yaw);
 				break;
@@ -4467,12 +4467,12 @@ namespace act
 		uint16_t fl = U16(node, 0x24);
 		if (fl & 1)
 		{
-			int32_t roll = S16(0x1D977A2, 0);
+			int32_t roll = S16(us(0x1D977A2), 0);
 			x::ApplyZRotation((uint32_t)sub32(S32(node, 8), roll), cam);
 		}
 		else if (!(fl & 0x200))
 		{
-			int32_t roll = S16(0x1D977A2, 0);
+			int32_t roll = S16(us(0x1D977A2), 0);
 			x::ApplyZRotation((uint32_t)sub32(0, roll), cam);
 		}
 		if (U8(node, 0x24) & 2)
@@ -4660,10 +4660,10 @@ namespace act
 				S32(node, 0x3C) = z;
 				if (z < 0)
 					S32(node, 0x3C) = 0;
-				uint32_t k3 = MEM<uint32_t>(0x1CA8A5C) + ioff;
-				uint32_t k2 = MEM<uint32_t>(0x1CA8A58) + ioff;
-				uint32_t k1 = MEM<uint32_t>(0x1CA8A54) + ioff;
-				uint32_t k0 = MEM<uint32_t>(0x1CA8A50) + ioff;
+				uint32_t k3 = MEM<uint32_t>(us(0x1CA8A5C)) + ioff;
+				uint32_t k2 = MEM<uint32_t>(us(0x1CA8A58)) + ioff;
+				uint32_t k1 = MEM<uint32_t>(us(0x1CA8A54)) + ioff;
+				uint32_t k0 = MEM<uint32_t>(us(0x1CA8A50)) + ioff;
 				x::SSIGPU_InsertPrimDepthKeys(a2 + ot_slot * 4, pkt, k0, k1, k2, k3);
 				pkt += 0x28;
 			}
@@ -4685,19 +4685,19 @@ namespace act
 					U32(mode, 4) = 0xE1000220;
 					a4slot = ot;
 					x::SSIGPU_InsertPrimAutoDepth(ot, mode);
-					uint32_t k3 = MEM<uint32_t>(0x1CA8A5C) + ioff;
-					uint32_t k2 = MEM<uint32_t>(0x1CA8A58) + ioff;
-					uint32_t k1 = MEM<uint32_t>(0x1CA8A54) + ioff;
-					uint32_t k0 = MEM<uint32_t>(0x1CA8A50) + ioff;
+					uint32_t k3 = MEM<uint32_t>(us(0x1CA8A5C)) + ioff;
+					uint32_t k2 = MEM<uint32_t>(us(0x1CA8A58)) + ioff;
+					uint32_t k1 = MEM<uint32_t>(us(0x1CA8A54)) + ioff;
+					uint32_t k0 = MEM<uint32_t>(us(0x1CA8A50)) + ioff;
 					x::SSIGPU_InsertPrimDepthKeys(a4slot, pkt, k0, k1, k2, k3);
 					pkt = mode + 0xC;
 				}
 				else
 				{
-					uint32_t k3 = MEM<uint32_t>(0x1CA8A5C) + ioff;
-					uint32_t k2 = MEM<uint32_t>(0x1CA8A58) + ioff;
-					uint32_t k1 = MEM<uint32_t>(0x1CA8A54) + ioff;
-					uint32_t k0 = MEM<uint32_t>(0x1CA8A50) + ioff;
+					uint32_t k3 = MEM<uint32_t>(us(0x1CA8A5C)) + ioff;
+					uint32_t k2 = MEM<uint32_t>(us(0x1CA8A58)) + ioff;
+					uint32_t k1 = MEM<uint32_t>(us(0x1CA8A54)) + ioff;
+					uint32_t k0 = MEM<uint32_t>(us(0x1CA8A50)) + ioff;
 					x::SSIGPU_InsertPrimDepthKeys(a2 + (uint32_t)depth * 4, pkt, k0, k1, k2, k3);
 					pkt += 0x28;
 				}
@@ -4751,7 +4751,7 @@ namespace act
 		S32(m, 0x18) = ty;
 		S32(m, 0x1C) = tz;
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(0x1D97778, m, m);
+		x::ComposeAffineTransform(us(0x1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		uint32_t prm = x::Field_Alloc(0x58);
@@ -4760,12 +4760,12 @@ namespace act
 		U32(prm, 0) = model;
 		U32(prm, 8) = v40;
 		int32_t v50 = S16(node, 0x50);
-		uint32_t cursor = MEM<uint32_t>(0x1D8E054);
+		uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
 		S32(prm, 0xC) = v50;
-		uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U32(prm, 0x1C) = 0xF0;
 		uint32_t next = x::Effect_RenderPrimModel(prm, ot, 2, cursor);
-		MEM<uint32_t>(0x1D8E054) = next;
+		MEM<uint32_t>(us(0x1D8E054)) = next;
 		x::Field_Free(0x58);
 		return 0;
 	}
@@ -4774,7 +4774,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1C) = 0x600;
-		uint32_t p = 0x1D989BA;
+		uint32_t p = us(0x1D989BA);
 		for (int k = 0; k < 4; k++)
 		{
 			U16(p, -0x28) = 0x600;
@@ -4789,7 +4789,7 @@ namespace act
 
 	uint32_t __cdecl a_746A10(void)
 	{
-		uint32_t p = 0x1D98991;
+		uint32_t p = us(0x1D98991);
 		for (int k = 0; k < 4; k++)
 		{
 			uint8_t b = U8(p, 0);
@@ -4801,7 +4801,7 @@ namespace act
 
 	uint32_t __cdecl a_746AE0(void)
 	{
-		uint32_t p = 0x1D98991;
+		uint32_t p = us(0x1D98991);
 		for (int k = 0; k < 4; k++)
 		{
 			uint8_t b = U8(p, 0);
@@ -4827,7 +4827,7 @@ namespace act
 		S32(mdl, 0x58) = py;
 		S32(mdl, 0x5C) = pz;
 		x::scale3DMatrix(mat, a1 + 0x114);
-		x::ComposeAffineTransform(0x1D97778, mat, ws);
+		x::ComposeAffineTransform(us(0x1D97778), mat, ws);
 		x::BS_ComputeBonesWorldMatrices(skel, ws);
 		uint32_t v28 = U32(mdl, 0x28);
 		U32(ws, 0x24) = a2;
@@ -4842,7 +4842,7 @@ namespace act
 		U16(ws, 0x44) = 0;
 		uint32_t g969a8 = MEM<uint32_t>(G(G_1D969A8));
 		U32(ws, 0x40) = v7c;
-		uint32_t otbase = MEM<uint32_t>(0x1D8E04C);
+		uint32_t otbase = MEM<uint32_t>(us(0x1D8E04C));
 		U16(ws, 0x38) = 0x140;
 		U16(ws, 0x3A) = 0xD8;
 		U32(ws, 0x30) = g969a8;
@@ -4868,7 +4868,7 @@ namespace act
 		}
 		if (!(U8(mdl, 0) & 0x20))
 		{
-			uint32_t ot2 = MEM<uint32_t>(0x1D8E04C) + 0x4064;
+			uint32_t ot2 = MEM<uint32_t>(us(0x1D8E04C)) + 0x4064;
 			cursor = x::sub_5088A0(mdl, ot2, 0x10, cursor);
 		}
 		x::Field_Free(0x4C);

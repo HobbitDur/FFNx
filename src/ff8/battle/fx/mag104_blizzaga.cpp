@@ -26,15 +26,15 @@ namespace blizzaga104
 	using namespace magc;
 	using namespace icec;
 
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2543DF0); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2543DF4); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543DFC); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2543E00); }
-	inline int16_t &BandBase() { return var<int16_t>(0x2543E04); }
-	inline int16_t &BandRange() { return var<int16_t>(0x2543E06); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543E1C); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543E30 + 0x10 * i); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline int32_t &FlashLevel() { return var<int32_t>(us(0x2543DF0)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2543DF4)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x2543DFC)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2543E00)); }
+	inline int16_t &BandBase() { return var<int16_t>(us(0x2543E04)); }
+	inline int16_t &BandRange() { return var<int16_t>(us(0x2543E06)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2543E1C)); }
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(us(0x2543E30) + 0x10 * i); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
 
 	static const uint32_t ORIG_Director = 0x6D6400;
 	static const uint32_t ORIG_FreezeTask = 0x6D67E0;
@@ -43,36 +43,36 @@ namespace blizzaga104
 	static const uint32_t ORIG_RibbonTask = 0x6D97A0;
 	static const uint32_t ORIG_SparkleTask = 0x6D9DD0;
 	static const uint32_t ORIG_SpiralTask = 0x6DA0D0;
-	static const uint8_t *const MODEL_Block = (const uint8_t *)0x1312918;
-	static uint8_t *const MODEL_BlockUV = (uint8_t *)0x1315760;
-	static const uint8_t *const BLOCK_VERTS = (const uint8_t *)0x13151D0;
-	static const uint32_t *const MORPH_TABLE = (const uint32_t *)0x13197D0;
-	static const void *const MODEL_Ring = (const void *)0x1317088;
-	static const void *const MODEL_Flash = (const void *)0x1318490;
-	static const void *const SEQ_Mist = (const void *)0x1312690;
-	static const void *const SEQ_Flake = (const void *)0x13127A0;
+	static const uint8_t *MODEL_Block() { return (const uint8_t *)us(0x1312918); }
+	static uint8_t *MODEL_BlockUV() { return (uint8_t *)us(0x1315760); }
+	static const uint8_t *BLOCK_VERTS() { return (const uint8_t *)us(0x13151D0); }
+	static const uint32_t *MORPH_TABLE() { return (const uint32_t *)us(0x13197D0); }
+	static const void *MODEL_Ring() { return (const void *)us(0x1317088); }
+	static const void *MODEL_Flash() { return (const void *)us(0x1318490); }
+	static const void *SEQ_Mist() { return (const void *)us(0x1312690); }
+	static const void *SEQ_Flake() { return (const void *)us(0x13127A0); }
 	static const uint32_t SPARKLE_MATRIX = 0x13197B0;
-	static const void *const SOUND_Blizzaga = (const void *)0x13197A8;
+	static const void *SOUND_Blizzaga() { return (const void *)us(0x13197A8); }
 	static const uint32_t MODEL_OFFSET[3] = { 0x11FB0, 0x142D8, 0x16600 };
 	static const int SHARDS = 0x140;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 	inline int16_t EntityHeight2(const uint8_t *entity) { return *(const int16_t *)(entity + 0x24); }
 
-	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(dx, dz); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(0x45C870)(ot, prim, a, b, c, d); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void GteReadMAC123(void *dst) { fn<void (__cdecl *)(void *)>(0x45E450)(dst); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
-	inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); }
-	inline void ComputeBonesWorldMatrices(void *anim, void *m) { fn<void (__cdecl *)(void *, void *)>(0x5095B0)(anim, m); }
-	inline void BuildBoneMatricesFromPose(void *anim) { fn<void (__cdecl *)(void *)>(0x508C90)(anim); }
-	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
+	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(dx, dz); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
+	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(us(0x45C870))(ot, prim, a, b, c, d); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void GteReadMAC123(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E450))(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
+	inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, shift, cursor); }
+	inline void ComputeBonesWorldMatrices(void *anim, void *m) { fn<void (__cdecl *)(void *, void *)>(us(0x5095B0))(anim, m); }
+	inline void BuildBoneMatricesFromPose(void *anim) { fn<void (__cdecl *)(void *)>(us(0x508C90))(anim); }
+	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
 
 #pragma pack(push, 1)
 	struct DirectorNode
@@ -259,7 +259,7 @@ namespace blizzaga104
 				}
 				else
 				{
-					FreezeNode *f = (FreezeNode *)AddTaskToQueue(Queue(0), ORIG_FreezeTask);
+					FreezeNode *f = (FreezeNode *)AddTaskToQueue(Queue(0), us(ORIG_FreezeTask));
 					FillDwords(&f->counter, 0, 0x1907);
 					f->action = (int16_t)(uint16_t)d->action;
 					f->entity = entity;
@@ -274,7 +274,7 @@ namespace blizzaga104
 					int action = d->action;
 					if (action < 3)
 					{
-						CopyDwords(TexBase() + MODEL_OFFSET[action], MODEL_Block, 0x8CA);
+						CopyDwords(TexBase() + MODEL_OFFSET[action], MODEL_Block(), 0x8CA);
 						f->model = TexBase() + MODEL_OFFSET[action];
 					}
 					uint8_t *prim = ModelList(6, f->model, nullptr);
@@ -479,11 +479,11 @@ namespace blizzaga104
 		*(uint16_t *)(h + 0x7A) = 0x8001;
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)h);
 		FX_HELD(if (!held_drawing()))
-		FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4040, 0x10, FrameCursor());
+		FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, FrameCursor());
 		FX_HELD(held_note_frame(FrameCursor());)
 		uint8_t *anim = entity + 0x60;
 		ComputeBonesWorldMatrices(anim, h);
-		*(uint32_t *)(h + 0x24) = var<uint32_t>(0x1D98B3C);
+		*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
 		*(uint16_t *)(h + 0x34) = 0;
 		*(uint16_t *)(h + 0x36) = 0;
 		*(uint16_t *)(h + 0x38) = 0x140;
@@ -569,7 +569,7 @@ namespace blizzaga104
 	static void BlockHeader(uint8_t *h, const FreezeNode *f, int16_t counter)
 	{
 		Cursor(h, 0) = f->model;
-		Cursor(h, 4) = MODEL_BlockUV;
+		Cursor(h, 4) = MODEL_BlockUV();
 		*(const void **)(h + 8) = f->verts;
 		*(uint32_t *)(h + 0x18) = 0x66000;
 		*(uint16_t *)(h + 0x1C) = 0;
@@ -867,7 +867,7 @@ namespace blizzaga104
 		int32_t t = c - 0x2E;
 		*(uint16_t *)(h + 0x16) = 0x100;
 		*(uint16_t *)(h + 0x14) = 0x100;
-		*(const void **)h = MODEL_Ring;
+		*(const void **)h = MODEL_Ring();
 		*(uint16_t *)(h + 0x12) = 0;
 		*(uint16_t *)(h + 0x10) = 0;
 		*(uint16_t *)(h + 0x18) = 0;
@@ -920,7 +920,7 @@ namespace blizzaga104
 		m.t[1] = f->pos[1];
 		m.t[2] = f->pos[2];
 		ComposeAffineTransform(&Camera(), &m, &m);
-		*(const void **)h = MODEL_Flash;
+		*(const void **)h = MODEL_Flash();
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -994,7 +994,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)c < 3)
 		{
-			RibbonNode *r = (RibbonNode *)AddTaskToQueue(Queue(1), ORIG_RibbonTask);
+			RibbonNode *r = (RibbonNode *)AddTaskToQueue(Queue(1), us(ORIG_RibbonTask));
 			if (r)
 			{
 				FillDwords(&r->counter, 0, 0x11B);
@@ -1007,7 +1007,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)c < 2)
 		{
-			SpiralNode *s = (SpiralNode *)AddTaskToQueue(Queue(2), ORIG_SpiralTask);
+			SpiralNode *s = (SpiralNode *)AddTaskToQueue(Queue(2), us(ORIG_SpiralTask));
 			if (s)
 			{
 				FillDwords(&s->counter, 0, 0x116);
@@ -1037,9 +1037,9 @@ namespace blizzaga104
 			{
 				uint32_t v = MorphStep(t);
 				uint32_t idx = v >> 12;
-				MorphVertices(h, (const uint8_t *)MORPH_TABLE[idx], (const uint8_t *)MORPH_TABLE[idx + 1], v & 0xFFF);
+				MorphVertices(h, (const uint8_t *)MORPH_TABLE()[idx], (const uint8_t *)MORPH_TABLE()[idx + 1], v & 0xFFF);
 			}
-			else if (t == 3) CopyDwords(f->verts, BLOCK_VERTS + 8, *(uint32_t *)(Cursor(h, 0) + 4) * 2);
+			else if (t == 3) CopyDwords(f->verts, BLOCK_VERTS() + 8, *(uint32_t *)(Cursor(h, 0) + 4) * 2);
 			FX_HELD(held_note_block(f, t < 3 ? 1 : 0, &m);)
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
@@ -1055,9 +1055,9 @@ namespace blizzaga104
 				uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 				Cursor(h, 0) = f->model;
 				*(uint32_t *)(h + 0x1C) = 0xC;
-				PrepareModel(h, (uint8_t *)BLOCK_VERTS, f->verts[0]);
+				PrepareModel(h, (uint8_t *)BLOCK_VERTS(), f->verts[0]);
 				FieldFree(0x58);
-				uint8_t *uv = ModelList(2, MODEL_BlockUV, nullptr);
+				uint8_t *uv = ModelList(2, MODEL_BlockUV(), nullptr);
 				uint8_t *prim = prims;
 				for (int i = 0; i < SHARDS; i++, prim += 0x1C, uv += 0x14)
 				{
@@ -1121,7 +1121,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)(c - 0x2E) < 0x19)
 		{
-			FX_HELD(held_note_part(ORIG_FreezeTask + 1, f);)
+			FX_HELD(held_note_part(us(ORIG_FreezeTask) + 1, f);)
 			uint8_t *h = AllocHeader(0x5C);
 			RingHeader(h, c);
 			RingDraw(f, h, RingScale(c));
@@ -1129,7 +1129,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)(c - 0x1F) < 0xA)
 		{
-			FX_HELD(held_note_part(ORIG_FreezeTask + 2, f);)
+			FX_HELD(held_note_part(us(ORIG_FreezeTask) + 2, f);)
 			uint8_t *h = AllocHeader(0x58);
 			FlashDraw(f, h, FlashScale(c), FlashFade(c));
 			FieldFree(0x58);
@@ -1139,7 +1139,7 @@ namespace blizzaga104
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 8; k++)
 			{
-				FlakeNode *fl = (FlakeNode *)AddTaskToQueue(Queue(5), ORIG_FlakeTask);
+				FlakeNode *fl = (FlakeNode *)AddTaskToQueue(Queue(5), us(ORIG_FlakeTask));
 				if (!fl) continue;
 				FillDwords(&fl->counter, 0, 8);
 				int32_t r1 = CrtRand();
@@ -1172,7 +1172,7 @@ namespace blizzaga104
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 8; k++)
 			{
-				MistNode *mi = (MistNode *)AddTaskToQueue(Queue(4), ORIG_MistTask);
+				MistNode *mi = (MistNode *)AddTaskToQueue(Queue(4), us(ORIG_MistTask));
 				if (!mi) continue;
 				FillDwords(&mi->counter, 0, 7);
 				int32_t r1 = CrtRand();
@@ -1200,7 +1200,7 @@ namespace blizzaga104
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(f->entity, pos);
-			BdPlaySE3D(SOUND_Blizzaga, 0x101, pos);
+			BdPlaySE3D(SOUND_Blizzaga(), 0x101, pos);
 		}
 		if (c == 0x44) ApplyActionResultToTarget(Ctx()->actions[f->action].targets);
 		if (c >= 0x62) return TASK_END;
@@ -1315,7 +1315,7 @@ namespace blizzaga104
 
 	static void SpawnSparkle(const int16_t *v, Mat4x3 *m)
 	{
-		SparkleNode *s = (SparkleNode *)AddTaskToQueue(Queue(3), ORIG_SparkleTask);
+		SparkleNode *s = (SparkleNode *)AddTaskToQueue(Queue(3), us(ORIG_SparkleTask));
 		if (!s) return;
 		FillDwords(&s->counter, 0, 8);
 		s->pos[0] = v[0];
@@ -1379,7 +1379,7 @@ namespace blizzaga104
 				SpawnSparkle(s, &r->m);
 			}
 		}
-		FX_HELD(held_note_trail(ORIG_RibbonTask, r);)
+		FX_HELD(held_note_trail(us(ORIG_RibbonTask), r);)
 		RibbonDraw(r);
 		r->counter++;
 		if (r->counter > 8 && r->count < 2) return TASK_END;
@@ -1426,7 +1426,7 @@ namespace blizzaga104
 			b[3] = 0;
 			s->count = TrailPush(0x1E, s->count, s->trail, b, a, 0x10, 0x58, (uint8_t)((3 - (c & 3)) << 5));
 		}
-		FX_HELD(held_note_trail(ORIG_SpiralTask, s);)
+		FX_HELD(held_note_trail(us(ORIG_SpiralTask), s);)
 		SpiralDraw(s);
 		s->yaw = (int16_t)(s->yaw + s->yaw_vel);
 		int16_t fc = s->freeze->counter;
@@ -1456,10 +1456,10 @@ namespace blizzaga104
 		GteSetTransVector(s->m);
 		GteLoadV0(s->pos);
 		GteMVMVA_RotV0Tr();
-		GteReadMAC123((void *)(SPARKLE_MATRIX + 0x14));
-		GteSetRotMatrix((const Mat4x3 *)SPARKLE_MATRIX);
-		GteSetTransVector((const Mat4x3 *)SPARKLE_MATRIX);
-		*(const void **)h = SEQ_Mist;
+		GteReadMAC123((void *)(us(SPARKLE_MATRIX) + 0x14));
+		GteSetRotMatrix((const Mat4x3 *)us(SPARKLE_MATRIX));
+		GteSetTransVector((const Mat4x3 *)us(SPARKLE_MATRIX));
+		*(const void **)h = SEQ_Mist();
 		*(uint16_t *)(h + 4) = (uint16_t)s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -1476,7 +1476,7 @@ namespace blizzaga104
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		FX_HELD(held_note_draw(ORIG_SparkleTask, s);)
+		FX_HELD(held_note_draw(us(ORIG_SparkleTask), s);)
 		SparkleDraw(s);
 		SparkleUpdate(s);
 		return s->counter < 0xA ? 0 : TASK_END;
@@ -1487,7 +1487,7 @@ namespace blizzaga104
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(m->pos, m->scale, -(m->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = SEQ_Mist();
 		*(uint16_t *)(h + 4) = (uint16_t)m->counter;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1504,7 +1504,7 @@ namespace blizzaga104
 	static uint32_t __cdecl MistTask(TaskNode *n)
 	{
 		MistNode *m = (MistNode *)n;
-		FX_HELD(held_note_draw(ORIG_MistTask, m);)
+		FX_HELD(held_note_draw(us(ORIG_MistTask), m);)
 		MistDraw(m);
 		m->counter++;
 		if (m->counter >= 0xA) return TASK_END;
@@ -1517,7 +1517,7 @@ namespace blizzaga104
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(fl->pos, fl->scale, -(fl->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Flake;
+		*(const void **)h = SEQ_Flake();
 		*(uint16_t *)(h + 4) = (uint16_t)fl->counter;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1541,7 +1541,7 @@ namespace blizzaga104
 	static uint32_t __cdecl FlakeTask(TaskNode *n)
 	{
 		FlakeNode *fl = (FlakeNode *)n;
-		FX_HELD(held_note_draw(ORIG_FlakeTask, fl);)
+		FX_HELD(held_note_draw(us(ORIG_FlakeTask), fl);)
 		FlakeDraw(fl);
 		fl->counter++;
 		if (fl->counter >= 0xE) return TASK_END;

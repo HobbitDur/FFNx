@@ -30,26 +30,26 @@ namespace death232
 	{
 		c.name = "232 Breath of Death";
 		c.effect_id = 232;
-		c.vm_table = 0x1869118;
-		c.bone_table = 0x1868D88;
-		c.prim_table = 0x1868DD0;
-		c.prim_size = 0x1868EC0;
-		c.spr_table = 0x1868ED4;
-		c.ptype_table = 0x1868F00;
-		c.pop_table = 0x1868F14;
-		c.draw_table = 0x1868F74;
-		c.attr_16A = 0x18690DE;
-		c.attr_184 = 0x18690F8;
-		c.attr_186 = 0x18690FA;
-		c.attr_194 = 0x1869108;
-		c.attr_19C = 0x1869110;
-		c.desc = 0x1868C88;
-		c.ptr_block = 0x1868D60;
-		c.queue = 0x2796A58;
-		c.file00 = 0x2796A6C;
-		c.file01 = 0x2796A68;
-		c.tick = 0xA5C950;
-		c.load_cb = 0xA61EA0;
+		c.vm_table = us(0x1869118);
+		c.bone_table = us(0x1868D88);
+		c.prim_table = us(0x1868DD0);
+		c.prim_size = us(0x1868EC0);
+		c.spr_table = us(0x1868ED4);
+		c.ptype_table = us(0x1868F00);
+		c.pop_table = us(0x1868F14);
+		c.draw_table = us(0x1868F74);
+		c.attr_16A = us(0x18690DE);
+		c.attr_184 = us(0x18690F8);
+		c.attr_186 = us(0x18690FA);
+		c.attr_194 = us(0x1869108);
+		c.attr_19C = us(0x1869110);
+		c.desc = us(0x1868C88);
+		c.ptr_block = us(0x1868D60);
+		c.queue = us(0x2796A58);
+		c.file00 = us(0x2796A6C);
+		c.file01 = us(0x2796A68);
+		c.tick = us(0xA5C950);
+		c.load_cb = us(0xA61EA0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -67,7 +67,7 @@ namespace gfc
 {
 namespace death232
 {
-	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(0x1CA8A10 + 4 * reg); }
+	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
 
 	static void __cdecl bh_10_ArcBetweenBones()
 	{

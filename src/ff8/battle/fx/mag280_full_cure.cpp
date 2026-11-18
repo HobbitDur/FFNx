@@ -25,14 +25,14 @@ namespace fullcure280
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507FDC); }
-	inline TaskQueue *QSparkle() { return (TaskQueue *)0x2507FE8; }
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2507FF8; }
-	inline TaskQueue *QControl() { return (TaskQueue *)0x2508008; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250803C); }
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2508044); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508048); }
-	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(0x2508050); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507FDC)); }
+	inline TaskQueue *QSparkle() { return (TaskQueue *)us(0x2507FE8); }
+	inline TaskQueue *QTarget() { return (TaskQueue *)us(0x2507FF8); }
+	inline TaskQueue *QControl() { return (TaskQueue *)us(0x2508008); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x250803C)); }
+	inline int32_t &FlashLevel() { return var<int32_t>(us(0x2508044)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2508048)); }
+	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(us(0x2508050)); }
 
 	static const uint32_t ORIG_RootTask = 0x67E7F0;
 	static const uint32_t ORIG_ControlTask = 0x67E980;
@@ -40,22 +40,22 @@ namespace fullcure280
 	static const uint32_t ORIG_SparkleTask = 0x67EF50;
 	static const uint32_t LAYOUT = 0x10A7A64;
 	static const uint32_t SEQUENCE = 0x10A7974;
-	static const void *const SOUND = (const void *)0x10AB124;
+	static const void *SOUND() { return (const void *)us(0x10AB124); }
 	static const uint32_t ARENA_A = 0x1DF0;
 	static const uint32_t ARENA_B = 0x11DF0;
 	static const uint32_t MORPH = 0x1BF0;
 	static const int32_t CONTROL_TICKS = 0x41, TARGET_TICKS = 0x1E, SPARKLE_FIRST = 0x13, SPARKLE_FRAMES = 8;
 	static const int32_t EFFECT_POINT = 0xF1;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -228,7 +228,7 @@ namespace fullcure280
 {
 	static void ApplyResult(uint8_t *e)
 	{
-		const int32_t slot = (int32_t)((uint32_t)e - 0x1D972C0) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)e - us(0x1D972C0)) / 0x9C;
 		for (int32_t i = 0; i < (int32_t)Ctx()->actions[0].target_count; i++)
 		{
 			uint8_t *t = Ctx()->actions[0].targets + i * TARGET_STRIDE;
@@ -242,7 +242,7 @@ namespace fullcure280
 		FX_HELD(held_note_sparkle(s);)
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQUENCE;
+		*(uint32_t *)h = us(SEQUENCE);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -263,7 +263,7 @@ namespace fullcure280
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter >= SPARKLE_FIRST && !(t->counter & 1))
 		{
-			SparkleNode *s = (SparkleNode *)AddTaskToQueue(QSparkle(), ORIG_SparkleTask);
+			SparkleNode *s = (SparkleNode *)AddTaskToQueue(QSparkle(), us(ORIG_SparkleTask));
 			if (s)
 			{
 				uint8_t *e = t->entity;
@@ -288,15 +288,15 @@ namespace fullcure280
 		const uint32_t k = (uint32_t)(int32_t)c->counter;
 		if (k < 0x3F && k % 20 == 0 && k / 20 < (uint32_t)(int32_t)c->count)
 		{
-			TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
+			TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), us(ORIG_TargetTask));
 			if (t)
 			{
 				uint8_t *e = c->Ent(k / 20);
 				t->entity = e;
 				GetEffectSpawnPosition(e, EFFECT_POINT, 0, t->anchor);
 				t->counter = 0;
-				DecodeModelPrimLayout(LAYOUT, t->layout, 0x8C4);
-				BdPlaySE(SOUND, 0, 0x80);
+				DecodeModelPrimLayout(us(LAYOUT), t->layout, 0x8C4);
+				BdPlaySE(SOUND(), 0, 0x80);
 			}
 		}
 		c->counter++;
@@ -329,7 +329,7 @@ namespace fullcure280
 			InitTaskQueuePool(QControl(), (void *)(TexBase() + 0x1BD4), 0x1C, 1);
 			InitTaskQueuePool(QTarget(), (void *)(TexBase() + 0x140), 0x8DC, 3);
 			InitTaskQueuePool(QSparkle(), (void *)TexBase(), 0x14, 0x10);
-			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), ORIG_ControlTask);
+			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), us(ORIG_ControlTask));
 			Memset32((uint8_t *)c + 0xC, 0, 4);
 			c->count = (int16_t)Ctx()->actions[0].target_count;
 			for (int32_t i = 0; i < c->count; i++) c->Ent((uint32_t)i) = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);

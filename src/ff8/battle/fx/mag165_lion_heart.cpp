@@ -26,18 +26,18 @@ namespace lion165
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23C32EC); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23C6870); }
-	inline CastContext *&Context() { return var<CastContext *>(0x23C6860); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23C6944); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23C6948); }
-	inline uint32_t &PacketArena() { return var<uint32_t>(0x23C694C); }
-	inline uint32_t &PoolCBase() { return var<uint32_t>(0x23C5680); }
-	inline int32_t &NextId() { return var<int32_t>(0x23C6940); }
-	inline int32_t &ResultIndex() { return var<int32_t>(0x23C6920); }
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23C34B0; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x23C5910; }
+	inline int32_t &TargetSlot() { return var<int32_t>(us(0x23C32EC)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x23C6870)); }
+	inline CastContext *&Context() { return var<CastContext *>(us(0x23C6860)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23C6944)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23C6948)); }
+	inline uint32_t &PacketArena() { return var<uint32_t>(us(0x23C694C)); }
+	inline uint32_t &PoolCBase() { return var<uint32_t>(us(0x23C5680)); }
+	inline int32_t &NextId() { return var<int32_t>(us(0x23C6940)); }
+	inline int32_t &ResultIndex() { return var<int32_t>(us(0x23C6920)); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(us(0x1D8E054)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x23C34B0); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x23C5910); }
 	static const uint32_t POOL_A = 0x23C34C0, POOL_A_END = 0x23C4780;
 	static const uint32_t POOL_B = 0x23C4780, POOL_B_END = 0x23C5680;
 	static const uint32_t FINAL_SHARDS_END = 0x23C6080;
@@ -86,47 +86,47 @@ namespace lion165
 		MODEL_TIPROCK = 0xD80230, MODEL_STREAK = 0xD81B34, MODEL_FINALRING = 0xD7D9A0, MODEL_FINALFLASH = 0xD83E3C;
 	static const float SPLINE_THREE = 3.0f, SPLINE_SIX = 6.0f;
 
-	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
-	inline void StopSounds(int32_t a, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t)>(0x46B450)(a, b); }
-	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); }
-	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }
-	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t a, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, a, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteMVMVA_LightV1Bk() { fn<void (__cdecl *)()>(0x4607F0)(); }
-	inline void GteMVMVA_LightV2Bk() { fn<void (__cdecl *)()>(0x460800)(); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
-	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
-	inline void GteWriteControlReg(int32_t value, int32_t reg) { fn<void (__cdecl *)(int32_t, int32_t)>(0x45D7F0)(value, reg); }
-	inline void GteWriteDataReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D7C0)(value, reg); }
-	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline uint32_t OT0() { return var<uint32_t>(0x1D8E04C); }
-	inline int16_t ProjectionH() { return var<int16_t>(0x1D8E038); }
+	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(us(0x508500))(); }
+	inline void StopSounds(int32_t a, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x46B450))(a, b); }
+	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(us(0x63E960))(script, frame, entity, q, n); }
+	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(us(0x50A730))(); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, seq); }
+	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(us(0x508480))(id, dst); }
+	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(us(0x505E30))(tim); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t a, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(us(0x502170))(entity, bone, a, out); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DDA0))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteMVMVA_LightV1Bk() { fn<void (__cdecl *)()>(us(0x4607F0))(); }
+	inline void GteMVMVA_LightV2Bk() { fn<void (__cdecl *)()>(us(0x460800))(); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
+	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(us(0x64DE40))(); }
+	inline void GteWriteControlReg(int32_t value, int32_t reg) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x45D7F0))(value, reg); }
+	inline void GteWriteDataReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(us(0x45D7C0))(value, reg); }
+	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x650720))(h, ot, mode, cursor); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline uint32_t OT0() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline int16_t ProjectionH() { return var<int16_t>(us(0x1D8E038)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -238,10 +238,10 @@ namespace lion165
 	template<typename T> static inline T &At(uint32_t base, int32_t off) { return *(T *)(base + off); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline uint8_t *Target() { return Entity(TargetSlot()); }
-	inline PoolE *EntryA(int32_t i) { return (PoolE *)(POOL_A + 0x18 * i); }
-	inline PoolE2 *EntryB(int32_t i) { return (PoolE2 *)(POOL_B + 0x20 * i); }
-	inline HitRec *Hit(int32_t i) { return (HitRec *)(HITS + 28 * i); }
-	inline KeepBlock *Keep(int32_t slot) { return (KeepBlock *)(KEEP + 0x28 * slot); }
+	inline PoolE *EntryA(int32_t i) { return (PoolE *)(us(POOL_A) + 0x18 * i); }
+	inline PoolE2 *EntryB(int32_t i) { return (PoolE2 *)(us(POOL_B) + 0x20 * i); }
+	inline HitRec *Hit(int32_t i) { return (HitRec *)(us(HITS) + 28 * i); }
+	inline KeepBlock *Keep(int32_t slot) { return (KeepBlock *)(us(KEEP) + 0x28 * slot); }
 
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, uint32_t stride, int32_t max)
 	{
@@ -253,12 +253,12 @@ namespace lion165
 		}
 		return i >= max ? -1 : i;
 	}
-	static int32_t FreeA() { return FreeSlot(POOL_A, POOL_A_END, 0x18, 0xC8); }
-	static int32_t FreeB() { return FreeSlot(POOL_B, POOL_B_END, 0x20, 0x78); }
+	static int32_t FreeA() { return FreeSlot(us(POOL_A), us(POOL_A_END), 0x18, 0xC8); }
+	static int32_t FreeB() { return FreeSlot(us(POOL_B), us(POOL_B_END), 0x20, 0x78); }
 
 	static void ClearIdA(int32_t id)
 	{
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 			if (*(const int32_t *)a == id) *(int32_t *)a = 0;
 	}
 
@@ -275,10 +275,10 @@ namespace lion165
 	static int32_t EntityIndex(const uint8_t *e)
 	{
 		int32_t i = 0;
-		for (uint32_t a = 0x1D972C0; a != (uint32_t)e; i++)
+		for (uint32_t a = us(0x1D972C0); a != (uint32_t)e; i++)
 		{
 			a += 0x9C;
-			if (a >= 0x1D97704) return 7;
+			if (a >= us(0x1D97704)) return 7;
 		}
 		return i;
 	}
@@ -326,19 +326,19 @@ namespace lion165
 	static void SetTipPoint()
 	{
 		int32_t dir[4];
-		WeaponBone(Caster(), 1, dir, (int16_t *)TIP);
-		var<int16_t>(TIP) = (int16_t)(var<int16_t>(TIP) + (int16_t)(mul32(dir[0], 380) >> 12));
-		var<int16_t>(TIP + 2) = (int16_t)(var<int16_t>(TIP + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
-		var<int16_t>(TIP + 4) = (int16_t)(var<int16_t>(TIP + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
+		WeaponBone(Caster(), 1, dir, (int16_t *)us(TIP));
+		var<int16_t>(us(TIP)) = (int16_t)(var<int16_t>(us(TIP)) + (int16_t)(mul32(dir[0], 380) >> 12));
+		var<int16_t>(us(TIP) + 2) = (int16_t)(var<int16_t>(us(TIP) + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
+		var<int16_t>(us(TIP) + 4) = (int16_t)(var<int16_t>(us(TIP) + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
 	}
 
 	static void StageGroupsHide()
 	{
-		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2;
+		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) |= 2;
 	}
 	static void StageGroupsShow()
 	{
-		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD;
+		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) &= 0xFD;
 	}
 
 	static inline int16_t Ftol16(double v)
@@ -605,7 +605,7 @@ namespace lion165
 		const int32_t w = *(const int32_t *)&h->plane[2];
 		GteWriteControlReg(w, 9);
 		GteWriteControlReg(w >> 16, 0xD);
-		for (int32_t i = 0; i < 0x38; i++) (&h->ptr[0][0])[i] = (uint32_t)h + 0x58 + var<uint32_t>(CLIP_SLOTS + 4 * i) * 0x10;
+		for (int32_t i = 0; i < 0x38; i++) (&h->ptr[0][0])[i] = (uint32_t)h + 0x58 + var<uint32_t>(us(CLIP_SLOTS) + 4 * i) * 0x10;
 		const uint32_t bones = At<uint32_t>(model, 0) + 0x10;
 		uint32_t offs = At<uint32_t>(model, 4);
 		const int32_t nparts = At<int32_t>(offs, 0);
@@ -647,8 +647,8 @@ namespace lion165
 			h->w0C = At<uint16_t>(s, 4);
 			h->w0E = At<uint16_t>(s, 6);
 			h->prims = s + 0xC;
-			GteSetRotMatrixCtrl((const Mat4x3 *)var<uint32_t>(CAM_PTR));
-			GteSetTransVectorCtrl((const Mat4x3 *)var<uint32_t>(CAM_PTR));
+			GteSetRotMatrixCtrl((const Mat4x3 *)var<uint32_t>(us(CAM_PTR)));
+			GteSetTransVectorCtrl((const Mat4x3 *)var<uint32_t>(us(CAM_PTR)));
 			cursor = ClipRenderPrims(h, ot, shift, cursor);
 		}
 		return cursor;
@@ -664,9 +664,9 @@ namespace lion165
 		uint8_t *b = (uint8_t *)h;
 		if (!(*ent & 0x20)) FrameArena() = DrawShadow(ent, OT0() + 0x4064, 0x10, FrameArena());
 		ff8fx::copy<(0x20)>(b + 0xC8, ent + 0x40);
-		var<uint32_t>(CAM_PTR) = 0x1D97778;
+		var<uint32_t>(us(CAM_PTR)) = us(0x1D97778);
 		ComputeBonesWorldMatrices(ent + 0x60, b + 0xC8);
-		h->verts = var<uint32_t>(0x1D98B3C);
+		h->verts = var<uint32_t>(us(0x1D98B3C));
 		h->code = *(const uint32_t *)(ent + 0x28);
 		h->mask = *(const uint32_t *)(ent + 0x7C);
 		FrameArena() = ClipRenderModel(*(const uint32_t *)(ent + 0x64), h, RenderOT(), 2, FrameArena());
@@ -711,19 +711,19 @@ namespace lion165
 
 	static void TrailDirections(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(TIP0) = *(const uint32_t *)sb;
-		var<uint32_t>(TIP0 + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)TRAIL_DIR;
+		var<uint32_t>(us(TIP0)) = *(const uint32_t *)sb;
+		var<uint32_t>(us(TIP0) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)us(TRAIL_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE0) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE0 + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BLADE_DIR;
-		b[0] = (int32_t)var<int16_t>(TIP0) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(TIP0 + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(TIP0 + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(us(BASE0)) = *(const uint32_t *)sa;
+		var<uint32_t>(us(BASE0) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)us(BLADE_DIR);
+		b[0] = (int32_t)var<int16_t>(us(TIP0)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(us(TIP0) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(us(TIP0) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -785,20 +785,20 @@ namespace lion165
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 6;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(us(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, TrailWant(c), (uint8_t *)PTS_BASE, (uint8_t *)PTS_TIP);
+		const int32_t cnt = TrailGather((const uint8_t *)us(RING), idx, TrailWant(c), (uint8_t *)us(PTS_BASE), (uint8_t *)us(PTS_TIP));
 		if (cnt > 1)
 		{
-			SplineCurve(cnt, (const int16_t *)PTS_BASE, 0x20, (int16_t *)SPL_BASE);
-			SplineCurve(cnt, (const int16_t *)PTS_TIP, 0x20, (int16_t *)SPL_TIP);
-			TrailDirections((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP);
+			SplineCurve(cnt, (const int16_t *)us(PTS_BASE), 0x20, (int16_t *)us(SPL_BASE));
+			SplineCurve(cnt, (const int16_t *)us(PTS_TIP), 0x20, (int16_t *)us(SPL_TIP));
+			TrailDirections((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP));
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP, w);
+			TrailDraw((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP), w);
 			g_trail_slot4 = 0x1E000;
 			g_trail_slot4_known = true;
 		}
@@ -820,7 +820,7 @@ namespace lion165
 
 	static void AddFlash()
 	{
-		Node24 *t = AddMain(ORIG_Flash);
+		Node24 *t = AddMain(us(ORIG_Flash));
 		t->c = 0;
 		t->e = 0x10;
 		t->w18 = 0x800;
@@ -829,19 +829,19 @@ namespace lion165
 
 	static void AddTrail()
 	{
-		Node24 *t = AddMain(ORIG_Trail);
+		Node24 *t = AddMain(us(ORIG_Trail));
 		t->c = 0;
-		for (uint32_t a = RING; a < RING + 6 * 0x14; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = us(RING); a < us(RING) + 6 * 0x14; a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	static void AddGroundRing()
 	{
-		GetEffectSpawnPosition(Caster(), 0xF1, 0, (void *)BONE_F1);
-		Node24 *t = AddMain(ORIG_GroundRing);
+		GetEffectSpawnPosition(Caster(), 0xF1, 0, (void *)us(BONE_F1));
+		Node24 *t = AddMain(us(ORIG_GroundRing));
 		t->c = 0;
-		t->w10 = var<int16_t>(BONE_F1);
+		t->w10 = var<int16_t>(us(BONE_F1));
 		t->w12 = 0;
-		t->w14 = var<int16_t>(BONE_F1 + 4);
+		t->w14 = var<int16_t>(us(BONE_F1) + 4);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
 		t->w1C = 0x1800;
 		t->w22 = 0x100;
@@ -850,39 +850,39 @@ namespace lion165
 
 	static void AddRockTrio()
 	{
-		Node24 *t = AddMain(ORIG_RockBurst);
+		Node24 *t = AddMain(us(ORIG_RockBurst));
 		t->e = TakeId();
 		t->c = 0;
-		t->w10 = var<int16_t>(BONE_F1);
+		t->w10 = var<int16_t>(us(BONE_F1));
 		t->w12 = 0;
-		t->w14 = var<int16_t>(BONE_F1 + 4);
-		t = AddMain(ORIG_Debris);
+		t->w14 = var<int16_t>(us(BONE_F1) + 4);
+		t = AddMain(us(ORIG_Debris));
 		t->e = TakeId();
-		*(uint32_t *)&t->w10 = var<uint32_t>(BONE_F1);
+		*(uint32_t *)&t->w10 = var<uint32_t>(us(BONE_F1));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(BONE_F1 + 4);
-		t = AddMain(ORIG_BoneSparks);
+		*(uint32_t *)&t->w14 = var<uint32_t>(us(BONE_F1) + 4);
+		t = AddMain(us(ORIG_BoneSparks));
 		t->e = TakeId();
 		t->c = 0;
 	}
 
 	static void AddBladeSparks()
 	{
-		Node24 *t = AddMain(ORIG_BladeSparks);
+		Node24 *t = AddMain(us(ORIG_BladeSparks));
 		t->e = TakeId();
 		t->c = 0;
 	}
 
 	static void AtTip(Node24 *t)
 	{
-		*(uint32_t *)&t->w10 = var<uint32_t>(TIP);
-		*(uint32_t *)&t->w14 = var<uint32_t>(TIP + 4);
+		*(uint32_t *)&t->w10 = var<uint32_t>(us(TIP));
+		*(uint32_t *)&t->w14 = var<uint32_t>(us(TIP) + 4);
 	}
 
 	static void AddTipFlash()
 	{
 		SetTipPoint();
-		Node24 *t = AddMain(ORIG_TipFlash);
+		Node24 *t = AddMain(us(ORIG_TipFlash));
 		AtTip(t);
 		t->c = 0;
 		t->w1E = 0x95;
@@ -901,7 +901,7 @@ namespace lion165
 	{
 		for (int16_t k = 0; k < 2; k++)
 		{
-			Node24 *t = AddMain(ORIG_TipRing);
+			Node24 *t = AddMain(us(ORIG_TipRing));
 			AtTip(t);
 			t->c = 0;
 			t->e = k;
@@ -915,7 +915,7 @@ namespace lion165
 
 	static void AddTargetFlatRing()
 	{
-		Node24 *t = AddMain(ORIG_FlatRing);
+		Node24 *t = AddMain(us(ORIG_FlatRing));
 		t->c = 0;
 		GetDefaultEffectPosition(Target(), &t->w10);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
@@ -927,7 +927,7 @@ namespace lion165
 
 	static void AddCasterFlatRing()
 	{
-		Node24 *t = AddMain(ORIG_FlatRing);
+		Node24 *t = AddMain(us(ORIG_FlatRing));
 		t->c = 0;
 		GetEffectSpawnPosition(Caster(), 0xF0, 0, &t->w10);
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
@@ -940,7 +940,7 @@ namespace lion165
 	static void AddTipFlash2()
 	{
 		SetTipPoint();
-		Node24 *t = AddMain(ORIG_TipFlash2);
+		Node24 *t = AddMain(us(ORIG_TipFlash2));
 		AtTip(t);
 		t->c = 0;
 		t->w18 = (int16_t)(CrtRand() % 0x1000);
@@ -952,7 +952,7 @@ namespace lion165
 	static void AddStreak()
 	{
 		SetTipPoint();
-		Node24 *t = AddMain(ORIG_Streak);
+		Node24 *t = AddMain(us(ORIG_Streak));
 		AtTip(t);
 		t->c = 0;
 		t->e = 2;
@@ -962,7 +962,7 @@ namespace lion165
 
 	static void AddFinal()
 	{
-		Node24 *a = AddMain(ORIG_FinalRing);
+		Node24 *a = AddMain(us(ORIG_FinalRing));
 		a->c = 0;
 		GetDefaultEffectPosition(Target(), &a->w10);
 		a->w18 = (int16_t)(CrtRand() % 0x400 - 0x200);
@@ -970,12 +970,12 @@ namespace lion165
 		a->w1E = s;
 		a->w1C = s;
 		const uint32_t p0 = *(const uint32_t *)&a->w10, p1 = *(const uint32_t *)&a->w14;
-		Node24 *t = AddMain(ORIG_FinalSparkA);
+		Node24 *t = AddMain(us(ORIG_FinalSparkA));
 		t->e = TakeId();
 		*(uint32_t *)&t->w10 = p0;
 		t->c = 0;
 		*(uint32_t *)&t->w14 = p1;
-		t = AddMain(ORIG_FinalShards);
+		t = AddMain(us(ORIG_FinalShards));
 		t->e = TakeId();
 		*(uint32_t *)&t->w10 = p0;
 		t->c = 0;
@@ -987,7 +987,7 @@ namespace lion165
 		const int16_t f = (int16_t)((CrtRand() % 0xC00 + 0x3000) / 4);
 		t->w1E = f;
 		t->w1C = f;
-		t = AddMain(ORIG_FinalRingSparks);
+		t = AddMain(us(ORIG_FinalRingSparks));
 		t->e = TakeId();
 		*(uint32_t *)&t->w10 = p0;
 		t->c = 0;
@@ -1027,7 +1027,7 @@ namespace lion165
 
 	static void AddTargetSink()
 	{
-		Node24 *t = AddMain(ORIG_TargetSink);
+		Node24 *t = AddMain(us(ORIG_TargetSink));
 		t->c = 0;
 		t->e = (int16_t)TargetSlot();
 		uint8_t *tg = Target();
@@ -1041,7 +1041,7 @@ namespace lion165
 					const int32_t i = EntityIndex(e);
 					if (i < 7)
 					{
-						t = AddMain(ORIG_TargetSink);
+						t = AddMain(us(ORIG_TargetSink));
 						t->c = 0;
 						t->e = (int16_t)i;
 					}
@@ -1056,7 +1056,7 @@ namespace lion165
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)FRAME, (Mat4x3 *)CAM_FRAME);
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)us(FRAME), (Mat4x3 *)us(CAM_FRAME));
 		if (UpdateFlags() & 0x201)
 		{
 			if (UpdateFlags() & 1) return 0;
@@ -1065,19 +1065,19 @@ namespace lion165
 		if (n->c == 0)
 		{
 			StopSounds(-1, 0);
-			CameraScriptStart(CAMERA_SCRIPT, FRAME, Caster(), QMain(), 0);
+			CameraScriptStart(us(CAMERA_SCRIPT), us(FRAME), Caster(), QMain(), 0);
 			ArmCameraReturn();
-			BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
-			var<uint32_t>(TARGET_KEPT) = *(const uint32_t *)(Target() + 0x1C);
-			var<uint32_t>(TARGET_KEPT + 4) = *(const uint32_t *)(Target() + 0x20);
-			var<uint32_t>(CASTER_KEPT) = *(const uint32_t *)(Caster() + 0x1C);
-			var<uint32_t>(CASTER_KEPT + 4) = *(const uint32_t *)(Caster() + 0x20);
+			BindEntityModelFromComData(Caster(), us(BIND_OUT), us(ANIM_DATA));
+			var<uint32_t>(us(TARGET_KEPT)) = *(const uint32_t *)(Target() + 0x1C);
+			var<uint32_t>(us(TARGET_KEPT) + 4) = *(const uint32_t *)(Target() + 0x20);
+			var<uint32_t>(us(CASTER_KEPT)) = *(const uint32_t *)(Caster() + 0x1C);
+			var<uint32_t>(us(CASTER_KEPT) + 4) = *(const uint32_t *)(Caster() + 0x20);
 			for (int32_t i = 0; i < 7; i++)
 			{
 				Keep(i)->pos[0] = *(const uint32_t *)(Entity(i) + 0x1C);
 				Keep(i)->pos[1] = *(const uint32_t *)(Entity(i) + 0x20);
 			}
-			GetDefaultEffectPosition(Target(), (int16_t *)TARGET_ANCHOR);
+			GetDefaultEffectPosition(Target(), (int16_t *)us(TARGET_ANCHOR));
 		}
 		int32_t c = n->c;
 		if (c < 0x4E)
@@ -1098,8 +1098,8 @@ namespace lion165
 			else if (c == 1) AddTrail();
 			else if (c == 8) AddGroundRing();
 			else if (c == 0x14) AddTipFlash();
-			else if (c == 0x18) AddAtTipWithId(ORIG_TipShards);
-			else if (c == 0x1A) AddAtTipWithId(ORIG_TipSmoke);
+			else if (c == 0x18) AddAtTipWithId(us(ORIG_TipShards));
+			else if (c == 0x1A) AddAtTipWithId(us(ORIG_TipSmoke));
 			else if (c == 0x43) ScreenFadeTask(0, 1, 8, 0xFF);
 			else if (c == 0x44) AddTipRings();
 		}
@@ -1113,7 +1113,7 @@ namespace lion165
 			else if (c == 0xC)
 			{
 				GetDefaultEffectPosition(Caster(), &n->w10);
-				Mat4x3 *f = (Mat4x3 *)FRAME;
+				Mat4x3 *f = (Mat4x3 *)us(FRAME);
 				f->t[0] = n->w10;
 				f->t[1] = n->w12;
 				f->t[2] = n->w14;
@@ -1121,7 +1121,7 @@ namespace lion165
 		}
 		else if ((c -= 0xD) < 0xC)
 		{
-			if (c == 0) AddCleared(ORIG_HitDirector);
+			if (c == 0) AddCleared(us(ORIG_HitDirector));
 			else if (c == 9) AddTargetFlatRing();
 		}
 		else if ((c -= 0xC) < 0x26)
@@ -1142,7 +1142,7 @@ namespace lion165
 				QueueTIMUpload(TexBase());
 			}
 			else if (c == 0) AddFlash();
-			else if (c == 0x14) AddCleared(ORIG_WaveSpawner);
+			else if (c == 0x14) AddCleared(us(ORIG_WaveSpawner));
 		}
 		else if ((c -= 0x3C) < 0x2A)
 		{
@@ -1157,13 +1157,13 @@ namespace lion165
 				if (PauseQuery() < 0) return 0;
 				QueueTIMUpload(TexBase());
 			}
-			else if (c == 6) AddAtTipWithId(ORIG_TipRocks);
+			else if (c == 6) AddAtTipWithId(us(ORIG_TipRocks));
 			else if (c == 0x28) ScreenFadeTask(0, 4, 8, 0xFF);
 			else if (c == 0x29)
 			{
-				Mat4x3 *f = (Mat4x3 *)FRAME;
-				f->t[0] = var<int16_t>(TARGET_CENTRE);
-				f->t[2] = var<int16_t>(TARGET_CENTRE + 4);
+				Mat4x3 *f = (Mat4x3 *)us(FRAME);
+				f->t[0] = var<int16_t>(us(TARGET_CENTRE));
+				f->t[2] = var<int16_t>(us(TARGET_CENTRE) + 4);
 			}
 		}
 		else if ((c -= 0x2A) < 0x5A)
@@ -1172,9 +1172,9 @@ namespace lion165
 			if (c == 0)
 			{
 				QueueChainTransformation(Caster(), 3);
-				GetDefaultEffectPosition(Caster(), (int16_t *)CASTER_POS);
-				GetDefaultEffectPosition(Target(), (int16_t *)TARGET_POS);
-				const int32_t dz = (int32_t)var<int16_t>(TARGET_POS + 4) - var<int16_t>(CASTER_POS + 4);
+				GetDefaultEffectPosition(Caster(), (int16_t *)us(CASTER_POS));
+				GetDefaultEffectPosition(Target(), (int16_t *)us(TARGET_POS));
+				const int32_t dz = (int32_t)var<int16_t>(us(TARGET_POS) + 4) - var<int16_t>(us(CASTER_POS) + 4);
 				n->w22 = dz < -2200 ? (int16_t)((dz * 2 + 0x1130) / 16) : 0;
 				step = true;
 			}
@@ -1184,10 +1184,10 @@ namespace lion165
 			else if (c == 0x2D) AddFinal();
 			else if (c == 0x59)
 			{
-				Mat4x3 *f = (Mat4x3 *)FRAME;
-				f->t[0] = var<int16_t>(CASTER_KEPT);
-				f->t[1] = var<int16_t>(CASTER_KEPT + 2);
-				f->t[2] = var<int16_t>(CASTER_KEPT + 4);
+				Mat4x3 *f = (Mat4x3 *)us(FRAME);
+				f->t[0] = var<int16_t>(us(CASTER_KEPT));
+				f->t[1] = var<int16_t>(us(CASTER_KEPT) + 2);
+				f->t[2] = var<int16_t>(us(CASTER_KEPT) + 4);
 			}
 		}
 		else if ((c -= 0x5A) < 0x25)
@@ -1196,15 +1196,15 @@ namespace lion165
 			else if (c == 0)
 			{
 				QueueChainTransformation(Caster(), 4);
-				*(uint32_t *)(Caster() + 0x1C) = var<uint32_t>(CASTER_KEPT);
-				*(uint32_t *)(Caster() + 0x20) = var<uint32_t>(CASTER_KEPT + 4);
+				*(uint32_t *)(Caster() + 0x1C) = var<uint32_t>(us(CASTER_KEPT));
+				*(uint32_t *)(Caster() + 0x20) = var<uint32_t>(us(CASTER_KEPT) + 4);
 				SetScreenFlash(0, 0);
 				StageGroupsHide();
 			}
 			else if (c == 2)
 			{
 				AddTargetSink();
-				AddCleared(ORIG_Restore);
+				AddCleared(us(ORIG_Restore));
 			}
 		}
 		n->c++;
@@ -1278,7 +1278,7 @@ namespace lion165
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_GROUNDRING;
+		*(uint32_t *)h = us(MODEL_GROUNDRING);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x1E) = 0x80;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1295,7 +1295,7 @@ namespace lion165
 	static uint32_t __cdecl GroundRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_GroundRing, n);)
+		FX_HELD(held_note_node(us(ORIG_GroundRing), n);)
 		GroundRingDraw(n, n->w20, shl32(n->c, 4), n->c, GroundRingFade(n->c));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w22;
@@ -1309,7 +1309,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		FacingMatrix(&m, 0, s, &n->w10, 0, -(s >> 3));
-		uint8_t *h = ModelHeader(MODEL_TIPFLASH, false, 0);
+		uint8_t *h = ModelHeader(us(MODEL_TIPFLASH), false, 0);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1317,7 +1317,7 @@ namespace lion165
 	static uint32_t __cdecl TipFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_TipFlash, n);)
+		FX_HELD(held_note_node(us(ORIG_TipFlash), n);)
 		TipFlashDraw(n, n->w1C);
 		if (DrawOnly()) return 0;
 		const int16_t c = n->c;
@@ -1339,7 +1339,7 @@ namespace lion165
 		ang[1] = (int16_t)(n->e != 0 ? 0x300 : -0x300);
 		ang[2] = roll;
 		ComposeZYXRotationMatrix(ang, &m);
-		GteMatrixMultiply((const Mat4x3 *)FRAME, &m);
+		GteMatrixMultiply((const Mat4x3 *)us(FRAME), &m);
 		m.t[0] = n->w10;
 		m.t[1] = n->w12;
 		m.t[2] = n->w14;
@@ -1351,7 +1351,7 @@ namespace lion165
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_TIPRING, c >= 4, fade);
+		uint8_t *h = ModelHeader(us(MODEL_TIPRING), c >= 4, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1359,7 +1359,7 @@ namespace lion165
 	static uint32_t __cdecl TipRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_TipRing, n);)
+		FX_HELD(held_note_node(us(ORIG_TipRing), n);)
 		TipRingDraw(n, n->w18, n->w1C, n->c, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1380,7 +1380,7 @@ namespace lion165
 		ang[2] = n->w18;
 		ComposeZYXRotationMatrix(ang, &m1);
 		int32_t axis[4];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)REF_BACK, r->dir, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(REF_BACK), r->dir, axis);
 		BuildAxisAngleRotationMatrix(angle, &m2, axis);
 		GteMatrixMultiply(&m2, &m1);
 		m1.t[0] = r->pos[0];
@@ -1402,8 +1402,8 @@ namespace lion165
 	static uint32_t __cdecl HitSlashATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_HitSlashA, n);)
-		HitSlashDraw(n, MODEL_SLASHA, n->w1C, n->c >= 4, mul32(n->c - 4, 682));
+		FX_HELD(held_note_node(us(ORIG_HitSlashA), n);)
+		HitSlashDraw(n, us(MODEL_SLASHA), n->w1C, n->c >= 4, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1415,8 +1415,8 @@ namespace lion165
 	static uint32_t __cdecl HitSlashBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_HitSlashB, n);)
-		HitSlashDraw(n, MODEL_SLASHB, n->w1C, n->c >= 2, shl32(n->c - 2, 9));
+		FX_HELD(held_note_node(us(ORIG_HitSlashB), n);)
+		HitSlashDraw(n, us(MODEL_SLASHB), n->w1C, n->c >= 2, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1429,7 +1429,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, n->w18, 0, n->w10, 0, n->w14, n->w1C, sy, n->w1C, &Camera());
-		uint8_t *h = ModelHeader(MODEL_FLATRING, c >= 2, fade);
+		uint8_t *h = ModelHeader(us(MODEL_FLATRING), c >= 2, fade);
 		RenderToArena(h);
 		FieldFree(0x58);
 	}
@@ -1437,7 +1437,7 @@ namespace lion165
 	static uint32_t __cdecl FlatRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_FlatRing, n);)
+		FX_HELD(held_note_node(us(ORIG_FlatRing), n);)
 		FlatRingDraw(n, n->w20, n->c, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w22;
@@ -1453,7 +1453,7 @@ namespace lion165
 		Node24 *n = (Node24 *)tn;
 		if (n->c % 12 == 1)
 		{
-			Node24 *t = AddMain(ORIG_ScreenWave);
+			Node24 *t = AddMain(us(ORIG_ScreenWave));
 			t->c = 0;
 			t->w18 = (int16_t)shl32(CrtRand() % 8, 9);
 			t->w1A = (int16_t)shl32(CrtRand() % 4, 9);
@@ -1465,7 +1465,7 @@ namespace lion165
 	}
 
 	static int32_t ScreenWaveFade(int32_t c) { return c < 8 ? 0x1000 - mul32(c, 0x180) : c >= 0x14 ? mul32(c, 0x180) - 0x1A00 : 0x400; }
-	static uint32_t ScreenWaveColour(int32_t c) { return var<uint32_t>(WAVE_COLOURS + 4 * (c % 0x12)); }
+	static uint32_t ScreenWaveColour(int32_t c) { return var<uint32_t>(us(WAVE_COLOURS) + 4 * (c % 0x12)); }
 	static void ScreenWaveDraw(const Node24 *n, int32_t scroll, int32_t fade, uint32_t colour)
 	{
 		Mat4x3 m = {};
@@ -1489,7 +1489,7 @@ namespace lion165
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1A) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_WAVE;
+		*(uint32_t *)h = us(MODEL_WAVE);
 		*(uint32_t *)(h + 0x20) = 0xF3;
 		*(int16_t *)(h + 0x1C) = 0x40;
 		*(int16_t *)(h + 0x1E) = 0x80;
@@ -1503,7 +1503,7 @@ namespace lion165
 	static uint32_t __cdecl ScreenWaveTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_ScreenWave, n);)
+		FX_HELD(held_note_node(us(ORIG_ScreenWave), n);)
 		ScreenWaveDraw(n, mul32(n->w20, n->c), ScreenWaveFade(n->c), ScreenWaveColour(n->c));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1515,7 +1515,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		FacingMatrix(&m, roll, s, &n->w10, 0x1000, -(s >> 3));
-		uint8_t *h = ModelHeader(MODEL_TIPFLASH2, c < 8 || c >= 0x20, fade);
+		uint8_t *h = ModelHeader(us(MODEL_TIPFLASH2), c < 8 || c >= 0x20, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1523,7 +1523,7 @@ namespace lion165
 	static uint32_t __cdecl TipFlash2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_TipFlash2, n);)
+		FX_HELD(held_note_node(us(ORIG_TipFlash2), n);)
 		TipFlash2Draw(n, n->w18, n->w1C, n->c, TipFlash2Fade(n->c));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1555,7 +1555,7 @@ namespace lion165
 		v[1] = v[1] - by;
 		Normalize(v, v);
 		int32_t axis[4];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)REF_RIGHT, v, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(REF_RIGHT), v, axis);
 		Mat4x3 m = {};
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = bx - 0xA0;
@@ -1568,7 +1568,7 @@ namespace lion165
 		Scale3DMatrix(&m, sv);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(MODEL_STREAK, c >= 0x20, fade);
+		uint8_t *h = ModelHeader(us(MODEL_STREAK), c >= 0x20, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1585,8 +1585,8 @@ namespace lion165
 			return 0;
 		}
 		if (n->c == 0) SetTipPoint();
-		FX_HELD(held_note_node(ORIG_Streak, n);)
-		StreakDraw(n, (const int16_t *)TIP, n->w20, n->c, shl32(n->c - 0x20, 9));
+		FX_HELD(held_note_node(us(ORIG_Streak), n);)
+		StreakDraw(n, (const int16_t *)us(TIP), n->w20, n->c, shl32(n->c - 0x20, 9));
 		if (DrawOnly()) return 0;
 		n->w20 = StreakWidth(n->c);
 		n->c++;
@@ -1597,7 +1597,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, n->w18, 0, n->w10, n->w12, n->w14, s, s, s, &Camera());
-		uint8_t *h = ModelHeader(MODEL_FINALRING, c >= 0xC, fade);
+		uint8_t *h = ModelHeader(us(MODEL_FINALRING), c >= 0xC, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1605,7 +1605,7 @@ namespace lion165
 	static uint32_t __cdecl FinalRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_FinalRing, n);)
+		FX_HELD(held_note_node(us(ORIG_FinalRing), n);)
 		FinalRingDraw(n, n->w1C, n->c, mul32(n->c - 0xC, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1630,7 +1630,7 @@ namespace lion165
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(&n->w10, 0x1000, 0);
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_FINALFLASH, c >= 0x10, fade);
+		uint8_t *h = ModelHeader(us(MODEL_FINALFLASH), c >= 0x10, fade);
 		FrameArena() = RenderPrimModel(h, RenderOT(), 1, FrameArena());
 		FieldFree(0x58);
 	}
@@ -1638,7 +1638,7 @@ namespace lion165
 	static uint32_t __cdecl FinalFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		var<int16_t>(TIP + 6) = (int16_t)(mul32(n->w1C, 850) >> 12);
+		var<int16_t>(us(TIP) + 6) = (int16_t)(mul32(n->w1C, 850) >> 12);
 		FX_HELD(held_note_node(ORIG_FinalFlash, n);)
 		FinalFlashDraw(n, n->w1C, n->c, shl32(n->c - 0x10, 9));
 		if (DrawOnly()) return 0;
@@ -1653,7 +1653,7 @@ namespace lion165
 	{
 		Mat4x3 m = {};
 		WorldMatrix(&m, 0, 0, 0, n->w10, 0, n->w14, s, s, s, &Camera());
-		uint8_t *h = ModelHeader(MODEL_ROCK, c >= 6, fade);
+		uint8_t *h = ModelHeader(us(MODEL_ROCK), c >= 6, fade);
 		RenderToCursor(h);
 		FieldFree(0x58);
 	}
@@ -1661,7 +1661,7 @@ namespace lion165
 	static uint32_t __cdecl TargetRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_TargetRing, n);)
+		FX_HELD(held_note_node(us(ORIG_TargetRing), n);)
 		TargetRingDraw(n, n->w1C, n->c, mul32(n->c - 6, 409));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1720,13 +1720,13 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		w->m1 = Camera();
 		const int32_t id = n->e;
-		*(uint32_t *)h = MODEL_ROCK;
+		*(uint32_t *)h = us(MODEL_ROCK);
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
-		FX_HELD(held_note_pool(ORIG_RockBurst, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_RockBurst), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -1805,12 +1805,12 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		w->m1 = Camera();
 		const int32_t id = n->e;
-		*(uint32_t *)h = MODEL_DEBRIS;
+		*(uint32_t *)h = us(MODEL_DEBRIS);
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[0] = 0;
-		FX_HELD(held_note_pool(ORIG_Debris, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_Debris), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -1892,7 +1892,7 @@ namespace lion165
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_TIPSHARD;
+		*(uint32_t *)h = us(MODEL_TIPSHARD);
 		*(uint32_t *)(h + 8) = 0;
 		TipShardFrame(w, n, &Camera());
 		const int32_t id = n->e;
@@ -1900,8 +1900,8 @@ namespace lion165
 		w->ang[0] = 0;
 		w->v[1] = 0x3000;
 		w->v[2] = 0;
-		FX_HELD(held_note_pool(ORIG_TipShards, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_TipShards), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -1961,7 +1961,7 @@ namespace lion165
 		w->ang[1] = 0;
 		w->ang[2] = n->w18;
 		ComposeZYXRotationMatrix(w->ang, &w->m1);
-		const int32_t angle = RotationBetweenVectors((const int32_t *)REF_BACK, r->dir, w->v);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(REF_BACK), r->dir, w->v);
 		BuildAxisAngleRotationMatrix(angle, &w->m2, w->v);
 		GteMatrixMultiply(&w->m2, &w->m1);
 		w->m1.t[0] = r->pos[0];
@@ -2005,11 +2005,11 @@ namespace lion165
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = us(MODEL_SHARD);
 		HitShardFrame(w, n, r, &Camera());
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_HitShards, n, h);)
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		FX_HELD(held_note_pool(us(ORIG_HitShards), n, h);)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
 			if (p->id != id) continue;
@@ -2085,11 +2085,11 @@ namespace lion165
 		int32_t count = 0;
 		*(uint32_t *)(h + 8) = 0;
 		w->m1 = Camera();
-		*(uint32_t *)h = MODEL_TIPROCK;
+		*(uint32_t *)h = us(MODEL_TIPROCK);
 		w->ang[1] = 0;
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_TipRocks, n, h);)
-		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
+		FX_HELD(held_note_pool(us(ORIG_TipRocks), n, h);)
+		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
 			if (p->id != id) continue;
@@ -2119,7 +2119,7 @@ namespace lion165
 		w->v[0] = p->a[8];
 		w->v[1] = p->a[9];
 		w->v[2] = p->a[10];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)REF_UP, w->v, w->w);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(REF_UP), w->v, w->w);
 		BuildAxisAngleRotationMatrix(angle, &w->m2, w->w);
 		w->m2.t[0] = pos[0];
 		w->m2.t[1] = pos[1];
@@ -2184,13 +2184,13 @@ namespace lion165
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SHARD;
+		*(uint32_t *)h = us(MODEL_SHARD);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		FinalShardFrame(w, n, &Camera());
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_FinalShards, n, h);)
-		for (uint32_t a = POOL_B; a < FINAL_SHARDS_END; a += 0x20)
+		FX_HELD(held_note_pool(us(ORIG_FinalShards), n, h);)
+		for (uint32_t a = us(POOL_B); a < us(FINAL_SHARDS_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
 			if (p->id != id) continue;
@@ -2279,12 +2279,12 @@ namespace lion165
 				if (i < 0xC8) BoneSpark(EntryA(i), n->e, 0x14);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 0);
+		uint8_t *h = SequenceHeader(us(SEQ_SPARK), 0);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_BoneSparks, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_BoneSparks), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2333,13 +2333,13 @@ namespace lion165
 				}
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 0);
+		uint8_t *h = SequenceHeader(us(SEQ_SPARK), 0);
 		Mat4x3 *cam = (Mat4x3 *)((uint8_t *)w + 0x10);
 		*cam = Camera();
 		SpriteLight(cam);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_BladeSparks, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_BladeSparks), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2404,11 +2404,11 @@ namespace lion165
 				p->a[5] = (int16_t)(p->a[1] / t);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SMOKE, 8);
+		uint8_t *h = SequenceHeader(us(SEQ_SMOKE), 8);
 		TipSmokeFrame(w, n, &Camera());
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_TipSmoke, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_TipSmoke), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2441,7 +2441,7 @@ namespace lion165
 		int32_t count = 0;
 		(void)fn;
 		FX_HELD(held_note_pool(fn, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2484,10 +2484,10 @@ namespace lion165
 				p->a[2] = (int16_t)(p->a[2] + (int16_t)(CrtRand() % 0x258 - 0x12C));
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITA, 8);
+		uint8_t *h = SequenceHeader(us(SEQ_HITA), 8);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
-		return SparkAPass(n, w, h, ORIG_HitSparkA);
+		return SparkAPass(n, w, h, us(ORIG_HitSparkA));
 	}
 
 	static uint32_t __cdecl FinalSparkATask(TaskNode *tn)
@@ -2513,10 +2513,10 @@ namespace lion165
 				p->a[2] = (int16_t)(p->a[2] + (int16_t)(CrtRand() % 0x7D0 - 0x3E8));
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITA, 8);
+		uint8_t *h = SequenceHeader(us(SEQ_HITA), 8);
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
-		return SparkAPass(n, w, h, ORIG_FinalSparkA);
+		return SparkAPass(n, w, h, us(ORIG_FinalSparkA));
 	}
 
 	static uint32_t __cdecl HitSparkBTask(TaskNode *tn)
@@ -2552,13 +2552,13 @@ namespace lion165
 				p->a[6] = (int16_t)(mul32(v[2], s2) >> 12);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITB, 8);
+		uint8_t *h = SequenceHeader(us(SEQ_HITB), 8);
 		w->m1 = Camera();
 		int32_t count = 0;
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_HitSparkB, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_HitSparkB), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2613,7 +2613,7 @@ namespace lion165
 				p->a[6] = (int16_t)(mul32(s2, sc[2]) >> 12);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_SPARK, 8);
+		uint8_t *h = SequenceHeader(us(SEQ_SPARK), 8);
 		int32_t count = 0;
 		w->ang[0] = 0;
 		w->ang[1] = 0;
@@ -2625,8 +2625,8 @@ namespace lion165
 		ComposeAffineTransform(&Camera(), &w->m1, &w->m1);
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_TargetSparks, n, h);)
-		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_TargetSparks), n, h);)
+		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->id != id) continue;
@@ -2675,14 +2675,14 @@ namespace lion165
 				const int32_t ang = CrtRand() % 0x1000;
 				sc[0] = ComputeSin(ang);
 				sc[2] = ComputeCos(ang);
-				const int32_t r = var<int16_t>(TIP + 6) - CrtRand() % 0x64;
+				const int32_t r = var<int16_t>(us(TIP) + 6) - CrtRand() % 0x64;
 				p->a[0] = (int16_t)(mul32(sc[0], r) >> 12);
 				const int32_t y = CrtRand() % 0xC8;
 				p->a[2] = (int16_t)(mul32(r, sc[2]) >> 12);
 				p->a[1] = (int16_t)(y - 0x64);
 			}
 		}
-		uint8_t *h = SequenceHeader(SEQ_HITB, 8);
+		uint8_t *h = SequenceHeader(us(SEQ_HITB), 8);
 		int32_t count = 0;
 		w->ang[0] = 0x100;
 		w->ang[1] = 0;
@@ -2697,7 +2697,7 @@ namespace lion165
 		w->m1.t[2] += Camera().t[2];
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(ORIG_FinalRingSparks, n, h);)
+		FX_HELD(held_note_pool(us(ORIG_FinalRingSparks), n, h);)
 		for (uint32_t a = base, k = 0; k < 0x1F4; k++, a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2723,65 +2723,65 @@ namespace lion165
 	{
 		const TaskNode *prev = nullptr;
 		for (const TaskNode *t = QMain()->head; t && t != self; t = t->next) prev = t;
-		return prev && (uint32_t)prev->func == ORIG_Trail;
+		return prev && (uint32_t)prev->func == us(ORIG_Trail);
 	}
 
 	static uint32_t HitDirectorBody(Node24 *n, uint32_t slot4)
 	{
 		for (int32_t i = 0; i < 0xF; i++)
 		{
-			const int32_t t = var<int32_t>(HIT_TIMES + 4 * i);
+			const int32_t t = var<int32_t>(us(HIT_TIMES) + 4 * i);
 			if (n->c > t) continue;
 			if (n->c < t) break;
 			int16_t v[4];
 			v[3] = (int16_t)(slot4 >> 16);
-			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HIT_OFFSETS + 8 * i), v);
-			v[0] = (int16_t)(v[0] + var<int16_t>(TIP0));
-			v[1] = (int16_t)(v[1] + var<int16_t>(TIP0 + 2));
-			v[2] = (int16_t)(v[2] + var<int16_t>(TIP0 + 4));
+			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(us(HIT_OFFSETS) + 8 * i), v);
+			v[0] = (int16_t)(v[0] + var<int16_t>(us(TIP0)));
+			v[1] = (int16_t)(v[1] + var<int16_t>(us(TIP0) + 2));
+			v[2] = (int16_t)(v[2] + var<int16_t>(us(TIP0) + 4));
 			if (i > 3)
 			{
-				v[0] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT) + v[0]) >> 1);
-				v[1] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT + 2) + v[1]) >> 1);
-				v[2] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT + 4) + v[2]) >> 1);
+				v[0] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT)) + v[0]) >> 1);
+				v[1] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT) + 2) + v[1]) >> 1);
+				v[2] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT) + 4) + v[2]) >> 1);
 			}
 			const uint32_t p0 = *(const uint32_t *)&v[0], p1 = *(const uint32_t *)&v[2];
-			var<uint32_t>(PREV_HIT) = p0;
+			var<uint32_t>(us(PREV_HIT)) = p0;
 			HitRec *r = Hit(i);
 			*(uint32_t *)&r->pos[0] = p0;
 			*(uint32_t *)&r->pos[2] = p1;
-			var<uint32_t>(PREV_HIT + 4) = p1;
+			var<uint32_t>(us(PREV_HIT) + 4) = p1;
 			for (int k = 0; k < 4; k++)
 			{
-				const uint32_t d = var<uint32_t>(TRAIL_DIR + 4 * k);
-				var<uint32_t>(LAST_HIT + 4 * k) = d;
+				const uint32_t d = var<uint32_t>(us(TRAIL_DIR) + 4 * k);
+				var<uint32_t>(us(LAST_HIT) + 4 * k) = d;
 				((uint32_t *)r->dir)[k] = d;
 			}
-			Node24 *t1 = AddMain(ORIG_HitSparkA);
+			Node24 *t1 = AddMain(us(ORIG_HitSparkA));
 			t1->c = 0;
 			t1->e = TakeId();
 			*(uint32_t *)&t1->w10 = p0;
 			*(uint32_t *)&t1->w14 = p1;
-			Node24 *t2 = AddMain(ORIG_HitSparkB);
+			Node24 *t2 = AddMain(us(ORIG_HitSparkB));
 			t2->c = 0;
 			t2->e = TakeId();
 			*(uint32_t *)&t2->w10 = p0;
 			*(uint32_t *)&t2->w14 = p1;
-			Node24 *t3 = AddMain(ORIG_HitSlashA);
+			Node24 *t3 = AddMain(us(ORIG_HitSlashA));
 			t3->c = 0;
 			t3->e = (int16_t)i;
 			t3->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t s3 = (int16_t)((CrtRand() % 0xA00 + 0xE00) / 3);
 			t3->w1E = s3;
 			t3->w1C = s3;
-			Node24 *t4 = AddMain(ORIG_HitSlashB);
+			Node24 *t4 = AddMain(us(ORIG_HitSlashB));
 			t4->c = 0;
 			t4->e = (int16_t)i;
 			t4->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t s4 = (int16_t)((CrtRand() % 0xC00 + 0xC00) / 3);
 			t4->w1E = s4;
 			t4->w1C = (int16_t)(s4 + 0x580);
-			Node24 *t5 = AddMain(ORIG_HitShards);
+			Node24 *t5 = AddMain(us(ORIG_HitShards));
 			t5->e = TakeId();
 			t5->c = 0;
 			t5->w1A = (int16_t)i;
@@ -2790,11 +2790,11 @@ namespace lion165
 				const int32_t ts = TargetSlot();
 				uint8_t *tg = Entity(ts);
 				tg[1] |= 0x10;
-				Node24 *b = AddMain(ORIG_TargetBounce);
+				Node24 *b = AddMain(us(ORIG_TargetBounce));
 				b->c = 0;
 				b->e = (int16_t)ts;
-				b->w1A = (int16_t)(i != 0 ? var<int32_t>(HIT_TIMES + 4 * (i + 1)) - var<int32_t>(HIT_TIMES + 4 * i) : 8);
-				b->w1C = (int16_t)(var<int16_t>(HIT_HEIGHTS + 4 * i) - 0xFA0);
+				b->w1A = (int16_t)(i != 0 ? var<int32_t>(us(HIT_TIMES) + 4 * (i + 1)) - var<int32_t>(us(HIT_TIMES) + 4 * i) : 8);
+				b->w1C = (int16_t)(var<int16_t>(us(HIT_HEIGHTS) + 4 * i) - 0xFA0);
 				uint8_t *e = *(uint8_t **)(tg + 0x8C);
 				if (e && e != tg)
 				{
@@ -2806,7 +2806,7 @@ namespace lion165
 							if (k < 7)
 							{
 								Entity(k)[1] |= 0x10;
-								Node24 *b2 = AddMain(ORIG_TargetBounce);
+								Node24 *b2 = AddMain(us(ORIG_TargetBounce));
 								b2->w1A = b->w1A;
 								b2->w1C = b->w1C;
 								b2->c = 0;
@@ -2895,7 +2895,7 @@ namespace lion165
 		const int16_t c = n->c;
 		if (c <= 8)
 		{
-			const int16_t y = (int16_t)(n->w20 + var<int16_t>(TARGET_ANCHOR + 2));
+			const int16_t y = (int16_t)(n->w20 + var<int16_t>(us(TARGET_ANCHOR) + 2));
 			*(int16_t *)(ent + 0x10) = 0x800;
 			*(int16_t *)(ent + 0x1E) = y;
 		}
@@ -2903,17 +2903,17 @@ namespace lion165
 		if (c <= 8) n->w20 = (int16_t)(n->w20 - n->w22);
 		if (c == 9)
 		{
-			Node24 *t = AddMain(ORIG_Shake);
+			Node24 *t = AddMain(us(ORIG_Shake));
 			t->c = 0;
-			t = AddMain(ORIG_TargetSparks);
+			t = AddMain(us(ORIG_TargetSparks));
 			t->e = TakeId();
-			*(uint32_t *)&t->w10 = var<uint32_t>(TARGET_KEPT);
+			*(uint32_t *)&t->w10 = var<uint32_t>(us(TARGET_KEPT));
 			t->c = 0;
-			*(uint32_t *)&t->w14 = var<uint32_t>(TARGET_KEPT + 4);
-			t = AddMain(ORIG_TargetRing);
-			*(uint32_t *)&t->w10 = var<uint32_t>(TARGET_KEPT);
+			*(uint32_t *)&t->w14 = var<uint32_t>(us(TARGET_KEPT) + 4);
+			t = AddMain(us(ORIG_TargetRing));
+			*(uint32_t *)&t->w10 = var<uint32_t>(us(TARGET_KEPT));
 			t->c = 0;
-			*(uint32_t *)&t->w14 = var<uint32_t>(TARGET_KEPT + 4);
+			*(uint32_t *)&t->w14 = var<uint32_t>(us(TARGET_KEPT) + 4);
 			const int16_t s = (int16_t)((CrtRand() % 0x800 + 0x2000) / 4);
 			t->w1E = s;
 			t->w1C = s;
@@ -2956,7 +2956,7 @@ namespace lion165
 		Node24 *n = (Node24 *)tn;
 		int32_t v = mul32(ComputeSin(shl32(n->c, 10) / 12 + 0x400), 200) >> 12;
 		if (!(n->c & 1)) v = -v;
-		var<int16_t>(0x1D97712) = (int16_t)v;
+		var<int16_t>(us(0x1D97712)) = (int16_t)v;
 		if (DrawOnly()) return 0;
 		n->c++;
 		return EndAt(n->c, 0xC);

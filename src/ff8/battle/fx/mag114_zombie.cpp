@@ -25,12 +25,12 @@ namespace zombie114
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(0x252181C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521820); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252183C); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521840; }
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x252181C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2521820)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x252183C)); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2521840); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(us(0x1D98B3C)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6C9A60;
 	static const uint32_t ORIG_TargetTask = 0x6C9BC0;
@@ -38,37 +38,37 @@ namespace zombie114
 	static const uint32_t ZERO_Vector = 0x2521860;
 	static const uint32_t OVERLAY_Colour = 0x2521868;
 	static const uint32_t WAVE_Table = 0x12BE238;
-	static const void *const SOUND_Zombie = (const void *)0x12BE234;
+	static const void *SOUND_Zombie() { return (const void *)us(0x12BE234); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701530)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701530))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -344,7 +344,7 @@ namespace zombie114
 				GteStoreIR123(s + 0x2C);
 				const uint32_t idx = ((uint32_t)F<uint16_t>(s, 0x64) + (uint32_t)F<uint16_t>(s, 0x2E) * 4) & 0xFFF;
 				const int16_t sx = F<int16_t>(s, 0x24);
-				int32_t d = mul32(*(const int16_t *)(WAVE_Table + idx * 2), F<int16_t>(s, 0x66)) >> 12;
+				int32_t d = mul32(*(const int16_t *)(us(WAVE_Table) + idx * 2), F<int16_t>(s, 0x66)) >> 12;
 				d = mul32(d, (int32_t)sx - (int32_t)F<int16_t>(s, 0x5C)) >> 11;
 				const int16_t nx = (int16_t)(sx + d);
 				F<int16_t>(s, 0x24) = nx;
@@ -505,7 +505,7 @@ namespace zombie114
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		GteLoadV0((const void *)ZERO_Vector);
+		GteLoadV0((const void *)us(ZERO_Vector));
 		GteRTPS();
 		GteReadSXY2(h + 0x7C);
 		GteReadOTZ(h + 0x88);
@@ -517,7 +517,7 @@ namespace zombie114
 			F<uint32_t>(h, 0x24) = BoneWorkspace();
 			F<int16_t>(h, 0x38) = 0x140;
 			F<int16_t>(h, 0x3A) = 0xD8;
-			BlendColour((const void *)OVERLAY_Colour, entity + 0x28, a->weight, 0x1000 - a->weight, h + 0x3C);
+			BlendColour((const void *)us(OVERLAY_Colour), entity + 0x28, a->weight, 0x1000 - a->weight, h + 0x3C);
 			h[0x3F] = 0;
 			F<uint32_t>(h, 0x40) = *(const uint32_t *)(entity + 0x7C);
 			PacketCursor() = SwayModel(*(const uint8_t *const *)(entity + 0x64), h + 0x20, RenderOT(0x44), 0, PacketCursor());
@@ -603,7 +603,7 @@ namespace zombie114
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(t->entity, pos);
-			BdPlaySE3D(SOUND_Zombie, 0x101, pos);
+			BdPlaySE3D(SOUND_Zombie(), 0x101, pos);
 		}
 		if (t->counter == 0x36) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
 		if (t->counter >= 0x3C)
@@ -650,13 +650,13 @@ namespace zombie114
 				if (busy) r->counter = 0;
 				else
 				{
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 					if (t)
 					{
 						Memset32(&t->counter, 0, 0x1C1);
 						t->action = (int16_t)(uint16_t)r->action;
 						t->entity = entity;
-						DecodeModelPrimLayout(MODEL_Mist, t->mist, 0x6F4);
+						DecodeModelPrimLayout(us(MODEL_Mist), t->mist, 0x6F4);
 						r->action++;
 					}
 				}

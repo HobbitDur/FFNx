@@ -25,18 +25,18 @@ namespace flame194
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &EndTick() { return var<int32_t>(0x2271470); }
-	inline int32_t &ModuleTick() { return var<int32_t>(0x2271BB8); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x22746F8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2275520); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x22764C8); }
-	inline int32_t &PartCount() { return var<int32_t>(0x2276768); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x227676C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2276770); }
-	inline int32_t &FlightCount() { return var<int32_t>(0x2276774); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2272A18; }
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2272A28; }
-	inline TaskQueue *QAux() { return (TaskQueue *)0x2274700; }
+	inline int32_t &EndTick() { return var<int32_t>(us(0x2271470)); }
+	inline int32_t &ModuleTick() { return var<int32_t>(us(0x2271BB8)); }
+	inline uint32_t &Flags() { return var<uint32_t>(us(0x22746F8)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2275520)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x22764C8)); }
+	inline int32_t &PartCount() { return var<int32_t>(us(0x2276768)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x227676C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2276770)); }
+	inline int32_t &FlightCount() { return var<int32_t>(us(0x2276774)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x2272A18); }
+	inline TaskQueue *QShots() { return (TaskQueue *)us(0x2272A28); }
+	inline TaskQueue *QAux() { return (TaskQueue *)us(0x2274700); }
 	static const uint32_t PARTS_A = 0x2272A38, PARTS_B = 0x2273868;
 	static const int32_t PARTS_N = 150;
 	static const uint32_t FLIGHTS = 0x2271478;
@@ -71,34 +71,34 @@ namespace flame194
 	static const uint32_t ANIM_DATA = 0xD0BD78;
 	static const uint32_t MODEL_Flash = 0xD106DC, MODEL_Spin = 0xD11B54, MODEL_Burst = 0xD0FB0C, MODEL_Ring = 0xD0DCE4, MODEL_Pillar = 0xD1283C;
 	static const uint32_t SEQ_Smoke = 0xD0DB5C, SEQ_GroundSmoke = 0xD0DC34, SEQ_Head = 0xD0DCA8, SEQ_Flame = 0xD0D938;
-	static const void *const SOUND_Gun = (const void *)0xD12E64;
-	static const int32_t *const MUZZLE_REF = (const int32_t *)0xD12E70;
-	static const uint32_t *const GHOST_COLOURS = (const uint32_t *)0xD12E80;
-	static const uint32_t *const EMBER_COLOURS = (const uint32_t *)0xD12E94;
+	static const void *SOUND_Gun() { return (const void *)us(0xD12E64); }
+	static const int32_t *MUZZLE_REF() { return (const int32_t *)us(0xD12E70); }
+	static const uint32_t *GHOST_COLOURS() { return (const uint32_t *)us(0xD12E80); }
+	static const uint32_t *EMBER_COLOURS() { return (const uint32_t *)us(0xD12E94); }
 
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, ctx, ot, a, cursor); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
-	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteReadSZ3(void *dst) { fn<void (__cdecl *)(void *)>(0x45E220)(dst); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x64E080))(h, ot, mode, cursor); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
+	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(us(0x64DE40))(); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteReadSZ3(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E220))(dst); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -149,12 +149,12 @@ namespace flame194
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Flame Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x28 && sizeof(Flight) == 0xE8 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Flame Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(SHOTS + 0x28 * i); }
-	inline Flight *FlightRec(int32_t k) { return (Flight *)(FLIGHTS + 0xE8 * k); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(GHOSTS + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(us(SHOTS) + 0x28 * i); }
+	inline Flight *FlightRec(int32_t k) { return (Flight *)(us(FLIGHTS) + 0xE8 * k); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(us(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
-	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? PARTS_B : PARTS_A); }
+	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? us(PARTS_B) : us(PARTS_A)); }
 	inline Particle *FindFree(Particle *arr) { for (int32_t i = 0; i < PARTS_N; i++) if (arr[i].id == 0) return &arr[i]; return nullptr; }
 }
 }
@@ -238,11 +238,11 @@ namespace flame194
 			ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), m);
 			*(uint16_t *)(h + 0x34) = 0;
 			*(uint16_t *)(h + 0x36) = 0;
-			*(uint32_t *)(h + 0x24) = var<uint32_t>(0x1D98B3C);
+			*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
 			*(uint32_t *)(h + 0x3C) = *(const uint32_t *)(entity + 0x28);
 			*(uint16_t *)(h + 0x38) = 0x140;
 			*(uint16_t *)(h + 0x3A) = 0xD8;
-			*(uint32_t *)(h + 0x30) = var<uint32_t>(0x1D969A8);
+			*(uint32_t *)(h + 0x30) = var<uint32_t>(us(0x1D969A8));
 			*(uint32_t *)(h + 0x40) = 0xFFFFFFFF;
 			const uint8_t c = entity[7];
 			h[0x4A] = c;
@@ -320,13 +320,13 @@ namespace flame194
 	static void RingDraw(const Node *n, bool faded, int32_t fade)
 	{
 		AimMatrix(n);
-		ModelDraw(MODEL_Ring, faded, fade);
+		ModelDraw(us(MODEL_Ring), faded, fade);
 	}
 	static void PillarDraw(const Node *n, int32_t scroll, bool faded, int32_t fade)
 	{
 		AimMatrix(n);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x7C);
-		*(uint32_t *)h = MODEL_Pillar;
+		*(uint32_t *)h = us(MODEL_Pillar);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int16_t *)(h + 0x18) = 0;
@@ -346,14 +346,14 @@ namespace flame194
 	static void BurstDraw(const Node *n, bool faded, int32_t fade)
 	{
 		TransformCameraByShadowRotation(n->pos, n->f1C, -((int32_t)n->f1C >> 3));
-		ModelDraw(MODEL_Burst, faded, fade);
+		ModelDraw(us(MODEL_Burst), faded, fade);
 	}
 
 	static int16_t SmokeDraw(const Node *n)
 	{
 		TransformCameraByShadowRotation(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = us(SEQ_Smoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -381,7 +381,7 @@ namespace flame194
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_GroundSmoke;
+		*(uint32_t *)h = us(SEQ_GroundSmoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -395,7 +395,7 @@ namespace flame194
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 0;
-		*(uint32_t *)h = SEQ_Head;
+		*(uint32_t *)h = us(SEQ_Head);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -489,8 +489,8 @@ namespace flame194
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_FlashTask, n);)
-		MuzzleModel(n, MODEL_Flash, n->counter >= 2, FlashFade(n->counter));
+		FX_HELD(held_note_node(us(ORIG_FlashTask), n);)
+		MuzzleModel(n, us(MODEL_Flash), n->counter >= 2, FlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -502,8 +502,8 @@ namespace flame194
 	static uint32_t __cdecl SpinTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_SpinTask, n);)
-		MuzzleModel(n, MODEL_Spin, n->counter >= 2, SpinFade(n->counter));
+		FX_HELD(held_note_node(us(ORIG_SpinTask), n);)
+		MuzzleModel(n, us(MODEL_Spin), n->counter >= 2, SpinFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A, step = n->f1E;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -517,7 +517,7 @@ namespace flame194
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_SmokeTask, n);)
+		FX_HELD(held_note_node(us(ORIG_SmokeTask), n);)
 		const int16_t next = SmokeDraw(n);
 		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
@@ -528,7 +528,7 @@ namespace flame194
 	static uint32_t __cdecl GroundSmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_GroundSmokeTask, n);)
+		FX_HELD(held_note_node(us(ORIG_GroundSmokeTask), n);)
 		const int16_t next = GroundSmokeDraw(n);
 		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
@@ -547,7 +547,7 @@ namespace flame194
 			ff8fx::copy<(8)>(t->start, s->pos);
 			ff8fx::copy<(8)>(t->target, n->pos);
 			int32_t v[3];
-			TransformVectorBy3x3Matrix(&s->m, MUZZLE_REF, v);
+			TransformVectorBy3x3Matrix(&s->m, MUZZLE_REF(), v);
 			const int32_t dx = t->target[0] - t->start[0];
 			const int32_t dz = t->target[2] - t->start[2];
 			const int32_t half = Sqrt(mul32(dz, dz) + mul32(dx, dx)) >> 1;
@@ -560,20 +560,20 @@ namespace flame194
 			SplineSetup(3, t->ctrl, work);
 			for (int32_t i = 0; i < FLIGHT_POINTS; i++) SplineEval(3, work, t->pts[i], (i * 0x1000) / 23);
 			FieldFree(0x190);
-			Node *hd = AddTask(QAux(), ORIG_HeadTask);
+			Node *hd = AddTask(QAux(), us(ORIG_HeadTask));
 			hd->counter = 0;
 			hd->f0E = n->f18;
 			hd->f18 = 0;
 			hd->f1A = 5;
 			hd->f1C = (int16_t)(CrtRand() % 0x180 + 0x400);
-			Node *tr = AddTask(QAux(), ORIG_TrailTask);
+			Node *tr = AddTask(QAux(), us(ORIG_TrailTask));
 			tr->pos[3] = (int16_t)PartCount();
 			PartCount()++;
 			tr->counter = 0;
 			tr->f0E = n->f18;
 			tr->f18 = 0;
 			tr->f1A = 5;
-			Node *em = AddTask(QAux(), ORIG_EmberTask);
+			Node *em = AddTask(QAux(), us(ORIG_EmberTask));
 			em->f0E = n->f18;
 			em->pos[3] = (int16_t)PartCount();
 			PartCount()++;
@@ -595,7 +595,7 @@ namespace flame194
 	static uint32_t __cdecl HeadTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_HeadTask, n);)
+		FX_HELD(held_note_node(us(ORIG_HeadTask), n);)
 		HeadDraw(FlightRec(n->f0E)->pts[n->f18], n->f1C);
 		if (UpdateFlags() & 0x201) return 0;
 		FlightStep(n);
@@ -609,12 +609,12 @@ namespace flame194
 		Particle *arr = PartArray(n->f0E);
 		*(volatile uint32_t *)&n_ = (uint32_t)arr;
 		Flight *t = FlightRec(n->f0E);
-		FX_HELD(held_note_node(ORIG_TrailTask, n);)
+		FX_HELD(held_note_node(us(ORIG_TrailTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		const int32_t id = n->pos[3] + 1;
-		*(uint32_t *)h = SEQ_Flame;
+		*(uint32_t *)h = us(SEQ_Flame);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -656,7 +656,7 @@ namespace flame194
 		Node *n = (Node *)n_;
 		Particle *arr = PartArray(n->f0E);
 		Flight *t = FlightRec(n->f0E);
-		FX_HELD(held_note_node(ORIG_EmberTask, n);)
+		FX_HELD(held_note_node(us(ORIG_EmberTask), n);)
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		uint8_t *q = (uint8_t *)FieldAlloc(0x44);
 		EmberSetup(q);
@@ -672,7 +672,7 @@ namespace flame194
 			const int32_t frame = e->frame;
 			FX_HELD(held_note_part(e);)
 			EmberLoad(e->pos);
-			const uint32_t colour = EMBER_COLOURS[frame];
+			const uint32_t colour = EMBER_COLOURS()[frame];
 			if (!(UpdateFlags() & 0x201))
 			{
 				e->frame = (int16_t)(frame + 1);
@@ -734,7 +734,7 @@ namespace flame194
 						dir[1] = t->pts[a][1] - t->pts[b][1];
 						dir[2] = t->pts[a][2] - t->pts[b][2];
 						Normalize(dir, dir);
-						const int32_t angle = RotationBetweenVectors(MUZZLE_REF, dir, axis);
+						const int32_t angle = RotationBetweenVectors(MUZZLE_REF(), dir, axis);
 						BuildAxisAngleRotationMatrix(angle, (Mat4x3 *)(w + 0x10), axis);
 						const int32_t r = CrtRand() % 0x1000;
 						dir[0] = ComputeSin(r);
@@ -760,7 +760,7 @@ namespace flame194
 	static uint32_t __cdecl BurstTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_BurstTask, n);)
+		FX_HELD(held_note_node(us(ORIG_BurstTask), n);)
 		BurstDraw(n, n->counter >= 1, BurstFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -773,7 +773,7 @@ namespace flame194
 	static uint32_t __cdecl RingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_RingTask, n);)
+		FX_HELD(held_note_node(us(ORIG_RingTask), n);)
 		RingDraw(n, n->counter >= 2, RingFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -789,7 +789,7 @@ namespace flame194
 	static uint32_t __cdecl PillarTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(ORIG_PillarTask, n);)
+		FX_HELD(held_note_node(us(ORIG_PillarTask), n);)
 		PillarDraw(n, mul32(n->counter, -12), n->counter >= 8, PillarFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -825,12 +825,12 @@ namespace flame194
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(mul32(ComputeCos(a), r) >> 12));
 			}
 		}
-		FX_HELD(held_note_node(ORIG_FireTask, n);)
+		FX_HELD(held_note_node(us(ORIG_FireTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
 		FireLight(s);
-		*(uint32_t *)h = SEQ_Flame;
+		*(uint32_t *)h = us(SEQ_Flame);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -856,7 +856,7 @@ namespace flame194
 
 	static void AddSpin(const Node *n)
 	{
-		Node *p = AddTask(QAux(), ORIG_SpinTask);
+		Node *p = AddTask(QAux(), us(ORIG_SpinTask));
 		p->counter = 0;
 		p->f0E = n->f0E;
 		p->f18 = (int16_t)(CrtRand() % 0x1000);
@@ -901,7 +901,7 @@ namespace flame194
 			s->pos[1] = (int16_t)((mul32(dir[1], 350) >> 12) + pos[1]);
 			s->pos[2] = (int16_t)((mul32(dir[2], 350) >> 12) + pos[2]);
 			int32_t axis[3];
-			const int32_t angle = RotationBetweenVectors(MUZZLE_REF, dir, axis);
+			const int32_t angle = RotationBetweenVectors(MUZZLE_REF(), dir, axis);
 			*(volatile int32_t *)&n_ = angle;
 			BuildAxisAngleRotationMatrix(angle, &s->m, axis);
 			Centroid(Ctx()->actions->targets, Ctx()->actions->target_count, n->pos);
@@ -909,19 +909,19 @@ namespace flame194
 			n->pos[1] = (int16_t)(n->pos[1] + (CrtRand() % 2000 - 1000));
 			if (n->pos[1] > -500) n->pos[1] = -500;
 			n->pos[2] = (int16_t)(n->pos[2] + (CrtRand() % 2000 - 1000));
-			Node *f = AddTask(QAux(), ORIG_FlashTask);
+			Node *f = AddTask(QAux(), us(ORIG_FlashTask));
 			f->counter = 0;
 			f->f0E = n->f0E;
 			f->f18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t third = (int16_t)((CrtRand() % 0x600 + 0xB00) / 3);
 			f->f1E = third;
 			f->f1C = third;
-			Node *k = AddTask(QAux(), ORIG_SmokeTask);
+			Node *k = AddTask(QAux(), us(ORIG_SmokeTask));
 			k->counter = 0;
 			k->f0E = n->f0E;
 			k->f1C = (int16_t)(CrtRand() % 0x700 + 0x400);
 			AddSpin(n);
-			Node *l = AddTask(QAux(), ORIG_FlightTask);
+			Node *l = AddTask(QAux(), us(ORIG_FlightTask));
 			l->f0E = n->f0E;
 			ff8fx::copy<(8)>(l->pos, n->pos);
 			const int32_t fc = FlightCount();
@@ -931,7 +931,7 @@ namespace flame194
 		}
 		if (n->counter == 1)
 		{
-			Node *d = AddTask(QAux(), ORIG_GroundSmokeTask);
+			Node *d = AddTask(QAux(), us(ORIG_GroundSmokeTask));
 			d->counter = 0;
 			d->f0E = n->f0E;
 			d->f1C = (int16_t)(CrtRand() % 0x380 + 0xB00);
@@ -939,32 +939,32 @@ namespace flame194
 		if (n->counter >= 0 && n->counter <= 2) AddSpin(n);
 		if (n->counter == 8)
 		{
-			Node *b = AddAim(n, ORIG_BurstTask);
+			Node *b = AddAim(n, us(ORIG_BurstTask));
 			const int16_t quarter = (int16_t)((CrtRand() % 0x600 + 0x1400) / 4);
 			b->f1E = quarter;
 			b->f1C = quarter;
 		}
 		if (n->counter == 9)
 		{
-			Node *r = AddAim(n, ORIG_RingTask);
+			Node *r = AddAim(n, us(ORIG_RingTask));
 			r->f18 = (int16_t)(CrtRand() % 0x1000);
 			r->f1A = (int16_t)(CrtRand() % 0xA0 + 0x5A);
 			if (r->f18 & 1) r->f1A = (int16_t)-r->f1A;
 			const int16_t third = (int16_t)((CrtRand() % 0x400 + 0xB80) / 3);
 			r->f1E = third;
 			r->f1C = third;
-			Node *r2 = AddAim(n, ORIG_RingTask);
+			Node *r2 = AddAim(n, us(ORIG_RingTask));
 			r2->f18 = (int16_t)(CrtRand() % 0x1000);
 			r2->f1A = (int16_t)mul32((2 * (int32_t)r->f1A) / 3, *(volatile int32_t *)&n_);
 			r2->f1C = (int16_t)(r->f1C - (int16_t)(r->f1C >> 4));
 			r2->f1E = r->f1E;
-			Node *p = AddAim(n, ORIG_PillarTask);
+			Node *p = AddAim(n, us(ORIG_PillarTask));
 			p->f18 = (int16_t)(CrtRand() % 0x1000);
 			p->f1A = 0;
 			const int16_t fifth = (int16_t)((CrtRand() % 0x400 + 0x1200) / 5);
 			p->f1E = fifth;
 			p->f1C = fifth;
-			Node *fi = AddTask(QAux(), ORIG_FireTask);
+			Node *fi = AddTask(QAux(), us(ORIG_FireTask));
 			fi->f0E = n->f0E;
 			ff8fx::copy<(8)>(fi->pos, n->pos);
 			fi->pos[3] = (int16_t)PartCount();
@@ -972,7 +972,7 @@ namespace flame194
 			fi->counter = 0;
 		}
 		if (n->counter == 0xB) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (n->counter == 1) BdPlaySE(SOUND_Gun, (n->f0E & 1) ? 1 : 2, 0x80);
+		if (n->counter == 1) BdPlaySE(SOUND_Gun(), (n->f0E & 1) ? 1 : 2, 0x80);
 		n->counter++;
 		return n->counter >= 20 ? TASK_END : 0;
 	}
@@ -1005,7 +1005,7 @@ namespace flame194
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)BONES_NOW);
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)us(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -1017,11 +1017,11 @@ namespace flame194
 			const Ghost *s = GhostSlot(slot);
 			if (!s->used) break;
 			BoneRestore(*(uint8_t **)(Caster() + 0x78), s->bones);
-			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS[k];
+			*(uint32_t *)(Caster() + 0x28) = GHOST_COLOURS()[k];
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)BONES_NOW);
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)us(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -1034,15 +1034,15 @@ namespace flame194
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), BIND_OUT, ANIM_DATA);
+			BindExternalAnimSet(Caster(), us(BIND_OUT), us(ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
-			Node *f = AddTask(QAux(), ORIG_FadeInTask);
+			Node *f = AddTask(QAux(), us(ORIG_FadeInTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
-			AddTask(QAux(), ORIG_AfterimageTask)->counter = 0;
+			AddTask(QAux(), us(ORIG_AfterimageTask))->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = GHOSTS; a < GHOSTS_END; a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = us(GHOSTS); a < us(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -1059,7 +1059,7 @@ namespace flame194
 		if (n->counter == 0)
 		{
 			QueueChainTransformation(Caster(), 2);
-			Node *f = AddTask(QAux(), ORIG_FadeOutTask);
+			Node *f = AddTask(QAux(), us(ORIG_FadeOutTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
@@ -1092,7 +1092,7 @@ namespace flame194
 		if (!(UpdateFlags() & 0x201)) ModuleTick()++;
 		if (aux == 0 && (Flags() & 2))
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_RestoreTask);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), us(ORIG_RestoreTask));
 			t->counter = 0;
 			t->done = 0;
 		}

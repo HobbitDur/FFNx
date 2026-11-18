@@ -32,7 +32,7 @@ namespace renzo342
 	static const uint32_t RING = 0x21E5B40, RING_END = 0x21E5BCC, LENGTH = 0x21E5BCC, FINISHER = 0x21E5BD0;
 	static const uint32_t TEX_BASE = 0x21E5BD4, PACKET_CURSOR = 0x21E5BD8;
 	static const uint32_t PARITY = 0xC000;
-	static const void *const SOUND = (const void *)0xE46FA8;
+	static const void *SOUND() { return (const void *)us(0xE46FA8); }
 	static const uint32_t TEXTURE_NAME = 0xC90060, CAMERA = 0xE47144, ANIM_SETS = 0xE476F4, BIND_OUT = 0x24FE978;
 	static const uint32_t MODEL_SPARKLE = 0xE46FAC, SPARKLE_FADE = 0xE47134, SPARKLE_DEPTH = 0xE47124;
 	static const uint32_t MODEL_SLASH = 0xC89934, MODEL_STREAK = 0xC8A31C;
@@ -72,7 +72,7 @@ namespace renzo342
 	static void HitExtra(int32_t b)
 	{
 		if (b <= 0 || b >= 7) return;
-		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_HitEmitter);
+		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_HitEmitter));
 		t->c = 0;
 		t->e = (int16_t)b;
 	}
@@ -80,21 +80,21 @@ namespace renzo342
 	static void FacingAhead(Node24 *t, int32_t k)
 	{
 		int32_t v[3];
-		TransformVectorBy3x3Matrix((const Mat4x3 *)(Caster() + 0x40), (const int32_t *)SLASH_REF, v);
+		TransformVectorBy3x3Matrix((const Mat4x3 *)(Caster() + 0x40), (const int32_t *)us(SLASH_REF), v);
 		SlotRec *r = Slot(t->e);
-		r->pos[0] = (int16_t)((mul32(v[0], -k) >> 12) + var<int32_t>(HIT_POS));
-		r->pos[1] = (int16_t)((mul32(v[1], -k) >> 12) + var<int16_t>(HIT_POS + 2));
-		r->pos[2] = (int16_t)((mul32(v[2], -k) >> 12) + var<int32_t>(HIT_POS + 4));
-		r->w18 = var<int16_t>(HIT_DIR);
-		r->w1A = var<int16_t>(HIT_DIR + 4);
-		r->w1C = var<int16_t>(HIT_DIR + 8);
+		r->pos[0] = (int16_t)((mul32(v[0], -k) >> 12) + var<int32_t>(us(HIT_POS)));
+		r->pos[1] = (int16_t)((mul32(v[1], -k) >> 12) + var<int16_t>(us(HIT_POS) + 2));
+		r->pos[2] = (int16_t)((mul32(v[2], -k) >> 12) + var<int32_t>(us(HIT_POS) + 4));
+		r->w18 = var<int16_t>(us(HIT_DIR));
+		r->w1A = var<int16_t>(us(HIT_DIR) + 4);
+		r->w1C = var<int16_t>(us(HIT_DIR) + 8);
 	}
 
 	static void Events(Node24 *n)
 	{
 		if (n->c == 0x16)
 		{
-			Node24 *t = AddSlotTask(ORIG_FacingA);
+			Node24 *t = AddSlotTask(us(ORIG_FacingA));
 			const int16_t s = (int16_t)((CrtRand() % 0x400 + 0x900) / 3);
 			t->w1E = s;
 			t->w1C = s;
@@ -102,7 +102,7 @@ namespace renzo342
 		}
 		if (n->c == 0x69)
 		{
-			Node24 *t = AddSlotTask(ORIG_FacingB);
+			Node24 *t = AddSlotTask(us(ORIG_FacingB));
 			t->w1A = 0x14;
 			const int16_t s = (int16_t)((CrtRand() % 0x300 + 0xA00) / 3);
 			t->w1E = s;
@@ -111,7 +111,7 @@ namespace renzo342
 		}
 		if (n->c == 0x6A)
 		{
-			Node24 *t = AddSlotTask(ORIG_FacingB);
+			Node24 *t = AddSlotTask(us(ORIG_FacingB));
 			t->w1A = 0x16;
 			const int16_t s = (int16_t)((CrtRand() % 0x580 + 0xD00) / 3);
 			t->w1E = s;
@@ -126,7 +126,7 @@ namespace renzo342
 		EmitWork *w = (EmitWork *)FieldAlloc(0x50);
 		if (!DrawOnly() && n->c <= 0xE)
 		{
-			const HitRec *hr = (const HitRec *)(HIT_REC + 0x9C * n->e);
+			const HitRec *hr = (const HitRec *)(us(HIT_REC) + 0x9C * n->e);
 			ff8fx::copy<(16)>(w->dir, hr->dir);
 			ff8fx::copy<(8)>(w->pos, hr->pos);
 			for (int32_t j = 0; j < 2; j++)
@@ -150,7 +150,7 @@ namespace renzo342
 				p->w14 = (int16_t)(rz + (mul32(w->dir[2], sp) >> 12) - 0x28);
 			}
 		}
-		const int32_t alive = EmitterDraw(n, w, n->e, SEQ_HIT, 5);
+		const int32_t alive = EmitterDraw(n, w, n->e, us(SEQ_HIT), 5);
 		FieldFree(0x50);
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -186,7 +186,7 @@ namespace renzo342
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_FACING;
+		*(uint32_t *)h = us(MODEL_FACING);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= FacingFrom(d, n))

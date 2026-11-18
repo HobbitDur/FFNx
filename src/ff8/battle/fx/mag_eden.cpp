@@ -28,11 +28,11 @@ namespace gfc
 {
 namespace part_eden_a
 {
-	static inline uint32_t xl_ColourScale_B66A20(uint32_t col, int32_t f) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(0xB66A20)(col, f); }
-	static inline void xl_RotTransIR_56C850(const void *in, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(in, out, flag); }
+	static inline uint32_t xl_ColourScale_B66A20(uint32_t col, int32_t f) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(us(0xB66A20))(col, f); }
+	static inline void xl_RotTransIR_56C850(const void *in, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(in, out, flag); }
 
-	static inline uint16_t GTE_SZ3_LO() { return MEM<uint16_t>(0x1CA8A5C); }
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
+	static inline uint16_t GTE_SZ3_LO() { return MEM<uint16_t>(us(0x1CA8A5C)); }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
 	static inline const uint8_t *FADETAB() { return (const uint8_t *)(C().draw_table - 0x1C4); }
 
 	static inline uint32_t LineOT(int32_t za, int32_t zb)
@@ -615,13 +615,13 @@ namespace gfc
 {
 namespace part_eden_b
 {
-	static inline int32_t xl_Sqrt_56BEC0(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	static inline int32_t xl_NormalClip_56CB30(uint32_t a, uint32_t b, uint32_t c) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56CB30)(a, b, c); }
-	static inline uint32_t xl_ColourScale_B66A20(uint32_t colour, int32_t intensity) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(0xB66A20)(colour, intensity); }
-	static inline int32_t xl_Nop_B65150() { return x::f<int32_t (__cdecl *)()>(0xB65150)(); }
+	static inline int32_t xl_Sqrt_56BEC0(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	static inline int32_t xl_NormalClip_56CB30(uint32_t a, uint32_t b, uint32_t c) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56CB30))(a, b, c); }
+	static inline uint32_t xl_ColourScale_B66A20(uint32_t colour, int32_t intensity) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(us(0xB66A20))(colour, intensity); }
+	static inline int32_t xl_Nop_B65150() { return x::f<int32_t (__cdecl *)()>(us(0xB65150))(); }
 
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
-	static inline uint16_t GTE_SZ3_LO() { return MEM<uint16_t>(0x1CA8A5C); }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
+	static inline uint16_t GTE_SZ3_LO() { return MEM<uint16_t>(us(0x1CA8A5C)); }
 
 	static inline int32_t TriKey(int32_t sum)
 	{
@@ -1179,20 +1179,20 @@ namespace gfc
 {
 namespace part_eden_c
 {
-	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	static inline int32_t xl_TransformToScreen(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	static inline void xl_SetDrawEnv(void *p, const void *env) { x::f<void (__cdecl *)(void *, const void *)>(0x45C0F0)(p, env); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	static inline uint32_t xl_ScaleColour_B66A20(uint32_t colour, int32_t scale) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(0xB66A20)(colour, scale); }
+	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	static inline int32_t xl_TransformToScreen(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
+	static inline void xl_SetDrawEnv(void *p, const void *env) { x::f<void (__cdecl *)(void *, const void *)>(us(0x45C0F0))(p, env); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline uint32_t xl_ScaleColour_B66A20(uint32_t colour, int32_t scale) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(us(0xB66A20))(colour, scale); }
 	static inline void xl_RequestScreenFeedback(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e)
 	{
 		FX_HELD(if (held_predicting() || held_active()) return;)
-		x::f<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, b, c, d, e);
+		x::f<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(us(0x47CF50))(a, b, c, d, e);
 	}
 
-	static inline uint8_t FRAMEPARITY() { return MEM<uint8_t>(0x1D96A80); }
-	static inline uint8_t *DRAWENVS() { return (uint8_t *)0x1D969C8; }
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
+	static inline uint8_t FRAMEPARITY() { return MEM<uint8_t>(us(0x1D96A80)); }
+	static inline uint8_t *DRAWENVS() { return (uint8_t *)us(0x1D969C8); }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
 
 	static inline int32_t div256(int32_t v) { return v / 256; }
 
@@ -1853,16 +1853,16 @@ namespace gfc
 {
 namespace part_eden_d
 {
-	static inline void *xl_ComposeZYXRotationMatrix(const void *angles, void *out) { return x::f<void *(__cdecl *)(const void *, void *)>(0x56CE30)(angles, out); }
-	static inline void xl_RotTransIR(const void *v, void *ir, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(v, ir, flag); }
-	static inline void xl_Apply3DTransform(const void *m, const void *v, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56C3D0)(m, v, out); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	static inline int32_t xl_NormalClip(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56CB30)(s0, s1, s2); }
-	static inline void xl_QueueBlitCommand(const void *rect, int32_t xw, int32_t yw) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(const void *, int32_t, int32_t)>(0x505EB0)(rect, xw, yw); }
-	static inline int32_t xl_SdStreamingVolumeTranslation(int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return 0;) return x::f<int32_t (__cdecl *)(int32_t, int32_t)>(0x46BD40)(a, b); }
+	static inline void *xl_ComposeZYXRotationMatrix(const void *angles, void *out) { return x::f<void *(__cdecl *)(const void *, void *)>(us(0x56CE30))(angles, out); }
+	static inline void xl_RotTransIR(const void *v, void *ir, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, ir, flag); }
+	static inline void xl_Apply3DTransform(const void *m, const void *v, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C3D0))(m, v, out); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
+	static inline int32_t xl_NormalClip(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56CB30))(s0, s1, s2); }
+	static inline void xl_QueueBlitCommand(const void *rect, int32_t xw, int32_t yw) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(const void *, int32_t, int32_t)>(us(0x505EB0))(rect, xw, yw); }
+	static inline int32_t xl_SdStreamingVolumeTranslation(int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return 0;) return x::f<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x46BD40))(a, b); }
 
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
-	static inline uint16_t GTE_SZ3_LO() { return MEM<uint16_t>(0x1CA8A5C); }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
+	static inline uint16_t GTE_SZ3_LO() { return MEM<uint16_t>(us(0x1CA8A5C)); }
 	static const uint32_t BLITRING = 0x27978E8;
 	static const uint32_t BLITRING_IDX = 0x2798BF4;
 
@@ -2329,13 +2329,13 @@ namespace part_eden_d
 
 	static void BlitRect_B66FE0(const uint8_t *src, int32_t a, int32_t b)
 	{
-		uint8_t *slot = (uint8_t *)(BLITRING + 8u * (MEM<uint8_t>(BLITRING_IDX) & 0xFu));
+		uint8_t *slot = (uint8_t *)(us(BLITRING) + 8u * (MEM<uint8_t>(us(BLITRING_IDX)) & 0xFu));
 		U16(slot, 0) = U16(src, 0);
 		U16(slot, 2) = U16(src, 2);
 		U16(slot, 4) = U16(src, 4);
 		U16(slot, 6) = U16(src, 6);
 		xl_QueueBlitCommand(slot, a, b);
-		MEM<uint8_t>(BLITRING_IDX) = (uint8_t)(MEM<uint8_t>(BLITRING_IDX) + 1);
+		MEM<uint8_t>(us(BLITRING_IDX)) = (uint8_t)(MEM<uint8_t>(us(BLITRING_IDX)) + 1);
 	}
 
 	static void __cdecl op_0B8_BlitFrameFromObject()
@@ -2390,26 +2390,26 @@ namespace eden
 	{
 		c.name = "206 Eden";
 		c.effect_id = 206;
-		c.vm_table = 0x1871340;
-		c.bone_table = 0x1870F78;
-		c.prim_table = 0x1870FF8;
-		c.prim_size = 0x18710E8;
-		c.spr_table = 0x18710FC;
-		c.ptype_table = 0x1871128;
-		c.pop_table = 0x187113C;
-		c.draw_table = 0x187119C;
-		c.attr_16A = 0x1871306;
-		c.attr_184 = 0x1871320;
-		c.attr_186 = 0x1871322;
-		c.attr_194 = 0x1871330;
-		c.attr_19C = 0x1871338;
-		c.desc = 0x1870640;
-		c.ptr_block = 0x1870F50;
-		c.queue = 0x2796CF8;
-		c.file00 = 0x2796D2C;
-		c.file01 = 0x2796D28;
-		c.tick = 0xAE3470;
-		c.load_cb = 0xAEFAE0;
+		c.vm_table = us(0x1871340);
+		c.bone_table = us(0x1870F78);
+		c.prim_table = us(0x1870FF8);
+		c.prim_size = us(0x18710E8);
+		c.spr_table = us(0x18710FC);
+		c.ptype_table = us(0x1871128);
+		c.pop_table = us(0x187113C);
+		c.draw_table = us(0x187119C);
+		c.attr_16A = us(0x1871306);
+		c.attr_184 = us(0x1871320);
+		c.attr_186 = us(0x1871322);
+		c.attr_194 = us(0x1871330);
+		c.attr_19C = us(0x1871338);
+		c.desc = us(0x1870640);
+		c.ptr_block = us(0x1870F50);
+		c.queue = us(0x2796CF8);
+		c.file00 = us(0x2796D2C);
+		c.file01 = us(0x2796D28);
+		c.tick = us(0xAE3470);
+		c.load_cb = us(0xAEFAE0);
 		c.lit_dispatcher = false;
 		c.bone_count = 32;
 	}

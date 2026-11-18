@@ -43,7 +43,8 @@ namespace ff8fx
 			for (int i = 0; i < INDEX_SIZE; i++) g_index[i] = -1;
 			g_index_ready = true;
 		}
-		if (g_nports >= PORTS_MAX) return;
+		if (g_nports >= PORTS_MAX || !effect_supported(effect_id)) return;
+		orig = us(orig);
 		g_ports[g_nports] = { orig, port, name, effect_id };
 		uint32_t h = slot_of(orig);
 		while (g_index[h & (INDEX_SIZE - 1)] >= 0) h++;

@@ -36,26 +36,26 @@ namespace earthquake
 	{
 		c.name = "233 Earthquake";
 		c.effect_id = 233;
-		c.vm_table = 0x1868750;
-		c.bone_table = 0x18683C0;
-		c.prim_table = 0x1868408;
-		c.prim_size = 0x18684F8;
-		c.spr_table = 0x186850C;
-		c.ptype_table = 0x1868538;
-		c.pop_table = 0x186854C;
-		c.draw_table = 0x18685AC;
-		c.attr_16A = 0x1868716;
-		c.attr_184 = 0x1868730;
-		c.attr_186 = 0x1868732;
-		c.attr_194 = 0x1868740;
-		c.attr_19C = 0x1868748;
-		c.desc = 0x18682F8;
-		c.ptr_block = 0x1868398;
-		c.queue = 0x2796A20;
-		c.file00 = 0x2796A34;
-		c.file01 = 0x2796A30;
-		c.tick = 0xA525B0;
-		c.load_cb = 0xA57CA0;
+		c.vm_table = us(0x1868750);
+		c.bone_table = us(0x18683C0);
+		c.prim_table = us(0x1868408);
+		c.prim_size = us(0x18684F8);
+		c.spr_table = us(0x186850C);
+		c.ptype_table = us(0x1868538);
+		c.pop_table = us(0x186854C);
+		c.draw_table = us(0x18685AC);
+		c.attr_16A = us(0x1868716);
+		c.attr_184 = us(0x1868730);
+		c.attr_186 = us(0x1868732);
+		c.attr_194 = us(0x1868740);
+		c.attr_19C = us(0x1868748);
+		c.desc = us(0x18682F8);
+		c.ptr_block = us(0x1868398);
+		c.queue = us(0x2796A20);
+		c.file00 = us(0x2796A34);
+		c.file01 = us(0x2796A30);
+		c.tick = us(0xA525B0);
+		c.load_cb = us(0xA57CA0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -63,10 +63,10 @@ namespace earthquake
 	static inline void xl_OffscreenStage_B65B00(void *blk, void *pos, void *angles)
 	{
 		FX_HELD(if (held_predicting()) return;)
-		x::f<int32_t (__cdecl *)(void *, void *, void *)>(0xB65B00)(blk, pos, angles);
+		x::f<int32_t (__cdecl *)(void *, void *, void *)>(us(0xB65B00))(blk, pos, angles);
 	}
 
-	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
+	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
 
 	static void __cdecl op_06F_OffscreenStageGround()
 	{

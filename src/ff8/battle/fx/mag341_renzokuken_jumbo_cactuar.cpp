@@ -32,7 +32,7 @@ namespace renzo341
 	static const uint32_t RING = 0x21E8978, RING_END = 0x21E8A04, LENGTH = 0x21E8A04, FINISHER = 0x21E8A08;
 	static const uint32_t TEX_BASE = 0x21E8A0C, PACKET_CURSOR = 0x21E8A10, HIT_OFFS = 0x21E8A18;
 	static const uint32_t PARITY = 0xC000;
-	static const void *const SOUND = (const void *)0xE4EA18;
+	static const void *SOUND() { return (const void *)us(0xE4EA18); }
 	static const uint32_t TEXTURE_NAME = 0xC96E70, CAMERA = 0xE4EBB4, ANIM_SETS = 0xE4F038, BIND_OUT = 0x24FE9A8;
 	static const uint32_t MODEL_SPARKLE = 0xE4EA1C, SPARKLE_FADE = 0xE4EBA4, SPARKLE_DEPTH = 0xE4EB94;
 	static const uint32_t MODEL_SLASH = 0xC907A4, MODEL_STREAK = 0xC9118C;
@@ -84,7 +84,7 @@ namespace renzo341
 	{
 		if (n->c == 0x50)
 		{
-			Node24 *t = AddSlotTask(ORIG_Ring);
+			Node24 *t = AddSlotTask(us(ORIG_Ring));
 			const int16_t s = (int16_t)((CrtRand() % 0x600 + 0xE00) / 3);
 			t->w1E = s;
 			t->w1C = s;
@@ -92,10 +92,10 @@ namespace renzo341
 		}
 		if (n->c == 0x57)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Dust);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Dust));
 			t->c = 0;
 			t->e = 0xF;
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Shake);
+			t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Shake));
 			t->c = 0;
 			t->e = 0xF;
 		}

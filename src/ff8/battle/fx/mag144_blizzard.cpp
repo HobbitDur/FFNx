@@ -25,12 +25,12 @@ namespace blizzard144
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BD778); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24BECB0); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24BECBC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24BECC0); }
-	inline uint8_t *ShardBuffer(int action) { return (uint8_t *)(0x24BB968 + 0xA00 * action); }
-	inline int16_t &CameraShake() { return var<int16_t>(0x1D97712); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x24BD778)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24BECB0)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x24BECBC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24BECC0)); }
+	inline uint8_t *ShardBuffer(int action) { return (uint8_t *)(us(0x24BB968) + 0xA00 * action); }
+	inline int16_t &CameraShake() { return var<int16_t>(us(0x1D97712)); }
 
 	static const uint32_t ORIG_RootTask = 0x61BF70;
 	static const uint32_t ORIG_Director = 0x61AC70;
@@ -39,29 +39,29 @@ namespace blizzard144
 	static const uint32_t ORIG_FallingIceTask = 0x61B5B0;
 	static const uint32_t ORIG_MistPuffTask = 0x61B660;
 	static const uint32_t ORIG_CrystalTask = 0x61B740;
-	static const uint8_t *const MODEL_Crystal = (const uint8_t *)0xDD8590;
-	static const uint8_t *const MODEL_CrystalUV = (const uint8_t *)0xDD9280;
-	static const void *const MODEL_Shockwave = (const void *)0xDD8D48;
-	static const void *const SEQ_Ice = (const void *)0xDD83E4;
-	static const void *const SEQ_Mist = (const void *)0xDD82F0;
-	static const void *const SOUND_Blizzard = (const void *)0xDD9A38;
+	static const uint8_t *MODEL_Crystal() { return (const uint8_t *)us(0xDD8590); }
+	static const uint8_t *MODEL_CrystalUV() { return (const uint8_t *)us(0xDD9280); }
+	static const void *MODEL_Shockwave() { return (const void *)us(0xDD8D48); }
+	static const void *SEQ_Ice() { return (const void *)us(0xDD83E4); }
+	static const void *SEQ_Mist() { return (const void *)us(0xDD82F0); }
+	static const void *SOUND_Blizzard() { return (const void *)us(0xDD9A38); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline int32_t NormalizeVector16(int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(int16_t *, int16_t *)>(0x56BDE0)(in, out); }
-	inline int32_t ISqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteReadOTZReg(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline int32_t NormalizeVector16(int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
+	inline int32_t ISqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteReadOTZReg(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
 
 	struct RootNode { TaskNode hdr; uint16_t counter; };
 	struct DirectorNode
@@ -290,7 +290,7 @@ namespace blizzard144
 			GetEffectSpawnPosition(Entity(d->slot), 0xF0, 0x1000, d->pos);
 			d->height = EntityHeight(d->slot);
 			CrystalHeader *h = (CrystalHeader *)FieldAlloc(0xD0);
-			h->model = MODEL_Crystal;
+			h->model = MODEL_Crystal();
 			h->flags = 0;
 			h->shards = ShardBuffer(d->action);
 			ShatterPrep(h);
@@ -298,7 +298,7 @@ namespace blizzard144
 		}
 		if (d->counter == 1)
 		{
-			CrystalNode *c = (CrystalNode *)AddTaskToQueue(&Queues().second, ORIG_CrystalTask);
+			CrystalNode *c = (CrystalNode *)AddTaskToQueue(&Queues().second, us(ORIG_CrystalTask));
 			ff8fx::copy<(8)>(c->pos, d->pos);
 			c->pos[1] = (int16_t)(c->pos[1] - 900);
 			c->counter = 0;
@@ -313,7 +313,7 @@ namespace blizzard144
 		}
 		if (d->counter >= 2 && d->counter <= 0x1B && (d->counter & 1))
 		{
-			MistNode *m = (MistNode *)AddTaskToQueue(&Queues().second, ORIG_MistPuffTask);
+			MistNode *m = (MistNode *)AddTaskToQueue(&Queues().second, us(ORIG_MistPuffTask));
 			m->frame = 0;
 			m->delay = (int16_t)(CrtRand() % 4);
 			ff8fx::copy<(8)>(m->pos, d->pos);
@@ -328,7 +328,7 @@ namespace blizzard144
 			int32_t count = d->counter / 16 + 1;
 			for (int32_t k = count; k > 0; k--)
 			{
-				FallingIceNode *f = (FallingIceNode *)AddTaskToQueue(&Queues().second, ORIG_FallingIceTask);
+				FallingIceNode *f = (FallingIceNode *)AddTaskToQueue(&Queues().second, us(ORIG_FallingIceTask));
 				ff8fx::copy<(8)>(f->pos, d->pos);
 				f->pos[1] = (int16_t)(f->pos[1] - 600);
 				f->frame = 0;
@@ -343,7 +343,7 @@ namespace blizzard144
 		{
 			for (int k = 0; k < 20; k++)
 			{
-				DebrisNode *b = (DebrisNode *)AddTaskToQueue(&Queues().second, ORIG_DebrisTask);
+				DebrisNode *b = (DebrisNode *)AddTaskToQueue(&Queues().second, us(ORIG_DebrisTask));
 				b->frame = 0;
 				b->pos[0] = d->pos[0];
 				b->pos[1] = d->height;
@@ -364,7 +364,7 @@ namespace blizzard144
 		}
 		if (d->counter == 0x25)
 		{
-			ShockwaveNode *s = (ShockwaveNode *)AddTaskToQueue(&Queues().second, ORIG_ShockwaveTask);
+			ShockwaveNode *s = (ShockwaveNode *)AddTaskToQueue(&Queues().second, us(ORIG_ShockwaveTask));
 			s->pos[0] = d->pos[0];
 			s->pos[1] = d->height;
 			s->pos[2] = d->pos[2];
@@ -378,7 +378,7 @@ namespace blizzard144
 			int next = d->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, ORIG_Director);
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_Director));
 				t->counter = 0;
 				t->action = (int16_t)next;
 				t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];
@@ -388,7 +388,7 @@ namespace blizzard144
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
-			BdPlaySE3D(SOUND_Blizzard, 0x100, pos);
+			BdPlaySE3D(SOUND_Blizzard(), 0x100, pos);
 		}
 		d->counter++;
 		return d->counter > 0x2C ? TASK_END : 0;
@@ -411,7 +411,7 @@ namespace blizzard144
 
 	static void ShockwaveHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Shockwave;
+		*(const void **)h = MODEL_Shockwave();
 		*(uint32_t *)(h + 0x1C) = 3;
 		if (c >= 8)
 		{
@@ -434,7 +434,7 @@ namespace blizzard144
 	static uint32_t __cdecl ShockwaveTask(TaskNode *n)
 	{
 		ShockwaveNode *p = (ShockwaveNode *)n;
-		FX_HELD(held_note_draw(ORIG_ShockwaveTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_ShockwaveTask), p);)
 		ShockwaveMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		ShockwaveHeader(h, p->counter);
@@ -450,7 +450,7 @@ namespace blizzard144
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = SEQ_Ice();
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -469,7 +469,7 @@ namespace blizzard144
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *p = (DebrisNode *)n;
-		FX_HELD(held_note_draw(ORIG_DebrisTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_DebrisTask), p);)
 		DebrisDraw(p);
 		if (DrawOnly()) return 0;
 		DebrisUpdate(p);
@@ -481,7 +481,7 @@ namespace blizzard144
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = SEQ_Ice();
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -498,7 +498,7 @@ namespace blizzard144
 	static uint32_t __cdecl FallingIceTask(TaskNode *n)
 	{
 		FallingIceNode *p = (FallingIceNode *)n;
-		FX_HELD(held_note_draw(ORIG_FallingIceTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_FallingIceTask), p);)
 		FallingIceDraw(p);
 		if (DrawOnly()) return 0;
 		FallingIceUpdate(p);
@@ -507,7 +507,7 @@ namespace blizzard144
 
 	static void MistHeader(uint8_t *h, int16_t frame)
 	{
-		*(const void **)h = SEQ_Mist;
+		*(const void **)h = SEQ_Mist();
 		*(uint16_t *)(h + 4) = (uint16_t)(frame > 4 ? 4 : frame);
 		*(uint16_t *)(h + 0x24) = 8;
 		if (frame >= 4)
@@ -529,7 +529,7 @@ namespace blizzard144
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_MistPuffTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_MistPuffTask), p);)
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 5));
 		uint8_t *h = AllocHeader(0xB4);
 		MistHeader(h, p->frame);
@@ -724,8 +724,8 @@ namespace blizzard144
 	static void CrystalHeaderInit(CrystalHeader *h, const CrystalNode *p, const Mat4x3 *m)
 	{
 		h->limit = p->counter;
-		h->model = MODEL_Crystal;
-		h->uvmodel = MODEL_CrystalUV;
+		h->model = MODEL_Crystal();
+		h->uvmodel = MODEL_CrystalUV();
 		h->flags = 0;
 		h->shards = ShardBuffer(p->action);
 		ComposeAffineTransform(&Camera(), m, &h->base);

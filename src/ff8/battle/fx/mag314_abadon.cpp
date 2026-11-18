@@ -26,16 +26,16 @@ namespace abadon314
 	using namespace magc;
 	using namespace msweep;
 
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2505578); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250557C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505580); }
-	inline TaskQueue *QScripts() { return (TaskQueue *)0x2505588; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505598; }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x25055A8; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25055CC); }
-	inline uint32_t &Lcg() { return var<uint32_t>(0x25055D0); }
-	inline uint32_t &Flash() { return var<uint32_t>(0x25055D4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25055DC); }
+	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2505578)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x250557C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2505580)); }
+	inline TaskQueue *QScripts() { return (TaskQueue *)us(0x2505588); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2505598); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x25055A8); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25055CC)); }
+	inline uint32_t &Lcg() { return var<uint32_t>(us(0x25055D0)); }
+	inline uint32_t &Flash() { return var<uint32_t>(us(0x25055D4)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25055DC)); }
 
 	static const uint32_t ORIG_Setup = 0x662890, ORIG_FileLoader = 0x6628A0;
 	static const uint32_t ORIG_RootTask = 0x662970;
@@ -45,8 +45,8 @@ namespace abadon314
 	static const uint32_t CAMERA = 0x1016090;
 	static const uint32_t SEQUENCES = 0x10168C0;
 	static const uint32_t COLOUR_Target = 0x25055D8;
-	static const void *const SOUND_Voice = (const void *)0x10161A0;
-	static const void *const SOUND_Start = (const void *)0x101619C;
+	static const void *SOUND_Voice() { return (const void *)us(0x10161A0); }
+	static const void *SOUND_Start() { return (const void *)us(0x101619C); }
 	static const uint32_t MAIN = 0xA80;
 	static const uint32_t STREAM_STATE = 0x56A8, STREAM_DST = 0x56F0;
 	static const uint32_t ARENA_A = 0x56F0, ARENA_B = 0x156F0;
@@ -56,19 +56,19 @@ namespace abadon314
 		0x101AC18, 0x101AC38, 0x101AC64, 0x101AC90, 0x101ACB0, 0x101ACDC, 0x101AD08, 0x101AD28, 0x101AD58, 0x101AD88,
 		0x101ADB4, 0x101ADE0, 0x101AE0C, 0x101AE2C, 0x101AE58, 0x101AE84, 0x101AEA4, 0x101AED0, 0x101AEFC };
 
-	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, void *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t FlashTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x659A10)(t, r, g, b, in, out, cursor); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	inline void Apply2DTransform(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x508C30)(a, b, out); }
-	inline void Apply3DTransform(const void *m, const void *v, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C3D0)(m, v, out); }
-	inline void Matrix3x3Multiply(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); }
-	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }
-	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(us(0x571B50))(); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
+	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, void *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(us(0x502170))(entity, bone, flag, out); }
+	inline uint32_t FlashTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x659A10))(t, r, g, b, in, out, cursor); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
+	inline void Apply2DTransform(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(us(0x508C30))(a, b, out); }
+	inline void Apply3DTransform(const void *m, const void *v, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C3D0))(m, v, out); }
+	inline void Matrix3x3Multiply(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C090))(a, b, out); }
+	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFA0))(v); }
+	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFC0))(v); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -450,7 +450,7 @@ namespace abadon314
 		F<int16_t>(h, 0x18) = page;
 		F<int16_t>(h, 0x1A) = clut;
 		F<const PoseEntry *>(h, 0x50) = pose;
-		F<uint32_t>(h, 4) = var<uint32_t>(0x1D98B3C);
+		F<uint32_t>(h, 4) = var<uint32_t>(us(0x1D98B3C));
 		F<int16_t>(h, 0xC) = 0;
 		F<int16_t>(h, 0xE) = 0;
 		F<int16_t>(h, 0x10) = 0x140;
@@ -721,7 +721,7 @@ namespace abadon314
 		F<const PoseEntry *>(h, 0x20) = pose;
 		F<int16_t>(h, 0x18) = page;
 		F<int16_t>(h, 0x1A) = clut;
-		F<uint32_t>(h, 4) = var<uint32_t>(0x1D98B3C);
+		F<uint32_t>(h, 4) = var<uint32_t>(us(0x1D98B3C));
 		F<uint32_t>(h, 0xC) = F<uint32_t>(ent, 0x28);
 		F<uint32_t>(h, 0x10) = F<uint32_t>(ent, 0x7C);
 		ShardModel(F<const uint8_t *>(anim, 4), h);
@@ -785,7 +785,7 @@ namespace abadon314
 				size = 0x20;
 			}
 			PacketCursor() += size;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + (uint32_t)(v[0] >> 2) * 4, pk);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + (uint32_t)(v[0] >> 2) * 4, pk);
 		}
 		FieldFree(8);
 	}
@@ -836,7 +836,7 @@ namespace abadon314
 		F<int16_t>(h, 0x94) = size;
 		F<int16_t>(h, 0x8C) = size;
 		F<int16_t>(h, 0x84) = size;
-		const uint32_t seq = var<uint32_t>(SEQUENCES + (int32_t)p->seq * 4);
+		const uint32_t seq = var<uint32_t>(us(SEQUENCES) + (int32_t)p->seq * 4);
 		F<uint32_t>(h, 0) = seq;
 		const uint32_t idx = (uint32_t)var<uint16_t>(seq + 8) - (uint32_t)(int32_t)p->life;
 		const uint32_t rec = seq + var<uint16_t>(seq + idx * 2 + 8);
@@ -885,7 +885,7 @@ namespace abadon314
 		q[6] = *(const uint8_t *)(ip + 2);
 		F<uint32_t>(q, 0) = 0x5000000;
 		q[7] = 0x2A;
-		InsertPrimAltViewport(var<uint32_t>(0x1D8E04C) + 0x20, q);
+		InsertPrimAltViewport(var<uint32_t>(us(0x1D8E04C)) + 0x20, q);
 		return ip + 3;
 	}
 
@@ -980,7 +980,7 @@ namespace abadon314
 
 	static void StartScript(uint8_t *ent, PoseEntry *pose, const int16_t *script)
 	{
-		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), ORIG_ScriptTask);
+		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), us(ORIG_ScriptTask));
 		Memset32(&s->cur, 0, 9);
 		s->entity = ent;
 		s->pose = pose;
@@ -1023,12 +1023,12 @@ namespace abadon314
 			const int32_t w = (int32_t)((t & 0xFFFFF) << 8);
 			for (int k = 0; k < 2; k++)
 			{
-				ColourLerp(&m->colour[k], COLOUR_Target, 0x1000 - w, w, Caster() + k * 0x9C + 0x2C);
+				ColourLerp(&m->colour[k], us(COLOUR_Target), 0x1000 - w, w, Caster() + k * 0x9C + 0x2C);
 				Caster()[k * 0x9C + 0x2F] = 0x32;
 			}
 		}
 		if (m->counter == 0x42)
-			for (int k = 0; k < 29; k++) StartScript(Caster(), m->pose, (const int16_t *)SCRIPTS[k]);
+			for (int k = 0; k < 29; k++) StartScript(Caster(), m->pose, (const int16_t *)us(SCRIPTS[k]));
 		if (m->counter >= 0x42)
 		{
 			FX_HELD(held_note_caster(m);)
@@ -1042,7 +1042,7 @@ namespace abadon314
 		FX_HELD(held_note_parts(m);)
 		Particles(m);
 		ShardsDraw(m);
-		if (m->counter == 1) BdPlaySE(SOUND_Start, 0, 0x80);
+		if (m->counter == 1) BdPlaySE(SOUND_Start(), 0, 0x80);
 		else if (m->counter == 0xDE) ReleaseVoice(m->voice);
 		ShardsUpdate(m);
 		if ((uint32_t)m->counter <= 8)
@@ -1071,7 +1071,7 @@ namespace abadon314
 				p = AllocParticle(m);
 			}
 			const int32_t w = (int32_t)(((uint32_t)c2 << 12) >> 4) + 0x80;
-			ColourLerp(&m->tint1, COLOUR_Target, 0x1000 - w, w, Caster() + 0xC4);
+			ColourLerp(&m->tint1, us(COLOUR_Target), 0x1000 - w, w, Caster() + 0xC4);
 			Caster()[0xC7] = 2;
 			Caster()[0x9D] |= 8;
 		}
@@ -1103,9 +1103,9 @@ namespace abadon314
 			MusicVolumeFade(0xF0);
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + MAIN), 0x4C28, 1);
 			InitTaskQueuePool(QScripts(), (void *)TexBase(), 0x30, 0x38);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x1307);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 			m->colour[0] = *(const uint32_t *)(Caster() + 0x2C);
 			m->colour[1] = *(const uint32_t *)(Caster() + 0xC8);
 			m->tint1 = *(const uint32_t *)(Caster() + 0xC4);

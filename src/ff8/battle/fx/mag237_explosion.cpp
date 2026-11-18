@@ -41,26 +41,26 @@ namespace explosion237
 	{
 		c.name = "237 Explosion";
 		c.effect_id = 237;
-		c.vm_table = 0x186602C;
-		c.bone_table = 0x1865C9C;
-		c.prim_table = 0x1865CE4;
-		c.prim_size = 0x1865DD4;
-		c.spr_table = 0x1865DE8;
-		c.ptype_table = 0x1865E14;
-		c.pop_table = 0x1865E28;
-		c.draw_table = 0x1865E88;
-		c.attr_16A = 0x1865FF2;
-		c.attr_184 = 0x186600C;
-		c.attr_186 = 0x186600E;
-		c.attr_194 = 0x186601C;
-		c.attr_19C = 0x1866024;
-		c.desc = 0x1865B68;
-		c.ptr_block = 0x1865C74;
-		c.queue = 0x2796940;
-		c.file00 = 0x2796954;
-		c.file01 = 0x2796950;
-		c.tick = 0xA2A2A0;
-		c.load_cb = 0xA2FA80;
+		c.vm_table = us(0x186602C);
+		c.bone_table = us(0x1865C9C);
+		c.prim_table = us(0x1865CE4);
+		c.prim_size = us(0x1865DD4);
+		c.spr_table = us(0x1865DE8);
+		c.ptype_table = us(0x1865E14);
+		c.pop_table = us(0x1865E28);
+		c.draw_table = us(0x1865E88);
+		c.attr_16A = us(0x1865FF2);
+		c.attr_184 = us(0x186600C);
+		c.attr_186 = us(0x186600E);
+		c.attr_194 = us(0x186601C);
+		c.attr_19C = us(0x1866024);
+		c.desc = us(0x1865B68);
+		c.ptr_block = us(0x1865C74);
+		c.queue = us(0x2796940);
+		c.file00 = us(0x2796954);
+		c.file01 = us(0x2796950);
+		c.tick = us(0xA2A2A0);
+		c.load_cb = us(0xA2FA80);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -68,7 +68,7 @@ namespace explosion237
 	static const uint32_t PRIM57_F0 = 0;
 #include "gfc_deathclaw.inc"
 
-	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
+	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
 
 	static void __cdecl op_112_SetSpeedFromDistance()
 	{

@@ -43,11 +43,11 @@ namespace protect
 	static const uint32_t ORIG_ShieldDraw = 0x86C160;
 	static const uint32_t ORIG_Spawner = 0x86C3A0;
 	static const uint32_t ORIG_Particle = 0x86C5C0;
-	static const void *const SOUND_Protect = (const void *)0x15F3B20;
+	static const void *SOUND_Protect() { return (const void *)us(0x15F3B20); }
 
 	static inline uint32_t TargetEntity(uint32_t node)
 	{
-		return (uint32_t)U8(node, 0x2D) * 0x9C + 0x1D972C0;
+		return (uint32_t)U8(node, 0x2D) * 0x9C + us(0x1D972C0);
 	}
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
@@ -80,40 +80,40 @@ namespace protect
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x26CDCBC) = 0x2793E58;
-		MEM<uint32_t>(0x26C3974) = 0x2793E58;
-		states[0] = 0x86BC50;
+		MEM<uint32_t>(us(0x26CDCBC)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x26C3974)) = us(0x2793E58);
+		states[0] = us(0x86BC50);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = 0x86BC60;
-		states[2] = 0x86BC70;
-		states[3] = 0x86BD90;
-		states[4] = 0x86C820;
-		states[5] = 0x86C860;
-		states[6] = 0x86C960;
-		states[7] = 0x86C970;
-		states[8] = 0x86C980;
-		states[9] = 0x86C990;
-		states[10] = 0x86C9B0;
+		states[1] = us(0x86BC60);
+		states[2] = us(0x86BC70);
+		states[3] = us(0x86BD90);
+		states[4] = us(0x86C820);
+		states[5] = us(0x86C860);
+		states[6] = us(0x86C960);
+		states[7] = us(0x86C970);
+		states[8] = us(0x86C980);
+		states[9] = us(0x86C990);
+		states[10] = us(0x86C9B0);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26CDAEC);
-			const uint32_t v2 = MEM<uint32_t>(0x26CD6E4);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26C3970) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26CDAEC));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26CD6E4));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26C3970)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26CDAE8);
-			const uint32_t v2 = MEM<uint32_t>(0x26CD6E0);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x26C3970) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26CDAE8));
+			const uint32_t v2 = MEM<uint32_t>(us(0x26CD6E0));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x26C3970)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		static const uint32_t queues[5] = { Q_EMITTER, Q_FLASH, Q_PARTICLE, Q_SHIELD, Q_STAGE };
+		static const uint32_t queues[5] = { us(Q_EMITTER), us(Q_FLASH), us(Q_PARTICLE), us(Q_SHIELD), us(Q_STAGE) };
 		for (int i = 0; i < 5; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -126,7 +126,7 @@ namespace protect
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x86BCA0, 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x86BCA0), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -142,7 +142,7 @@ namespace protect
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -152,19 +152,19 @@ namespace protect
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x86BF70;
-		states[1] = 0x86C7B0;
-		states[2] = 0x86C7D0;
-		states[3] = 0x86C810;
+		states[0] = us(0x86BF70);
+		states[1] = us(0x86C7B0);
+		states[2] = us(0x86C7D0);
+		states[3] = us(0x86C810);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Protect), 0, 0x80);
+			x::BdPlaySE(P(SOUND_Protect()), 0, 0x80);
 		if (U16(node, 0x24) == 0x16)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, node);
-			U32(t, 0x30) = 0x15F3B14;
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_FLASH), us(ORIG_Flash), 0x3C, node);
+			U32(t, 0x30) = us(0x15F3B14);
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -173,8 +173,8 @@ namespace protect
 
 	static void FlashDraw(uint32_t colour)
 	{
-		const uint32_t bucket = MEM<uint32_t>(0x1D8E04C) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t bucket = MEM<uint32_t>(us(0x1D8E04C)) + 0x1C;
+		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -187,7 +187,7 @@ namespace protect
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	static uint32_t __cdecl Flash(uint32_t a1)
@@ -225,7 +225,7 @@ namespace protect
 
 	static uint32_t SpawnPlayer(uint32_t parent, uint32_t fn_addr, uint32_t model, uint32_t anim, uint32_t w80, uint32_t w82)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SHIELD, fn_addr, 0x504, parent);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SHIELD), fn_addr, 0x504, parent);
 		U16(t, 0x80) = (uint16_t)w80;
 		U32(t, 0x74) = model;
 		S32(t, 0x78) = (int16_t)anim;
@@ -235,8 +235,8 @@ namespace protect
 
 	static uint32_t __cdecl SpawnShieldAndParticles(uint32_t a1)
 	{
-		SpawnPlayer(a1, ORIG_ShieldPlayer, 0x15F3B24, 0x470, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_PARTICLE, ORIG_Spawner, 0x88, a1);
+		SpawnPlayer(a1, us(ORIG_ShieldPlayer), us(0x15F3B24), 0x470, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_PARTICLE), us(ORIG_Spawner), 0x88, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -262,7 +262,7 @@ namespace protect
 		S32(blk, 0x18) = S16(node, 0x1E);
 		S32(blk, 0x1C) = S16(node, 0x20);
 		x::MAG_022_sub_8DD8A0(blk, (uint32_t)(int32_t)S16(entity, 0xE));
-		x::ComposeAffineTransform(0x1D97778, blk, blk);
+		x::ComposeAffineTransform(us(0x1D97778), blk, blk);
 	}
 
 	static uint32_t __cdecl RenderShield(uint32_t a1)
@@ -271,9 +271,9 @@ namespace protect
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
 		ShieldMatrix(node, L);
-		U32(L, 0x48) = BLEND_BUFFER;
+		U32(L, 0x48) = us(BLEND_BUFFER);
 		FX_HELD(held_note_shield(node);)
-		if (prim_play(node + 0x94, ORIG_ShieldDraw, L, 0) == 0)
+		if (prim_play(node + 0x94, us(ORIG_ShieldDraw), L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
 			U8(node, 0x26) |= 1;
@@ -358,8 +358,8 @@ namespace protect
 			U32(hdr, 0x1C) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 		return 0;
 	}
@@ -368,10 +368,10 @@ namespace protect
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x86C400;
-		states[1] = 0x86C480;
-		states[2] = 0x86C490;
-		states[3] = 0x86C7A0;
+		states[0] = us(0x86C400);
+		states[1] = us(0x86C480);
+		states[2] = us(0x86C490);
+		states[3] = us(0x86C7A0);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -406,13 +406,13 @@ namespace protect
 		const uint32_t node = a1;
 		alignas(4) uint8_t loc[0x20] = {};
 		const uint32_t H = P(loc);
-		int32_t count = (int16_t)(uint16_t)MEM<uint8_t>(0x15F8D94 + S16(node, 0x24));
+		int32_t count = (int16_t)(uint16_t)MEM<uint8_t>(us(0x15F8D94) + S16(node, 0x24));
 		if (count > 0)
 		{
 			const uint32_t mat = node + 0x58;
 			do
 			{
-				const uint32_t p = x::Effect_AddTaskAndInitFromCtx(Q_PARTICLE, ORIG_Particle, 0x88, node);
+				const uint32_t p = x::Effect_AddTaskAndInitFromCtx(us(Q_PARTICLE), us(ORIG_Particle), 0x88, node);
 				x::MAG_022_sub_8DD770(H);
 				S32(H, 0x14) = 0;
 				S32(H, 0x18) = -0x280;
@@ -448,11 +448,11 @@ namespace protect
 		FX_HELD(held_header(hdr, 0xB4);)
 		TransformCameraByShadowRotation((const void *)(node + 0x1C), 0x1000, S16(node, 0x54));
 		U32(hdr, 0) = U32(node, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = InitEffectSequenceFromData((void *)hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = InitEffectSequenceFromData((void *)hdr, ot, 2, cursor);
 		x::Field_Free(0xB4);
 	}
 
@@ -460,9 +460,9 @@ namespace protect
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x86C690;
-		states[1] = 0x86C6B0;
-		states[2] = 0x86C790;
+		states[0] = us(0x86C690);
+		states[1] = us(0x86C6B0);
+		states[2] = us(0x86C790);
 		callp(states[S8(node, 0x29)], node);
 		ParticleDraw(node);
 		const uint8_t status = U8(node, 0x26);
@@ -473,7 +473,7 @@ namespace protect
 	static uint32_t __cdecl ParticleInit(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x15F8C64;
+		U32(a1, 0x4C) = us(0x15F8C64);
 		U16(a1, 0x52) = 0xB;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0;
@@ -570,7 +570,7 @@ namespace protect
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x86C890, 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x86C890), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -594,7 +594,7 @@ namespace protect
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;

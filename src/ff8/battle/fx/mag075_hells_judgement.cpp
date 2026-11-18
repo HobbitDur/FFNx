@@ -36,40 +36,40 @@ namespace hells_judgement
 	{
 		c.name = "075 Hell's Judgement";
 		c.effect_id = 75;
-		c.vm_table = 0x1876338;
-		c.bone_table = 0x1875FA8;
-		c.prim_table = 0x1875FF0;
-		c.prim_size = 0x18760E0;
-		c.spr_table = 0x18760F4;
-		c.ptype_table = 0x1876120;
-		c.pop_table = 0x1876134;
-		c.draw_table = 0x1876194;
-		c.attr_16A = 0x18762FE;
-		c.attr_184 = 0x1876318;
-		c.attr_186 = 0x187631A;
-		c.attr_194 = 0x1876328;
-		c.attr_19C = 0x1876330;
-		c.desc = 0x1875EAC;
-		c.ptr_block = 0x1875F80;
-		c.queue = 0x2796E88;
-		c.file00 = 0x2796EBC;
-		c.file01 = 0x2796EB8;
-		c.tick = 0xB3EF50;
-		c.load_cb = 0xB45FB0;
+		c.vm_table = us(0x1876338);
+		c.bone_table = us(0x1875FA8);
+		c.prim_table = us(0x1875FF0);
+		c.prim_size = us(0x18760E0);
+		c.spr_table = us(0x18760F4);
+		c.ptype_table = us(0x1876120);
+		c.pop_table = us(0x1876134);
+		c.draw_table = us(0x1876194);
+		c.attr_16A = us(0x18762FE);
+		c.attr_184 = us(0x1876318);
+		c.attr_186 = us(0x187631A);
+		c.attr_194 = us(0x1876328);
+		c.attr_19C = us(0x1876330);
+		c.desc = us(0x1875EAC);
+		c.ptr_block = us(0x1875F80);
+		c.queue = us(0x2796E88);
+		c.file00 = us(0x2796EBC);
+		c.file01 = us(0x2796EB8);
+		c.tick = us(0xB3EF50);
+		c.load_cb = us(0xB45FB0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline int32_t xl_RotTransPers3(const void *v0, const void *v1, const void *v2, void *s0, void *s1, void *s2, void *p, void *flag)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *, void *, void *)>(0x56C910)(v0, v1, v2, s0, s1, s2, p, flag);
+		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *, void *, void *)>(us(0x56C910))(v0, v1, v2, s0, s1, s2, p, flag);
 	}
 	static inline int32_t xl_RotTransPers4(const void *v0, const void *v1, const void *v2, const void *v3, void *s0, void *s1, void *s2, void *s3, void *p, void *flag)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, const void *, void *, void *, void *, void *, void *, void *)>(0x56C970)(v0, v1, v2, v3, s0, s1, s2, s3, p, flag);
+		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, const void *, void *, void *, void *, void *, void *, void *)>(us(0x56C970))(v0, v1, v2, v3, s0, s1, s2, s3, p, flag);
 	}
-	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	static inline void xl_InsertPrim(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
+	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	static inline void xl_InsertPrim(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
 
 	static inline int32_t div3(int32_t v)
 	{
@@ -451,7 +451,7 @@ namespace hells_judgement
 			x::GteWriteData((int32_t)U16(v, 4), 1);
 			x::GteRTPS();
 			x::GteReadSXY2(out);
-			U16(out, 4) = MEM<uint16_t>(0x1CA8A5C);
+			U16(out, 4) = MEM<uint16_t>(us(0x1CA8A5C));
 			v += 8;
 			out += 8;
 		}

@@ -25,17 +25,17 @@ namespace burrow301
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25076DC); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25076E0); }
-	inline TaskQueue *QDust() { return (TaskQueue *)0x25076E8; }
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x25076F8; }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2507708; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250773C); }
-	inline uint16_t &PartyWord(int i) { return var<uint16_t>(0x2507744 + i * 4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507754); }
-	inline uint8_t *&Stream() { return var<uint8_t *>(0x103DC9C); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25076DC)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25076E0)); }
+	inline TaskQueue *QDust() { return (TaskQueue *)us(0x25076E8); }
+	inline TaskQueue *QRocks() { return (TaskQueue *)us(0x25076F8); }
+	inline TaskQueue *QMaster() { return (TaskQueue *)us(0x2507708); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x250773C)); }
+	inline uint16_t &PartyWord(int i) { return var<uint16_t>(us(0x2507744) + i * 4); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507754)); }
+	inline uint8_t *&Stream() { return var<uint8_t *>(us(0x103DC9C)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_RootTask = 0x66D9F0;
 	static const uint32_t ORIG_MasterTask = 0x66DBD0;
@@ -49,39 +49,39 @@ namespace burrow301
 	static const uint32_t MODEL_Rock = 0x103D314;
 	static const uint32_t SEQ_Dust = 0x103D118;
 	static const uint32_t SEQ_Mark = 0x103CFB8;
-	static const void *const SOUND_Voice = (const void *)0x103BBD8;
-	static const void *const SOUND_Start = (const void *)0x103DC98;
+	static const void *SOUND_Voice() { return (const void *)us(0x103BBD8); }
+	static const void *SOUND_Start() { return (const void *)us(0x103DC98); }
 	static const int32_t GROUND = 0x40;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel70(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
-	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
-	inline void GteWriteDataReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D7C0)(value, reg); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void GteStoreIR123Minus8(void *end) { fn<void (__cdecl *)(void *)>(0x703EF0)(end); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
-	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel70(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(src); }
+	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E410))(dst); }
+	inline void GteWriteDataReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(us(0x45D7C0))(value, reg); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void GteStoreIR123Minus8(void *end) { fn<void (__cdecl *)(void *)>(us(0x703EF0))(end); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(m); }
+	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(us(0x45E470))(m); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(v); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -572,12 +572,12 @@ namespace burrow301
 		GteWriteDataReg((uint16_t)e->z, 1);
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123((int32_t *)(h + 0x98));
-		*(uint32_t *)h = SEQ_Mark;
+		*(uint32_t *)h = us(SEQ_Mark);
 		F<uint16_t>(h, 0x94) = 0x1000;
 		F<uint16_t>(h, 0x8C) = 0x1000;
 		F<uint16_t>(h, 0x84) = 0x1000;
-		const uint32_t f = (*(const uint32_t *)(SEQ_Mark + 8) & 0xFFFF) - (uint32_t)(int32_t)e->life;
-		const uint32_t frame = *(const uint16_t *)(SEQ_Mark + 8 + f * 2) + SEQ_Mark;
+		const uint32_t f = (*(const uint32_t *)(us(SEQ_Mark) + 8) & 0xFFFF) - (uint32_t)(int32_t)e->life;
+		const uint32_t frame = *(const uint16_t *)(us(SEQ_Mark) + 8 + f * 2) + us(SEQ_Mark);
 		F<uint32_t>(h, 0x2C) = frame;
 		F<uint32_t>(h, 0x30) = *(const uint32_t *)frame;
 		F<uint32_t>(h, 0x2C) = frame + 4;
@@ -624,7 +624,7 @@ namespace burrow301
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Rock;
+		*(uint32_t *)h = us(MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x98);
@@ -650,7 +650,7 @@ namespace burrow301
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = us(SEQ_Dust);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -678,7 +678,7 @@ namespace burrow301
 		uint32_t left = (uint32_t)count;
 		do
 		{
-			RockNode *r = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+			RockNode *r = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_RockTask));
 			r->pos[0] = (int16_t)(*(const int16_t *)(Caster() + 0x54) + *(const int16_t *)Stream());
 			g = Stream() + 2;
 			Stream() = g;
@@ -722,7 +722,7 @@ namespace burrow301
 		uint32_t left = (uint32_t)count;
 		do
 		{
-			DustNode *d = (DustNode *)AddTaskToQueue(QDust(), ORIG_DustTask);
+			DustNode *d = (DustNode *)AddTaskToQueue(QDust(), us(ORIG_DustTask));
 			d->pos[0] = (int16_t)(*(const int16_t *)(Caster() + 0x54) + *(const int16_t *)Stream());
 			g = Stream() + 2;
 			Stream() = g;
@@ -787,7 +787,7 @@ namespace burrow301
 		DrawMarks(m);
 		if (m->counter == 1)
 		{
-			BdPlaySE(SOUND_Start, 0, 0x80);
+			BdPlaySE(SOUND_Start(), 0, 0x80);
 			return 0;
 		}
 		if (m->counter == 0x8A) ReleaseVoiceSlot(m->voice);
@@ -815,11 +815,11 @@ namespace burrow301
 			InitTaskQueuePool(QMaster(), (void *)TexBase(), 0xE14, 1);
 			InitTaskQueuePool(QRocks(), (void *)(TexBase() + POOL_Rocks), 0x1C, 0x20);
 			InitTaskQueuePool(QDust(), (void *)(TexBase() + POOL_Dust), 0x18, 0x20);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), us(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x382);
 			Memset32(m->index, 0xFFFFFFFF, 0x258);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
-			DecodeModelPrimLayout(MODEL_Layout, m->layout, 0x90);
+			m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
+			DecodeModelPrimLayout(us(MODEL_Layout), m->layout, 0x90);
 			GetDefaultEffectPosition(Caster(), m->pos);
 			m->pos[1] = 0;
 			m->colour = *(const uint32_t *)(Caster() + 0x2C);

@@ -23,13 +23,13 @@ namespace gravija311
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25055E8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25073BC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25073D4); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25073D8; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25073E8; }
-	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(0x2507408); }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25055E8)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25073BC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25073D4)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x25073D8); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x25073E8); }
+	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(us(0x2507408)); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
 
 	static const uint32_t ORIG_MasterTask = 0x665380;
 	static const uint32_t ORIG_MainTask = 0x665550;
@@ -41,29 +41,29 @@ namespace gravija311
 	static const uint32_t MORPH_BYTES = VBUF - MORPH;
 	static const uint32_t ARENA_A = 0x1994;
 	static const uint32_t ARENA_B = 0x11994;
-	static uint8_t *const MESH = (uint8_t *)0x25055EC;
-	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x1020FC8;
-	static const int16_t *const LEN_TABLE = (const int16_t *)0x10211C8;
+	static uint8_t *MESH() { return (uint8_t *)us(0x25055EC); }
+	static const uint16_t *SQRT_TABLE() { return (const uint16_t *)us(0x1020FC8); }
+	static const int16_t *LEN_TABLE() { return (const int16_t *)us(0x10211C8); }
 	static const uint32_t MODEL_Main = 0x101CEB8;
 	static const uint32_t SEQ_Particle = 0x101AF28;
-	static const void *const SOUND_Gravija = (const void *)0x1021044;
+	static const void *SOUND_Gravija() { return (const void *)us(0x1021044); }
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteWriteData2(int reg, uint32_t value) { fn<void (__cdecl *)(int, uint32_t)>(0x45DB90)(reg, value); }
-	inline void GteSetRGBC(const void *rgbc) { fn<void (__cdecl *)(const void *)>(0x45E110)(rgbc); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void InsertPrimAltViewport(uint32_t ot, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(ot, packet); }
-	inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(0x45B640)(env); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701430))(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteWriteData2(int reg, uint32_t value) { fn<void (__cdecl *)(int, uint32_t)>(us(0x45DB90))(reg, value); }
+	inline void GteSetRGBC(const void *rgbc) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(rgbc); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void InsertPrimAltViewport(uint32_t ot, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(ot, packet); }
+	inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(us(0x45B640))(env); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -221,12 +221,12 @@ namespace gravija311
 				uint32_t idx;
 				if (c > 0) idx = (uint32_t)sq << (c & 31);
 				else idx = (uint32_t)(sq >> ((0x18 - e) & 31));
-				const int32_t len = (int32_t)((uint32_t)SQRT_TABLE[idx] << (sh & 31)) >> 12;
+				const int32_t len = (int32_t)((uint32_t)SQRT_TABLE()[idx] << (sh & 31)) >> 12;
 				*(uint32_t *)(v + 4) = ((uint32_t)(len & ~1) << 19) | (*(const uint32_t *)(v + 4) & 0xFFFFF);
 				int32_t a = 0x400 - (len >> 2);
 				if (a < 0) a = 0;
 				else if (a > 0x3FF) a = 0x3FF;
-				const int32_t s = LEN_TABLE[a] >> 2;
+				const int32_t s = LEN_TABLE()[a] >> 2;
 				const int32_t dx = mul32(x, s) / len;
 				const int32_t dy = mul32(y, s) / len;
 				const uint32_t p = *(const uint32_t *)(v + 4);
@@ -579,7 +579,7 @@ namespace gravija311
 		v[2] = (int16_t)(v[2] + avg[2]);
 		TransformCameraByShadowRotation(v, 0x800, (int32_t)0xFFFFFE00);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = us(SEQ_Particle);
 		*(uint16_t *)(h + 4) = 1;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -634,10 +634,10 @@ namespace gravija311
 				const int32_t fade = WarpFade(b);
 				GteSetRotMatrix(&WarpFrame());
 				GteSetTransVector(&WarpFrame());
-				Warp(MESH, MESH + 8, (z >> 2) + 0x11, fade, (uint8_t *)(TexBase() + VBUF));
+				Warp(MESH(), MESH() + 8, (z >> 2) + 0x11, fade, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
-		if (w->counter == 0) BdPlaySE(SOUND_Gravija, 0, 0x80);
+		if (w->counter == 0) BdPlaySE(SOUND_Gravija(), 0, 0x80);
 		b = (int32_t)w->counter - 0x12;
 		if ((uint32_t)b < 0x32)
 		{
@@ -646,7 +646,7 @@ namespace gravija311
 			{
 				for (int i = 0; i < 0x40; i++)
 				{
-					ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+					ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
 					if (!p) continue;
 					p->counter = 0;
 					p->life = (int16_t)(0x32 - (CrtRand() & 7));
@@ -691,13 +691,13 @@ namespace gravija311
 		}
 		if (m->counter == 1 && !m->started)
 		{
-			PrepareMesh(MESH);
+			PrepareMesh(MESH());
 			m->started = 1;
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + MAIN), 0x348, 1);
 			InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x40);
-			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *w = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&w->counter, 0, 0xCF);
-			DecodeModelPrimLayout(MODEL_Main, w->layout, 0x2F4);
+			DecodeModelPrimLayout(us(MODEL_Main), w->layout, 0x2F4);
 			w->count = (int16_t)Ctx()->actions[0].target_count;
 			w->avg[2] = 0;
 			w->avg[1] = 0;

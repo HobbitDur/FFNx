@@ -31,12 +31,12 @@ namespace cannon86
 	static const uint32_t PACKET_CURSOR = 0x25B4CCC;
 	static const uint32_t PLAY_PAUSE = 0x25B7080;
 	static const uint32_t CREATURE_ARG = 0x25BB240;
-	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
+	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5022C0)(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(a1, a2); }
+		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -334,7 +334,7 @@ namespace cannon86
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -425,35 +425,35 @@ namespace cannon86
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25BC1F4) = 0x2793E58;
-		MEM<uint32_t>(0x25B4DD0) = 0x2793E58;
-		states[0] = 0x77F550;
-		states[1] = 0x77F560;
-		states[2] = 0x77F570;
-		states[3] = 0x77F580;
-		states[4] = 0x7843B0;
-		states[5] = 0x7843F0;
-		states[6] = 0x784400;
-		states[7] = 0x784410;
-		states[8] = 0x784440;
-		states[9] = 0x784450;
-		states[10] = 0x784470;
+		MEM<uint32_t>(us(0x25BC1F4)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x25B4DD0)) = us(0x2793E58);
+		states[0] = us(0x77F550);
+		states[1] = us(0x77F560);
+		states[2] = us(0x77F570);
+		states[3] = us(0x77F580);
+		states[4] = us(0x7843B0);
+		states[5] = us(0x7843F0);
+		states[6] = us(0x784400);
+		states[7] = us(0x784410);
+		states[8] = us(0x784440);
+		states[9] = us(0x784450);
+		states[10] = us(0x784470);
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(0x25B4CCC) = MEM<uint32_t>(0x25BB234);
-			MEM<uint32_t>(0x25B4DCC) = MEM<uint32_t>(0x25BAE2C);
+			MEM<uint32_t>(us(0x25B4CCC)) = MEM<uint32_t>(us(0x25BB234));
+			MEM<uint32_t>(us(0x25B4DCC)) = MEM<uint32_t>(us(0x25BAE2C));
 		}
 		else
 		{
-			MEM<uint32_t>(0x25B4CCC) = MEM<uint32_t>(0x25BB230);
-			MEM<uint32_t>(0x25B4DCC) = MEM<uint32_t>(0x25BAE28);
+			MEM<uint32_t>(us(0x25B4CCC)) = MEM<uint32_t>(us(0x25BB230));
+			MEM<uint32_t>(us(0x25B4DCC)) = MEM<uint32_t>(us(0x25BAE28));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		static const uint32_t queues[8] = { 0x25BB0C0, 0x25B4DA8, 0x25BC1E0, 0x25BBEE8, 0x25B4EB0, 0x25B7088, 0x25BAE18, 0x25BB0B0 };
+		static const uint32_t queues[8] = { us(0x25BB0C0), us(0x25B4DA8), us(0x25BC1E0), us(0x25BBEE8), us(0x25B4EB0), us(0x25B7088), us(0x25BAE18), us(0x25BB0B0) };
 		for (int i = 0; i < 8; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -477,26 +477,26 @@ namespace cannon86
 	{
 		ac_77FAE0(a1);
 		ac_77F680();
-		x::Effect_AddTaskAndInitFromCtx(0x25BC1E0, 0x77F780, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25B4DA8, 0x77FBF0, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25BC1E0), us(0x77F780), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25B4DA8), us(0x77FBF0), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl ac_77F680()
 	{
-		MEM<uint32_t>(0x25BB238) = 0x1565EB0;
-		MEM<uint32_t>(0x25BBD2C) = 0x25BC220;
-		x::MAG_007_sub_8DCC00(0x25BC220, 0x16C);
-		const uint32_t b = MEM<uint32_t>(0x25BBD2C);
-		uint32_t c = MEM<uint32_t>(0x25BC21C);
+		MEM<uint32_t>(us(0x25BB238)) = us(0x1565EB0);
+		MEM<uint32_t>(us(0x25BBD2C)) = us(0x25BC220);
+		x::MAG_007_sub_8DCC00(us(0x25BC220), 0x16C);
+		const uint32_t b = MEM<uint32_t>(us(0x25BBD2C));
+		uint32_t c = MEM<uint32_t>(us(0x25BC21C));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(0x25BC21C) = c;
-		U32(b, 0x114) = 0x19EB018;
+		MEM<uint32_t>(us(0x25BC21C)) = c;
+		U32(b, 0x114) = us(0x19EB018);
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
-			if (o != 0x114 && o != 0x12C) U32(b, o) = 0x19CF018;
-		U32(b, 0x12C) = 0x19D2560;
+			if (o != 0x114 && o != 0x12C) U32(b, o) = us(0x19CF018);
+		U32(b, 0x12C) = us(0x19D2560);
 		U16(b, 0x164) = 0;
 		U16(b, 0x166) = 0;
 		return b;
@@ -504,9 +504,9 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FAE0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		a_73A720(MEM<uint32_t>(DIR_PTR) + 8);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
+		a_73A720(MEM<uint32_t>(us(DIR_PTR)) + 8);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		const uint32_t c = ENT(U8(a1, 0x2C));
 		U16(d, 0xA) = 0;
 		U32(d, 0) = U32(c, 0x1C);
@@ -515,7 +515,7 @@ namespace cannon86
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -523,20 +523,20 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[14];
-		states[0] = 0x77FD00;
-		states[1] = 0x77FD50;
-		states[2] = 0x77FD90;
-		states[3] = 0x77FDF0;
-		states[4] = 0x77FE10;
-		states[5] = 0x77FE30;
-		states[6] = 0x77FE50;
-		states[7] = 0x77FE70;
-		states[8] = 0x77FE90;
-		states[9] = 0x77FEB0;
-		states[10] = 0x77FED0;
-		states[11] = 0x77FEF0;
-		states[12] = 0x77FF10;
-		states[13] = 0x77FF30;
+		states[0] = us(0x77FD00);
+		states[1] = us(0x77FD50);
+		states[2] = us(0x77FD90);
+		states[3] = us(0x77FDF0);
+		states[4] = us(0x77FE10);
+		states[5] = us(0x77FE30);
+		states[6] = us(0x77FE50);
+		states[7] = us(0x77FE70);
+		states[8] = us(0x77FE90);
+		states[9] = us(0x77FEB0);
+		states[10] = us(0x77FED0);
+		states[11] = us(0x77FEF0);
+		states[12] = us(0x77FF10);
+		states[13] = us(0x77FF30);
 		ac_77FCB0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -567,7 +567,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FD00(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(0x170CDCC);
+		x::Battle_QueueTIMUpload_GetEOF(us(0x170CDCC));
 		if (a_73B640(1) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -582,7 +582,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FDF0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0xF)
+		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0xF)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -596,7 +596,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FEB0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		if (S16(d, 0x46) >= 0x32)
 		{
 			U16(d, 0x48) = 1;
@@ -607,7 +607,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FED0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x1561770), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(us(0x1561770)), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -632,10 +632,10 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FF50(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x40) == 1)
+		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BBEE8, 0x77FF90, 0x160, a1);
-			x::Effect_BindModelContainerSetAnim(t, 0x1565EF4, 3);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BBEE8), us(0x77FF90), 0x160, a1);
+			x::Effect_BindModelContainerSetAnim(t, us(0x1565EF4), 3);
 		}
 		return 0;
 	}
@@ -644,17 +644,17 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[11];
-		states[0] = 0x783230;
-		states[1] = 0x7832D0;
-		states[2] = 0x7835E0;
-		states[3] = 0x783640;
-		states[4] = 0x783BA0;
-		states[5] = 0x783F00;
-		states[6] = 0x784150;
-		states[7] = 0x7841E0;
-		states[8] = 0x784270;
-		states[9] = 0x7842B0;
-		states[10] = 0x7842E0;
+		states[0] = us(0x783230);
+		states[1] = us(0x7832D0);
+		states[2] = us(0x7835E0);
+		states[3] = us(0x783640);
+		states[4] = us(0x783BA0);
+		states[5] = us(0x783F00);
+		states[6] = us(0x784150);
+		states[7] = us(0x7841E0);
+		states[8] = us(0x784270);
+		states[9] = us(0x7842B0);
+		states[10] = us(0x7842E0);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t vz = U16(node, 0x128);
 		const uint16_t vy = U16(node, 0x126);
@@ -664,7 +664,7 @@ namespace cannon86
 		if ((st & 4) == 0)
 		{
 			FX_HELD(held_note_draw(HK_ANGELO, node);)
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, CREATURE_ARG, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
 				const uint8_t anim = U8(node, 0x9C), frame = U8(node, 0xA2);
@@ -698,7 +698,7 @@ namespace cannon86
 		const int32_t pz = S16(node, 0x50);
 		const int32_t py = S16(node, 0x4E);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70));
+		ff8fx::copy<(8 * 4)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
 		const int32_t px = S16(node, 0x4C);
 		S32(node, 0x8C) = pz;
 		const uint8_t status = U8(node, 0x26);
@@ -722,7 +722,7 @@ namespace cannon86
 		const int n = k > 3 ? 2 : 4;
 		for (int i = 0; i < n; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B4EB0, 0x782930, 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B4EB0), us(0x782930), 0x90, a1);
 			if ((uint32_t)(int32_t)k <= 5)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			if (k <= 3)
@@ -766,7 +766,7 @@ namespace cannon86
 			return 0;
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x780640, 0x98, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B7088), us(0x780640), 0x98, a1);
 			if ((uint32_t)(int32_t)k <= 3)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
@@ -786,7 +786,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_780640(uint32_t a1)
 	{
-		const uint32_t states[3] = { 0x782810, 0x782850, 0x782920 };
+		const uint32_t states[3] = { us(0x782810), us(0x782850), us(0x782920) };
 		callp(states[S8(a1, 0x29)], a1);
 		ac_7806A0(a1);
 		return task_end(a1);
@@ -799,13 +799,13 @@ namespace cannon86
 		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
-		x::UnpackRotationMatrix(0x1D97778, M);
+		x::UnpackRotationMatrix(us(0x1D97778), M);
 		x::sub_8DD960(M, (uint32_t)(int32_t)S16(a1, 0x48));
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(0x1D97778, M, M);
+		x::ComposeAffineTransform(us(0x1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -824,7 +824,7 @@ namespace cannon86
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(0x1D8E054) = ac_7807B0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = ac_7807B0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1543,7 +1543,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_782810(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x15618C0;
+		U32(a1, 0x4C) = us(0x15618C0);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -1590,9 +1590,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x783060;
-		states[1] = 0x783080;
-		states[2] = 0x783140;
+		states[0] = us(0x783060);
+		states[1] = us(0x783080);
+		states[2] = us(0x783140);
 		callp(states[S8(node, 0x29)], node);
 		ac_782990(node);
 		const uint8_t status = U8(node, 0x26);
@@ -1608,7 +1608,7 @@ namespace cannon86
 		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(0x1D97778, mat);
+		x::UnpackRotationMatrix(us(0x1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -1616,7 +1616,7 @@ namespace cannon86
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -1626,7 +1626,7 @@ namespace cannon86
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -1636,18 +1636,18 @@ namespace cannon86
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x25B4CCC);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(us(0x25B4CCC));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x25B4CCC) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(us(0x25B4CCC)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
 
 	uint32_t __cdecl ac_783060(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x156177C;
+		U32(a1, 0x4C) = us(0x156177C);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -1682,7 +1682,7 @@ namespace cannon86
 		const uint32_t M = P(m);
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B4EB0, 0x782930, 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B4EB0), us(0x782930), 0x90, a1);
 			x::GetEffectSpawnPosition(a1 + 0x30, 0xF1, 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
 			const int32_t r1 = (int32_t)x::CrtRand();
@@ -1707,9 +1707,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		const uint32_t e = ENT(U8(node, 0x2C));
-		gx::BindEntityModelFromComData(e, 0x25BC1F8, 0x156AA60);
+		gx::BindEntityModelFromComData(e, us(0x25BC1F8), us(0x156AA60));
 		gx::QueueChainTransformation(e, 1);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 4);
 		U32(node, 0x4C) = U32(d, 0);
 		U32(node, 0x50) = U32(d, 4);
@@ -1732,10 +1732,10 @@ namespace cannon86
 		const uint32_t node = a1;
 		U16(node, 0x134) = (uint16_t)(U16(node, 0x134) + 1);
 		if (U16(node, 0x134) == 4)
-			x::BdPlaySE(0x1561774, 1, 0x80);
+			x::BdPlaySE(us(0x1561774), 1, 0x80);
 		if (a_73B7E0(2) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x783350, 0x98, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B7088), us(0x783350), 0x98, node);
 			U8(node, 0x26) = (uint8_t)(U8(node, 0x26) & 0xFB);
 			U32(t, 0x8C) = node + 0x30;
 			U16(node, 0x128) = 0xFF00;
@@ -1748,9 +1748,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x783500;
-		states[1] = 0x783590;
-		states[2] = 0x7835D0;
+		states[0] = us(0x783500);
+		states[1] = us(0x783590);
+		states[2] = us(0x7835D0);
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t v = (uint32_t)(uint8_t)(U8(node, 0x92) - 0x10) & 0x7F;
 		const uint32_t u = U16(node, 0x90);
@@ -1776,7 +1776,7 @@ namespace cannon86
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(0x1D97778, M, M);
+		x::ComposeAffineTransform(us(0x1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -1793,7 +1793,7 @@ namespace cannon86
 		U32(h, 0x24) = U32(a2, 0);
 		U32(h, 0x28) = U32(a2, 4);
 		S32(h, 0x10) = S16(a1, 0x52);
-		MEM<uint32_t>(0x1D8E054) = ac_7807B0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = ac_7807B0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1804,7 +1804,7 @@ namespace cannon86
 		ac_783550(node);
 		U16(node, 0x56) = 0;
 		U16(node, 0x54) = 0;
-		U32(node, 0x4C) = 0x1561920;
+		U32(node, 0x4C) = us(0x1561920);
 		U16(node, 0x58) = 0x80;
 		U16(node, 0x5A) = 0x80;
 		S32(node, 0x38) = 0x1000;
@@ -1819,7 +1819,7 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		x::GetEffectSpawnPosition(U32(node, 0x8C), 0xF1, 0, node + 0x1C);
-		const uint32_t z = MEM<uint32_t>(0xB8B7F4) + 0x600;
+		const uint32_t z = MEM<uint32_t>(us(0xB8B7F4)) + 0x600;
 		U16(node, 0x1E) = 0xFF00;
 		U16(node, 0x20) = (uint16_t)z;
 		return z;
@@ -1861,7 +1861,7 @@ namespace cannon86
 		x::au_re_Battle_ReadAnimation_8(node);
 		if (U16(node, 0x136) == 0xC)
 		{
-			const uint32_t t = ac_783690(node, 0x7836E0, 0x1706398, 0x38, 0, 0);
+			const uint32_t t = ac_783690(node, us(0x7836E0), us(0x1706398), 0x38, 0, 0);
 			x::GetEffectSpawnPosition(node + 0x30, 0xF1, 0, t + 0x1C);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
@@ -1870,7 +1870,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_783690(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BAE18, a2, 0x450, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BAE18), a2, 0x450, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -2005,9 +2005,9 @@ namespace cannon86
 			U16(hdr, 0x2A) = 0x100;
 			U16(hdr, 0x28) = 0x100;
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		MEM<uint32_t>(PACKET_CURSOR) = ac_7807B0(hdr, ot, 2, cursor);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = ac_7807B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2036,18 +2036,18 @@ namespace cannon86
 			return 0;
 		}
 		a_73BB60(0);
-		x::BdPlaySE(0x1561778, 1, 0x80);
+		x::BdPlaySE(us(0x1561778), 1, 0x80);
 		x::au_re_Battle_ReadAnimation_7(node, 2);
 		U32(node, 0x140) = U32(mdl, 0x1C);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		U32(node, 0x148) = U32(d, 8);
 		U32(node, 0x144) = U32(mdl, 0x20);
 		U32(node, 0x14C) = U32(d, 0xC);
 		U16(node, 0x154) = 0;
 		U16(node, 0x156) = 0x201;
-		const uint32_t t = ac_783690(node, 0x783C90, 0x1706CC0, 0x1A0, 1, 0);
+		const uint32_t t = ac_783690(node, us(0x783C90), us(0x1706CC0), 0x1A0, 1, 0);
 		x::GetEffectSpawnPosition(mdl, 0xF1, 0, t + 0x1C);
-		const uint32_t g = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x783DC0, 0x98, node);
+		const uint32_t g = x::Effect_AddTaskAndInitFromCtx(us(0x25B7088), us(0x783DC0), 0x98, node);
 		U32(g, 0x8C) = mdl;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -2083,9 +2083,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x783E40;
-		states[1] = 0x783EC0;
-		states[2] = 0x783EF0;
+		states[0] = us(0x783E40);
+		states[1] = us(0x783EC0);
+		states[2] = us(0x783EF0);
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t v = (uint32_t)(uint8_t)(U8(node, 0x92) - 0x10) & 0x7F;
 		const uint32_t u = U16(node, 0x90);
@@ -2106,7 +2106,7 @@ namespace cannon86
 		S32(node, 0x38) = 0x1000;
 		S32(node, 0x34) = 0x1000;
 		S32(node, 0x30) = 0x1000;
-		U32(node, 0x4C) = 0x15638C8;
+		U32(node, 0x4C) = us(0x15638C8);
 		U16(node, 0x46) = 0x800;
 		U16(node, 0x54) = 0;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -2140,7 +2140,7 @@ namespace cannon86
 		if (U16(node, 0x154) == 0x1000)
 		{
 			x::au_re_Battle_ReadAnimation_7(node, 3);
-			ac_783690(node, 0x783F80, 0x1709404, 0x3A4, 2, 0);
+			ac_783690(node, us(0x783F80), us(0x1709404), 0x3A4, 2, 0);
 			const uint16_t d = (uint16_t)((U16(node, 0x150) ^ U16(e, 0)) & 0x200);
 			U16(e, 0) = (uint16_t)(U16(e, 0) ^ d);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -2152,9 +2152,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x783FF0;
-		states[1] = 0x784040;
-		states[2] = 0x784060;
+		states[0] = us(0x783FF0);
+		states[1] = us(0x784040);
+		states[2] = us(0x784060);
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t s = (uint32_t)(uint8_t)(U8(node, 0x8C) + 0x10) & 0x7F;
 		const uint8_t status = U8(node, 0x26);
@@ -2167,7 +2167,7 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		U32(node, 0x1C) = U32(d, 8);
 		U32(node, 0x20) = U32(d, 0xC);
 		U32(node, 0x58) = 0x1000;

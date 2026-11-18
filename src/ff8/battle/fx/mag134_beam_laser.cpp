@@ -25,15 +25,15 @@ namespace beam134
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520E68); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520E70); }
-	inline uint32_t &CasterFlags() { return var<uint32_t>(0x2520E74); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520E78); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520E94); }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2520E98; }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2520EA8; }
-	inline TaskQueue *QGlows() { return (TaskQueue *)0x2520EB8; }
-	inline TaskQueue *QBeam() { return (TaskQueue *)0x2520EC8; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2520E68)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2520E70)); }
+	inline uint32_t &CasterFlags() { return var<uint32_t>(us(0x2520E74)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520E78)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520E94)); }
+	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2520E98); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2520EA8); }
+	inline TaskQueue *QGlows() { return (TaskQueue *)us(0x2520EB8); }
+	inline TaskQueue *QBeam() { return (TaskQueue *)us(0x2520EC8); }
 
 	static const uint32_t ORIG_MasterTask = 0x6B0130;
 	static const uint32_t ORIG_BeamTask = 0x6B03B0;
@@ -52,18 +52,18 @@ namespace beam134
 	static const uint32_t PRIM_Beam = 0x1202214;
 	static const uint32_t SEQ_Spark = 0x1202068;
 	static const uint32_t SEQ_Glow = 0x1201EBC;
-	static const void *const SOUND_Beam = (const void *)0x120767C;
+	static const void *SOUND_Beam() { return (const void *)us(0x120767C); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -330,7 +330,7 @@ namespace beam134
 		s.m[2][2] = (int16_t)len;
 		MulMatrix3(M2, &s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Beam;
+		*(uint32_t *)h = us(PRIM_Beam);
 		if (fade == 0) *(uint32_t *)(h + 0x1C) = 0x30;
 		else
 		{
@@ -372,7 +372,7 @@ namespace beam134
 	{
 		GlowNode *g = (GlowNode *)n;
 		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, g->counter);)
-		SpriteDraw(g->pos, g->counter, SEQ_Glow, 0x1000, -0x400);
+		SpriteDraw(g->pos, g->counter, us(SEQ_Glow), 0x1000, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -381,7 +381,7 @@ namespace beam134
 	{
 		SparkNode *s = (SparkNode *)n;
 		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->counter);)
-		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0xC00, -0x300);
+		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0xC00, -0x300);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
@@ -453,19 +453,19 @@ namespace beam134
 				BeamShape(b, f.P, T, &d);
 				if (d.kind == 1)
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
 					if (h)
 					{
 						ff8fx::copy<(sizeof(h->frame.m))>(&h->frame.m, &f.R.m);
 						h->frame.t[0] = hit[0];
 						h->frame.t[1] = hit[1];
 						h->frame.t[2] = hit[2];
-						DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x58);
+						DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x58);
 					}
 				}
 				else if (d.kind == 2)
 				{
-					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), ORIG_GlowTask);
+					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), us(ORIG_GlowTask));
 					if (g)
 					{
 						g->pos[0] = T[0];
@@ -484,7 +484,7 @@ namespace beam134
 			{
 				for (int k = 0; k < 4; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 					if (!s) continue;
 					ff8fx::copy<(4)>(s->pos, b->spawn);
 					*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->spawn[2];
@@ -503,7 +503,7 @@ namespace beam134
 			FX_HELD(held_note_play(PLAY_IMPACT, n, (prim::Layout *)b->impact, &f);)
 			prim::play((prim::Layout *)b->impact, PrimCallback, (int)&arg, 0);
 		}
-		if (b->counter == 2) BdPlaySE(SOUND_Beam, 0, 0x80);
+		if (b->counter == 2) BdPlaySE(SOUND_Beam(), 0, 0x80);
 		if (b->counter == 0x1A) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		if (b->counter >= 0x2E) return TASK_END;
 		b->counter++;
@@ -542,7 +542,7 @@ namespace beam134
 				if ((live->hdr.flags & 1) && live->ent == ent) m->counter = 0;
 				else
 				{
-					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), ORIG_BeamTask);
+					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), us(ORIG_BeamTask));
 					if (b)
 					{
 						Memset32(&b->counter, 0, 0x14D);
@@ -550,11 +550,11 @@ namespace beam134
 						b->ent = ent;
 						GetEffectSpawnPosition(ent, 0xF1, 0, b->spawn);
 						m->index++;
-						DecodeModelPrimLayout(MODEL_Charge, b->charge[0], 0x58);
-						DecodeModelPrimLayout(MODEL_Charge, b->charge[1], 0x58);
-						DecodeModelPrimLayout(MODEL_Muzzle, b->muzzle, 0x220);
-						DecodeModelPrimLayout(MODEL_Ray, b->ray, 0xA4);
-						DecodeModelPrimLayout(MODEL_Impact, b->impact, 0x1B0);
+						DecodeModelPrimLayout(us(MODEL_Charge), b->charge[0], 0x58);
+						DecodeModelPrimLayout(us(MODEL_Charge), b->charge[1], 0x58);
+						DecodeModelPrimLayout(us(MODEL_Muzzle), b->muzzle, 0x220);
+						DecodeModelPrimLayout(us(MODEL_Ray), b->ray, 0xA4);
+						DecodeModelPrimLayout(us(MODEL_Impact), b->impact, 0x1B0);
 					}
 				}
 			}

@@ -46,13 +46,13 @@ namespace raijin
 	static const uint32_t TGT_WORD10 = 0x2606C5C;
 	static const uint32_t SLIDE_CURVE = 0x1597820;
 	static const uint32_t STAGE_LIGHT = 0x1D98992;
-	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
+	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -350,7 +350,7 @@ namespace raijin
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -434,7 +434,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EB710(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		if (S16(d, 0x46) < 0x24)
 			return d;
 		U16(d, 0x48) = 1;
@@ -444,20 +444,20 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EB790(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(DIR_PTR), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) - 1;
 		if (ph != 0)
 			return (uint32_t)ph;
 		const uint32_t node = a1;
-		a_73C100(node, ORIG_ActorsA, 0x1797CC0, 6, 0x28, 4);
-		a_73C100(node, ORIG_ActorsB, 0x179C998, 0x24, 0x28, 4);
-		rj_7EB870(node, ORIG_Strike, 0x17A0D04, 0xE4, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_DebrisSpawner, 0x8C, node);
-		return x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Darken, 0x8C, node);
+		a_73C100(node, us(ORIG_ActorsA), us(0x1797CC0), 6, 0x28, 4);
+		a_73C100(node, us(ORIG_ActorsB), us(0x179C998), 0x24, 0x28, 4);
+		rj_7EB870(node, us(ORIG_Strike), us(0x17A0D04), 0xE4, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_DebrisSpawner), 0x8C, node);
+		return x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Darken), 0x8C, node);
 	}
 
 	uint32_t __cdecl rj_7EB870(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_MODELS, a2, 0x18C, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_MODELS), a2, 0x18C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -474,9 +474,9 @@ namespace raijin
 		const uint32_t L = P(fr);
 		const uint32_t M = L + 8;
 		const uint32_t ent = ENT(U8(node, 0x2D));
-		MEM<uint32_t>(TGT_WORD10) = U32(ent, 0x10);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
-		MEM<uint32_t>(TGT_WORD0C) = U32(ent, 0xC);
+		MEM<uint32_t>(us(TGT_WORD10)) = U32(ent, 0x10);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		MEM<uint32_t>(us(TGT_WORD0C)) = U32(ent, 0xC);
 		U32(node, 0x180) = U32(ent, 0x1C);
 		U32(node, 0x184) = U32(ent, 0x20);
 		U16(ent, 0xE) = (uint16_t)((U16(d, 0x4A) - 0x800) & 0xFFF);
@@ -509,7 +509,7 @@ namespace raijin
 		U16(node, 0x88) = 0xFE00;
 		x::GetEffectSpawnPosition(ent, 0x19, 0x400, node + 0x1C);
 		rj_7EBAC0(node);
-		rj_7EB870(node, ORIG_Impact, 0x17A3150, 0x24, 1, 0);
+		rj_7EB870(node, us(ORIG_Impact), us(0x17A3150), 0x24, 1, 0);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		U16(node, 0x84) = 0;
 		return 0;
@@ -541,7 +541,7 @@ namespace raijin
 		const int16_t ox = S16(ent, 0x1C);
 		const int16_t oy = S16(ent, 0x1E);
 		const int16_t oz = S16(ent, 0x20);
-		const uint16_t f = MEM<uint16_t>(SLIDE_CURVE + (uint32_t)((int32_t)(int16_t)k * 2));
+		const uint16_t f = MEM<uint16_t>(us(SLIDE_CURVE) + (uint32_t)((int32_t)(int16_t)k * 2));
 		U16(node, 0x188) = f;
 		if (f == 0x1000)
 		{
@@ -565,8 +565,8 @@ namespace raijin
 		if (rj_7EBAC0(node) == 0)
 		{
 			U8(node, 0x26) |= 1;
-			U32(ent, 0xC) = MEM<uint32_t>(TGT_WORD0C);
-			U32(ent, 0x10) = MEM<uint32_t>(TGT_WORD10);
+			U32(ent, 0xC) = MEM<uint32_t>(us(TGT_WORD0C));
+			U32(ent, 0x10) = MEM<uint32_t>(us(TGT_WORD10));
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		return 0;
@@ -601,7 +601,7 @@ namespace raijin
 		if (S16(node, 0x24) < 5)
 			return 0;
 		U16(node, 0x1C) = 0;
-		uint32_t p = STAGE_LIGHT + 0x28;
+		uint32_t p = us(STAGE_LIGHT) + 0x28;
 		for (int k = 4; k != 0; k--)
 		{
 			MEM<uint16_t>(p - 0x28) = 0;
@@ -625,7 +625,7 @@ namespace raijin
 		}
 		const uint16_t v = U16(node, 0x1C);
 		for (int k = 0; k < 4; k++)
-			MEM<uint16_t>(STAGE_LIGHT + (uint32_t)k * 0x2C) = v;
+			MEM<uint16_t>(us(STAGE_LIGHT) + (uint32_t)k * 0x2C) = v;
 		return 0;
 	}
 
@@ -661,7 +661,7 @@ namespace raijin
 		int32_t n = 2;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Debris, 0x8C, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Debris), 0x8C, node);
 			U32(t, 0x1C) = U32(node, 0x1C);
 			U32(t, 0x20) = U32(node, 0x20);
 			const uint32_t r0 = x::CrtRand();
@@ -695,9 +695,9 @@ namespace raijin
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x7F2600;
-		states[1] = 0x7F2620;
-		states[2] = 0x7F2670;
+		states[0] = us(0x7F2600);
+		states[1] = us(0x7F2620);
+		states[2] = us(0x7F2670);
 		callp(states[S8(node, 0x29)], node);
 		int16_t vx = S16(node, 0x78);
 		int16_t vy = (int16_t)(U16(node, 0x82) + U16(node, 0x7A));
@@ -812,12 +812,12 @@ namespace raijin
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
@@ -825,7 +825,7 @@ namespace raijin
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = rj_7EBDF0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = rj_7EBDF0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -836,47 +836,47 @@ namespace raijin
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x2604188) = 0x2793E58;
-		states[0] = 0x7EB370;
-		states[1] = 0x7EB380;
+		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x2604188)) = us(0x2793E58);
+		states[0] = us(0x7EB370);
+		states[1] = us(0x7EB380);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = 0x7EB390;
-		states[3] = 0x7EB410;
-		states[4] = 0x7F2720;
-		states[5] = 0x7F2760;
-		states[6] = 0x7F2770;
-		states[7] = 0x7F2780;
-		states[8] = 0x7F27B0;
-		states[9] = 0x7F27C0;
-		states[10] = 0x7F27E0;
+		states[2] = us(0x7EB390);
+		states[3] = us(0x7EB410);
+		states[4] = us(0x7F2720);
+		states[5] = us(0x7F2760);
+		states[6] = us(0x7F2770);
+		states[7] = us(0x7F2780);
+		states[8] = us(0x7F27B0);
+		states[9] = us(0x7F27C0);
+		states[10] = us(0x7F27E0);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2606BF4);
-			const uint32_t v2 = MEM<uint32_t>(0x2606294);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2604184) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x2606BF4));
+			const uint32_t v2 = MEM<uint32_t>(us(0x2606294));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x2604184)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x2606BF0);
-			const uint32_t v2 = MEM<uint32_t>(0x2606290);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2604184) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x2606BF0));
+			const uint32_t v2 = MEM<uint32_t>(us(0x2606290));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x2604184)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x2607040) = 0;
-		MEM<uint16_t>(0x2606C60) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_DIRECTOR));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_ACTORS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TASKS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_MODELS));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_STAGE));
+		MEM<uint16_t>(us(0x2607040)) = 0;
+		MEM<uint16_t>(us(0x2606C60)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TASKS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_MODELS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -887,12 +887,12 @@ namespace raijin
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(0x2607054);
-		MEM<uint32_t>(0x2606C64) = p;
+		uint32_t p = MEM<uint32_t>(us(0x2607054));
+		MEM<uint32_t>(us(0x2606C64)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x260704C) = p;
+		MEM<uint32_t>(us(0x260704C)) = p;
 		p += 0xD200;
-		MEM<uint32_t>(0x2607054) = p;
+		MEM<uint32_t>(us(0x2607054)) = p;
 		rj_7EB3D0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -900,27 +900,27 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EB3D0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2606C64), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x260704C), 0xD200);
-		MEM<uint16_t>(0x2605DD0) = 0;
-		MEM<uint16_t>(0x2606C70) = 0;
-		MEM<uint16_t>(0x2606BF8) = 0;
-		MEM<uint16_t>(0x2604080) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2606C64)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x260704C)), 0xD200);
+		MEM<uint16_t>(us(0x2605DD0)) = 0;
+		MEM<uint16_t>(us(0x2606C70)) = 0;
+		MEM<uint16_t>(us(0x2606BF8)) = 0;
+		MEM<uint16_t>(us(0x2604080)) = 0;
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7EB4C0(uint32_t a1)
 	{
 		rj_7EB4F0(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2604160, 0x7EB580, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2604160), us(0x7EB580), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7EB4F0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -930,7 +930,7 @@ namespace raijin
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0;
 	}
 
@@ -938,13 +938,13 @@ namespace raijin
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = 0x7EB650;
-		states[1] = 0x7EB6A0;
-		states[2] = 0x7EB6F0;
-		states[3] = 0x7EB710;
-		states[4] = 0x7EB730;
-		states[5] = 0x7EB750;
-		states[6] = 0x7EB770;
+		states[0] = us(0x7EB650);
+		states[1] = us(0x7EB6A0);
+		states[2] = us(0x7EB6F0);
+		states[3] = us(0x7EB710);
+		states[4] = us(0x7EB730);
+		states[5] = us(0x7EB750);
+		states[6] = us(0x7EB770);
 		rj_7EB600(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -977,14 +977,14 @@ namespace raijin
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x159735C, 0, 0x80);
+		x::BdPlaySE(us(0x159735C), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
 
 	uint32_t __cdecl rj_7EB6F0(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1597358, 0);
+		uint32_t blk = U32(us(0x1597358), 0);
 		if (S16(blk, 0x46) < 4) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -992,7 +992,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EB8C0(uint32_t a1)
 	{
-		const uint32_t tab[4] = { 0x7EB920, 0x7EBA10, 0x7EDF70, 0x7EE0E0 };
+		const uint32_t tab[4] = { us(0x7EB920), us(0x7EBA10), us(0x7EDF70), us(0x7EE0E0) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1008,7 +1008,7 @@ namespace raijin
 		S32(L, 0x14) = S16(a1, 0x1C);
 		S32(L, 0x18) = S16(a1, 0x1E);
 		S32(L, 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(0x1D97778, L, L);
+		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U16(L, 0x54) = U16(a1, 0x86);
 		U32(L, 0x44) = U32(a1, 0x7C);
 		U32(L, 0x38) = U32(a1, 0x70);
@@ -1016,11 +1016,11 @@ namespace raijin
 		U16(L, 0x4E) = U16(a1, 0x8E);
 		U16(L, 0x52) = U16(a1, 0x92);
 		U16(L, 0x50) = U16(a1, 0x90);
-		U32(L, 0x48) = BLEND_BUF;
+		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(a1, 0x80);
 		U16(L, 0x58) = U16(a1, 0x88);
 		FX_HELD(held_note_play(a1);)
-		return prim_play(a1 + 0x94, PRIM_CB, L, 0);
+		return prim_play(a1 + 0x94, us(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl rj_7EBDF0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
@@ -1727,7 +1727,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EE360(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2607058);
+		const uint32_t arena = MEM<uint32_t>(us(0x2607058));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1744,7 +1744,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EE5E0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x2607058);
+		const uint32_t arena = MEM<uint32_t>(us(0x2607058));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1767,7 +1767,7 @@ namespace raijin
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x2607058, 0) = sys;
+		U32(us(0x2607058), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1780,7 +1780,7 @@ namespace raijin
 			FX_HELD(held_note_system(sys);)
 			rj_7EEEE0();
 			rj_7EED20();
-			sys = U32(0x2607058, 0);
+			sys = U32(us(0x2607058), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1793,19 +1793,19 @@ namespace raijin
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x2607040, 0) = (uint16_t)(U16(0x2607040, 0) + c14);
-		U16(0x2606C60, 0) = (uint16_t)(U16(0x2606C60, 0) + c16);
+		U16(us(0x2607040), 0) = (uint16_t)(U16(us(0x2607040), 0) + c14);
+		U16(us(0x2606C60), 0) = (uint16_t)(U16(us(0x2606C60), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl rj_7EED20(void)
 	{
-		uint32_t act = U32(U32(0x2607058, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x2607058), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x2607058, 0);
+				uint32_t sys = U32(us(0x2607058), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1819,10 +1819,10 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EED80(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(us(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1850,7 +1850,7 @@ namespace raijin
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(0x1D8E054) = rj_7EBDF0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+			MEM<uint32_t>(us(0x1D8E054)) = rj_7EBDF0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		}
 		else if (copies > 0)
 		{
@@ -1862,24 +1862,24 @@ namespace raijin
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(0x1D8E054) = rj_7EBDF0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+				MEM<uint32_t>(us(0x1D8E054)) = rj_7EBDF0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(us(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl rj_7EEEE0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x2607058), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(us(0x2607058)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x2607058);
+				uint32_t st = MEM<uint32_t>(us(0x2607058));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1914,26 +1914,26 @@ namespace raijin
 	uint32_t __cdecl rj_7EEFA0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7EF020(void)
 	{
-		uint32_t act = U32(U32(0x2607058, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x2607058), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1949,7 +1949,7 @@ namespace raijin
 	uint32_t __cdecl rj_7EF060(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x2607058);
+		uint32_t st = MEM<uint32_t>(us(0x2607058));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1970,7 +1970,7 @@ namespace raijin
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x2607058);
+			st = MEM<uint32_t>(us(0x2607058));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1982,7 +1982,7 @@ namespace raijin
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2607058, 0);
+		uint32_t st = U32(us(0x2607058), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2065,8 +2065,8 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F0250(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x2606C64);
-		int32_t idx = MEM<int16_t>(0x2605DD0);
+		const uint32_t pool = MEM<uint32_t>(us(0x2606C64));
+		int32_t idx = MEM<int16_t>(us(0x2605DD0));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -2076,7 +2076,7 @@ namespace raijin
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -2091,9 +2091,9 @@ namespace raijin
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x2605DD0) = (uint16_t)idx;
+			MEM<uint16_t>(us(0x2605DD0)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x2605DD0) = 0;
+			MEM<uint16_t>(us(0x2605DD0)) = 0;
 		return slot;
 	}
 
@@ -2106,9 +2106,9 @@ namespace raijin
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(0x7F0CA0, a1);
+			callp(us(0x7F0CA0), a1);
 		else if (mode == 4)
-			callp(0x7F0DF0, a1);
+			callp(us(0x7F0DF0), a1);
 		rj_7F0370(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2117,7 +2117,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F0370(uint32_t a1)
 	{
-		uint32_t sys = U32(0x2607058, 0);
+		uint32_t sys = U32(us(0x2607058), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2144,9 +2144,9 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F03F0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(0x2607048, 0) - 0x50;
+		uint32_t sp = U32(us(0x2607048), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x2607048, 0) = sp;
+		U32(us(0x2607048), 0) = sp;
 		uint32_t node = rj_7F0BD0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2156,7 +2156,7 @@ namespace raijin
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x2607058, 0);
+			uint32_t ctx = U32(us(0x2607058), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2324,14 +2324,14 @@ namespace raijin
 			}
 		}
 		rj_7F18E0(node, desc);
-		U32(0x2607048, 0) = U32(0x2607048, 0) + 0x50;
+		U32(us(0x2607048), 0) = U32(us(0x2607048), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7F0BD0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x260704C);
-		int32_t i = MEM<int16_t>(0x2606C70);
+		const uint32_t pool = MEM<uint32_t>(us(0x260704C));
+		int32_t i = MEM<int16_t>(us(0x2606C70));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2344,7 +2344,7 @@ namespace raijin
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2361,16 +2361,16 @@ namespace raijin
 		}
 		i++;
 		if (i >= 0x4F)
-			MEM<uint16_t>(0x2606C70) = 0;
+			MEM<uint16_t>(us(0x2606C70)) = 0;
 		else
-			MEM<uint16_t>(0x2606C70) = (uint16_t)i;
+			MEM<uint16_t>(us(0x2606C70)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl rj_7F0DF0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(0x2607058, 0);
+		const uint32_t st = U32(us(0x2607058), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2430,7 +2430,7 @@ namespace raijin
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(0x2607058, 0);
+				uint32_t g = U32(us(0x2607058), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2440,7 +2440,7 @@ namespace raijin
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(0x2607058, 0);
+				uint32_t g = U32(us(0x2607058), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2515,7 +2515,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F1970(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2607058);
+		uint32_t dir = MEM<uint32_t>(us(0x2607058));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2540,14 +2540,14 @@ namespace raijin
 				do
 				{
 					rj_7F0250(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x2607058);
+					dir = MEM<uint32_t>(us(0x2607058));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				rj_7F0250(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x2607058);
+				dir = MEM<uint32_t>(us(0x2607058));
 			}
 		}
 		return 0;
@@ -2586,7 +2586,7 @@ namespace raijin
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -2599,7 +2599,7 @@ namespace raijin
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(0x1D97778, mat);
+		x::UnpackRotationMatrix(us(0x1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -2607,7 +2607,7 @@ namespace raijin
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -2617,7 +2617,7 @@ namespace raijin
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -2627,11 +2627,11 @@ namespace raijin
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x260407C);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(us(0x260407C));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x260407C) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(us(0x260407C)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -2639,7 +2639,7 @@ namespace raijin
 	uint32_t __cdecl rj_7F2600(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x1597360;
+		U32(a1, 0x4C) = us(0x1597360);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -2659,7 +2659,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F2690(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1597358);
+		const uint32_t d = MEM<uint32_t>(us(0x1597358));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;

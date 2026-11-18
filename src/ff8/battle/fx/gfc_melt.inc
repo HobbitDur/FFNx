@@ -18,10 +18,10 @@
 
 	static inline void xl_ModelShadow_B67040(void *hdr, void *root, int32_t ot, int32_t y, int32_t level)
 	{
-		x::f<int32_t (__cdecl *)(void *, void *, int32_t, int32_t, int32_t)>(0xB67040)(hdr, root, ot, y, level);
+		x::f<int32_t (__cdecl *)(void *, void *, int32_t, int32_t, int32_t)>(us(0xB67040))(hdr, root, ot, y, level);
 	}
-	static inline int32_t xl_NormalClip(int32_t a, int32_t b, int32_t c) { return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(0x56CB30)(a, b, c); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
+	static inline int32_t xl_NormalClip(int32_t a, int32_t b, int32_t c) { return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CB30))(a, b, c); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
 	static inline int32_t melt_div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
@@ -223,9 +223,9 @@
 					x::GteWriteData((int32_t)(((uint32_t)U16(s, 2) << 16) | U16(s, 0)), 0);
 					x::GteWriteData((int32_t)U16(s, 4), 1);
 					x::GteMVMVA_RotV0Tr();
-					U16(o, 0) = MEM<uint16_t>(0x1CA8A74);
-					U16(o, 2) = (uint16_t)MEM<uint32_t>(0x1CA8A78);
-					U16(o, 4) = (uint16_t)MEM<uint32_t>(0x1CA8A7C);
+					U16(o, 0) = MEM<uint16_t>(us(0x1CA8A74));
+					U16(o, 2) = (uint16_t)MEM<uint32_t>(us(0x1CA8A78));
+					U16(o, 4) = (uint16_t)MEM<uint32_t>(us(0x1CA8A7C));
 					s += 6;
 					o += 8;
 				}
@@ -259,7 +259,7 @@
 					x::GteWriteData((int32_t)U16(o, 4), 1);
 					x::GteRTPS();
 					x::GteReadSXY2(o);
-					U16(o, 4) = MEM<uint16_t>(0x1CA8A5C);
+					U16(o, 4) = MEM<uint16_t>(us(0x1CA8A5C));
 					o += 8;
 				}
 			}

@@ -44,37 +44,37 @@ namespace terra219
 	{
 		c.name = "219 Terra Break";
 		c.effect_id = 219;
-		c.vm_table = 0x186EC78;
-		c.bone_table = 0x186E8E8;
-		c.prim_table = 0x186E930;
-		c.prim_size = 0x186EA20;
-		c.spr_table = 0x186EA34;
-		c.ptype_table = 0x186EA60;
-		c.pop_table = 0x186EA74;
-		c.draw_table = 0x186EAD4;
-		c.attr_16A = 0x186EC3E;
-		c.attr_184 = 0x186EC58;
-		c.attr_186 = 0x186EC5A;
-		c.attr_194 = 0x186EC68;
-		c.attr_19C = 0x186EC70;
-		c.desc = 0x186E6D0;
-		c.ptr_block = 0x186E8C0;
-		c.queue = 0x2796C50;
-		c.file00 = 0x2796C64;
-		c.file01 = 0x2796C60;
-		c.tick = 0xABDA90;
-		c.load_cb = 0xAC5950;
+		c.vm_table = us(0x186EC78);
+		c.bone_table = us(0x186E8E8);
+		c.prim_table = us(0x186E930);
+		c.prim_size = us(0x186EA20);
+		c.spr_table = us(0x186EA34);
+		c.ptype_table = us(0x186EA60);
+		c.pop_table = us(0x186EA74);
+		c.draw_table = us(0x186EAD4);
+		c.attr_16A = us(0x186EC3E);
+		c.attr_184 = us(0x186EC58);
+		c.attr_186 = us(0x186EC5A);
+		c.attr_194 = us(0x186EC68);
+		c.attr_19C = us(0x186EC70);
+		c.desc = us(0x186E6D0);
+		c.ptr_block = us(0x186E8C0);
+		c.queue = us(0x2796C50);
+		c.file00 = us(0x2796C64);
+		c.file01 = us(0x2796C60);
+		c.tick = us(0xABDA90);
+		c.load_cb = us(0xAC5950);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
 	}
 	static inline int32_t xl_Steer_B67A60(const void *p, const void *t, int32_t speed, int32_t turn, int32_t reach, int32_t a, int32_t b)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, const void *, int32_t, int32_t, int32_t, int32_t, int32_t)>(0xB67A60)(p, t, speed, turn, reach, a, b);
+		return x::f<int32_t (__cdecl *)(const void *, const void *, int32_t, int32_t, int32_t, int32_t, int32_t)>(us(0xB67A60))(p, t, speed, turn, reach, a, b);
 	}
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -141,10 +141,10 @@ namespace terra219
 		STREAM() += 4;
 	}
 
-	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x56CC50)(a, b, h); }
+	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CC50))(a, b, h); }
 	static inline int32_t xl_RotTransPersNormalColor_56CAA0(const void *v, const void *n, const void *c, void *sxy, void *rgb, void *flag)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(0x56CAA0)(v, n, c, sxy, rgb, flag);
+		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(us(0x56CAA0))(v, n, c, sxy, rgb, flag);
 	}
 
 	static void __cdecl dh_67_FoggedGridSheet()
@@ -266,9 +266,9 @@ namespace terra219
 		PTR(CTX(), 0x7C) = pk;
 	}
 
-	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56CB30)(s0, s1, s2); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	static inline uint32_t &TbGte(int reg) { return MEM<uint32_t>(0x1CA8A10 + 4 * reg); }
+	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56CB30))(s0, s1, s2); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline uint32_t &TbGte(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
 	static inline int32_t TbDiv3(int32_t v)
 	{
 		const int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
@@ -553,10 +553,10 @@ namespace terra219
 			for (int i = 0; i < 0x400; i++, p += 0x2C)
 			{
 				U16(p, 0) = life;
-				MEM<uint8_t>(0x1D98991) &= 0xFD;
-				MEM<uint8_t>(0x1D989BD) &= 0xFD;
-				MEM<uint8_t>(0x1D989E9) &= 0xFD;
-				MEM<uint8_t>(0x1D98A15) |= 2;
+				MEM<uint8_t>(us(0x1D98991)) &= 0xFD;
+				MEM<uint8_t>(us(0x1D989BD)) &= 0xFD;
+				MEM<uint8_t>(us(0x1D989E9)) &= 0xFD;
+				MEM<uint8_t>(us(0x1D98A15)) |= 2;
 			}
 		}
 		const uint8_t *d = PTR(CUR(), 0xB8);
@@ -574,7 +574,7 @@ namespace terra219
 		S32(WS(), 0x94) = S16(ref, 0x90);
 		uint8_t *pool = PTR(CUR(), 0xBC);
 		FX_HELD(if (!g_held.active) TbNoteBegin(pool);)
-		static uint8_t *const ENT[3] = { (uint8_t *)0x1D98990, (uint8_t *)0x1D989BC, (uint8_t *)0x1D989E8 };
+		static uint8_t *const ENT[3] = { (uint8_t *)us(0x1D98990), (uint8_t *)us(0x1D989BC), (uint8_t *)us(0x1D989E8) };
 		for (int k = 0; k < 3; k++)
 		{
 			FX_HELD(if (g_held.active) { pool = TbHeldDraw(ENT[k], pool); continue; })

@@ -25,10 +25,10 @@ namespace melteye158
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23DB5B0); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23DB5B4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23EB5BC); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23D8C10; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23DB5B0)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x23DB5B4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23EB5BC)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23D8C10); }
 	static const uint32_t ARENA0 = 0x23DB5BC, ARENA1 = 0x23E35BC, ARENA_SIZE = 0x8000;
 	static const uint32_t DROPS = 0x23D7B30, DROPS_END = 0x23D82B0;
 	static const uint32_t SPARKS = 0x23D82B0, SPARKS_END = 0x23D8C10;
@@ -46,13 +46,13 @@ namespace melteye158
 	static const uint32_t EYES = 0xDB07C0;
 	static const uint32_t MODEL_Ring = 0xDB0158, MODEL_Splash = 0xDB0548;
 	static const uint32_t SEQ_Trail = 0xDB007C, SEQ_Splash = 0xDAFCAC, SEQ_Drop = 0xDAFED0;
-	static const void *const SOUND_MeltEye = (const void *)0xDB07B8;
+	static const void *SOUND_MeltEye() { return (const void *)us(0xDB07B8); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-	inline uint32_t MatrixMultiplyVector(const void *m, const void *in, void *out) { return fn<uint32_t (__cdecl *)(const void *, const void *, void *)>(0x56C4F0)(m, in, out); }
-	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
+	inline uint32_t MatrixMultiplyVector(const void *m, const void *in, void *out) { return fn<uint32_t (__cdecl *)(const void *, const void *, void *)>(us(0x56C4F0))(m, in, out); }
+	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -99,12 +99,12 @@ namespace melteye158
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Melt-Eye nodes");
 	static_assert(sizeof(Beam) == 0x1B8 && sizeof(Drop) == 0x18 && sizeof(Spark) == 0x18, "Melt-Eye tables");
 
-	inline Beam *BeamRec(int16_t i) { return (Beam *)(BEAMS + (uint32_t)(int32_t)i * sizeof(Beam)); }
-	inline Drop *Drops() { return (Drop *)DROPS; }
-	inline Spark *Sparks() { return (Spark *)SPARKS; }
+	inline Beam *BeamRec(int16_t i) { return (Beam *)(us(BEAMS) + (uint32_t)(int32_t)i * sizeof(Beam)); }
+	inline Drop *Drops() { return (Drop *)us(DROPS); }
+	inline Spark *Sparks() { return (Spark *)us(SPARKS); }
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 	inline const void *CasterMatrix() { return Caster() + 0x40; }
-	inline const int16_t *Eye(int32_t i) { return (const int16_t *)(EYES + (uint32_t)i * 8); }
+	inline const int16_t *Eye(int32_t i) { return (const int16_t *)(us(EYES) + (uint32_t)i * 8); }
 
 	static uint8_t *ModelHeader(uint32_t model, int16_t counter, int16_t from, int32_t step)
 	{
@@ -160,7 +160,7 @@ namespace melteye158
 	static void RingDraw(const EffectNode *t)
 	{
 		RingMatrix(t);
-		RenderModel(ModelHeader(MODEL_Ring, t->counter, 8, 682), -2);
+		RenderModel(ModelHeader(us(MODEL_Ring), t->counter, 8, 682), -2);
 	}
 
 	static void SplashModelMatrix(const EffectNode *t)
@@ -186,7 +186,7 @@ namespace melteye158
 	static void SplashModelDraw(const EffectNode *t)
 	{
 		SplashModelMatrix(t);
-		RenderModel(ModelHeader(MODEL_Splash, t->counter, 6, 0x200), 2);
+		RenderModel(ModelHeader(us(MODEL_Splash), t->counter, 6, 0x200), 2);
 	}
 
 	static void SpriteAt(uint8_t *h, const int16_t *pos, int32_t size, int shift)
@@ -206,7 +206,7 @@ namespace melteye158
 	static uint8_t *SplashDraw(const EffectNode *t)
 	{
 		TransformCameraByShadowRotation(t->pos, t->w1C, -((int32_t)t->w1C >> 3));
-		uint8_t *h = SeqHeader(SEQ_Splash, t->counter);
+		uint8_t *h = SeqHeader(us(SEQ_Splash), t->counter);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
 		return h;
@@ -230,7 +230,7 @@ namespace melteye158
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 0x24) = 0;
-		*(uint32_t *)h = SEQ_Trail;
+		*(uint32_t *)h = us(SEQ_Trail);
 		*(int16_t *)(h + 4) = (int16_t)(t->counter & 3);
 		return h;
 	}
@@ -238,14 +238,14 @@ namespace melteye158
 	static int FreeSpark()
 	{
 		int i = 0;
-		for (uint32_t a = SPARKS; a < SPARKS_END; a += sizeof(Spark), i++)
+		for (uint32_t a = us(SPARKS); a < us(SPARKS_END); a += sizeof(Spark), i++)
 			if (*(uint32_t *)a == 0) return i < SPARK_COUNT ? i : -1;
 		return -1;
 	}
 	static int FreeDrop()
 	{
 		int i = 0;
-		for (uint32_t a = DROPS; a < DROPS_END; a += sizeof(Drop), i++)
+		for (uint32_t a = us(DROPS); a < us(DROPS_END); a += sizeof(Drop), i++)
 			if (*(uint32_t *)a == 0) return i < DROP_COUNT ? i : -1;
 		return -1;
 	}
@@ -324,8 +324,8 @@ namespace melteye158
 				*(uint32_t *)&sp->pos[2] = *(const uint32_t *)&p[2];
 			}
 		}
-		FX_HELD(held_note_table(SPARKS);)
-		for (Spark *sp = Sparks(); (uint32_t)sp < SPARKS_END; sp++)
+		FX_HELD(held_note_table(us(SPARKS));)
+		for (Spark *sp = Sparks(); (uint32_t)sp < us(SPARKS_END); sp++)
 		{
 			if (!(sp->mask & mask)) continue;
 			*(int16_t *)(h + 4) = sp->frame;
@@ -350,13 +350,13 @@ namespace melteye158
 		const uint16_t pad_residue = 0;
 		EffectNode *t = (EffectNode *)nd;
 		FX_HELD(held_note(REC_DROPS, t);)
-		FX_HELD(held_note_table(DROPS);)
+		FX_HELD(held_note_table(us(DROPS));)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
-		*(uint32_t *)h = SEQ_Drop;
+		*(uint32_t *)h = us(SEQ_Drop);
 		*(int16_t *)(h + 0x24) = 0;
 		const uint32_t mask = (uint32_t)(int32_t)t->w0E;
-		for (Drop *d = Drops(); (uint32_t)d < DROPS_END; d++)
+		for (Drop *d = Drops(); (uint32_t)d < us(DROPS_END); d++)
 		{
 			if (!(d->mask & mask)) continue;
 			*(int16_t *)(h + 4) = d->frame;
@@ -462,8 +462,8 @@ namespace melteye158
 		if (t->counter == 0) BeamPath(t, b);
 		if (t->counter == 1)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
-			const uint32_t e0 = *(const uint32_t *)EYES, e1 = *(const uint32_t *)(EYES + 4);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
+			const uint32_t e0 = *(const uint32_t *)us(EYES), e1 = *(const uint32_t *)(us(EYES) + 4);
 			n->counter = 0;
 			n->w0E = t->w0E;
 			*(uint32_t *)&n->pos[0] = e0;
@@ -478,7 +478,7 @@ namespace melteye158
 		}
 		if (t->counter == 7)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Trail);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Trail));
 			n->counter = 0;
 			n->w0E = t->w0E;
 			n->w18 = 0;
@@ -487,14 +487,14 @@ namespace melteye158
 		}
 		if (t->counter == 0x10)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Splash);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Splash));
 			n->counter = 0;
 			n->pos[0] = b->end[0];
 			const int32_t r = CrtRand() % 0x190;
 			n->pos[2] = b->end[2];
 			n->pos[1] = (int16_t)(-0x64 - r);
 			n->w1C = (int16_t)(CrtRand() % 0x600 + 0xE00);
-			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_SplashModel);
+			EffectNode *m = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_SplashModel));
 			*(uint32_t *)&m->pos[0] = *(const uint32_t *)&n->pos[0];
 			m->counter = 0;
 			*(uint32_t *)&m->pos[2] = *(const uint32_t *)&n->pos[2];
@@ -516,7 +516,7 @@ namespace melteye158
 		EffectNode *t = (EffectNode *)nd;
 		if (t->counter >= 1 && t->counter <= 0xF)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Beam);
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Beam));
 			n->counter = 0;
 			n->w0E = t->w0E;
 			const int32_t eye = CrtRand() % 6 + 1;
@@ -528,7 +528,7 @@ namespace melteye158
 			GetEffectSpawnPosition(Caster(), 0xF0, 0, t->pos);
 			for (int k = 0; k < 2; k++)
 			{
-				EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Drops);
+				EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Drops));
 				*(uint32_t *)&n->pos[0] = *(const uint32_t *)&t->pos[0];
 				n->counter = 0;
 				n->w0E = (int16_t)(k + 1);
@@ -537,7 +537,7 @@ namespace melteye158
 			}
 		}
 		if (t->counter == 0x28) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (t->counter == 1) BdPlaySE(SOUND_MeltEye, 0, 0x80);
+		if (t->counter == 1) BdPlaySE(SOUND_MeltEye(), 0, 0x80);
 		t->counter++;
 		return t->counter > 0x2A ? TASK_END : 0;
 	}
@@ -546,8 +546,8 @@ namespace melteye158
 	{
 		RootNode *r = (RootNode *)nd;
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA1;
-		if (!(r->counter & 1)) PacketCursor() = ARENA0;
+		PacketCursor() = us(ARENA1);
+		if (!(r->counter & 1)) PacketCursor() = us(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;

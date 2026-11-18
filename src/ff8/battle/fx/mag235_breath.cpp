@@ -32,34 +32,34 @@ namespace breath
 	{
 		c.name = "235 Breath";
 		c.effect_id = 235;
-		c.vm_table = 0x186741C;
-		c.bone_table = 0x186708C;
-		c.prim_table = 0x18670D4;
-		c.prim_size = 0x18671C4;
-		c.spr_table = 0x18671D8;
-		c.ptype_table = 0x1867204;
-		c.pop_table = 0x1867218;
-		c.draw_table = 0x1867278;
-		c.attr_16A = 0x18673E2;
-		c.attr_184 = 0x18673FC;
-		c.attr_186 = 0x18673FE;
-		c.attr_194 = 0x186740C;
-		c.attr_19C = 0x1867414;
-		c.desc = 0x1866F60;
-		c.ptr_block = 0x1867064;
-		c.queue = 0x27969B0;
-		c.file00 = 0x27969C4;
-		c.file01 = 0x27969C0;
-		c.tick = 0xA3E9E0;
-		c.load_cb = 0xA44370;
+		c.vm_table = us(0x186741C);
+		c.bone_table = us(0x186708C);
+		c.prim_table = us(0x18670D4);
+		c.prim_size = us(0x18671C4);
+		c.spr_table = us(0x18671D8);
+		c.ptype_table = us(0x1867204);
+		c.pop_table = us(0x1867218);
+		c.draw_table = us(0x1867278);
+		c.attr_16A = us(0x18673E2);
+		c.attr_184 = us(0x18673FC);
+		c.attr_186 = us(0x18673FE);
+		c.attr_194 = us(0x186740C);
+		c.attr_19C = us(0x1867414);
+		c.desc = us(0x1866F60);
+		c.ptr_block = us(0x1867064);
+		c.queue = us(0x27969B0);
+		c.file00 = us(0x27969C4);
+		c.file01 = us(0x27969C0);
+		c.tick = us(0xA3E9E0);
+		c.load_cb = us(0xA44370);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56CB30)(s0, s1, s2); }
-	static inline void xl_ProjectVertexGroup_50FD40(uint8_t **stream, uint8_t **out) { x::f<void (__cdecl *)(uint8_t **, uint8_t **)>(0x50FD40)(stream, out); }
-	static inline void xl_EntityBounds_5086F0(uint8_t *ent) { x::f<void (__cdecl *)(uint8_t *)>(0x5086F0)(ent); }
-	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
+	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56CB30))(s0, s1, s2); }
+	static inline void xl_ProjectVertexGroup_50FD40(uint8_t **stream, uint8_t **out) { x::f<void (__cdecl *)(uint8_t **, uint8_t **)>(us(0x50FD40))(stream, out); }
+	static inline void xl_EntityBounds_5086F0(uint8_t *ent) { x::f<void (__cdecl *)(uint8_t *)>(us(0x5086F0))(ent); }
+	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
 	static inline uint32_t xl_Render_5088A0(void *ent, uint32_t ot, int32_t mode, uint32_t cursor) { return x::Render_5088A0(ent, ot, mode, cursor); }
 
 	static void SyncEntityModelCopy(uint8_t *blk)

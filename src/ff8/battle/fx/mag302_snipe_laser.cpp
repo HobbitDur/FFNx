@@ -25,14 +25,14 @@ namespace snipe302
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507660); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507668); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250766C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507684); }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507688; }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507698; }
-	inline TaskQueue *QGlows() { return (TaskQueue *)0x25076A8; }
-	inline TaskQueue *QBeam() { return (TaskQueue *)0x25076B8; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507660)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507668)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x250766C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507684)); }
+	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2507688); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507698); }
+	inline TaskQueue *QGlows() { return (TaskQueue *)us(0x25076A8); }
+	inline TaskQueue *QBeam() { return (TaskQueue *)us(0x25076B8); }
 
 	static const uint32_t ORIG_MasterTask = 0x66CB00;
 	static const uint32_t ORIG_BeamTask = 0x66CD40;
@@ -50,20 +50,20 @@ namespace snipe302
 	static const uint32_t PRIM_Beam = 0x103462C;
 	static const uint32_t SEQ_Spark = 0x1034480;
 	static const uint32_t SEQ_Glow = 0x1034270;
-	static const void *const SOUND_Beam = (const void *)0x103BBB0;
-	static const int16_t *const BEAM_POINTS = (const int16_t *)0x103BBB8;
+	static const void *SOUND_Beam() { return (const void *)us(0x103BBB0); }
+	static const int16_t *BEAM_POINTS() { return (const int16_t *)us(0x103BBB8); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -239,7 +239,7 @@ namespace snipe302
 	};
 	static void BuildFrame(const BeamNode *b, BeamFrame *f)
 	{
-		BonePoint(BEAM_POINTS + 4 * b->index, f->P);
+		BonePoint(BEAM_POINTS() + 4 * b->index, f->P);
 		GetDefaultEffectPosition(b->ent, f->T);
 		f->v[0] = (int32_t)f->T[0] - f->P[0];
 		f->v[1] = 0;
@@ -321,7 +321,7 @@ namespace snipe302
 		s.m[2][2] = (int16_t)len;
 		MulMatrix3(M2, &s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Beam;
+		*(uint32_t *)h = us(PRIM_Beam);
 		if (fade == 0) *(uint32_t *)(h + 0x1C) = 0x30;
 		else
 		{
@@ -370,7 +370,7 @@ namespace snipe302
 	{
 		GlowNode *g = (GlowNode *)n;
 		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, nullptr, g->counter);)
-		SpriteDraw(g->pos, g->counter, SEQ_Glow, 0xAF0, -0x400);
+		SpriteDraw(g->pos, g->counter, us(SEQ_Glow), 0xAF0, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -379,7 +379,7 @@ namespace snipe302
 	{
 		SparkNode *s = (SparkNode *)n;
 		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->vel, s->counter);)
-		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0xC00, -0x300);
+		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0xC00, -0x300);
 		s->counter++;
 		if (s->counter >= 0x10) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -445,7 +445,7 @@ namespace snipe302
 				BeamShape(b, c, f.P, T, &d);
 				if (d.kind == 2)
 				{
-					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), ORIG_GlowTask);
+					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), us(ORIG_GlowTask));
 					if (g)
 					{
 						g->pos[0] = T[0];
@@ -456,14 +456,14 @@ namespace snipe302
 				}
 				else if (d.kind == 1)
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
 					if (h)
 					{
 						ff8fx::copy<(sizeof(h->frame.m))>(&h->frame.m, &f.R.m);
 						h->frame.t[0] = T[0];
 						h->frame.t[1] = T[1];
 						h->frame.t[2] = T[2];
-						DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x7C);
+						DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x7C);
 					}
 				}
 				FX_HELD(held_note_beam(n);)
@@ -485,7 +485,7 @@ namespace snipe302
 			{
 				for (int k = 0; k < 8; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 					if (!s) continue;
 					ff8fx::copy<(4)>(s->pos, b->spawn);
 					*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->spawn[2];
@@ -534,7 +534,7 @@ namespace snipe302
 				uint8_t *ent = Entity(Ctx()->actions[m->index].targets[0]);
 				for (int k = 0; k < 2; k++)
 				{
-					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), ORIG_BeamTask);
+					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), us(ORIG_BeamTask));
 					if (!b) continue;
 					Memset32(&b->counter, 0, 0x196);
 					b->index = (int16_t)k;
@@ -542,9 +542,9 @@ namespace snipe302
 					b->ent = ent;
 					GetEffectSpawnPosition(ent, 0xF1, 0, b->spawn);
 					m->index++;
-					DecodeModelPrimLayout(MODEL_Muzzle, b->muzzle, 0x3B0);
-					DecodeModelPrimLayout(MODEL_Ray, b->ray, 0xE8);
-					DecodeModelPrimLayout(MODEL_Impact, b->impact, 0x1B0);
+					DecodeModelPrimLayout(us(MODEL_Muzzle), b->muzzle, 0x3B0);
+					DecodeModelPrimLayout(us(MODEL_Ray), b->ray, 0xE8);
+					DecodeModelPrimLayout(us(MODEL_Impact), b->impact, 0x1B0);
 				}
 			}
 		}
@@ -557,7 +557,7 @@ namespace snipe302
 			a3 = ExecuteTaskQueue(QHits());
 		}
 		else a0 = a1 = a2 = a3 = (int)n;
-		if (m->counter == 0x14) BdPlaySE(SOUND_Beam, 0, 0x80);
+		if (m->counter == 0x14) BdPlaySE(SOUND_Beam(), 0, 0x80);
 		if (m->started && a0 == 0 && a1 == 0 && a2 == 0 && a3 == 0) return TASK_END;
 		m->counter++;
 		return 0;

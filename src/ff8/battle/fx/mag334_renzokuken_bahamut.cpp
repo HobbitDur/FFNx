@@ -32,7 +32,7 @@ namespace renzo334
 	static const uint32_t RING = 0x21F9FE8, RING_END = 0x21FA074, LENGTH = 0x21FA074, FINISHER = 0x21FA078;
 	static const uint32_t TEX_BASE = 0x21FA07C, PACKET_CURSOR = 0x21FA080, HIT_OFFS = 0x21FA088;
 	static const uint32_t PARITY = 0x8000;
-	static const void *const SOUND = (const void *)0xE70D58;
+	static const void *SOUND() { return (const void *)us(0xE70D58); }
 	static const uint32_t TEXTURE_NAME = 0xCC0400, CAMERA = 0xE70EF4, ANIM_SETS = 0xE71854, BIND_OUT = 0x24FEAD8;
 	static const uint32_t MODEL_SPARKLE = 0xE70D5C, SPARKLE_FADE = 0xE70EE4, SPARKLE_DEPTH = 0xE70ED4;
 	static const uint32_t MODEL_SLASH = 0xCB9D24, MODEL_STREAK = 0xCBA70C;
@@ -72,21 +72,21 @@ namespace renzo334
 
 	static void Events(Node24 *n)
 	{
-		if (n->c == 0x39) ((Node24 *)AddTaskToQueue(QMain(), ORIG_RingPool))->c = 0;
+		if (n->c == 0x39) ((Node24 *)AddTaskToQueue(QMain(), us(ORIG_RingPool)))->c = 0;
 		if (n->c == 0x65)
 		{
-			Node24 *t = AddSlotTask(ORIG_AngleModel);
-			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
+			Node24 *t = AddSlotTask(us(ORIG_AngleModel));
+			ff8fx::copy<(8)>(&t->w10, (const void *)us(HIT_POS));
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t s = (int16_t)((CrtRand() % 0x300 + 0xA00) / 3);
 			t->w1E = s;
 			t->w1C = s;
-			((Node24 *)AddTaskToQueue(QMain(), ORIG_BoneEmitter))->c = 0;
+			((Node24 *)AddTaskToQueue(QMain(), us(ORIG_BoneEmitter)))->c = 0;
 		}
 		if (n->c == 0x8E)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_CasterModel);
-			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_CasterModel));
+			ff8fx::copy<(8)>(&t->w10, (const void *)us(HIT_POS));
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0x800 + 0x2400) / 3);
 			t->w1E = s;
@@ -128,7 +128,7 @@ namespace renzo334
 		w->v[1] = 0;
 		w->v[0] = r->w18;
 		w->v[2] = r->w1C;
-		const int32_t angle = RotationBetweenVectors((const int32_t *)POOL_RING_REF, w->v, w->axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)us(POOL_RING_REF), w->v, w->axis);
 		BuildAxisAngleRotationMatrix(angle, &w->m, w->axis);
 		w->m.t[0] = r->pos[0];
 		w->m.t[1] = r->pos[1];
@@ -157,25 +157,25 @@ namespace renzo334
 			const int32_t i = FreeRecord();
 			if (i >= 0)
 			{
-				PoolRing(Slot(i), (const int16_t *)HIT_POS, var<int16_t>(HIT_DIR), var<int16_t>(HIT_DIR + 8));
+				PoolRing(Slot(i), (const int16_t *)us(HIT_POS), var<int16_t>(us(HIT_DIR)), var<int16_t>(us(HIT_DIR) + 8));
 				int16_t mid[4];
-				mid[0] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT) + var<int16_t>(HIT_POS)) >> 1);
-				mid[1] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT + 2) + var<int16_t>(HIT_POS + 2)) >> 1);
-				mid[2] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT + 4) + var<int16_t>(HIT_POS + 4)) >> 1);
+				mid[0] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT)) + var<int16_t>(us(HIT_POS))) >> 1);
+				mid[1] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT) + 2) + var<int16_t>(us(HIT_POS) + 2)) >> 1);
+				mid[2] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT) + 4) + var<int16_t>(us(HIT_POS) + 4)) >> 1);
 				SlotRec *r = Slot(i + 1);
 				mid[3] = r->pos[3];
-				PoolRing(r, mid, var<int16_t>(PREV_HIT + 8), var<int16_t>(PREV_HIT + 0x10));
+				PoolRing(r, mid, var<int16_t>(us(PREV_HIT) + 8), var<int16_t>(us(PREV_HIT) + 0x10));
 			}
 		}
 		FX_HELD(held_note_ringpool(n);)
 		uint8_t *h = AllocHeader(0x58);
 		ff8fx::copy<(sizeof(Mat4x3))>(&w->cam, &Camera());
-		*(uint32_t *)h = MODEL_POOL_RING;
+		*(uint32_t *)h = us(MODEL_POOL_RING);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t alive = 0;
 		w->v[0] = 0;
 		w->v[2] = 0x300;
-		for (uint32_t a = SLOTS; a < SLOTS_END; a += 0x20)
+		for (uint32_t a = us(SLOTS); a < us(SLOTS_END); a += 0x20)
 		{
 			SlotRec *r = (SlotRec *)a;
 			if (!(r->alive & 1)) continue;

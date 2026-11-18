@@ -25,16 +25,16 @@ namespace evileye282
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507E94); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507E98); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507EA0; }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507EB0; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507EC0; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507EF4); }
-	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2507EFC); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507F00); }
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2507F08); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507E94)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507E98)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507EA0); }
+	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2507EB0); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2507EC0); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507EF4)); }
+	inline uint32_t &FlashLevel() { return var<uint32_t>(us(0x2507EFC)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507F00)); }
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(us(0x2507F08)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x67D4C0;
 	static const uint32_t ORIG_MainTask = 0x67D680;
@@ -47,19 +47,19 @@ namespace evileye282
 	static const uint32_t MODEL_Eye = 0x10A0558;
 	static const uint32_t MODEL_Hit = 0x109EC64;
 	static const uint32_t SEQ_Spark = 0x109EAB8;
-	static const int16_t *const EYE = (const int16_t *)0x10A3018;
-	static const void *const SOUND_Eye = (const void *)0x10A2F50;
+	static const int16_t *EYE() { return (const int16_t *)us(0x10A3018); }
+	static const void *SOUND_Eye() { return (const void *)us(0x10A2F50); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void OrthonormalizeCamera(const Mat4x3 *in, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x67AAE0)(in, out); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void OrthonormalizeCamera(const Mat4x3 *in, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x67AAE0))(in, out); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -136,7 +136,7 @@ namespace evileye282
 	static void EyeArg(PrimArg *arg)
 	{
 		RotY(-*(const int16_t *)(Caster() + 0xE), &arg->m);
-		BonePoint(EYE, arg->m.t);
+		BonePoint(EYE(), arg->m.t);
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		arg->morph = TexBase() + MORPH;
 		arg->depth = -0x80;
@@ -157,7 +157,7 @@ namespace evileye282
 	{
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -282,14 +282,14 @@ namespace evileye282
 		if (left < 0x1C && !(left & 3))
 		{
 			int32_t count = 1;
-			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 			while (s)
 			{
 				uint8_t *ent = h->ent;
 				while (RandomBonePoint(ent, mul32(CrtRand(), ***(const uint8_t *const *const *)(ent + 0x64)) >> 15, s->pos)) ent = h->ent;
 				s->counter = 0;
 				if (--count == 0) break;
-				s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 			}
 		}
 		return 0;
@@ -309,18 +309,18 @@ namespace evileye282
 			prim::play((prim::Layout *)m->eye, PrimCallback, (int)&arg, 0);
 		}
 		if (c == 3) ScreenFadeTask(0, 1, 0, 0x60);
-		if (m->counter == 2) BdPlaySE(SOUND_Eye, 0, 0x80);
+		if (m->counter == 2) BdPlaySE(SOUND_Eye(), 0, 0x80);
 		if (m->counter == 0xA)
 		{
 			for (int i = 0; i < m->ntargets; i++)
 			{
-				HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+				HitNode *h = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
 				if (!h) continue;
 				uint8_t *ent = m->ent[i];
 				h->ent = ent;
 				GetEffectSpawnPosition(ent, 0xF1, 0, h->pos);
 				h->pad12 = 0;
-				DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x180);
+				DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x180);
 			}
 		}
 		m->counter++;
@@ -354,11 +354,11 @@ namespace evileye282
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x564, 1);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x198, 3);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x14, 0x80);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x156);
 			m->ntargets = Ctx()->actions[0].target_count;
 			for (int i = 0; i < m->ntargets; i++) m->ent[i] = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
-			DecodeModelPrimLayout(MODEL_Eye, m->eye, 0x548);
+			DecodeModelPrimLayout(us(MODEL_Eye), m->eye, 0x548);
 		}
 		int a0, a1, a2;
 		if (mn->started)

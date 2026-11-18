@@ -26,17 +26,17 @@ namespace act
 {
 	namespace xm
 	{
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DCF0)(a1, a2, a3); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DE50)(a1); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E220)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(0x4607E0)(); }
-		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x571BC0)(a1, a2, a3); }
-		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x571C80)(a1, a2, a3, a4); }
-		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x7015B0)(a1, a2); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
+		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(a1, a2, a3); }
+		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(a1, a2, a3, a4); }
+		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x7015B0))(a1, a2); }
 	}
 	enum BGIdx : int
 	{
@@ -149,8 +149,8 @@ namespace act
 		default: return BOKO_097;
 		}
 	}
-	inline uint32_t BG(int k) { return boko_mod().g[k]; }
-	inline uint32_t BF(int k) { return boko_mod().f[k]; }
+	inline uint32_t BG(int k) { return us(boko_mod().g[k]); }
+	inline uint32_t BF(int k) { return us(boko_mod().f[k]); }
 	const BokoMod BOKO_097 = { 97,
 		{ 0x257B5BC, 0x2575378, 0x2579EBC, 0x2579544, 0x257526C, 0x2575374, 0x2579EB8, 0x2579540, 0x2579D48, 0x257B5A0, 0x257B168, 0x2575350, 0x257B5A8, 0x257B158, 0x2579D38, 0x2579530, 0x2575458, 0x152B5B8, 0x1683420, 0x168C654, 0x168F8BC, 0x1688434, 0x152B5BC, 0x257802C, 0x257B1E0, 0x257B5CC, 0x152BA38, 0x152BA80, 0x257AFB8, 0x168354C, 0x2579EC8, 0x152BB58, 0x152B5C8, 0x152B5C0 },
 		{ 0x729D50, 0x729D60, 0x729D70, 0x729DF0, 0x731CF0, 0x731D30, 0x731D40, 0x731D50, 0x731D80, 0x731D90, 0x731DB0, 0x72A380, 0x72AB20, 0x72A5C0, 0x72A660, 0x72A610, 0x72FBC0, 0x72A720, 0x72A840, 0x72FC70, 0x72FC90, 0x730490, 0x72FF80, 0x730610, 0x7306A0, 0x730B00, 0x730BA0, 0x730BD0, 0x730E30, 0x730EA0, 0x730EF0, 0x730F10, 0x730F50, 0x730F80, 0x730FB0, 0x730760, 0x730940, 0x730B60, 0x730C10, 0x730D00, 0x730D50, 0x730D70, 0x730DD0, 0x730E00, 0x730E20, 0x730C90, 0x730DA0, 0x730E80, 0x730EC0, 0x7318D0, 0x731920, 0x731940, 0x7311C0, 0x7319D0, 0x731A20, 0x731A40, 0x0 } };
@@ -414,10 +414,10 @@ namespace act
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(BG(BG_257B5BC)) = 0x2793E58;
-		MEM<uint32_t>(BG(BG_2575378)) = 0x2793E58;
+		MEM<uint32_t>(BG(BG_257B5BC)) = us(0x2793E58);
+		MEM<uint32_t>(BG(BG_2575378)) = us(0x2793E58);
 		states[0] = BF(BF_729D50);
 		const uint8_t parity = U8(node, 0x5C);
 		states[1] = BF(BF_729D60);
@@ -525,7 +525,7 @@ namespace act
 			U16(a1, 0x38) = (uint16_t)(idx + 1);
 			return a1;
 		}
-		MEM<uint16_t>(0x1D97712) = w;
+		MEM<uint16_t>(us(0x1D97712)) = w;
 		U16(a1, 0x38) = (uint16_t)(idx + 1);
 		return a1;
 	}
@@ -604,7 +604,7 @@ namespace act
 		S32(L, 0x14) = px;
 		S32(L, 0x18) = py;
 		S32(L, 0x1C) = pz;
-		x::ComposeAffineTransform(0x1D97778, L, L);
+		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
 		const uint32_t v70 = U32(node, 0x70);
 		const uint32_t v7c = U32(node, 0x7C);
@@ -729,9 +729,9 @@ namespace act
 			U32(hdr, 8) = U32(rec, 0x20);
 			U32(hdr, 0x1C) = mode | 0xC0;
 		}
-		const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-		MEM<uint32_t>(0x1D8E054) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
+		const uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		MEM<uint32_t>(us(0x1D8E054)) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
 		return x::Field_Free(0x58);
 	}
 
@@ -1472,7 +1472,7 @@ namespace act
 
 		inline void b3_write_fade_words(uint16_t v)
 		{
-			uint32_t p = 0x1D98992;
+			uint32_t p = us(0x1D98992);
 			for (int k = 4; k != 0; --k)
 			{
 				MEM<uint16_t>(p) = v;
@@ -1557,8 +1557,8 @@ namespace act
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-			MEM<uint32_t>(0x1D8E054) = a_746C10(node, BG(BG_2579EC8), cursor);
+			const uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
+			MEM<uint32_t>(us(0x1D8E054)) = a_746C10(node, BG(BG_2579EC8), cursor);
 			a_739890(node);
 		}
 		return b3_task_tail(node);
@@ -1619,11 +1619,11 @@ namespace act
 		const uint32_t seq = U32(node, 0x4C);
 		const uint16_t frame = U16(node, 0x50);
 		U32(blk, 0) = seq;
-		const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
+		const uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
 		U16(blk, 4) = frame;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(blk, 0x24) = 0;
-		MEM<uint32_t>(0x1D8E054) = xm::InitEffectSequenceFromData(blk, ot, 2, cursor);
+		MEM<uint32_t>(us(0x1D8E054)) = xm::InitEffectSequenceFromData(blk, ot, 2, cursor);
 		return x::Field_Free(0xB4);
 	}
 
@@ -1945,7 +1945,7 @@ namespace act
 			}
 			else
 			{
-				x::UnpackRotationMatrix(MEM<uint32_t>(0x2575378), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(us(0x2575378)), m);
 			}
 			if (sub == 0 || sub == 2)
 			{
@@ -1981,7 +1981,7 @@ namespace act
 			x::GTE_LoadIRFromMatrixColumn(node + 0x90);
 			x::GTE_MVMVA_RotIR();
 			x::GTE_StoreIRToMatrixColumn(node + 0xB0);
-			x::GTE_SetTransVector(MEM<uint32_t>(0x2575378));
+			x::GTE_SetTransVector(MEM<uint32_t>(us(0x2575378)));
 			x::GTE_LoadV0FromDwords(node + 0xA0);
 			x::GTE_MVMVA_RotV0_Tr();
 			x::GTE_ReadMAC123(node + 0xC0);
@@ -2030,35 +2030,35 @@ namespace act
 	{
 		b_72A350();
 		b7_729EF0();
-		x::Effect_AddTaskAndInitFromCtx(0x257B5A8, 0x729FF0, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2575350, 0x72A410, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x257B5A8), us(0x729FF0), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2575350), us(0x72A410), 0x48, a1);
 		b71_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl b7_729EF0(void)
 	{
-		MEM<uint32_t>(0x2579EC0) = 0x152B930;
-		MEM<uint32_t>(0x257AFB8) = 0x257B5D0;
-		x::MAG_007_sub_8DCC00(0x257B5D0, 0x16C);
-		const uint32_t t = MEM<uint32_t>(0x257AFB8);
-		uint32_t cur = MEM<uint32_t>(0x257B5C8);
+		MEM<uint32_t>(us(0x2579EC0)) = us(0x152B930);
+		MEM<uint32_t>(us(0x257AFB8)) = us(0x257B5D0);
+		x::MAG_007_sub_8DCC00(us(0x257B5D0), 0x16C);
+		const uint32_t t = MEM<uint32_t>(us(0x257AFB8));
+		uint32_t cur = MEM<uint32_t>(us(0x257B5C8));
 		U32(t, 0x100) = cur;
 		cur += 0xA000;
-		MEM<uint32_t>(0x257B5C8) = cur;
-		const uint32_t def = 0x19DB018;
+		MEM<uint32_t>(us(0x257B5C8)) = cur;
+		const uint32_t def = us(0x19DB018);
 		U32(t, 0x114) = def;
 		U32(t, 0x118) = def;
 		U32(t, 0x11C) = def;
 		U32(t, 0x120) = def;
 		U32(t, 0x104) = def;
-		U32(t, 0x108) = 0x19DFEF8;
+		U32(t, 0x108) = us(0x19DFEF8);
 		U32(t, 0x10C) = def;
 		U32(t, 0x110) = def;
 		U32(t, 0x124) = def;
 		U32(t, 0x128) = def;
-		U32(t, 0x12C) = 0x19E4958;
-		U32(t, 0x130) = 0x19E8660;
+		U32(t, 0x12C) = us(0x19E4958);
+		U32(t, 0x130) = us(0x19E8660);
 		for (int32_t o = 0x134; o <= 0x160; o += 4)
 			U32(t, o) = def;
 		U16(t, 0x164) = 0;
@@ -2070,24 +2070,24 @@ namespace act
 	{
 		const uint32_t node = a1;
 		uint32_t states[18];
-		states[0] = 0x72A540;
-		states[1] = 0x730570;
-		states[2] = 0x7305D0;
-		states[3] = 0x730660;
-		states[4] = 0x730FC0;
-		states[5] = 0x730FE0;
-		states[6] = 0x731010;
-		states[7] = 0x731030;
-		states[8] = 0x731050;
-		states[9] = 0x731070;
-		states[10] = 0x731090;
-		states[11] = 0x7310C0;
-		states[12] = 0x7315A0;
-		states[13] = 0x7315D0;
-		states[14] = 0x731600;
-		states[15] = 0x731700;
-		states[16] = 0x731720;
-		states[17] = 0x731760;
+		states[0] = us(0x72A540);
+		states[1] = us(0x730570);
+		states[2] = us(0x7305D0);
+		states[3] = us(0x730660);
+		states[4] = us(0x730FC0);
+		states[5] = us(0x730FE0);
+		states[6] = us(0x731010);
+		states[7] = us(0x731030);
+		states[8] = us(0x731050);
+		states[9] = us(0x731070);
+		states[10] = us(0x731090);
+		states[11] = us(0x7310C0);
+		states[12] = us(0x7315A0);
+		states[13] = us(0x7315D0);
+		states[14] = us(0x731600);
+		states[15] = us(0x731700);
+		states[16] = us(0x731720);
+		states[17] = us(0x731760);
 		b7_72A4F0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -2097,7 +2097,7 @@ namespace act
 
 	uint32_t __cdecl b7_72A4F0(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(0x152B5B8);
+		uint32_t d = MEM<uint32_t>(us(0x152B5B8));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -2105,7 +2105,7 @@ namespace act
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			b7_731780(a1);
-			d = MEM<uint32_t>(0x152B5B8);
+			d = MEM<uint32_t>(us(0x152B5B8));
 		}
 		const uint16_t next = U16(d, 0x44);
 		if (U16(d, 0x42) != next)
@@ -2130,7 +2130,7 @@ namespace act
 	{
 		uint32_t dir = a1 + 0x34;
 		uint32_t done = 0;
-		MEM<uint32_t>(0x257B5CC) = dir;
+		MEM<uint32_t>(us(0x257B5CC)) = dir;
 		const uint16_t stage = U16(dir, 0x20);
 		switch ((int32_t)(int16_t)stage)
 		{
@@ -2142,7 +2142,7 @@ namespace act
 			b7_72CEE0();
 			a_740700();
 			a_735440();
-			dir = MEM<uint32_t>(0x257B5CC);
+			dir = MEM<uint32_t>(us(0x257B5CC));
 			U16(dir, 0x18) = (uint16_t)(U16(dir, 0x18) + 1);
 			if (S16(dir, 0x18) >= S16(dir, 0x1A) && U16(dir, 0x14) == 0 && U16(dir, 0x16) == 0)
 				U16(dir, 0x20) = (uint16_t)(U16(dir, 0x20) + 1);
@@ -2155,14 +2155,14 @@ namespace act
 		}
 		const uint16_t n1 = U16(dir, 0x14);
 		const uint16_t n2 = U16(dir, 0x16);
-		MEM<uint16_t>(0x257B5A0) = (uint16_t)(MEM<uint16_t>(0x257B5A0) + n1);
-		MEM<uint16_t>(0x257B168) = (uint16_t)(MEM<uint16_t>(0x257B168) + n2);
+		MEM<uint16_t>(us(0x257B5A0)) = (uint16_t)(MEM<uint16_t>(us(0x257B5A0)) + n1);
+		MEM<uint16_t>(us(0x257B168)) = (uint16_t)(MEM<uint16_t>(us(0x257B168)) + n2);
 		return done;
 	}
 
 	uint32_t __cdecl b7_72CEE0(void)
 	{
-		uint32_t e = U32(MEM<uint32_t>(0x257B5CC), 0x2C);
+		uint32_t e = U32(MEM<uint32_t>(us(0x257B5CC)), 0x2C);
 		while (e != 0)
 		{
 			const int32_t kind = (int32_t)S16(e, 8);
@@ -2178,14 +2178,14 @@ namespace act
 	uint32_t __cdecl b7_72CF20(uint32_t a1)
 	{
 		const uint32_t e = a1;
-		const uint32_t table = U32(MEM<uint32_t>(0x257B5CC), 0x224);
+		const uint32_t table = U32(MEM<uint32_t>(us(0x257B5CC)), 0x224);
 		const int32_t di = (int32_t)S8(e, 0x1D6);
 		const uint32_t desc = U32(table + (uint32_t)(di * 4), 0);
 		const int32_t state = (int32_t)S16(e, 0x1CC);
 		if (state == 1)
 		{
 			a_742CD0(e);
-			const uint32_t dir = MEM<uint32_t>(0x257B5CC);
+			const uint32_t dir = MEM<uint32_t>(us(0x257B5CC));
 			U8(e, 0x1D7) = 0;
 			U16(dir, 0x16) = (uint16_t)(U16(dir, 0x16) - 1);
 			return 0;
@@ -2215,7 +2215,7 @@ namespace act
 		{
 			const int32_t frame = (int32_t)S16(node, 0x1CA);
 			const uint32_t tex = U8(U32(desc, 0x12C) + (uint32_t)frame, 0);
-			const uint32_t dir = MEM<uint32_t>(0x257B5CC);
+			const uint32_t dir = MEM<uint32_t>(us(0x257B5CC));
 			U32(node, 0x170) = U32(U32(dir, 0x22C) + tex * 4, 0);
 			if (mode == 5)
 				b_72E220(node, desc);
@@ -2227,7 +2227,7 @@ namespace act
 		switch ((uint32_t)rot_mode)
 		{
 		case 0:
-			x::UnpackRotationMatrix(MEM<uint32_t>(0x2575378), m);
+			x::UnpackRotationMatrix(MEM<uint32_t>(us(0x2575378)), m);
 			if (U16(node, 0xD0) != 0)
 				x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 			break;
@@ -2237,7 +2237,7 @@ namespace act
 			break;
 		case 2:
 		{
-			const uint32_t yaw = x::sub_8DD7B0(MEM<uint32_t>(0x2575378));
+			const uint32_t yaw = x::sub_8DD7B0(MEM<uint32_t>(us(0x2575378)));
 			x::MAG_022_sub_8DD770(m);
 			if ((uint16_t)yaw != 0)
 				x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)(int16_t)yaw);
@@ -2278,7 +2278,7 @@ namespace act
 		const uint8_t count = U8(node, 0x1D8);
 		if (count == 1)
 		{
-			b71_world_to_view(node, node + 0xDC, MEM<uint32_t>(0x2575378));
+			b71_world_to_view(node, node + 0xDC, MEM<uint32_t>(us(0x2575378)));
 			U32(node, 0xC8) = (uint32_t)add32(S32(node, 0xC8), (int32_t)S16(desc, 0x38));
 			return 0;
 		}
@@ -2289,7 +2289,7 @@ namespace act
 			uint32_t dst = node + 0x19C;
 			do
 			{
-				const uint32_t cam = MEM<uint32_t>(0x2575378);
+				const uint32_t cam = MEM<uint32_t>(us(0x2575378));
 				b71_world_to_view(node, src, cam);
 				U16(dst, 0) = U16(node, 0xC0);
 				U16(dst, 2) = U16(node, 0xC4);
@@ -2357,14 +2357,14 @@ namespace act
 	{
 		const uint32_t node = a1;
 		uint32_t states[8];
-		states[0] = 0x72FC40;
-		states[1] = 0x730440;
-		states[2] = 0x730460;
-		states[3] = 0x7304B0;
-		states[4] = 0x7304E0;
-		states[5] = 0x730510;
-		states[6] = 0x730530;
-		states[7] = 0x730560;
+		states[0] = us(0x72FC40);
+		states[1] = us(0x730440);
+		states[2] = us(0x730460);
+		states[3] = us(0x7304B0);
+		states[4] = us(0x7304E0);
+		states[5] = us(0x730510);
+		states[6] = us(0x730530);
+		states[7] = us(0x730560);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2377,7 +2377,7 @@ namespace act
 		if (a_73B640(4) != 0)
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 4);
-			x::BdPlaySE(0x152B5C4, 0, 0x80);
+			x::BdPlaySE(us(0x152B5C4), 0, 0x80);
 			b71_next_state(a1);
 		}
 		return 0;
@@ -2388,8 +2388,8 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) > 0)
 			return 0;
-		const uint32_t model = U32(MEM<uint32_t>(0x257AFB8), 0x130);
-		b_72A610(a1, 0x731100, model, 0x290, 3, 0);
+		const uint32_t model = U32(MEM<uint32_t>(us(0x257AFB8)), 0x130);
+		b_72A610(a1, us(0x731100), model, 0x290, 3, 0);
 		b71_next_state(a1);
 		return 0;
 	}
@@ -2398,9 +2398,9 @@ namespace act
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x731520;
-		states[1] = 0x731570;
-		states[2] = 0x731590;
+		states[0] = us(0x731520);
+		states[1] = us(0x731570);
+		states[2] = us(0x731590);
 		callp(states[S8(node, 0x29)], node);
 		a_7340A0(b71_section(U32(node, 0x74), 0x0C), 6);
 		a_7340A0(b71_section(U32(node, 0x74), 0x10), 6);
@@ -2427,30 +2427,30 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) > 0x10)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(0x2575458, 0x731630, 0x70, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2575458), us(0x731630), 0x70, a1);
 		b71_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl b7_731780(uint32_t a1)
 	{
-		const int32_t phase = (int32_t)S16(MEM<uint32_t>(0x152B5B8), 0x40);
+		const int32_t phase = (int32_t)S16(MEM<uint32_t>(us(0x152B5B8)), 0x40);
 		if (phase == 2)
 		{
-			const uint32_t model = U32(MEM<uint32_t>(0x257AFB8), 0x128);
-			b_72A610(a1, 0x731840, model, 0x44C, 1, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x2575458, 0x731A50, 0x70, a1);
+			const uint32_t model = U32(MEM<uint32_t>(us(0x257AFB8)), 0x128);
+			b_72A610(a1, us(0x731840), model, 0x44C, 1, 0);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2575458), us(0x731A50), 0x70, a1);
 		}
 		else if (phase == 4)
 		{
-			const uint32_t model = U32(MEM<uint32_t>(0x257AFB8), 0x12C);
-			b_72A610(a1, 0x731950, model, 0x170, 2, 0);
-			const uint32_t model2 = U32(MEM<uint32_t>(0x257AFB8), 0x108);
-			a_73C100(a1, 0x72AB20, model2, 0, 0x2D, 2);
+			const uint32_t model = U32(MEM<uint32_t>(us(0x257AFB8)), 0x12C);
+			b_72A610(a1, us(0x731950), model, 0x170, 2, 0);
+			const uint32_t model2 = U32(MEM<uint32_t>(us(0x257AFB8)), 0x108);
+			a_73C100(a1, us(0x72AB20), model2, 0, 0x2D, 2);
 		}
 		else if (phase == 5)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x2575458, 0x731B40, 0x70, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2575458), us(0x731B40), 0x70, a1);
 		}
 		return 0;
 	}
@@ -2459,35 +2459,35 @@ namespace act
 	{
 		b_72A350();
 		b8_721CF0();
-		x::Effect_AddTaskAndInitFromCtx(0x25750D0, 0x721DF0, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x256E440, 0x722210, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25750D0), us(0x721DF0), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x256E440), us(0x722210), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl b8_721CF0(void)
 	{
-		MEM<uint32_t>(0x2573C40) = 0x152B2A8;
-		MEM<uint32_t>(0x2574D38) = 0x25750F8;
-		x::MAG_007_sub_8DCC00(0x25750F8, 0x16C);
-		uint32_t t = MEM<uint32_t>(0x2574D38);
-		uint32_t arena = MEM<uint32_t>(0x25750F0);
+		MEM<uint32_t>(us(0x2573C40)) = us(0x152B2A8);
+		MEM<uint32_t>(us(0x2574D38)) = us(0x25750F8);
+		x::MAG_007_sub_8DCC00(us(0x25750F8), 0x16C);
+		uint32_t t = MEM<uint32_t>(us(0x2574D38));
+		uint32_t arena = MEM<uint32_t>(us(0x25750F0));
 		U32(t, 0x100) = arena;
-		MEM<uint32_t>(0x25750F0) = arena + 0xA000;
-		const uint32_t base = 0x19DB018;
+		MEM<uint32_t>(us(0x25750F0)) = arena + 0xA000;
+		const uint32_t base = us(0x19DB018);
 		U32(t, 0x114) = base;
 		U32(t, 0x118) = base;
 		U32(t, 0x11C) = base;
 		U32(t, 0x120) = base;
 		U32(t, 0x104) = base;
-		U32(t, 0x108) = 0x19DFEF8;
+		U32(t, 0x108) = us(0x19DFEF8);
 		U32(t, 0x10C) = base;
 		U32(t, 0x110) = base;
 		U32(t, 0x124) = base;
 		U32(t, 0x128) = base;
-		U32(t, 0x12C) = 0x19E187C;
-		U32(t, 0x130) = 0x19E5584;
-		U32(t, 0x134) = 0x19E8E70;
+		U32(t, 0x12C) = us(0x19E187C);
+		U32(t, 0x130) = us(0x19E5584);
+		U32(t, 0x134) = us(0x19E8E70);
 		for (int32_t o = 0x138; o <= 0x160; o += 4)
 			U32(t, o) = base;
 		U16(t, 0x164) = 0;
@@ -2498,9 +2498,9 @@ namespace act
 	uint32_t __cdecl b8_722210(uint32_t a1)
 	{
 		const uint32_t tab[19] = {
-			0x722340, 0x7280E0, 0x728140, 0x7281D0, 0x728B20, 0x728B40, 0x728B60, 0x728B80,
-			0x728BA0, 0x728BC0, 0x728BE0, 0x728C10, 0x728D60, 0x729240, 0x729270, 0x7292A0,
-			0x7293A0, 0x7293C0, 0x729400,
+			us(0x722340), us(0x7280E0), us(0x728140), us(0x7281D0), us(0x728B20), us(0x728B40), us(0x728B60), us(0x728B80),
+			us(0x728BA0), us(0x728BC0), us(0x728BE0), us(0x728C10), us(0x728D60), us(0x729240), us(0x729270), us(0x7292A0),
+			us(0x7293A0), us(0x7293C0), us(0x729400),
 		};
 		b8_7222F0(a1);
 		callp(tab[S8(a1, 0x29)], a1);
@@ -2515,7 +2515,7 @@ namespace act
 
 	uint32_t __cdecl b8_7222F0(uint32_t a1)
 	{
-		uint32_t cur = MEM<uint32_t>(0x152AF30);
+		uint32_t cur = MEM<uint32_t>(us(0x152AF30));
 		U16(cur, 0x46) = (uint16_t)(U16(cur, 0x46) + 1);
 		uint16_t req = U16(cur, 0x42);
 		if (U16(cur, 0x40) != req)
@@ -2523,7 +2523,7 @@ namespace act
 			U16(cur, 0x40) = req;
 			U16(cur, 0x46) = 0;
 			b8_729420(a1);
-			cur = MEM<uint32_t>(0x152AF30);
+			cur = MEM<uint32_t>(us(0x152AF30));
 		}
 		uint16_t nxt = U16(cur, 0x44);
 		if (U16(cur, 0x42) != nxt)
@@ -2536,20 +2536,20 @@ namespace act
 
 	uint32_t __cdecl b8_722340(uint32_t a1)
 	{
-		uint32_t slot = x::BdSound_ClaimVoiceSlot(0x16746FC, 1, 0x80);
-		uint32_t cur = MEM<uint32_t>(0x152AF30);
+		uint32_t slot = x::BdSound_ClaimVoiceSlot(us(0x16746FC), 1, 0x80);
+		uint32_t cur = MEM<uint32_t>(us(0x152AF30));
 		U16(cur, 0x52) = (uint16_t)slot;
-		a_73C100(a1, 0x722920, 0x167D934, 0x12, 0x2D, 2);
-		b8_722410(a1, 0x722460, 0x1680B9C, 0x4AC, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7276F0, 0x70, a1);
-		x::Battle_QueueTIMUpload_GetEOF(0x1679714);
+		a_73C100(a1, us(0x722920), us(0x167D934), 0x12, 0x2D, 2);
+		b8_722410(a1, us(0x722460), us(0x1680B9C), 0x4AC, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(us(0x256E548), us(0x7276F0), 0x70, a1);
+		x::Battle_QueueTIMUpload_GetEOF(us(0x1679714));
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl b8_722410(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25732B0, a2, 0x864, a1);
+		uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25732B0), a2, 0x864, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -2560,7 +2560,7 @@ namespace act
 	uint32_t __cdecl b8_7276F0(uint32_t a1)
 	{
 		const uint32_t tab[9] = {
-			0x727780, 0x727F80, 0x727FA0, 0x727FF0, 0x728020, 0x728050, 0x728080, 0x7280A0, 0x7280D0,
+			us(0x727780), us(0x727F80), us(0x727FA0), us(0x727FF0), us(0x728020), us(0x728050), us(0x728080), us(0x7280A0), us(0x7280D0),
 		};
 		callp(tab[S8(a1, 0x29)], a1);
 		U16(a1, 0x24) = (uint16_t)(U16(a1, 0x24) + 1);
@@ -2576,8 +2576,8 @@ namespace act
 	{
 		if (a_73AE10() == 1)
 		{
-			uint32_t cur = MEM<uint32_t>(0x152AF30);
-			a_73AB20(0x152B538, cur + 8, 0);
+			uint32_t cur = MEM<uint32_t>(us(0x152AF30));
+			a_73AB20(us(0x152B538), cur + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2610,8 +2610,8 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x130);
-			b8_722410(a1, 0x728C60, layout, 0x494, 3, 0);
+			uint32_t layout = U32(MEM<uint32_t>(us(0x2574D38)), 0x130);
+			b8_722410(a1, us(0x728C60), layout, 0x494, 3, 0);
 			uint8_t st = U8(a1, 0x29);
 			U16(a1, 0x44) = 0x18;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -2622,7 +2622,7 @@ namespace act
 	uint32_t __cdecl b8_728CC0(uint32_t a1)
 	{
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
-		uint32_t cur = MEM<uint32_t>(0x152AF30);
+		uint32_t cur = MEM<uint32_t>(us(0x152AF30));
 		uint32_t xy = U32(cur, 8);
 		uint32_t zw = U32(cur, 0xC);
 		U32(a1, 0x1C) = xy;
@@ -2632,7 +2632,7 @@ namespace act
 		U32(a1, 0x54) = 0x1000;
 		U32(a1, 0x50) = 0x1000;
 		b_72A720(a1);
-		x::BdPlaySE(0x152AF3C, 0, 0x80);
+		x::BdPlaySE(us(0x152AF3C), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2642,8 +2642,8 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x134);
-			b8_722410(a1, 0x728DA0, layout, 0x7D0, 4, 0);
+			uint32_t layout = U32(MEM<uint32_t>(us(0x2574D38)), 0x134);
+			b8_722410(a1, us(0x728DA0), layout, 0x7D0, 4, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2657,7 +2657,7 @@ namespace act
 
 	uint32_t __cdecl b8_728DA0(uint32_t a1)
 	{
-		const uint32_t tab[3] = { 0x7291C0, 0x729210, 0x729230 };
+		const uint32_t tab[3] = { us(0x7291C0), us(0x729210), us(0x729230) };
 		callp(tab[S8(a1, 0x29)], a1);
 		a_7340A0(b81_section(U32(a1, 0x74), 0x8), 6);
 		a_7340A0(b81_section(U32(a1, 0x74), 0xC), 4);
@@ -2688,7 +2688,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0x18)
 		{
-			U16(MEM<uint32_t>(0x152AF30), 0x48) = 1;
+			U16(MEM<uint32_t>(us(0x152AF30)), 0x48) = 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2699,7 +2699,7 @@ namespace act
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 8)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7292D0, 0x70, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x256E548), us(0x7292D0), 0x70, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2716,7 +2716,7 @@ namespace act
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		uint16_t v = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int n = 4; n != 0; n--, p += 0x2C)
 			MEM<uint16_t>(p) = v;
 		return 0;
@@ -2724,21 +2724,21 @@ namespace act
 
 	uint32_t __cdecl b8_729420(uint32_t a1)
 	{
-		int32_t phase = S16(MEM<uint32_t>(0x152AF30), 0x40);
+		int32_t phase = S16(MEM<uint32_t>(us(0x152AF30)), 0x40);
 		if (phase == 2)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x128);
-			b8_722410(a1, 0x7294C0, layout, 0x44C, 1, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7296D0, 0x70, a1);
+			uint32_t layout = U32(MEM<uint32_t>(us(0x2574D38)), 0x128);
+			b8_722410(a1, us(0x7294C0), layout, 0x44C, 1, 0);
+			x::Effect_AddTaskAndInitFromCtx(us(0x256E548), us(0x7296D0), 0x70, a1);
 		}
 		else if (phase == 4)
 		{
-			uint32_t layout = U32(MEM<uint32_t>(0x2574D38), 0x12C);
-			b8_722410(a1, 0x7295D0, layout, 0x170, 2, 0);
+			uint32_t layout = U32(MEM<uint32_t>(us(0x2574D38)), 0x12C);
+			b8_722410(a1, us(0x7295D0), layout, 0x170, 2, 0);
 		}
 		else if (phase == 5)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x256E548, 0x7297C0, 0x70, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x256E548), us(0x7297C0), 0x70, a1);
 		}
 		return 0;
 	}
@@ -2767,22 +2767,22 @@ namespace
 	{
 		b_718670();
 		b9_718200();
-		x::Effect_AddTaskAndInitFromCtx(0x256E1C0, 0x718310, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2565B18, 0x718750, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x256E1C0), us(0x718310), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2565B18), us(0x718750), 0x48, a1);
 		b91_next(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl b9_718200(void)
 	{
-		MEM<uint32_t>(0x256C5F8) = 0x152AAA0;
-		MEM<uint32_t>(0x256D6F0) = 0x256E1E8;
-		x::MAG_007_sub_8DCC00(0x256E1E8, 0x16C);
-		const uint32_t t = MEM<uint32_t>(0x256D6F0);
-		const uint32_t arena = MEM<uint32_t>(0x256E1E0);
+		MEM<uint32_t>(us(0x256C5F8)) = us(0x152AAA0);
+		MEM<uint32_t>(us(0x256D6F0)) = us(0x256E1E8);
+		x::MAG_007_sub_8DCC00(us(0x256E1E8), 0x16C);
+		const uint32_t t = MEM<uint32_t>(us(0x256D6F0));
+		const uint32_t arena = MEM<uint32_t>(us(0x256E1E0));
 		U32(t, 0x100) = arena;
-		MEM<uint32_t>(0x256E1E0) = arena + 0xA000;
-		const uint32_t base = 0x19D3018;
+		MEM<uint32_t>(us(0x256E1E0)) = arena + 0xA000;
+		const uint32_t base = us(0x19D3018);
 		U32(t, 0x114) = base;
 		U32(t, 0x118) = base;
 		U32(t, 0x11C) = base;
@@ -2792,15 +2792,15 @@ namespace
 		U32(t, 0x10C) = base;
 		U32(t, 0x110) = base;
 		U32(t, 0x124) = base;
-		U32(t, 0x128) = 0x19E3018;
-		U32(t, 0x12C) = 0x19EB018;
-		U32(t, 0x130) = 0x19EED20;
-		U32(t, 0x134) = 0x19F0F40;
-		U32(t, 0x138) = 0x19DF380;
-		U32(t, 0x13C) = 0x19E2054;
-		U32(t, 0x140) = 0x19E4778;
-		U32(t, 0x144) = 0x19DD2D0;
-		U32(t, 0x148) = 0x19DE510;
+		U32(t, 0x128) = us(0x19E3018);
+		U32(t, 0x12C) = us(0x19EB018);
+		U32(t, 0x130) = us(0x19EED20);
+		U32(t, 0x134) = us(0x19F0F40);
+		U32(t, 0x138) = us(0x19DF380);
+		U32(t, 0x13C) = us(0x19E2054);
+		U32(t, 0x140) = us(0x19E4778);
+		U32(t, 0x144) = us(0x19DD2D0);
+		U32(t, 0x148) = us(0x19DE510);
 		U32(t, 0x14C) = base;
 		U32(t, 0x150) = base;
 		U32(t, 0x154) = base;
@@ -2816,27 +2816,27 @@ namespace
 	{
 		const uint32_t node = a1;
 		uint32_t states[21];
-		states[0] = 0x718890;
-		states[1] = 0x71E7A0;
-		states[2] = 0x71E800;
-		states[3] = 0x71E890;
-		states[4] = 0x71F1D0;
-		states[5] = 0x71F1F0;
-		states[6] = 0x71F220;
-		states[7] = 0x71F240;
-		states[8] = 0x71F260;
-		states[9] = 0x71F280;
-		states[10] = 0x71F2A0;
-		states[11] = 0x71F2D0;
-		states[12] = 0x71F4C0;
-		states[13] = 0x71F4E0;
-		states[14] = 0x71F500;
-		states[15] = 0x71F520;
-		states[16] = 0x71F550;
-		states[17] = 0x71F580;
-		states[18] = 0x71F5A0;
-		states[19] = 0x71F5C0;
-		states[20] = 0x71F600;
+		states[0] = us(0x718890);
+		states[1] = us(0x71E7A0);
+		states[2] = us(0x71E800);
+		states[3] = us(0x71E890);
+		states[4] = us(0x71F1D0);
+		states[5] = us(0x71F1F0);
+		states[6] = us(0x71F220);
+		states[7] = us(0x71F240);
+		states[8] = us(0x71F260);
+		states[9] = us(0x71F280);
+		states[10] = us(0x71F2A0);
+		states[11] = us(0x71F2D0);
+		states[12] = us(0x71F4C0);
+		states[13] = us(0x71F4E0);
+		states[14] = us(0x71F500);
+		states[15] = us(0x71F520);
+		states[16] = us(0x71F550);
+		states[17] = us(0x71F580);
+		states[18] = us(0x71F5A0);
+		states[19] = us(0x71F5C0);
+		states[20] = us(0x71F600);
 		b9_718840(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -2846,7 +2846,7 @@ namespace
 
 	uint32_t __cdecl b9_718840(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(0x1529FA0);
+		uint32_t d = MEM<uint32_t>(us(0x1529FA0));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -2854,7 +2854,7 @@ namespace
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			b9_71F620(a1);
-			d = MEM<uint32_t>(0x1529FA0);
+			d = MEM<uint32_t>(us(0x1529FA0));
 		}
 		const uint16_t nxt = U16(d, 0x44);
 		if (U16(d, 0x42) != nxt)
@@ -2867,21 +2867,21 @@ namespace
 
 	uint32_t __cdecl b9_718890(uint32_t a1)
 	{
-		const uint32_t slot = x::BdSound_ClaimVoiceSlot(0x16659D8, 1, 0x80);
-		const uint32_t d = MEM<uint32_t>(0x1529FA0);
+		const uint32_t slot = x::BdSound_ClaimVoiceSlot(us(0x16659D8), 1, 0x80);
+		const uint32_t d = MEM<uint32_t>(us(0x1529FA0));
 		const uint32_t node = a1;
 		U16(d, 0x52) = (uint16_t)slot;
-		a_73C100(node, 0x718E70, 0x166A9F0, 0x12, 0x2D, 2);
-		b9_718960(node, 0x7189B0, 0x166DC58, 0x4AC, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x71DC40, 0xB0, node);
-		x::Battle_QueueTIMUpload_GetEOF(0x16704DC);
+		a_73C100(node, us(0x718E70), us(0x166A9F0), 0x12, 0x2D, 2);
+		b9_718960(node, us(0x7189B0), us(0x166DC58), 0x4AC, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x71DC40), 0xB0, node);
+		x::Battle_QueueTIMUpload_GetEOF(us(0x16704DC));
 		b91_next(node);
 		return 0;
 	}
 
 	uint32_t __cdecl b9_718960(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x256B9D8, a2, 0x548, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x256B9D8), a2, 0x548, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -2893,16 +2893,16 @@ namespace
 	{
 		const uint32_t node = a1;
 		uint32_t states[10];
-		states[0] = 0x71DCD0;
-		states[1] = 0x71E4D0;
-		states[2] = 0x71E4F0;
-		states[3] = 0x71E540;
-		states[4] = 0x71E570;
-		states[5] = 0x71E5C0;
-		states[6] = 0x71E610;
-		states[7] = 0x71E6C0;
-		states[8] = 0x71E700;
-		states[9] = 0x71E790;
+		states[0] = us(0x71DCD0);
+		states[1] = us(0x71E4D0);
+		states[2] = us(0x71E4F0);
+		states[3] = us(0x71E540);
+		states[4] = us(0x71E570);
+		states[5] = us(0x71E5C0);
+		states[6] = us(0x71E610);
+		states[7] = us(0x71E6C0);
+		states[8] = us(0x71E700);
+		states[9] = us(0x71E790);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2924,7 +2924,7 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(5) != 0)
 		{
-			b91_cam_from_origin(0x152AD20);
+			b91_cam_from_origin(us(0x152AD20));
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2935,7 +2935,7 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(8) != 0)
 		{
-			b91_cam_from_origin(0x152AD68);
+			b91_cam_from_origin(us(0x152AD68));
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2943,7 +2943,7 @@ namespace
 
 	uint32_t __cdecl b9_71E610(uint32_t a1)
 	{
-		const uint32_t c = MEM<uint32_t>(0x152AC40);
+		const uint32_t c = MEM<uint32_t>(us(0x152AC40));
 		U16(c, 0x86) = (uint16_t)(U16(c, 0x86) + 0x10);
 		if (S16(c, 0x86) >= 0x80)
 			U16(c, 0x86) = 0x80;
@@ -2958,8 +2958,8 @@ namespace
 		a_73B160();
 		if (a_73AAE0(0xA) != 0)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
-			a_73AB20(0x152AE40, d + 8, 0);
+			const uint32_t d = MEM<uint32_t>(us(0x1529FA0));
+			a_73AB20(us(0x152AE40), d + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2969,9 +2969,9 @@ namespace
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
-			a_73AB20(0x152AE88, d + 8, 0);
-			const uint32_t c = MEM<uint32_t>(0x152AC40);
+			const uint32_t d = MEM<uint32_t>(us(0x1529FA0));
+			a_73AB20(us(0x152AE88), d + 8, 0);
+			const uint32_t c = MEM<uint32_t>(us(0x152AC40));
 			U16(c, 0x8E) = 6;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -2981,7 +2981,7 @@ namespace
 	uint32_t __cdecl b9_71E700(uint32_t a1)
 	{
 		a_73AE10();
-		const uint32_t c = MEM<uint32_t>(0x152AC40);
+		const uint32_t c = MEM<uint32_t>(us(0x152AC40));
 		if (S16(c, 0xE2) >= 0x42)
 		{
 			U16(c, 0x8E) = (uint16_t)(U16(c, 0x8E) - 1);
@@ -3002,20 +3002,20 @@ namespace
 	{
 		const uint32_t node = a1;
 		uint32_t states[9];
-		states[0] = 0x71ED20;
-		states[1] = 0x71EDC0;
-		states[2] = 0x71EDF0;
-		states[3] = 0x71F080;
-		states[4] = 0x71F0F0;
-		states[5] = 0x71F140;
-		states[6] = 0x71F160;
-		states[7] = 0x71F190;
-		states[8] = 0x71F1C0;
+		states[0] = us(0x71ED20);
+		states[1] = us(0x71EDC0);
+		states[2] = us(0x71EDF0);
+		states[3] = us(0x71F080);
+		states[4] = us(0x71F0F0);
+		states[5] = us(0x71F140);
+		states[6] = us(0x71F160);
+		states[7] = us(0x71F190);
+		states[8] = us(0x71F1C0);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-			MEM<uint32_t>(0x1D8E054) = a_746C10(node, 0x256C600, cursor);
+			const uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
+			MEM<uint32_t>(us(0x1D8E054)) = a_746C10(node, us(0x256C600), cursor);
 			a_739890(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -3030,7 +3030,7 @@ namespace
 		if (S16(node, 0x136) >= 0)
 		{
 			x::au_re_Battle_ReadAnimation_7(node, 2);
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x71EE40, 0xB0, node);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x71EE40), 0xB0, node);
 			b91_next(node);
 		}
 		return 0;
@@ -3038,7 +3038,7 @@ namespace
 
 	uint32_t __cdecl b9_71EF30(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1529FA0);
+		const uint32_t d = MEM<uint32_t>(us(0x1529FA0));
 		const uint32_t node = a1;
 		const uint32_t xy = U32(d, 0);
 		const uint32_t zp = U32(d, 4);
@@ -3048,7 +3048,7 @@ namespace
 		const uint8_t st = U8(node, 0x29);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFD00);
 		U16(node, 0x20) = (uint16_t)(U16(node, 0x20) + 0xFD80);
-		U32(node, 0x4C) = 0x1529FB4;
+		U32(node, 0x4C) = us(0x1529FB4);
 		U16(node, 0x52) = 0x13;
 		U16(node, 0x54) = 0xFF00;
 		U16(node, 0xAC) = 4;
@@ -3112,7 +3112,7 @@ namespace
 		U16(node, 0x44) = (uint16_t)(U16(node, 0x44) - 1);
 		if (S16(node, 0x44) <= 0)
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x71F310, 0xB0, node);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x71F310), 0xB0, node);
 			b91_next(node);
 		}
 		return 0;
@@ -3124,7 +3124,7 @@ namespace
 		{
 			a_746A10();
 			a_73B9F0();
-			x::BdPlaySE(0x1529FAC, 0, 0x80);
+			x::BdPlaySE(us(0x1529FAC), 0, 0x80);
 			const uint8_t st = U8(a1, 0x29);
 			U16(a1, 0xAC) = 0x24;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -3177,7 +3177,7 @@ namespace
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) <= 0)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
+			const uint32_t d = MEM<uint32_t>(us(0x1529FA0));
 			U16(a1, 0x44) = 0x28;
 			U16(d, 0x48) = 1;
 			b91_next(a1);
@@ -3196,7 +3196,7 @@ namespace
 	{
 		if (a_73B7E0(0xB) != 0)
 		{
-			const uint32_t d = MEM<uint32_t>(0x1529FA0);
+			const uint32_t d = MEM<uint32_t>(us(0x1529FA0));
 			x::sub_4A2940((uint32_t)(int32_t)S16(d, 0x52));
 			b91_finish(a1);
 		}
@@ -3206,55 +3206,55 @@ namespace
 	uint32_t __cdecl b9_71F620(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t d = MEM<uint32_t>(0x1529FA0);
+		const uint32_t d = MEM<uint32_t>(us(0x1529FA0));
 		const int32_t sel = (int32_t)S16(d, 0x40) - 2;
 		switch (sel)
 		{
 		case 0:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
-			b9_718960(node, 0x71F950, U32(tab, 0x128), 0x44C, 1, 0);
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x721010, 0xB0, node);
+			const uint32_t tab = MEM<uint32_t>(us(0x256D6F0));
+			b9_718960(node, us(0x71F950), U32(tab, 0x128), 0x44C, 1, 0);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x721010), 0xB0, node);
 		}
 		case 2:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
-			return b9_718960(node, 0x71FDC0, U32(tab, 0x12C), 0x170, 2, 0);
+			const uint32_t tab = MEM<uint32_t>(us(0x256D6F0));
+			return b9_718960(node, us(0x71FDC0), U32(tab, 0x12C), 0x170, 2, 0);
 		}
 		case 3:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
-			b9_718960(node, 0x71FEC0, U32(tab, 0x130), 0xB0, 3, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x721100, 0xB0, node);
-			x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720500, 0xB0, node);
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720790, 0xB0, node);
+			const uint32_t tab = MEM<uint32_t>(us(0x256D6F0));
+			b9_718960(node, us(0x71FEC0), U32(tab, 0x130), 0xB0, 3, 0);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x721100), 0xB0, node);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x720500), 0xB0, node);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x720790), 0xB0, node);
 		}
 		case 5:
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x7215A0, 0xB0, node);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x7215A0), 0xB0, node);
 		case 6:
 		{
-			x::Effect_AddTaskAndInitFromCtx(0x2569338, 0x7211D0, 0x58, node);
-			x::Effect_AddTaskAndInitFromCtx(0x2569338, 0x721390, 0x58, node);
-			uint32_t tab = MEM<uint32_t>(0x256D6F0);
-			b9_718960(node, 0x71FFB0, U32(tab, 0x134), 0x2C, 4, 0);
-			tab = MEM<uint32_t>(0x256D6F0);
-			b9_718960(node, 0x7201F0, U32(tab, 0x138), 0x194, 5, 0);
-			tab = MEM<uint32_t>(0x256D6F0);
-			b9_718960(node, 0x720320, U32(tab, 0x13C), 0x30, 6, 0);
-			tab = MEM<uint32_t>(0x256D6F0);
-			return b9_718960(node, 0x720410, U32(tab, 0x140), 0x1E8, 7, 0);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2569338), us(0x7211D0), 0x58, node);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2569338), us(0x721390), 0x58, node);
+			uint32_t tab = MEM<uint32_t>(us(0x256D6F0));
+			b9_718960(node, us(0x71FFB0), U32(tab, 0x134), 0x2C, 4, 0);
+			tab = MEM<uint32_t>(us(0x256D6F0));
+			b9_718960(node, us(0x7201F0), U32(tab, 0x138), 0x194, 5, 0);
+			tab = MEM<uint32_t>(us(0x256D6F0));
+			b9_718960(node, us(0x720320), U32(tab, 0x13C), 0x30, 6, 0);
+			tab = MEM<uint32_t>(us(0x256D6F0));
+			return b9_718960(node, us(0x720410), U32(tab, 0x140), 0x1E8, 7, 0);
 		}
 		case 7:
-			return x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x721460, 0xB0, node);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x721460), 0xB0, node);
 		case 8:
 		{
-			const uint32_t tab = MEM<uint32_t>(0x256D6F0);
-			a_73C100(node, 0x718E70, U32(tab, 0x108), 4, 0x2D, 2);
-			const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(0x256C470, 0x71F880, 0x40, node);
-			U32(t1, 0x34) = 0x152AEF0;
+			const uint32_t tab = MEM<uint32_t>(us(0x256D6F0));
+			a_73C100(node, us(0x718E70), U32(tab, 0x108), 4, 0x2D, 2);
+			const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(us(0x256C470), us(0x71F880), 0x40, node);
+			U32(t1, 0x34) = us(0x152AEF0);
 			U16(t1, 0x38) = 8;
-			const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(0x256C470, 0x8DDC30, 0x40, node);
-			U32(t2, 0x34) = 0x152AF04;
+			const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(us(0x256C470), us(0x8DDC30), 0x40, node);
+			U32(t2, 0x34) = us(0x152AF04);
 			U16(t2, 0x38) = 9;
 			return t2;
 		}
@@ -3394,13 +3394,13 @@ namespace
 		const uint32_t L = P(blk);
 		x::MAG_022_sub_8DD770(L);
 		const uint32_t node = a1;
-		U32(L, 0x48) = 0x256DA58;
+		U32(L, 0x48) = us(0x256DA58);
 		S32(L, 0x14) = (int32_t)S16(node, 0x1C);
 		S32(L, 0x18) = (int32_t)S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
-		const uint32_t paused = MEM<uint32_t>(0x2569334);
+		const uint32_t paused = MEM<uint32_t>(us(0x2569334));
 		S32(L, 0x1C) = pz;
-		return prim_play(node + 0x94, 0x718B90, L, paused);
+		return prim_play(node + 0x94, us(0x718B90), L, paused);
 	}
 
 	uint32_t __cdecl b9_7202F0(uint32_t a1)
@@ -3501,7 +3501,7 @@ namespace
 
 	uint32_t __cdecl b9_720500(uint32_t a1)
 	{
-		const uint32_t states[4] = { 0x720570, 0x7205A0, 0x7205D0, 0x720780 };
+		const uint32_t states[4] = { us(0x720570), us(0x7205A0), us(0x7205D0), us(0x720780) };
 		callp(states[S8(a1, 0x29)], a1);
 		b_730C90(a1, 0x1800);
 		return b92_task_end(a1);
@@ -3511,7 +3511,7 @@ namespace
 	{
 		const uint8_t st = U8(a1, 0x29);
 		U8(a1, 0x26) |= 4;
-		U32(a1, 0x4C) = 0x152A460;
+		U32(a1, 0x4C) = us(0x152A460);
 		U16(a1, 0x52) = 0xE;
 		U16(a1, 0x1E) = 0xE000;
 		U16(a1, 0xAC) = 0x10;
@@ -3535,8 +3535,8 @@ namespace
 	{
 		if (a_743C20(a1) != 0)
 		{
-			const uint32_t asset = U32(MEM<uint32_t>(0x256D6F0), 0x134);
-			b9_718960(a1, 0x720610, asset, 0x2C, 4, 0);
+			const uint32_t asset = U32(MEM<uint32_t>(us(0x256D6F0)), 0x134);
+			b9_718960(a1, us(0x720610), asset, 0x2C, 4, 0);
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3597,7 +3597,7 @@ namespace
 
 	uint32_t __cdecl b9_720790(uint32_t a1)
 	{
-		const uint32_t states[2] = { 0x7207E0, 0x7209A0 };
+		const uint32_t states[2] = { us(0x7207E0), us(0x7209A0) };
 		callp(states[S8(a1, 0x29)], a1);
 		return b92_task_end(a1);
 	}
@@ -3608,13 +3608,13 @@ namespace
 		alignas(4) uint8_t mat[0x20];
 		for (int n = 2; n != 0; n--)
 		{
-			uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x7208D0, 0xB0, a1);
+			uint32_t node = x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x7208D0), 0xB0, a1);
 			const int32_t r = (int32_t)x::CrtRand();
 			switch (r % 3)
 			{
-			case 0: U32(node, 0x4C) = 0x152A70C; break;
-			case 1: U32(node, 0x4C) = 0x152A7D0; break;
-			case 2: U32(node, 0x4C) = 0x152A894; break;
+			case 0: U32(node, 0x4C) = us(0x152A70C); break;
+			case 1: U32(node, 0x4C) = us(0x152A7D0); break;
+			case 2: U32(node, 0x4C) = us(0x152A894); break;
 			default: break;
 			}
 			U16(node, 0x52) = 6;
@@ -3640,7 +3640,7 @@ namespace
 
 	uint32_t __cdecl b9_7208D0(uint32_t a1)
 	{
-		const uint32_t states[3] = { 0x720940, 0x720960, 0x720990 };
+		const uint32_t states[3] = { us(0x720940), us(0x720960), us(0x720990) };
 		callp(states[S8(a1, 0x29)], a1);
 		b_730C90(a1, 0x1600);
 		return b92_task_end(a1);
@@ -3649,7 +3649,7 @@ namespace
 	uint32_t __cdecl b9_720940(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x152A70C;
+		U32(a1, 0x4C) = us(0x152A70C);
 		U16(a1, 0x52) = 6;
 		U16(a1, 0x1E) = 0xE000;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -3668,7 +3668,7 @@ namespace
 
 	uint32_t __cdecl b9_7209B0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t node = x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720B90, 0xB0, a1);
+		const uint32_t node = x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x720B90), 0xB0, a1);
 		alignas(4) uint32_t pos[2];
 		pos[0] = U32(a1, 0x1C);
 		pos[1] = U32(a1, 0x20);
@@ -3725,7 +3725,7 @@ namespace
 
 	uint32_t __cdecl b9_720B90(uint32_t a1)
 	{
-		const uint32_t states[3] = { 0x720D00, 0x720D20, 0x720D60 };
+		const uint32_t states[3] = { us(0x720D00), us(0x720D20), us(0x720D60) };
 		callp(states[S8(a1, 0x29)], a1);
 		for (int i = 0; i < 4; i++)
 		{
@@ -3742,14 +3742,14 @@ namespace
 		const uint32_t blk = x::Field_Alloc(0xB4);
 		xm::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		const uint32_t seq = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
+		const uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
 		const uint16_t frame = U16(a1, 0x50);
 		U32(blk, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(blk, 4) = frame;
 		U16(blk, 0x24) = 0;
 		const uint32_t nc = xm::InitEffectSequenceFromData(blk, ot, 2, cursor);
-		MEM<uint32_t>(0x1D8E054) = nc;
+		MEM<uint32_t>(us(0x1D8E054)) = nc;
 		x::Field_Free(0xB4);
 		return 0;
 	}
@@ -3757,7 +3757,7 @@ namespace
 	uint32_t __cdecl b9_720D00(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x152A958;
+		U32(a1, 0x4C) = us(0x152A958);
 		U16(a1, 0x52) = 0xB;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0;
@@ -3775,7 +3775,7 @@ namespace
 
 	uint32_t __cdecl b9_720D70(uint32_t a1, uint32_t a2)
 	{
-		uint32_t e = x::Effect_AddTaskAndInitFromCtx(0x2565C20, 0x720EA0, 0xB0, a1);
+		uint32_t e = x::Effect_AddTaskAndInitFromCtx(us(0x2565C20), us(0x720EA0), 0xB0, a1);
 		U16(e, 0xAE) = (uint16_t)a2;
 		uint32_t angle = x::CrtRand() & 0xFFF;
 		e += 0x6C;
@@ -3808,7 +3808,7 @@ namespace
 
 	uint32_t __cdecl b9_720EA0(uint32_t a1)
 	{
-		const uint32_t states[3] = { 0x720FA0, 0x720FC0, 0x721000 };
+		const uint32_t states[3] = { us(0x720FA0), us(0x720FC0), us(0x721000) };
 		callp(states[S8(a1, 0x29)], a1);
 		for (int i = 0; i < 4; i++)
 		{
@@ -3821,7 +3821,7 @@ namespace
 	uint32_t __cdecl b9_720FA0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = 0x152A31C;
+		U32(a1, 0x4C) = us(0x152A31C);
 		U16(a1, 0x52) = 0xB;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0;
@@ -3839,7 +3839,7 @@ namespace
 
 	uint32_t __cdecl b9_7211D0(uint32_t a1)
 	{
-		const uint32_t states[3] = { 0x721320, 0x721360, 0x721380 };
+		const uint32_t states[3] = { us(0x721320), us(0x721360), us(0x721380) };
 		callp(states[S8(a1, 0x29)], a1);
 		a_7458E0(a1);
 		return b92_task_end(a1);
@@ -3847,7 +3847,7 @@ namespace
 
 	uint32_t __cdecl b9_721320(uint32_t a1)
 	{
-		const uint32_t model = U32(MEM<uint32_t>(0x256D6F0), 0x144);
+		const uint32_t model = U32(MEM<uint32_t>(us(0x256D6F0)), 0x144);
 		U32(a1, 0x4C) = model;
 		U32(a1, 0x30) = 0x1000;
 		U32(a1, 0x38) = 0x1000;
@@ -3872,7 +3872,7 @@ namespace
 
 	uint32_t __cdecl b9_721390(uint32_t a1)
 	{
-		const uint32_t states[3] = { 0x7213F0, 0x721430, 0x721450 };
+		const uint32_t states[3] = { us(0x7213F0), us(0x721430), us(0x721450) };
 		callp(states[S8(a1, 0x29)], a1);
 		a_7458E0(a1);
 		return b92_task_end(a1);
@@ -3880,7 +3880,7 @@ namespace
 
 	uint32_t __cdecl b9_7213F0(uint32_t a1)
 	{
-		const uint32_t model = U32(MEM<uint32_t>(0x256D6F0), 0x148);
+		const uint32_t model = U32(MEM<uint32_t>(us(0x256D6F0)), 0x148);
 		U32(a1, 0x4C) = model;
 		U32(a1, 0x38) = 0x1000;
 		U32(a1, 0x34) = 0x1000;
@@ -3917,7 +3917,7 @@ namespace
 		{
 			a_746AE0();
 			a_73BA90();
-			x::BdPlaySE(0x1529FB0, 0, 0x80);
+			x::BdPlaySE(us(0x1529FB0), 0, 0x80);
 			const uint8_t st = U8(a1, 0x29);
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -4703,34 +4703,34 @@ namespace
 		const uint32_t node = a1;
 		b_718670();
 		b10_70EE30();
-		x::Effect_AddTaskAndInitFromCtx(0x2565868, 0x70EF30, 0x30, node);
-		x::Effect_AddTaskAndInitFromCtx(0x255EBB0, 0x70F370, 0x48, node);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2565868), us(0x70EF30), 0x30, node);
+		x::Effect_AddTaskAndInitFromCtx(us(0x255EBB0), us(0x70F370), 0x48, node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl b10_70EE30(void)
 	{
-		MEM<uint32_t>(0x25642E0) = 0x1529B70;
-		MEM<uint32_t>(0x25653D8) = 0x25658C0;
-		x::MAG_007_sub_8DCC00(0x25658C0, 0x16C);
-		const uint32_t c = MEM<uint32_t>(0x25653D8);
-		const uint32_t arena = MEM<uint32_t>(0x2565888);
+		MEM<uint32_t>(us(0x25642E0)) = us(0x1529B70);
+		MEM<uint32_t>(us(0x25653D8)) = us(0x25658C0);
+		x::MAG_007_sub_8DCC00(us(0x25658C0), 0x16C);
+		const uint32_t c = MEM<uint32_t>(us(0x25653D8));
+		const uint32_t arena = MEM<uint32_t>(us(0x2565888));
 		U32(c, 0x100) = arena;
-		MEM<uint32_t>(0x2565888) = arena + 0xA000;
-		const uint32_t dflt = 0x19D5018;
+		MEM<uint32_t>(us(0x2565888)) = arena + 0xA000;
+		const uint32_t dflt = us(0x19D5018);
 		U32(c, 0x114) = dflt;
-		U32(c, 0x118) = 0x19E8678;
+		U32(c, 0x118) = us(0x19E8678);
 		U32(c, 0x11C) = dflt;
 		U32(c, 0x120) = dflt;
 		U32(c, 0x104) = dflt;
-		U32(c, 0x108) = 0x19E3018;
+		U32(c, 0x108) = us(0x19E3018);
 		U32(c, 0x10C) = dflt;
 		U32(c, 0x110) = dflt;
 		U32(c, 0x124) = dflt;
-		U32(c, 0x128) = 0x19EF018;
-		U32(c, 0x12C) = 0x19E4970;
-		U32(c, 0x130) = 0x19DC678;
+		U32(c, 0x128) = us(0x19EF018);
+		U32(c, 0x12C) = us(0x19E4970);
+		U32(c, 0x130) = us(0x19DC678);
 		for (int32_t o = 0x134; o <= 0x160; o += 4)
 			U32(c, o) = dflt;
 		U16(c, 0x164) = 0;
@@ -4742,30 +4742,30 @@ namespace
 	{
 		const uint32_t node = a1;
 		uint32_t states[24];
-		states[0] = 0x70F4D0;
-		states[1] = 0x715410;
-		states[2] = 0x715470;
-		states[3] = 0x715500;
-		states[4] = 0x715E30;
-		states[5] = 0x715E50;
-		states[6] = 0x715E80;
-		states[7] = 0x715EA0;
-		states[8] = 0x715EC0;
-		states[9] = 0x715EE0;
-		states[10] = 0x715F00;
-		states[11] = 0x715F20;
-		states[12] = 0x715F40;
-		states[13] = 0x715F60;
-		states[14] = 0x715F80;
-		states[15] = 0x715FC0;
-		states[16] = 0x715FE0;
-		states[17] = 0x716000;
-		states[18] = 0x716020;
-		states[19] = 0x716040;
-		states[20] = 0x716070;
-		states[21] = 0x7160A0;
-		states[22] = 0x7160C0;
-		states[23] = 0x716100;
+		states[0] = us(0x70F4D0);
+		states[1] = us(0x715410);
+		states[2] = us(0x715470);
+		states[3] = us(0x715500);
+		states[4] = us(0x715E30);
+		states[5] = us(0x715E50);
+		states[6] = us(0x715E80);
+		states[7] = us(0x715EA0);
+		states[8] = us(0x715EC0);
+		states[9] = us(0x715EE0);
+		states[10] = us(0x715F00);
+		states[11] = us(0x715F20);
+		states[12] = us(0x715F40);
+		states[13] = us(0x715F60);
+		states[14] = us(0x715F80);
+		states[15] = us(0x715FC0);
+		states[16] = us(0x715FE0);
+		states[17] = us(0x716000);
+		states[18] = us(0x716020);
+		states[19] = us(0x716040);
+		states[20] = us(0x716070);
+		states[21] = us(0x7160A0);
+		states[22] = us(0x7160C0);
+		states[23] = us(0x716100);
 		b10_70F480(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -4775,7 +4775,7 @@ namespace
 
 	uint32_t __cdecl b10_70F480(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(0x15297F0);
+		uint32_t d = MEM<uint32_t>(us(0x15297F0));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		uint16_t v = U16(d, 0x42);
 		if (U16(d, 0x40) != v)
@@ -4783,7 +4783,7 @@ namespace
 			U16(d, 0x40) = v;
 			U16(d, 0x46) = 0;
 			b10_716120(a1);
-			d = MEM<uint32_t>(0x15297F0);
+			d = MEM<uint32_t>(us(0x15297F0));
 		}
 		v = U16(d, 0x44);
 		if (U16(d, 0x42) != v)
@@ -4907,14 +4907,14 @@ namespace
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
 		const uint16_t groups = U16(blk, 0x54);
-		const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		uint32_t next;
 		if (groups == 0)
 			next = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
 		else
 			next = b10_70D530(hdr, ot, 2, cursor, (blk & 0xFFFF0000u) | groups);
-		MEM<uint32_t>(0x1D8E054) = next;
+		MEM<uint32_t>(us(0x1D8E054)) = next;
 		x::Field_Free(0x58);
 		return 0;
 	}
@@ -4923,20 +4923,20 @@ namespace
 	{
 		const uint32_t node = a1;
 		uint32_t states[14];
-		states[0] = 0x714970;
-		states[1] = 0x715170;
-		states[2] = 0x715190;
-		states[3] = 0x7151E0;
-		states[4] = 0x715210;
-		states[5] = 0x715250;
-		states[6] = 0x715280;
-		states[7] = 0x7152C0;
-		states[8] = 0x7152E0;
-		states[9] = 0x715330;
-		states[10] = 0x715380;
-		states[11] = 0x7153B0;
-		states[12] = 0x7153D0;
-		states[13] = 0x715400;
+		states[0] = us(0x714970);
+		states[1] = us(0x715170);
+		states[2] = us(0x715190);
+		states[3] = us(0x7151E0);
+		states[4] = us(0x715210);
+		states[5] = us(0x715250);
+		states[6] = us(0x715280);
+		states[7] = us(0x7152C0);
+		states[8] = us(0x7152E0);
+		states[9] = us(0x715330);
+		states[10] = us(0x715380);
+		states[11] = us(0x7153B0);
+		states[12] = us(0x7153D0);
+		states[13] = us(0x715400);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -4948,7 +4948,7 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(5) != 0)
 		{
-			a_73AB20(0x1529DB0, MEM<uint32_t>(0x15297F0) + 8, 0);
+			a_73AB20(us(0x1529DB0), MEM<uint32_t>(us(0x15297F0)) + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -4958,7 +4958,7 @@ namespace
 	{
 		if (a_73AAE0(6) != 0)
 		{
-			a_73AB20(0x1529DF8, MEM<uint32_t>(0x15297F0) + 8, 0);
+			a_73AB20(us(0x1529DF8), MEM<uint32_t>(us(0x15297F0)) + 8, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -4969,7 +4969,7 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(8) != 0)
 		{
-			a_73AB20(0x1529E40, MEM<uint32_t>(0x15297F0) + 8, 0);
+			a_73AB20(us(0x1529E40), MEM<uint32_t>(us(0x15297F0)) + 8, 0);
 			U16(a1, 0x6C) = 9;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -4998,8 +4998,8 @@ namespace
 		a_73AE10();
 		if (a_73AAE0(9) != 0)
 		{
-			a_73AB20(0x1529E88, MEM<uint32_t>(0x15297F0) + 8, 0);
-			x::BdPlaySE(0x1529800, 0, 0x80);
+			a_73AB20(us(0x1529E88), MEM<uint32_t>(us(0x15297F0)) + 8, 0);
+			x::BdPlaySE(us(0x1529800), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -5017,22 +5017,22 @@ namespace
 	{
 		const uint32_t node = a1;
 		uint32_t states[11];
-		states[0] = 0x7159A0;
-		states[1] = 0x715A40;
-		states[2] = 0x715A70;
-		states[3] = 0x715CD0;
-		states[4] = 0x715D40;
-		states[5] = 0x715D60;
-		states[6] = 0x715D80;
-		states[7] = 0x715DB0;
-		states[8] = 0x715DD0;
-		states[9] = 0x715DF0;
-		states[10] = 0x715E20;
+		states[0] = us(0x7159A0);
+		states[1] = us(0x715A40);
+		states[2] = us(0x715A70);
+		states[3] = us(0x715CD0);
+		states[4] = us(0x715D40);
+		states[5] = us(0x715D60);
+		states[6] = us(0x715D80);
+		states[7] = us(0x715DB0);
+		states[8] = us(0x715DD0);
+		states[9] = us(0x715DF0);
+		states[10] = us(0x715E20);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			const uint32_t cursor = MEM<uint32_t>(0x1D8E054);
-			MEM<uint32_t>(0x1D8E054) = a_746C10(node, 0x25642E8, cursor);
+			const uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
+			MEM<uint32_t>(us(0x1D8E054)) = a_746C10(node, us(0x25642E8), cursor);
 			a_739890(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -5079,7 +5079,7 @@ namespace
 		if (a_73B7E0(6) == 0)
 			return 0;
 		U16(a1, 0x44) = U16(a1, 0x24);
-		x::BdPlaySE(0x15297FC, 0, 0x80);
+		x::BdPlaySE(us(0x15297FC), 0, 0x80);
 		b103_next_state(a1);
 		return 0;
 	}
@@ -5097,7 +5097,7 @@ namespace
 	{
 		if (a_73B640(0xA) == 0)
 			return 0;
-		x::sub_4A2940((uint32_t)(int32_t)S16(U32(0x15297F0, 0), 0x52));
+		x::sub_4A2940((uint32_t)(int32_t)S16(U32(us(0x15297F0), 0), 0x52));
 		U8(a1, 0x26) |= 1;
 		b103_next_state(a1);
 		return 0;
@@ -5105,34 +5105,34 @@ namespace
 
 	uint32_t __cdecl b10_716120(uint32_t a1)
 	{
-		uint32_t dir = U32(0x15297F0, 0);
+		uint32_t dir = U32(us(0x15297F0), 0);
 		int32_t step = (int32_t)S16(dir, 0x40);
 		uint32_t d;
 		uint32_t t;
 		switch (step)
 		{
 		case 2:
-			d = U32(0x25653D8, 0);
-			b_72A610(a1, 0x7163D0, U32(d, 0x128), 0x44C, 1, 0);
-			return x::Effect_AddTaskAndInitFromCtx(0x255ECB8, 0x716A60, 0x70, a1);
+			d = U32(us(0x25653D8), 0);
+			b_72A610(a1, us(0x7163D0), U32(d, 0x128), 0x44C, 1, 0);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x255ECB8), us(0x716A60), 0x70, a1);
 		case 4:
-			d = U32(0x25653D8, 0);
-			b_72A610(a1, 0x716840, U32(d, 0x12C), 0x170, 2, 0);
-			return x::Effect_AddTaskAndInitFromCtx(0x255ECB8, 0x716B50, 0x70, a1);
+			d = U32(us(0x25653D8), 0);
+			b_72A610(a1, us(0x716840), U32(d, 0x12C), 0x170, 2, 0);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x255ECB8), us(0x716B50), 0x70, a1);
 		case 6:
-			d = U32(0x25653D8, 0);
-			a_73C100(a1, 0x70FAF0, U32(d, 0x108), 0, 0x2D, 2);
-			t = x::Effect_AddTaskAndInitFromCtx(0x25656B8, 0x7175F0, 0x140, a1);
-			d = U32(0x25653D8, 0);
+			d = U32(us(0x25653D8), 0);
+			a_73C100(a1, us(0x70FAF0), U32(d, 0x108), 0, 0x2D, 2);
+			t = x::Effect_AddTaskAndInitFromCtx(us(0x25656B8), us(0x7175F0), 0x140, a1);
+			d = U32(us(0x25653D8), 0);
 			return x::Effect_BindModelContainerSetAnim(t, U32(d, 0x118), 0x3C);
 		case 8:
-			d = U32(0x25653D8, 0);
-			b_72A610(a1, 0x716950, U32(d, 0x130), 0x32C, 3, 0);
-			t = x::Effect_AddTaskAndInitFromCtx(0x2564158, 0x716300, 0x40, a1);
-			d = U32(0x25653D8, 0);
-			U32(t, 0x34) = 0x1529F70;
+			d = U32(us(0x25653D8), 0);
+			b_72A610(a1, us(0x716950), U32(d, 0x130), 0x32C, 3, 0);
+			t = x::Effect_AddTaskAndInitFromCtx(us(0x2564158), us(0x716300), 0x40, a1);
+			d = U32(us(0x25653D8), 0);
+			U32(t, 0x34) = us(0x1529F70);
 			U16(t, 0x38) = 0xF;
-			return a_73C100(a1, 0x70FAF0, U32(d, 0x10C), 0xF, 0x2D, 2);
+			return a_73C100(a1, us(0x70FAF0), U32(d, 0x10C), 0xF, 0x2D, 2);
 		case 9:
 		{
 			int32_t act = (int32_t)S8(a1, 0x2A);
@@ -5143,7 +5143,7 @@ namespace
 			uint32_t off = 0;
 			for (;;)
 			{
-				t = x::Effect_AddTaskAndInitFromCtx(0x2561890, 0x716C20, 0xD0, a1);
+				t = x::Effect_AddTaskAndInitFromCtx(us(0x2561890), us(0x716C20), 0xD0, a1);
 				int32_t a = (int32_t)S8(a1, 0x2A);
 				uint32_t rec = U32(U32(a1, 0xC), 4) + (uint32_t)(a * 20);
 				i++;
@@ -5173,7 +5173,7 @@ namespace
 	uint32_t __cdecl b10_7169B0(uint32_t a1)
 	{
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
-		uint32_t dir = U32(0x15297F0, 0);
+		uint32_t dir = U32(us(0x15297F0), 0);
 		U16(a1, 0x60) = 0x480;
 		U32(a1, 0x58) = 0x2800;
 		uint32_t p0 = U32(dir, 8);
@@ -5210,7 +5210,7 @@ namespace
 
 	uint32_t __cdecl b10_716C20(uint32_t a1)
 	{
-		uint32_t tab[7] = { 0x717330, 0x717350, 0x7174B0, 0x7174D0, 0x717540, 0x717590, 0x7175E0 };
+		uint32_t tab[7] = { us(0x717330), us(0x717350), us(0x7174B0), us(0x7174D0), us(0x717540), us(0x717590), us(0x7175E0) };
 		callp(tab[S8(a1, 0x29)], a1);
 		if (U8(a1, 0x26) & 8)
 		{
@@ -5233,7 +5233,7 @@ namespace
 		ff8fx::copy<(0x20)>((void *)a1, (const void *)(ent + 0x40));
 		uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(a1);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(a1 + 0x20);
@@ -5243,22 +5243,22 @@ namespace
 		x::GTE_LoadIRFromMatrixColumn(a1 + 4);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(a1 + 0x24);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(a1 + 0x14);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(a1 + 0x34);
 		uint32_t cp = U32(a1, 0x4C);
-		uint32_t ot = U32(0x1D8E04C, 0) + 0x4040;
+		uint32_t ot = U32(us(0x1D8E04C), 0) + 0x4040;
 		uint32_t cur = U32(cp, 0);
 		uint32_t r = x::sub_5088A0(ent, ot, 0x10, cur);
 		cp = U32(a1, 0x4C);
-		uint32_t ot44 = U32(0x1D8E04C, 0) + 0x44;
+		uint32_t ot44 = U32(us(0x1D8E04C), 0) + 0x44;
 		U32(cp, 0) = r;
 		b10_716DD0(U32(ent, 0x64), ot44, 4, a1);
 		uint32_t wpn = U32(ent, 0x78);
 		if (wpn != 0)
 		{
-			uint32_t ot2 = U32(0x1D8E04C, 0) + 0x44;
+			uint32_t ot2 = U32(us(0x1D8E04C), 0) + 0x44;
 			b10_716DD0(U32(wpn, 4), ot2, 4, a1);
 		}
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
@@ -5494,7 +5494,7 @@ namespace
 		U16(a1, 0xCC) = (uint16_t)(U16(a1, 0xCC) - 1);
 		if (S16(a1, 0xCC) > 0)
 			return 0;
-		b10_717450(r, U32(U32(0x25653D8, 0), 0x100), 0x2565890, ent);
+		b10_717450(r, U32(U32(us(0x25653D8), 0), 0x100), us(0x2565890), ent);
 		U8(ent, 0) |= 4;
 		int16_t h = (int16_t)(U16(ent, 0x3C) - U16(ent, 0x36));
 		U16(a1, 0x26) |= 8;
@@ -5531,8 +5531,8 @@ namespace
 		x::MAG_007_sub_8DCC00(a1, 0x60);
 		U32(a1, 0x48) = a4;
 		U32(a1, 0x40) = a2;
-		U32(a1, 0x4C) = 0x1D8E054;
-		U32(a1, 0x50) = 0x1D8E054;
+		U32(a1, 0x4C) = us(0x1D8E054);
+		U32(a1, 0x50) = us(0x1D8E054);
 		U32(a3, 4) = a2;
 		U32(a1, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -5597,7 +5597,7 @@ namespace
 
 	uint32_t __cdecl b10_7176B0(uint32_t a1)
 	{
-		uint32_t dir = U32(0x15297F0, 0);
+		uint32_t dir = U32(us(0x15297F0), 0);
 		uint32_t p0 = U32(dir, 8);
 		uint32_t p1 = U32(dir, 0xC);
 		U32(a1, 0x4C) = p0;
@@ -5636,7 +5636,7 @@ namespace
 
 	uint32_t __cdecl b10_717770(uint32_t a1)
 	{
-		uint32_t col = U32(0xB8B9A8, 0);
+		uint32_t col = U32(us(0xB8B9A8), 0);
 		int32_t k = (int32_t)S16(a1, 0x13C);
 		uint8_t c0 = (uint8_t)(col & 0xFF);
 		int32_t d0 = mul32((int32_t)c0, k) / 4096;
@@ -5644,7 +5644,7 @@ namespace
 		uint8_t c1 = (uint8_t)((col >> 8) & 0xFF);
 		int32_t d1 = mul32((int32_t)c1, k) / 4096;
 		U8(a1, 0x5D) = (uint8_t)(c1 - (uint8_t)d1);
-		uint8_t c2 = U8(0xB8B9AA, 0);
+		uint8_t c2 = U8(us(0xB8B9AA), 0);
 		int32_t d2 = mul32((int32_t)c2, k) / 4096;
 		U8(a1, 0x5E) = (uint8_t)(c2 - (uint8_t)d2);
 		return 0;
@@ -5699,7 +5699,7 @@ namespace
 		U16(a1, 0x4E) = (uint16_t)(U16(a1, 0x4E) + U16(a1, 0x126));
 		if (a_73B7E0(9) != 0)
 		{
-			uint16_t y = U16(0x1529F64, 0);
+			uint16_t y = U16(us(0x1529F64), 0);
 			U16(a1, 0x134) = 0;
 			U16(a1, 0x4E) = y;
 			b103_next_state(a1);
@@ -5718,12 +5718,12 @@ namespace
 	{
 		U16(a1, 0x134) = (uint16_t)(U16(a1, 0x134) + 1);
 		int32_t idx = (int32_t)S16(a1, 0x134);
-		uint16_t y = U16(0x1529F64 + (uint32_t)(idx * 2), 0);
+		uint16_t y = U16(us(0x1529F64) + (uint32_t)(idx * 2), 0);
 		U16(a1, 0x4E) = y;
 		if (y != 0)
 			return 0;
 		x::au_re_Battle_ReadAnimation_7(a1, 1);
-		a_739AC0(a1, 0x1529F38, 0);
+		a_739AC0(a1, us(0x1529F38), 0);
 		b103_next_state(a1);
 		return 0;
 	}

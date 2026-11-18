@@ -43,16 +43,16 @@ namespace life
 	static const uint32_t ORIG_Ring = 0x865270;
 	static const uint32_t ORIG_Sparkle = 0x8653E0;
 	static const uint32_t ORIG_Glint = 0x8DCC20;
-	static const void *const SOUND_Life = (const void *)0x15E6388;
+	static const void *SOUND_Life() { return (const void *)us(0x15E6388); }
 	static const uint32_t SEQ_Revive = 0x15E6890;
 	static const uint32_t SEQ_RiseA = 0x15E638C;
 	static const uint32_t SEQ_RiseB = 0x15E6538;
 	static const uint32_t SEQ_Ring = 0x15E66E4;
 	static const uint32_t SEQ_Fall = 0x15E68EC;
 
-	inline uint32_t Effect_CopyAnchorXZFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DC6E0)(node, out); }
-	inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t scale, uint32_t offset) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x571BC0)(pos, scale, offset); }
-	inline uint32_t InitEffectSequenceFromData(uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x571C80)(hdr, ot, mode, cursor); }
+	inline uint32_t Effect_CopyAnchorXZFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC6E0))(node, out); }
+	inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t scale, uint32_t offset) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(pos, scale, offset); }
+	inline uint32_t InitEffectSequenceFromData(uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(hdr, ot, mode, cursor); }
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
@@ -82,22 +82,22 @@ namespace life
 		g_mod = &MOD_035;
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = 0x864B80;
-		states[1] = 0x864B90;
-		states[2] = 0x865580;
-		states[3] = 0x8655B0;
-		states[4] = 0x8655D0;
+		states[0] = us(0x864B80);
+		states[1] = us(0x864B90);
+		states[2] = us(0x865580);
+		states[3] = us(0x8655B0);
+		states[4] = us(0x8655D0);
 		if ((U8(node, 0x5C) & 1) != 0)
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_ODD);
+			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
 		else
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_EVEN);
+			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
 		FX_HELD(held_note_master(node);)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(Q_EMITTER);
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_UNUSED));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPRITE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_GLINT));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_UNUSED)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_GLINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -107,7 +107,7 @@ namespace life
 	static uint32_t __cdecl SpawnEmitter(uint32_t a1)
 	{
 		U8(a1, 0x63) = 1;
-		x::Effect_AddTaskAndInitFromCtx(Q_EMITTER, ORIG_Emitter, 0x64, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_EMITTER), us(ORIG_Emitter), 0x64, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -140,7 +140,7 @@ namespace life
 
 	static uint32_t SpawnSparkle(uint32_t parent, uint32_t seq, uint32_t last, uint32_t offset)
 	{
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Sparkle, 0x70, parent);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Sparkle), 0x70, parent);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x54) = (uint16_t)offset;
 		U32(s, 0x4C) = seq;
@@ -169,7 +169,7 @@ namespace life
 				radius = S16(node, 0x58);
 			if (radius == 0)
 				radius = 1;
-			const uint32_t seq = (x::CrtRand() & 1) != 0 ? SEQ_RiseA : SEQ_RiseB;
+			const uint32_t seq = (x::CrtRand() & 1) != 0 ? us(SEQ_RiseA) : us(SEQ_RiseB);
 			const uint32_t s = SpawnSparkle(node, seq, 0xF, 0xFFFFFE00);
 			const int32_t angle = (int32_t)(x::CrtRand() & 0xFFF);
 			const int32_t dist = (int16_t)((int32_t)x::CrtRand() % (int32_t)radius);
@@ -186,11 +186,11 @@ namespace life
 	static void SpawnRevive(uint32_t node)
 	{
 		if (U16(node, 0x24) == 0)
-			SpawnSparkle(node, SEQ_Revive, 2, 0xFFFFFC00);
+			SpawnSparkle(node, us(SEQ_Revive), 2, 0xFFFFFC00);
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x16 || (t & 1) != 0)
 			return;
-		const uint32_t s = SpawnSparkle(node, SEQ_Revive, 2, 0xFFFFFC00);
+		const uint32_t s = SpawnSparkle(node, us(SEQ_Revive), 2, 0xFFFFFC00);
 		int16_t dx = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
 		const int16_t dy = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x5A) + 1));
 		int16_t dz = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
@@ -208,12 +208,12 @@ namespace life
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x1E)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Ring, 0x70, node);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Ring), 0x70, node);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x1E) = (uint16_t)(U16(s, 0x1E) + U16(node, 0x62));
 		U32(s, 0x60) = U32(s, 0x1C);
 		U32(s, 0x64) = U32(s, 0x20);
-		U32(s, 0x4C) = SEQ_Ring;
+		U32(s, 0x4C) = us(SEQ_Ring);
 		U16(s, 0x52) = 0xF;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -225,8 +225,8 @@ namespace life
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0x14 || t >= 0x25)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Fall, 0x70, node);
-		U32(s, 0x4C) = SEQ_Fall;
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Fall), 0x70, node);
+		U32(s, 0x4C) = us(SEQ_Fall);
 		U16(s, 0x52) = 9;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -253,8 +253,8 @@ namespace life
 			return;
 		do
 		{
-			MEM<uint32_t>(GLINT_CURSOR_PTR) = PACKET_CURSOR;
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_GLINT, ORIG_Glint, 0x5C, node);
+			MEM<uint32_t>(us(GLINT_CURSOR_PTR)) = us(PACKET_CURSOR);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_GLINT), us(ORIG_Glint), 0x5C, node);
 			U16(s, 0x56) = 8;
 			U8(s, 0x4C) = 0x10;
 			U8(s, 0x4D) = 0x10;
@@ -277,11 +277,11 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = 0x865490;
-		states[1] = 0x8654D0;
-		states[2] = 0x8654F0;
-		states[3] = 0x865520;
-		states[4] = 0x865570;
+		states[0] = us(0x865490);
+		states[1] = us(0x8654D0);
+		states[2] = us(0x8654F0);
+		states[3] = us(0x865520);
+		states[4] = us(0x865570);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -294,7 +294,7 @@ namespace life
 			SpawnGlints(node);
 		}
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(P(SOUND_Life), 0, 0x80);
+			x::BdPlaySE(P(SOUND_Life()), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -364,7 +364,7 @@ namespace life
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -377,7 +377,7 @@ namespace life
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -385,11 +385,11 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x8651F0;
-		states[1] = 0x865200;
-		states[2] = 0x865260;
+		states[0] = us(0x8651F0);
+		states[1] = us(0x865200);
+		states[2] = us(0x865260);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_sprite(ORIG_Fall, node);)
+		FX_HELD(held_note_sprite(us(ORIG_Fall), node);)
 		DrawFall(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -413,12 +413,12 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x865350;
-		states[1] = 0x865360;
-		states[2] = 0x8653D0;
+		states[0] = us(0x865350);
+		states[1] = us(0x865360);
+		states[2] = us(0x8653D0);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
-		FX_HELD(held_note_sprite(ORIG_Ring, node);)
+		FX_HELD(held_note_sprite(us(ORIG_Ring), node);)
 		DrawScaled(node, U16(node, 0x68));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -450,12 +450,12 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x865450;
-		states[1] = 0x865460;
-		states[2] = 0x865480;
+		states[0] = us(0x865450);
+		states[1] = us(0x865460);
+		states[2] = us(0x865480);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
-		FX_HELD(held_note_sprite(ORIG_Sparkle, node);)
+		FX_HELD(held_note_sprite(us(ORIG_Sparkle), node);)
 		DrawScaled(node, U16(node, 0x68));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);

@@ -25,15 +25,15 @@ namespace raybomb010
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x24C91F8; }
-	inline TaskQueue *QEffect() { return (TaskQueue *)0x24C9988; }
-	inline int16_t *Centre() { return (int16_t *)0x24CA7E8; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24CA7F0); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x24CA7F4); }
-	inline int16_t *Muzzle() { return (int16_t *)0x24CA800; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x24CA808); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24CA80C); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x24C91F8); }
+	inline TaskQueue *QEffect() { return (TaskQueue *)us(0x24C9988); }
+	inline int16_t *Centre() { return (int16_t *)us(0x24CA7E8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24CA7F0)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x24CA7F4)); }
+	inline int16_t *Muzzle() { return (int16_t *)us(0x24CA800); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x24CA808)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24CA80C)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_Director = 0x627F10;
 	static const uint32_t ORIG_Debris = 0x628700;
@@ -55,18 +55,18 @@ namespace raybomb010
 	static const uint32_t TABLE_DustDir = 0xDED5C0;
 	static const uint32_t TABLE_PuffX = 0xDED530, TABLE_PuffZ = 0xDED558;
 	static const uint32_t TABLE_DebrisX = 0xDED544, TABLE_DebrisZ = 0xDED56C;
-	static const void *const SOUND_Muzzle = (const void *)0xDED524;
-	static const void *const SOUND_Blast = (const void *)0xDED528;
+	static const void *SOUND_Muzzle() { return (const void *)us(0xDED524); }
+	static const void *SOUND_Blast() { return (const void *)us(0xDED528); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline int32_t NormalizeSVector(const int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
-	inline int32_t NormalizeVectorLen2(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline int32_t NormalizeSVector(const int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(const int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
+	inline int32_t NormalizeVectorLen2(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
 
 #pragma pack(push, 1)
 	struct RootNode { TaskNode hdr; uint16_t counter; uint16_t pad; };
@@ -195,9 +195,9 @@ namespace raybomb010
 	static_assert(sizeof(ChargeNode) == 0x24 && sizeof(BounceNode) == 0x24, "Ray-Bomb nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(SavedEntity) == 0x14, "Ray-Bomb particles / saved entities");
 
-	inline Particle *Particles() { return (Particle *)0x24C9208; }
+	inline Particle *Particles() { return (Particle *)us(0x24C9208); }
 	static const int PARTICLES = 80;
-	inline SavedEntity *Saved(int slot) { return (SavedEntity *)(0x24CA7A8 + 0x14 * slot); }
+	inline SavedEntity *Saved(int slot) { return (SavedEntity *)(us(0x24CA7A8) + 0x14 * slot); }
 }
 }
 
@@ -228,7 +228,7 @@ namespace raybomb010
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		uint32_t count = 0;
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = us(SEQ_Dust);
 		*(int16_t *)(h + 0x24) = 0;
 		for (int i = 0; i < PARTICLES; i++)
 		{
@@ -282,7 +282,7 @@ namespace raybomb010
 	static void DebrisHeader(uint8_t *h, const DebrisNode *p)
 	{
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = var<uint32_t>(TABLE_DebrisModel + 4 * p->model);
+		*(uint32_t *)h = var<uint32_t>(us(TABLE_DebrisModel) + 4 * p->model);
 		if (p->counter >= p->life - 8)
 		{
 			h[0xA] = 0;
@@ -326,7 +326,7 @@ namespace raybomb010
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *p = (DebrisNode *)n;
-		FX_HELD(held_note_draw(ORIG_Debris, p);)
+		FX_HELD(held_note_draw(us(ORIG_Debris), p);)
 		DebrisDraw(p);
 		if (DrawOnly()) return 0;
 		DebrisUpdate(p);
@@ -336,7 +336,7 @@ namespace raybomb010
 
 	static void RingHeader(uint8_t *h, const RingNode *p)
 	{
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = us(MODEL_Ring);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (p->counter >= 10)
 		{
@@ -379,7 +379,7 @@ namespace raybomb010
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_Ring, p);)
+		FX_HELD(held_note_draw(us(ORIG_Ring), p);)
 		RingDraw(p);
 		if (DrawOnly()) return 0;
 		RingUpdate(p);
@@ -390,7 +390,7 @@ namespace raybomb010
 	static void PuffHeader(uint8_t *h, const PuffNode *p)
 	{
 		*(uint16_t *)(h + 4) = 0;
-		*(uint32_t *)h = SEQ_Puff;
+		*(uint32_t *)h = us(SEQ_Puff);
 		int32_t q = 0x80 / (int32_t)p->life;
 		*(uint16_t *)(h + 0x24) = 0xC;
 		uint8_t level = (uint8_t)(0x80 - (uint8_t)(q * p->counter));
@@ -428,7 +428,7 @@ namespace raybomb010
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_Puff, p);)
+		FX_HELD(held_note_draw(us(ORIG_Puff), p);)
 		PuffDraw(p);
 		if (DrawOnly()) return 0;
 		p->counter++;
@@ -438,7 +438,7 @@ namespace raybomb010
 
 	static void BeamHeader(uint8_t *h, const BeamNode *p)
 	{
-		*(uint32_t *)h = MODEL_Beam;
+		*(uint32_t *)h = us(MODEL_Beam);
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (p->counter >= 3)
 		{
@@ -473,9 +473,9 @@ namespace raybomb010
 		down[2] = 0;
 		TransformVectorBy3x3Matrix(&m1, down, down);
 		int32_t eye[3];
-		eye[0] = var<int16_t>(0xB8B7F0) - Muzzle()[0];
-		eye[1] = var<int16_t>(0xB8B7F2) - Muzzle()[1];
-		eye[2] = var<int16_t>(0xB8B7F4) - Muzzle()[2];
+		eye[0] = var<int16_t>(us(0xB8B7F0)) - Muzzle()[0];
+		eye[1] = var<int16_t>(us(0xB8B7F2)) - Muzzle()[1];
+		eye[2] = var<int16_t>(us(0xB8B7F4)) - Muzzle()[2];
 		NormalizeVectorLen2(eye, eye);
 		int32_t c2[3];
 		CrossProduct(dir, eye, axis);
@@ -519,7 +519,7 @@ namespace raybomb010
 	{
 		BeamNode *p = (BeamNode *)n;
 		int16_t end[4];
-		FX_HELD(held_note_draw(ORIG_Beam, p);)
+		FX_HELD(held_note_draw(us(ORIG_Beam), p);)
 		BeamDraw(p, end);
 		if (DrawOnly()) return 0;
 		BeamSpin(p);
@@ -530,7 +530,7 @@ namespace raybomb010
 			{
 				do
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QEffect(), ORIG_Spark);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QEffect(), us(ORIG_Spark));
 					s->frame = 0;
 					int32_t r = CrtRand() & 7;
 					ff8fx::copy<(4)>(s->pos, end);
@@ -558,7 +558,7 @@ namespace raybomb010
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -567,7 +567,7 @@ namespace raybomb010
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		FX_HELD(held_note_draw(ORIG_Spark, p);)
+		FX_HELD(held_note_draw(us(ORIG_Spark), p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		p->pos[1] = (int16_t)(p->pos[1] + p->vy);
@@ -582,7 +582,7 @@ namespace raybomb010
 		h[9] = 0;
 		h[8] = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Flash;
+		*(uint32_t *)h = us(MODEL_Flash);
 		if (p->counter < 0x10)
 		{
 			*(int32_t *)(h + 0xC) = (0x10 - p->counter) << 8;
@@ -619,7 +619,7 @@ namespace raybomb010
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		FlashNode *p = (FlashNode *)n;
-		FX_HELD(held_note_draw(ORIG_Flash, p);)
+		FX_HELD(held_note_draw(us(ORIG_Flash), p);)
 		FlashDraw(p);
 		if (DrawOnly()) return 0;
 		FlashUpdate(p);
@@ -630,7 +630,7 @@ namespace raybomb010
 	static void ChargeHeader(uint8_t *h, const ChargeNode *p)
 	{
 		*(int32_t *)(h + 8) = p->size;
-		*(uint32_t *)h = SEQ_Charge;
+		*(uint32_t *)h = us(SEQ_Charge);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 1;
 		if (p->counter < 8 || p->counter >= 0x16)
@@ -664,7 +664,7 @@ namespace raybomb010
 			return 0;
 		}
 		uint8_t *h;
-		FX_HELD(held_note_draw(ORIG_Charge, p);)
+		FX_HELD(held_note_draw(us(ORIG_Charge), p);)
 		ChargeDraw(p, &h);
 		if (DrawOnly()) return 0;
 		if (*(int16_t *)(h + 0x28) < 0) p->frame = 0;
@@ -783,7 +783,7 @@ namespace raybomb010
 		{
 			for (int k = 0; k < 2; k++)
 			{
-				ChargeNode *c = (ChargeNode *)AddTaskToQueue(QEffect(), ORIG_Charge);
+				ChargeNode *c = (ChargeNode *)AddTaskToQueue(QEffect(), us(ORIG_Charge));
 				c->counter = 0;
 				c->delay = (int16_t)(CrtRand() % 6 + k);
 				int32_t r = CrtRand() % 0x320;
@@ -804,14 +804,14 @@ namespace raybomb010
 				p->counter = 0;
 				p->scale = (int16_t)((CrtRand() & 0x3FF) + 0x1000);
 				int16_t off[4];
-				ff8fx::copy<(8)>(off, (const void *)(TABLE_DustOffset + 8 * k));
+				ff8fx::copy<(8)>(off, (const void *)(us(TABLE_DustOffset) + 8 * k));
 				MatrixMulVector(crot, off, off);
 				ff8fx::copy<(8)>(p->pos, Muzzle());
 				p->pos[0] = (int16_t)(p->pos[0] + off[0]);
 				p->pos[1] = (int16_t)(p->pos[1] + off[1]);
 				int16_t dir[4];
 				p->pos[2] = (int16_t)(p->pos[2] + off[2]);
-				ff8fx::copy<(8)>(dir, (const void *)(TABLE_DustDir + 8 * k));
+				ff8fx::copy<(8)>(dir, (const void *)(us(TABLE_DustDir) + 8 * k));
 				MatrixMulVector(crot, dir, dir);
 				NormalizeSVector(dir, dir);
 				int32_t speed = CrtRand() % 0x8C + 0x96;
@@ -822,14 +822,14 @@ namespace raybomb010
 		}
 		if (d->counter == 0x10)
 		{
-			FlashNode *f = (FlashNode *)AddTaskToQueue(QEffect(), ORIG_Flash);
+			FlashNode *f = (FlashNode *)AddTaskToQueue(QEffect(), us(ORIG_Flash));
 			f->counter = 0;
 			f->scale = 0x3333;
 			f->scale_step = 0x1D4;
 		}
 		if (d->counter == 0x22)
 		{
-			BeamNode *b = (BeamNode *)AddTaskToQueue(QEffect(), ORIG_Beam);
+			BeamNode *b = (BeamNode *)AddTaskToQueue(QEffect(), us(ORIG_Beam));
 			int16_t v[4];
 			v[0] = (int16_t)(Centre()[0] - Muzzle()[0]);
 			b->counter = 0;
@@ -854,7 +854,7 @@ namespace raybomb010
 				int32_t cnt = (CrtRand() & 1) + 1;
 				for (int j = cnt; j > 0; j--)
 				{
-					PuffNode *p = (PuffNode *)AddTaskToQueue(QEffect(), ORIG_Puff);
+					PuffNode *p = (PuffNode *)AddTaskToQueue(QEffect(), us(ORIG_Puff));
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
 					ff8fx::copy<(4)>(p->pos, Centre());
@@ -862,9 +862,9 @@ namespace raybomb010
 					ff8fx::copy<(4)>(&p->pos[2], &Centre()[2]);
 					r = CrtRand() % 0x320;
 					p->pos[1] = 0;
-					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_PuffX + 4 * k)) - 0x190);
+					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(us(TABLE_PuffX) + 4 * k)) - 0x190);
 					r = CrtRand() % 0x320;
-					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(TABLE_PuffZ + 4 * k)) - 0x12C);
+					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(us(TABLE_PuffZ) + 4 * k)) - 0x12C);
 					p->angle = (int16_t)(CrtRand() & 0xFFF);
 					r = CrtRand() % 0xE00;
 					p->scale = (int16_t)(r + 0x800);
@@ -874,7 +874,7 @@ namespace raybomb010
 		}
 		if (d->counter == 0x51)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QEffect(), ORIG_Ring);
+			RingNode *g = (RingNode *)AddTaskToQueue(QEffect(), us(ORIG_Ring));
 			ff8fx::copy<(4)>(g->pos, Centre());
 			g->counter = 0;
 			ff8fx::copy<(4)>(&g->pos[2], &Centre()[2]);
@@ -890,18 +890,18 @@ namespace raybomb010
 				int32_t scale = cnt * 400;
 				for (int j = 0; j < cnt; j++)
 				{
-					DebrisNode *p = (DebrisNode *)AddTaskToQueue(QEffect(), ORIG_Debris);
+					DebrisNode *p = (DebrisNode *)AddTaskToQueue(QEffect(), us(ORIG_Debris));
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
 					p->life = (int16_t)(r + j + 0xB);
 					ff8fx::copy<(4)>(p->pos, Centre());
 					ff8fx::copy<(4)>(&p->pos[2], &Centre()[2]);
 					r = CrtRand() % 0xE10;
-					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_DebrisX + 4 * k)) - 0x708);
+					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(us(TABLE_DebrisX) + 4 * k)) - 0x708);
 					r = CrtRand() % 0x3C;
 					p->pos[1] = (int16_t)-r;
 					r = CrtRand() % 0xE10;
-					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(TABLE_DebrisZ + 4 * k)) - 0x708);
+					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)((int16_t)r + var<int16_t>(us(TABLE_DebrisZ) + 4 * k)) - 0x708);
 					r = CrtRand() % 0x1F4;
 					p->vy = (int16_t)(-30 - r);
 					p->model = (int16_t)(CrtRand() & 1);
@@ -917,7 +917,7 @@ namespace raybomb010
 		}
 		if (d->counter == 0x3B)
 		{
-			RestoreNode *t = (RestoreNode *)AddTaskToQueue(QRoot(), ORIG_Restore);
+			RestoreNode *t = (RestoreNode *)AddTaskToQueue(QRoot(), us(ORIG_Restore));
 			t->counter = 0;
 		}
 		if (d->counter == 0x52)
@@ -925,7 +925,7 @@ namespace raybomb010
 			for (int slot = 0; slot < 3; slot++)
 			{
 				if (!(*Entity(slot) & 2)) continue;
-				BounceNode *b = (BounceNode *)AddTaskToQueue(QEffect(), ORIG_Bounce);
+				BounceNode *b = (BounceNode *)AddTaskToQueue(QEffect(), us(ORIG_Bounce));
 				b->counter = 0;
 				b->slot = (int16_t)slot;
 				b->spin = (int16_t)((CrtRand() % 3 + 1) << 12);
@@ -943,8 +943,8 @@ namespace raybomb010
 		}
 		if (d->counter <= 8) SetScreenFlash((uint32_t)shl32(d->counter, 8), 0);
 		else if (d->counter >= 0x98) SetScreenFlash((uint32_t)shl32(0xA0 - d->counter, 8), 0);
-		if (d->counter == 0xA) BdPlaySE3D(SOUND_Muzzle, 0, Muzzle());
-		if (d->counter == 0x51) BdPlaySE3D(SOUND_Blast, 0x100, Centre());
+		if (d->counter == 0xA) BdPlaySE3D(SOUND_Muzzle(), 0, Muzzle());
+		if (d->counter == 0x51) BdPlaySE3D(SOUND_Blast(), 0x100, Centre());
 		d->counter++;
 		if (d->counter <= 0xA0) return 0;
 		SetScreenFlash(0, 0);

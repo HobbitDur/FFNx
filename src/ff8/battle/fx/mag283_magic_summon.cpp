@@ -25,14 +25,14 @@ namespace magicsummon283
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507E24); }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507E30; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507E64); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507E68); }
-	static const Mat4x3 *const MATRIX_Flag1000 = (const Mat4x3 *)0x2507E70;
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507E24)); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2507E30); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507E64)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507E68)); }
+	static const Mat4x3 *MATRIX_Flag1000() { return (const Mat4x3 *)us(0x2507E70); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(us(0x1D98B3C)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_MasterTask = 0x67C4B0;
 	static const uint32_t ORIG_MainTask = 0x67C610;
@@ -44,27 +44,27 @@ namespace magicsummon283
 	static const uint32_t FLASH_Colours = 0x109968C;
 	static const uint32_t WARP_Weights = 0x10996AC;
 	static const uint32_t WARP_Distance = 0x109AAAC;
-	static const void *const SOUND_Summon = (const void *)0x1099688;
+	static const void *SOUND_Summon() { return (const void *)us(0x1099688); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
-	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
+	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(src); }
+	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E410))(dst); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -139,7 +139,7 @@ namespace magicsummon283
 				if ((int16_t)ady >= 0x80) ady = 0x80;
 				if (F<int16_t>(s, 0x56) < (int16_t)adx) F<int16_t>(s, 0x56) = (int16_t)adx;
 				if (F<int16_t>(s, 0x56) < (int16_t)ady) F<int16_t>(s, 0x56) = (int16_t)ady;
-				const uint32_t d = *(const uint8_t *)(WARP_Distance + (int32_t)(int16_t)adx + shl32((int16_t)ady, 7));
+				const uint32_t d = *(const uint8_t *)(us(WARP_Distance) + (int32_t)(int16_t)adx + shl32((int16_t)ady, 7));
 				if (d != 0)
 				{
 					const int32_t radius = F<int16_t>(s, 0x50);
@@ -339,7 +339,7 @@ namespace magicsummon283
 		F<int16_t>(c, 0x74) = sy;
 		F<int32_t>(c, 0x78) = fade;
 		F<int16_t>(c, 0x70) = radius;
-		F<uint32_t>(c, 0x6C) = WARP_Weights + (uint32_t)shl32(step, 8);
+		F<uint32_t>(c, 0x6C) = us(WARP_Weights) + (uint32_t)shl32(step, 8);
 		F<int16_t>(c, 0x76) = 0;
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)c);
 		FrameCursor() = DrawShadow(entity, RenderOT(0x4040), 0x10, FrameCursor());
@@ -465,14 +465,14 @@ namespace magicsummon283
 			GteLoadV0(arg->anchor);
 			GteMVMVA_RotV0();
 			GteReadMAC123(m.t);
-			GteSetRotMatrixCtrl(MATRIX_Flag1000);
+			GteSetRotMatrixCtrl(MATRIX_Flag1000());
 			GteLoadV0(off);
 			GteMVMVA_RotV0();
 			GteReadMAC123(v);
 			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)v[0]);
 			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)v[1]);
 			m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)v[2]);
-			if (!(r->flags & 0x8000)) MatrixMultiply(MATRIX_Flag1000, &m);
+			if (!(r->flags & 0x8000)) MatrixMultiply(MATRIX_Flag1000(), &m);
 		}
 		else
 		{
@@ -527,7 +527,7 @@ namespace magicsummon283
 		uint32_t colour = (uint32_t)(uintptr_t)n;
 		const int32_t t = shl32(m->counter * 7, 12) / 60;
 		const int32_t i = t >> 12, frac = t & 0xFFF;
-		BlendColour((const void *)(FLASH_Colours + i * 4), (const void *)(FLASH_Colours + 4 + i * 4), 0x1000 - frac, frac, &colour);
+		BlendColour((const void *)(us(FLASH_Colours) + i * 4), (const void *)(us(FLASH_Colours) + 4 + i * 4), 0x1000 - frac, frac, &colour);
 		int32_t level;
 		if (m->counter < 8 || m->counter >= 0x34)
 		{
@@ -572,7 +572,7 @@ namespace magicsummon283
 			FX_HELD(held_note_play(m, PLAY_B, &arg);)
 			prim::play((prim::Layout *)m->layoutB, PrimCallback, (int)&arg, 0);
 		}
-		if (m->counter == 0xA) BdPlaySE(SOUND_Summon, 0, 0x80);
+		if (m->counter == 0xA) BdPlaySE(SOUND_Summon(), 0, 0x80);
 		m->counter++;
 		return m->counter < 0x3C ? 0 : TASK_END;
 	}
@@ -595,12 +595,12 @@ namespace magicsummon283
 		{
 			mn->started = 1;
 			InitTaskQueuePool(QMain(), (void *)TexBase(), 0x648, 1);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x18F);
 			m->ent = Entity(Ctx()->actions[0].targets[0]);
 			m->ent[0] |= 4;
-			DecodeModelPrimLayout(MODEL_A, m->layoutA, 0x4BC);
-			DecodeModelPrimLayout(MODEL_B, m->layoutB, 0x160);
+			DecodeModelPrimLayout(us(MODEL_A), m->layoutA, 0x4BC);
+			DecodeModelPrimLayout(us(MODEL_B), m->layoutB, 0x160);
 			GetDefaultEffectPosition(m->ent, m->pos);
 			m->anchor[0] = m->pos[0];
 			m->anchor[2] = m->pos[2];

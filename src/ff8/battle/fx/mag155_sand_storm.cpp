@@ -25,22 +25,22 @@ namespace sandstorm155
 	using namespace eng;
 	using namespace magc;
 
-	inline int16_t *SideA() { return (int16_t *)0x23F07F0; }
-	inline int16_t *SideB() { return (int16_t *)0x23F07F8; }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x23F0800); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23F0818; }
-	inline TaskQueue *QEffect() { return (TaskQueue *)0x23F1AE8; }
-	inline int16_t *Spline() { return (int16_t *)0x23F2908; }
-	inline int16_t *Centre() { return (int16_t *)0x23F2938; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23F2940); }
-	inline uint32_t &PosX() { return var<uint32_t>(0x23F2948); }
-	inline uint32_t &PosZ() { return var<uint32_t>(0x23F294C); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23F2950); }
-	inline uint32_t &TexFile() { return var<uint32_t>(0x23F2954); }
-	inline int16_t *CasterPos() { return (int16_t *)0x23F2958; }
-	inline int16_t *PathTable() { return (int16_t *)0x23F2960; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2404230); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline int16_t *SideA() { return (int16_t *)us(0x23F07F0); }
+	inline int16_t *SideB() { return (int16_t *)us(0x23F07F8); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x23F0800)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x23F0818); }
+	inline TaskQueue *QEffect() { return (TaskQueue *)us(0x23F1AE8); }
+	inline int16_t *Spline() { return (int16_t *)us(0x23F2908); }
+	inline int16_t *Centre() { return (int16_t *)us(0x23F2938); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23F2940)); }
+	inline uint32_t &PosX() { return var<uint32_t>(us(0x23F2948)); }
+	inline uint32_t &PosZ() { return var<uint32_t>(us(0x23F294C)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x23F2950)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(us(0x23F2954)); }
+	inline int16_t *CasterPos() { return (int16_t *)us(0x23F2958); }
+	inline int16_t *PathTable() { return (int16_t *)us(0x23F2960); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2404230)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t POOL_A = 0x23F1188, POOL_B = 0x23F0828;
 	static const uint32_t VERTS = 0x23F2A70;
@@ -48,7 +48,7 @@ namespace sandstorm155
 	static const uint32_t ARENA_A = 0x23F4230, ARENA_B = 0x23FC230;
 	static const uint32_t MODEL_Funnel = 0xDB8150;
 	static const uint32_t SEQ_DustA = 0xDB7E94, SEQ_DustB = 0xDB8040;
-	static const void *const SOUND_Wind = (const void *)0xDBA8F8;
+	static const void *SOUND_Wind() { return (const void *)us(0xDBA8F8); }
 
 	static const uint32_t ORIG_Root = 0x607BB0;
 	static const uint32_t ORIG_Director = 0x606DB0;
@@ -57,11 +57,11 @@ namespace sandstorm155
 	static const uint32_t ORIG_DustA = 0x6076E0;
 	static const uint32_t ORIG_DustB = 0x607920;
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void MatrixMultiplyVector(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void SplineSetup(int32_t n, const int16_t *points, void *work) { fn<void (__cdecl *)(int32_t, const int16_t *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, int16_t *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, int16_t *, int32_t)>(0x571690)(n, work, out, t); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline void MatrixMultiplyVector(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void SplineSetup(int32_t n, const int16_t *points, void *work) { fn<void (__cdecl *)(int32_t, const int16_t *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, int16_t *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, int16_t *, int32_t)>(us(0x571690))(n, work, out, t); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -127,7 +127,7 @@ namespace sandstorm155
 
 	static void WaveVertices(int32_t angle, int32_t radius, uint32_t rebase)
 	{
-		Order *o = (Order *)ORDER;
+		Order *o = (Order *)us(ORDER);
 		for (int ring = 0x13; ring != 0; ring--)
 		{
 			const int32_t c = ComputeCos(angle) * radius >> 12;
@@ -203,7 +203,7 @@ namespace sandstorm155
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		*(int32_t *)(h + 0xC) = 0;
 		*(int32_t *)(h + 8) = 0;
-		*(uint32_t *)h = MODEL_Funnel;
+		*(uint32_t *)h = us(MODEL_Funnel);
 		*(uint32_t *)(h + 4) = verts;
 		*(uint32_t *)(h + 0x1C) = flags;
 		*(int32_t *)(h + 0xC) = fade;
@@ -260,8 +260,8 @@ namespace sandstorm155
 {
 	static void VertexOrder()
 	{
-		Order *o = (Order *)ORDER;
-		uint32_t src = MODEL_Funnel + 8, dst = VERTS;
+		Order *o = (Order *)us(ORDER);
+		uint32_t src = us(MODEL_Funnel) + 8, dst = us(VERTS);
 		for (int ring = 0x13; ring != 0; ring--)
 			for (int i = 0x10; i != 0; i--, o++, src += 8, dst += 8)
 			{
@@ -269,7 +269,7 @@ namespace sandstorm155
 				o->dst = dst;
 				o->y = *(const int16_t *)(src + 2);
 			}
-		o = (Order *)ORDER;
+		o = (Order *)us(ORDER);
 		for (int i = 0; i + 1 < 0x130; i++)
 			for (int j = i + 1; j < 0x130; j++)
 				if (o[i].y < o[j].y)
@@ -299,7 +299,7 @@ namespace sandstorm155
 		uint32_t flags;
 		FunnelFade(f->counter, &fade, &flags);
 		FX_HELD(held_note_funnel(f);)
-		FunnelDraw(f->angle, f->height, (int16_t)PosX(), (int16_t)PosZ(), VERTS, fade, flags);
+		FunnelDraw(f->angle, f->height, (int16_t)PosX(), (int16_t)PosZ(), us(VERTS), fade, flags);
 		if (DrawOnly()) return 0;
 		const int16_t c = f->counter;
 		if (c < 0xA)
@@ -354,7 +354,7 @@ namespace sandstorm155
 			void *work = FieldAlloc(0x190);
 			SplineSetup(6, sp, work);
 			int32_t t = 0;
-			for (int16_t *out = PathTable(); out < (int16_t *)0x23F2A70; out += 4, t += 0x1000)
+			for (int16_t *out = PathTable(); out < (int16_t *)us(0x23F2A70); out += 4, t += 0x1000)
 				SplineEval(6, work, out, t / 33);
 			FieldFree(0x190);
 		}
@@ -366,10 +366,10 @@ namespace sandstorm155
 	{
 		DustNode *t = (DustNode *)n;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_DustA;
+		*(uint32_t *)h = us(SEQ_DustA);
 		*(int16_t *)(h + 0x24) = 0;
 		int alive = 0;
-		for (Dust *d = (Dust *)POOL_A; d < (Dust *)POOL_A + 100; d++)
+		for (Dust *d = (Dust *)us(POOL_A); d < (Dust *)us(POOL_A) + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
 			FX_HELD(held_note_dust(0, h, d);)
@@ -393,9 +393,9 @@ namespace sandstorm155
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				Dust *d = (Dust *)POOL_A;
+				Dust *d = (Dust *)us(POOL_A);
 				while (d->used != 0)
-					if (++d >= (Dust *)POOL_A + 100) goto spawned;
+					if (++d >= (Dust *)us(POOL_A) + 100) goto spawned;
 				d->used = 1;
 				d->frame = 0;
 				d->scale = (int16_t)(CrtRand() % 0xA00 + 0x700);
@@ -422,10 +422,10 @@ namespace sandstorm155
 	{
 		DustNode *t = (DustNode *)n;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_DustB;
+		*(uint32_t *)h = us(SEQ_DustB);
 		*(int16_t *)(h + 0x24) = 0;
 		int alive = 0;
-		for (Dust *d = (Dust *)POOL_B; d < (Dust *)POOL_B + 100; d++)
+		for (Dust *d = (Dust *)us(POOL_B); d < (Dust *)us(POOL_B) + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
 			FX_HELD(held_note_dust(1, h, d);)
@@ -450,9 +450,9 @@ namespace sandstorm155
 		{
 			for (int k = 0; k < 5; k++)
 			{
-				Dust *d = (Dust *)POOL_B;
+				Dust *d = (Dust *)us(POOL_B);
 				while (d->used != 0)
-					if (++d >= (Dust *)POOL_B + 100) goto spawned;
+					if (++d >= (Dust *)us(POOL_B) + 100) goto spawned;
 				d->used = 1;
 				d->frame = 0;
 				d->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
@@ -489,12 +489,12 @@ namespace sandstorm155
 		}
 		if (r->counter == 1)
 		{
-			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffect(), ORIG_Wave);
+			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffect(), us(ORIG_Wave));
 			w->counter = 0;
 			w->angle = (int16_t)(CrtRand() % 4096);
 			w->spin = (int16_t)(-70 - CrtRand() % 70);
 			w->radius = 0;
-			FunnelNode *f = (FunnelNode *)AddTaskToQueue(QEffect(), ORIG_Funnel);
+			FunnelNode *f = (FunnelNode *)AddTaskToQueue(QEffect(), us(ORIG_Funnel));
 			f->counter = 0;
 			f->grow = 0x400;
 			f->height = 0x400;
@@ -520,10 +520,10 @@ namespace sandstorm155
 			const int32_t mz = CrtRand() % 1300;
 			sp[14] = (int16_t)(mz + Centre()[2] + 600);
 		}
-		if (r->counter == 3) ((DustNode *)AddTaskToQueue(QEffect(), ORIG_DustA))->counter = 0;
-		if (r->counter == 4) ((DustNode *)AddTaskToQueue(QEffect(), ORIG_DustB))->counter = 0;
+		if (r->counter == 3) ((DustNode *)AddTaskToQueue(QEffect(), us(ORIG_DustA)))->counter = 0;
+		if (r->counter == 4) ((DustNode *)AddTaskToQueue(QEffect(), us(ORIG_DustB)))->counter = 0;
 		if (r->counter == 0x32) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
-		if (r->counter == 1) BdPlaySE(SOUND_Wind, 0, 0x80);
+		if (r->counter == 1) BdPlaySE(SOUND_Wind(), 0, 0x80);
 		r->counter++;
 		return r->counter > 0x3C ? TASK_END : 0;
 	}
@@ -532,7 +532,7 @@ namespace sandstorm155
 	{
 		RootNode *r = (RootNode *)n;
 		FX_HELD(held_note_root();)
-		PacketCursor() = (r->counter & 1) ? ARENA_B : ARENA_A;
+		PacketCursor() = (r->counter & 1) ? us(ARENA_B) : us(ARENA_A);
 		const int a = ExecuteTaskQueue(QEffect());
 		r->counter++;
 		return a ? 0 : TASK_END;

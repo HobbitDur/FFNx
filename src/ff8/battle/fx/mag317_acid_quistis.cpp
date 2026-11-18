@@ -25,17 +25,17 @@ namespace acid_quistis
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505490); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505498); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250549C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25054B4); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x25054B8); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25054E0; }
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x25054F0; }
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2505500; }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2505490)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2505498)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x250549C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25054B4)); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x25054B8)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x25054E0); }
+	inline TaskQueue *QStreams() { return (TaskQueue *)us(0x25054F0); }
+	inline TaskQueue *QTarget() { return (TaskQueue *)us(0x2505500); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(us(0x1D98B3C)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x65F8F0;
 	static const uint32_t ORIG_TargetTask = 0x65FC30;
@@ -48,8 +48,8 @@ namespace acid_quistis
 	static const uint32_t SEQ_Drip = 0x100139C;
 	static const uint32_t SEQ_Splash = 0x10014FC;
 	static const uint32_t ZERO_Vector = 0x25054D8;
-	static const void *const SOUND_Juice = (const void *)0x1001AC8;
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1001ACC;
+	static const void *SOUND_Juice() { return (const void *)us(0x1001AC8); }
+	static const uint8_t *DIST_TABLE() { return (const uint8_t *)us(0x1001ACC); }
 	static const uint32_t POINTS = 0x1708;
 	static const uint32_t MELT = 0x3F08;
 	static const uint32_t MORPH = 0x1508;
@@ -57,22 +57,22 @@ namespace acid_quistis
 	static const uint32_t COM_Anim = 0xFFE6B0;
 	static const uint32_t CASTER_Point = 0x1005AD0;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(dx, dz); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline uint32_t ModelPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x660540)(s, ot, shift, cursor); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(dx, dz); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline uint32_t ModelPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x660540))(s, ot, shift, cursor); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -457,7 +457,7 @@ namespace acid_quistis
 
 	static void ParticleDraw(const ParticleNode *p, uint32_t seq)
 	{
-		TransformCameraByShadowRotation(p->pos, p->size, seq == SEQ_Spray ? 0 : -((int32_t)p->size >> 2));
+		TransformCameraByShadowRotation(p->pos, p->size, seq == us(SEQ_Spray) ? 0 : -((int32_t)p->size >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint32_t>(h, 0) = seq;
 		F<int16_t>(h, 4) = (int16_t)p->counter;
@@ -501,7 +501,7 @@ namespace acid_quistis
 	{
 		Point *p = AllocPoint(from, (int16_t)width);
 		if (!p) return nullptr;
-		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), ORIG_StreamTask);
+		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), us(ORIG_StreamTask));
 		if (!s)
 		{
 			p->width = -1;
@@ -536,7 +536,7 @@ namespace acid_quistis
 			int32_t adx = dx < 0 ? -dx : dx, ady = ndy < 0 ? -ndy : ndy;
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
-			const int32_t len = DIST_TABLE[ady * 128 + adx];
+			const int32_t len = DIST_TABLE()[ady * 128 + adx];
 			int32_t px, py;
 			if (prev)
 			{
@@ -667,8 +667,8 @@ namespace acid_quistis
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(ORIG_SprayTask, p);)
-		ParticleDraw(p, SEQ_Spray);
+		FX_HELD(held_note_particle(us(ORIG_SprayTask), p);)
+		ParticleDraw(p, us(SEQ_Spray));
 		SprayStep(p);
 		p->counter++;
 		return p->counter < 9 ? 0 : TASK_END;
@@ -677,8 +677,8 @@ namespace acid_quistis
 	static uint32_t __cdecl DripTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(ORIG_DripTask, p);)
-		ParticleDraw(p, SEQ_Drip);
+		FX_HELD(held_note_particle(us(ORIG_DripTask), p);)
+		ParticleDraw(p, us(SEQ_Drip));
 		DripStep(p);
 		p->counter++;
 		return p->counter < 0xD ? 0 : TASK_END;
@@ -687,8 +687,8 @@ namespace acid_quistis
 	static uint32_t __cdecl SplashTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(ORIG_SplashTask, p);)
-		ParticleDraw(p, SEQ_Splash);
+		FX_HELD(held_note_particle(us(ORIG_SplashTask), p);)
+		ParticleDraw(p, us(SEQ_Splash));
 		p->counter++;
 		return p->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -718,7 +718,7 @@ namespace acid_quistis
 				at[2] = (int16_t)(at[2] + v[2]);
 				if (s->t >= 0x1000 && s->slot >= 0)
 				{
-					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_SplashTask);
+					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_SplashTask));
 					if (q)
 					{
 						q->counter = 0;
@@ -790,13 +790,13 @@ namespace acid_quistis
 			DrawMeltingTarget(t->entity, sinv);
 		}
 		else *(uint16_t *)t->entity &= 0xFFFB;
-		if (t->counter == 0xA) BdPlaySE(SOUND_Juice, 0, 0x80);
+		if (t->counter == 0xA) BdPlaySE(SOUND_Juice(), 0, 0x80);
 		if (t->counter == 0x12)
 		{
 			for (int32_t w = 0xFFF; w != 0; w -= 0x555)
 			{
 				int16_t from[4], anchor[4], to[4];
-				CasterPoint((const int16_t *)CASTER_Point, from);
+				CasterPoint((const int16_t *)us(CASTER_Point), from);
 				GetDefaultEffectPosition(Caster(), anchor);
 				uint8_t *entity = t->entity;
 				const int32_t r = CrtRand();
@@ -805,8 +805,8 @@ namespace acid_quistis
 				Point *p = SpawnStream(from, to, slot, 0, 0xA0, 0x96, w);
 				if (p)
 				{
-					*(uint32_t *)p->vel = var<uint32_t>(ZERO_Vector);
-					*(uint32_t *)&p->vel[2] = var<uint32_t>(ZERO_Vector + 4);
+					*(uint32_t *)p->vel = var<uint32_t>(us(ZERO_Vector));
+					*(uint32_t *)&p->vel[2] = var<uint32_t>(us(ZERO_Vector) + 4);
 				}
 			}
 		}
@@ -814,9 +814,9 @@ namespace acid_quistis
 		{
 			for (int k = 8; k != 0; k--)
 			{
-				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_SprayTask);
+				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_SprayTask));
 				if (!q) continue;
-				CasterPoint((const int16_t *)CASTER_Point, q->pos);
+				CasterPoint((const int16_t *)us(CASTER_Point), q->pos);
 				q->counter = 0;
 				q->size = (int16_t)((CrtRand() & 0x3FF) + 0x400);
 				const int16_t a = (int16_t)((uint32_t)(CrtRand() & 0x3FF) + (uint16_t)t->angle - 0x200);
@@ -829,7 +829,7 @@ namespace acid_quistis
 		const uint32_t d = (uint32_t)((int32_t)t->counter - 0x21);
 		if (d < 0x14 && !(d & 1))
 		{
-			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_DripTask);
+			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_DripTask));
 			if (q)
 			{
 				uint8_t *entity = t->entity;
@@ -878,7 +878,7 @@ namespace acid_quistis
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), us(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x97);
 				t->action = (int16_t)(uint16_t)r->action;
 				uint8_t *entity = Entity(Ctx()->actions[t->action].targets[0]);
@@ -887,11 +887,11 @@ namespace acid_quistis
 				int16_t caster[4];
 				GetDefaultEffectPosition(Caster(), caster);
 				t->angle = (int16_t)CartesianToGameAngle((int32_t)t->pos[0] - caster[0], (int32_t)t->pos[2] - caster[2]);
-				DecodeModelPrimLayout(MODEL_Layout, t->layout, 0x248);
+				DecodeModelPrimLayout(us(MODEL_Layout), t->layout, 0x248);
 				r->action++;
 				InitMelt(t->entity);
 			}
-			BindExternalAnimSet(Caster(), TexBase() + BIND, COM_Anim);
+			BindExternalAnimSet(Caster(), TexBase() + BIND, us(COM_Anim));
 			QueueChainTransformation(Caster(), 3);
 		}
 		int a, b, c;

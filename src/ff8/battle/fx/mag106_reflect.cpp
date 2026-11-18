@@ -25,15 +25,15 @@ namespace reflect106
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2523B78); }
-	inline int16_t &WallSpan() { return var<int16_t>(0x2523C7C); }
-	inline int16_t &WallBase() { return var<int16_t>(0x2523C7E); }
-	inline uint8_t *&BeamHeader() { return var<uint8_t *>(0x2523C94); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543C98); }
-	inline TaskQueue *QBarriers() { return (TaskQueue *)0x2543CB0; }
-	inline TaskQueue *QBeams() { return (TaskQueue *)0x2543CC0; }
-	inline TaskQueue *QHexagons() { return (TaskQueue *)0x2543CD0; }
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2543CE0; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2523B78)); }
+	inline int16_t &WallSpan() { return var<int16_t>(us(0x2523C7C)); }
+	inline int16_t &WallBase() { return var<int16_t>(us(0x2523C7E)); }
+	inline uint8_t *&BeamHeader() { return var<uint8_t *>(us(0x2523C94)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2543C98)); }
+	inline TaskQueue *QBarriers() { return (TaskQueue *)us(0x2543CB0); }
+	inline TaskQueue *QBeams() { return (TaskQueue *)us(0x2543CC0); }
+	inline TaskQueue *QHexagons() { return (TaskQueue *)us(0x2543CD0); }
+	inline TaskQueue *QRings() { return (TaskQueue *)us(0x2543CE0); }
 	static const uint32_t POOL_Barriers = 0x2521BB8;
 	static const uint32_t ARENA_0 = 0x2523C98;
 	static const uint32_t ARENA_1 = 0x2533C98;
@@ -48,28 +48,28 @@ namespace reflect106
 	static const uint32_t MODEL_Ring = 0x12FBB78;
 	static const uint32_t SEQ_Beam = 0x12F99D4;
 	static const uint32_t TABLE_SinCos = 0x12FC9B4;
-	static const void *const SOUND_Reflect = (const void *)0x12FC9B0;
+	static const void *SOUND_Reflect() { return (const void *)us(0x12FC9B0); }
 
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatMul56C220(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline uint32_t DrawBeamSprites(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x683490)(h, ot, mode, cursor); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void MatMul56C220(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline uint32_t DrawBeamSprites(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x683490))(h, ot, mode, cursor); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct DirectorNode
@@ -199,8 +199,8 @@ namespace reflect106
 	static void Rot2D(const int16_t *src, int16_t *dst, int32_t angle)
 	{
 		const uint32_t a = (uint32_t)angle & 0xFFF;
-		const int32_t c = *(const int16_t *)(TABLE_SinCos + a * 4 + 2);
-		const int32_t ns = -(int32_t)*(const int16_t *)(TABLE_SinCos + a * 4);
+		const int32_t c = *(const int16_t *)(us(TABLE_SinCos) + a * 4 + 2);
+		const int32_t ns = -(int32_t)*(const int16_t *)(us(TABLE_SinCos) + a * 4);
 		dst[0] = (int16_t)((int32_t)((uint32_t)mul32(src[0], c) - (uint32_t)mul32(src[1], ns)) >> 12);
 		dst[1] = (int16_t)((int32_t)((uint32_t)mul32(src[1], c) + (uint32_t)mul32(src[0], ns)) >> 12);
 		dst[2] = src[2];
@@ -221,7 +221,7 @@ namespace reflect106
 		const uint32_t t = ((uint32_t)f * 15u << 12) / 20u;
 		const int32_t idx = (int32_t)t >> 12;
 		const int32_t w = (int32_t)(t & 0xFFF);
-		const uint32_t v = MODEL_Wall + 8 + 8 * idx;
+		const uint32_t v = us(MODEL_Wall) + 8 + 8 * idx;
 		int16_t a = var<int16_t>(v + 2);
 		out[1] = (int16_t)((mul32((int32_t)var<int16_t>(v + 0xA) - a, w) >> 12) + a);
 		out[0] = 0;
@@ -490,7 +490,7 @@ namespace reflect106
 	static uint8_t *WallDraw(uint16_t scroll, int32_t height, int32_t fade, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x60);
-		*(uint32_t *)h = MODEL_Wall;
+		*(uint32_t *)h = us(MODEL_Wall);
 		*(uint16_t *)(h + 0x12) = 0;
 		*(uint16_t *)(h + 0x10) = 0;
 		*(uint16_t *)(h + 0x16) = 0x100;
@@ -556,7 +556,7 @@ namespace reflect106
 		MatrixMultiply(&R, &X);
 		GteSetRotMatrix(&X);
 		GteSetTransVector(&X);
-		*(uint32_t *)h = MODEL_Hexagon;
+		*(uint32_t *)h = us(MODEL_Hexagon);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -580,7 +580,7 @@ namespace reflect106
 		S.m[2][2] = scale;
 		MatMul56C220(&S, view);
 		GteSetRotMatrix(&S);
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = us(MODEL_Ring);
 		*(int32_t *)(h + 0xC) = fade;
 		h[0xA] = 0;
 		h[9] = 0;
@@ -683,7 +683,7 @@ namespace reflect106
 			int32_t angle = SharedRand();
 			for (int i = 0xC; i; i--)
 			{
-				BeamNode *bm = (BeamNode *)AppendByValue(*QBeams(), ORIG_BeamTask);
+				BeamNode *bm = (BeamNode *)AppendByValue(*QBeams(), us(ORIG_BeamTask));
 				if (!bm) continue;
 				bm->vy = 0;
 				bm->y = 0;
@@ -701,7 +701,7 @@ namespace reflect106
 			uint8_t *h = WallDraw(WallScroll(shl32(b->frame, 3)), WallHeight(e), WallFade(e), &b->view);
 			if ((uint32_t)e < 0x12 && (uint32_t)e % 6u == 0)
 			{
-				RingNode *g = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+				RingNode *g = (RingNode *)AddTaskToQueue(QRings(), us(ORIG_RingTask));
 				if (g)
 				{
 					FillDwords(&g->counter, 0, 4);
@@ -718,7 +718,7 @@ namespace reflect106
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(b->entity, pos);
-			BdPlaySE3D(SOUND_Reflect, 0x101, pos);
+			BdPlaySE3D(SOUND_Reflect(), 0x101, pos);
 		}
 		if (b->frame == 0x23) ApplyActionResultToTarget(Ctx()->actions[b->action].targets);
 		if (b->frame >= 0x28) return TASK_END;
@@ -730,7 +730,7 @@ namespace reflect106
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		BeamHeader() = h;
-		*(uint32_t *)h = SEQ_Beam;
+		*(uint32_t *)h = us(SEQ_Beam);
 		const uint8_t *seq = *(const uint8_t **)h;
 		*(uint16_t *)(h + 0x92) = 0;
 		*(uint16_t *)(h + 0x90) = 0;
@@ -775,12 +775,12 @@ namespace reflect106
 		FX_HELD(held_note_director();)
 		if (d->arena)
 		{
-			PacketCursor() = ARENA_0;
+			PacketCursor() = us(ARENA_0);
 			d->arena = 0;
 		}
 		else
 		{
-			PacketCursor() = ARENA_1;
+			PacketCursor() = us(ARENA_1);
 			d->arena = 1;
 		}
 		if (d->counter == 0)
@@ -789,7 +789,7 @@ namespace reflect106
 			if (d->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[d->action].targets[0]);
-				BarrierNode *pool = (BarrierNode *)POOL_Barriers;
+				BarrierNode *pool = (BarrierNode *)us(POOL_Barriers);
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
 					if ((*(const uint8_t *)&pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].frame <= 0x23)
@@ -800,7 +800,7 @@ namespace reflect106
 				if (busy) d->counter = 0;
 				else
 				{
-					BarrierNode *b = (BarrierNode *)AddTaskToQueue(QBarriers(), ORIG_BarrierTask);
+					BarrierNode *b = (BarrierNode *)AddTaskToQueue(QBarriers(), us(ORIG_BarrierTask));
 					FillDwords(&b->frame, 0, 0x14);
 					b->action = (int16_t)(uint16_t)d->action;
 					b->entity = entity;
@@ -813,7 +813,7 @@ namespace reflect106
 					int32_t angle = SharedRand();
 					for (int i = 8; i; i--)
 					{
-						HexagonNode *x = (HexagonNode *)AddTaskToQueue(QHexagons(), ORIG_HexagonTask);
+						HexagonNode *x = (HexagonNode *)AddTaskToQueue(QHexagons(), us(ORIG_HexagonTask));
 						if (!x) continue;
 						FillDwords(&x->counter, 0, 4);
 						x->parent = b;

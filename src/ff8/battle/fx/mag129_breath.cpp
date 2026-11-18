@@ -27,18 +27,18 @@ namespace breath129
 	using namespace magc;
 	using namespace icec;
 
-	inline Mat4x3 &BranchFrame() { return var<Mat4x3>(0x2521110); }
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2521130); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2521134); }
-	inline Mat4x3 &BranchRot() { return var<Mat4x3>(0x2521138); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x252115C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521160); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252117C); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2521180; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521190; }
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x25211A0; }
-	inline TaskQueue *QBranches() { return (TaskQueue *)0x25211B0; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25211C0; }
+	inline Mat4x3 &BranchFrame() { return var<Mat4x3>(us(0x2521110)); }
+	inline int32_t &FlashLevel() { return var<int32_t>(us(0x2521130)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2521134)); }
+	inline Mat4x3 &BranchRot() { return var<Mat4x3>(us(0x2521138)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x252115C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2521160)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x252117C)); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2521180); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2521190); }
+	inline TaskQueue *QArcs() { return (TaskQueue *)us(0x25211A0); }
+	inline TaskQueue *QBranches() { return (TaskQueue *)us(0x25211B0); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x25211C0); }
 
 	static const uint32_t ORIG_MasterTask = 0x6B4CB0;
 	static const uint32_t ORIG_MainTask = 0x6B5140;
@@ -50,40 +50,40 @@ namespace breath129
 	static const uint32_t MODEL_Mouth2 = 0x1226098;
 	static const uint32_t MODEL_Mouth3 = 0x122688C;
 	static const uint32_t MODEL_Target = 0x1225468;
-	static uint8_t *const MESH = (uint8_t *)0x12272DC;
-	static uint8_t *const BRANCH_VERTS = (uint8_t *)0x1228F04;
+	static uint8_t *MESH() { return (uint8_t *)us(0x12272DC); }
+	static uint8_t *BRANCH_VERTS() { return (uint8_t *)us(0x1228F04); }
 	static const uint32_t SEQ_Spark = 0x12238C0;
-	static const int16_t *const BRANCH_SCRIPT = (const int16_t *)0x1229A28;
+	static const int16_t *BRANCH_SCRIPT() { return (const int16_t *)us(0x1229A28); }
 	static const uint32_t ARC_STRIPS_CASTER = 0x1229318;
 	static const uint32_t ARC_FACES_CASTER = 0x1229338;
 	static const uint32_t ARC_STRIPS_TARGET = 0x12292F8;
-	static const void *const SOUND_Breath = (const void *)0x12292F4;
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1229F28;
-	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x122DEA8;
-	static const int16_t *const SWIRL_TABLE = (const int16_t *)0x122E0A8;
+	static const void *SOUND_Breath() { return (const void *)us(0x12292F4); }
+	static const uint8_t *DIST_TABLE() { return (const uint8_t *)us(0x1229F28); }
+	static const uint16_t *SQRT_TABLE() { return (const uint16_t *)us(0x122DEA8); }
+	static const int16_t *SWIRL_TABLE() { return (const int16_t *)us(0x122E0A8); }
 	static const uint32_t SEGS = 0x19C0;
 	static const uint32_t PROFILE = 0x35C0;
 	static const uint32_t HIT = 0x35E0;
 	static const uint32_t VERTS = 0x35F0;
 
-	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(dx, dz); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void GteReadOTZ4(void *dst) { fn<void (__cdecl *)(void *)>(0x45E250)(dst); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
+	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(dx, dz); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(us(0x704070))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void GteReadOTZ4(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E250))(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -246,7 +246,7 @@ namespace breath129
 		int32_t e = lz & ~1;
 		int32_t sh = (0x1F - e) >> 1;
 		int32_t idx = e - 0x18 > 0 ? shl32(v, e - 0x18) : v >> (0x18 - e);
-		return shl32(SQRT_TABLE[idx], sh);
+		return shl32(SQRT_TABLE()[idx], sh);
 	}
 
 	static void NormalizeDepth(uint8_t *model)
@@ -277,9 +277,9 @@ namespace breath129
 			GteStoreIR123(out);
 			const int32_t w = v[3];
 			const int32_t a = (w + phase) & 0xFFF;
-			const int32_t amp = (int32_t)SWIRL_TABLE[w & 0xFFE] >> 4;
-			out[1] = (int16_t)(out[1] - (int16_t)(mul32(SWIRL_TABLE[a * 2], amp) >> 12));
-			out[0] = (int16_t)(out[0] + (int16_t)(mul32(SWIRL_TABLE[a * 2 + 1], amp) >> 12));
+			const int32_t amp = (int32_t)SWIRL_TABLE()[w & 0xFFE] >> 4;
+			out[1] = (int16_t)(out[1] - (int16_t)(mul32(SWIRL_TABLE()[a * 2], amp) >> 12));
+			out[0] = (int16_t)(out[0] + (int16_t)(mul32(SWIRL_TABLE()[a * 2 + 1], amp) >> 12));
 			out += 4;
 			v += 4;
 		} while (--count);
@@ -384,7 +384,7 @@ namespace breath129
 		RotZ(angle1, &rz);
 		GteSetRotMatrix(&rz);
 		GteZeroTrans();
-		SwirlVertices(MESH, angle2, out);
+		SwirlVertices(MESH(), angle2, out);
 	}
 
 	static int32_t MeshDraw(uint8_t *h, const int16_t *pos, int16_t x, int16_t y, int16_t z, uint16_t scroll, Mat4x3 *frame, uint32_t verts)
@@ -411,7 +411,7 @@ namespace breath129
 		*(uint16_t *)(h + 0x1C) = 0x100;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0xE) = scroll;
-		*(uint8_t **)h = MESH;
+		*(uint8_t **)h = MESH();
 		*(uint32_t *)(h + 0x20) = verts;
 		PacketCursor() = RenderMesh(h, RenderOT(), 2, PacketCursor());
 		return length;
@@ -544,7 +544,7 @@ namespace breath129
 		int16_t decay = (int16_t)-(intensity >> 3);
 		BoltSeg *s = SegAlloc(script[0], (int16_t)width, intensity, decay);
 		if (!s) return;
-		BranchNode *b = (BranchNode *)AddTaskToQueue(QBranches(), ORIG_BranchTask);
+		BranchNode *b = (BranchNode *)AddTaskToQueue(QBranches(), us(ORIG_BranchTask));
 		if (!b) return;
 		Memset32(&b->count, 0, 5);
 		b->tail = s;
@@ -574,7 +574,7 @@ namespace breath129
 			int32_t adx = dx < 0 ? -dx : dx, ady = ndy < 0 ? -ndy : ndy;
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
-			int32_t len = DIST_TABLE[ady * 128 + adx];
+			int32_t len = DIST_TABLE()[ady * 128 + adx];
 			int32_t px, py;
 			if (prev_dir)
 			{
@@ -625,15 +625,15 @@ namespace breath129
 		{
 			GteSetRotMatrixCtrl(&BranchRot());
 			GteZeroTrans();
-			const int16_t *v = (const int16_t *)(BRANCH_VERTS + 8 + 8 * (int32_t)s->vertex);
+			const int16_t *v = (const int16_t *)(BRANCH_VERTS() + 8 + 8 * (int32_t)s->vertex);
 			int16_t w[4];
 			GteLoadV0(v);
 			GteMVMVA_RotV0Tr();
 			GteStoreIR123(w);
 			const int32_t a = (v[3] + phase) & 0xFFF;
-			const int32_t amp = (int16_t)(SWIRL_TABLE[v[3] & 0xFFE] >> 4);
-			w[1] = (int16_t)(w[1] - (int16_t)(mul32(SWIRL_TABLE[a * 2], amp) >> 12));
-			w[0] = (int16_t)(w[0] + (int16_t)(mul32(SWIRL_TABLE[a * 2 + 1], amp) >> 12));
+			const int32_t amp = (int16_t)(SWIRL_TABLE()[v[3] & 0xFFE] >> 4);
+			w[1] = (int16_t)(w[1] - (int16_t)(mul32(SWIRL_TABLE()[a * 2], amp) >> 12));
+			w[0] = (int16_t)(w[0] + (int16_t)(mul32(SWIRL_TABLE()[a * 2 + 1], amp) >> 12));
 			GteSetRotMatrixCtrl(&BranchFrame());
 			GteSetTransVectorCtrl(&BranchFrame());
 			GteLoadV0(w);
@@ -681,7 +681,7 @@ namespace breath129
 				((uint8_t *)p)[7] = 0x3E;
 				p[10] = cb;
 				p[7] = cb;
-				InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 0x44 + 4 * ((b->otz + a->otz) >> 5), p);
+				InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 0x44 + 4 * ((b->otz + a->otz) >> 5), p);
 			}
 			a = b;
 		}
@@ -887,7 +887,7 @@ namespace breath129
 			((uint8_t *)p)[7] = 0x3E;
 			p[10] = cb;
 			p[7] = cb;
-			InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + 0x44 + 4 * ((b->otz + a->otz) >> 4), p);
+			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 0x44 + 4 * ((b->otz + a->otz) >> 4), p);
 		}
 	}
 
@@ -989,7 +989,7 @@ namespace breath129
 
 	static void SpawnArc(uint8_t **bones, const int16_t *strips, const uint8_t *faces, uint8_t reach_shift, uint8_t fade_shift, int16_t speed)
 	{
-		ArcNode *arc = (ArcNode *)AddTaskToQueue(QArcs(), ORIG_ArcTask);
+		ArcNode *arc = (ArcNode *)AddTaskToQueue(QArcs(), us(ORIG_ArcTask));
 		if (!arc) return;
 		arc->reach_shift = reach_shift;
 		arc->fade_shift = fade_shift;
@@ -1188,7 +1188,7 @@ namespace breath129
 			const int32_t e = lz & ~1;
 			const int32_t sh = (0x1F - e) >> 1;
 			const int32_t idx = e - 0x18 > 0 ? shl32(sum, e - 0x18) : sum >> (0x18 - e);
-			int32_t diff = (shl32(SQRT_TABLE[idx], sh) >> 12) - len;
+			int32_t diff = (shl32(SQRT_TABLE()[idx], sh) >> 12) - len;
 			if (diff < 0) diff = -diff;
 			if ((int16_t)best > diff)
 			{
@@ -1237,7 +1237,7 @@ namespace breath129
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		*(uint16_t *)(h + 4) = p->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1269,7 +1269,7 @@ namespace breath129
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter <= 8 && !(t->counter & 1))
 		{
-			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+			SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SpriteTask));
 			if (p)
 			{
 				const int32_t r = CrtRand();
@@ -1280,7 +1280,7 @@ namespace breath129
 		}
 		if (t->counter == 0x10) ApplyActionResultToTarget(Ctx()->actions[0].targets + 24 * t->action);
 		if (t->counter >= 0xC && !(t->counter & 3))
-			SpawnArc(*(uint8_t ***)(entity + 0x64), (const int16_t *)(ARC_STRIPS_TARGET + 8 * ((t->counter - 0xC) >> 2)), t->faces, 0xC, 5, 0x800);
+			SpawnArc(*(uint8_t ***)(entity + 0x64), (const int16_t *)(us(ARC_STRIPS_TARGET) + 8 * ((t->counter - 0xC) >> 2)), t->faces, 0xC, 5, 0x800);
 		t->counter++;
 		return t->counter < 0x18 ? 0 : TASK_END;
 	}
@@ -1295,7 +1295,7 @@ namespace breath129
 			else { const int32_t v = shl32(0x49 - c, 9); if (v > FlashLevel()) FlashLevel() = v; }
 		}
 		if (m->counter < 0x14 && !(m->counter & 1))
-			SpawnArc(*(uint8_t ***)(Caster() + 0x64), (const int16_t *)(ARC_STRIPS_CASTER + 8 * ((m->counter >> 1) & 3)), (const uint8_t *)ARC_FACES_CASTER, 0xC, 7, 0x100);
+			SpawnArc(*(uint8_t ***)(Caster() + 0x64), (const int16_t *)(us(ARC_STRIPS_CASTER) + 8 * ((m->counter >> 1) & 3)), (const uint8_t *)us(ARC_FACES_CASTER), 0xC, 7, 0x100);
 		GetEffectSpawnPosition(Caster(), 9, 0x2000, m->pos);
 		if (*Caster() & 2) g_branch_slot = 0x43300000;
 		const int32_t c1c = m->counter - 0x1C;
@@ -1318,7 +1318,7 @@ namespace breath129
 			if (prim::play((prim::Layout *)m->mouth2, PrimCallback, (int)&a1, 0) == 0)
 			{
 				FX_HELD(held_note_restart((prim::Layout *)m->mouth2);)
-				DecodeModelPrimLayout(MODEL_Mouth2, m->mouth2, 0x68);
+				DecodeModelPrimLayout(us(MODEL_Mouth2), m->mouth2, 0x68);
 			}
 			if (c1c <= 0x20)
 			{
@@ -1351,7 +1351,7 @@ namespace breath129
 				m->walk = (int16_t)(m->walk + m->step);
 				if (m->walk >= 0x1000)
 				{
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 					if (t)
 					{
 						t->counter = 0;
@@ -1364,7 +1364,7 @@ namespace breath129
 						SampleFaces(e + 0x60, t->faces, 4);
 						HitEntity(HitCount()) = e;
 						HitCount()++;
-						DecodeModelPrimLayout(MODEL_Target, t->layout, 0x110);
+						DecodeModelPrimLayout(us(MODEL_Target), t->layout, 0x110);
 					}
 					m->walk = (int16_t)(m->walk - 0x1000);
 					m->cur = m->next;
@@ -1375,17 +1375,17 @@ namespace breath129
 			MeshFade(h, c1e);
 			const uint8_t c8 = (uint8_t)c1e;
 			m->length = MeshDraw(h, m->pos, x, y, z, (uint16_t)((c8 & 7) << 4), &BranchFrame(), Verts());
-			if (*(const int32_t *)(MESH + *(const uint32_t *)MESH + 0x1C) > 0) g_branch_slot = 0;
+			if (*(const int32_t *)(MESH() + *(const uint32_t *)MESH() + 0x1C) > 0) g_branch_slot = 0;
 			FieldFree(0x5C);
 			if (!(c8 & 1))
 			{
 				const int32_t r = CrtRand();
-				SpawnBranchAt(BRANCH_SCRIPT, (r * (int32_t)BRANCH_SCRIPT[0]) >> 15);
+				SpawnBranchAt(BRANCH_SCRIPT(), (r * (int32_t)BRANCH_SCRIPT()[0]) >> 15);
 			}
 		}
 		RotZ((int16_t)-m->angle1, &BranchRot());
 		const int left = ExecuteTaskQueue(QBranches());
-		if (m->counter == 0) BdPlaySE(SOUND_Breath, 0, 0x80);
+		if (m->counter == 0) BdPlaySE(SOUND_Breath(), 0, 0x80);
 		m->angle1 = (int16_t)(m->angle1 - 100);
 		m->angle2 = (int16_t)(m->angle2 + 200);
 		if (m->counter >= 0x49 && left == 0) return TASK_END;
@@ -1419,11 +1419,11 @@ namespace breath129
 			Memset32(TexBase() + SEGS, 0, 0x700);
 			for (int i = 0; i < 0x100; i++) Segs()[i].vertex = -1;
 			for (int i = 0; i < 16; i++) Profile()[i] = (int16_t)ComputeSin(Div15(shl32(i, 11)));
-			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&mn->counter, 0, 0xC9);
-			DecodeModelPrimLayout(MODEL_Mouth1, mn->mouth1, 0x108);
-			DecodeModelPrimLayout(MODEL_Mouth2, mn->mouth2, 0x68);
-			DecodeModelPrimLayout(MODEL_Mouth3, mn->mouth3, 0x188);
+			DecodeModelPrimLayout(us(MODEL_Mouth1), mn->mouth1, 0x108);
+			DecodeModelPrimLayout(us(MODEL_Mouth2), mn->mouth2, 0x68);
+			DecodeModelPrimLayout(us(MODEL_Mouth3), mn->mouth3, 0x188);
 			mn->count = (int16_t)Ctx()->actions[0].target_count;
 			for (int i = 0; i < mn->count; i++)
 			{
@@ -1447,8 +1447,8 @@ namespace breath129
 				const int32_t hi = (int32_t)(((int64_t)x * 0x3E0F83E1) >> 32) >> 3;
 				mn->step = (int16_t)(hi + (int32_t)((uint32_t)hi >> 31));
 			}
-			NormalizeDepth(MESH);
-			NormalizeDepth(BRANCH_VERTS);
+			NormalizeDepth(MESH());
+			NormalizeDepth(BRANCH_VERTS());
 			HitCount() = 0;
 			HitEntity(2) = nullptr;
 			HitEntity(1) = nullptr;

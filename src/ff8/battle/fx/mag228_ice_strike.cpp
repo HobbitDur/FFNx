@@ -43,26 +43,26 @@ namespace icestrike228
 	{
 		c.name = "228 Ice Strike";
 		c.effect_id = 228;
-		c.vm_table = 0x186B8FC;
-		c.bone_table = 0x186B56C;
-		c.prim_table = 0x186B5B4;
-		c.prim_size = 0x186B6A4;
-		c.spr_table = 0x186B6B8;
-		c.ptype_table = 0x186B6E4;
-		c.pop_table = 0x186B6F8;
-		c.draw_table = 0x186B758;
-		c.attr_16A = 0x186B8C2;
-		c.attr_184 = 0x186B8DC;
-		c.attr_186 = 0x186B8DE;
-		c.attr_194 = 0x186B8EC;
-		c.attr_19C = 0x186B8F4;
-		c.desc = 0x186B438;
-		c.ptr_block = 0x186B544;
-		c.queue = 0x2796B38;
-		c.file00 = 0x2796B4C;
-		c.file01 = 0x2796B48;
-		c.tick = 0xA85C30;
-		c.load_cb = 0xA8B230;
+		c.vm_table = us(0x186B8FC);
+		c.bone_table = us(0x186B56C);
+		c.prim_table = us(0x186B5B4);
+		c.prim_size = us(0x186B6A4);
+		c.spr_table = us(0x186B6B8);
+		c.ptype_table = us(0x186B6E4);
+		c.pop_table = us(0x186B6F8);
+		c.draw_table = us(0x186B758);
+		c.attr_16A = us(0x186B8C2);
+		c.attr_184 = us(0x186B8DC);
+		c.attr_186 = us(0x186B8DE);
+		c.attr_194 = us(0x186B8EC);
+		c.attr_19C = us(0x186B8F4);
+		c.desc = us(0x186B438);
+		c.ptr_block = us(0x186B544);
+		c.queue = us(0x2796B38);
+		c.file00 = us(0x2796B4C);
+		c.file01 = us(0x2796B48);
+		c.tick = us(0xA85C30);
+		c.load_cb = us(0xA8B230);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -71,24 +71,24 @@ namespace icestrike228
 	static const uint32_t EFFECT_LIGHT = 0x1D99AB0;
 
 	template<typename F> static inline F fx(uint32_t a) { return (F)a; }
-	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, void *, uint32_t)>(0x5022C0)(ent, out, data); }
-	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, int32_t)>(0x505C00)(ent, id); }
+	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
+	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
-	static inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(0xB8B7F0 + 4 * i); }
-	static inline uint16_t &Word1D977A0() { return MEM<uint16_t>(0x1D977A0); }
-	static inline uint16_t &Word1D977A2() { return MEM<uint16_t>(0x1D977A2); }
-	static inline uint16_t &Word1D9771C() { return MEM<uint16_t>(0x1D9771C); }
+	static inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(us(0xB8B7F0) + 4 * i); }
+	static inline uint16_t &Word1D977A0() { return MEM<uint16_t>(us(0x1D977A0)); }
+	static inline uint16_t &Word1D977A2() { return MEM<uint16_t>(us(0x1D977A2)); }
+	static inline uint16_t &Word1D9771C() { return MEM<uint16_t>(us(0x1D9771C)); }
 
 	static void __cdecl op_0AB_BindLimitAnimSet()
 	{
 		uint8_t *ent = SlotEntity();
 		uint8_t *blk = blob::ArenaAlloc(0x20);
-		xl_BindEntityModelFromComData(ent, blk, COMDATA);
+		xl_BindEntityModelFromComData(ent, blk, us(COMDATA));
 		xl_QueueChainTransformation(ent, S16(STREAM(), 2));
 		STREAM() += 4;
 	}
@@ -163,12 +163,12 @@ namespace icestrike228
 		}
 		case 4:
 		{
-			FX_HELD(guard((void *)EFFECT_LIGHT, 0x20);)
-			blob::CopyMatrix((void *)EFFECT_LIGHT, BBMAT());
+			FX_HELD(guard((void *)us(EFFECT_LIGHT), 0x20);)
+			blob::CopyMatrix((void *)us(EFFECT_LIGHT), BBMAT());
 			uint8_t *b = CUR();
-			MEM<int32_t>(EFFECT_LIGHT + 0x14) = S16(b, 0x94);
-			MEM<int32_t>(EFFECT_LIGHT + 0x18) = S16(b, 0x96);
-			MEM<int32_t>(EFFECT_LIGHT + 0x1C) = S16(b, 0x98);
+			MEM<int32_t>(us(EFFECT_LIGHT) + 0x14) = S16(b, 0x94);
+			MEM<int32_t>(us(EFFECT_LIGHT) + 0x18) = S16(b, 0x96);
+			MEM<int32_t>(us(EFFECT_LIGHT) + 0x1C) = S16(b, 0x98);
 			break;
 		}
 		case 5:

@@ -34,18 +34,18 @@ namespace moon88
 	static const uint32_t FLASH_PAUSE = 0x25ACD34;
 	static const uint32_t CREATURE_ARG = 0x25AB8B8;
 	static const uint32_t STAGE_LIGHT = 0x1D98992;
-	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
+	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
 	static inline void b3_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void b103_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
 	namespace gx
 	{
-		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5022C0)(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(a1, a2); }
-		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(0x50A730)(); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
+		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
+		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(us(0x50A730))(); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -343,7 +343,7 @@ namespace moon88
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -503,9 +503,9 @@ namespace moon88
 		g_mod = &MOD_088;
 		FX_HELD(held_note_master();)
 
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
-		MEM<uint32_t>(G(G_258FB68)) = 0x2793E58;
-		MEM<uint32_t>(G(G_257F9B0)) = 0x2793E58;
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		MEM<uint32_t>(G(G_258FB68)) = us(0x2793E58);
+		MEM<uint32_t>(G(G_257F9B0)) = us(0x2793E58);
 		uint32_t states[11] = {
 			F(F_73A0D0), F(F_73A0E0), F(F_73A0F0), F(F_73A170), F(F_747500), F(F_747540),
 			F(F_747550), F(F_747560), F(F_747590), F(F_7475A0), F(F_7475C0),
@@ -548,12 +548,12 @@ namespace moon88
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(0x25ACD38);
-		MEM<uint32_t>(0x25AC6DC) = p;
+		uint32_t p = MEM<uint32_t>(us(0x25ACD38));
+		MEM<uint32_t>(us(0x25AC6DC)) = p;
 		p += 0x870;
-		MEM<uint32_t>(0x25ACD30) = p;
+		MEM<uint32_t>(us(0x25ACD30)) = p;
 		p += 0xB7C0;
-		MEM<uint32_t>(0x25ACD38) = p;
+		MEM<uint32_t>(us(0x25ACD38)) = p;
 		im_768880();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -561,12 +561,12 @@ namespace moon88
 
 	uint32_t __cdecl im_768880()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25AC6DC), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25ACD30), 0xB7C0);
-		MEM<uint16_t>(0x25A6BB8) = 0;
-		MEM<uint16_t>(0x25AC6E8) = 0;
-		MEM<uint16_t>(0x25AC3A4) = 0;
-		MEM<uint16_t>(0x25A4DA0) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25AC6DC)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25ACD30)), 0xB7C0);
+		MEM<uint16_t>(us(0x25A6BB8)) = 0;
+		MEM<uint16_t>(us(0x25AC6E8)) = 0;
+		MEM<uint16_t>(us(0x25AC3A4)) = 0;
+		MEM<uint16_t>(us(0x25A4DA0)) = 0;
 		return 0;
 	}
 
@@ -574,26 +574,26 @@ namespace moon88
 	{
 		im_768E20(a1);
 		im_7689C0();
-		x::Effect_AddTaskAndInitFromCtx(0x25ACCF8, 0x768AC0, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25A4E80, 0x768ED0, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25ACCF8), us(0x768AC0), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25A4E80), us(0x768ED0), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl im_7689C0()
 	{
-		MEM<uint32_t>(0x25AB8B0) = 0x154F898;
-		MEM<uint32_t>(0x25AC3A8) = 0x25ACD40;
-		x::MAG_007_sub_8DCC00(0x25ACD40, 0x16C);
-		const uint32_t m = MEM<uint32_t>(0x25AC3A8);
-		const uint32_t cur = MEM<uint32_t>(0x25ACD38);
+		MEM<uint32_t>(us(0x25AB8B0)) = us(0x154F898);
+		MEM<uint32_t>(us(0x25AC3A8)) = us(0x25ACD40);
+		x::MAG_007_sub_8DCC00(us(0x25ACD40), 0x16C);
+		const uint32_t m = MEM<uint32_t>(us(0x25AC3A8));
+		const uint32_t cur = MEM<uint32_t>(us(0x25ACD38));
 		U32(m, 0x100) = cur;
-		MEM<uint32_t>(0x25ACD38) = cur + 0xA000;
+		MEM<uint32_t>(us(0x25ACD38)) = cur + 0xA000;
 		for (uint32_t o = 0x104; o <= 0x160; o += 4)
-			U32(m, o) = 0x19ED018;
-		U32(m, 0x128) = 0x19F3A8C;
-		U32(m, 0x144) = 0x19EF0BC;
-		U32(m, 0x148) = 0x19F1B5C;
+			U32(m, o) = us(0x19ED018);
+		U32(m, 0x128) = us(0x19F3A8C);
+		U32(m, 0x144) = us(0x19EF0BC);
+		U32(m, 0x148) = us(0x19F1B5C);
 		U16(m, 0x164) = 0;
 		U16(m, 0x166) = 0;
 		return 0;
@@ -601,8 +601,8 @@ namespace moon88
 
 	uint32_t __cdecl im_768E20(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		const uint32_t t = ENT(U8(a1, 0x2D)), c = ENT(U8(a1, 0x2C));
 		U32(d, 8) = U32(t, 0x1C);
 		U32(d, 0xC) = U32(t, 0x20);
@@ -611,7 +611,7 @@ namespace moon88
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		const uint32_t d2 = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d2 = MEM<uint32_t>(us(DIR_PTR));
 		U16(d2, 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		U16(d2, 0x4E) = U16(ENT(U8(a1, 0x2D)), 0x26);
 		return 0;
@@ -620,9 +620,9 @@ namespace moon88
 	uint32_t __cdecl im_768ED0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t states[15] = { 0x768FE0, 0x769C70, 0x769CF0, 0x769D50, 0x769D70, 0x769D90,
-			0x769E10, 0x769E40, 0x769ED0, 0x769EF0, 0x769F20, 0x769F80, 0x769FA0, 0x769FC0,
-			0x769FE0 };
+		const uint32_t states[15] = { us(0x768FE0), us(0x769C70), us(0x769CF0), us(0x769D50), us(0x769D70), us(0x769D90),
+			us(0x769E10), us(0x769E40), us(0x769ED0), us(0x769EF0), us(0x769F20), us(0x769F80), us(0x769FA0), us(0x769FC0),
+			us(0x769FE0) };
 		im_768F90(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -653,10 +653,10 @@ namespace moon88
 
 	uint32_t __cdecl im_768FE0(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(0x16F3000);
-		x::Battle_QueueTIMUpload_GetEOF(0x16FB420);
+		x::Battle_QueueTIMUpload_GetEOF(us(0x16F3000));
+		x::Battle_QueueTIMUpload_GetEOF(us(0x16FB420));
 		gx::BS_Camera_ArmReturnAfterEffect();
-		x::Effect_AddTaskAndInitFromCtx(0x25A4F88, 0x769060, 0x90, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25A4F88), us(0x769060), 0x90, a1);
 		if (a_73B640(1) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -666,7 +666,7 @@ namespace moon88
 	{
 		if (a_73AE10() == 1)
 		{
-			a_73AB20(script, MEM<uint32_t>(DIR_PTR), 0);
+			a_73AB20(script, MEM<uint32_t>(us(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 	}
@@ -683,36 +683,36 @@ namespace moon88
 		a_73AE10();
 		if (a_73AAE0(1) != 0)
 		{
-			a_73AB20(0x1555D60, MEM<uint32_t>(DIR_PTR), 0);
+			a_73AB20(us(0x1555D60), MEM<uint32_t>(us(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
 	}
 
-	uint32_t __cdecl im_769950(uint32_t a1) { im_cam_chain(a1, 0x1555DA8); return 0; }
+	uint32_t __cdecl im_769950(uint32_t a1) { im_cam_chain(a1, us(0x1555DA8)); return 0; }
 
 	uint32_t __cdecl im_769980(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
 		{
 			const uint32_t r = x::CrtRand();
-			a_73AB20((r & 1) ? 0x1555DF0 : 0x1555E38, MEM<uint32_t>(DIR_PTR), 0);
+			a_73AB20((r & 1) ? us(0x1555DF0) : us(0x1555E38), MEM<uint32_t>(us(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
 	}
 
-	uint32_t __cdecl im_7699C0(uint32_t a1) { im_cam_chain(a1, 0x1555E80); return 0; }
+	uint32_t __cdecl im_7699C0(uint32_t a1) { im_cam_chain(a1, us(0x1555E80)); return 0; }
 
-	uint32_t __cdecl im_7699F0(uint32_t a1) { im_cam_chain(a1, 0x1555EC8); return 0; }
+	uint32_t __cdecl im_7699F0(uint32_t a1) { im_cam_chain(a1, us(0x1555EC8)); return 0; }
 
 	uint32_t __cdecl im_769A20(uint32_t a1)
 	{
 		a_73AE10();
 		uint32_t r = a_73AAE0(3);
 		if (r == 0) return 0;
-		uint32_t blk = U32(0x154ECE0, 0);
-		a_73AB20(0x1555F10, blk, 0);
+		uint32_t blk = U32(us(0x154ECE0), 0);
+		a_73AB20(us(0x1555F10), blk, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -724,7 +724,7 @@ namespace moon88
 		if (a_73AAE0(4) != 0)
 		{
 			im_769A90(P(pt));
-			a_73AB20(0x1555F58, P(pt), 0);
+			a_73AB20(us(0x1555F58), P(pt), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -734,7 +734,7 @@ namespace moon88
 	{
 		uint32_t count = 0;
 		int16_t max_z = 0, min_z = 0, max_x = 0, min_x = 0;
-		for (uint32_t e = 0x1D972E0; e < 0x1D974B4; e += 0x9C)
+		for (uint32_t e = us(0x1D972E0); e < us(0x1D974B4); e += 0x9C)
 		{
 			if (!(U8(e, -0x20) & 2))
 				continue;
@@ -770,7 +770,7 @@ namespace moon88
 		if (a_73AE10() == 1)
 		{
 			im_769A90(P(pt));
-			a_73AB20(0x1555FA0, P(pt), 0);
+			a_73AB20(us(0x1555FA0), P(pt), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -781,15 +781,15 @@ namespace moon88
 		a_73AE10();
 		if (a_73AAE0(5) != 0)
 		{
-			a_73AB20(0x1555FE8, MEM<uint32_t>(DIR_PTR), 0);
+			a_73AB20(us(0x1555FE8), MEM<uint32_t>(us(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
 	}
 
-	uint32_t __cdecl im_769B90(uint32_t a1) { im_cam_chain(a1, 0x1556030); return 0; }
+	uint32_t __cdecl im_769B90(uint32_t a1) { im_cam_chain(a1, us(0x1556030)); return 0; }
 
-	uint32_t __cdecl im_769BC0(uint32_t a1) { im_cam_chain(a1, 0x1556078); return 0; }
+	uint32_t __cdecl im_769BC0(uint32_t a1) { im_cam_chain(a1, us(0x1556078)); return 0; }
 
 	uint32_t __cdecl im_769C10(uint32_t a1)
 	{
@@ -822,8 +822,8 @@ namespace moon88
 
 	uint32_t __cdecl im_769DD0(void)
 	{
-		uint32_t save = MEM<uint32_t>(0x154ECE0) + 0x20;
-		for (uint32_t e = 0x1D972C0; e < 0x1D97494; e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(us(0x154ECE0)) + 0x20;
+		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -837,7 +837,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769E10(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0x15 && a_73B640(4) != 0)
+		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x15 && a_73B640(4) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -855,8 +855,8 @@ namespace moon88
 
 	uint32_t __cdecl im_769E90(void)
 	{
-		uint32_t save = MEM<uint32_t>(0x154ECE0) + 0x20;
-		for (uint32_t e = 0x1D972C0; e < 0x1D97494; e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(us(0x154ECE0)) + 0x20;
+		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -870,7 +870,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769ED0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		if (S16(d, 0x46) >= 0x23)
 		{
 			U16(d, 0x48) = 1;
@@ -881,7 +881,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769EF0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0x34 && a_73B640(5) != 0)
+		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x34 && a_73B640(5) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -897,7 +897,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769F80(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0x14)
+		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x14)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -923,32 +923,32 @@ namespace moon88
 
 	uint32_t __cdecl im_76A000(uint32_t a1)
 	{
-		const int32_t phase = S16(MEM<uint32_t>(DIR_PTR), 0x40);
+		const int32_t phase = S16(MEM<uint32_t>(us(DIR_PTR)), 0x40);
 		if (phase == 1)
 		{
-			im_7714D0(a1, 0x771DB0, 0x154F91C, 3);
-			im_7714D0(a1, 0x7718D0, 0x155563C, 3);
+			im_7714D0(a1, us(0x771DB0), us(0x154F91C), 3);
+			im_7714D0(a1, us(0x7718D0), us(0x155563C), 3);
 		}
 		else if (phase == 3)
 		{
 			for (uint32_t i = 0; i < 3; i++)
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25A6BC0, 0x771660, 0x9C, a1);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25A6BC0), us(0x771660), 0x9C, a1);
 				U16(t, 0x98) = (uint16_t)i;
 			}
 		}
 		else if (phase == 4)
 		{
-			a_73C100(a1, 0x76C700, U32(MEM<uint32_t>(0x25AC3A8), 0x104), 8, 0xF, 1);
-			im_76A130(a1, 0x76A180, U32(MEM<uint32_t>(0x25AC3A8), 0x128), 0x3C4, 1, 0);
-			x::Effect_AddTaskAndInitFromCtx(0x25A4F88, 0x771510, 0x90, a1);
+			a_73C100(a1, us(0x76C700), U32(MEM<uint32_t>(us(0x25AC3A8)), 0x104), 8, 0xF, 1);
+			im_76A130(a1, us(0x76A180), U32(MEM<uint32_t>(us(0x25AC3A8)), 0x128), 0x3C4, 1, 0);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25A4F88), us(0x771510), 0x90, a1);
 		}
 		return 0;
 	}
 
 	uint32_t __cdecl im_76A130(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25AA9F0, a2, 0x474, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AA9F0), a2, 0x474, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -960,9 +960,9 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x76A1F0;
-		states[1] = 0x76C6B0;
-		states[2] = 0x76C6F0;
+		states[0] = us(0x76A1F0);
+		states[1] = us(0x76C6B0);
+		states[2] = us(0x76C6F0);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x8E) = (uint16_t)((uint8_t)(U8(node, 0x8E) - 2) & 0x7F);
@@ -1096,7 +1096,7 @@ namespace moon88
 			U16(hdr, 0x2A) = 0x100;
 			U16(hdr, 0x28) = 0x100;
 		}
-		MEM<uint32_t>(0x1D8E054) = im_76A650(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = im_76A650(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1840,7 +1840,7 @@ namespace moon88
 
 	uint32_t __cdecl im_76C940(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25ACD3C);
+		const uint32_t arena = MEM<uint32_t>(us(0x25ACD3C));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1857,7 +1857,7 @@ namespace moon88
 
 	uint32_t __cdecl im_76CBC0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25ACD3C);
+		const uint32_t arena = MEM<uint32_t>(us(0x25ACD3C));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1880,7 +1880,7 @@ namespace moon88
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x25ACD3C, 0) = sys;
+		U32(us(0x25ACD3C), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1893,7 +1893,7 @@ namespace moon88
 			FX_HELD(held_note_system(sys);)
 			im_76E980();
 			im_76D300();
-			sys = U32(0x25ACD3C, 0);
+			sys = U32(us(0x25ACD3C), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1906,19 +1906,19 @@ namespace moon88
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x25ACCF0, 0) = (uint16_t)(U16(0x25ACCF0, 0) + c14);
-		U16(0x25AC6D8, 0) = (uint16_t)(U16(0x25AC6D8, 0) + c16);
+		U16(us(0x25ACCF0), 0) = (uint16_t)(U16(us(0x25ACCF0), 0) + c14);
+		U16(us(0x25AC6D8), 0) = (uint16_t)(U16(us(0x25AC6D8), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl im_76D300(void)
 	{
-		uint32_t act = U32(U32(0x25ACD3C, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x25ACD3C), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x25ACD3C, 0);
+				uint32_t sys = U32(us(0x25ACD3C), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1932,10 +1932,10 @@ namespace moon88
 
 	uint32_t __cdecl im_76D360(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -1955,9 +1955,9 @@ namespace moon88
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+			MEM<uint32_t>(us(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -1972,17 +1972,17 @@ namespace moon88
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x58;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(us(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -2487,14 +2487,14 @@ namespace moon88
 
 	uint32_t __cdecl im_76E980(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x25ACD3C), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(us(0x25ACD3C)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x25ACD3C);
+				uint32_t st = MEM<uint32_t>(us(0x25ACD3C));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -2529,26 +2529,26 @@ namespace moon88
 	uint32_t __cdecl im_76EA40(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl im_76EAC0(void)
 	{
-		uint32_t act = U32(U32(0x25ACD3C, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x25ACD3C), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2564,7 +2564,7 @@ namespace moon88
 	uint32_t __cdecl im_76EB00(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x25ACD3C);
+		uint32_t st = MEM<uint32_t>(us(0x25ACD3C));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -2585,7 +2585,7 @@ namespace moon88
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x25ACD3C);
+			st = MEM<uint32_t>(us(0x25ACD3C));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2597,7 +2597,7 @@ namespace moon88
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x25ACD3C, 0);
+		uint32_t st = U32(us(0x25ACD3C), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2680,8 +2680,8 @@ namespace moon88
 
 	uint32_t __cdecl im_76FCF0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25AC6DC);
-		int32_t idx = MEM<int16_t>(0x25A6BB8);
+		const uint32_t pool = MEM<uint32_t>(us(0x25AC6DC));
+		int32_t idx = MEM<int16_t>(us(0x25A6BB8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -2691,7 +2691,7 @@ namespace moon88
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -2706,9 +2706,9 @@ namespace moon88
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(0x25A6BB8) = (uint16_t)idx;
+			MEM<uint16_t>(us(0x25A6BB8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x25A6BB8) = 0;
+			MEM<uint16_t>(us(0x25A6BB8)) = 0;
 		return slot;
 	}
 
@@ -2721,9 +2721,9 @@ namespace moon88
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(0x770740, a1);
+			callp(us(0x770740), a1);
 		else if (mode == 4)
-			callp(0x770890, a1);
+			callp(us(0x770890), a1);
 		im_76FE10(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2732,7 +2732,7 @@ namespace moon88
 
 	uint32_t __cdecl im_76FE10(uint32_t a1)
 	{
-		uint32_t sys = U32(0x25ACD3C, 0);
+		uint32_t sys = U32(us(0x25ACD3C), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2759,9 +2759,9 @@ namespace moon88
 
 	uint32_t __cdecl im_76FE90(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(0x25ACD0C, 0) - 0x50;
+		uint32_t sp = U32(us(0x25ACD0C), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x25ACD0C, 0) = sp;
+		U32(us(0x25ACD0C), 0) = sp;
 		uint32_t node = im_770670(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2771,7 +2771,7 @@ namespace moon88
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x25ACD3C, 0);
+			uint32_t ctx = U32(us(0x25ACD3C), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2939,14 +2939,14 @@ namespace moon88
 			}
 		}
 		im_771380(node, desc);
-		U32(0x25ACD0C, 0) = U32(0x25ACD0C, 0) + 0x50;
+		U32(us(0x25ACD0C), 0) = U32(us(0x25ACD0C), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl im_770670(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25ACD30);
-		int32_t i = MEM<int16_t>(0x25AC6E8);
+		const uint32_t pool = MEM<uint32_t>(us(0x25ACD30));
+		int32_t i = MEM<int16_t>(us(0x25AC6E8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2959,7 +2959,7 @@ namespace moon88
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2976,16 +2976,16 @@ namespace moon88
 		}
 		i++;
 		if (i >= 0x45)
-			MEM<uint16_t>(0x25AC6E8) = 0;
+			MEM<uint16_t>(us(0x25AC6E8)) = 0;
 		else
-			MEM<uint16_t>(0x25AC6E8) = (uint16_t)i;
+			MEM<uint16_t>(us(0x25AC6E8)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl im_770890(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(0x25ACD3C, 0);
+		const uint32_t st = U32(us(0x25ACD3C), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -3045,7 +3045,7 @@ namespace moon88
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(0x25ACD3C, 0);
+				uint32_t g = U32(us(0x25ACD3C), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -3055,7 +3055,7 @@ namespace moon88
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(0x25ACD3C, 0);
+				uint32_t g = U32(us(0x25ACD3C), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3130,7 +3130,7 @@ namespace moon88
 
 	uint32_t __cdecl im_771410(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x25ACD3C);
+		uint32_t dir = MEM<uint32_t>(us(0x25ACD3C));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3155,14 +3155,14 @@ namespace moon88
 				do
 				{
 					im_76FCF0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x25ACD3C);
+					dir = MEM<uint32_t>(us(0x25ACD3C));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				im_76FCF0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x25ACD3C);
+				dir = MEM<uint32_t>(us(0x25ACD3C));
 			}
 		}
 		return 0;
@@ -3181,7 +3181,7 @@ namespace moon88
 
 	uint32_t __cdecl im_7714D0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25AC6C8, a2, 0x160, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AC6C8), a2, 0x160, a1);
 		x::Effect_BindModelContainerSetAnim(t, a3, a4);
 		return t;
 	}
@@ -3196,7 +3196,7 @@ namespace moon88
 		}
 		const uint16_t v = U16(a1, 0x1C);
 		for (uint32_t k = 0; k < 4; k++)
-			MEM<uint16_t>(STAGE_LIGHT + k * 0x2C) = v;
+			MEM<uint16_t>(us(STAGE_LIGHT) + k * 0x2C) = v;
 		return 0;
 	}
 
@@ -3218,7 +3218,7 @@ namespace moon88
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -3226,7 +3226,7 @@ namespace moon88
 
 	uint32_t __cdecl im_771660(uint32_t a1)
 	{
-		const uint32_t states[3] = { 0x7717A0, 0x771880, 0x7718C0 };
+		const uint32_t states[3] = { us(0x7717A0), us(0x771880), us(0x7718C0) };
 		callp(states[S8(a1, 0x29)], a1);
 		im_7716C0(a1);
 		return task_end(a1);
@@ -3262,7 +3262,7 @@ namespace moon88
 		U16(hdr, 0x28) = 0x100;
 		U32(hdr, 0x14) = 0xF0;
 		FX_HELD(held_note_draw(HK_MOON, a1);)
-		MEM<uint32_t>(PACKET_CURSOR) = im_76A650(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = im_76A650(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3273,23 +3273,23 @@ namespace moon88
 		{
 		case 0:
 			U16(a1, 0x52) = 0x800;
-			U32(a1, 0x4C) = U32(MEM<uint32_t>(0x25AC3A8), 0x148);
-			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(0x154F918), 0xE0) << 1);
+			U32(a1, 0x4C) = U32(MEM<uint32_t>(us(0x25AC3A8)), 0x148);
+			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(us(0x154F918)), 0xE0) << 1);
 			break;
 		case 1:
-			U32(a1, 0x4C) = 0x154EF74;
+			U32(a1, 0x4C) = us(0x154EF74);
 			U16(a1, 0x52) = 0x700;
 			U16(a1, 0x1C) = 0x60;
 			U16(a1, 0x1E) = 0xFFA0;
-			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(0x154F918), 0xE0) << 1);
+			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(us(0x154F918)), 0xE0) << 1);
 			U16(a1, 0x7C) = 0x14;
 			break;
 		case 2:
-			U32(a1, 0x4C) = 0x154F404;
+			U32(a1, 0x4C) = us(0x154F404);
 			U16(a1, 0x52) = 0x600;
 			U16(a1, 0x1C) = 0xFFA0;
 			U16(a1, 0x1E) = 0x60;
-			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(0x154F918), 0xE0) << 1);
+			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(us(0x154F918)), 0xE0) << 1);
 			U16(a1, 0x7C) = 0xFFE0;
 			break;
 		default:
@@ -3319,23 +3319,23 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[12];
-		states[0] = 0x771B80;
-		states[1] = 0x771BD0;
-		states[2] = 0x771C00;
-		states[3] = 0x771C30;
-		states[4] = 0x771C60;
-		states[5] = 0x771C90;
-		states[6] = 0x771CC0;
-		states[7] = 0x771CF0;
-		states[8] = 0x771D20;
-		states[9] = 0x771D50;
-		states[10] = 0x771D70;
-		states[11] = 0x771DA0;
+		states[0] = us(0x771B80);
+		states[1] = us(0x771BD0);
+		states[2] = us(0x771C00);
+		states[3] = us(0x771C30);
+		states[4] = us(0x771C60);
+		states[5] = us(0x771C90);
+		states[6] = us(0x771CC0);
+		states[7] = us(0x771CF0);
+		states[8] = us(0x771D20);
+		states[9] = us(0x771D50);
+		states[10] = us(0x771D70);
+		states[11] = us(0x771DA0);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
 			FX_HELD(held_note_draw(HK_DOUBLE, node);)
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, CREATURE_ARG, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -3469,23 +3469,23 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[17];
-		states[0] = 0x772AB0;
-		states[1] = 0x772B40;
-		states[2] = 0x772B80;
-		states[3] = 0x772BE0;
-		states[4] = 0x772D40;
-		states[5] = 0x773010;
-		states[6] = 0x773040;
-		states[7] = 0x7732F0;
-		states[8] = 0x773320;
-		states[9] = 0x7733B0;
-		states[10] = 0x773520;
-		states[11] = 0x773560;
-		states[12] = 0x773590;
-		states[13] = 0x773600;
-		states[14] = 0x773630;
-		states[15] = 0x773670;
-		states[16] = 0x7736B0;
+		states[0] = us(0x772AB0);
+		states[1] = us(0x772B40);
+		states[2] = us(0x772B80);
+		states[3] = us(0x772BE0);
+		states[4] = us(0x772D40);
+		states[5] = us(0x773010);
+		states[6] = us(0x773040);
+		states[7] = us(0x7732F0);
+		states[8] = us(0x773320);
+		states[9] = us(0x7733B0);
+		states[10] = us(0x773520);
+		states[11] = us(0x773560);
+		states[12] = us(0x773590);
+		states[13] = us(0x773600);
+		states[14] = us(0x773630);
+		states[15] = us(0x773670);
+		states[16] = us(0x7736B0);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x50) = (uint16_t)(U16(node, 0x50) + U16(node, 0x128));
 		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) + U16(node, 0x124));
@@ -3493,7 +3493,7 @@ namespace moon88
 		if ((U8(node, 0x26) & 4) == 0)
 		{
 			FX_HELD(held_note_draw(HK_ANGELO, node);)
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, CREATURE_ARG, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
 				const uint8_t anim = U8(node, 0x9C), fr = U8(node, 0xA2);
@@ -3517,7 +3517,7 @@ namespace moon88
 		const int32_t py = S16(node, 0x4E);
 		const int32_t px = S16(node, 0x4C);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70));
+		ff8fx::copy<(8 * 4)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
 		const int32_t pz = S16(node, 0x50);
 		S32(node, 0x88) = py;
 		S32(node, 0x84) = px;
@@ -3537,7 +3537,7 @@ namespace moon88
 		const uint32_t M = P(m), Vp = P(v);
 		for (int i = 0; i < n; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25A4F88, f, 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25A4F88), f, 0x90, a1);
 			x::GetEffectSpawnPosition(a1 + 0x30, 0xF1, 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
 			const uint32_t r1 = x::CrtRand() & 0xFFF;
@@ -3558,15 +3558,15 @@ namespace moon88
 		}
 	}
 
-	uint32_t __cdecl im_771F50(uint32_t a1) { im_dust_rings(a1, 4, 0x772060, 0x3FF); return 0; }
+	uint32_t __cdecl im_771F50(uint32_t a1) { im_dust_rings(a1, 4, us(0x772060), 0x3FF); return 0; }
 
 	uint32_t __cdecl im_772060(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x772790;
-		states[1] = 0x7727B0;
-		states[2] = 0x772870;
+		states[0] = us(0x772790);
+		states[1] = us(0x7727B0);
+		states[2] = us(0x772870);
 		callp(states[S8(node, 0x29)], node);
 		im_7720C0(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3582,7 +3582,7 @@ namespace moon88
 		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(0x1D97778, mat);
+		x::UnpackRotationMatrix(us(0x1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -3590,7 +3590,7 @@ namespace moon88
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -3600,7 +3600,7 @@ namespace moon88
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -3610,18 +3610,18 @@ namespace moon88
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x25A4D9C);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(us(0x25A4D9C));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x25A4D9C) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(us(0x25A4D9C)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
 
 	uint32_t __cdecl im_772790(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x154ECEC;
+		U32(a1, 0x4C) = us(0x154ECEC);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3650,15 +3650,15 @@ namespace moon88
 		return 0;
 	}
 
-	uint32_t __cdecl im_772880(uint32_t a1) { im_dust_rings(a1, 3, 0x772990, 0x7FF); return 0; }
+	uint32_t __cdecl im_772880(uint32_t a1) { im_dust_rings(a1, 3, us(0x772990), 0x7FF); return 0; }
 
 	uint32_t __cdecl im_772990(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x7729F0;
-		states[1] = 0x772A10;
-		states[2] = 0x772AA0;
+		states[0] = us(0x7729F0);
+		states[1] = us(0x772A10);
+		states[2] = us(0x772AA0);
 		callp(states[S8(node, 0x29)], node);
 		im_7720C0(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3668,7 +3668,7 @@ namespace moon88
 
 	uint32_t __cdecl im_7729F0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x154EE30;
+		U32(a1, 0x4C) = us(0x154EE30);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3700,8 +3700,8 @@ namespace moon88
 	uint32_t __cdecl im_772AB0(uint32_t a1)
 	{
 		const uint32_t e = ENT(U8(a1, 0x2C));
-		U32(MEM<uint32_t>(DIR_PTR), 0x18) = a1;
-		gx::BindEntityModelFromComData(e, 0x25ACD10, 0x15560C0);
+		U32(MEM<uint32_t>(us(DIR_PTR)), 0x18) = a1;
+		gx::BindEntityModelFromComData(e, us(0x25ACD10), us(0x15560C0));
 		gx::QueueChainTransformation(e, 1);
 		U32(a1, 0x4C) = U32(e, 0x1C);
 		U32(a1, 0x50) = U32(e, 0x20);
@@ -3744,11 +3744,11 @@ namespace moon88
 	uint32_t __cdecl im_772BE0(uint32_t a1)
 	{
 		if (S16(a1, 0x136) == 8)
-			x::BdPlaySE(0x154ECE4, 0, 0x80);
+			x::BdPlaySE(us(0x154ECE4), 0, 0x80);
 		if (x::au_re_Battle_ReadAnimation_8(a1) == 1)
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 2);
-			const uint32_t t = im_76A130(a1, 0x772C50, 0x16F1F8C, 0xB0, 0, 0);
+			const uint32_t t = im_76A130(a1, us(0x772C50), us(0x16F1F8C), 0xB0, 0, 0);
 			U32(t, 0x458) = a1 + 0x30;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3789,7 +3789,7 @@ namespace moon88
 		if (S16(a1, 0x136) >= 0x14)
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 3);
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25A6BC0, 0x772D90, 0x9C, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25A6BC0), us(0x772D90), 0x9C, a1);
 			U32(t, 0x8C) = a1 + 0x30;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3800,10 +3800,10 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x772F50;
-		states[1] = 0x772FB0;
-		states[2] = 0x772FE0;
-		states[3] = 0x773000;
+		states[0] = us(0x772F50);
+		states[1] = us(0x772FB0);
+		states[2] = us(0x772FE0);
+		states[3] = us(0x773000);
 		callp(states[S8(node, 0x29)], node);
 		alignas(4) uint8_t pt[8] = {};
 		U16(node, 0x46) = (uint16_t)((U16(node, 0x46) + 0x100) & 0xFFF);
@@ -3836,7 +3836,7 @@ namespace moon88
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(0x1D97778, m, m);
+		x::ComposeAffineTransform(us(0x1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -3855,14 +3855,14 @@ namespace moon88
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = im_76A650(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = im_76A650(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
 
 	uint32_t __cdecl im_772F50(uint32_t a1)
 	{
-		const uint32_t mdlp = U32(MEM<uint32_t>(0x25AC3A8), 0x144);
+		const uint32_t mdlp = U32(MEM<uint32_t>(us(0x25AC3A8)), 0x144);
 		S32(a1, 0x30) = 0x800;
 		S32(a1, 0x38) = 0x800;
 		U32(a1, 0x4C) = mdlp;
@@ -3912,8 +3912,8 @@ namespace moon88
 		if (S16(a1, 0x136) >= 6)
 		{
 			U16(a1, 0x134) = 9;
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25AB728, 0x773090, 0x40, a1);
-			U32(t, 0x34) = 0x1557CAC;
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AB728), us(0x773090), 0x40, a1);
+			U32(t, 0x34) = us(0x1557CAC);
 			U16(t, 0x38) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3924,11 +3924,11 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x773100;
-		states[1] = 0x773130;
-		states[2] = 0x7732E0;
+		states[0] = us(0x773100);
+		states[1] = us(0x773130);
+		states[2] = us(0x7732E0);
 		callp(states[S8(node, 0x29)], node);
-		if (MEM<uint32_t>(FLASH_PAUSE) == 0)
+		if (MEM<uint32_t>(us(FLASH_PAUSE)) == 0)
 			U16(node, 0x3C) = (uint16_t)(U16(node, 0x3C) + 1);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -3942,7 +3942,7 @@ namespace moon88
 
 	uint32_t __cdecl im_773100(uint32_t a1)
 	{
-		if (MEM<uint32_t>(FLASH_PAUSE) != 0)
+		if (MEM<uint32_t>(us(FLASH_PAUSE)) != 0)
 			return 0;
 		U16(a1, 0x38) = (uint16_t)(U16(a1, 0x38) - 1);
 		if (S16(a1, 0x38) <= 0)
@@ -3967,7 +3967,7 @@ namespace moon88
 		}
 		if (op == 0xFE)
 		{
-			if (S16(node, 0x3C) >= (int16_t)(uint16_t)b2 && MEM<uint32_t>(FLASH_PAUSE) == 0)
+			if (S16(node, 0x3C) >= (int16_t)(uint16_t)b2 && MEM<uint32_t>(us(FLASH_PAUSE)) == 0)
 			{
 				const uint16_t ni = (uint16_t)(idx + 1);
 				U16(node, 0x3A) = ni;
@@ -3977,12 +3977,12 @@ namespace moon88
 		else
 		{
 			U32(node, 0x30) = ent;
-			if (MEM<uint32_t>(FLASH_PAUSE) == 0)
+			if (MEM<uint32_t>(us(FLASH_PAUSE)) == 0)
 				U16(node, 0x3A) = (uint16_t)(idx + 1);
 		}
 		FX_HELD(held_note_draw(HK_FLASH, node);)
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x1C;
+		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
 		x::sub_45BFC0(pkt, 0, 0, x::sub_45C690(0, 2, 0x280, 0) & 0xFFFF, 0);
 		x::SSIGPU_InsertPrimAutoDepth(ot, pkt);
 		pkt += 0xC;
@@ -4001,7 +4001,7 @@ namespace moon88
 		}
 		x::sub_45BFC0(pkt, 0, 0, x::sub_45C690(0, 2, 0x280, 0) & 0xFFFF, 0);
 		x::SSIGPU_InsertPrimAutoDepth(ot, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt + 0xC;
 		return 0;
 	}
 
@@ -4032,7 +4032,7 @@ namespace moon88
 		x::sub_8DD1C0(a1);
 		if (a_73B7E0(3) != 0)
 		{
-			x::BdPlaySE(0x154ECE8, 1, 0x80);
+			x::BdPlaySE(us(0x154ECE8), 1, 0x80);
 			x::au_re_Battle_ReadAnimation_7(a1, 8);
 			U16(a1, 0x13A) = 0x800;
 			im_773400(a1, 0);

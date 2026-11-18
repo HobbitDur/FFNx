@@ -23,13 +23,13 @@ namespace elvoret017
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556FA0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556FA4); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2556FA8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556FC4); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2556FC8; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2556FD8; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2556FA0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2556FA4)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2556FA8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2556FC4)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x2556FC8); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2556FD8); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x700460;
 	static const uint32_t ORIG_MainTask = 0x7005C0;
@@ -40,19 +40,19 @@ namespace elvoret017
 	static const uint32_t SEQ_Particle = 0x14D71EC;
 	static const uint32_t COLOUR_Black = 0x2556FF8;
 	static const uint32_t AMBIENT = 0xB8B9A8;
-	static const void *const SOUND_Voice = (const void *)0x14D8E48;
-	static const void *const SOUND_Wings = (const void *)0x14D8E40;
-	static const void *const SOUND_Land = (const void *)0x14D8E44;
+	static const void *SOUND_Voice() { return (const void *)us(0x14D8E48); }
+	static const void *SOUND_Wings() { return (const void *)us(0x14D8E40); }
+	static const void *SOUND_Land() { return (const void *)us(0x14D8E44); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-	inline void BdPlayActorSE(uint8_t *entity, int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int32_t)>(0x5015A0)(entity, a, b, c); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t chain) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, chain); }
-	inline void ColourLerp(uint32_t out, uint32_t a, int32_t wa, int32_t wb, const void *b) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t, int32_t, const void *)>(0x56CC00)(out, a, wa, wb, b); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+	inline void BdPlayActorSE(uint8_t *entity, int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int32_t)>(us(0x5015A0))(entity, a, b, c); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t chain) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, chain); }
+	inline void ColourLerp(uint32_t out, uint32_t a, int32_t wa, int32_t wb, const void *b) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t, int32_t, const void *)>(us(0x56CC00))(out, a, wa, wb, b); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -163,7 +163,7 @@ namespace elvoret017
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->scale >> 2));
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = us(SEQ_Particle);
 		*(int16_t *)(h + 4) = p->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -213,7 +213,7 @@ namespace elvoret017
 			if ((uint32_t)(int32_t)m->counter <= 0x20)
 			{
 				const int32_t t = (int32_t)(((uint32_t)(int32_t)m->counter & 0xFFFFF) << 7);
-				ColourLerp(AMBIENT, COLOUR_Black, t, 0x1000 - t, Caster() + 0x2C);
+				ColourLerp(us(AMBIENT), us(COLOUR_Black), t, 0x1000 - t, Caster() + 0x2C);
 			}
 			*(int16_t *)(Caster() + 0x1E) = (int16_t)(*(const int16_t *)(Caster() + 0x1E) + 0x40);
 		}
@@ -224,7 +224,7 @@ namespace elvoret017
 			const int32_t step = 0x1000 / count;
 			do
 			{
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
 				if (p)
 				{
 					Memset32(&p->counter, 0, 5);
@@ -252,12 +252,12 @@ namespace elvoret017
 			int16_t sp[4];
 			sp[3] = 0;
 			GetEffectSpawnPosition(Caster(), 0x1D, 0x400, sp);
-			if (phase == 0) BdPlaySE3D(SOUND_Wings, 0, sp);
+			if (phase == 0) BdPlaySE3D(SOUND_Wings(), 0, sp);
 			for (int k = 0; k < 2; k++)
 			{
 				const uint32_t chance = (uint32_t)(mul32(CrtRand(), 20) >> 15);
 				if (chance <= phase) continue;
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
 				ff8fx::copy<(8)>(p->pos, sp);
@@ -277,13 +277,13 @@ namespace elvoret017
 		}
 		if (m->counter >= 0x32)
 		{
-			if (m->counter == 0x50) BdPlaySE3D(SOUND_Land, 0, (const int16_t *)(Caster() + 0x1C));
+			if (m->counter == 0x50) BdPlaySE3D(SOUND_Land(), 0, (const int16_t *)(Caster() + 0x1C));
 			PrimArg arg;
 			arg.pos[0] = *(const int16_t *)(Caster() + 0x1C);
 			arg.pos[2] = *(const int16_t *)(Caster() + 0x20);
 			arg.pos[1] = *(const int16_t *)(Caster() + 0x24);
 			arg.pos[3] = 0;
-			arg.flags = PART_Flags;
+			arg.flags = us(PART_Flags);
 			arg.morph = TexBase() + 0x1B9C;
 			FX_HELD(held_note_play(m, &arg);)
 			prim::play((prim::Layout *)m->layout, PartCallback, (int)&arg, 0);
@@ -319,12 +319,12 @@ namespace elvoret017
 				InitTaskQueuePool(QMain(), (void *)(TexBase() + 0x1000), 0x1FC, 1);
 				InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x20, 0x80);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x7C);
-				m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
-				DecodeModelPrimLayout(MODEL_Layout, m->layout, 0x1E8);
+				m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
+				DecodeModelPrimLayout(us(MODEL_Layout), m->layout, 0x1E8);
 			}
 		}
 		int a, b;

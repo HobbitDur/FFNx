@@ -25,27 +25,27 @@ namespace slow123
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(0x252144C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521450); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252146C); }
-	inline Mat4x3 *EffCam() { return (Mat4x3 *)0x2521470; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521490; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x252144C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2521450)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x252146C)); }
+	inline Mat4x3 *EffCam() { return (Mat4x3 *)us(0x2521470); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2521490); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6BD260;
 	static const uint32_t ORIG_TargetTask = 0x6BD3E0;
 	static const uint32_t MODEL_Clock = 0x12652B0;
 	static const uint32_t MODEL_Lower = 0x1268D3C;
-	static const void *const SOUND_Slow = (const void *)0x126E4B0;
+	static const void *SOUND_Slow() { return (const void *)us(0x126E4B0); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)((int32_t)(uint16_t)angle, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))((int32_t)(uint16_t)angle, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -198,7 +198,7 @@ namespace slow123
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
-		if (t->counter == 0) BdPlaySE3D(SOUND_Slow, 1, t->pos);
+		if (t->counter == 0) BdPlaySE3D(SOUND_Slow(), 1, t->pos);
 		PrimArg arg;
 		arg.morph = TexBase() + 0x162C;
 		const int32_t s = (*(const int16_t *)(t->entity + 0x26) >> 1) + 0x800;
@@ -260,14 +260,14 @@ namespace slow123
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x1D6);
 				t->action = (int16_t)(uint16_t)r->action;
 				t->entity = Entity(Ctx()->actions[t->action].targets[0]);
 				GetDefaultEffectPosition(t->entity, t->pos);
 				GetEffectSpawnPosition(t->entity, 0xF0, 0, t->spawn);
-				DecodeModelPrimLayout(MODEL_Clock, t->clock, 0x1D8);
-				DecodeModelPrimLayout(MODEL_Lower, t->lower, 0x568);
+				DecodeModelPrimLayout(us(MODEL_Clock), t->clock, 0x1D8);
+				DecodeModelPrimLayout(us(MODEL_Lower), t->lower, 0x568);
 				r->action++;
 			}
 		}

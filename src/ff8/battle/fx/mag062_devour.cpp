@@ -29,10 +29,10 @@ namespace devour
 		Mod m = {};
 		m.name = "devour";
 		m.effect_id = 62;
-		m.lo = 0x7E4AB0;
-		m.hi = 0x7E58A0;
-		m.g[G_258BE30] = 0x2601780;
-		m.f[F_73A1A0] = 0x7E4D90;
+		m.lo = us(0x7E4AB0);
+		m.hi = us(0x7E58A0);
+		m.g[G_258BE30] = us(0x2601780);
+		m.f[F_73A1A0] = us(0x7E4D90);
 		return m;
 	}
 	static const Mod MOD_062 = make_mod();
@@ -89,42 +89,42 @@ namespace devour
 		g_mod = &MOD_062;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x2601914) = 0x2793E58;
-		MEM<uint32_t>(0x2601338) = 0x2793E58;
-		states[0] = 0x7E4D30;
+		MEM<uint32_t>(us(0x2601914)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x2601338)) = us(0x2793E58);
+		states[0] = us(0x7E4D30);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = 0x7E4D40;
-		states[2] = 0x7E4D50;
-		states[3] = 0x7E4D60;
-		states[4] = 0x7E57F0;
-		states[5] = 0x7E5830;
-		states[6] = 0x7E5840;
-		states[7] = 0x7E5850;
-		states[8] = 0x7E5860;
-		states[9] = 0x7E5870;
-		states[10] = 0x7E5890;
+		states[1] = us(0x7E4D40);
+		states[2] = us(0x7E4D50);
+		states[3] = us(0x7E4D60);
+		states[4] = us(0x7E57F0);
+		states[5] = us(0x7E5830);
+		states[6] = us(0x7E5840);
+		states[7] = us(0x7E5850);
+		states[8] = us(0x7E5860);
+		states[9] = us(0x7E5870);
+		states[10] = us(0x7E5890);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26018F4);
-			const uint32_t v2 = MEM<uint32_t>(0x2601778);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2601334) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26018F4));
+			const uint32_t v2 = MEM<uint32_t>(us(0x2601778));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x2601334)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x26018F0);
-			const uint32_t v2 = MEM<uint32_t>(0x2601774);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x2601334) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x26018F0));
+			const uint32_t v2 = MEM<uint32_t>(us(0x2601774));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x2601334)) = v2;
 		}
 		FX_HELD(held_note_master();)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_TASKS));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TASKS)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -142,10 +142,10 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x7E4E00;
-		states[1] = 0x7E5780;
-		states[2] = 0x7E57A0;
-		states[3] = 0x7E57E0;
+		states[0] = us(0x7E4E00);
+		states[1] = us(0x7E5780);
+		states[2] = us(0x7E57A0);
+		states[3] = us(0x7E57E0);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -156,7 +156,7 @@ namespace devour
 
 	static uint32_t __cdecl StartCast(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Cast, 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Cast), 0x54, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -191,10 +191,10 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x7E4E90;
-		states[1] = 0x7E4F10;
-		states[2] = 0x7E5710;
-		states[3] = 0x7E5770;
+		states[0] = us(0x7E4E90);
+		states[1] = us(0x7E4F10);
+		states[2] = us(0x7E5710);
+		states[3] = us(0x7E5770);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -203,7 +203,7 @@ namespace devour
 
 	static uint32_t __cdecl LoadTextures(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_TITLE));
+		x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_TITLE)));
 		const int32_t r = (int32_t)x::CrtRand();
 		const uint32_t node = a1;
 		const int16_t pick = (int16_t)(r % 3);
@@ -211,13 +211,13 @@ namespace devour
 		switch (pick)
 		{
 		case 0:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_PIC1));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_PIC1)));
 			break;
 		case 1:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_PIC2));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_PIC2)));
 			break;
 		case 2:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(TIM_PIC3));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_PIC3)));
 			break;
 		}
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -226,9 +226,9 @@ namespace devour
 
 	static uint32_t __cdecl StartParts(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Darken, 0x54, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Music, 0x54, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Picture, 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Darken), 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Music), 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Picture), 0x54, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -243,7 +243,7 @@ namespace devour
 			k = 0;
 		else if (k > 8)
 			k = 8;
-		x::BdPlaySE(MEM<uint32_t>(SOUND_TABLE + (uint32_t)((int32_t)k * 4)), 0, 0x80);
+		x::BdPlaySE(MEM<uint32_t>(us(SOUND_TABLE) + (uint32_t)((int32_t)k * 4)), 0, 0x80);
 		const uint8_t st = U8(node, 0x29);
 		U8(node, 0x26) |= 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
@@ -253,7 +253,7 @@ namespace devour
 	static uint32_t Quad(uint32_t x, uint32_t y, uint32_t vx, uint32_t vy, uint32_t w, uint32_t h, uint32_t u, uint32_t v,
 		uint32_t cx, uint32_t cy, uint32_t colour, uint32_t semi)
 	{
-		const uint32_t p = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t p = MEM<uint32_t>(us(PACKET_CURSOR));
 		U8(p, 7) = 0x2C;
 		U8(p, 7) = (uint8_t)((uint16_t)semi == 1 ? 0x2E : 0x2C);
 		const int32_t vys = (int16_t)vy;
@@ -301,8 +301,8 @@ namespace devour
 		U8(p, 6) = c;
 		U8(p, 5) = c;
 		U8(p, 4) = c;
-		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(0x1D8E04C) + 0x14, p);
-		MEM<uint32_t>(PACKET_CURSOR) = p + 0x28;
+		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(us(0x1D8E04C)) + 0x14, p);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = p + 0x28;
 		return 0;
 	}
 
@@ -325,10 +325,10 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x7E4FC0;
-		states[1] = 0x7E4FE0;
-		states[2] = 0x7E5240;
-		states[3] = 0x7E5280;
+		states[0] = us(0x7E4FC0);
+		states[1] = us(0x7E4FE0);
+		states[2] = us(0x7E5240);
+		states[3] = us(0x7E5280);
 		const int8_t state = S8(node, 0x29);
 		callp(states[state], node);
 		const uint8_t status = U8(node, 0x26);
@@ -381,7 +381,7 @@ namespace devour
 
 	static void TintAll(uint32_t level, uint32_t mode)
 	{
-		uint32_t e = ENTITIES;
+		uint32_t e = us(ENTITIES);
 		for (int k = 7; k != 0; k--, e += 0x9C)
 		{
 			uint16_t f = U16(e, 0);
@@ -399,19 +399,19 @@ namespace devour
 		if (U16(first_target(node), 6) == 8)
 			return;
 		const uint32_t slot = U8(node, 0x2D);
-		U8(ENTITIES + slot * 0x9C, 0) |= 4;
+		U8(us(ENTITIES) + slot * 0x9C, 0) |= 4;
 	}
 
 	static uint32_t __cdecl Darken(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = 0x7E5300;
-		states[1] = 0x7E5340;
-		states[2] = 0x7E54F0;
-		states[3] = 0x7E5510;
-		states[4] = 0x7E5560;
-		states[5] = 0x7E55E0;
+		states[0] = us(0x7E5300);
+		states[1] = us(0x7E5340);
+		states[2] = us(0x7E54F0);
+		states[3] = us(0x7E5510);
+		states[4] = us(0x7E5560);
+		states[5] = us(0x7E55E0);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -421,7 +421,7 @@ namespace devour
 	static uint32_t __cdecl DarkenKeep(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		uint32_t e = ENTITIES;
+		uint32_t e = us(ENTITIES);
 		if (S16(node, 0x24) < 0xA)
 			return node;
 		for (int k = 0; k < 7; k++, e += 0x9C)
@@ -434,7 +434,7 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		U16(node, 0x4C) = 0x1000;
-		uint32_t p = FADE_LAYERS + 0x2D;
+		uint32_t p = us(FADE_LAYERS) + 0x2D;
 		for (int k = 4; k != 0; k--, p += 0x2C)
 		{
 			U8(p, 1) = 0;
@@ -470,7 +470,7 @@ namespace devour
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(node, 0x4C);
-		uint32_t p = FADE_LAYERS + 6;
+		uint32_t p = us(FADE_LAYERS) + 6;
 		for (int k = 4; k != 0; k--, p += 0x2C)
 			U16(p, 0) = level;
 		TintAll(level, 0);
@@ -480,7 +480,7 @@ namespace devour
 	static uint32_t __cdecl DarkenRestore(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		uint32_t e = ENTITIES;
+		uint32_t e = us(ENTITIES);
 		uint32_t kept = node + 0x30;
 		for (int k = 7; k != 0; k--, e += 0x9C, kept += 4)
 		{
@@ -499,11 +499,11 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = 0x7E5660;
-		states[1] = 0x7E5680;
-		states[2] = 0x7E56B0;
-		states[3] = 0x7E56C0;
-		states[4] = 0x7E5700;
+		states[0] = us(0x7E5660);
+		states[1] = us(0x7E5680);
+		states[2] = us(0x7E56B0);
+		states[3] = us(0x7E56C0);
+		states[4] = us(0x7E5700);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);

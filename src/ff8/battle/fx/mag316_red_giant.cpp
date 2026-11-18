@@ -26,15 +26,15 @@ namespace redgiant316
 	using namespace magc;
 	using namespace msweep;
 
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2505520); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2505524); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505528); }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505530; }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2505540; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2505564); }
-	inline uint32_t &Lcg() { return var<uint32_t>(0x2505568); }
-	inline uint32_t &Flash() { return var<uint32_t>(0x250556C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505574); }
+	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2505520)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2505524)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2505528)); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2505530); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x2505540); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2505564)); }
+	inline uint32_t &Lcg() { return var<uint32_t>(us(0x2505568)); }
+	inline uint32_t &Flash() { return var<uint32_t>(us(0x250556C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2505574)); }
 
 	static const uint32_t ORIG_Setup = 0x6610B0, ORIG_FileLoader = 0x6610C0;
 	static const uint32_t ORIG_RootTask = 0x661190;
@@ -44,14 +44,14 @@ namespace redgiant316
 	static const uint32_t CAMERA = 0x1005C50;
 	static const uint32_t SEQ_Particle = 0x1005AE4;
 	static const uint32_t COLOUR_Target = 0x2505570;
-	static const void *const SOUND_Voice = (const void *)0x1005D54;
-	static const void *const SOUND_Start = (const void *)0x1005D50;
+	static const void *SOUND_Voice() { return (const void *)us(0x1005D54); }
+	static const void *SOUND_Start() { return (const void *)us(0x1005D50); }
 	static const uint32_t VERTS_B = 0x81C;
 	static const uint32_t ARENA_A = 0x881C, ARENA_B = 0x1881C;
 	static const int16_t PAGE_MOVE = 0xB, CLUT_MOVE = 0x414;
 
-	inline void FillDwords(void *dst, uint32_t value, uint32_t dwords) { fn<void (__cdecl *)(void *, uint32_t, uint32_t)>(0x6DA380)(dst, value, dwords); }
-	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }
+	inline void FillDwords(void *dst, uint32_t value, uint32_t dwords) { fn<void (__cdecl *)(void *, uint32_t, uint32_t)>(us(0x6DA380))(dst, value, dwords); }
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(us(0x571B50))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -397,12 +397,12 @@ namespace redgiant316
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123((int32_t *)(h + 0x98));
 		const int16_t size = p->size;
-		F<uint32_t>(h, 0) = SEQ_Particle;
+		F<uint32_t>(h, 0) = us(SEQ_Particle);
 		F<int16_t>(h, 0x94) = size;
 		F<int16_t>(h, 0x8C) = size;
 		F<int16_t>(h, 0x84) = size;
-		const uint32_t idx = (var<uint32_t>(SEQ_Particle + 8) & 0xFFFF) - (uint32_t)(int32_t)p->life;
-		const uint32_t rec = (uint32_t)var<uint16_t>(SEQ_Particle + 8 + idx * 2) + SEQ_Particle;
+		const uint32_t idx = (var<uint32_t>(us(SEQ_Particle) + 8) & 0xFFFF) - (uint32_t)(int32_t)p->life;
+		const uint32_t rec = (uint32_t)var<uint16_t>(us(SEQ_Particle) + 8 + idx * 2) + us(SEQ_Particle);
 		F<uint32_t>(h, 0x2C) = rec;
 		F<uint32_t>(h, 0x30) = var<uint32_t>(rec);
 		F<uint32_t>(h, 0x2C) = rec + 4;
@@ -473,7 +473,7 @@ namespace redgiant316
 		if (t3 < 0x8C)
 		{
 			const int32_t w = (int32_t)((t3 << 12) / 140u);
-			ColourLerp(&m->colour, COLOUR_Target, 0x1000 - w, w, Caster() + 0x2C);
+			ColourLerp(&m->colour, us(COLOUR_Target), 0x1000 - w, w, Caster() + 0x2C);
 			Caster()[0x2F] = 0x32;
 		}
 		if (m->counter >= 0x3C) *Caster() |= 8;
@@ -481,7 +481,7 @@ namespace redgiant316
 		Particles(m);
 		if (m->counter == 0x2D)
 		{
-			BdPlaySE(SOUND_Start, 0, 0x80);
+			BdPlaySE(SOUND_Start(), 0, 0x80);
 			m->counter++;
 			return 0;
 		}
@@ -510,9 +510,9 @@ namespace redgiant316
 			r->started = 1;
 			MusicVolumeFade(0xF0);
 			InitTaskQueuePool(QMain(), (void *)TexBase(), 0x81C, 1);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			FillDwords(&m->counter, 0, 0x204);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 			m->next = &m->parts[0];
 			m->colour = *(const uint32_t *)(Caster() + 0x2C);
 			ShowAllPolys(Caster());

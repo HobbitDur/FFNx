@@ -25,12 +25,12 @@ namespace rapture288
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507C44); }
-	inline TaskQueue *QSparkle() { return (TaskQueue *)0x2507C48; }
-	inline TaskQueue *QFeather() { return (TaskQueue *)0x2507C58; }
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2507C68; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507CA0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507CA4); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507C44)); }
+	inline TaskQueue *QSparkle() { return (TaskQueue *)us(0x2507C48); }
+	inline TaskQueue *QFeather() { return (TaskQueue *)us(0x2507C58); }
+	inline TaskQueue *QTarget() { return (TaskQueue *)us(0x2507C68); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507CA0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507CA4)); }
 
 	static const uint32_t ORIG_RootTask = 0x679290;
 	static const uint32_t ORIG_TargetTask = 0x679510;
@@ -40,7 +40,7 @@ namespace rapture288
 	static const uint32_t LAYOUT_B = 0x1075800;
 	static const uint32_t FEATHER_MODEL = 0x10747B0;
 	static const uint32_t SEQUENCE = 0x1074658;
-	static const void *const SOUND = (const void *)0x1078970;
+	static const void *SOUND() { return (const void *)us(0x1078970); }
 	static const uint32_t DEPTH_VEC = 0x1078978;
 	static const uint32_t COLOURS = 0x1078980;
 	static const uint32_t ARENA_A = 0x2460;
@@ -48,18 +48,18 @@ namespace rapture288
 	static const uint32_t MORPH = 0x2340;
 	static const int32_t TARGET_END = 0x4A, SPARKLE_FRAMES = 12;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)((int32_t)(uint16_t)angle, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))((int32_t)(uint16_t)angle, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
 	inline uint32_t mulhi_u(uint32_t a, uint32_t b) { return (uint32_t)(((uint64_t)a * b) >> 32); }
 
 #pragma pack(push, 1)
@@ -228,7 +228,7 @@ namespace rapture288
 		a->m.t[2] = p[2];
 		ComposeAffineTransform(&Camera(), &a->m, &a->m);
 		int16_t v[3];
-		MatrixMultiplyVector(&a->m, (const int16_t *)DEPTH_VEC, v);
+		MatrixMultiplyVector(&a->m, (const int16_t *)us(DEPTH_VEC), v);
 		a->depth = mul32((int32_t)S16(e, 0x26) + 0x800, v[2]) >> 15;
 	}
 
@@ -245,7 +245,7 @@ namespace rapture288
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = FEATHER_MODEL;
+		*(uint32_t *)h = us(FEATHER_MODEL);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -254,7 +254,7 @@ namespace rapture288
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(s->pos, 0x1000, -0x400);
-		*(uint32_t *)h = SEQUENCE;
+		*(uint32_t *)h = us(SEQUENCE);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -273,7 +273,7 @@ namespace rapture288
 {
 	static void ApplyResult(uint8_t *e)
 	{
-		const int32_t slot = (int32_t)((uint32_t)e - 0x1D972C0) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)e - us(0x1D972C0)) / 0x9C;
 		for (int32_t i = 0; i < (int32_t)Ctx()->actions[0].target_count; i++)
 		{
 			uint8_t *t = Ctx()->actions[0].targets + i * TARGET_STRIDE;
@@ -327,7 +327,7 @@ namespace rapture288
 			{
 				for (int k = 0; k < 2; k++)
 				{
-					FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeather(), ORIG_FeatherTask);
+					FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeather(), us(ORIG_FeatherTask));
 					if (!f) continue;
 					f->counter = 0;
 					f->scale = (int16_t)((CrtRand() & 0x7FF) + 0x800);
@@ -356,10 +356,10 @@ namespace rapture288
 			arg.morph = TexBase() + MORPH;
 			prim::play((prim::Layout *)t->layout_b, PrimCallback, (int)&arg, 0);
 		}
-		if (c == 0) BdPlaySE(SOUND, 0, 0x80);
+		if (c == 0) BdPlaySE(SOUND(), 0, 0x80);
 		if ((uint32_t)c < 0x10 && !(c & 1))
 		{
-			SparkleNode *p = (SparkleNode *)AddTaskToQueue(QSparkle(), ORIG_SparkleTask);
+			SparkleNode *p = (SparkleNode *)AddTaskToQueue(QSparkle(), us(ORIG_SparkleTask));
 			if (p)
 			{
 				const int32_t a = CrtRand();
@@ -422,7 +422,7 @@ namespace rapture288
 			}
 			if (r->next < Ctx()->actions[0].target_count)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), us(ORIG_TargetTask));
 				if (t)
 				{
 					Memset32((uint8_t *)t + 0xC, 0, 0x105);
@@ -430,8 +430,8 @@ namespace rapture288
 					t->entity = Entity(rec[0]);
 					t->flag = rec[3] & 4;
 					t->saved_y = S16(t->entity, 0x1E);
-					DecodeModelPrimLayout(LAYOUT_A, t->layout_a, 0xFC);
-					DecodeModelPrimLayout(LAYOUT_B, t->layout_b, 0x30C);
+					DecodeModelPrimLayout(us(LAYOUT_A), t->layout_a, 0xFC);
+					DecodeModelPrimLayout(us(LAYOUT_B), t->layout_b, 0x30C);
 				}
 				r->next++;
 			}
@@ -447,7 +447,7 @@ namespace rapture288
 			const uint32_t q = mulhi_u(x, 0xBACF914Du);
 			const uint32_t w = (((x - q) >> 1) + q) >> 6;
 			const int32_t idx = (int32_t)w >> 12, frac = (int32_t)(w & 0xFFF);
-			BlendColour((const void *)(COLOURS + idx * 4), (const void *)(COLOURS + 4 + idx * 4), 0x1000 - frac, frac, &colour);
+			BlendColour((const void *)(us(COLOURS) + idx * 4), (const void *)(us(COLOURS) + 4 + idx * 4), 0x1000 - frac, frac, &colour);
 		}
 		int a;
 		if (r->started)

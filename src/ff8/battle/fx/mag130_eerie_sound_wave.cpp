@@ -25,14 +25,14 @@ namespace eerie130
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25210A8); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25210B0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25210B4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25210CC); }
-	inline TaskQueue *QImpacts() { return (TaskQueue *)0x25210D0; }
-	inline TaskQueue *QWaves() { return (TaskQueue *)0x25210E0; }
-	inline TaskQueue *QEmitter() { return (TaskQueue *)0x25210F0; }
-	inline uint32_t RenderOT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25210A8)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25210B0)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25210B4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25210CC)); }
+	inline TaskQueue *QImpacts() { return (TaskQueue *)us(0x25210D0); }
+	inline TaskQueue *QWaves() { return (TaskQueue *)us(0x25210E0); }
+	inline TaskQueue *QEmitter() { return (TaskQueue *)us(0x25210F0); }
+	inline uint32_t RenderOT() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x6B42F0;
 	static const uint32_t ORIG_EmitterTask = 0x6B4520;
@@ -41,20 +41,20 @@ namespace eerie130
 	static const uint32_t MODEL_Emitter = 0x1221138;
 	static const uint32_t MODEL_Wave = 0x12228A8;
 	static const uint32_t MODEL_Impact = 0x1220990;
-	static const void *const SOUND_Wave = (const void *)0x122380C;
+	static const void *SOUND_Wave() { return (const void *)us(0x122380C); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -263,12 +263,12 @@ namespace eerie130
 		}
 		if (w->counter == 0 && w->no_hit == 0)
 		{
-			ImpactNode *p = (ImpactNode *)AddTaskToQueue(QImpacts(), ORIG_ImpactTask);
+			ImpactNode *p = (ImpactNode *)AddTaskToQueue(QImpacts(), us(ORIG_ImpactTask));
 			if (p)
 			{
 				GetDefaultEffectPosition(w->entity, p->pos);
 				p->entity = w->entity;
-				DecodeModelPrimLayout(MODEL_Impact, p->layout, 0xA8);
+				DecodeModelPrimLayout(us(MODEL_Impact), p->layout, 0xA8);
 			}
 		}
 		PrimArg arg;
@@ -303,7 +303,7 @@ namespace eerie130
 		arg.depth = -0x80;
 		arg.morph = TexBase() + 0xC7C;
 		if (prim::play((prim::Layout *)e->layout, PrimCallback, (int)&arg, 0) == 0) return TASK_END;
-		if (e->counter == 10) BdPlaySE(SOUND_Wave, 0, 0x80);
+		if (e->counter == 10) BdPlaySE(SOUND_Wave(), 0, 0x80);
 		pos[3] = 0;
 		GetEffectSpawnPosition(Caster(), 0xB, 0x1000, pos);
 		const int32_t c = e->counter;
@@ -312,7 +312,7 @@ namespace eerie130
 			const int32_t r = c % 12;
 			if ((uint32_t)r % 3 == 0)
 			{
-				WaveNode *w = (WaveNode *)AddTaskToQueue(QWaves(), ORIG_WaveTask);
+				WaveNode *w = (WaveNode *)AddTaskToQueue(QWaves(), us(ORIG_WaveTask));
 				if (w)
 				{
 					w->idx = e->idx[e->counter / 12];
@@ -320,7 +320,7 @@ namespace eerie130
 					w->entity = e->ents[e->counter / 12];
 					w->counter = 0;
 					ff8fx::copy<(8)>(w->start, pos);
-					DecodeModelPrimLayout(MODEL_Wave, w->layout, 0x58);
+					DecodeModelPrimLayout(us(MODEL_Wave), w->layout, 0x58);
 				}
 			}
 		}
@@ -349,9 +349,9 @@ namespace eerie130
 			InitTaskQueuePool(QEmitter(), (void *)(TexBase() + 0x7B0), 0x4CC, 1);
 			InitTaskQueuePool(QWaves(), (void *)(TexBase() + 0x240), 0x74, 0xC);
 			InitTaskQueuePool(QImpacts(), (void *)TexBase(), 0xC0, 3);
-			EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEmitter(), ORIG_EmitterTask);
+			EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEmitter(), us(ORIG_EmitterTask));
 			Memset32(&e->counter, 0, 0x130);
-			DecodeModelPrimLayout(MODEL_Emitter, e->layout, 0x4AC);
+			DecodeModelPrimLayout(us(MODEL_Emitter), e->layout, 0x4AC);
 			uint8_t *const b = (uint8_t *)e;
 			e->count = (int16_t)Ctx()->actions[0].target_count;
 			for (int32_t i = 0; i < e->count; i++)

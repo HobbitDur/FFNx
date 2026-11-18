@@ -32,44 +32,44 @@ namespace ochu_quake
 	{
 		c.name = "240 Ochu Earthquake";
 		c.effect_id = 240;
-		c.vm_table = 0x1864228;
-		c.bone_table = 0x1863E48;
-		c.prim_table = 0x1863E90;
-		c.prim_size = 0x1863F80;
-		c.spr_table = 0x1863FE4;
-		c.ptype_table = 0x1864010;
-		c.pop_table = 0x1864024;
-		c.draw_table = 0x1864084;
-		c.attr_16A = 0x18641EE;
-		c.attr_184 = 0x1864208;
-		c.attr_186 = 0x186420A;
-		c.attr_194 = 0x1864218;
-		c.attr_19C = 0x1864220;
-		c.desc = 0x1863D68;
-		c.ptr_block = 0x1863E20;
-		c.queue = 0x27968A0;
-		c.file00 = 0x2796898;
-		c.file01 = 0x279689C;
-		c.tick = 0xA0B9D0;
-		c.load_cb = 0xA114B0;
+		c.vm_table = us(0x1864228);
+		c.bone_table = us(0x1863E48);
+		c.prim_table = us(0x1863E90);
+		c.prim_size = us(0x1863F80);
+		c.spr_table = us(0x1863FE4);
+		c.ptype_table = us(0x1864010);
+		c.pop_table = us(0x1864024);
+		c.draw_table = us(0x1864084);
+		c.attr_16A = us(0x18641EE);
+		c.attr_184 = us(0x1864208);
+		c.attr_186 = us(0x186420A);
+		c.attr_194 = us(0x1864218);
+		c.attr_19C = us(0x1864220);
+		c.desc = us(0x1863D68);
+		c.ptr_block = us(0x1863E20);
+		c.queue = us(0x27968A0);
+		c.file00 = us(0x2796898);
+		c.file01 = us(0x279689C);
+		c.tick = us(0xA0B9D0);
+		c.load_cb = us(0xA114B0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static const uint32_t PIECE_DRAW_TABLE = 0x1863F94, PIECE_INIT_TABLE = 0x1863FBC;
-	static inline VoidFn *PieceDraw() { return g_c.bigtab + (PIECE_DRAW_TABLE - 0x1863E48) / 4; }
-	static inline VoidFn *PieceInit() { return g_c.bigtab + (PIECE_INIT_TABLE - 0x1863E48) / 4; }
+	static inline VoidFn *PieceDraw() { return g_c.bigtab + (us(PIECE_DRAW_TABLE) - us(0x1863E48)) / 4; }
+	static inline VoidFn *PieceInit() { return g_c.bigtab + (us(PIECE_INIT_TABLE) - us(0x1863E48)) / 4; }
 
-	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(0xB65150)(); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56CA30)(n, col, out); }
-	static inline void xl_GteLoadV012Block(const void *v) { x::f<void (__cdecl *)(const void *)>(0x45E020)(v); }
+	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(us(0xB65150))(); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
+	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(n, col, out); }
+	static inline void xl_GteLoadV012Block(const void *v) { x::f<void (__cdecl *)(const void *)>(us(0x45E020))(v); }
 	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim)
 	{
 		FX_HELD(if (held_predicting()) return;)
-		x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim);
+		x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim);
 	}
-	static inline int32_t GteOTZ() { return MEM<int32_t>(0x1CA8A2C); }
+	static inline int32_t GteOTZ() { return MEM<int32_t>(us(0x1CA8A2C)); }
 
 	static inline int16_t Div3(int32_t s) { return (int16_t)(s / 3); }
 

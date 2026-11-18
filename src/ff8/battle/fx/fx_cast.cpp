@@ -30,7 +30,7 @@ namespace cast
 	static const uint32_t ORIG_Trail = 0x5751A0;
 	static const uint32_t ORIG_Glow = 0x575250;
 	static const uint32_t ORIG_Ring = 0x5753A0;
-	static TaskQueue *const QUEUE = (TaskQueue *)0x209FAA8;
+	static TaskQueue *QUEUE() { return (TaskQueue *)us(0x209FAA8); }
 
 #pragma pack(push, 1)
 	struct SpawnerNode
@@ -97,10 +97,10 @@ namespace cast
 	static_assert(sizeof(SparkleNode) == 0x24 && sizeof(TrailNode) == 0x24, "cast nodes");
 
 	inline bool Paused() { return (UpdateFlags() & 1) != 0; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x1D8E054); }
-	inline void BdPlaySystemSE3D(int32_t id, int32_t a, const int16_t *pos) { fn<void (__cdecl *)(int32_t, int32_t, const int16_t *)>(0x5017A0)(id, a, pos); }
-	inline uint32_t EffectPrimModel(int id) { return fn<uint32_t (__cdecl *)(int)>(0x571240)(id); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline void BdPlaySystemSE3D(int32_t id, int32_t a, const int16_t *pos) { fn<void (__cdecl *)(int32_t, int32_t, const int16_t *)>(us(0x5017A0))(id, a, pos); }
+	inline uint32_t EffectPrimModel(int id) { return fn<uint32_t (__cdecl *)(int)>(us(0x571240))(id); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
 
 	static int32_t SizeScale(const uint8_t *ent)
 	{
@@ -261,7 +261,7 @@ namespace cast
 				int32_t i = 0;
 				do
 				{
-					RingNode *r = (RingNode *)AddTaskToQueue(QUEUE, ORIG_Ring);
+					RingNode *r = (RingNode *)AddTaskToQueue(QUEUE(), us(ORIG_Ring));
 					r->delay = (int16_t)(i * 3);
 					*(uint32_t *)&r->pos[0] = *(const uint32_t *)&sp->pos[0];
 					*(uint32_t *)&r->pos[2] = *(const uint32_t *)&sp->pos[2];
@@ -279,7 +279,7 @@ namespace cast
 			if (sp->counter != 0) goto done;
 			{
 				const int32_t s = SizeScale(ent);
-				GlowNode *g = (GlowNode *)AddTaskToQueue(QUEUE, ORIG_Glow);
+				GlowNode *g = (GlowNode *)AddTaskToQueue(QUEUE(), us(ORIG_Glow));
 				*(uint32_t *)&g->pos[0] = *(const uint32_t *)&sp->pos[0];
 				*(uint32_t *)&g->pos[2] = *(const uint32_t *)&sp->pos[2];
 				g->pos[1] = *(const int16_t *)(ent + 0x24);
@@ -295,7 +295,7 @@ namespace cast
 				const int32_t radius = r0 * 900 >> 12;
 				for (int32_t i = 0; i < 6; i++)
 				{
-					SparkleNode *s = (SparkleNode *)AddTaskToQueue(QUEUE, ORIG_Sparkle);
+					SparkleNode *s = (SparkleNode *)AddTaskToQueue(QUEUE(), us(ORIG_Sparkle));
 					s->counter = 0;
 					s->delay = (int16_t)(CrtRand() % 6 + i);
 					*(uint32_t *)&s->pos[0] = *(const uint32_t *)&sp->pos[0];
@@ -326,7 +326,7 @@ namespace cast
 			s->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_Sparkle, s);)
+		FX_HELD(held_note_draw(us(ORIG_Sparkle), s);)
 		int16_t v[4];
 		SparklePoint(s, v);
 		SpriteDraw(v, s->size, s->frame);
@@ -337,7 +337,7 @@ namespace cast
 		{
 			for (int k = 3; k != 0; k--)
 			{
-				TrailNode *t = (TrailNode *)AddTaskToQueue(QUEUE, ORIG_Trail);
+				TrailNode *t = (TrailNode *)AddTaskToQueue(QUEUE(), us(ORIG_Trail));
 				if (!t) continue;
 				t->left = (int16_t)(CrtRand() % 3 + 4);
 				*(uint32_t *)&t->pos[0] = *(const uint32_t *)&v[0];
@@ -356,7 +356,7 @@ namespace cast
 	static uint32_t __cdecl TrailTask(TaskNode *n)
 	{
 		TrailNode *t = (TrailNode *)n;
-		FX_HELD(held_note_draw(ORIG_Trail, t);)
+		FX_HELD(held_note_draw(us(ORIG_Trail), t);)
 		SpriteDraw(t->pos, t->size, (int16_t)(9 - t->left));
 		FX_HELD(held_note_drawn(t);)
 		if (Paused()) return 0;
@@ -366,7 +366,7 @@ namespace cast
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
-		FX_HELD(held_note_draw(ORIG_Glow, g);)
+		FX_HELD(held_note_draw(us(ORIG_Glow), g);)
 		ModelMatrix(0, g->pos, g->scale, 0x1000);
 		uint8_t *h = AllocHeader(0x58);
 		GlowHeader(h, g);
@@ -385,7 +385,7 @@ namespace cast
 			r->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_Ring, r);)
+		FX_HELD(held_note_draw(us(ORIG_Ring), r);)
 		ModelMatrix(r->angle, r->pos, r->scale_xz, r->scale_y);
 		uint8_t *h = AllocHeader(0x58);
 		RingHeader(h, r);

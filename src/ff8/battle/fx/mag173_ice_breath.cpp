@@ -32,22 +32,22 @@ namespace ib173
 	static inline uint32_t &U32(uint32_t p, int32_t o) { return F<uint32_t>(p, o); }
 	static inline uint8_t &U8(uint32_t p, int32_t o) { return F<uint8_t>(p, o); }
 
-	inline int32_t &FloorLength() { return var<int32_t>(0x2397278); }
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23972D0; }
-	inline TaskQueue *FxQueue() { return (TaskQueue *)0x2397C40; }
-	inline TaskQueue *PlayerQueue() { return (TaskQueue *)0x239A8D0; }
+	inline int32_t &FloorLength() { return var<int32_t>(us(0x2397278)); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)us(0x23972D0); }
+	inline TaskQueue *FxQueue() { return (TaskQueue *)us(0x2397C40); }
+	inline TaskQueue *PlayerQueue() { return (TaskQueue *)us(0x239A8D0); }
 	static const uint32_t CENTRE = 0x2398A60;
 	static const uint32_t DIR = 0x2398A68;
 	static const uint32_t SWEPT = 0x2398A80;
 	static const uint32_t MID = 0x2398A90;
 	static const uint32_t ANCHOR = 0x2398AA0;
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2398A78); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x2398A98); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x239A8C8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x239A8CC); }
-	inline uint32_t OT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-	inline uint32_t Ent(int32_t slot) { return 0x1D972C0 + (uint32_t)(slot * 0x9C); }
-	inline bool PlayerPaused() { return (var<uint8_t>(0x1D96A9C) & 1) != 0; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2398A78)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x2398A98)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x239A8C8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x239A8CC)); }
+	inline uint32_t OT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t Ent(int32_t slot) { return us(0x1D972C0) + (uint32_t)(slot * 0x9C); }
+	inline bool PlayerPaused() { return (var<uint8_t>(us(0x1D96A9C)) & 1) != 0; }
 
 	static const uint32_t POOL = 0x23972E0, POOL_END = 0x2397C40;
 
@@ -72,41 +72,41 @@ namespace ib173
 	static const uint32_t PUFF_COLOURS = 0xD61DB0;
 	static const uint32_t TRAIL_MESHES = 0xD61DF0;
 	static const uint32_t TRAIL_STATES = 0xD61E04;
-	static const void *const SOUND_Start = (const void *)0xD61D84;
-	static const void *const SOUND_Blast = (const void *)0xD61D88;
+	static const void *SOUND_Start() { return (const void *)us(0xD61D84); }
+	static const void *SOUND_Blast() { return (const void *)us(0xD61D88); }
 
-	inline int32_t GetEffectSpawnPosition(uint32_t entity, int32_t bone, int32_t flag, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(0x502170)(entity, bone, flag, out); }
-	inline void CalculateCenterPosition(uint32_t mask, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x5020A0)(mask, out); }
-	inline int32_t NormalizeVectorToFixedPoint(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BC50)(in, out); }
-	inline int32_t VectorNormalS16(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void MatrixMulVector(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(m, in, out); }
-	inline void MatrixMultiply3(uint32_t a, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56C220)(a, b); }
-	inline void Matrix3x3MultiplyPSX(uint32_t a, uint32_t b, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C090)(a, b, out); }
-	inline void TextureRestore(uint32_t tex, uint32_t done) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x508630)(tex, done); }
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012Split(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteStoreOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
+	inline int32_t GetEffectSpawnPosition(uint32_t entity, int32_t bone, int32_t flag, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(us(0x502170))(entity, bone, flag, out); }
+	inline void CalculateCenterPosition(uint32_t mask, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x5020A0))(mask, out); }
+	inline int32_t NormalizeVectorToFixedPoint(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BC50))(in, out); }
+	inline int32_t VectorNormalS16(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(in, out); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void MatrixMulVector(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56C4F0))(m, in, out); }
+	inline void MatrixMultiply3(uint32_t a, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x56C220))(a, b); }
+	inline void Matrix3x3MultiplyPSX(uint32_t a, uint32_t b, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56C090))(a, b, out); }
+	inline void TextureRestore(uint32_t tex, uint32_t done) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x508630))(tex, done); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012Split(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteStoreOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
+	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E370))(a, b, c); }
 
 	static uint32_t PoolFree()
 	{
-		uint32_t e = POOL;
+		uint32_t e = us(POOL);
 		int32_t i = 0;
 		while (S32(e, 0) != 0)
 		{
 			e += 0x18;
 			i++;
-			if (e >= POOL_END) return 0;
+			if (e >= us(POOL_END)) return 0;
 		}
 		return i < 100 ? e : 0;
 	}
@@ -145,7 +145,7 @@ namespace ib173
 	{
 		const uint16_t frame = U16(e, 4);
 		S16(h, 4) = (int16_t)frame;
-		U32(h, 0x1C) = U32(PUFF_COLOURS + (uint32_t)frame * 4, 0);
+		U32(h, 0x1C) = U32(us(PUFF_COLOURS) + (uint32_t)frame * 4, 0);
 		const int16_t size = S16(e, 6);
 		TransformCameraByShadowRotation((const void *)(e + 8), size, -(size >> 4));
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
@@ -211,12 +211,12 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		const uint32_t w = (uint32_t)FieldAlloc(0x40);
-		U32(w, 8) = U32(ANCHOR, 0);
-		U32(h, 0) = SEQ_Swirl;
+		U32(w, 8) = U32(us(ANCHOR), 0);
+		U32(h, 0) = us(SEQ_Swirl);
 		S16(h, 0x24) = 0;
-		U32(w, 0xC) = U32(ANCHOR, 4);
-		FX_HELD(held_note_pool(ORIG_Swirl, n, h);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		U32(w, 0xC) = U32(us(ANCHOR), 4);
+		FX_HELD(held_note_pool(us(ORIG_Swirl), n, h);)
+		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 1)) continue;
 			SwirlDraw(h, w, e);
@@ -251,7 +251,7 @@ namespace ib173
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		if (S16(n, 0xC) < 0x24) return 0;
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 			if (U8(e, 0) & 1) U32(e, 0) = 0;
 		return TASK_END;
 	}
@@ -275,7 +275,7 @@ namespace ib173
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Cone;
+		U32(h, 0) = us(MODEL_Cone);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = cue.flags;
 		if (cue.flags == 0xF3) S32(h, 0xC) = cue.fade;
@@ -301,7 +301,7 @@ namespace ib173
 			S16(n, 0xE) = (int16_t)(delay - 1);
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Cone, n);)
+		FX_HELD(held_note_node(us(ORIG_Cone), n);)
 		ConeDraw(n, ConeCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		ConeMove(n);
@@ -313,7 +313,7 @@ namespace ib173
 		const int16_t s = S16(n, 0x1C);
 		TransformCameraByShadowRotation((const void *)anchor, s, -(s >> 3));
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
-		U32(h, 0) = MODEL_Glow;
+		U32(h, 0) = us(MODEL_Glow);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = cue.flags;
 		if (cue.flags == 0xF3) S32(h, 0xC) = cue.fade;
@@ -337,8 +337,8 @@ namespace ib173
 	static uint32_t __cdecl GlowTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(ORIG_Glow, n);)
-		GlowDraw(n, ANCHOR, GlowCue(S16(n, 0xC)));
+		FX_HELD(held_note_node(us(ORIG_Glow), n);)
+		GlowDraw(n, us(ANCHOR), GlowCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		GlowMove(n);
 		return S16(n, 0xC) >= 0x24 ? TASK_END : 0;
@@ -349,10 +349,10 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		int32_t live = 0;
-		U32(h, 0) = SEQ_Puff;
+		U32(h, 0) = us(SEQ_Puff);
 		S16(h, 0x24) = 4;
-		FX_HELD(held_note_pool(ORIG_Puffs, n, h);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_Puffs), n, h);)
+		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 2)) continue;
 			PuffDraw(h, e);
@@ -376,7 +376,7 @@ namespace ib173
 			S16(n, 0x18) = (int16_t)(S16(n, 0x1A) + a);
 			Mat4x3 m;
 			BuildRotationMatrixFromAngles(angles, &m);
-			TransformVectorBy3x3Matrix(&m, (const int32_t *)DIR, (int32_t *)SWEPT);
+			TransformVectorBy3x3Matrix(&m, (const int32_t *)us(DIR), (int32_t *)us(SWEPT));
 			for (int k = 0; k < 2; k++)
 			{
 				const uint32_t e = PoolFree();
@@ -384,20 +384,20 @@ namespace ib173
 				U32(e, 0) = 2;
 				S16(e, 4) = 0;
 				S16(e, 6) = (int16_t)(CrtRand() % 0x600 + 0xA00);
-				U32(e, 8) = U32(ANCHOR, 0);
-				U32(e, 0xC) = U32(ANCHOR, 4);
+				U32(e, 8) = U32(us(ANCHOR), 0);
+				U32(e, 0xC) = U32(us(ANCHOR), 4);
 				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % 200 - 100));
 				const int32_t ry = CrtRand() % 200;
 				S16(e, 0xA) = (int16_t)(S16(e, 0xA) + (int16_t)(ry - (int16_t)(S16(n, 0xC) << 2)));
 				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % 200 - 100));
 				const int32_t speed = CrtRand() % 0x96 + 0x122;
 				const int32_t jx = CrtRand() % 20;
-				S16(e, 0x10) = (int16_t)(jx + (mul32(S32(SWEPT, 0), speed) >> 12) - 10);
+				S16(e, 0x10) = (int16_t)(jx + (mul32(S32(us(SWEPT), 0), speed) >> 12) - 10);
 				const int32_t up = CrtRand() % 0x78;
 				const int32_t jy = CrtRand() % 20;
-				S16(e, 0x12) = (int16_t)(up + jy + (mul32(S32(SWEPT, 4), speed) >> 12) - 10);
+				S16(e, 0x12) = (int16_t)(up + jy + (mul32(S32(us(SWEPT), 4), speed) >> 12) - 10);
 				const int32_t jz = CrtRand() % 20;
-				S16(e, 0x14) = (int16_t)(jz + (mul32(S32(SWEPT, 8), speed) >> 12) - 10);
+				S16(e, 0x14) = (int16_t)(jz + (mul32(S32(us(SWEPT), 8), speed) >> 12) - 10);
 			}
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -410,7 +410,7 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		const uint32_t w = (uint32_t)FieldAlloc(0x88);
-		U32(h, 0) = SEQ_Shard;
+		U32(h, 0) = us(SEQ_Shard);
 		S16(h, 0x24) = 8;
 		int32_t live = 0;
 		S32(w, 0x58) = -0x1000;
@@ -420,8 +420,8 @@ namespace ib173
 		S16(w, 2) = 0;
 		S16(w, 4) = 0;
 		BuildRotationMatrixFromAngles((const int16_t *)w, (Mat4x3 *)(w + 8));
-		FX_HELD(held_note_pool(ORIG_Shards, n, h);)
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_Shards), n, h);)
+		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 4)) continue;
 			ShardDraw(h, w, e);
@@ -448,8 +448,8 @@ namespace ib173
 				U32(e, 0) = 4;
 				S16(e, 4) = 0;
 				S16(e, 6) = (int16_t)(CrtRand() % 0x1000 + 0x1000);
-				U32(e, 8) = U32(MID, 0);
-				U32(e, 0xC) = U32(MID, 4);
+				U32(e, 8) = U32(us(MID), 0);
+				U32(e, 0xC) = U32(us(MID), 4);
 				S16(e, 8) = (int16_t)(S16(e, 8) + (int16_t)(CrtRand() % 0x1518 - 0xA8C));
 				S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(CrtRand() % 0xA8C - 0x546));
 				S16(e, 0xE) = (int16_t)(CrtRand() % 0x46 + 0x1E);
@@ -515,7 +515,7 @@ namespace ib173
 	static void TrailInitStates(uint32_t h)
 	{
 		const uint32_t mesh = U32(h, 0);
-		U32(h, 0x28) = U32(TRAIL_STATES + (uint32_t)S32(h, 0x24) * 4, 0);
+		U32(h, 0x28) = U32(us(TRAIL_STATES) + (uint32_t)S32(h, 0x24) * 4, 0);
 		U32(h, 4) = mesh + 8;
 		U32(h, 0x2C) = U32(mesh, 0) + mesh + 0x18;
 		TrailBuildStates(h, mesh + 8, FloorLength());
@@ -666,7 +666,7 @@ namespace ib173
 		U32(h, 0x2C) = U32(mesh, 0) + mesh;
 		GteSetFarColour(U8(h, 8), U8(h, 9), U8(h, 0xA));
 		U32(h, 0x2C) = U32(h, 0x2C) + 0x18;
-		U32(h, 0x28) = U32(TRAIL_STATES + (uint32_t)S32(h, 0x24) * 4, 0);
+		U32(h, 0x28) = U32(us(TRAIL_STATES) + (uint32_t)S32(h, 0x24) * 4, 0);
 		const uint32_t r = fly ? TrailFlyPolys(h, ot, mode, cursor) : TrailGrowPolys(h, ot, mode, cursor);
 		S32(h, 0x24) = cursor != r ? 1 : 0;
 		return r;
@@ -687,7 +687,7 @@ namespace ib173
 		const uint32_t h = (uint32_t)FieldAlloc(0xAC);
 		S32(h, 0x24) = S16(n, 0xE);
 		U32(h, 0x1C) = 0x30;
-		U32(h, 0) = U32(TRAIL_MESHES + (uint32_t)S16(n, 0xE) * 4, 0);
+		U32(h, 0) = U32(us(TRAIL_MESHES) + (uint32_t)S16(n, 0xE) * 4, 0);
 		U32(h, 8) = 0;
 		ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
 		const int16_t c = S16(n, 0xC);
@@ -897,7 +897,7 @@ namespace ib173
 
 	static void CrystalBlock(uint32_t n, uint32_t blk)
 	{
-		U32(blk, 8) = CRYSTAL_FLAGS;
+		U32(blk, 8) = us(CRYSTAL_FLAGS);
 		U32(blk, 0) = U32(n, 0x10);
 		U32(blk, 0xC) = TexBase() + 0x1C700;
 		U32(blk, 4) = U32(n, 0x14);
@@ -935,17 +935,17 @@ namespace ib173
 			Mat4x3 m;
 			BuildRotationMatrixFromAngles(angles, &m);
 			int32_t d[3];
-			TransformVectorBy3x3Matrix(&m, (const int32_t *)SWEPT, d);
+			TransformVectorBy3x3Matrix(&m, (const int32_t *)us(SWEPT), d);
 			const int32_t r = CrtRand() % 0x1000 + 0x300;
 			const int32_t dist = shl32(mul32(r, FloorLength()), 1) >> 12;
-			const uint32_t t = (uint32_t)AddTaskToQueue(PlayerQueue(), ORIG_Crystal);
-			DecodeLayout(LAYOUT_Crystal, t + 0x1C, 0x40);
+			const uint32_t t = (uint32_t)AddTaskToQueue(PlayerQueue(), us(ORIG_Crystal));
+			DecodeLayout(us(LAYOUT_Crystal), t + 0x1C, 0x40);
 			const int32_t rx = CrtRand() % 0x320;
-			S16(t, 0x10) = (int16_t)((mul32(d[0], dist) >> 12) + (int32_t)(U32(ANCHOR, 0) + (uint32_t)rx) - 0x190);
+			S16(t, 0x10) = (int16_t)((mul32(d[0], dist) >> 12) + (int32_t)(U32(us(ANCHOR), 0) + (uint32_t)rx) - 0x190);
 			const int32_t ry = CrtRand() % 0x320;
-			S16(t, 0x12) = (int16_t)((int16_t)(ry + (mul32(d[1], dist) >> 12)) + S16(ANCHOR, 2) - 0x190);
+			S16(t, 0x12) = (int16_t)((int16_t)(ry + (mul32(d[1], dist) >> 12)) + S16(us(ANCHOR), 2) - 0x190);
 			const int32_t rz = CrtRand() % 0x320;
-			S16(t, 0x14) = (int16_t)((mul32(d[2], dist) >> 12) + (int32_t)(U32(ANCHOR, 4) + (uint32_t)rz) - 0x190);
+			S16(t, 0x14) = (int16_t)((mul32(d[2], dist) >> 12) + (int32_t)(U32(us(ANCHOR), 4) + (uint32_t)rz) - 0x190);
 			S16(t, 0x1A) = (int16_t)(CrtRand() % 0x400);
 			S16(t, 0x18) = (int16_t)(CrtRand() % 0xA00 + 0x600);
 		}
@@ -969,58 +969,58 @@ namespace ib173
 	static uint32_t __cdecl DirectorTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		ComputeAnchor(ANCHOR);
-		const int32_t ax = S16(ANCHOR, 0), az = S16(ANCHOR, 4);
-		S16(MID, 2) = 0;
-		S16(MID, 0) = (int16_t)((S16(CENTRE, 0) + ax) / 2);
-		S32(DIR, 4) = 0;
-		S16(MID, 4) = (int16_t)((S16(CENTRE, 4) + az) / 2);
-		S32(DIR, 0) = S16(MID, 0) - ax;
-		S32(DIR, 8) = S16(MID, 4) - az;
-		FloorLength() = Sqrt(NormalizeVectorToFixedPoint(DIR, DIR));
+		ComputeAnchor(us(ANCHOR));
+		const int32_t ax = S16(us(ANCHOR), 0), az = S16(us(ANCHOR), 4);
+		S16(us(MID), 2) = 0;
+		S16(us(MID), 0) = (int16_t)((S16(us(CENTRE), 0) + ax) / 2);
+		S32(us(DIR), 4) = 0;
+		S16(us(MID), 4) = (int16_t)((S16(us(CENTRE), 4) + az) / 2);
+		S32(us(DIR), 0) = S16(us(MID), 0) - ax;
+		S32(us(DIR), 8) = S16(us(MID), 4) - az;
+		FloorLength() = Sqrt(NormalizeVectorToFixedPoint(us(DIR), us(DIR)));
 		if (DrawOnly()) return 0;
 		if (S16(n, 0xC) == 1)
 		{
-			CalculateCenterPosition(U16((uint32_t)Ctx(), 2), CENTRE);
+			CalculateCenterPosition(U16((uint32_t)Ctx(), 2), us(CENTRE));
 			InitTaskQueuePool(PlayerQueue(), (void *)(TexBase() + 0x18000), 0x11C, 0x40);
 		}
 		if (S16(n, 0xC) == 2)
 		{
-			TaskNode *t = AddTaskToQueue(FxQueue(), ORIG_Swirl);
+			TaskNode *t = AddTaskToQueue(FxQueue(), us(ORIG_Swirl));
 			S16((uint32_t)t, 0xC) = 0;
 		}
 		if (S16(n, 0xC) == 0xE)
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Cone);
-				S16(t, 0xE) = S16(CONE_DELAYS + (uint32_t)k * 4, 0);
-				U32(t, 0x10) = U32(ANCHOR, 0);
-				U32(t, 0x14) = U32(ANCHOR, 4);
+				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), us(ORIG_Cone));
+				S16(t, 0xE) = S16(us(CONE_DELAYS) + (uint32_t)k * 4, 0);
+				U32(t, 0x10) = U32(us(ANCHOR), 0);
+				U32(t, 0x14) = U32(us(ANCHOR), 4);
 				S16(t, 0xC) = 0;
 				S16(t, 0x1C) = 0x1400;
 				S16(t, 0x1E) = 0x16D;
 				S16(t, 0x18) = S16(Ent(CasterSlot()), 0xE);
-				S16(t, 0x1A) = S16(CONE_ANGLES + (uint32_t)k * 4, 0);
+				S16(t, 0x1A) = S16(us(CONE_ANGLES) + (uint32_t)k * 4, 0);
 			}
 		}
 		if (S16(n, 0xC) == 8)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Glow);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), us(ORIG_Glow));
 			S16(t, 0xC) = 0;
 			S16(t, 0x1C) = 0x280;
 			S16(t, 0x1E) = 0xA0;
 		}
 		if (S16(n, 0xC) == 0x25)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Puffs);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), us(ORIG_Puffs));
 			S16(t, 0xC) = 0;
 			S16(t, 0x18) = 0x200;
 			S16(t, 0x1A) = -0x22;
 		}
 		if (S16(n, 0xC) == 0x26)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Spawner);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), us(ORIG_Spawner));
 			S16(t, 0xC) = 0;
 			S16(t, 0x1A) = -0x10;
 			S16(t, 0x18) = 0x1A0;
@@ -1030,15 +1030,15 @@ namespace ib173
 			const uint32_t h = (uint32_t)FieldAlloc(0xAC);
 			for (int k = 0; k < 5; k++)
 			{
-				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Trail);
-				U32(t, 0x10) = U32(ANCHOR, 0);
-				U32(t, 0x14) = U32(ANCHOR, 4);
+				const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), us(ORIG_Trail));
+				U32(t, 0x10) = U32(us(ANCHOR), 0);
+				U32(t, 0x14) = U32(us(ANCHOR), 4);
 				S16(t, 0xC) = 0;
 				S16(t, 0xE) = (int16_t)k;
 				S16(t, 0x12) = 0;
 				S16(t, 0x1C) = 0x1000;
 				const int16_t ry = S16(Ent(CasterSlot()), 0xE);
-				U32(h, 0) = U32(TRAIL_MESHES + (uint32_t)k * 4, 0);
+				U32(h, 0) = U32(us(TRAIL_MESHES) + (uint32_t)k * 4, 0);
 				S32(h, 0x24) = k;
 				S16(t, 0x18) = (int16_t)((ry - 0x800) & 0xFFF);
 				TrailInitStates(h);
@@ -1047,10 +1047,10 @@ namespace ib173
 		}
 		if (S16(n, 0xC) == 0x4A)
 		{
-			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), ORIG_Shards);
-			U32(t, 0x10) = U32(ANCHOR, 0);
+			const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), us(ORIG_Shards));
+			U32(t, 0x10) = U32(us(ANCHOR), 0);
 			S16(t, 0xC) = 0;
-			U32(t, 0x14) = U32(ANCHOR, 4);
+			U32(t, 0x14) = U32(us(ANCHOR), 4);
 		}
 		if (S16(n, 0xC) == 0x55)
 		{
@@ -1060,8 +1060,8 @@ namespace ib173
 		const int16_t c = S16(n, 0xC);
 		if (c <= 0x10) SetScreenFlash((uint32_t)(c * 0xC0), 0x502020);
 		else if (c >= 0x57) SetScreenFlash((uint32_t)((0x5F - c) * 0x180), 0x502020);
-		if (S16(n, 0xC) == 1) BdPlaySE(SOUND_Start, 0, 0x80);
-		if (S16(n, 0xC) == 0x24) BdPlaySE(SOUND_Blast, 0, 0x80);
+		if (S16(n, 0xC) == 1) BdPlaySE(SOUND_Start(), 0, 0x80);
+		if (S16(n, 0xC) == 0x24) BdPlaySE(SOUND_Blast(), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		if (S16(n, 0xC) <= 0x5F) return 0;
 		SetScreenFlash(0, 0);
@@ -1078,7 +1078,7 @@ namespace ib173
 		ExecuteTaskQueue(PlayerQueue());
 		if (!running)
 		{
-			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), us(ORIG_TexRestore));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}

@@ -42,47 +42,47 @@ namespace elvoret018
 	{
 		c.name = "018 Elvoret Death";
 		c.effect_id = 18;
-		c.vm_table = 0x1876D34;
-		c.bone_table = 0x18769A4;
-		c.prim_table = 0x18769EC;
-		c.prim_size = 0x1876ADC;
-		c.spr_table = 0x1876AF0;
-		c.ptype_table = 0x1876B1C;
-		c.pop_table = 0x1876B30;
-		c.draw_table = 0x1876B90;
-		c.attr_16A = 0x1876CFA;
-		c.attr_184 = 0x1876D14;
-		c.attr_186 = 0x1876D16;
-		c.attr_194 = 0x1876D24;
-		c.attr_19C = 0x1876D2C;
-		c.desc = 0x1876870;
-		c.ptr_block = 0x187697C;
-		c.queue = 0x2796EC0;
-		c.file00 = 0x2796ED4;
-		c.file01 = 0x2796ED0;
-		c.tick = 0xB4ABA0;
-		c.load_cb = 0xB53850;
+		c.vm_table = us(0x1876D34);
+		c.bone_table = us(0x18769A4);
+		c.prim_table = us(0x18769EC);
+		c.prim_size = us(0x1876ADC);
+		c.spr_table = us(0x1876AF0);
+		c.ptype_table = us(0x1876B1C);
+		c.pop_table = us(0x1876B30);
+		c.draw_table = us(0x1876B90);
+		c.attr_16A = us(0x1876CFA);
+		c.attr_184 = us(0x1876D14);
+		c.attr_186 = us(0x1876D16);
+		c.attr_194 = us(0x1876D24);
+		c.attr_19C = us(0x1876D2C);
+		c.desc = us(0x1876870);
+		c.ptr_block = us(0x187697C);
+		c.queue = us(0x2796EC0);
+		c.file00 = us(0x2796ED4);
+		c.file01 = us(0x2796ED0);
+		c.tick = us(0xB4ABA0);
+		c.load_cb = us(0xB53850);
 		c.lit_dispatcher = true;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
 	}
-	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(v, out, flag); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	static inline void xl_ProjectVertexGroup_50FD40(uint8_t **stream, uint8_t **out) { x::f<void (__cdecl *)(uint8_t **, uint8_t **)>(0x50FD40)(stream, out); }
+	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
+	static inline void xl_ProjectVertexGroup_50FD40(uint8_t **stream, uint8_t **out) { x::f<void (__cdecl *)(uint8_t **, uint8_t **)>(us(0x50FD40))(stream, out); }
 	static inline int32_t div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	inline int32_t &KEY70() { return MEM<int32_t>(0x2796EE8); }
-	inline int32_t &KEY74() { return MEM<int32_t>(0x2796EEC); }
-	inline int32_t &KEY78() { return MEM<int32_t>(0x2796EF0); }
-	inline int32_t &KEY7C() { return MEM<int32_t>(0x2796EF4); }
+	inline int32_t &KEY70() { return MEM<int32_t>(us(0x2796EE8)); }
+	inline int32_t &KEY74() { return MEM<int32_t>(us(0x2796EEC)); }
+	inline int32_t &KEY78() { return MEM<int32_t>(us(0x2796EF0)); }
+	inline int32_t &KEY7C() { return MEM<int32_t>(us(0x2796EF4)); }
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -440,10 +440,10 @@ namespace elvoret018
 
 	static void InsertPrim_B4DDD0(int32_t z, void *prim);
 
-	static inline void xl_Cross_56BBF0(const void *a, const void *b, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56BBF0)(a, b, out); }
-	static inline void xl_Normalize_56BD20(const void *in, void *out) { x::f<void (__cdecl *)(const void *, void *)>(0x56BD20)(in, out); }
-	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56CB30)(s0, s1, s2); }
-	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56CA30)(n, col, out); }
+	static inline void xl_Cross_56BBF0(const void *a, const void *b, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56BBF0))(a, b, out); }
+	static inline void xl_Normalize_56BD20(const void *in, void *out) { x::f<void (__cdecl *)(const void *, void *)>(us(0x56BD20))(in, out); }
+	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56CB30))(s0, s1, s2); }
+	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(n, col, out); }
 
 	static void PolygonValues_B4D5F0(uint8_t *hdr, uint8_t *out)
 	{
@@ -551,9 +551,9 @@ namespace elvoret018
 					x::GteWriteData((int32_t)(((uint32_t)U16(s, 2) << 16) | U16(s, 0)), 0);
 					x::GteWriteData((int32_t)U16(s, 4), 1);
 					x::GteMVMVA_RotV0Tr();
-					U16(o, 0) = MEM<uint16_t>(0x1CA8A74);
-					U16(o, 2) = (uint16_t)MEM<uint32_t>(0x1CA8A78);
-					U16(o, 4) = (uint16_t)MEM<uint32_t>(0x1CA8A7C);
+					U16(o, 0) = MEM<uint16_t>(us(0x1CA8A74));
+					U16(o, 2) = (uint16_t)MEM<uint32_t>(us(0x1CA8A78));
+					U16(o, 4) = (uint16_t)MEM<uint32_t>(us(0x1CA8A7C));
 					o += 8;
 					s += 6;
 				}
@@ -877,9 +877,9 @@ namespace elvoret018
 		uint8_t *bones = PTR(blk, 0x30) + 0x10;
 		uint8_t *tab = PTR(blk, 0x34) + 4;
 		const int32_t nobj = S32(tab, -4);
-		if (MEM<uint8_t>(0xB8BA03) != 0xFF)
+		if (MEM<uint8_t>(us(0xB8BA03)) != 0xFF)
 		{
-			U32(blk, 0x5C) = MEM<uint32_t>(0xB8BA00);
+			U32(blk, 0x5C) = MEM<uint32_t>(us(0xB8BA00));
 			U8(blk, 0x5F) = 0;
 		}
 		x::GteSetBackColor3(U8(blk, 0x5C), U8(blk, 0x5D), U8(blk, 0x5E));

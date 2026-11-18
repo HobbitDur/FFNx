@@ -43,42 +43,42 @@ namespace apocalypse221
 	{
 		c.name = "221 Apocalypse";
 		c.effect_id = 221;
-		c.vm_table = 0x186D7B4;
-		c.bone_table = 0x186D3A4;
-		c.prim_table = 0x186D3EC;
-		c.prim_size = 0x186D4DC;
-		c.spr_table = 0x186D570;
-		c.ptype_table = 0x186D59C;
-		c.pop_table = 0x186D5B0;
-		c.draw_table = 0x186D610;
-		c.attr_16A = 0x186D77A;
-		c.attr_184 = 0x186D794;
-		c.attr_186 = 0x186D796;
-		c.attr_194 = 0x186D7A4;
-		c.attr_19C = 0x186D7AC;
-		c.desc = 0x186D234;
-		c.ptr_block = 0x186D37C;
-		c.queue = 0x2796BE0;
-		c.file00 = 0x2796C10;
-		c.file01 = 0x2796C14;
-		c.tick = 0xAA5BD0;
-		c.load_cb = 0xAAEA40;
+		c.vm_table = us(0x186D7B4);
+		c.bone_table = us(0x186D3A4);
+		c.prim_table = us(0x186D3EC);
+		c.prim_size = us(0x186D4DC);
+		c.spr_table = us(0x186D570);
+		c.ptype_table = us(0x186D59C);
+		c.pop_table = us(0x186D5B0);
+		c.draw_table = us(0x186D610);
+		c.attr_16A = us(0x186D77A);
+		c.attr_184 = us(0x186D794);
+		c.attr_186 = us(0x186D796);
+		c.attr_194 = us(0x186D7A4);
+		c.attr_19C = us(0x186D7AC);
+		c.desc = us(0x186D234);
+		c.ptr_block = us(0x186D37C);
+		c.queue = us(0x2796BE0);
+		c.file00 = us(0x2796C10);
+		c.file01 = us(0x2796C14);
+		c.tick = us(0xAA5BD0);
+		c.load_cb = us(0xAAEA40);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static inline uint8_t RowV_186D4FC(int32_t i) { return MEM<uint8_t>(0x186D4FC + i); }
-	static inline uint32_t PieceColour_186D510(int32_t i) { return MEM<uint32_t>(0x186D510 + 4 * i); }
+	static inline uint8_t RowV_186D4FC(int32_t i) { return MEM<uint8_t>(us(0x186D4FC) + i); }
+	static inline uint32_t PieceColour_186D510(int32_t i) { return MEM<uint32_t>(us(0x186D510) + 4 * i); }
 
-	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(0x1CA8A10 + 4 * reg); }
-	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x56CC50)(a, b, h); }
+	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
+	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CC50))(a, b, h); }
 	static inline int32_t xl_RotTransPersNormalColor_56CAA0(const void *v, const void *n, const void *c, void *sxy, void *rgb, void *flag)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(0x56CAA0)(v, n, c, sxy, rgb, flag);
+		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(us(0x56CAA0))(v, n, c, sxy, rgb, flag);
 	}
-	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56CA30)(n, col, out); }
-	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(v, out, flag); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
+	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(n, col, out); }
+	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
 	static inline int32_t div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
@@ -362,7 +362,7 @@ namespace apocalypse221
 			x::GteWriteData((int32_t)U16(v, 4), 1);
 			x::GteRTPS();
 			x::GteReadSXY2(o);
-			U16(o, 4) = MEM<uint16_t>(0x1CA8A5C);
+			U16(o, 4) = MEM<uint16_t>(us(0x1CA8A5C));
 		}
 		h_B29450((int32_t)U32(CUR(), 0xCC));
 		const uint8_t *tri = obj + U32(obj, 8) + 4;
@@ -427,7 +427,7 @@ namespace apocalypse221
 			x::GteLoadV012(m, ws + 0xC8, ws + 0xD0);
 			x::GteRTPT();
 			x::GteReadSXY012(pk + 8, pk + 0x10, pk + 0x18);
-			const uint16_t sz = MEM<uint16_t>(0x1CA8A5C);
+			const uint16_t sz = MEM<uint16_t>(us(0x1CA8A5C));
 			U16(m, 0) = sz;
 			xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + (((uint32_t)sz >> 2) & ~3u), pk);
 		}

@@ -25,12 +25,12 @@ namespace aura111
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521974); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2521978); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521994); }
-	inline TaskQueue *QFlames() { return (TaskQueue *)0x2521998; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25219A8; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2521974)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2521978)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2521994)); }
+	inline TaskQueue *QFlames() { return (TaskQueue *)us(0x2521998); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x25219A8); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6CD9C0;
 	static const uint32_t ORIG_TargetTask = 0x6CDB60;
@@ -39,15 +39,15 @@ namespace aura111
 	static const uint32_t MODEL_Flame = 0x12DB818;
 	static const uint32_t SEQ_Glow = 0x12DB75C;
 	static const uint32_t PART_Flags = 0x12E061C;
-	static const void *const SOUND_Aura = (const void *)0x12E0618;
+	static const void *SOUND_Aura() { return (const void *)us(0x12E0618); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -205,7 +205,7 @@ namespace aura111
 
 	static void FlameHeader(uint8_t *h, const FlameNode *f)
 	{
-		*(uint32_t *)h = MODEL_Flame;
+		*(uint32_t *)h = us(MODEL_Flame);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -241,7 +241,7 @@ namespace aura111
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, (int32_t)0xFFFFFF00);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Glow;
+		*(uint32_t *)h = us(SEQ_Glow);
 		*(int16_t *)(h + 4) = (int16_t)e;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -272,7 +272,7 @@ namespace aura111
 			arg.m.t[1] = *(const int16_t *)(t->entity + 0x24);
 			FX_HELD(held_note_play(t, &arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-			arg.flags = PART_Flags;
+			arg.flags = us(PART_Flags);
 			arg.morph = TexBase() + 0xE20;
 			prim::play((prim::Layout *)t->aura, AuraPart, (int)&arg, 0);
 		}
@@ -283,7 +283,7 @@ namespace aura111
 			if (CrtRand() & 1) speed = -speed;
 			for (int k = 0; k < 4; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(QFlames(), ORIG_FlameTask);
+				FlameNode *f = (FlameNode *)AddTaskToQueue(QFlames(), us(ORIG_FlameTask));
 				if (f)
 				{
 					Memset32(&f->counter, 0, 5);
@@ -312,7 +312,7 @@ namespace aura111
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(t->entity, pos);
-			BdPlaySE3D(SOUND_Aura, 0x101, pos);
+			BdPlaySE3D(SOUND_Aura(), 0x101, pos);
 		}
 		if (t->counter == 0x1D) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
 		if (t->counter >= 0x22) return TASK_END;
@@ -357,13 +357,13 @@ namespace aura111
 				if (busy) r->counter = 0;
 				else
 				{
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 					if (t)
 					{
 						Memset32(&t->counter, 0, 0xD5);
 						t->action = (int16_t)(uint16_t)r->action;
 						t->entity = entity;
-						DecodeModelPrimLayout(MODEL_Aura, t->aura, 0x34C);
+						DecodeModelPrimLayout(us(MODEL_Aura), t->aura, 0x34C);
 						r->action++;
 					}
 				}

@@ -43,33 +43,33 @@ namespace eff331
 	{
 		c.name = "331 (attack 313)";
 		c.effect_id = 331;
-		c.vm_table = 0x1852A98;
-		c.bone_table = 0x1852708;
-		c.prim_table = 0x1852750;
-		c.prim_size = 0x1852840;
-		c.spr_table = 0x1852854;
-		c.ptype_table = 0x1852880;
-		c.pop_table = 0x1852894;
-		c.draw_table = 0x18528F4;
-		c.attr_16A = 0x1852A5E;
-		c.attr_184 = 0x1852A78;
-		c.attr_186 = 0x1852A7A;
-		c.attr_194 = 0x1852A88;
-		c.attr_19C = 0x1852A90;
-		c.desc = 0x185260C;
-		c.ptr_block = 0x18526E0;
-		c.queue = 0x2795BE0;
-		c.file00 = 0x2795BF4;
-		c.file01 = 0x2795BF0;
-		c.tick = 0x8E0610;
-		c.load_cb = 0x8E55D0;
+		c.vm_table = us(0x1852A98);
+		c.bone_table = us(0x1852708);
+		c.prim_table = us(0x1852750);
+		c.prim_size = us(0x1852840);
+		c.spr_table = us(0x1852854);
+		c.ptype_table = us(0x1852880);
+		c.pop_table = us(0x1852894);
+		c.draw_table = us(0x18528F4);
+		c.attr_16A = us(0x1852A5E);
+		c.attr_184 = us(0x1852A78);
+		c.attr_186 = us(0x1852A7A);
+		c.attr_194 = us(0x1852A88);
+		c.attr_19C = us(0x1852A90);
+		c.desc = us(0x185260C);
+		c.ptr_block = us(0x18526E0);
+		c.queue = us(0x2795BE0);
+		c.file00 = us(0x2795BF4);
+		c.file01 = us(0x2795BF0);
+		c.tick = us(0x8E0610);
+		c.load_cb = us(0x8E55D0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }

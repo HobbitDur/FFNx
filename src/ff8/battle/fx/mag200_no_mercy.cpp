@@ -25,13 +25,13 @@ namespace mercy200
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Context() { return var<CastContext *>(0x24FBCC8); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x24FBCE0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x24FBD60); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24FBD64); }
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x24F8D80; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x24F9990; }
+	inline CastContext *&Context() { return var<CastContext *>(us(0x24FBCC8)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x24FBCE0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x24FBD60)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24FBD64)); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(us(0x1D8E054)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x24F8D80); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x24F9990); }
 	static const uint32_t POOL = 0x24F8DB0, POOL_END = 0x24F9710;
 	static const uint32_t PTS_BASE = 0x24F7A68, PTS_TIP = 0x24F8D20;
 	static const uint32_t SPL_BASE = 0x24F9730, SPL_TIP = 0x24F9830;
@@ -63,43 +63,43 @@ namespace mercy200
 		MODEL_TRING = 0xE3102C;
 	static const float SPLINE_THREE = 3.0f, SPLINE_SIX = 6.0f;
 
-	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
-	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); }
-	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }
-	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t a, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, a, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteSetFarColorB(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
-	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); }
-	inline void EffSplineSetup(int32_t n, const void *points, void *buf) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, buf); }
-	inline void EffSplineEval(int32_t n, const void *buf, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, const void *, void *, int32_t)>(0x571690)(n, buf, out, t); }
-	inline uint32_t OT0() { return var<uint32_t>(0x1D8E04C); }
+	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(us(0x508500))(); }
+	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(us(0x63E960))(script, frame, entity, q, n); }
+	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(us(0x50A730))(); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, seq); }
+	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(us(0x508480))(id, dst); }
+	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(us(0x505E30))(tim); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t a, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(us(0x502170))(entity, bone, a, out); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteSetFarColorB(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DDA0))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
+	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x64E080))(h, ot, mode, cursor); }
+	inline void EffSplineSetup(int32_t n, const void *points, void *buf) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, buf); }
+	inline void EffSplineEval(int32_t n, const void *buf, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, const void *, void *, int32_t)>(us(0x571690))(n, buf, out, t); }
+	inline uint32_t OT0() { return var<uint32_t>(us(0x1D8E04C)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -192,17 +192,17 @@ namespace mercy200
 
 	template<typename T> static inline T &At(uint32_t base, int32_t off) { return *(T *)(base + off); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	inline PoolE *Entry(int32_t i) { return (PoolE *)(POOL + 0x18 * i); }
-	inline WaveRec *Wave(int32_t i) { return (WaveRec *)(WAVES + 0x250 * i); }
+	inline PoolE *Entry(int32_t i) { return (PoolE *)(us(POOL) + 0x18 * i); }
+	inline WaveRec *Wave(int32_t i) { return (WaveRec *)(us(WAVES) + 0x250 * i); }
 	inline ActionData *Action0() { return Context()->actions; }
 
 	static int32_t FreeSlot()
 	{
 		int32_t i = 0;
-		for (uint32_t a = POOL; *(const uint32_t *)a != 0; i++)
+		for (uint32_t a = us(POOL); *(const uint32_t *)a != 0; i++)
 		{
 			a += 0x18;
-			if (a >= POOL_END) return -1;
+			if (a >= us(POOL_END)) return -1;
 		}
 		return i >= 0x64 ? -1 : i;
 	}
@@ -963,19 +963,19 @@ namespace mercy200
 
 	static void TrailDirections(const uint8_t *sa, const uint8_t *sb)
 	{
-		var<uint32_t>(TIP0) = *(const uint32_t *)sb;
-		var<uint32_t>(TIP0 + 4) = *(const uint32_t *)(sb + 4);
-		int32_t *d = (int32_t *)TRAIL_DIR;
+		var<uint32_t>(us(TIP0)) = *(const uint32_t *)sb;
+		var<uint32_t>(us(TIP0) + 4) = *(const uint32_t *)(sb + 4);
+		int32_t *d = (int32_t *)us(TRAIL_DIR);
 		d[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
 		d[1] = (int32_t)*(const int16_t *)(sb + 2) - *(const int16_t *)(sb + 0xA);
 		d[2] = (int32_t)*(const int16_t *)(sb + 4) - *(const int16_t *)(sb + 0xC);
 		Normalize(d, d);
-		var<uint32_t>(BASE0) = *(const uint32_t *)sa;
-		var<uint32_t>(BASE0 + 4) = *(const uint32_t *)(sa + 4);
-		int32_t *b = (int32_t *)BLADE_DIR;
-		b[0] = (int32_t)var<int16_t>(TIP0) - *(const int16_t *)sa;
-		b[1] = (int32_t)var<int16_t>(TIP0 + 2) - *(const int16_t *)(sa + 2);
-		b[2] = (int32_t)var<int16_t>(TIP0 + 4) - *(const int16_t *)(sa + 4);
+		var<uint32_t>(us(BASE0)) = *(const uint32_t *)sa;
+		var<uint32_t>(us(BASE0) + 4) = *(const uint32_t *)(sa + 4);
+		int32_t *b = (int32_t *)us(BLADE_DIR);
+		b[0] = (int32_t)var<int16_t>(us(TIP0)) - *(const int16_t *)sa;
+		b[1] = (int32_t)var<int16_t>(us(TIP0) + 2) - *(const int16_t *)(sa + 2);
+		b[2] = (int32_t)var<int16_t>(us(TIP0) + 4) - *(const int16_t *)(sa + 4);
 		Normalize(b, b);
 	}
 
@@ -1034,20 +1034,20 @@ namespace mercy200
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 6;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(us(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, TrailWant(c), (uint8_t *)PTS_BASE, (uint8_t *)PTS_TIP);
+		const int32_t cnt = TrailGather((const uint8_t *)us(RING), idx, TrailWant(c), (uint8_t *)us(PTS_BASE), (uint8_t *)us(PTS_TIP));
 		if (cnt > 1)
 		{
-			SplineCurve(cnt, (const int16_t *)PTS_BASE, 0x20, (int16_t *)SPL_BASE);
-			SplineCurve(cnt, (const int16_t *)PTS_TIP, 0x20, (int16_t *)SPL_TIP);
-			TrailDirections((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP);
+			SplineCurve(cnt, (const int16_t *)us(PTS_BASE), 0x20, (int16_t *)us(SPL_BASE));
+			SplineCurve(cnt, (const int16_t *)us(PTS_TIP), 0x20, (int16_t *)us(SPL_TIP));
+			TrailDirections((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP));
 			FX_HELD(held_note_trail(n);)
-			TrailDraw((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP, w);
+			TrailDraw((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -1099,14 +1099,14 @@ namespace mercy200
 			p->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Flame, p);)
+		FX_HELD(held_note_node(us(ORIG_Flame), p);)
 		FlameDraw(p);
 		if (DrawOnly()) return 0;
 		if (p->c == 0)
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				Node24 *e = (Node24 *)AddTaskToQueue(QMain(), ORIG_Ember);
+				Node24 *e = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Ember));
 				e->c = 0;
 				e->e = (int16_t)(CrtRand() % 6 + k);
 				ff8fx::copy<(8)>(&e->w10, &p->w10);
@@ -1118,7 +1118,7 @@ namespace mercy200
 			}
 			for (int k = 0; k < 10; k++)
 			{
-				Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Spark);
+				Node24 *s = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Spark));
 				s->c = (int16_t)(CrtRand() % 4 + 5);
 				s->e = (int16_t)(CrtRand() % 4 + k);
 				ff8fx::copy<(8)>(&s->w10, &p->w10);
@@ -1171,7 +1171,7 @@ namespace mercy200
 			p->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Spark, p);)
+		FX_HELD(held_note_node(us(ORIG_Spark), p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		SparkUpdate(p);
@@ -1208,7 +1208,7 @@ namespace mercy200
 			p->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Ember, p);)
+		FX_HELD(held_note_node(us(ORIG_Ember), p);)
 		EmberDraw(p);
 		if (DrawOnly()) return 0;
 		EmberUpdate(p);
@@ -1223,13 +1223,13 @@ namespace mercy200
 		Node24 *t;
 		if (acts[next].target_count > 1)
 		{
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameMulti);
+			t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_FlameMulti));
 			t->c = 0;
 			t->e = (int16_t)next;
 		}
 		else
 		{
-			t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameSingle);
+			t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_FlameSingle));
 			t->e = (int16_t)next;
 			t->c = 0;
 			t->w20 = (int16_t)(uint16_t)Context()->actions[next].targets[0];
@@ -1246,7 +1246,7 @@ namespace mercy200
 	static void AddFlame(int32_t slot, int32_t spread, const int16_t *pos, int32_t k)
 	{
 		const int32_t half = spread >> 1;
-		Node24 *f = (Node24 *)AddTaskToQueue(QMain(), ORIG_Flame);
+		Node24 *f = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Flame));
 		f->c = 0;
 		f->e = (int16_t)(CrtRand() % 6 + 2 * k);
 		ff8fx::copy<(8)>(&f->w10, pos);
@@ -1298,7 +1298,7 @@ namespace mercy200
 		if (d->w22 == 12) SpawnNextDirector(d);
 		const int32_t slot = d->w20;
 		d->w22++;
-		uint32_t *free_flag = (uint32_t *)TARGET_FREE;
+		uint32_t *free_flag = (uint32_t *)us(TARGET_FREE);
 		if (free_flag[slot] == 0 && d->c == 0) return 0;
 		if (d->c == 0) free_flag[slot] = 0;
 		if (d->c == 1)
@@ -1309,7 +1309,7 @@ namespace mercy200
 			const int32_t half = spread >> 1;
 			for (int32_t k = 0; k < 4; k++)
 			{
-				Node24 *f = (Node24 *)AddTaskToQueue(QMain(), ORIG_Flame);
+				Node24 *f = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_Flame));
 				f->c = 0;
 				f->e = (int16_t)(CrtRand() % 6 + 2 * k);
 				ff8fx::copy<(8)>(&f->w10, pos);
@@ -1331,18 +1331,18 @@ namespace mercy200
 
 	static void AddFlameDirector()
 	{
-		uint32_t *free_flag = (uint32_t *)TARGET_FREE;
+		uint32_t *free_flag = (uint32_t *)us(TARGET_FREE);
 		for (int32_t k = 0; k < 7; k++) free_flag[k] = 1;
 		ActionData *ad = Context()->actions;
 		if (ad->target_count > 1)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameMulti);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_FlameMulti));
 			t->c = 0;
 			t->e = 0;
 			t->w22 = 0;
 			return;
 		}
-		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_FlameSingle);
+		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_FlameSingle));
 		t->c = 0;
 		t->e = 0;
 		t->w22 = 0;
@@ -1393,7 +1393,7 @@ namespace mercy200
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0x18) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
-		*(uint32_t *)h = MODEL_RING;
+		*(uint32_t *)h = us(MODEL_RING);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1411,7 +1411,7 @@ namespace mercy200
 	static uint32_t __cdecl CasterRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_CasterRing, n);)
+		FX_HELD(held_note_node(us(ORIG_CasterRing), n);)
 		CasterRingDraw(n, shl32(n->c, 3), CasterRingFaded(n->c), CasterRingFade(n->c));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1433,7 +1433,7 @@ namespace mercy200
 		Scale3DMatrix(&m, sv);
 		TransformCameraByShadowRotation(&n->w10, scale, -(scale >> 3));
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_FLASH, faded, fade);
+		uint8_t *h = ModelHeader(us(MODEL_FLASH), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1441,7 +1441,7 @@ namespace mercy200
 	static uint32_t __cdecl TipFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_TipFlash, n);)
+		FX_HELD(held_note_node(us(ORIG_TipFlash), n);)
 		TipFlashDraw(n, n->w18, n->w1C, n->c >= 0xA, mul32(n->c - 0xA, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1454,9 +1454,9 @@ namespace mercy200
 
 	static void SlashPoint()
 	{
-		var<int16_t>(POINT) = (int16_t)((mul32(var<int32_t>(BLADE_DIR), 400) >> 12) + var<int32_t>(BASE0));
-		var<int16_t>(POINT + 2) = (int16_t)((int16_t)(mul32(var<int32_t>(BLADE_DIR + 4), 400) >> 12) + var<int16_t>(BASE0 + 2));
-		var<int16_t>(POINT + 4) = (int16_t)((mul32(var<int32_t>(BLADE_DIR + 8), 400) >> 12) + var<int32_t>(BASE0 + 4));
+		var<int16_t>(us(POINT)) = (int16_t)((mul32(var<int32_t>(us(BLADE_DIR)), 400) >> 12) + var<int32_t>(us(BASE0)));
+		var<int16_t>(us(POINT) + 2) = (int16_t)((int16_t)(mul32(var<int32_t>(us(BLADE_DIR) + 4), 400) >> 12) + var<int16_t>(us(BASE0) + 2));
+		var<int16_t>(us(POINT) + 4) = (int16_t)((mul32(var<int32_t>(us(BLADE_DIR) + 8), 400) >> 12) + var<int32_t>(us(BASE0) + 4));
 	}
 
 	static void SlashDraw(const Node24 *n, const int16_t *point, int16_t ax, int16_t az, int16_t scale, bool faded, int32_t fade)
@@ -1466,7 +1466,7 @@ namespace mercy200
 		ang[1] = 0;
 		ang[2] = az;
 		ModelMatrix(&Camera(), ang, point, scale, scale, scale);
-		uint8_t *h = ModelHeader((n->e & 1) ? MODEL_SLASH_B : MODEL_SLASH_A, faded, fade);
+		uint8_t *h = ModelHeader((n->e & 1) ? us(MODEL_SLASH_B) : us(MODEL_SLASH_A), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1475,8 +1475,8 @@ namespace mercy200
 	{
 		Node24 *n = (Node24 *)tn;
 		if (n->e == 0 && n->c >= 0x1E && n->c <= 0x23) SlashPoint();
-		FX_HELD(held_note_node(ORIG_Slash, n);)
-		SlashDraw(n, (const int16_t *)POINT, n->w18, n->w20, n->w1C, n->c < 0xC, 0x1000 - mul32(n->c, 341));
+		FX_HELD(held_note_node(us(ORIG_Slash), n);)
+		SlashDraw(n, (const int16_t *)us(POINT), n->w18, n->w20, n->w1C, n->c < 0xC, 0x1000 - mul32(n->c, 341));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1494,7 +1494,7 @@ namespace mercy200
 		ang[1] = 0;
 		ang[2] = 0;
 		ModelMatrix(cam_frame, ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_FRAME, faded, fade);
+		uint8_t *h = ModelHeader(us(MODEL_FRAME), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1502,8 +1502,8 @@ namespace mercy200
 	static uint32_t __cdecl FrameModelTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_FrameModel, n);)
-		FrameModelDraw((const Mat4x3 *)CAM_FRAME, n, n->w1C, n->c >= 8, shl32(n->c - 8, 9));
+		FX_HELD(held_note_node(us(ORIG_FrameModel), n);)
+		FrameModelDraw((const Mat4x3 *)us(CAM_FRAME), n, n->w1C, n->c >= 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
 		n->w1C = (int16_t)(n->w1C + r);
@@ -1534,7 +1534,7 @@ namespace mercy200
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_WAVERING;
+		*(uint32_t *)h = us(MODEL_WAVERING);
 		*(int32_t *)(h + 0xC) = fade;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -1551,7 +1551,7 @@ namespace mercy200
 			n->w16--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_WaveRing, n);)
+		FX_HELD(held_note_node(us(ORIG_WaveRing), n);)
 		WaveRingDraw(n, n->w18, Wave(n->e)->pt[n->w20], mul32(n->w14 * 3, 0x100));
 		if (DrawOnly()) return 0;
 		int16_t step = n->w22;
@@ -1574,7 +1574,7 @@ namespace mercy200
 		ang[2] = 0;
 		ang[1] = n->w1A;
 		ModelMatrix(&Camera(), ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_FLASH, faded, fade);
+		uint8_t *h = ModelHeader(us(MODEL_FLASH), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1582,7 +1582,7 @@ namespace mercy200
 	static uint32_t __cdecl ImpactFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_ImpactFlash, n);)
+		FX_HELD(held_note_node(us(ORIG_ImpactFlash), n);)
 		ImpactFlashDraw(n, n->w1C, n->c >= 6, shl32(n->c - 6, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1599,7 +1599,7 @@ namespace mercy200
 		ang[1] = ay;
 		ang[2] = 0;
 		ModelMatrix(&Camera(), ang, &n->w10, scale, scale, scale);
-		uint8_t *h = ModelHeader(MODEL_TRING, faded, fade);
+		uint8_t *h = ModelHeader(us(MODEL_TRING), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1607,7 +1607,7 @@ namespace mercy200
 	static uint32_t __cdecl TargetRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(ORIG_TargetRing, n);)
+		FX_HELD(held_note_node(us(ORIG_TargetRing), n);)
 		TargetRingDraw(n, n->w18, n->w1C, n->c >= 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1A;
@@ -1653,7 +1653,7 @@ namespace mercy200
 			h->fade = fade;
 			h->flags = 0xF3;
 		}
-		h->colour = At<uint32_t>(SHARD_COLOURS, 4 * p->a[0]);
+		h->colour = At<uint32_t>(us(SHARD_COLOURS), 4 * p->a[0]);
 		PacketCursor() = RenderModel(h, RenderOT(), 2, PacketCursor());
 	}
 
@@ -1663,16 +1663,16 @@ namespace mercy200
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && n->c <= 0x10) ShardSpawn();
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
-		h->model = MODEL_SHARD;
+		h->model = us(MODEL_SHARD);
 		*(uint32_t *)h->far_rgb = 0;
 		int32_t count = 0;
-		TransformCameraByShadowRotation((const void *)POINT, 0x1000, 0);
+		TransformCameraByShadowRotation((const void *)us(POINT), 0x1000, 0);
 		w->v[2] = 0x1000;
 		w->v[1] = 0x1000;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
-		FX_HELD(held_note_pool(ORIG_TipShards, n, (const uint8_t *)h);)
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_TipShards), n, (const uint8_t *)h);)
+		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->type & 1)) continue;
@@ -1730,8 +1730,8 @@ namespace mercy200
 		d[2] = CrtRand() % 0x2000 - 0x1000;
 		Normalize(d, d);
 		const int32_t dist = CrtRand() % 0x28 + n10 + 0x14;
-		*(uint32_t *)&p->a[0] = var<uint32_t>(POINT);
-		*(uint32_t *)&p->a[2] = var<uint32_t>(POINT + 4);
+		*(uint32_t *)&p->a[0] = var<uint32_t>(us(POINT));
+		*(uint32_t *)&p->a[2] = var<uint32_t>(us(POINT) + 4);
 		p->a[0] = (int16_t)(p->a[0] + (int16_t)(mul32(d[0], dist) >> 12));
 		p->a[1] = (int16_t)(p->a[1] + (int16_t)(mul32(d[1], dist) >> 12));
 		p->a[2] = (int16_t)(p->a[2] + (int16_t)(mul32(d[2], dist) >> 12));
@@ -1757,10 +1757,10 @@ namespace mercy200
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 0x24) = 8;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_SPARKBURST;
+		*(uint32_t *)h = us(SEQ_SPARKBURST);
 		int32_t count = 0;
-		FX_HELD(held_note_pool(ORIG_SparkBurst, n, h);)
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_SparkBurst), n, h);)
+		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (!(p->type & 2)) continue;
@@ -1840,15 +1840,15 @@ namespace mercy200
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		ff8fx::copy<(sizeof(Mat4x3))>(&w->m1, &rec->mat);
-		*(uint32_t *)h = MODEL_WAVETRAIL;
+		*(uint32_t *)h = us(MODEL_WAVETRAIL);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
 		w->m1.t[0] = 0;
 		w->m1.t[1] = 0;
 		w->m1.t[2] = 0;
 		ComposeAffineTransform(&Camera(), &w->m1, &w->m1);
-		FX_HELD(held_note_pool(ORIG_WaveTrail, n, h);)
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		FX_HELD(held_note_pool(us(ORIG_WaveTrail), n, h);)
+		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->type != type) continue;
@@ -1906,11 +1906,11 @@ namespace mercy200
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 0x24) = 8;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_TSPARK;
+		*(uint32_t *)h = us(SEQ_TSPARK);
 		int32_t count = 0;
-		FX_HELD(held_note_pool(ORIG_TargetSparks, n, h);)
+		FX_HELD(held_note_pool(us(ORIG_TargetSparks), n, h);)
 		const int32_t pull = -n->w18;
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->type != type) continue;
@@ -1981,10 +1981,10 @@ namespace mercy200
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
 		SpriteFrame(w);
-		*(uint32_t *)h = SEQ_TBURST;
-		FX_HELD(held_note_pool(ORIG_TargetBurst, n, h);)
+		*(uint32_t *)h = us(SEQ_TBURST);
+		FX_HELD(held_note_pool(us(ORIG_TargetBurst), n, h);)
 		const int32_t pull = -n->w18;
-		for (uint32_t a = POOL; a < POOL_END; a += 0x18)
+		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
 			if (p->type != type) continue;
@@ -2016,14 +2016,14 @@ namespace mercy200
 
 	static void AddTrail()
 	{
-		Node24 *t = AddMain(ORIG_Trail);
+		Node24 *t = AddMain(us(ORIG_Trail));
 		t->c = 0;
-		for (uint32_t a = RING; a < RING_END; a += 0x14) *(uint32_t *)a = 0;
+		for (uint32_t a = us(RING); a < us(RING_END); a += 0x14) *(uint32_t *)a = 0;
 	}
 
 	static void AddCasterRing()
 	{
-		Node24 *t = AddMain(ORIG_CasterRing);
+		Node24 *t = AddMain(us(ORIG_CasterRing));
 		t->c = 0;
 		GetDefaultEffectPosition(Caster(), &t->w10);
 		t->w12 = 0;
@@ -2035,10 +2035,10 @@ namespace mercy200
 	static void AddTipFlash()
 	{
 		SlashPoint();
-		Node24 *t = AddMain(ORIG_TipFlash);
-		*(uint32_t *)&t->w10 = var<uint32_t>(POINT);
+		Node24 *t = AddMain(us(ORIG_TipFlash));
+		*(uint32_t *)&t->w10 = var<uint32_t>(us(POINT));
 		t->c = 0;
-		*(uint32_t *)&t->w14 = var<uint32_t>(POINT + 4);
+		*(uint32_t *)&t->w14 = var<uint32_t>(us(POINT) + 4);
 		t->w18 = RandMask(0x3FF);
 		t->w1A = 0x28;
 		t->w1E = 0x180;
@@ -2049,7 +2049,7 @@ namespace mercy200
 	{
 		for (int16_t k = 0; k < 2; k++)
 		{
-			Node24 *t = AddMain(ORIG_Slash);
+			Node24 *t = AddMain(us(ORIG_Slash));
 			t->c = 0;
 			t->e = k;
 			t->w18 = RandMask(0x7FF);
@@ -2067,7 +2067,7 @@ namespace mercy200
 
 	static void AddFrameModel()
 	{
-		Node24 *t = AddMain(ORIG_FrameModel);
+		Node24 *t = AddMain(us(ORIG_FrameModel));
 		t->c = 0;
 		t->w10 = -310;
 		t->w12 = -200;
@@ -2078,14 +2078,14 @@ namespace mercy200
 
 	static void AddShockWaves()
 	{
-		var<int16_t>(POINT) = -400;
-		var<int16_t>(POINT + 2) = -500;
-		var<int16_t>(POINT + 4) = -500;
-		MatVec((const Mat4x3 *)FRAME, (const int16_t *)POINT, (int16_t *)POINT);
-		const Mat4x3 *fr = (const Mat4x3 *)FRAME;
-		var<int16_t>(POINT) = (int16_t)(var<int16_t>(POINT) + (int16_t)fr->t[0]);
-		var<int16_t>(POINT + 2) = (int16_t)(var<int16_t>(POINT + 2) + (int16_t)fr->t[1]);
-		var<int16_t>(POINT + 4) = (int16_t)(var<int16_t>(POINT + 4) + (int16_t)fr->t[2]);
+		var<int16_t>(us(POINT)) = -400;
+		var<int16_t>(us(POINT) + 2) = -500;
+		var<int16_t>(us(POINT) + 4) = -500;
+		MatVec((const Mat4x3 *)us(FRAME), (const int16_t *)us(POINT), (int16_t *)us(POINT));
+		const Mat4x3 *fr = (const Mat4x3 *)us(FRAME);
+		var<int16_t>(us(POINT)) = (int16_t)(var<int16_t>(us(POINT)) + (int16_t)fr->t[0]);
+		var<int16_t>(us(POINT) + 2) = (int16_t)(var<int16_t>(us(POINT) + 2) + (int16_t)fr->t[1]);
+		var<int16_t>(us(POINT) + 4) = (int16_t)(var<int16_t>(us(POINT) + 4) + (int16_t)fr->t[2]);
 		ActionData *ad = Context()->actions;
 		if (ad->target_count == 0) return;
 		int32_t off = 0;
@@ -2095,11 +2095,11 @@ namespace mercy200
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(ad->targets[off]), pos);
 			int32_t v[3];
-			v[0] = (int32_t)pos[0] - var<int16_t>(POINT);
+			v[0] = (int32_t)pos[0] - var<int16_t>(us(POINT));
 			v[1] = 0;
-			v[2] = (int32_t)pos[2] - var<int16_t>(POINT + 4);
+			v[2] = (int32_t)pos[2] - var<int16_t>(us(POINT) + 4);
 			Normalize(v, v);
-			const uint32_t p0 = var<uint32_t>(POINT), p1 = var<uint32_t>(POINT + 4);
+			const uint32_t p0 = var<uint32_t>(us(POINT)), p1 = var<uint32_t>(us(POINT) + 4);
 			*(uint32_t *)&rec->p0[0] = p0;
 			*(uint32_t *)&rec->p0[2] = p1;
 			*(uint32_t *)&rec->p1[0] = *(const uint32_t *)&pos[0];
@@ -2123,11 +2123,11 @@ namespace mercy200
 			for (int32_t t = 0, k = 0; t < 0x40000; t += 0x1000, k++) EffSplineEval(4, buf, rec->pt[k], t / 63);
 			FieldFree(0x190);
 			int32_t axis[4];
-			const int32_t angle = RotationBetweenVectors((const int32_t *)REF_DIR, v, axis);
+			const int32_t angle = RotationBetweenVectors((const int32_t *)us(REF_DIR), v, axis);
 			BuildAxisAngleRotationMatrix(angle, &rec->mat, axis);
 			for (int16_t k = 0; k < 4; k++)
 			{
-				Node24 *t = AddMain(ORIG_WaveRing);
+				Node24 *t = AddMain(us(ORIG_WaveRing));
 				t->c = 0;
 				t->e = (int16_t)i;
 				t->w16 = k;
@@ -2139,7 +2139,7 @@ namespace mercy200
 				t->w22 = 2;
 				t->w1A = (int16_t)(rr + 0xB4);
 			}
-			Node24 *t = AddMain(ORIG_WaveTrail);
+			Node24 *t = AddMain(us(ORIG_WaveTrail));
 			t->c = 0;
 			t->e = (int16_t)i;
 			t->w20 = 1;
@@ -2159,7 +2159,7 @@ namespace mercy200
 		for (int32_t i = 0;;)
 		{
 			const int32_t slot = ad->targets[off];
-			Node24 *t = AddMain(ORIG_ImpactFlash);
+			Node24 *t = AddMain(us(ORIG_ImpactFlash));
 			t->c = 0;
 			GetDefaultEffectPosition(Entity(slot), &t->w10);
 			t->w18 = RandMask(0x7FF);
@@ -2183,18 +2183,18 @@ namespace mercy200
 		{
 			const int32_t slot = ad->targets[off];
 			const int16_t spread = (int16_t)(mul32(EntitySize(slot), 2000) >> 12);
-			Node24 *s = AddMain(ORIG_TargetSparks);
+			Node24 *s = AddMain(us(ORIG_TargetSparks));
 			s->c = 0;
 			s->e = (int16_t)i;
 			s->w18 = spread;
 			s->w1A = (int16_t)slot;
-			Node24 *b = AddMain(ORIG_TargetBurst);
+			Node24 *b = AddMain(us(ORIG_TargetBurst));
 			b->c = 0;
 			GetDefaultEffectPosition(Entity(slot), &b->w10);
 			b->e = (int16_t)i;
 			b->w18 = spread;
 			b->w1A = (int16_t)slot;
-			Node24 *r = AddMain(ORIG_TargetRing);
+			Node24 *r = AddMain(us(ORIG_TargetRing));
 			*(uint32_t *)&r->w10 = *(const uint32_t *)&b->w10;
 			r->c = 0;
 			*(uint32_t *)&r->w14 = *(const uint32_t *)&b->w14;
@@ -2231,7 +2231,7 @@ namespace mercy200
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		ComposeAffineTransform(&Camera(), (const Mat4x3 *)FRAME, (Mat4x3 *)CAM_FRAME);
+		ComposeAffineTransform(&Camera(), (const Mat4x3 *)us(FRAME), (Mat4x3 *)us(CAM_FRAME));
 		const uint32_t fl = UpdateFlags();
 		if (fl & 0x201)
 		{
@@ -2241,7 +2241,7 @@ namespace mercy200
 		FX_HELD(held_note_director(n);)
 		if (n->c == 0)
 		{
-			CameraScriptStart(CAMERA_SCRIPT, FRAME, Caster(), QMain(), 0);
+			CameraScriptStart(us(CAMERA_SCRIPT), us(FRAME), Caster(), QMain(), 0);
 			ArmCameraReturn();
 		}
 		const int32_t c = n->c;
@@ -2254,7 +2254,7 @@ namespace mercy200
 			}
 			else if (c == 3)
 			{
-				BindEntityModelFromComData(Caster(), BIND_OUT, ANIM_DATA);
+				BindEntityModelFromComData(Caster(), us(BIND_OUT), us(ANIM_DATA));
 				Sequence(4);
 			}
 			else if (c == 4) AddFlameDirector();
@@ -2288,9 +2288,9 @@ namespace mercy200
 			case 0x40: Sequence(2); break;
 			case 0x41: AddCasterRing(); break;
 			case 0x48: AddTipFlash(); break;
-			case 0x50: AddCleared(ORIG_TipShards); break;
+			case 0x50: AddCleared(us(ORIG_TipShards)); break;
 			case 0x54: AddSlashes(); break;
-			case 0x5A: AddCleared(ORIG_SparkBurst); break;
+			case 0x5A: AddCleared(us(ORIG_SparkBurst)); break;
 			}
 		}
 		else if (c < 0x8B)
@@ -2337,7 +2337,7 @@ namespace mercy200
 		const int alive = ExecuteTaskQueue(QMain());
 		if (!alive)
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), ORIG_Restore);
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), us(ORIG_Restore));
 			t->c = 0;
 			t->e = 0;
 		}

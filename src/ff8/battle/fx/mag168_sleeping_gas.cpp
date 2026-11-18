@@ -33,13 +33,13 @@ namespace gas168
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B6A88; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23B78B0); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23B78B4); }
-	inline int16_t *Centre() { return (int16_t *)0x23B78A8; }
-	inline int16_t *CasterAnchor() { return (int16_t *)0x23B9270; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23BD348); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23BD34C); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23B6A88); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23B78B0)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x23B78B4)); }
+	inline int16_t *Centre() { return (int16_t *)us(0x23B78A8); }
+	inline int16_t *CasterAnchor() { return (int16_t *)us(0x23B9270); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23BD348)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23BD34C)); }
 	static const uint32_t CLOUDS = 0x23B3C18;
 	static const uint32_t OFFSETS = 0x23B3DD8;
 	static const uint32_t VERTS = 0x23B9278;
@@ -58,29 +58,29 @@ namespace gas168
 	static const uint32_t MODEL_Gas = 0xD6EDE4;
 	static const uint32_t MODEL_GasVerts = 0xD6EDEC;
 	static const uint32_t SEQ_Sparkle = 0xD6BDE8;
-	static const int32_t *const AXIS_Model = (const int32_t *)0xD6F788;
-	static const void *const SOUND_Gas = (const void *)0xD6F77C;
+	static const int32_t *AXIS_Model() { return (const int32_t *)us(0xD6F788); }
+	static const void *SOUND_Gas() { return (const void *)us(0xD6F77C); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, mode, out); }
-	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
-	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
-	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(dst); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(us(0x502170))(entity, bone, mode, out); }
+	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
+	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
+	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E360))(c); }
 
 #pragma pack(push, 1)
 	struct RootNode { TaskNode hdr; uint16_t counter; uint16_t pad; };
@@ -140,9 +140,9 @@ namespace gas168
 	static_assert(sizeof(DirectorNode) == 0x24 && sizeof(GasNode) == 0x24 && sizeof(SparkNode) == 0x24, "Sleeping Gas nodes are 0x24 bytes");
 	static_assert(sizeof(Cloud) == 0x1C && sizeof(Spark) == 0x18, "cloud record / sparkle entry");
 
-	inline Cloud *CloudRec(int32_t i) { return (Cloud *)(CLOUDS + (uint32_t)(i * 0x1C)); }
-	inline int32_t *CloudOffsets(int32_t i) { return (int32_t *)(OFFSETS + (uint32_t)(i * WAVE * 8)); }
-	inline uint32_t CloudVerts(int32_t i) { return VERTS + (uint32_t)(i * WAVE * 2 * 8); }
+	inline Cloud *CloudRec(int32_t i) { return (Cloud *)(us(CLOUDS) + (uint32_t)(i * 0x1C)); }
+	inline int32_t *CloudOffsets(int32_t i) { return (int32_t *)(us(OFFSETS) + (uint32_t)(i * WAVE * 8)); }
+	inline uint32_t CloudVerts(int32_t i) { return us(VERTS) + (uint32_t)(i * WAVE * 2 * 8); }
 
 	static int32_t Div61(int32_t x)
 	{
@@ -236,7 +236,7 @@ namespace gas168
 
 	static void InitPairs()
 	{
-		uint32_t a = MODEL_GasVerts, b = VERTS, e = PAIRS;
+		uint32_t a = us(MODEL_GasVerts), b = us(VERTS), e = us(PAIRS);
 		for (int32_t i = WAVE; i != 0; i--)
 			for (int32_t k = 2; k != 0; k--)
 			{
@@ -246,10 +246,10 @@ namespace gas168
 				b += 8;
 				e += 8;
 			}
-		for (uint32_t i = PAIRS, n = 0; i < PAIRS_END - 8; i += 8, n++)
+		for (uint32_t i = us(PAIRS), n = 0; i < us(PAIRS_END) - 8; i += 8, n++)
 		{
 			if (n + 1 >= 0x7A) continue;
-			for (uint32_t j = i + 8; j < PAIRS_END; j += 8)
+			for (uint32_t j = i + 8; j < us(PAIRS_END); j += 8)
 			{
 				const uint32_t vi = U32(i, 0), vj = U32(j, 0);
 				if (S16(vi, 4) >= S16(vj, 4)) continue;
@@ -283,8 +283,8 @@ namespace gas168
 	static void WaveBuild(Cloud *c, const int32_t *offs, uint32_t verts, uint32_t node)
 	{
 		const int32_t count = c->count;
-		const uint32_t delta = verts - VERTS;
-		uint32_t e = PAIRS;
+		const uint32_t delta = verts - us(VERTS);
+		uint32_t e = us(PAIRS);
 		uint32_t last = node;
 		if (count > 0)
 		{
@@ -330,7 +330,7 @@ namespace gas168
 		const int32_t dist = Sqrt(Normalize(v, v));
 		int32_t axis[3];
 		Mat4x3 m = {};
-		const int32_t angle = RotationBetweenVectors(AXIS_Model, v, axis);
+		const int32_t angle = RotationBetweenVectors(AXIS_Model(), v, axis);
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[1] = CasterAnchor()[1];
 		m.t[0] = CasterAnchor()[0];
@@ -347,7 +347,7 @@ namespace gas168
 
 	static void GasHeader(uint8_t *h, const GasNode *g, uint32_t verts)
 	{
-		*(uint32_t *)(h + 0) = MODEL_Gas;
+		*(uint32_t *)(h + 0) = us(MODEL_Gas);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x2033;
 		*(uint32_t *)(h + 4) = verts;
@@ -417,11 +417,11 @@ namespace gas168
 	static uint32_t __cdecl SparkTargetTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(ORIG_SparkTarget, s);)
+		FX_HELD(held_note_spark(us(ORIG_SparkTarget), s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
-		*(uint32_t *)h = SEQ_Sparkle;
-		for (uint32_t p = POOL_A; p < POOL_A_END; p += 0x18)
+		*(uint32_t *)h = us(SEQ_Sparkle);
+		for (uint32_t p = us(POOL_A); p < us(POOL_A_END); p += 0x18)
 		{
 			Spark *e = (Spark *)p;
 			if (!(e->owner & (int32_t)s->mask)) continue;
@@ -452,13 +452,13 @@ namespace gas168
 			for (int32_t k = 0; k < 1; k++)
 			{
 				int32_t idx = 0;
-				uint32_t p = POOL_A;
-				while (p < POOL_A_END && ((Spark *)p)->owner != 0)
+				uint32_t p = us(POOL_A);
+				while (p < us(POOL_A_END) && ((Spark *)p)->owner != 0)
 				{
 					p += 0x18;
 					idx++;
 				}
-				if (p >= POOL_A_END || idx >= 0x64) break;
+				if (p >= us(POOL_A_END) || idx >= 0x64) break;
 				Spark *e = (Spark *)p;
 				e->owner = s->mask;
 				e->frame = 0;
@@ -486,12 +486,12 @@ namespace gas168
 	static uint32_t __cdecl SparkCasterTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(ORIG_SparkCaster, s);)
+		FX_HELD(held_note_spark(us(ORIG_SparkCaster), s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = us(SEQ_Sparkle);
 		*(uint16_t *)(h + 0x24) = 8;
-		for (uint32_t p = POOL_B; p < POOL_B_END; p += 0x18)
+		for (uint32_t p = us(POOL_B); p < us(POOL_B_END); p += 0x18)
 		{
 			Spark *e = (Spark *)p;
 			if (!(e->owner & 1)) continue;
@@ -523,13 +523,13 @@ namespace gas168
 			for (int32_t k = 0; k < 1; k++)
 			{
 				int32_t idx = 0;
-				uint32_t p = POOL_B;
-				while (p < POOL_B_END && ((Spark *)p)->owner != 0)
+				uint32_t p = us(POOL_B);
+				while (p < us(POOL_B_END) && ((Spark *)p)->owner != 0)
 				{
 					p += 0x18;
 					idx++;
 				}
-				if (p >= POOL_B_END || idx >= 0x32) break;
+				if (p >= us(POOL_B_END) || idx >= 0x32) break;
 				Spark *e = (Spark *)p;
 				e->owner = 1;
 				e->frame = 0;
@@ -572,10 +572,10 @@ namespace gas168
 		{
 			for (int32_t k = 2; k != 0; k--)
 			{
-				GasNode *g = (GasNode *)AddTaskToQueue(EffectQueue(), ORIG_Gas);
+				GasNode *g = (GasNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Gas));
 				const int16_t cloud = d->clouds;
-				const uint32_t z = U32(0x23B78AC, 0);
-				U32(P(g), 0x10) = U32(0x23B78A8, 0);
+				const uint32_t z = U32(us(0x23B78AC), 0);
+				U32(P(g), 0x10) = U32(us(0x23B78A8), 0);
 				g->counter = 0;
 				g->cloud = cloud;
 				U32(P(g), 0x14) = z;
@@ -602,18 +602,18 @@ namespace gas168
 			for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
 			{
 				const uint8_t slot = Ctx()->actions[0].targets[i * TARGET_STRIDE];
-				SparkNode *s = (SparkNode *)AddTaskToQueue(EffectQueue(), ORIG_SparkTarget);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(EffectQueue(), us(ORIG_SparkTarget));
 				s->counter = 0;
 				s->mask = (int16_t)(1 << (i & 31));
 				GetEffectSpawnPosition(Entity(slot), 0xF1, 0, s->pos);
 				s->pos[1] = *(int16_t *)(Entity(slot) + 0x3C);
 			}
 		}
-		if (d->counter == 4) ((SparkNode *)AddTaskToQueue(EffectQueue(), ORIG_SparkCaster))->counter = 0;
+		if (d->counter == 4) ((SparkNode *)AddTaskToQueue(EffectQueue(), us(ORIG_SparkCaster)))->counter = 0;
 		if (d->counter == 0x3C) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 		if (d->counter >= 4 && d->counter <= 0xC) SetScreenFlash((uint32_t)((d->counter - 4) * 0xC0), 0x302060);
 		else if (d->counter >= 0x3E) SetScreenFlash((uint32_t)((0x46 - d->counter) * 0xC0), 0x302060);
-		if (d->counter == 1) BdPlaySE(SOUND_Gas, 0, 0x80);
+		if (d->counter == 1) BdPlaySE(SOUND_Gas(), 0, 0x80);
 		d->counter++;
 		if (d->counter <= 0x46) return 0;
 		SetScreenFlash(0, 0);

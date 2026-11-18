@@ -54,14 +54,19 @@ namespace ff8fx
 
 	void install()
 	{
-		if (g_installed || !FF8_US_VERSION || !ff8_battle_fx_native) return;
+		if (g_installed || !ff8_battle_fx_native) return;
 		g_installed = true;
+		if (!address_init())
+		{
+			ffnx_info("FF8 battle fx: native effect code not available for this release\n");
+			return;
+		}
 		register_all();
 		set_ports(true);
 		ffnx_info("FF8 battle fx: native effect code on%s\n", ff8_battle_fx_verify ? ", verified against the original" : "");
 		if (ff8_battle_fx_verify)
 		{
-			replace_function(0x508420, (void *)execute_task_queue);
+			replace_function(us(0x508420), (void *)execute_task_queue);
 			prim::install_verify();
 			verify_install();
 		}

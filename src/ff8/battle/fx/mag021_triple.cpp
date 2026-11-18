@@ -137,12 +137,12 @@ namespace triple021
 	static_assert(sizeof(SeqNode) == 0x40 && sizeof(ModelNode) == 0x7C && sizeof(SpriteNode) == 0x70, "Triple nodes");
 	static_assert(sizeof(FlashNode) == 0x50, "Triple nodes");
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2714F2C); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2720898; }
-	inline TaskQueue *QSequencers() { return (TaskQueue *)0x2720A20; }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2720880; }
-	inline TaskQueue *QModels() { return (TaskQueue *)0x271B010; }
-	inline TaskQueue *QFlashes() { return (TaskQueue *)0x2721570; }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2714F2C)); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)us(0x2720898); }
+	inline TaskQueue *QSequencers() { return (TaskQueue *)us(0x2720A20); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2720880); }
+	inline TaskQueue *QModels() { return (TaskQueue *)us(0x271B010); }
+	inline TaskQueue *QFlashes() { return (TaskQueue *)us(0x2721570); }
 
 	static const uint32_t ORIG_Root = 0x89DFF0;
 	static const uint32_t ORIG_Emitter = 0x89E110;
@@ -157,7 +157,7 @@ namespace triple021
 	static const uint32_t ORIG_Spark = 0x89F5E0;
 	static const uint32_t ORIG_Flash = 0x89F950;
 
-	static const void *const SOUND_Triple = (const void *)0x16269D8;
+	static const void *SOUND_Triple() { return (const void *)us(0x16269D8); }
 	static const uint32_t MODEL_BigRune1 = 0x1627380, MODEL_BigRune2 = 0x1628218, MODEL_Rune = 0x1626CF0;
 	static const uint32_t MODEL_Column = 0x1626F00, MODEL_ColumnFlash = 0x1627160, MODEL_Morph = 0x1627970;
 	static const uint32_t MORPH_A = 0x16276E8, MORPH_B = 0x1629000;
@@ -165,20 +165,20 @@ namespace triple021
 	static const uint32_t FADE_TABLE_A = 0x1629C2C, FADE_TABLE_B = 0x1629C14;
 	static const uint32_t ARENA_A = 0x2720A1C, ARENA_B = 0x2720A18;
 
-	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
-	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
-	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
-	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC6E0)(n, out); }
-	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC700)(n, out); }
-	inline void CopyAnchorTopFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC720)(n, out); }
-	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
-	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
-	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD8A0)(m, a); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void InsertPrimAltViewport(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(ot, prim); }
+	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(us(0x8DC540))(q, task, size, parent); }
+	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC530))(n); }
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC610))(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC870))(n); }
+	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC740))(n); }
+	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC6E0))(n, out); }
+	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC700))(n, out); }
+	inline void CopyAnchorTopFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC720))(n, out); }
+	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(us(0x8DD770))(m); }
+	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD7E0))(m, a); }
+	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD8A0))(m, a); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void InsertPrimAltViewport(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(ot, prim); }
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
@@ -297,11 +297,11 @@ namespace triple021
 		for (int32_t i = 0; i < 4; i++)
 		{
 			const int32_t k = (i + (int32_t)n->h.counter * 4) % 4;
-			SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Sprite, 0x70, n);
+			SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Sprite), 0x70, n);
 			p->scale[0] = 0x1000;
 			p->scale[1] = 0x1000;
 			p->scale[2] = 0x1000;
-			p->seq = SEQ_Sprite;
+			p->seq = us(SEQ_Sprite);
 			p->last = 7;
 			int16_t v[4];
 			if (mode == 0)
@@ -333,11 +333,11 @@ namespace triple021
 	static void SpawnMorph(ModelNode *n)
 	{
 		if (n->h.counter != 0) return;
-		ModelNode *m = (ModelNode *)AddEffectTask(QModels(), ORIG_Morph, 0x7C, n);
+		ModelNode *m = (ModelNode *)AddEffectTask(QModels(), us(ORIG_Morph), 0x7C, n);
 		CopyAnchorXZFromSource(m, m->h.pos);
 		m->h.pos[1] = (int16_t)(m->h.pos[1] - 0x280);
 		m->angle[1] = 0;
-		m->model = MODEL_Morph;
+		m->model = us(MODEL_Morph);
 		m->fade = 0;
 		m->scale[0] = 0x1000;
 		m->scale[1] = 0x1000;
@@ -349,14 +349,14 @@ namespace triple021
 
 	static void SpawnBigRune(EmitterNode *e)
 	{
-		ModelNode *n = (ModelNode *)AddEffectTask(QModels(), ORIG_BigRune, 0x7C, e);
+		ModelNode *n = (ModelNode *)AddEffectTask(QModels(), us(ORIG_BigRune), 0x7C, e);
 		CopyAnchorXZFromSource(n, n->h.pos);
 		n->h.pos[1] = (int16_t)(n->h.pos[1] - 0x280);
 		n->scale[0] = 0x1000;
 		n->scale[1] = 0x1000;
 		n->scale[2] = 0x1000;
 		n->angle[1] = 0;
-		n->model = MODEL_BigRune1;
+		n->model = us(MODEL_BigRune1);
 		n->fade1 = 0x800;
 		n->fade2 = 0;
 		n->rgb1[0] = 0xFF;
@@ -386,10 +386,10 @@ namespace triple021
 		case 1:
 		{
 			n->step++;
-			const int16_t a = FadeTable(FADE_TABLE_A, n->step);
+			const int16_t a = FadeTable(us(FADE_TABLE_A), n->step);
 			n->fade = a;
 			n->fade1 = a;
-			const int16_t b = FadeTable(FADE_TABLE_B, n->step);
+			const int16_t b = FadeTable(us(FADE_TABLE_B), n->step);
 			n->fade = b;
 			n->fade2 = b;
 			if (n->step >= 0xB)
@@ -407,11 +407,11 @@ namespace triple021
 	{
 		ff8fx::copy<(4)>(n->rgb, n->rgb1);
 		n->fade = n->fade1;
-		n->model = MODEL_BigRune1;
+		n->model = us(MODEL_BigRune1);
 		DrawModel(n);
 		ff8fx::copy<(4)>(n->rgb, n->rgb2);
 		n->fade = n->fade2;
-		n->model = MODEL_BigRune2;
+		n->model = us(MODEL_BigRune2);
 		DrawModel(n);
 	}
 }
@@ -450,7 +450,7 @@ namespace triple021
 	{
 		if (n->h.phase != 0) return;
 		n->step++;
-		const int16_t a = FadeTable(FADE_TABLE_A, n->step);
+		const int16_t a = FadeTable(us(FADE_TABLE_A), n->step);
 		n->fade = a;
 		n->morph = a;
 		if (n->step >= 0xB)
@@ -465,7 +465,7 @@ namespace triple021
 		ModelNode *n = (ModelNode *)t;
 		MorphPhase(n);
 		FX_HELD(held_note(REC_MORPH, n);)
-		MorphVertices((const uint8_t *)MORPH_A, (const uint8_t *)MORPH_B, (uint8_t *)MODEL_Morph, n->morph);
+		MorphVertices((const uint8_t *)us(MORPH_A), (const uint8_t *)us(MORPH_B), (uint8_t *)us(MODEL_Morph), n->morph);
 		DrawModel(n);
 		n->h.counter++;
 		if ((n->h.flags & 1) && n->h.children == 0)
@@ -648,8 +648,8 @@ namespace triple021
 			{
 				if (n->fade <= 0xA00 && spawn)
 				{
-					SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Spark, 0x70, n);
-					p->seq = SEQ_Spark;
+					SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Spark), 0x70, n);
+					p->seq = us(SEQ_Spark);
 				}
 				n->fade = (int16_t)(n->fade + 0x200);
 				if (n->fade >= 0x1000)
@@ -712,9 +712,9 @@ namespace triple021
 	{
 		if (n->flash_on == 1)
 		{
-			n->model = MODEL_ColumnFlash;
+			n->model = us(MODEL_ColumnFlash);
 			DrawModel(n);
-			n->model = MODEL_Column;
+			n->model = us(MODEL_Column);
 		}
 		DrawModel(n);
 	}
@@ -807,7 +807,7 @@ namespace triple021
 		GlowPulse(p);
 		GlowPlace(p);
 		FX_HELD(held_note(REC_GLOW, p);)
-		DrawGroundGlow(p, SEQ_Glow, (const uint32_t *)p->rgb);
+		DrawGroundGlow(p, us(SEQ_Glow), (const uint32_t *)p->rgb);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -869,7 +869,7 @@ namespace triple021
 
 	static void SpawnColumn(ModelNode *r)
 	{
-		ModelNode *c = (ModelNode *)AddEffectTask(QModels(), ORIG_Column, 0x7C, r);
+		ModelNode *c = (ModelNode *)AddEffectTask(QModels(), us(ORIG_Column), 0x7C, r);
 		c->radius = 0x1000;
 		c->flash_on = 0;
 		c->flagged = r->flagged;
@@ -880,7 +880,7 @@ namespace triple021
 		c->orbit = r->orbit;
 		c->angle[1] = r->orbit;
 		c->arg = r->arg;
-		c->model = MODEL_Column;
+		c->model = us(MODEL_Column);
 		c->fade = 0x1000;
 		c->scale[0] = 0x10;
 		c->scale[1] = 0x10;
@@ -890,9 +890,9 @@ namespace triple021
 	static void SpawnMote(ModelNode *r)
 	{
 		if (r->h.counter < 0 || r->h.counter > 6) return;
-		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Mote, 0x70, r);
+		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Mote), 0x70, r);
 		ff8fx::copy<(8)>(p->base, p->h.pos);
-		p->seq = SEQ_Mote;
+		p->seq = us(SEQ_Mote);
 		p->radius = (int16_t)((CrtRand() & 0x1FF) + 0x200);
 		p->last = 0xC;
 		p->ay = (int16_t)(CrtRand() & 0xFFF);
@@ -964,7 +964,7 @@ namespace triple021
 
 	static void SpawnRune(SeqNode *s, int32_t angle, int16_t arg, int16_t flagged)
 	{
-		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), ORIG_Rune, 0x7C, s);
+		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), us(ORIG_Rune), 0x7C, s);
 		CopyAnchorXZFromSource(r, r->h.pos);
 		r->h.pos[1] = (int16_t)(r->h.pos[1] - 0x280);
 		ff8fx::copy<(8)>(r->base, r->h.pos);
@@ -972,12 +972,12 @@ namespace triple021
 		r->arg = arg;
 		r->flagged = flagged;
 		r->orbit = a;
-		r->model = MODEL_Rune;
+		r->model = us(MODEL_Rune);
 		r->fade = 0x1000;
 		r->scale[0] = 0x1000;
 		r->scale[1] = 0x1000;
 		r->scale[2] = 0x1000;
-		SpriteNode *g = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Glow, 0x70, s);
+		SpriteNode *g = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Glow), 0x70, s);
 		CopyAnchorXZFromSource(g, g->h.pos);
 		ff8fx::copy<(8)>(g->base, g->h.pos);
 		g->angle = a;
@@ -1036,7 +1036,7 @@ namespace triple021
 	{
 		const uint8_t *targets = e->h.ctx->actions[e->h.action].targets;
 		if (targets[3] & 4) return;
-		FlashNode *f = (FlashNode *)AddEffectTask(QFlashes(), ORIG_Flash, 0x50, e);
+		FlashNode *f = (FlashNode *)AddEffectTask(QFlashes(), us(ORIG_Flash), 0x50, e);
 		CopyAnchorTopFromSource(f, f->h.pos);
 		ff8fx::copy<(8)>(f->target, f->h.pos);
 		f->tx = 0x240;
@@ -1119,7 +1119,7 @@ namespace triple021
 		F<int16_t>(p, 0x1A) = sxy[1];
 		F<int16_t>(p, 0x20) = (int16_t)(sxy[0] + half);
 		F<int16_t>(p, 0x22) = sxy[1];
-		InsertPrimAltViewport(var<uint32_t>(0x1D8E04C), p);
+		InsertPrimAltViewport(var<uint32_t>(us(0x1D8E04C)), p);
 		PacketCursor() = (uint32_t)(p + 0x28);
 	}
 
@@ -1146,7 +1146,7 @@ namespace triple021
 		switch (e->h.phase)
 		{
 		case 0:
-			AddEffectTask(QSequencers(), ORIG_Sequencer, 0x40, e);
+			AddEffectTask(QSequencers(), us(ORIG_Sequencer), 0x40, e);
 			e->h.phase++;
 			break;
 		case 1:
@@ -1168,7 +1168,7 @@ namespace triple021
 		{
 			int16_t mid[4];
 			CopyMidpointFromSource(e, mid);
-			BdPlaySE(SOUND_Triple, 0, 0x80);
+			BdPlaySE(SOUND_Triple(), 0, 0x80);
 		}
 		switch (e->signal)
 		{
@@ -1200,7 +1200,7 @@ namespace triple021
 			break;
 		case 1:
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x5C, r);
+			AddEffectTask(QEmitters(), us(ORIG_Emitter), 0x5C, r);
 			r->h.phase++;
 			break;
 		case 2:
@@ -1229,8 +1229,8 @@ namespace triple021
 	static uint32_t __cdecl RootTask(TaskNode *t)
 	{
 		RootNode *r = (RootNode *)t;
-		if (r->tick & 1) PacketCursor() = var<uint32_t>(ARENA_A);
-		else PacketCursor() = var<uint32_t>(ARENA_B);
+		if (r->tick & 1) PacketCursor() = var<uint32_t>(us(ARENA_A));
+		else PacketCursor() = var<uint32_t>(us(ARENA_B));
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);

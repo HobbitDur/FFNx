@@ -26,13 +26,13 @@ namespace flare320
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250534C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2505350); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505354); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250539C); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2505358; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505368; }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x250534C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2505350)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2505354)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x250539C)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2505358); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2505368); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
 
 	static const uint32_t ORIG_RootTask = 0x65BCC0;
 	static const uint32_t ORIG_MainTask = 0x65BE90;
@@ -48,41 +48,41 @@ namespace flare320
 	static const uint32_t KINDS_2 = 0xFE0FB4, DRAWS_2 = 0xFE0FC8;
 	static const uint32_t KINDS_3 = 0xFF12C8, DRAWS_3 = 0xFF12BC;
 	static const uint32_t SEQ_Spark = 0xFE7470;
-	static const void *const SOUND = (const void *)0xFE7298;
-	static const int16_t *const POINT_S = (const int16_t *)0xFF12A0;
-	static int16_t *const POINT_SPARK = (int16_t *)0xFF12A8;
+	static const void *SOUND() { return (const void *)us(0xFE7298); }
+	static const int16_t *POINT_S() { return (const int16_t *)us(0xFF12A0); }
+	static int16_t *POINT_SPARK() { return (int16_t *)us(0xFF12A8); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatMul3x3(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(0x56C220)(a, b); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, shift, cursor); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatMul3x3(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(us(0x56C220))(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, shift, cursor); }
 	inline uint32_t RenderList(uint32_t f, void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(f)(h, ot, shift, cursor); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteReadSXY2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E260)(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteLoadRGBC(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E110)(src); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteReadSXY2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E260))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteLoadRGBC(const void *src) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(src); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -465,9 +465,9 @@ namespace flare320
 		GteSetFarColor(h[8], h[9], h[0xA]);
 		uint32_t c = cursor;
 		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderF3(h, ot, shift, c); else H32(h, 0x34) += 4;
-		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderList(0x657160, h, ot, shift, c); else H32(h, 0x34) += 4;
-		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderList(0x6A4710, h, ot, shift, c); else H32(h, 0x34) += 4;
-		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderList(0x6A4BA0, h, ot, shift, c); else H32(h, 0x34) += 4;
+		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderList(us(0x657160), h, ot, shift, c); else H32(h, 0x34) += 4;
+		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderList(us(0x6A4710), h, ot, shift, c); else H32(h, 0x34) += 4;
+		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderList(us(0x6A4BA0), h, ot, shift, c); else H32(h, 0x34) += 4;
 		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderG3(h, ot, shift, c); else H32(h, 0x34) += 4;
 		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderG4(h, ot, shift, c); else H32(h, 0x34) += 4;
 		if (*(const uint32_t *)H32(h, 0x34) != 0) c = RenderList(0x6A5120, h, ot, shift, c); else H32(h, 0x34) += 4;
@@ -636,7 +636,7 @@ namespace flare320
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(pos, scale, -0x100);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, PacketCursor());
@@ -694,36 +694,36 @@ namespace flare320
 		const int32_t c = m->counter;
 		if ((uint32_t)c < 0x24)
 		{
-			CasterBonePoint(POINT_S, m->S);
+			CasterBonePoint(POINT_S(), m->S);
 			MainFrame(m, m->S, &m->M);
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
-			SetArg(&arg, KINDS_1, DRAWS_1, -0x10);
+			SetArg(&arg, us(KINDS_1), us(DRAWS_1), -0x10);
 			FX_HELD(held_note_main(PLAY_1, n);)
 			prim::play((prim::Layout *)m->layout_1, PrimCallback, (int)&arg, 0);
 			if ((uint32_t)c >= 0xF)
 			{
 				int16_t p[4];
-				p[1] = POINT_SPARK[1];
-				p[3] = POINT_SPARK[3];
+				p[1] = POINT_SPARK()[1];
+				p[3] = POINT_SPARK()[3];
 				for (int k = 0; k < 2; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 					if (!s) break;
 					p[0] = (int16_t)((CrtRand() & 0x1F) + 0x1F);
 					if (k == 0)
 					{
 						p[0] = (int16_t)(p[0] + 0x64);
-						POINT_SPARK[0] = 0x64;
+						POINT_SPARK()[0] = 0x64;
 					}
 					else
 					{
 						p[0] = (int16_t)(-0x64 - p[0]);
-						POINT_SPARK[0] = -0x64;
+						POINT_SPARK()[0] = -0x64;
 					}
-					CasterBonePoint(POINT_SPARK, s->pos);
+					CasterBonePoint(POINT_SPARK(), s->pos);
 					s->counter = (int16_t)((uint32_t)c > 0x14 ? c - 0x14 : 0);
 					s->scale = (int16_t)((CrtRand() & 0x3FF) + 0x400);
-					p[2] = (int16_t)((CrtRand() & 0xF) + *(const int32_t *)(POINT_SPARK + 2) + 0x10);
+					p[2] = (int16_t)((CrtRand() & 0xF) + *(const int32_t *)(POINT_SPARK() + 2) + 0x10);
 					int16_t q[4];
 					CasterBonePoint(p, q);
 					s->vel[0] = (int16_t)(q[0] - s->pos[0]);
@@ -742,7 +742,7 @@ namespace flare320
 			m->M.t[1] = L[1];
 			m->M.t[2] = L[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
-			SetArg(&arg, KINDS_1, DRAWS_1, -0x10);
+			SetArg(&arg, us(KINDS_1), us(DRAWS_1), -0x10);
 			FX_HELD(held_note_main(PLAY_1L, n);)
 			prim::play((prim::Layout *)m->layout_1, PrimCallback, (int)&arg, 0);
 		}
@@ -752,7 +752,7 @@ namespace flare320
 			m->M.t[1] = m->S[1];
 			m->M.t[2] = m->S[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
-			SetArg(&arg, KINDS_2, DRAWS_2, -0x10);
+			SetArg(&arg, us(KINDS_2), us(DRAWS_2), -0x10);
 			FX_HELD(held_note_main(PLAY_2, n);)
 			prim::play((prim::Layout *)m->layout_2, PrimCallback, (int)&arg, 0);
 		}
@@ -768,12 +768,12 @@ namespace flare320
 			arg.m.t[1] = m->T[1];
 			arg.m.t[2] = m->T[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-			SetArg(&arg, KINDS_3, DRAWS_3, -0x200);
+			SetArg(&arg, us(KINDS_3), us(DRAWS_3), -0x200);
 			arg.scroll = (int16_t)(e << 4);
 			FX_HELD(held_note_main(PLAY_3, n);)
 			prim::play((prim::Layout *)m->layout_3, PrimCallback, (int)&arg, 0);
 		}
-		if (c == 0) BdPlaySE(SOUND, 0, 0x80);
+		if (c == 0) BdPlaySE(SOUND(), 0, 0x80);
 		if ((uint32_t)(c - 0x24) <= 0xA)
 		{
 			int32_t w = LerpWeight(c);
@@ -781,7 +781,7 @@ namespace flare320
 			int32_t ws = 0x1000 - w;
 			for (int k = 0; k < 4; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 				if (!s) break;
 				s->counter = 0;
 				VecLerp(m->T, m->S, w, ws, s->pos);
@@ -838,7 +838,7 @@ namespace flare320
 				InitTaskQueuePool(QMain(), (void *)TexBase(), 0x754, 1);
 				InitTaskQueuePool(QSparks(), (void *)(TexBase() + POOL_Sparks), 0x20, 0x40);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x1D2);
 			const int32_t count = Ctx()->actions->target_count;
 			m->T[2] = 0;
@@ -853,9 +853,9 @@ namespace flare320
 			m->T[1] = 0;
 			m->T[0] = (int16_t)((int32_t)m->T[0] / count);
 			m->T[2] = (int16_t)((int32_t)m->T[2] / count);
-			DecodeModelPrimLayout(MODEL_1, m->layout_1, 0x1F0);
-			DecodeModelPrimLayout(MODEL_2, m->layout_2, 0x110);
-			DecodeModelPrimLayout(MODEL_3, m->layout_3, 0x414);
+			DecodeModelPrimLayout(us(MODEL_1), m->layout_1, 0x1F0);
+			DecodeModelPrimLayout(us(MODEL_2), m->layout_2, 0x110);
+			DecodeModelPrimLayout(us(MODEL_3), m->layout_3, 0x414);
 		}
 		if (r->started)
 		{

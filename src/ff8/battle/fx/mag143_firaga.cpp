@@ -25,11 +25,11 @@ namespace firaga143
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BECE0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24BFB10); }
-	inline int16_t *Anchor(int action) { return (int16_t *)(0x24BFB20 + 8 * action); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24BFB38); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24BFB3C); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x24BECE0)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24BFB10)); }
+	inline int16_t *Anchor(int action) { return (int16_t *)(us(0x24BFB20) + 8 * action); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x24BFB38)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24BFB3C)); }
 
 	static const uint32_t ORIG_RootTask = 0x61CDA0;
 	static const uint32_t ORIG_Director = 0x61C0A0;
@@ -38,14 +38,14 @@ namespace firaga143
 	static const uint32_t ORIG_FlameSwirlTask = 0x61C9C0;
 	static const uint32_t ORIG_FireballTask = 0x61CB10;
 	static const uint32_t ORIG_SparkTask = 0x61CBB0;
-	static const void *const SEQ_AreaFlame = (const void *)0xDDA594;
-	static const void *const MODEL_Burst = (const void *)0xDDD208;
-	static const void *const MODEL_FlameSwirl = (const void *)0xDDA740;
-	static const void *const MODEL_Fireball = (const void *)0xDDC578;
-	static const void *const MODEL_Spark = (const void *)0xDDCE48;
-	static const void *const SOUND_Firaga = (const void *)0xDDD8F0;
+	static const void *SEQ_AreaFlame() { return (const void *)us(0xDDA594); }
+	static const void *MODEL_Burst() { return (const void *)us(0xDDD208); }
+	static const void *MODEL_FlameSwirl() { return (const void *)us(0xDDA740); }
+	static const void *MODEL_Fireball() { return (const void *)us(0xDDC578); }
+	static const void *MODEL_Spark() { return (const void *)us(0xDDCE48); }
+	static const void *SOUND_Firaga() { return (const void *)us(0xDDD8F0); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	struct RootNode { TaskNode hdr; uint16_t counter; };
 	struct DirectorNode
@@ -146,7 +146,7 @@ namespace firaga143
 			int32_t count = d->counter / 6 + 1;
 			for (; count > 0; count--)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, us(ORIG_SparkTask));
 				s->counter = 0;
 				s->action = d->action;
 				int32_t dir[4] = {}, axis[4] = {};
@@ -166,7 +166,7 @@ namespace firaga143
 		}
 		if (d->counter == 4)
 		{
-			ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FireballTask);
+			ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_FireballTask));
 			f->action = d->action;
 			f->counter = 0;
 			f->scale = 0;
@@ -177,7 +177,7 @@ namespace firaga143
 		if (d->counter == 0x21)
 		{
 			Anchor(d->action)[3] = 0;
-			ModelNode *s = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FlameSwirlTask);
+			ModelNode *s = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameSwirlTask));
 			s->counter = 0;
 			ff8fx::copy<(8)>(s->pos, Anchor(d->action));
 			s->yaw = (int16_t)(CrtRand() % 4096);
@@ -185,7 +185,7 @@ namespace firaga143
 			s->scale = 0x355;
 			s->scale_vel = 0x355;
 			s->yaw_vel = (int16_t)(r + 0x3C);
-			s = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FlameSwirlTask);
+			s = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameSwirlTask));
 			ff8fx::copy<(4)>(s->pos, Anchor(d->action));
 			s->counter = 0;
 			ff8fx::copy<(4)>(&s->pos[2], &Anchor(d->action)[2]);
@@ -196,7 +196,7 @@ namespace firaga143
 		}
 		if (d->counter == 0x21)
 		{
-			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_BurstTask);
+			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_BurstTask));
 			b->counter = 0;
 			ff8fx::copy<(8)>(b->pos, Anchor(d->action));
 			b->scale = 0x555;
@@ -209,7 +209,7 @@ namespace firaga143
 			int32_t half = spread >> 1;
 			for (int k = 0; k < 2; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, ORIG_AreaFlameTask);
+				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, us(ORIG_AreaFlameTask));
 				f->frame = 0;
 				f->delay = (int16_t)(CrtRand() % 6 + k);
 				ff8fx::copy<(8)>(f->pos, Anchor(d->action));
@@ -232,7 +232,7 @@ namespace firaga143
 			int next = d->action + 1;
 			if (next <= acts[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, ORIG_Director);
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_Director));
 				t->counter = 0;
 				t->action = (int16_t)next;
 				t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];
@@ -245,7 +245,7 @@ namespace firaga143
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
-			BdPlaySE3D(SOUND_Firaga, 0, pos);
+			BdPlaySE3D(SOUND_Firaga(), 0, pos);
 		}
 		d->counter++;
 		if (d->counter <= 0x3C) return 0;
@@ -257,7 +257,7 @@ namespace firaga143
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
 		uint8_t *h = AllocHeader(0xB4);
-		*(const void **)h = SEQ_AreaFlame;
+		*(const void **)h = SEQ_AreaFlame();
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -294,7 +294,7 @@ namespace firaga143
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_AreaFlameTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_AreaFlameTask), p);)
 		AreaFlameDraw(p);
 		if (DrawOnly()) return 0;
 		p->frame++;
@@ -320,7 +320,7 @@ namespace firaga143
 
 	static void BurstHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = MODEL_Burst();
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 0xA)
 		{
@@ -347,7 +347,7 @@ namespace firaga143
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(ORIG_BurstTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_BurstTask), p);)
 		BurstMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		BurstHeader(h, p->counter);
@@ -362,7 +362,7 @@ namespace firaga143
 
 	static void FlameSwirlHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_FlameSwirl;
+		*(const void **)h = MODEL_FlameSwirl();
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (c >= 0xE)
 		{
@@ -386,7 +386,7 @@ namespace firaga143
 	static uint32_t __cdecl FlameSwirlTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(ORIG_FlameSwirlTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_FlameSwirlTask), p);)
 		FlameSwirlMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		FlameSwirlHeader(h, p->counter);
@@ -401,7 +401,7 @@ namespace firaga143
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 5));
 		uint8_t *h = AllocHeader(0x58);
-		*(const void **)h = MODEL_Fireball;
+		*(const void **)h = MODEL_Fireball();
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -418,7 +418,7 @@ namespace firaga143
 	static uint32_t __cdecl FireballTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(ORIG_FireballTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_FireballTask), p);)
 		FireballDraw(p);
 		if (DrawOnly()) return 0;
 		int16_t alive = Anchor(p->action)[3];
@@ -449,7 +449,7 @@ namespace firaga143
 
 	static void SparkHeader(uint8_t *h, int16_t c)
 	{
-		*(const void **)h = MODEL_Spark;
+		*(const void **)h = MODEL_Spark();
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -475,7 +475,7 @@ namespace firaga143
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		FX_HELD(held_note_draw(ORIG_SparkTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_SparkTask), p);)
 		SparkMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		SparkHeader(h, p->counter);

@@ -23,14 +23,14 @@ namespace helix063
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25450A4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25450A8); }
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25450AC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25450F0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25450FC); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x25450B0; }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25450C0; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25450A4)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25450A8)); }
+	inline uint8_t *&Target() { return var<uint8_t *>(us(0x25450AC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25450F0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25450FC)); }
+	inline TaskQueue *QMaster() { return (TaskQueue *)us(0x25450B0); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x25450C0); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6E6CB0;
 	static const uint32_t ORIG_MasterTask = 0x6E6E10;
@@ -44,24 +44,24 @@ namespace helix063
 	static const uint32_t POINT_B = 0x1354A00;
 	static const uint32_t OBJS_Plain = 0x1354A08;
 	static const uint32_t OBJS_Impact = 0x1354A28;
-	static const void *const SOUND_Start = (const void *)0x13549F4;
+	static const void *SOUND_Start() { return (const void *)us(0x13549F4); }
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(x, y); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatMulScaleDiag(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(0x56C220)(a, b); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(x, y); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatMulScaleDiag(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(us(0x56C220))(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(us(0x6A6020))(pitch, yaw, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -247,7 +247,7 @@ namespace helix063
 		GteSetTransVector(m);
 		uint8_t *h = b + 0x50;
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = MODEL_Beam;
+		*(uint32_t *)h = us(MODEL_Beam);
 		*(uint16_t *)(h + 0x2A) = 0x100;
 		*(uint16_t *)(h + 0x28) = 0x100;
 		*(uint16_t *)(h + 0x30) = 0x100;
@@ -305,7 +305,7 @@ namespace helix063
 	{
 		TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = us(SEQ_Particle);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -349,7 +349,7 @@ namespace helix063
 	static void SpawnParticles(MasterNode *m)
 	{
 		int32_t count = 10;
-		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
 		while (p)
 		{
 			p->pos[0] = m->pos[0];
@@ -370,7 +370,7 @@ namespace helix063
 			p->vel[2] = (int16_t)z;
 			p->acc[2] = Drag((int16_t)z);
 			if (--count == 0) break;
-			p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+			p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
 		}
 	}
 
@@ -384,8 +384,8 @@ namespace helix063
 		else flash = m->counter >= 0x10 ? 0x8FC : 0;
 		SetScreenFlash(flash, 0);
 		Points pts;
-		CasterPoint(POINT_A, pts.p1);
-		CasterPoint(POINT_B, pts.p2);
+		CasterPoint(us(POINT_A), pts.p1);
+		CasterPoint(us(POINT_B), pts.p2);
 		int16_t mid[3];
 		mid[0] = (int16_t)(((int32_t)pts.p2[0] + pts.p1[0]) / 2);
 		mid[1] = (int16_t)(((int32_t)pts.p2[1] + pts.p1[1]) / 2);
@@ -401,7 +401,7 @@ namespace helix063
 			arg.m.t[2] = mid[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = (int16_t)0xFF80;
-			arg.objs = OBJS_Plain;
+			arg.objs = us(OBJS_Plain);
 			arg.morph = TexBase() + 0x21150;
 			FX_HELD(held_note_play((prim::Layout *)m->core, &arg);)
 			prim::play((prim::Layout *)m->core, PartCallback, (int)&arg, 0);
@@ -414,7 +414,7 @@ namespace helix063
 			arg.m.t[2] = pts.p1[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = (int16_t)0xFF80;
-			arg.objs = OBJS_Plain;
+			arg.objs = us(OBJS_Plain);
 			arg.morph = TexBase() + 0x21150;
 			FX_HELD(held_note_play((prim::Layout *)m->ring1, &arg);)
 			prim::play((prim::Layout *)m->ring1, PartCallback, (int)&arg, 0);
@@ -465,13 +465,13 @@ namespace helix063
 			arg.m.t[2] = m->pos[2] - mul32(v[2], 500) / len;
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = (int16_t)0xFF80;
-			arg.objs = OBJS_Impact;
+			arg.objs = us(OBJS_Impact);
 			arg.scroll = (int16_t)shl32(e, 5);
 			arg.morph = TexBase() + 0x21150;
 			FX_HELD(held_note_play((prim::Layout *)m->impact, &arg);)
 			prim::play((prim::Layout *)m->impact, PartCallback, (int)&arg, 0);
 		}
-		if (m->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
+		if (m->counter == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
 		if (m->counter == 0x36) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		if (m->counter >= 0x40)
 		{
@@ -501,12 +501,12 @@ namespace helix063
 			r->started = 1;
 			InitTaskQueuePool(QMaster(), (void *)(TexBase() + 0x348), 0xE08, 1);
 			InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x1E);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), us(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x37F);
-			DecodeModelPrimLayout(MODEL_Ring, m->ring1, 0xE8);
-			DecodeModelPrimLayout(MODEL_Ring, m->ring2, 0xE8);
-			DecodeModelPrimLayout(MODEL_Core, m->core, 0x6A0);
-			DecodeModelPrimLayout(MODEL_Impact, m->impact, 0x580);
+			DecodeModelPrimLayout(us(MODEL_Ring), m->ring1, 0xE8);
+			DecodeModelPrimLayout(us(MODEL_Ring), m->ring2, 0xE8);
+			DecodeModelPrimLayout(us(MODEL_Core), m->core, 0x6A0);
+			DecodeModelPrimLayout(us(MODEL_Impact), m->impact, 0x580);
 			GetDefaultEffectPosition(Target(), m->pos);
 		}
 		int a;

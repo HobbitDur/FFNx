@@ -25,19 +25,19 @@ namespace thunder285
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507D0C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507D10); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507D18; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507D28; }
-	inline int16_t &MeanZ() { return var<int16_t>(0x2507D5C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507D60); }
-	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2507D64); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507D68); }
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2507D70); }
-	inline uint32_t *KeptWords() { return (uint32_t *)0x2507D90; }
-	inline int16_t *Eye() { return (int16_t *)0xB8B7F0; }
-	inline int16_t *LookAt() { return (int16_t *)0xB8B7F8; }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507D0C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507D10)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507D18); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2507D28); }
+	inline int16_t &MeanZ() { return var<int16_t>(us(0x2507D5C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507D60)); }
+	inline uint32_t &FlashLevel() { return var<uint32_t>(us(0x2507D64)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507D68)); }
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(us(0x2507D70)); }
+	inline uint32_t *KeptWords() { return (uint32_t *)us(0x2507D90); }
+	inline int16_t *Eye() { return (int16_t *)us(0xB8B7F0); }
+	inline int16_t *LookAt() { return (int16_t *)us(0xB8B7F8); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x67A900;
 	static const uint32_t ORIG_MainTask = 0x67AC00;
@@ -52,25 +52,25 @@ namespace thunder285
 	static const uint32_t MODEL_Ground = 0x1089B00;
 	static const uint32_t SEQ_Spark = 0x1084AF8;
 	static const uint32_t POINT_A = 0x108FAB8, POINT_B = 0x108FAB0;
-	static const void *const SOUND_Start = (const void *)0x108FAA8;
-	static const void *const SOUND_Bolt = (const void *)0x108FAAC;
+	static const void *SOUND_Start() { return (const void *)us(0x108FAA8); }
+	static const void *SOUND_Bolt() { return (const void *)us(0x108FAAC); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
-	inline void VecLerp(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
+	inline void VecLerp(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(us(0x50A730))(); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
+	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -168,12 +168,12 @@ namespace thunder285
 
 	static void SlotFlags(int32_t on)
 	{
-		for (uint8_t *p = (uint8_t *)0x1D98A15; ; p -= 0x2C)
+		for (uint8_t *p = (uint8_t *)us(0x1D98A15); ; p -= 0x2C)
 		{
 			*p = (uint8_t)((*p & 0xFD) | ((on & 1) << 1));
-			if (p == (uint8_t *)0x1D98991) break;
+			if (p == (uint8_t *)us(0x1D98991)) break;
 		}
-		uint16_t *w = (uint16_t *)0x1D97668;
+		uint16_t *w = (uint16_t *)us(0x1D97668);
 		for (int i = 6; i >= 0; i--, w = (uint16_t *)((uint8_t *)w - 0x9C))
 		{
 			if (on) *w = (uint16_t)(((KeptWords()[i] ^ *w) & 4) ^ *w);
@@ -185,7 +185,7 @@ namespace thunder285
 	{
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = us(SEQ_Spark);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -352,9 +352,9 @@ namespace thunder285
 
 	static void SpawnSparks(int32_t c)
 	{
-		for (uint32_t point = POINT_A; ; point -= 8)
+		for (uint32_t point = us(POINT_A); ; point -= 8)
 		{
-			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 			if (s)
 			{
 				BonePoint((const int16_t *)point, s->pos);
@@ -363,7 +363,7 @@ namespace thunder285
 				{
 					for (int k = 4; k; k--)
 					{
-						SparkNode *e = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+						SparkNode *e = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 						if (!e) break;
 						e->pos[0] = (int16_t)((CrtRand() & 0x1FF) + s->pos[0] - 0x100);
 						e->pos[1] = (int16_t)((CrtRand() & 0x1FF) + s->pos[1] - 0x100);
@@ -373,7 +373,7 @@ namespace thunder285
 					}
 				}
 			}
-			if (point == POINT_B) break;
+			if (point == us(POINT_B)) break;
 		}
 	}
 
@@ -416,8 +416,8 @@ namespace thunder285
 			FX_HELD(held_note_play(m, PLAY_GROUND, &arg);)
 			prim::play((prim::Layout *)m->ground, PrimCallback, (int)&arg, 0);
 		}
-		if (m->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (m->counter == 0x30) BdPlaySE(SOUND_Bolt, 0, 0x80);
+		if (m->counter == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
+		else if (m->counter == 0x30) BdPlaySE(SOUND_Bolt(), 0, 0x80);
 		const int32_t c1 = m->counter;
 		if ((uint32_t)c1 < 0x20)
 		{
@@ -425,11 +425,11 @@ namespace thunder285
 			if (c1 == 0)
 			{
 				CameraArmReturn();
-				var<uint16_t>(0x1D8E038) = 0x120;
-				var<uint16_t>(0x1D972C0) |= 4;
-				var<uint16_t>(0x1D9735C) |= 4;
-				var<uint16_t>(0x1D973F8) |= 4;
-				var<uint16_t>(0x1D977A2) = 0;
+				var<uint16_t>(us(0x1D8E038)) = 0x120;
+				var<uint16_t>(us(0x1D972C0)) |= 4;
+				var<uint16_t>(us(0x1D9735C)) |= 4;
+				var<uint16_t>(us(0x1D973F8)) |= 4;
+				var<uint16_t>(us(0x1D977A2)) = 0;
 			}
 			CameraTrack(c1);
 		}
@@ -458,7 +458,7 @@ namespace thunder285
 			if (c3 == 0)
 			{
 				SlotFlags(1);
-				const uint32_t mz = var<uint32_t>(0x2507D5C);
+				const uint32_t mz = var<uint32_t>(us(0x2507D5C));
 				LookAt()[2] = (int16_t)mz;
 				Eye()[2] = (int16_t)(mz + 0x1518);
 				FX_HELD(held_note_tile();)
@@ -477,11 +477,11 @@ namespace thunder285
 		m->counter++;
 		if (m->counter >= 0x87)
 		{
-			var<uint32_t>(0xB8B7FC) = var<uint32_t>(0xB8B80C);
-			var<uint16_t>(0x1D8E038) = var<uint16_t>(0x1D977A0);
-			var<uint32_t>(0xB8B7F8) = var<uint32_t>(0xB8B808);
-			var<uint32_t>(0xB8B7F0) = var<uint32_t>(0xB8B800);
-			var<uint32_t>(0xB8B7F4) = var<uint32_t>(0xB8B804);
+			var<uint32_t>(us(0xB8B7FC)) = var<uint32_t>(us(0xB8B80C));
+			var<uint16_t>(us(0x1D8E038)) = var<uint16_t>(us(0x1D977A0));
+			var<uint32_t>(us(0xB8B7F8)) = var<uint32_t>(us(0xB8B808));
+			var<uint32_t>(us(0xB8B7F0)) = var<uint32_t>(us(0xB8B800));
+			var<uint32_t>(us(0xB8B7F4)) = var<uint32_t>(us(0xB8B804));
 			StreamLoad(0x168, TexBase() + LOAD_Next, 0);
 			return TASK_END;
 		}
@@ -509,7 +509,7 @@ namespace thunder285
 			for (int i = 0; i < 7; i++) KeptWords()[i] = *(const uint16_t *)Entity(i);
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x15B8, 1);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x14, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x56B);
 			const int32_t nt = Ctx()->actions[0].target_count;
 			int16_t sum = 0;
@@ -520,8 +520,8 @@ namespace thunder285
 				MeanZ() = sum;
 			}
 			MeanZ() = (int16_t)((int32_t)sum / nt);
-			DecodeModelPrimLayout(MODEL_Bolt, m->bolt, 0x944);
-			DecodeModelPrimLayout(MODEL_Ground, m->ground, 0xC64);
+			DecodeModelPrimLayout(us(MODEL_Bolt), m->bolt, 0x944);
+			DecodeModelPrimLayout(us(MODEL_Ground), m->ground, 0xC64);
 			StreamStateInit((void *)(TexBase() + STREAM));
 		}
 		int a0;

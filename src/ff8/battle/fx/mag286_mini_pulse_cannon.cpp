@@ -25,13 +25,13 @@ namespace minipulse286
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507CAC); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507CB0); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507CB8; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507CC8; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507CFC); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507D00); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507CAC)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507CB0)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507CB8); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2507CC8); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507CFC)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507D00)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x679EC0;
 	static const uint32_t ORIG_MainTask = 0x67A070;
@@ -45,18 +45,18 @@ namespace minipulse286
 	static const uint32_t MODEL_Impact = 0x1078BC8;
 	static const uint32_t MODEL_Ground = 0x107D004;
 	static const uint32_t SEQ_Spark = 0x10789A8;
-	static const int16_t *const MUZZLE = (const int16_t *)0x1084AE0;
-	static const void *const SOUND_Shot = (const void *)0x10847AC;
+	static const int16_t *MUZZLE() { return (const int16_t *)us(0x1084AE0); }
+	static const void *SOUND_Shot() { return (const void *)us(0x10847AC); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -269,12 +269,12 @@ namespace minipulse286
 	static void SpawnSparks(int32_t c, const int32_t P[3])
 	{
 		int32_t count = 2;
-		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 		if (!s) return;
 		int32_t base = shl32(c + 0x10, 8);
 		for (;;)
 		{
-			s->seq = SEQ_Spark;
+			s->seq = us(SEQ_Spark);
 			const int32_t angle = (CrtRand() & 0x3F) + base - 0x20;
 			const int32_t radius = (CrtRand() & 0x3FF) + 0x200;
 			s->pos[0] = (int16_t)(mul32(ComputeSin(angle), radius) >> 12);
@@ -295,7 +295,7 @@ namespace minipulse286
 			s->shadow = 0x4B0;
 			base -= 0x800;
 			if (--count == 0) break;
-			s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+			s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 			if (!s) break;
 		}
 	}
@@ -311,7 +311,7 @@ namespace minipulse286
 		int32_t P[3];
 		if ((uint32_t)c < 0x2A)
 		{
-			BonePoint(MUZZLE, P);
+			BonePoint(MUZZLE(), P);
 			M.t[0] = P[0];
 			M.t[1] = P[1];
 			M.t[2] = P[2];
@@ -339,7 +339,7 @@ namespace minipulse286
 		}
 		if ((uint32_t)(m->counter - 0x31) < 0x14)
 		{
-			BonePoint(MUZZLE, P);
+			BonePoint(MUZZLE(), P);
 			ImpactFrame(m, P, &M);
 			ComposeAffineTransform(&Camera(), &M, &arg.m);
 			FX_HELD(held_note_main(m, PLAY_IMPACT, &arg);)
@@ -352,7 +352,7 @@ namespace minipulse286
 			FX_HELD(held_note_main(m, PLAY_GROUND, &arg);)
 			prim::play((prim::Layout *)m->ground, PrimCallback, (int)&arg, 0);
 		}
-		if (m->counter == 0x18) BdPlaySE(SOUND_Shot, 0, 0x80);
+		if (m->counter == 0x18) BdPlaySE(SOUND_Shot(), 0, 0x80);
 		if (m->counter == 0x35) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		m->counter++;
 		return m->counter < 0x45 ? 0 : TASK_END;
@@ -377,13 +377,13 @@ namespace minipulse286
 			mn->started = 1;
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x6D4, 1);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x24, 0x20);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x1B2);
 			m->ent = Entity(Ctx()->actions[0].targets[0]);
-			DecodeModelPrimLayout(MODEL_Muzzle, m->muzzle, 0x22C);
-			DecodeModelPrimLayout(MODEL_Beam, m->beam, 0x158);
-			DecodeModelPrimLayout(MODEL_Impact, m->impact, 0x2A4);
-			DecodeModelPrimLayout(MODEL_Ground, m->ground, 0x90);
+			DecodeModelPrimLayout(us(MODEL_Muzzle), m->muzzle, 0x22C);
+			DecodeModelPrimLayout(us(MODEL_Beam), m->beam, 0x158);
+			DecodeModelPrimLayout(us(MODEL_Impact), m->impact, 0x2A4);
+			DecodeModelPrimLayout(us(MODEL_Ground), m->ground, 0x90);
 			GetDefaultEffectPosition(m->ent, m->pos);
 		}
 		int a0, a1;

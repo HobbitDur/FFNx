@@ -26,10 +26,10 @@ namespace blizzara103
 	using namespace magc;
 	using namespace icec;
 
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543E94); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2543E98); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543EB4); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543EC8 + 0x10 * i); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x2543E94)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2543E98)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2543EB4)); }
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(us(0x2543EC8) + 0x10 * i); }
 
 	static const uint32_t ORIG_Director = 0x6DA3A0;
 	static const uint32_t ORIG_IceBlockTask = 0x6DAA30;
@@ -37,17 +37,17 @@ namespace blizzara103
 	static const uint32_t ORIG_BurstTask = 0x6DBD20;
 	static const uint32_t ORIG_ChunkTask = 0x6DBEA0;
 	static const uint32_t ORIG_MistTask = 0x6DBFF0;
-	static const uint8_t *const MODEL_Block = (const uint8_t *)0x131ABB0;
-	static const uint8_t *const MODEL_BlockUV = (const uint8_t *)0x131C86C;
-	static const void *const MODEL_Pillar = (const void *)0x1319990;
-	static const void *const MODEL_Burst = (const void *)0x131A678;
-	static const void *const SEQ_Ice = (const void *)0x13197E4;
-	static const void *const SOUND_Blizzara = (const void *)0x131E750;
+	static const uint8_t *MODEL_Block() { return (const uint8_t *)us(0x131ABB0); }
+	static const uint8_t *MODEL_BlockUV() { return (const uint8_t *)us(0x131C86C); }
+	static const void *MODEL_Pillar() { return (const void *)us(0x1319990); }
+	static const void *MODEL_Burst() { return (const void *)us(0x131A678); }
+	static const void *SEQ_Ice() { return (const void *)us(0x13197E4); }
+	static const void *SOUND_Blizzara() { return (const void *)us(0x131E750); }
 	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };
 	static const uint32_t MODEL_UV_OFFSET[3] = { 0x128A0, 0x156F0, 0x18540 };
 	static const int SHARDS = 0xDF;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 	inline int16_t EntityHeight2(const uint8_t *entity) { return *(const int16_t *)(entity + 0x24); }
 
 #pragma pack(push, 1)
@@ -196,7 +196,7 @@ namespace blizzara103
 				if (busy) d->counter = 0;
 				else
 				{
-					IceBlockNode *b = (IceBlockNode *)AddTaskToQueue(Queue(0), ORIG_IceBlockTask);
+					IceBlockNode *b = (IceBlockNode *)AddTaskToQueue(Queue(0), us(ORIG_IceBlockTask));
 					FillDwords(&b->counter, 0, 0x14F0);
 					int16_t action = (int16_t)(uint16_t)d->action;
 					b->action = action;
@@ -204,8 +204,8 @@ namespace blizzara103
 					b->clip_y = 0x7FFF;
 					if (action >= 0 && action < 3)
 					{
-						CopyDwords(TexBase() + MODEL_OFFSET[action], MODEL_Block, 0x72F);
-						CopyDwords(TexBase() + MODEL_UV_OFFSET[action], MODEL_BlockUV, 0x465);
+						CopyDwords(TexBase() + MODEL_OFFSET[action], MODEL_Block(), 0x72F);
+						CopyDwords(TexBase() + MODEL_UV_OFFSET[action], MODEL_BlockUV(), 0x465);
 						b->model = TexBase() + MODEL_OFFSET[action];
 						b->model2 = TexBase() + MODEL_UV_OFFSET[action];
 					}
@@ -355,10 +355,10 @@ namespace blizzara103
 		if (b->counter >= 0 && b->counter <= 0xC)
 		{
 			int32_t c = b->counter;
-			if (c == 6) BdPlaySE3D(SOUND_Blizzara, 0x101, b->pos);
+			if (c == 6) BdPlaySE3D(SOUND_Blizzara(), 0x101, b->pos);
 			if (!(c & 3))
 			{
-				PillarNode *p = (PillarNode *)AddTaskToQueue(Queue(1), ORIG_PillarTask);
+				PillarNode *p = (PillarNode *)AddTaskToQueue(Queue(1), us(ORIG_PillarTask));
 				FillDwords(&p->counter, 0, 7);
 				p->block = b;
 				GetEffectSpawnPosition(b->entity, 0xF1, 0, p->pos);
@@ -379,7 +379,7 @@ namespace blizzara103
 		}
 		if (b->counter == 0x14)
 		{
-			BurstNode *u = (BurstNode *)AddTaskToQueue(Queue(2), ORIG_BurstTask);
+			BurstNode *u = (BurstNode *)AddTaskToQueue(Queue(2), us(ORIG_BurstTask));
 			FillDwords(&u->counter, 0, 5);
 			GetEffectSpawnPosition(b->entity, 0xF1, 0, u->pos);
 			u->scale = 0x64;
@@ -488,7 +488,7 @@ namespace blizzara103
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 2; k++)
 			{
-				ChunkNode *c = (ChunkNode *)AddTaskToQueue(Queue(3), ORIG_ChunkTask);
+				ChunkNode *c = (ChunkNode *)AddTaskToQueue(Queue(3), us(ORIG_ChunkTask));
 				if (!c) continue;
 				FillDwords(&c->counter, 0, 6);
 				c->entity = b->entity;
@@ -518,7 +518,7 @@ namespace blizzara103
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 4; k++)
 			{
-				MistNode *m = (MistNode *)AddTaskToQueue(Queue(4), ORIG_MistTask);
+				MistNode *m = (MistNode *)AddTaskToQueue(Queue(4), us(ORIG_MistTask));
 				if (!m) continue;
 				FillDwords(&m->counter, 0, 7);
 				int32_t r1 = CrtRand();
@@ -597,7 +597,7 @@ namespace blizzara103
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(const void **)h = MODEL_Pillar;
+		*(const void **)h = MODEL_Pillar();
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -623,7 +623,7 @@ namespace blizzara103
 	static uint32_t __cdecl PillarTask(TaskNode *n)
 	{
 		PillarNode *p = (PillarNode *)n;
-		FX_HELD(held_note_draw(ORIG_PillarTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_PillarTask), p);)
 		uint8_t *h = AllocHeader(0x58);
 		*(int32_t *)(h + 0xC) = 0;
 		*(int32_t *)(h + 0xC) = PillarFade(p->counter);
@@ -655,7 +655,7 @@ namespace blizzara103
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(const void **)h = MODEL_Burst;
+		*(const void **)h = MODEL_Burst();
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -673,7 +673,7 @@ namespace blizzara103
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		BurstNode *u = (BurstNode *)n;
-		FX_HELD(held_note_draw(ORIG_BurstTask, u);)
+		FX_HELD(held_note_draw(us(ORIG_BurstTask), u);)
 		uint8_t *h = AllocHeader(0x58);
 		*(int32_t *)(h + 0xC) = 0;
 		*(int32_t *)(h + 0xC) = BurstFade(u->counter);
@@ -690,7 +690,7 @@ namespace blizzara103
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(c->pos, c->scale, -(c->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = SEQ_Ice();
 		*(uint16_t *)(h + 4) = (uint16_t)(c->counter & 0xF);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -717,7 +717,7 @@ namespace blizzara103
 	static uint32_t __cdecl ChunkTask(TaskNode *n)
 	{
 		ChunkNode *c = (ChunkNode *)n;
-		FX_HELD(held_note_draw(ORIG_ChunkTask, c);)
+		FX_HELD(held_note_draw(us(ORIG_ChunkTask), c);)
 		ChunkDraw(c);
 		c->counter++;
 		if (c->counter >= 0x10) return TASK_END;
@@ -730,7 +730,7 @@ namespace blizzara103
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(m->pos, m->scale, -(m->scale >> 2));
 		*(uint16_t *)(h + 0x24) = 0;
-		*(const void **)h = SEQ_Ice;
+		*(const void **)h = SEQ_Ice();
 		*(uint16_t *)(h + 4) = (uint16_t)(m->counter & 0xF);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -747,7 +747,7 @@ namespace blizzara103
 	static uint32_t __cdecl MistTask(TaskNode *n)
 	{
 		MistNode *m = (MistNode *)n;
-		FX_HELD(held_note_draw(ORIG_MistTask, m);)
+		FX_HELD(held_note_draw(us(ORIG_MistTask), m);)
 		MistDraw(m);
 		m->counter++;
 		if (m->counter >= 0x10) return TASK_END;

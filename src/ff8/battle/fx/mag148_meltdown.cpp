@@ -33,12 +33,12 @@ namespace melt148
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x24657E8; }
-	inline CastContext *Ctx() { return var<CastContext *>(0x2466620); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2476638); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t Frame(int32_t action) { return 0x2465788 + (uint32_t)shl32(action, 5); }
-	inline uint32_t TargetPos(int32_t action) { return 0x2466608 + (uint32_t)shl32(action, 3); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x24657E8); }
+	inline CastContext *Ctx() { return var<CastContext *>(us(0x2466620)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2476638)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t Frame(int32_t action) { return us(0x2465788) + (uint32_t)shl32(action, 5); }
+	inline uint32_t TargetPos(int32_t action) { return us(0x2466608) + (uint32_t)shl32(action, 3); }
 	static const uint32_t CASTER_POS = 0x2466630;
 	static const uint32_t SCALE_MATRIX = 0x2476640;
 	static const uint32_t POOL_A = 0x2464BB0, POOL_A_END = 0x2465060;
@@ -54,43 +54,43 @@ namespace melt148
 	static const uint32_t ORIG_ParticlesB = 0x613EF0;
 	static const uint32_t MODEL_Disc = 0xDCDB4C, MODEL_GlowFlat = 0xDCADB4, MODEL_Glow = 0xDCCDA4;
 	static const uint32_t SEQ_AcidA = 0xDCABEC, SEQ_AcidB = 0xDCAA24;
-	static const void *const SOUND_Meltdown = (const void *)0xDCE74C;
+	static const void *SOUND_Meltdown() { return (const void *)us(0xDCE74C); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
-	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7F0)(value, reg); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
-	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(dst); }
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
-	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
-	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteSetLightMatrix(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(0x460810)(); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C7A0)(bucket, pkt); }
-	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
-	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); }
-	inline void GteReadMAC1x4096(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF60)(out); }
-	inline void GteSetBkFromTranslation(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x64DDA0)(m); }
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
-	inline void GteSetTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }
-	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, hdr, ot, mode, cursor); }
-	inline void NormalizeSVector(uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }
+	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45D7F0))(value, reg); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
+	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
+	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E110))(c); }
+	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E360))(c); }
+	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E370))(a, b, c); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteSetLightMatrix(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(us(0x45DE50))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(us(0x460810))(); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
+	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C7A0))(bucket, pkt); }
+	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x64DEE0))(v); }
+	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF10))(out); }
+	inline void GteReadMAC1x4096(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF60))(out); }
+	inline void GteSetBkFromTranslation(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(us(0x64DDA0))(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DDD0))(s); }
+	inline void GteSetTransFromIR() { fn<void (__cdecl *)()>(us(0x64DE90))(); }
+	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(model, hdr, ot, mode, cursor); }
+	inline void NormalizeSVector(uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(in, out); }
 }
 }
 
@@ -106,8 +106,8 @@ namespace melt148
 	{
 		uint32_t node = P(n);
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
-		if (!(U8(node, 0xC) & 1)) PacketCursor() = ARENA_EVEN;
+		PacketCursor() = us(ARENA_ODD);
+		if (!(U8(node, 0xC) & 1)) PacketCursor() = us(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(EffectQueue());
 		U16(node, 0xC) = (uint16_t)(U16(node, 0xC) + 1);
 		return alive ? 0 : TASK_END;
@@ -121,11 +121,11 @@ namespace melt148
 			const uint32_t tp = TargetPos(action);
 			int32_t dir[3], from[3], scale[3], axis[3];
 			from[2] = -0x1000;
-			dir[0] = S16(tp, 0) - S16(CASTER_POS, 0);
+			dir[0] = S16(tp, 0) - S16(us(CASTER_POS), 0);
 			from[0] = 0;
 			from[1] = 0;
-			dir[1] = S16(tp, 2) - S16(CASTER_POS, 2);
-			dir[2] = S16(tp, 4) - S16(CASTER_POS, 4);
+			dir[1] = S16(tp, 2) - S16(us(CASTER_POS), 2);
+			dir[2] = S16(tp, 4) - S16(us(CASTER_POS), 4);
 			NormalizeVector(dir, dir);
 			int32_t angle = RotationBetweenVectors(from, dir, axis);
 			Mat4x3 *m = (Mat4x3 *)Frame(S16(node, 0xE));
@@ -133,9 +133,9 @@ namespace melt148
 			scale[2] = 0x600;
 			scale[1] = 0x600;
 			scale[0] = 0x600;
-			m->t[0] = (mul32(dir[0], 900) >> 12) + S16(CASTER_POS, 0);
-			m->t[1] = (mul32(dir[1], 900) >> 12) + S16(CASTER_POS, 2);
-			m->t[2] = (mul32(dir[2], 900) >> 12) + S16(CASTER_POS, 4);
+			m->t[0] = (mul32(dir[0], 900) >> 12) + S16(us(CASTER_POS), 0);
+			m->t[1] = (mul32(dir[1], 900) >> 12) + S16(us(CASTER_POS), 2);
+			m->t[2] = (mul32(dir[2], 900) >> 12) + S16(us(CASTER_POS), 4);
 			Scale3DMatrix(m, scale);
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)Frame(S16(node, 0xE)), (Mat4x3 *)Frame(S16(node, 0xE)));
 		}
@@ -143,14 +143,14 @@ namespace melt148
 		if (S16(node, 0xC) == 0)
 		{
 			GetDefaultEffectPosition(Entity(S16(node, 0x20)), (int16_t *)TargetPos(S16(node, 0xE)));
-			GetDefaultEffectPosition(Entity(S16(node, 0x22)), (int16_t *)CASTER_POS);
+			GetDefaultEffectPosition(Entity(S16(node, 0x22)), (int16_t *)us(CASTER_POS));
 			const uint32_t tp = TargetPos(S16(node, 0xE));
-			const int16_t cy = S16(CASTER_POS, 2);
+			const int16_t cy = S16(us(CASTER_POS), 2);
 			if (S16(tp, 2) > cy && S16(node, 0x22) < 3) S16(tp, 2) = cy;
 		}
 		if (S16(node, 0xC) == 0x28)
 		{
-			uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_Melt));
+			uint32_t t = P(AddTaskToQueue(EffectQueue(), us(ORIG_Melt)));
 			U16(t, 0xE) = U16(node, 0xE);
 			const uint16_t slot = U16(node, 0x20);
 			U16(t, 0x18) = slot;
@@ -159,24 +159,24 @@ namespace melt148
 		}
 		if (S16(node, 0xC) == 1)
 		{
-			uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_Disc));
+			uint32_t t = P(AddTaskToQueue(EffectQueue(), us(ORIG_Disc)));
 			const uint16_t a = U16(node, 0xE);
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = a;
 			U16(t, 0x1C) = 0xC00;
 			U16(t, 0x1E) = 0x80;
-			t = P(AddTaskToQueue(EffectQueue(), ORIG_ParticlesA));
+			t = P(AddTaskToQueue(EffectQueue(), us(ORIG_ParticlesA)));
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = U16(node, 0xE);
-			for (uint32_t p = POOL_A; p < POOL_A_END; p += 0x14) U16(p, 0) = 0xFFFF;
-			t = P(AddTaskToQueue(EffectQueue(), ORIG_ParticlesB));
+			for (uint32_t p = us(POOL_A); p < us(POOL_A_END); p += 0x14) U16(p, 0) = 0xFFFF;
+			t = P(AddTaskToQueue(EffectQueue(), us(ORIG_ParticlesB)));
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = U16(node, 0xE);
-			for (uint32_t p = POOL_B; p < POOL_B_END; p += 0x14) U16(p, 0) = 0xFFFF;
+			for (uint32_t p = us(POOL_B); p < us(POOL_B_END); p += 0x14) U16(p, 0) = 0xFFFF;
 		}
 		if (S16(node, 0xC) == 0x23)
 		{
-			uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_CasterGlow));
+			uint32_t t = P(AddTaskToQueue(EffectQueue(), us(ORIG_CasterGlow)));
 			U16(t, 0xC) = 0;
 			U16(t, 0xE) = U16(node, 0xE);
 			U16(t, 0x1C) = 0x300;
@@ -190,7 +190,7 @@ namespace melt148
 			const int32_t next = S16(node, 0xE) + 1;
 			if (next <= (int32_t)Ctx()->actions[0].last_action)
 			{
-				uint32_t t = P(AddTaskToQueue(EffectQueue(), ORIG_Director));
+				uint32_t t = P(AddTaskToQueue(EffectQueue(), us(ORIG_Director)));
 				U16(t, 0xC) = 0;
 				ActionData *ad = &Ctx()->actions[next];
 				U16(t, 0xE) = (uint16_t)next;
@@ -198,7 +198,7 @@ namespace melt148
 				U16(t, 0x22) = ad->attacker;
 			}
 		}
-		if (S16(node, 0xC) == 1) BdPlaySE(SOUND_Meltdown, 0, 0x80);
+		if (S16(node, 0xC) == 1) BdPlaySE(SOUND_Meltdown(), 0, 0x80);
 		U16(node, 0xC) = (uint16_t)(U16(node, 0xC) + 1);
 		return S16(node, 0xC) > 0x5A ? TASK_END : 0;
 	}
@@ -340,7 +340,7 @@ namespace melt148
 	{
 		const uint32_t anim = entity + 0x60;
 		if (!(U8(entity, 0) & 0x20))
-			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
+			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0x84));
 		ComputeBonesWorldMatrices((void *)anim, (void *)(entity + 0x40));
 		U32(hdr, 0x1C) = U32(entity, 0x28);
@@ -349,8 +349,8 @@ namespace melt148
 		U8(hdr, 0x2A) = cue;
 		U8(hdr, 0x29) = cue;
 		U8(hdr, 0x28) = cue;
-		U32(hdr, 4) = var<uint32_t>(0x1D98B3C);
-		U32(hdr, 0x10) = var<uint32_t>(0x1D969A8);
+		U32(hdr, 4) = var<uint32_t>(us(0x1D98B3C));
+		U32(hdr, 0x10) = var<uint32_t>(us(0x1D969A8));
 		U16(hdr, 0x14) = 0;
 		U16(hdr, 0x16) = 0;
 		U16(hdr, 0x18) = 0x140;
@@ -381,8 +381,8 @@ namespace melt148
 		const uint32_t tw0 = U32(TargetPos(action), 0);
 		const uint32_t tw1 = U32(TargetPos(action), 4);
 		entity[0] |= 0xC;
-		const uint32_t cw0 = U32(CASTER_POS, 0);
-		const uint32_t cw1 = U32(CASTER_POS, 4);
+		const uint32_t cw0 = U32(us(CASTER_POS), 0);
+		const uint32_t cw1 = U32(us(CASTER_POS), 4);
 		int16_t by = (int16_t)((uint16_t)(tw0 >> 16) + 0x1F4);
 		if (by > 0) by = 0;
 		const int32_t tx = (int16_t)tw0;
@@ -428,7 +428,7 @@ namespace melt148
 	{
 		uint32_t node = P(n);
 		const int16_t c = S16(node, 0xC);
-		FX_HELD(if (c < 0x22) held_note_draw(ORIG_Melt, node);)
+		FX_HELD(if (c < 0x22) held_note_draw(us(ORIG_Melt), node);)
 		MeltDraw(node, MeltStrength(c), c < 0x22);
 		if (DrawOnly()) return 0;
 		U16(node, 0xC) = (uint16_t)(U16(node, 0xC) + 1);
@@ -721,15 +721,15 @@ namespace melt148
 
 	static void SetScaledFrame(int32_t action, uint16_t s, uint16_t sz, bool set_z_first)
 	{
-		if (set_z_first) U16(SCALE_MATRIX, 0x10) = sz;
-		U32(SCALE_MATRIX, 0x14) = 0;
-		U16(SCALE_MATRIX, 0) = s;
-		U16(SCALE_MATRIX, 8) = s;
-		if (!set_z_first) U16(SCALE_MATRIX, 0x10) = sz;
-		U32(SCALE_MATRIX, 0x18) = 0;
-		U32(SCALE_MATRIX, 0x1C) = 0;
+		if (set_z_first) U16(us(SCALE_MATRIX), 0x10) = sz;
+		U32(us(SCALE_MATRIX), 0x14) = 0;
+		U16(us(SCALE_MATRIX), 0) = s;
+		U16(us(SCALE_MATRIX), 8) = s;
+		if (!set_z_first) U16(us(SCALE_MATRIX), 0x10) = sz;
+		U32(us(SCALE_MATRIX), 0x18) = 0;
+		U32(us(SCALE_MATRIX), 0x1C) = 0;
 		Mat4x3 m = {};
-		ComposeAffineTransform((const Mat4x3 *)Frame(action), (const Mat4x3 *)SCALE_MATRIX, &m);
+		ComposeAffineTransform((const Mat4x3 *)Frame(action), (const Mat4x3 *)us(SCALE_MATRIX), &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 	}
@@ -741,7 +741,7 @@ namespace melt148
 		const uint32_t hdr = P(AllocHeader(0x7C));
 		const int16_t c16 = S16(node, 0xC);
 		const int32_t c = c16;
-		U32(hdr, 0) = MODEL_Disc;
+		U32(hdr, 0) = us(MODEL_Disc);
 		U32(hdr, 0x20) = 0x30;
 		U32(hdr, 0x10) = 0;
 		U16(hdr, 0x18) = 0;
@@ -769,7 +769,7 @@ namespace melt148
 	static uint32_t __cdecl DiscTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		FX_HELD(held_note_draw(ORIG_Disc, node);)
+		FX_HELD(held_note_draw(us(ORIG_Disc), node);)
 		DiscDraw(node);
 		if (DrawOnly()) return 0;
 		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) + U16(node, 0x1E));
@@ -779,13 +779,13 @@ namespace melt148
 
 	static void CasterGlowDraw(uint32_t node)
 	{
-		U16(SCALE_MATRIX, 0x10) = 0x4000;
+		U16(us(SCALE_MATRIX), 0x10) = 0x4000;
 		const uint16_t s = U16(node, 0x1C);
 		SetScaledFrame(S16(node, 0xE), s, 0x4000, false);
 		const uint32_t hdr = P(AllocHeader(0x7C));
 		const int16_t c16 = S16(node, 0xC);
 		const int32_t c = c16;
-		U32(hdr, 0) = MODEL_GlowFlat;
+		U32(hdr, 0) = us(MODEL_GlowFlat);
 		U32(hdr, 0x20) = 0x30;
 		U32(hdr, 0x10) = (uint32_t)shl32(c * 3, 3);
 		U32(hdr, 0x14) = 0;
@@ -811,7 +811,7 @@ namespace melt148
 		SetScaledFrame(S16(node, 0xE), s, sz, true);
 		U16(hdr, 0x18) = 0x40;
 		U16(hdr, 0x1C) = 0x40;
-		U32(hdr, 0) = MODEL_Glow;
+		U32(hdr, 0) = us(MODEL_Glow);
 		U32(hdr, 0x10) = 0;
 		U32(hdr, 0x14) = (uint32_t)shl32(S16(node, 0xC), 3);
 		U16(hdr, 0x1A) = 0;
@@ -823,7 +823,7 @@ namespace melt148
 	static uint32_t __cdecl CasterGlowTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		FX_HELD(held_note_draw(ORIG_CasterGlow, node);)
+		FX_HELD(held_note_draw(us(ORIG_CasterGlow), node);)
 		CasterGlowDraw(node);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(node, 0xC);
@@ -852,7 +852,7 @@ namespace melt148
 		const uint32_t h = P(AllocHeader(0xB4));
 		U32(h, 0) = seq;
 		U16(h, 0x24) = 0;
-		GteSetRotMatrixCtrl((const Mat4x3 *)SCALE_MATRIX);
+		GteSetRotMatrixCtrl((const Mat4x3 *)us(SCALE_MATRIX));
 		GteSetLightMatrix(Frame(S16(node, 0xE)));
 		GteSetBkFromTranslation(Frame(S16(node, 0xE)));
 		return h;
@@ -881,11 +881,11 @@ namespace melt148
 	static uint32_t __cdecl ParticlesATask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		const uint32_t h = ParticleSetup(node, SEQ_AcidA);
-		for (uint32_t e = POOL_A; e < POOL_A_END; e += 0x14)
+		const uint32_t h = ParticleSetup(node, us(SEQ_AcidA));
+		for (uint32_t e = us(POOL_A); e < us(POOL_A_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
-			FX_HELD(held_note_particle(ORIG_ParticlesA, e, node, h);)
+			FX_HELD(held_note_particle(us(ORIG_ParticlesA), e, node, h);)
 			ParticleDraw(h, e);
 			if (DrawOnly()) continue;
 			ParticleAUpdate(e);
@@ -897,7 +897,7 @@ namespace melt148
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				const uint32_t e = FreeEntry(POOL_A, POOL_A_END);
+				const uint32_t e = FreeEntry(us(POOL_A), us(POOL_A_END));
 				if (!e) break;
 				U16(e, 0) = 0;
 				S16(e, 2) = (int16_t)(CrtRand() % 1024 + 0x400);
@@ -951,11 +951,11 @@ namespace melt148
 	static uint32_t __cdecl ParticlesBTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		const uint32_t h = ParticleSetup(node, SEQ_AcidB);
-		for (uint32_t e = POOL_B; e < POOL_B_END; e += 0x14)
+		const uint32_t h = ParticleSetup(node, us(SEQ_AcidB));
+		for (uint32_t e = us(POOL_B); e < us(POOL_B_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
-			FX_HELD(held_note_particle(ORIG_ParticlesB, e, node, h);)
+			FX_HELD(held_note_particle(us(ORIG_ParticlesB), e, node, h);)
 			ParticleDraw(h, e);
 			if (DrawOnly()) continue;
 			ParticleBUpdate(e, S16(node, 0xC));
@@ -967,7 +967,7 @@ namespace melt148
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				const uint32_t e = FreeEntry(POOL_B, POOL_B_END);
+				const uint32_t e = FreeEntry(us(POOL_B), us(POOL_B_END));
 				if (!e) break;
 				U16(e, 0) = 0;
 				S16(e, 2) = (int16_t)(CrtRand() % 512 + 0x200);

@@ -25,10 +25,10 @@ namespace fire002
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24CA828); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x24CBD60); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24DFD6C); }
-	inline uint32_t *TargetFree() { return (uint32_t *)0xDEE360; }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x24CA828)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24CBD60)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24DFD6C)); }
+	inline uint32_t *TargetFree() { return (uint32_t *)us(0xDEE360); }
 	static const uint32_t ARENA_EVEN = 0x24CBD6C, ARENA_ODD = 0x24D5D6C;
 
 	static const uint32_t ORIG_RootTask = 0x62A610;
@@ -37,12 +37,12 @@ namespace fire002
 	static const uint32_t ORIG_FlameTask = 0x629C10;
 	static const uint32_t ORIG_SparkTask = 0x629F90;
 	static const uint32_t ORIG_EmberTask = 0x62A0A0;
-	static const void *const SEQ_Flame = (const void *)0xDEDC2C;
-	static const void *const SEQ_FlameGlow = (const void *)0xDEDDD8;
-	static const void *const SEQ_Ember = (const void *)0xDEDF84;
-	static const void *const SOUND_Fire = (const void *)0xDEE130;
+	static const void *SEQ_Flame() { return (const void *)us(0xDEDC2C); }
+	static const void *SEQ_FlameGlow() { return (const void *)us(0xDEDDD8); }
+	static const void *SEQ_Ember() { return (const void *)us(0xDEDF84); }
+	static const void *SOUND_Fire() { return (const void *)us(0xDEE130); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	struct RootNode { TaskNode hdr; uint16_t counter; };
 	struct DirectorNode
@@ -104,8 +104,8 @@ namespace fire002
 	{
 		RootNode *r = (RootNode *)n;
 		FX_HELD(held_note_root();)
-		PacketCursor() = ARENA_ODD;
-		if (!(r->counter & 1)) PacketCursor() = ARENA_EVEN;
+		PacketCursor() = us(ARENA_ODD);
+		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(&Queues().second);
 		r->counter++;
 		return alive ? 0 : TASK_END;
@@ -119,13 +119,13 @@ namespace fire002
 		DirectorNode *t;
 		if (acts[next].target_count > 1)
 		{
-			t = (DirectorNode *)AddTaskToQueue(&Queues().second, ORIG_DirectorMulti);
+			t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_DirectorMulti));
 			t->counter = 0;
 			t->action = (int16_t)next;
 		}
 		else
 		{
-			t = (DirectorNode *)AddTaskToQueue(&Queues().second, ORIG_DirectorSingle);
+			t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_DirectorSingle));
 			t->action = (int16_t)next;
 			t->counter = 0;
 			t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];
@@ -158,7 +158,7 @@ namespace fire002
 					int16_t pos[4];
 					GetDefaultEffectPosition(Entity(slot), pos);
 					int32_t half = spread >> 1;
-					FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, ORIG_FlameTask);
+					FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameTask));
 					f->frame = 0;
 					f->delay = (int16_t)(CrtRand() % 6);
 					ff8fx::copy<(8)>(f->pos, pos);
@@ -183,7 +183,7 @@ namespace fire002
 			ActionData *ad = &Ctx()->actions[d->action];
 			ApplyActionResultToTargets(ad->targets, ad->target_count);
 		}
-		if (d->counter == 6) BdPlaySE(SOUND_Fire, 0x100, 0x80);
+		if (d->counter == 6) BdPlaySE(SOUND_Fire(), 0x100, 0x80);
 		d->counter++;
 		return d->counter >= 0x16 ? TASK_END : 0;
 	}
@@ -205,7 +205,7 @@ namespace fire002
 			int32_t half = spread >> 1;
 			for (int k = 0; k < 4; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, ORIG_FlameTask);
+				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameTask));
 				f->frame = 0;
 				f->delay = (int16_t)(CrtRand() % 6 + 2 * k);
 				ff8fx::copy<(8)>(f->pos, pos);
@@ -224,7 +224,7 @@ namespace fire002
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
-			BdPlaySE3D(SOUND_Fire, 0x100, pos);
+			BdPlaySE3D(SOUND_Fire(), 0x100, pos);
 		}
 		d->counter++;
 		if (d->counter < 0x16) return 0;
@@ -236,7 +236,7 @@ namespace fire002
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
 		uint8_t *h = AllocHeader(0xB4);
-		*(const void **)h = SEQ_Flame;
+		*(const void **)h = SEQ_Flame();
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -256,7 +256,7 @@ namespace fire002
 		int32_t q = (int32_t)(((int64_t)shl32(y, 12) * 0x10624DD3) >> 32) >> 7;
 		q += (int32_t)((uint32_t)q >> 31);
 		uint8_t level = (uint8_t)((q * 160) / 4096 + 0xA0);
-		*(const void **)h = SEQ_FlameGlow;
+		*(const void **)h = SEQ_FlameGlow();
 		*(uint16_t *)(h + 0x24) = 0xC;
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
 		h[0x1E] = level;
@@ -275,14 +275,14 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_FlameTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_FlameTask), p);)
 		FlameDraw(p);
 		if (DrawOnly()) return 0;
 		if (p->frame == 0)
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, ORIG_EmberTask);
+				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, us(ORIG_EmberTask));
 				e->frame = 0;
 				e->delay = (int16_t)(CrtRand() % 6 + k);
 				ff8fx::copy<(8)>(e->pos, p->pos);
@@ -294,7 +294,7 @@ namespace fire002
 			}
 			for (int k = 0; k < 10; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, us(ORIG_SparkTask));
 				s->life = (int16_t)(CrtRand() % 4 + 5);
 				s->delay = (int16_t)(CrtRand() % 4 + k);
 				ff8fx::copy<(8)>(s->pos, p->pos);
@@ -347,7 +347,7 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_SparkTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_SparkTask), p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		SparkUpdate(p);
@@ -359,7 +359,7 @@ namespace fire002
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		*(const void **)h = SEQ_Ember;
+		*(const void **)h = SEQ_Ember();
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -384,7 +384,7 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_EmberTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_EmberTask), p);)
 		EmberDraw(p);
 		if (DrawOnly()) return 0;
 		EmberUpdate(p);

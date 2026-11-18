@@ -127,13 +127,13 @@ namespace potion050
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x58, "Potion nodes");
 	static_assert(sizeof(Particle) == 0x6C && sizeof(OverlayCtx) == 0xF8, "Potion nodes");
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2634ABC); }
-	inline uint32_t &PacketLimit() { return var<uint32_t>(0x2634AE4); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2643E20; }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2635B68; }
-	inline TaskQueue *QGlints() { return (TaskQueue *)0x2646380; }
-	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x26463E0); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2634ABC)); }
+	inline uint32_t &PacketLimit() { return var<uint32_t>(us(0x2634AE4)); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)us(0x2643E20); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x2635B68); }
+	inline TaskQueue *QGlints() { return (TaskQueue *)us(0x2646380); }
+	inline OverlayCtx &Overlay() { return var<OverlayCtx>(us(0x26463E0)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_Root = 0x81FB40;
 	static const uint32_t ORIG_Emitter = 0x81FCD0;
@@ -142,7 +142,7 @@ namespace potion050
 	static const uint32_t ORIG_Sparkle = 0x8210C0;
 	static const uint32_t ORIG_Glint = 0x8DCC20;
 
-	static const void *const SOUND_Potion = (const void *)0x15ACD78;
+	static const void *SOUND_Potion() { return (const void *)us(0x15ACD78); }
 	static const uint32_t SEQ_Ring = 0x15AD52C, SEQ_RingEnd = 0x15AD580, SEQ_Mote = 0x15AD610, SEQ_Sparkle = 0x15AD7EC;
 	static const uint32_t SEQ_Glow = 0x15ADAB8;
 	static const uint32_t CAM_SNAPSHOT = 0x2793E58;
@@ -150,47 +150,47 @@ namespace potion050
 	static const uint32_t OVERLAY_A00 = 0x2634AC0, OVERLAY_SPRITE = 0x2646398, OVERLAY_VERTS = 0x263DA20;
 	static const uint32_t GLINT_CURSOR = 0x2792E74;
 
-	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
-	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
-	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
-	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC6E0)(n, out); }
-	inline int32_t BoundsMaxWorldY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAC0)(n); }
-	inline int32_t BoundsRadius(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCA70)(n); }
-	inline int32_t BoundsHeight(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAA0)(n); }
-	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
-	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
-	inline void BuildMatrixFromDirAndUp(void *out, const void *dir, const void *up) { fn<void (__cdecl *)(void *, const void *, const void *)>(0x8DDA50)(out, dir, up); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void NormalizeVec3(const int32_t *in, int16_t *out) { fn<void (__cdecl *)(const int32_t *, int16_t *)>(0x56BD20)(in, out); }
-	inline void UnpackRotationMatrix(const void *in, void *out) { fn<void (__cdecl *)(const void *, void *)>(0x56C040)(in, out); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteReadSXY012(void *dst) { fn<void (__cdecl *)(void *)>(0x45E2A0)(dst); }
-	inline uint32_t GteSZ(int k) { return var<uint32_t>(0x1CA8A50 + 4 * k); }
-	inline void GteStoreSXY012_GT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E300)(p); }
-	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }
-	inline void GteStoreSXY012_GT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E340)(p); }
-	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E320)(p); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DCF0)(x, y, z); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
-	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
-	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, void *, uint32_t, uint32_t, uint32_t, uint32_t)>(0x45C870)(ot, prim, a, b, c, d); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
-	inline void PreBattleReadAnimation(void *hdr, void *cmd, uint32_t anim) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x509440)(hdr, cmd, anim); }
+	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(us(0x8DC540))(q, task, size, parent); }
+	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC530))(n); }
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC610))(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC870))(n); }
+	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC740))(n); }
+	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC6E0))(n, out); }
+	inline int32_t BoundsMaxWorldY(void *n) { return fn<int32_t (__cdecl *)(void *)>(us(0x8DCAC0))(n); }
+	inline int32_t BoundsRadius(void *n) { return fn<int32_t (__cdecl *)(void *)>(us(0x8DCA70))(n); }
+	inline int32_t BoundsHeight(void *n) { return fn<int32_t (__cdecl *)(void *)>(us(0x8DCAA0))(n); }
+	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(us(0x8DD770))(m); }
+	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD7E0))(m, a); }
+	inline void BuildMatrixFromDirAndUp(void *out, const void *dir, const void *up) { fn<void (__cdecl *)(void *, const void *, const void *)>(us(0x8DDA50))(out, dir, up); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void NormalizeVec3(const int32_t *in, int16_t *out) { fn<void (__cdecl *)(const int32_t *, int16_t *)>(us(0x56BD20))(in, out); }
+	inline void UnpackRotationMatrix(const void *in, void *out) { fn<void (__cdecl *)(const void *, void *)>(us(0x56C040))(in, out); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteReadSXY012(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E2A0))(dst); }
+	inline uint32_t GteSZ(int k) { return var<uint32_t>(us(0x1CA8A50) + 4 * k); }
+	inline void GteStoreSXY012_GT3(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E300))(p); }
+	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E2E0))(p); }
+	inline void GteStoreSXY012_GT4(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E340))(p); }
+	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E320))(p); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DCF0))(x, y, z); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
+	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(m); }
+	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(us(0x45E470))(m); }
+	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, void *, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45C870))(ot, prim, a, b, c, d); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(us(0x508F90))(hdr, cmd); }
+	inline void PreBattleReadAnimation(void *hdr, void *cmd, uint32_t anim) { fn<void (__cdecl *)(void *, void *, uint32_t)>(us(0x509440))(hdr, cmd, anim); }
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 	template<typename T> static inline const T &F(const uint8_t *p, uint32_t off) { return *(const T *)(p + off); }
@@ -570,8 +570,8 @@ namespace potion050
 		c->a00 = a00;
 		c->slot = (int16_t)slot;
 		c->sprite = sprite;
-		c->frame_cursor = (uint32_t *)0x1D8E054;
-		c->packets = (uint32_t *)0x2634ABC;
+		c->frame_cursor = (uint32_t *)us(0x1D8E054);
+		c->packets = (uint32_t *)us(0x2634ABC);
 		c->offset[0] = 0;
 		c->offset[1] = 0;
 		c->offset[2] = 0;
@@ -639,7 +639,7 @@ namespace potion050
 
 	static void SpawnSparkle(Particle *r)
 	{
-		if (r->h.counter > 0 && r->h.counter < 0x11) AddEffectTask(QParticles(), ORIG_Sparkle, 0x6C, r);
+		if (r->h.counter > 0 && r->h.counter < 0x11) AddEffectTask(QParticles(), us(ORIG_Sparkle), 0x6C, r);
 	}
 
 	static void SpawnMotes(Particle *r)
@@ -653,7 +653,7 @@ namespace potion050
 		for (; n; n--)
 		{
 			const int32_t a = CrtRand() & 0xFFF;
-			Particle *m = (Particle *)AddEffectTask(QParticles(), ORIG_Mote, 0x6C, r);
+			Particle *m = (Particle *)AddEffectTask(QParticles(), us(ORIG_Mote), 0x6C, r);
 			CopyAnchorXZFromSource(m, m->h.pos);
 			m->h.pos[1] = r->h.pos[1];
 			int32_t d = (int32_t)r->h.pos[1] - (int32_t)(int16_t)BoundsMaxWorldY(r);
@@ -680,8 +680,8 @@ namespace potion050
 		else n = (c > 6) + 2;
 		for (; n; n--)
 		{
-			var<uint32_t>(GLINT_CURSOR) = 0x2634ABC;
-			uint8_t *g = (uint8_t *)AddEffectTask(QGlints(), ORIG_Glint, 0x5C, r);
+			var<uint32_t>(us(GLINT_CURSOR)) = us(0x2634ABC);
+			uint8_t *g = (uint8_t *)AddEffectTask(QGlints(), us(ORIG_Glint), 0x5C, r);
 			F<int16_t>(g, 0x56) = 8;
 			g[0x4C] = 0x10;
 			g[0x4D] = 0x10;
@@ -701,7 +701,7 @@ namespace potion050
 	static void RingInit(Particle *r)
 	{
 		*(uint8_t *)&r->h.flags |= 2;
-		r->seq = SEQ_Ring;
+		r->seq = us(SEQ_Ring);
 		uint8_t *entity = Entity(r->h.slot);
 		CopyAnchorXZFromSource(r, r->center);
 		r->center[1] = (int16_t)BoundsMaxWorldY(r);
@@ -712,7 +712,7 @@ namespace potion050
 		int32_t q = (int32_t)(((int64_t)hv * (int32_t)0x99999999) >> 32) >> 3;
 		q += (int32_t)((uint32_t)q >> 31);
 		r->vel[1] = (int16_t)((int32_t)(int16_t)q / 4);
-		SetupTargetOverlay(&Overlay(), OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, r->h.slot);
+		SetupTargetOverlay(&Overlay(), us(OVERLAY_A00), (uint8_t *)us(OVERLAY_SPRITE), us(OVERLAY_VERTS), entity, r->h.slot);
 		*(uint8_t *)&r->h.flags |= 8;
 		entity[0] |= 4;
 		r->h.phase++;
@@ -745,7 +745,7 @@ namespace potion050
 		switch (p->h.phase)
 		{
 		case 0:
-			p->seq = SEQ_Sparkle;
+			p->seq = us(SEQ_Sparkle);
 			p->last = 8;
 			p->vel[0] = (int16_t)((CrtRand() & 0x1F) - 0x10);
 			p->vel[2] = (int16_t)((CrtRand() & 0x1F) - 0x10);
@@ -772,7 +772,7 @@ namespace potion050
 		switch (p->h.phase)
 		{
 		case 0:
-			p->seq = SEQ_Mote;
+			p->seq = us(SEQ_Mote);
 			p->last = 0x10;
 			p->vel[1] = (int16_t)(-8 - (CrtRand() & 0xF));
 			p->vel[0] = 0;
@@ -802,7 +802,7 @@ namespace potion050
 		case 1:
 			if (r->h.counter >= 0x14)
 			{
-				r->seq = SEQ_RingEnd;
+				r->seq = us(SEQ_RingEnd);
 				r->last = 4;
 				r->h.phase++;
 			}
@@ -832,7 +832,7 @@ namespace potion050
 			const uint32_t grey = (uint8_t)(0x3C - (uint8_t)(r->h.counter * 3));
 			const uint32_t colour = grey | grey << 8 | grey << 16 | ((uint32_t)r & 0xFF000000u);
 			DrawSprite(r);
-			DrawAdditiveGlow(r, SEQ_Glow, &colour);
+			DrawAdditiveGlow(r, us(SEQ_Glow), &colour);
 		}
 		else DrawSprite(r);
 		r->h.counter++;
@@ -852,7 +852,7 @@ namespace potion050
 		switch (e->h.phase)
 		{
 		case 0:
-			AddEffectTask(QParticles(), ORIG_Ring, 0x6C, e);
+			AddEffectTask(QParticles(), us(ORIG_Ring), 0x6C, e);
 			e->h.phase++;
 			break;
 		case 1: e->h.phase++; break;
@@ -866,7 +866,7 @@ namespace potion050
 			break;
 		default: break;
 		}
-		if (e->h.counter == 0) BdPlaySE(SOUND_Potion, 0, 0x80);
+		if (e->h.counter == 0) BdPlaySE(SOUND_Potion(), 0, 0x80);
 		e->h.counter++;
 		if ((e->h.flags & 1) && e->h.children == 0)
 		{
@@ -889,7 +889,7 @@ namespace potion050
 			break;
 		case 3:
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
+			AddEffectTask(QEmitters(), us(ORIG_Emitter), 0x58, r);
 			r->h.phase++;
 			break;
 		case 4:
@@ -926,18 +926,18 @@ namespace potion050
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		ff8fx::copy<(0x20)>((void *)CAM_SNAPSHOT, &Camera());
-		var<uint32_t>(0x26463D4) = CAM_SNAPSHOT;
-		var<uint32_t>(0x2634AE8) = CAM_SNAPSHOT;
+		ff8fx::copy<(0x20)>((void *)us(CAM_SNAPSHOT), &Camera());
+		var<uint32_t>(us(0x26463D4)) = us(CAM_SNAPSHOT);
+		var<uint32_t>(us(0x2634AE8)) = us(CAM_SNAPSHOT);
 		if (r->tick & 1)
 		{
-			PacketCursor() = var<uint32_t>(ARENA_A);
-			PacketLimit() = var<uint32_t>(LIMIT_A);
+			PacketCursor() = var<uint32_t>(us(ARENA_A));
+			PacketLimit() = var<uint32_t>(us(LIMIT_A));
 		}
 		else
 		{
-			PacketCursor() = var<uint32_t>(ARENA_B);
-			PacketLimit() = var<uint32_t>(LIMIT_B);
+			PacketCursor() = var<uint32_t>(us(ARENA_B));
+			PacketLimit() = var<uint32_t>(us(LIMIT_B));
 		}
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);

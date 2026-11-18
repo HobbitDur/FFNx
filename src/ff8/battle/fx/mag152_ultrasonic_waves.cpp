@@ -25,17 +25,17 @@ namespace ultrasonic152
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &TargetSlot() { return var<int32_t>(0x244BE70); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x244BE98; }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x244C808; }
-	inline int16_t *TargetPos() { return (int16_t *)0x244D628; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x244D630); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x244D634); }
-	inline Mat4x3 &Rot() { return var<Mat4x3>(0x244D638); }
-	inline int16_t *Anchor() { return (int16_t *)0x244D660; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x244D668); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x244D66C); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline int32_t &TargetSlot() { return var<int32_t>(us(0x244BE70)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x244BE98); }
+	inline TaskQueue *QEffects() { return (TaskQueue *)us(0x244C808); }
+	inline int16_t *TargetPos() { return (int16_t *)us(0x244D628); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x244D630)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x244D634)); }
+	inline Mat4x3 &Rot() { return var<Mat4x3>(us(0x244D638)); }
+	inline int16_t *Anchor() { return (int16_t *)us(0x244D660); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x244D668)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x244D66C)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_RootTask = 0x60C8F0;
 	static const uint32_t ORIG_WaitTexRestore = 0x60C960;
@@ -50,27 +50,27 @@ namespace ultrasonic152
 	static const uint32_t SEQ_BurstB = 0xDBE814;
 	static const uint32_t SEQ_BurstC = 0xDBE904;
 	static const uint32_t MODEL_Ring = 0xDBE9E0;
-	static const uint32_t *const RingColours = (const uint32_t *)0xDBEC58;
-	static const void *const SOUND_Waves = (const void *)0xDBEC50;
+	static const uint32_t *RingColours() { return (const uint32_t *)us(0xDBEC58); }
+	static const void *SOUND_Waves() { return (const void *)us(0xDBEC50); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -152,7 +152,7 @@ namespace ultrasonic152
 	static_assert(sizeof(ControllerNode) == 0x24 && sizeof(WaveNode) == 0x24 && sizeof(RingNode) == 0x24 && sizeof(BurstNode) == 0x24, "Ultrasonic Waves nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(RenderHeader) == 0x6C, "Ultrasonic Waves particle / render header");
 
-	inline Particle *Parts() { return (Particle *)0x244BEA8; }
+	inline Particle *Parts() { return (Particle *)us(0x244BEA8); }
 	static const int PART_COUNT = 100;
 }
 }
@@ -516,7 +516,7 @@ namespace ultrasonic152
 		int alive = ExecuteTaskQueue(QEffects());
 		if (alive == 0)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), ORIG_WaitTexRestore);
+			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), us(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -553,7 +553,7 @@ namespace ultrasonic152
 		}
 		if (c->counter >= 1 && c->counter <= 0xE && c->counter % 5 == 1)
 		{
-			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffects(), ORIG_WaveTask);
+			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffects(), us(ORIG_WaveTask));
 			ff8fx::copy<(4)>(&w->pos[0], &Anchor()[0]);
 			w->counter = 0;
 			ff8fx::copy<(4)>(&w->pos[2], &Anchor()[2]);
@@ -565,7 +565,7 @@ namespace ultrasonic152
 		}
 		if (c->counter >= 5 && c->counter <= 0x14)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QEffects(), ORIG_RingTask);
+			RingNode *g = (RingNode *)AddTaskToQueue(QEffects(), us(ORIG_RingTask));
 			ff8fx::copy<(4)>(&g->pos[0], &Anchor()[0]);
 			g->counter = 0;
 			ff8fx::copy<(4)>(&g->pos[2], &Anchor()[2]);
@@ -580,27 +580,27 @@ namespace ultrasonic152
 		}
 		if (c->counter == 0x19)
 		{
-			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstA);
+			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), us(ORIG_BurstA));
 			ff8fx::copy<(4)>(&b->pos[0], &TargetPos()[0]);
 			b->counter = 0;
 			ff8fx::copy<(4)>(&b->pos[2], &TargetPos()[2]);
 		}
 		if (c->counter == 0x1A)
 		{
-			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstB);
+			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), us(ORIG_BurstB));
 			ff8fx::copy<(4)>(&b->pos[0], &TargetPos()[0]);
 			b->counter = 0;
 			ff8fx::copy<(4)>(&b->pos[2], &TargetPos()[2]);
 		}
 		if (c->counter == 0x1A)
 		{
-			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstC);
+			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), us(ORIG_BurstC));
 			ff8fx::copy<(4)>(&b->pos[0], &TargetPos()[0]);
 			b->counter = 0;
 			ff8fx::copy<(4)>(&b->pos[2], &TargetPos()[2]);
 		}
 		if (c->counter == 0x23) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (c->counter == 1) BdPlaySE(SOUND_Waves, 0, 0x80);
+		if (c->counter == 1) BdPlaySE(SOUND_Waves(), 0, 0x80);
 		c->counter++;
 		return c->counter > 0x28 ? TASK_END : 0;
 	}
@@ -609,7 +609,7 @@ namespace ultrasonic152
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Wave;
+		*(uint32_t *)h = us(SEQ_Wave);
 		*(uint16_t *)(h + 4) = (uint16_t)p->counter;
 		*(int32_t *)(h + 8) = p->roll;
 		*(uint16_t *)(h + 0x24) = 9;
@@ -627,7 +627,7 @@ namespace ultrasonic152
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		WaveNode *p = (WaveNode *)n;
-		FX_HELD(held_note_draw(ORIG_WaveTask, p);)
+		FX_HELD(held_note_draw(us(ORIG_WaveTask), p);)
 		const int16_t next = WaveDraw(p, shl32(0xC - p->counter, 5));
 		if (DrawOnly()) return 0;
 		p->counter++;
@@ -659,7 +659,7 @@ namespace ultrasonic152
 		GteSetTransVector(&m);
 		RenderHeader *h = (RenderHeader *)AllocHeader(0x6C);
 		h->far_rgb[0] = h->far_rgb[1] = h->far_rgb[2] = h->far_rgb[3] = 0;
-		h->model = MODEL_Ring;
+		h->model = us(MODEL_Ring);
 		h->flags = 0x33;
 		h->colour = colour;
 		if (p->counter >= 0x10)
@@ -683,8 +683,8 @@ namespace ultrasonic152
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_RingTask, p);)
-		RingDraw(p, RingColours[p->counter % 10], shl32(p->counter - 0x10, 10));
+		FX_HELD(held_note_draw(us(ORIG_RingTask), p);)
+		RingDraw(p, RingColours()[p->counter % 10], shl32(p->counter - 0x10, 10));
 		if (DrawOnly()) return 0;
 		RingUpdate(p);
 		p->counter++;
@@ -723,8 +723,8 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstA(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		FX_HELD(held_note_burst(ORIG_BurstA, b);)
-		const int alive = BurstDraw(Parts(), SEQ_BurstA, 8, 1);
+		FX_HELD(held_note_burst(us(ORIG_BurstA), b);)
+		const int alive = BurstDraw(Parts(), us(SEQ_BurstA), 8, 1);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 8)
 		{
@@ -748,8 +748,8 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstB(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		FX_HELD(held_note_burst(ORIG_BurstB, b);)
-		const int alive = BurstDraw(Parts(), SEQ_BurstB, 0, 2);
+		FX_HELD(held_note_burst(us(ORIG_BurstB), b);)
+		const int alive = BurstDraw(Parts(), us(SEQ_BurstB), 0, 2);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 0xD)
 		{
@@ -772,8 +772,8 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstC(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		FX_HELD(held_note_burst(ORIG_BurstC, b);)
-		const int alive = BurstDraw(Parts(), SEQ_BurstC, 0, 4);
+		FX_HELD(held_note_burst(us(ORIG_BurstC), b);)
+		const int alive = BurstDraw(Parts(), us(SEQ_BurstC), 0, 4);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 0xD)
 		{

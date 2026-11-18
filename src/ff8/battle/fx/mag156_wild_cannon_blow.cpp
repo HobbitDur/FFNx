@@ -33,18 +33,18 @@ namespace wildcannon156
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline int16_t S16v(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23F03B8); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23F03BC); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23F07E8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23F07EC); }
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23ECE68; }
-	inline TaskQueue *ShotQueue() { return (TaskQueue *)0x23EF478; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23F03B8)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x23F03BC)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23F07E8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23F07EC)); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)us(0x23ECE68); }
+	inline TaskQueue *ShotQueue() { return (TaskQueue *)us(0x23EF478); }
 	static const uint32_t PARTS_A = 0x23ECE78, PARTS_B = 0x23EDC88, PARTS_C = 0x23EEA98, PARTS_END = 0x23EF3F8;
-	inline uint32_t Ctrl(int i) { return 0x23F0298 + (uint32_t)i * 0x20; }
-	inline uint32_t Target(int i) { return 0x23F0318 + (uint32_t)i * 8; }
-	inline Mat4x3 *Rot(int i) { return (Mat4x3 *)(0x23F0338 + (uint32_t)i * 0x20); }
-	inline uint32_t Start(int i) { return 0x23F03C8 + (uint32_t)i * 8; }
-	inline uint32_t Point(int i, int k) { return 0x23F03E8 + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; }
+	inline uint32_t Ctrl(int i) { return us(0x23F0298) + (uint32_t)i * 0x20; }
+	inline uint32_t Target(int i) { return us(0x23F0318) + (uint32_t)i * 8; }
+	inline Mat4x3 *Rot(int i) { return (Mat4x3 *)(us(0x23F0338) + (uint32_t)i * 0x20); }
+	inline uint32_t Start(int i) { return us(0x23F03C8) + (uint32_t)i * 8; }
+	inline uint32_t Point(int i, int k) { return us(0x23F03E8) + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; }
 
 	static const uint32_t ORIG_Root = 0x606C20, ORIG_TexRestore = 0x606C90, ORIG_Master = 0x605620, ORIG_Shot = 0x6056E0,
 		ORIG_Flash = 0x605DF0, ORIG_Burst = 0x605F40, ORIG_Ring = 0x606200, ORIG_Ball = 0x606320, ORIG_Trail = 0x6063E0,
@@ -53,13 +53,13 @@ namespace wildcannon156
 	static const uint32_t SEQ_Burst = 0xDB5300, SEQ_Ball = 0xDB528C, SEQ_Trail = 0xDB4F34, SEQ_Trail2 = 0xDB50E0, SEQ_Emitter = 0xDB4D88;
 	static const uint32_t SOUND_A = 0xDB7DAC, SOUND_B = 0xDB7DB0;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline int32_t SpawnPosition(uint8_t *entity, int32_t point, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, point, flag, out); }
-	inline void CentrePosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline int32_t SpawnPosition(uint8_t *entity, int32_t point, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, point, flag, out); }
+	inline void CentrePosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
 
 	enum { P_MASK = 0, P_FRAME = 4, P_SIZE = 6, P_POS = 8, P_VEL = 0x10 };
 
@@ -120,7 +120,7 @@ namespace wildcannon156
 		const int running = ExecuteTaskQueue(ShotQueue());
 		if (!running)
 		{
-			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), us(ORIG_TexRestore));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}
@@ -147,7 +147,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &v);
 		GteSetRotMatrix(&v);
 		GteSetTransVector(&v);
-		PrimDraw(MODEL_Flash, fade);
+		PrimDraw(us(MODEL_Flash), fade);
 	}
 
 	static uint32_t __cdecl FlashTask(TaskNode *nd)
@@ -177,7 +177,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_Ring, fade);
+		PrimDraw(us(MODEL_Ring), fade);
 	}
 
 	static uint32_t __cdecl RingTask(TaskNode *nd)
@@ -203,7 +203,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_ImpactRing, fade);
+		PrimDraw(us(MODEL_ImpactRing), fade);
 	}
 
 	static uint32_t __cdecl ImpactRingTask(TaskNode *nd)
@@ -232,7 +232,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_Impact, fade, 3);
+		PrimDraw(us(MODEL_Impact), fade, 3);
 	}
 
 	static uint32_t __cdecl ImpactTask(TaskNode *nd)
@@ -258,7 +258,7 @@ namespace wildcannon156
 		TransformCameraByShadowRotation(pos, (int32_t)(uint16_t)r, -(r >> 3));
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		U16(h, 4) = (uint16_t)(U8(n, 0xC) & 3);
-		U32(h, 0) = SEQ_Ball;
+		U32(h, 0) = us(SEQ_Ball);
 		U16(h, 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData((void *)h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -303,10 +303,10 @@ namespace wildcannon156
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		int alive = 0;
-		U32(h, 0) = SEQ_Burst;
+		U32(h, 0) = us(SEQ_Burst);
 		U16(h, 0x24) = 0;
 		const int i = S16(n, 0xE);
-		for (uint32_t p = PARTS_C; p < PARTS_END; p += 0x18)
+		for (uint32_t p = us(PARTS_C); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
 			FX_HELD(held_note_particle(p);)
@@ -335,7 +335,7 @@ namespace wildcannon156
 		{
 			for (int k = 0; k < 0xC; k++)
 			{
-				const uint32_t p = FreeParticle(PARTS_C, PARTS_END, 0x64);
+				const uint32_t p = FreeParticle(us(PARTS_C), us(PARTS_END), 0x64);
 				if (!p) break;
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
 				S16(p, P_FRAME) = 0;
@@ -382,8 +382,8 @@ namespace wildcannon156
 	static uint32_t TrailTaskImpl(uint32_t n, bool jitter)
 	{
 		FX_HELD(held_note_parts(jitter ? REC_TRAIL2 : REC_TRAIL, n);)
-		const uint32_t lo = jitter ? PARTS_B : PARTS_A, hi = jitter ? PARTS_C : PARTS_B;
-		const int alive = TrailParticles(n, lo, hi, jitter ? SEQ_Trail2 : SEQ_Trail, 0, 4);
+		const uint32_t lo = jitter ? us(PARTS_B) : us(PARTS_A), hi = jitter ? us(PARTS_C) : us(PARTS_B);
+		const int alive = TrailParticles(n, lo, hi, jitter ? us(SEQ_Trail2) : us(SEQ_Trail), 0, 4);
 		if (DrawOnly()) return 0;
 		TrailStep(n);
 		const int32_t at = S16(n, 0x1C);
@@ -417,9 +417,9 @@ namespace wildcannon156
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		int alive = 0;
-		U32(h, 0) = SEQ_Emitter;
+		U32(h, 0) = us(SEQ_Emitter);
 		U16(h, 0x24) = 0;
-		for (uint32_t p = PARTS_C; p < PARTS_END; p += 0x18)
+		for (uint32_t p = us(PARTS_C); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
 			FX_HELD(held_note_particle(p);)
@@ -439,7 +439,7 @@ namespace wildcannon156
 		const int16_t c = S16(n, 0xC);
 		if (c >= 0 && c <= 2)
 		{
-			const uint32_t p = FreeParticle(PARTS_C, PARTS_END, 0x64);
+			const uint32_t p = FreeParticle(us(PARTS_C), us(PARTS_END), 0x64);
 			if (p)
 			{
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
@@ -528,36 +528,36 @@ namespace wildcannon156
 		if (S16(n, 0xC) == 0)
 		{
 			ShotSetup(i);
-			uint32_t t = NewTask(ORIG_Flash, i);
+			uint32_t t = NewTask(us(ORIG_Flash), i);
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
 			S16(t, 0x1E) = S16(t, 0x1C) = (int16_t)((CrtRand() % 0x300 + 0x800) / 4);
-			t = NewTask(ORIG_Burst, i);
+			t = NewTask(us(ORIG_Burst), i);
 			S16(t, 0x18) = (int16_t)(1 << i);
-			t = NewTask(ORIG_Ring, i);
+			t = NewTask(us(ORIG_Ring), i);
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
 			S16(t, 0x1C) = (int16_t)(CrtRand() % 0x600 + 0x1900);
-			t = NewTask(ORIG_Ball, i);
+			t = NewTask(us(ORIG_Ball), i);
 			S16(t, 0x18) = 0;
 			S16(t, 0x1A) = 5;
 			S16(t, 0x1C) = (int16_t)((CrtRand() & 0x1FF) + 0xC00);
-			t = NewTask(ORIG_Trail, i);
+			t = NewTask(us(ORIG_Trail), i);
 			S16(t, 0x1C) = 0;
 			S16(t, 0x1E) = 5;
 			S16(t, 0x18) = (int16_t)(1 << i);
-			t = NewTask(ORIG_Trail2, i);
+			t = NewTask(us(ORIG_Trail2), i);
 			S16(t, 0x1C) = 0;
 			S16(t, 0x1E) = 5;
 			S16(t, 0x18) = (int16_t)(0x100 << i);
 		}
 		if (S16(n, 0xC) == 0xD)
 		{
-			uint32_t t = NewTask(ORIG_Impact, i);
+			uint32_t t = NewTask(us(ORIG_Impact), i);
 			U32(t, 0x10) = U32(Target(i), 0);
 			U32(t, 0x14) = U32(Target(i), 4);
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
 			S16(t, 0x1A) = (int16_t)(CrtRand() % 0x8C + 0x50);
 			S16(t, 0x1E) = S16(t, 0x1C) = (int16_t)((CrtRand() % 0x500 + 0xE00) / 4);
-			t = NewTask(ORIG_ImpactRing, i);
+			t = NewTask(us(ORIG_ImpactRing), i);
 			U32(t, 0x10) = U32(Target(i), 0);
 			U32(t, 0x14) = U32(Target(i), 4);
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
@@ -568,14 +568,14 @@ namespace wildcannon156
 			for (int j = 0; j < Ctx()->actions->target_count; j++)
 			{
 				const uint8_t slot = Ctx()->actions->targets[j * TARGET_STRIDE];
-				const uint32_t e = (uint32_t)AddTaskToQueue(ShotQueue(), ORIG_Emitter);
+				const uint32_t e = (uint32_t)AddTaskToQueue(ShotQueue(), us(ORIG_Emitter));
 				S16(e, 0xC) = 0;
 				S16(e, 0x18) = (int16_t)(0x100 << (U8(n, 0xE) & 31));
 				SpawnPosition(Entity(slot), 0xF1, 0, (int16_t *)(e + 0x10));
 			}
 		}
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0xD && c <= 0x10) var<int16_t>(0x1D97712) = (int16_t)(var<int16_t>(0x1D97712) + ((c & 1) ? 0x40 : -0x40));
+		if (c >= 0xD && c <= 0x10) var<int16_t>(us(0x1D97712)) = (int16_t)(var<int16_t>(us(0x1D97712)) + ((c & 1) ? 0x40 : -0x40));
 		S16(n, 0xC) = (int16_t)(c + 1);
 		return S16(n, 0xC) >= 0x14 ? TASK_END : 0;
 	}
@@ -587,7 +587,7 @@ namespace wildcannon156
 		const int16_t c = S16(n, 0xC);
 		if (c == 1 || c == 4 || c == 7 || c == 0xA)
 		{
-			const uint32_t s = (uint32_t)AddTaskToQueue(ShotQueue(), ORIG_Shot);
+			const uint32_t s = (uint32_t)AddTaskToQueue(ShotQueue(), us(ORIG_Shot));
 			S16(s, 0xE) = S16(n, 0xE);
 			S16(s, 0xC) = 0;
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) + 1);
@@ -595,8 +595,8 @@ namespace wildcannon156
 		if (S16(n, 0xC) == 0x24) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
 		if (S16(n, 0xC) == 1)
 		{
-			BdPlaySE((const void *)SOUND_A, 0, 0x80);
-			BdPlaySE((const void *)SOUND_B, 0, 0x80);
+			BdPlaySE((const void *)us(SOUND_A), 0, 0x80);
+			BdPlaySE((const void *)us(SOUND_B), 0, 0x80);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return S16(n, 0xC) > 0x2D ? TASK_END : 0;

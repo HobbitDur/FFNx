@@ -43,26 +43,26 @@ namespace fire_breath_q
 	{
 		c.name = "230 Fire Breath (Quistis)";
 		c.effect_id = 230;
-		c.vm_table = 0x186A508;
-		c.bone_table = 0x186A178;
-		c.prim_table = 0x186A1C0;
-		c.prim_size = 0x186A2B0;
-		c.spr_table = 0x186A2C4;
-		c.ptype_table = 0x186A2F0;
-		c.pop_table = 0x186A304;
-		c.draw_table = 0x186A364;
-		c.attr_16A = 0x186A4CE;
-		c.attr_184 = 0x186A4E8;
-		c.attr_186 = 0x186A4EA;
-		c.attr_194 = 0x186A4F8;
-		c.attr_19C = 0x186A500;
-		c.desc = 0x186A02C;
-		c.ptr_block = 0x186A150;
-		c.queue = 0x2796AC8;
-		c.file00 = 0x2796ADC;
-		c.file01 = 0x2796AD8;
-		c.tick = 0xA711E0;
-		c.load_cb = 0xA76420;
+		c.vm_table = us(0x186A508);
+		c.bone_table = us(0x186A178);
+		c.prim_table = us(0x186A1C0);
+		c.prim_size = us(0x186A2B0);
+		c.spr_table = us(0x186A2C4);
+		c.ptype_table = us(0x186A2F0);
+		c.pop_table = us(0x186A304);
+		c.draw_table = us(0x186A364);
+		c.attr_16A = us(0x186A4CE);
+		c.attr_184 = us(0x186A4E8);
+		c.attr_186 = us(0x186A4EA);
+		c.attr_194 = us(0x186A4F8);
+		c.attr_19C = us(0x186A500);
+		c.desc = us(0x186A02C);
+		c.ptr_block = us(0x186A150);
+		c.queue = us(0x2796AC8);
+		c.file00 = us(0x2796ADC);
+		c.file01 = us(0x2796AD8);
+		c.tick = us(0xA711E0);
+		c.load_cb = us(0xA76420);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -70,12 +70,12 @@ namespace fire_breath_q
 	static inline void BindEntityModelFromComData(uint8_t *entity, uint8_t *out, uint32_t data)
 	{
 		FX_HELD(if (held_predicting()) return;)
-		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(0x5022C0)(entity, out, data);
+		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(us(0x5022C0))(entity, out, data);
 	}
 	static inline void QueueChainTransformation(uint8_t *entity, int32_t id)
 	{
 		FX_HELD(if (held_predicting()) return;)
-		x::f<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id);
+		x::f<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id);
 	}
 
 	static const uint32_t COM_ANIM = 0x187EAB8;
@@ -84,7 +84,7 @@ namespace fire_breath_q
 	{
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B));
 		uint8_t *blk = blob::ArenaAlloc(0x20);
-		BindEntityModelFromComData(ent, blk, COM_ANIM);
+		BindEntityModelFromComData(ent, blk, us(COM_ANIM));
 		QueueChainTransformation(ent, (int32_t)S16(STREAM(), 2));
 		STREAM() += 4;
 	}

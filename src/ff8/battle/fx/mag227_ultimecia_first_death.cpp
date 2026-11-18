@@ -23,17 +23,17 @@ namespace ultimecia227
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2508700); }
-	inline uint8_t *&SparkCursor() { return var<uint8_t *>(0x2508704); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508708); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x250870C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2508710); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508714); }
-	inline TaskQueue *QFeathers() { return (TaskQueue *)0x2508718; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2508728; }
-	inline int16_t *CasterPoint() { return (int16_t *)0x2508758; }
-	inline int16_t *LayoutPoint() { return (int16_t *)0x2508760; }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508768); }
+	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2508700)); }
+	inline uint8_t *&SparkCursor() { return var<uint8_t *>(us(0x2508704)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2508708)); }
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(us(0x250870C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2508710)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2508714)); }
+	inline TaskQueue *QFeathers() { return (TaskQueue *)us(0x2508718); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2508728); }
+	inline int16_t *CasterPoint() { return (int16_t *)us(0x2508758); }
+	inline int16_t *LayoutPoint() { return (int16_t *)us(0x2508760); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2508768)); }
 
 	static const uint32_t ORIG_MasterTask = 0x693840;
 	static const uint32_t ORIG_MainTask = 0x693A10;
@@ -53,25 +53,25 @@ namespace ultimecia227
 	static const uint32_t SEQ_Spark = 0x112D2E0;
 	static const uint32_t POINT_Caster = 0x1132018;
 	static const uint32_t POINTS_A = 0x1131660, POINTS_B = 0x1131960, POINTS_C = 0x1131C60;
-	static const void *const SOUND_Start = (const void *)0x112DAA0;
-	static const void *const SOUND_Fall = (const void *)0x112DAA4;
-	static const void *const SOUND_Voice = (const void *)0x112D1C8;
+	static const void *SOUND_Start() { return (const void *)us(0x112DAA0); }
+	static const void *SOUND_Fall() { return (const void *)us(0x112DAA4); }
+	static const void *SOUND_Voice() { return (const void *)us(0x112D1C8); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-	inline void BattleText(int32_t slot, int32_t line, int32_t ticks) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x4876F0)(slot, line, ticks); }
-	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x6FC9E0))(h, ot, mode, cursor); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
+	inline void BattleText(int32_t slot, int32_t line, int32_t ticks) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x4876F0))(slot, line, ticks); }
+	inline uint32_t OT() { return var<uint32_t>(us(0x1D8E04C)); }
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
 #pragma pack(push, 1)
@@ -260,7 +260,7 @@ namespace ultimecia227
 		if (!s) return;
 		const int32_t i = mul32(CrtRand(), count) / 0x8000;
 		ModelPoint(points + i * 4, s->pos);
-		s->seq = (const uint8_t *)SEQ_Spark;
+		s->seq = (const uint8_t *)us(SEQ_Spark);
 		s->vel[0] = (int8_t)((CrtRand() & 3) - 2);
 		s->vel[2] = (int8_t)((CrtRand() & 3) - 2);
 		const int8_t vy = (int8_t)((CrtRand() & 3) + 3);
@@ -352,7 +352,7 @@ namespace ultimecia227
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = MODEL_Feather;
+		*(uint32_t *)h = us(MODEL_Feather);
 		*(int32_t *)(h + 0x18) = -0x80;
 		PacketCursor() = RenderPrim2(h, OT() + 0x44, 2, PacketCursor());
 		FieldFree(0x58);
@@ -428,7 +428,7 @@ namespace ultimecia227
 		int16_t pos[3];
 		if ((uint32_t)(c - 0xD4) < 0x32)
 		{
-			if (c == 0xD4) DecodeModelPrimLayout(LAYOUT_A, m->layout_a, 0x33C);
+			if (c == 0xD4) DecodeModelPrimLayout(us(LAYOUT_A), m->layout_a, 0x33C);
 			LayoutAPos(m, c, CasterPoint(), pos);
 			Play(m, 0, m->layout_a, pos, -0x80);
 		}
@@ -448,7 +448,7 @@ namespace ultimecia227
 		}
 		if ((uint32_t)(c - 0x104) < 0x12)
 		{
-			if (c == 0x104) DecodeModelPrimLayout(LAYOUT_B, m->layout_b, 0xC0);
+			if (c == 0x104) DecodeModelPrimLayout(us(LAYOUT_B), m->layout_b, 0xC0);
 			const uint8_t *e = Caster();
 			pos[0] = (int16_t)(*(const int16_t *)(e + 0x1C) + 0x2C);
 			pos[1] = (int16_t)(*(const int16_t *)(e + 0x1E) - 0x8EE);
@@ -457,7 +457,7 @@ namespace ultimecia227
 		}
 		if ((uint32_t)(c - 0x10C) < 0x10)
 		{
-			if (c == 0x10C) DecodeModelPrimLayout(LAYOUT_C, m->layout_c, 0x84);
+			if (c == 0x10C) DecodeModelPrimLayout(us(LAYOUT_C), m->layout_c, 0x84);
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, LayoutPoint());
 			arg.depth = 0;
@@ -468,24 +468,24 @@ namespace ultimecia227
 		FX_HELD(held_note_sparks();)
 		SparksDraw((const Spark *)(TexBase() + SPARKS));
 		SparksUpdate();
-		if (m->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (m->counter == 0xD4) BdPlaySE(SOUND_Fall, 0, 0x80);
+		if (m->counter == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
+		else if (m->counter == 0xD4) BdPlaySE(SOUND_Fall(), 0, 0x80);
 		if (m->counter == 0x118) ReleaseVoiceSlot(m->voice);
 		if ((uint16_t)m->counter < 0x5F)
 		{
 			for (int i = 2; i != 0; i--)
 			{
-				SparkSpawn((const int16_t *)POINTS_A, 0x60);
-				SparkSpawn((const int16_t *)POINTS_B, 0x60);
+				SparkSpawn((const int16_t *)us(POINTS_A), 0x60);
+				SparkSpawn((const int16_t *)us(POINTS_B), 0x60);
 			}
 		}
 		if ((uint32_t)(m->counter - 0xB4) < 0x16)
 		{
-			for (int i = 2; i != 0; i--) SparkSpawn((const int16_t *)POINTS_C, 0x77);
+			for (int i = 2; i != 0; i--) SparkSpawn((const int16_t *)us(POINTS_C), 0x77);
 		}
 		if ((uint32_t)(m->counter - 0xDE) < 0x17)
 		{
-			FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeathers(), ORIG_FeatherTask);
+			FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeathers(), us(ORIG_FeatherTask));
 			if (f)
 			{
 				Memset32(&f->counter, 0, 3);
@@ -535,14 +535,14 @@ namespace ultimecia227
 			ClearSparks();
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x49C, 1);
 			InitTaskQueuePool(QFeathers(), (void *)TexBase(), 0x18, 0x10);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x124);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 		}
 		int main = (int)n;
 		if (ms->started)
 		{
-			ModelPoint((const int16_t *)POINT_Caster, CasterPoint());
+			ModelPoint((const int16_t *)us(POINT_Caster), CasterPoint());
 			main = ExecuteTaskQueue(QMain());
 			ExecuteTaskQueue(QFeathers());
 		}

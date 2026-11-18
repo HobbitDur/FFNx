@@ -27,47 +27,47 @@ namespace megiddo
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void MatVec(const Mat4x3 *m, const void *in, void *out) { fn<void (__cdecl *)(const Mat4x3 *, const void *, void *)>(0x56C4F0)(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline void SetDrawEnvPrim(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(prim, env); }
-	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(bucket, packet); }
-	inline void SetDrawAreaPrim(uint32_t prim, const void *rect) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C940)(prim, rect); }
-	inline void SetDrawOffsetPrim(uint32_t prim, const void *xy) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C9B0)(prim, xy); }
-	inline void GteReadScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
-	inline void GteSetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
-	inline void SetProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
-	inline uint32_t RenderGeometry(uint32_t geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(geom, hdr, ot, shift, cursor); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
-	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
-	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); }
-	inline uint32_t ColumnRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); }
-	inline uint32_t OT0() { return var<uint32_t>(0x1D8E04C); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void MatVec(const Mat4x3 *m, const void *in, void *out) { fn<void (__cdecl *)(const Mat4x3 *, const void *, void *)>(us(0x56C4F0))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, seq); }
+	inline void SetDrawEnvPrim(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(prim, env); }
+	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C8E0))(bucket, packet); }
+	inline void SetDrawAreaPrim(uint32_t prim, const void *rect) { fn<void (__cdecl *)(uint32_t, const void *)>(us(0x45C940))(prim, rect); }
+	inline void SetDrawOffsetPrim(uint32_t prim, const void *xy) { fn<void (__cdecl *)(uint32_t, const void *)>(us(0x45C9B0))(prim, xy); }
+	inline void GteReadScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
+	inline void GteSetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
+	inline void SetProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(us(0x56CD00))(h); }
+	inline uint32_t RenderGeometry(uint32_t geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(geom, hdr, ot, shift, cursor); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DDA0))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
+	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(us(0x64DE40))(); }
+	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x64E080))(h, ot, mode, cursor); }
+	inline uint32_t ColumnRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x64F0A0))(h, ot, mode, cursor); }
+	inline uint32_t OT0() { return var<uint32_t>(us(0x1D8E04C)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -727,20 +727,20 @@ namespace megiddo
 		static constexpr uint32_t G(uint32_t a) { return a - D::GLOB; }
 		static constexpr uint32_t X(uint32_t a) { return a - D::DATA; }
 
-		static int32_t &TargetSlot() { return var<int32_t>(G(0x23BF038)); }
-		static CastContext *&Context() { return var<CastContext *>(G(0x23C3250)); }
-		static int32_t &CasterSlot() { return var<int32_t>(G(0x23C3254)); }
-		static uint32_t &TexFile() { return var<uint32_t>(G(0x23C3258)); }
-		static uint32_t &TexBase() { return var<uint32_t>(G(0x23C3270)); }
-		static uint32_t &PacketCursor() { return var<uint32_t>(G(0x23C3274)); }
-		static uint32_t &FlashColour() { return var<uint32_t>(G(0x23C3268)); }
-		static TaskQueue *QRoot() { return (TaskQueue *)G(0x23BF070); }
-		static TaskQueue *QMain() { return (TaskQueue *)G(0x23C0540); }
-		static int16_t *Centre() { return (int16_t *)G(0x23C3248); }
-		static int16_t *Point() { return (int16_t *)G(0x23C3260); }
-		static Mat4x3 *Frame() { return (Mat4x3 *)G(0x23C04E0); }
-		static uint32_t Bolt(int32_t e) { return G(0x23C1428) + 0x334 * e; }
-		static uint32_t Save(int32_t slot) { return G(0x23C1360) + 0x1C * slot; }
+		static int32_t &TargetSlot() { return var<int32_t>(G(us(0x23BF038))); }
+		static CastContext *&Context() { return var<CastContext *>(G(us(0x23C3250))); }
+		static int32_t &CasterSlot() { return var<int32_t>(G(us(0x23C3254))); }
+		static uint32_t &TexFile() { return var<uint32_t>(G(us(0x23C3258))); }
+		static uint32_t &TexBase() { return var<uint32_t>(G(us(0x23C3270))); }
+		static uint32_t &PacketCursor() { return var<uint32_t>(G(us(0x23C3274))); }
+		static uint32_t &FlashColour() { return var<uint32_t>(G(us(0x23C3268))); }
+		static TaskQueue *QRoot() { return (TaskQueue *)G(us(0x23BF070)); }
+		static TaskQueue *QMain() { return (TaskQueue *)G(us(0x23C0540)); }
+		static int16_t *Centre() { return (int16_t *)G(us(0x23C3248)); }
+		static int16_t *Point() { return (int16_t *)G(us(0x23C3260)); }
+		static Mat4x3 *Frame() { return (Mat4x3 *)G(us(0x23C04E0)); }
+		static uint32_t Bolt(int32_t e) { return G(us(0x23C1428)) + 0x334 * e; }
+		static uint32_t Save(int32_t slot) { return G(us(0x23C1360)) + 0x1C * slot; }
 		static const uint32_t POOL_A = 0x23BF080, POOL_A_END = 0x23BF9E0;
 		static const uint32_t POOL_B = 0x23BF9E0, POOL_B_END = 0x23C04D0;
 		static const uint32_t RIBBON_TABLE = 0x23C2DC8;
@@ -788,11 +788,11 @@ namespace megiddo
 
 		static void EffectPoint(int16_t *point)
 		{
-			const uint32_t ent = 0x1D972C0 + 0x9C * (uint32_t)CasterSlot();
+			const uint32_t ent = us(0x1D972C0) + 0x9C * (uint32_t)CasterSlot();
 			Mat4x3 m;
 			BoneMatrix(ent + 0x60, D::BONE, &m);
 			ComposeAffineTransform((const Mat4x3 *)(ent + 0x40), &m, &m);
-			MatVec(&m, (const void *)X(BONE_OFFSET), point);
+			MatVec(&m, (const void *)X(us(BONE_OFFSET)), point);
 			point[0] = (int16_t)(point[0] + (int16_t)m.t[0]);
 			point[1] = (int16_t)(point[1] + (int16_t)m.t[1]);
 			point[2] = (int16_t)(point[2] + (int16_t)m.t[2]);
@@ -804,7 +804,7 @@ namespace megiddo
 			v[1] = Centre()[1] - point[1];
 			v[2] = Centre()[2] - point[2];
 			Normalize(v, v);
-			const int32_t angle = RotationBetweenVectors((const int32_t *)X(REF_DIR), v, axis);
+			const int32_t angle = RotationBetweenVectors((const int32_t *)X(us(REF_DIR)), v, axis);
 			BuildAxisAngleRotationMatrix(angle, frame, axis);
 			frame->t[1] = point[1];
 			frame->t[0] = point[0];
@@ -835,20 +835,20 @@ namespace megiddo
 			if (n->c == 0x2B) StageCapture(Centre());
 			if (n->c == 1)
 			{
-				Node24 *t = AddMain(ORIG_Glow);
+				Node24 *t = AddMain(us(ORIG_Glow));
 				t->c = 0;
 				t->w1C = 0x6800;
 				t->w1E = 0x14CC;
 			}
 			if (n->c == 8)
 			{
-				Node24 *a = AddMain(ORIG_Spin);
+				Node24 *a = AddMain(us(ORIG_Spin));
 				a->c = 0;
 				a->w18 = (int16_t)(CrtRand() % 0x1000);
 				const int32_t r = CrtRand() % 0x28;
 				a->w1C = 0x2000;
 				a->w1A = (int16_t)(r + 0x14);
-				Node24 *b = AddMain(ORIG_Spin);
+				Node24 *b = AddMain(us(ORIG_Spin));
 				b->c = 0;
 				const int16_t ang = (int16_t)(CrtRand() % 0x1000);
 				b->w18 = ang;
@@ -857,7 +857,7 @@ namespace megiddo
 			}
 			if (n->c >= 6 && n->c <= 0x1E && n->c % 6 == 2)
 			{
-				Node24 *t = AddMain(ORIG_Ring);
+				Node24 *t = AddMain(us(ORIG_Ring));
 				t->c = 0;
 				t->w1E = 0x340;
 				t->w1C = 0x340;
@@ -865,13 +865,13 @@ namespace megiddo
 			if (n->c == 8)
 				for (int i = 0; i < 6; i++)
 				{
-					Node24 *t = AddMain(ORIG_BoltDir);
+					Node24 *t = AddMain(us(ORIG_BoltDir));
 					t->e = (int16_t)i;
 					t->c = 0;
 				}
 			if (n->c == 0x2C)
 			{
-				Node24 *t = AddMain(ORIG_ColumnFlash);
+				Node24 *t = AddMain(us(ORIG_ColumnFlash));
 				*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
 				t->c = 0;
 				*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
@@ -879,7 +879,7 @@ namespace megiddo
 				t->w1E = 0x200;
 				if (n->c == 0x2C)
 				{
-					t = AddMain(ORIG_Column);
+					t = AddMain(us(ORIG_Column));
 					*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
 					t->c = 0;
 					*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
@@ -891,7 +891,7 @@ namespace megiddo
 			if (n->c == 0x33) ScreenFadeTask(0, 2, 4, 0xFF);
 			if (n->c == 0x36)
 			{
-				Node24 *t = AddMain(ORIG_Pillar);
+				Node24 *t = AddMain(us(ORIG_Pillar));
 				*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
 				*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
 				t->c = 0;
@@ -901,7 +901,7 @@ namespace megiddo
 				if (n->c == 0x36)
 					for (int i = 0; i < 0x10; i++)
 					{
-						Node24 *f = AddMain(ORIG_Flame);
+						Node24 *f = AddMain(us(ORIG_Flame));
 						f->c = 0;
 						f->e = (int16_t)(CrtRand() % 4 + i);
 						*(uint32_t *)&f->w10 = *(const uint32_t *)Centre();
@@ -918,13 +918,13 @@ namespace megiddo
 			}
 			if (n->c == 0x37)
 			{
-				Node24 *t = AddMain(ORIG_Sparks);
+				Node24 *t = AddMain(us(ORIG_Sparks));
 				*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
 				*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
 				t->c = 0;
 				if (n->c == 0x37)
 				{
-					t = AddMain(ORIG_Debris);
+					t = AddMain(us(ORIG_Debris));
 					*(uint32_t *)&t->w10 = *(const uint32_t *)Centre();
 					t->c = 0;
 					*(uint32_t *)&t->w14 = *(const uint32_t *)(Centre() + 2);
@@ -934,7 +934,7 @@ namespace megiddo
 				for (int32_t slot = 0; slot < 3; slot++)
 				{
 					if (!(*Entity(slot) & 2)) continue;
-					Node24 *t = AddMain(ORIG_Knock);
+					Node24 *t = AddMain(us(ORIG_Knock));
 					t->e = (int16_t)slot;
 					const int32_t idx = TargetIndex(slot);
 					t->c = 0;
@@ -946,7 +946,7 @@ namespace megiddo
 				for (int32_t slot = 0; slot < 3; slot++)
 				{
 					if (!(*Entity(slot) & 2)) continue;
-					Node24 *t = AddMain(ORIG_Throw);
+					Node24 *t = AddMain(us(ORIG_Throw));
 					t->c = 0;
 					t->e = (int16_t)slot;
 					t->w18 = (int16_t)((CrtRand() % 3 + 1) << 12);
@@ -970,8 +970,8 @@ namespace megiddo
 				SetScreenFlash((uint32_t)shl32(n->c - 0xB, 7), FlashColour());
 			}
 			else if (c >= 0x5A) SetScreenFlash((uint32_t)shl32((0x62 - c) * 3, 7), 0x101030);
-			if (n->c == 1) BdPlaySE((const void *)X(SOUND_START), 0, 0x80);
-			if (n->c == 0x30) BdPlaySE((const void *)X(SOUND_BLAST), 0, 0x80);
+			if (n->c == 1) BdPlaySE((const void *)X(us(SOUND_START)), 0, 0x80);
+			if (n->c == 0x30) BdPlaySE((const void *)X(us(SOUND_BLAST)), 0, 0x80);
 			n->c = (int16_t)(n->c + 1);
 			return n->c > 0x62 ? TASK_END : 0;
 		}
@@ -996,9 +996,9 @@ namespace megiddo
 			s[0] = 0x1000000 / (0x2378000 / rect[2]);
 			s[2] = 0x1000000 / (0x17A4000 / rect[3]);
 			Scale3DMatrix(&m, s);
-			const uint32_t env = 0x1D969C8 + 0x5C * (uint32_t)(var<uint8_t>(0x1D96A80) ^ 1);
-			SetDrawEnvPrim(G(0x23C0500), env);
-			InsertPrimAutoDepth(OT0() + 0x44, (void *)G(0x23C0500));
+			const uint32_t env = us(0x1D969C8) + 0x5C * (uint32_t)(var<uint8_t>(us(0x1D96A80)) ^ 1);
+			SetDrawEnvPrim(G(us(0x23C0500)), env);
+			InsertPrimAutoDepth(OT0() + 0x44, (void *)G(us(0x23C0500)));
 			GteReadScreenOffset(&ofx, &ofy);
 			GteSetScreenOffset(rect[2] / 2, rect[3] / 2);
 			GteSetRotMatrix(&m);
@@ -1008,11 +1008,11 @@ namespace megiddo
 			*(int16_t *)(h + 0x16) = 0;
 			*(int16_t *)(h + 0x18) = 0x140;
 			*(int16_t *)(h + 0x1A) = 0xD8;
-			*(uint32_t *)(h + 4) = var<uint32_t>(0x1D98B3C);
+			*(uint32_t *)(h + 4) = var<uint32_t>(us(0x1D98B3C));
 			*(int32_t *)(h + 0x10) = -1;
 			*(int32_t *)(h + 0x20) = -1;
 			SetProjectionH(0x7FFF);
-			for (uint32_t g = 0x1D989BD; g >= 0x1D98991; g -= 0x2C)
+			for (uint32_t g = us(0x1D989BD); g >= us(0x1D98991); g -= 0x2C)
 			{
 				const uint8_t fl = *(const uint8_t *)g;
 				if (!(fl & 1) || !(fl & 2)) continue;
@@ -1022,16 +1022,16 @@ namespace megiddo
 				ComputeBonesWorldMatrices((void *)(g + 0x13), &m);
 				PacketCursor() = RenderGeometry(g + 3, h, OT0() + 0x44, 0x10, PacketCursor());
 			}
-			SetProjectionH(var<int16_t>(0x1D8E038));
+			SetProjectionH(var<int16_t>(us(0x1D8E038)));
 			FieldFree(0x2C);
 			GteSetScreenOffset(ofx, ofy);
-			InsertPrimAltViewport(OT0() + 0x44, X(ALT_VIEWPORT));
-			SetDrawAreaPrim(G(0x23BF040), rect);
-			InsertPrimAutoDepth(OT0() + 0x44, (void *)G(0x23BF040));
-			var<int16_t>(G(0x23C326C)) = rect[0];
-			var<int16_t>(G(0x23C326E)) = rect[1];
-			SetDrawOffsetPrim(G(0x23C04D0), (const void *)G(0x23C326C));
-			InsertPrimAutoDepth(OT0() + 0x44, (void *)G(0x23C04D0));
+			InsertPrimAltViewport(OT0() + 0x44, X(us(ALT_VIEWPORT)));
+			SetDrawAreaPrim(G(us(0x23BF040)), rect);
+			InsertPrimAutoDepth(OT0() + 0x44, (void *)G(us(0x23BF040)));
+			var<int16_t>(G(us(0x23C326C))) = rect[0];
+			var<int16_t>(G(us(0x23C326E))) = rect[1];
+			SetDrawOffsetPrim(G(us(0x23C04D0)), (const void *)G(us(0x23C326C)));
+			InsertPrimAutoDepth(OT0() + 0x44, (void *)G(us(0x23C04D0)));
 		}
 
 		static uint8_t *PrimHeader(uint32_t model, int size)
@@ -1055,14 +1055,14 @@ namespace megiddo
 			ComposeAffineTransform(&Camera(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			uint8_t *h = PrimHeader(X(MODEL_GLOW), 0x58);
+			uint8_t *h = PrimHeader(X(us(MODEL_GLOW)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, D::RMODE, 0x58);
 		}
 		static uint32_t __cdecl GlowTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Glow, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Glow), n);)
 			GlowDraw(n, Frame(), GlowPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t c = n->c;
@@ -1090,14 +1090,14 @@ namespace megiddo
 			ComposeAffineTransform(&Camera(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			uint8_t *h = PrimHeader(X(MODEL_SPIN), 0x58);
+			uint8_t *h = PrimHeader(X(us(MODEL_SPIN)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, D::RMODE, 0x58);
 		}
 		static uint32_t __cdecl SpinTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Spin, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Spin), n);)
 			SpinDraw(n, Frame(), SpinPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1A;
@@ -1115,14 +1115,14 @@ namespace megiddo
 			ComposeAffineTransform(&Camera(), &m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
-			uint8_t *h = PrimHeader(X(MODEL_RING), 0x58);
+			uint8_t *h = PrimHeader(X(us(MODEL_RING)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, D::RMODE, 0x58);
 		}
 		static uint32_t __cdecl RingTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Ring, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Ring), n);)
 			RingDraw(n, Frame(), RingPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1E;
@@ -1173,19 +1173,19 @@ namespace megiddo
 				for (int32_t i = 0; i < 0x30; i++)
 					SplineEval(5, work, (void *)(rec + 0x38 + 8 * i), shl32(i, 12) / 0x2F);
 				FieldFree(0x190);
-				Node24 *t = AddMain(ORIG_Arc);
+				Node24 *t = AddMain(us(ORIG_Arc));
 				t->c = 0;
 				t->e = n->e;
 				t->w18 = 0;
 				t->w1A = 2;
 				t->w1C = (int16_t)(CrtRand() % 0x200 + 0x200);
-				t = AddMain(ORIG_Sheet);
+				t = AddMain(us(ORIG_Sheet));
 				t->c = 0;
 				t->e = n->e;
 				t->w18 = 0;
 				t->w1A = 2;
 				for (int k = 0; k < 3; k++) At<uint32_t>(rec, 0x1B8 + 0x14 * k) = 0;
-				t = AddMain(ORIG_Ribbon);
+				t = AddMain(us(ORIG_Ribbon));
 				t->w1A = 2;
 				t->e = n->e;
 				t->c = 0;
@@ -1202,7 +1202,7 @@ namespace megiddo
 			v[1] = target[1] - point[1];
 			v[2] = target[2] - point[2];
 			const int32_t len = Sqrt(Normalize(v, v));
-			const int32_t angle = RotationBetweenVectors((const int32_t *)X(REF_DIR), v, axis);
+			const int32_t angle = RotationBetweenVectors((const int32_t *)X(us(REF_DIR)), v, axis);
 			Mat4x3 r, m;
 			BuildAxisAngleRotationMatrix(angle, &r, axis);
 			int16_t ang[4] = { 0, 0, 0, 0 };
@@ -1221,7 +1221,7 @@ namespace megiddo
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
 			RenderHeader *h = (RenderHeader *)AllocHeader(0x6C);
-			h->model = X(MODEL_ARC);
+			h->model = X(us(MODEL_ARC));
 			*(uint32_t *)h->far_rgb = 0;
 			h->colour = 0x30307F;
 			ApplyPF((uint8_t *)h, f, 0x1C);
@@ -1231,7 +1231,7 @@ namespace megiddo
 		static uint32_t __cdecl ArcTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Arc, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Arc), n);)
 			ArcDraw(n, Point(), (const int16_t *)(Bolt(n->e) + 0x38 + 8 * n->w18), ArcPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t s = n->w1A;
@@ -1276,7 +1276,7 @@ namespace megiddo
 			for (int32_t i = 0; i < 0x10; i++) SplineEval(k, work, (void *)(rec + 0x2B4 + 8 * i), shl32(i, 12) / 15);
 			FieldFree(0x190);
 		}
-		static uint32_t SheetColour(int32_t c) { return *(const uint32_t *)(X(SHEET_COLOURS) + 4 * (c % 12)); }
+		static uint32_t SheetColour(int32_t c) { return *(const uint32_t *)(X(us(SHEET_COLOURS)) + 4 * (c % 12)); }
 		static void SheetDraw(uint32_t colour, uint32_t rec, uint8_t *blk)
 		{
 			GteSetRotMatrix(&Camera());
@@ -1352,7 +1352,7 @@ namespace megiddo
 		static void RibbonTable(uint32_t rec, uint8_t *blk, int32_t cnt)
 		{
 			const uint32_t w = (uint32_t)blk;
-			ff8fx::copy<(0x10)>(blk + 0x40, (const void *)X(REF_DIR));
+			ff8fx::copy<(0x10)>(blk + 0x40, (const void *)X(us(REF_DIR)));
 			At<int16_t>(w, 0x30) = 0x5A;
 			At<int16_t>(w, 0x32) = 0;
 			At<int16_t>(w, 0x34) = 0;
@@ -1381,7 +1381,7 @@ namespace megiddo
 				const int32_t angle = RotationBetweenVectors((const int32_t *)(w + 0x40), (const int32_t *)(w + 0x50), (int32_t *)(w + 0x60));
 				BuildAxisAngleRotationMatrix(angle, (Mat4x3 *)(w + 0x70), (const int32_t *)(w + 0x60));
 				MatVec((const Mat4x3 *)(w + 0x70), (const void *)(w + 0x30), (void *)(w + 0x38));
-				const uint32_t t = G(RIBBON_TABLE) + 0x18 * j;
+				const uint32_t t = G(us(RIBBON_TABLE)) + 0x18 * j;
 				At<uint32_t>(t, 0) = At<uint32_t>(w, 0x20);
 				At<uint32_t>(t, 4) = At<uint32_t>(w, 0x24);
 				At<int16_t>(t, 8) = (int16_t)(At<int16_t>(w, 0x38) + At<int16_t>(w, 0x20));
@@ -1414,7 +1414,7 @@ namespace megiddo
 				At<uint32_t>(w, 0x14) |= 0x3A000000;
 			}
 			const int32_t segs = cnt - 1;
-			const uint32_t T = G(RIBBON_TABLE);
+			const uint32_t T = G(us(RIBBON_TABLE));
 			for (int32_t k = 0; k < segs; k++)
 			{
 				const uint32_t tk = T + 0x18 * k;
@@ -1475,7 +1475,7 @@ namespace megiddo
 			const int32_t cnt = n->w18 + 1;
 			if (cnt >= 2)
 			{
-				FX_HELD(MegiddoHeld<D>::note_node(ORIG_Ribbon, n);)
+				FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Ribbon), n);)
 				RibbonTable(rec, blk, cnt);
 				RibbonDraw(n->c >= 0x18, RibbonFade(n->c), blk, cnt);
 			}
@@ -1518,7 +1518,7 @@ namespace megiddo
 		{
 			CentreMatrix(n, 0, 0, 0x1000, sy, 0x1000);
 			uint8_t *h = AllocHeader(0x60);
-			*(uint32_t *)h = X(MODEL_COLUMN);
+			*(uint32_t *)h = X(us(MODEL_COLUMN));
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x1C) = 0;
 			*(uint32_t *)(h + 0x58) = 0xE1000020;
@@ -1529,7 +1529,7 @@ namespace megiddo
 		static uint32_t __cdecl ColumnTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Column, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Column), n);)
 			ColumnDraw(n, n->w1C);
 			if (DrawOnly()) return 0;
 			return StepScale(n, 8);
@@ -1539,7 +1539,7 @@ namespace megiddo
 		{
 			CentreMatrix(n, 0, 0, 0x1000, sy, 0x1000);
 			uint8_t *h = AllocHeader(0x58);
-			*(uint32_t *)h = X(MODEL_COLUMN_FLASH);
+			*(uint32_t *)h = X(us(MODEL_COLUMN_FLASH));
 			*(uint32_t *)(h + 8) = 0;
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, 2, 0x58);
@@ -1547,7 +1547,7 @@ namespace megiddo
 		static uint32_t __cdecl ColumnFlashTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_ColumnFlash, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_ColumnFlash), n);)
 			ColumnFlashDraw(n, n->w1C, ColumnFlashPF(n->c));
 			if (DrawOnly()) return 0;
 			return StepScale(n, 8);
@@ -1556,14 +1556,14 @@ namespace megiddo
 		static void PillarDraw(const Node24 *n, int16_t sx, int16_t sy, const PF &f)
 		{
 			CentreMatrix(n, 0, 0, sx, sy, sx);
-			uint8_t *h = PrimHeader(X(MODEL_PILLAR), 0x58);
+			uint8_t *h = PrimHeader(X(us(MODEL_PILLAR)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, 2, 0x58);
 		}
 		static uint32_t __cdecl PillarTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Pillar, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Pillar), n);)
 			PillarDraw(n, n->w1C, n->w20, PillarPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w22;
@@ -1584,8 +1584,8 @@ namespace megiddo
 			*(int16_t *)(h + 0x1C) = 0x40;
 			*(int16_t *)(h + 0x1E) = 0x80;
 			*(uint32_t *)(h + 0x10) = 0;
-			if (n->w1A != 0) { *(uint32_t *)h = X(MODEL_FLAME_A); *(int16_t *)(h + 0x18) = 0x40; }
-			else { *(uint32_t *)h = X(MODEL_FLAME_B); *(int16_t *)(h + 0x18) = 0; }
+			if (n->w1A != 0) { *(uint32_t *)h = X(us(MODEL_FLAME_A)); *(int16_t *)(h + 0x18) = 0x40; }
+			else { *(uint32_t *)h = X(us(MODEL_FLAME_B)); *(int16_t *)(h + 0x18) = 0; }
 			ApplyPF(h, f, 0x20);
 			PacketCursor() = Mag151Render(h, OT0() + 0x44, 2, PacketCursor());
 			FieldFree(0x7C);
@@ -1599,7 +1599,7 @@ namespace megiddo
 				n->e = (int16_t)(n->e - 1);
 				return 0;
 			}
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Flame, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Flame), n);)
 			FlameDraw(n, mul32(n->w22, n->c), FlamePF(n->c));
 			if (DrawOnly()) return 0;
 			n->c = (int16_t)(n->c + 1);
@@ -1609,14 +1609,14 @@ namespace megiddo
 		static void Ring2Draw(const Node24 *n, int16_t s, const PF &f)
 		{
 			CentreMatrix(n, 0x400, 0, s, s, s);
-			uint8_t *h = PrimHeader(X(MODEL_RING), 0x58);
+			uint8_t *h = PrimHeader(X(us(MODEL_RING)), 0x58);
 			ApplyPF(h, f, 0x1C);
 			DrawPrim(h, 2, 0x58);
 		}
 		static uint32_t __cdecl Ring2Task(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(ORIG_Ring2, n);)
+			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Ring2), n);)
 			Ring2Draw(n, n->w1C, Ring2PF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1E;
@@ -1641,9 +1641,9 @@ namespace megiddo
 		{
 			for (int k = 0; k < 2; k++)
 			{
-				const int32_t i = FreeEntry(G(POOL_A), G(POOL_A_END), 0x18);
+				const int32_t i = FreeEntry(G(us(POOL_A)), G(us(POOL_A_END)), 0x18);
 				if (i < 0) return;
-				const uint32_t e = G(POOL_A) + 0x18 * i;
+				const uint32_t e = G(us(POOL_A)) + 0x18 * i;
 				At<uint32_t>(e, 0) = 1;
 				At<int16_t>(e, 4) = 0;
 				const int32_t r = CrtRand() % 0xC00;
@@ -1661,7 +1661,7 @@ namespace megiddo
 			*(int16_t *)(h + 0x24) = 0;
 			int32_t live = 0;
 			ff8fx::copy<(0x20)>(blk + 8, &Camera());
-			*(uint32_t *)h = X(SEQ_SPARK);
+			*(uint32_t *)h = X(us(SEQ_SPARK));
 			GteSetLightMatrix(blk + 8);
 			GteSetBackColorFromTrans(blk + 8);
 			for (uint32_t e = pool; e < pool_end; e += 0x18)
@@ -1686,8 +1686,8 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			uint8_t *blk = (uint8_t *)FieldAlloc(0x48);
 			if (!DrawOnly() && n->c <= 0x10) SparksSpawn(n);
-			FX_HELD(MegiddoHeld<D>::note_pool(ORIG_Sparks, n);)
-			const int32_t live = SparksDraw(blk, G(POOL_A), G(POOL_A_END), !DrawOnly());
+			FX_HELD(MegiddoHeld<D>::note_pool(us(ORIG_Sparks), n);)
+			const int32_t live = SparksDraw(blk, G(us(POOL_A)), G(us(POOL_A_END)), !DrawOnly());
 			FieldFree(0x48);
 			if (DrawOnly()) return 0;
 			n->c = (int16_t)(n->c + 1);
@@ -1698,7 +1698,7 @@ namespace megiddo
 		{
 			const uint32_t w = (uint32_t)blk;
 			At<int16_t>(w, 0) = ax;
-			*(uint32_t *)hdr = *(const uint32_t *)(X(DEBRIS_MODELS) + 4 * At<int32_t>(e, 8));
+			*(uint32_t *)hdr = *(const uint32_t *)(X(us(DEBRIS_MODELS)) + 4 * At<int32_t>(e, 8));
 			At<int16_t>(w, 4) = az;
 			ComposeZYXRotationMatrix((const int16_t *)w, (Mat4x3 *)(w + 8));
 			At<int32_t>(w, 0x1C) = x;
@@ -1717,9 +1717,9 @@ namespace megiddo
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				const int32_t i = FreeEntry(G(POOL_B), G(POOL_B_END), 0x1C);
+				const int32_t i = FreeEntry(G(us(POOL_B)), G(us(POOL_B_END)), 0x1C);
 				if (i < 0) return;
-				const uint32_t e = G(POOL_B) + 0x1C * i;
+				const uint32_t e = G(us(POOL_B)) + 0x1C * i;
 				At<uint32_t>(e, 0) = 2;
 				At<int16_t>(e, 4) = 0;
 				At<int16_t>(e, 6) = (int16_t)(CrtRand() % 0x3C0 + 0x280);
@@ -1745,7 +1745,7 @@ namespace megiddo
 		static uint32_t __cdecl DebrisTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_pool(ORIG_Debris, n);)
+			FX_HELD(MegiddoHeld<D>::note_pool(us(ORIG_Debris), n);)
 			uint8_t *hdr = AllocHeader(0x58);
 			uint8_t *blk = (uint8_t *)FieldAlloc(0x88);
 			ff8fx::copy<(0x20)>(blk + 0x28, &Camera());
@@ -1753,7 +1753,7 @@ namespace megiddo
 			*(uint32_t *)(hdr + 0x1C) = 0;
 			int32_t live = 0;
 			*(int16_t *)(blk + 2) = 0;
-			for (uint32_t e = G(POOL_B); e < G(POOL_B_END); e += 0x1C)
+			for (uint32_t e = G(us(POOL_B)); e < G(us(POOL_B_END)); e += 0x1C)
 			{
 				if (!(*(const uint8_t *)e & 2)) continue;
 				DebrisEntry(hdr, blk, e, At<int16_t>(e, 0x16), At<int16_t>(e, 0x1A), At<int16_t>(e, 6), At<int16_t>(e, 0xC), At<int16_t>(e, 0xE), At<int16_t>(e, 0x10));
@@ -1863,7 +1863,7 @@ namespace megiddo
 			if (DrawOnly()) return 0;
 			if (n->c == 0x14)
 			{
-				Node24 *t = AddMain(ORIG_Ring2);
+				Node24 *t = AddMain(us(ORIG_Ring2));
 				t->c = 0;
 				t->w10 = *(const int16_t *)(ent + 0x1C);
 				t->w12 = 0;
@@ -1891,7 +1891,7 @@ namespace megiddo
 			const int running = ExecuteTaskQueue(QMain());
 			if (!running)
 			{
-				RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), C(ORIG_Restore));
+				RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), C(us(ORIG_Restore)));
 				t->c = 0;
 				t->e = 0;
 			}
@@ -1909,25 +1909,25 @@ namespace megiddo
 
 		static void Register(const char *const names[19])
 		{
-			register_port(C(ORIG_Root), (void *)RootTask, names[0], D::EFFECT);
-			register_port(C(ORIG_Restore), (void *)RestoreTask, names[1], D::EFFECT);
-			register_port(C(ORIG_Director), (void *)DirectorTask, names[2], D::EFFECT);
-			register_port(C(ORIG_Glow), (void *)GlowTask, names[3], D::EFFECT);
-			register_port(C(ORIG_Spin), (void *)SpinTask, names[4], D::EFFECT);
-			register_port(C(ORIG_Ring), (void *)RingTask, names[5], D::EFFECT);
-			register_port(C(ORIG_BoltDir), (void *)BoltDirTask, names[6], D::EFFECT);
-			register_port(C(ORIG_Arc), (void *)ArcTask, names[7], D::EFFECT);
-			register_port(C(ORIG_Sheet), (void *)SheetTask, names[8], D::EFFECT);
-			register_port(C(ORIG_Ribbon), (void *)RibbonTask, names[9], D::EFFECT);
-			register_port(C(ORIG_Column), (void *)ColumnTask, names[10], D::EFFECT);
-			register_port(C(ORIG_ColumnFlash), (void *)ColumnFlashTask, names[11], D::EFFECT);
-			register_port(C(ORIG_Pillar), (void *)PillarTask, names[12], D::EFFECT);
-			register_port(C(ORIG_Flame), (void *)FlameTask, names[13], D::EFFECT);
-			register_port(C(ORIG_Sparks), (void *)SparksTask, names[14], D::EFFECT);
-			register_port(C(ORIG_Debris), (void *)DebrisTask, names[15], D::EFFECT);
-			register_port(C(ORIG_Knock), (void *)KnockTask, names[16], D::EFFECT);
-			register_port(C(ORIG_Throw), (void *)ThrowTask, names[17], D::EFFECT);
-			register_port(C(ORIG_Ring2), (void *)Ring2Task, names[18], D::EFFECT);
+			register_port(C(us(ORIG_Root)), (void *)RootTask, names[0], D::EFFECT);
+			register_port(C(us(ORIG_Restore)), (void *)RestoreTask, names[1], D::EFFECT);
+			register_port(C(us(ORIG_Director)), (void *)DirectorTask, names[2], D::EFFECT);
+			register_port(C(us(ORIG_Glow)), (void *)GlowTask, names[3], D::EFFECT);
+			register_port(C(us(ORIG_Spin)), (void *)SpinTask, names[4], D::EFFECT);
+			register_port(C(us(ORIG_Ring)), (void *)RingTask, names[5], D::EFFECT);
+			register_port(C(us(ORIG_BoltDir)), (void *)BoltDirTask, names[6], D::EFFECT);
+			register_port(C(us(ORIG_Arc)), (void *)ArcTask, names[7], D::EFFECT);
+			register_port(C(us(ORIG_Sheet)), (void *)SheetTask, names[8], D::EFFECT);
+			register_port(C(us(ORIG_Ribbon)), (void *)RibbonTask, names[9], D::EFFECT);
+			register_port(C(us(ORIG_Column)), (void *)ColumnTask, names[10], D::EFFECT);
+			register_port(C(us(ORIG_ColumnFlash)), (void *)ColumnFlashTask, names[11], D::EFFECT);
+			register_port(C(us(ORIG_Pillar)), (void *)PillarTask, names[12], D::EFFECT);
+			register_port(C(us(ORIG_Flame)), (void *)FlameTask, names[13], D::EFFECT);
+			register_port(C(us(ORIG_Sparks)), (void *)SparksTask, names[14], D::EFFECT);
+			register_port(C(us(ORIG_Debris)), (void *)DebrisTask, names[15], D::EFFECT);
+			register_port(C(us(ORIG_Knock)), (void *)KnockTask, names[16], D::EFFECT);
+			register_port(C(us(ORIG_Throw)), (void *)ThrowTask, names[17], D::EFFECT);
+			register_port(C(us(ORIG_Ring2)), (void *)Ring2Task, names[18], D::EFFECT);
 		}
 	};
 }

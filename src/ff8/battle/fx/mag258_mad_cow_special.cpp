@@ -44,33 +44,33 @@ namespace mad_cow_special
 	{
 		c.name = "258 Mad Cow Special";
 		c.effect_id = 258;
-		c.vm_table = 0x1859B2C;
-		c.bone_table = 0x185979C;
-		c.prim_table = 0x18597E4;
-		c.prim_size = 0x18598D4;
-		c.spr_table = 0x18598E8;
-		c.ptype_table = 0x1859914;
-		c.pop_table = 0x1859928;
-		c.draw_table = 0x1859988;
-		c.attr_16A = 0x1859AF2;
-		c.attr_184 = 0x1859B0C;
-		c.attr_186 = 0x1859B0E;
-		c.attr_194 = 0x1859B1C;
-		c.attr_19C = 0x1859B24;
-		c.desc = 0x18596D4;
-		c.ptr_block = 0x1859774;
-		c.queue = 0x27964D0;
-		c.file00 = 0x27964F4;
-		c.file01 = 0x27964F0;
-		c.tick = 0x965070;
-		c.load_cb = 0x96AC00;
+		c.vm_table = us(0x1859B2C);
+		c.bone_table = us(0x185979C);
+		c.prim_table = us(0x18597E4);
+		c.prim_size = us(0x18598D4);
+		c.spr_table = us(0x18598E8);
+		c.ptype_table = us(0x1859914);
+		c.pop_table = us(0x1859928);
+		c.draw_table = us(0x1859988);
+		c.attr_16A = us(0x1859AF2);
+		c.attr_184 = us(0x1859B0C);
+		c.attr_186 = us(0x1859B0E);
+		c.attr_194 = us(0x1859B1C);
+		c.attr_19C = us(0x1859B24);
+		c.desc = us(0x18596D4);
+		c.ptr_block = us(0x1859774);
+		c.queue = us(0x27964D0);
+		c.file00 = us(0x27964F4);
+		c.file01 = us(0x27964F0);
+		c.tick = us(0x965070);
+		c.load_cb = us(0x96AC00);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }

@@ -32,7 +32,7 @@ namespace renzo340
 	static const uint32_t RING = 0x21EB810, RING_END = 0x21EB89C, LENGTH = 0x21EB89C, FINISHER = 0x21EB8A0;
 	static const uint32_t TEX_BASE = 0x21EB8A4, PACKET_CURSOR = 0x21EB8A8;
 	static const uint32_t PARITY = 0xC000;
-	static const void *const SOUND = (const void *)0xE50B78;
+	static const void *SOUND() { return (const void *)us(0xE50B78); }
 	static const uint32_t TEXTURE_NAME = 0xC9DCE0, CAMERA = 0xE50D14, ANIM_SETS = 0xE510FC, BIND_OUT = 0x24FE9D8;
 	static const uint32_t MODEL_SPARKLE = 0xE50B7C, SPARKLE_FADE = 0xE50D04, SPARKLE_DEPTH = 0xE50CF4;
 	static const uint32_t MODEL_SLASH = 0xC975B4, MODEL_STREAK = 0xC97F9C;
@@ -92,8 +92,8 @@ namespace renzo340
 
 	static void Start(Node24 *n)
 	{
-		if (n->c == 1) StartBoss(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
-		if (n->c == 2) Bind2(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
+		if (n->c == 1) StartBoss(Caster(), Target(), us(BIND_OUT), us(ANIM_SETS), (Finisher() != 0) + 1);
+		if (n->c == 2) Bind2(Caster(), Target(), us(BIND_OUT), us(ANIM_SETS), (Finisher() != 0) + 1);
 		if (n->c == 3) ComputeLength();
 		if (n->c == 2) StartTasks();
 	}
@@ -102,7 +102,7 @@ namespace renzo340
 	{
 		if (n->c == 0x1C)
 		{
-			Node24 *t = AddSlotTask(ORIG_RingA);
+			Node24 *t = AddSlotTask(us(ORIG_RingA));
 			const int16_t s = (int16_t)((CrtRand() % 0x900 + 0x1400) / 3);
 			t->w1E = s;
 			t->w1C = s;
@@ -110,7 +110,7 @@ namespace renzo340
 		}
 		if (n->c == 0x23)
 		{
-			Node24 *t = AddSlotTask(ORIG_RingA);
+			Node24 *t = AddSlotTask(us(ORIG_RingA));
 			t->w10 = 0x258;
 			t->w12 = 0x64;
 			t->w14 = -0x190;
@@ -126,7 +126,7 @@ namespace renzo340
 		}
 		if (n->c == 0x3B)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_CasterModel);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_CasterModel));
 			t->c = 0;
 			GetEffectSpawnPosition(Target(), 0x1D, 0, &t->w10);
 			const int16_t s = (int16_t)((CrtRand() % 0x800 + 0x2000) / 3);
@@ -135,7 +135,7 @@ namespace renzo340
 		}
 		if (n->c == 0x43)
 		{
-			Node24 *t = AddSlotTask(ORIG_RingB);
+			Node24 *t = AddSlotTask(us(ORIG_RingB));
 			const int16_t s = (int16_t)((CrtRand() % 0x500 + 0xD00) / 3);
 			t->w1E = s;
 			t->w1C = s;
@@ -143,22 +143,22 @@ namespace renzo340
 		}
 		if (n->c == 0x44)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_AngleModel);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_AngleModel));
 			t->c = 0;
-			t->w10 = var<int16_t>(HIT_POS);
+			t->w10 = var<int16_t>(us(HIT_POS));
 			t->w12 = 0x226;
-			t->w14 = var<int16_t>(HIT_POS + 4);
+			t->w14 = var<int16_t>(us(HIT_POS) + 4);
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			t->w1C = 0x3200;
 			const int16_t sy = (int16_t)((CrtRand() % 0xC00 + 0x1400) / 3);
 			t->w22 = sy;
 			t->w20 = sy;
 		}
-		if (n->c == 0x3B) ((Node24 *)AddTaskToQueue(QMain(), ORIG_BoneEmitter))->c = 0;
+		if (n->c == 0x3B) ((Node24 *)AddTaskToQueue(QMain(), us(ORIG_BoneEmitter)))->c = 0;
 		if (n->c == 0x43)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_NodeEmitter);
-			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_NodeEmitter));
+			ff8fx::copy<(8)>(&t->w10, (const void *)us(HIT_POS));
 			t->w12 = (int16_t)(t->w12 - 0x12C);
 			t->c = 0;
 		}
@@ -192,7 +192,7 @@ namespace renzo340
 				p->w14 = (int16_t)(mul32(w->dir[2], sp) >> 12);
 			}
 		}
-		const int32_t alive = EmitterDraw(n, w, 4, SEQ_EMIT);
+		const int32_t alive = EmitterDraw(n, w, 4, us(SEQ_EMIT));
 		FieldFree(0x50);
 		if (DrawOnly()) return 0;
 		n->c++;

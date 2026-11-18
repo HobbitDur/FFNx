@@ -24,14 +24,14 @@ namespace strong318
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250541C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2505420); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505424); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505488); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2505428; }
-	inline TaskQueue *QBones() { return (TaskQueue *)0x2505438; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505448; }
-	static const int16_t *const ZERO_VEC = (const int16_t *)0x2505480;
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x250541C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2505420)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2505424)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2505488)); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2505428); }
+	inline TaskQueue *QBones() { return (TaskQueue *)us(0x2505438); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2505448); }
+	static const int16_t *ZERO_VEC() { return (const int16_t *)us(0x2505480); }
 
 	static const uint32_t ORIG_RootTask = 0x65E5C0;
 	static const uint32_t ORIG_MainTask = 0x65E790;
@@ -49,34 +49,34 @@ namespace strong318
 	static const uint32_t PRIM_Spike = 0xFF7CB0;
 	static const uint32_t SEQ_Sprite = 0xFF7A00;
 	static const uint32_t SEQ_Particle = 0xFF7B6C;
-	static const void *const SOUND = (const void *)0xFF77A8;
-	static const int16_t *const OFFSETS = (const int16_t *)0xFFE688;
+	static const void *SOUND() { return (const void *)us(0xFF77A8); }
+	static const int16_t *OFFSETS() { return (const int16_t *)us(0xFFE688); }
 	static const int PARTICLES = 0x80;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(x, y); }
-	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(x, y); }
+	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(m); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
+	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(us(0x45E470))(m); }
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(v); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
+	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -250,7 +250,7 @@ namespace strong318
 		GteSetRotMatrix(&arg->m);
 		GteSetTransVector(&arg->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Spike;
+		*(uint32_t *)h = us(PRIM_Spike);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -390,12 +390,12 @@ namespace strong318
 		GteLoadV0(p->pos);
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123((int32_t *)(h + 0x98));
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = us(SEQ_Particle);
 		*(int16_t *)(h + 0x94) = p->size;
 		*(int16_t *)(h + 0x8C) = p->size;
 		*(int16_t *)(h + 0x84) = p->size;
-		const uint32_t idx = (*(const uint32_t *)(SEQ_Particle + 8) & 0xFFFF) - (int32_t)p->life;
-		const uint32_t f = *(const uint16_t *)(SEQ_Particle + 8 + idx * 2) + SEQ_Particle;
+		const uint32_t idx = (*(const uint32_t *)(us(SEQ_Particle) + 8) & 0xFFFF) - (int32_t)p->life;
+		const uint32_t f = *(const uint16_t *)(us(SEQ_Particle) + 8 + idx * 2) + us(SEQ_Particle);
 		*(uint32_t *)(h + 0x30) = *(const uint32_t *)f;
 		*(uint32_t *)(h + 0x2C) = f + 4;
 		PacketCursor() = RenderQuads(h, RenderOT(), 2, PacketCursor());
@@ -432,7 +432,7 @@ namespace strong318
 		d[2] = (int16_t)(pos[2] - vel0[2]);
 		d[3] = 0;
 		TransformCameraByShadowRotation(d, 0x400, -0x100);
-		GteLoadV0(ZERO_VEC);
+		GteLoadV0(ZERO_VEC());
 		GteMVMVA_RotV0Tr();
 		int16_t a[4], b[4];
 		GteStoreIR123(a);
@@ -441,7 +441,7 @@ namespace strong318
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(b);
 		*(int32_t *)(h + 8) = 0 - CartesianToGameAngle((int32_t)a[1] - b[1], (int32_t)b[0] - a[0]);
-		*(uint32_t *)h = SEQ_Sprite;
+		*(uint32_t *)h = us(SEQ_Sprite);
 		*(int16_t *)(h + 0x24) = 1;
 		*(int16_t *)(h + 4) = frame;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -494,7 +494,7 @@ namespace strong318
 
 	static void StartBoneScale(int32_t bone, int16_t delay, int16_t dx, int16_t dy)
 	{
-		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), ORIG_BoneScaleTask);
+		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), us(ORIG_BoneScaleTask));
 		b->bone = **(uint8_t ***)(Caster() + 0x64) + bone * 0x30 + 0x10;
 		b->delay = delay;
 		b->dx = dx;
@@ -512,9 +512,9 @@ namespace strong318
 			GetEffectSpawnPosition(Caster(), 0x1D, 0x800, m->S);
 			int32_t v[3] = { (int32_t)m->T[0] - m->S[0], (int32_t)m->S[1] - m->T[1], (int32_t)m->S[2] - m->T[2] };
 			BuildOrthonormalBasis(v, &m->M);
-			MatrixMulVector(&m->M, OFFSETS, m->off[0]);
-			MatrixMulVector(&m->M, OFFSETS + 4, m->off[1]);
-			MatrixMulVector(&m->M, OFFSETS + 8, m->off[2]);
+			MatrixMulVector(&m->M, OFFSETS(), m->off[0]);
+			MatrixMulVector(&m->M, OFFSETS() + 4, m->off[1]);
+			MatrixMulVector(&m->M, OFFSETS() + 8, m->off[2]);
 			BuildOrthonormalBasis(v, &m->M2);
 			v[0] = 0 - v[0];
 			v[2] = 0 - v[2];
@@ -601,7 +601,7 @@ namespace strong318
 				ang[1] = (int16_t)CrtRand();
 				for (int k = 8; k != 0; k--)
 				{
-					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SpriteTask));
 					if (s)
 					{
 						s->counter = 0;
@@ -625,7 +625,7 @@ namespace strong318
 		}
 		FX_HELD(held_note_particles(n);)
 		ParticleWalk(m->parts);
-		if (m->counter == 8) BdPlaySE(SOUND, 0, 0x80);
+		if (m->counter == 8) BdPlaySE(SOUND(), 0, 0x80);
 		if (m->counter == 0x29) StreamLoad(0x168, TexBase() + STREAM_DEST, 0);
 		StreamPump();
 		if (m->counter == 0x18) ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -670,14 +670,14 @@ namespace strong318
 				InitTaskQueuePool(QBones(), (void *)(TexBase() + POOL_Bones), 0x1C, 5);
 				InitTaskQueuePool(QSprites(), (void *)(TexBase() + POOL_Sprites), 0x30, 0x20);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x4BE);
 			m->ent = Entity(Ctx()->actions[0].targets[0]);
 			GetDefaultEffectPosition(m->ent, m->T);
 			m->cursor = m->parts;
-			DecodeModelPrimLayout(MODEL_A, m->layout_a, 0xEC);
-			DecodeModelPrimLayout(MODEL_B, m->layout_b, 0x5E8);
-			DecodeModelPrimLayout(MODEL_C, m->layout_c, 0x348);
+			DecodeModelPrimLayout(us(MODEL_A), m->layout_a, 0xEC);
+			DecodeModelPrimLayout(us(MODEL_B), m->layout_b, 0x5E8);
+			DecodeModelPrimLayout(us(MODEL_C), m->layout_c, 0x348);
 			StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		}
 		int a0, a1, a2;

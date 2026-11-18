@@ -135,15 +135,15 @@ namespace mist013
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x58, "Dark Mist nodes");
 	static_assert(sizeof(ModelNode) == 0x60 && sizeof(Particle) == 0x68 && sizeof(OverlayCtx) == 0xF4, "Dark Mist nodes");
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x27428AC); }
-	inline uint32_t &ArenaA() { return var<uint32_t>(0x274EAD4); }
-	inline uint32_t &ArenaB() { return var<uint32_t>(0x274EAD0); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x274E960; }
-	inline TaskQueue *QControl() { return (TaskQueue *)0x274EAD8; }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x274C3C0; }
-	inline TaskQueue *QModels() { return (TaskQueue *)0x27437B0; }
-	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x274EEF0); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x27428AC)); }
+	inline uint32_t &ArenaA() { return var<uint32_t>(us(0x274EAD4)); }
+	inline uint32_t &ArenaB() { return var<uint32_t>(us(0x274EAD0)); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)us(0x274E960); }
+	inline TaskQueue *QControl() { return (TaskQueue *)us(0x274EAD8); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x274C3C0); }
+	inline TaskQueue *QModels() { return (TaskQueue *)us(0x27437B0); }
+	inline OverlayCtx &Overlay() { return var<OverlayCtx>(us(0x274EEF0)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_Root = 0x8BE2D0;
 	static const uint32_t ORIG_Emitter = 0x8BE3E0;
@@ -160,49 +160,49 @@ namespace mist013
 	static const uint32_t ORIG_Stream = 0x8BF700;
 	static const uint32_t ORIG_Overlay = 0x8BF880;
 
-	static const void *const SOUND_Mist = (const void *)0x16309F8;
+	static const void *SOUND_Mist() { return (const void *)us(0x16309F8); }
 	static const uint32_t MODEL_Swirl = 0x163257C, MODEL_Cloud = 0x1633C24;
 	static const uint32_t RING_Table = 0x1630ED4;
 	static const uint32_t STREAM_Vectors = 0x1634B20;
 	static const uint32_t SEQ_Mist = 0x16309FC, SEQ_MistB = 0x1630E94, SEQ_PuffC = 0x1630C78, SEQ_PuffD = 0x1630D84;
 	static const uint32_t OVERLAY_A00 = 0x27437C0, OVERLAY_SPRITE = 0x274EEA8, OVERLAY_VERTS = 0x274C3E0;
 
-	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
-	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
-	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
-	inline void CopyAnchor(void *n, void *out) { fn<void (__cdecl *)(void *, void *)>(0x8DC6E0)(n, out); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t length, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, length, out); }
-	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
-	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
-	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD8A0)(m, a); }
-	inline void RotateZ(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD960)(m, a); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void NormalizeVec3(const int32_t *in, int16_t *out) { fn<void (__cdecl *)(const int32_t *, int16_t *)>(0x56BD20)(in, out); }
-	inline void BuildMatrixFromDirAndUp(void *out, const void *dir, const void *up) { fn<void (__cdecl *)(void *, const void *, const void *)>(0x8DDA50)(out, dir, up); }
-	inline void UnpackRotationMatrix(const void *in, void *out) { fn<void (__cdecl *)(const void *, void *)>(0x56C040)(in, out); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }
-	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E320)(p); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DCF0)(x, y, z); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
-	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
-	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
-	inline void PreBattleReadAnimation(void *hdr, void *cmd, int32_t anim) { fn<void (__cdecl *)(void *, void *, int32_t)>(0x509440)(hdr, cmd, anim); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
+	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(us(0x8DC540))(q, task, size, parent); }
+	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC530))(n); }
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC610))(n); }
+	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC740))(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC870))(n); }
+	inline void CopyAnchor(void *n, void *out) { fn<void (__cdecl *)(void *, void *)>(us(0x8DC6E0))(n, out); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t length, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, length, out); }
+	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(us(0x8DD770))(m); }
+	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD7E0))(m, a); }
+	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD8A0))(m, a); }
+	inline void RotateZ(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD960))(m, a); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void NormalizeVec3(const int32_t *in, int16_t *out) { fn<void (__cdecl *)(const int32_t *, int16_t *)>(us(0x56BD20))(in, out); }
+	inline void BuildMatrixFromDirAndUp(void *out, const void *dir, const void *up) { fn<void (__cdecl *)(void *, const void *, const void *)>(us(0x8DDA50))(out, dir, up); }
+	inline void UnpackRotationMatrix(const void *in, void *out) { fn<void (__cdecl *)(const void *, void *)>(us(0x56C040))(in, out); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E2E0))(p); }
+	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E320))(p); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DCF0))(x, y, z); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
+	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(m); }
+	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(us(0x45E470))(m); }
+	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(us(0x508F90))(hdr, cmd); }
+	inline void PreBattleReadAnimation(void *hdr, void *cmd, int32_t anim) { fn<void (__cdecl *)(void *, void *, int32_t)>(us(0x509440))(hdr, cmd, anim); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
 
 	static uint8_t *CasterEntity(const FxNode *n) { return Entity(n->ctx->attacker); }
 
@@ -347,7 +347,7 @@ namespace mist013
 {
 	static void MistAInit(Particle *p)
 	{
-		p->seq = SEQ_Mist;
+		p->seq = us(SEQ_Mist);
 		p->last = 0x17;
 		p->shade = 0;
 		CopyAnchor(p, p->vel);
@@ -400,14 +400,14 @@ namespace mist013
 		case 1: MistAMove(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(ORIG_MistA, p);)
+		FX_HELD(held_note_draw(us(ORIG_MistA), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
 
 	static void MistBInit(Particle *p)
 	{
-		p->seq = SEQ_MistB;
+		p->seq = us(SEQ_MistB);
 		p->rgb[0] = 0x80;
 		p->rgb[1] = 0x80;
 		p->rgb[2] = 0x80;
@@ -482,14 +482,14 @@ namespace mist013
 		case 1: MistBMove(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(ORIG_MistB, p);)
+		FX_HELD(held_note_draw(us(ORIG_MistB), p);)
 		DrawSpriteColoured(p);
 		return Finish(&p->h);
 	}
 
 	static void PuffCInit(Particle *p)
 	{
-		p->seq = SEQ_PuffC;
+		p->seq = us(SEQ_PuffC);
 		p->last = 8;
 		p->shade = 0;
 		CopyAnchor(p, p->h.pos);
@@ -501,7 +501,7 @@ namespace mist013
 
 	static void PuffDInit(Particle *p)
 	{
-		p->seq = SEQ_PuffD;
+		p->seq = us(SEQ_PuffD);
 		p->last = 9;
 		p->shade = 0;
 		CopyAnchor(p, p->h.pos);
@@ -529,7 +529,7 @@ namespace mist013
 		case 1: PuffPlay(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(ORIG_PuffC, p);)
+		FX_HELD(held_note_draw(us(ORIG_PuffC), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
@@ -543,7 +543,7 @@ namespace mist013
 		case 1: PuffPlay(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(ORIG_PuffD, p);)
+		FX_HELD(held_note_draw(us(ORIG_PuffD), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
@@ -556,7 +556,7 @@ namespace mist013
 		case 0:
 			if (s->counter <= 0x10)
 			{
-				Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_PuffC, 0x68, s);
+				Particle *p = (Particle *)AddEffectTask(QParticles(), us(ORIG_PuffC), 0x68, s);
 				p->variant = s->counter;
 			}
 			else s->phase++;
@@ -581,8 +581,8 @@ namespace mist013
 		case 0:
 			if (s->counter <= 8)
 			{
-				AddEffectTask(QParticles(), ORIG_PuffD, 0x68, s);
-				Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_PuffD, 0x68, s);
+				AddEffectTask(QParticles(), us(ORIG_PuffD), 0x68, s);
+				Particle *p = (Particle *)AddEffectTask(QParticles(), us(ORIG_PuffD), 0x68, s);
 				p->variant = s->counter;
 			}
 			else s->phase++;
@@ -602,13 +602,13 @@ namespace mist013
 	static void StreamInit(Particle *p)
 	{
 		const int16_t life = (int16_t)(0x14 - p->variant);
-		p->seq = SEQ_Mist;
+		p->seq = us(SEQ_Mist);
 		p->life = life;
 		p->frame = (int16_t)(0x17 - life);
 		p->last = 0x17;
 		p->shade = (int16_t)0xFE00;
 		CopyAnchor(p, p->h.pos);
-		const int16_t *v = (const int16_t *)(STREAM_Vectors + (int32_t)p->variant * 8);
+		const int16_t *v = (const int16_t *)(us(STREAM_Vectors) + (int32_t)p->variant * 8);
 		const int32_t d = p->life;
 		p->vel[0] = (int16_t)(v[0] / d);
 		p->vel[1] = (int16_t)(v[1] / d);
@@ -638,7 +638,7 @@ namespace mist013
 		case 1: StreamMove(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(ORIG_Stream, p);)
+		FX_HELD(held_note_draw(us(ORIG_Stream), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
@@ -652,7 +652,7 @@ namespace mist013
 		case 0:
 			if (s->counter <= 9)
 			{
-				Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_Stream, 0x68, s);
+				Particle *p = (Particle *)AddEffectTask(QParticles(), us(ORIG_Stream), 0x68, s);
 				p->variant = s->counter;
 			}
 			else
@@ -673,7 +673,7 @@ namespace mist013
 		c->length = 0x400;
 		c->fade_step = 0x2C0;
 		c->grow = 0x800;
-		c->model = MODEL_Cloud;
+		c->model = us(MODEL_Cloud);
 		c->rot[1] = *(const int16_t *)(entity + 0xE);
 		c->fade = 0;
 		c->rgb[0] = 0;
@@ -725,7 +725,7 @@ namespace mist013
 		default: break;
 		}
 		CloudUpdate(c, entity);
-		FX_HELD(held_note_draw(ORIG_Cloud, c);)
+		FX_HELD(held_note_draw(us(ORIG_Cloud), c);)
 		DrawModel(c);
 		return Finish(&c->h);
 	}
@@ -743,7 +743,7 @@ namespace mist013
 			w->rgb[0] = 0;
 			w->rgb[1] = 0;
 			w->rgb[2] = 0;
-			w->model = MODEL_Swirl;
+			w->model = us(MODEL_Swirl);
 			w->h.phase++;
 			break;
 		case 1:
@@ -785,18 +785,18 @@ namespace mist013
 		w->rot[2] = (int16_t)((uint16_t)(w->rot[2] - 0x20) & 0xFFF);
 		ScrollV(w->model);
 		w->angle = (int16_t)((uint16_t)(w->angle + 0x80) & 0xFFF);
-		WarpRing(RING_Table, w->model, w->angle);
+		WarpRing(us(RING_Table), w->model, w->angle);
 		w->fade = w->fade_a;
 		w->scale[0] = 0x1000;
 		w->scale[1] = 0x1000;
 		w->scale[2] = 0x1000;
-		FX_HELD(held_note_draw(ORIG_Swirl, w);)
+		FX_HELD(held_note_draw(us(ORIG_Swirl), w);)
 		DrawModel(w);
 		w->fade = w->fade_b;
 		w->scale[0] = 0x2000;
 		w->scale[1] = 0x2000;
 		w->scale[2] = 0xC00;
-		FX_HELD(held_note_draw(ORIG_Swirl, w);)
+		FX_HELD(held_note_draw(us(ORIG_Swirl), w);)
 		DrawModel(w);
 		return Finish(&w->h);
 	}
@@ -807,8 +807,8 @@ namespace mist013
 		mc->slot = (int16_t)slot;
 		mc->a00 = a00;
 		mc->sprite = sprite;
-		mc->frame_cursor = (uint32_t *)0x1D8E054;
-		mc->packets = (uint32_t *)0x27428AC;
+		mc->frame_cursor = (uint32_t *)us(0x1D8E054);
+		mc->packets = (uint32_t *)us(0x27428AC);
 		mc->offset[0] = 0;
 		mc->offset[1] = 0;
 		mc->offset[2] = 0;
@@ -1063,7 +1063,7 @@ namespace mist013
 		{
 			uint8_t slot = o->slot;
 			uint8_t *entity = Entity(slot);
-			InitOverlay(&mc, OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, slot);
+			InitOverlay(&mc, us(OVERLAY_A00), (uint8_t *)us(OVERLAY_SPRITE), us(OVERLAY_VERTS), entity, slot);
 			o->flags |= 8;
 			entity[0] |= 4;
 			o->phase++;
@@ -1098,7 +1098,7 @@ namespace mist013
 		mc.wobble_phase = (int16_t)((uint16_t)(mc.wobble_phase + 0xA0) & 0xFFF);
 		if (o->flags & 8)
 		{
-			FX_HELD(held_note_draw(ORIG_Overlay, o);)
+			FX_HELD(held_note_draw(us(ORIG_Overlay), o);)
 			DrawOverlay(&mc);
 		}
 		return Finish(o);
@@ -1114,7 +1114,7 @@ namespace mist013
 		case 1:
 			if (c->counter >= 0x10)
 			{
-				AddEffectTask(QControl(), ORIG_Overlay, 0x30, c);
+				AddEffectTask(QControl(), us(ORIG_Overlay), 0x30, c);
 				c->phase++;
 			}
 			break;
@@ -1127,21 +1127,21 @@ namespace mist013
 			break;
 		default: break;
 		}
-		if (c->counter == 0) AddEffectTask(QModels(), ORIG_Cloud, 0x60, c);
+		if (c->counter == 0) AddEffectTask(QModels(), us(ORIG_Cloud), 0x60, c);
 		if (c->counter <= 0xC)
 		{
-			Particle *p = (Particle *)AddEffectTask(QParticles(), ORIG_MistA, 0x68, c);
+			Particle *p = (Particle *)AddEffectTask(QParticles(), us(ORIG_MistA), 0x68, c);
 			p->variant = 0;
-			p = (Particle *)AddEffectTask(QParticles(), ORIG_MistA, 0x68, c);
+			p = (Particle *)AddEffectTask(QParticles(), us(ORIG_MistA), 0x68, c);
 			p->variant = 1;
-			p = (Particle *)AddEffectTask(QParticles(), ORIG_MistB, 0x68, c);
+			p = (Particle *)AddEffectTask(QParticles(), us(ORIG_MistB), 0x68, c);
 			p->variant = 0;
-			p = (Particle *)AddEffectTask(QParticles(), ORIG_MistB, 0x68, c);
+			p = (Particle *)AddEffectTask(QParticles(), us(ORIG_MistB), 0x68, c);
 			p->variant = 1;
 		}
-		if (c->counter == 0x10 || c->counter == 0x17) AddEffectTask(QControl(), ORIG_SpawnerE, 0x30, c);
-		if (c->counter == 0x10) AddEffectTask(QControl(), ORIG_SpawnerC, 0x30, c);
-		if (c->counter == 0x1E) AddEffectTask(QControl(), ORIG_SpawnerD, 0x30, c);
+		if (c->counter == 0x10 || c->counter == 0x17) AddEffectTask(QControl(), us(ORIG_SpawnerE), 0x30, c);
+		if (c->counter == 0x10) AddEffectTask(QControl(), us(ORIG_SpawnerC), 0x30, c);
+		if (c->counter == 0x1E) AddEffectTask(QControl(), us(ORIG_SpawnerD), 0x30, c);
 		return Finish(c);
 	}
 
@@ -1153,13 +1153,13 @@ namespace mist013
 		switch (e->h.phase)
 		{
 		case 0:
-			AddEffectTask(QModels(), ORIG_Swirl, 0x60, e);
+			AddEffectTask(QModels(), us(ORIG_Swirl), 0x60, e);
 			e->h.phase++;
 			break;
 		case 1:
 			if (e->h.counter >= 0x19)
 			{
-				AddEffectTask(QControl(), ORIG_Control, 0x30, e);
+				AddEffectTask(QControl(), us(ORIG_Control), 0x30, e);
 				e->h.phase++;
 			}
 			break;
@@ -1173,7 +1173,7 @@ namespace mist013
 			break;
 		default: break;
 		}
-		if (e->h.counter == 0) BdPlaySE(SOUND_Mist, 0, 0x80);
+		if (e->h.counter == 0) BdPlaySE(SOUND_Mist(), 0, 0x80);
 		return Finish(&e->h);
 	}
 
@@ -1184,7 +1184,7 @@ namespace mist013
 		case 0: r->h.phase++; break;
 		case 1:
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
+			AddEffectTask(QEmitters(), us(ORIG_Emitter), 0x58, r);
 			r->h.phase++;
 			break;
 		case 2:

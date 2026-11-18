@@ -23,16 +23,16 @@ namespace bw110
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25219CC); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25219D0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25219EC); }
-	inline TaskQueue *QActors() { return (TaskQueue *)0x25219F0; }
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2521A00; }
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2521A10; }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2521A20; }
-	inline TaskQueue *QStream() { return (TaskQueue *)0x2521A30; }
-	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)0x2521A44; }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25219CC)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25219D0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25219EC)); }
+	inline TaskQueue *QActors() { return (TaskQueue *)us(0x25219F0); }
+	inline TaskQueue *QDebris() { return (TaskQueue *)us(0x2521A00); }
+	inline TaskQueue *QRings() { return (TaskQueue *)us(0x2521A10); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2521A20); }
+	inline TaskQueue *QStream() { return (TaskQueue *)us(0x2521A30); }
+	inline const Mat4x3 *WobbleTrans() { return (const Mat4x3 *)us(0x2521A44); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6CE2A0;
 	static const uint32_t ORIG_StreamTask = 0x6CEA30;
@@ -48,21 +48,21 @@ namespace bw110
 	static const uint32_t MODEL_Ring = 0x12E2BD8;
 	static const uint32_t SEQ_Spark = 0x12E3130;
 	static const uint32_t SEQ_Hit = 0x12E3290;
-	static const void *const SOUND_Wind = (const void *)0x12E336C;
-	static const int16_t *const SOUND_Pos = (const int16_t *)0x2521A50;
+	static const void *SOUND_Wind() { return (const void *)us(0x12E336C); }
+	static const int16_t *SOUND_Pos() { return (const int16_t *)us(0x2521A50); }
 	static const int16_t MOUTH_YZ = (int16_t)0xF060;
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *out) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t chain) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, chain); }
-	inline void FillDwords(void *dst, uint32_t value, uint32_t count) { fn<void (__cdecl *)(void *, uint32_t, uint32_t)>(0x6DA380)(dst, value, count); }
-	inline void PrintMonsterText(int32_t slot, int32_t text) { fn<void (__cdecl *)(int32_t, int32_t)>(0x487750)(slot, text); }
-	inline int32_t CountMaskedVertices(uint32_t model, const uint32_t *mask) { return fn<int32_t (__cdecl *)(uint32_t, const uint32_t *)>(0x69EEE0)(model, mask); }
-	inline uint32_t DrawTriangleList(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x69FD50)(h, ot, mode, cursor); }
-	inline uint32_t DrawQuadList(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6A01B0)(h, ot, mode, cursor); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *out) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t chain) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, chain); }
+	inline void FillDwords(void *dst, uint32_t value, uint32_t count) { fn<void (__cdecl *)(void *, uint32_t, uint32_t)>(us(0x6DA380))(dst, value, count); }
+	inline void PrintMonsterText(int32_t slot, int32_t text) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x487750))(slot, text); }
+	inline int32_t CountMaskedVertices(uint32_t model, const uint32_t *mask) { return fn<int32_t (__cdecl *)(uint32_t, const uint32_t *)>(us(0x69EEE0))(model, mask); }
+	inline uint32_t DrawTriangleList(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x69FD50))(h, ot, mode, cursor); }
+	inline uint32_t DrawQuadList(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x6A01B0))(h, ot, mode, cursor); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -374,7 +374,7 @@ namespace bw110
 		*(int16_t *)(h + 0x18) = 0;
 		*(int16_t *)(h + 0x1C) = 0x80;
 		*(int16_t *)(h + 0xC) = (int16_t)r.scroll;
-		*(uint32_t *)h = MODEL_Stream;
+		*(uint32_t *)h = us(MODEL_Stream);
 		PacketCursor() = DrawStream(h, RenderOT(0x44), 2, PacketCursor(), verts);
 		FieldFree(0x5C);
 	}
@@ -418,7 +418,7 @@ namespace bw110
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Debris;
+		*(uint32_t *)h = us(MODEL_Debris);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -472,7 +472,7 @@ namespace bw110
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = us(MODEL_Ring);
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -491,7 +491,7 @@ namespace bw110
 	{
 		SpriteNode *p = (SpriteNode *)n;
 		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Spark);
+		SpriteDraw(p, us(SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
 
@@ -499,7 +499,7 @@ namespace bw110
 	{
 		SpriteNode *p = (SpriteNode *)n;
 		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
-		SpriteDraw(p, SEQ_Hit);
+		SpriteDraw(p, us(SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
 
@@ -523,7 +523,7 @@ namespace bw110
 
 	static void StartActor(StreamNode *s, int32_t idx)
 	{
-		ActorNode *a = (ActorNode *)AddTaskToQueue(QActors(), ORIG_ActorTask);
+		ActorNode *a = (ActorNode *)AddTaskToQueue(QActors(), us(ORIG_ActorTask));
 		if (!a) return;
 		FillDwords(&a->counter, 0, 8);
 		a->sn = s;
@@ -577,7 +577,7 @@ namespace bw110
 			int32_t v = mul32(CrtRand(), a->vc) >> 16;
 			for (int k = 0; k < 2; k++)
 			{
-				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_HitTask);
+				SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_HitTask));
 				if (!p) continue;
 				FillDwords(&p->counter, 0, 5);
 				VertexPosition(a->ent, v, p->pos);
@@ -618,8 +618,8 @@ namespace bw110
 		{
 			FX_HELD(held_note_stream(s);)
 			uint8_t *h = AllocHeader(0x5C);
-			if (c == 0) BdPlaySE3D(SOUND_Wind, 0, SOUND_Pos);
-			StreamWobble(s->a, s->b, (uint8_t *)STREAM_VERTS);
+			if (c == 0) BdPlaySE3D(SOUND_Wind(), 0, SOUND_Pos());
+			StreamWobble(s->a, s->b, (uint8_t *)us(STREAM_VERTS));
 			if (c >= 0xF)
 			{
 				s->t = (int16_t)(s->t + s->dt);
@@ -641,14 +641,14 @@ namespace bw110
 			if (s->cur == 1) StreamAimKept((const int16_t *)(s->ent[s->next] + 0x1C), s->kept, aim);
 			else StreamAim((const int16_t *)(s->ent[s->cur] + 0x1C), (const int16_t *)(s->ent[s->next] + 0x1C), s->t, aim);
 			FX_HELD(held_note_aim(s, aim);)
-			StreamDraw(h, s, c, nullptr, aim, &m1, STREAM_VERTS);
+			StreamDraw(h, s, c, nullptr, aim, &m1, us(STREAM_VERTS));
 		}
 		if (c - 5 < 0x3C)
 		{
 			const uint32_t sweep = c - 5;
 			GteSetRotMatrix(&m1);
 			GteSetTransVector(&m1);
-			const uint8_t *vtx = (const uint8_t *)STREAM_VERTS;
+			const uint8_t *vtx = (const uint8_t *)us(STREAM_VERTS);
 			for (int i = 0; i < STREAM_NVERTS; i++, vtx += 8)
 			{
 				int16_t w[4];
@@ -658,7 +658,7 @@ namespace bw110
 				if (w[1] < 0) continue;
 				if (CrtRand() < 0x800)
 				{
-					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SparkTask);
+					SpriteNode *p = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SparkTask));
 					if (p)
 					{
 						FillDwords(&p->counter, 0, 5);
@@ -673,7 +673,7 @@ namespace bw110
 				}
 				if (sweep >= 0x32) continue;
 				if (CrtRand() >= 0x800) continue;
-				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), ORIG_DebrisTask);
+				DebrisNode *e = (DebrisNode *)AddTaskToQueue(QDebris(), us(ORIG_DebrisTask));
 				if (!e) continue;
 				FillDwords(&e->counter, 0, 9);
 				e->pos[0] = w[0];
@@ -690,7 +690,7 @@ namespace bw110
 		}
 		if (c < 0x25 && (c & 3) == 0)
 		{
-			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
+			RingNode *g = (RingNode *)AddTaskToQueue(QRings(), us(ORIG_RingTask));
 			if (g)
 			{
 				FillDwords(&g->pad0C, 0, 2);
@@ -724,10 +724,10 @@ namespace bw110
 			if (!r->started)
 			{
 				r->started = 1;
-				int32_t lo = *(const int16_t *)(STREAM_VERTS + 4), hi = lo;
+				int32_t lo = *(const int16_t *)(us(STREAM_VERTS) + 4), hi = lo;
 				for (int i = 1; i < STREAM_NVERTS; i++)
 				{
-					const int32_t z = *(const int16_t *)(STREAM_VERTS + i * 8 + 4);
+					const int32_t z = *(const int16_t *)(us(STREAM_VERTS) + i * 8 + 4);
 					if (lo > z) lo = z;
 					else if (hi < z) hi = z;
 				}
@@ -735,7 +735,7 @@ namespace bw110
 				uint8_t *dst = (uint8_t *)(TexBase() + 0x14FC);
 				for (int i = 0; i < STREAM_NVERTS; i++, dst += 8)
 				{
-					ff8fx::copy<(8)>(dst, (const void *)(STREAM_VERTS + i * 8));
+					ff8fx::copy<(8)>(dst, (const void *)(us(STREAM_VERTS) + i * 8));
 					*(int16_t *)(dst + 6) = (int16_t)(shl32(*(const int16_t *)(dst + 4), 12) / range);
 				}
 				InitTaskQueuePool(QStream(), (void *)(TexBase() + 0x1498), 0x64, 1);
@@ -744,7 +744,7 @@ namespace bw110
 				InitTaskQueuePool(QDebris(), (void *)(TexBase() + 0x58), 0x30, 0x10);
 				InitTaskQueuePool(QActors(), (void *)TexBase(), 0x2C, 2);
 			}
-			StreamNode *s = (StreamNode *)AddTaskToQueue(QStream(), ORIG_StreamTask);
+			StreamNode *s = (StreamNode *)AddTaskToQueue(QStream(), us(ORIG_StreamTask));
 			if (s)
 			{
 				FillDwords(&s->counter, 0, 0x16);

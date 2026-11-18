@@ -27,16 +27,16 @@ namespace acid132
 	using namespace magc;
 	using namespace icec;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520F60); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520F68); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2520F6C); }
-	inline uint8_t *&DropHeader() { return var<uint8_t *>(0x2520F84); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520F88); }
-	inline TaskQueue *QDrops() { return (TaskQueue *)0x2520F90; }
-	inline TaskQueue *QUnused() { return (TaskQueue *)0x2520FA0; }
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x2520FB0; }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2520FC0; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520FD0; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2520F60)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2520F68)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520F6C)); }
+	inline uint8_t *&DropHeader() { return var<uint8_t *>(us(0x2520F84)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520F88)); }
+	inline TaskQueue *QDrops() { return (TaskQueue *)us(0x2520F90); }
+	inline TaskQueue *QUnused() { return (TaskQueue *)us(0x2520FA0); }
+	inline TaskQueue *QStreams() { return (TaskQueue *)us(0x2520FB0); }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)us(0x2520FC0); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2520FD0); }
 
 	static const uint32_t ORIG_MasterTask = 0x6B1AA0;
 	static const uint32_t ORIG_TargetTask = 0x6B1DB0;
@@ -53,19 +53,19 @@ namespace acid132
 	static const uint32_t MODEL_Splash1 = 0x1212F64;
 	static const uint32_t MODEL_Splash2 = 0x1213C04;
 	static const uint32_t MODEL_Puddle = 0x12148A4;
-	static const void *const SOUND_Acid = (const void *)0x1214FD0;
-	static const uint8_t *const STREAM_TABLE = (const uint8_t *)0x1214FE8;
-	static const int16_t *const WEIGHTS = (const int16_t *)0x1219038;
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1215038;
+	static const void *SOUND_Acid() { return (const void *)us(0x1214FD0); }
+	static const uint8_t *STREAM_TABLE() { return (const uint8_t *)us(0x1214FE8); }
+	static const int16_t *WEIGHTS() { return (const int16_t *)us(0x1219038); }
+	static const uint8_t *DIST_TABLE() { return (const uint8_t *)us(0x1215038); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void StoreOTZ4(int16_t *dst) { fn<void (__cdecl *)(int16_t *)>(0x704090)(dst); }
-	inline uint32_t DrawDropSprite(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x683490)(h, ot, mode, cursor); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void StoreOTZ4(int16_t *dst) { fn<void (__cdecl *)(int16_t *)>(us(0x704090))(dst); }
+	inline uint32_t DrawDropSprite(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x683490))(h, ot, mode, cursor); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -230,9 +230,9 @@ namespace acid132
 	static void SplashSequences(const LayoutNode *s)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		if (s->counter < 9) SequenceAt(h, s->pos, 0x800, -0x200, SEQ_Splash1, s->counter);
+		if (s->counter < 9) SequenceAt(h, s->pos, 0x800, -0x200, us(SEQ_Splash1), s->counter);
 		const int32_t e = (int32_t)s->counter - 4;
-		if ((uint32_t)e < 0xC) SequenceAt(h, s->pos, 0x800, -0x200, SEQ_Splash2, (int16_t)e);
+		if ((uint32_t)e < 0xC) SequenceAt(h, s->pos, 0x800, -0x200, us(SEQ_Splash2), (int16_t)e);
 		FieldFree(0xB4);
 	}
 
@@ -240,7 +240,7 @@ namespace acid132
 	{
 		TransformCameraByShadowRotation(s->start, 0x1000, -0x400);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Stream;
+		*(uint32_t *)h = us(SEQ_Stream);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -251,7 +251,7 @@ namespace acid132
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		DropHeader() = h;
-		*(uint32_t *)h = MODEL_Drop;
+		*(uint32_t *)h = us(MODEL_Drop);
 		const uint8_t *model = *(const uint8_t **)h;
 		*(uint16_t *)(h + 0x92) = 0;
 		*(uint16_t *)(h + 0x90) = 0;
@@ -338,7 +338,7 @@ namespace acid132
 			StoreOTZ4(&p->otz);
 			p = p->next;
 		} while (p);
-		return var<uint32_t>(0x1CA8A5C);
+		return var<uint32_t>(us(0x1CA8A5C));
 	}
 
 	static void SegEdges(Point *s, const Point *n, const int16_t *prev_dir, int16_t *dir)
@@ -353,7 +353,7 @@ namespace acid132
 			int32_t adx = dx < 0 ? -dx : dx, ady = ndy < 0 ? -ndy : ndy;
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
-			int32_t len = DIST_TABLE[ady * 128 + adx];
+			int32_t len = DIST_TABLE()[ady * 128 + adx];
 			int32_t px, py;
 			if (prev_dir)
 			{
@@ -433,7 +433,7 @@ namespace acid132
 				p[7] = 0x808080;
 				p[0] = 0xC000000;
 				((uint8_t *)p)[7] = 0x3E;
-				InsertPrimAutoDepth(var<uint32_t>(0x1D8E04C) + (((int32_t)b->otz + (int32_t)a->otz) >> 3) * 4 + 0x44, p);
+				InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + (((int32_t)b->otz + (int32_t)a->otz) >> 3) * 4 + 0x44, p);
 			}
 			a = b;
 		}
@@ -441,27 +441,27 @@ namespace acid132
 
 	static void SpawnSplash(const int16_t *end)
 	{
-		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_SplashTask);
+		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), us(ORIG_SplashTask));
 		s->counter = 0;
 		*(uint32_t *)&s->pos[0] = *(const uint32_t *)&end[0];
 		*(uint32_t *)&s->pos[2] = *(const uint32_t *)&end[2];
-		if (CrtRand() & 1) DecodeModelPrimLayout(MODEL_Splash1, s->layout, 0xB0);
-		else DecodeModelPrimLayout(MODEL_Splash2, s->layout, 0xB0);
+		if (CrtRand() & 1) DecodeModelPrimLayout(us(MODEL_Splash1), s->layout, 0xB0);
+		else DecodeModelPrimLayout(us(MODEL_Splash2), s->layout, 0xB0);
 	}
 	static void SpawnPuddle(const int16_t *end)
 	{
-		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_PuddleTask);
+		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), us(ORIG_PuddleTask));
 		s->counter = 0;
 		*(uint32_t *)&s->pos[0] = *(const uint32_t *)&end[0];
 		*(uint32_t *)&s->pos[2] = *(const uint32_t *)&end[2];
-		DecodeModelPrimLayout(MODEL_Puddle, s->layout, 0x78);
+		DecodeModelPrimLayout(us(MODEL_Puddle), s->layout, 0x78);
 	}
 
 	static void SpawnStream(const int16_t *a1, int16_t *a2, int32_t slot, int32_t width, const int16_t *v, const int16_t *entry)
 	{
 		Point *p = AllocPoint((int16_t)width);
 		if (!p) return;
-		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), ORIG_StreamTask);
+		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), us(ORIG_StreamTask));
 		if (!s)
 		{
 			p->width = -1;
@@ -605,7 +605,7 @@ namespace acid132
 		{
 			s->phase = (int16_t)(s->phase + 0x100);
 			Point *p = s->head;
-			int32_t w = WEIGHTS[(int32_t)s->phase / 256];
+			int32_t w = WEIGHTS()[(int32_t)s->phase / 256];
 			do
 			{
 				w -= 0xC0;
@@ -634,7 +634,7 @@ namespace acid132
 				for (Point *b = a->next; b; a = b, b = b->next)
 				{
 					if (a->idx != r) continue;
-					DropNode *d = (DropNode *)AddTaskToQueue(QDrops(), ORIG_DropTask);
+					DropNode *d = (DropNode *)AddTaskToQueue(QDrops(), us(ORIG_DropTask));
 					if (!d) continue;
 					*(uint32_t *)&d->pos[0] = *(const uint32_t *)&a->pos[0];
 					*(uint32_t *)&d->pos[2] = *(const uint32_t *)&a->pos[2];
@@ -663,11 +663,11 @@ namespace acid132
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
-		if (t->counter == 0xA) BdPlaySE(SOUND_Acid, 0, 0x80);
+		if (t->counter == 0xA) BdPlaySE(SOUND_Acid(), 0, 0x80);
 		const uint32_t e = (uint32_t)((int32_t)t->counter - 0x14);
 		if (e < 0xA && !(e & 1))
 		{
-			const int16_t *entry = (const int16_t *)(STREAM_TABLE + (e >> 1) * 16);
+			const int16_t *entry = (const int16_t *)(STREAM_TABLE() + (e >> 1) * 16);
 			int16_t a1[4];
 			BonePoint(entry, a1);
 			a1[3] = TARGET_PAD;
@@ -733,7 +733,7 @@ namespace acid132
 				if (busy) m->counter = 0;
 				else
 				{
-					TargetNode *nt = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+					TargetNode *nt = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 					if (nt)
 					{
 						Memset32(&nt->counter, 0, 2);

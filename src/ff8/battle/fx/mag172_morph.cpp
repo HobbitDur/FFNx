@@ -33,12 +33,12 @@ namespace morph172
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x239A8F8; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x239BEA8; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x239D4F0); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x239D4F4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23AD6FC); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x239A8F8); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x239BEA8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x239D4F0)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(us(0x239D4F4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23AD6FC)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
 	inline uint8_t *TintEntity() { return Entity(CasterSlot()); }
 	static const uint32_t SPARKS = 0x239A908, SPARKS_END = 0x239B268;
 	static const uint32_t RING_VERTS_A = 0x239BEB8, RING_VERTS_B = 0x239B268;
@@ -49,48 +49,48 @@ namespace morph172
 	static const uint32_t ORIG_Root = 0x5DB210, ORIG_Director = 0x5D9D80, ORIG_Ring = 0x5D9F20, ORIG_Ring2 = 0x5DA0F0,
 		ORIG_Sparks = 0x5DA2C0, ORIG_Tint = 0x5DA520;
 	static const uint32_t MODEL_Ring = 0xD6299C, SEQ_Spark = 0xD61F8C, SOUND_Morph = 0xD655DC;
-	static const uint32_t *const TINT_COLOURS = (const uint32_t *)0xD655E4;
+	static const uint32_t *TINT_COLOURS() { return (const uint32_t *)us(0xD655E4); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, mode, out); }
-	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, hdr, ot, mode, cursor); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, mode, out); }
+	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(model, hdr, ot, mode, cursor); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
 
-	inline void GteWriteData(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7C0)(value, reg); }
-	inline void GteReadData(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(0x45D7A0)(dst, reg); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
-	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3C0)(dst); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
-	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
-	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
-	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x64DF80)(p); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
+	inline void GteWriteData(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45D7C0))(value, reg); }
+	inline void GteReadData(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(us(0x45D7A0))(dst, reg); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
+	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
+	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DDA0))(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E360))(c); }
+	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E120))(a, b, c); }
+	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E370))(a, b, c); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
+	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF80))(p); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DDD0))(s); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline const Mat4x3 *ShadowCamera(const void *pos, int32_t r, int32_t pull) { return fn<const Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(0x571BC0)(pos, r, pull); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline const Mat4x3 *ShadowCamera(const void *pos, int32_t r, int32_t pull) { return fn<const Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(us(0x571BC0))(pos, r, pull); }
 }
 }
 
@@ -300,7 +300,7 @@ namespace morph172
 		const uint32_t anim = entity + 0x60;
 		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
-			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
+			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0xBC));
 		ComputeBonesWorldMatrices((void *)anim, (void *)(entity + 0x40));
 		U32(hdr, 0x1C) = U32(entity, 0x28);
@@ -309,8 +309,8 @@ namespace morph172
 		U8(hdr, 0x2A) = cue;
 		U8(hdr, 0x29) = cue;
 		U8(hdr, 0x28) = cue;
-		U32(hdr, 4) = var<uint32_t>(0x1D98B3C);
-		U32(hdr, 0x10) = var<uint32_t>(0x1D969A8);
+		U32(hdr, 4) = var<uint32_t>(us(0x1D98B3C));
+		U32(hdr, 0x10) = var<uint32_t>(us(0x1D969A8));
 		U16(hdr, 0x14) = 0;
 		U16(hdr, 0x16) = 0;
 		U16(hdr, 0x18) = 0x140;
@@ -327,7 +327,7 @@ namespace morph172
 		}
 	}
 
-	static uint32_t TintColour(int32_t c) { return TINT_COLOURS[c % 0x14]; }
+	static uint32_t TintColour(int32_t c) { return TINT_COLOURS()[c % 0x14]; }
 	static void TintDraw(uint32_t n, int32_t fade, uint32_t colour)
 	{
 		uint8_t *entity = TintEntity();
@@ -366,8 +366,8 @@ namespace morph172
 
 	static void MeshRadii()
 	{
-		uint32_t v = MESH;
-		for (uint32_t o = RADII; o < RADII_END; o += 4, v += 8)
+		uint32_t v = us(MESH);
+		for (uint32_t o = us(RADII); o < us(RADII_END); o += 4, v += 8)
 		{
 			const int32_t x = S16(v, 0), y = S16(v, 2);
 			S32(o, 0) = Sqrt(mul32(x, x) + mul32(y, y));
@@ -376,8 +376,8 @@ namespace morph172
 
 	static void WaveVerts(uint32_t out, int32_t amp)
 	{
-		uint32_t v = MESH + 2, r = RADII, o = out + 2;
-		for (; r < RADII_END; r += 4, v += 8, o += 8)
+		uint32_t v = us(MESH) + 2, r = us(RADII), o = out + 2;
+		for (; r < us(RADII_END); r += 4, v += 8, o += 8)
 		{
 			const int32_t a = mul32(ComputeSin(S32(r, 0) * 3), amp) >> 12;
 			const int32_t c = ComputeCos(a), s = ComputeSin(a);
@@ -401,7 +401,7 @@ namespace morph172
 		GteSetRotMatrix(&m);
 		WaveVerts(verts, 0);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Ring;
+		U32(h, 0) = us(MODEL_Ring);
 		U32(h, 4) = verts;
 		S32(h, 0xC) = 0xC00;
 		U32(h, 8) = 0;
@@ -414,7 +414,7 @@ namespace morph172
 	static uint32_t RingTaskImpl(uint32_t n, bool second)
 	{
 		FX_HELD(held_note_node(second ? REC_RING2 : REC_RING, n);)
-		RingDraw(n, second ? -3 : -2, second ? RING_VERTS_B : RING_VERTS_A, RingFade(S16(n, 0xC)));
+		RingDraw(n, second ? -3 : -2, second ? us(RING_VERTS_B) : us(RING_VERTS_A), RingFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -440,10 +440,10 @@ namespace morph172
 		FX_HELD(held_note_parts(REC_SPARKS, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = us(SEQ_Spark);
 		U16(h, 0x24) = 2;
 		S32(h, 0x14) = 0x1000;
-		for (uint32_t p = SPARKS; p < SPARKS_END; p += 0x18)
+		for (uint32_t p = us(SPARKS); p < us(SPARKS_END); p += 0x18)
 		{
 			if (!(U8(p, 0) & 1)) continue;
 			FX_HELD(held_note_particle(p);)
@@ -464,9 +464,9 @@ namespace morph172
 		{
 			const int32_t bones = *(const uint8_t *)U32(U32(P(TintEntity()), 0x64), 0);
 			int32_t i = 0;
-			uint32_t p = SPARKS;
+			uint32_t p = us(SPARKS);
 			for (; U32(p, 0) != 0; p += 0x18, i++)
-				if (p + 0x18 >= SPARKS_END) { p = 0; break; }
+				if (p + 0x18 >= us(SPARKS_END)) { p = 0; break; }
 			if (p && i < 0x64)
 			{
 				U32(p, 0) = 1;
@@ -500,24 +500,24 @@ namespace morph172
 		if (S16(n, 0xC) == 0) GetDefaultEffectPosition(TintEntity(), (int16_t *)(n + 0x10));
 		if (S16(n, 0xC) == 1)
 		{
-			uint32_t t = NewTask(ORIG_Ring);
+			uint32_t t = NewTask(us(ORIG_Ring));
 			U32(t, 0x10) = U32(n, 0x10);
 			U32(t, 0x14) = U32(n, 0x14);
 			S16(t, 0x18) = 0;
 			S16(t, 0x1A) = -10;
 			S16(t, 0x1C) = 0xC00;
-			t = NewTask(ORIG_Ring2);
+			t = NewTask(us(ORIG_Ring2));
 			U32(t, 0x10) = U32(n, 0x10);
 			U32(t, 0x14) = U32(n, 0x14);
 			S16(t, 0x18) = 0;
 			S16(t, 0x1A) = -10;
 			S16(t, 0x1C) = 0x1600;
 			MeshRadii();
-			NewTask(ORIG_Sparks);
+			NewTask(us(ORIG_Sparks));
 		}
 		if (S16(n, 0xC) == 8)
 		{
-			const uint32_t t = NewTask(ORIG_Tint);
+			const uint32_t t = NewTask(us(ORIG_Tint));
 			U32(t, 0x10) = U32(n, 0x10);
 			U32(t, 0x14) = U32(n, 0x14);
 		}
@@ -525,7 +525,7 @@ namespace morph172
 		{
 			int16_t at[4];
 			GetDefaultEffectPosition(TintEntity(), at);
-			BdPlaySE3D((const void *)SOUND_Morph, 0, at);
+			BdPlaySE3D((const void *)us(SOUND_Morph), 0, at);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return S16(n, 0xC) > 0x3C ? TASK_END : 0;
@@ -535,7 +535,7 @@ namespace morph172
 	{
 		const uint32_t n = P(tn);
 		FX_HELD(held_note_root();)
-		PacketCursor() = (U8(n, 0xC) & 1) ? ARENA_B : ARENA_A;
+		PacketCursor() = (U8(n, 0xC) & 1) ? us(ARENA_B) : us(ARENA_A);
 		const int running = ExecuteTaskQueue(EffectQueue());
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return running ? 0 : TASK_END;

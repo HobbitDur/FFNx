@@ -25,11 +25,11 @@ namespace card182
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2306508); }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2304220); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23065CC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23065D0); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23056E8; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2306508)); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x2304220)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23065CC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23065D0)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23056E8); }
 	static const uint32_t TRAIL_POOL = 0x2304248, TRAIL_END = 0x2304D88;
 	static const uint32_t SPARK_POOL = 0x2304D88, SPARK_END = 0x23056E8;
 	static const uint32_t AFTER = 0x2306518, AFTER_END = 0x23065CC;
@@ -48,13 +48,13 @@ namespace card182
 	static const uint32_t MODEL_Ring = 0xD3B3D8, MODEL_Card = 0xD3AE78;
 	static const uint32_t SHARD_MODELS = 0xD3D394;
 	static const uint32_t SPARK_COLOURS = 0xD3D3C4;
-	static const void *const SOUND_CardA = (const void *)0xD3D38C;
-	static const void *const SOUND_CardB = (const void *)0xD3D388;
+	static const void *SOUND_CardA() { return (const void *)us(0xD3D38C); }
+	static const void *SOUND_CardB() { return (const void *)us(0xD3D388); }
 
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -96,9 +96,9 @@ namespace card182
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Card nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(AfterImage) == 0x24, "Card pools");
 
-	inline Particle *TrailPool() { return (Particle *)TRAIL_POOL; }
-	inline Particle *SparkPool() { return (Particle *)SPARK_POOL; }
-	inline AfterImage *After() { return (AfterImage *)AFTER; }
+	inline Particle *TrailPool() { return (Particle *)us(TRAIL_POOL); }
+	inline Particle *SparkPool() { return (Particle *)us(SPARK_POOL); }
+	inline AfterImage *After() { return (AfterImage *)us(AFTER); }
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 	inline uint32_t &Cursor() { return PacketCursor(); }
 
@@ -129,14 +129,14 @@ namespace card182
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = us(SEQ_Sparkle);
 		*(int16_t *)(h + 0x24) = 4;
 		return h;
 	}
 	static void SparkDraw(uint8_t *h, const Particle *p)
 	{
 		*(int16_t *)(h + 4) = p->frame;
-		*(uint32_t *)(h + 0x1C) = var<uint32_t>(SPARK_COLOURS + (uint32_t)((int32_t)p->frame % 8) * 4);
+		*(uint32_t *)(h + 0x1C) = var<uint32_t>(us(SPARK_COLOURS) + (uint32_t)((int32_t)p->frame % 8) * 4);
 		TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->scale >> 4));
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
@@ -146,7 +146,7 @@ namespace card182
 	{
 		ModelMatrix(angle, n->x, 0, n->z, scale, scale, scale, nullptr);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_Ring;
+		*(uint32_t *)h = us(MODEL_Ring);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
 		*(int32_t *)(h + 0xC) = fade;
@@ -160,7 +160,7 @@ namespace card182
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
-		*(uint32_t *)h = var<uint32_t>(SHARD_MODELS + (uint32_t)n->e * 4);
+		*(uint32_t *)h = var<uint32_t>(us(SHARD_MODELS) + (uint32_t)n->e * 4);
 		Cursor() = RenderPrimModel(h, RenderOT(), 2, Cursor());
 		FieldFree(0x58);
 	}
@@ -168,7 +168,7 @@ namespace card182
 	static uint8_t *CardHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Card;
+		*(uint32_t *)h = us(SEQ_Card);
 		*(int16_t *)(h + 0x24) = 8;
 		return h;
 	}
@@ -193,7 +193,7 @@ namespace card182
 		slot->used = 1;
 		ModelMatrix(angle, x, y, z, scale, scale, scale, &slot->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_Card;
+		*(uint32_t *)h = us(MODEL_Card);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (c < 0x1E)
@@ -229,14 +229,14 @@ namespace card182
 	{
 		uint32_t colour = 0x32000000;
 		e[7] = (uint8_t)((uint32_t)(shl32(ir0, 8) - ir0) >> 12);
-		const uint32_t far0 = var<uint32_t>(0xB8B9A8);
-		GteSetFarColor(far0 & 0xFF, (far0 >> 8) & 0xFF, var<uint8_t>(0xB8B9AA));
+		const uint32_t far0 = var<uint32_t>(us(0xB8B9A8));
+		GteSetFarColor(far0 & 0xFF, (far0 >> 8) & 0xFF, var<uint8_t>(us(0xB8B9AA)));
 		GteLoadRGBC(&colour);
 		GteSetIR0(ir0);
 		GteDPCS();
 		GteStoreRGB2(e + 0x2C);
-		const uint32_t far1 = var<uint32_t>(0xB8B7D8);
-		GteSetFarColor(far1 & 0xFF, (far1 >> 8) & 0xFF, var<uint8_t>(0xB8B7DA));
+		const uint32_t far1 = var<uint32_t>(us(0xB8B7D8));
+		GteSetFarColor(far1 & 0xFF, (far1 >> 8) & 0xFF, var<uint8_t>(us(0xB8B7DA)));
 		uint32_t black = 0;
 		GteLoadRGBC(&black);
 		GteDPCS();
@@ -257,10 +257,10 @@ namespace card182
 	static uint32_t __cdecl SparklesTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_pool(ORIG_Sparkles, n);)
+		FX_HELD(held_note_pool(us(ORIG_Sparkles), n);)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
-		for (Particle *p = SparkPool(); (uint32_t)p < SPARK_END; p++)
+		for (Particle *p = SparkPool(); (uint32_t)p < us(SPARK_END); p++)
 		{
 			if (!(p->tag & 1)) continue;
 			SparkDraw(h, p);
@@ -280,7 +280,7 @@ namespace card182
 				int i = 0;
 				Particle *p = SparkPool();
 				for (; p->tag != 0; p++, i++)
-					if ((uint32_t)(p + 1) >= SPARK_END) { p = nullptr; break; }
+					if ((uint32_t)(p + 1) >= us(SPARK_END)) { p = nullptr; break; }
 				if (!p || i >= 0x64) break;
 				p->tag = 1;
 				p->frame = 0;
@@ -304,7 +304,7 @@ namespace card182
 	static uint32_t __cdecl RingTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_node(ORIG_Ring, n);)
+		FX_HELD(held_note_node(us(ORIG_Ring), n);)
 		RingDraw(n, n->w18, n->w1C, RingFade(n->c));
 		if (DrawOnly()) return 0;
 		const int16_t ra = n->w1A, rs = n->w1E;
@@ -324,7 +324,7 @@ namespace card182
 			n->w16--;
 			return 0;
 		}
-		FX_HELD(held_note_node(ORIG_Shard, n);)
+		FX_HELD(held_note_node(us(ORIG_Shard), n);)
 		ShardDraw(n, n->w18, n->w1C, n->w20);
 		if (DrawOnly()) return 0;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -342,11 +342,11 @@ namespace card182
 			if (!DrawOnly()) n->w18--;
 			return 0;
 		}
-		FX_HELD(held_note_pool(ORIG_Card, n);)
+		FX_HELD(held_note_pool(us(ORIG_Card), n);)
 		uint8_t *h = CardHeader();
 		int alive = 0;
 		if (n->c < 8) CardSpriteDraw(h, n->c, &n->x, n->w1C);
-		for (Particle *p = TrailPool(); (uint32_t)p < TRAIL_END; p++)
+		for (Particle *p = TrailPool(); (uint32_t)p < us(TRAIL_END); p++)
 		{
 			if (!(p->tag & (uint32_t)(int32_t)n->e)) continue;
 			TrailDraw(h, p);
@@ -364,7 +364,7 @@ namespace card182
 				int i = 0;
 				Particle *p = TrailPool();
 				for (; p->tag != 0; p++, i++)
-					if ((uint32_t)(p + 1) >= TRAIL_END) { p = nullptr; break; }
+					if ((uint32_t)(p + 1) >= us(TRAIL_END)) { p = nullptr; break; }
 				if (!p || i >= 0x78) break;
 				p->tag = (uint32_t)(int32_t)n->e;
 				p->frame = 6;
@@ -387,7 +387,7 @@ namespace card182
 	static uint32_t __cdecl CardModelTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_node(ORIG_CardModel, n);)
+		FX_HELD(held_note_node(us(ORIG_CardModel), n);)
 		CardModelDraw(n->c, n->w18, n->x, n->y, n->z, n->w1C, After(), CardModelFade(n->c));
 		if (DrawOnly()) return 0;
 		if (n->c >= 0x10) n->y = (int16_t)(n->y - n->w1E);
@@ -431,13 +431,13 @@ namespace card182
 
 	static void DirectorSpawn(Node *t)
 	{
-		Node *s = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Sparkles);
+		Node *s = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Sparkles));
 		*(uint32_t *)&s->x = *(const uint32_t *)&t->x;
 		*(uint32_t *)&s->z = *(const uint32_t *)&t->z;
 		s->w1C = t->w1C;
 		s->c = 0;
 		s->w1E = t->w1E;
-		Node *r1 = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+		Node *r1 = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
 		*(uint32_t *)&r1->x = *(const uint32_t *)&t->x;
 		r1->c = 0;
 		*(uint32_t *)&r1->z = *(const uint32_t *)&t->z;
@@ -447,7 +447,7 @@ namespace card182
 		r1->w1A = (int16_t)(rr + 0x14);
 		r1->w1E = (int16_t)(sc / 16);
 		r1->w1C = (int16_t)(sc / 16);
-		Node *r2 = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
+		Node *r2 = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
 		*(uint32_t *)&r2->x = *(const uint32_t *)&t->x;
 		r2->c = 0;
 		*(uint32_t *)&r2->z = *(const uint32_t *)&t->z;
@@ -457,7 +457,7 @@ namespace card182
 		r2->w1C = r1->w1C;
 		for (int k = 0; k < 0xC; k++)
 		{
-			Node *d = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Shard);
+			Node *d = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Shard));
 			*(uint32_t *)&d->x = *(const uint32_t *)&t->x;
 			d->c = 0;
 			d->e = (int16_t)k;
@@ -503,7 +503,7 @@ namespace card182
 		if (t->c == 1) DirectorSpawn(t);
 		if (t->c == 0x23) DirectorResult(t);
 		DirectorFlash(t->c, 0x28);
-		if (t->c == 1) DirectorSound(SOUND_CardA);
+		if (t->c == 1) DirectorSound(SOUND_CardA());
 		t->c++;
 		if (t->c <= 0x28) return 0;
 		SetScreenFlash(0, 0);
@@ -520,7 +520,7 @@ namespace card182
 		{
 			for (int k = 0; k < 0xC; k++)
 			{
-				Node *d = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Card);
+				Node *d = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Card));
 				d->c = 0;
 				d->e = (int16_t)(1 << k);
 				d->x = (int16_t)(CrtRand() % 0x384 + t->x - 0x1C2);
@@ -535,7 +535,7 @@ namespace card182
 		}
 		if (t->c == 0x1A)
 		{
-			Node *m = (Node *)AddTaskToQueue(EffectQueue(), ORIG_CardModel);
+			Node *m = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_CardModel));
 			m->c = 0;
 			m->x = t->x;
 			m->y = (int16_t)(t->w16 - 0x1F4);
@@ -544,11 +544,11 @@ namespace card182
 			m->w1C = 0x800;
 			m->w1A = (int16_t)(CrtRand() % 0xC8 + 0x3E8);
 			m->w1E = (int16_t)(CrtRand() % 0x23 + 0x41);
-			for (AfterImage *a = After(); (uint32_t)a < AFTER_END; a++) a->used = 0;
+			for (AfterImage *a = After(); (uint32_t)a < us(AFTER_END); a++) a->used = 0;
 		}
 		if (t->c == 0x14)
 		{
-			Node *f = (Node *)AddTaskToQueue(EffectQueue(), ORIG_TargetFade);
+			Node *f = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_TargetFade));
 			f->c = 0;
 			f->e = (int16_t)TargetSlot();
 			f->w18 = 6;
@@ -556,7 +556,7 @@ namespace card182
 		}
 		if (t->c == 0x40) DirectorResult(t);
 		DirectorFlash(t->c, 0x41);
-		if (t->c == 1) DirectorSound(SOUND_CardB);
+		if (t->c == 1) DirectorSound(SOUND_CardB());
 		t->c++;
 		if (t->c <= 0x41) return 0;
 		SetScreenFlash(0, 0);

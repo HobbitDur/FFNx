@@ -25,20 +25,20 @@ namespace thundaga105
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543D4C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2543D88); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543DAC); }
-	inline uint32_t &Arena2() { return var<uint32_t>(0x2543CF0); }
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2543CF4); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2543D68); }
-	inline TaskQueue &RootQueue() { return var<TaskQueue>(0x2543DE0); }
-	inline TaskQueue &BoltQueue() { return var<TaskQueue>(0x2543DD0); }
-	inline TaskQueue &ShardQueue() { return var<TaskQueue>(0x2543DC0); }
-	inline TaskQueue &SparkQueue() { return var<TaskQueue>(0x2543DB0); }
-	static uint8_t *const PRIM_Env = (uint8_t *)0x2543CF8;
-	static uint8_t *const PRIM_Offset = (uint8_t *)0x2543D40;
-	static int16_t *const RECT_Offset = (int16_t *)0x2543D50;
-	static uint8_t *const PRIM_Area = (uint8_t *)0x2543D58;
+	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x2543D4C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2543D88)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2543DAC)); }
+	inline uint32_t &Arena2() { return var<uint32_t>(us(0x2543CF0)); }
+	inline int32_t &FlashLevel() { return var<int32_t>(us(0x2543CF4)); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x2543D68)); }
+	inline TaskQueue &RootQueue() { return var<TaskQueue>(us(0x2543DE0)); }
+	inline TaskQueue &BoltQueue() { return var<TaskQueue>(us(0x2543DD0)); }
+	inline TaskQueue &ShardQueue() { return var<TaskQueue>(us(0x2543DC0)); }
+	inline TaskQueue &SparkQueue() { return var<TaskQueue>(us(0x2543DB0)); }
+	static uint8_t *PRIM_Env() { return (uint8_t *)us(0x2543CF8); }
+	static uint8_t *PRIM_Offset() { return (uint8_t *)us(0x2543D40); }
+	static int16_t *RECT_Offset() { return (int16_t *)us(0x2543D50); }
+	static uint8_t *PRIM_Area() { return (uint8_t *)us(0x2543D58); }
 
 	static const uint32_t ORIG_RootTask = 0x6D3E50;
 	static const uint32_t ORIG_BoltTask = 0x6D43B0;
@@ -47,8 +47,8 @@ namespace thundaga105
 	static const uint32_t ORIG_FlashTask = 0x6D61C0;
 	static const uint32_t ORIG_WaitTexRestore = 0x6D62B0;
 	static const uint32_t MODEL_Bolt = 0x13009C0;
-	static const uint8_t *const BOLT_QuadParts = (const uint8_t *)0x1312660;
-	static const void *const SOUND_Thundaga = (const void *)0x131265C;
+	static const uint8_t *BOLT_QuadParts() { return (const uint8_t *)us(0x1312660); }
+	static const void *SOUND_Thundaga() { return (const void *)us(0x131265C); }
 	static const uint32_t SEQ_Spark = 0x13115DC;
 	static const uint32_t SEQ_Flash = 0x131136C;
 	static const int DEBRIS_COUNT = 0x136;
@@ -59,38 +59,38 @@ namespace thundaga105
 		{ 0x1310CDC, 0x1310F2C }, { 0x1310F8C, 0x13112EC },
 	};
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C4F0)(m, in, out); }
-	inline uint32_t RenderGeometry(uint32_t model, void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, header, ot, mode, cursor); }
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
-	inline void SetDrawEnvPrim(void *prim, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(0x45C0F0)(prim, env); }
-	inline void SetDrawAreaPrim(void *prim, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C940)(prim, rect); }
-	inline void SetDrawOffsetPrim(void *prim, const int16_t *xy) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C9B0)(prim, xy); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
-	inline void GteLoadV0FromDwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadIRFromMatrixColumn(const void *col) { fn<void (__cdecl *)(const void *)>(0x45E180)(col); }
-	inline void GteStoreIRToMatrixColumn(void *col) { fn<void (__cdecl *)(void *)>(0x45E470)(col); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C4F0))(m, in, out); }
+	inline uint32_t RenderGeometry(uint32_t model, void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, header, ot, mode, cursor); }
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
+	inline void SetDrawEnvPrim(void *prim, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(us(0x45C0F0))(prim, env); }
+	inline void SetDrawAreaPrim(void *prim, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(us(0x45C940))(prim, rect); }
+	inline void SetDrawOffsetPrim(void *prim, const int16_t *xy) { fn<void (__cdecl *)(void *, const int16_t *)>(us(0x45C9B0))(prim, xy); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
+	inline void GteLoadV0FromDwords(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
+	inline void GteLoadIRFromMatrixColumn(const void *col) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(col); }
+	inline void GteStoreIRToMatrixColumn(void *col) { fn<void (__cdecl *)(void *)>(us(0x45E470))(col); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -455,7 +455,7 @@ namespace thundaga105
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				BoltNode *b = (BoltNode *)AddTaskToQueue(&BoltQueue(), ORIG_BoltTask);
+				BoltNode *b = (BoltNode *)AddTaskToQueue(&BoltQueue(), us(ORIG_BoltTask));
 				if (b)
 				{
 					FillDwords(&b->counter, 0, 0x21E);
@@ -463,7 +463,7 @@ namespace thundaga105
 					b->entity = entity;
 					b->colour = *(uint32_t *)(entity + 0x28);
 					b->scale = (((int32_t)*(int16_t *)(entity + 0x26) >> 1) + 0xE86) >> 1;
-					DecodeModelPrimLayout(MODEL_Bolt, b->layout, 0x868);
+					DecodeModelPrimLayout(us(MODEL_Bolt), b->layout, 0x868);
 					r->last_bolt = b;
 					r->action++;
 				}
@@ -491,7 +491,7 @@ namespace thundaga105
 			if (!bolts && !shards && !sparks && !debris && r->action > Ctx()->actions[0].last_action)
 			{
 				if (Ctx()->flags & 2) return TASK_END;
-				WaitNode *w = (WaitNode *)AddTaskToQueue(&SparkQueue(), ORIG_WaitTexRestore);
+				WaitNode *w = (WaitNode *)AddTaskToQueue(&SparkQueue(), us(ORIG_WaitTexRestore));
 				FillDwords(&w->counter, (uint32_t)shards, 8);
 				r->state = 2;
 			}
@@ -851,7 +851,7 @@ namespace thundaga105
 
 	static void ShardSpawn(const int16_t *anchor, uint8_t *dst, const uint8_t *src, int16_t *all)
 	{
-		ShardNode *s = (ShardNode *)AddTaskToQueue(&ShardQueue(), ORIG_ShardTask);
+		ShardNode *s = (ShardNode *)AddTaskToQueue(&ShardQueue(), us(ORIG_ShardTask));
 		if (!s) return;
 		FillDwords(&s->life, 0, 0xC);
 		uint32_t left = *(uint32_t *)(dst + 4);
@@ -898,35 +898,35 @@ namespace thundaga105
 		Mat4x3 m = {};
 		m.t[0] = (minx - maxx) / 2 / sx - anchor[0] / sx;
 		m.t[1] = anchor[2] / sz - (minz - maxz) / 2 / sz;
-		m.t[2] = var<int16_t>(0x1D8E038);
+		m.t[2] = var<int16_t>(us(0x1D8E038));
 		RotX(0x400, &m);
 		int32_t v[4] = { 0, 0, 0, 0 };
 		v[0] = 0x1000000 / (shl32(width, 12) / rect[2]);
 		v[2] = 0x1000000 / (shl32(depth, 12) / rect[3]);
 		Scale3DMatrix(&m, v);
-		SetDrawEnvPrim(c.env, 0x1D969C8 + 0x5C * (uint32_t)(var<uint8_t>(0x1D96A80) ^ 1));
+		SetDrawEnvPrim(c.env, us(0x1D969C8) + 0x5C * (uint32_t)(var<uint8_t>(us(0x1D96A80)) ^ 1));
 		InsertPrimAutoDepth(RenderOT44(), c.env);
 		int32_t ofx = 0, ofy = 0;
 		GetScreenOffset(&ofx, &ofy);
 		SetScreenOffset(rect[2] / 2, rect[3] / 2);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		if (var<uint8_t>(0x1D989BD) & 1)
+		if (var<uint8_t>(us(0x1D989BD)) & 1)
 		{
 			uint8_t *h = (uint8_t *)FieldAlloc(0x2C);
 			*(int16_t *)(h + 0x14) = 0;
 			*(int16_t *)(h + 0x16) = 0;
 			*(int16_t *)(h + 0x18) = 0x140;
 			*(int16_t *)(h + 0x1A) = 0xD8;
-			*(int16_t *)(h + 0x24) = var<int16_t>(0x1D989BE);
-			*(uint32_t *)(h + 0x1C) = var<uint32_t>(0x1D989E4);
-			*(uint32_t *)(h + 4) = var<uint32_t>(0x1D98B3C);
+			*(int16_t *)(h + 0x24) = var<int16_t>(us(0x1D989BE));
+			*(uint32_t *)(h + 0x1C) = var<uint32_t>(us(0x1D989E4));
+			*(uint32_t *)(h + 4) = var<uint32_t>(us(0x1D98B3C));
 			*(int32_t *)(h + 0x20) = -1;
 			*(uint32_t *)(h + 0x28) = 0;
 			*(uint32_t *)(h + 0x10) = c.arena;
-			BuildBoneMatricesFromPose((void *)0x1D989D0);
-			ComputeBonesWorldMatrices((void *)0x1D989D0, &m);
-			PacketCursor() = RenderGeometry(0x1D989C0, h, RenderOT44(), 0x10, PacketCursor());
+			BuildBoneMatricesFromPose((void *)us(0x1D989D0));
+			ComputeBonesWorldMatrices((void *)us(0x1D989D0), &m);
+			PacketCursor() = RenderGeometry(us(0x1D989C0), h, RenderOT44(), 0x10, PacketCursor());
 			FieldFree(0x2C);
 		}
 		uint8_t *pk = (uint8_t *)PacketCursor();
@@ -980,7 +980,7 @@ namespace thundaga105
 		arg.scale[1] = p->scale;
 		arg.scale[0] = p->scale;
 		arg.morph = TexBase() + 0x2254;
-		arg.quad_parts = BOLT_QuadParts;
+		arg.quad_parts = BOLT_QuadParts();
 		FX_HELD(held_note_bolt(p, &arg);)
 		prim::play((prim::Layout *)p->layout, BoltPart, (int)&arg, 0);
 		TargetFlash(p->entity, (const uint8_t *)&p->colour, p->counter, 2);
@@ -998,7 +998,7 @@ namespace thundaga105
 		{
 			int16_t q[4];
 			GetDefaultEffectPosition(p->entity, q);
-			BdPlaySE3D(SOUND_Thundaga, 0x101, q);
+			BdPlaySE3D(SOUND_Thundaga(), 0x101, q);
 		}
 		if (p->counter == 3) ScreenFadeTask(0, 1, 0, 0x80);
 		else if (p->counter == 0x1E) ScreenFadeTask(1, 1, 6, 0x80);
@@ -1016,7 +1016,7 @@ namespace thundaga105
 			for (int k = 0; k < 14; k++) ShardSpawn(arg.pos, (uint8_t *)SHARD_MESH[k][0], (const uint8_t *)SHARD_MESH[k][1], all);
 			SetScreenFlash(0, 0);
 			FX_HELD(held_note_capture(arg.pos, all);)
-			CapturePrims prims = { PRIM_Env, PRIM_Area, PRIM_Offset, RECT_Offset, Arena2() };
+			CapturePrims prims = { PRIM_Env(), PRIM_Area(), PRIM_Offset(), RECT_Offset(), Arena2() };
 			CaptureDraw(arg.pos, all, prims);
 		}
 		if ((uint32_t)(p->counter - 0x22) < 8 && !((p->counter - 0x22) & 1))
@@ -1024,10 +1024,10 @@ namespace thundaga105
 			int32_t a = CrtRand();
 			for (int k = 8; k; k--, a += 0x200)
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(&SparkQueue(), ORIG_SparkTask);
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(&SparkQueue(), us(ORIG_SparkTask));
 				if (!s) continue;
 				FillDwords(&s->counter, 0, 8);
-				s->seq = SEQ_Spark;
+				s->seq = us(SEQ_Spark);
 				s->pos[0] = (int16_t)ComputeCos(a);
 				int16_t sn = (int16_t)ComputeSin(a);
 				s->pos[2] = sn;
@@ -1048,11 +1048,11 @@ namespace thundaga105
 		{
 			int16_t q[4];
 			GetDefaultEffectPosition(p->entity, q);
-			SpriteNode *f = (SpriteNode *)AddTaskToQueue(&SparkQueue(), ORIG_FlashTask);
+			SpriteNode *f = (SpriteNode *)AddTaskToQueue(&SparkQueue(), us(ORIG_FlashTask));
 			if (f)
 			{
 				FillDwords(&f->counter, 0, 8);
-				f->seq = SEQ_Flash;
+				f->seq = us(SEQ_Flash);
 				f->pos[0] = (int16_t)((CrtRand() & 0x7FF) + q[0] - 0x400);
 				f->pos[1] = (int16_t)((CrtRand() & 0x7FF) + q[1] - 0x400);
 				int32_t rz = CrtRand() & 0x7FF;
@@ -1108,7 +1108,7 @@ namespace thundaga105
 	static uint32_t __cdecl ShardTask(TaskNode *n)
 	{
 		ShardNode *p = (ShardNode *)n;
-		FX_HELD(held_note_draw(ORIG_ShardTask, p, sizeof(ShardNode));)
+		FX_HELD(held_note_draw(us(ORIG_ShardTask), p, sizeof(ShardNode));)
 		ShardDraw(p);
 		p->life--;
 		if (p->life == 0)
@@ -1150,7 +1150,7 @@ namespace thundaga105
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note_draw(ORIG_SparkTask, p, sizeof(SpriteNode));)
+		FX_HELD(held_note_draw(us(ORIG_SparkTask), p, sizeof(SpriteNode));)
 		SpriteDraw(p);
 		SparkUpdate(p);
 		return p->counter < p->end ? 0 : TASK_END;
@@ -1159,7 +1159,7 @@ namespace thundaga105
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note_draw(ORIG_FlashTask, p, sizeof(SpriteNode));)
+		FX_HELD(held_note_draw(us(ORIG_FlashTask), p, sizeof(SpriteNode));)
 		SpriteDraw(p);
 		p->counter++;
 		return p->counter < p->end ? 0 : TASK_END;

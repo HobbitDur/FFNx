@@ -52,11 +52,11 @@ namespace clash026
 
 	namespace cx
 	{
-		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DC6E0)(node, out); }
-		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x571BC0)(pos, a, b); }
-		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x571C80)(h, ot, mode, cursor); }
-		inline uint32_t BuildRotationMatrixFromAngles(uint32_t angles, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56CD50)(angles, out); }
-		inline uint32_t QueueChainTransformation(uint32_t entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(entity, id); }
+		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC6E0))(node, out); }
+		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(pos, a, b); }
+		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(h, ot, mode, cursor); }
+		inline uint32_t BuildRotationMatrixFromAngles(uint32_t angles, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56CD50))(angles, out); }
+		inline uint32_t QueueChainTransformation(uint32_t entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(entity, id); }
 	}
 
 	typedef uint32_t (__cdecl *StateFn)(uint32_t);
@@ -71,8 +71,8 @@ namespace clash026
 		return 0;
 	}
 
-	static inline uint32_t RenderOT(uint32_t off) { return MEM<uint32_t>(0x1D8E04C) + off; }
-	static inline uint32_t EntityOf(uint32_t node) { return 0x1D972C0 + 0x9C * (uint32_t)U8(node, 0x2D); }
+	static inline uint32_t RenderOT(uint32_t off) { return MEM<uint32_t>(us(0x1D8E04C)) + off; }
+	static inline uint32_t EntityOf(uint32_t node) { return us(0x1D972C0) + 0x9C * (uint32_t)U8(node, 0x2D); }
 	static uint32_t __cdecl Nop(uint32_t a1) { return a1; }
 }
 }
@@ -99,7 +99,7 @@ namespace clash026
 		m.t[1] = S16(node, 0x1E);
 		m.t[2] = S16(node, 0x20);
 		x::scale3DMatrix(P(&m), node + 0x30);
-		x::ComposeAffineTransform(0x1D97778, P(&m), P(&m));
+		x::ComposeAffineTransform(us(0x1D97778), P(&m), P(&m));
 		x::GTE_SetRotMatrix_W(P(&m));
 		x::GTE_SetTransVector_W(P(&m));
 		const uint32_t h = x::Field_Alloc(0x58);
@@ -107,7 +107,7 @@ namespace clash026
 		U32(h, 8) = U32(node, 0x40);
 		S32(h, 0xC) = S16(node, 0x50);
 		U32(h, 0x1C) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(h, RenderOT(0x44), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT(0x44), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 	}
 
@@ -124,14 +124,14 @@ namespace clash026
 		U32(h, 0) = U32(node, 0x4C);
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT(0x44), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT(0x44), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
 	static void FlashDraw(uint32_t colour)
 	{
 		const uint32_t bucket = RenderOT(0x1C);
-		uint32_t pkt = MEM<uint32_t>(PACKET_CURSOR);
+		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -144,14 +144,14 @@ namespace clash026
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(PACKET_CURSOR) = pkt + 0xC;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	static int16_t FadeAt(int16_t i)
 	{
 		if (i > 0xB) i = 0xB;
 		else if (i < 0) i = 0;
-		return MEM<int16_t>(FADE_TABLE + 2 * (int32_t)i);
+		return MEM<int16_t>(us(FADE_TABLE) + 2 * (int32_t)i);
 	}
 
 	static uint32_t FrameStep(uint32_t node)
@@ -185,7 +185,7 @@ namespace clash026
 		RandomOffset(node, U16(node, 0x6C), U16(node, 0x6A));
 		const int32_t dx = S16(node, 0x1C) - S16(node, 0x58);
 		U8(node, 0x26) |= 4;
-		U32(node, 0x4C) = SEQ_Spark;
+		U32(node, 0x4C) = us(SEQ_Spark);
 		U16(node, 0x52) = 0xF;
 		const int32_t dy = S16(node, 0x1E) - S16(node, 0x5A);
 		const int32_t dz = S16(node, 0x20) - S16(node, 0x5C);
@@ -251,7 +251,7 @@ namespace clash026
 		S32(a1, 0x38) = 0x100;
 		S32(a1, 0x34) = 0x100;
 		S32(a1, 0x30) = 0x100;
-		U32(a1, 0x4C) = MODEL_Ring;
+		U32(a1, 0x4C) = us(MODEL_Ring);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -287,8 +287,8 @@ namespace clash026
 		U32(a1, 0x4C) = model;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 	}
-	static uint32_t __cdecl WaveAStart(uint32_t a1) { WaveStart(a1, MODEL_WaveA); return 0; }
-	static uint32_t __cdecl WaveBStart(uint32_t a1) { WaveStart(a1, MODEL_WaveB); return 0; }
+	static uint32_t __cdecl WaveAStart(uint32_t a1) { WaveStart(a1, us(MODEL_WaveA)); return 0; }
+	static uint32_t __cdecl WaveBStart(uint32_t a1) { WaveStart(a1, us(MODEL_WaveB)); return 0; }
 
 	static uint32_t __cdecl WaveAGrow(uint32_t a1)
 	{
@@ -349,7 +349,7 @@ namespace clash026
 		U16(a1, 0x1E) = (uint16_t)(U16(a1, 0x1E) + 0xFD00);
 		DustOffset(a1, 0x180);
 		U8(a1, 0x26) |= 4;
-		U32(a1, 0x4C) = SEQ_Dust;
+		U32(a1, 0x4C) = us(SEQ_Dust);
 		U16(a1, 0x52) = 7;
 		U16(a1, 0x54) = 0xFE00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -359,7 +359,7 @@ namespace clash026
 	static uint32_t __cdecl WalkDustStart(uint32_t a1)
 	{
 		cx::CopyAnchorFromSource(a1, a1 + 0x1C);
-		U32(a1, 0x4C) = SEQ_Spark;
+		U32(a1, 0x4C) = us(SEQ_Spark);
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -482,7 +482,7 @@ namespace clash026
 
 	static void LandSparkSpawn(uint32_t node, int16_t delay, uint16_t angle)
 	{
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_LandSpark, 0x70, node);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_LandSpark), 0x70, node);
 		U16(s, 0x68) = (uint16_t)delay;
 		const uint32_t r = x::CrtRand() & 0x3FF;
 		U16(s, 0x6C) = 0xC0;
@@ -511,7 +511,7 @@ namespace clash026
 		{
 			U16(a1, 0x1E) = (uint16_t)ground;
 			cx::QueueChainTransformation(e, 6);
-			x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_LandRing, 0x6C, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), us(ORIG_LandRing), 0x6C, a1);
 			const uint32_t base = x::CrtRand() & 0xFFF;
 			LandSparkSpawn(a1, 0, (uint16_t)base);
 			LandSparkSpawn(a1, 2, (uint16_t)(base + 0x500));
@@ -565,7 +565,7 @@ namespace clash026
 		}
 		if ((U8(a1, 0x24) & 3) == 0)
 		{
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_WalkDust, 0x70, a1);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_WalkDust), 0x70, a1);
 			U16(s, 0x6E) = (uint16_t)((x::CrtRand() & 0x1FF) + 0x400);
 		}
 		return 0;
@@ -585,19 +585,19 @@ namespace clash026
 	{
 		int16_t pos[4];
 		pos[3] = (int16_t)stale;
-		const uint32_t caster = 0x1D972C0 + 0x9C * (uint32_t)U8(U32(node, 0xC), 0);
+		const uint32_t caster = us(0x1D972C0) + 0x9C * (uint32_t)U8(U32(node, 0xC), 0);
 		x::GetEffectSpawnPosition(caster, (uint32_t)(int32_t)bone, 0x1800, P(pos));
 		pos[1] = 0;
 		if (flag == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_BurstRing, 0x6C, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), us(ORIG_BurstRing), 0x6C, node);
 			U32(t, 0x1C) = U32(P(pos), 0);
 			U32(t, 0x20) = U32(P(pos), 4);
 		}
 		uint32_t angle = x::CrtRand() & 0xFFF;
 		for (int i = 0; i < 8; i++)
 		{
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Spark, 0x70, node);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Spark), 0x70, node);
 			U32(s, 0x1C) = U32(P(pos), 0);
 			U32(s, 0x20) = U32(P(pos), 4);
 			U16(s, 0x68) = (uint16_t)(x::CrtRand() & 3);
@@ -622,19 +622,19 @@ namespace clash026
 	{
 		if (S16(a1, 0x24) < 4)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_WaveA, 0x6C, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_PRIM, ORIG_WaveB, 0x6C, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_CHARGE, ORIG_Charge, 0x60, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), us(ORIG_WaveA), 0x6C, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), us(ORIG_WaveB), 0x6C, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_CHARGE), us(ORIG_Charge), 0x60, a1);
 		for (int i = 0; i < 4; i++)
 		{
-			const uint32_t d = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Dust, 0x70, a1);
+			const uint32_t d = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Dust), 0x70, a1);
 			U16(d, 0x68) = (uint16_t)(i * 2);
 			U16(d, 0x6E) = (uint16_t)((x::CrtRand() & 0x3FF) + 0x600);
 		}
 		if (U8(a1, 0x2B) == 0)
 		{
-			const uint32_t f = x::Effect_AddTaskAndInitFromCtx(Q_FLASH, ORIG_Flash, 0x3C, a1);
-			U32(f, 0x30) = FLASH_SCRIPT;
+			const uint32_t f = x::Effect_AddTaskAndInitFromCtx(us(Q_FLASH), us(ORIG_Flash), 0x3C, a1);
+			U32(f, 0x30) = us(FLASH_SCRIPT);
 		}
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -661,11 +661,11 @@ namespace clash026
 		if (U8(node, 0x2B) == 0)
 		{
 			if (U16(node, 0x24) == 4)
-				x::BdPlaySE(SOUND_Clash, 0, 0x80);
+				x::BdPlaySE(us(SOUND_Clash), 0, 0x80);
 			if (U8(node, 0x2B) == 0)
 			{
 				const uint16_t c = U16(node, 0x24);
-				const uint16_t queue_hi = (uint16_t)(Q_EMITTER >> 16);
+				const uint16_t queue_hi = (uint16_t)(us(Q_EMITTER) >> 16);
 				if (c == 4 || c == 0x28)
 				{
 					Burst(node, 0x34, 1, 0);
@@ -694,7 +694,7 @@ namespace clash026
 	{
 		for (int32_t i = 0; i < (int32_t)S16(a1, 0x5A); i++)
 		{
-			x::Effect_AddTaskAndInitFromCtx(Q_EMITTER, ORIG_Emitter, 0x58, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(Q_EMITTER), us(ORIG_Emitter), 0x58, a1);
 			U8(a1, 0x2B) = (uint8_t)(U8(a1, 0x2B) + 1);
 		}
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -718,16 +718,16 @@ namespace clash026
 		const uint32_t node = a1;
 		FX_HELD(held_note_master();)
 		if (U8(node, 0x5C) & 1)
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_ODD);
+			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
 		else
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_EVEN);
+			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		T_Master[S8(node, 0x29)](node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(Q_EMITTER);
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_CHARGE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPRITE));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PRIM));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_FLASH));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_CHARGE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_FLASH)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);

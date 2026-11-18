@@ -33,14 +33,14 @@ namespace acid170
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23AF820); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23AF838; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B01A8; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23B0FD0); }
-	inline int32_t &AttackerSlot() { return var<int32_t>(0x23B10E8); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23B1348); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23B134C); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline int32_t &TargetSlot() { return var<int32_t>(us(0x23AF820)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x23AF838); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23B01A8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23B0FD0)); }
+	inline int32_t &AttackerSlot() { return var<int32_t>(us(0x23B10E8)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23B1348)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23B134C)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
 	static const uint32_t DROPS = 0x23AF848, DROPS_END = 0x23B01A8;
 	static const uint32_t STREAM = 0x23B0FD8;
 	static const uint32_t MESH_VERTS = 0x23B10F0;
@@ -52,45 +52,45 @@ namespace acid170
 	static const uint32_t SEQ_Blob = 0xD68DF8, SEQ_Drip = 0xD68EA0;
 	static const uint32_t MODEL_Mesh = 0xD6904C, MODEL_Puddle = 0xD69CBC;
 	static const uint32_t MESH_A = 0xD69054, MESH_B = 0xD69A74;
-	static const int32_t *const DRIP_COUNTS = (const int32_t *)0xD6A3AC;
+	static const int32_t *DRIP_COUNTS() { return (const int32_t *)us(0xD6A3AC); }
 	static const uint32_t SOUND_Acid = 0xD6A3A4;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, mode, out); }
-	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
-	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
-	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3C0)(dst); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
-	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
-	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
-	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
-	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7F0)(value, reg); }
-	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(v); }
-	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(0x460810)(); }
-	inline void GteReadMAC1Shl12(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x64DF60)(dst); }
-	inline void VectorNormalS16(uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, mode, out); }
+	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
+	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
+	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
+	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E110))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E360))(c); }
+	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E120))(a, b, c); }
+	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E370))(a, b, c); }
+	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45D7F0))(value, reg); }
+	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x64DEE0))(v); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
+	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF10))(v); }
+	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(us(0x460810))(); }
+	inline void GteReadMAC1Shl12(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF60))(dst); }
+	inline void VectorNormalS16(uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(in, out); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DDD0))(s); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
 #pragma pack(push, 1)
@@ -126,15 +126,15 @@ namespace acid170
 #pragma pack(pop)
 	static_assert(sizeof(Node) == 0x24 && sizeof(Stream) == 0x110 && sizeof(Drop) == 0x18, "Acid nodes / entries");
 
-	inline Stream *StreamOf(int32_t i) { return (Stream *)(STREAM + (uint32_t)(i * 0x110)); }
-	inline Drop *Drops() { return (Drop *)DROPS; }
+	inline Stream *StreamOf(int32_t i) { return (Stream *)(us(STREAM) + (uint32_t)(i * 0x110)); }
+	inline Drop *Drops() { return (Drop *)us(DROPS); }
 
 	static Drop *FreeDrop()
 	{
 		int32_t i = 0;
 		Drop *e = Drops();
 		for (; e->flags; e++, i++)
-			if (P(e + 1) >= DROPS_END) return nullptr;
+			if (P(e + 1) >= us(DROPS_END)) return nullptr;
 		return i < 0x64 ? e : nullptr;
 	}
 
@@ -544,10 +544,10 @@ namespace acid170
 		const uint32_t anim = entity + 0x60;
 		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
-			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
+			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0x8C));
 		ComputeBonesWorldMatrices((void *)anim, (void *)(entity + 0x40));
-		U32(hdr, 4) = var<uint32_t>(0x1D98B3C);
+		U32(hdr, 4) = var<uint32_t>(us(0x1D98B3C));
 		U32(hdr, 0x1C) = U32(entity, 0x28);
 		U16(hdr, 0x14) = 0;
 		U16(hdr, 0x16) = 0;
@@ -556,7 +556,7 @@ namespace acid170
 		U8(hdr, 0x2A) = cue;
 		U8(hdr, 0x29) = cue;
 		U8(hdr, 0x28) = cue;
-		U32(hdr, 0x10) = var<uint32_t>(0x1D969A8);
+		U32(hdr, 0x10) = var<uint32_t>(us(0x1D969A8));
 		U16(hdr, 0x18) = 0x140;
 		U16(hdr, 0x1A) = 0xD8;
 		U16(hdr, 0x8A) = 1;
@@ -605,7 +605,7 @@ namespace acid170
 		Node *n = (Node *)tn;
 		if (n->counter < 0x22)
 		{
-			FX_HELD(held_note_draw(ORIG_Melt, n);)
+			FX_HELD(held_note_draw(us(ORIG_Melt), n);)
 			MeltDraw(n, MeltAmount(n->counter));
 		}
 		if (DrawOnly()) return 0;
@@ -640,12 +640,12 @@ namespace acid170
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x5C));
-		U32(h, 0) = MODEL_Mesh;
+		U32(h, 0) = us(MODEL_Mesh);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0x2033;
 		for (int32_t k = 0; k < 0x49; k++)
 		{
-			const uint32_t a = MESH_A + (uint32_t)k * 8, b = MESH_B + (uint32_t)k * 8, o = verts + (uint32_t)k * 8;
+			const uint32_t a = us(MESH_A) + (uint32_t)k * 8, b = us(MESH_B) + (uint32_t)k * 8, o = verts + (uint32_t)k * 8;
 			for (int32_t w = 0; w < 3; w++)
 				S16(o, w * 2) = (int16_t)((mul32(S16(b, w * 2) - S16(a, w * 2), s) >> 12) + S16(a, w * 2));
 		}
@@ -672,8 +672,8 @@ namespace acid170
 	static uint32_t __cdecl MeshTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(ORIG_Mesh, n);)
-		MeshDraw(n, MESH_VERTS + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
+		FX_HELD(held_note_draw(us(ORIG_Mesh), n);)
+		MeshDraw(n, us(MESH_VERTS) + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
 		if (n->counter < 8)
 		{
@@ -701,7 +701,7 @@ namespace acid170
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Puddle;
+		U32(h, 0) = us(MODEL_Puddle);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xF3;
 		S32(h, 0xC) = fade;
@@ -718,7 +718,7 @@ namespace acid170
 			n->idx--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_Puddle, n);)
+		FX_HELD(held_note_draw(us(ORIG_Puddle), n);)
 		PuddleDraw(n, PuddleFade(n->counter));
 		if (DrawOnly()) return 0;
 		n->a1c = (int16_t)(n->a1c + n->a1e);
@@ -731,7 +731,7 @@ namespace acid170
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t r = n->a1c;
 		U16(h, 0x24) = 0;
-		U32(h, 0) = SEQ_Blob;
+		U32(h, 0) = us(SEQ_Blob);
 		U16(h, 4) = (uint16_t)(n->counter % 6);
 		int32_t k = n->a18;
 		for (int i = 0; i < 4; i++, k--, r -= 0x70)
@@ -749,7 +749,7 @@ namespace acid170
 	static uint32_t __cdecl BlobTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(ORIG_Blob, n);)
+		FX_HELD(held_note_draw(us(ORIG_Blob), n);)
 		const int16_t *pos[4];
 		for (int i = 0; i < 4; i++) pos[i] = StreamOf(n->idx)->curve[0] + (n->a18 - i) * 4;
 		BlobDraw(n, pos);
@@ -771,12 +771,12 @@ namespace acid170
 	static uint32_t __cdecl DripTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(ORIG_Drips, n);)
+		FX_HELD(held_note_draw(us(ORIG_Drips), n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Drip;
+		U32(h, 0) = us(SEQ_Drip);
 		U16(h, 0x24) = 0;
-		for (Drop *e = Drops(); P(e) < DROPS_END; e++)
+		for (Drop *e = Drops(); P(e) < us(DROPS_END); e++)
 		{
 			if (!(e->flags & (uint32_t)(int32_t)n->idx)) continue;
 			DripDraw(h, e);
@@ -794,9 +794,9 @@ namespace acid170
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
 		const int16_t c = n->counter;
-		if (c >= 0 && c <= 0xC && DRIP_COUNTS[c] > 0)
+		if (c >= 0 && c <= 0xC && DRIP_COUNTS()[c] > 0)
 		{
-			for (int32_t k = 0; k < DRIP_COUNTS[n->counter]; k++)
+			for (int32_t k = 0; k < DRIP_COUNTS()[n->counter]; k++)
 			{
 				Drop *e = FreeDrop();
 				if (!e) break;
@@ -819,26 +819,26 @@ namespace acid170
 	{
 		int32_t down[3] = { 0, -0x1000, 0 };
 		int32_t dir[3];
-		dir[0] = (int32_t)S16(SPLASH_AT, 0) - S16(SPLASH_FROM, 0);
-		dir[1] = (int32_t)S16(SPLASH_AT, 2) - S16(SPLASH_FROM, 2);
-		dir[2] = (int32_t)S16(SPLASH_AT, 4) - S16(SPLASH_FROM, 4);
+		dir[0] = (int32_t)S16(us(SPLASH_AT), 0) - S16(us(SPLASH_FROM), 0);
+		dir[1] = (int32_t)S16(us(SPLASH_AT), 2) - S16(us(SPLASH_FROM), 2);
+		dir[2] = (int32_t)S16(us(SPLASH_AT), 4) - S16(us(SPLASH_FROM), 4);
 		NormalizeVector(dir, dir);
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors(down, dir, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
-		m.t[0] = S16(SPLASH_AT, 0);
-		m.t[1] = S16(SPLASH_AT, 2);
-		m.t[2] = S16(SPLASH_AT, 4);
+		m.t[0] = S16(us(SPLASH_AT), 0);
+		m.t[1] = S16(us(SPLASH_AT), 2);
+		m.t[2] = S16(us(SPLASH_AT), 4);
 		ComposeAffineTransform(&Camera(), &m, &m);
-		GteSetRotMatrixCtrl((const Mat4x3 *)SPLASH_MATRIX);
+		GteSetRotMatrixCtrl((const Mat4x3 *)us(SPLASH_MATRIX));
 		GteSetLightMatrix(&m);
 		GteSetBKFromMatrix(&m);
 	}
 
 	static void SplashDraw(uint32_t h, const Drop *e, int32_t grey)
 	{
-		Mat4x3 &g = *(Mat4x3 *)SPLASH_MATRIX;
+		Mat4x3 &g = *(Mat4x3 *)us(SPLASH_MATRIX);
 		U32(h, 0x1C) = (uint32_t)((((grey << 8) | grey) << 8) | grey);
 		GteLoadV0(e->pos);
 		GteMVMVA_LightV0Bk();
@@ -860,13 +860,13 @@ namespace acid170
 	static uint32_t __cdecl SplashTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(ORIG_Splash, n);)
+		FX_HELD(held_note_draw(us(ORIG_Splash), n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Blob;
+		U32(h, 0) = us(SEQ_Blob);
 		U16(h, 0x24) = 4;
 		SplashSetup();
-		for (Drop *e = Drops(); P(e) < DROPS_END; e++)
+		for (Drop *e = Drops(); P(e) < us(DROPS_END); e++)
 		{
 			if (!(e->flags & (uint32_t)(int32_t)n->idx)) continue;
 			SplashDraw(h, e, SplashGrey(e->frame));
@@ -947,7 +947,7 @@ namespace acid170
 		if (n->counter == 0) StreamSetup(s);
 		if (n->counter == 1)
 		{
-			Node *b = NewNode(ORIG_Blob);
+			Node *b = NewNode(us(ORIG_Blob));
 			b->idx = n->idx;
 			b->a18 = 0;
 			b->a1a = 5;
@@ -955,13 +955,13 @@ namespace acid170
 		}
 		if (n->counter == 0xD)
 		{
-			Node *m = NewNode(ORIG_Mesh);
+			Node *m = NewNode(us(ORIG_Mesh));
 			ff8fx::copy<(8)>(m->pos, s->dst);
 			m->idx = n->idx;
 			m->a18 = (int16_t)(CrtRand() & 0xFFF);
 			m->a1a = (int16_t)(CrtRand() % 6 + 0x10);
 			m->a1e = m->a1c = (int16_t)(((CrtRand() & 0x3FF) + 0xB00) / 3);
-			Node *d = NewNode(ORIG_Drips);
+			Node *d = NewNode(us(ORIG_Drips));
 			d->idx = (int16_t)(1 << (U8(P(n), 0xE) & 31));
 			ff8fx::copy<(8)>(d->pos, s->dst);
 		}
@@ -969,7 +969,7 @@ namespace acid170
 		{
 			for (int32_t k = 0; k < 4; k++)
 			{
-				Node *p = NewNode(ORIG_Puddle);
+				Node *p = NewNode(us(ORIG_Puddle));
 				p->idx = (int16_t)(CrtRand() % 6 + k);
 				p->pos[0] = (int16_t)(CrtRand() % 0x640 + s->dst[0] - 0x320);
 				p->pos[1] = s->dst[1];
@@ -977,7 +977,7 @@ namespace acid170
 				p->a18 = (int16_t)(CrtRand() & 0xFFF);
 				p->a1e = p->a1c = (int16_t)((CrtRand() % 0x600 + 0xA00) / 10);
 			}
-			Node *m = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Melt);
+			Node *m = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Melt));
 			m->idx = n->idx;
 			m->counter = 0;
 			GetDefaultEffectPosition(Entity(TargetSlot()), m->pos);
@@ -996,16 +996,16 @@ namespace acid170
 		Node *n = (Node *)tn;
 		if (n->counter == 1)
 		{
-			Node *s = NewNode(ORIG_Stream);
+			Node *s = NewNode(us(ORIG_Stream));
 			s->idx = n->idx;
 			n->idx++;
-			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x28, 0, (int16_t *)SPLASH_AT);
-			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x26, 0, (int16_t *)SPLASH_FROM);
-			Node *p = NewNode(ORIG_Splash);
+			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x28, 0, (int16_t *)us(SPLASH_AT));
+			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x26, 0, (int16_t *)us(SPLASH_FROM));
+			Node *p = NewNode(us(ORIG_Splash));
 			p->idx = (int16_t)(1 << (U8(P(n), 0xE) & 31));
 		}
 		if (n->counter == 0x2E) ApplyActionResultToTarget(Ctx()->actions->targets);
-		if (n->counter == 1) BdPlaySE((const void *)SOUND_Acid, 0, 0x80);
+		if (n->counter == 1) BdPlaySE((const void *)us(SOUND_Acid), 0, 0x80);
 		n->counter++;
 		return n->counter > 0x37 ? TASK_END : 0;
 	}

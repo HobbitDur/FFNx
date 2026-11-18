@@ -64,25 +64,25 @@ namespace cura
 
 	namespace cx
 	{
-		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DC6E0)(node, out); }
-		inline uint32_t CopyMidpointFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DC700)(node, out); }
-		inline uint32_t BoundsBaseY(uint32_t node) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DCAF0)(node); }
-		inline uint32_t BuildMatrixFromDirAndUp(uint32_t out, uint32_t dir, uint32_t up) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x8DDA50)(out, dir, up); }
-		inline uint32_t NormalizeVec3(uint32_t in, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BD20)(in, out); }
-		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x571BC0)(pos, a, b); }
-		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x571C80)(h, ot, mode, cursor); }
-		inline uint32_t BattleReadAnimation(uint32_t hdr, uint32_t cmd) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x508F90)(hdr, cmd); }
-		inline uint32_t PreBattleReadAnimation(uint32_t hdr, uint32_t cmd, uint32_t anim) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x509440)(hdr, cmd, anim); }
-		inline uint32_t GteSetLightMatrix(uint32_t m) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DE50)(m); }
-		inline uint32_t GteSetBackgroundVector(uint32_t r, uint32_t g, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DCF0)(r, g, b); }
-		inline uint32_t GteMVMVA_LightV0Bk() { return fn<uint32_t (__cdecl *)()>(0x4607E0)(); }
-		inline uint32_t GteStoreSXY012_PolyGT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E300)(p); }
-		inline uint32_t GteStoreSXY012_PolyFT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E2E0)(p); }
-		inline uint32_t GteStoreSXY012_PolyFT3_2(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E320)(p); }
-		inline uint32_t GteReadSXY012(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E2A0)(p); }
-		inline uint32_t GteLoadIR123(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(v); }
-		inline uint32_t GteGPF() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		inline uint32_t GteGPL() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
+		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC6E0))(node, out); }
+		inline uint32_t CopyMidpointFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC700))(node, out); }
+		inline uint32_t BoundsBaseY(uint32_t node) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DCAF0))(node); }
+		inline uint32_t BuildMatrixFromDirAndUp(uint32_t out, uint32_t dir, uint32_t up) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDA50))(out, dir, up); }
+		inline uint32_t NormalizeVec3(uint32_t in, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BD20))(in, out); }
+		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(pos, a, b); }
+		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(h, ot, mode, cursor); }
+		inline uint32_t BattleReadAnimation(uint32_t hdr, uint32_t cmd) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x508F90))(hdr, cmd); }
+		inline uint32_t PreBattleReadAnimation(uint32_t hdr, uint32_t cmd, uint32_t anim) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x509440))(hdr, cmd, anim); }
+		inline uint32_t GteSetLightMatrix(uint32_t m) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(m); }
+		inline uint32_t GteSetBackgroundVector(uint32_t r, uint32_t g, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(r, g, b); }
+		inline uint32_t GteMVMVA_LightV0Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
+		inline uint32_t GteStoreSXY012_PolyGT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E300))(p); }
+		inline uint32_t GteStoreSXY012_PolyFT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2E0))(p); }
+		inline uint32_t GteStoreSXY012_PolyFT3_2(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E320))(p); }
+		inline uint32_t GteReadSXY012(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2A0))(p); }
+		inline uint32_t GteLoadIR123(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(v); }
+		inline uint32_t GteGPF() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		inline uint32_t GteGPL() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
 	}
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
@@ -95,7 +95,7 @@ namespace cura
 		return 0;
 	}
 
-	static inline uint32_t RenderOT44() { return MEM<uint32_t>(0x1D8E04C) + 0x44; }
+	static inline uint32_t RenderOT44() { return MEM<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static inline uint32_t ArgSlotColour(uint32_t node, uint8_t c)
 	{
@@ -138,7 +138,7 @@ namespace cura
 		U32(h, 0) = U32(node, 0x4C);
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -153,7 +153,7 @@ namespace cura
 		m.t[0] = S16(node, 0x1C);
 		m.t[1] = 0;
 		m.t[2] = S16(node, 0x20);
-		x::ComposeAffineTransform(0x1D97778, P(&m), P(&m));
+		x::ComposeAffineTransform(us(0x1D97778), P(&m), P(&m));
 		x::GTE_SetRotMatrix_W(P(&m));
 		x::GTE_SetTransVector_W(P(&m));
 		const uint32_t h = x::Field_Alloc(0xB4);
@@ -161,7 +161,7 @@ namespace cura
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -180,7 +180,7 @@ namespace cura
 		m.t[0] = S16(node, 0x1C);
 		m.t[1] = 0;
 		m.t[2] = S16(node, 0x20);
-		x::ComposeAffineTransform(0x1D97778, P(&m), P(&m));
+		x::ComposeAffineTransform(us(0x1D97778), P(&m), P(&m));
 		x::GTE_SetRotMatrix_W(P(&m));
 		x::GTE_SetTransVector_W(P(&m));
 		const uint32_t h = x::Field_Alloc(0xB4);
@@ -188,7 +188,7 @@ namespace cura
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(PACKET_CURSOR) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -384,7 +384,7 @@ namespace cura
 		}
 		if (U32(fp, 0) & 0x20000000)
 			ScrollModelV(U32(h, 0), S16(U32(blk, 0xC), index * 2));
-		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 	}
 
@@ -394,8 +394,8 @@ namespace cura
 		U32(st, 0) = first;
 		U16(st, 0xDA) = (uint16_t)slot;
 		U32(st, 4) = light;
-		U32(st, 0xC) = FRAME_CURSOR;
-		U32(st, 0x10) = PACKET_CURSOR;
+		U32(st, 0xC) = us(FRAME_CURSOR);
+		U32(st, 0x10) = us(PACKET_CURSOR);
 		U16(st, 0xB4) = 0;
 		U16(st, 0xB6) = 0;
 		U16(st, 0xB8) = 0;
@@ -597,7 +597,7 @@ namespace cura
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
 				x::GTE_LoadV012(vtx(U32(h, 0x94)), vtx(U32(h, 0x98)), vtx(U32(h, 0x9C)));
 				x::GTE_RTPT();
-				const uint32_t sz1 = MEM<uint32_t>(0x1CA8A54), sz2 = MEM<uint32_t>(0x1CA8A58), sz3 = MEM<uint32_t>(0x1CA8A5C);
+				const uint32_t sz1 = MEM<uint32_t>(us(0x1CA8A54)), sz2 = MEM<uint32_t>(us(0x1CA8A58)), sz3 = MEM<uint32_t>(us(0x1CA8A5C));
 				x::GTE_NCLIP();
 				x::GTE_ReadMAC0(h + 0x8C);
 				if (S32(h, 0x8C) <= 0)
@@ -669,7 +669,7 @@ namespace cura
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
 				x::GTE_LoadV012(vtx(U32(h, 0x94)), vtx(U32(h, 0x98)), vtx(U32(h, 0x9C)));
 				x::GTE_RTPT();
-				const uint32_t sz1 = MEM<uint32_t>(0x1CA8A54), sz2 = MEM<uint32_t>(0x1CA8A58), sz3 = MEM<uint32_t>(0x1CA8A5C);
+				const uint32_t sz1 = MEM<uint32_t>(us(0x1CA8A54)), sz2 = MEM<uint32_t>(us(0x1CA8A58)), sz3 = MEM<uint32_t>(us(0x1CA8A5C));
 				x::GTE_NCLIP();
 				x::GTE_ReadMAC0(h + 0x8C);
 				if (S32(h, 0x8C) <= 0)
@@ -679,7 +679,7 @@ namespace cura
 				U32(h, 0xA0) = U16(rec, 6) & 0xFFF;
 				x::GTE_LoadV0(vtx(U32(h, 0xA0)));
 				x::GTE_RTPS();
-				const uint32_t sz4 = MEM<uint32_t>(0x1CA8A5C);
+				const uint32_t sz4 = MEM<uint32_t>(us(0x1CA8A5C));
 				x::GTE_ReadSXY2(pk + 0x2C);
 				x::GTE_ReadSXY2(ft + 0x20);
 				x::GTE_AVSZ4();
@@ -768,9 +768,9 @@ namespace cura
 			if (r != 0)
 				cx::PreBattleReadAnimation(anim, cmd, (r & 0xFFFF0000u) | U16(st, 0xD8));
 		}
-		x::ComposeAffineTransform(0x1D97778, st + 0x14, st + 0x34);
+		x::ComposeAffineTransform(us(0x1D97778), st + 0x14, st + 0x34);
 		if ((U8(entity, 0) & 0x20) == 0)
-			U32(U32(st, 0xC), 0) = x::sub_5088A0(entity, MEM<uint32_t>(0x1D8E04C) + 0x4040, 0x10, U32(U32(st, 0xC), 0));
+			U32(U32(st, 0xC), 0) = x::sub_5088A0(entity, MEM<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, U32(U32(st, 0xC), 0));
 		OverlayLight(st);
 		RenderModel(U32(entity, 0x64), RenderOT44(), st);
 		const uint32_t second = U32(entity, 0x78);
@@ -786,20 +786,20 @@ namespace cura
 		FX_HELD(held_note_master();)
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = 0x889F00;
-		states[1] = 0x889F10;
-		states[2] = 0x88CEF0;
-		states[3] = 0x88CF20;
-		states[4] = 0x88CF40;
+		states[0] = us(0x889F00);
+		states[1] = us(0x889F10);
+		states[2] = us(0x88CEF0);
+		states[3] = us(0x88CF20);
+		states[4] = us(0x88CF40);
 		if (U8(node, 0x5C) & 1)
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_ODD);
+			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
 		else
-			MEM<uint32_t>(PACKET_CURSOR) = MEM<uint32_t>(ARENA_EVEN);
+			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(Q_EMITTER);
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_PLAYER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(Q_SPRITE));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PLAYER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPRITE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -836,18 +836,18 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = 0x889FE0;
-		states[1] = 0x88BB80;
-		states[2] = 0x88CBE0;
-		states[3] = 0x88CC10;
-		states[4] = 0x88CC40;
-		states[5] = 0x88CEA0;
-		states[6] = 0x88CEE0;
+		states[0] = us(0x889FE0);
+		states[1] = us(0x88BB80);
+		states[2] = us(0x88CBE0);
+		states[3] = us(0x88CC10);
+		states[4] = us(0x88CC40);
+		states[5] = us(0x88CEA0);
+		states[6] = us(0x88CEE0);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(SOUND_Cura, 0, 0x80);
+			x::BdPlaySE(us(SOUND_Cura), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -855,35 +855,35 @@ namespace cura
 
 	static uint32_t __cdecl SpawnFirst(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Glow, 0x84, a1);
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Glow), 0x84, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_RingSpawner, 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_SparkleSpawner, 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_LightTask, 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_RingSpawner), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_SparkleSpawner), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_LightTask), 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	static uint32_t __cdecl SpawnOverlay(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0x800;
-		x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Overlay, 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Overlay), 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	static uint32_t __cdecl SpawnAuraC00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0xC00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 	static uint32_t __cdecl SpawnAuraE00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Aura, 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0xE00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -893,7 +893,7 @@ namespace cura
 	{
 		if (S16(a1, 0x24) > 0xB)
 		{
-			x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_ParticleEmitter, 0xC8, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_ParticleEmitter), 0xC8, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return a1;
@@ -916,9 +916,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x88A230;
-		states[1] = 0x88A710;
-		states[2] = 0x88A730;
+		states[0] = us(0x88A230);
+		states[1] = us(0x88A710);
+		states[2] = us(0x88A730);
 		callp(states[S8(node, 0x29)], node);
 		DrawSprite(node);
 		const uint32_t colour = ArgSlotColour(node, 0x20);
@@ -933,12 +933,12 @@ namespace cura
 		const uint32_t node = a1;
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
-		U32(node, 0x4C) = SEQ_Glow;
+		U32(node, 0x4C) = us(SEQ_Glow);
 		U16(node, 0x52) = 3;
 		uint32_t angle = x::CrtRand() & 0xFFF;
 		for (int i = 8; i != 0; i--)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Swirl, 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Swirl), 0x84, node);
 			S32(t, 0x30) = 0x1000;
 			S32(t, 0x34) = 0x1000;
 			S32(t, 0x38) = 0x1000;
@@ -954,10 +954,10 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x88A610;
-		states[1] = 0x88A680;
-		states[2] = 0x88A6E0;
-		states[3] = 0x88A700;
+		states[0] = us(0x88A610);
+		states[1] = us(0x88A680);
+		states[2] = us(0x88A6E0);
+		states[3] = us(0x88A700);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x7C) = (uint16_t)(U16(node, 0x7C) + U16(node, 0x7E));
 		if (S16(node, 0x7C) < 0)
@@ -973,7 +973,7 @@ namespace cura
 		U16(node, 0x1C) = xw;
 		if ((U8(node, 0x26) & 0x10) == 0 && (U8(node, 0x24) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Mote, 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Mote), 0x84, node);
 			RandomOffset(t, 0x80);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
@@ -997,7 +997,7 @@ namespace cura
 		const uint32_t w20 = U32(node, 0x20);
 		U16(node, 0x78) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t w1c = U32(node, 0x1C);
-		U32(node, 0x4C) = SEQ_Swirl;
+		U32(node, 0x4C) = us(SEQ_Swirl);
 		U32(node, 0x68) = w1c;
 		U32(node, 0x6C) = w20;
 		U16(node, 0x52) = 1;
@@ -1020,7 +1020,7 @@ namespace cura
 		if (S16(node, 0x24) >= 0x10)
 		{
 			U16(node, 0x26) |= 0x10;
-			U32(node, 0x4C) = SEQ_SwirlEnd;
+			U32(node, 0x4C) = us(SEQ_SwirlEnd);
 			U16(node, 0x50) = 0;
 			U16(node, 0x52) = 6;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1032,9 +1032,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x88A550;
-		states[1] = 0x88A590;
-		states[2] = 0x88A600;
+		states[0] = us(0x88A550);
+		states[1] = us(0x88A590);
+		states[2] = us(0x88A600);
 		callp(states[S8(node, 0x29)], node);
 		if (S16(node, 0x1E) > 0)
 			U8(node, 0x26) |= 5;
@@ -1047,7 +1047,7 @@ namespace cura
 	static uint32_t __cdecl MoteStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = SEQ_Mote;
+		U32(node, 0x4C) = us(SEQ_Mote);
 		U16(node, 0x50) = 0;
 		U16(node, 0x52) = 0xA;
 		const uint32_t r = x::CrtRand();
@@ -1077,7 +1077,7 @@ namespace cura
 		S32(a1, 0x30) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x38) = 0x1000;
-		DecodeLayout(LAYOUT_Aura, a1 + 0x60, 0x64);
+		DecodeLayout(us(LAYOUT_Aura), a1 + 0x60, 0x64);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1086,7 +1086,7 @@ namespace cura
 	{
 		U32(fr, FR_BLOCK) = fr + FR_MATRIX;
 		U32(fr, FR_BLOCK + 4) = fr + FR_FLAGS;
-		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(BLEND_BUFFER);
+		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(us(BLEND_BUFFER));
 	}
 
 	static uint32_t __cdecl AuraPlay(uint32_t a1)
@@ -1103,7 +1103,7 @@ namespace cura
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(0x1D97778, m, m);
+		x::ComposeAffineTransform(us(0x1D97778), m, m);
 		FrameLinks(fr);
 		FX_HELD(held_note_play(node, fr);)
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
@@ -1121,11 +1121,11 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		int32_t i = 0;
-		if (S16(TAB_RINGS, S16(node, 0x24) * 2) > 0)
+		if (S16(us(TAB_RINGS), S16(node, 0x24) * 2) > 0)
 		{
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PLAYER, ORIG_Ring, 0xC8, node);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Ring), 0xC8, node);
 				S32(t, 0x30) = 0x1000;
 				S32(t, 0x34) = 0x1000;
 				S32(t, 0x38) = 0x1000;
@@ -1138,7 +1138,7 @@ namespace cura
 				if (x::CrtRand() & 1)
 					U16(t, 0x5C) = (uint16_t)(0x1000 - U16(t, 0x5C));
 				i++;
-			} while (i < S16(TAB_RINGS, S16(node, 0x24) * 2));
+			} while (i < S16(us(TAB_RINGS), S16(node, 0x24) * 2));
 		}
 		if (S16(node, 0x24) >= 0x12)
 		{
@@ -1159,9 +1159,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x88B710;
-		states[1] = 0x88B740;
-		states[2] = 0x88B7F0;
+		states[0] = us(0x88B710);
+		states[1] = us(0x88B740);
+		states[2] = us(0x88B7F0);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t a50 = (uint16_t)(U16(node, 0x58) + U16(node, 0x50));
 		const uint16_t a54 = (uint16_t)(U16(node, 0x5C) + U16(node, 0x54));
@@ -1174,7 +1174,7 @@ namespace cura
 
 	static uint32_t __cdecl RingStart(uint32_t a1)
 	{
-		DecodeLayout(LAYOUT_Ring, a1 + 0x60, 0x34);
+		DecodeLayout(us(LAYOUT_Ring), a1 + 0x60, 0x34);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1192,7 +1192,7 @@ namespace cura
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(0x1D97778, m, m);
+		x::ComposeAffineTransform(us(0x1D97778), m, m);
 		FrameLinks(fr);
 		FX_HELD(held_note_play(node, fr);)
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
@@ -1221,9 +1221,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(TAB_SPARKLES, S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(us(TAB_SPARKLES), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Sparkle, 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Sparkle), 0x84, node);
 			RandomOffset(t, 0x200);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
@@ -1242,9 +1242,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x88BAF0;
-		states[1] = 0x88BB40;
-		states[2] = 0x88BB60;
+		states[0] = us(0x88BAF0);
+		states[1] = us(0x88BB40);
+		states[2] = us(0x88BB60);
 		callp(states[S8(node, 0x29)], node);
 		DrawSprite(node);
 		const uint32_t angle = (uint32_t)(U16(node, 0x7A) + 0x40) & 0xFFF;
@@ -1262,13 +1262,13 @@ namespace cura
 		const uint32_t node = a1;
 		if (x::CrtRand() & 1)
 		{
-			U32(node, 0x4C) = SEQ_SparkleA;
-			U32(node, 0x70) = SEQ_SparkleA2;
+			U32(node, 0x4C) = us(SEQ_SparkleA);
+			U32(node, 0x70) = us(SEQ_SparkleA2);
 		}
 		else
 		{
-			U32(node, 0x4C) = SEQ_SparkleB;
-			U32(node, 0x70) = SEQ_SparkleB2;
+			U32(node, 0x4C) = us(SEQ_SparkleB);
+			U32(node, 0x70) = us(SEQ_SparkleB2);
 		}
 		const uint32_t r = x::CrtRand();
 		U16(node, 0x52) = 0xF;
@@ -1293,9 +1293,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(TAB_PARTICLES, S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(us(TAB_PARTICLES), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SPRITE, ORIG_Particle, 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Particle), 0x84, node);
 			U16(t, 0x1E) = (uint16_t)(U16(node, 0x1E) - 0x180);
 			RandomOffset(t, 0x200);
 		}
@@ -1311,9 +1311,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x88CE10;
-		states[1] = 0x88CE50;
-		states[2] = 0x88CE80;
+		states[0] = us(0x88CE10);
+		states[1] = us(0x88CE50);
+		states[2] = us(0x88CE80);
 		callp(states[S8(node, 0x29)], node);
 		if (S16(node, 0x1E) > 0)
 			U8(node, 0x26) |= 5;
@@ -1326,7 +1326,7 @@ namespace cura
 	static uint32_t __cdecl ParticleStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = SEQ_Mote;
+		U32(node, 0x4C) = us(SEQ_Mote);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0xFC00;
 		const uint32_t r = x::CrtRand();
@@ -1350,7 +1350,7 @@ namespace cura
 	static void SetLightWords(uint16_t v)
 	{
 		for (int k = 0; k < 4; k++)
-			U16(LIGHT_WORDS, k * 0x2C) = v;
+			U16(us(LIGHT_WORDS), k * 0x2C) = v;
 	}
 
 	static uint32_t __cdecl LightUp(uint32_t a1)
@@ -1392,24 +1392,24 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = 0x88C9E0;
-		states[1] = 0x88CB80;
-		states[2] = 0x88CBD0;
+		states[0] = us(0x88C9E0);
+		states[1] = us(0x88CB80);
+		states[2] = us(0x88CBD0);
 		callp(states[S8(node, 0x29)], node);
 		if (U8(node, 0x26) & 8)
 		{
 			alignas(4) uint8_t anchor[8] = {};
 			cx::CopyAnchorFromSource(node, P(anchor));
-			const uint32_t yaw = x::sub_8DD7B0(0x1D97778);
+			const uint32_t yaw = x::sub_8DD7B0(us(0x1D97778));
 			U16(node, 0x52) = (uint16_t)yaw;
 			const int32_t s = shl32((int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)yaw), 0xA);
 			U16(node, 0x1C) = (uint16_t)(s / 4096 + S32(P(anchor), 0));
 			const int32_t c = shl32((int32_t)x::computeCosine((uint32_t)(int32_t)S16(node, 0x52)), 0xA);
 			U16(node, 0x20) = (uint16_t)(c / 4096 + S32(P(anchor), 4));
-			U16(OVL_STATE, 0xB6) = U16(node, 0x1E);
-			OverlayParams(OVL_STATE, node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
+			U16(us(OVL_STATE), 0xB6) = U16(node, 0x1E);
+			OverlayParams(us(OVL_STATE), node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
 			FX_HELD(held_note_overlay(node);)
-			DrawOverlay(OVL_STATE);
+			DrawOverlay(us(OVL_STATE));
 			FX_HELD(held_note_overlay_end();)
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -1420,16 +1420,16 @@ namespace cura
 	static uint32_t __cdecl OverlayStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t entity = U8(node, 0x2D) * 0x9Cu + 0x1D972C0;
+		const uint32_t entity = U8(node, 0x2D) * 0x9Cu + us(0x1D972C0);
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
 		U16(node, 0x42) = (uint16_t)Div18(0x100 - (int32_t)S16(node, 0x1E));
-		OverlayInit(OVL_STATE, OVL_FIRST, OVL_LIGHT, LIT_VERTICES, entity, U8(node, 0x2D));
+		OverlayInit(us(OVL_STATE), us(OVL_FIRST), us(OVL_LIGHT), us(LIT_VERTICES), entity, U8(node, 0x2D));
 		U8(node, 0x26) |= 8;
 		U8(entity, 0) |= 4;
-		U8(OVL_STATE, 0xC4) = 0x40;
-		U8(OVL_STATE, 0xC5) = 0x40;
-		U8(OVL_STATE, 0xC6) = 0x40;
+		U8(us(OVL_STATE), 0xC4) = 0x40;
+		U8(us(OVL_STATE), 0xC5) = 0x40;
+		U8(us(OVL_STATE), 0xC6) = 0x40;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -1440,7 +1440,7 @@ namespace cura
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
 		if (S16(node, 0x24) >= 0x12)
 		{
-			const uint32_t entity = U8(node, 0x2D) * 0x9Cu + 0x1D972C0;
+			const uint32_t entity = U8(node, 0x2D) * 0x9Cu + us(0x1D972C0);
 			U16(entity, 0) &= 0xFFFB;
 			U8(U32(node, 0x10), 0x63) = 0;
 			U16(node, 0x26) = (uint16_t)((U16(node, 0x26) & 0xFFF7) | 1);

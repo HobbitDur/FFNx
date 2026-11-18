@@ -47,12 +47,12 @@ namespace sprite
 	static_assert(sizeof(SpriteNode) == 0x24, "sprite node");
 
 	inline bool Paused() { return (UpdateFlags() & 1) != 0; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x1D8E054)); }
 
 	static const uint8_t *SharedSequence()
 	{
-		const uint8_t *s = var<const uint8_t *>(0xC7E554 + 5 * 4);
-		if (*(const uint32_t *)s & 0xFF000000) s = var<const uint8_t *>(0xC7E554);
+		const uint8_t *s = var<const uint8_t *>(us(0xC7E554) + 5 * 4);
+		if (*(const uint32_t *)s & 0xFF000000) s = var<const uint8_t *>(us(0xC7E554));
 		return s;
 	}
 
@@ -101,7 +101,7 @@ namespace sprite
 	static uint32_t Tick(TaskNode *n, bool shared)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_draw(shared ? ORIG_SharedSprite : ORIG_Sprite, s);)
+		FX_HELD(held_note_draw(shared ? us(ORIG_SharedSprite) : us(ORIG_Sprite), s);)
 		const int16_t next = Draw(s, shared ? SharedSequence() : s->seq, s->frame, shared);
 		FX_HELD(held_note_drawn(s);)
 		if (Paused()) return 0;

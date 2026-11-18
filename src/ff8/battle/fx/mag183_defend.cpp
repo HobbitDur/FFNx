@@ -23,10 +23,10 @@ namespace defend183
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x22F4210); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(0x22F4214); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x230421C); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x22F33F0; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x22F4210)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x22F4214)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x230421C)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x22F33F0); }
 	static const uint32_t ARENA0 = 0x22F421C, ARENA1 = 0x22FC21C, ARENA_SIZE = 0x8000;
 
 	static const uint32_t ORIG_RootTask = 0x5C9F80;
@@ -35,11 +35,11 @@ namespace defend183
 	static const uint32_t ORIG_ShieldB = 0x5C9DD0;
 	static const uint32_t MODEL_ShieldA = 0xD348C4, MODEL_ShieldB = 0xD34CE4;
 	static const uint32_t SHIELD_COLOURS = 0xD3933C;
-	static const void *const SOUND_Defend = (const void *)0xD39304;
+	static const void *SOUND_Defend() { return (const void *)us(0xD39304); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatrixMultiplySVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void MatrixMultiplySVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x650720))(h, ot, mode, cursor); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -144,7 +144,7 @@ namespace defend183
 	static ShieldDraw ShieldAState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
-		d.model = MODEL_ShieldA;
+		d.model = us(MODEL_ShieldA);
 		d.front = -600;
 		d.scale = scale;
 		d.scroll = mul32(counter, -10);
@@ -158,13 +158,13 @@ namespace defend183
 	static ShieldDraw ShieldBState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
-		d.model = MODEL_ShieldB;
+		d.model = us(MODEL_ShieldB);
 		d.front = 200;
 		d.scale = scale;
 		d.scroll = mul32(counter, -6);
 		d.fade_on = counter < 4 || counter >= 0x10;
 		d.fade = counter < 4 ? shl32(4 - counter, 10) : counter >= 0x10 ? shl32(counter - 0x10, 10) : 0;
-		d.colour = var<uint32_t>(SHIELD_COLOURS + (uint32_t)((int32_t)counter % 10) * 4);
+		d.colour = var<uint32_t>(us(SHIELD_COLOURS) + (uint32_t)((int32_t)counter % 10) * 4);
 		d.b = true;
 		return d;
 	}
@@ -182,7 +182,7 @@ namespace defend183
 	static uint32_t __cdecl ShieldATask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_shield(ORIG_ShieldA, t);)
+		FX_HELD(held_note_shield(us(ORIG_ShieldA), t);)
 		DrawShield(t, ShieldAState(t->counter, t->scale));
 		if (DrawOnly()) return 0;
 		t->scale = (int16_t)(t->scale - t->step);
@@ -193,7 +193,7 @@ namespace defend183
 	static uint32_t __cdecl ShieldBTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_shield(ORIG_ShieldB, t);)
+		FX_HELD(held_note_shield(us(ORIG_ShieldB), t);)
 		DrawShield(t, ShieldBState(t->counter, t->scale));
 		if (DrawOnly()) return 0;
 		t->counter++;
@@ -207,7 +207,7 @@ namespace defend183
 		if (t->counter == 0) GetEffectSpawnPosition(Caster(), 0xF1, 0, t->pos);
 		if (t->counter == 1)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_ShieldA);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_ShieldA));
 			*(uint32_t *)&s->pos[0] = *(const uint32_t *)&t->pos[0];
 			*(uint32_t *)&s->pos[2] = *(const uint32_t *)&t->pos[2];
 			s->counter = 0;
@@ -217,7 +217,7 @@ namespace defend183
 		}
 		if (t->counter == 6)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_ShieldB);
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_ShieldB));
 			*(uint32_t *)&s->pos[0] = *(const uint32_t *)&t->pos[0];
 			*(uint32_t *)&s->pos[2] = *(const uint32_t *)&t->pos[2];
 			s->counter = 0;
@@ -229,7 +229,7 @@ namespace defend183
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Caster(), pos);
-			BdPlaySE3D(SOUND_Defend, 0, pos);
+			BdPlaySE3D(SOUND_Defend(), 0, pos);
 		}
 		t->counter++;
 		return t->counter > 0x23 ? TASK_END : 0;
@@ -238,8 +238,8 @@ namespace defend183
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = ARENA1;
-		if (!(r->counter & 1)) PacketCursor() = ARENA0;
+		PacketCursor() = us(ARENA1);
+		if (!(r->counter & 1)) PacketCursor() = us(ARENA0);
 		FX_HELD(held_note_root();)
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;

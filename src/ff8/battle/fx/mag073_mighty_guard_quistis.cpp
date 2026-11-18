@@ -33,7 +33,7 @@ namespace mguard_quistis
 	static const uint32_t COM_Anim = 0x1587F4C;
 	static const uint32_t CAMERA_PTR = 0x25F3F84;
 	static const uint32_t ACTOR_DATA = 0x178557C;
-	static const void *const SOUND = (const void *)0x1587F48;
+	static const void *SOUND() { return (const void *)us(0x1587F48); }
 	static const uint32_t Q_EMITTER = 0x25F4DA0, Q_ACTORS = 0x25F4B00, Q_STAGE = 0x25F4D90;
 	static const uint32_t ORIG_Master = 0x7CBEE0;
 	static const uint32_t ORIG_Emitter = 0x7CC220;
@@ -43,11 +43,11 @@ namespace mguard_quistis
 
 	namespace gx
 	{
-		static inline uint32_t BS_BindEntityModelFromComData(uint32_t entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-		static inline uint32_t QueueChainTransformation(uint32_t entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(entity, id); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
+		static inline uint32_t BS_BindEntityModelFromComData(uint32_t entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+		static inline uint32_t QueueChainTransformation(uint32_t entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(entity, id); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -354,7 +354,7 @@ namespace mguard_quistis
 		U32(node, 0xA0) = (uint32_t)h4_div65536(S32(src, 0));
 		U32(node, 0xA4) = (uint32_t)h4_div65536(S32(src, 4));
 		U32(node, 0xA8) = (uint32_t)h4_div65536(S32(src, 8));
-		x::GTE_SetRotMatrix(MEM<uint32_t>(CAMERA_PTR));
+		x::GTE_SetRotMatrix(MEM<uint32_t>(us(CAMERA_PTR)));
 		x::GTE_LoadIRFromMatrixColumn(node + 0x8C);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(node + 0xAC);
@@ -364,7 +364,7 @@ namespace mguard_quistis
 		x::GTE_LoadIRFromMatrixColumn(node + 0x90);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(node + 0xB0);
-		x::GTE_SetTransVector(MEM<uint32_t>(CAMERA_PTR));
+		x::GTE_SetTransVector(MEM<uint32_t>(us(CAMERA_PTR)));
 		x::GTE_LoadV0FromDwords(node + 0xA0);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(node + 0xC0);
@@ -393,13 +393,13 @@ namespace mguard_quistis
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				break;
 			case 2:
-				x::UnpackRotationMatrix(MEM<uint32_t>(CAMERA_PTR), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(us(CAMERA_PTR)), m);
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				break;
 			case 3:
-				x::UnpackRotationMatrix(MEM<uint32_t>(CAMERA_PTR), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(us(CAMERA_PTR)), m);
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
@@ -471,16 +471,16 @@ namespace mguard_quistis
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(0x25F4F60);
-		MEM<uint32_t>(0x25F4F1C) = p;
+		uint32_t p = MEM<uint32_t>(us(0x25F4F60));
+		MEM<uint32_t>(us(0x25F4F1C)) = p;
 		p += 0xEC4;
-		MEM<uint32_t>(0x25F4F58) = p;
+		MEM<uint32_t>(us(0x25F4F58)) = p;
 		p += 0x10680;
-		MEM<uint32_t>(0x25F4F60) = p;
+		MEM<uint32_t>(us(0x25F4F60)) = p;
 		mq_7CC0C0();
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, ORIG_Darken, 0x40, a1);
-		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C;
-		gx::BS_BindEntityModelFromComData(ent, BIND_Block, COM_Anim);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(ORIG_Darken), 0x40, a1);
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2C) * 0x9C;
+		gx::BS_BindEntityModelFromComData(ent, us(BIND_Block), us(COM_Anim));
 		gx::QueueChainTransformation(ent, 1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -488,12 +488,12 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC0C0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25F4F1C), 0xEC4);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25F4F58), 0x10680);
-		MEM<uint16_t>(0x25F4060) = 0;
-		MEM<uint16_t>(0x25F4F28) = 0;
-		MEM<uint16_t>(0x25F4F18) = 0;
-		MEM<uint16_t>(0x25F3F68) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25F4F1C)), 0xEC4);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25F4F58)), 0x10680);
+		MEM<uint16_t>(us(0x25F4060)) = 0;
+		MEM<uint16_t>(us(0x25F4F28)) = 0;
+		MEM<uint16_t>(us(0x25F4F18)) = 0;
+		MEM<uint16_t>(us(0x25F3F68)) = 0;
 		return 0;
 	}
 
@@ -501,15 +501,15 @@ namespace mguard_quistis
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = 0x7CC2B0;
-		states[1] = 0x7D1C40;
-		states[2] = 0x7D1C60;
-		states[3] = 0x7D1CA0;
+		states[0] = us(0x7CC2B0);
+		states[1] = us(0x7D1C40);
+		states[2] = us(0x7D1C60);
+		states[3] = us(0x7D1CA0);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0x10)
-			x::BdPlaySE(P(SOUND), 0, 0x80);
+			x::BdPlaySE(P(SOUND()), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -556,12 +556,12 @@ namespace mguard_quistis
 		U32(st, 0x228) = data + 0x44;
 		U32(st, 0x22C) = data + 0x84;
 		const uint32_t relocated = U32(data, 0);
-		MEM<uint32_t>(ACTOR_STATE) = st;
+		MEM<uint32_t>(us(ACTOR_STATE)) = st;
 		U32(st, 0x230) = data + 0xC4;
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 			U32(data, 0) = 1;
 		}
 		U16(st, 0x1E) = caster;
@@ -575,32 +575,32 @@ namespace mguard_quistis
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		mq_7CC630();
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(us(ACTOR_STATE));
 		if (U16(st, 0x24) == 4)
 			mq_7CC550(node);
 		mq_7CC980();
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(us(ACTOR_STATE));
 		if (U16(st, 0x24) == 1)
 		{
 			mq_7CC790();
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
-		const uint32_t e1 = 0x1D972C0 + (uint32_t)mul32(S16(st, 0x1E), 0x9C);
+		const uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(S16(st, 0x1E), 0x9C);
 		const uint32_t d0c = U32(e1, 0x1C);
 		const uint32_t d10 = U32(e1, 0x20);
-		const uint32_t e2 = 0x1D972C0 + (uint32_t)mul32((int32_t)U32(st, 4), 0x9C);
+		const uint32_t e2 = us(0x1D972C0) + (uint32_t)mul32((int32_t)U32(st, 4), 0x9C);
 		const uint32_t d14 = U32(e2, 0x1C);
 		const int32_t dx = (int16_t)(uint16_t)((uint16_t)d0c - (uint16_t)d14);
 		const int32_t dy = (int16_t)(uint16_t)((uint16_t)(d0c >> 16) - (uint16_t)(d14 >> 16));
 		const int32_t dz = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)U32(e2, 0x20));
 		const int32_t sq = add32(add32(mul32(dx, dx), mul32(dz, dz)), mul32(dy, dy));
 		const uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(ACTOR_STATE);
+		st = MEM<uint32_t>(us(ACTOR_STATE));
 		U32(st, 0) = dist;
 		return 0;
 	}
@@ -608,9 +608,9 @@ namespace mguard_quistis
 	uint32_t __cdecl mq_7CCEE0(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t act = a1;
-		const uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
 		U32(ctx, 0) = U32(act, 0x170);
-		MEM<uint32_t>(SCRATCH_SP) = ctx;
+		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
 		U32(ctx, 0x14) = 0;
 		if (U16(a2, 0x3A) == 0)
 			U32(ctx, 0x14) = 0x30;
@@ -631,7 +631,7 @@ namespace mguard_quistis
 		if (def_idx == 4 || def_idx == 5)
 		{
 			U16(ctx, 0x2A) = 0x100;
-			const uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+			const uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 			U16(ctx, 0x24) = 0;
 			U16(ctx, 0x26) = 0;
 			U16(ctx, 0x28) = 0x80;
@@ -655,9 +655,9 @@ namespace mguard_quistis
 			const uint32_t m = act + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-			const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = mq_7CD090(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+			MEM<uint32_t>(us(PACKET_CURSOR)) = mq_7CD090(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -671,23 +671,23 @@ namespace mguard_quistis
 				S32(act, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-				const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 				const uint32_t r = mq_7CD090(ctx, ot, 2, cursor);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
 			} while (i < S8(act, 0x1D8));
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(us(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl mq_7D0460(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25F4F1C);
-		int32_t idx = (int32_t)MEM<int16_t>(0x25F4060);
+		const uint32_t pool = MEM<uint32_t>(us(0x25F4F1C));
+		int32_t idx = (int32_t)MEM<int16_t>(us(0x25F4060));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -697,7 +697,7 @@ namespace mguard_quistis
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(st, 0x14) = (uint16_t)(U16(st, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -712,9 +712,9 @@ namespace mguard_quistis
 		} while (tries < 0x23);
 		idx++;
 		if (idx < 0x22)
-			MEM<uint16_t>(0x25F4060) = (uint16_t)idx;
+			MEM<uint16_t>(us(0x25F4060)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x25F4060) = 0;
+			MEM<uint16_t>(us(0x25F4060)) = 0;
 		return slot;
 	}
 
@@ -742,42 +742,42 @@ namespace mguard_quistis
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
-		MEM<uint32_t>(0x25F3F84) = 0x2793E58;
-		states[0] = 0x7CC020;
+		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x25F3F84)) = us(0x2793E58);
+		states[0] = us(0x7CC020);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = 0x7CC030;
-		states[2] = 0x7CC040;
-		states[3] = 0x7CC1F0;
-		states[4] = 0x7D1CB0;
-		states[5] = 0x7D1D00;
-		states[6] = 0x7D1E00;
-		states[7] = 0x7D1E10;
-		states[8] = 0x7D1E20;
-		states[9] = 0x7D1E30;
-		states[10] = 0x7D1E50;
+		states[1] = us(0x7CC030);
+		states[2] = us(0x7CC040);
+		states[3] = us(0x7CC1F0);
+		states[4] = us(0x7D1CB0);
+		states[5] = us(0x7D1D00);
+		states[6] = us(0x7D1E00);
+		states[7] = us(0x7D1E10);
+		states[8] = us(0x7D1E20);
+		states[9] = us(0x7D1E30);
+		states[10] = us(0x7D1E50);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25F4F14);
-			const uint32_t v2 = MEM<uint32_t>(0x25F406C);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x25F3F80) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x25F4F14));
+			const uint32_t v2 = MEM<uint32_t>(us(0x25F406C));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x25F3F80)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25F4F10);
-			const uint32_t v2 = MEM<uint32_t>(0x25F4068);
-			MEM<uint32_t>(PACKET_CURSOR) = v1;
-			MEM<uint32_t>(0x25F3F80) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x25F4F10));
+			const uint32_t v2 = MEM<uint32_t>(us(0x25F4068));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(us(0x25F3F80)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x25F4F2A) = 0;
-		MEM<uint16_t>(0x25F4F1A) = 0;
-		static const uint32_t queues[3] = { Q_EMITTER, Q_ACTORS, Q_STAGE };
+		MEM<uint16_t>(us(0x25F4F2A)) = 0;
+		MEM<uint16_t>(us(0x25F4F1A)) = 0;
+		static const uint32_t queues[3] = { us(Q_EMITTER), us(Q_ACTORS), us(Q_STAGE) };
 		for (int i = 0; i < 3; i++)
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
 		const uint8_t status = U8(node, 0x26);
@@ -797,7 +797,7 @@ namespace mguard_quistis
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -805,14 +805,14 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC2B0(uint32_t a1)
 	{
-		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0xC, 0x2D, 0);
+		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0xC, 0x2D, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl mq_7CC550(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25F4F64);
+		const uint32_t arena = MEM<uint32_t>(us(0x25F4F64));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -829,15 +829,15 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC630(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -850,7 +850,7 @@ namespace mguard_quistis
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -858,7 +858,7 @@ namespace mguard_quistis
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(ACTOR_STATE);
+			st = MEM<uint32_t>(us(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -873,7 +873,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC790(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25F4F64);
+		const uint32_t arena = MEM<uint32_t>(us(0x25F4F64));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -894,7 +894,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC980(void)
 	{
-		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
+		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -903,11 +903,11 @@ namespace mguard_quistis
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = 0x1D972C0 + slot * 0x9C;
+				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -920,7 +920,7 @@ namespace mguard_quistis
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -928,7 +928,7 @@ namespace mguard_quistis
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(ACTOR_STATE);
+					st = MEM<uint32_t>(us(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -970,7 +970,7 @@ namespace mguard_quistis
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x25F4F64, 0) = sys;
+		U32(us(0x25F4F64), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -983,7 +983,7 @@ namespace mguard_quistis
 			FX_HELD(held_note_system(sys);)
 			mq_7CF0F0();
 			mq_7CCE80();
-			sys = U32(0x25F4F64, 0);
+			sys = U32(us(0x25F4F64), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -996,19 +996,19 @@ namespace mguard_quistis
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x25F4F2A, 0) = (uint16_t)(U16(0x25F4F2A, 0) + c14);
-		U16(0x25F4F1A, 0) = (uint16_t)(U16(0x25F4F1A, 0) + c16);
+		U16(us(0x25F4F2A), 0) = (uint16_t)(U16(us(0x25F4F2A), 0) + c14);
+		U16(us(0x25F4F1A), 0) = (uint16_t)(U16(us(0x25F4F1A), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl mq_7CCE80(void)
 	{
-		uint32_t act = U32(U32(0x25F4F64, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x25F4F64), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x25F4F64, 0);
+				uint32_t sys = U32(us(0x25F4F64), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1734,14 +1734,14 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CF0F0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x25F4F64), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(us(0x25F4F64)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x25F4F64);
+				uint32_t st = MEM<uint32_t>(us(0x25F4F64));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1776,26 +1776,26 @@ namespace mguard_quistis
 	uint32_t __cdecl mq_7CF1B0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl mq_7CF230(void)
 	{
-		uint32_t act = U32(U32(0x25F4F64, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x25F4F64), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1811,7 +1811,7 @@ namespace mguard_quistis
 	uint32_t __cdecl mq_7CF270(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x25F4F64);
+		uint32_t st = MEM<uint32_t>(us(0x25F4F64));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1832,7 +1832,7 @@ namespace mguard_quistis
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x25F4F64);
+			st = MEM<uint32_t>(us(0x25F4F64));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1844,7 +1844,7 @@ namespace mguard_quistis
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x25F4F64, 0);
+		uint32_t st = U32(us(0x25F4F64), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1934,9 +1934,9 @@ namespace mguard_quistis
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(0x7D0EB0, a1);
+			callp(us(0x7D0EB0), a1);
 		else if (mode == 4)
-			callp(0x7D1000, a1);
+			callp(us(0x7D1000), a1);
 		mq_7D0580(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1945,7 +1945,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7D0580(uint32_t a1)
 	{
-		uint32_t sys = U32(0x25F4F64, 0);
+		uint32_t sys = U32(us(0x25F4F64), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1972,9 +1972,9 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7D0600(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = MEM<uint32_t>(SCRATCH_SP) - 0x50;
+		uint32_t sp = MEM<uint32_t>(us(SCRATCH_SP)) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		MEM<uint32_t>(SCRATCH_SP) = sp;
+		MEM<uint32_t>(us(SCRATCH_SP)) = sp;
 		uint32_t node = a_7387B0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1984,7 +1984,7 @@ namespace mguard_quistis
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = MEM<uint32_t>(ACTOR_STATE);
+			uint32_t ctx = MEM<uint32_t>(us(ACTOR_STATE));
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2152,14 +2152,14 @@ namespace mguard_quistis
 			}
 		}
 		mq_7D1AF0(node, desc);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0x50;
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl mq_7D1000(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(0x25F4F64, 0);
+		const uint32_t st = U32(us(0x25F4F64), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2219,7 +2219,7 @@ namespace mguard_quistis
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(0x25F4F64, 0);
+				uint32_t g = U32(us(0x25F4F64), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2229,7 +2229,7 @@ namespace mguard_quistis
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(0x25F4F64, 0);
+				uint32_t g = U32(us(0x25F4F64), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2304,7 +2304,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7D1B80(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x25F4F64);
+		uint32_t dir = MEM<uint32_t>(us(0x25F4F64));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2329,14 +2329,14 @@ namespace mguard_quistis
 				do
 				{
 					mq_7D0460(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x25F4F64);
+					dir = MEM<uint32_t>(us(0x25F4F64));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				mq_7D0460(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x25F4F64);
+				dir = MEM<uint32_t>(us(0x25F4F64));
 			}
 		}
 		return 0;
@@ -2368,7 +2368,7 @@ namespace mguard_quistis
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x7D1D30, 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x7D1D30), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2392,7 +2392,7 @@ namespace mguard_quistis
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;

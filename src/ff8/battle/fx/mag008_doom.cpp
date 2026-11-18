@@ -41,17 +41,17 @@ namespace doom
 
 	namespace dx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DE50)(a1); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DCF0)(a1, a2, a3); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(0x4607E0)(); }
-		static inline uint32_t GTE_StoreSXY012_PolyFT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E2E0)(a1); }
-		static inline uint32_t GTE_StoreSXY012_PolyFT3_2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E320)(a1); }
-		static inline uint32_t GTE_LoadV012_Packed(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E020)(a1); }
-		static inline uint32_t GTE_StoreSXY012_PolyG4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E2C0)(a1); }
-		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x8DDA50)(a1, a2, a3); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
+		static inline uint32_t GTE_StoreSXY012_PolyFT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2E0))(a1); }
+		static inline uint32_t GTE_StoreSXY012_PolyFT3_2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E320))(a1); }
+		static inline uint32_t GTE_LoadV012_Packed(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E020))(a1); }
+		static inline uint32_t GTE_StoreSXY012_PolyG4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2C0))(a1); }
+		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDA50))(a1, a2, a3); }
 	}
 	using namespace dx;
 	namespace gx = dx;
@@ -110,7 +110,7 @@ namespace doom
 		return 0;
 	}
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
-	static inline uint32_t t1_data() { return MEM<uint32_t>(PHASE_DATA); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(us(PHASE_DATA)); }
 	static inline void t1_next_state(uint32_t node) { next_state(node); }
 	static inline void t4_next_state(uint32_t node) { next_state(node); }
 	static inline void b103_next_state(uint32_t node) { next_state(node); }
@@ -285,12 +285,12 @@ namespace doom
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(0x275F9D8);
-		MEM<uint32_t>(0x275F3EC) = p;
+		uint32_t p = MEM<uint32_t>(us(0x275F9D8));
+		MEM<uint32_t>(us(0x275F3EC)) = p;
 		p += 0x438;
-		MEM<uint32_t>(0x275F980) = p;
+		MEM<uint32_t>(us(0x275F980)) = p;
 		p += 0x6900;
-		MEM<uint32_t>(0x275F9D8) = p;
+		MEM<uint32_t>(us(0x275F9D8)) = p;
 		dm_8C4D20();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -298,12 +298,12 @@ namespace doom
 
 	uint32_t __cdecl dm_8C4D20(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x275F3EC), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x275F980), 0x6900);
-		MEM<uint16_t>(0x275ABD8) = 0;
-		MEM<uint16_t>(0x275F508) = 0;
-		MEM<uint16_t>(0x275F238) = 0;
-		MEM<uint16_t>(0x2758508) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x275F3EC)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x275F980)), 0x6900);
+		MEM<uint16_t>(us(0x275ABD8)) = 0;
+		MEM<uint16_t>(us(0x275F508)) = 0;
+		MEM<uint16_t>(us(0x275F238)) = 0;
+		MEM<uint16_t>(us(0x2758508)) = 0;
 		return 0;
 	}
 
@@ -311,8 +311,8 @@ namespace doom
 	{
 		dm_8C52C0(a1);
 		dm_8C4E60();
-		x::Effect_AddTaskAndInitFromCtx(0x275F918, 0x8C4F60, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2758860, 0x8C5350, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x275F918), us(0x8C4F60), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2758860), us(0x8C5350), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
@@ -342,14 +342,14 @@ namespace doom
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x1634F24, 0, 0x80);
+		x::BdPlaySE(us(0x1634F24), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
 
 	uint32_t __cdecl dm_8C5610(uint32_t a1)
 	{
-		uint32_t blk = U32(0x1634F20, 0);
+		uint32_t blk = U32(us(0x1634F20), 0);
 		if (S16(blk, 0x46) <= 0x2D) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -368,7 +368,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8C5860(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x275DF38, a2, 0x458, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x275DF38), a2, 0x458, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -1112,7 +1112,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8C8B10(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x275F9DC);
+		const uint32_t arena = MEM<uint32_t>(us(0x275F9DC));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1129,7 +1129,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8C8D90(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x275F9DC);
+		const uint32_t arena = MEM<uint32_t>(us(0x275F9DC));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1152,7 +1152,7 @@ namespace doom
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x275F9DC, 0) = sys;
+		U32(us(0x275F9DC), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1165,7 +1165,7 @@ namespace doom
 			FX_HELD(held_note_system(sys);)
 			dm_8C9690();
 			dm_8C94D0();
-			sys = U32(0x275F9DC, 0);
+			sys = U32(us(0x275F9DC), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1178,19 +1178,19 @@ namespace doom
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x275F910, 0) = (uint16_t)(U16(0x275F910, 0) + c14);
-		U16(0x275F3E8, 0) = (uint16_t)(U16(0x275F3E8, 0) + c16);
+		U16(us(0x275F910), 0) = (uint16_t)(U16(us(0x275F910), 0) + c14);
+		U16(us(0x275F3E8), 0) = (uint16_t)(U16(us(0x275F3E8), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl dm_8C94D0(void)
 	{
-		uint32_t act = U32(U32(0x275F9DC, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x275F9DC), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x275F9DC, 0);
+				uint32_t sys = U32(us(0x275F9DC), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1204,10 +1204,10 @@ namespace doom
 
 	uint32_t __cdecl dm_8C9530(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(us(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1235,7 +1235,7 @@ namespace doom
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(0x1D8E054) = dm_8C5DD0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+			MEM<uint32_t>(us(0x1D8E054)) = dm_8C5DD0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		}
 		else if (copies > 0)
 		{
@@ -1247,24 +1247,24 @@ namespace doom
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(0x1D8E054) = dm_8C5DD0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+				MEM<uint32_t>(us(0x1D8E054)) = dm_8C5DD0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(us(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl dm_8C9690(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x275F9DC), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(us(0x275F9DC)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x275F9DC);
+				uint32_t st = MEM<uint32_t>(us(0x275F9DC));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1299,26 +1299,26 @@ namespace doom
 	uint32_t __cdecl dm_8C9750(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl dm_8C97D0(void)
 	{
-		uint32_t act = U32(U32(0x275F9DC, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x275F9DC), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1334,7 +1334,7 @@ namespace doom
 	uint32_t __cdecl dm_8C9810(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x275F9DC);
+		uint32_t st = MEM<uint32_t>(us(0x275F9DC));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1355,7 +1355,7 @@ namespace doom
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x275F9DC);
+			st = MEM<uint32_t>(us(0x275F9DC));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1367,7 +1367,7 @@ namespace doom
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x275F9DC, 0);
+		uint32_t st = U32(us(0x275F9DC), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1450,8 +1450,8 @@ namespace doom
 
 	uint32_t __cdecl dm_8CAA00(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x275F3EC);
-		int32_t idx = MEM<int16_t>(0x275ABD8);
+		const uint32_t pool = MEM<uint32_t>(us(0x275F3EC));
+		int32_t idx = MEM<int16_t>(us(0x275ABD8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1461,7 +1461,7 @@ namespace doom
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1476,9 +1476,9 @@ namespace doom
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(0x275ABD8) = (uint16_t)idx;
+			MEM<uint16_t>(us(0x275ABD8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(0x275ABD8) = 0;
+			MEM<uint16_t>(us(0x275ABD8)) = 0;
 		return slot;
 	}
 
@@ -1491,9 +1491,9 @@ namespace doom
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(0x8CB450, a1);
+			callp(us(0x8CB450), a1);
 		else if (mode == 4)
-			callp(0x8CB5A0, a1);
+			callp(us(0x8CB5A0), a1);
 		dm_8CAB20(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1502,7 +1502,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8CAB20(uint32_t a1)
 	{
-		uint32_t sys = U32(0x275F9DC, 0);
+		uint32_t sys = U32(us(0x275F9DC), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1529,9 +1529,9 @@ namespace doom
 
 	uint32_t __cdecl dm_8CABA0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(0x275F92C, 0) - 0x50;
+		uint32_t sp = U32(us(0x275F92C), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x275F92C, 0) = sp;
+		U32(us(0x275F92C), 0) = sp;
 		uint32_t node = dm_8CB380(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1541,7 +1541,7 @@ namespace doom
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x275F9DC, 0);
+			uint32_t ctx = U32(us(0x275F9DC), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1709,14 +1709,14 @@ namespace doom
 			}
 		}
 		dm_8CC090(node, desc);
-		U32(0x275F92C, 0) = U32(0x275F92C, 0) + 0x50;
+		U32(us(0x275F92C), 0) = U32(us(0x275F92C), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl dm_8CB380(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x275F980);
-		int32_t i = MEM<int16_t>(0x275F508);
+		const uint32_t pool = MEM<uint32_t>(us(0x275F980));
+		int32_t i = MEM<int16_t>(us(0x275F508));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1729,7 +1729,7 @@ namespace doom
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1746,16 +1746,16 @@ namespace doom
 		}
 		i++;
 		if (i >= 0x27)
-			MEM<uint16_t>(0x275F508) = 0;
+			MEM<uint16_t>(us(0x275F508)) = 0;
 		else
-			MEM<uint16_t>(0x275F508) = (uint16_t)i;
+			MEM<uint16_t>(us(0x275F508)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl dm_8CB5A0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(0x275F9DC, 0);
+		const uint32_t st = U32(us(0x275F9DC), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1815,7 +1815,7 @@ namespace doom
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(0x275F9DC, 0);
+				uint32_t g = U32(us(0x275F9DC), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1825,7 +1825,7 @@ namespace doom
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(0x275F9DC, 0);
+				uint32_t g = U32(us(0x275F9DC), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1900,7 +1900,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8CC120(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x275F9DC);
+		uint32_t dir = MEM<uint32_t>(us(0x275F9DC));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1925,14 +1925,14 @@ namespace doom
 				do
 				{
 					dm_8CAA00(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x275F9DC);
+					dir = MEM<uint32_t>(us(0x275F9DC));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				dm_8CAA00(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x275F9DC);
+				dir = MEM<uint32_t>(us(0x275F9DC));
 			}
 		}
 		return 0;
@@ -1960,7 +1960,7 @@ namespace doom
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1977,7 +1977,7 @@ namespace doom
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1995,9 +1995,9 @@ namespace doom
 			S32(a1, 0x88) = S16(a1, 0x4E);
 			S32(a1, 0x8C) = S16(a1, 0x50);
 			x::scale3DMatrix(a1 + 0x70, a1 + 0x114);
-			return dm_8CC6B0(REAPER_CTX);
+			return dm_8CC6B0(us(REAPER_CTX));
 		}
-		MEM<uint32_t>(PACKET_CURSOR) = a_746C10(a1, 0x275E838, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(a1, us(0x275E838), MEM<uint32_t>(us(PACKET_CURSOR)));
 		return 0;
 	}
 
@@ -2008,7 +2008,7 @@ namespace doom
 		ff8fx::copy<(32)>((void *)ctx, (const void *)(blk + 0x40));
 		const uint32_t anim = blk + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(ctx);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x20);
@@ -2018,16 +2018,16 @@ namespace doom
 		x::GTE_LoadIRFromMatrixColumn(ctx + 4);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x24);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(ctx + 0x14);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(ctx + 0x34);
-		const uint32_t shadow = x::sub_5088A0(blk, MEM<uint32_t>(0x1D8E04C) + 0x4040, 0x10, MEM<uint32_t>(U32(ctx, 0x4C)));
+		const uint32_t shadow = x::sub_5088A0(blk, MEM<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, MEM<uint32_t>(U32(ctx, 0x4C)));
 		MEM<uint32_t>(U32(ctx, 0x4C)) = shadow;
-		dm_8CC7B0(U32(blk, 0x64), MEM<uint32_t>(0x1D8E04C) + 0x44, 4, ctx);
+		dm_8CC7B0(U32(blk, 0x64), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
 		const uint32_t second = U32(blk, 0x78);
 		if (second != 0)
-			dm_8CC7B0(U32(second, 4), MEM<uint32_t>(0x1D8E04C) + 0x44, 4, ctx);
+			dm_8CC7B0(U32(second, 4), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
 		return 0;
 	}
@@ -2037,8 +2037,8 @@ namespace doom
 		x::MAG_007_sub_8DCC00(a1, 0x278);
 		U32(a1, 0x48) = a4;
 		U32(a1, 0x40) = a2;
-		U32(a1, 0x4C) = PACKET_CURSOR;
-		U32(a1, 0x50) = PACKET_CURSOR;
+		U32(a1, 0x4C) = us(PACKET_CURSOR);
+		U32(a1, 0x50) = us(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(a1, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -2107,7 +2107,7 @@ namespace doom
 	uint32_t __cdecl dm_8CD430(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t amb = MEM<uint32_t>(0xB8B9A8);
+		const uint32_t amb = MEM<uint32_t>(us(0xB8B9A8));
 		const int32_t level = S16(node, 0x13C);
 		const uint8_t c0 = (uint8_t)(amb & 0xFF);
 		const uint8_t c1 = (uint8_t)((amb >> 8) & 0xFF);
@@ -2115,7 +2115,7 @@ namespace doom
 		U8(node, 0x5C) = (uint8_t)(c0 - (uint8_t)d0);
 		const int32_t d1 = mul32((int32_t)c1, level) / 4096;
 		U8(node, 0x5D) = (uint8_t)(c1 - (uint8_t)d1);
-		const uint8_t c2 = MEM<uint8_t>(0xB8B9AA);
+		const uint8_t c2 = MEM<uint8_t>(us(0xB8B9AA));
 		const int32_t d2 = mul32((int32_t)c2, level) / 4096;
 		U8(node, 0x5E) = (uint8_t)(c2 - (uint8_t)d2);
 		return 0;
@@ -2123,7 +2123,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8CD670(uint32_t a1)
 	{
-		uint32_t tab[3] = { 0x8CDE40, 0x8CDE60, 0x8CDEB0 };
+		uint32_t tab[3] = { us(0x8CDE40), us(0x8CDE60), us(0x8CDEB0) };
 		callp(tab[S8(a1, 0x29)], a1);
 		FX_HELD(held_note_sparkle(a1);)
 		uint32_t v = a1 + 0x8E;
@@ -2160,7 +2160,7 @@ namespace doom
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(0x1D97778, mat);
+		x::UnpackRotationMatrix(us(0x1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -2168,7 +2168,7 @@ namespace doom
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -2178,7 +2178,7 @@ namespace doom
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -2188,11 +2188,11 @@ namespace doom
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x2758504);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(us(0x2758504));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x2758504) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(us(0x2758504)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -2200,7 +2200,7 @@ namespace doom
 	uint32_t __cdecl dm_8CDE40(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = DUST_FLIPBOOK;
+		U32(a1, 0x4C) = us(DUST_FLIPBOOK);
 		U16(a1, 0x52) = 0x10;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0;
@@ -2235,7 +2235,7 @@ namespace doom
 		S32(m, 0x18) = ty;
 		S32(m, 0x1C) = tz;
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(0x1D97778, m, m);
+		x::ComposeAffineTransform(us(0x1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		uint32_t prm = x::Field_Alloc(0x58);
@@ -2244,12 +2244,12 @@ namespace doom
 		U32(prm, 0) = model;
 		U32(prm, 8) = v40;
 		int32_t v50 = S16(node, 0x50);
-		uint32_t cursor = MEM<uint32_t>(0x1D8E054);
+		uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
 		S32(prm, 0xC) = v50;
-		uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U32(prm, 0x1C) = 0xF0;
 		uint32_t next = x::Effect_RenderPrimModel(prm, ot, 2, cursor);
-		MEM<uint32_t>(0x1D8E054) = next;
+		MEM<uint32_t>(us(0x1D8E054)) = next;
 		x::Field_Free(0x58);
 		return 0;
 	}
@@ -2278,7 +2278,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8CE250(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x1634F20);
+		const uint32_t d = MEM<uint32_t>(us(0x1634F20));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -2298,32 +2298,32 @@ namespace doom
 		FX_HELD(held_note_master();)
 
 		const uint32_t node = a1;
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
-		MEM<uint32_t>(0x275F92C) = 0x2793E58;
-		MEM<uint32_t>(0x2758888) = 0x2793E58;
-		const uint32_t states[11] = { 0x8C4CC0, 0x8C4CD0, 0x8C4CE0, 0x8C4D60, 0x8CE2E0, 0x8CE320,
-			0x8CE330, 0x8CE340, 0x8CE370, 0x8CE380, 0x8CE3A0 };
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		MEM<uint32_t>(us(0x275F92C)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x2758888)) = us(0x2793E58);
+		const uint32_t states[11] = { us(0x8C4CC0), us(0x8C4CD0), us(0x8C4CE0), us(0x8C4D60), us(0x8CE2E0), us(0x8CE320),
+			us(0x8CE330), us(0x8CE340), us(0x8CE370), us(0x8CE380), us(0x8CE3A0) };
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x275E82C);
-			const uint32_t v2 = MEM<uint32_t>(0x275DF4C);
-			MEM<uint32_t>(0x2758504) = v1;
-			MEM<uint32_t>(0x2758884) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x275E82C));
+			const uint32_t v2 = MEM<uint32_t>(us(0x275DF4C));
+			MEM<uint32_t>(us(0x2758504)) = v1;
+			MEM<uint32_t>(us(0x2758884)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x275E828);
-			const uint32_t v2 = MEM<uint32_t>(0x275DF48);
-			MEM<uint32_t>(0x2758504) = v1;
-			MEM<uint32_t>(0x2758884) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x275E828));
+			const uint32_t v2 = MEM<uint32_t>(us(0x275DF48));
+			MEM<uint32_t>(us(0x2758504)) = v1;
+			MEM<uint32_t>(us(0x2758884)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x275F910) = 0;
-		MEM<uint16_t>(0x275F3E8) = 0;
-		static const uint32_t queues[9] = { 0x275E498, 0x2758860, 0x275F918, 0x275F3D8, 0x275E1F8,
-			0x2758968, 0x275ABE0, 0x275DF38, 0x275E488 };
+		MEM<uint16_t>(us(0x275F910)) = 0;
+		MEM<uint16_t>(us(0x275F3E8)) = 0;
+		static const uint32_t queues[9] = { us(0x275E498), us(0x2758860), us(0x275F918), us(0x275F3D8), us(0x275E1F8),
+			us(0x2758968), us(0x275ABE0), us(0x275DF38), us(0x275E488) };
 		for (int i = 0; i < 9; i++)
 		{
 			FX_HELD(if (i == 8) held_note_tints();)
@@ -2338,27 +2338,27 @@ namespace doom
 
 	uint32_t __cdecl dm_8C4E60(void)
 	{
-		MEM<uint32_t>(0x275E830) = 0x1636C78;
-		MEM<uint32_t>(0x275F23C) = 0x275FA10;
-		x::MAG_007_sub_8DCC00(0x275FA10, 0x16C);
-		const uint32_t t = MEM<uint32_t>(0x275F23C);
-		uint32_t c = MEM<uint32_t>(0x275F9D8);
+		MEM<uint32_t>(us(0x275E830)) = us(0x1636C78);
+		MEM<uint32_t>(us(0x275F23C)) = us(0x275FA10);
+		x::MAG_007_sub_8DCC00(us(0x275FA10), 0x16C);
+		const uint32_t t = MEM<uint32_t>(us(0x275F23C));
+		uint32_t c = MEM<uint32_t>(us(0x275F9D8));
 		U32(t, 0x100) = c;
 		c += 0xA000;
-		U32(t, 0x114) = 0x19EB018;
-		MEM<uint32_t>(0x275F9D8) = c;
-		U32(t, 0x118) = 0x19EB018;
-		U32(t, 0x11C) = 0x19EB018;
-		U32(t, 0x120) = 0x19EB018;
-		U32(t, 0x104) = 0x19F0324;
-		U32(t, 0x108) = 0x19F0324;
-		U32(t, 0x10C) = 0x19F0324;
-		U32(t, 0x110) = 0x19F0324;
-		U32(t, 0x124) = 0x19EB018;
-		U32(t, 0x128) = 0x19ECBB8;
-		U32(t, 0x12C) = 0x19ED83C;
+		U32(t, 0x114) = us(0x19EB018);
+		MEM<uint32_t>(us(0x275F9D8)) = c;
+		U32(t, 0x118) = us(0x19EB018);
+		U32(t, 0x11C) = us(0x19EB018);
+		U32(t, 0x120) = us(0x19EB018);
+		U32(t, 0x104) = us(0x19F0324);
+		U32(t, 0x108) = us(0x19F0324);
+		U32(t, 0x10C) = us(0x19F0324);
+		U32(t, 0x110) = us(0x19F0324);
+		U32(t, 0x124) = us(0x19EB018);
+		U32(t, 0x128) = us(0x19ECBB8);
+		U32(t, 0x12C) = us(0x19ED83C);
 		for (int32_t o = 0x130; o <= 0x160; o += 4)
-			U32(t, o) = 0x19F0324;
+			U32(t, o) = us(0x19F0324);
 		U16(t, 0x164) = 0;
 		U16(t, 0x166) = 0;
 		return t;
@@ -2366,8 +2366,8 @@ namespace doom
 
 	uint32_t __cdecl dm_8C52C0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(PHASE_DATA), 0x54);
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(PHASE_DATA)), 0x54);
+		const uint32_t d = MEM<uint32_t>(us(PHASE_DATA));
 		const uint32_t ent = 0x1D972C0u + (uint32_t)U8(a1, 0x2D) * 0x9Cu;
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -2376,18 +2376,18 @@ namespace doom
 		U16(d, 4) = 0;
 		const int16_t dx_ = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx_, (uint32_t)(int32_t)S16(d, 0xC));
-		const uint32_t d2 = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d2 = MEM<uint32_t>(us(PHASE_DATA));
 		U16(d2, 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
-		x::MAG_022_sub_8DD770(0x1D99AB0);
-		return x::MAG_022_sub_8DD8A0(0x1D99AB0, (uint32_t)(int32_t)S16(MEM<uint32_t>(PHASE_DATA), 0x4A));
+		x::MAG_022_sub_8DD770(us(0x1D99AB0));
+		return x::MAG_022_sub_8DD8A0(us(0x1D99AB0), (uint32_t)(int32_t)S16(MEM<uint32_t>(us(PHASE_DATA)), 0x4A));
 	}
 
 	uint32_t __cdecl dm_8C5350(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t states[15] = { 0x8C5460, 0x8C5490, 0x8C54E0, 0x8C5530, 0x8C5590, 0x8C55B0,
-			0x8C55D0, 0x8C55F0, 0x8C5610, 0x8C5630, 0x8C5650, 0x8C5680, 0x8C56A0, 0x8C56D0,
-			0x8C56F0 };
+		const uint32_t states[15] = { us(0x8C5460), us(0x8C5490), us(0x8C54E0), us(0x8C5530), us(0x8C5590), us(0x8C55B0),
+			us(0x8C55D0), us(0x8C55F0), us(0x8C5610), us(0x8C5630), us(0x8C5650), us(0x8C5680), us(0x8C56A0), us(0x8C56D0),
+			us(0x8C56F0) };
 		dm_8C5410(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -2397,8 +2397,8 @@ namespace doom
 
 	uint32_t __cdecl dm_8C5460(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(0x181CFAC);
-		x::Battle_QueueTIMUpload_GetEOF(0x18253CC);
+		x::Battle_QueueTIMUpload_GetEOF(us(0x181CFAC));
+		x::Battle_QueueTIMUpload_GetEOF(us(0x18253CC));
 		U16(a1, 0x44) = 0xC;
 		next_state(a1);
 		return a1;
@@ -2408,30 +2408,30 @@ namespace doom
 	{
 		if (a_73B640(6) == 0)
 			return 0;
-		U16(MEM<uint32_t>(PHASE_DATA), 0x48) = 1;
+		U16(MEM<uint32_t>(us(PHASE_DATA)), 0x48) = 1;
 		next_state(a1);
 		return a1;
 	}
 
 	uint32_t __cdecl dm_8C5710(uint32_t a1)
 	{
-		const int32_t k = S16(MEM<uint32_t>(PHASE_DATA), 0x40);
+		const int32_t k = S16(MEM<uint32_t>(us(PHASE_DATA)), 0x40);
 		if (k == 2)
 		{
-			a_73C100(a1, 0x8C88D0, 0x1818B78, 0, 0x2D, 2);
-			const uint32_t reaper = x::Effect_AddTaskAndInitFromCtx(0x275F3D8, 0x8CC3A0, 0x140, a1);
-			x::Effect_BindModelContainerSetAnim(reaper, 0x1636CE8, 3);
-			x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CD4B0, 0xB0, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x275ABE0, 0x8CDED0, 0x58, a1);
-			return x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CC1E0, 0xB0, a1);
+			a_73C100(a1, us(0x8C88D0), us(0x1818B78), 0, 0x2D, 2);
+			const uint32_t reaper = x::Effect_AddTaskAndInitFromCtx(us(0x275F3D8), us(0x8CC3A0), 0x140, a1);
+			x::Effect_BindModelContainerSetAnim(reaper, us(0x1636CE8), 3);
+			x::Effect_AddTaskAndInitFromCtx(us(0x2758968), us(0x8CD4B0), 0xB0, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x275ABE0), us(0x8CDED0), 0x58, a1);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x2758968), us(0x8CC1E0), 0xB0, a1);
 		}
 		if (k == 4)
 		{
-			dm_8C5860(a1, 0x8C58B0, U32(MEM<uint32_t>(0x275F23C), 0x124), 0xC0, 0, 0);
-			const uint32_t w = x::Effect_AddTaskAndInitFromCtx(0x275E488, 0x8DDC30, 0x40, a1);
-			U32(w, 0x34) = 0x163ACB4;
+			dm_8C5860(a1, us(0x8C58B0), U32(MEM<uint32_t>(us(0x275F23C)), 0x124), 0xC0, 0, 0);
+			const uint32_t w = x::Effect_AddTaskAndInitFromCtx(us(0x275E488), us(0x8DDC30), 0x40, a1);
+			U32(w, 0x34) = us(0x163ACB4);
 			U16(w, 0x38) = 0x1A;
-			return x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CC2D0, 0xB0, a1);
+			return x::Effect_AddTaskAndInitFromCtx(us(0x2758968), us(0x8CC2D0), 0xB0, a1);
 		}
 		return (uint32_t)(k - 4);
 	}
@@ -2442,7 +2442,7 @@ namespace doom
 		if (U16(node, 0x24) != 0xB)
 			return 0;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(us(PHASE_DATA));
 		U16(node, 0x62) = U16(d, 0x4A);
 		U32(node, 0x1C) = U32(d, 0);
 		U32(node, 0x20) = U32(d, 4);
@@ -2578,20 +2578,20 @@ namespace doom
 			U32(hdr, 8) = U32(rec, 0x20);
 			U32(hdr, 0x14) = fl | 0xC0;
 		}
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
 		U16(hdr, 0x1E) = 0;
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(PACKET_CURSOR) = dm_8C5DD0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = dm_8C5DD0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2602,7 +2602,7 @@ namespace doom
 		FX_HELD(held_note_play(a1);)
 		if ((uint16_t)r == 0x13)
 		{
-			const uint32_t t = dm_8C5860(a1, 0x8C8050, U32(MEM<uint32_t>(0x275F23C), 0x128), 0x8C, 1, 0);
+			const uint32_t t = dm_8C5860(a1, us(0x8C8050), U32(MEM<uint32_t>(us(0x275F23C)), 0x128), 0x8C, 1, 0);
 			U32(t, 0x1C) = U32(a1, 0x1C);
 			U32(t, 0x20) = U32(a1, 0x20);
 			return t;
@@ -2634,8 +2634,8 @@ namespace doom
 	{
 		alignas(4) uint8_t loc[0x30] = {};
 		const uint32_t L = P(loc);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(CLOCK_BLOCK), 0x58);
-		uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(CLOCK_BLOCK)), 0x58);
+		uint32_t b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		U8(b, 0x48) = 0x60;
 		U8(b, 0x49) = 0;
 		U8(b, 0x4A) = 0x20;
@@ -2649,13 +2649,13 @@ namespace doom
 		U32(b, 0x34) = U32(a1, 4);
 		const uint32_t ent = 0x1D972C0u + (uint32_t)((int32_t)(int16_t)a2 * 0x9C);
 		x::GetEffectSpawnPosition(ent, 0xF1, 0, b + 0x38);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		const int32_t ddx = sub32(S16(b, 0x38), S16(b, 0x30));
 		const int32_t ddy = sub32(S16(b, 0x3A), S16(b, 0x32));
 		const int32_t ddz = sub32(S16(b, 0x3C), S16(b, 0x34));
 		const int32_t sq = add32(add32(mul32(ddz, ddz), mul32(ddy, ddy)), mul32(ddx, ddx));
 		U32(b, 0x4C) = x::Sqrt((uint32_t)sq);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		U16(L, 0) = 0;
 		U32(b, 0x20) = 0x1000;
 		U32(b, 0x24) = 0x1000;
@@ -2666,15 +2666,15 @@ namespace doom
 		U16(L, 0xA) = (uint16_t)(U16(b, 0x3A) - U16(b, 0x32));
 		U16(L, 0xC) = (uint16_t)(U16(b, 0x3C) - U16(b, 0x34));
 		Effect_BuildMatrixFromDirAndUp(b, L + 8, L);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		S32(b, 0x14) = S16(b, 0x30);
 		S32(b, 0x18) = S16(b, 0x32);
 		S32(b, 0x1C) = S16(b, 0x34);
-		uint32_t p = 0x275E4A8;
+		uint32_t p = us(0x275E4A8);
 		for (int32_t row = 0; row < 0x11; row++)
 		{
 			const uint16_t z = (uint16_t)(row * 0xF0);
-			for (uint32_t s = 0x1636C08; s < 0x1636C10; s += 2)
+			for (uint32_t s = us(0x1636C08); s < us(0x1636C10); s += 2)
 			{
 				U16(p, 0) = MEM<uint16_t>(s);
 				U16(p, 2) = 0;
@@ -2686,8 +2686,8 @@ namespace doom
 		{
 			x::MAG_022_sub_8DD770(M);
 			x::sub_8DD960(M, 0);
-			uint32_t src = 0x275E4A8, dst = 0x275D010;
-			for (uint32_t w = 0x1636C10; w < 0x1636C32; w += 2)
+			uint32_t src = us(0x275E4A8), dst = us(0x275D010);
+			for (uint32_t w = us(0x1636C10); w < us(0x1636C32); w += 2)
 				for (int k = 4; k != 0; k--)
 				{
 					x::matrixMultiplyVector(M, src, dst);
@@ -2699,12 +2699,12 @@ namespace doom
 		{
 			x::MAG_022_sub_8DD770(M);
 			x::sub_8DD960(M, 0x400);
-			uint32_t src = 0x275E4A8, dst = 0x275CDF0;
-			for (uint32_t w = 0x1636C10; w < 0x1636C32; w += 2)
+			uint32_t src = us(0x275E4A8), dst = us(0x275CDF0);
+			for (uint32_t w = us(0x1636C10); w < us(0x1636C32); w += 2)
 				for (int k = 4; k != 0; k--)
 				{
 					x::matrixMultiplyVector(M, src, dst);
-					const int32_t sc = mul32(S32(MEM<uint32_t>(CLOCK_BLOCK), 0x28), (int32_t)MEM<int16_t>(w));
+					const int32_t sc = mul32(S32(MEM<uint32_t>(us(CLOCK_BLOCK)), 0x28), (int32_t)MEM<int16_t>(w));
 					src += 8;
 					dst += 8;
 					U16(dst, -6) = (uint16_t)(U16(dst, -6) + (uint16_t)(sc / 4096));
@@ -2717,16 +2717,16 @@ namespace doom
 	{
 		alignas(4) uint8_t loc[0x28] = {};
 		const uint32_t L = P(loc);
-		const uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+		const uint32_t b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		U16(L, 0) = 0;
-		const int32_t y = mul32((int32_t)MEM<int16_t>(0x1636C10 + (uint32_t)((int32_t)(int16_t)a2 * 2)), S32(b, 0x28)) / 4096;
+		const int32_t y = mul32((int32_t)MEM<int16_t>(us(0x1636C10) + (uint32_t)((int32_t)(int16_t)a2 * 2)), S32(b, 0x28)) / 4096;
 		U16(L, 2) = (uint16_t)y;
 		U16(L, 4) = (uint16_t)(a2 * 0xF0);
 		x::MAG_022_sub_8DD770(L + 8);
-		ff8fx::copy<(8 * 4)>((void *)(L + 8), (const void *)MEM<uint32_t>(CLOCK_BLOCK));
-		x::scale3DMatrix(L + 8, MEM<uint32_t>(CLOCK_BLOCK) + 0x20);
+		ff8fx::copy<(8 * 4)>((void *)(L + 8), (const void *)MEM<uint32_t>(us(CLOCK_BLOCK)));
+		x::scale3DMatrix(L + 8, MEM<uint32_t>(us(CLOCK_BLOCK)) + 0x20);
 		x::matrixMultiplyVector(L + 8, L, a1);
-		const uint32_t b2 = MEM<uint32_t>(CLOCK_BLOCK);
+		const uint32_t b2 = MEM<uint32_t>(us(CLOCK_BLOCK));
 		U16(a1, 0) = (uint16_t)(U16(a1, 0) + U16(b2, 0x30));
 		U16(a1, 2) = (uint16_t)(U16(a1, 2) + U16(b2, 0x32));
 		U16(a1, 4) = (uint16_t)(U16(a1, 4) + U16(b2, 0x34));
@@ -2737,16 +2737,16 @@ namespace doom
 	{
 		const uint32_t node = a1;
 		U16(node, 0x456) = (uint16_t)(U16(node, 0x456) + 1);
-		const uint16_t step = MEM<uint16_t>(0x1636C34 + (uint32_t)((int32_t)S16(node, 0x456) * 2));
+		const uint16_t step = MEM<uint16_t>(us(0x1636C34) + (uint32_t)((int32_t)S16(node, 0x456) * 2));
 		U16(node, 0x454) = step;
 		if ((int16_t)step >= 0x7F)
 		{
 			U32(node, 0x1C) = U32(node, 0x44C);
-			const uint32_t layout = U32(MEM<uint32_t>(0x275F23C), 0x12C);
+			const uint32_t layout = U32(MEM<uint32_t>(us(0x275F23C)), 0x12C);
 			U16(node, 0x454) = 0x11;
 			U32(node, 0x20) = U32(node, 0x450);
-			const uint32_t t = dm_8C5860(node, 0x8C8790, layout, 0x3B0, 2, 0);
-			const uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+			const uint32_t t = dm_8C5860(node, us(0x8C8790), layout, 0x3B0, 2, 0);
+			const uint32_t b = MEM<uint32_t>(us(CLOCK_BLOCK));
 			U32(t, 0x1C) = U32(b, 0x38);
 			U32(t, 0x20) = U32(b, 0x3C);
 			next_state(node);
@@ -2760,15 +2760,15 @@ namespace doom
 
 	uint32_t __cdecl dm_8C84A0(void)
 	{
-		uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
-		const uint16_t first = MEM<uint16_t>(0x1636C40 + (uint32_t)((int32_t)S16(b, 0x54) * 4));
+		uint32_t b = MEM<uint32_t>(us(CLOCK_BLOCK));
+		const uint16_t first = MEM<uint16_t>(us(0x1636C40) + (uint32_t)((int32_t)S16(b, 0x54) * 4));
 		if (first == 0x7F)
 			return 0;
 		U16(b, 0x50) = first;
-		U16(b, 0x52) = MEM<uint16_t>(0x1636C42 + (uint32_t)((int32_t)S16(b, 0x54) * 4));
-		dm_8C8500(0x275D010);
-		dm_8C8500(0x275CDF0);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		U16(b, 0x52) = MEM<uint16_t>(us(0x1636C42) + (uint32_t)((int32_t)S16(b, 0x54) * 4));
+		dm_8C8500(us(0x275D010));
+		dm_8C8500(us(0x275CDF0));
+		b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		U16(b, 0x54) = (uint16_t)(U16(b, 0x54) + 1);
 		return 1;
 	}
@@ -2777,12 +2777,12 @@ namespace doom
 	{
 		alignas(4) uint8_t loc[0x30] = {};
 		const uint32_t L = P(loc);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C);
-		uint32_t b = MEM<uint32_t>(CLOCK_BLOCK);
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C));
+		uint32_t b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		const int32_t first = S16(b, 0x50);
 		const int32_t last1 = S16(b, 0x52) + 1;
-		uint32_t pkt = MEM<uint32_t>(0x1D8E054);
-		uint32_t col = (uint32_t)(first << 4) + 0x275F3F8;
+		uint32_t pkt = MEM<uint32_t>(us(0x1D8E054));
+		uint32_t col = (uint32_t)(first << 4) + us(0x275F3F8);
 		U8(L, 0) = 0;
 		U8(L, 1) = 0;
 		U8(L, 2) = 0;
@@ -2810,7 +2810,7 @@ namespace doom
 		const uint32_t M = L + 0x10;
 		ff8fx::copy<(8 * 4)>((void *)M, (const void *)b);
 		x::scale3DMatrix(M, b + 0x20);
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(M);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(M);
@@ -2820,15 +2820,15 @@ namespace doom
 		x::GTE_LoadIRFromMatrixColumn(M + 4);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(M + 4);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(M + 0x14);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(M + 0x14);
 		x::GTE_SetRotMatrix(M);
 		x::GTE_SetTransVector(M);
-		b = MEM<uint32_t>(CLOCK_BLOCK);
+		b = MEM<uint32_t>(us(CLOCK_BLOCK));
 		int32_t row = S16(b, 0x50);
-		uint32_t crow = (uint32_t)(row << 4) + 0x275F3F8;
+		uint32_t crow = (uint32_t)(row << 4) + us(0x275F3F8);
 		uint32_t vrow = a1 + (uint32_t)(row << 5);
 		if (row < S16(b, 0x52))
 		{
@@ -2872,9 +2872,9 @@ namespace doom
 				crow += 4;
 				vrow = v + 8;
 				row++;
-			} while (row < S16(MEM<uint32_t>(CLOCK_BLOCK), 0x52));
+			} while (row < S16(MEM<uint32_t>(us(CLOCK_BLOCK)), 0x52));
 		}
-		MEM<uint32_t>(0x1D8E054) = pkt;
+		MEM<uint32_t>(us(0x1D8E054)) = pkt;
 		return 0;
 	}
 
@@ -2927,8 +2927,8 @@ namespace doom
 	uint32_t __cdecl dm_8CC3A0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t states[11] = { 0x8CCF80, 0x8CD090, 0x8CD0E0, 0x8CD120, 0x8CD1A0, 0x8CD1D0,
-			0x8CD200, 0x8CD250, 0x8CD290, 0x8CD2B0, 0x8CD4A0 };
+		const uint32_t states[11] = { us(0x8CCF80), us(0x8CD090), us(0x8CD0E0), us(0x8CD120), us(0x8CD1A0), us(0x8CD1D0),
+			us(0x8CD200), us(0x8CD250), us(0x8CD290), us(0x8CD2B0), us(0x8CD4A0) };
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
@@ -2965,17 +2965,17 @@ namespace doom
 			const uint32_t g = (uint32_t)grey;
 			const uint32_t rgb = ((g << 8) + g) << 8 | 0;
 			const uint32_t w = rgb + g;
-			MEM<uint32_t>(0x275F984 + k * 4) = w;
-			MEM<uint32_t>(0x275F930 + k * 4) = w;
+			MEM<uint32_t>(us(0x275F984) + k * 4) = w;
+			MEM<uint32_t>(us(0x275F930) + k * 4) = w;
 			if (k == 0x13)
 			{
-				MEM<uint32_t>(0x275F9D0) |= 0x24000000;
-				MEM<uint32_t>(0x275F97C) = w | 0x2C000000;
+				MEM<uint32_t>(us(0x275F9D0)) |= 0x24000000;
+				MEM<uint32_t>(us(0x275F97C)) = w | 0x2C000000;
 			}
 			else
 			{
-				MEM<uint32_t>(0x275F984 + k * 4) = w | 0x26000000;
-				MEM<uint32_t>(0x275F930 + k * 4) = w | 0x2E000000;
+				MEM<uint32_t>(us(0x275F984) + k * 4) = w | 0x26000000;
+				MEM<uint32_t>(us(0x275F930) + k * 4) = w | 0x2E000000;
 			}
 			grey = (uint8_t)(grey + 8);
 			if (grey > 0x80)
@@ -3101,7 +3101,7 @@ namespace doom
 				U32(pkt, 0x14) = U32(rec, 0xC);
 				U32(pkt, 0xC) = U32(rec, 8);
 				U16(pkt, 0x1C) = U16(rec, 6);
-				U32(pkt, 4) = MEM<uint32_t>(0x275F984 + (uint32_t)U8(face, 0) * 4);
+				U32(pkt, 4) = MEM<uint32_t>(us(0x275F984) + (uint32_t)U8(face, 0) * 4);
 				x::SSIGPU_InsertPrimAutoDepth(a2 + U32(hdr, 0xF0) * 4, pkt);
 				pkt += 0x20;
 			}
@@ -3176,7 +3176,7 @@ namespace doom
 					U16(pkt, 0x1C) = U16(rec, 0xC);
 					U16(pkt, 0x24) = U16(rec, 0xE);
 					U32(pkt, 0) = 0x9000000;
-					U32(pkt, 4) = MEM<uint32_t>(0x275F930 + (uint32_t)U8(face, 0) * 4);
+					U32(pkt, 4) = MEM<uint32_t>(us(0x275F930) + (uint32_t)U8(face, 0) * 4);
 					x::SSIGPU_InsertPrimAutoDepth(a2 + z * 4, pkt);
 					pkt += 0x28;
 				}
@@ -3191,7 +3191,7 @@ namespace doom
 	uint32_t __cdecl dm_8CCF80(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(us(PHASE_DATA));
 		U32(node, 0x4C) = U32(d, 0);
 		const uint32_t w4 = U32(d, 4);
 		U16(node, 0x3E) = U16(d, 0x4A);
@@ -3208,19 +3208,19 @@ namespace doom
 
 	uint32_t __cdecl dm_8CCFE0(uint32_t a1)
 	{
-		dm_8CD020(REAPER_CTX, 0x275ABF0, 0x275F9E0, a1 + 0x30);
+		dm_8CD020(us(REAPER_CTX), us(0x275ABF0), us(0x275F9E0), a1 + 0x30);
 		U8(a1, 0x26) |= 8;
-		MEM<uint16_t>(0x2758564) = 0;
-		MEM<uint16_t>(0x275856A) = 0x100;
+		MEM<uint16_t>(us(0x2758564)) = 0;
+		MEM<uint16_t>(us(0x275856A)) = 0x100;
 		return 0;
 	}
 
 	uint32_t __cdecl dm_8CD090(uint32_t a1)
 	{
-		const uint16_t a = (uint16_t)(MEM<uint16_t>(0x2758568) + MEM<uint16_t>(0x275856A));
-		const uint16_t h = (uint16_t)(MEM<uint16_t>(0x2758564) - 0x48);
-		MEM<uint16_t>(0x2758564) = h;
-		MEM<uint16_t>(0x2758568) = (uint16_t)(a & 0xFFF);
+		const uint16_t a = (uint16_t)(MEM<uint16_t>(us(0x2758568)) + MEM<uint16_t>(us(0x275856A)));
+		const uint16_t h = (uint16_t)(MEM<uint16_t>(us(0x2758564)) - 0x48);
+		MEM<uint16_t>(us(0x2758564)) = h;
+		MEM<uint16_t>(us(0x2758568)) = (uint16_t)(a & 0xFFF);
 		if ((int16_t)h <= (int16_t)0xFB00)
 		{
 			U16(a1, 0x134) = 0x10;
@@ -3231,7 +3231,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8CD0E0(uint32_t a1)
 	{
-		MEM<uint16_t>(0x2758568) = (uint16_t)((MEM<uint16_t>(0x2758568) + MEM<uint16_t>(0x275856A)) & 0xFFF);
+		MEM<uint16_t>(us(0x2758568)) = (uint16_t)((MEM<uint16_t>(us(0x2758568)) + MEM<uint16_t>(us(0x275856A))) & 0xFFF);
 		U16(a1, 0x134) = (uint16_t)(U16(a1, 0x134) - 1);
 		if (S16(a1, 0x134) <= 0)
 		{
@@ -3276,7 +3276,7 @@ namespace doom
 
 	uint32_t __cdecl dm_8CD510(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(us(PHASE_DATA));
 		U32(a1, 0x1C) = U32(d, 0);
 		U32(a1, 0x20) = U32(d, 4);
 		U16(a1, 0x1E) = 0;
@@ -3285,7 +3285,7 @@ namespace doom
 	}
 	uint32_t __cdecl dm_8CDF30(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(us(PHASE_DATA));
 		U32(a1, 0x1C) = U32(d, 0);
 		U32(a1, 0x20) = U32(d, 4);
 		U16(a1, 0x1E) = 0;
@@ -3296,13 +3296,13 @@ namespace doom
 	uint32_t __cdecl dm_8CD540(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint16_t h = (uint16_t)(MEM<uint32_t>(0x2758564) + 0x100);
+		const uint16_t h = (uint16_t)(MEM<uint32_t>(us(0x2758564)) + 0x100);
 		U16(node, 0x1E) = h;
 		if ((int16_t)h >= 0)
 			U16(node, 0x1E) = 0;
 		if ((U8(node, 0x24) & 1) == 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2758968, 0x8CD670, 0xB0, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x2758968), us(0x8CD670), 0xB0, node);
 			uint32_t p = t + 0x6C;
 			for (int32_t n = 4; n != 0; n--)
 			{
@@ -3338,10 +3338,10 @@ namespace doom
 	uint32_t __cdecl dm_8CDF60(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U16(node, 0x1E) = (uint16_t)(MEM<uint32_t>(0x2758564) + 0x100);
+		U16(node, 0x1E) = (uint16_t)(MEM<uint32_t>(us(0x2758564)) + 0x100);
 		if ((U8(node, 0x24) & 1) == 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x275ABE0, 0x8CDFB0, 0x58, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x275ABE0), us(0x8CDFB0), 0x58, node);
 			U32(t, 0x1C) = U32(node, 0x1C);
 			U32(t, 0x20) = U32(node, 0x20);
 		}
@@ -3356,7 +3356,7 @@ namespace doom
 	uint32_t __cdecl dm_8CDFB0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t states[5] = { 0x8CE130, 0x8CE1B0, 0x8CE1E0, 0x8CE200, 0x8CE230 };
+		const uint32_t states[5] = { us(0x8CE130), us(0x8CE1B0), us(0x8CE1E0), us(0x8CE200), us(0x8CE230) };
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x46) = (uint16_t)((U16(node, 0x46) + 0x80) & 0xFFF);
 		FX_HELD(held_note_puff(node);)
@@ -3369,7 +3369,7 @@ namespace doom
 	uint32_t __cdecl dm_8CE130(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = 0x16350F0;
+		U32(node, 0x4C) = us(0x16350F0);
 		const int32_t r1 = (int32_t)x::CrtRand();
 		U16(node, 0x50) = 0x1000;
 		const int32_t sc = r1 % 0x3FF + 0xC00;

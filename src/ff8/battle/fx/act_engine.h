@@ -205,107 +205,107 @@ namespace act
 
 	namespace x
 	{
-		inline uint32_t sub_45BFC0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x45BFC0)(a1, a2, a3, a4, a5); }
-		inline uint32_t sub_45C690(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45C690)(a1, a2, a3, a4); }
-		inline uint32_t SSIGPU_InsertPrimAutoDepth(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x45C7A0)(a1, a2); }
-		inline uint32_t SSIGPU_InsertPrimDepthKeys(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x45C870)(a1, a2, a3, a4, a5, a6); }
-		inline uint32_t SSIGPU_InsertPrimAltViewport(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(a1, a2); }
-		inline uint32_t someCameraWork_45DD60(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(a1, a2, a3); }
-		inline uint32_t GTE_SetRotMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DE00)(a1); }
-		inline uint32_t GTE_SetTransVector(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DEF0)(a1); }
-		inline uint32_t GTE_LoadV0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DF80)(a1); }
-		inline uint32_t GTE_LoadV012(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a1, a2, a3); }
-		inline uint32_t GTE_LoadV0FromDwords(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E060)(a1); }
-		inline uint32_t set_unk_1CA8A28(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E110)(a1); }
-		inline uint32_t sub_45E120(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a1, a2, a3); }
-		inline uint32_t set_dword_1CA8A30(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E150)(a1); }
-		inline uint32_t GTE_LoadIRFromMatrixColumn(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E180)(a1); }
-		inline uint32_t GTE_ReadFLAG(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E210)(a1); }
-		inline uint32_t GTE_ReadSXY2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E260)(a1); }
-		inline uint32_t GTE_ReadSXY012_Split(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a1, a2, a3); }
-		inline uint32_t GTE_StoreSXY012_PolyGT3_2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E340)(a1); }
-		inline uint32_t set_param_with_dword_1CA8A68(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E360)(a1); }
-		inline uint32_t sub_45E370(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a1, a2, a3); }
-		inline uint32_t GTE_ReadMAC0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E3C0)(a1); }
-		inline uint32_t GTE_ReadOTZ(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E3D0)(a1); }
-		inline uint32_t GTE_StoreIR123(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E3E0)(a1); }
-		inline uint32_t GTE_ReadMAC123(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E450)(a1); }
-		inline uint32_t GTE_StoreIRToMatrixColumn(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E470)(a1); }
-		inline uint32_t CopyCameraStateToBuffer(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E500)(a1); }
-		inline uint32_t GTE_AVSZ3() { return fn<uint32_t (__cdecl *)()>(0x45E5C0)(); }
-		inline uint32_t GTE_AVSZ4() { return fn<uint32_t (__cdecl *)()>(0x45E610)(); }
-		inline uint32_t GTE_NCLIP() { return fn<uint32_t (__cdecl *)()>(0x45EE10)(); }
-		inline uint32_t sub_45F270() { return fn<uint32_t (__cdecl *)()>(0x45F270)(); }
-		inline uint32_t sub_45F4C0() { return fn<uint32_t (__cdecl *)()>(0x45F4C0)(); }
-		inline uint32_t GTE_RTPS() { return fn<uint32_t (__cdecl *)()>(0x45FAA0)(); }
-		inline uint32_t GTE_RTPT() { return fn<uint32_t (__cdecl *)()>(0x45FE10)(); }
-		inline uint32_t GTE_MVMVA_RotIR() { return fn<uint32_t (__cdecl *)()>(0x460820)(); }
-		inline uint32_t GTE_MVMVA_RotV0_Tr_2() { return fn<uint32_t (__cdecl *)()>(0x460830)(); }
-		inline uint32_t GTE_MVMVA_RotV0_Tr() { return fn<uint32_t (__cdecl *)()>(0x460840)(); }
-		inline uint32_t GTE_MVMVA_RotV0() { return fn<uint32_t (__cdecl *)()>(0x460850)(); }
-		inline uint32_t Music_SetVolumeImmediate(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x46BB40)(a1, a2); }
-		inline uint32_t pre_LoadBattleFile(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x48D0A0)(a1, a2, a3, a4); }
-		inline uint32_t sub_4A2940(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x4A2940)(a1); }
-		inline uint32_t BdSound_ClaimVoiceSlot(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x4A29A0)(a1, a2, a3); }
-		inline uint32_t BdPlaySE(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x501330)(a1, a2, a3); }
-		inline uint32_t BdTransSummonStream(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x501860)(a1, a2); }
-		inline uint32_t BdPlaySummonStream(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5018C0)(a1, a2, a3); }
-		inline uint32_t GetEffectSpawnPosition(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x502170)(a1, a2, a3, a4); }
-		inline uint32_t queueChainTransformationConditional(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505CE0)(a1, a2); }
-		inline uint32_t Battle_QueueTIMUpload_GetEOF(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x505E30)(a1); }
-		inline uint32_t QueueBlitCommand(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x505EB0)(a1, a2, a3); }
-		inline uint32_t ApplyActionResultToTarget(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x506690)(a1); }
-		inline uint32_t Field_Alloc(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x5082B0)(a1); }
-		inline uint32_t Field_Free(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x5082D0)(a1); }
-		inline uint32_t BdLink_InitTaskQueuePool(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x508300)(a1, a2, a3, a4); }
-		inline uint32_t ExecuteTaskQueue(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x508420)(a1); }
-		inline uint32_t nullsub_1029() { return fn<uint32_t (__cdecl *)()>(0x5084E0)(); }
-		inline uint32_t sub_508630(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x508630)(a1, a2); }
-		inline uint32_t sub_5086F0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x5086F0)(a1); }
-		inline uint32_t sub_5088A0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(a1, a2, a3, a4); }
-		inline uint32_t BattleModel_BuildBoneMatricesFromPose(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x508C90)(a1); }
-		inline uint32_t BS_ComputeBonesWorldMatrices(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x5095B0)(a1, a2); }
-		inline uint32_t RenderGeometry(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(a1, a2, a3, a4, a5); }
-		inline uint32_t CrtRand() { return fn<uint32_t (__cdecl *)()>(0x55CBD2)(); }
-		inline uint32_t GTE_SetRotMatrix_W(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x56BAE0)(a1); }
-		inline uint32_t GTE_SetTransVector_W(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x56BB30)(a1); }
-		inline uint32_t Sqrt(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x56BEC0)(a1); }
-		inline uint32_t scale3DMatrix(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BEF0)(a1, a2); }
-		inline uint32_t ScaleMatrix3x3(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BF80)(a1, a2); }
-		inline uint32_t UnpackRotationMatrix(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56C040)(a1, a2); }
-		inline uint32_t sub_56C220(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56C220)(a1, a2); }
-		inline uint32_t GTE_MatrixMultiply(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56C270)(a1, a2); }
-		inline uint32_t ComposeAffineTransform(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C2F0)(a1, a2, a3); }
-		inline uint32_t matrixMultiplyVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(a1, a2, a3); }
-		inline uint32_t TransformVectorBy3x3Matrix(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C600)(a1, a2, a3); }
-		inline uint32_t ComposeZYXRotationMatrix(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56CE30)(a1, a2); }
-		inline uint32_t ApplyZRotation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56D090)(a1, a2); }
-		inline uint32_t computeCosine(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x56D100)(a1); }
-		inline uint32_t computeSin(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x56D130)(a1); }
-		inline uint32_t CartesianToGameAngle(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56D160)(a1, a2); }
-		inline uint32_t IO_GetFile_MAGIC(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x571B80)(a1); }
-		inline uint32_t Effect_RenderPrimModel(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x572200)(a1, a2, a3, a4); }
-		inline uint32_t MAG_017_sub_701310(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x701310)(a1, a2); }
-		inline uint32_t MAG_017_sub_701390(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x701390)(a1, a2, a3, a4, a5); }
-		inline uint32_t MAG_117_sub_701430(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x701430)(a1, a2); }
-		inline uint32_t Effect_DecodeModelPrimLayout(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x7016B0)(a1, a2, a3); }
-		inline uint32_t MAG_011_sub_701970(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x701970)(a1, a2, a3, a4); }
-		inline uint32_t Effect_ReleaseLinkedTask(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DC530)(a1); }
-		inline uint32_t Effect_AddTaskAndInitFromCtx(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x8DC540)(a1, a2, a3, a4); }
-		inline uint32_t MAG_001_CURE_Emitter_UpdatePos(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DC610)(a1); }
-		inline uint32_t Effect_UpdateTargetPosFromBones(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DC740)(a1); }
-		inline uint32_t MAG_001_CURE_Emitter_ComputeModelBounds(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DC870)(a1); }
-		inline uint32_t MAG_007_sub_8DCC00(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DCC00)(a1, a2); }
-		inline uint32_t Effect_BindModelContainerSetAnim(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x8DD0F0)(a1, a2, a3); }
-		inline uint32_t au_re_Battle_ReadAnimation_7(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DD190)(a1, a2); }
-		inline uint32_t sub_8DD1C0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DD1C0)(a1); }
-		inline uint32_t au_re_Battle_ReadAnimation_8(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DD220)(a1); }
-		inline uint32_t InitEffectSequenceFromData_c19(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x8DD260)(a1, a2, a3, a4); }
-		inline uint32_t MAG_022_sub_8DD770(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DD770)(a1); }
-		inline uint32_t sub_8DD7B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x8DD7B0)(a1); }
-		inline uint32_t sub_8DD7E0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DD7E0)(a1, a2); }
-		inline uint32_t MAG_022_sub_8DD8A0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DD8A0)(a1, a2); }
-		inline uint32_t sub_8DD960(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x8DD960)(a1, a2); }
+		inline uint32_t sub_45BFC0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45BFC0))(a1, a2, a3, a4, a5); }
+		inline uint32_t sub_45C690(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45C690))(a1, a2, a3, a4); }
+		inline uint32_t SSIGPU_InsertPrimAutoDepth(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x45C7A0))(a1, a2); }
+		inline uint32_t SSIGPU_InsertPrimDepthKeys(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45C870))(a1, a2, a3, a4, a5, a6); }
+		inline uint32_t SSIGPU_InsertPrimAltViewport(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x45C8E0))(a1, a2); }
+		inline uint32_t someCameraWork_45DD60(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(a1, a2, a3); }
+		inline uint32_t GTE_SetRotMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE00))(a1); }
+		inline uint32_t GTE_SetTransVector(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEF0))(a1); }
+		inline uint32_t GTE_LoadV0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DF80))(a1); }
+		inline uint32_t GTE_LoadV012(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a1, a2, a3); }
+		inline uint32_t GTE_LoadV0FromDwords(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E060))(a1); }
+		inline uint32_t set_unk_1CA8A28(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E110))(a1); }
+		inline uint32_t sub_45E120(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E120))(a1, a2, a3); }
+		inline uint32_t set_dword_1CA8A30(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E150))(a1); }
+		inline uint32_t GTE_LoadIRFromMatrixColumn(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E180))(a1); }
+		inline uint32_t GTE_ReadFLAG(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E210))(a1); }
+		inline uint32_t GTE_ReadSXY2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E260))(a1); }
+		inline uint32_t GTE_ReadSXY012_Split(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a1, a2, a3); }
+		inline uint32_t GTE_StoreSXY012_PolyGT3_2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E340))(a1); }
+		inline uint32_t set_param_with_dword_1CA8A68(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E360))(a1); }
+		inline uint32_t sub_45E370(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E370))(a1, a2, a3); }
+		inline uint32_t GTE_ReadMAC0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E3C0))(a1); }
+		inline uint32_t GTE_ReadOTZ(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E3D0))(a1); }
+		inline uint32_t GTE_StoreIR123(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E3E0))(a1); }
+		inline uint32_t GTE_ReadMAC123(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E450))(a1); }
+		inline uint32_t GTE_StoreIRToMatrixColumn(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E470))(a1); }
+		inline uint32_t CopyCameraStateToBuffer(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E500))(a1); }
+		inline uint32_t GTE_AVSZ3() { return fn<uint32_t (__cdecl *)()>(us(0x45E5C0))(); }
+		inline uint32_t GTE_AVSZ4() { return fn<uint32_t (__cdecl *)()>(us(0x45E610))(); }
+		inline uint32_t GTE_NCLIP() { return fn<uint32_t (__cdecl *)()>(us(0x45EE10))(); }
+		inline uint32_t sub_45F270() { return fn<uint32_t (__cdecl *)()>(us(0x45F270))(); }
+		inline uint32_t sub_45F4C0() { return fn<uint32_t (__cdecl *)()>(us(0x45F4C0))(); }
+		inline uint32_t GTE_RTPS() { return fn<uint32_t (__cdecl *)()>(us(0x45FAA0))(); }
+		inline uint32_t GTE_RTPT() { return fn<uint32_t (__cdecl *)()>(us(0x45FE10))(); }
+		inline uint32_t GTE_MVMVA_RotIR() { return fn<uint32_t (__cdecl *)()>(us(0x460820))(); }
+		inline uint32_t GTE_MVMVA_RotV0_Tr_2() { return fn<uint32_t (__cdecl *)()>(us(0x460830))(); }
+		inline uint32_t GTE_MVMVA_RotV0_Tr() { return fn<uint32_t (__cdecl *)()>(us(0x460840))(); }
+		inline uint32_t GTE_MVMVA_RotV0() { return fn<uint32_t (__cdecl *)()>(us(0x460850))(); }
+		inline uint32_t Music_SetVolumeImmediate(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x46BB40))(a1, a2); }
+		inline uint32_t pre_LoadBattleFile(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x48D0A0))(a1, a2, a3, a4); }
+		inline uint32_t sub_4A2940(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x4A2940))(a1); }
+		inline uint32_t BdSound_ClaimVoiceSlot(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x4A29A0))(a1, a2, a3); }
+		inline uint32_t BdPlaySE(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x501330))(a1, a2, a3); }
+		inline uint32_t BdTransSummonStream(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x501860))(a1, a2); }
+		inline uint32_t BdPlaySummonStream(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5018C0))(a1, a2, a3); }
+		inline uint32_t GetEffectSpawnPosition(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x502170))(a1, a2, a3, a4); }
+		inline uint32_t queueChainTransformationConditional(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505CE0))(a1, a2); }
+		inline uint32_t Battle_QueueTIMUpload_GetEOF(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x505E30))(a1); }
+		inline uint32_t QueueBlitCommand(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x505EB0))(a1, a2, a3); }
+		inline uint32_t ApplyActionResultToTarget(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x506690))(a1); }
+		inline uint32_t Field_Alloc(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x5082B0))(a1); }
+		inline uint32_t Field_Free(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x5082D0))(a1); }
+		inline uint32_t BdLink_InitTaskQueuePool(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x508300))(a1, a2, a3, a4); }
+		inline uint32_t ExecuteTaskQueue(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x508420))(a1); }
+		inline uint32_t nullsub_1029() { return fn<uint32_t (__cdecl *)()>(us(0x5084E0))(); }
+		inline uint32_t sub_508630(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x508630))(a1, a2); }
+		inline uint32_t sub_5086F0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x5086F0))(a1); }
+		inline uint32_t sub_5088A0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(a1, a2, a3, a4); }
+		inline uint32_t BattleModel_BuildBoneMatricesFromPose(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x508C90))(a1); }
+		inline uint32_t BS_ComputeBonesWorldMatrices(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x5095B0))(a1, a2); }
+		inline uint32_t RenderGeometry(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(a1, a2, a3, a4, a5); }
+		inline uint32_t CrtRand() { return fn<uint32_t (__cdecl *)()>(us(0x55CBD2))(); }
+		inline uint32_t GTE_SetRotMatrix_W(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x56BAE0))(a1); }
+		inline uint32_t GTE_SetTransVector_W(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x56BB30))(a1); }
+		inline uint32_t Sqrt(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x56BEC0))(a1); }
+		inline uint32_t scale3DMatrix(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BEF0))(a1, a2); }
+		inline uint32_t ScaleMatrix3x3(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BF80))(a1, a2); }
+		inline uint32_t UnpackRotationMatrix(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56C040))(a1, a2); }
+		inline uint32_t sub_56C220(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56C220))(a1, a2); }
+		inline uint32_t GTE_MatrixMultiply(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56C270))(a1, a2); }
+		inline uint32_t ComposeAffineTransform(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56C2F0))(a1, a2, a3); }
+		inline uint32_t matrixMultiplyVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56C4F0))(a1, a2, a3); }
+		inline uint32_t TransformVectorBy3x3Matrix(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56C600))(a1, a2, a3); }
+		inline uint32_t ComposeZYXRotationMatrix(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56CE30))(a1, a2); }
+		inline uint32_t ApplyZRotation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56D090))(a1, a2); }
+		inline uint32_t computeCosine(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x56D100))(a1); }
+		inline uint32_t computeSin(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x56D130))(a1); }
+		inline uint32_t CartesianToGameAngle(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56D160))(a1, a2); }
+		inline uint32_t IO_GetFile_MAGIC(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x571B80))(a1); }
+		inline uint32_t Effect_RenderPrimModel(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x572200))(a1, a2, a3, a4); }
+		inline uint32_t MAG_017_sub_701310(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x701310))(a1, a2); }
+		inline uint32_t MAG_017_sub_701390(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x701390))(a1, a2, a3, a4, a5); }
+		inline uint32_t MAG_117_sub_701430(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x701430))(a1, a2); }
+		inline uint32_t Effect_DecodeModelPrimLayout(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x7016B0))(a1, a2, a3); }
+		inline uint32_t MAG_011_sub_701970(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x701970))(a1, a2, a3, a4); }
+		inline uint32_t Effect_ReleaseLinkedTask(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DC530))(a1); }
+		inline uint32_t Effect_AddTaskAndInitFromCtx(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x8DC540))(a1, a2, a3, a4); }
+		inline uint32_t MAG_001_CURE_Emitter_UpdatePos(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DC610))(a1); }
+		inline uint32_t Effect_UpdateTargetPosFromBones(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DC740))(a1); }
+		inline uint32_t MAG_001_CURE_Emitter_ComputeModelBounds(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DC870))(a1); }
+		inline uint32_t MAG_007_sub_8DCC00(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DCC00))(a1, a2); }
+		inline uint32_t Effect_BindModelContainerSetAnim(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DD0F0))(a1, a2, a3); }
+		inline uint32_t au_re_Battle_ReadAnimation_7(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DD190))(a1, a2); }
+		inline uint32_t sub_8DD1C0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DD1C0))(a1); }
+		inline uint32_t au_re_Battle_ReadAnimation_8(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DD220))(a1); }
+		inline uint32_t InitEffectSequenceFromData_c19(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x8DD260))(a1, a2, a3, a4); }
+		inline uint32_t MAG_022_sub_8DD770(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DD770))(a1); }
+		inline uint32_t sub_8DD7B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DD7B0))(a1); }
+		inline uint32_t sub_8DD7E0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DD7E0))(a1, a2); }
+		inline uint32_t MAG_022_sub_8DD8A0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DD8A0))(a1, a2); }
+		inline uint32_t sub_8DD960(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DD960))(a1, a2); }
 	}
 
 	uint32_t __cdecl a_739F40(uint32_t a1);
@@ -445,8 +445,8 @@ namespace act
 	};
 	extern const Mod *g_mod;
 	extern const Mod MOD_090, MOD_095, MOD_096, MOD_097, MOD_098, MOD_099, MOD_100;
-	inline uint32_t G(int k) { return g_mod->g[k]; }
-	inline uint32_t F(int k) { return g_mod->f[k]; }
+	inline uint32_t G(int k) { return us(g_mod->g[k]); }
+	inline uint32_t F(int k) { return us(g_mod->f[k]); }
 	const Mod *find_mod(int effect_id);
 	void set_mod_by_code(uint32_t code_addr);
 

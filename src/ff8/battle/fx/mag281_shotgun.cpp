@@ -23,15 +23,15 @@ namespace shotgun281
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2507F2C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507F30); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507F8C); }
-	inline Mat4x3 &BasisM() { return var<Mat4x3>(0x2507F90); }
-	inline Mat4x3 &BasisR() { return var<Mat4x3>(0x2507FB0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507FD0); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507F38; }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507F48; }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507F58; }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507F2C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507F30)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507F8C)); }
+	inline Mat4x3 &BasisM() { return var<Mat4x3>(us(0x2507F90)); }
+	inline Mat4x3 &BasisR() { return var<Mat4x3>(us(0x2507FB0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507FD0)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507F38); }
+	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2507F48); }
+	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2507F58); }
 
 	static const uint32_t ORIG_MasterTask = 0x67DD90;
 	static const uint32_t ORIG_MainTask = 0x67DF80;
@@ -46,18 +46,18 @@ namespace shotgun281
 	static const uint32_t MODEL_Hit = 0x10A3230;
 	static const uint32_t SEQ_MuzzleSpark = 0x10A3140;
 	static const uint32_t SEQ_HitSpark = 0x10A3030;
-	static const int16_t *const MUZZLE = (const int16_t *)0x10A7960;
-	static const void *const SOUND_Shot = (const void *)0x10A7958;
+	static const int16_t *MUZZLE() { return (const int16_t *)us(0x10A7960); }
+	static const void *SOUND_Shot() { return (const void *)us(0x10A7958); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -280,7 +280,7 @@ namespace shotgun281
 		const int32_t c = m->counter;
 		if ((uint32_t)c < 0xE)
 		{
-			BonePoint(MUZZLE, BasisM().t);
+			BonePoint(MUZZLE(), BasisM().t);
 			PrimArg arg;
 			MainArg(&arg);
 			FX_HELD(held_note_play(PLAY_MUZZLE, n, (prim::Layout *)m->muzzle);)
@@ -289,7 +289,7 @@ namespace shotgun281
 			{
 				for (int k = 0; k < 0x10; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 					if (!s) break;
 					s->pos[0] = (int16_t)BasisM().t[0];
 					s->pos[1] = (int16_t)BasisM().t[1];
@@ -302,7 +302,7 @@ namespace shotgun281
 					v[2] = (int16_t)(-0x80 - (CrtRand() & 0x7F));
 					s->counter = 0;
 					s->life = 8;
-					s->seq = SEQ_MuzzleSpark;
+					s->seq = us(SEQ_MuzzleSpark);
 					MatrixMulVector(&BasisM(), v, s->vel);
 					s->drag[0] = (int16_t)((int32_t)(0 - (int32_t)s->vel[0]) >> 3);
 					s->drag[1] = (int16_t)((int32_t)(0 - (int32_t)s->vel[1]) >> 3);
@@ -313,7 +313,7 @@ namespace shotgun281
 		if (c == 1) ScreenFadeTask(0, 1, 0, 0x60);
 		if ((uint32_t)(m->counter - 4) < 8)
 		{
-			HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+			HitNode *h = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
 			if (h)
 			{
 				do
@@ -323,10 +323,10 @@ namespace shotgun281
 					if (!RandomBonePoint(ent, idx, h->pos)) break;
 				} while (true);
 				h->pad12 = 0;
-				DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x138);
+				DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x138);
 				for (int k = 0; k < 8; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 					if (!s) break;
 					ff8fx::copy<(4)>(s->pos, h->pos);
 					ff8fx::copy<(4)>(&s->pos[2], &h->pos[2]);
@@ -337,7 +337,7 @@ namespace shotgun281
 					s->counter = 0;
 					s->life = 0xA;
 					s->vel[0] = (int16_t)(mul32(s->vel[0], scale) >> 11);
-					s->seq = SEQ_HitSpark;
+					s->seq = us(SEQ_HitSpark);
 					s->vel[1] = (int16_t)(mul32(s->vel[1], scale) >> 11);
 					s->vel[2] = (int16_t)(mul32(s->vel[2], scale) >> 11);
 					s->drag[0] = (int16_t)((int32_t)(0 - (int32_t)s->vel[0]) >> 3);
@@ -346,7 +346,7 @@ namespace shotgun281
 				}
 			}
 		}
-		if (m->counter == 2) BdPlaySE(SOUND_Shot, 0, 0x80);
+		if (m->counter == 2) BdPlaySE(SOUND_Shot(), 0, 0x80);
 		m->counter++;
 		if (m->counter >= 0xE)
 		{
@@ -376,10 +376,10 @@ namespace shotgun281
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x220, 1);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x14C, 6);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x28, 0x80);
-			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *mn = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
 			Memset32(&mn->counter, 0, 0x85);
 			mn->ent = Entity(Ctx()->actions[0].targets[0]);
-			DecodeModelPrimLayout(MODEL_Muzzle, mn->muzzle, 0x20C);
+			DecodeModelPrimLayout(us(MODEL_Muzzle), mn->muzzle, 0x20C);
 			uint8_t *caster = Caster();
 			int32_t v[3];
 			v[0] = (int32_t)*(const int16_t *)(mn->ent + 0x1C) - *(const int16_t *)(caster + 0x1C);

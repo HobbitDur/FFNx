@@ -16,23 +16,23 @@
 
 // Cinematic GF engine: palette shift
 
-	static inline void xl_PaletteToHsv_B67710(const void *src, void *dst, int32_t n) { x::f<void (__cdecl *)(const void *, void *, int32_t)>(0xB67710)(src, dst, n); }
-	static inline void xl_HsvToPalette_B67810(const void *hsv, void *dst, int32_t n) { x::f<void (__cdecl *)(const void *, void *, int32_t)>(0xB67810)(hsv, dst, n); }
+	static inline void xl_PaletteToHsv_B67710(const void *src, void *dst, int32_t n) { x::f<void (__cdecl *)(const void *, void *, int32_t)>(us(0xB67710))(src, dst, n); }
+	static inline void xl_HsvToPalette_B67810(const void *hsv, void *dst, int32_t n) { x::f<void (__cdecl *)(const void *, void *, int32_t)>(us(0xB67810))(hsv, dst, n); }
 
-	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(const void *, uint32_t)>(0x505E70)(rect, dst); }
+	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(const void *, uint32_t)>(us(0x505E70))(rect, dst); }
 
 	static const uint32_t PS_RECTRING = 0x27978E8;
 	static const uint32_t PS_RECTRING_IDX = 0x2798BF4;
 
 	static void StoreRect_B66F90(const uint8_t *src, uint32_t dst)
 	{
-		uint8_t *slot = (uint8_t *)(PS_RECTRING + 8u * (MEM<uint8_t>(PS_RECTRING_IDX) & 0xFu));
+		uint8_t *slot = (uint8_t *)(us(PS_RECTRING) + 8u * (MEM<uint8_t>(us(PS_RECTRING_IDX)) & 0xFu));
 		U16(slot, 0) = U16(src, 0);
 		U16(slot, 2) = U16(src, 2);
 		U16(slot, 4) = U16(src, 4);
 		U16(slot, 6) = U16(src, 6);
 		xl_QueueVramReadback(slot, dst);
-		MEM<uint8_t>(PS_RECTRING_IDX) = (uint8_t)(MEM<uint8_t>(PS_RECTRING_IDX) + 1);
+		MEM<uint8_t>(us(PS_RECTRING_IDX)) = (uint8_t)(MEM<uint8_t>(us(PS_RECTRING_IDX)) + 1);
 	}
 
 	static void __cdecl op_035_VramReadback()
@@ -42,7 +42,7 @@
 		{
 			int32_t slot = S16(s, 4);
 			uint8_t *src = s + S16(s, 2);
-			uint32_t dst = MEM<uint32_t>(0x1D99A88) + ((uint32_t)slot << 4);
+			uint32_t dst = MEM<uint32_t>(us(0x1D99A88)) + ((uint32_t)slot << 4);
 			STREAM() = s + 6;
 			StoreRect_B66F90(src, dst);
 			return;
@@ -79,12 +79,12 @@
 		const uint8_t red = (uint8_t)(c << 3), green = (uint8_t)((c >> 5) << 3), blue = (uint8_t)((c >> 10) << 3);
 		for (uint32_t i = 0; i < 2; i++)
 		{
-			uint8_t *w = (uint8_t *)(0xB8BA00 + 4 * i);
+			uint8_t *w = (uint8_t *)(us(0xB8BA00) + 4 * i);
 			U8(w, 0) = red;
 			U8(w, 1) = green;
 			U8(w, 2) = blue;
 			U8(w, 3) = (uint8_t)(3 + i);
-			uint8_t *ent = (uint8_t *)(0x1D974BC + 0x9C * i);
+			uint8_t *ent = (uint8_t *)(us(0x1D974BC) + 0x9C * i);
 			U32(ent, 0) = U32(w, 0);
 			U8(ent, 3) = 0;
 		}

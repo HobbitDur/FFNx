@@ -25,13 +25,13 @@ namespace whitewind297
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250790C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507910); }
-	inline TaskQueue *QScene() { return (TaskQueue *)0x2507918; }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2507938; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250795C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507960); }
-	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(0x2507968); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x250790C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507910)); }
+	inline TaskQueue *QScene() { return (TaskQueue *)us(0x2507918); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2507938); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x250795C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507960)); }
+	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(us(0x2507968)); }
 
 	static const uint32_t ORIG_RootTask = 0x6730D0;
 	static const uint32_t ORIG_SceneTask = 0x6731D0;
@@ -39,19 +39,19 @@ namespace whitewind297
 	static const uint32_t MODEL_Caster = 0x105AEFC;
 	static const uint32_t MODEL_Sweep = 0x105A494;
 	static const uint32_t MODEL_Target = 0x10583FC;
-	static const void *const SOUND_Wind = (const void *)0x105BA94;
+	static const void *SOUND_Wind() { return (const void *)us(0x105BA94); }
 	static const uint32_t MORPH = 0xAEC;
 	static const uint32_t ARENA_A = 0xECC;
 	static const uint32_t ARENA_B = 0x10ECC;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -252,7 +252,7 @@ namespace whitewind297
 			{
 				GetDefaultEffectPosition(Caster(), s->caster);
 				s->caster[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(MODEL_Caster, s->lay_caster, 0x188);
+				DecodeModelPrimLayout(us(MODEL_Caster), s->lay_caster, 0x188);
 			}
 			arg.m.t[0] = s->caster[0];
 			arg.m.t[1] = s->caster[1];
@@ -277,7 +277,7 @@ namespace whitewind297
 				s->sweep[0] = 0;
 				s->sweep[2] = (int16_t)((int32_t)s->sweep[2] / (int32_t)a->target_count);
 				s->sweep[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(MODEL_Sweep, s->lay_sweep, 0x194);
+				DecodeModelPrimLayout(us(MODEL_Sweep), s->lay_sweep, 0x194);
 			}
 			arg.m.t[0] = s->sweep[0];
 			arg.m.t[1] = s->sweep[1];
@@ -297,21 +297,21 @@ namespace whitewind297
 			FX_HELD(held_note_play((prim::Layout *)s->lay_sweep, PLAY_SWEEP, s->sweep);)
 			prim::play((prim::Layout *)s->lay_sweep, PrimCallback, (int)&arg, 0);
 		}
-		if (s->counter == 1) BdPlaySE(SOUND_Wind, 0, 0x80);
+		if (s->counter == 1) BdPlaySE(SOUND_Wind(), 0, 0x80);
 		const int32_t k = (int32_t)s->counter - 0x13;
 		if ((uint32_t)k < 0xC && (k & 3) == 0)
 		{
 			const uint32_t i = (uint32_t)k >> 2;
 			if (i < Ctx()->actions[0].target_count)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), ORIG_TargetTask);
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
 				if (t)
 				{
 					uint8_t *e = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
 					t->entity = e;
 					GetDefaultEffectPosition(e, t->pos);
 					t->pos[1] = AnchorY(e);
-					DecodeModelPrimLayout(MODEL_Target, t->layout, 0x278);
+					DecodeModelPrimLayout(us(MODEL_Target), t->layout, 0x278);
 				}
 			}
 		}
@@ -338,7 +338,7 @@ namespace whitewind297
 			r->started = 1;
 			InitTaskQueuePool(QScene(), (void *)(TexBase() + 0x7B0), 0x33C, 1);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0x290, 3);
-			((SceneNode *)AddTaskToQueue(QScene(), ORIG_SceneTask))->counter = 0;
+			((SceneNode *)AddTaskToQueue(QScene(), us(ORIG_SceneTask)))->counter = 0;
 		}
 		int a, b;
 		if (r->started)

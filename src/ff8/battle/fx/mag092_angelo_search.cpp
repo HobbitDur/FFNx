@@ -29,13 +29,13 @@ namespace angelo92
 	static const uint32_t DIR_PTR = 0x153D1D8;
 	static const uint32_t PHASE_DATA = DIR_PTR;
 	static const uint32_t PACKET_CURSOR = 0x2594D9C;
-	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
+	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t BdPlayStream(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x501460)(a1, a2, a3, a4); }
-		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5022C0)(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(a1, a2); }
+		static inline uint32_t BdPlayStream(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x501460))(a1, a2, a3, a4); }
+		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -333,7 +333,7 @@ namespace angelo92
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -401,35 +401,35 @@ namespace angelo92
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x2598EF0) = 0x2793E58;
-		MEM<uint32_t>(0x2594EA0) = 0x2793E58;
-		states[0] = 0x755420;
-		states[1] = 0x755430;
-		states[2] = 0x755440;
-		states[3] = 0x755450;
-		states[4] = 0x759280;
-		states[5] = 0x7592C0;
-		states[6] = 0x7592D0;
-		states[7] = 0x7592E0;
-		states[8] = 0x759310;
-		states[9] = 0x759320;
-		states[10] = 0x759340;
+		MEM<uint32_t>(us(0x2598EF0)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x2594EA0)) = us(0x2793E58);
+		states[0] = us(0x755420);
+		states[1] = us(0x755430);
+		states[2] = us(0x755440);
+		states[3] = us(0x755450);
+		states[4] = us(0x759280);
+		states[5] = us(0x7592C0);
+		states[6] = us(0x7592D0);
+		states[7] = us(0x7592E0);
+		states[8] = us(0x759310);
+		states[9] = us(0x759320);
+		states[10] = us(0x759340);
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(0x2594D9C) = MEM<uint32_t>(0x259831C);
-			MEM<uint32_t>(0x2594E9C) = MEM<uint32_t>(0x2597F14);
+			MEM<uint32_t>(us(0x2594D9C)) = MEM<uint32_t>(us(0x259831C));
+			MEM<uint32_t>(us(0x2594E9C)) = MEM<uint32_t>(us(0x2597F14));
 		}
 		else
 		{
-			MEM<uint32_t>(0x2594D9C) = MEM<uint32_t>(0x2598318);
-			MEM<uint32_t>(0x2594E9C) = MEM<uint32_t>(0x2597F10);
+			MEM<uint32_t>(us(0x2594D9C)) = MEM<uint32_t>(us(0x2598318));
+			MEM<uint32_t>(us(0x2594E9C)) = MEM<uint32_t>(us(0x2597F10));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		static const uint32_t queues[7] = { 0x25981A8, 0x2594E78, 0x2598ED0, 0x2594F80, 0x2596618, 0x2597F00, 0x2598198 };
+		static const uint32_t queues[7] = { us(0x25981A8), us(0x2594E78), us(0x2598ED0), us(0x2594F80), us(0x2596618), us(0x2597F00), us(0x2598198) };
 		for (int i = 0; i < 7; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -452,15 +452,15 @@ namespace angelo92
 	uint32_t __cdecl as_755500(uint32_t a1)
 	{
 		as_755530(a1);
-		x::Effect_AddTaskAndInitFromCtx(0x2594E78, 0x7555B0, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x2594E78), us(0x7555B0), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl as_755530(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -470,7 +470,7 @@ namespace angelo92
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(DIR_PTR), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -478,11 +478,11 @@ namespace angelo92
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = 0x755670;
-		states[1] = 0x755690;
-		states[2] = 0x7556E0;
-		states[3] = 0x755720;
-		states[4] = 0x755750;
+		states[0] = us(0x755670);
+		states[1] = us(0x755690);
+		states[2] = us(0x7556E0);
+		states[3] = us(0x755720);
+		states[4] = us(0x755750);
 		as_755620(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -513,7 +513,7 @@ namespace angelo92
 
 	uint32_t __cdecl as_755670(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(0x16C12C8);
+		x::Battle_QueueTIMUpload_GetEOF(us(0x16C12C8));
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -527,7 +527,7 @@ namespace angelo92
 
 	uint32_t __cdecl as_755720(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(DIR_PTR);
+		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
 		if (S16(d, 0x46) >= 0x9B)
 		{
 			U16(d, 0x48) = 1;
@@ -539,10 +539,10 @@ namespace angelo92
 
 	uint32_t __cdecl as_755770(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(DIR_PTR), 0x40) == 1)
+		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2598ED0, 0x7557B0, 0x154, a1);
-			x::Effect_BindModelContainerSetAnim(t, 0x153D59C, 3);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x2598ED0), us(0x7557B0), 0x154, a1);
+			x::Effect_BindModelContainerSetAnim(t, us(0x153D59C), 3);
 		}
 		return 0;
 	}
@@ -551,13 +551,13 @@ namespace angelo92
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = 0x755A80;
-		states[1] = 0x755B70;
-		states[2] = 0x758A00;
-		states[3] = 0x758AA0;
-		states[4] = 0x758BB0;
-		states[5] = 0x759110;
-		states[6] = 0x7591E0;
+		states[0] = us(0x755A80);
+		states[1] = us(0x755B70);
+		states[2] = us(0x758A00);
+		states[3] = us(0x758AA0);
+		states[4] = us(0x758BB0);
+		states[5] = us(0x759110);
+		states[6] = us(0x7591E0);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x50) = (uint16_t)(U16(node, 0x50) + U16(node, 0x128));
 		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) + U16(node, 0x124));
@@ -565,12 +565,12 @@ namespace angelo92
 		if ((U8(node, 0x26) & 4) == 0)
 		{
 			FX_HELD(held_note_draw(HK_ANGELO, node);)
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, 0x2598320, MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(0x2598320), MEM<uint32_t>(us(PACKET_CURSOR)));
 		}
 		const int32_t py = S16(node, 0x4E);
 		const int32_t px = S16(node, 0x4C);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70));
+		ff8fx::copy<(8 * 4)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
 		const int32_t pz = S16(node, 0x50);
 		S32(node, 0x88) = py;
 		S32(node, 0x84) = px;
@@ -587,7 +587,7 @@ namespace angelo92
 	{
 		const uint32_t node = a1;
 		const uint32_t e = ENT(U8(node, 0x2D));
-		gx::BindEntityModelFromComData(e, 0x2598EF8, 0x16C96E8);
+		gx::BindEntityModelFromComData(e, us(0x2598EF8), us(0x16C96E8));
 		gx::QueueChainTransformation(e, 1);
 		U32(node, 0x148) = U32(e, 0x1C);
 		U32(node, 0x14C) = U32(e, 0x20);
@@ -603,8 +603,8 @@ namespace angelo92
 		U32(node, 0x118) = 0x1000;
 		U32(node, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(node, 0);
-		x::BdPlaySE(0x153D1DC, 0, 0x80);
-		gx::BdPlayStream(0x16CB3F4, 0x80, 1, 0x7F);
+		x::BdPlaySE(us(0x153D1DC), 0, 0x80);
+		gx::BdPlayStream(us(0x16CB3F4), 0x80, 1, 0x7F);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -631,7 +631,7 @@ namespace angelo92
 			U16(node, 0x150) = 0x1000;
 			U32(mdl, 0x20) = U32(node, 0x14C);
 			x::au_re_Battle_ReadAnimation_7(node, 1);
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(0x2594F80, 0x755C70, 0x90, node);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(0x2594F80), us(0x755C70), 0x90, node);
 			U32(s, 0x1C) = U32(mdl, 0x1C);
 			U32(s, 0x20) = U32(mdl, 0x20);
 			U32(s, 0x88) = mdl;
@@ -656,7 +656,7 @@ namespace angelo92
 		const uint32_t M = P(m);
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2594F80, 0x7581D0, 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x2594F80), us(0x7581D0), 0x90, a1);
 			x::GetEffectSpawnPosition(mdl, i == 0 ? 0x1E : 0x21, 0, t + 0x1C);
 			const int32_t r1 = (int32_t)x::CrtRand();
 			U16(t, 0x1C) = (uint16_t)(U16(t, 0x1C) + (uint16_t)((r1 & 0x7F) - 0x40));
@@ -675,7 +675,7 @@ namespace angelo92
 		}
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2596618, 0x755EE0, 0x8C, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x2596618), us(0x755EE0), 0x8C, a1);
 			x::GetEffectSpawnPosition(mdl, i == 0 ? 0x1E : 0x21, 0, t + 0x1C);
 			const int32_t r1 = (int32_t)x::CrtRand();
 			U16(t, 0x1C) = (uint16_t)(U16(t, 0x1C) + (uint16_t)((r1 & 0x7F) - 0x40));
@@ -704,9 +704,9 @@ namespace angelo92
 	{
 		const uint32_t c = a1;
 		uint32_t states[3];
-		states[0] = 0x758130;
-		states[1] = 0x758170;
-		states[2] = 0x7581C0;
+		states[0] = us(0x758130);
+		states[1] = us(0x758170);
+		states[2] = us(0x7581C0);
 		callp(states[S8(c, 0x29)], c);
 		int16_t vx = S16(c, 0x74);
 		int16_t vy = (int16_t)(S16(c, 0x76) + 0x80);
@@ -737,13 +737,13 @@ namespace angelo92
 		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
-		x::UnpackRotationMatrix(0x1D97778, M);
+		x::UnpackRotationMatrix(us(0x1D97778), M);
 		x::sub_8DD960(M, (uint32_t)(int32_t)S16(a1, 0x48));
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(0x1D97778, M, M);
+		x::ComposeAffineTransform(us(0x1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -762,7 +762,7 @@ namespace angelo92
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(0x1D8E054) = as_7560D0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = as_7560D0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1481,7 +1481,7 @@ namespace angelo92
 
 	uint32_t __cdecl as_758130(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x153D2C4;
+		U32(a1, 0x4C) = us(0x153D2C4);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -1516,9 +1516,9 @@ namespace angelo92
 	{
 		const uint32_t n = a1;
 		uint32_t states[3];
-		states[0] = 0x758970;
-		states[1] = 0x758990;
-		states[2] = 0x7589E0;
+		states[0] = us(0x758970);
+		states[1] = us(0x758990);
+		states[2] = us(0x7589E0);
 		callp(states[S8(n, 0x29)], n);
 		U16(n, 0x7A) = (uint16_t)(U16(n, 0x7A) + U16(n, 0x82));
 		int16_t vx = S16(n, 0x78);
@@ -1549,7 +1549,7 @@ namespace angelo92
 		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(0x1D97778, mat);
+		x::UnpackRotationMatrix(us(0x1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -1557,7 +1557,7 @@ namespace angelo92
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(0x1D97778);
+		x::GTE_SetRotMatrix(us(0x1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -1567,7 +1567,7 @@ namespace angelo92
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(0x1D97778);
+		x::GTE_SetTransVector(us(0x1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -1577,18 +1577,18 @@ namespace angelo92
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(0x2594D9C);
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(us(0x2594D9C));
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(0x2594D9C) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(us(0x2594D9C)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
 
 	uint32_t __cdecl as_758970(uint32_t a1)
 	{
-		U32(a1, 0x4C) = 0x153D1E8;
+		U32(a1, 0x4C) = us(0x153D1E8);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -1611,7 +1611,7 @@ namespace angelo92
 		const uint32_t node = a1;
 		const uint32_t e = ENT(U8(node, 0x2D));
 		if (S16(node, 0x136) == 6)
-			x::BdPlaySE(0x153D1E0, 1, 0x80);
+			x::BdPlaySE(us(0x153D1E0), 1, 0x80);
 		if (x::au_re_Battle_ReadAnimation_8(node) == 1)
 		{
 			x::au_re_Battle_ReadAnimation_7(node, 2);
@@ -1655,7 +1655,7 @@ namespace angelo92
 		if (x::au_re_Battle_ReadAnimation_8(node) == 1)
 		{
 			x::au_re_Battle_ReadAnimation_7(node, 4);
-			gx::BdPlayStream(0x16CB3F8, 0x80, 1, 0x7F);
+			gx::BdPlayStream(us(0x16CB3F8), 0x80, 1, 0x7F);
 			const uint32_t p = U32(node, 0x4C), q = U32(node, 0x50);
 			U32(node, 0x140) = p;
 			U32(node, 0x148) = p;
@@ -1667,7 +1667,7 @@ namespace angelo92
 		}
 		if (S16(node, 0x136) == 0xB)
 		{
-			const uint32_t t = as_758C60(node, 0x758CB0, 0x16C0DB8, 0xE0, 0, 0);
+			const uint32_t t = as_758C60(node, us(0x758CB0), us(0x16C0DB8), 0xE0, 0, 0);
 			x::GetEffectSpawnPosition(node + 0x30, 0x18, 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
 		}
@@ -1676,7 +1676,7 @@ namespace angelo92
 
 	uint32_t __cdecl as_758C60(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x2597F00, a2, 0x17C, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x2597F00), a2, 0x17C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -1695,7 +1695,7 @@ namespace angelo92
 		S32(node, 0x50) = 0x1000;
 		U16(node, 0x86) = 0xFF00;
 		as_758D70(node);
-		x::BdPlaySE(0x153D1E4, 1, 0x80);
+		x::BdPlaySE(us(0x153D1E4), 1, 0x80);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -1720,9 +1720,9 @@ namespace angelo92
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(0x1D97778, L, L);
+		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
-		U32(L, 0x48) = MEM<uint32_t>(0x2598EE8);
+		U32(L, 0x48) = MEM<uint32_t>(us(0x2598EE8));
 		U32(L, 0x44) = U32(node, 0x7C);
 		U16(L, 0x4C) = U16(node, 0x8C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -1731,7 +1731,7 @@ namespace angelo92
 		U16(L, 0x50) = U16(node, 0x90);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		return prim_play(node + 0x94, 0x758EA0, L, 0);
+		return prim_play(node + 0x94, us(0x758EA0), L, 0);
 	}
 
 	uint32_t __cdecl as_758EA0(uint32_t a1, uint32_t a2, uint32_t a3)
@@ -1823,12 +1823,12 @@ namespace angelo92
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
@@ -1836,7 +1836,7 @@ namespace angelo92
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = as_7560D0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(us(PACKET_CURSOR)) = as_7560D0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1873,7 +1873,7 @@ namespace angelo92
 
 	uint32_t __cdecl as_7591F0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x153D1D8);
+		const uint32_t d = MEM<uint32_t>(us(0x153D1D8));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;

@@ -40,27 +40,27 @@ namespace theend
 
 	namespace gx
 	{
-		static inline uint32_t sub_4A8480(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x4A8480)(a1); }
-		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x7015B0)(a1, a2); }
-		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(0x4607D0)(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(0x4607E0)(); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DCF0)(a1, a2, a3); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DE50)(a1); }
-		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45DEA0)(a1); }
-		static inline uint32_t sub_45E0E0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0E0)(a1); }
-		static inline uint32_t sub_45E410(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E410)(a1); }
-		static inline uint32_t GTE_ReadOTZ_SZ3div4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E250)(a1); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E220)(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(0x45E9D0)(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
-		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(a1, a2); }
-		static inline uint32_t Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x46BBC0)(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(a1, a2); }
-		static inline uint32_t BS_R0win_QueueVictoryFanfare(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x501A20)(a1, a2); }
-		static inline uint32_t BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x501B10)(a1, a2); }
-		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x8DE8F0)(a1, a2, a3, a4); }
+		static inline uint32_t sub_4A8480(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x4A8480))(a1); }
+		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x7015B0))(a1, a2); }
+		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(us(0x4607D0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
+		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEA0))(a1); }
+		static inline uint32_t sub_45E0E0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0E0))(a1); }
+		static inline uint32_t sub_45E410(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E410))(a1); }
+		static inline uint32_t GTE_ReadOTZ_SZ3div4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E250))(a1); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(a1, a2); }
+		static inline uint32_t Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x46BBC0))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
+		static inline uint32_t BS_R0win_QueueVictoryFanfare(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x501A20))(a1, a2); }
+		static inline uint32_t BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x501B10))(a1, a2); }
+		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x8DE8F0))(a1, a2, a3, a4); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -358,7 +358,7 @@ namespace theend
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -522,42 +522,42 @@ namespace theend
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
+		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(0x25C21CC) = 0x2793E58;
-		MEM<uint32_t>(0x25BC4A0) = 0x2793E58;
-		states[0] = 0x7847C0;
+		MEM<uint32_t>(us(0x25C21CC)) = us(0x2793E58);
+		MEM<uint32_t>(us(0x25BC4A0)) = us(0x2793E58);
+		states[0] = us(0x7847C0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = 0x7847D0;
-		states[2] = 0x7847E0;
-		states[3] = 0x784860;
-		states[4] = 0x78D6C0;
-		states[5] = 0x78D700;
-		states[6] = 0x78D710;
-		states[7] = 0x78D720;
-		states[8] = 0x78D750;
-		states[9] = 0x78D760;
-		states[10] = 0x78D780;
+		states[1] = us(0x7847D0);
+		states[2] = us(0x7847E0);
+		states[3] = us(0x784860);
+		states[4] = us(0x78D6C0);
+		states[5] = us(0x78D700);
+		states[6] = us(0x78D710);
+		states[7] = us(0x78D720);
+		states[8] = us(0x78D750);
+		states[9] = us(0x78D760);
+		states[10] = us(0x78D780);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25C1B5C);
-			const uint32_t v2 = MEM<uint32_t>(0x25C0F54);
-			MEM<uint32_t>(0x25BC394) = v1;
-			MEM<uint32_t>(0x25BC49C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x25C1B5C));
+			const uint32_t v2 = MEM<uint32_t>(us(0x25C0F54));
+			MEM<uint32_t>(us(0x25BC394)) = v1;
+			MEM<uint32_t>(us(0x25BC49C)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(0x25C1B58);
-			const uint32_t v2 = MEM<uint32_t>(0x25C0F50);
-			MEM<uint32_t>(0x25BC394) = v1;
-			MEM<uint32_t>(0x25BC49C) = v2;
+			const uint32_t v1 = MEM<uint32_t>(us(0x25C1B58));
+			const uint32_t v2 = MEM<uint32_t>(us(0x25C0F50));
+			MEM<uint32_t>(us(0x25BC394)) = v1;
+			MEM<uint32_t>(us(0x25BC49C)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(0x25C21B0) = 0;
-		MEM<uint16_t>(0x25C1CB4) = 0;
-		static const uint32_t queues[8] = { 0x25C19E8, 0x25BC478, 0x25C21B8, 0x25C1748, 0x25BC580, 0x25BC898, 0x25C0F40, 0x25C19D8 };
+		MEM<uint16_t>(us(0x25C21B0)) = 0;
+		MEM<uint16_t>(us(0x25C1CB4)) = 0;
+		static const uint32_t queues[8] = { us(0x25C19E8), us(0x25BC478), us(0x25C21B8), us(0x25C1748), us(0x25BC580), us(0x25BC898), us(0x25C0F40), us(0x25C19D8) };
 		for (int i = 0; i < 8; i++)
 		{
 			FX_HELD(if (i == 7) held_note_tints(queues[i]);)
@@ -575,12 +575,12 @@ namespace theend
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(0x25C21D8);
-		MEM<uint32_t>(0x25C1CB8) = p;
+		uint32_t p = MEM<uint32_t>(us(0x25C21D8));
+		MEM<uint32_t>(us(0x25C1CB8)) = p;
 		p += 0x798;
-		MEM<uint32_t>(0x25C21D0) = p;
+		MEM<uint32_t>(us(0x25C21D0)) = p;
 		p += 0x9D80;
-		MEM<uint32_t>(0x25C21D8) = p;
+		MEM<uint32_t>(us(0x25C21D8)) = p;
 		te_784820();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -588,12 +588,12 @@ namespace theend
 
 	uint32_t __cdecl te_784820()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25C1CB8), 0x798);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x25C21D0), 0x9D80);
-		MEM<uint16_t>(0x25BC890) = 0;
-		MEM<uint16_t>(0x25C1CC4) = 0;
-		MEM<uint16_t>(0x25C1C54) = 0;
-		MEM<uint16_t>(0x25BC398) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25C1CB8)), 0x798);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25C21D0)), 0x9D80);
+		MEM<uint16_t>(us(0x25BC890)) = 0;
+		MEM<uint16_t>(us(0x25C1CC4)) = 0;
+		MEM<uint16_t>(us(0x25C1C54)) = 0;
+		MEM<uint16_t>(us(0x25BC398)) = 0;
 		return 0;
 	}
 
@@ -601,26 +601,26 @@ namespace theend
 	{
 		te_784DC0(a1);
 		te_784960();
-		x::Effect_AddTaskAndInitFromCtx(0x25C21B8, 0x784A60, 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(0x25BC478, 0x784E30, 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25C21B8), us(0x784A60), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(us(0x25BC478), us(0x784E30), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl te_784960()
 	{
-		MEM<uint32_t>(0x25C1B60) = 0x1571E70;
-		MEM<uint32_t>(0x25C1C58) = 0x25C21E0;
-		x::MAG_007_sub_8DCC00(0x25C21E0, 0x16C);
-		const uint32_t b = MEM<uint32_t>(0x25C1C58);
-		uint32_t c = MEM<uint32_t>(0x25C21D8);
+		MEM<uint32_t>(us(0x25C1B60)) = us(0x1571E70);
+		MEM<uint32_t>(us(0x25C1C58)) = us(0x25C21E0);
+		x::MAG_007_sub_8DCC00(us(0x25C21E0), 0x16C);
+		const uint32_t b = MEM<uint32_t>(us(0x25C1C58));
+		uint32_t c = MEM<uint32_t>(us(0x25C21D8));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(0x25C21D8) = c;
-		U32(b, 0x114) = 0x19EB018;
+		MEM<uint32_t>(us(0x25C21D8)) = c;
+		U32(b, 0x114) = us(0x19EB018);
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
-			if (o != 0x114 && o != 0x12C) U32(b, o) = 0x19CF018;
-		U32(b, 0x12C) = 0x19D2560;
+			if (o != 0x114 && o != 0x12C) U32(b, o) = us(0x19CF018);
+		U32(b, 0x12C) = us(0x19D2560);
 		U16(b, 0x164) = 0;
 		U16(b, 0x166) = 0;
 		return b;
@@ -629,8 +629,8 @@ namespace theend
 	uint32_t __cdecl te_784DC0(uint32_t a1)
 	{
 		(void)a1;
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x156C7F0), 0x54);
-		const uint32_t d = MEM<uint32_t>(0x156C7F0);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x156C7F0)), 0x54);
+		const uint32_t d = MEM<uint32_t>(us(0x156C7F0));
 		U16(d, 8) = 0;
 		U16(d, 0xA) = 0;
 		U16(d, 0xC) = 0;
@@ -640,7 +640,7 @@ namespace theend
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const int16_t dz = (int16_t)(U16(d, 0xC) - 0x1000);
 		const uint32_t a = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(0x156C7F0), 0x4A) = (uint16_t)((a - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(us(0x156C7F0)), 0x4A) = (uint16_t)((a - 0x800) & 0xFFF);
 		return 0;
 	}
 
@@ -648,29 +648,29 @@ namespace theend
 	{
 		const uint32_t node = a1;
 		uint32_t states[23];
-		states[0] = 0x784F80;
-		states[1] = 0x784FD0;
-		states[2] = 0x785020;
-		states[3] = 0x785080;
-		states[4] = 0x785110;
-		states[5] = 0x785130;
-		states[6] = 0x785150;
-		states[7] = 0x785170;
-		states[8] = 0x7851C0;
-		states[9] = 0x7851E0;
-		states[10] = 0x785200;
-		states[11] = 0x785230;
-		states[12] = 0x785250;
-		states[13] = 0x785270;
-		states[14] = 0x785290;
-		states[15] = 0x7852B0;
-		states[16] = 0x7852D0;
-		states[17] = 0x7852F0;
-		states[18] = 0x785310;
-		states[19] = 0x785330;
-		states[20] = 0x785350;
-		states[21] = 0x785380;
-		states[22] = 0x7853A0;
+		states[0] = us(0x784F80);
+		states[1] = us(0x784FD0);
+		states[2] = us(0x785020);
+		states[3] = us(0x785080);
+		states[4] = us(0x785110);
+		states[5] = us(0x785130);
+		states[6] = us(0x785150);
+		states[7] = us(0x785170);
+		states[8] = us(0x7851C0);
+		states[9] = us(0x7851E0);
+		states[10] = us(0x785200);
+		states[11] = us(0x785230);
+		states[12] = us(0x785250);
+		states[13] = us(0x785270);
+		states[14] = us(0x785290);
+		states[15] = us(0x7852B0);
+		states[16] = us(0x7852D0);
+		states[17] = us(0x7852F0);
+		states[18] = us(0x785310);
+		states[19] = us(0x785330);
+		states[20] = us(0x785350);
+		states[21] = us(0x785380);
+		states[22] = us(0x7853A0);
 		te_784F30(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -711,20 +711,20 @@ namespace theend
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(0x156C7F4, 0, 0x80);
+		x::BdPlaySE(us(0x156C7F4), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
 
 	uint32_t __cdecl te_785080(uint32_t a1)
 	{
-		if (U16(MEM<uint32_t>(0x25C1C58), 0x166) == 0)
+		if (U16(MEM<uint32_t>(us(0x25C1C58)), 0x166) == 0)
 		{
 			a_73BB60(0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0;
 		}
-		if (S16(MEM<uint32_t>(0x156C7F0), 0x46) >= 0x4A)
+		if (S16(MEM<uint32_t>(us(0x156C7F0)), 0x46) >= 0x4A)
 			a_73BB60(1);
 		return 0;
 	}
@@ -744,11 +744,11 @@ namespace theend
 
 	uint32_t __cdecl te_785170(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x156C7F0), 0x46) < 0xE)
+		if (S16(MEM<uint32_t>(us(0x156C7F0)), 0x46) < 0xE)
 			return 0;
 		U16(a1, 0x44) = 6;
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25C19D8, 0x8DDC30, 0x40, a1);
-		U32(t, 0x34) = 0x1571FE8;
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25C19D8), us(0x8DDC30), 0x40, a1);
+		U32(t, 0x34) = us(0x1571FE8);
 		U16(t, 0x38) = 0;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -758,7 +758,7 @@ namespace theend
 	{
 		if (a_73B7E0(3) != 0)
 		{
-			x::BdPlaySE(0x156C7F8, 0, 0x80);
+			x::BdPlaySE(us(0x156C7F8), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -766,7 +766,7 @@ namespace theend
 
 	uint32_t __cdecl te_785230(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(0x156C7F0), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(us(0x156C7F0)), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -822,7 +822,7 @@ namespace theend
 
 	uint32_t __cdecl te_785350(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(0x156C7F0);
+		const uint32_t d = MEM<uint32_t>(us(0x156C7F0));
 		if (S16(d, 0x46) < 0xA)
 			return 0;
 		U16(d, 0x48) = 1;
@@ -833,33 +833,33 @@ namespace theend
 
 	uint32_t __cdecl te_7853C0(uint32_t a1)
 	{
-		const int32_t cut = S16(MEM<uint32_t>(0x156C7F0), 0x40);
+		const int32_t cut = S16(MEM<uint32_t>(us(0x156C7F0)), 0x40);
 		switch (cut - 1)
 		{
 		case 0:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x787E20, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x7882E0, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x78D410, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x787FD0, 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x788420, 0xE4, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x787E20), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x7882E0), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x78D410), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x787FD0), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x788420), 0xE4, a1);
 			break;
 		case 1:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x78C4C0, 0xE4, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x78C4C0), 0xE4, a1);
 			break;
 		case 2:
 		{
-			te_785510(a1, 0x785560, 0x1718EE4, 0x20, 1, 0);
-			const uint32_t t1 = te_785510(a1, 0x787B50, 0x171C42C, 0x50, 2, 0);
+			te_785510(a1, us(0x785560), us(0x1718EE4), 0x20, 1, 0);
+			const uint32_t t1 = te_785510(a1, us(0x787B50), us(0x171C42C), 0x50, 2, 0);
 			U16(t1, 0x8A) = 0;
-			const uint32_t t2 = te_785510(a1, 0x787B50, 0x171C42C, 0x50, 2, 0);
+			const uint32_t t2 = te_785510(a1, us(0x787B50), us(0x171C42C), 0x50, 2, 0);
 			U16(t2, 0x8A) = 1;
 			break;
 		}
 		case 3:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x78CE80, 0xE4, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x78CE80), 0xE4, a1);
 			break;
 		case 4:
-			x::Effect_AddTaskAndInitFromCtx(0x25BC580, 0x78D250, 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x78D250), 0x60, a1);
 			break;
 		default:
 			break;
@@ -869,7 +869,7 @@ namespace theend
 
 	uint32_t __cdecl te_785510(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25C0F40, a2, 0x2DC, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25C0F40), a2, 0x2DC, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -897,12 +897,12 @@ namespace theend
 
 	uint32_t __cdecl te_785620()
 	{
-		uint32_t cur = MEM<uint32_t>(0x25BC394);
-		for (uint32_t e = 0x1D97494; e < 0x1D97704; e += 0x9C)
+		uint32_t cur = MEM<uint32_t>(us(0x25BC394));
+		for (uint32_t e = us(0x1D97494); e < us(0x1D97704); e += 0x9C)
 		{
 			if (!(U8(e, 0) & 2)) continue;
-			cur = x::sub_5088A0(e, MEM<uint32_t>(0x1D8E04C) + 0x44, 4, cur);
-			MEM<uint32_t>(0x25BC394) = cur;
+			cur = x::sub_5088A0(e, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, cur);
+			MEM<uint32_t>(us(0x25BC394)) = cur;
 		}
 		return cur;
 	}
@@ -1013,7 +1013,7 @@ namespace theend
 		U16(h, 0x20) = 0x100;
 		U16(h, 0x2A) = 0x100;
 		U16(h, 0x28) = 0x100;
-		MEM<uint32_t>(0x1D8E054) = te_785A90(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1751,7 +1751,7 @@ namespace theend
 
 	uint32_t __cdecl te_787B50(uint32_t a1)
 	{
-		const uint32_t tab[4] = { 0x787BB0, 0x787BE0, 0x787C90, 0x787E10 };
+		const uint32_t tab[4] = { us(0x787BB0), us(0x787BE0), us(0x787C90), us(0x787E10) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1845,7 +1845,7 @@ namespace theend
 		if (S16(a1, 0x24) < 0)
 			return 0;
 		U16(a1, 0x1C) = 0;
-		uint32_t e = 0x1D989BA;
+		uint32_t e = us(0x1D989BA);
 		for (int k = 0; k < 4; k++, e += 0x2C)
 		{
 			U16(e, -0x28) = 0;
@@ -1867,7 +1867,7 @@ namespace theend
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		const uint16_t v = U16(a1, 0x1C);
-		for (uint32_t e = 0x1D98992, k = 0; k < 4; k++, e += 0x2C)
+		for (uint32_t e = us(0x1D98992), k = 0; k < 4; k++, e += 0x2C)
 			MEM<uint16_t>(e) = v;
 		return 0;
 	}
@@ -1893,7 +1893,7 @@ namespace theend
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = 0x1D98992;
+		uint32_t p = us(0x1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1924,8 +1924,8 @@ namespace theend
 
 	uint32_t __cdecl te_7880A0(void)
 	{
-		uint32_t save = MEM<uint32_t>(0x156C7F0) + 0x20;
-		for (uint32_t e = 0x1D972C0; e < 0x1D97494; e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(us(0x156C7F0)) + 0x20;
+		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -1939,7 +1939,7 @@ namespace theend
 
 	uint32_t __cdecl te_7880E0(uint32_t a1, uint32_t a2)
 	{
-		for (uint32_t ent = 0x1D972C0; ent < 0x1D97494; ent += 0x9C)
+		for (uint32_t ent = us(0x1D972C0); ent < us(0x1D97494); ent += 0x9C)
 		{
 			uint16_t flags = U16(ent, 0);
 			if ((flags & 2) != 0)
@@ -1965,8 +1965,8 @@ namespace theend
 
 	uint32_t __cdecl te_788250(void)
 	{
-		uint32_t save = MEM<uint32_t>(0x156C7F0) + 0x20;
-		for (uint32_t e = 0x1D972C0; e < 0x1D97494; e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(us(0x156C7F0)) + 0x20;
+		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -2061,7 +2061,7 @@ namespace theend
 			}
 			kind = 0x7F;
 		}
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x788580, 0xE4, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x788580), 0xE4, a1);
 		U16(a1, 0xDC) = (uint16_t)(U16(a1, 0xDC) + 1);
 		U16(t, 0xDE) = kind;
 		return 0;
@@ -2072,9 +2072,9 @@ namespace theend
 		uint8_t sp[0x2C];
 		const uint32_t s = P(sp);
 		uint32_t states[3];
-		states[0] = 0x788810;
-		states[1] = 0x788960;
-		states[2] = 0x78C4A0;
+		states[0] = us(0x788810);
+		states[1] = us(0x788960);
+		states[2] = us(0x78C4A0);
 		callp(states[S8(a1, 0x29)], a1);
 		const uint16_t sw = (uint16_t)((U16(a1, 0xB4) + 0x20) & 0xFFF);
 		U16(a1, 0xB4) = sw;
@@ -2118,13 +2118,13 @@ namespace theend
 		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
-		x::UnpackRotationMatrix(0x1D97778, M);
+		x::UnpackRotationMatrix(us(0x1D97778), M);
 		x::sub_8DD960(M, (uint32_t)(int32_t)S16(a1, 0x48));
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(0x1D97778, M, M);
+		x::ComposeAffineTransform(us(0x1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -2143,7 +2143,7 @@ namespace theend
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(0x1D8E054) = te_785A90(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2151,7 +2151,7 @@ namespace theend
 	uint32_t __cdecl te_788810(uint32_t a1)
 	{
 		const int32_t kind = S16(a1, 0xDE);
-		U32(a1, 0x4C) = 0x156C7FC;
+		U32(a1, 0x4C) = us(0x156C7FC);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -2210,8 +2210,8 @@ namespace theend
 			U16(a1, 0x1E) = 0;
 			if (impact)
 			{
-				te_785510(a1, 0x788A90, 0x1715D28, 0x230, 0, 0);
-				const uint32_t t = a_73C100(a1, 0x788B90, 0x17151EC, 0, 0xF, 3);
+				te_785510(a1, us(0x788A90), us(0x1715D28), 0x230, 0, 0);
+				const uint32_t t = a_73C100(a1, us(0x788B90), us(0x17151EC), 0, 0xF, 3);
 				U32(t, 0x288) = U32(a1, 0x1C);
 				U32(t, 0x28C) = U32(a1, 0x20);
 			}
@@ -2283,7 +2283,7 @@ namespace theend
 
 	uint32_t __cdecl te_788DD0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25C21DC);
+		const uint32_t arena = MEM<uint32_t>(us(0x25C21DC));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -2300,7 +2300,7 @@ namespace theend
 
 	uint32_t __cdecl te_789050(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(0x25C21DC);
+		const uint32_t arena = MEM<uint32_t>(us(0x25C21DC));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -2323,7 +2323,7 @@ namespace theend
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(0x25C21DC, 0) = sys;
+		U32(us(0x25C21DC), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2336,7 +2336,7 @@ namespace theend
 			FX_HELD(held_note_system(sys);)
 			te_789950();
 			te_789790();
-			sys = U32(0x25C21DC, 0);
+			sys = U32(us(0x25C21DC), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2349,19 +2349,19 @@ namespace theend
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(0x25C21B0, 0) = (uint16_t)(U16(0x25C21B0, 0) + c14);
-		U16(0x25C1CB4, 0) = (uint16_t)(U16(0x25C1CB4, 0) + c16);
+		U16(us(0x25C21B0), 0) = (uint16_t)(U16(us(0x25C21B0), 0) + c14);
+		U16(us(0x25C1CB4), 0) = (uint16_t)(U16(us(0x25C1CB4), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl te_789790(void)
 	{
-		uint32_t act = U32(U32(0x25C21DC, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x25C21DC), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(0x25C21DC, 0);
+				uint32_t sys = U32(us(0x25C21DC), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -2375,10 +2375,10 @@ namespace theend
 
 	uint32_t __cdecl te_7897F0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(SCRATCH_SP) - 0x68;
+		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(SCRATCH_SP) = h;
+		MEM<uint32_t>(us(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -2406,7 +2406,7 @@ namespace theend
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(0x1D8E054) = te_785A90(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+			MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		}
 		else if (copies > 0)
 		{
@@ -2418,24 +2418,24 @@ namespace theend
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(0x1D8E054) = te_785A90(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+				MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(SCRATCH_SP) + 0x68;
-		MEM<uint32_t>(SCRATCH_SP) = top;
+		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(us(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl te_789950(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(0x25C21DC), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(us(0x25C21DC)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(0x25C21DC);
+				uint32_t st = MEM<uint32_t>(us(0x25C21DC));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -2470,8 +2470,8 @@ namespace theend
 	uint32_t __cdecl te_789A10(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(SCRATCH_SP) - 0xB4;
-		MEM<uint32_t>(SCRATCH_SP) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
@@ -2479,17 +2479,17 @@ namespace theend
 		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
 		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
+		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl te_789A90(void)
 	{
-		uint32_t act = U32(U32(0x25C21DC, 0), 0x2C);
+		uint32_t act = U32(U32(us(0x25C21DC), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2505,7 +2505,7 @@ namespace theend
 	uint32_t __cdecl te_789AD0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(0x25C21DC);
+		uint32_t st = MEM<uint32_t>(us(0x25C21DC));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -2526,7 +2526,7 @@ namespace theend
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(0x25C21DC);
+			st = MEM<uint32_t>(us(0x25C21DC));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2538,7 +2538,7 @@ namespace theend
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x25C21DC, 0);
+		uint32_t st = U32(us(0x25C21DC), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2621,8 +2621,8 @@ namespace theend
 
 	uint32_t __cdecl te_78ACC0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25C1CB8);
-		int32_t i = MEM<int16_t>(0x25BC890);
+		const uint32_t pool = MEM<uint32_t>(us(0x25C1CB8));
+		int32_t i = MEM<int16_t>(us(0x25BC890));
 		uint32_t slot = 0;
 		for (int32_t k = 0; k < 0x12; k++)
 		{
@@ -2633,7 +2633,7 @@ namespace theend
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
 				U8(slot, 0x69) = 1;
-				U16(MEM<uint32_t>(0x25C21DC), 0x14) = (uint16_t)(U16(MEM<uint32_t>(0x25C21DC), 0x14) + 1);
+				U16(MEM<uint32_t>(us(0x25C21DC)), 0x14) = (uint16_t)(U16(MEM<uint32_t>(us(0x25C21DC)), 0x14) + 1);
 				U32(slot, 0x5C) = a1;
 				U8(slot, 0x6B) = (uint8_t)a3;
 				a_742CA0(slot, 0);
@@ -2643,8 +2643,8 @@ namespace theend
 			if (i >= 0x11) i = 0;
 		}
 		i++;
-		if (i >= 0x11) MEM<uint16_t>(0x25BC890) = 0;
-		else MEM<uint16_t>(0x25BC890) = (uint16_t)i;
+		if (i >= 0x11) MEM<uint16_t>(us(0x25BC890)) = 0;
+		else MEM<uint16_t>(us(0x25BC890)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2657,9 +2657,9 @@ namespace theend
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(0x78B710, a1);
+			callp(us(0x78B710), a1);
 		else if (mode == 4)
-			callp(0x78B860, a1);
+			callp(us(0x78B860), a1);
 		te_78ADE0(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2668,7 +2668,7 @@ namespace theend
 
 	uint32_t __cdecl te_78ADE0(uint32_t a1)
 	{
-		uint32_t sys = U32(0x25C21DC, 0);
+		uint32_t sys = U32(us(0x25C21DC), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2695,9 +2695,9 @@ namespace theend
 
 	uint32_t __cdecl te_78AE60(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(0x25C21CC, 0) - 0x50;
+		uint32_t sp = U32(us(0x25C21CC), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(0x25C21CC, 0) = sp;
+		U32(us(0x25C21CC), 0) = sp;
 		uint32_t node = te_78B640(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2707,7 +2707,7 @@ namespace theend
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(0x25C21DC, 0);
+			uint32_t ctx = U32(us(0x25C21DC), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2875,14 +2875,14 @@ namespace theend
 			}
 		}
 		te_78C350(node, desc);
-		U32(0x25C21CC, 0) = U32(0x25C21CC, 0) + 0x50;
+		U32(us(0x25C21CC), 0) = U32(us(0x25C21CC), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl te_78B640(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(0x25C21D0);
-		int32_t i = MEM<int16_t>(0x25C1CC4);
+		const uint32_t pool = MEM<uint32_t>(us(0x25C21D0));
+		int32_t i = MEM<int16_t>(us(0x25C1CC4));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2895,7 +2895,7 @@ namespace theend
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(ACTOR_STATE);
+				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2912,16 +2912,16 @@ namespace theend
 		}
 		i++;
 		if (i >= 0x3B)
-			MEM<uint16_t>(0x25C1CC4) = 0;
+			MEM<uint16_t>(us(0x25C1CC4)) = 0;
 		else
-			MEM<uint16_t>(0x25C1CC4) = (uint16_t)i;
+			MEM<uint16_t>(us(0x25C1CC4)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl te_78B860(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(0x25C21DC, 0);
+		const uint32_t st = U32(us(0x25C21DC), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2981,7 +2981,7 @@ namespace theend
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(0x25C21DC, 0);
+				uint32_t g = U32(us(0x25C21DC), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2991,7 +2991,7 @@ namespace theend
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(0x25C21DC, 0);
+				uint32_t g = U32(us(0x25C21DC), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3066,7 +3066,7 @@ namespace theend
 
 	uint32_t __cdecl te_78C3E0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x25C21DC);
+		uint32_t dir = MEM<uint32_t>(us(0x25C21DC));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3091,14 +3091,14 @@ namespace theend
 				do
 				{
 					te_78ACC0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(0x25C21DC);
+					dir = MEM<uint32_t>(us(0x25C21DC));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				te_78ACC0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(0x25C21DC);
+				dir = MEM<uint32_t>(us(0x25C21DC));
 			}
 		}
 		return 0;
@@ -3118,9 +3118,9 @@ namespace theend
 	uint32_t __cdecl te_78C4C0(uint32_t a1)
 	{
 		uint32_t states[3];
-		states[0] = 0x78CE00;
-		states[1] = 0x78CE30;
-		states[2] = 0x78CE70;
+		states[0] = us(0x78CE00);
+		states[1] = us(0x78CE30);
+		states[2] = us(0x78CE70);
 		callp(states[S8(a1, 0x29)], a1);
 		te_78C530(a1, (uint32_t)U16(a1, 0xE0));
 		const uint8_t status = U8(a1, 0x26);
@@ -3143,7 +3143,7 @@ namespace theend
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(0x1D97778, M, M);
+		x::ComposeAffineTransform(us(0x1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -3163,7 +3163,7 @@ namespace theend
 		U16(h, 0x24) = 0;
 		U16(h, 0x64) = (uint16_t)a2;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(0x1D8E054) = te_78C660(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
+		MEM<uint32_t>(us(0x1D8E054)) = te_78C660(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3293,7 +3293,7 @@ namespace theend
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
-		U32(a1, 0x4C) = 0x156C8BC;
+		U32(a1, 0x4C) = us(0x156C8BC);
 		U16(a1, 0xE0) = 0x80;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -3313,14 +3313,14 @@ namespace theend
 
 	uint32_t __cdecl te_78CE80(uint32_t a1)
 	{
-		const uint32_t states[2] = { 0x78CED0, 0x78D240 };
+		const uint32_t states[2] = { us(0x78CED0), us(0x78D240) };
 		callp(states[S8(a1, 0x29)], a1);
 		return task_end(a1);
 	}
 
 	uint32_t __cdecl te_78CED0(uint32_t a1)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BC898, 0x78CFA0, 0xE4, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x78CFA0), 0xE4, a1);
 		uint32_t st = t + 0xD4, p = t + 0x56;
 		for (int k = 0; k < 4; k++, st += 2, p += 8)
 		{
@@ -3346,11 +3346,11 @@ namespace theend
 		uint8_t sp[0x28];
 		const uint32_t s = P(sp);
 		uint32_t states[5];
-		states[0] = 0x78D150;
-		states[1] = 0x78D180;
-		states[2] = 0x78D1C0;
-		states[3] = 0x78D1F0;
-		states[4] = 0x78D230;
+		states[0] = us(0x78D150);
+		states[1] = us(0x78D180);
+		states[2] = us(0x78D1C0);
+		states[3] = us(0x78D1F0);
+		states[4] = us(0x78D230);
 		callp(states[S8(a1, 0x29)], a1);
 		uint32_t p = a1 + 0x98, st = a1 + 0xD4;
 		for (int k = 0; k < 4; k++, st += 2, p += 8)
@@ -3402,7 +3402,7 @@ namespace theend
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = 0x156C85C;
+		U32(a1, 0x4C) = us(0x156C85C);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -3441,7 +3441,7 @@ namespace theend
 
 	uint32_t __cdecl te_78D250(uint32_t a1)
 	{
-		const uint32_t tab[4] = { 0x78D2B0, 0x78D3A0, 0x78D3D0, 0x78D400 };
+		const uint32_t tab[4] = { us(0x78D2B0), us(0x78D3A0), us(0x78D3D0), us(0x78D400) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -3463,7 +3463,7 @@ namespace theend
 	uint32_t __cdecl te_78D2E0(uint32_t a1)
 	{
 		FX_HELD(held_note_draw(HK_GLOW, a1);)
-		const uint32_t pk = MEM<uint32_t>(0x1D8E054);
+		const uint32_t pk = MEM<uint32_t>(us(0x1D8E054));
 		U8(pk, 0x24) = 0;
 		U8(pk, 0xC) = 0;
 		U32(pk, 0) = 0xC000000;
@@ -3490,8 +3490,8 @@ namespace theend
 		const uint8_t l = U8(a1, 0x5A);
 		U8(pk, 0x2A) = l; U8(pk, 0x29) = l; U8(pk, 0x28) = l;
 		U8(pk, 0x12) = l; U8(pk, 0x11) = l; U8(pk, 0x10) = l;
-		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(0x1D8E04C) + 0x14, pk);
-		MEM<uint32_t>(0x1D8E054) = pk + 0x34;
+		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(us(0x1D8E04C)) + 0x14, pk);
+		MEM<uint32_t>(us(0x1D8E054)) = pk + 0x34;
 		return pk + 0x34;
 	}
 
@@ -3544,8 +3544,8 @@ namespace theend
 	{
 		FX_HELD(held_note_draw(HK_BARS, a1);)
 		(void)a1;
-		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x14;
-		uint32_t pk = MEM<uint32_t>(0x1D8E054);
+		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x14;
+		uint32_t pk = MEM<uint32_t>(us(0x1D8E054));
 		const uint16_t b = (uint16_t)a2;
 		U32(pk, 0) = 0x5000000;
 		U8(pk, 7) = 0x29;
@@ -3578,7 +3578,7 @@ namespace theend
 		U8(pk, 4) = 0;
 		x::SSIGPU_InsertPrimAltViewport(ot, pk);
 		pk += 0x18;
-		MEM<uint32_t>(0x1D8E054) = pk;
+		MEM<uint32_t>(us(0x1D8E054)) = pk;
 		return pk;
 	}
 

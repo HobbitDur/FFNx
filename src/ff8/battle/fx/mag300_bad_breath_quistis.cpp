@@ -25,54 +25,54 @@ namespace badbreath300
 	using namespace magc;
 	using namespace icec;
 
-	inline Mat4x3 &MeshFrame() { return var<Mat4x3>(0x2507758); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507778); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25077A4); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25077A8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25077C4); }
-	static const void *const FADE_COLOUR = (const void *)0x25077C8;
-	inline TaskQueue *QSmoke() { return (TaskQueue *)0x25077D0; }
-	inline TaskQueue *QHits() { return (TaskQueue *)0x25077E0; }
-	inline TaskQueue *QBreath() { return (TaskQueue *)0x25077F0; }
-	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
+	inline Mat4x3 &MeshFrame() { return var<Mat4x3>(us(0x2507758)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507778)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25077A4)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25077A8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25077C4)); }
+	static const void *FADE_COLOUR() { return (const void *)us(0x25077C8); }
+	inline TaskQueue *QSmoke() { return (TaskQueue *)us(0x25077D0); }
+	inline TaskQueue *QHits() { return (TaskQueue *)us(0x25077E0); }
+	inline TaskQueue *QBreath() { return (TaskQueue *)us(0x25077F0); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x66EFB0;
 	static const uint32_t ORIG_BreathTask = 0x66F270;
 	static const uint32_t ORIG_HitTask = 0x66F790;
 	static const uint32_t ORIG_SmokeTask = 0x66FB20;
 	static const uint32_t ORIG_PrimCallback = 0x66F8A0;
-	static uint8_t *const MESH1 = (uint8_t *)0x103FA04;
-	static uint8_t *const MESH2 = (uint8_t *)0x1040E84;
+	static uint8_t *MESH1() { return (uint8_t *)us(0x103FA04); }
+	static uint8_t *MESH2() { return (uint8_t *)us(0x1040E84); }
 	static const uint32_t MODEL_Hit = 0x1042304;
 	static const uint32_t SEQ_Smoke = 0x103F824;
 	static const uint32_t CAMERA_Anim = 0x1042F80;
 	static const uint32_t COM_Anim = 0x103DCB0;
 	static const uint32_t BIND_Block = 0x83C;
-	static const uint8_t *const COLOURS = (const uint8_t *)0x10430F8;
-	static const int16_t *const SWIRL_TABLE = (const int16_t *)0x1043110;
-	static const int16_t *const MOUTH = (const int16_t *)0x1043108;
-	static const void *const SOUND_Breath = (const void *)0x10430F4;
+	static const uint8_t *COLOURS() { return (const uint8_t *)us(0x10430F8); }
+	static const int16_t *SWIRL_TABLE() { return (const int16_t *)us(0x1043110); }
+	static const int16_t *MOUTH() { return (const int16_t *)us(0x1043108); }
+	static const void *SOUND_Breath() { return (const void *)us(0x10430F4); }
 	static const uint32_t VERTS = 0x85C;
 	static const uint32_t ARENA_A = 0xD84, ARENA_B = 0x18D84;
 	static const uint32_t POOL_Hits = 0x300, POOL_Breath = 0x800;
 
-	inline uint32_t FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x700150)(t, r, g, b, in, hold, out, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void GteLoadRGBBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(rgb); }
-	inline void GteStoreRGBBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
+	inline uint32_t FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x700150))(t, r, g, b, in, hold, out, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(us(0x704070))(); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline void GteLoadRGBBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(rgb); }
+	inline void GteStoreRGBBytes(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E410))(dst); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -159,9 +159,9 @@ namespace badbreath300
 			GteStoreIR123(out);
 			const int32_t w = v[3];
 			const int32_t a = (phase + w * 2) & 0xFFF;
-			const int32_t amp = (int32_t)SWIRL_TABLE[w & 0xFFE] >> 4;
-			out[1] = (int16_t)(out[1] - (int16_t)(mul32(SWIRL_TABLE[a * 2], amp) >> 12));
-			out[0] = (int16_t)(out[0] + (int16_t)(mul32(SWIRL_TABLE[a * 2 + 1], amp) >> 12));
+			const int32_t amp = (int32_t)SWIRL_TABLE()[w & 0xFFE] >> 4;
+			out[1] = (int16_t)(out[1] - (int16_t)(mul32(SWIRL_TABLE()[a * 2], amp) >> 12));
+			out[0] = (int16_t)(out[0] + (int16_t)(mul32(SWIRL_TABLE()[a * 2 + 1], amp) >> 12));
 			out += 4;
 			v += 4;
 		} while (--count);
@@ -339,16 +339,16 @@ namespace badbreath300
 	{
 		const int32_t v = shl32(t, 10);
 		const int32_t i = (v >> 12) % 3, f = v & 0xFFF;
-		BlendColour(COLOURS + i * 4, COLOURS + i * 4 + 4, 0x1000 - f, f, h4);
+		BlendColour(COLOURS() + i * 4, COLOURS() + i * 4 + 4, 0x1000 - f, f, h4);
 		if ((uint32_t)t < 8)
 		{
 			const int32_t s = ComputeSin((t & 0x3FFFFF) << 7);
-			BlendColour(FADE_COLOUR, h4, 0x1000 - s, s, h4);
+			BlendColour(FADE_COLOUR(), h4, 0x1000 - s, s, h4);
 		}
 		else if ((uint32_t)t > 0x22)
 		{
 			const int32_t s = ComputeSin((shl32(t, 6) - 0x841) & 0xFFFFFC0);
-			BlendColour(FADE_COLOUR, h4, s, 0x1000 - s, h4);
+			BlendColour(FADE_COLOUR(), h4, s, 0x1000 - s, h4);
 		}
 	}
 }
@@ -440,7 +440,7 @@ namespace badbreath300
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
-		*(uint32_t *)h = SEQ_Smoke;
+		*(uint32_t *)h = us(SEQ_Smoke);
 		*(uint16_t *)(h + 4) = p->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -479,7 +479,7 @@ namespace badbreath300
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter <= 8)
 		{
-			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
+			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), us(ORIG_SmokeTask));
 			if (s)
 			{
 				const int32_t bone = mul32(CrtRand(), ***(const uint8_t *const *const *)(entity + 0x64)) >> 15;
@@ -495,14 +495,14 @@ namespace badbreath300
 
 	static void PartyReact(int32_t id)
 	{
-		for (uint8_t *e = (uint8_t *)0x1D972C0; e < (uint8_t *)0x1D97494; e += 0x9C)
+		for (uint8_t *e = (uint8_t *)us(0x1D972C0); e < (uint8_t *)us(0x1D97494); e += 0x9C)
 			if ((e[0] & 2) && !(e[8] & 3) && e != Caster()) QueueChainTransformation(e, id);
 	}
 
 	static uint32_t __cdecl BreathTask(TaskNode *n)
 	{
 		BreathNode *e = (BreathNode *)n;
-		BonePoint(MOUTH, e->mouth);
+		BonePoint(MOUTH(), e->mouth);
 		const int32_t t = e->counter - 8;
 		if ((uint32_t)t < 0x32)
 		{
@@ -514,7 +514,7 @@ namespace badbreath300
 			GteSetRotMatrix(&rot);
 			GteZeroTrans();
 			const uint32_t verts = TexBase() + VERTS;
-			SwirlVertices(MESH1, e->phase, (int16_t *)verts);
+			SwirlVertices(MESH1(), e->phase, (int16_t *)verts);
 			const int16_t x = SweepX(t, e->width);
 			const int16_t y = e->y, z = e->z;
 			if (e->next < e->count)
@@ -522,7 +522,7 @@ namespace badbreath300
 				uint8_t *target = e->ents[e->next];
 				if ((int32_t)x - 0x12C <= (int32_t)*(const int16_t *)(target + 0x1C))
 				{
-					HitNode *p = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+					HitNode *p = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
 					if (p)
 					{
 						p->counter = 0;
@@ -530,7 +530,7 @@ namespace badbreath300
 						p->slot = (uint8_t)((int32_t)((uint32_t)target - 0x1D972C0u) / 0x9C);
 						GetDefaultEffectPosition(target, p->pos);
 						p->pos[1] = (int16_t)((int32_t)*(const int16_t *)(target + 0x92) / 2 + *(const int16_t *)(target + 0x1E));
-						DecodeModelPrimLayout(MODEL_Hit, p->layout, 0x128);
+						DecodeModelPrimLayout(us(MODEL_Hit), p->layout, 0x128);
 					}
 					e->next++;
 				}
@@ -562,22 +562,22 @@ namespace badbreath300
 			*(uint16_t *)(h + 0x1A) = 0;
 			*(uint16_t *)(h + 0x1C) = 0x80;
 			*(uint16_t *)(h + 0xC) = (uint16_t)((uint8_t)t * 10 & 0x7F);
-			*(uint8_t **)h = MESH1;
+			*(uint8_t **)h = MESH1();
 			*(uint32_t *)(h + 0x20) = verts;
 			PacketCursor() = MeshDraw(h, RenderOT44(), 2, PacketCursor());
 			RotZ((int16_t)-e->angle, &rot);
 			GteSetRotMatrix(&rot);
 			GteZeroTrans();
-			SwirlVertices(MESH2, (int32_t)e->phase + 0x400, (int16_t *)verts);
+			SwirlVertices(MESH2(), (int32_t)e->phase + 0x400, (int16_t *)verts);
 			GteSetRotMatrix(&MeshFrame());
 			GteSetTransVector(&MeshFrame());
-			*(uint8_t **)h = MESH2;
+			*(uint8_t **)h = MESH2();
 			PacketCursor() = MeshDraw(h, RenderOT44(), 2, PacketCursor());
 			FieldFree(0x5C);
 			if (t == 0) PartyReact(2);
 			else if (t == 0x31) PartyReact(1);
 		}
-		if (e->counter == 0xA) BdPlaySE(SOUND_Breath, 0, 0x80);
+		if (e->counter == 0xA) BdPlaySE(SOUND_Breath(), 0, 0x80);
 		e->angle = (int16_t)(e->angle - 0x32);
 		e->phase = (int16_t)(e->phase + 0xC8);
 		if (e->counter >= 0x3A) return TASK_END;
@@ -605,7 +605,7 @@ namespace badbreath300
 			InitTaskQueuePool(QBreath(), (void *)(TexBase() + POOL_Breath), 0x3C, 1);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x140, 4);
 			InitTaskQueuePool(QSmoke(), (void *)TexBase(), 0x18, 0x20);
-			BreathNode *e = (BreathNode *)AddTaskToQueue(QBreath(), ORIG_BreathTask);
+			BreathNode *e = (BreathNode *)AddTaskToQueue(QBreath(), us(ORIG_BreathTask));
 			Memset32(&e->counter, 0, 0xC);
 			uint8_t *const b = (uint8_t *)e;
 			e->count = (int16_t)Ctx()->actions[0].target_count;
@@ -645,9 +645,9 @@ namespace badbreath300
 					}
 				}
 			}
-			NormalizeDepth(MESH1);
-			NormalizeDepth(MESH2);
-			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, COM_Anim);
+			NormalizeDepth(MESH1());
+			NormalizeDepth(MESH2());
+			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, us(COM_Anim));
 			QueueChainTransformation(Caster(), 1);
 		}
 		int a0, a1, a2;

@@ -43,26 +43,26 @@ namespace desperado261
 	{
 		c.name = "261 Desperado";
 		c.effect_id = 261;
-		c.vm_table = 0x185919C;
-		c.bone_table = 0x1858E0C;
-		c.prim_table = 0x1858E54;
-		c.prim_size = 0x1858F44;
-		c.spr_table = 0x1858F58;
-		c.ptype_table = 0x1858F84;
-		c.pop_table = 0x1858F98;
-		c.draw_table = 0x1858FF8;
-		c.attr_16A = 0x1859162;
-		c.attr_184 = 0x185917C;
-		c.attr_186 = 0x185917E;
-		c.attr_194 = 0x185918C;
-		c.attr_19C = 0x1859194;
-		c.desc = 0x1858BD8;
-		c.ptr_block = 0x1858DE4;
-		c.queue = 0x2796158;
-		c.file00 = 0x27961E8;
-		c.file01 = 0x27961EC;
-		c.tick = 0x959F40;
-		c.load_cb = 0x960270;
+		c.vm_table = us(0x185919C);
+		c.bone_table = us(0x1858E0C);
+		c.prim_table = us(0x1858E54);
+		c.prim_size = us(0x1858F44);
+		c.spr_table = us(0x1858F58);
+		c.ptype_table = us(0x1858F84);
+		c.pop_table = us(0x1858F98);
+		c.draw_table = us(0x1858FF8);
+		c.attr_16A = us(0x1859162);
+		c.attr_184 = us(0x185917C);
+		c.attr_186 = us(0x185917E);
+		c.attr_194 = us(0x185918C);
+		c.attr_19C = us(0x1859194);
+		c.desc = us(0x1858BD8);
+		c.ptr_block = us(0x1858DE4);
+		c.queue = us(0x2796158);
+		c.file00 = us(0x27961E8);
+		c.file01 = us(0x27961EC);
+		c.tick = us(0x959F40);
+		c.load_cb = us(0x960270);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -80,20 +80,20 @@ namespace desperado261
 
 	template<typename F> static inline F fx(uint32_t a) { return (F)a; }
 	static inline uint8_t *A(uint32_t a) { return (uint8_t *)a; }
-	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, void *, uint32_t)>(0x5022C0)(ent, out, data); }
-	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, int32_t)>(0x505C00)(ent, id); }
-	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m) { return fx<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m); }
-	static inline void xl_SplineSetup(int32_t n, const void *pts, void *work) { fx<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, pts, work); }
-	static inline void xl_SplineEval(int32_t n, const void *work, void *out, int32_t t) { fx<void (__cdecl *)(int32_t, const void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	static inline void xl_Normalize(const void *in, void *out) { fx<void (__cdecl *)(const void *, void *)>(0x56BC50)(in, out); }
-	static inline void xl_MulVec3x3(const void *m, const void *in, void *out) { fx<void (__cdecl *)(const void *, const void *, void *)>(0x56C600)(m, in, out); }
-	static inline void xl_GteReadFLAG(void *dst) { fx<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	static inline void xl_GteAVSZ4() { fx<void (__cdecl *)()>(0x45E610)(); }
-	static inline void xl_GteSetIR0(int32_t v) { fx<void (__cdecl *)(int32_t)>(0x45E150)(v); }
-	static inline void xl_GteLoadRGBC(const void *c) { fx<void (__cdecl *)(const void *)>(0x45E110)(c); }
-	static inline void xl_GteDPCS() { fx<void (__cdecl *)()>(0x45F270)(); }
-	static inline void xl_GteStoreRGB2(void *dst) { fx<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
+	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
+	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
+	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m) { return fx<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m); }
+	static inline void xl_SplineSetup(int32_t n, const void *pts, void *work) { fx<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, pts, work); }
+	static inline void xl_SplineEval(int32_t n, const void *work, void *out, int32_t t) { fx<void (__cdecl *)(int32_t, const void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	static inline void xl_Normalize(const void *in, void *out) { fx<void (__cdecl *)(const void *, void *)>(us(0x56BC50))(in, out); }
+	static inline void xl_MulVec3x3(const void *m, const void *in, void *out) { fx<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C600))(m, in, out); }
+	static inline void xl_GteReadFLAG(void *dst) { fx<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
+	static inline void xl_GteAVSZ4() { fx<void (__cdecl *)()>(us(0x45E610))(); }
+	static inline void xl_GteSetIR0(int32_t v) { fx<void (__cdecl *)(int32_t)>(us(0x45E150))(v); }
+	static inline void xl_GteLoadRGBC(const void *c) { fx<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
+	static inline void xl_GteDPCS() { fx<void (__cdecl *)()>(us(0x45F270))(); }
+	static inline void xl_GteStoreRGB2(void *dst) { fx<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -101,7 +101,7 @@ namespace desperado261
 	{
 		uint8_t *ent = SlotEntity();
 		uint8_t *blk = blob::ArenaAlloc(0x20);
-		xl_BindEntityModelFromComData(ent, blk, COMDATA);
+		xl_BindEntityModelFromComData(ent, blk, us(COMDATA));
 		xl_QueueChainTransformation(ent, S16(STREAM(), 2));
 		STREAM() += 4;
 	}
@@ -262,32 +262,32 @@ namespace desperado261
 		TipFrom(w, S16(CUR(), 0x94));
 		const int32_t size = U16(data, 2);
 		const int32_t slot = (int32_t)((uint32_t)U16(blk, 0) % (uint32_t)size);
-		uint8_t *e = A(RING) + 0x14 * slot;
+		uint8_t *e = A(us(RING)) + 0x14 * slot;
 		U32(e, 0) = 1;
 		U32(e, 4) = U32(w->base, 0);
 		U32(e, 8) = U32(w->base, 4);
 		U32(e, 0xC) = U32(w->tip, 0);
 		U32(e, 0x10) = U32(w->tip, 4);
-		const int32_t n = TrailGather(A(RING), size, U16(blk, 0), slot, A(PTS_BASE), A(PTS_TIP));
+		const int32_t n = TrailGather(A(us(RING)), size, U16(blk, 0), slot, A(us(PTS_BASE)), A(us(PTS_TIP)));
 		if (n > 1)
 		{
 			uint8_t *work = (uint8_t *)x::FieldAlloc(0x190);
-			TrailCurve(n, A(PTS_BASE), work, A(SPL_BASE));
-			TrailCurve(n, A(PTS_TIP), work, A(SPL_TIP));
+			TrailCurve(n, A(us(PTS_BASE)), work, A(us(SPL_BASE)));
+			TrailCurve(n, A(us(PTS_TIP)), work, A(us(SPL_TIP)));
 			x::FieldFree(0x190);
-			U32(A(TAIL_BASE), 0) = U32(A(SPL_TIP), 0);
-			S32(A(DIR_TIP), 0) = S16(A(SPL_TIP), 0) - S16(A(SPL_TIP), 8);
-			U32(A(TAIL_BASE), 4) = U32(A(SPL_TIP), 4);
-			S32(A(DIR_TIP), 4) = S16(A(SPL_TIP), 2) - S16(A(SPL_TIP), 0xA);
-			S32(A(DIR_TIP), 8) = S16(A(SPL_TIP), 4) - S16(A(SPL_TIP), 0xC);
-			xl_Normalize(A(DIR_TIP), A(DIR_TIP));
-			U32(A(HEAD_BASE), 0) = U32(A(SPL_BASE), 0);
-			U32(A(HEAD_BASE), 4) = U32(A(SPL_BASE), 4);
-			S32(A(DIR_BASE), 0) = S16(A(TAIL_BASE), 0) - S16(A(SPL_BASE), 0);
-			S32(A(DIR_BASE), 4) = S16(A(TAIL_BASE), 2) - S16(A(SPL_BASE), 2);
-			S32(A(DIR_BASE), 8) = S16(A(TAIL_BASE), 4) - S16(A(SPL_BASE), 4);
-			xl_Normalize(A(DIR_BASE), A(DIR_BASE));
-			TrailDraw(A(SPL_BASE), A(SPL_TIP), U32(CUR(), 0xCC), w);
+			U32(A(us(TAIL_BASE)), 0) = U32(A(us(SPL_TIP)), 0);
+			S32(A(us(DIR_TIP)), 0) = S16(A(us(SPL_TIP)), 0) - S16(A(us(SPL_TIP)), 8);
+			U32(A(us(TAIL_BASE)), 4) = U32(A(us(SPL_TIP)), 4);
+			S32(A(us(DIR_TIP)), 4) = S16(A(us(SPL_TIP)), 2) - S16(A(us(SPL_TIP)), 0xA);
+			S32(A(us(DIR_TIP)), 8) = S16(A(us(SPL_TIP)), 4) - S16(A(us(SPL_TIP)), 0xC);
+			xl_Normalize(A(us(DIR_TIP)), A(us(DIR_TIP)));
+			U32(A(us(HEAD_BASE)), 0) = U32(A(us(SPL_BASE)), 0);
+			U32(A(us(HEAD_BASE)), 4) = U32(A(us(SPL_BASE)), 4);
+			S32(A(us(DIR_BASE)), 0) = S16(A(us(TAIL_BASE)), 0) - S16(A(us(SPL_BASE)), 0);
+			S32(A(us(DIR_BASE)), 4) = S16(A(us(TAIL_BASE)), 2) - S16(A(us(SPL_BASE)), 2);
+			S32(A(us(DIR_BASE)), 8) = S16(A(us(TAIL_BASE)), 4) - S16(A(us(SPL_BASE)), 4);
+			xl_Normalize(A(us(DIR_BASE)), A(us(DIR_BASE)));
+			TrailDraw(A(us(SPL_BASE)), A(us(SPL_TIP)), U32(CUR(), 0xCC), w);
 		}
 		x::FieldFree(0x40);
 		U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);
@@ -303,7 +303,7 @@ namespace desperado261
 			uint8_t *blk = blob::ArenaAlloc(0x10);
 			PTR(CUR(), 0xBC) = blk;
 			U16(blk, 0) = 0;
-			for (int32_t i = 0; i < (int32_t)U16(data, 2); i++) U32(A(RING), 0x14 * i) = 0;
+			for (int32_t i = 0; i < (int32_t)U16(data, 2); i++) U32(A(us(RING)), 0x14 * i) = 0;
 			b = CUR();
 		}
 		uint8_t *data = PTR(b, 0xB8);

@@ -142,19 +142,19 @@ namespace scan068
 	static_assert(sizeof(CtlNode) == 0x78 && sizeof(ModelNode) == 0x6C && sizeof(SpriteNode) == 0x58, "Scan nodes");
 	static_assert(sizeof(CamState) == 0x4E, "Scan camera state");
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25FCE30); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x25FFAC8; }
-	inline TaskQueue *QControls() { return (TaskQueue *)0x25FFC40; }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x25FFA90; }
-	inline TaskQueue *QModels() { return (TaskQueue *)0x25FD6E0; }
-	inline CamState &Cam() { return **(CamState **)0x1591C40; }
-	inline int32_t &Scanned(int k) { return ((int32_t *)0x25FCE34)[k]; }
-	inline int16_t &HudActive() { return var<int16_t>(0x25FD708); }
-	inline int16_t &Closing() { return var<int16_t>(0x25FFAA4); }
-	inline int16_t &Confirmed() { return var<int16_t>(0x26005B0); }
-	inline int16_t &TextDone() { return var<int16_t>(0x26005B2); }
-	inline uint8_t *MainEntity() { return var<uint8_t *>(0x25FFAA8); }
-	inline uint32_t LinesOT() { return var<uint32_t>(0x1D8E04C) + 0x14; }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25FCE30)); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)us(0x25FFAC8); }
+	inline TaskQueue *QControls() { return (TaskQueue *)us(0x25FFC40); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x25FFA90); }
+	inline TaskQueue *QModels() { return (TaskQueue *)us(0x25FD6E0); }
+	inline CamState &Cam() { return **(CamState **)us(0x1591C40); }
+	inline int32_t &Scanned(int k) { return ((int32_t *)us(0x25FCE34))[k]; }
+	inline int16_t &HudActive() { return var<int16_t>(us(0x25FD708)); }
+	inline int16_t &Closing() { return var<int16_t>(us(0x25FFAA4)); }
+	inline int16_t &Confirmed() { return var<int16_t>(us(0x26005B0)); }
+	inline int16_t &TextDone() { return var<int16_t>(us(0x26005B2)); }
+	inline uint8_t *MainEntity() { return var<uint8_t *>(us(0x25FFAA8)); }
+	inline uint32_t LinesOT() { return var<uint32_t>(us(0x1D8E04C)) + 0x14; }
 
 	static const uint32_t ORIG_Root = 0x7DC280, ORIG_Emitter = 0x7DC3A0, ORIG_AltScanner = 0x7DC600;
 	static const uint32_t ORIG_Reticle = 0x7DC6F0, ORIG_Pair = 0x7DC950, ORIG_Morph = 0x7DCBE0, ORIG_Corner = 0x7DCF10;
@@ -162,40 +162,40 @@ namespace scan068
 	static const uint32_t ORIG_StatBar = 0x7DE200, ORIG_CamRestore = 0x7DE830, ORIG_AltSpinner = 0x7DDED0;
 	static const uint32_t ORIG_AltBoard = 0x7DE110, ORIG_AltText = 0x7DE540;
 
-	static const void *const SOUND_Scan = (const void *)0x1594994;
+	static const void *SOUND_Scan() { return (const void *)us(0x1594994); }
 	static const uint32_t INFO_TABLE = 0x1594998;
 	static const uint32_t RETICLE_PATH = 0x15956F0;
 
-	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
-	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
-	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
-	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC700)(n, out); }
-	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
-	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
-	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD8A0)(m, a); }
-	inline void RotateZ(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD960)(m, a); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline int32_t CartesianToGameAngle(int32_t a, int32_t b) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(a, b); }
-	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t a, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, a, out); }
-	inline uint8_t *MainPartOf(uint8_t *entity) { return fn<uint8_t *(__cdecl *)(uint8_t *)>(0x501FF0)(entity); }
-	inline uint32_t RenderPrimModelB(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x8DE9D0)(header, ot, mode, cursor); }
-	inline void InsertPrimAutoDepth(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
-	inline void BattleMenuShow(int32_t on) { fn<void (__cdecl *)(int32_t)>(0x4A8480)(on); }
-	inline uint32_t ReadPadHeldRaw(int32_t a, int32_t b) { return fn<uint32_t (__cdecl *)(int32_t, int32_t)>(0x49ED30)(a, b); }
-	inline uint32_t RemapPadInput(uint32_t raw) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x4A2D60)(raw); }
-	inline void TextSetLayerText(int32_t layer, const void *text) { fn<void (__cdecl *)(int32_t, const void *)>(0x4A0410)(layer, text); }
-	inline void TextLayer4A0700(int32_t layer, int32_t a) { fn<void (__cdecl *)(int32_t, int32_t)>(0x4A0700)(layer, a); }
-	inline void TextSetPosition(int32_t layer, const int16_t *rect) { fn<void (__cdecl *)(int32_t, const int16_t *)>(0x4A07A0)(layer, rect); }
-	inline void TextLayer4A0640(int32_t layer) { fn<void (__cdecl *)(int32_t)>(0x4A0640)(layer); }
-	inline void TextLayer4A0680(int32_t layer) { fn<void (__cdecl *)(int32_t)>(0x4A0680)(layer); }
-	inline void TextLayer49FBC0(int32_t layer, int32_t a) { fn<void (__cdecl *)(int32_t, int32_t)>(0x49FBC0)(layer, a); }
-	inline uint8_t ScanTextLines(uint32_t slot) { return (uint8_t)fn<uint32_t (__cdecl *)(uint32_t)>(0xB67EF0)(slot); }
-	inline const void *ScanTextLine(uint32_t slot, uint32_t line) { return fn<const void *(__cdecl *)(uint32_t, uint32_t)>(0xB68370)(slot, line); }
+	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(us(0x8DC540))(q, task, size, parent); }
+	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC530))(n); }
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC610))(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC870))(n); }
+	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC740))(n); }
+	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC700))(n, out); }
+	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(us(0x8DD770))(m); }
+	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD7E0))(m, a); }
+	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD8A0))(m, a); }
+	inline void RotateZ(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD960))(m, a); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t CartesianToGameAngle(int32_t a, int32_t b) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(a, b); }
+	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t a, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, a, out); }
+	inline uint8_t *MainPartOf(uint8_t *entity) { return fn<uint8_t *(__cdecl *)(uint8_t *)>(us(0x501FF0))(entity); }
+	inline uint32_t RenderPrimModelB(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x8DE9D0))(header, ot, mode, cursor); }
+	inline void InsertPrimAutoDepth(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(us(0x50A730))(); }
+	inline void BattleMenuShow(int32_t on) { fn<void (__cdecl *)(int32_t)>(us(0x4A8480))(on); }
+	inline uint32_t ReadPadHeldRaw(int32_t a, int32_t b) { return fn<uint32_t (__cdecl *)(int32_t, int32_t)>(us(0x49ED30))(a, b); }
+	inline uint32_t RemapPadInput(uint32_t raw) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x4A2D60))(raw); }
+	inline void TextSetLayerText(int32_t layer, const void *text) { fn<void (__cdecl *)(int32_t, const void *)>(us(0x4A0410))(layer, text); }
+	inline void TextLayer4A0700(int32_t layer, int32_t a) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x4A0700))(layer, a); }
+	inline void TextSetPosition(int32_t layer, const int16_t *rect) { fn<void (__cdecl *)(int32_t, const int16_t *)>(us(0x4A07A0))(layer, rect); }
+	inline void TextLayer4A0640(int32_t layer) { fn<void (__cdecl *)(int32_t)>(us(0x4A0640))(layer); }
+	inline void TextLayer4A0680(int32_t layer) { fn<void (__cdecl *)(int32_t)>(us(0x4A0680))(layer); }
+	inline void TextLayer49FBC0(int32_t layer, int32_t a) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x49FBC0))(layer, a); }
+	inline uint8_t ScanTextLines(uint32_t slot) { return (uint8_t)fn<uint32_t (__cdecl *)(uint32_t)>(us(0xB67EF0))(slot); }
+	inline const void *ScanTextLine(uint32_t slot, uint32_t line) { return fn<const void *(__cdecl *)(uint32_t, uint32_t)>(us(0xB68370))(slot, line); }
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 	template<typename T> static inline const T &F(const uint8_t *p, uint32_t off) { return *(const T *)(p + off); }
@@ -224,13 +224,13 @@ namespace scan068
 	{
 		const int16_t c = EntityClass((int16_t)(uint16_t)n->slot);
 		Cam().cls = c;
-		return (const uint8_t *)(INFO_TABLE + (int32_t)c * 16);
+		return (const uint8_t *)(us(INFO_TABLE) + (int32_t)c * 16);
 	}
 
 	static void FindScannedEntities(int16_t slot)
 	{
 		uint8_t *e = Entity(slot);
-		var<uint8_t *>(0x25FFAA8) = MainPartOf(e);
+		var<uint8_t *>(us(0x25FFAA8)) = MainPartOf(e);
 		uint8_t *list[8];
 		if (EntityClass(slot) == 0x54)
 		{
@@ -455,11 +455,11 @@ namespace scan068
 	{
 		CamState &c = Cam();
 		CameraEye(c);
-		var<uint32_t>(0xB8B7F8) = *(const uint32_t *)&c.look[0];
-		var<uint32_t>(0xB8B7FC) = *(const uint32_t *)&c.look[2];
-		var<uint32_t>(0xB8B7F0) = *(const uint32_t *)&c.eye[0];
-		var<uint32_t>(0xB8B7F4) = *(const uint32_t *)&c.eye[2];
-		var<int16_t>(0x1D8E038) = c.proj;
+		var<uint32_t>(us(0xB8B7F8)) = *(const uint32_t *)&c.look[0];
+		var<uint32_t>(us(0xB8B7FC)) = *(const uint32_t *)&c.look[2];
+		var<uint32_t>(us(0xB8B7F0)) = *(const uint32_t *)&c.eye[0];
+		var<uint32_t>(us(0xB8B7F4)) = *(const uint32_t *)&c.eye[2];
+		var<int16_t>(us(0x1D8E038)) = c.proj;
 	}
 
 	static void CameraSetup(CtlNode *n)
@@ -488,15 +488,15 @@ namespace scan068
 			break;
 		default: break;
 		}
-		c.proj0 = var<int16_t>(0x1D8E038);
+		c.proj0 = var<int16_t>(us(0x1D8E038));
 		c.proj1 = 0x240;
-		const int32_t ex = (int32_t)var<int16_t>(0xB8B7F0) - var<int16_t>(0xB8B7F8);
-		const int32_t ez = (int32_t)var<int16_t>(0xB8B7F4) - var<int16_t>(0xB8B7FC);
+		const int32_t ex = (int32_t)var<int16_t>(us(0xB8B7F0)) - var<int16_t>(us(0xB8B7F8));
+		const int32_t ez = (int32_t)var<int16_t>(us(0xB8B7F4)) - var<int16_t>(us(0xB8B7FC));
 		const int32_t d = Sqrt((int32_t)((uint32_t)mul32(ez, ez) + (uint32_t)mul32(ex, ex)));
 		c.dist0 = (int16_t)-d;
-		c.h0 = (int16_t)(var<int16_t>(0xB8B7F2) - var<int16_t>(0xB8B7FA));
+		c.h0 = (int16_t)(var<int16_t>(us(0xB8B7F2)) - var<int16_t>(us(0xB8B7FA)));
 		c.yaw1 = F<int16_t>(MainEntity(), 0xE);
-		c.yaw0 = (int16_t)((CartesianToGameAngle(var<int16_t>(0x1D97788), var<int16_t>(0x1D9777C)) - 0x400) & 0xFFF);
+		c.yaw0 = (int16_t)((CartesianToGameAngle(var<int16_t>(us(0x1D97788)), var<int16_t>(us(0x1D9777C))) - 0x400) & 0xFFF);
 		if ((uint32_t)(int32_t)n->mode <= 3)
 		{
 			int16_t v[4];
@@ -534,8 +534,8 @@ namespace scan068
 			c.look1[1] = (int16_t)(c.look1[1] + out[1]);
 			c.look1[2] = (int16_t)(c.look1[2] + out[2]);
 		}
-		ff8fx::copy<(4)>(&c.look0[0], (const void *)0xB8B7F8);
-		ff8fx::copy<(4)>(&c.look0[2], (const void *)0xB8B7FC);
+		ff8fx::copy<(4)>(&c.look0[0], (const void *)us(0xB8B7F8));
+		ff8fx::copy<(4)>(&c.look0[2], (const void *)us(0xB8B7FC));
 		n->h.phase++;
 	}
 }
@@ -589,11 +589,11 @@ namespace scan068
 		switch (n->h.phase)
 		{
 		case 0:
-			var<uint32_t>(0xB8B7F8) = var<uint32_t>(0xB8B808);
-			var<uint32_t>(0xB8B7FC) = var<uint32_t>(0xB8B80C);
-			var<uint32_t>(0xB8B7F4) = var<uint32_t>(0xB8B804);
-			var<int16_t>(0x1D8E038) = var<int16_t>(0x1D977A0);
-			var<uint32_t>(0xB8B7F0) = var<uint32_t>(0xB8B800);
+			var<uint32_t>(us(0xB8B7F8)) = var<uint32_t>(us(0xB8B808));
+			var<uint32_t>(us(0xB8B7FC)) = var<uint32_t>(us(0xB8B80C));
+			var<uint32_t>(us(0xB8B7F4)) = var<uint32_t>(us(0xB8B804));
+			var<int16_t>(us(0x1D8E038)) = var<int16_t>(us(0x1D977A0));
+			var<uint32_t>(us(0xB8B7F0)) = var<uint32_t>(us(0xB8B800));
 			n->timer = 1;
 			n->h.phase++;
 			break;
@@ -618,10 +618,10 @@ namespace scan068
 		case 0:
 			switch (n->index)
 			{
-			case 0: n->shape = 0x1595570; n->h.pos[0] = (int16_t)-0x90; n->h.pos[1] = (int16_t)-0x60; break;
-			case 1: n->shape = 0x15955A0; n->h.pos[0] = 0x90; n->h.pos[1] = (int16_t)-0x60; break;
-			case 2: n->shape = 0x15955D0; n->h.pos[0] = (int16_t)-0x90; n->h.pos[1] = 0x60; break;
-			case 3: n->shape = 0x1595600; n->h.pos[0] = 0x90; n->h.pos[1] = 0x60; break;
+			case 0: n->shape = us(0x1595570); n->h.pos[0] = (int16_t)-0x90; n->h.pos[1] = (int16_t)-0x60; break;
+			case 1: n->shape = us(0x15955A0); n->h.pos[0] = 0x90; n->h.pos[1] = (int16_t)-0x60; break;
+			case 2: n->shape = us(0x15955D0); n->h.pos[0] = (int16_t)-0x90; n->h.pos[1] = 0x60; break;
+			case 3: n->shape = us(0x1595600); n->h.pos[0] = 0x90; n->h.pos[1] = 0x60; break;
 			default: break;
 			}
 			n->size = 0x1000;
@@ -650,10 +650,10 @@ namespace scan068
 			ff8fx::copy<(8)>(n->h.pos, n->h.parent->pos);
 			switch (n->index)
 			{
-			case 0: n->shape = 0x1595630; n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = -1; n->dy = -1; break;
-			case 1: n->shape = 0x1595660; n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = 1; n->dy = -1; break;
-			case 2: n->shape = 0x1595690; n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = -1; n->dy = 1; break;
-			case 3: n->shape = 0x15956C0; n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = 1; n->dy = 1; break;
+			case 0: n->shape = us(0x1595630); n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = -1; n->dy = -1; break;
+			case 1: n->shape = us(0x1595660); n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = 1; n->dy = -1; break;
+			case 2: n->shape = us(0x1595690); n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = -1; n->dy = 1; break;
+			case 3: n->shape = us(0x15956C0); n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = 1; n->dy = 1; break;
 			default: break;
 			}
 			n->size = 0x1000;
@@ -720,7 +720,7 @@ namespace scan068
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			const int16_t p[2] = { (int16_t)(out[0] + 0x18), (int16_t)(out[1] + 0x18) };
 			Line(out, p);
-			AddEffectTask(QSprites(), ORIG_Sprite, 0x58, n);
+			AddEffectTask(QSprites(), us(ORIG_Sprite), 0x58, n);
 			n->h.phase++;
 			break;
 		}
@@ -752,13 +752,13 @@ namespace scan068
 		{
 		case 0:
 		{
-			const int16_t *path = (const int16_t *)RETICLE_PATH + 2 * n->h.counter;
+			const int16_t *path = (const int16_t *)us(RETICLE_PATH) + 2 * n->h.counter;
 			n->h.pos[0] = path[0];
 			n->h.pos[1] = path[1];
-			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), ORIG_Bracket, 0x78, n))->index = i;
-			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), ORIG_Corner, 0x78, n))->index = i;
-			AddEffectTask(QModels(), ORIG_Morph, 0x6C, n);
-			AddEffectTask(QModels(), ORIG_Pair, 0x6C, n);
+			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), us(ORIG_Bracket), 0x78, n))->index = i;
+			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), us(ORIG_Corner), 0x78, n))->index = i;
+			AddEffectTask(QModels(), us(ORIG_Morph), 0x6C, n);
+			AddEffectTask(QModels(), us(ORIG_Pair), 0x6C, n);
 			FX_HELD(held_note(REC_RETICLE, n);)
 			Fan(&n->h, 8, 0, 0x20, out);
 			CornerLines(&n->h);
@@ -767,7 +767,7 @@ namespace scan068
 		}
 		case 1:
 		{
-			const int16_t *path = (const int16_t *)RETICLE_PATH + 2 * n->h.counter;
+			const int16_t *path = (const int16_t *)us(RETICLE_PATH) + 2 * n->h.counter;
 			if (path[0] == 0x7FFF)
 			{
 				n->timer = 0;
@@ -795,7 +795,7 @@ namespace scan068
 			else n->h.phase++;
 			break;
 		case 3:
-			AddEffectTask(QControls(), ORIG_Ring, 0x78, n);
+			AddEffectTask(QControls(), us(ORIG_Ring), 0x78, n);
 			n->h.phase++;
 			break;
 		case 4:
@@ -828,12 +828,12 @@ namespace scan068
 		{
 			const int16_t k = n->h.counter;
 			*(uint8_t *)&n->h.flags &= 0xFB;
-			n->h.pos[0] = (int16_t)(((const int16_t *)0x1595440)[2 * k] - 0x3C);
-			n->h.pos[1] = (int16_t)(((const int16_t *)0x1595440)[2 * k + 1] + 0x3C);
-			n->scale[0] = ((const int16_t *)0x1595488)[2 * k];
-			n->scale[1] = ((const int16_t *)0x1595488)[2 * k + 1];
-			n->fade1 = ((const int16_t *)0x15953F8)[k];
-			n->fade2 = ((const int16_t *)0x159541C)[k];
+			n->h.pos[0] = (int16_t)(((const int16_t *)us(0x1595440))[2 * k] - 0x3C);
+			n->h.pos[1] = (int16_t)(((const int16_t *)us(0x1595440))[2 * k + 1] + 0x3C);
+			n->scale[0] = ((const int16_t *)us(0x1595488))[2 * k];
+			n->scale[1] = ((const int16_t *)us(0x1595488))[2 * k + 1];
+			n->fade1 = ((const int16_t *)us(0x15953F8))[k];
+			n->fade2 = ((const int16_t *)us(0x159541C))[k];
 			if (k >= 0x11) n->h.phase++;
 			break;
 		}
@@ -853,10 +853,10 @@ namespace scan068
 	static void PairDraw(ModelNode *n)
 	{
 		n->fade = n->fade1;
-		n->model = 0x1592794;
+		n->model = us(0x1592794);
 		DrawHudModel(n, false);
 		n->fade = n->fade2;
-		n->model = 0x1592810;
+		n->model = us(0x1592810);
 		DrawHudModel(n, false);
 	}
 
@@ -883,9 +883,9 @@ namespace scan068
 			n->angle[0] = 0x5DC;
 			n->angle[1] = 0x2A0;
 			n->angle[2] = (int16_t)0xF808;
-			n->model = 0x1591C44;
-			n->morph_a = 0x159390C;
-			n->morph_b = 0x1593A94;
+			n->model = us(0x1591C44);
+			n->morph_a = us(0x159390C);
+			n->morph_b = us(0x1593A94);
 			n->fade = 0x1000;
 			n->h.phase++;
 			break;
@@ -916,9 +916,9 @@ namespace scan068
 			if (n->blend >= 0x1000)
 			{
 				n->blend = 0;
-				n->model = 0x159202C;
-				n->morph_a = 0x1593C1C;
-				n->morph_b = 0x1594124;
+				n->model = us(0x159202C);
+				n->morph_a = us(0x1593C1C);
+				n->morph_b = us(0x1594124);
 				n->h.phase++;
 			}
 			break;
@@ -990,13 +990,13 @@ namespace scan068
 		{
 			const int16_t k = n->which;
 			const FxNode *parent = n->h.parent;
-			const int16_t *tbl = (const int16_t *)(n->table == 0 ? 0x15954D0 : 0x1595520) + 5 * k;
+			const int16_t *tbl = (const int16_t *)(n->table == 0 ? us(0x15954D0) : us(0x1595520)) + 5 * k;
 			*(uint8_t *)&n->h.flags |= 4;
 			if ((uint32_t)(int32_t)k <= 7)
 			{
-				static const uint32_t MODELS[8] = { 0x1593554, 0x1593554, 0x15935DC, 0x1593664, 0x15936EC, 0x1593774, 0x15937FC, 0x1593884 };
+				static const uint32_t MODELS[8] = { us(0x1593554), us(0x1593554), us(0x15935DC), us(0x1593664), us(0x15936EC), us(0x1593774), us(0x15937FC), us(0x1593884) };
 				n->model = MODELS[k];
-				n->max = BarWidth((uint8_t *)0x1D27B28 + 0xD0 * n->h.slot, k);
+				n->max = BarWidth((uint8_t *)us(0x1D27B28) + 0xD0 * n->h.slot, k);
 			}
 			n->scale[0] = 0;
 			n->scale[1] = 0x1000;
@@ -1061,13 +1061,13 @@ namespace scan068
 			n->h.pos[0] = (int16_t)-0x88;
 			n->h.pos[1] = (int16_t)-0x3C;
 			n->h.pos[2] = 0x240;
-			n->model = 0x159346C;
+			n->model = us(0x159346C);
 			n->h.phase++;
 			break;
 		case 1:
 			for (int16_t i = 1; i < 8; i++)
 			{
-				ModelNode *b = (ModelNode *)AddEffectTask(QModels(), ORIG_StatBar, 0x6C, n);
+				ModelNode *b = (ModelNode *)AddEffectTask(QModels(), us(ORIG_StatBar), 0x6C, n);
 				b->which = i;
 				b->table = 1;
 			}
@@ -1098,7 +1098,7 @@ namespace scan068
 			n->h.pos[0] = (int16_t)-0x200;
 			n->h.pos[1] = 0;
 			n->h.pos[2] = 0x6C0;
-			n->model = 0x15934CC;
+			n->model = us(0x15934CC);
 			n->angle[1] = 0x400;
 			n->h.phase++;
 			break;
@@ -1139,7 +1139,7 @@ namespace scan068
 			n->h.pos[0] = 0x190;
 			n->h.pos[1] = 0xC0;
 			n->h.pos[2] = 0x900;
-			n->seq = 0x159462C;
+			n->seq = us(0x159462C);
 			n->last = 0x1F;
 			n->h.phase++;
 			break;
@@ -1150,7 +1150,7 @@ namespace scan068
 				*(uint8_t *)&n->h.flags |= 4;
 				n->frame = n->last;
 				*(uint8_t *)&n->h.flags &= 0xFB;
-				n->seq = 0x1594950;
+				n->seq = us(0x1594950);
 				n->frame = 0;
 				n->last = 3;
 				n->h.phase++;
@@ -1244,9 +1244,9 @@ namespace scan068
 		{
 		case 0:
 			MarkTarget(n);
-			((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 2;
+			((CtlNode *)AddEffectTask(QControls(), us(ORIG_Camera), 0x78, n))->mode = 2;
 			HudActive() = 1;
-			AddEffectTask(QControls(), ORIG_Reticle, 0x78, n);
+			AddEffectTask(QControls(), us(ORIG_Reticle), 0x78, n);
 			n->timer = 0x2D;
 			n->h.phase++;
 			break;
@@ -1254,7 +1254,7 @@ namespace scan068
 			n->timer--;
 			if (n->timer < 0)
 			{
-				AddEffectTask(QModels(), ORIG_AltSpinner, 0x6C, n);
+				AddEffectTask(QModels(), us(ORIG_AltSpinner), 0x6C, n);
 				n->timer = 8;
 				n->h.phase++;
 			}
@@ -1263,8 +1263,8 @@ namespace scan068
 			n->timer--;
 			if (n->timer < 0)
 			{
-				AddEffectTask(QControls(), ORIG_AltText, 0x78, n);
-				AddEffectTask(QModels(), ORIG_AltBoard, 0x6C, n);
+				AddEffectTask(QControls(), us(ORIG_AltText), 0x78, n);
+				AddEffectTask(QModels(), us(ORIG_AltBoard), 0x6C, n);
 				n->h.phase++;
 			}
 			break;
@@ -1294,12 +1294,12 @@ namespace scan068
 				uint8_t *e = Entity(n->h.slot);
 				if ((int16_t)n->h.action == ((RootNode *)n->h.root)->last_action)
 				{
-					AddEffectTask(QControls(), ORIG_CamRestore, 0x78, n);
+					AddEffectTask(QControls(), us(ORIG_CamRestore), 0x78, n);
 					F<uint16_t>(e, 0) &= 0x87FF;
 					n->h.phase++;
 					break;
 				}
-				if (Cam().dist <= (int16_t)0xE000) ((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 3;
+				if (Cam().dist <= (int16_t)0xE000) ((CtlNode *)AddEffectTask(QControls(), us(ORIG_Camera), 0x78, n))->mode = 3;
 				F<uint16_t>(e, 0) &= 0x87FF;
 				n->h.phase++;
 			}
@@ -1323,7 +1323,7 @@ namespace scan068
 		{
 			int16_t mid[4];
 			CopyMidpointFromSource(e, mid);
-			BdPlaySE(SOUND_Scan, 0, 0x80);
+			BdPlaySE(SOUND_Scan(), 0, 0x80);
 		}
 		EmitterUpdatePos(e);
 		ComputeModelBounds(e);
@@ -1333,7 +1333,7 @@ namespace scan068
 			Confirmed() = 0;
 			Closing() = 0;
 			FindScannedEntities((int16_t)(uint16_t)e->h.slot);
-			AddEffectTask(QControls(), ORIG_AltScanner, 0x78, e);
+			AddEffectTask(QControls(), us(ORIG_AltScanner), 0x78, e);
 			e->h.phase++;
 			break;
 		case 1:
@@ -1359,7 +1359,7 @@ namespace scan068
 			break;
 		case 1:
 			r->busy = 1;
-			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
+			AddEffectTask(QEmitters(), us(ORIG_Emitter), 0x58, r);
 			CameraArmReturn();
 			BattleMenuShow(0);
 			r->h.phase++;
@@ -1391,8 +1391,8 @@ namespace scan068
 	static uint32_t __cdecl RootTask(TaskNode *t)
 	{
 		RootNode *r = (RootNode *)t;
-		if (r->tick & 1) PacketCursor() = var<uint32_t>(0x25FFC3C);
-		else PacketCursor() = var<uint32_t>(0x25FFC38);
+		if (r->tick & 1) PacketCursor() = var<uint32_t>(us(0x25FFC3C));
+		else PacketCursor() = var<uint32_t>(us(0x25FFC38));
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);

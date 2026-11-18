@@ -25,22 +25,22 @@ namespace holy175
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2392CE0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23941BC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23941C0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2377744); }
-	inline int32_t &FadeSide() { return var<int32_t>(0x2374578); }
-	inline int32_t &GridTextured() { return var<int32_t>(0x2377740); }
-	inline int32_t &GridActive() { return var<int32_t>(0x2376880); }
-	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(0x23745A0); }
-	inline TaskQueue &Tasks() { return var<TaskQueue>(0x2376870); }
-	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(0x2377698 + 0x18 * slot); }
-	inline Mat4x3 *OrbitMatrix(int index) { return (Mat4x3 *)(0x23745B0 + 0x20 * index); }
-	inline Mat4x3 *SpriteMatrix() { return (Mat4x3 *)0x23941E8; }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
-	inline int16_t ProjH() { return var<int16_t>(0x1D8E038); }
-	inline uint8_t DisplayBuffer() { return var<uint8_t>(0x1D96A80); }
+	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2392CE0)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23941BC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23941C0)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2377744)); }
+	inline int32_t &FadeSide() { return var<int32_t>(us(0x2374578)); }
+	inline int32_t &GridTextured() { return var<int32_t>(us(0x2377740)); }
+	inline int32_t &GridActive() { return var<int32_t>(us(0x2376880)); }
+	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(us(0x23745A0)); }
+	inline TaskQueue &Tasks() { return var<TaskQueue>(us(0x2376870)); }
+	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(us(0x2377698) + 0x18 * slot); }
+	inline Mat4x3 *OrbitMatrix(int index) { return (Mat4x3 *)(us(0x23745B0) + 0x20 * index); }
+	inline Mat4x3 *SpriteMatrix() { return (Mat4x3 *)us(0x23941E8); }
+	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(us(0x1D8E054)); }
+	inline int16_t ProjH() { return var<int16_t>(us(0x1D8E038)); }
+	inline uint8_t DisplayBuffer() { return var<uint8_t>(us(0x1D96A80)); }
 
 	static const uint32_t ORIG_RootTask = 0x5D44C0;
 	static const uint32_t ORIG_RestoreTask = 0x5D4540;
@@ -60,8 +60,8 @@ namespace holy175
 	static const uint32_t ORIG_DiskTask = 0x5D42B0;
 	static const uint32_t ORIG_FlashTask = 0x5D43B0;
 
-	static const void *const SOUND_Holy = (const void *)0xD59180;
-	static const void *const TIM_Upload = (const void *)0xD45EAC;
+	static const void *SOUND_Holy() { return (const void *)us(0xD59180); }
+	static const void *TIM_Upload() { return (const void *)us(0xD45EAC); }
 	static const uint32_t PILLAR_Delays = 0xD59188;
 	static const uint32_t BEAM_Sprites = 0xD591D0;
 	static const uint32_t WAVE_Textures = 0xD59210;
@@ -89,27 +89,27 @@ namespace holy175
 	static const uint32_t MOTES = 0x2374610, MOTES_End = 0x2374D90;
 	static const uint32_t STAGE_AnimHeaders = 0x1D989A4;
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void QueueTimUpload(const void *tim) { fn<void (__cdecl *)(const void *)>(0x505E30)(tim); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
-	inline Mat4x3 *ShadowRotation(const void *pos, int32_t a, int32_t b) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(0x571BC0)(pos, a, b); }
-	inline uint32_t RenderWaveModel(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x650720)(header, ot, mode, cursor); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	inline uint32_t RenderGeometry(void *group, void *header, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t, uint32_t)>(0x5099D0)(group, header, ot, mode, cursor); }
-	inline void BuildDrawEnvPacket(void *packet, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(0x45C0F0)(packet, env); }
-	inline void BuildDrawAreaPacket(void *packet, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C940)(packet, rect); }
-	inline void BuildDrawOffsetPacket(void *packet, const void *xy) { fn<void (__cdecl *)(void *, const void *)>(0x45C9B0)(packet, xy); }
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteSetRGB(const void *rgb) { fn<void (__cdecl *)(const void *)>(0x45E110)(rgb); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteReadRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadSXY012(void *s0, void *s1, void *s2) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(s0, s1, s2); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline void QueueTimUpload(const void *tim) { fn<void (__cdecl *)(const void *)>(us(0x505E30))(tim); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
+	inline Mat4x3 *ShadowRotation(const void *pos, int32_t a, int32_t b) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(us(0x571BC0))(pos, a, b); }
+	inline uint32_t RenderWaveModel(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x650720))(header, ot, mode, cursor); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
+	inline uint32_t RenderGeometry(void *group, void *header, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(group, header, ot, mode, cursor); }
+	inline void BuildDrawEnvPacket(void *packet, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(us(0x45C0F0))(packet, env); }
+	inline void BuildDrawAreaPacket(void *packet, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(us(0x45C940))(packet, rect); }
+	inline void BuildDrawOffsetPacket(void *packet, const void *xy) { fn<void (__cdecl *)(void *, const void *)>(us(0x45C9B0))(packet, xy); }
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+	inline void GteSetRGB(const void *rgb) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(rgb); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
+	inline void GteReadRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
+	inline void GteReadSXY012(void *s0, void *s1, void *s2) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(s0, s1, s2); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -284,7 +284,7 @@ namespace holy175
 		int left = ExecuteTaskQueue(&Tasks());
 		if (!left && !(Ctx()->flags & 2))
 		{
-			RestoreNode *t = (RestoreNode *)AddTaskToQueue(&RootQueues().first, ORIG_RestoreTask);
+			RestoreNode *t = (RestoreNode *)AddTaskToQueue(&RootQueues().first, us(ORIG_RestoreTask));
 			t->counter = (int16_t)left;
 			t->done = (uint16_t)left;
 		}
@@ -310,7 +310,7 @@ namespace holy175
 
 	static void BuildGrid()
 	{
-		Vertex *e = (Vertex *)GRID_Vertices;
+		Vertex *e = (Vertex *)us(GRID_Vertices);
 		int32_t y = -0x78;
 		for (int row = 0; row < 15; row++, y += 0x10)
 		{
@@ -347,7 +347,7 @@ namespace holy175
 				e->v = (int16_t)(e->v + (int16_t)(y + 0x78));
 			}
 		}
-		Vertex *c = (Vertex *)GRID_Centres;
+		Vertex *c = (Vertex *)us(GRID_Centres);
 		int32_t yb = -0x78;
 		for (int row = 0; row < 14; row++, yb += 0x10)
 		{
@@ -368,11 +368,11 @@ namespace holy175
 				c->v = (int16_t)(c->v + (int16_t)(yb + 0x80));
 			}
 		}
-		Vertex *a = (Vertex *)GRID_Vertices;
-		Vertex *b = (Vertex *)GRID_Centres;
-		uint8_t *pk = (uint8_t *)GRID_Packets;
-		Triangle *t = (Triangle *)GRID_Triangles;
-		Vertex **cell = (Vertex **)GRID_CellPointers;
+		Vertex *a = (Vertex *)us(GRID_Vertices);
+		Vertex *b = (Vertex *)us(GRID_Centres);
+		uint8_t *pk = (uint8_t *)us(GRID_Packets);
+		Triangle *t = (Triangle *)us(GRID_Triangles);
+		Vertex **cell = (Vertex **)us(GRID_CellPointers);
 		for (int row = 0; row < 14; row++, a++)
 		{
 			for (int col = 0; col < 20; col++, a++, b++, pk += 0x100, t += 4)
@@ -413,7 +413,7 @@ namespace holy175
 
 	static void InitTriangles()
 	{
-		Triangle *t = (Triangle *)GRID_Triangles;
+		Triangle *t = (Triangle *)us(GRID_Triangles);
 		for (int i = 0; i < GRID_TriangleCount; i++, t++)
 		{
 			const Vertex *v0 = t->v[0], *v1 = t->v[1], *v2 = t->v[2];
@@ -461,7 +461,7 @@ namespace holy175
 			if ((f & 2) && !(f & 4))
 			{
 				FadeFlag(s) = 1;
-				FadeNode *t = (FadeNode *)AddTask(ORIG_FadeOutTask);
+				FadeNode *t = (FadeNode *)AddTask(us(ORIG_FadeOutTask));
 				t->counter = 0;
 				t->slot = (int16_t)s;
 				t->duration = duration;
@@ -478,7 +478,7 @@ namespace holy175
 		for (int32_t s = lo; s < hi; s++)
 		{
 			if (!FadeFlag(s)) continue;
-			FadeNode *t = (FadeNode *)AddTask(ORIG_FadeInTask);
+			FadeNode *t = (FadeNode *)AddTask(us(ORIG_FadeInTask));
 			t->counter = 0;
 			t->slot = (int16_t)s;
 			t->duration = duration;
@@ -489,12 +489,12 @@ namespace holy175
 	static void FadeColours(uint8_t *e, int32_t ir0)
 	{
 		uint32_t rgb = 0x32000000;
-		GteSetFarColor(var<uint8_t>(0xB8B9A8), var<uint8_t>(0xB8B9A9), var<uint8_t>(0xB8B9AA));
+		GteSetFarColor(var<uint8_t>(us(0xB8B9A8)), var<uint8_t>(us(0xB8B9A9)), var<uint8_t>(us(0xB8B9AA)));
 		GteSetRGB(&rgb);
 		GteSetIR0(ir0);
 		GteDPCS();
 		GteReadRGB2(e + 0x2C);
-		GteSetFarColor(var<uint8_t>(0xB8B7D8) >> 1, var<uint8_t>(0xB8B7D9) >> 1, var<uint8_t>(0xB8B7DA) >> 1);
+		GteSetFarColor(var<uint8_t>(us(0xB8B7D8)) >> 1, var<uint8_t>(us(0xB8B7D9)) >> 1, var<uint8_t>(us(0xB8B7DA)) >> 1);
 		rgb = 0;
 		GteSetRGB(&rgb);
 		GteDPCS();
@@ -512,7 +512,7 @@ namespace holy175
 		if (p->counter == 0) EntityFlags(p->slot) = (uint16_t)((EntityFlags(p->slot) & 0xFFFB) | 0x800);
 		p->counter++;
 		if (p->counter < p->duration) return 0;
-		uint32_t colour = var<uint32_t>(0xB8B7D8);
+		uint32_t colour = var<uint32_t>(us(0xB8B7D8));
 		e[7] = 0;
 		*(uint32_t *)(e + 0x28) = colour;
 		EntityFlags(p->slot) = (uint16_t)((EntityFlags(p->slot) & 0xF7FF) | p->saved);
@@ -537,7 +537,7 @@ namespace holy175
 
 	static void StageGroupsFlag(bool set)
 	{
-		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C)
+		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C)
 		{
 			if (set) *(uint8_t *)a |= 2;
 			else *(uint8_t *)a &= 0xFD;
@@ -561,7 +561,7 @@ namespace holy175
 		uint32_t other = DisplayBuffer() ^ 1u;
 		uint8_t *pk = (uint8_t *)FrameArena();
 		int16_t rect[4] = { 0x240, 0x100, 0x140, 0xE8 };
-		BuildDrawEnvPacket(pk, DRAWENV + 0x5C * other);
+		BuildDrawEnvPacket(pk, us(DRAWENV) + 0x5C * other);
 		InsertPrimAutoDepth(OTBase() + 0x406C, pk);
 		pk += 0x40;
 		FrameArena() = (uint32_t)pk;
@@ -573,13 +573,13 @@ namespace holy175
 		*(uint16_t *)(h + 0x3E) = 0;
 		*(uint16_t *)(h + 0x40) = 0x140;
 		*(uint16_t *)(h + 0x42) = 0xD8;
-		*(uint32_t *)(h + 0x2C) = var<uint32_t>(0x1D98B3C);
-		*(uint32_t *)(h + 0x38) = var<uint32_t>(0x1D969A8);
+		*(uint32_t *)(h + 0x2C) = var<uint32_t>(us(0x1D98B3C));
+		*(uint32_t *)(h + 0x38) = var<uint32_t>(us(0x1D969A8));
 		*(uint32_t *)(h + 0x48) = 0xFFFFFFFF;
 		for (int k = 0; k < 4; k++)
 		{
-			uint8_t *anim = (uint8_t *)(STAGE_AnimHeaders + 0x2C * k);
-			const uint32_t *bucket = (const uint32_t *)(STAGE_Buckets + 8 * k);
+			uint8_t *anim = (uint8_t *)(us(STAGE_AnimHeaders) + 0x2C * k);
+			const uint32_t *bucket = (const uint32_t *)(us(STAGE_Buckets) + 8 * k);
 			BuildBoneMatricesFromPose(anim);
 			ComputeBonesWorldMatrices(anim, &Camera());
 			if (anim[-0x13] & 1)
@@ -591,16 +591,16 @@ namespace holy175
 		}
 		FieldFree(0x54);
 		SetScreenOffset(ofx, ofy);
-		uint8_t *env = (uint8_t *)(STAGE_EnvRestore + 0x18 * DisplayBuffer());
+		uint8_t *env = (uint8_t *)(us(STAGE_EnvRestore) + 0x18 * DisplayBuffer());
 		FX_HELD(env = held_env_packet(env);)
 		InsertPrimAltViewport(OTBase() + 0x4484, env);
 		pk = (uint8_t *)FrameArena();
 		BuildDrawAreaPacket(pk, rect);
 		InsertPrimAutoDepth(OTBase() + 0x4484, pk);
 		pk += 0xC;
-		var<int16_t>(0x23941B8) = rect[0];
-		var<int16_t>(0x23941BA) = rect[1];
-		BuildDrawOffsetPacket(pk, (const void *)0x23941B8);
+		var<int16_t>(us(0x23941B8)) = rect[0];
+		var<int16_t>(us(0x23941BA)) = rect[1];
+		BuildDrawOffsetPacket(pk, (const void *)us(0x23941B8));
 		InsertPrimAutoDepth(OTBase() + 0x4484, pk);
 		pk += 0xC;
 		FrameArena() = (uint32_t)pk;
@@ -615,13 +615,13 @@ namespace holy175
 		m->t[2] = ProjH();
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		for (Vertex *v = (Vertex *)GRID_Vertices; v < (Vertex *)GRID_VerticesEnd; v++)
+		for (Vertex *v = (Vertex *)us(GRID_Vertices); v < (Vertex *)us(GRID_VerticesEnd); v++)
 		{
 			GteLoadV0(&v->x);
 			GteRTPS();
 			GteReadSXY2(v->sxy);
 		}
-		for (Vertex *v = (Vertex *)GRID_Centres; v < (Vertex *)GRID_CentresEnd; v++)
+		for (Vertex *v = (Vertex *)us(GRID_Centres); v < (Vertex *)us(GRID_CentresEnd); v++)
 		{
 			GteLoadV0(&v->x);
 			GteRTPS();
@@ -703,8 +703,8 @@ namespace holy175
 		ProjectGrid(h);
 		*(int32_t *)(h + 0x30) = ProjH();
 		int32_t drawn = 0;
-		uint8_t *pk = (uint8_t *)GRID_Packets;
-		Triangle *t = (Triangle *)GRID_Triangles;
+		uint8_t *pk = (uint8_t *)us(GRID_Packets);
+		Triangle *t = (Triangle *)us(GRID_Triangles);
 		for (int i = 0; i < GRID_TriangleCount; i++, t++, pk += 0x40)
 		{
 			if (t->delay < 0) continue;
@@ -782,14 +782,14 @@ namespace holy175
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int16_t *s = (int16_t *)FieldAlloc(0x10);
 		*(uint32_t *)s = *(const uint32_t *)&p->pos[0];
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = us(SEQ_Sparkle);
 		*(uint16_t *)(h + 0x24) = 0;
 		*(uint32_t *)(s + 2) = *(const uint32_t *)&p->pos[2];
 		int32_t alive = 0;
-		for (Sparkle *e = (Sparkle *)SPARKLES; e < (Sparkle *)SPARKLES_End; e++)
+		for (Sparkle *e = (Sparkle *)us(SPARKLES); e < (Sparkle *)us(SPARKLES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
-			FX_HELD(held_note_item(ORIG_SparkleTask, e, h);)
+			FX_HELD(held_note_item(us(ORIG_SparkleTask), e, h);)
 			SparkleDraw(h, s, e);
 			if (DrawOnly()) continue;
 			e->frame++;
@@ -809,13 +809,13 @@ namespace holy175
 		{
 			for (int j = 0; j < 2; j++)
 			{
-				Sparkle *e = (Sparkle *)SPARKLES;
+				Sparkle *e = (Sparkle *)us(SPARKLES);
 				int idx = 0;
 				while (e->active)
 				{
 					e++;
 					idx++;
-					if (e >= (Sparkle *)SPARKLES_End) goto spawned;
+					if (e >= (Sparkle *)us(SPARKLES_End)) goto spawned;
 				}
 				if (idx >= 100) goto spawned;
 				e->active = 1;
@@ -857,7 +857,7 @@ namespace holy175
 	static uint32_t __cdecl OrbitCtrlTask(TaskNode *n)
 	{
 		OrbitCtrlNode *p = (OrbitCtrlNode *)n;
-		FX_HELD(held_note_draw(ORIG_OrbitCtrlTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_OrbitCtrlTask), p, sizeof(*p));)
 		OrbitCtrlMatrix(p, OrbitMatrix(p->index));
 		if (DrawOnly()) return 0;
 		if (p->counter == 0)
@@ -865,7 +865,7 @@ namespace holy175
 			int32_t r = CrtRand() % 0x1000;
 			for (int k = 0; k < 8; k++)
 			{
-				OrbitNode *o = (OrbitNode *)AddTask(ORIG_OrbitTask);
+				OrbitNode *o = (OrbitNode *)AddTask(us(ORIG_OrbitTask));
 				o->index = p->index;
 				o->k = (int16_t)k;
 				o->counter = 0;
@@ -898,7 +898,7 @@ namespace holy175
 		ShadowRotation(v, p->size, -(p->size >> 4));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)(*(const uint8_t *)&p->counter & 7);
-		*(uint32_t *)h = SEQ_OrbitSpark;
+		*(uint32_t *)h = us(SEQ_OrbitSpark);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -941,7 +941,7 @@ namespace holy175
 	static uint32_t __cdecl OrbitTask(TaskNode *n)
 	{
 		OrbitNode *p = (OrbitNode *)n;
-		FX_HELD(held_note_draw(ORIG_OrbitTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_OrbitTask), p, sizeof(*p));)
 		OrbitDraw(p, OrbitMatrix(p->index));
 		if (DrawOnly()) return 0;
 		OrbitUpdate(p);
@@ -980,7 +980,7 @@ namespace holy175
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *m = (uint8_t *)FieldAlloc(0x48);
 		int32_t alive = 0;
-		*(uint32_t *)h = SEQ_Mote;
+		*(uint32_t *)h = us(SEQ_Mote);
 		*(uint16_t *)(h + 0x24) = 0xC;
 		int16_t *ang = (int16_t *)m;
 		ang[0] = 0;
@@ -990,10 +990,10 @@ namespace holy175
 		*(int32_t *)(m + 0x1C) = 0;
 		*(int32_t *)(m + 0x20) = 0;
 		*(int32_t *)(m + 0x24) = ProjH();
-		for (Mote *e = (Mote *)MOTES; e < (Mote *)MOTES_End; e++)
+		for (Mote *e = (Mote *)us(MOTES); e < (Mote *)us(MOTES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
-			FX_HELD(held_note_item(ORIG_MoteTask, e, h);)
+			FX_HELD(held_note_item(us(ORIG_MoteTask), e, h);)
 			MoteDraw(h, m, e);
 			if (DrawOnly()) continue;
 			e->age++;
@@ -1012,13 +1012,13 @@ namespace holy175
 		{
 			for (int j = 0; j < 2; j++)
 			{
-				Mote *e = (Mote *)MOTES;
+				Mote *e = (Mote *)us(MOTES);
 				int idx = 0;
 				while (e->active)
 				{
 					e++;
 					idx++;
-					if (e >= (Mote *)MOTES_End) goto spawned;
+					if (e >= (Mote *)us(MOTES_End)) goto spawned;
 				}
 				if (idx >= 0x50) goto spawned;
 				e->active = 1;
@@ -1071,7 +1071,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { 0, p->angle, 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(MODEL_Ring);
+		uint8_t *h = ModelHeader(us(MODEL_Ring));
 		if (p->counter < 8)
 		{
 			int32_t fade = (8 - p->counter) << 9;
@@ -1085,7 +1085,7 @@ namespace holy175
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_RingTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_RingTask), p, sizeof(*p));)
 		RingDraw(p);
 		if (DrawOnly()) return 0;
 		p->angle = (int16_t)(p->angle + p->spin);
@@ -1101,11 +1101,11 @@ namespace holy175
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
 		*(uint16_t *)(h + 0x18) = 0;
-		*(uint32_t *)(h + 0x24) = *(const uint32_t *)(WAVE_Textures + 4 * (*(const uint8_t *)&p->w22 & 0xF));
+		*(uint32_t *)(h + 0x24) = *(const uint32_t *)(us(WAVE_Textures) + 4 * (*(const uint8_t *)&p->w22 & 0xF));
 		int32_t c = p->counter;
 		int32_t scroll = p->w20 * c;
 		FX_HELD(scroll = held_ramp(scroll, p->w20);)
-		*(uint32_t *)h = MODEL_Wave;
+		*(uint32_t *)h = us(MODEL_Wave);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int32_t *)(h + 0x14) = scroll;
 		*(uint16_t *)(h + 0x1A) = 0x80;
@@ -1125,7 +1125,7 @@ namespace holy175
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_WaveTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_WaveTask), p, sizeof(*p));)
 		WaveDraw(p);
 		if (DrawOnly()) return 0;
 		p->w22++;
@@ -1137,7 +1137,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { 0, 0, 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(MODEL_Expand);
+		uint8_t *h = ModelHeader(us(MODEL_Expand));
 		if (p->counter >= 8)
 		{
 			int32_t fade = (p->counter - 8) << 9;
@@ -1158,7 +1158,7 @@ namespace holy175
 	static uint32_t __cdecl ExpandTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_ExpandTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_ExpandTask), p, sizeof(*p));)
 		ExpandDraw(p);
 		if (DrawOnly()) return 0;
 		ExpandUpdate(p);
@@ -1170,7 +1170,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { p->angle, p->pos[3], 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(MODEL_Pillar);
+		uint8_t *h = ModelHeader(us(MODEL_Pillar));
 		int32_t c = p->counter;
 		if (c < 8)
 		{
@@ -1205,7 +1205,7 @@ namespace holy175
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(ORIG_PillarTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_PillarTask), p, sizeof(*p));)
 		PillarDraw(p);
 		if (DrawOnly()) return 0;
 		PillarUpdate(p);
@@ -1239,9 +1239,9 @@ namespace holy175
 	{
 		int32_t a[3] = { 0, 0, -0x1000 };
 		int32_t b[3];
-		b[0] = var<int16_t>(0xB8B7F0) - p->pos[0];
-		b[1] = var<int16_t>(0xB8B7F2) - p->pos[1];
-		b[2] = var<int16_t>(0xB8B7F4) - p->pos[2];
+		b[0] = var<int16_t>(us(0xB8B7F0)) - p->pos[0];
+		b[1] = var<int16_t>(us(0xB8B7F2)) - p->pos[1];
+		b[2] = var<int16_t>(us(0xB8B7F4)) - p->pos[2];
 		NormalizeVector(b, b);
 		int32_t axis[3];
 		int32_t angle = RotationBetweenVectors(a, b, axis);
@@ -1252,7 +1252,7 @@ namespace holy175
 		r.t[2] = p->pos[2];
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t c = p->counter;
-		*(uint32_t *)h = SEQ_Beam;
+		*(uint32_t *)h = us(SEQ_Beam);
 		*(uint16_t *)(h + 0x24) = 0;
 		bool lit = false;
 		int32_t level = 0;
@@ -1278,7 +1278,7 @@ namespace holy175
 		NormalizeVector(d, d);
 		for (uint32_t k = 0; k < 8; k++)
 		{
-			const int16_t *e = (const int16_t *)(BEAM_Sprites + 8 * k);
+			const int16_t *e = (const int16_t *)(us(BEAM_Sprites) + 8 * k);
 			int32_t dist = (e[2] * 2000) >> 12;
 			int16_t v[4];
 			v[0] = (int16_t)(mul32(dist, d[0]) >> 12);
@@ -1299,7 +1299,7 @@ namespace holy175
 	static uint32_t __cdecl BeamTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_BeamTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_BeamTask), p, sizeof(*p));)
 		BeamDraw(p);
 		if (DrawOnly()) return 0;
 		p->counter++;
@@ -1314,7 +1314,7 @@ namespace holy175
 		ComposeZYXRotationMatrix(ang, &m);
 		MatrixMultiply(s, &m);
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(MODEL_Disk);
+		uint8_t *h = ModelHeader(us(MODEL_Disk));
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 0xD, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1331,7 +1331,7 @@ namespace holy175
 	static uint32_t __cdecl DiskTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_DiskTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_DiskTask), p, sizeof(*p));)
 		DiskDraw(p);
 		if (DrawOnly()) return 0;
 		DiskUpdate(p);
@@ -1345,7 +1345,7 @@ namespace holy175
 		m->m[0][0] = p->scale;
 		m->m[1][1] = 0x1000;
 		GteSetRotMatrix(m);
-		uint8_t *h = ModelHeader(MODEL_Flash);
+		uint8_t *h = ModelHeader(us(MODEL_Flash));
 		int32_t c = p->counter;
 		if (c < 4)
 		{
@@ -1374,7 +1374,7 @@ namespace holy175
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(ORIG_FlashTask, p, sizeof(*p));)
+		FX_HELD(held_note_draw(us(ORIG_FlashTask), p, sizeof(*p));)
 		FlashDraw(p);
 		if (DrawOnly()) return 0;
 		FlashUpdate(p);
@@ -1402,19 +1402,19 @@ namespace holy175
 		if (p->counter == 4) InitTriangles();
 		if (p->counter == 5)
 		{
-			ShatterNode *t = (ShatterNode *)AddTask(ORIG_ShatterTask);
+			ShatterNode *t = (ShatterNode *)AddTask(us(ORIG_ShatterTask));
 			t->counter = 0;
 			FadeSide() = p->target;
 		}
 		if (p->counter == 1)
 		{
-			SparkleNode *t = (SparkleNode *)AddTask(ORIG_SparkleTask);
+			SparkleNode *t = (SparkleNode *)AddTask(us(ORIG_SparkleTask));
 			CopyAnchor(t->pos, p);
 			t->counter = 0;
 		}
 		if (p->counter == 6)
 		{
-			OrbitCtrlNode *a = (OrbitCtrlNode *)AddTask(ORIG_OrbitCtrlTask);
+			OrbitCtrlNode *a = (OrbitCtrlNode *)AddTask(us(ORIG_OrbitCtrlTask));
 			CopyAnchor(a->pos, p);
 			a->counter = 0;
 			a->index = 0;
@@ -1423,7 +1423,7 @@ namespace holy175
 			a->az = 0;
 			a->dax = (int16_t)(CrtRand() % 50 + 0x3C);
 			a->daz = (int16_t)(CrtRand() % 40 + 0x1E);
-			OrbitCtrlNode *b = (OrbitCtrlNode *)AddTask(ORIG_OrbitCtrlTask);
+			OrbitCtrlNode *b = (OrbitCtrlNode *)AddTask(us(ORIG_OrbitCtrlTask));
 			CopyAnchor(b->pos, p);
 			b->target = p->target;
 			b->counter = 0;
@@ -1435,31 +1435,31 @@ namespace holy175
 		}
 		if (p->counter == 0x10)
 		{
-			EmitterNode *t = (EmitterNode *)AddTask(ORIG_MoteTask);
+			EmitterNode *t = (EmitterNode *)AddTask(us(ORIG_MoteTask));
 			t->counter = 0;
 		}
 		if (p->counter == 0x1E)
 		{
 			GridTextured() = 0;
-			QueueTimUpload(TIM_Upload);
+			QueueTimUpload(TIM_Upload());
 		}
 		if (p->counter == 0x1F)
 		{
-			RingNode *r = (RingNode *)AddTask(ORIG_RingTask);
+			RingNode *r = (RingNode *)AddTask(us(ORIG_RingTask));
 			CopyAnchor(r->pos, p);
 			r->pos[1] = (int16_t)(r->pos[1] + 0x1F4);
 			r->counter = 0;
 			r->scale = 0x1000;
 			r->angle = (int16_t)(CrtRand() % 0x1000);
 			r->spin = (int16_t)(CrtRand() % 20 + 0x1E);
-			RingNode *w = (RingNode *)AddTask(ORIG_WaveTask);
+			RingNode *w = (RingNode *)AddTask(us(ORIG_WaveTask));
 			CopyAnchor(w->pos, p);
 			w->pos[1] = (int16_t)(w->pos[1] + 0x258);
 			w->counter = 0;
 			w->scale = 0x1000;
 			w->w20 = 0xC;
 			w->w22 = 0;
-			w = (RingNode *)AddTask(ORIG_WaveTask);
+			w = (RingNode *)AddTask(us(ORIG_WaveTask));
 			CopyAnchor(w->pos, p);
 			w->pos[1] = (int16_t)(w->pos[1] + 0x258);
 			w->counter = 0;
@@ -1469,7 +1469,7 @@ namespace holy175
 		}
 		if (p->counter >= 0x1F && p->counter <= 0x49 && p->counter % 6 == 1)
 		{
-			RingNode *e = (RingNode *)AddTask(ORIG_ExpandTask);
+			RingNode *e = (RingNode *)AddTask(us(ORIG_ExpandTask));
 			CopyAnchor(e->pos, p);
 			e->pos[1] = (int16_t)(e->pos[1] + 0x5DC);
 			e->counter = 0;
@@ -1482,8 +1482,8 @@ namespace holy175
 			int32_t acc = 0;
 			for (int k = 0; k < 12; k++, acc += 0x1000)
 			{
-				RingNode *q = (RingNode *)AddTask(ORIG_PillarTask);
-				q->delay = (int16_t)(*(const int16_t *)(PILLAR_Delays + 4 * k) * 3);
+				RingNode *q = (RingNode *)AddTask(us(ORIG_PillarTask));
+				q->delay = (int16_t)(*(const int16_t *)(us(PILLAR_Delays) + 4 * k) * 3);
 				q->counter = 0;
 				int32_t ang = (Div12(acc) + r) & 0xFFF;
 				int32_t cs = ComputeCos(ang);
@@ -1499,20 +1499,20 @@ namespace holy175
 		}
 		if (p->counter == 0x42)
 		{
-			RingNode *b = (RingNode *)AddTask(ORIG_BeamTask);
+			RingNode *b = (RingNode *)AddTask(us(ORIG_BeamTask));
 			CopyAnchor(b->pos, p);
 			b->counter = 0;
 		}
 		if (p->counter == 0x4E)
 		{
-			RingNode *d = (RingNode *)AddTask(ORIG_DiskTask);
+			RingNode *d = (RingNode *)AddTask(us(ORIG_DiskTask));
 			CopyAnchor(d->pos, p);
 			d->counter = 0;
 			d->angle = (int16_t)(CrtRand() % 0x1000);
 			d->spin = 0x28;
 			d->scale = 0;
 			d->dscale = 0x140;
-			d = (RingNode *)AddTask(ORIG_DiskTask);
+			d = (RingNode *)AddTask(us(ORIG_DiskTask));
 			CopyAnchor(d->pos, p);
 			d->counter = 0;
 			d->angle = (int16_t)(CrtRand() % 0x1000);
@@ -1522,7 +1522,7 @@ namespace holy175
 		}
 		if (p->counter == 0x5A)
 		{
-			RingNode *f = (RingNode *)AddTask(ORIG_FlashTask);
+			RingNode *f = (RingNode *)AddTask(us(ORIG_FlashTask));
 			CopyAnchor(f->pos, p);
 			f->counter = 0;
 			f->scale = 0x3C00;
@@ -1544,7 +1544,7 @@ namespace holy175
 			int32_t next = p->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *d = (DirectorNode *)AddTask(ORIG_DirectorTask);
+				DirectorNode *d = (DirectorNode *)AddTask(us(ORIG_DirectorTask));
 				d->counter = 0;
 				d->action = (int16_t)next;
 				d->target = Ctx()->actions[next].targets[0];
@@ -1554,7 +1554,7 @@ namespace holy175
 		{
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(p->target), pos);
-			BdPlaySE3D(SOUND_Holy, 1, pos);
+			BdPlaySE3D(SOUND_Holy(), 1, pos);
 		}
 		p->counter++;
 		if (p->counter <= 0x6F) return 0;

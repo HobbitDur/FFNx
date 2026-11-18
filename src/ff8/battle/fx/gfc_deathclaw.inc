@@ -16,10 +16,10 @@
 
 // Cinematic GF engine: death claw
 
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	static inline void xl_NormalColorCol_56CA30(const void *v, const void *rgbc, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56CA30)(v, rgbc, out); }
-	static inline int32_t xl_RotTransPers_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	static inline uint32_t &DcGteData(int reg) { return MEM<uint32_t>(0x1CA8A10 + 4 * reg); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_NormalColorCol_56CA30(const void *v, const void *rgbc, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(v, rgbc, out); }
+	static inline int32_t xl_RotTransPers_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
+	static inline uint32_t &DcGteData(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
 
 	static void __cdecl bh_04_OrbitBetweenBones()
 	{
