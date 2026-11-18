@@ -687,6 +687,8 @@ namespace ff8fx::mod
 		{ 0x403D99, 0, "OutputDebugString_1" },
 		{ 0x505E70, 0, "Battle_QueueVramReadback_Type2" },
 		{ 0x5013A0, 2, "BdPlaySE3D" },
+		{ 0x50E3A0, 1, "BS_WitchGetNewStage" },
+		{ 0x50E3C0, 1, "BS_ChangeStage" },
 		{ 0x49ED30, 2, "read_pad_held_raw" },
 		{ 0x4A2D60, 1, "remap_pad_input" },
 		{ 0x49F0A0, 3, "ReadAnalog_49F0A0" },
