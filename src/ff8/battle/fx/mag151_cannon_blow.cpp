@@ -944,10 +944,12 @@ namespace cannonblow151
 	// The smoke grenade (smoke.on; not the game's): the canister, its trail, the cloud - puffs in static memory
 	// ------------------------------------------------------------------
 	// a puff: cloud (life 0: thins out from thin_at) or trail (life > 0: fades as its ticks run out)
-	struct Puff { int32_t x, y, z, vx, vy, vz; int16_t size, target, frame, angle, spin, wait, thin_at, alive, shade, life, left, grow; };
+	// (id: a new puff's own number, so the 30 fps layer tells a puff that lives on from a new one in its slot)
+	struct Puff { int32_t x, y, z, vx, vy, vz; int16_t size, target, frame, angle, spin, wait, thin_at, alive, shade, life, left, grow; uint16_t id; };
 	enum { MAX_PUFFS = 256 };
 	static Puff g_puffs[MAX_PUFFS];
 	static int g_tick;   // the puffs task's tick
+	static uint16_t g_puff_ids;   // the last puff id given
 	static uint8_t g_seq_sub[0x800], g_seq_add[0x800];
 	static inline int Rnd(int n) { return n > 0 ? (int)(CrtRand() % (uint32_t)n) : 0; }
 
@@ -996,6 +998,7 @@ namespace cannonblow151
 			{
 				memset(&g_puffs[k], 0, sizeof(Puff));
 				g_puffs[k].alive = 1;
+				g_puffs[k].id = ++g_puff_ids;
 				return &g_puffs[k];
 			}
 		return nullptr;
@@ -1025,7 +1028,9 @@ namespace cannonblow151
 		PuffPass(x, y, z, size, frame, angle, g_seq_sub, sub, sub, sub);
 	}
 
-	static void PuffDraw(const Puff &q)
+	// a puff at the puffs task's tick `tick` + frac / 256 (its fade: a cloud puff's thinning from thin_at, a trail puff's
+	// ticks left; frac 0: the tick's own)
+	static void PuffDrawAt(const Puff &q, int tick, int frac)
 	{
 		const CannonBlowParams &v = P();
 		int k = 256;   // 256 = whole
@@ -1033,14 +1038,16 @@ namespace cannonblow151
 		if (q.life > 0)
 		{
 			FX_PART(PART_TRAIL);
-			k = 256 * q.left / q.life;
+			k = 256 * std::max(0, q.left * 256 - frac) / (q.life * 256);
 			rr = gg = bb = v.trail.shade;
 			sub = v.trail.sub;
 		}
 		else
 		{
 			FX_PART(PART_CLOUD);
-			if (g_tick >= q.thin_at) k = 256 * std::max(0, q.thin_at + v.smoke.thin_ticks - g_tick) / std::max(1, (int)v.smoke.thin_ticks);
+			const int t256 = tick * 256 + frac;
+			if (t256 >= q.thin_at * 256)
+				k = 256 * std::max(0, (q.thin_at + v.smoke.thin_ticks) * 256 - t256) / (std::max(1, (int)v.smoke.thin_ticks) * 256);
 			int sh = q.shade + (v.cloud.top_light * (0 - (q.y >> 4)) / 1000);
 			sh = std::min(std::max(sh, 64), 400);
 			rr = v.cloud.r * sh >> 8; gg = v.cloud.g * sh >> 8; bb = v.cloud.b * sh >> 8;
@@ -1049,6 +1056,8 @@ namespace cannonblow151
 		SoftDraw(q.x >> 4, q.y >> 4, q.z >> 4, q.size, q.frame, q.angle, rr * k >> 8, gg * k >> 8, bb * k >> 8, sub * k >> 8);
 		FX_PART(0);
 	}
+
+	static void PuffDraw(const Puff &q) { PuffDrawAt(q, g_tick, 0); }
 
 	// the cloud's puffs at the landing point of shot i (on the floor)
 	static void CloudStart(int i)
@@ -1100,6 +1109,8 @@ namespace cannonblow151
 	static uint32_t __cdecl PuffsTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
+		// 30 fps layer: see mag151_cannon_blow_held.inc
+		FX_HELD(held_note_puffs(n);)
 		const CannonBlowParams &v = P();
 		int alive = 0;
 		for (int k = 0; k < MAX_PUFFS; k++)
@@ -1138,6 +1149,15 @@ namespace cannonblow151
 		return (S16(n, 0xC) > 0x10 && !alive) ? TASK_END : 0;
 	}
 
+	static void CanisterDraw(const int16_t *pt, int16_t angle)
+	{
+		const CannonBlowParams &v = P();
+		FX_PART(PART_CANISTER);
+		SoftDraw(pt[0], pt[1], pt[2], v.canister.size, v.canister.frame, angle, v.canister.shade, v.canister.shade, v.canister.shade,
+		         v.canister.sub);
+		FX_PART(0);
+	}
+
 	// the canister on shot i's curve (node +0x18 the point, +0x1A the step: the fire ball's), leaving trail puffs
 	static uint32_t __cdecl CanisterTask(TaskNode *nd)
 	{
@@ -1145,12 +1165,9 @@ namespace cannonblow151
 		const CannonBlowParams &v = P();
 		const int i = S16(n, 0xE);
 		const int16_t at = S16(n, 0x18);
-		const int16_t *pt = (const int16_t *)Point(i, std::min<int>(at, 0x1F));
-		const int16_t angle = (int16_t)((S16(n, 0xC) * v.canister.spin) & 0xFFF);
-		FX_PART(PART_CANISTER);
-		SoftDraw(pt[0], pt[1], pt[2], v.canister.size, v.canister.frame, angle, v.canister.shade, v.canister.shade, v.canister.shade,
-		         v.canister.sub);
-		FX_PART(0);
+		// 30 fps layer: see mag151_cannon_blow_held.inc
+		FX_HELD(held_note_node(REC_CANISTER, n);)
+		CanisterDraw((const int16_t *)Point(i, std::min<int>(at, 0x1F)), (int16_t)((S16(n, 0xC) * v.canister.spin) & 0xFFF));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1A);
 		for (int k = std::max(0, at - d + 1); k <= std::min<int>(at, 0x1F); k++)
