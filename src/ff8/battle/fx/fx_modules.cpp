@@ -187,6 +187,7 @@ namespace ff8fx::mod
 	static const Region streams_g218[] = { { 0xF1DD54, 0xBCC }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } }; // Gilgamesh kills Seifer 218: the sword model in .data (its skeleton is rebuilt), summon data (load 0x2C5), the shared camera script cells
 	static const Region streams_d251[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1434430, 0x3D58 } }; // Demon Slice 251: the stream loader / shadow-camera words (as 304) + the wave layout 0x1434430 (its height words normalised in exe data)
 	static const Region streams_b210[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } }; // Bloodfest 210: the stream loader / shadow-camera words (as 304)
+	static const Region streams_i173[] = { { 0x21DFED0, 0x20 } }; // Ice Breath 173: shadow-camera scratch
 	// Gargantua burrow: the spawn stream pointer in exe data (never put back) + the sprite / shadow-camera engine words
 	static const Region streams_g301[] = { { 0x103DC9C, 4 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	// BGH251F2 destruction: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
@@ -545,6 +546,7 @@ namespace ff8fx::mod
 		{ 218, 0x24F2340, 0x24F3618, 0, 0, false, "Gilgamesh kills Seifer (attack 330, Seifer c0m128)", streams_g218, 3 },
 		{ 251, 0x2556388, 0x2556478, 0, 0, false, "Demon Slice (attack 314, Seifer c0m086)", streams_d251, 5 },
 		{ 210, 0x2556478, 0x2556580, 0, 0, false, "Bloodfest (attack 315, Seifer c0m128)", streams_b210, 4 },
+		{ 173, 0x2397278, 0x239A8E0, 0, 0, false, "Ice Breath (attack 38, Snow Lion)", streams_i173, 1 },
 		{ 176, 0x2368580, 0x2374574, 0, 0, false, "Sand Storm (attack 80, Adamantoise)", streams_s176, 2 },
 		{ 157, 0x23EB5C0, 0x23ECE40, 0, 0, false, "Breath (attack 37, Hexadragon)", streams_b157, 4 },
 		{ 158, 0x23D7B08, 0x23EB5C0, 0, 0, false, "Melt-Eye (attack 36, Hexadragon)", streams_m158, 1 },
