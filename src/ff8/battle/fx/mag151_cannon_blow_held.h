@@ -21,11 +21,12 @@ namespace ff8fx
 {
 namespace cannonblow151
 {
-	enum DrawKind { REC_FLASH = 1, REC_BURST, REC_RING, REC_BALL, REC_TRAIL, REC_TRAIL2, REC_TRAIL3, REC_IMPACT, REC_IRING, REC_DEBRIS };
+	enum DrawKind { REC_FLASH = 1, REC_BURST, REC_RING, REC_BALL, REC_TRAIL, REC_TRAIL2, REC_TRAIL3, REC_IMPACT, REC_IRING, REC_DEBRIS, REC_PUFFS, REC_CANISTER };
 	static void held_note_root();
 	static void held_note_node(int kind, uint32_t n);
 	static void held_note_parts(int kind, uint32_t n);
 	static void held_note_particle(uint32_t p);
+	static void held_note_puffs(uint32_t n);
 	static void register_mag151_held();
 }
 }

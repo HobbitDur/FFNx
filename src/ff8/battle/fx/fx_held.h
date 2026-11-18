@@ -27,8 +27,27 @@
 
 namespace ff8fx
 {
-	// g_real_tick counts the effect's real (logic) ticks; the frame gate increments it before each.
+	// g_real_tick counts the effect's real (logic) ticks; the frame gate increments it before each (held_next_real_tick).
 	extern uint32_t g_real_tick;
+	void held_next_real_tick();
+
+	// A held provider: another DLL running effects with its own copy of this code - FujinEffects.dll, Fujin's programs
+	// in free slots of the effect table (a port module's code on the program's memory). For an effect id, or a task
+	// function, this layer has nothing registered for, the lookups below ask it (its export FujinEffects_HeldApi, found
+	// at each real tick; none: nothing changes). It counts the real ticks with this layer (real_tick).
+	struct HeldApi
+	{
+		int version;   // HELD_API_VERSION
+		bool (__cdecl *ready)(int effect_id);
+		void (__cdecl *draw)(int effect_id, int num, int den);
+		bool (__cdecl *camera)(int effect_id, int num, int den, int16_t world[3], int16_t lookat[3]);
+		bool (__cdecl *redraws)(uint32_t fn);
+		bool (__cdecl *keeps_ended)(uint32_t fn);
+		bool (__cdecl *keeps_drawn)(uint32_t fn);
+		void (__cdecl *real_tick)(uint32_t tick);
+	};
+	static const int HELD_API_VERSION = 1;
+	typedef const HeldApi *(__cdecl *HeldApiFn)();
 
 	// A module's ready() says its ports ran on the last real tick (their memos are current);
 	// draw(num, den) draws the state at tick + num/den.

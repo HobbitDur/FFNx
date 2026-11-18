@@ -18,11 +18,35 @@
 // Filled by the modules' held register functions (FX_HELD seams at the end of each vanilla
 // register function) and by register_all_held() below, all from register_all().
 
+#include <windows.h>
 #include "fx_held.h"
 
 namespace ff8fx
 {
 	uint32_t g_real_tick = 0;
+
+	// ------------------------------------------------------------------ held provider (fx_held.h HeldApi)
+	static const HeldApi *g_provider = nullptr;
+
+	// FujinEffects.dll's held API, unless that DLL is the one this code is built in (its own lookups are the local ones)
+	static const HeldApi *find_provider()
+	{
+		HMODULE m = GetModuleHandleA("FujinEffects.dll");
+		HMODULE self = nullptr;
+		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		                   (LPCSTR)&find_provider, &self);
+		if (!m || m == self) return nullptr;
+		const HeldApiFn get = (HeldApiFn)GetProcAddress(m, "FujinEffects_HeldApi");
+		const HeldApi *api = get ? get() : nullptr;
+		return api && api->version == HELD_API_VERSION ? api : nullptr;
+	}
+
+	void held_next_real_tick()
+	{
+		g_real_tick++;
+		g_provider = find_provider();
+		if (g_provider && g_provider->real_tick) g_provider->real_tick(g_real_tick);
+	}
 
 	// ------------------------------------------------------------------ module held frames
 	struct ModuleHeld { int effect_id; bool (*ready)(); void (*draw)(int, int); };
@@ -39,13 +63,14 @@ namespace ff8fx
 	{
 		for (int i = 0; i < g_nheld; i++)
 			if (g_held[i].effect_id == effect_id) return g_held[i].ready();
-		return false;
+		return g_provider && g_provider->ready && g_provider->ready(effect_id);
 	}
 
 	void held_draw(int effect_id, int num, int den)
 	{
 		for (int i = 0; i < g_nheld; i++)
 			if (g_held[i].effect_id == effect_id) { g_held[i].draw(num, den); return; }
+		if (g_provider && g_provider->draw) g_provider->draw(effect_id, num, den);
 	}
 
 	// ------------------------------------------------------------------ held-frame cameras
@@ -61,7 +86,9 @@ namespace ff8fx
 	{
 		for (int i = 0; i < g_ncam; i++)
 			if (g_cam[i].effect_id == effect_id) return g_cam[i].fn(num, den, world, lookat);
-		return false;
+		for (int i = 0; i < g_nheld; i++)
+			if (g_held[i].effect_id == effect_id) return false;   // (a module of this layer: no camera of its own)
+		return g_provider && g_provider->camera && g_provider->camera(effect_id, num, den, world, lookat);
 	}
 
 	// ------------------------------------------------------------------ held-frame entities
@@ -112,9 +139,13 @@ namespace ff8fx
 
 	static inline uint32_t task_slot(uint32_t orig) { return (orig * 2654435761u) >> 20; }
 
+	static bool local_redraws(uint32_t orig);
+	static bool local_keeps_ended(uint32_t orig);
+	static bool local_keeps_drawn(uint32_t orig);
+
 	void mark_held(uint32_t orig)
 	{
-		if (!orig || held_redraws(orig) || g_nheld_tasks >= HELD_TASKS_SIZE / 2) return;
+		if (!orig || local_redraws(orig) || g_nheld_tasks >= HELD_TASKS_SIZE / 2) return;
 		uint32_t h = task_slot(orig);
 		while (g_held_tasks[h & (HELD_TASKS_SIZE - 1)]) h++;
 		g_held_tasks[h & (HELD_TASKS_SIZE - 1)] = orig;
@@ -122,6 +153,11 @@ namespace ff8fx
 	}
 
 	bool held_redraws(uint32_t orig)
+	{
+		return local_redraws(orig) || (g_provider && g_provider->redraws && g_provider->redraws(orig));
+	}
+
+	static bool local_redraws(uint32_t orig)
 	{
 		for (uint32_t h = task_slot(orig);; h++)
 		{
@@ -137,7 +173,7 @@ namespace ff8fx
 
 	void keep_ended(uint32_t orig)
 	{
-		if (!orig || keeps_ended(orig) || g_nkeep_tasks >= HELD_TASKS_SIZE / 2) return;
+		if (!orig || local_keeps_ended(orig) || g_nkeep_tasks >= HELD_TASKS_SIZE / 2) return;
 		uint32_t h = task_slot(orig);
 		while (g_keep_tasks[h & (HELD_TASKS_SIZE - 1)]) h++;
 		g_keep_tasks[h & (HELD_TASKS_SIZE - 1)] = orig;
@@ -145,6 +181,11 @@ namespace ff8fx
 	}
 
 	bool keeps_ended(uint32_t orig)
+	{
+		return local_keeps_ended(orig) || (g_provider && g_provider->keeps_ended && g_provider->keeps_ended(orig));
+	}
+
+	static bool local_keeps_ended(uint32_t orig)
 	{
 		for (uint32_t h = task_slot(orig);; h++)
 		{
@@ -160,7 +201,7 @@ namespace ff8fx
 
 	void keep_drawn(uint32_t orig)
 	{
-		if (!orig || keeps_drawn(orig) || g_nkeep_drawn >= HELD_TASKS_SIZE / 2) return;
+		if (!orig || local_keeps_drawn(orig) || g_nkeep_drawn >= HELD_TASKS_SIZE / 2) return;
 		uint32_t h = task_slot(orig);
 		while (g_keep_drawn[h & (HELD_TASKS_SIZE - 1)]) h++;
 		g_keep_drawn[h & (HELD_TASKS_SIZE - 1)] = orig;
@@ -168,6 +209,11 @@ namespace ff8fx
 	}
 
 	bool keeps_drawn(uint32_t orig)
+	{
+		return local_keeps_drawn(orig) || (g_provider && g_provider->keeps_drawn && g_provider->keeps_drawn(orig));
+	}
+
+	static bool local_keeps_drawn(uint32_t orig)
 	{
 		for (uint32_t h = task_slot(orig);; h++)
 		{

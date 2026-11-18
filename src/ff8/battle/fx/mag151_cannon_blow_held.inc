@@ -26,6 +26,11 @@
 //   Ball      - num/den of the way along the curve from its point to the next tick's (between curve points: the straight line
 //             between the two neighbours); its flipbook frame (counter & 3) held.
 //   Debris    - fixed point, flipbook frame of the real tick (held); a waiting one draws nothing (appears on the real frame).
+//   Puffs     - (the smoke grenade) every puff drawn on the tick, num/den of the way to its next tick's place, size and
+//             angle, its fade at the tick + num/den; a puff the tick's update ended holds its picture; a waiting one and the
+//             new ones (their slot's id changed) appear on the real frame.
+//   Canister  - (the smoke grenade) num/den of the way along the curve to the next tick's point, as the ball; its spin
+//             num/den of the way.
 //   Particles - burst: their point half way to point + velocity (through the shot's rotation); the trails: their size half way
 //             to size + size >> 5; flipbook frames held; a particle whose sequence ends holds below 1; the new ones (CRT rand)
 //             appear on the real frame.
@@ -62,6 +67,8 @@ namespace cannonblow151
 	static Rec g_recs[MAX_RECS];
 	static PRec g_parts[MAX_PARTS];
 	static uint8_t g_held_packets[ARENA];
+	static Puff g_puff_snap[MAX_PUFFS];     // the smoke grenade's puffs as the tick drew them
+	static int g_puff_tick = 0;             // and the puffs task's tick then
 
 	static void held_note_root()
 	{
@@ -99,6 +106,13 @@ namespace cannonblow151
 
 	static void held_note_parts(int kind, uint32_t n) { g_cur = NewRec(kind, n); }
 
+	static void held_note_puffs(uint32_t n)
+	{
+		if (!NewRec(REC_PUFFS, n)) return;
+		memcpy(g_puff_snap, g_puffs, sizeof(g_puffs));
+		g_puff_tick = g_tick;
+	}
+
 	static void held_note_particle(uint32_t p)
 	{
 		if (!g_cur) return;
@@ -119,7 +133,7 @@ namespace cannonblow151
 	static bool Alive(uint32_t n, uint32_t orig)
 	{
 		const TaskNode *t = (const TaskNode *)n;
-		if (!(t->flags & 1) || (uint32_t)t->func != orig) return false;
+		if (!(t->flags & 1) || ((uint32_t)t->func != orig && (uint32_t)t->func != own::Fn(orig))) return false;
 		int guard = 0;
 		for (const TaskNode *x = ShotQueue()->head; x && guard < 0x100; x = x->next, guard++)
 			if (x == t) return true;
@@ -200,6 +214,41 @@ namespace cannonblow151
 			break;
 		}
 		case REC_DEBRIS: DebrisDraw(c); break;
+		case REC_CANISTER:
+		{
+			const int k = Alive(n, (uint32_t)CanisterTask) && S16(n, 0xC) != cnt ? num : 0;
+			const int i = S16(c, 0xE);
+			const int32_t a = std::min<int32_t>(S16(c, 0x18), 0x1F), b = k ? std::min<int32_t>(S16(n, 0x18), 0x1F) : a;
+			const int32_t f = a * den + (b - a) * k;
+			const int32_t j = f / den, fr = f % den;
+			int16_t pos[4];
+			memcpy(pos, (const void *)Point(i, j), 8);
+			if (fr && j < 0x1F)
+				for (int q = 0; q < 3; q++) pos[q] = lerp16(S16(Point(i, j), 2 * q), S16(Point(i, j + 1), 2 * q), fr, den);
+			CanisterDraw(pos, (int16_t)(((cnt * den + k) * P().canister.spin / den) & 0xFFF));
+			break;
+		}
+		case REC_PUFFS:
+		{
+			const int frac = 256 * num / den;
+			for (int q = 0; q < MAX_PUFFS; q++)
+			{
+				const Puff &s = g_puff_snap[q], &now = g_puffs[q];
+				if (!s.alive || s.wait > 0) continue;
+				Puff p = s;
+				if (now.alive && now.id == s.id)
+				{
+					p.x = lerp_i(s.x, now.x, num, den);
+					p.y = lerp_i(s.y, now.y, num, den);
+					p.z = lerp_i(s.z, now.z, num, den);
+					p.size = lerp16(s.size, now.size, num, den);
+					p.angle = (int16_t)((s.angle + ((((now.angle - s.angle) & 0xFFF) ^ 0x800) - 0x800) * num / den) & 0xFFF);
+					PuffDrawAt(p, g_puff_tick, frac);
+				}
+				else PuffDrawAt(p, g_puff_tick, 0);   // (ended by the tick's update: its picture held)
+			}
+			break;
+		}
 		}
 	}
 
@@ -277,6 +326,8 @@ namespace cannonblow151
 		mark_held(ORIG_Impact);
 		mark_held(ORIG_ImpactRing);
 		mark_held(ORIG_Debris);
+		mark_held((uint32_t)PuffsTask);
+		mark_held((uint32_t)CanisterTask);
 		register_module_held(151, HeldReady, HeldDraw);
 	}
 }

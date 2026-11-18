@@ -4462,7 +4462,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			ff8_bgate_gfc_log_n = 0;
 			ff8_bgate_gfc_log_overflow = false;
 		}
-		if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8fx::g_real_tick++;
+		if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8fx::held_next_real_tick();   // (and a held provider's: fx_held.h HeldApi)
 		bool la_tick = ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_la_real_tick_begin(ctx);
 		bool fxv_tick = la_tick && ff8_bgate_fxv_wanted();
 		// hit-effect queue: its native tasks (ff8fx::register_eq_task) run their ports, and the draw range of every task
