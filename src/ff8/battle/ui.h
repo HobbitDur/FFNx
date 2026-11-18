@@ -16,4 +16,5 @@
 
 #pragma once
 
-void ff8_psx_polygon_size_init();
+// Battle menu windows, status countdowns and command messages. Call once.
+void ff8_battle_ui_init();

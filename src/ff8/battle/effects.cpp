@@ -14,7 +14,21 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-#pragma once
+#include "effects.h"
+#include "effects/screen_units.h"
 
-// World map camera lift checked where the player stands on screen, as on PSX. Call once.
-void ff8_worldmap_camera_lift_init();
+#include "../../ff8.h"
+#include "../../globals.h"
+
+void ff8_battle_effects_init()
+{
+	const DWORD *effects = ff8_externals.func_off_battle_effects_C81774;
+
+	// The shared helpers are read from Cure's renderer, before the magic patches it
+	const uint32_t cure_render = ff8_battle_effects::resolve_screen_units(effects);
+
+	ff8_battle_effects::patch_magic(effects, cure_render);
+	ff8_battle_effects::patch_summons(effects);
+	ff8_battle_effects::patch_enemy_attacks(effects);
+	ff8_battle_effects::patch_items(effects);
+}

@@ -14,7 +14,9 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// The PS1 GTE clamps screen positions to -1024..1023 pixels, and the PS1 GPU does not draw a triangle whose
+// PC GPU layer (SSIGPU) fixes
+
+// Polygon size: the PS1 GTE clamps screen positions to -1024..1023 pixels, and the PS1 GPU does not draw a triangle whose
 // vertices are more than 1023 pixels apart horizontally or 511 vertically (a quad is drawn as two triangles, tested
 // one by one). The PC port can give a vertex far outside that range, and its GPU layer draws the triangle: one
 // triangle then covers the screen with a single texel of its texture (one frame of Eden's summon shows the pit and
@@ -23,13 +25,15 @@
 // Triangles inside the GTE range are left alone: the PC port draws some large polygons (summon close-ups) that the
 // PS1 version splits into smaller ones before they reach the GPU.
 
-#include "psx_polygon_size.h"
+#include "gpu.h"
 
 #include "../ff8.h"
 #include "../log.h"
 #include "../globals.h"
 #include "../patch.h"
 #include <algorithm>
+#include <array>
+#include <utility>
 
 namespace
 {
@@ -57,6 +61,11 @@ namespace
 		size_t first_record, record_size, xy, uv;
 	};
 
+	struct ScreenPosition
+	{
+		int16_t x, y;
+	};
+
 	PolygonLayout layout_of(uint8_t code)
 	{
 		const bool gouraud = code & POLYGON_GOURAUD, textured = code & POLYGON_TEXTURED;
@@ -68,24 +77,16 @@ namespace
 		return layout;
 	}
 
-	bool psx_skips_triangle(const uint8_t *packet, const PolygonLayout &layout, int first_vertex)
+	bool psx_skips_triangle(const ScreenPosition *vertices, int unit)
 	{
-		const int unit = *ff8_externals.ssigpu_packet_in_pixels_dword_1CA89FC ? 1 : EIGHTHS;
-		int16_t x[3], y[3];
-		for (int i = 0; i < 3; ++i)
-		{
-			const uint32_t xy = get_absolute_value(uint32_t(packet), layout.first_record + (first_vertex + i) * layout.record_size + layout.xy);
-			x[i] = int16_t(xy & 0xFFFF);
-			y[i] = int16_t(xy >> 16);
-		}
 		const int min_position = GTE_MIN_POSITION * unit, max_position = GTE_MAX_POSITION * unit;
 		bool outside = false;
 		int clamped_x[3], clamped_y[3];
 		for (int i = 0; i < 3; ++i)
 		{
-			outside |= x[i] < min_position || x[i] > max_position || y[i] < min_position || y[i] > max_position;
-			clamped_x[i] = std::clamp<int>(x[i], min_position, max_position);
-			clamped_y[i] = std::clamp<int>(y[i], min_position, max_position);
+			outside |= vertices[i].x < min_position || vertices[i].x > max_position || vertices[i].y < min_position || vertices[i].y > max_position;
+			clamped_x[i] = std::clamp<int>(vertices[i].x, min_position, max_position);
+			clamped_y[i] = std::clamp<int>(vertices[i].y, min_position, max_position);
 		}
 		if (!outside) return false;
 
@@ -94,14 +95,24 @@ namespace
 		return width > PSX_MAX_WIDTH * unit || height > PSX_MAX_HEIGHT * unit;
 	}
 
-	void draw_polygon(polygon_handler handler, uint8_t *packet)
+	void draw_polygon(polygon_handler *handlers, size_t handler_index, uint8_t *packet)
 	{
 		const uint8_t code = packet[7];
+		const polygon_handler handler = handlers[handler_index];
 		const PolygonLayout layout = layout_of(code);
-
-		if (!(code & POLYGON_QUAD))
+		const bool quad = code & POLYGON_QUAD;
+		const int unit = *ff8_externals.ssigpu_packet_in_pixels_dword_1CA89FC ? 1 : EIGHTHS;
+		ScreenPosition vertices[4];
+		for (int i = 0; i < (quad ? 4 : 3); ++i)
 		{
-			if (psx_skips_triangle(packet, layout, 0))
+			const uint8_t *xy = packet + layout.first_record + i * layout.record_size + layout.xy;
+			vertices[i] = {int16_t(uint16_t(xy[0]) | (uint16_t(xy[1]) << 8)),
+				int16_t(uint16_t(xy[2]) | (uint16_t(xy[3]) << 8))};
+		}
+
+		if (!quad)
+		{
+			if (psx_skips_triangle(vertices, unit))
 			{
 				if (trace_all) ffnx_trace("%s: skip triangle 0x%02X the PS1 would not draw\n", __func__, code);
 				return;
@@ -110,18 +121,23 @@ namespace
 			return;
 		}
 
-		const bool first_skipped = psx_skips_triangle(packet, layout, 0);
-		const bool second_skipped = psx_skips_triangle(packet, layout, 1);
+		const bool first_skipped = psx_skips_triangle(vertices, unit);
+		const bool second_skipped = psx_skips_triangle(vertices + 1, unit);
 		if (!first_skipped && !second_skipped)
 		{
 			handler(packet);
 			return;
 		}
 		if (trace_all) ffnx_trace("%s: skip half of quad 0x%02X the PS1 would not draw (%d, %d)\n", __func__, code, first_skipped, second_skipped);
+		if (first_skipped && second_skipped) return;
 
 		const uint8_t triangle_code = code & ~POLYGON_QUAD;
-		const polygon_handler triangle_handler = (code & 0x02 ? pass_2_handlers : pass_1_handlers)[triangle_code - POLYGON_FIRST_CODE];
-		if (triangle_handler == nullptr) return;
+		const polygon_handler triangle_handler = handlers[handler_index & ~size_t(POLYGON_QUAD)];
+		if (triangle_handler == nullptr)
+		{
+			ffnx_unexpected_once("Missing FF8 triangle handler for polygon 0x%02X\n", code);
+			return;
+		}
 
 		const size_t size = layout.first_record + 4 * layout.record_size;
 		uint8_t triangle[4 + 12 * 4];
@@ -152,28 +168,33 @@ namespace
 		}
 	}
 
-	void pass_1_polygon(uint8_t *packet)
+	template<size_t index, bool first_pass>
+	void polygon_wrapper(uint8_t *packet)
 	{
-		draw_polygon(pass_1_handlers[packet[7] - POLYGON_FIRST_CODE], packet);
+		draw_polygon(first_pass ? pass_1_handlers : pass_2_handlers, index, packet);
 	}
 
-	void pass_2_polygon(uint8_t *packet)
+	template<bool first_pass, size_t... indices>
+	constexpr std::array<polygon_handler, POLYGON_CODES> polygon_wrappers(std::index_sequence<indices...>)
 	{
-		draw_polygon(pass_2_handlers[packet[7] - POLYGON_FIRST_CODE], packet);
+		return {polygon_wrapper<indices, first_pass>...};
 	}
 
-	void wrap_polygon_handlers(uint32_t *callbacks, polygon_handler *handlers, polygon_handler wrapper)
+	void wrap_polygon_handlers(uint32_t *callbacks, polygon_handler *handlers, const std::array<polygon_handler, POLYGON_CODES> &wrappers)
 	{
 		for (size_t i = 0; i < POLYGON_CODES; ++i)
 		{
 			handlers[i] = reinterpret_cast<polygon_handler>(callbacks[POLYGON_FIRST_CODE + i]);
-			if (handlers[i] != nullptr) callbacks[POLYGON_FIRST_CODE + i] = reinterpret_cast<uint32_t>(wrapper);
+			if (handlers[i] != nullptr) callbacks[POLYGON_FIRST_CODE + i] = reinterpret_cast<uint32_t>(wrappers[i]);
 		}
 	}
 }
 
-void ff8_psx_polygon_size_init()
+void ff8_gpu_init()
 {
-	wrap_polygon_handlers(ff8_externals.ssigpu_callbacks_1, pass_1_handlers, pass_1_polygon);
-	wrap_polygon_handlers(ff8_externals.ssigpu_callbacks_3, pass_2_handlers, pass_2_polygon);
+	// The native dispatcher can select a different opcode without modifying the packet.
+	static constexpr auto pass_1_wrappers = polygon_wrappers<true>(std::make_index_sequence<POLYGON_CODES>{});
+	static constexpr auto pass_2_wrappers = polygon_wrappers<false>(std::make_index_sequence<POLYGON_CODES>{});
+	wrap_polygon_handlers(ff8_externals.ssigpu_callbacks_1, pass_1_handlers, pass_1_wrappers);
+	wrap_polygon_handlers(ff8_externals.ssigpu_callbacks_3, pass_2_handlers, pass_2_wrappers);
 }
