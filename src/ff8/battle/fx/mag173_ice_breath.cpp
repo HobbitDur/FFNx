@@ -13,8 +13,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 173: Ice Breath (enemy attack 38 of kernel.bin, Snow Lion c0m013; the Cronos mod's battle
-// item 20 "Arctic Wind" plays it from a party member on all enemies) (MAG_173_*).
+// Effect 173: Ice Breath (enemy attack 38 of kernel.bin, Snow Lion c0m013) (MAG_173_*).
 //
 // Structure (setup MAG_173_ICE_BREATH_Init 0x5D74B0, file loader MAG_173_ICE_BREATH_FL 0x5D7490 =
 // texture 0xD61E1C (mag172.tim) into 0x2398A9C; the setup keeps the texture base 0x239A8C8, the cast
