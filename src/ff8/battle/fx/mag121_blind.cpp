@@ -430,7 +430,7 @@ namespace blind121
 		}
 		if (t->counter < 0x14) GetEffectSpawnPosition(t->entity, 0xF0, 0, t->pos);
 		PrimArg arg;
-		memcpy(arg.pos, t->pos, 8);
+		ff8fx::copy<(8)>(arg.pos, t->pos);
 		arg.morph = TexBase() + 0x18B4;
 		// 30 fps layer: see mag121_blind_held.inc
 		FX_HELD(held_note_play(t, &arg);)

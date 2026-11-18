@@ -586,12 +586,12 @@ namespace acid132
 		}
 		else a2[3] = 0;
 		s->counter = 0;
-		memcpy(s->start, a1, 8);
-		memcpy(s->ctrl, a1, 8);
+		ff8fx::copy<(8)>(s->start, a1);
+		ff8fx::copy<(8)>(s->ctrl, a1);
 		s->ctrl[0] = (int16_t)(s->ctrl[0] + (int16_t)(v[0] >> 1));
 		s->ctrl[1] = (int16_t)(s->ctrl[1] + v[1]);
 		s->ctrl[2] = (int16_t)(s->ctrl[2] + (int16_t)(v[2] >> 1));
-		memcpy(s->end, a2, 8);
+		ff8fx::copy<(8)>(s->end, a2);
 		s->tail = p;
 		s->head = p;
 		s->phase = 0;
@@ -679,7 +679,7 @@ namespace acid132
 	{
 		LayoutNode *s = (LayoutNode *)n;
 		PrimArg arg;
-		memcpy(arg.pos, s->pos, sizeof(arg.pos));
+		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, s->pos);
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_layout(s, &arg, true);)
@@ -695,7 +695,7 @@ namespace acid132
 	{
 		LayoutNode *s = (LayoutNode *)n;
 		PrimArg arg;
-		memcpy(arg.pos, s->pos, sizeof(arg.pos));
+		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, s->pos);
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_layout(s, &arg, false);)

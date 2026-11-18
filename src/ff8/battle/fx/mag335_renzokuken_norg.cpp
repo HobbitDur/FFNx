@@ -117,7 +117,7 @@ namespace renzo335
 		if (n->c == 0x28)
 		{
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_BossEmitter);
-			memcpy(&t->w10, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 			t->c = 0;
 		}
 		if (n->c == 0x3B)
@@ -150,7 +150,7 @@ namespace renzo335
 				p->alive = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x800);
-				memcpy(p->pos, w->pos2, 8);
+				ff8fx::copy<(8)>(p->pos, w->pos2);
 				w->dir[0] = CrtRand() % 0x600 - 0x300;
 				w->dir[1] = -0x900 - CrtRand() % 0x300;
 				w->dir[2] = CrtRand() % 0x300 + 0x800;

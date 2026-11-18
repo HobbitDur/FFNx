@@ -1128,7 +1128,7 @@
 			const int32_t nb = add32(npoly, 4) & ~3;                          // edi
 			PTR(CUR(), 0xC4) = blob::ArenaAlloc(nb);
 			uint8_t *sb = PTR(CUR(), 0xC4);
-			if (nb > 0) memset(sb, 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
+			if (nb > 0) memset_code(uint32_t(sb), 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
 			uint8_t *p = st + 0x20;
 			for (int32_t k = (int32_t)U16(st, 2) + 1; k > 0; k--, p += 0x44) U32(p, 0) = 0;
 			if (U16(desc, 8) == 5)

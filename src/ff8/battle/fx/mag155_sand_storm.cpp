@@ -290,7 +290,7 @@ namespace sandstorm155
 	// pool B: the sprite orbits its base position (radius v[0], angle v[2])
 	static void DustPosB(const Dust *d, int16_t p[4])
 	{
-		memcpy(p, d->pos, 8);
+		ff8fx::copy<(8)>(p, d->pos);
 		p[0] = (int16_t)(p[0] + (ComputeCos(d->v[2]) * d->v[0] >> 12));
 		p[2] = (int16_t)(p[2] + (ComputeSin(d->v[2]) * d->v[0] >> 12));
 	}
@@ -584,8 +584,8 @@ namespace sandstorm155
 			if (f->sway < 0) f->sway_grow = (int16_t)-g;
 			f->phase = 0;
 			const int32_t pv = CrtRand() % 150;
-			memcpy(SideB(), Centre(), 8);
-			memcpy(SideA(), Centre(), 8);
+			ff8fx::copy<(8)>(SideB(), Centre());
+			ff8fx::copy<(8)>(SideA(), Centre());
 			f->phase_v = (int16_t)(pv + 0xBE);
 			SideA()[0] = (int16_t)(SideA()[0] + (-4000 - CrtRand() % 2600));
 			SideA()[2] = (int16_t)(SideA()[2] + (CrtRand() % 1300 - 650));

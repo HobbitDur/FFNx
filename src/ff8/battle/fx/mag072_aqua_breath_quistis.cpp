@@ -832,7 +832,7 @@ namespace aqua72
 			const int32_t yaw = r1 % 0x300 - 0x180;
 			const int32_t r2 = (int32_t)x::CrtRand();
 			const int32_t pitch = r2 % 0x180;
-			memcpy((void *)mt, (const void *)(node + 0x58), 0x20); // rep movsd
+			ff8fx::copy<(0x20)>((void *)mt, (const void *)(node + 0x58)); // rep movsd
 			const int16_t pitch16 = (int16_t)(pitch - 0xC0);
 			U32(t, 0x78) = U32(node, 0x1C);
 			U32(t, 0x7C) = U32(node, 0x20);
@@ -878,7 +878,7 @@ namespace aqua72
 			v[2] = U16(spin, -8);
 			v[1] = U16(node, 0x150);
 			v[3] = 0;   // (pad, never written by the original: only the GTE VZ0 high half, unused)
-			memcpy(m, (const void *)mt, 0x20); // rep movsd
+			ff8fx::copy<(0x20)>(m, (const void *)mt); // rep movsd
 			x::sub_8DD960(P(m), (uint32_t)(int32_t)(int16_t)s);
 			x::GTE_SetRotMatrix(P(m));
 			x::GTE_LoadV0(P(v));
@@ -959,7 +959,7 @@ namespace aqua72
 				const int16_t yaw = (int16_t)((r2 & 0x3FF) - 0x200);
 				alignas(4) uint8_t m[0x20];
 				alignas(4) uint16_t v[4];
-				memcpy(m, (const void *)(node + 0x58), 0x20); // rep movsd
+				ff8fx::copy<(0x20)>(m, (const void *)(node + 0x58)); // rep movsd
 				x::MAG_022_sub_8DD8A0(P(m), (uint32_t)(int32_t)yaw);
 				x::sub_8DD7E0(P(m), (uint32_t)(int32_t)(int16_t)pitch);
 				v[0] = 0;
@@ -1098,7 +1098,7 @@ namespace aqua72
 				const int16_t yaw = (int16_t)(r5 & 0xFFF);
 				alignas(4) uint8_t m[0x20];
 				alignas(4) uint16_t v[4];
-				memcpy(m, (const void *)(node + 0x58), 0x20); // rep movsd
+				ff8fx::copy<(0x20)>(m, (const void *)(node + 0x58)); // rep movsd
 				x::MAG_022_sub_8DD8A0(P(m), (uint32_t)(int32_t)yaw);
 				x::sub_8DD7E0(P(m), (uint32_t)(int32_t)pitch);
 				v[0] = 0;
@@ -1180,7 +1180,7 @@ namespace aqua72
 		FX_HELD(held_note_tick();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x25FA3D0) = 0x2793E58;
 		MEM<uint32_t>(0x25F5070) = 0x2793E58;

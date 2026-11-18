@@ -297,7 +297,7 @@ namespace reflect135
 	static void Play(void *layout, const int16_t *pos4, int32_t depth)
 	{
 		PrimArg arg;
-		memcpy(arg.pos, pos4, 8);
+		ff8fx::copy<(8)>(arg.pos, pos4);
 		arg.depth = depth;
 		arg.morph = TexBase() + MORPH;
 		prim::play((prim::Layout *)layout, PrimCallback, (int)&arg, 0);
@@ -467,8 +467,8 @@ namespace reflect135
 				{
 					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SparkTask);
 					if (!s) continue;
-					memcpy(s->pos, r->pos, 4);
-					memcpy(&s->pos[2], &r->pos[2], 4);
+					ff8fx::copy<(4)>(s->pos, r->pos);
+					ff8fx::copy<(4)>(&s->pos[2], &r->pos[2]);
 					s->counter = 0;
 					s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
 					s->vel[1] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
@@ -482,7 +482,7 @@ namespace reflect135
 			// 30 fps layer: see mag135_reflect_beam_held.inc
 			FX_HELD(held_note_play(PLAY_REFLECT, n, (prim::Layout *)r->layout);)
 			PrimArg arg;
-			memcpy(arg.pos, r->pos, 8);
+			ff8fx::copy<(8)>(arg.pos, r->pos);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
 			if (!prim::play((prim::Layout *)r->layout, PrimCallback, (int)&arg, 0)) return TASK_END;
@@ -504,7 +504,7 @@ namespace reflect135
 	// Q = the bone through (0, 0, -0x1000); the basis = the bone's rows normalised, at Q
 	static void ShotFrame(const Mat4x3 *bone, int16_t *Q, Mat4x3 *m)
 	{
-		memcpy(m->m, bone->m, sizeof(m->m));
+		ff8fx::copy<(sizeof(m->m))>(m->m, bone->m);
 		GteSetRotMatrixCtrl(m);
 		GteSetTransVectorCtrl(bone);
 		Q[0] = 0;
@@ -595,7 +595,7 @@ namespace reflect135
 			if (ShotProject(Q, a, E, &len))
 			{
 				s->hit = 1;
-				memcpy(s->hitpos, E, 6);
+				ff8fx::copy<(6)>(s->hitpos, E);
 				s->hitpos[3] = ShotResidue();
 			}
 			FX_HELD(held_note_shot_beam(n);)
@@ -606,7 +606,7 @@ namespace reflect135
 		{
 			FX_HELD(held_note_play(PLAY_SHOTHIT, n, (prim::Layout *)s->hitlayout);)
 			PrimArg arg;
-			memcpy(arg.pos, s->hitpos, 8);
+			ff8fx::copy<(8)>(arg.pos, s->hitpos);
 			arg.depth = 0;
 			arg.morph = TexBase() + MORPH;
 			if (!prim::play((prim::Layout *)s->hitlayout, PrimCallback, (int)&arg, 0)) s->hit = 0;

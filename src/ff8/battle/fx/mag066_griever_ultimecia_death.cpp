@@ -1017,7 +1017,7 @@ namespace gu066
 		}
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		NotePad((uint32_t)h); // (its esp - 4 local)
-		memcpy((void *)(w + 0x10), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 0x10), (const void *)&Camera());
 		h->model = 0xDE90CC;
 		At<uint32_t>((uint32_t)h, 8) = 0;
 		int32_t count = 0;
@@ -1150,7 +1150,7 @@ namespace gu066
 	static void SpriteBegin(uint32_t w, uint8_t *h, uint32_t model)
 	{
 		At<int16_t>((uint32_t)h, 0x24) = 8;
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		At<uint32_t>((uint32_t)h, 0) = model;
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBackFromTrans((const void *)(w + 8));
@@ -1858,7 +1858,7 @@ namespace gu066
 		At<uint32_t>(h, 8) = 0;
 		At<int16_t>(h, 0x18) = 0;
 		At<uint32_t>(h, 0x10) = 0;
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		At<uint32_t>(h, 0) = 0xDE97A4;
 		At<int16_t>(h, 0x1A) = 0x80;
 		At<int16_t>(h, 0x1C) = 0x40;
@@ -2434,7 +2434,7 @@ namespace gu066
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		At<int16_t>((uint32_t)h, 0x24) = 8;
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		At<uint32_t>((uint32_t)h, 0) = 0xDE477C;
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBackFromTrans((const void *)(w + 8));
@@ -2489,7 +2489,7 @@ namespace gu066
 		const uint32_t w = (uint32_t)FieldAlloc(0x48);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		At<int16_t>((uint32_t)h, 0x24) = 8;
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		At<uint32_t>((uint32_t)h, 0) = 0xDE477C;
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBackFromTrans((const void *)(w + 8));

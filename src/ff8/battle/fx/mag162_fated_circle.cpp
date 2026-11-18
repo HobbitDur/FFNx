@@ -355,17 +355,17 @@ namespace circle162
 			q[1] = h;
 			Node24 *t = AddMain(ORIG_Swipe);
 			t->c = 0;
-			memcpy(&t->w10, q, 8);
+			ff8fx::copy<(8)>(&t->w10, q);
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int32_t r = CrtRand() % 0x28;
 			t->w1C = 0xD00;
 			t->w1A = (int16_t)(-0x32 - r);
 			t = AddMain(ORIG_Dust);
 			t->c = 0;
-			memcpy(&t->w10, q, 8);
+			ff8fx::copy<(8)>(&t->w10, q);
 			t = AddMain(ORIG_Shock);
 			t->c = 0;
-			memcpy(&t->w10, q, 8);
+			ff8fx::copy<(8)>(&t->w10, q);
 			t->w1E = 0x400;
 			t->w1C = 0x400;
 		}
@@ -373,30 +373,30 @@ namespace circle162
 		{
 			// 444 along the base direction from the base point (its 4th word kept)
 			int16_t q[4];
-			memcpy(q, (const void *)BASE_POS, 8);
+			ff8fx::copy<(8)>(q, (const void *)BASE_POS);
 			const int32_t *d = (const int32_t *)BASE_DIR;
 			q[0] = (int16_t)((mul32(d[0], 444) >> 12) + q[0]);
 			q[1] = (int16_t)(q[1] + (int16_t)(mul32(d[1], 444) >> 12));
 			q[2] = (int16_t)(q[2] + (int16_t)(mul32(d[2], 444) >> 12));
-			memcpy(&n->w10, q, 8);
+			ff8fx::copy<(8)>(&n->w10, q);
 			Node24 *t = AddMain(ORIG_Glow);
 			t->c = 0;
-			memcpy(&t->w10, q, 8);
+			ff8fx::copy<(8)>(&t->w10, q);
 			t->w1C = 0xC0;
 			t->w1E = 0x60;
 			t = AddMain(ORIG_Shard);
 			t->c = 0;
-			memcpy(&t->w10, q, 8);
+			ff8fx::copy<(8)>(&t->w10, q);
 			t = AddMain(ORIG_Orbit);
 			t->c = 0;
-			memcpy(&t->w10, q, 8);
+			ff8fx::copy<(8)>(&t->w10, q);
 		}
 		if (n->c == 0x1F)
 		{
 			Node24 *t = AddMain(ORIG_Burst);
-			memcpy(&t->w10, &n->w10, 4);
+			ff8fx::copy<(4)>(&t->w10, &n->w10);
 			t->c = 0;
-			memcpy(&t->w14, &n->w14, 4);
+			ff8fx::copy<(4)>(&t->w14, &n->w14);
 		}
 		if (n->c == 0x28)
 		{
@@ -441,9 +441,9 @@ namespace circle162
 		if (n->c == 0x5D)
 		{
 			Node24 *t = AddMain(ORIG_Swirl);
-			memcpy(&t->w10, &n->w10, 4);
+			ff8fx::copy<(4)>(&t->w10, &n->w10);
 			t->c = 0;
-			memcpy(&t->w14, &n->w14, 4);
+			ff8fx::copy<(4)>(&t->w14, &n->w14);
 			SwirlFlag() = 1;
 		}
 		if (n->c == 0x6E) ScreenFadeTask(0, 1, 0xA, 0xFF);
@@ -456,8 +456,8 @@ namespace circle162
 		if (n->c == 0x6F)
 		{
 			Node24 *t = AddMain(ORIG_Circle);
-			memcpy(&t->w10, &n->w10, 4);
-			memcpy(&t->w14, &n->w14, 4);
+			ff8fx::copy<(4)>(&t->w10, &n->w10);
+			ff8fx::copy<(4)>(&t->w14, &n->w14);
 			t->w14 = (int16_t)(t->w14 + 0x8FC);
 			t->c = 0;
 			t->w1E = 0x380;
@@ -467,10 +467,10 @@ namespace circle162
 			for (int32_t i = 0; i < 8; i++)
 			{
 				Node24 *p = AddMain(ORIG_Pillar);
-				memcpy(&p->w10, &n->w10, 4);
+				ff8fx::copy<(4)>(&p->w10, &n->w10);
 				p->c = 0;
 				p->e = (int16_t)i;
-				memcpy(&p->w14, &n->w14, 4);
+				ff8fx::copy<(4)>(&p->w14, &n->w14);
 				p->w16 = (int16_t)(-0x12C - CrtRand() % 0x12C);
 				p->w18 = (int16_t)(-0x1CC - CrtRand() % 0xB4);
 				int32_t delay = (CrtRand() % 3) * i;
@@ -485,14 +485,14 @@ namespace circle162
 				if (p->w1E & 0x801) p->w22 = (int16_t)-s;
 				Node24 *g = AddMain(ORIG_Ring);
 				g->e = (int16_t)i;
-				memcpy(&g->w10, &n->w10, 4);
+				ff8fx::copy<(4)>(&g->w10, &n->w10);
 				g->c = 0;
-				memcpy(&g->w14, &n->w14, 4);
+				ff8fx::copy<(4)>(&g->w14, &n->w14);
 				g->w1A = p->w1A;
 			}
 			Node24 *u = AddMain(ORIG_Ember);
-			memcpy(&u->w10, &n->w10, 4);
-			memcpy(&u->w14, &n->w14, 4);
+			ff8fx::copy<(4)>(&u->w10, &n->w10);
+			ff8fx::copy<(4)>(&u->w14, &n->w14);
 			u->w14 = (int16_t)(u->w14 + 0xA8C);
 			u->c = 0;
 		}
@@ -858,7 +858,7 @@ namespace circle162
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x500 + 0x900);
-				memcpy(p->pos, &n->w10, 8);
+				ff8fx::copy<(8)>(p->pos, &n->w10);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x190 - 0xC8));
 				int32_t d[3];
 				const int32_t r = CrtRand() % 0x190;
@@ -968,7 +968,7 @@ namespace circle162
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0x400);
-				memcpy(p->pos, &n->w10, 8);
+				ff8fx::copy<(8)>(p->pos, &n->w10);
 				int32_t d[3];
 				d[0] = CrtRand() % 0x1000 - 0x800;
 				d[1] = CrtRand() % 0x1000 - 0x800;
@@ -1343,7 +1343,7 @@ namespace circle162
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1000 + 0x900);
-				memcpy(p->pos, &n->w10, 8);
+				ff8fx::copy<(8)>(p->pos, &n->w10);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x7D0 - 0x3E8));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(-0xC8 - CrtRand() % 0x7D));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(-0x12C - CrtRand() % 0x7D0));
@@ -1401,7 +1401,7 @@ namespace circle162
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xE00 + 0x800);
-				memcpy(p->pos, &n->w10, 8);
+				ff8fx::copy<(8)>(p->pos, &n->w10);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
@@ -1839,15 +1839,15 @@ namespace circle162
 	// the face's vertices less the model's offset, turned about it by the angles, through the camera x pillar matrix
 	static void PillarFace(MeshHeader *h, const uint8_t *verts, const uint8_t *face)
 	{
-		memcpy(h->v0, verts + 4 * U16(face, 4), 8);
+		ff8fx::copy<(8)>(h->v0, verts + 4 * U16(face, 4));
 		const int16_t cz = h->off[2];
 		const int16_t ax = h->off[0];
 		h->v0[0] = (int16_t)(h->v0[0] - ax);
 		h->v0[2] = (int16_t)(h->v0[2] - cz);
-		memcpy(h->v1, verts + 4 * U16(face, 6), 8);
+		ff8fx::copy<(8)>(h->v1, verts + 4 * U16(face, 6));
 		h->v1[0] = (int16_t)(h->v1[0] - ax);
 		h->v1[2] = (int16_t)(h->v1[2] - cz);
-		memcpy(h->v2, verts + 4 * U16(face, 8), 8);
+		ff8fx::copy<(8)>(h->v2, verts + 4 * U16(face, 8));
 		h->v2[0] = (int16_t)(h->v2[0] - ax);
 		h->face.t[0] = ax;
 		h->v2[2] = (int16_t)(h->v2[2] - cz);

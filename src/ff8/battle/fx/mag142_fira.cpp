@@ -216,7 +216,7 @@ namespace fira142
 		if (d->counter == 1)
 		{
 			ProjectileNode *p = (ProjectileNode *)AddTaskToQueue(&Queues().second, ORIG_ProjectileTask);
-			memcpy(p->pos, d->caster, 8);
+			ff8fx::copy<(8)>(p->pos, d->caster);
 			p->counter = 0;
 			p->vel[0] = (int16_t)((d->target[0] - d->caster[0]) / 8);
 			p->vel[1] = (int16_t)((d->target[1] - d->caster[1]) / 8);
@@ -225,9 +225,9 @@ namespace fira142
 		if (d->counter == 9)
 		{
 			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_BurstTask);
-			memcpy(b->pos, d->target, 4);
+			ff8fx::copy<(4)>(b->pos, d->target);
 			b->counter = 0;
-			memcpy((uint8_t *)b + 0x14, &d->target[2], 4);
+			ff8fx::copy<(4)>((uint8_t *)b + 0x14, &d->target[2]);
 			b->yaw = (int16_t)(CrtRand() % 4096);
 			int32_t r = CrtRand() % 40;
 			b->scale = 0x104F;
@@ -259,9 +259,9 @@ namespace fira142
 		if (d->counter == 9)
 		{
 			ModelNode *g = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_ShockRingTask);
-			memcpy(g->pos, d->target, 4);
+			ff8fx::copy<(4)>(g->pos, d->target);
 			g->counter = 0;
-			memcpy((uint8_t *)g + 0x14, &d->target[2], 4);
+			ff8fx::copy<(4)>((uint8_t *)g + 0x14, &d->target[2]);
 			g->yaw = (int16_t)(CrtRand() % 4096);
 			g->scale = 0x1C00;
 		}
@@ -272,7 +272,7 @@ namespace fira142
 				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, ORIG_EmberTask);
 				e->frame = 0;
 				e->delay = (int16_t)(CrtRand() % 6 + k);
-				memcpy(e->pos, d->target, 8);
+				ff8fx::copy<(8)>(e->pos, d->target);
 				e->pos[0] += (int16_t)(CrtRand() % 1800 - 900);
 				e->pos[1] += (int16_t)(-400 - CrtRand() % 1100);
 				e->pos[2] += (int16_t)(CrtRand() % 1800 - 900);
@@ -604,9 +604,9 @@ namespace fira142
 			for (int32_t left = count; left; left--)
 			{
 				ModelNode *t = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_TrailTask);
-				memcpy(t->pos, p->pos, 4);
+				ff8fx::copy<(4)>(t->pos, p->pos);
 				t->counter = 0;
-				memcpy((uint8_t *)t + 0x14, &p->pos[2], 4);
+				ff8fx::copy<(4)>((uint8_t *)t + 0x14, &p->pos[2]);
 				t->pos[0] += (int16_t)(CrtRand() % spread - half);
 				t->pos[2] += (int16_t)(CrtRand() % spread - half);
 				t->yaw = (int16_t)(CrtRand() % 4096);

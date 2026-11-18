@@ -281,7 +281,7 @@ namespace p140
 			for (int k = 0; k < 4; k++)
 			{
 				uint32_t idx = *(const uint16_t *)(face + 4 + 2 * k);
-				memcpy(h + 0x3C + 8 * k, vtx + 4 * idx, 8);
+				ff8fx::copy<(8)>(h + 0x3C + 8 * k, vtx + 4 * idx);
 				int32_t w = *(int32_t *)(h + 0x38) + (int32_t)*(int16_t *)(h + 0x42 + 8 * k);
 				uint8_t *col = h + 0x5C + 4 * k;
 				if (w <= 0) *(uint32_t *)col = k == 0 ? 0x3E000000u : 0u;
@@ -629,7 +629,7 @@ namespace p140
 	static void CtxIdentity(PrimCtx &c, int16_t shade, int16_t scroll)
 	{
 		c.morph = ModelBuffer() + 0x878;
-		memset(&c.m, 0, sizeof(c.m));
+		ff8fx::fill<(sizeof(c.m))>(&c.m, 0);
 		c.m.m[0][0] = c.m.m[1][1] = c.m.m[2][2] = 0x1000;
 		c.m.t[2] = 0x1000;
 		c.shade = shade;

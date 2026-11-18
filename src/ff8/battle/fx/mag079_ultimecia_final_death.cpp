@@ -105,7 +105,7 @@ namespace udeath
 		if (g_res.kind == 0 || prev == 0 || prev != g_res.node || U16(prev, 0x24) != g_res.stamp)
 			return;
 		uint32_t w[5];
-		memcpy(w, g_res.w, sizeof(w));
+		ff8fx::copy<(sizeof(w))>(w, g_res.w);
 		if (g_res.kind == 1)
 		{
 			const uint32_t te = 0x1D972C0 + (uint32_t)U8(node, 0x2D) * 0x9C;
@@ -113,7 +113,7 @@ namespace udeath
 			const uint32_t sk = m ? U32(m, 0) : 0;
 			w[0] = (sk && U8(sk, 0) >= 2) ? sk + 0x50 + 0x30 * ((uint32_t)U8(sk, 0) - 2) : 0;
 		}
-		memcpy((void *)L, w, 0x12);
+		ff8fx::copy<(0x12)>((void *)L, w);
 	}
 
 	// engine functions not in act::x
@@ -609,7 +609,7 @@ namespace udeath
 		// 30 fps layer: see mag079_ultimecia_final_death_held.inc
 		FX_HELD(held_note_master();)
 		// rep movsd: camera matrix (Mat4x3, 8 dwords) -> shared snapshot 0x2793E58
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
 		MEM<uint32_t>(0x25EB3AC) = 0x2793E58;
 		MEM<uint32_t>(0x25E5024) = 0x2793E58;
 		uint32_t states[13] = {
@@ -2878,7 +2878,7 @@ namespace udeath
 				break;
 			}
 			case 3: // 0x742DCB: owner instance matrix
-				memcpy((void *)m, (void *)(owner + 0x8C), 32);
+				ff8fx::copy<(32)>((void *)m, (void *)(owner + 0x8C));
 				break;
 			case 4: // 0x742DDD: yaw of battle entity dir+0x1E (entity +0xE)
 			{
@@ -3681,7 +3681,7 @@ namespace udeath
 		const uint32_t blk = a1;
 		const int32_t idx = S16(blk, 0xA8);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)(idx * 0x9C);
-		memcpy((void *)(blk + 0x20), (const void *)(ent + 0x40), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(blk + 0x20), (const void *)(ent + 0x40)); // rep movsd
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		x::GTE_SetRotMatrix(0x1D97778);
@@ -3739,7 +3739,7 @@ namespace udeath
 		const uint32_t rgb = U32(ent, 0x28) & 0xFFFFFF;
 		U16(w, 0xA2) = U16(blk, 0xA4);
 		U32(w, 0x94) = rgb | 0x2C000000;                // POLY_FT4 code + colour
-		memcpy((void *)w, (const void *)blk, 0x20);     // rep movsd: the rotation
+		ff8fx::copy<(0x20)>((void *)w, (const void *)blk);     // rep movsd: the rotation
 		U32(w, 0x90) = rgb | 0x24000000;                // POLY_FT3 code + colour
 		U32(w, 0x98) = U32(ent, 0x7C);                  // visible objects
 		if (U16(blk, 0x98) != 0)
@@ -4031,7 +4031,7 @@ namespace udeath
 		const uint32_t e = 0x1D972C0 + (uint32_t)U8(a1, 0x2C) * 0x9C;
 		uint32_t mat[8];
 		const uint32_t xy = U32(e, 0x1C);
-		memcpy(mat, (const void *)(e + 0x40), 0x20);    // rep movsd
+		ff8fx::copy<(0x20)>(mat, (const void *)(e + 0x40));    // rep movsd
 		const uint32_t z = U32(e, 0x20);
 		U16(e, 0x1C) = 0;
 		U16(e, 0x1E) = 0;
@@ -4043,7 +4043,7 @@ namespace udeath
 		U16(blk, 0x70) = (uint16_t)(U16(blk, 0x70) - ex);
 		U16(blk, 0x72) = (uint16_t)(U16(blk, 0x72) - ey);
 		U16(blk, 0x74) = (uint16_t)(U16(blk, 0x74) - ez);
-		memcpy((void *)(e + 0x40), mat, 0x20);          // rep movsd
+		ff8fx::copy<(0x20)>((void *)(e + 0x40), mat);          // rep movsd
 		U32(e, 0x1C) = xy;
 		U32(e, 0x20) = z;
 		return 0; // void

@@ -224,14 +224,14 @@ namespace explosion237
 
 	static void apply_slots(Clone &c)
 	{
-		memcpy(g_save_vm, c.vm, sizeof(g_save_vm));
-		memcpy(g_save_big, c.bigtab, sizeof(g_save_big));
-		memcpy(g_save_draw, c.draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(g_save_vm, c.vm);
+		ff8fx::copy<(sizeof(g_save_big))>(g_save_big, c.bigtab);
+		ff8fx::copy<(sizeof(g_save_draw))>(g_save_draw, c.draw);
 		apply_shared_misc(c);
 		const VoidFn v042 = c.vm[0x042];    // 0xA33670 = Bahamut 0xB24BB0 EntityChainAnim
-		memcpy(c.vm, g_save_vm, sizeof(g_save_vm));
-		memcpy(c.bigtab, g_save_big, sizeof(g_save_big));
-		memcpy(c.draw, g_save_draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(c.vm, g_save_vm);
+		ff8fx::copy<(sizeof(g_save_big))>(c.bigtab, g_save_big);
+		ff8fx::copy<(sizeof(g_save_draw))>(c.draw, g_save_draw);
 		c.vm[0x042] = v042;
 		c.vm[0x112] = op_112_SetSpeedFromDistance;      // 0xA32E10
 		c.vm[0x113] = op_113_SetAngleTowardBone;        // 0xA32F50

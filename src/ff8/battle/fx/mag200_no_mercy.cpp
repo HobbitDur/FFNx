@@ -1237,7 +1237,7 @@ namespace mercy200
 				Node24 *e = (Node24 *)AddTaskToQueue(QMain(), ORIG_Ember);
 				e->c = 0;
 				e->e = (int16_t)(CrtRand() % 6 + k);
-				memcpy(&e->w10, &p->w10, 8);
+				ff8fx::copy<(8)>(&e->w10, &p->w10);
 				e->w10 += (int16_t)(CrtRand() % 300 - 150);
 				e->w12 -= (int16_t)(CrtRand() % 100);
 				e->w14 += (int16_t)(CrtRand() % 300 - 150);
@@ -1249,7 +1249,7 @@ namespace mercy200
 				Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Spark);
 				s->c = (int16_t)(CrtRand() % 4 + 5);
 				s->e = (int16_t)(CrtRand() % 4 + k);
-				memcpy(&s->w10, &p->w10, 8);
+				ff8fx::copy<(8)>(&s->w10, &p->w10);
 				s->w10 += (int16_t)(CrtRand() % 400 - 200);
 				s->w12 -= (int16_t)(CrtRand() % 200);
 				s->w14 += (int16_t)(CrtRand() % 400 - 200);
@@ -1389,7 +1389,7 @@ namespace mercy200
 		Node24 *f = (Node24 *)AddTaskToQueue(QMain(), ORIG_Flame);
 		f->c = 0;
 		f->e = (int16_t)(CrtRand() % 6 + 2 * k);
-		memcpy(&f->w10, pos, 8);
+		ff8fx::copy<(8)>(&f->w10, pos);
 		f->w10 += (int16_t)(CrtRand() % spread - half);
 		f->w12 += (int16_t)(CrtRand() % spread - half);
 		const int32_t rz = CrtRand() % spread;
@@ -1454,7 +1454,7 @@ namespace mercy200
 				Node24 *f = (Node24 *)AddTaskToQueue(QMain(), ORIG_Flame);
 				f->c = 0;
 				f->e = (int16_t)(CrtRand() % 6 + 2 * k);
-				memcpy(&f->w10, pos, 8);
+				ff8fx::copy<(8)>(&f->w10, pos);
 				f->w10 += (int16_t)(CrtRand() % spread - half);
 				f->w12 += (int16_t)(CrtRand() % spread - half);
 				f->w14 += (int16_t)(CrtRand() % spread - half);
@@ -2034,7 +2034,7 @@ namespace mercy200
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		memcpy(&w->m1, &rec->mat, sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(&w->m1, &rec->mat);
 		*(uint32_t *)h = MODEL_WAVETRAIL;
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
@@ -2178,7 +2178,7 @@ namespace mercy200
 		if (!DrawOnly() && n->c <= 6)
 		{
 			const int32_t bones = BoneCount(n->w1A);
-			memcpy(w->ang, &n->w10, 8);
+			ff8fx::copy<(8)>(w->ang, &n->w10);
 			for (int32_t k = 0; k < 3; k++) TargetBurstSpawn(n, w, type, bones);
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);

@@ -519,8 +519,8 @@ namespace micromissiles284
 			{
 				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 				if (!sp) continue;
-				memcpy(sp->pos, m->cur, 4);
-				memcpy(&sp->pos[2], &m->cur[2], 4);
+				ff8fx::copy<(4)>(sp->pos, m->cur);
+				ff8fx::copy<(4)>(&sp->pos[2], &m->cur[2]);
 				sp->counter = 0;
 				const int32_t b = CrtRand();
 				const int32_t a = CrtRand();
@@ -545,10 +545,10 @@ namespace micromissiles284
 	static void LaunchMissile(int32_t k, int32_t div, uint8_t *target, const int16_t pos[4], bool align4)
 	{
 		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), ORIG_MissileTask);
-		memcpy(m->cur, pos, 4);
-		memcpy(&m->cur[2], &pos[2], 4);
-		memcpy(m->start, pos, 4);
-		memcpy(&m->start[2], &pos[2], 4);
+		ff8fx::copy<(4)>(m->cur, pos);
+		ff8fx::copy<(4)>(&m->cur[2], &pos[2]);
+		ff8fx::copy<(4)>(m->start, pos);
+		ff8fx::copy<(4)>(&m->start[2], &pos[2]);
 		const int16_t step = (int16_t)(0x1000 / div);
 		m->step = step;
 		m->t = step;

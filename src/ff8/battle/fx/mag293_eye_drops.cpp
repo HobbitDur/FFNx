@@ -226,7 +226,7 @@ namespace eyedrops293
 	{
 		PlayNode *p = (PlayNode *)n;
 		PrimArg arg;
-		memcpy(arg.anchor, p->anchor, sizeof(arg.anchor));
+		ff8fx::copy<(sizeof(arg.anchor))>(arg.anchor, p->anchor);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + NODE_BYTES;
 		// 30 fps layer: see mag293_eye_drops_held.inc

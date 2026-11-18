@@ -307,7 +307,7 @@ namespace renzo159
 	static void AddRingAtHit(uint32_t orig, int16_t s)
 	{
 		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), orig);
-		memcpy(&t->w10, (const void *)HIT_POS, 8);
+		ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 		t->c = 0;
 		t->w1E = s;
 		t->w1C = s;
@@ -323,7 +323,7 @@ namespace renzo159
 			DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
 			p->life = 0;
 			p->scale = (int16_t)(CrtRand() % scale_n + scale0);
-			memcpy(p->pos, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 			int32_t v[3];
 			v[0] = CrtRand() % 0x1000 - 0x800;
 			if (wide_y)
@@ -754,8 +754,8 @@ namespace renzo159
 			s->w1E = sc;
 			s->w1C = sc;
 			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
-			memcpy(r->pos, (const void *)HIT_POS, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
+			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -773,7 +773,7 @@ namespace renzo159
 				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xB00);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x226 - 0x113));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x226 - 0x113));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x226 - 0x113));
@@ -787,7 +787,7 @@ namespace renzo159
 				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xD00 + 0x1200);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
 				const int32_t *d = (const int32_t *)HIT_DIR;
 				// hit 0: thrown back (the original negates the three words after storing them; written as a sign here:

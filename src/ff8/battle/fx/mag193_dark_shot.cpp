@@ -291,14 +291,14 @@ namespace dark193
 		const uint8_t *sk = *(const uint8_t **)*(uint8_t **)(w + 4);
 		const int32_t n = sk[0];
 		const uint8_t *src = sk + 0x20;
-		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>(dst, src);
 	}
 	// ... and back
 	static void BoneRestore(uint8_t *w, const uint8_t *src)
 	{
 		uint8_t *sk = *(uint8_t **)*(uint8_t **)(w + 4);
 		uint8_t *dst = sk + 0x20;
-		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// the entity's weapon model alone under its world matrix, with its current bone matrices and colour word +0x28
@@ -736,7 +736,7 @@ namespace dark193
 	static void TargetSparkBegin(uint8_t *s, uint8_t *h)
 	{
 		*(int16_t *)(h + 0x24) = 0;
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = SEQ_TargetSpark;
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
@@ -1025,7 +1025,7 @@ namespace dark193
 			const int32_t num = ImpactCount();
 			im->f0E = (int16_t)num;
 			ImpactCount() = num + 1;
-			memcpy(im->pos, n->pos, 8);
+			ff8fx::copy<(8)>(im->pos, n->pos);
 			im->counter = 0;
 			im->f1C = (int16_t)(CrtRand() % 0xA00 + 0x700);
 			Node *sp = AddTask(QAux(), ORIG_TargetSparkTask);

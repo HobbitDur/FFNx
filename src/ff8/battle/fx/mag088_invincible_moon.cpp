@@ -584,7 +584,7 @@ namespace moon88
 		// 30 fps layer: see mag088_invincible_moon_held.inc
 		FX_HELD(held_note_master();)
 
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		MEM<uint32_t>(G(G_258FB68)) = 0x2793E58;
 		MEM<uint32_t>(G(G_257F9B0)) = 0x2793E58;
 		uint32_t states[11] = {
@@ -3915,7 +3915,7 @@ namespace moon88
 		const int32_t py = S16(node, 0x4E);
 		const int32_t px = S16(node, 0x4C);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		memcpy((void *)0x1D99AB0, (const void *)(node + 0x70), 8 * 4); // rep movsd
+		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70)); // rep movsd
 		const int32_t pz = S16(node, 0x50);
 		S32(node, 0x88) = py;
 		S32(node, 0x84) = px;

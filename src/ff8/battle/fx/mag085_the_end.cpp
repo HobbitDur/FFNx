@@ -610,7 +610,7 @@ namespace theend
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x25C21CC) = 0x2793E58;
 		MEM<uint32_t>(0x25BC4A0) = 0x2793E58;
@@ -1085,7 +1085,7 @@ namespace theend
 			}
 		}
 		const uint32_t R = s + 0x28;   // matrix (rotation +0, translation +0x14)
-		memset(sp + 0x28, 0, 0x20);    // (pad +0x12 never written in the original: GTE R33 word only)
+		ff8fx::fill<(0x20)>(sp + 0x28, 0);    // (pad +0x12 never written in the original: GTE R33 word only)
 		uint32_t flags = U32(r, 4);
 		if (flags & 0x400) x::MAG_117_sub_701430(r + 0x10, R);
 		else if (flags & 0x40000) gx::MAG_063_sub_7015B0(r + 0x10, R);

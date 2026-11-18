@@ -618,7 +618,7 @@ namespace angelwing
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x25C9F08) = 0x2793E58;
 		MEM<uint32_t>(0x25C24B8) = 0x2793E58;
@@ -3661,7 +3661,7 @@ namespace angelwing
 	{
 		const uint32_t ctx = a1;
 		const uint32_t blk = U32(ctx, 0x48);
-		memcpy((void *)ctx, (const void *)(blk + 0x40), 32);
+		ff8fx::copy<(32)>((void *)ctx, (const void *)(blk + 0x40));
 		const uint32_t anim = blk + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
 		x::GTE_SetRotMatrix(0x1D97778);

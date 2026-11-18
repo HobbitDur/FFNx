@@ -580,7 +580,7 @@ namespace u083
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x25CA080) = 0x2793E58;
@@ -2031,7 +2031,7 @@ namespace u083
 	{
 		const uint32_t m = a1;
 		const uint32_t ent = U32(m, 0x48);
-		memcpy((void *)m, (const void *)(ent + 0x40), 8 * 4); // rep movsd
+		ff8fx::copy<(8 * 4)>((void *)m, (const void *)(ent + 0x40)); // rep movsd
 		x::BattleModel_BuildBoneMatricesFromPose(ent + 0x60);
 		x::GTE_SetRotMatrix(0x1D97778);
 		x::GTE_LoadIRFromMatrixColumn(m);
@@ -2323,7 +2323,7 @@ namespace u083
 			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, 0x25CF3F8, MEM<uint32_t>(PACKET_CURSOR));
 		}
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		memcpy((void *)0x1D99AB0, (const void *)(node + 0x70), 8 * 4); // rep movsd
+		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70)); // rep movsd
 		S32(node, 0x88) = S16(node, 0x4E);
 		S32(node, 0x84) = S16(node, 0x4C);
 		const uint8_t status = U8(node, 0x26);

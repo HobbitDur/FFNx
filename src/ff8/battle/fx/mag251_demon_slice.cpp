@@ -140,7 +140,7 @@ namespace demon251
 	{
 		const int32_t half = spread >> 1;
 		*delay = (int16_t)(CrtRand() % r.delay_mod + r.delay_step * k);
-		memcpy(f->pos, pos, 8);
+		ff8fx::copy<(8)>(f->pos, pos);
 		f->pos[0] += (int16_t)(CrtRand() % spread - half);
 		f->pos[1] += (int16_t)(CrtRand() % spread - half);
 		f->pos[2] += (int16_t)(CrtRand() % spread - half);
@@ -200,7 +200,7 @@ namespace demon251
 	inline void EmberStart(Ember *e, int16_t *delay, const int16_t *flame_pos, int32_t k, const EmberRolls &r)
 	{
 		*delay = (int16_t)(CrtRand() % r.delay_mod + r.delay_step * k);
-		memcpy(e->pos, flame_pos, 8);
+		ff8fx::copy<(8)>(e->pos, flame_pos);
 		e->pos[0] += (int16_t)r.x.of(CrtRand());
 		e->pos[1] += (int16_t)r.y.of(CrtRand());
 		e->pos[2] += (int16_t)r.z.of(CrtRand());
@@ -239,7 +239,7 @@ namespace demon251
 	{
 		*life = (int16_t)r.life.of(CrtRand());
 		*delay = (int16_t)(CrtRand() % r.delay_mod + r.delay_step * k);
-		memcpy(s->pos, flame_pos, 8);
+		ff8fx::copy<(8)>(s->pos, flame_pos);
 		s->pos[0] += (int16_t)r.x.of(CrtRand());
 		s->pos[1] += (int16_t)r.y.of(CrtRand());
 		s->pos[2] += (int16_t)r.z.of(CrtRand());
@@ -551,8 +551,8 @@ namespace demon251
 		MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
 		Memset32(&m->counter, 0, 0x178);
 		StartFlameSpawner(Target());
-		memcpy(m->caster0, Caster() + 0x1C, 8);
-		memcpy(m->target0, Target() + 0x1C, 8);
+		ff8fx::copy<(8)>(m->caster0, Caster() + 0x1C);
+		ff8fx::copy<(8)>(m->target0, Target() + 0x1C);
 		*(int16_t *)(Target() + 0x1E) = 0;
 		GetDefaultEffectPosition(Target(), m->target_fx);
 		const int32_t dx = *(const int16_t *)(Caster() + 0x1C) - m->target_fx[0];
@@ -1098,7 +1098,7 @@ namespace demon251
 			if (i == 0)
 			{
 				DecodeModelPrimLayout(LAYOUT_Swing, mn->layout_a, 0x1A0);
-				memcpy(mn->keep, sp, 8);
+				ff8fx::copy<(8)>(mn->keep, sp);
 			}
 			arg.depth = 0;
 			arg.kind = KIND_Swing;
@@ -1160,8 +1160,8 @@ namespace demon251
 				*(int16_t *)(Target() + 0x1E) = DropHeight((int32_t)i);
 				if (i == 7)
 				{
-					memcpy(Target() + 0x1C, &mn->target0[0], 4);
-					memcpy(Target() + 0x20, &mn->target0[2], 4);
+					ff8fx::copy<(4)>(Target() + 0x1C, &mn->target0[0]);
+					ff8fx::copy<(4)>(Target() + 0x20, &mn->target0[2]);
 				}
 			}
 			draw_target = true;
@@ -1229,7 +1229,7 @@ namespace demon251
 		if (i < 0xE)
 		{
 			const int32_t t = (int32_t)((uint32_t)shl32((int32_t)i + 1, 12) / 14);
-			if (i == 0) memcpy(mn->keep, Caster() + 0x1C, 8);
+			if (i == 0) ff8fx::copy<(8)>(mn->keep, Caster() + 0x1C);
 			VecLerp(mn->keep, mn->caster0, 0x1000 - t, t, Caster() + 0x1C);
 			if (i == 0xD)
 			{
@@ -1256,8 +1256,8 @@ namespace demon251
 		}
 		if (mn->counter >= 0xDC)
 		{
-			memcpy(Caster() + 0x1C, &mn->caster0[0], 4);
-			memcpy(Caster() + 0x20, &mn->caster0[2], 4);
+			ff8fx::copy<(4)>(Caster() + 0x1C, &mn->caster0[0]);
+			ff8fx::copy<(4)>(Caster() + 0x20, &mn->caster0[2]);
 			return TASK_END;
 		}
 		mn->counter++;
@@ -1308,12 +1308,12 @@ namespace demon251
 	// the first points and two unit directions (read by nothing)
 	static void TrailEnds(TrailNode *t)
 	{
-		memcpy(t->first_b, t->spl_b[0], 8);
+		ff8fx::copy<(8)>(t->first_b, t->spl_b[0]);
 		t->dir_b[0] = (int32_t)t->spl_b[0][0] - t->spl_b[1][0];
 		t->dir_b[1] = (int32_t)t->spl_b[0][1] - t->spl_b[1][1];
 		t->dir_b[2] = (int32_t)t->spl_b[0][2] - t->spl_b[1][2];
 		NormalizeVector(t->dir_b, t->dir_b);
-		memcpy(t->first_a, t->spl_a[0], 8);
+		ff8fx::copy<(8)>(t->first_a, t->spl_a[0]);
 		t->dir_ab[0] = (int32_t)t->first_b[0] - t->first_a[0];
 		t->dir_ab[1] = (int32_t)t->first_b[1] - t->first_a[1];
 		t->dir_ab[2] = (int32_t)t->first_b[2] - t->first_a[2];
@@ -1379,8 +1379,8 @@ namespace demon251
 		int32_t idx = t->counter % 7;
 		RingEntry *e = &t->ring[idx];
 		e->alive = 1;
-		memcpy(e->base, w->base, 8);
-		memcpy(e->tip, w->tip, 8);
+		ff8fx::copy<(8)>(e->base, w->base);
+		ff8fx::copy<(8)>(e->tip, w->tip);
 		const int32_t want = t->counter >= 0xD ? 0x14 - t->counter : 7;
 		int32_t cnt = 0;
 		while (cnt < want)
@@ -1388,8 +1388,8 @@ namespace demon251
 			const RingEntry *r = &t->ring[idx];
 			if (!r->alive) break;
 			idx--;
-			memcpy(t->pts_a[cnt], r->base, 8);
-			memcpy(t->pts_b[cnt], r->tip, 8);
+			ff8fx::copy<(8)>(t->pts_a[cnt], r->base);
+			ff8fx::copy<(8)>(t->pts_b[cnt], r->tip);
 			if (idx < 0) idx = 6;
 			cnt++;
 		}

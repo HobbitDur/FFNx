@@ -335,7 +335,7 @@ namespace heartbreak
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x26CDDB0) = 0x2793E58;
@@ -2594,7 +2594,7 @@ namespace heartbreak
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		memcpy(pl, fr, 0x20); // rep movsd: the placement before the camera
+		ff8fx::copy<(0x20)>(pl, fr); // rep movsd: the placement before the camera
 		x::ComposeAffineTransform(0x1D97778, L, L);
 		U32(L, 0x48) = BLEND_BUF;
 		// 30 fps layer: see mag031_heartbreak_held.inc
@@ -2604,7 +2604,7 @@ namespace heartbreak
 			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_PART, ORIG_Spawner, 0x80, node);
 			U8(node, 0x26) |= 1;
 			const uint8_t st = U8(node, 0x29);
-			memcpy((void *)(t + 0x58), pl, 0x20);
+			ff8fx::copy<(0x20)>((void *)(t + 0x58), pl);
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		// (RESIDUE: its frame's block (d0..d7, blend d18) and placement copy (d23..d26))

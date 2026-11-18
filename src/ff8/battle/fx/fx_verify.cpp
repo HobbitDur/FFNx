@@ -115,7 +115,7 @@ namespace
 		}
 		Entry &e = g_ent[g_nent++];
 		e = { addr, size, g_used, kind, g_phase, name, q, node_size };
-		memcpy(g_snap + g_used, (const void *)addr, size);
+		memcpy_code(uint32_t(g_snap + g_used), (const void *)addr, size);
 		g_used += size;
 		return true;
 	}
@@ -202,12 +202,12 @@ namespace
 	// earlier one gets the earlier, pre-tick content)
 	void restore_snapshot()
 	{
-		for (int i = g_nent - 1; i >= 0; i--) memcpy((void *)g_ent[i].addr, g_snap + g_ent[i].off, g_ent[i].size);
+		for (int i = g_nent - 1; i >= 0; i--) memcpy_code(uint32_t((void *)g_ent[i].addr), g_snap + g_ent[i].off, g_ent[i].size);
 	}
 
 	void save_post()
 	{
-		for (int i = 0; i < g_nent; i++) memcpy(g_post + g_ent[i].off, (const void *)g_ent[i].addr, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) memcpy_code(uint32_t(g_post + g_ent[i].off), (const void *)g_ent[i].addr, g_ent[i].size);
 	}
 
 	// what an entry must hold after B: its post-A content, or for a range only B touched,
@@ -216,8 +216,8 @@ namespace
 
 	void put_back_A()
 	{
-		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase == PH_B) memcpy((void *)g_ent[i].addr, g_snap + g_ent[i].off, g_ent[i].size);
-		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase != PH_B) memcpy((void *)g_ent[i].addr, g_post + g_ent[i].off, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase == PH_B) memcpy_code(uint32_t((void *)g_ent[i].addr), g_snap + g_ent[i].off, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase != PH_B) memcpy_code(uint32_t((void *)g_ent[i].addr), g_post + g_ent[i].off, g_ent[i].size);
 	}
 
 	// ------------------------------------------------------------------ x87 / stack
@@ -283,11 +283,11 @@ namespace
 		if (!VirtualProtect(code, 5, PAGE_EXECUTE_READWRITE, &old)) return;
 		if (on)
 		{
-			memcpy(s.saved, code, 5);
+			ff8fx::copy<(5)>(s.saved, code);
 			code[0] = 0xE9;
 			*(int32_t *)(code + 1) = (int32_t)((uint8_t *)s.stub - (code + 5));
 		}
-		else memcpy(code, s.saved, 5);
+		else ff8fx::copy<(5)>(code, s.saved);
 		VirtualProtect(code, 5, old, &old);
 		FlushInstructionCache(GetCurrentProcess(), code, 5);
 		s.patched = on;
@@ -309,7 +309,7 @@ namespace
 
 	void scan_copy()
 	{
-		for (int i = 0; i < g_nent; i++) memcpy(g_scan + g_ent[i].off, (const void *)g_ent[i].addr, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) memcpy_code(uint32_t(g_scan + g_ent[i].off), (const void *)g_ent[i].addr, g_ent[i].size);
 	}
 
 	// tracked bytes that differ from the pre-call copy -> write log (addr, len, bytes)
@@ -323,7 +323,7 @@ namespace
 			for (uint32_t i = 0; i < size;)
 			{
 				uint32_t blk = size - i < 64 ? size - i : 64;
-				if (memcmp(cur + i, pre + i, blk) == 0) { i += blk; continue; }
+				if (!ff8fx::same_bytes(cur + i, pre + i, blk) == 0) { i += blk; continue; }
 				uint32_t a = i;
 				while (a < size && cur[a] == pre[a]) a++;
 				uint32_t b = a;
@@ -331,7 +331,7 @@ namespace
 				if (g_wlog_used + 8 + (b - a) > WLOG_SIZE) { g_wlog_overflow = true; return g_wlog_used - start; }
 				*(uint32_t *)(g_wlog + g_wlog_used) = g_ent[r].addr + a;
 				*(uint32_t *)(g_wlog + g_wlog_used + 4) = b - a;
-				memcpy(g_wlog + g_wlog_used + 8, cur + a, b - a);
+				memcpy_code(uint32_t(g_wlog + g_wlog_used + 8), cur + a, b - a);
 				g_wlog_used += 8 + (b - a);
 				i = b;
 			}
@@ -363,7 +363,7 @@ namespace
 			uint32_t r = call_through(site, args);
 			Call &c = g_calls[g_ncalls++];
 			c.site = site;
-			memcpy(c.args, args, sizeof(c.args));
+			ff8fx::copy<(sizeof(c.args))>(c.args, args);
 			c.ret = r;
 			c.w_off = g_wlog_used;
 			c.w_len = diff_to_wlog();
@@ -390,7 +390,7 @@ namespace
 			for (uint32_t o = c.w_off; o < c.w_off + c.w_len;)
 			{
 				uint32_t addr = *(uint32_t *)(g_wlog + o), len = *(uint32_t *)(g_wlog + o + 4);
-				memcpy((void *)addr, g_wlog + o + 8, len);
+				memcpy_code(uint32_t((void *)addr), g_wlog + o + 8, len);
 				o += 8 + len;
 			}
 			return c.ret;
@@ -415,7 +415,7 @@ namespace
 		{
 			const Entry &e = g_ent[r];
 			const uint8_t *cur = (const uint8_t *)e.addr, *ref = reference(e);
-			if (memcmp(cur, ref, e.size) == 0) continue;
+			if (!ff8fx::same_bytes(cur, ref, e.size) == 0) continue;
 			ndiff_entries++;
 			if (first >= 0) continue;
 			first = r;
@@ -519,7 +519,7 @@ namespace
 		{
 			const Entry &e = g_ent[r];
 			const uint8_t *cur = (const uint8_t *)e.addr, *ref = reference(e);
-			if (memcmp(cur, ref, e.size) == 0) continue;
+			if (!ff8fx::same_bytes(cur, ref, e.size) == 0) continue;
 			uint32_t i = 0, n = 0;
 			while (cur[i] == ref[i]) i++;
 			for (uint32_t k = i; k < e.size; k++) if (cur[k] != ref[k]) n++;

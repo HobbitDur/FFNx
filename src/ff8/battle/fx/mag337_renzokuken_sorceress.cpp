@@ -108,7 +108,7 @@ namespace renzo337
 		if (n->c == 0x46)
 		{
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_CasterModel);
-			memcpy(&t->w10, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0x600 + 0x1600) / 3);
 			t->w1E = s;
@@ -129,7 +129,7 @@ namespace renzo337
 			d->c = 0;
 			GetEffectSpawnPosition(Target(), 0xF1, 0, &d->w10);
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_GroundModel);
-			memcpy(&t->w10, &d->w10, 8);
+			ff8fx::copy<(8)>(&t->w10, &d->w10);
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0x800 + 0x1800) / 3);
 			t->w1E = s;

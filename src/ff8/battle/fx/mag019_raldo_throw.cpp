@@ -530,7 +530,7 @@ namespace raldo
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x272B8F8) = 0x2793E58;
@@ -2170,7 +2170,7 @@ namespace raldo
 	uint32_t __cdecl rt_8A94E0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)((int32_t)S16(a1, 0xAC) * 0x9C);
-		memcpy((void *)(a1 + 0x20), (const void *)(ent + 0x40), 0x20);
+		ff8fx::copy<(0x20)>((void *)(a1 + 0x20), (const void *)(ent + 0x40));
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		x::GTE_SetRotMatrix(0x1D97778);
@@ -2232,7 +2232,7 @@ namespace raldo
 		U16(w, 0xA4) = U16(blk, 0xAA);
 		U32(w, 0x98) = U32(ent, 0x7C);                  // visible objects
 		const uint32_t rgb = U32(ent, 0x28) & 0xFFFFFF;
-		memcpy((void *)w, (const void *)blk, 0x20);     // rep movsd: the ball rotation
+		ff8fx::copy<(0x20)>((void *)w, (const void *)blk);     // rep movsd: the ball rotation
 		U16(w, 0xA2) = U16(blk, 0xA8);
 		U32(w, 0x90) = rgb | 0x24000000;                // POLY_FT3 code + colour
 		U32(w, 0x94) = rgb | 0x2C000000;                // POLY_FT4 code + colour
@@ -3059,7 +3059,7 @@ namespace raldo
 		const uint32_t e = ENT(U8(a1, 0x2C));
 		uint32_t mat[8];
 		const uint32_t xy = U32(e, 0x1C);
-		memcpy(mat, (const void *)(e + 0x40), 0x20);    // rep movsd
+		ff8fx::copy<(0x20)>(mat, (const void *)(e + 0x40));    // rep movsd
 		const uint32_t z = U32(e, 0x20);
 		U16(e, 0x1C) = 0;
 		U16(e, 0x1E) = 0;
@@ -3071,7 +3071,7 @@ namespace raldo
 		U16(blk, 0x74) = (uint16_t)(U16(blk, 0x74) - ex);
 		U16(blk, 0x76) = (uint16_t)(U16(blk, 0x76) - ey);
 		U16(blk, 0x78) = (uint16_t)(U16(blk, 0x78) - ez);
-		memcpy((void *)(e + 0x40), mat, 0x20);          // rep movsd
+		ff8fx::copy<(0x20)>((void *)(e + 0x40), mat);          // rep movsd
 		U32(e, 0x1C) = xy;
 		U32(e, 0x20) = z;
 		return 0; // void

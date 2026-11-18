@@ -227,7 +227,7 @@ namespace shell
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x26C03A4) = 0x2793E58;
@@ -1625,7 +1625,7 @@ namespace shell
 				break;
 			}
 			case 3: // 0x742DCB: owner instance matrix
-				memcpy((void *)m, (void *)(owner + 0x8C), 32);
+				ff8fx::copy<(32)>((void *)m, (void *)(owner + 0x8C));
 				break;
 			case 4: // 0x742DDD: yaw of battle entity dir+0x1E (entity +0xE)
 			{
@@ -2044,7 +2044,7 @@ namespace shell
 		{
 			case 0: // parent|identity, d0, cc, ce
 				if (parent != 0)
-					memcpy((void *)m, (void *)(parent + 0x2C), 32);
+					ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 				else
 					x::MAG_022_sub_8DD770(m);
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
@@ -2053,7 +2053,7 @@ namespace shell
 				break;
 			case 1: // parent|identity, ce, cc, d0
 				if (parent != 0)
-					memcpy((void *)m, (void *)(parent + 0x2C), 32);
+					ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 				else
 					x::MAG_022_sub_8DD770(m);
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
@@ -2467,7 +2467,7 @@ namespace shell
 		*(int16_t *)(local + 0) = (int16_t)h4_div65536(S32(desc, 0));
 		*(int16_t *)(local + 2) = (int16_t)h4_div65536(S32(desc, 4));
 		*(int16_t *)(local + 4) = (int16_t)h4_div65536(S32(desc, 8));
-		memcpy(local + 0x10, (void *)(a1 + 0x2C), 32);
+		ff8fx::copy<(32)>(local + 0x10, (void *)(a1 + 0x2C));
 		x::scale3DMatrix(P(local + 0x10), dir + 0x214);
 		x::GTE_SetRotMatrix(P(local + 0x10));
 		x::GTE_LoadV0(P(local));

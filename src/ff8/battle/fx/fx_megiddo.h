@@ -854,7 +854,7 @@ namespace megiddo
 				b = *(const uint8_t *)(sk + bone - 0xEC);
 				if (b & 0x80) b &= 0x7F;
 			}
-			memcpy(out, (const void *)(sk + b * 0x30 + 0x20), 0x20);
+			ff8fx::copy<(0x20)>(out, (const void *)(sk + b * 0x30 + 0x20));
 		}
 
 		// the director's first steps: the effect point at the caster's bone and the frame toward the centre
@@ -1451,7 +1451,7 @@ namespace megiddo
 		static void RibbonTable(uint32_t rec, uint8_t *blk, int32_t cnt)
 		{
 			const uint32_t w = (uint32_t)blk;
-			memcpy(blk + 0x40, (const void *)X(REF_DIR), 0x10);
+			ff8fx::copy<(0x10)>(blk + 0x40, (const void *)X(REF_DIR));
 			At<int16_t>(w, 0x30) = 0x5A;
 			At<int16_t>(w, 0x32) = 0;
 			At<int16_t>(w, 0x34) = 0;
@@ -1773,7 +1773,7 @@ namespace megiddo
 			uint8_t *h = AllocHeader(0xB4);
 			*(int16_t *)(h + 0x24) = 0;
 			int32_t live = 0;
-			memcpy(blk + 8, &Camera(), 0x20);
+			ff8fx::copy<(0x20)>(blk + 8, &Camera());
 			*(uint32_t *)h = X(SEQ_SPARK);
 			GteSetLightMatrix(blk + 8);
 			GteSetBackColorFromTrans(blk + 8);
@@ -1864,7 +1864,7 @@ namespace megiddo
 			FX_HELD(MegiddoHeld<D>::note_pool(ORIG_Debris, n);)
 			uint8_t *hdr = AllocHeader(0x58);
 			uint8_t *blk = (uint8_t *)FieldAlloc(0x88);
-			memcpy(blk + 0x28, &Camera(), 0x20);
+			ff8fx::copy<(0x20)>(blk + 0x28, &Camera());
 			*(uint32_t *)(hdr + 8) = 0;
 			*(uint32_t *)(hdr + 0x1C) = 0;
 			int32_t live = 0;

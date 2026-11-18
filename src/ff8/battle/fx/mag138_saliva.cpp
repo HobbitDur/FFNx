@@ -577,7 +577,7 @@ namespace saliva138
 			p++;
 			if (--n == 0) return nullptr;
 		}
-		memcpy(p->pos, pos, 8);
+		ff8fx::copy<(8)>(p->pos, pos);
 		p->width = w;
 		p->fade = 0x80;
 		p->zero = 0;
@@ -735,7 +735,7 @@ namespace saliva138
 	// camera translation
 	static void BlockAt(PrimArg *arg, const int16_t *p4)
 	{
-		memcpy(arg->m.m, Camera().m, sizeof(arg->m.m));
+		ff8fx::copy<(sizeof(arg->m.m))>(arg->m.m, Camera().m);
 		GteSetRotMatrixCtrl(&Camera());
 		GteLoadV0(p4);
 		GteMVMVA_RotV0();
@@ -820,7 +820,7 @@ namespace saliva138
 			BonePoint(POINT, s->start);
 			const int16_t c = s->counter;
 			s->counter++;
-			memcpy(s->prev, s->start, 6);
+			ff8fx::copy<(6)>(s->prev, s->start);
 			s->prev[3] = c;
 			return 0;
 		}
@@ -851,7 +851,7 @@ namespace saliva138
 					FX_HELD(held_note_mesh(n);)
 					MeshRender(&M, (uint16_t)((s->counter & 7) << 4), TexBase() + VERTS);
 				}
-				memcpy(s->prev, P, 8);
+				ff8fx::copy<(8)>(s->prev, P);
 				Point *p = AllocPoint(0xC8, P);
 				if (s->count == 0)
 				{
@@ -934,7 +934,7 @@ namespace saliva138
 					if (!s) continue;
 					s->angle = (int16_t)CrtRand();
 					s->spin = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-					memcpy(s->pos, M4, 8);
+					ff8fx::copy<(8)>(s->pos, M4);
 					s->scale = (int16_t)((CrtRand() & 0x3FF) + 0x400);
 					const int32_t b = CrtRand();
 					const int32_t a = (CrtRand() & 0x3FF) - 0x200;
@@ -964,7 +964,7 @@ namespace saliva138
 			{
 				StringNode *s = (StringNode *)AddTaskToQueue(QStrings(), ORIG_StringTask);
 				s->counter = 0;
-				memcpy(s->target, w->pos, 8);
+				ff8fx::copy<(8)>(s->target, w->pos);
 				const int32_t r = CrtRand();
 				s->count = 0;
 				s->amp = (int16_t)((r & 0x7FF) + 0x800);
@@ -984,7 +984,7 @@ namespace saliva138
 				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), ORIG_SplatTask);
 				if (s)
 				{
-					memcpy(s->pos, w->pos, 8);
+					ff8fx::copy<(8)>(s->pos, w->pos);
 					s->pos[0] = (int16_t)(s->pos[0] + ((CrtRand() & 0x1FF) - 0x100));
 					s->pos[1] = (int16_t)(s->pos[1] + ((CrtRand() & 0x1FF) - 0x12C));
 					const int32_t r = CrtRand();

@@ -393,7 +393,7 @@ namespace eerie130
 					w->no_hit = r != 9;
 					w->entity = e->ents[e->counter / 12];
 					w->counter = 0;
-					memcpy(w->start, pos, 8);
+					ff8fx::copy<(8)>(w->start, pos);
 					DecodeModelPrimLayout(MODEL_Wave, w->layout, 0x58);
 				}
 			}

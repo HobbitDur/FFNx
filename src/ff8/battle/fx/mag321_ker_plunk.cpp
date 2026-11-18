@@ -221,7 +221,7 @@ namespace kerplunk321
 	static void SeqSetup(uint32_t h, uint32_t w)
 	{
 		U16(h, 0x24) = 0;
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		U32(h, 0) = SEQ_Dust;
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBKFromMatrix((const void *)(w + 8));
@@ -378,7 +378,7 @@ namespace kerplunk321
 
 	static void DebrisSetup(uint32_t h, uint32_t w)
 	{
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		U32(h, 0) = MODEL_Debris;
 		U32(h, 0x1C) = 0x30;
 		U16(w, 2) = 0;

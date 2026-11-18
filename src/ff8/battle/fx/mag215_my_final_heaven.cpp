@@ -255,7 +255,7 @@ namespace heaven215
 	// 0x6ED1E0 (Moomba's range: My Final Heaven calls it): a rotation about Y by -angle with the Y scale `scale` (rows x / z scaled)
 	static void ScaledRotY(int32_t angle, int32_t scale, Mat4x3 *out)
 	{
-		memset(out, 0, 0x14);
+		ff8fx::fill<(0x14)>(out, 0);
 		const int32_t a = -(int32_t)(int16_t)angle;
 		const int32_t r = (int16_t)scale;
 		const int32_t s = mul32(ComputeSin(a), r) >> 12;
@@ -270,7 +270,7 @@ namespace heaven215
 	// 0x69CFC0: a rotation about X by `angle` scaled by `scale` (the sin / cos table 0x116EB1C)
 	static void ScaledRotX(int32_t angle, int32_t scale, Mat4x3 *out)
 	{
-		memset(out, 0, 0x14);
+		ff8fx::fill<(0x14)>(out, 0);
 		const int16_t *sc = SINCOS + (angle & 0xFFF) * 2;
 		const int32_t s = (int16_t)scale;
 		const int32_t a = mul32(sc[0], s) >> 12;
@@ -285,7 +285,7 @@ namespace heaven215
 	// 0x69D030: a rotation about Y by `angle` (the table 0x116EB1C)
 	static void RotYTable(int32_t angle, Mat4x3 *out)
 	{
-		memset(out, 0, 0x14);
+		ff8fx::fill<(0x14)>(out, 0);
 		const int16_t *sc = SINCOS + (angle & 0xFFF) * 2;
 		out->m[2][0] = sc[0];
 		out->m[0][0] = sc[1];
@@ -319,7 +319,7 @@ namespace heaven215
 				o[2] = v[2]; // (the 4th word not written)
 				continue;
 			}
-			memcpy(o, v, 8);
+			ff8fx::copy<(8)>(o, v);
 		}
 	}
 
@@ -525,7 +525,7 @@ namespace heaven215
 		m2.pad = g_m2_pad;
 		if (r->flags & 0x200)
 		{
-			memcpy(&m2, &m, 0x12);
+			ff8fx::copy<(0x12)>(&m2, &m);
 			m2.pad = g_m2_pad;
 		}
 		else Matrix3x3MultiplyPSX(&Camera(), &m, &m2);
@@ -1033,8 +1033,8 @@ namespace heaven215
 		// the layouts' parameter blocks (one per call: blocks keep the fields they do not set)
 		ArgA arga;
 		ArgB argb;
-		memset(&arga, 0, sizeof(arga));
-		memset(&argb, 0, sizeof(argb));
+		ff8fx::fill<(sizeof(arga))>(&arga, 0);
+		ff8fx::fill<(sizeof(argb))>(&argb, 0);
 		const uint32_t morph = TexBase() + 0xF918;
 		uint8_t *z = Caster();
 
@@ -1499,7 +1499,7 @@ namespace heaven215
 				U32(Caster(), 0xC) = d->saved_rot[0];
 				U32(Caster(), 0x10) = d->saved_rot[1];
 				*(uint16_t *)Caster() &= 0xFFF7;
-				memcpy((void *)0xB8B7F0, (const void *)0xB8B800, 0x10);
+				ff8fx::copy<(0x10)>((void *)0xB8B7F0, (const void *)0xB8B800);
 				ViewWord() = var<int16_t>(0x1D977A0);
 				return TASK_END;
 			}

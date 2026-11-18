@@ -463,7 +463,7 @@ namespace magicsummon283
 	// the layout block (A: at the anchor with the texture scroll, B: at the position)
 	static void SetBlock(PrimArg *arg, const MainNode *m, const int16_t *point, int16_t scroll)
 	{
-		memcpy(arg->anchor, point, sizeof(arg->anchor));
+		ff8fx::copy<(sizeof(arg->anchor))>(arg->anchor, point);
 		arg->scale[0] = m->size;
 		arg->scale[1] = m->size;
 		arg->scale[2] = m->size;

@@ -643,7 +643,7 @@ namespace wall189
 		FX_HELD(held_begin(ORIG_DebrisTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *w = (uint8_t *)FieldAlloc(0x88);
-		memcpy(w + 0x28, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(w + 0x28, &Camera());
 		*(uint32_t *)h = MODEL_Debris;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;

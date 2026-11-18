@@ -309,14 +309,14 @@ namespace hyper198
 		const uint8_t *sk = *(const uint8_t **)*(uint8_t **)(w + 4);
 		const int32_t n = sk[0];
 		const uint8_t *src = sk + 0x20;
-		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>(dst, src);
 	}
 	// ... and back
 	static void BoneRestore(uint8_t *w, const uint8_t *src)
 	{
 		uint8_t *sk = *(uint8_t **)*(uint8_t **)(w + 4);
 		uint8_t *dst = sk + 0x20;
-		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// the entity's weapon model alone under its world matrix, with its current bone matrices and colour word +0x28
@@ -1242,7 +1242,7 @@ namespace hyper198
 	static void SparkBegin(uint8_t *s, uint8_t *h, uint32_t seq)
 	{
 		*(int16_t *)(h + 0x24) = 0;
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = seq;
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
@@ -1426,9 +1426,9 @@ namespace hyper198
 		const int32_t id = n->pos[3] + 1;
 		if (!(UpdateFlags() & 0x201) && n->counter <= 5)
 		{
-			memcpy(s, rec->pos, 8);
-			memcpy(s + 0x28, rec->dir, 0x10);
-			memcpy(s + 8, &rec->m, 0x20);
+			ff8fx::copy<(8)>(s, rec->pos);
+			ff8fx::copy<(0x10)>(s + 0x28, rec->dir);
+			ff8fx::copy<(0x20)>(s + 8, &rec->m);
 			for (int32_t j = 0; j < 8; j++)
 			{
 				const int32_t i = FindFree(arr);
@@ -1496,7 +1496,7 @@ namespace hyper198
 	static void ImpactFrame(const Node *n, uint8_t *s)
 	{
 		const ShotRec *rec = Shot(n->f0E);
-		memcpy(s, n->pos, 8);
+		ff8fx::copy<(8)>(s, n->pos);
 		const int32_t k = -(int32_t)n->pos[3];
 		int16_t *p = (int16_t *)s;
 		p[0] = (int16_t)(p[0] + (mul32(k, rec->dir[0]) >> 12));
@@ -1524,7 +1524,7 @@ namespace hyper198
 				e->id = id;
 				e->frame = 0;
 				e->size = (int16_t)(CrtRand() % 0x280 + 0x400);
-				memcpy(e->pos, s, 8);
+				ff8fx::copy<(8)>(e->pos, s);
 				int32_t *v = (int32_t *)(s + 0x38);
 				v[0] = CrtRand() % 0x1000 - 0x800;
 				v[1] = CrtRand() % 0x1000 - 0x800;
@@ -1591,7 +1591,7 @@ namespace hyper198
 				e->id = id;
 				e->frame = 0;
 				e->size = (int16_t)(CrtRand() % 0x1100 + 0x680);
-				memcpy(e->pos, s, 8);
+				ff8fx::copy<(8)>(e->pos, s);
 				int32_t *v = (int32_t *)(s + 0x38);
 				v[0] = CrtRand() % 0x700 - 0x380;
 				v[1] = CrtRand() % 0x700 - 0x380;
@@ -1721,24 +1721,24 @@ namespace hyper198
 		{
 			Node *k = AddTask(QAux(), ORIG_ImpactSparkTask);
 			k->f0E = n->f0E;
-			memcpy(k->pos, n->pos, 8);
+			ff8fx::copy<(8)>(k->pos, n->pos);
 			const int32_t num = IdCount();
 			k->f20 = (int16_t)num;
 			IdCount() = num + 1;
 			k->counter = 0;
 			Node *g = AddTask(QAux(), ORIG_ImpactSmokeTask);
-			memcpy(g->pos, n->pos, 4);
+			ff8fx::copy<(4)>(g->pos, n->pos);
 			g->f0E = n->f0E;
 			const int32_t num2 = IdCount();
 			g->f20 = (int16_t)num2;
 			IdCount() = num2 + 1;
 			g->counter = 0;
-			memcpy(g->pos + 2, n->pos + 2, 4);
+			ff8fx::copy<(4)>(g->pos + 2, n->pos + 2);
 		}
 		if (n->counter >= 2 && n->counter <= 0xA && n->counter % 3 == 0 && n->f1E != 0)
 		{
 			Node *r = AddTask(QAux(), ORIG_GroundRingTask);
-			memcpy(r->pos, n->pos, 8);
+			ff8fx::copy<(8)>(r->pos, n->pos);
 			const int32_t k = ((int32_t)n->f1C << 12) / 2200;
 			r->f0E = n->f0E;
 			r->counter = 0;

@@ -566,14 +566,14 @@ namespace hells_judgement
 
 	static void apply_draw61(Clone &c)
 	{
-		memcpy(g_save_vm, c.vm, sizeof(g_save_vm));
-		memcpy(g_save_big, c.bigtab, sizeof(g_save_big));
-		memcpy(g_save_draw, c.draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(g_save_vm, c.vm);
+		ff8fx::copy<(sizeof(g_save_big))>(g_save_big, c.bigtab);
+		ff8fx::copy<(sizeof(g_save_draw))>(g_save_draw, c.draw);
 		apply_eden_b(c);
 		VoidFn d61 = c.draw[61];
-		memcpy(c.vm, g_save_vm, sizeof(g_save_vm));
-		memcpy(c.bigtab, g_save_big, sizeof(g_save_big));
-		memcpy(c.draw, g_save_draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(c.vm, g_save_vm);
+		ff8fx::copy<(sizeof(g_save_big))>(c.bigtab, g_save_big);
+		ff8fx::copy<(sizeof(g_save_draw))>(c.draw, g_save_draw);
 		c.draw[61] = d61;
 	}
 

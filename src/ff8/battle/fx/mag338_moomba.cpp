@@ -253,7 +253,7 @@ namespace m338
 			GteLoadV0(s->pos);
 			GteMVMVA_RotV0Tr();
 			GteReadMAC123((int32_t *)(h + 0x98));
-			memset(h + 0x84, 0, 0x14);
+			ff8fx::fill<(0x14)>(h + 0x84, 0);
 			*(int16_t *)(h + 0x94) = 0x800;
 			*(int16_t *)(h + 0x8C) = 0x800;
 			*(int16_t *)(h + 0x84) = 0x800;
@@ -383,7 +383,7 @@ namespace m338
 	// 0x6ED1E0 (IDA: MAG_210_sub_6ED1E0): rotation about Y scaled by r (m11 = r)
 	static void ScaledRotY(int32_t angle, int32_t radius, uint8_t *out)
 	{
-		memset(out, 0, 0x14);
+		ff8fx::fill<(0x14)>(out, 0);
 		int32_t a = -(int32_t)(int16_t)angle;
 		int32_t r = (int16_t)radius;
 		int32_t s = mul32(ComputeSin(a), r) >> 12;

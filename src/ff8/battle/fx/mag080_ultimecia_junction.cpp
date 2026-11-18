@@ -565,7 +565,7 @@ namespace ujunct
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x25DF2F8) = 0x2793E58;
 		MEM<uint32_t>(0x25DAF00) = 0x2793E58;
@@ -2678,7 +2678,7 @@ namespace ujunct
 		const uint32_t blk = a1;
 		const int32_t idx = S16(blk, 0xA8);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)(idx * 0x9C);
-		memcpy((void *)(blk + 0x20), (const void *)(ent + 0x40), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(blk + 0x20), (const void *)(ent + 0x40)); // rep movsd
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		x::GTE_SetRotMatrix(0x1D97778);
@@ -2736,7 +2736,7 @@ namespace ujunct
 		const uint32_t rgb = U32(ent, 0x28) & 0xFFFFFF;
 		U16(w, 0xA2) = U16(blk, 0xA4);
 		U32(w, 0x94) = rgb | 0x2C000000;                // POLY_FT4 code + colour
-		memcpy((void *)w, (const void *)blk, 0x20);     // rep movsd: the rotation
+		ff8fx::copy<(0x20)>((void *)w, (const void *)blk);     // rep movsd: the rotation
 		U32(w, 0x90) = rgb | 0x24000000;                // POLY_FT3 code + colour
 		U32(w, 0x98) = U32(ent, 0x7C);                  // visible objects
 		if (U16(blk, 0x98) != 0)
@@ -4162,7 +4162,7 @@ namespace ujunct
 		const uint32_t e = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		uint32_t mat[8];
 		const uint32_t xy = U32(e, 0x1C);
-		memcpy(mat, (const void *)(e + 0x40), 0x20);    // rep movsd
+		ff8fx::copy<(0x20)>(mat, (const void *)(e + 0x40));    // rep movsd
 		const uint32_t z = U32(e, 0x20);
 		U16(e, 0x1C) = 0;
 		U16(e, 0x1E) = 0;
@@ -4174,7 +4174,7 @@ namespace ujunct
 		U16(blk, 0x70) = (uint16_t)(U16(blk, 0x70) - ex);
 		U16(blk, 0x72) = (uint16_t)(U16(blk, 0x72) - ey);
 		U16(blk, 0x74) = (uint16_t)(U16(blk, 0x74) - ez);
-		memcpy((void *)(e + 0x40), mat, 0x20);          // rep movsd
+		ff8fx::copy<(0x20)>((void *)(e + 0x40), mat);          // rep movsd
 		U32(e, 0x1C) = xy;
 		U32(e, 0x20) = z;
 		return 0; // void

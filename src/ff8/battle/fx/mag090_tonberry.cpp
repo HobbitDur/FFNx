@@ -174,7 +174,7 @@ namespace act
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x25A4C08) = 0x2793E58;
 		MEM<uint32_t>(0x259EFB8) = 0x2793E58;

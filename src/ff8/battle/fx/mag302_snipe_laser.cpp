@@ -541,7 +541,7 @@ namespace snipe302
 					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
 					if (h)
 					{
-						memcpy(&h->frame.m, &f.R.m, sizeof(h->frame.m));
+						ff8fx::copy<(sizeof(h->frame.m))>(&h->frame.m, &f.R.m);
 						h->frame.t[0] = T[0];
 						h->frame.t[1] = T[1];
 						h->frame.t[2] = T[2];
@@ -569,7 +569,7 @@ namespace snipe302
 				{
 					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 					if (!s) continue;
-					memcpy(s->pos, b->spawn, 4);
+					ff8fx::copy<(4)>(s->pos, b->spawn);
 					*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->spawn[2];
 					s->counter = 0;
 					s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);

@@ -95,7 +95,7 @@ namespace ff8fx::prim
 		{
 			const uint8_t *k = FindKey<16>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 12);
+			if (k) ff8fx::copy<(12)>(st, k + 4);
 			out[0] = (int16_t)(a[0] >> 16); out[1] = (int16_t)(a[1] >> 16); out[2] = (int16_t)(a[2] >> 16);
 			st += 12;
 		}
@@ -104,7 +104,7 @@ namespace ff8fx::prim
 		{
 			const uint8_t *k = FindKey<16>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 12);
+			if (k) ff8fx::copy<(12)>(st, k + 4);
 			st += 12;
 		}
 		else if (f & 4) st += 12;
@@ -112,7 +112,7 @@ namespace ff8fx::prim
 		{
 			const uint8_t *k = FindKey<16>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 12);
+			if (k) ff8fx::copy<(12)>(st, k + 4);
 			st += 12;
 		}
 		return st;
@@ -123,7 +123,7 @@ namespace ff8fx::prim
 	// one object of 0x701970: fills the record, advances the state cursor
 	static uint8_t *EvalObject(uint16_t index, const uint8_t *obj, uint8_t *st, int32_t frame, bool paused, Record &r)
 	{
-		memset(&r, 0, sizeof(r));
+		ff8fx::fill<(sizeof(r))>(&r, 0);
 		r.index = index;
 		r.scale[0] = r.scale[1] = r.scale[2] = 0x1000;
 		uint32_t flags = *(const uint32_t *)obj;
@@ -161,7 +161,7 @@ namespace ff8fx::prim
 		{
 			const uint8_t *k = FindKey<12>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 6);
+			if (k) ff8fx::copy<(6)>(st, k + 4);
 			r.rgb[0] = (uint8_t)(cv[0] >> 8); r.rgb[1] = (uint8_t)(cv[1] >> 8); r.rgb[2] = (uint8_t)(cv[2] >> 8); r.rgb[3] = 0;
 			st += 8;
 		}
@@ -170,7 +170,7 @@ namespace ff8fx::prim
 		{
 			const uint8_t *k = FindKey<12>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 6);
+			if (k) ff8fx::copy<(6)>(st, k + 4);
 			st += 8;
 		}
 		else if (tf & 0x800) st += 8;
@@ -178,7 +178,7 @@ namespace ff8fx::prim
 		{
 			const uint8_t *k = FindKey<12>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 6);
+			if (k) ff8fx::copy<(6)>(st, k + 4);
 			st += 8;
 		}
 
@@ -193,7 +193,7 @@ namespace ff8fx::prim
 			}
 			const uint8_t *k = FindKey<16>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 12);
+			if (k) ff8fx::copy<(12)>(st, k + 4);
 			r.a = (int16_t)(a[0] >> 16);
 			st += 12;
 		}
@@ -208,7 +208,7 @@ namespace ff8fx::prim
 			}
 			const uint8_t *k = FindKey<20>(obj + rd32(keys), frame);
 			keys += 4;
-			if (k) memcpy(st, k + 4, 16);
+			if (k) ff8fx::copy<(16)>(st, k + 4);
 			r.b0 = *(int16_t *)st;
 			r.b1 = *(int16_t *)(st + 2);
 			r.b = (int16_t)(c[0] >> 16);
@@ -290,7 +290,7 @@ namespace ff8fx::prim
 		int32_t nframe = frame0;
 		if (check)
 		{
-			memcpy(g_state_native, l->state, size);
+			memcpy_code(uint32_t(g_state_native), l->state, size);
 			if (frame0 < total)
 			{
 				uint8_t *st = g_state_native;
@@ -313,8 +313,8 @@ namespace ff8fx::prim
 		if (r != nret) what = "return";
 		else if (l->frame != nframe) what = "frame";
 		else if (ctx.count != ncount) what = "record count";
-		else if (memcmp(g_rec_orig, g_rec_native, sizeof(Record) * ncount)) what = "records";
-		else if (memcmp(l->state, g_state_native, size)) what = "state";
+		else if (!ff8fx::same_bytes(g_rec_orig, g_rec_native, sizeof(Record) * ncount)) what = "records";
+		else if (!ff8fx::same_bytes(l->state, g_state_native, size)) what = "state";
 		if (what && g_mismatch++ < 20)
 			ffnx_error("30fps primplayer: MISMATCH (%s) data=%p frame=%d paused=%d objects=%d ret=%d/%d\n",
 				what, l->data, frame0, paused, count, r, nret);

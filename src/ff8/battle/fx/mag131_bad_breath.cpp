@@ -509,7 +509,7 @@ namespace badbreath131
 		TargetNode *t = (TargetNode *)n;
 		uint8_t *entity = Entity(t->slot);
 		PrimArg arg;
-		memcpy(arg.pos, t->pos, sizeof(arg.pos));
+		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, t->pos);
 		arg.morph = TexBase() + VERTS;
 		// 30 fps layer: see mag131_bad_breath_held.inc
 		FX_HELD(held_note_target(t);)

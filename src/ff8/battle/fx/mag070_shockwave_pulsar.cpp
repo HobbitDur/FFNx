@@ -819,7 +819,7 @@ namespace sp070
 			GteLoadV0(s->pos);
 			GteMVMVA_RotV0Tr();
 			GteReadMAC123((int32_t *)(h + 0x98));
-			memset(h + 0x84, 0, 0x14);
+			ff8fx::fill<(0x14)>(h + 0x84, 0);
 			F<uint16_t>(h, 0x94) = (uint16_t)s->scale;
 			F<uint16_t>(h, 0x8C) = (uint16_t)s->scale;
 			F<uint16_t>(h, 0x84) = (uint16_t)s->scale;

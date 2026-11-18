@@ -551,8 +551,8 @@ namespace cura
 	// offset +0xB4 (mode +0xD2: 0 = turned by the matrix, 1 = as is)
 	static void OverlayMatrices(uint32_t st, uint32_t entity)
 	{
-		memcpy((void *)(st + 0x14), (const void *)(entity + 0x40), 0x20);
-		memcpy((void *)(st + 0x54), (const void *)(entity + 0x40), 0x20);
+		ff8fx::copy<(0x20)>((void *)(st + 0x14), (const void *)(entity + 0x40));
+		ff8fx::copy<(0x20)>((void *)(st + 0x54), (const void *)(entity + 0x40));
 		const int32_t mode = S16(st, 0xD2);
 		if (mode == 0)
 		{
@@ -597,7 +597,7 @@ namespace cura
 		cx::BuildMatrixFromDirAndUp(L + 0x20, L + 0x18, L + 0x10);
 		x::UnpackRotationMatrix(L + 0x20, L + 0x40);
 		U32(L, 0x5C) = U32(st, 0xC8);
-		memcpy((void *)(L + 0x20), (const void *)(st + 0x14), 0x20);
+		ff8fx::copy<(0x20)>((void *)(L + 0x20), (const void *)(st + 0x14));
 		U32(L, 0x54) = 0;
 		U32(L, 0x58) = 0;
 		S32(L, 0x38) = sub32(S32(st, 0x2C), S32(st, 0x6C));
@@ -656,8 +656,8 @@ namespace cura
 		const uint32_t tint = U32(entity, 0x28) & 0xFFFFFF;
 		U32(h, 0xB0) = tint | 0x24000000;
 		U32(h, 0xB4) = tint | 0x2C000000;
-		memcpy((void *)h, (const void *)(st + 0x34), 0x20);
-		memcpy((void *)(h + 0x20), (const void *)(st + 0x74), 0x20);
+		ff8fx::copy<(0x20)>((void *)h, (const void *)(st + 0x34));
+		ff8fx::copy<(0x20)>((void *)(h + 0x20), (const void *)(st + 0x74));
 		U16(h, 0xA4) = U16(st, 0xCE);
 		U16(h, 0xA6) = U16(st, 0xCC);
 		x::GTE_SetRotMatrix(h);

@@ -375,7 +375,7 @@ namespace ultimecia227
 			GteLoadV0(s->pos);
 			GteMVMVA_RotV0Tr();
 			GteReadMAC123((int32_t *)(h + 0x98));
-			memset(h + 0x84, 0, 0x14);
+			ff8fx::fill<(0x14)>(h + 0x84, 0);
 			F<uint16_t>(h, 0x94) = (uint16_t)s->scale;
 			F<uint16_t>(h, 0x8C) = (uint16_t)s->scale;
 			F<uint16_t>(h, 0x84) = (uint16_t)s->scale;
@@ -426,7 +426,7 @@ namespace ultimecia227
 		*(uint32_t *)(h + 0x1C) = 0xF3;
 		*(uint32_t *)(h + 8) = 0;
 		*(int32_t *)(h + 0xC) = fade;
-		memset(&d, 0, 0x12);
+		ff8fx::fill<(0x12)>(&d, 0);
 		d.m[0][0] = sx;
 		d.m[1][1] = sy;
 		d.m[2][2] = 0x1000;
@@ -559,7 +559,7 @@ namespace ultimecia227
 		{
 			if (c == 0x10C) DecodeModelPrimLayout(LAYOUT_C, m->layout_c, 0x84);
 			PrimArg arg;
-			memcpy(arg.pos, LayoutPoint(), 8);
+			ff8fx::copy<(8)>(arg.pos, LayoutPoint());
 			arg.depth = 0;
 			arg.morph = TexBase() + MORPH;
 			// 30 fps layer: see mag227_ultimecia_first_death_held.inc

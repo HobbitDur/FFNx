@@ -111,15 +111,15 @@ namespace krysta264
 
 	static void apply_slots(Clone &c)
 	{
-		memcpy(g_save_vm, c.vm, sizeof(g_save_vm));
-		memcpy(g_save_big, c.bigtab, sizeof(g_save_big));
-		memcpy(g_save_draw, c.draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(g_save_vm, c.vm);
+		ff8fx::copy<(sizeof(g_save_big))>(g_save_big, c.bigtab);
+		ff8fx::copy<(sizeof(g_save_draw))>(g_save_draw, c.draw);
 		apply_shared_misc(c);
 		const VoidFn d16 = c.draw[16];        // 0x938DD0 = Leviathan 0xB58FA0 / Bahamut 0xB198C0 ScrollTextureU
 		const VoidFn p16 = c.prim[16];        // 0x93DD50 = Cerberus 0xB105B0 / Eden 0xAEC030 TintedF4
-		memcpy(c.vm, g_save_vm, sizeof(g_save_vm));
-		memcpy(c.bigtab, g_save_big, sizeof(g_save_big));
-		memcpy(c.draw, g_save_draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(c.vm, g_save_vm);
+		ff8fx::copy<(sizeof(g_save_big))>(c.bigtab, g_save_big);
+		ff8fx::copy<(sizeof(g_save_draw))>(c.draw, g_save_draw);
 		c.draw[16] = d16;
 		c.prim[16] = p16;
 		c.vm[0x0AF] = op_0AF_SetInlineDescriptor;       // 0x940730 (gfc_disintegrate.inc)

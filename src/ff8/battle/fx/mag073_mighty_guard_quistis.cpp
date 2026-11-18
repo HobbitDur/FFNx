@@ -475,7 +475,7 @@ namespace mguard_quistis
 		{
 			case 0: // parent|identity, d0, cc, ce
 				if (parent != 0)
-					memcpy((void *)m, (void *)(parent + 0x2C), 32);
+					ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 				else
 					x::MAG_022_sub_8DD770(m);
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
@@ -484,7 +484,7 @@ namespace mguard_quistis
 				break;
 			case 1: // parent|identity, ce, cc, d0
 				if (parent != 0)
-					memcpy((void *)m, (void *)(parent + 0x2C), 32);
+					ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 				else
 					x::MAG_022_sub_8DD770(m);
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
@@ -894,7 +894,7 @@ namespace mguard_quistis
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x25F3F84) = 0x2793E58;

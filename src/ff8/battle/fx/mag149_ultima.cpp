@@ -291,7 +291,7 @@ namespace ultima149
 		a[0] = (int16_t)(sx / count);
 		a[1] = (int16_t)(sy / count);
 		a[2] = (int16_t)(sz / count);
-		memcpy(out, a, 8);
+		ff8fx::copy<(8)>(out, a);
 	}
 
 	// MAG_149_sub_611B50 / 611B70: flag bit 1 of the four screen flash layers (0x1D98991, stride 0x2C)
@@ -404,7 +404,7 @@ namespace ultima149
 	static PartNode *SpawnPart(uint32_t task, const DirectorNode *d, bool swap)
 	{
 		PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), task);
-		memcpy(n->pos, d->pos, 8);
+		ff8fx::copy<(8)>(n->pos, d->pos);
 		if (swap)
 		{
 			int16_t t = n->pos[1];
@@ -553,7 +553,7 @@ namespace ultima149
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int16_t *p = (int16_t *)FieldAlloc(0x10);
-		memcpy(p, n->pos, 8);
+		ff8fx::copy<(8)>(p, n->pos);
 		H32(h, 0) = SEQ_Orbit;
 		*(uint16_t *)(h + 0x24) = 0;
 		*pos = p;
@@ -635,8 +635,8 @@ namespace ultima149
 			e->type = 2;
 			e->frame = 0;
 			e->scale = (int16_t)(CrtRand() % 0xE00 + 0x1000);
-			memcpy(&e->pos[0], &n->pos[0], 4);
-			memcpy(&e->pos[2], &n->pos[2], 4);
+			ff8fx::copy<(4)>(&e->pos[0], &n->pos[0]);
+			ff8fx::copy<(4)>(&e->pos[2], &n->pos[2]);
 			int32_t v[3];
 			v[0] = CrtRand() % 0x1000 - 0x800;
 			v[1] = CrtRand() % 0x1000 - 0x800;
@@ -752,9 +752,9 @@ namespace ultima149
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		ShardWork *w = (ShardWork *)FieldAlloc(0xA0);
 		H32(h, 0) = MODEL_Shard;
-		memcpy(&w->pos[0], &n->pos[0], 4);
+		ff8fx::copy<(4)>(&w->pos[0], &n->pos[0]);
 		H32(h, 8) = 0;
-		memcpy(&w->pos[2], &n->pos[2], 4);
+		ff8fx::copy<(4)>(&w->pos[2], &n->pos[2]);
 		w->ref[0] = 0;
 		w->ref[2] = 0;
 		w->view[0] = var<int16_t>(0xB8B7F0) - w->pos[0];
@@ -1309,8 +1309,8 @@ namespace ultima149
 				int32_t cs = ComputeCos(a);
 				int32_t sn = ComputeSin(a);
 				int32_t r = CrtRand() % 0x190 + ring - 0xC8;
-				memcpy(&s->pos[0], &n->pos[0], 4);
-				memcpy(&s->pos[2], &n->pos[2], 4);
+				ff8fx::copy<(4)>(&s->pos[0], &n->pos[0]);
+				ff8fx::copy<(4)>(&s->pos[2], &n->pos[2]);
 				s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(mul32(cs, r) >> 12));
 				s->pos[2] = (int16_t)(s->pos[2] + (int16_t)(mul32(sn, r) >> 12));
 				int32_t v = CrtRand() % 0x64 + 0x50;
@@ -1362,8 +1362,8 @@ namespace ultima149
 				int32_t cs = ComputeCos(a);
 				int32_t sn = ComputeSin(a);
 				int32_t r = CrtRand() % 0x258 + ring - 0x96;
-				memcpy(&s->pos[0], &n->pos[0], 4);
-				memcpy(&s->pos[2], &n->pos[2], 4);
+				ff8fx::copy<(4)>(&s->pos[0], &n->pos[0]);
+				ff8fx::copy<(4)>(&s->pos[2], &n->pos[2]);
 				s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(mul32(cs, r) >> 12));
 				s->pos[2] = (int16_t)(s->pos[2] + (int16_t)(mul32(sn, r) >> 12));
 				int32_t v = CrtRand() % 0x168 + 0x136;

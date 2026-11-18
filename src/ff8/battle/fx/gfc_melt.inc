@@ -409,7 +409,7 @@
 			U16(st, 0) = np;
 			const int32_t n = (int32_t)(((uint32_t)np + 4) & 0xFFC);
 			PTR(CUR(), 0xC4) = blob::ArenaAlloc(n);
-			if (n > 0) memset(PTR(CUR(), 0xC4), 0xFF, ((uint32_t)(n + 3) >> 2) * 4);
+			if (n > 0) memset_code(uint32_t(PTR(CUR(), 0xC4)), 0xFF, ((uint32_t)(n + 3) >> 2) * 4);
 			PTR(st, 4) = desc + S16(desc, 0);
 			U8(ent, 0) |= 4;
 		}

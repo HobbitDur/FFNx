@@ -509,7 +509,7 @@ namespace lv271
 		b->box[4] = -0x7FFF;
 		b->box[3] = -0x7FFF;
 		lv27x::ModelBounds((uint8_t *)b, anim);
-		memcpy(out, b->box, 12);
+		ff8fx::copy<(12)>(out, b->box);
 		FieldFree(0x20);
 		BuildBoneMatricesFromPose(anim);
 	}
@@ -526,7 +526,7 @@ namespace lv271
 		arg.scale[0] = p->scale[0];
 		arg.scale[1] = p->scale[1];
 		arg.scale[2] = p->scale[2];
-		memcpy(arg.pos, p->anchor, sizeof(arg.pos));
+		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, p->anchor);
 		arg.scaled = 1;
 		arg.scroll = p->counter;
 		arg.pad1E = 0; // (never written in the original, never read)

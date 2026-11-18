@@ -507,9 +507,9 @@ namespace disch126
 		}
 		Memset32(&a->pad0c, 0, 0xC);
 		a->pad0c = 0;
-		memcpy(a->pos, from, 8);
-		memcpy(a->end, to, 8);
-		memcpy(a->vel, vel, 8);
+		ff8fx::copy<(8)>(a->pos, from);
+		ff8fx::copy<(8)>(a->end, to);
+		ff8fx::copy<(8)>(a->vel, vel);
 		a->t = (int16_t)t0;
 		a->forks = (int16_t)forks;
 		a->speed = (int16_t)speed;
@@ -522,7 +522,7 @@ namespace disch126
 			a->dir[1] = (int16_t)((Rand() & 0xFF) - 0x80);
 			a->dir[2] = (int16_t)((Rand() & 0xFF) - 0x80);
 		}
-		else memcpy(a->dir, dir, 8);
+		else ff8fx::copy<(8)>(a->dir, dir);
 		a->slot = (int16_t)slot;
 		a->width = (int16_t)width;
 		a->style = (int16_t)style;
@@ -756,7 +756,7 @@ namespace disch126
 					if (s)
 					{
 						s->frame = 0;
-						memcpy(s->pos, p, 8);
+						ff8fx::copy<(8)>(s->pos, p);
 						s->kind = 0;
 						s->scale = (int16_t)shl32(a->width, 4);
 						s->slot = (int8_t)a->slot;
@@ -768,7 +768,7 @@ namespace disch126
 					if (s)
 					{
 						s->frame = 0;
-						memcpy(s->pos, p, 8);
+						ff8fx::copy<(8)>(s->pos, p);
 						s->kind = 1;
 						s->scale = (int16_t)shl32(a->width, 5);
 						s->slot = (int8_t)a->slot;
@@ -811,7 +811,7 @@ namespace disch126
 			vel[1] = (int16_t)((Rand() & 0x1FF) + a->vel[1] - 0x100);
 			vel[2] = (int16_t)((Rand() & 0x1FF) + a->vel[2] - 0x100);
 			Point *f = SpawnArc(vel, p, to, a->dir, -1, a->t, 0x200, a->width >> 1, a->style, 0);
-			if (f) memcpy(f->c, pt->c, 8);
+			if (f) ff8fx::copy<(8)>(f->c, pt->c);
 			a->forks--;
 		}
 		// fades
@@ -1036,7 +1036,7 @@ namespace disch126
 			vel[2] = (int16_t)((Rand() & 0x7F) - 0x40);
 			const int32_t style = Rand() & 1;
 			Point *pt = SpawnArc(vel, from, to, nullptr, -1, 0, 0x100, 0xFA, style, 3);
-			if (pt) memcpy(pt->c, (const void *)ZERO_VEC, 8);
+			if (pt) ff8fx::copy<(8)>(pt->c, (const void *)ZERO_VEC);
 		}
 		const int32_t c14 = m->counter - 0xE;
 		if ((uint32_t)c14 < 0x1E)
@@ -1066,7 +1066,7 @@ namespace disch126
 				const int32_t style = Rand() & 1;
 				const int32_t slot = (int32_t)(e - Entity(0)) / 0x9C;
 				Point *pt = SpawnArc(vel, from, to, nullptr, slot, 0, 0x100, 0xFA, style, 3);
-				if (pt) memcpy(pt->c, (const void *)ZERO_VEC, 8);
+				if (pt) ff8fx::copy<(8)>(pt->c, (const void *)ZERO_VEC);
 			}
 			if (!(c14 & 3))
 			{

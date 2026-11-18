@@ -235,7 +235,7 @@ namespace madrush273
 			return 0;
 		}
 		PrimArg arg;
-		memcpy(arg.pos, p->anchor, sizeof(arg.pos));
+		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, p->anchor);
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag273_mad_rush_held.inc
 		FX_HELD(held_note_play(p);)

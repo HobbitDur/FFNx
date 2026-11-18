@@ -857,7 +857,7 @@ namespace burrow301
 		if ((uint32_t)c < 0x7A)
 		{
 			PrimArg arg;
-			memcpy(arg.pos, m->pos, sizeof(arg.pos));
+			ff8fx::copy<(sizeof(arg.pos))>(arg.pos, m->pos);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = 0x100;
 			// 30 fps layer: see mag301_gargantua_burrow_held.inc

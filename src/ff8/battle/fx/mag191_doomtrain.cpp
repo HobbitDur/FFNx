@@ -394,7 +394,7 @@ namespace d191
 					cur->npts = (int16_t)(w & 0xF);
 					cur->acc = 0;
 					cur->step = 0x1000 / (int32_t)cur->dur;
-					memcpy(cur->pts[0], cur->pos, 8);
+					ff8fx::copy<(8)>(cur->pts[0], cur->pos);
 					for (int i = 1; i <= cur->npts; i++) CsVec(&n->script, cur->pts[i]);
 					break;
 				}
@@ -403,7 +403,7 @@ namespace d191
 					for (int i = 0; i < 3; i++) s16[i] = (int16_t)(oth->pos[i] - cur->pos[i]);
 					uint32_t d2 = (uint32_t)mul32(s16[0], s16[0]) + (uint32_t)mul32(s16[1], s16[1]) + (uint32_t)mul32(s16[2], s16[2]);
 					cur->acc = Sqrt((int32_t)d2);
-					memcpy(cur->start, cur->pos, 8);
+					ff8fx::copy<(8)>(cur->start, cur->pos);
 					cur->dur = (int16_t)CsArg(&n->script);
 					CsVec(&n->script, s16);
 					for (int i = 0; i < 3; i++) cur->delta[i] = (int16_t)(((int32_t)s16[i] - cur->pos[i]) / (int32_t)cur->dur);
@@ -420,10 +420,10 @@ namespace d191
 						for (int i = 0; i < 3; i++) s16[4 + i] = (int16_t)(o->delta[i] + o->start[i]);
 						break;
 					case 2: // curve: vanilla reads THIS track's point count and points (0x63ECE4)
-						memcpy(S + 8, cur->pts[cur->npts], 8);
+						ff8fx::copy<(8)>(S + 8, cur->pts[cur->npts]);
 						break;
 					default:
-						memcpy(S + 8, o->pos, 8);
+						ff8fx::copy<(8)>(S + 8, o->pos);
 						break;
 					}
 					for (int i = 0; i < 3; i++) s16[i] = (int16_t)(s16[i] - s16[4 + i]);
@@ -470,7 +470,7 @@ namespace d191
 				}
 				case 10: // take the current battle camera point back into the effect frame
 				{
-					memcpy(cur->pos, (const void *)(eye ? CAM_EYE : CAM_AT), 8);
+					ff8fx::copy<(8)>(cur->pos, (const void *)(eye ? CAM_EYE : CAM_AT));
 					Mat4x3 inv;
 					UnpackRotationMatrix(n->frame, &inv);
 					CamTrack *c2 = TrackCur();
@@ -650,8 +650,8 @@ namespace d191
 		for (int32_t i = 0; i < TargetCount(); i++)
 		{
 			int32_t slot = TargetList()[i];
-			memcpy((void *)(0x24FD260 + 8 * slot), Entity(slot) + 0x1C, 8);
-			memcpy((void *)(0x24FC0C8 + 8 * slot), Entity(slot) + 0x94, 8);
+			ff8fx::copy<(8)>((void *)(0x24FD260 + 8 * slot), Entity(slot) + 0x1C);
+			ff8fx::copy<(8)>((void *)(0x24FC0C8 + 8 * slot), Entity(slot) + 0x94);
 		}
 	}
 	// MAG_191_sub_642E40: put them back
@@ -660,8 +660,8 @@ namespace d191
 		for (int32_t i = 0; i < TargetCount(); i++)
 		{
 			int32_t slot = TargetList()[i];
-			memcpy(Entity(slot) + 0x1C, (const void *)(0x24FD260 + 8 * slot), 8);
-			memcpy(Entity(slot) + 0x94, (const void *)(0x24FC0C8 + 8 * slot), 8);
+			ff8fx::copy<(8)>(Entity(slot) + 0x1C, (const void *)(0x24FD260 + 8 * slot));
+			ff8fx::copy<(8)>(Entity(slot) + 0x94, (const void *)(0x24FC0C8 + 8 * slot));
 		}
 	}
 	// MAG_191_sub_642EA0: save the positions again and push the targets out of the train's way
@@ -694,7 +694,7 @@ namespace d191
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		memcpy((void *)0x24FBDA8, &Camera(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>((void *)0x24FBDA8, &Camera());
 		ComposeAffineTransform(&Camera(), &Root(), &Frame());
 		uint32_t fl = Flags();
 		if (fl & 0x201)
@@ -1300,7 +1300,7 @@ namespace d191
 				a->mask = e;
 				a->age = 0;
 				a->size = n->f1E;
-				memcpy(a->pos, &n->f10, 8);
+				ff8fx::copy<(8)>(a->pos, &n->f10);
 				int32_t t1 = ang - 0x400;
 				int32_t sa = ComputeSin(t1);
 				a->pos[0] = (int16_t)(a->pos[0] + (mul32(sa, n->f1C) >> 12));
@@ -1310,7 +1310,7 @@ namespace d191
 				b->mask = e;
 				b->age = 0;
 				b->size = n->f1E;
-				memcpy(b->pos, &n->f10, 8);
+				ff8fx::copy<(8)>(b->pos, &n->f10);
 				int32_t t2 = ang + 0x400;
 				int32_t sb = ComputeSin(t2);
 				b->pos[0] = (int16_t)(b->pos[0] + (mul32(sb, n->f1C) >> 12));
@@ -1353,14 +1353,14 @@ namespace d191
 				a->mask = e;
 				a->age = 0;
 				a->size = sz;
-				memcpy(a->pos, &n->f10, 8);
+				ff8fx::copy<(8)>(a->pos, &n->f10);
 				a->pos[0] = (int16_t)(a->pos[0] - 900);
 				Rec *b = R(POOL_A, i + 1);
 				b->mask = e;
 				b->age = 0;
 				b->size = sz;
-				memcpy(b->pos, &n->f10, 4);
-				memcpy(&b->pos[2], &n->f14, 4);
+				ff8fx::copy<(4)>(b->pos, &n->f10);
+				ff8fx::copy<(4)>(&b->pos[2], &n->f14);
 				n->f14 = (int16_t)(n->f14 + 0x5DC);
 				b->pos[0] = (int16_t)(b->pos[0] + 900);
 				n->f1E = (int16_t)(sz - 0x10);
@@ -1437,7 +1437,7 @@ namespace d191
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50) + 0x10;
 		uint8_t *T = (uint8_t *)FieldAlloc(0x44);
 		RainTemplate(T);
-		memcpy(s, &Camera(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(s, &Camera());
 		int32_t count = 0;
 		GteSetLightMatrix(s);
 		GteSetBackColorFromTrans(s);
@@ -1849,7 +1849,7 @@ namespace d191
 				a->mask = 1;
 				a->age = 0;
 				a->size = 0x180;
-				memcpy(a->pos, v, 8); // v[3] = s + 0xE: scratch word, copied as vanilla does
+				ff8fx::copy<(8)>(a->pos, v); // v[3] = s + 0xE: scratch word, copied as vanilla does
 				v[0] = 0x4B0;
 				v[1] = 0x2BC;
 				v[2] = 0;
@@ -1861,7 +1861,7 @@ namespace d191
 				b->mask = 1;
 				b->age = 0;
 				b->size = 0x180;
-				memcpy(b->pos, v, 8);
+				ff8fx::copy<(8)>(b->pos, v);
 				AdvanceLoop(E);
 			}
 			SetAnim(E, 1);
@@ -1949,13 +1949,13 @@ namespace d191
 				a->mask = 1;
 				a->age = 0;
 				a->size = sz;
-				memcpy(a->pos, &n->f10, 8);
+				ff8fx::copy<(8)>(a->pos, &n->f10);
 				a->pos[0] = (int16_t)(a->pos[0] - dx);
 				Rec *b = R(POOL_A, i + 1);
 				b->mask = 1;
 				b->age = 0;
 				b->size = sz;
-				memcpy(b->pos, &n->f10, 8);
+				ff8fx::copy<(8)>(b->pos, &n->f10);
 				b->pos[0] = (int16_t)(b->pos[0] + dx);
 				n->f14 = (int16_t)(n->f14 + n->f22);
 			}
@@ -2037,14 +2037,14 @@ namespace d191
 				a->mask = 1;
 				a->age = 0;
 				a->size = 0x1400;
-				memcpy(a->pos, &n->f10, 8);
+				ff8fx::copy<(8)>(a->pos, &n->f10);
 				a->pos[0] = (int16_t)(a->pos[0] - 2000);
 				Rec *b = R(POOL_A, i + 1);
 				b->mask = 1;
 				b->age = 0;
 				b->size = 0x1400;
-				memcpy(b->pos, &n->f10, 4);
-				memcpy(&b->pos[2], &n->f14, 4);
+				ff8fx::copy<(4)>(b->pos, &n->f10);
+				ff8fx::copy<(4)>(&b->pos[2], &n->f14);
 				n->f14 = (int16_t)(n->f14 - 3000);
 				b->pos[0] = (int16_t)(b->pos[0] + 2000);
 			}
@@ -2336,7 +2336,7 @@ namespace d191
 		*(uint32_t *)h = seq;
 		if (tint) *(uint32_t *)(h + 0x1C) = 0x586880;
 		*(uint16_t *)(h + 0x24) = (uint16_t)w24;
-		memcpy(s + 0x10, &Frame(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(s + 0x10, &Frame());
 		GteSetLightMatrix(s + 0x10);
 		GteSetBackColorFromTrans(s + 0x10);
 	}
@@ -2348,7 +2348,7 @@ namespace d191
 		r->mask = 1;
 		r->age = 0;
 		r->size = (int16_t)(CrtRand() % n->f1E + n->f1C);
-		memcpy(r->pos, (const void *)pt, 8);
+		ff8fx::copy<(8)>(r->pos, (const void *)pt);
 		int32_t f20 = n->f20;
 		r->pos[0] = (int16_t)(r->pos[0] + (int16_t)(CrtRand() % (2 * f20) - f20));
 		if (y_signed)
@@ -3092,7 +3092,7 @@ namespace d191
 				int32_t sc = n->f1C;
 				int32_t rr = CrtRand() % ((sc >> 1) & ~1);
 				int32_t rad = rr - (sc >> 2) + sc;
-				memcpy(r->pos, &n->f10, 8);
+				ff8fx::copy<(8)>(r->pos, &n->f10);
 				r->pos[0] = (int16_t)(r->pos[0] + (mul32(ComputeSin(a), rad) >> 12));
 				r->pos[1] = (int16_t)-(CrtRand() % 0xC8);
 				r->pos[2] = (int16_t)(r->pos[2] + (mul32(ComputeCos(a), rad) >> 12));
@@ -3102,7 +3102,7 @@ namespace d191
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		memcpy(s + 8, &Camera(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(s + 8, &Camera());
 		*(uint32_t *)h = 0xE34404;
 		*(uint32_t *)(h + 0x1C) = 0x586880;
 		*(uint16_t *)(h + 0x24) = 0xC;

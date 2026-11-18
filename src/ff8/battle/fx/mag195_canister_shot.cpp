@@ -290,14 +290,14 @@ namespace canister195
 		const uint8_t *sk = *(const uint8_t **)*(uint8_t **)(w + 4);
 		const int32_t n = sk[0];
 		const uint8_t *src = sk + 0x20;
-		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>(dst, src);
 	}
 	// ... and back
 	static void BoneRestore(uint8_t *w, const uint8_t *src)
 	{
 		uint8_t *sk = *(uint8_t **)*(uint8_t **)(w + 4);
 		uint8_t *dst = sk + 0x20;
-		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// the entity's weapon model alone under its world matrix, with its current bone matrices and colour word +0x28
@@ -478,7 +478,7 @@ namespace canister195
 	// the GTE-positioned particles (steam / bone smoke): the light matrix and back colour = the camera (scratch 0x48, +8)
 	static void PartLight(uint8_t *s)
 	{
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -530,7 +530,7 @@ namespace canister195
 	}
 	static void DebrisBegin(uint8_t *s, uint8_t *h)
 	{
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = MODEL_Debris;
 		*(uint32_t *)(h + 8) = 0;
 	}
@@ -618,7 +618,7 @@ namespace canister195
 				e->id = id;
 				e->frame = 0;
 				e->size = (int16_t)(CrtRand() % 0x280 + 0x580);
-				memcpy(e->pos, rec->pos, 8);
+				ff8fx::copy<(8)>(e->pos, rec->pos);
 				e->pos[0] = (int16_t)(e->pos[0] + (CrtRand() % 0xF0 - 0x78));
 				e->pos[1] = (int16_t)(e->pos[1] + (CrtRand() % 0xF0 - 0x78));
 				e->pos[2] = (int16_t)(e->pos[2] + (CrtRand() % 0xF0 - 0x78));
@@ -744,12 +744,12 @@ namespace canister195
 		if (n->counter == 15)
 		{
 			Node *k = AddTask(QAux(), ORIG_ImpactSmokeTask);
-			memcpy(k->pos, n->pos, 8);
+			ff8fx::copy<(8)>(k->pos, n->pos);
 			k->counter = 0;
 			k->f1C = (int16_t)(CrtRand() % 0x800 + 0xD00);
 			k->f1A = n->f1A;
 			Node *f = AddTask(QAux(), ORIG_ImpactFlashTask);
-			memcpy(f->pos, n->pos, 8);
+			ff8fx::copy<(8)>(f->pos, n->pos);
 			f->counter = 0;
 			f->f0E = n->f0E;
 			const int16_t third = (int16_t)((CrtRand() % 0xA80 + 0x1480) / 3);
@@ -757,7 +757,7 @@ namespace canister195
 			f->f1C = third;
 			Node *d = AddTask(QAux(), ORIG_DebrisTask);
 			d->f0E = n->f0E;
-			memcpy(d->pos, n->pos, 8);
+			ff8fx::copy<(8)>(d->pos, n->pos);
 			d->f20 = (int16_t)PartCount();
 			PartCount()++;
 			d->counter = 0;
@@ -813,7 +813,7 @@ namespace canister195
 				e->id = id;
 				e->counter = 0;
 				e->size = (int16_t)(CrtRand() % 0x280 + 0x80);
-				memcpy(e->pos, n->pos, 8);
+				ff8fx::copy<(8)>(e->pos, n->pos);
 				int32_t *d = (int32_t *)(s + 0x48);
 				d[0] = CrtRand() % 0x1000 - 0x800;
 				d[1] = CrtRand() % 0x1000 - 0x800;
@@ -993,7 +993,7 @@ namespace canister195
 				im->f1C = (int16_t)(CrtRand() % 0x280 + 0x600);
 				im->f22 = 0;
 				Node *c = AddTask(QAux(), ORIG_ImpactConeTask);
-				memcpy(c->pos, im->pos, 8);
+				ff8fx::copy<(8)>(c->pos, im->pos);
 				c->counter = 0;
 				c->f0E = n->f0E;
 				c->f18 = (int16_t)(CrtRand() % 0x1000);

@@ -304,7 +304,7 @@ namespace flame194
 		p[0] = (int16_t)(sx / count);
 		p[1] = (int16_t)(sy / count);
 		p[2] = (int16_t)(sz / count);
-		memcpy(out, p, 8);
+		ff8fx::copy<(8)>(out, p);
 	}
 
 	// ------------------------------------------------------------------
@@ -316,14 +316,14 @@ namespace flame194
 		const uint8_t *sk = *(const uint8_t **)*(uint8_t **)(w + 4);
 		const int32_t n = sk[0];
 		const uint8_t *src = sk + 0x20;
-		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>(dst, src);
 	}
 	// ... and back
 	static void BoneRestore(uint8_t *w, const uint8_t *src)
 	{
 		uint8_t *sk = *(uint8_t **)*(uint8_t **)(w + 4);
 		uint8_t *dst = sk + 0x20;
-		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// the entity's weapon model alone under its world matrix, with its current bone matrices and colour word +0x28
@@ -546,7 +546,7 @@ namespace flame194
 	// the light matrix / back colour = the camera (into the 0x50-byte scratch at +0x10)
 	static void EmberLight(uint8_t *s)
 	{
-		memcpy(s + 0x10, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 0x10, &Camera());
 		GteSetLightMatrix(s + 0x10);
 		GteSetBackColorFromTrans(s + 0x10);
 	}
@@ -598,7 +598,7 @@ namespace flame194
 	}
 	static void FireLight(uint8_t *s)
 	{
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -675,18 +675,18 @@ namespace flame194
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			memcpy(t->start, s->pos, 8);
-			memcpy(t->target, n->pos, 8);
+			ff8fx::copy<(8)>(t->start, s->pos);
+			ff8fx::copy<(8)>(t->target, n->pos);
 			int32_t v[3];
 			TransformVectorBy3x3Matrix(&s->m, MUZZLE_REF, v);
 			const int32_t dx = t->target[0] - t->start[0];
 			const int32_t dz = t->target[2] - t->start[2];
 			const int32_t half = Sqrt(mul32(dz, dz) + mul32(dx, dx)) >> 1;
-			memcpy(t->ctrl[0], t->start, 8);
+			ff8fx::copy<(8)>(t->ctrl[0], t->start);
 			t->ctrl[1][0] = (int16_t)((mul32(v[0], half) >> 12) + t->start[0]);
 			t->ctrl[1][1] = (int16_t)((mul32(v[1], half) >> 12) + t->start[1]);
 			t->ctrl[1][2] = (int16_t)((mul32(v[2], half) >> 12) + t->start[2]);
-			memcpy(t->ctrl[2], t->target, 8);
+			ff8fx::copy<(8)>(t->ctrl[2], t->target);
 			void *work = FieldAlloc(0x190);
 			SplineSetup(3, t->ctrl, work);
 			for (int32_t i = 0; i < FLIGHT_POINTS; i++) SplineEval(3, work, t->pts[i], (i * 0x1000) / 23);
@@ -784,7 +784,7 @@ namespace flame194
 				e->id = id;
 				e->frame = 0;
 				e->size = (int16_t)(CrtRand() % 0x100 + 0x300);
-				memcpy(e->pos, t->pts[k], 8);
+				ff8fx::copy<(8)>(e->pos, t->pts[k]);
 			}
 		}
 		n->counter++;
@@ -863,7 +863,7 @@ namespace flame194
 						e->id = id;
 						e->frame = 0;
 						e->size = (int16_t)(CrtRand() % 0x100 + 0x180);
-						memcpy(e->pos, t->pts[k], 8);
+						ff8fx::copy<(8)>(e->pos, t->pts[k]);
 						e->pos[0] = (int16_t)(e->pos[0] + (CrtRand() % 400 - 200));
 						e->pos[1] = (int16_t)(e->pos[1] + (CrtRand() % 400 - 200));
 						e->pos[2] = (int16_t)(e->pos[2] + (CrtRand() % 400 - 200));
@@ -973,7 +973,7 @@ namespace flame194
 				e->size = (int16_t)(CrtRand() % 0x900 + 0xA00);
 				const int32_t a = CrtRand() % 0x1000;
 				const int32_t r = (n->counter + 1) * 400;
-				memcpy(e->pos, n->pos, 8);
+				ff8fx::copy<(8)>(e->pos, n->pos);
 				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(mul32(ComputeSin(a), r) >> 12));
 				e->pos[1] = (int16_t)(e->pos[1] + (CrtRand() % 0x44C - 0x226));
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(mul32(ComputeCos(a), r) >> 12));
@@ -1029,7 +1029,7 @@ namespace flame194
 	static Node *AddAim(const Node *n, uint32_t fn)
 	{
 		Node *p = AddTask(QAux(), fn);
-		memcpy(p->pos, n->pos, 8);
+		ff8fx::copy<(8)>(p->pos, n->pos);
 		p->counter = 0;
 		p->f0E = n->f0E;
 		return p;
@@ -1085,7 +1085,7 @@ namespace flame194
 			AddSpin(n);
 			Node *l = AddTask(QAux(), ORIG_FlightTask);
 			l->f0E = n->f0E;
-			memcpy(l->pos, n->pos, 8);
+			ff8fx::copy<(8)>(l->pos, n->pos);
 			const int32_t fc = FlightCount();
 			l->counter = 0;
 			l->f18 = (int16_t)(fc % 8);
@@ -1130,7 +1130,7 @@ namespace flame194
 			p->f1C = fifth;
 			Node *fi = AddTask(QAux(), ORIG_FireTask);
 			fi->f0E = n->f0E;
-			memcpy(fi->pos, n->pos, 8);
+			ff8fx::copy<(8)>(fi->pos, n->pos);
 			fi->pos[3] = (int16_t)PartCount();
 			PartCount()++;
 			fi->counter = 0;

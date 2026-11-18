@@ -302,7 +302,7 @@ namespace shoot
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x266CA90) = 0x2793E58;
@@ -2341,7 +2341,7 @@ namespace shoot
 	uint32_t __cdecl sh_844160(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)((int32_t)S16(a1, 0xD0) * 0x9C);
-		memcpy((void *)(a1 + 0x20), (const void *)(ent + 0x40), 0x20);
+		ff8fx::copy<(0x20)>((void *)(a1 + 0x20), (const void *)(ent + 0x40));
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		x::GTE_SetRotMatrix(0x1D97778);
@@ -2401,7 +2401,7 @@ namespace shoot
 		U16(w, 0xA4) = U16(blk, 0xCE);
 		U32(w, 0x98) = U32(ent, 0x7C);                  // visible objects
 		const uint32_t rgb = U32(ent, 0x28) & 0xFFFFFF;
-		memcpy((void *)w, (const void *)blk, 0x20);     // rep movsd: the ball rotation
+		ff8fx::copy<(0x20)>((void *)w, (const void *)blk);     // rep movsd: the ball rotation
 		U16(w, 0xA2) = U16(blk, 0xCC);
 		U32(w, 0x90) = rgb | 0x24000000;                // POLY_FT3 code + colour
 		U32(w, 0x94) = rgb | 0x2C000000;                // POLY_FT4 code + colour
@@ -2727,7 +2727,7 @@ namespace shoot
 		const uint32_t q = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_BurstSpawner, 0x1FC, node);
 		U32(q, 0x1C) = U32(p, 0x1C);
 		const uint32_t p20 = U32(p, 0x20);
-		memcpy((void *)(q + 0x58), (const void *)m, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(q + 0x58), (const void *)m); // rep movsd
 		U32(q, 0x20) = p20;
 		U16(q, 0x1FA) = U16(rec, 0xC);
 		return 0; // void
@@ -2743,7 +2743,7 @@ namespace shoot
 	uint32_t __cdecl sh_844CB0(uint32_t a1)
 	{
 		const uint32_t w = x::Field_Alloc(0x48);
-		memcpy((void *)(w + 0x20), (const void *)(a1 + 0x58), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(w + 0x20), (const void *)(a1 + 0x58)); // rep movsd
 		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Burst, 0x1FC, a1);
 		if (U16(a1, 0x24) == 0)
 			U16(n, 0x1F8) = 0xA;
@@ -2852,7 +2852,7 @@ namespace shoot
 		const uint32_t save1c = U32(ent, 0x1C);
 		const uint32_t save20 = U32(ent, 0x20);
 		uint32_t mtx[8];
-		memcpy(mtx, (const void *)(ent + 0x40), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>(mtx, (const void *)(ent + 0x40)); // rep movsd
 		U16(ent, 0x1C) = 0;
 		U16(ent, 0x1E) = 0;
 		U16(ent, 0x20) = 0;
@@ -2862,7 +2862,7 @@ namespace shoot
 		U16(pv, 0) = (uint16_t)(U16(pv, 0) - U16(ent, 0x1C));
 		U16(a2, 0x76) = (uint16_t)(U16(a2, 0x76) - U16(ent, 0x1E));
 		U16(a2, 0x78) = (uint16_t)(U16(a2, 0x78) - U16(ent, 0x20));
-		memcpy((void *)(ent + 0x40), mtx, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(ent + 0x40), mtx); // rep movsd
 		U32(ent, 0x20) = save20;
 		U32(ent, 0x1C) = save1c;
 		return 0; // void
@@ -2882,7 +2882,7 @@ namespace shoot
 		// stack locals of the original: +0x10 offset vector, +0x18 direction, +0x20 / +0x28 bone
 		// positions, +0x30 up vector, +0x38 rotation copy
 		alignas(4) uint8_t loc[0x58];
-		memset(loc, 0, sizeof(loc));
+		ff8fx::fill<(sizeof(loc))>(loc, 0);
 		const uint32_t L = P(loc);
 		const int16_t t = S16(a1, 0x24);
 		if (t <= 0x1E)
@@ -2905,7 +2905,7 @@ namespace shoot
 		}
 		else
 			x::MAG_022_sub_8DD770(blk);
-		memcpy((void *)(L + 0x38), (const void *)blk, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(L + 0x38), (const void *)blk); // rep movsd
 		const uint32_t pos = blk + 0x7C;
 		x::GetEffectSpawnPosition(caster, 0x18, 0, pos);
 		const uint16_t base = (uint16_t)(U16(blk, 0x76) + 0x400);
@@ -3032,7 +3032,7 @@ namespace shoot
 			gx::QueueChainTransformation(ENT1, 6);
 			// stack locals of the original: +4 vector, +0xC matrix (0x20)
 			alignas(4) uint8_t loc[0x28];
-			memset(loc, 0, sizeof(loc));
+			ff8fx::fill<(sizeof(loc))>(loc, 0);
 			const uint32_t V = P(loc), M = V + 8;
 			x::MAG_022_sub_8DD770(M);
 			const uint16_t f = U16(ENT1, 0xE);

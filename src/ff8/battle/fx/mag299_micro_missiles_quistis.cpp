@@ -525,8 +525,8 @@ namespace micromissiles299
 			{
 				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 				if (!sp) continue;
-				memcpy(sp->pos, m->cur, 4);
-				memcpy(&sp->pos[2], &m->cur[2], 4);
+				ff8fx::copy<(4)>(sp->pos, m->cur);
+				ff8fx::copy<(4)>(&sp->pos[2], &m->cur[2]);
 				sp->counter = 0;
 				const int32_t b = CrtRand();
 				const int32_t a = CrtRand();
@@ -560,10 +560,10 @@ namespace micromissiles299
 		pos[2] = (int16_t)(pos[2] + off[2]);
 		pos[1] = (int16_t)(*(const int16_t *)(caster + 0x24) - 0x26C);
 		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), ORIG_MissileTask);
-		memcpy(m->cur, pos, 4);
-		memcpy(&m->cur[2], &pos[2], 4);
-		memcpy(m->start, pos, 4);
-		memcpy(&m->start[2], &pos[2], 4);
+		ff8fx::copy<(4)>(m->cur, pos);
+		ff8fx::copy<(4)>(&m->cur[2], &pos[2]);
+		ff8fx::copy<(4)>(m->start, pos);
+		ff8fx::copy<(4)>(&m->start[2], &pos[2]);
 		m->step = 0xCC;
 		m->t = 0xCC;
 		int16_t aim[4];

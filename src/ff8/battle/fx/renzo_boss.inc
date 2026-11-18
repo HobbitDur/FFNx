@@ -348,8 +348,8 @@
 	// 2nd point) and the unit direction from it to the 1st
 	static void TrailHitPoint(const uint8_t *sb, uint8_t *pos, int32_t *dir)
 	{
-		memcpy((void *)PREV_HIT, pos, 8);
-		memcpy((void *)(PREV_HIT + 8), dir, 16);
+		ff8fx::copy<(8)>((void *)PREV_HIT, pos);
+		ff8fx::copy<(16)>((void *)(PREV_HIT + 8), dir);
 		*(uint32_t *)pos = *(const uint32_t *)(sb + 8);
 		*(uint32_t *)(pos + 4) = *(const uint32_t *)(sb + 0xC);
 		dir[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
@@ -495,8 +495,8 @@
 			hp[2] = (int16_t)(hp[2] + var<int16_t>(HIT_POS + 4));
 			hp[3] = 0;
 			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
-			memcpy(r->pos, hp, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			ff8fx::copy<(8)>(r->pos, hp);
+			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -514,7 +514,7 @@
 				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xA00);
-				memcpy(p->pos, hp, 8);
+				ff8fx::copy<(8)>(p->pos, hp);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x15E - 0xAF));
@@ -527,7 +527,7 @@
 				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xC00);
-				memcpy(p->pos, hp, 8);
+				ff8fx::copy<(8)>(p->pos, hp);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
 				const int32_t *d = (const int32_t *)HIT_DIR;
 				const int32_t r0 = CrtRand() % 200;
@@ -757,7 +757,7 @@
 		uint8_t *h = AllocHeader(0xB4);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t alive = 0;
-		memcpy(&w->cam, &Camera(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(&w->cam, &Camera());
 		*(uint32_t *)h = seq;
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
@@ -806,7 +806,7 @@
 			w->dir[2] = rz + own->w1C + 0x80;
 			Normalize(w->dir, w->dir);
 			TransformVectorBy3x3Matrix((const Mat4x3 *)(Caster() + 0x40), w->dir, w->dir);
-			memcpy(w->pos, own->pos, 8);
+			ff8fx::copy<(8)>(w->pos, own->pos);
 			for (int32_t j = 0; j < 3; j++)
 			{
 				const int32_t i = FreeRecord();
@@ -815,7 +815,7 @@
 				p->alive = n->w1A;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x880 + 0x700);
-				memcpy(p->pos, w->pos, 8);
+				ff8fx::copy<(8)>(p->pos, w->pos);
 				const int32_t sp = CrtRand() % 0x96 + 0x23;
 				const int32_t rx = CrtRand() % 0x28;
 				p->w10 = (int16_t)(rx + (mul32(w->dir[0], sp) >> 12) - 0x14);
@@ -905,7 +905,7 @@
 		Node24 *t = AddSlotTask(orig);
 		t->w1A = kind;
 		SlotRec *r = Slot(t->e);
-		memcpy(r->pos, (const void *)HIT_POS, 8);
+		ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
 		r->w18 = dx;
 		r->w1A = dy;
 		r->w1C = dz;
@@ -915,7 +915,7 @@
 	static void HitPointRecord(Node24 *t)
 	{
 		SlotRec *r = Slot(t->e);
-		memcpy(r->pos, (const void *)HIT_POS, 8);
+		ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
 		r->w18 = var<int16_t>(HIT_DIR);
 		r->w1A = var<int16_t>(HIT_DIR + 4);
 		r->w1C = var<int16_t>(HIT_DIR + 8);
@@ -989,7 +989,7 @@
 		if (!DrawOnly() && n->c <= d.last)
 		{
 			if (d.delayed && n->c == 0) GetDefaultEffectPosition(Target(), &n->w10);
-			memcpy(w->ang, &n->w10, 8);
+			ff8fx::copy<(8)>(w->ang, &n->w10);
 			for (int32_t j = 0; j < d.count; j++)
 			{
 				const int32_t i = FreeRecord();
@@ -1101,7 +1101,7 @@
 				p->alive = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % d.scale_n + d.scale0);
-				memcpy(p->pos, w->pos2, 8);
+				ff8fx::copy<(8)>(p->pos, w->pos2);
 				const int32_t sp = CrtRand() % d.sp_n + d.sp0;
 				p->w10 = (int16_t)(mul32(w->dir[0], sp) >> 12);
 				p->w12 = (int16_t)(mul32(w->dir[1], sp) >> 12);
@@ -1131,7 +1131,7 @@
 		int32_t sv[3];
 		if (d.rot == NM_CASTER || d.rot == NM_CASTER_OFS)
 		{
-			memcpy(&m, Caster() + 0x40, sizeof(Mat4x3));
+			ff8fx::copy<(sizeof(Mat4x3))>(&m, Caster() + 0x40);
 			if (d.rot == NM_CASTER_OFS)
 			{
 				int16_t v[4]; // (4th word never written: matrixMultiplyVector reads / writes 3)

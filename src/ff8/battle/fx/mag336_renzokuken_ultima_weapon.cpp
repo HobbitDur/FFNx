@@ -104,7 +104,7 @@ namespace renzo336
 	static void AddCasterModel(uint32_t orig, int32_t s0)
 	{
 		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), orig);
-		memcpy(&t->w10, (const void *)HIT_POS, 8);
+		ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 		t->c = 0;
 		const int16_t s = (int16_t)((CrtRand() % 0x800 + s0) / 3);
 		t->w1E = s;
@@ -122,7 +122,7 @@ namespace renzo336
 			d->c = 0;
 			GetEffectSpawnPosition(Target(), 0xF1, 0, &d->w10);
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_GroundModel);
-			memcpy(&t->w10, &d->w10, 8);
+			ff8fx::copy<(8)>(&t->w10, &d->w10);
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0xA00 + 0x1E00) / 3);
 			t->w1E = s;

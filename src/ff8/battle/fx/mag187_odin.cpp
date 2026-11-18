@@ -601,7 +601,7 @@ namespace o187
 
 	static void SplashDrawOne(uint8_t *h, uint8_t *s, const Rec *r)
 	{
-		memcpy(s + 0x28, s + 8, 0x20);
+		ff8fx::copy<(0x20)>(s + 0x28, s + 8);
 		*(int32_t *)(s + 0x3C) = r->x;
 		*(int32_t *)(s + 0x40) = r->y;
 		*(int32_t *)(s + 0x44) = r->z;
@@ -620,7 +620,7 @@ namespace o187
 	{
 		*(uint32_t *)(h + 0x14) = 0x1000;
 		*(uint32_t *)(h + 0xC) = 0x1000;
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = 0xE3CFD0;
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 2;
@@ -1406,7 +1406,7 @@ namespace o187
 		d[2] = (int32_t)var<int16_t>(0xB8B7FC) - (int32_t)var<int16_t>(0xB8B7F4);
 		NormalizeVectorToFixedPoint(d, d);
 		int16_t p[4];
-		memcpy(p, (const void *)0xB8B7F8, 8);
+		ff8fx::copy<(8)>(p, (const void *)0xB8B7F8);
 		p[0] = (int16_t)(p[0] + (int16_t)(mul32(d[0], 200) >> 12));
 		p[1] = (int16_t)(p[1] + (int16_t)(mul32(d[1], 200) >> 12));
 		p[2] = (int16_t)(p[2] + (int16_t)(mul32(d[2], 200) >> 12));
@@ -1451,7 +1451,7 @@ namespace o187
 		d[2] = (int32_t)var<int16_t>(0xB8B7FC) - (int32_t)var<int16_t>(0xB8B7F4);
 		NormalizeVectorToFixedPoint(d, d);
 		int16_t p[4];
-		memcpy(p, (const void *)0xB8B7F8, 8);
+		ff8fx::copy<(8)>(p, (const void *)0xB8B7F8);
 		p[0] = (int16_t)(p[0] + (int16_t)(mul32(d[0], 200) >> 13));
 		p[1] = (int16_t)(p[1] + (int16_t)(mul32(d[1], 200) >> 13));
 		p[2] = (int16_t)(p[2] + (int16_t)(mul32(d[2], 200) >> 13));
@@ -1823,7 +1823,7 @@ namespace o187
 
 	static void SparkSetup(const Mat4x3 *frame, uint8_t *h, uint8_t *s, uint32_t seq, uint32_t color)
 	{
-		memcpy(s + 0x10, frame, 0x20);
+		ff8fx::copy<(0x20)>(s + 0x10, frame);
 		*(uint32_t *)h = seq;
 		*(uint32_t *)(h + 0x1C) = color;
 		*(int16_t *)(h + 0x24) = 0xC;
@@ -2031,7 +2031,7 @@ namespace o187
 		if (Paused()) return 0;
 		uint8_t *sk = **(uint8_t ***)(0x24FD93C);
 		n->c++;
-		memcpy(&BoneCopy(), sk + 0xB30, 0x20);
+		ff8fx::copy<(0x20)>(&BoneCopy(), sk + 0xB30);
 		return 0;
 	}
 

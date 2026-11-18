@@ -2439,7 +2439,7 @@ namespace ga065
 		FX_HELD(held_note_layout(L);)
 		PrimArg arg;
 		arg.morph = TexBase() + 0x6CB8;
-		memset(&arg.m, 0, sizeof(arg.m.m));
+		ff8fx::fill<(sizeof(arg.m.m))>(&arg.m, 0);
 		arg.m.m[0][0] = arg.m.m[1][1] = arg.m.m[2][2] = 0x1000;
 		arg.m.pad = 0;
 		arg.m.t[0] = L->pos[0];

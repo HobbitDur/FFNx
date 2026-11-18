@@ -513,7 +513,7 @@ namespace mask303
 		Shard *s = AllocShard(h->main);
 		if (!s) return;
 		s->code = *(const uint32_t *)f;
-		for (int i = 0; i < n; i++) memcpy(h->v[i], h->verts + (uint32_t)*(const uint16_t *)(f + 4 + 2 * i) * 4, 8);
+		for (int i = 0; i < n; i++) ff8fx::copy<(8)>(h->v[i], h->verts + (uint32_t)*(const uint16_t *)(f + 4 + 2 * i) * 4);
 		int16_t c[3];
 		for (int j = 0; j < 3; j++)
 		{
@@ -532,7 +532,7 @@ namespace mask303
 		s->uv1 = *(const uint32_t *)(f + 0x10);
 		if (n == 3) s->uv2 = *(const uint16_t *)(f + 0xA);
 		else *(uint32_t *)&s->uv2 = *(const uint32_t *)(f + 0x14);
-		memcpy(s->spin, h->spins + (Rand15() & 0x3F) * 0x20, 0x12);
+		ff8fx::copy<(0x12)>(s->spin, h->spins + (Rand15() & 0x3F) * 0x20);
 	}
 
 	// 0x66C5C0 (triangles, 0x14 bytes) / 0x66C830 (quads, 0x18 bytes): one shard per polygon of the list
@@ -567,7 +567,7 @@ namespace mask303
 			if (y > my) my = y;
 			if (z < nz) nz = z;
 			if (z > mz) mz = z;
-			memcpy(out, h->v[0], 8);
+			ff8fx::copy<(8)>(out, h->v[0]);
 			out += 8;
 		} while (--n);
 		h->spins = out;
@@ -629,7 +629,7 @@ namespace mask303
 				GteReadDataRegTo(&ir2, 10);
 				e[8] = (uint8_t)(ir2 >> 3);
 				e[7] = (uint8_t)(ir1 >> 3);
-				memcpy(vb, e, 0xC);
+				ff8fx::copy<(0xC)>(vb, e);
 			}
 			vb += 0xC;
 		}
@@ -666,7 +666,7 @@ namespace mask303
 		uint8_t *f = hh->faces;
 		for (uint32_t i = 0; i < hh->ntri; i++, f += 0x10)
 		{
-			for (int j = 0; j < 3; j++) memcpy(hh->e[j], vb + (uint32_t)(*(const uint16_t *)(f + 2 * j) & 0xFFF) * 0xC, 0xC);
+			for (int j = 0; j < 3; j++) ff8fx::copy<(0xC)>(hh->e[j], vb + (uint32_t)(*(const uint16_t *)(f + 2 * j) & 0xFFF) * 0xC);
 			if ((uint8_t)(hh->e[0][6] | hh->e[1][6] | hh->e[2][6]) >= 0x10) continue;
 			if (hh->e[2][6] & (uint8_t)(hh->e[0][6] & hh->e[1][6])) continue;
 			GteSetSXY012(*(const uint32_t *)hh->e[0], *(const uint32_t *)hh->e[1], *(const uint32_t *)hh->e[2]);
@@ -677,7 +677,7 @@ namespace mask303
 			GteAVSZ3();
 			uint8_t *P1 = (uint8_t *)hh->cursor;
 			hh->cursor += 0xC;
-			memcpy(P1, hh->win_a, 0xC);
+			ff8fx::copy<(0xC)>(P1, hh->win_a);
 			GteReadOTZ32(&hh->otz);
 			const uint32_t bucket = ot + (uint32_t)(hh->otz >> (shift & 0x1F)) * 4;
 			InsertPrimAutoDepth(bucket, P1);
@@ -693,7 +693,7 @@ namespace mask303
 			InsertPrimAutoDepth(bucket, Q);
 			uint8_t *P2 = (uint8_t *)hh->cursor;
 			hh->cursor += 0xC;
-			memcpy(P2, hh->win_b, 0xC);
+			ff8fx::copy<(0xC)>(P2, hh->win_b);
 			Q += 0x20;
 			InsertPrimAutoDepth(bucket, P2);
 			uint8_t *P3 = (uint8_t *)hh->cursor;
@@ -710,7 +710,7 @@ namespace mask303
 		}
 		for (uint32_t i = 0; i < hh->nquad; i++, f += 0x14)
 		{
-			for (int j = 0; j < 4; j++) memcpy(hh->e[j], vb + (uint32_t)(*(const uint16_t *)(f + 2 * j) & 0xFFF) * 0xC, 0xC);
+			for (int j = 0; j < 4; j++) ff8fx::copy<(0xC)>(hh->e[j], vb + (uint32_t)(*(const uint16_t *)(f + 2 * j) & 0xFFF) * 0xC);
 			if ((uint8_t)(hh->e[0][6] | hh->e[1][6] | hh->e[2][6] | hh->e[3][6]) >= 0x10) continue;
 			if (hh->e[3][6] & (uint8_t)(hh->e[0][6] & hh->e[1][6] & hh->e[2][6])) continue;
 			GteSetSXY012(*(const uint32_t *)hh->e[0], *(const uint32_t *)hh->e[1], *(const uint32_t *)hh->e[2]);
@@ -720,7 +720,7 @@ namespace mask303
 			GteSetSZ0123(*(const int16_t *)(hh->e[0] + 4), *(const int16_t *)(hh->e[1] + 4), *(const int16_t *)(hh->e[2] + 4), *(const int16_t *)(hh->e[3] + 4));
 			GteAVSZ4();
 			uint8_t *P1 = (uint8_t *)hh->cursor;
-			memcpy(P1, hh->win_a, 0xC);
+			ff8fx::copy<(0xC)>(P1, hh->win_a);
 			GteReadOTZ32(&hh->otz);
 			const uint32_t bucket = ot + (uint32_t)(hh->otz >> (shift & 0x1F)) * 4;
 			InsertPrimAutoDepth(bucket, P1);
@@ -737,7 +737,7 @@ namespace mask303
 			*(uint16_t *)(Q + 0x16) = hh->page;
 			InsertPrimAutoDepth(bucket, Q);
 			uint8_t *P2 = (uint8_t *)hh->cursor;
-			memcpy(P2, hh->win_b, 0xC);
+			ff8fx::copy<(0xC)>(P2, hh->win_b);
 			Q += 0x28;
 			InsertPrimAutoDepth(bucket, P2);
 			uint8_t *P3 = (uint8_t *)hh->cursor + 0xC;
@@ -882,7 +882,7 @@ namespace mask303
 	// a mask piece's layout parameter block (0x66C37F..0x66C3C3): at its position, scaled
 	static void PieceArg(const LayoutNode *L, PrimArg *a)
 	{
-		memcpy(a->pos, L->pos, 8);
+		ff8fx::copy<(8)>(a->pos, L->pos);
 		a->scale[0] = a->scale[1] = a->scale[2] = L->scale;
 		a->scaled = 1;
 		a->depth = 0;
@@ -970,9 +970,9 @@ namespace mask303
 		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
 		DecodeModelPrimLayout(MODEL_Piece, L->layout, 0x118);
 		L->model = model;
-		memcpy(L->pos, Caster() + 0x1C, 8);
+		ff8fx::copy<(8)>(L->pos, Caster() + 0x1C);
 		L->scale = scale;
-		memcpy(L->vel, vel, 8);
+		ff8fx::copy<(8)>(L->vel, vel);
 	}
 
 	// ------------------------------------------------------------------
@@ -1003,7 +1003,7 @@ namespace mask303
 				m->pt[3] = 0;
 			}
 			PrimArg a;
-			memcpy(a.pos, m->pt, 8);
+			ff8fx::copy<(8)>(a.pos, m->pt);
 			a.scaled = 0;
 			a.depth = -0x80;
 			a.morph = TexBase() + MORPH;
@@ -1015,7 +1015,7 @@ namespace mask303
 				{
 					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 					if (!s) continue;
-					memcpy(s->pos, m->pt, 8); // pos + frame (the point's 4th word, 0)
+					ff8fx::copy<(8)>(s->pos, m->pt); // pos + frame (the point's 4th word, 0)
 					s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
 					s->vel[1] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
 					s->vel[2] = (int16_t)((CrtRand() & 0x1FF) - 0x100);

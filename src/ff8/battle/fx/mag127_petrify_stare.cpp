@@ -243,7 +243,7 @@ namespace petrify127
 		if ((uint32_t)((int32_t)t->counter - 0xE) < 0x64)
 		{
 			if (t->counter == 0xE) GetDefaultEffectPosition(t->entity, t->stone);
-			memcpy(arg.pos, t->stone, 8);
+			ff8fx::copy<(8)>(arg.pos, t->stone);
 			arg.depth = SizeDepth(t->entity);
 			arg.morph = TexBase() + 0x4BC;
 			// 30 fps layer: see mag127_petrify_stare_held.inc

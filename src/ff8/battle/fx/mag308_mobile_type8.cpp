@@ -800,9 +800,9 @@ namespace mobile308
 			case 0x1014:
 				e->rot[0] = (int16_t)(e->rot[0] + s->avel[0]); e->rot[1] = (int16_t)(e->rot[1] + s->avel[1]); e->rot[2] = (int16_t)(e->rot[2] + s->avel[2]);
 				continue;
-			case 0x1080: memcpy(e, s->pose + *ip++, 0x10); continue;
-			case 0x1081: memcpy(e, s->pose + *ip++, 8); continue;
-			case 0x1082: memcpy(&e->rot[0], &s->pose[*ip++].rot[0], 8); continue;
+			case 0x1080: ff8fx::copy<(0x10)>(e, s->pose + *ip++); continue;
+			case 0x1081: ff8fx::copy<(8)>(e, s->pose + *ip++); continue;
+			case 0x1082: ff8fx::copy<(8)>(&e->rot[0], &s->pose[*ip++].rot[0]); continue;
 			case 0x1090: ip = Sparks(ip, s->entity, s->pose); continue;
 			case 0x10A0: ip = SpawnLayout(ip, s->entity, s->pose, 0); continue;
 			case 0x10A1: ip = SpawnLayout(ip, s->entity, s->pose, 1); continue;

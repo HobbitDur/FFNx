@@ -240,15 +240,15 @@ namespace needles178
 	static uint8_t *NeedleBlock()
 	{
 		uint8_t *b = (uint8_t *)FieldAlloc(0xDC);
-		memcpy(b + 0x6C, (const void *)NEEDLE_VERTS, 0x20);
-		memcpy(b + 0x8C, (const void *)NEEDLE_POLYS, 0x50);
-		memcpy(b + 0x2C, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(b + 0x6C, (const void *)NEEDLE_VERTS);
+		ff8fx::copy<(0x50)>(b + 0x8C, (const void *)NEEDLE_POLYS);
+		ff8fx::copy<(0x20)>(b + 0x2C, &Camera());
 		return b;
 	}
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *seq = (uint8_t *)FieldAlloc(0x28);
-		memcpy(seq, (const void *)SEQ_Spark, 0x28);
+		ff8fx::copy<(0x28)>(seq, (const void *)SEQ_Spark);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint8_t **)h = seq;
 		*(int16_t *)(h + 0x24) = 0;

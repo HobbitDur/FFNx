@@ -944,7 +944,7 @@ namespace gastric169
 				e->flags = (uint32_t)(int32_t)n->idx;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x900 + 0x600);
-				memcpy(e->pos, n->pos, 8);
+				ff8fx::copy<(8)>(e->pos, n->pos);
 				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(CrtRand() % 700 - 350));
 				e->pos[1] = (int16_t)(e->pos[1] + (int16_t)(-100 - CrtRand() % 300));
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(CrtRand() % 700 - 350));
@@ -1064,8 +1064,8 @@ namespace gastric169
 		s->dst[0] = (int16_t)(s->dst[0] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
 		s->dst[1] = 0;
 		s->dst[2] = (int16_t)(s->dst[2] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
-		memcpy(s->cp[0], s->src, 8);
-		memcpy(s->cp[3], s->dst, 8);
+		ff8fx::copy<(8)>(s->cp[0], s->src);
+		ff8fx::copy<(8)>(s->cp[3], s->dst);
 		const int16_t x0 = s->src[0];
 		const int32_t dx = (s->dst[0] - x0) / 3;
 		const int32_t dz = (s->dst[2] - s->src[2]) / 3;
@@ -1109,7 +1109,7 @@ namespace gastric169
 		if (n->counter == 0x16)
 		{
 			Node *m = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Mesh);
-			memcpy(m->pos, s->dst, 8);
+			ff8fx::copy<(8)>(m->pos, s->dst);
 			m->counter = 0;
 			m->idx = n->idx;
 			m->a18 = (int16_t)(CrtRand() % 4096);
@@ -1120,13 +1120,13 @@ namespace gastric169
 				Node *d = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Drips);
 				d->counter = 0;
 				d->idx = (int16_t)(1u << ((uint8_t)n->idx & 31));
-				memcpy(d->pos, s->dst, 8);
+				ff8fx::copy<(8)>(d->pos, s->dst);
 			}
 		}
 		if (n->counter == 0x15)
 		{
 			Node *p = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Puddle);
-			memcpy(p->pos, s->dst, 8);
+			ff8fx::copy<(8)>(p->pos, s->dst);
 			p->counter = 0;
 			p->a18 = (int16_t)(CrtRand() % 4096);
 			const int16_t g = (int16_t)((CrtRand() % 2048 + 0xD00) / 10);

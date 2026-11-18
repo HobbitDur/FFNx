@@ -163,8 +163,8 @@ namespace renzo342
 		if (!DrawOnly() && n->c <= 0xE)
 		{
 			const HitRec *hr = (const HitRec *)(HIT_REC + 0x9C * n->e);
-			memcpy(w->dir, hr->dir, 16);
-			memcpy(w->pos, hr->pos, 8);
+			ff8fx::copy<(16)>(w->dir, hr->dir);
+			ff8fx::copy<(8)>(w->pos, hr->pos);
 			for (int32_t j = 0; j < 2; j++)
 			{
 				const int32_t i = FreeRecord();
@@ -173,7 +173,7 @@ namespace renzo342
 				p->alive = n->e;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x980 + 0x700);
-				memcpy(p->pos, w->pos, 8);
+				ff8fx::copy<(8)>(p->pos, w->pos);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x8C - 0x46));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x8C - 0x46));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x8C - 0x46));

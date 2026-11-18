@@ -452,7 +452,7 @@ namespace act
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(BG(BG_257B5BC)) = 0x2793E58;
 		MEM<uint32_t>(BG(BG_2575378)) = 0x2793E58;
@@ -2197,7 +2197,7 @@ namespace act
 			if (sub == 0 || sub == 1)
 			{
 				if (parent != 0)
-					memcpy((void *)m, (const void *)(parent + 0x2C), 8 * 4);
+					ff8fx::copy<(8 * 4)>((void *)m, (const void *)(parent + 0x2C));
 				else
 					x::MAG_022_sub_8DD770(m);
 			}
@@ -5966,7 +5966,7 @@ namespace
 	uint32_t __cdecl b10_716CD0(uint32_t a1)
 	{
 		uint32_t ent = U32(a1, 0x48);
-		memcpy((void *)a1, (const void *)(ent + 0x40), 0x20);
+		ff8fx::copy<(0x20)>((void *)a1, (const void *)(ent + 0x40));
 		uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		x::GTE_SetRotMatrix(0x1D97778);

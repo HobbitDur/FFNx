@@ -265,7 +265,7 @@ namespace lasereye
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x26D40DC) = 0x2793E58;
@@ -456,7 +456,7 @@ namespace lasereye
 				break;
 			}
 			case 3: // 0x8784A2: owner instance matrix
-				memcpy((void *)m, (void *)(owner + 0x8C), 32);
+				ff8fx::copy<(32)>((void *)m, (void *)(owner + 0x8C));
 				break;
 			case 4: // 0x8784B4: yaw of battle entity dir+0x1E (entity +0xE)
 			{
@@ -610,7 +610,7 @@ namespace lasereye
 		const uint32_t m = P(mtx);
 		const int32_t px = S16(a1, 0x1C);
 		const int32_t pz = S16(a1, 0x20);
-		memcpy(mtx, (const void *)a2, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>(mtx, (const void *)a2); // rep movsd
 		const int32_t py = S16(a1, 0x1E);
 		S32(m, 0x14) = px;
 		S32(m, 0x18) = py;

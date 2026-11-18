@@ -718,9 +718,9 @@ namespace apocalypse221
 
 	static void apply_slots(Clone &c)
 	{
-		memcpy(g_save_vm, c.vm, sizeof(g_save_vm));
-		memcpy(g_save_big, c.bigtab, sizeof(g_save_big));
-		memcpy(g_save_draw, c.draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(g_save_vm, c.vm);
+		ff8fx::copy<(sizeof(g_save_big))>(g_save_big, c.bigtab);
+		ff8fx::copy<(sizeof(g_save_draw))>(g_save_draw, c.draw);
 		apply_shared_misc(c);
 		apply_shared_ribbon(c);
 		apply_eden_b(c);
@@ -728,9 +728,9 @@ namespace apocalypse221
 		const VoidFn p16 = c.prim[16];        // 0xAAA2C0 = Cerberus 0xB105B0 / Eden 0xAEC030 TintedF4
 		const VoidFn d37 = c.draw[37];        // 0xAA7890 RibbonTrail
 		const VoidFn d61 = c.draw[61];        // 0xAA6910 = Eden 0xAE71D0 MeshRadialLightWave
-		memcpy(c.vm, g_save_vm, sizeof(g_save_vm));
-		memcpy(c.bigtab, g_save_big, sizeof(g_save_big));
-		memcpy(c.draw, g_save_draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(c.vm, g_save_vm);
+		ff8fx::copy<(sizeof(g_save_big))>(c.bigtab, g_save_big);
+		ff8fx::copy<(sizeof(g_save_draw))>(c.draw, g_save_draw);
 		c.vm[0x05C] = v5c;
 		c.prim[16] = p16;
 		c.draw[37] = d37;

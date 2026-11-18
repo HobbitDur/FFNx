@@ -150,7 +150,7 @@ namespace tonk324
 		int32_t n = sk[0];
 		if (n <= 0) return;
 		uint8_t *src = sk + 0x20;
-		for (; n != 0; n--, src += 0x30, dst += 0x20) memcpy(dst, src, 0x20);
+		for (; n != 0; n--, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// 0x597790: src -> the skeleton's bone matrices
@@ -159,7 +159,7 @@ namespace tonk324
 		uint8_t *sk = **(uint8_t ***)(anim + 4);
 		if (sk[0] == 0) return;
 		uint8_t *dst = sk + 0x20;
-		for (int32_t i = 0; i < sk[0]; i++, src += 0x20, dst += 0x30) memcpy(dst, src, 0x20);
+		for (int32_t i = 0; i < sk[0]; i++, src += 0x20, dst += 0x30) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// 0x5977D0 (= Degenerator 174's 0x5D5120): the entity's model through its current bones, camera x its matrix
@@ -192,7 +192,7 @@ namespace tonk324
 		uint8_t *h = AllocHeader(0xB4);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t live = 0;
-		memcpy(w + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(w + 8, &Camera());
 		*(uint32_t *)h = seq;
 		GteSetLightMatrix(w + 8);
 		GteSetBackFromTrans(w + 8);
@@ -284,7 +284,7 @@ namespace tonk324
 			BonesOut(Caster() + 0x60, (uint8_t *)KEPT_BONES);
 			uint8_t *e = Caster();
 			*(uint32_t *)(e + 0x7C) &= ~2u;
-			memcpy((void *)KEPT_MATRIX, e + 0x40, 0x20);
+			ff8fx::copy<(0x20)>((void *)KEPT_MATRIX, e + 0x40);
 		}
 		BonesOut(Caster() + 0x60, (uint8_t *)CUR_BONES);
 		uint8_t *e = Caster();
@@ -293,8 +293,8 @@ namespace tonk324
 		uint8_t live[0x20];
 		if (t->counter > 6)
 		{
-			memcpy(live, e + 0x40, 0x20);
-			memcpy(e + 0x40, (const void *)KEPT_MATRIX, 0x20);
+			ff8fx::copy<(0x20)>(live, e + 0x40);
+			ff8fx::copy<(0x20)>(e + 0x40, (const void *)KEPT_MATRIX);
 		}
 		*(uint32_t *)(e + 0x7C) = 2;
 		BonesIn(e + 0x60, (const uint8_t *)KEPT_BONES);
@@ -316,7 +316,7 @@ namespace tonk324
 		const int16_t c = t->counter;
 		*(uint32_t *)(e + 0x7C) = mask;
 		*(uint32_t *)(e + 0x28) = tint;
-		if (c > 6) memcpy(e + 0x40, live, 0x20);
+		if (c > 6) ff8fx::copy<(0x20)>(e + 0x40, live);
 		if (DrawOnly()) return 0;
 		t->counter = (int16_t)(c + 1);
 		return t->counter > 0x20 ? TASK_END : 0;

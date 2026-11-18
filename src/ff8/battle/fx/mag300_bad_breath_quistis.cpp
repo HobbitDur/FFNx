@@ -567,7 +567,7 @@ namespace badbreath300
 	// the hit layout's parameter block (0x66F790's stack block; +0x14 = the modelled stack word)
 	static void HitArg(const HitNode *t, PrimArg *arg)
 	{
-		memcpy(arg->pos, t->pos, sizeof(arg->pos));
+		ff8fx::copy<(sizeof(arg->pos))>(arg->pos, t->pos);
 		const int32_t s = ((int32_t)*(const int16_t *)(Entity(t->slot) + 0x26) >> 2) + 0x200;
 		arg->scale[0] = s;
 		arg->scale[1] = s;

@@ -228,14 +228,14 @@ namespace quick196
 		const uint8_t *sk = *(const uint8_t **)*(uint8_t **)(w + 4);
 		const int32_t n = sk[0];
 		const uint8_t *src = sk + 0x20;
-		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>(dst, src);
 	}
 	// ... and back
 	static void BoneRestore(uint8_t *w, const uint8_t *src)
 	{
 		uint8_t *sk = *(uint8_t **)*(uint8_t **)(w + 4);
 		uint8_t *dst = sk + 0x20;
-		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// the entity's weapon model alone under its world matrix, with its current bone matrices and colour word +0x28

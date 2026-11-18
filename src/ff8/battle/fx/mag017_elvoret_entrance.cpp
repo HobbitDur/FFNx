@@ -336,7 +336,7 @@ namespace elvoret017
 				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
-				memcpy(p->pos, sp, 8); // x, y, z and the word after (overwritten by the size)
+				ff8fx::copy<(8)>(p->pos, sp); // x, y, z and the word after (overwritten by the size)
 				p->scale = (int16_t)((CrtRand() & 0x3FF) + 0x800);
 				p->vel[0] = (int16_t)((CrtRand() & 0x3F) - 0x20);
 				p->vel[1] = (int16_t)((CrtRand() & 0x3F) - 0x20);

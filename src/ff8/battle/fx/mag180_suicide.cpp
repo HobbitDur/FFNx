@@ -413,7 +413,7 @@ namespace suicide180
 	// its 0x88 block: the camera copy and the up vector
 	static void ExplosionBlock(uint8_t *m)
 	{
-		memcpy(m + 0x28, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(m + 0x28, &Camera());
 		*(int32_t *)(m + 0x58) = 0;
 		*(int32_t *)(m + 0x5C) = -0x1000;
 		*(int32_t *)(m + 0x60) = 0;
@@ -547,7 +547,7 @@ namespace suicide180
 				p->type = 1;
 				p->frame = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xE00);
-				memcpy(p->pos, t->pos, 8);
+				ff8fx::copy<(8)>(p->pos, t->pos);
 				int32_t v[3];
 				v[0] = CrtRand() % 0x1000 - 0x800;
 				v[1] = CrtRand() % 0x1000 - 0x800;
@@ -644,7 +644,7 @@ namespace suicide180
 				p->type = 2;
 				p->frame = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1000 + 0x800);
-				memcpy(p->pos, t->pos, 8);
+				ff8fx::copy<(8)>(p->pos, t->pos);
 				int32_t v[3];
 				v[0] = CrtRand() % 0x1000 - 0x800;
 				v[1] = CrtRand() % 0x1000 - 0x800;
@@ -697,7 +697,7 @@ namespace suicide180
 				p->type = 4;
 				p->frame = 0;
 				p->scale = (int16_t)(CrtRand() % 0xF00 + 0xA00);
-				memcpy(p->pos, t->pos, 8);
+				ff8fx::copy<(8)>(p->pos, t->pos);
 				p->pos[0] = (int16_t)(p->pos[0] + (CrtRand() % 0x4B0 - 0x258));
 				p->pos[1] = (int16_t)(p->pos[1] + (CrtRand() % 0x4B0 - 0x258));
 				p->pos[2] = (int16_t)(p->pos[2] + (CrtRand() % 0x4B0 - 0x258));
@@ -774,13 +774,13 @@ namespace suicide180
 		{
 			GetDefaultEffectPosition(Caster(), t->pos);
 			EffectNode *e = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Explosion);
-			memcpy(e->pos, t->pos, 8);
+			ff8fx::copy<(8)>(e->pos, t->pos);
 			e->counter = 0;
 		}
 		if (t->counter == 0x1C)
 		{
 			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
-			memcpy(r->pos, t->pos, 8);
+			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->zero = 0;
 			r->spin = (int16_t)(CrtRand() % 0x1000);
@@ -789,7 +789,7 @@ namespace suicide180
 			r->scale = 0x1CC;
 			r->spin_speed = (int16_t)(s + 0x3C);
 			r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring);
-			memcpy(r->pos, t->pos, 8);
+			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->zero = 0;
 			r->spin = (int16_t)(CrtRand() % 0x1000);
@@ -801,19 +801,19 @@ namespace suicide180
 		if (t->counter == 0x1B)
 		{
 			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Ring2);
-			memcpy(r->pos, t->pos, 8);
+			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->spin = (int16_t)(CrtRand() % 0x1000);
 			r->scale_speed = 0x580;
 			r->scale = 0x580;
 			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Sparks);
-			memcpy(s->pos, t->pos, 8);
+			ff8fx::copy<(8)>(s->pos, t->pos);
 			s->counter = 0;
 		}
 		if (t->counter == 0x1C)
 		{
 			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), ORIG_Smoke);
-			memcpy(s->pos, t->pos, 8);
+			ff8fx::copy<(8)>(s->pos, t->pos);
 			s->counter = 0;
 		}
 		if (t->counter == 1)

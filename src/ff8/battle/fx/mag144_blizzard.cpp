@@ -334,7 +334,7 @@ namespace blizzard144
 		if (d->counter == 1)
 		{
 			CrystalNode *c = (CrystalNode *)AddTaskToQueue(&Queues().second, ORIG_CrystalTask);
-			memcpy(c->pos, d->pos, 8);
+			ff8fx::copy<(8)>(c->pos, d->pos);
 			c->pos[1] = (int16_t)(c->pos[1] - 900);
 			c->counter = 0;
 			c->action = d->action;
@@ -351,7 +351,7 @@ namespace blizzard144
 			MistNode *m = (MistNode *)AddTaskToQueue(&Queues().second, ORIG_MistPuffTask);
 			m->frame = 0;
 			m->delay = (int16_t)(CrtRand() % 4);
-			memcpy(m->pos, d->pos, 8);
+			ff8fx::copy<(8)>(m->pos, d->pos);
 			m->pos[1] = (int16_t)(m->pos[1] - 1000);
 			m->pos[0] += (int16_t)(CrtRand() % 1000 - 500);
 			m->pos[1] += (int16_t)(CrtRand() % 1000 - 500);
@@ -364,7 +364,7 @@ namespace blizzard144
 			for (int32_t k = count; k > 0; k--)
 			{
 				FallingIceNode *f = (FallingIceNode *)AddTaskToQueue(&Queues().second, ORIG_FallingIceTask);
-				memcpy(f->pos, d->pos, 8);
+				ff8fx::copy<(8)>(f->pos, d->pos);
 				f->pos[1] = (int16_t)(f->pos[1] - 600);
 				f->frame = 0;
 				f->pos[0] += (int16_t)(CrtRand() % 1000 - 500);
@@ -634,16 +634,16 @@ namespace blizzard144
 			bool moving = s->step < s->steps;
 			if (moving)
 			{
-				memcpy(h->center, s->center, 8);
-				memcpy(h->v0, a, 8);
+				ff8fx::copy<(8)>(h->center, s->center);
+				ff8fx::copy<(8)>(h->v0, a);
 				h->v0[0] = (int16_t)(h->v0[0] - h->center[0]);
 				h->v0[1] = (int16_t)(h->v0[1] - h->center[1]);
 				h->v0[2] = (int16_t)(h->v0[2] - h->center[2]);
-				memcpy(h->v1, b, 8);
+				ff8fx::copy<(8)>(h->v1, b);
 				h->v1[0] = (int16_t)(h->v1[0] - h->center[0]);
 				h->v1[1] = (int16_t)(h->v1[1] - h->center[1]);
 				h->v1[2] = (int16_t)(h->v1[2] - h->center[2]);
-				memcpy(h->v2, c, 8);
+				ff8fx::copy<(8)>(h->v2, c);
 				h->v2[0] = (int16_t)(h->v2[0] - h->center[0]);
 				h->v2[1] = (int16_t)(h->v2[1] - h->center[1]);
 				h->v2[2] = (int16_t)(h->v2[2] - h->center[2]);
@@ -676,9 +676,9 @@ namespace blizzard144
 			}
 			else
 			{
-				memcpy(h->v0, a, 8);
-				memcpy(h->v1, b, 8);
-				memcpy(h->v2, c, 8);
+				ff8fx::copy<(8)>(h->v0, a);
+				ff8fx::copy<(8)>(h->v1, b);
+				ff8fx::copy<(8)>(h->v2, c);
 				GteSetRotMatrixCtrl(&h->base);
 				GteSetTransVectorCtrl(&h->base);
 				*(uint32_t *)(p + 4) = 0x24808080;

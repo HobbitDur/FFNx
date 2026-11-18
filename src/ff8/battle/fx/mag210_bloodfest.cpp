@@ -127,7 +127,7 @@ namespace blood210
 	{
 		const int32_t half = spread >> 1;
 		*delay = (int16_t)(CrtRand() % r.delay_mod + r.delay_step * k);
-		memcpy(f->pos, pos, 8);
+		ff8fx::copy<(8)>(f->pos, pos);
 		f->pos[0] += (int16_t)(CrtRand() % spread - half);
 		f->pos[1] += (int16_t)(CrtRand() % spread - half);
 		f->pos[2] += (int16_t)(CrtRand() % spread - half);
@@ -187,7 +187,7 @@ namespace blood210
 	inline void EmberStart(Ember *e, int16_t *delay, const int16_t *flame_pos, int32_t k, const EmberRolls &r)
 	{
 		*delay = (int16_t)(CrtRand() % r.delay_mod + r.delay_step * k);
-		memcpy(e->pos, flame_pos, 8);
+		ff8fx::copy<(8)>(e->pos, flame_pos);
 		e->pos[0] += (int16_t)r.x.of(CrtRand());
 		e->pos[1] += (int16_t)r.y.of(CrtRand());
 		e->pos[2] += (int16_t)r.z.of(CrtRand());
@@ -226,7 +226,7 @@ namespace blood210
 	{
 		*life = (int16_t)r.life.of(CrtRand());
 		*delay = (int16_t)(CrtRand() % r.delay_mod + r.delay_step * k);
-		memcpy(s->pos, flame_pos, 8);
+		ff8fx::copy<(8)>(s->pos, flame_pos);
 		s->pos[0] += (int16_t)r.x.of(CrtRand());
 		s->pos[1] += (int16_t)r.y.of(CrtRand());
 		s->pos[2] += (int16_t)r.z.of(CrtRand());
@@ -526,7 +526,7 @@ namespace blood210
 			r->e = e;
 			r->pos01 = *(const uint32_t *)(e + 0x1C);
 			r->pos23 = *(const uint32_t *)(e + 0x20);
-			memcpy(r->ang, ZeroAngles(), 8);
+			ff8fx::copy<(8)>(r->ang, ZeroAngles());
 			int16_t p[4];
 			GetDefaultEffectPosition(e, p);
 			if (p[0] < minx) minx = p[0];
@@ -853,7 +853,7 @@ namespace blood210
 		for (uint32_t b = 0; b < skel[0]; b++)
 		{
 			const int32_t k = (int8_t)g[5 + b];
-			if (k >= 0) memcpy(dst + k * 0x20, skel + 0x20 + b * 0x30, 0x20);
+			if (k >= 0) ff8fx::copy<(0x20)>(dst + k * 0x20, skel + 0x20 + b * 0x30);
 		}
 	}
 
@@ -1788,8 +1788,8 @@ namespace blood210
 		int32_t idx = t->counter % 7;
 		RingEntry *e = &t->ring[idx];
 		e->alive = 1;
-		memcpy(e->base, w->base, 8);
-		memcpy(e->tip, w->tip, 8);
+		ff8fx::copy<(8)>(e->base, w->base);
+		ff8fx::copy<(8)>(e->tip, w->tip);
 		const int32_t want = t->counter >= 0x35 ? 0x3C - t->counter : 7;
 		int32_t cnt = 0;
 		while (cnt < want)
@@ -1797,8 +1797,8 @@ namespace blood210
 			const RingEntry *r = &t->ring[idx];
 			if (!r->alive) break;
 			idx--;
-			memcpy(t->pts_a[cnt], r->base, 8);
-			memcpy(t->pts_b[cnt], r->tip, 8);
+			ff8fx::copy<(8)>(t->pts_a[cnt], r->base);
+			ff8fx::copy<(8)>(t->pts_b[cnt], r->tip);
 			if (idx < 0) idx = 6;
 			cnt++;
 		}
@@ -1810,12 +1810,12 @@ namespace blood210
 			SplineSetup(cnt, t->pts_b, wk);
 			for (int32_t k = 0, u = 0; k < 32; k++, u += 0x1000) SplineEval(cnt, wk, t->spl_b[k], u / 31);
 			FieldFree(0x190);
-			memcpy(t->first_b, t->spl_b[0], 8);
+			ff8fx::copy<(8)>(t->first_b, t->spl_b[0]);
 			t->dir_b[0] = (int32_t)t->spl_b[0][0] - t->spl_b[1][0];
 			t->dir_b[1] = (int32_t)t->spl_b[0][1] - t->spl_b[1][1];
 			t->dir_b[2] = (int32_t)t->spl_b[0][2] - t->spl_b[1][2];
 			NormalizeVector(t->dir_b, t->dir_b);
-			memcpy(t->first_a, t->spl_a[0], 8);
+			ff8fx::copy<(8)>(t->first_a, t->spl_a[0]);
 			t->dir_ab[0] = (int32_t)t->first_b[0] - t->first_a[0];
 			t->dir_ab[1] = (int32_t)t->first_b[1] - t->first_a[1];
 			t->dir_ab[2] = (int32_t)t->first_b[2] - t->first_a[2];

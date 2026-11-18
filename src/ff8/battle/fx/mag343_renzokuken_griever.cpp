@@ -102,12 +102,12 @@ namespace renzo343
 		if (n->c == 0x37)
 		{
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Final);
-			memcpy(&t->w10, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0xC00 + 0x1C00) / 3);
 			t->w1E = s;
 			t->w1C = s;
-			memcpy((void *)SAVED_MAT, Caster() + 0x40, 0x20);
+			ff8fx::copy<(0x20)>((void *)SAVED_MAT, Caster() + 0x40);
 		}
 	}
 

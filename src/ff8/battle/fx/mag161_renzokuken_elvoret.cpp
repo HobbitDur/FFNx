@@ -371,7 +371,7 @@ namespace renzo161
 				StreamP *p = (StreamP *)(POOL_D + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x700 + 0x600);
-				memcpy(p->pos, b, 8);
+				ff8fx::copy<(8)>(p->pos, b);
 				const int32_t sp = CrtRand() % 0x78 + 0x64;
 				const int32_t r0 = CrtRand() % 0x14;
 				p->vel[0] = (int16_t)(r0 + (mul32(sp, d[0]) >> 12) - 0xA);
@@ -756,8 +756,8 @@ namespace renzo161
 			s->w1E = sc;
 			s->w1C = sc;
 			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
-			memcpy(r->pos, (const void *)HIT_POS, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
+			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -775,7 +775,7 @@ namespace renzo161
 				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xE00);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
@@ -788,7 +788,7 @@ namespace renzo161
 				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x1000 + 0x1800);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
 				const int32_t *d = (const int32_t *)HIT_DIR;
 				const int32_t r0 = CrtRand() % 200;

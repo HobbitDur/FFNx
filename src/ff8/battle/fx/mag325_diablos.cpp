@@ -359,7 +359,7 @@ namespace d325
 
 	static void CtxA(PrimCtx &c, int16_t fade)
 	{
-		memset(&c, 0, sizeof(c));
+		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[2] = (int16_t)MidZ();
 		c.morph = Morph();
 		c.scroll_sel = 0xFE0FC0; // "0000"
@@ -370,7 +370,7 @@ namespace d325
 
 	static void CtxC(PrimCtx &c)
 	{
-		memset(&c, 0, sizeof(c));
+		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[0] = 0x5A;
 		c.pos[1] = (int16_t)0xDC7C;
 		c.pos[2] = (int16_t)(FarZ() - 0xA0);
@@ -381,7 +381,7 @@ namespace d325
 
 	static void CtxB298(PrimCtx &c)
 	{
-		memset(&c, 0, sizeof(c));
+		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[0] = 0x4A;
 		c.pos[1] = (int16_t)0xD736;
 		c.pos[2] = (int16_t)(FarZ() - 0xF2);
@@ -392,7 +392,7 @@ namespace d325
 
 	static void CtxB406(PrimCtx &c, int16_t scroll)
 	{
-		memset(&c, 0, sizeof(c));
+		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[0] = (int16_t)CenterX();
 		c.pos[2] = (int16_t)CenterZ();
 		c.morph = Morph();
@@ -986,7 +986,7 @@ namespace d325
 			{
 				if (e == 0)
 				{
-					memcpy(e2 + 0x40, e1 + 0x40, 0x20);
+					ff8fx::copy<(0x20)>(e2 + 0x40, e1 + 0x40);
 					x::BindModel(e2, t->sections2, (uint32_t)(ModelBuffer() + 0x31B5C));
 					x::SetAnim(e2, 0);
 				}
@@ -1420,7 +1420,7 @@ namespace d325
 	// ------------------------------------------------------------------
 	static void CtxRising(PrimCtx &c, const int16_t pos[3], int16_t shade)
 	{
-		memset(&c, 0, sizeof(c));
+		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[0] = pos[0];
 		c.pos[1] = pos[1];
 		c.pos[2] = pos[2];
@@ -1446,7 +1446,7 @@ namespace d325
 
 	static void CtxBurst(PrimCtx &c, const BurstNode *p)
 	{
-		memset(&c, 0, sizeof(c));
+		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[0] = p->pos[0];
 		c.pos[1] = p->pos[1];
 		c.pos[2] = p->pos[2];

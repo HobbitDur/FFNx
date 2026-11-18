@@ -614,7 +614,7 @@ namespace raijin
 			return 0; // void
 		const uint32_t ent = ENT(U8(node, 0x2C));
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		memcpy((void *)(node + 0x30), (const void *)(ent + 0x40), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(node + 0x30), (const void *)(ent + 0x40)); // rep movsd
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
@@ -639,7 +639,7 @@ namespace raijin
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
-		memcpy((void *)(node + 0x30), (const void *)(ent + 0x40), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(node + 0x30), (const void *)(ent + 0x40)); // rep movsd
 		U16(node, 0x88) = 0xFE00;
 		x::MAG_022_sub_8DD8A0(node + 0x30, 0x800);
 		x::GetEffectSpawnPosition(ent, 0xF1, 0, node + 0x1C);
@@ -1007,7 +1007,7 @@ namespace raijin
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x2604188) = 0x2793E58;
@@ -1203,7 +1203,7 @@ namespace raijin
 		// the callback 0x7EBBB0 does not read them)
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
-		memcpy((void *)L, (const void *)(a1 + 0x30), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)L, (const void *)(a1 + 0x30)); // rep movsd
 		x::scale3DMatrix(L, a1 + 0x50);
 		S32(L, 0x14) = S16(a1, 0x1C);
 		S32(L, 0x18) = S16(a1, 0x1E);

@@ -264,7 +264,7 @@ namespace redgiant316
 		F<uint8_t *>(h, 0x78) = out;
 	}
 
-	static inline void Copy16(uint8_t *dst, const uint8_t *src) { memcpy(dst, src, 0x10); }
+	static inline void Copy16(uint8_t *dst, const uint8_t *src) { ff8fx::copy<(0x10)>(dst, src); }
 
 	// ------------------------------------------------------------------
 	// Sweep B's polygons (0x661EB0, no IDB start)

@@ -583,7 +583,7 @@ namespace strike87
 		// 30 fps layer: see mag087_angelo_strike_held.inc
 		FX_HELD(held_note_master();)
 
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x25B4B24) = 0x2793E58;
 		MEM<uint32_t>(0x25ACFC0) = 0x2793E58;
@@ -1070,7 +1070,7 @@ namespace strike87
 		const int32_t py = S16(node, 0x4E);
 		const int32_t px = S16(node, 0x4C);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		memcpy((void *)0x1D99AB0, (const void *)(node + 0x70), 8 * 4); // rep movsd
+		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70)); // rep movsd
 		const int32_t pz = S16(node, 0x50);
 		S32(node, 0x88) = py;
 		const uint8_t status = U8(node, 0x26);
@@ -4202,7 +4202,7 @@ namespace strike87
 				U32(e, 0x20) = U32(t, 0x20);
 				U32(e, 0xC) = U32(t, 0xC);
 				U32(e, 0x10) = U32(t, 0x10);
-				memmove((void *)(e + 0x40), (const void *)(t + 0x40), 8 * 4); // rep movsd
+				ff8fx::copy<(8 * 4)>((void *)(e + 0x40), (const void *)(t + 0x40)); // rep movsd
 			}
 			e = U32(e, 0x8C);
 		} while (e != t && e != 0);

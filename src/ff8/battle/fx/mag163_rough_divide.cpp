@@ -841,7 +841,7 @@ namespace rough163
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x500);
-				memcpy(p->pos, w->spawn, 8);
+				ff8fx::copy<(8)>(p->pos, w->spawn);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x64 - 0x32));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x64 - 0x32));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x64 - 0x32));
@@ -857,7 +857,7 @@ namespace rough163
 		SpriteWork *w = (SpriteWork *)FieldAlloc(0x48);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			memcpy(w->spawn, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(w->spawn, (const void *)HIT_POS);
 			for (int32_t j = 0; j < 2; j++)
 			{
 				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
@@ -866,7 +866,7 @@ namespace rough163
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x50 - 0x28));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x50 - 0x28));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x50 - 0x28));
@@ -883,7 +883,7 @@ namespace rough163
 		SpriteWork *w = (SpriteWork *)FieldAlloc(0x48);
 		if (!DrawOnly() && n->c <= 3)
 		{
-			memcpy(w->spawn, &n->w10, 8);
+			ff8fx::copy<(8)>(w->spawn, &n->w10);
 			for (int32_t j = 0; j < 8; j++)
 			{
 				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0x18, 0x64);
@@ -892,7 +892,7 @@ namespace rough163
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x580 + 0x580);
-				memcpy(p->pos, w->spawn, 8);
+				ff8fx::copy<(8)>(p->pos, w->spawn);
 				const int32_t a = CrtRand() % 0x1000;
 				int32_t r = CrtRand() % 0x64 + 0x12C;
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(mul32(ComputeSin(a), r) >> 12));
@@ -950,7 +950,7 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			memcpy(w->ang, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(w->ang, (const void *)HIT_POS);
 			for (int32_t j = 0; j < 4; j++)
 			{
 				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
@@ -959,7 +959,7 @@ namespace rough163
 				p->flags = 1;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x280 + 0x280);
-				memcpy(p->pos, w->ang, 8);
+				ff8fx::copy<(8)>(p->pos, w->ang);
 				int32_t *v = w->v;
 				v[0] = CrtRand() % 0x2000 - 0x1000;
 				v[1] = -(CrtRand() % 0x800);
@@ -1039,7 +1039,7 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 0xA)
 		{
-			memcpy(w->ang, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(w->ang, (const void *)HIT_POS);
 			for (int32_t j = 0; j < 3; j++)
 			{
 				const int32_t i = FreeSlot(POOL_B, POOL_B_END, 0x20, 0x96);
@@ -1048,7 +1048,7 @@ namespace rough163
 				p->flags = 2;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x200 + 0x200);
-				memcpy(p->pos, w->ang, 8);
+				ff8fx::copy<(8)>(p->pos, w->ang);
 				p->w0E = p->scale;
 				int32_t *v = w->v;
 				v[0] = CrtRand() % 0x1400 - 0xA00;
@@ -1112,7 +1112,7 @@ namespace rough163
 		ModelWork *w = (ModelWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && ((Node24 *)tn)->c <= 5)
 		{
-			memcpy(w->ang, (const void *)PILLAR_POS, 8);
+			ff8fx::copy<(8)>(w->ang, (const void *)PILLAR_POS);
 			for (int32_t j = 0; j < 6; j++)
 			{
 				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x20, 0x96);
@@ -1121,7 +1121,7 @@ namespace rough163
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xA00 + 0x100);
-				memcpy(p->pos, w->ang, 8);
+				ff8fx::copy<(8)>(p->pos, w->ang);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0xFA0 - 0x7D0));
 				p->pos[1] = (int16_t)(-0x64 - CrtRand() % 0x12C);
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0xFA0 - 0x7D0));
@@ -1207,7 +1207,7 @@ namespace rough163
 		PillarWork *w = (PillarWork *)FieldAlloc(0x68);
 		if (!DrawOnly() && n->c <= 0xA)
 		{
-			memcpy(w->ang, &n->w10, 8);
+			ff8fx::copy<(8)>(w->ang, &n->w10);
 			const int32_t k1 = n->c + 1;
 			const int32_t amp = (mul32(ComputeSin((int32_t)shl32(n->c, 11) / 10), 1500) >> 12) + 100;
 			for (int32_t j = 0; j < 2; j++)
@@ -1218,7 +1218,7 @@ namespace rough163
 				p->flags = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xA00 + 0x500);
-				memcpy(p->pos, w->ang, 8);
+				ff8fx::copy<(8)>(p->pos, w->ang);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % (amp + amp) - amp));
 				p->pos[1] = (int16_t)(mul32(k1, -350) - CrtRand() % 0x320 + 0x190);
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % (amp + amp) - amp));
@@ -1301,7 +1301,7 @@ namespace rough163
 				p->flags = 8;
 				p->life = 0;
 				p->scale = (int16_t)c;
-				memcpy(p->pos, r->pos, 8);
+				ff8fx::copy<(8)>(p->pos, r->pos);
 				const int16_t s = (int16_t)(shl32(c + 2, 9) / 3);
 				w->v[1] = 0;
 				p->w16 = s;
@@ -1351,7 +1351,7 @@ namespace rough163
 	// the ribbon's vertices (centre, centre + width across, centre - width across, y 0) of records 0..count - 1
 	static void StreakBuild(StreakWork *w, int32_t count, int16_t width, uint8_t *vtx)
 	{
-		memcpy(w->ref, (const void *)STREAK_REF, 16);
+		ff8fx::copy<(16)>(w->ref, (const void *)STREAK_REF);
 		w->width[0] = width;
 		w->width[1] = 0;
 		w->width[2] = 0;
@@ -1359,15 +1359,15 @@ namespace rough163
 		{
 			if (i != 0)
 			{
-				memcpy(w->cur, Rec(i)->pos, 8);
-				memcpy(w->prev, Rec(i - 1)->pos, 8);
+				ff8fx::copy<(8)>(w->cur, Rec(i)->pos);
+				ff8fx::copy<(8)>(w->prev, Rec(i - 1)->pos);
 				w->d[0] = (int32_t)w->cur[0] - w->prev[0];
 				w->d[2] = (int32_t)w->cur[2] - w->prev[2];
 			}
 			else
 			{
-				memcpy(w->cur, Rec(0)->pos, 8);
-				memcpy(w->prev, Rec(1)->pos, 8);
+				ff8fx::copy<(8)>(w->cur, Rec(0)->pos);
+				ff8fx::copy<(8)>(w->prev, Rec(1)->pos);
 				w->d[0] = (int32_t)w->prev[0] - w->cur[0];
 				w->d[2] = (int32_t)w->prev[2] - w->cur[2];
 			}
@@ -1377,7 +1377,7 @@ namespace rough163
 			BuildAxisAngleRotationMatrix(angle, &w->m, w->axis);
 			MatVec(&w->m, w->width, w->off);
 			int16_t *v = (int16_t *)(vtx + 0x18 * i);
-			memcpy(v, w->cur, 8);
+			ff8fx::copy<(8)>(v, w->cur);
 			v[4] = (int16_t)(w->off[0] + w->cur[0]);
 			v[8] = (int16_t)(w->cur[0] - w->off[0]);
 			v[6] = (int16_t)(w->off[2] + w->cur[2]);
@@ -1464,8 +1464,8 @@ namespace rough163
 		else
 		{
 			StreakRec *r = Rec(n->c);
-			memcpy(r->pos, (const void *)HIT_POS, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
+			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
 			count = n->c + 1;
 		}
 		if (count >= 2)

@@ -651,13 +651,13 @@ namespace degen174
 	{
 		const uint32_t sk = U32(U32(anim, 4), 0);
 		int32_t count = U8(sk, 0);
-		for (uint32_t src = sk + 0x20; count > 0; count--, src += 0x30, dst += 0x20) memcpy((void *)dst, (const void *)src, 0x20);
+		for (uint32_t src = sk + 0x20; count > 0; count--, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>((void *)dst, (const void *)src);
 	}
 	// 0x5D50E0: back into the skeleton
 	static void BoneLoad(uint32_t anim, uint32_t src)
 	{
 		const uint32_t sk = U32(U32(anim, 4), 0);
-		for (int32_t i = 0; i < (int32_t)U8(sk, 0); i++, src += 0x20) memcpy((void *)(sk + 0x20 + 0x30 * (uint32_t)i), (const void *)src, 0x20);
+		for (int32_t i = 0; i < (int32_t)U8(sk, 0); i++, src += 0x20) ff8fx::copy<(0x20)>((void *)(sk + 0x20 + 0x30 * (uint32_t)i), (const void *)src);
 	}
 	// 0x5D5120: the entity's model through its current bones, camera x its matrix (RenderGeometry mode 4 into the frame arena)
 	static void GhostDraw(uint32_t e)

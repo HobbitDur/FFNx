@@ -351,10 +351,10 @@ namespace breath129
 		if (count <= 0) return cursor;
 		for (int32_t left = count; left; left--, prim += 0x24)
 		{
-			memcpy(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4), 8);
-			memcpy(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6), 8);
-			memcpy(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8), 8);
-			memcpy(h + 0x50, verts + 4 * *(uint16_t *)(prim + 0xA), 8);
+			ff8fx::copy<(8)>(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4));
+			ff8fx::copy<(8)>(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6));
+			ff8fx::copy<(8)>(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8));
+			ff8fx::copy<(8)>(h + 0x50, verts + 4 * *(uint16_t *)(prim + 0xA));
 			GteLoadV012(h + 0x38, h + 0x40, h + 0x48);
 			GteRTPT();
 			*(uint32_t *)p = 0x0C000000;
@@ -1022,10 +1022,10 @@ namespace breath129
 			n2[k] += p2[k];
 		}
 		ArcSeg *pts = (ArcSeg *)FieldAlloc(0x100);
-		memcpy(&pts[0], p1, 8);
+		ff8fx::copy<(8)>(&pts[0], p1);
 		pts[0].width = arc->pts[0].width;
 		pts[0].color = arc->pts[0].color;
-		memcpy(&pts[15], p2, 8);
+		ff8fx::copy<(8)>(&pts[15], p2);
 		pts[15].width = arc->pts[15].width;
 		pts[15].color = arc->pts[15].color;
 		for (int i = 1; i < 15; i++)
@@ -1304,7 +1304,7 @@ namespace breath129
 			d[0] = (int16_t)(c[0] - o[0]);
 			d[1] = (int16_t)(c[1] - o[1]);
 			d[2] = (int16_t)(c[2] - o[2]);
-			memcpy((uint8_t *)s + 8, d, 6);
+			ff8fx::copy<(6)>((uint8_t *)s + 8, d);
 			int32_t sum;
 			GteLoadIR123((uint8_t *)s + 8);
 			GteSQR();
@@ -1332,7 +1332,7 @@ namespace breath129
 		const int16_t *table = (const int16_t *)(s->arena + 0x8000);
 		const int16_t *rec = table + table[k];
 		for (int j = 0; j < 3; j++)
-			memcpy(s->out + 8 * j, s->arena + 16 * (int32_t)rec[3 + j], 8);
+			ff8fx::copy<(8)>(s->out + 8 * j, s->arena + 16 * (int32_t)rec[3 + j]);
 		s->out += 0x18;
 	}
 

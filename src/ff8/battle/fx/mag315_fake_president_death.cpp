@@ -277,7 +277,7 @@ namespace fp315
 		S16(w, 2) = (int16_t)(S16(w, 2) + S16(n, 0x12));
 		S16(w, 0) = (int16_t)(S16(w, 0) + S16(n, 0x10));
 		S16(w, 4) = (int16_t)(S16(w, 4) + S16(n, 0x14));
-		memcpy((void *)(w + 0x28), (const void *)(DROP_DIRS + (uint32_t)(bone * 16)), 16);
+		ff8fx::copy<(16)>((void *)(w + 0x28), (const void *)(DROP_DIRS + (uint32_t)(bone * 16)));
 		TransformVectorBy3x3Matrix((const Mat4x3 *)(Ent(CasterSlot()) + 0x40), (const int32_t *)(w + 0x28), (int32_t *)(w + 0x28));
 		for (int k = 0; k < 2; k++)
 		{
@@ -312,7 +312,7 @@ namespace fp315
 		const uint32_t w = (uint32_t)FieldAlloc(0x48);
 		if (!DrawOnly() && S16(n, 0xC) <= 0x14) DropSpawn(n, w);
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		U32(h, 0) = SEQ_Drop;
 		S16(h, 0x24) = 0xA;
 		S32(h, 0xC) = 0x1000;
@@ -387,7 +387,7 @@ namespace fp315
 		if (!DrawOnly() && S16(n, 0xC) <= last) spawn(n);
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		S16(h, 0x24) = 0;
-		memcpy((void *)(w + 8), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
 		U32(h, 0) = SEQ_Bubble;
 		GteSetLightMatrix(w + 8);
 		GteSetBkFromTranslation(w + 8);
@@ -446,7 +446,7 @@ namespace fp315
 		if (!DrawOnly() && S16(n, 0xC) <= 0x3C) SparkSpawn();
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		S16(h, 0x24) = 0;
-		memcpy((void *)(w + 0x10), (const void *)&Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 0x10), (const void *)&Camera());
 		U32(h, 0) = SEQ_Spark;
 		GteSetLightMatrix(w + 0x10);
 		GteSetBkFromTranslation(w + 0x10);

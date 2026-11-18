@@ -563,7 +563,7 @@ namespace q116
 			while (i < 256 && v->width != -1) { v++; i++; }
 			if (i == 256) return nullptr;
 		}
-		memcpy(v->pos, pos, 8);
+		ff8fx::copy<(8)>(v->pos, pos);
 		v->width = width;
 		v->hold = 2;
 		v->intensity = 0x200;
@@ -581,9 +581,9 @@ namespace q116
 		BoltNode *b = (BoltNode *)AddTaskToQueue(&QueueBolts().second, ORIG_BoltTask);
 		if (!b) { v->width = -1; return nullptr; }
 		b->unk0C = 0;
-		memcpy(b->pos, pos, 8);
-		memcpy(b->target, target, 8);
-		memcpy(b->vel, vel, 8);
+		ff8fx::copy<(8)>(b->pos, pos);
+		ff8fx::copy<(8)>(b->target, target);
+		ff8fx::copy<(8)>(b->vel, vel);
 		b->t = t;
 		b->dt = dt;
 		b->budget = budget;
@@ -599,7 +599,7 @@ namespace q116
 			b->shape[1] = (int16_t)((Rand() & 0xFF) - 0x80);
 			b->shape[2] = (int16_t)((Rand() & 0xFF) - 0x80);
 		}
-		else memcpy(b->shape, shape, 8);
+		else ff8fx::copy<(8)>(b->shape, shape);
 		b->unk36 = unk36;
 		b->width = width;
 		b->kind = kind;
@@ -637,14 +637,14 @@ namespace q116
 				int16_t at[4]; // where this step's vertex goes (4th word unused, overwritten)
 				if (b->t >= 0x1000)
 				{
-					memcpy(at, b->target, 8);
+					ff8fx::copy<(8)>(at, b->target);
 					b->t = 0x1000;
 					if (b->kind != 0 && *(uint32_t *)(ModelBuffer() + 0x28E50) != 0)
 					{
 						FlashNode *f = (FlashNode *)AddTaskToQueue(&QueueDebris().second, ORIG_FlashTask);
 						if (f)
 						{
-							memcpy(f->pos, at, 8);
+							ff8fx::copy<(8)>(f->pos, at);
 							f->age = 0;
 						}
 						if (b->kind == 1)
@@ -701,7 +701,7 @@ namespace q116
 				nv[1] = (int16_t)((Rand() & 0x1FF) + b->vel[1] - 0x100);
 				nv[2] = (int16_t)((Rand() & 0x1FF) + b->vel[2] - 0x100);
 				BoltVert *c = SpawnBolt(nv, at, p, b->shape, -1, b->t, 0x200, (int16_t)(b->width >> 1), b->kind == 1 ? 2 : 0, 0);
-				if (c) memcpy(c->vel, v->vel, 8); // the fork starts with its parent vertex's drift (and hold)
+				if (c) ff8fx::copy<(8)>(c->vel, v->vel); // the fork starts with its parent vertex's drift (and hold)
 				b->budget--;
 			}
 			for (BoltVert *v = b->head; v; v = v->next)
@@ -988,10 +988,10 @@ namespace q116
 			n2[k] += p2[k];
 		}
 		ArcSeg *pts = (ArcSeg *)FieldAlloc(0x100);
-		memcpy(&pts[0], p1, 8);
+		ff8fx::copy<(8)>(&pts[0], p1);
 		pts[0].width = arc->pts[0].width;
 		pts[0].color = arc->pts[0].color;
-		memcpy(&pts[15], p2, 8);
+		ff8fx::copy<(8)>(&pts[15], p2);
 		pts[15].width = arc->pts[15].width;
 		pts[15].color = arc->pts[15].color;
 		for (int i = 1; i < 15; i++)
@@ -1684,8 +1684,8 @@ namespace q116
 		}
 		if (W16(0x0C) >= 355)
 		{
-			memcpy((void *)0x1298C68, cx::SummonData(), 0x427F * 4);
-			memcpy((void *)0x12A9664, cx::SummonData() + 0x109FC, 0x1367 * 4);
+			ff8fx::copy<(0x427F * 4)>((void *)0x1298C68, cx::SummonData());
+			ff8fx::copy<(0x1367 * 4)>((void *)0x12A9664, cx::SummonData() + 0x109FC);
 			cx::Sub508630(ModelBuffer() + 0x2E50, &DoneFlag());
 			cx::Sub6C6500(1);
 			return TASK_END;

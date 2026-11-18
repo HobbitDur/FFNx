@@ -198,7 +198,7 @@ namespace firaga143
 			f->counter = 0;
 			f->scale = 0;
 			f->scale_vel = 0x80;
-			memcpy(f->pos, Anchor(d->action), 8);
+			ff8fx::copy<(8)>(f->pos, Anchor(d->action));
 		}
 		if (d->counter == 0x20) ScreenFadeTask(0, 1, 2, 0xFF);
 		if (d->counter == 0x21)
@@ -206,16 +206,16 @@ namespace firaga143
 			Anchor(d->action)[3] = 0;
 			ModelNode *s = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FlameSwirlTask);
 			s->counter = 0;
-			memcpy(s->pos, Anchor(d->action), 8);
+			ff8fx::copy<(8)>(s->pos, Anchor(d->action));
 			s->yaw = (int16_t)(CrtRand() % 4096);
 			int32_t r = CrtRand() % 30;
 			s->scale = 0x355;
 			s->scale_vel = 0x355;
 			s->yaw_vel = (int16_t)(r + 0x3C);
 			s = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_FlameSwirlTask);
-			memcpy(s->pos, Anchor(d->action), 4);
+			ff8fx::copy<(4)>(s->pos, Anchor(d->action));
 			s->counter = 0;
-			memcpy(&s->pos[2], &Anchor(d->action)[2], 4);
+			ff8fx::copy<(4)>(&s->pos[2], &Anchor(d->action)[2]);
 			s->yaw = (int16_t)(CrtRand() % 4096);
 			s->yaw_vel = (int16_t)(-40 - CrtRand() % 20);
 			s->scale = 0x2AA;
@@ -225,7 +225,7 @@ namespace firaga143
 		{
 			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, ORIG_BurstTask);
 			b->counter = 0;
-			memcpy(b->pos, Anchor(d->action), 8);
+			ff8fx::copy<(8)>(b->pos, Anchor(d->action));
 			b->scale = 0x555;
 			b->scale_vel = 0x555;
 		}
@@ -239,7 +239,7 @@ namespace firaga143
 				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, ORIG_AreaFlameTask);
 				f->frame = 0;
 				f->delay = (int16_t)(CrtRand() % 6 + k);
-				memcpy(f->pos, Anchor(d->action), 8);
+				ff8fx::copy<(8)>(f->pos, Anchor(d->action));
 				f->pos[0] += (int16_t)(CrtRand() % spread - half);
 				f->pos[1] += (int16_t)(CrtRand() % spread - half);
 				int32_t rz = CrtRand() % spread;

@@ -541,10 +541,10 @@ namespace quake038
 	static uint32_t RaisedWall(uint32_t e, uint32_t cur, uint32_t ot, const int16_t *p1, const int16_t *p2, int32_t i1, int32_t i2, int32_t h)
 	{
 		int16_t *w = (int16_t *)FieldAlloc(0x20);
-		memcpy(w + 8, p1, 8);
-		memcpy(w, p1, 8);
-		memcpy(w + 12, p2, 8);
-		memcpy(w + 4, p2, 8);
+		ff8fx::copy<(8)>(w + 8, p1);
+		ff8fx::copy<(8)>(w, p1);
+		ff8fx::copy<(8)>(w + 12, p2);
+		ff8fx::copy<(8)>(w + 4, p2);
 		w[9] = (int16_t)(w[9] + (int16_t)(0x10 - h));
 		w[13] = (int16_t)(w[13] + (int16_t)(0x10 - h));
 		GteLoadV012(w, w + 4, w + 8);
@@ -591,10 +591,10 @@ namespace quake038
 		uint32_t ot = RenderOT44();
 		if (tick <= (int16_t)U8(e, k + 0x5C)) return cur;
 		int16_t v[4][4];
-		memcpy(v[0], pA, 8);
-		memcpy(v[1], pA, 8);
-		memcpy(v[2], pB, 8);
-		memcpy(v[3], pB, 8);
+		ff8fx::copy<(8)>(v[0], pA);
+		ff8fx::copy<(8)>(v[1], pA);
+		ff8fx::copy<(8)>(v[2], pB);
+		ff8fx::copy<(8)>(v[3], pB);
 		Mat4x3 mtx = {};
 		MatrixUnit(&mtx);
 		int32_t ang = CartesianToGameAngle(pA[0] - pB[0], pA[2] - pB[2]) & 0xFFF;
@@ -669,10 +669,10 @@ namespace quake038
 		uint32_t ot = RenderOT44();
 		*drawn = false;
 		// w: pA lowered, pB lowered, pA, pB
-		memcpy(w + 8, pA, 8);
-		memcpy(w + 12, pB, 8);
-		memcpy(w, pA, 8);
-		memcpy(w + 4, pB, 8);
+		ff8fx::copy<(8)>(w + 8, pA);
+		ff8fx::copy<(8)>(w + 12, pB);
+		ff8fx::copy<(8)>(w, pA);
+		ff8fx::copy<(8)>(w + 4, pB);
 		int16_t d = S16(WALL_DEPTH, step * 2);
 		w[1] = (int16_t)(w[1] + d);
 		w[5] = (int16_t)(w[5] + d);
@@ -788,9 +788,9 @@ namespace quake038
 		int16_t st = State();
 		if (st > 2)
 		{
-			memcpy(v, (const void *)(e + a * 8), 8);
-			memcpy(v + 4, (const void *)(e + b * 8), 8);
-			memcpy(v + 8, (const void *)(e + n * 8), 8);
+			ff8fx::copy<(8)>(v, (const void *)(e + a * 8));
+			ff8fx::copy<(8)>(v + 4, (const void *)(e + b * 8));
+			ff8fx::copy<(8)>(v + 8, (const void *)(e + n * 8));
 			h = ZoneHeight(U8(e, k + 0x58));
 			v[1] = (int16_t)(v[1] + h);
 			v[5] = (int16_t)(v[5] + h);
@@ -1280,8 +1280,8 @@ namespace quake038
 		HalfZ() = 0x2000;
 		BoundXHi() = 0x2000;
 		BoundZHi() = 0x2000;
-		memset((void *)entries, 0, 0x2D80 * 4);
-		memset((void *)VertexZones(), 0, 0x330 * 4);
+		ff8fx::fill<(0x2D80 * 4)>((void *)entries, 0);
+		ff8fx::fill<(0x330 * 4)>((void *)VertexZones(), 0);
 		U8(0x27929C4, 0) = 0x1F;
 		U8(0x27929B4, 0) = 0x1F;
 		U8(0x27929C5, 0) = 0x7F;

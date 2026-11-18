@@ -109,15 +109,15 @@ namespace sorceress208
 
 	static void apply_slots(Clone &c)
 	{
-		memcpy(g_save_vm, c.vm, sizeof(g_save_vm));
-		memcpy(g_save_big, c.bigtab, sizeof(g_save_big));
-		memcpy(g_save_draw, c.draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(g_save_vm, c.vm);
+		ff8fx::copy<(sizeof(g_save_big))>(g_save_big, c.bigtab);
+		ff8fx::copy<(sizeof(g_save_draw))>(g_save_draw, c.draw);
 		apply_shared_misc(c);
 		const VoidFn d16 = c.draw[16];        // 0xAD8820 = Leviathan 0xB58FA0 / Bahamut 0xB198C0 ScrollTextureU
 		const VoidFn p16 = c.prim[16];        // 0xADB660 = Cerberus 0xB105B0 / Eden 0xAEC030 TintedF4
-		memcpy(c.vm, g_save_vm, sizeof(g_save_vm));
-		memcpy(c.bigtab, g_save_big, sizeof(g_save_big));
-		memcpy(c.draw, g_save_draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(c.vm, g_save_vm);
+		ff8fx::copy<(sizeof(g_save_big))>(c.bigtab, g_save_big);
+		ff8fx::copy<(sizeof(g_save_draw))>(c.draw, g_save_draw);
 		c.draw[16] = d16;
 		c.prim[16] = p16;
 		c.draw[3] = dh_03_AnimatedModelWithShadow;      // 0xAD8EA0 (gfc_melt.inc)

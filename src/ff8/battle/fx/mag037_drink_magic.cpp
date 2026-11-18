@@ -540,7 +540,7 @@ namespace drinkmagic
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x26A05EC) = 0x2793E58;
@@ -3049,7 +3049,7 @@ namespace drinkmagic
 		for (int32_t i = first; i < S16(node, 0x12A) + 1; i++)
 		{
 			if (i == first) roll = (uint32_t)i * 0x120;
-			memcpy(m, (const void *)(node + 0x60), 0x20);
+			ff8fx::copy<(0x20)>(m, (const void *)(node + 0x60));
 			x::sub_8DD960(P(m), (U16(node, 0x126) + roll) & 0xFFF);
 			const uint32_t h = node + 0x90 + (uint32_t)i * 8;
 			const uint32_t pa = P(pts) + (uint32_t)i * 16, pb = pa + 8;

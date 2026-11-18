@@ -477,9 +477,9 @@ namespace gravija214
 			do
 			{
 				const uint8_t *v = *(const uint8_t **)(h + 4);
-				memcpy(h + 0x18, v + *(const uint16_t *)(t + 4) * 4, 0xC);
-				memcpy(h + 0x24, v + *(const uint16_t *)(t + 6) * 4, 0xC);
-				memcpy(h + 0x30, v + *(const uint16_t *)(t + 8) * 4, 0xC);
+				ff8fx::copy<(0xC)>(h + 0x18, v + *(const uint16_t *)(t + 4) * 4);
+				ff8fx::copy<(0xC)>(h + 0x24, v + *(const uint16_t *)(t + 6) * 4);
+				ff8fx::copy<(0xC)>(h + 0x30, v + *(const uint16_t *)(t + 8) * 4);
 				*(uint32_t *)(p + 8) = *(const uint32_t *)(h + 0x1C);
 				*(uint32_t *)(p + 0x10) = *(const uint32_t *)(h + 0x28);
 				*(uint32_t *)(p + 0x18) = *(const uint32_t *)(h + 0x34);
@@ -516,10 +516,10 @@ namespace gravija214
 			do
 			{
 				const uint8_t *v = *(const uint8_t **)(h + 4);
-				memcpy(h + 0x18, v + *(const uint16_t *)(t + 4) * 4, 0xC);
-				memcpy(h + 0x24, v + *(const uint16_t *)(t + 6) * 4, 0xC);
-				memcpy(h + 0x30, v + *(const uint16_t *)(t + 8) * 4, 0xC);
-				memcpy(h + 0x3C, v + *(const uint16_t *)(t + 0xA) * 4, 0xC);
+				ff8fx::copy<(0xC)>(h + 0x18, v + *(const uint16_t *)(t + 4) * 4);
+				ff8fx::copy<(0xC)>(h + 0x24, v + *(const uint16_t *)(t + 6) * 4);
+				ff8fx::copy<(0xC)>(h + 0x30, v + *(const uint16_t *)(t + 8) * 4);
+				ff8fx::copy<(0xC)>(h + 0x3C, v + *(const uint16_t *)(t + 0xA) * 4);
 				*(uint32_t *)(p + 8) = *(const uint32_t *)(h + 0x1C);
 				*(uint32_t *)(p + 0x10) = *(const uint32_t *)(h + 0x28);
 				*(uint32_t *)(p + 0x18) = *(const uint32_t *)(h + 0x34);
@@ -571,9 +571,9 @@ namespace gravija214
 			do
 			{
 				const uint8_t *v = *(const uint8_t **)(h + 4);
-				memcpy(h + 0x18, v + *(const uint16_t *)(t + 4) * 4, 0xC);
-				memcpy(h + 0x24, v + *(const uint16_t *)(t + 6) * 4, 0xC);
-				memcpy(h + 0x30, v + *(const uint16_t *)(t + 8) * 4, 0xC);
+				ff8fx::copy<(0xC)>(h + 0x18, v + *(const uint16_t *)(t + 4) * 4);
+				ff8fx::copy<(0xC)>(h + 0x24, v + *(const uint16_t *)(t + 6) * 4);
+				ff8fx::copy<(0xC)>(h + 0x30, v + *(const uint16_t *)(t + 8) * 4);
 				if ((h[0x20] & h[0x2C] & h[0x38]) == 0)
 				{
 					const int16_t x0 = *(const int16_t *)(h + 0x1C);
@@ -614,10 +614,10 @@ namespace gravija214
 			do
 			{
 				const uint8_t *v = *(const uint8_t **)(h + 4);
-				memcpy(h + 0x18, v + *(const uint16_t *)(t + 4) * 4, 0xC);
-				memcpy(h + 0x24, v + *(const uint16_t *)(t + 6) * 4, 0xC);
-				memcpy(h + 0x30, v + *(const uint16_t *)(t + 8) * 4, 0xC);
-				memcpy(h + 0x3C, v + *(const uint16_t *)(t + 0xA) * 4, 0xC);
+				ff8fx::copy<(0xC)>(h + 0x18, v + *(const uint16_t *)(t + 4) * 4);
+				ff8fx::copy<(0xC)>(h + 0x24, v + *(const uint16_t *)(t + 6) * 4);
+				ff8fx::copy<(0xC)>(h + 0x30, v + *(const uint16_t *)(t + 8) * 4);
+				ff8fx::copy<(0xC)>(h + 0x3C, v + *(const uint16_t *)(t + 0xA) * 4);
 				if ((h[0x44] & h[0x2C] & h[0x20] & h[0x38]) == 0)
 				{
 					const int16_t x0 = *(const int16_t *)(h + 0x1C);
@@ -825,7 +825,7 @@ namespace gravija214
 		if ((uint16_t)w->counter < 0x4A)
 		{
 			PrimArg arg;
-			memcpy(arg.pos, w->avg, 8);
+			ff8fx::copy<(8)>(arg.pos, w->avg);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
 			// 30 fps layer: see mag214_omega_gravija_held.inc

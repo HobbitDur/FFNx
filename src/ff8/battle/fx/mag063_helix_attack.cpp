@@ -469,7 +469,7 @@ namespace helix063
 		mid[2] = (int16_t)(((int32_t)pts.p2[2] + pts.p1[2]) / 2);
 		PrimArg arg;
 		arg.scroll = 0; // (written for the impact layout only; the other layouts have no '1' object)
-		memset(arg.pad28, 0, sizeof(arg.pad28));
+		ff8fx::fill<(sizeof(arg.pad28))>(arg.pad28, 0);
 		if ((uint16_t)m->counter < 0x2D)
 		{
 			RotY(0, &arg.m);

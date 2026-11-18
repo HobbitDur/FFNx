@@ -378,7 +378,7 @@ namespace thundara102
 			if (f < 10)
 			{
 				int16_t low[4];
-				memcpy(low, p->pos, 8);
+				ff8fx::copy<(8)>(low, p->pos);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
 				Layer(h, SEQ_UpperA, f - 2);
@@ -404,7 +404,7 @@ namespace thundara102
 			if (f < 13)
 			{
 				int16_t low[4];
-				memcpy(low, p->pos, 8);
+				ff8fx::copy<(8)>(low, p->pos);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
 				Layer(h, SEQ_ArcLow, f - 5);

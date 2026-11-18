@@ -312,7 +312,7 @@ namespace metsu323
 			a[2] = (int16_t)(mul32(a[2], len) / l0 + A[2]);
 			BlendVectors(A, a, 0x1000 - t, t, a);
 		}
-		else memcpy(a, A, 8);
+		else ff8fx::copy<(8)>(a, A);
 		int16_t b[4] = {}; // (word +6 never written: not read)
 		b[0] = (int16_t)(B[0] - C[0]);
 		b[1] = (int16_t)(B[1] - C[1]);
@@ -328,7 +328,7 @@ namespace metsu323
 			b[2] = (int16_t)(mul32(b[2], len) / l0 + B[2]);
 			BlendVectors(B, b, t, 0x1000 - t, b);
 		}
-		else memcpy(b, B, 8);
+		else ff8fx::copy<(8)>(b, B);
 		BlendVectors(a, b, 0x1000 - t, t, out);
 	}
 
@@ -431,7 +431,7 @@ namespace metsu323
 	{
 		HitNode *h = (HitNode *)n;
 		PrimArg arg;
-		memcpy(arg.pos, h->pos, 8);
+		ff8fx::copy<(8)>(arg.pos, h->pos);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag323_metsu_held.inc
@@ -468,15 +468,15 @@ namespace metsu323
 	{
 		GetEffectSpawnPosition(Caster(), 0x18, 0x800, m->spawn);
 		int16_t (*p)[4] = m->path;
-		memcpy(*p, m->spawn, 8);
+		ff8fx::copy<(8)>(*p, m->spawn);
 		(*p)[2] = (int16_t)((*p)[2] - 500);
 		p++;
-		memcpy(*p++, m->spawn, 8);
+		ff8fx::copy<(8)>(*p++, m->spawn);
 		(*p)[0] = m->maxx;
 		(*p)[1] = (int16_t)(m->meany - 1000);
 		(*p)[2] = m->meanz;
 		p++;
-		for (int32_t i = 0; i < m->count; i++) memcpy(*p++, m->tpos[i], 8);
+		for (int32_t i = 0; i < m->count; i++) ff8fx::copy<(8)>(*p++, m->tpos[i]);
 		(*p)[0] = m->minx;
 		(*p)[1] = m->meany;
 		(*p)[2] = m->meanz;
@@ -485,8 +485,8 @@ namespace metsu323
 		(*p)[1] = (int16_t)(m->meany - 1500);
 		(*p)[2] = (int16_t)(((int32_t)m->spawn[2] + m->meanz) / 2);
 		p++;
-		memcpy(*p++, m->spawn, 8);
-		memcpy(*p, m->spawn, 8);
+		ff8fx::copy<(8)>(*p++, m->spawn);
+		ff8fx::copy<(8)>(*p, m->spawn);
 	}
 
 	// ------------------------------------------------------------------
@@ -498,7 +498,7 @@ namespace metsu323
 		if (m->counter == 0xB)
 		{
 			GetEffectSpawnPosition(Caster(), 0x18, 0x800, m->cur);
-			memcpy(m->prev, m->cur, 8);
+			ff8fx::copy<(8)>(m->prev, m->cur);
 			m->tilt = 0x400;
 		}
 		const int32_t k = m->counter - 0xC;
@@ -537,9 +537,9 @@ namespace metsu323
 			FX_HELD(held_note_blade(n);)
 			int16_t cur[4] = {}; // (word +6 never written: stack residue, modelled 0)
 			PathPoint(m, seg, t, cur);
-			if (m->cur[0] != cur[0] || m->cur[1] != cur[1] || m->cur[2] != cur[2]) memcpy(m->prev, m->cur, 8);
+			if (m->cur[0] != cur[0] || m->cur[1] != cur[1] || m->cur[2] != cur[2]) ff8fx::copy<(8)>(m->prev, m->cur);
 			m->spin = (int16_t)(m->spin + 0x400);
-			memcpy(m->cur, cur, 8);
+			ff8fx::copy<(8)>(m->cur, cur);
 			*(uint32_t *)(Caster() + 0x7C) &= 0xFFFFFFFDu;
 			int32_t dir[3] = { (int32_t)m->prev[0] - cur[0], 0, (int32_t)cur[2] - m->prev[2] };
 			Mat4x3 frame;
@@ -548,8 +548,8 @@ namespace metsu323
 			if (tr)
 			{
 				tr->counter = 0;
-				memcpy(&tr->m, &frame, 0x12); // (the pad word +0x22 is not copied)
-				memcpy(tr->m.t, frame.t, sizeof(frame.t));
+				ff8fx::copy<(0x12)>(&tr->m, &frame); // (the pad word +0x22 is not copied)
+				ff8fx::copy<(sizeof(frame.t))>(tr->m.t, frame.t);
 				if ((uint32_t)k < 0x10) tr->fade = (int16_t)(k << 8);
 				else if ((uint32_t)k > 0x31) tr->fade = (int16_t)((0x41 - k) << 8);
 				else tr->fade = 0x1000;
@@ -575,7 +575,7 @@ namespace metsu323
 					{
 						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 						if (!s) continue;
-						memcpy(s->pos, cur, 8); // (+0x12: the counter, 0)
+						ff8fx::copy<(8)>(s->pos, cur); // (+0x12: the counter, 0)
 						const int32_t speed = (CrtRand() & 0x3F) + 0x40;
 						s->vel[0] = (int16_t)(mul32(ComputeSin(angle), speed) / 0x1000);
 						s->vel[1] = (int16_t)(mul32(ComputeCos(angle), speed) / 0x1000);
@@ -595,8 +595,8 @@ namespace metsu323
 		{
 			int16_t bone[4] = {}; // (word +6 never written: stack residue, modelled 0)
 			GetEffectSpawnPosition(Caster(), 0x18, 0x800, bone);
-			memcpy(m->path[m->count + 5], bone, 8);
-			memcpy(m->path[m->count + 6], bone, 8);
+			ff8fx::copy<(8)>(m->path[m->count + 5], bone);
+			ff8fx::copy<(8)>(m->path[m->count + 6], bone);
 			m->path[m->count + 6][2] = (int16_t)(m->path[m->count + 6][2] - 1000);
 		}
 		m->counter++;

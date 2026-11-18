@@ -328,7 +328,7 @@ namespace zan322
 			a[2] = (int16_t)(mul32(a[2], len) / l0 + A[2]);
 			BlendVectors(A, a, 0x1000 - t, t, a);
 		}
-		else memcpy(a, A, 8);
+		else ff8fx::copy<(8)>(a, A);
 		int16_t b[4] = {}; // (word +6 never written: not read)
 		b[0] = (int16_t)(B[0] - C[0]);
 		b[1] = (int16_t)(B[1] - C[1]);
@@ -344,7 +344,7 @@ namespace zan322
 			b[2] = (int16_t)(mul32(b[2], len) / l0 + B[2]);
 			BlendVectors(B, b, t, 0x1000 - t, b);
 		}
-		else memcpy(b, B, 8);
+		else ff8fx::copy<(8)>(b, B);
 		BlendVectors(a, b, 0x1000 - t, t, out);
 	}
 
@@ -480,7 +480,7 @@ namespace zan322
 	{
 		HitNode *h = (HitNode *)n;
 		PrimArg arg;
-		memcpy(arg.pos, h->pos, 8);
+		ff8fx::copy<(8)>(arg.pos, h->pos);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag322_zan_held.inc
@@ -512,8 +512,8 @@ namespace zan322
 		basis.t[0] = m->tpos[0];
 		basis.t[1] = m->tpos[1];
 		basis.t[2] = m->tpos[2];
-		memcpy(m->path[0], bone, 8);
-		memcpy(m->path[1], bone, 8);
+		ff8fx::copy<(8)>(m->path[0], bone);
+		ff8fx::copy<(8)>(m->path[1], bone);
 		GteSetRotMatrix(&basis);
 		GteSetTransVector(&basis);
 		int16_t off[4] = { 0, 0, -1000, 0 }; // (word +6 never written: GTE V0 pad only)
@@ -521,14 +521,14 @@ namespace zan322
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(m->path[2]);
 		m->path[2][1] = (int16_t)(m->path[2][1] + 300);
-		memcpy(m->path[3], m->tpos, 8);
+		ff8fx::copy<(8)>(m->path[3], m->tpos);
 		off[2] = 1000;
 		GteLoadV0(off);
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(m->path[4]);
 		m->path[4][1] = (int16_t)(m->path[4][1] - 600);
-		memcpy(m->path[5], bone, 8);
-		memcpy(m->path[6], bone, 8);
+		ff8fx::copy<(8)>(m->path[5], bone);
+		ff8fx::copy<(8)>(m->path[6], bone);
 	}
 
 	// ------------------------------------------------------------------
@@ -540,7 +540,7 @@ namespace zan322
 		if (m->counter == 0xD)
 		{
 			GetEffectSpawnPosition(Caster(), 0x18, 0x800, m->cur);
-			memcpy(m->prev, m->cur, 8);
+			ff8fx::copy<(8)>(m->prev, m->cur);
 		}
 		const int32_t k = m->counter - 0xE;
 		int32_t seg = 0, t = 0;
@@ -568,9 +568,9 @@ namespace zan322
 			FX_HELD(held_note_blade(n);)
 			int16_t cur[4] = {}; // (word +6 never written: stack residue, modelled 0)
 			PathPoint(m, seg, t, cur);
-			if (m->cur[0] != cur[0] || m->cur[2] != cur[2]) memcpy(m->prev, m->cur, 8);
+			if (m->cur[0] != cur[0] || m->cur[2] != cur[2]) ff8fx::copy<(8)>(m->prev, m->cur);
 			m->spin = (int16_t)(m->spin + 0x400);
-			memcpy(m->cur, cur, 8);
+			ff8fx::copy<(8)>(m->cur, cur);
 			*(uint32_t *)(Caster() + 0x7C) &= 0xFFFFFFFDu;
 			int32_t dir[3] = { (int32_t)m->prev[0] - cur[0], 0, (int32_t)cur[2] - m->prev[2] };
 			Mat4x3 frame;
@@ -579,8 +579,8 @@ namespace zan322
 			if (tr)
 			{
 				tr->counter = 0;
-				memcpy(&tr->m, &frame, 0x12); // (the pad word +0x22 is not copied)
-				memcpy(tr->m.t, frame.t, sizeof(frame.t));
+				ff8fx::copy<(0x12)>(&tr->m, &frame); // (the pad word +0x22 is not copied)
+				ff8fx::copy<(sizeof(frame.t))>(tr->m.t, frame.t);
 				if ((uint32_t)k < 0x10) tr->fade = (int16_t)(k << 8);
 				else if ((uint32_t)k > 0x24) tr->fade = (int16_t)((0x2C - k) << 9);
 				else tr->fade = 0x1000;
@@ -591,7 +591,7 @@ namespace zan322
 				DustNode *d = (DustNode *)AddTaskToQueue(QDust(), ORIG_DustTask);
 				if (d)
 				{
-					memcpy(d->pos, cur, 8);
+					ff8fx::copy<(8)>(d->pos, cur);
 					d->pos[1] = 0;
 					d->counter = 0;
 					d->height = height;
@@ -624,13 +624,13 @@ namespace zan322
 				{
 					StreakNode *s = (StreakNode *)AddTaskToQueue(QStreaks(), ORIG_StreakTask);
 					if (!s) continue;
-					memcpy(s->pos, cur, 8); // (+0x12: the counter, 0)
+					ff8fx::copy<(8)>(s->pos, cur); // (+0x12: the counter, 0)
 					const int32_t speed = (CrtRand() & 0x3F) + 0x40;
 					s->vel[0] = (int16_t)(mul32(ComputeSin(angle), speed) / 0x1000);
 					s->vel[1] = (int16_t)(mul32(ComputeCos(angle), speed) / 0x1000);
 					s->vel[2] = (int16_t)((CrtRand() & 0x3F) + 0x40);
 					MatrixMulVector(&basis, s->vel, s->vel);
-					memcpy(s->v0, s->vel, 8); // (with the never-written +0x1A)
+					ff8fx::copy<(8)>(s->v0, s->vel); // (with the never-written +0x1A)
 					s->drag[0] = (int16_t)((int32_t)s->vel[0] / -12);
 					s->drag[1] = (int16_t)((int32_t)s->vel[1] / -12);
 					s->drag[2] = (int16_t)((int32_t)s->vel[2] / -12);
@@ -644,8 +644,8 @@ namespace zan322
 		{
 			int16_t bone[4] = {}; // (word +6 never written: stack residue, modelled 0)
 			GetEffectSpawnPosition(Caster(), 0x18, 0x800, bone);
-			memcpy(m->path[5], bone, 8);
-			memcpy(m->path[6], bone, 8);
+			ff8fx::copy<(8)>(m->path[5], bone);
+			ff8fx::copy<(8)>(m->path[6], bone);
 		}
 		m->counter++;
 		if (m->counter < 0x39) return 0;

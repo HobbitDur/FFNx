@@ -286,7 +286,7 @@ namespace rave212
 		g[1] = 0;
 		g[0] = 0;
 		g[4] = (uint8_t)n;
-		memset(g + 5, 0xFF, 0x80);
+		ff8fx::fill<(0x80)>(g + 5, 0xFF);
 		for (int32_t i = 0; i < n; i++) g[5 + bones[i]] = (uint8_t)i;
 	}
 
@@ -305,7 +305,7 @@ namespace rave212
 		for (uint32_t b = 0; b < skel[0]; b++)
 		{
 			const int32_t k = (int8_t)g[5 + b];
-			if (k >= 0) memcpy(dst + k * 0x20, skel + 0x20 + b * 0x30, 0x20);
+			if (k >= 0) ff8fx::copy<(0x20)>(dst + k * 0x20, skel + 0x20 + b * 0x30);
 		}
 	}
 
@@ -600,7 +600,7 @@ namespace rave212
 	// 0x6A3220: a yaw rotation scaled by s (y scale s): m = 0, then x / z rows (cos, -sin / sin, cos) x s, m11 = s
 	static void YawScaled(int32_t angle, int32_t s, Mat4x3 *m)
 	{
-		memset(m, 0, 0x14);
+		ff8fx::fill<(0x14)>(m, 0);
 		const int32_t sn = mul32(ComputeSin(angle), s) >> 12;
 		const int32_t cs = mul32(ComputeCos(angle), s) >> 12;
 		m->m[2][0] = (int16_t)sn;
@@ -1318,7 +1318,7 @@ namespace rave212
 		SetScreenFlash((uint32_t)FlashLevel(c), 0);
 		// the layouts' parameter block (one per call: blocks keep the fields they do not set)
 		PlayArg arg;
-		memset(&arg, 0, sizeof(arg));
+		ff8fx::fill<(sizeof(arg))>(&arg, 0);
 		const uint32_t morph = TexBase() + 0xA418;
 
 		// 2..0x39: the ground layout at his anchor (texture scrolling), rocks 2..0x29
@@ -1684,7 +1684,7 @@ namespace rave212
 		if (r->state == 1)
 		{
 			var<int16_t>(0x1D8E038) = var<int16_t>(0x1D977A0);
-			memcpy((void *)0xB8B7F0, (const void *)0xB8B800, 0x10);
+			ff8fx::copy<(0x10)>((void *)0xB8B7F0, (const void *)0xB8B800);
 			r->state = 2;
 			return 0;
 		}

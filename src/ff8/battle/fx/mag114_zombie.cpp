@@ -658,7 +658,7 @@ namespace zombie114
 		if (t->counter >= 0x1E) MarkTarget(t->entity);
 		GetDefaultEffectPosition(t->entity, t->pos);
 		PrimArg arg;
-		memcpy(arg.pos, t->pos, 8);
+		ff8fx::copy<(8)>(arg.pos, t->pos);
 		arg.scaled = 1;
 		const int32_t reach = (*(const int16_t *)(t->entity + 0x26) >> 1) + 0x800;
 		arg.scale[0] = reach;

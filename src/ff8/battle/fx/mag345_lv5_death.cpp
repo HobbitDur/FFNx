@@ -600,7 +600,7 @@ namespace lv5_death
 	{
 		const uint32_t ctx = a1;
 		const uint32_t blk = U32(ctx, 0x48);
-		memcpy((void *)ctx, (const void *)(blk + 0x40), 32);
+		ff8fx::copy<(32)>((void *)ctx, (const void *)(blk + 0x40));
 		const uint32_t anim = blk + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
 		x::GTE_SetRotMatrix(0x1D97778);
@@ -664,7 +664,7 @@ namespace lv5_death
 		callp(states[S8(node, 0x29)], node);
 		const int32_t pz = S16(node, 0x50);
 		const int32_t py = S16(node, 0x4E);
-		memcpy((void *)0x1D99AB0, (const void *)(node + 0x70), 32);
+		ff8fx::copy<(32)>((void *)0x1D99AB0, (const void *)(node + 0x70));
 		const int32_t px = S16(node, 0x4C);
 		S32(node, 0x8C) = pz;
 		const uint8_t f = U8(node, 0x26);
@@ -917,11 +917,11 @@ namespace lv5_death
 			U32(vel, -0x1C) = U32(a1, 0x20);
 			const int16_t yaw = (int16_t)(x::CrtRand() & 0xFFF);
 			const uint32_t r = x::CrtRand();
-			memcpy((void *)m2, (const void *)base, 32);
+			ff8fx::copy<(32)>((void *)m2, (const void *)base);
 			const uint32_t pitch = ((r & pitch_mask) + (uint32_t)pitch_add - (uint32_t)pitch_sub) & 0xFFF;
 			x::MAG_022_sub_8DD8A0(m2, (uint32_t)(int32_t)yaw);
 			x::sub_8DD7E0(m2, (uint32_t)(int32_t)(int16_t)pitch);
-			memcpy((void *)mat, (const void *)m2, 32);
+			ff8fx::copy<(32)>((void *)mat, (const void *)m2);
 			const uint32_t r3 = x::CrtRand() & 0x1FFF;
 			U16(vel, 2) = (uint16_t)(0xFFFFF000u - r3);
 			x::matrixMultiplyVector(m2, vel, vel);
@@ -971,7 +971,7 @@ namespace lv5_death
 			return 0; // void
 		alignas(4) uint8_t mb[32];
 		const uint32_t M = P(mb);
-		memcpy(mb, (const void *)a2, 32);
+		ff8fx::copy<(32)>(mb, (const void *)a2);
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
@@ -1258,7 +1258,7 @@ namespace lv5_death
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x255EA84) = 0x2793E58;
 		MEM<uint32_t>(0x2557208) = 0x2793E58;

@@ -500,7 +500,7 @@ namespace blaster186
 	{
 		U32(h, 0) = SEQ_Splash;
 		U16(h, 0x24) = 0;
-		memcpy((void *)(w + 8), (const void *)Aim(), 0x20);
+		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)Aim());
 		S32(w, 0x1C) = S16(TGT, 0);
 		S32(w, 0x20) = S16(TGT, 2);
 		S32(w, 0x24) = S16(TGT, 4);

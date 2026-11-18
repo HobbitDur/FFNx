@@ -247,7 +247,7 @@ namespace abadon314
 					F<int32_t>(h, 0x44) = s;
 					F<int32_t>(h, 0x40) = s;
 					Scale3DMatrix((Mat4x3 *)h, (const int32_t *)(h + 0x40));
-					memcpy(rec + 0x10, h, 0x20);
+					ff8fx::copy<(0x20)>(rec + 0x10, h);
 					F<int32_t>(rec, 0x24) = mul32(F<int16_t>(skel, 8), F<int16_t>(skel, 2)) >> 8;
 					F<int32_t>(rec, 0x28) = mul32(F<int16_t>(skel, 0xA), F<int16_t>(skel, 2)) >> 8;
 					F<int32_t>(rec, 0x2C) = mul32(F<int16_t>(skel, 0xC), F<int16_t>(skel, 2)) >> 8;

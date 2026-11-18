@@ -647,8 +647,8 @@ namespace scan040
 				GetEffectSpawnPosition(MainEntity(), 0xF1, 0, c.look1);
 				if (F<int16_t>(info, 8) == 0)
 				{
-					memcpy(&c.look1[0], MainEntity() + 0x1C, 4);
-					memcpy(&c.look1[2], MainEntity() + 0x20, 4);
+					ff8fx::copy<(4)>(&c.look1[0], MainEntity() + 0x1C);
+					ff8fx::copy<(4)>(&c.look1[2], MainEntity() + 0x20);
 				}
 				const int16_t x = F<int16_t>(info, 2);
 				c.look1[1] = 0;
@@ -659,8 +659,8 @@ namespace scan040
 				GetEffectSpawnPosition(ent, 0xF1, 0, c.look1);
 				if (F<int16_t>(info, 8) == 0)
 				{
-					memcpy(&c.look1[0], ent + 0x1C, 4);
-					memcpy(&c.look1[2], ent + 0x20, 4);
+					ff8fx::copy<(4)>(&c.look1[0], ent + 0x1C);
+					ff8fx::copy<(4)>(&c.look1[2], ent + 0x20);
 				}
 				c.look1[1] = 0;
 				v[0] = 0;
@@ -676,8 +676,8 @@ namespace scan040
 			c.look1[1] = (int16_t)(c.look1[1] + out[1]);
 			c.look1[2] = (int16_t)(c.look1[2] + out[2]);
 		}
-		memcpy(&c.look0[0], (const void *)0xB8B7F8, 4);
-		memcpy(&c.look0[2], (const void *)0xB8B7FC, 4);
+		ff8fx::copy<(4)>(&c.look0[0], (const void *)0xB8B7F8);
+		ff8fx::copy<(4)>(&c.look0[2], (const void *)0xB8B7FC);
 		n->h.phase++;
 	}
 }
@@ -800,7 +800,7 @@ namespace scan040
 		switch (n->h.phase)
 		{
 		case 0: // 0x84E080
-			memcpy(n->h.pos, n->h.parent->pos, 8);
+			ff8fx::copy<(8)>(n->h.pos, n->h.parent->pos);
 			switch (n->index)
 			{
 			case 0: n->shape = 0x15D17D8; n->h.pos[0] = 0; n->h.pos[1] = 0; n->dx = -1; n->dy = -1; break;
@@ -814,7 +814,7 @@ namespace scan040
 			n->h.phase++;
 			break;
 		case 1: // 0x84E140: follows the reticle
-			memcpy(n->h.pos, n->h.parent->pos, 8);
+			ff8fx::copy<(8)>(n->h.pos, n->h.parent->pos);
 			// 30 fps layer: see mag040_scan_held.inc
 			FX_HELD(held_note(REC_BRACKET_FOLLOW, n);)
 			BracketLines(n);
@@ -1884,8 +1884,8 @@ namespace scan040
 		ent = MainEntity();
 		if (F<int16_t>(info, 8) == 0)
 		{
-			memcpy(&centre[0], ent + 0x1C, 4);
-			memcpy(&centre[2], ent + 0x20, 4);
+			ff8fx::copy<(4)>(&centre[0], ent + 0x1C);
+			ff8fx::copy<(4)>(&centre[2], ent + 0x20);
 			centre[1] = 0;
 		}
 		n->offx = (int16_t)(F<int16_t>(ent, 0x1C) - centre[0]);
@@ -2064,7 +2064,7 @@ namespace scan040
 			uint8_t *e = Entity(k);
 			F<uint32_t>(e, 0x1C) = F<uint32_t>(ent, 0x1C);
 			F<uint32_t>(e, 0x20) = F<uint32_t>(ent, 0x20);
-			memcpy(e + 0x40, ent + 0x40, 0x20);
+			ff8fx::copy<(0x20)>(e + 0x40, ent + 0x40);
 		}
 	}
 
@@ -2092,7 +2092,7 @@ namespace scan040
 		case 0: // 0x84F8D0: name and info text, the pager, the backdrop
 		{
 			const void *name = n->h.slot <= 2 ? CharacterName(n->h.slot) : MonsterName(n->h.slot);
-			memcpy((void *)0x269AA78, name, 0x18);
+			ff8fx::copy<(0x18)>((void *)0x269AA78, name);
 			int16_t rect[4] = { 0xAA, 0x1E, 0x88, 0x1C };
 			TextSetLayerText(2, (const void *)0x269AA78);
 			TextLayer4A0700(2, 0);

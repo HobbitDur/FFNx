@@ -405,8 +405,8 @@ namespace shotgun281
 				{
 					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 					if (!s) break;
-					memcpy(s->pos, h->pos, 4);
-					memcpy(&s->pos[2], &h->pos[2], 4);
+					ff8fx::copy<(4)>(s->pos, h->pos);
+					ff8fx::copy<(4)>(&s->pos[2], &h->pos[2]);
 					const int32_t b = CrtRand();
 					const int32_t a = CrtRand();
 					Direction(a, b, s->vel);

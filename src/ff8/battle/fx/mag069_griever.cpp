@@ -287,7 +287,7 @@ namespace g069
 
 	static inline void CopyVertex(uint8_t *sc, int o, const uint8_t *verts, uint16_t idx)
 	{
-		memcpy(sc + o, verts + 16 * (uint32_t)(idx & 0xFFF), 16);
+		ff8fx::copy<(16)>(sc + o, verts + 16 * (uint32_t)(idx & 0xFFF));
 	}
 
 	// shard velocity: (rand & m) - (m >> 1) on x and z, -(4m + 4 (rand & m)) on y
@@ -624,7 +624,7 @@ namespace g069
 			GteLoadV0(s->pos);
 			GteMVMVA_RotV0Tr();
 			GteReadMAC123((int32_t *)(h + 0x98));
-			memset(h + 0x84, 0, 0x14);
+			ff8fx::fill<(0x14)>(h + 0x84, 0);
 			U16(h, 0x94) = (uint16_t)s->scale;
 			U16(h, 0x8C) = (uint16_t)s->scale;
 			U16(h, 0x84) = (uint16_t)s->scale;

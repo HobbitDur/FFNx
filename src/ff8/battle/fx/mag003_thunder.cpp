@@ -226,7 +226,7 @@ namespace thunder003
 		if (f >= 2 && f < 9)
 		{
 			int32_t size = p->size;
-			memcpy(local, p->pos, 8);
+			ff8fx::copy<(8)>(local, p->pos);
 			local[1] = (int16_t)(local[1] + 0xC8);
 			TransformCameraByShadowRotation(local, 0x1000, size);
 			Layer(h, SEQ_Upper, f - 2);

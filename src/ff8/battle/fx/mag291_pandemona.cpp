@@ -217,9 +217,9 @@ namespace p291
 						if (At<int16_t>(At<uint8_t *>(a, 0), 0x1C) < At<int16_t>(At<uint8_t *>(b, 0), 0x1C))
 						{
 							uint8_t t[0x20];
-							memcpy(t, a, 0x20);
-							memcpy(a, b, 0x20);
-							memcpy(b, t, 0x20);
+							ff8fx::copy<(0x20)>(t, a);
+							ff8fx::copy<(0x20)>(a, b);
+							ff8fx::copy<(0x20)>(b, t);
 						}
 					}
 				}
@@ -339,7 +339,7 @@ namespace p291
 			{ y, 0x13A0E58, 0x13A4280, shl32(v, 6), 0, 0, 0, e, e + 0x1000, 0, shl32(v, 5), 0x1000 - (e >> 1) },
 			{ y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, shl32(v, 5), 0x1000 - (e >> 2) },
 			{ y, 0x13A6508, 0x13A7BF0, shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, v * 40, 0x1000 - (e >> 2) } };
-		memcpy(r.t, a, sizeof(a));
+		ff8fx::copy<(sizeof(a))>(r.t, a);
 	}
 	static void DrawB(const Pass &p, int32_t v)
 	{
@@ -360,7 +360,7 @@ namespace p291
 			{ y, 0x13A0E58, 0x13A4280, shl32(v, 6), e, shl32(v, 7), e >> 2, shl32(v + 0x20, 7), 0x2000, 0, shl32(v, 5), 0 },
 			{ y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), e, shl32(v + 2, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, shl32(v, 5), 0 },
 			{ y, 0x13A6508, 0x13A7BF0, shl32(v, 6), e, shl32(v + 4, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, v * 40, 0 } };
-		memcpy(r.t, a, sizeof(a));
+		ff8fx::copy<(sizeof(a))>(r.t, a);
 		r.e = e;
 		r.ang2 = v * 100;
 		r.fade = shl32(0x3C - v, 8);
@@ -422,20 +422,20 @@ namespace p291
 	struct ParD { int32_t on, more; int32_t t[3][12]; int32_t v36, ang2; };
 	static void GenD(int32_t v, ParD &r)
 	{
-		memset(&r, 0, sizeof(r));
+		ff8fx::fill<(sizeof(r))>(&r, 0);
 		int32_t v35 = (uint32_t)v < 0x18 ? 0 : (int32_t)((uint32_t)shl32(v - 0x18, 12) / 20u);
 		if (v35 > 0x1000) return;
 		r.on = 1;
 		int32_t y = Center();
 		int32_t a0[12] = { y, 0x13A0E58, 0x13A4280, shl32(v, 6), 0x1000, 0, 0, 0x2E00, 0x2000, 0, shl32(v, 5), v35 };
-		memcpy(r.t[0], a0, sizeof(a0));
+		ff8fx::copy<(sizeof(a0))>(r.t[0], a0);
 		int32_t v36 = (uint32_t)v < 0x18 ? 0 : (int32_t)((uint32_t)shl32(v - 0x18, 12) / 30u);
 		if (v36 > 0x1000) return;
 		r.more = 1;
 		int32_t a1[12] = { y, 0x13A4F88, 0x13A5EF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, shl32(v, 5), v36 };
 		int32_t a2[12] = { y, 0x13A6508, 0x13A7BF0, shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, v * 40, v36 };
-		memcpy(r.t[1], a1, sizeof(a1));
-		memcpy(r.t[2], a2, sizeof(a2));
+		ff8fx::copy<(sizeof(a1))>(r.t[1], a1);
+		ff8fx::copy<(sizeof(a2))>(r.t[2], a2);
 		r.v36 = v36;
 		r.ang2 = v * 100;
 	}
@@ -604,7 +604,7 @@ namespace p291
 			{ 0, 0x13AB5C0, shl32(v, 6), shl32(v, 7), q, b, 0x2000, 0, s, g },
 			{ 0, 0x13AC1B8, shl32(-v, 6), shl32(v, 7), q, b, 0x2000, 1, s, g },
 			{ 0, 0x13ACDB0, shl32(v, 6), shl32(v, 7), q, b, 0x2000, 2, s, g } };
-		memcpy(p.r, a, sizeof(a));
+		ff8fx::copy<(sizeof(a))>(p.r, a);
 	}
 	static void DrawJ(const Pass &p, int32_t v)
 	{
@@ -637,7 +637,7 @@ namespace p291
 	};
 	static void GenK(int32_t v, ParK &p)
 	{
-		memset(&p, 0, sizeof(p));
+		ff8fx::fill<(sizeof(p))>(&p, 0);
 		int32_t f = (uint32_t)v <= 0x18 ? 0x2000 : shl32(v - 8, 9);
 		int32_t s = shl32(v, 5);
 		int32_t a[4][10] = {
@@ -645,7 +645,7 @@ namespace p291
 			{ 0, 0x13AB5C0, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
 			{ 0, 0x13AC1B8, shl32(-v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
 			{ 0, 0x13ACDB0, shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f } };
-		memcpy(p.r, a, sizeof(a));
+		ff8fx::copy<(sizeof(a))>(p.r, a);
 		for (int k = 0; k < 4; k++)
 		{
 			const int16_t *t = (const int16_t *)(0x13BBBE4 - 0xC * k);

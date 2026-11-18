@@ -1015,7 +1015,7 @@ namespace cannonblow151
 					const uint32_t d = (uint32_t)AddTaskToQueue(ShotQueue(), ORIG_Debris);
 					S16(d, 0xC) = 0;
 					S16(d, 0xE) = (int16_t)(CrtRand() % 6 + 2 * k);
-					memcpy((void *)(d + 0x10), pt, 8);
+					ff8fx::copy<(8)>((void *)(d + 0x10), pt);
 					S16(d, 0x10) = (int16_t)(S16(d, 0x10) + CrtRand() % 0x320 - 0x190);
 					S16(d, 0x12) = (int16_t)(S16(d, 0x12) + CrtRand() % 0x320 - 0x190);
 					S16(d, 0x14) = (int16_t)(S16(d, 0x14) + CrtRand() % 0x320 - 0x190);

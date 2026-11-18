@@ -445,7 +445,7 @@ namespace storm213
 				BuildBoneMatricesFromPose(weapon);
 			}
 		}
-		memcpy(out, a + 0x28, 8);
+		ff8fx::copy<(8)>(out, a + 0x28);
 		FieldFree(0x38);
 	}
 
@@ -959,7 +959,7 @@ namespace storm213
 			Mat4x3 m2 = t->basis;
 			if (t->counter == 0x1D)
 			{
-				memcpy(t->frozen, t->mouth, 8);
+				ff8fx::copy<(8)>(t->frozen, t->mouth);
 				DecodeModelPrimLayout(MODEL_Cone, t->layout, 0x140);
 			}
 			m2.t[0] = t->frozen[0];
@@ -1094,7 +1094,7 @@ namespace storm213
 				uint8_t *dst = (uint8_t *)(TexBase() + 0x1B18);
 				for (int i = 0; i < STREAM_NVERTS; i++, dst += 8)
 				{
-					memcpy(dst, (const void *)(STREAM_VERTS + i * 8), 8);
+					ff8fx::copy<(8)>(dst, (const void *)(STREAM_VERTS + i * 8));
 					*(int16_t *)(dst + 6) = (int16_t)(shl32(*(const int16_t *)(dst + 4), 12) / range);
 				}
 				InitTaskQueuePool(QTargets(), (void *)(TexBase() + 0x1614), 0x504, 1);

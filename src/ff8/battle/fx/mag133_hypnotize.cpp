@@ -423,7 +423,7 @@ namespace hypno133
 		int16_t pos[4];
 		BonePoint(g->point, pos);
 		PrimArg arg;
-		memcpy(&arg.m.m, &Camera().m, sizeof(arg.m.m));
+		ff8fx::copy<(sizeof(arg.m.m))>(&arg.m.m, &Camera().m);
 		CameraAnchor(pos, &arg.m);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;

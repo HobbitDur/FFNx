@@ -315,7 +315,7 @@ namespace renzo141
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Final);
 			t->c = 0;
 			const int16_t sc = (int16_t)((CrtRand() % 0xA00 + 0x1C00) / 3);
-			memcpy((void *)SAVED_POS, (const void *)HIT_POS, 0x18);
+			ff8fx::copy<(0x18)>((void *)SAVED_POS, (const void *)HIT_POS);
 			t->w1E = sc;
 			t->w1C = sc;
 		}
@@ -670,8 +670,8 @@ namespace renzo141
 			s->w1E = sc;
 			s->w1C = sc;
 			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
-			memcpy(r->pos, (const void *)HIT_POS, 8);
-			memcpy(r->dir, (const void *)HIT_DIR, 16);
+			ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
+			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -689,7 +689,7 @@ namespace renzo141
 				FlashP *p = (FlashP *)(POOL_A + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xA00);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x15E - 0xAF));
@@ -702,7 +702,7 @@ namespace renzo141
 				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xC00);
-				memcpy(p->pos, (const void *)HIT_POS, 8);
+				ff8fx::copy<(8)>(p->pos, (const void *)HIT_POS);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
 				const int32_t *d = (const int32_t *)HIT_DIR;
 				const int32_t r0 = CrtRand() % 200;

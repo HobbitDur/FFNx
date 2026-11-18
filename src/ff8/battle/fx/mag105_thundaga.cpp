@@ -301,7 +301,7 @@ namespace thundaga105
 		*(int16_t *)(h + 6) = 0;
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 2) = 0;
-		memcpy(h + 0x20, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(h + 0x20, &Camera());
 		const Debris *e = slots;
 		for (int i = 0; i < DEBRIS_COUNT; i++, e++)
 		{
@@ -460,9 +460,9 @@ namespace thundaga105
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x58);
 		BuildRotationMatrixFromAngles(angles, (Mat4x3 *)(w + 0x20));
-		memcpy(w + 8, pos, 8);
-		memcpy(w + 0x10, vel, 8);
-		memcpy(w + 0x18, acc, 8);
+		ff8fx::copy<(8)>(w + 8, pos);
+		ff8fx::copy<(8)>(w + 0x10, vel);
+		ff8fx::copy<(8)>(w + 0x18, acc);
 		*(uint8_t **)(w + 4) = mesh + 8;
 		*(uint8_t **)w = mesh + *(int32_t *)mesh + 8;
 		BreakTriangles(w);

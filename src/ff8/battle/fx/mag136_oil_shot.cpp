@@ -654,7 +654,7 @@ namespace oil136
 	// camera translation
 	static void BlockAt(PrimArg *arg, const int16_t *p4)
 	{
-		memcpy(arg->m.m, Camera().m, sizeof(arg->m.m));
+		ff8fx::copy<(sizeof(arg->m.m))>(arg->m.m, Camera().m);
 		GteSetRotMatrixCtrl(&Camera());
 		GteLoadV0(p4);
 		GteMVMVA_RotV0();
@@ -854,7 +854,7 @@ namespace oil136
 			{
 				s->angle = (int16_t)CrtRand();
 				s->spin = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-				memcpy(s->pos, P, 8);
+				ff8fx::copy<(8)>(s->pos, P);
 				s->scale = (int16_t)((CrtRand() & 0x7FF) + 0x800);
 				const int32_t b = CrtRand();
 				const int32_t a = (CrtRand() & 0x3FF) - 0x200;
@@ -888,7 +888,7 @@ namespace oil136
 			if (k == 0)
 			{
 				BonePoint(MOUTH, w->start);
-				memcpy(w->prev, w->start, 8);
+				ff8fx::copy<(8)>(w->prev, w->start);
 			}
 			else
 			{
@@ -899,7 +899,7 @@ namespace oil136
 				StreamPoint(w, s, sine, P);
 				StreamBasis(P, w->prev, &M);
 				StreamNode *d = (StreamNode *)AddTaskToQueue(QStreams(), ORIG_StreamTask);
-				memcpy(w->prev, P, 8);
+				ff8fx::copy<(8)>(w->prev, P);
 				if (d)
 				{
 					const int32_t r = CrtRand();
@@ -943,7 +943,7 @@ namespace oil136
 				FallNode *f = (FallNode *)AddTaskToQueue(QFalls(), ORIG_FallTask);
 				if (f)
 				{
-					memcpy(f->pos, w->pos, 8);
+					ff8fx::copy<(8)>(f->pos, w->pos);
 					f->landed = 0;
 					const int32_t a = CrtRand();
 					const int32_t sp = (CrtRand() & 0x1F) + 0x20;
@@ -958,7 +958,7 @@ namespace oil136
 				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), ORIG_SplatTask);
 				if (s)
 				{
-					memcpy(s->pos, w->pos, 8);
+					ff8fx::copy<(8)>(s->pos, w->pos);
 					s->pos[0] = (int16_t)(s->pos[0] + ((CrtRand() & 0x1FF) - 0x100));
 					s->pos[1] = (int16_t)(s->pos[1] + ((CrtRand() & 0x3FF) - 0x200));
 					const int32_t r = CrtRand();

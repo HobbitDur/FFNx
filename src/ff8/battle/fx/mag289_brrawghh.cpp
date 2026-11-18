@@ -802,7 +802,7 @@ namespace brr289
 				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
 				if (!s) continue;
 				s->seq = SEQ_Spit;
-				memcpy(s->pos, B, 8);
+				ff8fx::copy<(8)>(s->pos, B);
 				const int32_t a = CrtRand();
 				const int32_t r = (CrtRand() & 0xF) + 0x20;
 				s->vel[0] = (int16_t)(mul32(ComputeSin(a), r) >> 12);
@@ -816,14 +816,14 @@ namespace brr289
 			SplashNode *l = (SplashNode *)AddTaskToQueue(QSplashes(), ORIG_SplashTask);
 			if (l)
 			{
-				memcpy(l->pos, P, 8);
+				ff8fx::copy<(8)>(l->pos, P);
 				DecodeModelPrimLayout(LAYOUT_Splash, l->layout, 0x40);
 			}
 			GteSetRotMatrix(&M);
 			SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
 			if (s)
 			{
-				memcpy(s->pos, P, 8);
+				ff8fx::copy<(8)>(s->pos, P);
 				s->seq = SEQ_Splat;
 				s->vel[0] = 0;
 				s->vel[2] = (int16_t)(-0x10 - (CrtRand() & 0xF));

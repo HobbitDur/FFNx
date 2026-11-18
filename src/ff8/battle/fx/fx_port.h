@@ -36,7 +36,10 @@
 #pragma once
 
 #include <stdint.h>
-#include <string.h>
+
+// patch.h (not included here: it brings windows.h and its far/near/Yield macros)
+void memcpy_code(uint32_t offset, const void *data, uint32_t size);
+void memset_code(uint32_t offset, uint32_t val, uint32_t size);
 
 #ifdef FF8_FX_HELD
 #define FX_HELD(...) __VA_ARGS__
@@ -46,6 +49,22 @@
 
 namespace ff8fx
 {
+	// Fixed-size copies as plain struct assignments (the size is a compile-time constant at
+	// every call site); runtime sizes go through memcpy_code / memset_code.
+	template<uint32_t N> struct Bytes { uint8_t b[N]; };
+	template<uint32_t N> inline void copy(void *dst, const void *src) { *(Bytes<N> *)dst = *(const Bytes<N> *)src; }
+	template<uint32_t N> inline void fill(void *dst, int value)
+	{
+		uint8_t *d = (uint8_t *)dst;
+		for (uint32_t i = 0; i < N; i++) d[i] = (uint8_t)value;
+	}
+	inline bool same_bytes(const void *a, const void *b, uint32_t size)
+	{
+		const uint8_t *x = (const uint8_t *)a, *y = (const uint8_t *)b;
+		for (uint32_t i = 0; i < size; i++) if (x[i] != y[i]) return false;
+		return true;
+	}
+
 #pragma pack(push, 1)
 	struct TaskNode // TaskNodeHeader
 	{

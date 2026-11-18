@@ -467,8 +467,8 @@ namespace s185
 			half >>= 1;
 			if (i == 0)
 			{
-				memcpy(g128, g190, 8);
-				memcpy(g190, Q, 8);
+				ff8fx::copy<(8)>(g128, g190);
+				ff8fx::copy<(8)>(g190, Q);
 				int16_t lo = *(int16_t *)(g128 + 2), hi = *(int16_t *)(g190 + 2);
 				if (hi < lo)
 				{
@@ -1659,9 +1659,9 @@ namespace s185
 			n->f20 = 0;
 			n->f22 = 0x800;
 			Node24 *t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_GlowRingTask);
-			memcpy(&t->f10, &n->f10, 4);
+			ff8fx::copy<(4)>(&t->f10, &n->f10);
 			t->c = 0;
-			memcpy(&t->f14, &n->f14, 4);
+			ff8fx::copy<(4)>(&t->f14, &n->f14);
 			t->f18 = (int16_t)(CrtRand() % 0x1000);
 			int32_t r = CrtRand() % 0x1E;
 			t->f1C = n->f1C;
@@ -1671,9 +1671,9 @@ namespace s185
 			t->f1E = n->f1E;
 			t->f20 = n->f20;
 			t = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SnowfallTask);
-			memcpy(&t->f10, &n->f10, 4);
+			ff8fx::copy<(4)>(&t->f10, &n->f10);
 			t->c = 0;
-			memcpy(&t->f14, &n->f14, 4);
+			ff8fx::copy<(4)>(&t->f14, &n->f14);
 			t->f18 = (int16_t)(CrtRand() % 0x1000);
 			t->f1A = (int16_t)(CrtRand() % 0x32 + 0x3C);
 		}

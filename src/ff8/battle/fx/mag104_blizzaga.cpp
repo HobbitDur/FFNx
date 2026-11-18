@@ -409,9 +409,9 @@ namespace blizzaga104
 		uint16_t n3 = *(uint16_t *)(q + 8);
 		for (uint32_t i = 0; i < n3; i++, prim += 0x10)
 		{
-			memcpy(q + 0x24, w + 8 * (*(uint16_t *)prim & 0xFFF), 8);
-			memcpy(q + 0x2C, w + 8 * (*(uint16_t *)(prim + 2) & 0xFFF), 8);
-			memcpy(q + 0x34, w + 8 * (*(uint16_t *)(prim + 4) & 0xFFF), 8);
+			ff8fx::copy<(8)>(q + 0x24, w + 8 * (*(uint16_t *)prim & 0xFFF));
+			ff8fx::copy<(8)>(q + 0x2C, w + 8 * (*(uint16_t *)(prim + 2) & 0xFFF));
+			ff8fx::copy<(8)>(q + 0x34, w + 8 * (*(uint16_t *)(prim + 4) & 0xFFF));
 			if ((uint8_t)(q[0x2A] | q[0x32] | q[0x3A]) >= 0x10) continue;
 			if (q[0x3A] & (q[0x2A] & q[0x32])) continue;
 			GteSetSXY012(*(uint32_t *)(q + 0x24), *(uint32_t *)(q + 0x2C), *(uint32_t *)(q + 0x34));
@@ -443,10 +443,10 @@ namespace blizzaga104
 		prim += 4;
 		for (uint32_t i = 0; i < n4; i++, prim += 0x14)
 		{
-			memcpy(q + 0x24, w + 8 * (*(uint16_t *)(prim - 4) & 0xFFF), 8);
-			memcpy(q + 0x2C, w + 8 * (*(uint16_t *)(prim - 2) & 0xFFF), 8);
-			memcpy(q + 0x34, w + 8 * (*(uint16_t *)prim & 0xFFF), 8);
-			memcpy(q + 0x3C, w + 8 * (*(uint16_t *)(prim + 2) & 0xFFF), 8);
+			ff8fx::copy<(8)>(q + 0x24, w + 8 * (*(uint16_t *)(prim - 4) & 0xFFF));
+			ff8fx::copy<(8)>(q + 0x2C, w + 8 * (*(uint16_t *)(prim - 2) & 0xFFF));
+			ff8fx::copy<(8)>(q + 0x34, w + 8 * (*(uint16_t *)prim & 0xFFF));
+			ff8fx::copy<(8)>(q + 0x3C, w + 8 * (*(uint16_t *)(prim + 2) & 0xFFF));
 			if ((uint8_t)(q[0x42] | q[0x2A] | q[0x32] | q[0x3A]) >= 0x10) continue;
 			if (q[0x3A] & (q[0x42] & q[0x2A] & q[0x32])) continue;
 			GteSetSXY012(*(uint32_t *)(q + 0x24), *(uint32_t *)(q + 0x2C), *(uint32_t *)(q + 0x34));
@@ -737,10 +737,10 @@ namespace blizzaga104
 		if (count <= 0) return cursor;
 		for (int32_t left = count; left; left--, prim += 0x18)
 		{
-			memcpy(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4), 8);
-			memcpy(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6), 8);
-			memcpy(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8), 8);
-			memcpy(h + 0x50, verts + 4 * *(uint16_t *)(prim + 0xA), 8);
+			ff8fx::copy<(8)>(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4));
+			ff8fx::copy<(8)>(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6));
+			ff8fx::copy<(8)>(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8));
+			ff8fx::copy<(8)>(h + 0x50, verts + 4 * *(uint16_t *)(prim + 0xA));
 			GteLoadV012(h + 0x38, h + 0x40, h + 0x48);
 			GteRTPT();
 			*(uint32_t *)p = 0x09000000;
@@ -797,9 +797,9 @@ namespace blizzaga104
 		if (count <= 0) return cursor;
 		for (int32_t left = count; left; left--, prim += 0x1C)
 		{
-			memcpy(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4), 8);
-			memcpy(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6), 8);
-			memcpy(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8), 8);
+			ff8fx::copy<(8)>(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4));
+			ff8fx::copy<(8)>(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6));
+			ff8fx::copy<(8)>(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8));
 			GteLoadV012(h + 0x38, h + 0x40, h + 0x48);
 			GteRTPT();
 			*(uint32_t *)p = 0x09000000;
@@ -854,10 +854,10 @@ namespace blizzaga104
 		if (count <= 0) return cursor;
 		for (int32_t left = count; left; left--, prim += 0x24)
 		{
-			memcpy(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4), 8);
-			memcpy(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6), 8);
-			memcpy(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8), 8);
-			memcpy(h + 0x50, verts + 4 * *(uint16_t *)(prim + 0xA), 8);
+			ff8fx::copy<(8)>(h + 0x38, verts + 4 * *(uint16_t *)(prim + 4));
+			ff8fx::copy<(8)>(h + 0x40, verts + 4 * *(uint16_t *)(prim + 6));
+			ff8fx::copy<(8)>(h + 0x48, verts + 4 * *(uint16_t *)(prim + 8));
+			ff8fx::copy<(8)>(h + 0x50, verts + 4 * *(uint16_t *)(prim + 0xA));
 			GteLoadV012(h + 0x38, h + 0x40, h + 0x48);
 			GteRTPT();
 			*(uint32_t *)p = 0x0C000000;
@@ -1294,8 +1294,8 @@ namespace blizzaga104
 			for (int32_t k = n * 9; k > 0; k--) d[k + 8] = d[k - 1];
 			n++;
 		}
-		memcpy(t[0].v0, a, 8);
-		memcpy(t[0].v1, b, 8);
+		ff8fx::copy<(8)>(t[0].v0, a);
+		ff8fx::copy<(8)>(t[0].v1, b);
 		t[0].fade = fade;
 		t[0].fade_vel = (int8_t)fade_vel;
 		t[0].u = u;
@@ -1455,11 +1455,11 @@ namespace blizzaga104
 			if (r->count > 4)
 			{
 				int16_t s[4];
-				memcpy(s, r->trail[3].v0, 8);
+				ff8fx::copy<(8)>(s, r->trail[3].v0);
 				s[0] = (int16_t)(s[0] + ((CrtRand() - 0x4000) >> 6));
 				s[1] = (int16_t)(s[1] + ((CrtRand() - 0x4000) >> 6));
 				SpawnSparkle(s, &r->m);
-				memcpy(s, r->trail[3].v1, 8);
+				ff8fx::copy<(8)>(s, r->trail[3].v1);
 				s[0] = (int16_t)(s[0] + ((CrtRand() - 0x4000) >> 6));
 				s[1] = (int16_t)(s[1] + ((CrtRand() - 0x4000) >> 6));
 				SpawnSparkle(s, &r->m);

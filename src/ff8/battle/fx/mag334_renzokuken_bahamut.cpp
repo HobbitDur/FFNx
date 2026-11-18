@@ -108,7 +108,7 @@ namespace renzo334
 		if (n->c == 0x65)
 		{
 			Node24 *t = AddSlotTask(ORIG_AngleModel);
-			memcpy(&t->w10, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t s = (int16_t)((CrtRand() % 0x300 + 0xA00) / 3);
 			t->w1E = s;
@@ -118,7 +118,7 @@ namespace renzo334
 		if (n->c == 0x8E)
 		{
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_CasterModel);
-			memcpy(&t->w10, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0x800 + 0x2400) / 3);
 			t->w1E = s;
@@ -208,7 +208,7 @@ namespace renzo334
 		// 30 fps layer: see mag334_renzokuken_bahamut_held.inc
 		FX_HELD(held_note_ringpool(n);)
 		uint8_t *h = AllocHeader(0x58);
-		memcpy(&w->cam, &Camera(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(&w->cam, &Camera());
 		*(uint32_t *)h = MODEL_POOL_RING;
 		*(uint32_t *)(h + 8) = 0;
 		int32_t alive = 0;

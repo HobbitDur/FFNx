@@ -949,10 +949,10 @@ namespace ultra154
 			if (p.mask != 0) continue;
 			p.mask = e->mask;
 			p.colour = e->colour;
-			memcpy(&p.pos[0], &e->pos[0], 4);
+			ff8fx::copy<(4)>(&p.pos[0], &e->pos[0]);
 			p.life = 0;
 			p.scale = 0x400;
-			memcpy(&p.pos[2], &e->pos[2], 4);
+			ff8fx::copy<(4)>(&p.pos[2], &e->pos[2]);
 			p.angle = e->angle;
 			p.vel[0] = (int16_t)(mul32(e->dir[0], 150) >> 12);
 			p.vel[1] = (int16_t)(mul32(e->dir[1], 150) >> 12);

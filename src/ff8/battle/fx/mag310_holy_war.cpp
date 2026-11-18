@@ -344,7 +344,7 @@ namespace holywar310
 		}
 		if ((uint32_t)(int32_t)p->counter < (uint32_t)MAIN_TICKS)
 		{
-			memcpy(arg.pos, p->anchor, sizeof(arg.pos));
+			ff8fx::copy<(sizeof(arg.pos))>(arg.pos, p->anchor);
 			arg.scale[2] = p->scale;
 			arg.scale[1] = p->scale;
 			arg.scale[0] = p->scale;

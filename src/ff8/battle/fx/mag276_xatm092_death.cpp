@@ -468,7 +468,7 @@ namespace xatm276
 							U8(r, 0x41) = Shrink(v1, (int16_t)avg, avg);
 						}
 						const uint32_t m = U32(s, 0x90) + (uint32_t)((Rnd() & 0x3F) << 5);
-						memcpy((void *)(r + 0x10), (const void *)m, 0x12);
+						ff8fx::copy<(0x12)>((void *)(r + 0x10), (const void *)m);
 						if (--S32(s, 0x18) <= 0) return;
 					}
 				}
@@ -538,7 +538,7 @@ namespace xatm276
 						U8(r, 0x47) = Shrink(v3, (int16_t)avg, avg);
 					}
 					const uint32_t m = U32(s, 0x90) + (uint32_t)((Rnd() & 0x3F) << 5);
-					memcpy((void *)(r + 0x10), (const void *)m, 0x12);
+					ff8fx::copy<(0x12)>((void *)(r + 0x10), (const void *)m);
 					if (--S32(s, 0x18) <= 0) return;
 				}
 			}
@@ -1286,7 +1286,7 @@ namespace xatm276
 	{
 		const uint32_t n = (uint32_t)t;
 		PrimArg a;
-		memcpy(a.pos, (const void *)(n + 0xE), 8);
+		ff8fx::copy<(8)>(a.pos, (const void *)(n + 0xE));
 		const int32_t scale = S16(n, 0x14);
 		a.scale[2] = scale;
 		a.scale[1] = scale;
@@ -1568,7 +1568,7 @@ namespace xatm276
 		U32(d, 0x4C) = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
 		U32(d, 0x50) = d + 0x54;
 		U32(d, 0x48) = d + 0xE;
-		memset((void *)(d + 0xE), 0xFF, 0x37);
+		ff8fx::fill<(0x37)>((void *)(d + 0xE), 0xFF);
 		for (int32_t i = 0; i < 8; i++) S16(Buffer(), (int32_t)(BUF_PROFILE + 2 * i)) = (int16_t)ComputeSin(shl32(i, 11) / 7);
 	}
 

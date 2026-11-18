@@ -463,9 +463,9 @@ namespace bio022
 		int32_t otz;
 		for (int32_t k = count; k > 0; k--)
 		{
-			memcpy(s + 0x20, verts + (*(const uint16_t *)(poly + 4) >> 1) * 8, 8);
-			memcpy(s + 0x28, verts + (*(const uint16_t *)(poly + 6) >> 1) * 8, 8);
-			memcpy(s + 0x30, verts + (*(const uint16_t *)(poly + 8) >> 1) * 8, 8);
+			ff8fx::copy<(8)>(s + 0x20, verts + (*(const uint16_t *)(poly + 4) >> 1) * 8);
+			ff8fx::copy<(8)>(s + 0x28, verts + (*(const uint16_t *)(poly + 6) >> 1) * 8);
+			ff8fx::copy<(8)>(s + 0x30, verts + (*(const uint16_t *)(poly + 8) >> 1) * 8);
 			GteLoadV012Block(s + 0x20);
 			GteRTPT();
 			GteNCLIP();
@@ -519,9 +519,9 @@ namespace bio022
 		int32_t otz;
 		for (int32_t k = count; k > 0; k--)
 		{
-			memcpy(s + 0x20, verts + (*(const uint16_t *)(poly + 4) >> 1) * 8, 8);
-			memcpy(s + 0x28, verts + (*(const uint16_t *)(poly + 6) >> 1) * 8, 8);
-			memcpy(s + 0x30, verts + (*(const uint16_t *)(poly + 8) >> 1) * 8, 8);
+			ff8fx::copy<(8)>(s + 0x20, verts + (*(const uint16_t *)(poly + 4) >> 1) * 8);
+			ff8fx::copy<(8)>(s + 0x28, verts + (*(const uint16_t *)(poly + 6) >> 1) * 8);
+			ff8fx::copy<(8)>(s + 0x30, verts + (*(const uint16_t *)(poly + 8) >> 1) * 8);
 			for (int i = 0; i < 3; i++)
 			{
 				GteLoadV0(s + 0x20 + 8 * i);
@@ -547,7 +547,7 @@ namespace bio022
 	static void PoolUpdatePos(MeshNode *m)
 	{
 		int16_t v[4];
-		memcpy(v, m->offs_to, 8);
+		ff8fx::copy<(8)>(v, m->offs_to);
 		int32_t frac = m->frac;
 		FxNode *e = m->h.emitter;
 		v[0] = (int16_t)(v[0] + (int16_t)(mul32((int32_t)m->offs[0] - m->offs_to[0], frac) / 4096));
@@ -558,7 +558,7 @@ namespace bio022
 		IdentityMatrix(&r);
 		RotateY(&r, m->spin);
 		MatrixMulVector(&r, v, out);
-		memcpy(m->h.pos, ((EmitterNode *)e)->center, 8);
+		ff8fx::copy<(8)>(m->h.pos, ((EmitterNode *)e)->center);
 		m->h.pos[0] = (int16_t)(m->h.pos[0] + out[0]);
 		m->h.pos[1] = (int16_t)(m->h.pos[1] + out[1]);
 		m->h.pos[2] = (int16_t)(m->h.pos[2] + out[2]);
@@ -758,7 +758,7 @@ namespace bio022
 	static void BlobBurst(MeshNode *m, int32_t k)
 	{
 		uint8_t *s = (uint8_t *)FieldAlloc(0x30);
-		memcpy(s + 8, m->h.pos, 8);
+		ff8fx::copy<(8)>(s + 8, m->h.pos);
 		Mat4x3 *mat = (Mat4x3 *)(s + 0x10);
 		BuildRotationMatrixFromAngles(m->rot, mat);
 		mat->t[0] = *(const int16_t *)(s + 8);
@@ -793,7 +793,7 @@ namespace bio022
 	static void BlobInit(MeshNode *m)
 	{
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
-		memcpy(m->h.pos, e->center, 8);
+		ff8fx::copy<(8)>(m->h.pos, e->center);
 		m->rot[1] = e->spin;
 		m->mesh = (uint8_t *)MESH_Blob;
 		m->t = 0x400;
@@ -1018,7 +1018,7 @@ namespace bio022
 		Particle *q = (Particle *)AddEffectTask(QParticles(), ORIG_Splash, 0x70, p);
 		q->variant = p->variant;
 		p->h.flags |= 1;
-		memcpy(q->scale, p->scale, 0x10);
+		ff8fx::copy<(0x10)>(q->scale, p->scale);
 		p->h.phase++;
 	}
 
@@ -1135,7 +1135,7 @@ namespace bio022
 	static void MistAInit(Particle *p)
 	{
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
-		memcpy(p->h.pos, e->center, 8);
+		ff8fx::copy<(8)>(p->h.pos, e->center);
 		RandomOffsetInBall(p, mul32(e->scale * 3, 256) / 4096);
 		p->seq = SEQ_MistA;
 		p->last = 0xF;
@@ -1169,7 +1169,7 @@ namespace bio022
 	static void MistBInit(Particle *p)
 	{
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
-		memcpy(p->h.pos, e->center, 8);
+		ff8fx::copy<(8)>(p->h.pos, e->center);
 		RandomOffsetOnSphere(p, mul32(e->scale * 5, 256) / 4096);
 		p->seq = SEQ_MistB;
 		int32_t r = CrtRand();
@@ -1225,7 +1225,7 @@ namespace bio022
 	// bubble spawner (0x89BA80) - sub_89BAE0: on the acid centre
 	static void SpawnerAtCenter(FxNode *n)
 	{
-		memcpy(n->pos, ((EmitterNode *)n->emitter)->center, 8);
+		ff8fx::copy<(8)>(n->pos, ((EmitterNode *)n->emitter)->center);
 		n->phase++;
 	}
 
@@ -1581,8 +1581,8 @@ namespace bio022
 	// sub_89D550: the entity's matrix, and a copy moved by `offset`
 	static void CopyWorld(OverlayCtx *mc, const uint8_t *entity)
 	{
-		memcpy(&mc->world, entity + 0x40, 0x20);
-		memcpy(&mc->world2, entity + 0x40, 0x20);
+		ff8fx::copy<(0x20)>(&mc->world, entity + 0x40);
+		ff8fx::copy<(0x20)>(&mc->world2, entity + 0x40);
 		int16_t mode = mc->mode;
 		if (mode == 0)
 		{
@@ -1626,7 +1626,7 @@ namespace bio022
 		BuildMatrixFromDirAndUp(s + 0x20, s + 0x18, s + 0x10);
 		UnpackRotationMatrix(s + 0x20, s + 0x40);
 		*(int32_t *)(s + 0x5C) = mc->light_dist;
-		memcpy(s + 0x20, &mc->world, 0x20);
+		ff8fx::copy<(0x20)>(s + 0x20, &mc->world);
 		*(int32_t *)(s + 0x54) = 0;
 		*(int32_t *)(s + 0x58) = 0;
 		*(int32_t *)(s + 0x38) = mc->world.t[1] - mc->world2.t[1];

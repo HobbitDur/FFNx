@@ -470,7 +470,7 @@ namespace poisongas171
 		if (puff)
 		{
 			const int16_t c = S16(n, 0xC);
-			memcpy(to, (const void *)(ROWS + (uint32_t)row * 8 + 8), 8);
+			ff8fx::copy<(8)>(to, (const void *)(ROWS + (uint32_t)row * 8 + 8));
 			to[0] = (int16_t)(to[0] + (int16_t)(to[0] / 32 * c));
 			to[2] = (int16_t)(to[2] + (int16_t)(to[2] / 10 * c));
 			MatVec(cm, to, to);
@@ -490,7 +490,7 @@ namespace poisongas171
 			U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0xE);
 			S16(p, P_FRAME) = 0;
 			S16(p, P_SIZE) = (int16_t)((CrtRand() & 0x3FF) + 0x680);
-			memcpy((void *)(p + P_POS), from, 8);
+			ff8fx::copy<(8)>((void *)(p + P_POS), from);
 			const int32_t v = CrtRand() % 0x5F + 0x28;
 			if (puff)
 			{

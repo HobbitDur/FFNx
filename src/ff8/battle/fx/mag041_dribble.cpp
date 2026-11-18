@@ -269,7 +269,7 @@ namespace dribble
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x268F1B8) = 0x2793E58;
@@ -2236,7 +2236,7 @@ namespace dribble
 	uint32_t __cdecl db_84BA60(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)((int32_t)S16(a1, 0xB0) * 0x9C);
-		memcpy((void *)(a1 + 0x20), (const void *)(ent + 0x40), 0x20);
+		ff8fx::copy<(0x20)>((void *)(a1 + 0x20), (const void *)(ent + 0x40));
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		x::GTE_SetRotMatrix(0x1D97778);
@@ -2298,7 +2298,7 @@ namespace dribble
 		U16(w, 0xA4) = U16(blk, 0xAE);
 		U32(w, 0x98) = U32(ent, 0x7C);                  // visible objects
 		const uint32_t rgb = U32(ent, 0x28) & 0xFFFFFF;
-		memcpy((void *)w, (const void *)blk, 0x20);     // rep movsd: the ball rotation
+		ff8fx::copy<(0x20)>((void *)w, (const void *)blk);     // rep movsd: the ball rotation
 		U16(w, 0xA2) = U16(blk, 0xAC);
 		U32(w, 0x90) = rgb | 0x24000000;                // POLY_FT3 code + colour
 		U32(w, 0x94) = rgb | 0x2C000000;                // POLY_FT4 code + colour
@@ -2578,7 +2578,7 @@ namespace dribble
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		const uint32_t save1c = U32(ent, 0x1C);
 		uint32_t mtx[8];
-		memcpy(mtx, (const void *)(ent + 0x40), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>(mtx, (const void *)(ent + 0x40)); // rep movsd
 		const uint32_t save20 = U32(ent, 0x20);
 		U16(ent, 0x1C) = 0;
 		U16(ent, 0x1E) = 0;
@@ -2589,7 +2589,7 @@ namespace dribble
 		U16(pv, 0) = (uint16_t)(U16(pv, 0) - U16(ent, 0x1C));
 		U16(a2, 0x76) = (uint16_t)(U16(a2, 0x76) - U16(ent, 0x1E));
 		U16(a2, 0x78) = (uint16_t)(U16(a2, 0x78) - U16(ent, 0x20));
-		memcpy((void *)(ent + 0x40), mtx, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(ent + 0x40), mtx); // rep movsd
 		U32(ent, 0x1C) = save1c;
 		U32(ent, 0x20) = save20;
 		return 0; // void
@@ -2607,7 +2607,7 @@ namespace dribble
 		// stack locals of the original: +0x10 offset vector, +0x18 direction, +0x20 / +0x28 bone
 		// positions, +0x30 up vector, +0x38 rotation copy
 		alignas(4) uint8_t loc[0x58];
-		memset(loc, 0, sizeof(loc));
+		ff8fx::fill<(sizeof(loc))>(loc, 0);
 		const uint32_t L = P(loc);
 		if (S16(a1, 0x24) <= 0x1E)
 		{
@@ -2624,7 +2624,7 @@ namespace dribble
 		}
 		else
 			x::MAG_022_sub_8DD770(blk);
-		memcpy((void *)(L + 0x38), (const void *)blk, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(L + 0x38), (const void *)blk); // rep movsd
 		const uint32_t pos = blk + 0x7C;
 		x::GetEffectSpawnPosition(caster, 0x18, 0, pos);
 		const uint16_t base = (uint16_t)(U16(blk, 0x76) + 0x400);

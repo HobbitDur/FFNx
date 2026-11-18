@@ -487,7 +487,7 @@ namespace norgpod
 		g_mod = &MOD_020;
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x27268F4) = 0x2793E58;
 		MEM<uint32_t>(0x27215B0) = 0x2793E58;
@@ -755,7 +755,7 @@ namespace norgpod
 		x::sub_8DD960(blk + 0x40, (uint32_t)(int32_t)S16(node, 0x6C));
 		bones += 0x10;
 		x::ComposeAffineTransform(blk + 0x40, bones, bones);
-		memcpy((void *)blk, (const void *)(ent + 0x40), 8 * 4); // rep movsd: the entity matrix
+		ff8fx::copy<(8 * 4)>((void *)blk, (const void *)(ent + 0x40)); // rep movsd: the entity matrix
 		x::GTE_SetRotMatrix(0x1D97778);
 		x::GTE_LoadIRFromMatrixColumn(blk);
 		x::GTE_MVMVA_RotIR();

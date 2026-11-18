@@ -319,7 +319,7 @@ namespace fullcure280
 		// 30 fps layer: see mag280_full_cure_held.inc
 		FX_HELD(held_note_target(t);)
 		PrimArg arg;
-		memcpy(arg.pos, t->anchor, 6);
+		ff8fx::copy<(6)>(arg.pos, t->anchor);
 		arg.counter = t->counter;
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;

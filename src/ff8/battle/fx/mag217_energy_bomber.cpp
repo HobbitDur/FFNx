@@ -243,7 +243,7 @@ namespace bomber217
 	static void Play(uint8_t *layout, const int16_t *point)
 	{
 		PrimArg arg;
-		memcpy(arg.anchor, point, 8);
+		ff8fx::copy<(8)>(arg.anchor, point);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
 		prim::play((prim::Layout *)layout, PrimCallback, (int)&arg, 0);
@@ -273,7 +273,7 @@ namespace bomber217
 				m->vel[1] = (int16_t)(P[1] - m->pos[1]);
 				m->vel[2] = (int16_t)(P[2] - m->pos[2]);
 			}
-			memcpy(m->pos, P, 8);
+			ff8fx::copy<(8)>(m->pos, P);
 			return true;
 		}
 		if (c < 0x37)
@@ -281,7 +281,7 @@ namespace bomber217
 			m->pos[0] = (int16_t)(m->pos[0] + m->vel[0]);
 			m->pos[1] = (int16_t)(m->pos[1] + m->vel[1]);
 			m->pos[2] = (int16_t)(m->pos[2] + m->vel[2]);
-			memcpy(P, m->pos, 8);
+			ff8fx::copy<(8)>(P, m->pos);
 			return true;
 		}
 		int32_t s;
@@ -302,7 +302,7 @@ namespace bomber217
 			s = HopWeight(c - 0x3B);
 			if (c == 0x3B)
 			{
-				memcpy(m->pos, m->hop, 8);
+				ff8fx::copy<(8)>(m->pos, m->hop);
 				m->hop[0] = (int16_t)-m->hop[0];
 				m->hop[1] = m->target[1];
 				m->hop[2] = (int16_t)(((int32_t)m->pos[2] - m->target[2]) * 3 / 4 + m->target[2]);
@@ -313,7 +313,7 @@ namespace bomber217
 			s = HopWeight(c - 0x3F);
 			if (c == 0x3F)
 			{
-				memcpy(m->pos, m->hop, 8);
+				ff8fx::copy<(8)>(m->pos, m->hop);
 				m->hop[0] = m->target[0];
 				m->hop[1] = m->target[1];
 				m->hop[2] = m->target[2];
@@ -424,9 +424,9 @@ namespace bomber217
 			}
 			if ((uint32_t)c >= 0x37)
 			{
-				memcpy(m->trail[1], m->trail[0], 8);
+				ff8fx::copy<(8)>(m->trail[1], m->trail[0]);
 				m->count++;
-				memcpy(m->trail[0], P, 8);
+				ff8fx::copy<(8)>(m->trail[0], P);
 				if (m->count > 2) m->count = 2;
 				m->index = 0;
 			}

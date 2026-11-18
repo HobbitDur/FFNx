@@ -320,7 +320,7 @@ namespace duel274
 		g[1] = 0;
 		g[0] = 0;
 		g[4] = (uint8_t)n;
-		memset(g + 5, 0xFF, 0x80);
+		ff8fx::fill<(0x80)>(g + 5, 0xFF);
 		for (int32_t i = 0; i < n; i++) g[5 + bones[i]] = (uint8_t)i;
 	}
 
@@ -340,7 +340,7 @@ namespace duel274
 		for (uint32_t b = 0; b < skel[0]; b++)
 		{
 			const int32_t k = (int8_t)g[5 + b];
-			if (k >= 0) memcpy(dst + k * 0x20, skel + 0x20 + b * 0x30, 0x20);
+			if (k >= 0) ff8fx::copy<(0x20)>(dst + k * 0x20, skel + 0x20 + b * 0x30);
 		}
 	}
 
@@ -1047,7 +1047,7 @@ namespace duel274
 		SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 		while (s)
 		{
-			memcpy(s->pos, pos, 8); // (+0x12 frame = pos[3] = 0)
+			ff8fx::copy<(8)>(s->pos, pos); // (+0x12 frame = pos[3] = 0)
 			bool decel = true;
 			switch (kind)
 			{
@@ -1176,7 +1176,7 @@ namespace duel274
 		pos[3] = 0;
 		FlashNode *f = (FlashNode *)AddTaskToQueue(QFlashes(), ORIG_FlashTask);
 		if (!f) return;
-		memcpy(f->pos, pos, 8);
+		ff8fx::copy<(8)>(f->pos, pos);
 		if (far_ == 0) f->pos[2] = (int16_t)(f->pos[2] - 0x80);
 	}
 
@@ -1268,7 +1268,7 @@ namespace duel274
 		out->t[0] = (int32_t)((uint32_t)out->t[0] + (uint32_t)Camera().t[0]);
 		out->t[1] = (int32_t)((uint32_t)out->t[1] + (uint32_t)Camera().t[1]);
 		out->t[2] = (int32_t)((uint32_t)out->t[2] + (uint32_t)Camera().t[2]);
-		memcpy(out, &Camera(), 0x12);
+		ff8fx::copy<(0x12)>(out, &Camera());
 	}
 
 	// 0x68D1D0: an entity drawn by the module (Meteor Strike's target): its shadow, its bones' world matrices from its
@@ -1585,7 +1585,7 @@ namespace duel274
 			W16(m->target, 0x1C) += (int16_t)(pos[0] - fist[0]);
 			W16(m->target, 0x1E) += (int16_t)(pos[1] - fist[1]);
 			W16(m->target, 0x20) += (int16_t)(pos[2] - fist[2]);
-			memcpy(fist, pos, 8);
+			ff8fx::copy<(8)>(fist, pos);
 		}
 		if (m->counter >= 0x19 && m->counter <= 0x20) GhostRecord(c, (uint8_t *)m->ghosts);
 		if (m->counter == 0x1F) SparkBurst(0x16, 0x20, 2, 1);
@@ -1747,7 +1747,7 @@ namespace duel274
 		{
 			const int32_t r = Radius(c);
 			PlaceCaster(m, (r >> 1) + (r + (Radius(m->target) >> 1)));
-			memcpy(m->p54, c + 0x1C, 8);
+			ff8fx::copy<(8)>(m->p54, c + 0x1C);
 			m->layout_a = Alloc();
 			Alloc() += 0xE0;
 			m->layout_b = Alloc();
@@ -1877,7 +1877,7 @@ namespace duel274
 					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
 					while (k)
 					{
-						memcpy(k->pos, pos, 8);
+						ff8fx::copy<(8)>(k->pos, pos);
 						k->life = 0;
 						k->pos[0] = (int16_t)(k->pos[0] + (Rand() & 0x1FF) - 0x100);
 						k->pos[2] = (int16_t)(k->pos[2] + (Rand() & 0x1FF) - 0x100);
@@ -1956,7 +1956,7 @@ namespace duel274
 			x = (int16_t)(path[2] + m->anchor[2]);
 			W16(t, 0x20) = x;
 			W32(t, 0x5C) = x;
-			memcpy(hip, ang, 8);
+			ff8fx::copy<(8)>(hip, ang);
 			B8(t, 1) |= 0x10;
 			if (m->counter == 0x1C)
 			{

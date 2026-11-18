@@ -1357,8 +1357,8 @@ namespace uff076
 			char name[0x100];
 			const char *dir = (const char *)WAV_DIR;
 			const size_t len = strlen(dir);
-			memcpy(name, dir, len + 1);
-			memcpy(name + len, (const void *)WAV_NAME, 10);
+			memcpy_code(uint32_t(name), dir, len + 1);
+			ff8fx::copy<(10)>(name + len, (const void *)WAV_NAME);
 			WavStreamPlay(0, name, 0x7F, 0x40, 0x64, 0);
 		}
 		n->counter++;
@@ -1430,7 +1430,7 @@ namespace uff076
 				// MAG_076_sub_620D60
 				GetEffectSpawnPosition(Caster(), 0xF0, 0x800, (int16_t *)SPAWN_POS);
 				Node *f = (Node *)AddTaskToQueue(QMaster(), ORIG_Flash1);
-				memcpy(f->pos, (const void *)SPAWN_POS, 8);
+				ff8fx::copy<(8)>(f->pos, (const void *)SPAWN_POS);
 				f->counter = 0;
 				f->step = 0xC00;
 				f->scale = 0xC00;
@@ -1440,7 +1440,7 @@ namespace uff076
 			{
 				// au_re_BdLinkTask_61
 				Node *f = (Node *)AddTaskToQueue(QMaster(), ORIG_Flash2);
-				memcpy(f->pos, (const void *)SPAWN_POS, 8);
+				ff8fx::copy<(8)>(f->pos, (const void *)SPAWN_POS);
 				f->counter = 0;
 				f->step = 0x255;
 				f->scale = 0x255;
@@ -1478,7 +1478,7 @@ namespace uff076
 		n->counter++;
 		if (n->counter <= 0x299) return 0;
 		SetScreenFlash(0, 0);
-		memcpy((void *)0xB8B800, (const void *)0xB8B7F0, 0x10);
+		ff8fx::copy<(0x10)>((void *)0xB8B800, (const void *)0xB8B7F0);
 		var<int16_t>(0x1D977A0) = var<int16_t>(0x1D8E038);
 		Sub4A8480(1);
 		var<uint32_t>(0x1D96A9C) &= ~0x400u;

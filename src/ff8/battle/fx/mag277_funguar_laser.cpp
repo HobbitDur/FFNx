@@ -330,7 +330,7 @@ namespace laser277
 		GteMVMVA_RotV0();
 		int32_t mac[3];
 		GteReadMAC123(mac);
-		memcpy(&arg->m.m, &Camera().m, sizeof(arg->m.m));
+		ff8fx::copy<(sizeof(arg->m.m))>(&arg->m.m, &Camera().m);
 		arg->m.t[0] = (int32_t)((uint32_t)mac[0] + (uint32_t)Camera().t[0]);
 		arg->m.t[1] = (int32_t)((uint32_t)mac[1] + (uint32_t)Camera().t[1]);
 		arg->m.t[2] = (int32_t)((uint32_t)mac[2] + (uint32_t)Camera().t[2]);
@@ -591,7 +591,7 @@ namespace laser277
 					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
 					if (h)
 					{
-						memcpy(&h->frame.m, &f.R.m, sizeof(h->frame.m));
+						ff8fx::copy<(sizeof(h->frame.m))>(&h->frame.m, &f.R.m);
 						h->frame.t[0] = T[0];
 						h->frame.t[1] = T[1];
 						h->frame.t[2] = T[2];
@@ -617,7 +617,7 @@ namespace laser277
 			{
 				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 				if (!s) continue;
-				memcpy(s->pos, b->spawn, 4);
+				ff8fx::copy<(4)>(s->pos, b->spawn);
 				*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->spawn[2];
 				s->counter = 0;
 				s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);

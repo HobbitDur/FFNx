@@ -649,7 +649,7 @@ namespace c199
 				p->size = (int16_t)(CrtRand() % 0x600 + 0x800);
 				int32_t angle = CrtRand() % 0x1000;
 				int32_t r = CrtRand() % 200 + 300;
-				memcpy(p->pos, &n->p[0], 8);
+				ff8fx::copy<(8)>(p->pos, &n->p[0]);
 				p->pos[0] = (int16_t)(p->pos[0] + (mul32(ComputeSin(angle), r) >> 12));
 				int32_t up = CrtRand() % 80;
 				p->pos[1] = (int16_t)(p->pos[1] + (-80 - up));
@@ -660,7 +660,7 @@ namespace c199
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		memcpy(scratch + 8, &Frame(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(scratch + 8, &Frame());
 		*(uint32_t *)h = 0xCF0740;
 		*(uint16_t *)(h + 0x24) = 0;
 		int32_t count = 0;
@@ -752,7 +752,7 @@ namespace c199
 			int32_t len2 = NormalizeVectorToFixedPoint(d, (int32_t *)(rec + 0x24));
 			int32_t off = TableRand() % 800;
 			*(int16_t *)(rec + 0xE) = (int16_t)(off + 1000);
-			memcpy(rec, origin, 8);
+			ff8fx::copy<(8)>(rec, origin);
 			*(int16_t *)(rec + 6) = (int16_t)Sqrt(len2);
 		}
 	}
@@ -981,7 +981,7 @@ namespace c199
 		p->age = 0;
 		p->length = (int16_t)(CrtRand() % 0x1400 + 0xA00);
 		int32_t j = CrtRand() % 0x200;
-		memcpy(p->pos, AimTable() + 48 * j, 8);
+		ff8fx::copy<(8)>(p->pos, AimTable() + 48 * j);
 		p->steps = (int16_t)(CrtRand() % 6 + 5);
 		int32_t *v = (int32_t *)(scratch + 0x70);
 		const uint8_t *rec = AimTable() + 48 * j;
@@ -1031,7 +1031,7 @@ namespace c199
 		uint8_t *T = (uint8_t *)FieldAlloc(0x68);
 		int32_t count = 0;
 		NeedleTemplate(T);
-		memcpy(scratch + 0x10, &Camera(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(scratch + 0x10, &Camera());
 		uint32_t cursor = Cursor();
 		for (int i = 0; i < 800; i++)
 		{

@@ -122,7 +122,7 @@ namespace icec
 			for (int k = 0; k < 3; k++)
 			{
 				uint16_t idx = *(uint16_t *)(prim + 4 + 2 * k);
-				memcpy(v, verts + 4 * idx, 8);
+				ff8fx::copy<(8)>(v, verts + 4 * idx);
 				*(uint16_t *)(prim + 4 + 2 * k) = (uint16_t)(((uint8_t *)v - (uint8_t *)base) >> 2);
 				v += 4;
 			}

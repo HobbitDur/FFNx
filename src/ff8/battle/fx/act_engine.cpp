@@ -1352,7 +1352,7 @@ namespace act
 	{
 		uint8_t c[4];
 		uint32_t base = U32(0xB8B7D8, 0); // shared global (raw)
-		memcpy(c, &base, 4);
+		ff8fx::copy<(4)>(c, &base);
 		int16_t amount = (int16_t)a2;
 		if (amount == 0)
 		{
@@ -2273,7 +2273,7 @@ namespace act
 		FX_HELD(held_note_master();)
 
 		// rep movsd: camera matrix (Mat4x3, 8 dwords) -> shared snapshot 0x2793E58
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
 		MEM<uint32_t>(G(G_258FB68)) = 0x2793E58;
 		MEM<uint32_t>(G(G_257F9B0)) = 0x2793E58;
 		uint32_t states[11] = {
@@ -4122,7 +4122,7 @@ namespace act
 			{
 				case 0: // 0x7411C8 / 0x7413E4: parent|identity, d0, cc, ce
 					if (parent != 0)
-						memcpy((void *)m, (void *)(parent + 0x2C), 32);
+						ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 					else
 						x::MAG_022_sub_8DD770(m);
 					if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
@@ -4131,7 +4131,7 @@ namespace act
 					break;
 				case 1: // 0x74123E / 0x74145A: parent|identity, ce, cc, d0
 					if (parent != 0)
-						memcpy((void *)m, (void *)(parent + 0x2C), 32);
+						ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 					else
 						x::MAG_022_sub_8DD770(m);
 					if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
@@ -4587,7 +4587,7 @@ namespace act
 		// 0x742559
 		if (U8(desc, 0x1C) != 3)
 			return 0; // void
-		memcpy((void *)(a1 + 0x2C), (void *)(owner + 0x8C), 32);
+		ff8fx::copy<(32)>((void *)(a1 + 0x2C), (void *)(owner + 0x8C));
 		uint8_t local[0x10] = {}; // [esp+0x10]: SVECTOR at +0 (pad +6 never written), IR123 at +8
 		e4_load_offset(local, desc);
 		x::GTE_SetRotMatrix(a1 + 0x2C);
@@ -4685,7 +4685,7 @@ namespace act
 				break;
 			}
 			case 3: // 0x742DCB: owner instance matrix
-				memcpy((void *)m, (void *)(owner + 0x8C), 32);
+				ff8fx::copy<(32)>((void *)m, (void *)(owner + 0x8C));
 				break;
 			case 4: // 0x742DDD: yaw of battle entity dir+0x1E (entity +0xE)
 			{
@@ -4745,7 +4745,7 @@ namespace act
 		// 0x742F34
 		uint8_t local[0x30] = {}; // [esp+0xC]: SVECTOR +0 (pad +6 never written), IR123 +8, matrix +0x10
 		e4_load_offset(local, desc);
-		memcpy(local + 0x10, (void *)(a1 + 0x2C), 32);
+		ff8fx::copy<(32)>(local + 0x10, (void *)(a1 + 0x2C));
 		x::GTE_SetRotMatrix(P(local + 0x10));
 		x::GTE_LoadV0(P(local));
 		x::GTE_MVMVA_RotV0();

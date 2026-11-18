@@ -314,8 +314,8 @@ namespace stop119
 	static void ShardVertices(DrawBlock *P, int nv)
 	{
 		const Shard *s = P->shard;
-		memcpy(P->pos, s->pos, 8);
-		memcpy(P->v, s->v, 8 * nv);
+		ff8fx::copy<(8)>(P->pos, s->pos);
+		memcpy_code(uint32_t(P->v), s->v, 8 * nv);
 		for (int k = 0; k < nv; k++)
 		{
 			P->v[k][0] = (int16_t)(P->v[k][0] + P->pos[0]);

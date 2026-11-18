@@ -567,7 +567,7 @@ namespace gastric128
 			p++;
 			if (--n == 0) return nullptr;
 		}
-		memcpy(p->pos, pos, 8);
+		ff8fx::copy<(8)>(p->pos, pos);
 		p->width = width;
 		p->hold = 0xA;
 		p->fade = 0x800;
@@ -589,8 +589,8 @@ namespace gastric128
 		}
 		Memset32(&s->counter, 0, 0x11);
 		s->counter = 0;
-		memcpy(s->from, from, 8);
-		memcpy(s->to, to, 8);
+		ff8fx::copy<(8)>(s->from, from);
+		ff8fx::copy<(8)>(s->to, to);
 		s->t = (int16_t)t;
 		s->dt = (int16_t)dt;
 		s->angle = (int16_t)angle;
@@ -826,7 +826,7 @@ namespace gastric128
 					if (q)
 					{
 						q->counter = 0;
-						memcpy(q->pos, at, 8);
+						ff8fx::copy<(8)>(q->pos, at);
 						q->size = (int16_t)(s->width << 4);
 					}
 				}
@@ -885,7 +885,7 @@ namespace gastric128
 		if (t->counter >= 0x15)
 		{
 			PrimArg arg;
-			memcpy(arg.pos, t->pos, 8);
+			ff8fx::copy<(8)>(arg.pos, t->pos);
 			arg.morph = TexBase() + 0x14E8;
 			// 30 fps layer: see mag128_gastric_juice_held.inc
 			FX_HELD(held_note_play(t, &arg);)

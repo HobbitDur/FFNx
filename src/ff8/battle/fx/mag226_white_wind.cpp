@@ -243,7 +243,7 @@ namespace whitewind226
 	// MAG_226_sub_673810 (in effect 297's module): m = the camera's 3x3 (pad untouched), t = camera * t
 	static void Billboard(Mat4x3 *m)
 	{
-		memcpy(m->m, Camera().m, 18);
+		ff8fx::copy<(18)>(m->m, Camera().m);
 		TransformVectorBy3x3Matrix(&Camera(), m->t, m->t);
 		m->t[0] = (int32_t)((uint32_t)m->t[0] + (uint32_t)Camera().t[0]);
 		m->t[1] = (int32_t)((uint32_t)m->t[1] + (uint32_t)Camera().t[1]);

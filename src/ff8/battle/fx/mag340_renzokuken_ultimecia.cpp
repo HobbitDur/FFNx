@@ -199,7 +199,7 @@ namespace renzo340
 		if (n->c == 0x43)
 		{
 			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_NodeEmitter);
-			memcpy(&t->w10, (const void *)HIT_POS, 8);
+			ff8fx::copy<(8)>(&t->w10, (const void *)HIT_POS);
 			t->w12 = (int16_t)(t->w12 - 0x12C);
 			t->c = 0;
 		}
@@ -219,7 +219,7 @@ namespace renzo340
 			w->dir[2] = CrtRand() % 0x600 + 0x400;
 			Normalize(w->dir, w->dir);
 			TransformVectorBy3x3Matrix((const Mat4x3 *)(Caster() + 0x40), w->dir, w->dir);
-			memcpy(w->pos, &n->w10, 8);
+			ff8fx::copy<(8)>(w->pos, &n->w10);
 			for (int32_t j = 0; j < 3; j++)
 			{
 				const int32_t i = FreeRecord();
@@ -228,7 +228,7 @@ namespace renzo340
 				p->alive = 4;
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x880 + 0x700);
-				memcpy(p->pos, w->pos, 8);
+				ff8fx::copy<(8)>(p->pos, w->pos);
 				const int32_t sp = CrtRand() % 0x8C + 0x28;
 				const int32_t rx = CrtRand() % 0x28;
 				p->w10 = (int16_t)(rx + (mul32(w->dir[0], sp) >> 12) - 0x14);

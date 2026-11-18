@@ -572,7 +572,7 @@ namespace raybomb313
 		MatrixMultiply(&m2, &m1);
 		int32_t len = Sqrt(len2);
 		// spark spawn point: muzzle + dir * distance (4th word = the muzzle's pad word)
-		memcpy(end, Muzzle(), 8);
+		ff8fx::copy<(8)>(end, Muzzle());
 		end[0] = (int16_t)(end[0] + (mul32(dir[0], len) >> 12));
 		end[1] = (int16_t)(end[1] + (mul32(dir[1], len) >> 12));
 		end[2] = (int16_t)(end[2] + (mul32(dir[2], len) >> 12));
@@ -620,9 +620,9 @@ namespace raybomb313
 					SparkNode *s = (SparkNode *)AddTaskToQueue(QEffect(), ORIG_Spark);
 					s->frame = 0;
 					int32_t r = CrtRand() & 7;
-					memcpy(s->pos, end, 4);
+					ff8fx::copy<(4)>(s->pos, end);
 					s->life = (int16_t)(r + 8);
-					memcpy(&s->pos[2], &end[2], 4);
+					ff8fx::copy<(4)>(&s->pos[2], &end[2]);
 					r = CrtRand() % 1000;
 					s->pos[1] = 0;
 					s->pos[0] = (int16_t)(s->pos[0] + (r - 500));
@@ -921,14 +921,14 @@ namespace raybomb313
 				p->counter = 0;
 				p->scale = (int16_t)(CrtRand() % 0x500 + 0x900);
 				int16_t off[4];
-				memcpy(off, (const void *)(TABLE_DustOffset + 8 * k), 8);
+				ff8fx::copy<(8)>(off, (const void *)(TABLE_DustOffset + 8 * k));
 				MatrixMulVector(crot, off, off);
-				memcpy(p->pos, Muzzle(), 8);
+				ff8fx::copy<(8)>(p->pos, Muzzle());
 				p->pos[0] = (int16_t)(p->pos[0] + off[0]);
 				p->pos[1] = (int16_t)(p->pos[1] + off[1]);
 				int16_t dir[4];
 				p->pos[2] = (int16_t)(p->pos[2] + off[2]);
-				memcpy(dir, (const void *)(TABLE_DustDir + 8 * k), 8);
+				ff8fx::copy<(8)>(dir, (const void *)(TABLE_DustDir + 8 * k));
 				MatrixMulVector(crot, dir, dir);
 				NormalizeSVector(dir, dir);
 				int32_t speed = CrtRand() % 0x6E + 0x5A;
@@ -991,9 +991,9 @@ namespace raybomb313
 					PuffNode *p = (PuffNode *)AddTaskToQueue(QEffect(), ORIG_Puff);
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
-					memcpy(p->pos, Centre(), 4);
+					ff8fx::copy<(4)>(p->pos, Centre());
 					p->delay = (int16_t)(r + cnt);
-					memcpy(&p->pos[2], &Centre()[2], 4);
+					ff8fx::copy<(4)>(&p->pos[2], &Centre()[2]);
 					r = CrtRand() % 0x320;
 					p->pos[1] = 0;
 					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_PuffX + 4 * k)) - 0x190);
@@ -1009,9 +1009,9 @@ namespace raybomb313
 		if (d->counter == 0x79)
 		{
 			RingNode *g = (RingNode *)AddTaskToQueue(QEffect(), ORIG_Ring);
-			memcpy(g->pos, Centre(), 4);
+			ff8fx::copy<(4)>(g->pos, Centre());
 			g->counter = 0;
-			memcpy(&g->pos[2], &Centre()[2], 4);
+			ff8fx::copy<(4)>(&g->pos[2], &Centre()[2]);
 			g->sxz = 0x3924;
 			g->sy = 0;
 			g->sy_step = 0x130C;
@@ -1028,8 +1028,8 @@ namespace raybomb313
 					p->counter = 0;
 					int32_t r = CrtRand() & 7;
 					p->life = (int16_t)(r + j + 0xB);
-					memcpy(p->pos, Centre(), 4);
-					memcpy(&p->pos[2], &Centre()[2], 4);
+					ff8fx::copy<(4)>(p->pos, Centre());
+					ff8fx::copy<(4)>(&p->pos[2], &Centre()[2]);
 					r = CrtRand() % 0xE10;
 					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((int16_t)r + var<int16_t>(TABLE_DebrisX + 4 * k)) - 0x708);
 					r = CrtRand() % 0x3C;

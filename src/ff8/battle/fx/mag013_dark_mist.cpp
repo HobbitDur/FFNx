@@ -949,8 +949,8 @@ namespace mist013
 	// sub_8BFA00: the entity's matrix, and a copy moved by `offset`
 	static void CopyWorld(OverlayCtx *mc, const uint8_t *entity)
 	{
-		memcpy(&mc->world, entity + 0x40, 0x20);
-		memcpy(&mc->world2, entity + 0x40, 0x20);
+		ff8fx::copy<(0x20)>(&mc->world, entity + 0x40);
+		ff8fx::copy<(0x20)>(&mc->world2, entity + 0x40);
 		int16_t mode = mc->mode;
 		if (mode == 0)
 		{
@@ -994,7 +994,7 @@ namespace mist013
 		BuildMatrixFromDirAndUp(s + 0x20, s + 0x18, s + 0x10);
 		UnpackRotationMatrix(s + 0x20, s + 0x40);
 		*(int32_t *)(s + 0x5C) = mc->light_dist;
-		memcpy(s + 0x20, &mc->world, 0x20);
+		ff8fx::copy<(0x20)>(s + 0x20, &mc->world);
 		*(int32_t *)(s + 0x54) = 0;
 		*(int32_t *)(s + 0x58) = 0;
 		*(int32_t *)(s + 0x38) = mc->world.t[1] - mc->world2.t[1];

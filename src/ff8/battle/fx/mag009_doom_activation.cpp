@@ -546,7 +546,7 @@ namespace doomact
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x27584C4) = 0x2793E58;
 		MEM<uint32_t>(0x274F150) = 0x2793E58;
@@ -1801,7 +1801,7 @@ namespace doomact
 		const uint32_t ctx = a1;
 		const uint32_t ent = U32(ctx, 0x48);
 		const int32_t dy = S16(ctx, 0x54);
-		memcpy((void *)ctx, (const void *)(ent + 0x40), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)ctx, (const void *)(ent + 0x40)); // rep movsd
 		S32(ctx, 0x18) = add32(S32(ctx, 0x18), dy);
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);

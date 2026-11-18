@@ -2470,7 +2470,7 @@ namespace psycho
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x2701304) = 0x2793E58;
@@ -2622,7 +2622,7 @@ namespace psycho
 		U32(n, 0x50) = 0x1000;
 		const uint32_t b = MEM<uint32_t>(GEO_PTR);
 		const uint32_t w2c = U32(b, 0x2C);
-		memcpy((void *)(n + 0x30), (const void *)b, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(n + 0x30), (const void *)b); // rep movsd
 		const uint32_t w28 = U32(b, 0x28);
 		U32(n, 0x1C) = w28;
 		U32(n, 0x16C) = w28;
@@ -2645,7 +2645,7 @@ namespace psycho
 		// the callback 0x893B20 does not read them)
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
-		memcpy((void *)L, (const void *)(a1 + 0x30), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)L, (const void *)(a1 + 0x30)); // rep movsd
 		x::scale3DMatrix(L, a1 + 0x50);
 		S32(L, 0x14) = S16(a1, 0x1C);
 		S32(L, 0x18) = S16(a1, 0x1E);
@@ -2817,7 +2817,7 @@ namespace psycho
 		const uint32_t M = V + 8;
 		U16(V, 0) = 0;
 		U16(V, 2) = 0;
-		memcpy((void *)M, (const void *)(a1 + 0x30), 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)M, (const void *)(a1 + 0x30)); // rep movsd
 		U16(V, 4) = 0xFE00;
 		x::scale3DMatrix(M, a1 + 0x50);
 		x::matrixMultiplyVector(M, V, V);
@@ -2879,7 +2879,7 @@ namespace psycho
 		U32(n, 0x50) = 0x1000;
 		const uint32_t b = MEM<uint32_t>(GEO_PTR);
 		const uint32_t w34 = U32(b, 0x34);
-		memcpy((void *)(n + 0x30), (const void *)b, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(n + 0x30), (const void *)b); // rep movsd
 		U32(n, 0x1C) = U32(b, 0x30);
 		U32(n, 0x20) = w34;
 		pb_893A30(n);
@@ -2920,7 +2920,7 @@ namespace psycho
 		U32(n, 0x50) = 0x1000;
 		const uint32_t b = MEM<uint32_t>(GEO_PTR);
 		const uint32_t w2c = U32(b, 0x2C);
-		memcpy((void *)(n + 0x30), (const void *)b, 0x20); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(n + 0x30), (const void *)b); // rep movsd
 		U32(n, 0x1C) = U32(b, 0x28);
 		U32(n, 0x20) = w2c;
 		pb_893A30(n);
@@ -2980,7 +2980,7 @@ namespace psycho
 				const uint32_t r = x::CrtRand();
 				U16(v, 2) = (uint16_t)((r & 0xFFF) + 0x400);
 				U16(v, 4) = 0;
-				memcpy((void *)M, (const void *)MEM<uint32_t>(GEO_PTR), 0x20); // rep movsd
+				ff8fx::copy<(0x20)>((void *)M, (const void *)MEM<uint32_t>(GEO_PTR)); // rep movsd
 				const uint32_t r2 = x::CrtRand() & 0xFFF;
 				x::sub_8DD960(M, (uint32_t)(int32_t)(int16_t)r2);
 				x::matrixMultiplyVector(M, v, v);

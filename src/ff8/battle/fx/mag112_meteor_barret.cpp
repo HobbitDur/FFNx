@@ -582,7 +582,7 @@ namespace meteor112
 				SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), ORIG_SmokeTask);
 				if (!s) continue;
 				Memset32(&s->counter, 0, 4);
-				memcpy(s->pos, L.spawn, 8); // (x, y, z and the local's 4th word, overwritten by the size)
+				ff8fx::copy<(8)>(s->pos, L.spawn); // (x, y, z and the local's 4th word, overwritten by the size)
 				s->pos[0] = (int16_t)(s->pos[0] + (int16_t)((CrtRand() & 0x1FF) - 0x100));
 				s->pos[2] = (int16_t)(s->pos[2] + (int16_t)((CrtRand() & 0x1FF) - 0x100));
 				const int32_t r = CrtRand() & 0x7FF;

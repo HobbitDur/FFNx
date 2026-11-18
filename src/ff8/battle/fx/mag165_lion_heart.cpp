@@ -802,7 +802,7 @@ namespace lion165
 	{
 		uint8_t *b = (uint8_t *)h;
 		if (!(*ent & 0x20)) FrameArena() = DrawShadow(ent, OT0() + 0x4064, 0x10, FrameArena());
-		memcpy(b + 0xC8, ent + 0x40, 0x20);
+		ff8fx::copy<(0x20)>(b + 0xC8, ent + 0x40);
 		var<uint32_t>(CAM_PTR) = 0x1D97778;
 		ComputeBonesWorldMatrices(ent + 0x60, b + 0xC8);
 		h->verts = var<uint32_t>(0x1D98B3C);

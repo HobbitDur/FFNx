@@ -384,7 +384,7 @@ namespace z167
 	// the sprite header and the light (camera matrix as light matrix, its translation as back colour)
 	static void SparkSetup(uint8_t *h, uint8_t *s)
 	{
-		memcpy(s + 0x10, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 0x10, &Camera());
 		*(uint32_t *)h = 0xD6F8D0;
 		*(uint32_t *)(h + 0x1C) = 0x483830;
 		*(int16_t *)(h + 0x24) = 0xC;

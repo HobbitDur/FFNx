@@ -1038,7 +1038,7 @@ namespace beat216
 		g[1] = 0;
 		g[0] = 0;
 		g[4] = (uint8_t)n;
-		memset(g + 5, 0xFF, 0x80);
+		ff8fx::fill<(0x80)>(g + 5, 0xFF);
 		for (int32_t i = 0; i < n; i++) g[5 + bones[i]] = (uint8_t)i;
 	}
 
@@ -1058,7 +1058,7 @@ namespace beat216
 		for (uint32_t b = 0; b < skel[0]; b++)
 		{
 			const int32_t k = (int8_t)g[5 + b];
-			if (k >= 0) memcpy(dst + k * 0x20, skel + 0x20 + b * 0x30, 0x20);
+			if (k >= 0) ff8fx::copy<(0x20)>(dst + k * 0x20, skel + 0x20 + b * 0x30);
 		}
 	}
 
@@ -1339,7 +1339,7 @@ namespace beat216
 	// / sin, cos) x scale, m11 = scale
 	static void ScaledRotY(int32_t angle, int32_t scale, Mat4x3 *out)
 	{
-		memset(out, 0, 0x14);
+		ff8fx::fill<(0x14)>(out, 0);
 		const int32_t a = -(int32_t)(int16_t)angle;
 		const int32_t r = (int16_t)scale;
 		const int32_t s = mul32(ComputeSin(a), r) >> 12;
@@ -1822,9 +1822,9 @@ namespace beat216
 		Mat4x3 *m = (Mat4x3 *)(h + 0x6C);
 		ScaledRotY(0x400, 0x800, m);
 		int16_t p[4];
-		if (point) memcpy(h + 0x8C, point, 6);
+		if (point) ff8fx::copy<(6)>(h + 0x8C, point);
 		else GetEffectSpawnPosition(Caster(), 0x14, 0, (int16_t *)(h + 0x8C));
-		memcpy(p, h + 0x8C, 6);
+		ff8fx::copy<(6)>(p, h + 0x8C);
 		m->t[0] = p[0];
 		m->t[1] = p[1];
 		m->t[2] = p[2];
@@ -1940,7 +1940,7 @@ namespace beat216
 		const int32_t c = d->counter;
 		Flash() = FlashLevel(c);
 		PlayArg arg;
-		memset(&arg, 0, sizeof(arg));
+		ff8fx::fill<(sizeof(arg))>(&arg, 0);
 		Mat4x3 frame;
 		const uint32_t morph = TexBase() + MORPH;
 		// 9..0x16: a layout at Zell's anchor (0x1140C5C), its texture scrolling 0x20 a tick; 9: Zell placed before the target
@@ -2172,7 +2172,7 @@ namespace beat216
 				arg.kind = (const uint8_t *)KIND_Impact;
 				Play(SITE_IMPACT, d->layout_c, &arg, &frame);
 			}
-			memset(&arg.m, 0, sizeof(Mat4x3));
+			ff8fx::fill<(sizeof(Mat4x3))>(&arg.m, 0);
 			arg.m.m[0][0] = d->scale;
 			arg.m.m[1][1] = d->scale;
 			arg.m.m[2][2] = d->scale;
@@ -2263,7 +2263,7 @@ namespace beat216
 		d->saved_rot[0] = U32(z, 0xC);
 		d->saved_rot[1] = U32(z, 0x10);
 		GetDefaultEffectPosition(Target(), d->place);
-		memcpy(d->anchor, d->place, 8);
+		ff8fx::copy<(8)>(d->anchor, d->place);
 		d->place[1] = 0;
 		d->scale = (int16_t)((W16(Target(), 0x26) >> 1) + 0x400);
 		int16_t box[6];

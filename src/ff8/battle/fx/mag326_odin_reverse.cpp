@@ -736,7 +736,7 @@ namespace o326
 
 	static void SplashDrawOne(uint8_t *h, uint8_t *s, const Rec *r)
 	{
-		memcpy(s + 0x28, s + 8, 0x20);
+		ff8fx::copy<(0x20)>(s + 0x28, s + 8);
 		*(int32_t *)(s + 0x3C) = r->x;
 		*(int32_t *)(s + 0x40) = r->y;
 		*(int32_t *)(s + 0x44) = r->z;
@@ -755,7 +755,7 @@ namespace o326
 	{
 		*(uint32_t *)(h + 0x14) = 0x1000;
 		*(uint32_t *)(h + 0xC) = 0x1000;
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = 0xE10C80;
 		*(int16_t *)(h + 4) = 0;
 		*(int16_t *)(h + 0x24) = 2;
@@ -1656,7 +1656,7 @@ namespace o326
 		d[2] = (int32_t)var<int16_t>(0xB8B7FC) - (int32_t)var<int16_t>(0xB8B7F4);
 		NormalizeVectorToFixedPoint(d, d);
 		int16_t p[4];
-		memcpy(p, (const void *)0xB8B7F8, 8);
+		ff8fx::copy<(8)>(p, (const void *)0xB8B7F8);
 		p[0] = (int16_t)(p[0] + (int16_t)(mul32(d[0], 200) >> 12));
 		p[1] = (int16_t)(p[1] + (int16_t)(mul32(d[1], 200) >> 12));
 		p[2] = (int16_t)(p[2] + (int16_t)(mul32(d[2], 200) >> 12));
@@ -1701,7 +1701,7 @@ namespace o326
 		d[2] = (int32_t)var<int16_t>(0xB8B7FC) - (int32_t)var<int16_t>(0xB8B7F4);
 		NormalizeVectorToFixedPoint(d, d);
 		int16_t p[4];
-		memcpy(p, (const void *)0xB8B7F8, 8);
+		ff8fx::copy<(8)>(p, (const void *)0xB8B7F8);
 		p[0] = (int16_t)(p[0] + (int16_t)(mul32(d[0], 200) >> 13));
 		p[1] = (int16_t)(p[1] + (int16_t)(mul32(d[1], 200) >> 13));
 		p[2] = (int16_t)(p[2] + (int16_t)(mul32(d[2], 200) >> 13));
@@ -2073,7 +2073,7 @@ namespace o326
 
 	static void SparkSetup(const Mat4x3 *frame, uint8_t *h, uint8_t *s, uint32_t seq, uint32_t color)
 	{
-		memcpy(s + 0x10, frame, 0x20);
+		ff8fx::copy<(0x20)>(s + 0x10, frame);
 		*(uint32_t *)h = seq;
 		*(uint32_t *)(h + 0x1C) = color;
 		*(int16_t *)(h + 0x24) = 0xC;
@@ -2281,7 +2281,7 @@ namespace o326
 		if (Paused()) return 0;
 		uint8_t *sk = **(uint8_t ***)(0x24F12CC);
 		n->c++;
-		memcpy(&BoneCopy(), sk + 0xB30, 0x20);
+		ff8fx::copy<(0x20)>(&BoneCopy(), sk + 0xB30);
 		return 0;
 	}
 
@@ -2413,7 +2413,7 @@ namespace o326
 		{
 			const uint32_t *r = (const uint32_t *)(GHOST_RECS + 0x24 * j);
 			if (!r[0]) break;
-			memcpy(&Model2Mat(), r + 1, 0x20);
+			ff8fx::copy<(0x20)>(&Model2Mat(), r + 1);
 			var<uint32_t>(0x24F0F10) = col;
 			DrawModel(E, frame, scratch);
 			col -= 0xC0C0C;
@@ -2457,7 +2457,7 @@ namespace o326
 		int32_t k = (int32_t)n->c % 6;
 		uint32_t *rec = (uint32_t *)(GHOST_RECS + 0x24 * k);
 		rec[0] = 1;
-		memcpy(rec + 1, &Model2Mat(), 0x20);
+		ff8fx::copy<(0x20)>(rec + 1, &Model2Mat());
 		Mat4x3 save = Model2Mat();
 		FX_HELD(held_note_ghost(n, k, save);)
 		GhostEchoes(E, k, &Frame(), Scratch());
@@ -2482,7 +2482,7 @@ namespace o326
 		m1.t[2] = 0;
 		Scale3DMatrix(&m1, sc);
 		uint8_t *sk = **(uint8_t ***)(0x24F0F4C); // E2 comFileData -> skeleton
-		memcpy(&BoneCopy(), sk + 0x20, 0x20);
+		ff8fx::copy<(0x20)>(&BoneCopy(), sk + 0x20);
 		ComposeAffineTransform(emat, &BoneCopy(), &m2);
 		GteMatrixMultiply(&m2, &m1);
 		TransformVectorBy3x3Matrix(&m2, m1.t, m1.t);
@@ -2571,7 +2571,7 @@ namespace o326
 			// RGB2 is stored over the three colour bytes (and the byte after them)
 			uint8_t out[4];
 			DepthCue(w, L[0], L[1], L[2], out);
-			memcpy(L, out, 4);
+			ff8fx::copy<(4)>(L, out);
 		}
 	}
 
@@ -2698,7 +2698,7 @@ namespace o326
 	static void BloodSetup(const Mat4x3 *frame, uint8_t *h, uint8_t *s)
 	{
 		*(int16_t *)(h + 0x24) = 8;
-		memcpy(s + 8, frame, 0x20);
+		ff8fx::copy<(0x20)>(s + 8, frame);
 		*(uint32_t *)h = 0xE10E04;
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);

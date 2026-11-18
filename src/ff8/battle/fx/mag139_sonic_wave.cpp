@@ -517,9 +517,9 @@ namespace sonic139
 			do
 			{
 				const uint8_t *v = *(const uint8_t **)(h + 4);
-				memcpy(h + 0x1C, v + *(const uint16_t *)(t + 4) * 4, 0xC);
-				memcpy(h + 0x28, v + *(const uint16_t *)(t + 6) * 4, 0xC);
-				memcpy(h + 0x34, v + *(const uint16_t *)(t + 8) * 4, 0xC);
+				ff8fx::copy<(0xC)>(h + 0x1C, v + *(const uint16_t *)(t + 4) * 4);
+				ff8fx::copy<(0xC)>(h + 0x28, v + *(const uint16_t *)(t + 6) * 4);
+				ff8fx::copy<(0xC)>(h + 0x34, v + *(const uint16_t *)(t + 8) * 4);
 				*(uint32_t *)(p + 8) = *(const uint32_t *)(h + 0x20);
 				*(uint32_t *)(p + 0x10) = *(const uint32_t *)(h + 0x2C);
 				*(uint32_t *)(p + 0x18) = *(const uint32_t *)(h + 0x38);
@@ -557,9 +557,9 @@ namespace sonic139
 			do
 			{
 				const uint8_t *v = *(const uint8_t **)(h + 4);
-				memcpy(h + 0x1C, v + *(const uint16_t *)(t + 4) * 4, 0xC);
-				memcpy(h + 0x28, v + *(const uint16_t *)(t + 6) * 4, 0xC);
-				memcpy(h + 0x34, v + *(const uint16_t *)(t + 8) * 4, 0xC);
+				ff8fx::copy<(0xC)>(h + 0x1C, v + *(const uint16_t *)(t + 4) * 4);
+				ff8fx::copy<(0xC)>(h + 0x28, v + *(const uint16_t *)(t + 6) * 4);
+				ff8fx::copy<(0xC)>(h + 0x34, v + *(const uint16_t *)(t + 8) * 4);
 				if (!(h[0x24] & h[0x30] & h[0x3C]))
 				{
 					const uint16_t u0 = *(const uint16_t *)(h + 0x20);
@@ -763,7 +763,7 @@ namespace sonic139
 	// the target layout's block (0x6A98E3..0x6A998D): the camera rows, the position through the camera
 	static void TargetBlock(const int16_t *pos, PrimArg *arg)
 	{
-		memcpy(&arg->m.m, &Camera().m, sizeof(arg->m.m));
+		ff8fx::copy<(sizeof(arg->m.m))>(&arg->m.m, &Camera().m);
 		GteSetRotMatrixCtrl(&Camera());
 		GteLoadV0(pos);
 		GteMVMVA_RotV0();
@@ -825,7 +825,7 @@ namespace sonic139
 			int16_t pos[4];
 			pos[3] = StartResidue();
 			BonePoint(BONE_ENTRY, pos);
-			if (w->counter == 0) memcpy(w->start, pos, 8);
+			if (w->counter == 0) ff8fx::copy<(8)>(w->start, pos);
 			PrimArg arg;
 			MainBlock(pos, &arg);
 			arg.depth = -0x80;

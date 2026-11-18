@@ -679,7 +679,7 @@ namespace double004
 		n->orbit = orbit;
 		const int32_t dx = mul32(ComputeSin(n->orbit), n->radius) / 0x4000;
 		const int32_t dz = mul32(ComputeCos(n->orbit), n->radius) / 0x4000;
-		memcpy(n->h.pos, n->base, 8);
+		ff8fx::copy<(8)>(n->h.pos, n->base);
 		n->h.pos[0] = (int16_t)(n->h.pos[0] + dx);
 		n->h.pos[2] = (int16_t)(n->h.pos[2] + dz);
 	}
@@ -780,7 +780,7 @@ namespace double004
 	// on the rune's circle (radius 0x400: (sin, cos) / 4), on the ground
 	static void GlowPlace(SpriteNode *p)
 	{
-		memcpy(p->h.pos, p->base, 8);
+		ff8fx::copy<(8)>(p->h.pos, p->base);
 		p->h.pos[0] = (int16_t)(p->h.pos[0] + ComputeSin(p->angle) / 4);
 		p->h.pos[2] = (int16_t)(p->h.pos[2] + ComputeCos(p->angle) / 4);
 	}
@@ -833,7 +833,7 @@ namespace double004
 
 	static void MotePlace(SpriteNode *p)
 	{
-		memcpy(p->h.pos, p->base, 8);
+		ff8fx::copy<(8)>(p->h.pos, p->base);
 		Orbit(p, p->radius, p->ay);
 	}
 
@@ -870,7 +870,7 @@ namespace double004
 		c->arg = r->arg;
 		CopyAnchorXZFromSource(c, c->h.pos);
 		c->h.pos[1] = (int16_t)(c->h.pos[1] - 0x280);
-		memcpy(c->base, c->h.pos, 8);
+		ff8fx::copy<(8)>(c->base, c->h.pos);
 		c->orbit = r->orbit;
 		c->angle[1] = r->orbit;
 		c->arg = r->arg;
@@ -886,7 +886,7 @@ namespace double004
 	{
 		if (r->h.counter < 0 || r->h.counter > 6) return;
 		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Mote, 0x68, r);
-		memcpy(p->base, p->h.pos, 8);
+		ff8fx::copy<(8)>(p->base, p->h.pos);
 		p->seq = SEQ_Mote;
 		p->radius = (int16_t)((CrtRand() & 0x1FF) + 0x200);
 		p->last = 0xC;
@@ -933,7 +933,7 @@ namespace double004
 	static void RuneMotion(ModelNode *n)
 	{
 		n->angle[1] = (int16_t)((n->angle[1] + 0x140) & 0xFFF);
-		memcpy(n->h.pos, n->base, 8);
+		ff8fx::copy<(8)>(n->h.pos, n->base);
 		n->h.pos[0] = (int16_t)(n->h.pos[0] + ComputeSin(n->orbit) / 4);
 		n->h.pos[2] = (int16_t)(n->h.pos[2] + ComputeCos(n->orbit) / 4);
 	}
@@ -969,7 +969,7 @@ namespace double004
 		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), ORIG_Rune, 0x6C, s);
 		CopyAnchorXZFromSource(r, r->h.pos);
 		r->h.pos[1] = (int16_t)(r->h.pos[1] - 0x280);
-		memcpy(r->base, r->h.pos, 8);
+		ff8fx::copy<(8)>(r->base, r->h.pos);
 		const int16_t a = (int16_t)(angle & 0xFFF);
 		r->arg = arg;
 		r->flagged = flagged;
@@ -981,7 +981,7 @@ namespace double004
 		r->scale[2] = 0x1000;
 		SpriteNode *g = (SpriteNode *)AddEffectTask(QSprites(), ORIG_Glow, 0x68, s);
 		CopyAnchorXZFromSource(g, g->h.pos);
-		memcpy(g->base, g->h.pos, 8);
+		ff8fx::copy<(8)>(g->base, g->h.pos);
 		g->angle = a;
 	}
 
@@ -1020,7 +1020,7 @@ namespace double004
 		if (targets[3] & 4) return;
 		FlashNode *f = (FlashNode *)AddEffectTask(QFlashes(), ORIG_Flash, 0x50, e);
 		CopyAnchorTopFromSource(f, f->h.pos);
-		memcpy(f->target, f->h.pos, 8);
+		ff8fx::copy<(8)>(f->target, f->h.pos);
 		f->tx = 0x240;
 		f->ty = 0x120;
 		f->cx = 0x140;

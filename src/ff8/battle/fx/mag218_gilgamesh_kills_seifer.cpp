@@ -795,7 +795,7 @@ namespace g218
 		*(uint16_t *)E1 = fl;
 		if (!(fl & 4))
 		{
-			memcpy(E1 + 0x40, E2 + 0x40, 0x20);
+			ff8fx::copy<(0x20)>(E1 + 0x40, E2 + 0x40);
 			*(uint32_t *)(E1 + 0x28) = var<uint32_t>(0x24F3580);
 			DrawModel(E1, &Frame());
 			DrawModel(E2, &Frame());
@@ -842,7 +842,7 @@ namespace g218
 			M2->t[0] = 0;
 			M2->t[2] = 0;
 			ModelInit(E2, (uint8_t *)0x24F3500, (uint8_t *)Tex(), 0xF);
-			memcpy(E1 + 0x40, M2, 0x20);
+			ff8fx::copy<(0x20)>(E1 + 0x40, M2);
 			ModelInit(E1, (uint8_t *)0x24F3338, (uint8_t *)0xF1DD54, 0x10);
 		}
 		if (Paused()) return 0;
@@ -1044,7 +1044,7 @@ namespace g218
 	static void DustSetup(uint8_t *h, uint8_t *s)
 	{
 		*(uint16_t *)(h + 0x24) = 8;
-		memcpy(s + 8, &Frame(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Frame());
 		*(uint32_t *)h = 0xE19CBC;
 	}
 
@@ -1598,7 +1598,7 @@ namespace g218
 	// ------------------------------------------------------------------
 	static void ShardDustSetup(uint8_t *h, uint8_t *s)
 	{
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = 0xE19E68;
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(uint16_t *)(h + 0x24) = 0xC;
@@ -1672,7 +1672,7 @@ namespace g218
 	// ------------------------------------------------------------------
 	static void ChipSetup(uint8_t *h, uint8_t *s)
 	{
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = 0xE1F5F0;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;

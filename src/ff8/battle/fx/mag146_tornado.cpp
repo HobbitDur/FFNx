@@ -252,7 +252,7 @@ namespace tornado146
 		pos[0] = (int16_t)(sx / count);
 		pos[1] = (int16_t)(sy / count);
 		pos[2] = (int16_t)(sz / count);
-		memcpy((void *)out, pos, 8);
+		ff8fx::copy<(8)>((void *)out, pos);
 	}
 
 	// ------------------------------------------------------------------

@@ -1294,7 +1294,7 @@ namespace final_form_death
 			const int32_t nb = add32(npoly, 4) & ~3;                          // edi
 			PTR(CUR(), 0xC4) = blob::ArenaAlloc(nb);
 			uint8_t *sb = PTR(CUR(), 0xC4);
-			if (nb > 0) memset(sb, 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
+			if (nb > 0) memset_code(uint32_t(sb), 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
 			uint8_t *p = st + 0x20;
 			for (int32_t k = (int32_t)U16(st, 2) + 1; k > 0; k--, p += 0x44) U32(p, 0) = 0;
 			if (U16(desc, 8) == 5)
@@ -1369,15 +1369,15 @@ namespace final_form_death
 
 	static void save_tables(const Clone &c)
 	{
-		memcpy(g_save_vm, c.vm, sizeof(g_save_vm));
-		memcpy(g_save_big, c.bigtab, sizeof(g_save_big));
-		memcpy(g_save_draw, c.draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(g_save_vm, c.vm);
+		ff8fx::copy<(sizeof(g_save_big))>(g_save_big, c.bigtab);
+		ff8fx::copy<(sizeof(g_save_draw))>(g_save_draw, c.draw);
 	}
 	static void restore_tables(Clone &c)
 	{
-		memcpy(c.vm, g_save_vm, sizeof(g_save_vm));
-		memcpy(c.bigtab, g_save_big, sizeof(g_save_big));
-		memcpy(c.draw, g_save_draw, sizeof(g_save_draw));
+		ff8fx::copy<(sizeof(g_save_vm))>(c.vm, g_save_vm);
+		ff8fx::copy<(sizeof(g_save_big))>(c.bigtab, g_save_big);
+		ff8fx::copy<(sizeof(g_save_draw))>(c.draw, g_save_draw);
 	}
 
 	static void apply_slots(Clone &c)

@@ -905,7 +905,7 @@ namespace acid170
 				e->flags = (uint32_t)(int32_t)n->idx;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0xA00 + 0x700);
-				memcpy(e->pos, n->pos, 8);
+				ff8fx::copy<(8)>(e->pos, n->pos);
 				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
 				e->pos[1] = (int16_t)(e->pos[1] + (int16_t)(-100 - CrtRand() % 300));
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
@@ -1027,8 +1027,8 @@ namespace acid170
 		s->dst[0] = (int16_t)(s->dst[0] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
 		s->dst[1] = 0;
 		s->dst[2] = (int16_t)(s->dst[2] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
-		memcpy(s->cp[0], s->src, 8);
-		memcpy(s->cp[3], s->dst, 8);
+		ff8fx::copy<(8)>(s->cp[0], s->src);
+		ff8fx::copy<(8)>(s->cp[3], s->dst);
 		const int16_t x0 = s->src[0];
 		const int32_t dx = (s->dst[0] - x0) / 3;
 		const int32_t dz = (s->dst[2] - s->src[2]) / 3;
@@ -1069,14 +1069,14 @@ namespace acid170
 		if (n->counter == 0xD)
 		{
 			Node *m = NewNode(ORIG_Mesh);
-			memcpy(m->pos, s->dst, 8);
+			ff8fx::copy<(8)>(m->pos, s->dst);
 			m->idx = n->idx;
 			m->a18 = (int16_t)(CrtRand() & 0xFFF);
 			m->a1a = (int16_t)(CrtRand() % 6 + 0x10);
 			m->a1e = m->a1c = (int16_t)(((CrtRand() & 0x3FF) + 0xB00) / 3);
 			Node *d = NewNode(ORIG_Drips);
 			d->idx = (int16_t)(1 << (U8(P(n), 0xE) & 31));
-			memcpy(d->pos, s->dst, 8);
+			ff8fx::copy<(8)>(d->pos, s->dst);
 		}
 		if (n->counter == 0xC)
 		{

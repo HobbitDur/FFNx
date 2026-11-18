@@ -240,7 +240,7 @@ namespace blade012
 	// 0x6E8C60: restart a motion at its start, t = 0, dt = 0x1000 / ticks
 	static void MotionInit(Motion *m, int32_t ticks)
 	{
-		memcpy(m->pos, m->start, 8);
+		ff8fx::copy<(8)>(m->pos, m->start);
 		m->t = 0;
 		m->dt = (int16_t)(0x1000 / ticks);
 	}
@@ -647,7 +647,7 @@ namespace blade012
 		n->ang = (int16_t)a;
 		const int32_t s1 = ComputeSin(a >> 1);
 		const int32_t s2 = ComputeSin(a);
-		memcpy(n->prev, n->blade, 8);
+		ff8fx::copy<(8)>(n->prev, n->blade);
 		const int32_t e = s2 >> 2;
 		n->blade[0] = (int16_t)((mul32(n->dirx, e) >> 12) + n->mot.pos[0]);
 		n->blade[1] = (int16_t)(((int32_t)(0u - (uint32_t)mul32(s1, s1)) >> 13) + n->mot.pos[1]);
@@ -663,9 +663,9 @@ namespace blade012
 		d = (int32_t)n->mot.end[2] - n->mot.start[2];
 		n->velz = (int16_t)((int16_t)(d / 32) - n->prev[2] + n->blade[2]);
 		uint8_t s[8];
-		memcpy(s, n->mot.start, 8);
-		memcpy(n->mot.start, n->mot.end, 8);
-		memcpy(n->mot.end, s, 8);
+		ff8fx::copy<(8)>(s, n->mot.start);
+		ff8fx::copy<(8)>(n->mot.start, n->mot.end);
+		ff8fx::copy<(8)>(n->mot.end, s);
 		MotionInit(&n->mot, 0x1E);
 		d = (int32_t)n->mot.start[0] - n->mot.end[0];
 		n->velx = (int16_t)((int16_t)(d / 30 + n->velx) >> 1);
@@ -688,7 +688,7 @@ namespace blade012
 		const int32_t ox = mul32(n->accx, w) >> 12;
 		const int32_t oz = mul32(n->accz, w) >> 12;
 		const int32_t s = ComputeSin(t >> 1);
-		memcpy(n->prev, n->blade, 8);
+		ff8fx::copy<(8)>(n->prev, n->blade);
 		n->blade[0] = (int16_t)(n->mot.pos[0] + ox);
 		n->blade[1] = (int16_t)(n->mot.pos[1] + ((int32_t)(0u - (uint32_t)s) >> 2));
 		n->blade[2] = (int16_t)(n->mot.pos[2] + oz);
@@ -805,7 +805,7 @@ namespace blade012
 				int16_t dir[3];
 				SphereDir(ang, dir);
 				YawVector(dir, p->pos, n->rot[1]);
-				memcpy(p->vel, p->pos, 8);
+				ff8fx::copy<(8)>(p->vel, p->pos);
 				p->pos[0] = (int16_t)((p->pos[0] >> 3) + n->hit[0]);
 				p->pos[1] = (int16_t)(n->hit[1] + (p->pos[1] >> 3));
 				p->pos[2] = (int16_t)((p->pos[2] >> 3) + n->hit[2]);
@@ -819,7 +819,7 @@ namespace blade012
 				p->acc[2] = (int16_t)(-(int32_t)p->vel[2] >> 4);
 				if (streaks)
 				{
-					memcpy(p->dir, p->vel, 8);
+					ff8fx::copy<(8)>(p->dir, p->vel);
 					p->life = 8;
 				}
 				else
@@ -840,8 +840,8 @@ namespace blade012
 			TrailNode *t = (TrailNode *)AddTaskToQueue(QTrails(), ORIG_TrailTask);
 			if (!t) continue;
 			FillDwords(&t->counter, 0, 5);
-			memcpy(t->pos, n->blade, 8);
-			memcpy(t->rot, n->rot, 8);
+			ff8fx::copy<(8)>(t->pos, n->blade);
+			ff8fx::copy<(8)>(t->rot, n->rot);
 			if (!(i & 1)) t->rot[0] = (int16_t)(t->rot[0] - 0x14A);
 			if (n->counter < 8) t->fade = (int16_t)shl32(n->counter, 9);
 			else t->fade = 0x1000;
@@ -912,7 +912,7 @@ namespace blade012
 		if ((uint32_t)k < 5)
 		{
 			uint8_t *h = AllocHeader(0xB4);
-			if (k == 0) memcpy(n->hit, n->blade, 8);
+			if (k == 0) ff8fx::copy<(8)>(n->hit, n->blade);
 			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_FLASH, n, h, 0xB4, k);)
 			SeqDraw(n->hit, h, SEQ_Flash, (int16_t)k);

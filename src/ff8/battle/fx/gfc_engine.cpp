@@ -322,7 +322,7 @@ namespace part_core
 					}
 					else
 					{
-						memcpy(m, lt, 20);
+						ff8fx::copy<(20)>(m, lt);
 						x::ScaleMatrix(m, WS() + 0x80);
 						x::SetLightMatrix(m);
 					}
@@ -394,9 +394,9 @@ namespace part_core
 		uint8_t *f1 = RESFILE()[1];
 		PTR(CTX(), 0x90) = f1 + U32(f1, 0x1C);
 		uint8_t *bones = PTR(CTX(), 0x90);
-		memset(ORDER(), 0xFF, 0x80);
+		ff8fx::fill<(0x80)>(ORDER(), 0xFF);
 		CUR() = bones;
-		memset(DRAWORDER(), 0xFF, 0x80);
+		ff8fx::fill<(0x80)>(DRAWORDER(), 0xFF);
 		ORDER()[0] = 0;
 		U16(SCENE(), 2) = 0;
 		U16(SCENE(), 0x18) = 1;
@@ -415,7 +415,7 @@ namespace part_core
 		U32(SCENE(), 0x16C) = 0;
 		U32(SCENE(), 0x168) = 0;
 		uint8_t *sc = SCENE();
-		memset(NODEKEYS(), 0, 0x80);
+		ff8fx::fill<(0x80)>(NODEKEYS(), 0);
 		uint8_t *b = CUR();
 		if (U16(sc, 0x38) != 0)
 		{
@@ -558,7 +558,7 @@ namespace part_core
 		static bool done = false;
 		if (done) return;
 		done = true;
-		memset(&g_generic, 0, sizeof(g_generic));
+		ff8fx::fill<(sizeof(g_generic))>(&g_generic, 0);
 		fill_core(g_generic);
 		fill_vm_a(g_generic);
 		fill_vm_b(g_generic);
@@ -4331,7 +4331,7 @@ namespace part_vm_d
 		uint8_t cnt = U8(ctx, 0xD0);
 		if (cnt >= U8(ctx, 0xD1))
 		{
-			memset(ORDER(), 0xFF, 0x80);
+			ff8fx::fill<(0x80)>(ORDER(), 0xFF);
 			U32(SEQ(), 8) = 0;
 			U32(CUR(), 8) = 0;
 			U32(CUR(), 4) = 0;

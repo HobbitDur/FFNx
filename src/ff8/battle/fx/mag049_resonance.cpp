@@ -510,7 +510,7 @@ namespace resonance
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x26480E4) = 0x2793E58;
 		MEM<uint32_t>(0x26465E0) = 0x2793E58;
@@ -855,8 +855,8 @@ namespace resonance
 		const uint32_t env_back = 0x2646700 + k * 0x5C;
 		const uint32_t env_disp = 0x1D969C8 + k * 0x5C;
 		const uint32_t env_scene = 0x2647760 + k * 0x5C;
-		memcpy((void *)env_back, (const void *)env_disp, 0x5C);
-		memcpy((void *)env_scene, (const void *)env_disp, 0x5C);
+		ff8fx::copy<(0x5C)>((void *)env_back, (const void *)env_disp);
+		ff8fx::copy<(0x5C)>((void *)env_scene, (const void *)env_disp);
 		U16(env_scene, 0) = 0x240;
 		U16(env_scene, 2) = 0x100;
 		U16(env_scene, 4) = 0x140;

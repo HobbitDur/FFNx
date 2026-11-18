@@ -666,7 +666,7 @@ namespace badbreath113
 			ParticleNode *p = NewParticle();
 			if (p)
 			{
-				memcpy(p->pos, sp, sizeof(sp));
+				ff8fx::copy<(sizeof(sp))>(p->pos, sp);
 				p->vel[0] = (int16_t)(mul32(ComputeSin((int32_t)m->phase >> 2), 2000) >> 12);
 				m->phase = (int16_t)(m->phase + 0x174);
 				const int32_t r0 = CrtRand();
@@ -693,7 +693,7 @@ namespace badbreath113
 			{
 				ParticleNode *q = NewParticle();
 				if (!q) continue;
-				memcpy(q->pos, sp, sizeof(sp));
+				ff8fx::copy<(sizeof(sp))>(q->pos, sp);
 				AngleDir(a, q->vel);
 				q->vel[0] = (int16_t)(q->vel[0] >> 6);
 				q->vel[2] = (int16_t)(q->vel[2] >> 6);

@@ -855,7 +855,7 @@ namespace g327
 	// s+8 = copy of the frame matrix (the ground puffs / sparks)
 	static void LitSetupFrame(uint8_t *s)
 	{
-		memcpy(s + 8, &Frame(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(s + 8, &Frame());
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
 	}
@@ -1152,7 +1152,7 @@ namespace g327
 	// rebuilt first
 	static void PartyDraw(uint8_t *h, const Mat4x3 *m)
 	{
-		memcpy(h + 0x198, &Camera(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(h + 0x198, &Camera());
 		ComposeAffineTransform(&Camera(), m, (Mat4x3 *)(h + 0x1B8));
 		*(uint32_t *)(h + 4) = g_vertex_scratch_override ? g_vertex_scratch_override : var<uint32_t>(0x1D98B3C);
 		*(uint32_t *)(h + 0x10) = 0xFFFFFFFF;
@@ -2004,7 +2004,7 @@ namespace g327
 	static void PuffSetup(uint8_t *h, uint8_t *s)
 	{
 		*(uint32_t *)h = 0xCC6DC8;
-		memcpy(s + 8, &Frame(), sizeof(Mat4x3));
+		ff8fx::copy<(sizeof(Mat4x3))>(s + 8, &Frame());
 		*(uint16_t *)(h + 0x24) = 0;
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
@@ -2817,7 +2817,7 @@ namespace g327
 				uint8_t *E = Sword(i);
 				if (i != 0)
 				{
-					memcpy(E + 0x40, (const void *)0x21FF530, sizeof(Mat4x3));
+					ff8fx::copy<(sizeof(Mat4x3))>(E + 0x40, (const void *)0x21FF530);
 					*(uint32_t *)(E + 0x28) = var<uint32_t>(0x21FF518);
 				}
 				DrawModel(E, &Frame(), 4);
@@ -2925,7 +2925,7 @@ namespace g327
 			{
 				uint8_t *A = Arm(j);
 				*(uint16_t *)A = *(uint16_t *)GIL2;
-				memcpy(A + 0x40, (const void *)0x2200F40, sizeof(Mat4x3));
+				ff8fx::copy<(sizeof(Mat4x3))>(A + 0x40, (const void *)0x2200F40);
 				*(int32_t *)(A + 0x5C) += 0x50;
 				*(uint32_t *)(A + 0x28) = var<uint32_t>(0x2200F28);
 				DrawModel(A, &Frame(), 4);
@@ -2976,7 +2976,7 @@ namespace g327
 			{
 				uint8_t *E = Sword(i);
 				*(uint16_t *)E = *(uint16_t *)GIL3;
-				memcpy(E + 0x40, (const void *)0x2201000, sizeof(Mat4x3));
+				ff8fx::copy<(sizeof(Mat4x3))>(E + 0x40, (const void *)0x2201000);
 				*(uint32_t *)(E + 0x28) = var<uint32_t>(0x2200FE8);
 				DrawModel(E, &Frame(), 4);
 				FX_HELD(ModelMemoTake(E, n, DK_NORMAL4, 0);)

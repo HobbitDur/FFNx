@@ -246,7 +246,7 @@ namespace sigh
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x264EC84) = 0x2793E58;
@@ -1811,7 +1811,7 @@ namespace sigh
 		U16(t, 0x1C) = px;
 		U16(t, 0x1E) = 0;
 		U16(t, 0x20) = pz;
-		memcpy((void *)(t + 0x58), (const void *)(a1 + 0x54), 0x20);
+		ff8fx::copy<(0x20)>((void *)(t + 0x58), (const void *)(a1 + 0x54));
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0; // void
 	}
@@ -1849,7 +1849,7 @@ namespace sigh
 			{
 				uint32_t mbuf[8];
 				const uint32_t m = P(mbuf);
-				memcpy((void *)m, (const void *)(node + 0x58), 0x20);
+				ff8fx::copy<(0x20)>((void *)m, (const void *)(node + 0x58));
 				int32_t r = (int32_t)x::CrtRand();
 				r = r % 0x400;
 				r = (r - 0x200) & 0xFFF;

@@ -872,7 +872,7 @@ namespace sleep145
 				ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), ORIG_Particle);
 				q->frame = 0;
 				q->delay = (int16_t)(CrtRand() % 4 + k);
-				memcpy(q->pos, f.pos, 8); // + the fade word into +0x16
+				ff8fx::copy<(8)>(q->pos, f.pos); // + the fade word into +0x16
 				q->pos[0] = (int16_t)(q->pos[0] + (int16_t)(CrtRand() % 280 - 140));
 				q->pos[1] = (int16_t)(q->pos[1] + (int16_t)(CrtRand() % 280 - 93));
 				q->pos[2] = (int16_t)(q->pos[2] + (int16_t)(CrtRand() % 280 - 140));
@@ -1124,7 +1124,7 @@ namespace sleep145
 			int32_t spread = (EntitySize(d->slot) * 5000) >> 12;
 			if (spread > 0x578) spread = 0x578;
 			MainNode *m = (MainNode *)AddTaskToQueue(EffectQueue(), ORIG_Main);
-			memcpy(m->pos, d->pos, 8);
+			ff8fx::copy<(8)>(m->pos, d->pos);
 			m->pos[1] = (int16_t)(m->pos[1] - 200);
 			m->action = d->action;
 			m->counter = 0;

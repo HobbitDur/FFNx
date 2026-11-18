@@ -332,7 +332,7 @@ namespace bw110
 				BuildBoneMatricesFromPose(weapon);
 			}
 		}
-		memcpy(out, a + 0x28, 8);
+		ff8fx::copy<(8)>(out, a + 0x28);
 		FieldFree(0x38);
 	}
 
@@ -738,7 +738,7 @@ namespace bw110
 					s->t = (int16_t)(s->t + 0xF000);
 					if (s->cur != s->next)
 					{
-						memcpy(s->kept, s->ent[s->next] + 0x1C, 8);
+						ff8fx::copy<(8)>(s->kept, s->ent[s->next] + 0x1C);
 						StartActor(s, s->next);
 					}
 					const int16_t nx = s->next;
@@ -852,7 +852,7 @@ namespace bw110
 				uint8_t *dst = (uint8_t *)(TexBase() + 0x14FC);
 				for (int i = 0; i < STREAM_NVERTS; i++, dst += 8)
 				{
-					memcpy(dst, (const void *)(STREAM_VERTS + i * 8), 8);
+					ff8fx::copy<(8)>(dst, (const void *)(STREAM_VERTS + i * 8));
 					*(int16_t *)(dst + 6) = (int16_t)(shl32(*(const int16_t *)(dst + 4), 12) / range);
 				}
 				InitTaskQueuePool(QStream(), (void *)(TexBase() + 0x1498), 0x64, 1);

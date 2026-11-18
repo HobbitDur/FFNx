@@ -395,8 +395,8 @@ namespace cure001
 	// MAG_001_CURE_Overlay_UpdateMatrices (0x8D7200): the entity's matrix, and a copy moved by `offset`
 	static void UpdateMatrices(OverlayCtx *c, const uint8_t *entity)
 	{
-		memcpy(&c->world, entity + 0x40, 0x20);
-		memcpy(&c->world2, entity + 0x40, 0x20);
+		ff8fx::copy<(0x20)>(&c->world, entity + 0x40);
+		ff8fx::copy<(0x20)>(&c->world2, entity + 0x40);
 		if (c->mode == 0)
 		{
 			int16_t out[4];
@@ -440,7 +440,7 @@ namespace cure001
 		BuildMatrixFromDirAndUp(s + 0x20, s + 0x18, s + 0x10);
 		UnpackRotationMatrix(s + 0x20, s + 0x40);
 		F<int32_t>(s, 0x5C) = c->light_dist;
-		memcpy(s + 0x20, &c->world, 0x20);
+		ff8fx::copy<(0x20)>(s + 0x20, &c->world);
 		F<int32_t>(s, 0x54) = 0;
 		F<int32_t>(s, 0x58) = 0;
 		F<int32_t>(s, 0x38) = (int32_t)((uint32_t)c->world.t[1] - (uint32_t)c->world2.t[1]);
@@ -525,8 +525,8 @@ namespace cure001
 		const uint32_t col = *(const uint32_t *)(entity + 0x28) & 0xFFFFFF;
 		F<uint32_t>(s, 0xB0) = col | 0x24000000;
 		F<uint32_t>(s, 0xB4) = col | 0x2C000000;
-		memcpy(s, &c->view, 0x20);
-		memcpy(s + 0x20, &c->light, 0x20);
+		ff8fx::copy<(0x20)>(s, &c->view);
+		ff8fx::copy<(0x20)>(s + 0x20, &c->light);
 		F<int16_t>(s, 0xA4) = c->ce;
 		F<int16_t>(s, 0xA6) = c->cc;
 		GteSetRotMatrixCtrl((const Mat4x3 *)s);
@@ -801,7 +801,7 @@ namespace cure001
 	// (sin, cos)(step * 0x80) in x / z
 	static void RingPlace(Particle *r, uint32_t step)
 	{
-		memcpy(r->h.pos, r->center, 8);
+		ff8fx::copy<(8)>(r->h.pos, r->center);
 		r->h.pos[1] = (int16_t)(r->h.pos[1] + (int16_t)(r->vel[1] * (int16_t)step));
 		const int32_t angle = (int32_t)((step * (uint32_t)P().ring.angle_step) & 0xFFF);
 		r->angle = (int16_t)angle;
@@ -838,7 +838,7 @@ namespace cure001
 			if ((int16_t)rad > mp.radius_max) m->radius = mp.radius_max;
 			m->h.pos[0] = (int16_t)(m->h.pos[0] + Div4096(mul32(ComputeSin((int16_t)a), m->radius)));
 			m->h.pos[2] = (int16_t)(m->h.pos[2] + Div4096(mul32(ComputeCos((int16_t)a), m->radius)));
-			memcpy(m->vel, r->vel, 8);
+			ff8fx::copy<(8)>(m->vel, r->vel);
 		}
 	}
 
@@ -1132,7 +1132,7 @@ namespace cure001
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		memcpy((void *)CAM_SNAPSHOT, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>((void *)CAM_SNAPSHOT, &Camera());
 		var<uint32_t>(0x278C7DC) = CAM_SNAPSHOT;
 		var<uint32_t>(0x277AEF0) = CAM_SNAPSHOT;
 		if (r->tick & 1)

@@ -635,9 +635,9 @@ namespace ultrasonic152
 		if (c->counter >= 1 && c->counter <= 0xE && c->counter % 5 == 1)
 		{
 			WaveNode *w = (WaveNode *)AddTaskToQueue(QEffects(), ORIG_WaveTask);
-			memcpy(&w->pos[0], &Anchor()[0], 4);
+			ff8fx::copy<(4)>(&w->pos[0], &Anchor()[0]);
 			w->counter = 0;
-			memcpy(&w->pos[2], &Anchor()[2], 4);
+			ff8fx::copy<(4)>(&w->pos[2], &Anchor()[2]);
 			w->pos[0] = (int16_t)(w->pos[0] + (int16_t)(CrtRand() % 0x6E - 0x37));
 			w->pos[1] = (int16_t)(w->pos[1] + (int16_t)(CrtRand() % 0x6E - 0x37));
 			w->pos[2] = (int16_t)(w->pos[2] + (int16_t)(CrtRand() % 0x6E - 0x37));
@@ -647,9 +647,9 @@ namespace ultrasonic152
 		if (c->counter >= 5 && c->counter <= 0x14)
 		{
 			RingNode *g = (RingNode *)AddTaskToQueue(QEffects(), ORIG_RingTask);
-			memcpy(&g->pos[0], &Anchor()[0], 4);
+			ff8fx::copy<(4)>(&g->pos[0], &Anchor()[0]);
 			g->counter = 0;
-			memcpy(&g->pos[2], &Anchor()[2], 4);
+			ff8fx::copy<(4)>(&g->pos[2], &Anchor()[2]);
 			g->angle = (int16_t)(CrtRand() % 0x1000);
 			g->vel[0] = (int16_t)((TargetPos()[0] - Anchor()[0]) / 18);
 			g->vel[1] = (int16_t)((TargetPos()[1] - Anchor()[1]) / 18);
@@ -662,23 +662,23 @@ namespace ultrasonic152
 		if (c->counter == 0x19)
 		{
 			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstA);
-			memcpy(&b->pos[0], &TargetPos()[0], 4);
+			ff8fx::copy<(4)>(&b->pos[0], &TargetPos()[0]);
 			b->counter = 0;
-			memcpy(&b->pos[2], &TargetPos()[2], 4);
+			ff8fx::copy<(4)>(&b->pos[2], &TargetPos()[2]);
 		}
 		if (c->counter == 0x1A)
 		{
 			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstB);
-			memcpy(&b->pos[0], &TargetPos()[0], 4);
+			ff8fx::copy<(4)>(&b->pos[0], &TargetPos()[0]);
 			b->counter = 0;
-			memcpy(&b->pos[2], &TargetPos()[2], 4);
+			ff8fx::copy<(4)>(&b->pos[2], &TargetPos()[2]);
 		}
 		if (c->counter == 0x1A)
 		{
 			BurstNode *b = (BurstNode *)AddTaskToQueue(QEffects(), ORIG_BurstC);
-			memcpy(&b->pos[0], &TargetPos()[0], 4);
+			ff8fx::copy<(4)>(&b->pos[0], &TargetPos()[0]);
 			b->counter = 0;
-			memcpy(&b->pos[2], &TargetPos()[2], 4);
+			ff8fx::copy<(4)>(&b->pos[2], &TargetPos()[2]);
 		}
 		if (c->counter == 0x23) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 		if (c->counter == 1) BdPlaySE(SOUND_Waves, 0, 0x80);
@@ -837,7 +837,7 @@ namespace ultrasonic152
 				e->type = 1;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x700 + 0x300);
-				memcpy(&e->pos[0], &b->pos[0], 8);
+				ff8fx::copy<(8)>(&e->pos[0], &b->pos[0]);
 				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(CrtRand() % 0x320 - 0x190));
 				e->pos[1] = (int16_t)(e->pos[1] + (int16_t)(CrtRand() % 0x320 - 0x190));
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(CrtRand() % 0x320 - 0x190));
@@ -862,7 +862,7 @@ namespace ultrasonic152
 				e->type = 2;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x400 + 0x300);
-				memcpy(&e->pos[0], &b->pos[0], 8);
+				ff8fx::copy<(8)>(&e->pos[0], &b->pos[0]);
 				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(CrtRand() % 0x384 - 0x1C2));
 				e->pos[1] = (int16_t)(e->pos[1] + (int16_t)(CrtRand() % 0x384 - 0x1C2));
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(CrtRand() % 0x384 - 0x1C2));
@@ -887,7 +887,7 @@ namespace ultrasonic152
 				e->type = 4;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x500 + 0x500);
-				memcpy(&e->pos[0], &b->pos[0], 8);
+				ff8fx::copy<(8)>(&e->pos[0], &b->pos[0]);
 				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(CrtRand() % 0x384 - 0x1C2));
 				e->pos[1] = (int16_t)(e->pos[1] + (int16_t)(CrtRand() % 0x384 - 0x1C2));
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(CrtRand() % 0x384 - 0x1C2));

@@ -334,14 +334,14 @@ namespace armor197
 		const uint8_t *sk = *(const uint8_t **)*(uint8_t **)(w + 4);
 		const int32_t n = sk[0];
 		const uint8_t *src = sk + 0x20;
-		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < n; k++, src += 0x30, dst += 0x20) ff8fx::copy<(0x20)>(dst, src);
 	}
 	// ... and back
 	static void BoneRestore(uint8_t *w, const uint8_t *src)
 	{
 		uint8_t *sk = *(uint8_t **)*(uint8_t **)(w + 4);
 		uint8_t *dst = sk + 0x20;
-		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) memcpy(dst, src, 0x20);
+		for (int32_t k = 0; k < (int32_t)sk[0]; k++, src += 0x20, dst += 0x30) ff8fx::copy<(0x20)>(dst, src);
 	}
 
 	// the entity's weapon model alone under its world matrix, with its current bone matrices and colour word +0x28
@@ -567,7 +567,7 @@ namespace armor197
 	static void SparkBegin(uint8_t *s, uint8_t *h, uint32_t seq)
 	{
 		*(int16_t *)(h + 0x24) = 0;
-		memcpy(s + 8, &Camera(), 0x20);
+		ff8fx::copy<(0x20)>(s + 8, &Camera());
 		*(uint32_t *)h = seq;
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
@@ -996,12 +996,12 @@ namespace armor197
 			a->b[0] = (int16_t)((mul32(d[0], r) >> 12) + a->a[0]);
 			a->b[1] = (int16_t)(a->a[1] - (int16_t)((CrtRand() % 0x4B0 + 0x1F4) >> 1));
 			a->b[2] = (int16_t)((mul32(d[2], r) >> 12) + a->a[2]);
-			memcpy(a->ctrl[0], a->a, 8);
+			ff8fx::copy<(8)>(a->ctrl[0], a->a);
 			a->ctrl[1][0] = (int16_t)(((int32_t)a->a[0] + a->b[0]) >> 1);
 			const int32_t up = CrtRand() % 0x4B0;
 			a->ctrl[1][1] = (int16_t)(((((int32_t)a->b[1] + a->a[1]) >> 1) - up) - 0x1F4);
 			a->ctrl[1][2] = (int16_t)(((int32_t)a->b[2] + a->a[2]) >> 1);
-			memcpy(a->ctrl[2], a->b, 8);
+			ff8fx::copy<(8)>(a->ctrl[2], a->b);
 			void *work = FieldAlloc(0x190);
 			SplineSetup(3, a->ctrl, work);
 			for (int32_t i = 0; i < ARC_POINTS; i++) SplineEval(3, work, a->pts[i], (i * 0x1000) / 23);
@@ -1071,7 +1071,7 @@ namespace armor197
 				e->id = id;
 				e->frame = 0;
 				e->size = (int16_t)(CrtRand() % 0x200 + 0x480);
-				memcpy(e->pos, a->pts[p], 8);
+				ff8fx::copy<(8)>(e->pos, a->pts[p]);
 			}
 		}
 		n->counter++;
@@ -1145,7 +1145,7 @@ namespace armor197
 			for (int32_t k = 1, frac = 0x200; frac <= 0xA00; k++, frac += 0x200)
 			{
 				Node *r = AddTask(QAux(), ORIG_PathRingTask);
-				memcpy(r->pos, s->pos, 8);
+				ff8fx::copy<(8)>(r->pos, s->pos);
 				r->f0E = n->f0E;
 				r->pos[0] = (int16_t)(r->pos[0] + (mul32(mul32(k, sixth), s->dir[0]) >> 12));
 				r->pos[1] = (int16_t)(r->pos[1] + (mul32(mul32(s->dir[1], k), sixth) >> 12));
@@ -1171,7 +1171,7 @@ namespace armor197
 		if (n->counter == 1)
 		{
 			Node *r = AddTask(QAux(), ORIG_ImpactRingTask);
-			memcpy(r->pos, n->pos, 8);
+			ff8fx::copy<(8)>(r->pos, n->pos);
 			r->counter = 0;
 			r->f0E = n->f0E;
 			r->f18 = (int16_t)(CrtRand() % 0x1000);
@@ -1181,7 +1181,7 @@ namespace armor197
 			r->f1E = third;
 			r->f1C = third;
 			Node *p = AddTask(QAux(), ORIG_ImpactSpinTask);
-			memcpy(p->pos, r->pos, 8);
+			ff8fx::copy<(8)>(p->pos, r->pos);
 			p->counter = 0;
 			p->f0E = n->f0E;
 			p->f18 = (int16_t)(CrtRand() % 0x1000);
@@ -1193,7 +1193,7 @@ namespace armor197
 		if (n->counter == 6)
 		{
 			Node *f = AddTask(QAux(), ORIG_ArmorFlashTask);
-			memcpy(f->pos, n->pos, 8);
+			ff8fx::copy<(8)>(f->pos, n->pos);
 			f->counter = 0;
 			f->f0E = n->f0E;
 			f->f18 = (int16_t)(CrtRand() % 0x1000);
@@ -1205,9 +1205,9 @@ namespace armor197
 			const int32_t num = IdCount();
 			d->f0E = (int16_t)num;
 			IdCount() = num + 1;
-			memcpy(d->pos, n->pos, 4);
+			ff8fx::copy<(4)>(d->pos, n->pos);
 			d->counter = 0;
-			memcpy(d->pos + 2, n->pos + 2, 4);
+			ff8fx::copy<(4)>(d->pos + 2, n->pos + 2);
 			Node *sp = AddTask(QAux(), ORIG_TargetSparkTask);
 			const int32_t num2 = IdCount();
 			sp->f0E = (int16_t)num2;
@@ -1218,7 +1218,7 @@ namespace armor197
 			for (int32_t j = 0; j < 3; j++)
 			{
 				Node *a = AddTask(QAux(), ORIG_ArcTask);
-				memcpy(a->pos, n->pos, 8);
+				ff8fx::copy<(8)>(a->pos, n->pos);
 				const int32_t arc = ArcCount();
 				a->counter = 0;
 				a->f18 = (int16_t)(arc % 8);

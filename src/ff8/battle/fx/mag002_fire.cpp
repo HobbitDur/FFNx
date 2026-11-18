@@ -187,7 +187,7 @@ namespace fire002
 					FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, ORIG_FlameTask);
 					f->frame = 0;
 					f->delay = (int16_t)(CrtRand() % 6);
-					memcpy(f->pos, pos, 8);
+					ff8fx::copy<(8)>(f->pos, pos);
 					f->pos[0] += (int16_t)(CrtRand() % spread - half);
 					f->pos[1] += (int16_t)(CrtRand() % spread - half);
 					int32_t rz = CrtRand() % spread;
@@ -237,7 +237,7 @@ namespace fire002
 				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, ORIG_FlameTask);
 				f->frame = 0;
 				f->delay = (int16_t)(CrtRand() % 6 + 2 * k);
-				memcpy(f->pos, pos, 8);
+				ff8fx::copy<(8)>(f->pos, pos);
 				f->pos[0] += (int16_t)(CrtRand() % spread - half);
 				f->pos[1] += (int16_t)(CrtRand() % spread - half);
 				f->pos[2] += (int16_t)(CrtRand() % spread - half);
@@ -319,7 +319,7 @@ namespace fire002
 				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, ORIG_EmberTask);
 				e->frame = 0;
 				e->delay = (int16_t)(CrtRand() % 6 + k);
-				memcpy(e->pos, p->pos, 8);
+				ff8fx::copy<(8)>(e->pos, p->pos);
 				e->pos[0] += (int16_t)(CrtRand() % 300 - 150);
 				e->pos[1] -= (int16_t)(CrtRand() % 100);
 				e->pos[2] += (int16_t)(CrtRand() % 300 - 150);
@@ -331,7 +331,7 @@ namespace fire002
 				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, ORIG_SparkTask);
 				s->life = (int16_t)(CrtRand() % 4 + 5);
 				s->delay = (int16_t)(CrtRand() % 4 + k);
-				memcpy(s->pos, p->pos, 8);
+				ff8fx::copy<(8)>(s->pos, p->pos);
 				s->pos[0] += (int16_t)(CrtRand() % 400 - 200);
 				s->pos[1] -= (int16_t)(CrtRand() % 200);
 				s->pos[2] += (int16_t)(CrtRand() % 400 - 200);

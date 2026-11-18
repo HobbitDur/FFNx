@@ -501,7 +501,7 @@ namespace oil137
 	// camera translation
 	static void BlockAt(PrimArg *arg, const int16_t *p4)
 	{
-		memcpy(arg->m.m, Camera().m, sizeof(arg->m.m));
+		ff8fx::copy<(sizeof(arg->m.m))>(arg->m.m, Camera().m);
 		GteSetRotMatrixCtrl(&Camera());
 		GteLoadV0(p4);
 		GteMVMVA_RotV0();
@@ -733,7 +733,7 @@ namespace oil137
 			{
 				ChunkNode *c = (ChunkNode *)AddTaskToQueue(QChunks(), ORIG_ChunkTask);
 				if (!c) continue;
-				memcpy(c->pos, Q, 8);
+				ff8fx::copy<(8)>(c->pos, Q);
 				c->frame = 0;
 				RandomVelocity(w, c->vel, 0x7F, 0x80);
 				c->angle[0] = (int16_t)CrtRand();

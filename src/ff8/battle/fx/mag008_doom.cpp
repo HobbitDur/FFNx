@@ -2273,7 +2273,7 @@ namespace doom
 	{
 		const uint32_t ctx = a1;
 		const uint32_t blk = U32(ctx, 0x48);
-		memcpy((void *)ctx, (const void *)(blk + 0x40), 32);
+		ff8fx::copy<(32)>((void *)ctx, (const void *)(blk + 0x40));
 		const uint32_t anim = blk + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
 		x::GTE_SetRotMatrix(0x1D97778);
@@ -2613,7 +2613,7 @@ namespace doom
 		FX_HELD(held_note_master();)
 
 		const uint32_t node = a1;
-		memcpy((void *)0x2793E58, (const void *)0x1D97778, 8 * 4);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
 		MEM<uint32_t>(0x275F92C) = 0x2793E58;
 		MEM<uint32_t>(0x2758888) = 0x2793E58;
 		const uint32_t states[11] = { 0x8C4CC0, 0x8C4CD0, 0x8C4CE0, 0x8C4D60, 0x8CE2E0, 0x8CE320,
@@ -3099,7 +3099,7 @@ namespace doom
 		U16(L, 2) = (uint16_t)y;
 		U16(L, 4) = (uint16_t)(a2 * 0xF0);
 		x::MAG_022_sub_8DD770(L + 8);
-		memcpy((void *)(L + 8), (const void *)MEM<uint32_t>(CLOCK_BLOCK), 8 * 4);
+		ff8fx::copy<(8 * 4)>((void *)(L + 8), (const void *)MEM<uint32_t>(CLOCK_BLOCK));
 		x::scale3DMatrix(L + 8, MEM<uint32_t>(CLOCK_BLOCK) + 0x20);
 		x::matrixMultiplyVector(L + 8, L, a1);
 		const uint32_t b2 = MEM<uint32_t>(CLOCK_BLOCK);
@@ -3203,7 +3203,7 @@ namespace doom
 			}
 		}
 		const uint32_t M = L + 0x10;
-		memcpy((void *)M, (const void *)b, 8 * 4);
+		ff8fx::copy<(8 * 4)>((void *)M, (const void *)b);
 		x::scale3DMatrix(M, b + 0x20);
 		x::GTE_SetRotMatrix(0x1D97778);
 		x::GTE_LoadIRFromMatrixColumn(M);
