@@ -37,8 +37,6 @@
 // first difference is logged (at most MISMATCH_LOG_MAX lines per summon). B runs under SEH;
 // after FAULTS_MAX faults in one summon only the original code runs for the rest of it.
 // The hit-effect queue (0x500923) is not verified (no ports there).
-// A host layer that owns the tick call itself (fx_port.h: install_hosted) calls verify_tick()
-// for the ticks it wants handled this way instead of the hook.
 
 #include "fx_port.h"
 #include "fx_modules.h"
@@ -325,7 +323,7 @@ namespace
 			for (uint32_t i = 0; i < size;)
 			{
 				uint32_t blk = size - i < 64 ? size - i : 64;
-				if (!ff8fx::same_bytes(cur + i, pre + i, blk) == 0) { i += blk; continue; }
+				if (ff8fx::same_bytes(cur + i, pre + i, blk)) { i += blk; continue; }
 				uint32_t a = i;
 				while (a < size && cur[a] == pre[a]) a++;
 				uint32_t b = a;
@@ -417,7 +415,7 @@ namespace
 		{
 			const Entry &e = g_ent[r];
 			const uint8_t *cur = (const uint8_t *)e.addr, *ref = reference(e);
-			if (!ff8fx::same_bytes(cur, ref, e.size) == 0) continue;
+			if (ff8fx::same_bytes(cur, ref, e.size)) continue;
 			ndiff_entries++;
 			if (first >= 0) continue;
 			first = r;
@@ -521,7 +519,7 @@ namespace
 		{
 			const Entry &e = g_ent[r];
 			const uint8_t *cur = (const uint8_t *)e.addr, *ref = reference(e);
-			if (!ff8fx::same_bytes(cur, ref, e.size) == 0) continue;
+			if (ff8fx::same_bytes(cur, ref, e.size)) continue;
 			uint32_t i = 0, n = 0;
 			while (cur[i] == ref[i]) i++;
 			for (uint32_t k = i; k < e.size; k++) if (cur[k] != ref[k]) n++;
@@ -621,18 +619,13 @@ namespace
 	int run_original_only(TaskQueue *q)
 	{
 		bool act = g_active;
-		g_active = false;
+		set_ports(false);
 		int r = g_tick_orig(q);
-		g_active = act;
+		set_ports(act);
 		return r;
 	}
 
 	// ------------------------------------------------------------------ one verified tick
-	void verify_event(VerifyEvent e)
-	{
-		if (g_verify_event) g_verify_event(e);
-	}
-
 	int verified_tick(TaskQueue *q, const mod::Module &m)
 	{
 		g_s.verified++;
@@ -645,7 +638,6 @@ namespace
 		}
 
 		// --- A: original code, external calls recorded ---
-		verify_event(VERIFY_ORIGINAL_RUN);
 		g_ncalls = 0; g_calls_overflow = false;
 		g_wlog_used = 0; g_wlog_overflow = false;
 		g_phase = PH_A;
@@ -654,7 +646,7 @@ namespace
 		g_mode = EXT_RECORD;
 		g_depth = 0;
 		bool act = g_active;
-		g_active = false;
+		set_ports(false);
 		patch_all(true);
 		scrub_stack();
 		unsigned int cw_a0 = x87_cw();
@@ -664,7 +656,7 @@ namespace
 		g_mode = EXT_OFF;
 		g_queue_seen = nullptr;
 		g_tracking = false;
-		g_active = act;
+		set_ports(act);
 		save_post();
 		if (g_wlog_overflow || g_calls_overflow || g_incomplete)
 		{
@@ -682,14 +674,13 @@ namespace
 
 		// --- B: ports, external calls replayed ---
 		restore_snapshot();
-		verify_event(VERIFY_PORT_RUN);
 		g_phase = PH_B;
 		g_replay_i = 0;
 		g_call_msg[0] = 0;
 		g_tracking = true;
 		g_queue_seen = on_queue_seen;
 		g_mode = EXT_REPLAY;
-		g_active = true;
+		set_ports(true);
 		patch_all(true);
 		scrub_stack();
 		// the FPU control word is part of the state: the GTE emulation rounds with x87 maths,
@@ -704,7 +695,7 @@ namespace
 		g_mode = EXT_OFF;
 		g_queue_seen = nullptr;
 		g_tracking = false;
-		g_active = act;
+		set_ports(act);
 		g_phase = PH_PRE;
 
 		const char *diff = ok ? compare(ra, rb) : "port FAULTED";
@@ -717,7 +708,6 @@ namespace
 		if (!diff)
 		{
 			g_s.matched++;
-			verify_event(VERIFY_KEPT_PORT);
 			return rb;
 		}
 		g_s.mismatched++;
@@ -736,7 +726,6 @@ namespace
 		}
 		if (ok && ff8_battle_fx_dump && !g_s.dumped) { g_s.dumped = true; write_state_dump(m, g_s.effect_id, tick, q); }
 		put_back_A();
-		verify_event(VERIFY_KEPT_ORIGINAL);
 		return ra;
 	}
 
@@ -764,10 +753,7 @@ namespace
 	}
 }
 
-	void (*g_verify_event)(VerifyEvent e) = nullptr;
-
-	// hook_tick = false: a host owns the tick call (install_hosted) and calls verify_tick itself
-	void verify_install(bool hook_tick)
+	void verify_install()
 	{
 		if (g_installed) return;
 		g_installed = true;
@@ -783,27 +769,8 @@ namespace
 			ffnx_error("FF8 battle fx: the verifier has room for %d external sites, %d listed\n", SITES_MAX - 2, mod::ext_site_count);
 		for (int i = 0; i < g_nsites; i++) g_sites[i].stub = stubs[i];
 
-		if (hook_tick)
-		{
-			g_tick_orig = (int (__cdecl *)(TaskQueue *))get_relative_call(0x50093A, 0);
-			replace_call(0x50093A, (void *)effect_tick);
-		}
+		g_tick_orig = (int (__cdecl *)(TaskQueue *))get_relative_call(0x50093A, 0);
+		replace_call(0x50093A, (void *)effect_tick);
 		ffnx_info("FF8 battle fx: differential verifier installed (%d modules, %d external sites)\n", mod::module_count, mod::ext_site_count);
-	}
-
-	int verify_tick(void *queue, int (__cdecl *orig)(void *))
-	{
-		if (!ff8_battle_fx_native) return orig(queue);
-		if (!g_installed)
-		{
-			// verification off: the ports alone
-			bool act = g_active;
-			g_active = true;
-			int r = orig(queue);
-			g_active = act;
-			return r;
-		}
-		g_tick_orig = (int (__cdecl *)(TaskQueue *))orig;
-		return effect_tick((TaskQueue *)queue);
 	}
 }

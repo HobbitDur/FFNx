@@ -21,12 +21,11 @@
 
 namespace ff8fx
 {
-	struct Port { uint32_t orig; void *port; const char *name; int effect_id; };
+	struct Port { uint32_t orig; void *port; const char *name; int effect_id; uint8_t saved[5]; };
 
 	static const int PORTS_MAX = 16384; // (8192 overflowed: registrations past it were dropped silently)
 	static Port g_ports[PORTS_MAX];
 	static int g_nports = 0;
-	// open-addressed index orig -> port slot (the executor looks every task up)
 	static const int INDEX_SIZE = 32768; // power of two, > 2 x PORTS_MAX
 	static int16_t g_index[INDEX_SIZE];
 	static bool g_index_ready = false;
@@ -61,11 +60,24 @@ namespace ff8fx
 		}
 	}
 
-	void *lookup(uint32_t orig)
+	// Every ported task function jumps to its port: the game's own executor and callers run the ports.
+	void set_ports(bool on)
 	{
-		if (!g_active) return nullptr;
-		const Port *p = find(orig);
-		return p ? p->port : nullptr;
+		if (on == g_active) return;
+		for (int i = 0; i < g_nports; i++)
+		{
+			Port &p = g_ports[i];
+			if (find(p.orig) != &p) continue;
+			if (on)
+			{
+				ff8fx::copy<5>(p.saved, (const void *)p.orig);
+				uint8_t jump[5] = { 0xE9 };
+				*(int32_t *)(jump + 1) = (int32_t)((uint32_t)p.port - p.orig - 5);
+				memcpy_code(p.orig, jump, 5);
+			}
+			else memcpy_code(p.orig, p.saved, 5);
+		}
+		g_active = on;
 	}
 
 	const char *port_name(uint32_t orig)

@@ -653,8 +653,7 @@ namespace acid132
 		uint32_t alive = 0;
 		for (TaskNode *t = q->head; t; t = t->next)
 		{
-			void *port = lookup((uint32_t)t->func);
-			const uint32_t r = (port ? (TaskFn)port : t->func)(t);
+			const uint32_t r = t->func(t);
 			if (r & 2)
 			{
 				t->flags = 0;

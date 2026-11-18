@@ -1072,8 +1072,7 @@ namespace c278
 		uint32_t alive = 0;
 		for (TaskNode *t = q.head; t; t = t->next)
 		{
-			void *port = lookup((uint32_t)t->func);
-			uint32_t r = (port ? (TaskFn)port : t->func)(t);
+			uint32_t r = t->func(t);
 			if (r & 2)
 			{
 				t->flags = 0;

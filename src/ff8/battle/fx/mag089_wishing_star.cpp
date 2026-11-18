@@ -1423,123 +1423,19 @@ namespace ws089
 	// ------------------------------------------------------------------
 	// Queue C tasks
 	// ------------------------------------------------------------------
-	// The pad of a particle model's matrix (+0x22) is what Matrix3x3_MultiplyPSX 0x56C090 copies from its own stack (never
-	// written there; its frame is 8-aligned): the word earlier calls left at that depth. The draws of the random turns therefore
-	// run with the ORIGINAL's stack layout (RandRotZMul / RandTiltMul: the same calls, esp at the rand call = the original's mod
-	// 8), so the word is the same: computeCosine's double temp of RotZ (aligned case), what rand left (other case), a word of
-	// the first product's result (tilted pair). The original's alignment: its root runs queue C with the executor entered at
-	// the root's entry esp - 0x3C; the port's root records the difference to its own call of the executor (g_qc_delta, ExecQC),
-	// added to a dive's entry esp (the dives' rand calls are at entry esp - 0x88 / - 0x78: the same alignment). In the
-	// unaligned case (esp = 0 mod 8 at the rand call) the RotZ pad word is below every frame of rand / RotZ: the original reads
-	// the high word of the return address its trail draw's Field_Free call pushed there (0x006FD5F2 / 0x006FDC8B: 0x006F; the
-	// trail is drawn earlier in the same call on every tick with a burst below 0xC), modelled as that word; on the last dive's
-	// tick 0xC (no trail) it is what the code before the task left at its entry esp - 0xA6 (read at the port's entry). On that
-	// tick (director counter 0xBD) the ORIGINAL director's camera blend (65's 0x6E2C10, counters 0xB0..0xE1) is the last code
-	// to write there: its call of GTE_StoreIR123 0x45E3E0 pushes the return address 0x006E2CA6 at the tasks' entry esp - 0xA8
-	// (the director and the dives are run by the executor at the same entry esp). The port's director leaves other words
-	// there, so the root writes that return address at the last dive's entry esp - 0xA8 (learnt on its first tick) before
-	// running queue C on a tick whose director blended the camera: the last dive then reads what the original reads.
-	static uint32_t g_root_entry = 0;   // the root task's entry esp (its return address' slot)
-	static uint8_t *g_lastdive_entry = nullptr; // the last dive's entry esp (its return address' slot), as the executor calls it
-	static bool g_blend_tick = false;   // the director blended the camera (0x6E2C10) on this tick
-	static int32_t g_qc_delta = 0;      // the original's executor entry esp for queue C minus the port's
-	static __declspec(naked) int __cdecl ExecQC(TaskQueue *)
+	static void RandRotZMul(int16_t *m, const void *dir)
 	{
-		__asm
-		{
-			mov eax, g_root_entry
-			sub eax, 0x3C
-			sub eax, esp
-			mov g_qc_delta, eax
-			mov eax, 0x508420
-			jmp eax
-		}
-	}
-	// the original's esp mod 8 at a dive's rand calls (0 / 4), from the dive's entry esp (its return address' slot)
-	inline uint32_t OrigAlign(const void *ret_addr) { return ((uint32_t)ret_addr + (uint32_t)g_qc_delta) & 7; }
-
-	// rand(); RotZ(r, m); Matrix3x3_MultiplyPSX(dir, m, m) laid out as the original (0x6FD80B / 0x6FDD3F)
-	static __declspec(naked) void __cdecl RandRotZMul(int16_t *m, const void *dir, uint32_t al)
-	{
-		__asm
-		{
-			push ebx
-			push edi
-			push esi
-			mov ebx, [esp + 0x10]
-			mov edi, [esp + 0x14]
-			mov ecx, [esp + 0x18]
-			mov esi, esp
-			sub esp, 0x10
-			and esp, 0xFFFFFFF8
-			sub esp, ecx
-			mov eax, 0x55CBD2
-			call eax
-			push ebx
-			push eax
-			mov eax, 0x7012C0
-			call eax
-			push ebx
-			push ebx
-			push edi
-			mov eax, 0x56C090
-			call eax
-			mov esp, esi
-			pop esi
-			pop edi
-			pop ebx
-			ret
-		}
+		RotZ(CrtRand(), m);
+		MatMul3(dir, m, m);
 	}
 
-	// rand(); RotZ(r, RZ); RotX(-0x200, RX); Matrix3x3_MultiplyPSX(RZ, RX, RX); Matrix3x3_MultiplyPSX(dir, RX, out) laid out as
-	// the original (0x6FD8D7 / 0x6FDE60)
-	static __declspec(naked) void __cdecl RandTiltMul(int16_t *out, const void *dir, uint32_t al)
+	static void RandTiltMul(int16_t *out, const void *dir)
 	{
-		__asm
-		{
-			push ebx
-			push edi
-			push esi
-			mov ebx, [esp + 0x10]
-			mov edi, [esp + 0x14]
-			mov ecx, [esp + 0x18]
-			mov esi, esp
-			sub esp, 0x70
-			and esp, 0xFFFFFFF8
-			sub esp, ecx
-			mov eax, 0x55CBD2
-			call eax
-			lea ecx, [esp + 0x3C]
-			push ecx
-			push eax
-			mov eax, 0x7012C0
-			call eax
-			lea edx, [esp + 0x24]
-			push edx
-			push 0xFFFFFE00
-			mov eax, 0x701220
-			call eax
-			lea eax, [esp + 0x2C]
-			lea ecx, [esp + 0x2C]
-			push eax
-			lea edx, [esp + 0x50]
-			push ecx
-			push edx
-			mov eax, 0x56C090
-			call eax
-			lea ecx, [esp + 0x38]
-			push ebx
-			push ecx
-			push edi
-			mov eax, 0x56C090
-			call eax
-			mov esp, esi
-			pop esi
-			pop edi
-			pop ebx
-			ret
-		}
+		Mat4x3 rz, rx;
+		RotZ(CrtRand(), &rz);
+		RotX(-0x200, &rx);
+		MatMul3(&rz, &rx, &rx);
+		MatMul3(dir, &rx, out);
 	}
 
 	// a dive's trail: prim model 0x1497140 at its frame `m`
@@ -1556,7 +1452,7 @@ namespace ws089
 	}
 
 	// `count` particle models along the frame `dir` turned by random Z (tilt: and X -0x200) (kind `kind`), at p
-	static void PModelBurst(const Mat4x3 *dir, const int32_t *p, int kind, bool tilt, int count, uint32_t al)
+	static void PModelBurst(const Mat4x3 *dir, const int32_t *p, int kind, bool tilt, int count)
 	{
 		for (int left = count;;)
 		{
@@ -1564,10 +1460,10 @@ namespace ws089
 			if (!s) return;
 			if (!tilt)
 			{
-				RandRotZMul(s->m, dir, al);
-				if (al == 0) s->pad22 = 0x006F;
+				RandRotZMul(s->m, dir);
 			}
-			else RandTiltMul(s->m, dir, al);
+			else RandTiltMul(s->m, dir);
+			s->pad22 = 0;
 			s->pos[0] = p[0];
 			s->pos[1] = p[1];
 			s->pos[2] = p[2];
@@ -1616,7 +1512,6 @@ namespace ws089
 	static uint32_t __cdecl DiveTask(TaskNode *n)
 	{
 		DiveNode *d = (DiveNode *)n;
-		const uint32_t al = OrigAlign(_AddressOfReturnAddress());
 		if (d->counter < 0xC)
 		{
 			FX_HELD(held_note_trail(d);)
@@ -1676,8 +1571,8 @@ namespace ws089
 		a.m.t[2] = sdiv_pow2(d->m.m[2][2], 2) + Centre()[2];
 		if (c <= 8 && !(c & 1))
 		{
-			PModelBurst(&d->m, a.m.t, 0, false, 4, al);
-			PModelBurst(&d->m, a.m.t, 1, true, 4, al);
+			PModelBurst(&d->m, a.m.t, 0, false, 4);
+			PModelBurst(&d->m, a.m.t, 1, true, 4);
 		}
 		if (d->counter == 6)
 		{
@@ -1701,10 +1596,7 @@ namespace ws089
 	// turns X 0x400 on 3; 13 ticks
 	static uint32_t __cdecl LastDiveTask(TaskNode *n)
 	{
-		g_lastdive_entry = (uint8_t *)_AddressOfReturnAddress();
-		const uint16_t entry_word = *(const uint16_t *)(g_lastdive_entry - 0xA6);
 		DiveNode *d = (DiveNode *)n;
-		const uint32_t al = OrigAlign(_AddressOfReturnAddress());
 		if (d->counter < 0xC)
 		{
 			FX_HELD(held_note_trail(d);)
@@ -1729,8 +1621,8 @@ namespace ws089
 				{
 					PModel *s = PModelAlloc();
 					if (!s) break;
-					RandRotZMul(s->m, &l, al);
-					if (al == 0) s->pad22 = (int16_t)(c < 0xC ? 0x006F : entry_word);
+					RandRotZMul(s->m, &l);
+					s->pad22 = 0;
 					const int32_t spread = (CrtRand() & 0x7FF) - 0x400;
 					const int32_t mx = s->m[1];
 					s->pos[0] = sdiv_pow2(mul32(mx, spread), 12) + l.t[0];
@@ -1752,7 +1644,7 @@ namespace ws089
 			}
 			if (d->counter == 3)
 			{
-				PModelBurst(&l, l.t, 1, true, 0x10, al);
+				PModelBurst(&l, l.t, 1, true, 0x10);
 				SparkleBurst(&l, l.t, 0x10, 0x2000);
 				RotX(0x400, &d->m);
 			}
@@ -1944,7 +1836,6 @@ namespace ws089
 			SetKeys(ka, ctr[0] + 0x3F1, ctr[1] - 0x2B9, ctr[2] + 0x8EF, ctr[0] + 0x188F, ctr[1] - 0x498, ctr[2] + 0x1B1B);
 			SetKeys(kb, ctr[0] - 0x10A8, ctr[1] - 0xE1B, ctr[2] - 0xC50, ctr[0] + 0x1C7B, ctr[1] + 0x128C, ctr[2] + 0x167D);
 			CameraBlend(ka, kb, 0, 0, ComputeSin(ComputeSin(t) >> 2));
-			g_blend_tick = true;
 		}
 	}
 
@@ -2349,7 +2240,6 @@ namespace ws089
 	{
 		RootNode *r = (RootNode *)n;
 		FX_HELD(held_note_root();)
-		g_root_entry = (uint32_t)_AddressOfReturnAddress();
 		const uint32_t tex = TexBase();
 		if (r->parity != 0)
 		{
@@ -2379,14 +2269,9 @@ namespace ws089
 		int a = (int)n;
 		if (r->started)
 		{
-			g_blend_tick = false;
 			a = ExecuteTaskQueue(QA());
 			ExecuteTaskQueue(QB());
-			// the original director's residue at the last dive's entry esp - 0xA8 (free stack: the executor calls the dives below
-			// this frame, at that entry esp)
-			volatile uint8_t here = 0;
-			if (g_blend_tick && g_lastdive_entry && g_lastdive_entry < (const uint8_t *)&here) *(volatile uint32_t *)(g_lastdive_entry - 0xA8) = 0x006E2CA6;
-			ExecQC(QC());
+			ExecuteTaskQueue(QC());
 		}
 		if (r->started && a == 0) return TASK_END;
 		r->counter++;
