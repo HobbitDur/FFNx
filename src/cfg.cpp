@@ -325,8 +325,8 @@ void read_cfg()
 	ff8_use_gamepad_icons = config["ff8_use_gamepad_icons"].value_or(false);
 	ff8_always_capture_input = config["ff8_always_capture_input"].value_or(false);
 	ff8_battle_fx_dump = config["ff8_battle_fx_dump"].value_or(false);
-	ff8_battle_fx_native = config["ff8_battle_fx_native"].value_or(true);
-	ff8_battle_fx_verify = config["ff8_battle_fx_verify"].value_or(true);
+	ff8_battle_fx_native = config["ff8_battle_fx_native"].value_or(false);
+	ff8_battle_fx_verify = config["ff8_battle_fx_verify"].value_or(false);
 	ff8_fps_limiter = config["ff8_fps_limiter"].value_or(FPS_LIMITER_DEFAULT);
 	app_path = config["app_path"].value_or("");
 	data_drive = config["data_drive"].value_or("");

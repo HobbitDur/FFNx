@@ -1,4 +1,5 @@
 /****************************************************************************/
+//    Copyright (C) 2026 Julian Xhokaxhiu                                   //
 //    Copyright (C) 2026 HobbitDur                                          //
 //                                                                          //
 //    This file is part of FFNx                                             //
@@ -19,7 +20,7 @@
 // function returned bit 1 (TASK_END). FFNx replaces it with a twin that calls the native port of
 // a node's function when one is registered (a node keeps its original function address) and the
 // optional observers (g_queue_seen, g_exec_observer). Options (FFNx.toml):
-//   ff8_battle_fx_native  run the ported effect code (default true)
+//   ff8_battle_fx_native  run the ported effect code (default false)
 //   ff8_battle_fx_verify  run every tick of a ported effect with the original code too and
 //                         keep the original result on any difference (fx_verify.cpp)
 //
