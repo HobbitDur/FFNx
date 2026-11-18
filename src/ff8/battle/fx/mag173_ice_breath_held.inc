@@ -298,9 +298,9 @@ namespace ib173
 	static PolyDraw PolyAt(uint32_t st, int32_t c, bool moves)
 	{
 		PolyDraw d = {};
-		if (c >= 0xA)
+		if (c >= P().trail.grow_ticks)
 		{
-			const int32_t t = c - 0xA;
+			const int32_t t = c - P().trail.grow_ticks;
 			if (S16(st, 0xE) < 0) return d;
 			d.vis = true;
 			if (S16(st, 6) < t)
@@ -316,7 +316,7 @@ namespace ib173
 			}
 			return d;
 		}
-		d.vis = S16(st, 6) < c || c >= 0xC;
+		d.vis = S16(st, 6) < c || c >= P().trail.full;
 		return d;
 	}
 
@@ -391,28 +391,16 @@ namespace ib173
 		return cursor;
 	}
 
-	static void TrailHeld(const Rec &r, int num, int den)
+	// one copy of the mesh at m (the node's place, or a target's spot: trail.each), from the polygon states as drawn
+	static void TrailHeldCopy(uint32_t h, uint32_t n, const Mat4x3 &m, const Rec &r, int num, int den)
 	{
-		uint8_t copy[0x24];
-		memcpy(copy, r.node, sizeof(copy));
-		const uint32_t n = (uint32_t)copy;
-		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
-		Mat4x3 m;
-		ComposeZYXRotationMatrix(angles, &m);
-		m.t[0] = S16(n, 0x10);
-		m.t[1] = S16(n, 0x12);
-		const int32_t s = S16(n, 0x1C);
-		const int32_t sv[3] = { s, s, s };
-		m.t[2] = S16(n, 0x14);
-		Scale3DMatrix(&m, sv);
-		const uint32_t h = (uint32_t)FieldAlloc(0xAC);
 		S32(h, 0x24) = S16(n, 0xE);
 		U32(h, 0x1C) = 0x30;
 		U32(h, 0) = TrailMesh(S16(n, 0xE));   // (the parameters' mesh, as the task draws it)
 		U32(h, 8) = 0;
 		ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
 		const int16_t c = S16(n, 0xC);
-		S32(h, 0x20) = c >= 0xA ? c - 0xA : c;
+		S32(h, 0x20) = c >= P().trail.grow_ticks ? c - P().trail.grow_ticks : c;
 		const uint32_t mesh = U32(h, 0);
 		U32(h, 4) = mesh + 8;
 		U32(h, 0x2C) = U32(mesh, 0) + mesh;
@@ -420,6 +408,60 @@ namespace ib173
 		U32(h, 0x2C) = U32(h, 0x2C) + 0x18;
 		U32(h, 0x28) = (uint32_t)g_trail[S16(n, 0xE)];
 		PacketCursor() = TrailHeldPolys(h, OT44(), 2, PacketCursor(), r, num, den);
+	}
+
+	// the trail as its task draws it (TrailTask): at the node's place, or (trail.each, TrailTaskEach) one copy on each
+	// target's spot, stretched up to trail.reach, each while the held buffer has room for it
+	static void TrailHeld(const Rec &r, int num, int den)
+	{
+		uint8_t copy[0x24];
+		memcpy(copy, r.node, sizeof(copy));
+		const uint32_t n = (uint32_t)copy;
+		int16_t angles[3] = { 0, S16(n, 0x18), 0 };
+		const int32_t s = S16(n, 0x1C);
+		const uint32_t h = (uint32_t)FieldAlloc(0xAC);
+		int32_t slots[8];
+		if (TrailTargets(slots))
+		{
+			Mat4x3 rot;
+			ComposeZYXRotationMatrix(angles, &rot);
+			const int32_t back = mul32(P().trail.back, s) >> 12;
+			const uint32_t mesh = TrailMesh(S16(n, 0xE));
+			const uint32_t need = (uint32_t)S32(U32(mesh, 0) + mesh + 0x18, 0) * 0x28;
+			const uint32_t end = (uint32_t)g_held_packets + sizeof(g_held_packets);
+			int32_t top = 0;
+			for (uint32_t v = 0; v < U32(mesh, 4); v++)
+				if (S16(mesh + 8 + v * 8, 2) < top) top = S16(mesh + 8 + v * 8, 2);
+			for (int32_t i = 0; i < g_trail_spot_count; i++)
+			{
+				if (PacketCursor() + need > end) break;
+				const TrailSpot &at = g_trail_spots[i];
+				Mat4x3 m = rot;
+				m.t[0] = at.x - (mul32(back, rot.m[0][2]) >> 12);
+				m.t[1] = 0;
+				m.t[2] = at.z - (mul32(back, rot.m[2][2]) >> 12);
+				int32_t sy = s;
+				if (at.low < 0 && top < 0)
+				{
+					const int32_t want = (int32_t)(((int64_t)(P().trail.reach - at.low) << 12) / -top);
+					if (want > sy) sy = want > 0x7FFF ? 0x7FFF : want;
+				}
+				const int32_t sv[3] = { s, sy, s };
+				Scale3DMatrix(&m, sv);
+				TrailHeldCopy(h, n, m, r, num, den);
+			}
+		}
+		else
+		{
+			Mat4x3 m;
+			ComposeZYXRotationMatrix(angles, &m);
+			m.t[0] = S16(n, 0x10);
+			m.t[1] = S16(n, 0x12);
+			m.t[2] = S16(n, 0x14);
+			const int32_t sv[3] = { s, s, s };
+			Scale3DMatrix(&m, sv);
+			TrailHeldCopy(h, n, m, r, num, den);
+		}
 		FieldFree(0xAC);
 	}
 
