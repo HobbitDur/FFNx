@@ -3959,6 +3959,8 @@ static int ff8_bgate_la_module_of_effect()
 }
 
 static bool ff8_bgate_fxv_live = false; // the running summon is being verified (ff8_bgate_fxv_*)
+// the running effect is a held provider's (FujinEffects.dll, fx_held.h HeldApi): set on each of its real ticks
+static bool ff8_bgate_prov_live = false;
 
 static void ff8_bgate_la_reset()
 {
@@ -4465,12 +4467,24 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 		if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8fx::held_next_real_tick();   // (and a held provider's: fx_held.h HeldApi)
 		bool la_tick = ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_la_real_tick_begin(ctx);
 		bool fxv_tick = la_tick && ff8_bgate_fxv_wanted();
+		// an effect a held provider runs (FujinEffects.dll: Fujin's programs in free slots of the effect table): its task
+		// ranges are recorded as a look-ahead effect's, its held frames are the provider's in-between draws
+		const bool prov_tick = ff8_bgate_R == &ff8_bgate_rec_fx && !la_tick && ff8_battle_fx_native && ff8_bgate_gfc_enabled
+			&& ff8fx::held_provider_owns(*(int *)0x1D99A68 + 1);
+		if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8_bgate_prov_live = prov_tick;
+		if (prov_tick)
+		{
+			ff8_bgate_etq_log_n = 0;
+			ff8_bgate_etq_log_overflow = false;
+			ff8_bgate_etq_rec = true;
+		}
 		// hit-effect queue: its native tasks (ff8fx::register_eq_task) run their ports, and the draw range of every task
 		// is noted (task_of) for the held frames (ff8_bgate_eq_held)
 		const bool eq_tick = ff8_bgate_R == &ff8_bgate_rec_eq;
 		if (eq_tick)
 		{
 			ff8fx::g_eq_tick++;
+			ff8fx::held_refresh_provider();   // (a held provider's tasks in the queue: fx_held.h HeldApi eq_*)
 			ff8_bgate_etq_log_n = 0;
 			ff8_bgate_etq_log_overflow = false;
 			ff8_bgate_etq_rec_eq = true;
@@ -4532,6 +4546,16 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 			ff8_bgate_R->tail = tail;
 			ff8_bgate_R->tail_otclear = tail && ff8_bgate_fx_otclear;
 			ff8_bgate_fx_summary("finished");
+			if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_la_cur < 0 && ff8fx::held_provider_owns(*(int *)0x1D99A68 + 1))
+				ffnx_info("30fps held: effect %d is a held provider's (live %d, native held frames %u)\n", *(int *)0x1D99A68 + 1,
+				          (int)ff8_bgate_prov_live, ff8_bgate_fxv_held_frames);
+			if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_la_cur < 0 && ff8_bgate_prov_live)
+			{
+				char name[48];
+				_snprintf_s(name, sizeof(name), _TRUNCATE, "held provider effect %d", *(int *)0x1D99A68 + 1);
+				ff8_bgate_fxv_summary(name);   // (its native held frames: FujinEffects.dll's)
+				ff8_bgate_prov_live = false;
+			}
 			if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8_bgate_la_finish();
 			if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_gfc_ctx)
 			{
@@ -4554,7 +4578,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 				ff8_bgate_fx_recapture_pending = true;
 			if (eq_tick && ff8_bgate_fx_snaps[ff8_bgate_fx_cur].valid)
 				ff8_bgate_la_attach_tasks(ff8_bgate_fx_snaps[ff8_bgate_fx_cur]);
-			if (la_tick && ff8_bgate_fx_snaps[ff8_bgate_fx_cur].valid)
+			if ((la_tick || prov_tick) && ff8_bgate_fx_snaps[ff8_bgate_fx_cur].valid)
 				ff8_bgate_la_attach_tasks(ff8_bgate_fx_snaps[ff8_bgate_fx_cur]);
 			if (la_tick && !fxv_tick && ff8_bgate_fx_snaps[ff8_bgate_fx_cur].valid)
 			{
@@ -4575,7 +4599,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 	if (ff8_bgate_R == &ff8_bgate_rec_fx) ff8_bgate_diff_frame(false);
 	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_otclear && ff8_bgate_fx_replay_ok)
 		((void (__cdecl *)(void *, int))0x45D530)((void *)FF8_BGATE_CUR_OT(), 4096); // SSIGPU_ClearOrderingTable, as the effect's tick does
-	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && ff8_bgate_fxv_live && ff8_bgate_gfc_enabled && ff8_bgate_fx_mode >= 2)
+	if (ff8_bgate_R == &ff8_bgate_rec_fx && ff8_bgate_fx_replay_ok && (ff8_bgate_fxv_live || ff8_bgate_prov_live) && ff8_bgate_gfc_enabled && ff8_bgate_fx_mode >= 2)
 	{
 		int eid = *(int *)0x1D99A68 + 1;
 		if (ff8fx::held_ready(eid))
@@ -4639,7 +4663,7 @@ static int ff8_bgate_gate_tick(void *ctx, int (__cdecl *orig)(void *), int held_
 
 static bool ff8_bgate_fx_held_camera(int16_t world[3], int16_t lookat[3])
 {
-	if (ff8_bgate_phase == 0 || !ff8_bgate_fxv_live || !ff8_bgate_gfc_enabled || ff8_bgate_fx_mode < 2 || !ff8_bgate_fx_replay_ok)
+	if (ff8_bgate_phase == 0 || !(ff8_bgate_fxv_live || ff8_bgate_prov_live) || !ff8_bgate_gfc_enabled || ff8_bgate_fx_mode < 2 || !ff8_bgate_fx_replay_ok)
 		return false;
 	int eid = *(int *)0x1D99A68 + 1;
 	if (!ff8fx::held_ready(eid)) return false;

@@ -111,7 +111,7 @@ namespace ib173
 		Rec *r = NewRec(REC_POOL, fn, n, h);
 		if (!r) return;
 		const uint8_t bit = KindBit(fn);
-		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
+		for (uint32_t e = own::R(POOL); e < own::R(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & bit)) continue;
 			if (g_nparts >= MAX_PARTS)
@@ -139,10 +139,10 @@ namespace ib173
 		const int idx = S16(n, 0xE);
 		if (idx < 0 || idx > 4) return;
 		if (!NewRec(REC_TRAIL, ORIG_Trail, n, h)) return;
-		const uint32_t mesh = U32(TRAIL_MESHES + (uint32_t)idx * 4, 0);
+		const uint32_t mesh = TrailMesh(idx);   // (the parameters' mesh, as the task draws it)
 		const int32_t count = S32(U32(mesh, 0) + mesh + 0x18, 0);
 		const uint32_t size = (uint32_t)(count > 0 ? count : 0) * 0x20;
-		memcpy(g_trail[idx], (const void *)U32(TRAIL_STATES + (uint32_t)idx * 4, 0), size < sizeof(g_trail[idx]) ? size : sizeof(g_trail[idx]));
+		memcpy(g_trail[idx], (const void *)TrailStates(idx), size < sizeof(g_trail[idx]) ? size : sizeof(g_trail[idx]));
 	}
 
 	// a crystal player about to play its layout
@@ -163,8 +163,8 @@ namespace ib173
 		const uint32_t w170c = var<uint32_t>(0x1D9770C);
 		const bool bones = (U8(e, 0) & 2) != 0;
 		if (bones) pose_midpoint((void *)(e + 0x60), (void *)(e + 0x6C), num, den);
-		U32(out, 0) = U32(ANCHOR, 0);
-		U32(out, 4) = U32(ANCHOR, 4);
+		U32(out, 0) = U32(own::R(ANCHOR), 0);
+		U32(out, 4) = U32(own::R(ANCHOR), 4);
 		ComputeAnchor(out);
 		if (bones) BuildBoneMatricesFromPose((void *)(e + 0x60));
 		var<uint32_t>(0x1D9770C) = w170c;
@@ -328,7 +328,7 @@ namespace ib173
 		uint32_t poly = U32(h, 0x2C);
 		const int32_t count = S32(poly, 0);
 		poly += 4;
-		const uint32_t pre = (uint32_t)g_trail[idx], live = U32(TRAIL_STATES + (uint32_t)idx * 4, 0);
+		const uint32_t pre = (uint32_t)g_trail[idx], live = TrailStates(idx);
 		for (int32_t k = 0; k < count && (uint32_t)(k + 1) * 0x20 <= sizeof(g_trail[idx]); k++, poly += 0x1C)
 		{
 			// the next tick's draw: counter + 1 (a draw-only tick does not count: the counter stays, nothing moved, and the
@@ -408,7 +408,7 @@ namespace ib173
 		const uint32_t h = (uint32_t)FieldAlloc(0xAC);
 		S32(h, 0x24) = S16(n, 0xE);
 		U32(h, 0x1C) = 0x30;
-		U32(h, 0) = U32(TRAIL_MESHES + (uint32_t)S16(n, 0xE) * 4, 0);
+		U32(h, 0) = TrailMesh(S16(n, 0xE));   // (the parameters' mesh, as the task draws it)
 		U32(h, 8) = 0;
 		ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
 		const int16_t c = S16(n, 0xC);

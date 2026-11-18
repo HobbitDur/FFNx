@@ -108,7 +108,7 @@ namespace cura
 	static Rec *NewRec(uint32_t kind, uint32_t node)
 	{
 		if (g_replaying || g_log_tick != g_real_tick || g_nrec >= (int)(sizeof(g_recs) / sizeof(g_recs[0]))) return nullptr;
-		if (g_nrec == 0) g_packets = MEM<uint32_t>(PACKET_CURSOR);
+		if (g_nrec == 0) g_packets = MEM<uint32_t>(R(PACKET_CURSOR));
 		Rec &r = g_recs[g_nrec++];
 		r.kind = kind;
 		r.node = node;
@@ -227,7 +227,7 @@ namespace cura
 		if (g_novl == 0) g_fa_start = MEM<uint32_t>(FRAME_CURSOR);
 		r->seq = (uint32_t)g_novl;
 		OvlRec &o = g_ovl[g_novl++];
-		memcpy(o.st, (const void *)OVL_LO, sizeof(o.st));
+		memcpy(o.st, (const void *)R(OVL_LO), sizeof(o.st));
 		o.y = S16(node, 0x1E);
 		o.y_next = (int16_t)(U16(node, 0x1E) + U16(node, 0x42));
 		const uint32_t e = U32(node, 0x14);
@@ -349,8 +349,8 @@ namespace cura
 	static void OverlayHeld(const Rec &r, int num, int den)
 	{
 		const OvlRec &o = g_ovl[r.seq];
-		memcpy((void *)OVL_LO, o.st, sizeof(o.st));
-		const uint32_t st = OVL_STATE;
+		memcpy((void *)R(OVL_LO), o.st, sizeof(o.st));
+		const uint32_t st = R(OVL_STATE);
 		if (o.moves)
 		{
 			const int16_t y = magc::lerp16(o.y, o.y_next, num, den);
@@ -400,8 +400,8 @@ namespace cura
 		const bool overlay = g_novl > 0;
 		if (overlay)
 		{
-			memcpy(ovl, (const void *)OVL_LO, sizeof(ovl));
-			memcpy(lit, (const void *)LIT_VERTICES, sizeof(lit));
+			memcpy(ovl, (const void *)R(OVL_LO), sizeof(ovl));
+			memcpy(lit, (const void *)R(LIT_VERTICES), sizeof(lit));
 		}
 		memcpy(shadow, (const void *)0x1D999C8, sizeof(shadow));
 		const uint32_t fa = MEM<uint32_t>(0x1D999C4);
@@ -415,7 +415,7 @@ namespace cura
 			if ((g_recs[i].kind == REC_PLAY && g_recs[i].moves) || (g_recs[i].kind == REC_OVERLAY && g_ovl[g_recs[i].seq].moves))
 				NextAnchorOf(P(g_recs[i].copy));
 		{
-			magc::HeldScope scope(MEM<uint32_t>(PACKET_CURSOR), g_held_packets, sizeof(g_held_packets), g_packets);
+			magc::HeldScope scope(MEM<uint32_t>(R(PACKET_CURSOR)), g_held_packets, sizeof(g_held_packets), g_packets);
 			g_replaying = true;
 			alignas(4) static uint8_t copy[NODE_BYTES];
 			for (int i = 0; i < g_nrec; i++)
@@ -456,8 +456,8 @@ namespace cura
 		memcpy((void *)0x1D999C8, shadow, sizeof(shadow));
 		if (overlay)
 		{
-			memcpy((void *)LIT_VERTICES, lit, sizeof(lit));
-			memcpy((void *)OVL_LO, ovl, sizeof(ovl));
+			memcpy((void *)R(LIT_VERTICES), lit, sizeof(lit));
+			memcpy((void *)R(OVL_LO), ovl, sizeof(ovl));
 		}
 	}
 }
@@ -474,5 +474,6 @@ namespace cura
 		mark_held(act::cura::ORIG_Overlay);
 		mark_held(act::cura::ORIG_Particle);
 		register_module_held(25, act::cura::HeldReady, act::cura::HeldFrame);
+		register_module_begin(25, act::cura::held_note_master);   // (a Fujin program's director: Cronos's Cura 357)
 	}
 }

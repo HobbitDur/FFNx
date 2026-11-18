@@ -36,7 +36,10 @@
 // For every object the player fills a 44-byte record and calls cb(layout, record, arg).
 
 #include "fx_port.h"
+#if __has_include("../../../log.h")
 #include "../battle_host.h"
+#define FX_PRIMPLAYER_VERIFY 1   // (built in FFNx: the live self-check below)
+#endif
 
 #ifdef FF8_FX_HELD
 #include "fx_primplayer_held.h"
@@ -260,6 +263,7 @@ namespace ff8fx::prim
 		return total - l->frame;
 	}
 
+#ifdef FX_PRIMPLAYER_VERIFY
 	// ---- live self-check: every call of the original player in the game (all effects) runs the
 	// native twin on a copy first and compares records, return value and final state ----
 	static uint32_t g_verify_ri = 0;
@@ -326,6 +330,7 @@ namespace ff8fx::prim
 		g_verify_ri = replace_function(0x701970, (void *)VerifyHook);
 		ffnx_info("30fps primplayer: live self-check of the native prim-model player installed\n");
 	}
+#endif
 }
 
 #ifdef FF8_FX_HELD

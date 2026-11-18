@@ -30,11 +30,16 @@ namespace ff8fx
 	// g_real_tick counts the effect's real (logic) ticks; the frame gate increments it before each (held_next_real_tick).
 	extern uint32_t g_real_tick;
 	void held_next_real_tick();
+	// the held provider looked up again without a real tick of the effects (the hit-effect queue's tick)
+	void held_refresh_provider();
+	// a held provider runs this effect (the frame gate records its task ranges and asks the provider for its held frames)
+	bool held_provider_owns(int effect_id);
 
 	// A held provider: another DLL running effects with its own copy of this code - FujinEffects.dll, Fujin's programs
 	// in free slots of the effect table (a port module's code on the program's memory). For an effect id, or a task
 	// function, this layer has nothing registered for, the lookups below ask it (its export FujinEffects_HeldApi, found
 	// at each real tick; none: nothing changes). It counts the real ticks with this layer (real_tick).
+	struct HeldGate;   // (below: the gate's helpers)
 	struct HeldApi
 	{
 		int version;   // HELD_API_VERSION
@@ -45,14 +50,26 @@ namespace ff8fx
 		bool (__cdecl *keeps_ended)(uint32_t fn);
 		bool (__cdecl *keeps_drawn)(uint32_t fn);
 		void (__cdecl *real_tick)(uint32_t tick);
+		// version 2: the gate's helpers for the provider's held parts (HeldGate), passed at each real tick
+		void (__cdecl *gate)(const HeldGate *g);
+		// version 2: the provider's tasks in the hit-effect queue (eq_has_draw / eq_held_draw below)
+		bool (__cdecl *eq_has_draw)(uint32_t fn);
+		bool (__cdecl *eq_held_draw)(uint32_t fn, const void *node, int num, int den);
+		// version 2: the provider runs this effect (its held frames are the provider's: held_provider_owns)
+		bool (__cdecl *owns)(int effect_id);
 	};
-	static const int HELD_API_VERSION = 1;
+	static const int HELD_API_VERSION = 2;   // (a version 1 provider is still asked: it gets no helpers)
 	typedef const HeldApi *(__cdecl *HeldApiFn)();
 
 	// A module's ready() says its ports ran on the last real tick (their memos are current);
 	// draw(num, den) draws the state at tick + num/den.
 	void register_module_held(int effect_id, bool (*ready)(), void (*draw)(int num, int den));
 	bool held_ready(int effect_id);
+	// A module's tick start (what its master task notes first: held_note_master). A Fujin program that runs the module's
+	// pieces under a director of its own (FujinEffects.dll: Cronos's Cura on Cura's code) never runs that master: its
+	// director calls held_module_begin(effect) at the start of its tick instead.
+	void register_module_begin(int effect_id, void (*begin)());
+	void held_module_begin(int effect_id);
 	void held_draw(int effect_id, int num, int den);
 	// task functions whose in-between state their module redraws (the generic packet replay
 	// skips the packets those tasks drew on the last real tick)
@@ -187,6 +204,20 @@ namespace ff8fx
 	// will have it, e.g. after an effect-model anim advance 0x6FBDB0 that restarts a completed animation), same rules
 	// (fraction 1 = next_skeleton's pose exactly). (Implemented in ff8_opengl.cpp.)
 	void pose_midpoint_to(void *anim_header, const void *next_skeleton, int num, int den);
+
+	// The frame gate's helpers, handed to a held provider (HeldApi::gate): it runs the same module code without the gate,
+	// so its pose_midpoint / held_shake_next stand-ins call these when it has them (a battle model's in-between pose and
+	// the shake are the gate's state).
+	struct HeldGate
+	{
+		int version;   // HELD_GATE_VERSION
+		void (__cdecl *pose_midpoint)(void *anim_header, void *anim_cmd, int num, int den);
+		void (__cdecl *pose_midpoint_to)(void *anim_header, const void *next_skeleton, int num, int den);
+		void (__cdecl *shake_next)(const int16_t next[3], unsigned written);
+	};
+	static const int HELD_GATE_VERSION = 1;
+	// in a provider: the gate's helpers (nullptr: none - the recorder, a battle without the gate)
+	extern const HeldGate *g_gate;
 
 	// per-node memo of the state a task drew on the current real tick (for the in-between
 	// state of tasks that draw then update). Entries from older ticks count as free slots.

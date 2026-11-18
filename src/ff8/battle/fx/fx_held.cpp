@@ -38,7 +38,22 @@ namespace ff8fx
 		if (!m || m == self) return nullptr;
 		const HeldApiFn get = (HeldApiFn)GetProcAddress(m, "FujinEffects_HeldApi");
 		const HeldApi *api = get ? get() : nullptr;
-		return api && api->version == HELD_API_VERSION ? api : nullptr;
+		return api && api->version >= 1 ? api : nullptr;
+	}
+
+	const HeldGate *g_gate = nullptr;
+
+	// this layer's helpers, for a provider (in the provider's own build: its stand-ins, never sent)
+	static void __cdecl gate_pose_midpoint(void *h, void *c, int num, int den) { pose_midpoint(h, c, num, den); }
+	static void __cdecl gate_pose_midpoint_to(void *h, const void *n, int num, int den) { pose_midpoint_to(h, n, num, den); }
+	static void __cdecl gate_shake_next(const int16_t next[3], unsigned written) { held_shake_next(next, written); }
+	static const HeldGate GATE = { HELD_GATE_VERSION, gate_pose_midpoint, gate_pose_midpoint_to, gate_shake_next };
+
+	void held_refresh_provider() { g_provider = find_provider(); }
+
+	bool held_provider_owns(int effect_id)
+	{
+		return g_provider && g_provider->version >= 2 && g_provider->owns && g_provider->owns(effect_id);
 	}
 
 	void held_next_real_tick()
@@ -46,6 +61,7 @@ namespace ff8fx
 		g_real_tick++;
 		g_provider = find_provider();
 		if (g_provider && g_provider->real_tick) g_provider->real_tick(g_real_tick);
+		if (g_provider && g_provider->version >= 2 && g_provider->gate) g_provider->gate(&GATE);
 	}
 
 	// ------------------------------------------------------------------ module held frames
@@ -53,6 +69,21 @@ namespace ff8fx
 	static const int MODULES_MAX = 512; // (212 held parts register: 128 dropped every module registered after the 128th)
 	static ModuleHeld g_held[MODULES_MAX];
 	static int g_nheld = 0;
+
+	struct ModuleBegin { int effect_id; void (*begin)(); };
+	static ModuleBegin g_begin[32];
+	static int g_nbegin = 0;
+
+	void register_module_begin(int effect_id, void (*begin)())
+	{
+		if (g_nbegin < (int)(sizeof(g_begin) / sizeof(g_begin[0]))) g_begin[g_nbegin++] = { effect_id, begin };
+	}
+
+	void held_module_begin(int effect_id)
+	{
+		for (int i = 0; i < g_nbegin; i++)
+			if (g_begin[i].effect_id == effect_id) g_begin[i].begin();
+	}
 
 	void register_module_held(int effect_id, bool (*ready)(), void (*draw)(int, int))
 	{
@@ -256,13 +287,15 @@ namespace ff8fx
 	bool eq_has_draw(uint32_t orig)
 	{
 		const int i = g_neq_tasks ? eq_find(orig) : -1;
-		return i >= 0 && g_eq_tasks[i].draw;
+		if (i >= 0) return g_eq_tasks[i].draw != nullptr;
+		return g_provider && g_provider->version >= 2 && g_provider->eq_has_draw && g_provider->eq_has_draw(orig);
 	}
 
 	bool eq_held_draw(uint32_t orig, const void *node, int num, int den)
 	{
 		const int i = g_neq_tasks ? eq_find(orig) : -1;
-		return i >= 0 && g_eq_tasks[i].draw && g_eq_tasks[i].draw(orig, node, num, den);
+		if (i >= 0) return g_eq_tasks[i].draw && g_eq_tasks[i].draw(orig, node, num, den);
+		return g_provider && g_provider->version >= 2 && g_provider->eq_held_draw && g_provider->eq_held_draw(orig, node, num, den);
 	}
 
 	// ------------------------------------------------------------------ shared registrations

@@ -156,7 +156,7 @@ namespace curaga
 		g_sys_tick = g_real_tick;
 		g_nsys = 0;
 		g_nflash = 0;
-		g_pkt_start = MEM<uint32_t>(PACKET_CURSOR);
+		g_pkt_start = MEM<uint32_t>(R(PACKET_CURSOR));
 		g_fa_start = MEM<uint32_t>(FA_CURSOR);
 	}
 
@@ -170,7 +170,7 @@ namespace curaga
 		const uint32_t after = g_nflash ? g_flash[g_nflash - 1].node : 0;
 		bool past = after == 0;
 		uint32_t found = 0;
-		for (uint32_t node = MEM<uint32_t>(Q_FLASH); node; node = U32(node, 4))
+		for (uint32_t node = MEM<uint32_t>(R(Q_FLASH)); node; node = U32(node, 4))
 		{
 			if (!past) { past = node == after; continue; }
 			if (U32(node, 8) == ORIG_Flash && (U8(node, 0x26) & 1) == 0 && U32(node, 0x34) == colour) { found = node; break; }
@@ -275,7 +275,7 @@ namespace curaga
 	// definition of an actor (state +0x224 table, index +0x1D6)
 	static uint32_t DefOf(uint32_t act)
 	{
-		return U32(U32(MEM<uint32_t>(ACTOR_STATE), 0x224), S8(act, 0x1D6) * 4);
+		return U32(U32(MEM<uint32_t>(R(ACTOR_STATE)), 0x224), S8(act, 0x1D6) * 4);
 	}
 
 	// the next tick's update pass (0x8804D0: list order; particles = type 0, actors = type 1) run on
@@ -404,7 +404,7 @@ namespace curaga
 	static void SystemHeld(const SysNote &n, const uint8_t *next_view, int num, int den)
 	{
 		alignas(4) static uint8_t copies[MAX_ACTORS][ACTOR_BYTES];
-		MEM<uint32_t>(ACTOR_STATE) = n.sys;
+		MEM<uint32_t>(R(ACTOR_STATE)) = n.sys;
 		// the drawn actors: sprite sequences (definition kinds 0..2) and models (4 / 5)
 		uint32_t list[MAX_ACTORS];
 		int nl = 0;
@@ -463,10 +463,10 @@ namespace curaga
 	{
 		if (!HeldReady()) return;
 		const Mod *saved_mod = g_mod;
-		g_mod = &MOD_028;
+		g_mod = g_own ? saved_mod : &MOD_028;   // (a Fujin program's copy: its own relocated descriptor, set by the program)
 		static uint8_t bss[BSS_HI - BSS_LO], scratch[SCRATCH_HI - SCRATCH_LO], gte[GTE_D_N + GTE_C_N], falloc[0x1000], shadow[0x80];
 		const uint32_t fa = MEM<uint32_t>(0x1D999C4);
-		memcpy(bss, (const void *)BSS_LO, sizeof(bss));
+		memcpy(bss, (const void *)R(BSS_LO), sizeof(bss));
 		memcpy(scratch, (const void *)SCRATCH_LO, sizeof(scratch));
 		memcpy(gte, (const void *)GTE_D, GTE_D_N);
 		memcpy(gte + GTE_D_N, (const void *)GTE_C, GTE_C_N);
@@ -477,7 +477,7 @@ namespace curaga
 		static VertexBlocks verts_now[MAX_SYSTEMS]; // the blocks as the real tick left them
 		for (int s = 0; s < g_nsys; s++)
 			verts_now[s].save(g_sys[s].sys);
-		const uint32_t pc = MEM<uint32_t>(PACKET_CURSOR), fc = MEM<uint32_t>(FA_CURSOR);
+		const uint32_t pc = MEM<uint32_t>(R(PACKET_CURSOR)), fc = MEM<uint32_t>(FA_CURSOR);
 		{
 			// the buffers get the real tick's packets: the replayed draws write the same packets at
 			// the same offsets over them (the halves a draw does not write are the real tick's)
@@ -486,7 +486,7 @@ namespace curaga
 			const uint32_t used2 = fc - g_fa_start;
 			if (g_fa_start && fc > g_fa_start && used2 < sizeof(g_held_fa)) memcpy(g_held_fa, (const void *)g_fa_start, used2);
 		}
-		MEM<uint32_t>(PACKET_CURSOR) = P(g_held_packets);
+		MEM<uint32_t>(R(PACKET_CURSOR)) = P(g_held_packets);
 		MEM<uint32_t>(FA_CURSOR) = P(g_held_fa);
 		// the screen flashes (their queue runs before the actor systems): the colour of the real
 		// tick holds; at fraction 1 the next tick's step (nothing once the script ends)
@@ -500,7 +500,7 @@ namespace curaga
 		const bool next_view = g_nsys > 0 && NextView(view);
 		for (int s = 0; s < g_nsys; s++)
 			SystemHeld(g_sys[s], next_view ? view : nullptr, num, den);
-		MEM<uint32_t>(PACKET_CURSOR) = pc;
+		MEM<uint32_t>(R(PACKET_CURSOR)) = pc;
 		MEM<uint32_t>(FA_CURSOR) = fc;
 		for (int s = g_nsys - 1; s >= 0; s--)
 			verts_now[s].restore();
@@ -514,7 +514,7 @@ namespace curaga
 		memcpy((void *)GTE_D, gte, GTE_D_N);
 		memcpy((void *)GTE_C, gte + GTE_D_N, GTE_C_N);
 		memcpy((void *)SCRATCH_LO, scratch, sizeof(scratch));
-		memcpy((void *)BSS_LO, bss, sizeof(bss));
+		memcpy((void *)R(BSS_LO), bss, sizeof(bss));
 		g_mod = saved_mod;
 	}
 }
@@ -524,5 +524,6 @@ namespace curaga
 		mark_held(act::curaga::ORIG_ActorSystem);
 		mark_held(act::curaga::ORIG_Flash);
 		register_module_held(28, act::curaga::HeldReady, act::curaga::HeldFrame);
+		register_module_begin(28, act::held_note_master);   // (a Fujin program's director: Cronos's Curaga 358)
 	}
 }
