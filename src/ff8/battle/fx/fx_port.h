@@ -444,6 +444,7 @@ namespace ff8fx
 	void register_mag218_gilgamesh_kills_seifer();
 	void register_mag251_demon_slice();
 	void register_mag210_bloodfest();
+	void register_mag173_ice_breath();
 	void register_mag176_sand_storm_adamantoise();
 	void register_mag157_breath();
 	void register_mag158_melt_eye();
