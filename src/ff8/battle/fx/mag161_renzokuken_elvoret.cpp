@@ -17,7 +17,6 @@
 // Effect 161: Renzokuken vs Elvoret / Elnoyle
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -361,7 +360,7 @@ namespace renzo161
 
 	static uint32_t __cdecl ControllerTask(TaskNode *tn)
 	{
-		return ControllerBody((Node24 *)tn, *(const int16_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x12));
+		return ControllerBody((Node24 *)tn, 0x1A);
 	}
 
 	static uint32_t __cdecl HitSparkTask(TaskNode *tn)

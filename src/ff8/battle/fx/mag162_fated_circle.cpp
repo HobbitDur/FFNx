@@ -17,7 +17,6 @@
 // Effect 162: Fated Circle
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -1366,8 +1365,7 @@ namespace circle162
 
 	static uint32_t __cdecl SwirlTask(TaskNode *tn)
 	{
-		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x28);
-		return SwirlBody((Node24 *)tn, g_slot28_known ? g_slot28 : stack_word);
+		return SwirlBody((Node24 *)tn, g_slot28_known ? g_slot28 : 0x1000);
 	}
 
 	static void ShellMatrix(const Node24 *n, int16_t yaw, int16_t pitch, int16_t s)

@@ -17,7 +17,6 @@
 // Effect 126: Electric Discharge
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -851,11 +850,9 @@ namespace disch126
 	static bool g_crawl_first;
 	static uint32_t __cdecl CrawlerTask(TaskNode *n)
 	{
-		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2C);
-		const uint16_t stack_pad = *(const uint16_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2E);
 		const bool first = g_crawl_first;
 		g_crawl_first = false;
-		return CrawlerTaskBody((CrawlerNode *)n, first ? stack_word : g_crawl_slot, first ? stack_pad : g_crawl_pad);
+		return CrawlerTaskBody((CrawlerNode *)n, first ? 0 : g_crawl_slot, first ? 0 : g_crawl_pad);
 	}
 
 	static uint32_t __cdecl MainTask(TaskNode *n)

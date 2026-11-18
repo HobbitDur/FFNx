@@ -17,7 +17,6 @@
 // Effect 165: Lion Heart
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -2828,9 +2827,8 @@ namespace lion165
 	static uint32_t __cdecl HitDirectorTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
-		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 4);
 		const bool modelled = g_trail_slot4_known && PredecessorIsTrail(tn);
-		return HitDirectorBody((Node24 *)tn, modelled ? g_trail_slot4 : stack_word);
+		return HitDirectorBody((Node24 *)tn, modelled ? g_trail_slot4 : 0x023C5910);
 	}
 
 	static int32_t BounceOffset(const Node24 *n, int32_t c)
